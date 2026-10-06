@@ -34,7 +34,8 @@ import {
   VOICE_IDLE, VOICE_LISTENING, VOICE_THINKING, VOICE_SPEAKING,
 } from "../lib/realtime-turn.js";
 import { deliveredTotal } from "../../netlify/functions/aria-realtime-tool.js";
-import { readFileSync } from "node:fs";
+import { STORE_KNOWLEDGE as K_STORES } from "../../netlify/functions/_store-knowledge.js";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -97,7 +98,33 @@ check("only tools with a real backend are offered", () => {
   /* A tool with nothing behind it is worse than no tool: the model
      narrates its empty output as fact, which §12 forbids outright. */
   assert.deepEqual([...REALTIME_TOOL_NAMES].sort(),
-    ["calculate_total_delivered_price", "get_order_status", "get_product_details", "search_products"]);
+    ["calculate_total_delivered_price", "check_brand_exists", "decode_vin",
+     "get_cart_items", "get_cart_total", "get_current_user", "get_order_history",
+     "get_order_status", "get_product_details", "get_sale_scoop", "get_store_info",
+     "get_top_sales", "get_user_preferences", "lookup_part_by_number",
+     "lookup_parts_by_vehicle", "recommend_stores_for", "request_brand",
+     "search_products"]);
+
+  /* AND THE BACKEND IS CHECKED, not just the list. The list above
+     says which tools we meant to ship; this says each one actually
+     resolves somewhere — in the page's executor or in the function's
+     switch. A tool declared with nothing behind it answers `undefined`
+     and the model narrates that as fact. */
+  const pageSrc = readFileSync(ROOT + "index.html", "utf8");
+  const fnSrc = readFileSync(ROOT + "netlify/functions/aria-realtime-tool.js", "utf8");
+  for (const name of REALTIME_TOOL_NAMES){
+    const inPage = pageSrc.includes(`name === '${name}'`);
+    const inFn = fnSrc.includes(`case "${name}":`);
+    assert.ok(inPage || inFn, `${name} is offered to the model and handled nowhere`);
+    /* AND A SERVER-SIDE TOOL MUST BE ROUTED FROM THE PAGE. The function
+       having a `case` for it means nothing if the page never sends it
+       there: the executor would fall through and answer undefined,
+       which the model then narrates as fact. */
+    if (inFn && !inPage){
+      assert.ok(pageSrc.includes(`name === '${name}'`) || pageSrc.includes(`'${name}'`),
+        `${name} is handled by the function and the page never routes it there`);
+    }
+  }
   /* Taking money is not something a mis-heard sentence should do. */
   assert.ok(!REALTIME_TOOL_NAMES.includes("create_order"), "a voice can place an order");
   for (const t of REALTIME_TOOLS){
@@ -169,6 +196,61 @@ check("interrupting before any audio still cancels the response", () => {
   ]);
   assert.ok(actions.includes("cancelResponse"));
   assert.equal(state.phase, VOICE_LISTENING);
+});
+
+check("over WebRTC, where no audio deltas arrive, the path still re-opens", () => {
+  /* THE PRODUCTION BUG, 2026-10-06. The greeting was audible and every
+     answer after it was silent, while the text kept appearing.
+
+     Over WebRTC the model's audio is a continuous MediaStreamTrack.
+     The `response.output_audio.delta` events are the WebSocket
+     transport's way of carrying audio, and they do not arrive here —
+     so every test above this one, which feeds deltas, describes a
+     session shape production never has.
+
+     This feeds the real shape: speech, a response, transcript text,
+     and NOT ONE audio delta. The old reducer emitted "playAudio" only
+     on a delta, and "playAudio" was the only thing that called
+     sink.open(). So the single hand-written open() at the start of the
+     call was the only one that ever happened — the greeting — and the
+     first barge-in cut the path for good.
+
+     The symptom proves the mechanism: if "playAudio" had been firing,
+     the next answer would have re-opened the path by itself. */
+  const { actions } = play([
+    /* The greeting, which worked. */
+    { type: "response.created", response: { id: "r1" } },
+    { type: "response.output_audio_transcript.delta", delta: "Hola, soy Aria" },
+    /* He talks over it — the cut that used to be permanent. */
+    { type: "input_audio_buffer.speech_started" },
+    { type: "input_audio_buffer.speech_stopped" },
+    /* Her answer: text, no deltas. */
+    { type: "response.created", response: { id: "r2" } },
+    { type: "response.output_audio_transcript.delta", delta: "Claro, te busco" },
+    { type: "response.done" },
+  ]);
+  const cutAt = actions.indexOf("stopPlayback");
+  assert.ok(cutAt >= 0, "the barge-in did not cut the audio");
+  assert.ok(actions.slice(cutAt).includes("openAudio"),
+    "the audio path was cut and never re-opened — every answer after the greeting is silent");
+
+  /* And the re-open must come from the NEW response, not from anything
+     that depends on audio deltas existing. */
+  const afterSecond = actions.slice(actions.lastIndexOf("openAudio"));
+  assert.ok(!afterSecond.includes("stopPlayback"), "the path was cut again after re-opening");
+});
+
+check("her own talking counts as activity, so a long answer is not silence", () => {
+  /* The idle timer was re-armed by "playAudio". Over WebRTC that never
+     fires, so a thirty-five second answer read as nobody being there
+     and the call hung up on a shopper mid-sentence. */
+  const { actions } = play([
+    { type: "response.created", response: { id: "r" } },
+    { type: "response.output_audio_transcript.delta", delta: "Mira, " },
+    { type: "response.output_audio_transcript.delta", delta: "tengo tres opciones" },
+  ]);
+  assert.ok(actions.filter(a => a === "noteActivity").length >= 2,
+    "she can talk for half a minute and be counted as silent");
 });
 
 check("a pause mid-thought is not an interruption", () => {
@@ -334,51 +416,73 @@ check("the page falls back rather than throwing when the module is absent", () =
     "the turn module is not bridged into the page");
   assert.match(page, /const T = window\.AriaRealtimeTurn;\s*\n\s*if \(!T/,
     "the page assumes the bridge loaded");
-  /* The mic button must still work when live voice cannot start. */
-  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,1600}toggleContinuousMode\(\);/,
-    "a failed realtime start does not fall back to the old loop");
+  /* THE FALLBACK THIS ONCE ASSERTED IS GONE (2026-10-06, Danny: "No
+     fallback. No kill switch. No way to revert."). It used to require
+     that a failed start reached toggleContinuousMode(); requiring
+     that now would be requiring the bug he reported — he tested the
+     preview, got the old voice, and the fallback was what hid
+     the real failure. A failed start must stop at the error. */
+  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,1600}showRealtimeError\(\);/,
+    "a failed realtime start does not stop at the visible error");
+  /* BRACE-MATCHED. "\n}\n" never matches in a CRLF file, so the slice
+     ran past the end of the function and into the old loop's own
+     definition — which of course mentions it. */
+  const tAt = page.indexOf("async function toggleAriaVoice()");
+  let td = 0, tEnd = -1;
+  for (let k = page.indexOf("{", tAt); k < page.length; k++){
+    if (page[k] === "{") td++;
+    else if (page[k] === "}" && --td === 0){ tEnd = k; break; }
+  }
+  assert.ok(tEnd > tAt, "toggleAriaVoice is unbalanced");
+  assert.ok(!/toggleContinuousMode\(\)/.test(page.slice(tAt, tEnd)),
+    "the old loop is still reachable from the mic button");
 });
 
-check("live voice is the default, and ?voz=clasica is a real kill switch", () => {
-  /* RUN, NOT GREPPED. The first version of this checked that the
-     function existed and was called — and a mutation replacing its
-     whole body with `return true` passed it. The function is lifted
-     out of the page and executed against a stubbed location and
-     localStorage instead.
+check("there is no switch, no flag and no way back to the old voice", () => {
+  /* THIS TEST USED TO RUN realtimeEnabled() AGAINST A STUBBED
+     location AND localStorage, because a mutation replacing its body
+     with `return true` had passed a grep-based version.
 
-     The default flipped on 2026-10-06 (Danny approved full
-     gpt-realtime), so the thing worth protecting is now the opposite:
-     that the kill switch still works and still sticks. */
+     The function is gone (2026-10-06, Danny: "DELETE the
+     realtimeEnabled() function entirely... No fallback. No kill
+     switch. No way to revert."), so there is nothing left to run. An
+     earlier pass had reduced it to `return true`, which is worse than
+     either: a switch that lies, with every call site still reading as
+     though a choice existed.
+
+     What the test asserts now is the absence itself — and absence is
+     exactly what rots quietly, so it is checked by name. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const from = page.indexOf("function realtimeEnabled(){");
-  assert.ok(from > 0, "realtimeEnabled is gone from index.html");
-  const src = page.slice(from, page.indexOf("\n}", from) + 2);
-  const flagM = /const ARIA_RT_FLAG = '([^']+)'/.exec(page);
-  assert.ok(flagM, "ARIA_RT_FLAG is gone from index.html");
-  const make = (search, stored, hostile) => {
-    const store = new Map(stored !== undefined ? [[flagM[1], stored]] : []);
-    /* ARIA_RT_FLAG is declared outside the function; without it the
-       body throws into its own catch, which once looked exactly like
-       a passing test. */
-    const fn = new Function("location", "localStorage", "URLSearchParams", "ARIA_RT_FLAG",
-      src + "; return realtimeEnabled();");
-    const ls = hostile
-      ? { getItem(){ throw new Error("denied"); }, setItem(){ throw new Error("denied"); },
-          removeItem(){ throw new Error("denied"); } }
-      : { getItem: (k) => (store.has(k) ? store.get(k) : null),
-          setItem: (k, v) => store.set(k, String(v)),
-          removeItem: (k) => store.delete(k) };
-    return { on: fn({ search }, ls, URLSearchParams, flagM[1]), store };
-  };
-  assert.equal(make("").on, true, "live voice is not the default");
-  assert.equal(make("?utm_source=fb").on, true, "an unrelated query string turned it off");
-  assert.equal(make("?voz=clasica").on, false, "?voz=clasica did not turn it off");
-  assert.equal(make("", "0").on, false, "the stored kill switch was not remembered");
-  assert.equal(make("?voz=vivo", "0").on, true, "?voz=vivo did not undo the kill switch");
-  /* …and the kill switch persists, or it is useless the next reload. */
-  assert.equal(make("?voz=clasica").store.get(flagM[1]), "0", "the kill switch was not stored");
-  /* A browser that refuses localStorage outright must not lose the voice. */
-  assert.equal(make("", undefined, true).on, true, "a locked-down browser lost live voice");
+  assert.ok(!/function realtimeEnabled\s*\(/.test(page),
+    "realtimeEnabled() is back in index.html");
+  /* COMMENTS STRIPPED FIRST. The rule is that nothing CALLS it, not
+     that nobody may name it: the tombstone comment explaining why it
+     went deserves to say which function it is talking about. */
+  const noComments = page
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ");
+  assert.ok(!/realtimeEnabled\(\)/.test(noComments),
+    "something still calls realtimeEnabled()");
+  assert.ok(!/const ARIA_RT_FLAG\s*=/.test(page),
+    "the localStorage kill-switch flag is back");
+  assert.ok(!/localStorage[^\n]*ariaLiveVoice/.test(page),
+    "something still reads the old kill-switch value out of localStorage");
+
+  /* The two ?voz flags that remain are about AUDIO PROCESSING, not
+     about which engine runs — ?voz=crudo hands the raw microphone to
+     OpenAI, ?voz=limpio puts the browser's own filter back. Those stay
+     useful. What must not come back is a flag that selects an engine. */
+  const engineFlags = page.match(/voz'\)\s*===\s*'(vivo|clasica)'/g) || [];
+  assert.equal(engineFlags.length, 0,
+    `an engine-selecting ?voz flag is back: ${engineFlags.join(", ")}`);
+
+  /* And the one remaining classic-voice predicate must be false
+     always, or the old speak paths wake up again. */
+  const at = page.indexOf("function ariaClassicVoiceOnly(){");
+  assert.ok(at > 0, "ariaClassicVoiceOnly is gone — check its five call sites");
+  const body = page.slice(at, page.indexOf("}", at) + 1);
+  const fn = new Function(body + "; return ariaClassicVoiceOnly();");
+  assert.equal(fn(), false, "the classic voice can still own a turn");
 });
 
 check("the mute button actually stops transmitting", () => {
@@ -436,7 +540,7 @@ check("the call controls exist and only while a call does", () => {
      audio must be the branch that says she is speaking. */
   assert.match(page, /Aria te escucha/, "there is no listening state");
   assert.match(page, /Aria está hablando/, "there is no speaking state");
-  assert.match(page, /action === 'playAudio'\)\{ sink\.open\(\); setRealtimeState\('speaking'\); \}/,
+  assert.match(page, /action === 'playAudio'\)\{[\s\S]{0,80}sink\.open\(\);[\s\S]{0,60}setRealtimeState\('speaking'\);/,
     "playing her audio does not put the bar into the speaking state");
   /* The cut itself, asserted as its real condition — `if (false)`
      silently disarmed barge-in and still passed an earlier version. */
@@ -454,7 +558,12 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
      preference. 500 tokens is generous for three sentences and
      impossible to filibuster from. */
   assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
-  assert.equal(session.audio.output.voice, "marin", "the voice changed without a decision");
+  /* coral, not marin (2026-10-06): marin is the most polished voice
+     and polished was the complaint — it read as a composed
+     professional rather than the warm Peruvian friend we wanted.
+     Pinned so it cannot drift back silently; ARIA_REALTIME_VOICE
+     changes it without a deploy. */
+  assert.equal(session.audio.output.voice, "coral", "the voice changed without a decision");
   /* The transcript is a separate ASR from what she hears, so this
      only drives the text on screen — but an empty model name turns
      the subtitles off entirely, which reads as her not listening. */
@@ -575,7 +684,7 @@ check("a fallback is never silent again", () => {
      because that is what he was talking to, and nothing on screen or
      in the console said so. Every bail-out now names itself. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const start = page.indexOf("async function startRealtimeVoice()");
+  const start = page.indexOf("async function startRealtimeVoiceOnce()");
   const end = page.indexOf("/** End the session", start);
   const body = page.slice(start, end);
   assert.ok(start > 0 && end > start, "startRealtimeVoice moved");
@@ -611,10 +720,14 @@ check("a fallback is never silent again", () => {
      The first version set the text in the fallback path, where
      setAssistantMicState overwrote it a moment later and the browser
      check caught what the grep could not. */
-  /* The classic loop labels itself whenever it runs — now only when
-     somebody chose it, since nothing selects it automatically. */
-  assert.match(page, /ariaRTFellBack = true;\s*\r?\n\s*toggleContinuousMode\(\);/,
-    "the old loop runs without labelling itself");
+  /* NOTHING SELECTS THE OLD LOOP ANY MORE, so there is no longer a
+     labelled fallback to assert. ariaRTFellBack and the pill text it
+     drives stay in place: the flag is now only ever false, and the
+     label is the thing that would have to be right if a fallback ever
+     came back. Asserting that the flag is never SET is the live rule. */
+  const setsFellBack = (page.match(/ariaRTFellBack = true/g) || []);
+  assert.equal(setsFellBack.length, 0,
+    "something falls back to the old loop and labels it — there is no fallback now");
   const pill = page.slice(page.indexOf("THE LISTENING PILL"));
   assert.match(pill.slice(0, 1400), /ariaRTFellBack\)[\s\S]{0,120}modo clásico/,
     "the listening pill does not say which engine is running");
@@ -688,7 +801,7 @@ check("nothing in the live path records, chunks, or auto-sends", () => {
   const page = readFileSync(ROOT + "index.html", "utf8");
   /* A voice-message architecture would need one of these. None exist. */
   assert.ok(!/MediaRecorder/.test(page), "a MediaRecorder appeared — that is chunking");
-  const start = page.indexOf("async function startRealtimeVoice()");
+  const start = page.indexOf("async function startRealtimeVoiceOnce()");
   const end = page.indexOf("/* END OF THE REALTIME CLIENT SLICE */");
   const slice = page.slice(start, end);
   assert.ok(!/MediaRecorder|ondataavailable/.test(slice), "the live path records instead of streaming");
@@ -737,30 +850,32 @@ check("there is no automatic fallback to the old loop, at all", () => {
      "the same thing as before" for exactly that reason. The old loop
      is still there and still works — only a person can choose it. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const toggle = page.slice(page.indexOf("async function toggleAriaVoice()"));
-  const body = toggle.slice(0, toggle.indexOf("\n}\n"));
-
-  /* Failing to start must show the error and return, never continue. */
-  assert.match(body, /showRealtimeError\(\);\s*\r?\n\s*return;/,
-    "a failed live start does not stop at the error");
-  /* …and the old loop must not be reachable from the failure path. */
-  /* Sliced to INSIDE the realtimeEnabled() branch: the one call to
-     the old loop that remains sits after that branch and is reached
-     only when a person chose it. */
-  const enter = body.indexOf("if (realtimeEnabled()){");
-  let depth = 0, close = -1;
-  for (let k = body.indexOf("{", enter); k < body.length; k++){
-    if (body[k] === "{") depth++;
-    else if (body[k] === "}" && --depth === 0){ close = k; break; }
+  /* BRACE-MATCHED: "\n}\n" never matches in a CRLF file. */
+  const tAt2 = page.indexOf("async function toggleAriaVoice()");
+  let td2 = 0, tEnd2 = -1;
+  for (let k = page.indexOf("{", tAt2); k < page.length; k++){
+    if (page[k] === "{") td2++;
+    else if (page[k] === "}" && --td2 === 0){ tEnd2 = k; break; }
   }
-  assert.ok(close > enter, "the live-voice branch is unbalanced");
-  const liveBranch = body.slice(enter, close);
-  assert.ok(!/toggleContinuousMode\(\)/.test(liveBranch),
-    "the old loop still starts automatically when live voice fails");
-  /* It stays reachable only for someone who asked for it by URL. */
-  assert.match(body.slice(close), /toggleContinuousMode\(\);/,
-    "the old loop is unreachable even on purpose");
-  assert.match(page, /if \(q === 'clasica'\)/, "?voz=clasica no longer selects the old loop");
+  assert.ok(tEnd2 > tAt2, "toggleAriaVoice is unbalanced");
+  const body = page.slice(tAt2, tEnd2 + 1);
+
+  /* Failing to start must END at the visible error. It used to need a
+     `return;` after it because code followed; the fallback that
+     followed is gone, so the error is now the last thing in the
+     function — which is the stronger shape, not a weaker one. */
+  assert.match(body, /showRealtimeError\(\);[\s\r\n]*\}$/,
+    "a failed live start does not end at the visible error");
+  /* THERE IS NO BRANCH LEFT TO SLICE. This used to find
+     `if (realtimeEnabled()){`, check that nothing inside it reached
+     the old loop, and then check that the old loop WAS still
+     reachable after it for someone who asked by URL. Both halves are
+     obsolete: the switch is deleted and the deliberate route with it.
+
+     The whole function is the live path now, so the whole function is
+     what must not mention the old loop. */
+  assert.ok(!/toggleContinuousMode\(\)/.test(body),
+    "the old loop is still reachable from the mic button");
 
   /* The error is visible, says why, and offers a retry. */
   assert.match(page, /function showRealtimeError\(\)/, "there is no visible error");
@@ -870,9 +985,13 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   /* The parts that carry meaning survive every rung. */
   const last = calls[calls.length - 1].payload.session;
   assert.ok(last.instructions && last.instructions.length > 100, "the instructions were shed");
-  assert.ok(Array.isArray(last.tools) && last.tools.length === 4, "the tools were shed");
+  /* AGAINST THE REAL LIST, not a literal. This read `=== 7` and
+     broke the day a tool was added, which says nothing about whether
+     the ladder sheds tools — the thing it is here to catch. */
+  assert.ok(Array.isArray(last.tools) && last.tools.length === REALTIME_TOOLS.length,
+    "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
-  assert.equal(last.audio.output.voice, "marin", "the voice was shed");
+  assert.equal(last.audio.output.voice, "coral", "the voice was shed");
 });
 
 await checkAsync("even the smallest session keeps what makes her Aria", async () => {
@@ -900,14 +1019,14 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
   assert.ok(minimal.instructions && minimal.instructions.length > 1000,
     "the minimal session dropped her instructions");
   assert.equal(minimal.model, "gpt-realtime", "the minimal session dropped the model");
-  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 4,
+  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === REALTIME_TOOLS.length,
     "the minimal session dropped her tools — she could not search");
   assert.equal(minimal.tool_choice, "auto", "the minimal session dropped tool_choice");
   assert.equal(minimal.audio.input.turn_detection.type, "semantic_vad",
     "the minimal session dropped turn detection — no barge-in, no answering");
   assert.equal(minimal.audio.input.turn_detection.interrupt_response, true,
     "the minimal session cannot be interrupted");
-  assert.equal(minimal.audio.output.voice, "marin", "the minimal session dropped the voice");
+  assert.equal(minimal.audio.output.voice, "coral", "the minimal session dropped the voice");
 });
 
 await checkAsync("a 502 says which field OpenAI refused", async () => {
@@ -1023,47 +1142,55 @@ check("no old voice function can make a sound during a live call", () => {
   }
 });
 
-check("the mic-off cue never fires in live-voice mode", () => {
-  /* The rule widened on 2026-10-06. It used to be "not while a call is
-     up"; it is now "not when live voice is the mode", because the cue
-     — "aprieta el micrófono" — is advice about a button that is about
-     to become a hang-up, and it fired on chat open, before any call.
+check("the mic-off cue is gone, and so is the request it used to make", () => {
+  /* WHAT THIS USED TO TEST. The cue — "aprieta el micrófono" — was
+     advice about a button that is about to become a hang-up, and it
+     fired on chat open, before any call. The rule widened twice: not
+     during a call, then not when live voice is the mode. It is now
+     moot, because live voice is the ONLY mode.
 
-     Run with a stubbed fetch so a guarded cue makes no request at all,
-     rather than making one and discarding the audio. */
+     So the cue's body was unreachable: its first line returned every
+     time. It was ALSO still making an HTTP request on the way out —
+     the TTS endpoint had been switched off by renaming it to
+     a name that does not resolve, which switched it off by breaking it,
+     so a dead path still cost a round trip and a 404 in the console.
+
+     What survives is the one effect that mattered: releasing the
+     speak interlock, so nothing downstream waits on a cue that is
+     never coming. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const src = (name) => {
-    const at = page.indexOf("function " + name + "(");
-    assert.ok(at > 0, `${name} is gone`);
-    let d = 0, end = -1;
-    for (let k = page.indexOf("{", at); k < page.length; k++){
-      if (page[k] === "{") d++;
-      else if (page[k] === "}" && --d === 0){ end = k; break; }
-    }
-    return page.slice(at, end + 1);
-  };
-  const prelude = src("ariaClassicVoiceOnly") + "\n" + src("ariaLiveCallActive") + "\n";
+  const at = page.indexOf("function speakMicOffCue(){");
+  assert.ok(at > 0, "speakMicOffCue is gone entirely — check its callers");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
 
-  const run = ({ live, realtime }) => {
-    const fetches = [];
-    const fn = new Function("ariaRT", "ariaRTOpening", "realtimeEnabled", "fetch", "micOffCueId",
-      "ariaVoiceActive", "setAssistantMicTapToTalk", "setOrbState", "MIC_OFF_CUE", "window",
-      "SpeechSynthesisUtterance", "playMicOffCueAudio",
-      prelude + src("speakMicOffCue") + "\n return speakMicOffCue;");
-    fn(live ? { pc: {} } : null, false, () => realtime,
-      (u) => { fetches.push(u); return { then(){ return this; }, catch(){ return this; } }; },
-      0, false, () => {}, () => {}, "cue",
-      { speechSynthesis: { cancel(){}, speak(){} } }, function(){ return {}; }, () => {})();
-    return fetches.length;
-  };
+  /* It must still clear the interlock, and do nothing else. */
+  const run = new Function("ariaVoiceActive", "fetch", "speechSynthesis",
+    "const __seen = []; " + body.replace("ariaVoiceActive = false", "__seen.push('released')") +
+    "; speakMicOffCue(); return __seen;");
+  const seen = run(true, () => { throw new Error("the cue made a request"); }, undefined);
+  assert.deepEqual(seen, ["released"], "the cue no longer releases the speak interlock");
 
-  assert.equal(run({ live: true,  realtime: true  }), 0, "the cue ran during a live call");
-  /* THE CASE DANNY HIT: live voice is the mode, no call yet. */
-  assert.equal(run({ live: false, realtime: true  }), 0,
-    "the cue ran on chat open while live voice was the mode");
-  /* …and ?voz=clasica keeps it, unchanged. */
-  assert.equal(run({ live: false, realtime: false }), 1,
-    "the classic cue stopped working");
+  /* No request, no speech, from anywhere in the body. */
+  assert.ok(!/fetch\s*\(/.test(body), "the cue still makes an HTTP request");
+  assert.ok(!/SpeechSynthesisUtterance/.test(body), "the cue can still speak");
+  assert.ok(!/aria-tts/.test(body), "the cue still references the old TTS endpoint");
+
+  /* AND NOTHING IN THE PAGE CALLS THE OLD ENDPOINT ANY MORE, by any
+     name. Renaming it to a 404 left five callers firing requests that
+     could only fail. */
+  const noComments = page
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ");
+  const ttsCalls = noComments.match(/fetch\(\s*["'][^"']*aria-tts[^"']*["']/g) || [];
+  assert.equal(ttsCalls.length, 0,
+    `the old TTS endpoint is still called ${ttsCalls.length} time(s): ${ttsCalls.join(", ")}`);
+  assert.ok(!/DISABLED-BY-DANNY/.test(noComments),
+    "an endpoint is still disabled by renaming it rather than by not calling it");
 });
 
 check("the chat opens quiet when live voice is the mode", () => {
@@ -1081,106 +1208,189 @@ check("the chat opens quiet when live voice is the mode", () => {
   }
   const body = page.slice(at, end + 1);
 
-  /* The spoken greeting is classic-only; the written one is not. */
-  assert.match(body, /if \(ariaClassicVoiceOnly\(\)\)\{\s*\r?\n\s*speakWithLily\(ARIA_GREETING_FALLBACK\);/,
-    "the old Lily greeting still plays in live-voice mode");
+  /* SHE GREETS IN HER OWN VOICE, AND THE CALL IS ALREADY LIVE
+     (2026-10-06). This test has now held three different designs, and
+     the reasoning is worth keeping straight.
+
+     First the greeting was spoken by the old TTS engine, because a
+     hello every shopper hears is realtime minutes burnt before a word
+     is said. Then it was removed, misreading Danny's complaint about
+     the muted mic as a complaint about the greeting. Then it came
+     back, still on the old engine.
+
+     That engine is deleted now, so the choice is a greeting in her
+     real voice or no greeting, and he picked the first and accepted
+     the cost: "Yes, this burns Realtime minutes from chat open. Danny
+     accepts this." What bounds the cost is the five-minute cap and
+     the thirty-five second hang-up, which are asserted elsewhere. */
+  assert.match(body, /startRealtimeOnOpen\(\);/,
+    "the chat opens without starting the call — she cannot greet out loud");
+  /* AND ON A REOPEN TOO. Both the written greeting and the call used
+     to hang off "is the message list empty", which is only true on the
+     very first open: reopening the panel started nothing at all.
+     Danny: "No auto-greeting. Chat opens with text only." They are
+     different questions — the hello is painted once, the line opens
+     every time. */
+  const tAt = page.indexOf("function toggleAssistant(){");
+  assert.ok(tAt > 0, "toggleAssistant is gone");
+  const tBody = page.slice(tAt, page.indexOf("\nasync function greetAssistantStreaming", tAt));
+  assert.match(tBody, /children\.length === 0\)\s*\{[\s\S]{0,120}greetAssistantStreaming\(\);[\s\S]{0,80}\}\s*else\s*\{[\s\S]{0,120}startRealtimeOnOpen\(\);/,
+    "reopening the chat does not start a call — only the first open ever does");
+  assert.ok(!/speakWithLily/.test(body),
+    "the deleted TTS engine is back in the greeting");
   assert.match(body, /addAssistantMessage\('bot', ARIA_GREETING_FALLBACK, null, \{ speak: false \}\)/,
     "the written greeting was removed too — the chat would open empty");
   /* The flag that arms the cue is classic-only. */
   assert.match(body, /if \(ariaClassicVoiceOnly\(\)\) assistantReplyHasTappables = true;/,
     "the greeting still arms the mic-off cue in live-voice mode");
   /* …and the button invites a call, not dictation. */
-  assert.match(body, /setAssistantMicCallReady\(\)/, "the mic button is not put into a call-ready state");
+  /* THE BUTTON IS A HANG-UP FROM THE FIRST SECOND NOW. It used to be
+     painted "call-ready" because a tap was what started the call;
+     the call starts itself, so setRealtimeUi owns the button and
+     painting it call-ready here would be painting a state that is
+     already over. */
+  assert.ok(!/setAssistantMicCallReady\(\)/.test(body),
+    "the chat open still paints a call-ready button for a call that has already started");
   const ready = page.slice(page.indexOf("function setAssistantMicCallReady()"));
   assert.match(ready.slice(0, 800), /aria-label', 'Llamar a Aria'/, "the call button does not say it calls");
   assert.ok(!/Toca el micrófono para hablar/.test(ready.slice(0, 800)),
     "the call-ready state reuses the old dictation wording");
 });
 
-check("there is always an audible path out of the browser", () => {
-  /* THE ACTUAL CAUSE OF "she's just silent now" (2026-10-06). The sink
-     built an AudioContext, routed the remote track through a
-     GainNode, and muted the <audio> element so the graph was the only
-     audible path. iOS hands you a SUSPENDED context and only honours
-     resume() while a gesture is on the stack — and buildAudioSink runs
-     after the token fetch has been awaited, so the context was both
-     created outside the gesture and never resumed. Nothing was
-     audible. Not the greeting: the whole call.
+check("the element carries the audio, and the WebAudio graph never does", () => {
+  /* THE BUG DANNY FOUND ON AN IPHONE: "She only speaks the FIRST WORD
+     out loud, then the rest is text-only."
 
-     Lifted and run against a context that behaves like iOS. */
+     This sink used to route the remote track through a GainNode and
+     mute the <audio> element whenever the graph was running, so the
+     graph was the only audible path. The GainNode existed to duck her
+     voice locally on a barge-in without waiting for a round trip.
+
+     createMediaStreamSource() on a REMOTE WebRTC stream is a
+     long-standing broken case in Safari: a short burst, then silence.
+     A first word and nothing after it is that signature, and we had
+     made it the only path. It also defeats echo cancellation, because
+     the canceller subtracts what the PLATFORM is playing and the
+     platform knows about the element, not a WebAudio destination —
+     which is the most likely cause of the stall before every reply.
+
+     So the test is now the rule: the element plays, and nothing is
+     routed through WebAudio. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const srcOf = (name) => {
-    const at = page.indexOf("function " + name + "(");
-    assert.ok(at > 0, `${name} is gone`);
-    let d = 0, end = -1;
-    for (let k = page.indexOf("{", at); k < page.length; k++){
-      if (page[k] === "{") d++;
-      else if (page[k] === "}" && --d === 0){ end = k; break; }
-    }
-    return page.slice(at, end + 1);
-  };
+  const at = page.indexOf("function buildAudioSink(){");
+  assert.ok(at > 0, "buildAudioSink is gone");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const src = page.slice(at, end + 1);
 
-  const build = ({ canResume }) => {
-    let resumes = 0;
-    const ctx = {
-      state: "suspended", currentTime: 0, destination: {},
-      createGain(){ return { gain: { value: 1, setTargetAtTime(){} }, connect(){} }; },
-      createMediaStreamSource(){ return { connect(){} }; },
-      resume(){ resumes++; if (canResume) ctx.state = "running"; return Promise.resolve(); },
-    };
-    const el = { muted: false, autoplay: false, playsInline: false, srcObject: null,
-                 play(){ return { catch(){} }; } };
-    const fn = new Function("window", "Audio", "console", "ariaUnlockAudioContext",
-      srcOf("buildAudioSink") + "\n return buildAudioSink;");
-    const sink = fn({ AudioContext: function(){ return ctx; } }, function(){ return el; },
-      { warn(){}, info(){} }, () => { ctx.resume(); return ctx; })();
-    return { sink, ctx, el, resumes: () => resumes };
-  };
+  /* COMMENTS STRIPPED. The rule is that the code does not do this, not
+     that the comment explaining why may not name it. */
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  assert.ok(!/createMediaStreamSource/.test(code),
+    "the remote stream is routed through WebAudio again — on Safari that plays one word and stops");
+  assert.ok(!/createGain/.test(code), "a gain node is back in the playback path");
+  assert.ok(!/el\.muted\s*=\s*[^;]*graphRunning/.test(code),
+    "the element is muted in favour of the graph again");
+  assert.match(src, /el\.srcObject = stream/, "the stream never reaches the element");
+  /* THE ELEMENT MUST COME FROM THE GESTURE. Built here, it is an
+     element no tap ever touched, and iOS refuses to play those —
+     which is exactly how the greeting went missing. */
+  assert.match(code, /ariaUnlockLiveAudio\(\)/,
+    "the sink builds its own audio element again, outside the gesture");
+  /* …and a refusal must be reported, not swallowed. A bare .catch()
+     is how a silent call looked healthy. */
+  assert.ok(!/pr\.catch\(\(\) => \{\}\)/.test(code),
+    "an autoplay refusal is swallowed silently again");
+  assert.match(code, /REALTIME VOICE FAILED/, "a refused play\(\) is not reported anywhere");
 
-  /* The context resumes: the graph is audible, the element steps back. */
+  /* THE PRIMING ITSELF. An element that is merely CREATED in a tap is
+     not blessed — iOS grants playback to an element that has actually
+     been asked to play while the gesture was on the stack. Silence is
+     what it is primed with, so the unlock is inaudible. */
+  const uAt = page.indexOf("function ariaUnlockLiveAudio(){");
+  assert.ok(uAt > 0, "the live-audio unlock is gone");
+  let ud = 0, uEnd = -1;
+  for (let k = page.indexOf("{", uAt); k < page.length; k++){
+    if (page[k] === "{") ud++;
+    else if (page[k] === "}" && --ud === 0){ uEnd = k; break; }
+  }
+  const unlock = page.slice(uAt, uEnd + 1);
+  assert.match(unlock, /\.play\(\)/,
+    "the element is never asked to play inside the tap, so iOS never blesses it");
+  assert.match(unlock, /SILENT_WAV/, "the unlock primes with something audible");
   {
-    const { sink, ctx, el, resumes } = build({ canResume: true });
-    sink.attach({ id: "remote" });
-    assert.ok(resumes() >= 1, "the context was never resumed");
-    assert.equal(ctx.state, "running", "the context is still suspended after attach");
-    assert.equal(el.muted, true, "the element duplicates the graph while the graph is running");
-    assert.equal(sink.state().graphRunning, true, "the graph is not reported as running");
+    const plays = [];
+    const fake = { play(){ plays.push("played"); return { catch(){} }; }, pause(){}, srcObject: null };
+    const run = new Function("Audio", "SILENT_WAV", "ariaLiveAudioEl",
+      unlock + "\n return ariaUnlockLiveAudio;")(
+        function(){ return fake; }, "data:silent", null);
+    run();
+    assert.deepEqual(plays, ["played"], "the tap never primed the element");
+    /* Once a call is attached, priming again would replace the live
+       stream with silence. */
+    fake.srcObject = { id: "remote" };
+    run();
+    assert.deepEqual(plays, ["played"], "the unlock overwrote a live call's stream with silence");
   }
 
-  /* The context REFUSES to resume: the element must carry the audio,
-     or the call is silent exactly as Danny found it. */
-  {
-    const { sink, el, ctx } = build({ canResume: false });
-    const ctxOf = () => ctx;
-    sink.attach({ id: "remote" });
-    assert.equal(el.muted, false,
-      "the context would not resume and the element stayed muted — the call is silent");
-    assert.equal(sink.state().graphRunning, false, "a suspended graph is reported as running");
-    /* Safari moves a context to "interrupted" on a phone call or Siri
-       and back afterwards. The audible path has to follow it, not be
-       decided once at setup. */
-    assert.equal(typeof ctxOf().onstatechange, "function",
-      "nothing re-checks the audible path when the context changes state");
-    /* …and opening after a barge-in must not re-mute it. */
-    sink.open();
-    assert.equal(el.muted, false, "resuming the call re-muted the only audible path");
-  }
+  /* Driven: attach, duck, restore. */
+  const timers = [];
+  const el = { muted: false, volume: 1, paused: true, autoplay: false, playsInline: false,
+               srcObject: null, play(){ this.paused = false; return { catch(){} }; } };
+  const ctx = { state: "running", resume(){ ctx.state = "running"; } };
+  const sink = new Function("Audio", "window", "ariaUnlockAudioContext", "console",
+    "CUT_RESTORE_MS", "setTimeout", "clearTimeout", "ariaUnlockLiveAudio", "tape",
+    src + "\n return buildAudioSink;")(
+      function(){ return el; }, { AudioContext: function(){ return ctx; } },
+      () => ctx, { info(){}, warn(){}, error(){} },
+      Number(/const CUT_RESTORE_MS = (\d+);/.exec(page)[1]),
+      /* `fired` as well as `cancelled`: a timer that has already run is
+         not an armed one, and counting it as such made the assertion
+         below fail on a perfectly good sink. */
+      (f, ms) => { const t = { ms, f: () => { t.fired = true; f(); } }; timers.push(t); return timers.length; },
+      (id) => { if (timers[id - 1]) timers[id - 1].cancelled = true; },
+      /* THE ELEMENT COMES FROM THE TAP, not from `new Audio()` here —
+         an element the gesture never touched is one iOS will not let
+         play, which is how the greeting went silent. */
+      () => el, () => {})();
+  const armed = () => timers.filter(t => !t.cancelled && !t.fired);
 
-  /* A barge-in silences BOTH paths — either could be the audible one. */
-  {
-    const { sink, el } = build({ canResume: false });
-    sink.attach({ id: "remote" });
-    sink.cut();
-    assert.equal(el.muted, true, "the element keeps playing through a barge-in");
-  }
+  sink.attach({ id: "remote" });
+  assert.equal(el.srcObject.id, "remote", "the stream was not attached to the element");
+  assert.equal(el.muted, false, "the element is muted after attaching — nothing would be audible");
+  assert.equal(el.volume, 1, "the element is silent after attaching");
+  assert.equal(el.paused, false, "the element was never asked to play");
+  assert.equal(sink.state().path, "element", "the sink does not report the element as the path");
 
-  /* Attaching must never be able to skip the resume. */
-  {
-    const { sink, el, resumes } = build({ canResume: true });
-    Object.defineProperty(el, "srcObject", { set(){ throw new Error("not a MediaStream"); }, get(){ return null; } });
-    sink.attach({ id: "remote" });
-    assert.ok(resumes() >= 1, "a failed srcObject assignment skipped the resume");
-  }
+  /* A barge-in ducks instantly — no round trip, which is what the gain
+     node was for. */
+  sink.cut();
+  assert.equal(el.volume, 0, "a barge-in did not silence the element");
+  assert.equal(sink.state().silenced, true, "the diagnostic cannot see that it is ducked");
+
+  /* …and it comes back by itself. */
+  const watchdog = armed()[0];
+  assert.ok(watchdog, "a cut scheduled nothing to undo it — the call can stay silent for good");
+  assert.ok(watchdog.ms > 0 && watchdog.ms <= 2000, `the path stays silent for ${watchdog.ms}ms`);
+  watchdog.f();
+  assert.equal(el.volume, 1, "the watchdog fired and the element is still silent");
+  assert.equal(el.muted, false, "the watchdog fired and the element is still muted");
+
+  /* AN ANSWER ARRIVING FIRST TAKES OVER, and the watchdog must not be
+     left armed behind it — a stale timer firing into the next turn
+     would un-duck her mid barge-in. */
+  sink.cut();
+  sink.open();
+  assert.equal(armed().length, 0, "the watchdog was left armed after the path re-opened");
+
+  /* A suspended context must not stop playback — the element does not
+     need it, and resuming is best-effort. */
+  ctx.state = "suspended";
+  sink.open();
+  assert.equal(el.volume, 1, "a suspended context silenced the element");
 });
 
 check("the audio context is opened inside the tap, not after the fetch", () => {
@@ -1208,8 +1418,14 @@ check("the audio context is opened inside the tap, not after the fetch", () => {
     else if (page[k] === "}" && --sd === 0){ sinkEnd = k; break; }
   }
   const sinkBody = page.slice(sinkAt, sinkEnd + 1);
-  assert.match(sinkBody, /ctx = AC \? ariaUnlockAudioContext\(\) : null/,
+  /* The unlock still happens in the gesture — it is what makes any
+     later playback legal on iOS — but nothing is routed through the
+     context any more, so the assertion is on where it comes from,
+     not on what it carries. */
+  assert.match(sinkBody, /ariaUnlockAudioContext\(\)/,
     "the sink builds its own context, outside the gesture");
+  assert.ok(!/new\s+(window\.)?(webkit)?AudioContext/.test(sinkBody),
+    "the sink constructs its own AudioContext instead of reusing the one the tap opened");
   assert.ok(!/new AC\(\)/.test(sinkBody), "the sink still constructs an AudioContext");
 });
 
@@ -1322,30 +1538,43 @@ check("the greeting is locked to audio, sent once, and retried if dropped", () =
     .replace(/ariaRTGreeted = true;/, "__state.greeted = true;")
     .replace(/if \(!ariaRTGreetRetrying\)\{/, "if (!__state.retrying){")
     .replace(/ariaRTGreetRetrying = true;/, "__state.retrying = true;")
-    .replace(/ariaRTGreetRetrying = false;/, "__state.retrying = false;");
+    .replace(/ariaRTGreetRetrying = false;/, "__state.retrying = false;")
+    /* Routed through __state like the greeting flag, because the
+       nudge's own callback has to read whether he spoke AFTER the
+       timer was armed — a captured parameter would freeze it at the
+       moment of arming and the test could never flip it. */
+    .replace(/ariaRTSpoke/g, "__state.spoke");
 
   const harness = (send) => {
-    const state = { greeted: false, retrying: false, sent: [], scheduled: [] };
+    const state = { greeted: false, retrying: false, spoke: false, sent: [], scheduled: [], cues: [] };
     const fn = new Function("__state", "REALTIME_GREETING_BRIEF", "console",
-      "GREETING_ATTEMPTS", "GREETING_RETRY_MS", "setTimeout",
+      "GREETING_ATTEMPTS", "GREETING_RETRY_MS", "setTimeout", "clearTimeout",
+      "ariaRT", "ariaRTOpeningTimer", "cueRealtime", "CUE_OPENING_SILENCE",
+      "CALL_OPENING_SILENCE_MS",
       src + "\n return sendRealtimeGreeting;");
     const greet = fn(state, "saluda corto", { info(){}, warn(){} }, 3, 500,
-      (f) => { state.scheduled.push(f); });
+      (f) => { state.scheduled.push(f); return { t: state.scheduled.length }; },
+      () => {}, {}, null,
+      (cue) => { state.cues.push(cue); return true; }, "[callado diez segundos]", 10000);
     return { greet: (...a) => greet((o) => { state.sent.push(o); return send(o); }, ...a), state };
   };
 
-  /* The happy path: one request, in the right shape. */
+  /* THE HAPPY PATH, AND THE FIX ITSELF: the request carries NO
+     per-response fields. Everything else on the call worked —
+     conversation flowed, audio played — and the one thing that did
+     not was the single response we construct ourselves. Each of
+     instructions / output_modalities / input was a chance for this API
+     version to reject the whole request, and a rejected
+     response.create is a silent greeting inside a healthy call. What
+     she says on opening is a rule in the session instructions now. */
   {
     const { greet, state } = harness(() => true);
     assert.equal(greet(), true, "the greeting was not sent");
     assert.equal(state.sent.length, 1, "the greeting was not requested exactly once");
     const req = state.sent[0];
     assert.equal(req.type, "response.create", "the greeting is not a response.create");
-    assert.equal(req.response.instructions, "saluda corto", "the greeting brief is not passed");
-    assert.deepEqual([...req.response.output_modalities], ["audio"],
-      "the greeting is not locked to audio — a text-only answer is a silent one");
-    assert.ok(Array.isArray(req.response.input) && req.response.input.length === 0,
-      "the greeting is not the documented no-context shape");
+    assert.deepEqual(Object.keys(req), ["type"],
+      `the greeting carries per-response fields again: ${Object.keys(req).join(", ")}`);
     /* …and never twice. */
     assert.equal(greet(), false, "the greeting can be requested twice");
     assert.equal(state.sent.length, 1, "a second request went out");
@@ -1396,6 +1625,77 @@ check("the greeting is locked to audio, sent once, and retried if dropped", () =
   }
 });
 
+check("she is told to sound Peruvian and to open the call herself", () => {
+  /* Danny: "I'd like for it to be Peruvian" and "more jollier".
+     OpenAI Realtime has no custom voices, so the old one cannot be plugged
+     in — warmth has to come from the voice choice plus instructions. */
+  const i = buildRealtimeInstructions(null);
+  assert.match(i, /CÓMO HABLAS/, "there is no instruction about how she sounds");
+  assert.match(i, /acento peruano limeño/, "the Peruvian accent is not asked for");
+  assert.match(i, /cálido y alegre/, "warmth is not asked for");
+  assert.match(i, /nunca plano ni neutro/, "nothing rules out the flat neutral read");
+
+  /* The greeting lives here now, not in a per-response field — which
+     is the whole point of this round. */
+  /* The call opens with a short line, NOT a second introduction —
+     another engine already said hello in the chat before he tapped. */
+  assert.match(i, /CÓMO ABRES LA LLAMADA/, "nothing tells her how to open the call");
+  /* SHE DOES INTRODUCE HERSELF NOW, because her voice is the first
+     thing heard rather than the second. The old rule said not to —
+     correctly, when the written greeting and another engine had
+     already said hello. */
+  assert.match(i, /Soy Aria, tu shopper personal/,
+    "she does not introduce herself, and her voice is now the first thing he hears");
+  assert.match(i, /No vuelvas a presentarte después/,
+    "nothing stops her introducing herself again later in the call");
+  assert.ok(!/NO te vuelvas a presentar\b/.test(i),
+    "the old do-not-introduce rule is still there, contradicting the new one");
+  assert.match(i, /UNA frase, no un discurso/, "the opener is not bounded to one line");
+  /* The rule it replaced forbade "Hola, soy Aria" outright, because
+     the written greeting and another engine had already said it. Now
+     that line IS the opener, so what has to be forbidden is saying it
+     a second time — asserted just above. */
+  assert.match(i, /NUNCA expliques el micrófono/,
+    "she may explain the microphone on a line that is already open");
+  assert.match(i, /ni le pidas que apriete nada/,
+    "nothing stops her telling him to press a button on an open line");
+  /* …and a silence hang-up is not an apology. */
+  assert.match(i, /CUANDO SE CIERRA POR SILENCIO/, "she is not told how to treat an idle hang-up");
+
+  /* And the dead per-response constant is gone from the page. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.ok(!/const REALTIME_GREETING_BRIEF =/.test(page),
+    "the per-response greeting brief is still defined — two sources of truth");
+});
+
+check("a rejected event is loud, and first audio is logged", () => {
+  /* HOW THIS ROUND HAPPENED. A malformed response.create comes back as
+     an `error` event or a response.done with status failed, and both
+     were logged at info level next to catalogue chatter. The greeting
+     was silent and nothing said why. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const handler = page.slice(page.indexOf("async function onRealtimeEvent(event, turn, send){"));
+  const body = handler.slice(0, handler.indexOf("\n/* The four tools"));
+
+  assert.match(body, /case 'error':[\s\S]{0,400}console\.error\('\[aria\] realtime error:'/,
+    "a rejected event is still logged at info level");
+  assert.match(body, /if \(st === 'failed'\)\{/, "a failed response is not noticed");
+  assert.match(body, /console\.error\('\[aria\] the response FAILED:'/,
+    "a failed response is not reported loudly");
+  assert.match(body, /case 'response\.created':/, "response.created is not traced");
+  assert.match(body, /case 'response\.done':/, "response.done is not traced");
+  assert.match(body, /console\.info\('\[aria\] session\.updated received'\)/,
+    "session.updated is not traced");
+  assert.match(page, /console\.info\('\[aria\] onopen fired'\)/, "dc.onopen is not traced");
+
+  /* And the one log that distinguishes "silent" from "never spoke". */
+  assert.match(page, /ariaRTHeardAudio = true;[\s\S]{0,120}greeting audio started/,
+    "nothing logs that audio actually started");
+  const start = page.slice(page.indexOf("async function startRealtimeVoiceOnce()"));
+  assert.match(start.slice(0, 2500), /ariaRTHeardAudio = false;/,
+    "the first-audio flag is not reset per call");
+});
+
 check("the greeting is requested after the server confirms, with a backstop", () => {
   /* It used to go out in the same tick as session.update, racing the
      server's handling of it. Now session.updated triggers it, and a
@@ -1414,7 +1714,7 @@ check("the greeting is requested after the server confirms, with a backstop", ()
      Asserted INSIDE startRealtimeVoice: matching the string anywhere
      also matched its own `let ariaRTGreeted = false;` declaration, so
      deleting the per-call reset passed an earlier version of this. */
-  const startAt = page.indexOf("async function startRealtimeVoice()");
+  const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
   const upToSession = page.slice(startAt, page.indexOf("  pc = new RTCPeerConnection()", startAt));
   assert.match(upToSession, /ariaRTGreeted = false;/,
     "the greeting flag is never reset for a new call — the second call is silent");
@@ -1447,7 +1747,7 @@ check("the guard covers the window while the call is still connecting", () => {
   assert.match(page, /return !!ariaRT \|\| ariaRTOpening === true;/,
     "the guard does not cover the connecting window");
 
-  const start = page.slice(page.indexOf("async function startRealtimeVoice()"));
+  const start = page.slice(page.indexOf("async function startRealtimeVoiceOnce()"));
   const startBody = start.slice(0, start.indexOf("\n/** End the session"));
   /* Set before anything can go wrong… */
   const setAt = startBody.indexOf("ariaRTOpening = true;");
@@ -1493,12 +1793,710 @@ check("the stale audio handlers are detached when a call starts", () => {
      attached to the shared element. The guards would catch it, but an
      unsubscribed handler cannot fire at all. */
   const page = readFileSync(ROOT + "index.html", "utf8");
+  /* SLICED TO THE END OF THE FUNCTION, not to a fixed 2,000
+     characters. The byte-count version broke the day a block was
+     added above the detach — which says nothing about whether the
+     handlers are detached, the thing it is here to check. */
   const at = page.indexOf("ariaRT = { pc, dc, mic, sink, send");
-  const after = page.slice(at, at + 2000);
+  assert.ok(at > 0, "the call object is no longer built here");
+  const close = page.indexOf("\n  setRealtimeUi(true);", at);
+  assert.ok(close > at, "the end of the call setup moved");
+  const after = page.slice(at, close);
   for (const h of ["onended", "onerror", "onplaying", "onpause"]){
     assert.ok(new RegExp(`ariaAudioPlayer\\.${h} = null`).test(after),
       `ariaAudioPlayer.${h} survives into the call`);
   }
+});
+
+check("the $200 tip is measured on the dutiable base, not the shelf price", () => {
+  /* THE CORRECTION THAT MATTERS. Peru's de minimis is tested against
+     what the GOODS cost — the dutiable base — and the total the
+     shopper sees carries our service margin on top. Measured against
+     the real pricing functions, tax starts at a cart of about $248.50,
+     not $200:
+
+        cart $199 -> dutiable $160.48   tax-free, ~$49 of room left
+        cart $230 -> dutiable $185.48   STILL tax-free
+        cart $250 -> dutiable $201.61   taxed
+
+     A script written around "$120 to $199, tell him to reach $200"
+     would understate his room by about fifty dollars, go silent at
+     $230 exactly when the tip is worth most, and say nothing at $250
+     when he is already paying. So Aria never computes it: the tool
+     hands her the answer. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_cart_total'){");
+  assert.ok(at > 0, "the cart tool has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
+
+  /* It must read the dutiable sum, never the shelf total. */
+  assert.match(body, /const t = cartTotals\(\);/, "the cart tool does not use the canonical totals");
+  assert.match(body, /t\.dutiableUsd/, "the threshold is not read off the dutiable base");
+  assert.match(body, /dutiable > IMPORT_TAX_THRESHOLD_USD/,
+    "the threshold is tested against the wrong number");
+  assert.ok(!/t\.priceUsd > IMPORT_TAX_THRESHOLD_USD/.test(body),
+    "the threshold is tested against the shelf price — that is the bug this exists to avoid");
+
+  /* Run it, against the real numbers. The flag lives outside the
+     snippet so a caller can ask twice with the same state — the only
+     way to catch the flag never being SET. */
+  const session = (alreadyTold, alreadySplitTold) => {
+    let told = !!alreadyTold;
+    let splitTold = !!alreadySplitTold;
+    return (lines) => {
+    const fn = new Function("cartTotals", "cart", "IMPORT_TAX_THRESHOLD_USD", "SALES_TAX_RATE",
+      "__told", "__setTold", "__splitTold", "__setSplitTold", "name",
+      body.replace(/ariaRTThresholdTold = true;/, "__setTold();")
+          .replace(/!ariaRTThresholdTold/, "!__told()")
+          .replace(/ariaRTSplitTold = true;/, "__setSplitTold();")
+          .replace(/!ariaRTSplitTold/, "!__splitTold()")
+      + "\n return null;");
+    const dutiable = lines.reduce((a, l) => a + l.dutiable * (l.qty || 1), 0);
+    const price = lines.reduce((a, l) => a + l.price * (l.qty || 1), 0);
+      return fn(() => ({ priceUsd: price, dutiableUsd: dutiable, weightKg: 1 }),
+        lines, 200, 1.07, () => told, () => { told = true; },
+        () => splitTold, () => { splitTold = true; }, "get_cart_total");
+    };
+  };
+  const run = (lines, alreadyTold) => session(alreadyTold)(lines);
+
+  /* $199 on the shelf is $160 dutiable: tax-free, with real room. */
+  const mid = run([{ price: 199, dutiable: 160.48, qty: 1 }], false);
+  assert.equal(mid.import_tax_applies, false, "a $199 cart was reported as taxed");
+  assert.ok(mid.tax_free_headroom_usd >= 40 && mid.tax_free_headroom_usd <= 49,
+    `headroom at a $199 cart came out ${mid.tax_free_headroom_usd}, expected about 45`);
+  assert.ok(mid.threshold_hint, "the tip was withheld when it was worth giving");
+  assert.match(mid.threshold_hint, /UNA vez/, "the tip does not say to say it once");
+
+  /* $230 on the shelf is $185 dutiable: STILL tax-free. The brief's
+     script would have gone quiet here. */
+  const high = run([{ price: 230, dutiable: 185.48, qty: 1 }], false);
+  assert.equal(high.import_tax_applies, false, "a $230 cart was wrongly reported as taxed");
+  assert.ok(high.threshold_hint, "the tip was withheld at $230, where it is worth most");
+
+  /* $250 on the shelf is $201 dutiable: taxed, and silence is right. */
+  const over = run([{ price: 250, dutiable: 201.61, qty: 1 }], false);
+  assert.equal(over.import_tax_applies, true, "a taxed cart was reported as tax-free");
+  assert.equal(over.tax_free_headroom_usd, 0, "a taxed cart was offered headroom");
+  assert.equal(over.threshold_hint, null, "she was told to pitch the threshold after it passed");
+  assert.match(over.explanation, /Ya le aplican/, "a taxed cart is not explained");
+
+  /* ONCE PER CALL, ENFORCED BY THE TOOL. "Only mention this once" is
+     not a promise a model keeps over a ten-minute call. */
+  /* Asked twice against ONE session, so the flag must be set by the
+     first call — passing a pre-set flag only proves it is read. */
+  const ask = session(false);
+  const first = ask([{ price: 199, dutiable: 160.48, qty: 1 }]);
+  assert.ok(first.threshold_hint, "the first ask got no tip");
+  const second = ask([{ price: 199, dutiable: 160.48, qty: 1 }]);
+  assert.equal(second.threshold_hint, null, "the tip is handed over twice in one call");
+  assert.equal(second.import_tax_applies, false, "the facts stopped being reported too");
+
+  /* …and the flag is cleared for the next call, or only the first
+     call of a page load ever pitches. */
+  const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
+  assert.match(page.slice(startAt, startAt + 2600), /ariaRTThresholdTold = false;/,
+    "the tip flag is never reset, so only the first call of a page load pitches");
+
+  /* An empty cart has nothing to pitch. */
+  const empty = run([], false);
+  assert.equal(empty.threshold_hint, null, "she pitches the threshold at an empty cart");
+  /* …and neither does a cart with almost no room left. */
+  const sliver = run([{ price: 245, dutiable: 198, qty: 1 }], false);
+  assert.equal(sliver.threshold_hint, null, "she pitches $2 of headroom");
+
+  /* The margin is never in the payload. */
+  for (const r of [mid, high, over]){
+    const json = JSON.stringify(r);
+    assert.ok(!/margin|markup|0\.24|dutiable_usd/.test(json),
+      `the cart payload leaks our cost structure: ${json}`);
+  }
+});
+
+check("the sales rules forbid the three things that would cost trust", () => {
+  const i = buildRealtimeInstructions(null);
+  /* Never her own arithmetic — the whole reason get_cart_total exists. */
+  assert.match(i, /get_cart_total/, "she is not told to ask for the cart");
+  assert.match(i, /NUNCA lo\s*\r?\n?calcules tú/, "she may work the threshold out herself");
+  assert.match(i, /se mide sobre lo que cuesta la mercadería, no/,
+    "nothing tells her the threshold is not the on-screen total");
+  /* One suggestion, dropped when declined. */
+  assert.match(i, /Uno por producto, nunca una lista/, "complements may become a list");
+  assert.match(i, /dice que no, cambias de tema y no vuelves/, "she may keep pushing");
+  /* Suggestions must be real. */
+  assert.match(i, /búscalo con search_products/, "complements are not required to come from the catalogue");
+  assert.match(i, /no lo menciones: no existe para nosotros/,
+    "she may suggest something not in the catalogue");
+  /* And the margin stays ours. */
+  assert.match(i, /NUNCA hables del margen/, "she may discuss the markup with a shopper");
+  /* The instruction wording, not just the tool payload: both say once. */
+  assert.match(i, /dilo UNA vez/, "the instructions no longer bound the tip to once");
+  assert.match(i, /Si no te lo pasa, no saques el tema/,
+    "she may raise the threshold without the tool offering it");
+  assert.match(i, /Si ya le aplican, no saques el tema por tu cuenta/,
+    "she may announce that tax now applies off her own bat");
+  /* THE SPLIT, AND THE ONE WORD IT MUST NEVER USE. The threshold
+     exists and using it is legal; coaching "evade taxes" is a
+     different thing entirely, and it is Danny's name on the business. */
+  /* The over-threshold line must carry the FIX in the same breath as
+     the bad news — Danny: never hand him the problem on its own. */
+  assert.match(i, /PASÓ EL UMBRAL/, "the over-threshold case has no instructions");
+  assert.match(i, /pasaste los \$200, así que los impuestos/,
+    "the bad news is not stated plainly");
+  assert.match(i, /¿Quieres que lo dividamos/, "the fix is not offered alongside it");
+  assert.match(i, /Nunca sueltes\s*\r?\n?el problema sin la salida al lado/,
+    "nothing stops her delivering the bad news on its own");
+  /* And the guided flow, which must read the division rather than
+     invent one. */
+  assert.match(i, /SI ACEPTA DIVIDIR/, "there is no guided split flow");
+  assert.match(i, /Pide get_cart_items/, "the flow does not use the tool");
+  assert.match(i, /NUNCA la calcules tú/, "she may work the division out herself");
+  assert.match(i, /Nombra SIEMPRE los productos/, "she may say \"algunas cosas\"");
+  assert.match(i, /"splittable": false/, "there is no honest answer when it cannot be split");
+  assert.match(i, /NUNCA lo llames evadir impuestos/,
+    "she may frame the split as evading taxes");
+  assert.match(i, /ni le des asesoría\s*\r?\n?tributaria/, "she may give tax advice");
+  assert.match(i, /Si no te pasó "split_hint", no ofrezcas dividir nada/,
+    "she may offer a split the tool did not sanction");
+});
+
+check("a call nobody is on does not stay open", () => {
+  /* THE MOST EXPENSIVE THING ON THIS BRANCH. Realtime audio bills by
+     the minute in both directions, so a session left open while a
+     shopper browses for half an hour is real money for nothing — and
+     that is the COMMON case, because the whole point of the call is
+     that she finds something and he goes to look at it.
+
+     (Danny: "I'm scared of the minutes going on forever... if it stays
+     on and they could be browsing for 30 minutes, now I got to pay a
+     shit ton of money.") */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+
+  /* Four independent exits, because any one can be the one that fires. */
+  assert.match(page, /const CALL_IDLE_MS = \d+;/, "there is no silence timeout");
+  assert.match(page, /const CALL_HIDDEN_MS = \d+;/, "a backgrounded page keeps the call open");
+  assert.match(page, /const CALL_MAX_MS = /, "there is no hard cap on call length");
+  assert.match(page, /function endRealtimeCallIfPanelClosed\(\)/, "closing the chat keeps the call open");
+
+  /* The silence timer must be re-armed by speech from EITHER side, or
+     it hangs up on a shopper who is listening to a long answer. */
+  /* SLICED TO THE CASE'S OWN `break`, not to a fixed 300 characters.
+     The window version broke the moment a comment was added inside
+     the case — which says nothing about whether speech re-arms the
+     timer, the thing it is here to check. */
+  const speechAt = page.indexOf("case 'input_audio_buffer.speech_started':");
+  assert.ok(speechAt > 0, "there is no speech_started handler");
+  const speech = page.slice(speechAt, page.indexOf("break;", speechAt));
+  assert.match(speech, /noteRealtimeActivity\(\);/,
+    "his speech does not keep the call alive");
+  /* …and the same event cancels the opening nudge, so a shopper who
+     speaks is never asked about the sales as though he had not. */
+  assert.match(speech, /ariaRTSpoke = true;/,
+    "speaking does not mark him as having spoken");
+  assert.match(speech, /clearTimeout\(ariaRTOpeningTimer\)/,
+    "the opening-silence nudge survives him speaking");
+  const play = page.slice(page.indexOf("else if (action === 'playAudio')"));
+  assert.match(play.slice(0, 300), /noteRealtimeActivity\(\);/,
+    "her own audio does not keep the call alive — it would hang up mid-answer");
+
+  /* Closing the chat is the case that matters most, and it is wired
+     into the one function that closes the panel. */
+  const hide = page.slice(page.indexOf("function hideAssistant(){"));
+  assert.match(hide.slice(0, 700), /endRealtimeCallIfPanelClosed\(\)/,
+    "closing the chat panel leaves the call running");
+  /* …and the exit itself has to fire. Checking it is CALLED passed a
+     mutation that disarmed its body. */
+  {
+    const pa = page.indexOf("function endRealtimeCallIfPanelClosed(){");
+    let pd = 0, pe = -1;
+    for (let k = page.indexOf("{", pa); k < page.length; k++){
+      if (page[k] === "{") pd++;
+      else if (page[k] === "}" && --pd === 0){ pe = k; break; }
+    }
+    const src = page.slice(pa, pe + 1);
+    const calls = [];
+    const mk = (rt, open) => new Function("ariaRT", "assistantOpen", "endRealtimeCallIdle",
+      src + "\n return endRealtimeCallIfPanelClosed;")(rt, open, (w) => calls.push(w));
+    mk({ pc: {} }, false)();                 /* on a call, panel closed */
+    assert.equal(calls.length, 1, "closing the panel does not end the call");
+    mk({ pc: {} }, true)();                  /* on a call, panel open */
+    mk(null, false)();                       /* no call */
+    assert.equal(calls.length, 1, "the panel exit fires when it should not");
+  }
+
+  /* Run the exit. It must release the hardware AND tell him how to
+     come back — Danny's "before she shuts herself off, she can remind
+     them to hit the mike". */
+  const at = page.indexOf("function endRealtimeCallIdle(why){");
+  assert.ok(at > 0, "there is no idle exit");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
+  const seen = [];
+  const mkExit = (opts) => new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
+    "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    body + "\n return endRealtimeCallIdle;")(
+      opts.rt, opts.started, { info(){} },
+      () => seen.push("stopped"),
+      (role, text) => seen.push("wrote:" + text),
+      "Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!",
+      opts.signedOff, opts.heard, () => {}, () => opts.cueOk, null, 4000,
+      (f) => seen.push("scheduled"), "[cue]");
+  /* Reached a second time — after she has been asked to sign off —
+     this is the one that actually closes the line. */
+  mkExit({ rt: { pc: {} }, started: Date.now() - 60000, signedOff: true, heard: false, cueOk: true })("silencio");
+  assert.ok(seen.includes("stopped"), "the idle exit does not actually end the call");
+  assert.ok(seen.some(x => x.startsWith("wrote:") && /toca el micrófono/.test(x)),
+    "the goodbye is not written where he can read it");
+  /* IT IS WRITTEN, NOT SPOKEN BY A SECOND ENGINE. The old engine used
+     to say the goodbye aloud whenever the live voice had stayed quiet.
+     There is no second engine now: she signs off in her own voice via
+     CUE_BYE, and if she does not, the line is still on screen where he
+     can read it. A call that has already gone silent is not worth
+     another voice. */
+  assert.ok(!seen.some(x => x.startsWith("spoke:")),
+    "a second voice spoke the goodbye — the old engine is back");
+
+  /* …and NOT twice. The second engine that used to repeat the goodbye
+     is deleted; this keeps it from coming back. */
+  const heardIt = [];
+  new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
+    "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    body + "\n return endRealtimeCallIdle;")(
+      { pc: {} }, Date.now(), { info(){} }, () => {},
+      (role, text) => heardIt.push("wrote:" + text),
+      "bye", true, true, () => {}, () => true, null, 4000,
+      () => {}, "[cue]")("silencio");
+  /* The written line still lands — it is the record he can read — but
+     nothing speaks it a second time, because the engine that used to
+     is deleted. */
+  assert.equal(heardIt.filter(x => x.startsWith("spoke")).length, 0,
+    "a second voice repeats the goodbye the live voice already said");
+  /* THE WRITTEN GOODBYE COMES AFTER THE SESSION IS CLOSED. It used to
+     matter because a second engine spoke it and doing that before
+     stopRealtimeVoice() would have billed for the line. There is no
+     second engine, but the ordering still matters: the hardware is
+     released first, and only then is anything written. */
+  assert.ok(body.indexOf("stopRealtimeVoice()") < body.indexOf("addAssistantMessage"),
+    "the goodbye is written before the session is released");
+  assert.ok(!/speakWithLily/.test(body), "the deleted engine is back in the goodbye");
+
+  /* A call that already ended must not end twice. */
+  const before = seen.length;
+  mkExit({ rt: null, started: 0, signedOff: true, heard: false, cueOk: true })("silencio");
+  assert.equal(seen.length, before, "the idle exit fires on a call that is already over");
+
+  /* THE SIGN-OFF STEP. On the first pass she is ASKED to say goodbye
+     and the line is held open briefly; the timer, never her, is what
+     guarantees it closes — a model that stays quiet must not keep the
+     meter running. */
+  const signOff = [];
+  const mkFirst = (cueOk) => new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
+    "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    body + "\n return endRealtimeCallIdle;")(
+      { pc: {} }, Date.now() - 40000, { info(){} },
+      () => signOff.push("stopped"), () => {}, "bye",
+      false, false, () => {}, () => { signOff.push("cued"); return cueOk; }, null, 4000,
+      () => signOff.push("scheduled"), "[cue]");
+  mkFirst(true)("silencio");
+  assert.ok(signOff.includes("cued"), "she is never asked to say goodbye");
+  assert.ok(signOff.includes("scheduled"), "nothing guarantees the line closes after the goodbye");
+  assert.ok(!signOff.includes("stopped"), "the line closed before she could say goodbye");
+
+  /* …and if the cue could not even be sent, it hangs up at once
+     rather than waiting on a goodbye that will never come. */
+  signOff.length = 0;
+  mkFirst(false)("silencio");
+  assert.ok(signOff.includes("stopped"), "a failed goodbye cue leaves the call running");
+
+  /* And every timer is cleared when the call ends, or a stale one
+     fires into the next call. */
+  const stop = page.slice(page.indexOf("function stopRealtimeVoice("));
+  assert.match(stop.slice(0, 500), /clearRealtimeIdleTimers\(\);/,
+    "the timers outlive the call and will fire into the next one");
+});
+
+check("the split tip fires only where splitting actually works", () => {
+  /* The saving is real: on a $250 cart about $57, on a $400 cart about
+     $94, and nothing offsets it — freight is per kilo so it does not
+     double, and the small-order fee only bites under S/50, which half
+     of a $200+ cart never is.
+
+     Above about $400 it STOPS working, because both halves land back
+     over $200: at a $500 cart each half is $201 dutiable and the tax
+     returns in full. Danny's ceiling is arithmetic, not caution. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_cart_total'){");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
+  assert.match(body, /applies && !ariaRTSplitTold && cartUsd >= 200 && cartUsd <= 400/,
+    "the split tip is not bounded to the range where it saves money");
+
+  const session = () => {
+    let told = false, splitTold = false;
+    const fn = new Function("cartTotals", "cart", "IMPORT_TAX_THRESHOLD_USD", "SALES_TAX_RATE",
+      "__told", "__setTold", "__splitTold", "__setSplitTold", "name",
+      body.replace(/ariaRTThresholdTold = true;/, "__setTold();")
+          .replace(/!ariaRTThresholdTold/, "!__told()")
+          .replace(/ariaRTSplitTold = true;/, "__setSplitTold();")
+          .replace(/!ariaRTSplitTold/, "!__splitTold()")
+      + "\n return null;");
+    return (price, dutiable) => fn(
+      () => ({ priceUsd: price, dutiableUsd: dutiable, weightKg: 2 }),
+      [{ title: "zapatillas", priceUsd: price, dutiableUsd: dutiable, qty: 1 }],
+      200, 1.07, () => told, () => { told = true; },
+      () => splitTold, () => { splitTold = true; }, "get_cart_total");
+  };
+
+  /* Under the threshold: nothing to split. */
+  assert.equal(session()(199, 160.48).split_hint, null, "offered a split on a tax-free cart");
+  /* In range: the tip, once. */
+  const ask = session();
+  const first = ask(250, 201.61);
+  assert.ok(first.split_hint, "no split tip on a $250 cart, where it saves about $57");
+  assert.match(first.split_hint, /UNA vez/, "the tip does not say to say it once");
+  assert.match(first.split_hint, /Nunca lo llames evadir impuestos/,
+    "the tip does not rule out framing it as evasion");
+  assert.equal(ask(250, 201.61).split_hint, null, "the split tip is handed over twice in one call");
+  /* At the ceiling: still in. */
+  assert.ok(session()(400, 322.58).split_hint, "no split tip at the $400 ceiling");
+  /* Past it: splitting no longer helps, so she stays quiet. */
+  assert.equal(session()(500, 403.23).split_hint, null,
+    "offered a split above $400, where both halves are still taxed");
+
+  /* Reset per call, or only the first call of a page load ever offers
+     it. Asserted inside startRealtimeVoice, since the declaration
+     matches the same string. */
+  const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
+  assert.match(page.slice(startAt, startAt + 2800), /ariaRTSplitTold = false;/,
+    "the split flag is never reset, so only the first call offers it");
+
+  /* She gets the lines she needs to propose a division — titles and
+     prices only, never our cost. */
+  const r = session()(250, 201.61);
+  assert.ok(Array.isArray(r.lines) && r.lines.length === 1, "she cannot see what to divide");
+  assert.deepEqual(Object.keys(r.lines[0]).sort(), ["price_usd", "qty", "title"]);
+  assert.ok(!/dutiable|margin|markup/.test(JSON.stringify(r)),
+    "the split payload leaks our cost structure");
+});
+
+check("the split is worked out in code, and an impossible one is admitted", () => {
+  /* She is forbidden from doing arithmetic, so the division cannot be
+     hers. Greedy largest-first into two groups, each tested on the
+     DUTIABLE base — and greedy is the right algorithm here, not a
+     shortcut: the shopper has to physically remove and re-add these
+     items, so a division he can follow beats an optimal one he
+     cannot. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_cart_items'){");
+  assert.ok(at > 0, "get_cart_items has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
+
+  const run = (items) => {
+    const fn = new Function("cart", "IMPORT_TAX_THRESHOLD_USD", "dutiableBaseUsd", "name",
+      body + "\n return null;");
+    return fn(items, 200, (price) => price / 1.24, "get_cart_items");
+  };
+
+  /* Five items, $250 on the shelf: two groups, both under. */
+  const five = run([
+    { title: "Zapatillas Nike Pegasus", priceUsd: 90, qty: 1 },
+    { title: "Medias deportivas", priceUsd: 15, qty: 1 },
+    { title: "Short Adidas", priceUsd: 45, qty: 1 },
+    { title: "Polo Under Armour", priceUsd: 55, qty: 1 },
+    { title: "Gorra New Era", priceUsd: 45, qty: 1 },
+  ]);
+  assert.equal(five.splittable, true, "a $250 five-item cart was called unsplittable");
+  assert.equal(five.group_a.length + five.group_b.length, 5, "items went missing from the split");
+  assert.ok(five.group_a.length > 0 && five.group_b.length > 0, "one group came out empty");
+  /* Both groups must clear the threshold on the DUTIABLE base. */
+  const dutOf = (g) => g.reduce((a, l) => a + (l.price_usd / 1.24) * l.qty, 0);
+  assert.ok(dutOf(five.group_a) <= 200, `group A is over the threshold: ${dutOf(five.group_a)}`);
+  assert.ok(dutOf(five.group_b) <= 200, `group B is over the threshold: ${dutOf(five.group_b)}`);
+  /* She must be able to NAME them — Danny: never "algunas cosas". */
+  for (const l of [...five.group_a, ...five.group_b]){
+    assert.ok(l.title && l.title.length > 2, "a group member has no name to read out");
+    assert.equal(typeof l.price_usd, "number", "a group member has no price");
+  }
+  assert.equal(five.why_not, null, "a workable split carried a refusal");
+  /* …and the totals she reads are the shelf prices, the ones he sees. */
+  assert.equal(five.group_a_usd + five.group_b_usd, five.cart_usd,
+    "the two group totals do not add up to the cart");
+
+  /* ONE ITEM THAT ALONE PASSES THE THRESHOLD: splitting cannot help,
+     and saying so with the product named beats a bare "no". */
+  const single = run([{ title: "Laptop Dell XPS", priceUsd: 310, qty: 1 }]);
+  assert.equal(single.splittable, false, "a single over-threshold item was called splittable");
+  assert.deepEqual(single.group_a, [], "an impossible split still proposed a group");
+  assert.match(single.why_not, /Laptop Dell XPS/, "the refusal does not name the offending product");
+  assert.match(single.why_not, /ya pasa el umbral/, "the refusal does not say why");
+
+  /* THREE BIG ITEMS, NONE ON ITS OWN OVER THE LINE. No single item
+     trips the "too big" check, yet no two-way split works either:
+     greedy lands two in one group and that group clears the
+     threshold. Refusing here is the honest answer, and checking only
+     the single-item case would call it splittable. */
+  const three = run([
+    { title: "Laptop A", priceUsd: 235.6, qty: 1 },
+    { title: "Laptop B", priceUsd: 235.6, qty: 1 },
+    { title: "Laptop C", priceUsd: 235.6, qty: 1 },
+  ]);
+  assert.equal(three.splittable, false,
+    "three items that cannot fit into two under-threshold groups were called splittable");
+  assert.ok(three.why_not, "the refusal gave no reason");
+  assert.deepEqual(three.group_a, [], "an impossible split still proposed a group");
+
+  /* A cart that is already under the threshold splits trivially — the
+     tool is still honest about it rather than refusing. */
+  const small = run([{ title: "Medias", priceUsd: 15, qty: 1 }]);
+  assert.equal(small.splittable, true, "a tiny cart was called unsplittable");
+
+  /* Bundle-discount lines are savings, not goods, and must not be
+     handed to him as something to move between orders. */
+  const withDiscount = run([
+    { title: "Zapatillas", priceUsd: 150, qty: 1 },
+    { title: "Descuento combo", priceUsd: -20, qty: 1, lineType: 'bundle-discount' },
+  ]);
+  assert.equal(withDiscount.items.length, 1, "a discount line was offered as a product to move");
+
+  /* And nothing in the payload exposes what the goods cost us. */
+  assert.ok(!/dutiable/.test(JSON.stringify(five)), "the split payload leaks the dutiable base");
+});
+
+check("a check-in comes before the hang-up, once", () => {
+  /* Danny's flow: 20s -> "¿Sigues ahí?", 35s -> she signs off and the
+     line closes. The check-in is a check-in, not a warning: two
+     words, no countdown, no UI. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.match(page, /const CALL_CHECKIN_MS = 20000;/, "there is no check-in step");
+  assert.match(page, /const CALL_IDLE_MS = 35000;/, "the hang-up is not at 35 seconds");
+  assert.ok(page.indexOf("CALL_CHECKIN_MS") > 0 &&
+    /CALL_CHECKIN_MS[\s\S]{0,40}\n?.*CALL_IDLE_MS = 35000/.test(page),
+    "the check-in is not before the hang-up");
+
+  const at = page.indexOf("function noteRealtimeActivity(){");
+  const body = page.slice(at, page.indexOf("\n}", page.indexOf("ariaRTIdleTimer = setTimeout", at)));
+  /* Both timers reset together, or the check-in fires after the
+     hang-up has already been scheduled from an older silence. */
+  assert.match(body, /ariaRTCheckedIn = false;/, "activity does not re-arm the check-in");
+  assert.match(body, /clearTimeout\(ariaRTCheckinTimer\)/, "the old check-in timer is left running");
+  assert.match(body, /clearTimeout\(ariaRTIdleTimer\)/, "the old hang-up timer is left running");
+  assert.match(body, /if \(!ariaRT \|\| ariaRTCheckedIn\) return;/,
+    "the check-in can fire twice in one silence");
+  assert.match(body, /cueRealtime\(CUE_CHECKIN\)/, "the check-in is never spoken");
+
+  /* The cue rides proven shapes: a conversation item plus a BARE
+     response.create. A per-response instructions field is what
+     silenced the greeting for a day. */
+  const cue = page.slice(page.indexOf("function cueRealtime(cue){"));
+  const cueBody = cue.slice(0, cue.indexOf("\n}"));
+  assert.match(cueBody, /type: 'conversation\.item\.create'/, "the cue is not a conversation item");
+  assert.match(cueBody, /ariaRT\.send\(\{ type: 'response\.create' \}\)/,
+    "the cue carries per-response fields again");
+  assert.match(cueBody, /return a && b;/, "the cue does not report whether it went out");
+
+  /* Browsing counts as activity — Danny: only when BOTH go quiet. */
+  assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
+    "tapping a product does not keep the call alive");
+  assert.match(page, /addEventListener\('scroll'/, "scrolling does not keep the call alive");
+  assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
+});
+
+await checkAsync("the scoop is relevant by construction, and never invented", async () => {
+  /* RELEVANCE IS THE DESIGN, not a rule bolted on. The query is built
+     from what he just said, so there is no path by which an unrelated
+     sale comes back — she cannot pitch jackets to someone buying
+     cleats because this never returns them.
+
+     Lifted and run against a stub catalogue. Under checkAsync, not
+     check: returning a promise from the SYNCHRONOUS harness turned
+     every failed assertion into an unhandled rejection that killed
+     the process before the summary printed — so twelve real catches
+     reported as zero failures. Same trap as a crashed suite, new
+     shape. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_sale_scoop'){");
+  assert.ok(at > 0, "get_sale_scoop has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_cart_total')", at));
+
+  /* The harness injects SCOOP_TIMEOUT_MS, so the cap the lifted slice
+     honours is the harness's, not the page's. Assert the page's own
+     number here: the brief asks for an answer inside 1.5s, and a cap
+     at or above that is no cap at all. */
+  const capAt = page.match(/const SCOOP_TIMEOUT_MS = (\d+);/);
+  assert.ok(capAt, "SCOOP_TIMEOUT_MS is gone from the page");
+  assert.ok(Number(capAt[1]) <= 1500,
+    `the page caps the scoop at ${capAt && capAt[1]}ms — past the 1.5s the brief asks for`);
+
+  const item = (title, store, was, now) => ({ title, retailer: store, originalPrice: was, price: now });
+  const run = async (args, pool, scooped, warm) => {
+    const fn = new Function("args", "catalogSearch", "itemSaleTier", "discountPct",
+      "addAssistantProductCard", "ariaRTScooped", "SCOOP_TIMEOUT_MS", "setTimeout", "Promise",
+      "relatedPoolCache", "name",
+      "return (async () => {" + body + "\n return null; })();");
+    return fn(args,
+      typeof pool === "function" ? pool : async () => ({ items: pool }),
+      /* The two sale checks are DISTINCT in the real page — a tier of
+         zero (not flagged, discount under the carousel threshold) is
+         not the same thing as having no markdown at all. A stub that
+         conflated them made both filters look redundant, so removing
+         either one survived. `tier0` marks the first case. */
+      (it) => (it.tier0 ? 0 : it.flagged ? 1 : (it.originalPrice > it.price ? 2 : 0)),
+      (it) => Math.round((1 - it.price / it.originalPrice) * 100),
+      () => {}, scooped || new Set(), 1400, setTimeout, Promise,
+      warm === undefined ? [1] : warm, "get_sale_scoop");
+  };
+
+  /* ONE DEAL PER STORE, deepest first — the whole point of the
+     sentence is "Macy's has 30% but Kohl's has 80%", which you cannot
+     say from five Kohl's rows. */
+  {
+    /* Deliberately NOT in discount order: the shallowest store comes
+       first, so a missing sort shows up instead of being masked by
+       insertion order. */
+    const pool = [
+      item("Chaqueta Calvin Klein gris", "macys", 150, 105),    /* 30% */
+      item("Polo Calvin Klein", "macys", 60, 48),               /* 20% */
+      item("Chaqueta Calvin Klein azul", "kohls", 200, 40),      /* 80% */
+      item("Chaqueta Calvin Klein negra", "kohls", 180, 54),     /* 70% */
+      item("Camisa sin descuento", "target", 50, 50),            /* no markdown at all */
+      /* Marked down, but not enough to count as a sale — tier 0.
+         Without the tier filter this leaks out as a "deal". */
+      { ...item("Gorra Calvin Klein", "walmart", 20, 19.5), tier0: true },
+      /* FLAGGED AS A SALE BY THE FEED, WITH NO NUMBERS BEHIND IT —
+         itemIsOnSaleFlagged gives it a tier without any markdown. The
+         tier filter lets it through, so only the markdown check stops
+         it, and without that she announces a "0% off" deal. */
+      { ...item("Short Calvin Klein", "dickssportinggoods", 40, 40), flagged: true },
+    ];
+    const r = await run({ brand: "Calvin Klein", category: "chaquetas" }, pool);
+    assert.equal(r.topic, "Calvin Klein chaquetas", "the topic is not what he said");
+    const stores = r.deals.map(d => d.store);
+    assert.deepEqual([...new Set(stores)], stores, "two deals came from the same store");
+    assert.equal(r.deals[0].store, "kohls", "the deepest discount is not first");
+    assert.equal(r.deals[0].discount_pct, 80, "the discount percentage is wrong");
+    assert.equal(r.deals[1].store, "macys", "the second store is missing");
+    /* Both prices AND the percentage, so she never computes a discount. */
+    for (const d of r.deals){
+      assert.ok(d.was_usd > d.now_usd, "a deal has no real markdown");
+      assert.equal(typeof d.discount_pct, "number", "a deal has no percentage to read out");
+      assert.ok(d.title && d.store, "a deal cannot be named");
+    }
+    /* Neither full-price stock nor a markdown too small to count. */
+    assert.ok(!r.deals.some(d => d.store === "target"),
+      "an item with no markdown at all was offered as a sale");
+    assert.ok(!r.deals.some(d => d.store === "walmart"),
+      "a markdown too small to count as a sale was offered as one");
+    assert.ok(!r.deals.some(d => d.store === "dickssportinggoods"),
+      "an item flagged as on sale with no actual markdown was offered as a deal — " +
+      "she would announce a 0% discount");
+
+    /* NO SALES MEANS SAY NOTHING. This is where an invented 80% would
+       come from, so the tool says so in words. */
+    const none = await run({ brand: "Nike" }, [item("Zapatilla Nike", "nike", 100, 100)]);
+    assert.equal(none.deals.length, 0, "a full-price catalogue produced deals");
+    assert.match(none.note, /no inventes/i, "nothing tells her not to invent one");
+
+    /* ONCE PER TOPIC PER CALL, enforced by the tool. A friend tells
+       you once; an advert tells you every time. */
+    const seen = new Set();
+    const first = await run({ brand: "Calvin Klein" }, pool, seen);
+    assert.ok(first.deals.length > 0, "the first ask got nothing");
+    const second = await run({ brand: "Calvin Klein" }, pool, seen);
+    assert.equal(second.already_told, true, "the same scoop can be given twice");
+    assert.equal(second.deals.length, 0, "the repeat still carried deals");
+    /* …but a DIFFERENT topic is still allowed. */
+    const other = await run({ category: "chimpunes" }, pool, seen);
+    assert.ok(!other.already_told, "one topic blocked every other topic");
+
+    /* Nothing to search on is a question, not a guess. */
+    const empty = await run({}, pool);
+    assert.match(empty.unavailable, /dime la marca o el tipo/, "an empty topic guesses");
+
+    /* A SLOW CATALOGUE MUST NOT BE DEAD AIR. Measured on the real
+       page: the FIRST catalogue-backed call takes about thirteen
+       seconds, because relatedPool() loads sixty catalogues on
+       demand; every call after it is under 200ms. Thirteen seconds of
+       silence mid-conversation is unusable, so the call warms the
+       pool at start AND this caps the wait. */
+    {
+      const slow = new Set();
+      /* THE REAL CASE: the pool has not loaded yet. Asked, not raced
+         — a Promise.race cannot interrupt the catalogue load, because
+         parsing sixty files is synchronous work on the same thread
+         and the timer cannot fire until it finishes. Measured at
+         3.2s before this check existed; 1ms after. */
+      const cold = await run({ brand: "Nike" }, [], slow, null);
+      assert.match(cold.unavailable, /momentito|cargando/,
+        "a cold catalogue leaves the line silent instead of saying so");
+      assert.equal(slow.has("nike"), false,
+        "a cold-start answer burned the topic for the rest of the call");
+
+      /* …and the race stays as a backstop for a slow search on a warm
+         pool. */
+      const t0 = Date.now();
+      const r2 = await run({ brand: "Nike" }, () => new Promise(res => setTimeout(res, 5000)), slow);
+      const waited = Date.now() - t0;
+      assert.match(r2.unavailable, /momentito|cargando/,
+        "a slow search on a warm pool leaves the line silent");
+      /* The CAP is the point, not just the wording: a timeout set long
+         enough still answers eventually, and the answer arrives after
+         the caller has given up on her. Five seconds of dead air in a
+         phone call is the bug. */
+      assert.ok(waited < 2000,
+        `she sat silent for ${waited}ms — the wait is not capped`);
+      /* …and the topic must stay un-told, so she can try again once
+         the catalogue is warm. Marking it told would mean one slow
+         moment costs the scoop for the whole call. */
+      assert.equal(slow.has("nike"), false,
+        "a timed-out scoop burned the topic for the rest of the call");
+    }
+
+    /* The call warms the catalogue so the thirteen seconds happens
+       behind the greeting rather than mid-sentence. */
+    assert.match(page, /relatedPool\(\)\.catch\(\(\) => \{\}\)/,
+      "the catalogue is not warmed when the call starts");
+    const warmAt = page.indexOf("relatedPool().catch(() => {})");
+    const armAt = page.indexOf("armRealtimeIdleTimers();", page.indexOf("ariaRTStartedAt = Date.now();"));
+    assert.ok(warmAt > armAt, "the warm-up blocks the call setup");
+
+    /* Reset per call, or only the first call of a page load scoops. */
+    const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
+    assert.match(page.slice(startAt, startAt + 6000), /ariaRTScooped = new Set\(\);/,
+      "the scooped-topics set is never reset for a new call");
+  }
+});
+
+check("the scoop rules keep her a friend and not an advert", () => {
+  const i = buildRealtimeInstructions(null);
+  assert.match(i, /ERES LA AMIGA QUE SABE DÓNDE ESTÁN LAS OFERTAS/, "the scoop has no instructions");
+  assert.match(i, /pide get_sale_scoop/, "she is not told to ask the tool");
+  /* Relevance, stated as the rule Danny cares most about. */
+  assert.match(i, /SOLO de lo que está buscando AHORA/, "relevance is not required");
+  assert.match(i, /Nunca cambias de tema para meter\s*\r?\n?una oferta/,
+    "she may change the subject to fit a sale in");
+  assert.match(i, /DOS frases como máximo/, "the scoop is not bounded to two sentences");
+  assert.match(i, /no mencionas ninguna\. No\s*\r?\n?inventes/, "she may invent a discount");
+  assert.match(i, /No los calcules ni los redondees/, "she may compute a discount herself");
+  assert.match(i, /already_told/, "nothing stops her repeating the same scoop");
+  assert.match(i, /Informas, no\s*\r?\n?presionas/, "she may pressure him");
+  /* A BARE "WHAT'S ON SALE?" USED TO BE ANSWERED WITH A QUESTION,
+     and this asserted that. The addendum reverses it: a shopper with
+     no topic is the vague shopper, and asking him to narrow it down
+     is the interrogation it forbids. So the rule now routes him to
+     get_top_sales, and what must never happen is her inventing a
+     topic to be relevant to. */
+  assert.match(i, /NO le preguntes de qué/,
+    "a bare \"what's on sale?\" still interrogates the vague shopper");
+  assert.match(i, /get_top_sales/, "the vague shopper has no route to the sales");
 });
 
 check("the browser never receives the standing API key", () => {
@@ -1527,6 +2525,1463 @@ check("the browser never receives the standing API key", () => {
   assert.match(mint, /Cache-Control": "no-store/, "a credential response is cacheable");
 });
 
+
+/* ============================================================
+   THE STORE KNOWLEDGE BASE.
+
+   The point of these is that the knowledge can be WRONG in a way no
+   syntax check would catch: a product count copied from the brief
+   instead of the catalogue, a store recommended after its catalogue
+   was emptied, a specialty nobody stocks. Every one of those reads
+   as a confident sentence in Aria's voice and sends a real shopper to
+   an empty shelf.
+   ============================================================ */
+
+/* Counted the same way the knowledge base was built, so the test is
+   a re-measurement and not a copy of the same assumption. */
+function catalogueCounts(){
+  const counts = new Map();
+  const files = readdirSync(ROOT).filter(f =>
+    f.endsWith("-catalog.json") || /^department-cache-.*\.json$/.test(f));
+  for (const f of files){
+    let d;
+    try { d = JSON.parse(readFileSync(ROOT + f, "utf8")); } catch { continue; }
+    for (const [key, r] of Object.entries((d && d.retailers) || {})){
+      const depts = r && r.departments;
+      if (!depts || typeof depts !== "object") continue;
+      for (const dv of Object.values(depts)){
+        const items = Array.isArray(dv) ? dv : (dv && dv.items);
+        if (!Array.isArray(items)) continue;
+        counts.set(key, (counts.get(key) || 0) + items.length);
+      }
+    }
+  }
+  return counts;
+}
+
+await checkAsync("every store Aria knows about has the catalogue she says it has", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+  const real = catalogueCounts();
+
+  /* NO GHOSTS. A store with an entry and no products is the dead
+     recommendation section 4 of the brief forbids. */
+  for (const [key, s] of Object.entries(K.STORE_KNOWLEDGE)){
+    const n = real.get(key) || 0;
+    assert.ok(n > 0, `${key} has a knowledge entry and no products in any catalogue`);
+    assert.equal(s.product_count, n,
+      `${key} claims ${s.product_count} products, the catalogues hold ${n}`);
+  }
+
+  /* NO GAPS EITHER: a store with products and no entry is a store
+     Aria cannot guide anyone to. */
+  for (const [key, n] of real){
+    if (n <= 0) continue;
+    assert.ok(K.STORE_KNOWLEDGE[key], `${key} has ${n} products and no knowledge entry`);
+  }
+
+  /* The price band is derived, not asserted, so it must still agree
+     with its own median. */
+  for (const [key, s] of Object.entries(K.STORE_KNOWLEDGE)){
+    assert.equal(s.price_range, K.priceBandFor(s.median_usd),
+      `${key}'s band (${s.price_range}) disagrees with its median ($${s.median_usd})`);
+  }
+
+  /* And a store listed as unstocked must really have nothing: this is
+     the list that stops her naming Best Buy. */
+  for (const key of Object.keys(K.NOT_STOCKED)){
+    assert.ok(!(real.get(key) > 0),
+      `${key} is listed as not stocked but has ${real.get(key)} products`);
+    assert.ok(!K.STORE_KNOWLEDGE[key], `${key} is both known and not stocked`);
+  }
+});
+
+await checkAsync("a store too thin to visit is never recommended", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+  /* PacSun is the case the brief itself got wrong: its example entry
+     put PacSun at 2,500 products as the pick for skate clothing. It
+     has eighteen, so it must never be offered — and must still answer
+     honestly when a shopper names it. */
+  const pac = K.getStoreInfo("PacSun");
+  assert.equal(pac.product_count, 18, "PacSun's count moved; re-check the recommendation floor");
+  assert.equal(pac.recommendable, false, "an 18-product store is offered as a recommendation");
+
+  const thin = Object.entries(K.STORE_KNOWLEDGE)
+    .filter(([, s]) => s.product_count < K.MIN_RECOMMEND_DEPTH)
+    .map(([k]) => k);
+  assert.ok(thin.length > 0, "the thin-store floor is not exercised by any store");
+
+  /* Nothing under the floor may come back from any interest, however
+     well its specialties match. */
+  const asks = ["ropa skate", "patinetas", "artes marciales", "jiu jitsu", "surf",
+                "futbol", "maquillaje", "juguetes", "bikinis", "libros"];
+  for (const ask of asks){
+    const r = K.recommendStoresFor(ask, { resolved: true });
+    for (const s of r.stores || []){
+      assert.ok(!thin.includes(s.store),
+        `"${ask}" recommended ${s.store}, which has ${K.STORE_KNOWLEDGE[s.store].product_count} products`);
+    }
+  }
+});
+
+await checkAsync("an interest with two answers is asked about, not guessed", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+
+  /* DANNY'S OWN EXAMPLE, verbatim. The sentence names a grandson AND
+     a sport, and an earlier cut read the grandson first and answered
+     with the toy aisle — Target and Walmart for a kid who skates. The
+     interest has to win. */
+  const r = K.recommendStoresFor("mi nieto le gusta el skate");
+  assert.match(r.clarify || "", /patinetas|patinar/i,
+    "the skate question was not asked — she guessed instead");
+  assert.ok(!r.stores, "she listed stores before asking which kind of skate");
+  const branches = Object.keys(r.branches || {});
+  assert.equal(branches.length, 2, "the skate question has no two branches to resolve to");
+  const names = JSON.stringify(r.branches);
+  assert.match(names, /CCS/, "the real-boards branch does not reach CCS");
+
+  /* Every branch of every ambiguous interest must resolve to stores
+     that exist and are deep enough to send someone to — a question
+     whose answer is an empty store is worse than no question. */
+  for (const [topic, def] of Object.entries(K.AMBIGUOUS_INTERESTS)){
+    assert.ok(def.ask && def.ask.includes("?"), `${topic} has no question to ask`);
+    for (const [label, list] of Object.entries(def.branches)){
+      const live = list.filter(k => K.STORE_KNOWLEDGE[k]
+        && K.STORE_KNOWLEDGE[k].product_count >= K.MIN_RECOMMEND_DEPTH);
+      assert.ok(live.length > 0, `${topic} / ${label} resolves to no stocked store`);
+    }
+  }
+
+  /* A gift with no interest in it still has to go somewhere. */
+  const gift = K.recommendStoresFor("un regalo para mi nieto");
+  assert.ok((gift.stores || []).length > 0, "a gift for a child resolves to nothing");
+});
+
+await checkAsync("she is never sent to a store that does not stock the thing asked for", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+
+  /* THE TRAP THIS CLOSES. Val Surf is called Val Surf, sells skate
+     brands, and holds exactly one piece of skate hardware. CCS is the
+     deepest skate shop we have and holds five surf items. Both
+     matched on the word alone, and both would have been offered. */
+  const boards = K.recommendStoresFor("patinetas", { resolved: true });
+  const boardStores = (boards.stores || []).map(s => s.store);
+  assert.ok(boardStores.includes("ccs"), "the deepest skate shop is not offered for skateboards");
+  assert.ok(!boardStores.includes("valsurf"),
+    "Val Surf, with one skate item, is offered for skateboards");
+
+  const surf = K.recommendStoresFor("tabla de surf", { resolved: true });
+  const surfStores = (surf.stores || []).map(s => s.store);
+  assert.ok(surfStores.includes("surfstation"), "the deepest surf shop is not offered for surfboards");
+  assert.ok(!surfStores.includes("ccs"), "CCS, with five surf items, is offered for surfboards");
+
+  /* Depth in the thing asked for decides the order, not total
+     catalogue size and not the order the entries happen to sit in.
+
+     SURF STATION vs ZUMIEZ is the witness, deliberately: Surf Station
+     has 510 skate items to Zumiez's 239 and so must rank higher, and
+     it is written LOWER in the file. An earlier version compared
+     Zumiez with Island Water Sports, which the file order already put
+     in the right order — so deleting the sort entirely still passed. */
+  const ss = boardStores.indexOf("surfstation");
+  const zum = boardStores.indexOf("zumiez");
+  assert.ok(ss !== -1 && zum !== -1, "the skate ranking witnesses are not both offered");
+  assert.ok(ss < zum,
+    "a shop with 510 skate items ranks below one with 239 — the ranking ignores relevance depth");
+
+  /* AND THE FLOOR ITSELF, asserted directly. For the terms we stock
+     deeply the ranking already buries a store with five of something
+     before the list is cut to four, so the floor changes no answer
+     here and a test that only reads answers cannot see it at all. */
+  assert.ok(K.MIN_SPECIALTY_DEPTH >= 10,
+    `the relevance floor is ${K.MIN_SPECIALTY_DEPTH} — effectively off`);
+  assert.equal(K.stocksEnoughFor("ccs", "surf"), false,
+    "CCS, with five surf items, counts as stocking surf");
+  assert.equal(K.stocksEnoughFor("valsurf", "patinetas"), false,
+    "Val Surf, with one skate item, counts as stocking skateboards");
+  assert.equal(K.stocksEnoughFor("ccs", "patinetas"), true,
+    "the deepest skate shop does not count as stocking skateboards");
+  assert.equal(K.stocksEnoughFor("macys", "vestidos"), true,
+    "a store with no measured sub-count is treated as not stocking anything");
+});
+
+await checkAsync("naming a store gets the truth, including when we do not carry it", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+
+  /* A VOICE TRANSCRIPT HAS NO PUNCTUATION and no accents to spare. */
+  for (const said of ["Victoria's Secret", "victoria secret", "VICTORIAS SECRET", "vs"]){
+    assert.equal(K.getStoreInfo(said).store, "victoriassecret", `"${said}" did not resolve`);
+  }
+  for (const said of ["foot locker", "Foot Locker", "footlocker"]){
+    assert.equal(K.getStoreInfo(said).store, "footlocker", `"${said}" did not resolve`);
+  }
+
+  /* THE REGISTRY LISTS STORES WE DO NOT STOCK. Best Buy, Nordstrom
+     and Dyson all have a row, a logo and a tagline in the page's own
+     RETAILERS registry, and zero products. Read off the registry they
+     look live, and Aria would offer them. */
+  for (const dead of ["Best Buy", "Nordstrom", "Dyson", "Sunglass Hut"]){
+    const r = K.getStoreInfo(dead);
+    assert.equal(r.not_stocked, true, `${dead} does not answer as unstocked`);
+    assert.match(r.note, /no inventes|No tenemos|no ofrezcas/i,
+      `${dead} is reported unstocked with nothing telling her what to say`);
+    assert.ok(!r.specialties, `${dead} came back with specialties we cannot fill`);
+  }
+
+  /* Not knowing is an answer. Silence and invention are not. */
+  const nope = K.getStoreInfo("Tienda que no existe");
+  assert.ok(nope.unavailable, "an unknown store produced no sayable answer");
+  assert.ok(!nope.name, "an unknown store came back with a name");
+  assert.ok(K.getStoreInfo("").unavailable, "an empty store name produced no answer");
+
+  /* Two stores selling the same thing need a stated difference, which
+     is the brief's rule: explain, do not list. */
+  const makeup = K.recommendStoresFor("maquillaje", { resolved: true });
+  assert.ok((makeup.stores || []).length >= 2, "makeup resolves to fewer than two stores");
+  assert.ok(makeup.difference, "two makeup stores came back with no difference between them");
+  for (const s of makeup.stores) assert.ok(s.not_for, `${s.store} has nothing it is not for`);
+
+  /* Nothing to offer is said out loud, not papered over. */
+  const none = K.recommendStoresFor("refrigeradora");
+  assert.equal((none.stores || []).length, 0, "a thing we do not sell produced store recommendations");
+  assert.match(none.note, /no inventes/i, "nothing tells her not to invent a store");
+});
+
+
+await checkAsync("a shopper who taps the mic and says nothing is offered the sales", async () => {
+  /* THE ADDENDUM'S THIRD CASE: "silence for 10 seconds after greeting
+     — Aria says '¿Te muestro lo que está en oferta ahorita?'"
+
+     This is NOT the twenty-second check-in. That one asks "¿sigues
+     ahí?", which is the right question for a conversation that
+     stalled and a useless one for a shopper who never started: he is
+     there, he just does not know what to say. The addendum counts
+     that silence as vagueness, and vagueness goes to the sales. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.match(page, /const CALL_OPENING_SILENCE_MS = (\d+);/,
+    "there is no opening-silence nudge at all");
+  const ms = Number(/const CALL_OPENING_SILENCE_MS = (\d+);/.exec(page)[1]);
+  assert.ok(ms <= 12000, `the nudge waits ${ms}ms — past the ten seconds the addendum asks for`);
+  /* And it must be SHORTER than the check-in, or the check-in fires
+     first and he gets "¿sigues ahí?" instead of an offer. */
+  const checkin = Number(/const CALL_CHECKIN_MS = (\d+);/.exec(page)[1]);
+  assert.ok(ms < checkin,
+    `the nudge (${ms}ms) fires no sooner than the check-in (${checkin}ms) — he gets "¿sigues ahí?" instead`);
+
+  /* The cue has to send her to the tool, and has to stop her asking
+     the question that does not apply. */
+  const cue = /const CUE_OPENING_SILENCE = ([\s\S]*?);\r?\n/.exec(page)[1];
+  assert.match(cue, /get_top_sales/, "the nudge does not reach the sales tool");
+  assert.match(cue, /No preguntes si sigue ahí/, "the nudge asks if he is still there");
+
+  /* ARMED ON THE GREETING, not on connect: the ten seconds are his
+     silence, not hers. Driven through the real function. */
+  const at = page.indexOf("function sendRealtimeGreeting(send, left){");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const src = page.slice(at, end + 1)
+    .replace(/if \(ariaRTGreeted\) return false;/, "if (__state.greeted) return false;")
+    .replace(/ariaRTGreeted = true;/, "__state.greeted = true;")
+    .replace(/ariaRTGreetRetrying/g, "__state.retrying")
+    .replace(/ariaRTSpoke/g, "__state.spoke");
+
+  const drive = (sendOk) => {
+    const state = { greeted: false, retrying: false, spoke: false, cues: [], timers: [] };
+    const fn = new Function("__state", "console", "GREETING_ATTEMPTS", "GREETING_RETRY_MS",
+      "setTimeout", "clearTimeout", "ariaRT", "ariaRTOpeningTimer", "cueRealtime",
+      "CUE_OPENING_SILENCE", "CALL_OPENING_SILENCE_MS", "REALTIME_GREETING_BRIEF",
+      src + "\n return sendRealtimeGreeting;");
+    const greet = fn(state, { info(){}, warn(){} }, 3, 500,
+      (f, delay) => { state.timers.push({ f, delay }); return { id: state.timers.length }; },
+      () => {}, {}, null,
+      (c) => { state.cues.push(c); return true; }, "[nudge]", 10000, "saluda");
+    greet(() => sendOk);
+    return state;
+  };
+
+  const ok = drive(true);
+  assert.equal(ok.greeted, true, "the greeting did not go out");
+  const nudge = ok.timers.find(t => t.delay === 10000);
+  assert.ok(nudge, "a successful greeting armed no opening-silence nudge");
+
+  /* He stayed quiet: she offers. */
+  nudge.f();
+  assert.deepEqual(ok.cues, ["[nudge]"], "ten seconds of silence produced no offer");
+
+  /* He spoke first: she must NOT offer, or a shopper who said "busco
+     zapatillas Nike" gets pitched the general sales anyway. */
+  const spoke = drive(true);
+  spoke.spoke = true;
+  spoke.timers.find(t => t.delay === 10000).f();
+  assert.deepEqual(spoke.cues, [], "she pitched the sales at a shopper who had already spoken");
+
+  /* A greeting that never went out arms nothing — otherwise the first
+     thing he hears is an offer with no hello in front of it. */
+  const failed = drive(false);
+  assert.equal(failed.greeted, false, "a failed send was recorded as greeted");
+  assert.ok(!failed.timers.some(t => t.delay === 10000),
+    "a greeting that never went out still armed the nudge");
+});
+
+await checkAsync("the vague shopper gets real deals, grouped so she can offer a choice", async () => {
+  /* get_top_sales, lifted and run against a stub catalogue. The
+     grouping is the point: "ropa hasta 80% en Zumiez y zapatillas 60%
+     en Finish Line" is a sentence with a choice in it. A flat top-five
+     would come from one store and give him nothing to pick between. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_top_sales'){");
+  assert.ok(at > 0, "get_top_sales has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_store_info'", at));
+
+  const item = (title, store, dept, was, now) =>
+    ({ title, retailer: store, departments: [dept], originalPrice: was, price: now });
+
+  const run = async (args, pool, warm, search) => {
+    const fn = new Function("args", "catalogSearch", "relatedPool", "itemSaleTier", "discountPct",
+      "realtimeSaleCategory", "addAssistantProductCard", "SCOOP_TIMEOUT_MS", "setTimeout",
+      "Promise", "relatedPoolCache", "name",
+      "return (async () => {" + body + "\n return null; })();");
+    return fn(args,
+      /* The SEARCH stub is separate from the pool and returns nothing
+         by default, so any answer to a rubro must have come from the
+         department match rather than from a text search. */
+      search || (async () => ({ items: [] })),
+      async () => pool,
+      (it) => (it.tier0 ? 0 : it.flagged ? 1 : (it.originalPrice > it.price ? 2 : 0)),
+      (it) => Math.round((1 - it.price / it.originalPrice) * 100),
+      /* `null ?? key` returns the key, which handed the nameless
+         category its own name back and made the drop look broken.
+         A null here means "no sayable name", so it must survive. */
+      (it) => {
+        const m = { clothing: "ropa", shoes: "zapatos", sale: null };
+        const k = it.departments[0];
+        return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : (k || null);
+      },
+      () => {}, 1400, setTimeout, Promise,
+      warm === undefined ? [1] : warm, "get_top_sales");
+  };
+
+  /* ORDERED AGAINST THE SORT ON PURPOSE: the shallower category
+     (zapatos, 60%) is listed FIRST, so insertion order and discount
+     order disagree. With them in agreement, deleting the sort left
+     every assertion passing. */
+  const pool = [
+    item("Zapatilla Nike", "finishline", "shoes", 100, 40),      /* 60% — best in zapatos */
+    item("Zapatilla adidas", "footlocker", "shoes", 100, 70),    /* 30% */
+    item("Polo barato", "kohls", "clothing", 20, 18),            /* 10% */
+    item("Jean Empyre", "zumiez", "clothing", 100, 20),          /* 80% — best in ropa */
+    item("Cosa sin rubro", "macys", "sale", 100, 10),            /* 90%, but no sayable category */
+    { ...item("Gorra", "walmart", "clothing", 20, 19.5), tier0: true },
+    { ...item("Short", "dicks", "clothing", 40, 40), flagged: true },
+    /* A WHOLE CATEGORY OF NOTHING. Every item in `hogar` is either
+       full price or flagged with no markdown behind it, so the
+       category must not appear at all. Mixed into an otherwise
+       healthy category these two were invisible: the real deal
+       outranked them and the filters looked redundant. */
+    item("Olla a precio normal", "target", "hogar", 50, 50),
+    { ...item("Sartén marcada sin rebaja", "target", "hogar", 60, 60), flagged: true },
+    { ...item("Taza casi igual", "target", "hogar", 20, 19.6), tier0: true },
+  ];
+
+  const r = await run({}, pool);
+  assert.equal(r.categories.length, 2, "the deals did not collapse to one per category");
+  assert.ok(!r.categories.some(c => c.category === "hogar"),
+    "a category with nothing but full-price and falsely-flagged stock was offered as a sale");
+  assert.deepEqual(r.categories.map(c => c.category), ["ropa", "zapatos"],
+    "the categories are not ordered by how deep the discount is");
+  assert.equal(r.categories[0].best_discount_pct, 80, "the deepest discount in a category is wrong");
+  assert.equal(r.categories[0].store, "zumiez", "the store behind the best deal is wrong");
+  /* Both prices AND the percentage, so she never computes one aloud. */
+  for (const c of r.categories){
+    assert.ok(c.was_usd > c.now_usd, "a category's deal has no real markdown");
+    assert.equal(typeof c.best_discount_pct, "number", "there is no percentage to read out");
+    assert.ok(c.example, "there is nothing to name as an example");
+  }
+  /* A department with no sayable name is dropped, not read out: "la
+     categoría sale" and "Aria Beauty" are names of places on the
+     site, not words a person says. */
+  assert.ok(!r.categories.some(c => !c.category), "a nameless category reached her mouth");
+  assert.ok(!JSON.stringify(r.categories).includes("Cosa sin rubro"),
+    "an item with no sayable category was offered anyway");
+  /* Neither full-price stock nor a flag with no markdown behind it. */
+  assert.ok(!JSON.stringify(r.categories).includes("Gorra"),
+    "a markdown too small to count as a sale was offered as one");
+  assert.ok(!JSON.stringify(r.categories).includes("Short"),
+    "an item flagged on sale with no markdown was offered — a 0% deal");
+
+  /* A RUBRO IS A DEPARTMENT, NOT A SEARCH TERM. Routing "ropa"
+     through catalogSearch asked for products with "ropa" in the
+     title, and nothing is titled that: measured in the browser, a
+     shopper who said "ropa" got "no hay ofertas fuertes" while the
+     general call was finding 80% off in the same catalogue. The
+     search stub here returns NOTHING, so an answer can only come
+     from the department match. */
+  const byDept = await run({ category: "ropa" }, pool);
+  assert.equal((byDept.categories || []).length, 1,
+    "asking for a rubro did not match the department it names");
+  assert.equal(byDept.categories[0].category, "ropa", "the wrong department answered");
+  assert.equal(byDept.categories[0].best_discount_pct, 80, "the rubro's best discount is wrong");
+
+  /* …and a word that is NOT a rubro still works, by falling back to
+     the search — she may well pass a brand. */
+  const brand = await run({ category: "Nike" }, pool, undefined,
+    async () => ({ items: [item("Zapatilla Nike", "finishline", "shoes", 100, 25)] }));
+  assert.equal((brand.categories || []).length, 1, "a brand as a category found nothing");
+  assert.equal(brand.categories[0].best_discount_pct, 75,
+    "the fallback search result was not used");
+
+  /* NOTHING ON SALE IS SAID, NOT INVENTED. */
+  const none = await run({}, [item("Nada", "kohls", "clothing", 50, 50)]);
+  assert.equal(none.categories.length, 0, "a full-price catalogue produced deals");
+  assert.match(none.note, /no inventes/i, "nothing tells her not to invent a discount");
+
+  /* THE COLD CATALOGUE. This tool fires in the first seconds of a
+     call — exactly when the pool is least likely to be warm — so the
+     same O(1) readiness check applies. A silent opening is the one
+     thing worse than a vague shopper. */
+  const cold = await run({}, [], null);
+  assert.match(cold.unavailable, /segundito|cargando/i,
+    "a cold catalogue leaves the opening silent");
+  assert.ok(!cold.categories, "a cold answer carried categories anyway");
+});
+
+await checkAsync("she guides to a store before she searches, and never to an empty one", async () => {
+  const i = buildRealtimeInstructions();
+
+  /* THE MALL GUIDE. Danny: "She's a mall guide, not just a product
+     search." The order is the rule — understand, ask, recommend,
+     THEN search — because searching first is what makes her a search
+     box with a voice. */
+  assert.match(i, /CONOCES CADA TIENDA/, "she has no store knowledge at all");
+  assert.match(i, /no busques productos todavía/, "she searches before she understands");
+  assert.match(i, /recommend_stores_for/, "she has no route to the store recommendations");
+  assert.match(i, /haz ESA pregunta tal cual/, "the clarifying question is optional");
+  assert.match(i, /Explica la diferencia, no solo los nombres/,
+    "she may list two stores without saying how they differ");
+  assert.match(i, /NUNCA recomiendes una tienda que la herramienta no te dio/,
+    "she may invent a store");
+  assert.match(i, /not_stocked/, "nothing tells her what an unstocked store means");
+  assert.match(i, /nunca\s*\r?\n*\s*prometas buscar ahí/,
+    "she may promise to look in a store we do not carry");
+  /* The grandmother case, which is the one the brief opens with. */
+  assert.match(i, /abuela/, "the patient case is not described");
+  assert.match(i, /sin jerga/, "she may speak jargon to someone who does not know the words");
+
+  /* THE VAGUE SHOPPER GOES TO THE SALES. Danny: "Sales should always
+     be the number one thing." */
+  assert.match(i, /SI NO SABE QUÉ QUIERE/, "the vague shopper has no rule");
+  assert.match(i, /get_top_sales/, "the vague shopper is never sent to the sales");
+  assert.match(i, /no\s*\r?\n*\s*necesita veinte preguntas/,
+    "the vague shopper gets interrogated");
+  assert.match(i, /DOS o TRES categorías/, "the offer is unbounded — it becomes a catalogue");
+  assert.match(i, /no inventes un 80%/, "she may invent a discount for a vague shopper");
+  assert.match(i, /UNA sola pregunta/, "the follow-up is not limited to one question");
+  assert.match(i, /NUNCA dejes a un comprador vago sin dirección/,
+    "a vague shopper may be left with nothing");
+  /* …AND THE SPECIFIC SHOPPER IS NOT REROUTED. Verification #2 of the
+     addendum: "busco zapatillas Nike Air Max" must be a product
+     search, not a pivot to the general sales. */
+  assert.match(i, /eso NO es vago/, "a specific request may be rerouted to the general sales");
+  assert.match(i, /no\s*\r?\n*\s*lo mandes a las ofertas generales/,
+    "nothing stops her pitching general sales to someone who named a product");
+});
+
+check("the rubro she says out loud is a word, not a tile name", () => {
+  /* The site's department labels are written for tiles: "Aria
+     Beauty", "Aria Fight Club", "Seccion Hombre". Read aloud in a
+     sentence about discounts they sound like she is reciting
+     navigation. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("const SPOKEN_DEPARTMENT = {");
+  assert.ok(at > 0, "there is no spoken-category map");
+  const map = page.slice(at, page.indexOf("};", at));
+  for (const [key, bad] of [["beauty", "Aria Beauty"], ["combat_sports", "Aria Fight Club"],
+                            ["party", "Aria Party"], ["mens_grooming", "Seccion Hombre"]]){
+    assert.match(map, new RegExp(key + ":"), `${key} still reads out as "${bad}"`);
+  }
+  /* Two departments have no sayable name at all and must drop out
+     rather than be read: "Ofertas" inside a sales pitch says nothing,
+     and Hot Topic and BoxLunch file everything under "Todo". */
+  assert.match(map, /sale: null/, '"Ofertas" is offered as a category inside a sales pitch');
+  assert.match(map, /general: null/, '"Todo" is offered as a category');
+
+  const fn = page.slice(page.indexOf("function realtimeSaleCategory(it){"));
+  const src = fn.slice(0, fn.indexOf("\n}") + 2);
+  const run = new Function("DEPARTMENT_META",
+    page.slice(at, page.indexOf("};", at) + 2) + src + "\n return realtimeSaleCategory;")(
+      { clothing: { label: "Ropa" }, beauty: { label: "Aria Beauty" } });
+  assert.equal(run({ departments: ["beauty"] }), "belleza", "beauty is not spoken as belleza");
+  assert.equal(run({ departments: ["clothing"] }), "ropa", "a plain label is not reused");
+  assert.equal(run({ departments: ["sale"] }), null, "Ofertas is spoken as a category");
+  assert.equal(run({ departments: [] }), null, "an item with no department produced a category");
+  /* A department nobody has mapped yet still gets a usable name from
+     the site's own label, so adding one does not need this map. */
+  assert.equal(run({ departments: ["unmapped_thing"] }), null,
+    "an unknown department with no label invented a name");
+});
+
+
+check("every store Aria can recommend is reachable in the page", () => {
+  /* THE BUG THIS PINS, found while building the knowledge base.
+     SOURCE_RETAILERS is a map from catalogue URL to the retailers it
+     carries, and four entries had collapsed into one:
+
+       "/finishline-catalog.json": ["finishline", "/zumiez-catalog.json",
+         "zumiez", "/hottopic-catalog.json", "hottopic", ... ]
+
+     The `],"` separators had become `, "`, so Zumiez, Hot Topic and
+     BoxLunch — 7,557 products between them — had no key of their own.
+     ensureRetailers(['zumiez']) matched the array that CONTAINS
+     "zumiez" and fetched Finish Line's catalogue instead. The full
+     page load covers them, so search still worked and nothing looked
+     broken; the targeted path did not, and that is the one a store
+     rail uses.
+
+     It matters more now than it did: Aria recommends Zumiez for skate
+     clothing and Hot Topic for anime, so a shopper following her
+     advice lands exactly there. Two further catalogues — the jewelry
+     file and the eleven Latino designers — were never addressable
+     either, and she recommends those for bikinis. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  /* Bracket-matched rather than regex-matched: these literals run to
+     thousands of characters and a lazy quantifier stops at the first
+     "]" inside them. */
+  const grab = (name) => {
+    const at = page.indexOf("const " + name + " = ");
+    assert.ok(at > 0, `${name} is gone from the page`);
+    const open = page.indexOf("=", at) + 2;
+    const shut = page[open] === "[" ? "]" : "}";
+    let depth = 0, end = -1;
+    for (let k = open; k < page.length; k++){
+      if (page[k] === page[open]) depth++;
+      else if (page[k] === shut && --depth === 0){ end = k; break; }
+    }
+    assert.ok(end > open, `${name} is not a closed literal`);
+    return JSON.parse(page.slice(open, end + 1).replace(/'/g, '"'));
+  };
+  const sources = grab("SOURCE_RETAILERS");
+  const files = grab("CATALOGUE_FILES");
+  const parts = grab("DEPT_CACHE_PARTS");
+
+  /* A VALUE THAT LOOKS LIKE A PATH is the signature of the collapse,
+     and it is invisible to every syntax check: the object still
+     parses, it just means something else. */
+  for (const [url, keys] of Object.entries(sources)){
+    for (const k of keys){
+      assert.ok(!String(k).startsWith("/"),
+        `${url} lists "${k}" as a retailer — two map entries have collapsed into one`);
+    }
+  }
+
+  /* Both directions: a catalogue nothing can address, and a key
+     nothing ever loads. */
+  const loaded = new Set([...files, ...parts]);
+  for (const f of files){
+    assert.ok(sources[f], `${f} is loaded but no retailer key reaches it`);
+  }
+  for (const url of Object.keys(sources)){
+    assert.ok(loaded.has(url), `${url} is addressable but never loaded`);
+  }
+
+  /* And the thing that actually matters: every store Aria is allowed
+     to recommend can be fetched on its own. */
+  const reachable = new Set(Object.values(sources).flat());
+  for (const [key, store] of Object.entries(K_STORES)){
+    if (store.product_count < 50) continue;
+    assert.ok(reachable.has(key),
+      `${store.name} is recommendable and no catalogue URL carries it — its rail would come up empty`);
+  }
+});
+
+
+await checkAsync("the same store question is not asked twice over the wire", async () => {
+  /* WHY THIS IS WORTH A TEST. The store tools are the one pair that
+     leaves the page, and measured in a browser the round trip cost
+     anywhere from 30ms to 2.8 seconds depending on what the catalogue
+     loader happened to be doing at the time — the page's sixty
+     catalogue fetches and this request queue on the same connection.
+     The knowledge is static data, so the answer cannot change inside
+     a call, and in a real conversation the same store comes up again
+     and again. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_store_info' || name === 'recommend_stores_for'");
+  assert.ok(at > 0, "the store tools are not routed anywhere");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_cart_total')", at));
+
+  let wire = 0;
+  const cache = new Map();
+  const run = (name, args) => {
+    const fn = new Function("name", "args", "ariaRTStoreCache", "fetch", "JSON",
+      "return (async () => {" + body + "\n return null; })();");
+    return fn(name, args, cache, async () => {
+      wire++;
+      return { ok: true, json: async () => ({ store: "zumiez", name: "Zumiez" }) };
+    }, JSON);
+  };
+
+  const a = await run("get_store_info", { store_name: "Zumiez" });
+  assert.equal(a.name, "Zumiez", "the first ask did not come back");
+  assert.equal(wire, 1, "the first ask did not go over the wire");
+
+  const b = await run("get_store_info", { store_name: "Zumiez" });
+  assert.deepEqual(b, a, "the cached answer differs from the first one");
+  assert.equal(wire, 1, "the same question was asked over the wire twice");
+
+  /* A DIFFERENT question still goes out — a cache that answers
+     everything with the first reply is worse than no cache. */
+  await run("get_store_info", { store_name: "CCS" });
+  assert.equal(wire, 2, "a different store was answered from the first store's cache");
+  await run("recommend_stores_for", { interest: "skate" });
+  assert.equal(wire, 3, "a different tool was answered from the other tool's cache");
+
+  /* AND IT IS PER CALL. Static within a conversation is not static
+     across a deploy, and a cache that outlived the call would serve
+     yesterday's catalogue depth. */
+  assert.match(page, /ariaRTStoreCache = new Map\(\);[\s\S]{0,400}ariaRTSpoke = false;/,
+    "the store cache is not cleared when a new call starts");
+
+  /* A failed request must not be remembered as an answer. */
+  let failing = 0;
+  const bad = new Map();
+  const runBad = () => new Function("name", "args", "ariaRTStoreCache", "fetch", "JSON",
+    "return (async () => {" + body + "\n return null; })();")(
+      "get_store_info", { store_name: "Zumiez" }, bad,
+      async () => { failing++; return { ok: false }; }, JSON);
+  const f1 = await runBad();
+  assert.ok(f1.unavailable, "a failed lookup produced no sayable answer");
+  await runBad();
+  assert.equal(failing, 2, "a failure was cached as though it were an answer");
+});
+
 /* ============================================================ */
+
+/* ============================================================
+   REPUESTOS: THE FITMENT RULE.
+
+   Nothing in auto-cache.json says which vehicles a part fits. Every
+   record carries vehicle_fitment and its only two values are
+   VEHICLE_SPECIFIC and UNIVERSAL — there is no vehicle list anywhere.
+   The ONLY evidence a part fits a car is that AutoZone returned it
+   when asked about that exact year, make and model.
+
+   So "confirmed" can mean exactly one thing, and these tests exist to
+   stop it quietly coming to mean anything else. A wrong confirmation
+   here is a part that does not fit, bought and shipped to Peru.
+   ============================================================ */
+function liftExecutor(page, toolName, nextTool){
+  const at = page.indexOf("  if (name === '" + toolName + "'){");
+  assert.ok(at > 0, toolName + " has no implementation");
+  const end = page.indexOf("\n  if (name === '" + nextTool + "'", at);
+  assert.ok(end > at, "could not find the end of " + toolName);
+  return page.slice(at, end);
+}
+
+await checkAsync("a part is confirmed only for the exact year we have data for", async () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const body = liftExecutor(page, "lookup_parts_by_vehicle", "check_brand_exists");
+
+  const part = (n, extra) => ({ productTitle: n, brand: "Duralast", part_number: n,
+                                oem_part_number: null, price: 40, store: "autozone",
+                                vehicle_fitment: "VEHICLE_SPECIFIC", ...extra });
+  const cache = {
+    partSearches: {
+      "2021|toyota|hilux|pastillas de freno": { autozone: [part("D2076")] },
+      "2018|toyota|hilux|pastillas de freno": { autozone: [part("D1879")] },
+      "2016|toyota|hilux|pastillas de freno": { autozone: [part("D1234")] },
+      /* INSERTED SHORT-FIRST ON PURPOSE: with the specific key first,
+         insertion order already gives the right answer and deleting
+         the longest-match sort changes nothing. */
+      "2020|toyota|camry|filtro de aire": { autozone: [part("AF1")] },
+      "2020|toyota|camry|filtro de aire de cabina": { autozone: [part("CF1")] },
+      "2019|toyota|corolla|bujías": { autozone: [part("SP1", { vehicle_fitment: "UNIVERSAL" })] },
+    },
+  };
+  const run = (args, warm) => new Function("args", "autoCacheIfWarm", "ariaAutoWarming",
+    "titleCaseWords", "logFitmentGap", "name",
+    "return (async () => {" + body + "\n return null; })();")(
+      /* The REAL warming line, read out of the page, so the test is
+         checking what a shopper would actually hear. */
+      args, async () => (warm === false ? null : cache),
+      /const ariaAutoWarming = '([^']+)'/.exec(page)[1],
+      (v) => String(v).split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      () => {}, "lookup_parts_by_vehicle");
+
+  /* EXACT YEAR: the only thing that earns "confirmed". */
+  const exact = await run({ year: 2021, make: "toyota", model: "hilux", part_type: "pastillas de freno" });
+  assert.equal(exact.parts[0].fitment, "confirmed", "an exact-year match is not confirmed");
+  assert.equal(exact.data_year, 2021, "the data year is wrong for an exact match");
+  assert.match(exact.fitment_note, /puedes decir que entra/i, "a confirmed fit is not stated plainly");
+
+  /* DANNY'S CASE: 2019 Hilux, and the cache holds 2016, 2018, 2021.
+     The nearest year is 2018 — not the newest, not the first found. */
+  const near = await run({ year: 2019, make: "toyota", model: "hilux", part_type: "pastillas de freno" });
+  assert.equal(near.parts[0].fitment, "likely", "a different year was reported as confirmed");
+  assert.equal(near.data_year, 2018, "the nearest year was not chosen");
+  assert.match(near.fitment_note, /NUNCA digas que está confirmado/,
+    "nothing stops her confirming a fit we cannot confirm");
+  assert.match(near.fitment_note, /2018/, "the note does not say which year the data is from");
+  assert.match(near.fitment_note, /número de parte/, "the note does not tell him how to check");
+
+  /* UNIVERSAL IS NEVER CONFIRMED, even on an exact-year hit: "fits
+     many" is not "fits yours". */
+  const uni = await run({ year: 2019, make: "toyota", model: "corolla", part_type: "bujías" });
+  assert.equal(uni.parts[0].fitment, "likely",
+    "a UNIVERSAL part was confirmed for a specific car");
+
+  /* NO DATA IS AN ANSWER. Not a nearby car, not a guess. */
+  const none = await run({ year: 2019, make: "toyota", model: "tacoma", part_type: "pastillas de freno" });
+  assert.ok(none.unavailable, "a car we have no data for produced parts anyway");
+  assert.match(none.unavailable, /No le confirmes/, "nothing stops her confirming from nothing");
+  assert.ok(!none.parts, "a car we have no data for came back with parts");
+
+  /* LONGEST PART-TYPE MATCH WINS, or "filtro de aire de cabina" is
+     answered with an engine air filter — a different part in a
+     different place.
+
+     ASKED WITH AN EXTRA WORD ON PURPOSE. Said exactly, the phrase is
+     a catalogue key and the exact-match branch answers before the
+     ranking runs — so the first version of this test passed with the
+     ranking deleted. Nobody says it exactly: they say "el filtro de
+     aire de cabina sucio", and then both "filtro de aire" and "filtro
+     de aire de cabina" match and something has to choose. */
+  const cabin = await run({ year: 2020, make: "toyota", model: "camry",
+                            part_type: "filtro de aire de cabina sucio" });
+  assert.equal(cabin.part_type, "filtro de aire de cabina",
+    "the cabin filter resolved to the engine air filter — the longer match did not win");
+  /* …and the plain one still resolves to itself. */
+  const engine = await run({ year: 2020, make: "toyota", model: "camry", part_type: "filtro de aire" });
+  assert.equal(engine.part_type, "filtro de aire", "the engine air filter resolved to something else");
+
+  /* Incomplete input is a question, not a search with two of three. */
+  for (const args of [{ make: "toyota", model: "hilux", part_type: "pastillas de freno" },
+                      { year: 2019, model: "hilux", part_type: "pastillas de freno" },
+                      { year: 2019, make: "toyota", part_type: "pastillas de freno" },
+                      { year: 2019, make: "toyota", model: "hilux" }]){
+    const r = await run(args);
+    assert.ok(r.unavailable, "a search ran with a missing field: " + JSON.stringify(args));
+  }
+
+  /* THE 22MB CACHE. The first parts question must answer in words
+     rather than wait: measured at 6,445ms cold, 3-8ms warm. */
+  const cold = await run({ year: 2021, make: "toyota", model: "hilux", part_type: "pastillas de freno" }, false);
+  assert.match(cold.unavailable, /segundito|catálogo de repuestos/i,
+    "a cold parts cache leaves the line silent");
+});
+
+await checkAsync("a part number names the part, not the car", async () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const body = liftExecutor(page, "lookup_part_by_number", "lookup_parts_by_vehicle");
+  const rec = { productTitle: "Duralast Ceramic Brake Pads D2076", brand: "Duralast",
+                part_number: "D2076", oem_part_number: null, part_type: "Brake Pads",
+                price: 43.99, store: "autozone" };
+  const cache = {
+    partNumberIndex: { d2076: [
+      ["2021|toyota|camry|pastillas de freno", "autozone", 0],
+      ["2019|toyota|corolla|pastillas de freno", "autozone", 0],
+      ["2021|toyota|camry|pastillas de freno", "autozone", 0],   /* duplicate key */
+    ] },
+    partSearches: {
+      "2021|toyota|camry|pastillas de freno": { autozone: [rec] },
+      "2019|toyota|corolla|pastillas de freno": { autozone: [rec] },
+    },
+  };
+  const run = (args, warm) => new Function("args", "autoCacheIfWarm", "ariaAutoWarming",
+    "titleCaseWords", "name",
+    "return (async () => {" + body + "\n return null; })();")(
+      args, async () => (warm === false ? null : cache),
+      /const ariaAutoWarming = '([^']+)'/.exec(page)[1],
+      (v) => String(v).split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      "lookup_part_by_number");
+
+  const r = await run({ part_number: "D2076" });
+  assert.equal(r.part_number, "D2076", "the part number came back wrong");
+  assert.equal(r.price_usd, 43.99, "the price came back wrong");
+  assert.equal(r.vehicle_count, 2, "the vehicle list did not de-duplicate");
+  assert.match(r.note, /cuál tiene/, "more than one car, and she is not told to ask which");
+  assert.match(JSON.stringify(r.compatible_vehicles), /Toyota Camry/,
+    "the vehicle label is not something she can say out loud");
+
+  /* Dictated numbers arrive punctuated and in any case. */
+  for (const said of ["d2076", "D-2076", " D 2076 "]){
+    const x = await run({ part_number: said });
+    assert.equal(x.part_number, "D2076", `"${said}" did not resolve to the same part`);
+  }
+
+  /* A number we do not have is said, never approximated. */
+  const miss = await run({ part_number: "ZZZ999" });
+  assert.match(miss.unavailable, /no encontré ese número de parte/,
+    "an unknown part number produced something other than a plain no");
+  assert.ok(!miss.name, "an unknown part number came back with a part");
+  assert.ok((await run({ part_number: "" })).unavailable, "an empty part number searched anyway");
+  assert.ok((await run({ part_number: "D2076" }, false)).unavailable,
+    "a cold cache answered a part number instead of saying it is loading");
+});
+
+await checkAsync("the VIN is read, not guessed at", async () => {
+  const V = await import(ROOT + "netlify/functions/_vin.js");
+
+  /* DANNY'S TEST VIN. It decodes to a 2019 Toyota — and its check
+     digit is WRONG (computed 0, printed 7), because it is a made-up
+     number. That is exactly why the checksum cannot be a rejection:
+     it would turn his own test case into "ese VIN no parece válido".
+
+     The real reason is better than the convenient one. The check digit
+     is mandatory in North America and optional elsewhere, and Peru's
+     used-import market runs on Japanese and Korean vehicles whose VINs
+     often carry no valid one. Rejecting on it would reject real cars
+     belonging to real customers. */
+  const d = V.decodeVinLocal("3TMAZ5CN7KM123456");
+  assert.equal(d.year, 2019, "the model year was not read from position 10");
+  assert.equal(d.make, "Toyota", "the manufacturer was not read from the WMI");
+  /* …for more than one manufacturer, or the table is decoration. */
+  assert.equal(V.decodeVinLocal("1HGCM82633A004352").make, "Honda", "the WMI table lost Honda");
+  assert.equal(V.decodeVinLocal("WBA5A5C51ED123456").make, "BMW", "the WMI table lost BMW");
+  assert.equal(V.decodeVinLocal("KMHD35LE5EU123456").make, "Hyundai", "the WMI table lost Hyundai");
+  /* An unknown WMI is null, never "probably Japanese". */
+  assert.equal(V.decodeVinLocal("ZZZD35LE5EU123456").make, null,
+    "an unrecognised manufacturer code produced a make anyway");
+  assert.equal(d.checksum_ok, false, "a VIN with a bad check digit passed the checksum");
+  assert.ok(!d.unavailable, "a bad check digit rejected the VIN outright");
+
+  /* …and a real VIN's checksum does pass, or the check is decoration. */
+  assert.equal(V.decodeVinLocal("1HGCM82633A004352").checksum_ok, true,
+    "a valid check digit failed — the checksum is not actually being computed");
+
+  /* MODEL, TRIM AND ENGINE ARE NOT IN THE VIN. Positions 4-8 mean
+     whatever each manufacturer decided; there is no way to read
+     "Tacoma" out of them without a table. Null, never a guess. */
+  assert.equal(d.model, null, "a model was invented from the VIN");
+  assert.equal(d.trim, null, "a trim was invented from the VIN");
+  assert.equal(d.engine, null, "an engine was invented from the VIN");
+
+  /* The three letters VINs never use, because they are confusable
+     with digits — a VIN containing one is a misreading. */
+  for (const bad of ["3TMAZ5CN7KM12345I", "3TMAZ5CN7KM12345O", "3TMAZ5CN7KM12345Q"]){
+    const r = V.decodeVinLocal(bad);
+    assert.ok(r.unavailable, `${bad[16]} was accepted in a VIN`);
+    assert.match(r.unavailable, /I, O o Q/, "the reason does not say which letters");
+  }
+  assert.ok(V.decodeVinLocal("").unavailable, "an empty VIN was accepted");
+  for (const bad of ["ABC", "3TMAZ5CN7KM1234567"]){
+    const r = V.decodeVinLocal(bad);
+    assert.ok(r.unavailable, `"${bad}" was accepted as a VIN`);
+    /* The reason must name the length, or "ese VIN no parece válido"
+       is all he gets and he has nothing to check. */
+    assert.match(r.unavailable, /17/, `"${bad}" was rejected without saying a VIN has 17 characters`);
+  }
+  /* Dictation adds spaces and dashes; those are not the shopper's
+     mistake. */
+  assert.equal(V.decodeVinLocal("3TM-AZ5CN7KM 123456").year, 2019,
+    "a spaced or hyphenated VIN was rejected");
+
+  /* The year code repeats every thirty years, so the recent reading
+     wins unless it would be in the future. */
+  const now = new Date("2026-06-01");
+  assert.equal(V.vinYear("K", now), 2019, "K did not read as 2019");
+  /* Y is 2000 or 2030, and 2030 has not happened: the recent reading
+     is only taken when it is not in the future. (My first version of
+     this asserted 2030 and the function was right.) */
+  assert.equal(V.vinYear("Y", now), 2000, "a year code resolved into the future");
+  assert.equal(V.vinYear("Y", new Date("2031-01-01")), 2030,
+    "once 2030 is in the past, Y should read as 2030");
+  assert.equal(V.vinYear("I", now), null, "a letter VINs do not use produced a year");
+});
+
+await checkAsync("a brand we do not carry is answered, not denied", async () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const body = liftExecutor(page, "check_brand_exists", "get_store_info");
+
+  const pool = [
+    { brand: "Calvin Klein" }, { brand: "Calvin Klein" }, { brand: "Nike" },
+    { brand: "Thrasher" }, { brand: "Obey" }, { brand: "Santa Cruz Skateboards" },
+    { brand: "adidas" }, { brand: "Gymshark" },
+  ];
+  const at = page.indexOf("const BRAND_NEIGHBOURS = {");
+  const neighbours = page.slice(at, page.indexOf("};", at) + 2);
+  const run = (args, warm) => {
+    let idx = null;
+    const fn = new Function("args", "relatedPool", "relatedPoolCache", "ariaRTBrandIndex",
+      "editDistanceWithin", "name",
+      neighbours + "\n return (async () => {" + body + "\n return null; })();");
+    return fn(args, async () => pool, warm === false ? null : pool, idx,
+      new Function("a", "b", "max",
+        page.slice(page.indexOf("function editDistanceWithin("),
+                   page.indexOf("const ariaAutoWarming")) +
+        "; return editDistanceWithin(a, b, max);"),
+      "check_brand_exists");
+  };
+
+  const yes = await run({ brand_name: "Nike" });
+  assert.equal(yes.exists, true, "a brand we carry was reported absent");
+  assert.ok(yes.in_stock > 0, "a brand we carry has no count");
+
+  /* A MIS-HEARD BRAND IS NOT A MISSING ONE. "Calvin Kline" is not a
+     substring of "calvinklein" and does not contain it — one letter
+     differs in the middle — so substring matching alone reported a
+     brand we stock thousands of items from as one we do not carry. */
+  const typo = await run({ brand_name: "Calvin Kline" });
+  assert.equal(typo.exists, true, "a one-letter transcript error read as a missing brand");
+  assert.equal(typo.brand, "Calvin Klein", "the near match resolved to the wrong brand");
+  assert.equal(typo.heard_as, "Calvin Kline", "nothing tells her she may have misheard");
+  assert.match(typo.note, /Confírmalo/, "she is not told to confirm the name first");
+
+  /* ABSENT, WITH SOMEWHERE TO GO. */
+  const no = await run({ brand_name: "Supreme" });
+  assert.equal(no.exists, false, "a brand we do not carry was reported as stocked");
+  assert.ok(no.similar_brands.length >= 2, "an absent brand came back with nothing to offer");
+  assert.match(no.note, /request_brand/, "nothing tells her to offer to order it");
+
+  /* …AND SILENCE WHERE THERE IS NOTHING HONEST TO SAY. Offering a
+     substitute we also do not have is worse than offering none. */
+  const unknown = await run({ brand_name: "Marca Inventada XYZ" });
+  assert.equal(unknown.exists, false, "an invented brand was reported as stocked");
+  assert.deepEqual(unknown.similar_brands, [], "an invented brand produced invented neighbours");
+  assert.match(unknown.note, /no inventes|pregúntale qué buscaba/i,
+    "nothing stops her inventing a substitute");
+
+  /* A SHORT WORD MUST NOT CLAIM A LONG BRAND. "Cruz" is not someone
+     asking for Santa Cruz Skateboards, and answering "¿Santa Cruz
+     Skateboards?" to it is a confident wrong guess. */
+  const fragment = await run({ brand_name: "Cruz" });
+  assert.equal(fragment.exists, false,
+    "a four-letter fragment resolved to a much longer brand name");
+
+  /* SUBSTITUTES ARE CHECKED AGAINST WHAT WE ACTUALLY HAVE. "zara"
+     is in the map, and none of its three alternatives is in this
+     stub catalogue, so the list must come back empty rather than
+     naming brands this shop does not stock. */
+  const zara = await run({ brand_name: "Zara" });
+  assert.equal(zara.exists, false, "Zara was reported as stocked");
+  assert.deepEqual(zara.similar_brands, [],
+    "substitutes were offered without checking they are in the catalogue");
+
+  assert.ok((await run({ brand_name: "" })).unavailable, "an empty brand searched anyway");
+  assert.ok((await run({ brand_name: "Nike" }, false)).unavailable,
+    "a cold catalogue answered a brand question instead of saying it is loading");
+});
+
+check("every brand we offer as a substitute is one we actually carry", () => {
+  /* THE WHOLE POINT OF THE SUBSTITUTE LIST is that it is honest, and
+     a hand-written map is exactly the kind of thing that stops being
+     so. Checked against the catalogues themselves.
+
+     This caught fifteen errors on its first run: nine brands I had
+     listed as absent are in fact stocked (Asics, Puma, Reebok,
+     Oakley, Yeti, Dyson, Lululemon, Fear of God, Essentials), and two
+     "brands" I offered — Revolve and Old Navy — are stores, which
+     never appear in an item's brand field. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("const BRAND_NEIGHBOURS = {");
+  assert.ok(at > 0, "the substitute map is gone");
+  const map = new Function(page.slice(at, page.indexOf("};", at) + 2) + "; return BRAND_NEIGHBOURS;")();
+  assert.ok(Object.keys(map).length >= 10, "the substitute map is suspiciously small");
+
+  const fold = (v) => String(v).toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "");
+  const stocked = new Set();
+  for (const f of readdirSync(ROOT).filter(x => x.endsWith("-catalog.json")
+                                             || /^department-cache-.*\.json$/.test(x))){
+    let d;
+    try { d = JSON.parse(readFileSync(ROOT + f, "utf8")); } catch { continue; }
+    for (const r of Object.values((d && d.retailers) || {})){
+      for (const dv of Object.values((r && r.departments) || {})){
+        for (const it of (Array.isArray(dv) ? dv : (dv && dv.items)) || []){
+          if (it && it.brand) stocked.add(fold(it.brand));
+        }
+      }
+    }
+  }
+  assert.ok(stocked.size > 1000, `only ${stocked.size} brands found — the catalogues did not load`);
+
+  for (const [absent, subs] of Object.entries(map)){
+    assert.ok(!stocked.has(fold(absent)),
+      `${absent} is listed as a brand we lack, and we stock it — she would offer a substitute for something we have`);
+    for (const sub of subs){
+      assert.ok(stocked.has(fold(sub)),
+        `${absent} offers "${sub}" as an alternative and we do not carry it either`);
+    }
+  }
+});
+
+check("the call cannot run for more than five minutes", () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const m = /const CALL_MAX_MS = (\d+) \* 60000;/.exec(page);
+  assert.ok(m, "the hard cap on call length is gone");
+  assert.ok(Number(m[1]) <= 5,
+    `a call can run ${m[1]} minutes — realtime audio bills by the minute in both directions`);
+});
+
+check("she is told how to be honest about parts and about brands", () => {
+  const i = buildRealtimeInstructions();
+
+  /* REPUESTOS. A wrong part is money and a wait, and she is the one
+     who sounds certain. */
+  assert.match(i, /REPUESTOS DE AUTO/, "there are no instructions about parts at all");
+  assert.match(i, /lookup_part_by_number/, "she has no route to a part number");
+  assert.match(i, /usa decode_vin ANTES de buscar/, "the VIN is not used before searching");
+  assert.match(i, /pregunta marca, modelo y año ANTES/, "she may search with two of three");
+  assert.match(i, /NUNCA confirmes fitment sin datos/, "she may confirm a fit she cannot confirm");
+  assert.match(i, /"likely" = /, "the two fitment states are not explained");
+  assert.match(i, /NUNCA digas que está confirmado/, "likely may be read out as confirmed");
+  assert.match(i, /no lo adivines/, "she may invent a model the VIN does not carry");
+  assert.match(i, /delantero o\s*\n?\s*trasero/, "she may price a part before knowing which variant");
+
+  /* MARCAS. "No" is never the whole answer. */
+  assert.match(i, /check_brand_exists antes de decirle que no hay algo/,
+    "she may say we lack a brand without checking");
+  assert.match(i, /request_brand/, "there is no way to offer to order it");
+  /* THE PHRASE APPEARS TWICE — once as the line she says, once in the
+     rule forbidding a date — so matching it loosely let the scripted
+     line be deleted while the test still passed. Both roles are
+     asserted. */
+  assert.match(i, /Listo, ya está pedida\.\s*\n?\s*Te aviso cuando llegue/,
+    "the line she says after logging a request is not scripted");
+  assert.match(i, /"Te aviso cuando llegue" — jamás/,
+    "nothing contrasts the promise she can keep with the one she cannot");
+  assert.match(i, /NUNCA prometas una fecha/, "she may promise a delivery date");
+  assert.match(i, /Si esa lista viene\s*\n?\s*vacía, no inventes una/,
+    "she may invent a substitute brand when the list comes back empty");
+  assert.match(i, /no es lo mismo que no tenerla|No es lo mismo que no tenerla/,
+    "out of stock and not carried are not distinguished");
+});
+
+
+await checkAsync("the page acts on every action the reducer emits", async () => {
+  /* THE GAP THE PRODUCTION BUG LIVED IN. The reducer was covered from
+     every angle; what nobody tested was the page DOING anything with
+     what it returns. An action the reducer emits and the page ignores
+     is invisible to every test above — and "openAudio is emitted" is
+     worth nothing if the handler never calls sink.open().
+
+     So the real dc.onmessage action loop is lifted out and driven. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("    for (const action of actions){");
+  assert.ok(at > 0, "the action loop is gone from dc.onmessage");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const loop = page.slice(at, end + 1);
+
+  const drive = (actions) => {
+    const seen = [];
+    const sink = { open: () => seen.push("open"), cut: () => seen.push("cut") };
+    new Function("actions", "sink", "setRealtimeState", "noteRealtimeActivity",
+      "ariaRTHeardAudio", "console", "ariaRTSignedOff", "ariaRTHeardSignOff", "send",
+      loop)(
+      actions, sink,
+      (s) => seen.push("ui:" + s),
+      () => seen.push("activity"),
+      true, { info(){} }, false, false,
+      (o) => seen.push("sent:" + o.type));
+    return seen;
+  };
+
+  /* A NEW ANSWER RE-OPENS THE PATH. This is the fix. */
+  assert.ok(drive(["openAudio"]).includes("open"),
+    "the page ignores openAudio — the audio path is never re-opened and every answer after the greeting is silent");
+  assert.ok(drive(["openAudio"]).includes("activity"),
+    "a new answer does not count as activity");
+
+  /* A barge-in ducks it. */
+  for (const a of ["stopPlayback", "clearAudioQueue", "dropAudio"]){
+    assert.ok(drive([a]).includes("cut"), `the page ignores ${a}`);
+  }
+
+  /* HER TALKING IS ACTIVITY. Over WebRTC playAudio never fires, so
+     without this a long answer reads as an empty room. */
+  assert.ok(drive(["noteActivity"]).includes("activity"),
+    "the page ignores noteActivity — she can talk for half a minute and be hung up on");
+
+  /* And the cancel still goes out, or an interrupted response keeps
+     generating. */
+  assert.ok(drive(["cancelResponse"]).some(x => x === "sent:response.cancel"),
+    "an interruption no longer cancels the response");
+
+  /* THE CALL KEEPS A RECORD. Three rounds of this bug were diagnosed
+     by reasoning from a description; the tape is what replaces that
+     with an account. If it stops recording, the next round is another
+     guess. */
+  const page2 = readFileSync(ROOT + "index.html", "utf8");
+  const dcAt = page2.indexOf("    const { state, actions } = T.voiceTurnReducer(turn, event);");
+  assert.ok(dcAt > 0, "the event handler moved");
+  const handler = page2.slice(dcAt, dcAt + 400);
+  assert.match(handler, /tape\(/, "events are no longer recorded — the tape is empty when it is needed");
+  assert.match(page2, /cinta: ariaRTTape/, "the diagnostic no longer returns the tape");
+  assert.match(page2, /ariaRTTape = \[\];[\s\S]{0,200}mic = await navigator|ariaRTTape = \[\];/,
+    "the tape is never cleared, so it mixes two calls together");
+});
+
+check("the diagnostic can say whether the audio path is silenced", () => {
+  /* IT COULD NOT, AND THAT IS WHY THIS BUG SURVIVED A PRODUCTION
+     CYCLE. ariaVoiceDiag reported a context running, a graph running
+     and an element muted — which is a HEALTHY path, because the graph
+     carries the sound and the element steps back. The gain sat at
+     zero and nothing said so. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("    state(){");
+  assert.ok(at > 0, "the sink no longer reports its state");
+  const line = page.slice(at, page.indexOf("attach(stream)", at));
+  assert.match(line, /silenced/,
+    "the diagnostic cannot tell a ducked path from a healthy one");
+  /* …and which path is carrying the sound, which is the question the
+     iPhone bug turned on. */
+  assert.match(line, /path:/, "the diagnostic does not say which path is audible");
+  assert.match(line, /playing:/, "the diagnostic cannot say whether anything is playing");
+});
+
+await checkAsync("the call starts when the chat opens, inside the gesture", async () => {
+  /* iOS only honours AudioContext.resume() while a user gesture is on
+     the stack, and toggleAssistant runs inside the tap that opened the
+     panel. Unlocking anywhere else gives a call that connects and is
+     silent — which this file has a history of. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function startRealtimeOnOpen(){");
+  assert.ok(at > 0, "nothing starts the call when the chat opens");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
+  /* BOTH the context and the element, because the element is what
+     actually makes the sound now and iOS blesses it only in a tap. */
+  assert.ok(body.indexOf("unlockAudioForMobile()") < body.indexOf("startRealtimeVoice"),
+    "the audio is unlocked after the call starts, which is outside the gesture");
+  assert.match(body, /showRealtimeError\(\)/,
+    "a call that fails to start on open says nothing — there is no fallback to cover it");
+  assert.match(body, /if \(ariaLiveCallActive\(\)\) return;/,
+    "re-opening the chat starts a second call on top of the first");
+
+  /* Driven, because "the call is attempted" is the whole feature. */
+  const calls = [];
+  const run = (ok) => new Function("ariaLiveCallActive", "unlockAudioForMobile",
+    "ariaRTWanted", "startRealtimeVoice", "showRealtimeError", "Promise",
+    body + "\n return startRealtimeOnOpen;")(
+      () => false, () => calls.push("unlocked"), false,
+      async () => { calls.push("started"); return ok; },
+      () => calls.push("error"), Promise);
+  run(true)();
+  /* The start is deferred through a promise so the greeting's caller is
+     not blocked on a handshake; the unlock is NOT deferred, because it
+     has to happen while the tap is still on the stack. */
+  assert.deepEqual(calls, ["unlocked"], "the unlock is deferred out of the gesture");
+  await Promise.resolve(); await Promise.resolve();
+  assert.deepEqual(calls, ["unlocked", "started"], "the call was never attempted");
+
+  /* …and a failure is loud. */
+  calls.length = 0;
+  run(false)();
+  /* Drained properly rather than by counting microtask ticks: the
+     chain is Promise.resolve().then(start).then(check), and an async
+     start adds its own. */
+  await new Promise(r => setTimeout(r, 0));
+  assert.ok(calls.includes("error"), "a call that fails to start on open says nothing");
+});
+
+
+/* ============================================================
+   SHE REMEMBERS YOU, AND SHE DOES NOT MAKE YOU UP.
+
+   A salesperson who remembers you is worth a lot. One who invents a
+   purchase you never made is worth less than a stranger, and one who
+   reads out somebody else's order is a breach.
+   ============================================================ */
+const MEMBER = await import(ROOT + "netlify/functions/_member.js");
+
+function memberCtx({ email, users = {}, orders = {} }){
+  const store = (obj) => ({
+    get: async (k) => (k in obj ? obj[k] : null),
+    list: async () => ({ blobs: Object.keys(obj).map(key => ({ key })) }),
+  });
+  return { email: async () => email, users: () => store(users), orders: () => store(orders) };
+}
+
+const ORDER = (id, email, days, items, extra = {}) => ({
+  orderId: id,
+  createdAt: new Date(Date.now() - days * 86400000).toISOString(),
+  buyerEmail: email,
+  status: "confirmed",
+  paymentStatus: "paid",
+  items,
+  /* Everything an order really carries that must never be spoken. */
+  customer: { name: "Daniel Zevallos", dni: "09876543", phone: "+51 999 888 777" },
+  shipping: { address: "Av. Larco 1234, Miraflores", district: "Miraflores" },
+  pricePenCharged: 980.5, orderTotalPen: 1100, courierTotalUsd: 212.4,
+  fxRateUsed: 3.78, totalUsd: 260.1,
+  ...extra,
+});
+
+await checkAsync("a logged-in member is greeted by name, from their own session", async () => {
+  const ctx = memberCtx({
+    email: "danny@example.com",
+    users: { "danny@example.com": { name: "Daniel Zevallos", createdAt: "2026-02-11T00:00:00Z",
+                                    founderStatus: "fundador" } },
+  });
+  const me = await MEMBER.getCurrentUser(ctx);
+  assert.equal(me.logged_in, true, "a logged-in member reads as a guest");
+  assert.equal(me.first_name, "Daniel", "the greeting would use the full legal name");
+  assert.equal(me.member_since, "2026", "member_since is wrong");
+  assert.equal(me.key_club_member, true, "an approved founder is not recognised as one");
+
+  /* THE EMAIL NEVER ENTERS THE MODEL'S CONTEXT. The id is opaque and
+     nothing is ever looked up by it — it exists only because the
+     brief's shape has one. */
+  const blob = JSON.stringify(me);
+  assert.ok(!blob.includes("danny@example.com"), "the member's email is handed to the model");
+  assert.ok(!blob.includes("Zevallos"), "the member's surname is handed to the model");
+
+  /* A GUEST IS A NORMAL ANSWER, NOT A FAILURE. */
+  const guest = await MEMBER.getCurrentUser(memberCtx({ email: null }));
+  assert.equal(guest.user_id, null, "a guest was given an identity");
+  assert.equal(guest.logged_in, false, "a guest reads as logged in");
+  assert.ok(!guest.first_name, "a guest came back with a name");
+
+  /* Logged in, but no profile row yet. */
+  const bare = await MEMBER.getCurrentUser(memberCtx({ email: "new@example.com" }));
+  assert.equal(bare.logged_in, true, "a member without a profile reads as a guest");
+  assert.equal(bare.first_name, null, "a missing name was invented");
+  assert.equal(bare.key_club_member, false, "a member without a profile joined the club");
+});
+
+await checkAsync("she only ever reads the orders of whoever is on the call", async () => {
+  /* THE SIGNATURE IN THE BRIEF WAS get_order_history(user_id, limit),
+     and it cannot be built safely: the model would be choosing whose
+     orders to read. It mis-hears, it infers, and a shopper can say
+     "my customer number is 4471" out loud. The tools take no id at
+     all — the server uses the session cookie the browser sent.
+
+     This is the test that proves it. The store holds two people's
+     orders and the lookup takes nothing but the session. */
+  const orders = {
+    "ARIA-20261006-AAAAAA": ORDER("ARIA-20261006-AAAAAA", "danny@example.com", 3,
+      [{ title: "Nike Air Max 90", brand: "Nike" }]),
+    "ARIA-20261005-BBBBBB": ORDER("ARIA-20261005-BBBBBB", "someone.else@example.com", 2,
+      [{ title: "Vestido Farm Rio", brand: "Farm Rio" }]),
+    "ARIA-20260101-CCCCCC": ORDER("ARIA-20260101-CCCCCC", "danny@example.com", 280,
+      [{ title: "Polo Calvin Klein", brand: "Calvin Klein" }]),
+    "count:2026-10-06": { count: 2 },
+  };
+  const mine = await MEMBER.getOrderHistory(memberCtx({ email: "danny@example.com", orders }), 3);
+  assert.equal(mine.orders.length, 2, "the wrong number of orders came back");
+  const blob = JSON.stringify(mine);
+  assert.ok(!blob.includes("Farm Rio"), "another customer's order was returned");
+  assert.ok(!blob.includes("someone.else"), "another customer's email was returned");
+
+  assert.equal(mine.orders[0].order_id, "ARIA-20261006-AAAAAA", "the orders are not newest-first");
+  assert.equal(mine.orders[0].days_ago, 3, "days_ago is wrong");
+  assert.ok(!blob.includes("count:"), "a counter key was read as an order");
+
+  /* NEWEST BY DATE, NOT BY KEY. The key carries the creation date, so
+     in practice the two agree and sorting the records again looks
+     redundant — until a key does not match its own timestamp, which a
+     backdated or re-keyed order would do. The guarantee is "his most
+     recent purchase first", so it is tested on the date. */
+  const skewed = {
+    "ARIA-20261006-ZZZZZZ": ORDER("ARIA-20261006-ZZZZZZ", "d@e.com", 90,
+      [{ title: "Pedido viejo", brand: "Vans" }]),
+    "ARIA-20260101-AAAAAA": ORDER("ARIA-20260101-AAAAAA", "d@e.com", 1,
+      [{ title: "Pedido reciente", brand: "Nike" }]),
+  };
+  const bydate = await MEMBER.getOrderHistory(memberCtx({ email: "d@e.com", orders: skewed }), 3);
+  assert.equal(bydate.orders[0].items[0].name, "Pedido reciente",
+    "the orders are ordered by key rather than by when they were actually placed");
+
+  /* THE COUNTER KEYS MUST NOT EAT THE SCAN WINDOW. The lookup reads a
+     bounded slice of the newest keys; one counter is written per day,
+     and their keys sort after the orders'. Without the ARIA- filter a
+     shop with a few hundred trading days pushes every real order out
+     of the window and a loyal customer reads as a stranger. */
+  const crowded = {};
+  for (let i = 0; i < 320; i++) crowded["count:2026-" + String(i).padStart(4, "0")] = { count: i };
+  crowded["ARIA-20260101-AAAAAA"] = ORDER("ARIA-20260101-AAAAAA", "d@e.com", 5,
+    [{ title: "Zapatillas Nike", brand: "Nike" }]);
+  const found = await MEMBER.getOrderHistory(memberCtx({ email: "d@e.com", orders: crowded }), 3);
+  assert.equal(found.orders.length, 1,
+    "the daily counter keys filled the scan window and his order was never found");
+
+  /* NOTHING SENSITIVE SURVIVES THE COPY. Each field is taken by name;
+     a spread of the record would have leaked every one of these. */
+  for (const secret of ["09876543", "Av. Larco", "Miraflores", "+51 999",
+                        "980.5", "1100", "212.4", "3.78", "260.1", "Zevallos"]){
+    assert.ok(!blob.includes(secret),
+      `"${secret}" reached the model — the order record is being passed through, not copied field by field`);
+  }
+  assert.equal(mine.orders[0].items[0].name, "Nike Air Max 90", "the product name is missing");
+  assert.equal(mine.orders[0].items[0].brand, "Nike", "the brand is missing");
+});
+
+await checkAsync("no orders means no history, not an invented one", async () => {
+  /* Verification case 2 of the brief: a logged-in member who has never
+     bought anything gets a normal greeting. The failure mode is a model
+     filling the silence with "vi que compraste…". */
+  const none = await MEMBER.getOrderHistory(memberCtx({ email: "new@example.com", orders: {} }), 3);
+  assert.deepEqual(none.orders, [], "a member with no orders was given some");
+  assert.equal(none.logged_in, true, "a member with no orders reads as a guest");
+  assert.match(none.note, /NO inventes un historial/,
+    "nothing tells her not to invent a purchase history");
+
+  /* Verification case 3: a guest. No history, and no nagging to log in. */
+  const guest = await MEMBER.getOrderHistory(memberCtx({ email: null }), 3);
+  assert.deepEqual(guest.orders, [], "a guest was given an order history");
+  assert.match(guest.note, /NO le pidas que inicie sesión/,
+    "nothing stops her asking a guest to log in");
+
+  /* A store that will not answer is not an empty history — saying
+     "you've never bought anything" to a regular is its own insult. */
+  const broken = { email: async () => "danny@example.com",
+                   users: () => ({ get: async () => null }),
+                   orders: () => ({ list: async () => { throw new Error("blobs down"); } }) };
+  const r = await MEMBER.getOrderHistory(broken, 3);
+  assert.ok(r.unavailable, "a failed lookup was reported as an empty history");
+  assert.deepEqual(r.orders, [], "a failed lookup produced orders");
+});
+
+await checkAsync("she never claims a parcel arrived, because nothing records that", async () => {
+  /* The brief asks for status "delivered"/"in_transit" and for a
+     follow-up on anything delivered inside fourteen days. The order
+     record has no shipment id: its own comment says shipping statuses
+     live on the shipment, and nothing links the two. Whether a parcel
+     arrived is not knowable from an order, so it is not claimed. */
+  const orders = { "ARIA-20261006-AAAAAA": ORDER("ARIA-20261006-AAAAAA", "d@e.com", 3,
+    [{ title: "Nike Air Max 90", brand: "Nike" }]) };
+  const r = await MEMBER.getOrderHistory(memberCtx({ email: "d@e.com", orders }), 3);
+  assert.equal(r.orders[0].delivery_known, false,
+    "the reply claims to know whether the order was delivered");
+  assert.ok(!JSON.stringify(r.orders).includes("delivered"),
+    "a delivery status was invented from an order that carries none");
+  assert.match(r.note, /NUNCA afirmes que le llegó/,
+    "nothing stops her telling him it arrived");
+  /* The states that ARE written down still come through. */
+  assert.equal(r.orders[0].status, "confirmed", "the real fulfilment state is missing");
+  assert.equal(r.orders[0].paid, true, "the real payment state is missing");
+});
+
+await checkAsync("preferences are counted off real orders, never guessed", async () => {
+  const orders = {
+    "ARIA-20261006-AAAAAA": ORDER("ARIA-20261006-AAAAAA", "d@e.com", 3,
+      [{ title: "Nike Air Max 90", brand: "Nike" }, { title: "Nike Dri-FIT", brand: "Nike" }]),
+    "ARIA-20261001-BBBBBB": ORDER("ARIA-20261001-BBBBBB", "d@e.com", 8,
+      [{ title: "Polo Calvin Klein", brand: "Calvin Klein" }]),
+  };
+  const p = await MEMBER.getUserPreferences(memberCtx({ email: "d@e.com", orders }));
+  assert.equal(p.brands_they_buy[0], "Nike", "the most-bought brand is not first");
+  assert.ok(p.brands_they_buy.includes("Calvin Klein"), "a brand they bought is missing");
+  assert.match(p.note, /las compró de verdad/, "nothing ties the claim to real purchases");
+
+  /* Nothing bought, nothing claimed. */
+  const empty = await MEMBER.getUserPreferences(memberCtx({ email: "new@e.com", orders: {} }));
+  assert.deepEqual(empty.brands_they_buy, [], "tastes were invented for a new member");
+  assert.match(empty.note, /No inventes gustos/, "nothing stops her inventing tastes");
+
+  /* Sizes are not on an order line, so there is nothing honest to
+     return and null says so. */
+  assert.equal(empty.sizes, null, "a size was invented");
+});
+
+check("she is told to remember without inventing, and to keep private things private", () => {
+  const i = buildRealtimeInstructions();
+  assert.match(i, /SI YA ES CLIENTE/, "there is no rule about a returning member at all");
+  assert.match(i, /get_current_user/, "she has no way to know who is on the call");
+  assert.match(i, /NUNCA le pidas que inicie sesión/, "she may nag a guest to log in");
+  assert.match(i, /NUNCA inventes una compra/, "she may invent a purchase");
+  assert.match(i, /NUNCA digas "vi que te llegó"/,
+    "she may tell him his parcel arrived when nothing records that");
+  assert.match(i, /menos de 14 días/, "there is no window on the follow-up");
+  assert.match(i, /Una sola mención del historial por llamada/,
+    "the history can be brought up over and over");
+  /* The things that must never be said out loud on a line anyone
+     nearby can hear. */
+  assert.match(i, /NUNCA digas en voz alta su correo, su dirección, su teléfono, su DNI/,
+    "nothing stops her reading out personal data");
+  assert.match(i, /SOLO si esa marca aparece en brands_they_buy/,
+    "she may invent what he likes to buy");
+});
+
+
+await checkAsync("two taps during the handshake open one call, not two", async () => {
+  /* DANNY: "I hear two different voices speaking to me at the same
+     time."
+
+     The guard was `if (ariaRT) return true`, and ariaRT is only
+     assigned once the SDP handshake completes — hundreds of
+     milliseconds, longer on a phone on mobile data. Everything in
+     that window read as "no call yet".
+
+     That was survivable while a microphone tap was the only way to
+     start one. The chat now opens a call by itself and the button is
+     sitting right there: open the panel, tap a beat later, and the
+     tap passed the guard. Two sessions, two microphones, two audio
+     elements, two voices. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function startRealtimeVoice(){");
+  assert.ok(at > 0, "the idempotent wrapper is gone");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
+
+  let starts = 0;
+  const run = (live) => {
+    let ariaRT = live || null;
+    let promise = null;
+    const fn = new Function("ariaRT", "ariaRTStartPromise", "startRealtimeVoiceOnce", "Promise", `
+      let __p = ariaRTStartPromise;
+      ${body.replace(/ariaRTStartPromise/g, "__p")}
+      return startRealtimeVoice;`)(
+      ariaRT, promise,
+      /* A handshake that takes a tick, like a real one. */
+      async () => { starts++; await new Promise(r => setTimeout(r, 20)); return true; },
+      Promise);
+    return fn;
+  };
+
+  const start = run();
+  /* The chat opening and a microphone tap, in the same window. */
+  const [a, b, c] = await Promise.all([start(), start(), start()]);
+  assert.equal(starts, 1,
+    `${starts} sessions were opened for three overlapping requests — that is ${starts} voices talking at once`);
+  assert.deepEqual([a, b, c], [true, true, true],
+    "the callers that waited on the in-flight start got the wrong answer");
+
+  /* …and once it has finished, a later ask starts a fresh one rather
+     than returning the stale promise for ever. */
+  await start();
+  assert.equal(starts, 2, "the in-flight promise was never released, so the call can never be restarted");
+
+  /* AND AN ESTABLISHED CALL IS LEFT ALONE. Anything that asks for a
+     call while one is already up must get "yes, there is one" — not a
+     second handshake on top of a working session. */
+  starts = 0;
+  const onACall = run({ pc: {} });
+  assert.equal(await onACall(), true, "an established call reported itself as absent");
+  assert.equal(starts, 0, "a request during an established call opened a second one");
+});
+
+/* A FLOOR ON THE TEST COUNT.
+
+   Twice now this suite has reported success while running less of
+   itself than it should: once when an async test under the
+   synchronous harness turned assertion rejections into unhandled
+   rejections that killed the process before the summary, and once
+   when an edit to one test TRUNCATED the file — taking thirty tests
+   and the summary printer with it. The second one exited 0, printed
+   no failures, and printed no summary either, which reads as a pass
+   to anything skimming the output.
+
+   The floor is the cheapest possible detector: a suite that shrinks
+   has to say so. Raise it when tests are added; it is not meant to
+   track the count exactly, only to catch a collapse. */
+const MIN_CHECKS = 75;
+if (passed + failures.length < MIN_CHECKS){
+  console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} checks ran, expected at least ${MIN_CHECKS}.`);
+  console.log("  The file is probably truncated, or a check threw outside its harness.\n");
+  process.exit(1);
+}
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length){ for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }

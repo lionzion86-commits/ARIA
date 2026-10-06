@@ -19,6 +19,12 @@
        public tracking view is an allowlist that deliberately withholds
        the courier, their tracking number and our cost.
 
+   THE TWO STORE TOOLS LIVE HERE TOO, for a third reason: the
+   knowledge base is static prose, a few tens of kilobytes, and the
+   page is a plain <script> that cannot import a module. Mirroring it
+   into the page would make a second copy of the one thing that must
+   never disagree with itself — what we tell a shopper a store sells.
+
    NOTHING HERE INVENTS A NUMBER. A missing weight, an unknown product
    or an unreachable tracker answers with `unavailable` and a sentence
    Aria can say out loud, because section 12 of the brief is absolute:
@@ -29,6 +35,9 @@ import {
   TAX_ESTIMATE_THRESHOLD_USD,
   TAX_ESTIMATE_RATE,
 } from "../../weight-data.js";
+import { getStoreInfo, recommendStoresFor } from "./_store-knowledge.js";
+import { decodeVinLocal } from "./_vin.js";
+import { getCurrentUser, getOrderHistory, getUserPreferences } from "./_member.js";
 
 /* The customer-facing freight rate. Mirrored from index.html's
    CHARGE_PER_KG_USD, which is the figure quoted to shoppers; a test
@@ -128,6 +137,139 @@ export async function handler(event) {
   switch (tool) {
     case "calculate_total_delivered_price":
       return json(200, deliveredTotal(args));
+    /* Static knowledge, so no catalogue and no fan-out: a lookup and
+       a return. Both answer with a sentence Aria can say when they
+       have nothing, never with silence. */
+    case "get_store_info":
+      return json(200, getStoreInfo(args.store_name));
+    case "recommend_stores_for":
+      return json(200, recommendStoresFor(args.interest, { resolved: args.resolved === true }));
+    /* THE VIN. Positions 1-3 and 10 are decodable from the number
+       itself; model, trim and engine are not, because positions 4-8
+       mean whatever each manufacturer decided they mean. Those come
+       from NHTSA's free vPIC service or they come back null — a
+       guessed model becomes a wrong part, and the shopper pays for
+       it. A vPIC outage degrades the answer, it does not fail it. */
+    case "decode_vin": {
+      const local = decodeVinLocal(args.vin);
+      if (local.unavailable) return json(200, local);
+      let remote = null;
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2500);
+        const res = await fetch(
+          `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(local.vin)}?format=json`,
+          { signal: ctrl.signal });
+        clearTimeout(t);
+        if (res.ok) {
+          const data = await res.json();
+          remote = (data && data.Results && data.Results[0]) || null;
+        }
+      } catch { remote = null; }
+      const pick = (v) => {
+        const s = String(v == null ? "" : v).trim();
+        /* vPIC answers with "" and with "Not Applicable" for fields it
+           has nothing for. Both mean null, and neither may be read out
+           as if it were an answer. */
+        return (!s || /^not applicable$/i.test(s)) ? null : s;
+      };
+      return json(200, {
+        ...local,
+        /* The local decode wins on year and make where vPIC is silent,
+           and vPIC wins where it actually knows — it reads the
+           manufacturer tables we do not have. */
+        year: (remote && Number(pick(remote.ModelYear))) || local.year,
+        make: pick(remote && remote.Make) || local.make,
+        model: pick(remote && remote.Model),
+        trim: pick(remote && remote.Trim),
+        engine: remote
+          ? (pick(remote.DisplacementL) ? pick(remote.DisplacementL) + "L" : null)
+          : null,
+        source: remote ? "vpic" : "vin",
+        note: remote
+          ? null
+          : "Solo pude leer el año y la marca del VIN. Pregúntale el modelo — no lo adivines.",
+      });
+    }
+
+    /* A BRAND WE DO NOT CARRY IS A TALLY, NOT A DEAD END. Mirrors
+       fitment-gap-log.js exactly: one counter per brand, no session,
+       no IP, no personal data. It is a record of demand, not of
+       people. */
+    case "request_brand": {
+      const brand = String(args.brand_name || "").trim().slice(0, 60);
+      if (!brand) return json(200, { unavailable: "dime qué marca quieres y la anoto" });
+      const note = String(args.shopper_note || "").trim().slice(0, 200);
+      try {
+        /* IMPORTED HERE, NOT AT THE TOP. @netlify/blobs only exists in
+           the deployed runtime, and a top-level import of it makes the
+           whole module unloadable anywhere else — including the test
+           suite, which imports deliveredTotal from this file. One
+           request-logging path must not cost us the ability to test
+           the tax arithmetic. */
+        const { getStore, connectLambda } = await import("@netlify/blobs");
+        connectLambda(event);
+        const store = getStore("brand-requests");
+        const key = brand.toLowerCase();
+        const prev = (await store.get(key, { type: "json" }))
+          || { brand, count: 0, firstSeen: null, notes: [] };
+        const notes = note ? [...(prev.notes || []), note].slice(-10) : (prev.notes || []);
+        await store.setJSON(key, {
+          ...prev, brand, notes,
+          count: prev.count + 1,
+          firstSeen: prev.firstSeen || new Date().toISOString(),
+          lastSeen: new Date().toISOString(),
+        });
+        return json(200, {
+          request_id: key,
+          message: "anotado",
+          /* NO DATE, EVER. "Te aviso cuando llegue" is a promise we can
+             keep; "llega en dos semanas" is not. */
+          say: "Listo, ya está pedida. Te aviso cuando llegue.",
+        });
+      } catch (e) {
+        /* The tally failing must not turn into a promise we did not
+           make. She says she could not note it, and offers the
+           alternative instead. */
+        return json(200, { unavailable: "no pude anotarla ahorita, pero dime qué buscabas y te muestro algo parecido" });
+      }
+    }
+
+    /* WHO IS ON THE CALL, AND WHAT THEY HAVE BOUGHT.
+
+       Identity comes from the session cookie that the browser sent
+       with this request — never from an argument, because the model
+       would then be choosing whose orders to read. See the note at the
+       top of _member.js.
+
+       The Blobs runtime only exists in the deployed function, so it is
+       imported here and the stores are passed in. That keeps _member.js
+       testable without it, the same reason request_brand imports it
+       lazily. */
+    case "get_current_user":
+    case "get_order_history":
+    case "get_user_preferences": {
+      let ctx;
+      try {
+        const { getStore, connectLambda } = await import("@netlify/blobs");
+        const { getSessionEmail } = await import("./_auth-helpers.js");
+        connectLambda(event);
+        ctx = {
+          email: () => getSessionEmail(event),
+          users: () => getStore("users"),
+          orders: () => getStore("orders"),
+        };
+      } catch {
+        /* No member lookup is better than a wrong one: she greets him
+           as a stranger rather than as somebody else. */
+        return json(200, { user_id: null, logged_in: false, orders: [],
+                           unavailable: "no pude revisar su cuenta ahorita" });
+      }
+      if (tool === "get_current_user") return json(200, await getCurrentUser(ctx));
+      if (tool === "get_order_history") return json(200, await getOrderHistory(ctx, args.limit));
+      return json(200, await getUserPreferences(ctx));
+    }
+
     case "get_order_status": {
       const proto = event.headers?.["x-forwarded-proto"] || "https";
       const host = event.headers?.host || "ariashop.pe";

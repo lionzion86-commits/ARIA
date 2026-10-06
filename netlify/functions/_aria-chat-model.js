@@ -37,8 +37,8 @@ import { buildSystemPrompt, sanitizeHistory } from "./_aria-prompt.js";
    literally. The recognition is es-PE but Danny dictates in English, so
    both languages' punctuation words are covered here.
 
-   THE FIX. This runs over the reply BEFORE it reaches Grok TTS (see
-   speechFor) and before the reply is returned to the client, so the
+   THE FIX. This runs over the reply before it is returned to the
+   client, so the
    bubble on screen and the voice saying it always agree. index.html
    carries a mirrored copy (spokenPunctuationToMarks) for the
    speech-to-text side — the transcript is cleaned before it ever
@@ -202,78 +202,20 @@ export function chatRequestBody(body, provider = "openai") {
 }
 
 /* ============================================================
-   ARIA'S VOICE: ELEVENLABS "LILY" (2026-09-28, Danny's pick)
+   THERE IS NO SECOND VOICE ANY MORE (2026-10-06, Danny: "The ONLY
+   voice is the ChatGPT Realtime voice").
 
-   WAS xAI TTS, voice "ara" — which Danny heard as flat. Lily is a
-   Peruvian Spanish voice from the ElevenLabs Voice Library, and Peru is
-   who this shop sells to, so the accent is the point rather than a
-   preference.
+   This file used to render every assistant reply to speech through a
+   third-party TTS provider and hand the audio back with the text. The
+   page no longer plays it: the live call is the voice, and
+   speakAssistantReply() returns immediately while one is up — which,
+   now that the call starts when the chat opens, is always.
 
-   ONE VOICE, ONE CALL SITE. Every place the assistant speaks — the
-   opening greeting, a buffered reply, a streamed reply — renders its
-   audio here. aria-chat.js used to carry its own second copy of the TTS
-   call, which is how the greeting could have kept the old voice after
-   the chat had moved; a test now pins that it does not.
-
-   THE KEY IS SERVER-SIDE AND STAYS THERE. xi-api-key is read from the
-   environment inside this Netlify function. The browser never names a
-   voice and never sees a credential, so neither can be swapped or
-   spoofed from the client — a test pins that too.
+   So the synthesis is gone rather than merely unplayed. It was a
+   per-character charge and a second API key for audio that was being
+   discarded on arrival. The chat endpoints return text; the voice is
+   the realtime session's.
    ============================================================ */
-export const ELEVENLABS_TTS_URL = "https://api.elevenlabs.io/v1/text-to-speech";
-/* Lily — Peruvian Spanish. ELEVENLABS_VOICE_ID overrides this without a
-   deploy, so a voice change is a dashboard edit rather than a PR. */
-export const ELEVENLABS_VOICE_ID_DEFAULT = "ek0qR5Bu0N3aPdijsdae";
-/* eleven_flash_v2_5 — ElevenLabs' lowest-latency TTS model (~75ms
-   TTFB), 32 languages. Latency is the whole point of the sentence
-   pipeline, so the voice model is pinned, not defaulted. */
-export const ELEVENLABS_TTS_MODEL = "eleven_flash_v2_5";
-
-/**
- * Lily's voice for a finished reply, or null.
- *
- * BEST EFFORT, AND IT ALWAYS WAS. A voice failure must never cost the
- * customer the text reply, so every path here returns null rather than
- * throwing, and the browser's own speech synthesis covers the gap
- * client-side. That contract is unchanged by the provider swap: what
- * used to be "no Ara" is now "no Lily", and the bubble still speaks.
- */
-export async function speechFor(reply) {
-  if (!reply || !process.env.ELEVENLABS_API_KEY) return null;
-  try {
-    // The voice must never speak punctuation words ("comma", "punto"):
-    // The voice must never speak punctuation words ("comma", "punto"):
-    // the reply is sanitized before ElevenLabs renders it, so what the
-    // shopper hears is what the bubble shows. See
-    // sanitizeSpokenPunctuation.
-    const speakable = sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply));
-    /* A reply that is nothing but punctuation words sanitizes down to
-       marks alone, and sending "," to a TTS API buys a billed request
-       for a sound no one needs. */
-    if (!speakable) return null;
-    const voiceId = process.env.ELEVENLABS_VOICE_ID || ELEVENLABS_VOICE_ID_DEFAULT;
-    const res = await fetch(`${ELEVENLABS_TTS_URL}/${encodeURIComponent(voiceId)}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": process.env.ELEVENLABS_API_KEY,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: JSON.stringify({
-        text: speakable,
-        model_id: ELEVENLABS_TTS_MODEL,
-        voice_settings: { stability: 0.35, similarity_boost: 0.75, style: 0.55, use_speaker_boost: true },
-      }),
-    });
-    if (!res.ok) return null;
-    /* MP3, which is what the client already plays: index.html sets
-       `data:audio/mp3;base64,` and did so for xAI too, so the swap needs
-       no client change. Accept: audio/mpeg keeps that true. */
-    return Buffer.from(await res.arrayBuffer()).toString("base64");
-  } catch {
-    return null;
-  }
-}
 
 /**
  * The text delta carried by one SSE line, or null.

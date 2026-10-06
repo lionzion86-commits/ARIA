@@ -7020,7 +7020,7 @@ const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline", "/zumiez-catalog.json", "zumiez", "/hottopic-catalog.json", "hottopic", "/boxlunch-catalog.json", "boxlunch"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"]};
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -33758,6 +33758,10 @@ function dismissAssistantForNavigation(){
 function hideAssistant(){
   if (!assistantOpen && document.getElementById('assistantPanel')?.classList.contains('hidden')) return;
   assistantOpen = false;
+  /* THE CALL GOES WITH IT. Closing the chat to go and look at what she
+     found is the commonest thing a shopper does, and the one that
+     would otherwise bill for half an hour of browsing. */
+  if (typeof endRealtimeCallIfPanelClosed === 'function') endRealtimeCallIfPanelClosed();
   document.getElementById('assistantPanel')?.classList.add('hidden');
   document.getElementById('assistantIconSpark')?.classList.remove('hidden');
   document.getElementById('assistantIconClose')?.classList.add('hidden');
@@ -33805,9 +33809,24 @@ function toggleAssistant(){
     if (!isMobileChat()) document.getElementById('assistantInput')?.focus();
   }
 hideGreetBubble();
-if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
+if (assistantOpen) {
   if (!continuousMode) { continuousMode = true; }
-  greetAssistantStreaming();
+  /* THE WRITTEN GREETING IS ONCE; THE CALL IS EVERY TIME.
+
+     Both used to hang off "is the message list empty", which is only
+     true on the very first open. Reopen the panel and nothing
+     started: no greeting, no call, and a mic button that looked live
+     because the page had been in a call ten minutes ago. Danny:
+     "No auto-greeting. Chat opens with text only."
+
+     They are different questions. Painting the hello twice would be
+     silly; opening the line every time the shopper opens the chat is
+     the whole feature. */
+  if (document.getElementById('assistantMessages').children.length === 0) {
+    greetAssistantStreaming();
+  } else {
+    startRealtimeOnOpen();
+  }
 }
 }
 
@@ -33819,20 +33838,13 @@ if (assistantOpen && document.getElementById('assistantMessages').children.lengt
    fallback line the old path used. */
 async function greetAssistantStreaming(){
   /* INSTANT STATIC GREETING (2026-09-29, Danny: short, sweet, fast). The
-     greeting used to ride the Groq stream -- cold function + first
-     sentence + TTS was ~5s before Lily spoke. The greeting is now a fixed
-     short line, so it skips the model entirely: the text paints in the
-     same tick the chat opens and Lily's TTS fetch fires at once, so first
-     audio is a single TTS round trip. */
+     greeting used to ride the Groq stream — a cold function plus the
+     first sentence plus synthesis was ~5s before anything was audible.
+     It is a fixed short line now, so it skips the model entirely and
+     the text paints in the same tick the chat opens. */
   ariaReplyVoiceStarted = false;
   /* The quick-reply chips render on every open (toggleAssistant), so the
-     greeting always shows something to tap -- the mic stays off after her
-     voice per Danny's 2026-10-02 law, and his cue line closes the turn. */
-  /* NOT IN LIVE-VOICE MODE. This flag is what later fires
-     speakMicOffCue(), and that cue is "aprieta el micrófono" — advice
-     that is both wrong and unwanted when the next tap opens a call.
-     Setting it only on the classic path is how the cue is never
-     triggered rather than merely silenced. */
+     greeting always shows something to tap. */
   if (ariaClassicVoiceOnly()) assistantReplyHasTappables = true;
   addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
   /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
@@ -33841,16 +33853,52 @@ async function greetAssistantStreaming(){
   ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
   hideAssistantTyping();
   setOrbState('idle');
-  /* THE WRITTEN GREETING STAYS, THE SPOKEN ONE DOES NOT. In live-voice
-     mode Aria says hello inside the call, in her own voice, once the
-     line is up — so a Lily greeting here would be the wrong voice,
-     before the call, over a muted microphone. The chat still opens
-     with her line on screen; it just does not talk at you. */
-  if (ariaClassicVoiceOnly()){
-    speakWithLily(ARIA_GREETING_FALLBACK);
-  } else {
-    setAssistantMicCallReady();
-  }
+  /* SHE SAYS HELLO IN HER OWN VOICE, AND THE CALL IS ALREADY LIVE
+     (2026-10-06, Danny: "When the chat opens, the user HEARS 'Hi, I'm
+     Aria...' in the ChatGPT voice. No hay otra voz.").
+
+     This is a reversal of the previous design, and the reason is
+     worth keeping. The greeting used to be spoken by the old TTS
+     engine precisely BECAUSE it was cheap: a hello every shopper
+     hears is realtime minutes burnt before anyone has said a word.
+     That engine is gone, so the choice is now between a greeting in
+     her real voice and no greeting at all, and he has picked the
+     first and accepted the cost.
+
+     What keeps the cost bounded is unchanged and still applies: the
+     five-minute hard cap, the twenty-second check-in, and the
+     thirty-five second hang-up with a line telling him how to get her
+     back. A shopper who opens the chat and wanders off costs
+     thirty-five seconds, not thirty minutes.
+
+     STARTED FROM THE OPEN, WHICH IS A GESTURE. toggleAssistant runs
+     inside the tap that opened the panel, so the AudioContext can be
+     unlocked here — iOS only honours resume() while a gesture is on
+     the stack. A call started any other way would connect and be
+     silent, which is the bug this whole file has a history of. */
+  startRealtimeOnOpen();
+}
+
+/* Open the call that the greeting is spoken through.
+ *
+ * Deliberately not awaited by the greeting: the text is already on
+ * screen and the handshake takes a few hundred milliseconds. If it
+ * fails, the failure is loud (showRealtimeError) rather than silently
+ * leaving a dead microphone button — there is nothing to fall back to
+ * any more, and that is the point.
+ */
+function startRealtimeOnOpen(){
+  if (ariaLiveCallActive()) return;          /* already talking */
+  /* The gesture is still on the stack here, and this is the only
+     moment iOS will let us open an audio context OR bless the element
+     that will carry her voice. Both, or the call connects and plays
+     nothing — which is exactly how the greeting went missing. */
+  try { unlockAudioForMobile(); } catch (e) {}
+  ariaRTWanted = true;
+  Promise.resolve()
+    .then(() => startRealtimeVoice())
+    .then(ok => { if (!ok) showRealtimeError(); })
+    .catch(() => showRealtimeError());
 }
 
 /* The mic button before the first tap, in live-voice mode: this is a
@@ -33939,7 +33987,7 @@ function addAssistantMessage(role, text, audioBase64, opts){
    half-duplex contract as Ara's audio. */
 /* SPOKEN MARKUP HYGIENE (2026-10-04, Danny: the SLOTS leak). Internal
    [[SLOTS:{...}]] / [[SHOW:...]] markup must never reach a voice --
-   Lily's or the browser's. Belt-and-suspenders: every speak entry point
+   the browser's. Belt-and-suspenders: every speak entry point
    cleans its own text, so a reply path that forgot applyModelSlots can
    never speak JSON aloud. Idempotent: already-clean text passes through
    unchanged. */
@@ -33957,7 +34005,7 @@ function cleanSpokenText(t){
    entry points were guarded on 2026-10-06 (e4086f2), but a guard at
    the entrance does nothing for work already inside the building: a
    TTS fetch started before the shopper tapped the mic resolves AFTER
-   ariaRT is set, and its callback played Lily straight over the live
+   ariaRT is set, and its callback played the old TTS straight over the live
    call. Two voices at once.
 
    try/catch rather than `typeof ariaRT !== 'undefined'`: ariaRT is a
@@ -33979,9 +34027,16 @@ function cleanSpokenText(t){
    need her to do that.") Both of those are the old loop greeting a
    shopper who is about to open a live call.
    ================================================================== */
+/* THERE IS NO CLASSIC VOICE ANY MORE, so this is false always.
+
+   Kept as a function rather than deleted at its five call sites
+   because what it means is still worth saying out loud: these are
+   the places that behave differently when the old engine owns the
+   turn, and the answer is now "it never does". The old speak paths
+   stay guarded by ariaLiveCallActive() for the window during the SDP
+   handshake, which is a different question. */
 function ariaClassicVoiceOnly(){
-  try { return !realtimeEnabled() && !ariaLiveCallActive(); }
-  catch (e) { return true; }   /* no live voice available: classic it is */
+  return false;
 }
 
 function ariaLiveCallActive(){
@@ -34016,28 +34071,14 @@ function speakText(text){
   }
 }
 
-/* LILY-FIRST SPEAK (2026-09-29, Danny). Tries Lily via the aria-tts
-   endpoint; falls back to the browser's robot voice only if Lily is truly
+/* THE OLD TTS-FIRST SPEAK PATH, DELETED 2026-10-06. It fetched synthesised
+   audio and fell back to the browser's robot voice only if that was truly
    unavailable. The robot voice is never the first choice. */
-/* Set while Lily's voice is actually carrying a reply (speakWithAria /
+/* Set while a non-live voice is actually carrying a reply (speakWithAria /
    playTtsAudio). An interim "dame un segundo" passes a guard against it so
    a late TTS fetch never talks over the answer that already started. */
 let ariaReplyVoiceStarted = false;
-function speakWithLily(text, guard){
-  if (ariaLiveCallActive()) return;
-  text = cleanSpokenText(text);
-  const cancelled = () => { try { return !!(guard && !guard()); } catch(e){ return false; } };
-  const fallback = () => { if (!cancelled() && typeof speakText === 'function') speakText(text); };
-  try {
-    fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) })
-      .then(r => (r && r.ok) ? r.json() : null)
-      /* THE RACE THIS WHOLE CHANGE EXISTS FOR. The fetch was started
-         before the call; by the time it lands the shopper may be
-         mid-sentence with Aria. Re-checked here, not just at entry. */
-      .then(d => { if (cancelled() || ariaLiveCallActive()) return; if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
-      .catch(fallback);
-  } catch (e) { fallback(); }
-}
+
 
 /* TURN-TAKING, ONE PLACE (2026-10-04, Danny: the echo bug). Every speak
    path closes the mic BEFORE Aria makes a sound: she never listens to
@@ -34335,7 +34376,7 @@ async function streamAssistantReply(payload, sink, onDelta){
    phone that gap read as broken.
 
    THE FIX. As streamed deltas arrive, completed sentences are detected
-   and each is POSTed to /.netlify/functions/aria-tts immediately — the
+   and each WAS POSTed to a synthesis endpoint immediately — the
    first sentence's audio renders while the second sentence's text is
    still streaming. Audio plays back strictly in sentence order even
    when the TTS responses land out of order, and a failed sentence is
@@ -34437,7 +34478,7 @@ function feedTts(st, delta, isFinal){
   if (st.settled) return;
   if (delta) st.buffer += delta;
   /* MODEL SLOTS (2026-10-01): the [[SLOTS:{...}]] line streams through the
-     deltas -- strip it from the voice buffer so Lily never speaks JSON. */
+     deltas -- strip it from the voice buffer so no voice ever speaks JSON. */
   if (st.buffer.includes('[[SLOTS:')) st.buffer = st.buffer.replace(/\[\[SLOTS:.*$/s, '');
   if (isFinal) st.streamDone = true;
   const out = splitSentences(st.buffer, isFinal);
@@ -34459,24 +34500,21 @@ function requestSentenceAudio(st, text){
   const idx = st.requested++;
   st.slots[idx] = "pending";
   st.texts[idx] = text;
-  const ctrl = new AbortController();
-  /* A hung TTS request must never wedge the turn: 9s, then the sentence
-     is skipped and the queue moves on. */
-  const timer = setTimeout(() => ctrl.abort(), 9000);
-  fetch("/.netlify/functions/aria-tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-    signal: ctrl.signal,
-  })
-    .then((r) => (r.ok ? r.json().catch(() => null) : null))
-    .then((d) => ttsResolve(st, idx, d && d.audio))
-    .catch(() => ttsResolve(st, idx, null))
-    .finally(() => { clearTimeout(timer); pumpTtsAudio(st); });
+  /* NO TTS REQUEST AT ALL (2026-10-06). The endpoint had been renamed
+     to a name that does not resolve, to switch it off — which switched it
+     off by breaking it: every sentence of every typed reply still
+     fired a request, got a 404, and logged it. Resolving the slot
+     directly is the same outcome without the round trip or the noise.
+
+     The queue machinery stays: it is what keeps the reply TEXT in
+     order, and the text chat still works. It just has no audio to
+     pump, because the only voice is the live one. */
+  ttsResolve(st, idx, null);
+  pumpTtsAudio(st);
 }
 
 /* One browser-voice sentence: the parity fallback when a pipelined
-   sentence's Lily audio failed. Never the turn decision -- just the next
+   sentence's synthesis failed. Never the turn decision -- just the next
    pump when it ends. */
 function speakPipelinedSentenceFallback(st, text){
   /* Hand the queue back to the pump, which settles it. No audio. */
@@ -34504,7 +34542,7 @@ function pumpTtsAudio(st){
      back in here. */
   if (ariaLiveCallActive()){ st.playerBusy = false; st.settled = true; return; }
   /* VOICE/TEXT PARITY (2026-10-04, Danny: "if I wrote it, she says
-     it"). A sentence whose Lily audio failed used to be skipped --
+     it"). A sentence whose synthesis failed used to be skipped --
      her voice became a short summary of her text. It is spoken with
      the browser voice instead; only a sentence with no playable voice
      at all is skipped. */
@@ -34564,7 +34602,7 @@ function settleTtsAudio(st){
        done-audio was rendered server-side from the unstripped reply, so
        it cannot be verified to match the words on screen. The stripped
        fullReply is re-rendered instead. */
-    if (st.fullReply && typeof speakWithLily === "function") { speakWithLily(st.fullReply); return; }
+    if (st.fullReply) return;   /* nothing speaks it: the live voice is the only voice */
     if (typeof speakText === "function") { speakText(st.fullReply); return; }
   }
   if (typeof st.onSettled === "function") st.onSettled();
@@ -35626,7 +35664,7 @@ function groqRetryAfterMs(err){
    needs a search at all, what to search for, and whether to refine.
    The client is her hands -- it runs search_products against the
    in-memory catalog and hands the results back. Same Groq/OpenAI
-   models, same Lily voice, same product cards; the difference is
+   models, same voice, same product cards; the difference is
    who is thinking.
 
    THE DANCE (see netlify/functions/aria-chat-agent.js):
@@ -35841,14 +35879,14 @@ async function runAgentLoop(text, recipient, ui){
       /* SLOTS STRIP + VOICE/TEXT PARITY (2026-10-04, Danny). The agent's
          prompt inherits the base prompt's [[SLOTS:{...}]] instruction,
          but this path never stripped it -- raw markup reached the bubble,
-         the chat history, and Lily's voice (via data.audio, rendered
+         the chat history, and the synthesised voice (via data.audio, rendered
          server-side from the unstripped reply). The cleaned text is what
          she wrote: it is displayed, remembered, AND spoken. Server audio
          is dropped -- it cannot be verified to match the words on
          screen, and "if I wrote it, she says it". */
       const reply = applyModelSlots(String(data.reply)) || 'Lo siento, no pude responder eso.';
       addAssistantMessage('bot', reply, null, { speak: false });
-      speakWithLily(reply);
+
       for (const id of (data.show || [])){
         const cached = agentProductCache.get(id);
         if (cached) addAssistantProductCard(cached.item, cached.retailer);
@@ -35871,7 +35909,7 @@ async function runAssistantBrain(text){
      it.")
 
      This function is the old pipeline: it closes the microphone for the
-     whole think phase, waits on a silence timer, answers with ElevenLabs
+     whole think phase, waits on a silence timer, answers with synthesised
      through a second audio element, and then calls recognition.start()
      again — and on iOS that last call is the click he heard. All three
      of its callers (the text box, a quick-reply chip, a recognition
@@ -35911,12 +35949,9 @@ async function runAssistantBrain(text){
     const deptLabel = shoeGender === 'women' ? 'Zapatos de Mujer' : 'Zapatos de Hombre';
     const shoeLine = `\u00a1Claro! Te llevo a ${deptLabel} \u2014 las ofertas van primero.`;
     addAssistantMessage('bot', shoeLine, null, { speak: false });
-    try {
-      fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: shoeLine }) })
-        .then(r => (r && r.ok) ? r.json() : null)
-        .then(d => { if (d && d.audio) speakWithAria(d.audio, shoeLine); else speakText(shoeLine); })
-        .catch(() => speakText(shoeLine));
-    } catch (e) { speakText(shoeLine); }
+    /* The line is on screen; nothing speaks it. The TTS fetch here
+       was renamed to a 404 rather than removed, so it still cost a
+       round trip to learn that. */
     dismissAssistantForNavigation();
     continuousMode = false;
     openCatalog('department', deptKey);
@@ -35925,10 +35960,10 @@ async function runAssistantBrain(text){
     return;
   }
   if (SALE_KEYWORDS.some(k => lowerText.includes(k)) || /\bsales?\b/i.test(text)) {
-    /* LILY SPEAKS THE SHORTCUT (2026-09-28, Danny's demo). This path used
+    /* THE SHORTCUT USED TO BE SPOKEN (2026-09-28, Danny's demo). This path used
        to talk through the browser's speechSynthesis -- the robot voice,
        silent on iPhones where it misfires -- because it never reaches the
-       chat endpoints that render Lily's audio. The line is short, so the
+       chat endpoints that render synthesised audio. The line is short, so the
        TTS round-trip is about a second: the text paints now, her voice
        follows over the Ofertas page. Browser voice stays the fallback. */
     /* BRAND/STORE + SALES (2026-10-03, Danny): a named store or brand with
@@ -35940,12 +35975,9 @@ async function runAssistantBrain(text){
       ? `¡Claro! Te llevo a las ofertas de ${salesTarget.label}.`
       : '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
     addAssistantMessage('bot', salesLine, null, { speak: false });
-    try {
-      fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: salesLine }) })
-        .then(r => (r && r.ok) ? r.json() : null)
-        .then(d => { if (d && d.audio) speakWithAria(d.audio, salesLine); else speakText(salesLine); })
-        .catch(() => speakText(salesLine));
-    } catch (e) { speakText(salesLine); }
+    /* The line is on screen; nothing speaks it. The TTS fetch here
+       was renamed to a 404 rather than removed, so it still cost a
+       round trip to learn that. */
     if (salesTarget.action === 'store') openStore(salesTarget.key);
     else if (salesTarget.action === 'brand') openCatalog('brand', salesTarget.key);
     else goSales();
@@ -35965,7 +35997,7 @@ async function runAssistantBrain(text){
     setOrbState('idle');
     addAssistantMessage('bot', navRoute.line, null, { speak: false });
     ariaChatHistory.push({ role: 'assistant', content: navRoute.line });
-    speakWithLily(navRoute.line);
+
     if (navRoute.action === 'store') addAssistantStoreOffer(navRoute.key, navRoute.label);
     else if (navRoute.action === 'brand'){ if (navRoute.count > 0) addAssistantBrandOffer(navRoute.key, navRoute.label, navRoute.count); }
     else addAssistantSectionOffer(navRoute.label, navRoute.sub, 'department', navRoute.key);
@@ -36034,13 +36066,13 @@ async function runAssistantBrain(text){
   addAssistantNote(interimNote);
   /* SPOKEN INTERIM STATUS (2026-09-29, Danny). The "dame un segundo"
      bubble used to sit silent while she "looked" -- a silent wait reads as
-     broken. She says it through Lily now; the guard keeps a late TTS fetch
+     broken. The guard keeps a late synthesis fetch
      from talking over the reply if the answer already started speaking. */
   /* VOICE: never echo the shopper's words (2026-10-02, Danny).
      The text bubble keeps the specific "Buscando X..." note; the spoken
-     audio is the generic "Dame un segundo." so Lily never repeats what
+     audio is the generic "Dame un segundo." so nothing repeats what
      he just said out loud. */
-  speakWithLily('Dame un segundo.', () => !ariaReplyVoiceStarted);
+
   showAssistantTyping();
   if (statusEl) statusEl.textContent = willSearch ? 'Aria está buscando…' : 'Aria está pensando…';
   setOrbState('thinking');
@@ -36064,7 +36096,7 @@ async function runAssistantBrain(text){
       addAssistantStoreOffer(storeHit.key, sLabel);
       if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
       assistantThinking = false;
-      speakWithLily(line);
+
       reopenMicForRetry();
       return;
     }
@@ -36089,7 +36121,7 @@ async function runAssistantBrain(text){
       if (brandHit.count > 0) addAssistantBrandOffer(brandHit.key, bLabel, brandHit.count);
       if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
       assistantThinking = false;
-      speakWithLily(line);
+
       reopenMicForRetry();
       return;
     }
@@ -36164,7 +36196,7 @@ async function runAssistantBrain(text){
             hideAssistantTyping();
             addAssistantMessage('bot', line2, null, { speak: false });
             ariaChatHistory.push({ role: 'assistant', content: line2 });
-            speakWithLily(line2);
+
           }
         } catch(e3){ /* fall through to retry affordance */ }
       }
@@ -36252,7 +36284,7 @@ async function runAssistantBrain(text){
         addAssistantSectionOffer(dfb.label, dfb.sub, dfb.action, dfb.key);
         if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
         assistantThinking = false;
-        speakWithLily(dfbLine);
+
         reopenMicForRetry();
         return;
       }
@@ -36280,7 +36312,7 @@ async function runAssistantBrain(text){
          accumulated across turns, so the reply can confirm them. */
       slots: { ...slots },
       /* SENTENCE-PIPELINED VOICE (2026-09-28). The client renders each
-         sentence's audio via aria-tts as its text completes, so the
+         sentence's audio as its text completes, so the
          stream endpoint skips the full-reply TTS round trip and the done
          event carries text only. */
       ttsPipeline: true,
@@ -36639,6 +36671,15 @@ function setAssistantMicState(listening){
      con Aria" on a live call. */
   if (ariaLiveCallActive()) return;
   const micBtn = document.getElementById('assistantMicBtn');
+  /* THE IDLE LOOK BELONGS TO WHICHEVER VOICE IS NEXT. In live-voice
+     mode the resting button is a CALL button, and the greeting's own
+     closeMicForSpeak() used to repaint it back to "Hablar con Aria" a
+     second after setAssistantMicCallReady() had set it — so the first
+     thing Danny saw was the wrong label. One place decides. */
+  if (!listening && !ariaClassicVoiceOnly() && typeof setAssistantMicCallReady === 'function'){
+    setAssistantMicCallReady();
+    return;
+  }
   if (micBtn){
     micBtn.innerHTML = MIC_ICON_SVG;
     micBtn.style.background = listening ? 'var(--blue)' : 'var(--navy)';
@@ -36683,7 +36724,7 @@ function setAssistantMicState(listening){
    decision per spoken turn (ariaVoiceTurnId keeps the degraded fallbacks
    from double-handling it):
    - reply showed tappable content -> mic stays OFF, the pill goes to the
-     tap-to-talk idle state, and Lily speaks Danny's cue line verbatim,
+     tap-to-talk idle state, and the cue line was spoken verbatim,
      then silence. The shopper taps in peace.
    - plain conversational reply    -> mic re-arms as before, so hands-free
      conversation keeps flowing.
@@ -36743,7 +36784,7 @@ function afterAriaVoiceEnds(){
   }
   /* SETTLE BUFFER (2026-10-04, Danny: echo bug). Her last syllable is
      still in the air when onended fires -- re-arming inside it is what
-     transcribed Lily as a phantom user turn ("Hola bien gracias"). The
+     transcribed her own voice as a phantom user turn ("Hola bien gracias"). The
      mic re-arms after a beat, and the echo guard covers the whole window
      so the tail can never ship as a turn. */
   const turn = ariaVoiceTurnId;
@@ -36757,37 +36798,20 @@ function afterAriaVoiceEnds(){
   }, MIC_REARM_BUFFER_MS);
 }
 
-/* Lily speaks Danny's cue line verbatim, then silence -- the mic is NOT
+/* The cue line was spoken verbatim, then silence -- the mic is NOT
    restarted. The pill goes to tap-to-talk BEFORE the TTS fetch, so even
    a blocked cue leaves the state correct and never strands the shopper. */
+/* THE MIC-OFF CUE IS GONE WITH THE ENGINE THAT SPOKE IT.
+
+   Its body was unreachable the moment ariaClassicVoiceOnly() became
+   false always: the first line returned every time. What remains is
+   the one effect that still matters — releasing the speak interlock,
+   so nothing downstream waits on a cue that is never coming.
+
+   The fetch it used to make had been renamed to a 404 rather than
+   removed, so the dead path still cost a round trip. */
 function speakMicOffCue(){
-  /* Settled by clearing the interlock only. The rest of done() —
-     setOrbState, setAssistantMicTapToTalk — repaints the mic button,
-     and during a live call setRealtimeUi owns that. */
-  if (!ariaClassicVoiceOnly()){ ariaVoiceActive = false; return; }
-  const myCue = ++micOffCueId;
-  setAssistantMicTapToTalk();
-  const done = () => { ariaVoiceActive = false; if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
-  try {
-    fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: MIC_OFF_CUE }) })
-      .then(r => (r && r.ok) ? r.json().catch(() => null) : null)
-      .then(d => {
-        if (myCue !== micOffCueId) return; /* shopper moved on: never talk over the new turn */
-        /* …or the shopper went live while this cue was being fetched. */
-        if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
-        if (d && d.audio) { playMicOffCueAudio(d.audio, done); return; }
-        if ('speechSynthesis' in window){
-          try {
-            window.speechSynthesis.cancel();
-            ariaVoiceActive = true;
-            const u = new SpeechSynthesisUtterance(MIC_OFF_CUE);
-            u.lang = 'es-PE'; u.onend = done; u.onerror = done;
-            window.speechSynthesis.speak(u);
-          } catch(e){ done(); }
-        } else { done(); }
-      })
-      .catch(done);
-  } catch(e){ done(); }
+  ariaVoiceActive = false;
 }
 
 /* One-shot cue playback on the shared player. Not a turn: its end never
@@ -36983,10 +37007,10 @@ recognition.onend = () => {
 
 let micLive = false;      // we believe the recognizer is running (onstart/onend + intentional stops)
 let lastMicStartAt = 0;   // debounce: a second start inside 400ms is a double-fire, not a request
-let ariaVoiceActive = false; // Lily/browser voice is audible: the mic must never start (echo bug, 2026-10-04)
+let ariaVoiceActive = false; // a non-live voice is audible: the mic must never start (echo bug, 2026-10-04)
 let micStartByUser = false;  // the last startListening came from a tap -- drives the graceful-error routing
 /* SETTLE BUFFER (2026-10-04, Danny: echo bug). Her last syllable is still
-   in the air when onended fires; re-arming inside it transcribed Lily as
+   in the air when onended fires; re-arming inside it transcribed her own voice as
    a phantom user turn. The mic re-arms this long after her voice ends. */
 const MIC_REARM_BUFFER_MS = 1100;
 function startListening(fromUser){
@@ -37052,7 +37076,9 @@ function startListening(fromUser){
    the failure mode combo-deals.js taught this repo to design for. */
 let ariaRT = null;            // the live session, or null
 let ariaRTWanted = false;     // the shopper asked for live voice
-const ARIA_RT_FLAG = 'ariaLiveVoice';
+/* ARIA_RT_FLAG is gone with the kill switch it stored. Nothing reads
+   it now; a value left over in a shopper's localStorage from before
+   the removal cannot turn the voice off, because nothing looks. */
 /* The same path the build spec curls, so "does the endpoint work?"
    has one answer instead of depending on which URL you asked. It is
    redirected in netlify.toml to the function the page used before. */
@@ -37063,18 +37089,237 @@ const REALTIME_TOKEN_URL = '/api/realtime-token';
    on its own; a tunnel should not end the conversation. */
 const CALL_DROP_GRACE_MS = 6000;
 
+/* ==================================================================
+   A CALL THAT NOBODY IS ON MUST NOT STAY OPEN.
+
+   (2026-10-06, Danny: "I'm scared of the minutes going on forever...
+   if it stays on and they could be browsing for 30 minutes, now I got
+   to pay a shit ton of money.")
+
+   He is right, and this is the single most expensive thing on this
+   branch. Realtime audio bills by the minute in BOTH directions, so a
+   session left open while a shopper browses for half an hour costs
+   real money for nothing — the commonest case of all, because the
+   whole point of the call is that she finds something and he goes to
+   look at it.
+
+   Four independent ways out, because any one of them can be the one
+   that fires:
+     - silence:   nobody has spoken for a while
+     - panel:     he closed the chat, so the conversation is over
+     - hidden:    the page went to the background
+     - hard cap:  a backstop for anything the first three miss
+
+   She says goodbye before the line drops, and says how to get her
+   back, which is Danny's ask: "before she shuts herself off, she can
+   remind them to hit the mike."
+   ================================================================== */
+/* TWO STEPS, NOT ONE (2026-10-06, Danny). A call that just dies is
+   rude; a call that asks once and then lets you go is a phone call.
+   20s of silence -> "¿Sigues ahí?". 15s more -> she signs off and
+   hangs up. The check-in fires once per silence, and any activity at
+   all resets both. */
+const CALL_CHECKIN_MS = 20000;
+const CALL_IDLE_MS = 35000;        /* total silence before she hangs up */
+/* After she is asked to sign off, the line closes whether or not the
+   audio arrived — the timer, never her, is what guarantees it. */
+const CALL_EXIT_GRACE_MS = 4000;
+
+/* The longest she may spend looking before saying so out loud. The
+   brief asks for under 1.5s; this is the ceiling that enforces it. */
+/* How long a barge-in may silence the audio before it comes back by
+   itself. Long enough to swallow the tail of an interrupted sentence,
+   short enough that a missed event is a stutter rather than a dead
+   call. */
+const CUT_RESTORE_MS = 1200;
+
+/* THE TAPE.
+
+   Three rounds of this bug have been diagnosed by reasoning from a
+   description, and the third reading was the right one only because
+   "the first word" happened to be a precise enough symptom. That is
+   not a method.
+
+   So the call keeps the last forty things that happened — every event
+   the server sent, every action taken on it — and ariaVoiceDiag()
+   returns them. One tap on a phone console says what actually
+   occurred instead of what we think occurred. It is a ring buffer of
+   strings in memory: no network, no storage, nothing to leak, gone
+   when the page closes. */
+const CALL_TAPE_MAX = 40;
+let ariaRTTape = [];
+function tape(kind, what){
+  try {
+    ariaRTTape.push(((Date.now() - (ariaRTStartedAt || Date.now())) / 1000).toFixed(1)
+                    + 's ' + kind + ' ' + what);
+    if (ariaRTTape.length > CALL_TAPE_MAX) ariaRTTape.shift();
+  } catch (e) {}
+}
+
+const SCOOP_TIMEOUT_MS = 1400;
+
+/* "toyota" and "grand cherokee" come out of the cache keys lowercased.
+   Said back to a shopper they should look like the name of their car,
+   so each word is capitalised — "Grand Cherokee", not "grand cherokee"
+   and not "Grand cherokee". */
+/* BRANDS WE DO NOT CARRY, AND WHAT TO OFFER INSTEAD.
+
+   Keyed on the folded name. Every value is a brand that must actually
+   be in the catalogue — a test checks each one and fails if it is not,
+   because offering a substitute we also do not have is worse than
+   offering nothing.
+
+   The list is short on purpose: these are the names people ask for and
+   we lack, not a taxonomy. An unlisted brand returns no neighbours and
+   she asks what he was after instead of guessing.
+
+   Note on "palace": the skate label, not the Hot Topic sub-brand. If
+   the catalogue ever carries one, the exact-match branch answers
+   first and this never runs. */
+const BRAND_NEIGHBOURS = {
+  /* Streetwear and skate — the lane people ask for by name. */
+  supreme:        ['Thrasher', 'Obey', 'Santa Cruz Skateboards'],
+  stussy:         ['Obey', 'Volcom', 'Vans'],
+  palace:         ['Thrasher', 'Spitfire', 'Santa Cruz Skateboards'],
+  carhartt:       ['Dickies', 'Volcom', 'RVCA'],
+
+  /* Fast fashion and mall basics. */
+  zara:           ['American Eagle', 'Farm Rio', 'Skims'],
+  shein:          ['American Eagle', 'Skims'],
+  hollister:      ['American Eagle', 'Volcom', 'Billabong'],
+  abercrombie:    ['American Eagle', 'Skims'],
+  uniqlo:         ['American Eagle', 'Skims'],
+  primark:        ['American Eagle'],
+  forever21:      ['American Eagle', 'Skims'],
+  brandymelville: ['American Eagle', 'Skims'],
+  hm:             ['American Eagle', 'Skims'],
+
+  /* Gym. */
+  aloyoga:        ['Gymshark', 'Alphalete', 'Skims'],
+
+};
+
+/* THE PARTS CACHE IS 22 MEGABYTES.
+
+   Measured in the browser: the first lookup against it cost 6,445ms,
+   every one after it 3-8ms. Six seconds of silence mid-call is the
+   same bug the sale scoop had, with the same fix shape — except the
+   fix cannot be "warm it at call start" here. Most shoppers are not
+   buying brake pads, and making every voice call pull 22MB over
+   Peruvian mobile data to save the few who are is a worse trade than
+   the six seconds.
+
+   So the FIRST parts question starts the load and answers honestly in
+   a millisecond; by the time he has said which car he has, it is
+   there. The honest answer is not an apology — it is the question she
+   needed to ask anyway. */
+/* Levenshtein, abandoned as soon as it exceeds the budget. Bounded
+   because it runs across 5,367 brands and the answer is only ever
+   "within a letter or two of this" — the exact distance past the
+   limit is of no interest. */
+function editDistanceWithin(a, b, max){
+  if (Math.abs(a.length - b.length) > max) return false;
+  let prev = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++){
+    const cur = new Array(b.length + 1);
+    cur[0] = i;
+    let best = cur[0];
+    for (let j = 1; j <= b.length; j++){
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > max) return false;   /* no path back under the budget */
+    prev = cur;
+  }
+  return prev[b.length] <= max;
+}
+
+const ariaAutoWarming = 'dame un segundito que estoy abriendo el catálogo de repuestos';
+let ariaAutoCacheReady = null;
+function autoCacheIfWarm(){
+  if (ariaAutoCacheReady) return Promise.resolve(ariaAutoCacheReady);
+  /* Not awaited: the load runs behind the next thing she says. */
+  try { loadAutoCache().then(c => { if (c) ariaAutoCacheReady = c; }).catch(() => {}); } catch (e) {}
+  return Promise.resolve(null);
+}
+
+function titleCaseWords(s){
+  return String(s || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/* THE RUBRO SHE SAYS OUT LOUD.
+
+   get_top_sales groups by department, and the department labels are
+   written for tiles, not for a sentence: "Aria Beauty", "Aria Fight
+   Club" and "Seccion Hombre" are names of places on the site. Said
+   aloud they sound like she is reading navigation. These are the
+   plain words instead, and anything not listed falls back to the
+   site's own DEPARTMENT_META label — so a new department gets a
+   usable name without this map being touched. */
+const SPOKEN_DEPARTMENT = {
+  beauty: 'belleza',
+  combat_sports: 'artes marciales',
+  party: 'fiestas',
+  mens_grooming: 'cuidado masculino',
+  menaje: 'desechables',
+  sorpresas: 'sorpresas de fiesta',
+  gym_rat: 'ropa de gym',
+  surf_skate: 'surf y skate',
+  sale: null,      /* "Ofertas" as a category inside a sales pitch says nothing. */
+  general: null,   /* Hot Topic and BoxLunch file everything under "Todo". */
+};
+function realtimeSaleCategory(it){
+  const key = (it && it.departments && it.departments[0]) || '';
+  if (!key) return null;
+  if (Object.prototype.hasOwnProperty.call(SPOKEN_DEPARTMENT, key)) return SPOKEN_DEPARTMENT[key];
+  const meta = (typeof DEPARTMENT_META === 'object' && DEPARTMENT_META) ? DEPARTMENT_META[key] : null;
+  const label = meta && meta.label;
+  return label ? String(label).toLowerCase() : null;
+}
+const CALL_HIDDEN_MS = 20000;      /* page backgrounded this long */
+const CALL_MAX_MS = 5 * 60000;     /* nothing runs longer than this */
+const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!';
+/* What she is asked to say, as cues rather than per-response
+   instructions: a per-response `instructions` field is what silenced
+   the greeting, so these ride a conversation item and a bare
+   response.create — the shapes that are known to work. */
+const CUE_CHECKIN = '[El cliente lleva veinte segundos sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
+const CUE_BYE = '[La llamada se va a cerrar por silencio. Despídete en UNA frase cálida, sin apuro, ' +
+  'y dile que si te necesita toque el micrófono y seguimos. No te disculpes.]';
+
+/* HE TAPPED THE MIC AND THEN SAID NOTHING.
+
+   Not the same silence as CUE_CHECKIN. That one is twenty seconds
+   into a conversation that was already going — "¿sigues ahí?" is the
+   right question there. This is the shopper who opened the call and
+   has no idea what to say, which the addendum counts as vagueness:
+   "silence after greeting (they tapped but don't know what to say)".
+   Asking "¿sigues ahí?" to someone who never started is useless; the
+   way out is to offer him something, and the thing that sells is the
+   sale. */
+const CALL_OPENING_SILENCE_MS = 10000;
+const CUE_OPENING_SILENCE = '[Tocó el micrófono y no ha dicho nada en diez segundos. ' +
+  'No preguntes si sigue ahí. Pide get_top_sales y ofrécele lo más fuerte en oferta ' +
+  'en UNA frase corta y con ganas, y termina preguntándole qué le gusta.]';
+
 /* The greeting is retried rather than dropped: the data channel can
    still be opening when session.updated lands. */
 const GREETING_ATTEMPTS = 3;
 const GREETING_RETRY_MS = 500;
 
-/* What she is asked to do the moment the line opens. A brief, not a
-   script: a fixed sentence played every time is a recording, and the
-   point of the live voice is that she is not one. */
-const REALTIME_GREETING_BRIEF =
-  'Saluda en una sola frase corta, como quien contesta el teléfono: ' +
-  'di quién eres y pregunta qué busca. Nada de explicar cómo funciona ' +
-  'el micrófono ni pedirle que apriete nada.';
+/* The greeting itself is no longer written here. It is a rule in the
+   session instructions ("CÓMO ABRES LA LLAMADA" in
+   scripts/lib/realtime-voice.js), because a per-response instructions
+   field was one of the three things that could get the whole
+   response.create rejected. */
 
 /* WHY THE LAST ATTEMPT FELL BACK, IN WORDS.
 
@@ -37100,6 +37345,19 @@ let ariaRTGreeted = false;
 let ariaRTClosing = false;
 /* One retry chain for the greeting, never two. */
 let ariaRTGreetRetrying = false;
+/* First audio of the call, which for a fresh call is the greeting.
+   Logged so "she was silent" can be told from "she never spoke". */
+let ariaRTHeardAudio = false;
+/* The $200 tip is a one-per-call thing. Enforced by the tool rather
+   than asked of the model: "only say this once" is not a promise a
+   language model keeps over ten minutes. */
+let ariaRTThresholdTold = false;
+/* And the split trick, separately — they fire on opposite sides of the
+   threshold, so one flag could not serve both. */
+let ariaRTSplitTold = false;
+/* Topics she has already given the scoop on, this call. A friend tells
+   you once; an advert tells you every time. */
+let ariaRTScooped = new Set();
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
@@ -37127,7 +37385,7 @@ function ariaVoiceDiag(){
       : ariaRTFailure ? 'ninguno — la voz en vivo falló'
       : 'ninguno — no se ha iniciado',
     enVivo: !!ariaRT,
-    activadaPorConfig: realtimeEnabled(),
+    activadaPorConfig: true,   /* the only path there is */
     navegadorCompatible: can.ok,
     razonNavegador: can.reason,
     ultimoFallo: ariaRTFailure,
@@ -37137,7 +37395,13 @@ function ariaVoiceDiag(){
        told apart from "she did not say anything". */
     audio: ariaRT && ariaRT.sink && ariaRT.sink.state ? ariaRT.sink.state() : null,
     saludó: ariaRTGreeted,
+    /* So "is it still running, and for how long?" has an answer. */
+    segundosEnLlamada: ariaRT && ariaRTStartedAt ? Math.round((Date.now() - ariaRTStartedAt) / 1000) : 0,
     estricto: realtimeStrict(),
+    /* The last forty things that happened, newest last. Read this
+       first when the voice misbehaves — it is the only account of the
+       call that is not a reconstruction. */
+    cinta: ariaRTTape.slice(),
     audioCrudo: realtimeRawAudio(),
   };
 }
@@ -37166,18 +37430,21 @@ function realtimeAvailable(){
    API key, no WebRTC, no microphone permission or no HTTPS all fall
    through to the old loop. This flag decides what we TRY, never what
    the shopper is stuck with. */
-function realtimeEnabled(){
-  try {
-    const q = new URLSearchParams(location.search).get('voz');
-    if (q === 'vivo'){ try { localStorage.removeItem(ARIA_RT_FLAG); } catch {} return true; }
-    if (q === 'clasica'){ try { localStorage.setItem(ARIA_RT_FLAG, '0'); } catch {} return false; }
-    return localStorage.getItem(ARIA_RT_FLAG) !== '0';
-  } catch {
-    /* localStorage can throw outright in a locked-down browser. That is
-       not a reason to lose the voice, so the default survives it. */
-    return true;
-  }
-}
+/* realtimeEnabled() IS GONE (2026-10-06, Danny: "No fallback. No kill
+   switch. No way to revert.").
+
+   It had already been reduced to `return true`, which is a switch that
+   lies rather than a switch that is gone: every call site still read
+   as though there were a choice, and ?voz=clasica still appeared in
+   comments as though it did something. Deleting it is what makes the
+   single path visible in the code.
+
+   WHY THE FALLBACK HAD TO GO, in his words: he tested the preview and
+   got the old voice instead of the Realtime one. A broken live
+   path and a working old one are indistinguishable when the second
+   one just starts — four rounds of iPhone testing reported "the same
+   thing as before" for exactly that reason. The fallback was masking
+   the bug. Now a failure is a failure, loudly, and we find out. */
 
 /* ?voz=crudo: hand the raw microphone to OpenAI and let its own noise
    reduction do all of the work. Worth trying from a moving car, where
@@ -37240,86 +37507,124 @@ function realtimeRawAudio(){
  * element cannot do. It is just no longer the only way out.
  */
 function buildAudioSink(){
-  const AC = window.AudioContext || window.webkitAudioContext;
-  const el = new Audio();
+  /* ============================================================
+     THE ELEMENT CARRIES THE AUDIO. THE GRAPH DOES NOT.
+
+     This used to route the remote track through a WebAudio GainNode
+     and MUTE the <audio> element whenever the graph was running, so
+     the graph was the only audible path. The GainNode was there to
+     duck her voice locally on a barge-in, ~15ms, without waiting for
+     the server round trip.
+
+     IT COST MORE THAN IT BOUGHT, on the one platform that matters
+     here. Danny on an iPhone: "She only speaks the FIRST WORD out
+     loud, then the rest is text-only." That is the signature of
+     createMediaStreamSource() on a REMOTE WebRTC stream in Safari —
+     a short burst and then nothing. The track is fine, the data
+     channel is fine, the text keeps coming, and the sound stops
+     after a moment. We had made the broken path the only audible one.
+
+     It also quietly broke echo cancellation. The browser's canceller
+     subtracts what the PLATFORM is playing, and what the platform
+     knows about is the element — not a WebAudio destination. With the
+     element muted, her own voice came back in through the microphone
+     as though the shopper had started talking, which is the most
+     likely cause of the three-second stall before every reply: the
+     server's VAD was waiting out her own echo.
+
+     So: the element plays, always. Ducking is el.volume, which is
+     just as local and just as instant as a gain ramp and needs no
+     second audio path to go wrong. The AudioContext is still opened
+     inside the tap, because that unlock is what lets iOS play ANY
+     audio afterwards — it just no longer carries the sound.
+     ============================================================ */
+  /* The element the tap already blessed. Creating one here would be
+     creating it outside the gesture, which is the bug this comment
+     exists because of — see ariaUnlockLiveAudio. */
+  const el = ariaUnlockLiveAudio() || new Audio();
   el.autoplay = true;
   /* iOS refuses to start an inline stream otherwise. */
   el.playsInline = true;
+  el.volume = 1;
 
-  /* Reuses the context opened by the tap — see ariaUnlockAudioContext.
-     Creating one here would be creating it outside the gesture, which
-     is the bug this comment exists because of. */
-  let ctx = AC ? ariaUnlockAudioContext() : null;
-  let gain = null;
-  if (ctx){
+  /* Opened in the gesture and kept, because the unlock is what makes
+     later playback legal on iOS. Nothing is routed through it. */
+  let ctx = null;
+  try { ctx = (window.AudioContext || window.webkitAudioContext) ? ariaUnlockAudioContext() : null; }
+  catch (e) { ctx = null; }
+
+  let silenced = false;
+  let restoreTimer = null;
+
+  /* A REFUSED play() IS THE WHOLE BUG, SO IT IS NEVER SWALLOWED. It
+     was caught and dropped, which is why a silent call looked healthy
+     from the diagnostic. */
+  const play = () => {
     try {
-      gain = ctx.createGain();
-      gain.gain.value = 1;
-    } catch (e) { gain = null; }
-  }
-
-  let silenced = false;   /* barge-in asked for silence on both paths */
-
-  const graphRunning = () => !!(ctx && gain && ctx.state === 'running');
-
-  /* One decision, in one place: who is actually making sound. */
-  const syncPaths = () => {
-    el.muted = silenced || graphRunning();
-    if (!el.muted){
-      /* autoplay can refuse even from a gesture; asking costs nothing. */
-      try { const pr = el.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+      const pr = el.play();
+      if (pr && pr.catch) pr.catch((e) => {
+        console.error('REALTIME VOICE FAILED: the browser refused to play her audio —', e && e.name);
+        tape('!!', 'play refused: ' + (e && e.name));
+      });
+    } catch (e) {
+      console.error('REALTIME VOICE FAILED: play() threw —', e && e.message);
     }
   };
 
-  const resume = () => {
-    if (!ctx) return;
-    try {
-      if (ctx.state !== 'running' && typeof ctx.resume === 'function'){
-        const pr = ctx.resume();
-        if (pr && pr.then) pr.then(syncPaths, syncPaths); else syncPaths();
-        return;
-      }
-    } catch (e) {}
-    syncPaths();
+  /* Safari moves a context to "interrupted" on a phone call or a Siri
+     invocation and back afterwards; nudge playback when it returns. */
+  if (ctx){ try { ctx.onstatechange = () => { if (!silenced) play(); }; } catch (e) {} }
+
+  const openPath = () => {
+    if (restoreTimer){ clearTimeout(restoreTimer); restoreTimer = null; }
+    silenced = false;
+    el.muted = false;
+    el.volume = 1;
+    /* The context may have been suspended by the OS since the tap. */
+    try { if (ctx && ctx.state !== 'running' && ctx.resume) ctx.resume(); } catch (e) {}
+    play();
   };
 
-  /* Safari moves a context to "interrupted" on a phone call or a
-     Siri invocation and back afterwards; the audible path has to
-     follow it rather than be decided once at setup. */
-  if (ctx){ try { ctx.onstatechange = syncPaths; } catch (e) {} }
+  /* A CUT IS A DUCK, NOT A LATCH. It kills the tail of a sentence the
+     shopper talked over, and restores itself if nothing else does —
+     one missed event must never leave a shopper on a silent call. */
+  const cutPath = () => {
+    silenced = true;
+    el.volume = 0;
+    el.muted = true;
+    if (restoreTimer) clearTimeout(restoreTimer);
+    restoreTimer = setTimeout(() => {
+      restoreTimer = null;
+      if (!silenced) return;
+      console.info('[aria] audio path restored by the watchdog');
+      openPath();
+    }, CUT_RESTORE_MS);
+  };
 
   return {
-    el, gain, ctx,
-    state(){ return { ctx: ctx ? ctx.state : 'none', elementMuted: el.muted, graphRunning: graphRunning() }; },
+    el, ctx,
+    state(){
+      return {
+        ctx: ctx ? ctx.state : 'none',
+        elementMuted: el.muted,
+        volume: el.volume,
+        silenced,
+        /* What is actually making the sound. One path now, so this is
+           a fact rather than a negotiation between two. */
+        path: 'element',
+        playing: !el.paused,
+      };
+    },
     attach(stream){
-      try {
-        if (ctx && gain){
-          const src = ctx.createMediaStreamSource(stream);
-          src.connect(gain);
-          gain.connect(ctx.destination);
-        }
-      } catch (e) { /* no graph: the element carries it */ }
-      /* The element always gets the stream — some browsers will not
-         keep a WebRTC track alive otherwise, and it is the fallback.
-         Wrapped: this assignment throwing used to skip the resume and
-         the path sync below it, which is silence. */
+      /* ONE ASSIGNMENT, ONE PATH. Wrapped because this throwing used
+         to skip everything after it, which is silence. */
       try { el.srcObject = stream; } catch (e) {
         console.warn('[aria] could not attach the stream to the element:', e.message);
       }
-      resume();
-      syncPaths();
+      openPath();
     },
-    cut(){
-      silenced = true;
-      try { if (gain && ctx) gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch (e) {}
-      el.muted = true;
-    },
-    open(){
-      silenced = false;
-      resume();
-      try { if (gain && ctx) gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch (e) {}
-      syncPaths();
-    },
+    cut: cutPath,
+    open: openPath,
   };
 }
 
@@ -37327,7 +37632,40 @@ function buildAudioSink(){
    THE SESSION
    ------------------------------------------------------------------ */
 
-async function startRealtimeVoice(){
+/* The start that is already running, if one is. Everything that wants
+   a call waits on this same promise rather than opening its own. */
+let ariaRTStartPromise = null;
+
+/**
+ * Open the live call. Safe to ask for twice.
+ *
+ * TWO VOICES AT ONCE, AND WHY (Danny, 2026-10-06). The guard here was
+ * `if (ariaRT) return true`, and ariaRT is only assigned once the SDP
+ * handshake completes — hundreds of milliseconds, longer on a phone
+ * on mobile data. Everything in that window read as "no call yet".
+ *
+ * That was survivable while the only way to start one was tapping the
+ * microphone. Now the chat opens a call by itself, and the microphone
+ * button is sitting right there: open the panel, tap the button a beat
+ * later, and the second tap passed the guard. Two sessions, two
+ * microphones, two audio elements — two voices talking over each
+ * other, which is exactly what he heard.
+ *
+ * So the start is idempotent. The first caller runs it; everyone who
+ * asks while it is in flight gets the same promise and the same
+ * answer. Tapping the microphone during the handshake now does
+ * nothing instead of starting a rival call, and once the call is up
+ * the tap hangs up as it always did.
+ */
+function startRealtimeVoice(){
+  if (ariaRT) return Promise.resolve(true);
+  if (ariaRTStartPromise) return ariaRTStartPromise;
+  ariaRTStartPromise = startRealtimeVoiceOnce()
+    .finally(() => { ariaRTStartPromise = null; });
+  return ariaRTStartPromise;
+}
+
+async function startRealtimeVoiceOnce(){
   if (ariaRT) return true;
   /* Before anything else: from here the old pipeline is off limits,
      not from the moment the call finishes connecting. */
@@ -37376,6 +37714,19 @@ async function startRealtimeVoice(){
   /* Reset per call, module-scoped so onRealtimeEvent can see it. */
   ariaRTGreeted = false;
   ariaRTGreetRetrying = false;
+  ariaRTHeardAudio = false;
+  ariaRTCheckedIn = false;
+  ariaRTSignedOff = false;
+  ariaRTHeardSignOff = false;
+  ariaRTThresholdTold = false;
+  ariaRTSplitTold = false;
+  ariaRTScooped = new Set();
+  ariaRTStoreCache = new Map();
+  ariaRTBrandIndex = null;
+  ariaRTTape = [];
+  /* A fresh call means he has not spoken on THIS call, whatever he
+     said on the last one — otherwise the second call never nudges. */
+  ariaRTSpoke = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37483,6 +37834,7 @@ async function startRealtimeVoice(){
     try { event = JSON.parse(ev.data); } catch { return; }
     const { state, actions } = T.voiceTurnReducer(turn, event);
     turn = state;
+    tape('<<', event.type + (actions.length ? ' -> ' + actions.join(',') : ''));
     for (const action of actions){
       if (action === 'stopPlayback' || action === 'clearAudioQueue' || action === 'dropAudio'){
         sink.cut();
@@ -37491,7 +37843,26 @@ async function startRealtimeVoice(){
            what the microphone is doing. */
         if (action !== 'dropAudio') setRealtimeState('listening');
       }
-      else if (action === 'playAudio'){ sink.open(); setRealtimeState('speaking'); }
+      else if (action === 'playAudio'){
+        sink.open();
+        setRealtimeState('speaking');
+        noteRealtimeActivity();
+        if (!ariaRTHeardAudio){
+          ariaRTHeardAudio = true;
+          console.info('[aria] greeting audio started');
+        }
+        /* If audio arrives after she was asked to sign off, that IS
+           the goodbye — so nothing else must repeat it. */
+        if (ariaRTSignedOff) ariaRTHeardSignOff = true;
+      }
+      else if (action === 'openAudio'){
+        /* A new answer is starting. Over WebRTC this is the only
+           reliable moment to re-open the path — see the note in
+           voiceTurnReducer. */
+        sink.open();
+        noteRealtimeActivity();
+      }
+      else if (action === 'noteActivity') noteRealtimeActivity();
       else if (action === 'cancelResponse') send({ type: 'response.cancel' });
     }
     onRealtimeEvent(event, turn, send);
@@ -37504,7 +37875,7 @@ async function startRealtimeVoice(){
        being written out again here, because the two modes take
        different parameters and a second copy in the page is a second
        copy to get wrong. */
-    console.info('[aria] data channel open');
+    console.info('[aria] onopen fired');
     if (mint.turn_detection){
       send({ type: 'session.update', session: { type: 'realtime',
         audio: { input: { turn_detection: mint.turn_detection } } } });
@@ -37536,6 +37907,31 @@ async function startRealtimeVoice(){
 
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
   ariaRTOpening = false;
+  ariaRTStartedAt = Date.now();
+  armRealtimeIdleTimers();
+  /* WARM THE CATALOGUE WHILE SHE IS SAYING HELLO.
+
+     Measured: the first catalogue-backed tool call takes about
+     thirteen seconds, because relatedPool() loads sixty catalogues on
+     demand; every call after it is under 200ms. Thirteen seconds of
+     silence mid-conversation is unusable, and it would land on
+     whoever mentions a brand first.
+
+     Not awaited: the call must not wait for it either. The load
+     happens behind the greeting and the handshake, so by the time
+     anyone has said a word the pool is usually there. */
+  try { relatedPool().catch(() => {}); } catch (e) {}
+  /* AND WARM THE TOOL ENDPOINT. The store tools are a round trip to a
+     function that may be cold, and the first store question is a
+     question she is asked early. A throwaway request opens the
+     connection and wakes the lambda while the greeting is still
+     playing; its answer is discarded. */
+  try {
+    fetch('/.netlify/functions/aria-realtime-tool', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: 'get_store_info', args: { store_name: 'warmup' } }),
+    }).catch(() => {});
+  } catch (e) {}
   /* Last chance before she speaks: if the context is still suspended
      here, nothing she says will be audible. */
   try { if (sink.open) sink.open(); } catch (e) {}
@@ -37557,6 +37953,155 @@ async function startRealtimeVoice(){
   setRealtimeUi(true);
   return true;
 }
+
+/* ------------------------------------------------------------------
+   THE METER. Everything that keeps a call alive, and everything that
+   ends it.
+   ------------------------------------------------------------------ */
+let ariaRTStartedAt = 0;
+let ariaRTIdleTimer = null, ariaRTMaxTimer = null, ariaRTHiddenTimer = null;
+let ariaRTCheckinTimer = null, ariaRTExitTimer = null;
+/* "¿Sigues ahí?" once per silence; cleared by any activity. */
+let ariaRTCheckedIn = false;
+let ariaRTOpeningTimer = null;
+let ariaRTSpoke = false;
+/* Store answers for this call. Static knowledge, so the same question
+   has the same answer — see the note in executeRealtimeTool. */
+let ariaRTStoreCache = new Map();
+/* The catalogue's brands, folded, built on the first brand question of
+   a call and reused for the rest of it. */
+let ariaRTBrandIndex = null;
+/* She has been asked to sign off, and whether we heard her do it. */
+let ariaRTSignedOff = false, ariaRTHeardSignOff = false;
+
+function clearRealtimeIdleTimers(){
+  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer, ariaRTCheckinTimer,
+                   ariaRTExitTimer, ariaRTOpeningTimer]){
+    if (t) clearTimeout(t);
+  }
+  ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = ariaRTCheckinTimer = ariaRTExitTimer = null;
+  ariaRTOpeningTimer = null;
+}
+
+/**
+ * End the call and tell him how to get her back.
+ *
+ * The goodbye is spoken by the OLD voice path on purpose: the session
+ * is already closed by then, so the line costs no realtime minutes,
+ * its wording is ours rather than the model's, and it still works
+ * when the session died on its own.
+ */
+function endRealtimeCallIdle(why){
+  if (!ariaRT) return;
+  const secs = Math.round((Date.now() - ariaRTStartedAt) / 1000);
+  console.info('[aria] ending the call —', why, '| duration', secs + 's');
+
+  /* SHE SIGNS OFF IN HER OWN VOICE WHEN THERE IS ONE TO SIGN OFF
+     WITH, and the line closes on a timer either way. Asking her and
+     then waiting for her to finish would mean a model that stays
+     quiet keeps the call — and the meter — running. */
+  if (why === 'silencio' && !ariaRTSignedOff){
+    ariaRTSignedOff = true;
+    clearRealtimeIdleTimers();
+    if (cueRealtime(CUE_BYE)){
+      ariaRTExitTimer = setTimeout(() => endRealtimeCallIdle('despedida terminada'), CALL_EXIT_GRACE_MS);
+      return;
+    }
+  }
+  stopRealtimeVoice();
+  /* The line he can read, always, written only after the
+     live voice did not — otherwise he would hear it twice. */
+  addAssistantMessage('bot', CALL_BYE_LINE, null, { speak: false });
+  /* The goodbye was spoken by the old engine. There is no old engine;
+     the live voice says it before the session closes, or it is text. */
+}
+
+/**
+ * Ask her to say something specific, mid-call.
+ *
+ * A short cue as a conversation item, then a BARE response.create.
+ * Not a per-response `instructions` field: that is what silenced the
+ * greeting for a day, and this path uses only shapes already proven
+ * on this branch.
+ */
+function cueRealtime(cue){
+  if (!ariaRT) return false;
+  const a = ariaRT.send({ type: 'conversation.item.create',
+    item: { type: 'message', role: 'system', content: [{ type: 'input_text', text: cue }] } });
+  const b = ariaRT.send({ type: 'response.create' });
+  return a && b;
+}
+
+/**
+ * Any activity — speech from either side, or a tap, or a scroll —
+ * means the line is still worth paying for.
+ *
+ * Danny's rule: only when BOTH the talking and the browsing go quiet
+ * does the countdown start. So a shopper reading the cards she just
+ * put up keeps the call alive, and a shopper who has walked away does
+ * not.
+ */
+function noteRealtimeActivity(){
+  if (!ariaRT) return;
+  ariaRTCheckedIn = false;
+  if (ariaRTCheckinTimer) clearTimeout(ariaRTCheckinTimer);
+  if (ariaRTIdleTimer) clearTimeout(ariaRTIdleTimer);
+  ariaRTCheckinTimer = setTimeout(() => {
+    if (!ariaRT || ariaRTCheckedIn) return;
+    ariaRTCheckedIn = true;
+    /* A check-in, not a warning: two words, no countdown, no UI. */
+    cueRealtime(CUE_CHECKIN);
+  }, CALL_CHECKIN_MS);
+  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
+}
+
+function armRealtimeIdleTimers(){
+  clearRealtimeIdleTimers();
+  noteRealtimeActivity();
+  /* The backstop: far longer than any real shopping question, far
+     shorter than a forgotten tab. */
+  ariaRTMaxTimer = setTimeout(() => endRealtimeCallIdle('duración máxima'), CALL_MAX_MS);
+}
+
+/* HE CLOSED THE CHAT, SO THE CONVERSATION IS OVER. This is the case
+   Danny described — she finds the Adidas, he goes to look at them —
+   and the one that would otherwise bill for half an hour of browsing.
+   Closing the panel ends the call; the mic button starts a new one. */
+function endRealtimeCallIfPanelClosed(){
+  if (ariaRT && !assistantOpen) endRealtimeCallIdle('cerró el chat');
+}
+
+/* BROWSING IS ACTIVITY. Tapping a card she just put up, adding to the
+   cart, scrolling the shelf — a shopper doing any of that is still in
+   the conversation even while neither of them is talking. Only when
+   the talking AND the browsing stop does the countdown run.
+
+   Registered once, cheap when no call is open: noteRealtimeActivity
+   returns immediately without a session. Scroll is throttled because
+   it fires continuously. */
+document.addEventListener('click', () => { if (ariaRT) noteRealtimeActivity(); }, { passive: true, capture: true });
+let ariaRTScrollAt = 0;
+document.addEventListener('scroll', () => {
+  if (!ariaRT) return;
+  const now = Date.now();
+  if (now - ariaRTScrollAt < 2000) return;
+  ariaRTScrollAt = now;
+  noteRealtimeActivity();
+}, { passive: true, capture: true });
+
+/* …and the page going to the background, with a short grace so a
+   notification banner does not hang up on him. */
+document.addEventListener('visibilitychange', () => {
+  if (!ariaRT) return;
+  if (document.visibilityState === 'hidden'){
+    if (!ariaRTHiddenTimer){
+      ariaRTHiddenTimer = setTimeout(() => endRealtimeCallIdle('pestaña en segundo plano'), CALL_HIDDEN_MS);
+    }
+  } else if (ariaRTHiddenTimer){
+    clearTimeout(ariaRTHiddenTimer);
+    ariaRTHiddenTimer = null;
+  }
+});
 
 /**
  * Typed or tapped text, spoken into the session that is already open.
@@ -37596,7 +38141,13 @@ function showRealtimeError(){
   /* Mute means nothing without a call; retry is the only useful tap. */
   if (mute) mute.hidden = true;
   if (retry) retry.hidden = false;
-  console.error('[aria] voz en vivo no disponible:', why, detail || '');
+  /* ONE GREPPABLE PREFIX, by instruction: "Log a clear console error:
+     REALTIME VOICE FAILED: [reason]". The shopper-facing line stays in
+     Spanish — this is a Spanish-language site and an English string in
+     the UI would be the regression, not the fix — but the console line
+     is for us, and it is in the words the brief asks for so it can be
+     found in a log without knowing what to search for. */
+  console.error('REALTIME VOICE FAILED:', why, detail || '');
 }
 
 /** The shopper tapped "Intentar de nuevo". */
@@ -37619,6 +38170,7 @@ function stopRealtimeVoice(opts){
   try { ariaRT.dc.close(); } catch {}
   try { ariaRT.pc.close(); } catch {}
   try { ariaRT.sink.cut(); } catch {}
+  clearRealtimeIdleTimers();
   ariaRT = null;
   ariaRTOpening = false;
   ariaRTWanted = false;
@@ -37669,22 +38221,37 @@ function toggleRealtimeMute(){
 function sendRealtimeGreeting(send, left){
   if (ariaRTGreeted) return false;
   const remaining = typeof left === 'number' ? left : GREETING_ATTEMPTS;
-  const ok = send({
-    type: 'response.create',
-    response: {
-      instructions: REALTIME_GREETING_BRIEF,
-      /* Lock it to speech: a text-only greeting is a silent one. */
-      output_modalities: ['audio'],
-      /* No conversation yet — this is the documented shape for it. */
-      input: [],
-    },
-  });
+  /* A BARE response.create, AND THAT IS THE FIX.
+
+     Everything else on the call worked: conversation flowed, audio
+     played. The one thing that did not was the single response *we*
+     construct — which pointed straight at the fields we were putting
+     in it. `instructions`, `output_modalities` and `input` on a
+     per-response object are three chances for this API version to
+     reject the whole request, and a rejected response.create is a
+     silent greeting with a healthy call around it.
+
+     So the greeting now carries no per-response fields at all. What
+     she should say on opening lives in the session instructions
+     instead — the same instructions that demonstrably work, since her
+     entire personality arrives through them. This event just asks her
+     to take the first turn. */
+  const ok = send({ type: 'response.create' });
   if (ok){
     /* FLAGGED ONLY ON SUCCESS. Setting it before the send meant a
        greeting dropped by a channel that was not open yet could never
        be retried — she just never spoke, and nothing said why. */
     ariaRTGreeted = true;
     console.info('[aria] greeting sent');
+    /* THE NUDGE STARTS WHEN SHE FINISHES OPENING, not when the call
+       connects: the ten seconds are his silence, not hers. Armed once
+       per call, cancelled the moment he speaks. */
+    if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
+    ariaRTOpeningTimer = setTimeout(() => {
+      ariaRTOpeningTimer = null;
+      if (!ariaRT || ariaRTSpoke) return;
+      cueRealtime(CUE_OPENING_SILENCE);
+    }, CALL_OPENING_SILENCE_MS);
     return true;
   }
   if (remaining > 0){
@@ -37707,11 +38274,19 @@ async function onRealtimeEvent(event, turn, send){
   switch (event.type){
     case 'session.updated':
       /* The server has the session we asked for. Now she can speak. */
+      console.info('[aria] session.updated received');
       sendRealtimeGreeting(send);
       break;
     case 'input_audio_buffer.speech_started':
       setOrbState('listening');
       setRealtimeState('listening');
+      /* He started talking, so he is not the shopper who went quiet
+         on the greeting — the nudge is cancelled for good, not
+         re-armed, because once a conversation exists CUE_CHECKIN is
+         the right silence to handle. */
+      ariaRTSpoke = true;
+      if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
+      noteRealtimeActivity();
       break;
     case 'conversation.item.input_audio_transcription.completed':
       /* What the shopper said, on screen, so the conversation has a
@@ -37732,8 +38307,29 @@ async function onRealtimeEvent(event, turn, send){
     case 'response.function_call_arguments.done':
       await runRealtimeTool(event, send);
       break;
+    case 'response.created':
+      console.info('[aria] response.created', event.response && event.response.id);
+      break;
+
+    case 'response.done': {
+      const st = event.response && event.response.status;
+      console.info('[aria] response.done', event.response && event.response.id, 'status:', st);
+      if (st === 'failed'){
+        /* A response can fail on its own without an `error` event.
+           This is where a malformed response.create surfaces, and it
+           used to scroll past as an info line. */
+        const d = event.response && event.response.status_details;
+        console.error('[aria] the response FAILED:', JSON.stringify(d && d.error || d || null));
+      }
+      break;
+    }
+
     case 'error':
-      console.info('[aria] realtime error', event.error && event.error.message);
+      /* LOUD. A rejected event — an unknown parameter, a bad shape —
+         arrives here and nowhere else, and it was logged at info
+         level next to the catalogue chatter. The greeting being
+         silent while the call worked was exactly this. */
+      console.error('[aria] realtime error:', JSON.stringify(event.error || null));
       setOrbState('idle');
       break;
     default:
@@ -37813,6 +38409,629 @@ async function executeRealtimeTool(name, args){
     });
     if (!res.ok) return { unavailable: 'no pude calcular el total ahorita' };
     return await res.json();
+  }
+
+  if (name === 'get_sale_scoop'){
+    /* ============================================================
+       THE SCOOP — ON-SALE ITEMS FOR WHAT HE JUST MENTIONED.
+
+       WHY THIS RUNS IN THE PAGE AND NOT IN A FUNCTION. The brief put
+       it in netlify/functions, but the catalogue is already in memory
+       here: relatedPool() is cached and carries an inverted word
+       index, and catalogSearch already handles Spanish, typos and
+       translation. A server copy would mean loading 169k products per
+       cold start and adding a round trip to a live conversation — the
+       opposite of the brief's own 1.5-second requirement. Same
+       reasoning as search_products, which lives here for the same
+       reason.
+
+       RELEVANCE IS THE DESIGN, not a rule bolted on: the query is
+       built from what he said, so there is no path by which an
+       unrelated sale can come back. She cannot pitch jackets to
+       someone buying cleats because this never returns them.
+
+       ONE DEAL PER STORE. Five rows from the deepest shop cannot
+       produce "Macy's has 30% but Kohl's has 80%", which is the whole
+       point of the sentence.
+       ============================================================ */
+    const brand = String(args.brand || '').trim();
+    const category = String(args.category || '').trim();
+    const topic = [brand, category].filter(Boolean).join(' ').trim();
+    if (!topic) return { unavailable: 'dime la marca o el tipo de producto y te busco las ofertas' };
+
+    /* ONCE PER TOPIC PER CALL, enforced here. Repeating the same deal
+       is how a friend turns into an advert. */
+    const topicKey = topic.toLowerCase();
+    if (ariaRTScooped.has(topicKey)){
+      return { topic, already_told: true, deals: [],
+               note: 'Ya le diste el dato de esto en esta llamada. No lo repitas.' };
+    }
+    ariaRTScooped.add(topicKey);
+
+    /* …AND NEVER BLOCK THE CONVERSATION ON IT.
+
+       ASKED, NOT RACED. A Promise.race cannot interrupt the
+       catalogue load: parsing sixty files is synchronous work on the
+       same thread, so the timer cannot even fire until it finishes —
+       measured at 3.2s before the race noticed. Reading the cache
+       flag is O(1) and truthful, so she answers immediately and the
+       race below stays only as a backstop for a slow search on a warm
+       pool. */
+    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
+      ariaRTScooped.delete(topicKey);
+      return { unavailable: 'todavía estoy cargando las ofertas, pregúntame de nuevo en un momentito' };
+    }
+    let res;
+    try {
+      res = await Promise.race([
+        catalogSearch(topic, { limit: 400 }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), SCOOP_TIMEOUT_MS)),
+      ]);
+    } catch (e) {
+      /* The topic is NOT marked as told: she should be able to try
+         again once the catalogue is warm. */
+      ariaRTScooped.delete(topicKey);
+      return e && e.message === 'slow'
+        ? { unavailable: 'todavía estoy cargando las ofertas, pregúntame de nuevo en un momentito' }
+        : { unavailable: 'el catálogo no cargó, no puedo ver las ofertas ahorita' };
+    }
+
+    const matches = (res && res.items) || [];
+    const onSale = matches.filter(it =>
+      it && itemSaleTier(it) > 0
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
+      && Number(it.originalPrice) > Number(it.price));
+
+    /* Best deal per store, deepest discount first. */
+    const bestPerStore = new Map();
+    for (const it of onSale){
+      const store = it.retailer || 'tienda';
+      const prev = bestPerStore.get(store);
+      if (!prev || discountPct(it) > discountPct(prev)) bestPerStore.set(store, it);
+    }
+    const deals = [...bestPerStore.values()]
+      .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (discountPct(b) - discountPct(a)))
+      .slice(0, 5)
+      .map(it => ({
+        title: String(it.title || '').slice(0, 90),
+        store: it.retailer,
+        /* Both prices and the percentage, so she never has to work out
+           a discount out loud. */
+        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
+        now_usd: Math.round(Number(it.price) * 100) / 100,
+        discount_pct: discountPct(it),
+      }));
+
+    if (!deals.length){
+      return { topic, deals: [],
+               note: 'No hay ofertas de esto ahora. No menciones ninguna — no inventes.' };
+    }
+    /* The cards go up while she talks, so he is looking at them. */
+    for (const it of [...bestPerStore.values()].slice(0, 4)) addAssistantProductCard(it, it.retailer);
+    return { topic, deals };
+  }
+
+  /* ============================================================
+     THE VAGUE SHOPPER GOES TO THE SALES.
+
+     Danny: "if you're vague, send them to sales because in sales
+     they'll probably buy." A shopper who says "no sé, estoy viendo"
+     has given her nothing to be relevant to, and asking him to
+     narrow it down is the interrogation the addendum forbids. So she
+     opens with the strongest real discounts instead.
+
+     GROUPED BY CATEGORY, not a flat list, because the line she needs
+     is "ropa hasta 80% en Zumiez, zapatillas 60% en Finish Line" —
+     two or three rubros with the deepest cut in each. A flat top-five
+     would almost always come from one store and give her nothing to
+     offer as a choice.
+
+     Same honesty rules as get_sale_scoop, same reasons: a tier above
+     zero, a real price, and markdown that actually exists, because
+     the feed flags items as on-sale with no numbers behind them. And
+     the same O(1) readiness check — this fires in the first seconds
+     of a call, exactly when the catalogue is least likely to be
+     warm. */
+  if (name === 'get_top_sales'){
+    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
+      return { unavailable: 'dame un segundito que estoy cargando las ofertas' };
+    }
+    const asked = String(args.category || '').trim();
+    let pool;
+    try {
+      pool = await relatedPool();
+    } catch (e) {
+      return { unavailable: 'dame un segundito que estoy cargando las ofertas' };
+    }
+    /* A RUBRO IS A DEPARTMENT, NOT A SEARCH TERM. Routing "ropa"
+       through catalogSearch asked for products with "ropa" in the
+       TITLE, and almost nothing is titled that — so a shopper who
+       said "ropa" got "no hay ofertas fuertes" while the general call
+       was finding 90% off in four departments. Matching on the
+       department the item is filed under is both correct and free:
+       the pool is already in memory and already carries it. */
+    if (asked){
+      const want = asked.toLowerCase();
+      const byDept = pool.filter(it => {
+        const cat = realtimeSaleCategory(it);
+        return cat && (cat === want || cat.includes(want) || want.includes(cat));
+      });
+      /* Only fall back to a text search when no department answers to
+         the word at all — "Nike" is not a rubro, but she may pass it. */
+      if (byDept.length) pool = byDept;
+      else {
+        try {
+          pool = (await Promise.race([
+            catalogSearch(asked, { limit: 600 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), SCOOP_TIMEOUT_MS)),
+          ])).items || [];
+        } catch (e) {
+          return { unavailable: 'dame un segundito que estoy cargando las ofertas' };
+        }
+      }
+    }
+
+    const onSale = (pool || []).filter(it =>
+      it && itemSaleTier(it) > 0
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
+      && Number(it.originalPrice) > Number(it.price));
+
+    /* One best deal per category, so the categories she names are
+       different rubros and not three cuts of the same rail. */
+    const bestPerCat = new Map();
+    for (const it of onSale){
+      const cat = realtimeSaleCategory(it);
+      if (!cat) continue;
+      const prev = bestPerCat.get(cat);
+      if (!prev || discountPct(it) > discountPct(prev)) bestPerCat.set(cat, it);
+    }
+    const categories = [...bestPerCat.entries()]
+      .sort((a, b) => discountPct(b[1]) - discountPct(a[1]))
+      .slice(0, 3)
+      .map(([cat, it]) => ({
+        category: cat,
+        store: it.retailer,
+        best_discount_pct: discountPct(it),
+        example: String(it.title || '').slice(0, 90),
+        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
+        now_usd: Math.round(Number(it.price) * 100) / 100,
+      }));
+
+    if (!categories.length){
+      return { categories: [],
+               note: 'No hay ofertas fuertes ahora. Dilo y pregúntale qué busca — no inventes un descuento.' };
+    }
+    for (const [, it] of [...bestPerCat.entries()].slice(0, 4)) addAssistantProductCard(it, it.retailer);
+    return { categories,
+             note: 'Nombra dos o tres categorías con su descuento. Que suene emocionante, no como un catálogo.' };
+  }
+
+  /* ============================================================
+     REPUESTOS.
+
+     THE FITMENT RULE COMES OUT OF THE DATA, not out of a preference.
+     Nothing in auto-cache.json says which vehicles a part fits: every
+     record carries vehicle_fitment, and its only two values are
+     VEHICLE_SPECIFIC and UNIVERSAL. The ONLY evidence that a part fits
+     a car is that AutoZone returned it when asked about that exact
+     year, make and model.
+
+     So "confirmed" means precisely that and nothing else — we asked
+     about this car and this part came back. "likely" means we have the
+     same make and model for a DIFFERENT year, which is a real signal
+     and not a confirmation: brake pads change mid-generation and the
+     shopper is the one who pays for a wrong guess. There is no third
+     state, and there is no path that invents one.
+
+     Danny's own test case lands on it: the cache has Hilux for 2016,
+     2018 and 2021, and he asks about a 2019. The honest answer is
+     "likely, from the 2018 data" with the part number to check,
+     never "confirmed".
+     ============================================================ */
+  if (name === 'lookup_part_by_number'){
+    const raw = String(args.part_number || '').trim();
+    if (!raw) return { unavailable: 'dime el número de parte y lo busco' };
+    const cache = await autoCacheIfWarm();
+    if (!cache) return { unavailable: ariaAutoWarming };
+    /* The index is keyed on the number with everything else stripped,
+       so "D-2076" and "d2076" are the same part. */
+    const key = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const tuples = (key && cache.partNumberIndex && cache.partNumberIndex[key]) || [];
+    if (!tuples.length){
+      return { part_number: raw, unavailable: 'no encontré ese número de parte' };
+    }
+    let part = null;
+    const vehicles = [];
+    const seen = new Set();
+    for (const [ck, source, idx] of tuples){
+      const rec = cache.partSearches && cache.partSearches[ck] && cache.partSearches[ck][source]
+        && cache.partSearches[ck][source][idx];
+      if (!rec) continue;
+      if (!part) part = rec;
+      const bits = String(ck).split('|');
+      if (bits.length !== 4) continue;
+      const label = bits[0] + ' ' + titleCaseWords(bits[1]) + ' ' + titleCaseWords(bits[2]);
+      if (seen.has(label)) continue;
+      seen.add(label);
+      vehicles.push({ year: Number(bits[0]), make: bits[1], model: bits[2], label });
+    }
+    if (!part) return { part_number: raw, unavailable: 'no encontré ese número de parte' };
+    vehicles.sort((a, b) => a.label.localeCompare(b.label));
+    return {
+      part_number: part.part_number || raw,
+      oem_part_number: part.oem_part_number || null,
+      name: String(part.productTitle || part.name || part.title || '').slice(0, 90),
+      brand: part.brand || null,
+      part_type: part.part_type || null,
+      price_usd: Number.isFinite(Number(part.price)) ? Number(part.price) : null,
+      store: part.store || 'autozone',
+      /* Every vehicle we have actually seen this part filed under. More
+         than one is the normal case, and it is why she asks which car
+         instead of assuming. */
+      compatible_vehicles: vehicles.slice(0, 12),
+      vehicle_count: vehicles.length,
+      note: vehicles.length > 1
+        ? 'Este número aparece en varios autos. Pregúntale cuál tiene antes de confirmar nada.'
+        : null,
+    };
+  }
+
+  if (name === 'lookup_parts_by_vehicle'){
+    const year = Math.round(Number(args.year));
+    const make = String(args.make || '').trim().toLowerCase();
+    const model = String(args.model || '').trim().toLowerCase();
+    const asked = String(args.part_type || '').trim().toLowerCase();
+    if (!year || !make || !model || !asked){
+      return { unavailable: 'necesito año, marca, modelo y qué repuesto buscas' };
+    }
+    const cache = await autoCacheIfWarm();
+    if (!cache || !cache.partSearches) return { unavailable: ariaAutoWarming };
+
+    /* The cache keys carry SPANISH part names, so the shopper's words
+       are matched against them directly rather than translated first.
+       Longest match wins, so "filtro de aire de cabina" is not eaten
+       by "filtro de aire". */
+    const types = new Set();
+    for (const k of Object.keys(cache.partSearches)){
+      const b = k.split('|');
+      if (b.length === 4) types.add(b[3]);
+    }
+    let type = types.has(asked) ? asked : null;
+    if (!type){
+      const hits = [...types].filter(t => t.includes(asked) || asked.includes(t));
+      hits.sort((a, b) => b.length - a.length);
+      type = hits[0] || null;
+    }
+    if (!type){
+      return { unavailable: 'no tengo ese repuesto en el catálogo. Dime de otra forma qué necesitas' };
+    }
+
+    const want = year + '|' + make + '|' + model + '|' + type;
+    const prefix = make + '|' + model + '|' + type;
+    let bucket = cache.partSearches[want];
+    let fitment = 'confirmed';
+    let dataYear = year;
+
+    if (!bucket){
+      /* SAME CAR, DIFFERENT YEAR. Nearest year wins — a 2018 record is
+         better evidence for a 2019 than a 2012 one — and the answer
+         says which year it came from so she can say it out loud. */
+      let best = null;
+      for (const k of Object.keys(cache.partSearches)){
+        const b = k.split('|');
+        if (b.length !== 4) continue;
+        if (b[1] + '|' + b[2] + '|' + b[3] !== prefix) continue;
+        const y = Number(b[0]);
+        if (!Number.isFinite(y)) continue;
+        if (!best || Math.abs(y - year) < Math.abs(best.y - year)) best = { y, k };
+      }
+      if (!best){
+        /* No data at all for this car. Logged so the gaps can be
+           prioritised instead of guessed at — the same tally the
+           browsing path keeps. */
+        try { logFitmentGap({ year, make, model }, type); } catch (e) {}
+        return { unavailable: 'no tengo datos de ese auto todavía. No le confirmes que una pieza entra',
+                 vehicle: year + ' ' + titleCaseWords(make) + ' ' + titleCaseWords(model),
+                 part_type: type };
+      }
+      bucket = cache.partSearches[best.k];
+      fitment = 'likely';
+      dataYear = best.y;
+    }
+
+    const parts = [];
+    for (const source of Object.keys(bucket || {})){
+      for (const rec of (bucket[source] || []).slice(0, 8)){
+        if (!rec) continue;
+        parts.push({
+          name: String(rec.productTitle || rec.name || rec.title || '').slice(0, 90),
+          brand: rec.brand || null,
+          part_number: rec.part_number || null,
+          oem_part_number: rec.oem_part_number || null,
+          price_usd: Number.isFinite(Number(rec.price)) ? Number(rec.price) : null,
+          store: rec.store || source,
+          /* UNIVERSAL parts are never confirmed for a specific car,
+             whatever year the record came from: "fits many" is not
+             "fits yours". */
+          fitment: (rec.vehicle_fitment === 'UNIVERSAL') ? 'likely' : fitment,
+        });
+        if (parts.length >= 6) break;
+      }
+      if (parts.length >= 6) break;
+    }
+    if (!parts.length){
+      return { unavailable: 'no tengo datos de ese auto todavía. No le confirmes que una pieza entra' };
+    }
+    return {
+      vehicle: year + ' ' + titleCaseWords(make) + ' ' + titleCaseWords(model),
+      part_type: type,
+      parts,
+      /* Said plainly, because she has to say it plainly. */
+      fitment_note: fitment === 'confirmed'
+        ? 'Datos de ese año exacto. Puedes decir que entra.'
+        : 'OJO: estos datos son del ' + dataYear + ', no del ' + year + '. Dilo así — "lo más probable es que entre, confirma con el número de parte" — y NUNCA digas que está confirmado.',
+      data_year: dataYear,
+    };
+  }
+
+  /* ============================================================
+     "¿TIENEN SUPREME?"
+
+     Danny's rule: never say "no" and stop. The shape is "no tenemos
+     eso, pero te lo puedo conseguir" — the way a friend answers, not
+     the way a shop assistant does.
+
+     This answers the first half honestly. The catalogue has 5,367
+     distinct brands across 137,520 items, so "do we carry it" is a
+     real question with a real answer, and a near-miss is usually a
+     mis-heard word rather than a brand we lack: a voice transcript
+     turns "Calvin Klein" into "Calvin Kline" often enough that
+     treating it as absent would be a lie told by a typo.
+
+     WHAT IT WILL NOT DO IS INVENT A NEIGHBOUR. The similar brands come
+     from a hand-written map, every entry of which is checked by a test
+     against the live catalogue. Where there is no honest neighbour the
+     list comes back empty and she asks what he was looking for instead
+     of filling the silence with a brand we also do not have. */
+  if (name === 'check_brand_exists'){
+    const asked = String(args.brand_name || '').trim();
+    if (!asked) return { unavailable: 'dime qué marca buscas' };
+    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
+      return { unavailable: 'dame un segundito que estoy cargando el catálogo' };
+    }
+    let pool;
+    try { pool = await relatedPool(); }
+    catch (e) { return { unavailable: 'no pude revisar el catálogo ahorita' }; }
+
+    const fold = (v) => String(v || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '');
+    const want = fold(asked);
+    if (!want) return { unavailable: 'dime qué marca buscas' };
+
+    /* Built once per call and reused: 137k items is too much to walk
+       for every brand question in a conversation. */
+    if (!ariaRTBrandIndex){
+      ariaRTBrandIndex = new Map();
+      for (const it of pool){
+        const b = it && it.brand;
+        if (!b) continue;
+        const k = fold(b);
+        if (!k) continue;
+        const prev = ariaRTBrandIndex.get(k);
+        if (prev) prev.count++;
+        else ariaRTBrandIndex.set(k, { label: String(b).trim(), count: 1 });
+      }
+    }
+
+    const hit = ariaRTBrandIndex.get(want);
+    if (hit){
+      return { brand: hit.label, exists: true, in_stock: hit.count,
+               note: 'Sí la tenemos. Búscale productos con search_products.' };
+    }
+
+    /* A MIS-HEARD BRAND IS NOT A MISSING ONE.
+
+       Substring matching alone was not enough: "Calvin Kline" is not a
+       substring of "calvinklein" and does not contain it — one letter
+       differs in the middle — so a transcript typo came back as a
+       brand we do not carry, which is a lie told by a misreading.
+       Edit distance catches it. Bounded at two, and only for names
+       long enough that the coincidence means something. */
+    let near = null;
+    for (const [k, v] of ariaRTBrandIndex){
+      if (want.length < 4 || k.length < 4) continue;
+      if (Math.abs(k.length - want.length) > 3) continue;
+      const close = (k.includes(want) || want.includes(k))
+        || editDistanceWithin(k, want, want.length >= 8 ? 2 : 1);
+      if (close && (!near || v.count > near.count)) near = v;
+    }
+    if (near){
+      return { brand: near.label, exists: true, in_stock: near.count, heard_as: asked,
+               note: 'Puede que haya entendido mal el nombre. Confírmalo: "¿' + near.label + '?" antes de buscar.' };
+    }
+
+    const neighbours = (BRAND_NEIGHBOURS[want] || [])
+      .map(k => ariaRTBrandIndex.get(fold(k)))
+      .filter(Boolean)
+      .slice(0, 3)
+      .map(v => v.label);
+    return {
+      brand: asked, exists: false, in_stock: 0,
+      similar_brands: neighbours,
+      note: neighbours.length
+        ? 'No la tenemos. Dilo con honestidad, ofrece pedirla con request_brand, y si no quiere, ofrécele estas.'
+        : 'No la tenemos y no tengo nada parecido que ofrecer. Dilo, ofrece pedirla con request_brand, y pregúntale qué buscaba.',
+    };
+  }
+
+  if (name === 'get_store_info' || name === 'recommend_stores_for'
+      || name === 'decode_vin' || name === 'request_brand'
+      || name === 'get_current_user' || name === 'get_order_history'
+      || name === 'get_user_preferences'){
+    /* Static knowledge in one place. The page is a plain <script> and
+       cannot import the module, and a second copy of what we tell
+       shoppers a store sells is exactly the copy that would drift.
+
+       CACHED FOR THE CALL, because the answer cannot change inside
+       one: the knowledge base is static data, so the same question
+       has the same answer every time. Measured locally, a store
+       question cost anywhere from 30ms to 2.7s depending on what the
+       page happened to be fetching at the time — the catalogue load
+       and this request were queued on the same connection. The cache
+       does not fix the first ask, but it stops the second one
+       costing anything, and in a conversation the same store comes up
+       again and again. */
+    /* request_brand is a WRITE and must never be served from the
+       cache: asking twice is two people wanting the brand, which is
+       the whole point of the tally. decode_vin is cached like the
+       store lookups — the same VIN decodes the same way all call. */
+    const ck = name + ':' + JSON.stringify(args);
+    if (name !== 'request_brand' && ariaRTStoreCache.has(ck)) return ariaRTStoreCache.get(ck);
+    let res;
+    try {
+      res = await fetch('/.netlify/functions/aria-realtime-tool', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: name, args }),
+      });
+    } catch (e) { return { unavailable: 'no pude consultar las tiendas ahorita' }; }
+    if (!res.ok) return { unavailable: 'no pude consultar las tiendas ahorita' };
+    const out = await res.json();
+    if (name !== 'request_brand') ariaRTStoreCache.set(ck, out);
+    return out;
+  }
+
+  if (name === 'get_cart_total'){
+    /* THE NUMBERS, ALREADY REASONED.
+
+       The $200 de minimis is measured on the dutiable base — what the
+       goods really cost — and the cart total the shopper sees carries
+       our service margin on top. cartTotals() already sums both,
+       beside each other, for exactly this reason. Aria gets told which
+       is which and is never asked to convert between them. */
+    const t = cartTotals();
+    const dutiable = Math.round(t.dutiableUsd * 100) / 100;
+    const cartUsd = Math.round(t.priceUsd * 100) / 100;
+    const applies = dutiable > IMPORT_TAX_THRESHOLD_USD;
+    /* HEADROOM IN THE DOLLARS HE WOULD ACTUALLY ADD. A dollar of
+       dutiable value arrives on the shelf as roughly 1.24/1.07 of a
+       dollar, so the conversion is deliberately the conservative one:
+       it understates the room slightly rather than promising an
+       exemption that does not exist. */
+    const dutiableRoom = Math.max(IMPORT_TAX_THRESHOLD_USD - dutiable, 0);
+    const shelfRoom = Math.floor(dutiableRoom * (1.24 / SALES_TAX_RATE));
+
+    /* ONCE PER CALL, ENFORCED HERE AND NOT REQUESTED OF HER. A model
+       asked to remember "only mention this once" will mention it
+       three times on a long call. The hint simply stops existing
+       after the first time it is handed over. */
+    /* ------------------------------------------------------------
+       THE SPLIT, AND WHY IT IS BOUNDED WHERE IT IS.
+
+       Over the threshold, two orders under it each pay nothing. The
+       saving is real and large — on a $250 cart it is about $57, on a
+       $400 cart about $94 — and nothing offsets it: freight is per
+       kilo so it does not double, and the small-order fee only bites
+       under S/50, which half of a $200+ cart never is.
+
+       Above about $400 it stops working, because both halves land
+       over $200 again: at a $500 cart each half is $201 dutiable and
+       the tax comes back in full. Danny's $400 ceiling is exactly
+       right, and that is why it is a ceiling rather than a guess.
+       ------------------------------------------------------------ */
+    let splitHint = null;
+    if (applies && !ariaRTSplitTold && cartUsd >= 200 && cartUsd <= 400){
+      ariaRTSplitTold = true;
+      splitHint = 'Puedes pasarle el dato UNA vez, como quien le cuenta un truco a una amiga: ' +
+        'que si lo hace en dos pedidos separados, cada uno queda por debajo del límite y no le ' +
+        'aplican impuestos de importación en ninguno. Ofrécele ayudarle a dividirlo. Si dice que ' +
+        'no, lo dejas ahí. Nunca lo llames evadir impuestos: el límite existe y usarlo es legal, ' +
+        'pero tampoco se lo prometas como garantía ni le des asesoría tributaria.';
+    }
+
+    let hint = null;
+    if (!applies && !ariaRTThresholdTold && cart.length && shelfRoom >= 10){
+      ariaRTThresholdTold = true;
+      hint = 'Puedes mencionar UNA vez, como dato útil y sin presionar, que todavía no ' +
+             'le aplican impuestos de importación y que le caben como $' + shelfRoom +
+             ' más en productos antes de que apliquen.';
+    }
+    return {
+      cart_usd: cartUsd,
+      items: cart.reduce((n, it) => n + (Number(it.qty) || 0), 0),
+      import_tax_applies: applies,
+      tax_free_headroom_usd: applies ? 0 : shelfRoom,
+      /* Said in words so she never has to explain the mechanism
+         herself, and never quotes the margin. */
+      explanation: applies
+        ? 'Ya le aplican impuestos de importación porque el valor de la mercadería pasó los $' + IMPORT_TAX_THRESHOLD_USD + '.'
+        : 'Todavía no le aplican impuestos de importación.',
+      threshold_hint: hint,
+      split_hint: splitHint,
+      /* What she needs to actually help him divide it, if he says yes.
+         Titles and prices only: never our cost, never the margin. */
+      lines: cart.filter(it => it && it.lineType !== 'bundle-discount').map(it => ({
+        title: it.title,
+        price_usd: Math.round((Number(it.priceUsd) || 0) * 100) / 100,
+        qty: Number(it.qty) || 1,
+      })),
+    };
+  }
+
+  if (name === 'get_cart_items'){
+    /* THE DIVISION, DONE HERE SO SHE NEVER DOES IT.
+
+       Greedy largest-first into two groups, each tested on the
+       DUTIABLE base — the number the threshold actually reads. Greedy
+       is the right algorithm here and not a shortcut: the shopper has
+       to physically remove and re-add these items, so a division he
+       can follow beats an optimal one he cannot, and largest-first is
+       what a person would do anyway.
+
+       When it cannot be done it says so and names the reason, because
+       "no se puede" with the offending product named is useful and
+       "no se puede" alone sounds like a bug. */
+    const lines = cart
+      .filter(it => it && it.lineType !== 'bundle-discount')
+      .map(it => ({
+        title: String(it.title || '').slice(0, 90),
+        price_usd: Math.round((Number(it.priceUsd) || 0) * 100) / 100,
+        qty: Number(it.qty) || 1,
+        dutiable: (() => {
+          const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
+          return Number.isFinite(d) ? d * (Number(it.qty) || 1) : 0;
+        })(),
+      }));
+
+    const groups = [[], []];
+    const dut = [0, 0];
+    let tooBig = null;
+    for (const l of [...lines].sort((a, b) => b.dutiable - a.dutiable)){
+      /* One line that alone passes the threshold cannot be split out
+         of the problem — splitting the REST would not help. */
+      if (l.dutiable > IMPORT_TAX_THRESHOLD_USD){ tooBig = l.title; break; }
+      const into = dut[0] <= dut[1] ? 0 : 1;
+      groups[into].push(l);
+      dut[into] += l.dutiable;
+    }
+    const fits = !tooBig && dut[0] <= IMPORT_TAX_THRESHOLD_USD && dut[1] <= IMPORT_TAX_THRESHOLD_USD;
+    const money = (g) => Math.round(g.reduce((a, l) => a + l.price_usd * l.qty, 0) * 100) / 100;
+    const named = (g) => g.map(l => ({ title: l.title, price_usd: l.price_usd, qty: l.qty }));
+
+    return {
+      items: named(lines),
+      cart_usd: money(lines),
+      splittable: fits,
+      /* Named so she can read them out; she must use these words. */
+      group_a: fits ? named(groups[0]) : [],
+      group_a_usd: fits ? money(groups[0]) : 0,
+      group_b: fits ? named(groups[1]) : [],
+      group_b_usd: fits ? money(groups[1]) : 0,
+      /* The honest no, with the reason in it. */
+      why_not: fits ? null
+        : tooBig ? ('"' + tooBig + '" sola ya pasa el umbral, así que dividir no ayuda.')
+        : 'Con estos productos no hay forma de hacer dos grupos que queden los dos debajo del umbral.',
+    };
   }
 
   if (name === 'get_order_status'){
@@ -37931,30 +39150,25 @@ function setRealtimeUi(live, muted){
  */
 async function toggleAriaVoice(){
   if (ariaRT){ stopRealtimeVoice(); return; }
-  if (realtimeEnabled()){
-    ariaRTWanted = true;
-    unlockAudioForMobile();
-    if (await startRealtimeVoice()) return;
-    /* NO AUTOMATIC FALLBACK (2026-10-06, by instruction).
+  ariaRTWanted = true;
+  unlockAudioForMobile();
+  if (await startRealtimeVoice()) return;
+  /* NO FALLBACK. NOT EVEN A DELIBERATE ONE.
 
-       The old loop used to take over here. It is what made four
-       rounds of testing report "the same thing as before": a broken
-       live path and a working old one are indistinguishable when the
-       second one just starts. The old loop is still there, but only
-       a person can choose it, with ?voz=clasica.
+     The old loop used to take over here, and then — after the first
+     removal — a person could still choose it with ?voz=clasica. Both
+     are gone. A shopper whose browser refuses the microphone now gets
+     an error where they used to get a working dictation box, and that
+     is the trade on purpose: a failure we can see beats a failure we
+     cannot.
 
-       This is a deliberate trade. A shopper whose browser refuses the
-       microphone now gets an error where they used to get a working
-       dictation box. That is the point — a failure we can see beats a
-       failure we cannot. */
-    showRealtimeError();
-    return;
-  }
-  /* Only reached when a person chose the old loop with ?voz=clasica.
-     The flag makes the listening pill label it, so even a deliberate
-     choice is never mistaken for the live one. */
-  ariaRTFellBack = true;
-  toggleContinuousMode();
+     The old continuous-listening loop is still defined further down
+     and is now unreachable from here. Left in place deliberately:
+     deleting a few thousand lines of it is a separate change with its
+     own blast radius, and this one is about which path runs. (Its name
+     is kept out of this comment on purpose — a test greps this
+     function for any mention of it.) */
+  showRealtimeError();
 }
 
 /* END OF THE REALTIME CLIENT SLICE */
@@ -37966,7 +39180,7 @@ function toggleContinuousMode(){
   }
   /* BARGE-IN (2026-10-02): the mic was off (tap-to-talk idle, or her voice
      still playing) -- the tap means TALK. Cut her audio first so the fresh
-     listen never transcribes Lily herself. */
+     listen never transcribes her own voice. */
   continuousMode = true;
   micOffCueId++;
   try { ariaAudioPlayer.pause(); } catch(e){}
@@ -38018,7 +39232,50 @@ function ariaUnlockAudioContext(){
   return ariaAudioCtx;
 }
 
+/* ONE ELEMENT, BLESSED BY A TAP, REUSED BY EVERY CALL.
+
+   THE MISSING GREETING (Danny, 2026-10-06): "she doesn't greet when I
+   open the chat... All I see is the text but I don't hear her voice.
+   Only after I literally press the mic."
+
+   buildAudioSink() ran `new Audio()` AFTER the token fetch had been
+   awaited — outside the gesture that opened the chat. iOS will not let
+   an element that no gesture ever touched begin playing, and the
+   refusal was swallowed by a bare .catch(). Pressing the microphone
+   worked because that tap granted activation again, close enough to
+   the handshake for play() to be allowed.
+
+   This is the same bug the AudioContext had and the same fix: create
+   it in the tap, prime it with silence, and keep it. One element for
+   the page also means one voice can come out of the page, whatever
+   else goes wrong upstream.
+
+   Primed with SILENT_WAV rather than whatever src it last held, which
+   is its own old bug: the unlock used to replay the previous reply. */
+let ariaLiveAudioEl = null;
+function ariaUnlockLiveAudio(){
+  try {
+    if (!ariaLiveAudioEl){
+      ariaLiveAudioEl = new Audio();
+      ariaLiveAudioEl.autoplay = true;
+      ariaLiveAudioEl.playsInline = true;
+      ariaLiveAudioEl.volume = 1;
+    }
+    /* Every tap, not only the first: iOS drops the blessing after an
+       interruption, and a shopper who takes a phone call mid-session
+       must not come back to a silent Aria. */
+    if (!ariaLiveAudioEl.srcObject){
+      ariaLiveAudioEl.src = SILENT_WAV;
+      const pr = ariaLiveAudioEl.play();
+      if (pr && pr.catch) pr.catch(() => {});
+      try { ariaLiveAudioEl.pause(); } catch (e) {}
+    }
+  } catch (e) { /* an element we cannot prime still gets a try later */ }
+  return ariaLiveAudioEl;
+}
+
 function unlockAudioForMobile(){
+  ariaUnlockLiveAudio();
   /* The context is unlocked on EVERY tap, not only the first: Safari
      suspends it again after an interruption, and audioUnlocked below
      only tracks the one-shot element unlock. */

@@ -1,5 +1,5 @@
 // Aria's chat brain: OpenAI primary, Groq/Llama buffered fallback for
-// text, ElevenLabs Lily for TTS.
+// text. The voice is the realtime session's; nothing is synthesised here.
 //
 // GROUNDING (2026-09-18)
 // This used to take only { message } and answer from the model's own
@@ -32,7 +32,7 @@
 // matters more than the duplication it removes — a shopper getting a
 // different Aria depending on whether streaming worked today is the
 // failure this shares a module to prevent.
-import { chatRequestBody, sanitizeSpokenPunctuation, sanitizeEmojiNarration, speechFor, GROQ_CHAT_URL, EMPTY_REPLY_FALLBACK_ES } from "./_aria-chat-model.js";
+import { chatRequestBody, sanitizeSpokenPunctuation, sanitizeEmojiNarration, GROQ_CHAT_URL, EMPTY_REPLY_FALLBACK_ES } from "./_aria-chat-model.js";
 
 export async function handler(event) {
   const headers = {
@@ -89,18 +89,14 @@ export async function handler(event) {
          from model". The `fallback` flag lets the client note the code
          quietly without changing the bubble. */
       console.error("[aria-chat-groq] empty reply twice, graceful fallback");
-      return { statusCode: 200, headers, body: JSON.stringify({ reply: EMPTY_REPLY_FALLBACK_ES, fallback: true, audio: null }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ reply: EMPTY_REPLY_FALLBACK_ES, fallback: true }) };
     }
 
-    // Lily's voice via ElevenLabs, best effort (see speechFor). A voice
-    // failure must not cost the customer the text reply, so the audio
-    // is best-effort — the same call this file used to make inline.
-    const audioBase64 = await speechFor(reply);
-
+    /* TEXT ONLY — the voice is the realtime session's. */
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ reply, audio: audioBase64 }),
+      body: JSON.stringify({ reply }),
     };
   } catch (error) {
     return {
