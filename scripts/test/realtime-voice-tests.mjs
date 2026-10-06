@@ -26,7 +26,7 @@
    ============================================================ */
 import { strict as assert } from "node:assert";
 import {
-  buildRealtimeSession, buildRealtimeInstructions, TURN_DETECTION,
+  buildRealtimeSession, buildRealtimeInstructions, TURN_DETECTION, buildTurnDetection,
   REALTIME_TOOLS, REALTIME_TOOL_NAMES, REALTIME_MODEL_DEFAULT,
 } from "../lib/realtime-voice.js";
 import {
@@ -52,7 +52,10 @@ check("turn detection is semantic VAD that can be interrupted", () => {
      shopper starts talking, so the page can mute the sound but the
      words keep coming — and get billed. */
   assert.equal(TURN_DETECTION.type, "semantic_vad");
-  assert.equal(TURN_DETECTION.eagerness, "auto");
+  /* `auto` means medium, which waits up to four seconds before
+     deciding the shopper finished. That wait is what Danny felt as
+     walkie-talkie. `high` caps it at two. */
+  assert.equal(TURN_DETECTION.eagerness, "high");
   assert.equal(TURN_DETECTION.create_response, true);
   assert.equal(TURN_DETECTION.interrupt_response, true);
   const s = buildRealtimeSession();
@@ -328,7 +331,7 @@ check("the page falls back rather than throwing when the module is absent", () =
   assert.match(page, /const T = window\.AriaRealtimeTurn;\s*\n\s*if \(!T/,
     "the page assumes the bridge loaded");
   /* The mic button must still work when live voice cannot start. */
-  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,200}toggleContinuousMode\(\);/,
+  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,900}toggleContinuousMode\(\);/,
     "a failed realtime start does not fall back to the old loop");
 });
 
@@ -438,6 +441,15 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
      impossible to filibuster from. */
   assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
   assert.equal(session.audio.output.voice, "marin", "the voice changed without a decision");
+  /* The transcript is a separate ASR from what she hears, so this
+     only drives the text on screen — but an empty model name turns
+     the subtitles off entirely, which reads as her not listening. */
+  const tr = session.audio.input.transcription;
+  assert.ok(tr && tr.model, "there is no transcription model, so no transcript appears");
+  assert.equal(tr.model, "whisper-1", "the transcription model changed without a decision");
+  /* The language hint is the half of Danny's fix 2 that is real: it
+     stops the ASR guessing at Spanish with brand names in English. */
+  assert.equal(tr.language, "es", "the Spanish hint is gone, so the ASR will guess");
   /* Barge-in is not optional: without interrupt_response the server
      keeps generating after the shopper starts talking, and the audio
      the page cancels locally still arrives and is still billed. */
@@ -460,6 +472,10 @@ check("the spoken rules say the things that cost money or trust", () => {
   /* Direction, not a pin: dolls must not become Nerf guns. */
   assert.match(i, /Nerf/, "the semantic-direction example is gone");
   assert.match(i, /Seis a doce opciones/, "the curated-count rule is gone");
+  /* Accented speech, brand names in English, and a shopper in a car. */
+  assert.match(i, /CÓMO ESCUCHAS/, "the listening instruction is gone");
+  assert.match(i, /nunca le hagas repetir la frase entera/,
+    "nothing stops her making the shopper repeat themselves");
   /* No hard catalogue counts: they go stale and she states them as
      fact. retailers.js had 92 entries the day the brief said 77. */
   assert.ok(!/\b77\b|\b31 departamentos\b|\b5000\b/.test(i),
@@ -486,6 +502,99 @@ check("the token mint survives either spelling of the endpoint", () => {
   assert.match(mint, /body: JSON\.stringify\(session\)/, "the legacy call is wrapped and will 400");
   assert.match(mint, /data\?\.value \|\| data\?\.client_secret\?\.value/,
     "only one response shape is understood");
+});
+
+check("the two VAD modes never borrow each other's parameters", () => {
+  /* THE BUG THIS PREVENTS. semantic_vad takes `eagerness` and nothing
+     else; threshold / prefix_padding_ms / silence_duration_ms belong
+     to server_vad. A session carrying the wrong ones is malformed, the
+     mint fails, and the page falls back to the speech-to-text loop
+     with nobody told why — which is how a whole round of iPhone
+     feedback ended up describing the wrong engine. */
+  const sem = buildTurnDetection({ mode: "semantic_vad" });
+  assert.equal(sem.type, "semantic_vad");
+  assert.equal(sem.eagerness, "high");
+  for (const k of ["threshold", "prefix_padding_ms", "silence_duration_ms"]){
+    assert.ok(!(k in sem), `semantic_vad is carrying ${k}, which it does not accept`);
+  }
+  /* …and it stays clean even when asked for them directly. */
+  const dirty = buildTurnDetection({ mode: "semantic_vad", silence_duration_ms: 400, threshold: 0.5 });
+  assert.ok(!("silence_duration_ms" in dirty), "a server_vad parameter leaked into semantic_vad");
+
+  const srv = buildTurnDetection({ mode: "server_vad" });
+  assert.equal(srv.type, "server_vad");
+  assert.ok(!("eagerness" in srv), "server_vad is carrying eagerness, which it does not accept");
+  /* The brief's numbers. silence_duration_ms is the one that matters:
+     the API default is 500ms. */
+  assert.equal(srv.silence_duration_ms, 400);
+  assert.equal(srv.prefix_padding_ms, 300);
+  assert.equal(srv.threshold, 0.5);
+
+  /* Both modes must still answer on their own and still yield. */
+  for (const td of [sem, srv]){
+    assert.equal(td.create_response, true, "she will not answer without a send button");
+    assert.equal(td.interrupt_response, true, "barge-in is off");
+  }
+  /* Only the two real modes exist; a typo must not invent a third. */
+  assert.equal(buildTurnDetection({ mode: "nonsense" }).type, "semantic_vad");
+});
+
+check("the page does not keep its own copy of the VAD settings", () => {
+  /* Two copies of a config whose shape differs per mode is two
+     chances to send a malformed session. The mint hands the settings
+     back with the token and the page echoes them. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const mint = readFileSync(ROOT + "netlify/functions/aria-realtime-session.js", "utf8");
+  assert.match(mint, /turn_detection: session\.audio\.input\.turn_detection/,
+    "the mint does not return the turn detection it configured");
+  assert.match(page, /turn_detection: mint\.turn_detection/,
+    "the page does not echo the server's turn detection back");
+  /* No literal VAD config left anywhere in the page. */
+  assert.ok(!/eagerness:\s*['"]/.test(page), "index.html still hardcodes an eagerness");
+  assert.ok(!/silence_duration_ms/.test(page), "index.html still hardcodes a VAD timing");
+});
+
+check("a fallback is never silent again", () => {
+  /* 2026-10-06: Danny's feedback described the speech-to-text loop
+     because that is what he was talking to, and nothing on screen or
+     in the console said so. Every bail-out now names itself. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const start = page.indexOf("async function startRealtimeVoice()");
+  const end = page.indexOf("/** End the session", start);
+  const body = page.slice(start, end);
+  assert.ok(start > 0 && end > start, "startRealtimeVoice moved");
+  /* Every `return false` inside the start path must carry a reason. */
+  const bare = body.split(/\n/).filter(l => /^\s*return false;/.test(l));
+  assert.equal(bare.length, 0, `${bare.length} silent bail-out(s) left in startRealtimeVoice`);
+  assert.ok((body.match(/noteRealtimeFailure\(/g) || []).length >= 5,
+    "not every failure path records a reason");
+  /* The no-key case is the likeliest one and must say so by name. */
+  assert.match(body, /no tiene la llave de OpenAI/, "a missing API key is not named");
+  /* The shopper is told which engine they got — and it must be
+     rendered by the function that owns the line, not set alongside it.
+     The first version set the text in the fallback path, where
+     setAssistantMicState overwrote it a moment later and the browser
+     check caught what the grep could not. */
+  assert.match(page, /ariaRTFellBack = true;/, "the fallback does not record itself");
+  const pill = page.slice(page.indexOf("THE LISTENING PILL"));
+  assert.match(pill.slice(0, 1400), /ariaRTFellBack\)[\s\S]{0,120}modo clásico/,
+    "the listening pill does not say which engine is running");
+  /* And one call answers it from a phone console. */
+  assert.match(page, /window\.ariaVoiceDiag = ariaVoiceDiag/, "there is no diagnostic to call");
+});
+
+check("echo cancellation stays pinned on", () => {
+  /* Without it her own voice re-enters the microphone, the server's
+     VAD calls that "the shopper is talking", and she interrupts
+     herself. The car flags must never be able to switch it off. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const i = page.indexOf("mic = await navigator.mediaDevices.getUserMedia(");
+  const block = page.slice(i, i + 900);
+  assert.match(block, /echoCancellation: true/, "echo cancellation is not pinned on");
+  assert.ok(!/echoCancellation: !/.test(block), "echo cancellation was made conditional");
+  /* …while the two that fight the server's own processing can go. */
+  assert.match(block, /noiseSuppression: !realtimeRawAudio\(\)/, "noise suppression is not tunable");
+  assert.match(block, /autoGainControl: !realtimeRawAudio\(\)/, "automatic gain is not tunable");
 });
 
 check("the browser never receives the standing API key", () => {

@@ -46,13 +46,31 @@ export const REALTIME_API_BASE = "https://api.openai.com/v1/realtime";
    is used. */
 export const MAX_RESPONSE_OUTPUT_TOKENS = 500;
 
+const env = (k) =>
+  (typeof process !== "undefined" && process.env && process.env[k]) || "";
+
+/* "off" disables it entirely; anything else must be one the API knows. */
+export const NOISE_REDUCTION = (() => {
+  const v = env("ARIA_REALTIME_NOISE");
+  if (v === "off") return null;
+  return v === "far_field" ? "far_field" : "near_field";
+})();
+
 /* The brief names whisper-1. gpt-4o-mini-transcribe is its successor and
    measurably better on accented Spanish, which is the whole population
    of this shop — so it is the default, and the env var is here so the
    choice can be reversed without a deploy if it mishears in the field. */
+/* whisper-1, as the brief asks for, twice.
+
+   WORTH KNOWING WHAT THIS DOES AND DOES NOT DO. The realtime model
+   hears the audio itself; this is a separate ASR whose only job is the
+   text on screen. Changing it cannot change whether Aria understood
+   the shopper — it changes the subtitle. If the subtitles come back
+   wrong, ARIA_REALTIME_TRANSCRIBE=gpt-4o-mini-transcribe is better on
+   accented Spanish and needs no deploy. */
 export const TRANSCRIPTION_MODEL =
   (typeof process !== "undefined" && process.env && process.env.ARIA_REALTIME_TRANSCRIBE) ||
-  "gpt-4o-mini-transcribe";
+  "whisper-1";
 
 /* ------------------------------------------------------------------
    TURN DETECTION
@@ -68,12 +86,54 @@ export const TRANSCRIPTION_MODEL =
    talking, and the audio the page cancels locally still gets billed
    and still arrives.
    ------------------------------------------------------------------ */
-export const TURN_DETECTION = Object.freeze({
-  type: "semantic_vad",
-  eagerness: "auto",
-  create_response: true,
-  interrupt_response: true,
+/* THE TWO MODES TAKE DIFFERENT PARAMETERS, AND MIXING THEM IS FATAL.
+
+   semantic_vad accepts `eagerness` and nothing else. server_vad
+   accepts `threshold`, `prefix_padding_ms` and `silence_duration_ms`
+   and has no `eagerness`. A session that sends silence_duration_ms
+   under semantic_vad is a malformed session; the mint fails, the page
+   falls back, and the shopper gets the old speech-to-text loop with
+   nobody told why. Danny's 2026-10-06 brief asks for exactly that
+   combination, so this builds each mode's own shape and drops anything
+   that does not belong to it.
+
+   Eagerness is how you say "answer sooner" in semantic VAD: low,
+   medium and high cap the wait at 8s, 4s and 2s. `auto` means medium,
+   i.e. up to four seconds of waiting — which is the knob the brief was
+   reaching for. We run `high`. */
+export const EAGERNESS_DEFAULT = "high";
+
+/* server_vad's own defaults are 0.5 / 300ms / 500ms. These are the
+   numbers from the brief; silence_duration_ms is the one that matters,
+   and 400 is tighter than the 500 default. */
+export const SERVER_VAD_TUNING = Object.freeze({
+  threshold: 0.5,
+  prefix_padding_ms: 300,
+  silence_duration_ms: 400,
 });
+
+/**
+ * Turn detection for one mode, carrying only that mode's parameters.
+ *
+ * @param {{mode?:string, eagerness?:string}} [opts]
+ */
+export function buildTurnDetection(opts = {}) {
+  const mode = opts.mode === "server_vad" ? "server_vad" : "semantic_vad";
+  /* Both of these are what make a live conversation a conversation:
+     create_response so she answers without a send button, and
+     interrupt_response so talking over her actually stops the server
+     generating rather than just muting what it already sent. */
+  const base = { create_response: true, interrupt_response: true };
+  if (mode === "server_vad") {
+    return { type: "server_vad", ...SERVER_VAD_TUNING, ...base };
+  }
+  const eagerness = ["low", "medium", "high", "auto"].includes(opts.eagerness)
+    ? opts.eagerness
+    : EAGERNESS_DEFAULT;
+  return { type: "semantic_vad", eagerness, ...base };
+}
+
+export const TURN_DETECTION = Object.freeze(buildTurnDetection());
 
 /* ------------------------------------------------------------------
    INSTRUCTIONS
@@ -116,6 +176,12 @@ mejor.
 IDIOMA: español peruano natural, nunca traducido. El cliente puede
 mezclar idiomas ("quiero unas Nike, but under 100 dollars"); síguele el
 juego sin comentarlo.
+
+CÓMO ESCUCHAS: el cliente habla español peruano, a veces con nombres de
+marcas en inglés en medio de la frase, a veces desde un carro o la
+calle. Escucha con paciencia el acento y el ruido. Si de verdad no
+entendiste una palabra, pregunta por esa palabra y nada más — "¿cuál
+marca me dijiste?" — nunca le hagas repetir la frase entera.
 
 NO REPITAS lo que el cliente ya te dijo. Si ya sabes marca, talla y
 género, no vuelvas a preguntarlos.
@@ -169,16 +235,26 @@ export function buildRealtimeInstructions(recipient = null) {
 export function buildRealtimeSession(opts = {}) {
   const model = opts.model || REALTIME_MODEL_DEFAULT;
   const voice = opts.voice || REALTIME_VOICE_DEFAULT;
+  /* Both tunable from Netlify so the feel can be adjusted against a
+     real phone in a real car, which is the only place it can be
+     judged, without waiting for a deploy each time. */
+  const vadMode = opts.vadMode || env("ARIA_REALTIME_VAD") || undefined;
+  const eagerness = opts.eagerness || env("ARIA_REALTIME_EAGERNESS") || undefined;
   return {
     type: "realtime",
     model,
     instructions: opts.instructions || buildRealtimeInstructions(opts.recipient || null),
     audio: {
       input: {
-        /* The shopper is on a phone in a room with other people. */
-        noise_reduction: { type: "near_field" },
+        /* near_field is a phone held near the mouth; far_field is a
+           car speaker or a laptop across the desk. Danny was driving
+           when he tested, so this needs to be changeable without a
+           deploy — and "off" is a real answer too, because stacking
+           the server's reduction on top of the browser's can chew the
+           quiet end of a sentence. */
+        ...(NOISE_REDUCTION ? { noise_reduction: { type: NOISE_REDUCTION } } : {}),
         transcription: { model: TRANSCRIPTION_MODEL, language: "es" },
-        turn_detection: { ...TURN_DETECTION },
+        turn_detection: buildTurnDetection({ mode: vadMode, eagerness }),
       },
       output: { voice, speed: 1.0 },
     },

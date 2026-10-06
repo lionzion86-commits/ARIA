@@ -131,6 +131,10 @@ export async function handler(event) {
         token,
         expires_at: data?.expires_at || null,
         model: session.model,
+        /* Echoed back so the page can re-assert turn detection after a
+           reconnect without keeping a second copy of it that will
+           drift from this one. */
+        turn_detection: session.audio.input.turn_detection,
         /* The page needs the URL to POST its SDP offer to; keeping it
            server-chosen means an API move is a deploy, not a rebuild
            of the client. */

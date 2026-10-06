@@ -6219,6 +6219,7 @@
     <span id="assistantCallState" class="inline-flex items-center gap-1.5 text-[12.5px] font-medium rounded-full px-2.5 py-1" style="background:rgba(16,24,40,.06); color:var(--navy)">
       <span id="assistantCallDot" class="w-2 h-2 rounded-full" style="background:var(--blue)"></span>
       <span id="assistantCallText">En vivo</span>
+      <span class="sr-only">Conversación en tiempo real activa</span>
     </span>
     <span class="flex-1"></span>
     <button id="assistantMuteBtn" type="button" onclick="toggleRealtimeMute()" aria-label="Silenciar micrófono" aria-pressed="false" class="h-10 px-3 rounded-full border grid place-items-center flex-shrink-0 focus-ring transition text-[12.5px] font-medium" style="border-color:var(--line); color:var(--navy); background:#fff">
@@ -36527,7 +36528,14 @@ function setAssistantMicState(listening){
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl){
     if (listening){
-      statusEl.innerHTML = '<span class="ariaListenDot" aria-hidden="true"></span>Te escucho… <span style="opacity:.75">· toca el micrófono para silenciar</span>';
+      /* WHICH ENGINE. When live voice was wanted and could not start,
+         the pill says so — set here rather than in the fallback path
+         because this function rewrites the line on every mic change
+         and would otherwise erase the notice a moment after it
+         appeared. (It did, on 2026-10-06.) */
+      const classic = (typeof ariaRTFellBack !== 'undefined' && ariaRTFellBack)
+        ? ' <span style="opacity:.75">· modo clásico</span>' : '';
+      statusEl.innerHTML = '<span class="ariaListenDot" aria-hidden="true"></span>Te escucho… <span style="opacity:.75">· toca el micrófono para silenciar</span>' + classic;
     } else if (statusEl.querySelector('.ariaListenDot')){
       statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
     }
@@ -36892,6 +36900,46 @@ let ariaRT = null;            // the live session, or null
 let ariaRTWanted = false;     // the shopper asked for live voice
 const ARIA_RT_FLAG = 'ariaLiveVoice';
 
+/* WHY THE LAST ATTEMPT FELL BACK, IN WORDS.
+
+   This exists because of 2026-10-06. Danny tested on his phone and
+   reported that the live voice "still feels like I speak, pause, it
+   sends, then she speaks back" — which is an exact description of the
+   speech-to-text loop, because that is what he was talking to. The
+   fallback was deliberately quiet, so a realtime path that never
+   started looked identical to one that started badly, and the feedback
+   was about the wrong engine.
+
+   Silence was the wrong default. Falling back is still invisible to a
+   shopper mid-sentence, but it is never invisible to us again. */
+let ariaRTFailure = null;
+/* True once live voice was wanted and could not start, so the classic
+   loop can label itself. */
+let ariaRTFellBack = false;
+function noteRealtimeFailure(reason, detail){
+  ariaRTFailure = { reason, detail: detail == null ? null : String(detail), at: new Date().toISOString() };
+  console.warn('[aria] voz en vivo no arrancó —', reason, detail == null ? '' : detail);
+  return false;
+}
+
+/**
+ * One call that says which engine is actually running and why.
+ * Type ariaVoiceDiag() into the console on the phone and it answers.
+ */
+function ariaVoiceDiag(){
+  const can = realtimeAvailable();
+  return {
+    motor: ariaRT ? 'tiempo real' : 'clásico (voz a texto)',
+    enVivo: !!ariaRT,
+    activadaPorConfig: realtimeEnabled(),
+    navegadorCompatible: can.ok,
+    razonNavegador: can.reason,
+    ultimoFallo: ariaRTFailure,
+    moduloCargado: !!window.AriaRealtimeTurn,
+  };
+}
+window.ariaVoiceDiag = ariaVoiceDiag;
+
 /** Is the live path usable at all, right now, in this browser? */
 function realtimeAvailable(){
   const T = window.AriaRealtimeTurn;
@@ -36926,6 +36974,19 @@ function realtimeEnabled(){
        not a reason to lose the voice, so the default survives it. */
     return true;
   }
+}
+
+/* ?voz=crudo: hand the raw microphone to OpenAI and let its own noise
+   reduction do all of the work. Worth trying from a moving car, where
+   two layers of processing fight each other. Sticks like the other
+   flags so it survives the reload. */
+function realtimeRawAudio(){
+  try {
+    const q = new URLSearchParams(location.search).get('voz');
+    if (q === 'crudo'){ localStorage.setItem('ariaVoiceRaw', '1'); return true; }
+    if (q === 'vivo' || q === 'clasica'){ localStorage.removeItem('ariaVoiceRaw'); return false; }
+    return localStorage.getItem('ariaVoiceRaw') === '1';
+  } catch { return false; }
 }
 
 /* ------------------------------------------------------------------
@@ -36975,7 +37036,7 @@ function buildAudioSink(){
 async function startRealtimeVoice(){
   if (ariaRT) return true;
   const can = realtimeAvailable();
-  if (!can.ok){ console.info('[aria] voz en vivo no disponible:', can.reason); return false; }
+  if (!can.ok) return noteRealtimeFailure('el navegador no la soporta', can.reason);
 
   let mint;
   try {
@@ -36985,14 +37046,19 @@ async function startRealtimeVoice(){
       body: JSON.stringify({}),
     });
     if (!res.ok){
-      /* 503 means the key is not configured — expected on a preview
-         without it, and not worth a scary message. */
-      console.info('[aria] voz en vivo no disponible:', res.status);
-      return false;
+      /* 503 means no API key on this deploy: expected on a preview
+         without one, and the single most likely reason the shop is
+         quietly on the old loop. Named, not swallowed. */
+      let code = '';
+      try { code = (await res.json()).error || ''; } catch {}
+      return noteRealtimeFailure(
+        res.status === 503 ? 'el servidor no tiene la llave de OpenAI configurada'
+                           : 'el servidor no entregó una sesión',
+        res.status + (code ? ' ' + code : ''));
     }
     mint = await res.json();
-  } catch (e){ console.info('[aria] no pude abrir la sesión de voz:', e.message); return false; }
-  if (!mint || !mint.token) return false;
+  } catch (e){ return noteRealtimeFailure('no pude contactar al servidor', e.message); }
+  if (!mint || !mint.token) return noteRealtimeFailure('el servidor no devolvió un token', null);
 
   const T = window.AriaRealtimeTurn;
   let turn = T.createVoiceTurnState();
@@ -37002,17 +37068,24 @@ async function startRealtimeVoice(){
   try {
     mic = await navigator.mediaDevices.getUserMedia({
       audio: {
-        /* The three that make listening-while-speaking possible. */
+        /* ECHO CANCELLATION IS NOT OPTIONAL HERE. Without it her own
+           voice comes back in through the microphone, the server's VAD
+           hears "the shopper is talking", and she interrupts herself
+           mid-sentence — a loop that reads as the model being broken.
+           It is the one constraint that stays pinned. */
         echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
+        /* These two are the car problem. Browser noise suppression on
+           top of the server's own reduction can clip the quiet end of
+           a sentence, and AGC pumps on road noise. ?voz=crudo turns
+           both off so the two can be compared on a real drive. */
+        noiseSuppression: !realtimeRawAudio(),
+        autoGainControl: !realtimeRawAudio(),
       },
     });
   } catch (e){
     /* Refused permission is a decision, not a fault: say nothing loud
        and leave the old mic button exactly as it was. */
-    console.info('[aria] micrófono denegado:', e.name);
-    return false;
+    return noteRealtimeFailure('el micrófono fue denegado', e.name);
   }
 
   pc = new RTCPeerConnection();
@@ -37042,12 +37115,15 @@ async function startRealtimeVoice(){
   };
 
   dc.onopen = () => {
-    /* The session was already configured when the token was minted.
-       This only re-asserts turn detection, which is the one thing a
-       reconnect can lose. */
-    send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: {
-      type: 'semantic_vad', eagerness: 'auto', create_response: true, interrupt_response: true,
-    } } } } });
+    /* The session was already configured when the token was minted;
+       this only re-asserts turn detection, the one thing a reconnect
+       can lose. The settings come back WITH the token rather than
+       being written out again here, because the two modes take
+       different parameters and a second copy in the page is a second
+       copy to get wrong. */
+    if (!mint.turn_detection) return;
+    send({ type: 'session.update', session: { type: 'realtime',
+      audio: { input: { turn_detection: mint.turn_detection } } } });
   };
 
   try {
@@ -37061,13 +37137,13 @@ async function startRealtimeVoice(){
     if (!sdpRes.ok) throw new Error('SDP ' + sdpRes.status);
     await pc.setRemoteDescription({ type: 'answer', sdp: await sdpRes.text() });
   } catch (e){
-    console.info('[aria] no pude conectar la voz en vivo:', e.message);
     try { mic.getTracks().forEach(t => t.stop()); } catch {}
     try { pc.close(); } catch {}
-    return false;
+    return noteRealtimeFailure('la conexión WebRTC no se estableció', e.message);
   }
 
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
+  ariaRTFailure = null;
   setRealtimeUi(true);
   return true;
 }
@@ -37249,6 +37325,9 @@ function realtimeProductById(id){
 let ariaRTState = 'listening';
 function setRealtimeState(kind){
   ariaRTState = kind;
+  /* The dot pulses only while a real session is open. On the classic
+     loop this bar does not exist at all, which is the clearest signal
+     of which engine is running that the UI can give. */
   const bar = document.getElementById('assistantCallBar');
   if (!bar || bar.hidden) return;
   const muted = ariaRTMuted();
@@ -37311,7 +37390,14 @@ async function toggleAriaVoice(){
     ariaRTWanted = true;
     unlockAudioForMobile();
     if (await startRealtimeVoice()) return;
-    /* fell through: say nothing, just use the loop that works */
+    /* FELL THROUGH. The shopper still gets a working microphone, but
+       they are told which one, because a silent downgrade is how a
+       whole round of feedback ended up being about the wrong engine.
+       The listening pill renders it; setting the text here would be
+       overwritten by setAssistantMicState a moment later. */
+    ariaRTFellBack = true;
+  } else {
+    ariaRTFellBack = false;
   }
   toggleContinuousMode();
 }
