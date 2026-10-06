@@ -38,18 +38,21 @@ export async function handler(event) {
   }
 
   if (!process.env.OPENAI_API_KEY) {
-    console.info("[aria-realtime] no API key configured — the page will use the speech-to-text loop");
-    /* NOT AN ERROR THE SHOPPER SHOULD SEE AS A FAILURE. The page falls
-       back to the speech-to-text loop, which is what every shopper has
-       today, so this answers 503 with a reason the client can log and
-       move on from quietly. */
+    console.error("FATAL: OPENAI_API_KEY not set in environment");
+    /* LOUD, BY INSTRUCTION (2026-10-06). This used to answer 503 with
+       a bare code on the reasoning that naming an environment
+       variable on a public endpoint is information disclosure. That
+       reasoning cost four rounds of testing: the page fell back, the
+       shopper saw the old loop, and nothing anywhere said why. The
+       variable's NAME tells an attacker nothing its absence doesn't
+       already imply, and it tells us exactly what to fix. */
     return {
-      statusCode: 503,
+      statusCode: 500,
       headers,
-      /* The reason is logged, not returned: this is a public
-         endpoint and naming internal environment variables in a
-         response tells a stranger how the server is wired. */
-      body: JSON.stringify({ error: "realtime_unconfigured" }),
+      body: JSON.stringify({
+        error: "OPENAI_API_KEY not configured",
+        detail: "Set OPENAI_API_KEY in the Netlify environment for this deploy context.",
+      }),
     };
   }
 
@@ -108,7 +111,18 @@ export async function handler(event) {
       return {
         statusCode: 502,
         headers,
-        body: JSON.stringify({ error: "realtime_mint_failed", status: res.status }),
+        body: JSON.stringify({
+          error: "OpenAI Realtime API rejected the request",
+          status: res.status,
+          /* 401 is the one worth naming outright: it is a key that is
+             set but wrong, which looks identical to every other
+             failure from the outside. The rest is truncated upstream
+             text — enough to act on, short enough not to echo a whole
+             request back to a stranger. */
+          detail: res.status === 401
+            ? "API key invalid or lacks Realtime access"
+            : text.slice(0, 200),
+        }),
       };
     }
     let data;

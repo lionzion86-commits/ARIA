@@ -6225,6 +6225,9 @@
     <button id="assistantMuteBtn" type="button" onclick="toggleRealtimeMute()" aria-label="Silenciar micrófono" aria-pressed="false" class="h-10 px-3 rounded-full border grid place-items-center flex-shrink-0 focus-ring transition text-[12.5px] font-medium" style="border-color:var(--line); color:var(--navy); background:#fff">
       <span id="assistantMuteLabel">Silenciar</span>
     </button>
+    <button id="assistantRetryBtn" hidden type="button" onclick="retryRealtimeVoice()" aria-label="Intentar la voz en vivo de nuevo" class="h-10 px-3 rounded-full border grid place-items-center flex-shrink-0 focus-ring transition text-[12.5px] font-medium" style="border-color:var(--line); color:var(--navy); background:#fff">
+      Intentar de nuevo
+    </button>
     <button type="button" onclick="stopRealtimeVoice()" aria-label="Terminar la llamada con Aria" class="h-10 px-3.5 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition text-[12.5px] font-semibold" style="background:#B42318">
       Terminar
     </button>
@@ -36918,6 +36921,10 @@ function startListening(fromUser){
 let ariaRT = null;            // the live session, or null
 let ariaRTWanted = false;     // the shopper asked for live voice
 const ARIA_RT_FLAG = 'ariaLiveVoice';
+/* The same path the build spec curls, so "does the endpoint work?"
+   has one answer instead of depending on which URL you asked. It is
+   redirected in netlify.toml to the function the page used before. */
+const REALTIME_TOKEN_URL = '/api/realtime-token';
 
 /* WHY THE LAST ATTEMPT FELL BACK, IN WORDS.
 
@@ -36948,7 +36955,13 @@ function noteRealtimeFailure(reason, detail){
 function ariaVoiceDiag(){
   const can = realtimeAvailable();
   return {
-    motor: ariaRT ? 'tiempo real' : 'clásico (voz a texto)',
+    /* Three states, not two: nothing is running is its own answer,
+       and reporting it as "clásico" would be the same lie that cost
+       four rounds of testing. */
+    motor: ariaRT ? 'tiempo real'
+      : ariaRTFellBack ? 'clásico (voz a texto)'
+      : ariaRTFailure ? 'ninguno — la voz en vivo falló'
+      : 'ninguno — no se ha iniciado',
     enVivo: !!ariaRT,
     activadaPorConfig: realtimeEnabled(),
     navegadorCompatible: can.ok,
@@ -37015,6 +37028,12 @@ function realtimeStrict(){
   } catch { return false; }
 }
 
+/* ?voz=limpio — put the browser's noise suppression back on. */
+function realtimeCleanAudio(){
+  try { return new URLSearchParams(location.search).get('voz') === 'limpio'; }
+  catch { return false; }
+}
+
 function realtimeRawAudio(){
   try {
     const q = new URLSearchParams(location.search).get('voz');
@@ -37075,7 +37094,7 @@ async function startRealtimeVoice(){
 
   let mint;
   try {
-    const res = await fetch('/.netlify/functions/aria-realtime-session', {
+    const res = await fetch(REALTIME_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -37084,12 +37103,13 @@ async function startRealtimeVoice(){
       /* 503 means no API key on this deploy: expected on a preview
          without one, and the single most likely reason the shop is
          quietly on the old loop. Named, not swallowed. */
-      let code = '';
-      try { code = (await res.json()).error || ''; } catch {}
-      return noteRealtimeFailure(
-        res.status === 503 ? 'el servidor no tiene la llave de OpenAI configurada'
-                           : 'el servidor no entregó una sesión',
-        res.status + (code ? ' ' + code : ''));
+      /* The endpoint now says what went wrong in words. Pass them
+         through rather than inventing a vaguer sentence on top. */
+      let body = null;
+      try { body = await res.json(); } catch {}
+      const said = body && (body.error || body.detail);
+      return noteRealtimeFailure(said || ('el servidor respondió ' + res.status),
+        body && body.detail && body.detail !== said ? body.detail : String(res.status));
     }
     mint = await res.json();
   } catch (e){ return noteRealtimeFailure('no pude contactar al servidor', e.message); }
@@ -37109,12 +37129,16 @@ async function startRealtimeVoice(){
            mid-sentence — a loop that reads as the model being broken.
            It is the one constraint that stays pinned. */
         echoCancellation: true,
-        /* These two are the car problem. Browser noise suppression on
-           top of the server's own reduction can clip the quiet end of
-           a sentence, and AGC pumps on road noise. ?voz=crudo turns
-           both off so the two can be compared on a real drive. */
-        noiseSuppression: !realtimeRawAudio(),
-        autoGainControl: !realtimeRawAudio(),
+        /* OFF by instruction: browser noise suppression on top of the
+           server's own reduction clips the quiet end of a sentence,
+           and this shop's customers talk from cars and streets.
+           ?voz=limpio turns it back on to compare. */
+        noiseSuppression: realtimeRawAudio() ? false : !!realtimeCleanAudio(),
+        autoGainControl: true,
+        /* The Realtime API's native rate. Browsers are free to ignore
+           it over a peer connection — Opus negotiates its own — so it
+           is a hint, not a guarantee, and nothing depends on it. */
+        sampleRate: 24000,
       },
     });
   } catch (e){
@@ -37196,6 +37220,41 @@ function speakIntoRealtime(text){
   ariaRT.send({ type: 'conversation.item.create',
     item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } });
   ariaRT.send({ type: 'response.create' });
+}
+
+/**
+ * The live call could not start, said out loud, with a way to retry.
+ *
+ * Never silent and never a downgrade: the shopper sees what failed and
+ * can tap to try again or keep typing. The old voice loop is reachable
+ * only by someone who asks for it in the URL.
+ */
+function showRealtimeError(){
+  const why = (ariaRTFailure && ariaRTFailure.reason) || 'no pude abrir la llamada';
+  const detail = ariaRTFailure && ariaRTFailure.detail;
+  const status = document.getElementById('assistantStatus');
+  if (status) status.textContent = 'Voz en vivo no disponible';
+  const bar = document.getElementById('assistantCallBar');
+  const text = document.getElementById('assistantCallText');
+  const dot = document.getElementById('assistantCallDot');
+  const mute = document.getElementById('assistantMuteBtn');
+  const retry = document.getElementById('assistantRetryBtn');
+  if (bar) bar.hidden = false;
+  if (dot) dot.style.background = '#B42318';
+  if (text) text.textContent = 'Voz en vivo no disponible: ' + why;
+  /* Mute means nothing without a call; retry is the only useful tap. */
+  if (mute) mute.hidden = true;
+  if (retry) retry.hidden = false;
+  console.error('[aria] voz en vivo no disponible:', why, detail || '');
+}
+
+/** The shopper tapped "Intentar de nuevo". */
+async function retryRealtimeVoice(){
+  const retry = document.getElementById('assistantRetryBtn');
+  if (retry) retry.textContent = 'Conectando…';
+  const ok = await startRealtimeVoice();
+  if (retry) retry.textContent = 'Intentar de nuevo';
+  if (!ok) showRealtimeError();
 }
 
 /** End the session and give the microphone back. */
@@ -37432,6 +37491,10 @@ function setRealtimeUi(live, muted){
     muteBtn.style.color = muted ? '#fff' : 'var(--navy)';
   }
   if (muteLabel) muteLabel.textContent = muted ? 'Activar' : 'Silenciar';
+  /* Leaving the error state: mute comes back, retry goes away. */
+  const retryBtn = document.getElementById('assistantRetryBtn');
+  if (muteBtn) muteBtn.hidden = false;
+  if (retryBtn) retryBtn.hidden = true;
   if (live) setRealtimeState(ariaRTState);
 }
 
@@ -37450,24 +37513,25 @@ async function toggleAriaVoice(){
     ariaRTWanted = true;
     unlockAudioForMobile();
     if (await startRealtimeVoice()) return;
-    /* FELL THROUGH. The shopper still gets a working microphone, but
-       they are told which one, because a silent downgrade is how a
-       whole round of feedback ended up being about the wrong engine.
-       The listening pill renders it; setting the text here would be
-       overwritten by setAssistantMicState a moment later. */
-    if (realtimeStrict()){
-      /* Strict: say what went wrong and stop. No silent downgrade. */
-      const status = document.getElementById('assistantStatus');
-      const why = (ariaRTFailure && ariaRTFailure.reason) || 'no pude abrir la llamada';
-      if (status) status.textContent = 'Voz en vivo no disponible: ' + why;
-      addAssistantMessage('bot', 'No pude abrir la conversación en vivo: ' + why +
-        '. Escríbeme y te sigo ayudando igual.', null, { speak: false });
-      return;
-    }
-    ariaRTFellBack = true;
-  } else {
-    ariaRTFellBack = false;
+    /* NO AUTOMATIC FALLBACK (2026-10-06, by instruction).
+
+       The old loop used to take over here. It is what made four
+       rounds of testing report "the same thing as before": a broken
+       live path and a working old one are indistinguishable when the
+       second one just starts. The old loop is still there, but only
+       a person can choose it, with ?voz=clasica.
+
+       This is a deliberate trade. A shopper whose browser refuses the
+       microphone now gets an error where they used to get a working
+       dictation box. That is the point — a failure we can see beats a
+       failure we cannot. */
+    showRealtimeError();
+    return;
   }
+  /* Only reached when a person chose the old loop with ?voz=clasica.
+     The flag makes the listening pill label it, so even a deliberate
+     choice is never mistaken for the live one. */
+  ariaRTFellBack = true;
   toggleContinuousMode();
 }
 

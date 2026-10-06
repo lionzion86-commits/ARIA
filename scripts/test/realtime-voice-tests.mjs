@@ -578,19 +578,36 @@ check("a fallback is never silent again", () => {
   assert.equal(bare.length, 0, `${bare.length} silent bail-out(s) left in startRealtimeVoice`);
   assert.ok((body.match(/noteRealtimeFailure\(/g) || []).length >= 5,
     "not every failure path records a reason");
-  /* The no-key case is the likeliest one and must say so by name. */
-  assert.match(body, /no tiene la llave de OpenAI/, "a missing API key is not named");
+  /* The endpoint names the missing variable and the page passes that
+     text straight through rather than flattening it to a vaguer
+     sentence of its own. */
+  const mintSrc = readFileSync(ROOT + "netlify/functions/aria-realtime-session.js", "utf8");
+  assert.match(mintSrc, /error: "OPENAI_API_KEY not configured"/, "a missing API key is not named");
+  assert.match(mintSrc, /statusCode: 500/, "a missing API key does not fail loudly");
+  assert.match(body, /said \|\| \('el servidor respondió ' \+ res\.status\)/,
+    "the page invents its own message instead of showing the server's");
   /* The shopper is told which engine they got — and it must be
      rendered by the function that owns the line, not set alongside it.
      The first version set the text in the fallback path, where
      setAssistantMicState overwrote it a moment later and the browser
      check caught what the grep could not. */
-  assert.match(page, /ariaRTFellBack = true;/, "the fallback does not record itself");
+  /* The classic loop labels itself whenever it runs — now only when
+     somebody chose it, since nothing selects it automatically. */
+  assert.match(page, /ariaRTFellBack = true;\s*\r?\n\s*toggleContinuousMode\(\);/,
+    "the old loop runs without labelling itself");
   const pill = page.slice(page.indexOf("THE LISTENING PILL"));
   assert.match(pill.slice(0, 1400), /ariaRTFellBack\)[\s\S]{0,120}modo clásico/,
     "the listening pill does not say which engine is running");
   /* And one call answers it from a phone console. */
   assert.match(page, /window\.ariaVoiceDiag = ariaVoiceDiag/, "there is no diagnostic to call");
+  /* …and it must distinguish "the old loop is running" from "nothing
+     is running", which are different answers to the only question
+     this diagnostic exists for. */
+  const diag = page.slice(page.indexOf("function ariaVoiceDiag(){"));
+  const diagBody = diag.slice(0, diag.indexOf("\n}"));
+  assert.match(diagBody, /ariaRTFellBack \? 'clásico \(voz a texto\)'/,
+    "the diagnostic cannot tell the old loop from no engine at all");
+  assert.match(diagBody, /ariaRTFailure \? 'ninguno/, "a failed start is reported as a working engine");
 });
 
 check("echo cancellation stays pinned on", () => {
@@ -599,12 +616,18 @@ check("echo cancellation stays pinned on", () => {
      herself. The car flags must never be able to switch it off. */
   const page = readFileSync(ROOT + "index.html", "utf8");
   const i = page.indexOf("mic = await navigator.mediaDevices.getUserMedia(");
-  const block = page.slice(i, i + 900);
+  /* Wide enough for the whole constraints object plus its comments;
+     a 900-char window silently cut the last line off. */
+  const block = page.slice(i, i + 1600);
   assert.match(block, /echoCancellation: true/, "echo cancellation is not pinned on");
   assert.ok(!/echoCancellation: !/.test(block), "echo cancellation was made conditional");
   /* …while the two that fight the server's own processing can go. */
-  assert.match(block, /noiseSuppression: !realtimeRawAudio\(\)/, "noise suppression is not tunable");
-  assert.match(block, /autoGainControl: !realtimeRawAudio\(\)/, "automatic gain is not tunable");
+  /* Off by default now: stacked on the server's own reduction it
+     clips the quiet end of a sentence, and these shoppers talk from
+     cars. ?voz=limpio puts it back for a comparison. */
+  assert.match(block, /noiseSuppression: realtimeRawAudio\(\) \? false : !!realtimeCleanAudio\(\)/,
+    "noise suppression is not off by default and tunable");
+  assert.match(block, /sampleRate: 24000/, "the native sample rate is not requested");
 });
 
 check("the old pipeline cannot run during a live call", () => {
@@ -687,45 +710,74 @@ check("nothing in the live path records, chunks, or auto-sends", () => {
   assert.match(mute.slice(0, 700), /t\.enabled = !muted/, "mute no longer owns the enabled flag");
 });
 
-check("strict mode refuses to substitute the old loop", () => {
-  /* So an acceptance test can never again be about the wrong engine. */
+check("there is no automatic fallback to the old loop, at all", () => {
+  /* STRONGER THAN THE OLD STRICT MODE, WHICH THIS REPLACES. A broken
+     live path and a working old one are indistinguishable when the
+     second one just starts; four rounds of iPhone testing reported
+     "the same thing as before" for exactly that reason. The old loop
+     is still there and still works — only a person can choose it. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const from = page.indexOf("function realtimeStrict(){");
-  assert.ok(from > 0, "there is no strict mode");
-  const src = page.slice(from, page.indexOf("\n}", from) + 2);
-  const make = (search, stored) => {
-    const store = new Map(stored !== undefined ? [["ariaVoiceStrict", stored]] : []);
-    const fn = new Function("location", "localStorage", "URLSearchParams", src + "; return realtimeStrict();");
-    return fn({ search }, { getItem: k => (store.has(k) ? store.get(k) : null),
-                            setItem: (k,v) => store.set(k,String(v)),
-                            removeItem: k => store.delete(k) }, URLSearchParams);
-  };
-  assert.equal(make(""), false, "strict mode is on for ordinary shoppers");
-  assert.equal(make("?voz=estricto"), true, "?voz=estricto does not turn it on");
-  assert.equal(make("", "1"), true, "strict mode is not remembered");
-  assert.equal(make("?voz=vivo", "1"), false, "?voz=vivo does not clear strict mode");
-  /* And the refusal path must return before the classic loop runs. */
   const toggle = page.slice(page.indexOf("async function toggleAriaVoice()"));
   const body = toggle.slice(0, toggle.indexOf("\n}\n"));
-  /* Asserted as the actual branch: an earlier version checked only
-     that the string appeared before toggleContinuousMode, which a
-     mutation to `if (false)` passed by deleting the string. */
-  assert.match(body, /if \(realtimeStrict\(\)\)\{/, "the refusal is not guarded by strict mode");
-  assert.match(body, /Voz en vivo no disponible: /, "strict mode does not say why");
-  /* …and it must return before the old loop is reached. Brace-matched
-     rather than compared against the first "}", which belonged to the
-     `{ speak: false }` object literal inside the block. */
-  const at = body.indexOf("if (realtimeStrict()){");
+
+  /* Failing to start must show the error and return, never continue. */
+  assert.match(body, /showRealtimeError\(\);\s*\r?\n\s*return;/,
+    "a failed live start does not stop at the error");
+  /* …and the old loop must not be reachable from the failure path. */
+  /* Sliced to INSIDE the realtimeEnabled() branch: the one call to
+     the old loop that remains sits after that branch and is reached
+     only when a person chose it. */
+  const enter = body.indexOf("if (realtimeEnabled()){");
   let depth = 0, close = -1;
-  for (let k = body.indexOf("{", at); k < body.length; k++){
+  for (let k = body.indexOf("{", enter); k < body.length; k++){
     if (body[k] === "{") depth++;
     else if (body[k] === "}" && --depth === 0){ close = k; break; }
   }
-  assert.ok(close > at, "the strict-mode block is unbalanced");
-  const refusal = body.slice(at, close);
-  assert.match(refusal, /\breturn;/, "strict mode falls through into the old loop anyway");
-  assert.ok(body.indexOf("if (realtimeStrict()){") < body.indexOf("toggleContinuousMode();"),
-    "strict mode is checked after the old loop has already started");
+  assert.ok(close > enter, "the live-voice branch is unbalanced");
+  const liveBranch = body.slice(enter, close);
+  assert.ok(!/toggleContinuousMode\(\)/.test(liveBranch),
+    "the old loop still starts automatically when live voice fails");
+  /* It stays reachable only for someone who asked for it by URL. */
+  assert.match(body.slice(close), /toggleContinuousMode\(\);/,
+    "the old loop is unreachable even on purpose");
+  assert.match(page, /if \(q === 'clasica'\)/, "?voz=clasica no longer selects the old loop");
+
+  /* The error is visible, says why, and offers a retry. */
+  assert.match(page, /function showRealtimeError\(\)/, "there is no visible error");
+  assert.match(page, /Voz en vivo no disponible: ' \+ why/, "the error does not say what failed");
+  assert.match(page, /id="assistantRetryBtn"[^>]*onclick="retryRealtimeVoice\(\)"/,
+    "there is no way to try again");
+  assert.match(page, /Intentar de nuevo/, "the retry button has no label");
+  /* …and the error state must actually reveal it. Checking the markup
+     alone passed a mutation that left it hidden forever. */
+  const err = page.slice(page.indexOf("function showRealtimeError(){"));
+  const errBody = err.slice(0, err.indexOf("\n}"));
+  assert.match(errBody, /if \(retry\) retry\.hidden = false;/, "the retry button is never shown");
+  assert.match(errBody, /if \(mute\) mute\.hidden = true;/,
+    "a mute button is offered for a call that is not open");
+  assert.match(errBody, /if \(bar\) bar\.hidden = false;/, "the error bar is never shown");
+  /* A retry that fails must land back on the error, not in silence. */
+  const retry = page.slice(page.indexOf("async function retryRealtimeVoice()"));
+  assert.match(retry.slice(0, 400), /if \(!ok\) showRealtimeError\(\);/,
+    "a failed retry goes quiet");
+});
+
+check("one endpoint, under the name the spec curls", () => {
+  /* Four rounds were spent on "does the endpoint exist?", and the
+     answer depended on which URL you asked: the function was healthy
+     under its .netlify name while /api/realtime-token 404'd. Same
+     handler, both names, nothing to drift. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const toml = readFileSync(ROOT + "netlify.toml", "utf8");
+  const alias = readFileSync(ROOT + "netlify/functions/realtime-token.js", "utf8");
+  assert.match(page, /const REALTIME_TOKEN_URL = '\/api\/realtime-token'/,
+    "the page does not call the path the spec curls");
+  assert.match(page, /fetch\(REALTIME_TOKEN_URL, \{/, "the page still hardcodes its own endpoint");
+  assert.match(toml, /from = "\/api\/realtime-token"/, "nothing serves /api/realtime-token");
+  assert.match(toml, /to = "\/\.netlify\/functions\/realtime-token"/, "the redirect points nowhere");
+  /* An alias, not a second implementation. */
+  assert.match(alias, /export \{ handler \} from "\.\/aria-realtime-session\.js"/,
+    "the alias is a second implementation that can drift");
 });
 
 check("the browser never receives the standing API key", () => {
@@ -736,7 +788,21 @@ check("the browser never receives the standing API key", () => {
   assert.match(mint, /process\.env\.OPENAI_API_KEY/, "the minting endpoint does not read the key");
   /* …and it hands back only the ephemeral secret. */
   assert.match(mint, /token,/, "the endpoint does not return an ephemeral token");
-  assert.ok(!/body: JSON\.stringify\(\{[^}]*OPENAI_API_KEY/.test(mint), "the key is echoed to the client");
+  /* THE VALUE, NOT THE NAME. An earlier version of this matched the
+     string "OPENAI_API_KEY" anywhere in a response body and so failed
+     the moment an error message named the variable it wanted set —
+     a false positive that would have pushed us back to silent errors.
+     What matters is that process.env.OPENAI_API_KEY is only ever read
+     into an Authorization header. */
+  const uses = mint.split(/\r?\n/).filter(l => /process\.env\.OPENAI_API_KEY/.test(l));
+  assert.ok(uses.length > 0, "the minting endpoint does not read the key");
+  for (const line of uses){
+    const ok = /Authorization: `Bearer \$\{process\.env\.OPENAI_API_KEY\}`/.test(line)
+            || /if \(!process\.env\.OPENAI_API_KEY\)/.test(line);
+    assert.ok(ok, `the key's value is used somewhere other than an Authorization header: ${line.trim()}`);
+  }
+  assert.ok(!/JSON\.stringify\([^)]*process\.env\.OPENAI_API_KEY/.test(mint),
+    "the key's value reaches a response body");
   assert.match(mint, /Cache-Control": "no-store/, "a credential response is cacheable");
 });
 

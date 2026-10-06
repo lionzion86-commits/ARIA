@@ -11,3 +11,14 @@
   # files by default, so without this the function fails with ENOENT.
   # ~91MB total — well under the 250MB unzipped Lambda limit.
   included_files = ["index.html", "*-catalog.json", "department-cache*.json"]
+
+# /api/* is the public name for the functions the front end calls. The
+# realtime token endpoint is the one that matters: the build spec curls
+# /api/realtime-token, and until this redirect existed that path 404'd
+# while the function itself was healthy under its .netlify name —
+# which is how "the backend was never built" became the diagnosis.
+[[redirects]]
+  from = "/api/realtime-token"
+  to = "/.netlify/functions/realtime-token"
+  status = 200
+  force = true
