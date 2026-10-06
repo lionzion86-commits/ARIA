@@ -436,7 +436,7 @@ check("the call controls exist and only while a call does", () => {
      audio must be the branch that says she is speaking. */
   assert.match(page, /Aria te escucha/, "there is no listening state");
   assert.match(page, /Aria está hablando/, "there is no speaking state");
-  assert.match(page, /action === 'playAudio'\)\{ sink\.open\(\); setRealtimeState\('speaking'\); \}/,
+  assert.match(page, /action === 'playAudio'\)\{[\s\S]{0,80}sink\.open\(\);[\s\S]{0,60}setRealtimeState\('speaking'\);/,
     "playing her audio does not put the bar into the speaking state");
   /* The cut itself, asserted as its real condition — `if (false)`
      silently disarmed barge-in and still passed an earlier version. */
@@ -454,7 +454,12 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
      preference. 500 tokens is generous for three sentences and
      impossible to filibuster from. */
   assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
-  assert.equal(session.audio.output.voice, "marin", "the voice changed without a decision");
+  /* coral, not marin (2026-10-06): marin is the most polished voice
+     and polished was the complaint — it read as a composed
+     professional rather than the warm Peruvian friend Lily was.
+     Pinned so it cannot drift back silently; ARIA_REALTIME_VOICE
+     changes it without a deploy. */
+  assert.equal(session.audio.output.voice, "coral", "the voice changed without a decision");
   /* The transcript is a separate ASR from what she hears, so this
      only drives the text on screen — but an empty model name turns
      the subtitles off entirely, which reads as her not listening. */
@@ -872,7 +877,7 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   assert.ok(last.instructions && last.instructions.length > 100, "the instructions were shed");
   assert.ok(Array.isArray(last.tools) && last.tools.length === 4, "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
-  assert.equal(last.audio.output.voice, "marin", "the voice was shed");
+  assert.equal(last.audio.output.voice, "coral", "the voice was shed");
 });
 
 await checkAsync("even the smallest session keeps what makes her Aria", async () => {
@@ -907,7 +912,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
     "the minimal session dropped turn detection — no barge-in, no answering");
   assert.equal(minimal.audio.input.turn_detection.interrupt_response, true,
     "the minimal session cannot be interrupted");
-  assert.equal(minimal.audio.output.voice, "marin", "the minimal session dropped the voice");
+  assert.equal(minimal.audio.output.voice, "coral", "the minimal session dropped the voice");
 });
 
 await checkAsync("a 502 says which field OpenAI refused", async () => {
@@ -1334,18 +1339,22 @@ check("the greeting is locked to audio, sent once, and retried if dropped", () =
     return { greet: (...a) => greet((o) => { state.sent.push(o); return send(o); }, ...a), state };
   };
 
-  /* The happy path: one request, in the right shape. */
+  /* THE HAPPY PATH, AND THE FIX ITSELF: the request carries NO
+     per-response fields. Everything else on the call worked —
+     conversation flowed, audio played — and the one thing that did
+     not was the single response we construct ourselves. Each of
+     instructions / output_modalities / input was a chance for this API
+     version to reject the whole request, and a rejected
+     response.create is a silent greeting inside a healthy call. What
+     she says on opening is a rule in the session instructions now. */
   {
     const { greet, state } = harness(() => true);
     assert.equal(greet(), true, "the greeting was not sent");
     assert.equal(state.sent.length, 1, "the greeting was not requested exactly once");
     const req = state.sent[0];
     assert.equal(req.type, "response.create", "the greeting is not a response.create");
-    assert.equal(req.response.instructions, "saluda corto", "the greeting brief is not passed");
-    assert.deepEqual([...req.response.output_modalities], ["audio"],
-      "the greeting is not locked to audio — a text-only answer is a silent one");
-    assert.ok(Array.isArray(req.response.input) && req.response.input.length === 0,
-      "the greeting is not the documented no-context shape");
+    assert.deepEqual(Object.keys(req), ["type"],
+      `the greeting carries per-response fields again: ${Object.keys(req).join(", ")}`);
     /* …and never twice. */
     assert.equal(greet(), false, "the greeting can be requested twice");
     assert.equal(state.sent.length, 1, "a second request went out");
@@ -1394,6 +1403,60 @@ check("the greeting is locked to audio, sent once, and retried if dropped", () =
     greet(0);
     assert.equal(state.scheduled.length, 0, "the last attempt still scheduled a retry");
   }
+});
+
+check("she is told to sound Peruvian and to open the call herself", () => {
+  /* Danny: "I'd like for it to be Peruvian" and "more jollier".
+     OpenAI Realtime has no custom voices, so Lily cannot be plugged
+     in — warmth has to come from the voice choice plus instructions. */
+  const i = buildRealtimeInstructions(null);
+  assert.match(i, /CÓMO HABLAS/, "there is no instruction about how she sounds");
+  assert.match(i, /acento peruano limeño/, "the Peruvian accent is not asked for");
+  assert.match(i, /cálido y alegre/, "warmth is not asked for");
+  assert.match(i, /nunca plano ni neutro/, "nothing rules out the flat neutral read");
+
+  /* The greeting lives here now, not in a per-response field — which
+     is the whole point of this round. */
+  assert.match(i, /CÓMO ABRES LA LLAMADA/, "nothing tells her to speak first");
+  assert.match(i, /saluda tú primero/, "she is not told to greet first");
+  assert.match(i, /UNA frase corta/, "the greeting is not bounded to one line");
+  assert.match(i, /En voz alta, siempre/, "nothing insists the greeting is spoken");
+  assert.match(i, /Nada de explicar cómo funciona el micrófono/,
+    "nothing stops her explaining the microphone again");
+  assert.match(i, /no vuelvas a presentarte/, "she may introduce herself twice");
+
+  /* And the dead per-response constant is gone from the page. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.ok(!/const REALTIME_GREETING_BRIEF =/.test(page),
+    "the per-response greeting brief is still defined — two sources of truth");
+});
+
+check("a rejected event is loud, and first audio is logged", () => {
+  /* HOW THIS ROUND HAPPENED. A malformed response.create comes back as
+     an `error` event or a response.done with status failed, and both
+     were logged at info level next to catalogue chatter. The greeting
+     was silent and nothing said why. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const handler = page.slice(page.indexOf("async function onRealtimeEvent(event, turn, send){"));
+  const body = handler.slice(0, handler.indexOf("\n/* The four tools"));
+
+  assert.match(body, /case 'error':[\s\S]{0,400}console\.error\('\[aria\] realtime error:'/,
+    "a rejected event is still logged at info level");
+  assert.match(body, /if \(st === 'failed'\)\{/, "a failed response is not noticed");
+  assert.match(body, /console\.error\('\[aria\] the response FAILED:'/,
+    "a failed response is not reported loudly");
+  assert.match(body, /case 'response\.created':/, "response.created is not traced");
+  assert.match(body, /case 'response\.done':/, "response.done is not traced");
+  assert.match(body, /console\.info\('\[aria\] session\.updated received'\)/,
+    "session.updated is not traced");
+  assert.match(page, /console\.info\('\[aria\] onopen fired'\)/, "dc.onopen is not traced");
+
+  /* And the one log that distinguishes "silent" from "never spoke". */
+  assert.match(page, /ariaRTHeardAudio = true;[\s\S]{0,120}greeting audio started/,
+    "nothing logs that audio actually started");
+  const start = page.slice(page.indexOf("async function startRealtimeVoice()"));
+  assert.match(start.slice(0, 2500), /ariaRTHeardAudio = false;/,
+    "the first-audio flag is not reset per call");
 });
 
 check("the greeting is requested after the server confirms, with a backstop", () => {

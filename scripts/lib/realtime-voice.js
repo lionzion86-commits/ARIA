@@ -39,7 +39,20 @@ export * from "./realtime-turn.js";
    is a brand decision (see the note on Lily in the PR body). Both are
    overridable by environment so neither needs a deploy. */
 export const REALTIME_MODEL_DEFAULT = "gpt-realtime";
-export const REALTIME_VOICE_DEFAULT = "marin";
+/* WARMTH OVER POLISH (2026-10-06, Danny: "I'd like for it to be
+   Peruvian" and "more jollier").
+
+   marin is OpenAI's newest and most polished realtime voice, and
+   polished is exactly the complaint: it reads as a composed
+   professional, not the friend Lily was. coral is the warmest of the
+   female voices and the closest thing available to a cheerful woman
+   on the phone.
+
+   I CANNOT HEAR ANY OF THEM from here, so this is a reasoned pick and
+   not a verified one. ARIA_REALTIME_VOICE switches it without a
+   deploy; shimmer (softer, breathier) and sage are the next two worth
+   trying, and marin is one env var away if this is worse. */
+export const REALTIME_VOICE_DEFAULT = "coral";
 export const REALTIME_API_BASE = "https://api.openai.com/v1/realtime";
 
 /* Capped so one answer cannot become a monologue. See the note where it
@@ -176,6 +189,17 @@ mejor.
 IDIOMA: español peruano natural, nunca traducido. El cliente puede
 mezclar idiomas ("quiero unas Nike, but under 100 dollars"); síguele el
 juego sin comentarlo.
+
+CÓMO HABLAS: acento peruano limeño, cálido y alegre — como una amiga
+peruana conversando por teléfono. La entonación sube y baja sola, el
+ritmo es relajado, nunca plano ni neutro ni de locutora. Suenas
+contenta de atender, no de turno.
+
+CÓMO ABRES LA LLAMADA: en cuanto se abre la línea, si todavía no has
+dicho nada, saluda tú primero — UNA frase corta, como quien contesta
+el teléfono: di quién eres y pregunta qué busca. En voz alta, siempre.
+Nada de explicar cómo funciona el micrófono ni pedirle que apriete
+nada. Después de ese saludo, no vuelvas a presentarte.
 
 CÓMO ESCUCHAS: el cliente habla español peruano, a veces con nombres de
 marcas en inglés en medio de la frase, a veces desde un carro o la

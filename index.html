@@ -37068,13 +37068,11 @@ const CALL_DROP_GRACE_MS = 6000;
 const GREETING_ATTEMPTS = 3;
 const GREETING_RETRY_MS = 500;
 
-/* What she is asked to do the moment the line opens. A brief, not a
-   script: a fixed sentence played every time is a recording, and the
-   point of the live voice is that she is not one. */
-const REALTIME_GREETING_BRIEF =
-  'Saluda en una sola frase corta, como quien contesta el teléfono: ' +
-  'di quién eres y pregunta qué busca. Nada de explicar cómo funciona ' +
-  'el micrófono ni pedirle que apriete nada.';
+/* The greeting itself is no longer written here. It is a rule in the
+   session instructions ("CÓMO ABRES LA LLAMADA" in
+   scripts/lib/realtime-voice.js), because a per-response instructions
+   field was one of the three things that could get the whole
+   response.create rejected. */
 
 /* WHY THE LAST ATTEMPT FELL BACK, IN WORDS.
 
@@ -37100,6 +37098,9 @@ let ariaRTGreeted = false;
 let ariaRTClosing = false;
 /* One retry chain for the greeting, never two. */
 let ariaRTGreetRetrying = false;
+/* First audio of the call, which for a fresh call is the greeting.
+   Logged so "she was silent" can be told from "she never spoke". */
+let ariaRTHeardAudio = false;
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
@@ -37376,6 +37377,7 @@ async function startRealtimeVoice(){
   /* Reset per call, module-scoped so onRealtimeEvent can see it. */
   ariaRTGreeted = false;
   ariaRTGreetRetrying = false;
+  ariaRTHeardAudio = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37491,7 +37493,14 @@ async function startRealtimeVoice(){
            what the microphone is doing. */
         if (action !== 'dropAudio') setRealtimeState('listening');
       }
-      else if (action === 'playAudio'){ sink.open(); setRealtimeState('speaking'); }
+      else if (action === 'playAudio'){
+        sink.open();
+        setRealtimeState('speaking');
+        if (!ariaRTHeardAudio){
+          ariaRTHeardAudio = true;
+          console.info('[aria] greeting audio started');
+        }
+      }
       else if (action === 'cancelResponse') send({ type: 'response.cancel' });
     }
     onRealtimeEvent(event, turn, send);
@@ -37504,7 +37513,7 @@ async function startRealtimeVoice(){
        being written out again here, because the two modes take
        different parameters and a second copy in the page is a second
        copy to get wrong. */
-    console.info('[aria] data channel open');
+    console.info('[aria] onopen fired');
     if (mint.turn_detection){
       send({ type: 'session.update', session: { type: 'realtime',
         audio: { input: { turn_detection: mint.turn_detection } } } });
@@ -37669,16 +37678,22 @@ function toggleRealtimeMute(){
 function sendRealtimeGreeting(send, left){
   if (ariaRTGreeted) return false;
   const remaining = typeof left === 'number' ? left : GREETING_ATTEMPTS;
-  const ok = send({
-    type: 'response.create',
-    response: {
-      instructions: REALTIME_GREETING_BRIEF,
-      /* Lock it to speech: a text-only greeting is a silent one. */
-      output_modalities: ['audio'],
-      /* No conversation yet — this is the documented shape for it. */
-      input: [],
-    },
-  });
+  /* A BARE response.create, AND THAT IS THE FIX.
+
+     Everything else on the call worked: conversation flowed, audio
+     played. The one thing that did not was the single response *we*
+     construct — which pointed straight at the fields we were putting
+     in it. `instructions`, `output_modalities` and `input` on a
+     per-response object are three chances for this API version to
+     reject the whole request, and a rejected response.create is a
+     silent greeting with a healthy call around it.
+
+     So the greeting now carries no per-response fields at all. What
+     she should say on opening lives in the session instructions
+     instead — the same instructions that demonstrably work, since her
+     entire personality arrives through them. This event just asks her
+     to take the first turn. */
+  const ok = send({ type: 'response.create' });
   if (ok){
     /* FLAGGED ONLY ON SUCCESS. Setting it before the send meant a
        greeting dropped by a channel that was not open yet could never
@@ -37707,6 +37722,7 @@ async function onRealtimeEvent(event, turn, send){
   switch (event.type){
     case 'session.updated':
       /* The server has the session we asked for. Now she can speak. */
+      console.info('[aria] session.updated received');
       sendRealtimeGreeting(send);
       break;
     case 'input_audio_buffer.speech_started':
@@ -37732,8 +37748,29 @@ async function onRealtimeEvent(event, turn, send){
     case 'response.function_call_arguments.done':
       await runRealtimeTool(event, send);
       break;
+    case 'response.created':
+      console.info('[aria] response.created', event.response && event.response.id);
+      break;
+
+    case 'response.done': {
+      const st = event.response && event.response.status;
+      console.info('[aria] response.done', event.response && event.response.id, 'status:', st);
+      if (st === 'failed'){
+        /* A response can fail on its own without an `error` event.
+           This is where a malformed response.create surfaces, and it
+           used to scroll past as an info line. */
+        const d = event.response && event.response.status_details;
+        console.error('[aria] the response FAILED:', JSON.stringify(d && d.error || d || null));
+      }
+      break;
+    }
+
     case 'error':
-      console.info('[aria] realtime error', event.error && event.error.message);
+      /* LOUD. A rejected event — an unknown parameter, a bad shape —
+         arrives here and nowhere else, and it was logged at info
+         level next to the catalogue chatter. The greeting being
+         silent while the call worked was exactly this. */
+      console.error('[aria] realtime error:', JSON.stringify(event.error || null));
       setOrbState('idle');
       break;
     default:
