@@ -1225,6 +1225,17 @@ check("the chat opens quiet when live voice is the mode", () => {
      the thirty-five second hang-up, which are asserted elsewhere. */
   assert.match(body, /startRealtimeOnOpen\(\);/,
     "the chat opens without starting the call — she cannot greet out loud");
+  /* AND ON A REOPEN TOO. Both the written greeting and the call used
+     to hang off "is the message list empty", which is only true on the
+     very first open: reopening the panel started nothing at all.
+     Danny: "No auto-greeting. Chat opens with text only." They are
+     different questions — the hello is painted once, the line opens
+     every time. */
+  const tAt = page.indexOf("function toggleAssistant(){");
+  assert.ok(tAt > 0, "toggleAssistant is gone");
+  const tBody = page.slice(tAt, page.indexOf("\nasync function greetAssistantStreaming", tAt));
+  assert.match(tBody, /children\.length === 0\)\s*\{[\s\S]{0,120}greetAssistantStreaming\(\);[\s\S]{0,80}\}\s*else\s*\{[\s\S]{0,120}startRealtimeOnOpen\(\);/,
+    "reopening the chat does not start a call — only the first open ever does");
   assert.ok(!/speakWithLily/.test(body),
     "the deleted TTS engine is back in the greeting");
   assert.match(body, /addAssistantMessage\('bot', ARIA_GREETING_FALLBACK, null, \{ speak: false \}\)/,
@@ -1246,140 +1257,96 @@ check("the chat opens quiet when live voice is the mode", () => {
     "the call-ready state reuses the old dictation wording");
 });
 
-check("there is always an audible path out of the browser", () => {
-  /* THE ACTUAL CAUSE OF "she's just silent now" (2026-10-06). The sink
-     built an AudioContext, routed the remote track through a
-     GainNode, and muted the <audio> element so the graph was the only
-     audible path. iOS hands you a SUSPENDED context and only honours
-     resume() while a gesture is on the stack — and buildAudioSink runs
-     after the token fetch has been awaited, so the context was both
-     created outside the gesture and never resumed. Nothing was
-     audible. Not the greeting: the whole call.
+check("the element carries the audio, and the WebAudio graph never does", () => {
+  /* THE BUG DANNY FOUND ON AN IPHONE: "She only speaks the FIRST WORD
+     out loud, then the rest is text-only."
 
-     Lifted and run against a context that behaves like iOS. */
+     This sink used to route the remote track through a GainNode and
+     mute the <audio> element whenever the graph was running, so the
+     graph was the only audible path. The GainNode existed to duck her
+     voice locally on a barge-in without waiting for a round trip.
+
+     createMediaStreamSource() on a REMOTE WebRTC stream is a
+     long-standing broken case in Safari: a short burst, then silence.
+     A first word and nothing after it is that signature, and we had
+     made it the only path. It also defeats echo cancellation, because
+     the canceller subtracts what the PLATFORM is playing and the
+     platform knows about the element, not a WebAudio destination —
+     which is the most likely cause of the stall before every reply.
+
+     So the test is now the rule: the element plays, and nothing is
+     routed through WebAudio. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const srcOf = (name) => {
-    const at = page.indexOf("function " + name + "(");
-    assert.ok(at > 0, `${name} is gone`);
-    let d = 0, end = -1;
-    for (let k = page.indexOf("{", at); k < page.length; k++){
-      if (page[k] === "{") d++;
-      else if (page[k] === "}" && --d === 0){ end = k; break; }
-    }
-    return page.slice(at, end + 1);
-  };
+  const at = page.indexOf("function buildAudioSink(){");
+  assert.ok(at > 0, "buildAudioSink is gone");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const src = page.slice(at, end + 1);
 
-  const build = ({ canResume }) => {
-    let resumes = 0;
-    const gains = [];
-    const ctx = {
-      state: "suspended", currentTime: 0, destination: {},
-      /* The gain targets are RECORDED, because they are the only
-         evidence of whether the graph is actually audible — the
-         element being muted is correct while the graph carries the
-         sound, so it proves nothing on its own. */
-      createGain(){ return { gain: { value: 1, setTargetAtTime(v){ gains.push(v); } }, connect(){} }; },
-      createMediaStreamSource(){ return { connect(){} }; },
-      resume(){ resumes++; if (canResume) ctx.state = "running"; return Promise.resolve(); },
-    };
-    const el = { muted: false, autoplay: false, playsInline: false, srcObject: null,
-                 play(){ return { catch(){} }; } };
-    const timers = [];
-    const fn = new Function("window", "Audio", "console", "ariaUnlockAudioContext",
-      "CUT_RESTORE_MS", "setTimeout", "clearTimeout",
-      srcOf("buildAudioSink") + "\n return buildAudioSink;");
-    const sink = fn({ AudioContext: function(){ return ctx; } }, function(){ return el; },
-      { warn(){}, info(){} }, () => { ctx.resume(); return ctx; },
-      /* The real constant, read out of the page. */
+  /* COMMENTS STRIPPED. The rule is that the code does not do this, not
+     that the comment explaining why may not name it. */
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  assert.ok(!/createMediaStreamSource/.test(code),
+    "the remote stream is routed through WebAudio again — on Safari that plays one word and stops");
+  assert.ok(!/createGain/.test(code), "a gain node is back in the playback path");
+  assert.ok(!/el\.muted\s*=\s*[^;]*graphRunning/.test(code),
+    "the element is muted in favour of the graph again");
+  assert.match(src, /el\.srcObject = stream/, "the stream never reaches the element");
+
+  /* Driven: attach, duck, restore. */
+  const timers = [];
+  const el = { muted: false, volume: 1, paused: true, autoplay: false, playsInline: false,
+               srcObject: null, play(){ this.paused = false; return { catch(){} }; } };
+  const ctx = { state: "running", resume(){ ctx.state = "running"; } };
+  const sink = new Function("Audio", "window", "ariaUnlockAudioContext", "console",
+    "CUT_RESTORE_MS", "setTimeout", "clearTimeout",
+    src + "\n return buildAudioSink;")(
+      function(){ return el; }, { AudioContext: function(){ return ctx; } },
+      () => ctx, { info(){}, warn(){} },
       Number(/const CUT_RESTORE_MS = (\d+);/.exec(page)[1]),
-      (f, ms) => { timers.push({ f, ms }); return timers.length; },
+      /* `fired` as well as `cancelled`: a timer that has already run is
+         not an armed one, and counting it as such made the assertion
+         below fail on a perfectly good sink. */
+      (f, ms) => { const t = { ms, f: () => { t.fired = true; f(); } }; timers.push(t); return timers.length; },
       (id) => { if (timers[id - 1]) timers[id - 1].cancelled = true; })();
-    return { sink, ctx, el, resumes: () => resumes, timers, gains };
-  };
+  const armed = () => timers.filter(t => !t.cancelled && !t.fired);
 
-  /* A CUT COMES BACK BY ITSELF.
+  sink.attach({ id: "remote" });
+  assert.equal(el.srcObject.id, "remote", "the stream was not attached to the element");
+  assert.equal(el.muted, false, "the element is muted after attaching — nothing would be audible");
+  assert.equal(el.volume, 1, "the element is silent after attaching");
+  assert.equal(el.paused, false, "the element was never asked to play");
+  assert.equal(sink.state().path, "element", "the sink does not report the element as the path");
 
-     The barge-in mute was a latch: it silenced the path and waited for
-     something to re-open it. Over WebRTC that something never came, so
-     the first interruption ended the audio for the rest of the call.
-     Re-opening on the next response fixes the known path; this makes
-     the whole class impossible, because no single missed event can
-     leave a shopper on a silent call. */
-  {
-    const { sink, el, timers, gains } = build({ canResume: true });
-    sink.attach({ id: "remote" });
-    sink.cut();
-    assert.equal(el.muted, true, "a barge-in did not silence the element");
-    const watchdog = timers.find(t => !t.cancelled);
-    assert.ok(watchdog, "a cut scheduled nothing to undo it — the path can stay silent for good");
-    assert.ok(watchdog.ms > 0 && watchdog.ms <= 2000,
-      `the path stays silent for ${watchdog.ms}ms — long enough to lose the next answer`);
-    assert.deepEqual(gains, [0], "the cut did not actually silence the graph");
-    watchdog.f();
-    assert.deepEqual(gains, [0, 1], "the watchdog fired and the graph is still silent");
-    /* Audible means the graph carries it OR the element does — the
-       element being muted is correct while the graph is running. */
-    assert.ok(sink.state().graphRunning || !sink.state().elementMuted,
-      "neither path can make a sound after the watchdog restored it");
-  }
+  /* A barge-in ducks instantly — no round trip, which is what the gain
+     node was for. */
+  sink.cut();
+  assert.equal(el.volume, 0, "a barge-in did not silence the element");
+  assert.equal(sink.state().silenced, true, "the diagnostic cannot see that it is ducked");
 
-  /* …and an answer arriving first takes over, so the watchdog does not
-     re-mute or double-open behind it. */
-  {
-    const { sink, timers, gains } = build({ canResume: true });
-    sink.attach({ id: "remote" });
-    sink.cut();
-    sink.open();
-    assert.deepEqual(gains, [0, 1], "an answer arriving did not restore the graph");
-    assert.ok(timers.every(t => t.cancelled || t.f !== undefined), "timer bookkeeping broke");
-    const live = timers.filter(t => !t.cancelled);
-    assert.equal(live.length, 0, "the watchdog was left armed after the path re-opened");
-  }
+  /* …and it comes back by itself. */
+  const watchdog = armed()[0];
+  assert.ok(watchdog, "a cut scheduled nothing to undo it — the call can stay silent for good");
+  assert.ok(watchdog.ms > 0 && watchdog.ms <= 2000, `the path stays silent for ${watchdog.ms}ms`);
+  watchdog.f();
+  assert.equal(el.volume, 1, "the watchdog fired and the element is still silent");
+  assert.equal(el.muted, false, "the watchdog fired and the element is still muted");
 
-  /* The context resumes: the graph is audible, the element steps back. */
-  {
-    const { sink, ctx, el, resumes } = build({ canResume: true });
-    sink.attach({ id: "remote" });
-    assert.ok(resumes() >= 1, "the context was never resumed");
-    assert.equal(ctx.state, "running", "the context is still suspended after attach");
-    assert.equal(el.muted, true, "the element duplicates the graph while the graph is running");
-    assert.equal(sink.state().graphRunning, true, "the graph is not reported as running");
-  }
+  /* AN ANSWER ARRIVING FIRST TAKES OVER, and the watchdog must not be
+     left armed behind it — a stale timer firing into the next turn
+     would un-duck her mid barge-in. */
+  sink.cut();
+  sink.open();
+  assert.equal(armed().length, 0, "the watchdog was left armed after the path re-opened");
 
-  /* The context REFUSES to resume: the element must carry the audio,
-     or the call is silent exactly as Danny found it. */
-  {
-    const { sink, el, ctx } = build({ canResume: false });
-    const ctxOf = () => ctx;
-    sink.attach({ id: "remote" });
-    assert.equal(el.muted, false,
-      "the context would not resume and the element stayed muted — the call is silent");
-    assert.equal(sink.state().graphRunning, false, "a suspended graph is reported as running");
-    /* Safari moves a context to "interrupted" on a phone call or Siri
-       and back afterwards. The audible path has to follow it, not be
-       decided once at setup. */
-    assert.equal(typeof ctxOf().onstatechange, "function",
-      "nothing re-checks the audible path when the context changes state");
-    /* …and opening after a barge-in must not re-mute it. */
-    sink.open();
-    assert.equal(el.muted, false, "resuming the call re-muted the only audible path");
-  }
-
-  /* A barge-in silences BOTH paths — either could be the audible one. */
-  {
-    const { sink, el } = build({ canResume: false });
-    sink.attach({ id: "remote" });
-    sink.cut();
-    assert.equal(el.muted, true, "the element keeps playing through a barge-in");
-  }
-
-  /* Attaching must never be able to skip the resume. */
-  {
-    const { sink, el, resumes } = build({ canResume: true });
-    Object.defineProperty(el, "srcObject", { set(){ throw new Error("not a MediaStream"); }, get(){ return null; } });
-    sink.attach({ id: "remote" });
-    assert.ok(resumes() >= 1, "a failed srcObject assignment skipped the resume");
-  }
+  /* A suspended context must not stop playback — the element does not
+     need it, and resuming is best-effort. */
+  ctx.state = "suspended";
+  sink.open();
+  assert.equal(el.volume, 1, "a suspended context silenced the element");
 });
 
 check("the audio context is opened inside the tap, not after the fetch", () => {
@@ -1407,8 +1374,14 @@ check("the audio context is opened inside the tap, not after the fetch", () => {
     else if (page[k] === "}" && --sd === 0){ sinkEnd = k; break; }
   }
   const sinkBody = page.slice(sinkAt, sinkEnd + 1);
-  assert.match(sinkBody, /ctx = AC \? ariaUnlockAudioContext\(\) : null/,
+  /* The unlock still happens in the gesture — it is what makes any
+     later playback legal on iOS — but nothing is routed through the
+     context any more, so the assertion is on where it comes from,
+     not on what it carries. */
+  assert.match(sinkBody, /ariaUnlockAudioContext\(\)/,
     "the sink builds its own context, outside the gesture");
+  assert.ok(!/new\s+(window\.)?(webkit)?AudioContext/.test(sinkBody),
+    "the sink constructs its own AudioContext instead of reusing the one the tap opened");
   assert.ok(!/new AC\(\)/.test(sinkBody), "the sink still constructs an AudioContext");
 });
 
@@ -3592,11 +3565,15 @@ check("the diagnostic can say whether the audio path is silenced", () => {
      carries the sound and the element steps back. The gain sat at
      zero and nothing said so. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const at = page.indexOf("    state(){ return {");
+  const at = page.indexOf("    state(){");
   assert.ok(at > 0, "the sink no longer reports its state");
-  const line = page.slice(at, page.indexOf("},", at));
+  const line = page.slice(at, page.indexOf("attach(stream)", at));
   assert.match(line, /silenced/,
     "the diagnostic cannot tell a ducked path from a healthy one");
+  /* …and which path is carrying the sound, which is the question the
+     iPhone bug turned on. */
+  assert.match(line, /path:/, "the diagnostic does not say which path is audible");
+  assert.match(line, /playing:/, "the diagnostic cannot say whether anything is playing");
 });
 
 await checkAsync("the call starts when the chat opens, inside the gesture", async () => {

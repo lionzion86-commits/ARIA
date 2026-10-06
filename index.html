@@ -33809,9 +33809,24 @@ function toggleAssistant(){
     if (!isMobileChat()) document.getElementById('assistantInput')?.focus();
   }
 hideGreetBubble();
-if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
+if (assistantOpen) {
   if (!continuousMode) { continuousMode = true; }
-  greetAssistantStreaming();
+  /* THE WRITTEN GREETING IS ONCE; THE CALL IS EVERY TIME.
+
+     Both used to hang off "is the message list empty", which is only
+     true on the very first open. Reopen the panel and nothing
+     started: no greeting, no call, and a mic button that looked live
+     because the page had been in a call ten minutes ago. Danny:
+     "No auto-greeting. Chat opens with text only."
+
+     They are different questions. Painting the hello twice would be
+     silly; opening the line every time the shopper opens the chat is
+     the whole feature. */
+  if (document.getElementById('assistantMessages').children.length === 0) {
+    greetAssistantStreaming();
+  } else {
+    startRealtimeOnOpen();
+  }
 }
 }
 
@@ -37116,6 +37131,29 @@ const CALL_EXIT_GRACE_MS = 4000;
    call. */
 const CUT_RESTORE_MS = 1200;
 
+/* THE TAPE.
+
+   Three rounds of this bug have been diagnosed by reasoning from a
+   description, and the third reading was the right one only because
+   "the first word" happened to be a precise enough symptom. That is
+   not a method.
+
+   So the call keeps the last forty things that happened — every event
+   the server sent, every action taken on it — and ariaVoiceDiag()
+   returns them. One tap on a phone console says what actually
+   occurred instead of what we think occurred. It is a ring buffer of
+   strings in memory: no network, no storage, nothing to leak, gone
+   when the page closes. */
+const CALL_TAPE_MAX = 40;
+let ariaRTTape = [];
+function tape(kind, what){
+  try {
+    ariaRTTape.push(((Date.now() - (ariaRTStartedAt || Date.now())) / 1000).toFixed(1)
+                    + 's ' + kind + ' ' + what);
+    if (ariaRTTape.length > CALL_TAPE_MAX) ariaRTTape.shift();
+  } catch (e) {}
+}
+
 const SCOOP_TIMEOUT_MS = 1400;
 
 /* "toyota" and "grand cherokee" come out of the cache keys lowercased.
@@ -37358,6 +37396,10 @@ function ariaVoiceDiag(){
     /* So "is it still running, and for how long?" has an answer. */
     segundosEnLlamada: ariaRT && ariaRTStartedAt ? Math.round((Date.now() - ariaRTStartedAt) / 1000) : 0,
     estricto: realtimeStrict(),
+    /* The last forty things that happened, newest last. Read this
+       first when the voice misbehaves — it is the only account of the
+       call that is not a reconstruction. */
+    cinta: ariaRTTape.slice(),
     audioCrudo: realtimeRawAudio(),
   };
 }
@@ -37463,81 +37505,76 @@ function realtimeRawAudio(){
  * element cannot do. It is just no longer the only way out.
  */
 function buildAudioSink(){
-  const AC = window.AudioContext || window.webkitAudioContext;
+  /* ============================================================
+     THE ELEMENT CARRIES THE AUDIO. THE GRAPH DOES NOT.
+
+     This used to route the remote track through a WebAudio GainNode
+     and MUTE the <audio> element whenever the graph was running, so
+     the graph was the only audible path. The GainNode was there to
+     duck her voice locally on a barge-in, ~15ms, without waiting for
+     the server round trip.
+
+     IT COST MORE THAN IT BOUGHT, on the one platform that matters
+     here. Danny on an iPhone: "She only speaks the FIRST WORD out
+     loud, then the rest is text-only." That is the signature of
+     createMediaStreamSource() on a REMOTE WebRTC stream in Safari —
+     a short burst and then nothing. The track is fine, the data
+     channel is fine, the text keeps coming, and the sound stops
+     after a moment. We had made the broken path the only audible one.
+
+     It also quietly broke echo cancellation. The browser's canceller
+     subtracts what the PLATFORM is playing, and what the platform
+     knows about is the element — not a WebAudio destination. With the
+     element muted, her own voice came back in through the microphone
+     as though the shopper had started talking, which is the most
+     likely cause of the three-second stall before every reply: the
+     server's VAD was waiting out her own echo.
+
+     So: the element plays, always. Ducking is el.volume, which is
+     just as local and just as instant as a gain ramp and needs no
+     second audio path to go wrong. The AudioContext is still opened
+     inside the tap, because that unlock is what lets iOS play ANY
+     audio afterwards — it just no longer carries the sound.
+     ============================================================ */
   const el = new Audio();
   el.autoplay = true;
   /* iOS refuses to start an inline stream otherwise. */
   el.playsInline = true;
+  el.volume = 1;
 
-  /* Reuses the context opened by the tap — see ariaUnlockAudioContext.
-     Creating one here would be creating it outside the gesture, which
-     is the bug this comment exists because of. */
-  let ctx = AC ? ariaUnlockAudioContext() : null;
-  let gain = null;
-  if (ctx){
-    try {
-      gain = ctx.createGain();
-      gain.gain.value = 1;
-    } catch (e) { gain = null; }
-  }
+  /* Opened in the gesture and kept, because the unlock is what makes
+     later playback legal on iOS. Nothing is routed through it. */
+  let ctx = null;
+  try { ctx = (window.AudioContext || window.webkitAudioContext) ? ariaUnlockAudioContext() : null; }
+  catch (e) { ctx = null; }
 
-  let silenced = false;   /* barge-in asked for silence on both paths */
+  let silenced = false;
   let restoreTimer = null;
 
-  const graphRunning = () => !!(ctx && gain && ctx.state === 'running');
-
-  /* One decision, in one place: who is actually making sound. */
-  const syncPaths = () => {
-    el.muted = silenced || graphRunning();
-    if (!el.muted){
-      /* autoplay can refuse even from a gesture; asking costs nothing. */
-      try { const pr = el.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
-    }
+  const play = () => {
+    try { const pr = el.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
   };
 
-  const resume = () => {
-    if (!ctx) return;
-    try {
-      if (ctx.state !== 'running' && typeof ctx.resume === 'function'){
-        const pr = ctx.resume();
-        if (pr && pr.then) pr.then(syncPaths, syncPaths); else syncPaths();
-        return;
-      }
-    } catch (e) {}
-    syncPaths();
-  };
-
-  /* Safari moves a context to "interrupted" on a phone call or a
-     Siri invocation and back afterwards; the audible path has to
-     follow it rather than be decided once at setup. */
-  if (ctx){ try { ctx.onstatechange = syncPaths; } catch (e) {} }
+  /* Safari moves a context to "interrupted" on a phone call or a Siri
+     invocation and back afterwards; nudge playback when it returns. */
+  if (ctx){ try { ctx.onstatechange = () => { if (!silenced) play(); }; } catch (e) {} }
 
   const openPath = () => {
     if (restoreTimer){ clearTimeout(restoreTimer); restoreTimer = null; }
     silenced = false;
-    resume();
-    try { if (gain && ctx) gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch (e) {}
-    syncPaths();
+    el.muted = false;
+    el.volume = 1;
+    /* The context may have been suspended by the OS since the tap. */
+    try { if (ctx && ctx.state !== 'running' && ctx.resume) ctx.resume(); } catch (e) {}
+    play();
   };
 
-  /* A CUT IS A DUCK, NOT A LATCH.
-
-     It exists to kill the tail of a sentence the shopper talked over —
-     a few hundred milliseconds of audio already in flight. It was
-     silencing the path indefinitely, and because the only thing that
-     re-opened it was an event this transport never sends, one
-     interruption made the rest of the call silent.
-
-     So it restores itself. If a new answer arrives first, openPath()
-     cancels the timer and takes over; if the event that should have
-     re-opened the path never comes, the path comes back anyway.
-     Restoring early costs nothing — there is no audio on the track to
-     hear — while failing to restore costs the whole call.
-
-     Closures rather than `this`, so a detached sink.cut still works. */
+  /* A CUT IS A DUCK, NOT A LATCH. It kills the tail of a sentence the
+     shopper talked over, and restores itself if nothing else does —
+     one missed event must never leave a shopper on a silent call. */
   const cutPath = () => {
     silenced = true;
-    try { if (gain && ctx) gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch (e) {}
+    el.volume = 0;
     el.muted = true;
     if (restoreTimer) clearTimeout(restoreTimer);
     restoreTimer = setTimeout(() => {
@@ -37549,45 +37586,27 @@ function buildAudioSink(){
   };
 
   return {
-    el, gain, ctx,
-    /* `silenced` IS THE FIELD THIS BUG NEEDED. Without it the
-       diagnostic reported a healthy path — context running, graph
-       running, element correctly muted because the graph carries the
-       sound — while the gain sat at zero and nothing was audible.
-       Whether the path is ducked is the one thing it could not say. */
-    state(){ return { ctx: ctx ? ctx.state : 'none', elementMuted: el.muted,
-                      graphRunning: graphRunning(), silenced }; },
+    el, ctx,
+    state(){
+      return {
+        ctx: ctx ? ctx.state : 'none',
+        elementMuted: el.muted,
+        volume: el.volume,
+        silenced,
+        /* What is actually making the sound. One path now, so this is
+           a fact rather than a negotiation between two. */
+        path: 'element',
+        playing: !el.paused,
+      };
+    },
     attach(stream){
-      try {
-        if (ctx && gain){
-          const src = ctx.createMediaStreamSource(stream);
-          src.connect(gain);
-          gain.connect(ctx.destination);
-        }
-      } catch (e) { /* no graph: the element carries it */ }
-      /* The element always gets the stream — some browsers will not
-         keep a WebRTC track alive otherwise, and it is the fallback.
-         Wrapped: this assignment throwing used to skip the resume and
-         the path sync below it, which is silence. */
+      /* ONE ASSIGNMENT, ONE PATH. Wrapped because this throwing used
+         to skip everything after it, which is silence. */
       try { el.srcObject = stream; } catch (e) {
         console.warn('[aria] could not attach the stream to the element:', e.message);
       }
-      resume();
-      syncPaths();
+      openPath();
     },
-    /* A CUT IS A DUCK, NOT A LATCH.
-
-       It exists to kill the tail of a sentence the shopper talked
-       over — a few hundred milliseconds of audio already in flight.
-       It was silencing the path indefinitely, and because the only
-       thing that re-opened it was an event this transport never
-       sends, one interruption made the rest of the call silent.
-
-       So it restores itself. If a new answer arrives first, open()
-       cancels the timer and takes over; if the event that should have
-       re-opened the path never comes, the path comes back anyway.
-       Restoring early costs nothing — there is no audio on the track
-       to hear — while failing to restore costs the whole call. */
     cut: cutPath,
     open: openPath,
   };
@@ -37655,6 +37674,7 @@ async function startRealtimeVoice(){
   ariaRTScooped = new Set();
   ariaRTStoreCache = new Map();
   ariaRTBrandIndex = null;
+  ariaRTTape = [];
   /* A fresh call means he has not spoken on THIS call, whatever he
      said on the last one — otherwise the second call never nudges. */
   ariaRTSpoke = false;
@@ -37765,6 +37785,7 @@ async function startRealtimeVoice(){
     try { event = JSON.parse(ev.data); } catch { return; }
     const { state, actions } = T.voiceTurnReducer(turn, event);
     turn = state;
+    tape('<<', event.type + (actions.length ? ' -> ' + actions.join(',') : ''));
     for (const action of actions){
       if (action === 'stopPlayback' || action === 'clearAudioQueue' || action === 'dropAudio'){
         sink.cut();
