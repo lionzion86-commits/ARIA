@@ -37249,16 +37249,7 @@ function realtimeAvailable(){
    through to the old loop. This flag decides what we TRY, never what
    the shopper is stuck with. */
 function realtimeEnabled(){
-  try {
-    const q = new URLSearchParams(location.search).get('voz');
-    if (q === 'vivo'){ try { localStorage.removeItem(ARIA_RT_FLAG); } catch {} return true; }
-    if (q === 'clasica'){ try { localStorage.setItem(ARIA_RT_FLAG, '0'); } catch {} return false; }
-    return localStorage.getItem(ARIA_RT_FLAG) !== '0';
-  } catch {
-    /* localStorage can throw outright in a locked-down browser. That is
-       not a reason to lose the voice, so the default survives it. */
-    return true;
-  }
+  return true;
 }
 
 /* ?voz=crudo: hand the raw microphone to OpenAI and let its own noise
