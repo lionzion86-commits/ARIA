@@ -98,9 +98,11 @@ check("only tools with a real backend are offered", () => {
   /* A tool with nothing behind it is worse than no tool: the model
      narrates its empty output as fact, which §12 forbids outright. */
   assert.deepEqual([...REALTIME_TOOL_NAMES].sort(),
-    ["calculate_total_delivered_price", "get_cart_items", "get_cart_total",
-     "get_order_status", "get_product_details", "get_sale_scoop", "get_store_info",
-     "get_top_sales", "recommend_stores_for", "search_products"]);
+    ["calculate_total_delivered_price", "check_brand_exists", "decode_vin",
+     "get_cart_items", "get_cart_total", "get_order_status", "get_product_details",
+     "get_sale_scoop", "get_store_info", "get_top_sales", "lookup_part_by_number",
+     "lookup_parts_by_vehicle", "recommend_stores_for", "request_brand",
+     "search_products"]);
 
   /* AND THE BACKEND IS CHECKED, not just the list. The list above
      says which tools we meant to ship; this says each one actually
@@ -2931,7 +2933,7 @@ await checkAsync("the same store question is not asked twice over the wire", asy
      a call, and in a real conversation the same store comes up again
      and again. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const at = page.indexOf("  if (name === 'get_store_info' || name === 'recommend_stores_for'){");
+  const at = page.indexOf("  if (name === 'get_store_info' || name === 'recommend_stores_for'");
   assert.ok(at > 0, "the store tools are not routed anywhere");
   const body = page.slice(at, page.indexOf("\n  if (name === 'get_cart_total')", at));
 
@@ -2981,6 +2983,397 @@ await checkAsync("the same store question is not asked twice over the wire", asy
 });
 
 /* ============================================================ */
+
+/* ============================================================
+   REPUESTOS: THE FITMENT RULE.
+
+   Nothing in auto-cache.json says which vehicles a part fits. Every
+   record carries vehicle_fitment and its only two values are
+   VEHICLE_SPECIFIC and UNIVERSAL — there is no vehicle list anywhere.
+   The ONLY evidence a part fits a car is that AutoZone returned it
+   when asked about that exact year, make and model.
+
+   So "confirmed" can mean exactly one thing, and these tests exist to
+   stop it quietly coming to mean anything else. A wrong confirmation
+   here is a part that does not fit, bought and shipped to Peru.
+   ============================================================ */
+function liftExecutor(page, toolName, nextTool){
+  const at = page.indexOf("  if (name === '" + toolName + "'){");
+  assert.ok(at > 0, toolName + " has no implementation");
+  const end = page.indexOf("\n  if (name === '" + nextTool + "'", at);
+  assert.ok(end > at, "could not find the end of " + toolName);
+  return page.slice(at, end);
+}
+
+await checkAsync("a part is confirmed only for the exact year we have data for", async () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const body = liftExecutor(page, "lookup_parts_by_vehicle", "check_brand_exists");
+
+  const part = (n, extra) => ({ productTitle: n, brand: "Duralast", part_number: n,
+                                oem_part_number: null, price: 40, store: "autozone",
+                                vehicle_fitment: "VEHICLE_SPECIFIC", ...extra });
+  const cache = {
+    partSearches: {
+      "2021|toyota|hilux|pastillas de freno": { autozone: [part("D2076")] },
+      "2018|toyota|hilux|pastillas de freno": { autozone: [part("D1879")] },
+      "2016|toyota|hilux|pastillas de freno": { autozone: [part("D1234")] },
+      /* INSERTED SHORT-FIRST ON PURPOSE: with the specific key first,
+         insertion order already gives the right answer and deleting
+         the longest-match sort changes nothing. */
+      "2020|toyota|camry|filtro de aire": { autozone: [part("AF1")] },
+      "2020|toyota|camry|filtro de aire de cabina": { autozone: [part("CF1")] },
+      "2019|toyota|corolla|bujías": { autozone: [part("SP1", { vehicle_fitment: "UNIVERSAL" })] },
+    },
+  };
+  const run = (args, warm) => new Function("args", "autoCacheIfWarm", "ariaAutoWarming",
+    "titleCaseWords", "logFitmentGap", "name",
+    "return (async () => {" + body + "\n return null; })();")(
+      /* The REAL warming line, read out of the page, so the test is
+         checking what a shopper would actually hear. */
+      args, async () => (warm === false ? null : cache),
+      /const ariaAutoWarming = '([^']+)'/.exec(page)[1],
+      (v) => String(v).split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      () => {}, "lookup_parts_by_vehicle");
+
+  /* EXACT YEAR: the only thing that earns "confirmed". */
+  const exact = await run({ year: 2021, make: "toyota", model: "hilux", part_type: "pastillas de freno" });
+  assert.equal(exact.parts[0].fitment, "confirmed", "an exact-year match is not confirmed");
+  assert.equal(exact.data_year, 2021, "the data year is wrong for an exact match");
+  assert.match(exact.fitment_note, /puedes decir que entra/i, "a confirmed fit is not stated plainly");
+
+  /* DANNY'S CASE: 2019 Hilux, and the cache holds 2016, 2018, 2021.
+     The nearest year is 2018 — not the newest, not the first found. */
+  const near = await run({ year: 2019, make: "toyota", model: "hilux", part_type: "pastillas de freno" });
+  assert.equal(near.parts[0].fitment, "likely", "a different year was reported as confirmed");
+  assert.equal(near.data_year, 2018, "the nearest year was not chosen");
+  assert.match(near.fitment_note, /NUNCA digas que está confirmado/,
+    "nothing stops her confirming a fit we cannot confirm");
+  assert.match(near.fitment_note, /2018/, "the note does not say which year the data is from");
+  assert.match(near.fitment_note, /número de parte/, "the note does not tell him how to check");
+
+  /* UNIVERSAL IS NEVER CONFIRMED, even on an exact-year hit: "fits
+     many" is not "fits yours". */
+  const uni = await run({ year: 2019, make: "toyota", model: "corolla", part_type: "bujías" });
+  assert.equal(uni.parts[0].fitment, "likely",
+    "a UNIVERSAL part was confirmed for a specific car");
+
+  /* NO DATA IS AN ANSWER. Not a nearby car, not a guess. */
+  const none = await run({ year: 2019, make: "toyota", model: "tacoma", part_type: "pastillas de freno" });
+  assert.ok(none.unavailable, "a car we have no data for produced parts anyway");
+  assert.match(none.unavailable, /No le confirmes/, "nothing stops her confirming from nothing");
+  assert.ok(!none.parts, "a car we have no data for came back with parts");
+
+  /* LONGEST PART-TYPE MATCH WINS, or "filtro de aire de cabina" is
+     answered with an engine air filter — a different part in a
+     different place.
+
+     ASKED WITH AN EXTRA WORD ON PURPOSE. Said exactly, the phrase is
+     a catalogue key and the exact-match branch answers before the
+     ranking runs — so the first version of this test passed with the
+     ranking deleted. Nobody says it exactly: they say "el filtro de
+     aire de cabina sucio", and then both "filtro de aire" and "filtro
+     de aire de cabina" match and something has to choose. */
+  const cabin = await run({ year: 2020, make: "toyota", model: "camry",
+                            part_type: "filtro de aire de cabina sucio" });
+  assert.equal(cabin.part_type, "filtro de aire de cabina",
+    "the cabin filter resolved to the engine air filter — the longer match did not win");
+  /* …and the plain one still resolves to itself. */
+  const engine = await run({ year: 2020, make: "toyota", model: "camry", part_type: "filtro de aire" });
+  assert.equal(engine.part_type, "filtro de aire", "the engine air filter resolved to something else");
+
+  /* Incomplete input is a question, not a search with two of three. */
+  for (const args of [{ make: "toyota", model: "hilux", part_type: "pastillas de freno" },
+                      { year: 2019, model: "hilux", part_type: "pastillas de freno" },
+                      { year: 2019, make: "toyota", part_type: "pastillas de freno" },
+                      { year: 2019, make: "toyota", model: "hilux" }]){
+    const r = await run(args);
+    assert.ok(r.unavailable, "a search ran with a missing field: " + JSON.stringify(args));
+  }
+
+  /* THE 22MB CACHE. The first parts question must answer in words
+     rather than wait: measured at 6,445ms cold, 3-8ms warm. */
+  const cold = await run({ year: 2021, make: "toyota", model: "hilux", part_type: "pastillas de freno" }, false);
+  assert.match(cold.unavailable, /segundito|catálogo de repuestos/i,
+    "a cold parts cache leaves the line silent");
+});
+
+await checkAsync("a part number names the part, not the car", async () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const body = liftExecutor(page, "lookup_part_by_number", "lookup_parts_by_vehicle");
+  const rec = { productTitle: "Duralast Ceramic Brake Pads D2076", brand: "Duralast",
+                part_number: "D2076", oem_part_number: null, part_type: "Brake Pads",
+                price: 43.99, store: "autozone" };
+  const cache = {
+    partNumberIndex: { d2076: [
+      ["2021|toyota|camry|pastillas de freno", "autozone", 0],
+      ["2019|toyota|corolla|pastillas de freno", "autozone", 0],
+      ["2021|toyota|camry|pastillas de freno", "autozone", 0],   /* duplicate key */
+    ] },
+    partSearches: {
+      "2021|toyota|camry|pastillas de freno": { autozone: [rec] },
+      "2019|toyota|corolla|pastillas de freno": { autozone: [rec] },
+    },
+  };
+  const run = (args, warm) => new Function("args", "autoCacheIfWarm", "ariaAutoWarming",
+    "titleCaseWords", "name",
+    "return (async () => {" + body + "\n return null; })();")(
+      args, async () => (warm === false ? null : cache),
+      /const ariaAutoWarming = '([^']+)'/.exec(page)[1],
+      (v) => String(v).split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      "lookup_part_by_number");
+
+  const r = await run({ part_number: "D2076" });
+  assert.equal(r.part_number, "D2076", "the part number came back wrong");
+  assert.equal(r.price_usd, 43.99, "the price came back wrong");
+  assert.equal(r.vehicle_count, 2, "the vehicle list did not de-duplicate");
+  assert.match(r.note, /cuál tiene/, "more than one car, and she is not told to ask which");
+  assert.match(JSON.stringify(r.compatible_vehicles), /Toyota Camry/,
+    "the vehicle label is not something she can say out loud");
+
+  /* Dictated numbers arrive punctuated and in any case. */
+  for (const said of ["d2076", "D-2076", " D 2076 "]){
+    const x = await run({ part_number: said });
+    assert.equal(x.part_number, "D2076", `"${said}" did not resolve to the same part`);
+  }
+
+  /* A number we do not have is said, never approximated. */
+  const miss = await run({ part_number: "ZZZ999" });
+  assert.match(miss.unavailable, /no encontré ese número de parte/,
+    "an unknown part number produced something other than a plain no");
+  assert.ok(!miss.name, "an unknown part number came back with a part");
+  assert.ok((await run({ part_number: "" })).unavailable, "an empty part number searched anyway");
+  assert.ok((await run({ part_number: "D2076" }, false)).unavailable,
+    "a cold cache answered a part number instead of saying it is loading");
+});
+
+await checkAsync("the VIN is read, not guessed at", async () => {
+  const V = await import(ROOT + "netlify/functions/_vin.js");
+
+  /* DANNY'S TEST VIN. It decodes to a 2019 Toyota — and its check
+     digit is WRONG (computed 0, printed 7), because it is a made-up
+     number. That is exactly why the checksum cannot be a rejection:
+     it would turn his own test case into "ese VIN no parece válido".
+
+     The real reason is better than the convenient one. The check digit
+     is mandatory in North America and optional elsewhere, and Peru's
+     used-import market runs on Japanese and Korean vehicles whose VINs
+     often carry no valid one. Rejecting on it would reject real cars
+     belonging to real customers. */
+  const d = V.decodeVinLocal("3TMAZ5CN7KM123456");
+  assert.equal(d.year, 2019, "the model year was not read from position 10");
+  assert.equal(d.make, "Toyota", "the manufacturer was not read from the WMI");
+  /* …for more than one manufacturer, or the table is decoration. */
+  assert.equal(V.decodeVinLocal("1HGCM82633A004352").make, "Honda", "the WMI table lost Honda");
+  assert.equal(V.decodeVinLocal("WBA5A5C51ED123456").make, "BMW", "the WMI table lost BMW");
+  assert.equal(V.decodeVinLocal("KMHD35LE5EU123456").make, "Hyundai", "the WMI table lost Hyundai");
+  /* An unknown WMI is null, never "probably Japanese". */
+  assert.equal(V.decodeVinLocal("ZZZD35LE5EU123456").make, null,
+    "an unrecognised manufacturer code produced a make anyway");
+  assert.equal(d.checksum_ok, false, "a VIN with a bad check digit passed the checksum");
+  assert.ok(!d.unavailable, "a bad check digit rejected the VIN outright");
+
+  /* …and a real VIN's checksum does pass, or the check is decoration. */
+  assert.equal(V.decodeVinLocal("1HGCM82633A004352").checksum_ok, true,
+    "a valid check digit failed — the checksum is not actually being computed");
+
+  /* MODEL, TRIM AND ENGINE ARE NOT IN THE VIN. Positions 4-8 mean
+     whatever each manufacturer decided; there is no way to read
+     "Tacoma" out of them without a table. Null, never a guess. */
+  assert.equal(d.model, null, "a model was invented from the VIN");
+  assert.equal(d.trim, null, "a trim was invented from the VIN");
+  assert.equal(d.engine, null, "an engine was invented from the VIN");
+
+  /* The three letters VINs never use, because they are confusable
+     with digits — a VIN containing one is a misreading. */
+  for (const bad of ["3TMAZ5CN7KM12345I", "3TMAZ5CN7KM12345O", "3TMAZ5CN7KM12345Q"]){
+    const r = V.decodeVinLocal(bad);
+    assert.ok(r.unavailable, `${bad[16]} was accepted in a VIN`);
+    assert.match(r.unavailable, /I, O o Q/, "the reason does not say which letters");
+  }
+  assert.ok(V.decodeVinLocal("").unavailable, "an empty VIN was accepted");
+  for (const bad of ["ABC", "3TMAZ5CN7KM1234567"]){
+    const r = V.decodeVinLocal(bad);
+    assert.ok(r.unavailable, `"${bad}" was accepted as a VIN`);
+    /* The reason must name the length, or "ese VIN no parece válido"
+       is all he gets and he has nothing to check. */
+    assert.match(r.unavailable, /17/, `"${bad}" was rejected without saying a VIN has 17 characters`);
+  }
+  /* Dictation adds spaces and dashes; those are not the shopper's
+     mistake. */
+  assert.equal(V.decodeVinLocal("3TM-AZ5CN7KM 123456").year, 2019,
+    "a spaced or hyphenated VIN was rejected");
+
+  /* The year code repeats every thirty years, so the recent reading
+     wins unless it would be in the future. */
+  const now = new Date("2026-06-01");
+  assert.equal(V.vinYear("K", now), 2019, "K did not read as 2019");
+  /* Y is 2000 or 2030, and 2030 has not happened: the recent reading
+     is only taken when it is not in the future. (My first version of
+     this asserted 2030 and the function was right.) */
+  assert.equal(V.vinYear("Y", now), 2000, "a year code resolved into the future");
+  assert.equal(V.vinYear("Y", new Date("2031-01-01")), 2030,
+    "once 2030 is in the past, Y should read as 2030");
+  assert.equal(V.vinYear("I", now), null, "a letter VINs do not use produced a year");
+});
+
+await checkAsync("a brand we do not carry is answered, not denied", async () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const body = liftExecutor(page, "check_brand_exists", "get_store_info");
+
+  const pool = [
+    { brand: "Calvin Klein" }, { brand: "Calvin Klein" }, { brand: "Nike" },
+    { brand: "Thrasher" }, { brand: "Obey" }, { brand: "Santa Cruz Skateboards" },
+    { brand: "adidas" }, { brand: "Gymshark" },
+  ];
+  const at = page.indexOf("const BRAND_NEIGHBOURS = {");
+  const neighbours = page.slice(at, page.indexOf("};", at) + 2);
+  const run = (args, warm) => {
+    let idx = null;
+    const fn = new Function("args", "relatedPool", "relatedPoolCache", "ariaRTBrandIndex",
+      "editDistanceWithin", "name",
+      neighbours + "\n return (async () => {" + body + "\n return null; })();");
+    return fn(args, async () => pool, warm === false ? null : pool, idx,
+      new Function("a", "b", "max",
+        page.slice(page.indexOf("function editDistanceWithin("),
+                   page.indexOf("const ariaAutoWarming")) +
+        "; return editDistanceWithin(a, b, max);"),
+      "check_brand_exists");
+  };
+
+  const yes = await run({ brand_name: "Nike" });
+  assert.equal(yes.exists, true, "a brand we carry was reported absent");
+  assert.ok(yes.in_stock > 0, "a brand we carry has no count");
+
+  /* A MIS-HEARD BRAND IS NOT A MISSING ONE. "Calvin Kline" is not a
+     substring of "calvinklein" and does not contain it — one letter
+     differs in the middle — so substring matching alone reported a
+     brand we stock thousands of items from as one we do not carry. */
+  const typo = await run({ brand_name: "Calvin Kline" });
+  assert.equal(typo.exists, true, "a one-letter transcript error read as a missing brand");
+  assert.equal(typo.brand, "Calvin Klein", "the near match resolved to the wrong brand");
+  assert.equal(typo.heard_as, "Calvin Kline", "nothing tells her she may have misheard");
+  assert.match(typo.note, /Confírmalo/, "she is not told to confirm the name first");
+
+  /* ABSENT, WITH SOMEWHERE TO GO. */
+  const no = await run({ brand_name: "Supreme" });
+  assert.equal(no.exists, false, "a brand we do not carry was reported as stocked");
+  assert.ok(no.similar_brands.length >= 2, "an absent brand came back with nothing to offer");
+  assert.match(no.note, /request_brand/, "nothing tells her to offer to order it");
+
+  /* …AND SILENCE WHERE THERE IS NOTHING HONEST TO SAY. Offering a
+     substitute we also do not have is worse than offering none. */
+  const unknown = await run({ brand_name: "Marca Inventada XYZ" });
+  assert.equal(unknown.exists, false, "an invented brand was reported as stocked");
+  assert.deepEqual(unknown.similar_brands, [], "an invented brand produced invented neighbours");
+  assert.match(unknown.note, /no inventes|pregúntale qué buscaba/i,
+    "nothing stops her inventing a substitute");
+
+  /* A SHORT WORD MUST NOT CLAIM A LONG BRAND. "Cruz" is not someone
+     asking for Santa Cruz Skateboards, and answering "¿Santa Cruz
+     Skateboards?" to it is a confident wrong guess. */
+  const fragment = await run({ brand_name: "Cruz" });
+  assert.equal(fragment.exists, false,
+    "a four-letter fragment resolved to a much longer brand name");
+
+  /* SUBSTITUTES ARE CHECKED AGAINST WHAT WE ACTUALLY HAVE. "zara"
+     is in the map, and none of its three alternatives is in this
+     stub catalogue, so the list must come back empty rather than
+     naming brands this shop does not stock. */
+  const zara = await run({ brand_name: "Zara" });
+  assert.equal(zara.exists, false, "Zara was reported as stocked");
+  assert.deepEqual(zara.similar_brands, [],
+    "substitutes were offered without checking they are in the catalogue");
+
+  assert.ok((await run({ brand_name: "" })).unavailable, "an empty brand searched anyway");
+  assert.ok((await run({ brand_name: "Nike" }, false)).unavailable,
+    "a cold catalogue answered a brand question instead of saying it is loading");
+});
+
+check("every brand we offer as a substitute is one we actually carry", () => {
+  /* THE WHOLE POINT OF THE SUBSTITUTE LIST is that it is honest, and
+     a hand-written map is exactly the kind of thing that stops being
+     so. Checked against the catalogues themselves.
+
+     This caught fifteen errors on its first run: nine brands I had
+     listed as absent are in fact stocked (Asics, Puma, Reebok,
+     Oakley, Yeti, Dyson, Lululemon, Fear of God, Essentials), and two
+     "brands" I offered — Revolve and Old Navy — are stores, which
+     never appear in an item's brand field. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("const BRAND_NEIGHBOURS = {");
+  assert.ok(at > 0, "the substitute map is gone");
+  const map = new Function(page.slice(at, page.indexOf("};", at) + 2) + "; return BRAND_NEIGHBOURS;")();
+  assert.ok(Object.keys(map).length >= 10, "the substitute map is suspiciously small");
+
+  const fold = (v) => String(v).toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "");
+  const stocked = new Set();
+  for (const f of readdirSync(ROOT).filter(x => x.endsWith("-catalog.json")
+                                             || /^department-cache-.*\.json$/.test(x))){
+    let d;
+    try { d = JSON.parse(readFileSync(ROOT + f, "utf8")); } catch { continue; }
+    for (const r of Object.values((d && d.retailers) || {})){
+      for (const dv of Object.values((r && r.departments) || {})){
+        for (const it of (Array.isArray(dv) ? dv : (dv && dv.items)) || []){
+          if (it && it.brand) stocked.add(fold(it.brand));
+        }
+      }
+    }
+  }
+  assert.ok(stocked.size > 1000, `only ${stocked.size} brands found — the catalogues did not load`);
+
+  for (const [absent, subs] of Object.entries(map)){
+    assert.ok(!stocked.has(fold(absent)),
+      `${absent} is listed as a brand we lack, and we stock it — she would offer a substitute for something we have`);
+    for (const sub of subs){
+      assert.ok(stocked.has(fold(sub)),
+        `${absent} offers "${sub}" as an alternative and we do not carry it either`);
+    }
+  }
+});
+
+check("the call cannot run for more than five minutes", () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const m = /const CALL_MAX_MS = (\d+) \* 60000;/.exec(page);
+  assert.ok(m, "the hard cap on call length is gone");
+  assert.ok(Number(m[1]) <= 5,
+    `a call can run ${m[1]} minutes — realtime audio bills by the minute in both directions`);
+});
+
+check("she is told how to be honest about parts and about brands", () => {
+  const i = buildRealtimeInstructions();
+
+  /* REPUESTOS. A wrong part is money and a wait, and she is the one
+     who sounds certain. */
+  assert.match(i, /REPUESTOS DE AUTO/, "there are no instructions about parts at all");
+  assert.match(i, /lookup_part_by_number/, "she has no route to a part number");
+  assert.match(i, /usa decode_vin ANTES de buscar/, "the VIN is not used before searching");
+  assert.match(i, /pregunta marca, modelo y año ANTES/, "she may search with two of three");
+  assert.match(i, /NUNCA confirmes fitment sin datos/, "she may confirm a fit she cannot confirm");
+  assert.match(i, /"likely" = /, "the two fitment states are not explained");
+  assert.match(i, /NUNCA digas que está confirmado/, "likely may be read out as confirmed");
+  assert.match(i, /no lo adivines/, "she may invent a model the VIN does not carry");
+  assert.match(i, /delantero o\s*\n?\s*trasero/, "she may price a part before knowing which variant");
+
+  /* MARCAS. "No" is never the whole answer. */
+  assert.match(i, /check_brand_exists antes de decirle que no hay algo/,
+    "she may say we lack a brand without checking");
+  assert.match(i, /request_brand/, "there is no way to offer to order it");
+  /* THE PHRASE APPEARS TWICE — once as the line she says, once in the
+     rule forbidding a date — so matching it loosely let the scripted
+     line be deleted while the test still passed. Both roles are
+     asserted. */
+  assert.match(i, /Listo, ya está pedida\.\s*\n?\s*Te aviso cuando llegue/,
+    "the line she says after logging a request is not scripted");
+  assert.match(i, /"Te aviso cuando llegue" — jamás/,
+    "nothing contrasts the promise she can keep with the one she cannot");
+  assert.match(i, /NUNCA prometas una fecha/, "she may promise a delivery date");
+  assert.match(i, /Si esa lista viene\s*\n?\s*vacía, no inventes una/,
+    "she may invent a substitute brand when the list comes back empty");
+  assert.match(i, /no es lo mismo que no tenerla|No es lo mismo que no tenerla/,
+    "out of stock and not carried are not distinguished");
+});
+
 /* A FLOOR ON THE TEST COUNT.
 
    Twice now this suite has reported success while running less of

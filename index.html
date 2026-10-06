@@ -37091,6 +37091,103 @@ const CALL_EXIT_GRACE_MS = 4000;
    brief asks for under 1.5s; this is the ceiling that enforces it. */
 const SCOOP_TIMEOUT_MS = 1400;
 
+/* "toyota" and "grand cherokee" come out of the cache keys lowercased.
+   Said back to a shopper they should look like the name of their car,
+   so each word is capitalised — "Grand Cherokee", not "grand cherokee"
+   and not "Grand cherokee". */
+/* BRANDS WE DO NOT CARRY, AND WHAT TO OFFER INSTEAD.
+
+   Keyed on the folded name. Every value is a brand that must actually
+   be in the catalogue — a test checks each one and fails if it is not,
+   because offering a substitute we also do not have is worse than
+   offering nothing.
+
+   The list is short on purpose: these are the names people ask for and
+   we lack, not a taxonomy. An unlisted brand returns no neighbours and
+   she asks what he was after instead of guessing.
+
+   Note on "palace": the skate label, not the Hot Topic sub-brand. If
+   the catalogue ever carries one, the exact-match branch answers
+   first and this never runs. */
+const BRAND_NEIGHBOURS = {
+  /* Streetwear and skate — the lane people ask for by name. */
+  supreme:        ['Thrasher', 'Obey', 'Santa Cruz Skateboards'],
+  stussy:         ['Obey', 'Volcom', 'Vans'],
+  palace:         ['Thrasher', 'Spitfire', 'Santa Cruz Skateboards'],
+  carhartt:       ['Dickies', 'Volcom', 'RVCA'],
+
+  /* Fast fashion and mall basics. */
+  zara:           ['American Eagle', 'Farm Rio', 'Skims'],
+  shein:          ['American Eagle', 'Skims'],
+  hollister:      ['American Eagle', 'Volcom', 'Billabong'],
+  abercrombie:    ['American Eagle', 'Skims'],
+  uniqlo:         ['American Eagle', 'Skims'],
+  primark:        ['American Eagle'],
+  forever21:      ['American Eagle', 'Skims'],
+  brandymelville: ['American Eagle', 'Skims'],
+  hm:             ['American Eagle', 'Skims'],
+
+  /* Gym. */
+  aloyoga:        ['Gymshark', 'Alphalete', 'Skims'],
+
+};
+
+/* THE PARTS CACHE IS 22 MEGABYTES.
+
+   Measured in the browser: the first lookup against it cost 6,445ms,
+   every one after it 3-8ms. Six seconds of silence mid-call is the
+   same bug the sale scoop had, with the same fix shape — except the
+   fix cannot be "warm it at call start" here. Most shoppers are not
+   buying brake pads, and making every voice call pull 22MB over
+   Peruvian mobile data to save the few who are is a worse trade than
+   the six seconds.
+
+   So the FIRST parts question starts the load and answers honestly in
+   a millisecond; by the time he has said which car he has, it is
+   there. The honest answer is not an apology — it is the question she
+   needed to ask anyway. */
+/* Levenshtein, abandoned as soon as it exceeds the budget. Bounded
+   because it runs across 5,367 brands and the answer is only ever
+   "within a letter or two of this" — the exact distance past the
+   limit is of no interest. */
+function editDistanceWithin(a, b, max){
+  if (Math.abs(a.length - b.length) > max) return false;
+  let prev = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++){
+    const cur = new Array(b.length + 1);
+    cur[0] = i;
+    let best = cur[0];
+    for (let j = 1; j <= b.length; j++){
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > max) return false;   /* no path back under the budget */
+    prev = cur;
+  }
+  return prev[b.length] <= max;
+}
+
+const ariaAutoWarming = 'dame un segundito que estoy abriendo el catálogo de repuestos';
+let ariaAutoCacheReady = null;
+function autoCacheIfWarm(){
+  if (ariaAutoCacheReady) return Promise.resolve(ariaAutoCacheReady);
+  /* Not awaited: the load runs behind the next thing she says. */
+  try { loadAutoCache().then(c => { if (c) ariaAutoCacheReady = c; }).catch(() => {}); } catch (e) {}
+  return Promise.resolve(null);
+}
+
+function titleCaseWords(s){
+  return String(s || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 /* THE RUBRO SHE SAYS OUT LOUD.
 
    get_top_sales groups by department, and the department labels are
@@ -37483,6 +37580,7 @@ async function startRealtimeVoice(){
   ariaRTSplitTold = false;
   ariaRTScooped = new Set();
   ariaRTStoreCache = new Map();
+  ariaRTBrandIndex = null;
   /* A fresh call means he has not spoken on THIS call, whatever he
      said on the last one — otherwise the second call never nudges. */
   ariaRTSpoke = false;
@@ -37718,6 +37816,9 @@ let ariaRTSpoke = false;
 /* Store answers for this call. Static knowledge, so the same question
    has the same answer — see the note in executeRealtimeTool. */
 let ariaRTStoreCache = new Map();
+/* The catalogue's brands, folded, built on the first brand question of
+   a call and reused for the rest of it. */
+let ariaRTBrandIndex = null;
 /* She has been asked to sign off, and whether we heard her do it. */
 let ariaRTSignedOff = false, ariaRTHeardSignOff = false;
 
@@ -38352,7 +38453,267 @@ async function executeRealtimeTool(name, args){
              note: 'Nombra dos o tres categorías con su descuento. Que suene emocionante, no como un catálogo.' };
   }
 
-  if (name === 'get_store_info' || name === 'recommend_stores_for'){
+  /* ============================================================
+     REPUESTOS.
+
+     THE FITMENT RULE COMES OUT OF THE DATA, not out of a preference.
+     Nothing in auto-cache.json says which vehicles a part fits: every
+     record carries vehicle_fitment, and its only two values are
+     VEHICLE_SPECIFIC and UNIVERSAL. The ONLY evidence that a part fits
+     a car is that AutoZone returned it when asked about that exact
+     year, make and model.
+
+     So "confirmed" means precisely that and nothing else — we asked
+     about this car and this part came back. "likely" means we have the
+     same make and model for a DIFFERENT year, which is a real signal
+     and not a confirmation: brake pads change mid-generation and the
+     shopper is the one who pays for a wrong guess. There is no third
+     state, and there is no path that invents one.
+
+     Danny's own test case lands on it: the cache has Hilux for 2016,
+     2018 and 2021, and he asks about a 2019. The honest answer is
+     "likely, from the 2018 data" with the part number to check,
+     never "confirmed".
+     ============================================================ */
+  if (name === 'lookup_part_by_number'){
+    const raw = String(args.part_number || '').trim();
+    if (!raw) return { unavailable: 'dime el número de parte y lo busco' };
+    const cache = await autoCacheIfWarm();
+    if (!cache) return { unavailable: ariaAutoWarming };
+    /* The index is keyed on the number with everything else stripped,
+       so "D-2076" and "d2076" are the same part. */
+    const key = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const tuples = (key && cache.partNumberIndex && cache.partNumberIndex[key]) || [];
+    if (!tuples.length){
+      return { part_number: raw, unavailable: 'no encontré ese número de parte' };
+    }
+    let part = null;
+    const vehicles = [];
+    const seen = new Set();
+    for (const [ck, source, idx] of tuples){
+      const rec = cache.partSearches && cache.partSearches[ck] && cache.partSearches[ck][source]
+        && cache.partSearches[ck][source][idx];
+      if (!rec) continue;
+      if (!part) part = rec;
+      const bits = String(ck).split('|');
+      if (bits.length !== 4) continue;
+      const label = bits[0] + ' ' + titleCaseWords(bits[1]) + ' ' + titleCaseWords(bits[2]);
+      if (seen.has(label)) continue;
+      seen.add(label);
+      vehicles.push({ year: Number(bits[0]), make: bits[1], model: bits[2], label });
+    }
+    if (!part) return { part_number: raw, unavailable: 'no encontré ese número de parte' };
+    vehicles.sort((a, b) => a.label.localeCompare(b.label));
+    return {
+      part_number: part.part_number || raw,
+      oem_part_number: part.oem_part_number || null,
+      name: String(part.productTitle || part.name || part.title || '').slice(0, 90),
+      brand: part.brand || null,
+      part_type: part.part_type || null,
+      price_usd: Number.isFinite(Number(part.price)) ? Number(part.price) : null,
+      store: part.store || 'autozone',
+      /* Every vehicle we have actually seen this part filed under. More
+         than one is the normal case, and it is why she asks which car
+         instead of assuming. */
+      compatible_vehicles: vehicles.slice(0, 12),
+      vehicle_count: vehicles.length,
+      note: vehicles.length > 1
+        ? 'Este número aparece en varios autos. Pregúntale cuál tiene antes de confirmar nada.'
+        : null,
+    };
+  }
+
+  if (name === 'lookup_parts_by_vehicle'){
+    const year = Math.round(Number(args.year));
+    const make = String(args.make || '').trim().toLowerCase();
+    const model = String(args.model || '').trim().toLowerCase();
+    const asked = String(args.part_type || '').trim().toLowerCase();
+    if (!year || !make || !model || !asked){
+      return { unavailable: 'necesito año, marca, modelo y qué repuesto buscas' };
+    }
+    const cache = await autoCacheIfWarm();
+    if (!cache || !cache.partSearches) return { unavailable: ariaAutoWarming };
+
+    /* The cache keys carry SPANISH part names, so the shopper's words
+       are matched against them directly rather than translated first.
+       Longest match wins, so "filtro de aire de cabina" is not eaten
+       by "filtro de aire". */
+    const types = new Set();
+    for (const k of Object.keys(cache.partSearches)){
+      const b = k.split('|');
+      if (b.length === 4) types.add(b[3]);
+    }
+    let type = types.has(asked) ? asked : null;
+    if (!type){
+      const hits = [...types].filter(t => t.includes(asked) || asked.includes(t));
+      hits.sort((a, b) => b.length - a.length);
+      type = hits[0] || null;
+    }
+    if (!type){
+      return { unavailable: 'no tengo ese repuesto en el catálogo. Dime de otra forma qué necesitas' };
+    }
+
+    const want = year + '|' + make + '|' + model + '|' + type;
+    const prefix = make + '|' + model + '|' + type;
+    let bucket = cache.partSearches[want];
+    let fitment = 'confirmed';
+    let dataYear = year;
+
+    if (!bucket){
+      /* SAME CAR, DIFFERENT YEAR. Nearest year wins — a 2018 record is
+         better evidence for a 2019 than a 2012 one — and the answer
+         says which year it came from so she can say it out loud. */
+      let best = null;
+      for (const k of Object.keys(cache.partSearches)){
+        const b = k.split('|');
+        if (b.length !== 4) continue;
+        if (b[1] + '|' + b[2] + '|' + b[3] !== prefix) continue;
+        const y = Number(b[0]);
+        if (!Number.isFinite(y)) continue;
+        if (!best || Math.abs(y - year) < Math.abs(best.y - year)) best = { y, k };
+      }
+      if (!best){
+        /* No data at all for this car. Logged so the gaps can be
+           prioritised instead of guessed at — the same tally the
+           browsing path keeps. */
+        try { logFitmentGap({ year, make, model }, type); } catch (e) {}
+        return { unavailable: 'no tengo datos de ese auto todavía. No le confirmes que una pieza entra',
+                 vehicle: year + ' ' + titleCaseWords(make) + ' ' + titleCaseWords(model),
+                 part_type: type };
+      }
+      bucket = cache.partSearches[best.k];
+      fitment = 'likely';
+      dataYear = best.y;
+    }
+
+    const parts = [];
+    for (const source of Object.keys(bucket || {})){
+      for (const rec of (bucket[source] || []).slice(0, 8)){
+        if (!rec) continue;
+        parts.push({
+          name: String(rec.productTitle || rec.name || rec.title || '').slice(0, 90),
+          brand: rec.brand || null,
+          part_number: rec.part_number || null,
+          oem_part_number: rec.oem_part_number || null,
+          price_usd: Number.isFinite(Number(rec.price)) ? Number(rec.price) : null,
+          store: rec.store || source,
+          /* UNIVERSAL parts are never confirmed for a specific car,
+             whatever year the record came from: "fits many" is not
+             "fits yours". */
+          fitment: (rec.vehicle_fitment === 'UNIVERSAL') ? 'likely' : fitment,
+        });
+        if (parts.length >= 6) break;
+      }
+      if (parts.length >= 6) break;
+    }
+    if (!parts.length){
+      return { unavailable: 'no tengo datos de ese auto todavía. No le confirmes que una pieza entra' };
+    }
+    return {
+      vehicle: year + ' ' + titleCaseWords(make) + ' ' + titleCaseWords(model),
+      part_type: type,
+      parts,
+      /* Said plainly, because she has to say it plainly. */
+      fitment_note: fitment === 'confirmed'
+        ? 'Datos de ese año exacto. Puedes decir que entra.'
+        : 'OJO: estos datos son del ' + dataYear + ', no del ' + year + '. Dilo así — "lo más probable es que entre, confirma con el número de parte" — y NUNCA digas que está confirmado.',
+      data_year: dataYear,
+    };
+  }
+
+  /* ============================================================
+     "¿TIENEN SUPREME?"
+
+     Danny's rule: never say "no" and stop. The shape is "no tenemos
+     eso, pero te lo puedo conseguir" — the way a friend answers, not
+     the way a shop assistant does.
+
+     This answers the first half honestly. The catalogue has 5,367
+     distinct brands across 137,520 items, so "do we carry it" is a
+     real question with a real answer, and a near-miss is usually a
+     mis-heard word rather than a brand we lack: a voice transcript
+     turns "Calvin Klein" into "Calvin Kline" often enough that
+     treating it as absent would be a lie told by a typo.
+
+     WHAT IT WILL NOT DO IS INVENT A NEIGHBOUR. The similar brands come
+     from a hand-written map, every entry of which is checked by a test
+     against the live catalogue. Where there is no honest neighbour the
+     list comes back empty and she asks what he was looking for instead
+     of filling the silence with a brand we also do not have. */
+  if (name === 'check_brand_exists'){
+    const asked = String(args.brand_name || '').trim();
+    if (!asked) return { unavailable: 'dime qué marca buscas' };
+    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
+      return { unavailable: 'dame un segundito que estoy cargando el catálogo' };
+    }
+    let pool;
+    try { pool = await relatedPool(); }
+    catch (e) { return { unavailable: 'no pude revisar el catálogo ahorita' }; }
+
+    const fold = (v) => String(v || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '');
+    const want = fold(asked);
+    if (!want) return { unavailable: 'dime qué marca buscas' };
+
+    /* Built once per call and reused: 137k items is too much to walk
+       for every brand question in a conversation. */
+    if (!ariaRTBrandIndex){
+      ariaRTBrandIndex = new Map();
+      for (const it of pool){
+        const b = it && it.brand;
+        if (!b) continue;
+        const k = fold(b);
+        if (!k) continue;
+        const prev = ariaRTBrandIndex.get(k);
+        if (prev) prev.count++;
+        else ariaRTBrandIndex.set(k, { label: String(b).trim(), count: 1 });
+      }
+    }
+
+    const hit = ariaRTBrandIndex.get(want);
+    if (hit){
+      return { brand: hit.label, exists: true, in_stock: hit.count,
+               note: 'Sí la tenemos. Búscale productos con search_products.' };
+    }
+
+    /* A MIS-HEARD BRAND IS NOT A MISSING ONE.
+
+       Substring matching alone was not enough: "Calvin Kline" is not a
+       substring of "calvinklein" and does not contain it — one letter
+       differs in the middle — so a transcript typo came back as a
+       brand we do not carry, which is a lie told by a misreading.
+       Edit distance catches it. Bounded at two, and only for names
+       long enough that the coincidence means something. */
+    let near = null;
+    for (const [k, v] of ariaRTBrandIndex){
+      if (want.length < 4 || k.length < 4) continue;
+      if (Math.abs(k.length - want.length) > 3) continue;
+      const close = (k.includes(want) || want.includes(k))
+        || editDistanceWithin(k, want, want.length >= 8 ? 2 : 1);
+      if (close && (!near || v.count > near.count)) near = v;
+    }
+    if (near){
+      return { brand: near.label, exists: true, in_stock: near.count, heard_as: asked,
+               note: 'Puede que haya entendido mal el nombre. Confírmalo: "¿' + near.label + '?" antes de buscar.' };
+    }
+
+    const neighbours = (BRAND_NEIGHBOURS[want] || [])
+      .map(k => ariaRTBrandIndex.get(fold(k)))
+      .filter(Boolean)
+      .slice(0, 3)
+      .map(v => v.label);
+    return {
+      brand: asked, exists: false, in_stock: 0,
+      similar_brands: neighbours,
+      note: neighbours.length
+        ? 'No la tenemos. Dilo con honestidad, ofrece pedirla con request_brand, y si no quiere, ofrécele estas.'
+        : 'No la tenemos y no tengo nada parecido que ofrecer. Dilo, ofrece pedirla con request_brand, y pregúntale qué buscaba.',
+    };
+  }
+
+  if (name === 'get_store_info' || name === 'recommend_stores_for'
+      || name === 'decode_vin' || name === 'request_brand'){
     /* Static knowledge in one place. The page is a plain <script> and
        cannot import the module, and a second copy of what we tell
        shoppers a store sells is exactly the copy that would drift.
@@ -38366,8 +38727,12 @@ async function executeRealtimeTool(name, args){
        does not fix the first ask, but it stops the second one
        costing anything, and in a conversation the same store comes up
        again and again. */
+    /* request_brand is a WRITE and must never be served from the
+       cache: asking twice is two people wanting the brand, which is
+       the whole point of the tally. decode_vin is cached like the
+       store lookups — the same VIN decodes the same way all call. */
     const ck = name + ':' + JSON.stringify(args);
-    if (ariaRTStoreCache.has(ck)) return ariaRTStoreCache.get(ck);
+    if (name !== 'request_brand' && ariaRTStoreCache.has(ck)) return ariaRTStoreCache.get(ck);
     let res;
     try {
       res = await fetch('/.netlify/functions/aria-realtime-tool', {
@@ -38377,7 +38742,7 @@ async function executeRealtimeTool(name, args){
     } catch (e) { return { unavailable: 'no pude consultar las tiendas ahorita' }; }
     if (!res.ok) return { unavailable: 'no pude consultar las tiendas ahorita' };
     const out = await res.json();
-    ariaRTStoreCache.set(ck, out);
+    if (name !== 'request_brand') ariaRTStoreCache.set(ck, out);
     return out;
   }
 

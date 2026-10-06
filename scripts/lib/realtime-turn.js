@@ -179,6 +179,106 @@ export const REALTIME_TOOLS = Object.freeze([
   },
   {
     type: "function",
+    name: "lookup_part_by_number",
+    /* A PART NUMBER IS THE ONE THING A SHOPPER CAN BE SURE OF. It is
+       stamped on the old part, so it beats any description — and it
+       names the part, not the car, which is why the answer comes back
+       with every vehicle we have seen it filed under rather than a
+       single confident fit. */
+    description:
+      "Busca un repuesto por su número de parte (OEM o del fabricante). Devuelve el " +
+      "repuesto, su precio y TODOS los autos en los que lo tenemos registrado. " +
+      "Si aparece en varios, pregúntale cuál tiene. Si no existe, dilo — nunca adivines.",
+    parameters: {
+      type: "object",
+      properties: {
+        part_number: { type: "string", description: "El número tal como lo dictó." },
+      },
+      required: ["part_number"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "lookup_parts_by_vehicle",
+    /* FITMENT HAS TWO STATES AND NO THIRD. "confirmed" means the
+       catalogue has that exact year, make and model; "likely" means the
+       same car in a different year. Nothing in the data supports more
+       than that, so nothing here offers more. */
+    description:
+      "Busca repuestos para un auto. Cada repuesto vuelve con 'fitment': 'confirmed' " +
+      "(datos de ese año exacto) o 'likely' (mismo auto, otro año — NO está confirmado). " +
+      "Nunca digas que una pieza entra si el fitment es 'likely': di que lo más probable " +
+      "es que entre y que confirme con el número de parte.",
+    parameters: {
+      type: "object",
+      properties: {
+        year: { type: "integer", description: "Año del auto." },
+        make: { type: "string", description: "Marca: toyota, hyundai, kia…" },
+        model: { type: "string", description: "Modelo: hilux, corolla, sonata…" },
+        part_type: { type: "string", description: "El repuesto en español: 'pastillas de freno'." },
+      },
+      required: ["year", "make", "model", "part_type"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "decode_vin",
+    /* The VIN removes the guesswork from year and make. Model, trim
+       and engine come back null when we cannot read them, and null
+       means ask, never assume. */
+    description:
+      "Lee un VIN de 17 caracteres y devuelve año, marca y — si se puede — modelo, " +
+      "versión y motor. Si model viene null, PREGÚNTALE el modelo, no lo adivines. " +
+      "Si checksum_ok es false, pídele que te lo confirme pero sigue adelante.",
+    parameters: {
+      type: "object",
+      properties: {
+        vin: { type: "string", description: "El VIN como lo dictó, 17 caracteres." },
+      },
+      required: ["vin"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "check_brand_exists",
+    /* "No" is never the whole answer. This provides the honest half:
+       whether we carry it, and what is genuinely close if we do not. */
+    description:
+      "Revisa si tenemos una marca. Devuelve exists, cuántos productos, y si NO la " +
+      "tenemos, marcas parecidas que SÍ tenemos. Úsala antes de decirle que no hay algo. " +
+      "Si viene 'heard_as', puede que hayas entendido mal el nombre: confírmalo.",
+    parameters: {
+      type: "object",
+      properties: {
+        brand_name: { type: "string", description: "La marca que pidió." },
+      },
+      required: ["brand_name"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "request_brand",
+    /* The half that turns a "no" into a reason to come back. */
+    description:
+      "Anota una marca que el cliente pidió y no tenemos, para traerla. Úsala solo " +
+      "si él dijo que sí. Después dile 'Listo, ya está pedida. Te aviso cuando llegue.' " +
+      "NUNCA le des una fecha de llegada.",
+    parameters: {
+      type: "object",
+      properties: {
+        brand_name: { type: "string", description: "La marca que quiere." },
+        shopper_note: { type: "string", description: "Qué producto de esa marca buscaba, si lo dijo." },
+      },
+      required: ["brand_name"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
     name: "get_cart_total",
     /* THE $200 LEVER, AND THE REASON IT IS A TOOL.
 
