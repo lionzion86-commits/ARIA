@@ -37083,6 +37083,8 @@ let ariaRTFailure = null;
    or known to have failed. Cleared on BOTH outcomes — left set after a
    failure it would mute the classic voice permanently. */
 let ariaRTOpening = false;
+/* One greeting per call, whichever path requests it first. */
+let ariaRTGreeted = false;
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
@@ -37115,6 +37117,11 @@ function ariaVoiceDiag(){
     razonNavegador: can.reason,
     ultimoFallo: ariaRTFailure,
     moduloCargado: !!window.AriaRealtimeTurn,
+    /* The thing that was silently broken: an AudioContext that iOS
+       suspends and nobody resumed. Reported so "she is silent" can be
+       told apart from "she did not say anything". */
+    audio: ariaRT && ariaRT.sink && ariaRT.sink.state ? ariaRT.sink.state() : null,
+    saludó: ariaRTGreeted,
     estricto: realtimeStrict(),
     audioCrudo: realtimeRawAudio(),
   };
@@ -37193,40 +37200,111 @@ function realtimeRawAudio(){
 /* ------------------------------------------------------------------
    AUDIO OUT — one graph, built once, so the cut is instantaneous.
    ------------------------------------------------------------------ */
+/**
+ * Aria's voice, out of the browser.
+ *
+ * WHY THIS WAS SILENT (2026-10-06, Danny: "She's just silent now").
+ * The first version built an AudioContext, connected the remote track
+ * through a GainNode, and then deliberately muted the <audio> element
+ * so the graph was the ONLY audible path. On iOS an AudioContext is
+ * created SUSPENDED — even inside a tap handler — and nothing here
+ * ever called resume(). A suspended context emits nothing, the element
+ * was muted, so there was no audible path at all. Not the greeting:
+ * the whole call.
+ *
+ * So now:
+ *   - the context is resumed, and re-checked whenever its state moves
+ *   - the element is the SAFETY NET, not dead weight: it carries the
+ *     audio whenever the graph is not actually running, and is muted
+ *     only while the graph is
+ *   - cut() silences both paths, because either one might be the
+ *     audible one
+ *
+ * The graph still earns its place: gain.setTargetAtTime is how
+ * barge-in cuts her off in ~15ms without a click, which pausing an
+ * element cannot do. It is just no longer the only way out.
+ */
 function buildAudioSink(){
   const AC = window.AudioContext || window.webkitAudioContext;
   const el = new Audio();
   el.autoplay = true;
-  /* iOS will not play a stream attached to a muted element, and will
-     not start one at all outside a gesture — the session only ever
-     starts from a tap, which is that gesture. */
+  /* iOS refuses to start an inline stream otherwise. */
   el.playsInline = true;
-  if (!AC) return { el, gain: null, ctx: null, cut(){ el.muted = true; }, open(){ el.muted = false; } };
-  const ctx = new AC();
-  const gain = ctx.createGain();
-  gain.gain.value = 1;
+
+  /* Reuses the context opened by the tap — see ariaUnlockAudioContext.
+     Creating one here would be creating it outside the gesture, which
+     is the bug this comment exists because of. */
+  let ctx = AC ? ariaUnlockAudioContext() : null;
+  let gain = null;
+  if (ctx){
+    try {
+      gain = ctx.createGain();
+      gain.gain.value = 1;
+    } catch (e) { gain = null; }
+  }
+
+  let silenced = false;   /* barge-in asked for silence on both paths */
+
+  const graphRunning = () => !!(ctx && gain && ctx.state === 'running');
+
+  /* One decision, in one place: who is actually making sound. */
+  const syncPaths = () => {
+    el.muted = silenced || graphRunning();
+    if (!el.muted){
+      /* autoplay can refuse even from a gesture; asking costs nothing. */
+      try { const pr = el.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+    }
+  };
+
+  const resume = () => {
+    if (!ctx) return;
+    try {
+      if (ctx.state !== 'running' && typeof ctx.resume === 'function'){
+        const pr = ctx.resume();
+        if (pr && pr.then) pr.then(syncPaths, syncPaths); else syncPaths();
+        return;
+      }
+    } catch (e) {}
+    syncPaths();
+  };
+
+  /* Safari moves a context to "interrupted" on a phone call or a
+     Siri invocation and back afterwards; the audible path has to
+     follow it rather than be decided once at setup. */
+  if (ctx){ try { ctx.onstatechange = syncPaths; } catch (e) {} }
+
   return {
     el, gain, ctx,
+    state(){ return { ctx: ctx ? ctx.state : 'none', elementMuted: el.muted, graphRunning: graphRunning() }; },
     attach(stream){
       try {
-        const src = ctx.createMediaStreamSource(stream);
-        src.connect(gain);
-        gain.connect(ctx.destination);
-        /* The element still gets the stream: some browsers will not
-           keep a WebRTC track alive unless it is attached to one.
-           It stays muted so the audible path is the graph we control. */
-        el.srcObject = stream;
-        el.muted = true;
-      } catch {
-        el.srcObject = stream;
-        el.muted = false;   // no graph: the element is the only path
+        if (ctx && gain){
+          const src = ctx.createMediaStreamSource(stream);
+          src.connect(gain);
+          gain.connect(ctx.destination);
+        }
+      } catch (e) { /* no graph: the element carries it */ }
+      /* The element always gets the stream — some browsers will not
+         keep a WebRTC track alive otherwise, and it is the fallback.
+         Wrapped: this assignment throwing used to skip the resume and
+         the path sync below it, which is silence. */
+      try { el.srcObject = stream; } catch (e) {
+        console.warn('[aria] could not attach the stream to the element:', e.message);
       }
+      resume();
+      syncPaths();
     },
-    /* setTargetAtTime rather than a bare assignment: a hard step on a
-       live waveform is an audible click, and a 15ms ramp is still
-       "immediately" to a human ear. */
-    cut(){ try { gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch { el.muted = true; } },
-    open(){ try { gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch { el.muted = false; } },
+    cut(){
+      silenced = true;
+      try { if (gain && ctx) gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch (e) {}
+      el.muted = true;
+    },
+    open(){
+      silenced = false;
+      resume();
+      try { if (gain && ctx) gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch (e) {}
+      syncPaths();
+    },
   };
 }
 
@@ -37270,7 +37348,9 @@ async function startRealtimeVoice(){
   const T = window.AriaRealtimeTurn;
   let turn = T.createVoiceTurnState();
   const sink = buildAudioSink();
-  let mic = null, pc = null, dc = null, greeted = false;
+  let mic = null, pc = null, dc = null;
+  /* Reset per call, module-scoped so onRealtimeEvent can see it. */
+  ariaRTGreeted = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37304,7 +37384,22 @@ async function startRealtimeVoice(){
   for (const track of mic.getTracks()) pc.addTrack(track, mic);
 
   dc = pc.createDataChannel('oai-events');
-  const send = (obj) => { try { if (dc.readyState === 'open') dc.send(JSON.stringify(obj)); } catch {} };
+  /* Returns whether the event actually went out. The greeting needs to
+     know: a send that silently drops because the channel was not open
+     yet is indistinguishable from a model that chose not to speak. */
+  const send = (obj) => {
+    try {
+      if (dc.readyState !== 'open'){
+        console.warn('[aria] data channel not open, dropped', obj && obj.type, 'readyState:', dc.readyState);
+        return false;
+      }
+      dc.send(JSON.stringify(obj));
+      return true;
+    } catch (e) {
+      console.warn('[aria] send failed for', obj && obj.type, e.message);
+      return false;
+    }
+  };
 
   dc.onmessage = (ev) => {
     let event;
@@ -37332,20 +37427,18 @@ async function startRealtimeVoice(){
        being written out again here, because the two modes take
        different parameters and a second copy in the page is a second
        copy to get wrong. */
+    console.info('[aria] data channel open');
     if (mint.turn_detection){
       send({ type: 'session.update', session: { type: 'realtime',
         audio: { input: { turn_detection: mint.turn_detection } } } });
     }
-    /* SHE SAYS HELLO INSIDE THE CALL. Turn detection only answers the
-       shopper, so without this the line opens in silence and waits —
-       which reads as a dead call. One response.create, once, carrying
-       the greeting as a per-response instruction rather than a
-       scripted line, so it arrives in her own voice and her own words.
-       The flag stops a reconnect from greeting twice. */
-    if (!greeted){
-      greeted = true;
-      send({ type: 'response.create', response: { instructions: REALTIME_GREETING_BRIEF } });
-    }
+    /* AFTER THE SERVER CONFIRMS, NOT A MOMENT BEFORE. The greeting
+       used to go out in the same tick as session.update, which races
+       the server's handling of it. It is sent on session.updated
+       instead, with a timer as the backstop in case that event never
+       arrives — some API versions do not emit it. Whichever fires
+       first wins; `greeted` makes the loser a no-op. */
+    setTimeout(() => sendRealtimeGreeting(send), 600);
   };
 
   try {
@@ -37366,6 +37459,10 @@ async function startRealtimeVoice(){
 
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
   ariaRTOpening = false;
+  /* Last chance before she speaks: if the context is still suspended
+     here, nothing she says will be audible. */
+  try { if (sink.open) sink.open(); } catch (e) {}
+  console.info('[aria] live call up, audio path:', JSON.stringify(sink.state ? sink.state() : null));
   /* THE GAP BETWEEN THE TAP AND THE CALL. A greeting or a mic-off cue
      can already be mid-utterance by the time the session comes up.
      The guards above stop anything NEW from starting; these two stop
@@ -37469,8 +37566,45 @@ function toggleRealtimeMute(){
 /* ------------------------------------------------------------------
    EVENTS THAT ARE NOT AUDIO — transcript, tools, errors.
    ------------------------------------------------------------------ */
+/**
+ * Her opening line, requested once per call.
+ *
+ * WHY IT WAS SILENT. Two things were missing from the request, and
+ * either alone is enough to produce no sound:
+ *
+ *   output_modalities: ["audio"] — without it the model is free to
+ *     answer in text only, and there are open reports of it doing
+ *     exactly that. A text-only response is a silent greeting.
+ *   input: [] — the documented shape for "greet with no conversation
+ *     context". Without it the model is being asked to respond to a
+ *     conversation that has not started.
+ *
+ * It also used to be fired blind: send() swallowed a closed channel,
+ * so a dropped greeting looked identical to a model that declined.
+ */
+function sendRealtimeGreeting(send){
+  if (ariaRTGreeted) return false;
+  ariaRTGreeted = true;
+  const ok = send({
+    type: 'response.create',
+    response: {
+      instructions: REALTIME_GREETING_BRIEF,
+      /* Lock it to speech: a text-only greeting is a silent one. */
+      output_modalities: ['audio'],
+      /* No conversation yet — this is the documented shape for it. */
+      input: [],
+    },
+  });
+  console.info('[aria] greeting requested:', ok ? 'sent' : 'NOT sent');
+  return ok;
+}
+
 async function onRealtimeEvent(event, turn, send){
   switch (event.type){
+    case 'session.updated':
+      /* The server has the session we asked for. Now she can speak. */
+      sendRealtimeGreeting(send);
+      break;
     case 'input_audio_buffer.speech_started':
       setOrbState('listening');
       setRealtimeState('listening');
@@ -37758,7 +37892,33 @@ const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAE
  * voice, audible, in the moment before the live session exists to
  * silence it.
  */
+/* ONE AUDIO CONTEXT, OPENED INSIDE THE TAP.
+
+   iOS gives you a suspended AudioContext and only lets resume() win
+   while a user gesture is on the stack. buildAudioSink() runs AFTER
+   the token fetch has been awaited — outside the gesture — so a
+   context created there starts suspended and stays that way, and the
+   whole call is silent. This runs from the mic button's own onclick,
+   which is the gesture, and the sink reuses what it opened. */
+let ariaAudioCtx = null;
+function ariaUnlockAudioContext(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  try {
+    if (!ariaAudioCtx) ariaAudioCtx = new AC();
+    if (ariaAudioCtx.state !== 'running' && typeof ariaAudioCtx.resume === 'function'){
+      const pr = ariaAudioCtx.resume();
+      if (pr && typeof pr.catch === 'function') pr.catch(() => {});
+    }
+  } catch (e) { ariaAudioCtx = null; }
+  return ariaAudioCtx;
+}
+
 function unlockAudioForMobile(){
+  /* The context is unlocked on EVERY tap, not only the first: Safari
+     suspends it again after an interruption, and audioUnlocked below
+     only tracks the one-shot element unlock. */
+  ariaUnlockAudioContext();
   if (audioUnlocked) return;
   audioUnlocked = true;
   try {

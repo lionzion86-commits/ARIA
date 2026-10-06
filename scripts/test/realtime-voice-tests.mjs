@@ -579,8 +579,17 @@ check("a fallback is never silent again", () => {
   const end = page.indexOf("/** End the session", start);
   const body = page.slice(start, end);
   assert.ok(start > 0 && end > start, "startRealtimeVoice moved");
-  /* Every `return false` inside the start path must carry a reason. */
-  const bare = body.split(/\n/).filter(l => /^\s*return false;/.test(l));
+  /* Every `return false` inside the start path must carry a reason —
+     excluding the send() helper, whose false IS its report ("this
+     event did not go out") rather than a bail-out. */
+  const sendAt = body.indexOf("const send = (obj) => {");
+  let sd = 0, sendEnd = sendAt;
+  for (let k = body.indexOf("{", sendAt); k < body.length; k++){
+    if (body[k] === "{") sd++;
+    else if (body[k] === "}" && --sd === 0){ sendEnd = k; break; }
+  }
+  const withoutSend = body.slice(0, sendAt) + body.slice(sendEnd);
+  const bare = withoutSend.split(/\n/).filter(l => /^\s*return false;/.test(l));
   assert.equal(bare.length, 0, `${bare.length} silent bail-out(s) left in startRealtimeVoice`);
   assert.ok((body.match(/noteRealtimeFailure\(/g) || []).length >= 5,
     "not every failure path records a reason");
@@ -1088,87 +1097,21 @@ check("the chat opens quiet when live voice is the mode", () => {
     "the call-ready state reuses the old dictation wording");
 });
 
-check("she greets inside the call, once", () => {
-  /* Turn detection only answers the shopper, so without this the line
-     opens in silence and waits — which reads as a dead call. */
+check("there is always an audible path out of the browser", () => {
+  /* THE ACTUAL CAUSE OF "she's just silent now" (2026-10-06). The sink
+     built an AudioContext, routed the remote track through a
+     GainNode, and muted the <audio> element so the graph was the only
+     audible path. iOS hands you a SUSPENDED context and only honours
+     resume() while a gesture is on the stack — and buildAudioSink runs
+     after the token fetch has been awaited, so the context was both
+     created outside the gesture and never resumed. Nothing was
+     audible. Not the greeting: the whole call.
+
+     Lifted and run against a context that behaves like iOS. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const at = page.indexOf("  dc.onopen = () => {");
-  const body = page.slice(at, page.indexOf("\n  };", at));
-  assert.match(body, /type: 'response\.create'/, "she never speaks first on a live call");
-  assert.match(body, /instructions: REALTIME_GREETING_BRIEF/,
-    "the greeting is not carried as a per-response instruction");
-  /* A reconnect must not greet again. */
-  assert.match(body, /if \(!greeted\)\{\s*\r?\n\s*greeted = true;/,
-    "a reconnect would make her greet twice");
-  /* …and the turn-detection re-assert must not be skipped by it. */
-  assert.ok(body.indexOf("session.update") < body.indexOf("response.create"),
-    "the greeting is requested before turn detection is re-asserted");
-
-  /* The brief is a brief, not a script, and it bans the very advice
-     Danny objected to. */
-  const brief = /const REALTIME_GREETING_BRIEF =([\s\S]*?);\r?\n/.exec(page);
-  assert.ok(brief, "REALTIME_GREETING_BRIEF is gone");
-  assert.match(brief[1], /una sola frase corta/, "the greeting brief does not ask for one short line");
-  assert.match(brief[1], /Nada de explicar cómo funciona\s*' \+\s*'el micrófono/,
-    "nothing stops her explaining the microphone again");
-});
-
-check("the async callbacks re-check, not just the entry points", () => {
-  /* The race that started this: a TTS fetch begun before the tap
-     lands after ariaRT is set. An entry guard cannot see that. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
-  assert.match(page, /if \(cancelled\(\) \|\| ariaLiveCallActive\(\)\) return;/,
-    "speakWithLily's fetch callback does not re-check for a live call");
-  const cue = page.slice(page.indexOf("function speakMicOffCue()"));
-  assert.match(cue.slice(0, 1400), /shopper moved on[\s\S]{0,200}ariaLiveCallActive\(\)/,
-    "the mic-off cue's fetch callback does not re-check for a live call");
-  /* The pump settles the whole queue rather than draining it. */
-  const pump = page.slice(page.indexOf("function pumpTtsAudio(st){"));
-  assert.match(pump.slice(0, 900), /ariaLiveCallActive\(\)\)\{ st\.playerBusy = false; st\.settled = true; return; \}/,
-    "the sentence queue is not settled when a live call starts");
-});
-
-check("starting a call silences whatever is already playing", () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
-  const start = page.indexOf("ariaRT = { pc, dc, mic, sink, send");
-  assert.ok(start > 0, "the session assignment moved");
-  const after = page.slice(start, start + 900);
-  assert.match(after, /speechSynthesis\.cancel\(\)/, "a mid-utterance browser voice is not cancelled");
-  assert.match(after, /ariaAudioPlayer\.pause\(\)/, "a mid-playback reply is not paused");
-});
-
-check("the iOS unlock cannot replay the last thing she said", () => {
-  /* It must stay unguarded — toggleAriaVoice calls it on purpose and
-     a guarded unlock leaves the call mute on iPhone — so it is made
-     harmless instead: it unlocks with silence rather than with
-     whatever src the greeting left loaded. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
-  const at = page.indexOf("function unlockAudioForMobile(){");
-  const body = page.slice(at, page.indexOf("\n}", at));
-  assert.ok(!/ariaLiveCallActive/.test(body),
-    "the unlock is guarded, which leaves a live call mute on iOS");
-  assert.match(body, /ariaAudioPlayer\.src = SILENT_WAV;[\s\S]{0,120}play\(\)/,
-    "the unlock plays whatever is loaded instead of silence");
-  /* And the silence is real: a WAV header declaring zero samples. */
-  const wav = /const SILENT_WAV = 'data:audio\/wav;base64,([A-Za-z0-9+/=]+)'/.exec(page);
-  assert.ok(wav, "SILENT_WAV is gone");
-  const buf = Buffer.from(wav[1], "base64");
-  assert.equal(buf.slice(0, 4).toString(), "RIFF", "SILENT_WAV is not a WAV");
-  assert.equal(buf.readUInt32LE(40), 0, "SILENT_WAV contains actual samples");
-});
-
-check("nothing closes or re-arms the microphone during a live call", () => {
-  /* The 2026-10-02 re-arm rule is correct for the old loop and fatal
-     for a call: after a reply with tappable cards it deliberately
-     leaves the mic OFF and paints "toca el micrófono". On an open line
-     that is both a lie and the walkie-talkie feel itself.
-
-     Run, both ways: with a call these must do nothing, without one
-     they must still do their job, or ?voz=clasica loses its mic. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
-  const bodyOf = (name) => {
+  const srcOf = (name) => {
     const at = page.indexOf("function " + name + "(");
-    assert.ok(at > 0, `${name} is gone from index.html`);
+    assert.ok(at > 0, `${name} is gone`);
     let d = 0, end = -1;
     for (let k = page.indexOf("{", at); k < page.length; k++){
       if (page[k] === "{") d++;
@@ -1176,161 +1119,185 @@ check("nothing closes or re-arms the microphone during a live call", () => {
     }
     return page.slice(at, end + 1);
   };
-  const guard = bodyOf("ariaLiveCallActive");
 
-  /* closeMicForSpeak is the chokepoint: every old speak path runs
-     through it and it is where the microphone actually dies. */
-  for (const live of [true, false]){
-    const state = { intentionalStop: false, micLive: true, ariaVoiceActive: false, stopped: false, painted: null };
-    const fn = new Function("ariaRT", "intentionalStop", "intentionalStopAt", "micLive",
-      "ariaVoiceActive", "clearSpeechCapTimer", "recognition", "setAssistantMicState", "__s",
-      guard + "\n" + bodyOf("closeMicForSpeak").replace(/^function closeMicForSpeak\(\)\{/, "function closeMicForSpeak(){")
-        .replace(/intentionalStop = true;/, "__s.intentionalStop = true;")
-        .replace(/micLive = false;/, "__s.micLive = false;")
-        .replace(/ariaVoiceActive = true;/, "__s.ariaVoiceActive = true;")
-      + "\n return closeMicForSpeak;");
-    fn(live ? { pc: {} } : null, false, 0, true, false, () => {},
-       { stop(){ state.stopped = true; } }, (v) => { state.painted = v; }, state)();
-    if (live){
-      assert.equal(state.intentionalStop, false, "a live call set intentionalStop");
-      assert.equal(state.micLive, false === state.micLive ? state.micLive : true, "micLive was cleared on a live call");
-      assert.equal(state.stopped, false, "recognition.stop() ran during a live call");
-      assert.equal(state.painted, null, "the mic button was repainted by the old loop mid-call");
-    } else {
-      assert.equal(state.intentionalStop, true, "the classic path no longer closes the mic");
-      assert.equal(state.stopped, true, "the classic path no longer stops recognition");
-      assert.equal(state.painted, false, "the classic path no longer repaints the mic button");
-    }
+  const build = ({ canResume }) => {
+    let resumes = 0;
+    const ctx = {
+      state: "suspended", currentTime: 0, destination: {},
+      createGain(){ return { gain: { value: 1, setTargetAtTime(){} }, connect(){} }; },
+      createMediaStreamSource(){ return { connect(){} }; },
+      resume(){ resumes++; if (canResume) ctx.state = "running"; return Promise.resolve(); },
+    };
+    const el = { muted: false, autoplay: false, playsInline: false, srcObject: null,
+                 play(){ return { catch(){} }; } };
+    const fn = new Function("window", "Audio", "console", "ariaUnlockAudioContext",
+      srcOf("buildAudioSink") + "\n return buildAudioSink;");
+    const sink = fn({ AudioContext: function(){ return ctx; } }, function(){ return el; },
+      { warn(){}, info(){} }, () => { ctx.resume(); return ctx; })();
+    return { sink, ctx, el, resumes: () => resumes };
+  };
+
+  /* The context resumes: the graph is audible, the element steps back. */
+  {
+    const { sink, ctx, el, resumes } = build({ canResume: true });
+    sink.attach({ id: "remote" });
+    assert.ok(resumes() >= 1, "the context was never resumed");
+    assert.equal(ctx.state, "running", "the context is still suspended after attach");
+    assert.equal(el.muted, true, "the element duplicates the graph while the graph is running");
+    assert.equal(sink.state().graphRunning, true, "the graph is not reported as running");
   }
 
-  /* The re-arm decision, and the two painters the old loop owns. */
-  for (const name of ["afterAriaVoiceEnds", "reopenMicForRetry", "setAssistantMicTapToTalk", "setAssistantMicState"]){
-    const body = bodyOf(name);
-    assert.match(body.slice(0, 900), /if \(ariaLiveCallActive\(\)\) return;/,
-      `${name} can still run during a live call`);
-    /* …and the guard must come before anything it would change. */
-    /* Measured from inside the braces, and never against the
-       function's own name — `function afterAriaVoiceEnds(){` matched
-       the "effect" token at index 9 and failed a correct guard. */
-    /* Comments stripped first: the guard's own explanation mentions
-       speakMicOffCue(), and an earlier version of this assertion
-       measured that prose as if it were code. */
-    const inner = body.slice(body.indexOf("{") + 1)
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/\/\/[^\n]*/g, "");
-    const guardAt = inner.indexOf("if (ariaLiveCallActive()) return;");
-    const firstEffect = Math.min(...["document.getElementById", "ariaVoiceActive =", "setOrbState(", "speakMicOffCue("]
-      .filter(t => !t.startsWith(name))
-      .map(t => { const i = inner.indexOf(t); return i < 0 ? Infinity : i; }));
-    assert.ok(guardAt >= 0, `${name} lost its guard`);
-    assert.ok(guardAt < firstEffect,
-      `${name} acts before it checks for a live call (guard at ${guardAt}, effect at ${firstEffect})`);
+  /* The context REFUSES to resume: the element must carry the audio,
+     or the call is silent exactly as Danny found it. */
+  {
+    const { sink, el, ctx } = build({ canResume: false });
+    const ctxOf = () => ctx;
+    sink.attach({ id: "remote" });
+    assert.equal(el.muted, false,
+      "the context would not resume and the element stayed muted — the call is silent");
+    assert.equal(sink.state().graphRunning, false, "a suspended graph is reported as running");
+    /* Safari moves a context to "interrupted" on a phone call or Siri
+       and back afterwards. The audible path has to follow it, not be
+       decided once at setup. */
+    assert.equal(typeof ctxOf().onstatechange, "function",
+      "nothing re-checks the audible path when the context changes state");
+    /* …and opening after a barge-in must not re-mute it. */
+    sink.open();
+    assert.equal(el.muted, false, "resuming the call re-muted the only audible path");
+  }
+
+  /* A barge-in silences BOTH paths — either could be the audible one. */
+  {
+    const { sink, el } = build({ canResume: false });
+    sink.attach({ id: "remote" });
+    sink.cut();
+    assert.equal(el.muted, true, "the element keeps playing through a barge-in");
+  }
+
+  /* Attaching must never be able to skip the resume. */
+  {
+    const { sink, el, resumes } = build({ canResume: true });
+    Object.defineProperty(el, "srcObject", { set(){ throw new Error("not a MediaStream"); }, get(){ return null; } });
+    sink.attach({ id: "remote" });
+    assert.ok(resumes() >= 1, "a failed srcObject assignment skipped the resume");
   }
 });
 
-check("the classic re-arm rule still works when no call is live", () => {
-  /* Danny's 2026-10-02 rule stands for ?voz=clasica, and a guard that
-     is too wide would silently repeal it: the old loop would speak and
-     then never reopen its microphone. A mutation disabling
-     afterAriaVoiceEnds outright passed every other check here, so this
-     runs it and watches both of its branches. */
+check("the audio context is opened inside the tap, not after the fetch", () => {
+  /* iOS only honours resume() while a user gesture is on the stack.
+     buildAudioSink runs after `await fetch(token)`, so the context has
+     to be opened earlier — from the button's own onclick. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const at = page.indexOf("function afterAriaVoiceEnds(");
+  assert.match(page, /onclick="unlockAudioForMobile\(\);toggleAriaVoice\(\)"/,
+    "the mic button no longer unlocks audio in its own gesture");
+  const unlock = page.slice(page.indexOf("function unlockAudioForMobile(){"));
+  const body = unlock.slice(0, unlock.indexOf("\n}"));
+  assert.match(body, /ariaUnlockAudioContext\(\);/, "the tap does not open the audio context");
+  /* …and it must run before the one-shot element unlock returns early,
+     because Safari re-suspends the context after an interruption. */
+  assert.ok(body.indexOf("ariaUnlockAudioContext()") < body.indexOf("if (audioUnlocked) return;"),
+    "the context is only unlocked on the very first tap");
+  /* The sink reuses it rather than constructing its own. */
+  /* Brace-matched. Searching for "\n}\n" never matches in a CRLF
+     file, so an earlier version sliced 37,000 characters past the
+     function and found ariaUnlockAudioContext's own `new AC()`. */
+  const sinkAt = page.indexOf("function buildAudioSink(){");
+  let sd = 0, sinkEnd = -1;
+  for (let k = page.indexOf("{", sinkAt); k < page.length; k++){
+    if (page[k] === "{") sd++;
+    else if (page[k] === "}" && --sd === 0){ sinkEnd = k; break; }
+  }
+  const sinkBody = page.slice(sinkAt, sinkEnd + 1);
+  assert.match(sinkBody, /ctx = AC \? ariaUnlockAudioContext\(\) : null/,
+    "the sink builds its own context, outside the gesture");
+  assert.ok(!/new AC\(\)/.test(sinkBody), "the sink still constructs an AudioContext");
+});
+
+check("the greeting she speaks is locked to audio, and sent once", () => {
+  /* WHY IT WAS SILENT (2026-10-06). Two things were missing and either
+     alone produces no sound: output_modalities ["audio"], without
+     which the model may answer in text only, and input: [] — the
+     documented shape for greeting with no conversation context.
+
+     Lifted and run, so the request is inspected as the object that
+     actually goes down the wire. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function sendRealtimeGreeting(send){");
+  assert.ok(at > 0, "sendRealtimeGreeting is gone");
   let d = 0, end = -1;
   for (let k = page.indexOf("{", at); k < page.length; k++){
     if (page[k] === "{") d++;
     else if (page[k] === "}" && --d === 0){ end = k; break; }
   }
-  const guardSrc = page.slice(page.indexOf("function ariaLiveCallActive(){"),
-                              page.indexOf("\n}", page.indexOf("function ariaLiveCallActive(){")) + 2);
-  const body = page.slice(at, end + 1);
+  const src = page.slice(at, end + 1);
 
-  const run = ({ live, tappables }) => {
-    const seen = { cue: 0, listen: 0, orb: null, scheduled: [] };
-    const fn = new Function("ariaRT", "ariaVoiceEndFiredFor", "ariaVoiceTurnId", "ariaVoiceActive",
-      "setOrbState", "continuousMode", "assistantThinking", "assistantReplyHasTappables",
-      "speakMicOffCue", "echoGuardUntil", "MIC_REARM_BUFFER_MS", "setTimeout", "startListening", "__seen",
-      guardSrc + "\n" + body + "\n return afterAriaVoiceEnds;");
-    fn(live ? { pc: {} } : null, -1, 1, false,
-       (v) => { seen.orb = v; }, true, false, tappables,
-       () => { seen.cue++; }, 0, 400,
-       (f) => { seen.scheduled.push(f); }, () => { seen.listen++; }, seen)();
-    return seen;
-  };
+  const sent = [];
+  let greeted = false;
+  const fn = new Function("ariaRTGreeted", "REALTIME_GREETING_BRIEF", "console", "__set", "__sent",
+    src.replace(/ariaRTGreeted = true;/, "__set();")
+       .replace(/if \(ariaRTGreeted\) return false;/, "if (__greeted()) return false;")
+    + "\n return sendRealtimeGreeting;");
+  /* The flag lives outside the function, so it is threaded in. */
+  const call = new Function("__greeted", "__set", "__sent", "REALTIME_GREETING_BRIEF", "console",
+    src.replace(/if \(ariaRTGreeted\) return false;/, "if (__greeted()) return false;")
+       .replace(/ariaRTGreeted = true;/, "__set();")
+    + "\n return sendRealtimeGreeting;")(
+      () => greeted, () => { greeted = true; }, sent, "saluda corto",
+      { info(){}, warn(){} });
 
-  /* Classic, reply with tappable cards: mic stays off, cue invites a tap. */
-  const classicTappables = run({ live: false, tappables: true });
-  assert.equal(classicTappables.cue, 1, "the classic tap-to-talk cue no longer fires");
-  assert.equal(classicTappables.orb, "idle", "the orb is not settled on the classic path");
+  const okSend = (o) => { sent.push(o); return true; };
+  assert.equal(call(okSend), true, "the greeting was not sent");
+  assert.equal(sent.length, 1, "the greeting was not requested exactly once");
 
-  /* Classic, plain reply: the re-arm is scheduled after the settle buffer. */
-  const classicPlain = run({ live: false, tappables: false });
-  assert.equal(classicPlain.cue, 0, "a plain classic reply fired the tap-to-talk cue");
-  assert.equal(classicPlain.scheduled.length, 1, "the classic mic re-arm is no longer scheduled");
-  classicPlain.scheduled[0]();
-  assert.equal(classicPlain.listen, 1, "the classic loop never reopens its microphone");
+  const req = sent[0];
+  assert.equal(req.type, "response.create", "the greeting is not a response.create");
+  assert.equal(req.response.instructions, "saluda corto", "the greeting brief is not passed");
+  /* The two that decide whether it makes a sound at all. */
+  assert.deepEqual([...req.response.output_modalities], ["audio"],
+    "the greeting is not locked to audio — a text-only answer is a silent one");
+  assert.ok(Array.isArray(req.response.input) && req.response.input.length === 0,
+    "the greeting is not the documented no-context shape");
 
-  /* Live call: neither branch runs. */
-  for (const tappables of [true, false]){
-    const onCall = run({ live: true, tappables });
-    assert.equal(onCall.cue, 0, "the tap-to-talk cue fired during a live call");
-    assert.equal(onCall.scheduled.length, 0, "a mic re-arm was scheduled during a live call");
-    assert.equal(onCall.orb, null, "the old loop repainted the orb during a live call");
-  }
+  /* Once per call, whichever path asks first. */
+  assert.equal(call(okSend), false, "the greeting can be requested twice");
+  assert.equal(sent.length, 1, "a second request went out");
 });
 
-check("she can still be heard after a barge-in, and after several", () => {
-  /* A DEPENDENCY, PINNED RATHER THAN CHANGED. After an interruption
-     the reducer sits in LISTENING, and response.created deliberately
-     does not move it — so the next response's audio is DROPPED unless
-     input_audio_buffer.speech_stopped arrives first and lifts the
-     phase to THINKING.
+check("the greeting is requested after the server confirms, with a backstop", () => {
+  /* It used to go out in the same tick as session.update, racing the
+     server's handling of it. Now session.updated triggers it, and a
+     timer covers API versions that never emit that event. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const onopen = page.slice(page.indexOf("  dc.onopen = () => {"));
+  const body = onopen.slice(0, onopen.indexOf("\n  };"));
+  assert.ok(!/response\.create/.test(body), "the greeting still races session.update in onopen");
+  assert.match(body, /setTimeout\(\(\) => sendRealtimeGreeting\(send\), \d+\);/,
+    "there is no backstop if session.updated never arrives");
+  /* …and the confirmation path exists. */
+  const handler = page.slice(page.indexOf("async function onRealtimeEvent(event, turn, send){"));
+  assert.match(handler.slice(0, 700), /case 'session\.updated':[\s\S]{0,160}sendRealtimeGreeting\(send\)/,
+    "session.updated does not trigger the greeting");
+  /* Reset per call, or the second call of a page load is silent.
+     Asserted INSIDE startRealtimeVoice: matching the string anywhere
+     also matched its own `let ariaRTGreeted = false;` declaration, so
+     deleting the per-call reset passed an earlier version of this. */
+  const startAt = page.indexOf("async function startRealtimeVoice()");
+  const upToSession = page.slice(startAt, page.indexOf("  pc = new RTCPeerConnection()", startAt));
+  assert.match(upToSession, /ariaRTGreeted = false;/,
+    "the greeting flag is never reset for a new call — the second call is silent");
+});
 
-     With semantic VAD the server does send speech_stopped before it
-     creates a response, so this is correct today. But if that event
-     were ever missed, Aria would go silent for the rest of the call
-     and the reducer would look fine. This test makes that dependency
-     explicit so it cannot be removed by accident. Keying the drop on
-     the cancelled response_id instead of the phase would remove the
-     dependency entirely — proposed in the PR, not done here, because
-     turn detection is out of scope for this change. */
-  const turn = (id) => [
-    { type: "response.created", response: { id } },
-    { type: "response.output_audio.delta", response_id: id, delta: "x" },
-  ];
-  const play = (events) => {
-    let st = createVoiceTurnState();
-    const log = [];
-    for (const e of events){
-      const r = voiceTurnReducer(st, e);
-      st = r.state;
-      log.push(...r.actions);
-    }
-    return { phase: st.phase, log };
-  };
-
-  /* The real server sequence: three interruptions in a row, and she
-     is audible every time. */
-  const real = [];
-  for (const id of ["r1", "r2", "r3"]){
-    real.push(...turn(id),
-      { type: "input_audio_buffer.speech_started" },
-      { type: "input_audio_buffer.speech_stopped" });
-  }
-  const got = play(real);
-  assert.equal(got.log.filter(a => a === "playAudio").length, 3,
-    "she was muted after being interrupted");
-  assert.equal(got.log.filter(a => a === "cancelResponse").length, 3,
-    "a later barge-in stopped cancelling the response server-side");
-  assert.equal(got.log.filter(a => a === "dropAudio").length, 0,
-    "a new answer was dropped as if it were the interrupted one");
-
-  /* And the dependency itself, stated: without speech_stopped the
-     next answer is dropped. If this ever starts passing as
-     "playAudio", the reducer was changed and this comment is stale. */
-  const withoutStop = play([...turn("a1"), { type: "input_audio_buffer.speech_started" }, ...turn("a2")]);
-  assert.ok(withoutStop.log.includes("dropAudio"),
-    "the reducer no longer depends on speech_stopped — update this test and the PR note");
+check("a dropped event is reported, not swallowed", () => {
+  /* send() used to return undefined and swallow a closed channel, so a
+     greeting that never left looked exactly like a model that chose
+     not to speak. That is the whole reason this round happened. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  const send = (obj) => {");
+  const body = page.slice(at, page.indexOf("\n  };", at));
+  assert.match(body, /readyState !== 'open'/, "send no longer checks the channel is open");
+  assert.match(body, /console\.warn\('\[aria\] data channel not open/, "a dropped event is silent");
+  assert.match(body, /return false;/, "send does not report failure");
+  assert.match(body, /return true;/, "send does not report success");
 });
 
 check("the guard covers the window while the call is still connecting", () => {
@@ -1394,7 +1361,7 @@ check("the stale audio handlers are detached when a call starts", () => {
      unsubscribed handler cannot fire at all. */
   const page = readFileSync(ROOT + "index.html", "utf8");
   const at = page.indexOf("ariaRT = { pc, dc, mic, sink, send");
-  const after = page.slice(at, at + 1200);
+  const after = page.slice(at, at + 2000);
   for (const h of ["onended", "onerror", "onplaying", "onpause"]){
     assert.ok(new RegExp(`ariaAudioPlayer\\.${h} = null`).test(after),
       `ariaAudioPlayer.${h} survives into the call`);
