@@ -51,6 +51,15 @@ for (let i = 0; i < 44; i++)
   pool.push(mk(`HABA Creative Play ${i} Wooden Kids Kitchen`, "HABA", "target", 40 + i));
 for (let i = 0; i < 30; i++)
   pool.push(mk(`YoungLA ${i} Oversize Gym Tee`, "YoungLA", "youngla", 25 + i));
+/* "young" ON ITS OWN IS A PRODUCT WORD HERE, DELIBERATELY. Without
+   these the multi-word-brand assertion below passes for the wrong
+   reason: "young" would be absent from the vocabulary, so the guard
+   could never fire on that window whether or not it checked the
+   window length. A mutation widening the guard to multi-token
+   windows then went undetected. A brand whose first word is also an
+   ordinary catalogue word is the case that distinguishes them. */
+for (let i = 0; i < 25; i++)
+  pool.push(mk(`Under Armour Young Athletes ${i} Training Tee`, "Under Armour", "dicks", 18 + i));
 for (let i = 0; i < 30; i++)
   pool.push(mk(`New Balance Furon ${i} Running Shoe`, "New Balance", "newbalance", 70 + i));
 /* "nik" as pure scrape noise, the way "Nik Stain" decks are in the
@@ -141,8 +150,21 @@ check("a misspelled brand that is not a product word still resolves", () => {
 check("multi-word brands are untouched by the guard", () => {
   /* The guard is single-token only: "young la" and "la young" join
      into one brand key and cannot be shadowed by one ordinary word. */
+  /* "young" is an ordinary product word in this pool (Under Armour
+     Young Athletes tees), so these only pass if the guard is checking
+     the WINDOW LENGTH rather than merely failing to find the token. */
+  assert.ok(pool._windex.get("young") && pool._windex.get("young").length >= 25,
+    "the fixture no longer makes \"young\" a product word — the assertions below prove nothing");
   assert.equal(brandOf("young la"), "YoungLA", "the two-word brand stopped matching");
   assert.equal(brandOf("la young"), "YoungLA", "the reversed two-word brand stopped matching");
+  /* AND ONE THAT ACTUALLY REACHES THE FUZZY PASS. The two above join
+     to an exact brand key, so they are answered before the guard is
+     ever consulted and prove nothing about it. "young laa" is a typo:
+     it joins to "younglaa", misses exactly, and is resolved by the
+     fuzzy pass — with "young" sitting in the vocabulary as a product
+     word. Widening the guard to multi-token windows loses this. */
+  assert.equal(brandOf("young laa"), "YoungLA",
+    "a mistyped two-word brand was shadowed by its first word being an ordinary product word");
 });
 
 check("a pool with no inverted index is still guarded", () => {
