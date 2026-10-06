@@ -34033,21 +34033,7 @@ function speakText(text){
    playTtsAudio). An interim "dame un segundo" passes a guard against it so
    a late TTS fetch never talks over the answer that already started. */
 let ariaReplyVoiceStarted = false;
-function speakWithLily(text, guard){
-  if (ariaLiveCallActive()) return;
-  text = cleanSpokenText(text);
-  const cancelled = () => { try { return !!(guard && !guard()); } catch(e){ return false; } };
-  const fallback = () => { if (!cancelled() && typeof speakText === 'function') speakText(text); };
-  try {
-    fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) })
-      .then(r => (r && r.ok) ? r.json() : null)
-      /* THE RACE THIS WHOLE CHANGE EXISTS FOR. The fetch was started
-         before the call; by the time it lands the shopper may be
-         mid-sentence with Aria. Re-checked here, not just at entry. */
-      .then(d => { if (cancelled() || ariaLiveCallActive()) return; if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
-      .catch(fallback);
-  } catch (e) { fallback(); }
-}
+function speakWithLily(text, guard){ /* LILY REMOVED - Danny 2026-10-06: Old engine deleted, ChatGPT Realtime is the only voice */ return; }
 
 /* TURN-TAKING, ONE PLACE (2026-10-04, Danny: the echo bug). Every speak
    path closes the mic BEFORE Aria makes a sound: she never listens to
@@ -34345,7 +34331,7 @@ async function streamAssistantReply(payload, sink, onDelta){
    phone that gap read as broken.
 
    THE FIX. As streamed deltas arrive, completed sentences are detected
-   and each is POSTed to /.netlify/functions/aria-tts immediately — the
+   and each is POSTed to /.netlify/functions/aria-tts-DISABLED-BY-DANNY immediately — the
    first sentence's audio renders while the second sentence's text is
    still streaming. Audio plays back strictly in sentence order even
    when the TTS responses land out of order, and a failed sentence is
@@ -34473,7 +34459,7 @@ function requestSentenceAudio(st, text){
   /* A hung TTS request must never wedge the turn: 9s, then the sentence
      is skipped and the queue moves on. */
   const timer = setTimeout(() => ctrl.abort(), 9000);
-  fetch("/.netlify/functions/aria-tts", {
+  fetch("/.netlify/functions/aria-tts-DISABLED-BY-DANNY", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
@@ -35922,7 +35908,7 @@ async function runAssistantBrain(text){
     const shoeLine = `\u00a1Claro! Te llevo a ${deptLabel} \u2014 las ofertas van primero.`;
     addAssistantMessage('bot', shoeLine, null, { speak: false });
     try {
-      fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: shoeLine }) })
+      fetch('/.netlify/functions/aria-tts-DISABLED-BY-DANNY', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: shoeLine }) })
         .then(r => (r && r.ok) ? r.json() : null)
         .then(d => { if (d && d.audio) speakWithAria(d.audio, shoeLine); else speakText(shoeLine); })
         .catch(() => speakText(shoeLine));
@@ -35951,7 +35937,7 @@ async function runAssistantBrain(text){
       : '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
     addAssistantMessage('bot', salesLine, null, { speak: false });
     try {
-      fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: salesLine }) })
+      fetch('/.netlify/functions/aria-tts-DISABLED-BY-DANNY', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: salesLine }) })
         .then(r => (r && r.ok) ? r.json() : null)
         .then(d => { if (d && d.audio) speakWithAria(d.audio, salesLine); else speakText(salesLine); })
         .catch(() => speakText(salesLine));
@@ -36788,7 +36774,7 @@ function speakMicOffCue(){
   setAssistantMicTapToTalk();
   const done = () => { ariaVoiceActive = false; if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
   try {
-    fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: MIC_OFF_CUE }) })
+    fetch('/.netlify/functions/aria-tts-DISABLED-BY-DANNY', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: MIC_OFF_CUE }) })
       .then(r => (r && r.ok) ? r.json().catch(() => null) : null)
       .then(d => {
         if (myCue !== micOffCueId) return; /* shopper moved on: never talk over the new turn */
@@ -37294,16 +37280,7 @@ function realtimeAvailable(){
    through to the old loop. This flag decides what we TRY, never what
    the shopper is stuck with. */
 function realtimeEnabled(){
-  try {
-    const q = new URLSearchParams(location.search).get('voz');
-    if (q === 'vivo'){ try { localStorage.removeItem(ARIA_RT_FLAG); } catch {} return true; }
-    if (q === 'clasica'){ try { localStorage.setItem(ARIA_RT_FLAG, '0'); } catch {} return false; }
-    return localStorage.getItem(ARIA_RT_FLAG) !== '0';
-  } catch {
-    /* localStorage can throw outright in a locked-down browser. That is
-       not a reason to lose the voice, so the default survives it. */
-    return true;
-  }
+  return true;
 }
 
 /* ?voz=crudo: hand the raw microphone to OpenAI and let its own noise
