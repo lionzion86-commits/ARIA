@@ -37758,6 +37758,9 @@ function realtimeRawAudio(){
  * barge-in cuts her off in ~15ms without a click, which pausing an
  * element cannot do. It is just no longer the only way out.
  */
+/* THE DUCK-RESTORE TIMER IS THE PAGE'S, NOT ONE CALL'S. */
+let ariaSinkRestoreTimer = null;
+
 function buildAudioSink(){
   /* ============================================================
      THE ELEMENT CARRIES THE AUDIO. THE GRAPH DOES NOT.
@@ -37798,6 +37801,9 @@ function buildAudioSink(){
   /* iOS refuses to start an inline stream otherwise. */
   el.playsInline = true;
   el.volume = 1;
+  /* AND UNMUTED: one element per page now, so a hang-up's muted
+     state would otherwise leak into the next call. */
+  el.muted = false;
 
   /* Opened in the gesture and kept, because the unlock is what makes
      later playback legal on iOS. Nothing is routed through it. */
@@ -37806,7 +37812,6 @@ function buildAudioSink(){
   catch (e) { ctx = null; }
 
   let silenced = false;
-  let restoreTimer = null;
 
   /* A REFUSED play() IS THE WHOLE BUG, SO IT IS NEVER SWALLOWED. It
      was caught and dropped, which is why a silent call looked healthy
@@ -37828,7 +37833,7 @@ function buildAudioSink(){
   if (ctx){ try { ctx.onstatechange = () => { if (!silenced) play(); }; } catch (e) {} }
 
   const openPath = () => {
-    if (restoreTimer){ clearTimeout(restoreTimer); restoreTimer = null; }
+    if (ariaSinkRestoreTimer){ clearTimeout(ariaSinkRestoreTimer); ariaSinkRestoreTimer = null; }
     silenced = false;
     el.muted = false;
     el.volume = 1;
@@ -37844,9 +37849,9 @@ function buildAudioSink(){
     silenced = true;
     el.volume = 0;
     el.muted = true;
-    if (restoreTimer) clearTimeout(restoreTimer);
-    restoreTimer = setTimeout(() => {
-      restoreTimer = null;
+    if (ariaSinkRestoreTimer) clearTimeout(ariaSinkRestoreTimer);
+    ariaSinkRestoreTimer = setTimeout(() => {
+      ariaSinkRestoreTimer = null;
       if (!silenced) return;
       console.info('[aria] audio path restored by the watchdog');
       openPath();
@@ -38010,6 +38015,8 @@ async function startRealtimeVoiceOnce(){
      said on the last one — otherwise the second call never nudges. */
   ariaRTSpoke = false;
 
+  /* BEFORE THE MICROPHONE, so WebKit never infers the session itself. */
+  ariaSetAudioSession('play-and-record');
   try {
     mic = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -38036,6 +38043,10 @@ async function startRealtimeVoiceOnce(){
        and leave the old mic button exactly as it was. */
     return noteRealtimeFailure('el micrófono fue denegado', e.name);
   }
+
+  /* Re-asserted with capture live: iOS settles the output route when
+     capture BEGINS, not when the type is set. */
+  ariaSetAudioSession('play-and-record');
 
   pc = new RTCPeerConnection();
   /* A CALL THAT DIES SHOULD SAY SO. Until now a failed peer connection
@@ -38285,6 +38296,8 @@ function endRealtimeCallIdle(why){
   if (why === 'silencio' && !ariaRTSignedOff){
     ariaRTSignedOff = true;
     clearRealtimeIdleTimers();
+  /* Hand the audio route back so it doesn't outlive the call. */
+  ariaSetAudioSession('auto');
     if (cueRealtime(CUE_BYE)){
       ariaRTExitTimer = setTimeout(() => endRealtimeCallIdle('despedida terminada'), CALL_EXIT_GRACE_MS);
       return;
@@ -39569,6 +39582,20 @@ function ariaUnlockAudioContext(){
 
    Primed with SILENT_WAV rather than whatever src it last held, which
    is its own old bug: the unlock used to replay the previous reply. */
+/* HER VOICE WAS COMING OUT OF THE EARPIECE.
+   iOS infers audio session; a page holding mic + playing audio looks like
+   a phone call, so WebKit routes to the receiver (earpiece). Declaring
+   play-and-record EXPLICITLY via the W3C Audio Session API (iOS 17+) gets
+   the loudspeaker. Feature-detected, no-op elsewhere. */
+function ariaSetAudioSession(type){
+  try {
+    const s = navigator.audioSession;
+    if (!s) return false;
+    s.type = type;
+    return true;
+  } catch (e) { return false; }
+}
+
 let ariaLiveAudioEl = null;
 function ariaUnlockLiveAudio(){
   try {
@@ -39610,6 +39637,9 @@ function ariaUnlockLiveAudio(){
 }
 
 function unlockAudioForMobile(){
+  /* Claimed synchronously in the tap: startRealtimeVoiceOnce runs after
+     await ariaWarmRealtimeToken(), outside the gesture. */
+  ariaSetAudioSession('play-and-record');
   ariaUnlockLiveAudio();
   /* The context is unlocked on EVERY tap, not only the first: Safari
      suspends it again after an interruption, and audioUnlocked below
