@@ -37117,6 +37117,10 @@ const CALL_IDLE_MS = 35000;        /* total silence before she hangs up */
 /* After she is asked to sign off, the line closes whether or not the
    audio arrived — the timer, never her, is what guarantees it. */
 const CALL_EXIT_GRACE_MS = 4000;
+
+/* The longest she may spend looking before saying so out loud. The
+   brief asks for under 1.5s; this is the ceiling that enforces it. */
+const SCOOP_TIMEOUT_MS = 1400;
 const CALL_HIDDEN_MS = 20000;      /* page backgrounded this long */
 const CALL_MAX_MS = 10 * 60000;    /* nothing runs longer than this */
 const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!';
@@ -37173,6 +37177,9 @@ let ariaRTThresholdTold = false;
 /* And the split trick, separately — they fire on opposite sides of the
    threshold, so one flag could not serve both. */
 let ariaRTSplitTold = false;
+/* Topics she has already given the scoop on, this call. A friend tells
+   you once; an advert tells you every time. */
+let ariaRTScooped = new Set();
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
@@ -37457,6 +37464,7 @@ async function startRealtimeVoice(){
   ariaRTHeardSignOff = false;
   ariaRTThresholdTold = false;
   ariaRTSplitTold = false;
+  ariaRTScooped = new Set();
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37630,6 +37638,18 @@ async function startRealtimeVoice(){
   ariaRTOpening = false;
   ariaRTStartedAt = Date.now();
   armRealtimeIdleTimers();
+  /* WARM THE CATALOGUE WHILE SHE IS SAYING HELLO.
+
+     Measured: the first catalogue-backed tool call takes about
+     thirteen seconds, because relatedPool() loads sixty catalogues on
+     demand; every call after it is under 200ms. Thirteen seconds of
+     silence mid-conversation is unusable, and it would land on
+     whoever mentions a brand first.
+
+     Not awaited: the call must not wait for it either. The load
+     happens behind the greeting and the handshake, so by the time
+     anyone has said a word the pool is usually there. */
+  try { relatedPool().catch(() => {}); } catch (e) {}
   /* Last chance before she speaks: if the context is still suspended
      here, nothing she says will be audible. */
   try { if (sink.open) sink.open(); } catch (e) {}
@@ -38075,6 +38095,106 @@ async function executeRealtimeTool(name, args){
     });
     if (!res.ok) return { unavailable: 'no pude calcular el total ahorita' };
     return await res.json();
+  }
+
+  if (name === 'get_sale_scoop'){
+    /* ============================================================
+       THE SCOOP — ON-SALE ITEMS FOR WHAT HE JUST MENTIONED.
+
+       WHY THIS RUNS IN THE PAGE AND NOT IN A FUNCTION. The brief put
+       it in netlify/functions, but the catalogue is already in memory
+       here: relatedPool() is cached and carries an inverted word
+       index, and catalogSearch already handles Spanish, typos and
+       translation. A server copy would mean loading 169k products per
+       cold start and adding a round trip to a live conversation — the
+       opposite of the brief's own 1.5-second requirement. Same
+       reasoning as search_products, which lives here for the same
+       reason.
+
+       RELEVANCE IS THE DESIGN, not a rule bolted on: the query is
+       built from what he said, so there is no path by which an
+       unrelated sale can come back. She cannot pitch jackets to
+       someone buying cleats because this never returns them.
+
+       ONE DEAL PER STORE. Five rows from the deepest shop cannot
+       produce "Macy's has 30% but Kohl's has 80%", which is the whole
+       point of the sentence.
+       ============================================================ */
+    const brand = String(args.brand || '').trim();
+    const category = String(args.category || '').trim();
+    const topic = [brand, category].filter(Boolean).join(' ').trim();
+    if (!topic) return { unavailable: 'dime la marca o el tipo de producto y te busco las ofertas' };
+
+    /* ONCE PER TOPIC PER CALL, enforced here. Repeating the same deal
+       is how a friend turns into an advert. */
+    const topicKey = topic.toLowerCase();
+    if (ariaRTScooped.has(topicKey)){
+      return { topic, already_told: true, deals: [],
+               note: 'Ya le diste el dato de esto en esta llamada. No lo repitas.' };
+    }
+    ariaRTScooped.add(topicKey);
+
+    /* …AND NEVER BLOCK THE CONVERSATION ON IT.
+
+       ASKED, NOT RACED. A Promise.race cannot interrupt the
+       catalogue load: parsing sixty files is synchronous work on the
+       same thread, so the timer cannot even fire until it finishes —
+       measured at 3.2s before the race noticed. Reading the cache
+       flag is O(1) and truthful, so she answers immediately and the
+       race below stays only as a backstop for a slow search on a warm
+       pool. */
+    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
+      ariaRTScooped.delete(topicKey);
+      return { unavailable: 'todavía estoy cargando las ofertas, pregúntame de nuevo en un momentito' };
+    }
+    let res;
+    try {
+      res = await Promise.race([
+        catalogSearch(topic, { limit: 400 }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), SCOOP_TIMEOUT_MS)),
+      ]);
+    } catch (e) {
+      /* The topic is NOT marked as told: she should be able to try
+         again once the catalogue is warm. */
+      ariaRTScooped.delete(topicKey);
+      return e && e.message === 'slow'
+        ? { unavailable: 'todavía estoy cargando las ofertas, pregúntame de nuevo en un momentito' }
+        : { unavailable: 'el catálogo no cargó, no puedo ver las ofertas ahorita' };
+    }
+
+    const matches = (res && res.items) || [];
+    const onSale = matches.filter(it =>
+      it && itemSaleTier(it) > 0
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
+      && Number(it.originalPrice) > Number(it.price));
+
+    /* Best deal per store, deepest discount first. */
+    const bestPerStore = new Map();
+    for (const it of onSale){
+      const store = it.retailer || 'tienda';
+      const prev = bestPerStore.get(store);
+      if (!prev || discountPct(it) > discountPct(prev)) bestPerStore.set(store, it);
+    }
+    const deals = [...bestPerStore.values()]
+      .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (discountPct(b) - discountPct(a)))
+      .slice(0, 5)
+      .map(it => ({
+        title: String(it.title || '').slice(0, 90),
+        store: it.retailer,
+        /* Both prices and the percentage, so she never has to work out
+           a discount out loud. */
+        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
+        now_usd: Math.round(Number(it.price) * 100) / 100,
+        discount_pct: discountPct(it),
+      }));
+
+    if (!deals.length){
+      return { topic, deals: [],
+               note: 'No hay ofertas de esto ahora. No menciones ninguna — no inventes.' };
+    }
+    /* The cards go up while she talks, so he is looking at them. */
+    for (const it of [...bestPerStore.values()].slice(0, 4)) addAssistantProductCard(it, it.retailer);
+    return { topic, deals };
   }
 
   if (name === 'get_cart_total'){

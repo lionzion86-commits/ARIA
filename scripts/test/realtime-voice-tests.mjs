@@ -98,7 +98,7 @@ check("only tools with a real backend are offered", () => {
      narrates its empty output as fact, which §12 forbids outright. */
   assert.deepEqual([...REALTIME_TOOL_NAMES].sort(),
     ["calculate_total_delivered_price", "get_cart_items", "get_cart_total",
-     "get_order_status", "get_product_details", "search_products"]);
+     "get_order_status", "get_product_details", "get_sale_scoop", "search_products"]);
   /* Taking money is not something a mis-heard sentence should do. */
   assert.ok(!REALTIME_TOOL_NAMES.includes("create_order"), "a voice can place an order");
   for (const t of REALTIME_TOOLS){
@@ -876,7 +876,7 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   /* The parts that carry meaning survive every rung. */
   const last = calls[calls.length - 1].payload.session;
   assert.ok(last.instructions && last.instructions.length > 100, "the instructions were shed");
-  assert.ok(Array.isArray(last.tools) && last.tools.length === 6, "the tools were shed");
+  assert.ok(Array.isArray(last.tools) && last.tools.length === 7, "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
   assert.equal(last.audio.output.voice, "coral", "the voice was shed");
 });
@@ -906,7 +906,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
   assert.ok(minimal.instructions && minimal.instructions.length > 1000,
     "the minimal session dropped her instructions");
   assert.equal(minimal.model, "gpt-realtime", "the minimal session dropped the model");
-  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 6,
+  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 7,
     "the minimal session dropped her tools — she could not search");
   assert.equal(minimal.tool_choice, "auto", "the minimal session dropped tool_choice");
   assert.equal(minimal.audio.input.turn_detection.type, "semantic_vad",
@@ -2050,6 +2050,188 @@ check("a check-in comes before the hang-up, once", () => {
     "tapping a product does not keep the call alive");
   assert.match(page, /addEventListener\('scroll'/, "scrolling does not keep the call alive");
   assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
+});
+
+await checkAsync("the scoop is relevant by construction, and never invented", async () => {
+  /* RELEVANCE IS THE DESIGN, not a rule bolted on. The query is built
+     from what he just said, so there is no path by which an unrelated
+     sale comes back — she cannot pitch jackets to someone buying
+     cleats because this never returns them.
+
+     Lifted and run against a stub catalogue. Under checkAsync, not
+     check: returning a promise from the SYNCHRONOUS harness turned
+     every failed assertion into an unhandled rejection that killed
+     the process before the summary printed — so twelve real catches
+     reported as zero failures. Same trap as a crashed suite, new
+     shape. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_sale_scoop'){");
+  assert.ok(at > 0, "get_sale_scoop has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_cart_total')", at));
+
+  /* The harness injects SCOOP_TIMEOUT_MS, so the cap the lifted slice
+     honours is the harness's, not the page's. Assert the page's own
+     number here: the brief asks for an answer inside 1.5s, and a cap
+     at or above that is no cap at all. */
+  const capAt = page.match(/const SCOOP_TIMEOUT_MS = (\d+);/);
+  assert.ok(capAt, "SCOOP_TIMEOUT_MS is gone from the page");
+  assert.ok(Number(capAt[1]) <= 1500,
+    `the page caps the scoop at ${capAt && capAt[1]}ms — past the 1.5s the brief asks for`);
+
+  const item = (title, store, was, now) => ({ title, retailer: store, originalPrice: was, price: now });
+  const run = async (args, pool, scooped, warm) => {
+    const fn = new Function("args", "catalogSearch", "itemSaleTier", "discountPct",
+      "addAssistantProductCard", "ariaRTScooped", "SCOOP_TIMEOUT_MS", "setTimeout", "Promise",
+      "relatedPoolCache", "name",
+      "return (async () => {" + body + "\n return null; })();");
+    return fn(args,
+      typeof pool === "function" ? pool : async () => ({ items: pool }),
+      /* The two sale checks are DISTINCT in the real page — a tier of
+         zero (not flagged, discount under the carousel threshold) is
+         not the same thing as having no markdown at all. A stub that
+         conflated them made both filters look redundant, so removing
+         either one survived. `tier0` marks the first case. */
+      (it) => (it.tier0 ? 0 : it.flagged ? 1 : (it.originalPrice > it.price ? 2 : 0)),
+      (it) => Math.round((1 - it.price / it.originalPrice) * 100),
+      () => {}, scooped || new Set(), 1400, setTimeout, Promise,
+      warm === undefined ? [1] : warm, "get_sale_scoop");
+  };
+
+  /* ONE DEAL PER STORE, deepest first — the whole point of the
+     sentence is "Macy's has 30% but Kohl's has 80%", which you cannot
+     say from five Kohl's rows. */
+  {
+    /* Deliberately NOT in discount order: the shallowest store comes
+       first, so a missing sort shows up instead of being masked by
+       insertion order. */
+    const pool = [
+      item("Chaqueta Calvin Klein gris", "macys", 150, 105),    /* 30% */
+      item("Polo Calvin Klein", "macys", 60, 48),               /* 20% */
+      item("Chaqueta Calvin Klein azul", "kohls", 200, 40),      /* 80% */
+      item("Chaqueta Calvin Klein negra", "kohls", 180, 54),     /* 70% */
+      item("Camisa sin descuento", "target", 50, 50),            /* no markdown at all */
+      /* Marked down, but not enough to count as a sale — tier 0.
+         Without the tier filter this leaks out as a "deal". */
+      { ...item("Gorra Calvin Klein", "walmart", 20, 19.5), tier0: true },
+      /* FLAGGED AS A SALE BY THE FEED, WITH NO NUMBERS BEHIND IT —
+         itemIsOnSaleFlagged gives it a tier without any markdown. The
+         tier filter lets it through, so only the markdown check stops
+         it, and without that she announces a "0% off" deal. */
+      { ...item("Short Calvin Klein", "dickssportinggoods", 40, 40), flagged: true },
+    ];
+    const r = await run({ brand: "Calvin Klein", category: "chaquetas" }, pool);
+    assert.equal(r.topic, "Calvin Klein chaquetas", "the topic is not what he said");
+    const stores = r.deals.map(d => d.store);
+    assert.deepEqual([...new Set(stores)], stores, "two deals came from the same store");
+    assert.equal(r.deals[0].store, "kohls", "the deepest discount is not first");
+    assert.equal(r.deals[0].discount_pct, 80, "the discount percentage is wrong");
+    assert.equal(r.deals[1].store, "macys", "the second store is missing");
+    /* Both prices AND the percentage, so she never computes a discount. */
+    for (const d of r.deals){
+      assert.ok(d.was_usd > d.now_usd, "a deal has no real markdown");
+      assert.equal(typeof d.discount_pct, "number", "a deal has no percentage to read out");
+      assert.ok(d.title && d.store, "a deal cannot be named");
+    }
+    /* Neither full-price stock nor a markdown too small to count. */
+    assert.ok(!r.deals.some(d => d.store === "target"),
+      "an item with no markdown at all was offered as a sale");
+    assert.ok(!r.deals.some(d => d.store === "walmart"),
+      "a markdown too small to count as a sale was offered as one");
+    assert.ok(!r.deals.some(d => d.store === "dickssportinggoods"),
+      "an item flagged as on sale with no actual markdown was offered as a deal — " +
+      "she would announce a 0% discount");
+
+    /* NO SALES MEANS SAY NOTHING. This is where an invented 80% would
+       come from, so the tool says so in words. */
+    const none = await run({ brand: "Nike" }, [item("Zapatilla Nike", "nike", 100, 100)]);
+    assert.equal(none.deals.length, 0, "a full-price catalogue produced deals");
+    assert.match(none.note, /no inventes/i, "nothing tells her not to invent one");
+
+    /* ONCE PER TOPIC PER CALL, enforced by the tool. A friend tells
+       you once; an advert tells you every time. */
+    const seen = new Set();
+    const first = await run({ brand: "Calvin Klein" }, pool, seen);
+    assert.ok(first.deals.length > 0, "the first ask got nothing");
+    const second = await run({ brand: "Calvin Klein" }, pool, seen);
+    assert.equal(second.already_told, true, "the same scoop can be given twice");
+    assert.equal(second.deals.length, 0, "the repeat still carried deals");
+    /* …but a DIFFERENT topic is still allowed. */
+    const other = await run({ category: "chimpunes" }, pool, seen);
+    assert.ok(!other.already_told, "one topic blocked every other topic");
+
+    /* Nothing to search on is a question, not a guess. */
+    const empty = await run({}, pool);
+    assert.match(empty.unavailable, /dime la marca o el tipo/, "an empty topic guesses");
+
+    /* A SLOW CATALOGUE MUST NOT BE DEAD AIR. Measured on the real
+       page: the FIRST catalogue-backed call takes about thirteen
+       seconds, because relatedPool() loads sixty catalogues on
+       demand; every call after it is under 200ms. Thirteen seconds of
+       silence mid-conversation is unusable, so the call warms the
+       pool at start AND this caps the wait. */
+    {
+      const slow = new Set();
+      /* THE REAL CASE: the pool has not loaded yet. Asked, not raced
+         — a Promise.race cannot interrupt the catalogue load, because
+         parsing sixty files is synchronous work on the same thread
+         and the timer cannot fire until it finishes. Measured at
+         3.2s before this check existed; 1ms after. */
+      const cold = await run({ brand: "Nike" }, [], slow, null);
+      assert.match(cold.unavailable, /momentito|cargando/,
+        "a cold catalogue leaves the line silent instead of saying so");
+      assert.equal(slow.has("nike"), false,
+        "a cold-start answer burned the topic for the rest of the call");
+
+      /* …and the race stays as a backstop for a slow search on a warm
+         pool. */
+      const t0 = Date.now();
+      const r2 = await run({ brand: "Nike" }, () => new Promise(res => setTimeout(res, 5000)), slow);
+      const waited = Date.now() - t0;
+      assert.match(r2.unavailable, /momentito|cargando/,
+        "a slow search on a warm pool leaves the line silent");
+      /* The CAP is the point, not just the wording: a timeout set long
+         enough still answers eventually, and the answer arrives after
+         the caller has given up on her. Five seconds of dead air in a
+         phone call is the bug. */
+      assert.ok(waited < 2000,
+        `she sat silent for ${waited}ms — the wait is not capped`);
+      /* …and the topic must stay un-told, so she can try again once
+         the catalogue is warm. Marking it told would mean one slow
+         moment costs the scoop for the whole call. */
+      assert.equal(slow.has("nike"), false,
+        "a timed-out scoop burned the topic for the rest of the call");
+    }
+
+    /* The call warms the catalogue so the thirteen seconds happens
+       behind the greeting rather than mid-sentence. */
+    assert.match(page, /relatedPool\(\)\.catch\(\(\) => \{\}\)/,
+      "the catalogue is not warmed when the call starts");
+    const warmAt = page.indexOf("relatedPool().catch(() => {})");
+    const armAt = page.indexOf("armRealtimeIdleTimers();", page.indexOf("ariaRTStartedAt = Date.now();"));
+    assert.ok(warmAt > armAt, "the warm-up blocks the call setup");
+
+    /* Reset per call, or only the first call of a page load scoops. */
+    const startAt = page.indexOf("async function startRealtimeVoice()");
+    assert.match(page.slice(startAt, startAt + 6000), /ariaRTScooped = new Set\(\);/,
+      "the scooped-topics set is never reset for a new call");
+  }
+});
+
+check("the scoop rules keep her a friend and not an advert", () => {
+  const i = buildRealtimeInstructions(null);
+  assert.match(i, /ERES LA AMIGA QUE SABE DÓNDE ESTÁN LAS OFERTAS/, "the scoop has no instructions");
+  assert.match(i, /pide get_sale_scoop/, "she is not told to ask the tool");
+  /* Relevance, stated as the rule Danny cares most about. */
+  assert.match(i, /SOLO de lo que está buscando AHORA/, "relevance is not required");
+  assert.match(i, /Nunca cambias de tema para meter\s*\r?\n?una oferta/,
+    "she may change the subject to fit a sale in");
+  assert.match(i, /DOS frases como máximo/, "the scoop is not bounded to two sentences");
+  assert.match(i, /no mencionas ninguna\. No\s*\r?\n?inventes/, "she may invent a discount");
+  assert.match(i, /No los calcules ni los redondees/, "she may compute a discount herself");
+  assert.match(i, /already_told/, "nothing stops her repeating the same scoop");
+  assert.match(i, /Informas, no\s*\r?\n?presionas/, "she may pressure him");
+  assert.match(i, /pregúntale de qué antes\s*\r?\n?de buscar/,
+    "a bare \"what's on sale?\" is answered with a guess");
 });
 
 check("the browser never receives the standing API key", () => {

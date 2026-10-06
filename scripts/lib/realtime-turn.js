@@ -79,6 +79,29 @@ export const REALTIME_TOOLS = Object.freeze([
   },
   {
     type: "function",
+    name: "get_sale_scoop",
+    /* THE FRIEND WHO KNOWS WHERE THE SALES ARE.
+
+       Relevance is the whole design. One best deal PER STORE rather
+       than five from whichever shop happens to be deepest, because
+       the useful sentence is "Macy's has 30% but Kohl's has 80%" and
+       you cannot say that from five Kohl's rows. */
+    description:
+      "Ofertas REALES de una marca o categoría que el cliente acaba de mencionar: " +
+      "tienda, precio antes, precio ahora y el descuento. Úsala cuando nombre una marca " +
+      "o un tipo de producto, nunca para cambiar de tema. Nunca inventes un descuento.",
+    parameters: {
+      type: "object",
+      properties: {
+        brand: { type: "string", description: "La marca que nombró, si nombró una." },
+        category: { type: "string", description: "El tipo de producto que busca, si lo dijo." },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
     name: "get_cart_total",
     /* THE $200 LEVER, AND THE REASON IT IS A TOOL.
 
