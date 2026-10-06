@@ -33935,7 +33935,14 @@ function cleanSpokenText(t){
    one of these is somehow called before that line runs.
    ================================================================== */
 function ariaLiveCallActive(){
-  try { return !!ariaRT; } catch (e) { return false; }
+  /* ariaRT is only assigned once the SDP handshake completes, and the
+     handshake is hundreds of milliseconds on a real network — during
+     which the data channel already exists and the old pipeline is
+     still unguarded. My own test harness walked straight into that
+     window: closeMicForSpeak() set intentionalStop while the call was
+     coming up. ariaRTOpening covers the gap from the first line of
+     startRealtimeVoice to either outcome. */
+  try { return !!ariaRT || ariaRTOpening === true; } catch (e) { return false; }
 }
 
 function speakText(text){
@@ -33989,6 +33996,14 @@ function speakWithLily(text, guard){
    while it is set, so even a stray re-arm cannot go hot mid-utterance.
    Each speak path reopens the mic when its audio actually ends. */
 function closeMicForSpeak(){
+  /* THE CHOKEPOINT. Every old speak path runs through here, and here
+     is where the microphone dies: intentionalStop, micLive = false,
+     recognition.stop(). On a live call there is nothing to close and
+     closing it is the walkie-talkie feel itself — the line stays open
+     from the tap to the hang-up. Belt and braces with the per-function
+     guards above: if a new caller is ever added upstream, it still
+     cannot shut the mic mid-call. */
+  if (ariaLiveCallActive()) return;
   intentionalStop = true;
   intentionalStopAt = Date.now();
   micLive = false;
@@ -36545,6 +36560,7 @@ function flushSpeechBuffer(){
    the retry (the speak path usually reopens it, but autoplay blocks and
    dead utterance callbacks must not be able to veto it). */
 function reopenMicForRetry(){
+  if (ariaLiveCallActive()) return;
   /* No onended will fire (play was blocked): run the same turn-end
      decision a finished reply would have. */
   afterAriaVoiceEnds();
@@ -36567,6 +36583,11 @@ function reopenMicForRetry(){
    which of the two it is, since colour alone says nothing.
    ================================================================== */
 function setAssistantMicState(listening){
+  /* The old loop owns this button only when the old loop is running.
+     During a call setRealtimeUi owns it, and a stray repaint from a
+     recognition event that was already in flight would show "Hablar
+     con Aria" on a live call. */
+  if (ariaLiveCallActive()) return;
   const micBtn = document.getElementById('assistantMicBtn');
   if (micBtn){
     micBtn.innerHTML = MIC_ICON_SVG;
@@ -36630,6 +36651,9 @@ const MIC_OFF_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="
 
 /* The pill's third look: idle, mic off, tap to talk. */
 function setAssistantMicTapToTalk(){
+  /* "Toca el micrófono para hablar" is a lie during a call — the mic
+     is already open and a tap would hang up. */
+  if (ariaLiveCallActive()) return;
   const micBtn = document.getElementById('assistantMicBtn');
   if (micBtn){
     micBtn.innerHTML = MIC_OFF_ICON_SVG;
@@ -36644,6 +36668,17 @@ function setAssistantMicTapToTalk(){
 }
 
 function afterAriaVoiceEnds(){
+  /* NOT DURING A LIVE CALL. This is the 2026-10-02 re-arm rule, and it
+     is right for the old loop: after a reply with tappable cards the
+     mic stays off and the cue invites a tap. On a live call the mic
+     never closed, so there is nothing to re-arm — and the branch below
+     would fire speakMicOffCue() and paint "toca el micrófono" over an
+     open line.
+
+     It can still be reached mid-call: ariaAudioPlayer.onended from a
+     reply that started before the tap is still attached to the shared
+     element when the call comes up. */
+  if (ariaLiveCallActive()) return;
   /* One decision per spoken turn. */
   if (ariaVoiceEndFiredFor === ariaVoiceTurnId) return;
   ariaVoiceEndFiredFor = ariaVoiceTurnId;
@@ -36986,10 +37021,17 @@ const REALTIME_TOKEN_URL = '/api/realtime-token';
    Silence was the wrong default. Falling back is still invisible to a
    shopper mid-sentence, but it is never invisible to us again. */
 let ariaRTFailure = null;
+/* True from the moment a call starts opening until it is either live
+   or known to have failed. Cleared on BOTH outcomes — left set after a
+   failure it would mute the classic voice permanently. */
+let ariaRTOpening = false;
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
 function noteRealtimeFailure(reason, detail){
+  /* Every failure path in startRealtimeVoice comes through here, so
+     this is the one place the opening flag has to be released. */
+  ariaRTOpening = false;
   ariaRTFailure = { reason, detail: detail == null ? null : String(detail), at: new Date().toISOString() };
   console.warn('[aria] voz en vivo no arrancó —', reason, detail == null ? '' : detail);
   return false;
@@ -37136,6 +37178,9 @@ function buildAudioSink(){
 
 async function startRealtimeVoice(){
   if (ariaRT) return true;
+  /* Before anything else: from here the old pipeline is off limits,
+     not from the moment the call finishes connecting. */
+  ariaRTOpening = true;
   const can = realtimeAvailable();
   if (!can.ok) return noteRealtimeFailure('el navegador no la soporta', can.reason);
 
@@ -37251,12 +37296,20 @@ async function startRealtimeVoice(){
   }
 
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
+  ariaRTOpening = false;
   /* THE GAP BETWEEN THE TAP AND THE CALL. A greeting or a mic-off cue
      can already be mid-utterance by the time the session comes up.
      The guards above stop anything NEW from starting; these two stop
      what is already audible. */
   try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
   try { ariaAudioPlayer.pause(); } catch (e) {}
+  /* AND CUT THE WIRES, not just the sound. onended / onerror from the
+     reply that was playing a moment ago are still attached to this
+     shared element, and both run the old turn-end decision. The guards
+     above would catch them, but an unsubscribed handler cannot fire at
+     all — one less thing depending on a guard being right. */
+  try { ariaAudioPlayer.onended = null; ariaAudioPlayer.onerror = null;
+        ariaAudioPlayer.onplaying = null; ariaAudioPlayer.onpause = null; } catch (e) {}
   ariaRTFailure = null;
   setRealtimeUi(true);
   return true;
@@ -37320,6 +37373,7 @@ function stopRealtimeVoice(){
   try { ariaRT.pc.close(); } catch {}
   try { ariaRT.sink.cut(); } catch {}
   ariaRT = null;
+  ariaRTOpening = false;
   ariaRTWanted = false;
   setRealtimeUi(false);
 }
@@ -37522,10 +37576,16 @@ function setRealtimeUi(live, muted){
       : 'En vivo — habla cuando quieras, puedes interrumpirme';
   }
   if (micBtn){
+    /* The old loop may have left the struck-through icon and a "toca
+       para hablar" label on this button. On a live call it is a
+       hang-up button over an open microphone, so it is repainted
+       outright rather than tweaked. */
+    if (live) micBtn.innerHTML = MIC_ICON_SVG;
     micBtn.style.background = live && !muted ? 'var(--blue)' : '';
     micBtn.style.color = live && !muted ? '#fff' : 'var(--navy)';
     micBtn.setAttribute('aria-pressed', live && !muted ? 'true' : 'false');
     micBtn.setAttribute('aria-label', live ? 'Terminar la llamada con Aria' : 'Hablar con Aria');
+    micBtn.setAttribute('title', live ? 'Terminar la llamada con Aria' : 'Hablar con Aria');
   }
   /* The bar exists only for the duration of a call. */
   if (bar) bar.hidden = !live;

@@ -1092,6 +1092,250 @@ check("the iOS unlock cannot replay the last thing she said", () => {
   assert.equal(buf.readUInt32LE(40), 0, "SILENT_WAV contains actual samples");
 });
 
+check("nothing closes or re-arms the microphone during a live call", () => {
+  /* The 2026-10-02 re-arm rule is correct for the old loop and fatal
+     for a call: after a reply with tappable cards it deliberately
+     leaves the mic OFF and paints "toca el micrófono". On an open line
+     that is both a lie and the walkie-talkie feel itself.
+
+     Run, both ways: with a call these must do nothing, without one
+     they must still do their job, or ?voz=clasica loses its mic. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const bodyOf = (name) => {
+    const at = page.indexOf("function " + name + "(");
+    assert.ok(at > 0, `${name} is gone from index.html`);
+    let d = 0, end = -1;
+    for (let k = page.indexOf("{", at); k < page.length; k++){
+      if (page[k] === "{") d++;
+      else if (page[k] === "}" && --d === 0){ end = k; break; }
+    }
+    return page.slice(at, end + 1);
+  };
+  const guard = bodyOf("ariaLiveCallActive");
+
+  /* closeMicForSpeak is the chokepoint: every old speak path runs
+     through it and it is where the microphone actually dies. */
+  for (const live of [true, false]){
+    const state = { intentionalStop: false, micLive: true, ariaVoiceActive: false, stopped: false, painted: null };
+    const fn = new Function("ariaRT", "intentionalStop", "intentionalStopAt", "micLive",
+      "ariaVoiceActive", "clearSpeechCapTimer", "recognition", "setAssistantMicState", "__s",
+      guard + "\n" + bodyOf("closeMicForSpeak").replace(/^function closeMicForSpeak\(\)\{/, "function closeMicForSpeak(){")
+        .replace(/intentionalStop = true;/, "__s.intentionalStop = true;")
+        .replace(/micLive = false;/, "__s.micLive = false;")
+        .replace(/ariaVoiceActive = true;/, "__s.ariaVoiceActive = true;")
+      + "\n return closeMicForSpeak;");
+    fn(live ? { pc: {} } : null, false, 0, true, false, () => {},
+       { stop(){ state.stopped = true; } }, (v) => { state.painted = v; }, state)();
+    if (live){
+      assert.equal(state.intentionalStop, false, "a live call set intentionalStop");
+      assert.equal(state.micLive, false === state.micLive ? state.micLive : true, "micLive was cleared on a live call");
+      assert.equal(state.stopped, false, "recognition.stop() ran during a live call");
+      assert.equal(state.painted, null, "the mic button was repainted by the old loop mid-call");
+    } else {
+      assert.equal(state.intentionalStop, true, "the classic path no longer closes the mic");
+      assert.equal(state.stopped, true, "the classic path no longer stops recognition");
+      assert.equal(state.painted, false, "the classic path no longer repaints the mic button");
+    }
+  }
+
+  /* The re-arm decision, and the two painters the old loop owns. */
+  for (const name of ["afterAriaVoiceEnds", "reopenMicForRetry", "setAssistantMicTapToTalk", "setAssistantMicState"]){
+    const body = bodyOf(name);
+    assert.match(body.slice(0, 900), /if \(ariaLiveCallActive\(\)\) return;/,
+      `${name} can still run during a live call`);
+    /* …and the guard must come before anything it would change. */
+    /* Measured from inside the braces, and never against the
+       function's own name — `function afterAriaVoiceEnds(){` matched
+       the "effect" token at index 9 and failed a correct guard. */
+    /* Comments stripped first: the guard's own explanation mentions
+       speakMicOffCue(), and an earlier version of this assertion
+       measured that prose as if it were code. */
+    const inner = body.slice(body.indexOf("{") + 1)
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    const guardAt = inner.indexOf("if (ariaLiveCallActive()) return;");
+    const firstEffect = Math.min(...["document.getElementById", "ariaVoiceActive =", "setOrbState(", "speakMicOffCue("]
+      .filter(t => !t.startsWith(name))
+      .map(t => { const i = inner.indexOf(t); return i < 0 ? Infinity : i; }));
+    assert.ok(guardAt >= 0, `${name} lost its guard`);
+    assert.ok(guardAt < firstEffect,
+      `${name} acts before it checks for a live call (guard at ${guardAt}, effect at ${firstEffect})`);
+  }
+});
+
+check("the classic re-arm rule still works when no call is live", () => {
+  /* Danny's 2026-10-02 rule stands for ?voz=clasica, and a guard that
+     is too wide would silently repeal it: the old loop would speak and
+     then never reopen its microphone. A mutation disabling
+     afterAriaVoiceEnds outright passed every other check here, so this
+     runs it and watches both of its branches. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function afterAriaVoiceEnds(");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const guardSrc = page.slice(page.indexOf("function ariaLiveCallActive(){"),
+                              page.indexOf("\n}", page.indexOf("function ariaLiveCallActive(){")) + 2);
+  const body = page.slice(at, end + 1);
+
+  const run = ({ live, tappables }) => {
+    const seen = { cue: 0, listen: 0, orb: null, scheduled: [] };
+    const fn = new Function("ariaRT", "ariaVoiceEndFiredFor", "ariaVoiceTurnId", "ariaVoiceActive",
+      "setOrbState", "continuousMode", "assistantThinking", "assistantReplyHasTappables",
+      "speakMicOffCue", "echoGuardUntil", "MIC_REARM_BUFFER_MS", "setTimeout", "startListening", "__seen",
+      guardSrc + "\n" + body + "\n return afterAriaVoiceEnds;");
+    fn(live ? { pc: {} } : null, -1, 1, false,
+       (v) => { seen.orb = v; }, true, false, tappables,
+       () => { seen.cue++; }, 0, 400,
+       (f) => { seen.scheduled.push(f); }, () => { seen.listen++; }, seen)();
+    return seen;
+  };
+
+  /* Classic, reply with tappable cards: mic stays off, cue invites a tap. */
+  const classicTappables = run({ live: false, tappables: true });
+  assert.equal(classicTappables.cue, 1, "the classic tap-to-talk cue no longer fires");
+  assert.equal(classicTappables.orb, "idle", "the orb is not settled on the classic path");
+
+  /* Classic, plain reply: the re-arm is scheduled after the settle buffer. */
+  const classicPlain = run({ live: false, tappables: false });
+  assert.equal(classicPlain.cue, 0, "a plain classic reply fired the tap-to-talk cue");
+  assert.equal(classicPlain.scheduled.length, 1, "the classic mic re-arm is no longer scheduled");
+  classicPlain.scheduled[0]();
+  assert.equal(classicPlain.listen, 1, "the classic loop never reopens its microphone");
+
+  /* Live call: neither branch runs. */
+  for (const tappables of [true, false]){
+    const onCall = run({ live: true, tappables });
+    assert.equal(onCall.cue, 0, "the tap-to-talk cue fired during a live call");
+    assert.equal(onCall.scheduled.length, 0, "a mic re-arm was scheduled during a live call");
+    assert.equal(onCall.orb, null, "the old loop repainted the orb during a live call");
+  }
+});
+
+check("she can still be heard after a barge-in, and after several", () => {
+  /* A DEPENDENCY, PINNED RATHER THAN CHANGED. After an interruption
+     the reducer sits in LISTENING, and response.created deliberately
+     does not move it — so the next response's audio is DROPPED unless
+     input_audio_buffer.speech_stopped arrives first and lifts the
+     phase to THINKING.
+
+     With semantic VAD the server does send speech_stopped before it
+     creates a response, so this is correct today. But if that event
+     were ever missed, Aria would go silent for the rest of the call
+     and the reducer would look fine. This test makes that dependency
+     explicit so it cannot be removed by accident. Keying the drop on
+     the cancelled response_id instead of the phase would remove the
+     dependency entirely — proposed in the PR, not done here, because
+     turn detection is out of scope for this change. */
+  const turn = (id) => [
+    { type: "response.created", response: { id } },
+    { type: "response.output_audio.delta", response_id: id, delta: "x" },
+  ];
+  const play = (events) => {
+    let st = createVoiceTurnState();
+    const log = [];
+    for (const e of events){
+      const r = voiceTurnReducer(st, e);
+      st = r.state;
+      log.push(...r.actions);
+    }
+    return { phase: st.phase, log };
+  };
+
+  /* The real server sequence: three interruptions in a row, and she
+     is audible every time. */
+  const real = [];
+  for (const id of ["r1", "r2", "r3"]){
+    real.push(...turn(id),
+      { type: "input_audio_buffer.speech_started" },
+      { type: "input_audio_buffer.speech_stopped" });
+  }
+  const got = play(real);
+  assert.equal(got.log.filter(a => a === "playAudio").length, 3,
+    "she was muted after being interrupted");
+  assert.equal(got.log.filter(a => a === "cancelResponse").length, 3,
+    "a later barge-in stopped cancelling the response server-side");
+  assert.equal(got.log.filter(a => a === "dropAudio").length, 0,
+    "a new answer was dropped as if it were the interrupted one");
+
+  /* And the dependency itself, stated: without speech_stopped the
+     next answer is dropped. If this ever starts passing as
+     "playAudio", the reducer was changed and this comment is stale. */
+  const withoutStop = play([...turn("a1"), { type: "input_audio_buffer.speech_started" }, ...turn("a2")]);
+  assert.ok(withoutStop.log.includes("dropAudio"),
+    "the reducer no longer depends on speech_stopped — update this test and the PR note");
+});
+
+check("the guard covers the window while the call is still connecting", () => {
+  /* FOUND BY THE BROWSER HARNESS, NOT BY READING. ariaRT is assigned
+     only after the SDP handshake, but the data channel and the
+     microphone exist before it — so for the length of a real
+     handshake the old pipeline was still unguarded. The harness
+     walked into it: closeMicForSpeak() set intentionalStop while the
+     call was coming up.
+
+     Left set after a failure this flag would mute the classic voice
+     for good, so both outcomes must clear it. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.match(page, /return !!ariaRT \|\| ariaRTOpening === true;/,
+    "the guard does not cover the connecting window");
+
+  const start = page.slice(page.indexOf("async function startRealtimeVoice()"));
+  const startBody = start.slice(0, start.indexOf("\n/** End the session"));
+  /* Set before anything can go wrong… */
+  const setAt = startBody.indexOf("ariaRTOpening = true;");
+  assert.ok(setAt > 0 && setAt < startBody.indexOf("getUserMedia("),
+    "the flag is set after the microphone is already being acquired");
+  /* …and cleared the moment the session is real. */
+  assert.match(startBody, /ariaRT = \{ pc, dc, mic, sink, send[^]{0,120}ariaRTOpening = false;/,
+    "the flag is not cleared when the call goes live");
+
+  /* Every failure path goes through noteRealtimeFailure, so that is
+     where the release has to live. */
+  const note = page.slice(page.indexOf("function noteRealtimeFailure("));
+  assert.match(note.slice(0, 500), /ariaRTOpening = false;/,
+    "a failed call leaves the classic voice muted forever");
+  /* …and hanging up clears it too. */
+  const stop = page.slice(page.indexOf("function stopRealtimeVoice()"));
+  assert.match(stop.slice(0, 500), /ariaRTOpening = false;/, "hanging up leaves the flag set");
+
+  /* The flag must not be reachable as a way to mute the classic voice
+     when no call was ever attempted. */
+  const decl = /let ariaRTOpening = false;/.test(page);
+  assert.ok(decl, "ariaRTOpening is not initialised to false");
+});
+
+check("the live mic button is a hang-up, not a tap-to-talk", () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function setRealtimeUi(");
+  const body = page.slice(at, page.indexOf("\n}", at));
+  /* The old loop can leave the struck-through icon and a "toca para
+     hablar" title on this button; a call repaints it outright. */
+  assert.match(body, /if \(live\) micBtn\.innerHTML = MIC_ICON_SVG;/,
+    "a live call can inherit the muted microphone icon");
+  assert.match(body, /aria-label[^]{0,60}Terminar la llamada/,
+    "the live button does not announce itself as a hang-up");
+  assert.match(body, /'title', live \? 'Terminar la llamada con Aria'/,
+    "the live button keeps a stale title");
+  /* The status line never says tap-to-talk while live. */
+  assert.ok(!/live[^\n]*Toca el micrófono/.test(body), "a live call shows a tap-to-talk prompt");
+});
+
+check("the stale audio handlers are detached when a call starts", () => {
+  /* onended from the reply that was playing a moment ago is still
+     attached to the shared element. The guards would catch it, but an
+     unsubscribed handler cannot fire at all. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("ariaRT = { pc, dc, mic, sink, send");
+  const after = page.slice(at, at + 1200);
+  for (const h of ["onended", "onerror", "onplaying", "onpause"]){
+    assert.ok(new RegExp(`ariaAudioPlayer\\.${h} = null`).test(after),
+      `ariaAudioPlayer.${h} survives into the call`);
+  }
+});
+
 check("the browser never receives the standing API key", () => {
   const page = readFileSync(ROOT + "index.html", "utf8");
   assert.ok(!page.includes("OPENAI_API_KEY"), "index.html references OPENAI_API_KEY");
