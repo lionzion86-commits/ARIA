@@ -37058,6 +37058,16 @@ const ARIA_RT_FLAG = 'ariaLiveVoice';
    redirected in netlify.toml to the function the page used before. */
 const REALTIME_TOKEN_URL = '/api/realtime-token';
 
+/* How long a "disconnected" peer connection is given to come back
+   before the call is declared dead. WebRTC recovers from short drops
+   on its own; a tunnel should not end the conversation. */
+const CALL_DROP_GRACE_MS = 6000;
+
+/* The greeting is retried rather than dropped: the data channel can
+   still be opening when session.updated lands. */
+const GREETING_ATTEMPTS = 3;
+const GREETING_RETRY_MS = 500;
+
 /* What she is asked to do the moment the line opens. A brief, not a
    script: a fixed sentence played every time is a recording, and the
    point of the live voice is that she is not one. */
@@ -37085,6 +37095,11 @@ let ariaRTFailure = null;
 let ariaRTOpening = false;
 /* One greeting per call, whichever path requests it first. */
 let ariaRTGreeted = false;
+/* Set only while WE are closing the call, so a "closed" peer
+   connection is not reported as a dropped one. */
+let ariaRTClosing = false;
+/* One retry chain for the greeting, never two. */
+let ariaRTGreetRetrying = false;
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
@@ -37348,9 +37363,19 @@ async function startRealtimeVoice(){
   const T = window.AriaRealtimeTurn;
   let turn = T.createVoiceTurnState();
   const sink = buildAudioSink();
+  /* The context is opened inside the tap by ariaUnlockAudioContext();
+     this is the second line of defence, and it is the FIRST one on the
+     retry path — the "Intentar de nuevo" button calls
+     startRealtimeVoice() directly and never goes through
+     unlockAudioForMobile(). A suspended context here is silence. */
+  try {
+    if (sink.ctx && sink.ctx.state === 'suspended') await sink.ctx.resume();
+  } catch (e) { console.warn('[aria] could not resume the audio context:', e.message); }
+  console.info('[aria] AudioContext state:', sink.ctx ? sink.ctx.state : 'none');
   let mic = null, pc = null, dc = null;
   /* Reset per call, module-scoped so onRealtimeEvent can see it. */
   ariaRTGreeted = false;
+  ariaRTGreetRetrying = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37380,7 +37405,59 @@ async function startRealtimeVoice(){
   }
 
   pc = new RTCPeerConnection();
-  pc.ontrack = (ev) => { if (ev.streams && ev.streams[0]) sink.attach(ev.streams[0]); };
+  /* A CALL THAT DIES SHOULD SAY SO. Until now a failed peer connection
+     left the UI showing a live call with an open microphone and no
+     audio — indistinguishable from Aria simply not talking.
+
+     Two deliberate departures from the obvious version:
+
+       - "disconnected" is NOT fatal. It is what a tunnel or a lift
+         looks like, and WebRTC recovers from it on its own; failing
+         the call there would drop a conversation that was about to
+         resume. It is given a grace period and only fails if it has
+         not come back.
+       - "closed" after OUR OWN hang-up is not an error. Without that
+         check, ending a call would pop an error panel on the way out. */
+  let dropTimer = null;
+  const clearDropTimer = () => { if (dropTimer){ clearTimeout(dropTimer); dropTimer = null; } };
+  const callDropped = (why) => {
+    clearDropTimer();
+    if (ariaRTClosing) return;                 /* we hung up: expected */
+    if (!ariaRT && !ariaRTOpening) return;     /* already torn down */
+    console.warn('[aria] the call dropped:', why);
+    /* Release the hardware before the error panel goes up, or the
+       microphone stays hot behind a dead session. */
+    try { stopRealtimeVoice({ silent: true }); } catch (e) {}
+    noteRealtimeFailure('la llamada se cortó', why);
+    showRealtimeError();
+  };
+  pc.onconnectionstatechange = () => {
+    const st = pc.connectionState;
+    console.info('[aria] pc connectionState:', st);
+    if (st === 'connected'){ clearDropTimer(); return; }
+    if (st === 'failed'){ callDropped('connectionState: failed'); return; }
+    if (st === 'closed'){ callDropped('connectionState: closed'); return; }
+    if (st === 'disconnected' && !dropTimer){
+      dropTimer = setTimeout(() => {
+        dropTimer = null;
+        if (pc.connectionState !== 'connected') callDropped('connectionState: disconnected');
+      }, CALL_DROP_GRACE_MS);
+    }
+  };
+  pc.oniceconnectionstatechange = () => {
+    console.info('[aria] ice connectionState:', pc.iceConnectionState);
+  };
+  /* Some stacks deliver the track without a stream wrapper. Dropping
+     that event means her voice arrives and is never attached to
+     anything — audible silence with a healthy connection. */
+  pc.ontrack = (ev) => {
+    let stream = (ev.streams && ev.streams[0]) || null;
+    if (!stream && ev.track){
+      try { stream = new MediaStream([ev.track]); } catch (e) { stream = null; }
+    }
+    if (stream){ console.info('[aria] remote track attached'); sink.attach(stream); }
+    else console.warn('[aria] ontrack fired with neither a stream nor a track');
+  };
   for (const track of mic.getTracks()) pc.addTrack(track, mic);
 
   dc = pc.createDataChannel('oai-events');
@@ -37532,8 +37609,12 @@ async function retryRealtimeVoice(){
 }
 
 /** End the session and give the microphone back. */
-function stopRealtimeVoice(){
+function stopRealtimeVoice(opts){
   if (!ariaRT) return;
+  /* So the connectionstatechange handler can tell a hang-up from a
+     dropped call: closing the peer connection fires "closed" either
+     way. */
+  ariaRTClosing = true;
   try { ariaRT.mic.getTracks().forEach(t => t.stop()); } catch {}
   try { ariaRT.dc.close(); } catch {}
   try { ariaRT.pc.close(); } catch {}
@@ -37541,7 +37622,10 @@ function stopRealtimeVoice(){
   ariaRT = null;
   ariaRTOpening = false;
   ariaRTWanted = false;
-  setRealtimeUi(false);
+  ariaRTClosing = false;
+  /* A drop tears the session down and then shows its own error, so it
+     asks for the UI to be left alone here. */
+  if (!opts || !opts.silent) setRealtimeUi(false);
 }
 
 /**
@@ -37582,9 +37666,9 @@ function toggleRealtimeMute(){
  * It also used to be fired blind: send() swallowed a closed channel,
  * so a dropped greeting looked identical to a model that declined.
  */
-function sendRealtimeGreeting(send){
+function sendRealtimeGreeting(send, left){
   if (ariaRTGreeted) return false;
-  ariaRTGreeted = true;
+  const remaining = typeof left === 'number' ? left : GREETING_ATTEMPTS;
   const ok = send({
     type: 'response.create',
     response: {
@@ -37595,8 +37679,28 @@ function sendRealtimeGreeting(send){
       input: [],
     },
   });
-  console.info('[aria] greeting requested:', ok ? 'sent' : 'NOT sent');
-  return ok;
+  if (ok){
+    /* FLAGGED ONLY ON SUCCESS. Setting it before the send meant a
+       greeting dropped by a channel that was not open yet could never
+       be retried — she just never spoke, and nothing said why. */
+    ariaRTGreeted = true;
+    console.info('[aria] greeting sent');
+    return true;
+  }
+  if (remaining > 0){
+    /* One chain, however many callers ask: session.updated and the
+       backstop timer both land here. */
+    if (!ariaRTGreetRetrying){
+      ariaRTGreetRetrying = true;
+      setTimeout(() => {
+        ariaRTGreetRetrying = false;
+        sendRealtimeGreeting(send, remaining - 1);
+      }, GREETING_RETRY_MS);
+    }
+  } else {
+    console.warn('[aria] greeting never sent — the data channel never opened');
+  }
+  return false;
 }
 
 async function onRealtimeEvent(event, turn, send){

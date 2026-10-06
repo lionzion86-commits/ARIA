@@ -722,7 +722,7 @@ check("nothing in the live path records, chunks, or auto-sends", () => {
   }
 
   /* Stopping belongs to ending the call and to a failed connect. */
-  const stopFn = page.slice(page.indexOf("function stopRealtimeVoice()"));
+  const stopFn = page.slice(page.indexOf("function stopRealtimeVoice("));
   assert.match(stopFn.slice(0, 400), /mic\.getTracks\(\)\.forEach\(t => t\.stop\(\)\)/,
     "ending the call no longer releases the microphone");
   /* Disabling belongs to mute, and to nothing else. */
@@ -1213,54 +1213,187 @@ check("the audio context is opened inside the tap, not after the fetch", () => {
   assert.ok(!/new AC\(\)/.test(sinkBody), "the sink still constructs an AudioContext");
 });
 
-check("the greeting she speaks is locked to audio, and sent once", () => {
-  /* WHY IT WAS SILENT (2026-10-06). Two things were missing and either
-     alone produces no sound: output_modalities ["audio"], without
-     which the model may answer in text only, and input: [] — the
-     documented shape for greeting with no conversation context.
+check("a dropped call says so, but a tunnel does not end it", () => {
+  /* Until now a failed peer connection left the UI showing a live call
+     with an open microphone and no audio — indistinguishable from Aria
+     not talking. Two things the obvious version gets wrong, both
+     asserted here:
+       - "disconnected" is what a tunnel or a lift looks like and
+         WebRTC recovers from it, so it must NOT kill the call outright
+       - "closed" after our own hang-up is not an error */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  pc.onconnectionstatechange = () => {");
+  assert.ok(at > 0, "there is no connection-state monitoring");
+  const body = page.slice(at, page.indexOf("\n  pc.oniceconnectionstatechange", at));
 
+  assert.match(body, /st === 'failed'\)\{ callDropped/, "a failed connection is not reported");
+  assert.match(body, /st === 'closed'\)\{ callDropped/, "a closed connection is not reported");
+  /* Disconnected gets a grace period, not a death sentence. */
+  assert.match(body, /st === 'disconnected' && !dropTimer/, "a transient drop kills the call");
+  assert.match(body, /setTimeout\([\s\S]{0,200}CALL_DROP_GRACE_MS\)/,
+    "the grace period is not a timer");
+  assert.match(body, /if \(pc\.connectionState !== 'connected'\) callDropped/,
+    "the call is failed even if the connection came back");
+  assert.match(body, /st === 'connected'\)\{ clearDropTimer\(\); return; \}/,
+    "recovering does not cancel the pending failure");
+
+  /* The teardown order matters: release the hardware, then show the
+     error, or the microphone stays hot behind a dead session. */
+  const dropped = page.slice(page.indexOf("  const callDropped = (why) => {"));
+  const dropBody = dropped.slice(0, dropped.indexOf("\n  };"));
+  assert.match(dropBody, /if \(ariaRTClosing\) return;/,
+    "ending a call pops an error panel on the way out");
+  assert.ok(dropBody.indexOf("stopRealtimeVoice({ silent: true })") < dropBody.indexOf("showRealtimeError()"),
+    "the error is shown before the microphone is released");
+  assert.match(dropBody, /noteRealtimeFailure\('la llamada se cortó'/,
+    "a dropped call does not record a reason");
+
+  /* And hanging up has to set the flag the handler reads. */
+  const stop = page.slice(page.indexOf("function stopRealtimeVoice("));
+  assert.match(stop.slice(0, 400), /ariaRTClosing = true;/,
+    "hanging up is indistinguishable from a dropped call");
+  assert.match(stop.slice(0, 1400), /ariaRTClosing = false;/, "the closing flag is never cleared");
+  /* A silent teardown must not repaint the UI the error panel owns. */
+  assert.match(stop.slice(0, 1400), /if \(!opts \|\| !opts\.silent\) setRealtimeUi\(false\);/,
+    "a dropped call's teardown overwrites its own error panel");
+});
+
+check("a track without a stream wrapper is still attached", () => {
+  /* Some stacks deliver the track alone. Dropping that event means her
+     voice arrives and is never attached to anything — silence on a
+     perfectly healthy connection. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  pc.ontrack = (ev) => {");
+  assert.ok(at > 0, "pc.ontrack is gone");
+  /* Includes the closing brace — slicing up to it left an
+     unterminated function that would not parse. */
+  const body = page.slice(at, page.indexOf("\n  };", at) + 5);
+  assert.match(body, /ev\.streams && ev\.streams\[0\]/, "the normal stream path is gone");
+  assert.match(body, /new MediaStream\(\[ev\.track\]\)/, "a track without a stream is dropped");
+  assert.match(body, /console\.warn\('\[aria\] ontrack fired with neither/,
+    "an unusable ontrack event is silent");
+
+  /* Run it both ways. */
+  const attached = [];
+  const fn = new Function("pc", "sink", "console", "MediaStream",
+    body.replace("  pc.ontrack = (ev) => {", "  const handler = (ev) => {") + "\n return handler;");
+  const handler = fn({}, { attach: (s) => attached.push(s) }, { info(){}, warn(){} },
+    function(tracks){ this.tracks = tracks; return { fromTrack: true }; });
+  handler({ streams: [{ id: "normal" }] });
+  handler({ track: { id: "bare" } });
+  handler({});
+  assert.equal(attached.length, 2, "one of the two usable shapes was dropped");
+  assert.equal(attached[0].id, "normal", "the stream path broke");
+  assert.ok(attached[1].fromTrack, "the bare track was not wrapped into a stream");
+});
+
+check("the audio context is resumed on the retry path too", () => {
+  /* The "Intentar de nuevo" button calls startRealtimeVoice() directly
+     and never goes through unlockAudioForMobile(), so the gesture-time
+     unlock does not happen there. A suspended context is silence. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  const sink = buildAudioSink();");
+  const after = page.slice(at, at + 800);
+  assert.match(after, /sink\.ctx\.state === 'suspended'\) await sink\.ctx\.resume\(\)/,
+    "the context is not resumed inside startRealtimeVoice");
+  assert.match(after, /console\.info\('\[aria\] AudioContext state:'/,
+    "the context state is not logged, so silence cannot be diagnosed");
+});
+
+check("the greeting is locked to audio, sent once, and retried if dropped", () => {
+  /* WHY IT WAS SILENT (2026-10-06). Three separate faults, each
+     enough on its own:
+       - no output_modalities: the model may answer in TEXT only
+       - no input: []: not the documented no-context greeting shape
+       - the flag was set before the send, so a greeting dropped by a
+         channel that had not finished opening could never be retried
      Lifted and run, so the request is inspected as the object that
      actually goes down the wire. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const at = page.indexOf("function sendRealtimeGreeting(send){");
-  assert.ok(at > 0, "sendRealtimeGreeting is gone");
+  const at = page.indexOf("function sendRealtimeGreeting(send, left){");
+  assert.ok(at > 0, "sendRealtimeGreeting is gone or changed shape");
   let d = 0, end = -1;
   for (let k = page.indexOf("{", at); k < page.length; k++){
     if (page[k] === "{") d++;
     else if (page[k] === "}" && --d === 0){ end = k; break; }
   }
-  const src = page.slice(at, end + 1);
+  const src = page.slice(at, end + 1)
+    .replace(/if \(ariaRTGreeted\) return false;/, "if (__state.greeted) return false;")
+    .replace(/ariaRTGreeted = true;/, "__state.greeted = true;")
+    .replace(/if \(!ariaRTGreetRetrying\)\{/, "if (!__state.retrying){")
+    .replace(/ariaRTGreetRetrying = true;/, "__state.retrying = true;")
+    .replace(/ariaRTGreetRetrying = false;/, "__state.retrying = false;");
 
-  const sent = [];
-  let greeted = false;
-  const fn = new Function("ariaRTGreeted", "REALTIME_GREETING_BRIEF", "console", "__set", "__sent",
-    src.replace(/ariaRTGreeted = true;/, "__set();")
-       .replace(/if \(ariaRTGreeted\) return false;/, "if (__greeted()) return false;")
-    + "\n return sendRealtimeGreeting;");
-  /* The flag lives outside the function, so it is threaded in. */
-  const call = new Function("__greeted", "__set", "__sent", "REALTIME_GREETING_BRIEF", "console",
-    src.replace(/if \(ariaRTGreeted\) return false;/, "if (__greeted()) return false;")
-       .replace(/ariaRTGreeted = true;/, "__set();")
-    + "\n return sendRealtimeGreeting;")(
-      () => greeted, () => { greeted = true; }, sent, "saluda corto",
-      { info(){}, warn(){} });
+  const harness = (send) => {
+    const state = { greeted: false, retrying: false, sent: [], scheduled: [] };
+    const fn = new Function("__state", "REALTIME_GREETING_BRIEF", "console",
+      "GREETING_ATTEMPTS", "GREETING_RETRY_MS", "setTimeout",
+      src + "\n return sendRealtimeGreeting;");
+    const greet = fn(state, "saluda corto", { info(){}, warn(){} }, 3, 500,
+      (f) => { state.scheduled.push(f); });
+    return { greet: (...a) => greet((o) => { state.sent.push(o); return send(o); }, ...a), state };
+  };
 
-  const okSend = (o) => { sent.push(o); return true; };
-  assert.equal(call(okSend), true, "the greeting was not sent");
-  assert.equal(sent.length, 1, "the greeting was not requested exactly once");
+  /* The happy path: one request, in the right shape. */
+  {
+    const { greet, state } = harness(() => true);
+    assert.equal(greet(), true, "the greeting was not sent");
+    assert.equal(state.sent.length, 1, "the greeting was not requested exactly once");
+    const req = state.sent[0];
+    assert.equal(req.type, "response.create", "the greeting is not a response.create");
+    assert.equal(req.response.instructions, "saluda corto", "the greeting brief is not passed");
+    assert.deepEqual([...req.response.output_modalities], ["audio"],
+      "the greeting is not locked to audio — a text-only answer is a silent one");
+    assert.ok(Array.isArray(req.response.input) && req.response.input.length === 0,
+      "the greeting is not the documented no-context shape");
+    /* …and never twice. */
+    assert.equal(greet(), false, "the greeting can be requested twice");
+    assert.equal(state.sent.length, 1, "a second request went out");
+  }
 
-  const req = sent[0];
-  assert.equal(req.type, "response.create", "the greeting is not a response.create");
-  assert.equal(req.response.instructions, "saluda corto", "the greeting brief is not passed");
-  /* The two that decide whether it makes a sound at all. */
-  assert.deepEqual([...req.response.output_modalities], ["audio"],
-    "the greeting is not locked to audio — a text-only answer is a silent one");
-  assert.ok(Array.isArray(req.response.input) && req.response.input.length === 0,
-    "the greeting is not the documented no-context shape");
+  /* Dropped by a channel that is not open yet: retried, not lost. */
+  {
+    const { greet, state } = harness(() => false);
+    assert.equal(greet(), false, "a dropped greeting reported success");
+    assert.equal(state.greeted, false,
+      "marked sent although it never left — it could never be retried");
+    assert.equal(state.scheduled.length, 1, "no retry was scheduled for a dropped greeting");
+    assert.equal(state.retrying, true, "the retry chain was not armed");
+    assert.equal(state.sent.length, 1, "more than one attempt went out at once");
+  }
 
-  /* Once per call, whichever path asks first. */
-  assert.equal(call(okSend), false, "the greeting can be requested twice");
-  assert.equal(sent.length, 1, "a second request went out");
+  /* TWO CALLERS, ONE CHAIN. session.updated and the backstop timer
+     both land here; without the guard each would start its own retry
+     ladder and she would greet twice over herself. */
+  {
+    const { greet, state } = harness(() => false);
+    greet();                       /* session.updated lands first */
+    greet();                       /* the backstop timer arrives too */
+    /* The flag stays set until the scheduled retry runs, which is the
+       whole point — an earlier version of this test cleared it by hand
+       and so defeated the guard it was checking. */
+    assert.equal(state.scheduled.length, 1,
+      `${state.scheduled.length} retry chains armed — she would greet over herself`);
+  }
+
+  /* Dropped, then the channel opens: the retry gets through. */
+  {
+    let open = false;
+    const { greet, state } = harness(() => open);
+    greet();
+    open = true;
+    state.retrying = false;
+    state.scheduled[0]();             /* fire the scheduled retry */
+    assert.equal(state.greeted, true, "the retry never delivered the greeting");
+    assert.equal(state.sent.length, 2, "the retry did not re-send");
+  }
+
+  /* And it gives up loudly rather than retrying forever. */
+  {
+    const { greet, state } = harness(() => false);
+    greet(0);
+    assert.equal(state.scheduled.length, 0, "the last attempt still scheduled a retry");
+  }
 });
 
 check("the greeting is requested after the server confirms, with a backstop", () => {
@@ -1330,8 +1463,8 @@ check("the guard covers the window while the call is still connecting", () => {
   assert.match(note.slice(0, 500), /ariaRTOpening = false;/,
     "a failed call leaves the classic voice muted forever");
   /* …and hanging up clears it too. */
-  const stop = page.slice(page.indexOf("function stopRealtimeVoice()"));
-  assert.match(stop.slice(0, 500), /ariaRTOpening = false;/, "hanging up leaves the flag set");
+  const stop = page.slice(page.indexOf("function stopRealtimeVoice("));
+  assert.match(stop.slice(0, 1200), /ariaRTOpening = false;/, "hanging up leaves the flag set");
 
   /* The flag must not be reachable as a way to mute the classic voice
      when no call was ever attempted. */
