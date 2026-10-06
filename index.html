@@ -5458,6 +5458,16 @@
        classic inline script; modules are deferred, so the main script may
        have run its first bundle sync before the data lands — the bridge
        re-syncs, and the sync itself never prunes what it cannot verify. -->
+  <!-- VOZ EN VIVO (2026-10-05): the pure half of the realtime voice —
+       the turn state machine, the tool-argument parser and the
+       capability check. Its own module block on purpose: if this one
+       404s the combo-deals bridge below must still run, and vice
+       versa. A missing window.AriaRealtimeTurn simply means the page
+       uses the speech-to-text loop it has always used. -->
+  <script type="module">
+    import * as AriaRealtimeTurn from './scripts/lib/realtime-turn.js';
+    window.AriaRealtimeTurn = AriaRealtimeTurn;
+  </script>
   <script type="module">
     import { COMBO_DEALS } from './combo-deals.js';
     window.COMBO_DEALS = COMBO_DEALS;
@@ -6199,18 +6209,41 @@
        renderAssistantQuickReplies() from one list, so a chip's text is
        literally the message it sends -- there is no second routing table
        that could send something other than what the chip says. -->
+  <!-- THE LIVE CALL BAR. Hidden until a realtime session is actually
+       open, because a mute button that mutes nothing is worse than no
+       button. Three things the brief requires and a tap can reach:
+       which way the audio is flowing right now, a mute, and a way out.
+       It sits above the quick replies so it never competes with the
+       keyboard for the bottom of the screen. -->
+  <div id="assistantCallBar" hidden class="border-t px-3 py-2 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line); background:#fff">
+    <span id="assistantCallState" class="inline-flex items-center gap-1.5 text-[12.5px] font-medium rounded-full px-2.5 py-1" style="background:rgba(16,24,40,.06); color:var(--navy)">
+      <span id="assistantCallDot" class="w-2 h-2 rounded-full" style="background:var(--blue)"></span>
+      <span id="assistantCallText">En vivo</span>
+      <span class="sr-only">Conversación en tiempo real activa</span>
+    </span>
+    <span class="flex-1"></span>
+    <button id="assistantMuteBtn" type="button" onclick="toggleRealtimeMute()" aria-label="Silenciar micrófono" aria-pressed="false" class="h-10 px-3 rounded-full border grid place-items-center flex-shrink-0 focus-ring transition text-[12.5px] font-medium" style="border-color:var(--line); color:var(--navy); background:#fff">
+      <span id="assistantMuteLabel">Silenciar</span>
+    </button>
+    <button id="assistantRetryBtn" hidden type="button" onclick="retryRealtimeVoice()" aria-label="Intentar la voz en vivo de nuevo" class="h-10 px-3 rounded-full border grid place-items-center flex-shrink-0 focus-ring transition text-[12.5px] font-medium" style="border-color:var(--line); color:var(--navy); background:#fff">
+      Intentar de nuevo
+    </button>
+    <button type="button" onclick="stopRealtimeVoice()" aria-label="Terminar la llamada con Aria" class="h-10 px-3.5 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition text-[12.5px] font-semibold" style="background:#B42318">
+      Terminar
+    </button>
+  </div>
   <div id="assistantQuickRow" class="ariaQuickRail border-t px-3 py-2.5 flex-shrink-0" style="border-color:var(--line); background:#fff"></div>
 
-  <div class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
+  <div id="assistantComposer" class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
     <!-- VOICE IS THE FIRST THING IN THE ROW AND THE LOUDEST. It was a
          40px grey outline, which is under Apple's 44px minimum and read
          as secondary; it is navy-filled and 48px now. Speaking is how
          most of this shop's customers will actually ask. -->
-    <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleContinuousMode()" aria-label="Hablar con Aria" title="Hablar con Aria" aria-pressed="false" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--navy); color:#fff">
+    <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleAriaVoice()" aria-label="Hablar con Aria" title="Hablar con Aria" aria-pressed="false" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--navy); color:#fff">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
     </button>
     <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" class="flex-1 h-12 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
-    <button onclick="sendAssistantText()" aria-label="Enviar" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
+    <button id="assistantSendBtn" onclick="sendAssistantText()" aria-label="Enviar" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14-7-7 14-2-5-5-2Z"/></svg>
     </button>
   </div>
@@ -33795,7 +33828,12 @@ async function greetAssistantStreaming(){
   /* The quick-reply chips render on every open (toggleAssistant), so the
      greeting always shows something to tap -- the mic stays off after her
      voice per Danny's 2026-10-02 law, and his cue line closes the turn. */
-  assistantReplyHasTappables = true;
+  /* NOT IN LIVE-VOICE MODE. This flag is what later fires
+     speakMicOffCue(), and that cue is "aprieta el micrófono" — advice
+     that is both wrong and unwanted when the next tap opens a call.
+     Setting it only on the classic path is how the cue is never
+     triggered rather than merely silenced. */
+  if (ariaClassicVoiceOnly()) assistantReplyHasTappables = true;
   addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
   /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
      ariaChatHistory, or the shopper's first real question goes out with
@@ -33803,7 +33841,34 @@ async function greetAssistantStreaming(){
   ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
   hideAssistantTyping();
   setOrbState('idle');
-  speakWithLily(ARIA_GREETING_FALLBACK);
+  /* THE WRITTEN GREETING STAYS, THE SPOKEN ONE DOES NOT. In live-voice
+     mode Aria says hello inside the call, in her own voice, once the
+     line is up — so a Lily greeting here would be the wrong voice,
+     before the call, over a muted microphone. The chat still opens
+     with her line on screen; it just does not talk at you. */
+  if (ariaClassicVoiceOnly()){
+    speakWithLily(ARIA_GREETING_FALLBACK);
+  } else {
+    setAssistantMicCallReady();
+  }
+}
+
+/* The mic button before the first tap, in live-voice mode: this is a
+   CALL button, not a dictation button. Visually distinct from the old
+   loop's "toca para hablar", because what happens next is different. */
+function setAssistantMicCallReady(){
+  if (ariaLiveCallActive()) return;          /* a call is already up */
+  const micBtn = document.getElementById('assistantMicBtn');
+  if (micBtn){
+    micBtn.innerHTML = MIC_ICON_SVG;
+    micBtn.style.background = 'var(--blue)';
+    micBtn.style.color = '#fff';
+    micBtn.setAttribute('aria-pressed', 'false');
+    micBtn.setAttribute('aria-label', 'Llamar a Aria');
+    micBtn.setAttribute('title', 'Llamar a Aria');
+  }
+  const statusEl = document.getElementById('assistantStatus');
+  if (statusEl) statusEl.textContent = 'Toca el micrófono y hablamos en vivo';
 }
 
 /* The sheet re-measures whenever the visible area changes: the keyboard
@@ -33885,7 +33950,55 @@ function cleanSpokenText(t){
     .replace(/\s+/g, ' ').trim();
 }
 
+/* ==================================================================
+   IS A LIVE CALL ON RIGHT NOW?
+
+   Every function below that can make a sound asks this first. The
+   entry points were guarded on 2026-10-06 (e4086f2), but a guard at
+   the entrance does nothing for work already inside the building: a
+   TTS fetch started before the shopper tapped the mic resolves AFTER
+   ariaRT is set, and its callback played Lily straight over the live
+   call. Two voices at once.
+
+   try/catch rather than `typeof ariaRT !== 'undefined'`: ariaRT is a
+   `let` declared further down this file, and `typeof` does NOT shield
+   a let in its temporal dead zone — it throws ReferenceError exactly
+   like a bare reference. Only a catch actually covers the case where
+   one of these is somehow called before that line runs.
+   ================================================================== */
+/* ==================================================================
+   IS THE OLD VOICE PIPELINE IN PLAY AT ALL?
+
+   ariaLiveCallActive() answers "is a call up right now". This answers
+   the wider question, and it is the one the greeting and the mic-off
+   cue need: when live voice is the mode, the old pipeline must stay
+   quiet even BEFORE the first tap, while ariaRT is still null.
+
+   (2026-10-06, Danny: "She introduces herself, the mic is already on
+   mute and she says if you need anything hit the mic button. I don't
+   need her to do that.") Both of those are the old loop greeting a
+   shopper who is about to open a live call.
+   ================================================================== */
+function ariaClassicVoiceOnly(){
+  try { return !realtimeEnabled() && !ariaLiveCallActive(); }
+  catch (e) { return true; }   /* no live voice available: classic it is */
+}
+
+function ariaLiveCallActive(){
+  /* ariaRT is only assigned once the SDP handshake completes, and the
+     handshake is hundreds of milliseconds on a real network — during
+     which the data channel already exists and the old pipeline is
+     still unguarded. My own test harness walked straight into that
+     window: closeMicForSpeak() set intentionalStop while the call was
+     coming up. ariaRTOpening covers the gap from the first line of
+     startRealtimeVoice to either outcome. */
+  try { return !!ariaRT || ariaRTOpening === true; } catch (e) { return false; }
+}
+
 function speakText(text){
+  /* No settle step here on purpose: afterAriaVoiceEnds() re-arms the
+     old microphone, which is the last thing a live call needs. */
+  if (ariaLiveCallActive()) return;
   text = cleanSpokenText(text);
   ariaVoiceTurnId++;
   closeMicForSpeak();
@@ -33911,13 +34024,17 @@ function speakText(text){
    a late TTS fetch never talks over the answer that already started. */
 let ariaReplyVoiceStarted = false;
 function speakWithLily(text, guard){
+  if (ariaLiveCallActive()) return;
   text = cleanSpokenText(text);
   const cancelled = () => { try { return !!(guard && !guard()); } catch(e){ return false; } };
   const fallback = () => { if (!cancelled() && typeof speakText === 'function') speakText(text); };
   try {
     fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) })
       .then(r => (r && r.ok) ? r.json() : null)
-      .then(d => { if (cancelled()) return; if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
+      /* THE RACE THIS WHOLE CHANGE EXISTS FOR. The fetch was started
+         before the call; by the time it lands the shopper may be
+         mid-sentence with Aria. Re-checked here, not just at entry. */
+      .then(d => { if (cancelled() || ariaLiveCallActive()) return; if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
       .catch(fallback);
   } catch (e) { fallback(); }
 }
@@ -33929,6 +34046,14 @@ function speakWithLily(text, guard){
    while it is set, so even a stray re-arm cannot go hot mid-utterance.
    Each speak path reopens the mic when its audio actually ends. */
 function closeMicForSpeak(){
+  /* THE CHOKEPOINT. Every old speak path runs through here, and here
+     is where the microphone dies: intentionalStop, micLive = false,
+     recognition.stop(). On a live call there is nothing to close and
+     closing it is the walkie-talkie feel itself — the line stays open
+     from the tap to the hang-up. Belt and braces with the per-function
+     guards above: if a new caller is ever added upstream, it still
+     cannot shut the mic mid-call. */
+  if (ariaLiveCallActive()) return;
   intentionalStop = true;
   intentionalStopAt = Date.now();
   micLive = false;
@@ -33939,6 +34064,7 @@ function closeMicForSpeak(){
 }
 
 function speakAssistantReply(text, audioBase64){
+  if (ariaLiveCallActive()) return;
   /* TURN-TAKING (2026-09-27). The mic is closed for the whole speak phase
      on every path: Aria never listens to herself, and never to the
      shopper's reaction while she is talking. Each speak path reopens it
@@ -34353,6 +34479,8 @@ function requestSentenceAudio(st, text){
    sentence's Lily audio failed. Never the turn decision -- just the next
    pump when it ends. */
 function speakPipelinedSentenceFallback(st, text){
+  /* Hand the queue back to the pump, which settles it. No audio. */
+  if (ariaLiveCallActive()){ st.playerBusy = false; pumpTtsAudio(st); return; }
   st.playerBusy = true;
   try {
     closeMicForSpeak();
@@ -34369,6 +34497,12 @@ function speakPipelinedSentenceFallback(st, text){
 /* Plays the next ready sentence, in order. */
 function pumpTtsAudio(st){
   if (st.playerBusy || st.settled) return;
+  /* A live call started mid-stream. Settle the whole queue rather
+     than draining it sentence by sentence: there is nothing worth
+     speaking from the old pipeline while she is on a call, and
+     marking it settled stops every later callback from recursing
+     back in here. */
+  if (ariaLiveCallActive()){ st.playerBusy = false; st.settled = true; return; }
   /* VOICE/TEXT PARITY (2026-10-04, Danny: "if I wrote it, she says
      it"). A sentence whose Lily audio failed used to be skipped --
      her voice became a short summary of her text. It is spoken with
@@ -34389,6 +34523,10 @@ function pumpTtsAudio(st){
 }
 
 function playTtsAudio(base64, onEnded){
+  /* The completion callback still runs so the queue is not left
+     half-finished; the pump above is already settled, so this is a
+     no-op rather than a loop. */
+  if (ariaLiveCallActive()){ try { if (onEnded) onEnded(); } catch (e) {} return; }
   try {
     closeMicForSpeak();
     ariaReplyVoiceStarted = true;
@@ -35728,6 +35866,21 @@ async function runAgentLoop(text, recipient, ui){
 }
 
 async function runAssistantBrain(text){
+  /* NEVER DURING A LIVE CALL. (2026-10-06, Danny: "I can even hear the
+     noise of the button being pressed down even though I'm not pressing
+     it.")
+
+     This function is the old pipeline: it closes the microphone for the
+     whole think phase, waits on a silence timer, answers with ElevenLabs
+     through a second audio element, and then calls recognition.start()
+     again — and on iOS that last call is the click he heard. All three
+     of its callers (the text box, a quick-reply chip, a recognition
+     result) could reach it while a realtime session was open, so one tap
+     on a chip mid-call dropped him back into walkie-talkie with two
+     voices talking over each other.
+
+     On a live call the words go down the open line instead. */
+  if (ariaRT){ speakIntoRealtime(text); return; }
   if (assistantThinking) return;
   assistantThinking = true;
   ariaReplyVoiceStarted = false;
@@ -36457,6 +36610,7 @@ function flushSpeechBuffer(){
    the retry (the speak path usually reopens it, but autoplay blocks and
    dead utterance callbacks must not be able to veto it). */
 function reopenMicForRetry(){
+  if (ariaLiveCallActive()) return;
   /* No onended will fire (play was blocked): run the same turn-end
      decision a finished reply would have. */
   afterAriaVoiceEnds();
@@ -36479,6 +36633,11 @@ function reopenMicForRetry(){
    which of the two it is, since colour alone says nothing.
    ================================================================== */
 function setAssistantMicState(listening){
+  /* The old loop owns this button only when the old loop is running.
+     During a call setRealtimeUi owns it, and a stray repaint from a
+     recognition event that was already in flight would show "Hablar
+     con Aria" on a live call. */
+  if (ariaLiveCallActive()) return;
   const micBtn = document.getElementById('assistantMicBtn');
   if (micBtn){
     micBtn.innerHTML = MIC_ICON_SVG;
@@ -36498,7 +36657,14 @@ function setAssistantMicState(listening){
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl){
     if (listening){
-      statusEl.innerHTML = '<span class="ariaListenDot" aria-hidden="true"></span>Te escucho… <span style="opacity:.75">· toca el micrófono para silenciar</span>';
+      /* WHICH ENGINE. When live voice was wanted and could not start,
+         the pill says so — set here rather than in the fallback path
+         because this function rewrites the line on every mic change
+         and would otherwise erase the notice a moment after it
+         appeared. (It did, on 2026-10-06.) */
+      const classic = (typeof ariaRTFellBack !== 'undefined' && ariaRTFellBack)
+        ? ' <span style="opacity:.75">· modo clásico</span>' : '';
+      statusEl.innerHTML = '<span class="ariaListenDot" aria-hidden="true"></span>Te escucho… <span style="opacity:.75">· toca el micrófono para silenciar</span>' + classic;
     } else if (statusEl.querySelector('.ariaListenDot')){
       statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
     }
@@ -36535,6 +36701,9 @@ const MIC_OFF_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="
 
 /* The pill's third look: idle, mic off, tap to talk. */
 function setAssistantMicTapToTalk(){
+  /* "Toca el micrófono para hablar" is a lie during a call — the mic
+     is already open and a tap would hang up. */
+  if (ariaLiveCallActive()) return;
   const micBtn = document.getElementById('assistantMicBtn');
   if (micBtn){
     micBtn.innerHTML = MIC_OFF_ICON_SVG;
@@ -36549,6 +36718,17 @@ function setAssistantMicTapToTalk(){
 }
 
 function afterAriaVoiceEnds(){
+  /* NOT DURING A LIVE CALL. This is the 2026-10-02 re-arm rule, and it
+     is right for the old loop: after a reply with tappable cards the
+     mic stays off and the cue invites a tap. On a live call the mic
+     never closed, so there is nothing to re-arm — and the branch below
+     would fire speakMicOffCue() and paint "toca el micrófono" over an
+     open line.
+
+     It can still be reached mid-call: ariaAudioPlayer.onended from a
+     reply that started before the tap is still attached to the shared
+     element when the call comes up. */
+  if (ariaLiveCallActive()) return;
   /* One decision per spoken turn. */
   if (ariaVoiceEndFiredFor === ariaVoiceTurnId) return;
   ariaVoiceEndFiredFor = ariaVoiceTurnId;
@@ -36581,6 +36761,10 @@ function afterAriaVoiceEnds(){
    restarted. The pill goes to tap-to-talk BEFORE the TTS fetch, so even
    a blocked cue leaves the state correct and never strands the shopper. */
 function speakMicOffCue(){
+  /* Settled by clearing the interlock only. The rest of done() —
+     setOrbState, setAssistantMicTapToTalk — repaints the mic button,
+     and during a live call setRealtimeUi owns that. */
+  if (!ariaClassicVoiceOnly()){ ariaVoiceActive = false; return; }
   const myCue = ++micOffCueId;
   setAssistantMicTapToTalk();
   const done = () => { ariaVoiceActive = false; if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
@@ -36589,6 +36773,8 @@ function speakMicOffCue(){
       .then(r => (r && r.ok) ? r.json().catch(() => null) : null)
       .then(d => {
         if (myCue !== micOffCueId) return; /* shopper moved on: never talk over the new turn */
+        /* …or the shopper went live while this cue was being fetched. */
+        if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
         if (d && d.audio) { playMicOffCueAudio(d.audio, done); return; }
         if ('speechSynthesis' in window){
           try {
@@ -36607,6 +36793,7 @@ function speakMicOffCue(){
 /* One-shot cue playback on the shared player. Not a turn: its end never
    re-arms the mic, it just settles the pill. */
 function playMicOffCueAudio(base64, onEnded){
+  if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
   try {
     ariaReplyVoiceStarted = true;
     ariaVoiceActive = true;
@@ -36814,12 +37001,963 @@ function startListening(fromUser){
      produces onend, so liveness can't be answered from events alone.
      micLive is cleared on every intentional stop below. */
   if (micLive) return;
+  /* The speech-to-text microphone and the realtime microphone must
+     never be open at once: two getUserMedia consumers fight, and
+     recognition.start() is what makes the click on iOS. */
+  if (ariaRT) return;
   const now = Date.now();
   if (now - lastMicStartAt < 400) return;
   lastMicStartAt = now;
   micStartByUser = !!fromUser;
   try { recognition.start(); lastStartAt = now; } catch(e) { /* already listening */ }
 }
+
+/* ============================================================
+   ARIA EN VIVO — THE TRANSPORT.
+
+   WHAT THE SHOPPER GETS. The microphone stays open. Aria listens while
+   she talks. Start speaking over her and she stops inside a frame,
+   mid-word, and answers what you just said instead of finishing the
+   sentence she had started.
+
+   WHAT REPLACED WHAT. The old loop could not do that, structurally:
+   runAssistantBrain closes the microphone for the whole think phase
+   (intentionalStop), so there was no moment at which the shopper was
+   able to interrupt. That loop is still here and still the fallback —
+   it works in every browser, needs no key, and is what every shopper
+   has today. This runs instead of it only when it can run WELL.
+
+   THE PIECE THAT IS EASY TO GET WRONG: stopping the sound. The server
+   truncates its own response when interrupt_response fires, but that
+   decision travels back over the network, and until it lands the audio
+   already in flight keeps playing — which the brief explicitly
+   forbids. So the remote audio is routed through a GainNode and the
+   gain is slammed to zero LOCALLY the instant the shopper's voice is
+   detected. The cut is immediate and owes nothing to the round trip.
+
+   ECHO IS WHY THIS NEEDS WEBRTC. "Listening while speaking" means the
+   microphone hears Aria. Without echo cancellation she interrupts
+   herself on her own voice, forever. getUserMedia's echoCancellation
+   is doing real work here; it is not a nicety.
+
+   START OF THE REALTIME CLIENT SLICE — the decisions are in
+   scripts/lib/realtime-turn.js and tested there. This file is the
+   plumbing around them.
+   ============================================================ */
+
+/* The bridge for the pure half. index.html is a plain <script> and
+   cannot import, so a module block publishes it on window. If that
+   fetch ever 404s the object is simply absent and realtimeAvailable()
+   answers false — the page falls back instead of throwing, which is
+   the failure mode combo-deals.js taught this repo to design for. */
+let ariaRT = null;            // the live session, or null
+let ariaRTWanted = false;     // the shopper asked for live voice
+const ARIA_RT_FLAG = 'ariaLiveVoice';
+/* The same path the build spec curls, so "does the endpoint work?"
+   has one answer instead of depending on which URL you asked. It is
+   redirected in netlify.toml to the function the page used before. */
+const REALTIME_TOKEN_URL = '/api/realtime-token';
+
+/* How long a "disconnected" peer connection is given to come back
+   before the call is declared dead. WebRTC recovers from short drops
+   on its own; a tunnel should not end the conversation. */
+const CALL_DROP_GRACE_MS = 6000;
+
+/* The greeting is retried rather than dropped: the data channel can
+   still be opening when session.updated lands. */
+const GREETING_ATTEMPTS = 3;
+const GREETING_RETRY_MS = 500;
+
+/* What she is asked to do the moment the line opens. A brief, not a
+   script: a fixed sentence played every time is a recording, and the
+   point of the live voice is that she is not one. */
+const REALTIME_GREETING_BRIEF =
+  'Saluda en una sola frase corta, como quien contesta el teléfono: ' +
+  'di quién eres y pregunta qué busca. Nada de explicar cómo funciona ' +
+  'el micrófono ni pedirle que apriete nada.';
+
+/* WHY THE LAST ATTEMPT FELL BACK, IN WORDS.
+
+   This exists because of 2026-10-06. Danny tested on his phone and
+   reported that the live voice "still feels like I speak, pause, it
+   sends, then she speaks back" — which is an exact description of the
+   speech-to-text loop, because that is what he was talking to. The
+   fallback was deliberately quiet, so a realtime path that never
+   started looked identical to one that started badly, and the feedback
+   was about the wrong engine.
+
+   Silence was the wrong default. Falling back is still invisible to a
+   shopper mid-sentence, but it is never invisible to us again. */
+let ariaRTFailure = null;
+/* True from the moment a call starts opening until it is either live
+   or known to have failed. Cleared on BOTH outcomes — left set after a
+   failure it would mute the classic voice permanently. */
+let ariaRTOpening = false;
+/* One greeting per call, whichever path requests it first. */
+let ariaRTGreeted = false;
+/* Set only while WE are closing the call, so a "closed" peer
+   connection is not reported as a dropped one. */
+let ariaRTClosing = false;
+/* One retry chain for the greeting, never two. */
+let ariaRTGreetRetrying = false;
+/* True once live voice was wanted and could not start, so the classic
+   loop can label itself. */
+let ariaRTFellBack = false;
+function noteRealtimeFailure(reason, detail){
+  /* Every failure path in startRealtimeVoice comes through here, so
+     this is the one place the opening flag has to be released. */
+  ariaRTOpening = false;
+  ariaRTFailure = { reason, detail: detail == null ? null : String(detail), at: new Date().toISOString() };
+  console.warn('[aria] voz en vivo no arrancó —', reason, detail == null ? '' : detail);
+  return false;
+}
+
+/**
+ * One call that says which engine is actually running and why.
+ * Type ariaVoiceDiag() into the console on the phone and it answers.
+ */
+function ariaVoiceDiag(){
+  const can = realtimeAvailable();
+  return {
+    /* Three states, not two: nothing is running is its own answer,
+       and reporting it as "clásico" would be the same lie that cost
+       four rounds of testing. */
+    motor: ariaRT ? 'tiempo real'
+      : ariaRTFellBack ? 'clásico (voz a texto)'
+      : ariaRTFailure ? 'ninguno — la voz en vivo falló'
+      : 'ninguno — no se ha iniciado',
+    enVivo: !!ariaRT,
+    activadaPorConfig: realtimeEnabled(),
+    navegadorCompatible: can.ok,
+    razonNavegador: can.reason,
+    ultimoFallo: ariaRTFailure,
+    moduloCargado: !!window.AriaRealtimeTurn,
+    /* The thing that was silently broken: an AudioContext that iOS
+       suspends and nobody resumed. Reported so "she is silent" can be
+       told apart from "she did not say anything". */
+    audio: ariaRT && ariaRT.sink && ariaRT.sink.state ? ariaRT.sink.state() : null,
+    saludó: ariaRTGreeted,
+    estricto: realtimeStrict(),
+    audioCrudo: realtimeRawAudio(),
+  };
+}
+window.ariaVoiceDiag = ariaVoiceDiag;
+
+/** Is the live path usable at all, right now, in this browser? */
+function realtimeAvailable(){
+  const T = window.AriaRealtimeTurn;
+  if (!T || typeof T.realtimeSupported !== 'function') {
+    return { ok: false, reason: 'el módulo de voz en vivo no cargó' };
+  }
+  return T.realtimeSupported({
+    RTCPeerConnection: window.RTCPeerConnection,
+    mediaDevices: navigator.mediaDevices,
+    isSecureContext: window.isSecureContext,
+  });
+}
+
+/* LIVE VOICE IS THE VOICE NOW (2026-10-06, Danny: full gpt-realtime,
+   cost approved). It is on by default and ?voz=clasica is the kill
+   switch — it sticks, so if the realtime path ever has a bad day the
+   shop can be put back on the speech-to-text loop from a URL without
+   waiting for a deploy. ?voz=vivo undoes that.
+
+   Defaulting ON is only safe because every other gate still holds: no
+   API key, no WebRTC, no microphone permission or no HTTPS all fall
+   through to the old loop. This flag decides what we TRY, never what
+   the shopper is stuck with. */
+function realtimeEnabled(){
+  try {
+    const q = new URLSearchParams(location.search).get('voz');
+    if (q === 'vivo'){ try { localStorage.removeItem(ARIA_RT_FLAG); } catch {} return true; }
+    if (q === 'clasica'){ try { localStorage.setItem(ARIA_RT_FLAG, '0'); } catch {} return false; }
+    return localStorage.getItem(ARIA_RT_FLAG) !== '0';
+  } catch {
+    /* localStorage can throw outright in a locked-down browser. That is
+       not a reason to lose the voice, so the default survives it. */
+    return true;
+  }
+}
+
+/* ?voz=crudo: hand the raw microphone to OpenAI and let its own noise
+   reduction do all of the work. Worth trying from a moving car, where
+   two layers of processing fight each other. Sticks like the other
+   flags so it survives the reload. */
+/* ?voz=estricto — live voice or nothing.
+   For judging the real thing: if the realtime session cannot start,
+   the old loop is NOT quietly substituted. The call simply does not
+   begin and the reason is on screen. Nobody should ever have to
+   wonder again which engine a test was about. */
+function realtimeStrict(){
+  try {
+    const q = new URLSearchParams(location.search).get('voz');
+    if (q === 'estricto'){ localStorage.setItem('ariaVoiceStrict', '1'); return true; }
+    if (q === 'vivo' || q === 'clasica'){ localStorage.removeItem('ariaVoiceStrict'); return false; }
+    return localStorage.getItem('ariaVoiceStrict') === '1';
+  } catch { return false; }
+}
+
+/* ?voz=limpio — put the browser's noise suppression back on. */
+function realtimeCleanAudio(){
+  try { return new URLSearchParams(location.search).get('voz') === 'limpio'; }
+  catch { return false; }
+}
+
+function realtimeRawAudio(){
+  try {
+    const q = new URLSearchParams(location.search).get('voz');
+    if (q === 'crudo'){ localStorage.setItem('ariaVoiceRaw', '1'); return true; }
+    if (q === 'vivo' || q === 'clasica'){ localStorage.removeItem('ariaVoiceRaw'); return false; }
+    return localStorage.getItem('ariaVoiceRaw') === '1';
+  } catch { return false; }
+}
+
+/* ------------------------------------------------------------------
+   AUDIO OUT — one graph, built once, so the cut is instantaneous.
+   ------------------------------------------------------------------ */
+/**
+ * Aria's voice, out of the browser.
+ *
+ * WHY THIS WAS SILENT (2026-10-06, Danny: "She's just silent now").
+ * The first version built an AudioContext, connected the remote track
+ * through a GainNode, and then deliberately muted the <audio> element
+ * so the graph was the ONLY audible path. On iOS an AudioContext is
+ * created SUSPENDED — even inside a tap handler — and nothing here
+ * ever called resume(). A suspended context emits nothing, the element
+ * was muted, so there was no audible path at all. Not the greeting:
+ * the whole call.
+ *
+ * So now:
+ *   - the context is resumed, and re-checked whenever its state moves
+ *   - the element is the SAFETY NET, not dead weight: it carries the
+ *     audio whenever the graph is not actually running, and is muted
+ *     only while the graph is
+ *   - cut() silences both paths, because either one might be the
+ *     audible one
+ *
+ * The graph still earns its place: gain.setTargetAtTime is how
+ * barge-in cuts her off in ~15ms without a click, which pausing an
+ * element cannot do. It is just no longer the only way out.
+ */
+function buildAudioSink(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const el = new Audio();
+  el.autoplay = true;
+  /* iOS refuses to start an inline stream otherwise. */
+  el.playsInline = true;
+
+  /* Reuses the context opened by the tap — see ariaUnlockAudioContext.
+     Creating one here would be creating it outside the gesture, which
+     is the bug this comment exists because of. */
+  let ctx = AC ? ariaUnlockAudioContext() : null;
+  let gain = null;
+  if (ctx){
+    try {
+      gain = ctx.createGain();
+      gain.gain.value = 1;
+    } catch (e) { gain = null; }
+  }
+
+  let silenced = false;   /* barge-in asked for silence on both paths */
+
+  const graphRunning = () => !!(ctx && gain && ctx.state === 'running');
+
+  /* One decision, in one place: who is actually making sound. */
+  const syncPaths = () => {
+    el.muted = silenced || graphRunning();
+    if (!el.muted){
+      /* autoplay can refuse even from a gesture; asking costs nothing. */
+      try { const pr = el.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+    }
+  };
+
+  const resume = () => {
+    if (!ctx) return;
+    try {
+      if (ctx.state !== 'running' && typeof ctx.resume === 'function'){
+        const pr = ctx.resume();
+        if (pr && pr.then) pr.then(syncPaths, syncPaths); else syncPaths();
+        return;
+      }
+    } catch (e) {}
+    syncPaths();
+  };
+
+  /* Safari moves a context to "interrupted" on a phone call or a
+     Siri invocation and back afterwards; the audible path has to
+     follow it rather than be decided once at setup. */
+  if (ctx){ try { ctx.onstatechange = syncPaths; } catch (e) {} }
+
+  return {
+    el, gain, ctx,
+    state(){ return { ctx: ctx ? ctx.state : 'none', elementMuted: el.muted, graphRunning: graphRunning() }; },
+    attach(stream){
+      try {
+        if (ctx && gain){
+          const src = ctx.createMediaStreamSource(stream);
+          src.connect(gain);
+          gain.connect(ctx.destination);
+        }
+      } catch (e) { /* no graph: the element carries it */ }
+      /* The element always gets the stream — some browsers will not
+         keep a WebRTC track alive otherwise, and it is the fallback.
+         Wrapped: this assignment throwing used to skip the resume and
+         the path sync below it, which is silence. */
+      try { el.srcObject = stream; } catch (e) {
+        console.warn('[aria] could not attach the stream to the element:', e.message);
+      }
+      resume();
+      syncPaths();
+    },
+    cut(){
+      silenced = true;
+      try { if (gain && ctx) gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch (e) {}
+      el.muted = true;
+    },
+    open(){
+      silenced = false;
+      resume();
+      try { if (gain && ctx) gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch (e) {}
+      syncPaths();
+    },
+  };
+}
+
+/* ------------------------------------------------------------------
+   THE SESSION
+   ------------------------------------------------------------------ */
+
+async function startRealtimeVoice(){
+  if (ariaRT) return true;
+  /* Before anything else: from here the old pipeline is off limits,
+     not from the moment the call finishes connecting. */
+  ariaRTOpening = true;
+  const can = realtimeAvailable();
+  if (!can.ok) return noteRealtimeFailure('el navegador no la soporta', can.reason);
+
+  let mint;
+  try {
+    const res = await fetch(REALTIME_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok){
+      /* 503 means no API key on this deploy: expected on a preview
+         without one, and the single most likely reason the shop is
+         quietly on the old loop. Named, not swallowed. */
+      /* The endpoint now says what went wrong in words. Pass them
+         through rather than inventing a vaguer sentence on top. */
+      let body = null;
+      try { body = await res.json(); } catch {}
+      /* `detail` names the actual field or key problem; `error` is the
+         category. The specific one goes on screen. */
+      const said = body && (body.detail || body.error);
+      return noteRealtimeFailure(said || ('el servidor respondió ' + res.status),
+        body && body.attempts ? JSON.stringify(body.attempts) : String(res.status));
+    }
+    mint = await res.json();
+  } catch (e){ return noteRealtimeFailure('no pude contactar al servidor', e.message); }
+  if (!mint || !mint.token) return noteRealtimeFailure('el servidor no devolvió un token', null);
+
+  const T = window.AriaRealtimeTurn;
+  let turn = T.createVoiceTurnState();
+  const sink = buildAudioSink();
+  /* The context is opened inside the tap by ariaUnlockAudioContext();
+     this is the second line of defence, and it is the FIRST one on the
+     retry path — the "Intentar de nuevo" button calls
+     startRealtimeVoice() directly and never goes through
+     unlockAudioForMobile(). A suspended context here is silence. */
+  try {
+    if (sink.ctx && sink.ctx.state === 'suspended') await sink.ctx.resume();
+  } catch (e) { console.warn('[aria] could not resume the audio context:', e.message); }
+  console.info('[aria] AudioContext state:', sink.ctx ? sink.ctx.state : 'none');
+  let mic = null, pc = null, dc = null;
+  /* Reset per call, module-scoped so onRealtimeEvent can see it. */
+  ariaRTGreeted = false;
+  ariaRTGreetRetrying = false;
+
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        /* ECHO CANCELLATION IS NOT OPTIONAL HERE. Without it her own
+           voice comes back in through the microphone, the server's VAD
+           hears "the shopper is talking", and she interrupts herself
+           mid-sentence — a loop that reads as the model being broken.
+           It is the one constraint that stays pinned. */
+        echoCancellation: true,
+        /* OFF by instruction: browser noise suppression on top of the
+           server's own reduction clips the quiet end of a sentence,
+           and this shop's customers talk from cars and streets.
+           ?voz=limpio turns it back on to compare. */
+        noiseSuppression: realtimeRawAudio() ? false : !!realtimeCleanAudio(),
+        autoGainControl: true,
+        /* The Realtime API's native rate. Browsers are free to ignore
+           it over a peer connection — Opus negotiates its own — so it
+           is a hint, not a guarantee, and nothing depends on it. */
+        sampleRate: 24000,
+      },
+    });
+  } catch (e){
+    /* Refused permission is a decision, not a fault: say nothing loud
+       and leave the old mic button exactly as it was. */
+    return noteRealtimeFailure('el micrófono fue denegado', e.name);
+  }
+
+  pc = new RTCPeerConnection();
+  /* A CALL THAT DIES SHOULD SAY SO. Until now a failed peer connection
+     left the UI showing a live call with an open microphone and no
+     audio — indistinguishable from Aria simply not talking.
+
+     Two deliberate departures from the obvious version:
+
+       - "disconnected" is NOT fatal. It is what a tunnel or a lift
+         looks like, and WebRTC recovers from it on its own; failing
+         the call there would drop a conversation that was about to
+         resume. It is given a grace period and only fails if it has
+         not come back.
+       - "closed" after OUR OWN hang-up is not an error. Without that
+         check, ending a call would pop an error panel on the way out. */
+  let dropTimer = null;
+  const clearDropTimer = () => { if (dropTimer){ clearTimeout(dropTimer); dropTimer = null; } };
+  const callDropped = (why) => {
+    clearDropTimer();
+    if (ariaRTClosing) return;                 /* we hung up: expected */
+    if (!ariaRT && !ariaRTOpening) return;     /* already torn down */
+    console.warn('[aria] the call dropped:', why);
+    /* Release the hardware before the error panel goes up, or the
+       microphone stays hot behind a dead session. */
+    try { stopRealtimeVoice({ silent: true }); } catch (e) {}
+    noteRealtimeFailure('la llamada se cortó', why);
+    showRealtimeError();
+  };
+  pc.onconnectionstatechange = () => {
+    const st = pc.connectionState;
+    console.info('[aria] pc connectionState:', st);
+    if (st === 'connected'){ clearDropTimer(); return; }
+    if (st === 'failed'){ callDropped('connectionState: failed'); return; }
+    if (st === 'closed'){ callDropped('connectionState: closed'); return; }
+    if (st === 'disconnected' && !dropTimer){
+      dropTimer = setTimeout(() => {
+        dropTimer = null;
+        if (pc.connectionState !== 'connected') callDropped('connectionState: disconnected');
+      }, CALL_DROP_GRACE_MS);
+    }
+  };
+  pc.oniceconnectionstatechange = () => {
+    console.info('[aria] ice connectionState:', pc.iceConnectionState);
+  };
+  /* Some stacks deliver the track without a stream wrapper. Dropping
+     that event means her voice arrives and is never attached to
+     anything — audible silence with a healthy connection. */
+  pc.ontrack = (ev) => {
+    let stream = (ev.streams && ev.streams[0]) || null;
+    if (!stream && ev.track){
+      try { stream = new MediaStream([ev.track]); } catch (e) { stream = null; }
+    }
+    if (stream){ console.info('[aria] remote track attached'); sink.attach(stream); }
+    else console.warn('[aria] ontrack fired with neither a stream nor a track');
+  };
+  for (const track of mic.getTracks()) pc.addTrack(track, mic);
+
+  dc = pc.createDataChannel('oai-events');
+  /* Returns whether the event actually went out. The greeting needs to
+     know: a send that silently drops because the channel was not open
+     yet is indistinguishable from a model that chose not to speak. */
+  const send = (obj) => {
+    try {
+      if (dc.readyState !== 'open'){
+        console.warn('[aria] data channel not open, dropped', obj && obj.type, 'readyState:', dc.readyState);
+        return false;
+      }
+      dc.send(JSON.stringify(obj));
+      return true;
+    } catch (e) {
+      console.warn('[aria] send failed for', obj && obj.type, e.message);
+      return false;
+    }
+  };
+
+  dc.onmessage = (ev) => {
+    let event;
+    try { event = JSON.parse(ev.data); } catch { return; }
+    const { state, actions } = T.voiceTurnReducer(turn, event);
+    turn = state;
+    for (const action of actions){
+      if (action === 'stopPlayback' || action === 'clearAudioQueue' || action === 'dropAudio'){
+        sink.cut();
+        /* She was cut off mid-word: the bar says listening immediately,
+           before any server round trip, because that is the truth of
+           what the microphone is doing. */
+        if (action !== 'dropAudio') setRealtimeState('listening');
+      }
+      else if (action === 'playAudio'){ sink.open(); setRealtimeState('speaking'); }
+      else if (action === 'cancelResponse') send({ type: 'response.cancel' });
+    }
+    onRealtimeEvent(event, turn, send);
+  };
+
+  dc.onopen = () => {
+    /* The session was already configured when the token was minted;
+       this only re-asserts turn detection, the one thing a reconnect
+       can lose. The settings come back WITH the token rather than
+       being written out again here, because the two modes take
+       different parameters and a second copy in the page is a second
+       copy to get wrong. */
+    console.info('[aria] data channel open');
+    if (mint.turn_detection){
+      send({ type: 'session.update', session: { type: 'realtime',
+        audio: { input: { turn_detection: mint.turn_detection } } } });
+    }
+    /* AFTER THE SERVER CONFIRMS, NOT A MOMENT BEFORE. The greeting
+       used to go out in the same tick as session.update, which races
+       the server's handling of it. It is sent on session.updated
+       instead, with a timer as the backstop in case that event never
+       arrives — some API versions do not emit it. Whichever fires
+       first wins; `greeted` makes the loser a no-op. */
+    setTimeout(() => sendRealtimeGreeting(send), 600);
+  };
+
+  try {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const sdpRes = await fetch(`${mint.call_url}?model=${encodeURIComponent(mint.model)}`, {
+      method: 'POST',
+      body: offer.sdp,
+      headers: { Authorization: `Bearer ${mint.token}`, 'Content-Type': 'application/sdp' },
+    });
+    if (!sdpRes.ok) throw new Error('SDP ' + sdpRes.status);
+    await pc.setRemoteDescription({ type: 'answer', sdp: await sdpRes.text() });
+  } catch (e){
+    try { mic.getTracks().forEach(t => t.stop()); } catch {}
+    try { pc.close(); } catch {}
+    return noteRealtimeFailure('la conexión WebRTC no se estableció', e.message);
+  }
+
+  ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
+  ariaRTOpening = false;
+  /* Last chance before she speaks: if the context is still suspended
+     here, nothing she says will be audible. */
+  try { if (sink.open) sink.open(); } catch (e) {}
+  console.info('[aria] live call up, audio path:', JSON.stringify(sink.state ? sink.state() : null));
+  /* THE GAP BETWEEN THE TAP AND THE CALL. A greeting or a mic-off cue
+     can already be mid-utterance by the time the session comes up.
+     The guards above stop anything NEW from starting; these two stop
+     what is already audible. */
+  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
+  try { ariaAudioPlayer.pause(); } catch (e) {}
+  /* AND CUT THE WIRES, not just the sound. onended / onerror from the
+     reply that was playing a moment ago are still attached to this
+     shared element, and both run the old turn-end decision. The guards
+     above would catch them, but an unsubscribed handler cannot fire at
+     all — one less thing depending on a guard being right. */
+  try { ariaAudioPlayer.onended = null; ariaAudioPlayer.onerror = null;
+        ariaAudioPlayer.onplaying = null; ariaAudioPlayer.onpause = null; } catch (e) {}
+  ariaRTFailure = null;
+  setRealtimeUi(true);
+  return true;
+}
+
+/**
+ * Typed or tapped text, spoken into the session that is already open.
+ *
+ * The line is live, so there is nothing to "send": the text becomes a
+ * conversation item and she answers it in the same voice she was using
+ * a second ago, without the microphone ever closing.
+ */
+function speakIntoRealtime(text){
+  if (!ariaRT || !text) return;
+  ariaChatHistory.push({ role: 'user', content: text });
+  ariaRT.send({ type: 'conversation.item.create',
+    item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } });
+  ariaRT.send({ type: 'response.create' });
+}
+
+/**
+ * The live call could not start, said out loud, with a way to retry.
+ *
+ * Never silent and never a downgrade: the shopper sees what failed and
+ * can tap to try again or keep typing. The old voice loop is reachable
+ * only by someone who asks for it in the URL.
+ */
+function showRealtimeError(){
+  const why = (ariaRTFailure && ariaRTFailure.reason) || 'no pude abrir la llamada';
+  const detail = ariaRTFailure && ariaRTFailure.detail;
+  const status = document.getElementById('assistantStatus');
+  if (status) status.textContent = 'Voz en vivo no disponible';
+  const bar = document.getElementById('assistantCallBar');
+  const text = document.getElementById('assistantCallText');
+  const dot = document.getElementById('assistantCallDot');
+  const mute = document.getElementById('assistantMuteBtn');
+  const retry = document.getElementById('assistantRetryBtn');
+  if (bar) bar.hidden = false;
+  if (dot) dot.style.background = '#B42318';
+  if (text) text.textContent = 'Voz en vivo no disponible: ' + why;
+  /* Mute means nothing without a call; retry is the only useful tap. */
+  if (mute) mute.hidden = true;
+  if (retry) retry.hidden = false;
+  console.error('[aria] voz en vivo no disponible:', why, detail || '');
+}
+
+/** The shopper tapped "Intentar de nuevo". */
+async function retryRealtimeVoice(){
+  const retry = document.getElementById('assistantRetryBtn');
+  if (retry) retry.textContent = 'Conectando…';
+  const ok = await startRealtimeVoice();
+  if (retry) retry.textContent = 'Intentar de nuevo';
+  if (!ok) showRealtimeError();
+}
+
+/** End the session and give the microphone back. */
+function stopRealtimeVoice(opts){
+  if (!ariaRT) return;
+  /* So the connectionstatechange handler can tell a hang-up from a
+     dropped call: closing the peer connection fires "closed" either
+     way. */
+  ariaRTClosing = true;
+  try { ariaRT.mic.getTracks().forEach(t => t.stop()); } catch {}
+  try { ariaRT.dc.close(); } catch {}
+  try { ariaRT.pc.close(); } catch {}
+  try { ariaRT.sink.cut(); } catch {}
+  ariaRT = null;
+  ariaRTOpening = false;
+  ariaRTWanted = false;
+  ariaRTClosing = false;
+  /* A drop tears the session down and then shows its own error, so it
+     asks for the UI to be left alone here. */
+  if (!opts || !opts.silent) setRealtimeUi(false);
+}
+
+/**
+ * Mute without ending: the shopper's privacy control.
+ *
+ * Disabling the track is the real cut — a disabled track transmits
+ * silence, so nothing reaches OpenAI and nothing is billed or
+ * transcribed. Muting an element would only stop US hearing it, which
+ * is the opposite of what a mute button promises.
+ */
+function toggleRealtimeMute(){
+  if (!ariaRT) return false;
+  let tracks = [];
+  try { tracks = ariaRT.mic.getAudioTracks(); } catch { return false; }
+  if (!tracks.length) return false;
+  const muted = tracks[0].enabled;      // enabled now => this tap mutes
+  for (const t of tracks) t.enabled = !muted;
+  setRealtimeUi(true, muted);
+  return muted;
+}
+
+/* ------------------------------------------------------------------
+   EVENTS THAT ARE NOT AUDIO — transcript, tools, errors.
+   ------------------------------------------------------------------ */
+/**
+ * Her opening line, requested once per call.
+ *
+ * WHY IT WAS SILENT. Two things were missing from the request, and
+ * either alone is enough to produce no sound:
+ *
+ *   output_modalities: ["audio"] — without it the model is free to
+ *     answer in text only, and there are open reports of it doing
+ *     exactly that. A text-only response is a silent greeting.
+ *   input: [] — the documented shape for "greet with no conversation
+ *     context". Without it the model is being asked to respond to a
+ *     conversation that has not started.
+ *
+ * It also used to be fired blind: send() swallowed a closed channel,
+ * so a dropped greeting looked identical to a model that declined.
+ */
+function sendRealtimeGreeting(send, left){
+  if (ariaRTGreeted) return false;
+  const remaining = typeof left === 'number' ? left : GREETING_ATTEMPTS;
+  const ok = send({
+    type: 'response.create',
+    response: {
+      instructions: REALTIME_GREETING_BRIEF,
+      /* Lock it to speech: a text-only greeting is a silent one. */
+      output_modalities: ['audio'],
+      /* No conversation yet — this is the documented shape for it. */
+      input: [],
+    },
+  });
+  if (ok){
+    /* FLAGGED ONLY ON SUCCESS. Setting it before the send meant a
+       greeting dropped by a channel that was not open yet could never
+       be retried — she just never spoke, and nothing said why. */
+    ariaRTGreeted = true;
+    console.info('[aria] greeting sent');
+    return true;
+  }
+  if (remaining > 0){
+    /* One chain, however many callers ask: session.updated and the
+       backstop timer both land here. */
+    if (!ariaRTGreetRetrying){
+      ariaRTGreetRetrying = true;
+      setTimeout(() => {
+        ariaRTGreetRetrying = false;
+        sendRealtimeGreeting(send, remaining - 1);
+      }, GREETING_RETRY_MS);
+    }
+  } else {
+    console.warn('[aria] greeting never sent — the data channel never opened');
+  }
+  return false;
+}
+
+async function onRealtimeEvent(event, turn, send){
+  switch (event.type){
+    case 'session.updated':
+      /* The server has the session we asked for. Now she can speak. */
+      sendRealtimeGreeting(send);
+      break;
+    case 'input_audio_buffer.speech_started':
+      setOrbState('listening');
+      setRealtimeState('listening');
+      break;
+    case 'conversation.item.input_audio_transcription.completed':
+      /* What the shopper said, on screen, so the conversation has a
+         readable record and the text history stays in step. */
+      if (event.transcript && event.transcript.trim()){
+        addAssistantMessage('user', event.transcript.trim());
+        ariaChatHistory.push({ role: 'user', content: event.transcript.trim() });
+      }
+      break;
+    case 'response.output_audio_transcript.done':
+      if (event.transcript && event.transcript.trim()){
+        addAssistantMessage('bot', event.transcript.trim(), null, { speak: false });
+        ariaChatHistory.push({ role: 'assistant', content: event.transcript.trim() });
+      }
+      setOrbState('idle');
+      setRealtimeState('listening');
+      break;
+    case 'response.function_call_arguments.done':
+      await runRealtimeTool(event, send);
+      break;
+    case 'error':
+      console.info('[aria] realtime error', event.error && event.error.message);
+      setOrbState('idle');
+      break;
+    default:
+      break;
+  }
+}
+
+/* The four tools. Two answer from the catalogue already in memory —
+   instant, and the same data the cards are built from. Two go to the
+   server because the money formula and the order book live there. */
+async function runRealtimeTool(event, send){
+  const T = window.AriaRealtimeTurn;
+  const parsed = T.parseToolArguments(event.name, event.arguments);
+  let output;
+  if (!parsed.ok){
+    output = { error: parsed.error };
+  } else {
+    try { output = await executeRealtimeTool(event.name, parsed.args); }
+    catch (e){ output = { unavailable: 'esa consulta se me trabó, déjame intentar de nuevo' }; }
+  }
+  send({
+    type: 'conversation.item.create',
+    item: { type: 'function_call_output', call_id: event.call_id, output: JSON.stringify(output) },
+  });
+  /* The model does not speak again on its own after a tool result. */
+  send({ type: 'response.create' });
+}
+
+async function executeRealtimeTool(name, args){
+  if (name === 'search_products'){
+    const limit = Math.min(Math.max(Math.round(args.limit || 4), 1), 8);
+    let budgetUsd = args.max_price_usd;
+    if (!budgetUsd && args.max_price_pen){
+      await loadFxRate();
+      if (typeof fxRate === 'number' && fxRate > 0) budgetUsd = args.max_price_pen / fxRate;
+    }
+    const q = [args.brand, args.query].filter(Boolean).join(' ');
+    let res;
+    try { res = await catalogSearch(q, { limit: 60 }); }
+    catch { return { unavailable: 'el catálogo no cargó, no puedo buscar ahorita' }; }
+    let items = (res && res.items) || [];
+    if (budgetUsd) items = items.filter(i => Number(i.price) <= budgetUsd);
+    items = items.slice(0, limit);
+    if (!items.length) return { products: [], note: 'no encontré nada que encaje con eso' };
+    /* The cards go up as she speaks, so the shopper is looking at the
+       products while hearing about them. */
+    for (const it of items) addAssistantProductCard(it, it.retailer);
+    return {
+      products: items.map(i => ({
+        id: realtimeProductId(i),
+        title: i.title, brand: i.brand || null, store: i.retailer,
+        price_usd: i.price, weight_kg: i.weightKg ?? null,
+      })),
+    };
+  }
+
+  if (name === 'get_product_details'){
+    const it = realtimeProductById(args.product_id);
+    if (!it) return { unavailable: 'no tengo ese producto a la mano' };
+    return {
+      id: args.product_id, title: it.title, brand: it.brand || null, store: it.retailer,
+      price_usd: it.price, weight_kg: it.weightKg ?? null,
+      sizes: Array.isArray(it.sizes) ? it.sizes : [],
+      on_sale: !!it.originalPrice && it.originalPrice > it.price,
+      original_price_usd: it.originalPrice || null,
+    };
+  }
+
+  if (name === 'calculate_total_delivered_price'){
+    const it = realtimeProductById(args.product_id);
+    if (!it) return { unavailable: 'no tengo ese producto a la mano' };
+    const res = await fetch('/.netlify/functions/aria-realtime-tool', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: name, args: {
+        priceUsd: it.price, dutiableUsd: it.dutiableUsd, weightKg: it.weightKg, quantity: args.quantity || 1,
+      } }),
+    });
+    if (!res.ok) return { unavailable: 'no pude calcular el total ahorita' };
+    return await res.json();
+  }
+
+  if (name === 'get_order_status'){
+    const res = await fetch('/.netlify/functions/aria-realtime-tool', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: name, args: { order_ref: args.order_ref } }),
+    });
+    if (!res.ok) return { unavailable: 'no pude consultar el pedido ahorita' };
+    return await res.json();
+  }
+  return { error: 'herramienta desconocida' };
+}
+
+/* Products the voice has mentioned, so a follow-up ("¿cuánto me sale
+   la segunda?") resolves to the same item the shopper heard about. */
+const ariaRTProducts = new Map();
+function realtimeProductId(item){
+  const id = 'v' + (ariaRTProducts.size + 1);
+  ariaRTProducts.set(id, item);
+  ariaRTProducts.set(String(item.title || '').toLowerCase(), item);
+  return id;
+}
+function realtimeProductById(id){
+  const k = String(id || '');
+  return ariaRTProducts.get(k) || ariaRTProducts.get(k.toLowerCase()) || null;
+}
+
+/* ------------------------------------------------------------------
+   UI
+   ------------------------------------------------------------------ */
+/* Which way the audio is flowing, in words, because "is it listening?"
+   is the question every voice interface fails to answer. Muted outranks
+   everything: if the microphone is off the bar must never claim to be
+   listening, whatever the model is doing. */
+let ariaRTState = 'listening';
+function setRealtimeState(kind){
+  ariaRTState = kind;
+  /* The dot pulses only while a real session is open. On the classic
+     loop this bar does not exist at all, which is the clearest signal
+     of which engine is running that the UI can give. */
+  const bar = document.getElementById('assistantCallBar');
+  if (!bar || bar.hidden) return;
+  const muted = ariaRTMuted();
+  const dot = document.getElementById('assistantCallDot');
+  const text = document.getElementById('assistantCallText');
+  const label = muted ? 'Micrófono apagado'
+    : kind === 'speaking' ? 'Aria está hablando — puedes interrumpirla'
+    : 'Aria te escucha';
+  if (text) text.textContent = label;
+  if (dot) dot.style.background = muted ? 'var(--muted, #98A2B3)' : kind === 'speaking' ? 'var(--gold, #B98A2E)' : 'var(--blue)';
+}
+
+function ariaRTMuted(){
+  if (!ariaRT) return false;
+  try { const t = ariaRT.mic.getAudioTracks(); return t.length ? !t[0].enabled : false; }
+  catch { return false; }
+}
+
+function setRealtimeUi(live, muted){
+  const status = document.getElementById('assistantStatus');
+  const micBtn = document.getElementById('assistantMicBtn');
+  const bar = document.getElementById('assistantCallBar');
+  const muteBtn = document.getElementById('assistantMuteBtn');
+  const muteLabel = document.getElementById('assistantMuteLabel');
+  if (status) {
+    status.textContent = !live ? 'Aquí para ayudarte a encontrar algo'
+      : muted ? 'Micrófono apagado — toca para hablar'
+      : 'En vivo — habla cuando quieras, puedes interrumpirme';
+  }
+  if (micBtn){
+    /* The old loop may have left the struck-through icon and a "toca
+       para hablar" label on this button. On a live call it is a
+       hang-up button over an open microphone, so it is repainted
+       outright rather than tweaked. */
+    if (live) micBtn.innerHTML = MIC_ICON_SVG;
+    micBtn.style.background = live && !muted ? 'var(--blue)' : '';
+    micBtn.style.color = live && !muted ? '#fff' : 'var(--navy)';
+    micBtn.setAttribute('aria-pressed', live && !muted ? 'true' : 'false');
+    micBtn.setAttribute('aria-label', live ? 'Terminar la llamada con Aria' : 'Hablar con Aria');
+    micBtn.setAttribute('title', live ? 'Terminar la llamada con Aria' : 'Hablar con Aria');
+  }
+  /* The bar exists only for the duration of a call. */
+  if (bar) bar.hidden = !live;
+  /* AND THE SEND BUTTON GOES AWAY WITH IT. On an open line there is
+     nothing to send, and a send button is the single strongest cue
+     that this is a form rather than a call. The mic button stays —
+     it is how the call ends. */
+  const composer = document.getElementById('assistantComposer');
+  const input = document.getElementById('assistantInput');
+  const sendBtn = document.getElementById('assistantSendBtn');
+  if (sendBtn) sendBtn.hidden = live;
+  if (input) input.hidden = live;
+  if (composer) composer.style.justifyContent = live ? 'flex-end' : '';
+  if (muteBtn){
+    muteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+    muteBtn.setAttribute('aria-label', muted ? 'Activar micrófono' : 'Silenciar micrófono');
+    muteBtn.style.background = muted ? 'var(--navy)' : '#fff';
+    muteBtn.style.color = muted ? '#fff' : 'var(--navy)';
+  }
+  if (muteLabel) muteLabel.textContent = muted ? 'Activar' : 'Silenciar';
+  /* Leaving the error state: mute comes back, retry goes away. */
+  const retryBtn = document.getElementById('assistantRetryBtn');
+  if (muteBtn) muteBtn.hidden = false;
+  if (retryBtn) retryBtn.hidden = true;
+  if (live) setRealtimeState(ariaRTState);
+}
+
+/**
+ * The microphone button, now with two behaviours behind it.
+ *
+ * Live voice is tried first and only when the shopper opted in; if it
+ * cannot start for any reason — no key, no permission, no WebRTC, a
+ * dead module — the old continuous-listening loop runs exactly as it
+ * does today. The shopper is never left with a button that does
+ * nothing.
+ */
+async function toggleAriaVoice(){
+  if (ariaRT){ stopRealtimeVoice(); return; }
+  if (realtimeEnabled()){
+    ariaRTWanted = true;
+    unlockAudioForMobile();
+    if (await startRealtimeVoice()) return;
+    /* NO AUTOMATIC FALLBACK (2026-10-06, by instruction).
+
+       The old loop used to take over here. It is what made four
+       rounds of testing report "the same thing as before": a broken
+       live path and a working old one are indistinguishable when the
+       second one just starts. The old loop is still there, but only
+       a person can choose it, with ?voz=clasica.
+
+       This is a deliberate trade. A shopper whose browser refuses the
+       microphone now gets an error where they used to get a working
+       dictation box. That is the point — a failure we can see beats a
+       failure we cannot. */
+    showRealtimeError();
+    return;
+  }
+  /* Only reached when a person chose the old loop with ?voz=clasica.
+     The flag makes the listening pill label it, so even a deliberate
+     choice is never mistaken for the live one. */
+  ariaRTFellBack = true;
+  toggleContinuousMode();
+}
+
+/* END OF THE REALTIME CLIENT SLICE */
 
 function toggleContinuousMode(){
   if (continuousMode && micLive) {
@@ -36841,14 +37979,64 @@ function toggleContinuousMode(){
 let ariaAudioPlayer = new Audio();
 let audioUnlocked = false;
 
+/* A 44-byte WAV header with zero samples: valid audio, no sound. */
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+
+/**
+ * iOS will not play audio that did not begin inside a user gesture, so
+ * the first tap plays something to unlock the element. This one stays
+ * UNGUARDED on purpose — toggleAriaVoice calls it deliberately before
+ * opening a live call, and guarding it would leave the call mute on
+ * iPhone.
+ *
+ * IT UNLOCKS WITH SILENCE, NOT WITH WHATEVER IS LOADED. It used to
+ * call play() on the element as it stood. By the first mic tap the
+ * greeting has usually already run through speakWithAria, so src still
+ * held that greeting and the unlock replayed a slice of it — the old
+ * voice, audible, in the moment before the live session exists to
+ * silence it.
+ */
+/* ONE AUDIO CONTEXT, OPENED INSIDE THE TAP.
+
+   iOS gives you a suspended AudioContext and only lets resume() win
+   while a user gesture is on the stack. buildAudioSink() runs AFTER
+   the token fetch has been awaited — outside the gesture — so a
+   context created there starts suspended and stays that way, and the
+   whole call is silent. This runs from the mic button's own onclick,
+   which is the gesture, and the sink reuses what it opened. */
+let ariaAudioCtx = null;
+function ariaUnlockAudioContext(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  try {
+    if (!ariaAudioCtx) ariaAudioCtx = new AC();
+    if (ariaAudioCtx.state !== 'running' && typeof ariaAudioCtx.resume === 'function'){
+      const pr = ariaAudioCtx.resume();
+      if (pr && typeof pr.catch === 'function') pr.catch(() => {});
+    }
+  } catch (e) { ariaAudioCtx = null; }
+  return ariaAudioCtx;
+}
+
 function unlockAudioForMobile(){
+  /* The context is unlocked on EVERY tap, not only the first: Safari
+     suspends it again after an interruption, and audioUnlocked below
+     only tracks the one-shot element unlock. */
+  ariaUnlockAudioContext();
   if (audioUnlocked) return;
-  ariaAudioPlayer.play().catch(() => {});
-  ariaAudioPlayer.pause();
   audioUnlocked = true;
+  try {
+    ariaAudioPlayer.src = SILENT_WAV;
+    const pr = ariaAudioPlayer.play();
+    if (pr && typeof pr.catch === 'function') pr.catch(() => {});
+  } catch (e) {}
+  try { ariaAudioPlayer.pause(); } catch (e) {}
 }
 
 function speakWithAria(audioBase64, ariaText){
+  /* As with speakText: no settle, because settling re-arms the old
+     microphone in the middle of a live call. */
+  if (ariaLiveCallActive()) return;
   ariaVoiceTurnId++;
   closeMicForSpeak();
         currentAriaSpeech = ariaText || '';
