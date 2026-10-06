@@ -40,8 +40,10 @@ export const REALTIME_TOOLS = Object.freeze([
       properties: {
         query: { type: "string", description: "Qué busca, en español o inglés." },
         brand: { type: "string", description: "Marca, solo si el cliente la nombró." },
-        max_price_usd: { type: "number", description: "Tope en dólares, solo si lo dijo." },
-        max_price_pen: { type: "number", description: "Tope en soles, solo si lo dijo." },
+        max_price_usd: { type: "number", description:
+          "Tope EN DÓLARES. Solo si dijo 'dólares'. Si habló en SOLES no uses este campo." },
+        max_price_pen: { type: "number", description:
+          "Tope EN SOLES. Si dijo 'soles' o 'lucas', el número va AQUÍ, tal cual lo dijo, sin convertir. 500 soles no son 500 dólares." },
         limit: { type: "number", description: "Cuántos resultados (1-8, por defecto 4)." },
       },
       required: ["query"],

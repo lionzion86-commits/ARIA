@@ -4189,6 +4189,70 @@ check("a voice the Realtime API does not have can never ship", () => {
     "buildRealtimeSession still hands an invalid voice to the API");
 });
 
+check("a budget in soles is never searched as dollars", () => {
+  /* Danny, 2026-10-06: she asked "dime el precio en soles", he said
+     "quinientos soles", and she searched up to 500 DOLLARS — then
+     said "hasta quinientos dólares" out loud. At 3.44 that is 1,720
+     soles, more than three times what he had. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+
+  /* ---- the converter, driven ---- */
+  const at = page.indexOf("function budgetToUsd(args){");
+  assert.ok(at > 0, "budgetToUsd is gone");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const src = page.slice(at, end + 1);
+  const withRate = (rate) => new Function("fxRate", src + "\n return budgetToUsd;")(rate);
+
+  const b = withRate(3.44);
+  assert.equal(b({ max_price_usd: 500 }).usd, 500, "a dollar ceiling was altered");
+  /* 500 soles is about 145 dollars, NOT 500. */
+  const pen = b({ max_price_pen: 500 }).usd;
+  assert.ok(Math.abs(pen - 145.35) < 0.1, `500 soles became $${pen} instead of about $145`);
+  assert.equal(b({}).usd, null, "a search with no ceiling invented one");
+  assert.equal(b({}).unconvertedPen, undefined, "no ceiling was reported as unconvertible");
+  /* Dollars win when both arrive — one of them is the model guessing. */
+  assert.equal(b({ max_price_usd: 100, max_price_pen: 500 }).usd, 100,
+    "both fields together did not resolve to the dollar one");
+  /* Junk is not a ceiling. */
+  for (const bad of [{ max_price_pen: 0 }, { max_price_pen: -5 }, { max_price_usd: NaN }])
+    assert.equal(b(bad).usd, null, `${JSON.stringify(bad)} was treated as a real ceiling`);
+
+  /* ---- NO RATE IS NOT NO CEILING. This is the second fault behind
+     the first: both executors used to drop a soles budget they could
+     not convert and search with no limit at all — the same shopper
+     shown the same unaffordable shoes, by another route. ---- */
+  const noRate = withRate(null);
+  const out = noRate({ max_price_pen: 500 });
+  assert.equal(out.usd, null, "an unconvertible ceiling produced a dollar figure anyway");
+  assert.equal(out.unconvertedPen, 500, "an unconvertible soles ceiling was silently dropped");
+  assert.equal(noRate({ max_price_usd: 80 }).usd, 80, "a dollar ceiling needs no exchange rate");
+
+  /* ---- and both callers act on it ---- */
+  assert.match(page, /if \(budget\.unconvertedPen\)\{[\s\S]{0,400}unavailable:/,
+    "the voice path still searches when it could not convert his budget");
+  assert.match(page, /if \(budget\.unconvertedPen\)\{[\s\S]{0,400}results: \[\], count: 0/,
+    "the chat path still searches when it could not convert his budget");
+  assert.ok(!/maxUsd = args\.max_price_pen \/ fxRate/.test(page),
+    "a second, unguarded soles conversion is back");
+
+  /* ---- she is told which field to use ---- */
+  const t = readFileSync(ROOT + "scripts/lib/realtime-voice.js", "utf8");
+  assert.match(t, /SOLES Y DÓLARES NO SON LO MISMO/, "nothing tells her soles are not dollars");
+  assert.match(t, /max_price_pen/, "the instructions never name the soles field");
+  assert.match(t, /NUNCA pongas soles en max_price_usd/, "the exact mistake she made is not forbidden");
+  assert.match(t, /NUNCA hagas la cuenta tú/, "she is still allowed to convert in her head");
+  /* ---- and the schema says it at the point of use ---- */
+  const turn = readFileSync(ROOT + "scripts/lib/realtime-turn.js", "utf8");
+  assert.match(turn, /Tope EN SOLES[\s\S]{0,160}500 soles no son 500 dólares/,
+    "the soles parameter does not warn against the confusion");
+  assert.match(turn, /Tope EN DÓLARES[\s\S]{0,120}no uses este campo/,
+    "the dollars parameter does not warn against the confusion");
+});
+
 const MIN_CHECKS = 95;
 if (passed + failures.length < MIN_CHECKS){
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} checks ran, expected at least ${MIN_CHECKS}.`);

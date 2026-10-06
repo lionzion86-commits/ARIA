@@ -6474,6 +6474,35 @@ function loadFxRate(){
   return fxRatePromise;
 }
 
+/* ==================================================================
+   A BUDGET IN SOLES IS NOT A BUDGET IN DOLLARS.
+
+   Danny, 2026-10-06: Aria asked "dime el precio en soles", the
+   shopper said "quinientos soles", and she searched for cleats up to
+   500 DOLLARS — then said "hasta quinientos dólares" out loud. At
+   3.44 that is 1,720 soles: more than three times what he had.
+
+   The model put the number in the wrong field. Both executors then
+   had a second fault waiting behind it: when the exchange rate had
+   not loaded, a soles budget was silently dropped and the search ran
+   with NO ceiling at all — the same shopper shown the same
+   unaffordable shoes, by different means.
+
+   So the conversion lives in one function with one rule: a budget we
+   cannot convert is never treated as no budget. The caller is told,
+   and tells him. This matches what fmtPEN does below — it refuses to
+   invent a conversion rather than print a wrong one.
+   ================================================================== */
+function budgetToUsd(args){
+  const usd = Number(args && args.max_price_usd);
+  if (Number.isFinite(usd) && usd > 0) return { usd };
+  const pen = Number(args && args.max_price_pen);
+  if (!Number.isFinite(pen) || pen <= 0) return { usd: null };   /* no ceiling asked for */
+  if (typeof fxRate === 'number' && fxRate > 0) return { usd: pen / fxRate };
+  /* Named, not dropped. */
+  return { usd: null, unconvertedPen: pen };
+}
+
 function fmtPEN(usd){
   if (!Number.isFinite(usd)) return 'N/D';
   if (!fxRate) return fmtUSD(usd); // rate never loaded — never show a fabricated/zeroed PEN conversion
@@ -35811,11 +35840,14 @@ async function executeAgentTool(tc){
   try { args = JSON.parse(tc.arguments || '{}'); } catch(e){ /* model sent junk; search anyway */ }
   const limit = Math.min(Math.max(parseInt(args.limit, 10) || 6, 1), 8);
   await loadFxRate().catch(() => {});
-  let maxUsd = null;
-  if (typeof args.max_price_usd === 'number' && args.max_price_usd > 0) maxUsd = args.max_price_usd;
-  else if (typeof args.max_price_pen === 'number' && args.max_price_pen > 0 && typeof fxRate !== 'undefined' && fxRate){
-    maxUsd = args.max_price_pen / fxRate;
+  /* Same rule as the voice path: a soles ceiling we cannot convert is
+     not the same as no ceiling. See budgetToUsd. */
+  const budget = budgetToUsd(args);
+  if (budget.unconvertedPen){
+    return { results: [], count: 0,
+      note: 'no pude convertir soles a dólares (sin tipo de cambio) — pídele el tope en dólares' };
   }
+  const maxUsd = budget.usd;
   let query = String(args.query || '').trim();
   if (args.brand) query = (query + ' ' + String(args.brand)).trim();
   /* The catalog ranks on English keywords; give her Spanish a bridge. */
@@ -38630,11 +38662,15 @@ async function runRealtimeTool(event, send){
 async function executeRealtimeTool(name, args){
   if (name === 'search_products'){
     const limit = Math.min(Math.max(Math.round(args.limit || 4), 1), 8);
-    let budgetUsd = args.max_price_usd;
-    if (!budgetUsd && args.max_price_pen){
-      await loadFxRate();
-      if (typeof fxRate === 'number' && fxRate > 0) budgetUsd = args.max_price_pen / fxRate;
+    if (args.max_price_pen) await loadFxRate().catch(() => {});
+    const budget = budgetToUsd(args);
+    if (budget.unconvertedPen){
+      /* Searching anyway would show him shoes he cannot buy, which is
+         the whole bug. One question costs a turn; the wrong products
+         cost his trust. */
+      return { unavailable: 'no tengo el tipo de cambio ahorita — dime tu tope en dólares y te busco' };
     }
+    const budgetUsd = budget.usd;
     const q = [args.brand, args.query].filter(Boolean).join(' ');
     let res;
     try { res = await catalogSearch(q, { limit: 60 }); }
