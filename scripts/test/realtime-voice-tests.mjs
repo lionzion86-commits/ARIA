@@ -1014,38 +1014,103 @@ check("no old voice function can make a sound during a live call", () => {
   }
 });
 
-check("the mic-off cue does not even reach for the network on a call", () => {
-  /* Run, not grepped: fetch is stubbed so a live call must produce no
-     request at all, and no call must still make one. The cue is the
-     easiest of these to leave half-guarded, because its audio happens
-     two callbacks deep. */
+check("the mic-off cue never fires in live-voice mode", () => {
+  /* The rule widened on 2026-10-06. It used to be "not while a call is
+     up"; it is now "not when live voice is the mode", because the cue
+     — "aprieta el micrófono" — is advice about a button that is about
+     to become a hang-up, and it fired on chat open, before any call.
+
+     Run with a stubbed fetch so a guarded cue makes no request at all,
+     rather than making one and discarding the audio. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const at = page.indexOf("function speakMicOffCue(){");
-  assert.ok(at > 0, "speakMicOffCue is gone");
+  const src = (name) => {
+    const at = page.indexOf("function " + name + "(");
+    assert.ok(at > 0, `${name} is gone`);
+    let d = 0, end = -1;
+    for (let k = page.indexOf("{", at); k < page.length; k++){
+      if (page[k] === "{") d++;
+      else if (page[k] === "}" && --d === 0){ end = k; break; }
+    }
+    return page.slice(at, end + 1);
+  };
+  const prelude = src("ariaClassicVoiceOnly") + "\n" + src("ariaLiveCallActive") + "\n";
+
+  const run = ({ live, realtime }) => {
+    const fetches = [];
+    const fn = new Function("ariaRT", "ariaRTOpening", "realtimeEnabled", "fetch", "micOffCueId",
+      "ariaVoiceActive", "setAssistantMicTapToTalk", "setOrbState", "MIC_OFF_CUE", "window",
+      "SpeechSynthesisUtterance", "playMicOffCueAudio",
+      prelude + src("speakMicOffCue") + "\n return speakMicOffCue;");
+    fn(live ? { pc: {} } : null, false, () => realtime,
+      (u) => { fetches.push(u); return { then(){ return this; }, catch(){ return this; } }; },
+      0, false, () => {}, () => {}, "cue",
+      { speechSynthesis: { cancel(){}, speak(){} } }, function(){ return {}; }, () => {})();
+    return fetches.length;
+  };
+
+  assert.equal(run({ live: true,  realtime: true  }), 0, "the cue ran during a live call");
+  /* THE CASE DANNY HIT: live voice is the mode, no call yet. */
+  assert.equal(run({ live: false, realtime: true  }), 0,
+    "the cue ran on chat open while live voice was the mode");
+  /* …and ?voz=clasica keeps it, unchanged. */
+  assert.equal(run({ live: false, realtime: false }), 1,
+    "the classic cue stopped working");
+});
+
+check("the chat opens quiet when live voice is the mode", () => {
+  /* Danny, 2026-10-06: "She introduces herself, the mic is already on
+     mute and she says if you need anything hit the mic button. I don't
+     need her to do that." Two separate things, both from the old loop:
+     the spoken greeting, and the cue it arms on its way out. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("async function greetAssistantStreaming(){");
+  assert.ok(at > 0, "greetAssistantStreaming is gone");
   let d = 0, end = -1;
   for (let k = page.indexOf("{", at); k < page.length; k++){
     if (page[k] === "{") d++;
     else if (page[k] === "}" && --d === 0){ end = k; break; }
   }
-  const guardSrc = page.slice(page.indexOf("function ariaLiveCallActive(){"),
-                              page.indexOf("\n}", page.indexOf("function ariaLiveCallActive(){")) + 2);
   const body = page.slice(at, end + 1);
 
-  for (const live of [true, false]){
-    const fetches = [];
-    const fn = new Function("ariaRT", "fetch", "micOffCueId", "ariaVoiceActive",
-      "setAssistantMicTapToTalk", "setOrbState", "MIC_OFF_CUE", "window",
-      "SpeechSynthesisUtterance", "playMicOffCueAudio",
-      guardSrc + "\n" + body + "\n return speakMicOffCue;");
-    const callable = fn(
-      live ? { pc: {} } : null,
-      (u) => { fetches.push(u); return { then(){ return this; }, catch(){ return this; } }; },
-      0, false, () => {}, () => {}, "cue",
-      { speechSynthesis: { cancel(){}, speak(){} } }, function(){ return {}; }, () => {});
-    callable();
-    if (live) assert.equal(fetches.length, 0, "the cue hit the network during a live call");
-    else assert.equal(fetches.length, 1, "the cue stopped working when no call is live");
-  }
+  /* The spoken greeting is classic-only; the written one is not. */
+  assert.match(body, /if \(ariaClassicVoiceOnly\(\)\)\{\s*\r?\n\s*speakWithLily\(ARIA_GREETING_FALLBACK\);/,
+    "the old Lily greeting still plays in live-voice mode");
+  assert.match(body, /addAssistantMessage\('bot', ARIA_GREETING_FALLBACK, null, \{ speak: false \}\)/,
+    "the written greeting was removed too — the chat would open empty");
+  /* The flag that arms the cue is classic-only. */
+  assert.match(body, /if \(ariaClassicVoiceOnly\(\)\) assistantReplyHasTappables = true;/,
+    "the greeting still arms the mic-off cue in live-voice mode");
+  /* …and the button invites a call, not dictation. */
+  assert.match(body, /setAssistantMicCallReady\(\)/, "the mic button is not put into a call-ready state");
+  const ready = page.slice(page.indexOf("function setAssistantMicCallReady()"));
+  assert.match(ready.slice(0, 800), /aria-label', 'Llamar a Aria'/, "the call button does not say it calls");
+  assert.ok(!/Toca el micrófono para hablar/.test(ready.slice(0, 800)),
+    "the call-ready state reuses the old dictation wording");
+});
+
+check("she greets inside the call, once", () => {
+  /* Turn detection only answers the shopper, so without this the line
+     opens in silence and waits — which reads as a dead call. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  dc.onopen = () => {");
+  const body = page.slice(at, page.indexOf("\n  };", at));
+  assert.match(body, /type: 'response\.create'/, "she never speaks first on a live call");
+  assert.match(body, /instructions: REALTIME_GREETING_BRIEF/,
+    "the greeting is not carried as a per-response instruction");
+  /* A reconnect must not greet again. */
+  assert.match(body, /if \(!greeted\)\{\s*\r?\n\s*greeted = true;/,
+    "a reconnect would make her greet twice");
+  /* …and the turn-detection re-assert must not be skipped by it. */
+  assert.ok(body.indexOf("session.update") < body.indexOf("response.create"),
+    "the greeting is requested before turn detection is re-asserted");
+
+  /* The brief is a brief, not a script, and it bans the very advice
+     Danny objected to. */
+  const brief = /const REALTIME_GREETING_BRIEF =([\s\S]*?);\r?\n/.exec(page);
+  assert.ok(brief, "REALTIME_GREETING_BRIEF is gone");
+  assert.match(brief[1], /una sola frase corta/, "the greeting brief does not ask for one short line");
+  assert.match(brief[1], /Nada de explicar cómo funciona\s*' \+\s*'el micrófono/,
+    "nothing stops her explaining the microphone again");
 });
 
 check("the async callbacks re-check, not just the entry points", () => {

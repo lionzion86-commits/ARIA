@@ -33828,7 +33828,12 @@ async function greetAssistantStreaming(){
   /* The quick-reply chips render on every open (toggleAssistant), so the
      greeting always shows something to tap -- the mic stays off after her
      voice per Danny's 2026-10-02 law, and his cue line closes the turn. */
-  assistantReplyHasTappables = true;
+  /* NOT IN LIVE-VOICE MODE. This flag is what later fires
+     speakMicOffCue(), and that cue is "aprieta el micrófono" — advice
+     that is both wrong and unwanted when the next tap opens a call.
+     Setting it only on the classic path is how the cue is never
+     triggered rather than merely silenced. */
+  if (ariaClassicVoiceOnly()) assistantReplyHasTappables = true;
   addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
   /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
      ariaChatHistory, or the shopper's first real question goes out with
@@ -33836,7 +33841,34 @@ async function greetAssistantStreaming(){
   ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
   hideAssistantTyping();
   setOrbState('idle');
-  speakWithLily(ARIA_GREETING_FALLBACK);
+  /* THE WRITTEN GREETING STAYS, THE SPOKEN ONE DOES NOT. In live-voice
+     mode Aria says hello inside the call, in her own voice, once the
+     line is up — so a Lily greeting here would be the wrong voice,
+     before the call, over a muted microphone. The chat still opens
+     with her line on screen; it just does not talk at you. */
+  if (ariaClassicVoiceOnly()){
+    speakWithLily(ARIA_GREETING_FALLBACK);
+  } else {
+    setAssistantMicCallReady();
+  }
+}
+
+/* The mic button before the first tap, in live-voice mode: this is a
+   CALL button, not a dictation button. Visually distinct from the old
+   loop's "toca para hablar", because what happens next is different. */
+function setAssistantMicCallReady(){
+  if (ariaLiveCallActive()) return;          /* a call is already up */
+  const micBtn = document.getElementById('assistantMicBtn');
+  if (micBtn){
+    micBtn.innerHTML = MIC_ICON_SVG;
+    micBtn.style.background = 'var(--blue)';
+    micBtn.style.color = '#fff';
+    micBtn.setAttribute('aria-pressed', 'false');
+    micBtn.setAttribute('aria-label', 'Llamar a Aria');
+    micBtn.setAttribute('title', 'Llamar a Aria');
+  }
+  const statusEl = document.getElementById('assistantStatus');
+  if (statusEl) statusEl.textContent = 'Toca el micrófono y hablamos en vivo';
 }
 
 /* The sheet re-measures whenever the visible area changes: the keyboard
@@ -33934,6 +33966,24 @@ function cleanSpokenText(t){
    like a bare reference. Only a catch actually covers the case where
    one of these is somehow called before that line runs.
    ================================================================== */
+/* ==================================================================
+   IS THE OLD VOICE PIPELINE IN PLAY AT ALL?
+
+   ariaLiveCallActive() answers "is a call up right now". This answers
+   the wider question, and it is the one the greeting and the mic-off
+   cue need: when live voice is the mode, the old pipeline must stay
+   quiet even BEFORE the first tap, while ariaRT is still null.
+
+   (2026-10-06, Danny: "She introduces herself, the mic is already on
+   mute and she says if you need anything hit the mic button. I don't
+   need her to do that.") Both of those are the old loop greeting a
+   shopper who is about to open a live call.
+   ================================================================== */
+function ariaClassicVoiceOnly(){
+  try { return !realtimeEnabled() && !ariaLiveCallActive(); }
+  catch (e) { return true; }   /* no live voice available: classic it is */
+}
+
 function ariaLiveCallActive(){
   /* ariaRT is only assigned once the SDP handshake completes, and the
      handshake is hundreds of milliseconds on a real network — during
@@ -36714,7 +36764,7 @@ function speakMicOffCue(){
   /* Settled by clearing the interlock only. The rest of done() —
      setOrbState, setAssistantMicTapToTalk — repaints the mic button,
      and during a live call setRealtimeUi owns that. */
-  if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
+  if (!ariaClassicVoiceOnly()){ ariaVoiceActive = false; return; }
   const myCue = ++micOffCueId;
   setAssistantMicTapToTalk();
   const done = () => { ariaVoiceActive = false; if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
@@ -37008,6 +37058,14 @@ const ARIA_RT_FLAG = 'ariaLiveVoice';
    redirected in netlify.toml to the function the page used before. */
 const REALTIME_TOKEN_URL = '/api/realtime-token';
 
+/* What she is asked to do the moment the line opens. A brief, not a
+   script: a fixed sentence played every time is a recording, and the
+   point of the live voice is that she is not one. */
+const REALTIME_GREETING_BRIEF =
+  'Saluda en una sola frase corta, como quien contesta el teléfono: ' +
+  'di quién eres y pregunta qué busca. Nada de explicar cómo funciona ' +
+  'el micrófono ni pedirle que apriete nada.';
+
 /* WHY THE LAST ATTEMPT FELL BACK, IN WORDS.
 
    This exists because of 2026-10-06. Danny tested on his phone and
@@ -37212,7 +37270,7 @@ async function startRealtimeVoice(){
   const T = window.AriaRealtimeTurn;
   let turn = T.createVoiceTurnState();
   const sink = buildAudioSink();
-  let mic = null, pc = null, dc = null;
+  let mic = null, pc = null, dc = null, greeted = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37274,9 +37332,20 @@ async function startRealtimeVoice(){
        being written out again here, because the two modes take
        different parameters and a second copy in the page is a second
        copy to get wrong. */
-    if (!mint.turn_detection) return;
-    send({ type: 'session.update', session: { type: 'realtime',
-      audio: { input: { turn_detection: mint.turn_detection } } } });
+    if (mint.turn_detection){
+      send({ type: 'session.update', session: { type: 'realtime',
+        audio: { input: { turn_detection: mint.turn_detection } } } });
+    }
+    /* SHE SAYS HELLO INSIDE THE CALL. Turn detection only answers the
+       shopper, so without this the line opens in silence and waits —
+       which reads as a dead call. One response.create, once, carrying
+       the greeting as a per-response instruction rather than a
+       scripted line, so it arrives in her own voice and her own words.
+       The flag stops a reconnect from greeting twice. */
+    if (!greeted){
+      greeted = true;
+      send({ type: 'response.create', response: { instructions: REALTIME_GREETING_BRIEF } });
+    }
   };
 
   try {
