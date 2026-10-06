@@ -37899,11 +37899,23 @@ function buildAudioSink(){
         el.removeAttribute('src');
         el.load();
       } catch (e) { /* an element that cannot be reset still gets the stream */ }
+      /* The element has to be in the document for iOS to play a remote
+         track at all — ariaUnlockLiveAudio puts it there and this is
+         the last chance to notice it is not. */
+      if (el.isConnected === false){
+        try { (document.body || document.documentElement).appendChild(el); } catch (e) {}
+      }
       /* ONE ASSIGNMENT, ONE PATH. Wrapped because this throwing used
          to skip everything after it, which is silence. */
       try { el.srcObject = stream; } catch (e) {
         console.warn('[aria] could not attach the stream to the element:', e.message);
       }
+      /* A PAUSE BEFORE THE PLAY, WHICH IS THE OTHER HALF OF THE SAME
+         WEBKIT STORY: a remote stream that attaches to an element
+         already in a playing state can come out silent, and pausing
+         and playing again is the documented way to shake it loose.
+         openPath() does the play. */
+      try { el.pause(); } catch (e) {}
       openPath();
     },
     cut: cutPath,
@@ -39564,7 +39576,25 @@ function ariaUnlockLiveAudio(){
       ariaLiveAudioEl = new Audio();
       ariaLiveAudioEl.autoplay = true;
       ariaLiveAudioEl.playsInline = true;
+      /* THE ATTRIBUTES, NOT ONLY THE PROPERTIES. WebKit reads
+         playsinline off the attribute; the camelCase property is the
+         one other engines expose. Setting both costs nothing. */
+      ariaLiveAudioEl.setAttribute('playsinline', '');
+      ariaLiveAudioEl.setAttribute('autoplay', '');
+      ariaLiveAudioEl.controls = false;
       ariaLiveAudioEl.volume = 1;
+      /* IN THE DOCUMENT, NOT JUST IN A VARIABLE. A detached media element
+         plays a MediaStream fine in Chromium but WebKit expects remote
+         WebRTC audio to come out of an element that is in the document. */
+      ariaLiveAudioEl.style.cssText =
+        'position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1';
+    }
+    /* ONE APPEND, AND IT COVERS BOTH CASES. A fresh element is not
+       connected, so this attaches it; and anything that later tears
+       it out of the document puts it back on the next tap. */
+    if (!ariaLiveAudioEl.isConnected){
+      try { (document.body || document.documentElement).appendChild(ariaLiveAudioEl); }
+      catch (e) { console.error('REALTIME VOICE FAILED: could not attach the audio element —', e && e.message); }
     }
     /* Every tap, not only the first: iOS drops the blessing after an
        interruption, and a shopper who takes a phone call mid-session
