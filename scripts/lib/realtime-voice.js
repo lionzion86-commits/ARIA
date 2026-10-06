@@ -157,7 +157,12 @@ export function buildTurnDetection(opts = {}) {
      create_response so she answers without a send button, and
      interrupt_response so talking over her actually stops the server
      generating rather than just muting what it already sent. */
-  const base = { create_response: true, interrupt_response: true };
+  const base = { create_response: true, interrupt_response: false };
+  /* interrupt_response: false — echo guard. Her own voice was triggering
+     VAD via mic pickup, cutting her off after one word on iPhone.
+     With this false, VAD cannot cancel her response even if echo slips
+     through. Tradeoff: user cannot interrupt her by talking over her;
+     acceptable for tap-to-talk. */
   if (mode === "server_vad") {
     return { type: "server_vad", ...SERVER_VAD_TUNING, ...base };
   }
