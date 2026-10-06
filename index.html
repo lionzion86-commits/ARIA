@@ -37107,10 +37107,26 @@ const CALL_DROP_GRACE_MS = 6000;
    back, which is Danny's ask: "before she shuts herself off, she can
    remind them to hit the mike."
    ================================================================== */
-const CALL_IDLE_MS = 45000;        /* no speech from either side */
+/* TWO STEPS, NOT ONE (2026-10-06, Danny). A call that just dies is
+   rude; a call that asks once and then lets you go is a phone call.
+   20s of silence -> "¿Sigues ahí?". 15s more -> she signs off and
+   hangs up. The check-in fires once per silence, and any activity at
+   all resets both. */
+const CALL_CHECKIN_MS = 20000;
+const CALL_IDLE_MS = 35000;        /* total silence before she hangs up */
+/* After she is asked to sign off, the line closes whether or not the
+   audio arrived — the timer, never her, is what guarantees it. */
+const CALL_EXIT_GRACE_MS = 4000;
 const CALL_HIDDEN_MS = 20000;      /* page backgrounded this long */
 const CALL_MAX_MS = 10 * 60000;    /* nothing runs longer than this */
-const CALL_BYE_LINE = 'Te dejo mirando. Si me necesitas, solo aprieta el micrófono y te sigo ayudando.';
+const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!';
+/* What she is asked to say, as cues rather than per-response
+   instructions: a per-response `instructions` field is what silenced
+   the greeting, so these ride a conversation item and a bare
+   response.create — the shapes that are known to work. */
+const CUE_CHECKIN = '[El cliente lleva veinte segundos sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
+const CUE_BYE = '[La llamada se va a cerrar por silencio. Despídete en UNA frase cálida, sin apuro, ' +
+  'y dile que si te necesita toque el micrófono y seguimos. No te disculpes.]';
 
 /* The greeting is retried rather than dropped: the data channel can
    still be opening when session.updated lands. */
@@ -37436,6 +37452,9 @@ async function startRealtimeVoice(){
   ariaRTGreeted = false;
   ariaRTGreetRetrying = false;
   ariaRTHeardAudio = false;
+  ariaRTCheckedIn = false;
+  ariaRTSignedOff = false;
+  ariaRTHeardSignOff = false;
   ariaRTThresholdTold = false;
   ariaRTSplitTold = false;
 
@@ -37561,6 +37580,9 @@ async function startRealtimeVoice(){
           ariaRTHeardAudio = true;
           console.info('[aria] greeting audio started');
         }
+        /* If audio arrives after she was asked to sign off, that IS
+           the goodbye — so Lily must not repeat it. */
+        if (ariaRTSignedOff) ariaRTHeardSignOff = true;
       }
       else if (action === 'cancelResponse') send({ type: 'response.cancel' });
     }
@@ -37636,10 +37658,17 @@ async function startRealtimeVoice(){
    ------------------------------------------------------------------ */
 let ariaRTStartedAt = 0;
 let ariaRTIdleTimer = null, ariaRTMaxTimer = null, ariaRTHiddenTimer = null;
+let ariaRTCheckinTimer = null, ariaRTExitTimer = null;
+/* "¿Sigues ahí?" once per silence; cleared by any activity. */
+let ariaRTCheckedIn = false;
+/* She has been asked to sign off, and whether we heard her do it. */
+let ariaRTSignedOff = false, ariaRTHeardSignOff = false;
 
 function clearRealtimeIdleTimers(){
-  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer]) if (t) clearTimeout(t);
-  ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = null;
+  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer, ariaRTCheckinTimer, ariaRTExitTimer]){
+    if (t) clearTimeout(t);
+  }
+  ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = ariaRTCheckinTimer = ariaRTExitTimer = null;
 }
 
 /**
@@ -37654,16 +37683,62 @@ function endRealtimeCallIdle(why){
   if (!ariaRT) return;
   const secs = Math.round((Date.now() - ariaRTStartedAt) / 1000);
   console.info('[aria] ending the call —', why, '| duration', secs + 's');
+
+  /* SHE SIGNS OFF IN HER OWN VOICE WHEN THERE IS ONE TO SIGN OFF
+     WITH, and the line closes on a timer either way. Asking her and
+     then waiting for her to finish would mean a model that stays
+     quiet keeps the call — and the meter — running. */
+  if (why === 'silencio' && !ariaRTSignedOff){
+    ariaRTSignedOff = true;
+    clearRealtimeIdleTimers();
+    if (cueRealtime(CUE_BYE)){
+      ariaRTExitTimer = setTimeout(() => endRealtimeCallIdle('despedida terminada'), CALL_EXIT_GRACE_MS);
+      return;
+    }
+  }
   stopRealtimeVoice();
+  /* The line he can read, always. And Lily says it only when the
+     live voice did not — otherwise he would hear it twice. */
   addAssistantMessage('bot', CALL_BYE_LINE, null, { speak: false });
-  /* ariaRT is null by now, so the dual-voice guards let this through. */
-  if (typeof speakWithLily === 'function') speakWithLily(CALL_BYE_LINE);
+  if (!ariaRTHeardSignOff && typeof speakWithLily === 'function') speakWithLily(CALL_BYE_LINE);
 }
 
-/** Any speech, from either side, means the line is still worth paying for. */
+/**
+ * Ask her to say something specific, mid-call.
+ *
+ * A short cue as a conversation item, then a BARE response.create.
+ * Not a per-response `instructions` field: that is what silenced the
+ * greeting for a day, and this path uses only shapes already proven
+ * on this branch.
+ */
+function cueRealtime(cue){
+  if (!ariaRT) return false;
+  const a = ariaRT.send({ type: 'conversation.item.create',
+    item: { type: 'message', role: 'system', content: [{ type: 'input_text', text: cue }] } });
+  const b = ariaRT.send({ type: 'response.create' });
+  return a && b;
+}
+
+/**
+ * Any activity — speech from either side, or a tap, or a scroll —
+ * means the line is still worth paying for.
+ *
+ * Danny's rule: only when BOTH the talking and the browsing go quiet
+ * does the countdown start. So a shopper reading the cards she just
+ * put up keeps the call alive, and a shopper who has walked away does
+ * not.
+ */
 function noteRealtimeActivity(){
   if (!ariaRT) return;
+  ariaRTCheckedIn = false;
+  if (ariaRTCheckinTimer) clearTimeout(ariaRTCheckinTimer);
   if (ariaRTIdleTimer) clearTimeout(ariaRTIdleTimer);
+  ariaRTCheckinTimer = setTimeout(() => {
+    if (!ariaRT || ariaRTCheckedIn) return;
+    ariaRTCheckedIn = true;
+    /* A check-in, not a warning: two words, no countdown, no UI. */
+    cueRealtime(CUE_CHECKIN);
+  }, CALL_CHECKIN_MS);
   ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
 }
 
@@ -37682,6 +37757,24 @@ function armRealtimeIdleTimers(){
 function endRealtimeCallIfPanelClosed(){
   if (ariaRT && !assistantOpen) endRealtimeCallIdle('cerró el chat');
 }
+
+/* BROWSING IS ACTIVITY. Tapping a card she just put up, adding to the
+   cart, scrolling the shelf — a shopper doing any of that is still in
+   the conversation even while neither of them is talking. Only when
+   the talking AND the browsing stop does the countdown run.
+
+   Registered once, cheap when no call is open: noteRealtimeActivity
+   returns immediately without a session. Scroll is throttled because
+   it fires continuously. */
+document.addEventListener('click', () => { if (ariaRT) noteRealtimeActivity(); }, { passive: true, capture: true });
+let ariaRTScrollAt = 0;
+document.addEventListener('scroll', () => {
+  if (!ariaRT) return;
+  const now = Date.now();
+  if (now - ariaRTScrollAt < 2000) return;
+  ariaRTScrollAt = now;
+  noteRealtimeActivity();
+}, { passive: true, capture: true });
 
 /* …and the page going to the background, with a short grace so a
    notification banner does not hang up on him. */
@@ -38058,6 +38151,62 @@ async function executeRealtimeTool(name, args){
         price_usd: Math.round((Number(it.priceUsd) || 0) * 100) / 100,
         qty: Number(it.qty) || 1,
       })),
+    };
+  }
+
+  if (name === 'get_cart_items'){
+    /* THE DIVISION, DONE HERE SO SHE NEVER DOES IT.
+
+       Greedy largest-first into two groups, each tested on the
+       DUTIABLE base — the number the threshold actually reads. Greedy
+       is the right algorithm here and not a shortcut: the shopper has
+       to physically remove and re-add these items, so a division he
+       can follow beats an optimal one he cannot, and largest-first is
+       what a person would do anyway.
+
+       When it cannot be done it says so and names the reason, because
+       "no se puede" with the offending product named is useful and
+       "no se puede" alone sounds like a bug. */
+    const lines = cart
+      .filter(it => it && it.lineType !== 'bundle-discount')
+      .map(it => ({
+        title: String(it.title || '').slice(0, 90),
+        price_usd: Math.round((Number(it.priceUsd) || 0) * 100) / 100,
+        qty: Number(it.qty) || 1,
+        dutiable: (() => {
+          const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
+          return Number.isFinite(d) ? d * (Number(it.qty) || 1) : 0;
+        })(),
+      }));
+
+    const groups = [[], []];
+    const dut = [0, 0];
+    let tooBig = null;
+    for (const l of [...lines].sort((a, b) => b.dutiable - a.dutiable)){
+      /* One line that alone passes the threshold cannot be split out
+         of the problem — splitting the REST would not help. */
+      if (l.dutiable > IMPORT_TAX_THRESHOLD_USD){ tooBig = l.title; break; }
+      const into = dut[0] <= dut[1] ? 0 : 1;
+      groups[into].push(l);
+      dut[into] += l.dutiable;
+    }
+    const fits = !tooBig && dut[0] <= IMPORT_TAX_THRESHOLD_USD && dut[1] <= IMPORT_TAX_THRESHOLD_USD;
+    const money = (g) => Math.round(g.reduce((a, l) => a + l.price_usd * l.qty, 0) * 100) / 100;
+    const named = (g) => g.map(l => ({ title: l.title, price_usd: l.price_usd, qty: l.qty }));
+
+    return {
+      items: named(lines),
+      cart_usd: money(lines),
+      splittable: fits,
+      /* Named so she can read them out; she must use these words. */
+      group_a: fits ? named(groups[0]) : [],
+      group_a_usd: fits ? money(groups[0]) : 0,
+      group_b: fits ? named(groups[1]) : [],
+      group_b_usd: fits ? money(groups[1]) : 0,
+      /* The honest no, with the reason in it. */
+      why_not: fits ? null
+        : tooBig ? ('"' + tooBig + '" sola ya pasa el umbral, así que dividir no ayuda.')
+        : 'Con estos productos no hay forma de hacer dos grupos que queden los dos debajo del umbral.',
     };
   }
 

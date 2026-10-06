@@ -100,6 +100,23 @@ export const REALTIME_TOOLS = Object.freeze([
   },
   {
     type: "function",
+    name: "get_cart_items",
+    /* THE SPLIT, WORKED OUT IN CODE.
+
+       Dividing a cart into two groups that each land under the
+       threshold is arithmetic on the dutiable base, and Aria is
+       forbidden from doing arithmetic for good reason. So the division
+       arrives already done: which products in which group, what each
+       group totals, and an honest no when it cannot be done. She
+       reads it out; she never computes it. */
+    description:
+      "Los productos del carrito, y — si el pedido pasa el umbral — una división ya " +
+      "calculada en dos grupos que quedan debajo. Úsala para guiar la división: nombra " +
+      "los productos de cada grupo tal como te los da. Nunca calcules tú la división.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
+  {
+    type: "function",
     name: "get_order_status",
     description: "Estado de un pedido por su código Aria. Solo si el cliente da el código.",
     parameters: {

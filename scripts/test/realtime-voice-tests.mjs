@@ -97,8 +97,8 @@ check("only tools with a real backend are offered", () => {
   /* A tool with nothing behind it is worse than no tool: the model
      narrates its empty output as fact, which §12 forbids outright. */
   assert.deepEqual([...REALTIME_TOOL_NAMES].sort(),
-    ["calculate_total_delivered_price", "get_cart_total", "get_order_status",
-     "get_product_details", "search_products"]);
+    ["calculate_total_delivered_price", "get_cart_items", "get_cart_total",
+     "get_order_status", "get_product_details", "search_products"]);
   /* Taking money is not something a mis-heard sentence should do. */
   assert.ok(!REALTIME_TOOL_NAMES.includes("create_order"), "a voice can place an order");
   for (const t of REALTIME_TOOLS){
@@ -876,7 +876,7 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   /* The parts that carry meaning survive every rung. */
   const last = calls[calls.length - 1].payload.session;
   assert.ok(last.instructions && last.instructions.length > 100, "the instructions were shed");
-  assert.ok(Array.isArray(last.tools) && last.tools.length === 5, "the tools were shed");
+  assert.ok(Array.isArray(last.tools) && last.tools.length === 6, "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
   assert.equal(last.audio.output.voice, "coral", "the voice was shed");
 });
@@ -906,7 +906,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
   assert.ok(minimal.instructions && minimal.instructions.length > 1000,
     "the minimal session dropped her instructions");
   assert.equal(minimal.model, "gpt-realtime", "the minimal session dropped the model");
-  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 5,
+  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 6,
     "the minimal session dropped her tools — she could not search");
   assert.equal(minimal.tool_choice, "auto", "the minimal session dropped tool_choice");
   assert.equal(minimal.audio.input.turn_detection.type, "semantic_vad",
@@ -1705,7 +1705,21 @@ check("the sales rules forbid the three things that would cost trust", () => {
   /* THE SPLIT, AND THE ONE WORD IT MUST NEVER USE. The threshold
      exists and using it is legal; coaching "evade taxes" is a
      different thing entirely, and it is Danny's name on the business. */
-  assert.match(i, /EL TRUCO DE DIVIDIR/, "the split tip has no instructions");
+  /* The over-threshold line must carry the FIX in the same breath as
+     the bad news — Danny: never hand him the problem on its own. */
+  assert.match(i, /PASÓ EL UMBRAL/, "the over-threshold case has no instructions");
+  assert.match(i, /pasaste los \$200, así que los impuestos/,
+    "the bad news is not stated plainly");
+  assert.match(i, /¿Quieres que lo dividamos/, "the fix is not offered alongside it");
+  assert.match(i, /Nunca sueltes\s*\r?\n?el problema sin la salida al lado/,
+    "nothing stops her delivering the bad news on its own");
+  /* And the guided flow, which must read the division rather than
+     invent one. */
+  assert.match(i, /SI ACEPTA DIVIDIR/, "there is no guided split flow");
+  assert.match(i, /Pide get_cart_items/, "the flow does not use the tool");
+  assert.match(i, /NUNCA la calcules tú/, "she may work the division out herself");
+  assert.match(i, /Nombra SIEMPRE los productos/, "she may say \"algunas cosas\"");
+  assert.match(i, /"splittable": false/, "there is no honest answer when it cannot be split");
   assert.match(i, /NUNCA lo llames evadir impuestos/,
     "she may frame the split as evading taxes");
   assert.match(i, /ni le des asesoría\s*\r?\n?tributaria/, "she may give tax advice");
@@ -1777,31 +1791,74 @@ check("a call nobody is on does not stay open", () => {
   }
   const body = page.slice(at, end + 1);
   const seen = [];
-  const fn = new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
-    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE",
-    body + "\n return endRealtimeCallIdle;");
-  fn({ pc: {} }, Date.now() - 60000, { info(){} },
-    () => seen.push("stopped"),
-    (role, text) => seen.push("wrote:" + text),
-    (text) => seen.push("spoke:" + text),
-    "Te dejo mirando. Si me necesitas, solo aprieta el micrófono y te sigo ayudando.")("silencio");
+  const mkExit = (opts) => new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
+    "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    body + "\n return endRealtimeCallIdle;")(
+      opts.rt, opts.started, { info(){} },
+      () => seen.push("stopped"),
+      (role, text) => seen.push("wrote:" + text),
+      (text) => seen.push("spoke:" + text),
+      "Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!",
+      opts.signedOff, opts.heard, () => {}, () => opts.cueOk, null, 4000,
+      (f) => seen.push("scheduled"), "[cue]");
+  /* Reached a second time — after she has been asked to sign off —
+     this is the one that actually closes the line. */
+  mkExit({ rt: { pc: {} }, started: Date.now() - 60000, signedOff: true, heard: false, cueOk: true })("silencio");
   assert.ok(seen.includes("stopped"), "the idle exit does not actually end the call");
-  assert.ok(seen.some(x => x.startsWith("wrote:") && /aprieta el micrófono/.test(x)),
+  assert.ok(seen.some(x => x.startsWith("wrote:") && /toca el micrófono/.test(x)),
     "the goodbye is not written where he can read it");
-  assert.ok(seen.some(x => x.startsWith("spoke:") && /aprieta el micrófono/.test(x)),
-    "she does not say how to get her back before hanging up");
+  assert.ok(seen.some(x => x.startsWith("spoke:") && /toca el micrófono/.test(x)),
+    "she does not say how to get her back when the live voice stayed quiet");
+
+  /* …and NOT twice. If the live voice already said goodbye, Lily must
+     stay out of it — otherwise he hears the same line in two voices. */
+  const heardIt = [];
+  new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
+    "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    body + "\n return endRealtimeCallIdle;")(
+      { pc: {} }, Date.now(), { info(){} }, () => {}, () => {},
+      () => heardIt.push("spoke"), "bye", true, true, () => {}, () => true, null, 4000,
+      () => {}, "[cue]")("silencio");
+  assert.equal(heardIt.length, 0,
+    "Lily repeats the goodbye the live voice already said — he hears it twice");
   /* The goodbye rides the OLD voice path on purpose: the session is
      already closed, so it costs no realtime minutes. */
   assert.ok(body.indexOf("stopRealtimeVoice()") < body.indexOf("speakWithLily"),
     "the goodbye is spoken on the live session, which bills for it");
 
   /* A call that already ended must not end twice. */
-  const twice = [];
-  const again = new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
-    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE",
-    body + "\n return endRealtimeCallIdle;");
-  again(null, 0, { info(){} }, () => twice.push("stopped"), () => {}, () => {}, "x")("silencio");
-  assert.equal(twice.length, 0, "the idle exit fires on a call that is already over");
+  const before = seen.length;
+  mkExit({ rt: null, started: 0, signedOff: true, heard: false, cueOk: true })("silencio");
+  assert.equal(seen.length, before, "the idle exit fires on a call that is already over");
+
+  /* THE SIGN-OFF STEP. On the first pass she is ASKED to say goodbye
+     and the line is held open briefly; the timer, never her, is what
+     guarantees it closes — a model that stays quiet must not keep the
+     meter running. */
+  const signOff = [];
+  const mkFirst = (cueOk) => new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
+    "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    body + "\n return endRealtimeCallIdle;")(
+      { pc: {} }, Date.now() - 40000, { info(){} },
+      () => signOff.push("stopped"), () => {}, () => {}, "bye",
+      false, false, () => {}, () => { signOff.push("cued"); return cueOk; }, null, 4000,
+      () => signOff.push("scheduled"), "[cue]");
+  mkFirst(true)("silencio");
+  assert.ok(signOff.includes("cued"), "she is never asked to say goodbye");
+  assert.ok(signOff.includes("scheduled"), "nothing guarantees the line closes after the goodbye");
+  assert.ok(!signOff.includes("stopped"), "the line closed before she could say goodbye");
+
+  /* …and if the cue could not even be sent, it hangs up at once
+     rather than waiting on a goodbye that will never come. */
+  signOff.length = 0;
+  mkFirst(false)("silencio");
+  assert.ok(signOff.includes("stopped"), "a failed goodbye cue leaves the call running");
 
   /* And every timer is cleared when the call ends, or a stale one
      fires into the next call. */
@@ -1871,6 +1928,128 @@ check("the split tip fires only where splitting actually works", () => {
   assert.deepEqual(Object.keys(r.lines[0]).sort(), ["price_usd", "qty", "title"]);
   assert.ok(!/dutiable|margin|markup/.test(JSON.stringify(r)),
     "the split payload leaks our cost structure");
+});
+
+check("the split is worked out in code, and an impossible one is admitted", () => {
+  /* She is forbidden from doing arithmetic, so the division cannot be
+     hers. Greedy largest-first into two groups, each tested on the
+     DUTIABLE base — and greedy is the right algorithm here, not a
+     shortcut: the shopper has to physically remove and re-add these
+     items, so a division he can follow beats an optimal one he
+     cannot. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_cart_items'){");
+  assert.ok(at > 0, "get_cart_items has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
+
+  const run = (items) => {
+    const fn = new Function("cart", "IMPORT_TAX_THRESHOLD_USD", "dutiableBaseUsd", "name",
+      body + "\n return null;");
+    return fn(items, 200, (price) => price / 1.24, "get_cart_items");
+  };
+
+  /* Five items, $250 on the shelf: two groups, both under. */
+  const five = run([
+    { title: "Zapatillas Nike Pegasus", priceUsd: 90, qty: 1 },
+    { title: "Medias deportivas", priceUsd: 15, qty: 1 },
+    { title: "Short Adidas", priceUsd: 45, qty: 1 },
+    { title: "Polo Under Armour", priceUsd: 55, qty: 1 },
+    { title: "Gorra New Era", priceUsd: 45, qty: 1 },
+  ]);
+  assert.equal(five.splittable, true, "a $250 five-item cart was called unsplittable");
+  assert.equal(five.group_a.length + five.group_b.length, 5, "items went missing from the split");
+  assert.ok(five.group_a.length > 0 && five.group_b.length > 0, "one group came out empty");
+  /* Both groups must clear the threshold on the DUTIABLE base. */
+  const dutOf = (g) => g.reduce((a, l) => a + (l.price_usd / 1.24) * l.qty, 0);
+  assert.ok(dutOf(five.group_a) <= 200, `group A is over the threshold: ${dutOf(five.group_a)}`);
+  assert.ok(dutOf(five.group_b) <= 200, `group B is over the threshold: ${dutOf(five.group_b)}`);
+  /* She must be able to NAME them — Danny: never "algunas cosas". */
+  for (const l of [...five.group_a, ...five.group_b]){
+    assert.ok(l.title && l.title.length > 2, "a group member has no name to read out");
+    assert.equal(typeof l.price_usd, "number", "a group member has no price");
+  }
+  assert.equal(five.why_not, null, "a workable split carried a refusal");
+  /* …and the totals she reads are the shelf prices, the ones he sees. */
+  assert.equal(five.group_a_usd + five.group_b_usd, five.cart_usd,
+    "the two group totals do not add up to the cart");
+
+  /* ONE ITEM THAT ALONE PASSES THE THRESHOLD: splitting cannot help,
+     and saying so with the product named beats a bare "no". */
+  const single = run([{ title: "Laptop Dell XPS", priceUsd: 310, qty: 1 }]);
+  assert.equal(single.splittable, false, "a single over-threshold item was called splittable");
+  assert.deepEqual(single.group_a, [], "an impossible split still proposed a group");
+  assert.match(single.why_not, /Laptop Dell XPS/, "the refusal does not name the offending product");
+  assert.match(single.why_not, /ya pasa el umbral/, "the refusal does not say why");
+
+  /* THREE BIG ITEMS, NONE ON ITS OWN OVER THE LINE. No single item
+     trips the "too big" check, yet no two-way split works either:
+     greedy lands two in one group and that group clears the
+     threshold. Refusing here is the honest answer, and checking only
+     the single-item case would call it splittable. */
+  const three = run([
+    { title: "Laptop A", priceUsd: 235.6, qty: 1 },
+    { title: "Laptop B", priceUsd: 235.6, qty: 1 },
+    { title: "Laptop C", priceUsd: 235.6, qty: 1 },
+  ]);
+  assert.equal(three.splittable, false,
+    "three items that cannot fit into two under-threshold groups were called splittable");
+  assert.ok(three.why_not, "the refusal gave no reason");
+  assert.deepEqual(three.group_a, [], "an impossible split still proposed a group");
+
+  /* A cart that is already under the threshold splits trivially — the
+     tool is still honest about it rather than refusing. */
+  const small = run([{ title: "Medias", priceUsd: 15, qty: 1 }]);
+  assert.equal(small.splittable, true, "a tiny cart was called unsplittable");
+
+  /* Bundle-discount lines are savings, not goods, and must not be
+     handed to him as something to move between orders. */
+  const withDiscount = run([
+    { title: "Zapatillas", priceUsd: 150, qty: 1 },
+    { title: "Descuento combo", priceUsd: -20, qty: 1, lineType: 'bundle-discount' },
+  ]);
+  assert.equal(withDiscount.items.length, 1, "a discount line was offered as a product to move");
+
+  /* And nothing in the payload exposes what the goods cost us. */
+  assert.ok(!/dutiable/.test(JSON.stringify(five)), "the split payload leaks the dutiable base");
+});
+
+check("a check-in comes before the hang-up, once", () => {
+  /* Danny's flow: 20s -> "¿Sigues ahí?", 35s -> she signs off and the
+     line closes. The check-in is a check-in, not a warning: two
+     words, no countdown, no UI. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.match(page, /const CALL_CHECKIN_MS = 20000;/, "there is no check-in step");
+  assert.match(page, /const CALL_IDLE_MS = 35000;/, "the hang-up is not at 35 seconds");
+  assert.ok(page.indexOf("CALL_CHECKIN_MS") > 0 &&
+    /CALL_CHECKIN_MS[\s\S]{0,40}\n?.*CALL_IDLE_MS = 35000/.test(page),
+    "the check-in is not before the hang-up");
+
+  const at = page.indexOf("function noteRealtimeActivity(){");
+  const body = page.slice(at, page.indexOf("\n}", page.indexOf("ariaRTIdleTimer = setTimeout", at)));
+  /* Both timers reset together, or the check-in fires after the
+     hang-up has already been scheduled from an older silence. */
+  assert.match(body, /ariaRTCheckedIn = false;/, "activity does not re-arm the check-in");
+  assert.match(body, /clearTimeout\(ariaRTCheckinTimer\)/, "the old check-in timer is left running");
+  assert.match(body, /clearTimeout\(ariaRTIdleTimer\)/, "the old hang-up timer is left running");
+  assert.match(body, /if \(!ariaRT \|\| ariaRTCheckedIn\) return;/,
+    "the check-in can fire twice in one silence");
+  assert.match(body, /cueRealtime\(CUE_CHECKIN\)/, "the check-in is never spoken");
+
+  /* The cue rides proven shapes: a conversation item plus a BARE
+     response.create. A per-response instructions field is what
+     silenced the greeting for a day. */
+  const cue = page.slice(page.indexOf("function cueRealtime(cue){"));
+  const cueBody = cue.slice(0, cue.indexOf("\n}"));
+  assert.match(cueBody, /type: 'conversation\.item\.create'/, "the cue is not a conversation item");
+  assert.match(cueBody, /ariaRT\.send\(\{ type: 'response\.create' \}\)/,
+    "the cue carries per-response fields again");
+  assert.match(cueBody, /return a && b;/, "the cue does not report whether it went out");
+
+  /* Browsing counts as activity — Danny: only when BOTH go quiet. */
+  assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
+    "tapping a product does not keep the call alive");
+  assert.match(page, /addEventListener\('scroll'/, "scrolling does not keep the call alive");
+  assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
 });
 
 check("the browser never receives the standing API key", () => {
