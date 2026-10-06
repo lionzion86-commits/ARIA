@@ -79,6 +79,27 @@ export const REALTIME_TOOLS = Object.freeze([
   },
   {
     type: "function",
+    name: "get_cart_total",
+    /* THE $200 LEVER, AND THE REASON IT IS A TOOL.
+
+       Peru's de minimis is measured on the DUTIABLE BASE — what the
+       goods really cost — not on the total the shopper sees, which
+       carries our service margin. The two differ by about 24%: a cart
+       reading $230 is still tax-free, and tax starts at a cart around
+       $248. Aria cannot be allowed to work that out loud, because she
+       would get it wrong in the direction that costs a sale or, worse,
+       promises a tax exemption that does not exist.
+
+       So she asks, and the answer arrives already reasoned: whether
+       tax applies, and how much more she can honestly say fits. */
+    description:
+      "El carrito del comprador ahora mismo: el total que él ve, si ya le aplican " +
+      "impuestos de importación, y cuánto más puede agregar sin que le apliquen. " +
+      "Úsala antes de hablar del umbral de impuestos — nunca calcules tú.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
+  {
+    type: "function",
     name: "get_order_status",
     description: "Estado de un pedido por su código Aria. Solo si el cliente da el código.",
     parameters: {

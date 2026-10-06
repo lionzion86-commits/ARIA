@@ -97,7 +97,8 @@ check("only tools with a real backend are offered", () => {
   /* A tool with nothing behind it is worse than no tool: the model
      narrates its empty output as fact, which §12 forbids outright. */
   assert.deepEqual([...REALTIME_TOOL_NAMES].sort(),
-    ["calculate_total_delivered_price", "get_order_status", "get_product_details", "search_products"]);
+    ["calculate_total_delivered_price", "get_cart_total", "get_order_status",
+     "get_product_details", "search_products"]);
   /* Taking money is not something a mis-heard sentence should do. */
   assert.ok(!REALTIME_TOOL_NAMES.includes("create_order"), "a voice can place an order");
   for (const t of REALTIME_TOOLS){
@@ -875,7 +876,7 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   /* The parts that carry meaning survive every rung. */
   const last = calls[calls.length - 1].payload.session;
   assert.ok(last.instructions && last.instructions.length > 100, "the instructions were shed");
-  assert.ok(Array.isArray(last.tools) && last.tools.length === 4, "the tools were shed");
+  assert.ok(Array.isArray(last.tools) && last.tools.length === 5, "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
   assert.equal(last.audio.output.voice, "coral", "the voice was shed");
 });
@@ -905,7 +906,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
   assert.ok(minimal.instructions && minimal.instructions.length > 1000,
     "the minimal session dropped her instructions");
   assert.equal(minimal.model, "gpt-realtime", "the minimal session dropped the model");
-  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 4,
+  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 5,
     "the minimal session dropped her tools — she could not search");
   assert.equal(minimal.tool_choice, "auto", "the minimal session dropped tool_choice");
   assert.equal(minimal.audio.input.turn_detection.type, "semantic_vad",
@@ -1562,6 +1563,131 @@ check("the stale audio handlers are detached when a call starts", () => {
     assert.ok(new RegExp(`ariaAudioPlayer\\.${h} = null`).test(after),
       `ariaAudioPlayer.${h} survives into the call`);
   }
+});
+
+check("the $200 tip is measured on the dutiable base, not the shelf price", () => {
+  /* THE CORRECTION THAT MATTERS. Peru's de minimis is tested against
+     what the GOODS cost — the dutiable base — and the total the
+     shopper sees carries our service margin on top. Measured against
+     the real pricing functions, tax starts at a cart of about $248.50,
+     not $200:
+
+        cart $199 -> dutiable $160.48   tax-free, ~$49 of room left
+        cart $230 -> dutiable $185.48   STILL tax-free
+        cart $250 -> dutiable $201.61   taxed
+
+     A script written around "$120 to $199, tell him to reach $200"
+     would understate his room by about fifty dollars, go silent at
+     $230 exactly when the tip is worth most, and say nothing at $250
+     when he is already paying. So Aria never computes it: the tool
+     hands her the answer. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_cart_total'){");
+  assert.ok(at > 0, "the cart tool has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
+
+  /* It must read the dutiable sum, never the shelf total. */
+  assert.match(body, /const t = cartTotals\(\);/, "the cart tool does not use the canonical totals");
+  assert.match(body, /t\.dutiableUsd/, "the threshold is not read off the dutiable base");
+  assert.match(body, /dutiable > IMPORT_TAX_THRESHOLD_USD/,
+    "the threshold is tested against the wrong number");
+  assert.ok(!/t\.priceUsd > IMPORT_TAX_THRESHOLD_USD/.test(body),
+    "the threshold is tested against the shelf price — that is the bug this exists to avoid");
+
+  /* Run it, against the real numbers. The flag lives outside the
+     snippet so a caller can ask twice with the same state — the only
+     way to catch the flag never being SET. */
+  const session = (alreadyTold) => {
+    let told = !!alreadyTold;
+    return (lines) => {
+    const fn = new Function("cartTotals", "cart", "IMPORT_TAX_THRESHOLD_USD", "SALES_TAX_RATE",
+      "__told", "__setTold", "name",
+      body.replace(/ariaRTThresholdTold = true;/, "__setTold();")
+          .replace(/!ariaRTThresholdTold/, "!__told()")
+      + "\n return null;");
+    const dutiable = lines.reduce((a, l) => a + l.dutiable * (l.qty || 1), 0);
+    const price = lines.reduce((a, l) => a + l.price * (l.qty || 1), 0);
+      return fn(() => ({ priceUsd: price, dutiableUsd: dutiable, weightKg: 1 }),
+        lines, 200, 1.07, () => told, () => { told = true; }, "get_cart_total");
+    };
+  };
+  const run = (lines, alreadyTold) => session(alreadyTold)(lines);
+
+  /* $199 on the shelf is $160 dutiable: tax-free, with real room. */
+  const mid = run([{ price: 199, dutiable: 160.48, qty: 1 }], false);
+  assert.equal(mid.import_tax_applies, false, "a $199 cart was reported as taxed");
+  assert.ok(mid.tax_free_headroom_usd >= 40 && mid.tax_free_headroom_usd <= 49,
+    `headroom at a $199 cart came out ${mid.tax_free_headroom_usd}, expected about 45`);
+  assert.ok(mid.threshold_hint, "the tip was withheld when it was worth giving");
+  assert.match(mid.threshold_hint, /UNA vez/, "the tip does not say to say it once");
+
+  /* $230 on the shelf is $185 dutiable: STILL tax-free. The brief's
+     script would have gone quiet here. */
+  const high = run([{ price: 230, dutiable: 185.48, qty: 1 }], false);
+  assert.equal(high.import_tax_applies, false, "a $230 cart was wrongly reported as taxed");
+  assert.ok(high.threshold_hint, "the tip was withheld at $230, where it is worth most");
+
+  /* $250 on the shelf is $201 dutiable: taxed, and silence is right. */
+  const over = run([{ price: 250, dutiable: 201.61, qty: 1 }], false);
+  assert.equal(over.import_tax_applies, true, "a taxed cart was reported as tax-free");
+  assert.equal(over.tax_free_headroom_usd, 0, "a taxed cart was offered headroom");
+  assert.equal(over.threshold_hint, null, "she was told to pitch the threshold after it passed");
+  assert.match(over.explanation, /Ya le aplican/, "a taxed cart is not explained");
+
+  /* ONCE PER CALL, ENFORCED BY THE TOOL. "Only mention this once" is
+     not a promise a model keeps over a ten-minute call. */
+  /* Asked twice against ONE session, so the flag must be set by the
+     first call — passing a pre-set flag only proves it is read. */
+  const ask = session(false);
+  const first = ask([{ price: 199, dutiable: 160.48, qty: 1 }]);
+  assert.ok(first.threshold_hint, "the first ask got no tip");
+  const second = ask([{ price: 199, dutiable: 160.48, qty: 1 }]);
+  assert.equal(second.threshold_hint, null, "the tip is handed over twice in one call");
+  assert.equal(second.import_tax_applies, false, "the facts stopped being reported too");
+
+  /* …and the flag is cleared for the next call, or only the first
+     call of a page load ever pitches. */
+  const startAt = page.indexOf("async function startRealtimeVoice()");
+  assert.match(page.slice(startAt, startAt + 2600), /ariaRTThresholdTold = false;/,
+    "the tip flag is never reset, so only the first call of a page load pitches");
+
+  /* An empty cart has nothing to pitch. */
+  const empty = run([], false);
+  assert.equal(empty.threshold_hint, null, "she pitches the threshold at an empty cart");
+  /* …and neither does a cart with almost no room left. */
+  const sliver = run([{ price: 245, dutiable: 198, qty: 1 }], false);
+  assert.equal(sliver.threshold_hint, null, "she pitches $2 of headroom");
+
+  /* The margin is never in the payload. */
+  for (const r of [mid, high, over]){
+    const json = JSON.stringify(r);
+    assert.ok(!/margin|markup|0\.24|dutiable_usd/.test(json),
+      `the cart payload leaks our cost structure: ${json}`);
+  }
+});
+
+check("the sales rules forbid the three things that would cost trust", () => {
+  const i = buildRealtimeInstructions(null);
+  /* Never her own arithmetic — the whole reason get_cart_total exists. */
+  assert.match(i, /get_cart_total/, "she is not told to ask for the cart");
+  assert.match(i, /NUNCA lo\s*\r?\n?calcules tú/, "she may work the threshold out herself");
+  assert.match(i, /se mide sobre lo que cuesta la mercadería, no/,
+    "nothing tells her the threshold is not the on-screen total");
+  /* One suggestion, dropped when declined. */
+  assert.match(i, /Uno por producto, nunca una lista/, "complements may become a list");
+  assert.match(i, /dice que no, cambias de tema y no vuelves/, "she may keep pushing");
+  /* Suggestions must be real. */
+  assert.match(i, /búscalo con search_products/, "complements are not required to come from the catalogue");
+  assert.match(i, /no lo menciones: no existe para nosotros/,
+    "she may suggest something not in the catalogue");
+  /* And the margin stays ours. */
+  assert.match(i, /NUNCA hables del margen/, "she may discuss the markup with a shopper");
+  /* The instruction wording, not just the tool payload: both say once. */
+  assert.match(i, /dilo UNA vez/, "the instructions no longer bound the tip to once");
+  assert.match(i, /Si no te lo pasa, no saques el tema/,
+    "she may raise the threshold without the tool offering it");
+  assert.match(i, /Si ya le aplican, no lo menciones/,
+    "she may announce that tax now applies, which is not good news");
 });
 
 check("the browser never receives the standing API key", () => {

@@ -37101,6 +37101,10 @@ let ariaRTGreetRetrying = false;
 /* First audio of the call, which for a fresh call is the greeting.
    Logged so "she was silent" can be told from "she never spoke". */
 let ariaRTHeardAudio = false;
+/* The $200 tip is a one-per-call thing. Enforced by the tool rather
+   than asked of the model: "only say this once" is not a promise a
+   language model keeps over ten minutes. */
+let ariaRTThresholdTold = false;
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
@@ -37378,6 +37382,7 @@ async function startRealtimeVoice(){
   ariaRTGreeted = false;
   ariaRTGreetRetrying = false;
   ariaRTHeardAudio = false;
+  ariaRTThresholdTold = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37850,6 +37855,51 @@ async function executeRealtimeTool(name, args){
     });
     if (!res.ok) return { unavailable: 'no pude calcular el total ahorita' };
     return await res.json();
+  }
+
+  if (name === 'get_cart_total'){
+    /* THE NUMBERS, ALREADY REASONED.
+
+       The $200 de minimis is measured on the dutiable base — what the
+       goods really cost — and the cart total the shopper sees carries
+       our service margin on top. cartTotals() already sums both,
+       beside each other, for exactly this reason. Aria gets told which
+       is which and is never asked to convert between them. */
+    const t = cartTotals();
+    const dutiable = Math.round(t.dutiableUsd * 100) / 100;
+    const cartUsd = Math.round(t.priceUsd * 100) / 100;
+    const applies = dutiable > IMPORT_TAX_THRESHOLD_USD;
+    /* HEADROOM IN THE DOLLARS HE WOULD ACTUALLY ADD. A dollar of
+       dutiable value arrives on the shelf as roughly 1.24/1.07 of a
+       dollar, so the conversion is deliberately the conservative one:
+       it understates the room slightly rather than promising an
+       exemption that does not exist. */
+    const dutiableRoom = Math.max(IMPORT_TAX_THRESHOLD_USD - dutiable, 0);
+    const shelfRoom = Math.floor(dutiableRoom * (1.24 / SALES_TAX_RATE));
+
+    /* ONCE PER CALL, ENFORCED HERE AND NOT REQUESTED OF HER. A model
+       asked to remember "only mention this once" will mention it
+       three times on a long call. The hint simply stops existing
+       after the first time it is handed over. */
+    let hint = null;
+    if (!applies && !ariaRTThresholdTold && cart.length && shelfRoom >= 10){
+      ariaRTThresholdTold = true;
+      hint = 'Puedes mencionar UNA vez, como dato útil y sin presionar, que todavía no ' +
+             'le aplican impuestos de importación y que le caben como $' + shelfRoom +
+             ' más en productos antes de que apliquen.';
+    }
+    return {
+      cart_usd: cartUsd,
+      items: cart.reduce((n, it) => n + (Number(it.qty) || 0), 0),
+      import_tax_applies: applies,
+      tax_free_headroom_usd: applies ? 0 : shelfRoom,
+      /* Said in words so she never has to explain the mechanism
+         herself, and never quotes the margin. */
+      explanation: applies
+        ? 'Ya le aplican impuestos de importación porque el valor de la mercadería pasó los $' + IMPORT_TAX_THRESHOLD_USD + '.'
+        : 'Todavía no le aplican impuestos de importación.',
+      threshold_hint: hint,
+    };
   }
 
   if (name === 'get_order_status'){
