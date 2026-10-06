@@ -1295,6 +1295,46 @@ check("the element carries the audio, and the WebAudio graph never does", () => 
   assert.ok(!/el\.muted\s*=\s*[^;]*graphRunning/.test(code),
     "the element is muted in favour of the graph again");
   assert.match(src, /el\.srcObject = stream/, "the stream never reaches the element");
+  /* THE ELEMENT MUST COME FROM THE GESTURE. Built here, it is an
+     element no tap ever touched, and iOS refuses to play those —
+     which is exactly how the greeting went missing. */
+  assert.match(code, /ariaUnlockLiveAudio\(\)/,
+    "the sink builds its own audio element again, outside the gesture");
+  /* …and a refusal must be reported, not swallowed. A bare .catch()
+     is how a silent call looked healthy. */
+  assert.ok(!/pr\.catch\(\(\) => \{\}\)/.test(code),
+    "an autoplay refusal is swallowed silently again");
+  assert.match(code, /REALTIME VOICE FAILED/, "a refused play\(\) is not reported anywhere");
+
+  /* THE PRIMING ITSELF. An element that is merely CREATED in a tap is
+     not blessed — iOS grants playback to an element that has actually
+     been asked to play while the gesture was on the stack. Silence is
+     what it is primed with, so the unlock is inaudible. */
+  const uAt = page.indexOf("function ariaUnlockLiveAudio(){");
+  assert.ok(uAt > 0, "the live-audio unlock is gone");
+  let ud = 0, uEnd = -1;
+  for (let k = page.indexOf("{", uAt); k < page.length; k++){
+    if (page[k] === "{") ud++;
+    else if (page[k] === "}" && --ud === 0){ uEnd = k; break; }
+  }
+  const unlock = page.slice(uAt, uEnd + 1);
+  assert.match(unlock, /\.play\(\)/,
+    "the element is never asked to play inside the tap, so iOS never blesses it");
+  assert.match(unlock, /SILENT_WAV/, "the unlock primes with something audible");
+  {
+    const plays = [];
+    const fake = { play(){ plays.push("played"); return { catch(){} }; }, pause(){}, srcObject: null };
+    const run = new Function("Audio", "SILENT_WAV", "ariaLiveAudioEl",
+      unlock + "\n return ariaUnlockLiveAudio;")(
+        function(){ return fake; }, "data:silent", null);
+    run();
+    assert.deepEqual(plays, ["played"], "the tap never primed the element");
+    /* Once a call is attached, priming again would replace the live
+       stream with silence. */
+    fake.srcObject = { id: "remote" };
+    run();
+    assert.deepEqual(plays, ["played"], "the unlock overwrote a live call's stream with silence");
+  }
 
   /* Driven: attach, duck, restore. */
   const timers = [];
@@ -1302,16 +1342,20 @@ check("the element carries the audio, and the WebAudio graph never does", () => 
                srcObject: null, play(){ this.paused = false; return { catch(){} }; } };
   const ctx = { state: "running", resume(){ ctx.state = "running"; } };
   const sink = new Function("Audio", "window", "ariaUnlockAudioContext", "console",
-    "CUT_RESTORE_MS", "setTimeout", "clearTimeout",
+    "CUT_RESTORE_MS", "setTimeout", "clearTimeout", "ariaUnlockLiveAudio", "tape",
     src + "\n return buildAudioSink;")(
       function(){ return el; }, { AudioContext: function(){ return ctx; } },
-      () => ctx, { info(){}, warn(){} },
+      () => ctx, { info(){}, warn(){}, error(){} },
       Number(/const CUT_RESTORE_MS = (\d+);/.exec(page)[1]),
       /* `fired` as well as `cancelled`: a timer that has already run is
          not an armed one, and counting it as such made the assertion
          below fail on a perfectly good sink. */
       (f, ms) => { const t = { ms, f: () => { t.fired = true; f(); } }; timers.push(t); return timers.length; },
-      (id) => { if (timers[id - 1]) timers[id - 1].cancelled = true; })();
+      (id) => { if (timers[id - 1]) timers[id - 1].cancelled = true; },
+      /* THE ELEMENT COMES FROM THE TAP, not from `new Audio()` here —
+         an element the gesture never touched is one iOS will not let
+         play, which is how the greeting went silent. */
+      () => el, () => {})();
   const armed = () => timers.filter(t => !t.cancelled && !t.fired);
 
   sink.attach({ id: "remote" });
@@ -3603,8 +3647,10 @@ await checkAsync("the call starts when the chat opens, inside the gesture", asyn
     else if (page[k] === "}" && --d === 0){ end = k; break; }
   }
   const body = page.slice(at, end + 1);
-  assert.ok(body.indexOf("ariaUnlockAudioContext()") < body.indexOf("startRealtimeVoice"),
-    "the audio context is unlocked after the call starts, which is outside the gesture");
+  /* BOTH the context and the element, because the element is what
+     actually makes the sound now and iOS blesses it only in a tap. */
+  assert.ok(body.indexOf("unlockAudioForMobile()") < body.indexOf("startRealtimeVoice"),
+    "the audio is unlocked after the call starts, which is outside the gesture");
   assert.match(body, /showRealtimeError\(\)/,
     "a call that fails to start on open says nothing — there is no fallback to cover it");
   assert.match(body, /if \(ariaLiveCallActive\(\)\) return;/,
@@ -3612,7 +3658,7 @@ await checkAsync("the call starts when the chat opens, inside the gesture", asyn
 
   /* Driven, because "the call is attempted" is the whole feature. */
   const calls = [];
-  const run = (ok) => new Function("ariaLiveCallActive", "ariaUnlockAudioContext",
+  const run = (ok) => new Function("ariaLiveCallActive", "unlockAudioForMobile",
     "ariaRTWanted", "startRealtimeVoice", "showRealtimeError", "Promise",
     body + "\n return startRealtimeOnOpen;")(
       () => false, () => calls.push("unlocked"), false,

@@ -33889,9 +33889,11 @@ async function greetAssistantStreaming(){
  */
 function startRealtimeOnOpen(){
   if (ariaLiveCallActive()) return;          /* already talking */
-  /* The gesture is still on the stack here; this is the only moment
-     iOS will let us open an audio context. */
-  try { ariaUnlockAudioContext(); } catch (e) {}
+  /* The gesture is still on the stack here, and this is the only
+     moment iOS will let us open an audio context OR bless the element
+     that will carry her voice. Both, or the call connects and plays
+     nothing — which is exactly how the greeting went missing. */
+  try { unlockAudioForMobile(); } catch (e) {}
   ariaRTWanted = true;
   Promise.resolve()
     .then(() => startRealtimeVoice())
@@ -37536,7 +37538,10 @@ function buildAudioSink(){
      inside the tap, because that unlock is what lets iOS play ANY
      audio afterwards — it just no longer carries the sound.
      ============================================================ */
-  const el = new Audio();
+  /* The element the tap already blessed. Creating one here would be
+     creating it outside the gesture, which is the bug this comment
+     exists because of — see ariaUnlockLiveAudio. */
+  const el = ariaUnlockLiveAudio() || new Audio();
   el.autoplay = true;
   /* iOS refuses to start an inline stream otherwise. */
   el.playsInline = true;
@@ -37551,8 +37556,19 @@ function buildAudioSink(){
   let silenced = false;
   let restoreTimer = null;
 
+  /* A REFUSED play() IS THE WHOLE BUG, SO IT IS NEVER SWALLOWED. It
+     was caught and dropped, which is why a silent call looked healthy
+     from the diagnostic. */
   const play = () => {
-    try { const pr = el.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+    try {
+      const pr = el.play();
+      if (pr && pr.catch) pr.catch((e) => {
+        console.error('REALTIME VOICE FAILED: the browser refused to play her audio —', e && e.name);
+        tape('!!', 'play refused: ' + (e && e.name));
+      });
+    } catch (e) {
+      console.error('REALTIME VOICE FAILED: play() threw —', e && e.message);
+    }
   };
 
   /* Safari moves a context to "interrupted" on a phone call or a Siri
@@ -39216,7 +39232,50 @@ function ariaUnlockAudioContext(){
   return ariaAudioCtx;
 }
 
+/* ONE ELEMENT, BLESSED BY A TAP, REUSED BY EVERY CALL.
+
+   THE MISSING GREETING (Danny, 2026-10-06): "she doesn't greet when I
+   open the chat... All I see is the text but I don't hear her voice.
+   Only after I literally press the mic."
+
+   buildAudioSink() ran `new Audio()` AFTER the token fetch had been
+   awaited — outside the gesture that opened the chat. iOS will not let
+   an element that no gesture ever touched begin playing, and the
+   refusal was swallowed by a bare .catch(). Pressing the microphone
+   worked because that tap granted activation again, close enough to
+   the handshake for play() to be allowed.
+
+   This is the same bug the AudioContext had and the same fix: create
+   it in the tap, prime it with silence, and keep it. One element for
+   the page also means one voice can come out of the page, whatever
+   else goes wrong upstream.
+
+   Primed with SILENT_WAV rather than whatever src it last held, which
+   is its own old bug: the unlock used to replay the previous reply. */
+let ariaLiveAudioEl = null;
+function ariaUnlockLiveAudio(){
+  try {
+    if (!ariaLiveAudioEl){
+      ariaLiveAudioEl = new Audio();
+      ariaLiveAudioEl.autoplay = true;
+      ariaLiveAudioEl.playsInline = true;
+      ariaLiveAudioEl.volume = 1;
+    }
+    /* Every tap, not only the first: iOS drops the blessing after an
+       interruption, and a shopper who takes a phone call mid-session
+       must not come back to a silent Aria. */
+    if (!ariaLiveAudioEl.srcObject){
+      ariaLiveAudioEl.src = SILENT_WAV;
+      const pr = ariaLiveAudioEl.play();
+      if (pr && pr.catch) pr.catch(() => {});
+      try { ariaLiveAudioEl.pause(); } catch (e) {}
+    }
+  } catch (e) { /* an element we cannot prime still gets a try later */ }
+  return ariaLiveAudioEl;
+}
+
 function unlockAudioForMobile(){
+  ariaUnlockLiveAudio();
   /* The context is unlocked on EVERY tap, not only the first: Safari
      suspends it again after an interruption, and audioUnlocked below
      only tracks the one-shot element unlock. */
