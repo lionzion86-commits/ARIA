@@ -42,6 +42,18 @@ export const REALTIME_MODEL_DEFAULT = "gpt-realtime";
 export const REALTIME_VOICE_DEFAULT = "marin";
 export const REALTIME_API_BASE = "https://api.openai.com/v1/realtime";
 
+/* Capped so one answer cannot become a monologue. See the note where it
+   is used. */
+export const MAX_RESPONSE_OUTPUT_TOKENS = 500;
+
+/* The brief names whisper-1. gpt-4o-mini-transcribe is its successor and
+   measurably better on accented Spanish, which is the whole population
+   of this shop — so it is the default, and the env var is here so the
+   choice can be reversed without a deploy if it mishears in the field. */
+export const TRANSCRIPTION_MODEL =
+  (typeof process !== "undefined" && process.env && process.env.ARIA_REALTIME_TRANSCRIBE) ||
+  "gpt-4o-mini-transcribe";
+
 /* ------------------------------------------------------------------
    TURN DETECTION
 
@@ -113,6 +125,32 @@ especificaciones SIEMPRE salen de una herramienta. Si no tienes el dato,
 dilo: "No tengo un precio confiable para esa ahorita." Nunca lo inventes.
 Si una herramienta falla: "Se me está trabando el precio ahorita, déjame
 intentar de nuevo."
+
+CERO EMOJIS. Nunca, ni hablando ni escribiendo. Esto no tiene excepción.
+
+PERUANO DE VERDAD: no neutro, no de España. "Chévere", "pata", "ya pues"
+caen bien cuando salen solas. No las fuerces y no las amontones: una
+vendedora real no habla en jerga todo el rato.
+
+REGALOS: si menciona un regalo, a quién o la ocasión, haz dos o tres
+preguntas buenas ANTES de mostrar nada. Qué le gusta, para qué lo quiere,
+cuánto quiere gastar. Primero entiendes a la persona, después buscas.
+
+DIRECCIÓN, NO PUNTERÍA: lleva la conversación hacia el tipo de cosa
+correcta, no hacia un producto exacto, salvo que él lo nombre.
+  - "a mi hija le gustan las muñecas" -> muñecas, Barbies, casitas.
+    NO pistolas Nerf solo porque también son juguetes.
+Seis a doce opciones elegidas, nunca un volcado de cien resultados.
+
+LO QUE YA ESTÁ EN EL PRECIO: los precios que ve el cliente ya incluyen
+nuestro servicio, y el checkout es en soles. Puedes explicarlo si
+pregunta. Lo que NO haces nunca es sacar la cuenta tú: ni el margen, ni
+el flete, ni el impuesto, ni la conversión a soles. Cualquier número sale
+de una herramienta, siempre, aunque creas que lo puedes calcular.
+
+NO CITES INVENTARIOS NI TOTALES DEL CATÁLOGO: cuántas tiendas, cuántos
+productos o cuántas marcas hay cambia cada semana y tú no lo tienes al
+día. "Tenemos harto de dónde escoger, dime qué buscas" y sigues.
 `.trim();
 
 export function buildRealtimeInstructions(recipient = null) {
@@ -139,13 +177,20 @@ export function buildRealtimeSession(opts = {}) {
       input: {
         /* The shopper is on a phone in a room with other people. */
         noise_reduction: { type: "near_field" },
-        transcription: { model: "gpt-4o-mini-transcribe", language: "es" },
+        transcription: { model: TRANSCRIPTION_MODEL, language: "es" },
         turn_detection: { ...TURN_DETECTION },
       },
       output: { voice, speed: 1.0 },
     },
     tools: REALTIME_TOOLS.map((t) => ({ ...t })),
     tool_choice: "auto",
+    /* A HARD CEILING ON HOW LONG SHE CAN TALK. The prompt asks for one
+       to three sentences, but a prompt is a preference and this is a
+       limit: output audio is the expensive half, and a model that
+       monologues for ninety seconds is both a worse salesperson and a
+       bigger bill. 500 tokens is roughly a long paragraph — generous
+       for three sentences, impossible to filibuster from. */
+    max_response_output_tokens: MAX_RESPONSE_OUTPUT_TOKENS,
   };
 }
 

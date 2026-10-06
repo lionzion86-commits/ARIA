@@ -6209,6 +6209,25 @@
        renderAssistantQuickReplies() from one list, so a chip's text is
        literally the message it sends -- there is no second routing table
        that could send something other than what the chip says. -->
+  <!-- THE LIVE CALL BAR. Hidden until a realtime session is actually
+       open, because a mute button that mutes nothing is worse than no
+       button. Three things the brief requires and a tap can reach:
+       which way the audio is flowing right now, a mute, and a way out.
+       It sits above the quick replies so it never competes with the
+       keyboard for the bottom of the screen. -->
+  <div id="assistantCallBar" hidden class="border-t px-3 py-2 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line); background:#fff">
+    <span id="assistantCallState" class="inline-flex items-center gap-1.5 text-[12.5px] font-medium rounded-full px-2.5 py-1" style="background:rgba(16,24,40,.06); color:var(--navy)">
+      <span id="assistantCallDot" class="w-2 h-2 rounded-full" style="background:var(--blue)"></span>
+      <span id="assistantCallText">En vivo</span>
+    </span>
+    <span class="flex-1"></span>
+    <button id="assistantMuteBtn" type="button" onclick="toggleRealtimeMute()" aria-label="Silenciar micrófono" aria-pressed="false" class="h-10 px-3 rounded-full border grid place-items-center flex-shrink-0 focus-ring transition text-[12.5px] font-medium" style="border-color:var(--line); color:var(--navy); background:#fff">
+      <span id="assistantMuteLabel">Silenciar</span>
+    </button>
+    <button type="button" onclick="stopRealtimeVoice()" aria-label="Terminar la llamada con Aria" class="h-10 px-3.5 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition text-[12.5px] font-semibold" style="background:#B42318">
+      Terminar
+    </button>
+  </div>
   <div id="assistantQuickRow" class="ariaQuickRail border-t px-3 py-2.5 flex-shrink-0" style="border-color:var(--line); background:#fff"></div>
 
   <div class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
@@ -36886,16 +36905,27 @@ function realtimeAvailable(){
   });
 }
 
-/* Opt-in while it is new: ?voz=vivo turns it on, and the choice sticks
-   so Danny does not retype it every reload. Off by default means a bad
-   realtime day can never take the shop's voice down with it. */
-function realtimeOptedIn(){
+/* LIVE VOICE IS THE VOICE NOW (2026-10-06, Danny: full gpt-realtime,
+   cost approved). It is on by default and ?voz=clasica is the kill
+   switch — it sticks, so if the realtime path ever has a bad day the
+   shop can be put back on the speech-to-text loop from a URL without
+   waiting for a deploy. ?voz=vivo undoes that.
+
+   Defaulting ON is only safe because every other gate still holds: no
+   API key, no WebRTC, no microphone permission or no HTTPS all fall
+   through to the old loop. This flag decides what we TRY, never what
+   the shopper is stuck with. */
+function realtimeEnabled(){
   try {
     const q = new URLSearchParams(location.search).get('voz');
-    if (q === 'vivo'){ localStorage.setItem(ARIA_RT_FLAG, '1'); return true; }
-    if (q === 'clasica'){ localStorage.removeItem(ARIA_RT_FLAG); return false; }
-    return localStorage.getItem(ARIA_RT_FLAG) === '1';
-  } catch { return false; }
+    if (q === 'vivo'){ try { localStorage.removeItem(ARIA_RT_FLAG); } catch {} return true; }
+    if (q === 'clasica'){ try { localStorage.setItem(ARIA_RT_FLAG, '0'); } catch {} return false; }
+    return localStorage.getItem(ARIA_RT_FLAG) !== '0';
+  } catch {
+    /* localStorage can throw outright in a locked-down browser. That is
+       not a reason to lose the voice, so the default survives it. */
+    return true;
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -36998,8 +37028,14 @@ async function startRealtimeVoice(){
     const { state, actions } = T.voiceTurnReducer(turn, event);
     turn = state;
     for (const action of actions){
-      if (action === 'stopPlayback' || action === 'clearAudioQueue' || action === 'dropAudio') sink.cut();
-      else if (action === 'playAudio') sink.open();
+      if (action === 'stopPlayback' || action === 'clearAudioQueue' || action === 'dropAudio'){
+        sink.cut();
+        /* She was cut off mid-word: the bar says listening immediately,
+           before any server round trip, because that is the truth of
+           what the microphone is doing. */
+        if (action !== 'dropAudio') setRealtimeState('listening');
+      }
+      else if (action === 'playAudio'){ sink.open(); setRealtimeState('speaking'); }
       else if (action === 'cancelResponse') send({ type: 'response.cancel' });
     }
     onRealtimeEvent(event, turn, send);
@@ -37048,13 +37084,21 @@ function stopRealtimeVoice(){
   setRealtimeUi(false);
 }
 
-/** Mute without ending: the shopper's privacy control. */
+/**
+ * Mute without ending: the shopper's privacy control.
+ *
+ * Disabling the track is the real cut — a disabled track transmits
+ * silence, so nothing reaches OpenAI and nothing is billed or
+ * transcribed. Muting an element would only stop US hearing it, which
+ * is the opposite of what a mute button promises.
+ */
 function toggleRealtimeMute(){
   if (!ariaRT) return false;
-  const tracks = ariaRT.mic.getAudioTracks();
-  const nowMuted = tracks.length ? tracks[0].enabled : false;
-  for (const t of tracks) t.enabled = !nowMuted ? false : true;
-  const muted = tracks.length ? !tracks[0].enabled : false;
+  let tracks = [];
+  try { tracks = ariaRT.mic.getAudioTracks(); } catch { return false; }
+  if (!tracks.length) return false;
+  const muted = tracks[0].enabled;      // enabled now => this tap mutes
+  for (const t of tracks) t.enabled = !muted;
   setRealtimeUi(true, muted);
   return muted;
 }
@@ -37066,6 +37110,7 @@ async function onRealtimeEvent(event, turn, send){
   switch (event.type){
     case 'input_audio_buffer.speech_started':
       setOrbState('listening');
+      setRealtimeState('listening');
       break;
     case 'conversation.item.input_audio_transcription.completed':
       /* What the shopper said, on screen, so the conversation has a
@@ -37081,6 +37126,7 @@ async function onRealtimeEvent(event, turn, send){
         ariaChatHistory.push({ role: 'assistant', content: event.transcript.trim() });
       }
       setOrbState('idle');
+      setRealtimeState('listening');
       break;
     case 'response.function_call_arguments.done':
       await runRealtimeTool(event, send);
@@ -37196,9 +37242,37 @@ function realtimeProductById(id){
 /* ------------------------------------------------------------------
    UI
    ------------------------------------------------------------------ */
+/* Which way the audio is flowing, in words, because "is it listening?"
+   is the question every voice interface fails to answer. Muted outranks
+   everything: if the microphone is off the bar must never claim to be
+   listening, whatever the model is doing. */
+let ariaRTState = 'listening';
+function setRealtimeState(kind){
+  ariaRTState = kind;
+  const bar = document.getElementById('assistantCallBar');
+  if (!bar || bar.hidden) return;
+  const muted = ariaRTMuted();
+  const dot = document.getElementById('assistantCallDot');
+  const text = document.getElementById('assistantCallText');
+  const label = muted ? 'Micrófono apagado'
+    : kind === 'speaking' ? 'Aria está hablando — puedes interrumpirla'
+    : 'Aria te escucha';
+  if (text) text.textContent = label;
+  if (dot) dot.style.background = muted ? 'var(--muted, #98A2B3)' : kind === 'speaking' ? 'var(--gold, #B98A2E)' : 'var(--blue)';
+}
+
+function ariaRTMuted(){
+  if (!ariaRT) return false;
+  try { const t = ariaRT.mic.getAudioTracks(); return t.length ? !t[0].enabled : false; }
+  catch { return false; }
+}
+
 function setRealtimeUi(live, muted){
   const status = document.getElementById('assistantStatus');
   const micBtn = document.getElementById('assistantMicBtn');
+  const bar = document.getElementById('assistantCallBar');
+  const muteBtn = document.getElementById('assistantMuteBtn');
+  const muteLabel = document.getElementById('assistantMuteLabel');
   if (status) {
     status.textContent = !live ? 'Aquí para ayudarte a encontrar algo'
       : muted ? 'Micrófono apagado — toca para hablar'
@@ -37208,7 +37282,18 @@ function setRealtimeUi(live, muted){
     micBtn.style.background = live && !muted ? 'var(--blue)' : '';
     micBtn.style.color = live && !muted ? '#fff' : 'var(--navy)';
     micBtn.setAttribute('aria-pressed', live && !muted ? 'true' : 'false');
+    micBtn.setAttribute('aria-label', live ? 'Terminar la llamada con Aria' : 'Hablar con Aria');
   }
+  /* The bar exists only for the duration of a call. */
+  if (bar) bar.hidden = !live;
+  if (muteBtn){
+    muteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+    muteBtn.setAttribute('aria-label', muted ? 'Activar micrófono' : 'Silenciar micrófono');
+    muteBtn.style.background = muted ? 'var(--navy)' : '#fff';
+    muteBtn.style.color = muted ? '#fff' : 'var(--navy)';
+  }
+  if (muteLabel) muteLabel.textContent = muted ? 'Activar' : 'Silenciar';
+  if (live) setRealtimeState(ariaRTState);
 }
 
 /**
@@ -37222,7 +37307,7 @@ function setRealtimeUi(live, muted){
  */
 async function toggleAriaVoice(){
   if (ariaRT){ stopRealtimeVoice(); return; }
-  if (realtimeOptedIn()){
+  if (realtimeEnabled()){
     ariaRTWanted = true;
     unlockAudioForMobile();
     if (await startRealtimeVoice()) return;

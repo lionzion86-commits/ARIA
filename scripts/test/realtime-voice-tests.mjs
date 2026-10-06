@@ -332,37 +332,160 @@ check("the page falls back rather than throwing when the module is absent", () =
     "a failed realtime start does not fall back to the old loop");
 });
 
-check("live voice is opt-in, so a bad day cannot take the shop's voice down", () => {
-  /* RUN, NOT GREPPED. The first version of this checked that
-     realtimeOptedIn existed and was called — and a mutation replacing
-     its whole body with `return true`, turning live voice on for every
-     shopper, passed it. The function is lifted out of the page and
-     executed against a stubbed location and localStorage instead. */
+check("live voice is the default, and ?voz=clasica is a real kill switch", () => {
+  /* RUN, NOT GREPPED. The first version of this checked that the
+     function existed and was called — and a mutation replacing its
+     whole body with `return true` passed it. The function is lifted
+     out of the page and executed against a stubbed location and
+     localStorage instead.
+
+     The default flipped on 2026-10-06 (Danny approved full
+     gpt-realtime), so the thing worth protecting is now the opposite:
+     that the kill switch still works and still sticks. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const from = page.indexOf("function realtimeOptedIn(){");
-  assert.ok(from > 0, "realtimeOptedIn is gone from index.html");
+  const from = page.indexOf("function realtimeEnabled(){");
+  assert.ok(from > 0, "realtimeEnabled is gone from index.html");
   const src = page.slice(from, page.indexOf("\n}", from) + 2);
   const flagM = /const ARIA_RT_FLAG = '([^']+)'/.exec(page);
   assert.ok(flagM, "ARIA_RT_FLAG is gone from index.html");
-  const make = (search, stored) => {
-    const store = new Map(stored ? [[flagM[1], stored]] : []);
+  const make = (search, stored, hostile) => {
+    const store = new Map(stored !== undefined ? [[flagM[1], stored]] : []);
     /* ARIA_RT_FLAG is declared outside the function; without it the
-       body throws into its own catch and quietly answers false — which
-       looked exactly like "opt-in works" until a mutation disagreed. */
+       body throws into its own catch, which once looked exactly like
+       a passing test. */
     const fn = new Function("location", "localStorage", "URLSearchParams", "ARIA_RT_FLAG",
-      src + "; return realtimeOptedIn();");
-    const ls = { getItem: (k) => (store.has(k) ? store.get(k) : null),
-                 setItem: (k, v) => store.set(k, String(v)),
-                 removeItem: (k) => store.delete(k) };
+      src + "; return realtimeEnabled();");
+    const ls = hostile
+      ? { getItem(){ throw new Error("denied"); }, setItem(){ throw new Error("denied"); },
+          removeItem(){ throw new Error("denied"); } }
+      : { getItem: (k) => (store.has(k) ? store.get(k) : null),
+          setItem: (k, v) => store.set(k, String(v)),
+          removeItem: (k) => store.delete(k) };
     return { on: fn({ search }, ls, URLSearchParams, flagM[1]), store };
   };
-  assert.equal(make("").on, false, "live voice was on for a shopper who never asked");
-  assert.equal(make("?utm_source=fb").on, false, "an unrelated query string turned it on");
-  assert.equal(make("?voz=vivo").on, true, "?voz=vivo did not turn it on");
-  assert.equal(make("", "1").on, true, "the stored choice was not remembered");
-  assert.equal(make("?voz=clasica", "1").on, false, "?voz=clasica did not turn it off");
-  /* …and opting in actually persists, or Danny retypes it every reload. */
-  assert.equal(make("?voz=vivo").store.get(flagM[1]), "1", "the opt-in was not stored");
+  assert.equal(make("").on, true, "live voice is not the default");
+  assert.equal(make("?utm_source=fb").on, true, "an unrelated query string turned it off");
+  assert.equal(make("?voz=clasica").on, false, "?voz=clasica did not turn it off");
+  assert.equal(make("", "0").on, false, "the stored kill switch was not remembered");
+  assert.equal(make("?voz=vivo", "0").on, true, "?voz=vivo did not undo the kill switch");
+  /* …and the kill switch persists, or it is useless the next reload. */
+  assert.equal(make("?voz=clasica").store.get(flagM[1]), "0", "the kill switch was not stored");
+  /* A browser that refuses localStorage outright must not lose the voice. */
+  assert.equal(make("", undefined, true).on, true, "a locked-down browser lost live voice");
+});
+
+check("the mute button actually stops transmitting", () => {
+  /* REGRESSION. Until 2026-10-06 this function read the track's
+     enabled flag into a variable named `nowMuted` and then assigned
+     that same value back — two taps, no change, a mute button that
+     muted nothing. Nothing caught it because no UI called it yet.
+     Lifted and run, both directions. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const from = page.indexOf("function toggleRealtimeMute(){");
+  assert.ok(from > 0, "toggleRealtimeMute is gone from index.html");
+  const src = page.slice(from, page.indexOf("\n}", from) + 2);
+  const tracks = [{ enabled: true }, { enabled: true }];
+  let lastUi = null;
+  const fn = new Function("ariaRT", "setRealtimeUi",
+    src + "; return toggleRealtimeMute;");
+  const toggle = fn({ mic: { getAudioTracks: () => tracks } }, (live, muted) => { lastUi = muted; });
+
+  assert.equal(toggle(), true, "the first tap did not report muting");
+  assert.ok(tracks.every(t => t.enabled === false), "the tracks still transmit while muted");
+  assert.equal(lastUi, true, "the UI was not told it is muted");
+
+  assert.equal(toggle(), false, "the second tap did not report unmuting");
+  assert.ok(tracks.every(t => t.enabled === true), "the tracks did not come back");
+  assert.equal(lastUi, false, "the UI was not told it is live again");
+
+  /* Disabling the TRACK is the point: a disabled track transmits
+     silence, so nothing reaches OpenAI and nothing is billed. Muting
+     the audio element would only stop us hearing ourselves. */
+  assert.ok(!/\.muted\s*=/.test(src), "mute works on the element, not the microphone track");
+});
+
+check("the call controls exist and only while a call does", () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  /* The brief requires a visible mute and a visible way out. */
+  assert.match(page, /id="assistantMuteBtn"[^>]*onclick="toggleRealtimeMute\(\)"/,
+    "there is no mute button wired to the mute function");
+  assert.match(page, /onclick="stopRealtimeVoice\(\)"[^>]*>\s*Terminar/,
+    "there is no end-call button wired to stopRealtimeVoice");
+  /* Hidden in the markup: a mute button that mutes nothing, shown to a
+     shopper who is not on a call, is worse than no button. */
+  assert.match(page, /id="assistantCallBar" hidden/, "the call bar is visible before any call");
+  const ui = page.slice(page.indexOf("function setRealtimeUi("));
+  assert.match(ui.slice(0, ui.indexOf("\n}")), /bar\.hidden = !live/,
+    "the call bar is not tied to whether a call is open");
+  /* …and the state is said in words, both ways. Greppping for the
+     strings alone passed a mutation that stopped CALLING the setter,
+     so the wiring is what is asserted: the branch that opens the
+     audio must be the branch that says she is speaking. */
+  assert.match(page, /Aria te escucha/, "there is no listening state");
+  assert.match(page, /Aria está hablando/, "there is no speaking state");
+  assert.match(page, /action === 'playAudio'\)\{ sink\.open\(\); setRealtimeState\('speaking'\); \}/,
+    "playing her audio does not put the bar into the speaking state");
+  assert.match(page, /case 'input_audio_buffer\.speech_started':[\s\S]{0,160}setRealtimeState\('listening'\);/,
+    "the shopper speaking does not put the bar into the listening state");
+});
+
+check("she cannot be made to monologue, and the model is the one Danny picked", () => {
+  const session = buildRealtimeSession();
+  assert.equal(session.model, "gpt-realtime", "the model is not full gpt-realtime");
+  assert.ok(!/mini/.test(session.model), "a mini model slipped in");
+  /* Output audio is the expensive half and a prompt is only a
+     preference. 500 tokens is generous for three sentences and
+     impossible to filibuster from. */
+  assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
+  assert.equal(session.audio.output.voice, "marin", "the voice changed without a decision");
+  /* Barge-in is not optional: without interrupt_response the server
+     keeps generating after the shopper starts talking, and the audio
+     the page cancels locally still arrives and is still billed. */
+  assert.equal(session.audio.input.turn_detection.interrupt_response, true, "barge-in is off");
+  assert.equal(session.audio.input.turn_detection.type, "semantic_vad", "not semantic VAD");
+});
+
+check("the spoken rules say the things that cost money or trust", () => {
+  const i = buildRealtimeInstructions(null);
+  /* Zero emojis, per the brief, with no exception. */
+  assert.match(i, /CERO EMOJIS/, "the no-emoji rule is gone");
+  /* The prompt tells her prices already include the service margin.
+     That is exactly the knowledge that tempts a model to do the
+     arithmetic out loud and get it wrong, so the ban on calculating
+     has to travel with it. */
+  assert.match(i, /NO haces nunca es sacar la cuenta/, "she is allowed to compute prices herself");
+  assert.match(i, /soles/, "the checkout currency is not mentioned");
+  /* Gift scenarios: questions first, products second. */
+  assert.match(i, /preguntas buenas ANTES de mostrar/, "the gift-first-ask rule is gone");
+  /* Direction, not a pin: dolls must not become Nerf guns. */
+  assert.match(i, /Nerf/, "the semantic-direction example is gone");
+  assert.match(i, /Seis a doce opciones/, "the curated-count rule is gone");
+  /* No hard catalogue counts: they go stale and she states them as
+     fact. retailers.js had 92 entries the day the brief said 77. */
+  assert.ok(!/\b77\b|\b31 departamentos\b|\b5000\b/.test(i),
+    "a catalogue count is baked into the prompt and will go stale");
+  assert.match(i, /NO CITES INVENTARIOS NI TOTALES/, "nothing stops her quoting a stale count");
+});
+
+check("the token mint survives either spelling of the endpoint", () => {
+  const mint = readFileSync(ROOT + "netlify/functions/aria-realtime-session.js", "utf8");
+  /* Matched as fetch URLs, not as bare words: both names appear in
+     the comment above them, which is how a mutation pointing the
+     fallback back at /client_secrets went unnoticed. */
+  assert.match(mint, /fetch\(`\$\{REALTIME_API_BASE\}\/client_secrets`/,
+    "the current endpoint is gone");
+  assert.match(mint, /fetch\(`\$\{REALTIME_API_BASE\}\/sessions`/,
+    "there is no fallback to the endpoint the brief names");
+  /* Only a wrong path answers 404/405; falling back on anything else
+     would retry a real failure against a second endpoint and double
+     the latency of every outage. */
+  assert.match(mint, /res\.status === 404 \|\| res\.status === 405/,
+    "the fallback triggers on the wrong condition");
+  /* The two endpoints disagree about shape, both ways. */
+  assert.match(mint, /body: JSON\.stringify\(\{ session \}\)/, "the modern call lost its wrapper");
+  assert.match(mint, /body: JSON\.stringify\(session\)/, "the legacy call is wrapped and will 400");
+  assert.match(mint, /data\?\.value \|\| data\?\.client_secret\?\.value/,
+    "only one response shape is understood");
 });
 
 check("the browser never receives the standing API key", () => {

@@ -68,7 +68,15 @@ export async function handler(event) {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), MINT_TIMEOUT_MS);
   try {
-    const res = await fetch(`${REALTIME_API_BASE}/client_secrets`, {
+    /* TWO SPELLINGS OF THE SAME CALL. /client_secrets is the current
+       one; /sessions is the older one the brief was written against,
+       and some keys still answer only that. Rather than guess which
+       this account has — untestable from here, egress to OpenAI is
+       blocked — try the current one and fall back on a 404/405, which
+       is what a wrong path returns and nothing else does. The two
+       differ in shape too, which is why the token is read defensively
+       below. */
+    let res = await fetch(`${REALTIME_API_BASE}/client_secrets`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -77,6 +85,20 @@ export async function handler(event) {
       body: JSON.stringify({ session }),
       signal: ac.signal,
     });
+    if (res.status === 404 || res.status === 405) {
+      console.info("[aria-realtime] /client_secrets not available, trying /sessions");
+      res = await fetch(`${REALTIME_API_BASE}/sessions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        /* The legacy endpoint takes the session fields at the top
+           level rather than nested under `session`. */
+        body: JSON.stringify(session),
+        signal: ac.signal,
+      });
+    }
     const text = await res.text();
     if (!res.ok) {
       /* The upstream body is logged for us, never returned verbatim:
