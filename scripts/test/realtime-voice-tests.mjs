@@ -1087,9 +1087,16 @@ check("the chat opens quiet when live voice is the mode", () => {
   }
   const body = page.slice(at, end + 1);
 
-  /* The spoken greeting is classic-only; the written one is not. */
-  assert.match(body, /if \(ariaClassicVoiceOnly\(\)\)\{\s*\r?\n\s*speakWithLily\(ARIA_GREETING_FALLBACK\);/,
-    "the old Lily greeting still plays in live-voice mode");
+  /* SHE SPEAKS ON OPEN AGAIN (2026-10-06). An earlier round read
+     Danny's complaint about the muted mic and the "press the
+     microphone" nag as a complaint about the greeting itself. It was
+     not: he wants to hear her, then tap. The greeting is Lily's and
+     not the live voice's on purpose — a greeting every shopper hears
+     would be realtime minutes burnt before a word is said. */
+  assert.match(body, /speakWithLily\(ARIA_GREETING_FALLBACK\);/,
+    "she no longer greets out loud when the chat opens");
+  assert.ok(!/if \(ariaClassicVoiceOnly\(\)\)\{\s*\r?\n\s*speakWithLily/.test(body),
+    "the spoken greeting is gated to the classic path again");
   assert.match(body, /addAssistantMessage\('bot', ARIA_GREETING_FALLBACK, null, \{ speak: false \}\)/,
     "the written greeting was removed too — the chat would open empty");
   /* The flag that arms the cue is classic-only. */
@@ -1418,13 +1425,16 @@ check("she is told to sound Peruvian and to open the call herself", () => {
 
   /* The greeting lives here now, not in a per-response field — which
      is the whole point of this round. */
-  assert.match(i, /CÓMO ABRES LA LLAMADA/, "nothing tells her to speak first");
-  assert.match(i, /saluda tú primero/, "she is not told to greet first");
-  assert.match(i, /UNA frase corta/, "the greeting is not bounded to one line");
-  assert.match(i, /En voz alta, siempre/, "nothing insists the greeting is spoken");
-  assert.match(i, /Nada de explicar cómo funciona el micrófono/,
+  /* The call opens with a short line, NOT a second introduction —
+     Lily already said hello in the chat before he tapped. */
+  assert.match(i, /CÓMO ABRES LA LLAMADA/, "nothing tells her how to open the call");
+  assert.match(i, /NO te vuelvas a presentar/, "she introduces herself twice");
+  assert.match(i, /UNA frase corta y en voz alta/, "the opener is not one spoken line");
+  assert.match(i, /Nunca "Hola, soy Aria" otra vez/, "she may repeat the written greeting aloud");
+  assert.match(i, /nunca explicar el micrófono, nunca\s*\r?\n?pedirle que apriete nada/,
     "nothing stops her explaining the microphone again");
-  assert.match(i, /no vuelvas a presentarte/, "she may introduce herself twice");
+  /* …and a silence hang-up is not an apology. */
+  assert.match(i, /CUANDO SE CIERRA POR SILENCIO/, "she is not told how to treat an idle hang-up");
 
   /* And the dead per-response constant is gone from the page. */
   const page = readFileSync(ROOT + "index.html", "utf8");
@@ -1597,18 +1607,22 @@ check("the $200 tip is measured on the dutiable base, not the shelf price", () =
   /* Run it, against the real numbers. The flag lives outside the
      snippet so a caller can ask twice with the same state — the only
      way to catch the flag never being SET. */
-  const session = (alreadyTold) => {
+  const session = (alreadyTold, alreadySplitTold) => {
     let told = !!alreadyTold;
+    let splitTold = !!alreadySplitTold;
     return (lines) => {
     const fn = new Function("cartTotals", "cart", "IMPORT_TAX_THRESHOLD_USD", "SALES_TAX_RATE",
-      "__told", "__setTold", "name",
+      "__told", "__setTold", "__splitTold", "__setSplitTold", "name",
       body.replace(/ariaRTThresholdTold = true;/, "__setTold();")
           .replace(/!ariaRTThresholdTold/, "!__told()")
+          .replace(/ariaRTSplitTold = true;/, "__setSplitTold();")
+          .replace(/!ariaRTSplitTold/, "!__splitTold()")
       + "\n return null;");
     const dutiable = lines.reduce((a, l) => a + l.dutiable * (l.qty || 1), 0);
     const price = lines.reduce((a, l) => a + l.price * (l.qty || 1), 0);
       return fn(() => ({ priceUsd: price, dutiableUsd: dutiable, weightKg: 1 }),
-        lines, 200, 1.07, () => told, () => { told = true; }, "get_cart_total");
+        lines, 200, 1.07, () => told, () => { told = true; },
+        () => splitTold, () => { splitTold = true; }, "get_cart_total");
     };
   };
   const run = (lines, alreadyTold) => session(alreadyTold)(lines);
@@ -1686,8 +1700,177 @@ check("the sales rules forbid the three things that would cost trust", () => {
   assert.match(i, /dilo UNA vez/, "the instructions no longer bound the tip to once");
   assert.match(i, /Si no te lo pasa, no saques el tema/,
     "she may raise the threshold without the tool offering it");
-  assert.match(i, /Si ya le aplican, no lo menciones/,
-    "she may announce that tax now applies, which is not good news");
+  assert.match(i, /Si ya le aplican, no saques el tema por tu cuenta/,
+    "she may announce that tax now applies off her own bat");
+  /* THE SPLIT, AND THE ONE WORD IT MUST NEVER USE. The threshold
+     exists and using it is legal; coaching "evade taxes" is a
+     different thing entirely, and it is Danny's name on the business. */
+  assert.match(i, /EL TRUCO DE DIVIDIR/, "the split tip has no instructions");
+  assert.match(i, /NUNCA lo llames evadir impuestos/,
+    "she may frame the split as evading taxes");
+  assert.match(i, /ni le des asesoría\s*\r?\n?tributaria/, "she may give tax advice");
+  assert.match(i, /Si no te pasó "split_hint", no ofrezcas dividir nada/,
+    "she may offer a split the tool did not sanction");
+});
+
+check("a call nobody is on does not stay open", () => {
+  /* THE MOST EXPENSIVE THING ON THIS BRANCH. Realtime audio bills by
+     the minute in both directions, so a session left open while a
+     shopper browses for half an hour is real money for nothing — and
+     that is the COMMON case, because the whole point of the call is
+     that she finds something and he goes to look at it.
+
+     (Danny: "I'm scared of the minutes going on forever... if it stays
+     on and they could be browsing for 30 minutes, now I got to pay a
+     shit ton of money.") */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+
+  /* Four independent exits, because any one can be the one that fires. */
+  assert.match(page, /const CALL_IDLE_MS = \d+;/, "there is no silence timeout");
+  assert.match(page, /const CALL_HIDDEN_MS = \d+;/, "a backgrounded page keeps the call open");
+  assert.match(page, /const CALL_MAX_MS = /, "there is no hard cap on call length");
+  assert.match(page, /function endRealtimeCallIfPanelClosed\(\)/, "closing the chat keeps the call open");
+
+  /* The silence timer must be re-armed by speech from EITHER side, or
+     it hangs up on a shopper who is listening to a long answer. */
+  const speech = page.slice(page.indexOf("case 'input_audio_buffer.speech_started':"));
+  assert.match(speech.slice(0, 300), /noteRealtimeActivity\(\);/,
+    "his speech does not keep the call alive");
+  const play = page.slice(page.indexOf("else if (action === 'playAudio')"));
+  assert.match(play.slice(0, 300), /noteRealtimeActivity\(\);/,
+    "her own audio does not keep the call alive — it would hang up mid-answer");
+
+  /* Closing the chat is the case that matters most, and it is wired
+     into the one function that closes the panel. */
+  const hide = page.slice(page.indexOf("function hideAssistant(){"));
+  assert.match(hide.slice(0, 700), /endRealtimeCallIfPanelClosed\(\)/,
+    "closing the chat panel leaves the call running");
+  /* …and the exit itself has to fire. Checking it is CALLED passed a
+     mutation that disarmed its body. */
+  {
+    const pa = page.indexOf("function endRealtimeCallIfPanelClosed(){");
+    let pd = 0, pe = -1;
+    for (let k = page.indexOf("{", pa); k < page.length; k++){
+      if (page[k] === "{") pd++;
+      else if (page[k] === "}" && --pd === 0){ pe = k; break; }
+    }
+    const src = page.slice(pa, pe + 1);
+    const calls = [];
+    const mk = (rt, open) => new Function("ariaRT", "assistantOpen", "endRealtimeCallIdle",
+      src + "\n return endRealtimeCallIfPanelClosed;")(rt, open, (w) => calls.push(w));
+    mk({ pc: {} }, false)();                 /* on a call, panel closed */
+    assert.equal(calls.length, 1, "closing the panel does not end the call");
+    mk({ pc: {} }, true)();                  /* on a call, panel open */
+    mk(null, false)();                       /* no call */
+    assert.equal(calls.length, 1, "the panel exit fires when it should not");
+  }
+
+  /* Run the exit. It must release the hardware AND tell him how to
+     come back — Danny's "before she shuts herself off, she can remind
+     them to hit the mike". */
+  const at = page.indexOf("function endRealtimeCallIdle(why){");
+  assert.ok(at > 0, "there is no idle exit");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
+  const seen = [];
+  const fn = new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE",
+    body + "\n return endRealtimeCallIdle;");
+  fn({ pc: {} }, Date.now() - 60000, { info(){} },
+    () => seen.push("stopped"),
+    (role, text) => seen.push("wrote:" + text),
+    (text) => seen.push("spoke:" + text),
+    "Te dejo mirando. Si me necesitas, solo aprieta el micrófono y te sigo ayudando.")("silencio");
+  assert.ok(seen.includes("stopped"), "the idle exit does not actually end the call");
+  assert.ok(seen.some(x => x.startsWith("wrote:") && /aprieta el micrófono/.test(x)),
+    "the goodbye is not written where he can read it");
+  assert.ok(seen.some(x => x.startsWith("spoke:") && /aprieta el micrófono/.test(x)),
+    "she does not say how to get her back before hanging up");
+  /* The goodbye rides the OLD voice path on purpose: the session is
+     already closed, so it costs no realtime minutes. */
+  assert.ok(body.indexOf("stopRealtimeVoice()") < body.indexOf("speakWithLily"),
+    "the goodbye is spoken on the live session, which bills for it");
+
+  /* A call that already ended must not end twice. */
+  const twice = [];
+  const again = new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
+    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE",
+    body + "\n return endRealtimeCallIdle;");
+  again(null, 0, { info(){} }, () => twice.push("stopped"), () => {}, () => {}, "x")("silencio");
+  assert.equal(twice.length, 0, "the idle exit fires on a call that is already over");
+
+  /* And every timer is cleared when the call ends, or a stale one
+     fires into the next call. */
+  const stop = page.slice(page.indexOf("function stopRealtimeVoice("));
+  assert.match(stop.slice(0, 500), /clearRealtimeIdleTimers\(\);/,
+    "the timers outlive the call and will fire into the next one");
+});
+
+check("the split tip fires only where splitting actually works", () => {
+  /* The saving is real: on a $250 cart about $57, on a $400 cart about
+     $94, and nothing offsets it — freight is per kilo so it does not
+     double, and the small-order fee only bites under S/50, which half
+     of a $200+ cart never is.
+
+     Above about $400 it STOPS working, because both halves land back
+     over $200: at a $500 cart each half is $201 dutiable and the tax
+     returns in full. Danny's ceiling is arithmetic, not caution. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_cart_total'){");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
+  assert.match(body, /applies && !ariaRTSplitTold && cartUsd >= 200 && cartUsd <= 400/,
+    "the split tip is not bounded to the range where it saves money");
+
+  const session = () => {
+    let told = false, splitTold = false;
+    const fn = new Function("cartTotals", "cart", "IMPORT_TAX_THRESHOLD_USD", "SALES_TAX_RATE",
+      "__told", "__setTold", "__splitTold", "__setSplitTold", "name",
+      body.replace(/ariaRTThresholdTold = true;/, "__setTold();")
+          .replace(/!ariaRTThresholdTold/, "!__told()")
+          .replace(/ariaRTSplitTold = true;/, "__setSplitTold();")
+          .replace(/!ariaRTSplitTold/, "!__splitTold()")
+      + "\n return null;");
+    return (price, dutiable) => fn(
+      () => ({ priceUsd: price, dutiableUsd: dutiable, weightKg: 2 }),
+      [{ title: "zapatillas", priceUsd: price, dutiableUsd: dutiable, qty: 1 }],
+      200, 1.07, () => told, () => { told = true; },
+      () => splitTold, () => { splitTold = true; }, "get_cart_total");
+  };
+
+  /* Under the threshold: nothing to split. */
+  assert.equal(session()(199, 160.48).split_hint, null, "offered a split on a tax-free cart");
+  /* In range: the tip, once. */
+  const ask = session();
+  const first = ask(250, 201.61);
+  assert.ok(first.split_hint, "no split tip on a $250 cart, where it saves about $57");
+  assert.match(first.split_hint, /UNA vez/, "the tip does not say to say it once");
+  assert.match(first.split_hint, /Nunca lo llames evadir impuestos/,
+    "the tip does not rule out framing it as evasion");
+  assert.equal(ask(250, 201.61).split_hint, null, "the split tip is handed over twice in one call");
+  /* At the ceiling: still in. */
+  assert.ok(session()(400, 322.58).split_hint, "no split tip at the $400 ceiling");
+  /* Past it: splitting no longer helps, so she stays quiet. */
+  assert.equal(session()(500, 403.23).split_hint, null,
+    "offered a split above $400, where both halves are still taxed");
+
+  /* Reset per call, or only the first call of a page load ever offers
+     it. Asserted inside startRealtimeVoice, since the declaration
+     matches the same string. */
+  const startAt = page.indexOf("async function startRealtimeVoice()");
+  assert.match(page.slice(startAt, startAt + 2800), /ariaRTSplitTold = false;/,
+    "the split flag is never reset, so only the first call offers it");
+
+  /* She gets the lines she needs to propose a division — titles and
+     prices only, never our cost. */
+  const r = session()(250, 201.61);
+  assert.ok(Array.isArray(r.lines) && r.lines.length === 1, "she cannot see what to divide");
+  assert.deepEqual(Object.keys(r.lines[0]).sort(), ["price_usd", "qty", "title"]);
+  assert.ok(!/dutiable|margin|markup/.test(JSON.stringify(r)),
+    "the split payload leaks our cost structure");
 });
 
 check("the browser never receives the standing API key", () => {

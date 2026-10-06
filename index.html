@@ -33758,6 +33758,10 @@ function dismissAssistantForNavigation(){
 function hideAssistant(){
   if (!assistantOpen && document.getElementById('assistantPanel')?.classList.contains('hidden')) return;
   assistantOpen = false;
+  /* THE CALL GOES WITH IT. Closing the chat to go and look at what she
+     found is the commonest thing a shopper does, and the one that
+     would otherwise bill for half an hour of browsing. */
+  if (typeof endRealtimeCallIfPanelClosed === 'function') endRealtimeCallIfPanelClosed();
   document.getElementById('assistantPanel')?.classList.add('hidden');
   document.getElementById('assistantIconSpark')?.classList.remove('hidden');
   document.getElementById('assistantIconClose')?.classList.add('hidden');
@@ -33841,16 +33845,22 @@ async function greetAssistantStreaming(){
   ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
   hideAssistantTyping();
   setOrbState('idle');
-  /* THE WRITTEN GREETING STAYS, THE SPOKEN ONE DOES NOT. In live-voice
-     mode Aria says hello inside the call, in her own voice, once the
-     line is up — so a Lily greeting here would be the wrong voice,
-     before the call, over a muted microphone. The chat still opens
-     with her line on screen; it just does not talk at you. */
-  if (ariaClassicVoiceOnly()){
-    speakWithLily(ARIA_GREETING_FALLBACK);
-  } else {
-    setAssistantMicCallReady();
-  }
+  /* SHE SAYS HELLO OUT LOUD AGAIN (2026-10-06, Danny: "when the chat
+     opens I should hear her say hola, soy Aria, tu shopper personal...
+     then I can actually hit the mic").
+
+     An earlier round removed this, reading his complaint about the
+     muted mic and the "press the microphone" nag as a complaint about
+     the greeting itself. It was not. The greeting is wanted; the nag
+     was not.
+
+     It is spoken by LILY, not by the live voice, and that is the
+     cheap half of the design: a greeting every shopper hears would be
+     realtime minutes burnt before anyone has said a word, whereas
+     this is one TTS call. The live session only opens when he taps,
+     and she does not re-introduce herself inside it. */
+  speakWithLily(ARIA_GREETING_FALLBACK);
+  if (!ariaClassicVoiceOnly()) setAssistantMicCallReady();
 }
 
 /* The mic button before the first tap, in live-voice mode: this is a
@@ -36639,6 +36649,15 @@ function setAssistantMicState(listening){
      con Aria" on a live call. */
   if (ariaLiveCallActive()) return;
   const micBtn = document.getElementById('assistantMicBtn');
+  /* THE IDLE LOOK BELONGS TO WHICHEVER VOICE IS NEXT. In live-voice
+     mode the resting button is a CALL button, and the greeting's own
+     closeMicForSpeak() used to repaint it back to "Hablar con Aria" a
+     second after setAssistantMicCallReady() had set it — so the first
+     thing Danny saw was the wrong label. One place decides. */
+  if (!listening && !ariaClassicVoiceOnly() && typeof setAssistantMicCallReady === 'function'){
+    setAssistantMicCallReady();
+    return;
+  }
   if (micBtn){
     micBtn.innerHTML = MIC_ICON_SVG;
     micBtn.style.background = listening ? 'var(--blue)' : 'var(--navy)';
@@ -37063,6 +37082,36 @@ const REALTIME_TOKEN_URL = '/api/realtime-token';
    on its own; a tunnel should not end the conversation. */
 const CALL_DROP_GRACE_MS = 6000;
 
+/* ==================================================================
+   A CALL THAT NOBODY IS ON MUST NOT STAY OPEN.
+
+   (2026-10-06, Danny: "I'm scared of the minutes going on forever...
+   if it stays on and they could be browsing for 30 minutes, now I got
+   to pay a shit ton of money.")
+
+   He is right, and this is the single most expensive thing on this
+   branch. Realtime audio bills by the minute in BOTH directions, so a
+   session left open while a shopper browses for half an hour costs
+   real money for nothing — the commonest case of all, because the
+   whole point of the call is that she finds something and he goes to
+   look at it.
+
+   Four independent ways out, because any one of them can be the one
+   that fires:
+     - silence:   nobody has spoken for a while
+     - panel:     he closed the chat, so the conversation is over
+     - hidden:    the page went to the background
+     - hard cap:  a backstop for anything the first three miss
+
+   She says goodbye before the line drops, and says how to get her
+   back, which is Danny's ask: "before she shuts herself off, she can
+   remind them to hit the mike."
+   ================================================================== */
+const CALL_IDLE_MS = 45000;        /* no speech from either side */
+const CALL_HIDDEN_MS = 20000;      /* page backgrounded this long */
+const CALL_MAX_MS = 10 * 60000;    /* nothing runs longer than this */
+const CALL_BYE_LINE = 'Te dejo mirando. Si me necesitas, solo aprieta el micrófono y te sigo ayudando.';
+
 /* The greeting is retried rather than dropped: the data channel can
    still be opening when session.updated lands. */
 const GREETING_ATTEMPTS = 3;
@@ -37105,6 +37154,9 @@ let ariaRTHeardAudio = false;
    than asked of the model: "only say this once" is not a promise a
    language model keeps over ten minutes. */
 let ariaRTThresholdTold = false;
+/* And the split trick, separately — they fire on opposite sides of the
+   threshold, so one flag could not serve both. */
+let ariaRTSplitTold = false;
 /* True once live voice was wanted and could not start, so the classic
    loop can label itself. */
 let ariaRTFellBack = false;
@@ -37142,6 +37194,8 @@ function ariaVoiceDiag(){
        told apart from "she did not say anything". */
     audio: ariaRT && ariaRT.sink && ariaRT.sink.state ? ariaRT.sink.state() : null,
     saludó: ariaRTGreeted,
+    /* So "is it still running, and for how long?" has an answer. */
+    segundosEnLlamada: ariaRT && ariaRTStartedAt ? Math.round((Date.now() - ariaRTStartedAt) / 1000) : 0,
     estricto: realtimeStrict(),
     audioCrudo: realtimeRawAudio(),
   };
@@ -37383,6 +37437,7 @@ async function startRealtimeVoice(){
   ariaRTGreetRetrying = false;
   ariaRTHeardAudio = false;
   ariaRTThresholdTold = false;
+  ariaRTSplitTold = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37501,6 +37556,7 @@ async function startRealtimeVoice(){
       else if (action === 'playAudio'){
         sink.open();
         setRealtimeState('speaking');
+        noteRealtimeActivity();
         if (!ariaRTHeardAudio){
           ariaRTHeardAudio = true;
           console.info('[aria] greeting audio started');
@@ -37550,6 +37606,8 @@ async function startRealtimeVoice(){
 
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
   ariaRTOpening = false;
+  ariaRTStartedAt = Date.now();
+  armRealtimeIdleTimers();
   /* Last chance before she speaks: if the context is still suspended
      here, nothing she says will be audible. */
   try { if (sink.open) sink.open(); } catch (e) {}
@@ -37571,6 +37629,73 @@ async function startRealtimeVoice(){
   setRealtimeUi(true);
   return true;
 }
+
+/* ------------------------------------------------------------------
+   THE METER. Everything that keeps a call alive, and everything that
+   ends it.
+   ------------------------------------------------------------------ */
+let ariaRTStartedAt = 0;
+let ariaRTIdleTimer = null, ariaRTMaxTimer = null, ariaRTHiddenTimer = null;
+
+function clearRealtimeIdleTimers(){
+  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer]) if (t) clearTimeout(t);
+  ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = null;
+}
+
+/**
+ * End the call and tell him how to get her back.
+ *
+ * The goodbye is spoken by the OLD voice path on purpose: the session
+ * is already closed by then, so the line costs no realtime minutes,
+ * its wording is ours rather than the model's, and it still works
+ * when the session died on its own.
+ */
+function endRealtimeCallIdle(why){
+  if (!ariaRT) return;
+  const secs = Math.round((Date.now() - ariaRTStartedAt) / 1000);
+  console.info('[aria] ending the call —', why, '| duration', secs + 's');
+  stopRealtimeVoice();
+  addAssistantMessage('bot', CALL_BYE_LINE, null, { speak: false });
+  /* ariaRT is null by now, so the dual-voice guards let this through. */
+  if (typeof speakWithLily === 'function') speakWithLily(CALL_BYE_LINE);
+}
+
+/** Any speech, from either side, means the line is still worth paying for. */
+function noteRealtimeActivity(){
+  if (!ariaRT) return;
+  if (ariaRTIdleTimer) clearTimeout(ariaRTIdleTimer);
+  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
+}
+
+function armRealtimeIdleTimers(){
+  clearRealtimeIdleTimers();
+  noteRealtimeActivity();
+  /* The backstop: far longer than any real shopping question, far
+     shorter than a forgotten tab. */
+  ariaRTMaxTimer = setTimeout(() => endRealtimeCallIdle('duración máxima'), CALL_MAX_MS);
+}
+
+/* HE CLOSED THE CHAT, SO THE CONVERSATION IS OVER. This is the case
+   Danny described — she finds the Adidas, he goes to look at them —
+   and the one that would otherwise bill for half an hour of browsing.
+   Closing the panel ends the call; the mic button starts a new one. */
+function endRealtimeCallIfPanelClosed(){
+  if (ariaRT && !assistantOpen) endRealtimeCallIdle('cerró el chat');
+}
+
+/* …and the page going to the background, with a short grace so a
+   notification banner does not hang up on him. */
+document.addEventListener('visibilitychange', () => {
+  if (!ariaRT) return;
+  if (document.visibilityState === 'hidden'){
+    if (!ariaRTHiddenTimer){
+      ariaRTHiddenTimer = setTimeout(() => endRealtimeCallIdle('pestaña en segundo plano'), CALL_HIDDEN_MS);
+    }
+  } else if (ariaRTHiddenTimer){
+    clearTimeout(ariaRTHiddenTimer);
+    ariaRTHiddenTimer = null;
+  }
+});
 
 /**
  * Typed or tapped text, spoken into the session that is already open.
@@ -37633,6 +37758,7 @@ function stopRealtimeVoice(opts){
   try { ariaRT.dc.close(); } catch {}
   try { ariaRT.pc.close(); } catch {}
   try { ariaRT.sink.cut(); } catch {}
+  clearRealtimeIdleTimers();
   ariaRT = null;
   ariaRTOpening = false;
   ariaRTWanted = false;
@@ -37733,6 +37859,7 @@ async function onRealtimeEvent(event, turn, send){
     case 'input_audio_buffer.speech_started':
       setOrbState('listening');
       setRealtimeState('listening');
+      noteRealtimeActivity();
       break;
     case 'conversation.item.input_audio_transcription.completed':
       /* What the shopper said, on screen, so the conversation has a
@@ -37881,6 +38008,30 @@ async function executeRealtimeTool(name, args){
        asked to remember "only mention this once" will mention it
        three times on a long call. The hint simply stops existing
        after the first time it is handed over. */
+    /* ------------------------------------------------------------
+       THE SPLIT, AND WHY IT IS BOUNDED WHERE IT IS.
+
+       Over the threshold, two orders under it each pay nothing. The
+       saving is real and large — on a $250 cart it is about $57, on a
+       $400 cart about $94 — and nothing offsets it: freight is per
+       kilo so it does not double, and the small-order fee only bites
+       under S/50, which half of a $200+ cart never is.
+
+       Above about $400 it stops working, because both halves land
+       over $200 again: at a $500 cart each half is $201 dutiable and
+       the tax comes back in full. Danny's $400 ceiling is exactly
+       right, and that is why it is a ceiling rather than a guess.
+       ------------------------------------------------------------ */
+    let splitHint = null;
+    if (applies && !ariaRTSplitTold && cartUsd >= 200 && cartUsd <= 400){
+      ariaRTSplitTold = true;
+      splitHint = 'Puedes pasarle el dato UNA vez, como quien le cuenta un truco a una amiga: ' +
+        'que si lo hace en dos pedidos separados, cada uno queda por debajo del límite y no le ' +
+        'aplican impuestos de importación en ninguno. Ofrécele ayudarle a dividirlo. Si dice que ' +
+        'no, lo dejas ahí. Nunca lo llames evadir impuestos: el límite existe y usarlo es legal, ' +
+        'pero tampoco se lo prometas como garantía ni le des asesoría tributaria.';
+    }
+
     let hint = null;
     if (!applies && !ariaRTThresholdTold && cart.length && shelfRoom >= 10){
       ariaRTThresholdTold = true;
@@ -37899,6 +38050,14 @@ async function executeRealtimeTool(name, args){
         ? 'Ya le aplican impuestos de importación porque el valor de la mercadería pasó los $' + IMPORT_TAX_THRESHOLD_USD + '.'
         : 'Todavía no le aplican impuestos de importación.',
       threshold_hint: hint,
+      split_hint: splitHint,
+      /* What she needs to actually help him divide it, if he says yes.
+         Titles and prices only: never our cost, never the margin. */
+      lines: cart.filter(it => it && it.lineType !== 'bundle-discount').map(it => ({
+        title: it.title,
+        price_usd: Math.round((Number(it.priceUsd) || 0) * 100) / 100,
+        qty: Number(it.qty) || 1,
+      })),
     };
   }
 
