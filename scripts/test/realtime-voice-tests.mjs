@@ -34,7 +34,8 @@ import {
   VOICE_IDLE, VOICE_LISTENING, VOICE_THINKING, VOICE_SPEAKING,
 } from "../lib/realtime-turn.js";
 import { deliveredTotal } from "../../netlify/functions/aria-realtime-tool.js";
-import { readFileSync } from "node:fs";
+import { STORE_KNOWLEDGE as K_STORES } from "../../netlify/functions/_store-knowledge.js";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -98,7 +99,21 @@ check("only tools with a real backend are offered", () => {
      narrates its empty output as fact, which §12 forbids outright. */
   assert.deepEqual([...REALTIME_TOOL_NAMES].sort(),
     ["calculate_total_delivered_price", "get_cart_items", "get_cart_total",
-     "get_order_status", "get_product_details", "get_sale_scoop", "search_products"]);
+     "get_order_status", "get_product_details", "get_sale_scoop", "get_store_info",
+     "get_top_sales", "recommend_stores_for", "search_products"]);
+
+  /* AND THE BACKEND IS CHECKED, not just the list. The list above
+     says which tools we meant to ship; this says each one actually
+     resolves somewhere — in the page's executor or in the function's
+     switch. A tool declared with nothing behind it answers `undefined`
+     and the model narrates that as fact. */
+  const pageSrc = readFileSync(ROOT + "index.html", "utf8");
+  const fnSrc = readFileSync(ROOT + "netlify/functions/aria-realtime-tool.js", "utf8");
+  for (const name of REALTIME_TOOL_NAMES){
+    const inPage = pageSrc.includes(`name === '${name}'`);
+    const inFn = fnSrc.includes(`case "${name}":`);
+    assert.ok(inPage || inFn, `${name} is offered to the model and handled nowhere`);
+  }
   /* Taking money is not something a mis-heard sentence should do. */
   assert.ok(!REALTIME_TOOL_NAMES.includes("create_order"), "a voice can place an order");
   for (const t of REALTIME_TOOLS){
@@ -876,7 +891,11 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   /* The parts that carry meaning survive every rung. */
   const last = calls[calls.length - 1].payload.session;
   assert.ok(last.instructions && last.instructions.length > 100, "the instructions were shed");
-  assert.ok(Array.isArray(last.tools) && last.tools.length === 7, "the tools were shed");
+  /* AGAINST THE REAL LIST, not a literal. This read `=== 7` and
+     broke the day a tool was added, which says nothing about whether
+     the ladder sheds tools — the thing it is here to catch. */
+  assert.ok(Array.isArray(last.tools) && last.tools.length === REALTIME_TOOLS.length,
+    "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
   assert.equal(last.audio.output.voice, "coral", "the voice was shed");
 });
@@ -906,7 +925,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
   assert.ok(minimal.instructions && minimal.instructions.length > 1000,
     "the minimal session dropped her instructions");
   assert.equal(minimal.model, "gpt-realtime", "the minimal session dropped the model");
-  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 7,
+  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === REALTIME_TOOLS.length,
     "the minimal session dropped her tools — she could not search");
   assert.equal(minimal.tool_choice, "auto", "the minimal session dropped tool_choice");
   assert.equal(minimal.audio.input.turn_detection.type, "semantic_vad",
@@ -1335,15 +1354,24 @@ check("the greeting is locked to audio, sent once, and retried if dropped", () =
     .replace(/ariaRTGreeted = true;/, "__state.greeted = true;")
     .replace(/if \(!ariaRTGreetRetrying\)\{/, "if (!__state.retrying){")
     .replace(/ariaRTGreetRetrying = true;/, "__state.retrying = true;")
-    .replace(/ariaRTGreetRetrying = false;/, "__state.retrying = false;");
+    .replace(/ariaRTGreetRetrying = false;/, "__state.retrying = false;")
+    /* Routed through __state like the greeting flag, because the
+       nudge's own callback has to read whether he spoke AFTER the
+       timer was armed — a captured parameter would freeze it at the
+       moment of arming and the test could never flip it. */
+    .replace(/ariaRTSpoke/g, "__state.spoke");
 
   const harness = (send) => {
-    const state = { greeted: false, retrying: false, sent: [], scheduled: [] };
+    const state = { greeted: false, retrying: false, spoke: false, sent: [], scheduled: [], cues: [] };
     const fn = new Function("__state", "REALTIME_GREETING_BRIEF", "console",
-      "GREETING_ATTEMPTS", "GREETING_RETRY_MS", "setTimeout",
+      "GREETING_ATTEMPTS", "GREETING_RETRY_MS", "setTimeout", "clearTimeout",
+      "ariaRT", "ariaRTOpeningTimer", "cueRealtime", "CUE_OPENING_SILENCE",
+      "CALL_OPENING_SILENCE_MS",
       src + "\n return sendRealtimeGreeting;");
     const greet = fn(state, "saluda corto", { info(){}, warn(){} }, 3, 500,
-      (f) => { state.scheduled.push(f); });
+      (f) => { state.scheduled.push(f); return { t: state.scheduled.length }; },
+      () => {}, {}, null,
+      (cue) => { state.cues.push(cue); return true; }, "[callado diez segundos]", 10000);
     return { greet: (...a) => greet((o) => { state.sent.push(o); return send(o); }, ...a), state };
   };
 
@@ -1567,8 +1595,15 @@ check("the stale audio handlers are detached when a call starts", () => {
      attached to the shared element. The guards would catch it, but an
      unsubscribed handler cannot fire at all. */
   const page = readFileSync(ROOT + "index.html", "utf8");
+  /* SLICED TO THE END OF THE FUNCTION, not to a fixed 2,000
+     characters. The byte-count version broke the day a block was
+     added above the detach — which says nothing about whether the
+     handlers are detached, the thing it is here to check. */
   const at = page.indexOf("ariaRT = { pc, dc, mic, sink, send");
-  const after = page.slice(at, at + 2000);
+  assert.ok(at > 0, "the call object is no longer built here");
+  const close = page.indexOf("\n  setRealtimeUi(true);", at);
+  assert.ok(close > at, "the end of the call setup moved");
+  const after = page.slice(at, close);
   for (const h of ["onended", "onerror", "onplaying", "onpause"]){
     assert.ok(new RegExp(`ariaAudioPlayer\\.${h} = null`).test(after),
       `ariaAudioPlayer.${h} survives into the call`);
@@ -1747,9 +1782,21 @@ check("a call nobody is on does not stay open", () => {
 
   /* The silence timer must be re-armed by speech from EITHER side, or
      it hangs up on a shopper who is listening to a long answer. */
-  const speech = page.slice(page.indexOf("case 'input_audio_buffer.speech_started':"));
-  assert.match(speech.slice(0, 300), /noteRealtimeActivity\(\);/,
+  /* SLICED TO THE CASE'S OWN `break`, not to a fixed 300 characters.
+     The window version broke the moment a comment was added inside
+     the case — which says nothing about whether speech re-arms the
+     timer, the thing it is here to check. */
+  const speechAt = page.indexOf("case 'input_audio_buffer.speech_started':");
+  assert.ok(speechAt > 0, "there is no speech_started handler");
+  const speech = page.slice(speechAt, page.indexOf("break;", speechAt));
+  assert.match(speech, /noteRealtimeActivity\(\);/,
     "his speech does not keep the call alive");
+  /* …and the same event cancels the opening nudge, so a shopper who
+     speaks is never asked about the sales as though he had not. */
+  assert.match(speech, /ariaRTSpoke = true;/,
+    "speaking does not mark him as having spoken");
+  assert.match(speech, /clearTimeout\(ariaRTOpeningTimer\)/,
+    "the opening-silence nudge survives him speaking");
   const play = page.slice(page.indexOf("else if (action === 'playAudio')"));
   assert.match(play.slice(0, 300), /noteRealtimeActivity\(\);/,
     "her own audio does not keep the call alive — it would hang up mid-answer");
@@ -2230,8 +2277,15 @@ check("the scoop rules keep her a friend and not an advert", () => {
   assert.match(i, /No los calcules ni los redondees/, "she may compute a discount herself");
   assert.match(i, /already_told/, "nothing stops her repeating the same scoop");
   assert.match(i, /Informas, no\s*\r?\n?presionas/, "she may pressure him");
-  assert.match(i, /pregúntale de qué antes\s*\r?\n?de buscar/,
-    "a bare \"what's on sale?\" is answered with a guess");
+  /* A BARE "WHAT'S ON SALE?" USED TO BE ANSWERED WITH A QUESTION,
+     and this asserted that. The addendum reverses it: a shopper with
+     no topic is the vague shopper, and asking him to narrow it down
+     is the interrogation it forbids. So the rule now routes him to
+     get_top_sales, and what must never happen is her inventing a
+     topic to be relevant to. */
+  assert.match(i, /NO le preguntes de qué/,
+    "a bare \"what's on sale?\" still interrogates the vague shopper");
+  assert.match(i, /get_top_sales/, "the vague shopper has no route to the sales");
 });
 
 check("the browser never receives the standing API key", () => {
@@ -2258,6 +2312,636 @@ check("the browser never receives the standing API key", () => {
   assert.ok(!/JSON\.stringify\([^)]*process\.env\.OPENAI_API_KEY/.test(mint),
     "the key's value reaches a response body");
   assert.match(mint, /Cache-Control": "no-store/, "a credential response is cacheable");
+});
+
+
+/* ============================================================
+   THE STORE KNOWLEDGE BASE.
+
+   The point of these is that the knowledge can be WRONG in a way no
+   syntax check would catch: a product count copied from the brief
+   instead of the catalogue, a store recommended after its catalogue
+   was emptied, a specialty nobody stocks. Every one of those reads
+   as a confident sentence in Aria's voice and sends a real shopper to
+   an empty shelf.
+   ============================================================ */
+
+/* Counted the same way the knowledge base was built, so the test is
+   a re-measurement and not a copy of the same assumption. */
+function catalogueCounts(){
+  const counts = new Map();
+  const files = readdirSync(ROOT).filter(f =>
+    f.endsWith("-catalog.json") || /^department-cache-.*\.json$/.test(f));
+  for (const f of files){
+    let d;
+    try { d = JSON.parse(readFileSync(ROOT + f, "utf8")); } catch { continue; }
+    for (const [key, r] of Object.entries((d && d.retailers) || {})){
+      const depts = r && r.departments;
+      if (!depts || typeof depts !== "object") continue;
+      for (const dv of Object.values(depts)){
+        const items = Array.isArray(dv) ? dv : (dv && dv.items);
+        if (!Array.isArray(items)) continue;
+        counts.set(key, (counts.get(key) || 0) + items.length);
+      }
+    }
+  }
+  return counts;
+}
+
+await checkAsync("every store Aria knows about has the catalogue she says it has", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+  const real = catalogueCounts();
+
+  /* NO GHOSTS. A store with an entry and no products is the dead
+     recommendation section 4 of the brief forbids. */
+  for (const [key, s] of Object.entries(K.STORE_KNOWLEDGE)){
+    const n = real.get(key) || 0;
+    assert.ok(n > 0, `${key} has a knowledge entry and no products in any catalogue`);
+    assert.equal(s.product_count, n,
+      `${key} claims ${s.product_count} products, the catalogues hold ${n}`);
+  }
+
+  /* NO GAPS EITHER: a store with products and no entry is a store
+     Aria cannot guide anyone to. */
+  for (const [key, n] of real){
+    if (n <= 0) continue;
+    assert.ok(K.STORE_KNOWLEDGE[key], `${key} has ${n} products and no knowledge entry`);
+  }
+
+  /* The price band is derived, not asserted, so it must still agree
+     with its own median. */
+  for (const [key, s] of Object.entries(K.STORE_KNOWLEDGE)){
+    assert.equal(s.price_range, K.priceBandFor(s.median_usd),
+      `${key}'s band (${s.price_range}) disagrees with its median ($${s.median_usd})`);
+  }
+
+  /* And a store listed as unstocked must really have nothing: this is
+     the list that stops her naming Best Buy. */
+  for (const key of Object.keys(K.NOT_STOCKED)){
+    assert.ok(!(real.get(key) > 0),
+      `${key} is listed as not stocked but has ${real.get(key)} products`);
+    assert.ok(!K.STORE_KNOWLEDGE[key], `${key} is both known and not stocked`);
+  }
+});
+
+await checkAsync("a store too thin to visit is never recommended", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+  /* PacSun is the case the brief itself got wrong: its example entry
+     put PacSun at 2,500 products as the pick for skate clothing. It
+     has eighteen, so it must never be offered — and must still answer
+     honestly when a shopper names it. */
+  const pac = K.getStoreInfo("PacSun");
+  assert.equal(pac.product_count, 18, "PacSun's count moved; re-check the recommendation floor");
+  assert.equal(pac.recommendable, false, "an 18-product store is offered as a recommendation");
+
+  const thin = Object.entries(K.STORE_KNOWLEDGE)
+    .filter(([, s]) => s.product_count < K.MIN_RECOMMEND_DEPTH)
+    .map(([k]) => k);
+  assert.ok(thin.length > 0, "the thin-store floor is not exercised by any store");
+
+  /* Nothing under the floor may come back from any interest, however
+     well its specialties match. */
+  const asks = ["ropa skate", "patinetas", "artes marciales", "jiu jitsu", "surf",
+                "futbol", "maquillaje", "juguetes", "bikinis", "libros"];
+  for (const ask of asks){
+    const r = K.recommendStoresFor(ask, { resolved: true });
+    for (const s of r.stores || []){
+      assert.ok(!thin.includes(s.store),
+        `"${ask}" recommended ${s.store}, which has ${K.STORE_KNOWLEDGE[s.store].product_count} products`);
+    }
+  }
+});
+
+await checkAsync("an interest with two answers is asked about, not guessed", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+
+  /* DANNY'S OWN EXAMPLE, verbatim. The sentence names a grandson AND
+     a sport, and an earlier cut read the grandson first and answered
+     with the toy aisle — Target and Walmart for a kid who skates. The
+     interest has to win. */
+  const r = K.recommendStoresFor("mi nieto le gusta el skate");
+  assert.match(r.clarify || "", /patinetas|patinar/i,
+    "the skate question was not asked — she guessed instead");
+  assert.ok(!r.stores, "she listed stores before asking which kind of skate");
+  const branches = Object.keys(r.branches || {});
+  assert.equal(branches.length, 2, "the skate question has no two branches to resolve to");
+  const names = JSON.stringify(r.branches);
+  assert.match(names, /CCS/, "the real-boards branch does not reach CCS");
+
+  /* Every branch of every ambiguous interest must resolve to stores
+     that exist and are deep enough to send someone to — a question
+     whose answer is an empty store is worse than no question. */
+  for (const [topic, def] of Object.entries(K.AMBIGUOUS_INTERESTS)){
+    assert.ok(def.ask && def.ask.includes("?"), `${topic} has no question to ask`);
+    for (const [label, list] of Object.entries(def.branches)){
+      const live = list.filter(k => K.STORE_KNOWLEDGE[k]
+        && K.STORE_KNOWLEDGE[k].product_count >= K.MIN_RECOMMEND_DEPTH);
+      assert.ok(live.length > 0, `${topic} / ${label} resolves to no stocked store`);
+    }
+  }
+
+  /* A gift with no interest in it still has to go somewhere. */
+  const gift = K.recommendStoresFor("un regalo para mi nieto");
+  assert.ok((gift.stores || []).length > 0, "a gift for a child resolves to nothing");
+});
+
+await checkAsync("she is never sent to a store that does not stock the thing asked for", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+
+  /* THE TRAP THIS CLOSES. Val Surf is called Val Surf, sells skate
+     brands, and holds exactly one piece of skate hardware. CCS is the
+     deepest skate shop we have and holds five surf items. Both
+     matched on the word alone, and both would have been offered. */
+  const boards = K.recommendStoresFor("patinetas", { resolved: true });
+  const boardStores = (boards.stores || []).map(s => s.store);
+  assert.ok(boardStores.includes("ccs"), "the deepest skate shop is not offered for skateboards");
+  assert.ok(!boardStores.includes("valsurf"),
+    "Val Surf, with one skate item, is offered for skateboards");
+
+  const surf = K.recommendStoresFor("tabla de surf", { resolved: true });
+  const surfStores = (surf.stores || []).map(s => s.store);
+  assert.ok(surfStores.includes("surfstation"), "the deepest surf shop is not offered for surfboards");
+  assert.ok(!surfStores.includes("ccs"), "CCS, with five surf items, is offered for surfboards");
+
+  /* Depth in the thing asked for decides the order, not total
+     catalogue size and not the order the entries happen to sit in.
+
+     SURF STATION vs ZUMIEZ is the witness, deliberately: Surf Station
+     has 510 skate items to Zumiez's 239 and so must rank higher, and
+     it is written LOWER in the file. An earlier version compared
+     Zumiez with Island Water Sports, which the file order already put
+     in the right order — so deleting the sort entirely still passed. */
+  const ss = boardStores.indexOf("surfstation");
+  const zum = boardStores.indexOf("zumiez");
+  assert.ok(ss !== -1 && zum !== -1, "the skate ranking witnesses are not both offered");
+  assert.ok(ss < zum,
+    "a shop with 510 skate items ranks below one with 239 — the ranking ignores relevance depth");
+
+  /* AND THE FLOOR ITSELF, asserted directly. For the terms we stock
+     deeply the ranking already buries a store with five of something
+     before the list is cut to four, so the floor changes no answer
+     here and a test that only reads answers cannot see it at all. */
+  assert.ok(K.MIN_SPECIALTY_DEPTH >= 10,
+    `the relevance floor is ${K.MIN_SPECIALTY_DEPTH} — effectively off`);
+  assert.equal(K.stocksEnoughFor("ccs", "surf"), false,
+    "CCS, with five surf items, counts as stocking surf");
+  assert.equal(K.stocksEnoughFor("valsurf", "patinetas"), false,
+    "Val Surf, with one skate item, counts as stocking skateboards");
+  assert.equal(K.stocksEnoughFor("ccs", "patinetas"), true,
+    "the deepest skate shop does not count as stocking skateboards");
+  assert.equal(K.stocksEnoughFor("macys", "vestidos"), true,
+    "a store with no measured sub-count is treated as not stocking anything");
+});
+
+await checkAsync("naming a store gets the truth, including when we do not carry it", async () => {
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+
+  /* A VOICE TRANSCRIPT HAS NO PUNCTUATION and no accents to spare. */
+  for (const said of ["Victoria's Secret", "victoria secret", "VICTORIAS SECRET", "vs"]){
+    assert.equal(K.getStoreInfo(said).store, "victoriassecret", `"${said}" did not resolve`);
+  }
+  for (const said of ["foot locker", "Foot Locker", "footlocker"]){
+    assert.equal(K.getStoreInfo(said).store, "footlocker", `"${said}" did not resolve`);
+  }
+
+  /* THE REGISTRY LISTS STORES WE DO NOT STOCK. Best Buy, Nordstrom
+     and Dyson all have a row, a logo and a tagline in the page's own
+     RETAILERS registry, and zero products. Read off the registry they
+     look live, and Aria would offer them. */
+  for (const dead of ["Best Buy", "Nordstrom", "Dyson", "Sunglass Hut"]){
+    const r = K.getStoreInfo(dead);
+    assert.equal(r.not_stocked, true, `${dead} does not answer as unstocked`);
+    assert.match(r.note, /no inventes|No tenemos|no ofrezcas/i,
+      `${dead} is reported unstocked with nothing telling her what to say`);
+    assert.ok(!r.specialties, `${dead} came back with specialties we cannot fill`);
+  }
+
+  /* Not knowing is an answer. Silence and invention are not. */
+  const nope = K.getStoreInfo("Tienda que no existe");
+  assert.ok(nope.unavailable, "an unknown store produced no sayable answer");
+  assert.ok(!nope.name, "an unknown store came back with a name");
+  assert.ok(K.getStoreInfo("").unavailable, "an empty store name produced no answer");
+
+  /* Two stores selling the same thing need a stated difference, which
+     is the brief's rule: explain, do not list. */
+  const makeup = K.recommendStoresFor("maquillaje", { resolved: true });
+  assert.ok((makeup.stores || []).length >= 2, "makeup resolves to fewer than two stores");
+  assert.ok(makeup.difference, "two makeup stores came back with no difference between them");
+  for (const s of makeup.stores) assert.ok(s.not_for, `${s.store} has nothing it is not for`);
+
+  /* Nothing to offer is said out loud, not papered over. */
+  const none = K.recommendStoresFor("refrigeradora");
+  assert.equal((none.stores || []).length, 0, "a thing we do not sell produced store recommendations");
+  assert.match(none.note, /no inventes/i, "nothing tells her not to invent a store");
+});
+
+
+await checkAsync("a shopper who taps the mic and says nothing is offered the sales", async () => {
+  /* THE ADDENDUM'S THIRD CASE: "silence for 10 seconds after greeting
+     — Aria says '¿Te muestro lo que está en oferta ahorita?'"
+
+     This is NOT the twenty-second check-in. That one asks "¿sigues
+     ahí?", which is the right question for a conversation that
+     stalled and a useless one for a shopper who never started: he is
+     there, he just does not know what to say. The addendum counts
+     that silence as vagueness, and vagueness goes to the sales. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.match(page, /const CALL_OPENING_SILENCE_MS = (\d+);/,
+    "there is no opening-silence nudge at all");
+  const ms = Number(/const CALL_OPENING_SILENCE_MS = (\d+);/.exec(page)[1]);
+  assert.ok(ms <= 12000, `the nudge waits ${ms}ms — past the ten seconds the addendum asks for`);
+  /* And it must be SHORTER than the check-in, or the check-in fires
+     first and he gets "¿sigues ahí?" instead of an offer. */
+  const checkin = Number(/const CALL_CHECKIN_MS = (\d+);/.exec(page)[1]);
+  assert.ok(ms < checkin,
+    `the nudge (${ms}ms) fires no sooner than the check-in (${checkin}ms) — he gets "¿sigues ahí?" instead`);
+
+  /* The cue has to send her to the tool, and has to stop her asking
+     the question that does not apply. */
+  const cue = /const CUE_OPENING_SILENCE = ([\s\S]*?);\r?\n/.exec(page)[1];
+  assert.match(cue, /get_top_sales/, "the nudge does not reach the sales tool");
+  assert.match(cue, /No preguntes si sigue ahí/, "the nudge asks if he is still there");
+
+  /* ARMED ON THE GREETING, not on connect: the ten seconds are his
+     silence, not hers. Driven through the real function. */
+  const at = page.indexOf("function sendRealtimeGreeting(send, left){");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const src = page.slice(at, end + 1)
+    .replace(/if \(ariaRTGreeted\) return false;/, "if (__state.greeted) return false;")
+    .replace(/ariaRTGreeted = true;/, "__state.greeted = true;")
+    .replace(/ariaRTGreetRetrying/g, "__state.retrying")
+    .replace(/ariaRTSpoke/g, "__state.spoke");
+
+  const drive = (sendOk) => {
+    const state = { greeted: false, retrying: false, spoke: false, cues: [], timers: [] };
+    const fn = new Function("__state", "console", "GREETING_ATTEMPTS", "GREETING_RETRY_MS",
+      "setTimeout", "clearTimeout", "ariaRT", "ariaRTOpeningTimer", "cueRealtime",
+      "CUE_OPENING_SILENCE", "CALL_OPENING_SILENCE_MS", "REALTIME_GREETING_BRIEF",
+      src + "\n return sendRealtimeGreeting;");
+    const greet = fn(state, { info(){}, warn(){} }, 3, 500,
+      (f, delay) => { state.timers.push({ f, delay }); return { id: state.timers.length }; },
+      () => {}, {}, null,
+      (c) => { state.cues.push(c); return true; }, "[nudge]", 10000, "saluda");
+    greet(() => sendOk);
+    return state;
+  };
+
+  const ok = drive(true);
+  assert.equal(ok.greeted, true, "the greeting did not go out");
+  const nudge = ok.timers.find(t => t.delay === 10000);
+  assert.ok(nudge, "a successful greeting armed no opening-silence nudge");
+
+  /* He stayed quiet: she offers. */
+  nudge.f();
+  assert.deepEqual(ok.cues, ["[nudge]"], "ten seconds of silence produced no offer");
+
+  /* He spoke first: she must NOT offer, or a shopper who said "busco
+     zapatillas Nike" gets pitched the general sales anyway. */
+  const spoke = drive(true);
+  spoke.spoke = true;
+  spoke.timers.find(t => t.delay === 10000).f();
+  assert.deepEqual(spoke.cues, [], "she pitched the sales at a shopper who had already spoken");
+
+  /* A greeting that never went out arms nothing — otherwise the first
+     thing he hears is an offer with no hello in front of it. */
+  const failed = drive(false);
+  assert.equal(failed.greeted, false, "a failed send was recorded as greeted");
+  assert.ok(!failed.timers.some(t => t.delay === 10000),
+    "a greeting that never went out still armed the nudge");
+});
+
+await checkAsync("the vague shopper gets real deals, grouped so she can offer a choice", async () => {
+  /* get_top_sales, lifted and run against a stub catalogue. The
+     grouping is the point: "ropa hasta 80% en Zumiez y zapatillas 60%
+     en Finish Line" is a sentence with a choice in it. A flat top-five
+     would come from one store and give him nothing to pick between. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_top_sales'){");
+  assert.ok(at > 0, "get_top_sales has no implementation");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_store_info'", at));
+
+  const item = (title, store, dept, was, now) =>
+    ({ title, retailer: store, departments: [dept], originalPrice: was, price: now });
+
+  const run = async (args, pool, warm, search) => {
+    const fn = new Function("args", "catalogSearch", "relatedPool", "itemSaleTier", "discountPct",
+      "realtimeSaleCategory", "addAssistantProductCard", "SCOOP_TIMEOUT_MS", "setTimeout",
+      "Promise", "relatedPoolCache", "name",
+      "return (async () => {" + body + "\n return null; })();");
+    return fn(args,
+      /* The SEARCH stub is separate from the pool and returns nothing
+         by default, so any answer to a rubro must have come from the
+         department match rather than from a text search. */
+      search || (async () => ({ items: [] })),
+      async () => pool,
+      (it) => (it.tier0 ? 0 : it.flagged ? 1 : (it.originalPrice > it.price ? 2 : 0)),
+      (it) => Math.round((1 - it.price / it.originalPrice) * 100),
+      /* `null ?? key` returns the key, which handed the nameless
+         category its own name back and made the drop look broken.
+         A null here means "no sayable name", so it must survive. */
+      (it) => {
+        const m = { clothing: "ropa", shoes: "zapatos", sale: null };
+        const k = it.departments[0];
+        return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : (k || null);
+      },
+      () => {}, 1400, setTimeout, Promise,
+      warm === undefined ? [1] : warm, "get_top_sales");
+  };
+
+  /* ORDERED AGAINST THE SORT ON PURPOSE: the shallower category
+     (zapatos, 60%) is listed FIRST, so insertion order and discount
+     order disagree. With them in agreement, deleting the sort left
+     every assertion passing. */
+  const pool = [
+    item("Zapatilla Nike", "finishline", "shoes", 100, 40),      /* 60% — best in zapatos */
+    item("Zapatilla adidas", "footlocker", "shoes", 100, 70),    /* 30% */
+    item("Polo barato", "kohls", "clothing", 20, 18),            /* 10% */
+    item("Jean Empyre", "zumiez", "clothing", 100, 20),          /* 80% — best in ropa */
+    item("Cosa sin rubro", "macys", "sale", 100, 10),            /* 90%, but no sayable category */
+    { ...item("Gorra", "walmart", "clothing", 20, 19.5), tier0: true },
+    { ...item("Short", "dicks", "clothing", 40, 40), flagged: true },
+    /* A WHOLE CATEGORY OF NOTHING. Every item in `hogar` is either
+       full price or flagged with no markdown behind it, so the
+       category must not appear at all. Mixed into an otherwise
+       healthy category these two were invisible: the real deal
+       outranked them and the filters looked redundant. */
+    item("Olla a precio normal", "target", "hogar", 50, 50),
+    { ...item("Sartén marcada sin rebaja", "target", "hogar", 60, 60), flagged: true },
+    { ...item("Taza casi igual", "target", "hogar", 20, 19.6), tier0: true },
+  ];
+
+  const r = await run({}, pool);
+  assert.equal(r.categories.length, 2, "the deals did not collapse to one per category");
+  assert.ok(!r.categories.some(c => c.category === "hogar"),
+    "a category with nothing but full-price and falsely-flagged stock was offered as a sale");
+  assert.deepEqual(r.categories.map(c => c.category), ["ropa", "zapatos"],
+    "the categories are not ordered by how deep the discount is");
+  assert.equal(r.categories[0].best_discount_pct, 80, "the deepest discount in a category is wrong");
+  assert.equal(r.categories[0].store, "zumiez", "the store behind the best deal is wrong");
+  /* Both prices AND the percentage, so she never computes one aloud. */
+  for (const c of r.categories){
+    assert.ok(c.was_usd > c.now_usd, "a category's deal has no real markdown");
+    assert.equal(typeof c.best_discount_pct, "number", "there is no percentage to read out");
+    assert.ok(c.example, "there is nothing to name as an example");
+  }
+  /* A department with no sayable name is dropped, not read out: "la
+     categoría sale" and "Aria Beauty" are names of places on the
+     site, not words a person says. */
+  assert.ok(!r.categories.some(c => !c.category), "a nameless category reached her mouth");
+  assert.ok(!JSON.stringify(r.categories).includes("Cosa sin rubro"),
+    "an item with no sayable category was offered anyway");
+  /* Neither full-price stock nor a flag with no markdown behind it. */
+  assert.ok(!JSON.stringify(r.categories).includes("Gorra"),
+    "a markdown too small to count as a sale was offered as one");
+  assert.ok(!JSON.stringify(r.categories).includes("Short"),
+    "an item flagged on sale with no markdown was offered — a 0% deal");
+
+  /* A RUBRO IS A DEPARTMENT, NOT A SEARCH TERM. Routing "ropa"
+     through catalogSearch asked for products with "ropa" in the
+     title, and nothing is titled that: measured in the browser, a
+     shopper who said "ropa" got "no hay ofertas fuertes" while the
+     general call was finding 80% off in the same catalogue. The
+     search stub here returns NOTHING, so an answer can only come
+     from the department match. */
+  const byDept = await run({ category: "ropa" }, pool);
+  assert.equal((byDept.categories || []).length, 1,
+    "asking for a rubro did not match the department it names");
+  assert.equal(byDept.categories[0].category, "ropa", "the wrong department answered");
+  assert.equal(byDept.categories[0].best_discount_pct, 80, "the rubro's best discount is wrong");
+
+  /* …and a word that is NOT a rubro still works, by falling back to
+     the search — she may well pass a brand. */
+  const brand = await run({ category: "Nike" }, pool, undefined,
+    async () => ({ items: [item("Zapatilla Nike", "finishline", "shoes", 100, 25)] }));
+  assert.equal((brand.categories || []).length, 1, "a brand as a category found nothing");
+  assert.equal(brand.categories[0].best_discount_pct, 75,
+    "the fallback search result was not used");
+
+  /* NOTHING ON SALE IS SAID, NOT INVENTED. */
+  const none = await run({}, [item("Nada", "kohls", "clothing", 50, 50)]);
+  assert.equal(none.categories.length, 0, "a full-price catalogue produced deals");
+  assert.match(none.note, /no inventes/i, "nothing tells her not to invent a discount");
+
+  /* THE COLD CATALOGUE. This tool fires in the first seconds of a
+     call — exactly when the pool is least likely to be warm — so the
+     same O(1) readiness check applies. A silent opening is the one
+     thing worse than a vague shopper. */
+  const cold = await run({}, [], null);
+  assert.match(cold.unavailable, /segundito|cargando/i,
+    "a cold catalogue leaves the opening silent");
+  assert.ok(!cold.categories, "a cold answer carried categories anyway");
+});
+
+await checkAsync("she guides to a store before she searches, and never to an empty one", async () => {
+  const i = buildRealtimeInstructions();
+
+  /* THE MALL GUIDE. Danny: "She's a mall guide, not just a product
+     search." The order is the rule — understand, ask, recommend,
+     THEN search — because searching first is what makes her a search
+     box with a voice. */
+  assert.match(i, /CONOCES CADA TIENDA/, "she has no store knowledge at all");
+  assert.match(i, /no busques productos todavía/, "she searches before she understands");
+  assert.match(i, /recommend_stores_for/, "she has no route to the store recommendations");
+  assert.match(i, /haz ESA pregunta tal cual/, "the clarifying question is optional");
+  assert.match(i, /Explica la diferencia, no solo los nombres/,
+    "she may list two stores without saying how they differ");
+  assert.match(i, /NUNCA recomiendes una tienda que la herramienta no te dio/,
+    "she may invent a store");
+  assert.match(i, /not_stocked/, "nothing tells her what an unstocked store means");
+  assert.match(i, /nunca\s*\r?\n*\s*prometas buscar ahí/,
+    "she may promise to look in a store we do not carry");
+  /* The grandmother case, which is the one the brief opens with. */
+  assert.match(i, /abuela/, "the patient case is not described");
+  assert.match(i, /sin jerga/, "she may speak jargon to someone who does not know the words");
+
+  /* THE VAGUE SHOPPER GOES TO THE SALES. Danny: "Sales should always
+     be the number one thing." */
+  assert.match(i, /SI NO SABE QUÉ QUIERE/, "the vague shopper has no rule");
+  assert.match(i, /get_top_sales/, "the vague shopper is never sent to the sales");
+  assert.match(i, /no\s*\r?\n*\s*necesita veinte preguntas/,
+    "the vague shopper gets interrogated");
+  assert.match(i, /DOS o TRES categorías/, "the offer is unbounded — it becomes a catalogue");
+  assert.match(i, /no inventes un 80%/, "she may invent a discount for a vague shopper");
+  assert.match(i, /UNA sola pregunta/, "the follow-up is not limited to one question");
+  assert.match(i, /NUNCA dejes a un comprador vago sin dirección/,
+    "a vague shopper may be left with nothing");
+  /* …AND THE SPECIFIC SHOPPER IS NOT REROUTED. Verification #2 of the
+     addendum: "busco zapatillas Nike Air Max" must be a product
+     search, not a pivot to the general sales. */
+  assert.match(i, /eso NO es vago/, "a specific request may be rerouted to the general sales");
+  assert.match(i, /no\s*\r?\n*\s*lo mandes a las ofertas generales/,
+    "nothing stops her pitching general sales to someone who named a product");
+});
+
+check("the rubro she says out loud is a word, not a tile name", () => {
+  /* The site's department labels are written for tiles: "Aria
+     Beauty", "Aria Fight Club", "Seccion Hombre". Read aloud in a
+     sentence about discounts they sound like she is reciting
+     navigation. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("const SPOKEN_DEPARTMENT = {");
+  assert.ok(at > 0, "there is no spoken-category map");
+  const map = page.slice(at, page.indexOf("};", at));
+  for (const [key, bad] of [["beauty", "Aria Beauty"], ["combat_sports", "Aria Fight Club"],
+                            ["party", "Aria Party"], ["mens_grooming", "Seccion Hombre"]]){
+    assert.match(map, new RegExp(key + ":"), `${key} still reads out as "${bad}"`);
+  }
+  /* Two departments have no sayable name at all and must drop out
+     rather than be read: "Ofertas" inside a sales pitch says nothing,
+     and Hot Topic and BoxLunch file everything under "Todo". */
+  assert.match(map, /sale: null/, '"Ofertas" is offered as a category inside a sales pitch');
+  assert.match(map, /general: null/, '"Todo" is offered as a category');
+
+  const fn = page.slice(page.indexOf("function realtimeSaleCategory(it){"));
+  const src = fn.slice(0, fn.indexOf("\n}") + 2);
+  const run = new Function("DEPARTMENT_META",
+    page.slice(at, page.indexOf("};", at) + 2) + src + "\n return realtimeSaleCategory;")(
+      { clothing: { label: "Ropa" }, beauty: { label: "Aria Beauty" } });
+  assert.equal(run({ departments: ["beauty"] }), "belleza", "beauty is not spoken as belleza");
+  assert.equal(run({ departments: ["clothing"] }), "ropa", "a plain label is not reused");
+  assert.equal(run({ departments: ["sale"] }), null, "Ofertas is spoken as a category");
+  assert.equal(run({ departments: [] }), null, "an item with no department produced a category");
+  /* A department nobody has mapped yet still gets a usable name from
+     the site's own label, so adding one does not need this map. */
+  assert.equal(run({ departments: ["unmapped_thing"] }), null,
+    "an unknown department with no label invented a name");
+});
+
+
+check("every store Aria can recommend is reachable in the page", () => {
+  /* THE BUG THIS PINS, found while building the knowledge base.
+     SOURCE_RETAILERS is a map from catalogue URL to the retailers it
+     carries, and four entries had collapsed into one:
+
+       "/finishline-catalog.json": ["finishline", "/zumiez-catalog.json",
+         "zumiez", "/hottopic-catalog.json", "hottopic", ... ]
+
+     The `],"` separators had become `, "`, so Zumiez, Hot Topic and
+     BoxLunch — 7,557 products between them — had no key of their own.
+     ensureRetailers(['zumiez']) matched the array that CONTAINS
+     "zumiez" and fetched Finish Line's catalogue instead. The full
+     page load covers them, so search still worked and nothing looked
+     broken; the targeted path did not, and that is the one a store
+     rail uses.
+
+     It matters more now than it did: Aria recommends Zumiez for skate
+     clothing and Hot Topic for anime, so a shopper following her
+     advice lands exactly there. Two further catalogues — the jewelry
+     file and the eleven Latino designers — were never addressable
+     either, and she recommends those for bikinis. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  /* Bracket-matched rather than regex-matched: these literals run to
+     thousands of characters and a lazy quantifier stops at the first
+     "]" inside them. */
+  const grab = (name) => {
+    const at = page.indexOf("const " + name + " = ");
+    assert.ok(at > 0, `${name} is gone from the page`);
+    const open = page.indexOf("=", at) + 2;
+    const shut = page[open] === "[" ? "]" : "}";
+    let depth = 0, end = -1;
+    for (let k = open; k < page.length; k++){
+      if (page[k] === page[open]) depth++;
+      else if (page[k] === shut && --depth === 0){ end = k; break; }
+    }
+    assert.ok(end > open, `${name} is not a closed literal`);
+    return JSON.parse(page.slice(open, end + 1).replace(/'/g, '"'));
+  };
+  const sources = grab("SOURCE_RETAILERS");
+  const files = grab("CATALOGUE_FILES");
+  const parts = grab("DEPT_CACHE_PARTS");
+
+  /* A VALUE THAT LOOKS LIKE A PATH is the signature of the collapse,
+     and it is invisible to every syntax check: the object still
+     parses, it just means something else. */
+  for (const [url, keys] of Object.entries(sources)){
+    for (const k of keys){
+      assert.ok(!String(k).startsWith("/"),
+        `${url} lists "${k}" as a retailer — two map entries have collapsed into one`);
+    }
+  }
+
+  /* Both directions: a catalogue nothing can address, and a key
+     nothing ever loads. */
+  const loaded = new Set([...files, ...parts]);
+  for (const f of files){
+    assert.ok(sources[f], `${f} is loaded but no retailer key reaches it`);
+  }
+  for (const url of Object.keys(sources)){
+    assert.ok(loaded.has(url), `${url} is addressable but never loaded`);
+  }
+
+  /* And the thing that actually matters: every store Aria is allowed
+     to recommend can be fetched on its own. */
+  const reachable = new Set(Object.values(sources).flat());
+  for (const [key, store] of Object.entries(K_STORES)){
+    if (store.product_count < 50) continue;
+    assert.ok(reachable.has(key),
+      `${store.name} is recommendable and no catalogue URL carries it — its rail would come up empty`);
+  }
+});
+
+
+await checkAsync("the same store question is not asked twice over the wire", async () => {
+  /* WHY THIS IS WORTH A TEST. The store tools are the one pair that
+     leaves the page, and measured in a browser the round trip cost
+     anywhere from 30ms to 2.8 seconds depending on what the catalogue
+     loader happened to be doing at the time — the page's sixty
+     catalogue fetches and this request queue on the same connection.
+     The knowledge is static data, so the answer cannot change inside
+     a call, and in a real conversation the same store comes up again
+     and again. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("  if (name === 'get_store_info' || name === 'recommend_stores_for'){");
+  assert.ok(at > 0, "the store tools are not routed anywhere");
+  const body = page.slice(at, page.indexOf("\n  if (name === 'get_cart_total')", at));
+
+  let wire = 0;
+  const cache = new Map();
+  const run = (name, args) => {
+    const fn = new Function("name", "args", "ariaRTStoreCache", "fetch", "JSON",
+      "return (async () => {" + body + "\n return null; })();");
+    return fn(name, args, cache, async () => {
+      wire++;
+      return { ok: true, json: async () => ({ store: "zumiez", name: "Zumiez" }) };
+    }, JSON);
+  };
+
+  const a = await run("get_store_info", { store_name: "Zumiez" });
+  assert.equal(a.name, "Zumiez", "the first ask did not come back");
+  assert.equal(wire, 1, "the first ask did not go over the wire");
+
+  const b = await run("get_store_info", { store_name: "Zumiez" });
+  assert.deepEqual(b, a, "the cached answer differs from the first one");
+  assert.equal(wire, 1, "the same question was asked over the wire twice");
+
+  /* A DIFFERENT question still goes out — a cache that answers
+     everything with the first reply is worse than no cache. */
+  await run("get_store_info", { store_name: "CCS" });
+  assert.equal(wire, 2, "a different store was answered from the first store's cache");
+  await run("recommend_stores_for", { interest: "skate" });
+  assert.equal(wire, 3, "a different tool was answered from the other tool's cache");
+
+  /* AND IT IS PER CALL. Static within a conversation is not static
+     across a deploy, and a cache that outlived the call would serve
+     yesterday's catalogue depth. */
+  assert.match(page, /ariaRTStoreCache = new Map\(\);[\s\S]{0,400}ariaRTSpoke = false;/,
+    "the store cache is not cleared when a new call starts");
+
+  /* A failed request must not be remembered as an answer. */
+  let failing = 0;
+  const bad = new Map();
+  const runBad = () => new Function("name", "args", "ariaRTStoreCache", "fetch", "JSON",
+    "return (async () => {" + body + "\n return null; })();")(
+      "get_store_info", { store_name: "Zumiez" }, bad,
+      async () => { failing++; return { ok: false }; }, JSON);
+  const f1 = await runBad();
+  assert.ok(f1.unavailable, "a failed lookup produced no sayable answer");
+  await runBad();
+  assert.equal(failing, 2, "a failure was cached as though it were an answer");
 });
 
 /* ============================================================ */

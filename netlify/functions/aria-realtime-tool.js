@@ -19,6 +19,12 @@
        public tracking view is an allowlist that deliberately withholds
        the courier, their tracking number and our cost.
 
+   THE TWO STORE TOOLS LIVE HERE TOO, for a third reason: the
+   knowledge base is static prose, a few tens of kilobytes, and the
+   page is a plain <script> that cannot import a module. Mirroring it
+   into the page would make a second copy of the one thing that must
+   never disagree with itself — what we tell a shopper a store sells.
+
    NOTHING HERE INVENTS A NUMBER. A missing weight, an unknown product
    or an unreachable tracker answers with `unavailable` and a sentence
    Aria can say out loud, because section 12 of the brief is absolute:
@@ -29,6 +35,7 @@ import {
   TAX_ESTIMATE_THRESHOLD_USD,
   TAX_ESTIMATE_RATE,
 } from "../../weight-data.js";
+import { getStoreInfo, recommendStoresFor } from "./_store-knowledge.js";
 
 /* The customer-facing freight rate. Mirrored from index.html's
    CHARGE_PER_KG_USD, which is the figure quoted to shoppers; a test
@@ -128,6 +135,13 @@ export async function handler(event) {
   switch (tool) {
     case "calculate_total_delivered_price":
       return json(200, deliveredTotal(args));
+    /* Static knowledge, so no catalogue and no fan-out: a lookup and
+       a return. Both answer with a sentence Aria can say when they
+       have nothing, never with silence. */
+    case "get_store_info":
+      return json(200, getStoreInfo(args.store_name));
+    case "recommend_stores_for":
+      return json(200, recommendStoresFor(args.interest, { resolved: args.resolved === true }));
     case "get_order_status": {
       const proto = event.headers?.["x-forwarded-proto"] || "https";
       const host = event.headers?.host || "ariashop.pe";

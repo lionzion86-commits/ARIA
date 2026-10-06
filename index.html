@@ -7020,7 +7020,7 @@ const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline", "/zumiez-catalog.json", "zumiez", "/hottopic-catalog.json", "hottopic", "/boxlunch-catalog.json", "boxlunch"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"]};
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -37121,6 +37121,36 @@ const CALL_EXIT_GRACE_MS = 4000;
 /* The longest she may spend looking before saying so out loud. The
    brief asks for under 1.5s; this is the ceiling that enforces it. */
 const SCOOP_TIMEOUT_MS = 1400;
+
+/* THE RUBRO SHE SAYS OUT LOUD.
+
+   get_top_sales groups by department, and the department labels are
+   written for tiles, not for a sentence: "Aria Beauty", "Aria Fight
+   Club" and "Seccion Hombre" are names of places on the site. Said
+   aloud they sound like she is reading navigation. These are the
+   plain words instead, and anything not listed falls back to the
+   site's own DEPARTMENT_META label — so a new department gets a
+   usable name without this map being touched. */
+const SPOKEN_DEPARTMENT = {
+  beauty: 'belleza',
+  combat_sports: 'artes marciales',
+  party: 'fiestas',
+  mens_grooming: 'cuidado masculino',
+  menaje: 'desechables',
+  sorpresas: 'sorpresas de fiesta',
+  gym_rat: 'ropa de gym',
+  surf_skate: 'surf y skate',
+  sale: null,      /* "Ofertas" as a category inside a sales pitch says nothing. */
+  general: null,   /* Hot Topic and BoxLunch file everything under "Todo". */
+};
+function realtimeSaleCategory(it){
+  const key = (it && it.departments && it.departments[0]) || '';
+  if (!key) return null;
+  if (Object.prototype.hasOwnProperty.call(SPOKEN_DEPARTMENT, key)) return SPOKEN_DEPARTMENT[key];
+  const meta = (typeof DEPARTMENT_META === 'object' && DEPARTMENT_META) ? DEPARTMENT_META[key] : null;
+  const label = meta && meta.label;
+  return label ? String(label).toLowerCase() : null;
+}
 const CALL_HIDDEN_MS = 20000;      /* page backgrounded this long */
 const CALL_MAX_MS = 10 * 60000;    /* nothing runs longer than this */
 const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!';
@@ -37131,6 +37161,21 @@ const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófon
 const CUE_CHECKIN = '[El cliente lleva veinte segundos sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
 const CUE_BYE = '[La llamada se va a cerrar por silencio. Despídete en UNA frase cálida, sin apuro, ' +
   'y dile que si te necesita toque el micrófono y seguimos. No te disculpes.]';
+
+/* HE TAPPED THE MIC AND THEN SAID NOTHING.
+
+   Not the same silence as CUE_CHECKIN. That one is twenty seconds
+   into a conversation that was already going — "¿sigues ahí?" is the
+   right question there. This is the shopper who opened the call and
+   has no idea what to say, which the addendum counts as vagueness:
+   "silence after greeting (they tapped but don't know what to say)".
+   Asking "¿sigues ahí?" to someone who never started is useless; the
+   way out is to offer him something, and the thing that sells is the
+   sale. */
+const CALL_OPENING_SILENCE_MS = 10000;
+const CUE_OPENING_SILENCE = '[Tocó el micrófono y no ha dicho nada en diez segundos. ' +
+  'No preguntes si sigue ahí. Pide get_top_sales y ofrécele lo más fuerte en oferta ' +
+  'en UNA frase corta y con ganas, y termina preguntándole qué le gusta.]';
 
 /* The greeting is retried rather than dropped: the data channel can
    still be opening when session.updated lands. */
@@ -37465,6 +37510,10 @@ async function startRealtimeVoice(){
   ariaRTThresholdTold = false;
   ariaRTSplitTold = false;
   ariaRTScooped = new Set();
+  ariaRTStoreCache = new Map();
+  /* A fresh call means he has not spoken on THIS call, whatever he
+     said on the last one — otherwise the second call never nudges. */
+  ariaRTSpoke = false;
 
   try {
     mic = await navigator.mediaDevices.getUserMedia({
@@ -37650,6 +37699,17 @@ async function startRealtimeVoice(){
      happens behind the greeting and the handshake, so by the time
      anyone has said a word the pool is usually there. */
   try { relatedPool().catch(() => {}); } catch (e) {}
+  /* AND WARM THE TOOL ENDPOINT. The store tools are a round trip to a
+     function that may be cold, and the first store question is a
+     question she is asked early. A throwaway request opens the
+     connection and wakes the lambda while the greeting is still
+     playing; its answer is discarded. */
+  try {
+    fetch('/.netlify/functions/aria-realtime-tool', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: 'get_store_info', args: { store_name: 'warmup' } }),
+    }).catch(() => {});
+  } catch (e) {}
   /* Last chance before she speaks: if the context is still suspended
      here, nothing she says will be audible. */
   try { if (sink.open) sink.open(); } catch (e) {}
@@ -37681,14 +37741,21 @@ let ariaRTIdleTimer = null, ariaRTMaxTimer = null, ariaRTHiddenTimer = null;
 let ariaRTCheckinTimer = null, ariaRTExitTimer = null;
 /* "¿Sigues ahí?" once per silence; cleared by any activity. */
 let ariaRTCheckedIn = false;
+let ariaRTOpeningTimer = null;
+let ariaRTSpoke = false;
+/* Store answers for this call. Static knowledge, so the same question
+   has the same answer — see the note in executeRealtimeTool. */
+let ariaRTStoreCache = new Map();
 /* She has been asked to sign off, and whether we heard her do it. */
 let ariaRTSignedOff = false, ariaRTHeardSignOff = false;
 
 function clearRealtimeIdleTimers(){
-  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer, ariaRTCheckinTimer, ariaRTExitTimer]){
+  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer, ariaRTCheckinTimer,
+                   ariaRTExitTimer, ariaRTOpeningTimer]){
     if (t) clearTimeout(t);
   }
   ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = ariaRTCheckinTimer = ariaRTExitTimer = null;
+  ariaRTOpeningTimer = null;
 }
 
 /**
@@ -37944,6 +38011,15 @@ function sendRealtimeGreeting(send, left){
        be retried — she just never spoke, and nothing said why. */
     ariaRTGreeted = true;
     console.info('[aria] greeting sent');
+    /* THE NUDGE STARTS WHEN SHE FINISHES OPENING, not when the call
+       connects: the ten seconds are his silence, not hers. Armed once
+       per call, cancelled the moment he speaks. */
+    if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
+    ariaRTOpeningTimer = setTimeout(() => {
+      ariaRTOpeningTimer = null;
+      if (!ariaRT || ariaRTSpoke) return;
+      cueRealtime(CUE_OPENING_SILENCE);
+    }, CALL_OPENING_SILENCE_MS);
     return true;
   }
   if (remaining > 0){
@@ -37972,6 +38048,12 @@ async function onRealtimeEvent(event, turn, send){
     case 'input_audio_buffer.speech_started':
       setOrbState('listening');
       setRealtimeState('listening');
+      /* He started talking, so he is not the shopper who went quiet
+         on the greeting — the nudge is cancelled for good, not
+         re-armed, because once a conversation exists CUE_CHECKIN is
+         the right silence to handle. */
+      ariaRTSpoke = true;
+      if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
       noteRealtimeActivity();
       break;
     case 'conversation.item.input_audio_transcription.completed':
@@ -38195,6 +38277,130 @@ async function executeRealtimeTool(name, args){
     /* The cards go up while she talks, so he is looking at them. */
     for (const it of [...bestPerStore.values()].slice(0, 4)) addAssistantProductCard(it, it.retailer);
     return { topic, deals };
+  }
+
+  /* ============================================================
+     THE VAGUE SHOPPER GOES TO THE SALES.
+
+     Danny: "if you're vague, send them to sales because in sales
+     they'll probably buy." A shopper who says "no sé, estoy viendo"
+     has given her nothing to be relevant to, and asking him to
+     narrow it down is the interrogation the addendum forbids. So she
+     opens with the strongest real discounts instead.
+
+     GROUPED BY CATEGORY, not a flat list, because the line she needs
+     is "ropa hasta 80% en Zumiez, zapatillas 60% en Finish Line" —
+     two or three rubros with the deepest cut in each. A flat top-five
+     would almost always come from one store and give her nothing to
+     offer as a choice.
+
+     Same honesty rules as get_sale_scoop, same reasons: a tier above
+     zero, a real price, and markdown that actually exists, because
+     the feed flags items as on-sale with no numbers behind them. And
+     the same O(1) readiness check — this fires in the first seconds
+     of a call, exactly when the catalogue is least likely to be
+     warm. */
+  if (name === 'get_top_sales'){
+    if (typeof relatedPoolCache !== 'undefined' && !relatedPoolCache){
+      return { unavailable: 'dame un segundito que estoy cargando las ofertas' };
+    }
+    const asked = String(args.category || '').trim();
+    let pool;
+    try {
+      pool = await relatedPool();
+    } catch (e) {
+      return { unavailable: 'dame un segundito que estoy cargando las ofertas' };
+    }
+    /* A RUBRO IS A DEPARTMENT, NOT A SEARCH TERM. Routing "ropa"
+       through catalogSearch asked for products with "ropa" in the
+       TITLE, and almost nothing is titled that — so a shopper who
+       said "ropa" got "no hay ofertas fuertes" while the general call
+       was finding 90% off in four departments. Matching on the
+       department the item is filed under is both correct and free:
+       the pool is already in memory and already carries it. */
+    if (asked){
+      const want = asked.toLowerCase();
+      const byDept = pool.filter(it => {
+        const cat = realtimeSaleCategory(it);
+        return cat && (cat === want || cat.includes(want) || want.includes(cat));
+      });
+      /* Only fall back to a text search when no department answers to
+         the word at all — "Nike" is not a rubro, but she may pass it. */
+      if (byDept.length) pool = byDept;
+      else {
+        try {
+          pool = (await Promise.race([
+            catalogSearch(asked, { limit: 600 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), SCOOP_TIMEOUT_MS)),
+          ])).items || [];
+        } catch (e) {
+          return { unavailable: 'dame un segundito que estoy cargando las ofertas' };
+        }
+      }
+    }
+
+    const onSale = (pool || []).filter(it =>
+      it && itemSaleTier(it) > 0
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
+      && Number(it.originalPrice) > Number(it.price));
+
+    /* One best deal per category, so the categories she names are
+       different rubros and not three cuts of the same rail. */
+    const bestPerCat = new Map();
+    for (const it of onSale){
+      const cat = realtimeSaleCategory(it);
+      if (!cat) continue;
+      const prev = bestPerCat.get(cat);
+      if (!prev || discountPct(it) > discountPct(prev)) bestPerCat.set(cat, it);
+    }
+    const categories = [...bestPerCat.entries()]
+      .sort((a, b) => discountPct(b[1]) - discountPct(a[1]))
+      .slice(0, 3)
+      .map(([cat, it]) => ({
+        category: cat,
+        store: it.retailer,
+        best_discount_pct: discountPct(it),
+        example: String(it.title || '').slice(0, 90),
+        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
+        now_usd: Math.round(Number(it.price) * 100) / 100,
+      }));
+
+    if (!categories.length){
+      return { categories: [],
+               note: 'No hay ofertas fuertes ahora. Dilo y pregúntale qué busca — no inventes un descuento.' };
+    }
+    for (const [, it] of [...bestPerCat.entries()].slice(0, 4)) addAssistantProductCard(it, it.retailer);
+    return { categories,
+             note: 'Nombra dos o tres categorías con su descuento. Que suene emocionante, no como un catálogo.' };
+  }
+
+  if (name === 'get_store_info' || name === 'recommend_stores_for'){
+    /* Static knowledge in one place. The page is a plain <script> and
+       cannot import the module, and a second copy of what we tell
+       shoppers a store sells is exactly the copy that would drift.
+
+       CACHED FOR THE CALL, because the answer cannot change inside
+       one: the knowledge base is static data, so the same question
+       has the same answer every time. Measured locally, a store
+       question cost anywhere from 30ms to 2.7s depending on what the
+       page happened to be fetching at the time — the catalogue load
+       and this request were queued on the same connection. The cache
+       does not fix the first ask, but it stops the second one
+       costing anything, and in a conversation the same store comes up
+       again and again. */
+    const ck = name + ':' + JSON.stringify(args);
+    if (ariaRTStoreCache.has(ck)) return ariaRTStoreCache.get(ck);
+    let res;
+    try {
+      res = await fetch('/.netlify/functions/aria-realtime-tool', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: name, args }),
+      });
+    } catch (e) { return { unavailable: 'no pude consultar las tiendas ahorita' }; }
+    if (!res.ok) return { unavailable: 'no pude consultar las tiendas ahorita' };
+    const out = await res.json();
+    ariaRTStoreCache.set(ck, out);
+    return out;
   }
 
   if (name === 'get_cart_total'){

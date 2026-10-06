@@ -102,6 +102,83 @@ export const REALTIME_TOOLS = Object.freeze([
   },
   {
     type: "function",
+    name: "get_store_info",
+    /* SHE KNOWS THE MALL, NOT JUST THE SHELVES. A shopper who asks
+       "¿qué tiene Zumiez?" is not asking for a product search, and
+       guessing at a store's contents is how she ends up promising
+       skateboards from a store that sells eighteen t-shirts. The
+       knowledge base is measured off the committed catalogues, and a
+       store with no catalogue answers `not_stocked` so she can say so
+       instead of inventing a shelf. */
+    description:
+      "Lo que sabemos de una tienda: qué vende, para quién es, para quién NO es, " +
+      "su rango de precio y cuántos productos tiene. Úsala cuando el cliente nombre " +
+      "una tienda. Si la tienda no tiene catálogo te lo dice — dilo, no ofrezcas sus productos.",
+    parameters: {
+      type: "object",
+      properties: {
+        store_name: { type: "string", description: "La tienda que nombró, como la dijo." },
+      },
+      required: ["store_name"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "recommend_stores_for",
+    /* THE GUIDE, BEFORE THE SEARCH. "A mi nieto le gusta el skate"
+       has two answers in two different stores, so this returns the
+       question to ask rather than a guess — and the branches it
+       returns are already filtered to stores with the stock to back
+       them. */
+    description:
+      "Las tiendas correctas para un interés: 'skate', 'belleza', 'regalo para un niño', " +
+      "'zapatillas para correr'. Úsala ANTES de buscar productos, cuando el cliente " +
+      "menciona un interés en lugar de un producto específico. Si devuelve 'clarify', " +
+      "haz esa pregunta tal cual antes de buscar nada.",
+    parameters: {
+      type: "object",
+      properties: {
+        interest: { type: "string", description: "El interés o la ocasión, en sus palabras." },
+        resolved: {
+          type: "boolean",
+          description: "true solo si ya hiciste la pregunta de 'clarify' y él respondió.",
+        },
+      },
+      required: ["interest"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "get_top_sales",
+    /* THE VAGUE SHOPPER GOES TO THE SALES. Danny: "if you're vague,
+       send them to sales because in sales they'll probably buy."
+
+       SEPARATE FROM get_sale_scoop ON PURPOSE. That tool refuses to
+       answer without a brand or a category, which is what guarantees
+       it can never pitch jackets to someone buying cleats. A vague
+       shopper has no topic to be relevant to, and asking him for one
+       is the twenty-questions the addendum forbids — so the general
+       case gets its own door rather than a hole in that guarantee. */
+    description:
+      "Las ofertas más fuertes del sitio ahora mismo, agrupadas por categoría. " +
+      "Úsala cuando el cliente NO sepa qué quiere: 'no sé', 'estoy viendo', 'qué hay', " +
+      "'algo bonito', o cuando se queda callado. Nunca inventes un descuento.",
+    parameters: {
+      type: "object",
+      properties: {
+        category: {
+          type: "string",
+          description: "Opcional. Si ya dijo un rubro — ropa, zapatillas, hogar — pásalo.",
+        },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
     name: "get_cart_total",
     /* THE $200 LEVER, AND THE REASON IT IS A TOOL.
 
