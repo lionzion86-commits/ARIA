@@ -712,10 +712,18 @@ check("strict mode refuses to substitute the old loop", () => {
      mutation to `if (false)` passed by deleting the string. */
   assert.match(body, /if \(realtimeStrict\(\)\)\{/, "the refusal is not guarded by strict mode");
   assert.match(body, /Voz en vivo no disponible: /, "strict mode does not say why");
-  /* …and it must return before the old loop is reached. */
-  const refusal = body.slice(body.indexOf("if (realtimeStrict()){"));
-  assert.ok(refusal.indexOf("return;") < refusal.indexOf("}"),
-    "strict mode falls through into the old loop anyway");
+  /* …and it must return before the old loop is reached. Brace-matched
+     rather than compared against the first "}", which belonged to the
+     `{ speak: false }` object literal inside the block. */
+  const at = body.indexOf("if (realtimeStrict()){");
+  let depth = 0, close = -1;
+  for (let k = body.indexOf("{", at); k < body.length; k++){
+    if (body[k] === "{") depth++;
+    else if (body[k] === "}" && --depth === 0){ close = k; break; }
+  }
+  assert.ok(close > at, "the strict-mode block is unbalanced");
+  const refusal = body.slice(at, close);
+  assert.match(refusal, /\breturn;/, "strict mode falls through into the old loop anyway");
   assert.ok(body.indexOf("if (realtimeStrict()){") < body.indexOf("toggleContinuousMode();"),
     "strict mode is checked after the old loop has already started");
 });
