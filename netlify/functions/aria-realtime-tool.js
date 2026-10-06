@@ -37,6 +37,7 @@ import {
 } from "../../weight-data.js";
 import { getStoreInfo, recommendStoresFor } from "./_store-knowledge.js";
 import { decodeVinLocal } from "./_vin.js";
+import { getCurrentUser, getOrderHistory, getUserPreferences } from "./_member.js";
 
 /* The customer-facing freight rate. Mirrored from index.html's
    CHARGE_PER_KG_USD, which is the figure quoted to shoppers; a test
@@ -232,6 +233,41 @@ export async function handler(event) {
            alternative instead. */
         return json(200, { unavailable: "no pude anotarla ahorita, pero dime qué buscabas y te muestro algo parecido" });
       }
+    }
+
+    /* WHO IS ON THE CALL, AND WHAT THEY HAVE BOUGHT.
+
+       Identity comes from the session cookie that the browser sent
+       with this request — never from an argument, because the model
+       would then be choosing whose orders to read. See the note at the
+       top of _member.js.
+
+       The Blobs runtime only exists in the deployed function, so it is
+       imported here and the stores are passed in. That keeps _member.js
+       testable without it, the same reason request_brand imports it
+       lazily. */
+    case "get_current_user":
+    case "get_order_history":
+    case "get_user_preferences": {
+      let ctx;
+      try {
+        const { getStore, connectLambda } = await import("@netlify/blobs");
+        const { getSessionEmail } = await import("./_auth-helpers.js");
+        connectLambda(event);
+        ctx = {
+          email: () => getSessionEmail(event),
+          users: () => getStore("users"),
+          orders: () => getStore("orders"),
+        };
+      } catch {
+        /* No member lookup is better than a wrong one: she greets him
+           as a stranger rather than as somebody else. */
+        return json(200, { user_id: null, logged_in: false, orders: [],
+                           unavailable: "no pude revisar su cuenta ahorita" });
+      }
+      if (tool === "get_current_user") return json(200, await getCurrentUser(ctx));
+      if (tool === "get_order_history") return json(200, await getOrderHistory(ctx, args.limit));
+      return json(200, await getUserPreferences(ctx));
     }
 
     case "get_order_status": {

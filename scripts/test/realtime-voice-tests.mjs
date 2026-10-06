@@ -99,8 +99,9 @@ check("only tools with a real backend are offered", () => {
      narrates its empty output as fact, which §12 forbids outright. */
   assert.deepEqual([...REALTIME_TOOL_NAMES].sort(),
     ["calculate_total_delivered_price", "check_brand_exists", "decode_vin",
-     "get_cart_items", "get_cart_total", "get_order_status", "get_product_details",
-     "get_sale_scoop", "get_store_info", "get_top_sales", "lookup_part_by_number",
+     "get_cart_items", "get_cart_total", "get_current_user", "get_order_history",
+     "get_order_status", "get_product_details", "get_sale_scoop", "get_store_info",
+     "get_top_sales", "get_user_preferences", "lookup_part_by_number",
      "lookup_parts_by_vehicle", "recommend_stores_for", "request_brand",
      "search_products"]);
 
@@ -115,6 +116,14 @@ check("only tools with a real backend are offered", () => {
     const inPage = pageSrc.includes(`name === '${name}'`);
     const inFn = fnSrc.includes(`case "${name}":`);
     assert.ok(inPage || inFn, `${name} is offered to the model and handled nowhere`);
+    /* AND A SERVER-SIDE TOOL MUST BE ROUTED FROM THE PAGE. The function
+       having a `case` for it means nothing if the page never sends it
+       there: the executor would fall through and answer undefined,
+       which the model then narrates as fact. */
+    if (inFn && !inPage){
+      assert.ok(pageSrc.includes(`name === '${name}'`) || pageSrc.includes(`'${name}'`),
+        `${name} is handled by the function and the page never routes it there`);
+    }
   }
   /* Taking money is not something a mis-heard sentence should do. */
   assert.ok(!REALTIME_TOOL_NAMES.includes("create_order"), "a voice can place an order");
@@ -3635,6 +3644,225 @@ await checkAsync("the call starts when the chat opens, inside the gesture", asyn
      start adds its own. */
   await new Promise(r => setTimeout(r, 0));
   assert.ok(calls.includes("error"), "a call that fails to start on open says nothing");
+});
+
+
+/* ============================================================
+   SHE REMEMBERS YOU, AND SHE DOES NOT MAKE YOU UP.
+
+   A salesperson who remembers you is worth a lot. One who invents a
+   purchase you never made is worth less than a stranger, and one who
+   reads out somebody else's order is a breach.
+   ============================================================ */
+const MEMBER = await import(ROOT + "netlify/functions/_member.js");
+
+function memberCtx({ email, users = {}, orders = {} }){
+  const store = (obj) => ({
+    get: async (k) => (k in obj ? obj[k] : null),
+    list: async () => ({ blobs: Object.keys(obj).map(key => ({ key })) }),
+  });
+  return { email: async () => email, users: () => store(users), orders: () => store(orders) };
+}
+
+const ORDER = (id, email, days, items, extra = {}) => ({
+  orderId: id,
+  createdAt: new Date(Date.now() - days * 86400000).toISOString(),
+  buyerEmail: email,
+  status: "confirmed",
+  paymentStatus: "paid",
+  items,
+  /* Everything an order really carries that must never be spoken. */
+  customer: { name: "Daniel Zevallos", dni: "09876543", phone: "+51 999 888 777" },
+  shipping: { address: "Av. Larco 1234, Miraflores", district: "Miraflores" },
+  pricePenCharged: 980.5, orderTotalPen: 1100, courierTotalUsd: 212.4,
+  fxRateUsed: 3.78, totalUsd: 260.1,
+  ...extra,
+});
+
+await checkAsync("a logged-in member is greeted by name, from their own session", async () => {
+  const ctx = memberCtx({
+    email: "danny@example.com",
+    users: { "danny@example.com": { name: "Daniel Zevallos", createdAt: "2026-02-11T00:00:00Z",
+                                    founderStatus: "fundador" } },
+  });
+  const me = await MEMBER.getCurrentUser(ctx);
+  assert.equal(me.logged_in, true, "a logged-in member reads as a guest");
+  assert.equal(me.first_name, "Daniel", "the greeting would use the full legal name");
+  assert.equal(me.member_since, "2026", "member_since is wrong");
+  assert.equal(me.key_club_member, true, "an approved founder is not recognised as one");
+
+  /* THE EMAIL NEVER ENTERS THE MODEL'S CONTEXT. The id is opaque and
+     nothing is ever looked up by it — it exists only because the
+     brief's shape has one. */
+  const blob = JSON.stringify(me);
+  assert.ok(!blob.includes("danny@example.com"), "the member's email is handed to the model");
+  assert.ok(!blob.includes("Zevallos"), "the member's surname is handed to the model");
+
+  /* A GUEST IS A NORMAL ANSWER, NOT A FAILURE. */
+  const guest = await MEMBER.getCurrentUser(memberCtx({ email: null }));
+  assert.equal(guest.user_id, null, "a guest was given an identity");
+  assert.equal(guest.logged_in, false, "a guest reads as logged in");
+  assert.ok(!guest.first_name, "a guest came back with a name");
+
+  /* Logged in, but no profile row yet. */
+  const bare = await MEMBER.getCurrentUser(memberCtx({ email: "new@example.com" }));
+  assert.equal(bare.logged_in, true, "a member without a profile reads as a guest");
+  assert.equal(bare.first_name, null, "a missing name was invented");
+  assert.equal(bare.key_club_member, false, "a member without a profile joined the club");
+});
+
+await checkAsync("she only ever reads the orders of whoever is on the call", async () => {
+  /* THE SIGNATURE IN THE BRIEF WAS get_order_history(user_id, limit),
+     and it cannot be built safely: the model would be choosing whose
+     orders to read. It mis-hears, it infers, and a shopper can say
+     "my customer number is 4471" out loud. The tools take no id at
+     all — the server uses the session cookie the browser sent.
+
+     This is the test that proves it. The store holds two people's
+     orders and the lookup takes nothing but the session. */
+  const orders = {
+    "ARIA-20261006-AAAAAA": ORDER("ARIA-20261006-AAAAAA", "danny@example.com", 3,
+      [{ title: "Nike Air Max 90", brand: "Nike" }]),
+    "ARIA-20261005-BBBBBB": ORDER("ARIA-20261005-BBBBBB", "someone.else@example.com", 2,
+      [{ title: "Vestido Farm Rio", brand: "Farm Rio" }]),
+    "ARIA-20260101-CCCCCC": ORDER("ARIA-20260101-CCCCCC", "danny@example.com", 280,
+      [{ title: "Polo Calvin Klein", brand: "Calvin Klein" }]),
+    "count:2026-10-06": { count: 2 },
+  };
+  const mine = await MEMBER.getOrderHistory(memberCtx({ email: "danny@example.com", orders }), 3);
+  assert.equal(mine.orders.length, 2, "the wrong number of orders came back");
+  const blob = JSON.stringify(mine);
+  assert.ok(!blob.includes("Farm Rio"), "another customer's order was returned");
+  assert.ok(!blob.includes("someone.else"), "another customer's email was returned");
+
+  assert.equal(mine.orders[0].order_id, "ARIA-20261006-AAAAAA", "the orders are not newest-first");
+  assert.equal(mine.orders[0].days_ago, 3, "days_ago is wrong");
+  assert.ok(!blob.includes("count:"), "a counter key was read as an order");
+
+  /* NEWEST BY DATE, NOT BY KEY. The key carries the creation date, so
+     in practice the two agree and sorting the records again looks
+     redundant — until a key does not match its own timestamp, which a
+     backdated or re-keyed order would do. The guarantee is "his most
+     recent purchase first", so it is tested on the date. */
+  const skewed = {
+    "ARIA-20261006-ZZZZZZ": ORDER("ARIA-20261006-ZZZZZZ", "d@e.com", 90,
+      [{ title: "Pedido viejo", brand: "Vans" }]),
+    "ARIA-20260101-AAAAAA": ORDER("ARIA-20260101-AAAAAA", "d@e.com", 1,
+      [{ title: "Pedido reciente", brand: "Nike" }]),
+  };
+  const bydate = await MEMBER.getOrderHistory(memberCtx({ email: "d@e.com", orders: skewed }), 3);
+  assert.equal(bydate.orders[0].items[0].name, "Pedido reciente",
+    "the orders are ordered by key rather than by when they were actually placed");
+
+  /* THE COUNTER KEYS MUST NOT EAT THE SCAN WINDOW. The lookup reads a
+     bounded slice of the newest keys; one counter is written per day,
+     and their keys sort after the orders'. Without the ARIA- filter a
+     shop with a few hundred trading days pushes every real order out
+     of the window and a loyal customer reads as a stranger. */
+  const crowded = {};
+  for (let i = 0; i < 320; i++) crowded["count:2026-" + String(i).padStart(4, "0")] = { count: i };
+  crowded["ARIA-20260101-AAAAAA"] = ORDER("ARIA-20260101-AAAAAA", "d@e.com", 5,
+    [{ title: "Zapatillas Nike", brand: "Nike" }]);
+  const found = await MEMBER.getOrderHistory(memberCtx({ email: "d@e.com", orders: crowded }), 3);
+  assert.equal(found.orders.length, 1,
+    "the daily counter keys filled the scan window and his order was never found");
+
+  /* NOTHING SENSITIVE SURVIVES THE COPY. Each field is taken by name;
+     a spread of the record would have leaked every one of these. */
+  for (const secret of ["09876543", "Av. Larco", "Miraflores", "+51 999",
+                        "980.5", "1100", "212.4", "3.78", "260.1", "Zevallos"]){
+    assert.ok(!blob.includes(secret),
+      `"${secret}" reached the model — the order record is being passed through, not copied field by field`);
+  }
+  assert.equal(mine.orders[0].items[0].name, "Nike Air Max 90", "the product name is missing");
+  assert.equal(mine.orders[0].items[0].brand, "Nike", "the brand is missing");
+});
+
+await checkAsync("no orders means no history, not an invented one", async () => {
+  /* Verification case 2 of the brief: a logged-in member who has never
+     bought anything gets a normal greeting. The failure mode is a model
+     filling the silence with "vi que compraste…". */
+  const none = await MEMBER.getOrderHistory(memberCtx({ email: "new@example.com", orders: {} }), 3);
+  assert.deepEqual(none.orders, [], "a member with no orders was given some");
+  assert.equal(none.logged_in, true, "a member with no orders reads as a guest");
+  assert.match(none.note, /NO inventes un historial/,
+    "nothing tells her not to invent a purchase history");
+
+  /* Verification case 3: a guest. No history, and no nagging to log in. */
+  const guest = await MEMBER.getOrderHistory(memberCtx({ email: null }), 3);
+  assert.deepEqual(guest.orders, [], "a guest was given an order history");
+  assert.match(guest.note, /NO le pidas que inicie sesión/,
+    "nothing stops her asking a guest to log in");
+
+  /* A store that will not answer is not an empty history — saying
+     "you've never bought anything" to a regular is its own insult. */
+  const broken = { email: async () => "danny@example.com",
+                   users: () => ({ get: async () => null }),
+                   orders: () => ({ list: async () => { throw new Error("blobs down"); } }) };
+  const r = await MEMBER.getOrderHistory(broken, 3);
+  assert.ok(r.unavailable, "a failed lookup was reported as an empty history");
+  assert.deepEqual(r.orders, [], "a failed lookup produced orders");
+});
+
+await checkAsync("she never claims a parcel arrived, because nothing records that", async () => {
+  /* The brief asks for status "delivered"/"in_transit" and for a
+     follow-up on anything delivered inside fourteen days. The order
+     record has no shipment id: its own comment says shipping statuses
+     live on the shipment, and nothing links the two. Whether a parcel
+     arrived is not knowable from an order, so it is not claimed. */
+  const orders = { "ARIA-20261006-AAAAAA": ORDER("ARIA-20261006-AAAAAA", "d@e.com", 3,
+    [{ title: "Nike Air Max 90", brand: "Nike" }]) };
+  const r = await MEMBER.getOrderHistory(memberCtx({ email: "d@e.com", orders }), 3);
+  assert.equal(r.orders[0].delivery_known, false,
+    "the reply claims to know whether the order was delivered");
+  assert.ok(!JSON.stringify(r.orders).includes("delivered"),
+    "a delivery status was invented from an order that carries none");
+  assert.match(r.note, /NUNCA afirmes que le llegó/,
+    "nothing stops her telling him it arrived");
+  /* The states that ARE written down still come through. */
+  assert.equal(r.orders[0].status, "confirmed", "the real fulfilment state is missing");
+  assert.equal(r.orders[0].paid, true, "the real payment state is missing");
+});
+
+await checkAsync("preferences are counted off real orders, never guessed", async () => {
+  const orders = {
+    "ARIA-20261006-AAAAAA": ORDER("ARIA-20261006-AAAAAA", "d@e.com", 3,
+      [{ title: "Nike Air Max 90", brand: "Nike" }, { title: "Nike Dri-FIT", brand: "Nike" }]),
+    "ARIA-20261001-BBBBBB": ORDER("ARIA-20261001-BBBBBB", "d@e.com", 8,
+      [{ title: "Polo Calvin Klein", brand: "Calvin Klein" }]),
+  };
+  const p = await MEMBER.getUserPreferences(memberCtx({ email: "d@e.com", orders }));
+  assert.equal(p.brands_they_buy[0], "Nike", "the most-bought brand is not first");
+  assert.ok(p.brands_they_buy.includes("Calvin Klein"), "a brand they bought is missing");
+  assert.match(p.note, /las compró de verdad/, "nothing ties the claim to real purchases");
+
+  /* Nothing bought, nothing claimed. */
+  const empty = await MEMBER.getUserPreferences(memberCtx({ email: "new@e.com", orders: {} }));
+  assert.deepEqual(empty.brands_they_buy, [], "tastes were invented for a new member");
+  assert.match(empty.note, /No inventes gustos/, "nothing stops her inventing tastes");
+
+  /* Sizes are not on an order line, so there is nothing honest to
+     return and null says so. */
+  assert.equal(empty.sizes, null, "a size was invented");
+});
+
+check("she is told to remember without inventing, and to keep private things private", () => {
+  const i = buildRealtimeInstructions();
+  assert.match(i, /SI YA ES CLIENTE/, "there is no rule about a returning member at all");
+  assert.match(i, /get_current_user/, "she has no way to know who is on the call");
+  assert.match(i, /NUNCA le pidas que inicie sesión/, "she may nag a guest to log in");
+  assert.match(i, /NUNCA inventes una compra/, "she may invent a purchase");
+  assert.match(i, /NUNCA digas "vi que te llegó"/,
+    "she may tell him his parcel arrived when nothing records that");
+  assert.match(i, /menos de 14 días/, "there is no window on the follow-up");
+  assert.match(i, /Una sola mención del historial por llamada/,
+    "the history can be brought up over and over");
+  /* The things that must never be said out loud on a line anyone
+     nearby can hear. */
+  assert.match(i, /NUNCA digas en voz alta su correo, su dirección, su teléfono, su DNI/,
+    "nothing stops her reading out personal data");
+  assert.match(i, /SOLO si esa marca aparece en brands_they_buy/,
+    "she may invent what he likes to buy");
 });
 
 /* A FLOOR ON THE TEST COUNT.

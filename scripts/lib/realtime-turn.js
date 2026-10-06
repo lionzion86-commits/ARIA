@@ -279,6 +279,42 @@ export const REALTIME_TOOLS = Object.freeze([
   },
   {
     type: "function",
+    name: "get_current_user",
+    /* SHE TAKES NO USER ID, HERE OR BELOW. The server knows who is on
+       the call from the session cookie; letting the model name a
+       customer would let a mis-heard sentence read someone else's
+       history out loud. */
+    description:
+      "Quién está en la llamada. Si logged_in es false es un invitado: atiéndelo normal " +
+      "y NO le pidas que inicie sesión. Si viene first_name, salúdalo por su nombre.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "get_order_history",
+    description:
+      "Los últimos pedidos de quien está en la llamada. Si orders viene vacío NUNCA " +
+      "inventes una compra. OJO: no sabemos si llegaron — delivery_known siempre es false — " +
+      "así que pregunta cómo le fue, nunca afirmes que le llegó.",
+    parameters: {
+      type: "object",
+      properties: {
+        limit: { type: "integer", description: "Cuántos pedidos traer. Por defecto 3." },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "get_user_preferences",
+    description:
+      "Las marcas que este cliente compra de verdad, contadas de sus propios pedidos. " +
+      "Si la lista viene vacía, no le inventes gustos.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
+  {
+    type: "function",
     name: "get_cart_total",
     /* THE $200 LEVER, AND THE REASON IT IS A TOOL.
 

@@ -38796,7 +38796,9 @@ async function executeRealtimeTool(name, args){
   }
 
   if (name === 'get_store_info' || name === 'recommend_stores_for'
-      || name === 'decode_vin' || name === 'request_brand'){
+      || name === 'decode_vin' || name === 'request_brand'
+      || name === 'get_current_user' || name === 'get_order_history'
+      || name === 'get_user_preferences'){
     /* Static knowledge in one place. The page is a plain <script> and
        cannot import the module, and a second copy of what we tell
        shoppers a store sells is exactly the copy that would drift.
