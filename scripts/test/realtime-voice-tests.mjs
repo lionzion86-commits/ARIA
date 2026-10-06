@@ -684,7 +684,7 @@ check("a fallback is never silent again", () => {
      because that is what he was talking to, and nothing on screen or
      in the console said so. Every bail-out now names itself. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const start = page.indexOf("async function startRealtimeVoice()");
+  const start = page.indexOf("async function startRealtimeVoiceOnce()");
   const end = page.indexOf("/** End the session", start);
   const body = page.slice(start, end);
   assert.ok(start > 0 && end > start, "startRealtimeVoice moved");
@@ -801,7 +801,7 @@ check("nothing in the live path records, chunks, or auto-sends", () => {
   const page = readFileSync(ROOT + "index.html", "utf8");
   /* A voice-message architecture would need one of these. None exist. */
   assert.ok(!/MediaRecorder/.test(page), "a MediaRecorder appeared — that is chunking");
-  const start = page.indexOf("async function startRealtimeVoice()");
+  const start = page.indexOf("async function startRealtimeVoiceOnce()");
   const end = page.indexOf("/* END OF THE REALTIME CLIENT SLICE */");
   const slice = page.slice(start, end);
   assert.ok(!/MediaRecorder|ondataavailable/.test(slice), "the live path records instead of streaming");
@@ -1647,7 +1647,7 @@ check("a rejected event is loud, and first audio is logged", () => {
   /* And the one log that distinguishes "silent" from "never spoke". */
   assert.match(page, /ariaRTHeardAudio = true;[\s\S]{0,120}greeting audio started/,
     "nothing logs that audio actually started");
-  const start = page.slice(page.indexOf("async function startRealtimeVoice()"));
+  const start = page.slice(page.indexOf("async function startRealtimeVoiceOnce()"));
   assert.match(start.slice(0, 2500), /ariaRTHeardAudio = false;/,
     "the first-audio flag is not reset per call");
 });
@@ -1670,7 +1670,7 @@ check("the greeting is requested after the server confirms, with a backstop", ()
      Asserted INSIDE startRealtimeVoice: matching the string anywhere
      also matched its own `let ariaRTGreeted = false;` declaration, so
      deleting the per-call reset passed an earlier version of this. */
-  const startAt = page.indexOf("async function startRealtimeVoice()");
+  const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
   const upToSession = page.slice(startAt, page.indexOf("  pc = new RTCPeerConnection()", startAt));
   assert.match(upToSession, /ariaRTGreeted = false;/,
     "the greeting flag is never reset for a new call — the second call is silent");
@@ -1703,7 +1703,7 @@ check("the guard covers the window while the call is still connecting", () => {
   assert.match(page, /return !!ariaRT \|\| ariaRTOpening === true;/,
     "the guard does not cover the connecting window");
 
-  const start = page.slice(page.indexOf("async function startRealtimeVoice()"));
+  const start = page.slice(page.indexOf("async function startRealtimeVoiceOnce()"));
   const startBody = start.slice(0, start.indexOf("\n/** End the session"));
   /* Set before anything can go wrong… */
   const setAt = startBody.indexOf("ariaRTOpening = true;");
@@ -1850,7 +1850,7 @@ check("the $200 tip is measured on the dutiable base, not the shelf price", () =
 
   /* …and the flag is cleared for the next call, or only the first
      call of a page load ever pitches. */
-  const startAt = page.indexOf("async function startRealtimeVoice()");
+  const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
   assert.match(page.slice(startAt, startAt + 2600), /ariaRTThresholdTold = false;/,
     "the tip flag is never reset, so only the first call of a page load pitches");
 
@@ -2131,7 +2131,7 @@ check("the split tip fires only where splitting actually works", () => {
   /* Reset per call, or only the first call of a page load ever offers
      it. Asserted inside startRealtimeVoice, since the declaration
      matches the same string. */
-  const startAt = page.indexOf("async function startRealtimeVoice()");
+  const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
   assert.match(page.slice(startAt, startAt + 2800), /ariaRTSplitTold = false;/,
     "the split flag is never reset, so only the first call offers it");
 
@@ -2425,7 +2425,7 @@ await checkAsync("the scoop is relevant by construction, and never invented", as
     assert.ok(warmAt > armAt, "the warm-up blocks the call setup");
 
     /* Reset per call, or only the first call of a page load scoops. */
-    const startAt = page.indexOf("async function startRealtimeVoice()");
+    const startAt = page.indexOf("async function startRealtimeVoiceOnce()");
     assert.match(page.slice(startAt, startAt + 6000), /ariaRTScooped = new Set\(\);/,
       "the scooped-topics set is never reset for a new call");
   }
@@ -3556,6 +3556,19 @@ await checkAsync("the page acts on every action the reducer emits", async () => 
      generating. */
   assert.ok(drive(["cancelResponse"]).some(x => x === "sent:response.cancel"),
     "an interruption no longer cancels the response");
+
+  /* THE CALL KEEPS A RECORD. Three rounds of this bug were diagnosed
+     by reasoning from a description; the tape is what replaces that
+     with an account. If it stops recording, the next round is another
+     guess. */
+  const page2 = readFileSync(ROOT + "index.html", "utf8");
+  const dcAt = page2.indexOf("    const { state, actions } = T.voiceTurnReducer(turn, event);");
+  assert.ok(dcAt > 0, "the event handler moved");
+  const handler = page2.slice(dcAt, dcAt + 400);
+  assert.match(handler, /tape\(/, "events are no longer recorded — the tape is empty when it is needed");
+  assert.match(page2, /cinta: ariaRTTape/, "the diagnostic no longer returns the tape");
+  assert.match(page2, /ariaRTTape = \[\];[\s\S]{0,200}mic = await navigator|ariaRTTape = \[\];/,
+    "the tape is never cleared, so it mixes two calls together");
 });
 
 check("the diagnostic can say whether the audio path is silenced", () => {
@@ -3840,6 +3853,68 @@ check("she is told to remember without inventing, and to keep private things pri
     "nothing stops her reading out personal data");
   assert.match(i, /SOLO si esa marca aparece en brands_they_buy/,
     "she may invent what he likes to buy");
+});
+
+
+await checkAsync("two taps during the handshake open one call, not two", async () => {
+  /* DANNY: "I hear two different voices speaking to me at the same
+     time."
+
+     The guard was `if (ariaRT) return true`, and ariaRT is only
+     assigned once the SDP handshake completes — hundreds of
+     milliseconds, longer on a phone on mobile data. Everything in
+     that window read as "no call yet".
+
+     That was survivable while a microphone tap was the only way to
+     start one. The chat now opens a call by itself and the button is
+     sitting right there: open the panel, tap a beat later, and the
+     tap passed the guard. Two sessions, two microphones, two audio
+     elements, two voices. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function startRealtimeVoice(){");
+  assert.ok(at > 0, "the idempotent wrapper is gone");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
+
+  let starts = 0;
+  const run = (live) => {
+    let ariaRT = live || null;
+    let promise = null;
+    const fn = new Function("ariaRT", "ariaRTStartPromise", "startRealtimeVoiceOnce", "Promise", `
+      let __p = ariaRTStartPromise;
+      ${body.replace(/ariaRTStartPromise/g, "__p")}
+      return startRealtimeVoice;`)(
+      ariaRT, promise,
+      /* A handshake that takes a tick, like a real one. */
+      async () => { starts++; await new Promise(r => setTimeout(r, 20)); return true; },
+      Promise);
+    return fn;
+  };
+
+  const start = run();
+  /* The chat opening and a microphone tap, in the same window. */
+  const [a, b, c] = await Promise.all([start(), start(), start()]);
+  assert.equal(starts, 1,
+    `${starts} sessions were opened for three overlapping requests — that is ${starts} voices talking at once`);
+  assert.deepEqual([a, b, c], [true, true, true],
+    "the callers that waited on the in-flight start got the wrong answer");
+
+  /* …and once it has finished, a later ask starts a fresh one rather
+     than returning the stale promise for ever. */
+  await start();
+  assert.equal(starts, 2, "the in-flight promise was never released, so the call can never be restarted");
+
+  /* AND AN ESTABLISHED CALL IS LEFT ALONE. Anything that asks for a
+     call while one is already up must get "yes, there is one" — not a
+     second handshake on top of a working session. */
+  starts = 0;
+  const onACall = run({ pc: {} });
+  assert.equal(await onACall(), true, "an established call reported itself as absent");
+  assert.equal(starts, 0, "a request during an established call opened a second one");
 });
 
 /* A FLOOR ON THE TEST COUNT.

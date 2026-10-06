@@ -37616,7 +37616,40 @@ function buildAudioSink(){
    THE SESSION
    ------------------------------------------------------------------ */
 
-async function startRealtimeVoice(){
+/* The start that is already running, if one is. Everything that wants
+   a call waits on this same promise rather than opening its own. */
+let ariaRTStartPromise = null;
+
+/**
+ * Open the live call. Safe to ask for twice.
+ *
+ * TWO VOICES AT ONCE, AND WHY (Danny, 2026-10-06). The guard here was
+ * `if (ariaRT) return true`, and ariaRT is only assigned once the SDP
+ * handshake completes — hundreds of milliseconds, longer on a phone
+ * on mobile data. Everything in that window read as "no call yet".
+ *
+ * That was survivable while the only way to start one was tapping the
+ * microphone. Now the chat opens a call by itself, and the microphone
+ * button is sitting right there: open the panel, tap the button a beat
+ * later, and the second tap passed the guard. Two sessions, two
+ * microphones, two audio elements — two voices talking over each
+ * other, which is exactly what he heard.
+ *
+ * So the start is idempotent. The first caller runs it; everyone who
+ * asks while it is in flight gets the same promise and the same
+ * answer. Tapping the microphone during the handshake now does
+ * nothing instead of starting a rival call, and once the call is up
+ * the tap hangs up as it always did.
+ */
+function startRealtimeVoice(){
+  if (ariaRT) return Promise.resolve(true);
+  if (ariaRTStartPromise) return ariaRTStartPromise;
+  ariaRTStartPromise = startRealtimeVoiceOnce()
+    .finally(() => { ariaRTStartPromise = null; });
+  return ariaRTStartPromise;
+}
+
+async function startRealtimeVoiceOnce(){
   if (ariaRT) return true;
   /* Before anything else: from here the old pipeline is off limits,
      not from the moment the call finishes connecting. */
