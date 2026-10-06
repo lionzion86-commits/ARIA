@@ -37107,9 +37107,11 @@ async function startRealtimeVoice(){
          through rather than inventing a vaguer sentence on top. */
       let body = null;
       try { body = await res.json(); } catch {}
-      const said = body && (body.error || body.detail);
+      /* `detail` names the actual field or key problem; `error` is the
+         category. The specific one goes on screen. */
+      const said = body && (body.detail || body.error);
       return noteRealtimeFailure(said || ('el servidor respondió ' + res.status),
-        body && body.detail && body.detail !== said ? body.detail : String(res.status));
+        body && body.attempts ? JSON.stringify(body.attempts) : String(res.status));
     }
     mint = await res.json();
   } catch (e){ return noteRealtimeFailure('no pude contactar al servidor', e.message); }

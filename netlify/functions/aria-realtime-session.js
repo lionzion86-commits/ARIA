@@ -23,6 +23,24 @@ import { buildRealtimeSession, REALTIME_API_BASE } from "../../scripts/lib/realt
 
 const MINT_TIMEOUT_MS = 8000;
 
+/**
+ * OpenAI's own words for what was wrong, without echoing the request.
+ *
+ * An error body carries { error: { message, code, param } }. The
+ * message names the offending field, which is the single most useful
+ * sentence in this whole endpoint; the rest of the body can contain
+ * fragments of what we sent, so only these three are passed on.
+ */
+function upstreamMessage(text) {
+  try {
+    const e = JSON.parse(text).error || {};
+    const parts = [e.message, e.param ? `(param: ${e.param})` : null, e.code ? `[${e.code}]` : null];
+    const joined = parts.filter(Boolean).join(" ");
+    if (joined) return joined.slice(0, 300);
+  } catch { /* not JSON */ }
+  return String(text || "").slice(0, 300);
+}
+
 export async function handler(event) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -70,60 +88,115 @@ export async function handler(event) {
 
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), MINT_TIMEOUT_MS);
-  try {
-    /* TWO SPELLINGS OF THE SAME CALL. /client_secrets is the current
-       one; /sessions is the older one the brief was written against,
-       and some keys still answer only that. Rather than guess which
-       this account has — untestable from here, egress to OpenAI is
-       blocked — try the current one and fall back on a 404/405, which
-       is what a wrong path returns and nothing else does. The two
-       differ in shape too, which is why the token is read defensively
-       below. */
-    let res = await fetch(`${REALTIME_API_BASE}/client_secrets`, {
+  /* Every attempt, in order, with what came back. Returned on failure
+     and logged on success, because the one question this endpoint has
+     had to answer four times is "which part did OpenAI not like". */
+  const attempts = [];
+
+  const post = async (url, payload) => {
+    const r = await fetch(url, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ session }),
+      body: JSON.stringify(payload),
       signal: ac.signal,
     });
-    if (res.status === 404 || res.status === 405) {
-      console.info("[aria-realtime] /client_secrets not available, trying /sessions");
-      res = await fetch(`${REALTIME_API_BASE}/sessions`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        /* The legacy endpoint takes the session fields at the top
-           level rather than nested under `session`. */
-        body: JSON.stringify(session),
-        signal: ac.signal,
-      });
+    return { res: r, text: await r.text() };
+  };
+
+  try {
+    let out = null;
+
+    /* ------------------------------------------------------------
+       PROGRESSIVE DEGRADATION.
+
+       A 400 means this account's API version rejected a FIELD, not
+       the request. Rather than fail the whole call over an optional
+       audio tweak, drop the optional parts one layer at a time and
+       report which layer worked. The parts that carry meaning —
+       model, instructions, voice, turn detection, tools — are in
+       every variant; only tuning is shed.
+
+       Order matters: the first variant is the one we want, and we
+       stop at the first that is accepted.
+       ------------------------------------------------------------ */
+    const variants = [
+      ["completa", (x) => x],
+      ["sin ajustes de audio", (x) => {
+        const v = structuredClone(x);
+        delete v.audio.input.noise_reduction;
+        if (v.audio.output) delete v.audio.output.speed;
+        return v;
+      }],
+      ["sin transcripción", (x) => {
+        const v = structuredClone(x);
+        delete v.audio.input.noise_reduction;
+        if (v.audio.output) delete v.audio.output.speed;
+        delete v.audio.input.transcription;
+        return v;
+      }],
+      ["mínima", (x) => ({
+        type: x.type,
+        model: x.model,
+        instructions: x.instructions,
+        audio: { input: { turn_detection: x.audio.input.turn_detection },
+                 output: { voice: x.audio.output.voice } },
+        tools: x.tools,
+        tool_choice: x.tool_choice,
+      })],
+    ];
+
+    for (const [name, shape] of variants) {
+      const payload = shape(session);
+      let { res, text } = await post(`${REALTIME_API_BASE}/client_secrets`, { session: payload });
+      let endpoint = "client_secrets";
+
+      /* TWO SPELLINGS OF THE SAME CALL. /client_secrets is current;
+         /sessions is the older one, which some keys still answer. A
+         wrong path returns 404/405 and nothing else does. The legacy
+         endpoint takes the fields at the top level rather than nested
+         under `session`. */
+      if (res.status === 404 || res.status === 405) {
+        ({ res, text } = await post(`${REALTIME_API_BASE}/sessions`, payload));
+        endpoint = "sessions";
+      }
+
+      attempts.push({ variant: name, endpoint, status: res.status, error: res.ok ? null : upstreamMessage(text) });
+      if (res.ok) { out = { res, text, name, endpoint }; break; }
+
+      /* Only a 400 is worth retrying smaller. A 401 is a bad key and
+         a 403 is an account without access; neither improves by
+         sending less, and hammering them four times is rude. */
+      if (res.status !== 400) break;
     }
-    const text = await res.text();
-    if (!res.ok) {
-      /* The upstream body is logged for us, never returned verbatim:
-         an API error can echo request detail, and this is a public
-         endpoint. */
-      console.error("[aria-realtime] mint failed", res.status, text.slice(0, 400));
+
+    if (!out) {
+      const last = attempts[attempts.length - 1] || {};
+      console.error("[aria-realtime] mint failed:", JSON.stringify(attempts));
       return {
         statusCode: 502,
         headers,
         body: JSON.stringify({
           error: "OpenAI Realtime API rejected the request",
-          status: res.status,
-          /* 401 is the one worth naming outright: it is a key that is
-             set but wrong, which looks identical to every other
-             failure from the outside. The rest is truncated upstream
-             text — enough to act on, short enough not to echo a whole
-             request back to a stranger. */
-          detail: res.status === 401
-            ? "API key invalid or lacks Realtime access"
-            : text.slice(0, 200),
+          status: last.status || 0,
+          /* 401 and 403 are the two worth naming outright: a key that
+             is set but wrong, and a key without Realtime access.
+             From the outside they look like every other failure. */
+          detail: last.status === 401 ? "API key invalid — replace OPENAI_API_KEY in Netlify"
+                : last.status === 403 ? "This API key has no access to the Realtime API or to this model"
+                : last.error || "sin detalle",
+          /* The whole ladder, so one curl says which field was the
+             problem instead of another round of guessing. */
+          attempts,
         }),
       };
+    }
+
+    const { text, name, endpoint } = out;
+    if (name !== "completa") {
+      console.warn(`[aria-realtime] accepted only the "${name}" session on /${endpoint}:`, JSON.stringify(attempts));
     }
     let data;
     try { data = JSON.parse(text); } catch {

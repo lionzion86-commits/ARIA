@@ -42,6 +42,10 @@ let passed = 0; const failures = [];
 const group = (n) => console.log(`\n  ${n}`);
 const check = (n, fn) => { try { fn(); passed++; console.log(`    ok   ${n}`); }
   catch (e){ failures.push(`${n}\n         ${e.message}`); console.log(`    FAIL ${n}\n         ${e.message}`); } };
+/* The mint tests drive the real handler against a stubbed fetch, so
+   they have to be awaited. Same bookkeeping, async. */
+const checkAsync = async (n, fn) => { try { await fn(); passed++; console.log(`    ok   ${n}`); }
+  catch (e){ failures.push(`${n}\n         ${e.message}`); console.log(`    FAIL ${n}\n         ${e.message}`); } };
 
 /* ============================================================ */
 group("the session the server mints");
@@ -498,9 +502,9 @@ check("the token mint survives either spelling of the endpoint", () => {
   /* Matched as fetch URLs, not as bare words: both names appear in
      the comment above them, which is how a mutation pointing the
      fallback back at /client_secrets went unnoticed. */
-  assert.match(mint, /fetch\(`\$\{REALTIME_API_BASE\}\/client_secrets`/,
+  assert.match(mint, /post\(`\$\{REALTIME_API_BASE\}\/client_secrets`/,
     "the current endpoint is gone");
-  assert.match(mint, /fetch\(`\$\{REALTIME_API_BASE\}\/sessions`/,
+  assert.match(mint, /post\(`\$\{REALTIME_API_BASE\}\/sessions`/,
     "there is no fallback to the endpoint the brief names");
   /* Only a wrong path answers 404/405; falling back on anything else
      would retry a real failure against a second endpoint and double
@@ -508,8 +512,10 @@ check("the token mint survives either spelling of the endpoint", () => {
   assert.match(mint, /res\.status === 404 \|\| res\.status === 405/,
     "the fallback triggers on the wrong condition");
   /* The two endpoints disagree about shape, both ways. */
-  assert.match(mint, /body: JSON\.stringify\(\{ session \}\)/, "the modern call lost its wrapper");
-  assert.match(mint, /body: JSON\.stringify\(session\)/, "the legacy call is wrapped and will 400");
+  /* Shapes differ per endpoint; the behaviour is covered by the
+     stubbed-mint tests below, so this only pins the two call sites. */
+  assert.match(mint, /\{ session: payload \}/, "the modern call lost its wrapper");
+  assert.match(mint, /\/sessions`, payload\)/, "the legacy call is wrapped and will 400");
   assert.match(mint, /data\?\.value \|\| data\?\.client_secret\?\.value/,
     "only one response shape is understood");
 });
@@ -584,6 +590,11 @@ check("a fallback is never silent again", () => {
   const mintSrc = readFileSync(ROOT + "netlify/functions/aria-realtime-session.js", "utf8");
   assert.match(mintSrc, /error: "OPENAI_API_KEY not configured"/, "a missing API key is not named");
   assert.match(mintSrc, /statusCode: 500/, "a missing API key does not fail loudly");
+  /* Asserted as the assignment, not just the fallback expression:
+     `const said = null` left the `said || (...)` line intact and
+     passed an earlier version of this. */
+  assert.match(body, /const said = body && \(body\.detail \|\| body\.error\);/,
+    "the page does not read the server's own message");
   assert.match(body, /said \|\| \('el servidor respondió ' \+ res\.status\)/,
     "the page invents its own message instead of showing the server's");
   /* The shopper is told which engine they got — and it must be
@@ -778,6 +789,152 @@ check("one endpoint, under the name the spec curls", () => {
   /* An alias, not a second implementation. */
   assert.match(alias, /export \{ handler \} from "\.\/aria-realtime-session\.js"/,
     "the alias is a second implementation that can drift");
+});
+
+/* ------------------------------------------------------------------
+   THE MINT, DRIVEN AGAINST A STUBBED OPENAI.
+
+   Everything above tests the shape of what we send. These run the real
+   handler against each way OpenAI can say no, because a 502 that does
+   not say WHY is how four rounds of testing got spent on guesses.
+   ------------------------------------------------------------------ */
+async function mintAgainst(responder){
+  const realFetch = globalThis.fetch;
+  const realKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "sk-test-not-a-real-key";
+  const calls = [];
+  globalThis.fetch = async (url, opts) => {
+    calls.push({ url: String(url), payload: JSON.parse(opts.body) });
+    return responder(calls.length, JSON.parse(opts.body), String(url));
+  };
+  /* The handler logs every failed ladder, which is right in
+     production and unreadable in a test run. */
+  const quiet = { error: console.error, warn: console.warn, info: console.info };
+  console.error = console.warn = console.info = () => {};
+  try {
+    /* Fresh import each time: the handler reads the key at call time,
+       but the cache busting keeps one test's stub out of the next. */
+    const mod = await import(ROOT + "netlify/functions/aria-realtime-session.js?t=" + Math.random());
+    const res = await mod.handler({ httpMethod: "POST", body: "{}" });
+    return { res, body: JSON.parse(res.body), calls };
+  } finally {
+    globalThis.fetch = realFetch;
+    Object.assign(console, quiet);
+    if (realKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = realKey;
+  }
+}
+const jsonRes = (status, obj) =>
+  new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+
+await checkAsync("a bad key is named, and not retried four times", async () => {
+  const { res, body, calls } = await mintAgainst(() =>
+    jsonRes(401, { error: { message: "Incorrect API key provided", code: "invalid_api_key" } }));
+  assert.equal(res.statusCode, 502);
+  assert.match(body.detail, /API key invalid/, "a 401 is not named as a bad key");
+  /* Sending less cannot fix a bad key; hammering OpenAI four times is
+     both useless and rude. */
+  assert.equal(calls.length, 1, `a 401 was retried ${calls.length} times`);
+});
+
+await checkAsync("an account without Realtime access is named", async () => {
+  const { res, body, calls } = await mintAgainst(() =>
+    jsonRes(403, { error: { message: "Project does not have access to model gpt-realtime" } }));
+  assert.equal(res.statusCode, 502);
+  assert.match(body.detail, /no access to the Realtime API/, "a 403 is not named");
+  assert.equal(calls.length, 1, "a 403 was retried");
+});
+
+await checkAsync("one rejected field does not lose the whole call", async () => {
+  /* The failure mode this is built for: an account whose API version
+     does not know one optional tuning field. Shedding it beats
+     failing, and the log says which one went. */
+  const { res, body, calls } = await mintAgainst((n, payload) => {
+    if (payload.session?.audio?.input?.noise_reduction) {
+      return jsonRes(400, { error: { message: "Unknown parameter", param: "session.audio.input.noise_reduction" } });
+    }
+    return jsonRes(200, { value: "ek_ok", expires_at: 1 });
+  });
+  assert.equal(res.statusCode, 200, "an optional field took the whole session down");
+  assert.equal(body.token, "ek_ok");
+  assert.equal(calls.length, 2, "the ladder did not stop at the first variant that worked");
+  /* The parts that carry meaning survive every rung. */
+  const last = calls[calls.length - 1].payload.session;
+  assert.ok(last.instructions && last.instructions.length > 100, "the instructions were shed");
+  assert.ok(Array.isArray(last.tools) && last.tools.length === 4, "the tools were shed");
+  assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
+  assert.equal(last.audio.output.voice, "marin", "the voice was shed");
+});
+
+await checkAsync("even the smallest session keeps what makes her Aria", async () => {
+  /* Drives the ladder to its last rung by refusing everything until
+     the minimal variant arrives. Shedding tuning is the point;
+     shedding her instructions, her tools or her turn detection would
+     hand back a generic voice bot that cannot search or be
+     interrupted — worse than an honest failure. */
+  let minimal = null;
+  const { res, body, calls } = await mintAgainst((n, payload) => {
+    const sess = payload.session;
+    /* Refuses every optional field in turn, including the response
+       cap, which is the one that separates the third rung from the
+       fourth. */
+    const optional = sess.audio?.input?.noise_reduction || sess.audio?.output?.speed
+      || sess.audio?.input?.transcription || sess.max_response_output_tokens;
+    if (optional) return jsonRes(400, { error: { message: "Unknown parameter" } });
+    minimal = sess;
+    return jsonRes(200, { value: "ek_min", expires_at: 9 });
+  });
+  assert.equal(res.statusCode, 200, "the ladder never reached a session OpenAI would take");
+  assert.equal(body.token, "ek_min");
+  assert.equal(calls.length, 4, `the ladder took ${calls.length} rungs, expected 4`);
+  assert.ok(minimal, "the minimal variant was never sent");
+  assert.ok(minimal.instructions && minimal.instructions.length > 1000,
+    "the minimal session dropped her instructions");
+  assert.equal(minimal.model, "gpt-realtime", "the minimal session dropped the model");
+  assert.ok(Array.isArray(minimal.tools) && minimal.tools.length === 4,
+    "the minimal session dropped her tools — she could not search");
+  assert.equal(minimal.tool_choice, "auto", "the minimal session dropped tool_choice");
+  assert.equal(minimal.audio.input.turn_detection.type, "semantic_vad",
+    "the minimal session dropped turn detection — no barge-in, no answering");
+  assert.equal(minimal.audio.input.turn_detection.interrupt_response, true,
+    "the minimal session cannot be interrupted");
+  assert.equal(minimal.audio.output.voice, "marin", "the minimal session dropped the voice");
+});
+
+await checkAsync("a 502 says which field OpenAI refused", async () => {
+  const { res, body } = await mintAgainst(() =>
+    jsonRes(400, { error: { message: "Invalid value: 'gpt-realtime'", param: "session.model", code: "invalid_value" } }));
+  assert.equal(res.statusCode, 502);
+  /* OpenAI's own sentence, with the offending parameter, is the whole
+     point: one curl instead of another round of guessing. */
+  assert.match(body.detail, /Invalid value/, "the upstream message is not passed on");
+  assert.match(body.detail, /session\.model/, "the offending parameter is not named");
+  assert.ok(Array.isArray(body.attempts) && body.attempts.length === 4,
+    "the ladder of attempts is not reported");
+  for (const a of body.attempts){
+    assert.ok(a.variant && a.endpoint && a.status, "an attempt is missing its detail");
+  }
+});
+
+await checkAsync("the legacy endpoint is tried, and its answer accepted", async () => {
+  const { res, body, calls } = await mintAgainst((n, payload, url) =>
+    url.includes("client_secrets")
+      ? jsonRes(404, { error: { message: "Unknown request URL" } })
+      : jsonRes(200, { client_secret: { value: "ek_legacy", expires_at: 2 } }));
+  assert.equal(res.statusCode, 200, "the legacy endpoint's token was not accepted");
+  assert.equal(body.token, "ek_legacy", "the legacy response shape is not understood");
+  /* The legacy endpoint takes the fields at the top level. */
+  assert.ok(!calls[1].payload.session, "the legacy call is wrapped and will 400");
+  assert.equal(calls[1].payload.model, "gpt-realtime", "the legacy call lost its model");
+});
+
+await checkAsync("a healthy mint costs exactly one call", async () => {
+  const { res, body, calls } = await mintAgainst(() => jsonRes(200, { value: "ek_live", expires_at: 3 }));
+  assert.equal(res.statusCode, 200);
+  assert.equal(body.token, "ek_live");
+  assert.equal(calls.length, 1, "a working session still made extra calls");
+  assert.equal(body.model, "gpt-realtime");
+  assert.ok(body.turn_detection, "the page is not told the turn detection to re-assert");
 });
 
 check("the browser never receives the standing API key", () => {
