@@ -33823,20 +33823,13 @@ if (assistantOpen && document.getElementById('assistantMessages').children.lengt
    fallback line the old path used. */
 async function greetAssistantStreaming(){
   /* INSTANT STATIC GREETING (2026-09-29, Danny: short, sweet, fast). The
-     greeting used to ride the Groq stream -- cold function + first
-     sentence + TTS was ~5s before Lily spoke. The greeting is now a fixed
-     short line, so it skips the model entirely: the text paints in the
-     same tick the chat opens and Lily's TTS fetch fires at once, so first
-     audio is a single TTS round trip. */
+     greeting used to ride the Groq stream — a cold function plus the
+     first sentence plus synthesis was ~5s before anything was audible.
+     It is a fixed short line now, so it skips the model entirely and
+     the text paints in the same tick the chat opens. */
   ariaReplyVoiceStarted = false;
   /* The quick-reply chips render on every open (toggleAssistant), so the
-     greeting always shows something to tap -- the mic stays off after her
-     voice per Danny's 2026-10-02 law, and his cue line closes the turn. */
-  /* NOT IN LIVE-VOICE MODE. This flag is what later fires
-     speakMicOffCue(), and that cue is "aprieta el micrófono" — advice
-     that is both wrong and unwanted when the next tap opens a call.
-     Setting it only on the classic path is how the cue is never
-     triggered rather than merely silenced. */
+     greeting always shows something to tap. */
   if (ariaClassicVoiceOnly()) assistantReplyHasTappables = true;
   addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
   /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
@@ -33845,22 +33838,50 @@ async function greetAssistantStreaming(){
   ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
   hideAssistantTyping();
   setOrbState('idle');
-  /* SHE SAYS HELLO OUT LOUD AGAIN (2026-10-06, Danny: "when the chat
-     opens I should hear her say hola, soy Aria, tu shopper personal...
-     then I can actually hit the mic").
+  /* SHE SAYS HELLO IN HER OWN VOICE, AND THE CALL IS ALREADY LIVE
+     (2026-10-06, Danny: "When the chat opens, the user HEARS 'Hi, I'm
+     Aria...' in the ChatGPT voice. No hay otra voz.").
 
-     An earlier round removed this, reading his complaint about the
-     muted mic and the "press the microphone" nag as a complaint about
-     the greeting itself. It was not. The greeting is wanted; the nag
-     was not.
+     This is a reversal of the previous design, and the reason is
+     worth keeping. The greeting used to be spoken by the old TTS
+     engine precisely BECAUSE it was cheap: a hello every shopper
+     hears is realtime minutes burnt before anyone has said a word.
+     That engine is gone, so the choice is now between a greeting in
+     her real voice and no greeting at all, and he has picked the
+     first and accepted the cost.
 
-     It is spoken by LILY, not by the live voice, and that is the
-     cheap half of the design: a greeting every shopper hears would be
-     realtime minutes burnt before anyone has said a word, whereas
-     this is one TTS call. The live session only opens when he taps,
-     and she does not re-introduce herself inside it. */
-  speakWithLily(ARIA_GREETING_FALLBACK);
-  if (!ariaClassicVoiceOnly()) setAssistantMicCallReady();
+     What keeps the cost bounded is unchanged and still applies: the
+     five-minute hard cap, the twenty-second check-in, and the
+     thirty-five second hang-up with a line telling him how to get her
+     back. A shopper who opens the chat and wanders off costs
+     thirty-five seconds, not thirty minutes.
+
+     STARTED FROM THE OPEN, WHICH IS A GESTURE. toggleAssistant runs
+     inside the tap that opened the panel, so the AudioContext can be
+     unlocked here — iOS only honours resume() while a gesture is on
+     the stack. A call started any other way would connect and be
+     silent, which is the bug this whole file has a history of. */
+  startRealtimeOnOpen();
+}
+
+/* Open the call that the greeting is spoken through.
+ *
+ * Deliberately not awaited by the greeting: the text is already on
+ * screen and the handshake takes a few hundred milliseconds. If it
+ * fails, the failure is loud (showRealtimeError) rather than silently
+ * leaving a dead microphone button — there is nothing to fall back to
+ * any more, and that is the point.
+ */
+function startRealtimeOnOpen(){
+  if (ariaLiveCallActive()) return;          /* already talking */
+  /* The gesture is still on the stack here; this is the only moment
+     iOS will let us open an audio context. */
+  try { ariaUnlockAudioContext(); } catch (e) {}
+  ariaRTWanted = true;
+  Promise.resolve()
+    .then(() => startRealtimeVoice())
+    .then(ok => { if (!ok) showRealtimeError(); })
+    .catch(() => showRealtimeError());
 }
 
 /* The mic button before the first tap, in live-voice mode: this is a
@@ -33949,7 +33970,7 @@ function addAssistantMessage(role, text, audioBase64, opts){
    half-duplex contract as Ara's audio. */
 /* SPOKEN MARKUP HYGIENE (2026-10-04, Danny: the SLOTS leak). Internal
    [[SLOTS:{...}]] / [[SHOW:...]] markup must never reach a voice --
-   Lily's or the browser's. Belt-and-suspenders: every speak entry point
+   the browser's. Belt-and-suspenders: every speak entry point
    cleans its own text, so a reply path that forgot applyModelSlots can
    never speak JSON aloud. Idempotent: already-clean text passes through
    unchanged. */
@@ -33967,7 +33988,7 @@ function cleanSpokenText(t){
    entry points were guarded on 2026-10-06 (e4086f2), but a guard at
    the entrance does nothing for work already inside the building: a
    TTS fetch started before the shopper tapped the mic resolves AFTER
-   ariaRT is set, and its callback played Lily straight over the live
+   ariaRT is set, and its callback played the old TTS straight over the live
    call. Two voices at once.
 
    try/catch rather than `typeof ariaRT !== 'undefined'`: ariaRT is a
@@ -34033,14 +34054,14 @@ function speakText(text){
   }
 }
 
-/* LILY-FIRST SPEAK (2026-09-29, Danny). Tries Lily via the aria-tts
-   endpoint; falls back to the browser's robot voice only if Lily is truly
+/* THE OLD TTS-FIRST SPEAK PATH, DELETED 2026-10-06. It fetched synthesised
+   audio and fell back to the browser's robot voice only if that was truly
    unavailable. The robot voice is never the first choice. */
-/* Set while Lily's voice is actually carrying a reply (speakWithAria /
+/* Set while a non-live voice is actually carrying a reply (speakWithAria /
    playTtsAudio). An interim "dame un segundo" passes a guard against it so
    a late TTS fetch never talks over the answer that already started. */
 let ariaReplyVoiceStarted = false;
-function speakWithLily(text, guard){ /* LILY REMOVED - Danny 2026-10-06: Old engine deleted, ChatGPT Realtime is the only voice */ return; }
+
 
 /* TURN-TAKING, ONE PLACE (2026-10-04, Danny: the echo bug). Every speak
    path closes the mic BEFORE Aria makes a sound: she never listens to
@@ -34338,7 +34359,7 @@ async function streamAssistantReply(payload, sink, onDelta){
    phone that gap read as broken.
 
    THE FIX. As streamed deltas arrive, completed sentences are detected
-   and each WAS POSTed to /.netlify/functions/aria-tts immediately — the
+   and each WAS POSTed to a synthesis endpoint immediately — the
    first sentence's audio renders while the second sentence's text is
    still streaming. Audio plays back strictly in sentence order even
    when the TTS responses land out of order, and a failed sentence is
@@ -34440,7 +34461,7 @@ function feedTts(st, delta, isFinal){
   if (st.settled) return;
   if (delta) st.buffer += delta;
   /* MODEL SLOTS (2026-10-01): the [[SLOTS:{...}]] line streams through the
-     deltas -- strip it from the voice buffer so Lily never speaks JSON. */
+     deltas -- strip it from the voice buffer so no voice ever speaks JSON. */
   if (st.buffer.includes('[[SLOTS:')) st.buffer = st.buffer.replace(/\[\[SLOTS:.*$/s, '');
   if (isFinal) st.streamDone = true;
   const out = splitSentences(st.buffer, isFinal);
@@ -34463,7 +34484,7 @@ function requestSentenceAudio(st, text){
   st.slots[idx] = "pending";
   st.texts[idx] = text;
   /* NO TTS REQUEST AT ALL (2026-10-06). The endpoint had been renamed
-     to aria-tts-DISABLED-BY-DANNY to switch it off, which switched it
+     to a name that does not resolve, to switch it off — which switched it
      off by breaking it: every sentence of every typed reply still
      fired a request, got a 404, and logged it. Resolving the slot
      directly is the same outcome without the round trip or the noise.
@@ -34476,7 +34497,7 @@ function requestSentenceAudio(st, text){
 }
 
 /* One browser-voice sentence: the parity fallback when a pipelined
-   sentence's Lily audio failed. Never the turn decision -- just the next
+   sentence's synthesis failed. Never the turn decision -- just the next
    pump when it ends. */
 function speakPipelinedSentenceFallback(st, text){
   /* Hand the queue back to the pump, which settles it. No audio. */
@@ -34504,7 +34525,7 @@ function pumpTtsAudio(st){
      back in here. */
   if (ariaLiveCallActive()){ st.playerBusy = false; st.settled = true; return; }
   /* VOICE/TEXT PARITY (2026-10-04, Danny: "if I wrote it, she says
-     it"). A sentence whose Lily audio failed used to be skipped --
+     it"). A sentence whose synthesis failed used to be skipped --
      her voice became a short summary of her text. It is spoken with
      the browser voice instead; only a sentence with no playable voice
      at all is skipped. */
@@ -34564,7 +34585,7 @@ function settleTtsAudio(st){
        done-audio was rendered server-side from the unstripped reply, so
        it cannot be verified to match the words on screen. The stripped
        fullReply is re-rendered instead. */
-    if (st.fullReply && typeof speakWithLily === "function") { speakWithLily(st.fullReply); return; }
+    if (st.fullReply) return;   /* nothing speaks it: the live voice is the only voice */
     if (typeof speakText === "function") { speakText(st.fullReply); return; }
   }
   if (typeof st.onSettled === "function") st.onSettled();
@@ -35626,7 +35647,7 @@ function groqRetryAfterMs(err){
    needs a search at all, what to search for, and whether to refine.
    The client is her hands -- it runs search_products against the
    in-memory catalog and hands the results back. Same Groq/OpenAI
-   models, same Lily voice, same product cards; the difference is
+   models, same voice, same product cards; the difference is
    who is thinking.
 
    THE DANCE (see netlify/functions/aria-chat-agent.js):
@@ -35841,14 +35862,14 @@ async function runAgentLoop(text, recipient, ui){
       /* SLOTS STRIP + VOICE/TEXT PARITY (2026-10-04, Danny). The agent's
          prompt inherits the base prompt's [[SLOTS:{...}]] instruction,
          but this path never stripped it -- raw markup reached the bubble,
-         the chat history, and Lily's voice (via data.audio, rendered
+         the chat history, and the synthesised voice (via data.audio, rendered
          server-side from the unstripped reply). The cleaned text is what
          she wrote: it is displayed, remembered, AND spoken. Server audio
          is dropped -- it cannot be verified to match the words on
          screen, and "if I wrote it, she says it". */
       const reply = applyModelSlots(String(data.reply)) || 'Lo siento, no pude responder eso.';
       addAssistantMessage('bot', reply, null, { speak: false });
-      speakWithLily(reply);
+
       for (const id of (data.show || [])){
         const cached = agentProductCache.get(id);
         if (cached) addAssistantProductCard(cached.item, cached.retailer);
@@ -35871,7 +35892,7 @@ async function runAssistantBrain(text){
      it.")
 
      This function is the old pipeline: it closes the microphone for the
-     whole think phase, waits on a silence timer, answers with ElevenLabs
+     whole think phase, waits on a silence timer, answers with synthesised
      through a second audio element, and then calls recognition.start()
      again — and on iOS that last call is the click he heard. All three
      of its callers (the text box, a quick-reply chip, a recognition
@@ -35922,10 +35943,10 @@ async function runAssistantBrain(text){
     return;
   }
   if (SALE_KEYWORDS.some(k => lowerText.includes(k)) || /\bsales?\b/i.test(text)) {
-    /* LILY SPEAKS THE SHORTCUT (2026-09-28, Danny's demo). This path used
+    /* THE SHORTCUT USED TO BE SPOKEN (2026-09-28, Danny's demo). This path used
        to talk through the browser's speechSynthesis -- the robot voice,
        silent on iPhones where it misfires -- because it never reaches the
-       chat endpoints that render Lily's audio. The line is short, so the
+       chat endpoints that render synthesised audio. The line is short, so the
        TTS round-trip is about a second: the text paints now, her voice
        follows over the Ofertas page. Browser voice stays the fallback. */
     /* BRAND/STORE + SALES (2026-10-03, Danny): a named store or brand with
@@ -35959,7 +35980,7 @@ async function runAssistantBrain(text){
     setOrbState('idle');
     addAssistantMessage('bot', navRoute.line, null, { speak: false });
     ariaChatHistory.push({ role: 'assistant', content: navRoute.line });
-    speakWithLily(navRoute.line);
+
     if (navRoute.action === 'store') addAssistantStoreOffer(navRoute.key, navRoute.label);
     else if (navRoute.action === 'brand'){ if (navRoute.count > 0) addAssistantBrandOffer(navRoute.key, navRoute.label, navRoute.count); }
     else addAssistantSectionOffer(navRoute.label, navRoute.sub, 'department', navRoute.key);
@@ -36028,13 +36049,13 @@ async function runAssistantBrain(text){
   addAssistantNote(interimNote);
   /* SPOKEN INTERIM STATUS (2026-09-29, Danny). The "dame un segundo"
      bubble used to sit silent while she "looked" -- a silent wait reads as
-     broken. She says it through Lily now; the guard keeps a late TTS fetch
+     broken. The guard keeps a late synthesis fetch
      from talking over the reply if the answer already started speaking. */
   /* VOICE: never echo the shopper's words (2026-10-02, Danny).
      The text bubble keeps the specific "Buscando X..." note; the spoken
-     audio is the generic "Dame un segundo." so Lily never repeats what
+     audio is the generic "Dame un segundo." so nothing repeats what
      he just said out loud. */
-  speakWithLily('Dame un segundo.', () => !ariaReplyVoiceStarted);
+
   showAssistantTyping();
   if (statusEl) statusEl.textContent = willSearch ? 'Aria está buscando…' : 'Aria está pensando…';
   setOrbState('thinking');
@@ -36058,7 +36079,7 @@ async function runAssistantBrain(text){
       addAssistantStoreOffer(storeHit.key, sLabel);
       if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
       assistantThinking = false;
-      speakWithLily(line);
+
       reopenMicForRetry();
       return;
     }
@@ -36083,7 +36104,7 @@ async function runAssistantBrain(text){
       if (brandHit.count > 0) addAssistantBrandOffer(brandHit.key, bLabel, brandHit.count);
       if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
       assistantThinking = false;
-      speakWithLily(line);
+
       reopenMicForRetry();
       return;
     }
@@ -36158,7 +36179,7 @@ async function runAssistantBrain(text){
             hideAssistantTyping();
             addAssistantMessage('bot', line2, null, { speak: false });
             ariaChatHistory.push({ role: 'assistant', content: line2 });
-            speakWithLily(line2);
+
           }
         } catch(e3){ /* fall through to retry affordance */ }
       }
@@ -36246,7 +36267,7 @@ async function runAssistantBrain(text){
         addAssistantSectionOffer(dfb.label, dfb.sub, dfb.action, dfb.key);
         if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
         assistantThinking = false;
-        speakWithLily(dfbLine);
+
         reopenMicForRetry();
         return;
       }
@@ -36274,7 +36295,7 @@ async function runAssistantBrain(text){
          accumulated across turns, so the reply can confirm them. */
       slots: { ...slots },
       /* SENTENCE-PIPELINED VOICE (2026-09-28). The client renders each
-         sentence's audio via aria-tts as its text completes, so the
+         sentence's audio as its text completes, so the
          stream endpoint skips the full-reply TTS round trip and the done
          event carries text only. */
       ttsPipeline: true,
@@ -36686,7 +36707,7 @@ function setAssistantMicState(listening){
    decision per spoken turn (ariaVoiceTurnId keeps the degraded fallbacks
    from double-handling it):
    - reply showed tappable content -> mic stays OFF, the pill goes to the
-     tap-to-talk idle state, and Lily speaks Danny's cue line verbatim,
+     tap-to-talk idle state, and the cue line was spoken verbatim,
      then silence. The shopper taps in peace.
    - plain conversational reply    -> mic re-arms as before, so hands-free
      conversation keeps flowing.
@@ -36746,7 +36767,7 @@ function afterAriaVoiceEnds(){
   }
   /* SETTLE BUFFER (2026-10-04, Danny: echo bug). Her last syllable is
      still in the air when onended fires -- re-arming inside it is what
-     transcribed Lily as a phantom user turn ("Hola bien gracias"). The
+     transcribed her own voice as a phantom user turn ("Hola bien gracias"). The
      mic re-arms after a beat, and the echo guard covers the whole window
      so the tail can never ship as a turn. */
   const turn = ariaVoiceTurnId;
@@ -36760,7 +36781,7 @@ function afterAriaVoiceEnds(){
   }, MIC_REARM_BUFFER_MS);
 }
 
-/* Lily speaks Danny's cue line verbatim, then silence -- the mic is NOT
+/* The cue line was spoken verbatim, then silence -- the mic is NOT
    restarted. The pill goes to tap-to-talk BEFORE the TTS fetch, so even
    a blocked cue leaves the state correct and never strands the shopper. */
 /* THE MIC-OFF CUE IS GONE WITH THE ENGINE THAT SPOKE IT.
@@ -36969,10 +36990,10 @@ recognition.onend = () => {
 
 let micLive = false;      // we believe the recognizer is running (onstart/onend + intentional stops)
 let lastMicStartAt = 0;   // debounce: a second start inside 400ms is a double-fire, not a request
-let ariaVoiceActive = false; // Lily/browser voice is audible: the mic must never start (echo bug, 2026-10-04)
+let ariaVoiceActive = false; // a non-live voice is audible: the mic must never start (echo bug, 2026-10-04)
 let micStartByUser = false;  // the last startListening came from a tap -- drives the graceful-error routing
 /* SETTLE BUFFER (2026-10-04, Danny: echo bug). Her last syllable is still
-   in the air when onended fires; re-arming inside it transcribed Lily as
+   in the air when onended fires; re-arming inside it transcribed her own voice as
    a phantom user turn. The mic re-arms this long after her voice ends. */
 const MIC_REARM_BUFFER_MS = 1100;
 function startListening(fromUser){
@@ -37089,6 +37110,12 @@ const CALL_EXIT_GRACE_MS = 4000;
 
 /* The longest she may spend looking before saying so out loud. The
    brief asks for under 1.5s; this is the ceiling that enforces it. */
+/* How long a barge-in may silence the audio before it comes back by
+   itself. Long enough to swallow the tail of an interrupted sentence,
+   short enough that a missed event is a stutter rather than a dead
+   call. */
+const CUT_RESTORE_MS = 1200;
+
 const SCOOP_TIMEOUT_MS = 1400;
 
 /* "toyota" and "grand cherokee" come out of the cache keys lowercased.
@@ -37369,7 +37396,7 @@ function realtimeAvailable(){
    single path visible in the code.
 
    WHY THE FALLBACK HAD TO GO, in his words: he tested the preview and
-   got the old Lily voice instead of the Realtime one. A broken live
+   got the old voice instead of the Realtime one. A broken live
    path and a working old one are indistinguishable when the second
    one just starts — four rounds of iPhone testing reported "the same
    thing as before" for exactly that reason. The fallback was masking
@@ -37455,6 +37482,7 @@ function buildAudioSink(){
   }
 
   let silenced = false;   /* barge-in asked for silence on both paths */
+  let restoreTimer = null;
 
   const graphRunning = () => !!(ctx && gain && ctx.state === 'running');
 
@@ -37484,9 +37512,51 @@ function buildAudioSink(){
      follow it rather than be decided once at setup. */
   if (ctx){ try { ctx.onstatechange = syncPaths; } catch (e) {} }
 
+  const openPath = () => {
+    if (restoreTimer){ clearTimeout(restoreTimer); restoreTimer = null; }
+    silenced = false;
+    resume();
+    try { if (gain && ctx) gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch (e) {}
+    syncPaths();
+  };
+
+  /* A CUT IS A DUCK, NOT A LATCH.
+
+     It exists to kill the tail of a sentence the shopper talked over —
+     a few hundred milliseconds of audio already in flight. It was
+     silencing the path indefinitely, and because the only thing that
+     re-opened it was an event this transport never sends, one
+     interruption made the rest of the call silent.
+
+     So it restores itself. If a new answer arrives first, openPath()
+     cancels the timer and takes over; if the event that should have
+     re-opened the path never comes, the path comes back anyway.
+     Restoring early costs nothing — there is no audio on the track to
+     hear — while failing to restore costs the whole call.
+
+     Closures rather than `this`, so a detached sink.cut still works. */
+  const cutPath = () => {
+    silenced = true;
+    try { if (gain && ctx) gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch (e) {}
+    el.muted = true;
+    if (restoreTimer) clearTimeout(restoreTimer);
+    restoreTimer = setTimeout(() => {
+      restoreTimer = null;
+      if (!silenced) return;
+      console.info('[aria] audio path restored by the watchdog');
+      openPath();
+    }, CUT_RESTORE_MS);
+  };
+
   return {
     el, gain, ctx,
-    state(){ return { ctx: ctx ? ctx.state : 'none', elementMuted: el.muted, graphRunning: graphRunning() }; },
+    /* `silenced` IS THE FIELD THIS BUG NEEDED. Without it the
+       diagnostic reported a healthy path — context running, graph
+       running, element correctly muted because the graph carries the
+       sound — while the gain sat at zero and nothing was audible.
+       Whether the path is ducked is the one thing it could not say. */
+    state(){ return { ctx: ctx ? ctx.state : 'none', elementMuted: el.muted,
+                      graphRunning: graphRunning(), silenced }; },
     attach(stream){
       try {
         if (ctx && gain){
@@ -37505,17 +37575,21 @@ function buildAudioSink(){
       resume();
       syncPaths();
     },
-    cut(){
-      silenced = true;
-      try { if (gain && ctx) gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch (e) {}
-      el.muted = true;
-    },
-    open(){
-      silenced = false;
-      resume();
-      try { if (gain && ctx) gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch (e) {}
-      syncPaths();
-    },
+    /* A CUT IS A DUCK, NOT A LATCH.
+
+       It exists to kill the tail of a sentence the shopper talked
+       over — a few hundred milliseconds of audio already in flight.
+       It was silencing the path indefinitely, and because the only
+       thing that re-opened it was an event this transport never
+       sends, one interruption made the rest of the call silent.
+
+       So it restores itself. If a new answer arrives first, open()
+       cancels the timer and takes over; if the event that should have
+       re-opened the path never comes, the path comes back anyway.
+       Restoring early costs nothing — there is no audio on the track
+       to hear — while failing to restore costs the whole call. */
+    cut: cutPath,
+    open: openPath,
   };
 }
 
@@ -37708,9 +37782,17 @@ async function startRealtimeVoice(){
           console.info('[aria] greeting audio started');
         }
         /* If audio arrives after she was asked to sign off, that IS
-           the goodbye — so Lily must not repeat it. */
+           the goodbye — so nothing else must repeat it. */
         if (ariaRTSignedOff) ariaRTHeardSignOff = true;
       }
+      else if (action === 'openAudio'){
+        /* A new answer is starting. Over WebRTC this is the only
+           reliable moment to re-open the path — see the note in
+           voiceTurnReducer. */
+        sink.open();
+        noteRealtimeActivity();
+      }
+      else if (action === 'noteActivity') noteRealtimeActivity();
       else if (action === 'cancelResponse') send({ type: 'response.cancel' });
     }
     onRealtimeEvent(event, turn, send);
@@ -37857,10 +37939,11 @@ function endRealtimeCallIdle(why){
     }
   }
   stopRealtimeVoice();
-  /* The line he can read, always. And Lily says it only when the
+  /* The line he can read, always, written only after the
      live voice did not — otherwise he would hear it twice. */
   addAssistantMessage('bot', CALL_BYE_LINE, null, { speak: false });
-  if (!ariaRTHeardSignOff && typeof speakWithLily === 'function') speakWithLily(CALL_BYE_LINE);
+  /* The goodbye was spoken by the old engine. There is no old engine;
+     the live voice says it before the session closes, or it is text. */
 }
 
 /**
@@ -39025,7 +39108,7 @@ function toggleContinuousMode(){
   }
   /* BARGE-IN (2026-10-02): the mic was off (tap-to-talk idle, or her voice
      still playing) -- the tap means TALK. Cut her audio first so the fresh
-     listen never transcribes Lily herself. */
+     listen never transcribes her own voice. */
   continuousMode = true;
   micOffCueId++;
   try { ariaAudioPlayer.pause(); } catch(e){}

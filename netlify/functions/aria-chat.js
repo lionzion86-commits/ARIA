@@ -4,9 +4,9 @@
 //
 // The greeting is held to the same brain as every other turn: the turn
 // is built by the shared _aria-chat-model.js (same model, same cap,
-// same system prompt), and the voice is Lily via ElevenLabs (see
-// speechFor). No xAI anywhere on this path anymore.
-import { chatRequestBody, sanitizeSpokenPunctuation, sanitizeEmojiNarration, speechFor, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
+// same system prompt). Text only; the voice is the realtime session's (see
+// the live realtime session). No xAI anywhere on this path anymore.
+import { chatRequestBody, sanitizeSpokenPunctuation, sanitizeEmojiNarration, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
 
 export async function handler(event) {
   const headers = {
@@ -50,17 +50,13 @@ export async function handler(event) {
       return { statusCode: 502, headers, body: JSON.stringify({ error: "OpenAI devolvió una respuesta vacía" }) };
     }
 
-    // Step 2: Lily's voice, best effort — the greeting is spoken like
-    // any other reply, and a voice failure never costs the text.
-    const audioBase64 = await speechFor(replyText);
-
+    /* TEXT ONLY. This used to render the reply to speech and hand the
+       audio back; the page discarded it, because the live call is the
+       voice and speakAssistantReply() returns while one is up. */
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        reply: replyText,
-        audio: audioBase64,
-      }),
+      body: JSON.stringify({ reply: replyText }),
     };
   } catch (error) {
     return {

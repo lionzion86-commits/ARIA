@@ -27,7 +27,6 @@ import {
 import {
   sanitizeSpokenPunctuation,
   sanitizeEmojiNarration,
-  speechFor,
   OPENAI_CHAT_URL,
   OPENAI_MODEL,
   OPENAI_REASONING_EFFORT,
@@ -139,8 +138,7 @@ export async function handler(event) {
     if (reply) {
       const clean0 = sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply));
       const { clean, ids } = extractShowIds(clean0);
-      const audio = await speechFor(clean);
-      return { statusCode: 200, headers, body: JSON.stringify({ reply: clean, show: ids, audio }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ reply: clean, show: ids }) };
     }
 
     console.error("[aria-chat-agent] no provider answered:", lastError);

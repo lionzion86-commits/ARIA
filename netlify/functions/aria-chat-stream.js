@@ -53,7 +53,7 @@
 
    SENTENCE-PIPELINED VOICE (2026-09-28). When the client sends
    `ttsPipeline: true`, it renders each sentence's audio itself via the
-   aria-tts endpoint as the text streams, so the done event carries text
+   a synthesis endpoint as the text streamed, so the done event carries text
    only and no full-reply TTS round trip runs here. Callers that omit
    the flag keep the old trailing `{"audio"}` event.
 
@@ -63,7 +63,7 @@
    own last line is a graceful spoken fallback. The client NEVER sees
    "No reply from model".
    ============================================================ */
-import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, sanitizeEmojiNarration, speechFor, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, sanitizeEmojiNarration, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -164,7 +164,7 @@ export default async function handler(req) {
   }
 
   /* SENTENCE-PIPELINED VOICE (2026-09-28). The client renders each
-     sentence's audio itself via the aria-tts endpoint as the text
+     sentence's audio itself via a synthesis endpoint as the text
      streams, so the done event carries text only and no full-reply TTS
      round trip runs. Callers that omit the flag keep the trailing
      audio event. */
@@ -278,10 +278,7 @@ export default async function handler(req) {
          streams, so no full-reply TTS runs here at all — done carries
          text only, and the trailing audio event is skipped. */
       send(controller, { done: true, reply: sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply)) });
-      if (!ttsPipeline) {
-        const audio = await speechFor(reply);
-        if (audio) send(controller, { audio });
-      }
+      /* No trailing audio event: nothing synthesises here any more. */
       controller.close();
     },
   });

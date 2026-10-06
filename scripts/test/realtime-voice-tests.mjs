@@ -189,6 +189,61 @@ check("interrupting before any audio still cancels the response", () => {
   assert.equal(state.phase, VOICE_LISTENING);
 });
 
+check("over WebRTC, where no audio deltas arrive, the path still re-opens", () => {
+  /* THE PRODUCTION BUG, 2026-10-06. The greeting was audible and every
+     answer after it was silent, while the text kept appearing.
+
+     Over WebRTC the model's audio is a continuous MediaStreamTrack.
+     The `response.output_audio.delta` events are the WebSocket
+     transport's way of carrying audio, and they do not arrive here —
+     so every test above this one, which feeds deltas, describes a
+     session shape production never has.
+
+     This feeds the real shape: speech, a response, transcript text,
+     and NOT ONE audio delta. The old reducer emitted "playAudio" only
+     on a delta, and "playAudio" was the only thing that called
+     sink.open(). So the single hand-written open() at the start of the
+     call was the only one that ever happened — the greeting — and the
+     first barge-in cut the path for good.
+
+     The symptom proves the mechanism: if "playAudio" had been firing,
+     the next answer would have re-opened the path by itself. */
+  const { actions } = play([
+    /* The greeting, which worked. */
+    { type: "response.created", response: { id: "r1" } },
+    { type: "response.output_audio_transcript.delta", delta: "Hola, soy Aria" },
+    /* He talks over it — the cut that used to be permanent. */
+    { type: "input_audio_buffer.speech_started" },
+    { type: "input_audio_buffer.speech_stopped" },
+    /* Her answer: text, no deltas. */
+    { type: "response.created", response: { id: "r2" } },
+    { type: "response.output_audio_transcript.delta", delta: "Claro, te busco" },
+    { type: "response.done" },
+  ]);
+  const cutAt = actions.indexOf("stopPlayback");
+  assert.ok(cutAt >= 0, "the barge-in did not cut the audio");
+  assert.ok(actions.slice(cutAt).includes("openAudio"),
+    "the audio path was cut and never re-opened — every answer after the greeting is silent");
+
+  /* And the re-open must come from the NEW response, not from anything
+     that depends on audio deltas existing. */
+  const afterSecond = actions.slice(actions.lastIndexOf("openAudio"));
+  assert.ok(!afterSecond.includes("stopPlayback"), "the path was cut again after re-opening");
+});
+
+check("her own talking counts as activity, so a long answer is not silence", () => {
+  /* The idle timer was re-armed by "playAudio". Over WebRTC that never
+     fires, so a thirty-five second answer read as nobody being there
+     and the call hung up on a shopper mid-sentence. */
+  const { actions } = play([
+    { type: "response.created", response: { id: "r" } },
+    { type: "response.output_audio_transcript.delta", delta: "Mira, " },
+    { type: "response.output_audio_transcript.delta", delta: "tengo tres opciones" },
+  ]);
+  assert.ok(actions.filter(a => a === "noteActivity").length >= 2,
+    "she can talk for half a minute and be counted as silent");
+});
+
 check("a pause mid-thought is not an interruption", () => {
   /* Nobody is speaking: a speech_started while idle is just the
      shopper beginning a turn, and must not emit a cancel for a
@@ -356,7 +411,7 @@ check("the page falls back rather than throwing when the module is absent", () =
      fallback. No kill switch. No way to revert."). It used to require
      that a failed start reached toggleContinuousMode(); requiring
      that now would be requiring the bug he reported — he tested the
-     preview, got the old Lily voice, and the fallback was what hid
+     preview, got the old voice, and the fallback was what hid
      the real failure. A failed start must stop at the error. */
   assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,1600}showRealtimeError\(\);/,
     "a failed realtime start does not stop at the visible error");
@@ -496,7 +551,7 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
   assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
   /* coral, not marin (2026-10-06): marin is the most polished voice
      and polished was the complaint — it read as a composed
-     professional rather than the warm Peruvian friend Lily was.
+     professional rather than the warm Peruvian friend we wanted.
      Pinned so it cannot drift back silently; ARIA_REALTIME_VOICE
      changes it without a deploy. */
   assert.equal(session.audio.output.voice, "coral", "the voice changed without a decision");
@@ -1088,7 +1143,7 @@ check("the mic-off cue is gone, and so is the request it used to make", () => {
      So the cue's body was unreachable: its first line returned every
      time. It was ALSO still making an HTTP request on the way out —
      the TTS endpoint had been switched off by renaming it to
-     aria-tts-DISABLED-BY-DANNY, which switched it off by breaking it,
+     a name that does not resolve, which switched it off by breaking it,
      so a dead path still cost a round trip and a 404 in the console.
 
      What survives is the one effect that mattered: releasing the
@@ -1144,23 +1199,38 @@ check("the chat opens quiet when live voice is the mode", () => {
   }
   const body = page.slice(at, end + 1);
 
-  /* SHE SPEAKS ON OPEN AGAIN (2026-10-06). An earlier round read
-     Danny's complaint about the muted mic and the "press the
-     microphone" nag as a complaint about the greeting itself. It was
-     not: he wants to hear her, then tap. The greeting is Lily's and
-     not the live voice's on purpose — a greeting every shopper hears
-     would be realtime minutes burnt before a word is said. */
-  assert.match(body, /speakWithLily\(ARIA_GREETING_FALLBACK\);/,
-    "she no longer greets out loud when the chat opens");
-  assert.ok(!/if \(ariaClassicVoiceOnly\(\)\)\{\s*\r?\n\s*speakWithLily/.test(body),
-    "the spoken greeting is gated to the classic path again");
+  /* SHE GREETS IN HER OWN VOICE, AND THE CALL IS ALREADY LIVE
+     (2026-10-06). This test has now held three different designs, and
+     the reasoning is worth keeping straight.
+
+     First the greeting was spoken by the old TTS engine, because a
+     hello every shopper hears is realtime minutes burnt before a word
+     is said. Then it was removed, misreading Danny's complaint about
+     the muted mic as a complaint about the greeting. Then it came
+     back, still on the old engine.
+
+     That engine is deleted now, so the choice is a greeting in her
+     real voice or no greeting, and he picked the first and accepted
+     the cost: "Yes, this burns Realtime minutes from chat open. Danny
+     accepts this." What bounds the cost is the five-minute cap and
+     the thirty-five second hang-up, which are asserted elsewhere. */
+  assert.match(body, /startRealtimeOnOpen\(\);/,
+    "the chat opens without starting the call — she cannot greet out loud");
+  assert.ok(!/speakWithLily/.test(body),
+    "the deleted TTS engine is back in the greeting");
   assert.match(body, /addAssistantMessage\('bot', ARIA_GREETING_FALLBACK, null, \{ speak: false \}\)/,
     "the written greeting was removed too — the chat would open empty");
   /* The flag that arms the cue is classic-only. */
   assert.match(body, /if \(ariaClassicVoiceOnly\(\)\) assistantReplyHasTappables = true;/,
     "the greeting still arms the mic-off cue in live-voice mode");
   /* …and the button invites a call, not dictation. */
-  assert.match(body, /setAssistantMicCallReady\(\)/, "the mic button is not put into a call-ready state");
+  /* THE BUTTON IS A HANG-UP FROM THE FIRST SECOND NOW. It used to be
+     painted "call-ready" because a tap was what started the call;
+     the call starts itself, so setRealtimeUi owns the button and
+     painting it call-ready here would be painting a state that is
+     already over. */
+  assert.ok(!/setAssistantMicCallReady\(\)/.test(body),
+    "the chat open still paints a call-ready button for a call that has already started");
   const ready = page.slice(page.indexOf("function setAssistantMicCallReady()"));
   assert.match(ready.slice(0, 800), /aria-label', 'Llamar a Aria'/, "the call button does not say it calls");
   assert.ok(!/Toca el micrófono para hablar/.test(ready.slice(0, 800)),
@@ -1192,20 +1262,70 @@ check("there is always an audible path out of the browser", () => {
 
   const build = ({ canResume }) => {
     let resumes = 0;
+    const gains = [];
     const ctx = {
       state: "suspended", currentTime: 0, destination: {},
-      createGain(){ return { gain: { value: 1, setTargetAtTime(){} }, connect(){} }; },
+      /* The gain targets are RECORDED, because they are the only
+         evidence of whether the graph is actually audible — the
+         element being muted is correct while the graph carries the
+         sound, so it proves nothing on its own. */
+      createGain(){ return { gain: { value: 1, setTargetAtTime(v){ gains.push(v); } }, connect(){} }; },
       createMediaStreamSource(){ return { connect(){} }; },
       resume(){ resumes++; if (canResume) ctx.state = "running"; return Promise.resolve(); },
     };
     const el = { muted: false, autoplay: false, playsInline: false, srcObject: null,
                  play(){ return { catch(){} }; } };
+    const timers = [];
     const fn = new Function("window", "Audio", "console", "ariaUnlockAudioContext",
+      "CUT_RESTORE_MS", "setTimeout", "clearTimeout",
       srcOf("buildAudioSink") + "\n return buildAudioSink;");
     const sink = fn({ AudioContext: function(){ return ctx; } }, function(){ return el; },
-      { warn(){}, info(){} }, () => { ctx.resume(); return ctx; })();
-    return { sink, ctx, el, resumes: () => resumes };
+      { warn(){}, info(){} }, () => { ctx.resume(); return ctx; },
+      /* The real constant, read out of the page. */
+      Number(/const CUT_RESTORE_MS = (\d+);/.exec(page)[1]),
+      (f, ms) => { timers.push({ f, ms }); return timers.length; },
+      (id) => { if (timers[id - 1]) timers[id - 1].cancelled = true; })();
+    return { sink, ctx, el, resumes: () => resumes, timers, gains };
   };
+
+  /* A CUT COMES BACK BY ITSELF.
+
+     The barge-in mute was a latch: it silenced the path and waited for
+     something to re-open it. Over WebRTC that something never came, so
+     the first interruption ended the audio for the rest of the call.
+     Re-opening on the next response fixes the known path; this makes
+     the whole class impossible, because no single missed event can
+     leave a shopper on a silent call. */
+  {
+    const { sink, el, timers, gains } = build({ canResume: true });
+    sink.attach({ id: "remote" });
+    sink.cut();
+    assert.equal(el.muted, true, "a barge-in did not silence the element");
+    const watchdog = timers.find(t => !t.cancelled);
+    assert.ok(watchdog, "a cut scheduled nothing to undo it — the path can stay silent for good");
+    assert.ok(watchdog.ms > 0 && watchdog.ms <= 2000,
+      `the path stays silent for ${watchdog.ms}ms — long enough to lose the next answer`);
+    assert.deepEqual(gains, [0], "the cut did not actually silence the graph");
+    watchdog.f();
+    assert.deepEqual(gains, [0, 1], "the watchdog fired and the graph is still silent");
+    /* Audible means the graph carries it OR the element does — the
+       element being muted is correct while the graph is running. */
+    assert.ok(sink.state().graphRunning || !sink.state().elementMuted,
+      "neither path can make a sound after the watchdog restored it");
+  }
+
+  /* …and an answer arriving first takes over, so the watchdog does not
+     re-mute or double-open behind it. */
+  {
+    const { sink, timers, gains } = build({ canResume: true });
+    sink.attach({ id: "remote" });
+    sink.cut();
+    sink.open();
+    assert.deepEqual(gains, [0, 1], "an answer arriving did not restore the graph");
+    assert.ok(timers.every(t => t.cancelled || t.f !== undefined), "timer bookkeeping broke");
+    const live = timers.filter(t => !t.cancelled);
+    assert.equal(live.length, 0, "the watchdog was left armed after the path re-opened");
+  }
 
   /* The context resumes: the graph is audible, the element steps back. */
   {
@@ -1481,7 +1601,7 @@ check("the greeting is locked to audio, sent once, and retried if dropped", () =
 
 check("she is told to sound Peruvian and to open the call herself", () => {
   /* Danny: "I'd like for it to be Peruvian" and "more jollier".
-     OpenAI Realtime has no custom voices, so Lily cannot be plugged
+     OpenAI Realtime has no custom voices, so the old one cannot be plugged
      in — warmth has to come from the voice choice plus instructions. */
   const i = buildRealtimeInstructions(null);
   assert.match(i, /CÓMO HABLAS/, "there is no instruction about how she sounds");
@@ -1492,13 +1612,27 @@ check("she is told to sound Peruvian and to open the call herself", () => {
   /* The greeting lives here now, not in a per-response field — which
      is the whole point of this round. */
   /* The call opens with a short line, NOT a second introduction —
-     Lily already said hello in the chat before he tapped. */
+     another engine already said hello in the chat before he tapped. */
   assert.match(i, /CÓMO ABRES LA LLAMADA/, "nothing tells her how to open the call");
-  assert.match(i, /NO te vuelvas a presentar/, "she introduces herself twice");
-  assert.match(i, /UNA frase corta y en voz alta/, "the opener is not one spoken line");
-  assert.match(i, /Nunca "Hola, soy Aria" otra vez/, "she may repeat the written greeting aloud");
-  assert.match(i, /nunca explicar el micrófono, nunca\s*\r?\n?pedirle que apriete nada/,
-    "nothing stops her explaining the microphone again");
+  /* SHE DOES INTRODUCE HERSELF NOW, because her voice is the first
+     thing heard rather than the second. The old rule said not to —
+     correctly, when the written greeting and another engine had
+     already said hello. */
+  assert.match(i, /Soy Aria, tu shopper personal/,
+    "she does not introduce herself, and her voice is now the first thing he hears");
+  assert.match(i, /No vuelvas a presentarte después/,
+    "nothing stops her introducing herself again later in the call");
+  assert.ok(!/NO te vuelvas a presentar\b/.test(i),
+    "the old do-not-introduce rule is still there, contradicting the new one");
+  assert.match(i, /UNA frase, no un discurso/, "the opener is not bounded to one line");
+  /* The rule it replaced forbade "Hola, soy Aria" outright, because
+     the written greeting and another engine had already said it. Now
+     that line IS the opener, so what has to be forbidden is saying it
+     a second time — asserted just above. */
+  assert.match(i, /NUNCA expliques el micrófono/,
+    "she may explain the microphone on a line that is already open");
+  assert.match(i, /ni le pidas que apriete nada/,
+    "nothing stops her telling him to press a button on an open line");
   /* …and a silence hang-up is not an apology. */
   assert.match(i, /CUANDO SE CIERRA POR SILENCIO/, "she is not told how to treat an idle hang-up");
 
@@ -1877,14 +2011,13 @@ check("a call nobody is on does not stay open", () => {
   const body = page.slice(at, end + 1);
   const seen = [];
   const mkExit = (opts) => new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
-    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
     "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
     "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
     body + "\n return endRealtimeCallIdle;")(
       opts.rt, opts.started, { info(){} },
       () => seen.push("stopped"),
       (role, text) => seen.push("wrote:" + text),
-      (text) => seen.push("spoke:" + text),
       "Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!",
       opts.signedOff, opts.heard, () => {}, () => opts.cueOk, null, 4000,
       (f) => seen.push("scheduled"), "[cue]");
@@ -1894,26 +2027,40 @@ check("a call nobody is on does not stay open", () => {
   assert.ok(seen.includes("stopped"), "the idle exit does not actually end the call");
   assert.ok(seen.some(x => x.startsWith("wrote:") && /toca el micrófono/.test(x)),
     "the goodbye is not written where he can read it");
-  assert.ok(seen.some(x => x.startsWith("spoke:") && /toca el micrófono/.test(x)),
-    "she does not say how to get her back when the live voice stayed quiet");
+  /* IT IS WRITTEN, NOT SPOKEN BY A SECOND ENGINE. The old engine used
+     to say the goodbye aloud whenever the live voice had stayed quiet.
+     There is no second engine now: she signs off in her own voice via
+     CUE_BYE, and if she does not, the line is still on screen where he
+     can read it. A call that has already gone silent is not worth
+     another voice. */
+  assert.ok(!seen.some(x => x.startsWith("spoke:")),
+    "a second voice spoke the goodbye — the old engine is back");
 
-  /* …and NOT twice. If the live voice already said goodbye, Lily must
-     stay out of it — otherwise he hears the same line in two voices. */
+  /* …and NOT twice. The second engine that used to repeat the goodbye
+     is deleted; this keeps it from coming back. */
   const heardIt = [];
   new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
-    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
     "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
     "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
     body + "\n return endRealtimeCallIdle;")(
-      { pc: {} }, Date.now(), { info(){} }, () => {}, () => {},
-      () => heardIt.push("spoke"), "bye", true, true, () => {}, () => true, null, 4000,
+      { pc: {} }, Date.now(), { info(){} }, () => {},
+      (role, text) => heardIt.push("wrote:" + text),
+      "bye", true, true, () => {}, () => true, null, 4000,
       () => {}, "[cue]")("silencio");
-  assert.equal(heardIt.length, 0,
-    "Lily repeats the goodbye the live voice already said — he hears it twice");
-  /* The goodbye rides the OLD voice path on purpose: the session is
-     already closed, so it costs no realtime minutes. */
-  assert.ok(body.indexOf("stopRealtimeVoice()") < body.indexOf("speakWithLily"),
-    "the goodbye is spoken on the live session, which bills for it");
+  /* The written line still lands — it is the record he can read — but
+     nothing speaks it a second time, because the engine that used to
+     is deleted. */
+  assert.equal(heardIt.filter(x => x.startsWith("spoke")).length, 0,
+    "a second voice repeats the goodbye the live voice already said");
+  /* THE WRITTEN GOODBYE COMES AFTER THE SESSION IS CLOSED. It used to
+     matter because a second engine spoke it and doing that before
+     stopRealtimeVoice() would have billed for the line. There is no
+     second engine, but the ordering still matters: the hardware is
+     released first, and only then is anything written. */
+  assert.ok(body.indexOf("stopRealtimeVoice()") < body.indexOf("addAssistantMessage"),
+    "the goodbye is written before the session is released");
+  assert.ok(!/speakWithLily/.test(body), "the deleted engine is back in the goodbye");
 
   /* A call that already ended must not end twice. */
   const before = seen.length;
@@ -1926,12 +2073,12 @@ check("a call nobody is on does not stay open", () => {
      meter running. */
   const signOff = [];
   const mkFirst = (cueOk) => new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice",
-    "addAssistantMessage", "speakWithLily", "CALL_BYE_LINE", "ariaRTSignedOff",
+    "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
     "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
     "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
     body + "\n return endRealtimeCallIdle;")(
       { pc: {} }, Date.now() - 40000, { info(){} },
-      () => signOff.push("stopped"), () => {}, () => {}, "bye",
+      () => signOff.push("stopped"), () => {}, "bye",
       false, false, () => {}, () => { signOff.push("cued"); return cueOk; }, null, 4000,
       () => signOff.push("scheduled"), "[cue]");
   mkFirst(true)("silencio");
@@ -3372,6 +3519,122 @@ check("she is told how to be honest about parts and about brands", () => {
     "she may invent a substitute brand when the list comes back empty");
   assert.match(i, /no es lo mismo que no tenerla|No es lo mismo que no tenerla/,
     "out of stock and not carried are not distinguished");
+});
+
+
+await checkAsync("the page acts on every action the reducer emits", async () => {
+  /* THE GAP THE PRODUCTION BUG LIVED IN. The reducer was covered from
+     every angle; what nobody tested was the page DOING anything with
+     what it returns. An action the reducer emits and the page ignores
+     is invisible to every test above — and "openAudio is emitted" is
+     worth nothing if the handler never calls sink.open().
+
+     So the real dc.onmessage action loop is lifted out and driven. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("    for (const action of actions){");
+  assert.ok(at > 0, "the action loop is gone from dc.onmessage");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const loop = page.slice(at, end + 1);
+
+  const drive = (actions) => {
+    const seen = [];
+    const sink = { open: () => seen.push("open"), cut: () => seen.push("cut") };
+    new Function("actions", "sink", "setRealtimeState", "noteRealtimeActivity",
+      "ariaRTHeardAudio", "console", "ariaRTSignedOff", "ariaRTHeardSignOff", "send",
+      loop)(
+      actions, sink,
+      (s) => seen.push("ui:" + s),
+      () => seen.push("activity"),
+      true, { info(){} }, false, false,
+      (o) => seen.push("sent:" + o.type));
+    return seen;
+  };
+
+  /* A NEW ANSWER RE-OPENS THE PATH. This is the fix. */
+  assert.ok(drive(["openAudio"]).includes("open"),
+    "the page ignores openAudio — the audio path is never re-opened and every answer after the greeting is silent");
+  assert.ok(drive(["openAudio"]).includes("activity"),
+    "a new answer does not count as activity");
+
+  /* A barge-in ducks it. */
+  for (const a of ["stopPlayback", "clearAudioQueue", "dropAudio"]){
+    assert.ok(drive([a]).includes("cut"), `the page ignores ${a}`);
+  }
+
+  /* HER TALKING IS ACTIVITY. Over WebRTC playAudio never fires, so
+     without this a long answer reads as an empty room. */
+  assert.ok(drive(["noteActivity"]).includes("activity"),
+    "the page ignores noteActivity — she can talk for half a minute and be hung up on");
+
+  /* And the cancel still goes out, or an interrupted response keeps
+     generating. */
+  assert.ok(drive(["cancelResponse"]).some(x => x === "sent:response.cancel"),
+    "an interruption no longer cancels the response");
+});
+
+check("the diagnostic can say whether the audio path is silenced", () => {
+  /* IT COULD NOT, AND THAT IS WHY THIS BUG SURVIVED A PRODUCTION
+     CYCLE. ariaVoiceDiag reported a context running, a graph running
+     and an element muted — which is a HEALTHY path, because the graph
+     carries the sound and the element steps back. The gain sat at
+     zero and nothing said so. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("    state(){ return {");
+  assert.ok(at > 0, "the sink no longer reports its state");
+  const line = page.slice(at, page.indexOf("},", at));
+  assert.match(line, /silenced/,
+    "the diagnostic cannot tell a ducked path from a healthy one");
+});
+
+await checkAsync("the call starts when the chat opens, inside the gesture", async () => {
+  /* iOS only honours AudioContext.resume() while a user gesture is on
+     the stack, and toggleAssistant runs inside the tap that opened the
+     panel. Unlocking anywhere else gives a call that connects and is
+     silent — which this file has a history of. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function startRealtimeOnOpen(){");
+  assert.ok(at > 0, "nothing starts the call when the chat opens");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
+  assert.ok(body.indexOf("ariaUnlockAudioContext()") < body.indexOf("startRealtimeVoice"),
+    "the audio context is unlocked after the call starts, which is outside the gesture");
+  assert.match(body, /showRealtimeError\(\)/,
+    "a call that fails to start on open says nothing — there is no fallback to cover it");
+  assert.match(body, /if \(ariaLiveCallActive\(\)\) return;/,
+    "re-opening the chat starts a second call on top of the first");
+
+  /* Driven, because "the call is attempted" is the whole feature. */
+  const calls = [];
+  const run = (ok) => new Function("ariaLiveCallActive", "ariaUnlockAudioContext",
+    "ariaRTWanted", "startRealtimeVoice", "showRealtimeError", "Promise",
+    body + "\n return startRealtimeOnOpen;")(
+      () => false, () => calls.push("unlocked"), false,
+      async () => { calls.push("started"); return ok; },
+      () => calls.push("error"), Promise);
+  run(true)();
+  /* The start is deferred through a promise so the greeting's caller is
+     not blocked on a handshake; the unlock is NOT deferred, because it
+     has to happen while the tap is still on the stack. */
+  assert.deepEqual(calls, ["unlocked"], "the unlock is deferred out of the gesture");
+  await Promise.resolve(); await Promise.resolve();
+  assert.deepEqual(calls, ["unlocked", "started"], "the call was never attempted");
+
+  /* …and a failure is loud. */
+  calls.length = 0;
+  run(false)();
+  /* Drained properly rather than by counting microtask ticks: the
+     chain is Promise.resolve().then(start).then(check), and an async
+     start adds its own. */
+  await new Promise(r => setTimeout(r, 0));
+  assert.ok(calls.includes("error"), "a call that fails to start on open says nothing");
 });
 
 /* A FLOOR ON THE TEST COUNT.

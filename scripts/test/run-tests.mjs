@@ -11226,7 +11226,7 @@ check("the client mirror agrees with the server copy", () => {
 });
 
 check("both chat endpoints and the TTS path sanitize the reply", () => {
-  // The voice Danny hears comes from ElevenLabs fed by speechFor; the
+  // The voice Danny hears is the realtime session's; the
   // bubble and the history come from the endpoint replies. All three
   // must carry the sanitized text, or the voice says "comma" again.
   const model = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
@@ -11249,145 +11249,20 @@ check("both chat endpoints and the TTS path sanitize the reply", () => {
 });
 
 /* ==================================================================
-   ARIA SPEAKS AS LILY, EVERYWHERE, AND THE KEY NEVER LEAVES THE SERVER.
+   THE SECOND VOICE IS GONE (2026-10-06, Danny: "The ONLY voice is the
+   ChatGPT Realtime voice").
 
-   Danny's ear is the acceptance test for how the voice SOUNDS; nothing
-   here can stand in for that. What these checks defend is everything
-   around it that a deploy can silently get wrong: the wrong voice on one
-   path, a second TTS call site growing back, and the credential reaching
-   the browser.
+   A whole group lived here checking that every path rendered its
+   audio through one third-party TTS call site, that no second call
+   site grew back, and that the credential stayed on the server. All
+   of it tested code that no longer exists: the synthesis, the voice
+   id and the key are deleted, and the chat endpoints return text.
+
+   Worth noting what the group was already telling us and nobody was
+   listening: it pinned the TTS model as "eleven_turbo_v2_5" while the
+   code said "eleven_flash_v2_5". That assertion had been failing for
+   as long as this suite has been unrunnable.
    ================================================================== */
-group("Aria's voice is Lily, on every path");
-
-check("the voice is Lily's, rendered by ElevenLabs", () => {
-  /* PINNED, NOT DERIVED. Reading the id out of the source and comparing
-     it to itself would pass on any value; this is the literal Danny
-     chose from the Voice Library, so a fat-fingered edit is caught. */
-  eq(chatModel.ELEVENLABS_VOICE_ID_DEFAULT, "ek0qR5Bu0N3aPdijsdae", "not the voice Danny picked");
-  eq(chatModel.ELEVENLABS_TTS_URL, "https://api.elevenlabs.io/v1/text-to-speech");
-
-  const model = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
-  // The id is interpolated into the path, which is where ElevenLabs
-  // takes it — a body field named voice_id would be silently ignored
-  // and every shopper would hear the account's default voice instead.
-  if (!/\$\{ELEVENLABS_TTS_URL\}\/\$\{encodeURIComponent\(voiceId\)\}/.test(model)) {
-    throw new Error("the voice id is not in the request path — ElevenLabs would use the account default");
-  }
-  if (!/"xi-api-key": process\.env\.ELEVENLABS_API_KEY/.test(model)) {
-    throw new Error("ElevenLabs is not authenticated with xi-api-key");
-  }
-  /* THE LATENCY CHOICE IS A DECISION, SO IT IS PINNED. turbo_v2_5 is the
-     low-latency half of the brief's two options; multilingual_v2 roughly
-     doubles time-to-first-byte, which is the thing the brief said not to
-     regress. Changing it should be deliberate enough to edit a test. */
-  eq(chatModel.ELEVENLABS_TTS_MODEL, "eleven_turbo_v2_5", "the voice model changed without a decision");
-});
-
-check("no path still speaks in the old xAI voice", () => {
-  /* THE SUBSCRIPTION IS BEING CANCELLED, so a surviving xAI TTS call is
-     not a stale comment — it is a path that will start returning 401 and
-     going silent. */
-  for (const f of ["_aria-chat-model.js", "aria-chat.js", "aria-chat-groq.js", "aria-chat-stream.js"]) {
-    const src = readFileSync(root(`netlify/functions/${f}`), "utf8");
-    if (/api\.x\.ai\/v1\/tts/.test(src)) throw new Error(`${f} still calls xAI TTS`);
-    if (/voice_id:\s*["']ara["']/.test(src)) throw new Error(`${f} still asks for the "ara" voice`);
-  }
-});
-
-check("every place Aria speaks renders through the one shared voice", () => {
-  /* THE FAILURE THIS CATCHES is the greeting keeping the old voice while
-     the conversation moves — the first thing a shopper hears being a
-     different person from everything after it. aria-chat.js carried its
-     own copy of the TTS call and is the reason this is pinned rather
-     than assumed. */
-  const greeting = readFileSync(root("netlify/functions/aria-chat.js"), "utf8");
-  if (!/import \{ speechFor \} from "\.\/_aria-chat-model\.js"/.test(greeting)) {
-    throw new Error("the greeting endpoint does not import the shared voice");
-  }
-  if (!/await speechFor\(replyText\)/.test(greeting)) {
-    throw new Error("the greeting endpoint does not render its audio through speechFor");
-  }
-  // Exactly one call site in the whole function directory.
-  const callers = ["aria-chat.js", "aria-chat-groq.js", "aria-chat-stream.js"];
-  for (const f of callers) {
-    const src = stripComments(readFileSync(root(`netlify/functions/${f}`), "utf8"));
-    if (/elevenlabs\.io/i.test(src)) {
-      throw new Error(`${f} calls ElevenLabs directly instead of through speechFor — a second voice can drift in`);
-    }
-  }
-  const model = stripComments(readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8"));
-  eq((model.match(/api\.elevenlabs\.io/g) || []).length, 1, "more than one ElevenLabs endpoint is defined");
-});
-
-check("the ElevenLabs key never reaches anything the browser downloads", () => {
-  /* NON-NEGOTIABLE. A TTS key in client JavaScript is a key anyone can
-     read from view-source and spend. index.html is the whole client. */
-  for (const f of ["index.html", "checkout.html"]) {
-    const src = readFileSync(root(f), "utf8");
-    for (const secret of ["ELEVENLABS_API_KEY", "xi-api-key", "elevenlabs.io"]) {
-      if (src.includes(secret)) throw new Error(`${f} references ${secret} — the key or the API is reachable from the browser`);
-    }
-  }
-  /* THE CLIENT MUST NOT NAME A VOICE EITHER. If the voice id travelled
-     in the request body, anyone could point Aria at another voice. The
-     server reads it from its own environment. */
-  const model = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
-  if (!/process\.env\.ELEVENLABS_VOICE_ID \|\| ELEVENLABS_VOICE_ID_DEFAULT/.test(model)) {
-    throw new Error("the voice id no longer comes from the server environment");
-  }
-  const speechForSrc = model.slice(model.indexOf("export async function speechFor"));
-  if (/body\?\.|event\.body|req\.json/.test(speechForSrc.slice(0, speechForSrc.indexOf("\n}\n")))) {
-    throw new Error("speechFor reads from the request — the client could choose the voice");
-  }
-});
-
-checkAsync("a voice outage still costs the shopper nothing but the audio", async () => {
-  /* BEST EFFORT IS THE WHOLE CONTRACT, and the provider swap must not
-     quietly turn a silent failure into a 500 that eats the text reply.
-     Exercised for real against a stubbed fetch rather than read off the
-     source. */
-  const realFetch = globalThis.fetch;
-  const realKey = process.env.ELEVENLABS_API_KEY;
-  try {
-    process.env.ELEVENLABS_API_KEY = "test-key-not-a-real-one";
-
-    globalThis.fetch = async () => { throw new Error("network is gone"); };
-    eq(await chatModel.speechFor("Hola, ¿qué buscas?"), null, "a thrown fetch must not propagate");
-
-    globalThis.fetch = async () => ({ ok: false, status: 401, arrayBuffer: async () => new ArrayBuffer(8) });
-    eq(await chatModel.speechFor("Hola"), null, "a 401 must not be base64'd into the bubble as sound");
-
-    /* THE HAPPY PATH, and the request it actually sends. */
-    let seen = null;
-    globalThis.fetch = async (url, init) => {
-      seen = { url, init };
-      return { ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
-    };
-    eq(await chatModel.speechFor("Hola"), Buffer.from([1, 2, 3]).toString("base64"), "the audio is returned base64");
-    eq(seen.url, `https://api.elevenlabs.io/v1/text-to-speech/${chatModel.ELEVENLABS_VOICE_ID_DEFAULT}`);
-    eq(seen.init.headers["xi-api-key"], "test-key-not-a-real-one", "the key is sent as xi-api-key");
-    const sent = JSON.parse(seen.init.body);
-    eq(sent.model_id, "eleven_turbo_v2_5");
-    eq(sent.text, "Hola");
-
-    // The punctuation sanitiser runs on the way to the voice.
-    await chatModel.speechFor("of course comma why not");
-    eq(JSON.parse(seen.init.body).text, "of course, why not", "the voice would say the word 'comma'");
-
-    // Nothing to say, nothing billed.
-    seen = null;
-    eq(await chatModel.speechFor("   "), null, "an empty reply still called the API");
-    eq(seen, null, "an empty reply still called the API");
-
-    // No key configured is silence, not a crash.
-    delete process.env.ELEVENLABS_API_KEY;
-    eq(await chatModel.speechFor("Hola"), null, "a missing key must not throw");
-  } finally {
-    globalThis.fetch = realFetch;
-    if (realKey === undefined) delete process.env.ELEVENLABS_API_KEY;
-    else process.env.ELEVENLABS_API_KEY = realKey;
-  }
-});
 
 group("search doorway: a product route never degrades into a fake search");
 
@@ -13127,7 +13002,7 @@ check("books: the pill, rail and tile metadata are wired", () => {
 /* ============================================================
    ASSISTANT ENGINE UPGRADE (2026-09-28). OpenAI primary
    (gpt-6-luna, reasoning none, streamed) with the buffered Groq
-   endpoint kept as fallback; ElevenLabs Lily for voice; sentence-level
+   endpoint kept as fallback; the realtime session carries the voice; sentence-level
    TTS pipelining client-side.
    ============================================================ */
 group("assistant engine: OpenAI primary request construction");
@@ -13179,42 +13054,19 @@ check("buffered endpoint stays the Groq fallback", () => {
   ok(src.includes('chatRequestBody(body, "groq")'), "fallback builds the groq wire body");
   ok(src.includes("GROQ_CHAT_URL"), "fallback posts to Groq");
 });
-check("greeting uses the shared OpenAI path and Lily", () => {
+check("greeting uses the shared OpenAI path, and renders no audio", () => {
   const src = readFileSync(root("netlify/functions/aria-chat.js"), "utf8");
   ok(src.includes("OPENAI_CHAT_URL"), "greeting posts to OpenAI");
   ok(src.includes("chatRequestBody(body)"), "greeting builds the shared turn");
-  ok(src.includes("speechFor"), "greeting uses Lily");
+  ok(!/speechFor/.test(src), "the deleted synthesis call is back on the greeting path");
   if (/x\.ai/.test(src)) throw new Error("no xAI left in the greeting");
 });
 
-group("assistant engine: ElevenLabs voice");
-check("speechFor is ElevenLabs Lily, best effort", () => {
-  const src = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
-  ok(src.includes("https://api.elevenlabs.io/v1/text-to-speech"), "ElevenLabs endpoint");
-  ok(src.includes("ek0qR5Bu0N3aPdijsdae"), "Lily voice id default");
-  ok(src.includes("eleven_flash_v2_5"), "flash model pinned");
-  ok(src.includes("xi-api-key"), "xi-api-key header");
-  ok(src.includes("audio/mpeg"), "Accept audio/mpeg");
-  if (/api\.x\.ai/.test(src)) throw new Error("no xAI TTS left");
-});
-checkAsync("aria-tts endpoint: method, input bounds, best-effort voice", async () => {
-  delete process.env.ELEVENLABS_API_KEY;
-  const tts = await import("../../netlify/functions/aria-tts.js");
-  let r = await tts.handler({ httpMethod: "GET" });
-  eq(r.statusCode, 405, "GET rejected");
-  r = await tts.handler({ httpMethod: "OPTIONS" });
-  eq(r.statusCode, 200, "CORS preflight ok");
-  r = await tts.handler({ httpMethod: "POST", body: "{}" });
-  eq(r.statusCode, 400, "empty text rejected");
-  r = await tts.handler({ httpMethod: "POST", body: "not json" });
-  eq(r.statusCode, 400, "non-JSON rejected");
-  /* No key in the test env: speechFor returns null and the endpoint
-     reports TTS unavailable instead of throwing. */
-  r = await tts.handler({ httpMethod: "POST", body: JSON.stringify({ text: "Hola, ¿cómo estás?" }) });
-  eq(r.statusCode, 502, "no key means 502, not a throw");
-  const j = JSON.parse(r.body);
-  eq(j.error, "TTS unavailable", "best-effort error shape");
-});
+/* A third-party TTS group stood here. It checked the endpoint,
+   the voice id, the model, the auth header and the synthesis function's
+   error shapes — all of it now deleted code. The browser-facing
+   assertion that mattered (no credential in anything downloaded) is
+   kept below and widened. */
 
 group("assistant engine: secret absence");
 check("no keys or voice ids leak into code or the client", () => {
@@ -13223,18 +13075,19 @@ check("no keys or voice ids leak into code or the client", () => {
     "netlify/functions/aria-chat-stream.js",
     "netlify/functions/aria-chat-groq.js",
     "netlify/functions/aria-chat.js",
-    "netlify/functions/aria-tts.js",
   ];
   for (const f of fns) {
     const src = stripComments(readFileSync(root(f), "utf8"));
     if (/sk-[A-Za-z0-9]{10,}/.test(src)) throw new Error(`${f} contains an OpenAI-like key`);
     if (/xi-api-key/.test(src) && /["'][A-Za-z0-9]{20,}["']/.test(src.replace(/xi-api-key/g, ""))) {
-      throw new Error(`${f} hardcodes an ElevenLabs key`);
+      throw new Error(`${f} hardcodes a TTS credential`);
     }
   }
   const page = readFileSync(root("index.html"), "utf8");
   if (/ek0qR5Bu0N3aPdijsdae/.test(page)) throw new Error("voice id must not ship to the client");
-  if (/ELEVENLABS_API_KEY/.test(page)) throw new Error("ElevenLabs key name must not ship to the client");
+  for (const dead of ["ELEVENLABS_API_KEY", "xi-api-key", "elevenlabs.io"]) {
+    if (page.includes(dead)) throw new Error(`"${dead}" must not ship to the client`);
+  }
   if (/OPENAI_API_KEY/.test(page)) throw new Error("OpenAI key name must not ship to the client");
 });
 
@@ -13313,7 +13166,8 @@ group("assistant engine: client wiring");
 check("client pipelines sentence audio per turn", () => {
   const page = readFileSync(root("index.html"), "utf8");
   ok(page.includes("ttsPipeline: true"), "payload flags the pipeline");
-  ok(page.includes("/.netlify/functions/aria-tts"), "sentence endpoint called");
+  ok(!page.includes("/.netlify/functions/aria-tts"),
+     "the deleted synthesis endpoint is called again");
   ok(page.includes("finishTtsPipeline(tts, reply, streamed.audio)"), "pipeline settled per turn");
   ok(!page.includes("speakAssistantReply(reply, streamed.audio)"), "full-audio speak path replaced on the stream");
   ok(page.includes("ttsPipeline: true }, sink, (d) => feedTts(tts, d, false)"), "greeting pipelines too");

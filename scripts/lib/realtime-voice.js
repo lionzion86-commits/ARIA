@@ -2,7 +2,7 @@
    ARIA EN TIEMPO REAL — THE SESSION, DEFINED ONCE, SERVER-SIDE.
 
    WHAT CHANGES. Today the voice loop is speech-to-text, then Groq,
-   then ElevenLabs: the microphone CLOSES for the whole think phase
+   then synthesis: the microphone CLOSES for the whole think phase
    (runAssistantBrain sets intentionalStop before it awaits anything),
    so the shopper physically cannot interrupt. That is the push-to-talk
    chatbot the brief is written against.
@@ -36,7 +36,7 @@ export * from "./realtime-turn.js";
 
 /* The model and voice are pinned rather than defaulted: a silent
    upgrade would change how Aria sounds mid-conversation, and the voice
-   is a brand decision (see the note on Lily in the PR body). Both are
+   is a brand decision (see the note in the PR body). Both are
    overridable by environment so neither needs a deploy. */
 export const REALTIME_MODEL_DEFAULT = "gpt-realtime";
 /* WARMTH OVER POLISH (2026-10-06, Danny: "I'd like for it to be
@@ -44,7 +44,7 @@ export const REALTIME_MODEL_DEFAULT = "gpt-realtime";
 
    marin is OpenAI's newest and most polished realtime voice, and
    polished is exactly the complaint: it reads as a composed
-   professional, not the friend Lily was. coral is the warmest of the
+   professional, not the friend we wanted. coral is the warmest of the
    female voices and the closest thing available to a cheerful woman
    on the phone.
 
@@ -195,12 +195,16 @@ peruana conversando por teléfono. La entonación sube y baja sola, el
 ritmo es relajado, nunca plano ni neutro ni de locutora. Suenas
 contenta de atender, no de turno.
 
-CÓMO ABRES LA LLAMADA: ya te presentaste por escrito cuando abrió el
-chat, así que NO te vuelvas a presentar. En cuanto se abre la línea di
-UNA frase corta y en voz alta, de amiga que ya está al teléfono: "Ya,
-dime", "Te escucho, ¿qué estamos buscando?", "Aquí estoy, cuéntame".
-Nunca "Hola, soy Aria" otra vez, nunca explicar el micrófono, nunca
-pedirle que apriete nada.
+CÓMO ABRES LA LLAMADA: tu voz es lo PRIMERO que escucha — la llamada se
+abre sola cuando él abre el chat, antes de que toque nada. Así que sí te
+presentas, una sola vez, corto y con calidez:
+  "¡Hola! Soy Aria, tu shopper personal. ¿Qué estás buscando?"
+
+  - UNA frase, no un discurso. Nada de explicar qué puedes hacer: él lo
+    descubre preguntando.
+  - NUNCA expliques el micrófono ni le pidas que apriete nada. La línea
+    ya está abierta y él puede hablar encima de ti cuando quiera.
+  - No vuelvas a presentarte después. Una vez por llamada.
 
 CUANDO SE CIERRA POR SILENCIO: si la llamada se cierra porque nadie
 habló, no es un error y no te disculpes. Él puede volver cuando quiera

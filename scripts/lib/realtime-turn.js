@@ -444,9 +444,37 @@ export function voiceTurnReducer(state, event){
       break;
 
     case "response.created":
+      /* A NEW ANSWER IS COMING, SO THE AUDIO PATH MUST BE OPEN.
+
+         THE BUG THIS FIXES (production, 2026-10-06): the greeting was
+         audible and every answer after it was silent, while the text
+         kept appearing.
+
+         Over WebRTC the model's audio is a continuous MediaStreamTrack,
+         not a stream of `response.output_audio.delta` events — those
+         belong to the WebSocket transport. So "playAudio" never fired,
+         and `sink.open()` was called exactly once, by hand, at the
+         start of the call. That is why the greeting worked.
+
+         Then the shopper spoke. A barge-in cuts the audio path, and
+         the ONLY thing that re-opened it was "playAudio" — the action
+         that never comes. One interruption and the call was silent for
+         good. The symptom proves the mechanism: if "playAudio" were
+         firing, the next answer would have re-opened the path by
+         itself.
+
+         `response.created` arrives on the data channel in both
+         transports, so it is the signal that works regardless of how
+         the audio travels.
+
+         And the phase is set unconditionally now. It used to stay
+         LISTENING if the shopper was still talking, which dropped the
+         audio of the answer to what they had just said — the server
+         only creates a response once it has decided the turn ended. */
       s.lastResponseId = (event.response && event.response.id) || null;
       s.spokenSoFar = "";
-      if (s.phase !== VOICE_LISTENING) s.phase = VOICE_THINKING;
+      s.phase = VOICE_THINKING;
+      actions.push("openAudio");
       break;
 
     case "response.output_audio.delta":
@@ -459,6 +487,11 @@ export function voiceTurnReducer(state, event){
 
     case "response.output_audio_transcript.delta":
       if (typeof event.delta === "string") s.spokenSoFar += event.delta;
+      /* SHE IS TALKING, WHICH IS NOT SILENCE. The idle timer was only
+         re-armed by "playAudio", so over WebRTC — where that never
+         fires — a long answer counted as nobody being there, and a
+         thirty-five second one hung up on a shopper mid-sentence. */
+      actions.push("noteActivity");
       break;
 
     case "response.done":
