@@ -11801,10 +11801,12 @@ function gymRatLeadRank(p){ return gymRatIsAccessory(p) ? 1 : 0; }
    feed defaults to cheapest door-to-door and this rail is answering a
    different question. */
 function renderMobileDealsRail(){
+  /* DANNY 2026-10-07: use carouselDiscountPct (handles regularPrice/wasPrice),
+       not raw originalPrice -- VS sale items were invisible in Ofertas. */
   const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
-      && Number(p.originalPrice) > Number(p.price) && hasRealImage(p))
-    .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
+      && carouselDiscountPct(p) > 0 && hasRealImage(p))
+    .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (carouselDiscountPct(b) - carouselDiscountPct(a)));
   /* The spread opens on five different shops; the interleave keeps it
      that way down the whole rail -- at most OFERTAS_MAX_RUN in a row
      from one retailer. */
