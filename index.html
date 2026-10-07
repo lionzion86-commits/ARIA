@@ -32990,8 +32990,38 @@ async function runSalesScan(){
       try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
     } catch { /* the lite feed stands on its own */ }
   };
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(() => { mergeFullFeed().catch(() => {}); }, { timeout: 20000 });
-  else setTimeout(() => { mergeFullFeed().catch(() => {}); }, 10000);
+  /* VICTORIA'S SECRET DEALS (2026-10-07, Danny): VS sale items live in
+     beauty-catalog.json with the was-price as `regularPrice`, not
+     `originalPrice` -- the server-side sales pipeline never sees them (it
+     only scrapes 12 sources, no beauty). This lightweight feed (646 items,
+     ~300KB, pre-extracted) merges them into the sale cache on idle, and
+     OFERTAS_LEAD_BRANDS already puts victoriassecret first. */
+  let vsDealsMerged = false;
+  const mergeVsDeals = async () => {
+    if (vsDealsMerged) return;
+    vsDealsMerged = true;
+    try {
+      const res = await fetchWithTimeout('/vs-deals.json', FETCH_DEADLINE_MS);
+      if (!res.ok) return;
+      const feed = await res.json();
+      if (!Array.isArray(feed.items)) return;
+      const seen = new Set(saleItemsCache.map(p => `${p.retailer || ''}::${p.title || ''}`));
+      let added = false;
+      for (const it of feed.items){
+        const k = `${it.retailer || ''}::${it.title || ''}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        saleItemsCache.push(it);
+        added = true;
+      }
+      if (!added) return;
+      saleItemsCache = saleItemsCache.filter(passesOfertasGate);
+      renderSalesRails();
+      try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
+    } catch { /* the feed stands on its own */ }
+  };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(() => { mergeFullFeed().catch(() => {}); mergeVsDeals().catch(() => {}); }, { timeout: 20000 });
+  else setTimeout(() => { mergeFullFeed().catch(() => {}); mergeVsDeals().catch(() => {}); }, 10000);
   /* The catalogue's own markdowns join the feed once it arrives -- on
      idle, never at boot: the fast paint above is the whole point, and a
      fresh API cache already carries these deals. The same idle pass
