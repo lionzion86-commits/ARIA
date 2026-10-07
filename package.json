@@ -10,6 +10,8 @@
     "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
     "test:search": "node scripts/test/search-relevance-tests.mjs",
     "test:contradiction": "node scripts/test/catalog-contradiction-tests.mjs",
+    "test:search-watch": "node scripts/test/search-watch-tests.mjs",
+    "build:search-engine": "node scripts/build-search-engine.mjs",
     "mcp": "node mcp-server.js"
   }
 }
