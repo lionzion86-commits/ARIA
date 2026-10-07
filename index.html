@@ -1848,7 +1848,7 @@
         Arma tu carrito. Si eres elegido, compras.
       </p>
       <p class="text-[13.5px] sm:text-[15px] leading-relaxed max-w-[56ch] mx-auto mb-6" style="color:#B9C6E8">
-        Únete gratis al Aria Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran del 20 de octubre al 10 de noviembre — antes que todos.
+        Únete gratis al Aria Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran antes que todos. Gratis por tiempo limitado — después, la membresía tiene un costo.
       </p>
       <div id="foundersMemberBadge" class="mb-6" hidden></div>
       <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
@@ -1878,7 +1878,7 @@
           </div>
         </div>
       </div>
-      <p class="mt-8 text-[12.5px] font-semibold" style="color:#8FA3D6">Solo 1000. El 10 de noviembre se abren las puertas.</p>
+      <p class="mt-8 text-[12.5px] font-semibold" style="color:#8FA3D6">Solo 1000. Las puertas se abren muy pronto.</p>
     </div>
   </section>
   <!-- ============================================================
@@ -30558,7 +30558,7 @@ function renderFoundersBadges(){
       badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold" style="background:#F4C463;color:#0A1F44">Miembro del Aria Key Club — tu checkout está desbloqueado</span>`;
     } else if (currentUserFounderStatus === 'rechazado') {
       badgeEl.hidden = false;
-      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#B9C6E8">Tu carrito sigue guardado — las puertas se abren el 10 de noviembre</span>`;
+      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#B9C6E8">Tu carrito sigue guardado — las puertas se abren muy pronto</span>`;
     } else {
       badgeEl.hidden = false;
       const first = currentUserName ? `, ${escapeHtml(currentUserName.split(' ')[0])}` : '';
@@ -30587,7 +30587,7 @@ function renderFoundersCartBanner(){
   if (currentUserFounderStatus === 'fundador') {
     wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-bold" style="background:#FFF6E0;border:1px solid #F0D28A;color:#5C4813">Miembro del Aria Key Club — tu checkout está desbloqueado.</div>`;
   } else if (currentUserFounderStatus === 'rechazado') {
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Aún no eres miembro — las puertas se abren el 10 de noviembre.</div>`;
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Aún no eres miembro — las puertas se abren muy pronto.</div>`;
   } else {
     wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado y <b>en revisión</b>. Arma tu carrito. Si eres elegido, compras.</div>`;
   }
