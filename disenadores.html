@@ -456,7 +456,8 @@ function cardHTML(it){
       priceBlock = '<div class="price-row"><span class="price">' + fmtUSD(it.price) + '</span>' + was + saleBadge + '</div>'
         + (pen ? '<div class="price-pen">' + escapeHtml(pen) + ' · TC hoy ' + escapeHtml(String(state.fxRate)) + '</div>' : '');
     }
-    var open = it.url ? '<a href="' + escapeHtml(it.url) + '" target="_blank" rel="noopener">' : '<a href="#" onclick="return false;">';
+    /* DANNY 2026-10-07: cards stay in Aria, never link to the designer site. */
+    var open = '<a href="producto.html?producto=' + encodeURIComponent(it.name || '') + '">';
     return '<article class="card">' + open
       + '<div class="card-img' + (it.image ? '' : ' noimg') + '">' + img + '</div>'
       + '<div class="card-body"><div class="card-brand">' + brand + '</div>'
