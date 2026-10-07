@@ -9978,25 +9978,96 @@ async function poolForRetailers(retailerKeys){
   ingestRetailersIntoPool(retailerKeys);
   return progressivePool;
 }
+/* SALE ITEMS ARE SEARCHABLE (2026-10-07, Danny: the Titan Pro MMA
+   Glove was on sale and Aria told the shopper we did not have it).
+
+   THE GAP. The pool above is built from the department catalogues
+   only. The Ofertas feed (ofertas-feed.json, plus the scraped
+   sales-cache) carries deals that are NOT in any department file --
+   the Titan Pro MMA Glove lived only in the feed, $46.42 down from
+   $92.86. The Ofertas page showed its card; search, the chat agent's
+   search_products and the voice tools all go through catalogSearch()
+   -> relatedPool() and never saw it. So she said "no lo tenemos" about
+   a product on our own sale shelf.
+
+   THE RULE: if Ofertas shows a card for it, search finds it. Same gate
+   as the Ofertas page (passesOfertasGate + quarantine), already-
+   normalized prices (the feed is built through normalizeLiveItem), one
+   entry per retailer::title -- a deal the catalogue already carries is
+   never doubled. */
+let saleFeedForSearchPromise = null;
+function loadSaleFeedForSearch(){
+  if (!saleFeedForSearchPromise){
+    saleFeedForSearchPromise = fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS)
+      .then(r => (r && r.ok) ? r.json() : null)
+      .then(feed => (feed && Array.isArray(feed.items)) ? feed.items : [])
+      /* A failed fetch is retried on the next search, not cached. */
+      .catch(() => { saleFeedForSearchPromise = null; return []; });
+  }
+  return saleFeedForSearchPromise;
+}
+let saleIngestSeen = null;
+let saleIngestSeenLen = -1;
+function ingestSaleItemsIntoPool(items){
+  if (!Array.isArray(items) || !items.length) return;
+  let added = false;
+  for (const raw of items){
+    if (!raw || !raw.title || !raw.retailer) continue;
+    if (!notQuarantined(raw)) continue;
+    if (!(Number(raw.price) > 0)) continue;
+    try { if (!passesOfertasGate(raw)) continue; } catch { continue; }
+    const key = raw.retailer + '::' + raw.title;
+    if (poolByKey.has(key)) continue;
+    const pooled = { ...raw, departments: Array.isArray(raw.departments) ? raw.departments.slice() : [] };
+    pooled._wordSet = catalogWordsOf(pooled);
+    pooled._brandWordSet = new Set(searchTokens(pooled.brand || ''));
+    pooled._cat = catalogItemCategory(pooled);
+    poolByKey.set(key, pooled);
+    progressivePool.push(pooled);
+    added = true;
+  }
+  if (added) relatedPoolCache = null;
+}
+/* Deals that arrive after the pool was built (the full feed merging in
+   on idle, the live sales-cache) join on the next search. Keyed on the
+   array and its length so a warm search pays nothing when no deal is new. */
+function ingestLiveSaleItems(){
+  const live = (typeof saleItemsCache !== 'undefined' && Array.isArray(saleItemsCache)) ? saleItemsCache : null;
+  if (!live || (live === saleIngestSeen && live.length === saleIngestSeenLen)) return;
+  saleIngestSeen = live; saleIngestSeenLen = live.length;
+  ingestSaleItemsIntoPool(live);
+}
+let saleFeedIngested = false;
 async function relatedPool(){
-  if (relatedPoolCache) return relatedPoolCache;
-  await loadDepartmentCache();
-  ingestRetailersIntoPool(Object.keys(departmentCacheData?.retailers || {}));
+  if (relatedPoolCache){
+    /* The feed failed when the pool was built: fetch it again behind
+       this search, so the next one finds the deals. */
+    if (!saleFeedIngested){
+      loadSaleFeedForSearch().then(feed => {
+        if (!feed.length || saleFeedIngested) return;
+        saleFeedIngested = true;
+        ingestSaleItemsIntoPool(feed);
+        /* Rebuild now: the voice scoop reads a null cache as "still
+           loading" and would otherwise wait for a search to rebuild it. */
+        return relatedPool();
+      }).catch(() => {});
+    }
+    ingestLiveSaleItems();
+    if (relatedPoolCache) return relatedPoolCache;
+  } else {
+    const [, saleFeed] = await Promise.all([loadDepartmentCache(), loadSaleFeedForSearch()]);
+    ingestRetailersIntoPool(Object.keys(departmentCacheData?.retailers || {}));
+    /* Catalogue first, so a product in both keeps its departments. */
+    if (saleFeed.length){ saleFeedIngested = true; ingestSaleItemsIntoPool(saleFeed); }
+    ingestLiveSaleItems();
+  }
   relatedPoolCache = progressivePool;
   /* SEARCH SPEED (2026-09-27): inverted word index over the pool. A
      search only ever scores items containing a matching word form, so
      rankCatalogMatches pulls that subset up front instead of scanning
      the whole pool per search. Attached to the array rather than the
      items, so ad-hoc pools without it take the old path unchanged. */
-  const windex = new Map();
-  for (const it of relatedPoolCache){
-    for (const w of it._wordSet){
-      let lst = windex.get(w);
-      if (!lst) windex.set(w, lst = []);
-      lst.push(it);
-    }
-  }
-  relatedPoolCache._windex = windex;
+  buildSearchWordIndex(relatedPoolCache);
   return relatedPoolCache;
 }
 
@@ -10624,6 +10695,116 @@ function fuzzyVocabBuckets(windex){
   return b;
 }
 
+/* ============================================================
+   SPELLED THE WAY IT SOUNDS (2026-10-07, watch list).
+
+   A Peruvian shopper types English the way it sounds in Spanish:
+   "chort" for short, "hudi" for hoodie, "swetshert" for sweatshirt.
+   Edit distance cannot carry these -- "hudi" is three edits from
+   "hoodie" and ONE from the brand Huddy, so the brand won and the
+   shopper got Huddy t-shirts; "chort" landed on Schott. A sound key
+   folds the spellings that sound alike (sh/ch, oo/u, ea/e, ee/ie/y,
+   ir/ur/er) so the right word is distance zero.
+
+   Only ever consulted for a token the vocabulary does not know, and
+   the most common words sharing the key win: Huddy (a handful of
+   uses) never outvotes hoodie (thousands). Short/shirt stay apart --
+   "or" is deliberately not folded.
+   ============================================================ */
+/* "ea" is read both ways by the shopper -- "swetshert" (sweat, e) and
+   "snikers"/"jins" (sneakers/jeans, i) -- so vocabulary words are filed
+   under both readings (eaAs 'e' and 'i'); a query is keyed once. */
+function shopperSoundKey(w, eaAs){
+  let s = String(w || '').toLowerCase();
+  s = s.replace(/oo|ou/g, 'u').replace(/ea/g, eaAs || 'e').replace(/ee|ie|ey/g, 'i').replace(/y$/, 'i');
+  s = s.replace(/sh|ch/g, 'x').replace(/ph/g, 'f').replace(/[iu]r/g, 'er');
+  return s.replace(/(.)\1+/g, '$1');
+}
+const soundKeyCache = new WeakMap();
+/* Vocabulary words that sound like the token, most-used first, with
+   the rare ones (under a tenth of the leader's uses) dropped. */
+function soundAlikeWords(tok, windex){
+  if (!tok || tok.length < 3 || !windex || typeof windex.keys !== 'function') return null;
+  let m = soundKeyCache.get(windex);
+  if (!m){
+    m = new Map();
+    for (const w of windex.keys()){
+      if (typeof w !== 'string' || w.length < 3 || /\d/.test(w)) continue;
+      for (const k of new Set([shopperSoundKey(w, 'e'), shopperSoundKey(w, 'i')])){
+        let arr = m.get(k);
+        if (!arr) m.set(k, arr = []);
+        arr.push(w);
+      }
+    }
+    soundKeyCache.set(windex, m);
+  }
+  const arr = m.get(shopperSoundKey(tok));
+  if (!arr || !arr.length) return null;
+  const uses = (w) => { const l = windex.get(w); return l ? l.length : 0; };
+  const top = Math.max(...arr.map(uses));
+  const kept = arr.filter(w => uses(w) * 10 >= top).sort((a, b) => uses(b) - uses(a));
+  return kept.length ? kept : null;
+}
+
+/* SAY WHAT WE SEARCHED FOR (2026-10-07). Words the vocabulary does
+   not know are rewritten to the word they sound like -- "chort" ->
+   "short", "hudi" -> "hoodie" -- so the Spanish layer can translate
+   the corrected word ("short" is the garment, shorts) and the page can
+   say "Mostrando resultados para …" the way Google does. A word with
+   no sound-alike is left exactly as typed. */
+function soundCorrectQuery(query, windex){
+  const raw = String(query || '');
+  const toks = searchTokens(raw);
+  if (!toks.length || !windex || typeof windex.get !== 'function') return { query: raw, changed: false, fixes: [] };
+  const fixes = [];
+  const out = toks.map(t => {
+    if (t.length < 3 || /\d/.test(t)) return t;
+    const l = windex.get(t);
+    if (l && l.length) return t;
+    for (const f of matchFormsFor(t)){ const lf = windex.get(f); if (lf && lf.length) return t; }
+    const alike = soundAlikeWords(t, windex);
+    if (!alike) return t;
+    fixes.push([t, alike[0]]);
+    return alike[0];
+  });
+  return fixes.length ? { query: out.join(' '), changed: true, fixes } : { query: raw, changed: false, fixes };
+}
+
+/* "¿Quisiste decir …?" for a search that found nothing: every unknown
+   word swapped for the closest word the catalogue actually uses --
+   sound-alike first, then the nearest spelling -- and a word with no
+   near match at all dropped, the way Google drops it. Null when no
+   known word is left. */
+function suggestSearchQuery(query, windex){
+  const toks = searchTokens(query);
+  if (!toks.length || !windex || typeof windex.get !== 'function') return null;
+  const buckets = fuzzyVocabBuckets(windex);
+  let changed = false;
+  const out = toks.map(t => {
+    const l = windex.get(t);
+    if (l && l.length) return t;
+    const alike = soundAlikeWords(t, windex);
+    if (alike){ changed = true; return alike[0]; }
+    const forms = fuzzyFormsForToken(t, buckets, windex);
+    if (!forms || !forms.size){ changed = true; return null; }
+    /* A suggestion has to look like what was typed: one edit on a short
+       word, two from six letters -- "qqqzxv" is not "qixi". */
+    const sq = fuzzySquashDoubles(t);
+    const cap = sq.length >= 6 ? 2 : 1;
+    let best = null, bestUses = -1;
+    for (const w of forms){
+      if (fuzzyEditDist(sq, w, cap) > cap) continue;
+      const lw = windex.get(w); const u = lw ? lw.length : 0;
+      if (u > bestUses){ best = w; bestUses = u; }
+    }
+    if (!best || bestUses <= 0){ changed = true; return null; }
+    changed = true;
+    return best;
+  });
+  const kept = out.filter(Boolean);
+  return changed && kept.length ? kept.join(' ') : null;
+}
+
 /* The fuzzy form set for one query token: vocabulary words within
    Damerau<=2 (<=1 for short tokens), plus their plural forms and
    synonyms so "hudi" also finds "hoodies" and "buzos". Null when the
@@ -10636,8 +10817,12 @@ function fuzzyFormsForToken(tok, buckets, windex){
   if (!tok || tok.length < 3 || !buckets || !windex) return null;
   if (windex.get(tok) && windex.get(tok).length) return null;
   for (const f of matchFormsFor(tok)){ const l = windex.get(f); if (l && l.length) return null; }
-  const maxDist = tok.length >= 4 ? 2 : 1;
   const squashed = fuzzySquashDoubles(tok);
+  /* The budget follows the SQUASHED length (2026-10-07): "qqqzxv" is
+     four letters once its doubles go, and two edits on four letters
+     matched "LXXXV" and "AZXY" -- junk instead of an honest empty page
+     with a "¿Quisiste decir?". */
+  const maxDist = squashed.length >= 5 ? 2 : 1;
   const hits = new Set();
   const consider = (w) => {
     if (hits.has(w)) return;
@@ -10645,6 +10830,11 @@ function fuzzyFormsForToken(tok, buckets, windex){
     for (const f of matchForms(w)) hits.add(f);
     for (const s of synonymsOf(w)) for (const f of matchForms(s)) hits.add(f);
   };
+  /* CLOSEST MATCH WINS: a word that SOUNDS identical beats every word
+     merely a couple of letters away ("swetshert" is sweatshirt, not
+     "sweethearts"). */
+  const alike = soundAlikeWords(tok, windex);
+  if (alike){ for (const w of alike) consider(w); return hits; }
   for (let l = Math.max(3, tok.length - maxDist); l <= tok.length + maxDist; l++){
     const arr = buckets.get(l);
     if (!arr) continue;
@@ -10853,7 +11043,13 @@ function detectBrandIntent(rawToks, pool, opts){
   const knownProductWord = (w) => {
     if (w.idx.length !== 1) return false;
     const tok = rawToks[w.idx[0]];
-    return !!tok && poolKnows(tok);
+    if (!tok) return false;
+    if (poolKnows(tok)) return true;
+    /* A word that SOUNDS like one the catalogue sells is that word,
+       misspelled -- not a brand: "hudi" is hoodie, not Huddy; "chort"
+       is short, not Schott (2026-10-07). */
+    const alike = windex ? soundAlikeWords(tok, windex) : null;
+    return !!(alike && alike.some(a => !vocab.has(searchBrandKey(a))));
   };
   const keys = [...vocab.keys()];
   const sqKeys = keys.map(k => fuzzySquashDoubles(k));
@@ -10889,7 +11085,17 @@ function detectBrandIntent(rawToks, pool, opts){
            two substitutions on four letters is a coincidence, not
            a brand. One-word queries under 5 chars get d<=1; the
            product-word fuzzy layer still resolves the typo. */
-        const maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        let maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        /* KNOWN WORDS JOINED ARE A JOIN REPAIR, NOT A TYPO (2026-10-07).
+           "titan pro mma gloves" joined "pro"+"mma" -> "promma" and
+           claimed Puma, then BYOMA, then Prada, all at d=2 -- and the
+           hard brand filter hid the Everlast glove the shopper named.
+           When every word in the window is one the catalogue sells
+           (the single-token rule above, applied to each word), the
+           only correction left is the join itself: an apostrophe or a
+           space ("victoria secret", "under armor", "calvin klien" are
+           all d=1). Two edits there is a coincidence. */
+        if (w.idx.length > 1 && w.idx.every(i => poolKnows(rawToks[i]))) maxDist = 1;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
@@ -11038,6 +11244,24 @@ function catalogItemCategory(item){
       && isSoccer(item, item && item.retailer)) return 'soccer';
   // A catalogue that names a footwear department settles it outright.
   if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
+  /* SOCKS ARE NOT SHOES (2026-10-07: "zapatilla" led with Hanes crew
+     socks). "Reinforced heel and toe" tripped the footwear words, so
+     every sock carried the implied word "shoes". A sock, insole or lace
+     title is footwear only if it also names a shoe ("Nike Sock Dart
+     Shoes"). */
+  if (/\b(?:socks?|calcetines|calcetas|insoles?|shoe\s*laces?|laces)\b/i.test(title)
+      && !/\b(?:shoes?|sneakers?|trainers?|sandals?|slides?|boots?)\b/i.test(title)) return null;
+  /* A DOLL IN SANDALS IS A DOLL ("zapatilla" answered with Barbie and a
+     "Duck in Boots" figurine). Toys, decor and the like are never
+     footwear by a word in their title, and neither is anything whose
+     product noun is a depiction. */
+  if (depts.some(d => /^(?:toys?|juguetes|home(?:_decor)?|decor|books?|electronics|kitchen|party|pets?|baby_gear|crafts?)$/i.test(String(d)))) return null;
+  if (/\b(?:dolls?|mu[nñ]ecas?|figurines?|figures?|sculptures?|statues?|ornaments?|plush|keychains?|charms?|stickers?|puzzles?|mugs?)\b/i.test(title)) return null;
+  /* "Kick Boot Jeans" are jeans: a garment as THE head noun (the last
+     one) outranks a stray shoe word earlier in the title. "Dress Shoes"
+     ends in shoes, so it stays footwear. */
+  const headW = [...catalogHeadWords(item)];
+  if (/^(?:jeans|pants|trousers|leggings|shorts|skirts?|dress(?:es)?|shirts?|tees?|tops?|jackets?|coats?)$/.test(headW[headW.length - 1] || '')) return null;
   /* The title saying so settles it too, by the SAME words a query uses
      to mean footwear -- so "Running Sneakers" is footwear whether it is
      being asked for or being offered. */
@@ -11072,6 +11296,36 @@ function catalogTokenWeights(pool, toks, intent, categoryOf, wordsFor, fuzzySets
   return df.map(n => 1 / Math.log2(2 + n));
 }
 
+/* THE PRODUCT IS THE HEAD NOUN (2026-10-07, watch list). "shorts"
+   tied a pair of shorts with a "Short Circuit" charger and a "Bermuda
+   Blue" speaker; "zapatillas" tied sneakers with a Barbie in sandals.
+   A title names its product before the first qualifier -- " - ", ":",
+   ",", "(", "with", "for", "in" -- and that segment's last word or two
+   is what the item IS. A query word landing there outranks the same
+   word anywhere else. */
+const HEAD_NOUN_BOOST = 0.5;
+const HEAD_NOISE = new Set(['s', 'men', 'mens', 'women', 'womens', 'kids', 'boys', 'girls', 'unisex', 'pack', 'pk', 'set']);
+function catalogHeadWords(item){
+  if (item && item._headWords instanceof Set) return item._headWords;
+  const title = String((item && (item.title || item.name)) || '');
+  const seg = title.split(/\s[-–|]\s|[:,(]|\s(?:with|for|in|con|para)\s/i)[0] || title;
+  const toks = searchTokens(seg).filter(t => !HEAD_NOISE.has(t) && !/^\d+$/.test(t));
+  const head = new Set(toks.slice(-2));
+  if (item && typeof item === 'object') { try { item._headWords = head; } catch(e) { /* frozen item: recompute next time */ } }
+  return head;
+}
+
+/* The head must carry the word itself, its plural or a true synonym --
+   never the singular of a plural query: "shorts" is not "Vase Short". */
+function headNounHit(head, t, fs){
+  for (const f of matchFormsFor(t)){
+    if (f + 's' === t || f + 'es' === t) continue;
+    if (head.has(f)) return true;
+  }
+  if (fs && fs.size) for (const w of head) if (fs.has(w)) return true;
+  return false;
+}
+
 function scoreCatalogItem(item, toks, weights, wordsIn, fuzzySets){
   const words = wordsIn || catalogWordsOf(item);
   const hits = catalogTokenHitsWithFuzzy(words, toks, fuzzySets);
@@ -11086,7 +11340,13 @@ function scoreCatalogItem(item, toks, weights, wordsIn, fuzzySets){
   }
   if (hits === toks.length) s += 1;
   const brandWords = (item && item._brandWordSet instanceof Set) ? item._brandWordSet : new Set(searchTokens(item?.brand || ''));
-  if (toks.some(t => brandWords.has(t))) s += 0.75;
+  /* A brand named after a product word is not a brand match for that
+     word (2026-10-07): "jeans" -> "pants" lifted every "Party Pants"
+     item over actual jeans. The bonus is for words that only a brand
+     means ("nike"), never a category's own words. */
+  if (toks.some(t => brandWords.has(t) && !synonymGroupOf(t))) s += 0.75;
+  const head = catalogHeadWords(item);
+  if (head.size && toks.some((t, i) => headNounHit(head, t, fuzzySets && fuzzySets[i]))) s += HEAD_NOUN_BOOST;
   return s;
 }
 
@@ -11195,6 +11455,33 @@ function genderIntentFromTokens(toks){
   return null;
 }
 
+/* A sale word in the query lifts real markdowns over full price. */
+const SALE_INTENT_BOOST = 0.5;
+
+/* THE SEARCH INDEX, BUILT ONE WAY (2026-10-07). relatedPool() and the
+   standalone search page (search.html, via search-engine.js) both
+   index their pool with this, so the two can never rank differently
+   because one of them precomputed less. Fills each item's word sets
+   where missing and attaches the inverted word index to the array. */
+function buildSearchWordIndex(pool){
+  const windex = new Map();
+  for (const it of pool || []){
+    if (!it || !it.title) continue;
+    if (!(it._wordSet instanceof Set)){
+      it._wordSet = catalogWordsOf(it);
+      it._brandWordSet = new Set(searchTokens(it.brand || ''));
+      it._cat = catalogItemCategory(it);
+    }
+    for (const w of it._wordSet){
+      let lst = windex.get(w);
+      if (!lst) windex.set(w, lst = []);
+      lst.push(it);
+    }
+  }
+  pool._windex = windex;
+  return pool;
+}
+
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
   query = expandBrandAliases(query);
@@ -11233,6 +11520,9 @@ function rankCatalogMatches(pool, query, opts){
   const SALES_INTENT_TOKENS = new Set(['sale','sales','oferta','ofertas',
     'descuento','descuentos','rebaja','rebajas','liquidacion','clearance']);
   const intentToks = toks.filter(t => !SALES_INTENT_TOKENS.has(t));
+  /* ...but the INTENT is kept (2026-10-07): "zapatillas ofertas" ranks
+     the discounted pairs first, deepest markdown leading. */
+  const saleIntent = intentToks.length !== toks.length;
   if (intentToks.length !== toks.length) toks = intentToks;
   /* GENDER IS PREFERENCE, NEVER A HARD REQUIREMENT (2026-10-02, Danny).
      "Aletas de buceo para mi papá" built the query "diving fins men's"
@@ -11412,6 +11702,10 @@ function rankCatalogMatches(pool, query, opts){
       const aud = titleAudience(item.title || item.name || '');
       if (aud && aud.gender === genderBoost) itemScore += GENDER_MATCH_BOOST;
     }
+    if (saleIntent){
+      const p = Number(item.price), o = Number(item.originalPrice);
+      if (p > 0 && o > p) itemScore += SALE_INTENT_BOOST * (1 + (1 - p / o));
+    }
     scored.push({ item, score: itemScore });
   }
   scored.sort((a, b) => b.score - a.score);
@@ -11533,8 +11827,11 @@ function catalogResultsAreThin(res){
    catalogue search that skipped this would return nothing for
    "pantalones" -- which is most of the bug being fixed. */
 async function catalogSearch(query, opts){
-  const t = translateQuery(query);
   const pool = await relatedPool();
+  /* Unknown words corrected to what they sound like FIRST, then the
+     Spanish layer: "chort" -> "short" -> "shorts". */
+  const fixed = soundCorrectQuery(translateQuery(query).query, pool && pool._windex);
+  const t = fixed.changed ? translateQuery(fixed.query) : translateQuery(query);
   /* HONEST EMPTY (2026-10-03): every catalogue fetch failed (dead
      signal, CDN hiccup) -- the pool is empty and the search would
      wrongly print "no tenemos 'X' en nuestro catalogo" as if we
@@ -11543,7 +11840,9 @@ async function catalogSearch(query, opts){
   if (typeof departmentCacheFailed !== 'undefined' && departmentCacheFailed)
     throw new Error('catalogue failed to load');
   const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers() });
-  return { ...res, asked: query, translated: t.query, changed: t.changed };
+  return { ...res, asked: query, translated: t.query, changed: t.changed || fixed.changed,
+    ...(fixed.changed ? { corrected: fixed.query } : {}),
+    ...(!res.items.length ? { suggestion: suggestSearchQuery(t.query, pool && pool._windex) } : {}) };
 }
 
 let relatedRendered = [];
@@ -22862,7 +23161,13 @@ function emptySearchFeedHTML(){
     return `<div class="col-span-full text-[13px] text-zinc-500 py-6">Ningún resultado de las tiendas seleccionadas. Activa más tiendas en los filtros.</div>`;
   }
   const q = liveScrapeQuery ? `“${escapeHtml(liveScrapeQuery)}”` : 'eso';
-  return `<div class="col-span-full text-[13px] text-zinc-500 py-6">No tenemos ${q} en nuestro catálogo todavía.</div>`;
+  /* NEVER A DEAD END (2026-10-07): the closest words the catalogue
+     actually uses, one tap away. */
+  const sug = catalogMatch && catalogMatch.suggestion;
+  const dym = sug && sug !== liveScrapeQuery
+    ? ` ¿Quisiste decir <button type="button" class="underline font-bold" onclick="showResults(${escapeHtml(JSON.stringify(sug))})">${escapeHtml(sug)}</button>?`
+    : '';
+  return `<div class="col-span-full text-[13px] text-zinc-500 py-6">No tenemos ${q} en nuestro catálogo todavía.${dym}</div>`;
 }
 
 /* ============================================================
@@ -23548,6 +23853,8 @@ async function showResults(query, opts = {}){
   if (liveScrapeQuery !== query) return;
   catalogMatch = res;
   searchResults = res.items.slice();
+  /* Said the way Google says it when a word was corrected. */
+  if (res.corrected) document.getElementById('prodSpec').textContent = `Mostrando resultados para “${res.corrected}”`;
 
   renderSearchResults();
   lastSearch = { query, items: searchResults.slice(), catalog: catalogMatch, liveState: liveSearchState };
@@ -34847,9 +35154,11 @@ function finishTtsPipeline(st, reply, doneAudio){
 
 function addAssistantProductCard(item, retailer){
   assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
+  /* Cards going up mid-call are the conversation, not silence. */
+  if (typeof ariaRT !== 'undefined' && ariaRT) noteRealtimeActivity();
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
+  card.onclick = () => { endRealtimeCallOnTap('tarjeta de producto'); toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
@@ -35539,6 +35848,7 @@ function addAssistantBrandOffer(brandKey, brandLabel, count){
   wrap.scrollTop = wrap.scrollHeight;
 }
 function goBrandFromChat(brandKey){
+  endRealtimeCallOnTap('marca');
   dismissAssistantForNavigation();
   continuousMode = false;
   assistantThinking = false;
@@ -35773,12 +36083,14 @@ function addAssistantSectionOffer(label, sub, action, key){
   wrap.scrollTop = wrap.scrollHeight;
 }
 function goStoreFromChat(storeKey){
+  endRealtimeCallOnTap('tienda');
   dismissAssistantForNavigation();
   continuousMode = false;
   assistantThinking = false;
   openStore(storeKey);
 }
 function goDeptFromChat(deptKey){
+  endRealtimeCallOnTap('sección');
   dismissAssistantForNavigation();
   continuousMode = false;
   assistantThinking = false;
@@ -35987,6 +36299,14 @@ async function executeAgentTool(tc){
       const id = agentCacheProduct(p, p.retailer);
       const r = { id, title: p.title, price_usd: Number(p.price), retailer: p.retailer };
       if (p.brand) r.brand = p.brand;
+      /* SALE ITEMS SAY SO (2026-10-07): the Titan Pro glove was on sale
+         and she could not know it. The tool result is her only source,
+         so a markdown rides in it -- she never claims "en oferta" for an
+         item the result does not mark. */
+      if (Number(p.originalPrice) > Number(p.price)){
+        r.on_sale = true;
+        r.was_usd = Math.round(Number(p.originalPrice) * 100) / 100;
+      }
       return r;
     }),
     count: picks.length,
@@ -37449,11 +37769,22 @@ const CALL_DROP_GRACE_MS = 6000;
    ================================================================== */
 /* TWO STEPS, NOT ONE (2026-10-06, Danny). A call that just dies is
    rude; a call that asks once and then lets you go is a phone call.
-   20s of silence -> "¿Sigues ahí?". 15s more -> she signs off and
-   hangs up. The check-in fires once per silence, and any activity at
-   all resets both. */
-const CALL_CHECKIN_MS = 20000;
-const CALL_IDLE_MS = 35000;        /* total silence before she hangs up */
+   Silence -> "¿Sigues ahí?". More silence -> she signs off and hangs
+   up. The check-in fires once per silence, and any activity at all
+   resets both.
+
+   ONE KNOB (2026-10-07, Danny: cost control). CALL_SILENCE_TIMEOUT_MS
+   is the whole two-way silence, in ms, before the call ends itself;
+   the check-in lands two thirds of the way in. Tune this one line. */
+const CALL_SILENCE_TIMEOUT_MS = 15000;   /* Danny, 2026-10-07: 15s */
+const CALL_CHECKIN_MS = Math.round(CALL_SILENCE_TIMEOUT_MS * 2 / 3);
+const CALL_IDLE_MS = CALL_SILENCE_TIMEOUT_MS;   /* total silence before she hangs up */
+/* The goodbye is never cut mid-sentence, but a model that keeps
+   talking cannot keep the meter running either: this is the most the
+   sign-off may hold the line open. */
+const CALL_EXIT_MAX_MS = 12000;
+/* What the shopper sees once the line is closed for silence. */
+const CALL_IDLE_STATUS = 'Sesión terminada por inactividad';
 /* After she is asked to sign off, the line closes whether or not the
    audio arrived — the timer, never her, is what guarantees it. */
 const CALL_EXIT_GRACE_MS = 4000;
@@ -37624,7 +37955,7 @@ const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófon
    instructions: a per-response `instructions` field is what silenced
    the greeting, so these ride a conversation item and a bare
    response.create — the shapes that are known to work. */
-const CUE_CHECKIN = '[El cliente lleva veinte segundos sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
+const CUE_CHECKIN = '[El cliente lleva un rato sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
 const CUE_BYE = '[La llamada se va a cerrar por silencio. Despídete en UNA frase cálida, sin apuro, ' +
   'y dile que si te necesita toque el micrófono y seguimos. No te disculpes.]';
 
@@ -38087,6 +38418,10 @@ async function startRealtimeVoiceOnce(){
   ariaRTCheckedIn = false;
   ariaRTSignedOff = false;
   ariaRTHeardSignOff = false;
+  ariaRTPlaying = false;
+  ariaRTToolsInFlight = 0;
+  ariaRTExitAt = 0;
+  ariaRTEndedIdle = false;
   ariaRTThresholdTold = false;
   ariaRTSplitTold = false;
   ariaRTScooped = new Set();
@@ -38217,6 +38552,7 @@ async function startRealtimeVoiceOnce(){
            before any server round trip, because that is the truth of
            what the microphone is doing. */
         if (action !== 'dropAudio') setRealtimeState('listening');
+        if (action === 'stopPlayback') ariaRTPlaying = false;
       }
       else if (action === 'playAudio'){
         sink.open();
@@ -38338,6 +38674,13 @@ let ariaRTIdleTimer = null, ariaRTMaxTimer = null, ariaRTHiddenTimer = null;
 let ariaRTCheckinTimer = null, ariaRTExitTimer = null;
 /* "¿Sigues ahí?" once per silence; cleared by any activity. */
 let ariaRTCheckedIn = false;
+/* TRUE TWO-WAY SILENCE ONLY (2026-10-07). Her audio is still coming
+   out of the speaker (WebRTC's output_audio_buffer.started/stopped),
+   and tools still running (a catalogue search putting cards up). */
+let ariaRTPlaying = false;
+let ariaRTToolsInFlight = 0;
+let ariaRTExitAt = 0;
+let ariaRTEndedIdle = false;
 let ariaRTOpeningTimer = null;
 let ariaRTSpoke = false;
 /* Store answers for this call. Static knowledge, so the same question
@@ -38381,14 +38724,28 @@ function endRealtimeCallIdle(why){
   /* Hand the audio route back so it doesn't outlive the call. */
   ariaSetAudioSession('auto');
     if (cueRealtime(CUE_BYE)){
+      ariaRTEndedIdle = true;
+      ariaRTExitAt = Date.now();
       ariaRTExitTimer = setTimeout(() => endRealtimeCallIdle('despedida terminada'), CALL_EXIT_GRACE_MS);
       return;
     }
   }
+  /* Her goodbye is still playing: let her finish the sentence, up to
+     CALL_EXIT_MAX_MS from the cue, then close regardless. */
+  if (why === 'despedida terminada' && realtimeCallBusy()
+      && Date.now() - ariaRTExitAt < CALL_EXIT_MAX_MS){
+    ariaRTExitTimer = setTimeout(() => endRealtimeCallIdle('despedida terminada'), 500);
+    return;
+  }
+  const idle = ariaRTEndedIdle || why === 'silencio';
   stopRealtimeVoice();
   /* The line he can read, always, written only after the
      live voice did not — otherwise he would hear it twice. */
   addAssistantMessage('bot', CALL_BYE_LINE, null, { speak: false });
+  /* Closed for silence: say so where the call bar was. The mic is
+     already off -- stopRealtimeVoice stopped its tracks -- and the
+     button is back to "Hablar con Aria". */
+  if (idle) showRealtimeIdleEnded();
   /* The goodbye was spoken by the old engine. There is no old engine;
      the live voice says it before the session closes, or it is text. */
 }
@@ -38473,26 +38830,47 @@ function armOpeningNudge(){
 }
 
 /**
- * Any activity — speech from either side, or a tap, or a scroll —
- * means the line is still worth paying for.
- *
- * Danny's rule: only when BOTH the talking and the browsing go quiet
- * does the countdown start. So a shopper reading the cards she just
- * put up keeps the call alive, and a shopper who has walked away does
- * not.
+ * Voice activity — speech from either side, or her putting cards up —
+ * means the line is still worth paying for. Browsing is not (see
+ * endRealtimeCallOnTap): only the conversation keeps the meter running.
  */
+/* Is anything still happening on the line? A response being
+   generated, her voice still playing, or a tool still working (that
+   is a search putting cards up). Silence is only silence when all
+   three are quiet. */
+function realtimeCallBusy(){
+  return !!(ariaRTResponding || ariaRTPlaying || ariaRTToolsInFlight > 0);
+}
+
 function noteRealtimeActivity(){
   if (!ariaRT) return;
+  /* Once she has been asked to sign off, only the shopper speaking
+     can call that off (see speech_started) -- her own goodbye is not
+     activity that keeps the call. */
+  if (ariaRTSignedOff) return;
   ariaRTCheckedIn = false;
   if (ariaRTCheckinTimer) clearTimeout(ariaRTCheckinTimer);
   if (ariaRTIdleTimer) clearTimeout(ariaRTIdleTimer);
   ariaRTCheckinTimer = setTimeout(() => {
     if (!ariaRT || ariaRTCheckedIn) return;
+    /* Mid-answer or mid-cards is not a lull: start the window over. */
+    if (realtimeCallBusy()){ noteRealtimeActivity(); return; }
+    /* He has not said a word yet and the opening nudge is still due:
+       that silence is the nudge's ("here are today's best deals"), not
+       "¿sigues ahí?". With a short timeout the two land together. */
+    if (ariaRTOpeningTimer) return;
     ariaRTCheckedIn = true;
     /* A check-in, not a warning: two words, no countdown, no UI. */
     cueRealtime(CUE_CHECKIN);
   }, CALL_CHECKIN_MS);
-  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
+  ariaRTIdleTimer = setTimeout(() => {
+    if (!ariaRT) return;
+    /* NEVER WHILE SHE IS TALKING OR SHOWING CARDS. The countdown
+       restarts from when she goes quiet (response.done and
+       output_audio_buffer.stopped both re-arm it). */
+    if (realtimeCallBusy()){ noteRealtimeActivity(); return; }
+    endRealtimeCallIdle('silencio');
+  }, CALL_IDLE_MS);
 }
 
 function armRealtimeIdleTimers(){
@@ -38503,6 +38881,20 @@ function armRealtimeIdleTimers(){
   ariaRTMaxTimer = setTimeout(() => endRealtimeCallIdle('duración máxima'), CALL_MAX_MS);
 }
 
+/* A TAP MEANS SHE DELIVERED (2026-10-07, Danny). The moment he taps a
+   product, store, brand or section card she put up, the call ends --
+   no goodbye, no message, straight back to idle. Browsing what she
+   found is not a conversation, and it was the browsing that could run
+   the meter for half an hour. Want to keep asking? Tap the mic. */
+function endRealtimeCallOnTap(what){
+  if (typeof ariaRT === 'undefined' || !ariaRT) return;
+  const secs = Math.round((Date.now() - ariaRTStartedAt) / 1000);
+  console.info('[aria] ending the call — tocó', what, '| duration', secs + 's');
+  stopRealtimeVoice();
+  /* Back to idle: a tap mid-sentence must not leave the orb talking. */
+  setOrbState('idle');
+}
+
 /* HE CLOSED THE CHAT, SO THE CONVERSATION IS OVER. This is the case
    Danny described — she finds the Adidas, he goes to look at them —
    and the one that would otherwise bill for half an hour of browsing.
@@ -38511,23 +38903,10 @@ function endRealtimeCallIfPanelClosed(){
   if (ariaRT && !assistantOpen) endRealtimeCallIdle('cerró el chat');
 }
 
-/* BROWSING IS ACTIVITY. Tapping a card she just put up, adding to the
-   cart, scrolling the shelf — a shopper doing any of that is still in
-   the conversation even while neither of them is talking. Only when
-   the talking AND the browsing stop does the countdown run.
-
-   Registered once, cheap when no call is open: noteRealtimeActivity
-   returns immediately without a session. Scroll is throttled because
-   it fires continuously. */
-document.addEventListener('click', () => { if (ariaRT) noteRealtimeActivity(); }, { passive: true, capture: true });
-let ariaRTScrollAt = 0;
-document.addEventListener('scroll', () => {
-  if (!ariaRT) return;
-  const now = Date.now();
-  if (now - ariaRTScrollAt < 2000) return;
-  ariaRTScrollAt = now;
-  noteRealtimeActivity();
-}, { passive: true, capture: true });
+/* BROWSING IS NOT ACTIVITY (2026-10-07, Danny; reverses 2026-10-06).
+   Taps and scrolls used to keep the call alive, and scrolling alone
+   could run the meter for thirty minutes. Now only VOICE keeps it
+   open; tapping a card she put up ends it (endRealtimeCallOnTap). */
 
 /* …and the page going to the background, with a short grace so a
    notification banner does not hang up on him. */
@@ -38565,6 +38944,38 @@ function speakIntoRealtime(text){
  * can tap to try again or keep typing. The old voice loop is reachable
  * only by someone who asks for it in the URL.
  */
+/* CLOSED FOR SILENCE, SAID PLAINLY (2026-10-07). The call bar stays up
+   a few seconds with a grey dot and "Sesión terminada por
+   inactividad", the mic already released and the button back to
+   "Hablar con Aria" -- so a shopper who comes back knows the line was
+   closed on purpose, not dropped. Then the panel returns to normal. A
+   new call (setRealtimeUi(true)) takes the bar back immediately. */
+let ariaRTIdleNoticeTimer = null;
+const CALL_IDLE_NOTICE_MS = 5000;
+function showRealtimeIdleEnded(){
+  const status = document.getElementById('assistantStatus');
+  const bar = document.getElementById('assistantCallBar');
+  const text = document.getElementById('assistantCallText');
+  const dot = document.getElementById('assistantCallDot');
+  const mute = document.getElementById('assistantMuteBtn');
+  const retry = document.getElementById('assistantRetryBtn');
+  if (status) status.textContent = CALL_IDLE_STATUS;
+  if (bar) bar.hidden = false;
+  if (dot) dot.style.background = '#9AA3B2';
+  if (text) text.textContent = CALL_IDLE_STATUS;
+  if (mute) mute.hidden = true;
+  if (retry) retry.hidden = true;
+  if (ariaRTIdleNoticeTimer) clearTimeout(ariaRTIdleNoticeTimer);
+  ariaRTIdleNoticeTimer = setTimeout(() => {
+    ariaRTIdleNoticeTimer = null;
+    if (ariaRT) return;                 /* a new call already owns the bar */
+    if (bar) bar.hidden = true;
+    if (dot) dot.style.background = 'var(--blue)';
+    if (text) text.textContent = 'En vivo';
+    if (status && status.textContent === CALL_IDLE_STATUS) status.textContent = 'Aquí para ayudarte a encontrar algo';
+  }, CALL_IDLE_NOTICE_MS);
+}
+
 function showRealtimeError(){
   const why = (ariaRTFailure && ariaRTFailure.reason) || 'no pude abrir la llamada';
   const detail = ariaRTFailure && ariaRTFailure.detail;
@@ -38734,6 +39145,26 @@ async function onRealtimeEvent(event, turn, send){
          the right silence to handle. */
       ariaRTSpoke = true;
       if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
+      /* He came back while she was saying goodbye: the call stays. */
+      if (ariaRTSignedOff){
+        if (ariaRTExitTimer){ clearTimeout(ariaRTExitTimer); ariaRTExitTimer = null; }
+        ariaRTSignedOff = false;
+        ariaRTEndedIdle = false;
+      }
+      noteRealtimeActivity();
+      break;
+    /* WebRTC only: when her audio actually starts and stops coming
+       out of the speaker. The transcript and response.done can finish
+       well before the last word is heard, so this is what tells the
+       silence timer she is still talking. */
+    case 'output_audio_buffer.started':
+      ariaRTPlaying = true;
+      noteRealtimeActivity();
+      break;
+    case 'output_audio_buffer.stopped':
+    case 'output_audio_buffer.cleared':
+      ariaRTPlaying = false;
+      /* She just went quiet: the silence window starts now. */
       noteRealtimeActivity();
       break;
     case 'conversation.item.input_audio_transcription.completed':
@@ -38772,6 +39203,8 @@ async function onRealtimeEvent(event, turn, send){
          response that left the gate shut would mute her for the rest
          of the call. */
       ariaRTResponding = false;
+      /* The silence window counts from the end of her answer. */
+      noteRealtimeActivity();
       if (st === 'failed'){
         /* A response can fail on its own without an `error` event.
            This is where a malformed response.create surfaces, and it
@@ -38790,6 +39223,7 @@ async function onRealtimeEvent(event, turn, send){
       console.error('[aria] realtime error:', JSON.stringify(event.error || null));
       /* An error can kill a response without a response.done. */
       ariaRTResponding = false;
+      ariaRTPlaying = false;
       setOrbState('idle');
       break;
     default:
@@ -38807,8 +39241,11 @@ async function runRealtimeTool(event, send){
   if (!parsed.ok){
     output = { error: parsed.error };
   } else {
+    /* A tool at work (a search putting cards up) is not silence. */
+    ariaRTToolsInFlight++;
     try { output = await executeRealtimeTool(event.name, parsed.args); }
     catch (e){ output = { unavailable: 'esa consulta se me trabó, déjame intentar de nuevo' }; }
+    finally { ariaRTToolsInFlight = Math.max(0, ariaRTToolsInFlight - 1); noteRealtimeActivity(); }
   }
   send({
     type: 'conversation.item.create',
@@ -38851,6 +39288,10 @@ async function executeRealtimeTool(name, args){
         id: realtimeProductId(i),
         title: i.title, brand: i.brand || null, store: i.retailer,
         price_usd: i.price, weight_kg: i.weightKg ?? null,
+        /* A markdown rides in the result (2026-10-07), so "en oferta" is
+           something she read, never something she guessed. */
+        ...(Number(i.originalPrice) > Number(i.price)
+          ? { on_sale: true, was_usd: Math.round(Number(i.originalPrice) * 100) / 100 } : {}),
       })),
     };
   }
@@ -39560,6 +40001,13 @@ function ariaRTMuted(){
 }
 
 function setRealtimeUi(live, muted){
+  /* A new call takes the bar back from the inactivity notice. */
+  if (live && typeof ariaRTIdleNoticeTimer !== 'undefined' && ariaRTIdleNoticeTimer){
+    clearTimeout(ariaRTIdleNoticeTimer);
+    ariaRTIdleNoticeTimer = null;
+    const dot = document.getElementById('assistantCallDot');
+    if (dot) dot.style.background = 'var(--blue)';
+  }
   const status = document.getElementById('assistantStatus');
   const micBtn = document.getElementById('assistantMicBtn');
   const bar = document.getElementById('assistantCallBar');

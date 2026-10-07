@@ -126,7 +126,9 @@ export function sliceOfPage(spec) {
       /* The probe calls the functions. Anything they reach only at call
          time surfaces here, which is the whole reason it exists. */
       spec.probe(sandbox.__ariaSlice);
-      return { api: sandbox.__ariaSlice, pulledIn: pulled };
+      /* The resolved source too: search-engine.js is this exact text,
+         so the standalone search page runs the page's own search. */
+      return { api: sandbox.__ariaSlice, pulledIn: pulled, source: `${prelude}\n${region}` };
     } catch (err) {
       const missing = /^(\w+) is not defined$/.exec(err.message);
       if (!missing) {

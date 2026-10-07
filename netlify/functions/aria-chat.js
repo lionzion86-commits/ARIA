@@ -6,7 +6,7 @@
 // is built by the shared _aria-chat-model.js (same model, same cap,
 // same system prompt). Text only; the voice is the realtime session's (see
 // the live realtime session). No xAI anywhere on this path anymore.
-import { chatRequestBody, sanitizeSpokenPunctuation, sanitizeEmojiNarration, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, sanitizeSpokenPunctuation, sanitizeEmojiNarration, resolveCatalogContradiction, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
 
 export async function handler(event) {
   const headers = {
@@ -45,7 +45,10 @@ export async function handler(event) {
     const chatData = await chatResponse.json();
     // Dictated punctuation words ("comma", "punto") must never reach the
     // shopper as words — the bubble, the voice and the history all agree.
-    const replyText = sanitizeEmojiNarration(sanitizeSpokenPunctuation(chatData?.choices?.[0]?.message?.content)) || "";
+    const raw = sanitizeEmojiNarration(sanitizeSpokenPunctuation(chatData?.choices?.[0]?.message?.content)) || "";
+    /* Never name a product and then retract it: the cards decide which
+       half is true (see resolveCatalogContradiction). */
+    const replyText = raw && resolveCatalogContradiction(raw, Array.isArray(body?.products) && body.products.length > 0);
     if (!replyText) {
       return { statusCode: 502, headers, body: JSON.stringify({ error: "OpenAI devolvió una respuesta vacía" }) };
     }
