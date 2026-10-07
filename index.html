@@ -33005,17 +33005,17 @@ async function runSalesScan(){
       if (!res.ok) return;
       const feed = await res.json();
       if (!Array.isArray(feed.items)) return;
-      const seen = new Set(saleItemsCache.map(p => `${p.retailer || ''}::${p.title || ''}`));
+      const seen = new Set([...scraped, ...fromFiles].map(p => `${p.retailer || ''}::${p.title || ''}`));
       let added = false;
       for (const it of feed.items){
         const k = `${it.retailer || ''}::${it.title || ''}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        saleItemsCache.push(it);
+        fromFiles.push(it);
         added = true;
       }
       if (!added) return;
-      saleItemsCache = saleItemsCache.filter(passesOfertasGate);
+      saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
       renderSalesRails();
       try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
     } catch { /* the feed stands on its own */ }
