@@ -12304,6 +12304,27 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      items is gone -- full price surfaces through explicit search, not
      browse. fancyLead (Miu Miu) stays: Danny's explicit per-rail call. */
   const picks = [...leadPicks, ...sale.slice(0, Math.max(0, max - leadPicks.length))];
+  /* LATINO DESIGNERS PRICE MIX (2026-10-07, Danny): accessible prices lead --
+     Peruvians can't afford $1000 Farfetch leading the rail. Cheap sale items
+     sort first (via cheapFirst); then a couple premium pieces sprinkle in at
+     fixed positions for feel, never leading. Opt-in via premiumMix: N. */
+  const premiumMixN = (opts && Number.isFinite(opts.premiumMix)) ? Math.max(0, Math.floor(opts.premiumMix)) : 0;
+  if (premiumMixN > 0 && Array.isArray(pool)){
+    const premiumByPrice = pool
+      .filter(p => p && inSet(p) && hasRealImage(p)
+        && Number.isFinite(Number(p.price)) && Number(p.price) >= 200)
+      .sort((a, b) => Number(b.price) - Number(a.price));
+    let inserted = 0;
+    for (const prem of premiumByPrice){
+      if (inserted >= premiumMixN) break;
+      const k = itemKey(prem);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const pos = Math.min(picks.length, 5 + inserted * 6);
+      picks.splice(pos, 0, prem);
+      inserted++;
+    }
+  }
   /* GRACEFUL FILL (2026-10-03, Danny): sales lead, always -- but when the
      sale slice holds fewer than RAIL_SALE_FILL_MIN items the shelf fills
      out with best sellers (non-sale) so the rail never renders near-empty.
@@ -12537,6 +12558,7 @@ const CATEGORY_RAILS = [
      via Farfetch US -- Farm Rio, Agua Bendita, PatBO, Johanna Ortiz,
      Silvia Tcherassi. Brand pills filter the feed; Todo is the default. */
   { key: 'latino_designers', label: 'Diseñadores Latinos', icon: '', stores: null, poolOnly: true,
+    cheapFirst: true, premiumMix: 2, /* DANNY 2026-10-07: $13-20 accessible leads, 2 premium for feel */
     blurb: 'El talento latino, sin salir de casa. Disenadores de Brasil y Colombia, comprados en Estados Unidos y entregados en Peru.',
     test: (p) => latinoDesignerOfItem(p) !== null,
     open: "openCatalog('department','latino_designers')" },
