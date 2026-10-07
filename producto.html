@@ -71,32 +71,178 @@ footer a{color:#fff}
 </header>
 <main>
 <div id="product-wrap">
-<div class="hero">
-<div class="kicker">Producto</div>
-<h1 id="p-title">Cargando producto…</h1>
-<p class="lead" id="p-status">Buscando en el catálogo…</p>
-</div>
-<div id="p-body"></div>
+  <div id="p-loading" class="hero">
+    <div class="kicker">Producto</div>
+    <h1 id="p-title">Cargando producto…</h1>
+    <p class="lead" id="p-status">Buscando en el catálogo…</p>
+  </div>
+  <div id="p-body"></div>
 </div>
 <script>
-(function(){
-  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-  var wrap=document.getElementById("p-body"), status=document.getElementById("p-status"), title=document.getElementById("p-title");
-  function fail(msg){
-    title.textContent="Producto no encontrado";
-    status.innerHTML="";
-    wrap.innerHTML='<div class="err-box"><strong>No pudimos cargar este producto.</strong><span>'+esc(msg)+'</span><br><br><a class="btn" href="search.html">Buscar productos</a></div>';
-  }
+/* =====================================================================
+   THE PRODUCT PAGE, WIRED TO THE CATALOGUES.
+
+   This file used to be a stub: it read the wrong query parameter
+   ("producto" was right, but it also had to cope with "id"), and then
+   called fail() unconditionally with a TODO where the lookup should
+   have been. Every product page on the site was blank, for every id
+   and every store — 28 of 28 across 14 stores in the audit.
+
+   It loads the same catalogue files search.html loads, through the
+   same normaliser, and prices with the same tiered margin, so a
+   product costs the same here as it does everywhere else.
+
+   THE STORE IS A FAST PATH, NOT A REQUIREMENT. A card knows which
+   store it came from and passes ?tienda=, so the page fetches one
+   catalogue instead of sixty-three. Without it, or on a miss, it
+   falls back to loading everything rather than failing.
+   ===================================================================== */
+var CATALOG_FILES = ["/department-cache-walmart.json", "/department-cache-target.json", "/department-cache-oldnavy.json", "/department-cache-footlocker.json", "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json", "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json", "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json", "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json", "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json", "/kohls-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json", "/advanceauto-catalog.json", "/nautilus-catalog.json", "/islandwatersports-catalog.json", "/quietstorm-catalog.json", "/surfworld-catalog.json", "/surfstation-catalog.json", "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json", "/everlast-catalog.json", "/mmawarehouse-catalog.json", "/combatcorner-catalog.json", "/fuji-catalog.json", "/fightclub-catalog.json", "/crocs-catalog.json", "/baublebar-catalog.json", "/jwpei-catalog.json", "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json", "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json", "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json", "/target-catalog.json", "/soccer-catalog.json", "/tennis-catalog.json", "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json", "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json", "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json", "/boxlunch-catalog.json"];
+var STORE_FILES   = {"revolve": ["/revolve-catalog.json"], "target": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"], "footlocker": ["/department-cache-footlocker.json"], "newbalance": ["/newbalance-catalog.json"], "walmart": ["/department-cache-walmart.json", "/juguetes-catalog.json"], "advanceauto": ["/advanceauto-catalog.json"], "macys": ["/macys-catalog.json"], "kohls": ["/kohls-catalog.json"], "dicks": ["/dicks-catalog.json"], "finishline": ["/finishline-catalog.json"], "bhphoto": ["/bhphoto-catalog.json"], "costco": ["/costco-catalog.json", "/juguetes-catalog.json"], "victoriassecret": ["/beauty-catalog.json"], "ulta": ["/ulta-catalog.json"], "pacsun": ["/pacsun-catalog.json"], "zumiez": ["/zumiez-catalog.json"], "nautilus": ["/nautilus-catalog.json"], "prosoccer": ["/soccer-catalog.json"], "xtremesoccer": ["/soccer-catalog.json"], "tennisexpress": ["/tennis-catalog.json"], "tenniswarehouse": ["/tennis-catalog.json"], "academy": ["/soccer-catalog.json"], "islandwatersports": ["/islandwatersports-catalog.json"], "quietstorm": ["/quietstorm-catalog.json"], "surfworld": ["/surfworld-catalog.json"], "surfstation": ["/surfstation-catalog.json"], "mainland": ["/mainland-catalog.json"], "parrot": ["/parrot-catalog.json"], "ccs": ["/ccs-catalog.json"], "valsurf": ["/valsurf-catalog.json"], "oldnavy": ["/department-cache-oldnavy.json"], "samsclub": ["/samsclub-catalog.json"], "lanebryant": ["/lanebryant-catalog.json"], "alphalete": ["/gymrat-catalog.json"], "youngla": ["/gymrat-catalog.json"], "gymshark": ["/gymrat-catalog.json"], "venum": ["/venum-catalog.json"], "tatami": ["/tatami-catalog.json"], "everlast": ["/everlast-catalog.json"], "mmawarehouse": ["/mmawarehouse-catalog.json"], "combatcorner": ["/combatcorner-catalog.json"], "fuji": ["/fuji-catalog.json"], "crocs": ["/crocs-catalog.json"], "baublebar": ["/baublebar-catalog.json"], "jwpei": ["/jwpei-catalog.json"], "meliebianco": ["/meliebianco-catalog.json"], "bentgo": ["/bentgo-catalog.json"], "mushie": ["/mushie-catalog.json"], "ezpz": ["/ezpz-catalog.json"], "statebags": ["/statebags-catalog.json"], "assouline": ["/books-catalog.json"], "chronicle": ["/books-catalog.json"], "walmartbaby": ["/moms-catalog.json"], "momcozy": ["/moms-catalog.json"], "elvie": ["/moms-catalog.json"], "spectra": ["/moms-catalog.json"], "munchkin": ["/moms-catalog.json"], "babybrezza": ["/moms-catalog.json"], "drbrowns": ["/moms-catalog.json"], "mockingbird": ["/moms-catalog.json"], "nanit": ["/nanit-catalog.json"], "owlet": ["/owlet-catalog.json"], "kindredbravely": ["/moms-catalog.json"], "hatch": ["/moms-catalog.json"], "bellybandit": ["/moms-catalog.json"], "freshlypicked": ["/moms-catalog.json"], "jujube": ["/moms-catalog.json"], "dagnedover": ["/moms-catalog.json"], "lillebaby": ["/moms-catalog.json"], "skims": ["/skims-catalog.json"], "ssense": ["/ssense-catalog.json"], "miumiu": ["/miumiu-catalog.json"], "yesstyle": ["/yesstyle-catalog.json"], "farfetch": ["/farfetch-catalog.json"], "hottopic": ["/hottopic-catalog.json"], "boxlunch": ["/boxlunch-catalog.json"], "sephora": ["/beauty-catalog.json"], "partycity": ["/partycity-catalog.json"], "elite": ["/fightclub-catalog.json"], "gameness": ["/fightclub-catalog.json"], "americaneagle": ["/ae-catalog.json"], "farmrio": ["/latino-designers-dtc-catalog.json"], "aguabendita": ["/latino-designers-dtc-catalog.json"], "patbo": ["/latino-designers-dtc-catalog.json"], "johannaortiz": ["/latino-designers-dtc-catalog.json"], "silviatcherassi": ["/latino-designers-dtc-catalog.json"], "capittana": ["/latino-designers-dtc-catalog.json"], "ancora": ["/latino-designers-dtc-catalog.json"], "vix": ["/latino-designers-dtc-catalog.json"], "montce": ["/latino-designers-dtc-catalog.json"], "eberjey": ["/latino-designers-dtc-catalog.json"], "tns": ["/latino-designers-dtc-catalog.json"], "revzilla": ["/moto-catalog.json"], "denniskirk": ["/moto-catalog.json"], "smartbuyglasses": ["/sunglasses-catalog.json"]};
+var STORE_LABELS  = {"revolve": "Revolve", "target": "Target", "footlocker": "Foot Locker", "newbalance": "New Balance", "walmart": "Walmart", "advanceauto": "Advance Auto Parts", "macys": "Macy's", "kohls": "Kohl's", "dicks": "Dick's Sporting Goods", "finishline": "Finish Line", "bhphoto": "B&H Photo", "costco": "Costco", "victoriassecret": "Victoria's Secret", "ulta": "Ulta Beauty", "pacsun": "PacSun", "zumiez": "Zumiez", "nautilus": "Nautilus Spearfishing", "prosoccer": "ProSoccer", "xtremesoccer": "Xtreme Soccer", "tennisexpress": "Tennis Express", "tenniswarehouse": "Tennis Warehouse", "academy": "Academy Sports", "islandwatersports": "Island Water Sports", "quietstorm": "Quiet Storm Surf Shop", "surfworld": "Surf World", "surfstation": "Surf Station", "mainland": "Mainland Skate & Surf", "parrot": "Parrot Surf & Skate", "ccs": "CCS", "valsurf": "Val Surf", "oldnavy": "Old Navy", "samsclub": "Sam's Club", "lanebryant": "Lane Bryant", "alphalete": "Alphalete", "youngla": "YoungLA", "gymshark": "Gymshark", "venum": "Venum", "tatami": "Tatami Fightwear", "everlast": "Everlast", "mmawarehouse": "MMAWarehouse", "combatcorner": "Combat Corner", "fuji": "FUJI Sports", "crocs": "Crocs", "baublebar": "BaubleBar", "jwpei": "JW PEI", "meliebianco": "Melie Bianco", "bentgo": "Bentgo", "mushie": "Mushie", "ezpz": "ezpz", "statebags": "State Bags", "assouline": "Assouline", "chronicle": "Chronicle Books", "walmartbaby": "Walmart Bebé", "momcozy": "Momcozy", "elvie": "Elvie", "spectra": "Spectra", "munchkin": "Munchkin", "babybrezza": "Baby Brezza", "drbrowns": "Dr. Brown's", "mockingbird": "Mockingbird", "nanit": "Nanit", "owlet": "Owlet", "kindredbravely": "Kindred Bravely", "hatch": "Hatch", "bellybandit": "Belly Bandit", "freshlypicked": "Freshly Picked", "jujube": "JuJuBe", "dagnedover": "Dagne Dover", "lillebaby": "LÍLLÉbaby", "skims": "Skims", "ssense": "SSENSE", "miumiu": "Miu Miu", "yesstyle": "YesStyle", "bathandbodyworks": "Bath & Body Works", "farfetch": "Farfetch", "hottopic": "Hot Topic", "boxlunch": "BoxLunch", "sephora": "Sephora", "partycity": "Party City", "elite": "Elite Sports", "gameness": "Gameness", "americaneagle": "American Eagle", "farmrio": "FARM Rio", "aguabendita": "Agua Bendita", "patbo": "PatBO", "johannaortiz": "Johanna Ortiz", "silviatcherassi": "Silvia Tcherassi", "capittana": "Capittana", "ancora": "Ancora", "vix": "ViX", "montce": "Montce", "eberjey": "Eberjey", "tns": "TNS", "revzilla": "RevZilla", "denniskirk": "Dennis Kirk", "smartbuyglasses": "SmartBuyGlasses"};
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function el(id){ return document.getElementById(id); }
+
+/* The site's honest price, identical to search.html and the SPA. */
+function tieredMarginUsd(rawUsd){
+  var r = Number(rawUsd);
+  if (!(r > 0)) return 0;
+  return Math.min(r,500)*0.24
+       + Math.min(Math.max(r-500,0),1500)*0.18
+       + Math.min(Math.max(r-2000,0),3000)*0.12
+       + Math.max(r-5000,0)*0.08;
+}
+function finalUsd(raw){ return Number(raw) + tieredMarginUsd(raw); }
+function fmtUsd(n){ return "US$ " + Number(n).toFixed(2); }
+function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
+var FX_RATE = null;
+
+function normalizeItem(it, retailerKey){
   try{
-    var params=new URLSearchParams(location.search);
-    var slug=params.get("producto")||"";
-    if(!slug){fail("Falta el identificador del producto en la URL.");return;}
-    // The full product catalog lookup requires the SPA data layer.
-    // This template renders a graceful state and links to search.
-    // TODO: wire to catalog JSONs for full product detail.
-    fail("La página de detalle del producto está en reconstrucción. Usa el buscador para encontrarlo.");
+    if (!it || typeof it !== "object") return null;
+    var name = it.name || it.title || "";
+    var price = Number(it.price);
+    if (!name || !(price > 0)) return null;
+    var img = it.thumbnail || it.image || "";
+    if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
+    return {
+      name: String(name), brand: String(it.brand || ""), price: price,
+      image: String(img || ""), url: String(it.url || it.link || ""),
+      retailer: String(it.retailer || retailerKey || ""),
+      description: String(it.description || it.description_en || ""),
+      sizes: Array.isArray(it.availableSizes) ? it.availableSizes : [],
+      originalPrice: Number(it.originalPrice) || 0
+    };
+  }catch(e){ return null; }
+}
+function extractItems(data){
+  var out = [];
+  try{
+    var retailers = data && data.retailers;
+    if (!retailers || typeof retailers !== "object") return out;
+    Object.keys(retailers).forEach(function(rkey){
+      var r = retailers[rkey];
+      if (!r || typeof r !== "object") return;
+      ["departments","brands"].forEach(function(section){
+        var sec = r[section];
+        if (!sec || typeof sec !== "object") return;
+        Object.keys(sec).forEach(function(skey){
+          var bucket = sec[skey];
+          var arr = Array.isArray(bucket) ? bucket
+                  : (bucket && Array.isArray(bucket.items) ? bucket.items : null);
+          if (!arr) return;
+          arr.forEach(function(it){ var n = normalizeItem(it, rkey); if (n) out.push(n); });
+        });
+      });
+    });
+  }catch(e){}
+  return out;
+}
+function fetchOne(f){
+  return fetch(f).then(function(r){ return r.ok ? r.json() : null; })
+                 .then(function(d){ return d ? extractItems(d) : []; })
+                 .catch(function(){ return []; });
+}
+function norm(s){ return String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," "); }
+
+function fail(msg){
+  el("p-loading").style.display = "none";
+  el("p-body").innerHTML = '<div class="err-box"><strong>No pudimos cargar este producto.</strong><span>'
+    + esc(msg) + '</span><br><br><a class="btn" href="search.html">Buscar en el catálogo</a></div>';
+  document.title = "Producto no encontrado — Aria Shop";
+}
+
+function render(p){
+  el("p-loading").style.display = "none";
+  var usd = finalUsd(p.price);
+  var store = STORE_LABELS[p.retailer] || p.retailer || "";
+  var priceHtml = FX_RATE
+    ? '<div style="font-size:28px;font-weight:800;color:var(--navy)">' + esc(fmtPen(usd * FX_RATE)) + '</div>'
+      + '<div style="font-size:14px;color:var(--muted);margin-top:2px">' + esc(fmtUsd(usd)) + ' · puesto en Perú</div>'
+    : '<div style="font-size:28px;font-weight:800;color:var(--navy)">' + esc(fmtUsd(usd)) + '</div>'
+      + '<div style="font-size:13px;color:var(--muted);margin-top:2px">Tipo de cambio no disponible</div>';
+  var img = p.image
+    ? '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" style="width:100%;border-radius:16px;border:1px solid var(--line);background:#f7f8fb" onerror="this.style.display=\'none\'">'
+    : '<div style="aspect-ratio:1;border-radius:16px;border:1px solid var(--line);background:#f7f8fb"></div>';
+  var desc = p.description
+    ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
+  var sizes = (p.sizes && p.sizes.length)
+    ? '<p style="font-size:14px;color:var(--muted)">Tallas: ' + esc(p.sizes.join(", ")) + '</p>' : '';
+  el("p-body").innerHTML =
+    '<div class="grid2" style="align-items:start">'
+    + '<div>' + img + '</div>'
+    + '<div>'
+      + (p.brand ? '<div class="kicker">' + esc(p.brand) + '</div>' : '')
+      + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(p.name) + '</h1>'
+      + (store ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
+      + priceHtml + sizes
+      + '<p style="font-size:13px;color:var(--muted);margin-top:14px">Precio honesto: incluye compra, envío y aduana hasta tu puerta en Perú.</p>'
+      /* OUT TO THE RETAILER, not back to the URL that sent us here.
+         The first version linked to ariashop.pe/?producto=, which
+         redirects straight back to this page. */
+      + (p.url ? '<a class="btn" href="' + esc(p.url) + '" target="_blank" rel="noopener">Ver en ' + esc(store || 'la tienda') + '</a>' : '')
+    + '</div></div>' + desc;
+  document.title = p.name + " — Aria Shop";
+}
+
+(async function(){
+  try{
+    var params = new URLSearchParams(location.search);
+    /* BOTH SPELLINGS. The cards link with ?producto=; the audit used
+       ?id=, and a shopper who lands on either must see the product
+       rather than an error about a parameter name. */
+    var want = params.get("producto") || params.get("id") || params.get("nombre") || "";
+    if (!want){ fail("Falta el identificador del producto en la URL."); return; }
+    el("p-title").textContent = want;
+
+    var tienda = (params.get("tienda") || params.get("store") || "").toLowerCase();
+    var list = (tienda && STORE_FILES[tienda]) ? STORE_FILES[tienda] : null;
+
+    try{
+      var fx = await fetch("/.netlify/functions/exchange-rate");
+      var fxd = fx.ok ? await fx.json() : null;
+      if (fxd && typeof fxd.venta === "number") FX_RATE = fxd.venta;
+    }catch(e){}
+
+    async function hunt(fileList){
+      var got = await Promise.all(fileList.map(fetchOne));
+      var all = [].concat.apply([], got);
+      var w = norm(want);
+      return all.find(function(p){ return norm(p.name) === w; })
+          || all.find(function(p){ return norm(p.name).indexOf(w) === 0; })
+          || all.find(function(p){ return w.length > 8 && norm(p.name).indexOf(w) >= 0; })
+          || null;
+    }
+
+    var found = list ? await hunt(list) : null;
+    /* The fast path missed, so pay for the slow one rather than lie. */
+    if (!found) found = await hunt(CATALOG_FILES);
+    if (!found){ fail("No encontramos \u201c" + want + "\u201d en el catálogo. Puede que ya no esté disponible."); return; }
+    render(found);
   }catch(e){ fail("Ocurrió un error inesperado."); }
 })();
+
 </script></main>
 <footer>
 <a href="https://ariashop.pe/">Aria Shop</a> · 

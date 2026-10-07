@@ -10799,17 +10799,56 @@ function detectBrandIntent(rawToks, pool, opts){
      that is small by definition, and failing open here would quietly
      put the brand hijack back for every such caller. */
   let adhocWords = null;
-  const poolKnows = (tok) => {
-    if (windex){ const l = windex.get(tok); return !!(l && l.length); }
+  const wordUses = (tok) => {
+    if (windex){ const l = windex.get(tok); return l ? l.length : 0; }
     if (!adhocWords){
-      adhocWords = new Set();
+      adhocWords = new Map();
       for (const it of (pool || [])){
         const ws = it && (it._wordSet
           || (typeof catalogWordsOf === 'function' ? catalogWordsOf(it) : null));
-        if (ws) for (const word of ws) adhocWords.add(word);
+        if (ws) for (const word of ws) adhocWords.set(word, (adhocWords.get(word) || 0) + 1);
       }
     }
-    return adhocWords.has(tok);
+    return adhocWords.get(tok) || 0;
+  };
+  const poolKnows = (tok) => wordUses(tok) > 0;
+  /* ============================================================
+     A ONE-PRODUCT "BRAND" NAMED AFTER A WHOLE CATEGORY IS NOT A
+     BRAND.
+
+     Danger: searching "maquillaje" translates to "makeup", and the
+     catalogue contains a brand literally called Makeup — one Costco
+     washcloth set whose scraped brand field held a category label.
+     An EXACT brand hit hard-constrains the search, so the whole of
+     makeup became that one washcloth.
+
+     The fuzzy guard below cannot help: this match is exact.
+
+     What separates the two is whether the brand OWNS the word.
+     Measured over the live pool as brand products / products
+     containing the word:
+
+       real brands   nike .84  adidas .93  beats .75  gucci .98
+                     crocs 1.0  skims 1.0  gymshark 1.0  venum .99
+       artifacts     makeup .009, and 309 more — secret, logo, day,
+                     birthday, island, youth, xl, even "the"
+
+     Every real brand measured is at or above .75; every artifact is
+     at or below .01. There is no middle, so 0.2 sits in open space
+     an order of magnitude from either side — unlike the document
+     frequency floor tried for the fuzzy pass, which had no gap to
+     sit in and was thrown away.
+
+     Single-token windows only: "victoria secret" joins to a key that
+     is not a product word at all, so the question does not arise.
+     ============================================================ */
+  const BRAND_WORD_SHARE_MIN = 0.2;
+  const brandOwnsItsName = (w, hit) => {
+    if (!hit || w.idx.length !== 1) return true;
+    const tok = rawToks[w.idx[0]];
+    const uses = wordUses(tok);
+    if (!uses) return true;        /* the catalogue never uses it as a word */
+    return (hit.count / uses) >= BRAND_WORD_SHARE_MIN;
   };
   const knownProductWord = (w) => {
     if (w.idx.length !== 1) return false;
@@ -10833,7 +10872,7 @@ function detectBrandIntent(rawToks, pool, opts){
         const k = searchBrandKey(j);
         if (!k || k.length < 2) continue;
         const hit = vocab.get(k);
-        if (hit) return { key: k, label: hit.label, consumed: w.idx };
+        if (hit && brandOwnsItsName(w, hit)) return { key: k, label: hit.label, consumed: w.idx };
       }
     }
     let best = null;
@@ -22465,6 +22504,13 @@ const ES_EN_WORDS = {
   ballerina: "ballet flats",
   balerina: "ballet flats",
   chimpun: "soccer cleats",
+  /* GIFT WORDS. "regalo para mama" reached the ranker untranslated
+     and matched one product in the whole catalogue. "papa" is
+     deliberately NOT here: accents are stripped before this runs,
+     so papá (dad) and papa (potato) are the same string, and
+     guessing would be the quilla bug again. */
+  regalo: "gift",
+  mama: "mom",
   /* The same boot, the other half of the continent. The category
      intent regex already knew "guayos"; the dictionary did not, so
      the word reached the ranker untranslated and answered with shin
@@ -22625,9 +22671,44 @@ function translateQuery(raw) {
 
   // Phrases first, longest first: the phrase means what its words do not.
   const phrases = [...ES_EN_PHRASES].sort((a, b) => b[0].length - a[0].length);
+  /* ============================================================
+     WHOLE WORDS ONLY, AND THIS IS THE THERMOSTAT.
+
+     Danny: searching "maquillaje" returned a thermostat.
+
+     This loop used to ask `text.includes(es)` and then split/join on
+     it — a SUBSTRING replacement. "quilla" is in the table because a
+     surfboard fin is a quilla, and "maquillaje" contains it, so
+     makeup was rewritten as:
+
+         maquillaje  ->  "ma surfboard fin je"
+
+     That nonsense then fuzzy-matched the stocked brand Vine, a brand
+     hit hard-constrains the search, and Vine sells the TJ-225 Wi-Fi
+     programmable thermostat. Every step after the first was working
+     exactly as designed.
+
+     Three keys in the table are single words and could do this:
+     quilla, quillas and panales. The other 123 are multi-word and
+     were safe by accident, not by rule.
+
+     The boundary is written out rather than using \b because the
+     keys can contain spaces, and as a leading capture rather than a
+     lookbehind because lookbehind is still young in Safari and this
+     is a Peruvian shop on iPhones. */
+  const escapeRe = (t) => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   for (const [es, en] of phrases) {
-    if (text.includes(es)) {
-      text = text.split(es).join(` ${en} `);
+    /* THE KEY IS NORMALISED TOO. `text` has had its accents stripped
+       by normalizeQueryText; a key written with them never matched it.
+       "pañales" was the one entry this silently killed — diapers have
+       never translated — and normalising here means the next person to
+       add an accented key does not rediscover it. */
+    const key = normalizeQueryText(es);
+    if (!key) continue;
+    const re = new RegExp(`(^|[^a-z0-9])${escapeRe(key)}(?![a-z0-9])`, 'g');
+    if (re.test(text)) {
+      re.lastIndex = 0;
+      text = text.replace(re, (m, before) => `${before} ${en} `);
       hit = true;
     }
   }
@@ -38000,6 +38081,7 @@ async function startRealtimeVoiceOnce(){
   let mic = null, pc = null, dc = null;
   /* Reset per call, module-scoped so onRealtimeEvent can see it. */
   ariaRTGreeted = false;
+  ariaRTResponding = false;
   ariaRTGreetRetrying = false;
   ariaRTHeardAudio = false;
   ariaRTCheckedIn = false;
@@ -38319,11 +38401,53 @@ function endRealtimeCallIdle(why){
  * greeting for a day, and this path uses only shapes already proven
  * on this branch.
  */
+/* ==================================================================
+   ONE RESPONSE AT A TIME, OR SHE TALKS OVER HERSELF.
+
+   Danny: "She greets twice, overlapping herself."
+
+   Four places in this file send response.create — the greeting, a
+   cue, a typed message, and the reply after a tool result — and the
+   SERVER sends its own whenever its VAD decides a turn ended,
+   because turn_detection carries create_response: true. Nothing
+   knew whether one was already running.
+
+   Two responses generating at once are two voices at once. The
+   greeting is where it shows up most because a breath, a door, any
+   noise at connect time is enough for the server to decide the
+   shopper has spoken, and its response and ours then race.
+
+   `greeted` could not prevent this: it guards OUR greeting from
+   being sent twice, and says nothing about the server's.
+
+   So every response.create goes through here, and here refuses while
+   one is in flight. response.created opens the gate; response.done
+   closes it, whatever the outcome — a failed or cancelled response
+   must not wedge it shut.
+   ================================================================== */
+let ariaRTResponding = false;
+
+function askRealtimeResponse(send, why){
+  if (ariaRTResponding){
+    console.info('[aria] response.create suppressed — one is already running:', why);
+    tape('--', 'suppressed response.create: ' + why);
+    return false;
+  }
+  /* Set here rather than on response.created: the server's
+     confirmation is a round trip away, and two sends in the same
+     tick would both pass the check. Cleared by response.done, or by
+     the send failing outright. */
+  ariaRTResponding = true;
+  const sent = send({ type: 'response.create' });
+  if (!sent) ariaRTResponding = false;
+  return sent;
+}
+
 function cueRealtime(cue){
   if (!ariaRT) return false;
   const a = ariaRT.send({ type: 'conversation.item.create',
     item: { type: 'message', role: 'system', content: [{ type: 'input_text', text: cue }] } });
-  const b = ariaRT.send({ type: 'response.create' });
+  const b = askRealtimeResponse((o) => ariaRT.send(o), 'cue');
   return a && b;
 }
 
@@ -38431,7 +38555,7 @@ function speakIntoRealtime(text){
   ariaChatHistory.push({ role: 'user', content: text });
   ariaRT.send({ type: 'conversation.item.create',
     item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } });
-  ariaRT.send({ type: 'response.create' });
+  askRealtimeResponse((o) => ariaRT.send(o), 'typed message');
 }
 
 /**
@@ -38562,7 +38686,7 @@ function sendRealtimeGreeting(send, left){
      instead — the same instructions that demonstrably work, since her
      entire personality arrives through them. This event just asks her
      to take the first turn. */
-  const ok = send({ type: 'response.create' });
+  const ok = askRealtimeResponse(send, 'greeting');
   if (ok){
     /* FLAGGED ONLY ON SUCCESS. Setting it before the send meant a
        greeting dropped by a channel that was not open yet could never
@@ -38635,11 +38759,19 @@ async function onRealtimeEvent(event, turn, send){
       break;
     case 'response.created':
       console.info('[aria] response.created', event.response && event.response.id);
+      /* The server opens one of its own whenever its VAD decides a
+         turn ended, so this is also how we learn about responses we
+         did not ask for. */
+      ariaRTResponding = true;
       break;
 
     case 'response.done': {
       const st = event.response && event.response.status;
       console.info('[aria] response.done', event.response && event.response.id, 'status:', st);
+      /* OPENED AGAIN WHATEVER THE OUTCOME. A failed or cancelled
+         response that left the gate shut would mute her for the rest
+         of the call. */
+      ariaRTResponding = false;
       if (st === 'failed'){
         /* A response can fail on its own without an `error` event.
            This is where a malformed response.create surfaces, and it
@@ -38656,6 +38788,8 @@ async function onRealtimeEvent(event, turn, send){
          level next to the catalogue chatter. The greeting being
          silent while the call worked was exactly this. */
       console.error('[aria] realtime error:', JSON.stringify(event.error || null));
+      /* An error can kill a response without a response.done. */
+      ariaRTResponding = false;
       setOrbState('idle');
       break;
     default:
@@ -38680,8 +38814,13 @@ async function runRealtimeTool(event, send){
     type: 'conversation.item.create',
     item: { type: 'function_call_output', call_id: event.call_id, output: JSON.stringify(output) },
   });
-  /* The model does not speak again on its own after a tool result. */
-  send({ type: 'response.create' });
+  /* The model does not speak again on its own after a tool result.
+     This one is EXEMPT from the one-at-a-time gate: the tool result
+     belongs to the response that called the tool, which is still
+     open, so refusing here would leave the shopper with an answer
+     computed and never spoken. */
+  ariaRTResponding = false;
+  askRealtimeResponse(send, 'after tool result');
 }
 
 async function executeRealtimeTool(name, args){
@@ -39758,6 +39897,29 @@ initRouter();
         return true;
       }
     }
+    /* THE THREE ROUTES THIS OVERRIDE FORGOT.
+
+       It was written to send the SPA's broken interior views to
+       standalone pages, and it covers categoria, tienda, ofertas and
+       q. It never covered producto, categorias or tiendas — so those
+       three fell through to exactly the views its own comment calls
+       blank, and rendered a header and nothing else. Every product
+       card on the home page pointed at one of them. */
+    if(params.has('producto')){
+      var pn = params.get('producto');
+      var ps = params.get('tienda') || params.get('retailer') || '';
+      window.location.replace('/producto.html?producto=' + encodeURIComponent(pn)
+        + (ps ? '&tienda=' + encodeURIComponent(ps) : ''));
+      return true;
+    }
+    if(params.has('categorias')){
+      window.location.replace('/categorias.html');
+      return true;
+    }
+    if(params.has('tiendas')){
+      window.location.replace('/tiendas.html');
+      return true;
+    }
     if(params.has('tienda')){
       window.location.replace('/tienda.html?tienda=' + encodeURIComponent(params.get('tienda')));
       return true;
@@ -39812,6 +39974,16 @@ initRouter();
   // Override openAriaAuto
   window.openAriaAuto = function(sourceKey){
     window.location.href = '/auto.html';
+  };
+  /* AND THE CLICK PATH FOR PRODUCTS. Tapping a card called
+     showProduct(), which renders the SPA product view — the same view
+     the deep link could not render. The card and the URL now land in
+     the same place, which is the only way the two can agree. */
+  const _sp = window.showProduct;
+  window.showProduct = function(retailer, name){
+    if (!name){ if (_sp) return _sp.apply(this, arguments); return; }
+    window.location.href = '/producto.html?producto=' + encodeURIComponent(name)
+      + (retailer ? '&tienda=' + encodeURIComponent(retailer) : '');
   };
 })();
 </script>

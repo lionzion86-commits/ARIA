@@ -53,7 +53,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:16px}}
 @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
-.card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;
   display:flex;flex-direction:column;position:relative}
 .card-img{position:relative;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
 .card-img img{width:100%;height:100%;object-fit:contain;display:block}
@@ -435,7 +435,13 @@ function cardHTML(p){
   var img = realImage(p);
   var pct = discountPct(p);
   var brand = p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '';
-  return '<article class="card">' +
+  /* THE CARD IS A LINK NOW. It was an <article> with no href and no
+     handler — every deal on this page was dead to the touch. It
+     carries the store as well as the name so the product page can
+     read one catalogue instead of sixty-three. */
+  var href = 'producto.html?producto=' + encodeURIComponent(p.title || '')
+    + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
+  return '<a class="card" href="' + esc(href) + '">' +
     '<div class="card-img">' +
       '<span class="badge">-' + pct + '%</span>' +
       (img ? '<img src="' + esc(img) + '" alt="' + esc(p.title || 'Producto') + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' : '') +
@@ -450,7 +456,7 @@ function cardHTML(p){
       '<div class="price-pen" data-usd="' + esc(p.price) + '"' + (fxVenta ? '' : ' hidden') + '>' +
         (fxVenta ? 'S/ ' + (Number(p.price) * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) : '') +
       '</div></div>' +
-    '</div></article>';
+    '</div></a>';
 }
 function renderPenPrices(){
   if (!fxVenta) return;

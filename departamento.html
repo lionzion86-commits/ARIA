@@ -370,7 +370,12 @@
     var img = p.image
       ? '<img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;&gt;Sin imagen</span>\'">'
       : '<span class="noimg">Sin imagen</span>';
-    return '<article class="card">' + badge
+    /* THE CARD IS A LINK TO OUR PRODUCT PAGE. It was a bare <article>
+       with no href and no handler — every tile on every department
+       page was dead to the touch. */
+    var _href = 'producto.html?producto=' + encodeURIComponent(p.title || '')
+      + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
+    return '<a class="card" href="' + esc(_href) + '">' + badge
       + '<div class="card-img">' + img + '</div>'
       + '<div class="card-body">'
       + '<div class="card-retailer">' + esc(RET_LABELS[p.retailer] || p.retailer) + '</div>'
@@ -378,7 +383,7 @@
       + '<h3 class="card-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></h3>'
       + '<div class="card-price"><div class="price-usd">' + esc(fmtUSD(price)) + '</div>'
       + (pen ? '<div class="price-pen">' + esc(pen) + '</div>' : '')
-      + '</div></div></article>';
+      + '</div></div></a>';
   }
 
   /* ---------- filtering + rendering ---------- */

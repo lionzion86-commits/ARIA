@@ -373,7 +373,12 @@ function cardHTML(p){
   var link = p.url
     ? '<a class="cta" href="' + esc(p.url) + '" target="_blank" rel="noopener">Ver en tienda</a>'
     : "";
-  return '<article class="card">' +
+  /* THE CARD IS A LINK TO OUR PRODUCT PAGE. It was a bare <article>
+     with no href and no handler; the only way out was the external
+     "Ver en tienda" button, which leaves the shop. */
+  var _href = 'producto.html?producto=' + encodeURIComponent(p.name || '')
+    + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
+  return '<a class="card" href="' + esc(_href) + '">' +
     '<div class="img">' + img + "</div>" +
     '<div class="body">' +
       '<div class="brand">' + esc(p.brand || BRAND_LABEL) + "</div>" +
@@ -381,7 +386,7 @@ function cardHTML(p){
       (p.retailer ? '<div class="retailer">Vendido por ' + esc(p.retailer) + "</div>" : "") +
       '<div class="price">' + priceHTML(p) + "</div>" +
       link +
-    "</div></article>";
+    "</div></a>";
 }
 
 function renderEmpty(title, bodyHTML){
