@@ -384,7 +384,7 @@
       + '<div class="card-body">'
       + '<div class="card-retailer">' + esc(RET_LABELS[p.retailer] || p.retailer) + '</div>'
       + (p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '')
-      + '<h3 class="card-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></h3>'
+      + '<h3 class="card-title">' + esc(p.title) + '</h3>'
       + '<div class="card-price"><div class="price-usd">' + esc(fmtUSD(price)) + '</div>'
       + (pen ? '<div class="price-pen">' + esc(pen) + '</div>' : '')
       + '</div></div></a>';
