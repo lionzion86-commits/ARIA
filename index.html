@@ -34940,7 +34940,7 @@ function addAssistantProductCard(item, retailer){
   if (typeof ariaRT !== 'undefined' && ariaRT) noteRealtimeActivity();
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
+  card.onclick = () => { endRealtimeCallOnTap('tarjeta de producto'); toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
@@ -35630,6 +35630,7 @@ function addAssistantBrandOffer(brandKey, brandLabel, count){
   wrap.scrollTop = wrap.scrollHeight;
 }
 function goBrandFromChat(brandKey){
+  endRealtimeCallOnTap('marca');
   dismissAssistantForNavigation();
   continuousMode = false;
   assistantThinking = false;
@@ -35864,12 +35865,14 @@ function addAssistantSectionOffer(label, sub, action, key){
   wrap.scrollTop = wrap.scrollHeight;
 }
 function goStoreFromChat(storeKey){
+  endRealtimeCallOnTap('tienda');
   dismissAssistantForNavigation();
   continuousMode = false;
   assistantThinking = false;
   openStore(storeKey);
 }
 function goDeptFromChat(deptKey){
+  endRealtimeCallOnTap('sección');
   dismissAssistantForNavigation();
   continuousMode = false;
   assistantThinking = false;
@@ -38609,13 +38612,9 @@ function armOpeningNudge(){
 }
 
 /**
- * Any activity — speech from either side, or a tap, or a scroll —
- * means the line is still worth paying for.
- *
- * Danny's rule: only when BOTH the talking and the browsing go quiet
- * does the countdown start. So a shopper reading the cards she just
- * put up keeps the call alive, and a shopper who has walked away does
- * not.
+ * Voice activity — speech from either side, or her putting cards up —
+ * means the line is still worth paying for. Browsing is not (see
+ * endRealtimeCallOnTap): only the conversation keeps the meter running.
  */
 /* Is anything still happening on the line? A response being
    generated, her voice still playing, or a tool still working (that
@@ -38660,6 +38659,20 @@ function armRealtimeIdleTimers(){
   ariaRTMaxTimer = setTimeout(() => endRealtimeCallIdle('duración máxima'), CALL_MAX_MS);
 }
 
+/* A TAP MEANS SHE DELIVERED (2026-10-07, Danny). The moment he taps a
+   product, store, brand or section card she put up, the call ends --
+   no goodbye, no message, straight back to idle. Browsing what she
+   found is not a conversation, and it was the browsing that could run
+   the meter for half an hour. Want to keep asking? Tap the mic. */
+function endRealtimeCallOnTap(what){
+  if (typeof ariaRT === 'undefined' || !ariaRT) return;
+  const secs = Math.round((Date.now() - ariaRTStartedAt) / 1000);
+  console.info('[aria] ending the call — tocó', what, '| duration', secs + 's');
+  stopRealtimeVoice();
+  /* Back to idle: a tap mid-sentence must not leave the orb talking. */
+  setOrbState('idle');
+}
+
 /* HE CLOSED THE CHAT, SO THE CONVERSATION IS OVER. This is the case
    Danny described — she finds the Adidas, he goes to look at them —
    and the one that would otherwise bill for half an hour of browsing.
@@ -38668,23 +38681,10 @@ function endRealtimeCallIfPanelClosed(){
   if (ariaRT && !assistantOpen) endRealtimeCallIdle('cerró el chat');
 }
 
-/* BROWSING IS ACTIVITY. Tapping a card she just put up, adding to the
-   cart, scrolling the shelf — a shopper doing any of that is still in
-   the conversation even while neither of them is talking. Only when
-   the talking AND the browsing stop does the countdown run.
-
-   Registered once, cheap when no call is open: noteRealtimeActivity
-   returns immediately without a session. Scroll is throttled because
-   it fires continuously. */
-document.addEventListener('click', () => { if (ariaRT) noteRealtimeActivity(); }, { passive: true, capture: true });
-let ariaRTScrollAt = 0;
-document.addEventListener('scroll', () => {
-  if (!ariaRT) return;
-  const now = Date.now();
-  if (now - ariaRTScrollAt < 2000) return;
-  ariaRTScrollAt = now;
-  noteRealtimeActivity();
-}, { passive: true, capture: true });
+/* BROWSING IS NOT ACTIVITY (2026-10-07, Danny; reverses 2026-10-06).
+   Taps and scrolls used to keep the call alive, and scrolling alone
+   could run the meter for thirty minutes. Now only VOICE keeps it
+   open; tapping a card she put up ends it (endRealtimeCallOnTap). */
 
 /* …and the page going to the background, with a short grace so a
    notification banner does not hang up on him. */

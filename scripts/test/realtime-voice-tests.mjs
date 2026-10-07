@@ -2477,11 +2477,53 @@ check("a check-in comes before the hang-up, once", () => {
     "the cue carries per-response fields again");
   assert.match(cueBody, /return a && b;/, "the cue does not report whether it went out");
 
-  /* Browsing counts as activity — Danny: only when BOTH go quiet. */
-  assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
-    "tapping a product does not keep the call alive");
-  assert.match(page, /addEventListener\('scroll'/, "scrolling does not keep the call alive");
-  assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
+  /* BROWSING IS NOT ACTIVITY (Danny, 2026-10-07; reverses 10-06):
+     scrolling alone could run the meter for half an hour. Only voice
+     keeps the call open. */
+  assert.doesNotMatch(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
+    "a tap keeps the call alive again");
+  assert.doesNotMatch(page, /ariaRTScrollAt/, "scrolling keeps the call alive again");
+});
+
+check("tapping a card she put up ends the call, quietly", () => {
+  /* Danny, 2026-10-07: "a tap means the assistant delivered". Product,
+     store, brand and section cards all end the call at once -- no
+     goodbye, no message, back to idle. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const lift = (sig) => {
+    const at = page.indexOf(sig);
+    assert.ok(at > 0, "missing " + sig);
+    let d = 0;
+    for (let k = page.indexOf("{", at); k < page.length; k++){
+      if (page[k] === "{") d++;
+      else if (page[k] === "}" && --d === 0) return page.slice(at, k + 1);
+    }
+    throw new Error("unbalanced " + sig);
+  };
+  const exit = lift("function endRealtimeCallOnTap(what){");
+  const seen = [];
+  const run = (rt) => new Function("ariaRT", "ariaRTStartedAt", "console", "stopRealtimeVoice", "setOrbState",
+    "addAssistantMessage", "cueRealtime", exit + "\n return endRealtimeCallOnTap;")(
+      rt, Date.now(), { info(){} }, () => seen.push("stopped"), (s) => seen.push("orb:" + s),
+      () => seen.push("wrote"), () => seen.push("cued"))("tarjeta de producto");
+  run({ pc: {} });
+  assert.deepEqual(seen, ["stopped", "orb:idle"], "a tap did not end the call cleanly and quietly");
+  seen.length = 0;
+  run(null);
+  assert.deepEqual(seen, [], "a tap with no call open did something");
+  /* No goodbye, no written line. */
+  assert.doesNotMatch(exit, /addAssistantMessage|cueRealtime|CALL_BYE_LINE|showRealtimeIdleEnded/,
+    "the tap exit says goodbye -- Danny asked for none");
+
+  /* Every card in the chat goes through it, BEFORE navigating. */
+  assert.match(lift("function addAssistantProductCard(item, retailer){"),
+    /card\.onclick = \(\) => \{ endRealtimeCallOnTap\('tarjeta de producto'\); toggleAssistant\(\);/,
+    "tapping a product card leaves the call running");
+  for (const fn of ["goStoreFromChat(storeKey)", "goDeptFromChat(deptKey)", "goBrandFromChat(brandKey)"]){
+    const body = lift("function " + fn + "{");
+    assert.match(body, /^function [^{]+\{\s*\n\s*endRealtimeCallOnTap\(/,
+      `${fn} navigates without ending the call first`);
+  }
 });
 
 await checkAsync("the scoop is relevant by construction, and never invented", async () => {
@@ -4351,7 +4393,7 @@ check("a budget in soles is never searched as dollars", () => {
     "the dollars parameter does not warn against the confusion");
 });
 
-const MIN_CHECKS = 96;
+const MIN_CHECKS = 97;
 if (passed + failures.length < MIN_CHECKS){
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} checks ran, expected at least ${MIN_CHECKS}.`);
   console.log("  The file is probably truncated, or a check threw outside its harness.\n");
