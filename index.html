@@ -1382,6 +1382,13 @@
   @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+  /* RAIL EXPAND (2026-10-07): full-screen "Ver todo" grid. Cards render
+     via railCardHTML (fixed-width buttons); the grid overrides to fluid. */
+  #railExpandGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  #railExpandGrid > button{ width:100% !important; flex:none !important; }
+  #railExpandGrid > button > span:first-child{ height:auto !important; aspect-ratio:3/4; }
+  @media (min-width:640px){ #railExpandGrid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (min-width:1024px){ #railExpandGrid{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
   /* BRAND STRIP LOGOS (2026-09-26, Danny's QA: text-only tiles were
      unreadable as brands). Official logo SVGs live in logos/brands/,
      keyed by brandKeyOf(label). A brand with no sourced logo keeps the
@@ -6360,6 +6367,28 @@
 </div>
 
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
+
+<!-- ============ RAIL EXPAND OVERLAY (2026-10-07) ============ -->
+<!-- Full-screen "Ver todo" view for capped carousels: the rail's complete
+     sorted pool as a scrollable grid. iPhone-first. -->
+<div id="railExpandBackdrop" class="hidden fixed inset-0 z-[75]" role="dialog" aria-modal="true" aria-labelledby="railExpandTitle" style="background:var(--paper)">
+  <div class="railExpandScroll h-full overflow-y-auto">
+    <div class="sticky top-0 z-10" style="background:var(--paper);border-bottom:1px solid var(--line)">
+      <div class="max-w-6xl mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
+        <button type="button" onclick="closeRailExpand()" aria-label="Volver" class="w-10 h-10 shrink-0 rounded-full grid place-items-center focus-ring" style="background:#F1F3F7">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="min-w-0">
+          <h2 id="railExpandTitle" class="text-[17px] font-extrabold truncate" style="color:var(--navy)"></h2>
+          <div id="railExpandCount" class="text-[12px] font-semibold" style="color:#6B7487"></div>
+        </div>
+      </div>
+    </div>
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <div id="railExpandGrid"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ AUTH MODAL ============ -->
 <!-- Real email/password signup + login (netlify/functions/auth-signup.js
@@ -12791,6 +12820,8 @@ function paintCategoryRail(row){
    (categoryRailPicks / storeRailPicks) and one card (railCardHTML, brand
    + store on every card) -- the same pieces the front page uses. */
 let deptRailsRendered = {}; // railId -> picks
+let deptRailPools = {}; // railId -> full sorted pool ("Ver todo" expand)
+let railExpandTitles = {}; // railId -> overlay title
 
 function openDeptRailProduct(railId, idx){
   const p = (deptRailsRendered[railId] || [])[idx];
@@ -12801,14 +12832,71 @@ function openDeptRailProduct(railId, idx){
     { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
 }
 
+/* RAIL EXPAND (2026-10-07, Danny): every capped carousel gets a "Ver todo"
+   door. Tapping it opens a full-screen overlay with the rail's COMPLETE
+   sorted pool -- not just the carousel picks. Same order as the rail,
+   scrollable grid, back button to close. iPhone-first. */
+function openRailExpand(railId){
+  try{
+    const pool = deptRailPools[railId];
+    const picks = deptRailsRendered[railId];
+    const list = (Array.isArray(pool) && pool.length) ? pool
+      : (Array.isArray(picks) ? picks : []);
+    const bd = document.getElementById('railExpandBackdrop');
+    if (!bd) return;
+    const titleEl = document.getElementById('railExpandTitle');
+    const countEl = document.getElementById('railExpandCount');
+    const grid = document.getElementById('railExpandGrid');
+    if (titleEl) titleEl.textContent = railExpandTitles[railId] || 'Productos';
+    if (countEl) countEl.textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    if (grid){
+      grid.innerHTML = list.map((p, i) => railCardHTML(p,
+        `openRailExpandProduct('${jsAttr(railId)}',${i})`,
+        `data-rail-expand-card="${escapeHtml(railId)}" data-idx="${i}"`, {})).join('');
+    }
+    bd.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const sc = bd.querySelector('.railExpandScroll');
+    if (sc) sc.scrollTop = 0;
+  }catch(e){}
+}
+function closeRailExpand(){
+  try{
+    const bd = document.getElementById('railExpandBackdrop');
+    if (bd) bd.classList.add('hidden');
+    document.body.style.overflow = '';
+  }catch(e){}
+}
+function openRailExpandProduct(railId, idx){
+  const p = (deptRailPools[railId] || deptRailsRendered[railId] || [])[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
+}
+
 function deptRailSectionHTML(railId, ariaLabel, headHTML, picks, opts){
   if (!Array.isArray(picks) || !picks.length) return '';
+  opts = opts || {};
   deptRailsRendered[railId] = picks;
+  railExpandTitles[railId] = ariaLabel;
+  /* "Ver todo" door: when the caller passes the rail's full sorted pool,
+     the head gets a door into the full-screen expand overlay. Rails that
+     already have their own door (store rails -> "Ver tienda") skip it by
+     simply not passing fullList. */
+  const fullList = (Array.isArray(opts.fullList) && opts.fullList.length) ? opts.fullList : null;
+  if (fullList) deptRailPools[railId] = fullList;
+  const cardOpts = {};
+  for (const k in opts){ if (k !== 'fullList') cardOpts[k] = opts[k]; }
   const cards = picks.map((p, i) => railCardHTML(p,
     `openDeptRailProduct('${jsAttr(railId)}',${i})`,
-    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
+    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, cardOpts)).join('');
+  const door = (fullList && !opts.noExpandDoor)
+    ? `<button type="button" onclick="openRailExpand('${jsAttr(railId)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>`
+    : '';
   return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">
-    <div class="flex items-center justify-between gap-3 mb-3">${headHTML}</div>
+    <div class="flex items-center justify-between gap-3 mb-3">${headHTML}${door}</div>
     <div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div>
   </section>`;
 }
@@ -12844,7 +12932,7 @@ function surfSkateDeptRailsHTML(byRetailer){
       { demoteSockSales: true })
     .filter(isSale);
   blocks.push(deptRailSectionHTML('ss-ofertas', 'Ofertas en Surf & Skate',
-    deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos por tienda'), ofertas));
+    deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos por tienda'), ofertas, { fullList: merchSort(all.filter(isSale)) }));
   /* SALES-ONLY BROWSE (2026-10-03, Danny): the full-price "everything
      the markdown rail did not take" rail is gone -- browse blasts
      sales only. */
@@ -12995,14 +13083,14 @@ function motosDeptRailsHTML(items){
   if (helmets.length >= MOTO_TYPE_RAIL_MIN){
     const picks = categoryRailPicks(retailerKeys, helmets, helmets, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (picks.length) blocks.push(deptRailSectionHTML('motos-helmets', 'Cascos para moto',
-      deptMixedRailHeadHTML('Cascos', helmets.length + ' cascos'), picks));
+      deptMixedRailHeadHTML('Cascos', helmets.length + ' cascos'), picks, { fullList: helmets }));
   }
   /* Then everything on sale, biggest discount first. */
   const onSale = list.filter(rawItemOnSale).filter(it => motoTypeOf(it) !== 'helmets');
   if (onSale.length >= MOTO_TYPE_RAIL_MIN){
     const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (picks.length) blocks.push(deptRailSectionHTML('motos-sale', 'Motos en oferta',
-      deptMixedRailHeadHTML('En oferta', onSale.length + ' productos con descuento'), picks));
+      deptMixedRailHeadHTML('En oferta', onSale.length + ' productos con descuento'), picks, { fullList: onSale }));
   }
   /* Then one rail per moto type. CHEAP-FIRST (2026-10-01, Danny):
      Peruvians buy the affordable gear first — cheapest helmets lead,
@@ -13019,7 +13107,7 @@ function motosDeptRailsHTML(items){
     const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('motos-type-' + gkey, 'Motos ' + glabel,
-      deptMixedRailHeadHTML(glabel, aisle.length + ' ' + gsub), picks));
+      deptMixedRailHeadHTML(glabel, aisle.length + ' ' + gsub), picks, { fullList: aisle }));
   }
   return blocks.join('');
 }
@@ -13307,7 +13395,7 @@ function deptRetailerGearCarouselsHTML(items, sectionKey){
     if (picks && picks.length >= 4){
       var label = useLabel ? carouselCityStoreLabel(key) : (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'Tienda');
       blocks.push(deptRailSectionHTML('gear-' + sectionKey + '-' + key, label,
-        deptMixedRailHeadHTML(label, byStore[key].length + ' modelos'), picks));
+        deptMixedRailHeadHTML(label, byStore[key].length + ' modelos'), picks, { fullList: pool }));
     }
   }
   return blocks.join('');
@@ -13356,7 +13444,7 @@ function deptBrandCarouselsHTML(items, sectionKey){
           "brandRoomBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", deptLabel));
       } else {
         blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
-          deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+          deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks, { fullList: pool }));
       }
     }
   }
@@ -13616,7 +13704,7 @@ function brandCarouselsHTML(sectionKey, list, opts){
     const stores = new Set(pool.map(p => String(p.retailer || '').toLowerCase())).size;
     const sub = carouselCityModelos(pool.length) + (stores > 1 ? ' · ' + stores + ' tiendas' : '');
     blocks.push(deptRailSectionHTML(idp + '-brand-' + carouselCitySlug(b), b,
-      heads.railHead(b, sub, b), picks, { xl: true }));
+      heads.railHead(b, sub, b), picks, { xl: true, fullList: merchSort(pool) }));
   }
   /* SALES-ONLY BROWSE (2026-10-03): no brand had a sale -- the axis
      header stands down rather than standing over empty rails. */
@@ -13647,7 +13735,7 @@ function masMarcasHTML(sectionKey, list, opts){
   const label = (typeof opts.masMarcasLabel === 'string' && opts.masMarcasLabel) || 'Más marcas';
   const sub = tailBrands.length + ' marcas · ' + carouselCityModelos(pool.length);
   return deptRailSectionHTML(idp + '-brand-more', label,
-    heads.railHead(label, sub, ''), picks, { xl: true });
+    heads.railHead(label, sub, ''), picks, { xl: true, fullList: pool });
 }
 
 /* AXIS 2 — POR TIENDA: one carousel per retailer, below the brands.
@@ -13706,7 +13794,7 @@ function categoryCarouselsHTML(sectionKey, list, opts){
     if (!picks.length) continue;
     const sub = carouselCityModelos(e.pool.length) + (e.d.sub ? ' · ' + e.d.sub : '');
     blocks.push(deptRailSectionHTML(idp + '-cat-' + carouselCitySlug(e.d.key), e.d.label,
-      heads.railHead(e.d.label, sub, ''), picks, { xl: true }));
+      heads.railHead(e.d.label, sub, ''), picks, { xl: true, fullList: merchSort(e.pool) }));
   }
   return blocks.join('');
 }
@@ -13736,7 +13824,7 @@ function carouselCityRailsHTML(sectionKey, items, opts){
       if (picks.length){
         const label = (typeof opts.ofertasLabel === 'string' && opts.ofertasLabel) || 'Ofertas';
         blocks.push(deptRailSectionHTML(idp + '-ofertas', label,
-          heads.railHead(label, onSale.length + ' con descuento real', ''), picks));
+          heads.railHead(label, onSale.length + ' con descuento real', ''), picks, { fullList: onSale }));
       }
     }
   }
@@ -13914,13 +14002,13 @@ function clothingDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('clothing-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return clothingIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('clothing-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14097,7 +14185,7 @@ function curvyDeptRailsHTML(items){
   var sales = valid.filter(function(p){ return curvyIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas Curvy',
-      deptMixedRailHeadHTML('Ofertas Curvy', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas Curvy', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   /* 2. ONE CAROUSEL PER STORE -- lead stores first, then biggest. */
@@ -14127,7 +14215,7 @@ function curvyDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('curvy-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), curvyPicks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), curvyPicks(thin, null), { fullList: merchSort(thin) }));
   }
 
   return out.join('');
@@ -14289,13 +14377,13 @@ function kidsDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('kids-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return kidsIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('kids-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14457,13 +14545,13 @@ function menDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('men-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return menIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('men-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14633,13 +14721,13 @@ function womenDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('women-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return womenIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('women-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14872,7 +14960,7 @@ function pursesDeptRailsHTML(items){
     var salePicks = categoryRailPicks(_swKeys, onSale, onSale, noKeys, railTotal, { saleHeavy: true });
     if (salePicks.length)
       blocks.push(deptRailSectionHTML('purses-sale', 'Carteras en oferta',
-        deptMixedRailHeadHTML('En oferta', onSale.length + ' carteras con descuento'), salePicks));
+        deptMixedRailHeadHTML('En oferta', onSale.length + ' carteras con descuento'), salePicks, { fullList: merchSort(onSale) }));
   }
 
   /* 3) One rail per bag type, sale-led within the type. */
@@ -14898,7 +14986,7 @@ function pursesDeptRailsHTML(items){
     var picks = categoryRailPicks(_swKeys2, aisle, aisle, noKeys, railTotal);
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('purses-type-' + group.key, 'Carteras ' + group.label,
-      deptMixedRailHeadHTML(group.label, aisle.length + ' carteras'), picks));
+      deptMixedRailHeadHTML(group.label, aisle.length + ' carteras'), picks, { fullList: merchSort(aisle) }));
   }
   return blocks.join('');
 }
@@ -15043,7 +15131,7 @@ function booksDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('bk-ofertas', 'Ofertas en Libros',
-        deptMixedRailHeadHTML('Ofertas en Libros', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Libros', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15146,7 +15234,7 @@ function candyChocolateDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('cc-ofertas', 'Ofertas en Dulces y Chocolates',
-        deptMixedRailHeadHTML('Ofertas en Dulces y Chocolates', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Dulces y Chocolates', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15249,7 +15337,7 @@ function electronicsDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('elec-ofertas', 'Ofertas en Electr\u00f3nica',
-        deptMixedRailHeadHTML('Ofertas en Electr\u00f3nica', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Electr\u00f3nica', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15352,7 +15440,7 @@ function homeDecorDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('hd-ofertas', 'Ofertas en Decoraci\u00f3n',
-        deptMixedRailHeadHTML('Ofertas en Decoraci\u00f3n', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Decoraci\u00f3n', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15455,7 +15543,7 @@ function homeGoodsDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('hg-ofertas', 'Ofertas en Hogar',
-        deptMixedRailHeadHTML('Ofertas en Hogar', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Hogar', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15562,7 +15650,7 @@ function mensGroomingDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('mg-ofertas', 'Ofertas en Cuidado Masculino',
-        deptMixedRailHeadHTML('Ofertas en Cuidado Masculino', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Cuidado Masculino', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15714,7 +15802,7 @@ function partyDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('ap-ofertas', 'Ofertas en Aria Party',
-        deptMixedRailHeadHTML('Ofertas en Aria Party', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Aria Party', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15822,7 +15910,7 @@ function autoPartsDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('auto-parts-ofertas', 'Ofertas Repuestos', saleHead, salePicks);
+    html += deptRailSectionHTML('auto-parts-ofertas', 'Ofertas Repuestos', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -15917,7 +16005,7 @@ function combatSportsDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('combat-sports-ofertas', 'Ofertas Fight Club', saleHead, salePicks);
+    html += deptRailSectionHTML('combat-sports-ofertas', 'Ofertas Fight Club', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16013,7 +16101,7 @@ function gymRatDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('gym-rat-ofertas', 'Ofertas Gym Rat', saleHead, salePicks);
+    html += deptRailSectionHTML('gym-rat-ofertas', 'Ofertas Gym Rat', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16114,7 +16202,7 @@ function soccerDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('soccer-ofertas', 'Ofertas F\u00fatbol', saleHead, salePicks);
+    html += deptRailSectionHTML('soccer-ofertas', 'Ofertas F\u00fatbol', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16206,7 +16294,7 @@ function spearfishingDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('spearfishing-ofertas', 'Ofertas Pesca Submarina', saleHead, salePicks);
+    html += deptRailSectionHTML('spearfishing-ofertas', 'Ofertas Pesca Submarina', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16299,7 +16387,7 @@ function sportingGoodsDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('sporting-goods-ofertas', 'Ofertas Deportes', saleHead, salePicks);
+    html += deptRailSectionHTML('sporting-goods-ofertas', 'Ofertas Deportes', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16444,7 +16532,7 @@ function tennisDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('tennis-ofertas', 'Ofertas Tenis', saleHead, salePicks);
+    html += deptRailSectionHTML('tennis-ofertas', 'Ofertas Tenis', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16463,7 +16551,7 @@ function shoesDeptRailsHTML(items){
   if (onSale.length >= SHOES_TYPE_RAIL_MIN){
     const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL);
     if (picks.length) blocks.push(deptRailSectionHTML('shoes-sale', 'Zapatos en oferta',
-      deptMixedRailHeadHTML('En oferta', onSale.length + ' pares con descuento'), picks));
+      deptMixedRailHeadHTML('En oferta', onSale.length + ' pares con descuento'), picks, { fullList: merchSort(onSale) }));
   }
   /* Then one rail per shoe type, sale-led within the type. */
   for (const g of SHOE_TYPE_GROUPS){
@@ -16472,7 +16560,7 @@ function shoesDeptRailsHTML(items){
     const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('shoes-type-' + g.key, 'Zapatos ' + g.label,
-      deptMixedRailHeadHTML(g.label, aisle.length + ' pares'), picks));
+      deptMixedRailHeadHTML(g.label, aisle.length + ' pares'), picks, { fullList: merchSort(aisle) }));
   }
   return blocks.join('');
 }
@@ -16487,7 +16575,7 @@ function jewelryDeptRailsHTML(items){
     const picks = categoryRailPicks(_swKeys, aisle, aisle, new Set(), CATEGORY_RAIL_TOTAL);
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('jewelry-theme-' + theme.key, theme.label,
-      deptMixedRailHeadHTML(theme.label, aisle.length + ' productos'), picks));
+      deptMixedRailHeadHTML(theme.label, aisle.length + ' productos'), picks, { fullList: merchSort(aisle) }));
   }
   return blocks.join('');
 }
@@ -18713,11 +18801,16 @@ function brandRoomBrandFilter(brand){
 function brandRoomDeptSectionHTML(railId, ariaLabel, spec, pool, picks, onclickJs, kicker, opts){
   if (!Array.isArray(picks) || !picks.length) return '';
   deptRailsRendered[railId] = picks;
+  railExpandTitles[railId] = ariaLabel;
+  if (Array.isArray(pool) && pool.length) deptRailPools[railId] = pool;
   const cards = picks.map((p, i) => railCardHTML(p,
     `openDeptRailProduct('${jsAttr(railId)}',${i})`,
     `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
   const banner = brandRoomBannerHTML(spec, pool, { kicker: kicker, onclick: onclickJs });
-  return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">${banner}<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div></section>`;
+  const door = (Array.isArray(pool) && pool.length)
+    ? `<div class="flex justify-end mt-2"><button type="button" onclick="openRailExpand('${jsAttr(railId)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button></div>`
+    : '';
+  return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">${banner}<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div>${door}</section>`;
 }
 
 
@@ -19833,7 +19926,7 @@ function toysDeptRailsHTML(items){
           "toysBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", 'Juguetes'));
       } else {
         blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
-          deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
+          deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks, { fullList: pool }));
       }
     }
   });
@@ -19847,7 +19940,7 @@ function toysDeptRailsHTML(items){
     });
     var salePicks = categoryRailPicks(retailerKeys, byDisc, byDisc, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
     if (salePicks.length) blocks.push(deptRailSectionHTML('toys-ofertas', 'Juguetes en oferta',
-      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), salePicks));
+      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), salePicks, { fullList: byDisc }));
   }
   return blocks.join('');
 }
