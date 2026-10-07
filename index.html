@@ -28,6 +28,8 @@
 <link rel="icon" type="image/png" href="assets/aria-orb-pixar-64.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Ropa Interior y Medias: the department rules the homepage shelf shares with ropa-interior.html. -->
+<script src="ropa-interior-engine.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
 <style>
   @keyframes blink{50%{opacity:0}}
@@ -12630,6 +12632,14 @@ const CATEGORY_RAILS = [
     blurb: 'Cuidado masculino: body wash, afeitado y más.',
     test: (p) => railBucketCategoryIs(p, 'mens_grooming'),
     open: "openCatalog('department','mens_grooming')" },
+  /* ROPA INTERIOR Y MEDIAS (2026-10-07, Danny): men's underwear and
+     socks. The rules are ropa-interior-engine.js -- the same file that
+     builds the department's feed -- so this shelf and the department
+     page can never disagree. The door is the department's own page. */
+  { key: 'ropa_interior', label: 'Ropa Interior y Medias', icon: '', stores: null, poolOnly: true, saleHeavy: true,
+    blurb: 'Lo esencial, de las mejores marcas de USA.',
+    test: (p) => !!(window.AriaRopaInterior && window.AriaRopaInterior.classify(p, p.retailer, (p.departments || [])[0] || '')),
+    open: "location.href='/ropa-interior.html'" },
 ];
 /* Tab order on the pills (2026-09-27, Danny): Mama's Fashion is second-in-command
    (right after the Ofertas section), then Aria Fight Club, then Surf &
@@ -12637,12 +12647,14 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'ropa_interior', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* DANNY 2026-10-02 QA: the "L" letter pill looked terrible. Sleek gold
    wayfarer SVG for Lentes de Sol -- fashionable, not emoji, not clip-art. */
 const CATEGORY_SVG_ICONS = {
+  /* A crew sock, gold line art -- the pill never falls back to a letter or an emoji. */
+  ropa_interior: `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#F4C463" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v8.5l3.6 3.4a3 3 0 0 1-.1 4.4l-.4.3a3 3 0 0 1-4 0L9 14.6V3z"/><path d="M9 6.5h6"/></svg>`,
   sunglasses: `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#F4C463" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 9.2l1.1 5.9c.14.75.78 1.25 1.53 1.25h3.3c.75 0 1.39-.5 1.53-1.25L11.4 9.2H3.2z"/><path d="M20.8 9.2l-1.1 5.9c-.14.75-.78 1.25-1.53 1.25h-3.3c-.75 0-1.39-.5-1.53-1.25l-.7-5.9h8.2z"/><path d="M11.4 9.7c.2-.8 1-.8 1.2 0"/><path d="M3.2 9.2L2 7.4M20.8 9.2L22 7.4"/></svg>`,
 };
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -39879,6 +39891,7 @@ initRouter();
   // Department → standalone page mapping
   function deptUrl(key){
     if(key === 'motos') return '/motos.html';
+    if(key === 'ropa_interior') return '/ropa-interior.html';
     if(key === 'sale') return '/ofertas.html';
     if(key === 'latino_designers') return '/disenadores.html';
     return '/departamento.html?dept=' + encodeURIComponent(key);
