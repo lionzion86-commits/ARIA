@@ -31,7 +31,10 @@ a:hover{text-decoration:underline;}
 
 /* Main */
 main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px;}
-.brand-hero{text-align:center; margin:8px 0 22px; padding:32px 20px; background:linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%); border-radius:20px; color:#fff;}
+.brand-hero{position:relative; overflow:hidden; text-align:center; margin:8px 0 22px; padding:48px 20px; background:linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%); border-radius:20px; color:#fff;}
+.brand-hero .hero-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center;}
+.brand-hero .hero-scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,20,40,.55) 0%, rgba(10,20,40,.75) 100%);}
+.brand-hero .hero-content{position:relative; z-index:1;}
 .brand-hero .kicker{font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--gold); font-weight:700; margin-bottom:8px;}
 .brand-hero h1{font-size:clamp(28px,5vw,42px); font-weight:800; letter-spacing:-0.02em;}
 .brand-hero p{color:#B9C6E4; font-size:14px; margin-top:8px;}
@@ -111,9 +114,13 @@ footer a{color:#fff;}
 
 <main>
   <div class="brand-hero" id="brandHero">
-    <div class="kicker">Marca</div>
-    <h1 id="brandName">Cargando…</h1>
-    <p id="brandSub">Buscando productos en tiendas de EE.&nbsp;UU.</p>
+    <img class="hero-bg" id="brandHeroBg" alt="" aria-hidden="true" hidden>
+    <div class="hero-scrim" id="brandHeroScrim" hidden></div>
+    <div class="hero-content">
+      <div class="kicker">Marca</div>
+      <h1 id="brandName">Cargando…</h1>
+      <p id="brandSub">Buscando productos en tiendas de EE.&nbsp;UU.</p>
+    </div>
   </div>
 
   <div class="progress" id="progress" hidden><div id="progressBar"></div></div>
@@ -577,6 +584,18 @@ async function init(){
     if (heroName) heroName.textContent = BRAND_LABEL;
     if (heroSub) heroSub.textContent = BRAND_PRODUCTS.length.toLocaleString("es-PE") +
       " productos en tiendas de EE. UU.";
+    /* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop from assets/brands/ */
+    try{
+      var _heroKey = (BRAND_KEY||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      var _heroImg = document.getElementById('brandHeroBg');
+      var _heroScrim = document.getElementById('brandHeroScrim');
+      if (_heroImg){
+        _heroImg.src = 'assets/brands/' + _heroKey + '-hero.jpg';
+        _heroImg.hidden = false;
+        if (_heroScrim) _heroScrim.hidden = false;
+        _heroImg.onerror = function(){ _heroImg.hidden = true; if(_heroScrim) _heroScrim.hidden = true; };
+      }
+    }catch(_e){}
     try{ document.title = BRAND_LABEL + " — Aria Shop"; }catch(e){}
 
     if (!BRAND_PRODUCTS.length){
