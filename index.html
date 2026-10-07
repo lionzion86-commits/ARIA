@@ -34936,6 +34936,8 @@ function finishTtsPipeline(st, reply, doneAudio){
 
 function addAssistantProductCard(item, retailer){
   assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
+  /* Cards going up mid-call are the conversation, not silence. */
+  if (typeof ariaRT !== 'undefined' && ariaRT) noteRealtimeActivity();
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
   card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
@@ -37546,11 +37548,22 @@ const CALL_DROP_GRACE_MS = 6000;
    ================================================================== */
 /* TWO STEPS, NOT ONE (2026-10-06, Danny). A call that just dies is
    rude; a call that asks once and then lets you go is a phone call.
-   20s of silence -> "¿Sigues ahí?". 15s more -> she signs off and
-   hangs up. The check-in fires once per silence, and any activity at
-   all resets both. */
-const CALL_CHECKIN_MS = 20000;
-const CALL_IDLE_MS = 35000;        /* total silence before she hangs up */
+   Silence -> "¿Sigues ahí?". More silence -> she signs off and hangs
+   up. The check-in fires once per silence, and any activity at all
+   resets both.
+
+   ONE KNOB (2026-10-07, Danny: cost control). CALL_SILENCE_TIMEOUT_MS
+   is the whole two-way silence, in ms, before the call ends itself;
+   the check-in lands two thirds of the way in. Tune this one line. */
+const CALL_SILENCE_TIMEOUT_MS = 30000;
+const CALL_CHECKIN_MS = Math.round(CALL_SILENCE_TIMEOUT_MS * 2 / 3);
+const CALL_IDLE_MS = CALL_SILENCE_TIMEOUT_MS;   /* total silence before she hangs up */
+/* The goodbye is never cut mid-sentence, but a model that keeps
+   talking cannot keep the meter running either: this is the most the
+   sign-off may hold the line open. */
+const CALL_EXIT_MAX_MS = 12000;
+/* What the shopper sees once the line is closed for silence. */
+const CALL_IDLE_STATUS = 'Sesión terminada por inactividad';
 /* After she is asked to sign off, the line closes whether or not the
    audio arrived — the timer, never her, is what guarantees it. */
 const CALL_EXIT_GRACE_MS = 4000;
@@ -37721,7 +37734,7 @@ const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófon
    instructions: a per-response `instructions` field is what silenced
    the greeting, so these ride a conversation item and a bare
    response.create — the shapes that are known to work. */
-const CUE_CHECKIN = '[El cliente lleva veinte segundos sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
+const CUE_CHECKIN = '[El cliente lleva un rato sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
 const CUE_BYE = '[La llamada se va a cerrar por silencio. Despídete en UNA frase cálida, sin apuro, ' +
   'y dile que si te necesita toque el micrófono y seguimos. No te disculpes.]';
 
@@ -38184,6 +38197,10 @@ async function startRealtimeVoiceOnce(){
   ariaRTCheckedIn = false;
   ariaRTSignedOff = false;
   ariaRTHeardSignOff = false;
+  ariaRTPlaying = false;
+  ariaRTToolsInFlight = 0;
+  ariaRTExitAt = 0;
+  ariaRTEndedIdle = false;
   ariaRTThresholdTold = false;
   ariaRTSplitTold = false;
   ariaRTScooped = new Set();
@@ -38314,6 +38331,7 @@ async function startRealtimeVoiceOnce(){
            before any server round trip, because that is the truth of
            what the microphone is doing. */
         if (action !== 'dropAudio') setRealtimeState('listening');
+        if (action === 'stopPlayback') ariaRTPlaying = false;
       }
       else if (action === 'playAudio'){
         sink.open();
@@ -38435,6 +38453,13 @@ let ariaRTIdleTimer = null, ariaRTMaxTimer = null, ariaRTHiddenTimer = null;
 let ariaRTCheckinTimer = null, ariaRTExitTimer = null;
 /* "¿Sigues ahí?" once per silence; cleared by any activity. */
 let ariaRTCheckedIn = false;
+/* TRUE TWO-WAY SILENCE ONLY (2026-10-07). Her audio is still coming
+   out of the speaker (WebRTC's output_audio_buffer.started/stopped),
+   and tools still running (a catalogue search putting cards up). */
+let ariaRTPlaying = false;
+let ariaRTToolsInFlight = 0;
+let ariaRTExitAt = 0;
+let ariaRTEndedIdle = false;
 let ariaRTOpeningTimer = null;
 let ariaRTSpoke = false;
 /* Store answers for this call. Static knowledge, so the same question
@@ -38478,14 +38503,28 @@ function endRealtimeCallIdle(why){
   /* Hand the audio route back so it doesn't outlive the call. */
   ariaSetAudioSession('auto');
     if (cueRealtime(CUE_BYE)){
+      ariaRTEndedIdle = true;
+      ariaRTExitAt = Date.now();
       ariaRTExitTimer = setTimeout(() => endRealtimeCallIdle('despedida terminada'), CALL_EXIT_GRACE_MS);
       return;
     }
   }
+  /* Her goodbye is still playing: let her finish the sentence, up to
+     CALL_EXIT_MAX_MS from the cue, then close regardless. */
+  if (why === 'despedida terminada' && realtimeCallBusy()
+      && Date.now() - ariaRTExitAt < CALL_EXIT_MAX_MS){
+    ariaRTExitTimer = setTimeout(() => endRealtimeCallIdle('despedida terminada'), 500);
+    return;
+  }
+  const idle = ariaRTEndedIdle || why === 'silencio';
   stopRealtimeVoice();
   /* The line he can read, always, written only after the
      live voice did not — otherwise he would hear it twice. */
   addAssistantMessage('bot', CALL_BYE_LINE, null, { speak: false });
+  /* Closed for silence: say so where the call bar was. The mic is
+     already off -- stopRealtimeVoice stopped its tracks -- and the
+     button is back to "Hablar con Aria". */
+  if (idle) showRealtimeIdleEnded();
   /* The goodbye was spoken by the old engine. There is no old engine;
      the live voice says it before the session closes, or it is text. */
 }
@@ -38578,18 +38617,39 @@ function armOpeningNudge(){
  * put up keeps the call alive, and a shopper who has walked away does
  * not.
  */
+/* Is anything still happening on the line? A response being
+   generated, her voice still playing, or a tool still working (that
+   is a search putting cards up). Silence is only silence when all
+   three are quiet. */
+function realtimeCallBusy(){
+  return !!(ariaRTResponding || ariaRTPlaying || ariaRTToolsInFlight > 0);
+}
+
 function noteRealtimeActivity(){
   if (!ariaRT) return;
+  /* Once she has been asked to sign off, only the shopper speaking
+     can call that off (see speech_started) -- her own goodbye is not
+     activity that keeps the call. */
+  if (ariaRTSignedOff) return;
   ariaRTCheckedIn = false;
   if (ariaRTCheckinTimer) clearTimeout(ariaRTCheckinTimer);
   if (ariaRTIdleTimer) clearTimeout(ariaRTIdleTimer);
   ariaRTCheckinTimer = setTimeout(() => {
     if (!ariaRT || ariaRTCheckedIn) return;
+    /* Mid-answer or mid-cards is not a lull: start the window over. */
+    if (realtimeCallBusy()){ noteRealtimeActivity(); return; }
     ariaRTCheckedIn = true;
     /* A check-in, not a warning: two words, no countdown, no UI. */
     cueRealtime(CUE_CHECKIN);
   }, CALL_CHECKIN_MS);
-  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
+  ariaRTIdleTimer = setTimeout(() => {
+    if (!ariaRT) return;
+    /* NEVER WHILE SHE IS TALKING OR SHOWING CARDS. The countdown
+       restarts from when she goes quiet (response.done and
+       output_audio_buffer.stopped both re-arm it). */
+    if (realtimeCallBusy()){ noteRealtimeActivity(); return; }
+    endRealtimeCallIdle('silencio');
+  }, CALL_IDLE_MS);
 }
 
 function armRealtimeIdleTimers(){
@@ -38662,6 +38722,38 @@ function speakIntoRealtime(text){
  * can tap to try again or keep typing. The old voice loop is reachable
  * only by someone who asks for it in the URL.
  */
+/* CLOSED FOR SILENCE, SAID PLAINLY (2026-10-07). The call bar stays up
+   a few seconds with a grey dot and "Sesión terminada por
+   inactividad", the mic already released and the button back to
+   "Hablar con Aria" -- so a shopper who comes back knows the line was
+   closed on purpose, not dropped. Then the panel returns to normal. A
+   new call (setRealtimeUi(true)) takes the bar back immediately. */
+let ariaRTIdleNoticeTimer = null;
+const CALL_IDLE_NOTICE_MS = 5000;
+function showRealtimeIdleEnded(){
+  const status = document.getElementById('assistantStatus');
+  const bar = document.getElementById('assistantCallBar');
+  const text = document.getElementById('assistantCallText');
+  const dot = document.getElementById('assistantCallDot');
+  const mute = document.getElementById('assistantMuteBtn');
+  const retry = document.getElementById('assistantRetryBtn');
+  if (status) status.textContent = CALL_IDLE_STATUS;
+  if (bar) bar.hidden = false;
+  if (dot) dot.style.background = '#9AA3B2';
+  if (text) text.textContent = CALL_IDLE_STATUS;
+  if (mute) mute.hidden = true;
+  if (retry) retry.hidden = true;
+  if (ariaRTIdleNoticeTimer) clearTimeout(ariaRTIdleNoticeTimer);
+  ariaRTIdleNoticeTimer = setTimeout(() => {
+    ariaRTIdleNoticeTimer = null;
+    if (ariaRT) return;                 /* a new call already owns the bar */
+    if (bar) bar.hidden = true;
+    if (dot) dot.style.background = 'var(--blue)';
+    if (text) text.textContent = 'En vivo';
+    if (status && status.textContent === CALL_IDLE_STATUS) status.textContent = 'Aquí para ayudarte a encontrar algo';
+  }, CALL_IDLE_NOTICE_MS);
+}
+
 function showRealtimeError(){
   const why = (ariaRTFailure && ariaRTFailure.reason) || 'no pude abrir la llamada';
   const detail = ariaRTFailure && ariaRTFailure.detail;
@@ -38831,6 +38923,26 @@ async function onRealtimeEvent(event, turn, send){
          the right silence to handle. */
       ariaRTSpoke = true;
       if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
+      /* He came back while she was saying goodbye: the call stays. */
+      if (ariaRTSignedOff){
+        if (ariaRTExitTimer){ clearTimeout(ariaRTExitTimer); ariaRTExitTimer = null; }
+        ariaRTSignedOff = false;
+        ariaRTEndedIdle = false;
+      }
+      noteRealtimeActivity();
+      break;
+    /* WebRTC only: when her audio actually starts and stops coming
+       out of the speaker. The transcript and response.done can finish
+       well before the last word is heard, so this is what tells the
+       silence timer she is still talking. */
+    case 'output_audio_buffer.started':
+      ariaRTPlaying = true;
+      noteRealtimeActivity();
+      break;
+    case 'output_audio_buffer.stopped':
+    case 'output_audio_buffer.cleared':
+      ariaRTPlaying = false;
+      /* She just went quiet: the silence window starts now. */
       noteRealtimeActivity();
       break;
     case 'conversation.item.input_audio_transcription.completed':
@@ -38869,6 +38981,8 @@ async function onRealtimeEvent(event, turn, send){
          response that left the gate shut would mute her for the rest
          of the call. */
       ariaRTResponding = false;
+      /* The silence window counts from the end of her answer. */
+      noteRealtimeActivity();
       if (st === 'failed'){
         /* A response can fail on its own without an `error` event.
            This is where a malformed response.create surfaces, and it
@@ -38887,6 +39001,7 @@ async function onRealtimeEvent(event, turn, send){
       console.error('[aria] realtime error:', JSON.stringify(event.error || null));
       /* An error can kill a response without a response.done. */
       ariaRTResponding = false;
+      ariaRTPlaying = false;
       setOrbState('idle');
       break;
     default:
@@ -38904,8 +39019,11 @@ async function runRealtimeTool(event, send){
   if (!parsed.ok){
     output = { error: parsed.error };
   } else {
+    /* A tool at work (a search putting cards up) is not silence. */
+    ariaRTToolsInFlight++;
     try { output = await executeRealtimeTool(event.name, parsed.args); }
     catch (e){ output = { unavailable: 'esa consulta se me trabó, déjame intentar de nuevo' }; }
+    finally { ariaRTToolsInFlight = Math.max(0, ariaRTToolsInFlight - 1); noteRealtimeActivity(); }
   }
   send({
     type: 'conversation.item.create',
@@ -39661,6 +39779,13 @@ function ariaRTMuted(){
 }
 
 function setRealtimeUi(live, muted){
+  /* A new call takes the bar back from the inactivity notice. */
+  if (live && typeof ariaRTIdleNoticeTimer !== 'undefined' && ariaRTIdleNoticeTimer){
+    clearTimeout(ariaRTIdleNoticeTimer);
+    ariaRTIdleNoticeTimer = null;
+    const dot = document.getElementById('assistantCallDot');
+    if (dot) dot.style.background = 'var(--blue)';
+  }
   const status = document.getElementById('assistantStatus');
   const micBtn = document.getElementById('assistantMicBtn');
   const bar = document.getElementById('assistantCallBar');

@@ -2049,7 +2049,8 @@ check("a call nobody is on does not stay open", () => {
   const page = readFileSync(ROOT + "index.html", "utf8");
 
   /* Four independent exits, because any one can be the one that fires. */
-  assert.match(page, /const CALL_IDLE_MS = \d+;/, "there is no silence timeout");
+  assert.match(page, /const CALL_SILENCE_TIMEOUT_MS = \d+;/, "there is no silence timeout");
+  assert.match(page, /const CALL_IDLE_MS = CALL_SILENCE_TIMEOUT_MS;/, "the hang-up does not follow the one silence knob");
   assert.match(page, /const CALL_HIDDEN_MS = \d+;/, "a backgrounded page keeps the call open");
   assert.match(page, /const CALL_MAX_MS = /, "there is no hard cap on call length");
   assert.match(page, /function endRealtimeCallIfPanelClosed\(\)/, "closing the chat keeps the call open");
@@ -2116,13 +2117,16 @@ check("a call nobody is on does not stay open", () => {
     "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
     "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
     "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    "ariaRTEndedIdle", "ariaRTExitAt", "realtimeCallBusy", "CALL_EXIT_MAX_MS", "showRealtimeIdleEnded",
+    "ariaSetAudioSession",
     body + "\n return endRealtimeCallIdle;")(
       opts.rt, opts.started, { info(){} },
       () => seen.push("stopped"),
       (role, text) => seen.push("wrote:" + text),
       "Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!",
       opts.signedOff, opts.heard, () => {}, () => opts.cueOk, null, 4000,
-      (f) => seen.push("scheduled"), "[cue]");
+      (f) => seen.push("scheduled"), "[cue]",
+      opts.endedIdle || false, 0, () => !!opts.busy, 12000, () => seen.push("idle-notice"), () => {});
   /* Reached a second time — after she has been asked to sign off —
      this is the one that actually closes the line. */
   mkExit({ rt: { pc: {} }, started: Date.now() - 60000, signedOff: true, heard: false, cueOk: true })("silencio");
@@ -2145,11 +2149,13 @@ check("a call nobody is on does not stay open", () => {
     "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
     "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
     "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    "ariaRTEndedIdle", "ariaRTExitAt", "realtimeCallBusy", "CALL_EXIT_MAX_MS", "showRealtimeIdleEnded",
+    "ariaSetAudioSession",
     body + "\n return endRealtimeCallIdle;")(
       { pc: {} }, Date.now(), { info(){} }, () => {},
       (role, text) => heardIt.push("wrote:" + text),
       "bye", true, true, () => {}, () => true, null, 4000,
-      () => {}, "[cue]")("silencio");
+      () => {}, "[cue]", false, 0, () => false, 12000, () => {}, () => {})("silencio");
   /* The written line still lands — it is the record he can read — but
      nothing speaks it a second time, because the engine that used to
      is deleted. */
@@ -2178,11 +2184,13 @@ check("a call nobody is on does not stay open", () => {
     "addAssistantMessage", "CALL_BYE_LINE", "ariaRTSignedOff",
     "ariaRTHeardSignOff", "clearRealtimeIdleTimers", "cueRealtime", "ariaRTExitTimer",
     "CALL_EXIT_GRACE_MS", "setTimeout", "CUE_BYE",
+    "ariaRTEndedIdle", "ariaRTExitAt", "realtimeCallBusy", "CALL_EXIT_MAX_MS", "showRealtimeIdleEnded",
+    "ariaSetAudioSession",
     body + "\n return endRealtimeCallIdle;")(
       { pc: {} }, Date.now() - 40000, { info(){} },
       () => signOff.push("stopped"), () => {}, "bye",
       false, false, () => {}, () => { signOff.push("cued"); return cueOk; }, null, 4000,
-      () => signOff.push("scheduled"), "[cue]");
+      () => signOff.push("scheduled"), "[cue]", false, 0, () => false, 12000, () => signOff.push("idle-notice"), () => {});
   mkFirst(true)("silencio");
   assert.ok(signOff.includes("cued"), "she is never asked to say goodbye");
   assert.ok(signOff.includes("scheduled"), "nothing guarantees the line closes after the goodbye");
@@ -2347,16 +2355,106 @@ check("the split is worked out in code, and an impossible one is admitted", () =
   assert.ok(!/dutiable/.test(JSON.stringify(five)), "the split payload leaks the dutiable base");
 });
 
+check("the silence shut-off fires only on true two-way silence", () => {
+  /* Danny, 2026-10-07: cost control. A forgotten call must end itself,
+     but never while she is mid-answer or putting cards up. Lifted from
+     the page and run against fake timers. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const lift = (sig) => {
+    const at = page.indexOf(sig);
+    assert.ok(at > 0, "missing " + sig);
+    let d = 0;
+    for (let k = page.indexOf("{", at); k < page.length; k++){
+      if (page[k] === "{") d++;
+      else if (page[k] === "}" && --d === 0) return page.slice(at, k + 1);
+    }
+    throw new Error("unbalanced " + sig);
+  };
+  const src = lift("function realtimeCallBusy(){") + "\n" + lift("function noteRealtimeActivity(){");
+  /* Busy at the deadline: no hang-up, the window starts over. */
+  for (const busy of [{ ariaRTResponding: true }, { ariaRTPlaying: true }, { ariaRTToolsInFlight: 1 }]){
+    const h = { S: { ariaRT: { pc: {} }, ariaRTSignedOff: false, ariaRTCheckedIn: false,
+      ariaRTCheckinTimer: null, ariaRTIdleTimer: null,
+      ariaRTResponding: false, ariaRTPlaying: false, ariaRTToolsInFlight: 0, ...busy } };
+    const fn2 = new Function("S", "setTimeout", "clearTimeout", "cueRealtime", "endRealtimeCallIdle",
+      "CALL_CHECKIN_MS", "CALL_IDLE_MS", "CUE_CHECKIN",
+      "let { ariaRT, ariaRTSignedOff, ariaRTCheckedIn, ariaRTCheckinTimer, ariaRTIdleTimer, ariaRTResponding, ariaRTPlaying, ariaRTToolsInFlight } = S;\n" +
+      src + "\n return noteRealtimeActivity;");
+    const timers = [], ended = [];
+    const note = fn2(h.S, (f, ms) => { const t = { f, ms }; timers.push(t); return t; }, () => {},
+      () => true, (w) => ended.push(w), 20000, 30000, "[c]");
+    note();
+    const idle = timers.find(t => t.ms === 30000);
+    assert.ok(idle, "activity does not arm the hang-up");
+    idle.f();
+    assert.equal(ended.length, 0, `the call hung up while ${Object.keys(busy)[0]} — mid-answer or mid-cards`);
+    assert.ok(timers.filter(t => t.ms === 30000).length >= 2, "a busy deadline did not restart the window");
+    /* The check-in is held off the same way: no cue while busy. */
+    const cuedBusy = [];
+    const note2 = fn2(h.S, (f, ms) => { const t = { f, ms }; timers.push(t); return t; }, () => {},
+      (c) => { cuedBusy.push(c); return true; }, () => {}, 20000, 30000, "[c]");
+    note2();
+    timers.filter(t => t.ms === 20000).pop().f();
+    assert.equal(cuedBusy.length, 0, "she asked \"¿sigues ahí?\" in the middle of her own answer");
+  }
+
+  /* True silence: it hangs up, through the graceful exit. */
+  {
+    const fn3 = new Function("setTimeout", "clearTimeout", "cueRealtime", "endRealtimeCallIdle",
+      "CALL_CHECKIN_MS", "CALL_IDLE_MS", "CUE_CHECKIN",
+      "let ariaRT = { pc: {} }, ariaRTSignedOff = false, ariaRTCheckedIn = false, ariaRTCheckinTimer = null, ariaRTIdleTimer = null, ariaRTResponding = false, ariaRTPlaying = false, ariaRTToolsInFlight = 0;\n" +
+      src + "\n return { note: noteRealtimeActivity, signOff: () => { ariaRTSignedOff = true; } };");
+    const timers = [], ended = [], cued = [];
+    const h = fn3((f, ms) => { const t = { f, ms }; timers.push(t); return t; }, () => {},
+      (c) => { cued.push(c); return true; }, (w) => ended.push(w), 20000, 30000, "[c]");
+    h.note();
+    timers.find(t => t.ms === 20000).f();
+    assert.deepEqual(cued, ["[c]"], "the check-in did not come first");
+    timers.find(t => t.ms === 30000).f();
+    assert.deepEqual(ended, ["silencio"], "true two-way silence did not end the call");
+    /* Her own goodbye is not activity that keeps the call. */
+    const before = timers.length;
+    h.signOff();
+    h.note();
+    assert.equal(timers.length, before, "her goodbye re-armed the silence timer and kept the call alive");
+  }
+
+  /* The exit: closed for silence shows the inactivity notice, the
+     goodbye is waited for (bounded), and he can cancel by speaking. */
+  const exit = lift("function endRealtimeCallIdle(why){");
+  assert.match(exit, /if \(idle\) showRealtimeIdleEnded\(\);/, "no inactivity state after a silence hang-up");
+  assert.match(exit, /realtimeCallBusy\(\)\s*\n?\s*&& Date\.now\(\) - ariaRTExitAt < CALL_EXIT_MAX_MS/,
+    "the line can close mid-goodbye, or wait on it forever");
+  assert.match(page, /const CALL_IDLE_STATUS = 'Sesión terminada por inactividad';/, "the inactivity line is missing");
+  const notice = lift("function showRealtimeIdleEnded(){");
+  assert.match(notice, /CALL_IDLE_STATUS/, "the notice does not say why the call ended");
+  /* Mic fully off: the exit goes through stopRealtimeVoice, which stops every track. */
+  assert.ok(exit.indexOf("stopRealtimeVoice()") < exit.indexOf("showRealtimeIdleEnded()"),
+    "the notice shows before the mic is released");
+  assert.match(lift("function stopRealtimeVoice(opts){"), /ariaRT\.mic\.getTracks\(\)\.forEach\(t => t\.stop\(\)\)/,
+    "ending the call does not release the microphone");
+  /* Speaking during her goodbye calls the hang-up off. */
+  assert.match(page, /if \(ariaRTSignedOff\)\{\s*\n\s*if \(ariaRTExitTimer\)\{ clearTimeout\(ariaRTExitTimer\); ariaRTExitTimer = null; \}/,
+    "he spoke during the goodbye and the call still hung up on him");
+  /* What keeps "busy" honest. */
+  assert.match(page, /case 'output_audio_buffer\.stopped':/, "nothing notices her audio actually stopping");
+  assert.match(page, /ariaRTToolsInFlight\+\+;/, "a running tool (cards going up) counts as silence");
+  assert.match(lift("function addAssistantProductCard(item, retailer){"), /noteRealtimeActivity\(\)/,
+    "cards going up mid-call do not count as activity");
+});
+
 check("a check-in comes before the hang-up, once", () => {
   /* Danny's flow: 20s -> "¿Sigues ahí?", 35s -> she signs off and the
      line closes. The check-in is a check-in, not a warning: two
      words, no countdown, no UI. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  assert.match(page, /const CALL_CHECKIN_MS = 20000;/, "there is no check-in step");
-  assert.match(page, /const CALL_IDLE_MS = 35000;/, "the hang-up is not at 35 seconds");
-  assert.ok(page.indexOf("CALL_CHECKIN_MS") > 0 &&
-    /CALL_CHECKIN_MS[\s\S]{0,40}\n?.*CALL_IDLE_MS = 35000/.test(page),
-    "the check-in is not before the hang-up");
+  /* ONE KNOB (2026-10-07): the whole silence is CALL_SILENCE_TIMEOUT_MS
+     (30s to start, Danny tunes it); the check-in is derived from it and
+     always lands before the hang-up. */
+  assert.match(page, /const CALL_SILENCE_TIMEOUT_MS = 30000;/, "the silence timeout is not 30 seconds");
+  assert.match(page, /const CALL_CHECKIN_MS = Math\.round\(CALL_SILENCE_TIMEOUT_MS \* 2 \/ 3\);/,
+    "the check-in is not derived from the one silence knob");
+  assert.match(page, /const CALL_IDLE_MS = CALL_SILENCE_TIMEOUT_MS;/, "the hang-up is not the one silence knob");
 
   const at = page.indexOf("function noteRealtimeActivity(){");
   const body = page.slice(at, page.indexOf("\n}", page.indexOf("ariaRTIdleTimer = setTimeout", at)));
@@ -2839,7 +2937,7 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
   assert.ok(ms <= 12000, `the nudge waits ${ms}ms — past the ten seconds the addendum asks for`);
   /* And it must be SHORTER than the check-in, or the check-in fires
      first and he gets "¿sigues ahí?" instead of an offer. */
-  const checkin = Number(/const CALL_CHECKIN_MS = (\d+);/.exec(page)[1]);
+  const checkin = Math.round(Number(/const CALL_SILENCE_TIMEOUT_MS = (\d+);/.exec(page)[1]) * 2 / 3);
   assert.ok(ms < checkin,
     `the nudge (${ms}ms) fires no sooner than the check-in (${checkin}ms) — he gets "¿sigues ahí?" instead`);
 
@@ -4253,7 +4351,7 @@ check("a budget in soles is never searched as dollars", () => {
     "the dollars parameter does not warn against the confusion");
 });
 
-const MIN_CHECKS = 95;
+const MIN_CHECKS = 96;
 if (passed + failures.length < MIN_CHECKS){
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} checks ran, expected at least ${MIN_CHECKS}.`);
   console.log("  The file is probably truncated, or a check threw outside its harness.\n");
