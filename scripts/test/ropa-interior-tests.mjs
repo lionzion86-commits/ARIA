@@ -136,14 +136,71 @@ check("the department has its doors", () => {
   assert.match(dept, /ropa_interior:\s*\{name:'Ropa Interior y Medias'[^}]*href:'ropa-interior\.html'\}/, "departamento.html does not know the department");
   assert.match(dept, /if \(dept && dept\.href\)\{ window\.location\.replace\(dept\.href\); return; \}/, "?dept=ropa_interior does not open the page");
   const home = readFileSync(ROOT + "index.html", "utf8");
-  assert.match(home, /<script src="ropa-interior-engine\.js"><\/script>/, "the homepage does not load the rules");
+  /* The homepage reads the department FEED (2026-10-07), not the rules. */
+  assert.match(home, /key: 'ropa_interior'[\s\S]{0,400}feed: \(\) => ropaInteriorRailPicks\(\)/, "the homepage shelf is not built from the feed");
   assert.match(home, /key: 'ropa_interior', label: 'Ropa Interior y Medias'/, "no homepage pill");
   assert.match(home, /'mens_grooming', 'ropa_interior',/, "the pill is not in the tab order");
   assert.match(home, /ropa_interior: `<svg/, "the pill has no icon (it would fall back to a letter)");
   assert.match(home, /if\(key === 'ropa_interior'\) return '\/ropa-interior\.html';/, "?categoria=ropa_interior goes nowhere");
 });
 
-const MIN_CHECKS = 7;
+/* ------------------------------------------------------------------
+   THE HOMEPAGE RAIL (2026-10-07): blast sales only, deepest discount
+   first, from the feed -- never a hardcoded list.
+   ------------------------------------------------------------------ */
+check("the homepage has a Ropa Interior y Medias rail on both layouts", () => {
+  const home = readFileSync(ROOT + "index.html", "utf8");
+  const secs = home.match(/<section aria-label="Ropa Interior y Medias" data-featured-rail[\s\S]*?<\/section>/g) || [];
+  assert.equal(secs.length, 2, `expected a mobile and a desktop rail, found ${secs.length}`);
+  for (const s of secs) {
+    assert.match(s, /data-category-rail-row="ropa_interior"/, "the rail row is not wired to the shared painter");
+    assert.match(s, /<a href="\/ropa-interior\.html"[^>]*>Ropa Interior y Medias<\/a>/, "tapping the header does not open the department");
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(s), "an emoji is in the rail");
+  }
+  assert.match(home, /fetch\('\/ropa-interior-feed\.json'\)/, "the rail does not read the department feed");
+});
+
+await (async () => {
+  /* The picks function itself, lifted and run against a stub feed. */
+  const home = readFileSync(ROOT + "index.html", "utf8");
+  const at = home.indexOf("let ropaInteriorFeedPromise = null;");
+  const end = home.indexOf("const ROPA_INTERIOR_RAIL_TOTAL = 20;");
+  const src = home.slice(at, end);
+  const stub = [
+    { t: "Full price boxer", b: "Kohl's", r: "kohls", p: 20, o: 0, img: "https://x/a.jpg", ty: "underwear" },
+    { t: "Ten off socks", b: "Stance", r: "ccs", p: 18, o: 20, s: 1, img: "https://x/b.jpg", ty: "socks" },
+    { t: "Seventy five off brief", b: "American Eagle", r: "americaneagle", p: 4, o: 16, s: 1, img: "https://x/c.jpg", ty: "underwear" },
+    { t: "Unreported markdown", b: "PSD", r: "mainland", p: 10, o: 30, img: "https://x/d.jpg", ty: "underwear" },
+    { t: "Half off crew", b: "HUF", r: "ccs", p: 10, o: 20, s: 1, img: "https://x/e.jpg", ty: "socks" },
+    { t: "Quarantined photo", b: "Stance", r: "ccs", p: 5, o: 50, s: 1, img: "https://x/f.jpg", ir: "quarantined", ty: "socks" },
+  ];
+  /* Stand-ins with the page's rules: a markdown counts only when the
+     retailer reported it; a quarantined photo is no photo. */
+  const normalizeLiveItem = (i) => ({ title: i.title, brand: i.brand, price: i.price,
+    originalPrice: i.onSale && i.originalPrice > i.price ? i.originalPrice : null,
+    image: i.imageReview && i.imageReview !== "clean" ? null : i.image });
+  const hasRealImage = (i) => !!i.image;
+  const carouselDiscountPct = (i) => i.originalPrice > i.price ? Math.round((1 - i.price / i.originalPrice) * 100) : 0;
+  const fn = new Function("fetch", "normalizeLiveItem", "hasRealImage", "carouselDiscountPct", "ROPA_INTERIOR_RAIL_TOTAL",
+    src + "\n return ropaInteriorRailPicks;");
+  const picks = await fn(async () => ({ ok: true, json: async () => ({ items: stub }) }),
+    normalizeLiveItem, hasRealImage, carouselDiscountPct, 20)();
+  check("the homepage rail is blast sales only, deepest discount first", () => {
+    assert.deepEqual(picks.map(p => p.title), ["Seventy five off brief", "Half off crew", "Ten off socks"],
+      "wrong picks or order: " + picks.map(p => p.title).join(", "));
+    assert.ok(!picks.some(p => p.title === "Full price boxer"), "a full-price item is on the rail");
+    assert.ok(!picks.some(p => p.title === "Unreported markdown"), "a markdown the retailer never reported is on the rail");
+    assert.ok(!picks.some(p => p.title === "Quarantined photo"), "a quarantined photo is on the rail");
+  });
+})();
+
+check("the feed carries the retailer's sale report and the image verdict", () => {
+  const sale = feed.items.filter(i => i.o > i.p);
+  assert.ok(sale.length > 0, "the feed has no sale items");
+  assert.ok(sale.every(i => i.s === 1), "a markdown in the feed lacks the retailer's sale flag — the homepage rail would drop it");
+});
+
+const MIN_CHECKS = 10;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

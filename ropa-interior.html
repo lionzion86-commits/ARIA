@@ -270,7 +270,7 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
 
   /* Biggest sales first, then halo pieces, then best sellers. */
   function curate(list){
-    var withPic = list.filter(function(p){ return p.img; });
+    var withPic = list.filter(function(p){ return p.img && (!p.ir || p.ir === 'clean'); });
     var sale = withPic.filter(onSale).sort(function(a,b){ return pct(b) - pct(a); });
     var rest = withPic.filter(function(p){ return !onSale(p); });
     var halo = rest.filter(function(p){ return HALO.test(p.b); }).sort(function(a,b){ return b.p - a.p; });
@@ -283,7 +283,8 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
   function cardHTML(p){
     var now = finalUsd(p.p), was = p.o > p.p ? finalUsd(p.o) : NaN, d = pct(p);
     var href = 'producto.html?producto=' + encodeURIComponent(p.t) + '&tienda=' + encodeURIComponent(p.r);
-    var img = p.img
+    /* Never a photo that was not cleared of its US price sticker. */
+    var img = p.img && (!p.ir || p.ir === 'clean')
       ? '<img src="' + esc(p.img) + '" alt="' + esc(p.t) + '" loading="lazy" decoding="async" onerror="this.remove()">'
       : '<span class="noimg">Sin imagen</span>';
     return '<a class="card" href="' + esc(href) + '">'
