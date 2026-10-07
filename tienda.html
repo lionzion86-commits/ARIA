@@ -273,6 +273,35 @@ function saleTier(p){
   if (p && p.onSale) return 1;
   return 0;
 }
+/* ---------- product-type classification (word-boundary, not substring) ----------
+   DANNY 2026-10-07: store pages group carousels by PRODUCT TYPE, not department.
+   A Gymshark store page shows Leggings/Tops/Shorts carousels, never a "Gym Rat"
+   department carousel. Same classifier as marca.html. */
+var PRODUCT_TYPES = [
+  { key:'trajes_bano', label:'Trajes de Baño', keywords:['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
+  { key:'carteras',    label:'Carteras',       keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
+  { key:'joyas',       label:'Joyas',          keywords:['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
+  { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
+  { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
+  { key:'accesorios',  label:'Accesorios',     keywords:['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
+  { key:'ropa',        label:'Ropa',           keywords:[] }
+];
+var TYPE_RES = PRODUCT_TYPES.map(function(t){
+  return t.keywords.map(function(kw){
+    return new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + 's?\\b', 'i');
+  });
+});
+function productTypeOf(item){
+  var n = String((item && (item.name || item.title)) || '');
+  for (var i = 0; i < PRODUCT_TYPES.length; i++){
+    if (!PRODUCT_TYPES[i].keywords.length) continue;
+    var res = TYPE_RES[i];
+    for (var k = 0; k < res.length; k++){
+      if (res[k].test(n)) return PRODUCT_TYPES[i].key;
+    }
+  }
+  return 'ropa';
+}
 /* Shared sale-first sort: tier desc, then discount % desc, then price desc
    so hero products lead instead of cheap accessories when nothing is on sale. */
 function saleSort(a, b){
@@ -505,12 +534,18 @@ function renderDeptChips(){
    Store pages lead with sales, then one carousel per category.
    Every rail expands to a full-screen grid via "Ver todo". */
 var RAIL_MAX = 16;
-var railPools = {};  /* rail key -> full sorted item list */
+var railPools = {};  /* rail key -> full sorted item list (legacy lookup) */
+var railPoolList = []; /* DANNY 2026-10-07: bulletproof pool by numeric index.
+   The string-key lookup could silently fail (encoding/pool resets), leaving
+   an empty overlay. Buttons now carry a numeric data-idx into this array,
+   rebuilt on every renderCarousels() alongside the buttons themselves. */
 
 function railHTML(title, list, railKey){
   if (!list || !list.length) return '';
   var rk = 'rail::' + railKey;
   railPools[rk] = list;
+  var idx = railPoolList.length;
+  railPoolList.push(list);
   var shown = list.slice(0, RAIL_MAX);
   var cards = '';
   for (var i = 0; i < shown.length; i++){
@@ -518,30 +553,42 @@ function railHTML(title, list, railKey){
     catch (e) { /* one bad card never kills the rail */ }
   }
   var door = list.length > RAIL_MAX
-    ? '<button type="button" class="rail-ver" data-rk="' + esc(rk) + '" data-title="' + esc(title) + '">Ver todo &#8594;</button>'
+    ? '<button type="button" class="rail-ver" data-idx="' + idx + '" data-title="' + esc(title) + '">Ver todo &#8594;</button>'
     : '';
   return '<section class="rail-sec">' +
     '<div class="rail-head"><h2 class="rail-title">' + esc(title) + '</h2>' +
     '<span class="rail-count">' + list.length + '</span>' + door + '</div>' +
     '<div class="rail">' + cards + '</div></section>';
 }
-function openRailExpand(rk, title){
+function openRailExpand(list, title){
   try {
-    var list = railPools[rk] || [];
+    list = list || [];
     var ov = $('railExpand');
     if (!ov) return;
     $('reTitle').textContent = title || 'Productos';
     $('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
-    var out = '';
-    for (var i = 0; i < list.length; i++){
-      try { out += cardHTML(list[i]); } catch (e) {}
+    var grid = $('reGrid');
+    if (!grid) return;
+    if (!list.length){
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#6B7280">'
+        + '<p style="font-weight:700;margin-bottom:8px">No pudimos cargar estos productos.</p>'
+        + '<p style="font-size:13px">Cierra y vuelve a intentarlo.</p></div>';
+    } else {
+      var out = '';
+      for (var i = 0; i < list.length; i++){
+        try { out += cardHTML(list[i]); } catch (e) {}
+      }
+      grid.innerHTML = out;
     }
-    $('reGrid').innerHTML = out;
     ov.hidden = false;
     document.body.style.overflow = 'hidden';
-    $('reGrid').scrollTop = 0;
+    grid.scrollTop = 0;
     try { renderPenPrices(); } catch (e) {}
   } catch (e) {}
+}
+/* Legacy string-key entry point (kept for any external callers) */
+function openRailExpandByKey(rk, title){
+  try { openRailExpand(railPools[rk] || [], title); } catch (e) {}
 }
 function closeRailExpand(){
   try {
@@ -555,6 +602,7 @@ function renderCarousels(){
   var host = $('content');
   if (!host) return;
   railPools = {};
+  railPoolList = [];
   var cnt = $('countLine');
   if (cnt) cnt.textContent = allItems.length
     ? allItems.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
@@ -569,27 +617,30 @@ function renderCarousels(){
     var feat = allItems.slice().sort(function(a,b){ return b.price - a.price; });
     html += railHTML('Destacados de ' + storeMeta.label, feat, 'destacados');
   }
-  /* Category carousels: one per department */
-  var byDept = {};
+  /* Category carousels: one per PRODUCT TYPE (DANNY 2026-10-07).
+     Never group by department inside a store page -- a Gymshark page shows
+     Leggings/Tops/Shorts, not a "Gym Rat" department carousel. */
+  var byType = {};
   for (var i = 0; i < allItems.length; i++){
-    var dk = allItems[i].dept || '';
-    (byDept[dk] = byDept[dk] || []).push(allItems[i]);
+    var tk = productTypeOf(allItems[i]);
+    (byType[tk] = byType[tk] || []).push(allItems[i]);
   }
-  var keys = Object.keys(byDept).sort(function(a,b){
-    return String(deptLabels[a] || a).localeCompare(String(deptLabels[b] || b), 'es');
-  });
-  for (var j = 0; j < keys.length; j++){
-    var list = byDept[keys[j]].slice().sort(saleSort);
-    var label = deptLabels[keys[j]] || keys[j] || 'Productos';
-    html += railHTML(label, list, 'dept::' + keys[j]);
+  for (var j = 0; j < PRODUCT_TYPES.length; j++){
+    var t = PRODUCT_TYPES[j];
+    var list = (byType[t.key] || []).slice().sort(saleSort);
+    if (list.length) html += railHTML(t.label, list, 'type::' + t.key);
   }
   host.innerHTML = html;
   var btns = host.querySelectorAll('.rail-ver');
   for (var k = 0; k < btns.length; k++){
-    btns[k].addEventListener('click', function(){
-      try { openRailExpand(this.getAttribute('data-rk'), this.getAttribute('data-title')); }
-      catch (e) {}
-    });
+    (function(btn){
+      var idx = parseInt(btn.getAttribute('data-idx'), 10);
+      var title = btn.getAttribute('data-title');
+      btn.addEventListener('click', function(){
+        try { openRailExpand(railPoolList[idx] || [], title); }
+        catch (e) {}
+      });
+    })(btns[k]);
   }
   /* sort dropdown only applies to grid view; hide it in carousel mode */
   var s = $('sort');
