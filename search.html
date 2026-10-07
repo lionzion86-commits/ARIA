@@ -382,9 +382,7 @@ function cardHTML(p){
   var img = p.image
     ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
     : '<span style="font-size:12px;color:#9AA3B5">Sin imagen</span>';
-  var link = p.url
-    ? '<a class="cta" href="' + esc(p.url) + '" target="_blank" rel="noopener">Ver en tienda</a>'
-    : "";
+  /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   /* THE CARD IS A LINK TO OUR PRODUCT PAGE. It was a bare <article>
      with no href and no handler; the only way out was the external
      "Ver en tienda" button, which leaves the shop. */
@@ -397,7 +395,6 @@ function cardHTML(p){
       '<div class="name">' + esc(p.name) + "</div>" +
       (p.retailer ? '<div class="retailer">Vendido por ' + esc(p.retailer) + "</div>" : "") +
       '<div class="price">' + priceHTML(p) + "</div>" +
-      link +
     "</div></a>";
 }
 
