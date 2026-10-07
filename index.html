@@ -24056,11 +24056,8 @@ function openSizeGuide(){
   document.getElementById('sizeGuideTitle').textContent = sizeGuideCurrent.title;
   document.getElementById('sizeGuideSub').textContent = sizeGuideCurrent.sub;
   const srcEl = document.getElementById('sizeGuideSource');
-  if (sizeGuideCurrent.source){
-    srcEl.innerHTML = 'Fuente: <a href="' + sizeGuideCurrent.source + '" target="_blank" rel="noopener" class="underline">tabla oficial de la marca</a>';
-  } else {
-    srcEl.textContent = 'Tabla general de referencia — verifica la tabla de la marca en su tienda.';
-  }
+  /* DANNY 2026-10-07: no outbound links anywhere -- brand source attribution removed. */
+  srcEl.textContent = 'Tabla general de referencia — verifica la tabla de la marca en su tienda.';
   document.getElementById('sizeGuideTabs').innerHTML = sizeGuideCurrent.tabs.map(t =>
     '<button type="button" role="tab" aria-selected="' + (t.id === sizeGuideCurrent.activeTab) + '" data-sg-tab="' + t.id + '" onclick="sizeGuideTab(\'' + t.id + '\')" class="h-11 px-4 rounded-full text-[13px] font-bold whitespace-nowrap focus-ring shrink-0">' + t.label + '</button>'
   ).join('');
