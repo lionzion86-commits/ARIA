@@ -2378,7 +2378,7 @@ check("the silence shut-off fires only on true two-way silence", () => {
       ariaRTResponding: false, ariaRTPlaying: false, ariaRTToolsInFlight: 0, ...busy } };
     const fn2 = new Function("S", "setTimeout", "clearTimeout", "cueRealtime", "endRealtimeCallIdle",
       "CALL_CHECKIN_MS", "CALL_IDLE_MS", "CUE_CHECKIN",
-      "let { ariaRT, ariaRTSignedOff, ariaRTCheckedIn, ariaRTCheckinTimer, ariaRTIdleTimer, ariaRTResponding, ariaRTPlaying, ariaRTToolsInFlight } = S;\n" +
+      "let { ariaRT, ariaRTSignedOff, ariaRTCheckedIn, ariaRTCheckinTimer, ariaRTIdleTimer, ariaRTResponding, ariaRTPlaying, ariaRTToolsInFlight } = S; let ariaRTOpeningTimer = null;\n" +
       src + "\n return noteRealtimeActivity;");
     const timers = [], ended = [];
     const note = fn2(h.S, (f, ms) => { const t = { f, ms }; timers.push(t); return t; }, () => {},
@@ -2402,13 +2402,19 @@ check("the silence shut-off fires only on true two-way silence", () => {
   {
     const fn3 = new Function("setTimeout", "clearTimeout", "cueRealtime", "endRealtimeCallIdle",
       "CALL_CHECKIN_MS", "CALL_IDLE_MS", "CUE_CHECKIN",
-      "let ariaRT = { pc: {} }, ariaRTSignedOff = false, ariaRTCheckedIn = false, ariaRTCheckinTimer = null, ariaRTIdleTimer = null, ariaRTResponding = false, ariaRTPlaying = false, ariaRTToolsInFlight = 0;\n" +
-      src + "\n return { note: noteRealtimeActivity, signOff: () => { ariaRTSignedOff = true; } };");
+      "let ariaRT = { pc: {} }, ariaRTSignedOff = false, ariaRTCheckedIn = false, ariaRTCheckinTimer = null, ariaRTIdleTimer = null, ariaRTResponding = false, ariaRTPlaying = false, ariaRTToolsInFlight = 0, ariaRTOpeningTimer = null;\n" +
+      src + "\n return { note: noteRealtimeActivity, signOff: () => { ariaRTSignedOff = true; }, nudgeDue: (v) => { ariaRTOpeningTimer = v; } };");
     const timers = [], ended = [], cued = [];
     const h = fn3((f, ms) => { const t = { f, ms }; timers.push(t); return t; }, () => {},
       (c) => { cued.push(c); return true; }, (w) => ended.push(w), 20000, 30000, "[c]");
+    /* The opening nudge still due: the check-in yields to it. */
+    h.nudgeDue({});
     h.note();
-    timers.find(t => t.ms === 20000).f();
+    timers.filter(t => t.ms === 20000).pop().f();
+    assert.deepEqual(cued, [], "\"¿sigues ahí?\" fired on top of the opening nudge");
+    h.nudgeDue(null);
+    h.note();
+    timers.filter(t => t.ms === 20000).pop().f();
     assert.deepEqual(cued, ["[c]"], "the check-in did not come first");
     timers.find(t => t.ms === 30000).f();
     assert.deepEqual(ended, ["silencio"], "true two-way silence did not end the call");
@@ -2451,7 +2457,7 @@ check("a check-in comes before the hang-up, once", () => {
   /* ONE KNOB (2026-10-07): the whole silence is CALL_SILENCE_TIMEOUT_MS
      (30s to start, Danny tunes it); the check-in is derived from it and
      always lands before the hang-up. */
-  assert.match(page, /const CALL_SILENCE_TIMEOUT_MS = 30000;/, "the silence timeout is not 30 seconds");
+  assert.match(page, /const CALL_SILENCE_TIMEOUT_MS = 15000;/, "the silence timeout is not 15 seconds (Danny's call)");
   assert.match(page, /const CALL_CHECKIN_MS = Math\.round\(CALL_SILENCE_TIMEOUT_MS \* 2 \/ 3\);/,
     "the check-in is not derived from the one silence knob");
   assert.match(page, /const CALL_IDLE_MS = CALL_SILENCE_TIMEOUT_MS;/, "the hang-up is not the one silence knob");
@@ -2977,10 +2983,12 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
     "there is no opening-silence nudge at all");
   const ms = Number(/const CALL_OPENING_SILENCE_MS = (\d+);/.exec(page)[1]);
   assert.ok(ms <= 12000, `the nudge waits ${ms}ms — past the ten seconds the addendum asks for`);
-  /* And it must be SHORTER than the check-in, or the check-in fires
-     first and he gets "¿sigues ahí?" instead of an offer. */
+  /* And the check-in must never beat it, or he gets "¿sigues ahí?"
+     instead of an offer. With a 15s timeout the check-in lands at
+     10s -- the same moment -- so it yields while the nudge is due. */
   const checkin = Math.round(Number(/const CALL_SILENCE_TIMEOUT_MS = (\d+);/.exec(page)[1]) * 2 / 3);
-  assert.ok(ms < checkin,
+  const note = page.slice(page.indexOf("function noteRealtimeActivity(){"));
+  assert.ok(ms < checkin || /if \(ariaRTOpeningTimer\) return;/.test(note.slice(0, note.indexOf("CALL_CHECKIN_MS);"))),
     `the nudge (${ms}ms) fires no sooner than the check-in (${checkin}ms) — he gets "¿sigues ahí?" instead`);
 
   /* The cue has to send her to the tool, and has to stop her asking

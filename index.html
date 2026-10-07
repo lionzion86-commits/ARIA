@@ -37558,7 +37558,7 @@ const CALL_DROP_GRACE_MS = 6000;
    ONE KNOB (2026-10-07, Danny: cost control). CALL_SILENCE_TIMEOUT_MS
    is the whole two-way silence, in ms, before the call ends itself;
    the check-in lands two thirds of the way in. Tune this one line. */
-const CALL_SILENCE_TIMEOUT_MS = 30000;
+const CALL_SILENCE_TIMEOUT_MS = 15000;   /* Danny, 2026-10-07: 15s */
 const CALL_CHECKIN_MS = Math.round(CALL_SILENCE_TIMEOUT_MS * 2 / 3);
 const CALL_IDLE_MS = CALL_SILENCE_TIMEOUT_MS;   /* total silence before she hangs up */
 /* The goodbye is never cut mid-sentence, but a model that keeps
@@ -38637,6 +38637,10 @@ function noteRealtimeActivity(){
     if (!ariaRT || ariaRTCheckedIn) return;
     /* Mid-answer or mid-cards is not a lull: start the window over. */
     if (realtimeCallBusy()){ noteRealtimeActivity(); return; }
+    /* He has not said a word yet and the opening nudge is still due:
+       that silence is the nudge's ("here are today's best deals"), not
+       "¿sigues ahí?". With a short timeout the two land together. */
+    if (ariaRTOpeningTimer) return;
     ariaRTCheckedIn = true;
     /* A check-in, not a warning: two words, no countdown, no UI. */
     cueRealtime(CUE_CHECKIN);
