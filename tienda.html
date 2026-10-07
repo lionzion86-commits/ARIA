@@ -60,6 +60,18 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:16px}}
 @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
+/* ---- store carousels (2026-10-07, Danny): every department gets its own rail; Ofertas first ---- */
+.hero.has-backdrop{background-size:cover;background-position:center;position:relative}
+.hero.has-backdrop::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(10,31,68,.9) 15%,rgba(10,31,68,.55) 55%,rgba(10,31,68,.3));pointer-events:none}
+.hero.has-backdrop .hero-inner{position:relative}
+.chips a.chip{text-decoration:none;display:inline-block}
+.rail{margin:0 0 32px;scroll-margin-top:12px}
+.rail-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 12px}
+.rail-title{font-size:19px;font-weight:800;letter-spacing:-.01em;color:var(--navy);margin:0}
+.rail-count{font-size:12.5px;color:#6b7280;font-weight:600;flex-shrink:0}
+.rail-track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(168px,200px);gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 14px;-webkit-overflow-scrolling:touch}
+@media(min-width:640px){.rail-track{grid-auto-columns:minmax(200px,232px);gap:16px}}
+.rail-track .card{scroll-snap-align:start;margin:0}
 .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
   display:flex;flex-direction:column;position:relative;text-decoration:none;color:inherit}
 .card-img{position:relative;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
@@ -445,24 +457,59 @@ function renderDeptChips(){
     return String(deptLabels[a]).localeCompare(String(deptLabels[b]), 'es');
   });
   if (!keys.length){ host.innerHTML = ''; return; }
-  var html = '<button type="button" class="chip' + (activeDept === '' ? ' active' : '') + '" data-dept="">Todo</button>';
+  var html = '';
   for (var i = 0; i < keys.length; i++){
-    html += '<button type="button" class="chip' + (activeDept === keys[i] ? ' active' : '') +
-      '" data-dept="' + esc(keys[i]) + '">' + esc(deptLabels[keys[i]]) + '</button>';
+    html += '<a class="chip" href="#rail-dept-' + esc(keys[i]) + '">' + esc(deptLabels[keys[i]]) + '</a>';
   }
   host.innerHTML = html;
-  var btns = host.querySelectorAll('.chip');
-  for (var j = 0; j < btns.length; j++){
-    btns[j].addEventListener('click', function(){
-      activeDept = this.getAttribute('data-dept') || '';
-      visibleCount = PAGE_SIZE;
-      try { renderDeptChips(); render(); } catch (e) {}
-    });
+}
+/* ---------- store carousels (2026-10-07, Danny): Ofertas rail first, then one rail per department ---------- */
+function saleSorted(pool){
+  return pool.filter(function(p){ return discountPct(p) >= 5; })
+    .sort(function(a,b){ return discountPct(b) - discountPct(a); });
+}
+function railHTML(id, title, items){
+  if (!items || !items.length) return '';
+  var n = Math.min(items.length, 20), cards = '';
+  for (var i = 0; i < n; i++){ try { cards += cardHTML(items[i]); } catch (e) {} }
+  if (!cards) return '';
+  return '<section class="rail" id="' + esc(id) + '">' +
+    '<div class="rail-head"><h2 class="rail-title">' + esc(title) + '</h2>' +
+    '<span class="rail-count">' + items.length + ' en oferta</span></div>' +
+    '<div class="rail-track">' + cards + '</div></section>';
+}
+function renderCarousels(){
+  var html = '', any = false, i, j;
+  var ofertas;
+  try { ofertas = saleSorted(allItems); } catch (e){ ofertas = []; }
+  if (ofertas.length){ html += railHTML('rail-ofertas', 'Ofertas', ofertas); any = true; }
+  var keys = Object.keys(deptLabels).sort(function(a,b){
+    return String(deptLabels[a]).localeCompare(String(deptLabels[b]), 'es');
+  });
+  for (i = 0; i < keys.length; i++){
+    var dk = keys[i], pool = [];
+    for (j = 0; j < allItems.length; j++){ if (allItems[j].dept === dk) pool.push(allItems[j]); }
+    var s = saleSorted(pool);
+    if (s.length){ html += railHTML('rail-dept-' + dk, deptLabels[dk], s); any = true; }
   }
+  return any ? html : null;
 }
 function render(){
   var host = $('content');
   if (!host) return;
+  var f;
+  try { f = currentFilters(); } catch (e){ f = { q:'', sort:'relevance', dept:'' }; }
+  var searching = !!(f.q || (f.sort && f.sort !== 'relevance'));
+  if (!searching){
+    var rails = null;
+    try { rails = renderCarousels(); } catch (e){ rails = null; }
+    if (rails){
+      var cnt0 = $('countLine');
+      if (cnt0) cnt0.textContent = allItems.length ? allItems.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label : '';
+      host.innerHTML = rails;
+      return;
+    }
+  }
   var list;
   try { list = filteredItems(); }
   catch (e){ return renderError('No pudimos ordenar los productos.', true); }
@@ -554,6 +601,15 @@ function paintHero(){
   if (!hero || !storeMeta) return;
   hero.hidden = false;
   try { hero.style.setProperty('--store', storeMeta.color || '#0A1F44'); } catch (e) {}
+  try {
+    if (storeMeta.backdrop){
+      hero.classList.add('has-backdrop');
+      hero.style.backgroundImage = "url('" + String(storeMeta.backdrop).replace(/'/g, '') + "')";
+    } else {
+      hero.classList.remove('has-backdrop');
+      hero.style.backgroundImage = '';
+    }
+  } catch (e) {}
   var nm = $('heroName'), tag = $('heroTag'), lw = $('heroLogo'), li = $('heroLogoImg');
   if (nm) nm.textContent = storeMeta.label;
   if (tag) tag.textContent = storeMeta.tagline || 'Compra en Estados Unidos, entregado en Perú.';
