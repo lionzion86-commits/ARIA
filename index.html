@@ -1829,6 +1829,40 @@
     </div>
   </section>
 
+  <!-- OFERTAS FIRST (2026-10-07, Danny): the Ofertas carousel sits directly
+       above the Key Club section -- deals are the first thing shoppers see.
+       One copy per breakpoint, moved out of #mobileShopfront / #desktopShopfront
+       so each section carries its own visibility class. -->
+<section aria-label="Ofertas" class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <div class="flex items-baseline gap-2 min-w-0">
+          <span class="text-[22px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+        </div>
+        <button onclick="goSales()" class="flex items-center gap-1 text-[13px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
+          Ver todo
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+<section aria-label="Ofertas" class="relative overflow-hidden hidden lg:block" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="relative max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <div class="flex items-baseline gap-2 min-w-0">
+            <span class="text-[26px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+                      </div>
+          <button onclick="goSales()" class="flex items-center gap-1 text-[14px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
+            Ver todo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
   <!-- ============================================================
        LOS ELEGIDOS — Founding 1000 campaign module (2026-10-01).
        Oct 20 (lanzamiento) → Nov 10 (apertura): Danny elige a mano
@@ -1922,19 +1956,6 @@
   <!-- HOME ORDER (2026-09-26, Danny): Ofertas -> brand band -> Aria Auto ->
        Compra por categoría (chip carousel) -> store rails -> Marcas / Costco /
        SSENSE -> Todas las otras tiendas -> Categorías. -->
-<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
-      <div class="ariaGoldHair"></div>
-      <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
-        <div class="flex items-baseline gap-2 min-w-0">
-          <span class="text-[22px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
-        </div>
-        <button onclick="goSales()" class="flex items-center gap-1 text-[13px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
-          Ver todo
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-      </div>
-      <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
 
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
 <!-- TIENDAS STRIP (2026-09-28, Danny): every shoppable store's logo in one compact
@@ -2498,21 +2519,6 @@
   <div id="desktopShopfront" class="hidden lg:block">
 
   <!-- HOME ORDER, DESKTOP (2026-09-26, Danny): same run as the phone. -->
-<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
-      <div class="ariaGoldHair"></div>
-      <div class="relative max-w-[1240px] mx-auto">
-        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
-          <div class="flex items-baseline gap-2 min-w-0">
-            <span class="text-[26px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
-                      </div>
-          <button onclick="goSales()" class="flex items-center gap-1 text-[14px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
-            Ver todo
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-          </button>
-        </div>
-        <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
 
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
 <!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's. -->
