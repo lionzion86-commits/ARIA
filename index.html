@@ -9978,10 +9978,89 @@ async function poolForRetailers(retailerKeys){
   ingestRetailersIntoPool(retailerKeys);
   return progressivePool;
 }
+/* SALE ITEMS ARE SEARCHABLE (2026-10-07, Danny: the Titan Pro MMA
+   Glove was on sale and Aria told the shopper we did not have it).
+
+   THE GAP. The pool above is built from the department catalogues
+   only. The Ofertas feed (ofertas-feed.json, plus the scraped
+   sales-cache) carries deals that are NOT in any department file --
+   the Titan Pro MMA Glove lived only in the feed, $46.42 down from
+   $92.86. The Ofertas page showed its card; search, the chat agent's
+   search_products and the voice tools all go through catalogSearch()
+   -> relatedPool() and never saw it. So she said "no lo tenemos" about
+   a product on our own sale shelf.
+
+   THE RULE: if Ofertas shows a card for it, search finds it. Same gate
+   as the Ofertas page (passesOfertasGate + quarantine), already-
+   normalized prices (the feed is built through normalizeLiveItem), one
+   entry per retailer::title -- a deal the catalogue already carries is
+   never doubled. */
+let saleFeedForSearchPromise = null;
+function loadSaleFeedForSearch(){
+  if (!saleFeedForSearchPromise){
+    saleFeedForSearchPromise = fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS)
+      .then(r => (r && r.ok) ? r.json() : null)
+      .then(feed => (feed && Array.isArray(feed.items)) ? feed.items : [])
+      /* A failed fetch is retried on the next search, not cached. */
+      .catch(() => { saleFeedForSearchPromise = null; return []; });
+  }
+  return saleFeedForSearchPromise;
+}
+let saleIngestSeen = null;
+let saleIngestSeenLen = -1;
+function ingestSaleItemsIntoPool(items){
+  if (!Array.isArray(items) || !items.length) return;
+  let added = false;
+  for (const raw of items){
+    if (!raw || !raw.title || !raw.retailer) continue;
+    if (!notQuarantined(raw)) continue;
+    if (!(Number(raw.price) > 0)) continue;
+    try { if (!passesOfertasGate(raw)) continue; } catch { continue; }
+    const key = raw.retailer + '::' + raw.title;
+    if (poolByKey.has(key)) continue;
+    const pooled = { ...raw, departments: Array.isArray(raw.departments) ? raw.departments.slice() : [] };
+    pooled._wordSet = catalogWordsOf(pooled);
+    pooled._brandWordSet = new Set(searchTokens(pooled.brand || ''));
+    pooled._cat = catalogItemCategory(pooled);
+    poolByKey.set(key, pooled);
+    progressivePool.push(pooled);
+    added = true;
+  }
+  if (added) relatedPoolCache = null;
+}
+/* Deals that arrive after the pool was built (the full feed merging in
+   on idle, the live sales-cache) join on the next search. Keyed on the
+   array and its length so a warm search pays nothing when no deal is new. */
+function ingestLiveSaleItems(){
+  const live = (typeof saleItemsCache !== 'undefined' && Array.isArray(saleItemsCache)) ? saleItemsCache : null;
+  if (!live || (live === saleIngestSeen && live.length === saleIngestSeenLen)) return;
+  saleIngestSeen = live; saleIngestSeenLen = live.length;
+  ingestSaleItemsIntoPool(live);
+}
+let saleFeedIngested = false;
 async function relatedPool(){
-  if (relatedPoolCache) return relatedPoolCache;
-  await loadDepartmentCache();
-  ingestRetailersIntoPool(Object.keys(departmentCacheData?.retailers || {}));
+  if (relatedPoolCache){
+    /* The feed failed when the pool was built: fetch it again behind
+       this search, so the next one finds the deals. */
+    if (!saleFeedIngested){
+      loadSaleFeedForSearch().then(feed => {
+        if (!feed.length || saleFeedIngested) return;
+        saleFeedIngested = true;
+        ingestSaleItemsIntoPool(feed);
+        /* Rebuild now: the voice scoop reads a null cache as "still
+           loading" and would otherwise wait for a search to rebuild it. */
+        return relatedPool();
+      }).catch(() => {});
+    }
+    ingestLiveSaleItems();
+    if (relatedPoolCache) return relatedPoolCache;
+  } else {
+    const [, saleFeed] = await Promise.all([loadDepartmentCache(), loadSaleFeedForSearch()]);
+    ingestRetailersIntoPool(Object.keys(departmentCacheData?.retailers || {}));
+    /* Catalogue first, so a product in both keeps its departments. */
+    if (saleFeed.length){ saleFeedIngested = true; ingestSaleItemsIntoPool(saleFeed); }
+    ingestLiveSaleItems();
+  }
   relatedPoolCache = progressivePool;
   /* SEARCH SPEED (2026-09-27): inverted word index over the pool. A
      search only ever scores items containing a matching word form, so
@@ -10889,7 +10968,17 @@ function detectBrandIntent(rawToks, pool, opts){
            two substitutions on four letters is a coincidence, not
            a brand. One-word queries under 5 chars get d<=1; the
            product-word fuzzy layer still resolves the typo. */
-        const maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        let maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        /* KNOWN WORDS JOINED ARE A JOIN REPAIR, NOT A TYPO (2026-10-07).
+           "titan pro mma gloves" joined "pro"+"mma" -> "promma" and
+           claimed Puma, then BYOMA, then Prada, all at d=2 -- and the
+           hard brand filter hid the Everlast glove the shopper named.
+           When every word in the window is one the catalogue sells
+           (the single-token rule above, applied to each word), the
+           only correction left is the join itself: an apostrophe or a
+           space ("victoria secret", "under armor", "calvin klien" are
+           all d=1). Two edits there is a coincidence. */
+        if (w.idx.length > 1 && w.idx.every(i => poolKnows(rawToks[i]))) maxDist = 1;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
@@ -35987,6 +36076,14 @@ async function executeAgentTool(tc){
       const id = agentCacheProduct(p, p.retailer);
       const r = { id, title: p.title, price_usd: Number(p.price), retailer: p.retailer };
       if (p.brand) r.brand = p.brand;
+      /* SALE ITEMS SAY SO (2026-10-07): the Titan Pro glove was on sale
+         and she could not know it. The tool result is her only source,
+         so a markdown rides in it -- she never claims "en oferta" for an
+         item the result does not mark. */
+      if (Number(p.originalPrice) > Number(p.price)){
+        r.on_sale = true;
+        r.was_usd = Math.round(Number(p.originalPrice) * 100) / 100;
+      }
       return r;
     }),
     count: picks.length,
@@ -38851,6 +38948,10 @@ async function executeRealtimeTool(name, args){
         id: realtimeProductId(i),
         title: i.title, brand: i.brand || null, store: i.retailer,
         price_usd: i.price, weight_kg: i.weightKg ?? null,
+        /* A markdown rides in the result (2026-10-07), so "en oferta" is
+           something she read, never something she guessed. */
+        ...(Number(i.originalPrice) > Number(i.price)
+          ? { on_sale: true, was_usd: Math.round(Number(i.originalPrice) * 100) / 100 } : {}),
       })),
     };
   }

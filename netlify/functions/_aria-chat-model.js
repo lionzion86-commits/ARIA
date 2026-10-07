@@ -109,6 +109,107 @@ export function sanitizeEmojiNarration(text) {
   return t.replace(/[ \t]{2,}/g, " ").replace(/ +\n/g, "\n").replace(/\s+([,.!?;:])/g, "$1").trim();
 }
 
+/* ============================================================
+   NAMED IT, THEN RETRACTED IT (2026-10-07, Danny).
+
+   Production: "Encontré los guantes Titan Pro de MMA en oferta, pero
+   no aparecieron en nuestro catálogo." One reply, two opposite claims,
+   and either way the shopper learns she does not know her own store.
+   The prompt already forbade it (NO_CONTRADICTION_RULE_ES); this is the
+   guard that holds when the prompt does not.
+
+   THE SHAPE IS THE ORDER. A positive product claim ("encontré",
+   "te recomiendo", "está en oferta", "I found") followed by a catalogue
+   denial ("no apareció en el catálogo", "no lo tenemos", "didn't show
+   up"). The honest pattern runs the other way -- "No encontré X, pero
+   sí tengo Y" denies first and offers second -- and is left alone.
+
+   WHICH HALF IS TRUE is decided by the cards, never by the model:
+     - cards shown: the product is verified, so the denial goes.
+     - no cards: nothing was verified, so the naming goes. The denial
+       stays, and if nothing is left an honest not-found line answers.
+   ============================================================ */
+const CATALOG_DENIAL_RE = new RegExp([
+  String.raw`\bno\s+(?:me\s+)?(?:lo|la|los|las)?\s*(?:apareci[oó]|aparecieron|aparece|aparecen|sali[oó]|salieron|figura|figuran|est[aá]n?|encontr[eé]|tenemos|hay|vendemos|manejamos)\b[^.!?]*?\b(?:cat[aá]logo|disponibles?|tienda|stock)\b`,
+  String.raw`\bno\s+(?:lo|la|los|las)\s+(?:tenemos|encontr[eé]|vendemos|manejamos)\b`,
+  String.raw`\b(?:no\s+)?(?:est[aá]n?|figuran?)\s+fuera\s+(?:de|del)\s+(?:nuestro\s+)?cat[aá]logo\b`,
+  String.raw`\b(?:did\s*n[o']?t|does\s*n[o']?t|do\s*n[o']?t|did not|does not|do not)\s+(?:show\s+up|appear|have|carry|find)\b`,
+  String.raw`\b(?:is\s*n[o']?t|are\s*n[o']?t|was\s*n[o']?t|were\s*n[o']?t|is not|are not|was not|were not|not)\s+(?:in|on)\s+(?:our|the)\s+catalog`,
+].join("|"), "i");
+const PRODUCT_CLAIM_RE = /\b(?:encontr[eé]|te\s+(?:recomiendo|sugiero|muestro)|mira\s+(?:est[oa]s?|el|la|los|las)|tenemos\s+(?:el|la|los|las|unos?|unas?)|est[aá]n?\s+en\s+oferta|en\s+oferta|i\s+found|we\s+have\s+(?:the|a|an|these|this)|i\s+recommend|on\s+sale)\b/i;
+const CONTRAST_PIVOT_RE = /,?\s*\b(?:pero|aunque|sin\s+embargo|but|although|however)\b/i;
+
+function splitSentences(text) {
+  return String(text || "").match(/[^.!?]+(?:[.!?]+|$)\s*/g) || [];
+}
+
+export const CATALOG_NOT_FOUND_FALLBACK_ES =
+  "No lo encontré en nuestro catálogo en este momento. ¿Quieres que te busque algo parecido?";
+const CATALOG_NOT_FOUND_FALLBACK_EN =
+  "I couldn't find that in our catalog right now. Want me to look for something similar?";
+
+export function resolveCatalogContradiction(text, hasCards) {
+  const t = String(text || "");
+  if (!t || !CATALOG_DENIAL_RE.test(t) || !PRODUCT_CLAIM_RE.test(t)) return t;
+  const sentences = splitSentences(t);
+  /* Find the first claim, then any denial at or after it. */
+  let claimAt = -1;
+  let contradiction = false;
+  for (let i = 0; i < sentences.length; i++) {
+    const s = sentences[i];
+    const pivot = s.search(CONTRAST_PIVOT_RE);
+    const head = pivot >= 0 ? s.slice(0, pivot) : s;
+    const tail = pivot >= 0 ? s.slice(pivot) : "";
+    if (claimAt < 0) {
+      /* "No encontré X, pero sí tengo Y": the denial leads -- honest. */
+      if (CATALOG_DENIAL_RE.test(head)) continue;
+      if (PRODUCT_CLAIM_RE.test(head)) {
+        claimAt = i;
+        if (CATALOG_DENIAL_RE.test(tail)) { contradiction = true; break; }
+      }
+    } else if (CATALOG_DENIAL_RE.test(s)) {
+      contradiction = true;
+      break;
+    }
+  }
+  if (!contradiction) return t;
+
+  const english = /\b(?:catalog|found|didn'?t|the|on sale)\b/i.test(t) && !/[áéíóúñ¿¡]/i.test(t);
+  const tidy = (parts) => parts.join("").replace(/\s{2,}/g, " ").replace(/\s+([,.!?;:])/g, "$1").trim();
+  const hasWords = (x) => !!x && /[\p{L}\d]/u.test(x);
+  const out = [];
+  if (hasCards) {
+    /* Verified on screen: drop the denial, keep the recommendation. */
+    for (let i = 0; i < sentences.length; i++) {
+      const s = sentences[i];
+      if (i < claimAt) { out.push(s); continue; }
+      const pivot = s.search(CONTRAST_PIVOT_RE);
+      if (pivot >= 0 && CATALOG_DENIAL_RE.test(s.slice(pivot)) && !CATALOG_DENIAL_RE.test(s.slice(0, pivot))) {
+        const head = s.slice(0, pivot).replace(/[\s,;:]+$/, "");
+        if (hasWords(head)) out.push(head + (/[.!?]$/.test(head) ? " " : ". "));
+        continue;
+      }
+      if (CATALOG_DENIAL_RE.test(s)) continue;
+      out.push(s);
+    }
+    const result = tidy(out);
+    if (hasWords(result)) return result;
+    return english ? CATALOG_NOT_FOUND_FALLBACK_EN : CATALOG_NOT_FOUND_FALLBACK_ES;
+  }
+  /* Nothing verified: the naming AND its retraction go -- the retraction
+     only made sense against the claim -- and one honest line replaces
+     them. Anything else she said (a follow-up question) stays. */
+  for (let i = 0; i < sentences.length; i++) {
+    const s = sentences[i];
+    if (i >= claimAt && (PRODUCT_CLAIM_RE.test(s) || CATALOG_DENIAL_RE.test(s))) continue;
+    out.push(s);
+  }
+  const rest = tidy(out);
+  if (!hasWords(rest)) return english ? CATALOG_NOT_FOUND_FALLBACK_EN : CATALOG_NOT_FOUND_FALLBACK_ES;
+  const lead = english ? "I couldn't find that in our catalog right now." : "No lo encontré en nuestro catálogo en este momento.";
+  return lead + " " + rest;
+}
+
 export const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 export const TEMPERATURE = 0.7;

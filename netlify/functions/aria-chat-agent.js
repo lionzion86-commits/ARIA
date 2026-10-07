@@ -35,6 +35,7 @@ import {
   TEMPERATURE,
   REASONING_EFFORT,
   EMPTY_REPLY_FALLBACK_ES,
+  resolveCatalogContradiction,
 } from "./_aria-chat-model.js";
 
 const AGENT_MAX_TOKENS = 900;
@@ -138,7 +139,10 @@ export async function handler(event) {
     if (reply) {
       const clean0 = sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply));
       const { clean, ids } = extractShowIds(clean0);
-      return { statusCode: 200, headers, body: JSON.stringify({ reply: clean, show: ids }) };
+      /* Never name a product and then retract it: the cards she chose to
+         show are what is verified (see resolveCatalogContradiction). */
+      const safe = resolveCatalogContradiction(clean, ids.length > 0);
+      return { statusCode: 200, headers, body: JSON.stringify({ reply: safe, show: ids }) };
     }
 
     console.error("[aria-chat-agent] no provider answered:", lastError);

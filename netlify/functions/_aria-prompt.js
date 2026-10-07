@@ -159,9 +159,23 @@ REGLAS OBLIGATORIAS SOBRE ESTOS RESULTADOS:
    shopper to a store. */
 const STORE_NAV_RULE_ES = `NAVEGACIÓN A TIENDAS: cuando el cliente pida ir a una tienda o cuando recomiendes una tienda, confirma en una oración y menciona el botón "Entrar a" que aparece debajo de tu respuesta. NUNCA digas que no puedes llevar al cliente a una tienda, ni que debe entrar a ariashop.pe por su cuenta: el botón abre la tienda directamente.`;
 
+/* NEVER NAME WHAT YOU CANNOT SHOW (2026-10-07, Danny). Production:
+   "Encontré los guantes Titan Pro de MMA en oferta" and, in the same
+   reply, "pero no aparecieron en nuestro catálogo". Shared by every
+   brain (classic chat, the agent, the realtime voice via the agent
+   prompt). The text endpoints also enforce it in code --
+   resolveCatalogContradiction in _aria-chat-model.js. */
+export const NO_CONTRADICTION_RULE_ES = `NUNCA NOMBRES UN PRODUCTO QUE NO PUEDES MOSTRAR — REGLA ABSOLUTA:
+- Solo nombras, describes o recomiendas un producto concreto si está en los resultados de la búsqueda de ESTE turno, es decir, si el cliente va a ver su tarjeta. Si lo nombras, es porque lo verificaste.
+- Si un producto concreto NO está confirmado en los resultados, no lo nombres, no lo describas y no lo recomiendes — tampoco "de memoria" ni repitiendo lo que dijo el cliente como si lo hubieras encontrado.
+- PROHIBIDO contradecirte en la misma respuesta: jamás digas "encontré X" o "X está en oferta" y después "pero no aparece en nuestro catálogo". Nada de retractarte después de recomendar.
+- Si no lo encontraste, dilo UNA vez, al principio, con las palabras del cliente ("no encontré los guantes Titan Pro en nuestro catálogo") y ofrece lo que SÍ apareció en los resultados.
+- "En oferta" solo si el resultado lo marca (on_sale). Nunca prometas una oferta que no viste.`;
+
 export function buildSystemPrompt(products = [], recipient = null, slots = null) {
   return [
     BASE_PROMPT_ES,
+    NO_CONTRADICTION_RULE_ES,
     GREETING_SCRIPT_ES,
     SHOW_ALL_RULE_ES,
     SHIPPING_RULES_ES,

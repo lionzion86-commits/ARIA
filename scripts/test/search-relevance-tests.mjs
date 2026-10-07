@@ -192,9 +192,45 @@ check("the words Peru actually uses for cleats all translate", () => {
     "the soccer category intent stopped covering both words");
 });
 
+/* ------------------------------------------------------------------
+   KNOWN WORDS JOINED ARE A JOIN REPAIR, NOT A TYPO (2026-10-07).
+
+   "titan pro mma gloves" — an Everlast glove on sale — joined
+   "pro"+"mma" into "promma", and the fuzzy brand pass claimed Puma at
+   d=2 (then BYOMA, then Prada, as each was patched). The brand filter
+   hid the glove and the shopper was told we did not have it. A window
+   whose every word the catalogue sells only gets a one-edit repair.
+   Own pool: the main fixture carries a "Titan" brand on purpose.
+   ------------------------------------------------------------------ */
+const gloves = [];
+gloves.push(mk("Titan Pro MMA Glove", "Everlast", "everlast", 46.42));
+gloves.push(mk("Titan MMA Grappling Glove", "Everlast", "everlast", 37.14));
+for (let i = 0; i < 20; i++) gloves.push(mk(`Venum Challenger ${i} MMA Gloves`, "Venum", "venum", 40 + i));
+for (let i = 0; i < 20; i++) gloves.push(mk(`Hayabusa Pro ${i} Boxing Gloves`, "Hayabusa", "combatcorner", 60 + i));
+for (let i = 0; i < 20; i++) gloves.push(mk(`Puma Future ${i} Soccer Cleats`, "Puma", "dicks", 80 + i));
+for (let i = 0; i < 20; i++) gloves.push(mk(`BYOMA Hydrating ${i} Body Lotion`, "BYOMA", "target", 20 + i));
+for (let i = 0; i < 20; i++) gloves.push(mk(`Prada Re-Nylon ${i} Bag`, "Prada", "ssense", 900 + i));
+for (let i = 0; i < 20; i++) gloves.push(mk(`Lace Balconette ${i} Bra`, "Victoria's Secret", "victoriassecret", 30 + i));
+indexPool(gloves);
+
+check("two known words joined are never a far-fetched brand", () => {
+  for (const q of ["titan pro mma gloves", "Titan Pro MMA Glove", "guantes titan pro mma"])
+    assert.equal(brandOf(q, gloves), null, `"${q}" was hijacked by a brand two edits away`);
+  const res = rankCatalogMatches(gloves, "titan pro mma glove", { limit: 5, retailers: [] });
+  assert.equal(res.items[0] && res.items[0].title, "Titan Pro MMA Glove",
+    "the glove the shopper named is not the first result");
+});
+
+check("a one-edit join repair still resolves the brand", () => {
+  /* "victoria" and "secret" are both known words (the brand field is
+     searchable), and the join misses the possessive s by one edit. */
+  assert.equal(brandOf("victoria secret", gloves), "Victoria's Secret",
+    "the apostrophe repair stopped resolving Victoria's Secret");
+});
+
 /* A suite that shrinks has to say so — the same floor the voice suite
    carries, for the same reason. */
-const MIN_CHECKS = 8;
+const MIN_CHECKS = 10;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

@@ -8,6 +8,8 @@
     "test:browser": "node scripts/test/browser-tests.mjs",
     "test:mcp": "node scripts/test/mcp-tests.mjs",
     "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
+    "test:search": "node scripts/test/search-relevance-tests.mjs",
+    "test:contradiction": "node scripts/test/catalog-contradiction-tests.mjs",
     "mcp": "node mcp-server.js"
   }
 }

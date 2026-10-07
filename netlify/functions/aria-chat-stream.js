@@ -63,7 +63,7 @@
    own last line is a graceful spoken fallback. The client NEVER sees
    "No reply from model".
    ============================================================ */
-import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, sanitizeEmojiNarration, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, sanitizeEmojiNarration, resolveCatalogContradiction, OPENAI_CHAT_URL } from "./_aria-chat-model.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -193,6 +193,12 @@ export default async function handler(req) {
   const encoder = new TextEncoder();
   const send = (controller, obj) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
 
+  /* The done event is the reply of record (the client replaces the
+     streamed text with it): sanitized, and never naming a product only
+     to retract it -- the cards decide which half is true. */
+  const hasCards = Array.isArray(body?.products) && body.products.length > 0;
+  const finalReply = (r) => resolveCatalogContradiction(sanitizeEmojiNarration(sanitizeSpokenPunctuation(r)), hasCards);
+
   const stream = new ReadableStream({
     async start(controller) {
       const fail = (msg) => { send(controller, { error: msg }); controller.close(); };
@@ -211,7 +217,7 @@ export default async function handler(req) {
            had already said stays on screen and is returned as the reply,
            so a dropped connection leaves a short answer rather than
            deleting a paragraph the shopper was reading. */
-        if (reply) send(controller, { done: true, reply: sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply)), truncated: true });
+        if (reply) send(controller, { done: true, reply: finalReply(reply), truncated: true });
         else fail(error && error.message ? error.message : "error de conexión");
         controller.close();
         return;
@@ -246,7 +252,7 @@ export default async function handler(req) {
             fail(error.message);
             return;
           }
-          if (reply) send(controller, { done: true, reply: sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply)), truncated: true });
+          if (reply) send(controller, { done: true, reply: finalReply(reply), truncated: true });
           else fail(error && error.message ? error.message : "error de conexión");
           controller.close();
           return;
@@ -277,7 +283,7 @@ export default async function handler(req) {
          ttsPipeline, it renders each sentence's audio itself as the text
          streams, so no full-reply TTS runs here at all — done carries
          text only, and the trailing audio event is skipped. */
-      send(controller, { done: true, reply: sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply)) });
+      send(controller, { done: true, reply: finalReply(reply) });
       /* No trailing audio event: nothing synthesises here any more. */
       controller.close();
     },

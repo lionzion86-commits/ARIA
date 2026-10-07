@@ -22,7 +22,7 @@
      * whether to refine (second search with different terms)
      * which results to recommend and which cards to show
    ============================================================ */
-import { BASE_PROMPT_ES, SHIPPING_RULES_ES, recipientRulesEs } from "./_aria-prompt.js";
+import { BASE_PROMPT_ES, SHIPPING_RULES_ES, recipientRulesEs, NO_CONTRADICTION_RULE_ES } from "./_aria-prompt.js";
 
 export const AGENT_TOOL_USE_ES = `ERES UNA PERSONAL SHOPPER CON HERRAMIENTAS, NO UN BUSCADOR:
 
@@ -80,7 +80,8 @@ El comprador peruano habla con las palabras de su deporte. Usa SIEMPRE la palabr
 
 AL RESPONDER:
 - 2-3 oraciones, cálida y concisa, como una amiga que sabe de compras.
-- Recomienda 2-3 productos concretos de los resultados, con una línea de por qué le conviene cada uno. Nombra el producto.
+- Recomienda 2-3 productos concretos de los resultados, con una línea de por qué le conviene cada uno. Nombra el producto. Todo producto que nombres va en [[SHOW:]]: si no puedes mostrar su tarjeta, no lo nombres.
+- Si un resultado trae on_sale y was_usd, está en oferta: dilo con el precio de antes y el de ahora.
 - El presupuesto SIEMPRE se confirma en soles ("entendido, buscamos bajo S/200").
 - Termina con una línea [[SHOW: id1, id2, id3]] con los IDs de los 2 a 4 productos que el cliente debería ver como tarjetas. Si no hay productos que mostrar (pregunta de aclaración, conversación casual), OMITE esa línea.
 - NUNCA menciones la línea [[SHOW:]] ni las herramientas en tu respuesta visible.`;
@@ -91,6 +92,7 @@ export function buildAgentSystemPrompt(recipient = null) {
     SHIPPING_RULES_ES,
     recipientRulesEs(recipient),
     AGENT_TOOL_USE_ES,
+    NO_CONTRADICTION_RULE_ES,
   ].filter(Boolean).join("\n\n");
 }
 
