@@ -75,9 +75,9 @@ export const BEAUTY_IMPOSTOR_RE =
 /* Ordered most specific first — the first row whose pattern matches wins,
    exactly like BULKY_WEIGHT_ESTIMATES_KG. `kg` is the shipped weight;
    `pack` selects the (currently zero) allowance above. */
-export const /* Shared gift-set pattern: used by the BEAUTY_FALLBACK_KG row and the sanity band below. */
+export /* Shared gift-set pattern: used by the BEAUTY_FALLBACK_KG row and the sanity band below. */
 const BEAUTY_GIFTSET_RE = /\b(gift set|set de regalo|beauty gift set|spa gift set|bath gift set|body care gift set|cofre de belleza)\b/i;
-BEAUTY_FALLBACK_KG = [
+const BEAUTY_FALLBACK_KG = [
   /* --- eyes --------------------------------------------------- */
   // A pro palette states its pan count or calls itself "pro"/"XL". Read
   // before the small-palette row, which is the general case.
