@@ -10020,15 +10020,7 @@ async function relatedPool(){
      rankCatalogMatches pulls that subset up front instead of scanning
      the whole pool per search. Attached to the array rather than the
      items, so ad-hoc pools without it take the old path unchanged. */
-  const windex = new Map();
-  for (const it of relatedPoolCache){
-    for (const w of it._wordSet){
-      let lst = windex.get(w);
-      if (!lst) windex.set(w, lst = []);
-      lst.push(it);
-    }
-  }
-  relatedPoolCache._windex = windex;
+  buildSearchWordIndex(relatedPoolCache);
   return relatedPoolCache;
 }
 
@@ -10656,6 +10648,116 @@ function fuzzyVocabBuckets(windex){
   return b;
 }
 
+/* ============================================================
+   SPELLED THE WAY IT SOUNDS (2026-10-07, watch list).
+
+   A Peruvian shopper types English the way it sounds in Spanish:
+   "chort" for short, "hudi" for hoodie, "swetshert" for sweatshirt.
+   Edit distance cannot carry these -- "hudi" is three edits from
+   "hoodie" and ONE from the brand Huddy, so the brand won and the
+   shopper got Huddy t-shirts; "chort" landed on Schott. A sound key
+   folds the spellings that sound alike (sh/ch, oo/u, ea/e, ee/ie/y,
+   ir/ur/er) so the right word is distance zero.
+
+   Only ever consulted for a token the vocabulary does not know, and
+   the most common words sharing the key win: Huddy (a handful of
+   uses) never outvotes hoodie (thousands). Short/shirt stay apart --
+   "or" is deliberately not folded.
+   ============================================================ */
+/* "ea" is read both ways by the shopper -- "swetshert" (sweat, e) and
+   "snikers"/"jins" (sneakers/jeans, i) -- so vocabulary words are filed
+   under both readings (eaAs 'e' and 'i'); a query is keyed once. */
+function shopperSoundKey(w, eaAs){
+  let s = String(w || '').toLowerCase();
+  s = s.replace(/oo|ou/g, 'u').replace(/ea/g, eaAs || 'e').replace(/ee|ie|ey/g, 'i').replace(/y$/, 'i');
+  s = s.replace(/sh|ch/g, 'x').replace(/ph/g, 'f').replace(/[iu]r/g, 'er');
+  return s.replace(/(.)\1+/g, '$1');
+}
+const soundKeyCache = new WeakMap();
+/* Vocabulary words that sound like the token, most-used first, with
+   the rare ones (under a tenth of the leader's uses) dropped. */
+function soundAlikeWords(tok, windex){
+  if (!tok || tok.length < 3 || !windex || typeof windex.keys !== 'function') return null;
+  let m = soundKeyCache.get(windex);
+  if (!m){
+    m = new Map();
+    for (const w of windex.keys()){
+      if (typeof w !== 'string' || w.length < 3 || /\d/.test(w)) continue;
+      for (const k of new Set([shopperSoundKey(w, 'e'), shopperSoundKey(w, 'i')])){
+        let arr = m.get(k);
+        if (!arr) m.set(k, arr = []);
+        arr.push(w);
+      }
+    }
+    soundKeyCache.set(windex, m);
+  }
+  const arr = m.get(shopperSoundKey(tok));
+  if (!arr || !arr.length) return null;
+  const uses = (w) => { const l = windex.get(w); return l ? l.length : 0; };
+  const top = Math.max(...arr.map(uses));
+  const kept = arr.filter(w => uses(w) * 10 >= top).sort((a, b) => uses(b) - uses(a));
+  return kept.length ? kept : null;
+}
+
+/* SAY WHAT WE SEARCHED FOR (2026-10-07). Words the vocabulary does
+   not know are rewritten to the word they sound like -- "chort" ->
+   "short", "hudi" -> "hoodie" -- so the Spanish layer can translate
+   the corrected word ("short" is the garment, shorts) and the page can
+   say "Mostrando resultados para …" the way Google does. A word with
+   no sound-alike is left exactly as typed. */
+function soundCorrectQuery(query, windex){
+  const raw = String(query || '');
+  const toks = searchTokens(raw);
+  if (!toks.length || !windex || typeof windex.get !== 'function') return { query: raw, changed: false, fixes: [] };
+  const fixes = [];
+  const out = toks.map(t => {
+    if (t.length < 3 || /\d/.test(t)) return t;
+    const l = windex.get(t);
+    if (l && l.length) return t;
+    for (const f of matchFormsFor(t)){ const lf = windex.get(f); if (lf && lf.length) return t; }
+    const alike = soundAlikeWords(t, windex);
+    if (!alike) return t;
+    fixes.push([t, alike[0]]);
+    return alike[0];
+  });
+  return fixes.length ? { query: out.join(' '), changed: true, fixes } : { query: raw, changed: false, fixes };
+}
+
+/* "¿Quisiste decir …?" for a search that found nothing: every unknown
+   word swapped for the closest word the catalogue actually uses --
+   sound-alike first, then the nearest spelling -- and a word with no
+   near match at all dropped, the way Google drops it. Null when no
+   known word is left. */
+function suggestSearchQuery(query, windex){
+  const toks = searchTokens(query);
+  if (!toks.length || !windex || typeof windex.get !== 'function') return null;
+  const buckets = fuzzyVocabBuckets(windex);
+  let changed = false;
+  const out = toks.map(t => {
+    const l = windex.get(t);
+    if (l && l.length) return t;
+    const alike = soundAlikeWords(t, windex);
+    if (alike){ changed = true; return alike[0]; }
+    const forms = fuzzyFormsForToken(t, buckets, windex);
+    if (!forms || !forms.size){ changed = true; return null; }
+    /* A suggestion has to look like what was typed: one edit on a short
+       word, two from six letters -- "qqqzxv" is not "qixi". */
+    const sq = fuzzySquashDoubles(t);
+    const cap = sq.length >= 6 ? 2 : 1;
+    let best = null, bestUses = -1;
+    for (const w of forms){
+      if (fuzzyEditDist(sq, w, cap) > cap) continue;
+      const lw = windex.get(w); const u = lw ? lw.length : 0;
+      if (u > bestUses){ best = w; bestUses = u; }
+    }
+    if (!best || bestUses <= 0){ changed = true; return null; }
+    changed = true;
+    return best;
+  });
+  const kept = out.filter(Boolean);
+  return changed && kept.length ? kept.join(' ') : null;
+}
+
 /* The fuzzy form set for one query token: vocabulary words within
    Damerau<=2 (<=1 for short tokens), plus their plural forms and
    synonyms so "hudi" also finds "hoodies" and "buzos". Null when the
@@ -10668,8 +10770,12 @@ function fuzzyFormsForToken(tok, buckets, windex){
   if (!tok || tok.length < 3 || !buckets || !windex) return null;
   if (windex.get(tok) && windex.get(tok).length) return null;
   for (const f of matchFormsFor(tok)){ const l = windex.get(f); if (l && l.length) return null; }
-  const maxDist = tok.length >= 4 ? 2 : 1;
   const squashed = fuzzySquashDoubles(tok);
+  /* The budget follows the SQUASHED length (2026-10-07): "qqqzxv" is
+     four letters once its doubles go, and two edits on four letters
+     matched "LXXXV" and "AZXY" -- junk instead of an honest empty page
+     with a "¿Quisiste decir?". */
+  const maxDist = squashed.length >= 5 ? 2 : 1;
   const hits = new Set();
   const consider = (w) => {
     if (hits.has(w)) return;
@@ -10677,6 +10783,11 @@ function fuzzyFormsForToken(tok, buckets, windex){
     for (const f of matchForms(w)) hits.add(f);
     for (const s of synonymsOf(w)) for (const f of matchForms(s)) hits.add(f);
   };
+  /* CLOSEST MATCH WINS: a word that SOUNDS identical beats every word
+     merely a couple of letters away ("swetshert" is sweatshirt, not
+     "sweethearts"). */
+  const alike = soundAlikeWords(tok, windex);
+  if (alike){ for (const w of alike) consider(w); return hits; }
   for (let l = Math.max(3, tok.length - maxDist); l <= tok.length + maxDist; l++){
     const arr = buckets.get(l);
     if (!arr) continue;
@@ -10885,7 +10996,13 @@ function detectBrandIntent(rawToks, pool, opts){
   const knownProductWord = (w) => {
     if (w.idx.length !== 1) return false;
     const tok = rawToks[w.idx[0]];
-    return !!tok && poolKnows(tok);
+    if (!tok) return false;
+    if (poolKnows(tok)) return true;
+    /* A word that SOUNDS like one the catalogue sells is that word,
+       misspelled -- not a brand: "hudi" is hoodie, not Huddy; "chort"
+       is short, not Schott (2026-10-07). */
+    const alike = windex ? soundAlikeWords(tok, windex) : null;
+    return !!(alike && alike.some(a => !vocab.has(searchBrandKey(a))));
   };
   const keys = [...vocab.keys()];
   const sqKeys = keys.map(k => fuzzySquashDoubles(k));
@@ -11070,6 +11187,24 @@ function catalogItemCategory(item){
       && isSoccer(item, item && item.retailer)) return 'soccer';
   // A catalogue that names a footwear department settles it outright.
   if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
+  /* SOCKS ARE NOT SHOES (2026-10-07: "zapatilla" led with Hanes crew
+     socks). "Reinforced heel and toe" tripped the footwear words, so
+     every sock carried the implied word "shoes". A sock, insole or lace
+     title is footwear only if it also names a shoe ("Nike Sock Dart
+     Shoes"). */
+  if (/\b(?:socks?|calcetines|calcetas|insoles?|shoe\s*laces?|laces)\b/i.test(title)
+      && !/\b(?:shoes?|sneakers?|trainers?|sandals?|slides?|boots?)\b/i.test(title)) return null;
+  /* A DOLL IN SANDALS IS A DOLL ("zapatilla" answered with Barbie and a
+     "Duck in Boots" figurine). Toys, decor and the like are never
+     footwear by a word in their title, and neither is anything whose
+     product noun is a depiction. */
+  if (depts.some(d => /^(?:toys?|juguetes|home(?:_decor)?|decor|books?|electronics|kitchen|party|pets?|baby_gear|crafts?)$/i.test(String(d)))) return null;
+  if (/\b(?:dolls?|mu[nñ]ecas?|figurines?|figures?|sculptures?|statues?|ornaments?|plush|keychains?|charms?|stickers?|puzzles?|mugs?)\b/i.test(title)) return null;
+  /* "Kick Boot Jeans" are jeans: a garment as THE head noun (the last
+     one) outranks a stray shoe word earlier in the title. "Dress Shoes"
+     ends in shoes, so it stays footwear. */
+  const headW = [...catalogHeadWords(item)];
+  if (/^(?:jeans|pants|trousers|leggings|shorts|skirts?|dress(?:es)?|shirts?|tees?|tops?|jackets?|coats?)$/.test(headW[headW.length - 1] || '')) return null;
   /* The title saying so settles it too, by the SAME words a query uses
      to mean footwear -- so "Running Sneakers" is footwear whether it is
      being asked for or being offered. */
@@ -11104,6 +11239,36 @@ function catalogTokenWeights(pool, toks, intent, categoryOf, wordsFor, fuzzySets
   return df.map(n => 1 / Math.log2(2 + n));
 }
 
+/* THE PRODUCT IS THE HEAD NOUN (2026-10-07, watch list). "shorts"
+   tied a pair of shorts with a "Short Circuit" charger and a "Bermuda
+   Blue" speaker; "zapatillas" tied sneakers with a Barbie in sandals.
+   A title names its product before the first qualifier -- " - ", ":",
+   ",", "(", "with", "for", "in" -- and that segment's last word or two
+   is what the item IS. A query word landing there outranks the same
+   word anywhere else. */
+const HEAD_NOUN_BOOST = 0.5;
+const HEAD_NOISE = new Set(['s', 'men', 'mens', 'women', 'womens', 'kids', 'boys', 'girls', 'unisex', 'pack', 'pk', 'set']);
+function catalogHeadWords(item){
+  if (item && item._headWords instanceof Set) return item._headWords;
+  const title = String((item && (item.title || item.name)) || '');
+  const seg = title.split(/\s[-–|]\s|[:,(]|\s(?:with|for|in|con|para)\s/i)[0] || title;
+  const toks = searchTokens(seg).filter(t => !HEAD_NOISE.has(t) && !/^\d+$/.test(t));
+  const head = new Set(toks.slice(-2));
+  if (item && typeof item === 'object') { try { item._headWords = head; } catch(e) { /* frozen item: recompute next time */ } }
+  return head;
+}
+
+/* The head must carry the word itself, its plural or a true synonym --
+   never the singular of a plural query: "shorts" is not "Vase Short". */
+function headNounHit(head, t, fs){
+  for (const f of matchFormsFor(t)){
+    if (f + 's' === t || f + 'es' === t) continue;
+    if (head.has(f)) return true;
+  }
+  if (fs && fs.size) for (const w of head) if (fs.has(w)) return true;
+  return false;
+}
+
 function scoreCatalogItem(item, toks, weights, wordsIn, fuzzySets){
   const words = wordsIn || catalogWordsOf(item);
   const hits = catalogTokenHitsWithFuzzy(words, toks, fuzzySets);
@@ -11118,7 +11283,13 @@ function scoreCatalogItem(item, toks, weights, wordsIn, fuzzySets){
   }
   if (hits === toks.length) s += 1;
   const brandWords = (item && item._brandWordSet instanceof Set) ? item._brandWordSet : new Set(searchTokens(item?.brand || ''));
-  if (toks.some(t => brandWords.has(t))) s += 0.75;
+  /* A brand named after a product word is not a brand match for that
+     word (2026-10-07): "jeans" -> "pants" lifted every "Party Pants"
+     item over actual jeans. The bonus is for words that only a brand
+     means ("nike"), never a category's own words. */
+  if (toks.some(t => brandWords.has(t) && !synonymGroupOf(t))) s += 0.75;
+  const head = catalogHeadWords(item);
+  if (head.size && toks.some((t, i) => headNounHit(head, t, fuzzySets && fuzzySets[i]))) s += HEAD_NOUN_BOOST;
   return s;
 }
 
@@ -11227,6 +11398,33 @@ function genderIntentFromTokens(toks){
   return null;
 }
 
+/* A sale word in the query lifts real markdowns over full price. */
+const SALE_INTENT_BOOST = 0.5;
+
+/* THE SEARCH INDEX, BUILT ONE WAY (2026-10-07). relatedPool() and the
+   standalone search page (search.html, via search-engine.js) both
+   index their pool with this, so the two can never rank differently
+   because one of them precomputed less. Fills each item's word sets
+   where missing and attaches the inverted word index to the array. */
+function buildSearchWordIndex(pool){
+  const windex = new Map();
+  for (const it of pool || []){
+    if (!it || !it.title) continue;
+    if (!(it._wordSet instanceof Set)){
+      it._wordSet = catalogWordsOf(it);
+      it._brandWordSet = new Set(searchTokens(it.brand || ''));
+      it._cat = catalogItemCategory(it);
+    }
+    for (const w of it._wordSet){
+      let lst = windex.get(w);
+      if (!lst) windex.set(w, lst = []);
+      lst.push(it);
+    }
+  }
+  pool._windex = windex;
+  return pool;
+}
+
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
   query = expandBrandAliases(query);
@@ -11265,6 +11463,9 @@ function rankCatalogMatches(pool, query, opts){
   const SALES_INTENT_TOKENS = new Set(['sale','sales','oferta','ofertas',
     'descuento','descuentos','rebaja','rebajas','liquidacion','clearance']);
   const intentToks = toks.filter(t => !SALES_INTENT_TOKENS.has(t));
+  /* ...but the INTENT is kept (2026-10-07): "zapatillas ofertas" ranks
+     the discounted pairs first, deepest markdown leading. */
+  const saleIntent = intentToks.length !== toks.length;
   if (intentToks.length !== toks.length) toks = intentToks;
   /* GENDER IS PREFERENCE, NEVER A HARD REQUIREMENT (2026-10-02, Danny).
      "Aletas de buceo para mi papá" built the query "diving fins men's"
@@ -11444,6 +11645,10 @@ function rankCatalogMatches(pool, query, opts){
       const aud = titleAudience(item.title || item.name || '');
       if (aud && aud.gender === genderBoost) itemScore += GENDER_MATCH_BOOST;
     }
+    if (saleIntent){
+      const p = Number(item.price), o = Number(item.originalPrice);
+      if (p > 0 && o > p) itemScore += SALE_INTENT_BOOST * (1 + (1 - p / o));
+    }
     scored.push({ item, score: itemScore });
   }
   scored.sort((a, b) => b.score - a.score);
@@ -11565,8 +11770,11 @@ function catalogResultsAreThin(res){
    catalogue search that skipped this would return nothing for
    "pantalones" -- which is most of the bug being fixed. */
 async function catalogSearch(query, opts){
-  const t = translateQuery(query);
   const pool = await relatedPool();
+  /* Unknown words corrected to what they sound like FIRST, then the
+     Spanish layer: "chort" -> "short" -> "shorts". */
+  const fixed = soundCorrectQuery(translateQuery(query).query, pool && pool._windex);
+  const t = fixed.changed ? translateQuery(fixed.query) : translateQuery(query);
   /* HONEST EMPTY (2026-10-03): every catalogue fetch failed (dead
      signal, CDN hiccup) -- the pool is empty and the search would
      wrongly print "no tenemos 'X' en nuestro catalogo" as if we
@@ -11575,7 +11783,9 @@ async function catalogSearch(query, opts){
   if (typeof departmentCacheFailed !== 'undefined' && departmentCacheFailed)
     throw new Error('catalogue failed to load');
   const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers() });
-  return { ...res, asked: query, translated: t.query, changed: t.changed };
+  return { ...res, asked: query, translated: t.query, changed: t.changed || fixed.changed,
+    ...(fixed.changed ? { corrected: fixed.query } : {}),
+    ...(!res.items.length ? { suggestion: suggestSearchQuery(t.query, pool && pool._windex) } : {}) };
 }
 
 let relatedRendered = [];
@@ -23050,7 +23260,13 @@ function emptySearchFeedHTML(){
     return `<div class="col-span-full text-[13px] text-zinc-500 py-6">Ningún resultado de las tiendas seleccionadas. Activa más tiendas en los filtros.</div>`;
   }
   const q = liveScrapeQuery ? `“${escapeHtml(liveScrapeQuery)}”` : 'eso';
-  return `<div class="col-span-full text-[13px] text-zinc-500 py-6">No tenemos ${q} en nuestro catálogo todavía.</div>`;
+  /* NEVER A DEAD END (2026-10-07): the closest words the catalogue
+     actually uses, one tap away. */
+  const sug = catalogMatch && catalogMatch.suggestion;
+  const dym = sug && sug !== liveScrapeQuery
+    ? ` ¿Quisiste decir <button type="button" class="underline font-bold" onclick="showResults(${escapeHtml(JSON.stringify(sug))})">${escapeHtml(sug)}</button>?`
+    : '';
+  return `<div class="col-span-full text-[13px] text-zinc-500 py-6">No tenemos ${q} en nuestro catálogo todavía.${dym}</div>`;
 }
 
 /* ============================================================
@@ -23736,6 +23952,8 @@ async function showResults(query, opts = {}){
   if (liveScrapeQuery !== query) return;
   catalogMatch = res;
   searchResults = res.items.slice();
+  /* Said the way Google says it when a word was corrected. */
+  if (res.corrected) document.getElementById('prodSpec').textContent = `Mostrando resultados para “${res.corrected}”`;
 
   renderSearchResults();
   lastSearch = { query, items: searchResults.slice(), catalog: catalogMatch, liveState: liveSearchState };
