@@ -395,13 +395,23 @@ function designerKeyFor(item){
   }
   return null;
 }
+/* DANNY 2026-10-07: keywords match on word boundaries, never substrings.
+   Substring matching filed "Fringe Crop Top", "Spring Kimono" and
+   "Flowering Dress" under Joyas because "fringe"/"spring"/"flowering"
+   all contain "ring". */
+function typeKeywordRe(kw){
+  var esc = kw.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+  return new RegExp('\\b' + esc + '(?:es|s)?\\b');
+}
+var PRODUCT_TYPE_RES = PRODUCT_TYPES.map(function(t){
+  return { key: t.key, res: t.keywords.map(typeKeywordRe) };
+});
 function productTypeOf(item){
   var n = String((item && item.name) || '').toLowerCase();
-  for (var i = 0; i < PRODUCT_TYPES.length; i++){
-    var t = PRODUCT_TYPES[i];
-    if (!t.keywords.length) continue;
-    for (var k = 0; k < t.keywords.length; k++){
-      if (n.indexOf(t.keywords[k]) !== -1) return t.key;
+  for (var i = 0; i < PRODUCT_TYPE_RES.length; i++){
+    var t = PRODUCT_TYPE_RES[i];
+    for (var k = 0; k < t.res.length; k++){
+      if (t.res[k].test(n)) return t.key;
     }
   }
   return 'ropa';
