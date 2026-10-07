@@ -108,6 +108,17 @@ button{font:inherit;cursor:pointer}
 .room-sub{margin-top:6px}
 .room-subhead{display:flex;align-items:center;gap:8px;padding:16px 18px 4px;font-size:15px;font-weight:800;color:var(--ink)}
 .room-subcount{font-size:11px;font-weight:700;color:#fff;background:var(--raccent,#C9A227);border-radius:999px;padding:2px 8px}
+.room-subhead .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:12.5px;font-weight:800;color:#0E7C9B;cursor:pointer;padding:4px 2px}
+/* RAIL EXPAND (2026-10-07): full-screen "Ver todo" for capped carousels */
+.rail-expand{position:fixed;inset:0;z-index:90;background:var(--bg,#F0FAF9);display:flex;flex-direction:column}
+.rail-expand[hidden]{display:none}
+.re-head{flex-shrink:0;background:var(--bg,#F0FAF9);border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.re-title{font-size:17px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.re-count{font-size:12px;font-weight:600;color:var(--muted)}
+.re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start}
+.re-grid .card{flex:none;min-width:0}
+@media(min-width:640px){.re-grid{grid-template-columns:repeat(4,1fr);max-width:1100px;margin:0 auto;width:100%}}
 .room-rail{padding:14px 0 6px}
 .rail{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin}
 .rail::-webkit-scrollbar{height:6px}
@@ -354,7 +365,8 @@ var state = {
   fxRate: null,
   designerFilter: 'all',
   typeFilter: 'all',
-  loaded: false
+  loaded: false,
+  railPools: {},        // "designerKey::railKey" -> full list for Ver todo
 };
 
 /* ---------- network with timeout + fallbacks ---------- */
@@ -490,19 +502,32 @@ function roomHTML(spec, items, expanded){
       var k = it.ptype || 'ropa';
       (byType[k] = byType[k] || []).push(it);
     });
-    function subRail(title, list){
+    function subRail(title, list, railKey){
       var shown = expanded ? list : list.slice(0, CARDS_PER_ROOM);
       var cards = shown.map(cardHTML).join('');
+      var rk = spec.key + '::' + railKey;
+      state.railPools[rk] = list;
+      var door = (!expanded && list.length > CARDS_PER_ROOM)
+        ? '<button type="button" class="ver-todo" data-rk="' + escapeHtml(rk) + '" data-title="' + escapeHtml(title) + '">Ver todo \u2192</button>'
+        : '';
       return '<div class="room-sub"><div class="room-subhead">' + escapeHtml(title)
-        + '<span class="room-subcount">' + list.length + '</span></div>'
+        + '<span class="room-subcount">' + list.length + '</span>' + door + '</div>'
         + '<div class="room-rail"><div class="rail">' + cards + '</div></div></div>';
     }
     var rails = '';
-    if (sales.length) rails += subRail('Ofertas de ' + spec.label, sales);
+    if (sales.length) {
+      rails += subRail('Ofertas de ' + spec.label, sales, 'ofertas');
+    } else if (items.length) {
+      /* DANNY 2026-10-07: no sales -> "Destacados" leads with hero products (priciest first). */
+      var featured = items.slice().sort(function(a, b){
+        return (Number(b.price) || 0) - (Number(a.price) || 0);
+      });
+      rails += subRail('Destacados de ' + spec.label, featured, 'destacados');
+    }
     for (var ti = 0; ti < PRODUCT_TYPES.length; ti++){
       var t = PRODUCT_TYPES[ti];
       var list = byType[t.key] || [];
-      if (list.length) rails += subRail(t.label, list);
+      if (list.length) rails += subRail(t.label, list, t.key);
     }
     var more = (!expanded && items.length > CARDS_PER_ROOM)
       ? '<div class="room-foot"><button type="button" class="show-all" data-room="' + escapeHtml(spec.key) + '">Ver los ' + items.length + ' productos</button></div>'
@@ -535,6 +560,32 @@ function filteredItems(list){
   return list.filter(function(it){ return it.ptype === tf; });
 }
 
+/* RAIL EXPAND (2026-10-07, Danny): "Ver todo" opens the rail's FULL list
+   in a full-screen overlay -- not just the 24 carousel cards. */
+function openRoomRail(rk, title){
+  try{
+    var list = state.railPools[rk] || [];
+    var ov = $('railExpand');
+    if (!ov) return;
+    $('reTitle').textContent = title || 'Productos';
+    $('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    $('reGrid').innerHTML = list.map(function(it){
+      try { return cardHTML(it); } catch(e){ return ''; }
+    }).join('');
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('reGrid').scrollTop = 0;
+  }catch(e){ showFatal('No pudimos mostrar todos los productos.'); }
+}
+function closeRoomRail(){
+  try{
+    var ov = $('railExpand');
+    if (ov) ov.hidden = true;
+    document.body.style.overflow = '';
+  }catch(e){}
+}
+if (typeof window !== 'undefined'){ window.closeRoomRail = closeRoomRail; }
+
 function renderGallery(){
   var gal = $('galeria');
   if (!gal) return;
@@ -557,6 +608,13 @@ function renderGallery(){
           state['expanded_' + btn.getAttribute('data-room')] = true;
           renderGallery();
         }catch(e){ showFatal('No pudimos mostrar más productos.'); }
+      });
+    });
+    Array.prototype.forEach.call(gal.querySelectorAll('.ver-todo'), function(btn){
+      btn.addEventListener('click', function(){
+        try{
+          openRoomRail(btn.getAttribute('data-rk'), btn.getAttribute('data-title'));
+        }catch(e){ showFatal('No pudimos mostrar todos los productos.'); }
       });
     });
     var empty = $('emptyState');
@@ -710,5 +768,19 @@ document.addEventListener('DOMContentLoaded', function(){
   }, 250);
 }catch(e){} })();
 </script>
+
+<!-- RAIL EXPAND OVERLAY (2026-10-07): full-screen "Ver todo" for capped carousels -->
+<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
+  <div class="re-head">
+    <button type="button" class="re-back" onclick="closeRoomRail()" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div style="min-width:0">
+      <div id="reTitle" class="re-title"></div>
+      <div id="reCount" class="re-count"></div>
+    </div>
+  </div>
+  <div id="reGrid" class="re-grid"></div>
+</div>
 </body>
 </html>

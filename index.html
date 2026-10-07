@@ -1382,6 +1382,13 @@
   @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+/* RAIL EXPAND (2026-10-07): full-screen "Ver todo" grid. Cards render
+     via railCardHTML (fixed-width buttons); the grid overrides to fluid. */
+  #railExpandGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  #railExpandGrid > button{ width:100% !important; flex:none !important; }
+  #railExpandGrid > button > span:first-child{ height:auto !important; aspect-ratio:3/4; }
+  @media (min-width:640px){ #railExpandGrid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (min-width:1024px){ #railExpandGrid{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
   /* BRAND STRIP LOGOS (2026-09-26, Danny's QA: text-only tiles were
      unreadable as brands). Official logo SVGs live in logos/brands/,
      keyed by brandKeyOf(label). A brand with no sourced logo keeps the
@@ -6360,6 +6367,27 @@
 </div>
 
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
+
+<!-- Full-screen "Ver todo" view for capped carousels: the rail's complete
+     sorted pool as a scrollable grid. iPhone-first. -->
+<div id="railExpandBackdrop" class="hidden fixed inset-0 z-[75]" role="dialog" aria-modal="true" aria-labelledby="railExpandTitle" style="background:var(--paper)">
+  <div class="railExpandScroll h-full overflow-y-auto">
+    <div class="sticky top-0 z-10" style="background:var(--paper);border-bottom:1px solid var(--line)">
+      <div class="max-w-6xl mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
+        <button type="button" onclick="closeRailExpand()" aria-label="Volver" class="w-10 h-10 shrink-0 rounded-full grid place-items-center focus-ring" style="background:#F1F3F7">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="min-w-0">
+          <h2 id="railExpandTitle" class="text-[17px] font-extrabold truncate" style="color:var(--navy)"></h2>
+          <div id="railExpandCount" class="text-[12px] font-semibold" style="color:#6B7487"></div>
+        </div>
+      </div>
+    </div>
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <div id="railExpandGrid"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ AUTH MODAL ============ -->
 <!-- Real email/password signup + login (netlify/functions/auth-signup.js
@@ -12791,6 +12819,8 @@ function paintCategoryRail(row){
    (categoryRailPicks / storeRailPicks) and one card (railCardHTML, brand
    + store on every card) -- the same pieces the front page uses. */
 let deptRailsRendered = {}; // railId -> picks
+let deptRailPools = {}; // railId -> full sorted pool ("Ver todo" expand)
+let railExpandTitles = {}; // railId -> overlay title
 
 function openDeptRailProduct(railId, idx){
   const p = (deptRailsRendered[railId] || [])[idx];
@@ -12801,18 +12831,70 @@ function openDeptRailProduct(railId, idx){
     { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
 }
 
+function openRailExpand(railId){
+  try{
+    const pool = deptRailPools[railId];
+    const picks = deptRailsRendered[railId];
+    const list = (Array.isArray(pool) && pool.length) ? pool
+      : (Array.isArray(picks) ? picks : []);
+    const bd = document.getElementById('railExpandBackdrop');
+    if (!bd) return;
+    const titleEl = document.getElementById('railExpandTitle');
+    const countEl = document.getElementById('railExpandCount');
+    const grid = document.getElementById('railExpandGrid');
+    if (titleEl) titleEl.textContent = railExpandTitles[railId] || 'Productos';
+    if (countEl) countEl.textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    if (grid){
+      grid.innerHTML = list.map((p, i) => railCardHTML(p,
+        `openRailExpandProduct('${jsAttr(railId)}',${i})`,
+        `data-rail-expand-card="${escapeHtml(railId)}" data-idx="${i}"`, {})).join('');
+    }
+    bd.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const sc = bd.querySelector('.railExpandScroll');
+    if (sc) sc.scrollTop = 0;
+  }catch(e){}
+}
+function closeRailExpand(){
+  try{
+    const bd = document.getElementById('railExpandBackdrop');
+    if (bd) bd.classList.add('hidden');
+    document.body.style.overflow = '';
+  }catch(e){}
+}
+function openRailExpandProduct(railId, idx){
+  const p = (deptRailPools[railId] || deptRailsRendered[railId] || [])[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
+}
+
 function deptRailSectionHTML(railId, ariaLabel, headHTML, picks, opts){
   if (!Array.isArray(picks) || !picks.length) return '';
+  opts = opts || {};
   deptRailsRendered[railId] = picks;
+  railExpandTitles[railId] = ariaLabel;
+  /* "Ver todo" door: when the caller passes the rail's full sorted pool,
+     the head gets a door into the full-screen expand overlay. Rails that
+     already have their own door (store rails -> "Ver tienda") skip it by
+     simply not passing fullList. */
+  const fullList = (Array.isArray(opts.fullList) && opts.fullList.length) ? opts.fullList : null;
+  if (fullList) deptRailPools[railId] = fullList;
+  const cardOpts = {};
+  for (const k in opts){ if (k !== 'fullList') cardOpts[k] = opts[k]; }
   const cards = picks.map((p, i) => railCardHTML(p,
     `openDeptRailProduct('${jsAttr(railId)}',${i})`,
-    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
+    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, cardOpts)).join('');
+  const door = (fullList && !opts.noExpandDoor)
+    ? `<button type="button" onclick="openRailExpand('${jsAttr(railId)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>`
+    : '';
   return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">
-    <div class="flex items-center justify-between gap-3 mb-3">${headHTML}</div>
+    <div class="flex items-center justify-between gap-3 mb-3">${headHTML}${door}</div>
     <div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div>
   </section>`;
 }
-
 function deptStoreRailHeadHTML(key){
   const r = (typeof retailerFor === 'function' && retailerFor(key)) || null;
   const label = (r && r.label) || key;
@@ -21565,6 +21647,22 @@ async function openStore(retailer){
       kicker: __storeLabel,
       heroImage: (typeof GALLERY_HERO_IMAGES !== 'undefined' && GALLERY_HERO_IMAGES.ofertas) || null,
     });
+  } else {
+    /* DANNY 2026-10-07: no sales -> "Destacados" leads with hero products (priciest first). */
+    const __allItems = [];
+    for (const [, __items] of deptEntries){ for (const __it of __items || []) __allItems.push(__it); }
+    __allItems.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    const __featured = __allItems.slice(0, CAROUSEL_MAX);
+    if (__featured.length >= CAROUSEL_MIN_ITEMS){
+      galleryHTML += storeGalleryRoomHTML({
+        label: 'Destacados',
+        items: __featured,
+        retailer,
+        onclick: `openCatalog('department','all',{retailerFilter:'${jsAttr(retailer)}'})`,
+        kicker: __storeLabel,
+        heroImage: (typeof GALLERY_HERO_IMAGES !== 'undefined' && GALLERY_HERO_IMAGES.destacados) || null,
+      });
+    }
   }
   /* One room per department the store actually carries. */
   /* Map department keys/labels to hero images where available. */
