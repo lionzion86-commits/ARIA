@@ -243,6 +243,15 @@ function discountPct(p){
   if (!(o > 0) || !(pr >= 0) || !(o > pr)) return 0;
   return Math.round((1 - pr / o) * 100);
 } /* DANNY 2026-10-07: regularPrice counts (VS) */
+/* SALE TIER (2026-10-07, Danny): 2 = measured % off, 1 = merchant-flagged
+   sale without a measurable %, 0 = full price. The discount sort ranks
+   by tier first so real markdowns always lead and full-price items can
+   never sit above a sale. */
+function saleTier(p){
+  if (discountPct(p) > 0) return 2;
+  if (p && p.onSale) return 1;
+  return 0;
+}
 function realImage(p){
   var cands = [];
   if (p.image) cands.push(p.image);
@@ -294,12 +303,17 @@ function normItem(raw, deptKey){
   if (!name || !(price > 0)) return null;
   var img = realImage(raw);
   if (!img) return null;
+  /* SALE FIELDS (2026-10-07): preserve every original-price spelling and
+     sale flag so discountPct/saleTier see the same data index.html does.
+     Dropping regularPrice/wasPrice here blinded the discount sort. */
   return {
     name: String(name),
     brand: raw.brand ? String(raw.brand) : '',
     price: price,
     originalPrice: raw.originalPrice != null ? Number(raw.originalPrice) : null,
-    onSale: !!raw.onSale,
+    regularPrice: raw.regularPrice != null ? Number(raw.regularPrice) : null,
+    wasPrice: raw.wasPrice != null ? Number(raw.wasPrice) : null,
+    onSale: !!(raw.onSale || raw.isOnSale),
     image: img,
     url: raw.url || raw.link || '',
     dept: deptKey || ''
@@ -395,7 +409,16 @@ function filteredItems(){
   var arr = pool.slice();
   if (f.sort === 'priceAsc') arr.sort(function(a,b){ return a.price - b.price; });
   else if (f.sort === 'priceDesc') arr.sort(function(a,b){ return b.price - a.price; });
-  else if (f.sort === 'discount') arr.sort(function(a,b){ return discountPct(b) - discountPct(a); });
+  else if (f.sort === 'discount') arr.sort(function(a,b){
+    /* TIER-AWARE (2026-10-07, Danny): sales lead, biggest % first;
+       flagged-but-unmeasurable sales next; full-price items go last,
+       expensive first so hero products lead instead of cheap accessories. */
+    var ta = saleTier(a), tb = saleTier(b);
+    if (ta !== tb) return tb - ta;
+    var pa = discountPct(a), pb = discountPct(b);
+    if (pa !== pb) return pb - pa;
+    return b.price - a.price;
+  });
   return arr;
 }
 function penHTML(usd){
