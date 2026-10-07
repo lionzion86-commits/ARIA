@@ -383,9 +383,12 @@
     var price = finalUsd(p.rawPrice);
     var pen = fmtPEN(price);
     var badge = '';
-    if (p.originalPrice > p.rawPrice){
-      var pct = Math.round((1 - p.rawPrice/p.originalPrice)*100);
-      if (pct >= 5 && pct <= 70) badge = '<span class="badge">-' + pct + '%</span>';
+    var _orig = p.originalPrice > p.rawPrice ? p.originalPrice
+      : p.regularPrice > p.rawPrice ? p.regularPrice
+      : p.wasPrice > p.rawPrice ? p.wasPrice : 0;
+    if (_orig > 0){
+      var pct = Math.round((1 - p.rawPrice/_orig)*100);
+      if (pct >= 5 && pct <= 95) badge = '<span class="badge">-' + pct + '%</span>';
     }
     var img = p.image
       ? '<img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;&gt;Sin imagen</span>\'">'
@@ -410,8 +413,13 @@
      DANNY: sales rail first, then one carousel per product category.
      Every carousel expands via "Ver todo". */
   function discountPct(p){
-    if (p.originalPrice > p.rawPrice && p.rawPrice > 0){
-      return 1 - p.rawPrice / p.originalPrice;
+    /* Tier-aware: check all original-price spellings (2026-10-07).
+       regularPrice/wasPrice were silently dropped before, hiding real sales. */
+    var orig = p.originalPrice > p.rawPrice ? p.originalPrice
+      : p.regularPrice > p.rawPrice ? p.regularPrice
+      : p.wasPrice > p.rawPrice ? p.wasPrice : 0;
+    if (orig > 0 && p.rawPrice > 0){
+      return 1 - p.rawPrice / orig;
     }
     return 0;
   }
@@ -557,6 +565,8 @@
       type: raw.type || '',
       rawPrice: price,
       originalPrice: Number(raw.originalPrice) || 0,
+      regularPrice: Number(raw.regularPrice) || 0,
+      wasPrice: Number(raw.wasPrice) || 0,
       image: raw.image || (raw.images && raw.images[0]) || '',
       url: raw.url || '#',
       retailer: retailer,
