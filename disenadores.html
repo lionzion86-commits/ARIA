@@ -105,6 +105,9 @@ button{font:inherit;cursor:pointer}
 .room-id h2{margin:2px 0;font-size:24px;letter-spacing:-.01em}
 @media(min-width:640px){.room-id h2{font-size:30px}}
 .room-id .m{font-size:13px;color:rgba(255,255,255,.78)}
+.room-sub{margin-top:6px}
+.room-subhead{display:flex;align-items:center;gap:8px;padding:16px 18px 4px;font-size:15px;font-weight:800;color:var(--ink)}
+.room-subcount{font-size:11px;font-weight:700;color:#fff;background:var(--raccent,#C9A227);border-radius:999px;padding:2px 8px}
 .room-rail{padding:14px 0 6px}
 .rail{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin}
 .rail::-webkit-scrollbar{height:6px}
@@ -475,13 +478,37 @@ function cardHTML(it){
 
 function roomHTML(spec, items, expanded){
   try{
-    var shown = expanded ? items : items.slice(0, CARDS_PER_ROOM);
-    var cards = shown.map(cardHTML).join('');
+    /* DANNY 2026-10-07: every room = sales rail on top, category carousels below. */
+    function discount(it){
+      if (!it.onSale || !it.originalPrice || !(it.originalPrice > it.price)) return 0;
+      return (1 - it.price / it.originalPrice);
+    }
+    var sales = items.filter(function(it){ return discount(it) > 0; });
+    sales.sort(function(a,b){ return discount(b) - discount(a); });
+    var byType = {};
+    items.forEach(function(it){
+      var k = it.ptype || 'ropa';
+      (byType[k] = byType[k] || []).push(it);
+    });
+    function subRail(title, list){
+      var shown = expanded ? list : list.slice(0, CARDS_PER_ROOM);
+      var cards = shown.map(cardHTML).join('');
+      return '<div class="room-sub"><div class="room-subhead">' + escapeHtml(title)
+        + '<span class="room-subcount">' + list.length + '</span></div>'
+        + '<div class="room-rail"><div class="rail">' + cards + '</div></div></div>';
+    }
+    var rails = '';
+    if (sales.length) rails += subRail('Ofertas de ' + spec.label, sales);
+    for (var ti = 0; ti < PRODUCT_TYPES.length; ti++){
+      var t = PRODUCT_TYPES[ti];
+      var list = byType[t.key] || [];
+      if (list.length) rails += subRail(t.label, list);
+    }
     var more = (!expanded && items.length > CARDS_PER_ROOM)
       ? '<div class="room-foot"><button type="button" class="show-all" data-room="' + escapeHtml(spec.key) + '">Ver los ' + items.length + ' productos</button></div>'
       : '';
     var empty = items.length === 0
-      ? '<div class="room-note">Aún no hay productos de ' + escapeHtml(spec.label) + ' en esta colección.</div>'
+      ? '<div class="room-note">A\u00fan no hay productos de ' + escapeHtml(spec.label) + ' en esta colecci\u00f3n.</div>'
       : '';
     var heroImg = spec.hero
       ? '<img src="' + escapeHtml(spec.hero) + '" alt="" aria-hidden="true" loading="lazy" decoding="async" onerror="this.remove()">'
@@ -493,13 +520,11 @@ function roomHTML(spec, items, expanded){
       + '<div class="scrim" aria-hidden="true"></div><div class="sheen" aria-hidden="true"></div>'
       + '<div class="room-id">' + country
       + (spec.logo
-          ? '<img class="room-logo" src="' + escapeHtml(spec.logo) + '" alt="' + escapeHtml(spec.label) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=&quot;room-wordmark&quot;&gt;' + escapeHtml(spec.label) + '</div>\')">'
+          ? '<img class="room-logo" src="' + escapeHtml(spec.logo) + '" alt="' + escapeHtml(spec.label) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=&quot;room-wordmark&quot;>' + escapeHtml(spec.label) + '</div>\')">'
           : '<div class="room-wordmark">' + escapeHtml(spec.label) + '</div>')
       + '<div class="m">' + items.length + ' producto' + (items.length === 1 ? '' : 's') + '</div>'
       + '</div></div>'
-      + (items.length
-          ? '<div class="room-rail"><div class="rail">' + cards + '</div></div>' + more
-          : empty)
+      + (items.length ? rails + more : empty)
       + '</section>';
   }catch(e){ return ''; }
 }
