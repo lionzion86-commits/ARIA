@@ -19168,7 +19168,7 @@ function catalogSearchBarHTML(){
    biggest MEANINGFUL sales (never a meaningless markdown), then runs
    non-sale with the remaining sales spread through, never clumped.
    ============================================================ */
-const CAROUSEL_MAX = 16;
+const CAROUSEL_MAX = 20;
 const CAROUSEL_MIN_ITEMS = 4;
 function carouselItemKey(it){
   const img = it && (it.image || it.imageUrl || it.thumbnail);
@@ -19248,6 +19248,22 @@ function carouselPhotoFirst(list){
   for (const it of list) (carouselHasPhoto(it) ? withPhoto : withoutPhoto).push(it);
   return withPhoto.concat(withoutPhoto);
 }
+/* FILL ELIGIBILITY (2026-10-07, Danny): carousels must have 15-20 items.
+   Sales always lead; non-sale items fill remaining slots. Fill bar:
+   real photo + not a trivial accessory (same trivial patterns as sales).
+   Sorted hero-price first so the fill looks intentional, not leftover. */
+function carouselFillEligible(it){
+  if (!carouselHasPhoto(it)) return false;
+  const hay = (it.type || '') + ' ' + (it.title || it.name || '');
+  for (const re of CAROUSEL_TRIVIAL_LEAD_PATTERNS){
+    if (re.test(hay)) return false;
+  }
+  return true;
+}
+function carouselPriceOf(it){
+  const p = Number(it && (it.price ?? it.effectivePrice ?? it.currentPrice ?? it.salePrice));
+  return Number.isFinite(p) ? p : 0;
+}
 function carouselSpreadSales(plain, sales){
   const out = [];
   let si = 0;
@@ -19310,6 +19326,30 @@ function carouselPickItems(items, max, leadRank){
       .concat(carouselPhotoFirst(otherSales), carouselPhotoFirst(flagged));
     return sales;
   };
+  /* FILL TO LIMIT (2026-10-07, Danny): sales always lead, then
+     non-sale items fill remaining slots so every carousel has 15-20
+     items. Fill runs its own retailer/brand interleave so diversity
+     holds within the fill band; sales order is never disturbed. */
+  const fillToLimit = (picked, sourceLists) => {
+    const pickedKeys = new Set(picked.map(carouselItemKey));
+    const need = limit - picked.length;
+    if (need <= 0) return picked;
+    const fillPool = [];
+    for (const src of sourceLists){
+      for (const it of (src || [])){
+        if (!it) continue;
+        if (itemSaleTier(it) !== 0) continue;
+        if (!carouselFillEligible(it)) continue;
+        if (pickedKeys.has(carouselItemKey(it))) continue;
+        fillPool.push(it);
+      }
+    }
+    fillPool.sort((a, b) => carouselPriceOf(b) - carouselPriceOf(a));
+    const fillMixed = interleaveBrandCap(
+      interleaveRetailerCap(carouselPhotoFirst(fillPool), CATEGORY_MAX_RUN).items,
+      BRAND_MAX_RUN);
+    return picked.concat(fillMixed.slice(0, need));
+  };
   /* GEAR LEAD (2026-09-30, Danny): complete products get their own
      merchandising run before parts -- a sale on a $7 wishbone must not
      put it ahead of the spearguns. Without a lead rank the behavior is
@@ -19321,12 +19361,12 @@ function carouselPickItems(items, max, leadRank){
     /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
   const _combined = merchandised(complete).concat(merchandised(parts));
   const _brandMixed = interleaveBrandCap(interleaveRetailerCap(_combined, CATEGORY_MAX_RUN).items, BRAND_MAX_RUN);
-  return _brandMixed.slice(0, limit);
+  return fillToLimit(_brandMixed.slice(0, limit), [complete, parts]);
   }
   /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
   const _merch = merchandised(deduped);
   const _brandMixed2 = interleaveBrandCap(interleaveRetailerCap(_merch, CATEGORY_MAX_RUN).items, BRAND_MAX_RUN);
-  return _brandMixed2.slice(0, limit);
+  return fillToLimit(_brandMixed2.slice(0, limit), [deduped]);
 }
 /* OFERTAS INTERLEAVING (Danny 2026-09-30): Ofertas must show variety -- not 100 women's
    items in a row. Round-robin through categories: best women's sale, best electronics
