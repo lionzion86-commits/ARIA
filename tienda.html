@@ -109,6 +109,29 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .footer-inner{max-width:1240px;margin:0 auto;padding:28px 12px;font-size:13px;color:#6b7280;
   display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between}
 .site-footer a{color:var(--blue);text-decoration:none}
+
+/* ---- carousels (2026-10-07, Danny): sales-first merchandising ---- */
+.rail-sec{margin:0 0 28px}
+.rail-head{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.rail-title{font-size:19px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
+.rail-count{font-size:11.5px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 9px;font-variant-numeric:tabular-nums}
+.rail-ver{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px}
+.rail-ver:hover{text-decoration:underline}
+.rail{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.rail::-webkit-scrollbar{height:6px}
+.rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+.rail .card{flex:0 0 164px;scroll-snap-align:start;min-width:0}
+@media(min-width:640px){.rail .card{flex-basis:196px}}
+/* ---- rail expand overlay (2026-10-07): full-screen "Ver todo" ---- */
+.rail-expand{position:fixed;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column}
+.rail-expand[hidden]{display:none}
+.re-head{flex-shrink:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:var(--sky);display:grid;place-items:center;cursor:pointer}
+.re-title{font-size:17px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.re-count{font-size:12px;font-weight:600;color:#6b7280}
+.re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start}
+@media(min-width:640px){.re-grid{grid-template-columns:repeat(3,1fr);max-width:1100px;margin:0 auto;width:100%}}
+@media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
 <body>
@@ -243,6 +266,22 @@ function discountPct(p){
   if (!(o > 0) || !(pr >= 0) || !(o > pr)) return 0;
   return Math.round((1 - pr / o) * 100);
 } /* DANNY 2026-10-07: regularPrice counts (VS) */
+/* SALE TIER (2026-10-07, Danny): 2 = measured % off, 1 = merchant-flagged
+   sale without a measurable %, 0 = full price. Sales always lead. */
+function saleTier(p){
+  if (discountPct(p) > 0) return 2;
+  if (p && p.onSale) return 1;
+  return 0;
+}
+/* Shared sale-first sort: tier desc, then discount % desc, then price desc
+   so hero products lead instead of cheap accessories when nothing is on sale. */
+function saleSort(a, b){
+  var ta = saleTier(a), tb = saleTier(b);
+  if (ta !== tb) return tb - ta;
+  var pa = discountPct(a), pb = discountPct(b);
+  if (pa !== pb) return pb - pa;
+  return b.price - a.price;
+}
 function realImage(p){
   var cands = [];
   if (p.image) cands.push(p.image);
@@ -299,7 +338,9 @@ function normItem(raw, deptKey){
     brand: raw.brand ? String(raw.brand) : '',
     price: price,
     originalPrice: raw.originalPrice != null ? Number(raw.originalPrice) : null,
-    onSale: !!raw.onSale,
+    regularPrice: raw.regularPrice != null ? Number(raw.regularPrice) : null,
+    wasPrice: raw.wasPrice != null ? Number(raw.wasPrice) : null,
+    onSale: !!(raw.onSale || raw.isOnSale),
     image: img,
     url: raw.url || raw.link || '',
     dept: deptKey || ''
@@ -395,7 +436,7 @@ function filteredItems(){
   var arr = pool.slice();
   if (f.sort === 'priceAsc') arr.sort(function(a,b){ return a.price - b.price; });
   else if (f.sort === 'priceDesc') arr.sort(function(a,b){ return b.price - a.price; });
-  else if (f.sort === 'discount') arr.sort(function(a,b){ return discountPct(b) - discountPct(a); });
+  else if (f.sort === 'discount') arr.sort(saleSort);
   return arr;
 }
 function penHTML(usd){
@@ -460,9 +501,119 @@ function renderDeptChips(){
     });
   }
 }
+/* ---------- carousel merchandising (2026-10-07, Danny) ----------
+   Store pages lead with sales, then one carousel per category.
+   Every rail expands to a full-screen grid via "Ver todo". */
+var RAIL_MAX = 16;
+var railPools = {};  /* rail key -> full sorted item list */
+
+function railHTML(title, list, railKey){
+  if (!list || !list.length) return '';
+  var rk = 'rail::' + railKey;
+  railPools[rk] = list;
+  var shown = list.slice(0, RAIL_MAX);
+  var cards = '';
+  for (var i = 0; i < shown.length; i++){
+    try { cards += cardHTML(shown[i]); }
+    catch (e) { /* one bad card never kills the rail */ }
+  }
+  var door = list.length > RAIL_MAX
+    ? '<button type="button" class="rail-ver" data-rk="' + esc(rk) + '" data-title="' + esc(title) + '">Ver todo &#8594;</button>'
+    : '';
+  return '<section class="rail-sec">' +
+    '<div class="rail-head"><h2 class="rail-title">' + esc(title) + '</h2>' +
+    '<span class="rail-count">' + list.length + '</span>' + door + '</div>' +
+    '<div class="rail">' + cards + '</div></section>';
+}
+function openRailExpand(rk, title){
+  try {
+    var list = railPools[rk] || [];
+    var ov = $('railExpand');
+    if (!ov) return;
+    $('reTitle').textContent = title || 'Productos';
+    $('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    var out = '';
+    for (var i = 0; i < list.length; i++){
+      try { out += cardHTML(list[i]); } catch (e) {}
+    }
+    $('reGrid').innerHTML = out;
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('reGrid').scrollTop = 0;
+    try { renderPenPrices(); } catch (e) {}
+  } catch (e) {}
+}
+function closeRailExpand(){
+  try {
+    var ov = $('railExpand');
+    if (ov) ov.hidden = true;
+    document.body.style.overflow = '';
+  } catch (e) {}
+}
+if (typeof window !== 'undefined'){ window.closeRailExpand = closeRailExpand; }
+function renderCarousels(){
+  var host = $('content');
+  if (!host) return;
+  railPools = {};
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = allItems.length
+    ? allItems.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
+    : '';
+  /* Lead section: sales first (biggest discount), or Destacados when zero sales */
+  var sales = allItems.filter(function(p){ return saleTier(p) > 0; });
+  sales.sort(saleSort);
+  var html = '';
+  if (sales.length){
+    html += railHTML('Ofertas de ' + storeMeta.label, sales, 'ofertas');
+  } else {
+    var feat = allItems.slice().sort(function(a,b){ return b.price - a.price; });
+    html += railHTML('Destacados de ' + storeMeta.label, feat, 'destacados');
+  }
+  /* Category carousels: one per department */
+  var byDept = {};
+  for (var i = 0; i < allItems.length; i++){
+    var dk = allItems[i].dept || '';
+    (byDept[dk] = byDept[dk] || []).push(allItems[i]);
+  }
+  var keys = Object.keys(byDept).sort(function(a,b){
+    return String(deptLabels[a] || a).localeCompare(String(deptLabels[b] || b), 'es');
+  });
+  for (var j = 0; j < keys.length; j++){
+    var list = byDept[keys[j]].slice().sort(saleSort);
+    var label = deptLabels[keys[j]] || keys[j] || 'Productos';
+    html += railHTML(label, list, 'dept::' + keys[j]);
+  }
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.rail-ver');
+  for (var k = 0; k < btns.length; k++){
+    btns[k].addEventListener('click', function(){
+      try { openRailExpand(this.getAttribute('data-rk'), this.getAttribute('data-title')); }
+      catch (e) {}
+    });
+  }
+  /* sort dropdown only applies to grid view; hide it in carousel mode */
+  var s = $('sort');
+  if (s) s.style.display = 'none';
+}
 function render(){
   var host = $('content');
   if (!host) return;
+  /* empty catalog: same state as before, regardless of view */
+  if (!allItems.length){
+    host.innerHTML = '<div class="state"><h2>Estamos actualizando el catálogo</h2>' +
+      '<p>' + esc(storeMeta.label) + ' está cargando sus productos. Vuelve en unos minutos.</p>' +
+      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
+    bindRetry();
+    var c0 = $('countLine');
+    if (c0) c0.textContent = '';
+    return;
+  }
+  var f0 = currentFilters();
+  /* DEFAULT VIEW: carousel merchandising (no search, no dept chip) */
+  if (!f0.q && !f0.dept){ renderCarousels(); return; }
+  /* SEARCH / FILTER VIEW: flat grid as before */
+  var s = $('sort');
+  if (s) s.style.display = '';
   var list;
   try { list = filteredItems(); }
   catch (e){ return renderError('No pudimos ordenar los productos.', true); }
@@ -471,9 +622,7 @@ function render(){
     ? list.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
     : '';
   if (!list.length){
-    var emptyMsg = allItems.length
-      ? '<h2>Sin resultados</h2><p>Ningún producto coincide con tu búsqueda en ' + esc(storeMeta.label) + '.</p>'
-      : '<h2>Estamos actualizando el catálogo</h2><p>' + esc(storeMeta.label) + ' está cargando sus productos. Vuelve en unos minutos.</p>';
+    var emptyMsg = '<h2>Sin resultados</h2><p>Ningún producto coincide con tu búsqueda en ' + esc(storeMeta.label) + '.</p>';
     host.innerHTML = '<div class="state">' + emptyMsg +
       '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
     bindRetry();
@@ -607,6 +756,11 @@ function bindUI(){
     t = setTimeout(function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} }, 180);
   });
   if (s) s.addEventListener('change', function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} });
+  var rb = $('reBack');
+  if (rb) rb.addEventListener('click', function(){ try { closeRailExpand(); } catch (e) {} });
+  document.addEventListener('keydown', function(ev){
+    if (ev && ev.key === 'Escape'){ try { closeRailExpand(); } catch (e) {} }
+  });
 }
 window.addEventListener('error', function(ev){
   try {
@@ -627,5 +781,19 @@ try {
 }
 })();
 </script>
+
+<!-- RAIL EXPAND OVERLAY (2026-10-07): full-screen "Ver todo" for carousels -->
+<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
+  <div class="re-head">
+    <button type="button" class="re-back" id="reBack" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div style="min-width:0">
+      <div id="reTitle" class="re-title"></div>
+      <div id="reCount" class="re-count"></div>
+    </div>
+  </div>
+  <div id="reGrid" class="re-grid"></div>
+</div>
 </body>
 </html>
