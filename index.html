@@ -39014,30 +39014,44 @@ async function executeRealtimeTool(name, args){
     }
 
     const matches = (res && res.items) || [];
+    /* VOICE-SCOOP FIX (2026-10-07): itemSaleTier() > 0 already validates
+       the sale -- Tier 2 is a measured % off, Tier 1 is the merchant's own
+       sale flag. The old extra check on it.originalPrice wrongly dropped
+       Tier 1 items, whose normalized originalPrice is null by design
+       (normalizeLiveItem only stamps it when the discount is measurable).
+       That is how real on-sale products became invisible to the voice. */
     const onSale = matches.filter(it =>
       it && itemSaleTier(it) > 0
-      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
-      && Number(it.originalPrice) > Number(it.price));
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0);
 
     /* Best deal per store, deepest discount first. */
     const bestPerStore = new Map();
     for (const it of onSale){
       const store = it.retailer || 'tienda';
       const prev = bestPerStore.get(store);
-      if (!prev || discountPct(it) > discountPct(prev)) bestPerStore.set(store, it);
+      if (!prev || carouselDiscountPct(it) > carouselDiscountPct(prev)) bestPerStore.set(store, it);
     }
     const deals = [...bestPerStore.values()]
-      .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (discountPct(b) - discountPct(a)))
+      .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (carouselDiscountPct(b) - carouselDiscountPct(a)))
       .slice(0, 5)
-      .map(it => ({
-        title: String(it.title || '').slice(0, 90),
-        store: it.retailer,
-        /* Both prices and the percentage, so she never has to work out
-           a discount out loud. */
-        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
-        now_usd: Math.round(Number(it.price) * 100) / 100,
-        discount_pct: discountPct(it),
-      }));
+      .map(it => {
+        /* carouselDiscountPct reads every original-price field the feed may
+           carry (regularPrice/wasPrice/originalPrice); the old discountPct()
+           only read it.originalPrice and returned NaN for Tier 1 flagged
+           sales. A null pct means "on sale, no measurable %" -- honest,
+           never invented. */
+        const pct = carouselDiscountPct(it);
+        const wasNum = Number(it.originalPrice);
+        return {
+          title: String(it.title || '').slice(0, 90),
+          store: it.retailer,
+          /* Both prices and the percentage, so she never has to work out
+             a discount out loud. */
+          was_usd: Number.isFinite(wasNum) && wasNum > 0 ? Math.round(wasNum * 100) / 100 : null,
+          now_usd: Math.round(Number(it.price) * 100) / 100,
+          discount_pct: pct > 0 ? pct : null,
+        };
+      });
 
     if (!deals.length){
       return { topic, deals: [],
@@ -39108,10 +39122,13 @@ async function executeRealtimeTool(name, args){
       }
     }
 
+    /* VOICE-SCOOP FIX (2026-10-07): same as get_sale_scoop above --
+       itemSaleTier() > 0 already validates the sale; the old
+       it.originalPrice check dropped Tier 1 merchant-flagged sales whose
+       normalized originalPrice is null by design. */
     const onSale = (pool || []).filter(it =>
       it && itemSaleTier(it) > 0
-      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
-      && Number(it.originalPrice) > Number(it.price));
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0);
 
     /* One best deal per category, so the categories she names are
        different rubros and not three cuts of the same rail. */
@@ -39120,19 +39137,23 @@ async function executeRealtimeTool(name, args){
       const cat = realtimeSaleCategory(it);
       if (!cat) continue;
       const prev = bestPerCat.get(cat);
-      if (!prev || discountPct(it) > discountPct(prev)) bestPerCat.set(cat, it);
+      if (!prev || carouselDiscountPct(it) > carouselDiscountPct(prev)) bestPerCat.set(cat, it);
     }
     const categories = [...bestPerCat.entries()]
-      .sort((a, b) => discountPct(b[1]) - discountPct(a[1]))
+      .sort((a, b) => carouselDiscountPct(b[1]) - carouselDiscountPct(a[1]))
       .slice(0, 3)
-      .map(([cat, it]) => ({
-        category: cat,
-        store: it.retailer,
-        best_discount_pct: discountPct(it),
-        example: String(it.title || '').slice(0, 90),
-        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
-        now_usd: Math.round(Number(it.price) * 100) / 100,
-      }));
+      .map(([cat, it]) => {
+        const pct = carouselDiscountPct(it);
+        const wasNum = Number(it.originalPrice);
+        return {
+          category: cat,
+          store: it.retailer,
+          best_discount_pct: pct > 0 ? pct : null,
+          example: String(it.title || '').slice(0, 90),
+          was_usd: Number.isFinite(wasNum) && wasNum > 0 ? Math.round(wasNum * 100) / 100 : null,
+          now_usd: Math.round(Number(it.price) * 100) / 100,
+        };
+      });
 
     if (!categories.length){
       return { categories: [],
