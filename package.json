@@ -8,6 +8,8 @@
     "test:browser": "node scripts/test/browser-tests.mjs",
     "test:mcp": "node scripts/test/mcp-tests.mjs",
     "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
+    "test:ropa-interior": "node scripts/test/ropa-interior-tests.mjs",
+    "build:ropa-interior-feed": "node scripts/build-ropa-interior-feed.mjs",
     "mcp": "node mcp-server.js"
   }
 }

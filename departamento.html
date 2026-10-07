@@ -191,7 +191,9 @@
     shoes_women:     {name:'Zapatos de Mujer', desc:'Calzado para ella.', kind:'shoes_women'},
     shoes_men:       {name:'Zapatos de Hombre', desc:'Calzado para él.', kind:'shoes_men'},
     auto_parts:      {name:'Repuestos', desc:'Repuestos y autopartes.', kind:'autoparts'},
-    luxury:          {name:'Diseñador y Lujo', desc:'Lujo y diseñador — piezas exclusivas.', kind:'luxury'}
+    luxury:          {name:'Diseñador y Lujo', desc:'Lujo y diseñador — piezas exclusivas.', kind:'luxury'},
+    /* Its own themed page (carousels first): ropa-interior.html. */
+    ropa_interior:   {name:'Ropa Interior y Medias', desc:'Lo esencial, de las mejores marcas de USA.', href:'ropa-interior.html'}
   };
 
   /* ---------- keyword matchers for kind-of-item departments ---------- */
@@ -254,6 +256,8 @@
 
   var deptKey = getDeptKey();
   var dept = DEPTS[deptKey];
+  /* A department with its own page is a door, not a grid. */
+  if (dept && dept.href){ window.location.replace(dept.href); return; }
 
   function show(el){ if(el) el.hidden = false; }
   function hide(el){ if(el) el.hidden = true; }
@@ -267,7 +271,7 @@
     var list = document.getElementById('deptList');
     var html = '';
     Object.keys(DEPTS).sort().forEach(function(k){
-      html += '<a href="departamento.html?dept=' + encodeURIComponent(k) + '">' + esc(DEPTS[k].name) + '</a>';
+      html += '<a href="' + (DEPTS[k].href ? esc(DEPTS[k].href) : 'departamento.html?dept=' + encodeURIComponent(k)) + '">' + esc(DEPTS[k].name) + '</a>';
     });
     list.innerHTML = html;
     show(invalidState);
