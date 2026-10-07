@@ -481,7 +481,7 @@ function roomHTML(spec, items, expanded){
       ? '<img src="' + escapeHtml(spec.hero) + '" alt="" aria-hidden="true" loading="lazy" decoding="async" onerror="this.remove()">'
       : '';
     var country = spec.country ? '<div class="c">' + escapeHtml(spec.country) + '</div>' : '';
-    return '<section class="room" data-designer="' + escapeHtml(spec.key) + '" aria-label="' + escapeHtml(spec.label) + '">'
+    return '<section class="room" id="d-' + escapeHtml(spec.key) + '" data-designer="' + escapeHtml(spec.key) + '" aria-label="' + escapeHtml(spec.label) + '">'
       + '<div class="room-banner">' + heroImg
       + '<div class="scrim" aria-hidden="true"></div><div class="sheen" aria-hidden="true"></div>'
       + '<div class="room-id">' + country
@@ -663,6 +663,18 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 })(); /* close IIFE */
+
+/* DANNY 2026-10-07: deep-link to a designer room, e.g. disenadores.html#d-montce (from product pages). */
+(function(){ try{
+  var h = location.hash.replace('#','');
+  if (!h || h.indexOf('d-') !== 0) return;
+  var n = 0;
+  var t = setInterval(function(){
+    var el = document.getElementById(h);
+    if (el){ clearInterval(t); el.scrollIntoView({behavior:'smooth', block:'start'}); }
+    else if (++n > 40){ clearInterval(t); }
+  }, 250);
+}catch(e){} })();
 </script>
 </body>
 </html>
