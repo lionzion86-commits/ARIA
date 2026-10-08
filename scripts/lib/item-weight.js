@@ -61,6 +61,12 @@ const APPLIANCE_IMPOSTOR_RE =
 const VACUUM_IMPOSTOR_RE = /\b(trimmer|shaver|clipper|beard|mustache|sideburns?|nose|ear)\b|vacuum\s*(storage\s*)?bags?|space[-\s]?saver|vacuum[-\s]?seal/i;
 const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt)\b/i;
 const TENT_IMPOSTOR_RE = /\b(play|pop[-\s]?up|kids|toddler|toy|dress|string)\b|fairy/i;
+
+/* BUNDLED-SCREEN IMPOSTOR (2026-09-30, Danny's iPhone QA). A "5G WiFi
+   Bluetooth Projector (Projector Screen Included)" is a ~2 kg portable
+   projector that ships WITH a light fabric screen — not the 12 kg
+   standalone projection screen the bulky row prices. Mirrors index.html. */
+const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
 const PLAYSET_IMPOSTOR_RE = /\b(pretend|camping|toy)\b/i;
 const MATTRESS_IMPOSTOR_RE = /\bmattress\s*(pad|protector|topper)\b/i;
 const MONITOR_IMPOSTOR_RE = /\b(baby|audio|security)\b/i;
@@ -523,12 +529,6 @@ const LONG_BUT_LIGHT_RE =
    price the category. The category rows do that. */
 export const PROJECTOR_RE = /\b(projectors?|proyectores?|proyector)\b/i;
 const PROJECTOR_ACCESSORY_RE = /\b(screen|pantalla|mount|soporte|bracket|lamp|bulb|l[áa]mpara|case|funda|stand|tr[ií]pode|tripod|cable)\b/i;
-
-/* BUNDLED-SCREEN IMPOSTOR (2026-09-30, Danny's iPhone QA). A "5G WiFi
-   Bluetooth Projector (Projector Screen Included)" is a ~2 kg portable
-   projector that ships WITH a light fabric screen — not the 12 kg
-   standalone projection screen the bulky row prices. Mirrors index.html. */
-const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
 
 export const WEIGHT_SANITY_BOUNDS = [
   /* Beauty runs FIRST and low. A cosmetic is the one category on this
