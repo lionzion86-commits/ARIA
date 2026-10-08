@@ -14,6 +14,8 @@
     "test:contradiction": "node scripts/test/catalog-contradiction-tests.mjs",
     "test:search-watch": "node scripts/test/search-watch-tests.mjs",
     "build:search-engine": "node scripts/build-search-engine.mjs",
-    "mcp": "node mcp-server.js"
+    "mcp": "node mcp-server.js",
+    "test:search-brief": "node scripts/test/search-brief-tests.mjs",
+    "build:search-index": "node scripts/build-search-index.mjs"
   }
 }

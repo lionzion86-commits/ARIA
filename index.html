@@ -11257,6 +11257,21 @@ function catalogTokenWeights(pool, toks, intent, categoryOf, wordsFor, fuzzySets
    is what the item IS. A query word landing there outranks the same
    word anywhere else. */
 const HEAD_NOUN_BOOST = 0.5;
+/* THE SHOPPER'S OWN WORD BREAKS THE TIE (2026-10-08, search brief).
+   Synonyms are canonicalised so "botas", "zapatos" and "zapatillas"
+   all reach footwear -- but that made every shoe score the same, and
+   pool order decided: "botas" led with Walmart sneakers, "vestidos"
+   with dress socks. The word the shopper actually typed (before
+   canonicalising) now ranks the products it names first: the title's
+   head noun ("... Ankle Boots") above a mere mention ("Dress Socks"). */
+const LITERAL_HEAD_BOOST = 0.6;
+const LITERAL_TITLE_BOOST = 0.25;
+function catalogTitleWords(item){
+  if (item && item._titleWords instanceof Set) return item._titleWords;
+  const w = new Set(searchTokens(String((item && (item.title || item.name)) || '')));
+  if (item && typeof item === 'object') { try { item._titleWords = w; } catch(e) { /* frozen item */ } }
+  return w;
+}
 const HEAD_NOISE = new Set(['s', 'men', 'mens', 'women', 'womens', 'kids', 'boys', 'girls', 'unisex', 'pack', 'pk', 'set']);
 function catalogHeadWords(item){
   if (item && item._headWords instanceof Set) return item._headWords;
@@ -11423,7 +11438,8 @@ function buildSearchWordIndex(pool){
     if (!(it._wordSet instanceof Set)){
       it._wordSet = catalogWordsOf(it);
       it._brandWordSet = new Set(searchTokens(it.brand || ''));
-      it._cat = catalogItemCategory(it);
+      /* search.html's index ships the category precomputed. */
+      if (it._cat === undefined) it._cat = catalogItemCategory(it);
     }
     for (const w of it._wordSet){
       let lst = windex.get(w);
@@ -11490,6 +11506,7 @@ function rankCatalogMatches(pool, query, opts){
         ones. The chat pipeline's productSuitsRecipient hard gate still
         rejects positively opposite-gendered titles. */
   const queryGender = genderIntentFromTokens(toks);
+  const kidQuery = toks.some(t => /^(?:kids?|boys?|girls?|baby|babies|toddlers?|infants?|youth|ni[nñ][oa]s?|bebes?|juniors?)$/.test(t));
   let genderBoost = null;
   if (queryGender){
     const genderlessQuery = toks.some((t) => GENDERLESS_CATEGORY_TOKENS.has(t));
@@ -11529,6 +11546,14 @@ function rankCatalogMatches(pool, query, opts){
      must agree for all four words. (Declared up here because the
      inverted-index subset below needs it before the filters run.) */
   const intent = queryCategoryIntent(toks.join(' '));
+  /* The typed words behind the canonical ones (LITERAL_HEAD_BOOST):
+     only those still in the query -- gender, style and sale words
+     have already left it. */
+  const literalForms = new Set();
+  rawToks.forEach((t, i) => {
+    if (brandConsumed.has(i) || !synonymGroupOf(t) || !toks.includes(canonicalizeToken(t))) return;
+    for (const f of matchForms(t)) literalForms.add(f);
+  });
   /* SEARCH SPEED (2026-09-27): with no category intent, pull the scoring
      subset from the pool's inverted word index instead of scanning all
      61k items -- matchFormsFor mirrors tokenHitsExpanded exactly, so the
@@ -11546,6 +11571,20 @@ function rankCatalogMatches(pool, query, opts){
      needs the forms. */
   const fuzzyBuckets = (windex && typeof windex.get === 'function') ? fuzzyVocabBuckets(windex) : null;
   const fuzzySets = toks.map(t => fuzzyFormsForToken(t, fuzzyBuckets, windex));
+  /* A PRODUCT WORD IN A BRAND NAME IS NOT THE PRODUCT (2026-10-08).
+     "muñecas" -> doll led with a Cathy Doll sunscreen, "juguetes" ->
+     toy with Toy Machine skate decks: the word only sat in the brand.
+     A word the catalogue mostly uses in titles (under a fifth of its
+     products carry it in the brand) has to be in the title. "nike"
+     is a brand word by the same count and keeps matching the brand. */
+  const titleOnlyToks = [];
+  if (windex && typeof windex.get === 'function') toks.forEach((t) => {
+    const lst = windex.get(t);
+    if (!lst || lst.length < 30) return;
+    let inBrand = 0;
+    for (const it of lst) if (it._brandWordSet instanceof Set && it._brandWordSet.has(t)) inBrand++;
+    if (inBrand && inBrand < lst.length / 5) titleOnlyToks.push({ t, forms: new Set(matchFormsFor(t)) });
+  });
   if (windex && typeof windex.get === 'function' && !intent){
     const forms = new Set();
     for (let fi = 0; fi < toks.length; fi++){
@@ -11578,6 +11617,11 @@ function rankCatalogMatches(pool, query, opts){
   if (finKind === 'dive') candidates = candidates.filter(isDiveFinProduct);
   else if (finKind === 'surf') candidates = candidates.filter(isSurfFinProduct);
   if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
+  /* A caller's sense filter (search.html's word-sense rules: "mouse"
+     is a computer mouse, "tv" a television) narrows BEFORE scoring, so
+     the right sense is never starved out of the top results by the
+     wrong one. */
+  if (opts && typeof opts.filter === 'function') candidates = candidates.filter(opts.filter);
   /* BRAND HARD FILTER (2026-10-03): the constraint never leaks -- a
      brand search shows that brand's products only. */
   if (brandKey) candidates = candidates.filter(it => it && searchBrandKey(it.brand) === brandKey);
@@ -11631,6 +11675,11 @@ function rankCatalogMatches(pool, query, opts){
     if (retailerToks){ words = new Set(words); for (const t of retailerToks) words.add(t); }
     const hits = catalogTokenHitsWithFuzzy(words, toks, fuzzySets);
     if (!hits) continue;
+    if (titleOnlyToks.length && item._brandWordSet instanceof Set && titleOnlyToks.some(({ t, forms }) => {
+      if (!item._brandWordSet.has(t)) return false;
+      for (const w of catalogTitleWords(item)) if (forms.has(w)) return false;
+      return true;
+    })) continue;
     /* MULTI-WORD QUERIES ARE AND, NOT OR (2026-09-28, Danny): tapping
        "MacBook Air" returned Nike products because the lone word "air"
        matched. When the query has more than one token, every token has
@@ -11648,12 +11697,19 @@ function rankCatalogMatches(pool, query, opts){
     }
     if (hits === toks.length) exact++; else partial++;
     let itemScore = scoreCatalogItem(item, toks, weights, words, fuzzySets);
+    if (literalForms.size){
+      const noun = [...catalogHeadWords(item)].pop();
+      if (noun && literalForms.has(noun)) itemScore += LITERAL_HEAD_BOOST;
+      else for (const w of catalogTitleWords(item)) if (literalForms.has(w)){ itemScore += LITERAL_TITLE_BOOST; break; }
+    }
     /* Gender preference boost (see above): a title positively signalling
        the queried gender outranks an unmarked one. Guarded — the test
        harness runs this slice without the chat helpers. */
     if (genderBoost && typeof titleAudience === 'function'){
       const aud = titleAudience(item.title || item.name || '');
-      if (aud && aud.gender === genderBoost) itemScore += GENDER_MATCH_BOOST;
+      /* "zapatos hombre" is men's shoes: a boys' shoe is the right
+         gender and the wrong person, unless the shopper asked for kids. */
+      if (aud && aud.gender === genderBoost && (kidQuery || (aud.age !== 'kids' && aud.age !== 'baby'))) itemScore += GENDER_MATCH_BOOST;
     }
     if (saleIntent){
       const p = Number(item.price), o = Number(item.originalPrice);

@@ -27,6 +27,10 @@ export const ENGINE_EXPORTS = [
   "searchTokens", "catalogWordsOf", "catalogItemCategory", "rankCatalogMatches",
   "translateQuery", "soundCorrectQuery", "suggestSearchQuery", "buildSearchWordIndex",
   "itemSaleTier", "sizeCategoryFor", "isSoccer", "CATALOG_SEARCH_LIMIT",
+  /* The gender preference in rankCatalogMatches reads it when present. */
+  "titleAudience",
+  /* search-pipeline.js corrects Spanish typos with the engine's own distance. */
+  "fuzzyEditDist", "catalogHeadWords",
 ];
 
 export function buildSearchEngineSource() {
