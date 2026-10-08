@@ -1462,6 +1462,23 @@
      the query, because at equal specificity the last rule wins and a base
      written underneath its own override silently defeats it. */
   .ariaChatMsg{ font-size:13px }
+  /* THE DESKTOP CARD IN REAL CSS (2026-10-08, live-site bug: the panel
+     ran past the right edge of the window). Its size and place lived
+     only in Tailwind utilities (right-5, w-[92vw], max-w-[380px],
+     h-[520px]) compiled at runtime by the CDN script; when that is slow
+     or fails the card loses its clamp. These are the same numbers, in
+     CSS the page owns, and the width can never exceed the viewport. */
+  /* ...and its stacking: without the Tailwind z-40 the homepage hero
+     sat on top of the card and swallowed the tap on Enviar. */
+  #assistantPanel{ z-index:40 }
+  @media (min-width: 1024px){
+    #assistantPanel{
+      position:fixed; right:20px; bottom:96px; left:auto; top:auto;
+      width:min(380px, calc(100vw - 40px)); max-width:calc(100vw - 40px);
+      height:min(520px, 72vh); box-sizing:border-box;
+    }
+    #assistantPanel > *{ min-width:0; max-width:100% }
+  }
   /* A sheet whose column scrolls past its end must not start scrolling
      the page behind it: that is how a shopper loses the conversation. */
   #assistantMessages{ overscroll-behavior:contain }
@@ -35836,7 +35853,7 @@ async function routeSalesIntent(text){
   let brands = null;
   try { brands = await chatBrandIndex(); } catch(e){ brands = null; }
   const brandHit = findBrandMention(text, brands || []);
-  if (brandHit && brandHit.count > 0) return { action: 'brand', key: brandHit.key, label: brandHit.label };
+  if (brandHit && brandHit.count > 0) return { action: 'brand', key: brandHit.key, label: brandHit.label, count: brandHit.count };
   return { action: 'ofertas' };
 }
 /* Navigation intent in ES/EN: the shopper wants to walk into the store,
@@ -36354,6 +36371,20 @@ async function runAgentLoop(text, recipient, ui){
   return false;
 }
 
+/* An answer that is a door: the line, the button under it, the turn
+   closed -- the panel stays open and the page never moves until the
+   shopper taps. Mirrors the navigation router's in-chat answer. */
+function answerInChatWithDoor(line, addDoor, statusEl, prevStatus){
+  hideAssistantTyping();
+  setOrbState('idle');
+  addAssistantMessage('bot', line, null, { speak: false });
+  ariaChatHistory.push({ role: 'assistant', content: line });
+  try { addDoor(); } catch (e) { /* the line alone still answers */ }
+  if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+  assistantThinking = false;
+  reopenMicForRetry();
+}
+
 async function runAssistantBrain(text){
   /* NEVER DURING A LIVE CALL. (2026-10-06, Danny: "I can even hear the
      noise of the button being pressed down even though I'm not pressing
@@ -36398,16 +36429,14 @@ async function runAssistantBrain(text){
   if (shoeGender){
     const deptKey = shoeGender === 'women' ? 'shoes_women' : 'shoes_men';
     const deptLabel = shoeGender === 'women' ? 'Zapatos de Mujer' : 'Zapatos de Hombre';
-    const shoeLine = `\u00a1Claro! Te llevo a ${deptLabel} \u2014 las ofertas van primero.`;
-    addAssistantMessage('bot', shoeLine, null, { speak: false });
-    /* The line is on screen; nothing speaks it. The TTS fetch here
-       was renamed to a 404 rather than removed, so it still cost a
-       round trip to learn that. */
-    dismissAssistantForNavigation();
-    continuousMode = false;
-    openCatalog('department', deptKey);
-    assistantThinking = false;
-    if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
+    const shoeLine = `\u00a1Claro! Aqu\u00ed tienes ${deptLabel} \u2014 las ofertas van primero.`;
+    /* THE CHAT NEVER LEAVES ON ITS OWN (2026-10-08, live-site bug). This
+       used to call openCatalog() straight away, and since the
+       2026-10-05 nav override that is a full page load: the shopper's
+       message vanished mid-turn. The answer stays in the chat with a
+       door; the shopper decides when to walk through it. */
+    answerInChatWithDoor(shoeLine, () => addAssistantSectionOffer(deptLabel, 'Las ofertas van primero', 'department', deptKey),
+      statusEl, prevStatus);
     return;
   }
   if (SALE_KEYWORDS.some(k => lowerText.includes(k)) || /\bsales?\b/i.test(text)) {
@@ -36423,19 +36452,18 @@ async function runAssistantBrain(text){
        sales intent keeps the old generic path below. */
     const salesTarget = await routeSalesIntent(text);
     const salesLine = salesTarget.label
-      ? `¡Claro! Te llevo a las ofertas de ${salesTarget.label}.`
+      ? `¡Claro! Aquí tienes las ofertas de ${salesTarget.label}.`
       : '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
-    addAssistantMessage('bot', salesLine, null, { speak: false });
-    /* The line is on screen; nothing speaks it. The TTS fetch here
-       was renamed to a 404 rather than removed, so it still cost a
-       round trip to learn that. */
-    if (salesTarget.action === 'store') openStore(salesTarget.key);
-    else if (salesTarget.action === 'brand') openCatalog('brand', salesTarget.key);
-    else goSales();
-    dismissAssistantForNavigation();
-    continuousMode = false; // navigating away ends the voice conversation
-    assistantThinking = false;
-    if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+    /* THE CHAT NEVER LEAVES ON ITS OWN (2026-10-08, live-site bug):
+       "ofertas" in ANY message used to call goSales(), which the
+       2026-10-05 nav override turned into a full load of /ofertas.html
+       -- the message vanished and the chat died. The answer stays here
+       with a door to the right page. */
+    answerInChatWithDoor(salesLine, () => {
+      if (salesTarget.action === 'store') addAssistantStoreOffer(salesTarget.key, salesTarget.label);
+      else if (salesTarget.action === 'brand') addAssistantBrandOffer(salesTarget.key, salesTarget.label, salesTarget.count || 0);
+      else addAssistantSectionOffer('Ofertas', 'Las mejores ofertas y liquidaciones de hoy', 'department', 'sale');
+    }, statusEl, prevStatus);
     return;
   }
 
