@@ -11038,7 +11038,17 @@ function detectBrandIntent(rawToks, pool, opts){
            two substitutions on four letters is a coincidence, not
            a brand. One-word queries under 5 chars get d<=1; the
            product-word fuzzy layer still resolves the typo. */
-        const maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        let maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        /* KNOWN WORDS JOINED ARE A JOIN REPAIR, NOT A TYPO (2026-10-07).
+           "titan pro mma gloves" joined "pro"+"mma" -> "promma" and
+           claimed Puma, then BYOMA, then Prada, all at d=2 -- and the
+           hard brand filter hid the Everlast glove the shopper named.
+           When every word in the window is one the catalogue sells
+           (the single-token rule above, applied to each word), the
+           only correction left is the join itself: an apostrophe or a
+           space ("victoria secret", "under armor", "calvin klien" are
+           all d=1). Two edits there is a coincidence. */
+        if (w.idx.length > 1 && w.idx.every(i => poolKnows(rawToks[i]))) maxDist = 1;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
