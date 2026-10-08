@@ -542,6 +542,10 @@ export const RETAILERS = {
     label: "BaubleBar",
     color: "#000000",
     tagline: "Joyería de moda — collares, aretes y pulseras",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* BOOKS (2026-09-27, Danny) — coffee table books: Assouline (luxury)
      + Chronicle Books (illustrated), 481 products via Shopify collection
      APIs. No logo files yet — wordmark pill fallback. Macy's pattern:
@@ -609,6 +613,9 @@ export const RETAILERS = {
     logo: "logos/statebags.png",
     tagline: "Mochilas y loncheras para niños",
     kind: "general",
+    search: false,
+    browse: true,
+  },
   /* ARIA BEAUTY BRAND AISLES (2026-09-27, Danny): browsable brand keys
      whose products live inside beauty-catalog.json. No logo files yet --
      they render as wordmark pills on their brand colours, the sanctioned
@@ -724,6 +731,11 @@ export const RETAILERS = {
     tagline: "Mascarillas coreanas",
     kind: "general",
     catalog: "beauty",
+    search: false,
+    browse: true,
+    retired: true,
+    retiredNote: "Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.",
+  },
   chronicle: {
     key: "chronicle",
     label: "Chronicle Books",
@@ -731,6 +743,9 @@ export const RETAILERS = {
     logo: "logos/chronicle.png",
     tagline: "Libros ilustrados — fotografía, arte y diseño",
     kind: "general",
+    search: false,
+    browse: true,
+  },
   /* ARIA MOMS (2026-09-27, Danny): the premium moms department — strollers
      of every type, breast pumps, feeding, nursery, maternity. Browsable
      brand/store keys whose products live inside moms-catalog.json. No logo
@@ -1062,6 +1077,10 @@ export const RETAILERS = {
     color: "#D8232A",
     logo: "logos/hottopic.png",
     tagline: "Band tees, anime y cultura pop",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   boxlunch: {
     key: "boxlunch",
     label: "BoxLunch",

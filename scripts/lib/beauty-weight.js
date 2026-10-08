@@ -155,10 +155,10 @@ const BEAUTY_FALLBACK_KG = [
     match: /\b(body mist|body splash|fragrance mist|bruma corporal|body spray)\b/i,
     kg: 0.35, pack: "carton", refMl: 250 },
   { key: "loción / crema corporal",
-   /* Gift sets (2026-10-07, Danny): the 30-piece Lovery spa case rendered at the 0.05 kg beauty default, underquoting freight ~25x. Reasoned, conservative: ~350 g case + ~30 items. */
-   { key: "set de regalo (belleza)",     match: BEAUTY_GIFTSET_RE,     kg: 1.30, pack: "carton" }, 
     match: /\b(body lotion|body cream|body butter|hand cream|loci[óo]n corporal|crema corporal|manteca corporal|crema de manos)\b/i,
     kg: 0.35, pack: "carton", refMl: 236 },
+  /* Gift sets (2026-10-07, Danny): the 30-piece Lovery spa case rendered at the 0.05 kg beauty default, underquoting freight ~25x. Reasoned, conservative: ~350 g case + ~30 items. */
+  { key: "set de regalo (belleza)",     match: BEAUTY_GIFTSET_RE,     kg: 1.30, pack: "carton" },
 ];
 
 /* PERFUME sizes its own row: the bottle is most of the weight and the
