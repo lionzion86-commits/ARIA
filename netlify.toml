@@ -10,7 +10,9 @@
   # catalogue JSONs off disk at boot. Lambda bundles do not include repo
   # files by default, so without this the function fails with ENOENT.
   # ~91MB total — well under the 250MB unzipped Lambda limit.
-  included_files = ["index.html", "*-catalog.json", "department-cache*.json"]
+  # price-index.json (~5MB): what checkout charges per product, built by
+  # scripts/build-price-index.mjs (orders-create.js reprices every line).
+  included_files = ["index.html", "*-catalog.json", "department-cache*.json", "price-index.json"]
 
 # /api/* is the public name for the functions the front end calls. The
 # realtime token endpoint is the one that matters: the build spec curls

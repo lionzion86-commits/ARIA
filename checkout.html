@@ -62,6 +62,7 @@
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
   .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463; display:flex; align-items:center; gap:8px }
 </style>
+<script src="/ref.js"></script>
 </head>
 <body class="antialiased">
 
@@ -191,6 +192,30 @@
              in DOM order. -->
         <aside class="gridSummary bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
+          <!-- SHIPPING TOGGLE (standing decision 2026-09-25): one choice,
+               plain language. Consolidated is free and pre-selected;
+               express is $8 (raised from $5 on purpose). How Aria batches
+               boxes in Miami stays out of sight. The fee is recomputed
+               server-side (_checkout-model.js SHIPPING_MODES). -->
+          <fieldset id="shippingModeWrap" class="space-y-2">
+            <legend class="text-[12px] font-bold mb-1.5" style="color:var(--navy)">¿Cómo quieres recibirlo?</legend>
+            <label class="flex items-start gap-3 rounded-2xl border px-3.5 py-3 cursor-pointer" style="border-color:var(--line)">
+              <input type="radio" name="shippingMode" value="consolidated" checked class="mt-1">
+              <span class="flex-1">
+                <span class="block text-[13.5px] font-bold" style="color:var(--navy)">Recibir todo junto</span>
+                <span class="block text-[12px]" style="color:#5B6478">Te llega en un solo envío.</span>
+              </span>
+              <span class="text-[13px] font-extrabold" style="color:var(--green)">Gratis</span>
+            </label>
+            <label class="flex items-start gap-3 rounded-2xl border px-3.5 py-3 cursor-pointer" style="border-color:var(--line)">
+              <input type="radio" name="shippingMode" value="express" class="mt-1">
+              <span class="flex-1">
+                <span class="block text-[13.5px] font-bold" style="color:var(--navy)">Recibir cada paquete ni bien llegue</span>
+                <span class="block text-[12px]" style="color:#5B6478">Cada tienda te llega por separado.</span>
+              </span>
+              <span id="expressFeeLabel" class="text-[13px] font-extrabold tabular" style="color:var(--navy)">$8</span>
+            </label>
+          </fieldset>
           <!-- DELIVERY TRANSPARENCY (2026-09-26): per-store Miami ranges, set by renderDeliverySummary. -->
           <div id="deliverySummaryWrap"></div>
           <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
@@ -222,6 +247,13 @@
                  underneath. It is the real cost of receiving, checking
                  and delivering a small parcel, and it is worded as that
                  rather than as a penalty. -->
+            <div id="sumExpressRow" class="flex items-start justify-between gap-2" hidden>
+              <span class="flex flex-col">
+                <span>Envío por paquete</span>
+                <span class="text-[11px]" style="color:#8A93A8">Recibir cada paquete ni bien llegue</span>
+              </span>
+              <span id="sumExpress" class="tabular font-semibold" style="color:var(--navy)">—</span>
+            </div>
             <div id="sumSmallOrderRow" class="flex items-start justify-between gap-2" hidden>
               <span class="flex flex-col">
                 <span id="sumSmallOrderLabel">Pedido pequeño</span>
@@ -273,7 +305,17 @@
                though every other number on this page now leads with PEN. -->
           <div class="rounded-xl px-3.5 py-3 flex items-start gap-2" style="background:var(--yellow); border:1px solid var(--yellow-dark)">
             <svg class="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-            <p id="taxPolicyNote" class="text-[12.5px] font-bold leading-snug" style="color:var(--navy)"></p>
+            <div class="flex-1">
+              <!-- DE-MINIMIS TRACKER (2026-10-08): progress toward the $200
+                   FOB threshold, on the DUTIABLE value (raw US price x the
+                   retailer's sales-tax rate), never the card price and never
+                   freight. A tax tracker, not a fee bar. -->
+              <p id="taxTrackerLine" class="text-[13px] font-extrabold leading-snug" style="color:var(--navy)"></p>
+              <div class="h-2 rounded-full mt-1.5 mb-2 overflow-hidden" style="background:rgba(10,31,68,.12)">
+                <div id="taxTrackerBar" class="h-full rounded-full" style="width:0%; background:var(--navy)"></div>
+              </div>
+              <p id="taxPolicyNote" class="text-[12px] font-semibold leading-snug" style="color:var(--navy)"></p>
+            </div>
           </div>
           <div class="h-px" style="background:var(--line)"></div>
           <div class="flex justify-between items-baseline">
@@ -521,9 +563,9 @@
     <div class="w-16 h-16 rounded-full grid place-items-center mx-auto mb-5" style="background:var(--green-bg)">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
     </div>
-    <h1 class="text-[24px] sm:text-[28px] font-extrabold tracking-[-0.02em] mb-2" style="color:var(--navy)">¡Pago simulado con éxito!</h1>
+    <h1 id="successTitle" class="text-[24px] sm:text-[28px] font-extrabold tracking-[-0.02em] mb-2" style="color:var(--navy)">¡Pago simulado con éxito!</h1>
     <p class="text-[13.5px] leading-relaxed mb-6" style="color:#5B6478">
-      Este es un prototipo — no se realizó ningún cargo real. Tu pedido <span id="orderId" class="font-bold tabular" style="color:var(--navy)"></span> por <span id="orderTotal" class="font-bold tabular" style="color:var(--navy)"></span> quedó registrado y te contactaremos a <span id="orderEmail" class="font-semibold" style="color:var(--navy)"></span>.
+      <span id="successLead">Este es un prototipo — no se realizó ningún cargo real.</span> Tu pedido <span id="orderId" class="font-bold tabular" style="color:var(--navy)"></span> por <span id="orderTotal" class="font-bold tabular" style="color:var(--navy)"></span> quedó registrado y te contactaremos a <span id="orderEmail" class="font-semibold" style="color:var(--navy)"></span>.
     </p>
     <a href="index.html" class="inline-flex items-center justify-center h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring" style="background:var(--blue)">Volver a la tienda</a>
   </div>
@@ -836,7 +878,8 @@
      different number than the one on screen. */
   function orderTotalPenNow(){
     if (!fxRates || !latestQuote) return 0;
-    return round2(orderTotalsUsd().totalUsd * fxRates.venta + currentSmallOrderFeePen());
+    return round2(orderTotalsUsd().totalUsd * fxRates.venta + currentSmallOrderFeePen()
+      + currentProvinciaFeePen() + currentExpressFeePen());
   }
 
   // What this order can actually consume: never more than the balance,
@@ -1044,6 +1087,42 @@
     return smallOrderFeePen(round2(orderUsd * fxRates.venta));
   }
 
+  /* SHIPPING TOGGLE. $8 for "cada paquete ni bien llegue", in soles at
+     today's rate; free for "todo junto". Mirrors SHIPPING_MODES in
+     netlify/functions/_checkout-model.js, which charges it (and a test
+     holds the two to the same number). */
+  const EXPRESS_FEE_USD = 8;
+  function currentShippingMode(){
+    const el = document.querySelector('input[name="shippingMode"]:checked');
+    return el && el.value === 'express' ? 'express' : 'consolidated';
+  }
+  function currentExpressFeePen(){
+    return currentShippingMode() === 'express' && fxRates ? round2(EXPRESS_FEE_USD * fxRates.venta) : 0;
+  }
+  function renderExpressRow(fee){
+    document.getElementById('sumExpress').textContent = fmtWalletPen(fee);
+    document.getElementById('sumExpressRow').hidden = !(fee > 0);
+    const lbl = document.getElementById('expressFeeLabel');
+    lbl.textContent = fxRates ? fmtWalletPen(round2(EXPRESS_FEE_USD * fxRates.venta)) : `$${EXPRESS_FEE_USD}`;
+  }
+  document.querySelectorAll('input[name="shippingMode"]').forEach((r) => r.addEventListener('change', () => renderSummary()));
+
+  /* DE-MINIMIS TRACKER: the dutiable value (never freight) against $200. */
+  function renderTaxTracker(){
+    const fob = currentValor();
+    const pct = Math.max(0, Math.min(100, fob / TAX_ESTIMATE_THRESHOLD_USD * 100));
+    const line = document.getElementById('taxTrackerLine');
+    const bar = document.getElementById('taxTrackerBar');
+    bar.style.width = pct.toFixed(1) + '%';
+    if (fob <= TAX_ESTIMATE_THRESHOLD_USD){
+      line.textContent = `Vas en $${fob.toFixed(2)} de $${TAX_ESTIMATE_THRESHOLD_USD} – sin impuestos`;
+      bar.style.background = 'var(--navy)';
+    } else {
+      line.textContent = `Pasaste los $${TAX_ESTIMATE_THRESHOLD_USD} ($${fob.toFixed(2)}) – se aplican impuestos de importación`;
+      bar.style.background = '#B7791F';
+    }
+  }
+
   /* EVERY FIGURE THE SUMMARY PRINTS, FROM ONE FUNCTION (2026-09-21).
 
      The total used to be the courier's total_usd plus the handling fee,
@@ -1157,8 +1236,11 @@
     const valor = currentValor();
     const smallOrderFee = currentSmallOrderFeePen();
     const provFee = currentProvinciaFeePen();
+    const expressFee = currentExpressFeePen();
     renderSmallOrderRow(smallOrderFee);
     renderProvinciaRow(provFee);
+    renderExpressRow(expressFee);
+    renderTaxTracker();
     sumWeight.textContent = kg.toFixed(2) + ' kg';
 
     /* A freight line that reads "—" and a total that reads S/ 0.00 are not
@@ -1177,7 +1259,7 @@
       if (q){
         setMoney(sumFlete, q.flete_usd, ' (estimado)');
         sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + ' (estimado)'
-          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee)) : '');
+          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee)) : '');
       } else {
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
@@ -1199,7 +1281,7 @@
     // The small-order fee is part of the order total, so saldo applies
     // against it too and it is inside every figure below. The provincia
     // leg is treated the same way.
-    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee) : 0;
+    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee) : 0;
 
     /* A weight we do not believe must not become a price. Everything on
        the line is still shown — the customer can see what is in the
@@ -1503,12 +1585,55 @@
     toastTimer = setTimeout(() => { el.style.opacity = 0; el.style.transform = 'translate(-50%, 24px)'; }, 2600);
   }
 
-  // BUG FIX (launch cash control): "Pagar" used to just fake success
-  // locally with no server involved at all. It now calls
-  // orders-create.js, which enforces the daily order cap / kill switch
-  // and persists a real order record (still a *simulated* charge — no
-  // real payment gateway exists or is in scope here) that the admin
-  // margin-test view reads from.
+  // "Pagar" calls orders-create.js, which enforces the daily order cap /
+  // kill switch, prices the order itself and -- with Stripe configured
+  // (2026-10-08) -- answers with a Stripe Checkout URL. The customer pays
+  // there, in soles, and comes back to ?pagado=... (see returnFromStripe
+  // below). Without a key in production it still records the order with
+  // no charge, and says so on the success screen.
+  function storedRef(){
+    try { const r = JSON.parse(localStorage.getItem('aria_ref') || 'null'); return r && r.ref ? r.ref : null; } catch { return null; }
+  }
+
+  /* BACK FROM STRIPE. ?pagado=ORDER&session_id=cs_... -- ask the server
+     whether the money arrived (the webhook, or Stripe itself) before
+     saying so; only then is the cart cleared. ?cancelado=ORDER -- the
+     customer left Stripe's page; the cart is untouched. */
+  async function returnFromStripe(){
+    const params = new URLSearchParams(location.search);
+    const paidId = params.get('pagado'), sessionId = params.get('session_id');
+    if (params.get('cancelado')){
+      showToast('No se completó el pago. Tu carrito sigue aquí cuando quieras intentarlo de nuevo.');
+      history.replaceState(null, '', location.pathname);
+      return;
+    }
+    if (!paidId || !sessionId) return;
+    document.getElementById('checkoutWrap').hidden = true;
+    document.getElementById('successWrap').hidden = false;
+    document.getElementById('successTitle').textContent = 'Confirmando tu pago…';
+    document.getElementById('successLead').textContent = '';
+    document.getElementById('orderId').textContent = '#' + paidId;
+    for (let i = 0; i < 12; i++){
+      try {
+        const r = await fetch(`/.netlify/functions/order-status?order=${encodeURIComponent(paidId)}&session=${encodeURIComponent(sessionId)}`);
+        const d = await r.json();
+        if (r.ok && d.paid){
+          document.getElementById('successTitle').textContent = '¡Pago recibido!';
+          document.getElementById('successLead').textContent = 'Gracias por tu compra.';
+          document.getElementById('orderTotal').textContent = fmtWalletPen(d.chargedPen);
+          document.getElementById('orderEmail').textContent = d.email || 'tu correo';
+          clearCart();
+          history.replaceState(null, '', location.pathname);
+          return;
+        }
+      } catch { /* retry */ }
+      await new Promise((ok) => setTimeout(ok, 2500));
+    }
+    document.getElementById('successTitle').textContent = 'Estamos confirmando tu pago';
+    document.getElementById('successLead').textContent = 'Stripe todavía no nos confirma el cobro. Te escribiremos apenas llegue; no vuelvas a pagar.';
+  }
+  returnFromStripe();
+
   document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -1571,10 +1696,38 @@
           // Sent so the record shows what the customer saw; the server
           // recomputes it from destCity and charges its own answer.
           provinciaFeePen: currentProvinciaFeePen(),
+          // "Recibir todo junto" (free) or "cada paquete ni bien llegue" ($8).
+          shippingMode: currentShippingMode(),
+          // The soles total on screen. The server charges its own figure
+          // and refuses (409) when the two disagree, so the customer never
+          // pays a number they did not see.
+          shownTotalPen: orderTotalPenNow(),
+          // ?ref= attribution when the browser blocked the cookie.
+          ref: storedRef(),
         }),
       });
       const data = await res.json();
+      if (res.status === 409 && data.totalChanged){
+        /* A stale exchange rate, a repriced line or a freight quote under
+           the weight floor: redraw on the server's figures and let the
+           customer look before paying. Nothing was created or charged. */
+        try { localStorage.removeItem(FX_CACHE_KEY); } catch {}
+        if (latestQuote && typeof data.freightUsd === 'number') latestQuote = { ...latestQuote, flete_usd: data.freightUsd };
+        if (Array.isArray(data.priceAdjustments)) for (const a of data.priceAdjustments){
+          const line = cart.find((l) => l.retailer === a.retailer && (l.title || l.name) === a.title);
+          if (line) line.priceUsd = a.chargedUsd;
+        }
+        await initFxRates();
+        throw new Error(`El total se actualizó a ${fmtWalletPen(data.totalPen)}. Revísalo y vuelve a pagar.`);
+      }
       if (!res.ok) throw new Error(data.error || 'No se pudo procesar el pedido');
+      if (data.checkoutUrl){
+        /* To Stripe's page. The cart is NOT cleared: if the customer
+           comes back without paying it is all still here. */
+        payBtn.textContent = 'Abriendo el pago seguro…';
+        location.assign(data.checkoutUrl);
+        return;
+      }
 
       if (data.held){
         document.getElementById('heldBatchTime').textContent =
