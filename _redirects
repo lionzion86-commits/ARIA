@@ -2,3 +2,7 @@
 /admin /admin.html 200
 /terminos /terminos.html 200
 /privacidad /privacidad.html 200
+# "Por qué Aria" (2026-10-08): the nav link pointed at a page that never
+# existed. The story lives on Nosotros ("Por qué existe Aria").
+/por-que-aria.html /nosotros.html 301
+/por-que-aria /nosotros.html 301
