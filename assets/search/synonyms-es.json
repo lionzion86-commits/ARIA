@@ -1,0 +1,163 @@
+{
+  "_readme": [
+    "SEARCH DICTIONARY for search.html (read by search-pipeline.js). Edit this file; no code change needed.",
+    "Matching ignores case and accents: write keys in plain Spanish ('munecas' and 'muñecas' are the same key).",
+    "Word sections (footwear, clothing, accessories, beauty, toys, modifiers, colors, more): 'spanish': 'english'.",
+    "  An array means OR: 'lentes': ['sunglasses', 'glasses'] shows both. Words in different slots are AND.",
+    "  An empty string drops the word ('para': '').",
+    "phrases: multi-word Spanish matched before single words, longest first ('lentes de sol').",
+    "brands: matched as whole phrases and never translated ('new balance', 'miu miu'); typos are corrected to them.",
+    "intents: words that change ordering, not matching ('barato' sorts by price).",
+    "senses: words with two meanings. keep = the title must match (unless the query has an 'unless' word);",
+    "  drop = titles that are never this sense; or = extra English queries that also mean it; label = what the empty state calls it.",
+    "scripts/test/search-brief-tests.mjs runs every query from the 2026-10-08 brief against the real catalogue."
+  ],
+
+  "footwear": {
+    "zapatillas": "sneakers", "zapatilla": "sneakers", "tenis": "sneakers", "zapatos": "shoes", "zapato": "shoes",
+    "zapatitos": ["baby shoes", "toddler shoes"], "zapatito": ["baby shoes", "toddler shoes"],
+    "calzado": "shoes", "botas": "boots", "bota": "boots", "botines": "booties", "botin": "booties",
+    "sandalias": "sandals", "sandalia": "sandals", "tacones": "heels", "tacon": "heels", "tacos": "heels",
+    "chimpunes": "cleats", "chimpun": "cleats", "mocasines": "loafers", "mocasin": "loafers",
+    "pantuflas": "slippers", "pantufla": "slippers", "chanclas": "flip flops", "sayonaras": "flip flops",
+    "ojotas": "flip flops", "balerinas": "ballet flats", "plataformas": "platform shoes", "zuecos": "clogs"
+  },
+
+  "clothing": {
+    "polos": "t-shirt", "polo": "t-shirt", "camisetas": "t-shirt", "camiseta": "t-shirt", "polera": "t-shirt", "poleras": "t-shirt",
+    "camisas": "shirt", "camisa": "shirt", "blusas": "blouse", "blusa": "blouse", "tops": "top",
+    "shorts": "shorts", "short": "shorts", "bermudas": "shorts", "bermuda": "shorts",
+    "pantalones": "pants", "pantalon": "pants", "jeans": "jeans", "jean": "jeans", "vaqueros": "jeans",
+    "leggings": "leggings", "licras": "leggings", "joggers": "joggers", "buzos": "joggers",
+    "vestidos": "dress", "vestido": "dress", "faldas": "skirt", "falda": "skirt", "polleras": "skirt",
+    "casacas": "jacket", "casaca": "jacket", "chaquetas": "jacket", "chaqueta": "jacket", "abrigos": "coat", "abrigo": "coat",
+    "chompas": "sweater", "chompa": "sweater", "sueter": "sweater", "sueteres": "sweater",
+    "sudaderas": "hoodie", "sudadera": "hoodie", "polerones": "hoodie", "poleron": "hoodie", "canguros": "hoodie", "hoddie": "hoodie",
+    "pijamas": "pajamas", "pijama": "pajamas", "ropa de bano": "swimsuit", "bikinis": "bikini", "mallas": "swimsuit",
+    "medias": "socks", "calcetines": "socks", "trusas": "underwear", "calzoncillos": "boxer briefs", "brasieres": "bra", "sostenes": "bra",
+    "ternos": "suit", "terno": "suit", "corbatas": "tie", "corbata": "tie", "chalecos": "vest", "chaleco": "vest",
+    "enterizos": "jumpsuit", "enterizo": "jumpsuit", "bodies": "bodysuit", "uniformes": "uniform"
+  },
+
+  "accessories": {
+    "gorras": "cap", "gorra": "cap", "gorros": "beanie", "gorro": "beanie", "sombreros": "hat", "sombrero": "hat",
+    "carteras": "handbag", "cartera": "handbag", "bolsos": "handbag", "bolso": "handbag", "bolsas": "bag", "bolsa": "bag",
+    "mochilas": "backpack", "mochila": "backpack", "loncheras": "lunch box", "lonchera": "lunch box",
+    "billeteras": "wallet", "billetera": "wallet", "monederos": "wallet", "correas": "belt", "correa": "belt", "cinturones": "belt",
+    "relojes": "watch", "reloj": "watch", "lentes": ["sunglasses", "glasses"], "gafas": "sunglasses", "anteojos": "glasses",
+    "aretes": "earrings", "arete": "earrings", "collares": "necklace", "collar": "necklace", "pulseras": "bracelet", "pulsera": "bracelet",
+    "anillos": "ring", "anillo": "ring", "joyas": "jewelry", "bufandas": "scarf", "bufanda": "scarf", "guantes": "gloves",
+    "maletas": "suitcase", "maleta": "suitcase", "paraguas": "umbrella", "llaveros": "keychain", "llavero": "keychain",
+    "celular": "phone", "audifonos": "headphones", "parlante": "speaker", "cargador": "charger", "tableta": "tablet",
+    "laptop": "laptop", "computadora": "laptop", "pantalla": "monitor", "raton": "mouse", "teclado": "keyboard"
+  },
+
+  "beauty": {
+    "perfumes": "perfume", "perfume": "perfume", "fragancias": "perfume", "colonias": "cologne", "colonia": "cologne",
+    "maquillaje": "makeup", "labiales": "lipstick", "labial": "lipstick", "rimel": "mascara", "delineador": "eyeliner",
+    "rubor": "blush", "base de maquillaje": "foundation", "bases": "foundation", "corrector": "concealer", "polvos": "powder",
+    "sombras": "eyeshadow", "brochas": "brushes", "esmalte": "nail polish", "unas": "nails",
+    "cremas": "cream", "crema": "cream", "bloqueador": "sunscreen", "protector solar": "sunscreen",
+    "champu": "shampoo", "acondicionador": "conditioner", "desodorante": "deodorant", "serum": "serum", "jabon": "soap"
+  },
+
+  "toys": {
+    "juguetes": "toy", "juguete": "toy", "munecas": "doll", "muneca": "doll", "munecos": ["action figure", "plush"],
+    "peluches": "plush", "peluche": "plush", "bicicletas": ["bicycle", "bike"], "bicicleta": ["bicycle", "bike"],
+    "patines": "skates", "patineta": "skateboard", "patinetas": "skateboard", "scooter": "scooter",
+    "rompecabezas": "puzzle", "legos": "lego", "carritos": "toy car", "carrito": "toy car", "pelotas": "ball", "pelota": "ball",
+    "juegos de mesa": "board game", "videojuegos": "video game", "consola": "game console", "triciclo": "tricycle",
+    "coche de bebe": "stroller", "cochecito": "stroller", "biberones": "baby bottle", "biberon": "baby bottle",
+    "panales": "diapers", "chupones": "pacifier"
+  },
+
+  "modifiers": {
+    "mujer": "womens", "mujeres": "womens", "dama": "womens", "damas": "womens", "femenino": "womens",
+    "hombre": "mens", "hombres": "mens", "caballero": "mens", "caballeros": "mens", "masculino": "mens",
+    "nino": "kids", "ninos": "kids", "nina": "girls", "ninas": "girls", "infantil": "kids", "infantiles": "kids",
+    "bebe": "baby", "bebes": "baby", "unisex": "unisex", "juvenil": "youth",
+    "deportivo": ["running", "training", "gym"], "deportivos": ["running", "training", "gym"],
+    "deportiva": ["running", "training", "gym"], "deportivas": ["running", "training", "gym"],
+    "fiesta": ["party", "cocktail", "evening"], "gala": ["evening", "gown"], "escolar": "school", "escolares": "school",
+    "cuero": "leather", "de cuero": "leather", "algodon": "cotton", "lana": "wool", "seda": "silk",
+    "impermeable": "waterproof", "largo": "long", "larga": "long", "corto": "short", "corta": "short", "manga larga": "long sleeve",
+    "manga corta": "short sleeve", "sin mangas": "sleeveless", "talla grande": "plus size", "tallas grandes": "plus size"
+  },
+
+  "colors": {
+    "negro": "black", "negra": "black", "negros": "black", "negras": "black",
+    "blanco": "white", "blanca": "white", "blancos": "white", "blancas": "white",
+    "rojo": "red", "roja": "red", "rojos": "red", "rojas": "red",
+    "azul": "blue", "azules": "blue", "celeste": "light blue", "verde": "green", "verdes": "green",
+    "amarillo": "yellow", "amarilla": "yellow", "rosado": "pink", "rosada": "pink", "rosa": "pink",
+    "morado": "purple", "morada": "purple", "lila": "purple", "gris": "gray", "grises": "gray",
+    "marron": "brown", "cafe": "brown", "beige": "beige", "dorado": "gold", "dorada": "gold", "plateado": "silver", "plateada": "silver",
+    "naranja": "orange", "anaranjado": "orange", "crema": "cream"
+  },
+
+  "phrases": {
+    "lentes de sol": "sunglasses", "gafas de sol": "sunglasses", "anteojos de sol": "sunglasses",
+    "zapatos para bebes": ["baby shoes", "toddler shoes"], "zapatos de bebe": ["baby shoes", "toddler shoes"],
+    "zapatillas para bebes": ["baby sneakers", "toddler sneakers"],
+    "ropa interior": "underwear", "traje de bano": "swimsuit", "ropa de bano": "swimsuit",
+    "mochila escolar": "school backpack", "mochilas escolares": "school backpack",
+    "juegos de mesa": "board game", "juego de mesa": "board game", "carro a control remoto": "remote control car",
+    "base de maquillaje": "foundation", "protector solar": "sunscreen", "hair tie": "hair tie", "hair ties": "hair tie",
+    "baby monitor": "baby monitor", "monitor de bebe": "baby monitor", "mickey mouse": "mickey mouse"
+  },
+
+  "brands": [
+    "nike", "adidas", "puma", "reebok", "new balance", "converse", "vans", "skechers", "crocs", "asics", "jordan", "under armour",
+    "the north face", "columbia", "levis", "tommy hilfiger", "calvin klein", "ralph lauren", "polo ralph lauren", "lacoste", "guess",
+    "michael kors", "kate spade", "coach", "steve madden", "dr martens", "ugg", "timberland", "birkenstock", "hoka", "on running",
+    "miu miu", "prada", "gucci", "versace", "balenciaga", "burberry", "fendi", "dior", "chanel", "saint laurent", "yves saint laurent",
+    "victoria secret", "victorias secret", "skims", "young la", "gymshark", "lululemon", "champion", "fila", "carhartt",
+    "carolina herrera", "paco rabanne", "jean paul gaultier", "dolce gabbana", "marc jacobs", "sol de janeiro", "rare beauty",
+    "fenty beauty", "charlotte tilbury", "la roche posay", "cerave", "the ordinary", "maybelline", "loreal", "mac", "clinique",
+    "lego", "barbie", "hot wheels", "fisher price", "hello kitty", "disney", "marvel", "pokemon", "nerf", "play doh",
+    "apple", "samsung", "sony", "logitech", "casio", "fossil", "ray ban", "oakley", "jbl", "beats", "stanley", "hydro flask",
+    "h&m", "zara", "shein", "old navy", "american eagle", "abercrombie", "hollister", "aeropostale", "pacsun", "everlast", "venum"
+  ],
+
+  "stopwords": ["de", "del", "para", "el", "la", "los", "las", "con", "y", "en", "un", "una", "unos", "unas", "mi", "mis", "por", "al", "que", "quiero", "busco", "necesito"],
+
+  "intents": {
+    "barato": "cheap", "baratos": "cheap", "barata": "cheap", "baratas": "cheap", "economico": "cheap", "economicos": "cheap",
+    "economica": "cheap", "economicas": "cheap", "cheap": "cheap"
+  },
+
+  "senses": [
+    { "word": "toy", "label": "juguetes",
+      "drop": "\\b(?:toy machine|decks?|skateboards?|wheels|trucks|griptape|grip tape|tee|t-shirt|hoodie|socks|shirt|beanie|sticker)\\b" },
+    { "word": "plush", "label": "peluches",
+      "drop": "\\b(?:throw|blanket|towels?|robe|rug|pillow|slippers?|socks|sweater|hoodie|pajamas?|lounge|seat|mat)\\b" },
+    { "word": ["bicycle", "bike"], "noun": "bikes?|bicycles?|tricycles?", "label": "bicicletas",
+      "drop": "\\b(?:lego|funko|figure|doll|building set|trailer|jogger|shorts?|rack|cards?|charm|tee|t-shirt|shirt|hoodie|helmet|lights?|lock|sticker|skateboard|deck|tires?|pump|jersey|bell|basket|playing)\\b" },
+    { "word": "watch", "noun": "watch|watches|wristwatch|wristwatches|smartwatch", "label": "relojes",
+      "drop": "\\b(?:toys?|vtech|watch band|watch strap|replacement band|charger|screen protector|winder)\\b" },
+    { "word": "mouse", "noun": "mouse|mice", "label": "mouse de computadora", "unless": ["mickey", "minnie", "mighty", "disney"],
+      "keep": "\\b(?:wireless|optical|gaming|computer|bluetooth|usb|ergonomic|trackball|dpi|logitech|razer)\\b",
+      "drop": "\\b(?:pad|mat|trap|plush|costume|ears|tee|t-shirt|shirt|hoodie|minnie|mickey|disney|headphones?)\\b" },
+    { "word": "tablet", "noun": "tablets?|ipads?|tab", "label": "tablets", "or": ["ipad"],
+      "keep": "\\b(?:ipad|android|galaxy tab|fire hd|kindle|wi-?fi|\\d+\\s?gb)\\b",
+      "drop": "\\b(?:chewable|antacid|tablets|wheels?|holder|mount|tripod|cover|case|stand|stylus|pen|protector|headphones?|earbuds?|charger|cable|adapter|keyboard|bag|sleeve)\\b" },
+    { "word": "apple", "label": "productos Apple", "unless": ["bottoms", "cider", "juice", "pie", "candle"],
+      "brand": "apple", "keep": "\\b(?:iphone|ipad|macbook|imac|airpods|apple watch|apple tv|airtag|magsafe|apple pencil)\\b",
+      "drop": "\\bapple bottoms\\b" },
+    { "word": "bag", "label": "carteras",
+      "unless": ["makeup", "cosmetic", "gym", "sleeping", "duffel", "duffle", "travel", "beach", "golf", "laptop", "diaper", "school",
+        "lunch", "bean", "punching", "trash", "garbage", "tea", "gift", "storage", "dust", "laundry", "camera", "belt", "waist", "fanny",
+        "toiletry", "dopp", "tote", "sling", "messenger", "backpack"],
+      "keep": "\\b(?:handbags?|purses?|crossbody|shoulder bag|totes?|satchel|clutch|hobo|bucket bag|top[- ]handle|saddle bag|baguette|bag)\\b",
+      "drop": "\\b(?:makeup|cosmetic|toiletry|sleeping|trash|garbage|storage|laundry|gift bag|tea bag|bean bag|punching|dust bag|diaper|lunch|golf|camera|cooler|dog|pet)\\b" },
+    { "word": "tie", "noun": "ties?|neckties?|bowties?", "label": "corbatas", "unless": ["hair", "dye", "cable", "zip", "twist"],
+      "keep": "\\b(?:ties?|neckties?|bow ties?)\\b",
+      "drop": "(?:\\btie[- ]?(?:dye|front|waist|neck|back|strap|shoulder|up|detail|sleeve|hem|side)\\b|\\b(?:front|waist|side|self|back|neck|shoulder|strap|tie)[- ]tie\\b|\\bhair\\b|\\bdress\\b|\\bblouse\\b|\\btop\\b|\\bbikini\\b|\\bshirt\\b|\\bpants?\\b|\\bshorts?\\b|\\bskirt\\b)" },
+    { "word": "monitor", "noun": "monitors?", "label": "monitores de computadora", "unless": ["baby", "bebe", "heart", "glucose", "blood", "presion"],
+      "keep": "(?:\\b\\d{2}(?:\\.\\d)?\\s?(?:\"|”|-?inch\\b|in\\b)|\\b(?:hz|fhd|qhd|uhd|4k|ips|curved|gaming|computer|pc|led|lcd)\\b)",
+      "drop": "\\b(?:baby|mount|arm|stand|riser|light bar|lamp|cable|heart|blood|glucose|camera|ball head|surveillance)\\b" },
+    { "word": "tv", "noun": "tvs?|televisions?", "label": "televisores", "or": ["television"],
+      "keep": "(?:\\bsmart tv\\b|\\btelevision\\b|\\b\\d{2}\\s?(?:\"|”|-?inch\\b|in\\b|class\\b)|\\b(?:oled|qled|uhd|4k)\\b)",
+      "drop": "\\b(?:stand|mount|tripod|cabinet|console|remote|antenna|cable|show|series|t-?shirt|tee|hoodie|tray|fireplace|cover|lift|decal|sound|came-tv|apple tv|streaming|stick|funko|figure|skateboard|complete|deck)\\b" }
+  ]
+}
