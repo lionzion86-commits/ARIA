@@ -28,8 +28,6 @@
 <link rel="icon" type="image/png" href="assets/aria-orb-pixar-64.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- Ropa Interior y Medias: the department rules the homepage shelf shares with ropa-interior.html. -->
-<script src="ropa-interior-engine.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
 <style>
   @keyframes blink{50%{opacity:0}}
@@ -2231,6 +2229,20 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
       <div data-category-rail-row="sunglasses" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+    <!-- PERMANENT ROPA INTERIOR Y MEDIAS RAIL (2026-10-07, Danny): men's
+         underwear and socks, BLAST SALES ONLY, deepest discount first,
+         built from the department feed (ropaInteriorRailPicks). Same
+         shared painter and stand-down rule as Gym Rat; the header and
+         its link open the department page. Starts hidden; JS reveals it. -->
+    <section aria-label="Ropa Interior y Medias" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <a href="/ropa-interior.html" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior y Medias</a>
+        <a href="/ropa-interior.html" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
+      <div data-category-rail-row="ropa_interior" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 
 <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
          the name-drop sits before the store rails -- the catalogue's top clothing brands
@@ -2792,6 +2804,18 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
         <div data-category-rail-row="sunglasses" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- PERMANENT ROPA INTERIOR Y MEDIAS RAIL (2026-10-07, Danny): desktop. Same shelf as mobile. -->
+    <section aria-label="Ropa Interior y Medias" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <a href="/ropa-interior.html" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior y Medias</a>
+          <a href="/ropa-interior.html" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
+        <div data-category-rail-row="ropa_interior" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny.
@@ -12980,12 +13004,15 @@ const CATEGORY_RAILS = [
     test: (p) => railBucketCategoryIs(p, 'mens_grooming'),
     open: "openCatalog('department','mens_grooming')" },
   /* ROPA INTERIOR Y MEDIAS (2026-10-07, Danny): men's underwear and
-     socks. The rules are ropa-interior-engine.js -- the same file that
-     builds the department's feed -- so this shelf and the department
-     page can never disagree. The door is the department's own page. */
+     socks. Built from the department's own feed (ropa-interior-feed.json,
+     the output of ropa-interior-engine.js over the catalogues), so this
+     shelf and the department page can never disagree, and a catalogue
+     pull that adds socks or underwear reaches both with no curation.
+     Blast sales only, deepest discount first -- see ropaInteriorRailPicks.
+     The door is the department's own page. */
   { key: 'ropa_interior', label: 'Ropa Interior y Medias', icon: '', stores: null, poolOnly: true, saleHeavy: true,
-    blurb: 'Lo esencial, de las mejores marcas de USA.',
-    test: (p) => !!(window.AriaRopaInterior && window.AriaRopaInterior.classify(p, p.retailer, (p.departments || [])[0] || '')),
+    blurb: 'Lo esencial, de las mejores marcas de USA. Solo ofertas.',
+    feed: () => ropaInteriorRailPicks(),
     open: "location.href='/ropa-interior.html'" },
 ];
 /* Tab order on the pills (2026-09-27, Danny): Mama's Fashion is second-in-command
@@ -13093,6 +13120,44 @@ function categoryRailMoreHTML(key, dark){
     </span>
   </button>`;
 }
+
+/* ROPA INTERIOR Y MEDIAS — THE HOMEPAGE RAIL (2026-10-07, Danny).
+
+   A deals carousel: BLAST SALES ONLY, no full-price item, deepest
+   discount first. The source is the department's feed, never a list:
+   when the Walmart/Target sock and underwear pull lands and the feed is
+   rebuilt (npm run build:ropa-interior-feed), the rail follows on its
+   own. Each item is priced by normalizeLiveItem -- the same pricing as
+   every other card on this page -- and a photo that was not cleared of
+   its US price sticker is not shown (the feed carries imageReview). */
+let ropaInteriorFeedPromise = null;
+async function ropaInteriorRailPicks(){
+  if (!ropaInteriorFeedPromise){
+    ropaInteriorFeedPromise = fetch('/ropa-interior-feed.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(f => (f && Array.isArray(f.items)) ? f.items : [])
+      .catch(() => { ropaInteriorFeedPromise = null; return []; });
+  }
+  const items = await ropaInteriorFeedPromise;
+  const out = [];
+  for (const f of items){
+    if (!(Number(f.o) > Number(f.p))) continue;
+    let it = null;
+    try {
+      it = normalizeLiveItem({ title: f.t, brand: f.b, price: f.p, originalPrice: f.o, onSale: f.s === 1, image: f.img,
+        imageReview: f.ir, url: f.u, rating: f.rt || null, reviewCount: f.rc || 0 },
+        { retailer: f.r, department: f.ty === 'socks' ? 'socks' : 'underwear' });
+    } catch (e) { continue; }
+    if (!it || !it.title || !hasRealImage(it)) continue;
+    const pct = carouselDiscountPct({ ...it, retailer: f.r });
+    /* A rounding-error "sale" is not a sale. */
+    if (!(pct >= 5)) continue;
+    out.push({ ...it, retailer: f.r, departments: [f.ty === 'socks' ? 'socks' : 'underwear'], _pct: pct });
+  }
+  out.sort((a, b) => (b._pct - a._pct) || (Number(a.price) - Number(b.price)));
+  return out.slice(0, ROPA_INTERIOR_RAIL_TOTAL);
+}
+const ROPA_INTERIOR_RAIL_TOTAL = 20;
 
 function paintCategoryRail(row){
   const key = row.getAttribute('data-category-rail-row');
@@ -17003,6 +17068,12 @@ function paintRailSkeletons(){
 async function computeCategoryZonePicks(ofertasKeys){
   const pool = await relatedPool();
   for (const cat of CATEGORY_RAILS){
+    /* A rail with its own feed (Ropa Interior y Medias) takes its picks
+       from it, never from the pool. */
+    if (cat.feed){
+      try { categoryRailsRendered[cat.key] = await cat.feed(); } catch (e) { categoryRailsRendered[cat.key] = []; }
+      continue;
+    }
     const stores = cat.stores || Object.keys(departmentCacheData?.retailers || {});
     const test = (p) => p && stores.indexOf(String(p.retailer || '').toLowerCase()) !== -1
       && (!cat.test || cat.test(p));

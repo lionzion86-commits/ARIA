@@ -55,6 +55,17 @@ export function buildFeed() {
               ty: c.type, sub: c.sub,
               rt: Number(it.rating) || 0, rc: Number(it.reviewCount) || 0,
             };
+            /* The image-quality verdict rides along: a photo that was not
+               cleared of its US price sticker is never shown, on the
+               department page or on the homepage rail. */
+            if (it.imageReview) row.ir = String(it.imageReview);
+            /* The retailer's own sale report rides along too: the site
+               never shows a markdown the retailer did not report
+               (normalizeLiveItem's rule), so the homepage rail needs it. */
+            if (row.o > 0 && (it.onSale === true || it.isOnSale === true
+                || Number(it.savingsAmount) > 0 || Number(it.savingsPercent) > 0
+                || Number(it.percentageOff) > 0 || Number(it.percentOff) > 0
+                || Number(it.compareAt) > price)) row.s = 1;
             /* One product, one card: keep the copy with a markdown and a
                picture when the same brand+title appears twice. */
             const key = (row.b + "|" + title).toLowerCase();
