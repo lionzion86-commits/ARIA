@@ -16,6 +16,7 @@
     "build:search-engine": "node scripts/build-search-engine.mjs",
     "mcp": "node mcp-server.js",
     "test:search-brief": "node scripts/test/search-brief-tests.mjs",
-    "build:search-index": "node scripts/build-search-index.mjs"
+    "build:search-index": "node scripts/build-search-index.mjs",
+    "test:weights": "node scripts/test/weight-table-tests.mjs"
   }
 }

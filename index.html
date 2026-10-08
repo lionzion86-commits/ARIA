@@ -26757,7 +26757,7 @@ function withBuffer(kg, tier){
    product. Shared between the BULKY/RETAIL rows and the sanity bands so
    the two cannot disagree. */
 const VACUUM_IMPOSTOR_RE = /\b(trimmer|shaver|clipper|beard|mustache|sideburns?|nose|ear)\b|vacuum\s*(storage\s*)?bags?|space[-\s]?saver|vacuum[-\s]?seal/i;
-const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt)\b/i;
+const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt|apron)\b/i;
 const TENT_IMPOSTOR_RE = /\b(play|pop[-\s]?up|kids|toddler|toy|dress|string)\b|fairy/i;
 const PLAYSET_IMPOSTOR_RE = /\b(pretend|camping|toy)\b/i;
 const MATTRESS_IMPOSTOR_RE = /\bmattress\s*(pad|protector|topper)\b/i;
@@ -26897,6 +26897,123 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /\b(mini|portable|pocket|pico|port[áa]til)\b[^,]{0,28}\b(projectors?|proyector(?:es)?)\b|\b(projectors?|proyector(?:es)?)\b[^,]{0,28}\b(mini|portable|pocket|pico|port[áa]til)\b/i, kg: 1, tier: 'reasoned' },
   { match: /\b(projectors?|proyector(?:es)?)\b/i, kg: 2.2, tier: 'reasoned' },
 ];
+
+/* ============================================================
+   KEYWORD WEIGHTS (2026-10-08) -- Lucifer's table, folded in.
+
+   Kohl's and Macy's arrived with no usable weights, and ~53,000 titles
+   across the catalogues fell to GENERIC_FALLBACK_KG. Lucifer's table
+   (branch lucifer/weight-estimates, weight-estimates.json) names product
+   types in Spanish and English with a packaged weight in kg. Danny's
+   call: one table, not two -- so the keywords join this one, AFTER every
+   row above. A row above always wins; these only answer a title that
+   would otherwise get the generic fallback.
+
+   How they match: whole words (no "top" inside "laptop"), accents
+   optional, plural optional, never a part number ("BRA-126-C"), longest
+   keyword first ("leather jacket" before "jacket"). Tier 'reasoned', so
+   the same CONFIDENCE_BUFFER (x1.35) as every other estimate.
+
+   Left out on purpose: words that name an audience or a department, not
+   a product (women, men, kids, for her, apparel, ropa, accessor, gym,
+   kitchen, bath, storage, home decor, ...). On a title that says nothing
+   else they would LOWER the quote below the generic fallback -- a
+   cheaper guess for an unknown product. Also "coche" (a car in a LEGO
+   title; "coche de bebe" kept), "traje", "cable", "usb", "notebook",
+   "lactancia". Guards below stop the false hits the catalogue showed.
+
+   MIRRORED: index.html RETAIL_WEIGHT_ESTIMATES_KG and
+   scripts/lib/sales-sources.js RETAIL_WEIGHT_FALLBACK_KG carry identical
+   rows, so the card and the checkout agree; weight-table-tests fails
+   the build if they ever differ.
+   ============================================================ */
+const KEYWORD_WEIGHT_KG = [
+  ["winter coat", 1.4], ["abrigo de invierno", 1.4], ["parka", 1.4], ["down coat", 1.4], ["plumas", 1.4],
+  ["overcoat", 1.1], ["trench", 1.1], ["leather jacket", 1.2], ["chaqueta de cuero", 1.2], ["casaca de cuero", 1.2],
+  ["denim jacket", 0.9], ["casaca jean", 0.9], ["chaqueta jean", 0.9], ["jacket", 0.9], ["casaca", 0.9],
+  ["chaqueta", 0.9], ["chamarra", 0.9], ["outerwear", 0.9], ["blazer", 0.8], ["saco", 0.8], ["hoodie", 0.6],
+  ["sudadera con capucha", 0.6], ["poleron", 0.6], ["sweatshirt", 0.55], ["sudadera", 0.55], ["hoodies & zipups", 0.55],
+  ["crewnecks", 0.55], ["sweater", 0.5], ["chompa", 0.5], ["sueter", 0.5], ["cardigan", 0.5], ["knits", 0.5],
+  ["pullover", 0.5], ["wetsuit", 0.9], ["traje de neopreno", 0.9], ["neopreno", 0.9], ["rash guard", 0.25],
+  ["jeans", 0.7], ["jean", 0.7], ["pants", 0.6], ["pantalon", 0.6], ["pantalones", 0.6], ["trousers", 0.6],
+  ["sweatpants", 0.55], ["jogger", 0.55], ["buzo", 0.55], ["leggings", 0.3], ["licra", 0.3], ["shorts", 0.35],
+  ["bermuda", 0.35], ["boardshorts", 0.35], ["t-shirt", 0.25], ["camiseta", 0.25], ["polo", 0.25], ["polos y camisetas", 0.25],
+  ["tshirts", 0.25], ["tank top", 0.25], ["camisilla", 0.25], ["shirt", 0.3], ["camisa", 0.3], ["blusa", 0.3],
+  ["blouse", 0.3], ["shirts", 0.3], ["dress", 0.4], ["vestido", 0.4], ["vestidos", 0.4], ["skirt", 0.3],
+  ["falda", 0.3], ["faldas", 0.3], ["jumpsuit", 0.45], ["enterizo", 0.45], ["mameluco", 0.45], ["suit", 1.0],
+  ["terno", 1.0], ["bikini", 0.2], ["swimsuit", 0.2], ["traje de bano", 0.2], ["ropa de bano", 0.2], ["swim", 0.2],
+  ["underwear", 0.15], ["ropa interior", 0.15], ["panty", 0.15], ["calzon", 0.15], ["boxer", 0.15], ["brief", 0.15],
+  ["bra", 0.15], ["brassiere", 0.15], ["sosten", 0.15], ["socks", 0.1], ["medias", 0.1], ["calcetin", 0.1],
+  ["pajama", 0.4], ["pijama", 0.4], ["robe", 0.5], ["bata", 0.5], ["maternity", 0.4], ["maternidad", 0.4],
+  ["embarazo", 0.4], ["activewear", 0.35], ["tops", 0.25], ["sneaker", 1.0], ["zapatilla", 1.0], ["tenis", 1.0],
+  ["low top sneakers", 1.0], ["lace ups", 1.0], ["running shoe", 1.0], ["chimpunes", 1.0], ["shoe", 1.1],
+  ["zapato", 1.1], ["calzado", 1.1], ["shoes", 1.1], ["oxford", 1.1], ["boot", 1.5], ["bota", 1.5], ["botin", 1.5],
+  ["ankle boots", 1.5], ["sandal", 0.5], ["sandalia", 0.5], ["flip flop", 0.5], ["heeled sandals", 0.5],
+  ["heel", 0.8], ["tacon", 0.8], ["tacones", 0.8], ["heels", 0.8], ["slipper", 0.4], ["pantufla", 0.4], ["slippers & loafers", 0.4],
+  ["clog", 0.4], ["crocs", 0.4], ["loafer", 0.9], ["mocasin", 0.9], ["handbag", 0.8], ["cartera", 0.8], ["bolso", 0.8],
+  ["purse", 0.8], ["shoulder bags", 0.8], ["tote", 0.8], ["satchel", 0.8], ["duffle", 0.8], ["top handle", 0.8],
+  ["backpack", 0.9], ["mochila", 0.9], ["messenger bag", 0.7], ["wallet", 0.2], ["billetera", 0.2], ["card holder", 0.2],
+  ["belt", 0.25], ["correa", 0.25], ["cinturon", 0.25], ["suspenders", 0.25], ["hat", 0.2], ["gorra", 0.2],
+  ["sombrero", 0.2], ["gorro", 0.2], ["beanie", 0.2], ["caps", 0.2], ["sunglasses", 0.15], ["lentes de sol", 0.15],
+  ["gafas de sol", 0.15], ["glasses", 0.15], ["lentes", 0.15], ["gafas", 0.15], ["watch", 0.3], ["reloj", 0.3],
+  ["necklace", 0.1], ["collar", 0.1], ["cadenita", 0.1], ["bracelet", 0.1], ["pulsera", 0.1], ["brazalete", 0.1],
+  ["earring", 0.1], ["arete", 0.1], ["zarcillo", 0.1], ["ring", 0.1], ["anillo", 0.1], ["sortija", 0.1],
+  ["charm", 0.1], ["dije", 0.1], ["jewelry", 0.15], ["joyeria", 0.15], ["joya", 0.15], ["bisuteria", 0.15],
+  ["scarf", 0.2], ["bufanda", 0.2], ["chalina", 0.2], ["pashmina", 0.2], ["glove", 0.2], ["guante", 0.2],
+  ["tie", 0.15], ["corbata", 0.15], ["hair accessory", 0.1], ["accesorio de cabello", 0.1], ["vincha", 0.1],
+  ["bag charm", 0.1], ["small leather", 0.25], ["leather goods", 0.25], ["marroquineria", 0.25], ["perfume", 0.4],
+  ["fragrance", 0.4], ["cologne", 0.4], ["colonia", 0.4], ["locion", 0.4], ["makeup", 0.2], ["maquillaje", 0.2],
+  ["lipstick", 0.2], ["labial", 0.2], ["foundation", 0.2], ["skincare", 0.3], ["cuidado de la piel", 0.3],
+  ["serum", 0.3], ["serums", 0.3], ["moisturizer", 0.3], ["hidratante", 0.3], ["cream", 0.3], ["crema", 0.3],
+  ["shampoo", 0.5], ["acondicionador", 0.5], ["conditioner", 0.5], ["body wash", 0.5], ["jabón liquido", 0.5],
+  ["gel de ducha", 0.5], ["body lotion", 0.4], ["locion corporal", 0.4], ["deodorant", 0.2], ["desodorante", 0.2],
+  ["mascarilla", 0.15], ["mask", 0.15], ["hair care", 0.3], ["doll", 0.5], ["muneca", 0.5], ["barbie", 0.5],
+  ["lego", 0.8], ["building set", 0.8], ["bloques", 0.8], ["action figure", 0.3], ["figura coleccionable", 0.3],
+  ["figura de accion", 0.3], ["board game", 1.0], ["juego de mesa", 1.0], ["plush", 0.4], ["peluche", 0.4],
+  ["stuffed", 0.4], ["educational toy", 0.6], ["juguete educativo", 0.6], ["outdoor toy", 1.2], ["juguete exterior", 1.2],
+  ["balloon", 0.2], ["globo", 0.2], ["toy", 0.5], ["juguete", 0.5], ["toys", 0.5], ["laptop", 2.5], ["tablet", 0.7],
+  ["ipad", 0.7], ["headphone", 0.4], ["audifono", 0.4], ["earbud", 0.15], ["airpods", 0.15], ["speaker", 1.2],
+  ["parlante", 1.2], ["bocina", 1.2], ["camera", 0.8], ["camara", 0.8], ["tripod", 1.0], ["tripode", 1.0],
+  ["drone", 1.0], ["dron", 1.0], ["charger", 0.2], ["memory card", 0.1], ["tarjeta de memoria", 0.1], ["smart home", 0.6],
+  ["alexa", 0.6], ["google home", 0.6], ["flash de estudio", 1.5], ["studio light", 1.5], ["beard trimmer", 0.5],
+  ["afeitadora", 0.5], ["rasuradora", 0.5], ["skateboard completo", 3.5], ["skateboards completos", 3.5],
+  ["complete skateboard", 3.5], ["deck", 1.5], ["tabla de skate", 1.5], ["tablas de skate", 1.5], ["longboard", 4.0],
+  ["trucks", 0.8], ["truck", 0.8], ["surfboard", 4.0], ["tabla de surf", 4.0], ["tablas de surf", 4.0], ["helmet", 0.8],
+  ["casco", 0.8], ["boxing glove", 1.0], ["guante de box", 1.0], ["soccer", 0.8], ["futbol", 0.8], ["chimpun", 0.8],
+  ["tire", 8.0], ["llanta", 8.0], ["neumatico", 8.0], ["fishing", 1.0], ["pesca", 1.0], ["submarina", 1.0],
+  ["toalla", 0.6], ["towel", 0.6], ["poncho", 0.6], ["bedding", 1.5], ["ropa de cama", 1.5], ["edredon", 1.5],
+  ["sabana", 1.5], ["toalla de bano", 0.8], ["organizador", 1.2], ["baby room", 3.0], ["habitacion bebe", 3.0],
+  ["cuna", 3.0], ["diaper", 1.0], ["panal", 1.0], ["panales", 1.0], ["baby wash", 0.4], ["baby shampoo", 0.4],
+  ["biberon", 0.5], ["stroller", 8.0], ["cochecito", 8.0], ["car seat", 5.0], ["asiento de auto", 5.0], ["book", 0.8],
+  ["libro", 0.8], ["coffee table book", 0.8], ["sticker", 0.1], ["calcomania", 0.1], ["coche de bebe", 8.0],
+  ["funko pop", 0.35], ["vinyl figure", 0.35], ["cufflinks", 0.1],
+];
+/* Titles a keyword must not claim (seen in the catalogue). */
+const KEYWORD_WEIGHT_NOT = {
+  tire: /\bskateboard|\bwheels?\b|\b\d{2,3}a\b/i,
+  heel: /\btar heels\b|\bswitch heel\b|\bwheels?\b|\bheel (?:cups?|grips?|pads?)\b/i,
+  glasses: /\b(?:figurines?|statues?|sculptures?|wine|drinking|glassware|shot|cocktail)\b/i,
+  balloon: /\b(?:mixer|whisk|cover)\b/i,
+  tie: /\btie rods?\b|\btie[- ]?(?:dye|front|waist|neck|back)\b|\bside[- ]tie\b/i,
+  ring: /\bring (?:lights?|binders?|toss)\b|\bkey ?rings?\b|\bteeth?ing\b|\bjuego\b/i,
+  anillo: /\bse[nñ]or de los anillos\b/i,
+  alexa: /\b(?:bulbs?|bombillas?)\b/i,
+  trench: /\blego\b|\bdiorama\b/i,
+  deck: /\bdeck wrap\b|\bfingerboard\b|\btraction\b|\bgrip ?tape\b|\bcards?\b|\bdecks of\b/i,
+  surfboard: /\bfins?\b|\bleash(?:es)?\b|\btraction\b|\bpads?\b|\bwax\b|\bbags?\b|\bracks?\b|\bsocks?\b|\bcovers?\b|\bstickers?\b|\bplugs?\b|\bstraps?\b/i,
+  longboard: /\bwheels?\b|\bbearings?\b|\btrucks?\b|\bfins?\b|\bleash(?:es)?\b|\bbushings?\b|\bpads?\b/i,
+};
+function keywordWeightPattern(k){
+  const esc = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/a/g, '[aá]').replace(/e/g, '[eé]').replace(/i/g, '[ií]')
+    .replace(/o/g, '[oó]').replace(/u/g, '[uúü]').replace(/n/g, '[nñ]')
+    .replace(/ /g, '[\\s-]+');
+  return new RegExp('\\b' + esc + '(?:s|es)?\\b(?!-\\d)', 'i');
+}
+RETAIL_WEIGHT_ESTIMATES_KG.push(...KEYWORD_WEIGHT_KG
+  .map(([k, kg], i) => ({ k, kg, i }))
+  .sort((a, b) => (b.k.length - a.k.length) || (a.i - b.i))
+  .map(({ k, kg }) => ({ match: keywordWeightPattern(k), not: KEYWORD_WEIGHT_NOT[k] || KEYWORD_WEIGHT_NOT[k.replace(/s$/, '')], kg, tier: 'reasoned', keyword: k })));
 /* WEIGHT STATED IN THE TITLE. Retailers write the net weight right there
    — "Great Value Gummy Bears Chewy Candy, 4 oz" — and we were ignoring it
    to guess a category. The carousel truncates the title on screen ("BUBS

@@ -48,7 +48,7 @@ export function withBuffer(kg, tier) {
    and came out at 121.5 kg — $1,580 of freight quoted on a $40 item.
    Guards both the estimate row below and the sanity bound further down. */
 const APPLIANCE_IMPOSTOR_RE =
-  /\b(washer\s*fluid|windshield\s*washer|windscreen\s*washer|washer\s*(?:nozzle|pump|hose)|rubber\s*washers?|hair\s*dryer|blow\s*dryer|dryer\s*(?:sheets?|balls?|vent))\b/i;
+  /\b(washer\s*fluid|windshield\s*washer|windscreen\s*washer|washer\s*(?:nozzle|pump|hose)|rubber\s*washers?|hair\s*dryer|blow\s*dryer|dryer\s*(?:sheets?|balls?|vent)|mini\s*fridge)\b/i; /* mini fridge: 18 kg, not 90 (2026-09-29) -- mirrors index.html */
 
 // Checked BEFORE the general table and before the TV branch, because
 // "TV Stand" is furniture, not a television.
@@ -59,7 +59,7 @@ const APPLIANCE_IMPOSTOR_RE =
    product. Shared between the BULKY/RETAIL rows and the sanity bands so
    the two cannot disagree. */
 const VACUUM_IMPOSTOR_RE = /\b(trimmer|shaver|clipper|beard|mustache|sideburns?|nose|ear)\b|vacuum\s*(storage\s*)?bags?|space[-\s]?saver|vacuum[-\s]?seal/i;
-const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt)\b/i;
+const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt|apron)\b/i;
 const TENT_IMPOSTOR_RE = /\b(play|pop[-\s]?up|kids|toddler|toy|dress|string)\b|fairy/i;
 
 /* BUNDLED-SCREEN IMPOSTOR (2026-09-30, Danny's iPhone QA). A "5G WiFi

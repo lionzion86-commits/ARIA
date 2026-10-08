@@ -75,129 +75,258 @@ export const CHARGE_PER_KG_USD = 13;
 // bill rigid boxed goods at their dimensional weight; the courier
 // contract bills actual scale weight only, so the box no longer enters
 // the quote and these are plain masses.
+const MONITOR_IMPOSTOR_RE = /\b(baby|audio|security)\b/i;
 const RETAIL_WEIGHT_FALLBACK_KG = [
-  { match: /\bjeans?\b|denim/i, kg: 1, tier: "cited" },
-  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
-  { match: /hoodie|sweatshirt/i, kg: 0.8, tier: "cited" },
+  { match: /\bjeans?\b|denim/i, kg: 1, tier: 'cited' },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
+  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: 'cited' },   // std cotton tee ~140-200g (printful.com, printkk.com)
+  { match: /hoodie|sweatshirt/i, kg: 0.8, tier: 'cited' },              // cotton hoodie ~450-680g (printful.com)
   /* BLAZERS (2026-10-01, Danny): structured blazers — lighter than a winter
      jacket (1.3) but heavier than a shirt. ~600-800g; higher-end 0.8 kg. */
-  { match: /\b(blazer|saco)\b/i, kg: 0.8, tier: "reasoned" },
-  { match: /jacket|\bcoat\b/i, kg: 1.3, tier: "reasoned" },
+  { match: /\b(blazer|saco)\b/i, kg: 0.8, tier: 'reasoned' },
+  { match: /jacket|\bcoat\b/i, kg: 1.3, tier: 'reasoned' },             // heavier outerwear than a hoodie — reasoned estimate, no single citation
   // Footwear is owned by footwearWeightKg() — one source, sized by what
   // is in the box rather than one number for every pair.
-  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: "cited" },
-  { match: /\bsocks?\b/i, kg: 0.1, tier: "cited" },
+  { match: /underwear|boxer|\bbriefs?\b|panty|panties/i, kg: 0.08, tier: 'cited' }, // ~30-70g/pair (crescendoapparel.com)
+  { match: /\bsocks?\b/i, kg: 0.1, tier: 'cited' },
+  /* JEWELRY (2026-09-30, Danny): a necklace is grams, not kilos. Without a
+     row these fell to the 0.6 kg generic and quoted ~$10 of freight on a
+     50 g pendant. Boxed fashion jewelry ~0.1 kg. The not-guard keeps
+     "ring light" and "jewelry box" out — neither is wearable jewelry. */
+  { match: /\b(necklace|collar|bracelet|pulsera|earrings?|aretes|pendant|dije|brooch|broche|charm|dije|anklet|tobillera|cuff|jewelry|joyer[ií]a|bisuter[ií]a|anillo|wedding band)\b/i, not: /\bring\s+light\b|\bjewelry\s+box\b/i, kg: 0.1, tier: 'cited' },
   /* SWIMWEAR (2026-10-01, Danny): 603 Latino-designer items (bikinis,
      one-pieces, swim sets) had no row and fell to the generic fallback.
      Individual pieces ~70-160g, full sets 140-320g (ubuy.com listings).
-     Danny 2026-10-01: use the average (0.17 kg), not the high end —
+     Danny 2026-10-01: use the average (0.17 kg), not the high end -
      swimwear must stay inexpensive for everybody. */
-  { match: /\b(bikini|swimsuit|swimwear|tankini|maillot|bottoms?|trunks?)\b/i, kg: 0.17, tier: "cited" },
+  { match: /\b(bikini|swimsuit|swimwear|tankini|maillot|bottoms?|trunks?)\b/i, kg: 0.17, tier: 'cited' },
   /* SURFSUITS (2026-10-01, Danny): neoprene surfsuits — 0.9-0.95 kg packaged
      (3/2mm full suits). Higher-end 1.0 kg. */
-  { match: /\b(wetsuit|surfsuit)\b/i, kg: 1, tier: "cited" },
+  { match: /\b(wetsuit|surfsuit)\b/i, kg: 1, tier: 'cited' },
   /* SWIM COVERUPS (2026-10-01, Danny): pareos/sarongs ~150-200g; beaded
      kaftans are caught by the beaded row below. Higher-end 0.3 kg. */
-  { match: /\b(pareo|sarong|cover[- ]?up)\b/i, kg: 0.3, tier: "reasoned" },
+  { match: /\b(pareo|sarong|cover[- ]?up)\b/i, kg: 0.3, tier: 'reasoned' },
   /* 2026-09-19: these were the biggest slice of the "unclassified guess"
      review queue — a clothing-heavy catalogue with no row for trousers,
      shorts or a button-up shirt. Every one of them was quoting the 1.08 kg
      generic fallback. Cited tier: these are ordinary garment weights. */
-  { match: /\b(pants|trousers|chinos?|cargo pants|sweatpants|joggers?|leggings?|overalls)\b/i, kg: 0.55, tier: "cited" },
-  { match: /\b(shorts)\b/i, kg: 0.32, tier: "cited" },
-  { match: /\b(shirt|polo|blouse|button[- ]?up|button[- ]?down)\b/i, kg: 0.35, tier: "cited" },
+  { match: /\b(pants|trousers|chinos?|cargo pants|sweatpants|joggers?|leggings?|overalls)\b/i, kg: 0.55, tier: 'cited' },
+  { match: /\b(shorts)\b/i, kg: 0.32, tier: 'cited' },
+  { match: /\b(shirt|polo|blouse|button[- ]?up|button[- ]?down)\b/i, kg: 0.35, tier: 'cited' },
   /* TOPS (2026-10-01, Danny): 291 Latino-designer tops/bodysuits had no row —
      not t-shirts (0.2), not button-ups (0.35). Women's woven tops ~150-250g.
      Higher-end 0.25 kg. Placed before beaded so an embroidered bra top stays
      a top; "Tunic Dress" and "Halter Gown" fall through to dress/gown. */
-  { match: /\b(tops?|bodysuit)\b/i, kg: 0.25, tier: "reasoned" },
+  { match: /\b(tops?|bodysuit)\b/i, kg: 0.25, tier: 'reasoned' },
   /* BEADED/EMBELLISHED (2026-10-01, Danny): PatBO et al do heavy beadwork —
      an embroidered maxi is 790-870g vs 420g plain (carlyna.com), heavy beading
      runs to 2.5kg. Higher-end 1.0 kg. The not-guard keeps embroidered tops
      on the top row; swimwear was already caught above. */
-  { match: /\b(beaded|beadwork|embroidered|embroidery|rhinestone|sequin(?:ned)?|crystal)\b/i, not: /\btop\b/i, kg: 1, tier: "cited" },
-  { match: /\b(dress|skirt|romper|jumpsuit)\b/i, kg: 0.42, tier: "cited" },
+  { match: /\b(beaded|beadwork|embroidered|embroidery|rhinestone|sequin(?:ned)?|crystal)\b/i, not: /\btop\b/i, kg: 1, tier: 'cited' },
+  { match: /\b(dress|skirt|romper|jumpsuit)\b/i, kg: 0.42, tier: 'cited' },
   /* GOWNS (2026-10-01, Danny): evening/formal gowns carry more fabric than a
      day dress — Target ship weights 0.44-0.64 kg; designer runway pieces run
      heavier. Higher-end 0.8 kg. Beaded gowns were already caught above. */
-  { match: /\b(gown|caftan)\b/i, kg: 0.8, tier: "cited" },
-  { match: /\b(sweater|cardigan|fleece|vest|pullover)\b/i, kg: 0.6, tier: "cited" },
-  { match: /\b(pajamas?|pyjamas?|\bpj\b|robe|sleepwear|loungewear|eye mask)\b/i, kg: 0.6, tier: "reasoned" },
+  { match: /\b(gown|caftan)\b/i, kg: 0.8, tier: 'cited' },
+  { match: /\b(sweater|cardigan|fleece|vest|pullover)\b/i, kg: 0.6, tier: 'cited' },
+  { match: /\b(pajamas?|pyjamas?|\bpj\b|robe|sleepwear|loungewear|eye mask)\b/i, kg: 0.6, tier: 'reasoned' },
   /* BAGS & SMALL ACCESSORIES (2026-10-01, Danny): 74 Latino-designer handbags
      plus belts, hats, scarves, gloves, sunglasses, capes had no rows.
      Handbags 400-725g (ubuy.com) -> 0.7 kg higher-end; women's leather belts
      ~300g (berbanto.com) -> 0.3 kg; hats/scarves/gloves/sunglasses/capes are
      reasoned higher-end estimates. */
-  { match: /\b(handbag|tote|clutch|bag|pouch|mochila|bols[oa])\b/i, kg: 0.7, tier: "cited" },
-  { match: /\b(belt|cintur[oó]n)\b/i, kg: 0.3, tier: "cited" },
-  { match: /\b(hat|sombrero|cap|visor)\b/i, kg: 0.15, tier: "reasoned" },
-  { match: /\b(scarf|bufanda|shawl|pashmina)\b/i, kg: 0.2, tier: "reasoned" },
-  { match: /\b(gloves?|guantes)\b/i, kg: 0.15, tier: "reasoned" },
+  { match: /\b(handbag|tote|clutch|bag|pouch|mochila|bols[oa])\b/i, kg: 0.7, tier: 'cited' },
+  { match: /\b(belt|cintur[oó]n)\b/i, kg: 0.3, tier: 'cited' },
+  { match: /\b(hat|sombrero|cap|visor)\b/i, kg: 0.15, tier: 'reasoned' },
+  { match: /\b(scarf|bufanda|shawl|pashmina)\b/i, kg: 0.2, tier: 'reasoned' },
+  { match: /\b(gloves?|guantes)\b/i, kg: 0.15, tier: 'reasoned' },
   /* EYEWEAR (2026-10-02, Danny): a pair of glasses is 30-50 g, not 1.16 kg.
-     0.04 kg base quotes ~54 g with the reasoned buffer. Catches eyewear sold
-     without the literal word "sunglasses" ("Ray-Ban RB2132", "reading
-     glasses"). Mirrors index.html. */
-  { match: /\b(sunglasses|eyeglasses?|spectacles|eyewear|gafas|reading glasses|blue light glasses|computer glasses)\b|\bray-?ban\b|\bpersol\b|\bcosta del mar\b|\bmaui jim\b|\bwarby parker\b/i, kg: 0.04, tier: "reasoned" },
+     Two fixes: (1) the row was 0.15 kg base -- real cased shipments run
+     50-150 g, so 0.04 kg base quotes ~54 g with the reasoned buffer;
+     (2) the match now catches eyewear sold without the literal word
+     "sunglasses" -- "Ray-Ban RB2132" and "reading glasses" were falling
+     to the 0.6 kg generic. Eyewear-only brands (Ray-Ban, Persol, Costa
+     Del Mar, Maui Jim, Warby Parker) are safe to name; Oakley/Smith also
+     make helmets and apparel, so they stay on the product nouns. */
+  { match: /\b(sunglasses|eyeglasses?|spectacles|eyewear|gafas|reading glasses|blue light glasses|computer glasses)\b|\bray-?ban\b|\bpersol\b|\bcosta del mar\b|\bmaui jim\b|\bwarby parker\b/i, kg: 0.04, tier: 'reasoned' },
   /* WATCHES (2026-10-02, Danny): a Timex Weekender is ~50 g, not the 0.6 kg
-     generic. The not-guard keeps smartwatches on their own row below.
-     Mirrors index.html. */
-  { match: /\b(watch|watches|reloj(?:es)?)\b/i, not: /smartwatch|apple watch/i, kg: 0.12, tier: "reasoned" },
+     generic. Boxed ~150 g; 0.12 kg base quotes 0.16 kg. The not-guard keeps
+     smartwatches on their own row below. */
+  { match: /\b(watch|watches|reloj(?:es)?)\b/i, not: /smartwatch|apple watch/i, kg: 0.12, tier: 'reasoned' },
   /* WALLETS (2026-10-02, Danny): ~80-120 g, not the 0.6 kg generic.
-     Mirrors index.html. */
-  { match: /\b(wallet|wallets|billetera(?:s)?)\b/i, kg: 0.1, tier: "reasoned" },
+     0.1 kg base quotes 0.14 kg. */
+  { match: /\b(wallet|wallets|billetera(?:s)?)\b/i, kg: 0.1, tier: 'reasoned' },
   /* KEYCHAINS (2026-10-02, Danny): ~20-40 g, not the 0.6 kg generic.
-     Mirrors index.html. */
-  { match: /\b(keychain|keychains|key ring|llavero(?:s)?)\b/i, kg: 0.03, tier: "reasoned" },
-  { match: /\b(cape|capa|poncho)\b/i, kg: 0.5, tier: "reasoned" },
-  { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: "reasoned" },
+     0.03 kg base quotes 0.04 kg. */
+  { match: /\b(keychain|keychains|key ring|llavero(?:s)?)\b/i, kg: 0.03, tier: 'reasoned' },
+  { match: /\b(cape|capa|poncho)\b/i, kg: 0.5, tier: 'reasoned' },
+  { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: 'reasoned' },
   /* TABLECLOTHS (2026-10-01, Danny): a few designer table linens in the pull.
      ~300-500g; higher-end 0.5 kg. */
-  { match: /\b(tablecloth|mantel)\b/i, kg: 0.5, tier: "reasoned" },
-  { match: /\b(blu-?ray|\bdvd\b|4k ultra hd|box set|complete series)\b/i, kg: 0.3, tier: "reasoned" },
-  { match: /\b(knee brace|ankle brace|elbow brace|wrist brace|compression sleeve|back brace|ankle wraps?)\b/i, kg: 0.2, tier: "reasoned" },
+  { match: /\b(tablecloth|mantel)\b/i, kg: 0.5, tier: 'reasoned' },
+  { match: /\b(blu-?ray|\bdvd\b|4k ultra hd|box set|complete series)\b/i, kg: 0.3, tier: 'reasoned' },
+  { match: /\b(knee brace|ankle brace|elbow brace|wrist brace|compression sleeve|back brace|ankle wraps?)\b/i, kg: 0.2, tier: 'reasoned' },
   // Balls are handled by ballWeightKg() (real mass x count vs the box),
   // not by a single row that made a golf ball and a basketball equal.
-  { match: /\bfootballs?\b/i, kg: 0.45, tier: "cited" },
+  { match: /\bfootballs?\b/i, kg: 0.45, tier: 'cited' },
   // Bedding is the heaviest thing a clothing-and-home catalogue sells by
   // volume, and it had no row at all: a queen comforter is nearly 3 kg.
-  { match: /\b(comforter|duvet|quilt|bedspread|coverlet)\b/i, kg: 2.8, tier: "reasoned" },
-  { match: /\b(sheet set|bed sheets?|pillowcases?|bedding set|mattress pad|mattress protector)\b/i, kg: 1.6, tier: "reasoned" },
-  { match: /\b(pillows?|cushions?|throw blanket|blankets?)\b/i, kg: 1.2, tier: "reasoned" },
-  { match: /\b(curtains?|drapes?|shower curtain)\b/i, kg: 1, tier: "reasoned" },
-  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: "cited" },
-  { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: "cited" },
-  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: "cited" },
-  { match: /\bremote\b/i, kg: 0.2, tier: "reasoned" },
-  // Rigid boxed goods. All reasoned.
-  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
-  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
-  { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned" },
-  { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned" },
-  { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned" },
-  { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned" },
-  { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: "reasoned" },
-  { match: /smartwatch|apple watch/i, kg: 0.4, tier: "reasoned" },
-  /* THE VITAMINS ROW IS GONE (2026-09-20). It was
-     `/vitamins?|supplement|softgels?|tablets?.*count/ -> 0.5 kg`, and
-     withBuffer made that 0.68 — the identical number a 180-softgel
-     bottle and a 5 fl oz liquid both quoted live, on their way to a
-     manufactured "Flete alto" badge. One row cannot serve an aisle that
-     runs from a 30-tablet bottle to a tub of protein. Supplements are
-     now read by scripts/lib/supplement-weight.js, which does the
-     arithmetic the title already contains: count x form, or volume.
-     Protein and greens powders state their own weight and are handled
-     by titleWeight() before any table is consulted. */
+  { match: /\b(comforter|duvet|quilt|bedspread|coverlet)\b/i, kg: 2.8, tier: 'reasoned' },
+  { match: /\b(sheet set|bed sheets?|pillowcases?|bedding set|mattress pad|mattress protector)\b/i, kg: 1.6, tier: 'reasoned' },
+  { match: /\b(pillows?|cushions?|throw blanket|blankets?)\b/i, kg: 1.2, tier: 'reasoned' },
+  { match: /\b(curtains?|drapes?|shower curtain)\b/i, kg: 1, tier: 'reasoned' },                    // ~40-60g/pair (deadsoxy.com)
+  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: 'cited' }, // mainstream phones ~160-220g (devicetests.com)
+  { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: 'cited' }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
+  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: 'cited' }, // typical 3-6ft HDMI/USB cable ~100-200g (cablematters.com)
+  { match: /\bremote\b/i, kg: 0.2, tier: 'reasoned' },
+  // Rigid boxed goods. These rows used to carry a dimCm (the typical
+  // retail box) and bill the greater of mass and dimensional weight; the
+  // courier contract has no dimensional component, so they are plain
+  // masses now. Mirrors RETAIL_WEIGHT_FALLBACK_KG in
+  // scripts/lib/sales-sources.js; test-sales-parity asserts both agree.
+  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: 'reasoned' },
+  /* PORTABLE SPEAKERS (2026-09-30): a "JBL Flip Bluetooth Speaker" is ~1 kg
+     boxed, not the 4 kg soundbar the row below prices. Placed first so the
+     generic speaker row never sees it. PartyBox-style boomboxes stay out
+     via the not-guard — those really are 10 kg. */
+  { match: /\b(portable|bluetooth|mini|pocket|port[áa]til)\b[^,]{0,30}\b(speakers?|parlante|bocina)\b|\b(speakers?|parlante|bocina)\b[^,]{0,30}\b(portable|bluetooth|mini|pocket|port[áa]til)\b/i, not: /\bparty\s?box\b/i, kg: 1, tier: 'reasoned' },
+  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: 'reasoned' },
+  { match: /\bmonitor\b/i, not: MONITOR_IMPOSTOR_RE, kg: 5.5, tier: 'reasoned' },
+  { match: /\bprinter\b|impresora/i, kg: 7, tier: 'reasoned' },
+  { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: 'reasoned' },
+  { match: /airpods|earbuds/i, kg: 0.35, tier: 'reasoned' },
+  { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: 'reasoned' },
+  { match: /smartwatch|apple watch/i, kg: 0.4, tier: 'reasoned' },
+  /* THE VITAMINS ROW IS GONE (2026-09-20). One row at 0.5 kg —
+     withBuffer made it 0.68 — served a 30-tablet bottle and a tub of
+     protein alike, and quoted the identical number for two unrelated
+     products live. Supplements are read by supplementWeightDetail()
+     above, which does the arithmetic the title already contains.
+     Mirrors scripts/lib/sales-sources.js. */
   /* PROJECTORS (2026-09-20). There was no row at all, which is how a "5G
-     WiFi Bluetooth Projector" ended up quoting freight on 0.065 kg — the
-     "5G" parsed as five grams and nothing downstream knew better. The
-     category is genuinely bimodal, so it gets two rows: a pocket/portable
-     unit is about a kilo boxed, a mainstream one two and a half. The
-     sanity band (0.5-12 kg) is the backstop for whatever these miss.
-     "Projector screen" is a different object and is matched earlier, in
-     the bulky table. */
-  { match: /\b(mini|portable|pocket|pico|port[áa]til)\b[^,]{0,28}\b(projectors?|proyector(?:es)?)\b|\b(projectors?|proyector(?:es)?)\b[^,]{0,28}\b(mini|portable|pocket|pico|port[áa]til)\b/i, kg: 1, tier: "reasoned" },
-  { match: /\b(projectors?|proyector(?:es)?)\b/i, kg: 2.2, tier: "reasoned" },
+     WiFi Bluetooth Projector" quoted freight on 0.065 kg. Bimodal
+     category, so two rows: a pocket/portable unit is about a kilo boxed,
+     a mainstream one two and a bit. "Projector screen" is a different
+     object and is matched earlier, in the bulky table. */
+  { match: /\b(mini|portable|pocket|pico|port[áa]til)\b[^,]{0,28}\b(projectors?|proyector(?:es)?)\b|\b(projectors?|proyector(?:es)?)\b[^,]{0,28}\b(mini|portable|pocket|pico|port[áa]til)\b/i, kg: 1, tier: 'reasoned' },
+  { match: /\b(projectors?|proyector(?:es)?)\b/i, kg: 2.2, tier: 'reasoned' },
 ];
+
+/* ============================================================
+   KEYWORD WEIGHTS (2026-10-08) -- Lucifer's table, folded in.
+
+   Kohl's and Macy's arrived with no usable weights, and ~53,000 titles
+   across the catalogues fell to GENERIC_FALLBACK_KG. Lucifer's table
+   (branch lucifer/weight-estimates, weight-estimates.json) names product
+   types in Spanish and English with a packaged weight in kg. Danny's
+   call: one table, not two -- so the keywords join this one, AFTER every
+   row above. A row above always wins; these only answer a title that
+   would otherwise get the generic fallback.
+
+   How they match: whole words (no "top" inside "laptop"), accents
+   optional, plural optional, never a part number ("BRA-126-C"), longest
+   keyword first ("leather jacket" before "jacket"). Tier 'reasoned', so
+   the same CONFIDENCE_BUFFER (x1.35) as every other estimate.
+
+   Left out on purpose: words that name an audience or a department, not
+   a product (women, men, kids, for her, apparel, ropa, accessor, gym,
+   kitchen, bath, storage, home decor, ...). On a title that says nothing
+   else they would LOWER the quote below the generic fallback -- a
+   cheaper guess for an unknown product. Also "coche" (a car in a LEGO
+   title; "coche de bebe" kept), "traje", "cable", "usb", "notebook",
+   "lactancia". Guards below stop the false hits the catalogue showed.
+
+   MIRRORED: index.html RETAIL_WEIGHT_ESTIMATES_KG and
+   scripts/lib/sales-sources.js RETAIL_WEIGHT_FALLBACK_KG carry identical
+   rows, so the card and the checkout agree; weight-table-tests fails
+   the build if they ever differ.
+   ============================================================ */
+const KEYWORD_WEIGHT_KG = [
+  ["winter coat", 1.4], ["abrigo de invierno", 1.4], ["parka", 1.4], ["down coat", 1.4], ["plumas", 1.4],
+  ["overcoat", 1.1], ["trench", 1.1], ["leather jacket", 1.2], ["chaqueta de cuero", 1.2], ["casaca de cuero", 1.2],
+  ["denim jacket", 0.9], ["casaca jean", 0.9], ["chaqueta jean", 0.9], ["jacket", 0.9], ["casaca", 0.9],
+  ["chaqueta", 0.9], ["chamarra", 0.9], ["outerwear", 0.9], ["blazer", 0.8], ["saco", 0.8], ["hoodie", 0.6],
+  ["sudadera con capucha", 0.6], ["poleron", 0.6], ["sweatshirt", 0.55], ["sudadera", 0.55], ["hoodies & zipups", 0.55],
+  ["crewnecks", 0.55], ["sweater", 0.5], ["chompa", 0.5], ["sueter", 0.5], ["cardigan", 0.5], ["knits", 0.5],
+  ["pullover", 0.5], ["wetsuit", 0.9], ["traje de neopreno", 0.9], ["neopreno", 0.9], ["rash guard", 0.25],
+  ["jeans", 0.7], ["jean", 0.7], ["pants", 0.6], ["pantalon", 0.6], ["pantalones", 0.6], ["trousers", 0.6],
+  ["sweatpants", 0.55], ["jogger", 0.55], ["buzo", 0.55], ["leggings", 0.3], ["licra", 0.3], ["shorts", 0.35],
+  ["bermuda", 0.35], ["boardshorts", 0.35], ["t-shirt", 0.25], ["camiseta", 0.25], ["polo", 0.25], ["polos y camisetas", 0.25],
+  ["tshirts", 0.25], ["tank top", 0.25], ["camisilla", 0.25], ["shirt", 0.3], ["camisa", 0.3], ["blusa", 0.3],
+  ["blouse", 0.3], ["shirts", 0.3], ["dress", 0.4], ["vestido", 0.4], ["vestidos", 0.4], ["skirt", 0.3],
+  ["falda", 0.3], ["faldas", 0.3], ["jumpsuit", 0.45], ["enterizo", 0.45], ["mameluco", 0.45], ["suit", 1.0],
+  ["terno", 1.0], ["bikini", 0.2], ["swimsuit", 0.2], ["traje de bano", 0.2], ["ropa de bano", 0.2], ["swim", 0.2],
+  ["underwear", 0.15], ["ropa interior", 0.15], ["panty", 0.15], ["calzon", 0.15], ["boxer", 0.15], ["brief", 0.15],
+  ["bra", 0.15], ["brassiere", 0.15], ["sosten", 0.15], ["socks", 0.1], ["medias", 0.1], ["calcetin", 0.1],
+  ["pajama", 0.4], ["pijama", 0.4], ["robe", 0.5], ["bata", 0.5], ["maternity", 0.4], ["maternidad", 0.4],
+  ["embarazo", 0.4], ["activewear", 0.35], ["tops", 0.25], ["sneaker", 1.0], ["zapatilla", 1.0], ["tenis", 1.0],
+  ["low top sneakers", 1.0], ["lace ups", 1.0], ["running shoe", 1.0], ["chimpunes", 1.0], ["shoe", 1.1],
+  ["zapato", 1.1], ["calzado", 1.1], ["shoes", 1.1], ["oxford", 1.1], ["boot", 1.5], ["bota", 1.5], ["botin", 1.5],
+  ["ankle boots", 1.5], ["sandal", 0.5], ["sandalia", 0.5], ["flip flop", 0.5], ["heeled sandals", 0.5],
+  ["heel", 0.8], ["tacon", 0.8], ["tacones", 0.8], ["heels", 0.8], ["slipper", 0.4], ["pantufla", 0.4], ["slippers & loafers", 0.4],
+  ["clog", 0.4], ["crocs", 0.4], ["loafer", 0.9], ["mocasin", 0.9], ["handbag", 0.8], ["cartera", 0.8], ["bolso", 0.8],
+  ["purse", 0.8], ["shoulder bags", 0.8], ["tote", 0.8], ["satchel", 0.8], ["duffle", 0.8], ["top handle", 0.8],
+  ["backpack", 0.9], ["mochila", 0.9], ["messenger bag", 0.7], ["wallet", 0.2], ["billetera", 0.2], ["card holder", 0.2],
+  ["belt", 0.25], ["correa", 0.25], ["cinturon", 0.25], ["suspenders", 0.25], ["hat", 0.2], ["gorra", 0.2],
+  ["sombrero", 0.2], ["gorro", 0.2], ["beanie", 0.2], ["caps", 0.2], ["sunglasses", 0.15], ["lentes de sol", 0.15],
+  ["gafas de sol", 0.15], ["glasses", 0.15], ["lentes", 0.15], ["gafas", 0.15], ["watch", 0.3], ["reloj", 0.3],
+  ["necklace", 0.1], ["collar", 0.1], ["cadenita", 0.1], ["bracelet", 0.1], ["pulsera", 0.1], ["brazalete", 0.1],
+  ["earring", 0.1], ["arete", 0.1], ["zarcillo", 0.1], ["ring", 0.1], ["anillo", 0.1], ["sortija", 0.1],
+  ["charm", 0.1], ["dije", 0.1], ["jewelry", 0.15], ["joyeria", 0.15], ["joya", 0.15], ["bisuteria", 0.15],
+  ["scarf", 0.2], ["bufanda", 0.2], ["chalina", 0.2], ["pashmina", 0.2], ["glove", 0.2], ["guante", 0.2],
+  ["tie", 0.15], ["corbata", 0.15], ["hair accessory", 0.1], ["accesorio de cabello", 0.1], ["vincha", 0.1],
+  ["bag charm", 0.1], ["small leather", 0.25], ["leather goods", 0.25], ["marroquineria", 0.25], ["perfume", 0.4],
+  ["fragrance", 0.4], ["cologne", 0.4], ["colonia", 0.4], ["locion", 0.4], ["makeup", 0.2], ["maquillaje", 0.2],
+  ["lipstick", 0.2], ["labial", 0.2], ["foundation", 0.2], ["skincare", 0.3], ["cuidado de la piel", 0.3],
+  ["serum", 0.3], ["serums", 0.3], ["moisturizer", 0.3], ["hidratante", 0.3], ["cream", 0.3], ["crema", 0.3],
+  ["shampoo", 0.5], ["acondicionador", 0.5], ["conditioner", 0.5], ["body wash", 0.5], ["jabón liquido", 0.5],
+  ["gel de ducha", 0.5], ["body lotion", 0.4], ["locion corporal", 0.4], ["deodorant", 0.2], ["desodorante", 0.2],
+  ["mascarilla", 0.15], ["mask", 0.15], ["hair care", 0.3], ["doll", 0.5], ["muneca", 0.5], ["barbie", 0.5],
+  ["lego", 0.8], ["building set", 0.8], ["bloques", 0.8], ["action figure", 0.3], ["figura coleccionable", 0.3],
+  ["figura de accion", 0.3], ["board game", 1.0], ["juego de mesa", 1.0], ["plush", 0.4], ["peluche", 0.4],
+  ["stuffed", 0.4], ["educational toy", 0.6], ["juguete educativo", 0.6], ["outdoor toy", 1.2], ["juguete exterior", 1.2],
+  ["balloon", 0.2], ["globo", 0.2], ["toy", 0.5], ["juguete", 0.5], ["toys", 0.5], ["laptop", 2.5], ["tablet", 0.7],
+  ["ipad", 0.7], ["headphone", 0.4], ["audifono", 0.4], ["earbud", 0.15], ["airpods", 0.15], ["speaker", 1.2],
+  ["parlante", 1.2], ["bocina", 1.2], ["camera", 0.8], ["camara", 0.8], ["tripod", 1.0], ["tripode", 1.0],
+  ["drone", 1.0], ["dron", 1.0], ["charger", 0.2], ["memory card", 0.1], ["tarjeta de memoria", 0.1], ["smart home", 0.6],
+  ["alexa", 0.6], ["google home", 0.6], ["flash de estudio", 1.5], ["studio light", 1.5], ["beard trimmer", 0.5],
+  ["afeitadora", 0.5], ["rasuradora", 0.5], ["skateboard completo", 3.5], ["skateboards completos", 3.5],
+  ["complete skateboard", 3.5], ["deck", 1.5], ["tabla de skate", 1.5], ["tablas de skate", 1.5], ["longboard", 4.0],
+  ["trucks", 0.8], ["truck", 0.8], ["surfboard", 4.0], ["tabla de surf", 4.0], ["tablas de surf", 4.0], ["helmet", 0.8],
+  ["casco", 0.8], ["boxing glove", 1.0], ["guante de box", 1.0], ["soccer", 0.8], ["futbol", 0.8], ["chimpun", 0.8],
+  ["tire", 8.0], ["llanta", 8.0], ["neumatico", 8.0], ["fishing", 1.0], ["pesca", 1.0], ["submarina", 1.0],
+  ["toalla", 0.6], ["towel", 0.6], ["poncho", 0.6], ["bedding", 1.5], ["ropa de cama", 1.5], ["edredon", 1.5],
+  ["sabana", 1.5], ["toalla de bano", 0.8], ["organizador", 1.2], ["baby room", 3.0], ["habitacion bebe", 3.0],
+  ["cuna", 3.0], ["diaper", 1.0], ["panal", 1.0], ["panales", 1.0], ["baby wash", 0.4], ["baby shampoo", 0.4],
+  ["biberon", 0.5], ["stroller", 8.0], ["cochecito", 8.0], ["car seat", 5.0], ["asiento de auto", 5.0], ["book", 0.8],
+  ["libro", 0.8], ["coffee table book", 0.8], ["sticker", 0.1], ["calcomania", 0.1], ["coche de bebe", 8.0],
+  ["funko pop", 0.35], ["vinyl figure", 0.35], ["cufflinks", 0.1],
+];
+/* Titles a keyword must not claim (seen in the catalogue). */
+const KEYWORD_WEIGHT_NOT = {
+  tire: /\bskateboard|\bwheels?\b|\b\d{2,3}a\b/i,
+  heel: /\btar heels\b|\bswitch heel\b|\bwheels?\b|\bheel (?:cups?|grips?|pads?)\b/i,
+  glasses: /\b(?:figurines?|statues?|sculptures?|wine|drinking|glassware|shot|cocktail)\b/i,
+  balloon: /\b(?:mixer|whisk|cover)\b/i,
+  tie: /\btie rods?\b|\btie[- ]?(?:dye|front|waist|neck|back)\b|\bside[- ]tie\b/i,
+  ring: /\bring (?:lights?|binders?|toss)\b|\bkey ?rings?\b|\bteeth?ing\b|\bjuego\b/i,
+  anillo: /\bse[nñ]or de los anillos\b/i,
+  alexa: /\b(?:bulbs?|bombillas?)\b/i,
+  trench: /\blego\b|\bdiorama\b/i,
+  deck: /\bdeck wrap\b|\bfingerboard\b|\btraction\b|\bgrip ?tape\b|\bcards?\b|\bdecks of\b/i,
+  surfboard: /\bfins?\b|\bleash(?:es)?\b|\btraction\b|\bpads?\b|\bwax\b|\bbags?\b|\bracks?\b|\bsocks?\b|\bcovers?\b|\bstickers?\b|\bplugs?\b|\bstraps?\b/i,
+  longboard: /\bwheels?\b|\bbearings?\b|\btrucks?\b|\bfins?\b|\bleash(?:es)?\b|\bbushings?\b|\bpads?\b/i,
+};
+function keywordWeightPattern(k){
+  const esc = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/a/g, '[aá]').replace(/e/g, '[eé]').replace(/i/g, '[ií]')
+    .replace(/o/g, '[oó]').replace(/u/g, '[uúü]').replace(/n/g, '[nñ]')
+    .replace(/ /g, '[\\s-]+');
+  return new RegExp('\\b' + esc + '(?:s|es)?\\b(?!-\\d)', 'i');
+}
+RETAIL_WEIGHT_FALLBACK_KG.push(...KEYWORD_WEIGHT_KG
+  .map(([k, kg], i) => ({ k, kg, i }))
+  .sort((a, b) => (b.k.length - a.k.length) || (a.i - b.i))
+  .map(({ k, kg }) => ({ match: keywordWeightPattern(k), not: KEYWORD_WEIGHT_NOT[k] || KEYWORD_WEIGHT_NOT[k.replace(/s$/, '')], kg, tier: 'reasoned', keyword: k })));
 // The generic fallback lives in item-weight.js — one number for the
 // whole site, deliberately low. See GENERIC_FALLBACK_KG there.
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
@@ -246,7 +375,7 @@ export function categoryWeightKg(title, hints = {}) {
   if (ball != null) return ball;
   /* No TV branch: Danny banned TVs and TV mounts outright (2026-09-26).
      tvWeightKg stays defined below for reference only. */
-  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
+  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t) && !(p.not && p.not.test(t)));
   if (!hit) return null;
   return withBuffer(hit.kg, hit.tier);
 }
