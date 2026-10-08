@@ -239,15 +239,17 @@
     var img = p.image
       ? '<img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;&gt;Sin imagen</span>\'">'
       : '<span class="noimg">Sin imagen</span>';
-    return '<article class="card">' + badge
+    var _href = 'producto.html?producto=' + encodeURIComponent(p.title || '')
+      + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
+    return '<a class="card" href="' + esc(_href) + '">' + badge
       + '<div class="card-img">' + img + '</div>'
       + '<div class="card-body">'
       + '<div class="card-retailer">' + esc(RET_LABEL[p.retailer] || p.retailer) + '</div>'
       + (p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '')
-      + '<h3 class="card-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></h3>'
+      + '<h3 class="card-title">' + esc(p.title) + '</h3>'
       + '<div class="card-price"><div class="price-usd">' + esc(fmtUSD(price)) + '</div>'
       + (pen ? '<div class="price-pen">' + esc(pen) + '</div>' : '')
-      + '</div></div></article>';
+      + '</div></div></a>';
   }
 
   /* ---------- filtering + rendering ---------- */

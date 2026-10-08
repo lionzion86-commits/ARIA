@@ -49,6 +49,10 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 
 /* Results */
 #meta-line{font-size:13px; color:var(--muted); margin:6px 0 14px; text-align:center;}
+#meta-line .fix, .empty .dym{display:block; margin-top:6px; font-size:14px; color:var(--ink);}
+.dym a{font-weight:700; cursor:pointer;}
+.examples{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px;}
+.examples a{border:1px solid var(--line); border-radius:999px; padding:6px 12px; color:var(--navy); font-weight:600; cursor:pointer; text-decoration:none;}
 .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
 @media(min-width:640px){ .grid{grid-template-columns:repeat(3,1fr);} }
 @media(min-width:960px){ .grid{grid-template-columns:repeat(4,1fr);} }
@@ -113,6 +117,10 @@ footer a{color:#fff;}
   <div style="margin-top:8px; font-size:12px;">Precios con margen de servicio incluido. Envío e impuestos se calculan en el checkout.</div>
 </footer>
 
+<!-- index.html's own search engine (generated: scripts/build-search-engine.mjs). -->
+<script src="search-engine.js"></script>
+<!-- What the page does with the words (assets/search/synonyms-es.json). -->
+<script src="search-pipeline.js"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -123,7 +131,23 @@ footer a{color:#fff;}
      here too.
    ================================================================ */
 
-var BASE = "https://ariashop.pe";
+/* Same origin when served over http(s): the page and the catalogues
+   ship together, and an absolute host would search production's files
+   from a preview deploy. */
+var BASE = /^https?:$/.test(location.protocol) ? "" : "https://ariashop.pe";
+/* Deals that live only in the sale feed (2026-10-07: the Titan Pro MMA
+   Glove was on sale and unsearchable). Its prices are already final. */
+var SALE_FEED = "/ofertas-feed.json";
+/* THE PRECOMPUTED CATALOGUE (scripts/build-search-index.mjs): the
+   files below plus the sale feed, ten fields a product, imageless
+   products left out -- one ~5MB download instead of 64 files and
+   28MB. The 64 files remain the fallback if it cannot load. */
+var SEARCH_INDEX = "/assets/search/catalog-index.json";
+/* The Spanish dictionary, typo targets and word senses. */
+var SEARCH_DICT = "/assets/search/synonyms-es.json";
+/* The empty state's examples. scripts/test/search-brief-tests.mjs
+   runs each one: an example that finds nothing fails the build. */
+var EXAMPLE_QUERIES = ["zapatillas nike", "cartera cuero", "perfume mujer", "lentes de sol", "polos hombre", "juguetes"];
 var CATALOG_FILES = [
   "/department-cache-walmart.json","/department-cache-target.json",
   "/department-cache-oldnavy.json","/department-cache-footlocker.json",
@@ -190,7 +214,7 @@ function fmtUsd(n){ return "US$ " + Number(n).toFixed(2); }
 function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
 
 /* ---------- catalog loading ---------- */
-function normalizeItem(it, retailerKey){
+function normalizeItem(it, retailerKey, department, finalPrice){
   try{
     if (!it || typeof it !== "object") return null;
     var name = it.name || it.title || "";
@@ -198,10 +222,19 @@ function normalizeItem(it, retailerKey){
     if (!name || !(price > 0)) return null;
     var img = it.thumbnail || it.image || "";
     if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
+    /* No picture, no card (2026-10-08 brief: no placeholder cards). */
+    if (!img || typeof img !== "string") return null;
+    var orig = Number(it.originalPrice || it.wasPrice || it.listPrice);
     return {
       name: String(name),
+      /* The engine reads title / originalPrice / departments. */
+      title: String(name),
       brand: String(it.brand || ""),
       price: price,
+      originalPrice: orig > price ? orig : null,
+      onSale: it.onSale === true,
+      departments: department ? [String(department)] : [],
+      finalPrice: !!finalPrice,
       image: String(img || ""),
       url: String(it.url || it.link || ""),
       retailer: String(it.retailer || retailerKey || "")
@@ -226,7 +259,7 @@ function extractItems(data){
                   : (bucket && Array.isArray(bucket.items) ? bucket.items : null);
           if (!arr) return;
           arr.forEach(function(it){
-            var n = normalizeItem(it, rkey);
+            var n = normalizeItem(it, rkey, section === "departments" ? skey : "");
             if (n) out.push(n);
           });
         });
@@ -264,9 +297,53 @@ async function fetchOne(path){
   }
 }
 
+/* Rows of the precomputed index -> the page's product objects. */
+function fromIndex(data){
+  var f = data && data.fields, rows = data && data.rows;
+  if (!Array.isArray(f) || !Array.isArray(rows) || !rows.length) return null;
+  var at = {}; f.forEach(function(n, i){ at[n] = i; });
+  var out = new Array(rows.length);
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i];
+    out[i] = {
+      name: r[at.title], title: r[at.title], brand: r[at.brand] || "",
+      price: r[at.price], originalPrice: r[at.originalPrice] || null,
+      onSale: r[at.onSale] === 1, departments: r[at.department] ? [r[at.department]] : [],
+      finalPrice: r[at.finalPrice] === 1, image: r[at.image], url: "",
+      retailer: r[at.retailer] || "", _cat: r[at.cat] || null
+    };
+  }
+  return out;
+}
+
+async function loadIndex(){
+  try{
+    var res = await fetch(BASE + SEARCH_INDEX, {cache:"default"});
+    if (!res.ok) return null;
+    return fromIndex(await res.json());
+  }catch(e){ return null; }
+}
+
+var DICT_JSON = null;
+var dictReady = (async function(){
+  try{
+    var res = await fetch(BASE + SEARCH_DICT, {cache:"default"});
+    if (res.ok) DICT_JSON = await res.json();
+  }catch(e){ /* the engine alone still searches */ }
+})();
+
 async function loadCatalog(){
   setStatus("Cargando catálogo…");
   var wrap = el("progress"); if (wrap) wrap.hidden = false;
+  try{
+    var indexed = await loadIndex();
+    if (indexed){
+      PRODUCTS = indexed;
+      LOADED_FILES = CATALOG_FILES.length;
+      if (wrap) wrap.hidden = true;
+      return catalogReady();
+    }
+  }catch(e){ /* fall back to the catalogue files */ }
   updateProgress();
   try{
     var lists = await Promise.allSettled(CATALOG_FILES.map(fetchOne));
@@ -280,10 +357,41 @@ async function loadCatalog(){
       var k = (p.retailer + "|" + (p.url || p.name)).toLowerCase();
       if (!seen.has(k)){ seen.add(k); uniq.push(p); }
     });
+    /* The sale feed last: only deals no catalogue carries are added. */
+    try{
+      var fr = await fetch(BASE + SALE_FEED, {cache:"default"});
+      if (fr.ok){
+        var feed = await fr.json();
+        var have = new Set(uniq.map(function(p){ return (p.retailer + "|" + p.name).toLowerCase(); }));
+        (feed && Array.isArray(feed.items) ? feed.items : []).forEach(function(it){
+          var n = normalizeItem(it, it && it.retailer, "", true);
+          if (!n) return;
+          var k = (n.retailer + "|" + n.name).toLowerCase();
+          if (have.has(k)) return;
+          have.add(k);
+          uniq.push(n);
+        });
+      }
+    }catch(e){ /* the catalogues stand on their own */ }
     PRODUCTS = uniq;
   }catch(e){
     PRODUCTS = [];
   }
+  return catalogReady();
+}
+
+var PIPE = null;
+async function catalogReady(){
+  if (engine()){
+    try{ engine().buildSearchWordIndex(PRODUCTS); }catch(e){ ENGINE_BROKEN = true; }
+  }
+  await dictReady;
+  try{
+    if (engine() && DICT_JSON && window.AriaSearchPage){
+      PIPE = { S: engine(), products: PRODUCTS, retailers: retailerOpts(),
+        dict: window.AriaSearchPage.prepare(DICT_JSON, engine(), PRODUCTS) };
+    }
+  }catch(e){ PIPE = null; }
   READY = true;
   var go = el("go"); if (go) go.disabled = false;
   var q = el("q"); if (q) q.disabled = false;
@@ -294,14 +402,26 @@ async function loadCatalog(){
     return;
   }
   setStatus('<span class="ok">Catálogo listo:</span> ' + PRODUCTS.length.toLocaleString("es-PE") +
-    " productos de " + LOADED_FILES + " tiendas." +
-    (FAILED_FILES ? " (" + FAILED_FILES + " archivos no cargaron.)" : ""));
-  // Deep link: ?q=...
+    " productos." + (FAILED_FILES ? " (" + FAILED_FILES + " archivos no cargaron.)" : ""));
+  /* Deep link (?q=...), or whatever was typed while the catalogue was
+     still loading: it runs now instead of being left waiting. */
   try{
     var params = new URLSearchParams(location.search);
     var q0 = params.get("q");
-    if (q0 && el("q")){ el("q").value = q0; doSearch(); }
+    var typed = el("q") && el("q").value.trim();
+    if (typed) doSearch();
+    else if (q0 && el("q")){ el("q").value = q0; doSearch(); }
+    else showStart();
   }catch(e){}
+}
+
+function examplesHTML(){
+  return '<span class="examples">' + EXAMPLE_QUERIES.map(function(q){
+    return '<a onclick="searchFor(' + esc(JSON.stringify(q)) + ')">' + esc(q) + "</a>";
+  }).join("") + "</span>";
+}
+function showStart(){
+  renderEmpty("Empieza tu búsqueda", "Escribe lo que buscas, en español o en inglés. Por ejemplo:" + examplesHTML());
 }
 
 async function loadFx(){
@@ -319,6 +439,45 @@ function normStr(s){
     .normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 }
 
+/* index.html's engine, when it loaded and indexed; null falls back to
+   the plain word match below, so a bad deploy of search-engine.js
+   degrades search instead of killing it. */
+var ENGINE_BROKEN = false;
+function engine(){
+  return (!ENGINE_BROKEN && window.AriaSearch && typeof window.AriaSearch.rankCatalogMatches === "function")
+    ? window.AriaSearch : null;
+}
+var RETAILER_OPTS = null;
+function retailerOpts(){
+  if (RETAILER_OPTS) return RETAILER_OPTS;
+  var seen = {};
+  PRODUCTS.forEach(function(p){ if (p.retailer) seen[p.retailer] = 1; });
+  return RETAILER_OPTS = Object.keys(seen).map(function(k){ return { key: k, label: k }; });
+}
+
+/* THE SITE'S SEARCH (2026-10-07). Translation ("zapatilla" ->
+   sneakers), sound-alike correction ("chort" -> short, "hudi" ->
+   hoodie), brands ("youg la", "victoria secret sales"), category intent
+   and ranking -- the same engine as the home page. */
+function engineSearch(S, query){
+  var t1 = S.translateQuery(query);
+  var fixed = S.soundCorrectQuery(t1.query, PRODUCTS._windex);
+  var t = fixed.changed ? S.translateQuery(fixed.query) : t1;
+  var res = S.rankCatalogMatches(PRODUCTS, t.query, { limit: 60, retailers: retailerOpts() });
+  var hits = (res && res.items) || [];
+  return {
+    hits: hits,
+    corrected: fixed.changed ? fixed.query : null,
+    suggestion: hits.length ? null : S.suggestSearchQuery(t.query, PRODUCTS._windex)
+  };
+}
+
+function searchFor(q){
+  var input = el("q");
+  if (input) input.value = q;
+  doSearch();
+}
+
 function doSearch(){
   try{
     var input = el("q");
@@ -330,13 +489,36 @@ function doSearch(){
       history.replaceState(null, "", u.toString());
     }catch(e){}
     if (!READY){
-      setStatus("El catálogo aún está cargando… intenta en unos segundos.");
+      /* Kept in the box: catalogReady() runs it the moment it can. */
+      setStatus("El catálogo aún está cargando… tu búsqueda saldrá en cuanto esté listo.");
       return;
     }
     if (!query){
       setStatus("Escribe lo que buscas y presiona Buscar.");
-      renderEmpty("Empieza tu búsqueda", "Ejemplos: <em>zapatillas nike</em>, <em>cartera cuero</em>, <em>perfume</em>.");
+      showStart();
       return;
+    }
+    if (PIPE){
+      try{
+        var pr = window.AriaSearchPage.run(PIPE, query);
+        if (pr.state === "short"){
+          setStatus("Escribe al menos 2 letras para buscar.");
+          renderEmpty("Escribe un poco más", "Con 2 letras o más te mostramos resultados. Por ejemplo:" + examplesHTML());
+          return;
+        }
+        if (pr.state === "empty"){ showStart(); return; }
+        if (pr.state === "none"){ renderNone(query, pr); return; }
+        renderResults(query, pr.hits, { corrected: pr.shown });
+        return;
+      }catch(e){ PIPE = null; /* fall through to the engine alone */ }
+    }
+    var S = engine();
+    if (S){
+      try{
+        var r = engineSearch(S, query);
+        renderResults(query, r.hits, r);
+        return;
+      }catch(e){ ENGINE_BROKEN = true; /* fall through to the plain match */ }
     }
     var tokens = normStr(query).split(/[^a-z0-9]+/).filter(function(t){ return t.length >= 2; });
     if (!tokens.length){
@@ -371,7 +553,7 @@ function doSearch(){
 
 function priceHTML(p){
   try{
-    var f = finalUsd(p.price);
+    var f = p.finalPrice ? Number(p.price) : finalUsd(p.price);
     var h = '<div class="usd">' + esc(fmtUsd(f)) + "</div>";
     if (FX_RATE) h += '<div class="pen">' + esc(fmtPen(f * FX_RATE)) + " aprox.</div>";
     return h;
@@ -379,12 +561,10 @@ function priceHTML(p){
 }
 
 function cardHTML(p){
-  var img = p.image
-    ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
-    : '<span style="font-size:12px;color:#9AA3B5">Sin imagen</span>';
-  var link = p.url
-    ? '<a class="cta" href="' + esc(p.url) + '" target="_blank" rel="noopener">Ver en tienda</a>'
-    : "";
+  /* Products without an image never reach a card; one whose image is
+     broken takes its card with it rather than leaving a blank tile. */
+  var img = '<img src="' + esc(p.image) + '" alt="" loading="lazy" onerror="var c=this.closest(\'.card\'); if(c) c.remove();">';
+  /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   /* THE CARD IS A LINK TO OUR PRODUCT PAGE. It was a bare <article>
      with no href and no handler; the only way out was the external
      "Ver en tienda" button, which leaves the shop. */
@@ -397,29 +577,66 @@ function cardHTML(p){
       '<div class="name">' + esc(p.name) + "</div>" +
       (p.retailer ? '<div class="retailer">Vendido por ' + esc(p.retailer) + "</div>" : "") +
       '<div class="price">' + priceHTML(p) + "</div>" +
-      link +
     "</div></a>";
 }
 
-function renderResults(query, hits){
+function renderResults(query, hits, info){
   var grid = el("results"), meta = el("meta-line");
   if (!grid) return;
+  info = info || {};
   try{
     if (!hits.length){
       if (meta) meta.textContent = "";
-      setStatus('Sin resultados para "' + query + '".');
+      setStatus('Sin resultados para "' + esc(query) + '".');
+      /* NEVER A DEAD END: the closest words the catalogue actually
+         uses, one tap away. */
+      var dym = info.suggestion && info.suggestion !== query
+        ? '<span class="dym">¿Quisiste decir <a onclick="searchFor(' + esc(JSON.stringify(info.suggestion)) + ')">' +
+          esc(info.suggestion) + "</a>?</span>"
+        : "";
       renderEmpty("No encontramos “" + query + "”",
-        "Prueba con menos palabras o revisa la ortografía. Ej: <em>zapatillas</em> en vez de <em>zapatillas deportivas nike air</em>.");
+        "Prueba con menos palabras o revisa la ortografía. Ej: <em>zapatillas</em> en vez de <em>zapatillas deportivas nike air</em>." + dym);
       return;
     }
     grid.innerHTML = hits.map(cardHTML).join("");
-    if (meta) meta.textContent = hits.length + " resultado" + (hits.length === 1 ? "" : "s") +
-      ' para "' + query + '"' + (FX_RATE ? "" : " · precios en USD (tipo de cambio no disponible)");
+    if (meta){
+      meta.textContent = hits.length + " resultado" + (hits.length === 1 ? "" : "s") +
+        ' para "' + query + '"' + (FX_RATE ? "" : " · precios en USD (tipo de cambio no disponible)");
+      /* Said the way Google says it, when a word was corrected. */
+      if (info.corrected){
+        var fx = document.createElement("span");
+        fx.className = "fix";
+        fx.textContent = "Mostrando resultados para “" + info.corrected + "”";
+        meta.appendChild(fx);
+      }
+    }
     setStatus("Mostrando " + hits.length + " resultados.");
   }catch(e){
     setStatus('<span class="err">No pudimos mostrar los resultados.</span> ' +
       '<button class="retry" onclick="doSearch()">Reintentar</button>');
   }
+}
+
+/* Nothing to show, said plainly: a brand we do not sell, a kind of
+   product we do not carry yet, or a closer spelling. Never a spinner. */
+function renderNone(query, r){
+  var grid = el("results"), meta = el("meta-line");
+  if (meta) meta.textContent = "";
+  setStatus('Sin resultados para "' + esc(query) + '".');
+  if (!grid) return;
+  var body;
+  if (r.missingBrand){
+    body = "Todavía no vendemos " + esc(r.missingBrand.toUpperCase()) + ". Prueba con otra marca o un tipo de producto:";
+  } else if (r.sense){
+    body = "Por ahora no tenemos " + esc(r.sense) + " en el catálogo. Prueba con:";
+  } else {
+    var dym = r.suggestion && r.suggestion !== query
+      ? '<span class="dym">¿Quisiste decir <a onclick="searchFor(' + esc(JSON.stringify(r.suggestion)) + ')">' +
+        esc(r.suggestion) + "</a>?</span>"
+      : "";
+    body = "Revisa la ortografía o prueba con menos palabras." + dym + "<br>O prueba con:";
+  }
+  renderEmpty("No encontramos “" + query + "”", body + examplesHTML());
 }
 
 function renderEmpty(title, bodyHTML){
@@ -432,12 +649,12 @@ function renderEmpty(title, bodyHTML){
 (function init(){
   try{
     var q = el("q"), go = el("go");
+    /* The box is live while the catalogue loads: a search typed early
+       runs the moment it is ready (catalogReady). */
     if (q){
-      q.disabled = true;
       q.addEventListener("keydown", function(ev){ if (ev.key === "Enter") doSearch(); });
     }
     if (go){
-      go.disabled = true;
       go.addEventListener("click", doSearch);
     }
     renderEmpty("Buscador Aria", "Cargando el catálogo de tiendas…");

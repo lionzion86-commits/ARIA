@@ -615,6 +615,8 @@
   /* KIDS: baby blue. One-line swap in DEPT_THEMES (glow -> #FFF4B8) flips to Danny's baby-yellow alternative. */
   [data-dept-theme="kids"]{ background:linear-gradient(180deg, var(--dept-glow,#C4E6FB) 0%, color-mix(in srgb, var(--dept-glow,#C4E6FB) 32%, var(--paper)) 340px, var(--paper) 620px); }
   [data-dept-theme="surf_skate"]{ background:linear-gradient(180deg, var(--dept-glow,#8FC6EE) 0%, color-mix(in srgb, var(--dept-glow,#8FC6EE) 32%, var(--paper)) 340px, var(--paper) 620px); }
+  /* DISEÑADORES LATINOS (2026-10-07, Danny): tropical island aqua -- turquoise water wash melting into paper. */
+  [data-dept-theme="latino_designers"]{ background:linear-gradient(180deg, var(--dept-glow,#5BC8C0) 0%, color-mix(in srgb, var(--dept-glow,#5BC8C0) 32%, var(--paper)) 340px, var(--paper) 620px); }
   /* JUGUETES: playful toy-store yellow wash -- bright, never plain white. */
   [data-dept-theme="toys"]{ background:linear-gradient(180deg, var(--dept-glow,#FFDE59) 0%, color-mix(in srgb, var(--dept-glow,#FFDE59) 34%, var(--paper)) 360px, var(--paper) 640px); }
   [data-dept-theme="toys"] .ariaCarouselTitle{ color:#1B2A6B !important; }
@@ -1380,6 +1382,13 @@
   @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+  /* RAIL EXPAND (2026-10-07): full-screen "Ver todo" grid. Cards render
+     via railCardHTML (fixed-width buttons); the grid overrides to fluid. */
+  #railExpandGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  #railExpandGrid > button{ width:100% !important; flex:none !important; }
+  #railExpandGrid > button > span:first-child{ height:auto !important; aspect-ratio:3/4; }
+  @media (min-width:640px){ #railExpandGrid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (min-width:1024px){ #railExpandGrid{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
   /* BRAND STRIP LOGOS (2026-09-26, Danny's QA: text-only tiles were
      unreadable as brands). Official logo SVGs live in logos/brands/,
      keyed by brandKeyOf(label). A brand with no sourced logo keeps the
@@ -1451,6 +1460,23 @@
      the query, because at equal specificity the last rule wins and a base
      written underneath its own override silently defeats it. */
   .ariaChatMsg{ font-size:13px }
+  /* THE DESKTOP CARD IN REAL CSS (2026-10-08, live-site bug: the panel
+     ran past the right edge of the window). Its size and place lived
+     only in Tailwind utilities (right-5, w-[92vw], max-w-[380px],
+     h-[520px]) compiled at runtime by the CDN script; when that is slow
+     or fails the card loses its clamp. These are the same numbers, in
+     CSS the page owns, and the width can never exceed the viewport. */
+  /* ...and its stacking: without the Tailwind z-40 the homepage hero
+     sat on top of the card and swallowed the tap on Enviar. */
+  #assistantPanel{ z-index:40 }
+  @media (min-width: 1024px){
+    #assistantPanel{
+      position:fixed; right:20px; bottom:96px; left:auto; top:auto;
+      width:min(380px, calc(100vw - 40px)); max-width:calc(100vw - 40px);
+      height:min(520px, 72vh); box-sizing:border-box;
+    }
+    #assistantPanel > *{ min-width:0; max-width:100% }
+  }
   /* A sheet whose column scrolls past its end must not start scrolling
      the page behind it: that is how a shopper loses the conversation. */
   #assistantMessages{ overscroll-behavior:contain }
@@ -1827,6 +1853,37 @@
     </div>
   </section>
 
+  <!-- OFERTAS FIRST (2026-10-07, Danny): the Ofertas carousel sits directly above the Key Club section. Deals are the first thing shoppers see. One copy per breakpoint, moved out of #mobileShopfront / #desktopShopfront so each section carries its own visibility class. VIVID AZURE VARIANT: background sampled from hero headline; header white for readability. -->
+<section aria-label="Ofertas" class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <div class="flex items-baseline gap-2 min-w-0">
+          <span class="text-[22px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+        </div>
+        <button onclick="goSales()" class="flex items-center gap-1 text-[13px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#FFFFFF">
+          Ver todo
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+<section aria-label="Ofertas" class="relative overflow-hidden hidden lg:block" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="relative max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <div class="flex items-baseline gap-2 min-w-0">
+            <span class="text-[26px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+                      </div>
+          <button onclick="goSales()" class="flex items-center gap-1 text-[14px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#FFFFFF">
+            Ver todo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
   <!-- ============================================================
        LOS ELEGIDOS — Founding 1000 campaign module (2026-10-01).
        Oct 20 (lanzamiento) → Nov 10 (apertura): Danny elige a mano
@@ -1836,49 +1893,45 @@
        ============================================================ -->
   <section aria-label="Aria Key Club — Sé de los primeros 1000" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
     <!-- KEY CLUB VAULT BACKDROP (2026-10-05, Danny): bank-vault atmosphere behind the hero. Image stays dim under a navy overlay so the white/gold headline stays fully readable. -->
+    <!-- COMPACT BANNER (2026-10-07, Danny): same info at ~half the height — the full section buried the products on scroll. -->
     <div aria-hidden="true" style="position:absolute;inset:0;background:url('assets/keyclub/vault-hero-bg.jpg') center/cover no-repeat;opacity:.5"></div>
     <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(10,31,68,.88) 0%, rgba(10,31,68,.62) 45%, rgba(10,31,68,.90) 100%)"></div>
     <div class="ariaGoldHair"></div>
-    <div class="relative max-w-[820px] mx-auto px-5 py-12 sm:py-14 text-center">
-      <div class="ariaKicker mb-4" style="justify-content:center">Aria Key Club · Lanzamiento</div>
-      <h2 class="text-[30px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
+    <div class="relative max-w-[1020px] mx-auto px-5 py-7 sm:py-8 text-center">
+      <div class="ariaKicker mb-2" style="justify-content:center">Aria Key Club · Lanzamiento</div>
+      <h2 class="text-[22px] sm:text-[28px] font-extrabold tracking-[-0.02em] leading-[1.1] mb-2" style="color:#fff">
         Sé de los primeros <span style="color:#F4C463">1000</span> en el Aria Key Club.
       </h2>
-      <p class="text-[16px] sm:text-[19px] font-bold leading-snug mb-2" style="color:#F4C463">
+      <p class="text-[13px] sm:text-[14.5px] font-bold leading-snug mb-2" style="color:#F4C463">
         Arma tu carrito. Si eres elegido, compras.
       </p>
-      <p class="text-[13.5px] sm:text-[15px] leading-relaxed max-w-[56ch] mx-auto mb-6" style="color:#B9C6E8">
+      <p class="text-[12.5px] sm:text-[13.5px] leading-relaxed max-w-[62ch] mx-auto mb-4" style="color:#B9C6E8">
         Únete gratis al Aria Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran antes que todos. Gratis por tiempo limitado — después, la membresía tiene un costo.
       </p>
-      <div id="foundersMemberBadge" class="mb-6" hidden></div>
-      <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
-        <button onclick="scrollToCategories()" class="ariaHeroCta focus-ring transition" style="margin-top:0;height:52px">Armar mi carrito</button>
-        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-[14.5px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme al Aria Key Club</button>
+      <div id="foundersMemberBadge" class="mb-4" hidden></div>
+      <div class="flex items-center justify-center mb-5">
+        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[46px] px-7 rounded-2xl text-[14px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme al Aria Key Club</button>
       </div>
-      <div class="text-left max-w-[720px] mx-auto">
-        <p class="text-[13px] font-bold tracking-[0.08em] uppercase mb-1" style="color:#8FA3D6">Los beneficios</p>
-        <h3 class="text-[22px] sm:text-[28px] font-extrabold tracking-[-0.02em] leading-tight mb-6" style="color:#fff">Cuatro razones para tener la llave.</h3>
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">Gratis al lanzamiento</h4>
-            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">Unirse no cuesta nada. Sin tarjeta, sin compromiso: tu cuenta Aria es tu membresía.</p>
-          </div>
-          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-            <span class="inline-block mb-2 px-3 py-1 rounded-full text-[10.5px] font-extrabold tracking-[0.06em]" style="background:#F4C463;color:#0A1F44">PROMO DE LANZAMIENTO</span>
-            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">$5 de vuelta por cada $100</h4>
-            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">5% de cashback en cada compra, directo a tu saldo Aria. Dinero de verdad, no puntos raros.</p>
-          </div>
-          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">Entra primero a las ofertas</h4>
-            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros compran antes que todos.</p>
-          </div>
-          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">Exprés a precio de miembro</h4>
-            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p>
-          </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-left">
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Gratis al lanzamiento</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Unirse no cuesta nada. Sin tarjeta, sin compromiso: tu cuenta Aria es tu membresía.</p>
+        </div>
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <span class="inline-block mb-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-[0.06em]" style="background:#F4C463;color:#0A1F44">PROMO DE LANZAMIENTO</span>
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">$5 de vuelta por cada $100</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">5% de cashback en cada compra, directo a tu saldo Aria. Dinero de verdad, no puntos raros.</p>
+        </div>
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Entra primero a las ofertas</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros compran antes que todos.</p>
+        </div>
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Exprés a precio de miembro</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p>
         </div>
       </div>
-      <p class="mt-8 text-[12.5px] font-semibold" style="color:#8FA3D6">Solo 1000. Las puertas se abren muy pronto.</p>
+      <p class="mt-4 text-[11.5px] font-semibold" style="color:#8FA3D6">Solo 1000. Las puertas se abren muy pronto.</p>
     </div>
   </section>
   <!-- ============================================================
@@ -1920,19 +1973,6 @@
   <!-- HOME ORDER (2026-09-26, Danny): Ofertas -> brand band -> Aria Auto ->
        Compra por categoría (chip carousel) -> store rails -> Marcas / Costco /
        SSENSE -> Todas las otras tiendas -> Categorías. -->
-<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
-      <div class="ariaGoldHair"></div>
-      <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
-        <div class="flex items-baseline gap-2 min-w-0">
-          <span class="text-[22px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
-        </div>
-        <button onclick="goSales()" class="flex items-center gap-1 text-[13px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
-          Ver todo
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
-      </div>
-      <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
 
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
 <!-- TIENDAS STRIP (2026-09-28, Danny): every shoppable store's logo in one compact
@@ -1940,9 +1980,9 @@
      (rail scroll, or the store page when the store has no homepage rail). Stores with
      zero catalogue items are excluded -- no dead storefronts. Painted by
      paintTiendasStrip() from TIENDAS_STRIP. -->
-    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:#F7F9FD">
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
       <div class="px-5 pt-4 pb-1 flex items-baseline justify-between gap-3">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas</h2>
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
         <span class="text-[12px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
       </div>
       <div id="mTiendasStripRow" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
@@ -2047,7 +2087,7 @@
   </div>
 </section>
 
-<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
+<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
@@ -2510,28 +2550,13 @@
   <div id="desktopShopfront" class="hidden lg:block">
 
   <!-- HOME ORDER, DESKTOP (2026-09-26, Danny): same run as the phone. -->
-<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
-      <div class="ariaGoldHair"></div>
-      <div class="relative max-w-[1240px] mx-auto">
-        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
-          <div class="flex items-baseline gap-2 min-w-0">
-            <span class="text-[26px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
-                      </div>
-          <button onclick="goSales()" class="flex items-center gap-1 text-[14px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
-            Ver todo
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-          </button>
-        </div>
-        <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
 
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
 <!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's. -->
-    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:#F7F9FD">
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-5 pb-1 flex items-baseline justify-between gap-3">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas</h2>
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
         <span class="text-[13px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
       </div>
       <div id="dTiendasStripRow" class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
@@ -2639,7 +2664,7 @@
 </section>
     <!-- CATEGORIAS -->
 
-<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
+<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -6386,6 +6411,28 @@
 
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
 
+<!-- ============ RAIL EXPAND OVERLAY (2026-10-07) ============ -->
+<!-- Full-screen "Ver todo" view for capped carousels: the rail's complete
+     sorted pool as a scrollable grid. iPhone-first. -->
+<div id="railExpandBackdrop" class="hidden fixed inset-0 z-[75]" role="dialog" aria-modal="true" aria-labelledby="railExpandTitle" style="background:var(--paper)">
+  <div class="railExpandScroll h-full overflow-y-auto">
+    <div class="sticky top-0 z-10" style="background:var(--paper);border-bottom:1px solid var(--line)">
+      <div class="max-w-6xl mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
+        <button type="button" onclick="closeRailExpand()" aria-label="Volver" class="w-10 h-10 shrink-0 rounded-full grid place-items-center focus-ring" style="background:#F1F3F7">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="min-w-0">
+          <h2 id="railExpandTitle" class="text-[17px] font-extrabold truncate" style="color:var(--navy)"></h2>
+          <div id="railExpandCount" class="text-[12px] font-semibold" style="color:#6B7487"></div>
+        </div>
+      </div>
+    </div>
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <div id="railExpandGrid"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ AUTH MODAL ============ -->
 <!-- Real email/password signup + login (netlify/functions/auth-signup.js
      /auth-login.js), a persistent httpOnly-cookie session
@@ -10014,15 +10061,7 @@ async function relatedPool(){
      rankCatalogMatches pulls that subset up front instead of scanning
      the whole pool per search. Attached to the array rather than the
      items, so ad-hoc pools without it take the old path unchanged. */
-  const windex = new Map();
-  for (const it of relatedPoolCache){
-    for (const w of it._wordSet){
-      let lst = windex.get(w);
-      if (!lst) windex.set(w, lst = []);
-      lst.push(it);
-    }
-  }
-  relatedPoolCache._windex = windex;
+  buildSearchWordIndex(relatedPoolCache);
   return relatedPoolCache;
 }
 
@@ -10650,6 +10689,116 @@ function fuzzyVocabBuckets(windex){
   return b;
 }
 
+/* ============================================================
+   SPELLED THE WAY IT SOUNDS (2026-10-07, watch list).
+
+   A Peruvian shopper types English the way it sounds in Spanish:
+   "chort" for short, "hudi" for hoodie, "swetshert" for sweatshirt.
+   Edit distance cannot carry these -- "hudi" is three edits from
+   "hoodie" and ONE from the brand Huddy, so the brand won and the
+   shopper got Huddy t-shirts; "chort" landed on Schott. A sound key
+   folds the spellings that sound alike (sh/ch, oo/u, ea/e, ee/ie/y,
+   ir/ur/er) so the right word is distance zero.
+
+   Only ever consulted for a token the vocabulary does not know, and
+   the most common words sharing the key win: Huddy (a handful of
+   uses) never outvotes hoodie (thousands). Short/shirt stay apart --
+   "or" is deliberately not folded.
+   ============================================================ */
+/* "ea" is read both ways by the shopper -- "swetshert" (sweat, e) and
+   "snikers"/"jins" (sneakers/jeans, i) -- so vocabulary words are filed
+   under both readings (eaAs 'e' and 'i'); a query is keyed once. */
+function shopperSoundKey(w, eaAs){
+  let s = String(w || '').toLowerCase();
+  s = s.replace(/oo|ou/g, 'u').replace(/ea/g, eaAs || 'e').replace(/ee|ie|ey/g, 'i').replace(/y$/, 'i');
+  s = s.replace(/sh|ch/g, 'x').replace(/ph/g, 'f').replace(/[iu]r/g, 'er');
+  return s.replace(/(.)\1+/g, '$1');
+}
+const soundKeyCache = new WeakMap();
+/* Vocabulary words that sound like the token, most-used first, with
+   the rare ones (under a tenth of the leader's uses) dropped. */
+function soundAlikeWords(tok, windex){
+  if (!tok || tok.length < 3 || !windex || typeof windex.keys !== 'function') return null;
+  let m = soundKeyCache.get(windex);
+  if (!m){
+    m = new Map();
+    for (const w of windex.keys()){
+      if (typeof w !== 'string' || w.length < 3 || /\d/.test(w)) continue;
+      for (const k of new Set([shopperSoundKey(w, 'e'), shopperSoundKey(w, 'i')])){
+        let arr = m.get(k);
+        if (!arr) m.set(k, arr = []);
+        arr.push(w);
+      }
+    }
+    soundKeyCache.set(windex, m);
+  }
+  const arr = m.get(shopperSoundKey(tok));
+  if (!arr || !arr.length) return null;
+  const uses = (w) => { const l = windex.get(w); return l ? l.length : 0; };
+  const top = Math.max(...arr.map(uses));
+  const kept = arr.filter(w => uses(w) * 10 >= top).sort((a, b) => uses(b) - uses(a));
+  return kept.length ? kept : null;
+}
+
+/* SAY WHAT WE SEARCHED FOR (2026-10-07). Words the vocabulary does
+   not know are rewritten to the word they sound like -- "chort" ->
+   "short", "hudi" -> "hoodie" -- so the Spanish layer can translate
+   the corrected word ("short" is the garment, shorts) and the page can
+   say "Mostrando resultados para …" the way Google does. A word with
+   no sound-alike is left exactly as typed. */
+function soundCorrectQuery(query, windex){
+  const raw = String(query || '');
+  const toks = searchTokens(raw);
+  if (!toks.length || !windex || typeof windex.get !== 'function') return { query: raw, changed: false, fixes: [] };
+  const fixes = [];
+  const out = toks.map(t => {
+    if (t.length < 3 || /\d/.test(t)) return t;
+    const l = windex.get(t);
+    if (l && l.length) return t;
+    for (const f of matchFormsFor(t)){ const lf = windex.get(f); if (lf && lf.length) return t; }
+    const alike = soundAlikeWords(t, windex);
+    if (!alike) return t;
+    fixes.push([t, alike[0]]);
+    return alike[0];
+  });
+  return fixes.length ? { query: out.join(' '), changed: true, fixes } : { query: raw, changed: false, fixes };
+}
+
+/* "¿Quisiste decir …?" for a search that found nothing: every unknown
+   word swapped for the closest word the catalogue actually uses --
+   sound-alike first, then the nearest spelling -- and a word with no
+   near match at all dropped, the way Google drops it. Null when no
+   known word is left. */
+function suggestSearchQuery(query, windex){
+  const toks = searchTokens(query);
+  if (!toks.length || !windex || typeof windex.get !== 'function') return null;
+  const buckets = fuzzyVocabBuckets(windex);
+  let changed = false;
+  const out = toks.map(t => {
+    const l = windex.get(t);
+    if (l && l.length) return t;
+    const alike = soundAlikeWords(t, windex);
+    if (alike){ changed = true; return alike[0]; }
+    const forms = fuzzyFormsForToken(t, buckets, windex);
+    if (!forms || !forms.size){ changed = true; return null; }
+    /* A suggestion has to look like what was typed: one edit on a short
+       word, two from six letters -- "qqqzxv" is not "qixi". */
+    const sq = fuzzySquashDoubles(t);
+    const cap = sq.length >= 6 ? 2 : 1;
+    let best = null, bestUses = -1;
+    for (const w of forms){
+      if (fuzzyEditDist(sq, w, cap) > cap) continue;
+      const lw = windex.get(w); const u = lw ? lw.length : 0;
+      if (u > bestUses){ best = w; bestUses = u; }
+    }
+    if (!best || bestUses <= 0){ changed = true; return null; }
+    changed = true;
+    return best;
+  });
+  const kept = out.filter(Boolean);
+  return changed && kept.length ? kept.join(' ') : null;
+}
+
 /* The fuzzy form set for one query token: vocabulary words within
    Damerau<=2 (<=1 for short tokens), plus their plural forms and
    synonyms so "hudi" also finds "hoodies" and "buzos". Null when the
@@ -10662,8 +10811,12 @@ function fuzzyFormsForToken(tok, buckets, windex){
   if (!tok || tok.length < 3 || !buckets || !windex) return null;
   if (windex.get(tok) && windex.get(tok).length) return null;
   for (const f of matchFormsFor(tok)){ const l = windex.get(f); if (l && l.length) return null; }
-  const maxDist = tok.length >= 4 ? 2 : 1;
   const squashed = fuzzySquashDoubles(tok);
+  /* The budget follows the SQUASHED length (2026-10-07): "qqqzxv" is
+     four letters once its doubles go, and two edits on four letters
+     matched "LXXXV" and "AZXY" -- junk instead of an honest empty page
+     with a "¿Quisiste decir?". */
+  const maxDist = squashed.length >= 5 ? 2 : 1;
   const hits = new Set();
   const consider = (w) => {
     if (hits.has(w)) return;
@@ -10671,6 +10824,11 @@ function fuzzyFormsForToken(tok, buckets, windex){
     for (const f of matchForms(w)) hits.add(f);
     for (const s of synonymsOf(w)) for (const f of matchForms(s)) hits.add(f);
   };
+  /* CLOSEST MATCH WINS: a word that SOUNDS identical beats every word
+     merely a couple of letters away ("swetshert" is sweatshirt, not
+     "sweethearts"). */
+  const alike = soundAlikeWords(tok, windex);
+  if (alike){ for (const w of alike) consider(w); return hits; }
   for (let l = Math.max(3, tok.length - maxDist); l <= tok.length + maxDist; l++){
     const arr = buckets.get(l);
     if (!arr) continue;
@@ -10879,7 +11037,13 @@ function detectBrandIntent(rawToks, pool, opts){
   const knownProductWord = (w) => {
     if (w.idx.length !== 1) return false;
     const tok = rawToks[w.idx[0]];
-    return !!tok && poolKnows(tok);
+    if (!tok) return false;
+    if (poolKnows(tok)) return true;
+    /* A word that SOUNDS like one the catalogue sells is that word,
+       misspelled -- not a brand: "hudi" is hoodie, not Huddy; "chort"
+       is short, not Schott (2026-10-07). */
+    const alike = windex ? soundAlikeWords(tok, windex) : null;
+    return !!(alike && alike.some(a => !vocab.has(searchBrandKey(a))));
   };
   const keys = [...vocab.keys()];
   const sqKeys = keys.map(k => fuzzySquashDoubles(k));
@@ -10915,7 +11079,17 @@ function detectBrandIntent(rawToks, pool, opts){
            two substitutions on four letters is a coincidence, not
            a brand. One-word queries under 5 chars get d<=1; the
            product-word fuzzy layer still resolves the typo. */
-        const maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        let maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        /* KNOWN WORDS JOINED ARE A JOIN REPAIR, NOT A TYPO (2026-10-07).
+           "titan pro mma gloves" joined "pro"+"mma" -> "promma" and
+           claimed Puma, then BYOMA, then Prada, all at d=2 -- and the
+           hard brand filter hid the Everlast glove the shopper named.
+           When every word in the window is one the catalogue sells
+           (the single-token rule above, applied to each word), the
+           only correction left is the join itself: an apostrophe or a
+           space ("victoria secret", "under armor", "calvin klien" are
+           all d=1). Two edits there is a coincidence. */
+        if (w.idx.length > 1 && w.idx.every(i => poolKnows(rawToks[i]))) maxDist = 1;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
@@ -11064,6 +11238,24 @@ function catalogItemCategory(item){
       && isSoccer(item, item && item.retailer)) return 'soccer';
   // A catalogue that names a footwear department settles it outright.
   if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
+  /* SOCKS ARE NOT SHOES (2026-10-07: "zapatilla" led with Hanes crew
+     socks). "Reinforced heel and toe" tripped the footwear words, so
+     every sock carried the implied word "shoes". A sock, insole or lace
+     title is footwear only if it also names a shoe ("Nike Sock Dart
+     Shoes"). */
+  if (/\b(?:socks?|calcetines|calcetas|insoles?|shoe\s*laces?|laces)\b/i.test(title)
+      && !/\b(?:shoes?|sneakers?|trainers?|sandals?|slides?|boots?)\b/i.test(title)) return null;
+  /* A DOLL IN SANDALS IS A DOLL ("zapatilla" answered with Barbie and a
+     "Duck in Boots" figurine). Toys, decor and the like are never
+     footwear by a word in their title, and neither is anything whose
+     product noun is a depiction. */
+  if (depts.some(d => /^(?:toys?|juguetes|home(?:_decor)?|decor|books?|electronics|kitchen|party|pets?|baby_gear|crafts?)$/i.test(String(d)))) return null;
+  if (/\b(?:dolls?|mu[nñ]ecas?|figurines?|figures?|sculptures?|statues?|ornaments?|plush|keychains?|charms?|stickers?|puzzles?|mugs?)\b/i.test(title)) return null;
+  /* "Kick Boot Jeans" are jeans: a garment as THE head noun (the last
+     one) outranks a stray shoe word earlier in the title. "Dress Shoes"
+     ends in shoes, so it stays footwear. */
+  const headW = [...catalogHeadWords(item)];
+  if (/^(?:jeans|pants|trousers|leggings|shorts|skirts?|dress(?:es)?|shirts?|tees?|tops?|jackets?|coats?)$/.test(headW[headW.length - 1] || '')) return null;
   /* The title saying so settles it too, by the SAME words a query uses
      to mean footwear -- so "Running Sneakers" is footwear whether it is
      being asked for or being offered. */
@@ -11098,6 +11290,51 @@ function catalogTokenWeights(pool, toks, intent, categoryOf, wordsFor, fuzzySets
   return df.map(n => 1 / Math.log2(2 + n));
 }
 
+/* THE PRODUCT IS THE HEAD NOUN (2026-10-07, watch list). "shorts"
+   tied a pair of shorts with a "Short Circuit" charger and a "Bermuda
+   Blue" speaker; "zapatillas" tied sneakers with a Barbie in sandals.
+   A title names its product before the first qualifier -- " - ", ":",
+   ",", "(", "with", "for", "in" -- and that segment's last word or two
+   is what the item IS. A query word landing there outranks the same
+   word anywhere else. */
+const HEAD_NOUN_BOOST = 0.5;
+/* THE SHOPPER'S OWN WORD BREAKS THE TIE (2026-10-08, search brief).
+   Synonyms are canonicalised so "botas", "zapatos" and "zapatillas"
+   all reach footwear -- but that made every shoe score the same, and
+   pool order decided: "botas" led with Walmart sneakers, "vestidos"
+   with dress socks. The word the shopper actually typed (before
+   canonicalising) now ranks the products it names first: the title's
+   head noun ("... Ankle Boots") above a mere mention ("Dress Socks"). */
+const LITERAL_HEAD_BOOST = 0.6;
+const LITERAL_TITLE_BOOST = 0.25;
+function catalogTitleWords(item){
+  if (item && item._titleWords instanceof Set) return item._titleWords;
+  const w = new Set(searchTokens(String((item && (item.title || item.name)) || '')));
+  if (item && typeof item === 'object') { try { item._titleWords = w; } catch(e) { /* frozen item */ } }
+  return w;
+}
+const HEAD_NOISE = new Set(['s', 'men', 'mens', 'women', 'womens', 'kids', 'boys', 'girls', 'unisex', 'pack', 'pk', 'set']);
+function catalogHeadWords(item){
+  if (item && item._headWords instanceof Set) return item._headWords;
+  const title = String((item && (item.title || item.name)) || '');
+  const seg = title.split(/\s[-–|]\s|[:,(]|\s(?:with|for|in|con|para)\s/i)[0] || title;
+  const toks = searchTokens(seg).filter(t => !HEAD_NOISE.has(t) && !/^\d+$/.test(t));
+  const head = new Set(toks.slice(-2));
+  if (item && typeof item === 'object') { try { item._headWords = head; } catch(e) { /* frozen item: recompute next time */ } }
+  return head;
+}
+
+/* The head must carry the word itself, its plural or a true synonym --
+   never the singular of a plural query: "shorts" is not "Vase Short". */
+function headNounHit(head, t, fs){
+  for (const f of matchFormsFor(t)){
+    if (f + 's' === t || f + 'es' === t) continue;
+    if (head.has(f)) return true;
+  }
+  if (fs && fs.size) for (const w of head) if (fs.has(w)) return true;
+  return false;
+}
+
 function scoreCatalogItem(item, toks, weights, wordsIn, fuzzySets){
   const words = wordsIn || catalogWordsOf(item);
   const hits = catalogTokenHitsWithFuzzy(words, toks, fuzzySets);
@@ -11112,7 +11349,13 @@ function scoreCatalogItem(item, toks, weights, wordsIn, fuzzySets){
   }
   if (hits === toks.length) s += 1;
   const brandWords = (item && item._brandWordSet instanceof Set) ? item._brandWordSet : new Set(searchTokens(item?.brand || ''));
-  if (toks.some(t => brandWords.has(t))) s += 0.75;
+  /* A brand named after a product word is not a brand match for that
+     word (2026-10-07): "jeans" -> "pants" lifted every "Party Pants"
+     item over actual jeans. The bonus is for words that only a brand
+     means ("nike"), never a category's own words. */
+  if (toks.some(t => brandWords.has(t) && !synonymGroupOf(t))) s += 0.75;
+  const head = catalogHeadWords(item);
+  if (head.size && toks.some((t, i) => headNounHit(head, t, fuzzySets && fuzzySets[i]))) s += HEAD_NOUN_BOOST;
   return s;
 }
 
@@ -11221,6 +11464,34 @@ function genderIntentFromTokens(toks){
   return null;
 }
 
+/* A sale word in the query lifts real markdowns over full price. */
+const SALE_INTENT_BOOST = 0.5;
+
+/* THE SEARCH INDEX, BUILT ONE WAY (2026-10-07). relatedPool() and the
+   standalone search page (search.html, via search-engine.js) both
+   index their pool with this, so the two can never rank differently
+   because one of them precomputed less. Fills each item's word sets
+   where missing and attaches the inverted word index to the array. */
+function buildSearchWordIndex(pool){
+  const windex = new Map();
+  for (const it of pool || []){
+    if (!it || !it.title) continue;
+    if (!(it._wordSet instanceof Set)){
+      it._wordSet = catalogWordsOf(it);
+      it._brandWordSet = new Set(searchTokens(it.brand || ''));
+      /* search.html's index ships the category precomputed. */
+      if (it._cat === undefined) it._cat = catalogItemCategory(it);
+    }
+    for (const w of it._wordSet){
+      let lst = windex.get(w);
+      if (!lst) windex.set(w, lst = []);
+      lst.push(it);
+    }
+  }
+  pool._windex = windex;
+  return pool;
+}
+
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
   query = expandBrandAliases(query);
@@ -11259,6 +11530,9 @@ function rankCatalogMatches(pool, query, opts){
   const SALES_INTENT_TOKENS = new Set(['sale','sales','oferta','ofertas',
     'descuento','descuentos','rebaja','rebajas','liquidacion','clearance']);
   const intentToks = toks.filter(t => !SALES_INTENT_TOKENS.has(t));
+  /* ...but the INTENT is kept (2026-10-07): "zapatillas ofertas" ranks
+     the discounted pairs first, deepest markdown leading. */
+  const saleIntent = intentToks.length !== toks.length;
   if (intentToks.length !== toks.length) toks = intentToks;
   /* GENDER IS PREFERENCE, NEVER A HARD REQUIREMENT (2026-10-02, Danny).
      "Aletas de buceo para mi papá" built the query "diving fins men's"
@@ -11273,6 +11547,7 @@ function rankCatalogMatches(pool, query, opts){
         ones. The chat pipeline's productSuitsRecipient hard gate still
         rejects positively opposite-gendered titles. */
   const queryGender = genderIntentFromTokens(toks);
+  const kidQuery = toks.some(t => /^(?:kids?|boys?|girls?|baby|babies|toddlers?|infants?|youth|ni[nñ][oa]s?|bebes?|juniors?)$/.test(t));
   let genderBoost = null;
   if (queryGender){
     const genderlessQuery = toks.some((t) => GENDERLESS_CATEGORY_TOKENS.has(t));
@@ -11312,6 +11587,14 @@ function rankCatalogMatches(pool, query, opts){
      must agree for all four words. (Declared up here because the
      inverted-index subset below needs it before the filters run.) */
   const intent = queryCategoryIntent(toks.join(' '));
+  /* The typed words behind the canonical ones (LITERAL_HEAD_BOOST):
+     only those still in the query -- gender, style and sale words
+     have already left it. */
+  const literalForms = new Set();
+  rawToks.forEach((t, i) => {
+    if (brandConsumed.has(i) || !synonymGroupOf(t) || !toks.includes(canonicalizeToken(t))) return;
+    for (const f of matchForms(t)) literalForms.add(f);
+  });
   /* SEARCH SPEED (2026-09-27): with no category intent, pull the scoring
      subset from the pool's inverted word index instead of scanning all
      61k items -- matchFormsFor mirrors tokenHitsExpanded exactly, so the
@@ -11329,6 +11612,20 @@ function rankCatalogMatches(pool, query, opts){
      needs the forms. */
   const fuzzyBuckets = (windex && typeof windex.get === 'function') ? fuzzyVocabBuckets(windex) : null;
   const fuzzySets = toks.map(t => fuzzyFormsForToken(t, fuzzyBuckets, windex));
+  /* A PRODUCT WORD IN A BRAND NAME IS NOT THE PRODUCT (2026-10-08).
+     "muñecas" -> doll led with a Cathy Doll sunscreen, "juguetes" ->
+     toy with Toy Machine skate decks: the word only sat in the brand.
+     A word the catalogue mostly uses in titles (under a fifth of its
+     products carry it in the brand) has to be in the title. "nike"
+     is a brand word by the same count and keeps matching the brand. */
+  const titleOnlyToks = [];
+  if (windex && typeof windex.get === 'function') toks.forEach((t) => {
+    const lst = windex.get(t);
+    if (!lst || lst.length < 30) return;
+    let inBrand = 0;
+    for (const it of lst) if (it._brandWordSet instanceof Set && it._brandWordSet.has(t)) inBrand++;
+    if (inBrand && inBrand < lst.length / 5) titleOnlyToks.push({ t, forms: new Set(matchFormsFor(t)) });
+  });
   if (windex && typeof windex.get === 'function' && !intent){
     const forms = new Set();
     for (let fi = 0; fi < toks.length; fi++){
@@ -11361,6 +11658,11 @@ function rankCatalogMatches(pool, query, opts){
   if (finKind === 'dive') candidates = candidates.filter(isDiveFinProduct);
   else if (finKind === 'surf') candidates = candidates.filter(isSurfFinProduct);
   if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
+  /* A caller's sense filter (search.html's word-sense rules: "mouse"
+     is a computer mouse, "tv" a television) narrows BEFORE scoring, so
+     the right sense is never starved out of the top results by the
+     wrong one. */
+  if (opts && typeof opts.filter === 'function') candidates = candidates.filter(opts.filter);
   /* BRAND HARD FILTER (2026-10-03): the constraint never leaks -- a
      brand search shows that brand's products only. */
   if (brandKey) candidates = candidates.filter(it => it && searchBrandKey(it.brand) === brandKey);
@@ -11414,6 +11716,11 @@ function rankCatalogMatches(pool, query, opts){
     if (retailerToks){ words = new Set(words); for (const t of retailerToks) words.add(t); }
     const hits = catalogTokenHitsWithFuzzy(words, toks, fuzzySets);
     if (!hits) continue;
+    if (titleOnlyToks.length && item._brandWordSet instanceof Set && titleOnlyToks.some(({ t, forms }) => {
+      if (!item._brandWordSet.has(t)) return false;
+      for (const w of catalogTitleWords(item)) if (forms.has(w)) return false;
+      return true;
+    })) continue;
     /* MULTI-WORD QUERIES ARE AND, NOT OR (2026-09-28, Danny): tapping
        "MacBook Air" returned Nike products because the lone word "air"
        matched. When the query has more than one token, every token has
@@ -11431,12 +11738,23 @@ function rankCatalogMatches(pool, query, opts){
     }
     if (hits === toks.length) exact++; else partial++;
     let itemScore = scoreCatalogItem(item, toks, weights, words, fuzzySets);
+    if (literalForms.size){
+      const noun = [...catalogHeadWords(item)].pop();
+      if (noun && literalForms.has(noun)) itemScore += LITERAL_HEAD_BOOST;
+      else for (const w of catalogTitleWords(item)) if (literalForms.has(w)){ itemScore += LITERAL_TITLE_BOOST; break; }
+    }
     /* Gender preference boost (see above): a title positively signalling
        the queried gender outranks an unmarked one. Guarded — the test
        harness runs this slice without the chat helpers. */
     if (genderBoost && typeof titleAudience === 'function'){
       const aud = titleAudience(item.title || item.name || '');
-      if (aud && aud.gender === genderBoost) itemScore += GENDER_MATCH_BOOST;
+      /* "zapatos hombre" is men's shoes: a boys' shoe is the right
+         gender and the wrong person, unless the shopper asked for kids. */
+      if (aud && aud.gender === genderBoost && (kidQuery || (aud.age !== 'kids' && aud.age !== 'baby'))) itemScore += GENDER_MATCH_BOOST;
+    }
+    if (saleIntent){
+      const p = Number(item.price), o = Number(item.originalPrice);
+      if (p > 0 && o > p) itemScore += SALE_INTENT_BOOST * (1 + (1 - p / o));
     }
     scored.push({ item, score: itemScore });
   }
@@ -11559,8 +11877,11 @@ function catalogResultsAreThin(res){
    catalogue search that skipped this would return nothing for
    "pantalones" -- which is most of the bug being fixed. */
 async function catalogSearch(query, opts){
-  const t = translateQuery(query);
   const pool = await relatedPool();
+  /* Unknown words corrected to what they sound like FIRST, then the
+     Spanish layer: "chort" -> "short" -> "shorts". */
+  const fixed = soundCorrectQuery(translateQuery(query).query, pool && pool._windex);
+  const t = fixed.changed ? translateQuery(fixed.query) : translateQuery(query);
   /* HONEST EMPTY (2026-10-03): every catalogue fetch failed (dead
      signal, CDN hiccup) -- the pool is empty and the search would
      wrongly print "no tenemos 'X' en nuestro catalogo" as if we
@@ -11569,7 +11890,9 @@ async function catalogSearch(query, opts){
   if (typeof departmentCacheFailed !== 'undefined' && departmentCacheFailed)
     throw new Error('catalogue failed to load');
   const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers() });
-  return { ...res, asked: query, translated: t.query, changed: t.changed };
+  return { ...res, asked: query, translated: t.query, changed: t.changed || fixed.changed,
+    ...(fixed.changed ? { corrected: fixed.query } : {}),
+    ...(!res.items.length ? { suggestion: suggestSearchQuery(t.query, pool && pool._windex) } : {}) };
 }
 
 let relatedRendered = [];
@@ -11826,10 +12149,12 @@ function gymRatLeadRank(p){ return gymRatIsAccessory(p) ? 1 : 0; }
    feed defaults to cheapest door-to-door and this rail is answering a
    different question. */
 function renderMobileDealsRail(){
+  /* DANNY 2026-10-07: use carouselDiscountPct (handles regularPrice/wasPrice),
+       not raw originalPrice -- VS sale items were invisible in Ofertas. */
   const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
-      && Number(p.originalPrice) > Number(p.price) && hasRealImage(p))
-    .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
+      && carouselDiscountPct(p) > 0 && hasRealImage(p))
+    .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (carouselDiscountPct(b) - carouselDiscountPct(a)));
   /* The spread opens on five different shops; the interleave keeps it
      that way down the whole rail -- at most OFERTAS_MAX_RUN in a row
      from one retailer. */
@@ -12327,6 +12652,27 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      items is gone -- full price surfaces through explicit search, not
      browse. fancyLead (Miu Miu) stays: Danny's explicit per-rail call. */
   const picks = [...leadPicks, ...sale.slice(0, Math.max(0, max - leadPicks.length))];
+  /* LATINO DESIGNERS PRICE MIX (2026-10-07, Danny): accessible prices lead --
+     Peruvians can't afford $1000 Farfetch leading the rail. Cheap sale items
+     sort first (via cheapFirst); then a couple premium pieces sprinkle in at
+     fixed positions for feel, never leading. Opt-in via premiumMix: N. */
+  const premiumMixN = (opts && Number.isFinite(opts.premiumMix)) ? Math.max(0, Math.floor(opts.premiumMix)) : 0;
+  if (premiumMixN > 0 && Array.isArray(pool)){
+    const premiumByPrice = pool
+      .filter(p => p && inSet(p) && hasRealImage(p)
+        && Number.isFinite(Number(p.price)) && Number(p.price) >= 200)
+      .sort((a, b) => Number(b.price) - Number(a.price));
+    let inserted = 0;
+    for (const prem of premiumByPrice){
+      if (inserted >= premiumMixN) break;
+      const k = itemKey(prem);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const pos = Math.min(picks.length, 5 + inserted * 6);
+      picks.splice(pos, 0, prem);
+      inserted++;
+    }
+  }
   /* GRACEFUL FILL (2026-10-03, Danny): sales lead, always -- but when the
      sale slice holds fewer than RAIL_SALE_FILL_MIN items the shelf fills
      out with best sellers (non-sale) so the rail never renders near-empty.
@@ -12560,6 +12906,7 @@ const CATEGORY_RAILS = [
      via Farfetch US -- Farm Rio, Agua Bendita, PatBO, Johanna Ortiz,
      Silvia Tcherassi. Brand pills filter the feed; Todo is the default. */
   { key: 'latino_designers', label: 'Diseñadores Latinos', icon: '', stores: null, poolOnly: true,
+    cheapFirst: true, premiumMix: 2, /* DANNY 2026-10-07: $13-20 accessible leads, 2 premium for feel */
     blurb: 'El talento latino, sin salir de casa. Disenadores de Brasil y Colombia, comprados en Estados Unidos y entregados en Peru.',
     test: (p) => latinoDesignerOfItem(p) !== null,
     open: "openCatalog('department','latino_designers')" },
@@ -12674,7 +13021,7 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'ropa_interior', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['latino_designers', 'moms', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'women', 'men', 'mens_grooming', 'ropa_interior', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty']; /* latino_designers leads (Danny 2026-10-07): strongest sales, incl. $20 bikinis */
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* DANNY 2026-10-02 QA: the "L" letter pill looked terrible. Sleek gold
@@ -12833,6 +13180,8 @@ function paintCategoryRail(row){
    (categoryRailPicks / storeRailPicks) and one card (railCardHTML, brand
    + store on every card) -- the same pieces the front page uses. */
 let deptRailsRendered = {}; // railId -> picks
+let deptRailPools = {}; // railId -> full sorted pool ("Ver todo" expand)
+let railExpandTitles = {}; // railId -> overlay title
 
 function openDeptRailProduct(railId, idx){
   const p = (deptRailsRendered[railId] || [])[idx];
@@ -12843,18 +13192,74 @@ function openDeptRailProduct(railId, idx){
     { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
 }
 
+/* RAIL EXPAND (2026-10-07, Danny): every capped carousel gets a "Ver todo"
+   door. Tapping it opens a full-screen overlay with the rail's COMPLETE
+   sorted pool -- not just the carousel picks. Same order as the rail,
+   scrollable grid, back button to close. iPhone-first. */
+function openRailExpand(railId){
+  try{
+    const pool = deptRailPools[railId];
+    const picks = deptRailsRendered[railId];
+    const list = (Array.isArray(pool) && pool.length) ? pool
+      : (Array.isArray(picks) ? picks : []);
+    const bd = document.getElementById('railExpandBackdrop');
+    if (!bd) return;
+    const titleEl = document.getElementById('railExpandTitle');
+    const countEl = document.getElementById('railExpandCount');
+    const grid = document.getElementById('railExpandGrid');
+    if (titleEl) titleEl.textContent = railExpandTitles[railId] || 'Productos';
+    if (countEl) countEl.textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    if (grid){
+      grid.innerHTML = list.map((p, i) => railCardHTML(p,
+        `openRailExpandProduct('${jsAttr(railId)}',${i})`,
+        `data-rail-expand-card="${escapeHtml(railId)}" data-idx="${i}"`, {})).join('');
+    }
+    bd.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const sc = bd.querySelector('.railExpandScroll');
+    if (sc) sc.scrollTop = 0;
+  }catch(e){}
+}
+function closeRailExpand(){
+  try{
+    const bd = document.getElementById('railExpandBackdrop');
+    if (bd) bd.classList.add('hidden');
+    document.body.style.overflow = '';
+  }catch(e){}
+}
+function openRailExpandProduct(railId, idx){
+  const p = (deptRailPools[railId] || deptRailsRendered[railId] || [])[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
+}
+
 function deptRailSectionHTML(railId, ariaLabel, headHTML, picks, opts){
   if (!Array.isArray(picks) || !picks.length) return '';
+  opts = opts || {};
   deptRailsRendered[railId] = picks;
+  railExpandTitles[railId] = ariaLabel;
+  /* "Ver todo" door: when the caller passes the rail's full sorted pool,
+     the head gets a door into the full-screen expand overlay. Rails that
+     already have their own door (store rails -> "Ver tienda") skip it by
+     simply not passing fullList. */
+  const fullList = (Array.isArray(opts.fullList) && opts.fullList.length) ? opts.fullList : null;
+  if (fullList) deptRailPools[railId] = fullList;
+  const cardOpts = {};
+  for (const k in opts){ if (k !== 'fullList') cardOpts[k] = opts[k]; }
   const cards = picks.map((p, i) => railCardHTML(p,
     `openDeptRailProduct('${jsAttr(railId)}',${i})`,
-    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
+    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, cardOpts)).join('');
+  const door = (fullList && !opts.noExpandDoor)
+    ? `<button type="button" onclick="openRailExpand('${jsAttr(railId)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>`
+    : '';
   return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">
-    <div class="flex items-center justify-between gap-3 mb-3">${headHTML}</div>
+    <div class="flex items-center justify-between gap-3 mb-3">${headHTML}${door}</div>
     <div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div>
   </section>`;
 }
-
 function deptStoreRailHeadHTML(key){
   const r = (typeof retailerFor === 'function' && retailerFor(key)) || null;
   const label = (r && r.label) || key;
@@ -12886,7 +13291,7 @@ function surfSkateDeptRailsHTML(byRetailer){
       { demoteSockSales: true })
     .filter(isSale);
   blocks.push(deptRailSectionHTML('ss-ofertas', 'Ofertas en Surf & Skate',
-    deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos por tienda'), ofertas));
+    deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos por tienda'), ofertas, { fullList: merchSort(all.filter(isSale)) }));
   /* SALES-ONLY BROWSE (2026-10-03, Danny): the full-price "everything
      the markdown rail did not take" rail is gone -- browse blasts
      sales only. */
@@ -13037,14 +13442,14 @@ function motosDeptRailsHTML(items){
   if (helmets.length >= MOTO_TYPE_RAIL_MIN){
     const picks = categoryRailPicks(retailerKeys, helmets, helmets, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (picks.length) blocks.push(deptRailSectionHTML('motos-helmets', 'Cascos para moto',
-      deptMixedRailHeadHTML('Cascos', helmets.length + ' cascos'), picks));
+      deptMixedRailHeadHTML('Cascos', helmets.length + ' cascos'), picks, { fullList: helmets }));
   }
   /* Then everything on sale, biggest discount first. */
   const onSale = list.filter(rawItemOnSale).filter(it => motoTypeOf(it) !== 'helmets');
   if (onSale.length >= MOTO_TYPE_RAIL_MIN){
     const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (picks.length) blocks.push(deptRailSectionHTML('motos-sale', 'Motos en oferta',
-      deptMixedRailHeadHTML('En oferta', onSale.length + ' productos con descuento'), picks));
+      deptMixedRailHeadHTML('En oferta', onSale.length + ' productos con descuento'), picks, { fullList: onSale }));
   }
   /* Then one rail per moto type. CHEAP-FIRST (2026-10-01, Danny):
      Peruvians buy the affordable gear first — cheapest helmets lead,
@@ -13061,7 +13466,7 @@ function motosDeptRailsHTML(items){
     const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('motos-type-' + gkey, 'Motos ' + glabel,
-      deptMixedRailHeadHTML(glabel, aisle.length + ' ' + gsub), picks));
+      deptMixedRailHeadHTML(glabel, aisle.length + ' ' + gsub), picks, { fullList: aisle }));
   }
   return blocks.join('');
 }
@@ -13349,7 +13754,7 @@ function deptRetailerGearCarouselsHTML(items, sectionKey){
     if (picks && picks.length >= 4){
       var label = useLabel ? carouselCityStoreLabel(key) : (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'Tienda');
       blocks.push(deptRailSectionHTML('gear-' + sectionKey + '-' + key, label,
-        deptMixedRailHeadHTML(label, byStore[key].length + ' modelos'), picks));
+        deptMixedRailHeadHTML(label, byStore[key].length + ' modelos'), picks, { fullList: pool }));
     }
   }
   return blocks.join('');
@@ -13398,7 +13803,7 @@ function deptBrandCarouselsHTML(items, sectionKey){
           "brandRoomBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", deptLabel));
       } else {
         blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
-          deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+          deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks, { fullList: pool }));
       }
     }
   }
@@ -13658,7 +14063,7 @@ function brandCarouselsHTML(sectionKey, list, opts){
     const stores = new Set(pool.map(p => String(p.retailer || '').toLowerCase())).size;
     const sub = carouselCityModelos(pool.length) + (stores > 1 ? ' · ' + stores + ' tiendas' : '');
     blocks.push(deptRailSectionHTML(idp + '-brand-' + carouselCitySlug(b), b,
-      heads.railHead(b, sub, b), picks, { xl: true }));
+      heads.railHead(b, sub, b), picks, { xl: true, fullList: merchSort(pool) }));
   }
   /* SALES-ONLY BROWSE (2026-10-03): no brand had a sale -- the axis
      header stands down rather than standing over empty rails. */
@@ -13689,7 +14094,7 @@ function masMarcasHTML(sectionKey, list, opts){
   const label = (typeof opts.masMarcasLabel === 'string' && opts.masMarcasLabel) || 'Más marcas';
   const sub = tailBrands.length + ' marcas · ' + carouselCityModelos(pool.length);
   return deptRailSectionHTML(idp + '-brand-more', label,
-    heads.railHead(label, sub, ''), picks, { xl: true });
+    heads.railHead(label, sub, ''), picks, { xl: true, fullList: pool });
 }
 
 /* AXIS 2 — POR TIENDA: one carousel per retailer, below the brands.
@@ -13748,7 +14153,7 @@ function categoryCarouselsHTML(sectionKey, list, opts){
     if (!picks.length) continue;
     const sub = carouselCityModelos(e.pool.length) + (e.d.sub ? ' · ' + e.d.sub : '');
     blocks.push(deptRailSectionHTML(idp + '-cat-' + carouselCitySlug(e.d.key), e.d.label,
-      heads.railHead(e.d.label, sub, ''), picks, { xl: true }));
+      heads.railHead(e.d.label, sub, ''), picks, { xl: true, fullList: merchSort(e.pool) }));
   }
   return blocks.join('');
 }
@@ -13778,7 +14183,7 @@ function carouselCityRailsHTML(sectionKey, items, opts){
       if (picks.length){
         const label = (typeof opts.ofertasLabel === 'string' && opts.ofertasLabel) || 'Ofertas';
         blocks.push(deptRailSectionHTML(idp + '-ofertas', label,
-          heads.railHead(label, onSale.length + ' con descuento real', ''), picks));
+          heads.railHead(label, onSale.length + ' con descuento real', ''), picks, { fullList: onSale }));
       }
     }
   }
@@ -13956,13 +14361,13 @@ function clothingDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('clothing-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return clothingIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('clothing-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14139,7 +14544,7 @@ function curvyDeptRailsHTML(items){
   var sales = valid.filter(function(p){ return curvyIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas Curvy',
-      deptMixedRailHeadHTML('Ofertas Curvy', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas Curvy', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   /* 2. ONE CAROUSEL PER STORE -- lead stores first, then biggest. */
@@ -14169,7 +14574,7 @@ function curvyDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('curvy-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), curvyPicks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), curvyPicks(thin, null), { fullList: merchSort(thin) }));
   }
 
   return out.join('');
@@ -14331,13 +14736,13 @@ function kidsDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('kids-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return kidsIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('kids-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14499,13 +14904,13 @@ function menDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('men-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return menIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('men-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14675,13 +15080,13 @@ function womenDeptRailsHTML(items){
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('women-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null), { fullList: merchSort(thin) }));
   }
 
   var sales = valid.filter(function(p){ return womenIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
     out.push(deptRailSectionHTML('women-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   return out.join('');
@@ -14914,7 +15319,7 @@ function pursesDeptRailsHTML(items){
     var salePicks = categoryRailPicks(_swKeys, onSale, onSale, noKeys, railTotal, { saleHeavy: true });
     if (salePicks.length)
       blocks.push(deptRailSectionHTML('purses-sale', 'Carteras en oferta',
-        deptMixedRailHeadHTML('En oferta', onSale.length + ' carteras con descuento'), salePicks));
+        deptMixedRailHeadHTML('En oferta', onSale.length + ' carteras con descuento'), salePicks, { fullList: merchSort(onSale) }));
   }
 
   /* 3) One rail per bag type, sale-led within the type. */
@@ -14940,7 +15345,7 @@ function pursesDeptRailsHTML(items){
     var picks = categoryRailPicks(_swKeys2, aisle, aisle, noKeys, railTotal);
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('purses-type-' + group.key, 'Carteras ' + group.label,
-      deptMixedRailHeadHTML(group.label, aisle.length + ' carteras'), picks));
+      deptMixedRailHeadHTML(group.label, aisle.length + ' carteras'), picks, { fullList: merchSort(aisle) }));
   }
   return blocks.join('');
 }
@@ -15085,7 +15490,7 @@ function booksDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('bk-ofertas', 'Ofertas en Libros',
-        deptMixedRailHeadHTML('Ofertas en Libros', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Libros', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15188,7 +15593,7 @@ function candyChocolateDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('cc-ofertas', 'Ofertas en Dulces y Chocolates',
-        deptMixedRailHeadHTML('Ofertas en Dulces y Chocolates', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Dulces y Chocolates', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15291,7 +15696,7 @@ function electronicsDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('elec-ofertas', 'Ofertas en Electr\u00f3nica',
-        deptMixedRailHeadHTML('Ofertas en Electr\u00f3nica', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Electr\u00f3nica', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15394,7 +15799,7 @@ function homeDecorDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('hd-ofertas', 'Ofertas en Decoraci\u00f3n',
-        deptMixedRailHeadHTML('Ofertas en Decoraci\u00f3n', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Decoraci\u00f3n', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15497,7 +15902,7 @@ function homeGoodsDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('hg-ofertas', 'Ofertas en Hogar',
-        deptMixedRailHeadHTML('Ofertas en Hogar', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Hogar', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15604,7 +16009,7 @@ function mensGroomingDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('mg-ofertas', 'Ofertas en Cuidado Masculino',
-        deptMixedRailHeadHTML('Ofertas en Cuidado Masculino', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Cuidado Masculino', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15756,7 +16161,7 @@ function partyDeptRailsHTML(items, noKeys){
     var salePicks = categoryRailPicks(_swKeys, sales, sales, noKeys, total, { saleHeavy: true });
     if (salePicks && salePicks.length){
       blocks.push(deptRailSectionHTML('ap-ofertas', 'Ofertas en Aria Party',
-        deptMixedRailHeadHTML('Ofertas en Aria Party', sales.length + ' productos en descuento'), salePicks));
+        deptMixedRailHeadHTML('Ofertas en Aria Party', sales.length + ' productos en descuento'), salePicks, { fullList: merchSort(sales) }));
     }
   }
   var counts = {};
@@ -15864,7 +16269,7 @@ function autoPartsDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('auto-parts-ofertas', 'Ofertas Repuestos', saleHead, salePicks);
+    html += deptRailSectionHTML('auto-parts-ofertas', 'Ofertas Repuestos', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -15959,7 +16364,7 @@ function combatSportsDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('combat-sports-ofertas', 'Ofertas Fight Club', saleHead, salePicks);
+    html += deptRailSectionHTML('combat-sports-ofertas', 'Ofertas Fight Club', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16055,7 +16460,7 @@ function gymRatDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('gym-rat-ofertas', 'Ofertas Gym Rat', saleHead, salePicks);
+    html += deptRailSectionHTML('gym-rat-ofertas', 'Ofertas Gym Rat', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16156,7 +16561,7 @@ function soccerDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('soccer-ofertas', 'Ofertas F\u00fatbol', saleHead, salePicks);
+    html += deptRailSectionHTML('soccer-ofertas', 'Ofertas F\u00fatbol', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16248,7 +16653,7 @@ function spearfishingDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('spearfishing-ofertas', 'Ofertas Pesca Submarina', saleHead, salePicks);
+    html += deptRailSectionHTML('spearfishing-ofertas', 'Ofertas Pesca Submarina', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16341,7 +16746,7 @@ function sportingGoodsDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('sporting-goods-ofertas', 'Ofertas Deportes', saleHead, salePicks);
+    html += deptRailSectionHTML('sporting-goods-ofertas', 'Ofertas Deportes', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16486,7 +16891,7 @@ function tennisDeptRailsHTML(items){
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
       : '';
-    html += deptRailSectionHTML('tennis-ofertas', 'Ofertas Tenis', saleHead, salePicks);
+    html += deptRailSectionHTML('tennis-ofertas', 'Ofertas Tenis', saleHead, salePicks, { fullList: merchSort(saleItems) });
   }
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
      generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
@@ -16505,7 +16910,7 @@ function shoesDeptRailsHTML(items){
   if (onSale.length >= SHOES_TYPE_RAIL_MIN){
     const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL);
     if (picks.length) blocks.push(deptRailSectionHTML('shoes-sale', 'Zapatos en oferta',
-      deptMixedRailHeadHTML('En oferta', onSale.length + ' pares con descuento'), picks));
+      deptMixedRailHeadHTML('En oferta', onSale.length + ' pares con descuento'), picks, { fullList: merchSort(onSale) }));
   }
   /* Then one rail per shoe type, sale-led within the type. */
   for (const g of SHOE_TYPE_GROUPS){
@@ -16514,7 +16919,7 @@ function shoesDeptRailsHTML(items){
     const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('shoes-type-' + g.key, 'Zapatos ' + g.label,
-      deptMixedRailHeadHTML(g.label, aisle.length + ' pares'), picks));
+      deptMixedRailHeadHTML(g.label, aisle.length + ' pares'), picks, { fullList: merchSort(aisle) }));
   }
   return blocks.join('');
 }
@@ -16529,7 +16934,7 @@ function jewelryDeptRailsHTML(items){
     const picks = categoryRailPicks(_swKeys, aisle, aisle, new Set(), CATEGORY_RAIL_TOTAL);
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('jewelry-theme-' + theme.key, theme.label,
-      deptMixedRailHeadHTML(theme.label, aisle.length + ' productos'), picks));
+      deptMixedRailHeadHTML(theme.label, aisle.length + ' productos'), picks, { fullList: merchSort(aisle) }));
   }
   return blocks.join('');
 }
@@ -17084,7 +17489,7 @@ function brandStripTileHTML(b){
     ? `<span class="brandTile-logo"><img src="${logo.src}" alt="${label}" loading="lazy" decoding="async"
          onerror="this.closest('.brandTile-logo').style.display='none'"></span>`
     : '';
-  return `<button type="button" onclick="openCatalog('brand','${jsAttr(b.key)}')" data-brand-strip-item="${escapeHtml(b.key)}"
+  return `<button type="button" onclick="brandJump('${jsAttr(b.key)}')" data-brand-strip-item="${escapeHtml(b.key)}"
     class="brandTile${logo && logo.dark ? ' brandTile--dark' : ''}{logo && logo.navy ? ' brandTile--navy' : ''} focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]">
     ${logoHTML}
     <span class="brandTile-name">${label}</span>
@@ -17169,12 +17574,15 @@ function paintTiendasStrip(){
 function visibleSection(sel){
   return [...document.querySelectorAll(sel)].find(e => e.offsetWidth || e.offsetHeight) || null;
 }
-/* Logo tap: a store with a homepage rail scrolls to it; a catalogue-only store
-   opens its storefront page instead. */
+/* STORE TILE TAP (2026-10-07, Danny): a store tile always opens the store's
+   dedicated page -- no more scrolling to an inline rail. */
 function tiendaJump(key){
-  const rail = visibleSection('[data-store-rail="' + key + '"]');
-  if (rail){ rail.scrollIntoView({behavior:"smooth", block:"start"}); return; }
-  openStore(key);
+  location.href = 'tienda.html?tienda=' + encodeURIComponent(key);
+}
+/* BRAND TILE TAP (2026-10-07, Danny): a brand tile always opens the brand's
+   dedicated page -- no more in-page catalog view. */
+function brandJump(key){
+  location.href = 'marca.html?marca=' + encodeURIComponent(key);
 }
 /* Entry tiles: the shopper's first decision, directly under Ofertas. */
 function entryJump(where){
@@ -18761,11 +19169,16 @@ function brandRoomBrandFilter(brand){
 function brandRoomDeptSectionHTML(railId, ariaLabel, spec, pool, picks, onclickJs, kicker, opts){
   if (!Array.isArray(picks) || !picks.length) return '';
   deptRailsRendered[railId] = picks;
+  railExpandTitles[railId] = ariaLabel;
+  if (Array.isArray(pool) && pool.length) deptRailPools[railId] = pool;
   const cards = picks.map((p, i) => railCardHTML(p,
     `openDeptRailProduct('${jsAttr(railId)}',${i})`,
     `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
   const banner = brandRoomBannerHTML(spec, pool, { kicker: kicker, onclick: onclickJs });
-  return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">${banner}<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div></section>`;
+  const door = (Array.isArray(pool) && pool.length)
+    ? `<div class="flex justify-end mt-2"><button type="button" onclick="openRailExpand('${jsAttr(railId)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button></div>`
+    : '';
+  return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">${banner}<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div>${door}</section>`;
 }
 
 
@@ -19216,7 +19629,7 @@ function catalogSearchBarHTML(){
    biggest MEANINGFUL sales (never a meaningless markdown), then runs
    non-sale with the remaining sales spread through, never clumped.
    ============================================================ */
-const CAROUSEL_MAX = 16;
+const CAROUSEL_MAX = 20;
 const CAROUSEL_MIN_ITEMS = 4;
 function carouselItemKey(it){
   const img = it && (it.image || it.imageUrl || it.thumbnail);
@@ -19296,6 +19709,22 @@ function carouselPhotoFirst(list){
   for (const it of list) (carouselHasPhoto(it) ? withPhoto : withoutPhoto).push(it);
   return withPhoto.concat(withoutPhoto);
 }
+/* FILL ELIGIBILITY (2026-10-07, Danny): carousels must have 15-20 items.
+   Sales always lead; non-sale items fill remaining slots. Fill bar:
+   real photo + not a trivial accessory (same trivial patterns as sales).
+   Sorted hero-price first so the fill looks intentional, not leftover. */
+function carouselFillEligible(it){
+  if (!carouselHasPhoto(it)) return false;
+  const hay = (it.type || '') + ' ' + (it.title || it.name || '');
+  for (const re of CAROUSEL_TRIVIAL_LEAD_PATTERNS){
+    if (re.test(hay)) return false;
+  }
+  return true;
+}
+function carouselPriceOf(it){
+  const p = Number(it && (it.price ?? it.effectivePrice ?? it.currentPrice ?? it.salePrice));
+  return Number.isFinite(p) ? p : 0;
+}
 function carouselSpreadSales(plain, sales){
   const out = [];
   let si = 0;
@@ -19358,6 +19787,30 @@ function carouselPickItems(items, max, leadRank){
       .concat(carouselPhotoFirst(otherSales), carouselPhotoFirst(flagged));
     return sales;
   };
+  /* FILL TO LIMIT (2026-10-07, Danny): sales always lead, then
+     non-sale items fill remaining slots so every carousel has 15-20
+     items. Fill runs its own retailer/brand interleave so diversity
+     holds within the fill band; sales order is never disturbed. */
+  const fillToLimit = (picked, sourceLists) => {
+    const pickedKeys = new Set(picked.map(carouselItemKey));
+    const need = limit - picked.length;
+    if (need <= 0) return picked;
+    const fillPool = [];
+    for (const src of sourceLists){
+      for (const it of (src || [])){
+        if (!it) continue;
+        if (itemSaleTier(it) !== 0) continue;
+        if (!carouselFillEligible(it)) continue;
+        if (pickedKeys.has(carouselItemKey(it))) continue;
+        fillPool.push(it);
+      }
+    }
+    fillPool.sort((a, b) => carouselPriceOf(b) - carouselPriceOf(a));
+    const fillMixed = interleaveBrandCap(
+      interleaveRetailerCap(carouselPhotoFirst(fillPool), CATEGORY_MAX_RUN).items,
+      BRAND_MAX_RUN);
+    return picked.concat(fillMixed.slice(0, need));
+  };
   /* GEAR LEAD (2026-09-30, Danny): complete products get their own
      merchandising run before parts -- a sale on a $7 wishbone must not
      put it ahead of the spearguns. Without a lead rank the behavior is
@@ -19369,12 +19822,12 @@ function carouselPickItems(items, max, leadRank){
     /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
   const _combined = merchandised(complete).concat(merchandised(parts));
   const _brandMixed = interleaveBrandCap(interleaveRetailerCap(_combined, CATEGORY_MAX_RUN).items, BRAND_MAX_RUN);
-  return _brandMixed.slice(0, limit);
+  return fillToLimit(_brandMixed.slice(0, limit), [complete, parts]);
   }
   /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
   const _merch = merchandised(deduped);
   const _brandMixed2 = interleaveBrandCap(interleaveRetailerCap(_merch, CATEGORY_MAX_RUN).items, BRAND_MAX_RUN);
-  return _brandMixed2.slice(0, limit);
+  return fillToLimit(_brandMixed2.slice(0, limit), [deduped]);
 }
 /* OFERTAS INTERLEAVING (Danny 2026-09-30): Ofertas must show variety -- not 100 women's
    items in a row. Round-robin through categories: best women's sale, best electronics
@@ -19881,7 +20334,7 @@ function toysDeptRailsHTML(items){
           "toysBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", 'Juguetes'));
       } else {
         blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
-          deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
+          deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks, { fullList: pool }));
       }
     }
   });
@@ -19895,7 +20348,7 @@ function toysDeptRailsHTML(items){
     });
     var salePicks = categoryRailPicks(retailerKeys, byDisc, byDisc, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
     if (salePicks.length) blocks.push(deptRailSectionHTML('toys-ofertas', 'Juguetes en oferta',
-      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), salePicks));
+      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), salePicks, { fullList: byDisc }));
   }
   return blocks.join('');
 }
@@ -21613,6 +22066,22 @@ async function openStore(retailer){
       kicker: __storeLabel,
       heroImage: (typeof GALLERY_HERO_IMAGES !== 'undefined' && GALLERY_HERO_IMAGES.ofertas) || null,
     });
+  } else {
+    /* DANNY 2026-10-07: no sales -> "Destacados" leads with hero products (priciest first). */
+    const __allItems = [];
+    for (const [, __items] of deptEntries){ for (const __it of __items || []) __allItems.push(__it); }
+    __allItems.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    const __featured = __allItems.slice(0, CAROUSEL_MAX);
+    if (__featured.length >= CAROUSEL_MIN_ITEMS){
+      galleryHTML += storeGalleryRoomHTML({
+        label: 'Destacados',
+        items: __featured,
+        retailer,
+        onclick: `openCatalog('department','all',{retailerFilter:'${jsAttr(retailer)}'})`,
+        kicker: __storeLabel,
+        heroImage: (typeof GALLERY_HERO_IMAGES !== 'undefined' && GALLERY_HERO_IMAGES.destacados) || null,
+      });
+    }
   }
   /* One room per department the store actually carries. */
   /* Map department keys/labels to hero images where available. */
@@ -22945,7 +23414,13 @@ function emptySearchFeedHTML(){
     return `<div class="col-span-full text-[13px] text-zinc-500 py-6">Ningún resultado de las tiendas seleccionadas. Activa más tiendas en los filtros.</div>`;
   }
   const q = liveScrapeQuery ? `“${escapeHtml(liveScrapeQuery)}”` : 'eso';
-  return `<div class="col-span-full text-[13px] text-zinc-500 py-6">No tenemos ${q} en nuestro catálogo todavía.</div>`;
+  /* NEVER A DEAD END (2026-10-07): the closest words the catalogue
+     actually uses, one tap away. */
+  const sug = catalogMatch && catalogMatch.suggestion;
+  const dym = sug && sug !== liveScrapeQuery
+    ? ` ¿Quisiste decir <button type="button" class="underline font-bold" onclick="showResults(${escapeHtml(JSON.stringify(sug))})">${escapeHtml(sug)}</button>?`
+    : '';
+  return `<div class="col-span-full text-[13px] text-zinc-500 py-6">No tenemos ${q} en nuestro catálogo todavía.${dym}</div>`;
 }
 
 /* ============================================================
@@ -23631,6 +24106,8 @@ async function showResults(query, opts = {}){
   if (liveScrapeQuery !== query) return;
   catalogMatch = res;
   searchResults = res.items.slice();
+  /* Said the way Google says it when a word was corrected. */
+  if (res.corrected) document.getElementById('prodSpec').textContent = `Mostrando resultados para “${res.corrected}”`;
 
   renderSearchResults();
   lastSearch = { query, items: searchResults.slice(), catalog: catalogMatch, liveState: liveSearchState };
@@ -24128,11 +24605,8 @@ function openSizeGuide(){
   document.getElementById('sizeGuideTitle').textContent = sizeGuideCurrent.title;
   document.getElementById('sizeGuideSub').textContent = sizeGuideCurrent.sub;
   const srcEl = document.getElementById('sizeGuideSource');
-  if (sizeGuideCurrent.source){
-    srcEl.innerHTML = 'Fuente: <a href="' + sizeGuideCurrent.source + '" target="_blank" rel="noopener" class="underline">tabla oficial de la marca</a>';
-  } else {
-    srcEl.textContent = 'Tabla general de referencia — verifica la tabla de la marca en su tienda.';
-  }
+  /* DANNY 2026-10-07: no outbound links anywhere -- brand source attribution removed. */
+  srcEl.textContent = 'Tabla general de referencia — verifica la tabla de la marca en su tienda.';
   document.getElementById('sizeGuideTabs').innerHTML = sizeGuideCurrent.tabs.map(t =>
     '<button type="button" role="tab" aria-selected="' + (t.id === sizeGuideCurrent.activeTab) + '" data-sg-tab="' + t.id + '" onclick="sizeGuideTab(\'' + t.id + '\')" class="h-11 px-4 rounded-full text-[13px] font-bold whitespace-nowrap focus-ring shrink-0">' + t.label + '</button>'
   ).join('');
@@ -25686,6 +26160,8 @@ const DEPT_THEMES = {
   sporting_goods: { attr: 'sporting_goods', glow: '#22C55E' },
   gym_rat: { attr: 'gym_rat', glow: '#D4A24C' },
   combat_sports: { attr: 'combat_sports', glow: '#B91C1C' },
+  /* DISEÑADORES LATINOS (2026-10-07, Danny): tropical island aqua. */
+  latino_designers: { attr: 'latino_designers', glow: '#5BC8C0' },
   auto_parts: { attr: 'auto_parts', glow: '#F59E0B' },
 };
 /* Every department WITHOUT its own row above lands here: a soft
@@ -26837,6 +27313,8 @@ const BEAUTY_IMPOSTOR_RE =
 /* Ordered most specific first — the first row whose pattern matches wins,
    exactly like BULKY_WEIGHT_ESTIMATES_KG. `kg` is the shipped weight;
    `pack` selects the (currently zero) allowance above. */
+/* Shared gift-set pattern: used by the BEAUTY_FALLBACK_KG row and the sanity band below. */
+const BEAUTY_GIFTSET_RE = /\b(gift set|set de regalo|beauty gift set|spa gift set|bath gift set|body care gift set|cofre de belleza)\b/i;
 const BEAUTY_FALLBACK_KG = [
   /* --- eyes --------------------------------------------------- */
   // A pro palette states its pan count or calls itself "pro"/"XL". Read
@@ -26917,6 +27395,8 @@ const BEAUTY_FALLBACK_KG = [
   { key: "loción / crema corporal",
     match: /\b(body lotion|body cream|body butter|hand cream|loci[óo]n corporal|crema corporal|manteca corporal|crema de manos)\b/i,
     kg: 0.35, pack: "carton", refMl: 236 },
+   /* Gift sets (2026-10-07, Danny): the 30-piece Lovery spa case rendered at the 0.05 kg beauty default, underquoting freight ~25x. Reasoned, conservative: ~350 g case + ~30 items. */
+   { key: "set de regalo (belleza)",     match: BEAUTY_GIFTSET_RE,     kg: 1.30, pack: "carton" }, 
 ];
 
 /* PERFUME sizes its own row: the bottle is most of the weight and the
@@ -27033,6 +27513,8 @@ const BEAUTY_BAND_KG = [0.02, 0.6];
 function beautyBandKg(title) {
   const t = String(title || "");
   if (!beautyRowFor(t) && !PERFUME_RE.test(t)) return null;
+  /* Gift sets are kilos, not grams: the flat [0.02, 0.6] beauty band would fail a 1.3 kg case closed (2026-10-07, Danny). */
+  if (BEAUTY_GIFTSET_RE.test(t)) return [0.4, 2.5];
   const ml = titleVolumeMl(t);
   if (ml == null || ml <= 0) return BEAUTY_BAND_KG;
   const contents = ml / 1000;
@@ -33035,8 +33517,38 @@ async function runSalesScan(){
       try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
     } catch { /* the lite feed stands on its own */ }
   };
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(() => { mergeFullFeed().catch(() => {}); }, { timeout: 20000 });
-  else setTimeout(() => { mergeFullFeed().catch(() => {}); }, 10000);
+  /* VICTORIA'S SECRET DEALS (2026-10-07, Danny): VS sale items live in
+     beauty-catalog.json with the was-price as `regularPrice`, not
+     `originalPrice` -- the server-side sales pipeline never sees them (it
+     only scrapes 12 sources, no beauty). This lightweight feed (646 items,
+     ~300KB, pre-extracted) merges them into the sale cache on idle, and
+     OFERTAS_LEAD_BRANDS already puts victoriassecret first. */
+  let vsDealsMerged = false;
+  const mergeVsDeals = async () => {
+    if (vsDealsMerged) return;
+    vsDealsMerged = true;
+    try {
+      const res = await fetchWithTimeout('/vs-deals.json', FETCH_DEADLINE_MS);
+      if (!res.ok) return;
+      const feed = await res.json();
+      if (!Array.isArray(feed.items)) return;
+      const seen = new Set([...scraped, ...fromFiles].map(p => `${p.retailer || ''}::${p.title || ''}`));
+      let added = false;
+      for (const it of feed.items){
+        const k = `${it.retailer || ''}::${it.title || ''}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        fromFiles.push(it);
+        added = true;
+      }
+      if (!added) return;
+      saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
+      renderSalesRails();
+      try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
+    } catch { /* the feed stands on its own */ }
+  };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(() => { mergeFullFeed().catch(() => {}); mergeVsDeals().catch(() => {}); }, { timeout: 20000 });
+  else setTimeout(() => { mergeFullFeed().catch(() => {}); mergeVsDeals().catch(() => {}); }, 10000);
   /* The catalogue's own markdowns join the feed once it arrives -- on
      idle, never at boot: the fast paint above is the whole point, and a
      fresh API cache already carries these deals. The same idle pass
@@ -35696,7 +36208,7 @@ async function routeSalesIntent(text){
   let brands = null;
   try { brands = await chatBrandIndex(); } catch(e){ brands = null; }
   const brandHit = findBrandMention(text, brands || []);
-  if (brandHit && brandHit.count > 0) return { action: 'brand', key: brandHit.key, label: brandHit.label };
+  if (brandHit && brandHit.count > 0) return { action: 'brand', key: brandHit.key, label: brandHit.label, count: brandHit.count };
   return { action: 'ofertas' };
 }
 /* Navigation intent in ES/EN: the shopper wants to walk into the store,
@@ -36214,6 +36726,20 @@ async function runAgentLoop(text, recipient, ui){
   return false;
 }
 
+/* An answer that is a door: the line, the button under it, the turn
+   closed -- the panel stays open and the page never moves until the
+   shopper taps. Mirrors the navigation router's in-chat answer. */
+function answerInChatWithDoor(line, addDoor, statusEl, prevStatus){
+  hideAssistantTyping();
+  setOrbState('idle');
+  addAssistantMessage('bot', line, null, { speak: false });
+  ariaChatHistory.push({ role: 'assistant', content: line });
+  try { addDoor(); } catch (e) { /* the line alone still answers */ }
+  if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+  assistantThinking = false;
+  reopenMicForRetry();
+}
+
 async function runAssistantBrain(text){
   /* NEVER DURING A LIVE CALL. (2026-10-06, Danny: "I can even hear the
      noise of the button being pressed down even though I'm not pressing
@@ -36258,16 +36784,14 @@ async function runAssistantBrain(text){
   if (shoeGender){
     const deptKey = shoeGender === 'women' ? 'shoes_women' : 'shoes_men';
     const deptLabel = shoeGender === 'women' ? 'Zapatos de Mujer' : 'Zapatos de Hombre';
-    const shoeLine = `\u00a1Claro! Te llevo a ${deptLabel} \u2014 las ofertas van primero.`;
-    addAssistantMessage('bot', shoeLine, null, { speak: false });
-    /* The line is on screen; nothing speaks it. The TTS fetch here
-       was renamed to a 404 rather than removed, so it still cost a
-       round trip to learn that. */
-    dismissAssistantForNavigation();
-    continuousMode = false;
-    openCatalog('department', deptKey);
-    assistantThinking = false;
-    if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
+    const shoeLine = `\u00a1Claro! Aqu\u00ed tienes ${deptLabel} \u2014 las ofertas van primero.`;
+    /* THE CHAT NEVER LEAVES ON ITS OWN (2026-10-08, live-site bug). This
+       used to call openCatalog() straight away, and since the
+       2026-10-05 nav override that is a full page load: the shopper's
+       message vanished mid-turn. The answer stays in the chat with a
+       door; the shopper decides when to walk through it. */
+    answerInChatWithDoor(shoeLine, () => addAssistantSectionOffer(deptLabel, 'Las ofertas van primero', 'department', deptKey),
+      statusEl, prevStatus);
     return;
   }
   if (SALE_KEYWORDS.some(k => lowerText.includes(k)) || /\bsales?\b/i.test(text)) {
@@ -36283,19 +36807,18 @@ async function runAssistantBrain(text){
        sales intent keeps the old generic path below. */
     const salesTarget = await routeSalesIntent(text);
     const salesLine = salesTarget.label
-      ? `¡Claro! Te llevo a las ofertas de ${salesTarget.label}.`
+      ? `¡Claro! Aquí tienes las ofertas de ${salesTarget.label}.`
       : '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
-    addAssistantMessage('bot', salesLine, null, { speak: false });
-    /* The line is on screen; nothing speaks it. The TTS fetch here
-       was renamed to a 404 rather than removed, so it still cost a
-       round trip to learn that. */
-    if (salesTarget.action === 'store') openStore(salesTarget.key);
-    else if (salesTarget.action === 'brand') openCatalog('brand', salesTarget.key);
-    else goSales();
-    dismissAssistantForNavigation();
-    continuousMode = false; // navigating away ends the voice conversation
-    assistantThinking = false;
-    if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+    /* THE CHAT NEVER LEAVES ON ITS OWN (2026-10-08, live-site bug):
+       "ofertas" in ANY message used to call goSales(), which the
+       2026-10-05 nav override turned into a full load of /ofertas.html
+       -- the message vanished and the chat died. The answer stays here
+       with a door to the right page. */
+    answerInChatWithDoor(salesLine, () => {
+      if (salesTarget.action === 'store') addAssistantStoreOffer(salesTarget.key, salesTarget.label);
+      else if (salesTarget.action === 'brand') addAssistantBrandOffer(salesTarget.key, salesTarget.label, salesTarget.count || 0);
+      else addAssistantSectionOffer('Ofertas', 'Las mejores ofertas y liquidaciones de hoy', 'department', 'sale');
+    }, statusEl, prevStatus);
     return;
   }
 
@@ -39029,30 +39552,44 @@ async function executeRealtimeTool(name, args){
     }
 
     const matches = (res && res.items) || [];
+    /* VOICE-SCOOP FIX (2026-10-07): itemSaleTier() > 0 already validates
+       the sale -- Tier 2 is a measured % off, Tier 1 is the merchant's own
+       sale flag. The old extra check on it.originalPrice wrongly dropped
+       Tier 1 items, whose normalized originalPrice is null by design
+       (normalizeLiveItem only stamps it when the discount is measurable).
+       That is how real on-sale products became invisible to the voice. */
     const onSale = matches.filter(it =>
       it && itemSaleTier(it) > 0
-      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
-      && Number(it.originalPrice) > Number(it.price));
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0);
 
     /* Best deal per store, deepest discount first. */
     const bestPerStore = new Map();
     for (const it of onSale){
       const store = it.retailer || 'tienda';
       const prev = bestPerStore.get(store);
-      if (!prev || discountPct(it) > discountPct(prev)) bestPerStore.set(store, it);
+      if (!prev || carouselDiscountPct(it) > carouselDiscountPct(prev)) bestPerStore.set(store, it);
     }
     const deals = [...bestPerStore.values()]
-      .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (discountPct(b) - discountPct(a)))
+      .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (carouselDiscountPct(b) - carouselDiscountPct(a)))
       .slice(0, 5)
-      .map(it => ({
-        title: String(it.title || '').slice(0, 90),
-        store: it.retailer,
-        /* Both prices and the percentage, so she never has to work out
-           a discount out loud. */
-        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
-        now_usd: Math.round(Number(it.price) * 100) / 100,
-        discount_pct: discountPct(it),
-      }));
+      .map(it => {
+        /* carouselDiscountPct reads every original-price field the feed may
+           carry (regularPrice/wasPrice/originalPrice); the old discountPct()
+           only read it.originalPrice and returned NaN for Tier 1 flagged
+           sales. A null pct means "on sale, no measurable %" -- honest,
+           never invented. */
+        const pct = carouselDiscountPct(it);
+        const wasNum = Number(it.originalPrice);
+        return {
+          title: String(it.title || '').slice(0, 90),
+          store: it.retailer,
+          /* Both prices and the percentage, so she never has to work out
+             a discount out loud. */
+          was_usd: Number.isFinite(wasNum) && wasNum > 0 ? Math.round(wasNum * 100) / 100 : null,
+          now_usd: Math.round(Number(it.price) * 100) / 100,
+          discount_pct: pct > 0 ? pct : null,
+        };
+      });
 
     if (!deals.length){
       return { topic, deals: [],
@@ -39123,10 +39660,13 @@ async function executeRealtimeTool(name, args){
       }
     }
 
+    /* VOICE-SCOOP FIX (2026-10-07): same as get_sale_scoop above --
+       itemSaleTier() > 0 already validates the sale; the old
+       it.originalPrice check dropped Tier 1 merchant-flagged sales whose
+       normalized originalPrice is null by design. */
     const onSale = (pool || []).filter(it =>
       it && itemSaleTier(it) > 0
-      && Number.isFinite(Number(it.price)) && Number(it.price) > 0
-      && Number(it.originalPrice) > Number(it.price));
+      && Number.isFinite(Number(it.price)) && Number(it.price) > 0);
 
     /* One best deal per category, so the categories she names are
        different rubros and not three cuts of the same rail. */
@@ -39135,19 +39675,23 @@ async function executeRealtimeTool(name, args){
       const cat = realtimeSaleCategory(it);
       if (!cat) continue;
       const prev = bestPerCat.get(cat);
-      if (!prev || discountPct(it) > discountPct(prev)) bestPerCat.set(cat, it);
+      if (!prev || carouselDiscountPct(it) > carouselDiscountPct(prev)) bestPerCat.set(cat, it);
     }
     const categories = [...bestPerCat.entries()]
-      .sort((a, b) => discountPct(b[1]) - discountPct(a[1]))
+      .sort((a, b) => carouselDiscountPct(b[1]) - carouselDiscountPct(a[1]))
       .slice(0, 3)
-      .map(([cat, it]) => ({
-        category: cat,
-        store: it.retailer,
-        best_discount_pct: discountPct(it),
-        example: String(it.title || '').slice(0, 90),
-        was_usd: Math.round(Number(it.originalPrice) * 100) / 100,
-        now_usd: Math.round(Number(it.price) * 100) / 100,
-      }));
+      .map(([cat, it]) => {
+        const pct = carouselDiscountPct(it);
+        const wasNum = Number(it.originalPrice);
+        return {
+          category: cat,
+          store: it.retailer,
+          best_discount_pct: pct > 0 ? pct : null,
+          example: String(it.title || '').slice(0, 90),
+          was_usd: Number.isFinite(wasNum) && wasNum > 0 ? Math.round(wasNum * 100) / 100 : null,
+          now_usd: Math.round(Number(it.price) * 100) / 100,
+        };
+      });
 
     if (!categories.length){
       return { categories: [],

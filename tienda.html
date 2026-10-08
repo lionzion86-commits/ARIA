@@ -32,9 +32,11 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 @media(min-width:1024px){.main-nav{display:flex}}
 .header-meta{font-size:13px;color:#6b7280;white-space:nowrap}
 /* ---- hero ---- */
-.hero{background:linear-gradient(135deg,var(--store) 0%,#0A1F44 70%);color:#fff;
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--store) 0%,#0A1F44 70%);color:#fff;
   padding:36px 12px 30px}
-.hero-inner{max-width:1240px;margin:0 auto}
+.hero .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;}
+.hero .hero-scrim{position:absolute;inset:0;background:linear-gradient(135deg,rgba(10,20,40,.72) 0%,rgba(10,20,40,.88) 100%);}
+.hero-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto}
 .hero-logo{background:#fff;border-radius:16px;display:inline-flex;align-items:center;
   padding:10px 18px;margin-bottom:14px;max-width:100%}
 .hero-logo img{height:40px;max-width:220px;object-fit:contain;display:block}
@@ -109,6 +111,29 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .footer-inner{max-width:1240px;margin:0 auto;padding:28px 12px;font-size:13px;color:#6b7280;
   display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between}
 .site-footer a{color:var(--blue);text-decoration:none}
+
+/* ---- carousels (2026-10-07, Danny): sales-first merchandising ---- */
+.rail-sec{margin:0 0 28px}
+.rail-head{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.rail-title{font-size:19px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
+.rail-count{font-size:11.5px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 9px;font-variant-numeric:tabular-nums}
+.rail-ver{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px}
+.rail-ver:hover{text-decoration:underline}
+.rail{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.rail::-webkit-scrollbar{height:6px}
+.rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+.rail .card{flex:0 0 164px;scroll-snap-align:start;min-width:0}
+@media(min-width:640px){.rail .card{flex-basis:196px}}
+/* ---- rail expand overlay (2026-10-07): full-screen "Ver todo" ---- */
+.rail-expand{position:fixed;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column}
+.rail-expand[hidden]{display:none}
+.re-head{flex-shrink:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:var(--sky);display:grid;place-items:center;cursor:pointer}
+.re-title{font-size:17px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.re-count{font-size:12px;font-weight:600;color:#6b7280}
+.re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start}
+@media(min-width:640px){.re-grid{grid-template-columns:repeat(3,1fr);max-width:1100px;margin:0 auto;width:100%}}
+@media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
 <body>
@@ -128,6 +153,8 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 </header>
 
 <div class="hero" id="hero" hidden>
+  <img class="hero-bg" id="heroBg" alt="" aria-hidden="true" hidden>
+  <div class="hero-scrim" id="heroScrim" hidden></div>
   <div class="hero-inner">
     <span class="eyebrow">Tienda en Estados Unidos</span>
     <div class="hero-logo" id="heroLogo" hidden><img id="heroLogoImg" alt=""></div>
@@ -149,7 +176,7 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <input type="search" id="q" placeholder="Busca en esta tienda…" aria-label="Buscar en esta tienda" autocomplete="off">
       <select id="sort" aria-label="Ordenar">
         <option value="relevance">Destacados</option>
-        <option value="discount">Mayor descuento</option>
+        <option value="discount" selected>Mayor descuento</option>
         <option value="priceAsc">Menor precio</option>
         <option value="priceDesc">Mayor precio</option>
       </select>
@@ -239,9 +266,54 @@ function money(n){
   return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
 }
 function discountPct(p){
-  var o = Number(p.originalPrice), pr = Number(p.price);
-  if (!(o > 0) || !(pr >= 0)) return 0;
+  var o = Number(p.regularPrice || p.wasPrice || p.originalPrice), pr = Number(p.price);
+  if (!(o > 0) || !(pr >= 0) || !(o > pr)) return 0;
   return Math.round((1 - pr / o) * 100);
+} /* DANNY 2026-10-07: regularPrice counts (VS) */
+/* SALE TIER (2026-10-07, Danny): 2 = measured % off, 1 = merchant-flagged
+   sale without a measurable %, 0 = full price. Sales always lead. */
+function saleTier(p){
+  if (discountPct(p) > 0) return 2;
+  if (p && p.onSale) return 1;
+  return 0;
+}
+/* ---------- product-type classification (word-boundary, not substring) ----------
+   DANNY 2026-10-07: store pages group carousels by PRODUCT TYPE, not department.
+   A Gymshark store page shows Leggings/Tops/Shorts carousels, never a "Gym Rat"
+   department carousel. Same classifier as marca.html. */
+var PRODUCT_TYPES = [
+  { key:'trajes_bano', label:'Trajes de Baño', keywords:['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
+  { key:'carteras',    label:'Carteras',       keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
+  { key:'joyas',       label:'Joyas',          keywords:['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
+  { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
+  { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
+  { key:'accesorios',  label:'Accesorios',     keywords:['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
+  { key:'ropa',        label:'Ropa',           keywords:[] }
+];
+var TYPE_RES = PRODUCT_TYPES.map(function(t){
+  return t.keywords.map(function(kw){
+    return new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + 's?\\b', 'i');
+  });
+});
+function productTypeOf(item){
+  var n = String((item && (item.name || item.title)) || '');
+  for (var i = 0; i < PRODUCT_TYPES.length; i++){
+    if (!PRODUCT_TYPES[i].keywords.length) continue;
+    var res = TYPE_RES[i];
+    for (var k = 0; k < res.length; k++){
+      if (res[k].test(n)) return PRODUCT_TYPES[i].key;
+    }
+  }
+  return 'ropa';
+}
+/* Shared sale-first sort: tier desc, then discount % desc, then price desc
+   so hero products lead instead of cheap accessories when nothing is on sale. */
+function saleSort(a, b){
+  var ta = saleTier(a), tb = saleTier(b);
+  if (ta !== tb) return tb - ta;
+  var pa = discountPct(a), pb = discountPct(b);
+  if (pa !== pb) return pb - pa;
+  return b.price - a.price;
 }
 function realImage(p){
   var cands = [];
@@ -299,7 +371,9 @@ function normItem(raw, deptKey){
     brand: raw.brand ? String(raw.brand) : '',
     price: price,
     originalPrice: raw.originalPrice != null ? Number(raw.originalPrice) : null,
-    onSale: !!raw.onSale,
+    regularPrice: raw.regularPrice != null ? Number(raw.regularPrice) : null,
+    wasPrice: raw.wasPrice != null ? Number(raw.wasPrice) : null,
+    onSale: !!(raw.onSale || raw.isOnSale),
     image: img,
     url: raw.url || raw.link || '',
     dept: deptKey || ''
@@ -395,7 +469,7 @@ function filteredItems(){
   var arr = pool.slice();
   if (f.sort === 'priceAsc') arr.sort(function(a,b){ return a.price - b.price; });
   else if (f.sort === 'priceDesc') arr.sort(function(a,b){ return b.price - a.price; });
-  else if (f.sort === 'discount') arr.sort(function(a,b){ return discountPct(b) - discountPct(a); });
+  else if (f.sort === 'discount') arr.sort(saleSort);
   return arr;
 }
 function penHTML(usd){
@@ -460,9 +534,141 @@ function renderDeptChips(){
     });
   }
 }
+/* ---------- carousel merchandising (2026-10-07, Danny) ----------
+   Store pages lead with sales, then one carousel per category.
+   Every rail expands to a full-screen grid via "Ver todo". */
+var RAIL_MAX = 16;
+var railPools = {};  /* rail key -> full sorted item list (legacy lookup) */
+var railPoolList = []; /* DANNY 2026-10-07: bulletproof pool by numeric index.
+   The string-key lookup could silently fail (encoding/pool resets), leaving
+   an empty overlay. Buttons now carry a numeric data-idx into this array,
+   rebuilt on every renderCarousels() alongside the buttons themselves. */
+
+function railHTML(title, list, railKey){
+  if (!list || !list.length) return '';
+  var rk = 'rail::' + railKey;
+  railPools[rk] = list;
+  var idx = railPoolList.length;
+  railPoolList.push(list);
+  var shown = list.slice(0, RAIL_MAX);
+  var cards = '';
+  for (var i = 0; i < shown.length; i++){
+    try { cards += cardHTML(shown[i]); }
+    catch (e) { /* one bad card never kills the rail */ }
+  }
+  var door = list.length > RAIL_MAX
+    ? '<button type="button" class="rail-ver" data-idx="' + idx + '" data-title="' + esc(title) + '">Ver todo &#8594;</button>'
+    : '';
+  return '<section class="rail-sec">' +
+    '<div class="rail-head"><h2 class="rail-title">' + esc(title) + '</h2>' +
+    '<span class="rail-count">' + list.length + '</span>' + door + '</div>' +
+    '<div class="rail">' + cards + '</div></section>';
+}
+function openRailExpand(list, title){
+  try {
+    list = list || [];
+    var ov = $('railExpand');
+    if (!ov) return;
+    $('reTitle').textContent = title || 'Productos';
+    $('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    var grid = $('reGrid');
+    if (!grid) return;
+    if (!list.length){
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#6B7280">'
+        + '<p style="font-weight:700;margin-bottom:8px">No pudimos cargar estos productos.</p>'
+        + '<p style="font-size:13px">Cierra y vuelve a intentarlo.</p></div>';
+    } else {
+      var out = '';
+      for (var i = 0; i < list.length; i++){
+        try { out += cardHTML(list[i]); } catch (e) {}
+      }
+      grid.innerHTML = out;
+    }
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    grid.scrollTop = 0;
+    try { renderPenPrices(); } catch (e) {}
+  } catch (e) {}
+}
+/* Legacy string-key entry point (kept for any external callers) */
+function openRailExpandByKey(rk, title){
+  try { openRailExpand(railPools[rk] || [], title); } catch (e) {}
+}
+function closeRailExpand(){
+  try {
+    var ov = $('railExpand');
+    if (ov) ov.hidden = true;
+    document.body.style.overflow = '';
+  } catch (e) {}
+}
+if (typeof window !== 'undefined'){ window.closeRailExpand = closeRailExpand; }
+function renderCarousels(){
+  var host = $('content');
+  if (!host) return;
+  railPools = {};
+  railPoolList = [];
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = allItems.length
+    ? allItems.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
+    : '';
+  /* Lead section: sales first (biggest discount), or Destacados when zero sales */
+  var sales = allItems.filter(function(p){ return saleTier(p) > 0; });
+  sales.sort(saleSort);
+  var html = '';
+  if (sales.length){
+    html += railHTML('Ofertas de ' + storeMeta.label, sales, 'ofertas');
+  } else {
+    var feat = allItems.slice().sort(function(a,b){ return b.price - a.price; });
+    html += railHTML('Destacados de ' + storeMeta.label, feat, 'destacados');
+  }
+  /* Category carousels: one per PRODUCT TYPE (DANNY 2026-10-07).
+     Never group by department inside a store page -- a Gymshark page shows
+     Leggings/Tops/Shorts, not a "Gym Rat" department carousel. */
+  var byType = {};
+  for (var i = 0; i < allItems.length; i++){
+    var tk = productTypeOf(allItems[i]);
+    (byType[tk] = byType[tk] || []).push(allItems[i]);
+  }
+  for (var j = 0; j < PRODUCT_TYPES.length; j++){
+    var t = PRODUCT_TYPES[j];
+    var list = (byType[t.key] || []).slice().sort(saleSort);
+    if (list.length) html += railHTML(t.label, list, 'type::' + t.key);
+  }
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.rail-ver');
+  for (var k = 0; k < btns.length; k++){
+    (function(btn){
+      var idx = parseInt(btn.getAttribute('data-idx'), 10);
+      var title = btn.getAttribute('data-title');
+      btn.addEventListener('click', function(){
+        try { openRailExpand(railPoolList[idx] || [], title); }
+        catch (e) {}
+      });
+    })(btns[k]);
+  }
+  /* sort dropdown only applies to grid view; hide it in carousel mode */
+  var s = $('sort');
+  if (s) s.style.display = 'none';
+}
 function render(){
   var host = $('content');
   if (!host) return;
+  /* empty catalog: same state as before, regardless of view */
+  if (!allItems.length){
+    host.innerHTML = '<div class="state"><h2>Estamos actualizando el catálogo</h2>' +
+      '<p>' + esc(storeMeta.label) + ' está cargando sus productos. Vuelve en unos minutos.</p>' +
+      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
+    bindRetry();
+    var c0 = $('countLine');
+    if (c0) c0.textContent = '';
+    return;
+  }
+  var f0 = currentFilters();
+  /* DEFAULT VIEW: carousel merchandising (no search, no dept chip) */
+  if (!f0.q && !f0.dept){ renderCarousels(); return; }
+  /* SEARCH / FILTER VIEW: flat grid as before */
+  var s = $('sort');
+  if (s) s.style.display = '';
   var list;
   try { list = filteredItems(); }
   catch (e){ return renderError('No pudimos ordenar los productos.', true); }
@@ -471,9 +677,7 @@ function render(){
     ? list.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
     : '';
   if (!list.length){
-    var emptyMsg = allItems.length
-      ? '<h2>Sin resultados</h2><p>Ningún producto coincide con tu búsqueda en ' + esc(storeMeta.label) + '.</p>'
-      : '<h2>Estamos actualizando el catálogo</h2><p>' + esc(storeMeta.label) + ' está cargando sus productos. Vuelve en unos minutos.</p>';
+    var emptyMsg = '<h2>Sin resultados</h2><p>Ningún producto coincide con tu búsqueda en ' + esc(storeMeta.label) + '.</p>';
     host.innerHTML = '<div class="state">' + emptyMsg +
       '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
     bindRetry();
@@ -554,6 +758,16 @@ function paintHero(){
   if (!hero || !storeMeta) return;
   hero.hidden = false;
   try { hero.style.setProperty('--store', storeMeta.color || '#0A1F44'); } catch (e) {}
+  /* STORE BACKDROP (2026-10-07): store imagery from assets/stores/ for mall feel */
+  try{
+    var _hb = $('heroBg'), _hs = $('heroScrim');
+    if (_hb && storeKey){
+      _hb.src = 'assets/stores/' + storeKey + '.jpg';
+      _hb.hidden = false;
+      if (_hs) _hs.hidden = false;
+      _hb.onerror = function(){ _hb.hidden = true; if(_hs) _hs.hidden = true; };
+    }
+  }catch(_e){}
   var nm = $('heroName'), tag = $('heroTag'), lw = $('heroLogo'), li = $('heroLogoImg');
   if (nm) nm.textContent = storeMeta.label;
   if (tag) tag.textContent = storeMeta.tagline || 'Compra en Estados Unidos, entregado en Perú.';
@@ -607,6 +821,11 @@ function bindUI(){
     t = setTimeout(function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} }, 180);
   });
   if (s) s.addEventListener('change', function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} });
+  var rb = $('reBack');
+  if (rb) rb.addEventListener('click', function(){ try { closeRailExpand(); } catch (e) {} });
+  document.addEventListener('keydown', function(ev){
+    if (ev && ev.key === 'Escape'){ try { closeRailExpand(); } catch (e) {} }
+  });
 }
 window.addEventListener('error', function(ev){
   try {
@@ -627,5 +846,19 @@ try {
 }
 })();
 </script>
+
+<!-- RAIL EXPAND OVERLAY (2026-10-07): full-screen "Ver todo" for carousels -->
+<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
+  <div class="re-head">
+    <button type="button" class="re-back" id="reBack" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div style="min-width:0">
+      <div id="reTitle" class="re-title"></div>
+      <div id="reCount" class="re-count"></div>
+    </div>
+  </div>
+  <div id="reGrid" class="re-grid"></div>
+</div>
 </body>
 </html>

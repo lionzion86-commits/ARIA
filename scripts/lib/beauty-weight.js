@@ -75,7 +75,9 @@ export const BEAUTY_IMPOSTOR_RE =
 /* Ordered most specific first — the first row whose pattern matches wins,
    exactly like BULKY_WEIGHT_ESTIMATES_KG. `kg` is the shipped weight;
    `pack` selects the (currently zero) allowance above. */
-export const BEAUTY_FALLBACK_KG = [
+export /* Shared gift-set pattern: used by the BEAUTY_FALLBACK_KG row and the sanity band below. */
+const BEAUTY_GIFTSET_RE = /\b(gift set|set de regalo|beauty gift set|spa gift set|bath gift set|body care gift set|cofre de belleza)\b/i;
+const BEAUTY_FALLBACK_KG = [
   /* --- eyes --------------------------------------------------- */
   // A pro palette states its pan count or calls itself "pro"/"XL". Read
   // before the small-palette row, which is the general case.
@@ -153,6 +155,8 @@ export const BEAUTY_FALLBACK_KG = [
     match: /\b(body mist|body splash|fragrance mist|bruma corporal|body spray)\b/i,
     kg: 0.35, pack: "carton", refMl: 250 },
   { key: "loción / crema corporal",
+   /* Gift sets (2026-10-07, Danny): the 30-piece Lovery spa case rendered at the 0.05 kg beauty default, underquoting freight ~25x. Reasoned, conservative: ~350 g case + ~30 items. */
+   { key: "set de regalo (belleza)",     match: BEAUTY_GIFTSET_RE,     kg: 1.30, pack: "carton" }, 
     match: /\b(body lotion|body cream|body butter|hand cream|loci[óo]n corporal|crema corporal|manteca corporal|crema de manos)\b/i,
     kg: 0.35, pack: "carton", refMl: 236 },
 ];
@@ -315,6 +319,8 @@ export const BEAUTY_BAND_KG = [0.02, 0.6];
 export function beautyBandKg(title) {
   const t = String(title || "");
   if (!beautyRowFor(t) && !PERFUME_RE.test(t)) return null;
+  /* Gift sets are kilos, not grams: the flat [0.02, 0.6] beauty band would fail a 1.3 kg case closed (2026-10-07, Danny). */
+  if (BEAUTY_GIFTSET_RE.test(t)) return [0.4, 2.5];
   const ml = titleVolumeMl(t);
   if (ml == null || ml <= 0) return BEAUTY_BAND_KG;
   const contents = ml / 1000;

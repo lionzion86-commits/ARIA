@@ -223,11 +223,15 @@ await check("a narrowing filter does not starve the result list", () => {
   /* THE BUG THIS PINS, measured: ranking the top 240 and filtering that
      to one store saw 6 of the 43 Walmart shoes and answered a limit-20
      request with 6 products. Ranking is nearly free in the width, so
-     the filter now runs over a wide list. */
-  const narrow = searchProducts({ query: "shoes", store: "walmart", limit: 20 }, ctx);
+     the filter now runs over a wide list.
+     TARGET, NOT WALMART (2026-10-07): Walmart's "shoes" were mostly
+     Barbie dolls ("Doll … Pink Sneakers") until dolls stopped counting
+     as footwear; it stocks five real pairs. Target's seventy, out of
+     ~10,000 shoes in the pool, test the same over-fetch honestly. */
+  const narrow = searchProducts({ query: "shoes", store: "target", limit: 20 }, ctx);
   assert.ok(narrow.products.length >= 20,
     `a filtered search returned ${narrow.products.length} of a requested 20 — the over-fetch is too small again`);
-  for (const p of narrow.products) assert.equal(p.store, "walmart");
+  for (const p of narrow.products) assert.equal(p.store, "target");
   /* …and the same must hold for a price cap, the other narrow filter a
      shopper actually uses. */
   const cheap = searchProducts({ query: "shoes", max_price_usd: 40, limit: 20 }, ctx);

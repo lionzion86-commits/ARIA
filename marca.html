@@ -31,7 +31,10 @@ a:hover{text-decoration:underline;}
 
 /* Main */
 main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px;}
-.brand-hero{text-align:center; margin:8px 0 22px; padding:32px 20px; background:linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%); border-radius:20px; color:#fff;}
+.brand-hero{position:relative; overflow:hidden; text-align:center; margin:8px 0 22px; padding:48px 20px; background:linear-gradient(135deg, var(--navy) 0%, #1a3a7a 100%); border-radius:20px; color:#fff;}
+.brand-hero .hero-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center;}
+.brand-hero .hero-scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,20,40,.55) 0%, rgba(10,20,40,.75) 100%);}
+.brand-hero .hero-content{position:relative; z-index:1;}
 .brand-hero .kicker{font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--gold); font-weight:700; margin-bottom:8px;}
 .brand-hero h1{font-size:clamp(28px,5vw,42px); font-weight:800; letter-spacing:-0.02em;}
 .brand-hero p{color:#B9C6E4; font-size:14px; margin-top:8px;}
@@ -44,16 +47,20 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .progress{height:6px; background:var(--line); border-radius:3px; overflow:hidden; max-width:640px; margin:10px auto 0;}
 .progress > div{height:100%; background:var(--blue); width:0%; transition:width .2s;}
 
-/* Toolbar */
-.toolbar{display:flex; gap:12px; align-items:center; justify-content:center; margin:0 0 18px; flex-wrap:wrap;}
-.toolbar select{height:40px; border:2px solid var(--line); border-radius:12px; padding:0 12px; font-size:14px; background:#fff;}
-#meta-line{font-size:13px; color:var(--muted); margin:6px 0 14px; text-align:center;}
+/* ---------- carousels (DANNY 2026-10-07: sales first, category rails, all expandable) ---------- */
+.rail-section{margin:26px 0 8px;}
+.rail-head{display:flex; align-items:center; gap:10px; padding:0 4px; margin-bottom:10px;}
+.rail-head h2{font-size:19px; font-weight:800; color:var(--navy); margin:0; letter-spacing:-.01em;}
+.rail-count{font-size:11px; font-weight:700; color:#fff; background:var(--blue); border-radius:999px; padding:2px 8px; flex-shrink:0;}
+.rail-head .ver-todo{margin-left:auto; flex-shrink:0; background:none; border:none; font-size:13px; font-weight:800; color:var(--blue); cursor:pointer; padding:4px 2px;}
+.rail{display:flex; gap:12px; overflow-x:auto; padding:4px 4px 14px; scroll-snap-type:x mandatory; scrollbar-width:thin;}
+.rail::-webkit-scrollbar{height:6px;}
+.rail::-webkit-scrollbar-thumb{background:#CBD5E1; border-radius:3px;}
+.rail .card{flex:0 0 164px; scroll-snap-align:start;}
+@media(min-width:640px){ .rail .card{flex:0 0 196px;} }
 
-/* Results */
-.grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
-@media(min-width:640px){ .grid{grid-template-columns:repeat(3,1fr);} }
-@media(min-width:960px){ .grid{grid-template-columns:repeat(4,1fr);} }
-.card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column;}
+/* Product card */
+.card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column; text-decoration:none; color:inherit;}
 .card .img{aspect-ratio:1/1; background:var(--sky); display:flex; align-items:center; justify-content:center; overflow:hidden;}
 .card .img img{width:100%; height:100%; object-fit:contain;}
 .card .body{padding:12px; display:flex; flex-direction:column; gap:6px; flex:1;}
@@ -63,13 +70,21 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .card .price{margin-top:auto; padding-top:6px;}
 .card .price .usd{font-size:17px; font-weight:800; color:var(--navy);}
 .card .price .pen{font-size:12px; color:var(--muted);}
-.card .cta{display:block; text-align:center; background:var(--navy); color:#fff; font-size:13px; font-weight:700; padding:10px; border-radius:10px; margin-top:8px;}
-.card .cta:hover{text-decoration:none; background:var(--blue);}
-.empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
+.card .price .was{font-size:13px; color:var(--muted); text-decoration:line-through; margin-left:6px;}
+.card .sale-badge{display:inline-block; background:#FFDE59; color:var(--navy); font-size:11px; font-weight:800; border-radius:6px; padding:2px 7px; margin-left:6px; vertical-align:1px;}
+.empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
-.load-more{display:block; margin:24px auto 0; background:var(--navy); color:#fff; border:none; border-radius:12px; padding:14px 32px; font-size:15px; font-weight:700; cursor:pointer;}
-.load-more:hover{background:var(--blue);}
-.load-more:disabled{background:#9db4dd; cursor:wait;}
+
+/* ---------- rail expand overlay (full-screen "Ver todo") ---------- */
+.rail-expand{position:fixed; inset:0; z-index:90; background:#fff; display:flex; flex-direction:column;}
+.rail-expand[hidden]{display:none;}
+.re-head{flex-shrink:0; background:#fff; border-bottom:1px solid var(--line); padding:14px 16px; display:flex; align-items:center; gap:12px;}
+.re-back{width:40px; height:40px; flex-shrink:0; border-radius:50%; border:none; background:var(--sky); display:grid; place-items:center; cursor:pointer;}
+.re-title{font-size:17px; font-weight:800; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.re-count{font-size:12px; font-weight:600; color:var(--muted);}
+.re-grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(2,1fr); gap:14px; padding:16px; align-content:start;}
+@media(min-width:640px){ .re-grid{grid-template-columns:repeat(3,1fr);} }
+@media(min-width:960px){ .re-grid{grid-template-columns:repeat(4,1fr); max-width:1100px; margin:0 auto; width:100%;} }
 
 /* Footer */
 footer{background:var(--navy); color:#B9C6E4; font-size:13px; padding:28px 20px; text-align:center; margin-top:auto;}
@@ -99,29 +114,34 @@ footer a{color:#fff;}
 
 <main>
   <div class="brand-hero" id="brandHero">
-    <div class="kicker">Marca</div>
-    <h1 id="brandName">Cargando…</h1>
-    <p id="brandSub">Buscando productos en tiendas de EE.&nbsp;UU.</p>
+    <img class="hero-bg" id="brandHeroBg" alt="" aria-hidden="true" hidden>
+    <div class="hero-scrim" id="brandHeroScrim" hidden></div>
+    <div class="hero-content">
+      <div class="kicker">Marca</div>
+      <h1 id="brandName">Cargando…</h1>
+      <p id="brandSub">Buscando productos en tiendas de EE.&nbsp;UU.</p>
+    </div>
   </div>
 
   <div class="progress" id="progress" hidden><div id="progressBar"></div></div>
   <div id="status" role="status">Cargando catálogo…</div>
 
-  <div class="toolbar" id="toolbar" hidden>
-    <select id="sortSel" aria-label="Ordenar">
-      <option value="relevance">Destacados</option>
-      <option value="price-asc">Menor precio</option>
-      <option value="price-desc">Mayor precio</option>
-    </select>
-    <select id="retailerSel" aria-label="Filtrar por tienda">
-      <option value="">Todas las tiendas</option>
-    </select>
-  </div>
-
-  <div id="meta-line"></div>
-  <div class="grid" id="results"></div>
-  <button class="load-more" id="loadMore" hidden>Ver más productos</button>
+  <div id="rails" aria-live="polite"></div>
 </main>
+
+<!-- RAIL EXPAND OVERLAY: full-screen "Ver todo" for every carousel -->
+<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
+  <div class="re-head">
+    <button type="button" class="re-back" onclick="closeRailExpand()" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div style="min-width:0">
+      <div id="reTitle" class="re-title"></div>
+      <div id="reCount" class="re-count"></div>
+    </div>
+  </div>
+  <div id="reGrid" class="re-grid"></div>
+</div>
 
 <footer>
   <div><a href="/">Aria Shop</a> — Compra en Estados Unidos, entregado en Perú.</div>
@@ -169,10 +189,8 @@ var CATALOG_FILES = [
   "/boxlunch-catalog.json"
 ];
 
-var PAGE_SIZE = 48;
 var ALL_PRODUCTS = [];   // all normalized products
 var BRAND_PRODUCTS = [];  // filtered to this brand
-var DISPLAYED = 0;
 var FX_RATE = null;
 var BRAND_KEY = "";
 var BRAND_LABEL = "";
@@ -235,16 +253,59 @@ function normalizeItem(it, retailerKey){
     if (!name || !(price > 0)) return null;
     var img = it.thumbnail || it.image || "";
     if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
+    /* Sale fields: preserve all original-price spellings for discount calc. */
+    var op = it.originalPrice != null ? Number(it.originalPrice)
+           : it.wasPrice != null ? Number(it.wasPrice)
+           : it.regularPrice != null ? Number(it.regularPrice) : null;
+    if (!(op > price)) op = null;
     return {
       name: String(name),
       brand: String(it.brand || ""),
       brandKey: brandKeyOf(it.brand || ""),
       price: price,
+      originalPrice: op,
+      onSale: !!(it.onSale || op),
       image: String(img || ""),
       url: String(it.url || it.link || ""),
-      retailer: String(it.retailer || retailerKey || "")
+      retailer: String(it.retailer || retailerKey || ""),
+      ptype: productTypeOf({name: name})
     };
   }catch(e){ return null; }
+}
+
+/* ---------- product-type classification (word-boundary, not substring) ---------- */
+var PRODUCT_TYPES = [
+  { key:'trajes_bano', label:'Trajes de Baño', keywords:['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
+  { key:'carteras',    label:'Carteras',       keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
+  { key:'joyas',       label:'Joyas',          keywords:['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
+  { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
+  { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
+  { key:'accesorios',  label:'Accesorios',     keywords:['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
+  { key:'ropa',        label:'Ropa',           keywords:[] }
+];
+var TYPE_RES = PRODUCT_TYPES.map(function(t){
+  return t.keywords.map(function(kw){
+    return new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + 's?\\b', 'i');
+  });
+});
+function productTypeOf(item){
+  var n = String((item && item.name) || '');
+  for (var i = 0; i < PRODUCT_TYPES.length; i++){
+    if (!PRODUCT_TYPES[i].keywords.length) continue;
+    var res = TYPE_RES[i];
+    for (var k = 0; k < res.length; k++){
+      if (res[k].test(n)) return PRODUCT_TYPES[i].key;
+    }
+  }
+  return 'ropa';
+}
+
+/* Discount as a fraction (0..1). 0 = not on sale. */
+function discountPct(p){
+  var op = Number(p && p.originalPrice);
+  var pr = Number(p && p.price);
+  if (op > pr && pr > 0) return 1 - pr / op;
+  return 0;
 }
 
 function extractItems(data){
@@ -345,16 +406,13 @@ function deriveBrandLabel(products){
   return best;
 }
 
-function applyFilters(){
-  var sortSel = el("sortSel"), retSel = el("retailerSel");
-  var sort = sortSel ? sortSel.value : "relevance";
-  var ret = retSel ? retSel.value : "";
-  var list = BRAND_PRODUCTS.slice();
-  if (ret) list = list.filter(function(p){ return p.retailer === ret; });
-  if (sort === "price-asc") list.sort(function(a,b){ return a.price - b.price; });
-  else if (sort === "price-desc") list.sort(function(a,b){ return b.price - a.price; });
-  return list;
-}
+/* ---------- carousel rendering (DANNY 2026-10-07) ----------
+   Sales rail first ("Ofertas de [brand]", biggest discount first).
+   If zero sales, a "Destacados" rail leads instead.
+   Then one carousel per product category. Every rail is expandable
+   via "Ver todo" -> full-screen overlay with the complete list. */
+var CARDS_PER_RAIL = 16;
+var RAIL_POOLS = {};   // railKey -> full item list for Ver todo
 
 /* ---------- rendering ---------- */
 function priceHTML(p){
@@ -370,74 +428,111 @@ function cardHTML(p){
   var img = p.image
     ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
     : '<span style="font-size:12px;color:#9AA3B5">Sin imagen</span>';
-  var link = p.url
-    ? '<a class="cta" href="' + esc(p.url) + '" target="_blank" rel="noopener">Ver en tienda</a>'
-    : "";
-  /* THE CARD IS A LINK TO OUR PRODUCT PAGE. It was a bare <article>
-     with no href and no handler; the only way out was the external
-     "Ver en tienda" button, which leaves the shop. */
+  /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   var _href = 'producto.html?producto=' + encodeURIComponent(p.name || '')
     + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
+  var pct = discountPct(p);
+  var saleBadge = pct > 0 ? '<span class="sale-badge">-' + Math.round(pct * 100) + '%</span>' : '';
+  var wasHtml = '';
+  if (pct > 0 && p.originalPrice){
+    wasHtml = '<span class="was">' + esc(fmtUsd(finalUsd(p.originalPrice))) + '</span>';
+  }
   return '<a class="card" href="' + esc(_href) + '">' +
     '<div class="img">' + img + "</div>" +
     '<div class="body">' +
       '<div class="brand">' + esc(p.brand || BRAND_LABEL) + "</div>" +
       '<div class="name">' + esc(p.name) + "</div>" +
       (p.retailer ? '<div class="retailer">Vendido por ' + esc(p.retailer) + "</div>" : "") +
-      '<div class="price">' + priceHTML(p) + "</div>" +
-      link +
+      '<div class="price">' + priceHTML(p) + wasHtml + saleBadge + "</div>" +
     "</div></a>";
 }
 
-function renderEmpty(title, bodyHTML){
-  var grid = el("results");
-  if (grid) grid.innerHTML = '<div class="empty"><strong>' + esc(title) + "</strong><span>" + bodyHTML + "</span></div>";
-  var lm = el("loadMore"); if (lm) lm.hidden = true;
+function railHTML(key, title, list){
+  var rk = 'brand::' + key;
+  RAIL_POOLS[rk] = list;
+  var shown = list.slice(0, CARDS_PER_RAIL);
+  var cards = "";
+  for (var i = 0; i < shown.length; i++){
+    try{ cards += cardHTML(shown[i]); }catch(e){}
+  }
+  var door = (list.length > CARDS_PER_RAIL)
+    ? '<button type="button" class="ver-todo" data-rk="' + esc(rk) + '" data-title="' + esc(title) + '">Ver todo \u2192</button>'
+    : '';
+  return '<section class="rail-section">' +
+    '<div class="rail-head"><h2>' + esc(title) + '</h2>' +
+    '<span class="rail-count">' + list.length + '</span>' + door + '</div>' +
+    '<div class="rail">' + cards + '</div></section>';
 }
 
-function renderPage(){
-  var grid = el("results"), meta = el("meta-line"), lm = el("loadMore");
-  if (!grid) return;
+function renderRails(){
+  var container = el("rails");
+  if (!container) return;
   try{
-    var list = applyFilters();
-    if (!list.length){
-      if (meta) meta.textContent = "";
-      setStatus("Sin productos para esta marca con los filtros actuales.");
-      renderEmpty("Sin resultados", "Prueba quitando el filtro de tienda.");
+    if (!BRAND_PRODUCTS.length){
+      setStatus("No encontramos productos de esta marca.");
+      container.innerHTML = '<div class="empty"><strong>Sin productos de \u201c' + esc(BRAND_LABEL) + '\u201d</strong><span>Es posible que la marca no est\u00e9 en nuestro cat\u00e1logo actual. Prueba con el <a href="/search.html">buscador</a>.</span></div>';
       return;
     }
-    var slice = list.slice(0, DISPLAYED);
     var html = "";
-    for (var i = 0; i < slice.length; i++){
-      try{ html += cardHTML(slice[i]); }catch(e){}
+    /* 1. Sales first — or Destacados when there are no sales. */
+    var sales = BRAND_PRODUCTS.filter(function(p){ return discountPct(p) > 0; });
+    sales.sort(function(a,b){ return discountPct(b) - discountPct(a); });
+    if (sales.length){
+      html += railHTML('ofertas', 'Ofertas de ' + BRAND_LABEL, sales);
+    } else {
+      var featured = BRAND_PRODUCTS.slice().sort(function(a,b){ return b.price - a.price; });
+      html += railHTML('destacados', 'Destacados de ' + BRAND_LABEL, featured);
     }
-    grid.innerHTML = html;
-    if (meta) meta.textContent = "Mostrando " + slice.length + " de " +
-      list.length.toLocaleString("es-PE") + " productos" +
-      (FX_RATE ? "" : " · precios en USD (tipo de cambio no disponible)");
-    setStatus('<span class="ok">' + list.length.toLocaleString("es-PE") + " productos de " + esc(BRAND_LABEL) + ".</span>");
-    if (lm) lm.hidden = DISPLAYED >= list.length;
+    /* 2. Category carousels. */
+    var byType = {};
+    BRAND_PRODUCTS.forEach(function(p){
+      var k = p.ptype || 'ropa';
+      (byType[k] = byType[k] || []).push(p);
+    });
+    PRODUCT_TYPES.forEach(function(t){
+      var list = byType[t.key] || [];
+      if (list.length) html += railHTML(t.key, t.label, list);
+    });
+    container.innerHTML = html;
+    /* 3. Wire up every Ver todo door. */
+    Array.prototype.forEach.call(container.querySelectorAll('.ver-todo'), function(btn){
+      btn.addEventListener('click', function(){
+        try{ openRailExpand(btn.getAttribute('data-rk'), btn.getAttribute('data-title')); }catch(e){}
+      });
+    });
+    setStatus('<span class="ok">' + BRAND_PRODUCTS.length.toLocaleString("es-PE") + " productos de " + esc(BRAND_LABEL) + ".</span>");
   }catch(e){
     setStatus('<span class="err">No pudimos mostrar los productos.</span> ' +
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   }
 }
 
-function buildRetailerFilter(){
-  var sel = el("retailerSel");
-  if (!sel) return;
-  var seen = {}, list = [];
-  for (var i = 0; i < BRAND_PRODUCTS.length; i++){
-    var r = BRAND_PRODUCTS[i].retailer;
-    if (r && !seen[r]){ seen[r] = 1; list.push(r); }
-  }
-  list.sort();
-  var html = '<option value="">Todas las tiendas</option>';
-  for (var j = 0; j < list.length; j++){
-    html += '<option value="' + esc(list[j]) + '">' + esc(list[j]) + "</option>";
-  }
-  sel.innerHTML = html;
+/* ---------- rail expand overlay ---------- */
+function openRailExpand(rk, title){
+  try{
+    var list = RAIL_POOLS[rk] || [];
+    var ov = el('railExpand');
+    if (!ov) return;
+    el('reTitle').textContent = title || 'Productos';
+    el('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    var html = "";
+    for (var i = 0; i < list.length; i++){
+      try{ html += cardHTML(list[i]); }catch(e){}
+    }
+    el('reGrid').innerHTML = html;
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    el('reGrid').scrollTop = 0;
+  }catch(e){}
 }
+function closeRailExpand(){
+  try{
+    var ov = el('railExpand');
+    if (ov) ov.hidden = true;
+    document.body.style.overflow = '';
+  }catch(e){}
+}
+window.closeRailExpand = closeRailExpand;
 
 /* ---------- boot ---------- */
 async function init(){
@@ -447,8 +542,9 @@ async function init(){
     if (!BRAND_KEY){
       if (heroName) heroName.textContent = "Marca no especificada";
       if (heroSub) heroSub.textContent = "Usa ?marca=<nombre> en la URL. Ej: marca.html?marca=nike";
-      setStatus('<span class="err">Falta el parámetro ?marca= en la URL.</span>');
-      renderEmpty("Sin marca", 'Agrega <em>?marca=nike</em> a la URL para ver productos de Nike.');
+      setStatus('<span class="err">Falta el par\u00e1metro ?marca= en la URL.</span>');
+      var railsA = el("rails");
+      if (railsA) railsA.innerHTML = '<div class="empty"><strong>Sin marca</strong><span>Agrega <em>?marca=nike</em> a la URL para ver productos de Nike.</span></div>';
       var pw = el("progress"); if (pw) pw.hidden = true;
       return;
     }
@@ -475,8 +571,9 @@ async function init(){
     if (!ALL_PRODUCTS.length){
       setStatus('<span class="err">No pudimos cargar el catálogo.</span> ' +
         '<button class="retry" onclick="location.reload()">Reintentar</button>');
-      if (heroName) heroName.textContent = "Error de catálogo";
-      renderEmpty("Sin catálogo", "No se pudo cargar ningún catálogo. Revisa tu conexión e inténtalo de nuevo.");
+      if (heroName) heroName.textContent = "Error de cat\u00e1logo";
+      var railsB = el("rails");
+      if (railsB) railsB.innerHTML = '<div class="empty"><strong>Sin cat\u00e1logo</strong><span>No se pudo cargar ning\u00fan cat\u00e1logo. Revisa tu conexi\u00f3n e int\u00e9ntalo de nuevo.</span></div>';
       return;
     }
 
@@ -487,31 +584,29 @@ async function init(){
     if (heroName) heroName.textContent = BRAND_LABEL;
     if (heroSub) heroSub.textContent = BRAND_PRODUCTS.length.toLocaleString("es-PE") +
       " productos en tiendas de EE. UU.";
+    /* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop from assets/brands/ */
+    try{
+      var _heroKey = (BRAND_KEY||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      var _heroImg = document.getElementById('brandHeroBg');
+      var _heroScrim = document.getElementById('brandHeroScrim');
+      if (_heroImg){
+        _heroImg.src = 'assets/brands/' + _heroKey + '-hero.jpg';
+        _heroImg.hidden = false;
+        if (_heroScrim) _heroScrim.hidden = false;
+        _heroImg.onerror = function(){ _heroImg.hidden = true; if(_heroScrim) _heroScrim.hidden = true; };
+      }
+    }catch(_e){}
     try{ document.title = BRAND_LABEL + " — Aria Shop"; }catch(e){}
 
     if (!BRAND_PRODUCTS.length){
       setStatus("No encontramos productos de esta marca.");
-      renderEmpty("Sin productos de “" + BRAND_LABEL + "”",
-        "Es posible que la marca no esté en nuestro catálogo actual, o que el nombre en la URL no coincida. " +
-        "Prueba con el <a href=\"/search.html\">buscador</a>.");
-      var tb = el("toolbar"); if (tb) tb.hidden = true;
+      var rails0 = el("rails");
+      if (rails0) rails0.innerHTML = '<div class="empty"><strong>Sin productos de \u201c' + esc(BRAND_LABEL) + '\u201d</strong><span>Es posible que la marca no est\u00e9 en nuestro cat\u00e1logo actual, o que el nombre en la URL no coincida. Prueba con el <a href="/search.html">buscador</a>.</span></div>';
+      var pw2 = el("progress"); if (pw2) pw2.hidden = true;
       return;
     }
 
-    buildRetailerFilter();
-    var toolbar = el("toolbar"); if (toolbar) toolbar.hidden = false;
-    var sortSel = el("sortSel");
-    if (sortSel) sortSel.addEventListener("change", function(){ DISPLAYED = PAGE_SIZE; renderPage(); });
-    var retSel = el("retailerSel");
-    if (retSel) retSel.addEventListener("change", function(){ DISPLAYED = PAGE_SIZE; renderPage(); });
-    var lm = el("loadMore");
-    if (lm) lm.addEventListener("click", function(){
-      DISPLAYED += PAGE_SIZE;
-      renderPage();
-    });
-
-    DISPLAYED = PAGE_SIZE;
-    renderPage();
+    renderRails();
   }catch(e){
     setStatus('<span class="err">No se pudo iniciar la página.</span> ' +
       '<button class="retry" onclick="location.reload()">Recargar</button>');

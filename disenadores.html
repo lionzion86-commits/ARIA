@@ -13,11 +13,11 @@
 :root{
   --navy:#0A1F44; --navy2:#16233F; --gold:#F4C463; --gold2:#E8B94A;
   --sale:#FFDE59; --line:#E5E9F0; --ink:#101828; --muted:#667085;
-  --bg:#FAFBFC; --card:#FFFFFF; --danger:#B42318; --dangerbg:#FEF3F2;
+  --bg:#E6F9F7; --card:#FFFFFF; --danger:#B42318; --dangerbg:#FEF3F2;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:linear-gradient(180deg,#3EC1B8 0%,#7FDCD4 200px,#C4F0EB 380px,var(--bg) 560px);color:var(--ink);line-height:1.45} /* TROPICAL AQUA BACKDROP (2026-10-07, Danny): island-water wash melting into the page */
 a{color:inherit}
 img{display:block;max-width:100%}
 button{font:inherit;cursor:pointer}
@@ -89,8 +89,14 @@ button{font:inherit;cursor:pointer}
 
 /* ---------- designer room (gallery) ---------- */
 .room{margin:26px 0 8px;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
-.room-banner{position:relative;min-height:170px;background:linear-gradient(120deg,#0d1526,#1d2c4e)}
-@media(min-width:640px){.room-banner{min-height:210px}}
+.room-banner{position:relative;min-height:240px;background:linear-gradient(120deg,#0d1526,#1d2c4e)}
+@media(min-width:640px){.room-banner{min-height:320px}}
+.room{border-top:4px solid var(--raccent,#C9A227)}
+.room-logo{max-height:84px;max-width:62%;object-fit:contain;filter:drop-shadow(0 2px 12px rgba(0,0,0,.45))}
+@media(min-width:640px){.room-logo{max-height:110px}}
+.room-wordmark{font-size:34px;font-weight:800;letter-spacing:-.01em;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.5)}
+@media(min-width:640px){.room-wordmark{font-size:44px}}
+.show-all{background:var(--raccent,#C9A227) !important;color:var(--raccentInk,#fff) !important;border:none !important}
 .room-banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 22%}
 .room-banner .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,16,32,.05) 20%,rgba(10,16,32,.82) 100%)}
 .room-banner .sheen{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,0) 40%)}
@@ -99,6 +105,20 @@ button{font:inherit;cursor:pointer}
 .room-id h2{margin:2px 0;font-size:24px;letter-spacing:-.01em}
 @media(min-width:640px){.room-id h2{font-size:30px}}
 .room-id .m{font-size:13px;color:rgba(255,255,255,.78)}
+.room-sub{margin-top:6px}
+.room-subhead{display:flex;align-items:center;gap:8px;padding:16px 18px 4px;font-size:15px;font-weight:800;color:var(--ink)}
+.room-subcount{font-size:11px;font-weight:700;color:#fff;background:var(--raccent,#C9A227);border-radius:999px;padding:2px 8px}
+.room-subhead .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:12.5px;font-weight:800;color:#0E7C9B;cursor:pointer;padding:4px 2px}
+/* RAIL EXPAND (2026-10-07): full-screen "Ver todo" for capped carousels */
+.rail-expand{position:fixed;inset:0;z-index:90;background:var(--bg,#F0FAF9);display:flex;flex-direction:column}
+.rail-expand[hidden]{display:none}
+.re-head{flex-shrink:0;background:var(--bg,#F0FAF9);border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.re-title{font-size:17px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.re-count{font-size:12px;font-weight:600;color:var(--muted)}
+.re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start}
+.re-grid .card{flex:none;min-width:0}
+@media(min-width:640px){.re-grid{grid-template-columns:repeat(4,1fr);max-width:1100px;margin:0 auto;width:100%}}
 .room-rail{padding:14px 0 6px}
 .rail{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin}
 .rail::-webkit-scrollbar{height:6px}
@@ -302,17 +322,17 @@ window.addEventListener('error', function(){
 
 /* ---------- hardcoded spec (no network needed to render shells) ---------- */
 var DESIGNERS = [
-  { key:'farmrio',         label:'Farm Rio',            match:'farm rio',            country:'Brasil',   hero:'assets/designers/farmrio.jpg' },
-  { key:'aguabendita',     label:'Agua Bendita',        match:'agua bendita',        country:'Colombia', hero:'assets/designers/aguabendita.jpg' },
-  { key:'patbo',           label:'PatBO',               match:'patbo',               country:'Brasil',   hero:'assets/designers/patbo.jpg' },
-  { key:'johannaortiz',    label:'Johanna Ortiz',       match:'johanna ortiz',       country:'Colombia', hero:'assets/designers/johannaortiz.jpg' },
-  { key:'silviatcherassi', label:'Silvia Tcherassi',    match:'silvia tcherassi',    country:'Colombia', hero:'assets/designers/silviatcherassi.jpg' },
-  { key:'capittana',       label:'Capittana',           match:'capittana',           country:'Perú',     hero:'assets/designers/capittana.jpg' },
-  { key:'ancora',          label:'Ancora Swimwear',     match:'ancora swimwear',     country:'',         hero:'assets/designers/ancora.jpg' },
-  { key:'eberjey',         label:'Eberjey',             match:'eberjey',             country:'',         hero:'assets/designers/eberjey.jpg' },
-  { key:'vix',             label:'Vix',                 match:'vix',                 country:'',         hero:'assets/designers/vix.jpg' },
-  { key:'montce',          label:'Montce',              match:'montce',              country:'',         hero:'assets/designers/montce.jpg' },
-  { key:'tns',             label:'TNS',                 match:'tns',                 country:'',         hero:'assets/designers/tns.jpg' },
+  { key:'farmrio', accent:'#2E7D32', accentInk:'#fff', logo:'assets/designers/logos/farmrio.png',         label:'Farm Rio',            match:'farm rio',            country:'Brasil',   hero:'assets/designers/farmrio.jpg' },
+  { key:'aguabendita', accent:'#0E6B8C', accentInk:'#fff', logo:'assets/designers/logos/aguabendita.png',     label:'Agua Bendita',        match:'agua bendita',        country:'Colombia', hero:'assets/designers/aguabendita.jpg' },
+  { key:'patbo', accent:'#D63384', accentInk:'#fff', logo:'assets/designers/logos/patbo.svg',           label:'PatBO',               match:'patbo',               country:'Brasil',   hero:'assets/designers/patbo.jpg' },
+  { key:'johannaortiz', accent:'#B0713C', accentInk:'#fff', logo:'assets/designers/logos/johannaortiz.svg',    label:'Johanna Ortiz',       match:'johanna ortiz',       country:'Colombia', hero:'assets/designers/johannaortiz.jpg' },
+  { key:'silviatcherassi', accent:'#C1272D', accentInk:'#fff', logo:'assets/designers/logos/silviatcherassi.png', label:'Silvia Tcherassi',    match:'silvia tcherassi',    country:'Colombia', hero:'assets/designers/silviatcherassi.jpg' },
+  { key:'capittana', accent:'#C9971C', accentInk:'#fff', logo:'assets/designers/logos/capittana.svg',       label:'Capittana',           match:'capittana',           country:'Perú',     hero:'assets/designers/capittana.jpg' },
+  { key:'ancora', accent:'#1A1A1A', accentInk:'#fff', logo:'assets/designers/logos/ancora.png',          label:'Ancora Swimwear',     match:'ancora swimwear',     country:'',         hero:'assets/designers/ancora.jpg' },
+  { key:'eberjey', accent:'#D8A7B1', accentInk:'#4A2C33', logo:'assets/designers/logos/eberjey.png',         label:'Eberjey',             match:'eberjey',             country:'',         hero:'assets/designers/eberjey.jpg' },
+  { key:'vix', accent:'#B8860B', accentInk:'#fff', logo:'assets/designers/logos/vix.svg',             label:'Vix',                 match:'vix',                 country:'',         hero:'assets/designers/vix.jpg' },
+  { key:'montce', accent:'#A68A64', accentInk:'#fff', logo:'assets/designers/logos/montce.png',          label:'Montce',              match:'montce',              country:'',         hero:'assets/designers/montce.jpg' },
+  { key:'tns', accent:'#4A6FA5', accentInk:'#fff', logo:'assets/designers/logos/tns.svg',             label:'TNS',                 match:'tns',                 country:'',         hero:'assets/designers/tns.jpg' },
   { key:'osklen',          label:'Osklen',              match:'osklen',              country:'Brasil',   hero:'assets/latino/designers/osklen.jpg' },
   { key:'lennyniemeyer',   label:'Lenny Niemeyer',      match:'lenny niemeyer',      country:'Brasil',   hero:'assets/latino/designers/lennyniemeyer.jpg' },
   { key:'adrianadegreas',  label:'Adriana Degreas',     match:'adriana degreas',     country:'Brasil',   hero:'assets/latino/runway-hero.jpg' },
@@ -341,11 +361,13 @@ var CARDS_PER_ROOM = 24;
 var state = {
   items: [],            // normalized items
   byDesigner: {},       // key -> [items]
+  railPools: {},        // "designerKey::railKey" -> full list for Ver todo
   typeCounts: {},       // typeKey -> count
   fxRate: null,
   designerFilter: 'all',
   typeFilter: 'all',
-  loaded: false
+  loaded: false,
+  railPools: {},        // "designerKey::railKey" -> full list for Ver todo
 };
 
 /* ---------- network with timeout + fallbacks ---------- */
@@ -386,13 +408,23 @@ function designerKeyFor(item){
   }
   return null;
 }
+/* DANNY 2026-10-07: keywords match on word boundaries, never substrings.
+   Substring matching filed "Fringe Crop Top", "Spring Kimono" and
+   "Flowering Dress" under Joyas because "fringe"/"spring"/"flowering"
+   all contain "ring". */
+function typeKeywordRe(kw){
+  var esc = kw.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+  return new RegExp('\\b' + esc + '(?:es|s)?\\b');
+}
+var PRODUCT_TYPE_RES = PRODUCT_TYPES.map(function(t){
+  return { key: t.key, res: t.keywords.map(typeKeywordRe) };
+});
 function productTypeOf(item){
   var n = String((item && item.name) || '').toLowerCase();
-  for (var i = 0; i < PRODUCT_TYPES.length; i++){
-    var t = PRODUCT_TYPES[i];
-    if (!t.keywords.length) continue;
-    for (var k = 0; k < t.keywords.length; k++){
-      if (n.indexOf(t.keywords[k]) !== -1) return t.key;
+  for (var i = 0; i < PRODUCT_TYPE_RES.length; i++){
+    var t = PRODUCT_TYPE_RES[i];
+    for (var k = 0; k < t.res.length; k++){
+      if (t.res[k].test(n)) return t.key;
     }
   }
   return 'ropa';
@@ -456,7 +488,8 @@ function cardHTML(it){
       priceBlock = '<div class="price-row"><span class="price">' + fmtUSD(it.price) + '</span>' + was + saleBadge + '</div>'
         + (pen ? '<div class="price-pen">' + escapeHtml(pen) + ' · TC hoy ' + escapeHtml(String(state.fxRate)) + '</div>' : '');
     }
-    var open = it.url ? '<a href="' + escapeHtml(it.url) + '" target="_blank" rel="noopener">' : '<a href="#" onclick="return false;">';
+    /* DANNY 2026-10-07: cards stay in Aria, never link to the designer site. */
+    var open = '<a href="producto.html?producto=' + encodeURIComponent(it.name || '') + '">';
     return '<article class="card">' + open
       + '<div class="card-img' + (it.image ? '' : ' noimg') + '">' + img + '</div>'
       + '<div class="card-body"><div class="card-brand">' + brand + '</div>'
@@ -468,37 +501,127 @@ function cardHTML(it){
 
 function roomHTML(spec, items, expanded){
   try{
-    var shown = expanded ? items : items.slice(0, CARDS_PER_ROOM);
-    var cards = shown.map(cardHTML).join('');
+    /* DANNY 2026-10-07: every room = sales rail on top, category carousels below. */
+    function discount(it){
+      if (!it.onSale || !it.originalPrice || !(it.originalPrice > it.price)) return 0;
+      return (1 - it.price / it.originalPrice);
+    }
+    var sales = items.filter(function(it){ return discount(it) > 0; });
+    sales.sort(function(a,b){ return discount(b) - discount(a); });
+    var byType = {};
+    items.forEach(function(it){
+      var k = it.ptype || 'ropa';
+      (byType[k] = byType[k] || []).push(it);
+    });
+    function subRail(title, list, railKey){
+      var shown = expanded ? list : list.slice(0, CARDS_PER_ROOM);
+      var cards = shown.map(cardHTML).join('');
+      var rk = spec.key + '::' + railKey;
+      state.railPools[rk] = list;
+      var door = (!expanded && list.length > CARDS_PER_ROOM)
+        ? '<button type="button" class="ver-todo" data-rk="' + escapeHtml(rk) + '" data-title="' + escapeHtml(title) + '">Ver todo \u2192</button>'
+        : '';
+      return '<div class="room-sub"><div class="room-subhead">' + escapeHtml(title)
+        + '<span class="room-subcount">' + list.length + '</span>' + door + '</div>'
+        + '<div class="room-rail"><div class="rail">' + cards + '</div></div></div>';
+    }
+    var rails = '';
+    if (sales.length) {
+      rails += subRail('Ofertas de ' + spec.label, sales, 'ofertas');
+    } else if (items.length) {
+      /* DANNY 2026-10-07: no sales -> "Destacados" leads with hero products (priciest first). */
+      var featured = items.slice().sort(function(a, b){
+        return (Number(b.price) || 0) - (Number(a.price) || 0);
+      });
+      rails += subRail('Destacados de ' + spec.label, featured, 'destacados');
+    }
+    for (var ti = 0; ti < PRODUCT_TYPES.length; ti++){
+      var t = PRODUCT_TYPES[ti];
+      var list = byType[t.key] || [];
+      if (list.length) rails += subRail(t.label, list, t.key);
+    }
     var more = (!expanded && items.length > CARDS_PER_ROOM)
       ? '<div class="room-foot"><button type="button" class="show-all" data-room="' + escapeHtml(spec.key) + '">Ver los ' + items.length + ' productos</button></div>'
       : '';
     var empty = items.length === 0
-      ? '<div class="room-note">Aún no hay productos de ' + escapeHtml(spec.label) + ' en esta colección.</div>'
+      ? '<div class="room-note">A\u00fan no hay productos de ' + escapeHtml(spec.label) + ' en esta colecci\u00f3n.</div>'
       : '';
     var heroImg = spec.hero
       ? '<img src="' + escapeHtml(spec.hero) + '" alt="" aria-hidden="true" loading="lazy" decoding="async" onerror="this.remove()">'
       : '';
     var country = spec.country ? '<div class="c">' + escapeHtml(spec.country) + '</div>' : '';
-    return '<section class="room" data-designer="' + escapeHtml(spec.key) + '" aria-label="' + escapeHtml(spec.label) + '">'
+    return '<section class="room" id="d-' + escapeHtml(spec.key) + '" data-designer="' + escapeHtml(spec.key) + '" aria-label="' + escapeHtml(spec.label) + '"'
+      + ' style="--raccent:' + escapeHtml(spec.accent || '#C9A227') + ';--raccentInk:' + escapeHtml(spec.accentInk || '#fff') + '">'
       + '<div class="room-banner">' + heroImg
       + '<div class="scrim" aria-hidden="true"></div><div class="sheen" aria-hidden="true"></div>'
       + '<div class="room-id">' + country
-      + '<h2>' + escapeHtml(spec.label) + '</h2>'
+      + (spec.logo
+          ? '<img class="room-logo" src="' + escapeHtml(spec.logo) + '" alt="' + escapeHtml(spec.label) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=&quot;room-wordmark&quot;>' + escapeHtml(spec.label) + '</div>\')">'
+          : '<div class="room-wordmark">' + escapeHtml(spec.label) + '</div>')
       + '<div class="m">' + items.length + ' producto' + (items.length === 1 ? '' : 's') + '</div>'
       + '</div></div>'
-      + (items.length
-          ? '<div class="room-rail"><div class="rail">' + cards + '</div></div>' + more
-          : empty)
+      + (items.length ? rails + more : empty)
       + '</section>';
   }catch(e){ return ''; }
 }
+
+/* RAIL EXPAND (2026-10-07, Danny): "Ver todo" opens the rail's FULL list
+   in a full-screen overlay -- not just the 24 carousel cards. */
+function openRoomRail(rk, title){
+  try{
+    var list = state.railPools[rk] || [];
+    var ov = $('railExpand');
+    if (!ov) return;
+    $('reTitle').textContent = title || 'Productos';
+    $('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    $('reGrid').innerHTML = list.map(function(it){
+      try { return cardHTML(it); } catch(e){ return ''; }
+    }).join('');
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('reGrid').scrollTop = 0;
+  }catch(e){ showFatal('No pudimos mostrar todos los productos.'); }
+}
+function closeRoomRail(){
+  try{
+    var ov = $('railExpand');
+    if (ov) ov.hidden = true;
+    document.body.style.overflow = '';
+  }catch(e){}
+}
+if (typeof window !== 'undefined'){ window.closeRoomRail = closeRoomRail; }
 
 function filteredItems(list){
   var tf = state.typeFilter;
   if (tf === 'all') return list;
   return list.filter(function(it){ return it.ptype === tf; });
 }
+
+/* RAIL EXPAND (2026-10-07, Danny): "Ver todo" opens the rail's FULL list
+   in a full-screen overlay -- not just the 24 carousel cards. */
+function openRoomRail(rk, title){
+  try{
+    var list = state.railPools[rk] || [];
+    var ov = $('railExpand');
+    if (!ov) return;
+    $('reTitle').textContent = title || 'Productos';
+    $('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+    $('reGrid').innerHTML = list.map(function(it){
+      try { return cardHTML(it); } catch(e){ return ''; }
+    }).join('');
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('reGrid').scrollTop = 0;
+  }catch(e){ showFatal('No pudimos mostrar todos los productos.'); }
+}
+function closeRoomRail(){
+  try{
+    var ov = $('railExpand');
+    if (ov) ov.hidden = true;
+    document.body.style.overflow = '';
+  }catch(e){}
+}
+if (typeof window !== 'undefined'){ window.closeRoomRail = closeRoomRail; }
 
 function renderGallery(){
   var gal = $('galeria');
@@ -522,6 +645,13 @@ function renderGallery(){
           state['expanded_' + btn.getAttribute('data-room')] = true;
           renderGallery();
         }catch(e){ showFatal('No pudimos mostrar más productos.'); }
+      });
+    });
+    Array.prototype.forEach.call(gal.querySelectorAll('.ver-todo'), function(btn){
+      btn.addEventListener('click', function(){
+        try{
+          openRoomRail(btn.getAttribute('data-rk'), btn.getAttribute('data-title'));
+        }catch(e){ showFatal('No pudimos mostrar todos los productos.'); }
       });
     });
     var empty = $('emptyState');
@@ -662,6 +792,32 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 })(); /* close IIFE */
+
+/* DANNY 2026-10-07: deep-link to a designer room, e.g. disenadores.html#d-montce (from product pages). */
+(function(){ try{
+  var h = location.hash.replace('#','');
+  if (!h || h.indexOf('d-') !== 0) return;
+  var n = 0;
+  var t = setInterval(function(){
+    var el = document.getElementById(h);
+    if (el){ clearInterval(t); el.scrollIntoView({behavior:'smooth', block:'start'}); }
+    else if (++n > 40){ clearInterval(t); }
+  }, 250);
+}catch(e){} })();
 </script>
+
+<!-- RAIL EXPAND OVERLAY (2026-10-07): full-screen "Ver todo" for capped carousels -->
+<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
+  <div class="re-head">
+    <button type="button" class="re-back" onclick="closeRoomRail()" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div style="min-width:0">
+      <div id="reTitle" class="re-title"></div>
+      <div id="reCount" class="re-count"></div>
+    </div>
+  </div>
+  <div id="reGrid" class="re-grid"></div>
+</div>
 </body>
 </html>

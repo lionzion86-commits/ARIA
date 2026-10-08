@@ -21,6 +21,8 @@
   .hdr-nav a:hover{color:var(--blue)}
   @media(max-width:760px){.hdr-nav{display:none}}
   .hero{position:relative;overflow:hidden;background:var(--navy);color:#fff}
+  .hero .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;}
+  .hero .hero-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,20,40,.45) 0%,rgba(10,20,40,.78) 100%);}
   .hero-in{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:44px 20px}
   .kicker{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:6px 12px;border-radius:999px;margin-bottom:14px}
   .hero h1{font-size:clamp(28px,6vw,44px);font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0 0 12px}
@@ -33,9 +35,6 @@
   .chip{height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;font-family:inherit}
   .chip[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
   .count{margin-left:auto;font-size:13px;color:#6B7487;font-weight:600}
-  .grid{max-width:1240px;margin:0 auto;padding:14px 20px 40px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
-  @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
   .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative}
   .card-img{aspect-ratio:1/1;background:#F2F3F6;display:grid;place-items:center;overflow:hidden}
   .card-img img{width:100%;height:100%;object-fit:contain}
@@ -60,11 +59,33 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .errbox{background:#FFF1F1;border:1px solid #F5C6C6;border-radius:14px;padding:22px;max-width:560px;margin:0 auto}
   .errbox h2{color:#B91C1C}
-  .more-wrap{text-align:center;padding:0 20px 48px}
   .dept-list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:700px;margin:0 auto}
   .dept-list a{display:inline-block;padding:10px 18px;background:#fff;border:1px solid var(--line);border-radius:999px;color:var(--navy);text-decoration:none;font-size:13px;font-weight:700}
   .dept-list a:hover{border-color:var(--blue);color:var(--blue)}
   footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;font-size:12.5px;color:#8A93A8}
+  /* ---------- carousels (2026-10-07): sales first, then category rails ---------- */
+  #rails{max-width:1240px;margin:0 auto;padding:8px 0 44px}
+  .rail-sec{margin:20px 0 4px}
+  .rail-head{display:flex;align-items:center;gap:8px;padding:0 20px;margin-bottom:2px}
+  .rail-head h2{font-size:19px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
+  .rail-count{font-size:11px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px}
+  .rail-head .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px;font-family:inherit}
+  .rail{display:flex;gap:12px;overflow-x:auto;padding:10px 20px 16px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+  .rail::-webkit-scrollbar{height:6px}
+  .rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+  .rail .card{flex:0 0 164px;scroll-snap-align:start}
+  @media(min-width:640px){.rail .card{flex-basis:200px}}
+  /* expand overlay: full-screen "Ver todo" */
+  .rail-expand{position:fixed;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column}
+  .rail-expand[hidden]{display:none}
+  .re-head{flex-shrink:0;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px}
+  .re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .re-title{font-size:17px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .re-count{font-size:12px;font-weight:600;color:#8A93A8}
+  .re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start;max-width:1240px;margin:0 auto;width:100%}
+  .re-grid .card{flex:none;min-width:0}
+  @media(min-width:640px){.re-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,1fr)}}
   footer a{color:var(--blue);text-decoration:none;font-weight:700}
 </style>
 </head>
@@ -82,7 +103,9 @@
   </div>
 </header>
 
-<section class="hero" aria-label="Departamento">
+<section class="hero" aria-label="Departamento" id="deptHero">
+  <img class="hero-bg" id="deptHeroBg" alt="" aria-hidden="true" hidden>
+  <div class="hero-scrim" id="deptHeroScrim" hidden></div>
   <div class="hero-in">
     <span class="kicker" id="heroKicker">Departamento</span>
     <h1 id="heroTitle">Cargando…</h1>
@@ -130,11 +153,7 @@
   <button class="btn" id="clearBtn">Limpiar filtros</button>
 </div>
 
-<main class="grid" id="grid" aria-live="polite"></main>
-
-<div class="more-wrap" id="moreWrap" hidden>
-  <button class="btn" id="moreBtn">Ver más productos</button>
-</div>
+<main id="rails" aria-live="polite"></main>
 
 <footer>
   <p><a href="/">Aria Shop</a> — Compra en Estados Unidos, entregado en Perú. Precios en dólares con conversión a soles al tipo de cambio venta del día.</p>
@@ -149,14 +168,13 @@
      URL: departamento.html?dept=<key>
      ============================================================ */
 
-  var grid = document.getElementById('grid');
+  var railsEl = document.getElementById('rails');
   var loadingState = document.getElementById('loadingState');
   var invalidState = document.getElementById('invalidState');
   var errorState = document.getElementById('errorState');
   var emptyState = document.getElementById('emptyState');
   var errorMsg = document.getElementById('errorMsg');
   var countEl = document.getElementById('count');
-  var moreWrap = document.getElementById('moreWrap');
   var toolbar = document.getElementById('toolbar');
 
   /* ---------- 31 departments: name, hero copy, matching rules ---------- */
@@ -283,6 +301,18 @@
   document.getElementById('heroKicker').textContent = dept.name;
   document.getElementById('heroTitle').textContent = dept.name;
   document.getElementById('heroDesc').textContent = dept.desc;
+  /* DEPT HERO IMAGE (2026-10-07): category backdrop from assets/category/ */
+  try{
+    var _dk = (deptKey||'').toLowerCase().replace(/[^a-z0-9_]/g,'');
+    var _dImg = document.getElementById('deptHeroBg');
+    var _dScrim = document.getElementById('deptHeroScrim');
+    if (_dImg){
+      _dImg.src = 'assets/category/' + _dk + '.jpg';
+      _dImg.hidden = false;
+      if (_dScrim) _dScrim.hidden = false;
+      _dImg.onerror = function(){ _dImg.hidden = true; if(_dScrim) _dScrim.hidden = true; };
+    }
+  }catch(_e){}
   document.getElementById('loadingTitle').textContent = 'Cargando ' + dept.name + '…';
   document.getElementById('loadingDesc').textContent = 'Estamos trayendo los productos de ' + dept.name + '.';
   document.title = dept.name + ' | Aria Shop';
@@ -291,13 +321,15 @@
   } catch(e){}
 
   /* ---------- state ---------- */
-  var ALL = [], FILTERED = [], SHOWN = 0, PAGE = 48;
+  var ALL = [], FILTERED = [];
+  var CARDS_PER_RAIL = 20;
+  var railPools = {}; // railKey -> full item list for "Ver todo"
   var fxRate = null, fQ = '', fRet = 'all';
   var retailersSeen = [];
 
   function showError(msg){
-    hide(loadingState); hide(emptyState); hide(moreWrap); hide(toolbar);
-    grid.innerHTML = '';
+    hide(loadingState); hide(emptyState); hide(toolbar);
+    railsEl.innerHTML = '';
     if (msg) errorMsg.textContent = msg;
     show(errorState);
   }
@@ -367,9 +399,12 @@
     var price = finalUsd(p.rawPrice);
     var pen = fmtPEN(price);
     var badge = '';
-    if (p.originalPrice > p.rawPrice){
-      var pct = Math.round((1 - p.rawPrice/p.originalPrice)*100);
-      if (pct >= 5 && pct <= 70) badge = '<span class="badge">-' + pct + '%</span>';
+    var _orig = p.originalPrice > p.rawPrice ? p.originalPrice
+      : p.regularPrice > p.rawPrice ? p.regularPrice
+      : p.wasPrice > p.rawPrice ? p.wasPrice : 0;
+    if (_orig > 0){
+      var pct = Math.round((1 - p.rawPrice/_orig)*100);
+      if (pct >= 5 && pct <= 95) badge = '<span class="badge">-' + pct + '%</span>';
     }
     var img = p.image
       ? '<img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;&gt;Sin imagen</span>\'">'
@@ -384,13 +419,89 @@
       + '<div class="card-body">'
       + '<div class="card-retailer">' + esc(RET_LABELS[p.retailer] || p.retailer) + '</div>'
       + (p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '')
-      + '<h3 class="card-title"><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></h3>'
+      + '<h3 class="card-title">' + esc(p.title) + '</h3>'
       + '<div class="card-price"><div class="price-usd">' + esc(fmtUSD(price)) + '</div>'
       + (pen ? '<div class="price-pen">' + esc(pen) + '</div>' : '')
       + '</div></div></a>';
   }
 
-  /* ---------- filtering + rendering ---------- */
+  /* ---------- filtering + carousel rendering (2026-10-07) ----------
+     DANNY: sales rail first, then one carousel per product category.
+     Every carousel expands via "Ver todo". */
+  function discountPct(p){
+    /* Tier-aware: check all original-price spellings (2026-10-07).
+       regularPrice/wasPrice were silently dropped before, hiding real sales. */
+    var orig = p.originalPrice > p.rawPrice ? p.originalPrice
+      : p.regularPrice > p.rawPrice ? p.regularPrice
+      : p.wasPrice > p.rawPrice ? p.wasPrice : 0;
+    if (orig > 0 && p.rawPrice > 0){
+      return 1 - p.rawPrice / orig;
+    }
+    return 0;
+  }
+  function typeLabel(t){
+    return String(t).split(/[\s_\-]+/).map(function(w){
+      return w ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+    }).join(' ');
+  }
+  function buildSections(){
+    var sales = FILTERED.filter(function(p){ return discountPct(p) > 0; });
+    sales.sort(function(a,b){ return discountPct(b) - discountPct(a); });
+    var sections = [];
+    if (sales.length){
+      sections.push({key:'ofertas', title:'Ofertas', items:sales});
+    } else if (FILTERED.length){
+      /* No sales: lead with a general Destacados rail instead. */
+      sections.push({key:'destacados', title:'Destacados', items:FILTERED});
+    }
+    /* Group by product type for category carousels. */
+    var byType = {}, order = [];
+    FILTERED.forEach(function(p){
+      var t = ((p.type || '').trim().toLowerCase()) || '__otros__';
+      if (!byType[t]){ byType[t] = []; order.push(t); }
+      byType[t].push(p);
+    });
+    var groups = [], small = [];
+    order.forEach(function(t){
+      var list = byType[t];
+      if (t !== '__otros__' && list.length >= 3) groups.push({t:t, list:list});
+      else small = small.concat(list);
+    });
+    groups.sort(function(a,b){ return b.list.length - a.list.length; });
+    groups.forEach(function(g){
+      sections.push({key:'tipo:' + g.t, title:typeLabel(g.t), items:g.list});
+    });
+    if (small.length) sections.push({key:'tipo:otros', title:'Más productos', items:small});
+    return sections;
+  }
+  function railHTML(s){
+    var shown = s.items.slice(0, CARDS_PER_RAIL);
+    railPools[s.key] = s.items;
+    var cards = '';
+    for (var i=0;i<shown.length;i++){
+      try { cards += cardHTML(shown[i]); } catch(e){}
+    }
+    var door = s.items.length > CARDS_PER_RAIL
+      ? '<button type="button" class="ver-todo" data-rk="' + esc(s.key) + '" data-title="' + esc(s.title) + '">Ver todo &#8594;</button>'
+      : '';
+    return '<section class="rail-sec" aria-label="' + esc(s.title) + '">'
+      + '<div class="rail-head"><h2>' + esc(s.title) + '</h2>'
+      + '<span class="rail-count">' + s.items.length + '</span>' + door + '</div>'
+      + '<div class="rail">' + cards + '</div></section>';
+  }
+  function renderSections(){
+    hide(emptyState);
+    var sections = buildSections();
+    var html = '';
+    for (var i=0;i<sections.length;i++){
+      try { html += railHTML(sections[i]); } catch(e){}
+    }
+    railsEl.innerHTML = html;
+    countEl.textContent = FILTERED.length
+      ? FILTERED.length.toLocaleString('es-PE') + ' productos'
+      : '';
+    if (!FILTERED.length) show(emptyState);
+  }
   function applyFilters(){
     var q = fQ.trim().toLowerCase();
     FILTERED = ALL.filter(function(p){
@@ -402,28 +513,37 @@
       }
       return true;
     });
-    SHOWN = 0; grid.innerHTML = '';
-    renderMore();
+    renderSections();
   }
-  function renderMore(){
-    hide(emptyState);
-    var next = FILTERED.slice(SHOWN, SHOWN + PAGE);
-    var html = '';
-    for (var i=0;i<next.length;i++){
-      try { html += cardHTML(next[i]); } catch(e){}
-    }
-    var tmp = document.createElement('template');
-    tmp.innerHTML = html.trim();
-    grid.appendChild(tmp.content);
-    SHOWN += next.length;
-    countEl.textContent = FILTERED.length
-      ? (SHOWN >= FILTERED.length
-          ? FILTERED.length.toLocaleString('es-PE') + ' productos'
-          : 'Mostrando ' + SHOWN.toLocaleString('es-PE') + ' de ' + FILTERED.length.toLocaleString('es-PE'))
-      : '';
-    if (FILTERED.length === 0){ show(emptyState); hide(moreWrap); }
-    else { hide(emptyState); moreWrap.hidden = SHOWN >= FILTERED.length; }
+
+  /* ---------- rail expand overlay ---------- */
+  function openRailExpand(rk, title){
+    try{
+      var list = railPools[rk] || [];
+      var ov = document.getElementById('railExpand');
+      if (!ov) return;
+      ov.setAttribute('data-rk', rk);
+      ov.setAttribute('data-title', title || 'Productos');
+      document.getElementById('reTitle').textContent = title || 'Productos';
+      document.getElementById('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+      var html = '';
+      for (var i=0;i<list.length;i++){
+        try { html += cardHTML(list[i]); } catch(e){}
+      }
+      document.getElementById('reGrid').innerHTML = html;
+      ov.hidden = false;
+      document.body.style.overflow = 'hidden';
+      document.getElementById('reGrid').scrollTop = 0;
+    }catch(e){ showError('No pudimos mostrar todos los productos.'); }
   }
+  function closeRailExpand(){
+    try{
+      var ov = document.getElementById('railExpand');
+      if (ov) ov.hidden = true;
+      document.body.style.overflow = '';
+    }catch(e){}
+  }
+  if (typeof window !== 'undefined'){ window.closeRailExpand = closeRailExpand; }
 
   /* ---------- data: all catalog files ---------- */
   var CATALOG_FILES = [
@@ -461,6 +581,8 @@
       type: raw.type || '',
       rawPrice: price,
       originalPrice: Number(raw.originalPrice) || 0,
+      regularPrice: Number(raw.regularPrice) || 0,
+      wasPrice: Number(raw.wasPrice) || 0,
       image: raw.image || (raw.images && raw.images[0]) || '',
       url: raw.url || '#',
       retailer: retailer,
@@ -472,7 +594,7 @@
   function loadAll(){
     hide(errorState); hide(emptyState); hide(invalidState);
     show(loadingState); hide(toolbar);
-    grid.innerHTML = ''; hide(moreWrap);
+    railsEl.innerHTML = '';
 
     var loaded = 0;
     function progress(){
@@ -552,9 +674,11 @@
   function loadFx(){
     function paint(){
       try {
-        var target = SHOWN;
-        grid.innerHTML = ''; SHOWN = 0;
-        while (SHOWN < target && SHOWN < FILTERED.length) renderMore();
+        renderSections();
+        var ov = document.getElementById('railExpand');
+        if (ov && !ov.hidden){
+          openRailExpand(ov.getAttribute('data-rk'), ov.getAttribute('data-title'));
+        }
       } catch(e){}
     }
     try {
@@ -592,7 +716,6 @@
     document.getElementById('q').value='';
     syncChips(); applyFilters();
   });
-  document.getElementById('moreBtn').addEventListener('click', renderMore);
   var qInput = document.getElementById('q'), qTimer = null;
   qInput.addEventListener('input', function(){
     clearTimeout(qTimer);
@@ -607,6 +730,10 @@
     var b = e.target.closest('.chip'); if(!b) return;
     fRet = b.dataset.r; syncChips(); applyFilters();
   });
+  railsEl.addEventListener('click', function(e){
+    var b = e.target.closest('.ver-todo'); if(!b) return;
+    openRailExpand(b.getAttribute('data-rk'), b.getAttribute('data-title'));
+  });
 
   /* ---------- go ---------- */
   try { loadAll(); }
@@ -615,7 +742,7 @@
   /* Global safety net: never a silent blank */
   window.addEventListener('error', function(ev){
     try {
-      if (grid && grid.children.length === 0 && loadingState.hidden && errorState.hidden && invalidState.hidden){
+      if (railsEl && railsEl.children.length === 0 && loadingState.hidden && errorState.hidden && invalidState.hidden){
         showError('Ocurrió un error inesperado. Inténtalo de nuevo.');
       }
     } catch(e){}
@@ -623,5 +750,19 @@
 })();
 </script>
 <noscript><div style="max-width:640px;margin:48px auto;padding:24px;text-align:center;font-family:sans-serif"><h2>Activa JavaScript</h2><p>Esta página necesita JavaScript para mostrar los productos.</p></div></noscript>
+
+<!-- RAIL EXPAND OVERLAY (2026-10-07): full-screen "Ver todo" for carousels -->
+<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
+  <div class="re-head">
+    <button type="button" class="re-back" onclick="closeRailExpand()" aria-label="Volver">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div style="min-width:0">
+      <div id="reTitle" class="re-title"></div>
+      <div id="reCount" class="re-count"></div>
+    </div>
+  </div>
+  <div id="reGrid" class="re-grid"></div>
+</div>
 </body>
 </html>

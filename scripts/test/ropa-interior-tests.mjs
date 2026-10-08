@@ -195,9 +195,15 @@ await (async () => {
 })();
 
 check("the feed carries the retailer's sale report and the image verdict", () => {
-  const sale = feed.items.filter(i => i.o > i.p);
-  assert.ok(sale.length > 0, "the feed has no sale items");
-  assert.ok(sale.every(i => i.s === 1), "a markdown in the feed lacks the retailer's sale flag — the homepage rail would drop it");
+  /* s is the retailer's own sale report (normalizeLiveItem's rule): an
+     original price alone is not a sale -- Walmart lists originalPrice on
+     items it does not mark onSale, and the site never shows those as
+     markdowns. So: every flagged item is a real markdown, the flag
+     follows the report, and there are reported sales for the rail. */
+  const flagged = feed.items.filter(i => i.s === 1);
+  assert.ok(flagged.length > 0, "no item carries the retailer's sale report — the homepage rail would be empty");
+  assert.ok(flagged.every(i => i.o > i.p), "a sale-flagged item has no markdown");
+  assert.ok(feed.items.every(i => i.s === undefined || i.s === 1), "the sale flag is not 1-or-absent");
 });
 
 const MIN_CHECKS = 10;

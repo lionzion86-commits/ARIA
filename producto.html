@@ -198,10 +198,16 @@ function render(p){
       + (store ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
       + priceHtml + sizes
       + '<p style="font-size:13px;color:var(--muted);margin-top:14px">Precio honesto: incluye compra, envío y aduana hasta tu puerta en Perú.</p>'
-      /* OUT TO THE RETAILER, not back to the URL that sent us here.
-         The first version linked to ariashop.pe/?producto=, which
-         redirects straight back to this page. */
-      + (p.url ? '<a class="btn" href="' + esc(p.url) + '" target="_blank" rel="noopener">Ver en ' + esc(store || 'la tienda') + '</a>' : '')
+      /* DANNY 2026-10-07: NEVER link out to the retailer's/designer's own site.
+         Designer products -> our Diseñadores Latinos room; store products -> our store page. */
+      + (function(){
+          var tk = String(p.retailer || '').toLowerCase();
+          var label = esc(store || 'la tienda');
+          var designers = {farmrio:1,aguabendita:1,patbo:1,johannaortiz:1,silviatcherassi:1,capittana:1,ancora:1,vix:1,montce:1,eberjey:1,tns:1};
+          if (designers[tk]) return '<a class="btn" href="disenadores.html#d-' + tk + '">Ver más de ' + label + '</a>';
+          if (tk) return '<a class="btn" href="tienda.html?tienda=' + encodeURIComponent(tk) + '">Ver más en ' + label + '</a>';
+          return '';
+        })()
     + '</div></div>' + desc;
   document.title = p.name + " — Aria Shop";
 }
