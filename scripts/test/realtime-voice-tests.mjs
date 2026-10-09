@@ -37,6 +37,7 @@ import {
 import { deliveredTotal } from "../../netlify/functions/aria-realtime-tool.js";
 import { STORE_KNOWLEDGE as K_STORES } from "../../netlify/functions/_store-knowledge.js";
 import { readFileSync, readdirSync } from "node:fs";
+import { loadPageAutoGlossarySlice } from "./_page-script.mjs";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -3287,7 +3288,7 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
     "titleCaseWords", "logFitmentGap", "name",
     /* 2026-10-09: the lookup draws its own cards (see
        aria-auto-year-tests.mjs (d)); card drawing is stubbed here. */
-    "normalizeAutoPartItem", "addAssistantProductCard", "searchTokens", "translatePartQuery", "partsGuardWords",
+    "normalizeAutoPartItem", "addAssistantProductCard", "searchTokens", "translatePartQuery", "partsGuardWords", "translatePartQueryToEs",
     /* Per-call state the lookup keeps (2026-10-07): the year-miss
        count. A fresh run is a fresh call. */
     "let ariaRTYearMisses = 0; let ariaRTPartsShown = null; return (async () => {" + body + "\n return null; })();")(
@@ -3298,7 +3299,8 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
       (v) => String(v).split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
       () => {}, "lookup_parts_by_vehicle",
       (src, raw) => ({ title: raw.productTitle, price: raw.price, image: null, brand: raw.brand }),
-      () => {}, (q) => String(q).toLowerCase().split(/\s+/).filter(Boolean), (q) => q, () => new Set());
+      () => {}, (q) => String(q).toLowerCase().split(/\s+/).filter(Boolean), (q) => q, () => new Set(),
+      loadPageAutoGlossarySlice().translatePartQueryToEs);
 
   /* EXACT YEAR: the only thing that earns "confirmed". */
   const exact = await run({ year: 2021, make: "toyota", model: "hilux", part_type: "pastillas de freno" });
