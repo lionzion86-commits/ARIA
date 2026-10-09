@@ -120,19 +120,22 @@ const searchTokens = SW.AriaSearch.searchTokens;
 /* The page's own guard-word function, lifted, not copied. */
 const pgwSrc = /function partsGuardWords\(text\)\{[\s\S]*?\r?\n\}/.exec(page)[0];
 const partsGuardWords = new Function("searchTokens", pgwSrc + "; return partsGuardWords;")(searchTokens);
+/* The page's own glossary slice: the real ES<->EN part translation. */
+const { loadPageAutoGlossarySlice } = await import(ROOT + "scripts/test/_page-script.mjs");
+const GLOSSARY = loadPageAutoGlossarySlice();
 const normalizeAutoPartItem = (source, raw) => ({ ...ENGINE.pricing.normalizeLiveItem(raw, { retailer: source }), raw });
 
 function makeLookup(cache, misses = 0) {
   const logs = [];
   const cards = [];
   const fn = new Function("autoCacheIfWarm", "ariaAutoWarming", "logFitmentGap", "titleCaseWords", "console", "tape", "initialMisses",
-    "normalizeAutoPartItem", "addAssistantProductCard", "searchTokens", "translatePartQuery", "partsGuardWords",
+    "normalizeAutoPartItem", "addAssistantProductCard", "searchTokens", "translatePartQuery", "partsGuardWords", "translatePartQueryToEs",
     `let ariaRTYearMisses = initialMisses;
      let ariaRTPartsShown = null;
      return { run: async (name, args) => { ${block} }, misses: () => ariaRTYearMisses, partsShown: () => ariaRTPartsShown };`);
   const api = fn(async () => cache, "calentando", () => {}, (s) => s.replace(/\b\w/g, (c) => c.toUpperCase()),
     { info: (tag, o) => logs.push(o), warn() {}, log() {} }, () => {}, misses,
-    normalizeAutoPartItem, (item, retailer) => cards.push({ item, retailer }), searchTokens, (q) => q === "pastillas de freno" ? "brake pads" : q, partsGuardWords);
+    normalizeAutoPartItem, (item, retailer) => cards.push({ item, retailer }), searchTokens, (q) => q === "pastillas de freno" ? "brake pads" : q, partsGuardWords, GLOSSARY.translatePartQueryToEs);
   return { ...api, logs, cards };
 }
 const pad = (name) => ({ productTitle: name, brand: "Akebono", part_number: "ACT1078", price: 45.99, store: "autozone" });
@@ -225,6 +228,24 @@ await check("(d) every price she says carries the standard margin, and an unpric
   assert.equal(M.cards.length, 1);
 });
 
+await check("(h) English part names reach the Spanish cache keys: \"brake pads\" is \"pastillas de freno\"", async () => {
+  const T = GLOSSARY.translatePartQueryToEs;
+  assert.equal(T("brake pads"), "pastillas de freno");
+  assert.equal(T("Brake Pads"), "pastillas de freno");
+  assert.equal(T("front brake pads"), "front pastillas de freno");
+  assert.equal(T("pastillas de freno"), "pastillas de freno", "Spanish must pass through unchanged");
+  assert.equal(T("cabin air filter"), "filtro de aire de cabina", "longest English term must win");
+  const keys = new Set(Object.keys(REAL.partSearches).map((k) => k.split("|")[3]));
+  assert.equal(T("spark plugs", keys), "bujías", "a cache key must be preferred among synonyms");
+  assert.equal(T("serpentine belt", keys), "correa de accesorios");
+  assert.equal(T("brake pad", keys), "pastillas de freno", "singular must reach the plural key");
+  assert.equal(T("breakfast"), "breakfast");
+  const L = makeLookup(REAL);
+  const out = await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "brake pads" });
+  assert.equal(out.part_type, "pastillas de freno", out.unavailable || "English part_type missed the cache");
+  assert.ok(out.parts.length >= 1 && L.cards.length === out.parts.length);
+});
+
 /* The search_products branch, lifted the same way. */
 const sAt = page.indexOf("  if (name === 'search_products'){");
 let sd = 0, sEnd = -1;
@@ -305,7 +326,7 @@ await check("(g) the product page finds the tapped part in the auto cache, part 
   assert.doesNotMatch(prod, /autozone\.com/, "the product page links out to AutoZone");
 });
 
-const MIN_CHECKS = 12;
+const MIN_CHECKS = 13;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
