@@ -361,7 +361,7 @@ var visibleCount = PAGE_SIZE;
 /* ---------- item normalization ---------- */
 function normItem(raw, deptKey){
   if (!raw || typeof raw !== 'object') return null;
-  var name = raw.name || raw.title || '';
+  var name = raw.name || raw.title || raw.productName || '';  /* footlocker catalog uses productName */
   var price = Number(raw.price);
   if (!name || !(price > 0)) return null;
   var img = realImage(raw);
