@@ -138,7 +138,7 @@ var FX_RATE = null;
 function normalizeItem(it, retailerKey){
   try{
     if (!it || typeof it !== "object") return null;
-    var name = it.name || it.title || "";
+    var name = it.name || it.title || it.productName || "";  /* footlocker catalog uses productName */
     var price = Number(it.price);
     if (!name || !(price > 0)) return null;
     var img = it.thumbnail || it.image || "";
