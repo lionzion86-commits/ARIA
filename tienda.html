@@ -295,13 +295,30 @@ var TYPE_RES = PRODUCT_TYPES.map(function(t){
     return new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + 's?\\b', 'i');
   });
 });
+/* DANNY 2026-10-08 (audit2): keyword-exclusion guards for productTypeOf.
+   Same keyword, wrong product: 'flat' as an adjective is not a flat shoe --
+   hair tools (flat iron), flat-front shorts and flat-bottom objects all
+   matched the zapatos keyword. 'bag' as grocery/packaging (3 lb Bag onions,
+   18 Pound Bag epsom salt, 110 Ct Bulk Bag candy, Bags Per Box snacks) is
+   not a cartera. A guard only suppresses that one keyword's match; the item
+   still classifies normally against every other keyword. */
+function typeKeywordBlocked(n, kw){
+  if (kw === 'flat' && /\bflat[\s-]*iron\b/i.test(n)) return true;
+  if (kw === 'flat' && /\bflat[\s-]*(front|bottom|panel)\b/i.test(n)) return true;
+  if (kw !== 'bag') return false;
+  if (/\b(bulk|resealable|party size|fun size|variety pack)\s+bags?\b/i.test(n)) return true;
+  if (/\b\d[\d.,]*\s*(oz|lb|lbs|pound|pounds|ct|count)\b[^a-z]{0,25}\bbags?\b/i.test(n)) return true;
+  if (/\bbags?\s+per\s+box\b/i.test(n)) return true;
+  if (/\b(candy|gummy|gummies|gummi|chocolate|chips|onions?|croutons?|salts?|snacks?|popcorn|pretzels?|yogurt|alfajores?|raisins?|licorice|taffy|skittles|snickers|twix|twizzlers|haribo|peppermint)\b[^.\n]{0,60}\bbags?\b/i.test(n)) return true;
+  return false;
+}
 function productTypeOf(item){
   var n = String((item && (item.name || item.title)) || '');
   for (var i = 0; i < PRODUCT_TYPES.length; i++){
     if (!PRODUCT_TYPES[i].keywords.length) continue;
     var res = TYPE_RES[i];
     for (var k = 0; k < res.length; k++){
-      if (res[k].test(n)) return PRODUCT_TYPES[i].key;
+      if (res[k].test(n) && !typeKeywordBlocked(n, PRODUCT_TYPES[i].keywords[k])) return PRODUCT_TYPES[i].key;
     }
   }
   return 'ropa';
