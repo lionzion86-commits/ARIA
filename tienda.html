@@ -251,10 +251,16 @@ function tieredMarginUsd(raw){
     + Math.min(Math.max(r-2000,0),3000)*0.12
     + Math.max(r-5000,0)*0.08;
 }
-function finalUsd(raw){
+/* PER-RETAILER MIAMI SALES TAX (2026-10-09). Mirrors the 'exempt' rows of
+   TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
+   the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
+   This page used to stop at the margin, 7% under the SPA's price. */
+var TAX_EXEMPT = {"walmart": 1};
+function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+function finalUsd(raw, retailer){
   var r = Number(raw);
   if (!(r > 0)) return NaN;
-  return Math.round((r + tieredMarginUsd(r)) * 100) / 100;
+  return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;
 }
 function fmtUSD(n){
   if (!isFinite(n)) return 'Precio no disponible';
@@ -549,13 +555,13 @@ function filteredItems(){
   return arr;
 }
 function penHTML(usd){
-  var f = finalUsd(usd);
+  var f = finalUsd(usd, storeKey);
   if (!fxVenta || !isFinite(f)) return '';
   return '<div class="price-pen" data-usd="' + esc(f) + '">S/ ' +
     (f * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) + '</div>';
 }
 function cardHTML(p){
-  var f = finalUsd(p.price);
+  var f = finalUsd(p.price, storeKey);
   var pct = discountPct(p);
   var brand = p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '';
   /* THE CARD STAYS IN THE SHOP. It used to open the retailer's own

@@ -260,7 +260,13 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
   /* Same tiered margin as every other page (LOCKED 2026-10-02). */
   function marginUsd(r){ r = Number(r); if (!(r > 0)) return 0;
     return Math.min(r,500)*0.24 + Math.min(Math.max(r-500,0),1500)*0.18 + Math.min(Math.max(r-2000,0),3000)*0.12 + Math.max(r-5000,0)*0.08; }
-  function finalUsd(r){ r = Number(r); return r > 0 ? Math.round((r + marginUsd(r)) * 100) / 100 : NaN; }
+  /* PER-RETAILER MIAMI SALES TAX (2026-10-09). Mirrors the 'exempt' rows of
+     TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
+     the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
+     This page used to stop at the margin, 7% under the SPA's price. */
+  var TAX_EXEMPT = {"walmart": 1};
+  function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+  function finalUsd(r, retailer){ r = Number(r); return r > 0 ? Math.round((r + marginUsd(r)) * salesTaxRate(retailer) * 100) / 100 : NaN; }
   function usd(n){ return isFinite(n) ? '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''; }
   var fx = null;
   function pen(n){ if (!fx || !isFinite(n)) return ''; try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n * fx); } catch(e){ return ''; } }
@@ -281,7 +287,7 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
   }
 
   function cardHTML(p){
-    var now = finalUsd(p.p), was = p.o > p.p ? finalUsd(p.o) : NaN, d = pct(p);
+    var now = finalUsd(p.p, p.r), was = p.o > p.p ? finalUsd(p.o, p.r) : NaN, d = pct(p);
     var href = 'producto.html?producto=' + encodeURIComponent(p.t) + '&tienda=' + encodeURIComponent(p.r);
     /* Never a photo that was not cleared of its US price sticker. */
     var img = p.img && (!p.ir || p.ir === 'clean')
@@ -380,8 +386,8 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
       return true;
     });
     FILTERED.sort(function(a,b){
-      if (sort === 'low') return finalUsd(a.p) - finalUsd(b.p);
-      if (sort === 'high') return finalUsd(b.p) - finalUsd(a.p);
+      if (sort === 'low') return finalUsd(a.p, a.r) - finalUsd(b.p, b.r);
+      if (sort === 'high') return finalUsd(b.p, b.r) - finalUsd(a.p, a.r);
       return (pct(b) - pct(a)) || (bestSeller(b) - bestSeller(a));
     });
     SHOWN = 0; $('grid').innerHTML = '';
