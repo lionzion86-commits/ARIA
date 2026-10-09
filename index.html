@@ -39922,9 +39922,11 @@ async function executeRealtimeTool(name, args){
     /* English in, Spanish keys: "brake pads" -> "pastillas de freno".
        Spanish passes through unchanged. */
     const askedEs = translatePartQueryToEs(asked, types).toLowerCase();
-    let type = types.has(askedEs) ? askedEs : null;
+    /* Order: the Spanish translation, then the raw string, then fuzzy. */
+    let type = types.has(askedEs) ? askedEs : types.has(asked) ? asked : null;
     if (!type){
-      const hits = [...types].filter(t => t.includes(askedEs) || askedEs.includes(t));
+      const hits = [...types].filter(t => t.includes(askedEs) || askedEs.includes(t)
+        || t.includes(asked) || asked.includes(t));
       hits.sort((a, b) => b.length - a.length);
       type = hits[0] || null;
     }
