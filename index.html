@@ -38291,6 +38291,9 @@ let ariaRTHeardAudio = false;
    than asked of the model: "only say this once" is not a promise a
    language model keeps over ten minutes. */
 let ariaRTThresholdTold = false;
+/* Aria Auto: how many times this call's parts lookup arrived without a
+   usable year. Two is the ceiling -- see lookup_parts_by_vehicle. */
+let ariaRTYearMisses = 0;
 /* And the split trick, separately — they fire on opposite sides of the
    threshold, so one flag could not serve both. */
 let ariaRTSplitTold = false;
@@ -38694,6 +38697,7 @@ async function startRealtimeVoiceOnce(){
   ariaRTSignedOff = false;
   ariaRTHeardSignOff = false;
   ariaRTThresholdTold = false;
+  ariaRTYearMisses = 0;
   ariaRTSplitTold = false;
   ariaRTScooped = new Set();
   ariaRTStoreCache = new Map();
@@ -39411,6 +39415,12 @@ async function runRealtimeTool(event, send){
   const parsed = T.parseToolArguments(event.name, event.arguments);
   let output;
   if (!parsed.ok){
+    /* SAID OUT LOUD (2026-10-07). A rejected argument used to vanish:
+       the year she heard went in, an error came out, and nothing on
+       the page said why. Now the raw arguments are on the console and
+       the tape. */
+    console.warn('[aria] tool arguments rejected:', event.name, parsed.error, event.arguments);
+    try { tape('!!', event.name + ' rejected: ' + parsed.error + ' ' + String(event.arguments).slice(0, 160)); } catch (e) {}
     output = { error: parsed.error };
   } else {
     try { output = await executeRealtimeTool(event.name, parsed.args); }
@@ -39773,12 +39783,29 @@ async function executeRealtimeTool(name, args){
   }
 
   if (name === 'lookup_parts_by_vehicle'){
-    const year = Math.round(Number(args.year));
+    /* The year arrives already normalised to 4 digits by
+       parseToolArguments (parseModelYear) -- "dos mil veintidós" is
+       2022 by the time it gets here. */
+    const yearArg = args.year == null ? null : Math.round(Number(args.year));
+    const year = Number.isFinite(yearArg) && yearArg > 0 ? yearArg : null;
     const make = String(args.make || '').trim().toLowerCase();
     const model = String(args.model || '').trim().toLowerCase();
     const asked = String(args.part_type || '').trim().toLowerCase();
-    if (!year || !make || !model || !asked){
-      return { unavailable: 'necesito año, marca, modelo y qué repuesto buscas' };
+    if (!make || !model || !asked){
+      return { unavailable: 'necesito marca, modelo y qué repuesto buscas' };
+    }
+    /* NEVER ASK FOR THE YEAR A THIRD TIME (2026-10-07). The first miss
+       asks once more; the second stops asking: one VIN request, and if
+       there is no VIN the search runs without a year and nothing it
+       returns is confirmed. */
+    let yearless = false;
+    if (!year){
+      ariaRTYearMisses++;
+      if (ariaRTYearMisses < 2){
+        return { need_year: true,
+                 note: 'Pregúntale el año UNA vez más, en números ("dos mil dieciocho"). Si ya te lo dijo, pásalo como year: 2018.' };
+      }
+      yearless = true;
     }
     const cache = await autoCacheIfWarm();
     if (!cache || !cache.partSearches) return { unavailable: ariaAutoWarming };
@@ -39802,11 +39829,15 @@ async function executeRealtimeTool(name, args){
       return { unavailable: 'no tengo ese repuesto en el catálogo. Dime de otra forma qué necesitas' };
     }
 
-    const want = year + '|' + make + '|' + model + '|' + type;
+    const want = (year || 'any') + '|' + make + '|' + model + '|' + type;
     const prefix = make + '|' + model + '|' + type;
-    let bucket = cache.partSearches[want];
+    let bucket = yearless ? null : cache.partSearches[want];
     let fitment = 'confirmed';
     let dataYear = year;
+    /* THE QUERY THE LOOKUP RECEIVED, every time -- the 2026-10-07 bug
+       lived exactly here and nothing showed it. */
+    console.info('[aria-auto] parts lookup', { key: want, year, make, model, part_type: type, yearless, hit: !!bucket });
+    try { tape('->', 'lookup_parts_by_vehicle ' + want + (bucket ? ' (exact)' : '')); } catch (e) {}
 
     if (!bucket){
       /* SAME CAR, DIFFERENT YEAR. Nearest year wins — a 2018 record is
@@ -39819,6 +39850,8 @@ async function executeRealtimeTool(name, args){
         if (b[1] + '|' + b[2] + '|' + b[3] !== prefix) continue;
         const y = Number(b[0]);
         if (!Number.isFinite(y)) continue;
+        /* No year at all: the newest data for this car stands in. */
+        if (yearless){ if (!best || y > best.y) best = { y, k }; continue; }
         if (!best || Math.abs(y - year) < Math.abs(best.y - year)) best = { y, k };
       }
       if (!best){
@@ -39827,7 +39860,7 @@ async function executeRealtimeTool(name, args){
            browsing path keeps. */
         try { logFitmentGap({ year, make, model }, type); } catch (e) {}
         return { unavailable: 'no tengo datos de ese auto todavía. No le confirmes que una pieza entra',
-                 vehicle: year + ' ' + titleCaseWords(make) + ' ' + titleCaseWords(model),
+                 vehicle: (year ? year + ' ' : '') + titleCaseWords(make) + ' ' + titleCaseWords(model),
                  part_type: type };
       }
       bucket = cache.partSearches[best.k];
@@ -39859,14 +39892,17 @@ async function executeRealtimeTool(name, args){
       return { unavailable: 'no tengo datos de ese auto todavía. No le confirmes que una pieza entra' };
     }
     return {
-      vehicle: year + ' ' + titleCaseWords(make) + ' ' + titleCaseWords(model),
+      vehicle: (year ? year + ' ' : '') + titleCaseWords(make) + ' ' + titleCaseWords(model),
       part_type: type,
       parts,
       /* Said plainly, because she has to say it plainly. */
-      fitment_note: fitment === 'confirmed'
+      fitment_note: yearless
+        ? 'SIN AÑO: estos repuestos son del ' + dataYear + ' para ese modelo. NO confirmes que entran. No vuelvas a pedir el año: pídele el VIN UNA sola vez; si no lo tiene, dile "lo más probable es que entre, confírmalo con el número de parte".'
+        : fitment === 'confirmed'
         ? 'Datos de ese año exacto. Puedes decir que entra.'
         : 'OJO: estos datos son del ' + dataYear + ', no del ' + year + '. Dilo así — "lo más probable es que entre, confirma con el número de parte" — y NUNCA digas que está confirmado.',
       data_year: dataYear,
+      ...(yearless ? { year_unknown: true } : {}),
     };
   }
 

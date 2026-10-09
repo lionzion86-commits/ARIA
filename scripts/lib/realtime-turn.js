@@ -215,12 +215,18 @@ export const REALTIME_TOOLS = Object.freeze([
     parameters: {
       type: "object",
       properties: {
-        year: { type: "integer", description: "Año del auto." },
+        /* A 4-digit year. Spoken forms are normalised on our side
+           (parseModelYear), but the model is asked for digits. */
+        year: { type: "integer", description: "Año del auto en 4 dígitos (2018). Si tras preguntarlo dos veces no lo tienes, omítelo." },
         make: { type: "string", description: "Marca: toyota, hyundai, kia…" },
         model: { type: "string", description: "Modelo: hilux, corolla, sonata…" },
         part_type: { type: "string", description: "El repuesto en español: 'pastillas de freno'." },
       },
-      required: ["year", "make", "model", "part_type"],
+      /* NOT REQUIRED (2026-10-07): a missing year is handled by the
+         lookup itself -- it counts the asks and, after two, searches
+         without one and marks fitment unconfirmed -- instead of an
+         argument error that sent her to ask a third time. */
+      required: ["make", "model", "part_type"],
       additionalProperties: false,
     },
   },
@@ -379,6 +385,81 @@ export const REALTIME_TOOL_NAMES = Object.freeze(REALTIME_TOOLS.map((t) => t.nam
    ------------------------------------------------------------------ */
 
 /** @returns {{ok:true,args:object}|{ok:false,error:string}} */
+/* ==================================================================
+   A MODEL YEAR, HOWEVER IT WAS SAID (2026-10-07, Aria Auto QA).
+
+   "2018", "del 2022", "'22", "2022 Forester", "dos mil dieciocho",
+   "dos mil veintidós" / "veintidos", "mil novecientos noventa y ocho",
+   a bare "dieciocho" or "noventa y ocho" (it IS a year, so two digits
+   are a year), and the Spanglish "veinte veintidós". Always a 4-digit
+   number, or null -- never a guess outside 1950 .. next year.
+   ================================================================== */
+const ES_NUM = {
+  cero: 0, un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7,
+  ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15,
+  dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiun: 21,
+  veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25,
+  veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30,
+  cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90,
+  cien: 100, ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400,
+  quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900,
+};
+function spanishNumberRuns(text) {
+  const runs = [];
+  let cur = null;
+  for (const w of text.split(/\s+/)) {
+    if (w in ES_NUM || w === "mil" || (w === "y" && cur)) {
+      if (!cur) cur = [];
+      cur.push(w);
+    } else if (cur) { runs.push(cur); cur = null; }
+  }
+  if (cur) runs.push(cur);
+  return runs.map((r) => (r[r.length - 1] === "y" ? r.slice(0, -1) : r));
+}
+function spanishRunValue(words) {
+  let total = 0, current = 0;
+  for (const w of words) {
+    if (w === "y") continue;
+    if (w === "mil") { total += (current || 1) * 1000; current = 0; continue; }
+    current += ES_NUM[w];
+  }
+  return total + current;
+}
+export function parseModelYear(input, opts = {}) {
+  const maxYear = (opts.now ? new Date(opts.now) : new Date()).getFullYear() + 1;
+  const ok = (y) => (Number.isInteger(y) && y >= 1950 && y <= maxYear ? y : null);
+  const twoDigit = (n) => ok(n <= maxYear % 100 ? 2000 + n : 1900 + n);
+  if (typeof input === "number") {
+    if (!Number.isFinite(input)) return null;
+    const n = Math.round(input);
+    return n < 100 ? twoDigit(n) : ok(n);
+  }
+  const text = String(input == null ? "" : input).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/(\d)[.,\s](\d{3})\b/g, "$1$2");
+  const four = text.match(/\b(19\d{2}|20\d{2})\b/);
+  if (four) return ok(Number(four[1]));
+  const words = text.replace(/[^a-z0-9'\s]/g, " ").replace(/\s+/g, " ").trim();
+  /* Spanglish "veinte veintidos", "diecinueve noventa y ocho". */
+  const pair = words.match(/\b(diecinueve|veinte)\s+([a-z\s]+)$/);
+  if (pair) {
+    const rest = spanishNumberRuns(pair[2])[0];
+    const r = rest && spanishRunValue(rest);
+    if (r > 0 && r < 100 && !/^(?:y|mil)$/.test(rest[0])) {
+      const y = ok((pair[1] === "veinte" ? 2000 : 1900) + r);
+      if (y) return y;
+    }
+  }
+  for (const run of spanishNumberRuns(words)) {
+    const v = spanishRunValue(run);
+    if (v >= 1000) { const y = ok(v); if (y) return y; }
+    else if (v >= 0 && v < 100) { const y = twoDigit(v); if (y) return y; }
+  }
+  const two = words.match(/(?:^|\s)'?(\d{2})(?:\s|$)/);
+  if (two) return twoDigit(Number(two[1]));
+  return null;
+}
+
 export function parseToolArguments(name, raw) {
   if (!REALTIME_TOOL_NAMES.includes(name)) {
     return { ok: false, error: `No existe la herramienta "${name}".` };
@@ -411,6 +492,19 @@ export function parseToolArguments(name, raw) {
       const n = Number(v);
       if (!Number.isFinite(n) || n < 0) continue;
       out[k] = n;
+    } else if (t.type === "integer"){
+      /* THE BUG (2026-10-07, iPhone QA): "integer" matched neither
+         branch, so every integer argument was DROPPED. The year she
+         heard and repeated back never reached lookup_parts_by_vehicle,
+         which answered "necesito año…", and she asked again. */
+      const n = k === "year" ? parseModelYear(v) : Math.round(Number(v));
+      if (n == null || !Number.isFinite(n) || n < 0) continue;
+      out[k] = n;
+    } else if (t.type === "boolean"){
+      /* Same hole: recommend_stores_for's "resolved" never arrived. */
+      if (v === true || v === false) out[k] = v;
+      else if (typeof v === "string" && /^(?:true|si|sí|yes)$/i.test(v.trim())) out[k] = true;
+      else if (typeof v === "string" && /^(?:false|no)$/i.test(v.trim())) out[k] = false;
     } else if (t.type === "string"){
       if (typeof v !== "string" || !v.trim()) continue;
       out[k] = v.trim().slice(0, 300);

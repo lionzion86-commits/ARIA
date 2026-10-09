@@ -8,6 +8,7 @@
     "test:browser": "node scripts/test/browser-tests.mjs",
     "test:mcp": "node scripts/test/mcp-tests.mjs",
     "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
+    "test:aria-auto-year": "node scripts/test/aria-auto-year-tests.mjs",
     "test:ropa-interior": "node scripts/test/ropa-interior-tests.mjs",
     "build:ropa-interior-feed": "node scripts/build-ropa-interior-feed.mjs",
     "test:search": "node scripts/test/search-relevance-tests.mjs",

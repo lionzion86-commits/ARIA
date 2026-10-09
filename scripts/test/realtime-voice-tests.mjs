@@ -3285,7 +3285,9 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
   };
   const run = (args, warm) => new Function("args", "autoCacheIfWarm", "ariaAutoWarming",
     "titleCaseWords", "logFitmentGap", "name",
-    "return (async () => {" + body + "\n return null; })();")(
+    /* Per-call state the lookup keeps (2026-10-07): the year-miss
+       count. A fresh run is a fresh call. */
+    "let ariaRTYearMisses = 0; return (async () => {" + body + "\n return null; })();")(
       /* The REAL warming line, read out of the page, so the test is
          checking what a shopper would actually hear. */
       args, async () => (warm === false ? null : cache),
@@ -3345,7 +3347,11 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
                       { year: 2019, make: "toyota", part_type: "pastillas de freno" },
                       { year: 2019, make: "toyota", model: "hilux" }]){
     const r = await run(args);
-    assert.ok(r.unavailable, "a search ran with a missing field: " + JSON.stringify(args));
+    /* A missing YEAR is asked once more (need_year) -- still a
+       question, not a search; after a second miss the lookup searches
+       unconfirmed, which aria-auto-year-tests.mjs covers. */
+    assert.ok(r.unavailable || r.need_year, "a search ran with a missing field: " + JSON.stringify(args));
+    assert.ok(!r.parts, "parts came back for a search with a missing field: " + JSON.stringify(args));
   }
 
   /* THE 22MB CACHE. The first parts question must answer in words
