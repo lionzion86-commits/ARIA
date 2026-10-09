@@ -283,7 +283,7 @@ function saleTier(p){
    department carousel. Same classifier as marca.html. */
 var PRODUCT_TYPES = [
   { key:'trajes_bano', label:'Trajes de Baño', keywords:['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
-  { key:'carteras',    label:'Carteras',       keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
+  { key:'carteras',    label:'Carteras y mochilas', keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
   { key:'joyas',       label:'Joyas',          keywords:['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
   { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
   { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
@@ -393,8 +393,65 @@ function normItem(raw, deptKey){
     onSale: !!(raw.onSale || raw.isOnSale),
     image: img,
     url: raw.url || raw.link || '',
-    dept: deptKey || ''
+    dept: deptKey || '',
+    type: raw.type ? String(raw.type) : ''
   };
+}
+
+/* ---------- facet pills for single-bucket brand stores (2026-10-09) ----------
+   Gymshark, Alphalete and YoungLA come from gymrat-catalog.json as ONE
+   "gym_rat" department holding everything, so the department pills read
+   "Todo · Gym Rat" -- a pill that names Aria's bucket, not anything in
+   the brand's own store. When a store has a single department, the pills
+   come from each product's own type field instead:
+     "Womens>Apparel>Leggings>full_length"  (Gymshark): 1st segment is the
+        gender, 3rd the category;
+     "Women's Seamless Short"  (Alphalete): leading gender, last word the
+        category;
+     "For Him" / "For Her"  (YoungLA): gender only. */
+var GENDER_LABELS = { womens: 'Mujer', women: 'Mujer', 'for her': 'Mujer',
+                      mens: 'Hombre', men: 'Hombre', 'for him': 'Hombre', unisex: 'Unisex' };
+var GENDER_ORDER = ['Mujer', 'Hombre', 'Unisex'];
+var FACET_MIN = 5;  /* a category pill needs this many products; smaller ones stay under Todo */
+function typeFacets(type){
+  var t = String(type || '').trim();
+  if (!t) return { gender: '', cat: '' };
+  if (t.indexOf('>') >= 0){
+    var seg = t.split('>').map(function(x){ return x.trim(); });
+    return { gender: GENDER_LABELS[seg[0].toLowerCase()] || '', cat: seg[2] || '' };
+  }
+  var whole = GENDER_LABELS[t.toLowerCase()];
+  if (whole) return { gender: whole, cat: '' };
+  var m = /^(women|men)['\u2019]?s\s+|^unisex\s+/i.exec(t);
+  var gender = m ? (GENDER_LABELS[m[0].replace(/['\u2019\s]/g, '').toLowerCase()] || '') : '';
+  var words = (m ? t.slice(m[0].length) : t).split(/\s+/).filter(Boolean);
+  var last = words.length ? words[words.length - 1] : '';
+  var cat = last ? last.charAt(0).toUpperCase() + last.slice(1) : '';
+  if (cat && !/s$/i.test(cat)) cat += 's';  /* "Short" and "Shorts" are one pill */
+  return { gender: gender, cat: cat };
+}
+var facetMode = false;
+var facetGenders = [];   /* gender labels present, in GENDER_ORDER */
+var facetCats = [];      /* category labels with >= FACET_MIN products, biggest first */
+var activeGender = '';
+var activeCat = '';
+function buildFacets(){
+  facetMode = Object.keys(deptLabels).length === 1;
+  facetGenders = []; facetCats = []; activeGender = ''; activeCat = '';
+  if (!facetMode) return;
+  var g = {}, c = {};
+  for (var i = 0; i < allItems.length; i++){
+    var f = typeFacets(allItems[i].type);
+    allItems[i].gender = f.gender;
+    allItems[i].cat = f.cat;
+    if (f.gender) g[f.gender] = 1;
+    if (f.cat) c[f.cat] = (c[f.cat] || 0) + 1;
+  }
+  facetGenders = GENDER_ORDER.filter(function(x){ return g[x]; });
+  facetCats = Object.keys(c).filter(function(k){ return c[k] >= FACET_MIN; })
+    .sort(function(a, b){ return c[b] - c[a] || a.localeCompare(b, 'es'); });
+  /* Nothing to offer from the type field: fall back to the old pills. */
+  if (!facetGenders.length && !facetCats.length) facetMode = false;
 }
 
 /* ---------- data loading ---------- */
@@ -466,13 +523,15 @@ function loadFx(){
 function currentFilters(){
   var q = (($('q') || {}).value || '').trim().toLowerCase();
   var sort = (($('sort') || {}).value || 'relevance');
-  return { q: q, sort: sort, dept: activeDept };
+  return { q: q, sort: sort, dept: activeDept, gender: activeGender, cat: activeCat };
 }
 var activeDept = '';
 function filteredItems(){
   var f = currentFilters();
   var pool = allItems;
   if (f.dept) pool = pool.filter(function(p){ return p.dept === f.dept; });
+  if (f.gender) pool = pool.filter(function(p){ return p.gender === f.gender; });
+  if (f.cat) pool = pool.filter(function(p){ return p.cat === f.cat; });
   if (f.q){
     var words = f.q.split(/\s+/).filter(Boolean);
     pool = pool.filter(function(p){
@@ -529,9 +588,36 @@ function renderPenPrices(){
     els[i].textContent = 'S/ ' + (usd * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2});
   }
 }
+function renderFacetChips(host){
+  var chip = function(kind, val, label, on){
+    return '<button type="button" class="chip' + (on ? ' active' : '') + '" data-' + kind + '="' + esc(val) + '">' + esc(label) + '</button>';
+  };
+  var html = chip('all', '', 'Todo', !activeGender && !activeCat);
+  for (var i = 0; i < facetGenders.length; i++) html += chip('gender', facetGenders[i], facetGenders[i], activeGender === facetGenders[i]);
+  for (var j = 0; j < facetCats.length; j++) html += chip('cat', facetCats[j], facetCats[j], activeCat === facetCats[j]);
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.chip');
+  for (var k = 0; k < btns.length; k++){
+    btns[k].addEventListener('click', function(){
+      /* Gender and category combine (Mujer + Leggings); tapping an
+         active pill clears it; Todo clears both. */
+      if (this.hasAttribute('data-all')){ activeGender = ''; activeCat = ''; }
+      else if (this.hasAttribute('data-gender')){
+        var g = this.getAttribute('data-gender');
+        activeGender = activeGender === g ? '' : g;
+      } else {
+        var c = this.getAttribute('data-cat');
+        activeCat = activeCat === c ? '' : c;
+      }
+      visibleCount = PAGE_SIZE;
+      try { renderDeptChips(); render(); } catch (e) {}
+    });
+  }
+}
 function renderDeptChips(){
   var host = $('deptChips');
   if (!host) return;
+  if (facetMode){ renderFacetChips(host); return; }
   var keys = Object.keys(deptLabels).sort(function(a,b){
     return String(deptLabels[a]).localeCompare(String(deptLabels[b]), 'es');
   });
@@ -682,7 +768,7 @@ function render(){
   }
   var f0 = currentFilters();
   /* DEFAULT VIEW: carousel merchandising (no search, no dept chip) */
-  if (!f0.q && !f0.dept){ renderCarousels(); return; }
+  if (!f0.q && !f0.dept && !f0.gender && !f0.cat){ renderCarousels(); return; }
   /* SEARCH / FILTER VIEW: flat grid as before */
   var s = $('sort');
   if (s) s.style.display = '';
@@ -824,6 +910,7 @@ function boot(isRetry){
         renderError('No pudimos cargar ' + storeMeta.label + '. Revisa tu conexión e inténtalo de nuevo.', true);
         return;
       }
+      try { buildFacets(); } catch (e) { facetMode = false; }
       renderDeptChips();
       render();
     } catch (e){ renderError('No pudimos mostrar la tienda.', true); }
