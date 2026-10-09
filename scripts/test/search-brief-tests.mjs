@@ -47,7 +47,16 @@ check("the index is what the catalogues give today", () => {
   const fresh = buildIndex();
   assert.equal(index.count, fresh.count,
     `the index has ${index.count} products, the catalogues give ${fresh.count} — run: node scripts/build-search-index.mjs`);
-  assert.deepEqual(index.rows, fresh.rows, "the index is stale — run: node scripts/build-search-index.mjs");
+  /* Row by row, not one deepEqual over 146k rows: when they differ,
+     assert's diff of the whole array took 13.8 GB and the OS killed the
+     suite before it could say "stale" (2026-10-09). */
+  const stale = [];
+  for (let i = 0; i < Math.max(index.rows.length, fresh.rows.length); i++) {
+    if (JSON.stringify(index.rows[i]) !== JSON.stringify(fresh.rows[i])) stale.push(i);
+  }
+  assert.equal(stale.length, 0, `the index is stale: ${stale.length} rows differ, first at row ${stale[0]}: ` +
+    `${JSON.stringify(index.rows[stale[0]] || null).slice(0, 160)} vs ${JSON.stringify(fresh.rows[stale[0]] || null).slice(0, 160)}` +
+    " — run: node scripts/build-search-index.mjs");
 });
 
 /* ------------------------------------------------------------------
