@@ -240,6 +240,8 @@ await check("(h) English part names reach the Spanish cache keys: \"brake pads\"
   assert.equal(T("serpentine belt", keys), "correa de accesorios");
   assert.equal(T("brake pad", keys), "pastillas de freno", "singular must reach the plural key");
   assert.equal(T("breakfast"), "breakfast");
+  assert.equal(T("headlights", keys), "faros delanteros", "headlights must reach the cache key, not bare \"faros\"");
+  assert.equal(GLOSSARY.translatePartQuery("faros delanteros"), "headlights", "never \"headlights delanteros\"");
   const L = makeLookup(REAL);
   const out = await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "brake pads" });
   assert.equal(out.part_type, "pastillas de freno", out.unavailable || "English part_type missed the cache");
@@ -250,6 +252,10 @@ await check("(h) English part names reach the Spanish cache keys: \"brake pads\"
   assert.deepEqual(ids(L.cards), ids(S.cards), "English and Spanish must show the same cards");
   assert.equal(L.cards.length, 5, "the five Duralast pads");
   assert.ok(L.cards.every((c) => c.item.brand === "Duralast"));
+  const H = makeLookup(REAL);
+  const hl = await H.run("lookup_parts_by_vehicle", { year: 2015, make: "toyota", model: "corolla", part_type: "headlights" });
+  assert.equal(hl.part_type, "faros delanteros", hl.unavailable || "English headlights missed the cache");
+  assert.ok(hl.parts.length >= 1);
 });
 
 /* The search_products branch, lifted the same way. */
