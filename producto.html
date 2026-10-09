@@ -48,6 +48,22 @@ footer{background:var(--navy);color:#B9C6E4;font-size:13px;padding:28px 20px;tex
 footer a{color:#fff}
 .err-box{border:1px solid #FECACA;background:#FEF2F2;border-radius:16px;padding:32px 20px;text-align:center;margin:24px 0}
 .err-box strong{display:block;font-size:18px;color:var(--navy);margin-bottom:8px}
+/* Buy path: size selector + add-to-cart (producto.html restore, 2026-10-08) */
+.buy-box{margin-top:20px;display:flex;flex-direction:column;gap:12px}
+.size-label{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:-6px}
+.size-select{width:100%;padding:13px 12px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;background:#fff;color:var(--ink)}
+.size-select:focus{outline:none;border-color:var(--blue)}
+.size-note{font-size:12.5px;color:var(--muted);line-height:1.5}
+.btn-add{width:100%;text-align:center;border:none;cursor:pointer;background:var(--gold);color:var(--navy)}
+.btn-add:hover{background:#EAB54E;text-decoration:none}
+.btn-secondary{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.btn-secondary:hover{background:var(--sky);text-decoration:none}
+.btn-checkout{width:100%;text-align:center;background:var(--blue);color:#fff;border:none}
+.btn-checkout:hover{background:var(--navy);text-decoration:none;color:#fff}
+.cart-confirm{margin-top:4px}
+.confirm-msg{font-size:15px;font-weight:700;color:var(--green);margin-bottom:10px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,24px);background:var(--navy);color:#fff;padding:13px 22px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:999;max-width:90vw;text-align:center;line-height:1.4}
+.toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -78,6 +94,7 @@ footer a{color:#fff}
   </div>
   <div id="p-body"></div>
 </div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>
 /* =====================================================================
    THE PRODUCT PAGE, WIRED TO THE CATALOGUES.
@@ -187,8 +204,6 @@ function render(p){
     : '<div style="aspect-ratio:1;border-radius:16px;border:1px solid var(--line);background:#f7f8fb"></div>';
   var desc = p.description
     ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
-  var sizes = (p.sizes && p.sizes.length)
-    ? '<p style="font-size:14px;color:var(--muted)">Tallas: ' + esc(p.sizes.join(", ")) + '</p>' : '';
   el("p-body").innerHTML =
     '<div class="grid2" style="align-items:start">'
     + '<div>' + img + '</div>'
@@ -196,7 +211,7 @@ function render(p){
       + (p.brand ? '<div class="kicker">' + esc(p.brand) + '</div>' : '')
       + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(p.name) + '</h1>'
       + (store ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
-      + priceHtml + sizes
+      + priceHtml
       + '<p style="font-size:13px;color:var(--muted);margin-top:14px">Precio honesto: incluye compra, envío y aduana hasta tu puerta en Perú.</p>'
       /* DANNY 2026-10-07: NEVER link out to the retailer's/designer's own site.
          Designer products -> our Diseñadores Latinos room; store products -> our store page. */
@@ -204,12 +219,180 @@ function render(p){
           var tk = String(p.retailer || '').toLowerCase();
           var label = esc(store || 'la tienda');
           var designers = {farmrio:1,aguabendita:1,patbo:1,johannaortiz:1,silviatcherassi:1,capittana:1,ancora:1,vix:1,montce:1,eberjey:1,tns:1};
-          if (designers[tk]) return '<a class="btn" href="disenadores.html#d-' + tk + '">Ver más de ' + label + '</a>';
-          if (tk) return '<a class="btn" href="tienda.html?tienda=' + encodeURIComponent(tk) + '">Ver más en ' + label + '</a>';
+          if (designers[tk]) return '<a class="btn btn-secondary" href="disenadores.html#d-' + tk + '">Ver más de ' + label + '</a>';
+          if (tk) return '<a class="btn btn-secondary" href="tienda.html?tienda=' + encodeURIComponent(tk) + '">Ver más en ' + label + '</a>';
           return '';
         })()
+      + '<div id="buy-box" class="buy-box"></div>'
     + '</div></div>' + desc;
   document.title = p.name + " — Aria Shop";
+  buildBuyBox(p);
+}
+
+/* =====================================================================
+   BUY PATH (restored 2026-10-08). Every product card lands here, so
+   this page must carry the same buying machinery as index.html's SPA:
+   a real size picker, a fail-closed add-to-cart, and the same cart
+   localStorage key/shape checkout.html reads ('aria_cart_v1').
+
+   Ported from index.html (APPAREL_KEYWORDS, needsSizeSelection,
+   sizeCategoryFor, standardSizeOptions, cart merge). The full
+   title-based weight estimator lives only in the SPA; this page marks
+   its line honestly estimated (weightEstimated: true) and checkout
+   re-resolves it server side.
+   ===================================================================== */
+var CART_KEY = 'aria_cart_v1';
+
+/* The words that mean "this has a size" — one list, copied verbatim
+   from index.html. Note the \bboot lookahead: "bootcut" is a trouser
+   leg, not a shoe (see index.html comment). */
+var SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b|\bzapatos?\b|\bzapatillas?\b|\bbotas?\b|\bsandalias?\b|\bmocasines?\b/i;
+var CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b|\btrajes?\b|\bsu[eé]ter(?:es)?\b|\bchalecos?\b|\bblusas?\b|\bpantal[oó]n(?:es)?\b|\bfaldas?\b|\bvestidos?\b|\bchaquetas?\b|\babrigos?\b|\bcasacas?\b/i;
+var APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
+/* Retailers whose entire catalogue is apparel/footwear: every item gets
+   a size there even when the title carries no generic size word. */
+var APPAREL_ONLY_RETAILERS = {oldnavy: 1, footlocker: 1};
+var SHOE_DEFAULT_RETAILERS = {footlocker: 1};
+var KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
+var MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
+var WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
+var ADULT_CLOTHING_SIZES = ['XS','S','M','L','XL','XXL','1X','2X','3X'];
+var ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
+var ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
+var ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
+var KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
+var KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
+
+function apparelNeedsSize(retailer, title){
+  var rk = String(retailer || '').toLowerCase();
+  return !!APPAREL_ONLY_RETAILERS[rk] || APPAREL_KEYWORDS.test(title || '');
+}
+function sizeCategoryFor(retailer, title){
+  var t = title || '';
+  var rk = String(retailer || '').toLowerCase();
+  /* A garment word beats a lone "boot": "Wedgie Boot High-Rise Jeans"
+     is a trouser, not a shoe. "Chelsea Boot" carries no garment word
+     and still classifies as footwear. */
+  var bootish = /\bboot/i.test(t);
+  if (SHOE_KEYWORDS.test(t) && !(bootish && CLOTHING_KEYWORDS.test(t))) return 'shoe';
+  if (CLOTHING_KEYWORDS.test(t)) return 'clothing';
+  if (SHOE_KEYWORDS.test(t)) return 'shoe';
+  if (SHOE_DEFAULT_RETAILERS[rk]) return 'shoe';
+  return 'clothing';
+}
+function standardSizeOptions(title, sizeCategory){
+  var isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title || '');
+  var isKids = KIDS_KEYWORDS.test(title || '');
+  if (isShoe && isKids) return KIDS_SHOE_SIZES;
+  if (isShoe && MENS_KEYWORDS.test(title || '')) return ADULT_SHOE_SIZES_MEN;
+  if (isShoe && WOMENS_KEYWORDS.test(title || '')) return ADULT_SHOE_SIZES_WOMEN;
+  if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
+  if (isKids) return KIDS_CLOTHING_SIZES;
+  return ADULT_CLOTHING_SIZES;
+}
+
+var toastTimer = null;
+function toast(msg){
+  var t = el('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+function readCartLocal(){
+  try{
+    var raw = localStorage.getItem(CART_KEY);
+    var a = raw ? JSON.parse(raw) : [];
+    return Array.isArray(a) ? a : [];
+  }catch(e){ return []; }
+}
+function saveCartLocal(c){
+  try{ localStorage.setItem(CART_KEY, JSON.stringify(c)); }catch(e){}
+}
+function cartLineKey(it){
+  /* Same uniqueness key as index.html's cartItemKey: retailer+title+size. */
+  return [it.retailer || '', it.title || '', it.selectedSize || ''].join('::');
+}
+function mergeCartLine(line){
+  var c = readCartLocal().filter(function(it){ return it && typeof it === 'object'; });
+  var key = cartLineKey(line);
+  var found = null;
+  for (var i = 0; i < c.length; i++){
+    if (cartLineKey(c[i]) === key){ found = c[i]; break; }
+  }
+  if (found){
+    /* A stored qty is never trusted (string-concat class): normalise to int. */
+    found.qty = Math.floor(Number(found.qty) || 0) + 1;
+  } else {
+    line.qty = 1;
+    c.push(line);
+  }
+  saveCartLocal(c);
+}
+
+function buildBuyBox(p){
+  var box = el('buy-box');
+  if (!box) return;
+  var wantsSize = apparelNeedsSize(p.retailer, p.name);
+  var sizeHtml = '';
+  if (wantsSize){
+    var options = (p.sizes && p.sizes.length)
+      ? p.sizes.slice()
+      : standardSizeOptions(p.name, sizeCategoryFor(p.retailer, p.name));
+    var optsHtml = '<option value="" disabled selected>Selecciona una talla</option>'
+      + options.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
+    var note = (p.sizes && p.sizes.length)
+      ? ''
+      : '<p class="size-note">La tienda no publica las tallas exactas de este producto; estas son tallas estándar de referencia.</p>';
+    sizeHtml = '<label class="size-label" for="size-select">Talla</label>'
+      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>' + note;
+  }
+  box.innerHTML = sizeHtml
+    + '<button id="add-cart-btn" class="btn btn-add" type="button">Agregar al carrito</button>'
+    + '<div id="cart-confirm" class="cart-confirm" hidden>'
+    +   '<p class="confirm-msg">Agregado al carrito.</p>'
+    +   '<a class="btn btn-checkout" href="checkout.html">Ver carrito / Finalizar compra</a>'
+    + '</div>';
+  el('add-cart-btn').addEventListener('click', function(){ addCurrentToCart(p, wantsSize); });
+}
+
+function addCurrentToCart(p, wantsSize){
+  /* The price guard: never a priceless or $0 line. */
+  var priceUsd = finalUsd(p.price);
+  if (!(Number(priceUsd) > 0)){
+    toast('Este producto aún no tiene precio confirmado.');
+    return;
+  }
+  /* FAIL CLOSED: a garment with no size never reaches the cart. */
+  var size = null;
+  if (wantsSize){
+    var sel = el('size-select');
+    size = sel ? sel.value : '';
+    if (!size){
+      toast('Selecciona una talla antes de agregar al carrito.');
+      if (sel) sel.focus();
+      return;
+    }
+  }
+  mergeCartLine({
+    retailer: p.retailer,
+    title: p.name,
+    priceUsd: priceUsd,
+    /* The raw catalogue price is the dutiable base (what the goods
+       really cost), never the marked-up price. */
+    dutiableUsd: p.price,
+    /* Honest estimate: the SPA's title-based weight table is not on
+       this page; checkout re-resolves the weight server side. */
+    weightKg: 0.2,
+    weightEstimated: true,
+    selectedSize: size,
+    qty: 1
+  });
+  toast('Agregado al carrito.');
+  var c = el('cart-confirm');
+  if (c) c.hidden = false;
 }
 
 (async function(){
