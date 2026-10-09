@@ -110,14 +110,30 @@ for (let k = page.indexOf("{", at); k < page.length; k++) {
 }
 const block = page.slice(at, end + 1);
 
+/* The page's own pricing, so a card's price is the one the Aria Auto
+   page and the cart use (normalizeAutoPartItem = normalizeLiveItem). */
+const { loadPageEngine } = await import(ROOT + "scripts/lib/mcp/page-slices.mjs");
+const ENGINE = loadPageEngine();
+const engineSrc = readFileSync(ROOT + "search-engine.js", "utf8");
+const SW = {}; new Function("window", engineSrc)(SW);
+const searchTokens = SW.AriaSearch.searchTokens;
+/* The page's own guard-word function, lifted, not copied. */
+const pgwSrc = /function partsGuardWords\(text\)\{[\s\S]*?\r?\n\}/.exec(page)[0];
+const partsGuardWords = new Function("searchTokens", pgwSrc + "; return partsGuardWords;")(searchTokens);
+const normalizeAutoPartItem = (source, raw) => ({ ...ENGINE.pricing.normalizeLiveItem(raw, { retailer: source }), raw });
+
 function makeLookup(cache, misses = 0) {
   const logs = [];
+  const cards = [];
   const fn = new Function("autoCacheIfWarm", "ariaAutoWarming", "logFitmentGap", "titleCaseWords", "console", "tape", "initialMisses",
+    "normalizeAutoPartItem", "addAssistantProductCard", "searchTokens", "translatePartQuery", "partsGuardWords",
     `let ariaRTYearMisses = initialMisses;
-     return { run: async (name, args) => { ${block} }, misses: () => ariaRTYearMisses };`);
+     let ariaRTPartsShown = null;
+     return { run: async (name, args) => { ${block} }, misses: () => ariaRTYearMisses, partsShown: () => ariaRTPartsShown };`);
   const api = fn(async () => cache, "calentando", () => {}, (s) => s.replace(/\b\w/g, (c) => c.toUpperCase()),
-    { info: (tag, o) => logs.push(o), warn() {}, log() {} }, () => {}, misses);
-  return { ...api, logs };
+    { info: (tag, o) => logs.push(o), warn() {}, log() {} }, () => {}, misses,
+    normalizeAutoPartItem, (item, retailer) => cards.push({ item, retailer }), searchTokens, (q) => q === "pastillas de freno" ? "brake pads" : q, partsGuardWords);
+  return { ...api, logs, cards };
 }
 const pad = (name) => ({ productTitle: name, brand: "Akebono", part_number: "ACT1078", price: 45.99, store: "autozone" });
 const CACHE = { partSearches: {
@@ -163,7 +179,133 @@ await check("a rejected argument is logged, never silent again", () => {
   assert.match(voice, /NUNCA pidas el año más de DOS veces/, "the voice prompt does not cap the year question");
 });
 
-const MIN_CHECKS = 6;
+/* ------------------------------------------------------------------
+   (d) 2026-10-09, Danny's iPhone: she SPOKE the five Duralast pads for a
+   2018 Forester and the cards on screen were a Hot Wheels Forester,
+   kids' clothes and earbuds. The cards now come from the lookup.
+   ------------------------------------------------------------------ */
+const REAL = JSON.parse(readFileSync(ROOT + "auto-cache.json", "utf8"));
+await check("(d) the parts she names are the cards on screen: photo, brand, part number, the card's price", async () => {
+  const L = makeLookup(REAL);
+  const out = await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  assert.ok(out.parts.length >= 1, "no parts");
+  assert.equal(L.cards.length, out.parts.length, "a part she names has no card (or a card she does not name)");
+  assert.ok(L.cards.length <= 6);
+  for (let i = 0; i < L.cards.length; i++) {
+    const { item, retailer } = L.cards[i];
+    assert.equal(retailer, "autozone");
+    assert.ok(item.image && /^https:\/\//.test(item.image), `card ${i} has no photo`);
+    assert.ok(item.partNumber, `card ${i} has no part number`);
+    assert.ok(item.brand, `card ${i} has no brand`);
+    assert.ok(/brake pads/i.test(item.title), `card ${i} is not a brake pad: ${item.title}`);
+    assert.equal(out.parts[i].price_usd, item.price, "she would say a different price than the card shows");
+  }
+  assert.equal(out.cards_shown, L.cards.length);
+  assert.match(out.cards_note, /No llames search_products/);
+});
+
+await check("(d) every price she says carries the standard margin, and an unpriced part is never named", async () => {
+  const L = makeLookup(REAL);
+  const out = await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  const shelf = REAL.partSearches["2018|subaru|forester|pastillas de freno"].autozone;
+  for (const p of out.parts) {
+    const rec = shelf.find((r) => r.part_number === p.part_number);
+    const std = ENGINE.pricing.normalizeLiveItem(rec, { retailer: "autozone" }).price;
+    assert.equal(p.price_usd, std, `${p.part_number}: not the standard margin`);
+    assert.ok(p.price_usd > rec.price, `${p.part_number}: she would say the bare shelf price`);
+  }
+  const d1114 = out.parts.find((p) => p.part_number === "D1114");
+  if (d1114) assert.equal(d1114.price_usd, 72.96, "shelf $54.99 is $72.96 with the standard treatment");
+  const M = makeLookup({ partSearches: { "2018|subaru|forester|pastillas de freno": { autozone: [
+    { productTitle: "No Price Pads", brand: "X", part_number: "NP1", price: null, store: "autozone" },
+    pad("Duralast Gold Brake Pads - Front"),
+  ] } } });
+  const o2 = await M.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  assert.deepEqual(o2.parts.map((p) => p.part_number), ["ACT1078"], "she names a part with no priced card");
+  assert.equal(M.cards.length, 1);
+});
+
+/* The search_products branch, lifted the same way. */
+const sAt = page.indexOf("  if (name === 'search_products'){");
+let sd = 0, sEnd = -1;
+for (let k = page.indexOf("{", sAt); k < page.length; k++) {
+  if (page[k] === "{") sd++;
+  else if (page[k] === "}" && --sd === 0) { sEnd = k; break; }
+}
+const sBlock = page.slice(sAt, sEnd + 1);
+function makeSearch(partsShown) {
+  const cards = [];
+  const fn = new Function("ariaRTPartsShown", "searchTokens", "loadFxRate", "budgetToUsd", "catalogSearch", "addAssistantProductCard", "realtimeProductId",
+    `return async (name, args) => { ${sBlock} };`);
+  const junk = [{ title: "Hot Wheels Subaru Forester", retailer: "target", price: 5 }, { title: "Kids Tee", retailer: "target", price: 9 }];
+  const run = fn(partsShown, searchTokens, async () => {}, () => ({ usd: null }), async () => ({ items: junk }),
+    (it) => cards.push(it), (it) => it.title);
+  return { run, cards };
+}
+await check("(e) after the parts are on screen, a general search for the same car or part is refused", async () => {
+  const L = makeLookup(REAL);
+  await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  for (const q of ["2018 Subaru Forester brake pads", "pastillas de freno", "forester"]) {
+    const S = makeSearch(L.partsShown());
+    const r = await S.run("search_products", { query: q });
+    assert.equal(r.already_shown, true, `"${q}" searched the general catalogue again`);
+    assert.equal(S.cards.length, 0, `"${q}" drew junk cards over the parts`);
+  }
+  const S = makeSearch(L.partsShown());
+  const other = await S.run("search_products", { query: "zapatillas de mujer" });
+  assert.ok(!other.already_shown, "an unrelated search was blocked");
+  assert.ok(!L.partsShown().words.has("de"), "a filler word would block every later search");
+});
+await check("(e) while the parts catalogue is still loading, the general search is held off that car too", async () => {
+  const L = makeLookup(null);
+  const first = await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  assert.equal(first.unavailable, "calentando");
+  assert.match(first.retry, /vuelve a llamar lookup_parts_by_vehicle/);
+  const S = makeSearch(L.partsShown());
+  const r = await S.run("search_products", { query: "Subaru Forester brake pads" });
+  assert.equal(r.parts_loading, true, "the Hot Wheels Forester gap is still open");
+  assert.equal(S.cards.length, 0);
+});
+await check("(f) a part card opens inside Aria with its part number, never the store's site", () => {
+  const fnAt = page.indexOf("function addAssistantProductCard(item, retailer){");
+  const body = page.slice(fnAt, fnAt + page.slice(fnAt).search(/\r?\n\}\r?\n/));
+  assert.ok(body.length > 200 && body.length < 4000, "addAssistantProductCard moved — update this test");
+  assert.match(body, /pendingAutoPartNumber = partNumber/, "the part number is lost on the tap");
+  assert.match(body, /showProduct\(/);
+  assert.doesNotMatch(body, /window\.open|location\.href|\.url\b|autozone\.com/, "a card links out of Aria");
+  const spec = REALTIME_TOOLS.find((t) => t.name === "lookup_parts_by_vehicle");
+  assert.match(spec.description, /NO llames search_products/);
+});
+
+await check("(g) the product page finds the tapped part in the auto cache, part number shown, no link out", async () => {
+  const prod = readFileSync(ROOT + "producto.html", "utf8");
+  const lift = (sig) => {
+    const at = prod.indexOf(sig);
+    assert.ok(at >= 0, sig + " moved — update this test");
+    let depth = 0, i = prod.indexOf("{", at);
+    for (; i < prod.length; i++) { if (prod[i] === "{") depth++; else if (prod[i] === "}" && --depth === 0) break; }
+    return prod.slice(at, i + 1);
+  };
+  const src = [lift("function norm("), lift("function normalizeItem("), lift("async function huntAuto(")].join("\n");
+  const run = (q) => {
+    const params = new URLSearchParams(q);
+    const fetch = async () => ({ ok: true, json: async () => REAL });
+    return new Function("params", "fetch", "want", "tienda", src + "\nreturn huntAuto();")(
+      params, fetch, params.get("producto"), params.get("tienda"));
+  };
+  const p = await run("producto=Duralast%20Ceramic%20Brake%20Pads%20D1114&tienda=autozone&pn=D1114");
+  assert.ok(p, "the tapped AutoZone part is \"no encontrado\" again");
+  assert.equal(p.partNumber, "D1114");
+  assert.equal(p.retailer, "autozone");
+  assert.ok(p.price > 0 && p.image, "the part lost its price or photo");
+  assert.equal(p.url, "", "the store's url rides into the product page");
+  const byTitle = await run("producto=Duralast%20Ceramic%20Brake%20Pads%20D1114&tienda=autozone");
+  assert.equal(byTitle && byTitle.partNumber, "D1114", "without ?pn= the title must still find it");
+  assert.match(prod, /p\.partNumber \? .*N\.° de parte/, "the part number is not shown on the product page");
+  assert.doesNotMatch(prod, /autozone\.com/, "the product page links out to AutoZone");
+});
+
+const MIN_CHECKS = 12;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

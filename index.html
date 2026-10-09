@@ -35464,7 +35464,15 @@ function addAssistantProductCard(item, retailer){
   assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
+  /* An auto part carries its part number (fitment is checked by it). The
+     tap opens Aria's own product view with the number on it, exactly as
+     openAutoPart() does -- never the store's page. */
+  const partNumber = item.partNumber || null;
+  card.onclick = () => {
+    toggleAssistant();
+    if (partNumber) pendingAutoPartNumber = partNumber;
+    showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand });
+  };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
@@ -35473,6 +35481,7 @@ function addAssistantProductCard(item, retailer){
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
       <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title || item.name || '')}</div>
+      ${partNumber ? `<div class="text-[10.5px] text-zinc-500 truncate">N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(partNumber)}</span></div>` : ''}
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price, item.dutiableUsd) : ''}${item.price != null && priceIncludesImportTax(item.price, item.dutiableUsd) ? ' · incl. impuestos' : ''}</div>
       ${item.price != null && Number.isFinite(Number(item.price)) ? solesUnderHTML(displayPriceUsd(Number(item.price), item.dutiableUsd), 'text-[10.5px] text-zinc-400 truncate') : ''}
     </div>`;
@@ -38314,6 +38323,20 @@ let ariaRTThresholdTold = false;
 /* Aria Auto: how many times this call's parts lookup arrived without a
    usable year. Two is the ceiling -- see lookup_parts_by_vehicle. */
 let ariaRTYearMisses = 0;
+/* THE PARTS ON SCREEN (2026-10-09, Danny's iPhone). After
+   lookup_parts_by_vehicle draws its cards, the model reached for
+   search_products to get "tappable" ones -- the general catalogue, which
+   cannot see auto-cache.json -- and "2018 Subaru Forester brake pads"
+   came back as a Hot Wheels Forester, kids' clothes and earbuds, which
+   she then read as "no encontré las pastillas". Remembered here so that
+   follow-up search is refused while the real parts are on screen. */
+let ariaRTPartsShown = null; // { at, words: Set, pending? }
+/* Only words that name the car or the part: "de", "para", "set" would
+   block every later search in the call. */
+function partsGuardWords(text){
+  return new Set(searchTokens(String(text || ''))
+    .filter(w => w.length >= 4 && !/^(para|with|front|rear|delantero|trasero|delantera|trasera)$/.test(w)));
+}
 /* And the split trick, separately — they fire on opposite sides of the
    threshold, so one flag could not serve both. */
 let ariaRTSplitTold = false;
@@ -38718,6 +38741,7 @@ async function startRealtimeVoiceOnce(){
   ariaRTHeardSignOff = false;
   ariaRTThresholdTold = false;
   ariaRTYearMisses = 0;
+  ariaRTPartsShown = null;
   ariaRTSplitTold = false;
   ariaRTScooped = new Set();
   ariaRTStoreCache = new Map();
@@ -39461,6 +39485,19 @@ async function runRealtimeTool(event, send){
 
 async function executeRealtimeTool(name, args){
   if (name === 'search_products'){
+    /* The car parts are already on screen (see ariaRTPartsShown): the
+       general catalogue does not carry them, so searching it again can
+       only replace the right cards with toys and earbuds. */
+    if (ariaRTPartsShown && Date.now() - ariaRTPartsShown.at < 10 * 60 * 1000){
+      const qWords = searchTokens([args.brand, args.query].filter(Boolean).join(' '));
+      if (qWords.some(w => ariaRTPartsShown.words.has(w))){
+        return ariaRTPartsShown.pending
+          ? { parts_loading: true,
+              note: 'El catálogo de repuestos está cargando. Vuelve a llamar lookup_parts_by_vehicle en unos segundos; este buscador no tiene repuestos de auto.' }
+          : { already_shown: true,
+              note: 'Los repuestos de ese auto ya están en pantalla con foto, precio y número de parte. No busques de nuevo: háblale de esos.' };
+      }
+    }
     const limit = Math.min(Math.max(Math.round(args.limit || 4), 1), 8);
     if (args.max_price_pen) await loadFxRate().catch(() => {});
     const budget = budgetToUsd(args);
@@ -39828,7 +39865,15 @@ async function executeRealtimeTool(name, args){
       yearless = true;
     }
     const cache = await autoCacheIfWarm();
-    if (!cache || !cache.partSearches) return { unavailable: ariaAutoWarming };
+    if (!cache || !cache.partSearches){
+      /* The parts catalogue is still loading (first ask of the call).
+         Hold the general search off this car meanwhile -- that gap is
+         where the Hot Wheels Forester got onto the screen -- and send
+         her back here instead. */
+      ariaRTPartsShown = { at: Date.now(), pending: true, words: partsGuardWords([make, model, asked].join(' ')) };
+      return { unavailable: ariaAutoWarming,
+               retry: 'En unos segundos vuelve a llamar lookup_parts_by_vehicle con lo mismo. No uses search_products para repuestos.' };
+    }
 
     /* The cache keys carry SPANISH part names, so the shopper's words
        are matched against them directly rather than translated first.
@@ -39889,15 +39934,28 @@ async function executeRealtimeTool(name, args){
     }
 
     const parts = [];
+    const cards = [];
     for (const source of Object.keys(bucket || {})){
       for (const rec of (bucket[source] || []).slice(0, 8)){
         if (!rec) continue;
+        /* THE CARD IS THE PRICE (2026-10-09). The same normalisation the
+           Aria Auto page uses (normalizeAutoPartItem): the price a tap
+           opens and the cart charges. She is given that figure to say,
+           so what she says and what the card shows can never differ. */
+        let card = null;
+        try { card = normalizeAutoPartItem(source, rec); } catch (e) { card = null; }
+        const cardPrice = card && Number(card.price) > 0 ? Number(card.price) : null;
+        /* STANDARD MARGIN ON EVERY PART (Danny, 2026-10-09): no card, no
+           priced part -- she never names one the screen can't show. */
+        if (!card || !cardPrice) continue;
+        cards.push({ ...card, retailer: rec.store || source, partNumber: rec.part_number || null,
+          image: card.image || rec.thumbnail || null, brand: card.brand || rec.brand || null });
         parts.push({
           name: String(rec.productTitle || rec.name || rec.title || '').slice(0, 90),
           brand: rec.brand || null,
           part_number: rec.part_number || null,
           oem_part_number: rec.oem_part_number || null,
-          price_usd: Number.isFinite(Number(rec.price)) ? Number(rec.price) : null,
+          price_usd: cardPrice,
           store: rec.store || source,
           /* UNIVERSAL parts are never confirmed for a specific car,
              whatever year the record came from: "fits many" is not
@@ -39911,10 +39969,16 @@ async function executeRealtimeTool(name, args){
     if (!parts.length){
       return { unavailable: 'no tengo datos de ese auto todavía. No le confirmes que una pieza entra' };
     }
+    /* The cards go up as she speaks, from these records -- never from a
+       general-catalogue search. */
+    for (const c of cards) addAssistantProductCard(c, c.retailer);
+    ariaRTPartsShown = { at: Date.now(), words: partsGuardWords([make, model, type, translatePartQuery(type)].join(' ')) };
     return {
       vehicle: (year ? year + ' ' : '') + titleCaseWords(make) + ' ' + titleCaseWords(model),
       part_type: type,
       parts,
+      cards_shown: cards.length,
+      cards_note: 'Estas piezas YA están en pantalla como tarjetas, con foto, precio y número de parte. No llames search_products para ellas.',
       /* Said plainly, because she has to say it plainly. */
       fitment_note: yearless
         ? 'SIN AÑO: estos repuestos son del ' + dataYear + ' para ese modelo. NO confirmes que entran. No vuelvas a pedir el año: pídele el VIN UNA sola vez; si no lo tiene, dile "lo más probable es que entre, confírmalo con el número de parte".'
@@ -40666,8 +40730,12 @@ initRouter();
   const _sp = window.showProduct;
   window.showProduct = function(retailer, name){
     if (!name){ if (_sp) return _sp.apply(this, arguments); return; }
+    /* Auto parts (voice cards, Aria Auto) carry their part number into the
+       product page, which finds them in auto-cache.json by it. */
+    const pn = (typeof pendingAutoPartNumber !== 'undefined') ? pendingAutoPartNumber : null;
     window.location.href = '/producto.html?producto=' + encodeURIComponent(name)
-      + (retailer ? '&tienda=' + encodeURIComponent(retailer) : '');
+      + (retailer ? '&tienda=' + encodeURIComponent(retailer) : '')
+      + (pn ? '&pn=' + encodeURIComponent(pn) : '');
   };
 })();
 </script>
