@@ -3285,15 +3285,20 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
   };
   const run = (args, warm) => new Function("args", "autoCacheIfWarm", "ariaAutoWarming",
     "titleCaseWords", "logFitmentGap", "name",
+    /* 2026-10-09: the lookup draws its own cards (see
+       aria-auto-year-tests.mjs (d)); card drawing is stubbed here. */
+    "normalizeAutoPartItem", "addAssistantProductCard", "searchTokens", "translatePartQuery", "partsGuardWords",
     /* Per-call state the lookup keeps (2026-10-07): the year-miss
        count. A fresh run is a fresh call. */
-    "let ariaRTYearMisses = 0; return (async () => {" + body + "\n return null; })();")(
+    "let ariaRTYearMisses = 0; let ariaRTPartsShown = null; return (async () => {" + body + "\n return null; })();")(
       /* The REAL warming line, read out of the page, so the test is
          checking what a shopper would actually hear. */
       args, async () => (warm === false ? null : cache),
       /const ariaAutoWarming = '([^']+)'/.exec(page)[1],
       (v) => String(v).split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-      () => {}, "lookup_parts_by_vehicle");
+      () => {}, "lookup_parts_by_vehicle",
+      (src, raw) => ({ title: raw.productTitle, price: raw.price, image: null, brand: raw.brand }),
+      () => {}, (q) => String(q).toLowerCase().split(/\s+/).filter(Boolean), (q) => q, () => new Set());
 
   /* EXACT YEAR: the only thing that earns "confirmed". */
   const exact = await run({ year: 2021, make: "toyota", model: "hilux", part_type: "pastillas de freno" });

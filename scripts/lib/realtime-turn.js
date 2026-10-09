@@ -211,7 +211,14 @@ export const REALTIME_TOOLS = Object.freeze([
       "Busca repuestos para un auto. Cada repuesto vuelve con 'fitment': 'confirmed' " +
       "(datos de ese año exacto) o 'likely' (mismo auto, otro año — NO está confirmado). " +
       "Nunca digas que una pieza entra si el fitment es 'likely': di que lo más probable " +
-      "es que entre y que confirme con el número de parte.",
+      "es que entre y que confirme con el número de parte. " +
+      /* 2026-10-09 (Danny's iPhone): after this tool she called
+         search_products for "tappable" cards and got a Hot Wheels Forester
+         and kids' clothes, then said the pads were not in the catalogue.
+         The cards are drawn by this tool; nothing else should be. */
+      "Las tarjetas de estos repuestos aparecen en pantalla solas, con foto, precio y número de parte: " +
+      "NO llames search_products después de esta herramienta y nunca digas que no puedes mostrarlos. " +
+      "Los precios que devuelve son los de las tarjetas: dilos tal cual.",
     parameters: {
       type: "object",
       properties: {
