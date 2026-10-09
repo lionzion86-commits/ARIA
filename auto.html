@@ -409,6 +409,7 @@ function partCard(it, vehicle, exact){
 function renderLoading(){
   var r = $('results');
   if (!r) return;
+  r.classList.remove('hidden');
   var sk = '';
   for (var i = 0; i < 4; i++) sk += '<div class="skel" style="height:124px"></div>';
   r.innerHTML = '<div class="srcblock"><h2>Buscando repuestos…</h2>' +
@@ -419,6 +420,7 @@ function renderLoading(){
 function renderError(title, msg, retryFnName){
   var r = $('results');
   if (!r) return;
+  r.classList.remove('hidden');
   r.innerHTML = '<div class="statecard" style="margin-top:26px">' +
     '<div class="spinner" style="display:none"></div>' +
     '<h3>' + esc(title) + '</h3><p>' + esc(msg) + '</p>' +
@@ -432,6 +434,7 @@ function renderError(title, msg, retryFnName){
 function renderEmpty(query, vehicle){
   var r = $('results');
   if (!r) return;
+  r.classList.remove('hidden');
   r.innerHTML = '<div class="statecard" style="margin-top:26px">' +
     '<h3>Sin resultados para "' + esc(query) + '"</h3>' +
     '<p>No encontramos ese repuesto para tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) +
@@ -442,6 +445,7 @@ function renderEmpty(query, vehicle){
 function renderResults(groups, vehicle, query){
   var r = $('results');
   if (!r) return;
+  r.classList.remove('hidden');
   var html = '';
   function block(title, sub, items, exact){
     if (!items.length) return;
