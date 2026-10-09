@@ -29624,6 +29624,41 @@ function translatePartQuery(query){
   return out;
 }
 
+/* THE REVERSE (2026-10-09): English part terms -> the Spanish the parts
+   cache is keyed by. The voice model often passes part_type in English
+   ("brake pads"), and the cache only knows "pastillas de freno". Same
+   glossary, read backwards -- never a second list. Several Spanish terms
+   share one English one ("balatas", "pastillas de freno"); `prefer` (a Set,
+   e.g. the cache's own part types) picks among them, else the first in
+   glossary order. Longest English term first, whole words only. */
+const AUTO_PART_TERMS_EN_ES = (() => {
+  const m = new Map();
+  for (const [es, en] of AUTO_PART_TERMS_ES_EN){
+    if (!m.has(en)) m.set(en, []);
+    m.get(en).push(es);
+  }
+  return [...m.entries()].sort((a, b) => b[0].length - a[0].length);
+})();
+function translatePartQueryToEs(query, prefer){
+  const out = String(query || '').trim();
+  if (!out) return out;
+  const flat = deaccent(out);
+  const byEn = new Map(AUTO_PART_TERMS_EN_ES);
+  const pick = (en) => (byEn.get(en) || []).find(e => prefer && prefer.has(e));
+  for (const [en, esList] of AUTO_PART_TERMS_EN_ES){
+    const idx = flat.indexOf(en);
+    if (idx === -1) continue;
+    const before = flat[idx - 1], after = flat[idx + en.length];
+    const isWordChar = (c) => c != null && /[a-z0-9]/.test(c);
+    if (isWordChar(before) || isWordChar(after)) continue;
+    /* "brake pad" and "brake pads" are one part to the cache. */
+    const sibling = en.endsWith('s') ? en.slice(0, -1) : en + 's';
+    const es = pick(en) || pick(sibling) || esList[0];
+    return (out.slice(0, idx) + es + out.slice(idx + en.length)).replace(/\s+/g, ' ').trim();
+  }
+  return out;
+}
+
 /* ============================================================
    ARIA AUTO'S PARTS SOURCES — a registry, not a hardcoded store
 
@@ -39884,9 +39919,14 @@ async function executeRealtimeTool(name, args){
       const b = k.split('|');
       if (b.length === 4) types.add(b[3]);
     }
-    let type = types.has(asked) ? asked : null;
+    /* English in, Spanish keys: "brake pads" -> "pastillas de freno".
+       Spanish passes through unchanged. */
+    const askedEs = translatePartQueryToEs(asked, types).toLowerCase();
+    /* Order: the Spanish translation, then the raw string, then fuzzy. */
+    let type = types.has(askedEs) ? askedEs : types.has(asked) ? asked : null;
     if (!type){
-      const hits = [...types].filter(t => t.includes(asked) || asked.includes(t));
+      const hits = [...types].filter(t => t.includes(askedEs) || askedEs.includes(t)
+        || t.includes(asked) || asked.includes(t));
       hits.sort((a, b) => b.length - a.length);
       type = hits[0] || null;
     }

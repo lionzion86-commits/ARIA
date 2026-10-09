@@ -103,7 +103,7 @@ export function loadPageAutoGlossarySlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     html.slice(from, to) +
-      "\n;globalThis.__exports = { AUTO_PART_TERMS_ES_EN, translatePartQuery };",
+      "\n;globalThis.__exports = { AUTO_PART_TERMS_ES_EN, translatePartQuery, translatePartQueryToEs };",
     sandbox,
     { filename: "index.html#auto-glossary" },
   );
