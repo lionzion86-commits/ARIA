@@ -31274,7 +31274,13 @@ async function logout(){
    anonymous cart is never silently dropped.
    ============================================================ */
 const CART_STORAGE_KEY = 'aria_cart_v1';
-let cart = [];
+/* CART FIRST PAINT (2026-10-08, audit 2): load the local cart synchronously
+   at script evaluation. initRouter() renders ?carrito=1 before initAuth()'s
+   awaited initCart() completes, which painted the empty-cart message on
+   every direct cart deep link - and if the auth chain ever stalls, the
+   lines never appear at all. The server merge in initCart() still runs
+   afterwards and re-renders. */
+let cart = loadCartLocal();
 
 function loadCartLocal(){
   try {
@@ -31886,8 +31892,8 @@ function cartLineItemHTML(it){
       <div class="text-[14px] font-extrabold tabular mt-1" style="color:#0F7A3D">${fmtPriceLabel(Number(it.priceUsd))}</div>
     </div>
     <div class="flex-shrink-0">
-      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar descuento" class="w-8 h-8 rounded-lg grid place-items-center focus-ring transition text-zinc-400 hover:text-red-500">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar descuento: ${escapeHtml(it.title)}" class="min-w-[44px] min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>Quitar
       </button>
     </div>
   </div>`;
@@ -31905,8 +31911,8 @@ function cartLineItemHTML(it){
       <button onclick="setCartQty('${jsAttr(key)}', ${Number(it.qty) - 1})" aria-label="Restar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">−</button>
       <span class="w-6 text-center text-[13px] font-bold tabular">${it.qty}</span>
       <button onclick="setCartQty('${jsAttr(key)}', ${Number(it.qty) + 1})" aria-label="Sumar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">+</button>
-      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar" class="w-8 h-8 rounded-lg grid place-items-center focus-ring transition text-zinc-400 hover:text-red-500">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar: ${escapeHtml(it.title)}" class="min-w-[44px] min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>Quitar
       </button>
     </div>
   </div>`;

@@ -1382,6 +1382,46 @@
   const checkoutItemsWrap = document.getElementById('checkoutItemsWrap');
   const checkoutWrap = document.getElementById('checkoutWrap');
 
+  /* CART LINE KEYS (2026-10-08, audit 2): retailer+title+size is the
+     merge key — the same product in two sizes is two lines, and removing
+     one must remove exactly that line. Buttons carry the line's index
+     (re-rendered from this array on every render, so the index is always
+     fresh); the key is stamped on the button for debugging. */
+  function cartLineKey(it){
+    return [String(it.retailer || '').toLowerCase(), String(it.title || ''), String(it.selectedSize || it.size || '')].join('::');
+  }
+  function saveCart(){
+    try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch {}
+    // Best-effort — keeps the logged-in user's server cart in step, a
+    // no-op (401, ignored) if they're not logged in.
+    fetch('/.netlify/functions/cart-save', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart }),
+    }).catch(() => {});
+  }
+  /* QUITAR (2026-10-08, audit 2): checkout had no way to remove a line —
+     the only path was emptying the whole cart. Removing a line
+     re-renders the lines and recomputes everything downstream (valor,
+     peso, flete, impuestos, total) through the same code the first
+     render uses. */
+  function removeCartLine(idx){
+    if (!Number.isInteger(idx) || idx < 0 || idx >= cart.length) return;
+    cart.splice(idx, 1);
+    saveCart();
+    renderCartItems();
+    showToast('Producto eliminado del carrito.');
+    // The freight quote was priced for the old weight/value — re-quote,
+    // or stand down when nothing is left to ship.
+    if (cart.length) requestQuote();
+  }
+  // Delegated: innerHTML re-renders wipe per-button listeners, the wrap
+  // listener survives them.
+  checkoutItemsWrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-line]');
+    if (!btn) return;
+    removeCartLine(Number(btn.getAttribute('data-remove-line')));
+  });
+
+  function renderCartItems(){
   if (!cart.length){
     checkoutItemsWrap.innerHTML = `<div class="text-center py-8">
       <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Tu carrito está vacío</div>
@@ -1390,8 +1430,19 @@
     </div>`;
     payBtn.disabled = true;
     quoteStatus.textContent = '';
-  } else {
-    checkoutItemsWrap.innerHTML = cart.map(it => `
+    latestQuote = null;
+    valorInput.value = '';
+    descInput.value = '';
+    kgInput.value = '';
+    weightReview = { needsReview: false, items: [] };
+    renderWeightReviewNotice();
+    fragranceState = { count: 0, limit: MAX_FRAGRANCES_PER_SHIPMENT, overLimit: false, remaining: MAX_FRAGRANCES_PER_SHIPMENT };
+    renderFragranceNotice();
+    renderDeliverySummary();
+    renderSummary();
+    return;
+  }
+    checkoutItemsWrap.innerHTML = cart.map((it, i) => `
       <div class="flex items-center gap-3 pb-4 border-b last:border-b-0 last:pb-0" style="border-color:var(--line)">
         ${it.image ? `<img src="${escapeHtmlLocal(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
         <div class="min-w-0 flex-1">
@@ -1399,6 +1450,7 @@
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
           <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
         </div>
+        <button type="button" data-remove-line="${i}" data-line-key="${escapeHtmlLocal(cartLineKey(it))}" aria-label="Quitar ${escapeHtmlLocal(it.title)}" class="flex-shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">Quitar</button>
       </div>
     `).join('');
 
@@ -1434,7 +1486,9 @@
     valorInput.disabled = true;
     descInput.value = description;
     descInput.disabled = true;
+    renderDeliverySummary();
   }
+  renderCartItems();
 
   /* DELIVERY TRANSPARENCY (2026-09-26). One store: one delivery line.
      Several: one row per store, the slowest emphasised, then the
