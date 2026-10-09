@@ -24215,8 +24215,8 @@ async function runLiveSearch(){
    boundary after "boot"); the lookahead is for the two-word one, where
    "Boot" really is a standalone word. Booties are footwear and keep
    their own alternative. */
-const SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b|\bzapatos?\b|\bzapatillas?\b|\bbotas?\b|\bsandalias?\b|\bmocasines?\b/i;
-const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b|\btrajes?\b|\bsu[eé]ter(?:es)?\b|\bchalecos?\b|\bblusas?\b|\bpantal[oó]n(?:es)?\b|\bfaldas?\b|\bvestidos?\b|\bchaquetas?\b|\babrigos?\b|\bcasacas?\b/i;
+const SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b|\bzapatos?\b|\bzapatillas?\b|\bbotas?\b|\bsandalias?\b|\bmocasines?\b|\bslides?\b|flip[-\s]?flops?|\bwedges?\b|\bcleats?\b/i;
+const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b|\btrajes?\b|\bsu[eé]ter(?:es)?\b|\bchalecos?\b|\bblusas?\b|\bpantal[oó]n(?:es)?\b|\bfaldas?\b|\bvestidos?\b|\bchaquetas?\b|\babrigos?\b|\bcasacas?\b|\bzip\b|\bbras?\b|\bbralettes?\b|\bbrassieres?\b|long[-\s]?sleeves?|\bLS\b|\bjoggers?\b|\bsweatpants?\b|\bbikinis?\b|\bswimsuits?\b|\bpajamas?\b|\bpyjamas?\b|\btights?\b|\bhenleys?\b|\btunics?\b|\bbodysuits?\b|\bleotards?\b|\bunitards?\b|\boveralls?\b|\bpuffer\b|\btrench\b|\bponchos?\b|\bcamisoles?\b|\bskorts?\b|\bcorsets?\b|\bwindbreakers?\b|\braincoats?\b|\bpeacoats?\b|crew[-\s]?necks?|mock[-\s]?necks?|\bshapewear\b|\blingerie\b|\bpantyhose\b|base[-\s]?layers?|rash[-\s]?guards?|\bwetsuits?\b|board[-\s]?shorts?|\buniforms?\b|\bgloves\b|\bmittens\b|cover[-\s]?ups?|\bkimonos?\b|\bsudaderas?\b|\bbrasieres?\b|\bsost[eé]nes?\b/i;
 const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
 
 const PRODUCT_KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
@@ -26422,6 +26422,20 @@ const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
    "derby" (a shirt and a shoe share both words, and sizeCategoryFor
    would have to pick one). A missing size picker is a bad checkout; a
    size picker on a toaster is a worse one.
+   
+   2026-10-08 AUDIT-2 GAP FIX. Three real garments shipped with no size
+   picker because their words were missing: "Member Vintage Zip Up"
+   (zip), "Seamless Ribbed Bra" (bra), "Mesh Astor LS" (LS = long
+   sleeve). Added those plus the other obvious garment words spotted in
+   the same pass: bralette, brassiere/sosten, long sleeve, joggers,
+   sweatpants, bikini, swimsuit, pajamas, tights, henley, tunic,
+   bodysuit, leotard, overalls, puffer, trench, poncho, camisole, skort,
+   corset, windbreaker, raincoat, peacoat, crewneck, mock neck,
+   shapewear, lingerie, pantyhose, base layer, rash guard, wetsuit,
+   board shorts, uniform, gloves, cover-up, kimono, sudadera; and
+   producto.html's ported SHOE copy was re-synced (it was missing the
+   slides/flip-flops/wedges/cleats this file already had). Both lists
+   stay verbatim in sync -- edit both or neither.
    ============================================================ */
 function needsSizeSelection(retailer, title){
   return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');
