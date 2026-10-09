@@ -39945,10 +39945,11 @@ async function executeRealtimeTool(name, args){
         let card = null;
         try { card = normalizeAutoPartItem(source, rec); } catch (e) { card = null; }
         const cardPrice = card && Number(card.price) > 0 ? Number(card.price) : null;
-        if (card && cardPrice){
-          cards.push({ ...card, retailer: rec.store || source, partNumber: rec.part_number || null,
-            image: card.image || rec.thumbnail || null, brand: card.brand || rec.brand || null });
-        }
+        /* STANDARD MARGIN ON EVERY PART (Danny, 2026-10-09): no card, no
+           priced part -- she never names one the screen can't show. */
+        if (!card || !cardPrice) continue;
+        cards.push({ ...card, retailer: rec.store || source, partNumber: rec.part_number || null,
+          image: card.image || rec.thumbnail || null, brand: card.brand || rec.brand || null });
         parts.push({
           name: String(rec.productTitle || rec.name || rec.title || '').slice(0, 90),
           brand: rec.brand || null,

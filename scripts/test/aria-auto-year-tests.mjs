@@ -204,6 +204,27 @@ await check("(d) the parts she names are the cards on screen: photo, brand, part
   assert.match(out.cards_note, /No llames search_products/);
 });
 
+await check("(d) every price she says carries the standard margin, and an unpriced part is never named", async () => {
+  const L = makeLookup(REAL);
+  const out = await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  const shelf = REAL.partSearches["2018|subaru|forester|pastillas de freno"].autozone;
+  for (const p of out.parts) {
+    const rec = shelf.find((r) => r.part_number === p.part_number);
+    const std = ENGINE.pricing.normalizeLiveItem(rec, { retailer: "autozone" }).price;
+    assert.equal(p.price_usd, std, `${p.part_number}: not the standard margin`);
+    assert.ok(p.price_usd > rec.price, `${p.part_number}: she would say the bare shelf price`);
+  }
+  const d1114 = out.parts.find((p) => p.part_number === "D1114");
+  if (d1114) assert.equal(d1114.price_usd, 72.96, "shelf $54.99 is $72.96 with the standard treatment");
+  const M = makeLookup({ partSearches: { "2018|subaru|forester|pastillas de freno": { autozone: [
+    { productTitle: "No Price Pads", brand: "X", part_number: "NP1", price: null, store: "autozone" },
+    pad("Duralast Gold Brake Pads - Front"),
+  ] } } });
+  const o2 = await M.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  assert.deepEqual(o2.parts.map((p) => p.part_number), ["ACT1078"], "she names a part with no priced card");
+  assert.equal(M.cards.length, 1);
+});
+
 /* The search_products branch, lifted the same way. */
 const sAt = page.indexOf("  if (name === 'search_products'){");
 let sd = 0, sEnd = -1;
@@ -284,7 +305,7 @@ await check("(g) the product page finds the tapped part in the auto cache, part 
   assert.doesNotMatch(prod, /autozone\.com/, "the product page links out to AutoZone");
 });
 
-const MIN_CHECKS = 11;
+const MIN_CHECKS = 12;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
