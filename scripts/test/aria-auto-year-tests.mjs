@@ -244,6 +244,12 @@ await check("(h) English part names reach the Spanish cache keys: \"brake pads\"
   const out = await L.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "brake pads" });
   assert.equal(out.part_type, "pastillas de freno", out.unavailable || "English part_type missed the cache");
   assert.ok(out.parts.length >= 1 && L.cards.length === out.parts.length);
+  const S = makeLookup(REAL);
+  const es = await S.run("lookup_parts_by_vehicle", { year: 2018, make: "subaru", model: "forester", part_type: "pastillas de freno" });
+  const ids = (cs) => cs.map((c) => [c.item.partNumber, c.item.price, c.item.brand]);
+  assert.deepEqual(ids(L.cards), ids(S.cards), "English and Spanish must show the same cards");
+  assert.equal(L.cards.length, 5, "the five Duralast pads");
+  assert.ok(L.cards.every((c) => c.item.brand === "Duralast"));
 });
 
 /* The search_products branch, lifted the same way. */
