@@ -54,6 +54,8 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .examples{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px;}
 .examples a{border:1px solid var(--line); border-radius:999px; padding:6px 12px; color:var(--navy); font-weight:600; cursor:pointer; text-decoration:none;}
 .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+#more-wrap{text-align:center; margin:22px 0 8px;}
+#more-wrap button{background:var(--blue); color:#fff; border:none; border-radius:12px; padding:12px 28px; font-size:15px; font-weight:700; cursor:pointer;}
 @media(min-width:640px){ .grid{grid-template-columns:repeat(3,1fr);} }
 @media(min-width:960px){ .grid{grid-template-columns:repeat(4,1fr);} }
 .card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column;}
@@ -110,6 +112,7 @@ footer a{color:#fff;}
   <div id="status" role="status">Cargando catálogo…</div>
   <div id="meta-line"></div>
   <div class="grid" id="results"></div>
+  <div id="more-wrap" hidden><button type="button" id="more-btn" onclick="showMore()">Mostrar más</button></div>
 </main>
 
 <footer>
@@ -443,6 +446,15 @@ function normStr(s){
    the plain word match below, so a bad deploy of search-engine.js
    degrades search instead of killing it. */
 var ENGINE_BROKEN = false;
+
+/* NO MORE HARD CAP AT 60 (2026-10-09). Every path asked for 60 and threw
+   the rest away -- 967 adidas products in soccer-catalog.json alone, 60
+   reachable. Retrieval now keeps up to RESULT_LIMIT; the page draws
+   PAGE_SIZE at a time and "Mostrar más" appends the next PAGE_SIZE. */
+var RESULT_LIMIT = 500;
+var PAGE_SIZE = 60;
+var ALL_HITS = [];
+var SHOWN = 0;
 function engine(){
   return (!ENGINE_BROKEN && window.AriaSearch && typeof window.AriaSearch.rankCatalogMatches === "function")
     ? window.AriaSearch : null;
@@ -463,7 +475,7 @@ function engineSearch(S, query){
   var t1 = S.translateQuery(query);
   var fixed = S.soundCorrectQuery(t1.query, PRODUCTS._windex);
   var t = fixed.changed ? S.translateQuery(fixed.query) : t1;
-  var res = S.rankCatalogMatches(PRODUCTS, t.query, { limit: 60, retailers: retailerOpts() });
+  var res = S.rankCatalogMatches(PRODUCTS, t.query, { limit: RESULT_LIMIT, retailers: retailerOpts() });
   var hits = (res && res.items) || [];
   return {
     hits: hits,
@@ -543,7 +555,7 @@ function doSearch(){
       if (ok) scored.push({p:p, s:score});
     }
     scored.sort(function(a,b){ return b.s - a.s || a.p.price - b.p.price; });
-    var hits = scored.slice(0, 60).map(function(x){ return x.p; });
+    var hits = scored.slice(0, RESULT_LIMIT).map(function(x){ return x.p; });
     renderResults(query, hits);
   }catch(e){
     setStatus('<span class="err">La búsqueda falló.</span> ' +
@@ -598,7 +610,9 @@ function renderResults(query, hits, info){
         "Prueba con menos palabras o revisa la ortografía. Ej: <em>zapatillas</em> en vez de <em>zapatillas deportivas nike air</em>." + dym);
       return;
     }
-    grid.innerHTML = hits.map(cardHTML).join("");
+    ALL_HITS = hits;
+    SHOWN = Math.min(PAGE_SIZE, hits.length);
+    grid.innerHTML = hits.slice(0, SHOWN).map(cardHTML).join("");
     if (meta){
       meta.textContent = hits.length + " resultado" + (hits.length === 1 ? "" : "s") +
         ' para "' + query + '"' + (FX_RATE ? "" : " · precios en USD (tipo de cambio no disponible)");
@@ -610,10 +624,34 @@ function renderResults(query, hits, info){
         meta.appendChild(fx);
       }
     }
-    setStatus("Mostrando " + hits.length + " resultados.");
+    showingStatus();
   }catch(e){
     setStatus('<span class="err">No pudimos mostrar los resultados.</span> ' +
       '<button class="retry" onclick="doSearch()">Reintentar</button>');
+  }
+}
+
+function showingStatus(){
+  var n = ALL_HITS.length;
+  setStatus(SHOWN < n
+    ? "Mostrando " + SHOWN + " de " + n + " resultados."
+    : "Mostrando " + n + " resultado" + (n === 1 ? "" : "s") + ".");
+  var more = el("more-wrap");
+  if (more) more.hidden = !(SHOWN < n);
+}
+
+/* Appends the next PAGE_SIZE cards; the ones already drawn stay put. */
+function showMore(){
+  try{
+    var grid = el("results");
+    if (!grid || SHOWN >= ALL_HITS.length) return;
+    var next = Math.min(SHOWN + PAGE_SIZE, ALL_HITS.length);
+    grid.insertAdjacentHTML("beforeend", ALL_HITS.slice(SHOWN, next).map(cardHTML).join(""));
+    SHOWN = next;
+    showingStatus();
+  }catch(e){
+    setStatus('<span class="err">No pudimos mostrar más resultados.</span> ' +
+      '<button class="retry" onclick="showMore()">Reintentar</button>');
   }
 }
 
@@ -641,6 +679,9 @@ function renderNone(query, r){
 
 function renderEmpty(title, bodyHTML){
   var grid = el("results");
+  ALL_HITS = []; SHOWN = 0;
+  var more = el("more-wrap");
+  if (more) more.hidden = true;
   if (!grid) return;
   grid.innerHTML = '<div class="empty"><strong>' + esc(title) + "</strong><span>" + bodyHTML + "</span></div>";
 }

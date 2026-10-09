@@ -3634,6 +3634,10 @@
              single grid, each card carrying its own store badge, with the
              store checkboxes acting as a filter over the feed. -->
         <div id="liveResultsWrap" class="mb-6 hidden grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-6"></div>
+        <!-- MOSTRAR MÁS (2026-10-09): the feed draws SEARCH_PAGE_SIZE cards
+             at a time; this appends the next page. Filled by
+             renderSearchResults(). -->
+        <div id="searchMoreWrap" class="mb-6 text-center hidden"></div>
 
         <!-- LIVE SEARCH, ON OFFER. The catalogue has already answered
              above; this is the shopper's choice to have us go and look
@@ -23505,6 +23509,20 @@ function activeSearchStores(){
   return boxes.filter(cb => cb.checked).map(cb => cb.value);
 }
 
+/* NO HARD CAP (2026-10-09): the catalogue search keeps up to
+   SEARCH_RESULT_LIMIT matches (it used to stop at CATALOG_SEARCH_LIMIT,
+   200, and draw all of them at once); the feed draws SEARCH_PAGE_SIZE
+   and "Mostrar más" adds the next page. searchVisible resets on every
+   new search, not on a re-render (FX landing, a store's live results,
+   a filter), so the shopper never loses their place. */
+const SEARCH_RESULT_LIMIT = 500;
+const SEARCH_PAGE_SIZE = 60;
+let searchVisible = SEARCH_PAGE_SIZE;
+function showMoreSearchResults(){
+  searchVisible += SEARCH_PAGE_SIZE;
+  renderSearchResults();
+}
+
 function renderSearchResults(){
   const wrap = document.getElementById('liveResultsWrap');
   if (!wrap) return;
@@ -23525,9 +23543,10 @@ function renderSearchResults(){
      cards never lead. Stable sort preserves the relevance/sales order. */
   items.sort((a, b) => (hasRealImage(b) ? 1 : 0) - (hasRealImage(a) ? 1 : 0));
   searchRendered = items;
+  const shown = items.slice(0, searchVisible);
 
   wrap.innerHTML = items.length
-    ? items.map((p, i) => productCardHTML(p, {
+    ? shown.map((p, i) => productCardHTML(p, {
         open: `openSearchProduct(${i})`,
         extraHTML: alsoAtHTML(p),
         /* SEARCH RESULTS SIT ON NAVY (2026-09-28, price-contrast audit):
@@ -23540,8 +23559,16 @@ function renderSearchResults(){
 
   const stores = new Set(items.map(p => p.retailer));
   document.getElementById('resultCount').textContent = items.length
-    ? `${items.length} resultado${items.length === 1 ? '' : 's'} de ${stores.size} tienda${stores.size === 1 ? '' : 's'} · el flete y los aranceles se calculan en el checkout`
+    ? `${shown.length < items.length ? `Mostrando ${shown.length} de ` : ''}${items.length} resultado${items.length === 1 ? '' : 's'} de ${stores.size} tienda${stores.size === 1 ? '' : 's'} · el flete y los aranceles se calculan en el checkout`
     : '';
+  const moreWrap = document.getElementById('searchMoreWrap');
+  if (moreWrap){
+    const more = shown.length < items.length;
+    moreWrap.classList.toggle('hidden', !more);
+    moreWrap.innerHTML = more
+      ? `<button type="button" onclick="showMoreSearchResults()" class="h-11 rounded-xl px-7 text-[15px] font-bold focus-ring" style="background:#fff;color:var(--navy, #0A1F44)">Mostrar más</button>`
+      : '';
+  }
 
   /* The offer is drawn on every render, not once: its wording depends on
      whether the scan is idle, out, back, or refused. */
@@ -24075,6 +24102,7 @@ async function showResults(query, opts = {}){
   liveSearchState = 'idle';
   catalogMatch = null;
   searchResults = [];
+  searchVisible = SEARCH_PAGE_SIZE;
   searchRendered = [];
   const wrap = document.getElementById('liveResultsWrap');
   wrap.classList.remove('hidden');
@@ -24090,7 +24118,7 @@ async function showResults(query, opts = {}){
      offer a retry. */
   let res = null;
   try {
-    res = await catalogSearch(query);
+    res = await catalogSearch(query, { limit: SEARCH_RESULT_LIMIT });
   } catch (err) {
     console.warn('[search] catalogSearch failed:', err);
     lastFailedQuery = query;
