@@ -83,6 +83,12 @@ export const HANDLED_EVENTS = new Set([
   "charge.dispute.created",
   "charge.dispute.closed",
   "checkout.session.completed",
+  /* 2026-10-08: the checkout this site now opens. A session that expires
+     unpaid closes its order and returns reserved saldo; an async method
+     (bank debit) can still fail after the page said "done". */
+  "checkout.session.expired",
+  "checkout.session.async_payment_succeeded",
+  "checkout.session.async_payment_failed",
 ]);
 
 /**
@@ -128,7 +134,7 @@ export function normalizeStripeEvent(stripeEvent) {
     };
   }
 
-  if (type === "checkout.session.completed") {
+  if (type.startsWith("checkout.session.")) {
     const paymentId = obj.payment_intent || obj.id;
     if (!paymentId) return null;
     return {
@@ -139,6 +145,8 @@ export function normalizeStripeEvent(stripeEvent) {
       orderId: orderIdFromMetadata(obj.metadata),
       customerEmail: obj.customer_details?.email || obj.customer_email || null,
       chargeId: null,
+      /* "paid" for a card; "unpaid" while a delayed method settles. */
+      paymentStatus: obj.payment_status || null,
     };
   }
 
