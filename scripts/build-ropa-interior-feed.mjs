@@ -8,7 +8,11 @@
    ofertas-feed.json -- the rules in ropa-interior-engine.js run here,
    once, and the page fetches only the products that passed (~0.5MB).
 
-   REGENERATE after a catalogue refresh:
+   TWO FEEDS (2026-10-10): ropa-interior-feed.json (men's, classify)
+   and ropa-interior-women-feed.json (women's, classifyWomen). A sock
+   has one home: the women's feed only with an explicit women's signal.
+
+   REGENERATE after a catalogue refresh (writes both):
      node scripts/build-ropa-interior-feed.mjs
    scripts/test/ropa-interior-tests.mjs fails when the feed has fallen
    behind the catalogues.
@@ -32,8 +36,18 @@ export function catalogueFiles() {
   return readdirSync(ROOT).filter(f => /(?:-catalog|^department-cache-[a-z]+)\.json$/.test(f)).sort();
 }
 
-export function buildFeed() {
-  const E = loadEngine();
+/* A short real description for the card, when the catalogue has one:
+   the first sentence, cut at a word boundary. Never invented. */
+function shortDescription(it) {
+  const d = String(it.description || it.description_en || "").replace(/\s+/g, " ").trim();
+  if (!d) return "";
+  const first = d.split(/(?<=[.!?])\s/)[0];
+  return first.length <= 110 ? first : first.slice(0, 110).replace(/\s+\S*$/, "") + "…";
+}
+
+/* One builder, two feeds: the men's rules (classify) and the women's
+   mirror (classifyWomen) run over the same catalogues the same way. */
+function buildWith(E, classifyFn, opts = {}) {
   const byKey = new Map();
   for (const f of catalogueFiles()) {
     let data;
@@ -42,8 +56,9 @@ export function buildFeed() {
       for (const section of ["departments", "brands"]) {
         for (const [bk, bucket] of Object.entries((r && r[section]) || {})) {
           const arr = Array.isArray(bucket) ? bucket : (bucket && bucket.items) || [];
+          const dept = section === "departments" ? bk : "";
           for (const it of arr) {
-            const c = E.classify(it, rk, section === "departments" ? bk : "");
+            const c = classifyFn(it, rk, dept);
             if (!c) continue;
             const title = String(it.title || it.name);
             const price = Number(it.price);
@@ -55,6 +70,12 @@ export function buildFeed() {
               ty: c.type, sub: c.sub,
               rt: Number(it.rating) || 0, rc: Number(it.reviewCount) || 0,
             };
+            const d = shortDescription(it);
+            if (d) row.d = d;
+            /* Men's feed: a sock's gender note. 'u' (nothing says men's)
+               is the unisex sock the women's section may surface from
+               this feed -- it is never listed in the women's feed. */
+            if (opts.sockGender && c.type === "socks") row.g = E.sockGender(it, rk, dept);
             /* The image-quality verdict rides along: a photo that was not
                cleared of its US price sticker is never shown, on the
                department page or on the homepage rail. */
@@ -81,11 +102,35 @@ export function buildFeed() {
   return { generatedAt: null, count: items.length, items };
 }
 
+export function buildFeed() {
+  const E = loadEngine();
+  return buildWith(E, E.classify, { sockGender: true });
+}
+
+/* ONE HOME PER ITEM. A product a store files under both its men's and
+   its women's departments (SSENSE's gender-neutral socks) is unisex, and
+   unisex lives in the men's feed: the women's feed never lists what the
+   men's feed already has. */
+export function buildWomenFeed() {
+  const E = loadEngine();
+  const men = buildWith(E, E.classify, { sockGender: true }).items;
+  const key = (i) => (i.b + "|" + i.t).toLowerCase();
+  const menKeys = new Set(men.map(key));
+  const menUrls = new Set(men.filter(i => i.u).map(i => i.u));
+  const women = buildWith(E, E.classifyWomen);
+  women.items = women.items.filter(i => !menKeys.has(key(i)) && !(i.u && menUrls.has(i.u)));
+  women.count = women.items.length;
+  return women;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const feed = buildFeed();
-  feed.generatedAt = new Date().toISOString();
-  writeFileSync(ROOT + "ropa-interior-feed.json", JSON.stringify(feed));
-  const kb = Math.round(JSON.stringify(feed).length / 1024);
-  const under = feed.items.filter(i => i.ty === "underwear").length;
-  console.log(`ropa-interior-feed.json: ${feed.count} products (${under} underwear, ${feed.count - under} socks), ${kb}KB`);
+  const stamp = new Date().toISOString();
+  for (const [file, feed] of [["ropa-interior-feed.json", buildFeed()], ["ropa-interior-women-feed.json", buildWomenFeed()]]) {
+    feed.generatedAt = stamp;
+    writeFileSync(ROOT + file, JSON.stringify(feed));
+    const kb = Math.round(JSON.stringify(feed).length / 1024);
+    const under = feed.items.filter(i => i.ty === "underwear").length;
+    const sale = feed.items.filter(i => i.o > i.p).length;
+    console.log(`${file}: ${feed.count} products (${under} underwear, ${feed.count - under} socks, ${sale} on sale), ${kb}KB`);
+  }
 }

@@ -4,22 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ropa Interior y Medias | Aria Shop</title>
-<meta name="description" content="Ropa interior y medias para hombre de las mejores marcas de Estados Unidos: Stance, SKIMS, PSD, Nike, adidas y más, con envío a Perú.">
+<meta name="description" content="Ropa interior y medias de mujer y de hombre de las mejores marcas de Estados Unidos: Victoria's Secret, SKIMS, Stance, PSD, Nike y más, con envío a Perú.">
 <meta name="theme-color" content="#0B0F17">
 <style>
 /* ================================================================
-   ROPA INTERIOR Y MEDIAS (hombre) — Danny, 2026-10-07.
+   ROPA INTERIOR Y MEDIAS — two sections on one page.
+     Mujer (Danny, 2026-10-10): the Moda Mujer light pink theme.
+     Hombre (Danny, 2026-10-07): dark and masculine, never white.
 
-   The universal department pattern: a themed hero (dark, masculine,
-   never white), large-picture carousels FIRST, filters AFTER. Carousel
-   City law: one carousel per axis value — by type, by brand (across
-   stores), by store. Within a carousel: biggest sales first, then the
-   halo pieces, then best sellers. The browse grid shows sales only;
-   full price is reached by searching.
+   Each section is the universal department pattern: a themed hero,
+   large-picture carousels FIRST, filters AFTER, then the browse grid.
+   Carousel City law: one carousel per axis value -- by type, by brand
+   (across stores), by store -- never two axes in one rail. Within a
+   carousel: biggest sales first, then the premium pieces, then best
+   sellers. Carousels and the browse grid show SALES ONLY (o > p); full
+   price is reached by searching. A rail with fewer than four
+   photographed sale items is not shown.
 
-   Products come from ropa-interior-feed.json, built from the
-   catalogues by scripts/build-ropa-interior-feed.mjs with the rules in
-   ropa-interior-engine.js. No emojis anywhere on this page.
+   Products come from two feeds built by
+   scripts/build-ropa-interior-feed.mjs with the rules in
+   ropa-interior-engine.js: ropa-interior-women-feed.json (Mujer) and
+   ropa-interior-feed.json (Hombre). A sock lives in one feed only; the
+   unisex sale socks of the men's feed are surfaced in the Mujer
+   section without being listed twice. No emojis anywhere on this page.
    ================================================================ */
 :root{
   --ink:#0B0F17; --char:#11161F; --panel:#161C27; --panel2:#1C2330;
@@ -28,82 +35,124 @@
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+/* A section lands right under the header; an axis inside it, under the header and its jump bar. */
+.sec{scroll-margin-top:60px}
+.axis,.explore{scroll-margin-top:116px}
 body{margin:0;background:var(--ink);color:var(--text);font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:inherit}
 button,select,input{font-family:inherit}
 .wrap{max-width:1240px;margin:0 auto;padding:0 16px}
 
 /* Header — dark, sticky */
-.hdr{position:sticky;top:0;z-index:40;background:rgba(11,15,23,.86);backdrop-filter:saturate(140%) blur(10px);-webkit-backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--line)}
+.hdr{position:sticky;top:0;z-index:40;background:rgba(11,15,23,.86);backdrop-filter:saturate(140%) blur(10px);-webkit-backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid rgba(255,255,255,.09)}
 .hdr-in{height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.wordmark{text-decoration:none;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:18px}
+.wordmark{text-decoration:none;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:18px;color:#EEF1F6}
 .wordmark .w2{color:var(--gold2)}
 .hdr-nav{display:flex;gap:18px;font-size:13.5px;font-weight:700}
-.hdr-nav a{text-decoration:none;color:var(--muted)}
-.hdr-nav a:hover{color:var(--text)}
+.hdr-nav a{text-decoration:none;color:#9AA4B5}
+.hdr-nav a:hover{color:#EEF1F6}
 
-/* Hero — charcoal to navy, a low gold glow and a faint knit texture */
-.hero{position:relative;overflow:hidden;isolation:isolate;border-bottom:1px solid var(--line);
-  background:
+/* Page intro — the department name and its two doors */
+.intro{padding:26px 0 22px;border-bottom:1px solid rgba(255,255,255,.09);background:linear-gradient(160deg,#0B0F17 0%,#101827 100%)}
+.intro h1{margin:0 0 14px;font-size:clamp(26px,6.4vw,40px);font-weight:800;letter-spacing:-.02em}
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:560px}
+.door{display:flex;flex-direction:column;gap:2px;text-decoration:none;padding:14px 16px;border-radius:16px;font-weight:800;font-size:16px}
+.door small{font-size:12px;font-weight:700;opacity:.8}
+.door-w{background:linear-gradient(160deg,#F5C4DC,#FBE3EE);color:#3A0F24}
+.door-m{background:linear-gradient(160deg,#161C27,#0D1B33);color:#EEF1F6;border:1px solid rgba(244,196,99,.35)}
+
+/* ---- Section themes: every color below reads these variables ---- */
+.sec-m{
+  --bg:#0B0F17; --panel:#161C27; --panel2:#1C2330; --line:rgba(255,255,255,.09);
+  --text:#EEF1F6; --muted:#9AA4B5; --dim:#6E7889; --accent:#F4C463; --accent-ink:#14100B;
+  --sale:#E2B53B; --sale-ink:#14100B; --ph:#fff; --title:#D4DAE4; --now:#fff;
+  background:var(--bg); color:var(--text)}
+.sec-w{
+  --bg:#FFF7FA; --panel:#FFFFFF; --panel2:#FFFFFF; --line:rgba(120,30,70,.13);
+  --text:#2A0E1C; --muted:#7A5466; --dim:#9C7A8A; --accent:#B0306A; --accent-ink:#FFFFFF;
+  --sale:#B0306A; --sale-ink:#FFFFFF; --ph:#FFFFFF; --title:#3A1A2A; --now:#2A0E1C;
+  background:linear-gradient(180deg,#F5C4DC 0%,#FBE3EE 280px,#FFF7FA 620px); color:var(--text)}
+
+/* Heroes */
+.hero{position:relative;overflow:hidden;isolation:isolate;border-bottom:1px solid var(--line)}
+.sec-m .hero{background:
     radial-gradient(120% 90% at 85% 10%, rgba(212,175,55,.16) 0%, rgba(212,175,55,0) 55%),
     radial-gradient(90% 80% at 0% 100%, rgba(47,95,238,.20) 0%, rgba(47,95,238,0) 60%),
     linear-gradient(160deg, #0B0F17 0%, #101827 45%, #0D1B33 100%)}
-.hero::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;
+.sec-m .hero::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;
   background:
     repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 7px),
     repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 9px);
   -webkit-mask-image:linear-gradient(180deg, #000 0%, transparent 85%); mask-image:linear-gradient(180deg, #000 0%, transparent 85%)}
-.hero::after{content:"";position:absolute;right:-120px;top:-140px;width:420px;height:420px;border-radius:50%;z-index:-1;
+.sec-m .hero::after{content:"";position:absolute;right:-120px;top:-140px;width:420px;height:420px;border-radius:50%;z-index:-1;
   border:1px solid rgba(244,196,99,.18);box-shadow:0 0 0 60px rgba(244,196,99,.03),0 0 0 140px rgba(244,196,99,.02)}
-.hero-in{padding:44px 16px 36px}
-.kicker{display:inline-flex;gap:8px;align-items:center;font-size:11.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold2)}
-.kicker::before{content:"";width:22px;height:1px;background:var(--gold2)}
-.hero h1{font-size:clamp(32px,8vw,56px);line-height:1.02;letter-spacing:-.025em;margin:14px 0 12px;font-weight:800}
-.hero p{margin:0;font-size:16px;line-height:1.5;color:#C3CAD6;max-width:46ch}
+.sec-w .hero{background:
+    radial-gradient(110% 90% at 88% 0%, rgba(255,255,255,.65) 0%, rgba(255,255,255,0) 55%),
+    radial-gradient(80% 70% at 0% 100%, rgba(214,69,122,.18) 0%, rgba(214,69,122,0) 60%),
+    linear-gradient(160deg, #F5C4DC 0%, #F9D5E5 50%, #FBE3EE 100%)}
+/* A faint lace dot texture */
+.sec-w .hero::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.55;
+  background-image:radial-gradient(rgba(176,48,106,.16) 1px, transparent 1.6px);background-size:14px 14px;
+  -webkit-mask-image:linear-gradient(180deg, #000 0%, transparent 80%); mask-image:linear-gradient(180deg, #000 0%, transparent 80%)}
+.sec-w .hero::after{content:"";position:absolute;right:-110px;top:-130px;width:400px;height:400px;border-radius:50%;z-index:-1;
+  border:1px solid rgba(176,48,106,.20);box-shadow:0 0 0 60px rgba(176,48,106,.04),0 0 0 140px rgba(176,48,106,.025)}
+.hero-in{padding:40px 16px 32px}
+.kicker{display:inline-flex;gap:8px;align-items:center;font-size:11.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.kicker::before{content:"";width:22px;height:1px;background:var(--accent)}
+.hero h2{font-size:clamp(30px,7.6vw,52px);line-height:1.02;letter-spacing:-.025em;margin:14px 0 12px;font-weight:800}
+.hero p{margin:0;font-size:16px;line-height:1.5;color:var(--muted);max-width:46ch}
+.sec-m .hero p{color:#C3CAD6}
 .hero-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
-.stat{padding:9px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.04);font-size:12.5px;font-weight:700;color:#D6DCE6}
-.stat b{color:var(--gold2)}
+.stat{padding:9px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.06);font-size:12.5px;font-weight:700}
+.sec-w .stat{background:rgba(255,255,255,.7)}
+.stat b{color:var(--accent)}
 
-/* Jump bar — axes */
-.jump{position:sticky;top:60px;z-index:30;background:rgba(11,15,23,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+/* Jump bar — axes, sticky within its own section */
+.jump{position:sticky;top:60px;z-index:30;border-bottom:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.sec-m .jump{background:rgba(11,15,23,.92)}
+.sec-w .jump{background:rgba(255,247,250,.94)}
 .jump-in{display:flex;gap:8px;overflow-x:auto;padding:10px 16px;scrollbar-width:none}
 .jump-in::-webkit-scrollbar{display:none}
-.jump a{flex:0 0 auto;text-decoration:none;font-size:13px;font-weight:800;padding:9px 14px;border-radius:999px;border:1px solid var(--line);color:#D6DCE6;background:rgba(255,255,255,.03)}
-.jump a:hover{border-color:rgba(244,196,99,.5);color:var(--gold2)}
+.jump a{flex:0 0 auto;text-decoration:none;font-size:13px;font-weight:800;padding:9px 14px;border-radius:999px;border:1px solid var(--line);color:var(--text);background:var(--panel)}
+.jump a:hover{border-color:var(--accent);color:var(--accent)}
 
 /* Axis + carousel */
 .axis{padding:30px 0 6px}
 .axis-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}
-.axis h2{margin:0;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.axis h3{margin:0;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .rail{margin:18px 0 26px}
 .rail-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px}
-.rail-head h3{margin:0;font-size:clamp(20px,4.6vw,26px);font-weight:800;letter-spacing:-.015em}
+.rail-head h4{margin:0;font-size:clamp(20px,4.6vw,26px);font-weight:800;letter-spacing:-.015em}
 .rail-head .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
-.rail-more{flex:0 0 auto;font-size:13px;font-weight:800;color:var(--gold2);background:none;border:0;cursor:pointer;padding:6px 0}
+.rail-more{flex:0 0 auto;font-size:13px;font-weight:800;color:var(--accent);background:none;border:0;cursor:pointer;padding:6px 0}
 .track{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 16px 8px;margin:0 -16px;scrollbar-width:none;overscroll-behavior-x:contain}
 .track::-webkit-scrollbar{display:none}
 
-/* Card — big picture first (Bring-a-Trailer density) */
+/* Card — big picture first */
 .card{position:relative;flex:0 0 auto;width:clamp(232px,68vw,300px);scroll-snap-align:start;text-decoration:none;color:inherit;
   background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
-.card:hover{border-color:rgba(244,196,99,.35)}
-.card .ph{aspect-ratio:4/5;background:#fff;display:grid;place-items:center;overflow:hidden}
+.card:hover{border-color:var(--accent)}
+.sec-w .card{box-shadow:0 6px 18px rgba(120,30,70,.07)}
+.card .ph{aspect-ratio:4/5;background:var(--ph);display:grid;place-items:center;overflow:hidden}
 .card .ph img{width:100%;height:100%;object-fit:contain}
 .card .ph .noimg{font-size:12px;color:#8A93A8}
 .card .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
 .card .store{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
-.card .brand{font-size:12px;font-weight:800;color:var(--gold2)}
-.card .title{font-size:13.5px;line-height:1.35;color:#D4DAE4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:36px}
+.card .brand{font-size:12px;font-weight:800;color:var(--accent)}
+.card .title{font-size:13.5px;line-height:1.35;color:var(--title);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:36px}
+.card .desc{font-size:12px;line-height:1.4;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .price{margin-top:auto;padding-top:6px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.card .now{font-size:17px;font-weight:800;color:#fff}
+.card .now{font-size:17px;font-weight:800;color:var(--now)}
 .card .was{font-size:12.5px;color:var(--dim);text-decoration:line-through}
 .card .pen{font-size:11.5px;color:var(--muted);width:100%}
-.badge{position:absolute;top:12px;left:12px;font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;background:var(--sale);color:#14100B}
-.halo{position:absolute;top:12px;right:12px;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:rgba(11,15,23,.82);color:var(--gold2);border:1px solid rgba(244,196,99,.35)}
+.badge{position:absolute;top:12px;left:12px;font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;background:var(--sale);color:var(--sale-ink)}
+.halo{position:absolute;top:12px;right:12px;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:999px}
+.sec-m .halo{background:rgba(11,15,23,.82);color:var(--gold2);border:1px solid rgba(244,196,99,.35)}
+.sec-w .halo{background:rgba(255,255,255,.92);color:var(--accent);border:1px solid rgba(176,48,106,.35)}
 
 /* Explore — filters after the carousels */
-.explore{padding:34px 0 50px;border-top:1px solid var(--line);margin-top:10px;background:linear-gradient(180deg, rgba(255,255,255,.015), transparent 240px)}
-.explore h2{margin:0 0 6px;font-size:clamp(22px,5vw,28px);font-weight:800}
+.explore{padding:34px 0 50px;border-top:1px solid var(--line);margin-top:10px}
+.explore h3{margin:0 0 6px;font-size:clamp(22px,5vw,28px);font-weight:800}
 .explore .lead{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.5;max-width:60ch}
 .filters{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(min-width:760px){.filters{grid-template-columns:2fr 1fr 1fr 1fr 1fr}}
@@ -111,22 +160,21 @@ button,select,input{font-family:inherit}
 @media(min-width:760px){.filters .q{grid-column:auto}}
 .filters input,.filters select{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:0 12px;font-size:14px}
 .filters select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#9AA4B5 50%),linear-gradient(135deg,#9AA4B5 50%,transparent 50%);background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
-.filters input:focus,.filters select:focus{outline:2px solid var(--gold);outline-offset:1px}
-.note{font-size:12.5px;color:var(--muted);margin:12px 0 0}
+.filters input:focus,.filters select:focus{outline:2px solid var(--accent);outline-offset:1px}
 .count{font-size:13px;color:var(--muted);font-weight:700;margin:16px 0 12px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
 .grid .card{width:auto}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 26px;border-radius:999px;border:0;background:var(--gold2);color:#14100B;font-size:14px;font-weight:800;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 26px;border-radius:999px;border:0;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:800;cursor:pointer}
 .more{text-align:center;margin-top:22px}
 
 /* States */
 .state{padding:56px 0;text-align:center;color:var(--muted)}
-.state h2{color:var(--text);margin:0 0 8px;font-size:20px}
-.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.12);border-top-color:var(--gold2);border-radius:50%;margin:0 auto 16px;animation:spin .9s linear infinite}
+.state h3{color:var(--text);margin:0 0 8px;font-size:20px}
+.spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 16px;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-footer{border-top:1px solid var(--line);padding:28px 16px 40px;text-align:center;font-size:12.5px;color:var(--dim)}
+footer{border-top:1px solid rgba(255,255,255,.09);padding:28px 16px 40px;text-align:center;font-size:12.5px;color:#6E7889}
 footer a{color:var(--gold2);text-decoration:none;font-weight:700}
 @media(max-width:760px){.hdr-nav{display:none}}
 @media (prefers-reduced-motion: reduce){.spinner{animation:none}.track{scroll-behavior:auto}}
@@ -145,63 +193,127 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
   </div>
 </header>
 
-<section class="hero" aria-label="Ropa Interior y Medias">
-  <div class="wrap hero-in">
-    <span class="kicker">Hombre</span>
+<div class="intro">
+  <div class="wrap">
     <h1>Ropa Interior y Medias</h1>
-    <p>Lo esencial, de las mejores marcas de USA.</p>
-    <div class="hero-stats" id="heroStats" hidden></div>
+    <nav class="doors" aria-label="Mujer u Hombre">
+      <a class="door door-w" href="#mujer">Mujer<small>Sostenes, panties, lencería</small></a>
+      <a class="door door-m" href="#hombre">Hombre<small>Bóxers y medias</small></a>
+    </nav>
+  </div>
+</div>
+
+<!-- ============================ MUJER ============================ -->
+<section class="sec sec-w" id="mujer" data-section="mujer" aria-labelledby="w-title">
+  <div class="hero">
+    <div class="wrap hero-in">
+      <span class="kicker">Mujer</span>
+      <h2 id="w-title">Ropa Interior Mujer</h2>
+      <p>Sostenes, panties y lencería de Victoria's Secret, SKIMS y más. Solo ofertas.</p>
+      <div class="hero-stats" id="w-stats" hidden></div>
+    </div>
+  </div>
+  <nav class="jump" aria-label="Secciones de Mujer" id="w-jump" hidden>
+    <div class="wrap jump-in">
+      <a href="#w-tipo">Por tipo</a>
+      <a href="#w-marca">Por marca</a>
+      <a href="#w-tienda">Por tienda</a>
+      <a href="#w-explorar">Explorar todo</a>
+    </div>
+  </nav>
+  <div class="state" id="w-loading">
+    <div class="spinner" aria-hidden="true"></div>
+    <h3>Cargando ropa interior de mujer…</h3>
+  </div>
+  <div class="state" id="w-failed" hidden>
+    <h3>No pudimos cargar los productos</h3>
+    <p>Revisa tu conexión e inténtalo de nuevo.</p>
+    <button class="btn" type="button" onclick="location.reload()">Reintentar</button>
+  </div>
+  <div id="w-main" hidden>
+    <div class="wrap">
+      <section class="axis" id="w-tipo" aria-label="Mujer por tipo"><div class="axis-head"><h3>Por tipo</h3></div><div id="w-axisType"></div></section>
+      <section class="axis" id="w-marca" aria-label="Mujer por marca"><div class="axis-head"><h3>Por marca</h3></div><div id="w-axisBrand"></div></section>
+      <section class="axis" id="w-tienda" aria-label="Mujer por tienda"><div class="axis-head"><h3>Por tienda</h3></div><div id="w-axisStore"></div></section>
+    </div>
+    <section class="explore" id="w-explorar" aria-label="Explorar Mujer">
+      <div class="wrap">
+        <h3>Explorar todo</h3>
+        <p class="lead">Aquí van las ofertas. ¿Buscas algo a precio completo? Escríbelo y lo encontramos.</p>
+        <div class="filters" role="search">
+          <div class="q"><input id="w-fQ" type="search" placeholder="Buscar: sostén, panty, Victoria's Secret…" aria-label="Buscar en Ropa Interior Mujer" autocomplete="off"></div>
+          <select id="w-fType" aria-label="Tipo"></select>
+          <select id="w-fBrand" aria-label="Marca"></select>
+          <select id="w-fStore" aria-label="Tienda"></select>
+          <select id="w-fSort" aria-label="Ordenar">
+            <option value="deal">Mayor descuento</option>
+            <option value="low">Precio: menor a mayor</option>
+            <option value="high">Precio: mayor a menor</option>
+          </select>
+        </div>
+        <p class="count" id="w-count"></p>
+        <div class="grid" id="w-grid" aria-live="polite"></div>
+        <div class="more" id="w-moreWrap" hidden><button class="btn" type="button" id="w-moreBtn">Ver más</button></div>
+      </div>
+    </section>
   </div>
 </section>
 
-<nav class="jump" aria-label="Secciones" id="jump" hidden>
-  <div class="wrap jump-in">
-    <a href="#por-tipo">Por tipo</a>
-    <a href="#por-marca">Por marca</a>
-    <a href="#por-tienda">Por tienda</a>
-    <a href="#explorar">Explorar todo</a>
-  </div>
-</nav>
-
-<div class="state" id="loading">
-  <div class="spinner" aria-hidden="true"></div>
-  <h2>Cargando el departamento…</h2>
-  <p>Trayendo ropa interior y medias de todas las tiendas.</p>
-</div>
-<div class="state" id="failed" hidden>
-  <h2>No pudimos cargar los productos</h2>
-  <p>Revisa tu conexión e inténtalo de nuevo.</p>
-  <button class="btn" type="button" onclick="location.reload()">Reintentar</button>
-</div>
-
-<main id="main" hidden>
-  <div class="wrap">
-    <section class="axis" id="por-tipo" aria-labelledby="h-tipo"><div class="axis-head"><h2 id="h-tipo">Por tipo</h2></div><div id="axisType"></div></section>
-    <section class="axis" id="por-marca" aria-labelledby="h-marca"><div class="axis-head"><h2 id="h-marca">Por marca</h2></div><div id="axisBrand"></div></section>
-    <section class="axis" id="por-tienda" aria-labelledby="h-tienda"><div class="axis-head"><h2 id="h-tienda">Por tienda</h2></div><div id="axisStore"></div></section>
-  </div>
-
-  <section class="explore" id="explorar" aria-labelledby="h-explorar">
-    <div class="wrap">
-      <h2 id="h-explorar">Explorar todo</h2>
-      <p class="lead">Aquí van las ofertas. ¿Buscas algo a precio completo? Escríbelo y lo encontramos.</p>
-      <div class="filters" role="search">
-        <div class="q"><input id="fQ" type="search" placeholder="Buscar: bóxer, crew, Stance…" aria-label="Buscar en Ropa Interior y Medias" autocomplete="off"></div>
-        <select id="fType" aria-label="Tipo"></select>
-        <select id="fBrand" aria-label="Marca"></select>
-        <select id="fStore" aria-label="Tienda"></select>
-        <select id="fSort" aria-label="Ordenar">
-          <option value="deal">Mayor descuento</option>
-          <option value="low">Precio: menor a mayor</option>
-          <option value="high">Precio: mayor a menor</option>
-        </select>
-      </div>
-      <p class="count" id="count"></p>
-      <div class="grid" id="grid" aria-live="polite"></div>
-      <div class="more" id="moreWrap" hidden><button class="btn" type="button" id="moreBtn">Ver más</button></div>
+<!-- ============================ HOMBRE ============================ -->
+<section class="sec sec-m" id="hombre" data-section="hombre" aria-labelledby="m-title">
+  <div class="hero">
+    <div class="wrap hero-in">
+      <span class="kicker">Hombre</span>
+      <h2 id="m-title">Ropa Interior Hombre</h2>
+      <p>Lo esencial, de las mejores marcas de USA. Solo ofertas.</p>
+      <div class="hero-stats" id="m-stats" hidden></div>
     </div>
-  </section>
-</main>
+  </div>
+  <nav class="jump" aria-label="Secciones de Hombre" id="m-jump" hidden>
+    <div class="wrap jump-in">
+      <a href="#m-tipo">Por tipo</a>
+      <a href="#m-marca">Por marca</a>
+      <a href="#m-tienda">Por tienda</a>
+      <a href="#m-explorar">Explorar todo</a>
+    </div>
+  </nav>
+  <div class="state" id="m-loading">
+    <div class="spinner" aria-hidden="true"></div>
+    <h3>Cargando ropa interior de hombre…</h3>
+  </div>
+  <div class="state" id="m-failed" hidden>
+    <h3>No pudimos cargar los productos</h3>
+    <p>Revisa tu conexión e inténtalo de nuevo.</p>
+    <button class="btn" type="button" onclick="location.reload()">Reintentar</button>
+  </div>
+  <div id="m-main" hidden>
+    <div class="wrap">
+      <section class="axis" id="m-tipo" aria-label="Hombre por tipo"><div class="axis-head"><h3>Por tipo</h3></div><div id="m-axisType"></div></section>
+      <section class="axis" id="m-marca" aria-label="Hombre por marca"><div class="axis-head"><h3>Por marca</h3></div><div id="m-axisBrand"></div></section>
+      <section class="axis" id="m-tienda" aria-label="Hombre por tienda"><div class="axis-head"><h3>Por tienda</h3></div><div id="m-axisStore"></div></section>
+    </div>
+    <section class="explore" id="m-explorar" aria-label="Explorar Hombre">
+      <div class="wrap">
+        <h3>Explorar todo</h3>
+        <p class="lead">Aquí van las ofertas. ¿Buscas algo a precio completo? Escríbelo y lo encontramos.</p>
+        <div class="filters" role="search">
+          <div class="q"><input id="m-fQ" type="search" placeholder="Buscar: bóxer, crew, Stance…" aria-label="Buscar en Ropa Interior Hombre" autocomplete="off"></div>
+          <select id="m-fType" aria-label="Tipo"></select>
+          <select id="m-fBrand" aria-label="Marca"></select>
+          <select id="m-fStore" aria-label="Tienda"></select>
+          <select id="m-fSort" aria-label="Ordenar">
+            <option value="deal">Mayor descuento</option>
+            <option value="low">Precio: menor a mayor</option>
+            <option value="high">Precio: mayor a menor</option>
+          </select>
+        </div>
+        <p class="count" id="m-count"></p>
+        <div class="grid" id="m-grid" aria-live="polite"></div>
+        <div class="more" id="m-moreWrap" hidden><button class="btn" type="button" id="m-moreBtn">Ver más</button></div>
+      </div>
+    </section>
+  </div>
+</section>
 
 <footer>
   <p><a href="/">Aria Shop</a>: compra en Estados Unidos, entregado en Perú. Precios en dólares con conversión a soles al tipo de cambio del día.</p>
@@ -211,50 +323,33 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
 (function(){
   'use strict';
 
-  /* ---------------- axes (Carousel City law) ---------------- */
-  var TYPE_RAILS = [
-    { key:'boxer_brief', title:'Bóxer briefs', ty:'underwear' },
-    { key:'brief',       title:'Briefs',       ty:'underwear' },
-    { key:'trunk',       title:'Trunks',       ty:'underwear' },
-    { key:'sport',       title:'Medias deportivas', ty:'socks' },
-    { key:'casual',      title:'Medias casuales',   ty:'socks' },
-    { key:'dress',       title:'Medias de vestir',  ty:'socks' }
-  ];
-  /* Brands aggregate ACROSS stores, by name; a store is never a brand. */
-  var BRAND_RAILS = [
-    { key:'stance', title:'Stance' },
-    { key:'skims',  title:'SKIMS' },
-    { key:'psd',    title:'PSD' },
-    { key:'nike',   title:'Nike' },
-    { key:'adidas', title:'adidas' }
-  ];
+  /* ---------------- shared ---------------- */
+  var RAIL_MAX = 20, RAIL_MIN = 4, PAGE = 24, DEEP = 30;
   var SURF_SHOPS = ['parrot','islandwatersports','mainland','surfstation','valsurf','surfworld','quietstorm'];
-  var STORE_RAILS = [
-    { key:'ccs',    title:'CCS',     stores:['ccs'] },
-    { key:'kohls',  title:"Kohl's",  stores:['kohls'] },
-    { key:'ssense', title:'SSENSE',  stores:['ssense'] },
-    { key:'surf',   title:'Tiendas de surf', stores:SURF_SHOPS, sub:'Parrot, Island Water Sports, Mainland, Surf Station y más' }
-  ];
-  /* Halo pieces: after the sales, before the best sellers. */
-  var HALO = /^(?:tom ford|rick owens(?: drkshdw)?)$/i;
-  var RAIL_MAX = 20, RAIL_MIN = 4, PAGE = 24;
-
   var STORE_LABEL = {
     ccs:'CCS', parrot:'Parrot', islandwatersports:'Island Water Sports', mainland:'Mainland',
     skims:'SKIMS', kohls:"Kohl's", ssense:'SSENSE', zumiez:'Zumiez', surfstation:'Surf Station',
     crocs:'Crocs', gymshark:'Gymshark', valsurf:'Val Surf', prosoccer:'Pro Soccer', target:'Target',
     americaneagle:'American Eagle', alphalete:'Alphalete', youngla:'YoungLA', costco:'Costco',
     venum:'Venum', walmart:'Walmart', hottopic:'Hot Topic', xtremesoccer:'Xtreme Soccer',
-    tennisexpress:'Tennis Express', surfworld:'Surf World', quietstorm:'Quiet Storm'
+    tennisexpress:'Tennis Express', surfworld:'Surf World', quietstorm:'Quiet Storm',
+    victoriassecret:"Victoria's Secret", kindredbravely:'Kindred Bravely', macys:"Macy's",
+    lanebryant:'Lane Bryant', revolve:'Revolve', eberjey:'Eberjey', momcozy:'Momcozy', hatch:'Hatch',
+    miumiu:'Miu Miu', farfetch:'Farfetch', patbo:'PatBO', bellybandit:'Belly Bandit', drbrowns:"Dr. Brown's"
   };
-  var SUB_LABEL = { boxer_brief:'Bóxer briefs', brief:'Briefs', trunk:'Trunks', sport:'Medias deportivas', casual:'Medias casuales', dress:'Medias de vestir' };
+  var SUB_LABEL = {
+    boxer_brief:'Bóxer brief', brief:'Brief', trunk:'Trunk',
+    sport:'Medias deportivas', casual:'Medias casuales', dress:'Medias de vestir', hosiery:'Pantimedias',
+    panty:'Panty', bra:'Sostén', lingerie:'Lencería', shapewear:'Modelador'
+  };
 
-  /* ---------------- helpers ---------------- */
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function brandKey(b){
     var k = String(b || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
     if (/^psd/.test(k)) return 'psd';
+    if (/^victoria/.test(k)) return 'victoriassecret';
+    if (/^warner/.test(k)) return 'warners';
     return k;
   }
   /* Same tiered margin as every other page (LOCKED 2026-10-02). */
@@ -272,156 +367,285 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
   function pen(n){ if (!fx || !isFinite(n)) return ''; try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n * fx); } catch(e){ return ''; } }
   function pct(p){ return p.o > p.p ? Math.round((1 - p.p / p.o) * 100) : 0; }
   function onSale(p){ return pct(p) >= 5; }
+  function hasPic(p){ return !!p.img && (!p.ir || p.ir === 'clean'); }
   function bestSeller(p){ return (p.rt || 0) * Math.log(1 + (p.rc || 0)) + (p.rc || 0) / 1000; }
+  /* One card per product in a rail: SKIMS and others list every
+     colourway as its own product ("... BRA | ONYX", "... | SAND"). */
+  function baseName(p){ return (brandKey(p.b) + '|' + String(p.t).split(/\s\|\s|\s[-–—]\s(?=[A-Za-z ]+$)/)[0]).toLowerCase(); }
+  function fold(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 
-  /* Biggest sales first, then halo pieces, then best sellers. */
-  function curate(list){
-    var withPic = list.filter(function(p){ return p.img && (!p.ir || p.ir === 'clean'); });
-    var sale = withPic.filter(onSale).sort(function(a,b){ return pct(b) - pct(a); });
-    var rest = withPic.filter(function(p){ return !onSale(p); });
-    var halo = rest.filter(function(p){ return HALO.test(p.b); }).sort(function(a,b){ return b.p - a.p; });
-    var others = rest.filter(function(p){ return !HALO.test(p.b); }).sort(function(a,b){
-      return (bestSeller(b) - bestSeller(a)) || (a.p - b.p);
+  /* CAROUSELS ARE SALES ONLY (Danny 2026-10-10). Within the sale items:
+     the biggest sales first, then the premium pieces, then best sellers.
+     A rail that cannot fill RAIL_MIN photographed sale items is not shown. */
+  function curate(list, isHalo){
+    var seen = {}, pool = [];
+    list.filter(function(p){ return hasPic(p) && onSale(p); })
+      .sort(function(a,b){ return pct(b) - pct(a); })
+      .forEach(function(p){ var k = baseName(p); if (!seen[k]){ seen[k] = 1; pool.push(p); } });
+    var deep = pool.filter(function(p){ return pct(p) >= DEEP; });
+    var rest = pool.filter(function(p){ return pct(p) < DEEP; });
+    var halo = rest.filter(isHalo).sort(function(a,b){ return pct(b) - pct(a) || b.p - a.p; });
+    var others = rest.filter(function(p){ return !isHalo(p); }).sort(function(a,b){
+      return (bestSeller(b) - bestSeller(a)) || (pct(b) - pct(a));
     });
-    return sale.concat(halo, others).slice(0, RAIL_MAX);
+    return deep.concat(halo, others).slice(0, RAIL_MAX);
   }
 
-  function cardHTML(p){
-    var now = finalUsd(p.p, p.r), was = p.o > p.p ? finalUsd(p.o, p.r) : NaN, d = pct(p);
-    var href = 'producto.html?producto=' + encodeURIComponent(p.t) + '&tienda=' + encodeURIComponent(p.r);
-    /* Never a photo that was not cleared of its US price sticker. */
-    var img = p.img && (!p.ir || p.ir === 'clean')
-      ? '<img src="' + esc(p.img) + '" alt="' + esc(p.t) + '" loading="lazy" decoding="async" onerror="this.remove()">'
-      : '<span class="noimg">Sin imagen</span>';
-    return '<a class="card" href="' + esc(href) + '">'
-      + (d >= 5 ? '<span class="badge">-' + d + '%</span>' : '')
-      + (HALO.test(p.b) ? '<span class="halo">Diseñador</span>' : '')
-      + '<div class="ph">' + img + '</div>'
-      + '<div class="bd"><div class="store">' + esc(STORE_LABEL[p.r] || p.r) + '</div>'
-      + (p.b ? '<div class="brand">' + esc(p.b) + '</div>' : '')
-      + '<div class="title">' + esc(p.t) + '</div>'
-      + '<div class="price"><span class="now">' + esc(usd(now)) + '</span>'
-      + (isFinite(was) ? '<span class="was">' + esc(usd(was)) + '</span>' : '')
-      + (pen(now) ? '<span class="pen">' + esc(pen(now)) + ' aprox.</span>' : '')
-      + '</div></div></a>';
+  /* ---------------- one section ---------------- */
+  function Section(cfg){
+    var P = cfg.prefix, S = this;
+    S.cfg = cfg; S.ALL = []; S.SHOWN = 0; S.FILTERED = [];
+    function el(id){ return $(P + '-' + id); }
+
+    function cardHTML(p){
+      var now = finalUsd(p.p, p.r), was = p.o > p.p ? finalUsd(p.o, p.r) : NaN, d = pct(p);
+      var href = 'producto.html?producto=' + encodeURIComponent(p.t) + '&tienda=' + encodeURIComponent(p.r);
+      /* Never a photo that was not cleared of its US price sticker. */
+      var img = hasPic(p)
+        ? '<img src="' + esc(p.img) + '" alt="' + esc(p.t) + '" loading="lazy" decoding="async" onerror="this.remove()">'
+        : '<span class="noimg">Sin imagen</span>';
+      /* The catalogue's own description when there is one; otherwise
+         what the product is. Never invented copy. */
+      var desc = p.d || SUB_LABEL[p.sub] || '';
+      return '<a class="card" href="' + esc(href) + '">'
+        + (d >= 5 ? '<span class="badge">-' + d + '%</span>' : '')
+        + (cfg.isHalo(p) ? '<span class="halo">' + esc(cfg.haloLabel) + '</span>' : '')
+        + '<div class="ph">' + img + '</div>'
+        + '<div class="bd"><div class="store">' + esc(STORE_LABEL[p.r] || p.r) + '</div>'
+        /* The brand line, unless it only repeats the store (Victoria's Secret at Victoria's Secret). */
+        + (p.b && brandKey(p.b) !== brandKey(STORE_LABEL[p.r] || p.r) ? '<div class="brand">' + esc(p.b) + '</div>' : '')
+        + '<div class="title">' + esc(p.t) + '</div>'
+        + (desc ? '<div class="desc">' + esc(desc) + '</div>' : '')
+        + '<div class="price"><span class="now">' + esc(usd(now)) + '</span>'
+        + (isFinite(was) ? '<span class="was">' + esc(usd(was)) + '</span>' : '')
+        + (pen(now) ? '<span class="pen">' + esc(pen(now)) + ' aprox.</span>' : '')
+        + '</div></div></a>';
+    }
+    S.cardHTML = cardHTML;
+
+    function railHTML(r, items){
+      var picks = curate(items, cfg.isHalo);
+      if (picks.length < RAIL_MIN) return '';
+      var nSale = items.filter(function(p){ return hasPic(p) && onSale(p); }).length;
+      var sub = r.sub || (nSale + ' en oferta');
+      return '<section class="rail" data-rail="' + esc(P + ':' + r.key) + '">'
+        + '<div class="rail-head"><div><h4>' + esc(r.title) + '</h4><div class="sub">' + esc(sub) + '</div></div>'
+        + (r.filter ? '<button class="rail-more" type="button" data-section="' + P + '" data-more="' + esc(r.filter) + '">Ver todo</button>' : '')
+        + '</div><div class="track">' + picks.map(cardHTML).join('') + '</div></section>';
+    }
+    S.railHTML = railHTML;
+
+    S.renderRails = function(){
+      var ALL = S.ALL;
+      var byType = cfg.TYPE_RAILS.map(function(r){
+        var items = r.extra ? r.extra() : ALL.filter(function(p){ return r.subs.indexOf(p.sub) !== -1 && p.ty === r.ty; });
+        return railHTML({ key:r.key, title:r.title, sub:r.sub, filter:r.extra ? '' : 'type:' + r.key }, items);
+      }).join('');
+      var byBrand = cfg.BRAND_RAILS.map(function(r){
+        return railHTML({ key:r.key, title:r.title, filter:'brand:' + r.key },
+          ALL.filter(function(p){ return brandKey(p.b) === r.key; }));
+      }).join('');
+      var byStore = cfg.STORE_RAILS.map(function(r){
+        return railHTML({ key:r.key, title:r.title, sub:r.sub, filter:'store:' + r.key },
+          ALL.filter(function(p){ return r.stores.indexOf(p.r) !== -1; }));
+      }).join('');
+      el('axisType').innerHTML = byType;
+      el('axisBrand').innerHTML = byBrand;
+      el('axisStore').innerHTML = byStore;
+      /* An axis with no rail is not shown at all — never an empty heading. */
+      el('tipo').hidden = !byType; el('marca').hidden = !byBrand; el('tienda').hidden = !byStore;
+    };
+
+    function fillSelect(sel, label, opts){
+      sel.innerHTML = '<option value="">' + esc(label) + '</option>'
+        + opts.map(function(o){ return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>'; }).join('');
+    }
+    S.buildFilters = function(){
+      var ALL = S.ALL, subs = {};
+      ALL.forEach(function(p){ subs[p.sub] = 1; });
+      fillSelect(el('fType'), 'Todo tipo', cfg.TOP_TYPES.concat(
+        cfg.TYPE_RAILS.filter(function(r){ return !r.extra && r.subs.some(function(s){ return subs[s]; }); })
+          .map(function(r){ return ['type:' + r.key, r.title]; })));
+      var brands = {};
+      ALL.forEach(function(p){ var k = brandKey(p.b); if (!k) return; (brands[k] = brands[k] || { n:0, label:p.b }).n++; });
+      fillSelect(el('fBrand'), 'Toda marca', Object.keys(brands).filter(function(k){ return brands[k].n >= 3; })
+        .sort(function(a,b){ return brands[b].n - brands[a].n; })
+        .map(function(k){ return [k, cfg.BRAND_LABEL[k] || brands[k].label]; }));
+      var stores = {};
+      ALL.forEach(function(p){ stores[p.r] = (stores[p.r] || 0) + 1; });
+      fillSelect(el('fStore'), 'Toda tienda', cfg.STORE_GROUPS.concat(Object.keys(stores)
+        .sort(function(a,b){ return stores[b] - stores[a]; })
+        .map(function(k){ return [k, STORE_LABEL[k] || k]; })));
+    };
+
+    S.applyFilters = function(){
+      var q = fold(el('fQ').value).trim();
+      var ft = el('fType').value, fb = el('fBrand').value, fs = el('fStore').value, sort = el('fSort').value;
+      var words = q ? q.split(/\s+/).map(function(w){ return cfg.Q_ALIASES[w] || w; }) : [];
+      var typeRail = null;
+      if (ft && ft.split(':')[0] === 'type') cfg.TYPE_RAILS.forEach(function(r){ if (r.key === ft.split(':')[1]) typeRail = r; });
+      S.FILTERED = S.ALL.filter(function(p){
+        /* BLAST-SALES-ONLY: browsing shows markdowns; a search reaches full price. */
+        if (!words.length && !onSale(p)) return false;
+        if (ft){
+          var parts = ft.split(':');
+          if (parts[0] === 'ty' && p.ty !== parts[1]) return false;
+          if (parts[0] === 'type' && (!typeRail || typeRail.subs.indexOf(p.sub) === -1)) return false;
+        }
+        if (fb && brandKey(p.b) !== fb) return false;
+        if (fs){
+          var group = cfg.GROUP_STORES[fs];
+          if (group){ if (group.indexOf(p.r) === -1) return false; }
+          else if (p.r !== fs) return false;
+        }
+        if (words.length){
+          var hay = fold(p.t + ' ' + p.b + ' ' + (STORE_LABEL[p.r] || p.r) + ' ' + (SUB_LABEL[p.sub] || '') + ' ' + p.sub + ' ' + (p.d || ''));
+          for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) === -1) return false;
+        }
+        return true;
+      });
+      S.FILTERED.sort(function(a,b){
+        if (sort === 'low') return finalUsd(a.p, a.r) - finalUsd(b.p, b.r);
+        if (sort === 'high') return finalUsd(b.p, b.r) - finalUsd(a.p, a.r);
+        return (pct(b) - pct(a)) || (bestSeller(b) - bestSeller(a));
+      });
+      S.SHOWN = 0; el('grid').innerHTML = '';
+      S.renderMore();
+    };
+    S.renderMore = function(){
+      var next = S.FILTERED.slice(S.SHOWN, S.SHOWN + PAGE);
+      var tpl = document.createElement('template');
+      tpl.innerHTML = next.map(cardHTML).join('');
+      el('grid').appendChild(tpl.content);
+      S.SHOWN += next.length;
+      var searching = !!el('fQ').value.trim();
+      el('count').textContent = S.FILTERED.length
+        ? S.FILTERED.length.toLocaleString('es-PE') + (searching ? ' resultados' : ' productos en oferta')
+        : (searching ? 'No encontramos eso. Prueba con otra palabra.' : 'Ninguna oferta con estos filtros. Escribe lo que buscas para ver todo a precio completo.');
+      el('moreWrap').hidden = S.SHOWN >= S.FILTERED.length;
+    };
+    S.openFilter = function(spec){
+      var parts = String(spec).split(':');
+      el('fQ').value = ''; el('fType').value = ''; el('fBrand').value = ''; el('fStore').value = '';
+      if (parts[0] === 'type') el('fType').value = 'type:' + parts[1];
+      if (parts[0] === 'brand') el('fBrand').value = parts[1];
+      if (parts[0] === 'store') el('fStore').value = cfg.GROUP_STORES['group:' + parts[1]] ? 'group:' + parts[1] : parts[1];
+      S.applyFilters();
+      el('explorar').scrollIntoView({ behavior:'smooth', block:'start' });
+    };
+    S.repaintGrid = function(){
+      var keep = S.SHOWN; S.SHOWN = 0; el('grid').innerHTML = '';
+      while (S.SHOWN < keep && S.SHOWN < S.FILTERED.length) S.renderMore();
+    };
+
+    S.show = function(items){
+      S.ALL = items;
+      var nUnder = items.filter(function(p){ return p.ty === 'underwear'; }).length;
+      var nStores = {}; items.forEach(function(p){ nStores[p.r] = 1; });
+      var nSale = items.filter(onSale).length;
+      el('stats').innerHTML = '<span class="stat"><b>' + items.length.toLocaleString('es-PE') + '</b> productos</span>'
+        + '<span class="stat"><b>' + Object.keys(nStores).length + '</b> tiendas</span>'
+        + (nSale ? '<span class="stat"><b>' + nSale.toLocaleString('es-PE') + '</b> en oferta</span>' : '');
+      el('stats').hidden = false;
+      S.renderRails();
+      S.buildFilters();
+      el('loading').hidden = true; el('main').hidden = false; el('jump').hidden = false;
+      S.applyFilters();
+    };
+    S.fail = function(){ el('loading').hidden = true; el('failed').hidden = false; };
+
+    var t = null;
+    el('fQ').addEventListener('input', function(){ clearTimeout(t); t = setTimeout(S.applyFilters, 220); });
+    ['fType','fBrand','fStore','fSort'].forEach(function(id){ el(id).addEventListener('change', S.applyFilters); });
+    el('moreBtn').addEventListener('click', S.renderMore);
   }
 
-  function railHTML(r, items){
-    var picks = curate(items);
-    if (picks.length < RAIL_MIN) return '';
-    var nSale = items.filter(onSale).length;
-    var sub = r.sub || (nSale ? nSale + ' en oferta · ' + items.length + ' productos' : items.length + ' productos');
-    return '<section class="rail" data-rail="' + esc(r.key) + '">'
-      + '<div class="rail-head"><div><h3>' + esc(r.title) + '</h3><div class="sub">' + esc(sub) + '</div></div>'
-      + '<button class="rail-more" type="button" data-more="' + esc(r.filter) + '">Ver todo</button></div>'
-      + '<div class="track">' + picks.map(cardHTML).join('') + '</div></section>';
-  }
+  /* ---------------- MUJER: axes (Carousel City law) ---------------- */
+  var MEN_FEED = [];
+  var W_HALO_BRANDS = /^(?:miu miu|eberjey|la perla|agent provocateur|fleur du mal|kiki de montparnasse|natori|hanky panky|cosabella)$/i;
+  /* Victoria's Secret's flagship collections are the premium pieces of the store. */
+  var VS_FLAGSHIP = /\b(?:very sexy|dream angels|wicked|luxe)\b/i;
+  var MUJER = new Section({
+    prefix: 'w', haloLabel: 'Premium',
+    isHalo: function(p){ return W_HALO_BRANDS.test(p.b) || (p.r === 'victoriassecret' && VS_FLAGSHIP.test(p.t)); },
+    TYPE_RAILS: [
+      { key:'bra',       title:'Sostenes',     ty:'underwear', subs:['bra'] },
+      { key:'panty',     title:'Panties',      ty:'underwear', subs:['panty'] },
+      { key:'lingerie',  title:'Lencería',     ty:'underwear', subs:['lingerie'] },
+      { key:'shapewear', title:'Modeladores',  ty:'underwear', subs:['shapewear'] },
+      { key:'socks',     title:'Medias',       ty:'socks',     subs:['casual','sport','dress','hosiery'] },
+      /* Unisex sale socks live in the men's feed (one canonical home);
+         they are SURFACED here, never listed in the women's feed. */
+      { key:'unisex',    title:'Medias unisex', sub:'Las mismas ofertas que en Hombre', extra: function(){
+          return MEN_FEED.filter(function(p){ return p.ty === 'socks' && p.g === 'u'; }); } }
+    ],
+    /* Brands aggregate ACROSS stores, by name; a single-store brand is its store's rail. */
+    BRAND_RAILS: [
+      { key:'bali',               title:'Bali' },
+      { key:'wacoal',             title:'Wacoal' },
+      { key:'vanityfairlingerie', title:'Vanity Fair' },
+      { key:'psd',                title:'PSD' },
+      { key:'meundies',           title:'MeUndies' },
+      { key:'playtex',            title:'Playtex' },
+      { key:'warners',            title:"Warner's" },
+      { key:'calvinklein',        title:'Calvin Klein' }
+    ],
+    STORE_RAILS: [
+      { key:'victoriassecret', title:"Victoria's Secret", stores:['victoriassecret'] },
+      { key:'skims',           title:'SKIMS',            stores:['skims'] },
+      { key:'kindredbravely',  title:'Kindred Bravely',  stores:['kindredbravely'], sub:'Maternidad y lactancia' },
+      { key:'macys',           title:"Macy's",           stores:['macys'] },
+      { key:'kohls',           title:"Kohl's",           stores:['kohls'] },
+      { key:'zumiez',          title:'Zumiez',           stores:['zumiez'] },
+      { key:'lanebryant',      title:'Lane Bryant',      stores:['lanebryant'] },
+      { key:'walmart',         title:'Walmart',          stores:['walmart'] },
+      { key:'target',          title:'Target',           stores:['target'] }
+    ],
+    TOP_TYPES: [['ty:underwear','Ropa interior'],['ty:socks','Medias']],
+    STORE_GROUPS: [],
+    GROUP_STORES: {},
+    BRAND_LABEL: { victoriassecret:"Victoria's Secret", skims:'SKIMS', psd:'PSD', vanityfairlingerie:'Vanity Fair' },
+    Q_ALIASES: { sosten:'bra', sostenes:'bra', brasier:'bra', brasieres:'bra', bralette:'bra',
+      bragas:'panty', braga:'panty', calzon:'panty', calzones:'panty', panties:'panty', tanga:'thong', tangas:'thong',
+      lenceria:'lenceria', modelador:'modelador', modeladores:'modelador', faja:'shapewear', fajas:'shapewear',
+      medias:'sock', media:'sock', calcetines:'sock', calcetin:'sock', pantimedias:'tights' }
+  });
+
+  /* ---------------- HOMBRE: axes (Carousel City law) ---------------- */
+  var M_HALO = /^(?:tom ford|rick owens(?: drkshdw)?)$/i;
+  var HOMBRE = new Section({
+    prefix: 'm', haloLabel: 'Diseñador',
+    isHalo: function(p){ return M_HALO.test(p.b); },
+    TYPE_RAILS: [
+      { key:'boxer_brief', title:'Bóxer briefs',      ty:'underwear', subs:['boxer_brief'] },
+      { key:'brief',       title:'Briefs',            ty:'underwear', subs:['brief'] },
+      { key:'trunk',       title:'Trunks',            ty:'underwear', subs:['trunk'] },
+      { key:'sport',       title:'Medias deportivas', ty:'socks',     subs:['sport'] },
+      { key:'casual',      title:'Medias casuales',   ty:'socks',     subs:['casual'] },
+      { key:'dress',       title:'Medias de vestir',  ty:'socks',     subs:['dress'] }
+    ],
+    BRAND_RAILS: [
+      { key:'stance', title:'Stance' },
+      { key:'skims',  title:'SKIMS' },
+      { key:'psd',    title:'PSD' },
+      { key:'nike',   title:'Nike' },
+      { key:'adidas', title:'adidas' }
+    ],
+    STORE_RAILS: [
+      { key:'ccs',    title:'CCS',     stores:['ccs'] },
+      { key:'kohls',  title:"Kohl's",  stores:['kohls'] },
+      { key:'ssense', title:'SSENSE',  stores:['ssense'] },
+      { key:'surf',   title:'Tiendas de surf', stores:SURF_SHOPS, sub:'Parrot, Island Water Sports, Mainland, Surf Station y más' }
+    ],
+    TOP_TYPES: [['ty:underwear','Ropa interior'],['ty:socks','Medias']],
+    STORE_GROUPS: [['group:surf','Tiendas de surf']],
+    GROUP_STORES: { 'group:surf': SURF_SHOPS },
+    BRAND_LABEL: { psd:'PSD', skims:'SKIMS' },
+    Q_ALIASES: { boxer:'boxer', boxers:'boxer', calzoncillo:'underwear', calzoncillos:'underwear', medias:'sock', media:'sock', calcetines:'sock', calcetin:'sock', deportivas:'athletic', vestir:'dress' }
+  });
+  var SECTIONS = { w: MUJER, m: HOMBRE };
 
   /* ---------------- data ---------------- */
-  var ALL = [];
-
-  function renderRails(){
-    var byType = TYPE_RAILS.map(function(r){
-      return railHTML({ key:r.key, title:r.title, filter:'type:' + r.key },
-        ALL.filter(function(p){ return p.sub === r.key && p.ty === r.ty; }));
-    }).join('');
-    var byBrand = BRAND_RAILS.map(function(r){
-      return railHTML({ key:r.key, title:r.title, filter:'brand:' + r.key },
-        ALL.filter(function(p){ return brandKey(p.b) === r.key; }));
-    }).join('');
-    var byStore = STORE_RAILS.map(function(r){
-      return railHTML({ key:r.key, title:r.title, sub:r.sub, filter:'store:' + r.key },
-        ALL.filter(function(p){ return r.stores.indexOf(p.r) !== -1; }));
-    }).join('');
-    $('axisType').innerHTML = byType;
-    $('axisBrand').innerHTML = byBrand;
-    $('axisStore').innerHTML = byStore;
-    /* An axis with no rail is not shown at all — never an empty heading. */
-    $('por-tipo').hidden = !byType; $('por-marca').hidden = !byBrand; $('por-tienda').hidden = !byStore;
-  }
-
-  /* ---------------- explore: filters after the carousels ---------------- */
-  var SHOWN = 0, FILTERED = [];
-  function fillSelect(el, label, opts){
-    el.innerHTML = '<option value="">' + esc(label) + '</option>'
-      + opts.map(function(o){ return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>'; }).join('');
-  }
-  function buildFilters(){
-    var subs = {}; ALL.forEach(function(p){ subs[p.sub] = 1; });
-    fillSelect($('fType'), 'Todo tipo', [['ty:underwear','Ropa interior'],['ty:socks','Medias']].concat(
-      TYPE_RAILS.filter(function(r){ return subs[r.key]; }).map(function(r){ return ['type:' + r.key, r.title]; })));
-    var brands = {}; ALL.forEach(function(p){ var k = brandKey(p.b); if (!k) return; (brands[k] = brands[k] || { n:0, label:p.b }).n++; });
-    fillSelect($('fBrand'), 'Toda marca', Object.keys(brands).filter(function(k){ return brands[k].n >= 3; })
-      .sort(function(a,b){ return brands[b].n - brands[a].n; })
-      .map(function(k){ return [k, k === 'psd' ? 'PSD' : (k === 'skims' ? 'SKIMS' : brands[k].label)]; }));
-    var stores = {}; ALL.forEach(function(p){ stores[p.r] = (stores[p.r] || 0) + 1; });
-    fillSelect($('fStore'), 'Toda tienda', [['group:surf','Tiendas de surf']].concat(Object.keys(stores)
-      .sort(function(a,b){ return stores[b] - stores[a]; })
-      .map(function(k){ return [k, STORE_LABEL[k] || k]; })));
-  }
-  function fold(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
-  /* Spanish words a shopper types, to the catalogue's English. */
-  var Q_ALIASES = { boxer:'boxer', boxers:'boxer', calzoncillo:'underwear', calzoncillos:'underwear', medias:'sock', media:'sock', calcetines:'sock', calcetin:'sock', deportivas:'athletic', vestir:'dress' };
-  function applyFilters(){
-    var q = fold($('fQ').value).trim();
-    var ft = $('fType').value, fb = $('fBrand').value, fs = $('fStore').value, sort = $('fSort').value;
-    var words = q ? q.split(/\s+/).map(function(w){ return Q_ALIASES[w] || w; }) : [];
-    FILTERED = ALL.filter(function(p){
-      /* BLAST-SALES-ONLY: browsing shows markdowns; a search reaches full price. */
-      if (!words.length && !onSale(p)) return false;
-      if (ft){
-        var parts = ft.split(':');
-        if (parts[0] === 'ty' && p.ty !== parts[1]) return false;
-        if (parts[0] === 'type' && p.sub !== parts[1]) return false;
-      }
-      if (fb && brandKey(p.b) !== fb) return false;
-      if (fs){
-        if (fs === 'group:surf'){ if (SURF_SHOPS.indexOf(p.r) === -1) return false; }
-        else if (p.r !== fs) return false;
-      }
-      if (words.length){
-        var hay = fold(p.t + ' ' + p.b + ' ' + (STORE_LABEL[p.r] || p.r) + ' ' + (SUB_LABEL[p.sub] || ''));
-        for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) === -1) return false;
-      }
-      return true;
-    });
-    FILTERED.sort(function(a,b){
-      if (sort === 'low') return finalUsd(a.p, a.r) - finalUsd(b.p, b.r);
-      if (sort === 'high') return finalUsd(b.p, b.r) - finalUsd(a.p, a.r);
-      return (pct(b) - pct(a)) || (bestSeller(b) - bestSeller(a));
-    });
-    SHOWN = 0; $('grid').innerHTML = '';
-    renderMore();
-  }
-  function renderMore(){
-    var next = FILTERED.slice(SHOWN, SHOWN + PAGE);
-    var tpl = document.createElement('template');
-    tpl.innerHTML = next.map(cardHTML).join('');
-    $('grid').appendChild(tpl.content);
-    SHOWN += next.length;
-    var searching = !!$('fQ').value.trim();
-    $('count').textContent = FILTERED.length
-      ? FILTERED.length.toLocaleString('es-PE') + (searching ? ' resultados' : ' productos en oferta')
-      : (searching ? 'No encontramos eso. Prueba con otra palabra.' : 'Ninguna oferta con estos filtros. Escribe lo que buscas para ver todo a precio completo.');
-    $('moreWrap').hidden = SHOWN >= FILTERED.length;
-  }
-  function openFilter(spec){
-    var parts = String(spec).split(':');
-    $('fQ').value = ''; $('fType').value = ''; $('fBrand').value = ''; $('fStore').value = '';
-    if (parts[0] === 'type') $('fType').value = 'type:' + parts[1];
-    if (parts[0] === 'brand') $('fBrand').value = parts[1];
-    if (parts[0] === 'store') $('fStore').value = parts[1] === 'surf' ? 'group:surf' : parts[1];
-    applyFilters();
-    /* Nothing on sale in that lane: show the whole lane, which is what
-       "Ver todo" promised. Typing the lane's name is the explicit ask. */
-    if (!FILTERED.length){
-      $('fQ').value = parts[0] === 'type' ? (SUB_LABEL[parts[1]] || '').split(' ')[0].toLowerCase()
-        : (parts[0] === 'store' && parts[1] !== 'surf' ? (STORE_LABEL[parts[1]] || parts[1]) : (parts[1] === 'surf' ? '' : parts[1]));
-      applyFilters();
-    }
-    $('explorar').scrollIntoView({ behavior:'smooth', block:'start' });
-  }
-
   function loadFx(){
     try {
       var c = JSON.parse(localStorage.getItem('aria_fx_cache') || 'null');
@@ -431,39 +655,44 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
       if (typeof d.venta === 'number'){ fx = d.venta; try { localStorage.setItem('aria_fx_cache', JSON.stringify({ venta:fx, fetchedAt:Date.now() })); } catch(e){} }
     }).catch(function(){});
   }
-
-  function start(){
-    fetch('/ropa-interior-feed.json').then(function(r){
+  function getFeed(url){
+    return fetch(url).then(function(r){
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function(feed){
-      ALL = (feed && Array.isArray(feed.items) ? feed.items : []).filter(function(p){ return p && p.t && p.p > 0; });
-      if (!ALL.length) throw new Error('empty');
-      var nUnder = ALL.filter(function(p){ return p.ty === 'underwear'; }).length;
-      var nStores = {}; ALL.forEach(function(p){ nStores[p.r] = 1; });
-      var nSale = ALL.filter(onSale).length;
-      $('heroStats').innerHTML = '<span class="stat"><b>' + ALL.length.toLocaleString('es-PE') + '</b> productos</span>'
-        + '<span class="stat"><b>' + Object.keys(nStores).length + '</b> tiendas</span>'
-        + (nSale ? '<span class="stat"><b>' + nSale + '</b> en oferta</span>' : '');
-      $('heroStats').hidden = false;
-      renderRails();
-      buildFilters();
-      $('loading').hidden = true; $('main').hidden = false; $('jump').hidden = false;
-      applyFilters();
-      loadFx().then(function(){ if (fx){ renderRails(); var keep = SHOWN; SHOWN = 0; $('grid').innerHTML = ''; while (SHOWN < keep && SHOWN < FILTERED.length) renderMore(); } });
-    }).catch(function(){
-      $('loading').hidden = true; $('failed').hidden = false;
+      var items = (feed && Array.isArray(feed.items) ? feed.items : []).filter(function(p){ return p && p.t && p.p > 0; });
+      if (!items.length) throw new Error('empty');
+      return items;
+    });
+  }
+  /* Content arrives after the browser's own jump to #mujer / #hombre;
+     land on the asked-for section once the page has its height. */
+  function honourHash(){
+    var h = location.hash.replace('#', '');
+    var target = h && document.getElementById(h);
+    if (target && (h === 'hombre' || h === 'mujer' || /^[wm]-/.test(h))) target.scrollIntoView({ block:'start' });
+  }
+
+  function start(){
+    var men = getFeed('/ropa-interior-feed.json');
+    var women = getFeed('/ropa-interior-women-feed.json');
+    /* The men's feed feeds both sections (its unisex socks are surfaced
+       in Mujer), so Mujer paints after both have answered. */
+    var menDone = men.then(function(items){ MEN_FEED = items; HOMBRE.show(items); }, function(){ HOMBRE.fail(); });
+    var womenDone = Promise.all([women, menDone]).then(function(r){ MUJER.show(r[0]); }, function(){ MUJER.fail(); });
+    Promise.all([menDone, womenDone]).then(function(){
+      honourHash();
+      loadFx().then(function(){
+        if (!fx) return;
+        [MUJER, HOMBRE].forEach(function(S){ if (S.ALL.length){ S.renderRails(); S.repaintGrid(); } });
+      });
     });
   }
 
   document.addEventListener('click', function(e){
     var b = e.target.closest && e.target.closest('[data-more]');
-    if (b) openFilter(b.getAttribute('data-more'));
+    if (b && SECTIONS[b.getAttribute('data-section')]) SECTIONS[b.getAttribute('data-section')].openFilter(b.getAttribute('data-more'));
   });
-  var t = null;
-  $('fQ').addEventListener('input', function(){ clearTimeout(t); t = setTimeout(applyFilters, 220); });
-  ['fType','fBrand','fStore','fSort'].forEach(function(id){ $(id).addEventListener('change', applyFilters); });
-  $('moreBtn').addEventListener('click', renderMore);
 
   start();
 })();
