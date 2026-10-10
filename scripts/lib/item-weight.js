@@ -59,7 +59,13 @@ const APPLIANCE_IMPOSTOR_RE =
    product. Shared between the BULKY/RETAIL rows and the sanity bands so
    the two cannot disagree. */
 const VACUUM_IMPOSTOR_RE = /\b(trimmer|shaver|clipper|beard|mustache|sideburns?|nose|ear)\b|vacuum\s*(storage\s*)?bags?|space[-\s]?saver|vacuum[-\s]?seal/i;
-const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt)\b/i;
+/* Indoor countertop appliances say "grill" too ("Air Fryer Toaster Oven
+   with Grill", "Indoor Grill & Air Fryer"): ~7-10 kg, never the 50 kg
+   outdoor grill (2026-10-10). */
+const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt|air\s*fryer|toaster\s*oven|indoor)\b/i;
+/* "Kayak" on apparel is a print, not a boat ("Under Armour Bear Kayak
+   Graphic Hoodie" quoted 25 kg, ~$325 of freight; 2026-10-10). */
+const KAYAK_IMPOSTOR_RE = /\b(hoodies?|sweatshirts?|t-?shirts?|shirts?|tees?|crew\s*necks?|crewnecks?|pullovers?|sweaters?|jackets?|jerseys?|tank\s*tops?|hats?|caps?|beanies?|socks?|graphic)\b/i;
 const TENT_IMPOSTOR_RE = /\b(play|pop[-\s]?up|kids|toddler|toy|dress|string)\b|fairy/i;
 
 /* BUNDLED-SCREEN IMPOSTOR (2026-09-30, Danny's iPhone QA). A "5G WiFi
@@ -113,7 +119,7 @@ export const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(basketball (hoop|system|goal)|backboard)\b/i, kg: 40 },
   { match: /\b(punching bag|heavy bag|boxing bag)\b/i, kg: 35 },
   { match: /\b(lawn ?mower|snow blower)\b/i, kg: 35 },
-  { match: /\b(kayak|canoe|paddle ?board)\b/i, kg: 25 },
+  { match: /\b(kayak|canoe|paddle ?board)\b/i, not: KAYAK_IMPOSTOR_RE, kg: 25 },
   { match: /\b(canopy|gazebo|pergola|car ?port)\b/i, kg: 25 },
   { match: /\b(wheelbarrow)\b/i, kg: 20 },
   { match: /\b(weight set|barbell|kettlebell|dumbbell|weight plates?)\b/i, kg: 20 },
@@ -561,7 +567,7 @@ export const WEIGHT_SANITY_BOUNDS = [
       && !APPLIANCE_IMPOSTOR_RE.test(t),
     minKg: 8, maxKg: 220 },
   { key: "muebles", test: (t) => /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i.test(t) && !MATTRESS_IMPOSTOR_RE.test(t), minKg: 8, maxKg: 160 },
-  { key: "exterior/camping", test: (t) => /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i.test(t) && !GRILL_IMPOSTOR_RE.test(t) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 90 },
+  { key: "exterior/camping", test: (t) => /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i.test(t) && !GRILL_IMPOSTOR_RE.test(t) && !KAYAK_IMPOSTOR_RE.test(t) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 90 },
   { key: "bicicleta", test: (t) => /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i.test(t) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 45 },
   /* Lowered from 0.4 to 0.2 when dimensional billing was removed
      (2026-09-20): 0.4 came from a baby shoe box's ~0.47 kg dimensional
