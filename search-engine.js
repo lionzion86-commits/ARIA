@@ -391,6 +391,14 @@ const ES_EN_WORDS = {
   ropa: "clothing",
   media: "socks",
   calcetin: "socks",
+  /* ROPA INTERIOR MUJER (2026-10-10). */
+  sosten: "bra",
+  sostenes: "bra",
+  braga: "panties",
+  bragas: "panties",
+  lenceria: "lingerie",
+  calzoncillo: "boxer briefs",
+  calzoncillos: "boxer briefs",
   correa: "belt",
   gorra: "cap",
   sombrero: "hat",
@@ -802,6 +810,10 @@ const SEARCH_SYNONYM_GROUPS = [
       "thong", "thongs",
       "calzon", "calzones",
       "tanga", "tangas",
+      /* ROPA INTERIOR MUJER (2026-10-10): the Spanish words a shopper
+         types for the department's two halves. */
+      "braga", "bragas",
+      "calzoncillo", "calzoncillos",
     ],
   },
   {

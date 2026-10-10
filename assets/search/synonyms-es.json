@@ -35,6 +35,8 @@
     "sudaderas": "hoodie", "sudadera": "hoodie", "polerones": "hoodie", "poleron": "hoodie", "canguros": "hoodie", "hoddie": "hoodie",
     "pijamas": "pajamas", "pijama": "pajamas", "ropa de bano": "swimsuit", "bikinis": "bikini", "mallas": "swimsuit",
     "medias": "socks", "calcetines": "socks", "trusas": "underwear", "calzoncillos": "boxer briefs", "brasieres": "bra", "sostenes": "bra",
+    "bragas": "panties", "braga": "panties", "calzones": "panties", "calzon": "panties", "tangas": "thong", "tanga": "thong",
+    "lenceria": "lingerie", "calzoncillo": "boxer briefs", "boxers": "boxer briefs", "calcetin": "socks",
     "ternos": "suit", "terno": "suit", "corbatas": "tie", "corbata": "tie", "chalecos": "vest", "chaleco": "vest",
     "enterizos": "jumpsuit", "enterizo": "jumpsuit", "bodies": "bodysuit", "uniformes": "uniform"
   },
