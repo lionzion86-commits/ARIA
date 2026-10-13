@@ -8563,8 +8563,7 @@ function sportHubItems(kind){
   return out;
 }
 function sportCarouselSection(label, deptKey, items){
-  /* SALES-ONLY BROWSE (2026-10-03, Danny): biggest discounts first.
-     Tier-based so flagged-without-% sales count. */
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): biggest discounts first. */
   const sorted = (Array.isArray(items) ? items : []).filter(p => itemSaleTier(p) > 0)
     .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (carouselDiscountPct(b) - carouselDiscountPct(a)));
   let picks = sorted.slice(0, 12);
@@ -8750,26 +8749,53 @@ function genderOfItem(item, bucketName){
   return genderFromTitle(rawTitleOf(item)) || BUCKET_SPEC[bucketName]?.gender || null;
 }
 
-function rawItemOnSale(item){
-  /* SHOPIFY COMPARE-AT (2026-09-26, Danny): mirrors the normalizeLiveItem
-     rule -- a merchant-published compareAt above the selling price is the
-     retailer's own sale report on Shopify catalogue scrapes. */
-  const rawPriceFirst = Number(item.price ?? item.effectivePrice ?? item.currentPrice ?? item.salePrice);
-  const rawCompareAt = item?.compareAt;
-  const rawCompareAtNum = typeof rawCompareAt === 'number' ? rawCompareAt
-    : (typeof rawCompareAt === 'string' ? parseFloat(String(rawCompareAt).replace(/[^0-9.]/g, '')) : NaN);
-  const flag = item?.onSale === true || item?.isOnSale === true
-    || (typeof item?.savingsAmount === 'number' && item.savingsAmount > 0)
-    || (typeof item?.savingsPercent === 'number' && item.savingsPercent > 0)
-    || (typeof item?.percentageOff === 'number' && item.percentageOff > 0)
-    || (typeof item?.percentOff === 'number' && item.percentOff > 0)
-    || (Number.isFinite(rawCompareAtNum) && Number.isFinite(rawPriceFirst) && rawCompareAtNum > rawPriceFirst);
-  if (!flag) return false;
-  const price = rawPriceFirst;
-  const original = Number(item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice ?? item.compareAt);
-  if (!Number.isFinite(price) || !Number.isFinite(original) || original <= price) return false;
-  return Math.round((1 - price / original) * 100) >= MIN_DISCOUNT_PCT;
+/* ONE ON-SALE DEFINITION (2026-10-13, Danny's audit). Department
+   Ofertas, the store rooms, the rails, the voice scoop and the standalone
+   pages (through the generated sale-rule.js) all ask this one question.
+   It used to be four answers: rawItemOnSale wanted a merchant flag AND a
+   was-price but had no ceiling; carouselIsSale ignored Shopify's
+   compareAt; itemSaleTier let a bare onSale flag in as "tier 1" (New
+   Balance's 43 flagged items, zero was-prices, filled an Ofertas rail
+   with no visible discount); isSaleItem read only originalPrice.
+
+   The rule: an item is on sale when it carries a REAL was-price -- the
+   merchant's own regularPrice / wasPrice / was_price / originalPrice /
+   compareAt -- above the price it sells for, and the markdown, rounded
+   the way the badge shows it, is between MIN_DISCOUNT_PCT (5) and
+   OFERTAS_MAX_DISCOUNT_PCT (70). A sale flag with no was-price is never
+   a deal (nothing to cross out, no badge to show); a was-price with no
+   flag is one (Finish Line publishes originalPrice and no flag -- 751
+   real markdowns the department pages were blind to). Over 70% off is
+   bad data, not a deal ($705 crates). Same rule as normalizeLiveItem,
+   which builds the badge from it. */
+const OFERTAS_MAX_DISCOUNT_PCT = 70;
+const SALE_ORIGINAL_FIELDS = ['regularPrice', 'wasPrice', 'was_price', 'originalPrice', 'compareAt'];
+function saleNumber(v){
+  return typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v.replace(/[^0-9.]/g, '')) : NaN);
 }
+function salePriceOf(item){
+  return saleNumber(item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice);
+}
+/* The first was-price field that holds a real number. A page that
+   zero-fills missing fields (departamento.html) must not hide a
+   regularPrice behind originalPrice: 0. */
+function saleOriginalPrice(item){
+  for (const k of SALE_ORIGINAL_FIELDS){
+    const v = saleNumber(item[k]);
+    if (Number.isFinite(v) && v > 0) return v;
+  }
+  return NaN;
+}
+/* The markdown the badge shows, in whole percent; 0 = not on sale. */
+function saleDiscountPct(item){
+  if (!item) return 0;
+  const price = salePriceOf(item), original = saleOriginalPrice(item);
+  if (!(price > 0) || !(original > price)) return 0;
+  const pct = Math.round((1 - price / original) * 100);
+  return pct >= MIN_DISCOUNT_PCT && pct <= OFERTAS_MAX_DISCOUNT_PCT ? pct : 0;
+}
+function isOnSaleItem(item){ return saleDiscountPct(item) > 0; }
+function rawItemOnSale(item){ return isOnSaleItem(item); }
 
 
 /* ============================================================
@@ -11140,18 +11166,11 @@ function detectBrandIntent(rawToks, pool, opts){
   return null;
 }
 
-/* Brand-shelf order: measurable markdowns first, then
-   merchant-flagged sales, then price. Self-contained: the pure slice
-   cannot see the carousel sorters. */
+/* Brand-shelf order: markdowns first (the one definition,
+   rawItemOnSale's comment), biggest first, then price. A merchant flag
+   with no was-price no longer ranks. */
 function brandShelfSort(a, b){
-  const dp = (p) => {
-    const pr = Number(p && p.price);
-    const op = Number(p && (p.originalPrice ?? p.wasPrice ?? p.compareAt ?? p.regularPrice));
-    return (pr > 0 && op > pr) ? (1 - pr / op) : 0;
-  };
-  const fa = (a && (a.onSale === true || a.isOnSale === true)) ? 1 : 0;
-  const fb = (b && (b.isOnSale === true || b.onSale === true)) ? 1 : 0;
-  return (dp(b) - dp(a)) || (fb - fa) || ((Number(b.price) || 0) - (Number(a.price) || 0));
+  return (saleDiscountPct(b) - saleDiscountPct(a)) || ((Number(b.price) || 0) - (Number(a.price) || 0));
 }
 
 /* Spanish stopwords: they can only ever narrow a good product search
@@ -12359,8 +12378,7 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
         return true;
       });
     /* SALES-ONLY BROWSE (2026-10-03, Danny): the clearance rack is
-       markdowns only -- the halo fill is gone. Tier-based so
-       flagged-without-% sales count too. */
+       markdowns only -- the halo fill is gone. */
     const saleFF = deduped
       .filter(p => itemSaleTier(p) > 0)
       .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (pctFF(b) - pctFF(a)));
@@ -12639,9 +12657,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
     return 1;
   };
   const seen = new Set();
-  /* SALES-ONLY BROWSE (2026-10-03, Danny): the rail's pool is sales.
-     Tier 2 = measured % off, tier 1 = the merchant's own sale flag
-     without a measurable % (New Balance's 31 flagged items). */
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): the rail's pool is sales,
+     by the one definition (rawItemOnSale's comment). */
   const sale = (Array.isArray(saleItems) ? saleItems : [])
     .filter(p => p && inSet(p) && hasRealImage(p)
       && Number.isFinite(Number(p.price)) && Number(p.price) > 0
@@ -12653,9 +12670,6 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
          the store rails, so the front page never reads as a copy. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
-      /* Measured markdowns outrank flagged-without-% sales. */
-      const ta = itemSaleTier(a), tb = itemSaleTier(b);
-      if (tb !== ta) return tb - ta;
       if (cheapFirst){
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
@@ -13618,7 +13632,7 @@ function sunglassesDeptRailsHTML(items){
     || (Number(b.price || 0) - Number(a.price || 0))
     || ((Number(b.rating) || 0) - (Number(a.rating) || 0)));
   /* SALES-ONLY BROWSE (2026-10-03): the tier filter inside
-     categoryRailPicks picks the sales (measured, then flagged). */
+     categoryRailPicks picks the sales. */
   const sgPicks = (pool) => {
     const sorted = sgMerchSort(pool);
     return categoryRailPicks(retailerKeys, sorted, sorted, noKeys, CATEGORY_RAIL_TOTAL, {});
@@ -14034,8 +14048,8 @@ function carouselCityStoreRailHeadHTML(label, sub, retailerKey){
    delegate to categoryRailPicks so cards dedupe, require image + price,
    and respect picksOpts (fancyLead, cleatsFirst, ...). Mirrors sgPicks. */
 /* SALES-ONLY BROWSE (2026-10-03, Danny): Carousel City rails show
-   sales only. The sale set is tier-based (measured % off, then the
-   merchant's flagged sales); categoryRailPicks does the picking. */
+   sales only (the one definition, rawItemOnSale's comment);
+   categoryRailPicks does the picking. */
 function carouselCityPicks(pool, list, opts){
   opts = opts || {};
   const sorted = merchSort(pool);
@@ -17929,7 +17943,7 @@ function bolsosPicks(cache){
     }
   }
   /* Sale cards lead their tier, then biggest discount, then priciest. */
-  const bolsosSaleFirst = p => (p.onSale || bolsosDiscount(p) > 0) ? 0 : 1;
+  const bolsosSaleFirst = p => isOnSaleItem(p) ? 0 : 1;
   picks.sort((a, b) =>
     (bolsosTierOf(a.retailer) - bolsosTierOf(b.retailer)) ||
     (bolsosSaleFirst(a) - bolsosSaleFirst(b)) ||
@@ -18932,7 +18946,7 @@ const LATINO_DESIGNER_HERO_IMG = {
    first on-sale product with a photo, else first product with a photo. */
 function latinoDesignerHero(designerItems){
   const withImg = (designerItems || []).filter(it => it && (it.image || it.imageUrl || it.thumbnail));
-  return withImg.find(it => it.onSale) || withImg[0] || null;
+  return withImg.find(isOnSaleItem) || withImg[0] || null;
 }
 
 /* The storefront banner: a wide editorial entrance. Tapping opens
@@ -19687,7 +19701,6 @@ function carouselHasPhoto(it){
   return typeof hasRealImage === 'function' ? hasRealImage(it)
     : typeof (it && (it.image || it.imageUrl || it.thumbnail)) === 'string';
 }
-const CAROUSEL_MIN_DISCOUNT_PCT = 5;
 const CAROUSEL_SALE_LEAD_MAX = 3;
 const CAROUSEL_SALE_LEAD_MIN_PRICE = 10;
 const CAROUSEL_SALE_SPREAD_EVERY = 4;
@@ -19702,40 +19715,13 @@ const CAROUSEL_TRIVIAL_LEAD_PATTERNS = [
   /\bshoelaces?\b/i,
   /\blint rollers?\b/i,
 ];
-function carouselDiscountPct(it){
-  const price = Number(it && (it.price ?? it.effectivePrice ?? it.currentPrice ?? it.salePrice));
-  const original = Number(it && (it.regularPrice ?? it.wasPrice ?? it.was_price ?? it.originalPrice));
-  if (!Number.isFinite(price) || !Number.isFinite(original) || price <= 0 || original <= price) return 0;
-  return Math.round((1 - price / original) * 100);
-}
-function carouselIsSale(it){
-  const flag = it && (it.onSale === true || it.isOnSale === true
-    || (typeof it.savingsAmount === 'number' && it.savingsAmount > 0)
-    || (typeof it.savingsPercent === 'number' && it.savingsPercent > 0)
-    || (typeof it.percentageOff === 'number' && it.percentageOff > 0)
-    || (typeof it.percentOff === 'number' && it.percentOff > 0));
-  return !!flag && carouselDiscountPct(it) >= CAROUSEL_MIN_DISCOUNT_PCT;
-}
-/* MERCHANT-FLAGGED SALE (2026-10-03, Danny): the merchant's own sale
-   flag counts even when the feed carries no original/compare-at price
-   to measure a % off -- New Balance's feed flags 31 items onSale with
-   zero original prices, and the old %-only detection was blind to all
-   of them. Tier 1 ranks below measured markdowns, above full price,
-   and never invents a % badge. */
-function itemIsOnSaleFlagged(it){
-  return !!(it && (it.onSale === true || it.isOnSale === true
-    || (typeof it.savingsAmount === 'number' && it.savingsAmount > 0)
-    || (typeof it.savingsPercent === 'number' && it.savingsPercent > 0)
-    || (typeof it.percentageOff === 'number' && it.percentageOff > 0)
-    || (typeof it.percentOff === 'number' && it.percentOff > 0)));
-}
-/* Sale tier: 2 = measured % off, 1 = flagged sale without a measurable
-   %, 0 = full price. */
-function itemSaleTier(it){
-  if (carouselDiscountPct(it) >= CAROUSEL_MIN_DISCOUNT_PCT) return 2;
-  if (itemIsOnSaleFlagged(it)) return 1;
-  return 0;
-}
+/* The rails read the one definition (rawItemOnSale's comment). */
+function carouselDiscountPct(it){ return saleDiscountPct(it); }
+function carouselIsSale(it){ return isOnSaleItem(it); }
+/* Sale tier: 2 = on sale, 0 = full price. Tier 1 -- a merchant flag
+   with no was-price (2026-10-03) -- is gone: no original price, not a
+   deal (2026-10-13). The value 2 stays so the callers' sorts hold. */
+function itemSaleTier(it){ return isOnSaleItem(it) ? 2 : 0; }
 function carouselSaleLeadEligible(it){
   if (!carouselHasPhoto(it)) return false;
   if (!carouselIsSale(it)) return false;
@@ -19815,20 +19801,18 @@ function carouselPickItems(items, max, leadRank){
      people. I cannot be blasting $300 sneakers." Full-price items never
      enter a browse carousel -- they surface through explicit search.
      The old halo/plain bands are gone; the rail is sales, biggest
-     measured markdown first, merchant-flagged sales after. */
+     markdown first. A merchant flag with no was-price is not a sale
+     (2026-10-13) and no longer has a band. */
   const merchandised = (list) => {
     const leads = [];
     const otherSales = [];
-    const flagged = [];
     for (const it of list){
       if (carouselSaleLeadEligible(it)) leads.push(it);
-      else if (itemSaleTier(it) === 2) otherSales.push(it);
-      else if (itemSaleTier(it) === 1 && carouselHasPhoto(it)) flagged.push(it);
+      else if (itemSaleTier(it) > 0) otherSales.push(it);
     }
     leads.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
     otherSales.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
-    const sales = carouselPhotoFirst(leads)
-      .concat(carouselPhotoFirst(otherSales), carouselPhotoFirst(flagged));
+    const sales = carouselPhotoFirst(leads).concat(carouselPhotoFirst(otherSales));
     return sales;
   };
   /* FILL TO LIMIT (2026-10-07, Danny): sales always lead, then
@@ -21642,16 +21626,17 @@ function hasRealImage(it){
   return false;
 }
 
+/* The cross-store Ofertas mix and Destacados (interleaveSaleByCategory,
+   curatedDestacadosPicks): the one sale definition, plus Danny's
+   2026-09-30 price cap -- "Ofertas = cheap stuff people buy; over $150
+   isn't a deal for entry shoppers." The cap is a merchandising choice
+   for the cross-store mix only; a store's own Ofertas keeps its sales at
+   any price. Whether it should apply everywhere is Danny's call
+   (2026-10-13 audit); OFERTAS_MIX_MAX_PRICE_USD is the one place to
+   change it. */
+const OFERTAS_MIX_MAX_PRICE_USD = 150;
 function isSaleItem(it){
-  /* Danny 2026-09-30: Ofertas must show VISIBLE discounts. The onSale flag alone isn't enough —
-     we need originalPrice to display the crossed-out price and % badge. No badge = not a deal. */
-  const orig = Number(it.originalPrice), price = Number(it.price);
-  if (!(orig > price)) return false;
-  const pct = (orig - price) / orig;
-  /* Fake discounts are lying. Require 5%-70%: below 5% is noise (-0%), above 70% is bad data ($705 crates). */
-  if (!(pct >= 0.05 && pct <= 0.70)) return false;
-  /* Ofertas = cheap shit people buy. Over $150 isn't a "deal" for entry shoppers. */
-  return price <= 150;
+  return isOnSaleItem(it) && salePriceOf(it) <= OFERTAS_MIX_MAX_PRICE_USD;
 }
 /* Flatten all of a retailer's items across departments. */
 function allRetailerItems(retailerData){
@@ -28865,27 +28850,13 @@ function normalizeLiveItem(item, hints){
      merchant-published "compare at" price. It joins the original-price
      chain and counts as the retailer's own sale report, so genuine surf
      & skate markdowns lead the rails instead of hiding as featured. */
-  const rawCompareAt = item.compareAt;
-  const rawCompareAtNum = typeof rawCompareAt === 'number' ? rawCompareAt
-    : (typeof rawCompareAt === 'string' ? parseFloat(rawCompareAt.replace(/[^0-9.]/g, '')) : NaN);
-  const onSaleFlag = item.onSale === true || item.isOnSale === true
-    || (typeof item.savingsAmount === 'number' && item.savingsAmount > 0)
-    || (typeof item.savingsPercent === 'number' && item.savingsPercent > 0)
-    || (typeof item.percentageOff === 'number' && item.percentageOff > 0)
-    || (typeof item.percentOff === 'number' && item.percentOff > 0)
-    || (Number.isFinite(rawCompareAtNum) && Number.isFinite(rawPrice) && rawCompareAtNum > rawPrice);
-  const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice ?? item.compareAt;
-  const rawOriginalNum = typeof rawOriginal === 'number' ? rawOriginal : (typeof rawOriginal === 'string' ? parseFloat(rawOriginal.replace(/[^0-9.]/g, '')) : NaN);
-  // A real markdown, AND a big enough one to be worth showing. The
-  // qualification is computed from the raw retailer prices — the tiered
-  // margin narrows the badge percentage slightly on items crossing
-  // brackets, which is honest: the badge shows the discount on what the
-  // shopper actually pays.
-  const hasAnyDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
-  const discountPctRaw = hasAnyDiscount ? (1 - rawPrice / rawOriginalNum) * 100 : 0;
-  // Rounded before comparing so what's kept always matches what the badge
-  // shows — a 4.6% markdown renders as "-5%", so it should qualify.
-  const hasRealDiscount = hasAnyDiscount && Math.round(discountPctRaw) >= MIN_DISCOUNT_PCT;
+  /* ONE ON-SALE DEFINITION (2026-10-13): saleDiscountPct is the rule
+     (rawItemOnSale's comment) -- a real was-price, 5-70% off, measured
+     on the raw retailer prices. A flag alone is not a deal. The badge is
+     then drawn from the marked-up prices, which is honest: it shows the
+     discount on what the shopper actually pays. */
+  const rawOriginalNum = saleOriginalPrice(item);
+  const hasRealDiscount = price != null && saleDiscountPct(item) > 0;
   const originalPrice = hasRealDiscount ? round2((rawOriginalNum + tieredMarginUsd(rawOriginalNum)) * taxRate) : null;
 
   /* THE DESIGNER SURVIVES NORMALISATION.

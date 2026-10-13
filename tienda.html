@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tienda — Aria Shop</title>
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
 <meta name="description" content="Compra en tiendas de Estados Unidos con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
 /* Standalone Tienda template — one page for every store (?tienda=clave).
@@ -266,22 +268,18 @@ function fmtUSD(n){
   if (!isFinite(n)) return 'Precio no disponible';
   return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
-function money(n){
-  var v = Number(n);
-  if (!Number.isFinite(v)) return '—';
-  return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
-}
+/* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule, served as
+   sale-rule.js -- a real was-price (regularPrice / wasPrice /
+   originalPrice / compareAt), 5-70% off. A merchant flag with no
+   was-price is not a sale: New Balance's 43 flagged items no longer
+   make an Ofertas rail with no discount on it. No sale-rule.js, no
+   sales -- never a guess. */
 function discountPct(p){
-  var o = Number(p.regularPrice || p.wasPrice || p.originalPrice), pr = Number(p.price);
-  if (!(o > 0) || !(pr >= 0) || !(o > pr)) return 0;
-  return Math.round((1 - pr / o) * 100);
-} /* DANNY 2026-10-07: regularPrice counts (VS) */
-/* SALE TIER (2026-10-07, Danny): 2 = measured % off, 1 = merchant-flagged
-   sale without a measurable %, 0 = full price. Sales always lead. */
+  return window.AriaSale ? window.AriaSale.discountPct(p) : 0;
+}
+/* SALE TIER: 2 = on sale, 0 = full price. Sales always lead. */
 function saleTier(p){
-  if (discountPct(p) > 0) return 2;
-  if (p && p.onSale) return 1;
-  return 0;
+  return discountPct(p) > 0 ? 2 : 0;
 }
 /* ---------- product-type classification (word-boundary, not substring) ----------
    DANNY 2026-10-07: store pages group carousels by PRODUCT TYPE, not department.
@@ -393,10 +391,9 @@ function normItem(raw, deptKey){
     name: String(name),
     brand: raw.brand ? String(raw.brand) : '',
     price: price,
-    originalPrice: raw.originalPrice != null ? Number(raw.originalPrice) : null,
-    regularPrice: raw.regularPrice != null ? Number(raw.regularPrice) : null,
-    wasPrice: raw.wasPrice != null ? Number(raw.wasPrice) : null,
-    onSale: !!(raw.onSale || raw.isOnSale),
+    /* The was-price the sale rule measured (compareAt included), kept
+       only when the item is on sale by that rule. */
+    originalPrice: discountPct(raw) > 0 ? window.AriaSale.originalPrice(raw) : null,
     image: img,
     url: raw.url || raw.link || '',
     dept: deptKey || '',
@@ -574,14 +571,17 @@ function cardHTML(p){
   var close = '</a>';
   return open +
     '<div class="card-img">' +
-      (pct >= 5 ? '<span class="badge">-' + pct + '%</span>' : '') +
+      (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') +
       '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' +
     '</div>' +
     '<div class="card-body">' + brand +
       '<h3 class="card-title">' + esc(p.name) + '</h3>' +
       '<div class="card-prices"><div class="price-row">' +
         '<span class="price">' + fmtUSD(f) + '</span>' +
-        (pct >= 5 && p.originalPrice ? '<span class="price-old">' + money(p.originalPrice) + '</span>' : '') +
+        /* The crossed-out price carries the same margin and tax as the
+           price beside it -- it showed the raw US price, so a 10%
+           markdown read "$100" crossed out next to "$119.40". */
+        (pct > 0 && p.originalPrice ? '<span class="price-old">' + fmtUSD(finalUsd(p.originalPrice, storeKey)) + '</span>' : '') +
       '</div>' + penHTML(p.price) + '</div>' +
     '</div>' + close;
 }
