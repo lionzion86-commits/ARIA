@@ -12,6 +12,7 @@
     "test:price-parity": "node scripts/test/price-parity-tests.mjs",
     "test:freight-misfire": "node scripts/test/freight-misfire-tests.mjs",
     "test:store-pills": "node scripts/test/store-pills-tests.mjs",
+    "test:assistant-turns": "node scripts/test/assistant-turn-tests.mjs",
     "test:ropa-interior": "node scripts/test/ropa-interior-tests.mjs",
     "build:ropa-interior-feed": "node scripts/build-ropa-interior-feed.mjs",
     "test:search": "node scripts/test/search-relevance-tests.mjs",

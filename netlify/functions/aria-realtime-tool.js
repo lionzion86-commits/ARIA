@@ -103,7 +103,10 @@ export function deliveredTotal({ priceUsd, dutiableUsd, weightKg, quantity = 1 }
     /* Said explicitly so Aria can explain WHY there is no tax, which is
        the single most common question this shop gets. */
     import_tax_note: taxUsd > 0
-      ? `aplica porque el valor de la mercadería pasa los $${TAX_ESTIMATE_THRESHOLD_USD} (${Math.round(TAX_ESTIMATE_RATE * 100)}% sobre CIF)`
+      /* No percentage here (2026-10-13, battery F9): the only tax figure
+         Aria may say is the one the site publishes (Precio Honesto,
+         ~23%); the amount above is what the checkout estimates. */
+      ? `aplica porque el valor de la mercadería pasa los $${TAX_ESTIMATE_THRESHOLD_USD} (estimado; el monto exacto sale en el checkout)`
       : `no aplica: la mercadería no llega a $${TAX_ESTIMATE_THRESHOLD_USD}`,
     total_usd: totalUsd,
   };
