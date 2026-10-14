@@ -9,12 +9,6 @@
 /
   Cache-Control: no-cache
 
-# PERF (2026-10-14, Issue #388): fingerprinted app bundle. The filename
-# carries a content hash, so a year of immutable caching can never
-# strand a shopper on stale code. index.html itself stays no-cache
-# above -- it is the only door to the current bundle name.
-/build/*
-  Cache-Control: public, max-age=31536000, immutable
 
 # Catalogue and feed JSONs change when the catalogues are re-pulled
 # (days, not minutes). An hour fresh plus a day of
@@ -39,3 +33,12 @@
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 /*.ico
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# PERF (2026-10-14, Issue #388): fingerprinted app bundle. This rule
+# is LAST on purpose: in _headers the last matching rule wins, and
+# the bundle also matches /*.js above. The filename
+# carries a content hash, so a year of immutable caching can never
+# strand a shopper on stale code. index.html itself stays no-cache
+# above -- it is the only door to the current bundle name.
+/build/*
+  Cache-Control: public, max-age=31536000, immutable
