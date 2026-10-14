@@ -9,6 +9,20 @@
    `optional`, so the same list runs against an older index.html.
    ============================================================ */
 import vm from "node:vm";
+import { readFileSync } from "node:fs";
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. Readers that lift or slice
+   declarations out of the page must inline the bundle back at its tag
+   first -- pageHtml() returns the page exactly as written, script and
+   all. Same reconstruction the test harness uses. */
+export function pageHtml(root) {
+  const html = readFileSync(root + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(root + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
 
 function cutDeclaration(src, start) {
   let i = start, depth = 0, seenBody = false;

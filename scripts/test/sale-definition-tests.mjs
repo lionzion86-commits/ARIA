@@ -15,7 +15,7 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { liftDeclarations } from "../lib/page-lift.mjs";
+import { liftDeclarations, pageHtml } from "../lib/page-lift.mjs";
 import { buildSaleRuleSource } from "../build-sale-rule.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -26,7 +26,7 @@ function check(name, fn) {
   catch (e) { failures.push(`${name}\n         ${e.message}`); }
 }
 
-const html = readFileSync(ROOT + "index.html", "utf8");
+const html = pageHtml(ROOT);
 const P = liftDeclarations(html, ["MIN_DISCOUNT_PCT", "OFERTAS_MAX_DISCOUNT_PCT", "SALE_ORIGINAL_FIELDS", "saleNumber",
   "salePriceOf", "saleOriginalPrice", "saleDiscountPct", "isOnSaleItem", "rawItemOnSale", "carouselDiscountPct",
   "carouselIsSale", "itemSaleTier", "OFERTAS_MIX_MAX_PRICE_USD", "isSaleItem", "DEPT_CACHE_PARTS", "CATALOGUE_FILES"]);
