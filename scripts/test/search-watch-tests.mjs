@@ -62,7 +62,9 @@ const norm = (it, retailer, department, finalPrice) => {
   const name = it && (it.name || it.title);
   const price = Number(it && it.price);
   if (!name || !(price > 0)) return null;
-  const orig = Number(it.originalPrice || it.wasPrice || it.listPrice);
+  /* search.html's normalizer: the was-price fields of index.html's one
+     sale rule (saleOriginalPrice), compareAt included. */
+  const orig = Number(it.regularPrice || it.wasPrice || it.was_price || it.originalPrice || it.compareAt);
   return { name: String(name), title: String(name), brand: String(it.brand || ""), price,
     originalPrice: orig > price ? orig : null, onSale: it.onSale === true,
     departments: department ? [department] : [], finalPrice, retailer: String(it.retailer || retailer || "") };

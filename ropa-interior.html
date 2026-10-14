@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ropa Interior y Medias | Aria Shop</title>
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
 <meta name="description" content="Ropa interior y medias de mujer y de hombre de las mejores marcas de Estados Unidos: Victoria's Secret, SKIMS, Stance, PSD, Nike y más, con envío a Perú.">
 <meta name="theme-color" content="#0B0F17">
 <style>
@@ -365,8 +367,10 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
   function usd(n){ return isFinite(n) ? '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''; }
   var fx = null;
   function pen(n){ if (!fx || !isFinite(n)) return ''; try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n * fx); } catch(e){ return ''; } }
-  function pct(p){ return p.o > p.p ? Math.round((1 - p.p / p.o) * 100) : 0; }
-  function onSale(p){ return pct(p) >= 5; }
+  /* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule
+     (sale-rule.js) -- a real was-price, 5-70% off. 0 = not on sale. */
+  function pct(p){ return window.AriaSale ? window.AriaSale.discountPct({ price: p.p, originalPrice: p.o }) : 0; }
+  function onSale(p){ return pct(p) > 0; }
   function hasPic(p){ return !!p.img && (!p.ir || p.ir === 'clean'); }
   function bestSeller(p){ return (p.rt || 0) * Math.log(1 + (p.rc || 0)) + (p.rc || 0) / 1000; }
   /* One card per product in a rail: SKIMS and others list every

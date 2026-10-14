@@ -233,7 +233,8 @@ function normalizeItem(it, retailerKey, department, finalPrice){
     if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
     /* No picture, no card (2026-10-08 brief: no placeholder cards). */
     if (!img || typeof img !== "string") return null;
-    var orig = Number(it.originalPrice || it.wasPrice || it.listPrice);
+    /* The was-price fields index.html's one sale rule reads (saleOriginalPrice), compareAt included. */
+    var orig = Number(it.regularPrice || it.wasPrice || it.was_price || it.originalPrice || it.compareAt);
     return {
       name: String(name),
       /* The engine reads title / originalPrice / departments. */
