@@ -17,6 +17,19 @@ import { readFileSync } from "node:fs";
 import { parseModelYear, parseToolArguments, REALTIME_TOOLS } from "../lib/realtime-turn.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0;
 const failures = [];
 async function check(name, fn) {
@@ -100,7 +113,7 @@ await check("the tool parser keeps the year (and every integer and boolean)", ()
    (b) THE LOOKUP ITSELF, lifted from index.html and run against a
    stub catalogue: the key it searches carries the year.
    ------------------------------------------------------------------ */
-const page = readFileSync(ROOT + "index.html", "utf8");
+const page = pageHtml();
 const at = page.indexOf("  if (name === 'lookup_parts_by_vehicle'){");
 assert.ok(at > 0, "the lookup moved — update this test");
 let depth = 0, end = -1;

@@ -28,6 +28,19 @@ import { resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
 import { loadPageWeightSlice } from "./_page-script.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0;
 const failures = [];
 function check(name, fn) {
@@ -82,7 +95,7 @@ check("real boats and real grills keep their rows (no regression)", () => {
 });
 
 check("the page's bulky table and guards mirror the checkout module exactly", () => {
-  const html = readFileSync(ROOT + "index.html", "utf8").replace(/\r\n/g, "\n");
+  const html = pageHtml().replace(/\r\n/g, "\n");
   const mod = readFileSync(ROOT + "scripts/lib/item-weight.js", "utf8");
   const rows = (src) => {
     const i = src.indexOf("BULKY_WEIGHT_ESTIMATES_KG = [");

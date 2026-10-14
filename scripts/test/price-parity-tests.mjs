@@ -17,6 +17,19 @@ import { readFileSync } from "node:fs";
 import { loadPageEngine } from "../lib/mcp/page-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0;
 const failures = [];
 async function check(name, fn) {
@@ -45,7 +58,7 @@ function pagePricing(file) {
   return { ...api, src };
 }
 
-const index = readFileSync(ROOT + "index.html", "utf8");
+const index = pageHtml();
 const statusBlock = /const TAX_EXEMPT_STATUS = \{([\s\S]*?)\n\};/.exec(index)[1];
 const SPA_EXEMPT = [...statusBlock.matchAll(/^\s*([a-z0-9_]+):\s*'exempt'/gm)].map((m) => m[1]).sort();
 
