@@ -104,7 +104,7 @@ check("only tools with a real backend are offered", () => {
      "get_cart_items", "get_cart_total", "get_current_user", "get_order_history",
      "get_order_status", "get_product_details", "get_sale_scoop", "get_store_info",
      "get_top_sales", "get_user_preferences", "lookup_part_by_number",
-     "lookup_parts_by_vehicle", "recommend_stores_for", "request_brand",
+     "lookup_parts_by_vehicle", "open_product", "recommend_stores_for", "request_brand",
      "search_products"]);
 
   /* AND THE BACKEND IS CHECKED, not just the list. The list above

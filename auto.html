@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aria Auto — El repuesto exacto para tu auto | Aria Shop</title>
+<!-- Part names both ways (index.html translatePartQueryToEs), loaded before the page script. -->
+<script src="parts-glossary.js"></script>
 <meta name="description" content="Elige tu vehículo y busca repuestos: comparamos precios en tiendas de Estados Unidos.">
 <style>
   :root{
@@ -308,11 +310,46 @@ function searchCache(cache, vehicle, query){
     var ps = (cache && cache.partSearches) || {};
     var q = String(query || '').trim().toLowerCase();
     if (!q) return out;
-    var key = vehicle.year + '|' + vehicle.make.toLowerCase() + '|' +
-              vehicle.model.toLowerCase() + '|' + q;
+    var prefix = vehicle.year + '|' + vehicle.make.toLowerCase() + '|' + vehicle.model.toLowerCase() + '|';
+    /* ENGLISH PART NAMES (2026-10-13, issue #386 F10 / BASE-5). The cache
+       is keyed in Spanish; "brake pads" typed here found nothing while
+       the voice path translated it. Same translator, same glossary
+       (parts-glossary.js), preferring the Spanish this vehicle's own
+       cache uses. */
+    var prefer = new Set();
+    Object.keys(ps).forEach(function(k){ if (k.indexOf(prefix) === 0) prefer.add(k.slice(prefix.length)); });
+    var qEs = (window.AriaPartsGlossary ? window.AriaPartsGlossary.toSpanish(q, prefer) : q).toLowerCase();
+    var key = prefix + q;
+    /* A PART NUMBER IS A PART NUMBER (2026-10-13). The empty state tells
+       shoppers to try "el número de parte del fabricante", and that search
+       never matched anything: it was compared against part NAMES. A
+       query shaped like one (letters and digits, no spaces) is matched
+       against the part numbers -- this vehicle's first, then any. */
+    if (/^[a-z0-9-]{3,}$/i.test(q) && /\d/.test(q)){
+      var pnq = q.replace(/[^a-z0-9]/g, '');
+      var pnSeen = {};
+      var pnScan = function(keys, into){
+        keys.forEach(function(k){
+          collectItems(ps[k]).forEach(function(it){
+            var pn = String(it.partNumber || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            var full = String((it.lineCode || '') + (it.partNumber || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!pn || (pn !== pnq && full !== pnq)) return;
+            var id = itemId(it);
+            if (pnSeen[id]) return;
+            pnSeen[id] = 1;
+            into.push(it);
+          });
+        });
+      };
+      var all = Object.keys(ps);
+      pnScan(all.filter(function(k){ return k.indexOf(prefix) === 0; }), out.exact);
+      pnScan(all.filter(function(k){ return k.indexOf(prefix) !== 0; }), out.fallback);
+      if (out.exact.length || out.fallback.length) return out;
+    }
     if (ps[key]) out.exact = collectItems(ps[key]);
+    else if (qEs !== q && ps[prefix + qEs]){ key = prefix + qEs; out.exact = collectItems(ps[key]); }
     // Keyword fallback: score other keys by token overlap on the query part.
-    var tokens = q.split(/[\s,;:\/\\-]+/).filter(function(t){ return t.length > 2; });
+    var tokens = (q + ' ' + (qEs !== q ? qEs : '')).split(/[\s,;:\/\\-]+/).filter(function(t){ return t.length > 2; });
     if (!tokens.length) return out;
     var seen = {};
     var scored = [];
@@ -376,6 +413,9 @@ function normItem(sourceKey, raw){
       oem: raw.oem_part_number || raw.oemPartNumber || null,
       lineCode: raw.line_code || raw.lineCode || '',
       priceUSD: (price > 0) ? price : null,
+      /* Brake pads come front or rear (2026-10-13, F10): the store says
+         which, and the shopper must see it before ordering. */
+      axle: /^front/i.test(String(raw.location || '')) ? 'Delantero' : /^rear/i.test(String(raw.location || '')) ? 'Trasero' : '',
       fitted: String(raw.vehicle_fitment || '').toUpperCase() === 'VEHICLE_SPECIFIC'
     };
   }catch(e){ return null; }
@@ -398,6 +438,7 @@ function partCard(it, vehicle, exact){
     '<div class="pbody">' +
       '<p class="ptitle">' + esc(it.title) + '</p>' +
       '<p class="pmeta">' + esc(sourceLabel(it.source)) + (it.brand ? ' · ' + esc(it.brand) : '') + '</p>' +
+      (it.axle ? '<p class="ppart" data-axle="' + esc(it.axle) + '"><strong>Eje: ' + esc(it.axle) + '</strong></p>' : '') +
       (pn ? '<p class="ppart">N.º de parte: ' + esc(pn) + '</p>' : '') +
       (aria != null
         ? '<div class="pprice">' + fmtUSD(aria) + (pen ? '<small>' + pen + ' aprox.</small>' : '') + '</div>'
@@ -442,11 +483,39 @@ function renderEmpty(query, vehicle){
     '<button class="btn btn-ghost" onclick="document.getElementById(\'partQuery\').focus()">Probar otra búsqueda</button></div>';
 }
 
+/* DELANTERO / TRASERO (2026-10-13, F10). When results carry an axle,
+   the shopper picks it before anything else -- a front pad on a rear
+   axle is a return Aria pays for. */
+var axleFilter = '';
+var lastRender = null;
+function setAxle(a){
+  axleFilter = a;
+  if (lastRender) renderResults(lastRender.groups, lastRender.vehicle, lastRender.query);
+}
 function renderResults(groups, vehicle, query){
   var r = $('results');
   if (!r) return;
   r.classList.remove('hidden');
+  if (!lastRender || lastRender.groups !== groups) axleFilter = '';
+  lastRender = { groups: groups, vehicle: vehicle, query: query };
+  var all = groups.exact.concat(groups.fallback);
+  var nFront = all.filter(function(it){ return it.axle === 'Delantero'; }).length;
+  var nRear = all.filter(function(it){ return it.axle === 'Trasero'; }).length;
+  if (axleFilter){
+    var keep = function(it){ return it.axle === axleFilter; };
+    groups = { exact: groups.exact.filter(keep), fallback: groups.fallback.filter(keep) };
+  }
   var html = '';
+  if (nFront && nRear){
+    var chip = function(val, label){
+      return '<button type="button" class="chip" data-axle-filter="' + val + '"' +
+        (axleFilter === val ? ' style="background:var(--navy);color:#fff"' : '') +
+        ' onclick="setAxle(\'' + val + '\')">' + label + '</button>';
+    };
+    html += '<div class="srcblock" data-axle-picker><h2>¿Delantero o trasero?</h2>' +
+      '<p class="srcsub">Las pastillas y discos van en un eje específico. Elige el tuyo.</p>' +
+      '<div class="chips">' + chip('', 'Todos') + chip('Delantero', 'Delanteros (' + nFront + ')') + chip('Trasero', 'Traseros (' + nRear + ')') + '</div></div>';
+  }
   function block(title, sub, items, exact){
     if (!items.length) return;
     var cards = items.slice(0, 24).map(function(it){ return partCard(it, vehicle, exact); }).join('');
@@ -474,7 +543,7 @@ function renderResults(groups, vehicle, query){
           'Coincidencias por palabra clave. Confirma el calce con el número de parte antes de pedir.',
           fg[s], false);
   });
-  if (!html){
+  if (!html || (!groups.exact.length && !groups.fallback.length && !(nFront && nRear))){
     renderEmpty(query, vehicle);
     return;
   }

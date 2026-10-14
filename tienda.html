@@ -378,6 +378,29 @@ var storeKey = '';
 var storeMeta = null;
 var allItems = [];     // normalized products
 var deptLabels = {};   // dept key -> label
+/* SHOPPER WORDS, NEVER TAXONOMY (2026-10-13, issue #386 F-NB-CHIP). The
+   chips were the catalogue's own department labels, so New Balance's page
+   offered a chip called "Gym Rat" -- Aria's internal name for its gym
+   section -- and other stores showed "combat_sports", "latino_designers",
+   "moms", "jewelry", "Sporting Goods", "Sale". Known keys get the word a
+   shopper uses; any other label that is still a raw key is tidied. */
+var DEPT_CHIP_LABELS = {
+  gym_rat: 'Ropa deportiva', combat_sports: 'Deportes de combate', latino_designers: 'Diseñadores',
+  moms: 'Mamá y bebé', motos: 'Motos', women: 'Mujer', men: 'Hombre', mens: 'Hombre', kids: 'Niños',
+  apparel_women: 'Ropa Mujer', apparel_men: 'Ropa Hombre', apparel_kids: 'Ropa Niños',
+  jewelry: 'Joyas', jewelry_accessories: 'Joyas y accesorios', purses: 'Carteras', footwear: 'Calzado', shoes: 'Calzado',
+  toys: 'Juguetes', toys_games: 'Juguetes y juegos', books: 'Libros', beauty: 'Belleza', home: 'Hogar',
+  home_goods: 'Artículos para el hogar', home_decor: 'Decoración', small_home: 'Hogar', sporting_goods: 'Deportes', fitness: 'Fitness',
+  fashion: 'Moda', clothing: 'Ropa', clearance: 'Liquidación', sale: 'Ofertas', electronics: 'Electrónica',
+  candy_chocolate: 'Dulces y chocolates', baby: 'Bebé', skate_snow: 'Skate y nieve', sunglasses: 'Lentes de sol',
+  auto_parts: 'Repuestos', grooming_men: 'Cuidado masculino', grooming_women: 'Cuidado femenino'
+};
+function deptChipLabel(key, label){
+  if (DEPT_CHIP_LABELS[key]) return DEPT_CHIP_LABELS[key];
+  var l = String(label || key);
+  if (/_/.test(l) || l === key) l = l.replace(/[_-]+/g, ' ').replace(/^\w/, function(c){ return c.toUpperCase(); });
+  return l;
+}
 var fxVenta = null;
 var visibleCount = PAGE_SIZE;
 
@@ -419,6 +442,13 @@ var GENDER_LABELS = { womens: 'Mujer', women: 'Mujer', 'for her': 'Mujer',
                       mens: 'Hombre', men: 'Hombre', 'for him': 'Hombre', unisex: 'Unisex' };
 var GENDER_ORDER = ['Mujer', 'Hombre', 'Unisex'];
 var FACET_MIN = 5;  /* a category pill needs this many products; smaller ones stay under Todo */
+/* A facet is filtered by its key but shown in words: "BOXING_GLOVES"
+   reads "Boxing gloves" (2026-10-13, F-NB-CHIP). */
+function facetLabel(cat){
+  var l = String(cat || '').replace(/_+/g, ' ').trim();
+  if (l && l === l.toUpperCase()) l = l.charAt(0) + l.slice(1).toLowerCase();
+  return l;
+}
 function typeFacets(type){
   var t = String(type || '').trim();
   if (!t) return { gender: '', cat: '' };
@@ -493,7 +523,7 @@ function loadStore(){
           arr = entry;
         }
         if (!Array.isArray(arr)) continue;
-        depts[dk] = String(label);
+        depts[dk] = deptChipLabel(dk, label);
         for (var j = 0; j < arr.length; j++){
           var n = null;
           try { n = normItem(arr[j], dk); } catch (e) { n = null; }
@@ -600,7 +630,7 @@ function renderFacetChips(host){
   };
   var html = chip('all', '', 'Todo', !activeGender && !activeCat);
   for (var i = 0; i < facetGenders.length; i++) html += chip('gender', facetGenders[i], facetGenders[i], activeGender === facetGenders[i]);
-  for (var j = 0; j < facetCats.length; j++) html += chip('cat', facetCats[j], facetCats[j], activeCat === facetCats[j]);
+  for (var j = 0; j < facetCats.length; j++) html += chip('cat', facetCats[j], facetLabel(facetCats[j]), activeCat === facetCats[j]);
   host.innerHTML = html;
   var btns = host.querySelectorAll('.chip');
   for (var k = 0; k < btns.length; k++){

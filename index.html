@@ -34927,12 +34927,24 @@ function addAssistantMessage(role, text, audioBase64, opts){
   }
   wrap.appendChild(bubble);
   wrap.scrollTop = wrap.scrollHeight;
+  /* WHAT SHE SHOWED (2026-10-13, F13/F14). A shopper's message starts a
+     new set of cards ("la segunda" counts within it); a reply carries
+     the cards shown for it directly beneath it, in view. In a live call
+     the shopper's words can transcribe after the cards already landed,
+     so there only the reply moves them. */
+  if (role !== 'bot'){
+    ariaShownBatch++;
+    if (!ariaRT) ariaCardsSinceReply = [];
+  } else {
+    placeCardsUnderReply(bubble);
+  }
   /* ERRORS ARE SEEN, NOT HEARD (2026-09-27, Danny: the mic "confuses
      itself"). Speaking "Tuve un problema..." aloud lets the reopened mic
      transcribe Aria's own voice as a brand-new user turn — a self-feeding
      confusion loop. The bubble carries the error; the mic reopens so the
      retry can come by voice. */
   if (role === 'bot' && (!opts || opts.speak !== false)) speakAssistantReply(text, audioBase64);
+  return bubble;
 }
 
 /* ONE SPEAK PATH, whether the reply landed in one piece or was streamed
@@ -35161,6 +35173,7 @@ function beginAssistantReply(turn){
       hideAssistantTyping();
       wrap.appendChild(bubble);
       appended = true;
+      placeCardsUnderReply(bubble);   // the cards already up sit under these words (F13)
     }
     shown += pending;
     pending = '';
@@ -35613,6 +35626,10 @@ function addAssistantProductCard(item, retailer){
     </div>`;
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
+  /* Remembered, so "esa" / "la segunda" / "la de 30 dólares" resolve to
+     this card (2026-10-13, F14). */
+  rememberShownProduct(item, retailer, card);
+  return card;
 }
 
 /* A note is Aria narrating what she is doing — the acknowledgment, a
@@ -36934,6 +36951,262 @@ function answerInChatWithDoor(line, addDoor, statusEl, prevStatus, userText){
 }
 
 /* ============================================================
+   WHAT SHE SHOWED, SHE REMEMBERS (2026-10-13, issue #386 addendum: the
+   Adi Ease incident -- F13, F14, F15 -- and the size gate, F-A7).
+
+   Danny, voice, on his iPhone: Aria recommended "las Adi Ease a 30
+   dólares" with the card on screen, he asked her to take him there, and
+   she said "no me aparece en el catálogo la Adi Ease a 30 dólares".
+   Three defects:
+
+   F13  the cards rendered ABOVE her reply and the view followed the
+        words, so the shopper heard about products he never saw. Cards
+        shown for a reply now sit directly under it, and the view puts
+        them in front of the shopper (placeCardsUnderReply).
+   F14  she kept no reference to her own results, so "esa", "la de 30
+        dólares", "la segunda", "la Adi Ease" became fresh searches that
+        could contradict her. Every card she shows is remembered
+        (ariaShown) and resolveShownProduct() answers those references
+        against what SHE showed -- by position, price, store or name --
+        and asks which one when the answer is not unique.
+   F15  "llévame a esa" now acts: the card is highlighted and the
+        product page opens (showProduct -> producto.html).
+   F-A7 "agrégame esa casaca al carrito" resolves the same way and, for
+        anything that needs a size, asks "¿qué talla?" with the sizes
+        right there; nothing is added until one is chosen. With nothing
+        to resolve, nothing is added.
+   ============================================================ */
+let ariaShown = [];                 // { item, retailer, card, batch } in the order shown
+let ariaShownBatch = 0;             // bumps with every shopper message
+let ariaCardsSinceReply = [];       // cards waiting to sit under the next reply
+let ariaPendingCartAdd = null;      // { entry, sizes } while "¿qué talla?" is open
+const ARIA_SHOWN_MAX = 40;
+function rememberShownProduct(item, retailer, card){
+  ariaShown.push({ item, retailer, card, batch: ariaShownBatch });
+  if (ariaShown.length > ARIA_SHOWN_MAX) ariaShown = ariaShown.slice(-ARIA_SHOWN_MAX);
+  ariaCardsSinceReply.push(card);
+}
+/* F13: the cards shown for a reply go directly under it, and the view
+   holds the reply's first line and the cards -- or, when they do not
+   fit, the cards. */
+function placeCardsUnderReply(bubble){
+  const cards = ariaCardsSinceReply.filter(c => c && c.isConnected);
+  ariaCardsSinceReply = [];
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap || !bubble || !cards.length) return;
+  let after = bubble;
+  for (const c of cards){ after.after(c); after = c; }
+  const top = (el) => el.getBoundingClientRect().top - wrap.getBoundingClientRect().top + wrap.scrollTop;
+  const last = cards[cards.length - 1];
+  const span = top(last) + last.offsetHeight - top(bubble);
+  wrap.scrollTop = Math.max(0, (span + 16 <= wrap.clientHeight ? top(bubble) : top(cards[0])) - 8);
+}
+function shownPriceUsd(item){
+  const p = Number(item && item.price);
+  if (!Number.isFinite(p)) return NaN;
+  return typeof displayPriceUsd === 'function' ? displayPriceUsd(p, item.dutiableUsd) : p;
+}
+const SHOWN_ORDINALS = { primer: 1, primera: 1, primero: 1, segunda: 2, segundo: 2, tercer: 3, tercera: 3, tercero: 3,
+  cuarta: 4, cuarto: 4, quinta: 5, quinto: 5, sexta: 6, sexto: 6 };
+const SHOWN_STOP = new Set(['la', 'el', 'lo', 'las', 'los', 'esa', 'ese', 'eso', 'esas', 'esos', 'esta', 'este', 'esto', 'aquella', 'aquel',
+  'de', 'del', 'a', 'al', 'que', 'en', 'con', 'por', 'para', 'me', 'mi', 'mis', 'y', 'o', 'un', 'una', 'unos', 'unas', 'tu', 'su',
+  'llevame', 'llevanos', 'abre', 'abreme', 'abrela', 'abrelo', 'muestrame', 'muestramela', 'muestramelo', 'ensename', 'quiero', 'ver',
+  'agregame', 'agrega', 'agregala', 'agregalo', 'anade', 'anademe', 'ponme', 'pon', 'ponla', 'ponlo', 'mete', 'metela', 'metelo',
+  'carrito', 'carro', 'compra', 'dijiste', 'mostraste', 'opcion', 'producto', 'pagina', 'porfa', 'favor', 'aria', 'ir', 'vamos',
+  'dolares', 'dolar', 'usd', 'soles', 'sol', 'talla', 'esa', 'misma', 'mismo', 'otra', 'otro', 'ultima', 'ultimo', 'arriba', 'abajo',
+  'primera', 'primero', 'segunda', 'segundo', 'tercera', 'tercero', 'cuarta', 'cuarto', 'quinta', 'quinto', 'sexta', 'sexto']);
+function shownNorm(t){ return normBrandText(t).replace(/[^a-z0-9.\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+/* What the shopper's words point at among what she showed:
+   { kind: 'one', entry } | { kind: 'many', entries } | { kind: 'none' }.
+   Position counts inside the latest set of cards; price, store and name
+   search everything shown this session, newest first. */
+function resolveShownProduct(text){
+  if (!ariaShown.length) return { kind: 'none' };
+  const t = shownNorm(text);
+  const lastBatch = ariaShown[ariaShown.length - 1].batch;
+  const latest = ariaShown.filter(s => s.batch === lastBatch);
+  let pool = ariaShown.slice().reverse();          // newest first
+  let narrowed = false;
+  const ordWord = t.match(/\b(primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|sext[oa])\b/);
+  const ordNum = t.match(/\b(?:la|el|numero|nro|n)\s*([1-6])\b/);
+  const last = /\b(ultim[oa])\b/.test(t);
+  if (ordWord || ordNum || last){
+    const n = last ? latest.length : (ordWord ? SHOWN_ORDINALS[ordWord[1]] : parseInt(ordNum[1], 10));
+    const e = latest[n - 1];
+    return e ? { kind: 'one', entry: e } : { kind: 'none' };
+  }
+  const money = t.match(/(?:\$\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(dolares?|usd|soles?))/);
+  if (money){
+    let usd = Number(money[1] || money[2]);
+    if (/sol/.test(money[3] || '')) usd = fxRate ? usd / fxRate : NaN;
+    if (Number.isFinite(usd)){
+      const tol = Math.max(2, usd * 0.08);
+      pool = pool.filter(s => Math.abs(shownPriceUsd(s.item) - usd) <= tol || Math.abs(Number(s.item.price) - usd) <= tol);
+      narrowed = true;
+    }
+  }
+  const storeHit = Object.entries(LIVE_RETAILER_LABEL || {}).find(([k, label]) =>
+    new RegExp('\\b(?:' + shownNorm(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '|' + k + ')\\b').test(t));
+  if (storeHit){ pool = pool.filter(s => s.retailer === storeHit[0]); narrowed = true; }
+  /* The shopper speaks Spanish; most titles are English: "la
+     licuadora" is the "Blender", "esa casaca" the "Puffer Jacket". The
+     page's own translator adds the English words. */
+  let english = '';
+  try { english = shownNorm((translateQuery(text) || {}).query || ''); } catch (e) {}
+  const words = [...new Set((t + ' ' + english).split(' '))].filter(w => w.length >= 3 && !SHOWN_STOP.has(w) && !/^\d/.test(w)
+    && !(storeHit && (shownNorm(storeHit[1]).split(' ').includes(w) || w === storeHit[0])));
+  if (words.length){
+    const scored = pool.map(s => {
+      const hay = ' ' + shownNorm((s.item.brand || '') + ' ' + (s.item.title || s.item.name || '')) + ' ';
+      return [s, words.filter(w => hay.includes(' ' + w + ' ') || hay.includes(' ' + w)).length];
+    }).filter(([, n]) => n > 0);
+    if (scored.length){
+      const best = Math.max(...scored.map(([, n]) => n));
+      pool = scored.filter(([, n]) => n === best).map(([s]) => s);
+      narrowed = true;
+    } else if (!narrowed){
+      return { kind: 'none' };
+    } else {
+      pool = [];
+    }
+  }
+  if (!narrowed) pool = latest.slice();           // a bare "esa": the cards on screen
+  /* One product shown twice is one product. */
+  const seen = new Set();
+  pool = pool.filter(s => { const k = s.retailer + '|' + (s.item.title || ''); if (seen.has(k)) return false; seen.add(k); return true; });
+  /* Still several: the cards she just showed outrank older ones, and a
+     price said out loud picks the closest when it is clearly closest. */
+  if (pool.length > 1 && pool.some(s => s.batch === lastBatch)) pool = pool.filter(s => s.batch === lastBatch);
+  if (pool.length > 1 && money){
+    const usd = Number(money[1] || money[2]);
+    const d = (s) => Math.min(Math.abs(shownPriceUsd(s.item) - usd), Math.abs(Number(s.item.price) - usd));
+    const byDist = pool.slice().sort((a, b) => d(a) - d(b));
+    if (d(byDist[0]) * 2 < d(byDist[1])) pool = [byDist[0]];
+  }
+  if (pool.length === 1) return { kind: 'one', entry: pool[0] };
+  if (pool.length > 1) return { kind: 'many', entries: pool.slice(0, 4) };
+  return { kind: 'none' };
+}
+function highlightShownCard(entry){
+  const c = entry && entry.card;
+  if (!c || !c.isConnected) return;
+  c.style.boxShadow = '0 0 0 3px var(--blue)';
+  try { c.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+}
+/* F15: the shopper asked to go there -- highlight the card, then land
+   on the product page. */
+function openShownProduct(entry, delayMs){
+  highlightShownCard(entry);
+  const it = entry.item;
+  setTimeout(() => {
+    if (it.partNumber) pendingAutoPartNumber = it.partNumber;
+    showProduct(entry.retailer, it.title, it.price, it.weightKg, it.image, it.sizes,
+      needsSizeSelection(entry.retailer, it.title), sizeCategoryFor(entry.retailer, it.title), it.rating, null, null, { brand: it.brand });
+  }, delayMs == null ? 900 : delayMs);
+}
+function shownLabel(entry){
+  const it = entry.item;
+  const p = shownPriceUsd(it);
+  return (it.title || 'ese producto') + (Number.isFinite(p) ? ' ($' + p.toFixed(2) + ')' : '');
+}
+const SHOWN_GO_RE = /\b(?:ll[eé]va(?:me|nos)|[aá]bre(?:me|la|lo)?|vamos\s+a|ir\s+a|abrir)\b/i;
+const SHOWN_SHOW_RE = /\b(?:mu[eé]stra(?:me|mela|melo|la|lo)|ens[eé][ñn]a(?:me|la|lo)|quiero\s+ver|ver)\b/i;
+const SHOWN_REF_RE = /\b(?:es[ao]s?|est[ao]s?|aquel(?:la)?|la\s+de|el\s+de|la\s+que|el\s+que|primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|[uú]ltim[oa]|la\s+[1-6]|el\s+[1-6])\b|\$\s*\d|\d+\s*(?:d[oó]lares|usd|soles)/i;
+const SHOWN_CART_RE = /\b(?:agr[eé]ga(?:me|la|lo|melo|mela)?|a[ñn]ad(?:e|eme|ir|ela|elo)|p[oó]n(?:me|la|lo|mela|melo)?|m[eé]te(?:la|lo|mela|melo)?)\b[^.?!]*\b(?:carrit[oa]|carro|cesta|bolsa)\b|\bme\s+l[ao]\s+llevo\b|\bl[ao]\s+compro\b/i;
+const CHAT_SIZE_RE = /^(?:(?:en\s+)?talla\s+|la\s+|el\s+)?([a-z0-9]{1,4}(?:[.,]5)?|x{1,3}[sl]|(?:extra\s+)?(?:peque[ñn]a|mediana|grande))\s*[.!]?$/i;
+/* The shopper's message is about something she showed. Returns the
+   answer, or null when it is not (a new search, a new topic). */
+function chatShownProductRoute(text){
+  const raw = String(text || '').trim();
+  /* An open "¿qué talla?" is answered first. */
+  if (ariaPendingCartAdd){
+    const pending = ariaPendingCartAdd;
+    const m = raw.replace(/\btalla\b/i, ' talla ').trim().match(CHAT_SIZE_RE);
+    const size = m ? chatMatchSize(m[1], pending.sizes) : null;
+    if (size) { ariaPendingCartAdd = null; return chatAddShownToCart(pending.entry, size); }
+    ariaPendingCartAdd = null;               // anything else moves on
+    if (!SHOWN_CART_RE.test(raw)) return null;
+  }
+  if (!ariaShown.length) return null;
+  const cart = SHOWN_CART_RE.test(raw);
+  const go = SHOWN_GO_RE.test(raw);
+  const show = SHOWN_SHOW_RE.test(raw);
+  if (!cart && !go && !show) return null;
+  const hasRef = SHOWN_REF_RE.test(raw) || /\b(?:la|el)\s+[a-z]/i.test(raw.replace(SHOWN_SHOW_RE, '').replace(SHOWN_GO_RE, '').trim());
+  /* "muéstrame zapatillas nike" is a new search, not a card: a plain
+     "show me" needs a reference ("esa", "la segunda", "la de 30 dólares",
+     "la Adidas"). */
+  if (!cart && !go && !hasRef) return null;
+  const r = resolveShownProduct(raw);
+  if (r.kind === 'none'){
+    if (cart) return { line: 'Para agregarlo necesito saber cuál: tócalo en el chat o dime su nombre, y te pregunto la talla si hace falta. No agregué nada todavía.' };
+    return go && hasRef ? { line: 'No estoy segura de cuál me dices entre lo que te mostré. ¿Me dices el nombre o la tienda?' } : null;
+  }
+  if (r.kind === 'many'){
+    const opts = r.entries.map((e, i) => (i + 1) + ') ' + shownLabel(e)).join('; ');
+    return { line: '¿Cuál de estas? ' + opts + '. Dime "la primera", "la segunda"…' + (cart ? ' No agregué nada todavía.' : ''),
+      after: () => r.entries.forEach(highlightShownCard) };
+  }
+  const entry = r.entry;
+  if (cart){
+    const it = entry.item;
+    /* Shoes and anything the store sells in sizes count, not only the
+       garment words: "Black Skipton Derbys" must ask too. */
+    const needs = (typeof apparelNeedsSize === 'function' && apparelNeedsSize(entry.retailer, it.title))
+      || needsSizeSelection(entry.retailer, it.title)
+      || (Array.isArray(it.sizes) && it.sizes.length > 0)
+      || it.sizeHint === 'shoe'
+      || isFootwear({ ...it, retailer: entry.retailer }, entry.retailer);
+    const said = raw.match(/\btalla\s+([a-z0-9.,]{1,6})\b/i);
+    const sizes = chatSizeOptions(entry);
+    const sz = said ? chatMatchSize(said[1], sizes) : null;
+    if (needs && !sz){
+      ariaPendingCartAdd = { entry, sizes };
+      return { line: '¿Qué talla quieres para ' + it.title + '? Elige una abajo; no lo agrego sin talla.',
+        after: () => { highlightShownCard(entry); addAssistantSizeChips(sizes); } };
+    }
+    return chatAddShownToCart(entry, sz || '');
+  }
+  return { line: 'Te llevo a ' + shownLabel(entry) + '.', after: () => openShownProduct(entry), navigates: true };
+}
+function chatSizeOptions(entry){
+  const it = entry.item;
+  if (Array.isArray(it.sizes) && it.sizes.length) return it.sizes.map(String).slice(0, 24);
+  const shoe = it.sizeHint === 'shoe' || isFootwear({ ...it, retailer: entry.retailer }, entry.retailer);
+  return standardSizeOptions(it.title || '', shoe ? 'shoe' : sizeCategoryFor(entry.retailer, it.title)).map(String);
+}
+function chatMatchSize(said, sizes){
+  const s = String(said || '').toLowerCase().replace(',', '.').replace(/\s+/g, ' ').trim();
+  const word = { 'pequena': 's', 'pequeña': 's', 'mediana': 'm', 'grande': 'l', 'extra grande': 'xl', 'extra pequena': 'xs', 'extra pequeña': 'xs' }[s] || s;
+  return (sizes || []).find(x => String(x).toLowerCase() === word) || null;
+}
+function addAssistantSizeChips(sizes){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap || !sizes || !sizes.length) return;
+  assistantReplyHasTappables = true;
+  const row = document.createElement('div');
+  row.className = 'assistantNote my-2 flex flex-wrap gap-1.5';
+  row.setAttribute('data-assistant-sizes', '');
+  row.innerHTML = sizes.map(s => `<button type="button" class="ariaQuickChip focus-ring" data-size="${escapeHtml(s)}"
+      onclick="sendAssistantQuickReply('talla ' + this.getAttribute('data-size'))">${escapeHtml(s)}</button>`).join('');
+  wrap.appendChild(row);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function chatAddShownToCart(entry, size){
+  const it = entry.item;
+  const ok = addToCart({
+    retailer: entry.retailer, title: it.title, priceUsd: Number(it.price),
+    dutiableUsd: it.dutiableUsd ?? null,
+    weightKg: Number.isFinite(it.weightKg) && it.weightKg > 0 ? it.weightKg : estimateRetailWeightKg(it.title || ''),
+    ...(Number.isFinite(it.catalogWeightKg) && it.catalogWeightKg > 0 ? { specWeightKg: it.catalogWeightKg } : {}),
+    image: it.image || '', selectedSize: size || '',
+  });
+  if (!ok) return { line: 'No pude agregar ' + it.title + ' al carrito: todavía no tiene precio confirmado.' };
+  return { line: 'Listo: agregué ' + it.title + (size ? ' en talla ' + size : '') + ' a tu carrito.',
+    after: () => addAssistantPageOffer('Ver carrito', 'Revisa tu pedido y el total con envío', 'carrito.html') };
+}
+
+/* ============================================================
    QUESTIONS WITH ONE RIGHT ANSWER (2026-10-13, adversarial battery F2-F5,
    F8, F9). Answered here, in the page, before any model is asked:
 
@@ -37120,7 +37393,10 @@ async function chatBroadCategoryPicks(deptKey){
     }
   }
   return picks.map(x => normalizeLiveItem({ ...x.raw, retailer: x.rk }, { retailer: x.rk }))
-    .filter(it => it && it.title && Number.isFinite(Number(it.price)));
+    .filter(it => it && it.title && Number.isFinite(Number(it.price)))
+    /* The department it came from rides along: a shoe from Zapatos asks
+       for a shoe size even when its title says only "Derbys". */
+    .map(it => (/^shoes/.test(deptKey) ? { ...it, sizeHint: 'shoe' } : it));
 }
 /* A door to one of the site's own pages (never a store's site). */
 function addAssistantPageOffer(label, sub, href){
@@ -37258,6 +37534,14 @@ async function runAssistantTurn(text, turn){
   // Fast local path: sale/clearance questions go straight to the Sales page
   // instead of round-tripping to the chat API.
   const lowerText = text.toLowerCase();
+  /* WHAT SHE SHOWED (2026-10-13, F14/F15/F-A7): "llévame a esa", "la de
+     30 dólares", "agrégame esa casaca al carrito" -- answered from the
+     cards she showed, never a fresh search that can contradict them. */
+  const shownRoute = chatShownProductRoute(text);
+  if (shownRoute){
+    answerInChatWithDoor(shownRoute.line, shownRoute.after || (() => {}), statusEl, prevStatus, text);
+    return;
+  }
   /* QUESTIONS WITH ONE RIGHT ANSWER (2026-10-13): authority claims,
      price questions, returns and taxes, what we do not sell -- see
      chatPolicyRoute. They run before every shortcut below: "dame un
@@ -40006,12 +40290,26 @@ async function executeRealtimeTool(name, args){
     try { res = await catalogSearch(q, { limit: 60 }); }
     catch { return { unavailable: 'el catálogo no cargó, no puedo buscar ahorita' }; }
     let items = (res && res.items) || [];
+    /* F14: a product she already showed that matches these words leads,
+       so a second search can never say "no aparece" about a card on
+       screen (the Adi Ease incident). */
+    const shownHit = typeof resolveShownProduct === 'function' ? resolveShownProduct(q) : { kind: 'none' };
+    const again = shownHit.kind === 'one' ? [shownHit.entry] : shownHit.kind === 'many' ? shownHit.entries : [];
+    if (again.length){
+      const k = (i) => (i.retailer || '') + '|' + (i.title || '');
+      const have = new Set(again.map(e => k({ ...e.item, retailer: e.retailer })));
+      items = again.map(e => ({ ...e.item, retailer: e.retailer })).concat(items.filter(i => !have.has(k(i))));
+    }
     if (budgetUsd) items = items.filter(i => Number(i.price) <= budgetUsd);
     items = items.slice(0, limit);
     if (!items.length) return { products: [], note: 'no encontré nada que encaje con eso' };
     /* The cards go up as she speaks, so the shopper is looking at the
        products while hearing about them. */
-    for (const it of items) addAssistantProductCard(it, it.retailer);
+    for (const it of items){
+      const shownBefore = again.find(e => e.retailer === it.retailer && e.item.title === it.title);
+      if (shownBefore && shownBefore.card && shownBefore.card.isConnected) highlightShownCard(shownBefore);
+      else addAssistantProductCard(it, it.retailer);
+    }
     return {
       products: items.map(i => ({
         id: realtimeProductId(i),
@@ -40019,6 +40317,22 @@ async function executeRealtimeTool(name, args){
         price_usd: i.price, weight_kg: i.weightKg ?? null,
       })),
     };
+  }
+
+  if (name === 'open_product'){
+    /* F14/F15: the product she showed, resolved against her own cards --
+       by id, else by the shopper's words -- and opened. */
+    const byId = args.product_id ? realtimeProductById(args.product_id) : null;
+    const entryById = byId ? ariaShown.slice().reverse().find(s => s.item === byId || (s.item.title === byId.title && s.retailer === byId.retailer)) : null;
+    const r = entryById ? { kind: 'one', entry: entryById } : resolveShownProduct(args.reference || args.product_id || '');
+    if (r.kind === 'many') return { ambiguous: true, options: r.entries.map(e => ({ title: e.item.title, store: e.retailer, price_usd: e.item.price })),
+      note: 'Hay varios; pregúntale cuál de estos.' };
+    if (r.kind !== 'one') return { not_shown: true, note: 'No encuentro eso entre lo que mostraste. Pregúntale cuál, o búscalo si es algo nuevo.' };
+    /* She says the line, then the page opens: the call ends with the
+       shopper on the product he asked for. */
+    openShownProduct(r.entry, 2500);
+    return { opening: true, title: r.entry.item.title, store: r.entry.retailer,
+      note: 'Dile en una frase que lo abres; la página se abre en un momento.' };
   }
 
   if (name === 'get_product_details'){
