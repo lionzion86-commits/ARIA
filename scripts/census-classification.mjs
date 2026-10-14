@@ -22,7 +22,7 @@
    ============================================================ */
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { liftDeclarations } from "./lib/page-lift.mjs";
+import { liftDeclarations, pageHtml } from "./lib/page-lift.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
@@ -140,9 +140,9 @@ export function census(P, truth) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const i = process.argv.indexOf("--html");
-  const html = readFileSync(i > 0 ? process.argv[i + 1] : ROOT + "index.html", "utf8");
+  const html = i > 0 ? readFileSync(process.argv[i + 1], "utf8") : pageHtml(ROOT);
   const P = loadClassifiers(html);
-  const T = loadClassifiers(readFileSync(ROOT + "index.html", "utf8"));
+  const T = loadClassifiers(pageHtml(ROOT));
   const res = census(P, T);
   if (process.argv.includes("--json")) { console.log(JSON.stringify(res, null, 1)); process.exit(0); }
   console.log(`${res.items} items, ${res.stores} stores; missing files: ${res.missing.length ? res.missing.join(" ") : "none"}`);

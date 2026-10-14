@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { loadClassifiers, census } from "../census-classification.mjs";
 import { buildProductTypeSource } from "../build-product-type.mjs";
+import { pageHtml } from "../lib/page-lift.mjs";
 import * as footwearModule from "../lib/footwear.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -26,7 +27,7 @@ function check(name, fn) {
   catch (e) { failures.push(`${name}\n         ${e.message}`); }
 }
 
-const html = readFileSync(ROOT + "index.html", "utf8");
+const html = pageHtml(ROOT);
 const P = loadClassifiers(html);
 const C = census(P, P);
 const m1 = (name, extra = {}) => P.latinoProductTypeOfItem({ name, ...extra });
