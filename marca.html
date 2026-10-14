@@ -148,6 +148,8 @@ footer a{color:#fff;}
   <div style="margin-top:8px; font-size:12px;">Precios con margen de servicio incluido. Envío e impuestos se calculan en el checkout.</div>
 </footer>
 
+<!-- The product-type classifier, generated from index.html (scripts/build-product-type.mjs). -->
+<script src="product-type.js"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -274,7 +276,7 @@ function normalizeItem(it, retailerKey){
       image: String(img || ""),
       url: String(it.url || it.link || ""),
       retailer: String(it.retailer || retailerKey || ""),
-      ptype: productTypeOf({name: name})
+      ptype: productTypeOf({ name: name, type: it.type, retailer: it.retailer || retailerKey, brand: it.brand })
     };
   }catch(e){ return null; }
 }
@@ -294,8 +296,13 @@ var TYPE_RES = PRODUCT_TYPES.map(function(t){
     return new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + 's?\\b', 'i');
   });
 });
+/* ONE CLASSIFIER (2026-10-13 audit): index.html's, via product-type.js.
+   The keyword loop below is only the fallback if that file fails to load. */
 function productTypeOf(item){
   var n = String((item && item.name) || '');
+  if (window.AriaProductType){
+    try { return window.AriaProductType.classify({ name: n, type: item && item.type, retailer: item && item.retailer, brand: item && item.brand }); } catch (e) {}
+  }
   for (var i = 0; i < PRODUCT_TYPES.length; i++){
     if (!PRODUCT_TYPES[i].keywords.length) continue;
     var res = TYPE_RES[i];

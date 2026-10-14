@@ -209,6 +209,8 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   </div>
 </footer>
 
+<!-- The product-type classifier, generated from index.html (scripts/build-product-type.mjs). -->
+<script src="product-type.js"></script>
 <script>
 /* Standalone Tienda template — one page for all 77 stores (?tienda=clave).
    Bulletproof by design:
@@ -318,8 +320,14 @@ function typeKeywordBlocked(n, kw){
   if (/\b(candy|gummy|gummies|gummi|chocolate|chips|onions?|croutons?|salts?|snacks?|popcorn|pretzels?|yogurt|alfajores?|raisins?|licorice|taffy|skittles|snickers|twix|twizzlers|haribo|peppermint)\b[^.\n]{0,60}\bbags?\b/i.test(n)) return true;
   return false;
 }
+/* ONE CLASSIFIER (2026-10-13 audit): index.html's, via product-type.js --
+   the item's type first, footwear before jewelry, whole words, vetoes.
+   The keyword loop below is only the fallback if that file fails to load. */
 function productTypeOf(item){
   var n = String((item && (item.name || item.title)) || '');
+  if (window.AriaProductType){
+    try { return window.AriaProductType.classify({ name: n, type: item && item.type, retailer: (item && item.retailer) || storeKey, brand: item && item.brand }); } catch (e) {}
+  }
   for (var i = 0; i < PRODUCT_TYPES.length; i++){
     if (!PRODUCT_TYPES[i].keywords.length) continue;
     var res = TYPE_RES[i];
