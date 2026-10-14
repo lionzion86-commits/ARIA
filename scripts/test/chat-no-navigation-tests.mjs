@@ -16,13 +16,26 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0;
 const failures = [];
 function check(name, fn) {
   try { fn(); passed++; console.log("    ok   " + name); }
   catch (e) { failures.push(`${name}\n         ${e.message}`); }
 }
-const page = readFileSync(ROOT + "index.html", "utf8");
+const page = pageHtml();
 function lift(sig) {
   const at = page.indexOf(sig);
   assert.ok(at > 0, "missing " + sig);

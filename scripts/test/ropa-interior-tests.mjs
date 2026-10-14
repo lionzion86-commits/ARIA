@@ -15,6 +15,19 @@ import { readFileSync } from "node:fs";
 import { loadEngine, buildFeed, buildWomenFeed } from "../build-ropa-interior-feed.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0;
 const failures = [];
 function check(name, fn) {
@@ -139,7 +152,7 @@ check("the department has its doors", () => {
   assert.match(dept, /ropa_interior:\s*\{name:'Ropa Interior y Medias'[^}]*href:'ropa-interior\.html#hombre'\}/, "departamento.html does not know the department");
   assert.match(dept, /ropa_interior_mujer:\s*\{name:'Ropa Interior Mujer'[^}]*href:'ropa-interior\.html#mujer'\}/, "departamento.html does not know the women's half");
   assert.match(dept, /if \(dept && dept\.href\)\{ window\.location\.replace\(dept\.href\); return; \}/, "?dept=ropa_interior does not open the page");
-  const home = readFileSync(ROOT + "index.html", "utf8");
+  const home = pageHtml();
   /* The homepage reads the department FEED (2026-10-07), not the rules. */
   assert.match(home, /key: 'ropa_interior'[\s\S]{0,400}feed: \(\) => ropaInteriorRailPicks\('\/ropa-interior-feed\.json'\)/, "the men's shelf is not built from its feed");
   assert.match(home, /key: 'ropa_interior_mujer'[\s\S]{0,400}feed: \(\) => ropaInteriorRailPicks\('\/ropa-interior-women-feed\.json'\)/, "the women's shelf is not built from its feed");
@@ -157,7 +170,7 @@ check("the department has its doors", () => {
    first, from the feed -- never a hardcoded list.
    ------------------------------------------------------------------ */
 check("the homepage has a Ropa Interior Mujer and a Hombre rail on both layouts", () => {
-  const home = readFileSync(ROOT + "index.html", "utf8");
+  const home = pageHtml();
   for (const [label, row, hash] of [["Ropa Interior Mujer", "ropa_interior_mujer", "mujer"], ["Ropa Interior Hombre", "ropa_interior", "hombre"]]) {
     const secs = home.match(new RegExp(`<section aria-label="${label}" data-featured-rail[\\s\\S]*?<\\/section>`, "g")) || [];
     assert.equal(secs.length, 2, `${label}: expected a mobile and a desktop rail, found ${secs.length}`);
@@ -175,7 +188,7 @@ check("the homepage has a Ropa Interior Mujer and a Hombre rail on both layouts"
 
 await (async () => {
   /* The picks function itself, lifted and run against a stub feed. */
-  const home = readFileSync(ROOT + "index.html", "utf8");
+  const home = pageHtml();
   const at = home.indexOf("const ropaInteriorFeedPromises = {};");
   const end = home.indexOf("const ROPA_INTERIOR_RAIL_TOTAL = 20;");
   const src = home.slice(at, end);

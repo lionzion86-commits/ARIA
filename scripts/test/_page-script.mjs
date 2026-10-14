@@ -13,6 +13,19 @@ import vm from "node:vm";
 
 const INDEX = fileURLToPath(new URL("../../index.html", import.meta.url));
 
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. The slices below are
+   cut from the script's text, so pageHtml() inlines the bundle back
+   at its tag -- every loader keeps reading the page exactly as
+   written. */
+function pageHtml() {
+  const html = readFileSync(INDEX, "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(fileURLToPath(new URL("../../" + tag[1], import.meta.url)), "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 const START = "const SALES_TAX_RATE = 1.07;";
 const END = "// Deliberately does NOT expose a clickthrough URL to the retailer's site";
 
@@ -26,7 +39,7 @@ const PRELUDE_START = "const IMPORT_TAX_THRESHOLD_USD = 200;";
 const PRELUDE_END = "/* One slim line, on every browsing surface";
 
 export function loadPageWeightSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(START);
   const to = html.indexOf(END);
   if (from < 0 || to < 0 || to <= from) {
@@ -63,7 +76,7 @@ export function loadPageWeightSlice() {
    it in a vm: sale-first across the category's stores, Ofertas-
    deprioritised, featured fill. */
 export function loadPageCategoryRailSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const marker = html.indexOf("CATEGORY_RAIL_PICKS:SLICE-START");
   /* The marker lives inside its opening /* comment -- the slice must
      start at the opener or the vm parses prose as code. */
@@ -93,7 +106,7 @@ const AUTO_GLOSSARY_END = "\n/* ================================================
    The JSON is the canonical module — the future Aria AI assistant imports
    it directly; this slice proves the browser's inline copy matches it. */
 export function loadPageAutoGlossarySlice() {
-  const html = readFileSync(INDEX, "utf8").replace(/\r\n/g, "\n");
+  const html = pageHtml().replace(/\r\n/g, "\n");
   const from = html.indexOf(AUTO_GLOSSARY_START);
   const to = html.indexOf(AUTO_GLOSSARY_END, from);
   if (from < 0 || to < 0 || to <= from) {
@@ -122,7 +135,7 @@ const TILE_END = "function designedCoverHTML(";
 
 /** The curated-cover resolver, on its own. */
 export function loadPageTileSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(TILE_START);
   const to = html.indexOf(TILE_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -145,7 +158,7 @@ const TIER_START = "const TIERS = [";
 const TIER_END = "function retailersByTier(){";
 
 export function loadPageTierSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(TIER_START);
   const to = html.indexOf(TIER_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -167,7 +180,7 @@ const BUDGET_START = "const BUDGET_BANDS = [";
 const BUDGET_END = "/** An item's door-to-door total in soles";
 
 export function loadPageBudgetSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(BUDGET_START);
   const to = html.indexOf(BUDGET_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -192,7 +205,7 @@ const SUB_END = "/* The grid every listing surface uses";
 
 /** The aisle table and its helpers, on their own. */
 export function loadPageSubcategorySlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(SUB_START);
   const to = html.indexOf(SUB_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -214,7 +227,7 @@ const QUERY_END = "function searchFor(q, which){";
 
 /** The Spanish→English query table and its lookup, on their own. */
 export function loadPageQuerySlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(QUERY_START);
   const to = html.indexOf(QUERY_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -252,7 +265,7 @@ export function loadPageSupportSlice() {
 /* Both mirrors end with a DOMContentLoaded registration, so the sandbox
    needs just enough browser to let the slice finish evaluating. */
 function runSlice(startMarker, endMarker, filename, exportsExpr) {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(startMarker);
   const to = html.indexOf(endMarker, from);
   if (from < 0 || to < 0 || to <= from) {
@@ -309,7 +322,7 @@ const ENVELOPE_START = "function normalizeCatalogueEnvelope(file){";
 const ENVELOPE_END = "function loadDepartmentCache(){";
 
 export function loadPageEnvelopeSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(ENVELOPE_START);
   const to = html.indexOf(ENVELOPE_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -337,7 +350,7 @@ const IMGURL_START = "const MACYS_IMAGE_WIDTH =";
 const IMGURL_END = "function photoPlaceholderHTML(";
 
 export function loadPageImageUrlSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(IMGURL_START);
   const to = html.indexOf(IMGURL_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -361,7 +374,7 @@ const BRAND_START = "function foldBrand(raw){";
 const BRAND_END = "function brandLabelFor(";
 
 export function loadPageBrandSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(BRAND_START);
   const to = html.indexOf(BRAND_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -395,7 +408,7 @@ const CHAT_ROUTE_START = "const ARIA_QUICK_REPLIES = [";
 const CHAT_ROUTE_END = "async function runAssistantBrain(";
 
 export function loadPageChatRoutingSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const qFrom = html.indexOf(CHAT_ROUTE_START);
   const kFrom = html.indexOf("const SALE_KEYWORDS = [");
   const kTo = html.indexOf(CHAT_ROUTE_END);
@@ -421,7 +434,7 @@ const SHOE_START = "const FOOTWEAR_TYPE =";
 const SHOE_END = "function rawTitleOf(item){";
 
 export function loadPageFootwearSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(SHOE_START);
   const to = html.indexOf(SHOE_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -442,7 +455,7 @@ export function loadPageFootwearSlice() {
    scripts/lib/autoparts.js, and the parity test compares module against
    mirror over the real catalogues. */
 export function loadPageAutoPartSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const AUTOPART_RETAILERS =");
   const to = html.indexOf("function rawTitleOf(item){");
   if (from < 0 || to < 0 || to <= from) {
@@ -466,7 +479,7 @@ export function loadPageAutoPartSlice() {
 /* Advance catalog query matching (2026-09-27): scoreAdvanceItems is pure
    (no DOM, no fetch), so it runs in the sandbox on its own. */
 export function loadPageAdvanceQuerySlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const ADV_BRAKE_WORDS = [");
   const to = html.indexOf("/* Query-matched Advance products, normalized through the same path as");
   if (from < 0 || to < 0 || !(from < to)) {
@@ -484,7 +497,7 @@ export function loadPageAdvanceQuerySlice() {
 }
 
 export function loadPageAxleSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const d0 = html.indexOf("function detectAxle(query){");
   const d1 = html.indexOf("function lookupAxleWeightKg");
   const a0 = html.indexOf("/** The retailer's own position field");
@@ -512,7 +525,7 @@ export function loadPageAxleSlice() {
    five" is a claim about what comes out, not about what the source
    looks like. */
 export function loadPageDealSpreadSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const MOBILE_RAIL_LEAD = 5;");
   const to = html.indexOf("function renderMobileDealsRail(");
   if (from < 0 || to < 0 || to <= from) {
@@ -546,7 +559,7 @@ const RELATED_START = "const RELATED_RAIL_MIN = 8;";
 const RELATED_END = "/* Every catalogue item once, with every department it appears in.";
 
 export function loadPageRelatedSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(RELATED_START);
   const to = html.indexOf(RELATED_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -568,7 +581,7 @@ export function loadPageRelatedSlice() {
    "Fair", and a pluralising translator missing "Vitamin D3" -- were
    both invisible in the source and obvious in the output. */
 export function loadPageCatalogSearchSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const CATALOG_SEARCH_LIMIT = 200;");
   const to = html.indexOf("/* END OF THE PURE SLICE");
   if (from < 0 || to < 0 || to <= from) {
@@ -590,7 +603,7 @@ export function loadPageCatalogSearchSlice() {
    a size?" -- is one you settle by running it over titles, not by
    reading the pattern. */
 export function loadPageSizeSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   /* TWO REGIONS, because the words and the rules that read them are
      deliberately no longer neighbours: the single keyword list was
      lifted above its first use (see the comment on it), and
@@ -619,7 +632,7 @@ export function loadPageSizeSlice() {
    ship a 3X?" -- is one you settle by running it over real size lists,
    not by reading the pattern. */
 export function loadPageSaleSortSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("/* SALE-SORT SLICE START");
   const to = html.indexOf("/* SALE-SORT SLICE END */");
   if (from < 0 || to < 0 || to <= from) {
@@ -637,7 +650,7 @@ export function loadPageSaleSortSlice() {
 }
 
 export function loadPageCurvySlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const EXTENDED_SIZES = new Set([");
   const to = html.indexOf("const CURVY_BLURB =");
   if (from < 0 || to < 0 || to <= from) {
@@ -662,7 +675,7 @@ export function loadPageCurvySlice() {
    braced body runs to its matching close brace (none of these bodies
    carries a brace inside a string, so a plain counter is exact). */
 export function loadPageCurvyBandSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   function grab(name) {
     const m = new RegExp(`(?:const|function)\\s+${name}\\b`).exec(html);
     if (!m) throw new Error(`index.html: ${name} not found — update scripts/test/_page-script.mjs`);
@@ -724,7 +737,7 @@ export function loadPageCurvyBandSlice() {
    line match so the slice needs no second region. Pure -- the region is
    kept free of DOM, network and page calls by the marker comment. */
 export function loadPageDepartmentSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const marker = html.indexOf("DEPARTMENT_CHAIN:SLICE-START");
   const from = html.lastIndexOf("/*", marker);
   const endMarker = html.indexOf("DEPARTMENT_CHAIN:SLICE-END");
@@ -760,7 +773,7 @@ export function loadPageDepartmentSlice() {
 /* The carousel selection mirror: the pure pick/mix functions index.html
    carries line-for-line from scripts/lib/carousel.js. Pure — no DOM. */
 export function loadPageCarouselSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const CAROUSEL_MAX = 16;");
   const to = html.indexOf("/* END OF THE CAROUSEL SELECTION MIRROR */");
   if (from < 0 || to < 0 || to <= from) {
@@ -784,7 +797,7 @@ export function loadPageCarouselSlice() {
    (openers, URL helpers, price formatters) are stubbed — the test pins the
    discount logic, not the formatting. */
 export function loadPageCarouselCardSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("function carouselCardHTML(item, retailer){");
   const to = html.indexOf("/* THE RAIL ITSELF", from);
   if (from < 0 || to < 0 || to <= from) {
@@ -825,7 +838,7 @@ const STORE_DOOR_START = "const RETAILERS = {";
 const STORE_DOOR_END = "/* END OF THE STORE DOOR MIRROR */";
 
 export function loadPageStoreDoorSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf(STORE_DOOR_START);
   const to = html.indexOf(STORE_DOOR_END);
   if (from < 0 || to < 0 || to <= from) {
@@ -849,7 +862,7 @@ export function loadPageStoreDoorSlice() {
    a key here that no longer names a department renders nothing, and the
    card just quietly stops appearing. */
 export function loadPageHomeRowSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const HOME_ROW_DEPARTMENTS = [");
   const to = html.indexOf("function homeRowTiles(");
   if (from < 0 || to < 0 || to <= from) {
@@ -869,7 +882,7 @@ export function loadPageHomeRowSlice() {
    self-contained (no page functions) precisely so this slice can run
    it in a vm: sale-first, Ofertas-deprioritised, featured fill. */
 export function loadPageStoreRailSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const marker = html.indexOf("STORE_RAIL_PICKS:SLICE-START");
   /* The marker lives inside its opening /* comment -- the slice must
      start at the opener or the vm parses prose as code. */
@@ -895,7 +908,7 @@ export function loadPageStoreRailSlice() {
    self-contained (pure: byRetailer in, ordered list out) precisely so
    this slice can run it in a vm. */
 export function loadPageCurvyStoreCardsSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const marker = html.indexOf("CURVY_STORE_CARDS:SLICE-START");
   /* The marker lives inside its opening /* comment -- the slice must
      start at the opener or the vm parses prose as code. */
@@ -932,7 +945,7 @@ function extractNamedFunction(html, name) {
 }
 
 export function loadPageFiestasSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const marker = html.indexOf("FIESTAS_PICK:SLICE-START");
   /* The marker lives inside its opening /* comment -- the slice must
      start at the opener or the vm parses prose as code. */
@@ -960,7 +973,7 @@ export function loadPageFiestasSlice() {
    the slice runs them so the idempotence rule ("reload must never change
    quantities") is settled by execution, not by reading the code. */
 export function loadPageSizeGuideSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const SIZE_GUIDE_GENERAL = {");
   const to = html.indexOf("let pendingProduct = null;");
   if (from < 0 || to < 0 || to <= from) {
@@ -985,7 +998,7 @@ export function loadPageSizeGuideSlice() {
 }
 
 export function loadPageCartSlice() {
-  const html = readFileSync(INDEX, "utf8");
+  const html = pageHtml();
   const from = html.indexOf("const CART_STORAGE_KEY = 'aria_cart_v1';");
   const endMarker = html.indexOf("CART WEIGHT REPAIR");
   const to = html.lastIndexOf("/*", endMarker);

@@ -21,6 +21,19 @@ import { searchSlice } from "../lib/mcp/page-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
+
 const { api } = searchSlice();
 const { detectBrandIntent, rankCatalogMatches, searchTokens, catalogWordsOf } = api;
 
@@ -182,7 +195,7 @@ check("the words Peru actually uses for cleats all translate", () => {
      translation dictionary only knew chimpun, so "guayos" reached the
      ranker untranslated and answered with shin guards. Asserted
      against the page because the dictionary is page data. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.match(page, /\n  chimpun: "soccer cleats",/,
     "chimpunes no longer translates");
   assert.match(page, /\n  guayo: "soccer cleats",/,
