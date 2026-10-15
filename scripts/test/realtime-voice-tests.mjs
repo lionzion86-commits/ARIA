@@ -2361,37 +2361,52 @@ check("the split is worked out in code, and an impossible one is admitted", () =
   assert.ok(!/dutiable/.test(JSON.stringify(five)), "the split payload leaks the dutiable base");
 });
 
-check("a check-in comes before the hang-up, once", () => {
-  /* Danny's flow: 20s -> "¿Sigues ahí?", 35s -> she signs off and the
-     line closes. The check-in is a check-in, not a warning: two
-     words, no countdown, no UI. */
+check("ten seconds of silence and she signs off and hangs up", () => {
+  /* Danny's flow since 2026-10-15: 10s of two-way silence -> she
+     signs off warmly and the line closes. This replaces the two-step
+     flow of 2026-10-06 (20s -> "¿Sigues ahí?", 35s -> hang-up): ten
+     seconds is the whole patience budget now, so there is no
+     check-in step at all — and the goodbye she speaks still tells
+     him how to get her back. */
   const page = pageHtml();
-  assert.match(page, /const CALL_CHECKIN_MS = 20000;/, "there is no check-in step");
-  assert.match(page, /const CALL_IDLE_MS = 35000;/, "the hang-up is not at 35 seconds");
-  assert.ok(page.indexOf("CALL_CHECKIN_MS") > 0 &&
-    /CALL_CHECKIN_MS[\s\S]{0,40}\n?.*CALL_IDLE_MS = 35000/.test(page),
-    "the check-in is not before the hang-up");
+  assert.match(page, /const CALL_IDLE_MS = 10000;/, "the hang-up is not at 10 seconds");
+  assert.ok(!/CALL_CHECKIN_MS/.test(page), "the old 20s check-in timer is still there");
+  assert.ok(!/CUE_CHECKIN/.test(page), "the old check-in cue is still there");
+  assert.ok(!/ariaRTCheckedIn/.test(page), "the check-in flag is still there");
 
   const at = page.indexOf("function noteRealtimeActivity(){");
   const body = page.slice(at, page.indexOf("\n}", page.indexOf("ariaRTIdleTimer = setTimeout", at)));
-  /* Both timers reset together, or the check-in fires after the
-     hang-up has already been scheduled from an older silence. */
-  assert.match(body, /ariaRTCheckedIn = false;/, "activity does not re-arm the check-in");
-  assert.match(body, /clearTimeout\(ariaRTCheckinTimer\)/, "the old check-in timer is left running");
+  /* The hang-up timer resets on activity, or it fires off an older
+     silence and cuts a live conversation. */
   assert.match(body, /clearTimeout\(ariaRTIdleTimer\)/, "the old hang-up timer is left running");
-  assert.match(body, /if \(!ariaRT \|\| ariaRTCheckedIn\) return;/,
-    "the check-in can fire twice in one silence");
-  assert.match(body, /cueRealtime\(CUE_CHECKIN\)/, "the check-in is never spoken");
+  assert.match(body, /endRealtimeCallIdle\('silencio'\)/, "the silence timer never hangs up");
+  assert.match(body, /\}, CALL_IDLE_MS\);/, "the hang-up is not on the silence constant");
+  /* The opening offer (for the shopper who never spoke) counts down
+     on the same ten seconds; the hang-up must defer to it while it
+     is still pending, or the two race and the offer is lost. */
+  assert.match(body, /if \(!ariaRTSpoke && ariaRTOpeningTimer\)/, "the hang-up does not defer to the opening offer");
+  assert.match(body, /noteRealtimeActivity\(\); return;/, "the deferral does not re-arm the silence clock");
 
-  /* The cue rides proven shapes: a conversation item plus a BARE
-     response.create. A per-response instructions field is what
-     silenced the greeting for a day. */
+  /* The goodbye rides proven shapes: a conversation item plus the
+     one-response gate. A per-response instructions field is what
+     silenced the greeting for a day. (Aligned with the shipped
+     cueRealtime, which has routed through askRealtimeResponse since
+     the one-response-at-a-time refactor; the version of this
+     assertion written for the old shape failed on main before this
+     change, on a cue that no longer sends response.create itself.) */
   const cue = page.slice(page.indexOf("function cueRealtime(cue){"));
   const cueBody = cue.slice(0, cue.indexOf("\n}"));
   assert.match(cueBody, /type: 'conversation\.item\.create'/, "the cue is not a conversation item");
-  assert.match(cueBody, /ariaRT\.send\(\{ type: 'response\.create' \}\)/,
-    "the cue carries per-response fields again");
+  assert.match(cueBody, /askRealtimeResponse\(\(o\) => ariaRT\.send\(o\)/,
+    "the cue bypasses the one-response gate");
   assert.match(cueBody, /return a && b;/, "the cue does not report whether it went out");
+
+  /* The sign-off itself: warm, one line, and it says how to get her
+     back — Danny: the close must never feel like a door slammed. */
+  assert.match(page, /const CUE_BYE =[\s\S]{0,260}toque el micrófono y seguimos/,
+    "the spoken sign-off lost the tap-the-mic line");
+  assert.match(page, /const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos\./,
+    "the written sign-off lost the tap-the-mic line");
 
   /* Browsing counts as activity — Danny: only when BOTH go quiet. */
   assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
@@ -2841,21 +2856,25 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
   /* THE ADDENDUM'S THIRD CASE: "silence for 10 seconds after greeting
      — Aria says '¿Te muestro lo que está en oferta ahorita?'"
 
-     This is NOT the twenty-second check-in. That one asks "¿sigues
-     ahí?", which is the right question for a conversation that
-     stalled and a useless one for a shopper who never started: he is
-     there, he just does not know what to say. The addendum counts
-     that silence as vagueness, and vagueness goes to the sales. */
+     This is NOT the silence hang-up. That one ends a conversation
+     that was already going, and asking anything of a shopper who
+     never started is useless: he is there, he just does not know
+     what to say. The addendum counts that silence as vagueness, and
+     vagueness goes to the sales. */
   const page = pageHtml();
   assert.match(page, /const CALL_OPENING_SILENCE_MS = (\d+);/,
     "there is no opening-silence nudge at all");
   const ms = Number(/const CALL_OPENING_SILENCE_MS = (\d+);/.exec(page)[1]);
   assert.ok(ms <= 12000, `the nudge waits ${ms}ms — past the ten seconds the addendum asks for`);
-  /* And it must be SHORTER than the check-in, or the check-in fires
-     first and he gets "¿sigues ahí?" instead of an offer. */
-  const checkin = Number(/const CALL_CHECKIN_MS = (\d+);/.exec(page)[1]);
-  assert.ok(ms < checkin,
-    `the nudge (${ms}ms) fires no sooner than the check-in (${checkin}ms) — he gets "¿sigues ahí?" instead`);
+  /* And it must land no later than the hang-up, or the call closes
+     before she can offer anything. Since 2026-10-15 both run ten
+     seconds; what keeps the offer first is not the clock but the
+     deferral in noteRealtimeActivity — the hang-up waits while the
+     nudge is still counting down (asserted in the silence check
+     above). */
+  const idle = Number(/const CALL_IDLE_MS = (\d+);/.exec(page)[1]);
+  assert.ok(ms <= idle,
+    `the nudge (${ms}ms) fires after the hang-up (${idle}ms) — the call closes before she can offer`);
 
   /* The cue has to send her to the tool, and has to stop her asking
      the question that does not apply. */
