@@ -40,8 +40,18 @@ let sessionPromise = null;
 let manifestCache = null;
 const shardCache = new Map(); // bin name -> { vec: Int8Array, meta: Array }
 
+/* The statics (index, model parts, runtime) live on the SAME origin
+   the shopper is talking to. The request's own Host is the only
+   origin that is right in every context: on deploy previews the
+   URL env var still points at production (ariashop.pe), which does
+   not carry a preview's index — the first preview build fetched
+   its runtime from production, got 404s, and never answered.
+   The env vars remain as fallbacks for non-HTTP invocations. */
+let requestOrigin = null;
+
 function siteOrigin() {
   return (
+    requestOrigin ||
     process.env.DEPLOY_PRIME_URL ||
     process.env.URL ||
     "https://ariashop.pe"
@@ -273,6 +283,8 @@ const json = (statusCode, obj) => ({
 });
 
 export async function handler(event) {
+  const host = event.headers && (event.headers.host || event.headers.Host);
+  if (host) requestOrigin = `https://${host}`;
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
