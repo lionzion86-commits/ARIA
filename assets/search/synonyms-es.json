@@ -26,7 +26,7 @@
   "clothing": {
     "polos": "t-shirt", "polo": "t-shirt", "camisetas": "t-shirt", "camiseta": "t-shirt", "polera": "t-shirt", "poleras": "t-shirt",
     "camisas": "shirt", "camisa": "shirt", "blusas": "blouse", "blusa": "blouse", "tops": "top",
-    "shorts": "shorts", "short": "shorts", "bermudas": "shorts", "bermuda": "shorts",
+    "shorts": "shorts", "short": "shorts", "shor": "shorts", "bermudas": "shorts", "bermuda": "shorts",
     "pantalones": "pants", "pantalon": "pants", "jeans": "jeans", "jean": "jeans", "vaqueros": "jeans",
     "leggings": "leggings", "licras": "leggings", "joggers": "joggers", "buzos": "joggers",
     "vestidos": "dress", "vestido": "dress", "faldas": "skirt", "falda": "skirt", "polleras": "skirt",

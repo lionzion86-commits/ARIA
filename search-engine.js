@@ -381,6 +381,13 @@ const ES_EN_WORDS = {
   pantalon: "pants",
   jean: "jeans",
   short: "shorts",
+  /* "shor" is a real catalogue word (Evisen "Shor Dialogue") with a
+     real plural family, so every typo layer refuses to correct it;
+     shoppers typing it mean shorts, so the table carries it.
+     The "shores" row is a guard: the plural rules stem "shores" to
+     "shor", so without it "shores" would be rewritten as shorts. */
+  shor: "shorts",
+  shores: "shore",
   falda: "skirt",
   vestido: "dress",
   blusa: "blouse",
