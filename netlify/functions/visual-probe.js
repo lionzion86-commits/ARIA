@@ -1,5 +1,7 @@
 // TEMPORARY diagnostic probe for the visual-search function hang.
 // Steps the cold-start sequence one stage at a time. DELETE BEFORE MERGE.
+import jpeg from "jpeg-js";
+import { PNG } from "pngjs";
 import { existsSync, writeFileSync, statSync, mkdirSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -9,7 +11,9 @@ const MODEL_PARTS = [1, 2, 3, 4].map((i) => `visual-index/model/clip-image-int8.
 const RUNTIME_DIR = "/tmp/vs-runtime";
 const RUNTIME_FILES = ["ort.wasm.bundle.min.mjs", "ort-wasm-simd-threaded.wasm", "ort-wasm-simd-threaded.mjs"];
 
-function origin() {
+function origin(event) {
+  const host = event && event.headers && (event.headers.host || event.headers.Host);
+  if (host) return `https://${host}`;
   return (process.env.DEPLOY_PRIME_URL || process.env.URL || "https://ariashop.pe").replace(/\/$/, "");
 }
 const json = (code, obj) => ({ statusCode: code, headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) });
@@ -17,7 +21,7 @@ const json = (code, obj) => ({ statusCode: code, headers: { "Content-Type": "app
 export const handler = async (event) => {
   const step = (event.queryStringParameters || {}).step || "ping";
   const t0 = Date.now();
-  const marks = { origin: origin(), step };
+  const marks = { origin: origin(event), step, jpeg: typeof jpeg.decode, png: typeof PNG };
   try {
     if (step === "ping") return json(200, { ...marks, ms: Date.now() - t0 });
     // step >= ort
@@ -25,7 +29,7 @@ export const handler = async (event) => {
     for (const f of RUNTIME_FILES) {
       const p = `${RUNTIME_DIR}/${f}`;
       if (!existsSync(p) || statSync(p).size === 0) {
-        const res = await fetch(`${origin()}/visual-index/runtime/${f}`);
+        const res = await fetch(`${origin(event)}/visual-index/runtime/${f}`);
         if (!res.ok) throw new Error(`runtime ${f} ${res.status}`);
         writeFileSync(p, Buffer.from(await res.arrayBuffer()));
       }
@@ -40,7 +44,7 @@ export const handler = async (event) => {
     if (!existsSync(MODEL_PATH) || statSync(MODEL_PATH).size !== MODEL_BYTES) {
       const chunks = [];
       for (const part of MODEL_PARTS) {
-        const res = await fetch(`${origin()}/${part}`);
+        const res = await fetch(`${origin(event)}/${part}`);
         if (!res.ok) throw new Error(`model part ${res.status}`);
         chunks.push(Buffer.from(await res.arrayBuffer()));
       }
