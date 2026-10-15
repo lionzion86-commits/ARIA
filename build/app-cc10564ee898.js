@@ -654,6 +654,7 @@ function fetchCatalogPart(url){
       .then(withoutRestrictedDepartments)
       .then(withoutUnshippableItems)
       .then(aliasEnvelopeTitles)
+      .then(repairNativeTypes)
       .then(env => {
         /* Merge on arrival: whatever is in hand is shoppable, the rest
            keeps streaming. departmentCacheData is the one canonical
@@ -681,6 +682,53 @@ function fetchCatalogPart(url){
       .catch(() => null));
   }
   return catalogSourceCache.get(url);
+}
+/* NATIVE TYPE REPAIR (2026-10-13 classification audit). Store pages
+   that render the feed's own `type` as section labels (nativeTypeGroupsFor)
+   inherited the feed's noise. New Balance's feed types 901 of 1,269 items
+   "Ropa" -- 140 of them shoes -- types the SAME product differently across
+   its copies (31 names: "FuelCell Rebel v5" is both Zapatillas and Ropa,
+   and whichever copy survived dedup decided the section), and types 47
+   items with its own brand name, which became a section called
+   "New Balance". Repaired once, here, so every surface sees one type:
+     1. one product, one type: when a product's copies disagree, a
+        footwear type wins (the shoe is never filed as clothing);
+     2. a catch-all or brand-name type on a real shoe (title noun or shoe
+        model) becomes the store's own footwear type;
+     3. a brand-name type on anything else is dropped (no section).
+   The original is kept as typeRaw. The feed still needs fixing at the
+   scraper; this keeps the shopper from seeing its mistakes meanwhile. */
+function repairNativeTypes(env){
+  for (const [rkey, r] of Object.entries((env && env.retailers) || {})){
+    const label = (r && r.label) || '';
+    const items = [];
+    for (const b of Object.values((r && r.departments) || {})) for (const it of (b && b.items) || []) if (it && typeof it === 'object') items.push(it);
+    if (!items.some(it => it.type)) continue;
+    /* The store's own word for shoes ("Zapatillas"), by count. */
+    const footTypes = new Map();
+    for (const it of items) if (it.type && isFootwearType(it.type) && !isCatchallType(it.type, label)) footTypes.set(it.type, (footTypes.get(it.type) || 0) + 1);
+    const footType = [...footTypes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    /* 1. One product, one type. */
+    const byName = new Map();
+    for (const it of items){
+      const n = String(it.title || it.name || '').trim().toLowerCase();
+      if (!n || !it.type || !isFootwearType(it.type) || isCatchallType(it.type, label)) continue;
+      if (!byName.has(n)) byName.set(n, it.type);
+    }
+    for (const it of items){
+      const n = String(it.title || it.name || '').trim().toLowerCase();
+      const ft = byName.get(n);
+      /* Only a catch-all copy is re-filed: two real types (BOOTS / SHOES)
+         are both the retailer's word and stay as they are. */
+      if (ft && it.type && it.type !== ft && isCatchallType(it.type, label) && !NOT_FOOTWEAR.test(it.title || it.name || '')){ it.typeRaw = it.type; it.type = ft; continue; }
+      if (!isCatchallType(it.type, label) || !it.type) continue;
+      /* 2. A catch-all type on a real shoe. */
+      if (footType && isFootwearLoose(it, rkey, label)){ it.typeRaw = it.type; it.type = footType; continue; }
+      /* 3. The brand's own name is not a kind of product. */
+      if (label && String(it.type).trim().toLowerCase() === String(label).trim().toLowerCase()){ it.typeRaw = it.type; delete it.type; }
+    }
+  }
+  return env;
 }
 function sourcesForRetailers(retailerKeys){
   const want = new Set((retailerKeys || []).map(k => String(k).toLowerCase()));
@@ -1606,14 +1654,21 @@ gym_rat:         { category: 'gymrat' },
    resistance trainers and zero shoes).
    ============================================================ */
 const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?)\b/;
-const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
+/* "flats" (plural) joined 2026-10-13: isShoeItem now delegates here, and
+   Walmart's "Women's Ballet Flats" would otherwise fall out of Zapatos.
+   Plural only: "Flat Front Shorts" and "Flat Back Earrings" are singular. */
+const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|flats|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
 /* CLEAT MODELS + HIKERS (2026-10-02, Danny): soccer-cleat model names
    that never say "cleat" (New Balance Tekela/Furon), FG/MG
    firm-ground/multi-ground version markers, "tacos" (Spanish for cleats),
    and hiker models — none of these tripped FOOTWEAR_TITLE, so cleats and
    hikers leaked into Gym Rat instead of living in Zapatos. Narrow on
    purpose: model names and ground markers, never bare "FG"/"MG". */
-const CLEAT_HIKER_RX = /\b(tekela|furon|tacos|hikers?|hiking)\b|\b[FM]G\s*V\d|firm[-\s]?ground|multi[-\s]?ground/i;
+/* Bare "hiking" left 2026-10-13: it is an adjective, and it admitted
+   Walmart hiking pants, a crossbody bag, a backpack, sunglasses and an
+   SSENSE "Hiking Rope Keychain" into Zapatos. Hiking boots and shoes
+   still say boot/shoe; "Hiker" stays as a model name. */
+const CLEAT_HIKER_RX = /\b(tekela|furon|tacos|hikers?)\b|\b[FM]G\s*V\d|firm[-\s]?ground|multi[-\s]?ground/i;
 /* "Sock" is a shoe STYLE as well as a garment: "Sock Sneakers" and "Sock
    Boots" are real SSENSE footwear, so the socks veto carries a negative
    lookahead and does not fire when a footwear noun follows the word. */
@@ -1627,7 +1682,7 @@ const CLEAT_HIKER_RX = /\b(tekela|furon|tacos|hikers?|hiking)\b|\b[FM]G\s*V\d|fi
    doll/toy signal, never on the footwear word, so real shoes are untouched:
    LEGO x Crocs clogs stay (no building-set/playset signal), plush mule
    slippers stay (no doll signal). */
-const NOT_FOOTWEAR = /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector)|mu[ñn]ec[ao]s?|dolls?|action\s+figures?|juguetes?|barbie|playsets?|climber|building\s+sets?|set\s+de\s+construcci[óo]n)\b/i;
+const NOT_FOOTWEAR = /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric|style)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector)|tar\s+heels|heels?\s+down|(?:brake|drum|kickstand)\s+shoes?|'?47\s+(?:clean\s+up|mvp|trucker|hitch)|dollhouses?|play\s*houses?|pretend\s+play|building\s+toys?|(?:infant|toddler|baby)\s+(?:and\s+toddler\s+)?toys?|mu[ñn]ec[ao]s?|dolls?|action\s+figures?|juguetes?|barbie|playsets?|climber|building\s+sets?|set\s+de\s+construcci[óo]n)\b/i;
 const FOOTWEAR_RETAILERS = new Set(['footlocker']);
 
 /* DEPORTES IS NOT A SHOE STORE (2026-09-24). Walmart and Target file
@@ -1646,10 +1701,16 @@ function isFootwearType(type){
   const t = String(type ?? '').toUpperCase();
   return t ? FOOTWEAR_TYPE.test(t) : false;
 }
+/* A singular "oxford" is a cloth unless something else in the title is
+   a shoe ("Men's Oxford Woven Shirt", "Regular Oxford Tops"); the plural
+   and "Oxford Shoes" stay footwear (2026-10-13). */
+const OXFORD_CLOTH_RX = /\boxford\b/i;
+const FOOTWEAR_NOUN_NOT_OXFORD = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords|flats|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
 function isFootwearTitle(title){
   const t = String(title ?? '');
   if (!t) return false;
   if (NOT_FOOTWEAR.test(t)) return false;
+  if (OXFORD_CLOTH_RX.test(t) && !FOOTWEAR_NOUN_NOT_OXFORD.test(t) && !CLEAT_HIKER_RX.test(t)) return false;
   return FOOTWEAR_TITLE.test(t) || CLEAT_HIKER_RX.test(t);
 }
 function isFootwear(item, retailer){
@@ -1670,6 +1731,57 @@ function isFootwear(item, retailer){
   if (item.type) return isFootwearType(item.type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
+}
+/* SHOE MODEL NAMES (2026-10-13 classification audit). Real shoes whose
+   titles never say "shoe": "New Balance 1906", "Nike Pegasus 41",
+   "Jordan 6 Rings", "FuelCell Rebel v5". Used where the type is missing
+   or is a catch-all ("Ropa", the brand's own name), never to overrule a
+   real published type. Bare model numbers only count on New Balance
+   (a "550" is a lot of things); an apparel noun always vetoes ("Pegasus
+   Running Shorts", "9060 Tee"). */
+const SHOE_MODEL_RX = /\b(air\s*force\s*1|air\s*max(?:\s*\d+)?|air\s*jordan|jordan\s+\d{1,2}|dunk\s+(?:low|high)|pegasus\s+(?:\d+|trail(?:\s+\d+)?|plus)|vomero|invincible\s+run|ultraboost|samba|gazelle|stan\s+smith|forum\s+low|chuck\s+taylor|old\s+skool|sk8-hi|fuel\s?cell|fresh\s?foam|gel-(?:kayano|nimbus|cumulus|1130|lyte)|speedgoat|clifton\s+\d+|bondi\s+\d+|adrenaline\s+gts)\b/i;
+const NB_MODEL_RX = /\b([a-z]{0,3}\d{3,4}v\d{1,2}|freeze\s?lx|new-b|hook\s*&\s*loop|bungee\s+lace|jamie\s+foy|coco\s+(?:cg\d|delray)|numeric|abzorb|ellipse|netrush|ac\s+runner|rx40|[pb]\d{3}(?:\s+low)?|\d{3,4}w?v?\d?\s+(?:lace|slip\s+on|bungee)|3000\s+energy|327|408|480|530|550|574|5740|57\/40|860v?\d*|880v?\d*|990v?\d*|991|992|993|996|997h?|998|1080v?\d*|1906[a-z]?|2002r|9060|ct-?rally|ct302|rc42|hierro|minimus|propel|rebel\s+v\d+|brighton\s+v\d+|tekela|furon)\b/i;
+const SHOE_MODEL_APPAREL_VETO = /\b(jackets?|anoraks?|shorts?|tees?|t-?shirts?|shirts?|hoodies?|sweatshirts?|pants?|tights?|joggers?|leggings?|bras?|socks?|hats?|caps?|headbands?|beanies?|visors?|bags?|backpacks?|duffles?|vests?|tops?(?!\s*straps?)|tanks?|singlets?|crews?|crewnecks?|pullovers?|half[-\s]zip|quarter[-\s]zip|sweaters?|gloves?|jerseys?|skirts?|dress(?:es)?|bottles?|keychains?|posters?|figures?|toys?|fleece|windbreakers?|parkas?|blazers?)\b/i;
+function isShoeModel(item, retailer){
+  const title = String((item && (item.title || item.name)) || '');
+  if (!title || SHOE_MODEL_APPAREL_VETO.test(title) || NOT_FOOTWEAR.test(title)) return false;
+  if (SHOE_MODEL_RX.test(title)) return true;
+  const nb = retailer === 'newbalance' || /\bnew\s+balance\b/i.test(String((item && item.brand) || '') + ' ' + title);
+  return nb && NB_MODEL_RX.test(title);
+}
+/* A type that names no product kind: the catch-all "Ropa", or the
+   store's own brand ("New Balance" typed 47 of its own items). */
+const CATCHALL_TYPE_RX = /^(ropa|ropa deportiva|clothing|apparel|general|todo|otros?|other|misc\.?|new balance)$/i;
+function isCatchallType(type, retailerLabel){
+  const t = String(type || '').trim();
+  if (!t) return true;
+  if (CATCHALL_TYPE_RX.test(t)) return true;
+  return !!retailerLabel && t.toLowerCase() === String(retailerLabel).trim().toLowerCase();
+}
+/* Footwear for classifiers that must not lose a model-name shoe filed
+   under a catch-all type (M1, the native-type repair). A real published
+   type still settles it, exactly as isFootwear does. */
+/* An "Accesorios ..." type is a bucket, not a kind: Dick's files
+   "adidas Samba Messi Indoor Soccer Shoes" under "Accesorios de futbol". */
+const BUCKET_TYPE_RX = /^(accesorios|accessories|accessory)\b/i;
+function isFootwearLoose(item, retailer, retailerLabel){
+  if (!item || typeof item !== 'object') return false;
+  const title = item.title || item.name || '';
+  if (NOT_FOOTWEAR.test(title)) return false;
+  /* The room vetoes too: a shoe box, a statue, a "Bodysuit, Pant and
+     Shoe Set". */
+  if (typeof NOT_FOOTWEAR_RX !== 'undefined' && NOT_FOOTWEAR_RX.test(title)) return false;
+  if (item.type && !isCatchallType(item.type, retailerLabel) && !BUCKET_TYPE_RX.test(String(item.type).trim())) return isFootwearType(item.type);
+  if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
+  /* With no real type to lean on, a garment noun outranks a weak shoe
+     word ("Pacific Rib Slide Tri Top", "Veeco Oxford LS Shirt"); a
+     strong one ("Sock Sneakers", "Running Shoes") still wins. */
+  const strongShoe = /\b(shoes?|sneakers?|boots?|booties|sandals?|cleats?|loafers?|clogs?|slippers?|zapatillas?|zapatos?)\b/i.test(title);
+  if (SHOE_MODEL_APPAREL_VETO.test(title) && !strongShoe) return false;
+  /* A singular "oxford" with no shoe noun is the cloth ("Oxford Woven",
+     "Oxford Stripe Classic SS"). */
+  if (/\boxford\b/i.test(title) && !strongShoe) return false;
+  return isFootwearTitle(title) || isShoeModel(item, retailer);
 }
 /* ============================================================
    IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)
@@ -12292,27 +12404,65 @@ const LATINO_DESIGNER_KEYS = new Set(LATINO_DESIGNERS_SPEC.map(r => r.key));
    so simple." Product type is the PRIMARY navigation: shoppers tap
    what they want (swim, shoes, bags...) and see it across ALL
    designers. Brand pills stay as the secondary filter.
-   Classification is keyword-driven off the English product name.
-   Order matters: swim/bags/jewelry/shoes/hats/accessories are
-   checked before the ropa default catches everything else.
+   CLASSIFICATION TRUTH (2026-10-13 audit). This used to be raw
+   substring matching on the name, jewelry before shoes: "Jordan 6
+   Rings" was Joyas, "Spring Dish Towels" and Charmin were Joyas,
+   "Shattered" decals and "Captain America" were Sombreros, "Baggy
+   Jeans" were Carteras, a Ferris-wheel frame was Zapatos (heel in
+   "wheel"). Now, the Ofertas classifier's discipline:
+     1. the item's own type field, when it names a kind;
+     2. FOOTWEAR FIRST -- isFootwear's vetoes and type check, plus the
+        shoe-model dictionary for catch-all types (isFootwearLoose);
+     3. whole words only, each kind with its own vetoes;
+     4. Ropa is what is left.
    ============================================================ */
 const LATINO_PRODUCT_TYPES = [
-  { key: 'trajes_bano', label: 'Trajes de Baño', keywords: ['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
-  { key: 'carteras',    label: 'Carteras y mochilas', keywords: ['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
-  { key: 'joyas',       label: 'Joyas',       keywords: ['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
-  { key: 'zapatos',     label: 'Zapatos',     keywords: ['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
-  { key: 'sombreros',   label: 'Sombreros',   keywords: ['hat','cap','beanie','fedora','visor'] },
-  { key: 'accesorios',  label: 'Accesorios',  keywords: ['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
-  { key: 'ropa',        label: 'Ropa',        keywords: [] },
+  { key: 'trajes_bano', label: 'Trajes de Baño',
+    rx: /\b(bikinis?|swimsuits?|swimwear|swim\s+(?:trunks?|shorts?|tops?|bottoms?|briefs?)|one[-\s]piece\s+swim\w*|two[-\s]piece\s+swim\w*|rash\s*guards?|tankinis?|monokinis?|trikinis?|beachwear|ba[ñn]adores?|trajes?\s+de\s+ba[ñn]o)\b/i,
+    type: /swim|ba[ñn]o|bikini|beachwear/i },
+  { key: 'carteras',    label: 'Carteras y mochilas',
+    rx: /\b(bags?|handbags?|purses?|totes?|clutch(?:es)?|backpacks?|crossbody|cross-body|satchels?|carteras?|bolsos?|mochilas?)\b/i,
+    /* Non-fashion bags, and tienda.html's grocery guards (2026-10-08):
+       "3 lb Bag onions", "110 Ct Bulk Bag candy", "Bags Per Box". */
+    not: /\b(sleeping|tea|bean|punching|heavy|trash|garbage|gift|storage|vacuum|freezer|sandwich|laundry|diaper|zip(?:lock)?|ice|shoe|dust|bulk|resealable)\s+bags?\b|\bbag\s+(?:clips?|chairs?)\b|\btote\s+bins?\b|\b(?:party|fun)\s+size\s+bags?\b|\bvariety\s+pack\s+bags?\b|\b\d[\d.,]*\s*(?:oz|lb|lbs|pounds?|ct|count)\b[^a-z]{0,25}\bbags?\b|\bbags?\s+per\s+box\b|\b(?:candy|gumm(?:y|ies|i)|chocolate|chips|onions?|croutons?|salts?|snacks?|popcorn|pretzels?|raisins?|licorice|taffy|skittles|snickers|twix|haribo)\b[^.\n]{0,60}\bbags?\b/i,
+    type: /\bbags?\b|handbag|bolso|cartera|mochila|purse|backpack|clutch|\btotes?\b/i },
+  { key: 'joyas',       label: 'Joyas',
+    rx: /\b(jewelry|jewellery|joyer[ií]a|bisuter[ií]a|earrings?|aretes?|necklaces?|collares?|bracelets?|pulseras?|rings?|anillos?|pendants?|colgantes?|charms?|dijes?|anklets?|tobilleras?|brooch(?:es)?|broches?|bangles?|chokers?)\b/i,
+    not: /\b(candle|napkin|curtain|shower|key|teething|onion|boxing|binder|o)[-\s]+rings?\b|\brings?\s+(?:lights?|doorbells?|binders?|slings?|toss|cameras?|holders?)\b|\bcharm(?:in|ing)\b|\bpet\b|\bdog\b|\b(?:mu[ñn]ec[ao]s?|dolls?|barbie)\b/i,
+    type: /jewel|joy|bisuter|earring|necklace|bracelet|\brings?\b|anillo|pendant/i },
+  { key: 'zapatos',     label: 'Zapatos', type: null, rx: null },
+  { key: 'sombreros',   label: 'Sombreros',
+    rx: /\b(hats?|caps?|beanies?|fedoras?|visors?|snapbacks?|bucket\s+hats?|sombreros?|gorras?|gorros?|boinas?|berets?)\b/i,
+    not: /\bcap[-\s]sleeves?\b|\bcap[-\s]toe\b|\b(?:bottle|lens|hub|knee|toe|valve|end|gas)\s+caps?\b|\bhat\s+(?:racks?|boxes?|stands?)\b/i,
+    type: /\bhats?\b|\bcaps?\b|sombrero|gorr|beanie|headwear/i },
+  { key: 'accesorios',  label: 'Accesorios',
+    rx: /\b(scarf|scarves|bufandas?|belts?|cinturones?|sunglasses|lentes\s+de\s+sol|gafas\s+de\s+sol|wallets?|billeteras?|gloves?|guantes?|shawls?|chales?|pareos?|sarongs?|hair\s+clips?|headbands?|vinchas?)\b/i,
+    not: /\b(seat|timing|serpentine|garter|tool|weight|lifting)\s+belts?\b|\bbelt\s+(?:sanders?|drives?|loops?\s+tool)\b|\b(oven|garden|work|boxing|bike|golf|gardening)\s+gloves?\b/i,
+    type: /accessor|accesorio|scarf|\bbelts?\b|sunglass|wallet|gloves?/i },
+  { key: 'ropa',        label: 'Ropa', type: null, rx: null },
 ];
 const LATINO_TYPE_KEYS = new Set(LATINO_PRODUCT_TYPES.map(r => r.key));
 
 function latinoProductTypeOfItem(item){
-  const n = String(item?.name || '').toLowerCase();
-  for (const t of LATINO_PRODUCT_TYPES){
-    if (!t.keywords.length) continue;
-    if (t.keywords.some(k => n.includes(k))) return t.key;
+  const name = String(item?.name || item?.title || '');
+  const retailer = item?.retailer ? String(item.retailer).toLowerCase() : '';
+  const type = String(item?.type || '').trim();
+  /* 2. Footwear first: a published footwear type, a shoe title, or a
+     shoe model under a catch-all type. Its vetoes (socks, shoelaces,
+     bootcut, dolls) apply. */
+  if (isFootwearLoose(item, retailer)) return 'zapatos';
+  /* 1. A type that names a kind settles it. */
+  if (type && !isCatchallType(type)){
+    for (const t of LATINO_PRODUCT_TYPES){
+      if (t.type && t.type.test(type)) return t.key;
+    }
   }
+  /* 3. Whole words, with each kind's vetoes. */
+  for (const t of LATINO_PRODUCT_TYPES){
+    if (!t.rx) continue;
+    if (t.rx.test(name) && !(t.not && t.not.test(name))) return t.key;
+  }
+  /* 4. What is left. */
   return 'ropa';
 }
 
@@ -14909,8 +15059,13 @@ function nativeTypeGroupsFor(retailerData){
   }
   if (typed < items.length * 0.5) return null;
   if (nativeLooking < typed * 0.7) return null;
+  /* The store's own name is never a section (2026-10-13: NB showed a
+     "New Balance" section). repairNativeTypes drops these at load; this
+     is the second lock. */
+  const storeLabel = String(retailerData?.label || '').trim().toLowerCase();
   const entries = [...groups.entries()]
     .filter(([t]) => t !== t.toUpperCase())
+    .filter(([t]) => !storeLabel || t.trim().toLowerCase() !== storeLabel)
     .sort((a, b) => b[1].length - a[1].length);
   if (entries.length < 2) return null;
   return entries;
@@ -15032,6 +15187,7 @@ function isKidsItem(it){
 const KIDS_APPAREL_RX = /\bdress(es)?\b|\bshirt\b|\bt-shirt\b|\btee\b|\btop\b|\bblouse\b|\bskirt\b|\bpants\b|\bjeans\b|\bleggings\b|\bshorts\b|\bjacket\b|\bhoodie\b|\bsweater\b|\bcoat\b|\bpajamas?\b|\bswimsuit\b|\bbikini\b|\bonesie\b|\bbodysuit\b|\bromper\b|\boveralls\b|\buniform\b|\bcostume\b/i;
 function isKidsFashionItem(it){
   if (!isKidsItem(it)) return false;
+  if (isShoeForFashionRooms(it)) return false;
   const name = String(it.title || it.name || '');
   if (/\bbaby\s*doll\b/i.test(name)) return false;
   if (/\bdoll\b/i.test(name)) return false; /* dolls are toys, not fashion */
@@ -15076,9 +15232,19 @@ function isToyItem(it){
   const depts = ((it && it.departments) || []).map(String);
   return depts.some(d => /toy|juguete/i.test(d));
 }
+/* CLOTHES ROOMS HOLD NO SHOES (2026-10-13 audit): the gender words that
+   admit a dress also admit "Women's Ankle Boots" -- 190 of Walmart's 611
+   Ropa de Hombre items and 122 of its 498 Ropa de Mujer were shoes. The
+   shoes have their own rooms (Zapatos de Hombre / Mujer / Ninos). */
+function isShoeForFashionRooms(it){
+  /* Loose: a model-name shoe ("1906R Pink Black U1906RMD Men's") is a
+     shoe here too, even with no shoe noun in the title. */
+  return isFootwearLoose(it, it && it.retailer ? String(it.retailer).toLowerCase() : '');
+}
 function isWomenFashionItem(it){
   const name = String(it.title || it.name || '');
   if (isKidsItem(it)) return false; /* Danny 2026-09-30: no kids in Moda Mujer */
+  if (isShoeForFashionRooms(it)) return false;
   if (typeof FRAGRANCE_RX !== 'undefined' && FRAGRANCE_RX.test(name)) return false; /* Danny 2026-10-03: fragrances are grooming */
   if (!WOMEN_FASHION_RX.test(name)) return false;
   if (WOMEN_NON_APPAREL_RX.test(name)) return false;
@@ -15110,6 +15276,7 @@ const FRAGRANCE_RX = /\b(cologne|colognes|fragrance|fragrances|perfume|perfumes|
 function isMenFashionItem(it){
   const name = String(it.title || it.name || '');
   if (isKidsItem(it)) return false;
+  if (isShoeForFashionRooms(it)) return false;
   if (FRAGRANCE_RX.test(name)) return false; /* Danny 2026-10-03 */
   if (!MEN_MARKER.test(name)) return false;
   if (WOMEN_NON_APPAREL_RX.test(name)) return false;
@@ -15147,11 +15314,17 @@ const FOOTWEAR_RX = /\bshoes?\b|\bsneakers?\b|\btennis\s+shoes?\b|\bboots?\b|\bs
    were rendering in ZAPATOS because doll accessories mention shoes. Dolls
    belong in Juguetes -- muñeca/muñeco/doll/action figure/juguete disqualify. */
 const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b|\bsocks?\b|\bflat\s+front\b|\b(statue|figurine|sculpture)\b|\b(muñec[ao]s?|dolls?|action\s+figures?|juguetes?)\b/i;
+/* ONE FOOTWEAR BRAIN (2026-10-13 audit). This read the title only and
+   ignored the item's type, so New Balance's "'47 Clean Up NB Athletic
+   Shoe" cap (type Ropa) was a shoe, "Flat Back Earrings" were flats, and
+   boot-cut jeans and an Oxford shirt slipped past its short veto list.
+   It now asks isFootwear -- the type first, its full veto list -- and
+   keeps its own room vetoes (shoe boxes, statues, 3-piece baby sets). */
 function isShoeItem(it){
+  if (!it) return false;
   const name = String(it.title || it.name || '');
-  if (!FOOTWEAR_RX.test(name)) return false;
   if (NOT_FOOTWEAR_RX.test(name)) return false;
-  return true;
+  return isFootwear(it, it.retailer ? String(it.retailer).toLowerCase() : '');
 }
 function hasRealImage(it){
   /* Danny 2026-09-30: no product without a real image. "Foto en camino" is not an image.
