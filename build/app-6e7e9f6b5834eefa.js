@@ -34448,3 +34448,179 @@ function speakWithAria(audioBase64, ariaText){
     // the text reply is already visible in the chat
   }
 }
+
+/* ============================================================
+   BÚSQUEDA POR FOTO (2026-10-15, Danny — Phase 2 visual search)
+   ------------------------------------------------------------
+   The shopper photographs or picks a picture of a product; the
+   photo is embedded server-side (/.netlify/functions/visual-search)
+   with the same CLIP model that embedded the catalogue, and the
+   closest products in OUR catalogue come back as ordinary Aria
+   cards — same renderer, same prices, same product page, same
+   size gate. Nothing about the photo leaves the function call:
+   it is never stored, and the index itself is only ever fetched
+   by the function, never by the phone, so this adds no weight to
+   page load.
+   ============================================================ */
+let visualSearchBusy = false;
+
+function openVisualSearch(source){
+  const input = document.getElementById(source === 'assistant' ? 'visualFileAssistant' : 'visualFileSearch');
+  if (input) input.click();
+}
+
+function onVisualFileChosen(input, source){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  runVisualSearch(file, source);
+}
+
+/* Downscale on the phone before upload: the function only needs
+   enough pixels to recognise the product, and a 512px JPEG keeps
+   the request near 100 KB instead of a multi-megabyte original. */
+function visualPhotoPayload(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const max = 512;
+        const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * scale));
+        const h = Math.max(1, Math.round(img.naturalHeight * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ base64: dataUrl.split(',')[1], previewUrl: dataUrl });
+      } catch (e) { reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load')); };
+    img.src = url;
+  });
+}
+
+function addAssistantPhotoBubble(previewUrl){
+  const wrap = document.getElementById('assistantMessages');
+  const bubble = document.createElement('div');
+  bubble.className = 'ariaChatMsg max-w-[85%] ml-auto rounded-2xl rounded-br-sm p-1.5';
+  bubble.style.background = 'var(--blue)';
+  bubble.innerHTML = `<img src="${previewUrl}" alt="Tu foto" class="rounded-xl max-h-44 w-auto ml-auto">`;
+  wrap.appendChild(bubble);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function runVisualSearch(file, source){
+  if (visualSearchBusy) return;
+  visualSearchBusy = true;
+  try {
+    const { base64, previewUrl } = await visualPhotoPayload(file);
+    if (source === 'assistant'){
+      addAssistantPhotoBubble(previewUrl);
+      showAssistantTyping();
+      setAssistantTypingLabel('Buscando productos parecidos a tu foto…');
+      setOrbState('thinking');
+    } else {
+      showToast('Buscando productos parecidos a tu foto…');
+    }
+    const res = await fetch('/.netlify/functions/visual-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64 }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || !Array.isArray(data.items))
+      throw new Error((data && data.error) || `http ${res.status}`);
+    if (source === 'assistant'){
+      hideAssistantTyping();
+      setOrbState('idle');
+      if (!data.items.length){
+        addAssistantNote('No encontré nada parecido a esa foto en nuestro catálogo. Prueba con otra foto o escríbeme qué buscas.');
+      } else {
+        /* HONEST FRAMING (Danny, 2026-10-15): a similar item is
+           never presented as the photographed model. The function
+           tiers the results (exact model / same brand / similar
+           style) and the words match the tier — the exact claim is
+           made only when the exact tier came back non-empty. */
+        const brand = data.brand || 'la misma marca';
+        addAssistantMessage('bot',
+          data.framing === 'exact'
+            ? 'Encontré ese modelo en nuestro catálogo:'
+            : data.framing === 'similar-brand'
+              ? `No encontré ese modelo exacto, pero aquí tienes modelos similares de ${brand}:`
+              : 'No encontré ese modelo exacto, pero aquí tienes versiones similares:',
+          null, { speak: false });
+        let lastTier = data.items[0].tier || 3;
+        for (const item of data.items){
+          const tier = item.tier || 3;
+          if (tier !== lastTier){
+            addAssistantNote(tier === 2
+              ? 'También de la misma marca:'
+              : 'Otras versiones similares:');
+            lastTier = tier;
+          }
+          addAssistantProductCard(item, item.retailer);
+        }
+      }
+    } else {
+      showVisualResults(data.items, data);
+    }
+  } catch (e) {
+    console.error('[visual-search]', e);
+    if (source === 'assistant'){
+      hideAssistantTyping();
+      setOrbState('idle');
+      addAssistantNote('No pude buscar con esa foto. Prueba con otra foto o escríbeme qué buscas.');
+    } else {
+      showToast('No pudimos buscar con esa foto. Inténtalo de nuevo.');
+    }
+  } finally {
+    visualSearchBusy = false;
+  }
+}
+
+/* The photo results land in the same results view as a text
+   search — same cards, same product page — in similarity order
+   (the one thing the text renderer would not preserve: it
+   re-sorts by sales and match score, which would scramble the
+   photo ranking, so this painter keeps the function's order and
+   borrows everything else). */
+function showVisualResults(items, verdict){
+  pushRoute({ view: 'resultsView', q: 'Búsqueda por foto' });
+  showPage('resultsView');
+  const input2 = document.getElementById('searchInput2');
+  if (input2) input2.value = '';
+  document.getElementById('prodName').textContent = 'Búsqueda por foto';
+  document.getElementById('prodNameBig').textContent = 'Búsqueda por foto';
+  /* Same honesty rule as the assistant: the exact claim appears
+     only when the function's exact tier found the model. */
+  document.getElementById('prodSpec').textContent =
+    verdict && verdict.framing === 'exact'
+      ? 'Encontramos ese modelo en el catálogo'
+      : verdict && verdict.framing === 'similar-brand'
+        ? `No encontramos ese modelo exacto · Modelos similares de ${verdict.brand || 'la misma marca'} y otras versiones parecidas`
+        : 'No encontramos ese modelo exacto · Te mostramos versiones similares';
+  liveScrapeQuery = '__visual__';
+  liveSearchState = 'idle';
+  catalogMatch = null;
+  liveSearchFailures = [];
+  searchResults = items.slice();
+  searchVisible = SEARCH_PAGE_SIZE;
+  searchRendered = items.slice(0, searchVisible);
+  const wrap = document.getElementById('liveResultsWrap');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = items.length
+    ? searchRendered.map((p, i) => productCardHTML(p, { open: `openSearchProduct(${i})`, dark: true })).join('')
+    : emptySearchFeedHTML();
+  document.getElementById('resultCount').textContent = items.length
+    ? `${items.length} producto${items.length === 1 ? '' : 's'} parecido${items.length === 1 ? '' : 's'} a tu foto · el flete y los aranceles se calculan en el checkout`
+    : 'No encontramos nada parecido a esa foto en nuestro catálogo.';
+  const moreWrap = document.getElementById('searchMoreWrap');
+  if (moreWrap){ moreWrap.classList.add('hidden'); moreWrap.innerHTML = ''; }
+  const onDemand = document.getElementById('searchOnDemandWrap');
+  if (onDemand) onDemand.innerHTML = '';
+  updateResultsFilterBadge();
+  window.scrollTo(0, 0);
+}
