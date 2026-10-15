@@ -11624,6 +11624,25 @@ function openBolsosProduct(idx){
     { brand: p.brand, dutiableUsd: p.dutiableUsd ?? null });
 }
 
+/* PERF (2026-10-15, Danny): the four luxury rails (Bolsos, Joyas,
+   Joyas de Lujo, Moda) no longer load the full catalogue at boot.
+   Each paints when its section nears the viewport -- the Fiestas
+   pattern above -- so a plain homepage session never pays the
+   63-file fetch + parse that was pushing phones over the memory
+   limit. A rail above the fold intersects immediately and paints
+   at once; without IntersectionObserver the paint is immediate,
+   exactly as before. */
+function paintRailWhenNear(anchor, paint){
+  if (anchor && 'IntersectionObserver' in window){
+    const io = new IntersectionObserver((es) => {
+      es.forEach(e => { if (e.isIntersecting){ io.disconnect(); paint(); } });
+    }, { rootMargin: '1000px 0px' });
+    io.observe(anchor);
+  } else {
+    paint();
+  }
+}
+
 function initBolsosRail(){
   if (bolsosStarted) return;
   const rows = [...document.querySelectorAll('[data-bolsos-rail]')];
@@ -11648,9 +11667,9 @@ function initBolsosRail(){
       }
     } catch { /* a failed cache leaves headers standing, cards absent */ }
   };
-  /* EAGER (2026-09-30, Danny): the luxury rails paint on boot, never on a
-     scroll trigger that can silently never fire. */
-  loadAndPaint();
+  /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
+     the full catalogue no longer loads at boot for this rail. */
+  paintRailWhenNear(document.querySelector('[data-bolsos-section]') || rows[0], loadAndPaint);
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
 /* JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
@@ -11721,9 +11740,9 @@ function initJoyasRails(){
       }
     } catch { /* failed cache leaves headers standing, cards absent */ }
   };
-  /* EAGER (2026-09-30): the rail paints on boot, never on a scroll trigger
-     that can silently never fire. */
-  loadAndPaint();
+  /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
+     the full catalogue no longer loads at boot for this rail. */
+  paintRailWhenNear(document.querySelector('[data-joyas-section]') || rows[0], loadAndPaint);
 }
 function openJoyasProduct(styleKey, idx){
   openRailProduct((joyasRendered[styleKey] || [])[idx]);
@@ -11805,9 +11824,9 @@ function initJoyasLujoRail(){
       }
     } catch { /* failed cache leaves headers standing */ }
   };
-  /* EAGER (2026-09-30, Danny): the luxury rails paint on boot, never on a
-     scroll trigger that can silently never fire. */
-  loadAndPaint();
+  /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
+     the full catalogue no longer loads at boot for this rail. */
+  paintRailWhenNear(document.querySelector('[data-joyas-lujo-section]') || rows[0], loadAndPaint);
 }
 function openJoyasLujoProduct(idx){
   openRailProduct(joyasLujoRendered[idx]);
@@ -11888,9 +11907,9 @@ function initModaRail(){
       }
     } catch { /* failed cache leaves headers standing */ }
   };
-  /* EAGER (2026-09-30, Danny): the luxury rails paint on boot, never on a
-     scroll trigger that can silently never fire. */
-  loadAndPaint();
+  /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
+     the full catalogue no longer loads at boot for this rail. */
+  paintRailWhenNear(document.querySelector('[data-moda-section]') || rows[0], loadAndPaint);
 }
 function openModaProduct(idx){
   openRailProduct(modaRendered[idx]);
@@ -28543,12 +28562,18 @@ async function greetAssistantStreaming(){
      back. A shopper who opens the chat and wanders off costs
      thirty-five seconds, not thirty minutes.
 
-     STARTED FROM THE OPEN, WHICH IS A GESTURE. toggleAssistant runs
-     inside the tap that opened the panel, so the AudioContext can be
-     unlocked here — iOS only honours resume() while a gesture is on
-     the stack. A call started any other way would connect and be
-     silent, which is the bug this whole file has a history of. */
-  startRealtimeOnOpen();
+     NOT STARTED FROM THE OPEN ANY MORE (2026-10-15, Danny: voice
+     starts on the mic tap). Opening the panel used to start the call
+     right here, and on a page already holding the full catalogue that
+     increment is what pushed phones over the memory limit — Safari
+     killed the page mid-open. The panel now opens quiet: the mic is
+     set to its call-ready state and the call connects inside the
+     mic tap instead (toggleAriaVoice), which is also a gesture, so
+     the iOS audio unlock still happens with a tap on the stack. When
+     the call connects, session.updated fires sendRealtimeGreeting —
+     she still says hello first, just once the shopper has actually
+     asked to talk. */
+  setAssistantMicCallReady();
 }
 
 /* Open the call that the greeting is spoken through.
@@ -31881,7 +31906,15 @@ function ariaWarmRealtimeToken(){
    a ReferenceError there would be thrown inside the tap that opens
    the chat. Warming is an optimisation; it may never break the open. */
 function ariaWarmOnIntent(){
-  try { ariaWarmRealtimeToken(); } catch (e) {}
+  /* NO LONGER WARMS (2026-10-15, Danny: voice starts on the mic tap).
+     Intent on the launcher used to mint the realtime token here, so
+     merely opening the panel cost a token fetch and primed a call
+     the shopper never asked for. The token now mints inside the mic
+     tap itself — startRealtimeVoice falls back to minting when none
+     is cached, which is the path the retry button already used. The
+     function stays defined (as a no-op) because the launcher's inline
+     handlers call it by name, and a ReferenceError inside the tap
+     that opens the chat must never happen. */
 }
 
 /* How long a "disconnected" peer connection is given to come back
