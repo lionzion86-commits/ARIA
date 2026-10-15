@@ -255,6 +255,23 @@ export function pricingSlice() {
         throw new Error(`normalizeLiveItem priced a taxable retailer at ${priced.price}, expected ${want}`);
       }
       if (api.freightUsd(2) !== 26) throw new Error("freight is no longer 2kg -> $26 at $13/kg");
+      /* A sale item, on purpose (2026-10-14): the one-sale-definition
+         rule compares a discount against OFERTAS_MAX_DISCOUNT_PCT at
+         call time. A probe that only normalises full-price items never
+         reaches that comparison, so the resolver never pulls the
+         constant into the slice, and the catalogue build then throws
+         it away item by item — the same failure shape as the Macy's
+         image branch above. */
+      const salePriced = api.normalizeLiveItem(
+        {
+          title: "Nike Club Fleece Hoodie",
+          price: 50,
+          originalPrice: 100,
+          image: "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/37875082_fpx.tif?wid=600&qlt=85&fmt=jpeg",
+        },
+        { retailer: "macys", department: "clothing" },
+      );
+      if (!salePriced || !(salePriced.price > 0)) throw new Error("normalizeLiveItem produced no price for a sale item");
     },
   });
 }

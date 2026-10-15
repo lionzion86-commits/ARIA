@@ -348,7 +348,11 @@ await (async () => {
   };
   const src = ["var RAIL_MAX = 20, RAIL_MIN = 4, DEEP = 30;", lift("function brandKey("), lift("function pct("), lift("function onSale("),
     lift("function hasPic("), lift("function bestSeller("), lift("function baseName("), lift("function curate(")].join("\n");
-  const curate = new Function(src + "\nreturn curate;")();
+  /* The page reads its sale rule from sale-rule.js (index.html's one
+     definition); the stub window carries the real file. */
+  const win = {};
+  new Function("window", readFileSync(ROOT + "sale-rule.js", "utf8"))(win);
+  const curate = new Function("window", src + "\nreturn curate;")(win);
   const mk = (t, p, o, extra = {}) => ({ t, b: extra.b || "Brand", r: "x", p, o, img: "https://x/" + t + ".jpg", rt: extra.rt || 0, rc: extra.rc || 0, ...extra });
   const list = [
     mk("Full price best seller", 20, 0, { rt: 5, rc: 9000 }),
