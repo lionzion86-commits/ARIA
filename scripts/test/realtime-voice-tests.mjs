@@ -1241,23 +1241,34 @@ check("the chat opens quiet when live voice is the mode", () => {
   }
   const body = page.slice(at, end + 1);
 
-  /* SHE GREETS IN HER OWN VOICE, AND THE CALL IS ALREADY LIVE
-     (2026-10-06). This test has now held three different designs, and
-     the reasoning is worth keeping straight.
+  /* SHE GREETS IN HER OWN VOICE — BUT ONLY ONCE THE SHOPPER ASKS
+     FOR A CALL (2026-10-15). This test has now held four designs,
+     and the reasoning is worth keeping straight.
 
      First the greeting was spoken by the old TTS engine, because a
-     hello every shopper hears is realtime minutes burnt before a word
-     is said. Then it was removed, misreading Danny's complaint about
-     the muted mic as a complaint about the greeting. Then it came
-     back, still on the old engine.
+     hello every shopper hears is realtime minutes burnt before a
+     word is said. Then it was removed, misreading Danny's complaint
+     about the muted mic as a complaint about the greeting. Then it
+     came back, still on the old engine. Then (2026-10-06) the call
+     started itself on panel open so she could greet in her real
+     voice, and Danny accepted the minutes it burnt from chat open.
 
-     That engine is deleted now, so the choice is a greeting in her
-     real voice or no greeting, and he picked the first and accepted
-     the cost: "Yes, this burns Realtime minutes from chat open. Danny
-     accepts this." What bounds the cost is the five-minute cap and
-     the thirty-five second hang-up, which are asserted elsewhere. */
-  assert.match(body, /startRealtimeOnOpen\(\);/,
-    "the chat opens without starting the call — she cannot greet out loud");
+     What changed his mind was the crash: on a phone, opening the
+     panel started a WebRTC call on top of a page already holding
+     the whole catalogue, and iOS killed the tab. His ruling,
+     2026-10-15: voice starts on the mic tap. So open paints the mic
+     call-ready and starts NOTHING — no token fetch, no connection.
+     The greeting is not lost: it fires from inside the call on
+     session.updated, so a call the tap starts greets exactly as
+     before, and the burnt minutes are minutes a shopper asked for. */
+  assert.ok(!/startRealtimeOnOpen\(\);/.test(body),
+    "opening the chat starts the call again — Danny killed that on 2026-10-15");
+  /* …and the starter has no callers left anywhere in the page code,
+     so no other open path can sneak the call back in. (Comments
+     stripped: the history may name it; the code may not call it.) */
+  const pageCode = page.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  assert.equal((pageCode.match(/startRealtimeOnOpen\(\)/g) || []).length, 1,
+    "something besides the definition still calls startRealtimeOnOpen");
   /* AND ON A REOPEN TOO. Both the written greeting and the call used
      to hang off "is the message list empty", which is only true on the
      very first open: reopening the panel started nothing at all.
@@ -1308,13 +1319,14 @@ check("the chat opens quiet when live voice is the mode", () => {
   assert.match(body, /if \(ariaClassicVoiceOnly\(\)\) assistantReplyHasTappables = true;/,
     "the greeting still arms the mic-off cue in live-voice mode");
   /* …and the button invites a call, not dictation. */
-  /* THE BUTTON IS A HANG-UP FROM THE FIRST SECOND NOW. It used to be
-     painted "call-ready" because a tap was what started the call;
-     the call starts itself, so setRealtimeUi owns the button and
-     painting it call-ready here would be painting a state that is
-     already over. */
-  assert.ok(!/setAssistantMicCallReady\(\)/.test(body),
-    "the chat open still paints a call-ready button for a call that has already started");
+  /* THE BUTTON IS CALL-READY FROM THE FIRST SECOND NOW (2026-10-15).
+     While the call started itself on open, setRealtimeUi owned the
+     button and painting it call-ready at open would have painted a
+     state already over. With voice on the mic tap, call-ready is
+     the true state at open: nothing is connected, and the button
+     says exactly that. */
+  assert.match(body, /setAssistantMicCallReady\(\);/,
+    "the chat no longer paints the mic call-ready on open");
   const ready = page.slice(page.indexOf("function setAssistantMicCallReady()"));
   assert.match(ready.slice(0, 800), /aria-label', 'Llamar a Aria'/, "the call button does not say it calls");
   assert.ok(!/Toca el micrófono para hablar/.test(ready.slice(0, 800)),
@@ -4088,11 +4100,21 @@ await checkAsync("two taps during the handshake open one call, not two", async (
    The floor is the cheapest possible detector: a suite that shrinks
    has to say so. Raise it when tests are added; it is not meant to
    track the count exactly, only to catch a collapse. */
-check("the token is minted on intent, once, and spent once", () => {
-  /* The call used to begin with an awaited POST to our own function.
-     On a cold Netlify function that is most of the wait between
-     tapping the orb and hearing her, and none of it depends on the
-     tap. It is minted on pointerdown now. */
+check("the token is minted on the mic tap, once, and spent once", () => {
+  /* The token used to be minted on intent — pointerdown on the
+     launcher — because the call began with an awaited POST to our
+     own function, and on a cold Netlify function that was most of
+     the wait between tapping the orb and hearing her. Danny killed
+     intent-minting on 2026-10-15, together with the call-on-open it
+     served: minting for every shopper who so much as touched the
+     launcher primed calls nobody asked for, on the page whose
+     memory cost was already crashing phones. The mint now happens
+     inside the mic tap; the cold-function wait is paid there
+     instead, by the one shopper who actually wants a call. What
+     must NOT change is the discipline below: a token counts as
+     usable only while truly alive, concurrent mints share a single
+     flight, and the start path spends the cache rather than
+     replaying a consumed secret. */
   const page = pageHtml();
   const tStart = page.indexOf("const TOKEN_MIN_LIFE_MS");
   const tEnd = page.indexOf("function ariaWarmOnIntent(){");
@@ -4122,11 +4144,11 @@ check("the token is minted on intent, once, and spent once", () => {
   assert.equal(api.usable(null, now), false, "no token at all reads as usable");
   assert.equal(api.usable({ mint: {} , minted: now }, now), false, "a reply with no token reads as usable");
 
-  /* SINGLE FLIGHT. pointerdown warms it and the click that follows
-     asks again a few milliseconds later, while the first mint is
-     still in the air. Two mints would be two secrets and one wasted
-     function invocation. The in-flight promise is assigned
-     synchronously, so this is testable without awaiting. */
+  /* SINGLE FLIGHT. A double-tap on the mic — or the tap racing the
+     retry path — asks twice while the first mint is still in the
+     air. Two mints would be two secrets and one wasted function
+     invocation. The in-flight promise is assigned synchronously,
+     so this is testable without awaiting. */
   api.warm();
   api.warm();
   assert.equal(fetches, 1, "warming twice mints two tokens — pointerdown and click would each pay for one");
@@ -4138,14 +4160,29 @@ check("the token is minted on intent, once, and spent once", () => {
   assert.match(sBody, /const got = await ariaWarmRealtimeToken\(\);[\s\S]{0,400}ariaTokenCache = null;/,
     "the ephemeral secret is kept after the call that spent it");
 
-  /* The launcher is what warms it: pointerdown fires before the click
-     that opens the panel. Wired inline, and guarded, because a
-     ReferenceError here would be thrown inside the tap that opens the
-     chat — warming may never break the open. */
+  /* INTENT MINTS NOTHING. The launcher still calls ariaWarmOnIntent
+     from its inline handlers — the function must stay defined, or a
+     ReferenceError lands inside the tap that opens the chat — but
+     the function is an inert no-op now: no token fetch on hover, on
+     pointerdown, or on open. (Comments stripped before asserting:
+     the no-op's own comment tells the history and may name things;
+     the code may not call them.) */
   assert.match(page, /id="assistantBtn"[^>]*onpointerdown="ariaWarmOnIntent\(\)"/,
-    "the launcher does not warm the token before the tap");
-  assert.match(page, /function ariaWarmOnIntent\(\)\{\s*try \{ ariaWarmRealtimeToken\(\); \} catch \(e\) \{\}/,
-    "warming on intent is unguarded — a throw would land inside the tap that opens the chat");
+    "the launcher no longer calls the intent hook the panel was built around");
+  const wAt = page.indexOf("function ariaWarmOnIntent(){");
+  assert.ok(wAt > 0, "ariaWarmOnIntent is gone — the launcher's inline handlers would throw");
+  let wd = 0, wEnd = -1;
+  for (let k = page.indexOf("{", wAt); k < page.length; k++){
+    if (page[k] === "{") wd++;
+    else if (page[k] === "}" && --wd === 0){ wEnd = k; break; }
+  }
+  const wCode = page.slice(wAt, wEnd + 1).replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  assert.ok(!/ariaWarmRealtimeToken\s*\(/.test(wCode),
+    "intent mints a token again — opening the panel must cost no fetch");
+  /* The mint lives on the tap path instead: the voice toggle awaits
+     the start, and the start spends the shared mint (asserted above). */
+  assert.match(page, /await startRealtimeVoice\(\)/,
+    "the mic tap no longer starts the call");
 });
 
 check("a greeting is answered, never sold to", () => {
