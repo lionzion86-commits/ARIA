@@ -15,10 +15,10 @@
 // already knows how to render — so prices on these cards are the
 // same normalized prices every other surface shows.
 // ============================================================
-import * as ort from "onnxruntime-node";
 import jpeg from "jpeg-js";
 import { PNG } from "pngjs";
-import { existsSync, writeFileSync, statSync } from "node:fs";
+import { existsSync, writeFileSync, statSync, mkdirSync, readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const DIM = 512;
 const TOPK = 24;
@@ -48,9 +48,45 @@ function siteOrigin() {
   ).replace(/\/$/, "");
 }
 
+/* The inference runtime itself travels as static files, like the
+   model: onnxruntime-node's native package is ~288MB installed
+   (69MB of it Linux binaries), which cannot ship inside a Netlify
+   function bundle. The WASM build of the same runtime is 14.3MB of
+   statics; the function downloads it once per warm container and
+   imports it from /tmp. Only jpeg-js/pngjs remain as real deps. */
+const RUNTIME_DIR = "/tmp/vs-runtime";
+const RUNTIME_FILES = [
+  "ort.wasm.bundle.min.mjs",
+  "ort-wasm-simd-threaded.wasm",
+  "ort-wasm-simd-threaded.mjs",
+];
+let ortPromise = null;
+
+async function getOrt() {
+  if (!ortPromise) {
+    ortPromise = (async () => {
+      mkdirSync(RUNTIME_DIR, { recursive: true });
+      for (const f of RUNTIME_FILES) {
+        const p = `${RUNTIME_DIR}/${f}`;
+        if (!existsSync(p) || statSync(p).size === 0) {
+          const res = await fetch(`${siteOrigin()}/visual-index/runtime/${f}`);
+          if (!res.ok) throw new Error(`runtime ${f} ${res.status}`);
+          writeFileSync(p, Buffer.from(await res.arrayBuffer()));
+        }
+      }
+      const ort = await import(pathToFileURL(`${RUNTIME_DIR}/ort.wasm.bundle.min.mjs`).href);
+      ort.env.wasm.wasmPaths = `${RUNTIME_DIR}/`;
+      ort.env.wasm.numThreads = 1;
+      return ort;
+    })();
+  }
+  return ortPromise;
+}
+
 async function getSession() {
   if (!sessionPromise) {
     sessionPromise = (async () => {
+      const ort = await getOrt();
       if (!existsSync(MODEL_PATH) || statSync(MODEL_PATH).size !== MODEL_BYTES) {
         const chunks = [];
         for (const part of MODEL_PARTS) {
@@ -62,7 +98,7 @@ async function getSession() {
         if (joined.length !== MODEL_BYTES) throw new Error("model size mismatch");
         writeFileSync(MODEL_PATH, joined);
       }
-      return ort.InferenceSession.create(MODEL_PATH);
+      return ort.InferenceSession.create(readFileSync(MODEL_PATH));
     })();
   }
   return sessionPromise;
@@ -109,7 +145,7 @@ function decodePhoto(buf) {
 // CLIP preprocessing geometry: resize the shorter side to 224 and
 // center-crop 224x224 — done here as one cover-crop + bilinear pass.
 // (The mean/std normalization lives inside the ONNX graph.)
-function toClipTensor(img) {
+function toClipTensor(img, ort) {
   const { data, width: w, height: h } = img;
   const side = Math.min(w, h);
   const x0 = Math.floor((w - side) / 2);
@@ -139,7 +175,8 @@ function toClipTensor(img) {
 
 async function embedPhoto(buf) {
   const session = await getSession();
-  const tensor = toClipTensor(decodePhoto(buf));
+  const ort = await getOrt();
+  const tensor = toClipTensor(decodePhoto(buf), ort);
   const out = await session.run({ pixels: tensor });
   return Float32Array.from(out.embedding.data);
 }

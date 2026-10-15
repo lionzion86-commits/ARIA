@@ -50,5 +50,5 @@ products searchable by photo from the day they land (the 2026-09-28
 rule). Until then, re-running them by hand after a pull is enough.
 
 Python deps for the pipeline: `onnxruntime requests pillow numpy`.
-Node deps for the function: `onnxruntime-node jpeg-js pngjs`
+Node deps for the function: `jpeg-js pngjs` only. Inference runs on the WASM build of onnxruntime, committed as static files under `visual-index/runtime/` and downloaded by the function at cold start — the native onnxruntime-node package (~288MB installed) cannot ship in a Netlify function bundle.
 (root package.json).

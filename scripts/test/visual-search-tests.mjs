@@ -99,11 +99,21 @@ check("the client only talks to the function — never the index", () => {
 });
 
 check("the function embeds with the catalogue's model and persists no photo", () => {
-  assert.match(fnSrc, /onnxruntime-node/);
+  assert.match(fnSrc, /ort\.wasm\.bundle\.min\.mjs/);
+  assert.match(fnSrc, /visual-index\/runtime/);
+  const pkg = JSON.parse(readFileSync(ROOT + "package.json", "utf8"));
+  assert.ok(!("onnxruntime-node" in (pkg.dependencies || {})),
+    "the native onnxruntime package must not come back (it breaks the function bundle)");
   assert.match(fnSrc, /visual-index\/manifest\.json/);
   const writes = fnSrc.match(/writeFileSync\([^)]*\)/g) || [];
   assert.ok(writes.length >= 1, "model cache write expected");
-  for (const w of writes) assert.match(w, /MODEL_PATH/, "function writes something other than the model cache: " + w);
+  // Writes may only ever be the two /tmp caches (model, runtime).
+  // The photo buffer must never touch the disk.
+  for (const w of writes) {
+    assert.ok(/MODEL_PATH/.test(w) || /^writeFileSync\(p,/.test(w),
+      "function writes something other than the model/runtime cache: " + w);
+    assert.ok(!/buf/.test(w), "function writes the photo buffer: " + w);
+  }
   assert.ok(!/createWriteStream/.test(fnSrc));
 });
 
