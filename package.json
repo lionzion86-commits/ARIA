@@ -1,7 +1,10 @@
 {
   "type": "module",
   "dependencies": {
-    "@netlify/blobs": "^10.7.13"
+    "@netlify/blobs": "^10.7.13",
+    "onnxruntime-node": "^1.30.0",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0"
   },
   "scripts": {
     "test": "node scripts/test/run-tests.mjs",
@@ -23,6 +26,7 @@
     "build:search-engine": "node scripts/build-search-engine.mjs",
     "mcp": "node mcp-server.js",
     "test:search-brief": "node scripts/test/search-brief-tests.mjs",
-    "build:search-index": "node scripts/build-search-index.mjs"
+    "build:search-index": "node scripts/build-search-index.mjs",
+    "test:visual": "node scripts/test/visual-search-tests.mjs"
   }
 }
