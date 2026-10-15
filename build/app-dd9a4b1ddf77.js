@@ -31954,13 +31954,15 @@ const CALL_DROP_GRACE_MS = 6000;
    back, which is Danny's ask: "before she shuts herself off, she can
    remind them to hit the mike."
    ================================================================== */
-/* TWO STEPS, NOT ONE (2026-10-06, Danny). A call that just dies is
-   rude; a call that asks once and then lets you go is a phone call.
-   20s of silence -> "¿Sigues ahí?". 15s more -> she signs off and
-   hangs up. The check-in fires once per silence, and any activity at
-   all resets both. */
-const CALL_CHECKIN_MS = 20000;
-const CALL_IDLE_MS = 35000;        /* total silence before she hangs up */
+/* ONE STEP, AT TEN SECONDS (2026-10-15, Danny — this replaces the
+   two-step 20s/35s flow of 2026-10-06). Ten seconds of two-way
+   silence and she signs off and hangs up: no "¿Sigues ahí?" first,
+   because ten seconds is the whole patience budget he set. She
+   still says goodbye before the line drops, and the goodbye still
+   says how to get her back — CUE_BYE carries "toca el micrófono y
+   seguimos", so the close never reads as a door slamming. Any
+   activity at all resets the clock. */
+const CALL_IDLE_MS = 10000;        /* total silence before she hangs up */
 /* After she is asked to sign off, the line closes whether or not the
    audio arrived — the timer, never her, is what guarantees it. */
 const CALL_EXIT_GRACE_MS = 4000;
@@ -32131,15 +32133,14 @@ const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófon
    instructions: a per-response `instructions` field is what silenced
    the greeting, so these ride a conversation item and a bare
    response.create — the shapes that are known to work. */
-const CUE_CHECKIN = '[El cliente lleva veinte segundos sin hablar. Pregunta solo "¿Sigues ahí?", nada más.]';
 const CUE_BYE = '[La llamada se va a cerrar por silencio. Despídete en UNA frase cálida, sin apuro, ' +
   'y dile que si te necesita toque el micrófono y seguimos. No te disculpes.]';
 
 /* HE TAPPED THE MIC AND THEN SAID NOTHING.
 
-   Not the same silence as CUE_CHECKIN. That one is twenty seconds
-   into a conversation that was already going — "¿sigues ahí?" is the
-   right question there. This is the shopper who opened the call and
+   Not the same silence as the hang-up. That one ends a conversation
+   that was already going — ten seconds of it, then a goodbye, not a
+   question. This is the shopper who opened the call and
    has no idea what to say, which the addendum counts as vagueness:
    "silence after greeting (they tapped but don't know what to say)".
    Asking "¿sigues ahí?" to someone who never started is useless; the
@@ -32608,7 +32609,6 @@ async function startRealtimeVoiceOnce(){
   ariaRTResponding = false;
   ariaRTGreetRetrying = false;
   ariaRTHeardAudio = false;
-  ariaRTCheckedIn = false;
   ariaRTSignedOff = false;
   ariaRTHeardSignOff = false;
   ariaRTThresholdTold = false;
@@ -32861,9 +32861,7 @@ async function startRealtimeVoiceOnce(){
    ------------------------------------------------------------------ */
 let ariaRTStartedAt = 0;
 let ariaRTIdleTimer = null, ariaRTMaxTimer = null, ariaRTHiddenTimer = null;
-let ariaRTCheckinTimer = null, ariaRTExitTimer = null;
-/* "¿Sigues ahí?" once per silence; cleared by any activity. */
-let ariaRTCheckedIn = false;
+let ariaRTExitTimer = null;
 let ariaRTOpeningTimer = null;
 let ariaRTSpoke = false;
 /* Store answers for this call. Static knowledge, so the same question
@@ -32876,11 +32874,11 @@ let ariaRTBrandIndex = null;
 let ariaRTSignedOff = false, ariaRTHeardSignOff = false;
 
 function clearRealtimeIdleTimers(){
-  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer, ariaRTCheckinTimer,
+  for (const t of [ariaRTIdleTimer, ariaRTMaxTimer, ariaRTHiddenTimer,
                    ariaRTExitTimer, ariaRTOpeningTimer]){
     if (t) clearTimeout(t);
   }
-  ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = ariaRTCheckinTimer = ariaRTExitTimer = null;
+  ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = ariaRTExitTimer = null;
   ariaRTOpeningTimer = null;
 }
 
@@ -32987,7 +32985,8 @@ function cueRealtime(cue){
 
    Armed when her audio ENDS, so the countdown measures his silence.
    Only while he has never spoken: once he has, this is cancelled for
-   good and CUE_CHECKIN is the right handler for a later lull. */
+   good and the ten-second sign-off is the right handler for a
+   later lull. */
 function armOpeningNudge(){
   if (!ariaRT || ariaRTSpoke) return;
   if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
@@ -33009,16 +33008,20 @@ function armOpeningNudge(){
  */
 function noteRealtimeActivity(){
   if (!ariaRT) return;
-  ariaRTCheckedIn = false;
-  if (ariaRTCheckinTimer) clearTimeout(ariaRTCheckinTimer);
   if (ariaRTIdleTimer) clearTimeout(ariaRTIdleTimer);
-  ariaRTCheckinTimer = setTimeout(() => {
-    if (!ariaRT || ariaRTCheckedIn) return;
-    ariaRTCheckedIn = true;
-    /* A check-in, not a warning: two words, no countdown, no UI. */
-    cueRealtime(CUE_CHECKIN);
-  }, CALL_CHECKIN_MS);
-  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
+  ariaRTIdleTimer = setTimeout(() => {
+    /* THE OPENING OFFER GOES FIRST. If he has never spoken and her
+       opening offer is still counting down, this silence belongs to
+       the offer, not to the hang-up: she is about to speak, and her
+       speaking re-arms this very timer. Both clocks run ten seconds
+       (CALL_OPENING_SILENCE_MS and CALL_IDLE_MS), armed moments
+       apart, so without the deferral they race and the offer is
+       lost half the time. The deferral can only happen once: the
+       offer's own timer nulls itself as it fires, and once she has
+       spoken the next silence is this timer's alone. */
+    if (!ariaRTSpoke && ariaRTOpeningTimer){ noteRealtimeActivity(); return; }
+    endRealtimeCallIdle('silencio');
+  }, CALL_IDLE_MS);
 }
 
 function armRealtimeIdleTimers(){
@@ -33256,8 +33259,8 @@ async function onRealtimeEvent(event, turn, send){
       setRealtimeState('listening');
       /* He started talking, so he is not the shopper who went quiet
          on the greeting — the nudge is cancelled for good, not
-         re-armed, because once a conversation exists CUE_CHECKIN is
-         the right silence to handle. */
+         re-armed, because once a conversation exists the ten-second
+         sign-off is the right silence to handle. */
       ariaRTSpoke = true;
       if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
       noteRealtimeActivity();
