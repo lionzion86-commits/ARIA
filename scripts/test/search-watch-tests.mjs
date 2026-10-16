@@ -62,7 +62,9 @@ const norm = (it, retailer, department, finalPrice) => {
   const name = it && (it.name || it.title);
   const price = Number(it && it.price);
   if (!name || !(price > 0)) return null;
-  const orig = Number(it.originalPrice || it.wasPrice || it.listPrice);
+  /* search.html's normalizer: the was-price fields of index.html's one
+     sale rule (saleOriginalPrice), compareAt included. */
+  const orig = Number(it.regularPrice || it.wasPrice || it.was_price || it.originalPrice || it.compareAt);
   return { name: String(name), title: String(name), brand: String(it.brand || ""), price,
     originalPrice: orig > price ? orig : null, onSale: it.onSale === true,
     departments: department ? [department] : [], finalPrice, retailer: String(it.retailer || retailer || "") };
@@ -165,8 +167,26 @@ check('"zapatilla" is sneakers — never a doll', () => {
   assert.equal(titles(search("zapatillas"), 10), titles(r, 10), "zapatilla and zapatillas disagree");
 });
 
-check('the three that already passed still pass ("shor", "adidas", "ñike")', () => {
-  assert.ok(search("shor").hits.length, '"shor" is a dead page');
+check('"shor" is shorts, not Shores', () => {
+  /* 2026-10-15: "shor" is a real catalogue word (Evisen "Shor Dialogue")
+     with a real plural family, so every typo layer refused to correct
+     it and the page answered with Shores dresses and sandals. The
+     translation table carries it now. This check asserts the
+     correction itself — the old one only asserted a non-empty page,
+     and the 15 wrong items satisfied it for a week. */
+  assert.equal(S.translateQuery("shor").query, "shorts", 'the translation table does not carry "shor"');
+  const r = search("shor");
+  assert.ok(r.hits.length, "dead page");
+  assert.ok(top(r, 5).every(h => /\bshorts?\b/i.test(h.title)), "the top five are not shorts: " + titles(r, 5));
+  assert.ok(!top(r, 10).some(h => /\bshores?\b/i.test(h.title)), "Shores hijacked the search again: " + titles(r, 10));
+  /* The guard row in the table: the plural rules stem "shores" to
+     "shor", so "shores" must still answer with the shore family. */
+  const sh = search("shores");
+  assert.ok(sh.hits.length, '"shores" is a dead page');
+  assert.ok(top(sh, 5).every(h => /shore/i.test(h.title)), '"shores" no longer answers with shores: ' + titles(sh, 5));
+});
+
+check('the two that already passed still pass ("adidas", "ñike")', () => {
   assert.ok(top(search("adidas"), 10).every(h => /adidas/i.test(h.brand)), '"adidas" leaked another brand');
   assert.ok(top(search("ñike"), 10).every(h => /nike/i.test(h.brand)), '"ñike" is not Nike');
 });

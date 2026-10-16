@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Marca — Aria Shop</title>
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
 <meta name="description" content="Productos de tus marcas favoritas de tiendas de Estados Unidos con precios honestos en soles.">
 <style>
 /* Standalone Brand page — self-contained, no external dependencies.
@@ -148,6 +150,8 @@ footer a{color:#fff;}
   <div style="margin-top:8px; font-size:12px;">Precios con margen de servicio incluido. Envío e impuestos se calculan en el checkout.</div>
 </footer>
 
+<!-- The product-type classifier, generated from index.html (scripts/build-product-type.mjs). -->
+<script src="product-type.js"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -259,22 +263,21 @@ function normalizeItem(it, retailerKey){
     if (!name || !(price > 0)) return null;
     var img = it.thumbnail || it.image || "";
     if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
-    /* Sale fields: preserve all original-price spellings for discount calc. */
-    var op = it.originalPrice != null ? Number(it.originalPrice)
-           : it.wasPrice != null ? Number(it.wasPrice)
-           : it.regularPrice != null ? Number(it.regularPrice) : null;
-    if (!(op > price)) op = null;
+    /* Sale fields: the was-price index.html's one sale rule measured
+       (sale-rule.js; compareAt included), kept only when the item is on
+       sale by that rule. */
+    var op = (window.AriaSale && window.AriaSale.isOnSale(it)) ? window.AriaSale.originalPrice(it) : null;
     return {
       name: String(name),
       brand: String(it.brand || ""),
       brandKey: brandKeyOf(it.brand || ""),
       price: price,
       originalPrice: op,
-      onSale: !!(it.onSale || op),
+      onSale: op != null,
       image: String(img || ""),
       url: String(it.url || it.link || ""),
       retailer: String(it.retailer || retailerKey || ""),
-      ptype: productTypeOf({name: name})
+      ptype: productTypeOf({ name: name, type: it.type, retailer: it.retailer || retailerKey, brand: it.brand })
     };
   }catch(e){ return null; }
 }
@@ -294,8 +297,13 @@ var TYPE_RES = PRODUCT_TYPES.map(function(t){
     return new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + 's?\\b', 'i');
   });
 });
+/* ONE CLASSIFIER (2026-10-13 audit): index.html's, via product-type.js.
+   The keyword loop below is only the fallback if that file fails to load. */
 function productTypeOf(item){
   var n = String((item && item.name) || '');
+  if (window.AriaProductType){
+    try { return window.AriaProductType.classify({ name: n, type: item && item.type, retailer: item && item.retailer, brand: item && item.brand }); } catch (e) {}
+  }
   for (var i = 0; i < PRODUCT_TYPES.length; i++){
     if (!PRODUCT_TYPES[i].keywords.length) continue;
     var res = TYPE_RES[i];
@@ -306,12 +314,10 @@ function productTypeOf(item){
   return 'ropa';
 }
 
-/* Discount as a fraction (0..1). 0 = not on sale. */
+/* Whole percent off, by index.html's one sale rule (sale-rule.js):
+   a real was-price, 5-70% off. 0 = not on sale. */
 function discountPct(p){
-  var op = Number(p && p.originalPrice);
-  var pr = Number(p && p.price);
-  if (op > pr && pr > 0) return 1 - pr / op;
-  return 0;
+  return window.AriaSale ? window.AriaSale.discountPct(p) : 0;
 }
 
 function extractItems(data){
@@ -438,7 +444,7 @@ function cardHTML(p){
   var _href = 'producto.html?producto=' + encodeURIComponent(p.name || '')
     + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
   var pct = discountPct(p);
-  var saleBadge = pct > 0 ? '<span class="sale-badge">-' + Math.round(pct * 100) + '%</span>' : '';
+  var saleBadge = pct > 0 ? '<span class="sale-badge">-' + pct + '%</span>' : '';
   var wasHtml = '';
   if (pct > 0 && p.originalPrice){
     wasHtml = '<span class="was">' + esc(fmtUsd(finalUsd(p.originalPrice, p.retailer))) + '</span>';

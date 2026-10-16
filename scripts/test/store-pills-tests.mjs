@@ -17,6 +17,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0;
 const failures = [];
 async function check(name, fn) {
@@ -100,12 +113,14 @@ await check("tiny categories stay under Todo instead of becoming a pill", () => 
 });
 
 await check("\"Carteras y mochilas\" is the label everywhere the category is declared", () => {
-  const files = { tienda: page, marca: readFileSync(ROOT + "marca.html", "utf8"), index: readFileSync(ROOT + "index.html", "utf8") };
+  const files = { tienda: page, marca: readFileSync(ROOT + "marca.html", "utf8"), index: pageHtml() };
   for (const [name, src] of Object.entries(files)) {
-    const m = /\{\s*key:\s*'carteras',\s*label:\s*'([^']+)',\s*keywords:\s*\[([^\]]*)\]/.exec(src);
+    /* index.html declares the kind with a regex since 2026-10-13 (rx:);
+       the standalone pages keep their fallback keyword list. */
+    const m = /\{\s*key:\s*'carteras',\s*label:\s*'([^']+)',\s*(?:keywords:\s*\[([^\]]*)\]|\s*rx:\s*(\/.*\/i))/.exec(src);
     assert.ok(m, name + ": carteras product type moved");
     assert.equal(m[1], "Carteras y mochilas", name + " still says " + m[1]);
-    assert.match(m[2], /'backpack'/, name + ": the label promises backpacks the keywords don't match");
+    assert.match(m[2] || m[3], /backpack/, name + ": the label promises backpacks the matcher doesn't catch");
   }
   assert.match(files.index, /purses: \{ label: 'Carteras y mochilas', icon: '' \}/, "index.html purses category map");
 });

@@ -63,6 +63,19 @@ import { createHmac } from "node:crypto";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so every read of "the page" below sees the
+   page exactly as written -- there is still only one copy of the
+   code. */
+function pageHtml() {
+  const html = readFileSync(root("index.html"), "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(root(tag[1]), "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0;
 const failures = [];
 
@@ -121,7 +134,7 @@ const pageAuto = loadPageAutoSourcesSlice();
    the mirror rows are single-line object literals, so a regex reads them
    safely and cannot be broken by unrelated code moving around. */
 const pageRetailers = Object.fromEntries(
-  [...readFileSync(root("index.html"), "utf8")
+  [...pageHtml()
     .matchAll(/^\s*\w+:\s*\{\s*key: '(\w+)',[^\n]*?logo: (?:null|'([^']+)')/gm)]
     .map((m) => [m[1], m[2] ?? null]),
 );
@@ -261,7 +274,7 @@ const SOURCE_FILES = [
 
 check("no volumetric code path survives anywhere", () => {
   for (const file of SOURCE_FILES) {
-    const code = stripComments(readFileSync(root(file), "utf8"));
+    const code = stripComments((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     for (const banned of ["dimensionalWeightKg", "billableWeightKg", "DIM_DIVISOR", "boxCm", "dimCm"]) {
       if (code.includes(banned)) throw new Error(`${file} still references ${banned}`);
     }
@@ -451,7 +464,7 @@ check("the cart's own estimate is not mistaken for a retailer spec", () => {
 });
 
 check("the page marks every cart line's weight as its own estimate", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const fn = html.slice(html.indexOf("function addToCart(item)"), html.indexOf("function removeFromCartByKey"));
   if (!/weightEstimated/.test(fn)) throw new Error("addToCart does not record where the weight came from");
 });
@@ -571,7 +584,7 @@ check("the cache sanitizer enforces the same ceiling", () => {
 });
 
 check("the page applies both Ofertas rules on the one load path left", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   for (const fn of ["passesOfertasWeightGate", "passesOfertasFreightCeiling", "passesOfertasGate"]) {
     if (!new RegExp(`function ${fn}`).test(html)) throw new Error(`${fn} is missing`);
   }
@@ -587,14 +600,14 @@ check("the page applies both Ofertas rules on the one load path left", () => {
 });
 
 check("a card with an unconfirmed weight shows no freight figure", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const card = html.slice(html.indexOf("function productCardHTML"), html.indexOf("function renderSalesGrid"));
   if (!/weightUnderReview/.test(card)) throw new Error("the card does not check the review state");
   if (!/Flete por confirmar/.test(card)) throw new Error("the card has no honest stand-in for the freight line");
 });
 
 check("the cart and checkout both refuse to quote an unconfirmed weight", () => {
-  const index = readFileSync(root("index.html"), "utf8");
+  const index = pageHtml();
   if (!/function cartWeightReviewItems/.test(index)) throw new Error("the cart does not detect it");
   if (!/blockedByWeight/.test(index)) throw new Error("the cart does not block checkout on it");
   const checkout = readFileSync(root("checkout.html"), "utf8");
@@ -661,7 +674,7 @@ check("a dead browser frees its slot on its own", () => {
 });
 
 check("index.html mirrors the policy numbers exactly", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const num = (name) => {
     const m = new RegExp(`const ${name} = (\\d+)`).exec(html);
     if (!m) throw new Error(`${name} missing from index.html`);
@@ -690,7 +703,7 @@ check("the browser can neither pick the cache key nor fill the cache", () => {
   if (!/writeOndemandCache\(meta\.retailer, meta\.query, items\)/.test(status)) {
     throw new Error("the cache is not written from the recorded key + Apify's own items");
   }
-  const html = stripComments(readFileSync(root("index.html"), "utf8"));
+  const html = stripComments(pageHtml());
   if (/writeOndemandCache|ondemand-cache|ondemandCacheKey/.test(html)) {
     throw new Error("the page has a way to write the shared cache");
   }
@@ -715,7 +728,7 @@ check("a failed run still hands its slot back", () => {
 check("on-demand results go through the same weight guards as everything else", () => {
   /* These are the least-vetted titles on the site — nobody has seen them
      before. Rendering them through a shortcut would be a live money bug. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const fn = html.slice(html.indexOf("async function runOnDemandSearch"), html.indexOf("async function scrapeRetailerOnDemand"));
   if (!/normalizeLiveItem\(raw, \{ retailer \}\)/.test(fn)) {
     throw new Error("on-demand results bypass normalizeLiveItem, and with it the beauty table and the category bands");
@@ -729,7 +742,7 @@ check("the category search bar that called nothing now exists", () => {
   // Its input and button both called catalogSearchSubmit() and the
   // function was never defined — Enter threw a ReferenceError and did
   // nothing. It is the entry point the upsell needs a query FROM.
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/function catalogSearchSubmit\(\)/.test(html)) throw new Error("catalogSearchSubmit is still undefined");
   const refs = (html.match(/catalogSearchSubmit\(\)/g) || []).length;
   if (refs < 3) throw new Error(`expected the definition plus both call sites, found ${refs}`);
@@ -744,7 +757,7 @@ check("browsing never starts an Apify run", () => {
   /* THE $88 BUG. Ofertas ran a twelve-actor live scan from the VISITOR'S
      browser whenever the cache was stale — which, with a daily refresh
      against a 6h TTL, was most of the day. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const code = stripComments(html);
   if (/revalidateSalesInBackground/.test(code)) throw new Error("the background rescan is back");
   if (/showSalesColdLoading/.test(code)) throw new Error("the cold-scan loading state is back");
@@ -813,7 +826,7 @@ check("every refresh script is guarded before it spends", () => {
     ["scripts/refresh-department-cache.js", "catalog"],
     ["scripts/refresh-auto-cache.js", "auto"],
   ]) {
-    const src = stripComments(readFileSync(root(file), "utf8"));
+    const src = stripComments((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     if (!new RegExp(`guardSpend\\("${tier}"\\)`).test(src)) throw new Error(`${file} does not guard its spend`);
   }
 });
@@ -876,7 +889,7 @@ check("the beauty table is mirrored row for row", () => {
 group("per-retailer Miami sales tax (2026-09-27)");
 
 check("the page and the module carry the identical tax-status map", () => {
-  const pageSrc = readFileSync(root("index.html"), "utf8");
+  const pageSrc = pageHtml();
   const m = pageSrc.match(/const TAX_EXEMPT_STATUS = (\{[\s\S]*?\n\});/);
   if (!m) throw new Error("TAX_EXEMPT_STATUS missing from index.html");
   const pageMap = new Function("return (" + m[1] + ")")();
@@ -947,7 +960,7 @@ check("a store with no scraper stays out of the live search fan-out", () => {
 });
 
 check("index.html's registry mirror matches the module", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   for (const r of Object.values(RETAILERS)) {
     if (!html.includes(`key: '${r.key}'`)) throw new Error(`${r.key} missing from the index.html mirror`);
     if (!html.includes(r.color)) throw new Error(`${r.key}'s colour ${r.color} missing from the index.html mirror`);
@@ -1044,7 +1057,7 @@ check("the page mirror resolves exactly like the module, for every key", () => {
 });
 
 check("showProduct fills the badge slot with the doorway, from the product's own retailer", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const fn = src.slice(src.indexOf("function showProduct("), src.indexOf("function goBack(){"));
   if (!/getElementById\('productViewBadge'\)\.innerHTML = storeDoorwayHTML\(retailer\)/.test(fn))
     throw new Error("showProduct does not fill the badge slot with storeDoorwayHTML(retailer)");
@@ -1057,7 +1070,7 @@ check("showProduct fills the badge slot with the doorway, from the product's own
 });
 
 check("the doorway is one obvious tap: logo, name, and a store CTA", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const start = src.indexOf("function storeDoorwayHTML(");
   const end = src.indexOf("function openStoreDoor(");
   if (start < 0 || end < start) throw new Error("storeDoorwayHTML not found");
@@ -1075,7 +1088,7 @@ check("the doorway is one obvious tap: logo, name, and a store CTA", () => {
 });
 
 check("openStoreDoor uses the same doors the store tiles use", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const start = src.indexOf("function openStoreDoor(");
   const fn = src.slice(start, src.indexOf("}", src.indexOf("openStore(door.key);")) + 1);
   if (!/openAriaAuto\(door\.key\)/.test(fn)) throw new Error("auto retailers do not open the Aria Auto workshop");
@@ -1083,7 +1096,7 @@ check("openStoreDoor uses the same doors the store tiles use", () => {
 });
 
 check("the suggestions rail is untouched by the doorway", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const fn = src.slice(src.indexOf("function showProduct("), src.indexOf("function goBack(){"));
   if (!/renderRelatedRail\(\{ retailer, title: name/.test(fn))
     throw new Error("showProduct no longer renders the related rail");
@@ -1113,7 +1126,7 @@ check("the Tiendas directory keeps its tiles and gains the eleven rails below th
   /* 2026-09-25, DANNY'S MALL VISION: the directory stays the directory
      -- tiles on top -- and each store gets its window display below it,
      so the page browses instead of only linking out. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const view = html.slice(html.indexOf('<div id="storesView"'), html.indexOf('<!-- ============ ARIA AUTO VIEW ============ -->'));
   if (!view) throw new Error("there is no storesView");
   if (!/id="storesGrid"/.test(view)) throw new Error("the Tiendas directory grid is gone");
@@ -1128,7 +1141,7 @@ check("the Tiendas directory keeps its tiles and gains the eleven rails below th
 });
 
 check("index.html's Tiendas tile order matches the module's", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const lit = html.slice(html.indexOf("const RETAILERS = {"));
   const pos = k => {
     const i = lit.indexOf(`key: '${k}'`);
@@ -1178,7 +1191,7 @@ check("a bad subtotal never invents a fee", () => {
 
 check("the fee is config, never inlined in a template", () => {
   for (const file of ["index.html", "checkout.html"]) {
-    const code = stripComments(readFileSync(root(file), "utf8"));
+    const code = stripComments((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     // The one place each page is allowed to state the numbers is its
     // mirrored config block (index.html) or its import (checkout.html).
     const literalRows = code.split("\n").filter((l) => /Pedido peque/.test(l) && /S\/\s*10/.test(l));
@@ -1222,7 +1235,7 @@ check("the note states the basis the code actually uses", () => {
   }
   eq(pageFee.SMALL_ORDER_FEE_NOTE, SMALL_ORDER_FEE_NOTE, "index.html mirror");
   // Every surface that charges it measures the same thing.
-  const cart = stripComments(readFileSync(root("index.html"), "utf8"));
+  const cart = stripComments(pageHtml());
   if (!/smallOrderFeePen\(orderBasePen\)/.test(cart)) {
     throw new Error("the cart does not use the products+freight base");
   }
@@ -1330,7 +1343,7 @@ check("Ofertas takes a photograph but keeps its gold sign", () => {
      to every other card). A CURATED photo is neither, so it wins — but
      only the art in the window changes. The band, its gold gradient and
      its navy type are what mark this as the sale card. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function initDepartmentTiles("));
   if (!/isOfertas[\s\S]{0,120}categoryCoverFor\(t\.key\)/.test(tile)) {
     throw new Error("Ofertas cannot take a curated cover");
@@ -1346,7 +1359,7 @@ check("the cover never comes from the cache again", () => {
   /* collectTiles decides which categories EXIST and how many products
      they hold. What a category LOOKS like is art. If cover selection
      creeps back into the cache read, the junk drawer comes with it. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const fn = src.slice(src.indexOf("function collectTiles("));
   const body = fn.slice(0, fn.indexOf("\nfunction "));
   if (/candidates|scoreTileCandidate|pickTileImage|assignTileImages|\.thumb/.test(body)) {
@@ -1372,7 +1385,7 @@ check("the fallback cover is abstract art — never a glyph, never clip-art", ()
      So this asks. Any glyph in the cover fails: the emoji ranges, the
      misc-symbols and dingbat blocks, and the variation selector that
      turns a bare character into an emoji. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   if (!/function designedCoverHTML/.test(src)) throw new Error("there is no fallback cover");
   const designed = src.slice(src.indexOf("function designedCoverHTML"), src.indexOf("function categoryCoverFallback"));
   const code = stripComments(designed);
@@ -1465,7 +1478,7 @@ check("the tile carries no retailer logos and still states its count", () => {
   /* Reversed 2026-09-20: the cap (3 logos + "+N") is gone because the
      logos are gone. A category tile answers "what is this", not "who
      sells it". */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function initDepartmentTiles"));
   if (/retailerBadgeHTML|tileRetailerRowHTML|TILE_MAX_LOGOS/.test(tile)) {
     throw new Error("the category tile still renders store marks");
@@ -1475,7 +1488,7 @@ check("the tile carries no retailer logos and still states its count", () => {
 });
 
 check("Ofertas is a designed tile, not a scraped product image", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/function ofertasTileArtHTML/.test(html)) throw new Error("the Ofertas tile art is missing");
   const art = html.slice(html.indexOf("function ofertasTileArtHTML"), html.indexOf("function deptTileHTML"));
   /* 2026-09-21: Ofertas moved from the navy field to the GOLD one. On a
@@ -1497,7 +1510,7 @@ check("Ofertas is a designed tile, not a scraped product image", () => {
 group("P2.1 Nosotros copy");
 
 check("the daughter line appears once, as the headline", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const about = html.slice(html.indexOf('<div id="aboutView"'), html.indexOf('<div id="returnsView"'));
   const prose = about.replace(/<!--[\s\S]*?-->/g, "");
   const hits = prose.match(/Aria lleva el nombre de mi hija/g) || [];
@@ -1508,7 +1521,7 @@ check("the daughter line appears once, as the headline", () => {
 });
 
 check("the body and Nuestro porqué open on the lines the brief specifies", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const about = html.slice(html.indexOf('<div id="aboutView"'), html.indexOf('<div id="returnsView"'));
   const prose = about.replace(/<!--[\s\S]*?-->/g, "");
   if (!/>\s*\n?\s*Nació como una promesa: que ningún peruano vuelva a pagar de más/.test(prose)) {
@@ -1520,7 +1533,7 @@ check("the body and Nuestro porqué open on the lines the brief specifies", () =
 });
 
 check("the sign-off the brief put out of scope is untouched", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   // It was never on the page; this asserts nobody added it by accident.
   if (/Soy el papá de Aria/.test(html)) throw new Error("the deferred sign-off was added");
 });
@@ -1544,7 +1557,7 @@ group("the Flete alto badge is gone, and cannot come back");
    ABSOLUTE freight and as neutral information. */
 
 check("no surface renders a freight verdict on a product card", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
   /* Comments are stripped first: the card carries a note explaining what
      the badge was and why it went, and that note naming it is not the
@@ -1562,7 +1575,7 @@ check("the disclosure line the badge sat on top of is still there", () => {
      everything the badge was gesturing at, in the shopper's own
      arithmetic: the cost, the weight and the rate. If it ever goes, the
      freight stops being disclosed at all. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
   if (!/de flete/.test(card)) throw new Error("the card stopped itemising freight");
   if (!/CHARGE_PER_KG_USD\}\/kg/.test(card)) throw new Error("the card stopped printing the per-kg rate");
@@ -1622,7 +1635,7 @@ check("every customer-facing copy of the rate is 13", () => {
 });
 
 check("the freight line still shows the rate to the shopper", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   // The per-item card and the cart total both spell the arithmetic out.
   if (!/kg × \$\$\{CHARGE_PER_KG_USD\}\/kg/.test(html)) {
     throw new Error("the card's '× $13/kg' freight line is gone");
@@ -1648,7 +1661,7 @@ check("the internal contract cost never reaches a browser", () => {
     const rel = queue.shift();
     if (seen.has(rel)) continue;
     seen.add(rel);
-    const src = readFileSync(root(rel), "utf8");
+    const src = (rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8"));
     for (const m of src.matchAll(/from\s+["'](\.\/[^"']+)["']|src=["'](\.\/[^"']+)["']/g)) {
       const dep = (m[1] || m[2]).replace(/^\.\//, "");
       queue.push(dep);
@@ -1660,7 +1673,7 @@ check("the internal contract cost never reaches a browser", () => {
        at length why COST_PER_KG left, and that explanation is the reason
        nobody puts it back. A named figure in prose is the thing to
        forbid; the word in a warning is not. */
-    const src = stripComments(readFileSync(root(rel), "utf8"));
+    const src = stripComments((rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8")));
     if (/COST_PER_KG|PROFIT_PER_KG|AVI_COST_PER_KG|AVI_PROFIT_PER_KG/.test(src)) {
       throw new Error(`${rel} references the internal courier economics`);
     }
@@ -1733,7 +1746,7 @@ check("the page mirrors the book table row for row", () => {
 group("follow-up 4: no internal labels on the storefront");
 
 check("the BETA pill is gone from Aria Smart Search", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const prose = html.replace(/<!--[\s\S]*?-->/g, "");
   if (/BETA/.test(prose)) throw new Error("a BETA label is still rendered");
   if (!/Aria Smart Search/.test(prose)) throw new Error("the row itself was removed with it");
@@ -1870,7 +1883,7 @@ check("translating twice changes nothing", () => {
 });
 
 check("every query that leaves for a retailer is translated first", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const calls = src.match(/fetch(?:WithStartTimeout)?\('\/\.netlify\/functions\/apify-scrape-start'[\s\S]{0,400}?\}\);/g) || [];
   if (calls.length !== 2) throw new Error(`expected 2 scrape entry points, found ${calls.length}`);
   for (const call of calls) {
@@ -1916,7 +1929,7 @@ check("a real logo is never greyed out, however pending the store", () => {
      card says the catalogue is still being wired up. Greying the logo
      with them would ship Victoria's Secret's pink and Bath & Body
      Works' blue as grey — a retailer's mark is not ours to recolour. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   /* The homepage chip row is gone (2026-09-25, store rails superseded
      it), so the store card is the only mark renderer left to check. */
   for (const fn of ["function storeCardHTML("]) {
@@ -1936,7 +1949,7 @@ check("a real logo is never greyed out, however pending the store", () => {
 });
 
 check("every store mark fills its zone, contain-fit, never stretched", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   /* Each <img> that draws a store mark gets a ZONE — a width, a height
      cap and a width cap — and contains inside it. That is what lets a
      1200x631 banner and a square file share a tile without either being
@@ -2046,7 +2059,7 @@ check("the store count in the Tiendas heading is computed, not remembered", () =
      the three beauty stores all landed without touching it. A number in
      prose that nothing recomputes goes wrong quietly, which is exactly
      what this section claims not to do. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   if (/Ocho tiendas, todas reales/.test(src)) throw new Error("the heading still hardcodes eight stores");
   if (!/data-store-count/.test(src)) throw new Error("there is no slot for the real count");
   if (!/function spanishCount\(/.test(src)) throw new Error("the count has no words to render in");
@@ -2326,7 +2339,7 @@ check("no courier is named anywhere a shopper can reach", () => {
   // courier #2 must not require touching checkout, and courier #1 must
   // not be visible at checkout today.
   for (const rel of ["index.html", "checkout.html"]) {
-    const src = readFileSync(root(rel), "utf8");
+    const src = (rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8"));
     if (/AVI\s*Courier|avi-courier/i.test(src)) throw new Error(`${rel} names a courier`);
   }
   const shippingSrc = readFileSync(root("scripts/lib/shipping-status.js"), "utf8");
@@ -2487,7 +2500,7 @@ check("the customer sees the whole journey and none of the plumbing", () => {
 group("B. no little squares anywhere");
 
 check("the category tile is built from the Ofertas card's own parts", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function handleDeptThumbError("));
   for (const part of ["CARD_SHELL_CLASS", "cardImageFrameHTML"]) {
     if (!tile.includes(part)) throw new Error(`the category tile does not use ${part}`);
@@ -2508,7 +2521,7 @@ check("both category runs are one full-width column at every width", () => {
      PRODUCT grids are untouched and stay two-across: a product card is a
      product, not a storefront, and twelve full-width products would be a
      mile of scrolling. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   for (const id of ["categoriesGrid", "catGrid"]) {
     const at = src.indexOf(`id="${id}"`);
     if (at < 0) throw new Error(`#${id} is gone`);
@@ -2551,7 +2564,7 @@ check("a category card is a shopfront: big window, signed, with an edge", () => 
      place". A card needs a hard edge against the page and something you
      can read walking past — so the name sits on a navy sign (gold for
      Ofertas) under a wide window, not as navy text on white. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function handleDeptThumbError"));
   const code = stripComments(tile);
   /* Pinned HEIGHT, not an aspect: an aspect on a full-bleed card is a
@@ -2586,7 +2599,7 @@ check("no image on any grid is cropped, whatever shape its frame is", () => {
      exact "half-object" failure the tile-scoring rebuild was written to
      end. A bigger window may make a contained product bigger; it never
      licences cropping it. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const frame = src.slice(src.indexOf("function cardImageFrameHTML("), src.indexOf("function deptTileHTML("));
   if (!/object-fit:\s*contain/.test(frame)) throw new Error("the shared photo is not contain-fit");
   if (/object-fit:\s*cover/.test(frame)) throw new Error("a cover fit is back — it crops people in half");
@@ -2601,7 +2614,7 @@ check("no image on any grid is cropped, whatever shape its frame is", () => {
 group("C. contactar soporte opens email");
 
 check("the returns CTA is a mailto with the subject pre-filled", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const returns = src.slice(src.indexOf('<div id="returnsView"'), src.indexOf('<!-- ============ TERMS VIEW'));
   const cta = returns.match(/<[^>]*>\s*Contactar soporte\s*<\/[^>]+>/)?.[0] || "";
   if (!cta) throw new Error("the Contactar soporte CTA is gone");
@@ -2618,7 +2631,7 @@ check("the returns CTA is a mailto with the subject pre-filled", () => {
 
 check("no support CTA anywhere loops back into the chatbot alone", () => {
   for (const rel of ["index.html", "checkout.html"]) {
-    const src = readFileSync(root(rel), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    const src = (rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8")).replace(/<!--[\s\S]*?-->/g, "");
     // Any element whose visible text is a support/contact CTA must carry
     // a mailto. The chat may be offered BESIDE one, never instead of it.
     const re = /<(button|a)\b[^>]*>\s*([^<]*\b(?:Contactar soporte|contactar soporte)\b[^<]*)\s*<\/\1>/g;
@@ -2638,7 +2651,7 @@ check("every authored address matches its constant", () => {
   };
   let seen = 0;
   for (const rel of ["index.html", "checkout.html"]) {
-    const src = readFileSync(root(rel), "utf8");
+    const src = (rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8"));
     for (const m of src.matchAll(/<a\s[^>]*data-support="(\w+)"[^>]*href="([^"]+)"[^>]*>/g)) {
       const [, kind, href] = m;
       if (!expected[kind]) throw new Error(`${rel}: unknown data-support="${kind}"`);
@@ -2749,7 +2762,7 @@ check("index.html mirrors the matcher", () => {
 group("auto: the banned middle ground is gone");
 
 check("no 'verifica el calce' copy is rendered anywhere", () => {
-  const html = readFileSync(root("index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const html = pageHtml().replace(/<!--[\s\S]*?-->/g, "");
   const code = stripComments(html);
   for (const banned of ["Verifica el calce", "verifícalo antes de pedir", "La tienda no confirma el calce"]) {
     if (code.includes(banned)) throw new Error(`the banned disclaimer survives: "${banned}"`);
@@ -2757,7 +2770,7 @@ check("no 'verifica el calce' copy is rendered anywhere", () => {
 });
 
 check("the badge has one branch, and it is green", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const fn = src.slice(src.indexOf("function fitmentBadgeHTML("), src.indexOf("function vehicleFittedItems("));
   if (!/if \(!verified\) return '';/.test(fn)) throw new Error("the badge still renders an unverified state");
   if (/8A6B1F/.test(fn)) throw new Error("the amber 'verify it yourself' badge is back");
@@ -2765,7 +2778,7 @@ check("the badge has one branch, and it is green", () => {
 });
 
 check("the results path filters on fitment, not on VEHICLE_SPECIFIC", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (/vehicle_fitment/.test(src)) throw new Error("the old VEHICLE_SPECIFIC gate is still live code");
   const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
   if (!/vehicleFittedItems\(rawItems, vehicle\)/.test(block)) {
@@ -2781,7 +2794,7 @@ check("the empty state is the fallback, not the default view", () => {
      whenever fitment could not be confirmed, which hid genuinely
      Sonata-fitting pads and killed the section. The empty state is now
      reached ONLY when the source returned nothing at all. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
   const gapCall = block.indexOf("fitmentGapHTML(");
   if (gapCall < 0) throw new Error("the empty state is unreachable");
@@ -2796,7 +2809,7 @@ check("the empty state is the fallback, not the default view", () => {
 });
 
 check("unconfirmed parts are shown, with the part number and no green badge", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
   // The green badge is conditional on having data; the part number is not.
   if (!/hasData \? fitmentBadgeHTML\(vehicle, true\) : ''/.test(block)) {
@@ -2815,7 +2828,7 @@ check("the empty state claims no cause it has not established", () => {
   /* It used to assert "Ese modelo no se vendió en Estados Unidos" — false
      for the 2020 Sonata, which is a US-market car. Claiming a cause we
      have not established is the same error as the badge, reversed. */
-  const html = readFileSync(root("index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const html = pageHtml().replace(/<!--[\s\S]*?-->/g, "");
   const gap = html.slice(html.indexOf("function fitmentGapHTML("), html.indexOf("function askAriaForPart("));
   if (/Ese modelo no se vendió en Estados Unidos/.test(gap)) {
     throw new Error("the empty state still states a cause as fact");
@@ -2934,7 +2947,7 @@ check("the parts sources live only in the Repuestos tier", () => {
       throw new Error(`${r.key} is not an auto source but sits in Repuestos`);
   }
   // And the grid is the registry, never a hand-written list.
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   if (!/storefrontRetailers\(\)|activeRetailers\(\)/.test(src)) {
     throw new Error("the Tiendas grid is no longer rendered from the registry");
   }
@@ -2959,7 +2972,7 @@ check("a browsable store is not treated as one still being connected", () => {
   eq(retailers.isBrowseOnlyRetailer("bathandbodyworks"), false, "Bath & Body Works has no catalogue yet");
   eq(retailers.isBrowseOnlyRetailer("victoriassecret"), true, "Victoria's Secret has a catalogue now");
 
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   // The store card must read BOTH flags, or Macy's is muted. (The
   // homepage chip row that shared this check is gone since 2026-09-25,
   // superseded by the store rails.) Scoped to the function: "pending"
@@ -3034,7 +3047,7 @@ check("no single number serves two unrelated products", () => {
   }
   // …and the coarse row that produced it is gone from both tables.
   for (const rel of ["scripts/lib/sales-sources.js", "index.html"]) {
-    const src = stripComments(readFileSync(root(rel), "utf8"));
+    const src = stripComments((rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8")));
     if (/vitamins\?\\b\|multivitamin/.test(src)) throw new Error(`${rel} still has the coarse vitamins row`);
   }
 });
@@ -3104,7 +3117,7 @@ check("the 1.08 generic is dead everywhere", () => {
   // The number itself must not survive as a literal anywhere it could
   // become an estimate again.
   for (const rel of ["scripts/lib/sales-sources.js", "netlify/functions/_weight-resolve.js"]) {
-    const src = stripComments(readFileSync(root(rel), "utf8"));
+    const src = stripComments((rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8")));
     if (/DEFAULT_RETAIL_WEIGHT_KG/.test(src)) throw new Error(`${rel} still has a second generic constant`);
   }
 });
@@ -3216,7 +3229,7 @@ check("the rate is configuration, not arithmetic scattered through the UI", () =
      SUNAT document can calibrate it. If a literal rate reappears in a
      surface, changing the constant stops changing the charge. */
   for (const rel of ["checkout.html", "netlify/functions/orders-create.js"]) {
-    const src = stripComments(readFileSync(root(rel), "utf8"));
+    const src = stripComments((rel === "index.html" ? pageHtml() : readFileSync(root(rel), "utf8")));
     if (/0\.25\b/.test(src)) throw new Error(`${rel} hardcodes the 25% rate instead of reading TAX_ESTIMATE_RATE`);
     if (/\bDUTY_RATE\b/.test(src)) throw new Error(`${rel} still uses the old courier DUTY_RATE`);
   }
@@ -3273,7 +3286,7 @@ check("every surface that describes the charge quotes the charged rate", () => {
      the payment page bills at 25%. A bar that states a government charge
      has to state the one we actually bill, so it mirrors
      TAX_ESTIMATE_RATE and this pins the mirror. */
-  const page = readFileSync(root("index.html"), "utf8");
+  const page = pageHtml();
   const mirrored = page.match(/const TAX_ZONE_RATE = ([\d.]+)/)?.[1];
   if (!mirrored) throw new Error("TAX_ZONE_RATE is gone from index.html");
   eq(Number(mirrored), TAX_ESTIMATE_RATE, "cart tax-zone bar vs weight-data.js");
@@ -3321,7 +3334,7 @@ check("the page's mirror of the helper agrees with the module", () => {
   }
   /* And the constant the reversal divides by is the same 1.24 in both
      places — a drift here silently re-bases every legacy line. */
-  const pageSrc = readFileSync(root("index.html"), "utf8");
+  const pageSrc = pageHtml();
   const pageMarkup = pageSrc.match(/const LIVE_PRICE_MARKUP = ([\d.]+)/)?.[1];
   const moduleSrc = readFileSync(root("weight-data.js"), "utf8");
   const moduleMarkup = moduleSrc.match(/const PRICE_STACK_MARKUP = ([\d.]+)/)?.[1];
@@ -3349,7 +3362,7 @@ check("the card figure is price + 23% of the dutiable base", () => {
 });
 
 check("the dutiable base is stamped at pricing and travels to the cart", () => {
-  const page = readFileSync(root("index.html"), "utf8");
+  const page = pageHtml();
   if (!/const dutiableUsd = Number\.isFinite\(rawPrice\) \? round2\(rawPrice \* taxRate\) : null;/.test(page)) {
     throw new Error("normalizeLiveItem no longer stamps dutiableUsd at pricing");
   }
@@ -3551,7 +3564,7 @@ check("every image URL is built from one base, so one fix reaches all", () => {
     }
   }
   // And a URL that 404s must degrade to the placeholder, not a broken icon.
-  const page = stripComments(readFileSync(root("index.html"), "utf8"));
+  const page = stripComments(pageHtml());
   const photo = page.slice(page.indexOf("function cardPhotoHTML"), page.indexOf("function cardPhotoFallback"));
   if (!/onerror=/.test(photo)) throw new Error("a product photo has no error path");
   if (!/function cardPhotoFallback/.test(page)) throw new Error("there is no photo fallback");
@@ -3581,7 +3594,7 @@ check("Juniors is womenswear, not childrenswear", () => {
     eq(deptMap.genderFromTitle(kid), "kids", kid);
   }
   // And the page mirror agrees, or the two disagree about the same item.
-  const page = readFileSync(root("index.html"), "utf8");
+  const page = pageHtml();
   const pageKid = /const KID_MARKER = (.+)/.exec(page)?.[1];
   const modKid = /const KID_MARKER = (.+)/.exec(readFileSync(root("scripts/lib/department-map.js"), "utf8"))?.[1];
   eq(pageKid, modKid, "KID_MARKER mirror");
@@ -4171,7 +4184,7 @@ check("the page routes an aisle instead of swapping it silently", () => {
   /* An aisle has to get its own URL, or back goes out of the category
      and a shopper cannot share what they are looking at. Same rule the
      store chips already follow. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/params:\s*\['kind',\s*'catKey',\s*'retailerFilter',\s*'subKey'\]/.test(src)) {
     throw new Error("subKey is not part of the catalogue route");
   }
@@ -4253,7 +4266,7 @@ check("SSENSE replaces Nordstrom, and says what it actually is", () => {
   if (NAMED_BRANDS.test(ssense.tagline || "")) {
     throw new Error("the SSENSE tagline hardcodes a brand — brands come from the catalogue, or they are a promise nobody checks");
   }
-  const page = stripComments(readFileSync(root("index.html"), "utf8"));
+  const page = stripComments(pageHtml());
   if (!/function topBrandsFor\(/.test(page)) throw new Error("the store card no longer derives its brands");
   if (!/data-brandline/.test(page)) throw new Error("the store card has no brand slot");
 
@@ -4334,7 +4347,7 @@ check("both catalogue files load, and neither can take the other down", () => {
      catches its own failure, so a missing or broken file leaves that
      store empty and every other store working — the alternative is one
      bad JSON taking the whole site's categories with it. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const fn = src.slice(src.indexOf("function loadDepartmentCache("), src.indexOf("const DEPARTMENT_META"));
   for (const file of ["macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json", "lanebryant-catalog.json"]) {
     if (!fn.includes(file)) throw new Error(`${file} is not loaded`);
@@ -4369,7 +4382,7 @@ check("a store with a FILE and no actor still reaches the deals feed", () => {
      discounted items, a median 40% off, were invisible in Ofertas while
      sitting in plain view inside the store. Nobody broke anything; the
      feed had no way to see a store that is not scraped. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/function fileBackedDeals\(/.test(src)) throw new Error("file-backed stores no longer feed Ofertas");
   const fn = src.slice(src.indexOf("async function fileBackedDeals("), src.indexOf("async function runSalesScan("));
   /* NO DOUBLE COUNTING, BY CONSTRUCTION: only browse-only stores are
@@ -4400,7 +4413,7 @@ check("Macy's really has deals worth showing, and the gate still applies", () =>
   /* Ofertas promotes, so its weight and freight gates still decide what
      is FEATURED — a file-backed store gets no exemption from them. The
      live count lands well under the raw 405 for exactly that reason. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const scan = src.slice(src.indexOf("async function runSalesScan("), src.indexOf("function discountPct("));
   if (!/passesOfertasGate/.test(scan)) throw new Error("file-backed deals bypass the Ofertas gate");
 });
@@ -4412,7 +4425,7 @@ check("the budget is the DELIVERED total, never the sticker", () => {
   /* A budget that filtered on the product price would be a lie the size
      of the freight: a S/ 90 top with S/ 40 of shipping does not belong
      in "menos de S/ 100". */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const fn = src.slice(src.indexOf("function doorToDoorPen("), src.indexOf("function budgetChipsHTML("));
   if (!/doorToDoorUsd/.test(fn)) throw new Error("the budget no longer uses the door-to-door total");
   if (/\bp\.price\b/.test(fn)) throw new Error("the budget is reading the sticker price");
@@ -4577,7 +4590,7 @@ check("beauty splits into aisles, and the leftovers are declared rather than bur
   eq(byKey.skincare, 808, "Cuidado de la piel");
   eq(byKey.fragrance, 624, "Fragancia");
   eq(grouped.typed + grouped.untyped, 3769, "nothing is lost either way");
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/grouped\.untyped > 0/.test(src)) throw new Error("the Ver todo card no longer says where the remainder is");
 });
 
@@ -4603,7 +4616,7 @@ check("an aisle tile wears a real product photo", () => {
   const pageGrouped = pageSubs.groupBySubcategory(beautyItems);
   eq(pageGrouped.rows.map((r) => r.image).join("\n"),
      grouped.rows.map((r) => r.image).join("\n"), "the page mirror picks the same faces");
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const card = src.slice(src.indexOf("function catalogAisleCardHTML("), src.indexOf("function catalogAisleListHTML("));
   if (!/row\.image/.test(card)) throw new Error("the aisle card ignores the photo");
   if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(card)) throw new Error("an emoji is back on an aisle card");
@@ -4662,7 +4675,7 @@ check("the card's weight reaches checkout instead of being re-guessed", () => {
      catalogue's number away: a BB cream showing 0.20 kg on the card and
      billed at 0.05 kg. So the figure rides on the line under the name
      the resolver reads. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/function catalogWeightDetail\(/.test(src)) throw new Error("the page no longer prefers the catalogue weight");
   if (!/catalogWeightDetail\(item, title\) \|\| estimateRetailWeightDetail\(/.test(src)) {
     throw new Error("normalizeLiveItem no longer consults the catalogue weight first");
@@ -4680,7 +4693,7 @@ check("a fragrance the store flags is limited even if its title is silent", () =
   const flagged = beautyItems.filter((i) => i.restricted === "fragancia-max-4");
   eq(flagged.length, 11, "restricted products");
   for (const i of flagged) eq(i.type, "Fragancia", `${i.name} is in the fragrance aisle`);
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/item\.restricted === 'fragancia-max-4' \|\| isFragrance\(title\)/.test(src)) {
     throw new Error("the store's own restriction flag is ignored");
   }
@@ -4791,7 +4804,7 @@ check("every registered logo file exists and is wired from the registry", () => 
      wired in one place and missing in another is the drift this
      registry exists to stop. SSENSE renders through the same path as
      the other nine, on Tiendas and on its own store header. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/const RETAILER_LOGO_FILE = Object\.fromEntries\(Object\.values\(RETAILERS\)/.test(src)) {
     throw new Error("logo files are no longer derived from the registry");
   }
@@ -4842,7 +4855,7 @@ check("retailer photos are requested at the largest size the CDN offers", () => 
 });
 
 check("a deal with no photo is not featured, and a missing photo is branded", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/function passesOfertasPhotoGate\(/.test(src)) throw new Error("Ofertas still features photoless tiles");
   const gate = src.slice(src.indexOf("function passesOfertasGate("), src.indexOf("function passesOfertasGate(") + 300);
   if (!/passesOfertasPhotoGate/.test(gate)) throw new Error("the photo gate is defined but not applied");
@@ -4851,7 +4864,7 @@ check("a deal with no photo is not featured, and a missing photo is branded", ()
      than the tiles it removes. Every committed product carries an
      image, so this can only ever act on the live deals cache. */
   for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 3769]]) {
-    const cat = JSON.parse(readFileSync(root(file), "utf8"));
+    const cat = JSON.parse((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     const items = Object.values(cat.retailers).flatMap((r) =>
       Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
     eq(items.length, expected, `${file} item count`);
@@ -4881,7 +4894,7 @@ check("every browse grid is photographs, and no grid is emoji", () => {
   /* The store page's department list — the first screen of Macy's,
      SSENSE or Sephora — was a 26px emoji over a label and a count. It
      is the same tile the aisle list uses now. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/function browseTileHTML\(/.test(src)) throw new Error("there is no shared browse tile");
   const tile = src.slice(src.indexOf("function browseTileHTML("), src.indexOf("function catalogAisleCardHTML("));
   if (!/<img/.test(tile)) throw new Error("the browse tile shows no photograph");
@@ -5032,7 +5045,7 @@ check("the streaming endpoint is a v2 function and cannot be buffered quietly", 
 });
 
 check("the page streams into the same bubble, and falls back without double-rendering", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   for (const fn of ["function beginAssistantReply(", "async function streamAssistantReply(",
                     "function speakAssistantReply(", "function rememberAssistantTurn("]) {
     if (!src.includes(fn)) throw new Error(`${fn} is missing`);
@@ -5161,7 +5174,7 @@ check("a brand is named by its catalogue, never by title-casing its slug", () =>
   eq(byKey.mm6maisonmargiela, "MM6 Maison Margiela", "MM6 Maison Margiela");
   eq(byKey.paulsmith, "Paul Smith", "Paul Smith");
 
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/function brandLabelFor\(/.test(src)) throw new Error("brandLabelFor is gone");
   /* The tiles used to need this too. They do not any more — a brand is
      never a tile — so the one surface left that names a brand from a
@@ -5268,7 +5281,7 @@ check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
      carries its brand — so the derived list is no longer empty and the
      old "nike-only / no-brand" assertions are retired. What still
      matters is the merge order, asserted above.) */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const merge = src.slice(src.indexOf("function retailerBrandBuckets("), src.indexOf("function departmentItemsFor("));
   if (!/Object\.entries\(retailerData\.brands \|\| \{\}\)/.test(merge)) throw new Error("the explicit buckets are no longer read");
   if (!/if \(!out\[key\]\) out\[key\] = bucket;/.test(merge)) throw new Error("a derived bucket now overwrites the catalogue's own");
@@ -5297,7 +5310,7 @@ check("no grid anywhere can build a wall of brands", () => {
      Brands are not gone from the site — the panel, the route,
      departmentItemsFor's brand branch and brandLabelFor are all live.
      What went is the tiling. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const tiles = src.slice(src.indexOf("function collectTiles("), src.indexOf("function deptTileHTML("));
   if (/brand/i.test(tiles)) throw new Error("collectTiles can make a brand tile again");
   if (!/DEPARTMENT_SPEC/.test(tiles)) throw new Error("collectTiles lost the department taxonomy");
@@ -5333,7 +5346,7 @@ check("no grid anywhere can build a wall of brands", () => {
 });
 
 check("the store's brand panel is navigable, and keeps today's route", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const panel = src.slice(src.indexOf("function storeBrandPanelHTML("), src.indexOf("function filterBrandPanel("));
   if (!panel) throw new Error("there is no brand panel");
 
@@ -5387,7 +5400,7 @@ check("the store's brand panel is navigable, and keeps today's route", () => {
    ================================================================== */
 group("The mobile shopfront");
 
-const shopfrontSrc = readFileSync(root("index.html"), "utf8");
+const shopfrontSrc = pageHtml();
 const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="mobileShopfront"'),
   shopfrontSrc.indexOf('<div id="desktopShopfront"'),
@@ -5914,7 +5927,7 @@ function fiestaEnvelopes(){
   const { normalizeCatalogueEnvelope } = loadPageEnvelopeSlice();
   const out = {};
   for (const [file, retailer] of Object.entries(FIESTA_CATALOG_RETAILERS)) {
-    const raw = JSON.parse(readFileSync(root(file), "utf8"));
+    const raw = JSON.parse((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     out[retailer] = normalizeCatalogueEnvelope(raw).retailers[retailer];
   }
   return out;
@@ -5923,7 +5936,7 @@ function fiestaEnvelopes(){
 function fiestaFileCounts(){
   const counts = {};
   for (const [file, retailer] of Object.entries(FIESTA_CATALOG_RETAILERS)) {
-    const raw = JSON.parse(readFileSync(root(file), "utf8"));
+    const raw = JSON.parse((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     const bucket = (raw.retailers || {})[retailer] || {};
     counts[file] = Object.values(bucket.departments || {})
       .reduce((t, d) => t + (d.items || []).length, 0);
@@ -5939,7 +5952,7 @@ check("the three party catalogs parse with their expected product counts", () =>
 });
 
 check("CATALOGUE_FILES lists the three catalogs and they resolve on disk", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const m = html.match(/const CATALOGUE_FILES = \[([\s\S]*?)\];/);
   if (!m) throw new Error("CATALOGUE_FILES is gone");
   for (const file of Object.keys(FIESTA_CATALOG_COUNTS)) {
@@ -6110,7 +6123,7 @@ check("Costco's storefront follows the standard store template", () => {
   if (titles.some(t => /projector|proyector/i.test(t) && /100"|120"|150"|\bUST\b/i.test(t)))
     throw new Error("a bulky projector bundle reached Costco's storefront departments");
   // and openStore keeps no Costco-only storefront
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const start = html.indexOf("async function openStore(retailer){");
   const end = html.indexOf("async function openStoreResults(", start);
   if (start < 0 || end < 0 || end < start) throw new Error("openStore moved -- update this check");
@@ -6194,7 +6207,7 @@ check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surfac
   if (h.length !== 1 || h[0] !== 'Toallas de baño')
     throw new Error("the envelope filter kept a sectional or dropped towels");
   // and the pipeline actually runs it on every load
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/\.then\(parts => parts\.map\(withoutUnshippableItems\)\)/.test(html))
     throw new Error("withoutUnshippableItems is not wired into the load pipeline");
 });
@@ -6246,7 +6259,7 @@ check("every Fiestas sub-rail has a non-empty product set", () => {
 check("the Fiestas vertical's markup matches its shelf config", () => {
   /* Raw markup on purpose: the ids below are unique to the Fiestas
      sections, and no HTML comment carries them. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const { FIESTAS_RAILS } = loadPageFiestasSlice();
   for (const surface of ["mFiestasSection", "dFiestasSection"]) {
     if (!html.includes(`id="${surface}"`)) throw new Error(`${surface} is gone`);
@@ -6285,7 +6298,7 @@ check("the Aria Auto house banner sits between the brand band and the category c
      the trust kicker. The CTA opens the Aria Auto vertical.
      (Supersedes PR #92's between-Fiestas slot. RockAuto's name left the
      banner 2026-09-26 with the source itself.) */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const banners = [...html.matchAll(/<section[^>]*aria-label="Aria Auto"[^>]*>([\s\S]*?)<\/section>/g)];
   eq(banners.length, 2, "one Aria Auto banner per breakpoint");
   for (const [, body] of banners) {
@@ -6320,7 +6333,7 @@ check("the brand strip exists on both breakpoints and tiles into brand pages", (
   /* 2026-09-26, DANNY'S HOMEPAGE ORDER V3: the eye-catcher between the
      store picker and the Costco zone -- the catalogue's top clothing
      brands as one swipeable row. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   for (const id of ["mBrandStrip", "dBrandStrip"]) {
     if (!html.includes(`id="${id}" data-brand-strip`)) throw new Error(`${id} lost its strip row`);
   }
@@ -6337,7 +6350,7 @@ check("every brand-strip logo resolves to a real, loadable asset", () => {
      asset: every BRAND_LOGOS entry must point at a file that exists on
      disk and parses as its claimed image type, so a bad path can never
      render a blank tile again. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const mapSrc = html.slice(html.indexOf("const BRAND_LOGOS = {"), html.indexOf("function brandStripTileHTML"));
   const entries = [...mapSrc.matchAll(/^\s*([a-z0-9]+):\s*\{\s*src:\s*'([^']+)'/gm)];
   if (entries.length < 25) throw new Error(`BRAND_LOGOS shrank to ${entries.length} entries`);
@@ -6375,7 +6388,7 @@ check("the nine fashion rails are compact; Costco's section is full-size", () =>
      features -- slightly smaller cards. New Balance, Kohl's and B&H
      join the compact treatment. Costco's own section keeps the
      full-size cards. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/\.storeRailCompact \[data-store-rail-card\]/.test(html))
     throw new Error("the compact-rail CSS is gone");
   for (const startMark of ['<div id="homeView"', '<div id="desktopShopfront"']) {
@@ -6402,7 +6415,7 @@ check("the nine fashion rails are compact; Costco's section is full-size", () =>
    ================================================================== */
 group("The mobile header");
 
-const hdrSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const hdrSrc = pageHtml().replace(/\r\n/g, "\n");
 const hdrStyle = hdrSrc.slice(hdrSrc.indexOf("<style>"), hdrSrc.indexOf("</style>"));
 const utilityBar = hdrSrc.slice(hdrSrc.indexOf('<div id="utilityBar"'), hdrSrc.indexOf('<header class="sticky'));
 const headerEl = hdrSrc.slice(hdrSrc.indexOf('<header class="sticky'), hdrSrc.indexOf("</header>"));
@@ -6704,7 +6717,7 @@ check("the conversation can always be closed, and closing never opens", () => {
      control labelled "Cerrar" can OPEN the panel whenever the flag and
      the DOM disagree. hideAssistant() sets the state instead of
      flipping it, so a second tap is a no-op. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const panel = src.slice(src.indexOf('<div id="assistantPanel"'), src.indexOf('id="assistantMessages"'));
   if (!panel) throw new Error("the assistant panel is gone");
   const btnAt = panel.search(/data-assistant-close(?![\w-])/);
@@ -6727,7 +6740,7 @@ check("the conversation can always be closed, and closing never opens", () => {
    checks would pass vacuously on an empty slice -- which is how they
    first reported "the sheet's stylesheet is gone" about a stylesheet
    that was right there. */
-const chatSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const chatSrc = pageHtml().replace(/\r\n/g, "\n");
 const chatStyle = chatSrc.slice(chatSrc.indexOf("<style>"), chatSrc.indexOf("</style>"));
 const chatPanel = chatSrc.slice(chatSrc.indexOf('<div id="assistantPanel"'), chatSrc.indexOf("<!-- ============ PRODUCT IMAGE LIGHTBOX"));
 const chatSheetCss = chatStyle.slice(chatStyle.indexOf("  @media (max-width: 1023px){\n    #assistantPanel{"), chatStyle.indexOf(".ariaQuickChip:active"));
@@ -6920,7 +6933,7 @@ check("the assistant never opens with an empty bubble", () => {
    ================================================================== */
 group("The lightbox is not a trap");
 
-const lbSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const lbSrc = pageHtml().replace(/\r\n/g, "\n");
 const lbStyle = lbSrc.slice(lbSrc.indexOf("<style>"), lbSrc.indexOf("</style>"));
 const lbMarkup = lbSrc.slice(lbSrc.indexOf('<div id="imageLightbox"'), lbSrc.indexOf('<div id="toast"'));
 
@@ -7159,7 +7172,7 @@ check("the back gesture closes the lightbox and nothing else", () => {
    ================================================================== */
 group("The related-products rail");
 
-const relSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const relSrc = pageHtml().replace(/\r\n/g, "\n");
 
 check("the rules are the brief's, and they are run rather than read", () => {
   const { relatedProducts, RELATED_RAIL_MIN, RELATED_RAIL_MAX, RELATED_PRICE_BAND } = loadPageRelatedSlice();
@@ -7448,7 +7461,7 @@ group("Search answers from the catalogue first");
        reach the first product. Same disease PR #152 cured on the
        categories view. On mobile the filters now live behind a "Filtros"
        button that slides up a bottom sheet; the desktop sidebar stays. */
-    const html = readFileSync(root("index.html"), "utf8");
+    const html = pageHtml();
     if (!/<aside class="hidden lg:block/.test(html)) {
       throw new Error("the results filter aside is not desktop-only; it stacks above the products on phones again");
     }
@@ -7596,7 +7609,7 @@ check("Aria reads the catalogue before she ever calls a store", () => {
      product question. With the account over its limit the shopper sat
      through four timeouts, read "Tuve un problema buscando eso", and
      the model -- handed no products -- said we had none. We had them. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const brainAt = src.indexOf("async function runAssistantBrain(text){");
   const brain = src.slice(brainAt, src.indexOf("/* ONE PAYLOAD, TWO ENDPOINTS.", brainAt));
   if (!brain) throw new Error("runAssistantBrain is gone");
@@ -7615,7 +7628,7 @@ check("Aria reads the catalogue before she ever calls a store", () => {
 });
 
 check("her own name is not part of the order", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const fnAt = src.indexOf("function stripAriaVocative(raw){");
   if (fnAt < 0) throw new Error("the vocative is back in the query");
   const build = src.slice(src.indexOf("function buildChatSearchQuery(text, recipient){"), src.indexOf("const extra = [];"));
@@ -7646,7 +7659,7 @@ check("her own name is not part of the order", () => {
 });
 
 check("the live offer is refined before it is spent", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveChipsOnly()"));
   if (!offer) throw new Error("the live-search offer is gone");
   for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU."]) {
@@ -7697,7 +7710,7 @@ check("searching never starts an Apify run on its own", () => {
      used to fan out to every retailer on every submit: a bill per
      search, and a blank page the moment Apify stopped answering. The
      fan-out lives in runLiveSearch() now, which only a click reaches. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const show = src.slice(src.indexOf("async function showResults(query, opts = {})"), src.indexOf("async function runLiveSearch()"));
   if (!show) throw new Error("showResults or runLiveSearch is gone");
   if (/scrapeRetailer\s*\(/.test(show)) throw new Error("showResults scrapes again — every search is billable and dies with Apify");
@@ -7709,7 +7722,7 @@ check("searching never starts an Apify run on its own", () => {
 });
 
 check("the shopper is told the truth when live search cannot run", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveSearchOffer()"));
   if (!offer) throw new Error("the live-search offer is gone");
   for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU.", "La búsqueda en vivo no está disponible en este momento."]) {
@@ -7738,7 +7751,7 @@ check("every store that can appear in the feed can also be ticked", () => {
      the page rendered 2, because the filter list was GENERAL_RETAILERS
      -- the four scrapeable stores -- so activeSearchStores() silently
      excluded every browse-only store the catalogue had just found. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const init = src.slice(src.indexOf("function initResultsFilters()"), src.indexOf("// Runs a real live search"));
   if (!/CATALOG_RETAILERS\.map/.test(init)) throw new Error("the results filter is built from the live retailers again — browse-only stores get filtered out of their own results");
 });
@@ -8080,7 +8093,7 @@ group("Sales lead: discounts first, biggest first");
   });
 
   check("search and the catalogue both default to the sales-first sort", () => {
-    const html = readFileSync(root("index.html"), "utf8");
+    const html = pageHtml();
     if (!html.includes('<option value="salesFirst">Ofertas primero</option>'))
       throw new Error("the sort dropdowns lost the Ofertas primero default");
     if (!html.includes("bySalesFirst(byMatchScore)"))
@@ -8194,7 +8207,7 @@ group("Brand and retailer names are searchable");
   });
 
   check("every carried store is findable through search", () => {
-    const html = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const html = pageHtml().replace(/\r\n/g, "\n");
     const RETS = [];
     for (const m of html.matchAll(/^\s*\w+:\s*\{\s*key:\s*'(\w+)',[^}\n]*?label:\s*(?:"([^"]+)"|'([^']+)')/gm)) {
       if (/retired:\s*true/.test(m[0])) continue;
@@ -8233,7 +8246,7 @@ group("Brand and retailer names are searchable");
     /* THE OTHER HALF OF ALE'S REPORT. openStore read a missing
        retailerData as "this shop is empty". The page must now offer the
        retry that busts the memoised catalogue load instead. */
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     const open = src.slice(src.indexOf("async function openStore(retailer){"), src.indexOf("async function openStoreResults"));
     if (!/if\s*\(!retailerData\)/.test(open)) throw new Error("openStore has no missing-data branch");
     if (!/retryStore\(/.test(open)) throw new Error("the missing-data branch offers no retry");
@@ -8254,7 +8267,7 @@ group("Brand and retailer names are searchable");
    ================================================================== */
 group("The Farfetch treatment");
 
-const ffSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const ffSrc = pageHtml().replace(/\r\n/g, "\n");
 const ffStyle = ffSrc.slice(ffSrc.indexOf("<style>"), ffSrc.indexOf("</style>"));
 const ffCard = ffSrc.slice(ffSrc.indexOf("function productCardHTML(p, opts){"), ffSrc.indexOf("function productCardOpenExpr(") > 0 ? ffSrc.length : ffSrc.length);
 const productCard = (() => {
@@ -8422,7 +8435,7 @@ check("the brand is an eyebrow above the title, and absent when there is none", 
   /* item.brand was in the data and rendered nowhere: the "Brown Curved
      Vent Blazer" at $1,790 -> $537 is EGONlab and no surface said so.
      For a premium or marked-down piece the label IS the decision. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const fn = src.slice(src.indexOf("function brandEyebrowHTML(brand, opts){"), src.indexOf("/** The standard card for any listed product"));
   if (!fn) throw new Error("the brand eyebrow is gone");
   if (!/if \(!name\) return '';/.test(fn)) throw new Error("an empty brand still renders an element — a hole above every unbranded title");
@@ -8452,7 +8465,7 @@ check("normalization does not drop the designer", () => {
      list, and every card and PDP on the site reads its output -- so a
      field left off that list is dropped once and lost everywhere. That
      is exactly what happened to `brand`. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const fn = src.slice(src.indexOf("function normalizeLiveItem(item, hints){"), src.indexOf("  return { title, brand,"));
   if (!fn) throw new Error("normalizeLiveItem no longer returns a brand");
   if (!/const brand = String\(item\.brand \|\| item\.designer \|\| ''\)\.trim\(\);/.test(fn)) {
@@ -8468,7 +8481,7 @@ check("normalization does not drop the designer", () => {
 });
 
 check("the PDP is told the brand, and cannot inherit the last one", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   if (!/function showProduct\(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg, opts\)/.test(src)) {
     throw new Error("showProduct no longer takes the options object the brand travels in");
   }
@@ -8526,7 +8539,7 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
        and standardSizeOptions() read PRODUCT_SHOE_KEYWORDS -- three
        overlapping copies hundreds of lines apart, so a word added to
        one was missing from the others. "Blazer" was in none. */
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "");   // comments may still name the dead constants
     for (const dead of ["APPAREL_SIZE_KEYWORDS", "PRODUCT_SHOE_KEYWORDS"]) {
       if (code.includes(dead)) throw new Error(`${dead} is back — a second list of size words will drift from the first`);
@@ -8558,7 +8571,7 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
        matters -- a garment the word list did not recognise, therefore no
        picker -- completed with no size at all. A S/ 2,946 blazer could
        be bought sizeless. */
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("  addToCart({"));
     if (!fn) throw new Error("the add-to-cart guard is gone");
     if (/if \(!sizeWrap\.hidden && sizeSelect\.required && !sizeSelect\.value\)\{/.test(fn)) {
@@ -8596,7 +8609,7 @@ const shoePage = loadPageFootwearSlice();
 function everyCatalogueItem() {
   const rows = [];
   for (const file of ["department-cache.json", "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"]) {
-    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    const data = JSON.parse((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     for (const [retailer, bucket] of Object.entries(data.retailers || {})) {
       for (const [, entry] of Object.entries(bucket.departments || {})) {
         for (const item of (Array.isArray(entry) ? entry : entry.items) || []) rows.push({ retailer, item });
@@ -8721,7 +8734,7 @@ check("a retailer's own type outranks our keyword, both ways", () => {
 check("Zapatos is a department with a name and a place in the taxonomy", () => {
   eq(deptMap.DEPARTMENT_SPEC.shoes.footwearOnly, true, "the shoes spec");
   eq(deptMap.DEPARTMENT_SPEC.shoes.anyCategory, true, "shoes must scan every bucket, not one named bucket");
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/shoes: \{ label: 'Zapatos'/.test(src)) throw new Error("the department has no Spanish name");
   // The page's spec mirrors the module's.
   const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
@@ -8850,7 +8863,7 @@ check("advance query: items without price or image never surface", () => {
 });
 
 check("searchAutoParts renders catalog sources as real products, not just the teaser", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const i = html.indexOf("async function searchAutoParts(){");
   if (i < 0) throw new Error("searchAutoParts moved");
   const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
@@ -8867,7 +8880,7 @@ check("searchAutoParts renders catalog sources as real products, not just the te
    other below the fold. The block id sits on the outer wrapper so the
    Posicion filter finds both its buttons and its cards. */
 check("auto part blocks render as per-store carousels, id on the outer wrapper", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const i = html.indexOf("function renderAutoPartBlock(label, result, query, sourceKey){");
   if (i < 0) throw new Error("renderAutoPartBlock moved");
   const body = html.slice(i, html.indexOf("function renderAutoComparison(query){", i));
@@ -8886,7 +8899,7 @@ check("auto part blocks render as per-store carousels, id on the outer wrapper",
 });
 
 check("comparison strip compares catalog items with honest fitment copy", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const i = html.indexOf("function renderAutoComparison(query){");
   if (i < 0) throw new Error("renderAutoComparison moved");
   const body = html.slice(i, html.indexOf("function showToast(msg){", i));
@@ -8902,7 +8915,7 @@ check("comparison strip counts an unconfirmed live source, not just confirmed fi
   /* The real-world case the QA caught: AutoZone renders unconfirmed (no
      compatibility list) while Advance renders from catalog. The strip
      must show -- it compares prices, and both sources' prices are real. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const i = html.indexOf("async function searchAutoParts(){");
   if (i < 0) throw new Error("searchAutoParts moved");
   const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
@@ -8920,7 +8933,7 @@ check("comparison strip counts an unconfirmed live source, not just confirmed fi
    flex row. The wordmark fallback must be nowrap, no-shrink, with its
    height set inline (not a runtime-built Tailwind arbitrary class). */
 check("compare strip wordmark badge cannot wrap or spill", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const i = html.indexOf("function autoSourceBadgeHTML(key, heightPx = 22){");
   if (i < 0) throw new Error("autoSourceBadgeHTML moved");
   const body = html.slice(i, html.indexOf("\n}\n", i));
@@ -8933,7 +8946,7 @@ check("compare strip wordmark badge cannot wrap or spill", () => {
 check("cheapest store's carousel floats to the top", () => {
   /* .gitattributes checks index.html out with CRLF; normalize so \n
      regexes match the working file, not just a fresh LF blob. */
-  const html = readFileSync(root("index.html"), "utf8").replace(/\r\n?/g, "\n");
+  const html = pageHtml().replace(/\r\n?/g, "\n");
   if (html.indexOf("function sortAutoBlocksByPrice(){") < 0) throw new Error("sortAutoBlocksByPrice missing");
   if (html.indexOf("function setAutoBlockMedianDoor(blockEl, items, query){") < 0) throw new Error("setAutoBlockMedianDoor missing");
   const i = html.indexOf("async function searchAutoParts(){");
@@ -9010,7 +9023,7 @@ check("brake cleaner is not a brake part", () => {
 check("Repuestos is a department with a name and a place in the taxonomy", () => {
   eq(deptMap.DEPARTMENT_SPEC.auto_parts.autoPartsOnly, true, "the auto_parts spec");
   eq(deptMap.DEPARTMENT_SPEC.auto_parts.anyCategory, true, "parts must scan every bucket, not one named bucket");
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/auto_parts: \{ label: 'Repuestos'/.test(src)) throw new Error("the department has no Spanish name");
   // The page's spec mirrors the module's.
   const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
@@ -9077,7 +9090,7 @@ check("the guard is at the funnel, not only at the button", () => {
      guard already lives there, and it is where the price guard belongs
      too. The cross-sell rail was the proof: it passed `priceUsd:
      it.price` straight through and never looked at it. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
 
   const funnel = src.slice(src.indexOf("function addToCart(item){"), src.indexOf("function removeFromCartByKey("));
   if (!/Number\.isFinite\(usd\) && usd > 0/.test(funnel)) throw new Error("addToCart no longer refuses a priceless line");
@@ -9108,7 +9121,7 @@ check("a card with no price does not say Comprar", () => {
   // The card's button only ever navigates, so the fix is what it CLAIMS:
   // "Comprar" over "Precio no disponible" is a promise the page it opens
   // cannot keep. Browsing a priceless record stays possible.
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const card = src.slice(src.indexOf("function productCardHTML(p, opts){"), src.indexOf("function renderSalesGrid("));
   if (!/hasPrice \? 'Comprar' : 'Ver detalle'/.test(card)) throw new Error("the card still promises a purchase without a price");
   if (!/Precio no disponible/.test(card)) throw new Error("the card no longer says the price is missing");
@@ -9118,7 +9131,7 @@ check("a card with no price does not say Comprar", () => {
 group("The home page tells the story once");
 
 check("the explainer is photography and type, not clip-art boxes", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const why = src.slice(src.indexOf('<div id="whyUs"'), src.indexOf("<!-- HOW IT WORKS -->"));
   if (!why) throw new Error("the explainer section is gone");
 
@@ -9164,7 +9177,7 @@ check("the page promises nothing we cannot do", () => {
 
      Asserted on the whole page, not just that section, so it cannot
      come back somewhere else. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   for (const claim of ["Compara con el precio en Perú", "tiendas peruanas, te mostramos ambos precios"]) {
     if (src.includes(claim)) throw new Error(`the Peru price-comparison promise is back: "${claim}"`);
   }
@@ -9187,7 +9200,7 @@ check("the home page runs deals, brand band, rails, departments, story", () => {
 
      Asserted on SOURCE ORDER, not on measured positions: the browser
      harness blocks the CDN, so nothing there has a reliable y. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const home = src.slice(src.indexOf("<!-- ============ HOME VIEW ============ -->"), src.indexOf("<!-- ============ RESULTS VIEW ============ -->"));
   if (!home) throw new Error("the home view is gone");
 
@@ -9244,7 +9257,7 @@ check("step 3 never makes us the buyer", () => {
      there the first person is correct and true: we really do consolidate
      the parcel. The slice stops at the STEP 4 marker so this can never
      start policing a sentence it was not written for. */
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const from = html.indexOf('<div class="ariaKicker mb-3">Compra directa</div>');
   const to = html.indexOf("<!-- STEP 4 -->");
   if (from < 0) throw new Error("the Compra directa section is gone — this check needs re-anchoring");
@@ -9307,7 +9320,7 @@ function forwardSlice(src, a, b, what){
    until a mutation run said so. Strip the prose, then read the code. */
 const stripHtmlComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
 
-const HOME_SRC = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const HOME_SRC = () => pageHtml().replace(/\r\n/g, "\n");
 
 check("the search glossary has no TV aliases (banned category, 2026-09-26)", () => {
   const src = HOME_SRC();
@@ -9584,7 +9597,7 @@ check("store rail names truncate instead of overlapping Ver tienda", () => {
   /* 2026-09-26, DANNY'S IPHONE QA: "MAINLAND SKATE & SURF" overlapped the
      "Ver tienda" link at phone widths. Every rail header's store name
      must truncate with an ellipsis and let the link keep its space. */
-  const src = stripHtmlComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripHtmlComments(pageHtml());
   const sections = [...src.matchAll(/<section[^>]*data-store-rail="([a-z]+)"[^>]*>([\s\S]*?)<\/section>/g)];
   if (sections.length < 20) throw new Error(`expected at least 20 store rail sections, found ${sections.length}`);
   for (const [, key, body] of sections) {
@@ -9799,7 +9812,7 @@ check("the home row is the shortlist, and every department it drops is still on 
      shrank, and the page's own taxonomy did not shrink with it. So the
      keys come out of index.html's declaration and are compared against
      the lib's, which is the pair that has to stay in step. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const specBlock = forwardSlice(src, "const DEPARTMENT_SPEC = {", "\nconst BUCKET_SPEC = {", "DEPARTMENT_SPEC");
   const pageKeys = [...specBlock.matchAll(/^\s{2}([a-z_]+):\s*\{/gm)].map(m => m[1]);
   if (pageKeys.length < 10) throw new Error(`only found ${pageKeys.length} departments in index.html — the slice is wrong`);
@@ -9838,7 +9851,7 @@ check("the grid and the phone rail are still built from one list", () => {
      index.html as "from the SAME tiles -- never a second list". Two
      lists is how the phone and the desktop end up disagreeing about
      what the shop sells. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const init = forwardSlice(src, "function initDepartmentTiles(){", "\nwindow.addEventListener('DOMContentLoaded', initDepartmentTiles);", "initDepartmentTiles");
   if (!/const tiles = homeRowTiles\(\)/.test(init)) {
     throw new Error("the home row no longer reads its own list");
@@ -9855,7 +9868,7 @@ check("Categorías still shows every department, whatever the home row drops", (
      keep reading collectTiles() directly -- the moment it reads the
      shortlist instead, cutting a card from the home row quietly deletes
      a section of the shop. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const cats = forwardSlice(src, "async function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
   if (!/for \(const cat of CATEGORY_RAILS\)/.test(cats)) {
     throw new Error("Categorías no longer builds from collectTiles() — it can no longer be the page that shows everything");
@@ -9878,7 +9891,7 @@ check("the catalogue knows the difference between broken and empty", () => {
      like a department with no stock, and stayed that way for the life of
      the page because the failed promise was the cached one. Zapatos
      showed "Sin resultados por ahora." with 539 pairs in the file. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const loader = forwardSlice(src, "function loadDepartmentCache(){", "\nconst DEPARTMENT_META", "loadDepartmentCache");
   if (!/departmentCacheFailed\s*=\s*loaded === 0/.test(loader)) {
     throw new Error("nothing records whether the catalogue actually loaded");
@@ -9894,7 +9907,7 @@ check("a retry can actually succeed", () => {
   /* A retry that re-awaits the memoised promise replays the same failure
      and reads as a dead button. Clearing the memo IS the fix, so this
      asserts it rather than the button's existence. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const retry = forwardSlice(src, "function retryCatalog(kind, key, retailerFilter){", "}", "retryCatalog");
   if (!/departmentCachePromise\s*=\s*null/.test(retry)) {
     throw new Error("retryCatalog does not clear the memoised promise — the button would replay the cached failure");
@@ -9903,7 +9916,7 @@ check("a retry can actually succeed", () => {
 });
 
 check("the empty state offers a way on, and never fires a scrape by itself", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const feed = forwardSlice(src, "function renderCatalogFeed(){", "const filterHasStock", "renderCatalogFeed");
   if (/subtitle\.textContent = 'Sin resultados por ahora\.'/.test(feed)) {
     throw new Error("the bare dead-end string is back");
@@ -9958,7 +9971,7 @@ group("A stylesheet comment that never opened");
    in it, so the stylesheet still balances perfectly. Comment delimiters
    are their own invariant. */
 check("every comment in the page stylesheet was opened before it was closed", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const open = src.indexOf("<style>");
   const css = src.slice(open + "<style>".length, src.indexOf("</style>", open));
 
@@ -9990,7 +10003,7 @@ const TRUST_PHOTOS = {
 };
 
 check("each card carries its own photograph, its scrim and its escape hatch", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const strip = forwardSlice(src, "<!-- FEATURE STRIP -->", "</div>\n  </div>", "the feature strip");
   const cards = strip.split('<div class="ariaTrustCard">').slice(1);
   if (cards.length !== 4) throw new Error(`expected 4 photographic trust cards, found ${cards.length}`);
@@ -10012,7 +10025,7 @@ check("each card carries its own photograph, its scrim and its escape hatch", ()
 });
 
 check("the trust photo cannot escape its card when the CDN is gone", () => {
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
   const card = forwardSlice(css, ".ariaTrustCard{", "}", ".ariaTrustCard");
   if (!/position:relative/.test(card)) throw new Error(".ariaTrustCard no longer establishes a containing block in the inline CSS");
@@ -10080,7 +10093,7 @@ check("all four trust photographs are committed, and small enough to send to a p
 
 group("Dollars lead, and the soles beside them are venta");
 
-const priceSrc = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const priceSrc = () => pageHtml().replace(/\r\n/g, "\n");
 const checkoutSrc = () => readFileSync(root("checkout.html"), "utf8").replace(/\r\n/g, "\n");
 
 check("the rate the site converts at is venta, never compra and never mid-market", () => {
@@ -10222,7 +10235,7 @@ function fwd(src, a, b, what){
   if (j < 0) throw new Error(`${what}: cannot find ${JSON.stringify(b)} after it`);
   return src.slice(i, j);
 }
-const hdrSource = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const hdrSource = () => pageHtml().replace(/\r\n/g, "\n");
 
 check("nothing in the header is unshrinkable at a phone's width", () => {
   /* THE BUG. The header's inner row is justify-between with BOTH children
@@ -10297,7 +10310,7 @@ check("Si sobra, es tuyo sits where it argues, and says it in Spanish", () => {
      suite. An assertion wedged into someone else's test inherits their
      slice, their variables and their early exits; this one reads the
      file and answers for itself. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
   if (!why) throw new Error("the explainer section is gone");
   if (!/Si sobra, es tuyo/.test(why)) throw new Error("the saldo promise card is gone");
@@ -10336,7 +10349,7 @@ check("the saldo promise is one the product actually keeps", () => {
      "saldo Aria" is not a coined phrase here — it is the wallet balance
      checkout already applies to an order. If that machinery is ever
      ripped out, this card has to go with it, and this fails first. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const co = readFileSync(root("checkout.html"), "utf8").replace(/\r\n/g, "\n");
   if (!/saldo Aria/.test(src)) throw new Error("the page no longer mentions saldo Aria at all");
   if (!/walletAppliedPen|saldo/.test(co)) {
@@ -10355,7 +10368,7 @@ check("the new card is built from the same parts as its neighbours", () => {
      -- asserted against a SIBLING rather than against a hardcoded class
      list, so restyling the section restyles this too instead of leaving
      one card behind. */
-  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const src = pageHtml().replace(/\r\n/g, "\n");
   const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
   const classesOf = (title) => {
     const at = why.indexOf(title);
@@ -10394,7 +10407,7 @@ const RESTRICTED = "pharmacy";
 check("no committed catalogue carries a pharmacy bucket", () => {
   for (const file of ["department-cache.json", "macys-catalog.json",
                       "ssense-catalog.json", "beauty-catalog.json"]) {
-    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    const data = JSON.parse((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     for (const [retailer, bucket] of Object.entries(data?.retailers || {})) {
       const depts = Object.keys(bucket?.departments || {});
       if (depts.includes(RESTRICTED)) {
@@ -10430,7 +10443,7 @@ check("no supplement survives anywhere in the committed catalogues", () => {
   };
   for (const file of ["department-cache.json", "macys-catalog.json",
                       "ssense-catalog.json", "beauty-catalog.json"]) {
-    walk(JSON.parse(readFileSync(root(file), "utf8")), file);
+    walk(JSON.parse((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8"))), file);
   }
   eq(found.join(" | "), "", `supplements are still in the catalogue data: ${found.slice(0, 3).join(" | ")}`);
 });
@@ -10442,7 +10455,7 @@ check("the department is out of every map that could draw it", () => {
   if (deptMap.DEPARTMENT_SPEC[RESTRICTED]) throw new Error("DEPARTMENT_SPEC still declares pharmacy — it would get a tile again");
   if (deptMap.BUCKET_SPEC[RESTRICTED]) throw new Error("BUCKET_SPEC still maps the pharmacy bucket into a category");
 
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   for (const table of ["DEPARTMENT_META", "DEPARTMENT_SPEC", "BUCKET_SPEC", "CATEGORY_COVERS"]) {
     const from = src.indexOf(`const ${table} = {`);
     if (from < 0) throw new Error(`${table} is gone from index.html`);
@@ -10494,7 +10507,7 @@ check("a pharmacy bucket that arrives anyway is dropped at the load boundary", (
      retailerItemsFor() walk the buckets directly too, which is search
      and the brand panels. The gate has to be on the DATA, once, where
      all of them read it. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const gate = src.slice(src.indexOf("function withoutRestrictedDepartments("),
                          src.indexOf("function loadDepartmentCache("));
   if (!gate) throw new Error("withoutRestrictedDepartments is gone");
@@ -10545,7 +10558,7 @@ check("the page's size filter and the module agree, item for item", () => {
   const files = ["kohls-catalog.json", "lanebryant-catalog.json", "newbalance-catalog.json"];
   let checked = 0;
   for (const file of files) {
-    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    const data = JSON.parse((file === "index.html" ? pageHtml() : readFileSync(root(file), "utf8")));
     for (const [retailer, r] of Object.entries(data.retailers || {})) {
       for (const [bucketName, d] of Object.entries(r.departments || {})) {
         for (const item of d.items || []) {
@@ -10595,7 +10608,7 @@ check("curvy took the slot pharmacy left, and kept its own cover", () => {
 });
 
 check("the name is Danny's, and the supporting line carries the search words", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const meta = src.slice(src.indexOf("const DEPARTMENT_META = {"), src.indexOf("\n};", src.indexOf("const DEPARTMENT_META = {")));
   if (!/curvy:\s*\{\s*label:\s*'Curvy'/.test(meta)) throw new Error("the department is no longer labelled Curvy");
   /* NEVER "Big & Tall", and never English beyond the one word Danny
@@ -10636,7 +10649,7 @@ check("kidswear never reaches Curvy", () => {
   /* A child's XXL is not an extended adult size, and a boys' tee on this
      page would be the exact insult the section undoes. Excluded through
      genderOfItem — the site's existing rule — not a new word list. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const fn = src.slice(src.indexOf("function itemBelongsToDepartment("), src.indexOf("\n}", src.indexOf("function itemBelongsToDepartment(")));
   if (!/extendedSizesOnly/.test(fn)) throw new Error("itemBelongsToDepartment no longer handles the size filter");
   if (!/genderOfItem\(item, bucketName\) === 'kids'\) return false/.test(fn)) {
@@ -10675,7 +10688,7 @@ check("every item Curvy would show in the real catalogue has a published extende
 });
 
 check("a thin section says so, in its own voice", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const notice = src.slice(src.indexOf("function curvyNoticeHTML("), src.indexOf("\n}", src.indexOf("function curvyNoticeHTML(")));
   if (!/Pr[óo]ximamente/.test(notice)) throw new Error("the thin state lost its próximamente");
   if (!/estamos cargando tallas/i.test(notice)) throw new Error("the thin state no longer says tallas are still loading");
@@ -10692,7 +10705,7 @@ check("the size run only prints where a page asked for it", () => {
   /* It is real data and it is honest everywhere, but on a page that is
      not about sizes it is one more line of small type between the
      photograph and the price. Curvy asks; nothing else does. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   const fn = src.slice(src.indexOf("function sizeRunHTML("), src.indexOf("\n}", src.indexOf("function sizeRunHTML(")));
   if (!/opts\.showSizeRun/.test(fn)) throw new Error("the size run renders whether or not a surface asked");
   if (!/showSizeRun: catalogState\.key === 'curvy'/.test(src)) {
@@ -10768,7 +10781,7 @@ check("the feed sort actually reads the band on Curvy, and only on Curvy", () =>
   /* The wiring: renderCatalogFeed sorts band-first exactly when the open
      department is Curvy. Pinned by reading the page source the way the
      neighbouring Curvy checks do. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const src = stripComments(pageHtml());
   if (!/const isCurvy = catalogState\.kind === 'department' && catalogState\.key === 'curvy'/.test(src)) {
     throw new Error("the feed no longer detects the Curvy department for its sort");
   }
@@ -10837,7 +10850,7 @@ check("empty stores and empty feeds produce no cards", () => {
 });
 
 check("lane bryant is registered and browsable in both mirrors", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const row = /lanebryant:\s*\{[^}]*\}/.exec(src);
   if (!row) throw new Error("lanebryant is not in index.html's RETAILERS");
   if (!/browse:\s*true/.test(row[0])) throw new Error("lanebryant is not browsable");
@@ -10849,7 +10862,7 @@ check("lane bryant is registered and browsable in both mirrors", () => {
 });
 
 check("the cards render only on the curvy department feed", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   if (!/\$\{isCurvy \? curvyStoreCardsHTML\(\) : ''\}/.test(src)) {
     throw new Error("curvyStoreCardsHTML is not gated on the curvy feed");
   }
@@ -10949,7 +10962,7 @@ group("store carousels: window-shopping rails");
   });
 
   check("every store landing renders the rail above the tiles", () => {
-    const src = readFileSync(root("index.html"), "utf8");
+    const src = pageHtml();
     const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
     const railAt = store.indexOf("storeCarouselHTML({");
     const tilesAt = store.indexOf("grid grid-cols-2 md:grid-cols-3 gap-4");
@@ -10961,7 +10974,7 @@ group("store carousels: window-shopping rails");
   });
 
   check("the aisle landing and the feed both lead with the rail", () => {
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     const aisle = src.slice(src.indexOf("function catalogAisleListHTML("), src.indexOf("function catalogAisleChipsHTML("));
     const railAt = aisle.indexOf("storeCarouselHTML({");
     const searchAt = aisle.indexOf("catalogSearchBarHTML()");
@@ -10974,7 +10987,7 @@ group("store carousels: window-shopping rails");
   });
 
   check("rail cards are image-forward, lazy, and open the product", () => {
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
     if (!/loading="lazy"/.test(src.slice(src.indexOf("function cardPhotoHTML("), src.indexOf("function cardPhotoFallback(")))) {
       throw new Error("cardPhotoHTML lost its lazy loading");
@@ -11023,7 +11036,7 @@ group("store carousels: window-shopping rails");
   });
 
   check("the rail CSS is a touch scroller with snap points and edge bleed", () => {
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     const css = src.slice(0, src.indexOf("</style>"));
     for (const rule of ["scroll-snap-type:x mandatory", "scroll-snap-align:start", "-webkit-overflow-scrolling:touch", "margin:0 -20px", "78vw"]) {
       if (!css.includes(rule)) throw new Error(`carousel CSS missing: ${rule}`);
@@ -11067,12 +11080,12 @@ group("per-store ambient themes: full rollout");
 
 {
   const themeKeys = () => {
-    const src = readFileSync(root("index.html"), "utf8");
+    const src = pageHtml();
     const lit = src.slice(src.indexOf("const STORE_THEMES = {"), src.indexOf("function storeThemeFor("));
     return [...lit.matchAll(/^  ([a-z0-9]+): \{ glow: '(#[0-9A-Fa-f]{6})' \},$/gm)].map(m => m[1]);
   };
   const cssFor = (key) => {
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     const css = src.slice(0, src.indexOf("</style>"));
     const start = css.indexOf(`[data-store-theme="${key}"]{`);
     if (start < 0) return null;
@@ -11108,7 +11121,7 @@ group("per-store ambient themes: full rollout");
   });
 
   check("the Victoria's Secret theme is untouched", () => {
-    const src = readFileSync(root("index.html"), "utf8");
+    const src = pageHtml();
     if (!/victoriassecret: \{ glow: '#E31C79' \},/.test(src)) {
       throw new Error("the VS registry row changed");
     }
@@ -11151,7 +11164,7 @@ group("per-store ambient themes: full rollout");
   });
 }
   check("the auto store keeps the light wash", () => {
-    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const src = pageHtml().replace(/\r\n/g, "\n");
     if (!/autozone: \{ glow: '#1C8A4B' \},/.test(src)) {
       throw new Error("the AutoZone registry row changed");
     }
@@ -11209,7 +11222,7 @@ check("ordinary text passes through untouched", () => {
 check("the client mirror agrees with the server copy", () => {
   // index.html cannot import, so the rule list lives twice — this pins
   // that the two never drift, the way the weight tables are pinned.
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const m = src.match(/function spokenPunctuationToMarks\(text\)\{[\s\S]*?\r?\n\}/);
   if (!m) throw new Error("spokenPunctuationToMarks is missing from index.html");
   const client = new Function(m[0] + "; return spokenPunctuationToMarks;")();
@@ -11242,7 +11255,7 @@ check("both chat endpoints and the TTS path sanitize the reply", () => {
   if (!/reply: sanitizeSpokenPunctuation\(reply\)/.test(stream)) {
     throw new Error("aria-chat-stream.js returns the unsanitized reply");
   }
-  const stt = readFileSync(root("index.html"), "utf8");
+  const stt = pageHtml();
   if (!/const cleanTranscript = spokenPunctuationToMarks\(transcript\)/.test(stt)) {
     throw new Error("the speech-to-text transcript is not sanitized before the chat");
   }
@@ -11270,7 +11283,7 @@ check("restoring a product route resolves the catalogue, never searches the titl
   // The doorway: applyRoute's productView case used to call
   // showResults(route.name) when the in-memory item was gone, which is
   // how a tapped shoe became a pants title with no image and no results.
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const route = src.slice(src.indexOf("async function applyRoute(route){"), src.indexOf("/* ============================================================\n   THE CATALOGUE PAGE"));
   const productCase = route.slice(route.indexOf("case 'productView'"), route.indexOf("case 'catalogView'"));
   if (/showResults\(route\.name/.test(productCase)) {
@@ -11285,7 +11298,7 @@ check("restoring a product route resolves the catalogue, never searches the titl
 });
 
 check("a failed catalogue search says so and offers a retry", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const fn = src.slice(src.indexOf("async function showResults(query, opts = {}){"), src.indexOf("/* ============================================================\n   THE LIVE SCAN"));
   if (!/catch \(err\)[\s\S]*?catalogSearch/.test(fn) && !/try \{[\s\S]*?catalogSearch\(query\)/.test(fn)) {
     throw new Error("showResults does not guard catalogSearch");
@@ -11296,7 +11309,7 @@ check("a failed catalogue search says so and offers a retry", () => {
 });
 
 check("one poison record cannot empty the search pool", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const pool = src.slice(src.indexOf("async function relatedPool(){"), src.indexOf("/* ============================================================\n   CATALOG-FIRST SEARCH"));
   if (!/try \{ it = normalizeLiveItem/.test(pool)) {
     throw new Error("relatedPool does not isolate a throwing record");
@@ -11339,7 +11352,7 @@ check("divergent quantities keep the larger side", () => {
 });
 
 check("the page merge cannot sum quantities", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const fn = src.slice(src.indexOf("function mergeCarts(localCart, serverCart){"), src.indexOf("CART WEIGHT REPAIR"));
   if (/\.qty\s*\+=\s*it\.qty/.test(fn)) {
     throw new Error("mergeCarts still sums quantities on matching keys");
@@ -11458,7 +11471,7 @@ check("mergeCarts normalises string quantities instead of concatenating them", (
 });
 
 check("initCart runs the quantity healing pass", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const fn = src.slice(src.indexOf("async function initCart(){"), src.indexOf("let cartLoaded = false;"));
   if (!/repairImplausibleQuantities\(cart\)/.test(fn)) {
     throw new Error("initCart does not run repairImplausibleQuantities");
@@ -11546,7 +11559,7 @@ check("size tables are region-aware: UK/UE equivalents plus cm body measurements
 });
 
 check("the guide link lives inside the size picker and the modal closes three ways", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const wrap = src.slice(src.indexOf('id="productSizeWrap"'), src.indexOf('id="addToCartBtn"'));
   if (!/id="sizeGuideLink"/.test(wrap)) {
     throw new Error("Guía de tallas link is not inside #productSizeWrap");
@@ -11567,7 +11580,7 @@ check("the guide link lives inside the size picker and the modal closes three wa
 });
 
 check("opening the guide cannot disturb the shopper's chosen size", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const fn = src.slice(src.indexOf("function openSizeGuide(){"), src.indexOf("function sizeGuideTab("));
   if (/productSizeSelect/.test(fn)) {
     throw new Error("openSizeGuide touches the size select");
@@ -11579,7 +11592,7 @@ check("opening the guide cannot disturb the shopper's chosen size", () => {
 });
 
 check("the product page shows a continue-to-cart line whenever the cart holds items", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   // The line lives directly under the buy button and taps straight into the cart.
   const btnZone = src.slice(src.indexOf('id="addToCartBtn"'), src.indexOf('id="productNoPriceNote"'));
   if (!/id="continueToCartBtn"[^>]*onclick="openCart\(\)"/.test(btnZone)) {
@@ -11672,7 +11685,7 @@ check("the shared glossary translates the acceptance terms (accent-insensitive)"
 });
 
 check("an unwired auto source renders the honest pending block, never the backend diagnostic", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/autoPendingBlockHTML\(\{\s*\.\.\.source,\s*pendingNote:\s*'Estamos ampliando nuestro catálogo de repuestos/.test(html))
     throw new Error("the auto search catch does not render the pending block for unwired sources");
   if (!/DEV_DIAGNOSTIC_RE\.test\(rawErr\)/.test(html))
@@ -11682,13 +11695,13 @@ check("an unwired auto source renders the honest pending block, never the backen
 });
 
 check("both scrape entry points time out the start call (no endless skeleton)", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const starts = html.match(/fetchWithStartTimeout\('\/\.netlify\/functions\/apify-scrape-start'/g) || [];
   eq(starts.length, 2, "start calls through fetchWithStartTimeout");
 });
 
 check("the on-demand error path never toasts a raw backend diagnostic", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/Esta tienda aún no está conectada — prueba con otra\./.test(html))
     throw new Error("no friendly on-demand toast for unwired stores");
 });
@@ -12365,7 +12378,7 @@ check("sitemap.xml is valid XML with same-origin index.html URLs only", () => {
 
 check("every sitemap tienda= key is an ACTIVE retailer (no dead storefronts)", () => {
   const xml = readFileSync(root("sitemap.xml"), "utf8");
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   const keys = [...xml.matchAll(/[?&]tienda=([a-z0-9]+)/g)].map((m) => m[1]);
   if (!keys.length) throw new Error("no storefront URLs in sitemap");
   for (const key of keys) {
@@ -12377,7 +12390,7 @@ check("every sitemap tienda= key is an ACTIVE retailer (no dead storefronts)", (
 });
 
 check("index.html has no noindex; checkout.html keeps its deliberate noindex", () => {
-  const index = readFileSync(root("index.html"), "utf8");
+  const index = pageHtml();
   if (/name="robots"[^>]*noindex/i.test(index)) throw new Error("index.html has noindex");
   // checkout is app functionality, not landing content - its noindex is intentional
   const checkout = readFileSync(root("checkout.html"), "utf8");
@@ -12387,7 +12400,7 @@ check("index.html has no noindex; checkout.html keeps its deliberate noindex", (
 });
 
 check("head carries canonical + Spanish description + OG/Twitter card tags", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/<link rel="canonical" href="https:\/\/ariashop\.pe\/">/.test(html))
     throw new Error("canonical missing");
   const desc = html.match(/<meta name="description" content="([^"]+)">/);
@@ -12400,7 +12413,7 @@ check("head carries canonical + Spanish description + OG/Twitter card tags", () 
 });
 
 check("Search Console verification hook is present (placeholder until Danny pastes the code)", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   if (!/<meta name="google-site-verification" content="[^"]+">/.test(html))
     throw new Error("google-site-verification meta missing");
 });
@@ -12420,7 +12433,7 @@ check("the gym brands are registered and browsable in both mirrors", () => {
   /* The Macy's / Lane Bryant pattern: a committed catalogue, no actor --
      browse: true, search: false, in both registries or the brand's pills,
      rail, storefront and Ofertas entries silently disagree. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   for (const [key, label] of [["youngla", "YoungLA"], ["gymshark", "Gymshark"], ["alphalete", "Alphalete"]]) {
     const row = new RegExp(key + ":\\s*\\{[^}]*\\}").exec(src);
     if (!row) throw new Error(`${key} is not in index.html's RETAILERS`);
@@ -12501,7 +12514,7 @@ check("Gym Rat lists YoungLA first, Gymshark heavy second, Alphalete third", () 
   /* DANNY (2026-09-26): most-known brands first. One reorder drives the
      pill row and the product grid, both of which read byRetailer in
      insertion order. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   const m = src.match(/DEPARTMENT_RETAILER_ORDER = \{[^}]*gym_rat:\s*\[([^\]]+)\]/);
   if (!m) throw new Error("DEPARTMENT_RETAILER_ORDER.gym_rat is gone");
   eq(m[1].replace(/['\s]/g, ""), "youngla,gymshark,alphalete", "Gym Rat brand order drifted");
@@ -12539,7 +12552,7 @@ check("the Gym Rat lead is wired into the department sort, explicit sorts bypass
   /* The lead only governs the default view: a shopper who explicitly picks
      a price sort gets exactly that order (catalogSortTouched), and the flag
      resets on every navigation into a catalogue view. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   if (!/isGymRat && !catalogSortTouched/.test(src)) throw new Error("the gym_rat lead is not in the department sort");
   if (!/function onCatalogSortChange\(\)\{ catalogSortTouched = true;/.test(src)) {
     throw new Error("an explicit sort choice does not set catalogSortTouched");
@@ -12554,7 +12567,7 @@ check("the three new rails sit beside their peers on all three surfaces (2026-09
   /* New Balance, Kohl's and B&H join the rails without removing any
      existing one: each new rail is declared exactly once per surface,
      and the rail-store list leads with the reliable-first order. */
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   if (!/const STORE_RAIL_STORES = \[\s*'footlocker',\s*'newbalance',\s*'sephora'/.test(src)) {
     throw new Error("STORE_RAIL_STORES is not footlocker, newbalance, sephora");
   }
@@ -12893,7 +12906,7 @@ check("combo deals: every book in the catalog has at least one pairing", () => {
 });
 
 check("combo deals: discount lines are excluded from freight everywhere", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   for (const fn of ["repairCartWeights", "cartTotals", "cartWeightReviewItems"]) {
     const at = html.indexOf("function " + fn + "(");
     if (at < 0) throw new Error(`${fn} is missing`);
@@ -12907,7 +12920,7 @@ check("combo deals: discount lines are excluded from freight everywhere", () => 
 });
 
 check("combo deals: bundle invariant is enforced on every cart mutation", () => {
-  const html = readFileSync(root("index.html"), "utf8");
+  const html = pageHtml();
   for (const fn of ["syncBundleDiscounts", "addComboToCart", "renderComboModule", "resolveComboDeal", "combosForProduct"])
     if (!new RegExp(`function ${fn}\\(`).test(html)) throw new Error(`${fn} is missing`);
   if (!/removeFromCartByKey[\s\S]{0,300}syncBundleDiscounts\(\)/.test(html))
@@ -12988,7 +13001,7 @@ check("books: a books-bucket item belongs to the Libros department", () => {
 });
 
 check("books: the pill, rail and tile metadata are wired", () => {
-  const src = readFileSync(root("index.html"), "utf8");
+  const src = pageHtml();
   if (!/\{ key: 'books', label: 'Libros'/.test(src)) throw new Error("CATEGORY_RAILS has no books entry");
   if (!/CATEGORY_TAB_ORDER = \[[^\]]*'books'/.test(src)) throw new Error("CATEGORY_TAB_ORDER omits books");
   if (!/books: \{ label: 'Libros'/.test(src)) throw new Error("DEPARTMENT_META has no books label");
@@ -13083,7 +13096,7 @@ check("no keys or voice ids leak into code or the client", () => {
       throw new Error(`${f} hardcodes a TTS credential`);
     }
   }
-  const page = readFileSync(root("index.html"), "utf8");
+  const page = pageHtml();
   if (/ek0qR5Bu0N3aPdijsdae/.test(page)) throw new Error("voice id must not ship to the client");
   for (const dead of ["ELEVENLABS_API_KEY", "xi-api-key", "elevenlabs.io"]) {
     if (page.includes(dead)) throw new Error(`"${dead}" must not ship to the client`);
@@ -13095,7 +13108,7 @@ check("no keys or voice ids leak into code or the client", () => {
    cannot import), marked by TTS PIPELINE CORE comments. The tests run
    the real page code, extracted verbatim. */
 function loadTtsCore() {
-  const page = readFileSync(root("index.html"), "utf8");
+  const page = pageHtml();
   const start = page.indexOf("/* ==== TTS PIPELINE CORE");
   const endMark = page.indexOf("==== END TTS PIPELINE CORE ====");
   if (start < 0 || endMark < 0) throw new Error("TTS pipeline core markers missing in index.html");
@@ -13164,7 +13177,7 @@ check("ttsDrained only when the stream is done and every slot resolved", () => {
 
 group("assistant engine: client wiring");
 check("client pipelines sentence audio per turn", () => {
-  const page = readFileSync(root("index.html"), "utf8");
+  const page = pageHtml();
   ok(page.includes("ttsPipeline: true"), "payload flags the pipeline");
   ok(!page.includes("/.netlify/functions/aria-tts"),
      "the deleted synthesis endpoint is called again");

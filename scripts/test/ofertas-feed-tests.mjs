@@ -18,7 +18,7 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { liftDeclarations } from "../lib/page-lift.mjs";
+import { liftDeclarations, pageHtml } from "../lib/page-lift.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -31,7 +31,7 @@ function check(name, fn) {
 const feed = JSON.parse(readFileSync(ROOT + "ofertas-feed.json", "utf8"));
 const lite = JSON.parse(readFileSync(ROOT + "ofertas-feed-lite.json", "utf8"));
 const T = liftDeclarations(readFileSync(ROOT + "tienda.html", "utf8"), ["STORES", "realImage"]);
-const P = liftDeclarations(readFileSync(ROOT + "index.html", "utf8"),
+const P = liftDeclarations(pageHtml(ROOT),
   ["MIN_DISCOUNT_PCT", "rawItemOnSale", "OFERTAS_MAX_DISCOUNT_PCT", "SALE_ORIGINAL_FIELDS", "saleNumber", "salePriceOf", "saleOriginalPrice", "saleDiscountPct", "isOnSaleItem"],
   { optional: ["OFERTAS_MAX_DISCOUNT_PCT", "SALE_ORIGINAL_FIELDS", "saleNumber", "salePriceOf", "saleOriginalPrice", "saleDiscountPct", "isOnSaleItem"] });
 

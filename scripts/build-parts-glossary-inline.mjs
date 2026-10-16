@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* build-parts-glossary-inline.mjs
-   Regenerates the AUTO_PART_TERMS_ES_EN block in index.html from the
+   Regenerates the AUTO_PART_TERMS_ES_EN block in the page script
+   (build/app-<hash>.js since 2026-10-14; it lived in index.html) from the
    canonical shared module scripts/lib/es-en-parts-glossary.json.
 
    The JSON is SHARED INFRASTRUCTURE: the future Aria AI assistant imports
@@ -10,7 +11,7 @@
    inline block — edit the JSON and re-run this.
 
    Usage: node scripts/build-parts-glossary-inline.mjs
-   It prints the replacement block to stdout; splice it into index.html
+   It prints the replacement block to stdout; splice it into the bundle
    between the GLOSSARY-BLOCK-START / GLOSSARY-BLOCK-END markers. */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

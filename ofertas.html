@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ofertas — Aria Shop</title>
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
 <meta name="description" content="Las mayores ofertas de tiendas de Estados Unidos, con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
 /* Standalone Ofertas page. Zero dependencies: no frameworks, no CDN.
@@ -275,8 +277,6 @@ var SRC = {
   fx:    BASE + '/.netlify/functions/exchange-rate'
 };
 var TIMEOUT_MS = 20000;      // per-request timeout: never hang forever
-var PRICE_CAP_USD = 150;     // Ofertas = entry-shopper deals (matches main site)
-var MIN_PCT = 0.05, MAX_PCT = 0.70;  // visible, honest discounts only
 
 /* ---------- tiny helpers ---------- */
 function esc(s){
@@ -295,10 +295,10 @@ function money(n){
   if (!Number.isFinite(v)) return '—';
   return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
 }
+/* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule, served as
+   sale-rule.js -- a real was-price, 5-70% off. 0 = not on sale. */
 function discountPct(p){
-  var o = Number(p.originalPrice), pr = Number(p.price);
-  if (!(o > 0) || !(pr >= 0)) return 0;
-  return Math.round((1 - pr / o) * 100);
+  return window.AriaSale ? window.AriaSale.discountPct(p) : 0;
 }
 function realImage(p){
   var cands = [];
@@ -315,19 +315,15 @@ function realImage(p){
   }
   return null;
 }
-/* Visible-discount gate — mirrors the main site's isSaleItem. The $150
-   entry-shopper cap (PRICE_CAP_USD) is for the all-stores mix only
-   (passesMixCap): a store chosen in the filter shows every one of its
-   markdowns, the same count its own page shows (2026-10-13, #386). */
+/* The Ofertas gate: index.html's one sale definition (sale-rule.js) and
+   a real photo. Danny's $150 entry-shopper cap is for the all-stores mix
+   only (passesMixCap): a store chosen in the filter shows every one of
+   its markdowns, the same count its own page shows (2026-10-13, #386). */
 function isDeal(p){
-  if (!p) return false;
-  var price = Number(p.price), orig = Number(p.originalPrice);
-  if (!(orig > price) || !(price > 0)) return false;
-  var pct = (orig - price) / orig;
-  if (!(pct >= MIN_PCT && pct <= MAX_PCT)) return false;
-  return !!realImage(p);
+  if (!p || !window.AriaSale) return false;
+  return window.AriaSale.isOnSale(p) && !!realImage(p);
 }
-function passesMixCap(p){ return Number(p.price) <= PRICE_CAP_USD; }
+function passesMixCap(p){ return !window.AriaSale || Number(p.price) <= window.AriaSale.MIX_MAX_PRICE_USD; }
 function relTime(iso){
   if (!iso) return null;
   var t = new Date(iso).getTime();
@@ -461,7 +457,7 @@ function cardHTML(p){
       '<h3 class="card-title">' + esc(p.title || 'Producto') + '</h3>' +
       '<div class="card-prices"><div class="price-row">' +
         '<span class="price">' + money(p.price) + '</span>' +
-        '<span class="price-old">' + money(p.originalPrice) + '</span>' +
+        '<span class="price-old">' + money(window.AriaSale.originalPrice(p)) + '</span>' +
       '</div>' +
       '<div class="price-pen" data-usd="' + esc(p.price) + '"' + (fxVenta ? '' : ' hidden') + '>' +
         (fxVenta ? 'S/ ' + (Number(p.price) * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) : '') +
