@@ -10948,8 +10948,8 @@ const BRAND_STRIP_MAX = 40;
    gucci 22, balenciaga 22, prada 16, armanibeauty 13, chanel 12,
    versace 7, hermes 7, goldengoose 4). Fendi / Tiffany / Cartier are
    true zeros -- never pinned, never faked. */
-const BRAND_STRIP_LUXURY = ['miumiu','goldengoose','gucci','poloralphlauren','givenchy','yvessaintlaurent','burberry','dior','valentino','balenciaga','prada','armanibeauty','chanel','versace','hermes'];
-const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', goldengoose:'Golden Goose', gucci:'Gucci', poloralphlauren:'Ralph Lauren', givenchy:'Givenchy', yvessaintlaurent:'Saint Laurent', burberry:'Burberry', dior:'Dior', valentino:'Valentino', balenciaga:'Balenciaga', prada:'Prada', armanibeauty:'Armani', chanel:'Chanel', versace:'Versace', hermes:'Herm\u00e8s' };
+const BRAND_STRIP_LUXURY = ['miumiu','goldengoose','dolcegabbana','brunellocucinelli','gucci','poloralphlauren','givenchy','yvessaintlaurent','burberry','dior','valentino','balenciaga','prada','armanibeauty','chanel','versace','hermes'];
+const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', goldengoose:'Golden Goose', dolcegabbana:'Dolce & Gabbana', brunellocucinelli:'Brunello Cucinelli', gucci:'Gucci', poloralphlauren:'Ralph Lauren', givenchy:'Givenchy', yvessaintlaurent:'Saint Laurent', burberry:'Burberry', dior:'Dior', valentino:'Valentino', balenciaga:'Balenciaga', prada:'Prada', armanibeauty:'Armani', chanel:'Chanel', versace:'Versace', hermes:'Herm\u00e8s' };
 /* LATINO DESIGNERS (2026-09-29, Danny): the five Disenadores Latinos
    marques get dual placement -- their own section AND the brand strip,
    right after the luxury block, so shoppers can find and support them. */
@@ -12890,6 +12890,15 @@ const BRAND_ROOM_SPECS = [
   /* Photo: 'Crocs Store Dadeland Mall, Miami FL 1 December 2022' by
      Phillip Pessar, CC BY 2.0, via Wikimedia Commons */
   { key: 'crocs', label: 'Crocs', heroImage: 'assets/brands/crocs-hero.jpg' },
+  /* LUXURY BRAND ROOMS VIA FARFETCH (2026-10-16): Dolce & Gabbana, Brunello
+     Cucinelli and Golden Goose pulled from Farfetch (retailer of record) into
+     farfetch-catalog.json luxury_brands. No curated Commons storefront hero:
+     the banner falls back to the brand's own sale product photo
+     (brandRoomHero). Golden Goose carries its real logo (BRAND_LOGOS);
+     Dolce & Gabbana / Brunello Cucinelli render the text wordmark. */
+  { key: 'dolcegabbana', label: 'Dolce & Gabbana' },
+  { key: 'brunellocucinelli', label: 'Brunello Cucinelli' },
+  { key: 'goldengoose', label: 'Golden Goose' },
 ];
 
 /* Brand-room spec lookup, tolerant: 'Ray-Ban'/'ray ban' -> 'rayban',
