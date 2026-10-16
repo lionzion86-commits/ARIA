@@ -28,6 +28,7 @@ import { readFile, writeFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { extname, join, normalize } from "node:path";
 import { liftDeclarations } from "./lib/page-lift.mjs";
+import { ofertasDeptTotal } from "./lib/ofertas-dept-total.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const LITE_N = 800;
@@ -120,7 +121,10 @@ server.close();
 const generatedAt = new Date().toISOString();
 const counts = {};
 for (const it of items) counts[it.retailer] = (counts[it.retailer] || 0) + 1;
-await writeFile(join(ROOT, "ofertas-feed.json"), JSON.stringify({ generatedAt, count: items.length, counts, items }));
+/* The department page's own all-stores count, for the homepage's "Ver
+   todo N ofertas" (see scripts/lib/ofertas-dept-total.mjs). */
+const deptTotal = ofertasDeptTotal(items, ROOT.endsWith("/") ? ROOT : ROOT + "/");
+await writeFile(join(ROOT, "ofertas-feed.json"), JSON.stringify({ generatedAt, count: items.length, deptTotal, counts, items }));
 /* Round-robin by store, each store's biggest markdowns first. */
 const byStore = new Map();
 for (const it of items) (byStore.get(it.retailer) || byStore.set(it.retailer, []).get(it.retailer)).push(it);
@@ -129,7 +133,7 @@ const lists = [...byStore.values()];
 const lite = [];
 for (let i = 0; lite.length < Math.min(LITE_N, items.length); i++)
   for (const l of lists) if (l[i] && lite.length < LITE_N) lite.push(l[i]);
-await writeFile(join(ROOT, "ofertas-feed-lite.json"), JSON.stringify({ generatedAt, count: lite.length, lite: true, items: lite }));
+await writeFile(join(ROOT, "ofertas-feed-lite.json"), JSON.stringify({ generatedAt, count: lite.length, deptTotal, lite: true, items: lite }));
 const mb = ((await stat(join(ROOT, "ofertas-feed.json"))).size / 1048576).toFixed(2);
 const kb = Math.round((await stat(join(ROOT, "ofertas-feed-lite.json"))).size / 1024);
 console.log(`ofertas-feed.json: ${items.length} deals from ${byStore.size} stores, ${mb}MB; lite: ${lite.length}, ${kb}KB`);

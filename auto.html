@@ -370,11 +370,17 @@ function searchCache(cache, vehicle, query){
     }
     scored.sort(function(a,b){ return b.score - a.score; });
     for (var s = 0; s < scored.length && out.fallback.length < 60; s++){
+      /* SAME CAR, SAME ANSWER (2026-10-14, #386 N5: "Compatible con tu 2020
+         Toyota Corolla" for one wording, "Verifica el calce" for the same
+         pads under another). A part found under THIS vehicle's own key is
+         as compatible as an exact-key hit, whatever words found it. */
+      var ownCar = scored[s].key.indexOf(prefix) === 0;
       var items = collectItems(ps[scored[s].key]);
       for (var j = 0; j < items.length && out.fallback.length < 60; j++){
         var id = itemId(items[j]);
         if (!id || seen[id]) continue;
         seen[id] = 1;
+        if (ownCar) items[j].ownVehicle = true;
         out.fallback.push(items[j]);
       }
     }
@@ -431,7 +437,7 @@ function partCard(it, vehicle, exact){
   var img = it.image
     ? '<img src="' + esc(it.image) + '" alt="' + esc(it.title) + '" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;pimg-fallback&quot;>Sin imagen</div>\'">'
     : '<div class="pimg-fallback">Sin imagen</div>';
-  var fit = exact && it.fitted
+  var fit = (exact || it.ownVehicle) && it.fitted
     ? '<span class="badge ok">Compatible con tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) + '</span>'
     : '<span class="badge warn">Verifica el calce con el número de parte</span>';
   return '<div class="pcard">' + img +

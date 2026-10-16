@@ -4605,6 +4605,8 @@ function detectBrandIntent(rawToks, pool, opts){
     }
     if (arr.length) windowsBySize.push(arr);
   }
+  const translatedWords = new Set();
+  for (const pw of (opts && opts.productWords) || []) for (const t of searchTokens(pw)) translatedWords.add(t);
   const singleSkipped = (w) => {
     if (w.joins.length !== 1 || w.idx.length !== 1) return false;
     const tok = rawToks[w.idx[0]];
@@ -4613,7 +4615,8 @@ function detectBrandIntent(rawToks, pool, opts){
        how "hasta" became HABA. Single-token only: "de" and "la" are
        in that set and multi-word brands are built out of them.
        ("sol de janeiro", "young la".) */
-    if (ES_SEARCH_STOPWORDS.has(tok)) return true;
+    if (ES_SEARCH_STOPWORDS.has(tok) || ES_COMMON_WORDS.has(tok)) return true;
+    if (translatedWords.has(tok)) return true;
     return !!synonymGroupOf(tok) || retailerNames.has(tok);
   };
   /* ============================================================
@@ -4828,6 +4831,17 @@ const ES_SEARCH_STOPWORDS = new Set(['de', 'la', 'el', 'los', 'las',
   'en', 'con', 'para', 'por', 'un', 'una', 'uno', 'y', 'e', 'o',
   'u', 'al', 'del', 'mi', 'tu', 'su', 'que', 'se', 'lo',
   'hasta', 'desde', 'dolar', 'dolares']);
+/* ORDINARY SPANISH IS NOT A BRAND (2026-10-14, #386 N3/N4). Neither the
+   router nor the search's fuzzy brand pass may read these as a label:
+   "¿es la misma?" became "Ver todo eS — 13 productos" (eS, the skate
+   shoe brand) and "para correr" became SSENSE's CARRER. The search's
+   exact-vocabulary guard cannot catch them -- the catalogue is English,
+   so a Spanish word is always "unknown" there. */
+const ES_COMMON_WORDS = new Set(['es', 'son', 'si', 'no', 'ya', 'mas', 'muy', 'mismo', 'misma', 'igual', 'otro', 'otra',
+  'esa', 'ese', 'eso', 'esta', 'este', 'esto', 'aqui', 'alla', 'hoy', 'bien', 'bueno', 'buena', 'nuevo', 'nueva',
+  'correr', 'caminar', 'jugar', 'nieve', 'casa', 'regalo', 'hija', 'hijo', 'mama', 'papa', 'amor', 'vida', 'sol',
+  'tienda', 'precio', 'talla', 'color', 'barato', 'barata', 'caro', 'cara', 'quiero', 'busco', 'tienen', 'hay',
+  'tmb', 'tambien', 'algo', 'como', 'cuanto', 'cual', 'donde', 'porque', 'pero', 'sin', 'sobre', 'entre']);
 
 /* Coverage is the backbone; the two bonuses only order items that
    already matched. Matching every token outranks matching some, and a
@@ -4901,11 +4915,25 @@ const CATALOG_CATEGORY_INTENT = [
      type. (Queries are accent-stripped before intent runs, so "futbol"
      covers "fútbol".) */
   { key: 'soccer', re: /\b(?:soccer|football|futbol|chimpunes?|guayos?)\b/i },
+  /* JEWELRY (2026-10-14, #386 N6 and the rings answer of Battery Run 2).
+     "joyas" led with a "Caja de Joyas" board game and a LEGO jewelry
+     box; "anillos" with a Ring doorbell and Ring Pops. A jewelry ask is
+     answered from jewelry. "ring" alone stays a word (ring light, Ring
+     doorbell) -- the Spanish bridge sends "anillo" as "jewelry ring". */
+  { key: 'jewelry', re: /^(?!.*\b(?:watch(?:es)?|smartwatch|fitbit|garmin)\b).*(?:\bjewel(?:ry|lery)\b|\b(?:earrings?|necklaces?|bracelets?|anklets?|pendants?)\b)/i },
 ];
 /* The words an item of this category counts as carrying, so a title
    that never says "shoes" can still answer "shoes". */
 const CATEGORY_IMPLIED_WORDS = { footwear: ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear'],
-  soccer: ['soccer', 'football', 'futbol'] };
+  soccer: ['soccer', 'football', 'futbol'], jewelry: ['jewelry'] };
+/* What a piece of jewelry is called, and what only looks like one. The
+   "always" nouns are jewelry whatever else the title says; the
+   "material" ones (a ring, a hoop) need a jewelry material beside them,
+   so a candle ring or a basketball hoop never qualifies. */
+const JEWELRY_ALWAYS_RX = /\b(?:earrings?|necklaces?|anklets?|pendants?|chokers?|jewel(?:ry|lery))\b/i;
+const JEWELRY_MATERIAL_NOUN_RX = /\b(?:rings?|bracelets?|bangles?|hoops?|studs?|cuffs?|charms?)\b/i;
+const JEWELRY_MATERIAL_RX = /\b(?:gold|silver|sterling|diamonds?|cz|zirconia|crystals?|pearls?|plated|stainless|titanium|gemstones?|birthstones?|beads?|beaded|karat|\d{1,2}k|ct|opal|sapphire|emerald|ruby|amethyst|topaz|onyx|quartz|turquoise|enamel)\b/i;
+const JEWELRY_NOT_RX = /\b(?:doorbell|lights?|pops?|candles?|keys?|keychains?|key\s*rings?|phones?|grips?|stands?|stacking|stacker|teethers?|toys?|napkins?|curtains?|shower|o-?rings?|pistons?|seals?|gaskets?|wreaths?|basketball|boxes|box|organizers?|holders?|towers?|displays?|watch|watches|dolls?|kits?|making|hoodie|shirt|tee|socks?|costume)\b/i;
 
 function queryCategoryIntent(query){
   const q = String(query || '');
@@ -4923,6 +4951,14 @@ function catalogItemCategory(item){
      a shoe second; it answers "football", not generic "zapatos". */
   if (typeof isSoccer === 'function'
       && isSoccer(item, item && item.retailer)) return 'soccer';
+  /* JEWELRY: a jewelry department or store settles it; otherwise the
+     title has to name a piece of jewelry and nothing that only looks
+     like one (see JEWELRY_NOT_RX). */
+  if (depts.some(d => /^(?:jewelry|joyas|joyeria|fine_jewelry)$/i.test(String(d)))
+      && !JEWELRY_NOT_RX.test(title)) return 'jewelry';
+  if (!depts.some(d => /^(?:toys?|juguetes|home(?:_decor)?|decor|electronics|kitchen|party|pets?|baby_gear|crafts?|auto(?:motive)?)$/i.test(String(d)))
+      && !JEWELRY_NOT_RX.test(title)
+      && (JEWELRY_ALWAYS_RX.test(title) || (JEWELRY_MATERIAL_NOUN_RX.test(title) && JEWELRY_MATERIAL_RX.test(title)))) return 'jewelry';
   // A catalogue that names a footwear department settles it outright.
   if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
   /* SOCKS ARE NOT SHOES (2026-10-07: "zapatilla" led with Hanes crew
@@ -5142,6 +5178,7 @@ const GENDER_QUERY_TOKENS = new Set([...GENDER_MALE_TOKENS, ...GENDER_FEMALE_TOK
    them cleanly. */
 const GENDERLESS_CATEGORY_TOKENS = new Set(['fins', 'fin', 'snorkel', 'snorkels']);
 const GENDER_MATCH_BOOST = 0.5;
+const KID_MATCH_BOOST = 1;
 function genderIntentFromTokens(toks){
   const t = toks || [];
   const m = t.some((x) => GENDER_MALE_TOKENS.has(x));
@@ -5439,6 +5476,17 @@ function rankCatalogMatches(pool, query, opts){
          gender and the wrong person, unless the shopper asked for kids. */
       if (aud && aud.gender === genderBoost && (kidQuery || (aud.age !== 'kids' && aud.age !== 'baby'))) itemScore += GENDER_MATCH_BOOST;
     }
+    /* A KIDS QUERY IS A KIDS QUERY (2026-10-15, #386 N9: "zapatos para mi
+       hija", size 7, got women's shoes). "girls" is a gender token, and
+       the gender boost alone rewarded every female title the same --
+       "girls shoes" led with Women's tennis shoes. Asked for kids, a
+       kids' title leads and an adult-marked one falls behind every
+       unmarked one. */
+    if (kidQuery && typeof titleAudience === 'function'){
+      const aud = titleAudience(item.title || item.name || '');
+      if (aud && (aud.age === 'kids' || aud.age === 'baby') && (!genderBoost || !aud.gender || aud.gender === genderBoost)) itemScore += KID_MATCH_BOOST;
+      else if (aud && aud.age === 'adult') itemScore -= KID_MATCH_BOOST;
+    }
     if (saleIntent){
       const p = Number(item.price), o = Number(item.originalPrice);
       if (p > 0 && o > p) itemScore += SALE_INTENT_BOOST * (1 + (1 - p / o));
@@ -5576,7 +5624,8 @@ async function catalogSearch(query, opts){
      instead of a lie. Rails keep their own degraded behaviour. */
   if (typeof departmentCacheFailed !== 'undefined' && departmentCacheFailed)
     throw new Error('catalogue failed to load');
-  const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers() });
+  const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers(),
+    productWords: t.productWords || [] });
   return { ...res, asked: query, translated: t.query, changed: t.changed || fixed.changed,
     ...(fixed.changed ? { corrected: fixed.query } : {}),
     ...(!res.items.length ? { suggestion: suggestSearchQuery(t.query, pool && pool._windex) } : {}) };
@@ -5871,7 +5920,7 @@ function renderMobileDealsRail(){
         style="background:rgba(255,255,255,0.08); border:1px solid rgba(244,196,99,0.45)">
         <span class="block">
           <span class="block text-[13px] font-extrabold" style="color:#F4C463">Ver todo</span>
-          <span class="block text-[11.5px] mt-1" style="color:#AFBBD6">${saleItemsCache.length.toLocaleString('es-PE')} ofertas</span>
+          <span class="block text-[11.5px] mt-1" style="color:#AFBBD6">${(ofertasDeptTotal || saleItemsCache.length).toLocaleString('es-PE')} ofertas</span>
         </span>
       </button>`;
   }
@@ -16547,6 +16596,25 @@ const ES_EN_PHRASES = [
      and got zero results — the Dick's catalog already had the fin sets. */
   ["aletas de buceo", "diving fins"],
   ["zapatillas de correr", "running shoes"],
+  /* BATTERY RUN 2 (2026-10-14, #386 N3/N6/N8). Three everyday asks the
+     bridge did not know, each of which fell through to a stocked
+     "brand" or a substring: "zapatillas para correr" -> SSENSE's
+     CARRER hoodies (correr ~ carrer), "joyas" -> a "Caja de Joyas"
+     board game and "La Joya" surf pants, "casa de barbie" -> a $790
+     Costco console. */
+  ["zapatillas para correr", "running shoes"],
+  ["zapatos para correr", "running shoes"],
+  ["para correr", "running"],
+  ["casa de barbie", "barbie house"],
+  ["casa de la barbie", "barbie house"],
+  ["casita de barbie", "barbie house"],
+  ["casa de munecas", "doll house"],
+  ["casita de munecas", "doll house"],
+  ["collar de perro", "dog collar"],
+  ["collar para perro", "dog collar"],
+  /* "¿y zapatillas de nuevo?" -- "again", not a product word. */
+  ["de nuevo", ""],
+  ["otra vez", ""],
   ["zapatos de vestir", "dress shoes"],
   ["casaca de cuero", "leather jacket"],
   ["pantalon corto", "shorts"],
@@ -16747,6 +16815,14 @@ const ES_EN_WORDS = {
   // kids, sport, misc
   juguete: "toy",
   muneca: "doll",
+  joya: "jewelry",
+  anillo: "jewelry ring",
+  arete: "earrings",
+  pulsera: "bracelet",
+  collar: "necklace",
+  correr: "running",
+  invierno: "winter",
+  nieve: "snow",
   pelota: "ball",
   bicicleta: "bicycle",
   patineta: "skateboard",
@@ -16987,7 +17063,10 @@ function translateWord(word) {
 /* Words that carry no meaning for a retailer's search engine and only
    dilute it. Dropped ONLY when something else in the query translated —
    an all-English query is never touched. */
-const FILLER = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "para", "con", "y"]);
+const FILLER = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "para", "con", "y",
+  /* Possessives and "también" carry nothing a title says either
+     ("tmb zapatillas para correr", "para mi hija"). */
+  "mi", "mis", "tu", "su", "unos", "unas", "tmb", "tambien"]);
 
 /**
  * A shopper's query, in the language the retailer speaks.
@@ -17002,6 +17081,11 @@ function translateQuery(raw) {
 
   let text = normalizeQueryText(original);
   let hit = false;
+  /* The English words this function wrote (2026-10-14, #386): they are
+     the shopper's product words by construction -- "anillo" is a ring,
+     never the doorbell brand Ring -- and the search's brand pass must
+     not claim them. */
+  const produced = [];
 
   // Phrases first, longest first: the phrase means what its words do not.
   const phrases = [...ES_EN_PHRASES].sort((a, b) => b[0].length - a[0].length);
@@ -17043,13 +17127,20 @@ function translateQuery(raw) {
     if (re.test(text)) {
       re.lastIndex = 0;
       text = text.replace(re, (m, before) => `${before} ${en} `);
+      produced.push(en);
       hit = true;
     }
   }
 
+  /* A SIZE IS NOT A SEARCH WORD. "zapatos para niña talla 7" asked
+     the catalogue for titles containing "talla" and "7" and found
+     none; the size is chosen on the product. */
+  const unsized = text.replace(/(^|\s)talla\s+(?:us\s+)?[a-z0-9.]{1,4}(?=\s|$)/g, ' ');
+  if (unsized !== text) { text = unsized; hit = true; }
+
   const words = text.split(/\s+/).filter(Boolean).map((w) => {
     const en = translateWord(w);
-    if (en) { hit = true; return en; }
+    if (en) { hit = true; produced.push(en); return en; }
     return w;
   });
 
@@ -17070,7 +17161,8 @@ function translateQuery(raw) {
 
   // A translation that produced nothing usable is not a translation.
   if (!query) return { query: original, translated: false, changed: false };
-  return { query, translated: true, changed: query !== normalizeQueryText(original) };
+  return { query, translated: true, changed: query !== normalizeQueryText(original),
+    productWords: produced.join(' ').split(/\s+/).filter(Boolean) };
 }
 
 /** Just the string, for callers that do not care whether anything changed. */
@@ -26809,6 +26901,12 @@ const SALES_SOURCES = [
 ];
 
 let saleItemsCache = [];
+/* THE NUMBER OFERTAS SHOWS (2026-10-14, #386 Battery Run 2: the homepage
+   said 15,864 ofertas, the department page listed 24,386). The feed
+   carries the department page's own all-stores count (deptTotal, from
+   scripts/lib/ofertas-dept-total.mjs); "Ver todo N ofertas" promises
+   exactly that. */
+let ofertasDeptTotal = 0;
 let salesGeneratedAt = null;   // ISO string from the server cache, or null when this page ran its own live scan
 /* salesScanInFlight and salesStatusTimer lived here until 2026-09-20.
    Both existed only to manage a live sales scan run from the browser,
@@ -27309,6 +27407,7 @@ async function runSalesScan(){
         fromFiles = feed.items;
         feedGeneratedAt = feed.generatedAt || null;
         feedIsLite = !!feed.lite;
+        if (Number(feed.deptTotal) > 0) ofertasDeptTotal = Number(feed.deptTotal);
       }
     }
   } catch { /* fall through to the full feed below */ }
@@ -28888,6 +28987,16 @@ function assistantAtBottom(wrap){
   return wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight <= ASSISTANT_SCROLL_STICK_PX;
 }
 
+/* WHAT THE SHOPPER SEES OF A REPLY (2026-10-14, #386 N1). The model ends
+   replies with [[SLOTS:{...}]] (and the agent with [[SHOW:...]]). The
+   stream wrote every delta into the bubble as it came, and the settle
+   step wrote the server's raw copy over it, so "[[SLOTS:{"query":
+   "zapatillas","clothingSize":"L"}]]" sat in the chat. From the first
+   "[[" on, nothing is shown: a closed machine line is cut out, an open
+   one (still streaming) is held back. */
+function visibleReplyText(t){
+  return String(t || '').replace(/\[\[(?:SLOTS|SHOW):[\s\S]*?\]\]/g, '').replace(/\[\[[\s\S]*$/, '').replace(/\s+$/, '');
+}
 function beginAssistantReply(turn){
   const wrap = document.getElementById('assistantMessages');
   if (!wrap) return null;
@@ -28923,7 +29032,7 @@ function beginAssistantReply(turn){
     }
     shown += pending;
     pending = '';
-    bubble.textContent = shown;
+    bubble.textContent = visibleReplyText(shown);
     if (stick) wrap.scrollTop = wrap.scrollHeight;
   };
 
@@ -28947,7 +29056,7 @@ function beginAssistantReply(turn){
            chat history we send back next turn honest. */
         if (!appended){ hideAssistantTyping(); wrap.appendChild(bubble); appended = true; }
         shown = finalText;
-        bubble.textContent = shown;
+        bubble.textContent = visibleReplyText(shown);
         wrap.scrollTop = wrap.scrollHeight;
       }
       bubble.removeAttribute('aria-busy');
@@ -29370,11 +29479,13 @@ function addAssistantProductCard(item, retailer){
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price, item.dutiableUsd) : ''}${item.price != null && priceIncludesImportTax(item.price, item.dutiableUsd) ? ' · incl. impuestos' : ''}</div>
       ${item.price != null && Number.isFinite(Number(item.price)) ? solesUnderHTML(displayPriceUsd(Number(item.price), item.dutiableUsd), 'text-[10.5px] text-zinc-400 truncate') : ''}
     </div>`;
+  card.setAttribute('data-assistant-card', '');
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
   /* Remembered, so "esa" / "la segunda" / "la de 30 dólares" resolve to
      this card (2026-10-13, F14). */
   rememberShownProduct(item, retailer, card);
+  pinLatestReplyInView();
   return card;
 }
 
@@ -29721,6 +29832,14 @@ function extractShopSlots(text){
     }
   }
 
+  /* A SIZE BELONGS TO ITS KIND OF THING (2026-10-14, #386 N1). "talla L"
+     said for a polo was still in the slots when the shopper moved to
+     shoes, and she said "La talla L queda anotada" about zapatillas
+     nobody had sized. A turn about shoes drops the garment size; a turn
+     about clothes drops the shoe size. Either is set again by this
+     turn's own words below. */
+  if (SHOE_WORD_RE.test(t)) s.clothingSize = null;
+  else if (/\b(camis[ao]s?|blusas?|vestidos?|pantal[oó]n(?:es)?|ropa|chompas?|casacas?|poleras?|polos?|shorts?|faldas?|jeans?)\b/i.test(t)){ s.size = null; delete s.sizeEU; delete s.sizeUS; }
   // Clothing size: "talla M", "camisa grande", "talla única" -> code, note not filter.
   if ((m = t.match(/\btalla\s+(XS|S|M|L|XL|XXL|Única)\b/i))){
     s.clothingSize = m[1].toUpperCase() === 'ÚNICA' ? 'Única' : m[1].toUpperCase();
@@ -30020,7 +30139,7 @@ function chatBrandRoutable(b){
   if (!b || !(b.count >= BRAND_ROUTER_MIN_ITEMS)) return false;
   const k = normBrandText(b.label).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!k || BRAND_ROUTER_GENERIC.has(k) || BRAND_ROUTER_GENERIC.has(k.replace(/\s+/g, ''))) return false;
-  if (!k.includes(' ') && ES_SEARCH_STOPWORDS.has(k)) return false;
+  if (!k.includes(' ') && (ES_SEARCH_STOPWORDS.has(k) || ES_COMMON_WORDS.has(k))) return false;
   return true;
 }
 function normBrandText(t){
@@ -30449,6 +30568,35 @@ function groqRetryAfterMs(err){
    ============================================================ */
 let agentProductCache = new Map();
 let agentProductSeq = 0;
+/* Who this turn is shopping for (extractRecipient over the whole
+   conversation), set by runAgentLoop for her searches. */
+let agentRecipient = null;
+
+/* THE LANE THE SHOPPER SET (2026-10-15, #386 N9). Danny: shoes for his
+   daughter, she asked the size, he said 7, she showed WOMEN'S shoes.
+   The answer "7" carried no "kids" and the search reset to the default
+   pool. Once the conversation says who it is for, every search runs in
+   that lane: a child gets the kids' words added to the search and the
+   kids' items first, and an adult-marked item only when there is
+   nothing for kids at all. Gender stays a hard filter, as in the
+   classic pipeline (productSuitsRecipient). */
+function recipientSearchWord(recipient){
+  if (!recipient) return '';
+  const young = recipient.ageBand === 'kids' || recipient.ageBand === 'baby';
+  if (!young) return '';
+  if (recipient.ageBand === 'baby') return recipient.gender === 'female' ? 'baby girls' : recipient.gender === 'male' ? 'baby boys' : 'baby';
+  return recipient.gender === 'female' ? 'girls' : recipient.gender === 'male' ? 'boys' : 'kids';
+}
+function keepRecipientLane(items, recipient){
+  if (!recipient || (!recipient.gender && !recipient.ageBand)) return items;
+  let out = items.filter(p => productSuitsRecipient(p.title, recipient));
+  if (recipient.ageBand === 'kids' || recipient.ageBand === 'baby'){
+    const young = out.filter(p => { const a = titleAudience(p.title).age; return a === 'kids' || a === 'baby'; });
+    const notAdult = out.filter(p => titleAudience(p.title).age !== 'adult');
+    out = young.length ? young.concat(notAdult.filter(p => !young.includes(p))) : notAdult;
+  }
+  return out;
+}
 
 function agentCacheProduct(item, retailer){
   const id = 'p' + (++agentProductSeq);
@@ -30481,11 +30629,26 @@ async function executeAgentTool(tc){
   else if (args.style === 'casual') query += ' casual';
   if (!query){ return { results: [], count: 0, note: 'empty query' }; }
 
+  /* The shopper's lane (N9): "7" after "zapatos para mi hija" searches
+     girls' shoes. The words go in only when the query does not already
+     name an age, and come back out if they empty the search. */
+  const laneWord = recipientSearchWord(agentRecipient);
+  const namesAge = /\b(?:kids?|girls?|boys?|baby|toddlers?|youth|ni[ñn][oa]s?|beb[eé]s?|women'?s?|men'?s?|mujer|hombre|adult)\b/i.test(query);
   let items = [];
   try {
-    const res = await catalogSearch(query, { limit: limit * 4 });
-    items = (res && res.items) || [];
+    if (laneWord && !namesAge){
+      const res = await catalogSearch(query + ' ' + laneWord, { limit: limit * 4 });
+      items = (res && res.items) || [];
+    }
+    if (!items.length){
+      const res = await catalogSearch(query, { limit: limit * 4 });
+      items = (res && res.items) || [];
+    }
   } catch(e){ return { results: [], count: 0, note: 'search failed' }; }
+  /* Nothing without a price reaches a card: it cannot be priced in soles. */
+  items = items.filter(p => Number(p.price) > 0);
+  const laned = keepRecipientLane(items, agentRecipient);
+  if (laned.length) items = laned;
 
   /* BRAND FILTER, NORMALIZED (2026-10-03): "Young LA" == "youngla" ==
      "YOUNG LA". Exact on the normalized brand key -- the old substring
@@ -30606,8 +30769,19 @@ async function runAgentLoop(text, recipient, ui){
 
   agentProductCache = new Map();
   agentProductSeq = 0;
+  agentRecipient = recipient && typeof recipient === 'object' ? recipient : null;
 
-  const messages = history.slice();
+  /* THE QUESTION TRAVELS ON EVERY ROUND (2026-10-14, #386 Battery Run 2:
+     F-LAG / F6). The shopper's message used to go up only on round one,
+     as `message`; rounds two and later sent the history plus her tool
+     calls -- and no question. So after any search the model's latest
+     user line was the PREVIOUS turn's, and it answered that: "quiero
+     ver zapatos" got "No encontré anillos…", "muéstrame joyas" got
+     shoes. Now `history` is the conversation before this turn, `message`
+     is this turn's question on every round, and `turns` carries this
+     turn's tool calls and results, which the server places after the
+     question. */
+  const turns = [];
   const statusEl = ui && ui.statusEl;
   const prevStatus = ui && ui.prevStatus;
   const turn = ui && ui.turn;
@@ -30623,8 +30797,9 @@ async function runAgentLoop(text, recipient, ui){
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          history: messages,
-          message: round === 0 ? text : '',
+          history,
+          message: text,
+          turns,
           recipient: recipient && typeof recipient === 'object' ? recipient : null,
         }),
       });
@@ -30637,14 +30812,14 @@ async function runAgentLoop(text, recipient, ui){
     if (!data || data.error) return false;
 
     if (data.tool_calls && data.tool_calls.length){
-      messages.push({ role: 'assistant', content: null,
+      turns.push({ role: 'assistant', content: null,
         tool_calls: data.tool_calls.map(tc => ({
           id: tc.id, type: 'function',
           function: { name: tc.name, arguments: tc.arguments },
         })) });
       for (const tc of data.tool_calls){
         const result = await turnGate(turn, executeAgentTool(tc));
-        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+        turns.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
       }
       continue;
     }
@@ -30742,10 +30917,58 @@ function placeCardsUnderReply(bubble){
   if (!wrap || !bubble || !cards.length) return;
   let after = bubble;
   for (const c of cards){ after.after(c); after = c; }
-  const top = (el) => el.getBoundingClientRect().top - wrap.getBoundingClientRect().top + wrap.scrollTop;
-  const last = cards[cards.length - 1];
-  const span = top(last) + last.offsetHeight - top(bubble);
-  wrap.scrollTop = Math.max(0, (span + 16 <= wrap.clientHeight ? top(bubble) : top(cards[0])) - 8);
+  pinLatestReplyInView();
+}
+/* THE CARDS STAY IN VIEW WHILE THE PANEL SETTLES (2026-10-14, #386 Battery
+   Run 2: "cards render below the text, but auto-scroll stops ~80px
+   short"). The view was set once, the moment the cards went in -- and
+   then the quick-reply row under the conversation filled in, the list
+   got shorter by that row, and the bottom of the last card slid under
+   it. The latest reply and its cards are now re-pinned whenever the list
+   changes size, for a couple of seconds, until the shopper touches the
+   list (their scroll always wins). Agent replies, whose cards arrive
+   after the words, use the same pin. */
+let ariaPinStop = null;
+function pinLatestReplyInView(){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return;
+  const run = () => {
+    const kids = [...wrap.children];
+    let lastCard = -1;
+    for (let i = kids.length - 1; i >= 0; i--) if (kids[i].hasAttribute('data-assistant-card')){ lastCard = i; break; }
+    if (lastCard < 0) return;
+    let firstCard = lastCard;
+    while (firstCard > 0 && kids[firstCard - 1].hasAttribute('data-assistant-card')) firstCard--;
+    let bubble = null;
+    for (let i = firstCard - 1; i >= 0; i--){
+      const el = kids[i];
+      if (el.classList.contains('ariaChatMsg') && !el.classList.contains('ml-auto')){ bubble = el; break; }
+      if (el.classList.contains('ml-auto')) break;   // the shopper's message: no reply above these cards
+    }
+    const top = (el) => el.getBoundingClientRect().top - wrap.getBoundingClientRect().top + wrap.scrollTop;
+    const first = kids[firstCard], last = kids[lastCard];
+    const head = bubble || first;
+    const span = top(last) + last.offsetHeight - top(head);
+    wrap.scrollTop = Math.max(0, span + 16 <= wrap.clientHeight
+      ? top(head) - 8
+      : top(last) + last.offsetHeight + 8 - wrap.clientHeight);
+  };
+  run();
+  if (ariaPinStop) return;          // already watching: this call re-pinned
+  let ro = null;
+  try { ro = new ResizeObserver(() => run()); ro.observe(wrap); } catch (e) { ro = null; }
+  try { requestAnimationFrame(run); } catch (e) {}
+  const timer = setTimeout(() => stop(), 2500);
+  const stop = () => {
+    clearTimeout(timer);
+    if (ro) ro.disconnect();
+    wrap.removeEventListener('touchstart', stop);
+    wrap.removeEventListener('wheel', stop);
+    ariaPinStop = null;
+  };
+  wrap.addEventListener('touchstart', stop, { passive: true });
+  wrap.addEventListener('wheel', stop, { passive: true });
+  ariaPinStop = stop;
 }
 function shownPriceUsd(item){
   const p = Number(item && item.price);
@@ -30766,6 +30989,35 @@ function shownNorm(t){ return normBrandText(t).replace(/[^a-z0-9.\s]/g, ' ').rep
    { kind: 'one', entry } | { kind: 'many', entries } | { kind: 'none' }.
    Position counts inside the latest set of cards; price, store and name
    search everything shown this session, newest first. */
+/* "ESA" IS THE ONE SHE JUST TALKED ABOUT (2026-10-14, #386 Battery Run 2:
+   "llévame a esa" re-asked which one instead of going). With several
+   cards up, a bare "esa" points at the product her own last reply named
+   -- the last one named, as in speech ("unas Adidas a 21… también las
+   Adi Ease a 30" -> "esa" is the Adi Ease). Returns null when her reply
+   named none of them. */
+const SHOWN_GENERIC_WORDS = new Set(['shoes', 'shoe', 'sneakers', 'sneaker', 'womens', 'women', 'mens', 'men', 'kids', 'girls', 'boys',
+  'with', 'for', 'and', 'the', 'black', 'white', 'size', 'pack', 'set', 'para', 'zapatillas', 'zapatos', 'mujer', 'hombre']);
+function shownNamedInLastReply(entries){
+  const last = [...(ariaChatHistory || [])].reverse().find(m => m && m.role === 'assistant' && typeof m.content === 'string');
+  if (!last) return null;
+  const said = ' ' + shownNorm(last.content) + ' ';
+  const wordsOf = (e) => new Set(shownNorm((e.item.brand || '') + ' ' + (e.item.title || '')).split(' ')
+    .filter(w => w.length >= 3 && !SHOWN_GENERIC_WORDS.has(w) && !SHOWN_STOP.has(w) && !/^\d/.test(w)));
+  const sets = entries.map(wordsOf);
+  let best = null;
+  entries.forEach((e, k) => {
+    /* Only the words that tell this card from the others count: a brand
+       every card shares ("Adidas") names none of them. */
+    const own = [...sets[k]].filter(w => sets.every((s, j) => j === k || !s.has(w)));
+    let at = -1;
+    for (const w of own){
+      const i = said.lastIndexOf(' ' + w + ' ');
+      if (i > at) at = i;
+    }
+    if (at >= 0 && (!best || at > best.at)) best = { entry: e, at };
+  });
+  return best ? best.entry : null;
+}
 function resolveShownProduct(text){
   if (!ariaShown.length) return { kind: 'none' };
   const t = shownNorm(text);
@@ -30816,7 +31068,13 @@ function resolveShownProduct(text){
       pool = [];
     }
   }
-  if (!narrowed) pool = latest.slice();           // a bare "esa": the cards on screen
+  if (!narrowed){                                  // a bare "esa": the cards on screen
+    pool = latest.slice();
+    if (pool.length > 1){
+      const named = shownNamedInLastReply(pool);
+      if (named) pool = [named];
+    }
+  }
   /* One product shown twice is one product. */
   const seen = new Set();
   pool = pool.filter(s => { const k = s.retailer + '|' + (s.item.title || ''); if (seen.has(k)) return false; seen.add(k); return true; });
@@ -30858,6 +31116,11 @@ function shownLabel(entry){
 const SHOWN_GO_RE = /\b(?:ll[eé]va(?:me|nos)|[aá]bre(?:me|la|lo)?|vamos\s+a|ir\s+a|abrir)\b/i;
 const SHOWN_SHOW_RE = /\b(?:mu[eé]stra(?:me|mela|melo|la|lo)|ens[eé][ñn]a(?:me|la|lo)|quiero\s+ver|ver)\b/i;
 const SHOWN_REF_RE = /\b(?:es[ao]s?|est[ao]s?|aquel(?:la)?|la\s+de|el\s+de|la\s+que|el\s+que|primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|[uú]ltim[oa]|la\s+[1-6]|el\s+[1-6])\b|\$\s*\d|\d+\s*(?:d[oó]lares|usd|soles)/i;
+/* A question ABOUT something she showed (2026-10-14, #386 Battery Run 2,
+   F14): "¿cuánto cuesta la primera que me mostraste?" got a price and a
+   product from nothing she had shown. It is answered from the card. */
+const SHOWN_INFO_RE = /\b(?:cu[aá]nto\s+(?:cuesta|cuestan|vale|valen|sale|salen|est[aá])|qu[eé]\s+precio|el\s+precio|precio\s+de|de\s+qu[eé]\s+(?:tienda|marca)|en\s+qu[eé]\s+tienda|qu[eé]\s+(?:tienda|marca)\s+es|d[oó]nde\s+(?:la|lo)\s+venden|c[oó]mo\s+se\s+llama)\b/i;
+const SHOWN_LOOKBACK_RE = /\b(?:que\s+me\s+(?:mostraste|ense[ñn]aste|recomendaste|dijiste|pasaste)|que\s+(?:mostraste|recomendaste)|de\s+(?:la\s+)?lista)\b/i;
 const SHOWN_CART_RE = /\b(?:agr[eé]ga(?:me|la|lo|melo|mela)?|a[ñn]ad(?:e|eme|ir|ela|elo)|p[oó]n(?:me|la|lo|mela|melo)?|m[eé]te(?:la|lo|mela|melo)?)\b[^.?!]*\b(?:carrit[oa]|carro|cesta|bolsa)\b|\bme\s+l[ao]\s+llevo\b|\bl[ao]\s+compro\b/i;
 const CHAT_SIZE_RE = /^(?:(?:en\s+)?talla\s+|la\s+|el\s+)?([a-z0-9]{1,4}(?:[.,]5)?|x{1,3}[sl]|(?:extra\s+)?(?:peque[ñn]a|mediana|grande))\s*[.!]?$/i;
 /* The shopper's message is about something she showed. Returns the
@@ -30873,10 +31136,36 @@ function chatShownProductRoute(text){
     ariaPendingCartAdd = null;               // anything else moves on
     if (!SHOWN_CART_RE.test(raw)) return null;
   }
-  if (!ariaShown.length) return null;
+  const lookback = SHOWN_LOOKBACK_RE.test(raw);
+  const info = SHOWN_INFO_RE.test(raw) && (SHOWN_REF_RE.test(raw) || lookback);
+  /* Asked about something she showed when she showed nothing: say so. */
+  if (!ariaShown.length) return info && lookback ? { line: 'Todavía no te he mostrado productos en esta conversación. Dime qué buscas y te muestro opciones con su precio.' } : null;
   const cart = SHOWN_CART_RE.test(raw);
   const go = SHOWN_GO_RE.test(raw);
   const show = SHOWN_SHOW_RE.test(raw);
+  if (info && !cart && !go){
+    const ri = resolveShownProduct(raw);
+    if (ri.kind === 'one'){
+      const it = ri.entry.item;
+      const store = LIVE_RETAILER_LABEL[ri.entry.retailer] || ri.entry.retailer;
+      const price = it.price != null ? fmtDisplayPrice(it.price, it.dutiableUsd) + (priceIncludesImportTax(it.price, it.dutiableUsd) ? ' con impuestos incluidos' : '') : '';
+      const soles = it.price != null && typeof fxRate !== 'undefined' && fxRate ? ' (S/ ' + (displayPriceUsd(Number(it.price), it.dutiableUsd) * fxRate).toFixed(2) + ')' : '';
+      const ord = raw.match(/\b(primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|[uú]ltim[oa])\b/i);
+      const ORD_ES = { primer: 'primera', primero: 'primera', primera: 'primera', segundo: 'segunda', segunda: 'segunda',
+        tercer: 'tercera', tercero: 'tercera', tercera: 'tercera', cuarto: 'cuarta', cuarta: 'cuarta', quinto: 'quinta', quinta: 'quinta',
+        ultimo: 'última', ultima: 'última' };
+      const ordKey = ord ? normBrandText(ord[1]) : '';
+      const lead = ORD_ES[ordKey] ? 'La ' + ORD_ES[ordKey] + ' que te mostré es ' : 'Es ';
+      return { line: lead + (it.title || 'ese producto') + ', de ' + store + (price ? ': cuesta ' + price + soles + '.' : '.') + ' ¿Te llevo a verla?',
+        after: () => highlightShownCard(ri.entry) };
+    }
+    if (ri.kind === 'many'){
+      const opts = ri.entries.map((e, i) => (i + 1) + ') ' + shownLabel(e)).join('; ');
+      return { line: '¿De cuál me hablas? ' + opts + '.', after: () => ri.entries.forEach(highlightShownCard) };
+    }
+    /* Never a product or a price she did not show. */
+    return { line: 'No tengo claro a cuál te refieres de lo que te mostré. ¿Me dices el nombre o la tienda, o la tocas en el chat?' };
+  }
   if (!cart && !go && !show) return null;
   const hasRef = SHOWN_REF_RE.test(raw) || /\b(?:la|el)\s+[a-z]/i.test(raw.replace(SHOWN_SHOW_RE, '').replace(SHOWN_GO_RE, '').trim());
   /* "muéstrame zapatillas nike" is a new search, not a card: a plain
@@ -30986,6 +31275,9 @@ const CHAT_COUPON_RE = /\b(?:cup[oó]n(?:es)?|coupon|promo\s*code|c[oó]digo\s+(
 const CHAT_PRICE_WHY_RE = /\bpor\s*qu[eé]\b[^?.!]{0,40}\b(?:precio|cuesta|cuestan|caro|cara|caros|caras|cobran|vale|valen|m[aá]s\s+alto)\b|\b(?:cuesta|cuestan|sale|salen|est[aá]|est[aá]n|vale|valen)\s+(?:menos|m[aá]s\s+barat[oa]s?)\b[^?.!]{0,30}\b(?:usa|ee\.?\s?uu\.?|estados\s+unidos|amazon|all[aá]|la\s+tienda)\b|\b(?:usa|ee\.?\s?uu\.?|estados\s+unidos|amazon|la\s+tienda)\b[^?.!]{0,40}\b(?:cuesta|cuestan|sale|salen|est[aá]|vale|valen)\s+(?:menos|m[aá]s\s+barat[oa]s?)\b|\bqu[ií]ta(?:me|r|rme)?\s+(?:el\s+|tu\s+)?margen\b|\bsin\s+(?:tu|su|el)\s+margen\b/i;
 const CHAT_RETURNS_RE = /\b(?:devolver(?:lo|la|los|las)?|devoluci[oó]n(?:es)?|reembols\w*|no\s+me\s+qued[ao]|si\s+no\s+me\s+queda|cambiar\s+(?:la\s+)?talla|cambio\s+de\s+talla|garant[ií]a|me\s+arrepient\w*|arrepentirme)\b/i;
 const CHAT_TAX_RE = /\b(?:impuestos?|aranceles?|aduana|igv|sunat)\b/i;
+const CHAT_OFF_DOMAIN_RE = /\b(?:(?:haz|hace|has|resu[eé]lve|resolver|ay[uú]dame\s+(?:con|a\s+hacer)|hacer)(?:me)?\s+(?:mi|la|el|un|una|esta|este|mis|las|los)?\s*(?:tarea|tareas|deberes|ejercicios?|ensayo|monograf[ií]a|redacci[oó]n|resumen|examen|ecuaci[oó]n|trabajo\s+(?:del\s+colegio|de\s+la\s+(?:universidad|u))|c[oó]digo)|homework|mi\s+tarea|la\s+tarea\s+de|escr[ií]beme\s+(?:un|una)\s+(?:poema|ensayo|cuento|carta|canci[oó]n|c[oó]digo)|cu[aá]nto\s+es\s+\d+\s*[x*+\-/]\s*\d+|tradu(?:ce|cir|ceme)\s+(?:este|esta|esto|el|la))\b/i;
+/* ...unless it is a shopping ask about those things ("útiles para la tarea"). */
+const CHAT_OFF_DOMAIN_SHOPPING_RE = /\b(?:compra[rn]?|precio|cu[aá]nto\s+cuesta|busco|necesito\s+(?:un|una|unos|unas)|[uú]tiles|mochila|calculadora|cuaderno|laptop|libro)\b/i;
 function chatTaxPct(){ return Math.round(IMPORT_TAX_RATE * 100); }
 function chatTaxLineEs(){
   return 'Sobre los impuestos: solo se pagan si los productos de tu pedido pasan de $' + IMPORT_TAX_THRESHOLD_USD
@@ -31000,6 +31292,14 @@ function chatReturnsLineEs(){
     + 'El reembolso llega como crédito Aria al instante (con 5% extra de regalo) o, si lo prefieres, a tu tarjeta, que demora más.';
 }
 const CHAT_EXCLUDED = [
+  /* SNOW BOOTS (2026-10-14, #386 Battery Run 2, F8: "¿tienen botas para
+     la nieve?" got "Te llevo a Zapatos", twice). Snow gear is a standing
+     exclusion and the brief asks for the honest no. What we do carry is
+     a handful of fleece-lined winter boots, so the closest alternative
+     is shown as cards (alt), with what they are and are not. */
+  { re: /\bbotas?\s+(?:para\s+(?:la\s+)?|de\s+)nieve\b|\bsnow\s*boots?\b|\bapre?s[\s-]?ski\b/i, ok: /^$/,
+    line: 'Botas para nieve no traemos: el equipo de nieve no es parte de lo que vendemos. Lo más cercano que sí tenemos son botas de invierno forradas, para el frío y la lluvia, no para nieve profunda.',
+    alt: 'winter boots', label: 'Zapatos', sub: 'Zapatos y zapatillas para toda la familia', action: 'department', key: 'shoes' },
   { re: /\b(?:televisor(?:es)?|televisi[oó]n(?:es)?|smart\s*tvs?|tvs?|teles?)\b/i, ok: /\b(?:apple\s*tv|fire\s*tv\s*stick|chromecast|hdmi|soporte|mueble|stand|rack|control\s+remoto|funko|figuras?|series?|show|pel[ií]culas?|personajes?)\b/i,
     line: 'No vendemos televisores: no los traemos por su tamaño y el riesgo en el envío. Lo más cercano que sí tenemos es audio y accesorios de electrónica.',
     label: 'Electronica', sub: 'Audio, accesorios y gadgets', action: 'department', key: 'electronics' },
@@ -31034,9 +31334,18 @@ function chatPolicyRoute(text){
   }
   for (const ex of CHAT_EXCLUDED){
     if (ex.re.test(t) && !ex.ok.test(t)){
-      return { kind: 'excluded', line: ex.line + ' ¿Te muestro?',
+      return { kind: 'excluded', line: ex.line + (ex.alt ? ' Te dejo algunas:' : ' ¿Te muestro?'), alt: ex.alt || null,
         door: () => addAssistantSectionOffer(ex.label, ex.sub, ex.action, ex.key) };
     }
+  }
+  /* NOT A SHOPPING ASK (2026-10-14, #386 N2: "hazme mi tarea de
+     matemática" got "Claro, pásame el ejercicio… te ayudo a resolverla").
+     She is the shop's assistant; homework, essays, code and the like get
+     a kind no and a way back to shopping, never a tutor. */
+  if (CHAT_OFF_DOMAIN_RE.test(t) && !CHAT_OFF_DOMAIN_SHOPPING_RE.test(t)){
+    return { kind: 'off_domain',
+      line: 'Eso no te lo puedo hacer: soy la asistente de compras de Aria y solo te ayudo a encontrar y comprar productos. Si necesitas algo para el colegio o para estudiar, como útiles, una calculadora o una mochila, te lo busco ahora mismo.',
+      door: null };
   }
   return null;
 }
@@ -31294,7 +31603,20 @@ async function runAssistantTurn(text, turn){
      descuento del 90%" is not a sales browse. */
   const policy = chatPolicyRoute(text);
   if (policy){
-    answerInChatWithDoor(policy.line, policy.door || (() => {}), statusEl, prevStatus, text);
+    let altPicks = [];
+    if (policy.alt){
+      try {
+        const res = await turnGate(turn, catalogSearch(policy.alt, { limit: 12 }));
+        const rec = extractRecipient(text, ariaChatHistory);
+        altPicks = keepRecipientLane(((res && res.items) || []).filter(p => Number(p.price) > 0 && p.image), rec).slice(0, 3);
+        await turnGate(turn, loadFxRate());
+      } catch (e){ if (e instanceof AssistantTurnSuperseded) throw e; altPicks = []; }
+    }
+    const pLine = policy.alt && !altPicks.length ? policy.line.replace(/ Te dejo algunas:$/, ' ¿Te muestro?') : policy.line;
+    answerInChatWithDoor(pLine, () => {
+      for (const it of altPicks) addAssistantProductCard(it, it.retailer);
+      if (policy.door) policy.door();
+    }, statusEl, prevStatus, text);
     return;
   }
   const giftRoute = chatGiftRoute(text, extractRecipient(text, ariaChatHistory));
@@ -31483,7 +31805,19 @@ async function runAssistantTurn(text, turn){
      search that can print "no encontré" for a brand plainly on the site.
      Deterministic: no Groq round trip, no Apify spend. */
   if (willSearch){
-    const brandHit = findBrandMention(searchQuery, await turnGate(turn, chatBrandIndex()));
+    /* THE SHOPPER'S WORDS, NOT THE TRANSLATION: "busco anillos" searches
+       "jewelry ring", and Ring is a doorbell brand. */
+    const brandHit0 = findBrandMention(stripAriaVocative(text), await turnGate(turn, chatBrandIndex()));
+    /* A DOOR ONLY FOR A BRAND BROWSE (2026-10-14, #386 N4). "una batería
+       de Corolla para mi Hilux, ¿es la misma?" is a question that
+       happens to contain a brand-shaped word; it got "Aquí tienes todo
+       lo de eS". The door answers "Nike", "muéstrame Adidas", "quiero
+       ver Barbie" -- the brand and at most three other words, and no
+       question. Anything longer goes to the search, which still knows
+       the brand. */
+    const askWords = stripGreetingEs(text).replace(/[^a-zA-Z0-9\u00C0-\u017F\s]/g, ' ').split(/\s+/).filter(Boolean).length;
+    const brandWords0 = brandHit0 ? String(brandHit0.label || '').split(/[^a-zA-Z0-9]+/).filter(Boolean).length : 0;
+    const brandHit = brandHit0 && !/\?|¿/.test(text) && askWords <= brandWords0 + 3 ? brandHit0 : null;
     if (brandHit){
       hideAssistantTyping();
       setOrbState('idle');
@@ -33668,16 +34002,103 @@ function armOpeningNudge(){
  */
 function noteRealtimeActivity(){
   if (!ariaRT) return;
+  ariaRTHeld = null;
+  if (ariaRTHeldTimer){ clearTimeout(ariaRTHeldTimer); ariaRTHeldTimer = null; }
   ariaRTCheckedIn = false;
   if (ariaRTCheckinTimer) clearTimeout(ariaRTCheckinTimer);
   if (ariaRTIdleTimer) clearTimeout(ariaRTIdleTimer);
+  armRealtimeCheckin(CALL_CHECKIN_MS);
+  ariaRTIdleDeadline = Date.now() + CALL_IDLE_MS;
+  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
+}
+function armRealtimeCheckin(ms){
+  ariaRTCheckinDeadline = Date.now() + ms;
   ariaRTCheckinTimer = setTimeout(() => {
     if (!ariaRT || ariaRTCheckedIn) return;
     ariaRTCheckedIn = true;
     /* A check-in, not a warning: two words, no countdown, no UI. */
     cueRealtime(CUE_CHECKIN);
-  }, CALL_CHECKIN_MS);
-  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), CALL_IDLE_MS);
+  }, ms);
+}
+
+/* ============================================================
+   PHANTOM SPEECH DOES NOT RESET THE SILENCE CLOCK (2026-10-15, #386
+   N7 / N7b, Danny live on an iPhone and a Chromebook).
+
+   He sat in silence and she kept answering things he never said --
+   "fake shit like a code" -- and on a laptop she talked to herself and
+   called him "Ron Carlos". Each phantom turn began with the server's
+   speech_started, which re-armed the idle clock, so the call never
+   accumulated the silence that ends it.
+
+   Now speech_started only HOLDS the clock (paused, remaining time
+   kept, so a shopper mid-sentence is never cut off); the clock is reset
+   only by a transcript with real words in it. A transcript that is
+   noise -- no letters, another script, Whisper's stock hallucinations
+   ("Subtítulos realizados por la comunidad de Amara.org"), or her own
+   last words coming back through the speaker -- releases the hold
+   where it was, never reaches the chat or the history, and the answer
+   the server started for it is cancelled.
+   ============================================================ */
+let ariaRTHeld = null, ariaRTHeldTimer = null;
+let ariaRTIdleDeadline = 0, ariaRTCheckinDeadline = 0;
+let ariaRTDropReply = false;        // the reply in flight answers a phantom turn
+function holdRealtimeIdle(){
+  if (!ariaRT || ariaRTHeld) return;
+  const now = Date.now();
+  ariaRTHeld = { idle: Math.max(0, ariaRTIdleDeadline - now), checkin: ariaRTCheckedIn ? null : Math.max(0, ariaRTCheckinDeadline - now) };
+  if (ariaRTCheckinTimer){ clearTimeout(ariaRTCheckinTimer); ariaRTCheckinTimer = null; }
+  if (ariaRTIdleTimer){ clearTimeout(ariaRTIdleTimer); ariaRTIdleTimer = null; }
+  /* A transcript that never arrives must not hold the call open forever. */
+  ariaRTHeldTimer = setTimeout(resumeRealtimeIdle, 20000);
+}
+function resumeRealtimeIdle(){
+  if (!ariaRT || !ariaRTHeld) return;
+  const h = ariaRTHeld;
+  ariaRTHeld = null;
+  if (ariaRTHeldTimer){ clearTimeout(ariaRTHeldTimer); ariaRTHeldTimer = null; }
+  if (h.checkin != null) armRealtimeCheckin(Math.max(h.checkin, 1500));
+  const idle = Math.max(h.idle, 3000);
+  ariaRTIdleDeadline = Date.now() + idle;
+  ariaRTIdleTimer = setTimeout(() => endRealtimeCallIdle('silencio'), idle);
+}
+const REALTIME_HALLUCINATION_RE = /subt[ií]tulos?\s+(?:realizados|hechos|por)|amara\.org|gracias\s+por\s+(?:ver|mirar)|suscr[ií]bete|dale\s+like|thanks?\s+for\s+watching|^\s*(?:thank\s+you|you|bye)[.!]?\s*$|^\s*(?:m+|h?m{2,}|e+h+|a+h+|u+h+|o+h)[.!?…]*\s*$|www\.|\.com\b|\.org\b/i;
+/* Her own last two lines, as the history recorded them. */
+function realtimeEchoOfHer(s){
+  const words = normBrandText(s).replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length >= 3);
+  const herLines = (ariaChatHistory || []).filter(m => m && m.role === 'assistant' && typeof m.content === 'string').slice(-2).map(m => m.content);
+  if (words.length < 3 || !herLines.length) return false;
+  const hers = new Set(normBrandText(herLines.join(' ')).replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length >= 3));
+  return words.filter(w => hers.has(w)).length / words.length >= 0.7;
+}
+function realtimeTranscriptIsNoise(t){
+  const s = String(t || '').trim();
+  const letters = (s.match(/\p{L}/gu) || []).length;
+  if (letters < 2) return true;
+  const latin = (s.match(/[A-Za-z\u00C0-\u017F]/g) || []).length;
+  if (latin / letters < 0.6) return true;
+  if (REALTIME_HALLUCINATION_RE.test(s)) return true;
+  return realtimeEchoOfHer(s);
+}
+/* The answer to a phantom turn is not part of the conversation. */
+function realtimeReplyWasPhantom(){
+  if (!ariaRTDropReply) return false;
+  ariaRTDropReply = false;
+  setOrbState('idle');
+  setRealtimeState('listening');
+  return true;
+}
+let ariaRTPhantomAt = 0;
+function dropPhantomRealtimeTurn(event, send){
+  console.info('[aria] phantom turn dropped:', JSON.stringify(event && event.transcript));
+  ariaRTPhantomAt = Date.now();
+  if (ariaRTResponding){
+    ariaRTDropReply = true;
+    try { send({ type: 'response.cancel' }); } catch (e) {}
+    try { send({ type: 'output_audio_buffer.clear' }); } catch (e) {}
+  }
+  if (event && event.item_id){ try { send({ type: 'conversation.item.delete', item_id: event.item_id }); } catch (e) {} }
+  resumeRealtimeIdle();
 }
 
 function armRealtimeIdleTimers(){
@@ -33917,19 +34338,28 @@ async function onRealtimeEvent(event, turn, send){
          on the greeting — the nudge is cancelled for good, not
          re-armed, because once a conversation exists CUE_CHECKIN is
          the right silence to handle. */
-      ariaRTSpoke = true;
       if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
-      noteRealtimeActivity();
+      /* Held, not reset: only real words reset the clock (N7b). */
+      holdRealtimeIdle();
       break;
     case 'conversation.item.input_audio_transcription.completed':
       /* What the shopper said, on screen, so the conversation has a
-         readable record and the text history stays in step. */
-      if (event.transcript && event.transcript.trim()){
-        addAssistantMessage('user', event.transcript.trim());
-        ariaChatHistory.push({ role: 'user', content: event.transcript.trim() });
+         readable record and the text history stays in step. Noise is
+         not something he said (N7 / N7b). */
+      if (realtimeTranscriptIsNoise(event.transcript)){
+        dropPhantomRealtimeTurn(event, send);
+        break;
       }
+      ariaRTSpoke = true;
+      noteRealtimeActivity();
+      addAssistantMessage('user', event.transcript.trim());
+      ariaChatHistory.push({ role: 'user', content: event.transcript.trim() });
+      break;
+    case 'conversation.item.input_audio_transcription.failed':
+      resumeRealtimeIdle();
       break;
     case 'response.output_audio_transcript.done':
+      if (realtimeReplyWasPhantom()) break;
       if (event.transcript && event.transcript.trim()){
         addAssistantMessage('bot', event.transcript.trim(), null, { speak: false });
         ariaChatHistory.push({ role: 'assistant', content: event.transcript.trim() });
@@ -33948,6 +34378,14 @@ async function onRealtimeEvent(event, turn, send){
          turn ended, so this is also how we learn about responses we
          did not ask for. */
       ariaRTResponding = true;
+      ariaRTDropReply = false;
+      /* The server can open the answer to a phantom turn a moment after
+         its transcript was judged noise: that answer goes too. */
+      if (Date.now() - ariaRTPhantomAt < 1500){
+        ariaRTDropReply = true;
+        try { send({ type: 'response.cancel' }); } catch (e) {}
+        try { send({ type: 'output_audio_buffer.clear' }); } catch (e) {}
+      }
       break;
 
     case 'response.done': {

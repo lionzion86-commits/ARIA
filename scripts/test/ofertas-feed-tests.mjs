@@ -19,6 +19,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { liftDeclarations, pageHtml } from "../lib/page-lift.mjs";
+import { ofertasDeptTotal } from "../lib/ofertas-dept-total.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -91,7 +92,16 @@ check("ofertas.html reads this site's feed, all of it, and nothing else", () => 
   assert.match(page, /ofertas-feed\.json/);
 });
 
-const MIN_CHECKS = 5;
+check("the homepage's 'Ver todo N ofertas' is the department page's own all-stores count", () => {
+  const n = ofertasDeptTotal(feed.items, ROOT);
+  assert.ok(n > 10000, "the department page would list only " + n);
+  assert.equal(feed.deptTotal, n, "ofertas-feed.json's deptTotal is stale -- run: node scripts/build-ofertas-feed.mjs");
+  assert.equal(lite.deptTotal, n, "the lite head (what the homepage reads) carries another total");
+  const bundle = pageHtml(ROOT);
+  assert.match(bundle, /\$\{\(ofertasDeptTotal \|\| saleItemsCache\.length\)\.toLocaleString\('es-PE'\)\} ofertas/, "the homepage counts its own cache again");
+});
+
+const MIN_CHECKS = 6;
 if (passed + failures.length < MIN_CHECKS) { console.log(`\n  SUITE INCOMPLETE`); process.exit(1); }
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }

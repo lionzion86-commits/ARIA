@@ -37,7 +37,7 @@ async function check(name, fn) {
 
 /* Opens the page with the chat backends stubbed. `delays` maps a message
    to how long the agent takes to answer it. */
-async function openChat({ delays = {}, agentDelay = 400, inject = null } = {}) {
+async function openChat({ delays = {}, agentDelay = 400, inject = null, toolRound = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   const errors = [];
@@ -52,6 +52,12 @@ async function openChat({ delays = {}, agentDelay = 400, inject = null } = {}) {
       agentCalls.push(body);
       const msg = body.message || "";
       await new Promise((r) => setTimeout(r, delays[msg] ?? agentDelay));
+      /* toolRound: like the real model, she searches first and answers on
+         the second round -- answering whatever question that round
+         carries, which is exactly how Battery Run 2's lag showed up. */
+      if (toolRound && !(body.turns || []).length)
+        return route.fulfill({ status: 200, contentType: "application/json",
+          body: JSON.stringify({ tool_calls: [{ id: "t" + agentCalls.length, name: "search_products", arguments: JSON.stringify({ query: msg || "nada" }) }] }) });
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: "RESP[" + msg + "]" }) });
     }
     return route.fulfill({ status: 404, body: "{}" });
@@ -124,6 +130,35 @@ await check("F-LAG: a patient shopper gets every turn answered, in order", async
   assertNoLag(col);
   const replies = col.filter((m) => m.who === "bot" && /^RESP\[/.test(m.text)).map((m) => m.text);
   assert.deepEqual(replies, turns.map((t) => "RESP[" + t + "]"));
+  await ctx.close();
+});
+
+await check("Battery Run 2 F-LAG / F6: after a search round the model still sees THIS turn's question", async () => {
+  const { ctx, page, send, column, agentCalls } = await openChat({ toolRound: true, agentDelay: 300 });
+  const turns = ["busco anillos", "quiero ver zapatos", "muéstrame joyas"];
+  for (const t of turns) {
+    await send(t);
+    for (let i = 0; i < 80; i++) {
+      await page.waitForTimeout(250);
+      if ((await column()).some((m) => m.text === "RESP[" + t + "]")) break;
+    }
+  }
+  const col = await column();
+  assertNoLag(col);
+  const replies = col.filter((m) => m.who === "bot" && /^RESP\[/.test(m.text)).map((m) => m.text);
+  assert.deepEqual(replies, turns.map((t) => "RESP[" + t + "]"), "an answer addressed another turn");
+  /* Every round of a turn carries that turn's question, and the tool
+     exchange travels after it, never inside the earlier conversation. */
+  const second = agentCalls.filter((b) => (b.turns || []).length);
+  assert.ok(second.length >= 3, "the search round never happened");
+  for (const b of second) {
+    assert.ok(turns.includes(b.message), "a search round went up without its question");
+    assert.ok(!(b.history || []).some((m) => m.role === "tool" || m.tool_calls), "tool calls leaked into the earlier conversation");
+    assert.equal(b.turns[0].role, "assistant");
+    assert.equal(b.turns[1].role, "tool");
+  }
+  const { sanitizeAgentHistory } = await import(ROOT + "netlify/functions/_aria-agent-prompt.js");
+  assert.equal(sanitizeAgentHistory(second[0].turns, { keepAll: true }).length, 2);
   await ctx.close();
 });
 
@@ -216,14 +251,44 @@ await check("F9: returns and taxes come from the published policy and the publis
   for (const fact of ["14 días", "100% de los impuestos", "créditos Aria"]) assert.ok(page.includes(fact), `devoluciones.html no longer says "${fact}" — re-sync chatReturnsLineEs`);
 });
 
-await check("F8: what we do not sell gets an honest no; snow boots, which we do stock, are searched", async () => {
+await check("F8: what we do not sell gets an honest no; snow boots get it with the closest boots we carry", async () => {
   for (const q of ["¿tienen televisores?", "busco una refrigeradora", "quiero un snowboard"]) {
     const { col, agent } = await ask(q);
     assert.equal(agent, false, q + " went to the model");
     assert.match(col.find((m) => m.who === "bot").text, /^No (vendemos|tenemos)/, q);
   }
-  const { agent } = await ask("¿tienen botas para la nieve?");
-  assert.equal(agent, true, "snow boots are stocked; they must be searched, not refused");
+  /* Battery Run 2: snow gear is a standing exclusion -- the honest no,
+     and the closest thing we do carry, shown (fleece-lined winter boots). */
+  const snow = await ask("¿tienen botas para la nieve?");
+  assert.equal(snow.agent, false, "snow boots went to the model");
+  const line = snow.col.find((m) => m.who === "bot").text;
+  assert.match(line, /^Botas para nieve no traemos/);
+  assert.match(line, /botas de invierno/);
+  const cards = snow.col.filter((m) => m.who === "card");
+  assert.ok(cards.length >= 2, "no alternative shown");
+  assert.ok(cards.every((c) => /boot/i.test(c.text)), "the alternative is not boots: " + cards.map((c) => c.text).join(" | "));
+  assert.ok(!snow.col.some((m) => /Te llevo a Zapatos/.test(m.text)), "the old shoe-door answer is back");
+});
+
+await check("N2: homework is declined kindly and never started", async () => {
+  for (const q of ["hazme mi tarea de matemática", "resuélveme este ejercicio: 2x + 3 = 7", "escríbeme un ensayo sobre la independencia"]) {
+    const { col, agent } = await ask(q);
+    assert.equal(agent, false, q + " went to the model");
+    assert.match(col.find((m) => m.who === "bot").text, /asistente de compras de Aria/, q);
+  }
+  /* Shopping for school is shopping. */
+  const { agent } = await ask("necesito una calculadora para mi tarea");
+  assert.equal(agent, true, "a shopping ask about homework was refused");
+});
+
+await check("N4: a question that contains a brand-shaped word is not a brand dump", async () => {
+  for (const q of ["una batería de Corolla para mi Hilux, ¿es la misma?", "¿es la misma talla?", "busco anillos"]) {
+    const { col } = await ask(q);
+    assert.ok(!col.some((m) => /Ver todo /.test(m.text) || /Aquí tienes todo lo de/.test(m.text)), q + " became a brand door: " + col.map((m) => m.text).join(" | "));
+  }
+  /* A real brand browse still gets its door. */
+  const { col } = await ask("muéstrame Nike");
+  assert.ok(col.some((m) => /Ver todo Nike/.test(m.text)), "a brand browse lost its door");
 });
 
 await check("F2: a gift with a stated interest is guided by meaning, with no product pinned", async () => {
@@ -320,6 +385,168 @@ await check("F-A7: 'agrégame esa casaca al carrito' asks the size and adds noth
 });
 
 /* ------------------------------------------------------------------
+   BATTERY RUN 2 (2026-10-14) AND DANNY'S LIVE SESSIONS (N7-N9).
+   ------------------------------------------------------------------ */
+await check("N3 / N6 / N8 / N9: everyday Spanish asks find the right shelf", async () => {
+  const { ctx, page } = await openChat();
+  const r = await page.evaluate(async () => {
+    const top = async (q, n = 6) => ((await catalogSearch(q, { limit: n })).items || []).map((p) => p.title + " | " + (p.brand || "") + " | " + (p._cat || ""));
+    return {
+      running: await top("zapatillas para correr"), typo: await top("tmb zapatya para correr"), joyas: await top("joyas"),
+      anillos: await top("anillos"), barbie: await top("casa de barbie"), girls: await top("zapatos para niña talla 7"),
+      again: await top("zapatillas de nuevo"), winter: await top("botas de invierno"), ringLight: await top("ring light", 3),
+    };
+  });
+  const all = (list, re, what) => { assert.ok(list.length >= 3, what + ": only " + list.length); for (const t of list) assert.match(t, re, what + ": " + t); };
+  all(r.running, /running|sneaker|shoe/i, "zapatillas para correr");
+  assert.ok(!r.running.some((t) => /CARRER/.test(t)), "'correr' still reads as the brand CARRER");
+  all(r.typo, /running|sneaker|shoe/i, "tmb zapatya para correr");
+  all(r.joyas, /\| jewelry$/, "joyas");
+  all(r.anillos, /\bring\b[^|]*\|[^|]*\| jewelry$/i, "anillos");
+  all(r.barbie, /barbie/i, "casa de barbie");
+  assert.ok(!r.barbie.some((t) => /console/i.test(t)), "a console answered a Barbie house");
+  assert.ok(r.girls.slice(0, 4).every((t) => /\b(girls?|kids?|youth|toddler|little|big kid)\b/i.test(t) && !/women/i.test(t)), "a girl's size 7 got adult shoes: " + r.girls.join(" || "));
+  all(r.again, /sneaker|shoe|runner|jogger|trainer/i, "zapatillas de nuevo");
+  all(r.winter, /boot/i, "botas de invierno");
+  assert.ok(r.ringLight.every((t) => /ring light/i.test(t)), "English 'ring light' lost its meaning: " + r.ringLight.join(" || "));
+  await ctx.close();
+});
+
+await check("N9: once the shopper is buying for a child, a bare size stays in the kids' lane", async () => {
+  const { ctx, page } = await openChat();
+  const titles = await page.evaluate(async () => {
+    agentRecipient = extractRecipient("talla 7", [{ role: "user", content: "busco zapatos para mi hija" }]);
+    const r = await executeAgentTool({ name: "search_products", arguments: JSON.stringify({ query: "zapatos talla 7" }) });
+    return r.results.map((x) => x.title);
+  });
+  assert.ok(titles.length >= 3, "nothing found");
+  assert.ok(titles.every((t) => !/\bwomen'?s?\b|\bladies\b/i.test(t)), "adult women's shoes for a daughter: " + titles.join(" || "));
+  assert.ok(titles.filter((t) => /\b(girls?|kids?|youth|toddler)\b/i.test(t)).length >= Math.ceil(titles.length / 2), "the kids' lane did not lead: " + titles.join(" || "));
+  await ctx.close();
+});
+
+await check("N1: machine lines never reach the bubble, streamed or settled", async () => {
+  const { ctx, page } = await openChat();
+  const r = await page.evaluate(() => {
+    const sink = beginAssistantReply(null);
+    sink.push("Encontré estas zapatillas. ");
+    sink.push("[[SLO");
+    const mid = document.querySelector("#assistantMessages > .ariaChatMsg:last-child")?.textContent || "";
+    sink.push('TS:{"query":"zapatillas","clothingSize":"L"}]]');
+    const settled = sink.finish('Encontré estas zapatillas. [[SLOTS:{"query":"zapatillas","clothingSize":"L"}]]');
+    const bubble = document.querySelector("#assistantMessages > .ariaChatMsg:last-child").textContent;
+    ariaShopSlots.clothingSize = "L";
+    extractShopSlots("ok, ¿y zapatillas de nuevo?");
+    return { mid, bubble, settled, size: ariaShopSlots.clothingSize };
+  });
+  assert.ok(!/\[\[/.test(r.mid), "a half-streamed machine line showed: " + r.mid);
+  assert.equal(r.bubble, "Encontré estas zapatillas.");
+  assert.match(r.settled, /SLOTS/, "the raw reply must still reach applyModelSlots");
+  assert.equal(r.size, null, "a garment size followed the shopper to shoes");
+  const { extractShowIds } = await import(ROOT + "netlify/functions/_aria-agent-prompt.js");
+  const x = extractShowIds('Mira estas. [[SHOW: p1, p2]]\n[[SLOTS:{"query":"x"}]]');
+  assert.deepEqual(x.ids, ["p1", "p2"], "a SHOW line followed by SLOTS lost its cards");
+  assert.ok(!/SHOW/.test(x.clean));
+  await ctx.close();
+});
+
+await check("F14: a question about what she showed is answered from the card, never invented", async () => {
+  const { ctx, page, send, column, agentCalls } = await openChat();
+  await page.waitForTimeout(1500);
+  /* Nothing shown yet: she says so instead of inventing a product. */
+  await send("¿cuánto cuesta la primera que me mostraste?");
+  assert.ok(await waitForBot(column, page, /Todavía no te he mostrado productos/), "she answered about a product she never showed");
+  await page.evaluate(() => {
+    addAssistantMessage("user", "busco zapatillas adidas");
+    addAssistantProductCard({ title: "Pro Shell ADV Shoes", brand: "adidas", price: 42.32, image: "https://x/p.jpg" }, "ccs");
+    addAssistantProductCard({ title: "Adidas Adi Ease Shoes", brand: "adidas", price: 30.78, image: "https://x/a.jpg" }, "ccs");
+    addAssistantProductCard({ title: "Nora Shoes", brand: "adidas", price: 30.78, image: "https://x/n.jpg" }, "ccs");
+    addAssistantMessage("bot", "Te muestro tres opciones.", null, { speak: false });
+  });
+  const before = agentCalls.length;
+  await send("¿cuánto cuesta la primera que me mostraste?");
+  assert.ok(await waitForBot(column, page, /^La primera que te mostré es Pro Shell ADV Shoes, de CCS: cuesta \$/), "the first card was not the answer");
+  await send("¿y cuánto cuesta la segunda?");
+  assert.ok(await waitForBot(column, page, /^La segunda que te mostré es Adidas Adi Ease Shoes/), "the second card was not the answer");
+  assert.equal(agentCalls.length, before, "the model was asked to recall her own cards");
+  await ctx.close();
+});
+
+await check("F15: a bare 'llévame a esa' goes to the product her last reply named", async () => {
+  const { ctx, page, send } = await openChat();
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    addAssistantMessage("user", "ofertas de adidas");
+    addAssistantProductCard({ title: "Adidas Kids Runner", brand: "adidas", price: 21, image: "https://x/b.jpg" }, "dicks");
+    addAssistantProductCard({ title: "Adidas Adi Ease Shoes", brand: "adidas", price: 30.78, image: "https://x/a.jpg" }, "ccs");
+    const line = "En Dick's, unas Adidas Kids Runner a 21 dólares. También en CCS, las Adi Ease a 30 dólares.";
+    addAssistantMessage("bot", line, null, { speak: false });
+    rememberAssistantTurn("ofertas de adidas", line);
+  });
+  const landed = page.waitForURL(/producto\.html/, { timeout: 15000 }).then(() => decodeURIComponent(page.url())).catch(() => null);
+  await send("llévame a esa");
+  const url = await landed;
+  assert.ok(url && /producto=Adidas Adi Ease Shoes/.test(url), "'esa' did not land on the product she named last: " + url);
+  await ctx.close();
+});
+
+await check("F13: the cards stay fully in view when the panel shrinks under them", async () => {
+  const { ctx, page } = await openChat();
+  const gap = await page.evaluate(async () => {
+    const wrap = document.getElementById("assistantMessages");
+    wrap.style.cssText = "height:420px; overflow-y:auto; display:block";
+    for (let i = 0; i < 6; i++) addAssistantMessage(i % 2 ? "bot" : "user", "relleno " + i + " ".repeat(10) + "x".repeat(200), null, { speak: false });
+    addAssistantMessage("user", "busco zapatillas");
+    addAssistantMessage("bot", "Mira estas tres.", null, { speak: false });
+    for (const t of ["Uno", "Dos", "Tres"]) addAssistantProductCard({ title: t + " Shoes", price: 30, image: "https://x/" + t + ".jpg" }, "ccs");
+    /* the quick-reply row fills in: the list loses 80px */
+    await new Promise((r) => setTimeout(r, 50));
+    wrap.style.height = "340px";
+    await new Promise((r) => setTimeout(r, 300));
+    const last = [...wrap.querySelectorAll("[data-assistant-card]")].pop().getBoundingClientRect();
+    return Math.round(wrap.getBoundingClientRect().bottom - last.bottom);
+  });
+  assert.ok(gap >= 0, `the last card is ${-gap}px below the visible list`);
+  await ctx.close();
+});
+
+await check("N7 / N7b: noise, other scripts, stock hallucinations and her own echo are not the shopper", async () => {
+  const { ctx, page } = await openChat();
+  const r = await page.evaluate(() => {
+    ariaChatHistory = [{ role: "assistant", content: "Te muestro unas zapatillas Adidas para correr, a 30 dólares en CCS." }];
+    const cases = ["...", "mm", "Subtítulos realizados por la comunidad de Amara.org", "ご視聴ありがとうございました", "Thank you.",
+      "zapatillas Adidas para correr a 30 dólares", "sí", "quiero unas zapatillas negras", "no, mejor Nike", "hola"];
+    return cases.map((c) => [c, realtimeTranscriptIsNoise(c)]);
+  });
+  const noise = Object.fromEntries(r);
+  for (const c of ["...", "mm", "Subtítulos realizados por la comunidad de Amara.org", "ご視聴ありがとうございました", "Thank you.", "zapatillas Adidas para correr a 30 dólares"])
+    assert.equal(noise[c], true, `"${c}" was taken as the shopper`);
+  for (const c of ["sí", "quiero unas zapatillas negras", "no, mejor Nike", "hola"])
+    assert.equal(noise[c], false, `"${c}" was dropped as noise`);
+  const { buildRealtimeInstructions } = await import(ROOT + "scripts/lib/realtime-voice.js");
+  assert.match(buildRealtimeInstructions(), /nombre que él no te dijo/, "no rule against inventing the shopper's name");
+  await ctx.close();
+});
+
+await check("N5: the same car's parts read 'Compatible' whatever words found them", async () => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.route("**/.netlify/functions/**", (r) => r.fulfill({ status: 404, body: "{}" }));
+  await page.goto(`${BASE}/auto.html`, { waitUntil: "load" });
+  const html = await page.evaluate(() => {
+    const v = { year: "2020", make: "Toyota", model: "Corolla" };
+    const cache = { partSearches: { "2020|toyota|corolla|pastillas de freno": { autozone: [{ title: "Pads", part_number: "D1", price: 30, vehicle_fitment: "VEHICLE_SPECIFIC" }] },
+      "2019|honda|civic|pastillas de freno": { autozone: [{ title: "Civic pads", part_number: "D2", price: 30, vehicle_fitment: "VEHICLE_SPECIFIC" }] } } };
+    const g = searchCache(cache, v, "freno");
+    return g.fallback.map((it) => partCard(it, v, false));
+  });
+  assert.equal(html.length, 2);
+  assert.match(html.find((h) => /D1/.test(h)), /Compatible con tu 2020 Toyota Corolla/, "this car's own part was marked 'verifica'");
+  assert.match(html.find((h) => /D2/.test(h)), /Verifica el calce/, "another car's part was marked compatible");
+  await ctx.close();
+});
+
+/* ------------------------------------------------------------------
    F10 / BASE-5 AND F-NB-CHIP: the standalone pages.
    ------------------------------------------------------------------ */
 await check("F10: typed 'brake pads' finds the 2020 Corolla's pads, labelled Delantero/Trasero, and part numbers work", async () => {
@@ -376,7 +603,7 @@ await check("the prompts carry the policy and no tax figure but the published on
 });
 
 await browser.close();
-const MIN_CHECKS = 18;
+const MIN_CHECKS = 29;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
