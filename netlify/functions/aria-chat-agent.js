@@ -84,12 +84,20 @@ export async function handler(event) {
     const history = sanitizeAgentHistory(body.history);
     const message = typeof body.message === "string" ? body.message : "";
     const recipient = body?.recipient && typeof body.recipient === "object" ? body.recipient : null;
-    // Tool results arrive inside `history` on later rounds; the new user
-    // message only exists on round one.
+    /* THE QUESTION ON EVERY ROUND (2026-10-14, #386 Battery Run 2, F-LAG).
+       `history` is the conversation before this turn, `message` is this
+       turn's question (sent on every round), and `turns` is this turn's
+       own tool calls and results, which belong AFTER the question. Round
+       two used to arrive with no question at all, so the model answered
+       the previous turn's. An older client that still sends tool calls
+       inside `history` keeps working: with no `turns`, they stay where
+       they were. */
+    const turns = sanitizeAgentHistory(body.turns, { keepAll: true });
     const messages = [
       { role: "system", content: buildAgentSystemPrompt(recipient) },
       ...history,
       ...(message ? [{ role: "user", content: message }] : []),
+      ...turns,
     ];
 
     const OPENAI_KEY = process.env.OPENAI_API_KEY;

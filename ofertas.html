@@ -101,14 +101,14 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 <body>
 <header class="site-header">
   <div class="header-inner">
-    <a class="wordmark" href="https://ariashop.pe/" aria-label="Aria Shop — inicio">
+    <a class="wordmark" href="/" aria-label="Aria Shop — inicio">
       <span class="w1">Aria</span><span class="w2">Shop</span>
     </a>
     <nav class="main-nav" aria-label="Principal">
-      <a href="https://ariashop.pe/">Inicio</a>
+      <a href="/">Inicio</a>
       <a href="ofertas.html" class="active" aria-current="page">Ofertas</a>
-      <a href="https://ariashop.pe/?tiendas=1">Tiendas en Estados Unidos</a>
-      <a href="https://ariashop.pe/?nosotros=1">Nosotros</a>
+      <a href="/?tiendas=1">Tiendas en Estados Unidos</a>
+      <a href="/?nosotros=1">Nosotros</a>
     </nav>
     <span class="header-meta">Perú · PEN</span>
   </div>
@@ -154,7 +154,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 <footer class="site-footer">
   <div class="footer-inner">
     <span>Aria Shop — Compra en Estados Unidos, entregado en Perú.</span>
-    <span><a href="https://ariashop.pe/">Volver al inicio</a></span>
+    <span><a href="/">Volver al inicio</a></span>
   </div>
 </footer>
 
@@ -263,11 +263,17 @@ var RETAILER_LABELS = {
 };
 
 /* ---------- config ---------- */
-var BASE = 'https://ariashop.pe';
+/* SAME ORIGIN (2026-10-13, issue #386). BASE was 'https://ariashop.pe',
+   so every preview showed PRODUCTION's deals and a fix could not be seen
+   before it merged. And ONE SOURCE: the catalogue feed built by
+   scripts/build-ofertas-feed.mjs from each store's own items with the
+   page's sale rule, so a store's count here is its count on its own
+   page. The live scrape (sales-cache, 33 rows from three stores in
+   production) no longer sits on top of it. */
+var BASE = '';
 var SRC = {
   lite:  BASE + '/ofertas-feed-lite.json',
   full:  BASE + '/ofertas-feed.json',
-  cache: BASE + '/.netlify/functions/sales-cache',
   fx:    BASE + '/.netlify/functions/exchange-rate'
 };
 var TIMEOUT_MS = 20000;      // per-request timeout: never hang forever
@@ -309,13 +315,15 @@ function realImage(p){
   }
   return null;
 }
-/* The cross-store Ofertas mix: the one sale definition plus Danny's
-   $150 entry-shopper cap -- index.html's isSaleItem, the same function
-   (sale-rule.js isMixDeal) -- and a real photo. */
+/* The Ofertas gate: index.html's one sale definition (sale-rule.js) and
+   a real photo. Danny's $150 entry-shopper cap is for the all-stores mix
+   only (passesMixCap): a store chosen in the filter shows every one of
+   its markdowns, the same count its own page shows (2026-10-13, #386). */
 function isDeal(p){
   if (!p || !window.AriaSale) return false;
-  return window.AriaSale.isMixDeal(p) && !!realImage(p);
+  return window.AriaSale.isOnSale(p) && !!realImage(p);
 }
+function passesMixCap(p){ return !window.AriaSale || Number(p.price) <= window.AriaSale.MIX_MAX_PRICE_USD; }
 function relTime(iso){
   if (!iso) return null;
   var t = new Date(iso).getTime();
@@ -350,49 +358,49 @@ function fetchJson(url){
 
 /* ---------- state ---------- */
 var allDeals = [];      // normalized deal items
+var PAGE_SIZE = 48;     // cards per "Mostrar más"
+var shownLimit = PAGE_SIZE;
 var fxVenta = null;     // PEN per USD (venta), null until loaded
 var generatedAt = null; // feed timestamp for the freshness badge
 
-/* ---------- data loading: 3 sources, best-first ---------- */
-function loadDeals(){
-  var liteItems = [], liteAt = null;
-  var fullItems = [], fullAt = null;
-  var cacheItems = [], cacheAt = null;
-
-  function fromFeed(json){
-    if (!json || !Array.isArray(json.items)) return { items: [], at: null };
-    return { items: json.items, at: json.generatedAt || null };
-  }
-
-  // Source 1: lite feed (fast, 800 items). Source 2: full feed.
-  // Source 3: Netlify sales-cache (scraped deals). Merge all, dedupe.
-  return fetchJson(SRC.lite).then(function(j){
-    var r = fromFeed(j); liteItems = r.items; liteAt = r.at;
-  }, function(){ /* fall through */ }).then(function(){
-    if (liteItems.length) return null; // lite is enough to paint
-    return fetchJson(SRC.full).then(function(j){
-      var r = fromFeed(j); fullItems = r.items; fullAt = r.at;
-    }, function(){ /* fall through */ });
-  }).then(function(){
-    return fetchJson(SRC.cache).then(function(j){
-      var r = fromFeed(j); cacheItems = r.items; cacheAt = r.at;
-    }, function(){ /* cache is optional */ });
-  }).then(function(){
-    var seen = {}, merged = [];
-    function push(items){
-      for (var i = 0; i < items.length; i++){
-        var p = items[i];
-        if (!p) continue;
-        var k = (p.retailer || '') + '::' + (p.title || '');
-        if (seen[k]) continue;
-        seen[k] = 1;
-        merged.push(p);
-      }
+/* ---------- data loading: the lite head paints, the full feed completes ---------- */
+function fromFeed(json){
+  if (!json || !Array.isArray(json.items)) return { items: [], at: null };
+  return { items: json.items, at: json.generatedAt || null };
+}
+function mergeDeals(lists){
+  var seen = {}, merged = [];
+  for (var l = 0; l < lists.length; l++){
+    for (var i = 0; i < lists[l].length; i++){
+      var p = lists[l][i];
+      if (!p) continue;
+      var k = (p.retailer || '') + '::' + (p.title || '');
+      if (seen[k]) continue;
+      seen[k] = 1;
+      merged.push(p);
     }
-    push(cacheItems); push(liteItems); push(fullItems);
-    generatedAt = cacheAt || liteAt || fullAt || null;
-    allDeals = merged.filter(isDeal);
-    return allDeals;
+  }
+  return merged.filter(isDeal);
+}
+/* onPaint(deals) runs for the lite head (fast) and again with the full
+   feed; the promise settles with the full set. The lite head alone used
+   to be "enough": 800 rows from four stores, and every other store's
+   deals never loaded. */
+function loadDeals(onPaint){
+  var liteItems = [];
+  return fetchJson(SRC.lite).then(function(j){
+    var r = fromFeed(j); liteItems = r.items; generatedAt = r.at;
+    if (liteItems.length){ allDeals = mergeDeals([liteItems]); if (onPaint) onPaint(allDeals); }
+  }, function(){ /* the full feed below still answers */ }).then(function(){
+    return fetchJson(SRC.full).then(function(j){
+      var r = fromFeed(j);
+      generatedAt = r.at || generatedAt;
+      allDeals = mergeDeals([r.items, liteItems]);
+      return allDeals;
+    }, function(err){
+      if (liteItems.length) return allDeals;   // the head stands on its own
+      throw err;
+    });
   });
 }
 
@@ -418,6 +426,7 @@ function filteredDeals(){
   var f = currentFilters();
   var pool = allDeals;
   if (f.store) pool = pool.filter(function(p){ return String(p.retailer) === f.store; });
+  else pool = pool.filter(passesMixCap);
   if (f.q) pool = pool.filter(function(p){
     var t = ((p.title || '') + ' ' + (p.brand || '')).toLowerCase();
     return t.indexOf(f.q) !== -1;
@@ -511,13 +520,22 @@ function render(){
       '<p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>';
     return;
   }
+  /* PAGED (2026-10-13). The feed now carries every store -- 24k deals --
+     and drawing all of them froze a phone. 48 at a time, more on tap. */
+  var shown = Math.min(deals.length, shownLimit);
   var html = '<div class="grid">';
-  for (var i = 0; i < deals.length; i++){
+  for (var i = 0; i < shown; i++){
     try { html += cardHTML(deals[i]); }
     catch (e) { /* one bad card never kills the grid */ }
   }
   html += '</div>';
+  if (deals.length > shown){
+    html += '<div class="state" style="padding:18px 0"><button class="btn" id="moreBtn" type="button">Mostrar más (' +
+      (deals.length - shown).toLocaleString('es-PE') + ' más)</button></div>';
+  }
   host.innerHTML = html;
+  var more = $('moreBtn');
+  if (more) more.addEventListener('click', function(){ shownLimit += PAGE_SIZE; try { render(); } catch (e) {} });
   renderFresh();
 }
 function renderError(msg, allowRetry){
@@ -540,12 +558,14 @@ function boot(isRetry){
   booted = true;
   if (isRetry) renderLoading();
   loadFx(); // background, never blocks
-  loadDeals().then(function(){
+  var paint = function(){
     try {
       renderStoreFilter();
       render();
+      renderFresh();
     } catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
-  }, function(){
+  };
+  loadDeals(paint).then(paint, function(){
     renderError('No pudimos cargar las ofertas. Revisa tu conexión e inténtalo de nuevo.', true);
   });
 }
@@ -558,12 +578,13 @@ function renderLoading(){
 function bindUI(){
   var q = $('q'), s = $('sort'), st = $('store');
   var t = null;
+  /* A new question starts from the first page. */
   if (q) q.addEventListener('input', function(){
     if (t) clearTimeout(t);
-    t = setTimeout(function(){ try { render(); } catch (e) {} }, 180);
+    t = setTimeout(function(){ shownLimit = PAGE_SIZE; try { render(); } catch (e) {} }, 180);
   });
-  if (s) s.addEventListener('change', function(){ try { render(); } catch (e) {} });
-  if (st) st.addEventListener('change', function(){ try { render(); } catch (e) {} });
+  if (s) s.addEventListener('change', function(){ shownLimit = PAGE_SIZE; try { render(); } catch (e) {} });
+  if (st) st.addEventListener('change', function(){ shownLimit = PAGE_SIZE; try { render(); } catch (e) {} });
 }
 
 try {

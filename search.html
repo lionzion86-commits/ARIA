@@ -482,7 +482,10 @@ function engineSearch(S, query){
   var t1 = S.translateQuery(query);
   var fixed = S.soundCorrectQuery(t1.query, PRODUCTS._windex);
   var t = fixed.changed ? S.translateQuery(fixed.query) : t1;
-  var res = S.rankCatalogMatches(PRODUCTS, t.query, { limit: RESULT_LIMIT, retailers: retailerOpts() });
+  /* productWords: the English the translator wrote is the shopper's
+     product word, never a brand ("anillos" -> ring, not the Ring
+     doorbell) -- the same option index.html's catalogSearch passes. */
+  var res = S.rankCatalogMatches(PRODUCTS, t.query, { limit: RESULT_LIMIT, retailers: retailerOpts(), productWords: t.productWords || [] });
   var hits = (res && res.items) || [];
   return {
     hits: hits,

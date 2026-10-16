@@ -91,9 +91,17 @@ check("every item on sale has a was-price above its price and a badge between 5%
     assert.ok(pct >= 5 && pct <= 70, `${rk} "${it.name || it.title}" badges -${pct}%`);
   }
   const feed = JSON.parse(readFileSync(ROOT + "ofertas-feed.json", "utf8")).items || [];
+  /* The feed is built with this rule (scripts/build-ofertas-feed.mjs,
+     2026-10-13 #386), so no row may sit outside it: none over 70% off,
+     none the rule would not call a sale. */
   const over = feed.filter(it => Math.round((1 - it.price / it.originalPrice) * 100) > 70);
-  assert.ok(over.length > 0, "the feed has no over-70% rows left (update this check)");
-  assert.ok(over.every(it => !P.isOnSaleItem(it)), "an over-70% feed row is on sale");
+  assert.equal(over.length, 0, `${over.length} feed rows are over 70% off — rebuild: node scripts/build-ofertas-feed.mjs`);
+  /* Feed prices are card prices: the tiered margin can round a raw 5%
+     markdown down to a 4% badge above $500 (one RevZilla helmet today).
+     Nothing else may fall under the floor. */
+  const under = feed.filter(it => Math.round((1 - it.price / it.originalPrice) * 100) < 5);
+  assert.ok(under.length <= 3 && under.every(it => Math.round((1 - it.price / it.originalPrice) * 100) === 4 && it.originalPrice > 500),
+    "feed rows under the 5% floor: " + under.slice(0, 3).map(it => it.retailer + " " + it.title).join(" | "));
 });
 
 check("normalizeLiveItem builds its badge from the same rule", () => {
@@ -144,7 +152,11 @@ check("no standalone page treats a bare onSale flag as a sale", () => {
     assert.ok(!/\(\s*a\.onSale\s*\?\s*1/.test(src), `${page} sorts by the merchant flag`);
   }
   const ofertas = readFileSync(ROOT + "ofertas.html", "utf8");
-  assert.match(ofertas, /window\.AriaSale\.isMixDeal\(p\)/, "ofertas.html has its own deal gate");
+  /* The gate is the one rule; the $150 cap is the shared constant and
+     applies to the all-stores mix only (#386: a single store shows its
+     full count). */
+  assert.match(ofertas, /window\.AriaSale\.isOnSale\(p\)/, "ofertas.html has its own deal gate");
+  assert.match(ofertas, /window\.AriaSale\.MIX_MAX_PRICE_USD/, "ofertas.html keeps its own price cap");
   assert.ok(!/PRICE_CAP_USD|MAX_PCT\s*=/.test(ofertas), "ofertas.html keeps its own cap or ceiling");
 });
 
