@@ -205,6 +205,108 @@ function setStatus(html){
   var s = el("status");
   if (s) s.innerHTML = html;
 }
+/* Sized retailer derivatives (2026-10-16) -- the same rules the app
+   bundle's sizedImageUrl applies: card slots are small, retailer
+   originals are 1600-2000px, and decoding them by the hundred is
+   what kills phone tabs. A derivative that fails swaps back to the
+   original URL (data-img-orig) before the page's own error handling
+   runs, so a card never breaks because of the resize. Hosts with no
+   verified resize parameter return the URL unchanged. */
+var CARD_IMG_WIDTHS = [360, 560, 800];
+var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
+/* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sizedImageUrl(url, w){
+  var u = typeof url === "string" ? url : "";
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  function setQ(base, key, val){
+    var re = new RegExp("([?&]" + key + "=)(\\d+)", "i");
+    if (re.test(base)) return base.replace(re, function(m, p){ return p + val; });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
+  }
+  var out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, "odnWidth", w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
+      : out + "&odnHeight=" + w;
+    if (!/odnBg=/i.test(out)) out += "&odnBg=FFFFFF";
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width; the bare
+       default is already card-sized on these hosts. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, "wid", w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, function(m, p){ return p + w; });
+    }
+  } else if (/macysassets\.com/i.test(u)){
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, "wid", w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, "imwidth", w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, "w", w);
+    if (/[?&]h=\d+/i.test(out)) out = out.replace(/([?&]h=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
+      else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
+  }
+  return out || u;
+}
+function imageSrcset(url){
+  var u = typeof url === "string" ? url : "";
+  if (!u) return "";
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, "_500.jpg") + " 500w, " + u + " 1000w";
+  }
+  var seen = {}, parts = [];
+  for (var i = 0; i < CARD_IMG_WIDTHS.length; i++){
+    var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
+    if (s === u || seen[s]) continue;
+    seen[s] = 1;
+    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
+  }
+  return parts.length ? parts.join(", ") : "";
+}
+function imgOrigRetry(el){
+  if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
+    el.src = el.dataset.imgOrig;
+    el.removeAttribute("data-img-orig");
+    el.removeAttribute("srcset");
+    return true;
+  }
+  return false;
+}
+function cardImgAttrs(url, sizes){
+  var ss = imageSrcset(url);
+  return 'src="' + esc(sizedImageUrl(url, 560)) + '"' +
+    (ss ? ' srcset="' + esc(ss) + '" sizes="' + (sizes || CARD_IMG_SIZES) + '"' : '') +
+    ' data-img-orig="' + esc(url || "") + '"';
+}
 function esc(s){
   return String(s == null ? "" : s)
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
@@ -438,7 +540,7 @@ function priceHTML(p){
 
 function cardHTML(p){
   var img = p.image
-    ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+    ? '<img ' + cardImgAttrs(p.image) + ' alt="" loading="lazy" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
     : '<span style="font-size:12px;color:#9AA3B5">Sin imagen</span>';
   /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   var _href = 'producto.html?producto=' + encodeURIComponent(p.name || '')
