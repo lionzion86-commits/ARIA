@@ -3102,9 +3102,27 @@ function imageRetryUrl(url){
 const CARD_IMG_WIDTHS = [360, 560, 800];
 const CARD_IMG_SIZES = '(max-width: 640px) 44vw, 200px';
 
+/* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
 function sizedImageUrl(url, w){
   const u = typeof url === 'string' ? url : '';
   if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
   const setQ = (base, key, val) => {
     const re = new RegExp('([?&]' + key + '=)(\\d+)', 'i');
     if (re.test(base)) return base.replace(re, (m, p) => p + val);
@@ -3124,10 +3142,18 @@ function sizedImageUrl(url, w){
       : out + '&odnHeight=' + w;
     if (!/odnBg=/i.test(out)) out += '&odnBg=FFFFFF';
   } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
-    out = setQ(u, 'wid', w);
-    if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, (m, p) => p + w);
+    /* Scene7 sizing only ever REDUCES a declared width. The bare
+       default is already card-sized on these hosts (Target serves
+       400x400 by default) -- inventing a wid would hand the shopper
+       a BIGGER file than the one they get today. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, 'wid', w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, (m, p) => p + w);
+    }
   } else if (/macysassets\.com/i.test(u)){
-    out = setQ(u, 'wid', w);
+    /* Same rule: Macy's bare default is a 328px-wide render; only a
+       URL that already declares a wid (the upgraded form) is reduced. */
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, 'wid', w);
   } else if (/sephora\.com/i.test(u)){
     out = setQ(u, 'imwidth', w);
   } else if (/content\.gapinc\.com/i.test(u)){
