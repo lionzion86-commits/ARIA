@@ -3066,6 +3066,132 @@ function imageRetryUrl(url){
 }
 
 /* ============================================================
+   ASK THE CDN FOR A SMALLER FILE (2026-10-16)
+
+   The other half of upgradeImageUrl. That one buys crispness at the
+   data boundary; this one buys survival at the render boundary. A
+   card slot on this site is ~172 CSS px wide, but the URL in the data
+   is the retailer's full-size original -- 1600 to 2000 px, 150 KB to
+   1 MB -- and the phone decodes every one at full size. A long scroll
+   session decodes hundreds of megabytes of photography to paint
+   thumbnails, and iOS answers by killing the tab, which the shopper
+   experiences as the page refreshing itself (the Oct 14 crash
+   diagnosis' last lever; confirmed on Danny's iPhone 2026-10-16).
+
+   Every host below is a first-party resize parameter VERIFIED live
+   against the retailer's own CDN on 2026-10-16 -- status, pixel size
+   and bytes checked per host. The photo still comes from the
+   retailer's CDN, so it costs no Netlify bandwidth and no
+   transformation credits. Netlify Image CDN was costed and rejected:
+   on the credit plans every byte it serves is metered bandwidth, so
+   it would bill this site for every product photo a shopper loads,
+   against the same balance that ran dry the morning this was built.
+
+   A DERIVATIVE CARRIES ITS OWN UNDO, the doctrine upgradeImageUrl
+   already established: a caller that rewrites a URL attaches the
+   untouched URL as the image's data-img-fallback, and the existing
+   error handlers swap back with no broken frame. Hosts with no
+   verified parameter return the URL unchanged -- Revolve and Miu Miu
+   (no public size parameter), Amplience/Hot Topic (the stored URLs
+   answer 404 today), AE and Zumiez Scene7 (their defaults are
+   already card-sized, so a wid would make files BIGGER) -- and an
+   unchanged URL renders exactly as it did before this section
+   existed. The product detail view and its magnifier never come
+   through here: they keep the upgraded original, as designed.
+   ============================================================ */
+const CARD_IMG_WIDTHS = [360, 560, 800];
+const CARD_IMG_SIZES = '(max-width: 640px) 44vw, 200px';
+
+/* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sizedImageUrl(url, w){
+  const u = typeof url === 'string' ? url : '';
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  const setQ = (base, key, val) => {
+    const re = new RegExp('([?&]' + key + '=)(\\d+)', 'i');
+    if (re.test(base)) return base.replace(re, (m, p) => p + val);
+    return base + (base.indexOf('?') >= 0 ? '&' : '?') + key + '=' + val;
+  };
+  let out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, 'width', w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    /* The transform chain sits between /upload/ and the asset path;
+       only rewrite when a width token is already there to replace. */
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, '$1w_' + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, 'odnWidth', w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, (m, p) => p + w)
+      : out + '&odnHeight=' + w;
+    if (!/odnBg=/i.test(out)) out += '&odnBg=FFFFFF';
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width. The bare
+       default is already card-sized on these hosts (Target serves
+       400x400 by default) -- inventing a wid would hand the shopper
+       a BIGGER file than the one they get today. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, 'wid', w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, (m, p) => p + w);
+    }
+  } else if (/macysassets\.com/i.test(u)){
+    /* Same rule: Macy's bare default is a 328px-wide render; only a
+       URL that already declares a wid (the upgraded form) is reduced. */
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, 'wid', w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, 'imwidth', w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, 'width', w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, 'w', w);
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    /* B&H serves fixed steps, not arbitrary widths. */
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace('/images/fb/', '/images/images250x250/');
+      else if (w <= 560) out = u.replace('/images/fb/', '/images/images500x500/');
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    /* Farfetch names the width in the file suffix: 500 is the card
+       step, and anything larger keeps the original file. */
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, '_500.jpg');
+  }
+  return out || u;
+}
+
+function imageSrcset(url){
+  const u = typeof url === 'string' ? url : '';
+  if (!u) return '';
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, '_500.jpg') + ' 500w, ' + u + ' 1000w';
+  }
+  const seen = new Set();
+  const parts = [];
+  for (const w of CARD_IMG_WIDTHS){
+    const s = sizedImageUrl(u, w);
+    if (s === u || seen.has(s)) continue;
+    seen.add(s);
+    parts.push(s + ' ' + w + 'w');
+  }
+  return parts.length ? parts.join(', ') : '';
+}
+
+/* ============================================================
    NO PRODUCT WEARS A GREY BOX (2026-09-22)
 
    The missing-photo state was the words "Sin imagen" in light grey on
@@ -3087,11 +3213,21 @@ function photoPlaceholderHTML(note = 'Foto en camino'){
 
 function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '', eager = false } = {}){
   const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
-  return src
-    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" draggable="false" class="w-full h-full"${
-        fallbackSrc ? ` data-img-fallback="${escapeHtml(fallbackSrc)}"` : ''}
-             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
-    : photoPlaceholderHTML();
+  if (!src) return photoPlaceholderHTML();
+  /* Render the card-sized derivative, never the retailer's original
+     (see sizedImageUrl). The untouched URL rides along as the
+     data-img-fallback whenever the rewrite changed anything, so the
+     card's error walk ends at the original exactly as it ends at the
+     YesStyle retry today. A caller-supplied fallbackSrc always wins:
+     it is only ever non-empty for the CloudFront retry, whose URLs
+     no sizing rule touches, so the two never contend. */
+  const sized = sizedImageUrl(src, 560);
+  const srcset = imageSrcset(src);
+  const fb = fallbackSrc || (srcset || sized !== src ? src : '');
+  return `<img src="${escapeHtml(sized)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" draggable="false" class="w-full h-full"${
+        srcset ? ` srcset="${escapeHtml(srcset)}" sizes="${CARD_IMG_SIZES}"` : ''}${
+        fb ? ` data-img-fallback="${escapeHtml(fb)}"` : ''}
+             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`;
 }
 
 /**
@@ -3195,10 +3331,28 @@ function cardSwipeImg(ev, el, dir){
   img.removeAttribute('data-img-fallback');
   img.style.transition = 'opacity .16s ease';
   img.style.opacity = '0';
+  /* Preload the card-sized derivative, not the original (see
+     sizedImageUrl). If the derivative fails, try the original before
+     giving up and reverting the swipe; when the derivative is what
+     lands, the original becomes this photo's data-img-fallback --
+     the same photo, never the first photo's retry URL this function
+     just removed. */
+  const sizedUrl = sizedImageUrl(imgs[idx], 560);
+  let loadedUrl = sizedUrl;
   const pre = new Image();
-  pre.onload = function(){ img.src = imgs[idx]; img.style.opacity = '1'; };
-  pre.onerror = function(){ frame.dataset.swipeIdx = prev; img.style.opacity = '1'; };
-  pre.src = imgs[idx];
+  pre.onload = function(){
+    img.src = loadedUrl;
+    const ss = imageSrcset(imgs[idx]);
+    if (ss){ img.setAttribute('srcset', ss); img.setAttribute('sizes', CARD_IMG_SIZES); }
+    else { img.removeAttribute('srcset'); img.removeAttribute('sizes'); }
+    if (loadedUrl !== imgs[idx]) img.setAttribute('data-img-fallback', imgs[idx]);
+    img.style.opacity = '1';
+  };
+  pre.onerror = function(){
+    if (loadedUrl !== imgs[idx]){ loadedUrl = imgs[idx]; pre.src = imgs[idx]; return; }
+    frame.dataset.swipeIdx = prev; img.style.opacity = '1';
+  };
+  pre.src = sizedUrl;
 }
 
 /* OFERTAS IS DESIGNED, NOT SCRAPED — AND IT IS THE SALE CARD (2026-09-21).
@@ -12659,7 +12813,12 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  /* Full-width hero: ask for the 1000px derivative, with the upgraded
+     original as the fallback when no retry already rides (see
+     sizedImageUrl). Curated heroes are brand assets the sizing rules
+     do not match, so they pass through untouched. */
+  const heroSrc = sizedImageUrl(src, 1000);
+  const photo = src ? `<img src="${escapeHtml(heroSrc)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : (heroSrc !== src ? ` data-img-fallback="${escapeHtml(src)}"` : '')} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
@@ -12761,10 +12920,15 @@ function brandRoomBannerHTML(spec, brandItems, opts){
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = !curated && src ? imageRetryUrl(src) : '';
+  /* Full-width hero: ask for the 1000px derivative, with the upgraded
+     original as the fallback when no retry already rides (see
+     sizedImageUrl). Curated heroes are brand assets the sizing rules
+     do not match, so they pass through untouched. */
+  const heroSrc = sizedImageUrl(src, 1000);
   /* Brand-room hero is above-the-fold: fetch it the moment the banner is painted
      (eager + high priority), never gated on intersection. A lazy hero injected via
      innerHTML can sit unpainted while the intersection observer catches up. */
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="eager" fetchpriority="high" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  const photo = src ? `<img src="${escapeHtml(heroSrc)}" alt="" loading="eager" fetchpriority="high" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : (heroSrc !== src ? ` data-img-fallback="${escapeHtml(src)}"` : '')} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
   const kicker = opts.kicker ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(opts.kicker)}</span>` : '';
   /* Phase 2 (2026-10-02): brand-room banners outside Gym Rat filter by
@@ -13796,9 +13960,15 @@ function browseTileHTML({ label, count, image, pct = 0, onclick }){
      at the URL we know works, then the frame goes rather than leaving a
      broken-image glyph. */
   const retry = image ? imageRetryUrl(image) : '';
+  /* Card-sized derivative + srcset, the original as fallback when no
+     retry already rides (see sizedImageUrl). */
+  const tileSized = image ? sizedImageUrl(image, 560) : '';
+  const tileSrcset = image ? imageSrcset(image) : '';
+  const tileFb = retry || (image && (tileSrcset || tileSized !== image) ? image : '');
   const photo = image ? `<div class="mb-2.5 -mx-4 -mt-4 aspect-[4/3] overflow-hidden" style="background:var(--sky)">
-      <img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async"${
-        retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''}
+      <img src="${escapeHtml(tileSized)}" alt="" loading="lazy" decoding="async"${
+        tileSrcset ? ` srcset="${escapeHtml(tileSrcset)}" sizes="${CARD_IMG_SIZES}"` : ''}${
+        tileFb ? ` data-img-fallback="${escapeHtml(tileFb)}"` : ''}
         style="width:100%; height:100%; object-fit:cover; object-position:center"
         onerror="window.browseTilePhotoError && browseTilePhotoError(this)">
     </div>` : '';
@@ -15507,7 +15677,12 @@ function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
   })();
   const src = raw ? (heroImage ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  /* Full-width hero: ask for the 1000px derivative, with the upgraded
+     original as the fallback when no retry already rides (see
+     sizedImageUrl). Curated heroes are brand assets the sizing rules
+     do not match, so they pass through untouched. */
+  const heroSrc = sizedImageUrl(src, 1000);
+  const photo = src ? `<img src="${escapeHtml(heroSrc)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : (heroSrc !== src ? ` data-img-fallback="${escapeHtml(src)}"` : '')} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const inner = `
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
@@ -18516,7 +18691,7 @@ function renderProductThumbs(){
     <button onclick="selectProductImage(${i})" aria-label="Imagen ${i + 1}"
       class="flex-shrink-0 w-[62px] h-[62px] rounded-xl overflow-hidden border-2 focus-ring transition"
       style="border-color:${i === productGalleryIndex ? 'var(--blue)' : 'var(--line)'}; background:var(--sky)">
-      <img src="${escapeHtml(src)}" alt="" loading="lazy" class="w-full h-full" style="object-fit:contain">
+      <img src="${escapeHtml(sizedImageUrl(src, 200))}" alt="" loading="lazy" class="w-full h-full" style="object-fit:contain" data-img-orig="${escapeHtml(src)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">
     </button>`).join('');
 }
 
@@ -25592,7 +25767,7 @@ function comboDealHTML(combo, resolved){
   const rows = resolved.lines.map(l => `
     <div class="flex items-center gap-2.5">
       ${l.image
-        ? `<img src="${escapeHtml(l.image)}" alt="" loading="lazy" class="w-12 h-12 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)">`
+        ? `<img src="${escapeHtml(sizedImageUrl(l.image, 200))}" alt="" loading="lazy" class="w-12 h-12 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" data-img-orig="${escapeHtml(l.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">`
         : `<div class="w-12 h-12 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
       <div class="min-w-0 flex-1">
         <div class="text-[12.5px] font-semibold leading-snug truncate">${escapeHtml(l.title)}</div>
@@ -25762,7 +25937,7 @@ function cartLineItemHTML(it){
   </div>`;
   }
   return `<div class="flex items-center gap-3 py-4 border-b" style="border-color:var(--line)">
-    ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+    ${it.image ? `<img src="${escapeHtml(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-img-orig="${escapeHtml(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
       <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
@@ -26200,7 +26375,7 @@ async function renderCrossSellRail(){
                quick-add stays as its own small button underneath. -->
           <button onclick="openCrossSellProduct(${i})" class="w-full text-left focus-ring" aria-label="Ver ${jsAttr(it.title)}">
             <div class="h-[110px] relative" style="background:var(--sky)">
-              <img src="${escapeHtml(it.image)}" class="w-full h-full object-cover" alt="">
+              <img src="${escapeHtml(sizedImageUrl(it.image, 360))}" class="w-full h-full object-cover" alt="" loading="lazy" data-img-orig="${escapeHtml(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">
               <span class="absolute bottom-1.5 right-1.5 text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(10,31,68,0.72); color:#fff">Ver</span>
             </div>
             <div class="px-2.5 pt-2.5">
@@ -29369,7 +29544,7 @@ function addAssistantProductCard(item, retailer){
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
-    ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
+    ${item.image ? `<img src="${escapeHtml(sizedImageUrl(item.image, 200))}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0" data-img-orig="${escapeHtml(item.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
