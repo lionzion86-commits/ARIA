@@ -648,6 +648,86 @@
   const LIVE_RETAILER_LABEL = RETAILER_LABELS;
   const RETAILER_BADGE_COLOR = RETAILER_COLORS;
   const RETAILER_LOGO_FILE = RETAILER_LOGOS;
+/* Sized retailer derivatives (2026-10-16) -- the same rules the app
+   bundle's sizedImageUrl applies: card slots are small, retailer
+   originals are 1600-2000px, and decoding them by the hundred is
+   what kills phone tabs. A derivative that fails swaps back to the
+   original URL (data-img-orig) before the page's own error handling
+   runs, so a card never breaks because of the resize. Hosts with no
+   verified resize parameter return the URL unchanged. */
+var CARD_IMG_WIDTHS = [360, 560, 800];
+var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
+function sizedImageUrl(url, w){
+  var u = typeof url === "string" ? url : "";
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  function setQ(base, key, val){
+    var re = new RegExp("([?&]" + key + "=)(\\d+)", "i");
+    if (re.test(base)) return base.replace(re, function(m, p){ return p + val; });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
+  }
+  var out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, "odnWidth", w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
+      : out + "&odnHeight=" + w;
+    if (!/odnBg=/i.test(out)) out += "&odnBg=FFFFFF";
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    out = setQ(u, "wid", w);
+    if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/macysassets\.com/i.test(u)){
+    out = setQ(u, "wid", w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, "imwidth", w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, "w", w);
+    if (/[?&]h=\d+/i.test(out)) out = out.replace(/([?&]h=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
+      else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
+  }
+  return out || u;
+}
+function imageSrcset(url){
+  var u = typeof url === "string" ? url : "";
+  if (!u) return "";
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, "_500.jpg") + " 500w, " + u + " 1000w";
+  }
+  var seen = {}, parts = [];
+  for (var i = 0; i < CARD_IMG_WIDTHS.length; i++){
+    var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
+    if (s === u || seen[s]) continue;
+    seen[s] = 1;
+    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
+  }
+  return parts.length ? parts.join(", ") : "";
+}
+function imgOrigRetry(el){
+  if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
+    el.src = el.dataset.imgOrig;
+    el.removeAttribute("data-img-orig");
+    el.removeAttribute("srcset");
+    return true;
+  }
+  return false;
+}
+function cardImgAttrs(url, sizes){
+  var ss = imageSrcset(url);
+  return 'src="' + escapeHtmlLocal(sizedImageUrl(url, 560)) + '"' +
+    (ss ? ' srcset="' + escapeHtmlLocal(ss) + '" sizes="' + (sizes || CARD_IMG_SIZES) + '"' : '') +
+    ' data-img-orig="' + escapeHtmlLocal(url || "") + '"';
+}
   function escapeHtmlLocal(str){
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
@@ -1444,7 +1524,7 @@
   }
     checkoutItemsWrap.innerHTML = cart.map((it, i) => `
       <div class="flex items-center gap-3 pb-4 border-b last:border-b-0 last:pb-0" style="border-color:var(--line)">
-        ${it.image ? `<img src="${escapeHtmlLocal(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+        ${it.image ? `<img src="${escapeHtmlLocal(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-img-orig="${escapeHtmlLocal(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
         <div class="min-w-0 flex-1">
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
