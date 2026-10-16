@@ -23,8 +23,25 @@ import { repoFile } from "./paths.mjs";
 /* The site's own list, read out of index.html so a catalogue added to
    the site reaches the connector without anyone remembering to add it
    here twice. */
+/* PERF (2026-10-14): the page's script ships as a fingerprinted
+   external bundle (build/app-<hash>.js) so browsers can cache it.
+   The catalogue lists live in that script, so the page source here
+   is index.html with the bundle inlined back at its tag -- the
+   same reconstruction page-slices.mjs performs. */
+function pageSource() {
+  let src = readFileSync(repoFile("index.html"), "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(src);
+  if (tag) {
+    try {
+      const bundle = readFileSync(repoFile(tag[1]), "utf8");
+      src = src.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+    } catch { /* the error below names what is missing */ }
+  }
+  return src;
+}
+
 export function catalogueFilesFromPage() {
-  const html = readFileSync(repoFile("index.html"), "utf8");
+  const html = pageSource();
   const m = /const CATALOGUE_FILES = \[([^\]]*)\]/.exec(html);
   if (!m) throw new Error("CATALOGUE_FILES moved in index.html — scripts/lib/mcp/catalog.mjs cannot find the catalogue list");
   const files = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1].replace(/^\//, ""));

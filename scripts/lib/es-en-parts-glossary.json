@@ -1,7 +1,7 @@
 {
   "name": "es-en-parts-glossary",
-  "version": "1.1.0",
-  "updated": "2026-09-26",
+  "version": "1.1.1",
+  "updated": "2026-10-09",
   "_readme": [
     "ES->EN AUTO PARTS GLOSSARY — shared infrastructure, not a search hack.",
     "",
@@ -234,8 +234,11 @@
       "en": [
         "headlights"
       ],
-      "es": "faros",
-      "synonyms_es": []
+      "es": "faros delanteros",
+      "notes": "Plural is what the parts cache is keyed by (\"faros delanteros\"); bare \"faros\" stays a synonym.",
+      "synonyms_es": [
+        "faros"
+      ]
     },
     {
       "category": "lighting",

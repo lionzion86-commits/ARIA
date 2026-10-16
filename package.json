@@ -1,13 +1,22 @@
 {
   "type": "module",
   "dependencies": {
-    "@netlify/blobs": "^10.7.13"
+    "@netlify/blobs": "^10.7.13",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0"
   },
   "scripts": {
     "test": "node scripts/test/run-tests.mjs",
     "test:browser": "node scripts/test/browser-tests.mjs",
     "test:mcp": "node scripts/test/mcp-tests.mjs",
     "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
+    "test:aria-auto-year": "node scripts/test/aria-auto-year-tests.mjs",
+    "test:price-parity": "node scripts/test/price-parity-tests.mjs",
+    "test:classification": "node scripts/test/classification-tests.mjs",
+    "build:product-type": "node scripts/build-product-type.mjs",
+    "census:classification": "node scripts/census-classification.mjs",
+    "test:freight-misfire": "node scripts/test/freight-misfire-tests.mjs",
+    "test:store-pills": "node scripts/test/store-pills-tests.mjs",
     "test:ropa-interior": "node scripts/test/ropa-interior-tests.mjs",
     "build:ropa-interior-feed": "node scripts/build-ropa-interior-feed.mjs",
     "test:search": "node scripts/test/search-relevance-tests.mjs",
@@ -18,6 +27,7 @@
     "test:search-brief": "node scripts/test/search-brief-tests.mjs",
     "build:search-index": "node scripts/build-search-index.mjs",
     "test:checkout": "node scripts/test/checkout-tests.mjs",
-    "build:price-index": "node scripts/build-price-index.mjs"
+    "build:price-index": "node scripts/build-price-index.mjs",
+    "test:visual": "node scripts/test/visual-search-tests.mjs"
   }
 }

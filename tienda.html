@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tienda — Aria Shop</title>
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
 <meta name="description" content="Compra en tiendas de Estados Unidos con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
 /* Standalone Tienda template — one page for every store (?tienda=clave).
@@ -210,6 +212,8 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   </div>
 </footer>
 
+<!-- The product-type classifier, generated from index.html (scripts/build-product-type.mjs). -->
+<script src="product-type.js"></script>
 <script>
 /* Standalone Tienda template — one page for all 77 stores (?tienda=clave).
    Bulletproof by design:
@@ -252,31 +256,33 @@ function tieredMarginUsd(raw){
     + Math.min(Math.max(r-2000,0),3000)*0.12
     + Math.max(r-5000,0)*0.08;
 }
-function finalUsd(raw){
+/* PER-RETAILER MIAMI SALES TAX (2026-10-09). Mirrors the 'exempt' rows of
+   TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
+   the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
+   This page used to stop at the margin, 7% under the SPA's price. */
+var TAX_EXEMPT = {"walmart": 1};
+function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+function finalUsd(raw, retailer){
   var r = Number(raw);
   if (!(r > 0)) return NaN;
-  return Math.round((r + tieredMarginUsd(r)) * 100) / 100;
+  return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;
 }
 function fmtUSD(n){
   if (!isFinite(n)) return 'Precio no disponible';
   return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
-function money(n){
-  var v = Number(n);
-  if (!Number.isFinite(v)) return '—';
-  return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
-}
+/* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule, served as
+   sale-rule.js -- a real was-price (regularPrice / wasPrice /
+   originalPrice / compareAt), 5-70% off. A merchant flag with no
+   was-price is not a sale: New Balance's 43 flagged items no longer
+   make an Ofertas rail with no discount on it. No sale-rule.js, no
+   sales -- never a guess. */
 function discountPct(p){
-  var o = Number(p.regularPrice || p.wasPrice || p.originalPrice), pr = Number(p.price);
-  if (!(o > 0) || !(pr >= 0) || !(o > pr)) return 0;
-  return Math.round((1 - pr / o) * 100);
-} /* DANNY 2026-10-07: regularPrice counts (VS) */
-/* SALE TIER (2026-10-07, Danny): 2 = measured % off, 1 = merchant-flagged
-   sale without a measurable %, 0 = full price. Sales always lead. */
+  return window.AriaSale ? window.AriaSale.discountPct(p) : 0;
+}
+/* SALE TIER: 2 = on sale, 0 = full price. Sales always lead. */
 function saleTier(p){
-  if (discountPct(p) > 0) return 2;
-  if (p && p.onSale) return 1;
-  return 0;
+  return discountPct(p) > 0 ? 2 : 0;
 }
 /* ---------- product-type classification (word-boundary, not substring) ----------
    DANNY 2026-10-07: store pages group carousels by PRODUCT TYPE, not department.
@@ -284,7 +290,7 @@ function saleTier(p){
    department carousel. Same classifier as marca.html. */
 var PRODUCT_TYPES = [
   { key:'trajes_bano', label:'Trajes de Baño', keywords:['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
-  { key:'carteras',    label:'Carteras',       keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
+  { key:'carteras',    label:'Carteras y mochilas', keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
   { key:'joyas',       label:'Joyas',          keywords:['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
   { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
   { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
@@ -296,13 +302,36 @@ var TYPE_RES = PRODUCT_TYPES.map(function(t){
     return new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + 's?\\b', 'i');
   });
 });
+/* DANNY 2026-10-08 (audit2): keyword-exclusion guards for productTypeOf.
+   Same keyword, wrong product: 'flat' as an adjective is not a flat shoe --
+   hair tools (flat iron), flat-front shorts and flat-bottom objects all
+   matched the zapatos keyword. 'bag' as grocery/packaging (3 lb Bag onions,
+   18 Pound Bag epsom salt, 110 Ct Bulk Bag candy, Bags Per Box snacks) is
+   not a cartera. A guard only suppresses that one keyword's match; the item
+   still classifies normally against every other keyword. */
+function typeKeywordBlocked(n, kw){
+  if (kw === 'flat' && /\bflat[\s-]*iron\b/i.test(n)) return true;
+  if (kw === 'flat' && /\bflat[\s-]*(front|bottom|panel)\b/i.test(n)) return true;
+  if (kw !== 'bag') return false;
+  if (/\b(bulk|resealable|party size|fun size|variety pack)\s+bags?\b/i.test(n)) return true;
+  if (/\b\d[\d.,]*\s*(oz|lb|lbs|pound|pounds|ct|count)\b[^a-z]{0,25}\bbags?\b/i.test(n)) return true;
+  if (/\bbags?\s+per\s+box\b/i.test(n)) return true;
+  if (/\b(candy|gummy|gummies|gummi|chocolate|chips|onions?|croutons?|salts?|snacks?|popcorn|pretzels?|yogurt|alfajores?|raisins?|licorice|taffy|skittles|snickers|twix|twizzlers|haribo|peppermint)\b[^.\n]{0,60}\bbags?\b/i.test(n)) return true;
+  return false;
+}
+/* ONE CLASSIFIER (2026-10-13 audit): index.html's, via product-type.js --
+   the item's type first, footwear before jewelry, whole words, vetoes.
+   The keyword loop below is only the fallback if that file fails to load. */
 function productTypeOf(item){
   var n = String((item && (item.name || item.title)) || '');
+  if (window.AriaProductType){
+    try { return window.AriaProductType.classify({ name: n, type: item && item.type, retailer: (item && item.retailer) || storeKey, brand: item && item.brand }); } catch (e) {}
+  }
   for (var i = 0; i < PRODUCT_TYPES.length; i++){
     if (!PRODUCT_TYPES[i].keywords.length) continue;
     var res = TYPE_RES[i];
     for (var k = 0; k < res.length; k++){
-      if (res[k].test(n)) return PRODUCT_TYPES[i].key;
+      if (res[k].test(n) && !typeKeywordBlocked(n, PRODUCT_TYPES[i].keywords[k])) return PRODUCT_TYPES[i].key;
     }
   }
   return 'ropa';
@@ -362,7 +391,7 @@ var visibleCount = PAGE_SIZE;
 /* ---------- item normalization ---------- */
 function normItem(raw, deptKey){
   if (!raw || typeof raw !== 'object') return null;
-  var name = raw.name || raw.title || '';
+  var name = raw.name || raw.title || raw.productName || '';  /* footlocker catalog uses productName */
   var price = Number(raw.price);
   if (!name || !(price > 0)) return null;
   var img = realImage(raw);
@@ -371,14 +400,70 @@ function normItem(raw, deptKey){
     name: String(name),
     brand: raw.brand ? String(raw.brand) : '',
     price: price,
-    originalPrice: raw.originalPrice != null ? Number(raw.originalPrice) : null,
-    regularPrice: raw.regularPrice != null ? Number(raw.regularPrice) : null,
-    wasPrice: raw.wasPrice != null ? Number(raw.wasPrice) : null,
-    onSale: !!(raw.onSale || raw.isOnSale),
+    /* The was-price the sale rule measured (compareAt included), kept
+       only when the item is on sale by that rule. */
+    originalPrice: discountPct(raw) > 0 ? window.AriaSale.originalPrice(raw) : null,
     image: img,
     url: raw.url || raw.link || '',
-    dept: deptKey || ''
+    dept: deptKey || '',
+    type: raw.type ? String(raw.type) : ''
   };
+}
+
+/* ---------- facet pills for single-bucket brand stores (2026-10-09) ----------
+   Gymshark, Alphalete and YoungLA come from gymrat-catalog.json as ONE
+   "gym_rat" department holding everything, so the department pills read
+   "Todo · Gym Rat" -- a pill that names Aria's bucket, not anything in
+   the brand's own store. When a store has a single department, the pills
+   come from each product's own type field instead:
+     "Womens>Apparel>Leggings>full_length"  (Gymshark): 1st segment is the
+        gender, 3rd the category;
+     "Women's Seamless Short"  (Alphalete): leading gender, last word the
+        category;
+     "For Him" / "For Her"  (YoungLA): gender only. */
+var GENDER_LABELS = { womens: 'Mujer', women: 'Mujer', 'for her': 'Mujer',
+                      mens: 'Hombre', men: 'Hombre', 'for him': 'Hombre', unisex: 'Unisex' };
+var GENDER_ORDER = ['Mujer', 'Hombre', 'Unisex'];
+var FACET_MIN = 5;  /* a category pill needs this many products; smaller ones stay under Todo */
+function typeFacets(type){
+  var t = String(type || '').trim();
+  if (!t) return { gender: '', cat: '' };
+  if (t.indexOf('>') >= 0){
+    var seg = t.split('>').map(function(x){ return x.trim(); });
+    return { gender: GENDER_LABELS[seg[0].toLowerCase()] || '', cat: seg[2] || '' };
+  }
+  var whole = GENDER_LABELS[t.toLowerCase()];
+  if (whole) return { gender: whole, cat: '' };
+  var m = /^(women|men)['\u2019]?s\s+|^unisex\s+/i.exec(t);
+  var gender = m ? (GENDER_LABELS[m[0].replace(/['\u2019\s]/g, '').toLowerCase()] || '') : '';
+  var words = (m ? t.slice(m[0].length) : t).split(/\s+/).filter(Boolean);
+  var last = words.length ? words[words.length - 1] : '';
+  var cat = last ? last.charAt(0).toUpperCase() + last.slice(1) : '';
+  if (cat && !/s$/i.test(cat)) cat += 's';  /* "Short" and "Shorts" are one pill */
+  return { gender: gender, cat: cat };
+}
+var facetMode = false;
+var facetGenders = [];   /* gender labels present, in GENDER_ORDER */
+var facetCats = [];      /* category labels with >= FACET_MIN products, biggest first */
+var activeGender = '';
+var activeCat = '';
+function buildFacets(){
+  facetMode = Object.keys(deptLabels).length === 1;
+  facetGenders = []; facetCats = []; activeGender = ''; activeCat = '';
+  if (!facetMode) return;
+  var g = {}, c = {};
+  for (var i = 0; i < allItems.length; i++){
+    var f = typeFacets(allItems[i].type);
+    allItems[i].gender = f.gender;
+    allItems[i].cat = f.cat;
+    if (f.gender) g[f.gender] = 1;
+    if (f.cat) c[f.cat] = (c[f.cat] || 0) + 1;
+  }
+  facetGenders = GENDER_ORDER.filter(function(x){ return g[x]; });
+  facetCats = Object.keys(c).filter(function(k){ return c[k] >= FACET_MIN; })
+    .sort(function(a, b){ return c[b] - c[a] || a.localeCompare(b, 'es'); });
+  /* Nothing to offer from the type field: fall back to the old pills. */
+  if (!facetGenders.length && !facetCats.length) facetMode = false;
 }
 
 /* ---------- data loading ---------- */
@@ -450,13 +535,15 @@ function loadFx(){
 function currentFilters(){
   var q = (($('q') || {}).value || '').trim().toLowerCase();
   var sort = (($('sort') || {}).value || 'relevance');
-  return { q: q, sort: sort, dept: activeDept };
+  return { q: q, sort: sort, dept: activeDept, gender: activeGender, cat: activeCat };
 }
 var activeDept = '';
 function filteredItems(){
   var f = currentFilters();
   var pool = allItems;
   if (f.dept) pool = pool.filter(function(p){ return p.dept === f.dept; });
+  if (f.gender) pool = pool.filter(function(p){ return p.gender === f.gender; });
+  if (f.cat) pool = pool.filter(function(p){ return p.cat === f.cat; });
   if (f.q){
     var words = f.q.split(/\s+/).filter(Boolean);
     pool = pool.filter(function(p){
@@ -474,13 +561,13 @@ function filteredItems(){
   return arr;
 }
 function penHTML(usd){
-  var f = finalUsd(usd);
+  var f = finalUsd(usd, storeKey);
   if (!fxVenta || !isFinite(f)) return '';
   return '<div class="price-pen" data-usd="' + esc(f) + '">S/ ' +
     (f * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) + '</div>';
 }
 function cardHTML(p){
-  var f = finalUsd(p.price);
+  var f = finalUsd(p.price, storeKey);
   var pct = discountPct(p);
   var brand = p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '';
   /* THE CARD STAYS IN THE SHOP. It used to open the retailer's own
@@ -493,14 +580,17 @@ function cardHTML(p){
   var close = '</a>';
   return open +
     '<div class="card-img">' +
-      (pct >= 5 ? '<span class="badge">-' + pct + '%</span>' : '') +
+      (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') +
       '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' +
     '</div>' +
     '<div class="card-body">' + brand +
       '<h3 class="card-title">' + esc(p.name) + '</h3>' +
       '<div class="card-prices"><div class="price-row">' +
         '<span class="price">' + fmtUSD(f) + '</span>' +
-        (pct >= 5 && p.originalPrice ? '<span class="price-old">' + money(p.originalPrice) + '</span>' : '') +
+        /* The crossed-out price carries the same margin and tax as the
+           price beside it -- it showed the raw US price, so a 10%
+           markdown read "$100" crossed out next to "$119.40". */
+        (pct > 0 && p.originalPrice ? '<span class="price-old">' + fmtUSD(finalUsd(p.originalPrice, storeKey)) + '</span>' : '') +
       '</div>' + penHTML(p.price) + '</div>' +
     '</div>' + close;
 }
@@ -513,9 +603,36 @@ function renderPenPrices(){
     els[i].textContent = 'S/ ' + (usd * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2});
   }
 }
+function renderFacetChips(host){
+  var chip = function(kind, val, label, on){
+    return '<button type="button" class="chip' + (on ? ' active' : '') + '" data-' + kind + '="' + esc(val) + '">' + esc(label) + '</button>';
+  };
+  var html = chip('all', '', 'Todo', !activeGender && !activeCat);
+  for (var i = 0; i < facetGenders.length; i++) html += chip('gender', facetGenders[i], facetGenders[i], activeGender === facetGenders[i]);
+  for (var j = 0; j < facetCats.length; j++) html += chip('cat', facetCats[j], facetCats[j], activeCat === facetCats[j]);
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.chip');
+  for (var k = 0; k < btns.length; k++){
+    btns[k].addEventListener('click', function(){
+      /* Gender and category combine (Mujer + Leggings); tapping an
+         active pill clears it; Todo clears both. */
+      if (this.hasAttribute('data-all')){ activeGender = ''; activeCat = ''; }
+      else if (this.hasAttribute('data-gender')){
+        var g = this.getAttribute('data-gender');
+        activeGender = activeGender === g ? '' : g;
+      } else {
+        var c = this.getAttribute('data-cat');
+        activeCat = activeCat === c ? '' : c;
+      }
+      visibleCount = PAGE_SIZE;
+      try { renderDeptChips(); render(); } catch (e) {}
+    });
+  }
+}
 function renderDeptChips(){
   var host = $('deptChips');
   if (!host) return;
+  if (facetMode){ renderFacetChips(host); return; }
   var keys = Object.keys(deptLabels).sort(function(a,b){
     return String(deptLabels[a]).localeCompare(String(deptLabels[b]), 'es');
   });
@@ -666,7 +783,7 @@ function render(){
   }
   var f0 = currentFilters();
   /* DEFAULT VIEW: carousel merchandising (no search, no dept chip) */
-  if (!f0.q && !f0.dept){ renderCarousels(); return; }
+  if (!f0.q && !f0.dept && !f0.gender && !f0.cat){ renderCarousels(); return; }
   /* SEARCH / FILTER VIEW: flat grid as before */
   var s = $('sort');
   if (s) s.style.display = '';
@@ -808,6 +925,7 @@ function boot(isRetry){
         renderError('No pudimos cargar ' + storeMeta.label + '. Revisa tu conexión e inténtalo de nuevo.', true);
         return;
       }
+      try { buildFacets(); } catch (e) { facetMode = false; }
       renderDeptChips();
       render();
     } catch (e){ renderError('No pudimos mostrar la tienda.', true); }

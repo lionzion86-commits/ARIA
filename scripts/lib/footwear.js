@@ -63,20 +63,22 @@ const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MO
 /* Spanish and English, because the shopper is Peruvian and the
    catalogue is American. Ordered loosely by how often they appear. */
 const FOOTWEAR_TITLE =
-  /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
+  /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|flats|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
 
 /* CLEAT MODELS + HIKERS (2026-10-02, Danny): mirror of index.html.
    Soccer-cleat model names that never say "cleat" (New Balance
-   Tekela/Furon), FG/MG version markers, "tacos", hiker models. */
+   Tekela/Furon), FG/MG version markers, "tacos", hiker models.
+   Bare "hiking" left 2026-10-13 (hiking pants, bags, sunglasses and a
+   keychain were in Zapatos); "flats" (plural) joined FOOTWEAR_TITLE. */
 const CLEAT_HIKER_RX =
-  /\b(tekela|furon|tacos|hikers?|hiking)\b|\b[FM]G\s*V\d|firm[-\s]?ground|multi[-\s]?ground/i;
+  /\b(tekela|furon|tacos|hikers?)\b|\b[FM]G\s*V\d|firm[-\s]?ground|multi[-\s]?ground/i;
 
 /* Every one of these was a real false positive, not a hypothetical.
    "Sock" is a shoe STYLE as well as a garment: "Sock Sneakers" and
    "Sock Boots" are real SSENSE footwear, so the socks veto carries a
    negative lookahead and does not fire when a footwear noun follows. */
 const NOT_FOOTWEAR =
-  /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
+  /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric|style)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector)|tar\s+heels|heels?\s+down|(?:brake|drum|kickstand)\s+shoes?|'?47\s+(?:clean\s+up|mvp|trucker|hitch)|dollhouses?|play\s*houses?|pretend\s+play|building\s+toys?|(?:infant|toddler|baby)\s+(?:and\s+toddler\s+)?toys?)\b/i;
 
 /** Retailers whose whole catalogue is footwear. See signal 2 above. */
 export const FOOTWEAR_RETAILERS = new Set(["footlocker"]);
@@ -87,10 +89,17 @@ export function isFootwearType(type) {
   return FOOTWEAR_TYPE.test(t);
 }
 
+/* A singular "oxford" is a cloth unless something else in the title is a
+   shoe (2026-10-13; mirror of index.html). */
+const OXFORD_CLOTH_RX = /\boxford\b/i;
+const FOOTWEAR_NOUN_NOT_OXFORD =
+  /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords|flats|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
+
 export function isFootwearTitle(title) {
   const t = String(title ?? "");
   if (!t) return false;
   if (NOT_FOOTWEAR.test(t)) return false;
+  if (OXFORD_CLOTH_RX.test(t) && !FOOTWEAR_NOUN_NOT_OXFORD.test(t) && !CLEAT_HIKER_RX.test(t)) return false;
   return FOOTWEAR_TITLE.test(t) || CLEAT_HIKER_RX.test(t);
 }
 

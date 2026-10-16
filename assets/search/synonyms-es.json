@@ -26,7 +26,7 @@
   "clothing": {
     "polos": "t-shirt", "polo": "t-shirt", "camisetas": "t-shirt", "camiseta": "t-shirt", "polera": "t-shirt", "poleras": "t-shirt",
     "camisas": "shirt", "camisa": "shirt", "blusas": "blouse", "blusa": "blouse", "tops": "top",
-    "shorts": "shorts", "short": "shorts", "bermudas": "shorts", "bermuda": "shorts",
+    "shorts": "shorts", "short": "shorts", "shor": "shorts", "bermudas": "shorts", "bermuda": "shorts",
     "pantalones": "pants", "pantalon": "pants", "jeans": "jeans", "jean": "jeans", "vaqueros": "jeans",
     "leggings": "leggings", "licras": "leggings", "joggers": "joggers", "buzos": "joggers",
     "vestidos": "dress", "vestido": "dress", "faldas": "skirt", "falda": "skirt", "polleras": "skirt",
@@ -35,6 +35,8 @@
     "sudaderas": "hoodie", "sudadera": "hoodie", "polerones": "hoodie", "poleron": "hoodie", "canguros": "hoodie", "hoddie": "hoodie",
     "pijamas": "pajamas", "pijama": "pajamas", "ropa de bano": "swimsuit", "bikinis": "bikini", "mallas": "swimsuit",
     "medias": "socks", "calcetines": "socks", "trusas": "underwear", "calzoncillos": "boxer briefs", "brasieres": "bra", "sostenes": "bra",
+    "bragas": "panties", "braga": "panties", "calzones": "panties", "calzon": "panties", "tangas": "thong", "tanga": "thong",
+    "lenceria": "lingerie", "calzoncillo": "boxer briefs", "boxers": "boxer briefs", "calcetin": "socks",
     "ternos": "suit", "terno": "suit", "corbatas": "tie", "corbata": "tie", "chalecos": "vest", "chaleco": "vest",
     "enterizos": "jumpsuit", "enterizo": "jumpsuit", "bodies": "bodysuit", "uniformes": "uniform"
   },

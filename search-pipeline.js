@@ -34,7 +34,8 @@
   'use strict';
 
   var RESERVED = { _readme: 1, phrases: 1, brands: 1, stopwords: 1, intents: 1, senses: 1 };
-  var RESULT_LIMIT = 60;
+  /* Up to 500 kept; search.html draws 60 at a time ("Mostrar más"). */
+  var RESULT_LIMIT = 500;
   var MAX_VARIANTS = 6;
 
   /* Lower case, no accents (ñ -> n), apostrophes joined ("levi's" ->

@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aria Motos — Cascos, llantas y repuestos | Aria Shop</title>
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
 <meta name="description" content="Cascos certificados, llantas, repuestos y accesorios para moto — RevZilla y Dennis Kirk, directo de Estados Unidos a Perú.">
 <style>
   :root{
@@ -189,10 +191,16 @@
       + Math.min(Math.max(r-2000,0),3000)*0.12
       + Math.max(r-5000,0)*0.08;
   }
-  function finalUsd(raw){
+  /* PER-RETAILER MIAMI SALES TAX (2026-10-09). Mirrors the 'exempt' rows of
+     TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
+     the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
+     This page used to stop at the margin, 7% under the SPA's price. */
+  var TAX_EXEMPT = {"walmart": 1};
+  function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+  function finalUsd(raw, retailer){
     var r = Number(raw);
     if (!(r > 0)) return NaN;
-    return Math.round((r + tieredMarginUsd(r)) * 100) / 100;
+    return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;
   }
   function fmtUSD(n){
     if (!isFinite(n)) return 'Precio no disponible';
@@ -228,15 +236,10 @@
 
   /* ---------- card ---------- */
   function cardHTML(p){
-    var price = finalUsd(p.rawPrice);
+    var price = finalUsd(p.rawPrice, p.retailer);
     var pen = fmtPEN(price);
     var badge = '';
-    if (p.onSale && isFinite(p.salePct) && p.salePct > 0) {
-      badge = '<span class="badge">-' + Math.round(p.salePct) + '%</span>';
-    } else if (p.originalPrice > p.rawPrice) {
-      var pct = Math.round((1 - p.rawPrice/p.originalPrice)*100);
-      if (pct > 0) badge = '<span class="badge">-' + pct + '%</span>';
-    }
+    if (p.salePct > 0) badge = '<span class="badge">-' + p.salePct + '%</span>';
     var img = p.image
       ? '<img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;&gt;Sin imagen</span>\'">'
       : '<span class="noimg">Sin imagen</span>';
@@ -310,9 +313,11 @@
           brand: it.brand || '',
           type: it.type || '',
           rawPrice: rawPrice,
-          originalPrice: Number(it.originalPrice) || 0,
-          onSale: !!it.onSale,
-          salePct: Number(it.salePct) || 0,
+          /* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule
+             (sale-rule.js) -- a real was-price, 5-70% off. Dennis Kirk's
+             feed flags onSale with a salePct and no was-price (406
+             items): nothing to cross out, so not a sale. */
+          salePct: window.AriaSale ? window.AriaSale.discountPct(it) : 0,
           image: it.thumbnail || (it.images && it.images[0]) || '',
           url: it.url || '#',
           retailer: retailer
@@ -374,7 +379,7 @@
       }
       // Sort: sale items first, then by price ascending (cheap-first discovery)
       ALL.sort(function(a,b){
-        var as = (a.onSale?1:0), bs = (b.onSale?1:0);
+        var as = (a.salePct > 0 ? 1 : 0), bs = (b.salePct > 0 ? 1 : 0);
         if (as !== bs) return bs - as;
         return a.rawPrice - b.rawPrice;
       });

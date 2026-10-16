@@ -37,9 +37,23 @@ import {
 import { deliveredTotal } from "../../netlify/functions/aria-realtime-tool.js";
 import { STORE_KNOWLEDGE as K_STORES } from "../../netlify/functions/_store-knowledge.js";
 import { readFileSync, readdirSync } from "node:fs";
+import { loadPageAutoGlossarySlice } from "./_page-script.mjs";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+
+/* PERF (2026-10-14): index.html's script ships as an external bundle
+   (build/app-<hash>.js) for browser caching. pageHtml() inlines the
+   bundle back at its tag, so reads of the page below see the page
+   exactly as written. */
+function pageHtml() {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  if (!tag) return html;
+  const bundle = readFileSync(ROOT + tag[1], "utf8");
+  return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
+}
+
 let passed = 0; const failures = [];
 const group = (n) => console.log(`\n  ${n}`);
 const check = (n, fn) => { try { fn(); passed++; console.log(`    ok   ${n}`); }
@@ -111,7 +125,7 @@ check("only tools with a real backend are offered", () => {
      resolves somewhere — in the page's executor or in the function's
      switch. A tool declared with nothing behind it answers `undefined`
      and the model narrates that as fact. */
-  const pageSrc = readFileSync(ROOT + "index.html", "utf8");
+  const pageSrc = pageHtml();
   const fnSrc = readFileSync(ROOT + "netlify/functions/aria-realtime-tool.js", "utf8");
   for (const name of REALTIME_TOOL_NAMES){
     const inPage = pageSrc.includes(`name === '${name}'`);
@@ -380,7 +394,7 @@ check("the freight rate here is the one the shopper is quoted", () => {
   /* $13/kg is the customer-facing rate in index.html. Our internal
      courier cost must never reach a customer surface, and the two
      numbers drifting apart is how that happens. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const m = /const CHARGE_PER_KG_USD = (\d+)/.exec(page);
   assert.ok(m, "CHARGE_PER_KG_USD vanished from index.html");
   const fn = readFileSync(ROOT + "netlify/functions/aria-realtime-tool.js", "utf8");
@@ -412,7 +426,7 @@ check("the page falls back rather than throwing when the module is absent", () =
      kills its whole <script type="module"> silently. The realtime
      bridge is therefore its OWN block, and the classic script checks
      for the object instead of assuming it. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.match(page, /import \* as AriaRealtimeTurn from '\.\/scripts\/lib\/realtime-turn\.js'/,
     "the turn module is not bridged into the page");
   assert.match(page, /const T = window\.AriaRealtimeTurn;\s*\n\s*if \(!T/,
@@ -453,7 +467,7 @@ check("there is no switch, no flag and no way back to the old voice", () => {
 
      What the test asserts now is the absence itself — and absence is
      exactly what rots quietly, so it is checked by name. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.ok(!/function realtimeEnabled\s*\(/.test(page),
     "realtimeEnabled() is back in index.html");
   /* COMMENTS STRIPPED FIRST. The rule is that nothing CALLS it, not
@@ -492,7 +506,7 @@ check("the mute button actually stops transmitting", () => {
      that same value back — two taps, no change, a mute button that
      muted nothing. Nothing caught it because no UI called it yet.
      Lifted and run, both directions. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const from = page.indexOf("function toggleRealtimeMute(){");
   assert.ok(from > 0, "toggleRealtimeMute is gone from index.html");
   const src = page.slice(from, page.indexOf("\n}", from) + 2);
@@ -517,7 +531,7 @@ check("the mute button actually stops transmitting", () => {
 });
 
 check("the call controls exist and only while a call does", () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   /* The brief requires a visible mute and a visible way out. */
   assert.match(page, /id="assistantMuteBtn"[^>]*onclick="toggleRealtimeMute\(\)"/,
     "there is no mute button wired to the mute function");
@@ -671,7 +685,7 @@ check("the page does not keep its own copy of the VAD settings", () => {
   /* Two copies of a config whose shape differs per mode is two
      chances to send a malformed session. The mint hands the settings
      back with the token and the page echoes them. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const mint = readFileSync(ROOT + "netlify/functions/aria-realtime-session.js", "utf8");
   assert.match(mint, /turn_detection: session\.audio\.input\.turn_detection/,
     "the mint does not return the turn detection it configured");
@@ -686,7 +700,7 @@ check("a fallback is never silent again", () => {
   /* 2026-10-06: Danny's feedback described the speech-to-text loop
      because that is what he was talking to, and nothing on screen or
      in the console said so. Every bail-out now names itself. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const start = page.indexOf("async function startRealtimeVoiceOnce()");
   const end = page.indexOf("/** End the session", start);
   const body = page.slice(start, end);
@@ -766,7 +780,7 @@ check("echo cancellation stays pinned on", () => {
   /* Without it her own voice re-enters the microphone, the server's
      VAD calls that "the shopper is talking", and she interrupts
      herself. The car flags must never be able to switch it off. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const i = page.indexOf("mic = await navigator.mediaDevices.getUserMedia(");
   /* Wide enough for the whole constraints object plus its comments;
      a 900-char window silently cut the last line off. */
@@ -790,7 +804,7 @@ check("the old pipeline cannot run during a live call", () => {
      click Danny heard on iOS. All three of its callers could reach it
      mid-call, so one tap on a quick-reply chip put two engines on the
      line at once. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const brain = page.slice(page.indexOf("async function runAssistantBrain(text){"));
   const head = brain.slice(0, brain.indexOf("if (assistantThinking) return;"));
   assert.match(head, /if \(ariaRT\)\{ speakIntoRealtime\(text\); return; \}/,
@@ -817,7 +831,7 @@ check("the old pipeline cannot run during a live call", () => {
 });
 
 check("nothing in the live path records, chunks, or auto-sends", () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   /* A voice-message architecture would need one of these. None exist. */
   assert.ok(!/MediaRecorder/.test(page), "a MediaRecorder appeared — that is chunking");
   const start = page.indexOf("async function startRealtimeVoiceOnce()");
@@ -868,7 +882,7 @@ check("there is no automatic fallback to the old loop, at all", () => {
      second one just starts; four rounds of iPhone testing reported
      "the same thing as before" for exactly that reason. The old loop
      is still there and still works — only a person can choose it. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   /* BRACE-MATCHED: "\n}\n" never matches in a CRLF file. */
   const tAt2 = page.indexOf("async function toggleAriaVoice()");
   let td2 = 0, tEnd2 = -1;
@@ -921,7 +935,7 @@ check("one endpoint, under the name the spec curls", () => {
      answer depended on which URL you asked: the function was healthy
      under its .netlify name while /api/realtime-token 404'd. Same
      handler, both names, nothing to drift. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const toml = readFileSync(ROOT + "netlify.toml", "utf8");
   const alias = readFileSync(ROOT + "netlify/functions/realtime-token.js", "utf8");
   assert.match(page, /const REALTIME_TOKEN_URL = '\/api\/realtime-token'/,
@@ -1089,7 +1103,7 @@ check("no old voice function can make a sound during a live call", () => {
      page and executed twice — once with a live call and once without
      — against stubs that record every sound. Grepping for the guard
      would pass a guard placed after the audio starts. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const bodyOf = (name) => {
     const at = page.indexOf("function " + name + "(");
     assert.ok(at > 0, `${name} is gone from index.html`);
@@ -1177,7 +1191,7 @@ check("the mic-off cue is gone, and so is the request it used to make", () => {
      What survives is the one effect that mattered: releasing the
      speak interlock, so nothing downstream waits on a cue that is
      never coming. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("function speakMicOffCue(){");
   assert.ok(at > 0, "speakMicOffCue is gone entirely — check its callers");
   let d = 0, end = -1;
@@ -1217,7 +1231,7 @@ check("the chat opens quiet when live voice is the mode", () => {
      mute and she says if you need anything hit the mic button. I don't
      need her to do that." Two separate things, both from the old loop:
      the spoken greeting, and the cue it arms on its way out. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("async function greetAssistantStreaming(){");
   assert.ok(at > 0, "greetAssistantStreaming is gone");
   let d = 0, end = -1;
@@ -1326,7 +1340,7 @@ check("the element carries the audio, and the WebAudio graph never does", () => 
 
      So the test is now the rule: the element plays, and nothing is
      routed through WebAudio. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("function buildAudioSink(){");
   assert.ok(at > 0, "buildAudioSink is gone");
   let d = 0, end = -1;
@@ -1473,7 +1487,7 @@ check("the audio context is opened inside the tap, not after the fetch", () => {
   /* iOS only honours resume() while a user gesture is on the stack.
      buildAudioSink runs after `await fetch(token)`, so the context has
      to be opened earlier — from the button's own onclick. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.match(page, /onclick="unlockAudioForMobile\(\);toggleAriaVoice\(\)"/,
     "the mic button no longer unlocks audio in its own gesture");
   const unlock = page.slice(page.indexOf("function unlockAudioForMobile(){"));
@@ -1513,7 +1527,7 @@ check("a dropped call says so, but a tunnel does not end it", () => {
        - "disconnected" is what a tunnel or a lift looks like and
          WebRTC recovers from it, so it must NOT kill the call outright
        - "closed" after our own hang-up is not an error */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  pc.onconnectionstatechange = () => {");
   assert.ok(at > 0, "there is no connection-state monitoring");
   const body = page.slice(at, page.indexOf("\n  pc.oniceconnectionstatechange", at));
@@ -1554,7 +1568,7 @@ check("a track without a stream wrapper is still attached", () => {
   /* Some stacks deliver the track alone. Dropping that event means her
      voice arrives and is never attached to anything — silence on a
      perfectly healthy connection. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  pc.ontrack = (ev) => {");
   assert.ok(at > 0, "pc.ontrack is gone");
   /* Includes the closing brace — slicing up to it left an
@@ -1583,7 +1597,7 @@ check("the audio context is resumed on the retry path too", () => {
   /* The "Intentar de nuevo" button calls startRealtimeVoice() directly
      and never goes through unlockAudioForMobile(), so the gesture-time
      unlock does not happen there. A suspended context is silence. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  const sink = buildAudioSink();");
   const after = page.slice(at, at + 800);
   assert.match(after, /sink\.ctx\.state === 'suspended'\) await sink\.ctx\.resume\(\)/,
@@ -1601,7 +1615,7 @@ check("the greeting is locked to audio, sent once, and retried if dropped", () =
          channel that had not finished opening could never be retried
      Lifted and run, so the request is inspected as the object that
      actually goes down the wire. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("function sendRealtimeGreeting(send, left){");
   assert.ok(at > 0, "sendRealtimeGreeting is gone or changed shape");
   let d = 0, end = -1;
@@ -1739,7 +1753,7 @@ check("she is told to sound Peruvian and to open the call herself", () => {
   assert.match(i, /CUANDO SE CIERRA POR SILENCIO/, "she is not told how to treat an idle hang-up");
 
   /* And the dead per-response constant is gone from the page. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.ok(!/const REALTIME_GREETING_BRIEF =/.test(page),
     "the per-response greeting brief is still defined — two sources of truth");
 });
@@ -1749,7 +1763,7 @@ check("a rejected event is loud, and first audio is logged", () => {
      an `error` event or a response.done with status failed, and both
      were logged at info level next to catalogue chatter. The greeting
      was silent and nothing said why. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const handler = page.slice(page.indexOf("async function onRealtimeEvent(event, turn, send){"));
   const body = handler.slice(0, handler.indexOf("\n/* The four tools"));
 
@@ -1776,7 +1790,7 @@ check("the greeting is requested after the server confirms, with a backstop", ()
   /* It used to go out in the same tick as session.update, racing the
      server's handling of it. Now session.updated triggers it, and a
      timer covers API versions that never emit that event. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const onopen = page.slice(page.indexOf("  dc.onopen = () => {"));
   const body = onopen.slice(0, onopen.indexOf("\n  };"));
   assert.ok(!/response\.create/.test(body), "the greeting still races session.update in onopen");
@@ -1800,7 +1814,7 @@ check("a dropped event is reported, not swallowed", () => {
   /* send() used to return undefined and swallow a closed channel, so a
      greeting that never left looked exactly like a model that chose
      not to speak. That is the whole reason this round happened. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  const send = (obj) => {");
   const body = page.slice(at, page.indexOf("\n  };", at));
   assert.match(body, /readyState !== 'open'/, "send no longer checks the channel is open");
@@ -1819,7 +1833,7 @@ check("the guard covers the window while the call is still connecting", () => {
 
      Left set after a failure this flag would mute the classic voice
      for good, so both outcomes must clear it. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.match(page, /return !!ariaRT \|\| ariaRTOpening === true;/,
     "the guard does not cover the connecting window");
 
@@ -1849,7 +1863,7 @@ check("the guard covers the window while the call is still connecting", () => {
 });
 
 check("the live mic button is a hang-up, not a tap-to-talk", () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("function setRealtimeUi(");
   const body = page.slice(at, page.indexOf("\n}", at));
   /* The old loop can leave the struck-through icon and a "toca para
@@ -1868,7 +1882,7 @@ check("the stale audio handlers are detached when a call starts", () => {
   /* onended from the reply that was playing a moment ago is still
      attached to the shared element. The guards would catch it, but an
      unsubscribed handler cannot fire at all. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   /* SLICED TO THE END OF THE FUNCTION, not to a fixed 2,000
      characters. The byte-count version broke the day a block was
      added above the detach — which says nothing about whether the
@@ -1900,7 +1914,7 @@ check("the $200 tip is measured on the dutiable base, not the shelf price", () =
      $230 exactly when the tip is worth most, and say nothing at $250
      when he is already paying. So Aria never computes it: the tool
      hands her the answer. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  if (name === 'get_cart_total'){");
   assert.ok(at > 0, "the cart tool has no implementation");
   const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
@@ -2046,7 +2060,7 @@ check("a call nobody is on does not stay open", () => {
      (Danny: "I'm scared of the minutes going on forever... if it stays
      on and they could be browsing for 30 minutes, now I got to pay a
      shit ton of money.") */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
 
   /* Four independent exits, because any one can be the one that fires. */
   assert.match(page, /const CALL_IDLE_MS = \d+;/, "there is no silence timeout");
@@ -2210,7 +2224,7 @@ check("the split tip fires only where splitting actually works", () => {
      Above about $400 it STOPS working, because both halves land back
      over $200: at a $500 cart each half is $201 dutiable and the tax
      returns in full. Danny's ceiling is arithmetic, not caution. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  if (name === 'get_cart_total'){");
   const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
   assert.match(body, /applies && !ariaRTSplitTold && cartUsd >= 200 && cartUsd <= 400/,
@@ -2271,7 +2285,7 @@ check("the split is worked out in code, and an impossible one is admitted", () =
      shortcut: the shopper has to physically remove and re-add these
      items, so a division he can follow beats an optimal one he
      cannot. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  if (name === 'get_cart_items'){");
   assert.ok(at > 0, "get_cart_items has no implementation");
   const body = page.slice(at, page.indexOf("\n  if (name === 'get_order_status')", at));
@@ -2351,7 +2365,7 @@ check("a check-in comes before the hang-up, once", () => {
   /* Danny's flow: 20s -> "¿Sigues ahí?", 35s -> she signs off and the
      line closes. The check-in is a check-in, not a warning: two
      words, no countdown, no UI. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.match(page, /const CALL_CHECKIN_MS = 20000;/, "there is no check-in step");
   assert.match(page, /const CALL_IDLE_MS = 35000;/, "the hang-up is not at 35 seconds");
   assert.ok(page.indexOf("CALL_CHECKIN_MS") > 0 &&
@@ -2398,7 +2412,7 @@ await checkAsync("the scoop is relevant by construction, and never invented", as
      the process before the summary printed — so twelve real catches
      reported as zero failures. Same trap as a crashed suite, new
      shape. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  if (name === 'get_sale_scoop'){");
   assert.ok(at > 0, "get_sale_scoop has no implementation");
   const body = page.slice(at, page.indexOf("\n  if (name === 'get_cart_total')", at));
@@ -2576,7 +2590,7 @@ check("the scoop rules keep her a friend and not an advert", () => {
 });
 
 check("the browser never receives the standing API key", () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.ok(!page.includes("OPENAI_API_KEY"), "index.html references OPENAI_API_KEY");
   assert.ok(!/sk-[A-Za-z0-9]{20,}/.test(page), "index.html contains something key-shaped");
   const mint = readFileSync(ROOT + "netlify/functions/aria-realtime-session.js", "utf8");
@@ -2832,7 +2846,7 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
      stalled and a useless one for a shopper who never started: he is
      there, he just does not know what to say. The addendum counts
      that silence as vagueness, and vagueness goes to the sales. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   assert.match(page, /const CALL_OPENING_SILENCE_MS = (\d+);/,
     "there is no opening-silence nudge at all");
   const ms = Number(/const CALL_OPENING_SILENCE_MS = (\d+);/.exec(page)[1]);
@@ -2915,7 +2929,7 @@ await checkAsync("the vague shopper gets real deals, grouped so she can offer a 
      grouping is the point: "ropa hasta 80% en Zumiez y zapatillas 60%
      en Finish Line" is a sentence with a choice in it. A flat top-five
      would come from one store and give him nothing to pick between. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  if (name === 'get_top_sales'){");
   assert.ok(at > 0, "get_top_sales has no implementation");
   const body = page.slice(at, page.indexOf("\n  if (name === 'get_store_info'", at));
@@ -3078,7 +3092,7 @@ check("the rubro she says out loud is a word, not a tile name", () => {
      Beauty", "Aria Fight Club", "Seccion Hombre". Read aloud in a
      sentence about discounts they sound like she is reciting
      navigation. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("const SPOKEN_DEPARTMENT = {");
   assert.ok(at > 0, "there is no spoken-category map");
   const map = page.slice(at, page.indexOf("};", at));
@@ -3129,7 +3143,7 @@ check("every store Aria can recommend is reachable in the page", () => {
      advice lands exactly there. Two further catalogues — the jewelry
      file and the eleven Latino designers — were never addressable
      either, and she recommends those for bikinis. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   /* Bracket-matched rather than regex-matched: these literals run to
      thousands of characters and a lazy quantifier stops at the first
      "]" inside them. */
@@ -3190,7 +3204,7 @@ await checkAsync("the same store question is not asked twice over the wire", asy
      The knowledge is static data, so the answer cannot change inside
      a call, and in a real conversation the same store comes up again
      and again. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("  if (name === 'get_store_info' || name === 'recommend_stores_for'");
   assert.ok(at > 0, "the store tools are not routed anywhere");
   const body = page.slice(at, page.indexOf("\n  if (name === 'get_cart_total')", at));
@@ -3264,7 +3278,7 @@ function liftExecutor(page, toolName, nextTool){
 }
 
 await checkAsync("a part is confirmed only for the exact year we have data for", async () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const body = liftExecutor(page, "lookup_parts_by_vehicle", "check_brand_exists");
 
   const part = (n, extra) => ({ productTitle: n, brand: "Duralast", part_number: n,
@@ -3285,13 +3299,21 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
   };
   const run = (args, warm) => new Function("args", "autoCacheIfWarm", "ariaAutoWarming",
     "titleCaseWords", "logFitmentGap", "name",
-    "return (async () => {" + body + "\n return null; })();")(
+    /* 2026-10-09: the lookup draws its own cards (see
+       aria-auto-year-tests.mjs (d)); card drawing is stubbed here. */
+    "normalizeAutoPartItem", "addAssistantProductCard", "searchTokens", "translatePartQuery", "partsGuardWords", "translatePartQueryToEs",
+    /* Per-call state the lookup keeps (2026-10-07): the year-miss
+       count. A fresh run is a fresh call. */
+    "let ariaRTYearMisses = 0; let ariaRTPartsShown = null; return (async () => {" + body + "\n return null; })();")(
       /* The REAL warming line, read out of the page, so the test is
          checking what a shopper would actually hear. */
       args, async () => (warm === false ? null : cache),
       /const ariaAutoWarming = '([^']+)'/.exec(page)[1],
       (v) => String(v).split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
-      () => {}, "lookup_parts_by_vehicle");
+      () => {}, "lookup_parts_by_vehicle",
+      (src, raw) => ({ title: raw.productTitle, price: raw.price, image: null, brand: raw.brand }),
+      () => {}, (q) => String(q).toLowerCase().split(/\s+/).filter(Boolean), (q) => q, () => new Set(),
+      loadPageAutoGlossarySlice().translatePartQueryToEs);
 
   /* EXACT YEAR: the only thing that earns "confirmed". */
   const exact = await run({ year: 2021, make: "toyota", model: "hilux", part_type: "pastillas de freno" });
@@ -3345,7 +3367,11 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
                       { year: 2019, make: "toyota", part_type: "pastillas de freno" },
                       { year: 2019, make: "toyota", model: "hilux" }]){
     const r = await run(args);
-    assert.ok(r.unavailable, "a search ran with a missing field: " + JSON.stringify(args));
+    /* A missing YEAR is asked once more (need_year) -- still a
+       question, not a search; after a second miss the lookup searches
+       unconfirmed, which aria-auto-year-tests.mjs covers. */
+    assert.ok(r.unavailable || r.need_year, "a search ran with a missing field: " + JSON.stringify(args));
+    assert.ok(!r.parts, "parts came back for a search with a missing field: " + JSON.stringify(args));
   }
 
   /* THE 22MB CACHE. The first parts question must answer in words
@@ -3356,7 +3382,7 @@ await checkAsync("a part is confirmed only for the exact year we have data for",
 });
 
 await checkAsync("a part number names the part, not the car", async () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const body = liftExecutor(page, "lookup_part_by_number", "lookup_parts_by_vehicle");
   const rec = { productTitle: "Duralast Ceramic Brake Pads D2076", brand: "Duralast",
                 part_number: "D2076", oem_part_number: null, part_type: "Brake Pads",
@@ -3475,7 +3501,7 @@ await checkAsync("the VIN is read, not guessed at", async () => {
 });
 
 await checkAsync("a brand we do not carry is answered, not denied", async () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const body = liftExecutor(page, "check_brand_exists", "get_store_info");
 
   const pool = [
@@ -3557,7 +3583,7 @@ check("every brand we offer as a substitute is one we actually carry", () => {
      Oakley, Yeti, Dyson, Lululemon, Fear of God, Essentials), and two
      "brands" I offered — Revolve and Old Navy — are stores, which
      never appear in an item's brand field. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("const BRAND_NEIGHBOURS = {");
   assert.ok(at > 0, "the substitute map is gone");
   const map = new Function(page.slice(at, page.indexOf("};", at) + 2) + "; return BRAND_NEIGHBOURS;")();
@@ -3591,7 +3617,7 @@ check("every brand we offer as a substitute is one we actually carry", () => {
 });
 
 check("the call cannot run for more than five minutes", () => {
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const m = /const CALL_MAX_MS = (\d+) \* 60000;/.exec(page);
   assert.ok(m, "the hard cap on call length is gone");
   assert.ok(Number(m[1]) <= 5,
@@ -3641,7 +3667,7 @@ await checkAsync("the page acts on every action the reducer emits", async () => 
      worth nothing if the handler never calls sink.open().
 
      So the real dc.onmessage action loop is lifted out and driven. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("    for (const action of actions){");
   assert.ok(at > 0, "the action loop is gone from dc.onmessage");
   let d = 0, end = -1;
@@ -3690,7 +3716,7 @@ await checkAsync("the page acts on every action the reducer emits", async () => 
      by reasoning from a description; the tape is what replaces that
      with an account. If it stops recording, the next round is another
      guess. */
-  const page2 = readFileSync(ROOT + "index.html", "utf8");
+  const page2 = pageHtml();
   const dcAt = page2.indexOf("    const { state, actions } = T.voiceTurnReducer(turn, event);");
   assert.ok(dcAt > 0, "the event handler moved");
   const handler = page2.slice(dcAt, dcAt + 400);
@@ -3706,7 +3732,7 @@ check("the diagnostic can say whether the audio path is silenced", () => {
      and an element muted — which is a HEALTHY path, because the graph
      carries the sound and the element steps back. The gain sat at
      zero and nothing said so. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("    state(){");
   assert.ok(at > 0, "the sink no longer reports its state");
   const line = page.slice(at, page.indexOf("attach(stream)", at));
@@ -3723,7 +3749,7 @@ await checkAsync("the call starts when the chat opens, inside the gesture", asyn
      the stack, and toggleAssistant runs inside the tap that opened the
      panel. Unlocking anywhere else gives a call that connects and is
      silent — which this file has a history of. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("function startRealtimeOnOpen(){");
   assert.ok(at > 0, "nothing starts the call when the chat opens");
   let d = 0, end = -1;
@@ -4001,7 +4027,7 @@ await checkAsync("two taps during the handshake open one call, not two", async (
      sitting right there: open the panel, tap a beat later, and the
      tap passed the guard. Two sessions, two microphones, two audio
      elements, two voices. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const at = page.indexOf("function startRealtimeVoice(){");
   assert.ok(at > 0, "the idempotent wrapper is gone");
   let d = 0, end = -1;
@@ -4067,7 +4093,7 @@ check("the token is minted on intent, once, and spent once", () => {
      On a cold Netlify function that is most of the wait between
      tapping the orb and hearing her, and none of it depends on the
      tap. It is minted on pointerdown now. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
   const tStart = page.indexOf("const TOKEN_MIN_LIFE_MS");
   const tEnd = page.indexOf("function ariaWarmOnIntent(){");
   assert.ok(tStart > 0 && tEnd > tStart, "the token warmer is gone");
@@ -4194,7 +4220,7 @@ check("a budget in soles is never searched as dollars", () => {
      "quinientos soles", and she searched up to 500 DOLLARS — then
      said "hasta quinientos dólares" out loud. At 3.44 that is 1,720
      soles, more than three times what he had. */
-  const page = readFileSync(ROOT + "index.html", "utf8");
+  const page = pageHtml();
 
   /* ---- the converter, driven ---- */
   const at = page.indexOf("function budgetToUsd(args){");

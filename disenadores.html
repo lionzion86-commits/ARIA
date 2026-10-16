@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Diseñadores Latinos — Aria Shop</title>
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
 <meta name="description" content="La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y más — comprados en Estados Unidos, entregados en Perú.">
 <style>
 /* ============ DISEÑADORES LATINOS — standalone page ============
@@ -439,14 +441,18 @@ function ingest(data){
     items.forEach(function(it){
       try{
         var price = ariaPrice(it.price);
-        var oRaw = (it.originalPrice != null) ? ariaPrice(it.originalPrice) : null;
+        /* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule
+           (sale-rule.js) -- a real was-price, compareAt included, 5-70%
+           off; a bare onSale flag is not a sale. */
+        var onSaleNow = !!(window.AriaSale && window.AriaSale.isOnSale(it));
+        var oRaw = onSaleNow ? ariaPrice(window.AriaSale.originalPrice(it)) : null;
         var norm = {
           name: it.name || 'Producto sin título',
           brand: it.brand || '',
           brandKey: designerKeyFor(it),
           price: price,
           originalPrice: (oRaw != null && price != null && oRaw > price) ? oRaw : null,
-          onSale: !!it.onSale,
+          onSale: onSaleNow,
           image: safeUrl(it.image),
           url: safeUrl(it.url),
           ptype: productTypeOf(it)
