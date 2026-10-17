@@ -271,7 +271,43 @@ await check("payment success confirms the order; an abandoned page closes it", (
   assert.equal(unpaid.status, "processing", "a delayed method is not money yet");
 });
 
-const MIN_CHECKS = 16;
+await check("stripe-check: the right account, its own webhook, every event, the secret installed", async () => {
+  const { stripeCheckReport, REQUIRED_WEBHOOK_EVENTS } = await import(ROOT + "netlify/functions/stripe-check.js");
+  const host = "deploy-preview-367--ariashopperu.netlify.app";
+  const hook = { url: `https://${host}/.netlify/functions/stripe-webhook`, status: "enabled", livemode: false, enabled_events: REQUIRED_WEBHOOK_EVENTS };
+  const base = { host, keyMode: "test", webhookSecretSet: true, account: { id: "acct_1URJryD00oB1thiK" }, endpoints: [hook], expect: "acct_1URJryD00oB1thiK" };
+  assert.equal(stripeCheckReport(base).ready, true);
+  /* The sandbox account's key is not the new account. */
+  const wrong = stripeCheckReport({ ...base, account: { id: "acct_1URJsADnA3YvCFDC" } });
+  assert.equal(wrong.accountMatchesExpected, false);
+  assert.equal(wrong.ready, false);
+  /* A webhook for another URL, a missing event, a live-mode hook or no secret is not ready. */
+  assert.equal(stripeCheckReport({ ...base, endpoints: [{ ...hook, url: "https://ariashop.pe/.netlify/functions/stripe-webhook" }] }).ready, false);
+  const partial = stripeCheckReport({ ...base, endpoints: [{ ...hook, enabled_events: REQUIRED_WEBHOOK_EVENTS.slice(1) }] });
+  assert.deepEqual(partial.webhook.missingEvents, ["checkout.session.completed"]);
+  assert.equal(stripeCheckReport({ ...base, endpoints: [{ ...hook, livemode: true }] }).ready, false);
+  assert.equal(stripeCheckReport({ ...base, webhookSecretSet: false }).ready, false);
+  /* The charge: PEN, and the céntimos equal the order's soles total. */
+  const order = { pricePenCharged: 439.81 };
+  assert.equal(stripeCheckReport({ ...base, order, session: { id: "cs_1", currency: "pen", amount_total: 43981 } }).charge.penAndExact, true);
+  assert.equal(stripeCheckReport({ ...base, order, session: { id: "cs_1", currency: "pen", amount_total: 43980 } }).charge.penAndExact, false);
+  assert.equal(stripeCheckReport({ ...base, order, session: { id: "cs_1", currency: "usd", amount_total: 43981 } }).charge.penAndExact, false);
+});
+
+await check("stripe-check never answers on production and never prints a secret", async () => {
+  const { handler } = await import(ROOT + "netlify/functions/stripe-check.js");
+  const prod = await handler({ httpMethod: "GET", headers: { host: "ariashop.pe" }, queryStringParameters: {} });
+  assert.equal(prod.statusCode, 404);
+  const saved = process.env.STRIPE_SECRET_KEY;
+  delete process.env.STRIPE_SECRET_KEY;
+  const none = await handler({ httpMethod: "GET", headers: { host: "deploy-preview-367--ariashopperu.netlify.app" }, queryStringParameters: {} });
+  assert.equal(JSON.parse(none.body).ready, false);
+  if (saved !== undefined) process.env.STRIPE_SECRET_KEY = saved;
+  const src = readFileSync(ROOT + "netlify/functions/stripe-check.js", "utf8");
+  assert.ok(!/report[^;]*\b(?:key|secret)\s*:\s*(?:key|process\.env)/i.test(src), "the report carries a key");
+});
+
+const MIN_CHECKS = 18;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
