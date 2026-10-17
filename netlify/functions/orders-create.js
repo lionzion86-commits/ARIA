@@ -80,6 +80,12 @@ const clean = (v, max) => String(v ?? "").trim().slice(0, max);
  * half-filled recipient — it is no recipient, and recording it as one
  * would put a name on the manifest that the courier cannot verify.
  */
+/** A DNI (8 digits) or carné de extranjería (alphanumeric, up to 12). */
+function normalizeDoc(raw) {
+  const v = String(raw ?? "").replace(/\s+/g, "").toUpperCase();
+  return /^[A-Z0-9]{8,12}$/.test(v) ? v : null;
+}
+
 function normalizeRecipient(raw) {
   if (!raw || typeof raw !== "object") return null;
   const recipient = {
@@ -159,6 +165,16 @@ export async function handler(event) {
        marks the fields required, but a form can be bypassed, and a box
        that reaches Lima addressed to a name with no document is a failed
        delivery we have already paid the freight on. */
+    /* THE BUYER'S DOCUMENT (2026-10-17, #367). Courier and customs need
+       a name, a DNI/CE and an address on every order; the page asks for
+       it, and a charged order without one is refused before anything is
+       written. */
+    const buyerDoc = normalizeDoc(body.customer && body.customer.idNumber);
+    if (charging && !buyerDoc) {
+      return { statusCode: 400, headers, body: JSON.stringify({
+        error: "Falta tu documento (DNI o carné de extranjería). Lo necesitamos para la aduana y la entrega; no se cobró nada.",
+      }) };
+    }
     const recipientAsked = body.recipient && typeof body.recipient === "object";
     const recipient = normalizeRecipient(body.recipient);
     if (recipientAsked && !recipient) {
@@ -334,7 +350,7 @@ export async function handler(event) {
       amountCapturedPen: null,
       amountRefundedPen: null,
       amountMismatchPen: null,
-      customer: body.customer || {},
+      customer: { ...(body.customer || {}), ...(buyerDoc ? { idNumber: buyerDoc } : {}) },
       shipping: body.shipping || {},
       /* Per-line dutiable base, resolved server-side: the set-aside
          bucket below is auditable line by line against the courier's

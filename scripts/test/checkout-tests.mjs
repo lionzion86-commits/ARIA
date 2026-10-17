@@ -166,7 +166,7 @@ function orderBody(extra = {}) {
   const goods = product.priceUsd;
   const freight = 26;
   return {
-    customer: { name: "Danny", email: "danny@ariashop.pe" },
+    customer: { name: "Danny", email: "danny@ariashop.pe", idNumber: "45678912" },
     shipping: { destCity: "Lima" },
     items: [product],
     quote: { total_usd: goods + freight, flete_usd: freight, source: "avi" },
@@ -307,7 +307,23 @@ await check("stripe-check never answers on production and never prints a secret"
   assert.ok(!/report[^;]*\b(?:key|secret)\s*:\s*(?:key|process\.env)/i.test(src), "the report carries a key");
 });
 
-const MIN_CHECKS = 18;
+await check("a charged order carries the buyer's DNI, and one without it charges nothing", async () => {
+  process.env.STRIPE_SECRET_KEY = "sk_test_x";
+  const calls = stripeCalls.length;
+  const none = await post(orderBody({ customer: { name: "Ana", email: "a@b.pe" }, shownTotalPen: expectedPen() }));
+  assert.equal(none.status, 400);
+  assert.match(none.data.error, /documento/);
+  assert.equal(stripeCalls.length, calls, "a session was opened without a document");
+  const ok = await post(orderBody({ customer: { name: "Ana", email: "a@b.pe", idNumber: " 4567 8912 " }, shownTotalPen: expectedPen() }));
+  assert.equal(ok.status, 200);
+  const rec = await globalThis.__blobs.get("orders").get(ok.data.orderId);
+  assert.equal(JSON.parse(rec).customer.idNumber, "45678912");
+  const page = readFileSync(ROOT + "checkout.html", "utf8");
+  assert.match(page, /id="custDoc"[^>]*required/, "the checkout form does not ask for the buyer's document");
+  assert.match(page, /idNumber: document\.getElementById\('custDoc'\)/, "the document is not sent");
+});
+
+const MIN_CHECKS = 19;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

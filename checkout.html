@@ -372,6 +372,16 @@
               <input id="custPhone" name="custPhone" type="tel" required autocomplete="tel" placeholder="+51 987 654 321"
                 class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring tabular" style="border-color:var(--line)">
             </div>
+            <!-- THE BUYER'S DOCUMENT (2026-10-17, #367 test order). The
+                 order record has to carry name, DNI and address for the
+                 courier and customs; only an alternate recipient was ever
+                 asked for one. -->
+            <div>
+              <label for="custDoc" class="block text-[12px] font-bold mb-1.5">Documento (DNI / CE)</label>
+              <input id="custDoc" name="custDoc" type="text" required autocomplete="off" maxlength="12" pattern="[A-Za-z0-9]{8,12}"
+                title="DNI de 8 dígitos o carné de extranjería" placeholder="45678912"
+                class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring tabular" style="border-color:var(--line)">
+            </div>
           </div>
         </section>
         </div>
@@ -1818,7 +1828,8 @@ function cardImgAttrs(url, sizes){
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer: { name, email, phone: document.getElementById('custPhone').value.trim() },
+          customer: { name, email, phone: document.getElementById('custPhone').value.trim(),
+            idNumber: document.getElementById('custDoc').value.replace(/\s+/g, '').trim() },
           shipping: {
             addrLine: document.getElementById('addrLine').value.trim(),
             addrDistrict: document.getElementById('addrDistrict').value.trim(),
