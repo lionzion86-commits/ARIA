@@ -1,7 +1,18 @@
-// Where an order is CREATED. Not where it is paid — nothing here takes
-// money, and as of 2026-09-22 nothing in this repo does: there is no card
-// form and no gateway call. Payment arrives later and separately, through
-// stripe-webhook.js, which is the only writer of paymentStatus.
+// Where an order is CREATED, and -- since 2026-10-08 -- where its Stripe
+// Checkout Session is opened. It still never marks anything paid: the
+// customer pays on Stripe's page, and stripe-webhook.js, after verifying
+// Stripe's signature, is the only writer of paymentStatus.
+//
+// STRIPE CHECKOUT (2026-10-08 brief). With STRIPE_SECRET_KEY set, the
+// order is priced HERE, not in the browser (_checkout-model.js): every
+// line repriced from price-index.json, freight floored at the resolved
+// weight, the exchange rate fetched server-side, the express fee and the
+// small-order fee recomputed -- and charged in SOLES, the figure on the
+// card. If the soles total the page showed disagrees with the server's,
+// nothing is created and the page is told the new figure first. Without
+// a key, production keeps its old behaviour (an order record, no charge)
+// and a preview refuses, so a test checkout can never look paid when it
+// was not.
 //
 // This function enforces the daily order cap / kill switch ("launch cash
 // control") and persists an order record that orders-remaining.js's
@@ -24,6 +35,28 @@ import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE, dutiableBase
    browser sends what it showed, but the charge is decided here from
    destCity — a tampered request must not be able to zero it. */
 import { provinciaFeePen as provinciaFeeFor } from "../../couriers.js";
+import { CHARGE_PER_KG } from "../../weight-data.js";
+import { resolveCartWeights } from "./_weight-resolve.js";
+import { loadPriceIndex } from "./_price-index.js";
+import { createCheckoutSession } from "./_stripe-api.js";
+import {
+  repriceCart, goodsTotals, freightFloorUsd, expressFeePen, shippingModeOf, SHIPPING_MODES,
+  totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm,
+} from "./_checkout-model.js";
+
+/* The production hosts. Anything else (deploy previews, branch deploys,
+   localhost) is a test environment and may only hold a test key. */
+const PRODUCTION_HOSTS = new Set(["ariashop.pe", "www.ariashop.pe"]);
+
+/* Today's venta rate from the site's own endpoint (SUNAT, CDN-cached),
+   the same source the page reads -- never a number the browser sent. */
+async function serverFxVenta(origin) {
+  try {
+    const res = await fetch(`${origin}/.netlify/functions/exchange-rate`, { signal: AbortSignal.timeout(4000) });
+    const data = await res.json();
+    return typeof data.venta === "number" && data.venta > 2 && data.venta < 6 ? data.venta : null;
+  } catch { return null; }
+}
 
 const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
 const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.";
@@ -77,11 +110,28 @@ export async function handler(event) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "JSON inválido" }) };
   }
 
-  const items = Array.isArray(body.items) ? body.items : [];
+  const sentItems = Array.isArray(body.items) ? body.items : [];
   const quote = body.quote || {};
-  if (!items.length || typeof quote.total_usd !== "number") {
+  if (!sentItems.length || typeof quote.total_usd !== "number") {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Pedido inválido" }) };
   }
+
+  /* WHO MAY CHARGE, decided before anything is written. */
+  const host = String(event.headers?.host || event.headers?.Host || "").toLowerCase();
+  const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host || "ariashop.pe"}`;
+  const isProduction = PRODUCTION_HOSTS.has(host);
+  const stripeKey = process.env.STRIPE_SECRET_KEY || "";
+  const keyCheck = stripeKeyUsable(stripeKey, isProduction ? "production" : "preview");
+  const charging = keyCheck.ok;
+  if (!charging && !isProduction) {
+    return { statusCode: 503, headers, body: JSON.stringify({
+      error: `El pago de prueba no está configurado en este entorno (${keyCheck.reason}). No se creó ningún pedido.`,
+    }) };
+  }
+
+  /* EVERY LINE AT THE PRICE THE CARD SHOWED (see _checkout-model.js). */
+  const { lines: items, adjustments: priceAdjustments, unverified: unverifiedLines } =
+    charging ? repriceCart(sentItems, loadPriceIndex()) : { lines: sentItems, adjustments: [], unverified: [] };
 
   try {
     const settingsStore = getStore("settings");
@@ -121,6 +171,23 @@ export async function handler(event) {
       };
     }
 
+    /* Server-side numbers when charging: the exchange rate from the
+       site's own endpoint, freight never under the resolved weight. */
+    const fxRateVenta = charging
+      ? await serverFxVenta(origin)
+      : (typeof body.fxRateVenta === "number" ? body.fxRateVenta : null);
+    if (charging && fxRateVenta == null) {
+      return { statusCode: 503, headers, body: JSON.stringify({
+        error: "No pudimos obtener el tipo de cambio de hoy. Intenta de nuevo en un momento; no se cobró nada.",
+      }) };
+    }
+    const resolvedKg = charging ? resolveCartWeights(items).totalKg : null;
+    const freightUsdQuoted = charging
+      ? freightFloorUsd(quote.flete_usd, resolvedKg, CHARGE_PER_KG)
+      : (typeof quote.flete_usd === "number" ? quote.flete_usd : 0);
+    const shippingMode = shippingModeOf(body.shippingMode);
+    const expressFeePenCharged = expressFeePen(shippingMode, fxRateVenta);
+
     const priceUsdTotal = items.reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
     /* DUTIABLE BASE (2026-09-27): the import-tax threshold and estimate
        are computed on what the goods really cost (raw x per-retailer
@@ -133,8 +200,7 @@ export async function handler(event) {
       const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
       return sum + (Number.isFinite(d) ? d : 0) * (Number(it.qty) || 1);
     }, 0);
-    const weightKgTotal = items.reduce((sum, it) => sum + (Number(it.weightKg) || 0) * (Number(it.qty) || 1), 0);
-    const fxRateVenta = typeof body.fxRateVenta === "number" ? body.fxRateVenta : null;
+    const weightKgTotal = resolvedKg ?? items.reduce((sum, it) => sum + (Number(it.weightKg) || 0) * (Number(it.qty) || 1), 0);
     /* SMALL-ORDER FEE. The browser sends what it showed, but the server
        decides what is charged: the fee is recomputed here, so a tampered
        request cannot zero it and a stale page cannot charge one that no
@@ -147,7 +213,6 @@ export async function handler(event) {
        The freight component comes off the same quote the customer was
        shown; duty is deliberately excluded (see weight-data.js). */
     const productsPen = fxRateVenta ? Math.round(priceUsdTotal * fxRateVenta * 100) / 100 : null;
-    const freightUsdQuoted = typeof quote.flete_usd === "number" ? quote.flete_usd : 0;
     const orderBasePen = productsPen == null
       ? null
       : Math.round((priceUsdTotal + freightUsdQuoted) * fxRateVenta * 100) / 100;
@@ -186,14 +251,35 @@ export async function handler(event) {
     const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd) * 100) / 100;
     const taxEstimatedPen = fxRateVenta ? Math.round(taxEstimatedUsd * fxRateVenta * 100) / 100 : null;
     const totalPen = fxRateVenta
-      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged) * 100) / 100
+      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged + expressFeePenCharged) * 100) / 100
       : null;
+
+    /* THE PRICE YOU SEE IS THE PRICE YOU PAY. The page sends the soles
+       total it showed; if the server's differs (a stale cached exchange
+       rate, a repriced line) nothing is created and nothing is charged --
+       the page shows the new figure and the customer decides. */
+    if (charging && !totalsAgree(totalPen, body.shownTotalPen)) {
+      return { statusCode: 409, headers, body: JSON.stringify({
+        error: "El total cambió desde que abriste el checkout. Revisa el nuevo total antes de pagar.",
+        totalChanged: true, totalPen, fxVenta: fxRateVenta, priceAdjustments,
+        /* What the page needs to redraw the summary on the server's
+           figures, so the next tap charges exactly what is shown. */
+        freightUsd: freightUsdQuoted, expressFeePen: expressFeePenCharged,
+      }) };
+    }
     /* SALDO ARIA. The browser asks for an amount; the server decides it.
        The balance is re-read here and capped against both the real
        balance and the order total, so a tampered request can only ever
        spend money the customer actually has (see applicableCreditPen).
        Only a signed-in customer has a wallet at all. */
     const buyerEmail = await getSessionEmail(event);
+    /* INFLUENCER ATTRIBUTION: the cookie ref.js set from a ?ref= link
+       (30 days, most recent link wins); the body's copy only when the
+       browser blocked the cookie. */
+    const cookieRef = refFromCookie(event.headers?.cookie || event.headers?.Cookie);
+    const bodyRef = normalizeRef(body.ref);
+    const attribution = cookieRef ? { ...cookieRef, source: "cookie" }
+      : bodyRef ? { ref: bodyRef, setAt: null, source: "page" } : null;
     let walletAppliedPen = 0;
     let walletBalanceBeforePen = null;
     if (buyerEmail && totalPen != null && Number(body.applyWalletPen) > 0) {
@@ -265,7 +351,24 @@ export async function handler(event) {
       walletBalanceBeforePen,
       buyerEmail: buyerEmail || null,
       fxRateUsed: fxRateVenta,
-      freteChargedUsd: typeof quote.flete_usd === "number" ? quote.flete_usd : null,
+      freteChargedUsd: freightUsdQuoted,
+      freteQuotedUsd: typeof quote.flete_usd === "number" ? quote.flete_usd : null,
+      /* "Recibir todo junto" (free) or "Recibir cada paquete ni bien
+         llegue" ($8, in soles at today's rate). */
+      shippingMode,
+      shippingModeLabel: SHIPPING_MODES[shippingMode].label,
+      expressFeePen: expressFeePenCharged,
+      /* ?ref= attribution. Commission (Ale: 25% of margin) is computed on
+         the PRE-DISCOUNT figures -- preDiscountGoodsUsd and orderTotalPen
+         (before saldo) -- always. */
+      attribution,
+      preDiscountGoodsUsd: goodsTotals(items).preDiscountGoodsUsd,
+      /* What the server changed or could not vouch for. Unverified lines
+         are charged at the page's price and must be checked by a human
+         before anything is bought for this order. */
+      priceAdjustments,
+      unverifiedLines,
+      needsPriceReview: unverifiedLines.length > 0,
       // Itemised on the record, not folded into the total, so the margin
       // view can tell handling revenue apart from freight and product.
       smallOrderFeePen: smallOrderFeePenCharged,
@@ -335,12 +438,41 @@ export async function handler(event) {
       }
     }
 
+    /* THE CHARGE. Stripe's hosted page takes the card; the order stays
+       pending_payment until stripe-webhook.js hears it succeeded. */
+    let checkoutUrl = null;
+    if (charging && chargedPen > 0) {
+      const saved = (await ordersStore.get(orderId, { type: "json" })) || order;
+      try {
+        const session = await createCheckoutSession(stripeSessionForm(saved, { origin }), stripeKey, { idempotencyKey: `checkout-${orderId}` });
+        checkoutUrl = session.url;
+        await ordersStore.setJSON(orderId, {
+          ...saved, paymentProvider: "stripe", stripeSessionId: session.id,
+          stripeLivemode: session.livemode, stripeSessionExpiresAt: session.expiresAt,
+        });
+      } catch (err) {
+        /* No session, no charge: the order is closed and any saldo that
+           was reserved for it goes straight back. */
+        if (walletAppliedPen > 0) {
+          try {
+            await postTransaction({ email: buyerEmail, kind: "credit", amountPen: walletAppliedPen,
+              reason: `Devuelto: el pago del pedido ${orderId} no se pudo iniciar`, by: "order", orderId });
+          } catch { /* ops reconciles from the order record */ }
+        }
+        await ordersStore.setJSON(orderId, { ...saved, status: "payment_not_started", paymentError: err.message });
+        return { statusCode: 502, headers, body: JSON.stringify({
+          error: "No pudimos abrir el pago. No se cobró nada; intenta de nuevo en un momento.", detail: err.message,
+        }) };
+      }
+    }
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         ok: true, orderId, totalUsd: quote.total_usd, totalPen,
         walletAppliedPen, chargedPen, walletBalancePen: walletBalanceAfterPen,
+        checkoutUrl, expressFeePen: expressFeePenCharged, priceAdjustments,
       }),
     };
   } catch (error) {

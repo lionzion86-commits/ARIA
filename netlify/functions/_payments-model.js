@@ -111,9 +111,27 @@ export function applyPaymentEvent(existing, ev) {
 
   switch (ev.type) {
     case "payment_intent.succeeded":
-    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
       next.status = "succeeded";
       next.paidAt = ev.occurredAt;
+      break;
+    case "checkout.session.completed":
+      /* Completed means the customer finished Stripe's page. For a card
+         that is the money; for a delayed method it is only a promise,
+         which payment_intent.succeeded or async_payment_* settles. A
+         later "completed" never undoes a refund or a dispute. */
+      if (!["refunded", "partially_refunded", "disputed", "lost_dispute"].includes(prior.status)) {
+        next.status = ev.paymentStatus === "unpaid" ? "processing" : "succeeded";
+        if (next.status === "succeeded") next.paidAt = next.paidAt || ev.occurredAt;
+      }
+      break;
+    case "checkout.session.async_payment_failed":
+      next.status = "failed";
+      break;
+    case "checkout.session.expired":
+      /* The customer left Stripe's page without paying. Never overrides a
+         payment that already arrived. */
+      if (prior.status !== "succeeded") next.status = "expired";
       break;
     case "payment_intent.payment_failed":
       next.status = "failed";
@@ -186,8 +204,14 @@ export function orderPatchForPayment(order, payment) {
   /* FULFILMENT FOLLOWS PAYMENT, NOT THE OTHER WAY ROUND. An order sits at
      pending_payment until money arrives; it never walks backwards out of
      a status ops set by hand (shipped, delivered, cancelled). */
-  if (paid && (!order.status || order.status === "pending_payment")) {
+  if (paid && (!order.status || order.status === "pending_payment" || order.status === "payment_expired")) {
     patch.status = "confirmed";
+  }
+  /* An abandoned or failed Stripe page closes the order (the cart is
+     still in the customer's browser and account, so they can pay again
+     with a fresh order). Only from pending_payment. */
+  if ((payment.status === "expired" || payment.status === "failed") && order.status === "pending_payment") {
+    patch.status = "payment_expired";
   }
   return patch;
 }
@@ -202,6 +226,8 @@ export function paymentStatusFor(payment) {
     case "lost_dispute": return "lost_dispute";
     case "failed": return "failed";
     case "canceled": return "canceled";
+    case "expired": return "expired";
+    case "processing": return "processing";
     default: return "unknown";
   }
 }

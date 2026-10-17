@@ -53,6 +53,7 @@
    ------------------------------------------------------------ */
 
 import { getStore, connectLambda } from "@netlify/blobs";
+import { postTransaction } from "./_wallet.js";
 import {
   applyPaymentEvent, eventAlreadyApplied, markEventApplied,
   orderPatchForPayment, readPayment, writePayment,
@@ -138,6 +139,19 @@ export async function handler(event) {
       } else {
         const patch = orderPatchForPayment(order, payment);
         if (patch) {
+          /* SALDO RESERVED FOR AN UNPAID ORDER GOES BACK (2026-10-08).
+             orders-create.js debits saldo when it opens the Stripe page;
+             if that page expires or the payment fails, the order closes
+             and the customer gets the saldo back -- once, keyed on the
+             order so a retried event cannot credit it twice. */
+          if (patch.status === "payment_expired" && Number(order.walletAppliedPen) > 0
+              && order.buyerEmail && !order.walletReturnedAt) {
+            await postTransaction({
+              email: order.buyerEmail, kind: "credit", amountPen: Number(order.walletAppliedPen),
+              reason: `Devuelto: el pago del pedido ${order.orderId} no se completó`, by: "order", orderId: order.orderId,
+            });
+            patch.walletReturnedAt = new Date().toISOString();
+          }
           await ordersStore.setJSON(payment.orderId, { ...order, ...patch });
           orderUpdated = true;
         }

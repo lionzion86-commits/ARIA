@@ -26,6 +26,8 @@
     "mcp": "node mcp-server.js",
     "test:search-brief": "node scripts/test/search-brief-tests.mjs",
     "build:search-index": "node scripts/build-search-index.mjs",
+    "test:checkout": "node scripts/test/checkout-tests.mjs",
+    "build:price-index": "node scripts/build-price-index.mjs",
     "test:visual": "node scripts/test/visual-search-tests.mjs"
   }
 }
