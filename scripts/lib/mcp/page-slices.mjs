@@ -242,9 +242,18 @@ export function pricingSlice() {
           title: "Nike Club Fleece Hoodie",
           price: 60,
           image: "https://slimages.macysassets.com/is/image/MCY/products/2/optimized/37875082_fpx.tif?wid=600&qlt=85&fmt=jpeg",
+          /* Sizes on purpose too (#411): truthfulSizes sorts at call
+             time, so a sizeless probe leaves sortSizes unresolved and
+             every sized product then throws at build time. */
+          // Numeric: ranked against the letter ladder first, then sorted
+          // as numbers -- so both of the sorter's tables get resolved.
+          sizes: ["10", "8.5", "9"],
         },
         { retailer: "macys", department: "clothing" },
       );
+      if (JSON.stringify(Array.from(priced.sizes || [])) !== '["8.5","9","10"]') {
+        throw new Error("normalizeLiveItem no longer carries the retailer's sizes in natural order");
+      }
       if (!priced.image || !/macysassets/.test(priced.image)) {
         throw new Error("the Macy's image path did not survive normalisation");
       }

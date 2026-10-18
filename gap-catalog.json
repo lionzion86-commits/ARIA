@@ -31,12 +31,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "0-6 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -47,7 +48,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=500303032"
       },
       {
        "name": "Baby Organic Cotton Print Footed One-Piece",
@@ -69,10 +72,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-9 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -81,7 +87,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=913861012"
       },
       {
        "name": "Baby First Favorites Organic Cotton One-Piece",
@@ -104,10 +112,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-9 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -116,7 +127,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=1181371002"
       },
       {
        "name": "Baby Organic Cotton Print Footed One-Piece",
@@ -139,10 +152,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-9 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -151,7 +167,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=913861012"
       },
       {
        "name": "Baby First Favorites TinyRib Footed One-Piece",
@@ -175,10 +193,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-9 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -187,7 +208,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=894572002"
       },
       {
        "name": "Baby First Favorites TinyRib Stripe Footed One-Piece",
@@ -210,10 +233,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-9 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -222,7 +248,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=903652002"
       },
       {
        "name": "Baby First Favorites Organic Cotton Footed One-Piece",
@@ -245,10 +273,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-9 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -257,7 +288,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=913867032"
       },
       {
        "name": "Baby Organic Cotton Floral Footed One-Piece",
@@ -280,10 +313,13 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-9 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -292,7 +328,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898607002"
       },
       {
        "name": "Baby & Toddler Pull-On Slim Jeans",
@@ -313,13 +351,24 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "6-12 m"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=438939002"
       },
       {
        "name": "Gap × Disney Toddler Snow White Tulle Dress",
@@ -342,15 +391,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3-6 m",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
@@ -364,7 +413,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=673850002"
       },
       {
        "name": "Gap × Disney Toddler Cinderella Tulle Dress",
@@ -388,15 +439,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3-6 m",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
@@ -410,7 +461,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=744489002"
       },
       {
        "name": "Gap × Disney Toddler Rapunzel Tulle Dress",
@@ -434,15 +487,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3-6 m",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
@@ -456,7 +509,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=744496002"
       },
       {
        "name": "Gap × Disney Toddler Minnie Mouse Tulle Dress",
@@ -480,15 +535,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3-6 m",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
@@ -502,7 +557,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=744474002"
       },
       {
        "name": "Gap × Disney Toddler Tiana Tulle Dress",
@@ -525,15 +582,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3-6 m",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
@@ -547,7 +604,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=502489002"
       },
       {
        "name": "Gap × Disney Toddler Elsa Tulle Dress",
@@ -571,15 +630,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3-6 m",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
@@ -593,7 +652,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=502462002"
       },
       {
        "name": "Gap × Disney Toddler Belle Tulle Dress",
@@ -616,15 +677,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3-6 m",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
@@ -638,7 +699,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=502460002"
       },
       {
        "name": "Baby & Toddler Skinny Jeans",
@@ -661,15 +724,22 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "2T",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "2T",
         "6-12 m"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=732947002"
       },
       {
        "name": "Gap × Disney Baby & Toddler Minnie Mouse Icon Denim Jacket",
@@ -692,15 +762,24 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "0-3 m",
         "3-6 m"
        ],
        "specWeightKg": 0.99,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=519661002"
       },
       {
        "name": "Kids Skinny Jeans",
@@ -725,11 +804,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -739,7 +823,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=701077002"
       },
       {
        "name": "Kids Skinny Jeans",
@@ -766,11 +852,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -780,7 +871,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=701077002"
       },
       {
        "name": "Kids Skinny Jeans",
@@ -805,11 +898,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -819,7 +917,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=701077002"
       },
       {
        "name": "Kids Relaxed Straight Jeans",
@@ -845,12 +945,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -861,7 +965,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=523322002"
       },
       {
        "name": "Kids Corduroy Relaxed Straight Pants",
@@ -887,12 +993,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -903,7 +1013,9 @@
         "XXL"
        ],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912127012"
       },
       {
        "name": "Kids Relaxed Straight Jeans",
@@ -928,12 +1040,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -944,7 +1060,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=523322002"
       },
       {
        "name": "Baby & Toddler Icon Denim Jacket",
@@ -967,13 +1085,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -985,7 +1106,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.99,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=779351002"
       },
       {
        "name": "Kids Mid Rise Girlfriend Jeans",
@@ -1011,13 +1134,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1029,7 +1155,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=725709002"
       },
       {
        "name": "Kids Mid Rise Girlfriend Jeans",
@@ -1055,13 +1183,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1073,7 +1204,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=725709002"
       },
       {
        "name": "Kids Mid Rise Girlfriend Jeans",
@@ -1098,13 +1231,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1116,7 +1252,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=725709002"
       },
       {
        "name": "Kids Mid Rise Everyday Super Skinny Jeans",
@@ -1142,13 +1280,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1160,7 +1301,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=725677002"
       },
       {
        "name": "Kids Mid Rise Skinny Jeans",
@@ -1185,13 +1328,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1203,7 +1349,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=526042002"
       },
       {
        "name": "Kids Mid Rise Super Skinny Jeans",
@@ -1230,13 +1378,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1248,7 +1399,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=725663002"
       },
       {
        "name": "Kids Slim Jeans",
@@ -1273,12 +1426,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1289,7 +1445,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=827568002"
       },
       {
        "name": "Kids Slim Jeans",
@@ -1314,12 +1472,15 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1330,7 +1491,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=827568002"
       },
       {
        "name": "Baby & Toddler Mix & Match Rib T-Shirt",
@@ -1352,14 +1515,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "0-6 M",
+        "6-12 M",
+        "12-18 M",
+        "12-24 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1372,7 +1537,9 @@
         "6T"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=888496002"
       },
       {
        "name": "Baby & Toddler Pique Polo Shirt",
@@ -1394,11 +1561,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1408,7 +1578,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=888281042"
       },
       {
        "name": "Kids Mid Rise Pull-On Jeggings",
@@ -1434,9 +1606,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "L",
-        "XL",
-        "XXL"
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16"
        ],
        "availableSizes": [
         "L",
@@ -1444,7 +1621,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=679600002"
       },
       {
        "name": "Kids Mid Rise Pull-On Jeggings",
@@ -1470,9 +1649,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "L",
-        "XL",
-        "XXL"
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16"
        ],
        "availableSizes": [
         "L",
@@ -1480,7 +1664,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=679600002"
       },
       {
        "name": "Baby & Toddler Oxford Shirt",
@@ -1503,14 +1689,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1523,7 +1709,9 @@
         "6T"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=529837002"
       },
       {
        "name": "Baby & Toddler UltraSoft Pull-On Baggy Jeans",
@@ -1546,14 +1734,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1566,7 +1754,9 @@
         "6T"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=523402002"
       },
       {
        "name": "Baby & Toddler Corduroy Pull-On Baggy Pants",
@@ -1589,14 +1779,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1609,7 +1799,9 @@
         "6T"
        ],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912565022"
       },
       {
        "name": "Baby & Toddler Corduroy Horseshoe Pants",
@@ -1632,14 +1824,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1652,7 +1844,9 @@
         "6T"
        ],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909641002"
       },
       {
        "name": "Baby & Toddler Corduroy Eyelet-Hem Horseshoe Pants",
@@ -1675,14 +1869,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1695,7 +1889,9 @@
         "6T"
        ],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909643002"
       },
       {
        "name": "Baby & Toddler Oversized T-Shirt",
@@ -1720,14 +1916,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1740,7 +1936,9 @@
         "6T"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=724338022"
       },
       {
        "name": "Baby & Toddler Boxy T-Shirt",
@@ -1762,14 +1960,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -1782,7 +1980,9 @@
         "6T"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=877779062"
       },
       {
        "name": "Kids Loose Overalls",
@@ -1808,12 +2008,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -1824,7 +2024,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=454352002"
       },
       {
        "name": "Baby First Favorites Crossover Outfit Set",
@@ -1847,15 +2049,25 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "3-6 m",
-        "6-9 m"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS"
        ],
        "availableSizes": [
         "3-6 m",
         "6-9 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=766304002"
       },
       {
        "name": "Kids High Rise Denim Skirt",
@@ -1880,13 +2092,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XS",
@@ -1898,7 +2113,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=649793002"
       },
       {
        "name": "Kids Uniform Relaxed Joggers",
@@ -1923,18 +2140,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "l(10)",
-        "m(8)",
-        "s(6/7)",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl (14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -1951,7 +2162,9 @@
         "xxl (14/16)"
        ],
        "specWeightKg": 0.61,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=756728012"
       },
       {
        "name": "Kids Denim Pinafore Dress",
@@ -1976,12 +2189,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -1992,7 +2205,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=601034002"
       },
       {
        "name": "Kids Rip & Repair Slim Jeans",
@@ -2017,13 +2232,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XXL"
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=891286002"
       },
       {
        "name": "Baby & Toddler Mix & Match Pull-On Skort",
@@ -2045,14 +2270,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2065,7 +2290,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=882230002"
       },
       {
        "name": "Baby & Toddler Mix & Match Pull-On Skort",
@@ -2087,14 +2314,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2107,7 +2334,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=882230002"
       },
       {
        "name": "Baby & Toddler Mix & Match Print Pull-On Skort",
@@ -2129,14 +2358,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2149,7 +2378,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897594012"
       },
       {
        "name": "Baby & Toddler Mix & Match Pull-On Skort",
@@ -2172,14 +2403,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2192,7 +2423,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=882230002"
       },
       {
        "name": "Kids Uniform Pleated Khaki Skort",
@@ -2215,10 +2448,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -2227,7 +2466,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=886952012"
       },
       {
        "name": "Gap × Disney Baby Denim Overalls",
@@ -2252,11 +2493,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2266,7 +2507,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=816521002"
       },
       {
        "name": "Baby Denim Overalls",
@@ -2290,11 +2533,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2304,7 +2547,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=796827002"
       },
       {
        "name": "Baby Denim Stripe Brannan Bear Overalls",
@@ -2328,11 +2573,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2342,7 +2587,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.17,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=913725002"
       },
       {
        "name": "Baby Embroidered Apple Ruffle Overalls",
@@ -2365,11 +2612,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2379,7 +2626,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909089002"
       },
       {
        "name": "Baby Denim Overalls",
@@ -2402,11 +2651,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2416,7 +2665,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=796827002"
       },
       {
        "name": "Baby Floral Print Overalls",
@@ -2440,11 +2691,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2454,7 +2705,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909088002"
       },
       {
        "name": "Baby Denim Workwear Overalls",
@@ -2477,11 +2730,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2491,7 +2744,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909073002"
       },
       {
        "name": "Baby Denim Overalls",
@@ -2515,11 +2770,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2529,7 +2784,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=796827002"
       },
       {
        "name": "Baby & Toddler Heart Pocket Horseshoe Overalls",
@@ -2552,14 +2809,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2572,7 +2829,9 @@
         "6T"
        ],
        "specWeightKg": 1.21,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=781642002"
       },
       {
        "name": "Baby & Toddler Denim Flare Jeggings",
@@ -2594,14 +2853,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2614,7 +2873,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=748109002"
       },
       {
        "name": "Baby & Toddler Denim Flare Jeggings",
@@ -2636,14 +2897,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2656,7 +2917,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=748109002"
       },
       {
        "name": "Kids Graphic T-Shirt",
@@ -2680,12 +2943,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -2696,7 +2959,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=911652032"
       },
       {
        "name": "Kids Relaxed Graphic T-Shirt",
@@ -2720,12 +2985,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -2736,7 +3001,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=894383052"
       },
       {
        "name": "Kids Graphic T-Shirt",
@@ -2760,12 +3027,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -2776,7 +3043,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=911652032"
       },
       {
        "name": "Baby First Favorites JerseySoft Footed One-Piece",
@@ -2799,13 +3068,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-9 m"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "6-9 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=866476012"
       },
       {
        "name": "Baby & Toddler Mix & Match Twirl Dress",
@@ -2828,12 +3105,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "5T",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -2844,7 +3123,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881981032"
       },
       {
        "name": "Baby Brannan Bear Patch Pull-On Jeans",
@@ -2868,11 +3149,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2882,7 +3163,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=913724002"
       },
       {
        "name": "Kids Bubble Dress",
@@ -2906,13 +3189,20 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=841837012"
       },
       {
        "name": "Baby Denim Shortalls",
@@ -2935,11 +3225,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2949,7 +3239,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883395002"
       },
       {
        "name": "Baby Gingham Denim Bear Pocket Shortalls",
@@ -2972,11 +3264,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -2986,7 +3278,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=896878002"
       },
       {
        "name": "Kids Relaxed Straight Jeans",
@@ -3011,11 +3305,16 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -3025,7 +3324,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=523322002"
       },
       {
        "name": "Baby French Terry Shorty One-Piece",
@@ -3048,13 +3349,19 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=896876002"
       },
       {
        "name": "Kids Foldover Skort",
@@ -3078,18 +3385,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "l(10)",
-        "m(8)",
-        "s(6/7)",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -3106,7 +3407,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881692062"
       },
       {
        "name": "Kids Jersey Square-Neck Dress",
@@ -3130,13 +3433,20 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=890716032"
       },
       {
        "name": "Kids Modern Mixed Media Dress",
@@ -3160,15 +3470,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
         "S"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=866548002"
       },
       {
        "name": "Baby Denim Stripe Bear Pocket Bubble Overalls",
@@ -3192,13 +3508,19 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "18-24 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "18-24 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=880546002"
       },
       {
        "name": "Baby & Toddler Brannan Bear Slip-On Sneakers",
@@ -3263,9 +3585,10 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -3273,7 +3596,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883358012"
       },
       {
        "name": "Baby First Favorites Organic Cotton Shorty One-Piece",
@@ -3296,9 +3621,10 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -3306,7 +3632,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=896862002"
       },
       {
        "name": "Baby First Favorites TinyRib Shorty One-Piece",
@@ -3329,9 +3657,10 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-9 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -3339,7 +3668,9 @@
         "up to 7 lbs"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898609012"
       },
       {
        "name": "Kids Mesh Ruffle Cap-Sleeve Dress",
@@ -3363,13 +3694,20 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=869865002"
       },
       {
        "name": "Kids Active Skort Outfit Set",
@@ -3394,10 +3732,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XL",
-        "XXL",
-        "xl(12)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XL",
@@ -3406,7 +3746,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=894416022"
       },
       {
        "name": "Baby & Toddler Mixed Media Apron Dress",
@@ -3430,9 +3772,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "3T",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -3440,7 +3787,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897675022"
       },
       {
        "name": "Kids Denim Baggy Cargo Joggers",
@@ -3465,13 +3814,20 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS"
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
        ],
        "availableSizes": [
         "XS"
        ],
        "specWeightKg": 0.61,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=814104002"
       },
       {
        "name": "Baby & Toddler Cotton Gauze Romper",
@@ -3494,13 +3850,22 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "6-12 m"
        ],
        "specWeightKg": 0.5,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=801092012"
       },
       {
        "name": "Kids Ruched Dress",
@@ -3524,15 +3889,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
         "S"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=895056022"
       },
       {
        "name": "Baby & Toddler Eyelet Gingham Dress",
@@ -3555,15 +3926,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "5T",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "5T",
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881823002"
       },
       {
        "name": "Baby & Toddler Eyelet Gingham Dress",
@@ -3586,15 +3965,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "5T",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "5T",
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881823002"
       },
       {
        "name": "Baby & Toddler Ruffle-Waist Sweatshirt Dress",
@@ -3617,13 +4004,22 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "6-12 m"
        ],
        "specWeightKg": 0.61,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=841026022"
       },
       {
        "name": "Baby & Toddler Tulle Sweatshirt Dress",
@@ -3646,13 +4042,22 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "6-12 m"
        ],
        "specWeightKg": 0.61,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=845268002"
       },
       {
        "name": "Baby & Toddler Double Ruffle Skort",
@@ -3676,15 +4081,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881735002"
       },
       {
        "name": "Kids Easy Skort",
@@ -3709,15 +4122,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XXL",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XXL",
         "xxl(14/16)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898122012"
       },
       {
        "name": "Kids Low Rise Baggy Jeans",
@@ -3743,12 +4162,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -3759,7 +4180,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909761002"
       },
       {
        "name": "Kids Low Rise Baggy Jeans",
@@ -3786,12 +4209,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -3802,7 +4227,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909761002"
       },
       {
        "name": "Baby Cotton Gauze Denim Sailor Bloomers",
@@ -3825,15 +4252,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "12-18 m",
         "18-24 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=896875002"
       },
       {
        "name": "Kids Athletic Tank Dress",
@@ -3857,12 +4290,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -3873,7 +4306,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=894414002"
       },
       {
        "name": "Baby & Toddler Tulle Skirt",
@@ -3895,13 +4330,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "6-12 m"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=833158012"
       },
       {
        "name": "Baby Denim Heart Dress",
@@ -3924,13 +4367,19 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883279002"
       },
       {
        "name": "Baby Denim Strawberry Skirtall Set",
@@ -3953,13 +4402,19 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883239002"
       },
       {
        "name": "Baby & Toddler Mix & Match Twirl Tank Dress",
@@ -3983,9 +4438,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "5T",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -3993,7 +4453,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897595002"
       },
       {
        "name": "Kids Twill Easy Pants",
@@ -4018,18 +4480,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "l(10)",
-        "m(8)",
-        "s(6/7)",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl (14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4046,7 +4502,9 @@
         "xxl (14/16)"
        ],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=835240002"
       },
       {
        "name": "Kids Mixed Media Tiered Tank Dress",
@@ -4071,13 +4529,20 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=894421012"
       },
       {
        "name": "Kids Jersey Tank Dress",
@@ -4101,9 +4566,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4111,7 +4579,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=894418012"
       },
       {
        "name": "Baby & Toddler Bear Pocket Denim Skirtall",
@@ -4135,15 +4605,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
         "6-12 m"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897732002"
       },
       {
        "name": "Baby & Toddler Denim Ruffle Skirtall",
@@ -4166,15 +4644,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
         "6-12 m"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881885002"
       },
       {
        "name": "Kids Pointelle Tank Top",
@@ -4198,12 +4684,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4214,7 +4700,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897346052"
       },
       {
        "name": "Kids Flutter-Sleeve Lace-Trim Dress",
@@ -4238,9 +4726,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4248,7 +4739,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898124012"
       },
       {
        "name": "Kids Denim Ruffle Skirt",
@@ -4272,15 +4765,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XL",
-        "XXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XL",
         "XXL"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=890607002"
       },
       {
        "name": "Kids Denim Ruffle Mini Skirt",
@@ -4304,15 +4805,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XL",
-        "XXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "XL",
         "XXL"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898874002"
       },
       {
        "name": "Kids Pleated Tennis Dress",
@@ -4337,10 +4846,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "M",
@@ -4349,7 +4860,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881690002"
       },
       {
        "name": "Baby Embroidered Floral Denim Overalls",
@@ -4373,11 +4886,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -4387,7 +4900,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883695002"
       },
       {
        "name": "Baby Winnie The Pooh Denim Overalls",
@@ -4412,11 +4927,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -4426,7 +4941,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883667002"
       },
       {
        "name": "Kids Wicked Tinsel Eyelash Sweater Skirt",
@@ -4451,14 +4968,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "l(10)",
-        "m(8)",
-        "xl(12)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "M",
@@ -4471,7 +4986,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=851830012"
       },
       {
        "name": "Baby & Toddler VintageSoft Sweatshirt Dress",
@@ -4495,13 +5012,22 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "6-12 m"
        ],
        "specWeightKg": 0.61,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=816629012"
       },
       {
        "name": "Baby First Favorites JerseySoft Tank Shorty One-Piece",
@@ -4523,15 +5049,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "up to 7 lbs"
+        "Up To 7lb",
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
         "up to 7 lbs"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883274002"
       },
       {
        "name": "Kids Towel Terry Skort Outfit Set",
@@ -4555,18 +5087,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "l(10)",
-        "m(8)",
-        "s(6/7)",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4583,7 +5109,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881691032"
       },
       {
        "name": "Kids Denim Stripe Baggy Overalls",
@@ -4608,10 +5136,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "s(6/7)",
-        "xs(4/5)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4620,7 +5150,9 @@
         "xs(4/5)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881312002"
       },
       {
        "name": "Baby Denim Ruffle Collar Dress",
@@ -4643,9 +5175,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -4653,7 +5187,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=845635002"
       },
       {
        "name": "Baby & Toddler Tiered Lace-Trim Dress",
@@ -4677,9 +5213,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -4687,7 +5228,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897662022"
       },
       {
        "name": "Kids 100% Cotton Tiered Crochet Skort",
@@ -4712,18 +5255,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "l(10)",
-        "m(8)",
-        "s(6/7)",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4740,7 +5277,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.17,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=892783002"
       },
       {
        "name": "Kids Eyelet Foldover Skort",
@@ -4765,10 +5304,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "s(6/7)",
-        "xs(4/5)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4777,7 +5318,9 @@
         "xs(4/5)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881687002"
       },
       {
        "name": "Baby & Toddler Heart Pocket Denim Skirt",
@@ -4800,14 +5343,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -4820,7 +5363,9 @@
         "6T"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881740002"
       },
       {
        "name": "Baby Brannan Bear Pocket Pull-On Denim Shorts",
@@ -4843,11 +5388,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -4857,7 +5402,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.39,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883269002"
       },
       {
        "name": "Kids Active Skort",
@@ -4881,14 +5428,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "XL",
-        "XXL",
-        "s(6/7)",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -4901,7 +5446,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898887012"
       },
       {
        "name": "Kids Linen-Cotton Relaxed Easy Pants",
@@ -4926,13 +5473,20 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS"
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
        ],
        "availableSizes": [
         "XS"
        ],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=887334012"
       },
       {
        "name": "Kids Baggy Jeans",
@@ -4959,11 +5513,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -4973,7 +5530,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909742002"
       },
       {
        "name": "Kids Baggy Jeans",
@@ -5000,11 +5559,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -5014,7 +5576,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909742002"
       },
       {
        "name": "Kids Baggy Jeans",
@@ -5040,11 +5604,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -5054,7 +5621,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909742002"
       },
       {
        "name": "Kids Baggy Jeans",
@@ -5080,11 +5649,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -5094,7 +5666,9 @@
         "XXL"
        ],
        "specWeightKg": 0.77,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909742002"
       },
       {
        "name": "Kids CashSoft Zip Sweater Hoodie",
@@ -5119,12 +5693,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -5135,7 +5709,9 @@
         "XXL"
        ],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=908929032"
       },
       {
        "name": "Baby & Toddler Cotton Gauze Sunflower Dress",
@@ -5159,13 +5735,22 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897717002"
       },
       {
        "name": "Baby Collared Plaid Dress",
@@ -5189,13 +5774,19 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898625002"
       },
       {
        "name": "Kids Easy Butterfly Skort",
@@ -5219,12 +5810,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "XL",
-        "XXL",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -5235,7 +5826,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881693002"
       },
       {
        "name": "Kids Denim Pleated Mini Skirt",
@@ -5259,12 +5852,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -5275,7 +5870,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912192002"
       },
       {
        "name": "Kids Denim Pleated Mini Skirt",
@@ -5299,12 +5896,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -5315,7 +5914,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912192002"
       },
       {
        "name": "Kids Denim Pleated Mini Skirt",
@@ -5339,12 +5940,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -5355,7 +5958,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912192002"
       },
       {
        "name": "Kids Pleated Denim Mini Skirt",
@@ -5379,12 +5984,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "XXXL"
+        "6",
+        "7",
+        "8",
+        "10",
+        "12",
+        "14",
+        "16",
+        "18"
        ],
        "availableSizes": [
         "S",
@@ -5395,7 +6002,9 @@
         "XXXL"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912187002"
       },
       {
        "name": "Baby Lobster Sweater Shorty One-Piece",
@@ -5417,13 +6026,19 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898605002"
       },
       {
        "name": "Kids Rib Bow Dress",
@@ -5448,9 +6063,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "S",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "S",
@@ -5458,7 +6076,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=841813002"
       },
       {
        "name": "Kids Denim Zip Skirtall",
@@ -5482,10 +6102,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -5494,7 +6116,9 @@
         "L"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=905929002"
       },
       {
        "name": "Kids Floral Denim Skirtall",
@@ -5519,10 +6143,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -5531,7 +6157,9 @@
         "L"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898859002"
       },
       {
        "name": "Kids Barrel Overalls",
@@ -5557,12 +6185,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "M",
-        "L",
-        "l(10)",
-        "m(8)",
-        "xs(4/5)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -5573,7 +6201,9 @@
         "xs(4/5)"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881216002"
       },
       {
        "name": "Baby Sherpa-Lined Cable-Knit Cardigan Sweater",
@@ -5595,11 +6225,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -5609,7 +6239,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=908946012"
       },
       {
        "name": "Baby & Toddler Mixed Media Dress",
@@ -5631,14 +6263,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -5651,7 +6283,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=1185504002"
       },
       {
        "name": "Baby & Toddler Mixed Media Tulle Dress",
@@ -5674,14 +6308,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -5694,7 +6328,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912115002"
       },
       {
        "name": "Baby & Toddler Denim Heart Pocket Shift Dress",
@@ -5717,14 +6353,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -5737,7 +6373,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912145002"
       },
       {
        "name": "Baby & Toddler Leopard Corduroy Jumper Dress",
@@ -5760,14 +6398,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -5780,7 +6418,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912170002"
       },
       {
        "name": "Baby & Toddler Floral Jumper Dress",
@@ -5803,14 +6443,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -5823,7 +6463,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=909642002"
       },
       {
        "name": "Baby & Toddler Denim Jumper Dress",
@@ -5846,14 +6488,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -5866,7 +6508,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912180002"
       },
       {
        "name": "Kids Denim Drop-Waist Dress",
@@ -5890,9 +6534,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -5900,7 +6547,9 @@
         "M"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881657002"
       },
       {
        "name": "Kids Polka Dot Drop-Waist Dress",
@@ -5924,9 +6573,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -5934,7 +6586,9 @@
         "M"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881682012"
       },
       {
        "name": "Baby & Toddler Embroidered Flutter-Sleeve Dress",
@@ -5957,14 +6611,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -5977,7 +6631,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912169002"
       },
       {
        "name": "Kids Mixed Media Drop-Waist Dress",
@@ -6002,12 +6658,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6018,7 +6674,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912229012"
       },
       {
        "name": "Kids Puff-Sleeve Dress",
@@ -6043,12 +6701,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6059,7 +6717,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912167002"
       },
       {
        "name": "Kids Denim Puff-Sleeve Dress",
@@ -6084,12 +6744,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6100,7 +6760,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912154002"
       },
       {
        "name": "Baby & Toddler French Terry Collared Print Dress",
@@ -6123,15 +6785,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912111012"
       },
       {
        "name": "Baby & Toddler Mix & Match Twirl Dress",
@@ -6154,14 +6824,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -6174,7 +6844,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881981032"
       },
       {
        "name": "Baby Smocked Denim Dress",
@@ -6196,11 +6868,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -6210,7 +6882,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=883616002"
       },
       {
        "name": "Baby Denim Tiered Dress",
@@ -6232,11 +6906,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -6246,7 +6920,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=880388002"
       },
       {
        "name": "Baby Embroidered Denim Pocket Dress",
@@ -6269,11 +6945,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -6283,7 +6959,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898626002"
       },
       {
        "name": "Baby & Toddler Pointelle Rib Dress",
@@ -6306,14 +6984,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -6326,7 +7004,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=1183537012"
       },
       {
        "name": "Baby & Toddler Sailor Tank Dress",
@@ -6350,13 +7030,22 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897730002"
       },
       {
        "name": "Baby & Toddler Eyelet Shell Dress",
@@ -6380,15 +7069,23 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "18-24 m",
-        "6-12 m"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "18-24 m",
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=897725002"
       },
       {
        "name": "Baby Cotton Gauze Denim Bubble Bodysuit",
@@ -6411,11 +7108,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -6425,7 +7122,9 @@
         "6-12 m"
        ],
        "specWeightKg": 1.1,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=898608002"
       },
       {
        "name": "Baby & Toddler Cake Sweater Dress",
@@ -6449,14 +7148,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -6469,7 +7168,9 @@
         "6T"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=1183438002"
       },
       {
        "name": "Kids 100% Cotton Cable-Knit Sweater Skort",
@@ -6494,18 +7195,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL",
-        "l(10)",
-        "m(8)",
-        "s(6/7)",
-        "xl(12)",
-        "xs(4/5)",
-        "xxl(14/16)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6522,7 +7217,9 @@
         "xxl(14/16)"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=905928032"
       },
       {
        "name": "Baby & Toddler Tulle & Sequin Heart Skirt",
@@ -6546,13 +7243,20 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m"
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS"
        ],
        "availableSizes": [
         "12-18 m"
        ],
        "specWeightKg": 0.33,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=845437002"
       },
       {
        "name": "Baby & Toddler Denim Pleated Skort",
@@ -6575,14 +7279,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -6595,7 +7299,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=912236002"
       },
       {
        "name": "Baby & Toddler Denim Bow Skort",
@@ -6617,14 +7323,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -6637,7 +7343,9 @@
         "6T"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=911294002"
       },
       {
        "name": "Baby Embroidered Denim Ruffle One-Piece",
@@ -6660,11 +7368,11 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "0-3 m",
-        "12-18 m",
-        "18-24 m",
-        "3-6 m",
-        "6-12 m"
+        "0-3 M",
+        "3-6 M",
+        "6-12 M",
+        "12-18 M",
+        "18-24 M"
        ],
        "availableSizes": [
         "0-3 m",
@@ -6674,7 +7382,9 @@
         "6-12 m"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=913734002"
       },
       {
        "name": "Kids Denim Tiered Skort",
@@ -6699,15 +7409,21 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "xs(4/5)"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
         "xs(4/5)"
        ],
        "specWeightKg": 0.17,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=881686002"
       },
       {
        "name": "Kids Off-Shoulder Rib Sweater Top",
@@ -6731,12 +7447,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6747,7 +7463,9 @@
         "XXL"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=1181309022"
       },
       {
        "name": "Kids 100% Cotton Relaxed Varsity Sweater Jacket",
@@ -6773,11 +7491,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6787,7 +7506,9 @@
         "XL"
        ],
        "specWeightKg": 0.99,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=911624002"
       },
       {
        "name": "Kids CashSoft Cardigan",
@@ -6812,12 +7533,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6828,7 +7549,9 @@
         "XXL"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=908927012"
       },
       {
        "name": "Baby & Toddler VintageSoft Varsity Shawl Cardigan",
@@ -6850,14 +7573,14 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "12-18 m",
-        "18-24 m",
-        "2T",
-        "3T",
-        "4T",
-        "5T",
-        "6-12 m",
-        "6T"
+        "6-12 M",
+        "12-18 M",
+        "18-24 M",
+        "2 YRS",
+        "3 YRS",
+        "4 YRS",
+        "5 YRS",
+        "6 YRS"
        ],
        "availableSizes": [
         "12-18 m",
@@ -6870,7 +7593,9 @@
         "6T"
        ],
        "specWeightKg": 0.55,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=915321002"
       },
       {
        "name": "Kids Wool-Blend Peacoat",
@@ -6895,12 +7620,12 @@
        "descriptionSource": "generated",
        "description_en": null,
        "sizes": [
-        "XS",
-        "S",
-        "M",
-        "L",
-        "XL",
-        "XXL"
+        "XS (4/5)",
+        "S (6/7)",
+        "M (8)",
+        "L (10)",
+        "XL (12)",
+        "XXL (14/16)"
        ],
        "availableSizes": [
         "XS",
@@ -6911,7 +7636,9 @@
         "XXL"
        ],
        "specWeightKg": 0.44,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "live",
+       "sizesSource": "https://www.gap.com/browse/product.do?pid=1181430002"
       }
      ]
     },

@@ -8545,12 +8545,11 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
       if (code.includes(dead)) throw new Error(`${dead} is back — a second list of size words will drift from the first`);
     }
     // And the two places that used them read the shared list now.
-    if (!/needsSize \|\| \(name && APPAREL_KEYWORDS\.test\(name\)\)/.test(code)) {
+    if (!/needsSize \|\| \(name && APPAREL_KEYWORDS\.test\(name\) && !isAccessoryTitle\(name\)\)/.test(code)) {
       throw new Error("the PDP's size picker no longer reads the shared list");
     }
-    if (!/sizeCategory === 'shoe' : SHOE_KEYWORDS\.test\(title\)/.test(code)) {
-      throw new Error("standardSizeOptions no longer reads the shared shoe list");
-    }
+    /* standardSizeOptions() is gone (#411): the template grid it built was
+       an invented list. See scripts/test/variant-truth-tests.mjs. */
   });
 
   check("Spanish names the same garments", () => {
@@ -8583,13 +8582,13 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
     if (!/if \(wantsSize && sizeWrap\.hidden\)\{/.test(fn)) {
       throw new Error("a garment with no picker is no longer stopped");
     }
-    if (!/revealStandardSizePicker\(p\.name, p\.sizeCategory\)/.test(fn)) {
-      throw new Error("the shopper is refused without being given the picker they were missing");
+    /* #411: the refusal no longer builds a "reference" picker -- that list
+       was invented. A garment with no verified sizes says so and stops. */
+    if (/revealStandardSizePicker/.test(fn)) {
+      throw new Error("the buy path invents a size picker again");
     }
-    // The recovery picker must carry the same honest note as the page's.
-    const rev = src.slice(src.indexOf("function revealStandardSizePicker(title, sizeCategory){"), src.indexOf("function addToCartFromProduct(){"));
-    if (!/No pudimos confirmar las tallas exactas/.test(rev)) {
-      throw new Error("the recovered picker drops the disclaimer that these are reference sizes");
+    if (!/Todav[ií]a estamos confirmando las tallas de este producto con la tienda/.test(fn)) {
+      throw new Error("a garment with no verified sizes is refused without saying why");
     }
   });
 

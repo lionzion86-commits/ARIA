@@ -51,7 +51,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "scrape",
+       "sizesSource": "https://bananarepublic.gap.com/browse/product.do?pid=443576032"
       },
       {
        "name": "Minimalist Cotton Baby T-Shirt",
@@ -94,7 +96,9 @@
         "XXL"
        ],
        "specWeightKg": 0.28,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "sizesTier": "scrape",
+       "sizesSource": "https://bananarepublic.gap.com/browse/product.do?pid=872945022"
       }
      ]
     },

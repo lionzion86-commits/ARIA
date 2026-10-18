@@ -276,7 +276,9 @@ function normalizeItem(it, retailerKey){
       image: String(img || ""), url: String(it.url || it.link || ""),
       retailer: String(it.retailer || retailerKey || ""),
       description: String(it.description || it.description_en || ""),
-      sizes: Array.isArray(it.availableSizes) ? it.availableSizes : [],
+      /* `sizes` is where the variant-truth merge writes (#411);
+         availableSizes is the older scrape field. Never invented. */
+      sizes: truthfulSizes(Array.isArray(it.sizes) && it.sizes.length ? it.sizes : it.availableSizes),
       originalPrice: Number(it.originalPrice) || 0,
       /* The site's one sale rule (sale-rule.js) judged on the raw item,
          whatever field the store keeps its was-price in (compareAt,
@@ -491,7 +493,7 @@ async function buildRelatedRails(p, storePool){
    localStorage key/shape checkout.html reads ('aria_cart_v1').
 
    Ported from index.html (APPAREL_KEYWORDS, needsSizeSelection,
-   sizeCategoryFor, standardSizeOptions, cart merge). The full
+   sizeCategoryFor, truthfulSizes, cart merge). The full
    title-based weight estimator lives only in the SPA; this page marks
    its line honestly estimated (weightEstimated: true) and checkout
    re-resolves it server side.
@@ -515,16 +517,10 @@ var SHOE_DEFAULT_RETAILERS = {footlocker: 1};
 var KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
 var MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
 var WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
-var ADULT_CLOTHING_SIZES = ['XS','S','M','L','XL','XXL','1X','2X','3X'];
-var ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
-var ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
-var ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
-var KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
-var KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
 
 function apparelNeedsSize(retailer, title){
   var rk = String(retailer || '').toLowerCase();
-  return !!APPAREL_ONLY_RETAILERS[rk] || APPAREL_KEYWORDS.test(title || '');
+  return (!!APPAREL_ONLY_RETAILERS[rk] || APPAREL_KEYWORDS.test(title || '')) && !isAccessoryTitle(title);
 }
 function sizeCategoryFor(retailer, title){
   var t = title || '';
@@ -539,15 +535,63 @@ function sizeCategoryFor(retailer, title){
   if (SHOE_DEFAULT_RETAILERS[rk]) return 'shoe';
   return 'clothing';
 }
-function standardSizeOptions(title, sizeCategory){
-  var isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title || '');
-  var isKids = KIDS_KEYWORDS.test(title || '');
-  if (isShoe && isKids) return KIDS_SHOE_SIZES;
-  if (isShoe && MENS_KEYWORDS.test(title || '')) return ADULT_SHOE_SIZES_MEN;
-  if (isShoe && WOMENS_KEYWORDS.test(title || '')) return ADULT_SHOE_SIZES_WOMEN;
-  if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
-  if (isKids) return KIDS_CLOTHING_SIZES;
-  return ADULT_CLOTHING_SIZES;
+/* VARIANT TRUTH (2026-10-18, Issue #411, Danny): the sizes a product
+   offers are the retailer's own list or nothing -- never a template.
+   Strings as the store wrote them; {size, available} objects (the Foot
+   Locker feed) keep the sizes in stock. Natural order: XXS..6XL then
+   1X..5X, or numbers ascending (shoe 6.5, waist 32x30, 12 oz); any other
+   list (band x cup "34DD", "One Size") keeps the retailer's order.
+   index.html's bundle and producto.html carry this same text; the test
+   suite pins them identical. */
+var SIZE_ALPHA_ORDER = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL', '6XL', '0X', '1X', '2X', '3X', '4X', '5X'];
+var SIZE_NUMERIC = /^(\d+(?:\.\d+)?)(?:\s*[xX×\/]\s*(\d+(?:\.\d+)?))?\s*(?:oz)?$/i;
+function sortSizes(sizes){
+  // "XLarge" ranks as XL, "Small" as S: stores spell the same ladder in words.
+  var rank = function(s){
+    return SIZE_ALPHA_ORDER.indexOf(String(s).toUpperCase().replace(/[\s-]+/g, '')
+      .replace(/SMALL$/, 'S').replace(/MEDIUM$/, 'M').replace(/LARGE$/, 'L'));
+  };
+  if (sizes.every(function(s){ return rank(s) >= 0; })){
+    return sizes.slice().sort(function(a, b){ return rank(a) - rank(b); });
+  }
+  if (sizes.every(function(s){ return SIZE_NUMERIC.test(s); })){
+    return sizes.slice().sort(function(a, b){
+      var ma = SIZE_NUMERIC.exec(a), mb = SIZE_NUMERIC.exec(b);
+      return (parseFloat(ma[1]) - parseFloat(mb[1])) || ((parseFloat(ma[2]) || 0) - (parseFloat(mb[2]) || 0));
+    });
+  }
+  return sizes.slice();
+}
+function truthfulSizes(list){
+  if (!Array.isArray(list)) return [];
+  var out = [], seen = {};
+  for (var i = 0; i < list.length; i++){
+    var v = list[i], s = '';
+    if (typeof v === 'string') s = v;
+    else if (typeof v === 'number' && isFinite(v)) s = String(v);
+    else if (v && typeof v === 'object' && v.available !== false && (typeof v.size === 'string' || typeof v.size === 'number')) s = String(v.size);
+    s = s.trim();
+    if (!s || seen[s.toUpperCase()]) continue;
+    seen[s.toUpperCase()] = true;
+    out.push(s);
+  }
+  return sortSizes(out);
+}
+/* A bag, wallet, charm or phone case is not sized, whatever garment word
+   its name carries ("Soccer Jersey Bag Charm", "Zip Wallet", "Heels
+   Phone Case"). Judged on the HEAD noun -- the last word once the colour
+   suffix (" - Pink"), a trailing capacity ("55L") and a "for women" tail
+   are dropped -- so "Boxer Brief with Support Pouch" and "Charm Strappy
+   Thong Panty" stay garments. */
+var ACCESSORY_HEAD = /\b(?:bag charms?|charms?|wallets?|wristlets?|phone cases?|card cases?|card holders?|keychains?|key rings?|totes?|purses?|backpacks?|handbags?|clutch(?:es)?|bags?|pouch(?:es)?|sunglasses|umbrellas?|lanyards?|satchels?|duffels?|duffles?)$/i;
+function isAccessoryTitle(title){
+  var t = String(title || '')
+    .replace(/\s+[-–—|]\s+.*$/, '')
+    .replace(/\s+for\s+[\w' ]+$/i, '')
+    .replace(/[\s,]*\d+(?:\.\d+)?\s*(?:l|cm|in|oz)?$/i, '')
+    .trim();
+  // "Faux Suede Handbag, Cognac": the colour after the first comma.
+  return ACCESSORY_HEAD.test(t) || ACCESSORY_HEAD.test(t.split(',')[0].trim());
 }
 
 var toastTimer = null;
@@ -595,18 +639,20 @@ function buildBuyBox(p){
   var box = el('buy-box');
   if (!box) return;
   var wantsSize = apparelNeedsSize(p.retailer, p.name);
+  var sizes = truthfulSizes(p.sizes);
   var sizeHtml = '';
+  if (wantsSize && !sizes.length){
+    /* No verified size list (Danny, #411): not sold by size yet. No
+       invented grid, no free text -- the button says why. */
+    box.innerHTML = '<button id="add-cart-btn" class="btn btn-add" type="button" disabled aria-disabled="true">Tallas por confirmar</button>'
+      + '<p class="size-note">Todavía estamos confirmando con la tienda las tallas exactas de este producto. Apenas las tengamos, podrás comprarlo aquí.</p>';
+    return;
+  }
   if (wantsSize){
-    var options = (p.sizes && p.sizes.length)
-      ? p.sizes.slice()
-      : standardSizeOptions(p.name, sizeCategoryFor(p.retailer, p.name));
     var optsHtml = '<option value="" disabled selected>Selecciona una talla</option>'
-      + options.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
-    var note = (p.sizes && p.sizes.length)
-      ? ''
-      : '<p class="size-note">La tienda no publica las tallas exactas de este producto; estas son tallas estándar de referencia.</p>';
+      + sizes.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
     sizeHtml = '<label class="size-label" for="size-select">Talla</label>'
-      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>' + note;
+      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>';
   }
   box.innerHTML = sizeHtml
     + '<button id="add-cart-btn" class="btn btn-add" type="button">Agregar al carrito</button>'

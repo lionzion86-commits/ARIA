@@ -501,7 +501,19 @@
               "originalPrice": 27,
               "images": [
                 "https://i5.walmartimages.com/seo/Hanes-Men-s-EcoSmart-Fleece-Hoodie-Sizes-S-5XL_b97fef0b-19f4-44bd-97a0-0ff0d220a775.54da2ba3ceffdb0327a0613c15c7e654.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL",
+                "4XL",
+                "5XL"
+              ],
+              "sizesTier": "verified",
+              "sizesSource": "https://www.walmart.com/ip/Hanes-Men-s-Big-Men-s-EcoSmart-Fleece-Pullover-Hoodie-up-to-5XL/2169062123?classType=VARIANT&athbdg=L1600"
             },
             {
               "name": "Rustler Men's and Big Men's Relaxed Fit Jeans",
@@ -524,7 +536,19 @@
               "originalPrice": 16.98,
               "images": [
                 "https://i5.walmartimages.com/seo/Disney-Men-s-Big-Men-s-Graphic-Button-Up-Shirt-Mouse-Beach-Sizes-S-3XL_39b978ec-02d0-416f-b6b1-670d71803ec4.180241cdfb1a1792029e8420f90fc86a.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "XS",
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL",
+                "4XL",
+                "5XL"
+              ],
+              "sizesTier": "verified"
             },
             {
               "name": "Men's & Big Men's Relaxed Fit Short Sleeve V-Neck Tee, Sizes S-3XL",
@@ -535,7 +559,16 @@
               "savingsAmount": 0,
               "images": [
                 "https://i5.walmartimages.com/seo/George-Men-s-Big-Men-s-V-Neck-Short-Sleeve-Tee-Sizes-S-3XL_5698dd8d-4889-4d49-ba18-97fe0650c4a4.56fe4ed274be7ebb6893ee600fe84b6b.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "verified"
             },
             {
               "name": "Men's Short Sleeve Tri-Blend Tee, Sizes XS-4XLT",
@@ -546,7 +579,17 @@
               "savingsAmount": 0,
               "images": [
                 "https://i5.walmartimages.com/seo/AW-TRI-BLEND-TEE_1b08835f-4fb6-46cb-aa4f-1438c2b2519c.0482f564d147a391547d821a36f4e56d.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "XS",
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "name": "(3 pack) George Men's & Big Men's Relaxed Fit 100% Cotton Crewneck Long-Sleeve T-Shirt, Sizes XS-3XL",
@@ -557,7 +600,17 @@
               "savingsAmount": 0,
               "images": [
                 "https://i5.walmartimages.com/seo/3-pack-George-Men-s-Big-Men-s-Cotton-Crewneck-T-Shirt-with-Long-Sleeves-Size-XS-3XL_334e3d31-81a5-4912-bc4e-727ee78a4dc2.877fe6d5685f36df6ece3d3b8e81d511.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "XS",
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "verified"
             },
             {
               "name": "Men's and Big Men's Regular Fit Jeans with Flex",
@@ -589,7 +642,15 @@
               "savingsAmount": 0,
               "images": [
                 "https://i5.walmartimages.com/seo/Hanes-Men-s-Super-Value-Pack-Black-Grey-Boxer-Briefs-10-Pack_e034b760-4962-4842-82c0-933e9d520865.d29fa3615a9192e83a494f8853df38cb.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "name": "Men's Utility Shorts, 7 in Inseam, Sizes S-3XL",
@@ -601,7 +662,17 @@
               "originalPrice": 18,
               "images": [
                 "https://i5.walmartimages.com/seo/FA-PULL-ON-SHORT_bfa07d3e-5738-4b21-a293-8fd94dd73e96.cdcc1489fe9a922570ebdfd5a9903796.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "verified",
+              "sizesSource": "https://www.walmart.com/ip/FA-PULL-ON-SHORT/17699423097?classType=VARIANT&athbdg=L1800"
             },
             {
               "name": "Men's Linen Shirts Short Sleeve Hawaiian Button down Shirt with Pocket",
@@ -613,7 +684,17 @@
               "originalPrice": 25.99,
               "images": [
                 "https://i5.walmartimages.com/seo/Alimens-Gentle-Men-s-Linen-Shirts-Short-Sleeve-Hawaiian-Button-down-Shirt-with-Pocket_8375b26f-7a21-49eb-8212-5202e7202567.786aed5e4a09fcdc660132189a04a0b1.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "XS",
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "name": "Men's 5000 Athletic Running Sneakers, Wide Width Available",
@@ -649,7 +730,16 @@
               "originalPrice": 14.98,
               "images": [
                 "https://i5.walmartimages.com/seo/NB-TWILL-SHORT_b1d8b1cb-6150-4804-9bd8-e6ba37899f90.6f403b77b56ba92cc6dca2130c2acd58.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "name": "Men's Oversized Boxy Tee with Short Sleeves, XS-4XLT",
@@ -661,7 +751,17 @@
               "originalPrice": 9.98,
               "images": [
                 "https://i5.walmartimages.com/seo/No-Boundaries-Men-s-Big-Men-s-Short-Sleeve-Oversize-Tee-Sizes-XS-5XL_854d43cc-6dde-43a2-811a-a6510eb1bc8a.f83c0a3ba850fd9c0a5239151cacd219.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "XS",
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "name": "Soft Fleece Vintage Straight Sweatpants, Men's XS-5XL",
@@ -683,7 +783,17 @@
               "savingsAmount": 0,
               "images": [
                 "https://i5.walmartimages.com/seo/Hanes-Men-s-Super-Value-Pack-White-Crew-T-Shirt-Undershirts-10-Pack_0ef48789-cf48-4a9e-9da2-cd83b2ecc0c9.2b39cc84b3c914b9679c12ea1a1adf5c.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "XS",
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "name": "Men's Value Pack Assorted Boxer Briefs",
@@ -694,7 +804,15 @@
               "savingsAmount": 0,
               "images": [
                 "https://i5.walmartimages.com/seo/Hanes-Men-s-Cotton-Boxer-Brief-Underwear-Pack-10-Pack-nbsp_50f109e9-0e58-4f39-9296-5ea03c7ee383.e0d6316f654e89406f8f3eaabbf4ae81.png?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "name": "Men's and Big Men's Linen Blend Button Up Shirt with Long Sleeves, Sizes S-5XL",
@@ -705,7 +823,18 @@
               "savingsAmount": 0,
               "images": [
                 "https://i5.walmartimages.com/seo/GE-LS-LINEN-SHIRT_11feda26-daf0-475f-a6e1-fbf8c9133196.62d1f72f74674fd3783abf3b34d0a260.jpeg?odnHeight=180&odnWidth=180&odnBg=FFFFFF"
-              ]
+              ],
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "2XL",
+                "3XL",
+                "4XL",
+                "5XL"
+              ],
+              "sizesTier": "verified"
             },
             {
               "name": "Men's and Big Men's Relaxed Fit Cargo Pants With Stretch",
@@ -17209,7 +17338,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 20
+              "regularPrice": 20,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's Hanes Crew Socks with FreshIQ 8pk - White 6-12: Midweight, Moisture Wicking, Reinforced Heel & Toe",
@@ -17229,7 +17366,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 20
+              "regularPrice": 20,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's Odor Resistant Crew Socks 6pk - Goodfellow & Co™ White 6-12: Arch Support, Reinforced Heel & Toe",
@@ -17249,7 +17394,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 10
+              "regularPrice": 10,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Hanes Premium Men's Boxer Briefs 5pk - Black/Gray M: Tagless, Lightweight Cotton Blend, Full Waistband Elastic, Machine Washable",
@@ -17269,7 +17422,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 30
+              "regularPrice": 30,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's Active Light Unlined Run Shorts 7\" - All In Motion™ Black M: Moisture Wicking, Quick Dry, Zippered Pocket",
@@ -17299,7 +17460,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 25
+              "regularPrice": 25,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's Boxer Briefs 5pk - Goodfellow & Co™ Black M: Cotton-Spandex Blend, Mid Rise, Machine Washable, Solid Pattern",
@@ -17319,7 +17488,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 30
+              "regularPrice": 30,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Hanes Red Label Men's Super Value Boxer Briefs 10pk - Black/Gray/Green L: Tagless, Breathable, Moisture Wicking",
@@ -17339,7 +17516,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 20
+              "regularPrice": 20,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's Long Sleeve Floral Print Cardigan - Goodfellow & Co™ Navy Blue S",
@@ -17369,7 +17554,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 27
+              "regularPrice": 27,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Champion Center 18\" Backpack - Black",
@@ -17379,7 +17572,16 @@
               "isOnSale": false,
               "savingsAmount": 4.5,
               "savingsPercent": 15,
-              "regularPrice": 29.99
+              "regularPrice": 29.99,
+              "sizes": [
+                "XS",
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's Transformers Graphic T-Shirt - Black L",
@@ -17389,7 +17591,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 15
+              "regularPrice": 15,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Hanes Men's Comfort Soft Waistband Boxer Briefs 5pk - Black/Gray M: Tagless, Breathable, Moisture Wicking",
@@ -17409,7 +17619,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 20
+              "regularPrice": 20,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's 5pk Boxer Briefs - Goodfellow & Co™ Gray M",
@@ -17429,7 +17647,15 @@
               "isOnSale": false,
               "savingsAmount": null,
               "savingsPercent": null,
-              "regularPrice": 15
+              "regularPrice": 15,
+              "sizes": [
+                "S",
+                "M",
+                "L",
+                "XL",
+                "XXL"
+              ],
+              "sizesTier": "inferred"
             },
             {
               "title": "Men's Odor Resistant No Show Socks 6pk - Goodfellow & Co™ Black 6-12: Arch Support, Reinforced Heel & Toe",
