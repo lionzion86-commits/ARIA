@@ -373,7 +373,15 @@ await check("product pages upsell: same store and same kind of thing, sale items
   assert.deepEqual(picks, ["AE Boxy T-Shirt"], "the rail took a full-price, other-gender, other-lane, photo-less or same item: " + picks.join(", "));
 });
 
-const MIN_CHECKS = 21;
+await check("no function module reads import.meta: Netlify bundles .js functions to CommonJS, where it is {} (rehearsal round 2: 502 · TypeError)", () => {
+  const dir = ROOT + "netlify/functions/";
+  for (const f of readdirSync(dir).filter((n) => n.endsWith(".js"))) {
+    const code = readFileSync(dir + f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    assert.ok(!/\bimport\.meta\b/.test(code), f + " reads import.meta -- it throws while the function loads on Netlify");
+  }
+});
+
+const MIN_CHECKS = 22;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
