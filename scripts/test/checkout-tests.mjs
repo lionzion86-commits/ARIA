@@ -391,7 +391,14 @@ await check("on a phone, Pagar comes after the form it depends on, and mirrors t
     assert.ok(mirror.includes(must), "the bar does not mirror: " + must);
 });
 
-const MIN_CHECKS = 23;
+await check("/carrito.html is the real cart, never a placeholder", () => {
+  const page = readFileSync(ROOT + "carrito.html", "utf8");
+  assert.ok(!/reconstrucci[oó]n|Vuelve pronto/i.test(page), "carrito.html is the empty placeholder again");
+  assert.match(page, /location\.replace\('\/\?carrito=1'/);
+  assert.match(page, /http-equiv="refresh" content="0; url=\/\?carrito=1"/);
+});
+
+const MIN_CHECKS = 24;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
