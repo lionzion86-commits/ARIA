@@ -30,8 +30,10 @@ register("data:text/javascript," + encodeURIComponent(`
     if (spec === "@netlify/blobs") return { url: "data:text/javascript," + encodeURIComponent(
       "const S = globalThis.__blobs;" +
       "export const connectLambda = () => {};" +
-      "export function getStore(name){ if(!S.has(name)) S.set(name,new Map()); const m=S.get(name);" +
-      " return { get: async (k)=> m.has(k)? JSON.parse(m.get(k)) : null, setJSON: async (k,v)=>{ m.set(k, JSON.stringify(v)); }," +
+      "export function getStore(name){ if (globalThis.__blobsFail === name) { const boom = async ()=>{ throw new Error('conditional writes unsupported'); }; return { get: boom, set: boom, setJSON: boom, delete: boom }; }" +
+      " if(!S.has(name)) S.set(name,new Map()); const m=S.get(name);" +
+      " return { get: async (k)=> m.has(k)? JSON.parse(m.get(k)) : null," +
+      " setJSON: async (k,v,o)=>{ if (o && o.onlyIfNew && m.has(k)) return { modified: false }; m.set(k, JSON.stringify(v)); return { modified: true }; }," +
       " set: async (k,v,o)=>{ if (o && o.onlyIfNew && m.has(k)) return { modified: false }; m.set(k, String(v)); return { modified: true }; }," +
       " delete: async (k)=>{ m.delete(k); }, list: async ()=>({ blobs: [...m.keys()].map(key=>({key})) }) }; }"
     ), shortCircuit: true };
@@ -557,13 +559,49 @@ await check("two paid events at once (session + intent) send exactly one email, 
     /* A retried event later sends nothing more. */
     await handler(signed({ id: "evt_pi_retry", type: "payment_intent.succeeded", created: 2, data: { object: { id: "pi_1", currency: "pen", amount_received: 22288, metadata: meta } } }));
     assert.equal(resendCalls.length, 1, "a retried event sent the email again");
+
+    /* The claim store failing must not cost the email or fail the webhook
+       (second proof run: paid order, no email). */
+    const order2 = "ARIA-20261018-382DBD";
+    globalThis.__blobs.get("orders").set(order2, JSON.stringify({ ...PAID_ORDER, orderId: order2, status: "pending_payment", paymentStatus: "unpaid", pricePenCharged: 128.15, amountCapturedPen: null }));
+    globalThis.__blobsFail = "order-email-claims";
+    const c = await handler(signed({ id: "evt_cs2", type: "checkout.session.completed", created: 3, data: { object: { id: "cs_2", payment_intent: "pi_2", currency: "pen", amount_total: 12815, payment_status: "paid", metadata: { orderId: order2 } } } }));
+    globalThis.__blobsFail = null;
+    assert.equal(c.statusCode, 200, "the webhook failed because the claim store did: " + c.body);
+    assert.equal(resendCalls.length, 2, "no email when the claim store is unavailable");
+    assert.ok(JSON.parse(globalThis.__blobs.get("orders").get(order2)).confirmationEmailSentAt);
   } finally {
     globalThis.fetch = realFetch;
     for (const k of ["STRIPE_WEBHOOK_SECRET", "RESEND_API_KEY"]) { if (k in prev) process.env[k] = prev[k]; else delete process.env[k]; }
   }
 });
 
-const MIN_CHECKS = 31;
+await check("email-check: says why mail would fail, sends a test only to @ariashop.pe, never shows a secret", async () => {
+  const { handler } = await import(ROOT + "netlify/functions/email-check.js");
+  const preview = (qs) => ({ httpMethod: "GET", headers: { host: "deploy-preview-367--ariashopperu.netlify.app" }, queryStringParameters: qs });
+  assert.equal((await handler({ ...preview({}), headers: { host: "ariashop.pe" } })).statusCode, 404, "email-check is reachable on production");
+  const none = JSON.parse((await handler(preview({}), { env: {} })).body);
+  assert.equal(none.mail.provider, null);
+  assert.equal(none.claimStore, "ok");
+  const env = { SMTP_HOST: "smtp.zoho.com", SMTP_USER: "pedidos@ariashop.pe", SMTP_PASS: "s3cret-pass" };
+  let mailed = null;
+  const okT = () => ({ verify: async () => true, sendMail: async (m) => { mailed = m; return { messageId: "<t1@zoho>" }; } });
+  const r = await handler(preview({ to: "DanielLeon@ariashop.pe", send: "1" }), { env, createTransport: okT });
+  const body = JSON.parse(r.body);
+  assert.equal(body.mail.provider, "smtp");
+  assert.equal(body.smtpLogin, "ok");
+  assert.equal(body.testSend.sent, true);
+  assert.equal(mailed.to, "danielleon@ariashop.pe");
+  assert.doesNotMatch(r.body, /s3cret-pass/, "a secret leaked into the report");
+  const badLogin = () => ({ verify: async () => { throw new Error("535 Authentication Failed"); } });
+  assert.match(JSON.parse((await handler(preview({}), { env, createTransport: badLogin })).body).smtpLogin, /FAILED: 535/);
+  assert.equal((await handler(preview({ to: "someone@gmail.com", send: "1" }), { env, createTransport: okT })).statusCode, 400, "the preview can mail outside ariashop.pe");
+  globalThis.__blobsFail = "order-email-claims";
+  assert.match(JSON.parse((await handler(preview({}), { env: {} })).body).claimStore, /FAILED/);
+  globalThis.__blobsFail = null;
+});
+
+const MIN_CHECKS = 32;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
