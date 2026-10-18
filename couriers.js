@@ -14,7 +14,9 @@ export const LAST_MILE_COURIERS = [
      Shalom are the provincia partners and never offered for Lima. */
   { id: 'olva',          name: 'Olva Courier',              scope: 'provincia' },
   { id: 'shalom',        name: 'Shalom',                    scope: 'provincia' },
-  { id: 'aria-asignado', name: 'Courier asignado por Aria', scope: 'provincia' },
+  /* "Courier asignado por Aria" was a third provincia option; Danny's rule
+     is Olva or Shalom only (Lucifer, #367 round 3). Out of the list, so no
+     dropdown offers it. */
 ];
 
 /* Flat fee for the Lima → province leg, in soles. Exact per-courier rates

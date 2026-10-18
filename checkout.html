@@ -53,16 +53,17 @@
      action moves to a closing bar after the delivery section -- the last
      thing filled in. It mirrors the summary's total and button state
      exactly (one renderer, see mirrorPayEnd), so the two can never say
-     different numbers. On desktop the summary is a sticky column beside
-     the form, its button already in view: the bar is not shown. */
+     different numbers. On desktop too (Lucifer, #367 round 3): the
+     summary's own button sat beside the top of the form while the form
+     continued below it, so the bar closes the left column there as well
+     and the summary column shows the total only. */
   #checkoutForm{ display:grid; gap:1.5rem; grid-template-areas:"product" "summary" "customer" "shipping" "destination" "payend"; }
   .gridPayEnd{ grid-area:payend; }
-  @media (max-width:1023.98px){ #payBtn{ display:none; } }
+  #payBtn{ display:none; }
   @media (min-width:1024px){
     #checkoutForm{ grid-template-columns:1fr 360px; gap:2rem; align-items:start;
-      grid-template-areas:"product summary" "customer summary" "shipping summary" "destination summary"; }
+      grid-template-areas:"product summary" "customer summary" "shipping summary" "destination summary" "payend summary"; }
     #checkoutForm .gridSummary{ position:sticky; top:6rem; }
-    .gridPayEnd{ display:none; }
   }
   .gridProduct{ grid-area:product; }
   .gridSummary{ grid-area:summary; }
@@ -1039,6 +1040,16 @@ function cardImgAttrs(url, sizes){
       + currentProvinciaFeePen() + currentExpressFeePen());
   }
 
+  /* The dollar figure on screen for the same order. The soles fees
+     (small order, provincia, express) are part of the order in BOTH
+     currencies: the provincia S/ 9.90 used to sit inside the soles total
+     but not the dollar one, so the two totals on screen disagreed by
+     ~$2.89 (Lucifer, #367 round 3). Without a rate the fees cannot be
+     converted and only the dollar subtotal is shown. */
+  function orderTotalUsdShown(totalUsd, feesPen){
+    return fxRates ? round2(totalUsd + feesPen / fxRates.venta) : totalUsd;
+  }
+
   // What this order can actually consume: never more than the balance,
   // never more than the order. Mirrors applicableCreditPen() server-side.
   function walletAppliedPen(orderTotalPen){
@@ -1415,7 +1426,7 @@ function cardImgAttrs(url, sizes){
       const q = latestQuote || provisional;
       if (q){
         setMoney(sumFlete, q.flete_usd, ' (estimado)');
-        sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + ' (estimado)'
+        sumTotal.innerHTML = fmtPrimary(orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee)) + ' (estimado)'
           + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee)) : '');
       } else {
         sumFlete.textContent = '—';
@@ -1439,6 +1450,7 @@ function cardImgAttrs(url, sizes){
     // against it too and it is inside every figure below. The provincia
     // leg is treated the same way.
     const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee) : 0;
+    const shownUsd = orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee);
 
     /* A weight we do not believe must not become a price. Everything on
        the line is still shown — the customer can see what is in the
@@ -1456,7 +1468,7 @@ function cardImgAttrs(url, sizes){
        fragrances is a contract limit, not a guideline. */
     if (fragranceState.overLimit){
       sumWalletRow.hidden = true;
-      sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+      sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
       payBtn.disabled = true;
       payBtn.textContent = `Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío`;
       return;
@@ -1485,9 +1497,9 @@ function cardImgAttrs(url, sizes){
        printing it here quoted the customer a figure with the tax row
        missing from it — and only in the degraded no-FX path, which is
        exactly where a wrong number survives longest. */
-    sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+    sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
     payBtn.disabled = false;
-    payBtn.textContent = payLabel(totals.totalUsd, fxRates ? orderTotalPen : null);
+    payBtn.textContent = payLabel(shownUsd, fxRates ? orderTotalPen : null);
   }
 
   function requestQuote(){
@@ -1967,7 +1979,8 @@ function cardImgAttrs(url, sizes){
       // of truth for both numbers.
       document.getElementById('orderTotal').textContent = data.chargedPen != null
         ? fmtWalletPen(data.chargedPen) + (data.walletAppliedPen > 0 ? ` (saldo Aria aplicado: ${fmtWalletPen(data.walletAppliedPen)})` : '')
-        : fmtPrimary(orderTotalsUsd().totalUsd);   /* the summary's figure, never the courier quote's (Lucifer, #367) */
+        : fmtPrimary(orderTotalUsdShown(orderTotalsUsd().totalUsd,
+            currentSmallOrderFeePen() + currentProvinciaFeePen() + currentExpressFeePen()));   /* the summary's figure, never the courier quote's (Lucifer, #367) */
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;

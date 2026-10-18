@@ -384,7 +384,9 @@ await check("no function module reads import.meta: Netlify bundles .js functions
 await check("on a phone, Pagar comes after the form it depends on, and mirrors the summary (rehearsal #8)", () => {
   const page = readFileSync(ROOT + "checkout.html", "utf8");
   assert.match(page, /grid-template-areas:"product" "summary" "customer" "shipping" "destination" "payend"/, "the closing pay bar is not last on phones");
-  assert.match(page, /@media \(max-width:1023\.98px\)\{ #payBtn\{ display:none; \} \}/, "two pay buttons on a phone");
+  assert.match(page, /\n  #payBtn\{ display:none; \}/, "two pay buttons on screen");
+  assert.match(page, /"destination summary" "payend summary"/, "on desktop the pay bar does not close the form column");
+  assert.doesNotMatch(page, /\.gridPayEnd\{ display:none; \}/, "the closing pay bar is hidden somewhere");
   assert.match(page, /<button id="payBtnEnd" type="submit"/);
   const mirror = page.slice(page.indexOf("(function mirrorPayEnd(){"), page.indexOf("})();", page.indexOf("(function mirrorPayEnd(){")));
   for (const must of ["endBtn.textContent = payBtn.textContent", "endBtn.disabled = payBtn.disabled", "endTotal.innerHTML = sumTotalEl.innerHTML"])
@@ -398,7 +400,50 @@ await check("/carrito.html is the real cart, never a placeholder", () => {
   assert.match(page, /http-equiv="refresh" content="0; url=\/\?carrito=1"/);
 });
 
-const MIN_CHECKS = 24;
+/* Lucifer, #367 round 3: the header cart opened a blank body. Store rails
+   added on main (Hot Topic, BoxLunch, Banana Republic, Gap, A&F, Finish
+   Line) never closed their <section>, so every view after the shopfront
+   was parsed INSIDE #homeView -- and showPage() hides #homeView. */
+await check("no SPA view is nested inside another view (cart, results, stores ...)", () => {
+  const html = readFileSync(ROOT + "index.html", "utf8").replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<!--[\s\S]*?-->/g, "");
+  const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+  const stack = [];
+  const nested = [];
+  const tag = /<(\/?)([a-zA-Z][\w-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+  for (let m; (m = tag.exec(html));) {
+    const [, close, rawName, attrs] = m;
+    const name = rawName.toLowerCase();
+    if (close) {
+      const i = stack.map((e) => e.name).lastIndexOf(name);
+      if (i >= 0) stack.length = i;
+      continue;
+    }
+    if (VOID.has(name) || /\/\s*$/.test(attrs)) continue;
+    const id = (/\bid="([^"]*)"/.exec(attrs) || [])[1] || "";
+    const isView = /\bclass="view\b/.test(attrs) && /View$/.test(id);
+    if (isView) {
+      const outer = stack.filter((e) => e.view).map((e) => e.id);
+      if (outer.length) nested.push(`${id} inside ${outer.join(" > ")}`);
+    }
+    stack.push({ name, id, view: isView });
+  }
+  assert.deepEqual(nested, [], "views swallowed by an unclosed tag: " + nested.join("; "));
+});
+
+await check("provincia offers Olva and Shalom only; Lima offers Reparto Aria only", async () => {
+  const { couriersFor } = await import(ROOT + "couriers.js");
+  assert.deepEqual(couriersFor("Arequipa").map((c) => c.id), ["olva", "shalom"]);
+  assert.deepEqual(couriersFor("Lima").map((c) => c.id), ["aria-lima"]);
+});
+
+await check("the dollar total on screen carries the soles fees too (provincia, small order, express)", () => {
+  const page = readFileSync(ROOT + "checkout.html", "utf8");
+  assert.match(page, /const shownUsd = orderTotalUsdShown\(totals\.totalUsd, smallOrderFee \+ provFee \+ expressFee\);/);
+  assert.match(page, /payBtn\.textContent = payLabel\(shownUsd, /, "Pagar label prints the dollar total without the fees");
+  assert.doesNotMatch(page, /sumTotal\.innerHTML = fmtPrimary\(totals\.totalUsd\)/, "a summary total still omits the soles fees");
+});
+
+const MIN_CHECKS = 27;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
