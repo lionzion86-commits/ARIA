@@ -28,6 +28,7 @@
     "build:search-index": "node scripts/build-search-index.mjs",
     "test:checkout": "node scripts/test/checkout-tests.mjs",
     "build:price-index": "node scripts/build-price-index.mjs",
-    "test:visual": "node scripts/test/visual-search-tests.mjs"
+    "test:visual": "node scripts/test/visual-search-tests.mjs",
+    "test:pdp": "node scripts/test/pdp-resolve-tests.mjs"
   }
 }

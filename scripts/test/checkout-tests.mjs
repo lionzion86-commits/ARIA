@@ -381,7 +381,17 @@ await check("no function module reads import.meta: Netlify bundles .js functions
   }
 });
 
-const MIN_CHECKS = 22;
+await check("on a phone, Pagar comes after the form it depends on, and mirrors the summary (rehearsal #8)", () => {
+  const page = readFileSync(ROOT + "checkout.html", "utf8");
+  assert.match(page, /grid-template-areas:"product" "summary" "customer" "shipping" "destination" "payend"/, "the closing pay bar is not last on phones");
+  assert.match(page, /@media \(max-width:1023\.98px\)\{ #payBtn\{ display:none; \} \}/, "two pay buttons on a phone");
+  assert.match(page, /<button id="payBtnEnd" type="submit"/);
+  const mirror = page.slice(page.indexOf("(function mirrorPayEnd(){"), page.indexOf("})();", page.indexOf("(function mirrorPayEnd(){")));
+  for (const must of ["endBtn.textContent = payBtn.textContent", "endBtn.disabled = payBtn.disabled", "endTotal.innerHTML = sumTotalEl.innerHTML"])
+    assert.ok(mirror.includes(must), "the bar does not mirror: " + must);
+});
+
+const MIN_CHECKS = 23;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
