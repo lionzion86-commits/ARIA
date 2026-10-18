@@ -275,8 +275,10 @@ await check("stripe-check: the right account, its own webhook, every event, the 
   const { stripeCheckReport, REQUIRED_WEBHOOK_EVENTS } = await import(ROOT + "netlify/functions/stripe-check.js");
   const host = "deploy-preview-367--ariashopperu.netlify.app";
   const hook = { url: `https://${host}/.netlify/functions/stripe-webhook`, status: "enabled", livemode: false, enabled_events: REQUIRED_WEBHOOK_EVENTS };
-  const base = { host, keyMode: "test", webhookSecretSet: true, account: { id: "acct_1URJryD00oB1thiK" }, endpoints: [hook], expect: "acct_1URJryD00oB1thiK" };
+  const base = { host, keyMode: "test", webhookSecretSet: true, emailKeySet: true, account: { id: "acct_1URJryD00oB1thiK" }, endpoints: [hook], expect: "acct_1URJryD00oB1thiK" };
   assert.equal(stripeCheckReport(base).ready, true);
+  /* Finding #10: no email provider key, not ready. */
+  assert.equal(stripeCheckReport({ ...base, emailKeySet: false }).ready, false);
   /* The sandbox account's key is not the new account. */
   const wrong = stripeCheckReport({ ...base, account: { id: "acct_1URJsADnA3YvCFDC" } });
   assert.equal(wrong.accountMatchesExpected, false);
@@ -460,7 +462,52 @@ await check("the declared value and content description never reach the shopper'
   assert.match(bundle, /function healCartLineImages\(\)/, "photoless cart lines no longer recover their photo");
 });
 
-const MIN_CHECKS = 28;
+/* Finding #10 (Danny): the confirmation email is part of the payment. */
+const PAID_ORDER = {
+  orderId: "ARIA-20261018-5CEECF", paymentStatus: "paid", pricePenCharged: 670.55, amountCapturedPen: 670.55,
+  declaredValueUsd: 141.58, taxEstimatedUsd: 0, totalUsd: 195.44,
+  customer: { name: "Daniel Leon", email: "danielleon@ariashop.pe" },
+  shipping: { destCity: "Arequipa", courier: { id: "olva", name: "Olva Courier" } },
+  items: [{ title: "Bare Eau de Parfum", qty: 2, priceUsd: 31.82 }, { title: "6006 - Cargo Rave Pants", selectedSize: "Medium", qty: 1, priceUsd: 52 }],
+};
+
+await check("the confirmation email names the order, every line, the soles paid and what happens next -- and no margin", async () => {
+  const E = await import(ROOT + "netlify/functions/_order-email.js");
+  const m = E.orderConfirmationEmail(PAID_ORDER);
+  assert.equal(m.to, "danielleon@ariashop.pe");
+  assert.match(m.subject, /ARIA-20261018-5CEECF/);
+  for (const part of [m.text, m.html]) {
+    assert.match(part, /ARIA-20261018-5CEECF/);
+    assert.match(part, /Bare Eau de Parfum x2/);
+    assert.match(part, /6006 - Cargo Rave Pants \(talla Medium\) x1/);
+    assert.match(part, /S\/ 670[.,]55/);
+    assert.match(part, /Arequipa/, "no delivery estimate for the destination");
+    assert.match(part, /contacto@ariashop\.pe/);
+    assert.doesNotMatch(part, /141[.,]58|195[.,]44|declarad/i, "the email leaks the declared value or the dollar total");
+  }
+  assert.equal(E.confirmationRecipient({ customer: { email: "nope" }, buyerEmail: "ana@correo.com" }), "ana@correo.com");
+  assert.equal(E.confirmationRecipient({ customer: {} }), null);
+});
+
+await check("the email is sent once per order, keyed on it, and a failure never throws into the webhook", async () => {
+  const E = await import(ROOT + "netlify/functions/_order-email.js");
+  const calls = [];
+  const ok = async (url, init) => { calls.push({ url, init }); return { ok: true, json: async () => ({ id: "em_1" }) }; };
+  const sent = await E.sendOrderConfirmation(PAID_ORDER, { env: { RESEND_API_KEY: "re_test" }, fetchImpl: ok });
+  assert.deepEqual(sent, { sent: true, id: "em_1" });
+  assert.equal(calls[0].url, "https://api.resend.com/emails");
+  assert.equal(calls[0].init.headers["Idempotency-Key"], "order-confirmation/ARIA-20261018-5CEECF");
+  assert.deepEqual(JSON.parse(calls[0].init.body).to, ["danielleon@ariashop.pe"]);
+  assert.equal((await E.sendOrderConfirmation(PAID_ORDER, { env: {}, fetchImpl: ok })).sent, false, "sent with no key");
+  const boom = async () => { throw new Error("network down"); };
+  assert.deepEqual(await E.sendOrderConfirmation(PAID_ORDER, { env: { RESEND_API_KEY: "k" }, fetchImpl: boom }), { sent: false, error: "network down" });
+  const refused = async () => ({ ok: false, status: 403, json: async () => ({ message: "domain not verified" }) });
+  assert.equal((await E.sendOrderConfirmation(PAID_ORDER, { env: { RESEND_API_KEY: "k" }, fetchImpl: refused })).error, "domain not verified");
+  const hook = readFileSync(ROOT + "netlify/functions/stripe-webhook.js", "utf8");
+  assert.match(hook, /if \(updated\.paymentStatus === "paid" && !updated\.confirmationEmailSentAt\) \{/, "the webhook does not send on the first paid event, or sends again");
+});
+
+const MIN_CHECKS = 30;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

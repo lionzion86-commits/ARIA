@@ -42,7 +42,7 @@ const json = (statusCode, body) => ({
  * The report, from what Stripe and the order book said. Pure, so the
  * rules are tested without a network.
  */
-export function stripeCheckReport({ host, keyMode, webhookSecretSet, account, endpoints, expect, session, order }) {
+export function stripeCheckReport({ host, keyMode, webhookSecretSet, emailKeySet, account, endpoints, expect, session, order }) {
   const wantUrl = `https://${host}${WEBHOOK_PATH}`;
   const hook = (endpoints || []).find((e) => e && e.url === wantUrl) || null;
   const events = hook ? hook.enabled_events || [] : [];
@@ -59,6 +59,8 @@ export function stripeCheckReport({ host, keyMode, webhookSecretSet, account, en
       missingEvents,
       signingSecretInstalled: Boolean(webhookSecretSet),
     },
+    /* Finding #10: the confirmation email is part of the payment. */
+    email: { providerKeyInstalled: Boolean(emailKeySet) },
   };
   if (session) {
     const expected = order ? toMinor(order.pricePenCharged) : null;
@@ -69,6 +71,10 @@ export function stripeCheckReport({ host, keyMode, webhookSecretSet, account, en
       orderChargedPen: order ? order.pricePenCharged : null,
       paymentStatus: session.payment_status || null,
       penAndExact: Boolean(order) && session.currency === "pen" && session.amount_total === expected,
+      /* What the webhook did with it: the order's own record. */
+      orderPaymentStatus: order ? order.paymentStatus || null : null,
+      confirmationEmailSentAt: order ? order.confirmationEmailSentAt || null : null,
+      confirmationEmailError: order ? order.confirmationEmailError || null : null,
     };
   }
   report.ready = keyMode === "test"
@@ -76,7 +82,8 @@ export function stripeCheckReport({ host, keyMode, webhookSecretSet, account, en
     && report.webhook.registeredInThisAccount && report.webhook.enabled
     && report.webhook.livemode === false
     && report.webhook.missingEvents.length === 0
-    && report.webhook.signingSecretInstalled;
+    && report.webhook.signingSecretInstalled
+    && report.email.providerKeyInstalled;
   return report;
 }
 
@@ -116,6 +123,7 @@ export async function handler(event) {
 
   return json(200, stripeCheckReport({
     host, keyMode, webhookSecretSet: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+    emailKeySet: Boolean(process.env.RESEND_API_KEY),
     account, endpoints, expect: String(q.expect || "").trim() || null, session, order,
   }));
 }

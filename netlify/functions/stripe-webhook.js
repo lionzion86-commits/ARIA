@@ -54,6 +54,7 @@
 
 import { getStore, connectLambda } from "@netlify/blobs";
 import { postTransaction } from "./_wallet.js";
+import { sendOrderConfirmation } from "./_order-email.js";
 import {
   applyPaymentEvent, eventAlreadyApplied, markEventApplied,
   orderPatchForPayment, readPayment, writePayment,
@@ -152,8 +153,24 @@ export async function handler(event) {
             });
             patch.walletReturnedAt = new Date().toISOString();
           }
-          await ordersStore.setJSON(payment.orderId, { ...order, ...patch });
+          let updated = { ...order, ...patch };
+          await ordersStore.setJSON(payment.orderId, updated);
           orderUpdated = true;
+
+          /* THE CONFIRMATION EMAIL IS PART OF THE PAYMENT (Danny, #367
+             finding #10): the first time the order reads paid, the
+             customer gets it -- before they close the confirmation tab.
+             Once per order (confirmationEmailSentAt); a failed send is
+             recorded for ops and never fails this webhook, which must
+             still record the money. */
+          if (updated.paymentStatus === "paid" && !updated.confirmationEmailSentAt) {
+            const mail = await sendOrderConfirmation(updated);
+            updated = mail.sent
+              ? { ...updated, confirmationEmailSentAt: new Date().toISOString(), confirmationEmailId: mail.id || null, confirmationEmailError: null }
+              : { ...updated, confirmationEmailError: mail.error };
+            if (!mail.sent) console.error(`[stripe-webhook] confirmation email for ${payment.orderId} not sent: ${mail.error}`);
+            await ordersStore.setJSON(payment.orderId, updated);
+          }
         }
       }
     }
