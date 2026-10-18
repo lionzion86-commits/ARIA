@@ -122,6 +122,19 @@ export function orderConfirmationEmail(order) {
   return { to, subject, text, html };
 }
 
+/* NODEMAILER STAYS ON 9.x, PLAIN COMMONJS (2026-10-18, round 4).
+   10.x ships an ES-module build; Netlify's function bundler converted it
+   into "import_smtp_transport.default is not a constructor" before any
+   connection was attempted. 9.1.1 is CommonJS. The factory is looked up
+   on both module shapes so a bundler that hands back the namespace or
+   the default works either way. */
+export async function nodemailerCreateTransport() {
+  const mod = await import("nodemailer");
+  const make = mod.createTransport || (mod.default && mod.default.createTransport);
+  if (typeof make !== "function") throw new Error("nodemailer no expone createTransport en este bundle");
+  return make;
+}
+
 /** Which provider this environment can send with: "smtp", "resend" or null. */
 export function emailProvider(env = process.env) {
   if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS) return "smtp";
@@ -140,7 +153,7 @@ export async function sendOrderConfirmation(order, { env = process.env, fetchImp
   if (!provider) return { sent: false, error: "no hay proveedor de correo configurado (SMTP_HOST/SMTP_USER/SMTP_PASS o RESEND_API_KEY)" };
   if (provider === "smtp") {
     try {
-      const make = createTransport || (await import("nodemailer")).default.createTransport;
+      const make = createTransport || await nodemailerCreateTransport();
       const port = Number(env.SMTP_PORT) || 465;
       const transport = make({
         host: env.SMTP_HOST, port, secure: port === 465,

@@ -24,7 +24,7 @@
    It never returns a secret, and it does not exist on production.
    ============================================================ */
 import { getStore, connectLambda } from "@netlify/blobs";
-import { emailProvider, sendOrderConfirmation } from "./_order-email.js";
+import { emailProvider, nodemailerCreateTransport, sendOrderConfirmation } from "./_order-email.js";
 
 const PRODUCTION_HOSTS = new Set(["ariashop.pe", "www.ariashop.pe"]);
 const MAIL_VARS = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "RESEND_API_KEY", "ARIA_EMAIL_FROM"];
@@ -78,7 +78,7 @@ export async function handler(event, { env = process.env, createTransport = null
   /* The login itself, without sending anything. */
   if (report.mail.provider === "smtp") {
     try {
-      const make = createTransport || (await import("nodemailer")).default.createTransport;
+      const make = createTransport || await nodemailerCreateTransport();
       const port = Number(env.SMTP_PORT) || 465;
       const transport = make({ host: env.SMTP_HOST, port, secure: port === 465, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } });
       await transport.verify();
