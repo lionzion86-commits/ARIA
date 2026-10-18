@@ -53,6 +53,8 @@
    ------------------------------------------------------------ */
 
 import { getStore, connectLambda } from "@netlify/blobs";
+import { postTransaction } from "./_wallet.js";
+import { emailProvider, sendOrderConfirmation } from "./_order-email.js";
 import {
   applyPaymentEvent, eventAlreadyApplied, markEventApplied,
   orderPatchForPayment, readPayment, writePayment,
@@ -70,6 +72,31 @@ const json = (statusCode, body) => ({
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
 });
+
+/* ONE SENDER PER ORDER. A create-only write decides which of two
+   simultaneous paid events sends. A claim older than two minutes with no
+   email recorded is a crashed attempt and is taken over. If the claim
+   store itself is unavailable, the email is sent anyway: a rare duplicate
+   beats a paid order with no confirmation. */
+const EMAIL_CLAIM_STALE_MS = 2 * 60 * 1000;
+async function claimConfirmationEmail(orderId) {
+  const claims = getStore("order-email-claims");
+  const release = () => claims.delete(orderId).catch(() => {});
+  try {
+    const at = new Date().toISOString();
+    const won = await claims.setJSON(orderId, { at }, { onlyIfNew: true });
+    if (won && won.modified) return { ok: true, release };
+    const held = await claims.get(orderId, { type: "json" });
+    if (!held || !(Date.now() - Date.parse(held.at) < EMAIL_CLAIM_STALE_MS)) {
+      await claims.setJSON(orderId, { at, takenOver: true });
+      return { ok: true, release };
+    }
+    return { ok: false, release };
+  } catch (error) {
+    console.error(`[order-email] ${orderId}: claim store unavailable (${error.message}); sending without it`);
+    return { ok: true, release: async () => {} };
+  }
+}
 
 export async function handler(event) {
   connectLambda(event);
@@ -138,8 +165,59 @@ export async function handler(event) {
       } else {
         const patch = orderPatchForPayment(order, payment);
         if (patch) {
-          await ordersStore.setJSON(payment.orderId, { ...order, ...patch });
+          /* SALDO RESERVED FOR AN UNPAID ORDER GOES BACK (2026-10-08).
+             orders-create.js debits saldo when it opens the Stripe page;
+             if that page expires or the payment fails, the order closes
+             and the customer gets the saldo back -- once, keyed on the
+             order so a retried event cannot credit it twice. */
+          if (patch.status === "payment_expired" && Number(order.walletAppliedPen) > 0
+              && order.buyerEmail && !order.walletReturnedAt) {
+            await postTransaction({
+              email: order.buyerEmail, kind: "credit", amountPen: Number(order.walletAppliedPen),
+              reason: `Devuelto: el pago del pedido ${order.orderId} no se completó`, by: "order", orderId: order.orderId,
+            });
+            patch.walletReturnedAt = new Date().toISOString();
+          }
+          let updated = { ...order, ...patch };
+          await ordersStore.setJSON(payment.orderId, updated);
           orderUpdated = true;
+
+          /* THE CONFIRMATION EMAIL IS PART OF THE PAYMENT (Danny, #367
+             finding #10): the first time the order reads paid, the
+             customer gets it -- before they close the confirmation tab.
+             Once per order (confirmationEmailSentAt); a failed send is
+             recorded for ops and never fails this webhook, which must
+             still record the money. */
+          if (updated.paymentStatus === "paid" && !updated.confirmationEmailSentAt) {
+            /* ONE SEND PER ORDER, EVEN WHEN STRIPE SENDS TWO EVENTS AT ONCE.
+               checkout.session.completed and payment_intent.succeeded land
+               together and both read "paid, not sent". A create-only claim
+               lets exactly one of them send; a failed send releases it so
+               the next event can try again. */
+            /* NOTHING IN THE EMAIL PATH MAY FAIL THIS WEBHOOK (2026-10-18,
+               second failed proof run). The order is already written as
+               paid above; a throw here used to surface as a 500 with the
+               money recorded and no email sent. Every attempt logs one
+               "[order-email]" line, and the outcome lands on the order. */
+            try {
+              const claim = await claimConfirmationEmail(payment.orderId);
+              if (!claim.ok) {
+                console.log(`[order-email] ${payment.orderId}: another event is sending it`);
+              } else {
+                const mail = await sendOrderConfirmation(updated);
+                console.log(`[order-email] ${payment.orderId}: provider=${emailProvider() || "none"} ` +
+                  (mail.sent ? `sent id=${mail.id || "?"}` : `NOT sent: ${mail.error}`));
+                updated = mail.sent
+                  ? { ...updated, confirmationEmailSentAt: new Date().toISOString(), confirmationEmailId: mail.id || null, confirmationEmailError: null }
+                  : { ...updated, confirmationEmailError: mail.error };
+                if (!mail.sent) await claim.release();
+                await ordersStore.setJSON(payment.orderId, updated);
+              }
+            } catch (error) {
+              console.error(`[order-email] ${payment.orderId}: failed outside the send: ${error.message}`);
+              await ordersStore.setJSON(payment.orderId, { ...updated, confirmationEmailError: "error interno: " + error.message }).catch(() => {});
+            }
+          }
         }
       }
     }

@@ -18176,10 +18176,10 @@ async function runLiveSearch(){
 // Size-option logic — ported from checkout.html during the cart rework
 // (2026-09-18): a cart line item needs a concrete size *before* it can go
 // in the cart, so size selection now happens here, on the product page,
-// not at checkout. Always a real <select>, either the retailer's real
-// available sizes or (standardSizeOptions) a standard industry size scale
-// chosen by category/gender/kids detection from the title — never a
-// fabricated per-item list or free text.
+// not at checkout. A real <select> of the retailer's own sizes, or no
+// picker at all (2026-10-18, #411: the standard "reference" scale this
+// used to fall back to was an invented list, and a size Aria cannot
+// name at the retailer cannot be bought in Miami).
 /* ============================================================
    ONE LIST OF THE WORDS THAT MEAN "THIS HAS A SIZE".
 
@@ -18216,22 +18216,63 @@ const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWOR
 const PRODUCT_KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
 const PRODUCT_MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
 const PRODUCT_WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
-const ADULT_CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
-const ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
-const ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
-const KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
-const KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
-
-function standardSizeOptions(title, sizeCategory){
-  const isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title);
-  const isKids = PRODUCT_KIDS_KEYWORDS.test(title);
-  if (isShoe && isKids) return KIDS_SHOE_SIZES;
-  if (isShoe && PRODUCT_MENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_MEN;
-  if (isShoe && PRODUCT_WOMENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_WOMEN;
-  if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
-  if (isKids) return KIDS_CLOTHING_SIZES;
-  return ADULT_CLOTHING_SIZES;
+/* VARIANT TRUTH (2026-10-18, Issue #411, Danny): the sizes a product
+   offers are the retailer's own list or nothing -- never a template.
+   Strings as the store wrote them; {size, available} objects (the Foot
+   Locker feed) keep the sizes in stock. Natural order: XXS..6XL then
+   1X..5X, or numbers ascending (shoe 6.5, waist 32x30, 12 oz); any other
+   list (band x cup "34DD", "One Size") keeps the retailer's order.
+   index.html's bundle and producto.html carry this same text; the test
+   suite pins them identical. */
+var SIZE_ALPHA_ORDER = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL', '6XL', '0X', '1X', '2X', '3X', '4X', '5X'];
+var SIZE_NUMERIC = /^(\d+(?:\.\d+)?)(?:\s*[xX×\/]\s*(\d+(?:\.\d+)?))?\s*(?:oz)?$/i;
+function sortSizes(sizes){
+  // "XLarge" ranks as XL, "Small" as S: stores spell the same ladder in words.
+  var rank = function(s){
+    return SIZE_ALPHA_ORDER.indexOf(String(s).toUpperCase().replace(/[\s-]+/g, '')
+      .replace(/SMALL$/, 'S').replace(/MEDIUM$/, 'M').replace(/LARGE$/, 'L'));
+  };
+  if (sizes.every(function(s){ return rank(s) >= 0; })){
+    return sizes.slice().sort(function(a, b){ return rank(a) - rank(b); });
+  }
+  if (sizes.every(function(s){ return SIZE_NUMERIC.test(s); })){
+    return sizes.slice().sort(function(a, b){
+      var ma = SIZE_NUMERIC.exec(a), mb = SIZE_NUMERIC.exec(b);
+      return (parseFloat(ma[1]) - parseFloat(mb[1])) || ((parseFloat(ma[2]) || 0) - (parseFloat(mb[2]) || 0));
+    });
+  }
+  return sizes.slice();
+}
+function truthfulSizes(list){
+  if (!Array.isArray(list)) return [];
+  var out = [], seen = {};
+  for (var i = 0; i < list.length; i++){
+    var v = list[i], s = '';
+    if (typeof v === 'string') s = v;
+    else if (typeof v === 'number' && isFinite(v)) s = String(v);
+    else if (v && typeof v === 'object' && v.available !== false && (typeof v.size === 'string' || typeof v.size === 'number')) s = String(v.size);
+    s = s.trim();
+    if (!s || seen[s.toUpperCase()]) continue;
+    seen[s.toUpperCase()] = true;
+    out.push(s);
+  }
+  return sortSizes(out);
+}
+/* A bag, wallet, charm or phone case is not sized, whatever garment word
+   its name carries ("Soccer Jersey Bag Charm", "Zip Wallet", "Heels
+   Phone Case"). Judged on the HEAD noun -- the last word once the colour
+   suffix (" - Pink"), a trailing capacity ("55L") and a "for women" tail
+   are dropped -- so "Boxer Brief with Support Pouch" and "Charm Strappy
+   Thong Panty" stay garments. */
+var ACCESSORY_HEAD = /\b(?:bag charms?|charms?|wallets?|wristlets?|phone cases?|card cases?|card holders?|keychains?|key rings?|totes?|purses?|backpacks?|handbags?|clutch(?:es)?|bags?|pouch(?:es)?|sunglasses|umbrellas?|lanyards?|satchels?|duffels?|duffles?)$/i;
+function isAccessoryTitle(title){
+  var t = String(title || '')
+    .replace(/\s+[-–—|]\s+.*$/, '')
+    .replace(/\s+for\s+[\w' ]+$/i, '')
+    .replace(/[\s,]*\d+(?:\.\d+)?\s*(?:l|cm|in|oz)?$/i, '')
+    .trim();
+  // "Faux Suede Handbag, Cognac": the colour after the first comma.
+  return ACCESSORY_HEAD.test(t) || ACCESSORY_HEAD.test(t.split(',')[0].trim());
 }
 
 /* ============================================================
@@ -19194,20 +19235,20 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
   const sizeNote = document.getElementById('productSizeNote');
-  const rawSizes = Array.isArray(sizes) ? sizes.filter(s => typeof s === 'string' && s.trim()) : [];
+  const rawSizes = truthfulSizes(sizes);
   if (rawSizes.length){
     sizeWrap.hidden = false;
     sizeSelect.required = true;
     sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
       + rawSizes.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
     sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
-  } else if (needsSize || (name && APPAREL_KEYWORDS.test(name))){
-    sizeWrap.hidden = false;
-    sizeSelect.required = true;
-    const options = standardSizeOptions(name || '', sizeCategory);
-    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
-      + options.map(s => `<option value="${s}">${s}</option>`).join('');
-    sizeNote.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
+  } else if (needsSize || (name && APPAREL_KEYWORDS.test(name) && !isAccessoryTitle(name))){
+    /* No verified size list: not sold by size yet (Danny, #411). No
+       invented grid and no free text -- the buy button says why. */
+    sizeWrap.hidden = true;
+    sizeSelect.required = false;
+    sizeSelect.innerHTML = '';
+    if (hasPrice) setProductSizesUnconfirmed();
   } else {
     sizeWrap.hidden = true;
     sizeSelect.required = false;
@@ -19260,27 +19301,26 @@ function goBack(){
    the moment of purchase as well as when the page is drawn, so the two
    cannot disagree about the same product. */
 function apparelNeedsSize(retailer, title){
-  return needsSizeSelection(retailer, title) || APPAREL_KEYWORDS.test(String(title || ''));
+  return needsSizeSelection(retailer, title) || (APPAREL_KEYWORDS.test(String(title || '')) && !isAccessoryTitle(title));
 }
 
-/* The same standard picker showProduct() builds, reachable from the buy
-   path so a garment it failed to recognise can still be given a size
-   rather than refused outright. Same honest note: these are reference
-   sizes, not the store's own. */
-function revealStandardSizePicker(title, sizeCategory){
-  const wrap = document.getElementById('productSizeWrap');
-  const select = document.getElementById('productSizeSelect');
-  const note = document.getElementById('productSizeNote');
-  if (!wrap || !select) return;
-  wrap.hidden = false;
-  select.required = true;
-  const sgLink = document.getElementById('sizeGuideLink');
-  if (sgLink) sgLink.hidden = false;
-  const options = standardSizeOptions(title || '', sizeCategory);
-  select.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
-    + options.map(s => `<option value="${s}">${s}</option>`).join('');
-  if (note) note.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
-  wrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
+/* A garment with no verified size list (2026-10-18, #411). The button
+   says why it cannot be bought yet; the note says what happens next.
+   Called after setProductBuyable(), which every render runs first. */
+function setProductSizesUnconfirmed(){
+  const btn = document.getElementById('addToCartBtn');
+  const note = document.getElementById('productNoPriceNote');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.setAttribute('aria-disabled', 'true');
+  btn.textContent = 'Tallas por confirmar';
+  btn.style.background = '#C8CDD8';
+  btn.style.color = '#5B6478';
+  btn.style.cursor = 'not-allowed';
+  if (note){
+    note.hidden = false;
+    note.textContent = 'Todavía estamos confirmando con la tienda las tallas exactas de este producto. Apenas las tengamos, podrás comprarlo aquí.';
+  }
 }
 /* The buy button's two states, in one place so they cannot drift apart.
 
@@ -19332,13 +19372,12 @@ function addToCartFromProduct(){
 
      The question asked is now "is this a garment?", not "is there a
      picker?" -- so a word we still do not know cannot silently sell a
-     sizeless item. And rather than only refusing, the picker is BUILT
-     on the spot: the shopper gets the thing they were missing instead
-     of a dead end. */
+     sizeless item. It used to build a standard "reference" picker on
+     the spot; that list was invented (#411), so a garment with no
+     verified sizes is simply not sold by size yet. */
   const wantsSize = apparelNeedsSize(p.retailer, p.name);
   if (wantsSize && sizeWrap.hidden){
-    revealStandardSizePicker(p.name, p.sizeCategory);
-    showToast('Elige una talla para este producto.');
+    showToast('Todavía estamos confirmando las tallas de este producto con la tienda.');
     return;
   }
   if ((wantsSize || (!sizeWrap.hidden && sizeSelect.required)) && !sizeSelect.value){
@@ -19378,7 +19417,9 @@ function addToCartFromProduct(){
        than a guess from the title. Absent for every store that
        publishes no weight, which is every store but this catalogue. */
     ...(Number.isFinite(p.catalogWeightKg) && p.catalogWeightKg > 0 ? { specWeightKg: p.catalogWeightKg } : {}),
-    image: p.imageUrl || '',
+    /* The photo the shopper is looking at, even when the card that
+       opened this page passed none (#367: blank Macy's / AE thumbs). */
+    image: p.imageUrl || (Array.isArray(productGallery) && productGallery[0]) || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
@@ -20444,7 +20485,7 @@ const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
    stay verbatim in sync -- edit both or neither.
    ============================================================ */
 function needsSizeSelection(retailer, title){
-  return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');
+  return (APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '')) && !isAccessoryTitle(title);
 }
 
 // Retailers whose catalog defaults to footwear when a title has no
@@ -22785,7 +22826,11 @@ function normalizeLiveItem(item, hints){
   // `variants` array is empty at our listing-level scrape depth, Foot
   // Locker has no such field either). Never fabricated — checkout.html
   // asks the customer to type their size instead when this is empty.
-  const sizes = Array.isArray(item.sizes ?? item.availableSizes) ? (item.sizes ?? item.availableSizes).filter(s => typeof s === 'string' && s.trim()) : [];
+  /* truthfulSizes (#411): the retailer's own list, naturally sorted;
+     {size, available} objects (Foot Locker) keep the sizes in stock --
+     they used to be filtered out as non-strings, and the PDP then
+     invented a "reference" grid for shoes that had a real one. */
+  const sizes = truthfulSizes(Array.isArray(item.sizes) && item.sizes.length ? item.sizes : item.availableSizes);
 
   // Real on-sale signal, only when the retailer's own scrape data reports
   // one — confirmed present on live Target (isOnSale/regularPrice/
@@ -25616,6 +25661,15 @@ function addToCart(item){
     showToast('Este producto aún no tiene precio confirmado.');
     return false;
   }
+  /* AND A GARMENT WITH NO SIZE (2026-10-18, #411). The product page
+     already refuses one; the cross-sell rail and the combo path passed
+     selectedSize: '' straight through. Aria cannot buy "a shirt" in
+     Miami, so no door into the cart may carry one. */
+  if (item.lineType !== 'bundle-discount' && apparelNeedsSize(item.retailer, item.title)
+      && !String(item.selectedSize || '').trim()){
+    showToast('Elige tu talla en la página del producto.');
+    return false;
+  }
   /* THE DUTIABLE BASE IS STAMPED AT THE FUNNEL (2026-09-27).
 
      Every entry point (product page, cross-sell, Aria Auto, chat)
@@ -26083,6 +26137,7 @@ function renderCartView(){
   emptyEl.hidden = true;
   summaryEl.hidden = false;
   wrap.innerHTML = cart.map(cartLineItemHTML).join('');
+  healCartLineImages();
 
   const totals = cartTotals();
   /* Itemised freight. cartTotals() already summed the per-item weight
@@ -26189,6 +26244,38 @@ const TAX_ZONE_AMBER_START_USD = 150;
 // Informational only: states the real rule, never coaches splitting
 // orders to dodge duties (Peru's anti-fraccionamiento rules are a real
 // legal question for the courier, not something to route around here).
+/* PHOTOLESS CART LINES RECOVER THEIR PHOTO (2026-10-18, #367 round 3:
+   Macy's / American Eagle lines showed blank thumbnails while Victoria's
+   Secret lines had photos). A line written before the product pages
+   carried the image -- it persists in localStorage and the server cart --
+   keeps rendering an empty box forever. Look the title up in the same
+   catalogue pool the product route uses, once per line per page load,
+   and save the photo back so checkout shows it too. */
+const cartImageHealTried = new Set();
+function healCartLineImages(){
+  const missing = cart.filter(it => it && it.lineType !== 'bundle-discount' && !it.image && it.title
+    && !cartImageHealTried.has(cartItemKey(it)));
+  if (!missing.length) return;
+  missing.forEach(it => cartImageHealTried.add(cartItemKey(it)));
+  Promise.all(missing.map(it => findCatalogProductByTitle(it.title).catch(() => null))).then((found) => {
+    let changed = false;
+    found.forEach((f, i) => {
+      const want = missing[i];
+      if (!f || (want.retailer && f.retailer && f.retailer !== want.retailer)) return;
+      const img = f.image || (Array.isArray(f.images) && f.images[0]) || '';
+      /* By key, not identity: initCart() rebuilds the line objects
+         (local load, server merge) while the lookup is in flight. */
+      const key = cartItemKey(want);
+      const line = cart.find(it => it && cartItemKey(it) === key && !it.image);
+      if (img && line){ line.image = img; changed = true; }
+    });
+    if (!changed) return;
+    saveCartLocal();
+    if (currentUser) syncCartToServer();
+    if (document.getElementById('cartView')?.classList.contains('active')) renderCartView();
+  });
+}
+
 function renderTaxZoneBar(usdSubtotal){
   const wrap = document.getElementById('taxZoneBarWrap');
   if (!wrap) return;
@@ -26205,7 +26292,10 @@ function renderTaxZoneBar(usdSubtotal){
     copy = `Te acercas a la zona de impuestos ($${TAX_ZONE_THRESHOLD_USD}). Si pasas de $${TAX_ZONE_THRESHOLD_USD}, este pedido paga ~${dutyPct}% en impuestos de importación. Recuerda: los pedidos menores a $${TAX_ZONE_THRESHOLD_USD} no pagan impuestos.`;
   } else {
     color = 'var(--green)';
-    copy = `Vas en $${Math.round(usdSubtotal)} — sin impuestos.`;
+    /* No dollar figure (2026-10-18, finding #9): usdSubtotal is the
+       declared, margin-free value -- next to the cart total it reads
+       Aria's margin. The bar shows the position. */
+    copy = `Tu pedido está por debajo de los $${TAX_ZONE_THRESHOLD_USD} — sin impuestos.`;
   }
 
   wrap.innerHTML = `
@@ -26413,6 +26503,8 @@ function openCrossSellProduct(idx){
 function addCrossSellToCart(idx){
   const it = crossSellItems[idx];
   if (!it) return;
+  // A garment needs its size: open its page, where the real list is.
+  if (apparelNeedsSize(it.retailer, it.title)){ openCrossSellProduct(idx); return; }
   /* This rail passed `priceUsd: it.price` straight through and never
      looked at it. A catalogue record with price: null reaches it the
      same way it reaches the product page, so it was the second door
