@@ -560,7 +560,15 @@
               <p id="kgAutoNote" class="text-[11px] mt-1.5" style="color:#8A93A8" hidden></p>
               <p id="kgHonorNote" class="text-[11px] mt-1" style="color:#2F7A46" hidden>Si el peso real resulta mayor, asumimos la diferencia: pagas el precio cotizado.</p>
             </div>
-            <div>
+            <!-- VALOR DECLARADO AND THE CONTENT DESCRIPTION ARE BACKSTAGE DATA
+                 (2026-10-18, Danny, finding #9 -- launch blocker). Both are
+                 customs/manifest figures: the declared value is the goods'
+                 raw US cost, so printing it beside "Total a pagar" let any
+                 shopper divide the two and read Aria's margin. The inputs
+                 stay in the form (the quote and the order record read
+                 them, both filled by renderCartItems) but are never shown.
+                 The customer sees products, freight and the total. -->
+            <div hidden>
               <label for="valorInput" class="block text-[12px] font-bold mb-1.5">Valor declarado</label>
               <div class="relative">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-bold" style="color:#9AA3B8">$</span>
@@ -570,10 +578,12 @@
             </div>
           </div>
           <div>
-            <label for="descInput" class="block text-[12px] font-bold mb-1.5">Descripción del contenido</label>
-            <input id="descInput" name="descInput" type="text" required placeholder="Ej. Ropa y zapatillas"
-              class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
-            <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Completa peso, valor y descripción para calcular tu flete.</p>
+            <div hidden>
+              <label for="descInput" class="block text-[12px] font-bold mb-1.5">Descripción del contenido</label>
+              <input id="descInput" name="descInput" type="text" required placeholder="Ej. Ropa y zapatillas"
+                class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+            </div>
+            <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Agrega productos a tu carrito para calcular tu flete.</p>
           </div>
         </section>
         </div>
@@ -1282,11 +1292,14 @@ function cardImgAttrs(url, sizes){
     const line = document.getElementById('taxTrackerLine');
     const bar = document.getElementById('taxTrackerBar');
     bar.style.width = pct.toFixed(1) + '%';
+    /* No dollar figure: fob is the declared (margin-free) value, and
+       printing it next to the total discloses the margin (finding #9).
+       The bar shows the position; the words say which side of $200. */
     if (fob <= TAX_ESTIMATE_THRESHOLD_USD){
-      line.textContent = `Vas en $${fob.toFixed(2)} de $${TAX_ESTIMATE_THRESHOLD_USD} – sin impuestos`;
+      line.textContent = `Tu pedido está por debajo de los $${TAX_ESTIMATE_THRESHOLD_USD} – sin impuestos`;
       bar.style.background = 'var(--navy)';
     } else {
-      line.textContent = `Pasaste los $${TAX_ESTIMATE_THRESHOLD_USD} ($${fob.toFixed(2)}) – se aplican impuestos de importación`;
+      line.textContent = `Pasaste los $${TAX_ESTIMATE_THRESHOLD_USD} – se aplican impuestos de importación`;
       bar.style.background = '#B7791F';
     }
   }
@@ -1510,7 +1523,7 @@ function cardImgAttrs(url, sizes){
 
     if (kg <= 0 || valor <= 0 || !description){
       latestQuote = null;
-      quoteStatus.textContent = 'Completa peso, valor y descripción para calcular tu flete.';
+      quoteStatus.textContent = 'Agrega productos a tu carrito para calcular tu flete.';
       renderSummary();
       return;
     }

@@ -443,7 +443,24 @@ await check("the dollar total on screen carries the soles fees too (provincia, s
   assert.doesNotMatch(page, /sumTotal\.innerHTML = fmtPrimary\(totals\.totalUsd\)/, "a summary total still omits the soles fees");
 });
 
-const MIN_CHECKS = 27;
+/* Danny, finding #9 (launch blocker): the declared value is the goods'
+   raw US cost; printed beside the total it discloses Aria's margin. */
+await check("the declared value and content description never reach the shopper's screen", () => {
+  const page = readFileSync(ROOT + "checkout.html", "utf8");
+  for (const id of ["valorInput", "descInput"]) {
+    const at = page.indexOf(`<input id="${id}"`);
+    assert.ok(at > 0, id + " is gone (the quote and the order record read it)");
+    const opener = page.lastIndexOf("<div", page.lastIndexOf(`<label for="${id}"`, at));
+    assert.match(page.slice(opener, opener + 12), /^<div hidden>/, id + " is visible to the shopper");
+  }
+  assert.doesNotMatch(page, /line\.textContent = `[^`]*\$\{fob/, "the tax tracker prints the declared value");
+  const app = readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]{16}\.js$/.test(f));
+  const bundle = readFileSync(ROOT + "build/" + app, "utf8");
+  assert.doesNotMatch(bundle, /Vas en \$\$\{Math\.round\(usdSubtotal\)\}/, "the cart's tax bar prints the declared value");
+  assert.match(bundle, /function healCartLineImages\(\)/, "photoless cart lines no longer recover their photo");
+});
+
+const MIN_CHECKS = 28;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

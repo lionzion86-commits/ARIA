@@ -19378,7 +19378,9 @@ function addToCartFromProduct(){
        than a guess from the title. Absent for every store that
        publishes no weight, which is every store but this catalogue. */
     ...(Number.isFinite(p.catalogWeightKg) && p.catalogWeightKg > 0 ? { specWeightKg: p.catalogWeightKg } : {}),
-    image: p.imageUrl || '',
+    /* The photo the shopper is looking at, even when the card that
+       opened this page passed none (#367: blank Macy's / AE thumbs). */
+    image: p.imageUrl || (Array.isArray(productGallery) && productGallery[0]) || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
@@ -26083,6 +26085,7 @@ function renderCartView(){
   emptyEl.hidden = true;
   summaryEl.hidden = false;
   wrap.innerHTML = cart.map(cartLineItemHTML).join('');
+  healCartLineImages();
 
   const totals = cartTotals();
   /* Itemised freight. cartTotals() already summed the per-item weight
@@ -26189,6 +26192,38 @@ const TAX_ZONE_AMBER_START_USD = 150;
 // Informational only: states the real rule, never coaches splitting
 // orders to dodge duties (Peru's anti-fraccionamiento rules are a real
 // legal question for the courier, not something to route around here).
+/* PHOTOLESS CART LINES RECOVER THEIR PHOTO (2026-10-18, #367 round 3:
+   Macy's / American Eagle lines showed blank thumbnails while Victoria's
+   Secret lines had photos). A line written before the product pages
+   carried the image -- it persists in localStorage and the server cart --
+   keeps rendering an empty box forever. Look the title up in the same
+   catalogue pool the product route uses, once per line per page load,
+   and save the photo back so checkout shows it too. */
+const cartImageHealTried = new Set();
+function healCartLineImages(){
+  const missing = cart.filter(it => it && it.lineType !== 'bundle-discount' && !it.image && it.title
+    && !cartImageHealTried.has(cartItemKey(it)));
+  if (!missing.length) return;
+  missing.forEach(it => cartImageHealTried.add(cartItemKey(it)));
+  Promise.all(missing.map(it => findCatalogProductByTitle(it.title).catch(() => null))).then((found) => {
+    let changed = false;
+    found.forEach((f, i) => {
+      const want = missing[i];
+      if (!f || (want.retailer && f.retailer && f.retailer !== want.retailer)) return;
+      const img = f.image || (Array.isArray(f.images) && f.images[0]) || '';
+      /* By key, not identity: initCart() rebuilds the line objects
+         (local load, server merge) while the lookup is in flight. */
+      const key = cartItemKey(want);
+      const line = cart.find(it => it && cartItemKey(it) === key && !it.image);
+      if (img && line){ line.image = img; changed = true; }
+    });
+    if (!changed) return;
+    saveCartLocal();
+    if (currentUser) syncCartToServer();
+    if (document.getElementById('cartView')?.classList.contains('active')) renderCartView();
+  });
+}
+
 function renderTaxZoneBar(usdSubtotal){
   const wrap = document.getElementById('taxZoneBarWrap');
   if (!wrap) return;
@@ -26205,7 +26240,10 @@ function renderTaxZoneBar(usdSubtotal){
     copy = `Te acercas a la zona de impuestos ($${TAX_ZONE_THRESHOLD_USD}). Si pasas de $${TAX_ZONE_THRESHOLD_USD}, este pedido paga ~${dutyPct}% en impuestos de importación. Recuerda: los pedidos menores a $${TAX_ZONE_THRESHOLD_USD} no pagan impuestos.`;
   } else {
     color = 'var(--green)';
-    copy = `Vas en $${Math.round(usdSubtotal)} — sin impuestos.`;
+    /* No dollar figure (2026-10-18, finding #9): usdSubtotal is the
+       declared, margin-free value -- next to the cart total it reads
+       Aria's margin. The bar shows the position. */
+    copy = `Tu pedido está por debajo de los $${TAX_ZONE_THRESHOLD_USD} — sin impuestos.`;
   }
 
   wrap.innerHTML = `
