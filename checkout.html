@@ -1922,7 +1922,7 @@ function cardImgAttrs(url, sizes){
       // of truth for both numbers.
       document.getElementById('orderTotal').textContent = data.chargedPen != null
         ? fmtWalletPen(data.chargedPen) + (data.walletAppliedPen > 0 ? ` (saldo Aria aplicado: ${fmtWalletPen(data.walletAppliedPen)})` : '')
-        : fmtPrimary(latestQuote.total_usd);
+        : fmtPrimary(orderTotalsUsd().totalUsd);   /* the summary's figure, never the courier quote's (Lucifer, #367) */
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;

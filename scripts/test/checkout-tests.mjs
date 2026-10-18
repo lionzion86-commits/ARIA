@@ -345,6 +345,7 @@ await check("rehearsal (Oct 17): Pagar's function ships only what it reads; cour
   /* 4. A failed Pagar keeps the summary's figure and names the failure. */
   const page = readFileSync(ROOT + "checkout.html", "utf8");
   assert.ok(!/payLabel\(latestQuote\.total_usd/.test(page), "the button falls back to the courier quote's total again");
+  assert.ok(!/fmtPrimary\(latestQuote\.total_usd\)/.test(page), "the success screen shows the courier quote's total");
   assert.match(page, /El servidor de pagos no respondió \(código \$\{res\.status\}/);
   /* 5. The handler answers our own { error } whatever throws. */
   const { handler } = await import(ROOT + "netlify/functions/orders-create.js");
