@@ -352,7 +352,27 @@ await check("rehearsal (Oct 17): Pagar's function ships only what it reads; cour
   assert.ok(r.body && JSON.parse(r.body).error, "a failure without an error message");
 });
 
-const MIN_CHECKS = 20;
+await check("product pages upsell: same store and same kind of thing, sale items only, in the shopper's lane", async () => {
+  const { liftDeclarations } = await import(ROOT + "scripts/lib/page-lift.mjs");
+  const page = readFileSync(ROOT + "producto.html", "utf8");
+  assert.ok(page.indexOf('<script src="sale-rule.js"></script>') > 0 && page.indexOf('<script src="product-type.js"></script>') > 0, "producto.html does not load the sale rule and the classifier");
+  const extra = "var window = {};\n" + readFileSync(ROOT + "product-type.js", "utf8").replace(/\r\n/g, "\n") + "\n";
+  const P = liftDeclarations(page, ["norm", "REL_MAX", "REL_MIN", "REL_LANES", "relLane", "relGender", "relKey", "relPick"], { extra });
+  const lane = (t, dept = "") => (P.relLane({ name: t, dept }) || {}).key;
+  assert.equal(lane("Adidas Samba ADV Shoes - Blush Pink"), "zapatos", "'Blush Pink' shoes read as beauty");
+  assert.notEqual(lane("Women's 725 High-Rise Kick Boot Jeans"), "zapatos", "kick-boot jeans read as shoes");
+  assert.notEqual(lane("AE Cap-Sleeve Button-Up Top"), "sombreros", "a cap-sleeve top read as a hat");
+  assert.equal(lane("Ultimate Glamour Box Slumber Party Makeover Kit", "beauty"), "beauty");
+  assert.equal(lane("AE Ford Mustang Retro Hat"), "sombreros");
+  const item = (name, extra = {}) => ({ name, retailer: "americaneagle", image: "x", salePct: 40, dept: "women", ...extra });
+  const anchor = item("AE On a Roll Off-the-Shoulder Sweatshirt", { salePct: 0 });
+  const pool = [item("AE Boxy T-Shirt"), item("AE Hoodie", { salePct: 0 }), item("Men's AE Flex Jeans", { dept: "men" }),
+    item("AE Ford Mustang Retro Hat"), item("AE Cami Top", { image: "" }), item("AE On a Roll Off-the-Shoulder Sweatshirt")];
+  const picks = Array.from(P.relPick(anchor, pool, { sameStore: true, requireLane: true }), (x) => x.name);
+  assert.deepEqual(picks, ["AE Boxy T-Shirt"], "the rail took a full-price, other-gender, other-lane, photo-less or same item: " + picks.join(", "));
+});
+
+const MIN_CHECKS = 21;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
