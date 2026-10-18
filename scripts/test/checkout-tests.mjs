@@ -323,7 +323,36 @@ await check("a charged order carries the buyer's DNI, and one without it charges
   assert.match(page, /idNumber: document\.getElementById\('custDoc'\)/, "the document is not sent");
 });
 
-const MIN_CHECKS = 19;
+await check("rehearsal (Oct 17): Pagar's function ships only what it reads; couriers by destination; photos; honest failures", async () => {
+  /* 1. No repo file list under [functions] itself: it was copied into every
+        function (222MB in orders-create). Only mcp and orders-create read files. */
+  const toml = readFileSync(ROOT + "netlify.toml", "utf8").replace(/#.*$/gm, "");
+  const globalBlock = (toml.match(/^\[functions\]\s*\n([\s\S]*?)(?=^\[)/m) || [, ""])[1];
+  assert.ok(!/included_files/.test(globalBlock), "included_files is back under [functions] for every function");
+  assert.match(toml, /\[functions\."orders-create"\]\s*\n\s*included_files = \["price-index\.json"\]/);
+  assert.match(toml, /\[functions\."mcp"\]\s*\n\s*included_files = \[[^\]]*\*-catalog\.json/);
+  /* 2. Lima is Reparto Aria only; provincias never get it. */
+  const C = await import(ROOT + "couriers.js");
+  assert.deepEqual(C.couriersFor("Lima").map((c) => c.id), ["aria-lima"]);
+  for (const city of ["Arequipa", "Otra"]) {
+    const ids = C.couriersFor(city).map((c) => c.id);
+    assert.ok(ids.includes("olva") && ids.includes("shalom") && !ids.includes("aria-lima"), city + ": " + ids.join(","));
+  }
+  /* 3. Lines added from a product page carry the photo the checkout shows. */
+  const producto = readFileSync(ROOT + "producto.html", "utf8");
+  const add = producto.slice(producto.indexOf("function addCurrentToCart("), producto.indexOf("toast('Agregado al carrito.');"));
+  assert.match(add, /image: p\.image/);
+  /* 4. A failed Pagar keeps the summary's figure and names the failure. */
+  const page = readFileSync(ROOT + "checkout.html", "utf8");
+  assert.ok(!/payLabel\(latestQuote\.total_usd/.test(page), "the button falls back to the courier quote's total again");
+  assert.match(page, /El servidor de pagos no respondió \(código \$\{res\.status\}/);
+  /* 5. The handler answers our own { error } whatever throws. */
+  const { handler } = await import(ROOT + "netlify/functions/orders-create.js");
+  const r = await handler({ httpMethod: "POST", headers: { host: "deploy-preview-1--ariashopperu.netlify.app" }, body: JSON.stringify({ items: [null, { qty: "x", priceUsd: "y" }], quote: { total_usd: 1 }, customer: { idNumber: "45678912" }, shownTotalPen: 1 }) });
+  assert.ok(r.body && JSON.parse(r.body).error, "a failure without an error message");
+});
+
+const MIN_CHECKS = 20;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

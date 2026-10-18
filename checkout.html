@@ -1873,7 +1873,14 @@ function cardImgAttrs(url, sizes){
           ref: storedRef(),
         }),
       });
-      const data = await res.json();
+      /* The body is read as text first: a platform failure (a function
+         timeout or crash) answers with Netlify's own JSON or an HTML page,
+         never our { error }, and used to surface as a bare "No se pudo
+         procesar el pedido" that told nobody anything (2026-10-17
+         rehearsal). */
+      const raw = await res.text();
+      let data = {};
+      try { data = JSON.parse(raw); } catch { data = {}; }
       if (res.status === 409 && data.totalChanged){
         /* A stale exchange rate, a repriced line or a freight quote under
            the weight floor: redraw on the server's figures and let the
@@ -1887,7 +1894,11 @@ function cardImgAttrs(url, sizes){
         await initFxRates();
         throw new Error(`El total se actualizó a ${fmtWalletPen(data.totalPen)}. Revísalo y vuelve a pagar.`);
       }
-      if (!res.ok) throw new Error(data.error || 'No se pudo procesar el pedido');
+      if (!res.ok){
+        if (data.error) throw new Error(data.error);
+        const why = data.errorType || data.errorMessage ? ` · ${String(data.errorType || data.errorMessage).slice(0, 60)}` : '';
+        throw new Error(`El servidor de pagos no respondió (código ${res.status}${why}). No se cobró nada; intenta de nuevo en un momento.`);
+      }
       if (data.checkoutUrl){
         /* To Stripe's page. The cart is NOT cleared: if the customer
            comes back without paying it is all still here. */
@@ -1919,8 +1930,11 @@ function cardImgAttrs(url, sizes){
       window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (err) {
       showToast(err.message || 'No pudimos procesar tu pedido — intenta de nuevo.');
-      payBtn.disabled = false;
-      payBtn.textContent = payLabel(latestQuote.total_usd, fxRates ? round2(latestQuote.total_usd * fxRates.venta) : null);
+      /* Back to the summary's own figures. This used to print the
+         courier quote's total_usd (declared value + freight, no Aria
+         margin), so after one failed Pagar the button read $84.94 under a
+         $102.12 total (2026-10-17 rehearsal). */
+      renderSummary();
     }
   });
 </script>

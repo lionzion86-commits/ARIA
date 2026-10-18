@@ -98,7 +98,27 @@ function normalizeRecipient(raw) {
   return recipient;
 }
 
+/* NO FAILURE WITHOUT A REASON (2026-10-18, #367 rehearsal). Anything that
+   throws, anywhere in the order path, answers with our own { error } and
+   is logged with how far it got, instead of a bare platform error that
+   left the page saying only "No se pudo procesar el pedido". Each stage is
+   timed in the function log, for the Netlify log view. */
 export async function handler(event) {
+  const t0 = Date.now();
+  try {
+    const res = await createOrderHandler(event);
+    console.info("[orders-create]", JSON.stringify({ status: res.statusCode, ms: Date.now() - t0 }));
+    return res;
+  } catch (error) {
+    console.error("[orders-create] failed", JSON.stringify({ ms: Date.now() - t0, message: error && error.message, stack: error && String(error.stack).split("\n").slice(0, 4).join(" | ") }));
+    return { statusCode: 500, headers: corsHeaders("POST, OPTIONS"), body: JSON.stringify({
+      error: "No pudimos procesar el pedido por un error interno. No se cobró nada; intenta de nuevo en un momento.",
+      detail: error && error.message,
+    }) };
+  }
+}
+
+async function createOrderHandler(event) {
   connectLambda(event);
   const headers = corsHeaders("POST, OPTIONS");
 

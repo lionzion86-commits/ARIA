@@ -503,6 +503,10 @@ function addCurrentToCart(p, wantsSize){
        this page; checkout re-resolves the weight server side. */
     weightKg: 0.2,
     weightEstimated: true,
+    /* The photo rides with the line (2026-10-17 rehearsal: every
+       checkout thumbnail was a blank box for items added here). */
+    image: p.image || (Array.isArray(p.images) && p.images[0]) || '',
+    brand: p.brand || '',
     selectedSize: size,
     qty: 1
   });
