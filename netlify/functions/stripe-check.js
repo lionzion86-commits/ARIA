@@ -21,6 +21,7 @@
 import { getStore, connectLambda } from "@netlify/blobs";
 import { retrieveCheckoutSession } from "./_stripe-api.js";
 import { toMinor } from "./_checkout-model.js";
+import { emailProvider } from "./_order-email.js";
 
 const PRODUCTION_HOSTS = new Set(["ariashop.pe", "www.ariashop.pe"]);
 const WEBHOOK_PATH = "/.netlify/functions/stripe-webhook";
@@ -42,7 +43,7 @@ const json = (statusCode, body) => ({
  * The report, from what Stripe and the order book said. Pure, so the
  * rules are tested without a network.
  */
-export function stripeCheckReport({ host, keyMode, webhookSecretSet, emailKeySet, account, endpoints, expect, session, order }) {
+export function stripeCheckReport({ host, keyMode, webhookSecretSet, emailKeySet, emailVia = null, account, endpoints, expect, session, order }) {
   const wantUrl = `https://${host}${WEBHOOK_PATH}`;
   const hook = (endpoints || []).find((e) => e && e.url === wantUrl) || null;
   const events = hook ? hook.enabled_events || [] : [];
@@ -60,7 +61,7 @@ export function stripeCheckReport({ host, keyMode, webhookSecretSet, emailKeySet
       signingSecretInstalled: Boolean(webhookSecretSet),
     },
     /* Finding #10: the confirmation email is part of the payment. */
-    email: { providerKeyInstalled: Boolean(emailKeySet) },
+    email: { providerKeyInstalled: Boolean(emailKeySet), provider: emailVia },
   };
   if (session) {
     const expected = order ? toMinor(order.pricePenCharged) : null;
@@ -123,7 +124,7 @@ export async function handler(event) {
 
   return json(200, stripeCheckReport({
     host, keyMode, webhookSecretSet: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
-    emailKeySet: Boolean(process.env.RESEND_API_KEY),
+    emailKeySet: Boolean(emailProvider()), emailVia: emailProvider(),
     account, endpoints, expect: String(q.expect || "").trim() || null, session, order,
   }));
 }

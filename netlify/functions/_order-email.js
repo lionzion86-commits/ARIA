@@ -18,13 +18,22 @@
    reach Aria. Nothing else -- in particular no declared value, cost
    basis or itemised margin (release gate, invariant 1).
 
-   HOW IT SENDS: Resend's HTTP API, one fetch, no dependency.
-     RESEND_API_KEY   the API key (required; without it nothing is sent
-                      and the order records why)
-     ARIA_EMAIL_FROM  sender, default "Aria <pedidos@ariashop.pe>"; the
-                      domain must be verified in Resend
-   A failed send never fails the webhook: the payment is recorded either
-   way, and the order carries confirmationEmailError for ops.
+   HOW IT SENDS -- whichever is configured, SMTP first:
+     SMTP (Aria's own Zoho mailbox, 2026-10-18: the first paid proof run
+     sent nothing because no provider was configured, and Aria's mail
+     already lives on Zoho -- no new account, no DNS change):
+       SMTP_HOST   smtp.zoho.com
+       SMTP_PORT   465 (TLS; 587 uses STARTTLS)
+       SMTP_USER   the mailbox, e.g. pedidos@ariashop.pe
+       SMTP_PASS   its password (a Zoho app password when 2FA is on)
+     Resend's HTTP API, when no SMTP is set:
+       RESEND_API_KEY, with the sending domain verified in Resend.
+     ARIA_EMAIL_FROM overrides the sender. Default: "Aria <SMTP_USER>"
+     over SMTP (Zoho only sends as the signed-in mailbox or its aliases),
+     "Aria <pedidos@ariashop.pe>" over Resend.
+   Without either, nothing is sent and the order records why. A failed
+   send never fails the webhook: the payment is recorded either way, and
+   the order carries confirmationEmailError for ops.
    ============================================================ */
 import { lastMileEtaEs } from "../../couriers.js";
 
@@ -113,15 +122,44 @@ export function orderConfirmationEmail(order) {
   return { to, subject, text, html };
 }
 
+/** Which provider this environment can send with: "smtp", "resend" or null. */
+export function emailProvider(env = process.env) {
+  if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS) return "smtp";
+  if (env.RESEND_API_KEY) return "resend";
+  return null;
+}
+
 /**
  * Send it. Returns { sent: true, id } or { sent: false, error } -- never
  * throws, because the caller is the payment webhook.
  */
-export async function sendOrderConfirmation(order, { env = process.env, fetchImpl = fetch } = {}) {
+export async function sendOrderConfirmation(order, { env = process.env, fetchImpl = fetch, createTransport = null } = {}) {
   const msg = orderConfirmationEmail(order);
   if (!msg.to) return { sent: false, error: "el pedido no tiene un correo válido" };
-  const key = env.RESEND_API_KEY || "";
-  if (!key) return { sent: false, error: "RESEND_API_KEY no está configurado" };
+  const provider = emailProvider(env);
+  if (!provider) return { sent: false, error: "no hay proveedor de correo configurado (SMTP_HOST/SMTP_USER/SMTP_PASS o RESEND_API_KEY)" };
+  if (provider === "smtp") {
+    try {
+      const make = createTransport || (await import("nodemailer")).default.createTransport;
+      const port = Number(env.SMTP_PORT) || 465;
+      const transport = make({
+        host: env.SMTP_HOST, port, secure: port === 465,
+        auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+      });
+      const info = await transport.sendMail({
+        from: env.ARIA_EMAIL_FROM || `Aria <${env.SMTP_USER}>`,
+        to: msg.to,
+        replyTo: REPLY_TO,
+        subject: msg.subject,
+        text: msg.text,
+        html: msg.html,
+      });
+      return { sent: true, id: (info && info.messageId) || null };
+    } catch (e) {
+      return { sent: false, error: String(e && e.message || e) };
+    }
+  }
+  const key = env.RESEND_API_KEY;
   try {
     const res = await fetchImpl("https://api.resend.com/emails", {
       method: "POST",

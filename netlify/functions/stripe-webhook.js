@@ -164,12 +164,24 @@ export async function handler(event) {
              recorded for ops and never fails this webhook, which must
              still record the money. */
           if (updated.paymentStatus === "paid" && !updated.confirmationEmailSentAt) {
-            const mail = await sendOrderConfirmation(updated);
-            updated = mail.sent
-              ? { ...updated, confirmationEmailSentAt: new Date().toISOString(), confirmationEmailId: mail.id || null, confirmationEmailError: null }
-              : { ...updated, confirmationEmailError: mail.error };
-            if (!mail.sent) console.error(`[stripe-webhook] confirmation email for ${payment.orderId} not sent: ${mail.error}`);
-            await ordersStore.setJSON(payment.orderId, updated);
+            /* ONE SEND PER ORDER, EVEN WHEN STRIPE SENDS TWO EVENTS AT ONCE.
+               checkout.session.completed and payment_intent.succeeded land
+               together and both read "paid, not sent". A create-only claim
+               lets exactly one of them send; a failed send releases it so
+               the next event can try again. */
+            const claims = getStore("order-email-claims");
+            const claim = await claims.set(payment.orderId, new Date().toISOString(), { onlyIfNew: true });
+            if (claim && claim.modified) {
+              const mail = await sendOrderConfirmation(updated);
+              updated = mail.sent
+                ? { ...updated, confirmationEmailSentAt: new Date().toISOString(), confirmationEmailId: mail.id || null, confirmationEmailError: null }
+                : { ...updated, confirmationEmailError: mail.error };
+              if (!mail.sent) {
+                console.error(`[stripe-webhook] confirmation email for ${payment.orderId} not sent: ${mail.error}`);
+                await claims.delete(payment.orderId);
+              }
+              await ordersStore.setJSON(payment.orderId, updated);
+            }
           }
         }
       }

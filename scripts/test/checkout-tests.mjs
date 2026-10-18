@@ -32,7 +32,8 @@ register("data:text/javascript," + encodeURIComponent(`
       "export const connectLambda = () => {};" +
       "export function getStore(name){ if(!S.has(name)) S.set(name,new Map()); const m=S.get(name);" +
       " return { get: async (k)=> m.has(k)? JSON.parse(m.get(k)) : null, setJSON: async (k,v)=>{ m.set(k, JSON.stringify(v)); }," +
-      " set: async (k,v)=>{ m.set(k, String(v)); }, delete: async (k)=>{ m.delete(k); }, list: async ()=>({ blobs: [...m.keys()].map(key=>({key})) }) }; }"
+      " set: async (k,v,o)=>{ if (o && o.onlyIfNew && m.has(k)) return { modified: false }; m.set(k, String(v)); return { modified: true }; }," +
+      " delete: async (k)=>{ m.delete(k); }, list: async ()=>({ blobs: [...m.keys()].map(key=>({key})) }) }; }"
     ), shortCircuit: true };
     return next(spec, ctx);
   }
@@ -493,6 +494,20 @@ await check("the email is sent once per order, keyed on it, and a failure never 
   const E = await import(ROOT + "netlify/functions/_order-email.js");
   const calls = [];
   const ok = async (url, init) => { calls.push({ url, init }); return { ok: true, json: async () => ({ id: "em_1" }) }; };
+  /* Zoho (or any SMTP) first: Aria's mail already lives there. */
+  assert.equal(E.emailProvider({ SMTP_HOST: "smtp.zoho.com", SMTP_USER: "pedidos@ariashop.pe", SMTP_PASS: "x", RESEND_API_KEY: "k" }), "smtp");
+  assert.equal(E.emailProvider({ RESEND_API_KEY: "k" }), "resend");
+  assert.equal(E.emailProvider({ SMTP_HOST: "smtp.zoho.com" }), null, "a half-configured SMTP counts as configured");
+  let made = null, mailed = null;
+  const createTransport = (opts) => { made = opts; return { sendMail: async (m) => { mailed = m; return { messageId: "<m1@zoho>" }; } }; };
+  const smtpEnv = { SMTP_HOST: "smtp.zoho.com", SMTP_USER: "pedidos@ariashop.pe", SMTP_PASS: "secret" };
+  assert.deepEqual(await E.sendOrderConfirmation(PAID_ORDER, { env: smtpEnv, createTransport }), { sent: true, id: "<m1@zoho>" });
+  assert.deepEqual([made.host, made.port, made.secure, made.auth.user], ["smtp.zoho.com", 465, true, "pedidos@ariashop.pe"]);
+  assert.equal(mailed.from, "Aria <pedidos@ariashop.pe>", "Zoho only sends as the signed-in mailbox");
+  assert.equal(mailed.to, "danielleon@ariashop.pe");
+  assert.match(mailed.subject, /ARIA-20261018-5CEECF/);
+  const smtpDown = () => ({ sendMail: async () => { throw new Error("535 Authentication Failed"); } });
+  assert.deepEqual(await E.sendOrderConfirmation(PAID_ORDER, { env: smtpEnv, createTransport: smtpDown }), { sent: false, error: "535 Authentication Failed" });
   const sent = await E.sendOrderConfirmation(PAID_ORDER, { env: { RESEND_API_KEY: "re_test" }, fetchImpl: ok });
   assert.deepEqual(sent, { sent: true, id: "em_1" });
   assert.equal(calls[0].url, "https://api.resend.com/emails");
@@ -503,11 +518,52 @@ await check("the email is sent once per order, keyed on it, and a failure never 
   assert.deepEqual(await E.sendOrderConfirmation(PAID_ORDER, { env: { RESEND_API_KEY: "k" }, fetchImpl: boom }), { sent: false, error: "network down" });
   const refused = async () => ({ ok: false, status: 403, json: async () => ({ message: "domain not verified" }) });
   assert.equal((await E.sendOrderConfirmation(PAID_ORDER, { env: { RESEND_API_KEY: "k" }, fetchImpl: refused })).error, "domain not verified");
-  const hook = readFileSync(ROOT + "netlify/functions/stripe-webhook.js", "utf8");
-  assert.match(hook, /if \(updated\.paymentStatus === "paid" && !updated\.confirmationEmailSentAt\) \{/, "the webhook does not send on the first paid event, or sends again");
 });
 
-const MIN_CHECKS = 30;
+await check("two paid events at once (session + intent) send exactly one email, from the real webhook", async () => {
+  const { createHmac } = await import("node:crypto");
+  const secret = "whsec_test_email";
+  const prev = { ...process.env };
+  Object.assign(process.env, { STRIPE_WEBHOOK_SECRET: secret, RESEND_API_KEY: "re_test" });
+  delete process.env.SMTP_HOST;
+  const realFetch = globalThis.fetch;
+  const resendCalls = [];
+  globalThis.fetch = async (url, init) => {
+    if (String(url).startsWith("https://api.resend.com/")) { resendCalls.push(JSON.parse(init.body)); return { ok: true, json: async () => ({ id: "em_" + resendCalls.length }) }; }
+    return realFetch(url, init);
+  };
+  try {
+    const orderId = "ARIA-20261018-0C6674";
+    globalThis.__blobs.set("orders", globalThis.__blobs.get("orders") || new Map());
+    globalThis.__blobs.get("orders").set(orderId, JSON.stringify({ ...PAID_ORDER, orderId, status: "pending_payment", paymentStatus: "unpaid", pricePenCharged: 222.88, amountCapturedPen: null }));
+    const { handler } = await import(ROOT + "netlify/functions/stripe-webhook.js");
+    const signed = (evt) => {
+      const body = JSON.stringify(evt), t = Math.floor(Date.now() / 1000);
+      const sig = createHmac("sha256", secret).update(`${t}.${body}`).digest("hex");
+      return { httpMethod: "POST", body, headers: { "stripe-signature": `t=${t},v1=${sig}` } };
+    };
+    const meta = { orderId };
+    const [a, b] = await Promise.all([
+      handler(signed({ id: "evt_cs", type: "checkout.session.completed", created: 1, data: { object: { id: "cs_1", payment_intent: "pi_1", currency: "pen", amount_total: 22288, payment_status: "paid", metadata: meta } } })),
+      handler(signed({ id: "evt_pi", type: "payment_intent.succeeded", created: 1, data: { object: { id: "pi_1", currency: "pen", amount_received: 22288, metadata: meta } } })),
+    ]);
+    assert.equal(a.statusCode, 200, a.body);
+    assert.equal(b.statusCode, 200, b.body);
+    assert.equal(resendCalls.length, 1, `sent ${resendCalls.length} emails for one payment`);
+    assert.deepEqual(resendCalls[0].to, ["danielleon@ariashop.pe"]);
+    const rec = JSON.parse(globalThis.__blobs.get("orders").get(orderId));
+    assert.equal(rec.paymentStatus, "paid");
+    assert.ok(rec.confirmationEmailSentAt, "the order does not record that its email went out");
+    /* A retried event later sends nothing more. */
+    await handler(signed({ id: "evt_pi_retry", type: "payment_intent.succeeded", created: 2, data: { object: { id: "pi_1", currency: "pen", amount_received: 22288, metadata: meta } } }));
+    assert.equal(resendCalls.length, 1, "a retried event sent the email again");
+  } finally {
+    globalThis.fetch = realFetch;
+    for (const k of ["STRIPE_WEBHOOK_SECRET", "RESEND_API_KEY"]) { if (k in prev) process.env[k] = prev[k]; else delete process.env[k]; }
+  }
+});
+
+const MIN_CHECKS = 31;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
