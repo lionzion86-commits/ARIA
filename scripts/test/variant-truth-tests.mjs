@@ -90,11 +90,16 @@ await check("no invented size list exists anywhere a shopper can reach", () => {
   }
 });
 
-await check("a garment without a verified list cannot reach the cart from any door", () => {
-  assert.match(bundle, /if \(item\.lineType !== 'bundle-discount' && apparelNeedsSize\(item\.retailer, item\.title\)\n      && !String\(item\.selectedSize \|\| ''\)\.trim\(\)\)\{/, "addToCart lets a sizeless garment in");
-  assert.match(bundle, /if \(apparelNeedsSize\(it\.retailer, it\.title\)\)\{ openCrossSellProduct\(idx\); return; \}/, "the cross-sell rail adds a garment with no size");
-  assert.match(bundle, /if \(hasPrice\) setProductSizesUnconfirmed\(\);/, "the product view no longer says the sizes are unconfirmed");
-  assert.match(pdp, /if \(wantsSize && !sizes\.length\)\{[\s\S]{0,600}Tallas por confirmar/, "producto.html offers a garment with no verified sizes");
+await check("the RECORD decides (#411 P0): a size list means no cart without a size; no list sells plainly", () => {
+  /* Every door: the funnel, the product view, the cross-sell rail, the chat, producto.html. */
+  const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.doesNotMatch(code(bundle), /apparelNeedsSize|setProductSizesUnconfirmed|Tallas por confirmar/, "the bundle still gates on title words");
+  assert.doesNotMatch(code(pdp), /apparelNeedsSize|Tallas por confirmar/, "producto.html still gates on title words");
+  assert.match(bundle, /const sizeList = truthfulSizes\(Array\.isArray\(item\.sizeOptions\) && item\.sizeOptions\.length \? item\.sizeOptions : item\.sizes\);\n    const chosen = String\(item\.selectedSize \|\| ''\)\.trim\(\);\n    if \(sizeList\.length && \(!chosen \|\| !sizeList\.includes\(chosen\)\)\)\{/, "addToCart lets a sized line in without its size");
+  assert.match(bundle, /if \(truthfulSizes\(it\.sizes\)\.length\)\{ openCrossSellProduct\(idx\); return; \}/, "the cross-sell rail adds a sized product with no size");
+  assert.match(bundle, /function chatSizeOptions\(entry\)\{\n  return truthfulSizes\(entry\.item\.sizes\)\.slice\(0, 24\);\n\}/, "the chat offers sizes that are not the store's");
+  assert.match(pdp, /var sizes = truthfulSizes\(p\.sizes\);\n  var wantsSize = sizes\.length > 0;/, "producto.html decides the picker from something other than the record");
+  assert.match(pdp, /if \(!size \|\| sizes\.indexOf\(size\) < 0\)\{/, "producto.html adds a sized product without a size");
 });
 
 await check("the verified lists are on the catalogue records (Danny's YoungLA example)", () => {
