@@ -17,6 +17,25 @@
    listed twice by the same store (two department buckets, same URL) is
    one row. Product data is not changed -- this file is derived from it.
 
+   SERVER-SIDE SINCE 2026-10-19 (#409). A customer on an iPhone in Peru
+   searched "dolls" and the page downloaded this whole file to her
+   phone, reloaded ~10 times and froze. The phone no longer downloads
+   it: netlify/functions/search.js loads it once per warm container and
+   answers ?q=&page= with 48 ranked cards. This file ships only beside
+   that function (netlify.toml included_files); search.html never
+   fetches it, nor any catalogue.
+
+   Each row also carries an id (stable hash of store + product URL),
+   titles and brands with HTML entities decoded ("Lizzie &#38; Oliver"
+   was printed raw on the cards), Foot Locker's productName/imageUrl
+   (726 products were missing: its feed has no name/title field), and
+   the was-price fields of the site's one sale rule (SALE_ORIGINAL_FIELDS).
+
+   DEMAND (2026-10-19, #416 generic lanes). Each row also carries the
+   store's review count and star rating, where the store published
+   them (about half the catalogue): the "Más vendidos" lane and the
+   lead slots of every lane rank by them. 0 means not published.
+
    REGENERATE after any catalogue change:
      node scripts/build-search-index.mjs
    scripts/test/search-brief-tests.mjs fails when the index has fallen
@@ -28,13 +47,72 @@ import vm from "node:vm";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
-export const INDEX_FIELDS = ["title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat"];
+export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating"];
 
-/* search.html's own file list, so the two can never disagree. */
-export function catalogFiles() {
-  const page = readFileSync(ROOT + "search.html", "utf8");
-  return JSON.parse("[" + /var CATALOG_FILES = \[([\s\S]*?)\];/.exec(page)[1] + "]").map(f => f.slice(1));
+/* Everything search covers: the catalogues below, then the sale feed
+   for deals no catalogue carries. (This list lived in search.html while
+   the page loaded the catalogues itself.) */
+export const CATALOG_FILES = [
+  "department-cache-walmart.json", "department-cache-target.json",
+  "department-cache-oldnavy.json", "department-cache-footlocker.json",
+  "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json",
+  "lanebryant-catalog.json", "dicks-catalog.json", "pacsun-catalog.json",
+  "skims-catalog.json", "revolve-catalog.json", "ulta-catalog.json",
+  "yesstyle-catalog.json", "miumiu-catalog.json", "partycity-catalog.json",
+  "samsclub-catalog.json", "costco-catalog.json", "gymrat-catalog.json",
+  "kohls-catalog.json", "newbalance-catalog.json", "bhphoto-catalog.json",
+  "advanceauto-catalog.json", "nautilus-catalog.json",
+  "islandwatersports-catalog.json", "quietstorm-catalog.json",
+  "surfworld-catalog.json", "surfstation-catalog.json",
+  "mainland-catalog.json", "parrot-catalog.json", "ccs-catalog.json",
+  "valsurf-catalog.json", "venum-catalog.json", "tatami-catalog.json",
+  "everlast-catalog.json", "mmawarehouse-catalog.json",
+  "combatcorner-catalog.json", "fuji-catalog.json", "fightclub-catalog.json",
+  "crocs-catalog.json", "baublebar-catalog.json", "jwpei-catalog.json",
+  "meliebianco-catalog.json", "bentgo-catalog.json", "mushie-catalog.json",
+  "ezpz-catalog.json", "statebags-catalog.json", "books-catalog.json",
+  "moms-catalog.json", "ae-catalog.json", "farfetch-catalog.json",
+  "target-catalog.json", "soccer-catalog.json", "tennis-catalog.json",
+  "latino-designers-dtc-catalog.json", "jewelry-catalog.json",
+  "moto-catalog.json", "juguetes-catalog.json", "sunglasses-catalog.json",
+  "finishline-catalog.json", "zumiez-catalog.json", "hottopic-catalog.json",
+  "boxlunch-catalog.json",
+];
+export function catalogFiles() { return CATALOG_FILES.slice(); }
+
+/* "Lizzie &#38; Oliver", "18&#34; Dolls", "Li&#39;l Woodzeez": scraped
+   titles carry HTML entities, and the cards printed them raw. Decoded
+   once, here, so every consumer of the index gets plain text. */
+const NAMED_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", reg: "\u00ae", trade: "\u2122", copy: "\u00a9", deg: "\u00b0", eacute: "\u00e9", ntilde: "\u00f1", rsquo: "\u2019", lsquo: "\u2018", rdquo: "\u201d", ldquo: "\u201c", ndash: "\u2013", mdash: "\u2014", hellip: "\u2026" };
+export function decodeEntities(s) {
+  let out = String(s ?? "");
+  /* Twice: "&amp;#38;" is an entity escaped once more. */
+  for (let pass = 0; pass < 2 && out.includes("&"); pass++) {
+    out = out.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
+      if (e[0] === "#") {
+        const cp = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return Number.isFinite(cp) && cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+      }
+      const v = NAMED_ENTITIES[e.toLowerCase()];
+      return v === undefined ? m : v;
+    });
+  }
+  return out;
 }
+
+/* A product's id: store + product URL (title when there is none),
+   FNV-1a, base 36. Stable across rebuilds while the product exists. */
+export function productId(retailer, url, title) {
+  const s = String(retailer || "").toLowerCase() + "|" + String(url || title || "");
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  let h2 = 0x9e3779b9;
+  for (let i = s.length - 1; i >= 0; i--) { h2 ^= s.charCodeAt(i); h2 = Math.imul(h2, 0x85ebca6b) >>> 0; }
+  return h.toString(36) + h2.toString(36).slice(0, 3);
+}
+
+/* index.html's one sale rule reads these, in this order. */
+const SALE_ORIGINAL_FIELDS = ["regularPrice", "wasPrice", "was_price", "originalPrice", "compareAt"];
 
 function loadEngine() {
   const sandbox = { window: {}, console };
@@ -43,19 +121,27 @@ function loadEngine() {
   return sandbox.window.AriaSearch;
 }
 
+/* The first positive finite number among the store's spellings. */
+function firstNumber(...vals) {
+  for (const v of vals) { const n = Number(v); if (v != null && Number.isFinite(n) && n > 0) return n; }
+  return 0;
+}
+
 function normalize(it, retailer, department, finalPrice) {
   if (!it || typeof it !== "object") return null;
-  const title = it.name || it.title || "";
+  const title = decodeEntities(it.name || it.title || it.productName || "").trim();
   const price = Number(it.price);
   if (!title || !(price > 0)) return null;
-  let image = it.thumbnail || it.image || "";
+  let image = it.thumbnail || it.image || it.imageUrl || "";
   if (!image && Array.isArray(it.images) && it.images[0]) image = it.images[0];
-  const orig = Number(it.originalPrice || it.wasPrice || it.listPrice);
+  let orig = NaN;
+  for (const k of SALE_ORIGINAL_FIELDS) { const v = Number(it[k]); if (v > 0) { orig = v; break; } }
   return {
-    title: String(title), brand: String(it.brand || ""), price,
+    title, brand: decodeEntities(it.brand || "").trim(), price,
     originalPrice: orig > price ? orig : 0, onSale: it.onSale === true,
     department: department ? String(department) : "", retailer: String(it.retailer || retailer || ""),
-    finalPrice: !!finalPrice, image: typeof image === "string" ? image : "", url: String(it.url || it.link || ""),
+    finalPrice: !!finalPrice, image: typeof image === "string" ? image : "", url: String(it.url || it.link || it.productUrl || ""),
+    reviews: firstNumber(it.reviewCount, it.reviews), rating: Math.round(firstNumber(it.rating, it.averageRating, it.reviewScore) * 10) / 10,
   };
 }
 
@@ -98,8 +184,8 @@ export function buildIndex() {
     if (!p.image) continue;
     const cat = S.catalogItemCategory({ title: p.title, name: p.title, brand: p.brand, retailer: p.retailer,
       departments: p.department ? [p.department] : [] }) || "";
-    rows.push([p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
-      p.finalPrice ? 1 : 0, p.image, cat]);
+    rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
+      p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
   }
   return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, rows };
 }

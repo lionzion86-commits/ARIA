@@ -633,12 +633,36 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-t
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"]};
+/* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
+   page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
+   a dozen cards per rail, and Safari reloaded the tab under the memory.
+   scripts/build-home-shelves.mjs now runs this page's own code over the
+   committed catalogues and saves what every home rail picks; each rail
+   fetches its own slice (about 1-3KB gzipped) instead of catalogues.
+   A missing slice answers null and the rail takes its old path, so a
+   stale or absent build can never leave a shelf empty. */
+const HOME_SHELVES_DIR = '/assets/home/shelves/';
+const homeShelfCache = new Map();
+function homeShelf(name){
+  if (!homeShelfCache.has(name)){
+    homeShelfCache.set(name, fetchWithTimeout(HOME_SHELVES_DIR + name + '.json', FETCH_DEADLINE_MS)
+      .then(r => (r.ok ? r.json() : null))
+      .catch(() => null));
+  }
+  return homeShelfCache.get(name);
+}
+/* A family's saved picks, or null when the page should compute them. */
+async function homeShelfPicks(name){
+  const shelf = await homeShelf(name);
+  return shelf && Array.isArray(shelf.picks) ? shelf.picks : null;
+}
+
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -3066,6 +3090,132 @@ function imageRetryUrl(url){
 }
 
 /* ============================================================
+   ASK THE CDN FOR A SMALLER FILE (2026-10-16)
+
+   The other half of upgradeImageUrl. That one buys crispness at the
+   data boundary; this one buys survival at the render boundary. A
+   card slot on this site is ~172 CSS px wide, but the URL in the data
+   is the retailer's full-size original -- 1600 to 2000 px, 150 KB to
+   1 MB -- and the phone decodes every one at full size. A long scroll
+   session decodes hundreds of megabytes of photography to paint
+   thumbnails, and iOS answers by killing the tab, which the shopper
+   experiences as the page refreshing itself (the Oct 14 crash
+   diagnosis' last lever; confirmed on Danny's iPhone 2026-10-16).
+
+   Every host below is a first-party resize parameter VERIFIED live
+   against the retailer's own CDN on 2026-10-16 -- status, pixel size
+   and bytes checked per host. The photo still comes from the
+   retailer's CDN, so it costs no Netlify bandwidth and no
+   transformation credits. Netlify Image CDN was costed and rejected:
+   on the credit plans every byte it serves is metered bandwidth, so
+   it would bill this site for every product photo a shopper loads,
+   against the same balance that ran dry the morning this was built.
+
+   A DERIVATIVE CARRIES ITS OWN UNDO, the doctrine upgradeImageUrl
+   already established: a caller that rewrites a URL attaches the
+   untouched URL as the image's data-img-fallback, and the existing
+   error handlers swap back with no broken frame. Hosts with no
+   verified parameter return the URL unchanged -- Revolve and Miu Miu
+   (no public size parameter), Amplience/Hot Topic (the stored URLs
+   answer 404 today), AE and Zumiez Scene7 (their defaults are
+   already card-sized, so a wid would make files BIGGER) -- and an
+   unchanged URL renders exactly as it did before this section
+   existed. The product detail view and its magnifier never come
+   through here: they keep the upgraded original, as designed.
+   ============================================================ */
+const CARD_IMG_WIDTHS = [360, 560, 800];
+const CARD_IMG_SIZES = '(max-width: 640px) 44vw, 200px';
+
+/* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sizedImageUrl(url, w){
+  const u = typeof url === 'string' ? url : '';
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  const setQ = (base, key, val) => {
+    const re = new RegExp('([?&]' + key + '=)(\\d+)', 'i');
+    if (re.test(base)) return base.replace(re, (m, p) => p + val);
+    return base + (base.indexOf('?') >= 0 ? '&' : '?') + key + '=' + val;
+  };
+  let out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, 'width', w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    /* The transform chain sits between /upload/ and the asset path;
+       only rewrite when a width token is already there to replace. */
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, '$1w_' + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, 'odnWidth', w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, (m, p) => p + w)
+      : out + '&odnHeight=' + w;
+    if (!/odnBg=/i.test(out)) out += '&odnBg=FFFFFF';
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width. The bare
+       default is already card-sized on these hosts (Target serves
+       400x400 by default) -- inventing a wid would hand the shopper
+       a BIGGER file than the one they get today. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, 'wid', w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, (m, p) => p + w);
+    }
+  } else if (/macysassets\.com/i.test(u)){
+    /* Same rule: Macy's bare default is a 328px-wide render; only a
+       URL that already declares a wid (the upgraded form) is reduced. */
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, 'wid', w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, 'imwidth', w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, 'width', w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, 'w', w);
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    /* B&H serves fixed steps, not arbitrary widths. */
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace('/images/fb/', '/images/images250x250/');
+      else if (w <= 560) out = u.replace('/images/fb/', '/images/images500x500/');
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    /* Farfetch names the width in the file suffix: 500 is the card
+       step, and anything larger keeps the original file. */
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, '_500.jpg');
+  }
+  return out || u;
+}
+
+function imageSrcset(url){
+  const u = typeof url === 'string' ? url : '';
+  if (!u) return '';
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, '_500.jpg') + ' 500w, ' + u + ' 1000w';
+  }
+  const seen = new Set();
+  const parts = [];
+  for (const w of CARD_IMG_WIDTHS){
+    const s = sizedImageUrl(u, w);
+    if (s === u || seen.has(s)) continue;
+    seen.add(s);
+    parts.push(s + ' ' + w + 'w');
+  }
+  return parts.length ? parts.join(', ') : '';
+}
+
+/* ============================================================
    NO PRODUCT WEARS A GREY BOX (2026-09-22)
 
    The missing-photo state was the words "Sin imagen" in light grey on
@@ -3087,11 +3237,21 @@ function photoPlaceholderHTML(note = 'Foto en camino'){
 
 function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '', eager = false } = {}){
   const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
-  return src
-    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" draggable="false" class="w-full h-full"${
-        fallbackSrc ? ` data-img-fallback="${escapeHtml(fallbackSrc)}"` : ''}
-             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
-    : photoPlaceholderHTML();
+  if (!src) return photoPlaceholderHTML();
+  /* Render the card-sized derivative, never the retailer's original
+     (see sizedImageUrl). The untouched URL rides along as the
+     data-img-fallback whenever the rewrite changed anything, so the
+     card's error walk ends at the original exactly as it ends at the
+     YesStyle retry today. A caller-supplied fallbackSrc always wins:
+     it is only ever non-empty for the CloudFront retry, whose URLs
+     no sizing rule touches, so the two never contend. */
+  const sized = sizedImageUrl(src, 560);
+  const srcset = imageSrcset(src);
+  const fb = fallbackSrc || (srcset || sized !== src ? src : '');
+  return `<img src="${escapeHtml(sized)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" draggable="false" class="w-full h-full"${
+        srcset ? ` srcset="${escapeHtml(srcset)}" sizes="${CARD_IMG_SIZES}"` : ''}${
+        fb ? ` data-img-fallback="${escapeHtml(fb)}"` : ''}
+             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`;
 }
 
 /**
@@ -3195,10 +3355,28 @@ function cardSwipeImg(ev, el, dir){
   img.removeAttribute('data-img-fallback');
   img.style.transition = 'opacity .16s ease';
   img.style.opacity = '0';
+  /* Preload the card-sized derivative, not the original (see
+     sizedImageUrl). If the derivative fails, try the original before
+     giving up and reverting the swipe; when the derivative is what
+     lands, the original becomes this photo's data-img-fallback --
+     the same photo, never the first photo's retry URL this function
+     just removed. */
+  const sizedUrl = sizedImageUrl(imgs[idx], 560);
+  let loadedUrl = sizedUrl;
   const pre = new Image();
-  pre.onload = function(){ img.src = imgs[idx]; img.style.opacity = '1'; };
-  pre.onerror = function(){ frame.dataset.swipeIdx = prev; img.style.opacity = '1'; };
-  pre.src = imgs[idx];
+  pre.onload = function(){
+    img.src = loadedUrl;
+    const ss = imageSrcset(imgs[idx]);
+    if (ss){ img.setAttribute('srcset', ss); img.setAttribute('sizes', CARD_IMG_SIZES); }
+    else { img.removeAttribute('srcset'); img.removeAttribute('sizes'); }
+    if (loadedUrl !== imgs[idx]) img.setAttribute('data-img-fallback', imgs[idx]);
+    img.style.opacity = '1';
+  };
+  pre.onerror = function(){
+    if (loadedUrl !== imgs[idx]){ loadedUrl = imgs[idx]; pre.src = imgs[idx]; return; }
+    frame.dataset.swipeIdx = prev; img.style.opacity = '1';
+  };
+  pre.src = sizedUrl;
 }
 
 /* OFERTAS IS DESIGNED, NOT SCRAPED — AND IT IS THE SALE CARD (2026-09-21).
@@ -3485,10 +3663,27 @@ function initDepartmentTiles(){
      downloading all 63 sources because the tile rail scrolled
      near. repaintHomeTiles() corrects the counts if the full
      catalogue is fetched later in the page life. */
-  loadCatalogTilesStage().then(data => {
-    departmentCacheData = data;
-    homeTilesStaged = true;
-    paintHomeTiles(data);
+  /* The saved tiles and brand lines first (HOME SHELVES): their counts
+     come from the full catalogue, without downloading it. */
+  homeShelf('index').then(index => {
+    if (index && Array.isArray(index.tiles) && index.tiles.length){
+      for (const el of document.querySelectorAll('[data-brandline]')){
+        const brands = (index.brandLines || {})[el.getAttribute('data-brandline')] || [];
+        if (!brands.length) continue;
+        el.textContent = brands.join(' · ');
+        el.hidden = false;
+      }
+      const tiles = index.tiles.map(t => ({ t, kind: 'department' }));
+      const grid = document.getElementById('catGrid');
+      if (grid) grid.innerHTML = tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('');
+      renderMobileCatsRail(tiles);
+      return;
+    }
+    loadCatalogTilesStage().then(data => {
+      departmentCacheData = data;
+      homeTilesStaged = true;
+      paintHomeTiles(data);
+    });
   });
   };
   const watchTargets = ['mobileCatsRow', 'desktopCatsRow', 'catGrid']
@@ -4752,6 +4947,50 @@ function detectBrandIntent(rawToks, pool, opts){
      beat "yougla"->"youngla". Now each window size runs exact-then-
      fuzzy before a smaller size is tried, so a multi-word brand always
      outranks a one-word coincidence. */
+  /* EXACT BRANDS FIRST, AND THE ONE THE REST OF THE QUERY BELONGS TO
+     (2026-10-19, #416). "nike air max 90" showed Hairmax hair-growth
+     lasers: the two-word window "air max" fuzzy-matched the brand
+     Hairmax before the exact brand "nike" was ever tried. An exact
+     brand, anywhere in the query, now beats any fuzzy one (the case the
+     longest-window order once protected -- "secret" inside "victoria
+     secret" -- is already refused by brandOwnsItsName). Two exact
+     brands ("lego star wars": LEGO and the Star Wars clothing label)
+     go to the brand whose own products carry the rest of the query:
+     LEGO's titles say "Star Wars", Star Wars' baby clothes never say
+     "LEGO". */
+  const exactHits = [];
+  for (const windows of windowsBySize){
+    for (const w of windows){
+      if (singleSkipped(w)) continue;
+      if (exactHits.some(h => h.consumed.some(i => w.idx.includes(i)))) continue;
+      for (const j of w.joins){
+        const k = searchBrandKey(j);
+        if (!k || k.length < 2) continue;
+        const hit = vocab.get(k);
+        if (hit && brandOwnsItsName(w, hit)){ exactHits.push({ key: k, label: hit.label, consumed: w.idx }); break; }
+      }
+    }
+  }
+  if (exactHits.length === 1) return exactHits[0];
+  if (exactHits.length > 1){
+    const support = (h) => {
+      const rest = rawToks.filter((_, i) => !h.consumed.includes(i) && rawToks[i].length > 1);
+      if (!rest.length) return 0;
+      let n = 0;
+      for (const it of (pool || [])){
+        if (!it || searchBrandKey(it.brand) !== h.key) continue;
+        const ws = it._wordSet || (typeof catalogWordsOf === 'function' ? catalogWordsOf(it) : null);
+        if (ws && rest.every(t => ws.has(t))) n++;
+      }
+      return n;
+    };
+    let pick = exactHits[0], best = -1;
+    for (const h of exactHits){
+      const s = support(h);
+      if (s > best || (s === best && h.consumed.length > pick.consumed.length)){ best = s; pick = h; }
+    }
+    return pick;
+  }
   for (const windows of windowsBySize){
     for (const w of windows){
       if (singleSkipped(w)) continue;
@@ -4768,6 +5007,11 @@ function detectBrandIntent(rawToks, pool, opts){
       /* The exact pass above already had its chance at this token.
          If the catalogue sells the word, it is a product word. */
       if (knownProductWord(w)) continue;
+      /* A MODEL NUMBER IS NEVER A TYPO (2026-10-19, #416). "jordan air 1"
+         (the Spanish pipeline puts the brand first) joined "air"+"1" ->
+         "air1", one edit from the sunglasses brand AIRE. Numbers are
+         exact; a window holding one is matched exactly or not at all. */
+      if (w.idx.some(i => /^\d+$/.test(rawToks[i]))) continue;
       for (const j of w.joins){
         const k = searchBrandKey(j);
         if (!k || k.length < 2) continue;
@@ -4787,9 +5031,18 @@ function detectBrandIntent(rawToks, pool, opts){
            space ("victoria secret", "under armor", "calvin klien" are
            all d=1). Two edits there is a coincidence. */
         if (w.idx.length > 1 && w.idx.every(i => poolKnows(rawToks[i]))) maxDist = 1;
+        /* ONE OF THE WINDOW'S OWN WORDS IS NOT A JOIN (2026-10-19, #409).
+           "nike air force 1" joined "force"+"1" -> "force1", one edit
+           from a one-product Costco brand called "Force", and the hard
+           brand filter turned 116 Air Force 1s into a hair supplement.
+           Dropping a whole word is not a join repair; that word alone
+           already had its turn in the single-word pass, where
+           brandOwnsItsName turned it down. */
+        const ownWords = w.idx.length > 1 ? new Set(w.idx.map(i => searchBrandKey(rawToks[i]))) : null;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
+          if (ownWords && ownWords.has(bk)) continue;
           const d = fuzzyEditDistRaw(sk, sqKeys[bki], maxDist);
           if (d <= maxDist && (!best || d < best.d)){
             best = { d, key: bk, label: vocab.get(bk).label, consumed: w.idx };
@@ -5959,7 +6212,7 @@ function renderMobileDealsRail(){
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE and Farfetch anchor the luxury end: browsable and honest,
    but slow. (Farfetch added 2026-09-29, Danny.) */
-const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'finishline', 'zumiez', 'hottopic', 'boxlunch', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'finishline', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 /* HOMEPAGE_HIDDEN_STORES (2026-09-26, Danny): front-page real estate is
    for things people buy consistently. Rare big-ticket destinations --
    B&H's $3,000 cameras -- stay findable (Tiendas directory, category
@@ -10809,6 +11062,14 @@ function paintRailSkeletons(){
    shows what its department would refuse. Sale items lead, featured
    picks fill; every card keeps its brand and its store badge. */
 async function computeCategoryZonePicks(ofertasKeys){
+  /* The saved zone (HOME SHELVES): every category rail's picks in one
+     ~27KB slice, instead of all 63 catalogue sources. */
+  const saved = await homeShelf('category');
+  if (saved && saved.rails && typeof saved.rails === 'object'){
+    for (const cat of CATEGORY_RAILS) categoryRailsRendered[cat.key] = Array.isArray(saved.rails[cat.key]) ? saved.rails[cat.key] : [];
+    try { renderCategoryTabs(); } catch (e) {}
+    return;
+  }
   const pool = await relatedPool();
   for (const cat of CATEGORY_RAILS){
     /* A rail with its own feed (Ropa Interior Mujer / Hombre) takes its picks
@@ -10899,6 +11160,16 @@ function initStoreRails(){
   const computeStorePicks = (key) => {
     if (!railLoadPromises[key]){
       railLoadPromises[key] = (async () => {
+        /* The saved shelf first (HOME SHELVES); Ofertas still leads on
+           what it shows, so its cards leave this shelf as before. */
+        const index = await homeShelf('index');
+        if (index && Array.isArray(index.stores) && index.stores.indexOf(key) !== -1){
+          const saved = await homeShelfPicks('store-' + key);
+          if (saved){
+            storeRailsRendered[key] = saved.filter(p => !ofertasKeys.has(`${p.retailer || ''}::${p.title || ''}`));
+            return storeRailsRendered[key];
+          }
+        }
         const pool = await poolForRetailers([key]);
         storeRailsRendered[key] = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
         return storeRailsRendered[key];
@@ -10997,8 +11268,8 @@ const BRAND_STRIP_MAX = 40;
    gucci 22, balenciaga 22, prada 16, armanibeauty 13, chanel 12,
    versace 7, hermes 7, goldengoose 4). Fendi / Tiffany / Cartier are
    true zeros -- never pinned, never faked. */
-const BRAND_STRIP_LUXURY = ['miumiu','goldengoose','gucci','poloralphlauren','givenchy','yvessaintlaurent','burberry','dior','valentino','balenciaga','prada','armanibeauty','chanel','versace','hermes'];
-const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', goldengoose:'Golden Goose', gucci:'Gucci', poloralphlauren:'Ralph Lauren', givenchy:'Givenchy', yvessaintlaurent:'Saint Laurent', burberry:'Burberry', dior:'Dior', valentino:'Valentino', balenciaga:'Balenciaga', prada:'Prada', armanibeauty:'Armani', chanel:'Chanel', versace:'Versace', hermes:'Herm\u00e8s' };
+const BRAND_STRIP_LUXURY = ['miumiu','goldengoose','dolcegabbana','brunellocucinelli','gucci','poloralphlauren','givenchy','yvessaintlaurent','burberry','dior','valentino','balenciaga','prada','armanibeauty','chanel','versace','hermes'];
+const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', goldengoose:'Golden Goose', dolcegabbana:'Dolce & Gabbana', brunellocucinelli:'Brunello Cucinelli', gucci:'Gucci', poloralphlauren:'Ralph Lauren', givenchy:'Givenchy', yvessaintlaurent:'Saint Laurent', burberry:'Burberry', dior:'Dior', valentino:'Valentino', balenciaga:'Balenciaga', prada:'Prada', armanibeauty:'Armani', chanel:'Chanel', versace:'Versace', hermes:'Herm\u00e8s' };
 /* LATINO DESIGNERS (2026-09-29, Danny): the five Disenadores Latinos
    marques get dual placement -- their own section AND the brand strip,
    right after the luxury block, so shoppers can find and support them. */
@@ -11289,6 +11560,10 @@ const TIENDAS_STRIP = [
   {k:'fuji',l:'FUJI Sports',c:'#1A1A1A',logo:'logos/fuji.png'},
   {k:'hottopic',l:'Hot Topic',c:'#D8232A',logo:'logos/hottopic.png'},
   {k:'boxlunch',l:'BoxLunch',c:'#F26522',logo:'logos/boxlunch.png'},
+  {k:'bananarepublic',l:'Banana Republic',c:'#766A57',logo:'logos/bananarepublic.png'},
+  {k:'gap',l:'Gap',c:'#001E41',logo:'logos/gap.png'},
+  {k:'abercrombie',l:'Abercrombie & Fitch',c:'#111111',logo:'logos/abercrombie-fitch.png'},
+  {k:'hollister',l:'Hollister',c:'#041E42',logo:'logos/hollister.png'},
 ];
 /* Logos light enough to sit directly on navy (2026-09-29, Danny): measured
    mean opaque-pixel brightness of each logo file; the rest ride a white chip. */
@@ -11347,8 +11622,13 @@ async function initBrandStrip(){
   const load = async () => {
     /* A failed pool leaves the strip empty, never a broken boot. */
     try {
-      await poolForRetailers(BRAND_STRIP_RETAILERS);
-      const html = brandStripBrands().map(brandStripTileHTML).join('');
+      const index = await homeShelf('index');
+      let brands = index && Array.isArray(index.brandStrip) && index.brandStrip.length ? index.brandStrip : null;
+      if (!brands){
+        await poolForRetailers(BRAND_STRIP_RETAILERS);
+        brands = brandStripBrands();
+      }
+      const html = brands.map(brandStripTileHTML).join('');
       document.querySelectorAll('[data-brand-strip]').forEach(el => { el.innerHTML = html; });
     } catch { /* the shelf stays empty */ }
   };
@@ -11681,12 +11961,18 @@ function openBolsosProduct(idx){
    limit. A rail above the fold intersects immediately and paints
    at once; without IntersectionObserver the paint is immediate,
    exactly as before. */
-function paintRailWhenNear(anchor, paint){
-  if (anchor && 'IntersectionObserver' in window){
+/* EVERY COPY IS WATCHED (2026-10-19, #417). Each of these sections
+   exists once per shopfront (phone and desktop). Watching only the
+   first -- the phone copy, display:none on a laptop -- meant Bolsos,
+   Joyas, Joyas de lujo and Moda never painted at desktop width: an
+   IntersectionObserver never sees a display:none element. */
+function paintRailWhenNear(anchors, paint){
+  const list = !anchors ? [] : (anchors.nodeType ? [anchors] : [...anchors].filter(Boolean));
+  if (list.length && 'IntersectionObserver' in window){
     const io = new IntersectionObserver((es) => {
       es.forEach(e => { if (e.isIntersecting){ io.disconnect(); paint(); } });
     }, { rootMargin: '1000px 0px' });
-    io.observe(anchor);
+    list.forEach(a => io.observe(a));
   } else {
     paint();
   }
@@ -11705,8 +11991,7 @@ function initBolsosRail(){
       /* PERF (2026-09-28): the shelf mixes every store's handbags, so it
          waits for the full catalogue -- but only once the shopper
          scrolls near, not at boot. */
-      const cache = await loadDepartmentCache();
-      bolsosRendered = bolsosPicks(cache);
+      bolsosRendered = (await homeShelfPicks('bolsos')) || bolsosPicks(await loadDepartmentCache());
       /* An empty shelf is worse than none: the section stands down. */
       if (!bolsosRendered.length){ hideSection(); return; }
       for (const row of rows){
@@ -11718,7 +12003,7 @@ function initBolsosRail(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-bolsos-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-bolsos-section]').length ? document.querySelectorAll('[data-bolsos-section]') : rows, loadAndPaint);
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
 /* JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
@@ -11764,9 +12049,10 @@ function initJoyasRails(){
   joyasStarted = true;
   const loadAndPaint = async () => {
     try {
-      const cache = await loadDepartmentCache();
-      const perStyle = [];
-      for (const styleKey of JOYAS_STYLE_RAILS){
+      const saved = await homeShelfPicks('joyas');
+      const cache = saved ? null : await loadDepartmentCache();
+      const perStyle = saved ? [saved] : [];
+      if (!saved) for (const styleKey of JOYAS_STYLE_RAILS){
         const picks = joyasPicksForStyle(cache, styleKey);
         if (picks.length) perStyle.push(picks.map(p => ({ ...p, joyasStyle: styleKey })));
       }
@@ -11791,7 +12077,7 @@ function initJoyasRails(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-joyas-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-joyas-section]').length ? document.querySelectorAll('[data-joyas-section]') : rows, loadAndPaint);
 }
 function openJoyasProduct(styleKey, idx){
   openRailProduct((joyasRendered[styleKey] || [])[idx]);
@@ -11860,8 +12146,7 @@ function initJoyasLujoRail(){
   joyasLujoStarted = true;
   const loadAndPaint = async () => {
     try {
-      const cache = await loadDepartmentCache();
-      joyasLujoRendered = joyasLujoPicks(cache);
+      joyasLujoRendered = (await homeShelfPicks('joyasLujo')) || joyasLujoPicks(await loadDepartmentCache());
       if (!joyasLujoRendered.length){
         document.querySelectorAll('[data-joyas-lujo-section]').forEach(sec => { sec.hidden = true; });
         return;
@@ -11875,7 +12160,7 @@ function initJoyasLujoRail(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-joyas-lujo-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-joyas-lujo-section]').length ? document.querySelectorAll('[data-joyas-lujo-section]') : rows, loadAndPaint);
 }
 function openJoyasLujoProduct(idx){
   openRailProduct(joyasLujoRendered[idx]);
@@ -11943,8 +12228,7 @@ function initModaRail(){
   modaStarted = true;
   const loadAndPaint = async () => {
     try {
-      const cache = await loadDepartmentCache();
-      modaRendered = modaPicks(cache);
+      modaRendered = (await homeShelfPicks('moda')) || modaPicks(await loadDepartmentCache());
       if (!modaRendered.length){
         document.querySelectorAll('[data-moda-section]').forEach(sec => { sec.hidden = true; });
         return;
@@ -11958,7 +12242,7 @@ function initModaRail(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-moda-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-moda-section]').length ? document.querySelectorAll('[data-moda-section]') : rows, loadAndPaint);
 }
 function openModaProduct(idx){
   openRailProduct(modaRendered[idx]);
@@ -12704,7 +12988,12 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  /* Full-width hero: ask for the 1000px derivative, with the upgraded
+     original as the fallback when no retry already rides (see
+     sizedImageUrl). Curated heroes are brand assets the sizing rules
+     do not match, so they pass through untouched. */
+  const heroSrc = sizedImageUrl(src, 1000);
+  const photo = src ? `<img src="${escapeHtml(heroSrc)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : (heroSrc !== src ? ` data-img-fallback="${escapeHtml(src)}"` : '')} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
@@ -12806,10 +13095,15 @@ function brandRoomBannerHTML(spec, brandItems, opts){
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = !curated && src ? imageRetryUrl(src) : '';
+  /* Full-width hero: ask for the 1000px derivative, with the upgraded
+     original as the fallback when no retry already rides (see
+     sizedImageUrl). Curated heroes are brand assets the sizing rules
+     do not match, so they pass through untouched. */
+  const heroSrc = sizedImageUrl(src, 1000);
   /* Brand-room hero is above-the-fold: fetch it the moment the banner is painted
      (eager + high priority), never gated on intersection. A lazy hero injected via
      innerHTML can sit unpainted while the intersection observer catches up. */
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="eager" fetchpriority="high" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  const photo = src ? `<img src="${escapeHtml(heroSrc)}" alt="" loading="eager" fetchpriority="high" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : (heroSrc !== src ? ` data-img-fallback="${escapeHtml(src)}"` : '')} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
   const kicker = opts.kicker ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(opts.kicker)}</span>` : '';
   /* Phase 2 (2026-10-02): brand-room banners outside Gym Rat filter by
@@ -12935,6 +13229,15 @@ const BRAND_ROOM_SPECS = [
   /* Photo: 'Crocs Store Dadeland Mall, Miami FL 1 December 2022' by
      Phillip Pessar, CC BY 2.0, via Wikimedia Commons */
   { key: 'crocs', label: 'Crocs', heroImage: 'assets/brands/crocs-hero.jpg' },
+  /* LUXURY BRAND ROOMS VIA FARFETCH (2026-10-16): Dolce & Gabbana, Brunello
+     Cucinelli and Golden Goose pulled from Farfetch (retailer of record) into
+     farfetch-catalog.json luxury_brands. No curated Commons storefront hero:
+     the banner falls back to the brand's own sale product photo
+     (brandRoomHero). Golden Goose carries its real logo (BRAND_LOGOS);
+     Dolce & Gabbana / Brunello Cucinelli render the text wordmark. */
+  { key: 'dolcegabbana', label: 'Dolce & Gabbana' },
+  { key: 'brunellocucinelli', label: 'Brunello Cucinelli' },
+  { key: 'goldengoose', label: 'Golden Goose' },
 ];
 
 /* Brand-room spec lookup, tolerant: 'Ray-Ban'/'ray ban' -> 'rayban',
@@ -13832,9 +14135,15 @@ function browseTileHTML({ label, count, image, pct = 0, onclick }){
      at the URL we know works, then the frame goes rather than leaving a
      broken-image glyph. */
   const retry = image ? imageRetryUrl(image) : '';
+  /* Card-sized derivative + srcset, the original as fallback when no
+     retry already rides (see sizedImageUrl). */
+  const tileSized = image ? sizedImageUrl(image, 560) : '';
+  const tileSrcset = image ? imageSrcset(image) : '';
+  const tileFb = retry || (image && (tileSrcset || tileSized !== image) ? image : '');
   const photo = image ? `<div class="mb-2.5 -mx-4 -mt-4 aspect-[4/3] overflow-hidden" style="background:var(--sky)">
-      <img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async"${
-        retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''}
+      <img src="${escapeHtml(tileSized)}" alt="" loading="lazy" decoding="async"${
+        tileSrcset ? ` srcset="${escapeHtml(tileSrcset)}" sizes="${CARD_IMG_SIZES}"` : ''}${
+        tileFb ? ` data-img-fallback="${escapeHtml(tileFb)}"` : ''}
         style="width:100%; height:100%; object-fit:cover; object-position:center"
         onerror="window.browseTilePhotoError && browseTilePhotoError(this)">
     </div>` : '';
@@ -15543,7 +15852,12 @@ function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
   })();
   const src = raw ? (heroImage ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  /* Full-width hero: ask for the 1000px derivative, with the upgraded
+     original as the fallback when no retry already rides (see
+     sizedImageUrl). Curated heroes are brand assets the sizing rules
+     do not match, so they pass through untouched. */
+  const heroSrc = sizedImageUrl(src, 1000);
+  const photo = src ? `<img src="${escapeHtml(heroSrc)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : (heroSrc !== src ? ` data-img-fallback="${escapeHtml(src)}"` : '')} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const inner = `
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
@@ -18080,10 +18394,10 @@ async function runLiveSearch(){
 // Size-option logic — ported from checkout.html during the cart rework
 // (2026-09-18): a cart line item needs a concrete size *before* it can go
 // in the cart, so size selection now happens here, on the product page,
-// not at checkout. Always a real <select>, either the retailer's real
-// available sizes or (standardSizeOptions) a standard industry size scale
-// chosen by category/gender/kids detection from the title — never a
-// fabricated per-item list or free text.
+// not at checkout. A real <select> of the retailer's own sizes, or no
+// picker at all (2026-10-18, #411: the standard "reference" scale this
+// used to fall back to was an invented list, and a size Aria cannot
+// name at the retailer cannot be bought in Miami).
 /* ============================================================
    ONE LIST OF THE WORDS THAT MEAN "THIS HAS A SIZE".
 
@@ -18120,22 +18434,106 @@ const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWOR
 const PRODUCT_KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
 const PRODUCT_MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
 const PRODUCT_WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
-const ADULT_CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
-const ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
-const ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
-const KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
-const KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
+/* VARIANT TRUTH (2026-10-18, Issue #411, Danny): the sizes a product
+   offers are the retailer's own list or nothing -- never a template.
+   Strings as the store wrote them; {size, available} objects (the Foot
+   Locker feed) keep the sizes in stock. index.html's bundle and
+   producto.html carry this same text; the test suite pins them
+   identical.
 
-function standardSizeOptions(title, sizeCategory){
-  const isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title);
-  const isKids = PRODUCT_KIDS_KEYWORDS.test(title);
-  if (isShoe && isKids) return KIDS_SHOE_SIZES;
-  if (isShoe && PRODUCT_MENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_MEN;
-  if (isShoe && PRODUCT_WOMENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_WOMEN;
-  if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
-  if (isKids) return KIDS_CLOTHING_SIZES;
-  return ADULT_CLOTHING_SIZES;
+   NATURAL ORDER, WHATEVER THE STORE'S SPELLING (2026-10-19, #411
+   render audit). The first sorter knew XS..XXL and plain numbers, so
+   18,803 of the catalogue's 52,901 size lists kept the store's own
+   order -- and stores list sizes largest first ("XL | LG | MD", 1,900
+   CCS lists), backwards ("4T | 3T | 2T") or shuffled ("Men's 12 |
+   Men's 10 | Men's 13", Macy's "10S | 0 | 2 | 0S"). Every size now
+   gets a place -- months < toddler < youth < the XS..6XL ladder (SM,
+   Small, X-Large, 2X Large and XS/S spelled any way) < numbers (shoe
+   6.5, waist 32x30, 12 oz, "7-8 years", "Men's 9", "IT 38", fit
+   suffixes 10S/16W after the plain sizes) < lettered numbers (C11 <
+   J1, 13K < 1Y) -- and a list with any size it cannot place keeps the
+   retailer's order: band x cup ("34DD") is the store's ladder, never
+   re-sorted. 50,280 of the 52,901 lists now sort. */
+var SIZE_ALPHA_ORDER = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL', '6XL', '0X', '1X', '2X', '3X', '4X', '5X'];
+var SIZE_NUMERIC = /^(\d+(?:\.\d+)?)(?:\s*[xX×\/]\s*(\d+(?:\.\d+)?))?\s*(?:oz)?$/i;
+/* Stores spell one ladder many ways: "SM", "Small", "X-Large", "XLG". */
+var SIZE_ALPHA_ALIAS = { SM: 'S', SMALL: 'S', MD: 'M', MED: 'M', MEDIUM: 'M', LG: 'L', LRG: 'L', LARGE: 'L', XLG: 'XL', XLARGE: 'XL', XXLARGE: 'XXL', XXXLARGE: 'XXXL', XSMALL: 'XS', XXSMALL: 'XXS' };
+function alphaRank(t){
+  var k = t.replace(/[\s-]+/g, '').replace(/^EXTRA/, 'X').replace(/^(\d)XLARGE$/, '$1XL').replace(/^XXXXL$/, '4XL');
+  k = SIZE_ALPHA_ALIAS[k] || k;
+  var r = SIZE_ALPHA_ORDER.indexOf(k);
+  if (r >= 0) return r === 8 ? 7.1 : r === 10 ? 9.1 : r;   // 2XL = XXL, 3XL = XXXL
+  return -1;
+}
+/* One size's place: [group, value, second value], or null when this
+   is not a size we can place (then the store's order stands).
+   Groups: months 0, toddler 1, alpha 2, numbers 3, lettered numbers
+   4+ (C 11 < J 1 < M 8 < W 6). */
+function sizeKey(raw){
+  var s = String(raw).toUpperCase().replace(/\s+/g, ' ').trim();
+  /* "IT 38 = WAIST US 24" is IT 38; "36(XXS)" is 36. */
+  s = s.split('=')[0].trim().replace(/\s*\([^)]*\)$/, '');
+  s = s.replace(/^(?:MEN'?S|WOMEN'?S|MENS|WOMENS|BOYS'?|GIRLS'?|KIDS'?|UNISEX)\s+/, '');
+  s = s.replace(/^(?:WAIST\s+)?(?:US|EU|UK|IT|FR|DK|JP|AU)\s+(?=\d)/, '').replace(/^WAIST\s+(?=\d)/, '');
+  var m;
+  if (/^NEWBORN$|^NB$|^PREEMIE$/.test(s)) return [0, -1, 0];
+  if ((m = /^(\d+(?:\.\d+)?)\s*(?:-\s*(\d+)\s*)?M(?:OS?|ONTHS?)?$/.exec(s))) return [0, +m[1], +(m[2] || 0)];
+  /* Kids' ages sit among the kids' numbers: 5 | 6 | 7-8 years. */
+  if ((m = /^(\d+)\s*(?:-\s*(\d+)\s*)?(?:YR|YRS|YEARS?)$/.exec(s))) return [3, +m[1], +(m[2] || 0)];
+  if ((m = /^(\d+)\s*T$/.exec(s))) return [1, +m[1], 0];
+  var half = s.split(/\s*[\/-]\s*/);
+  if (half.length === 2 && alphaRank(half[0]) >= 0 && alphaRank(half[1]) >= 0) return [2, alphaRank(half[0]) + 0.5, 0];
+  if ((m = /^Y\s?(.+)$/.exec(s)) && alphaRank(m[1]) >= 0) return [1.5, alphaRank(m[1]), 0];   // youth YS..YXL
+  if (alphaRank(s) >= 0) return [2, alphaRank(s), 0];
+  if ((m = SIZE_NUMERIC.exec(s))) return [3, parseFloat(m[1]), parseFloat(m[2]) || 0];
+  if ((m = /^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/.exec(s))) return [3, parseFloat(m[1]), parseFloat(m[2])];
+  /* "M 4 / W 5", "W 6 / M 4.5", "M2W4": the first number. */
+  if ((m = /^([MW])\s*(\d+(?:\.\d+)?)\s*(?:\/\s*[MW]\s*\d+(?:\.\d+)?|[MW]\d+(?:\.\d+)?)$/.exec(s))) return [3, parseFloat(m[2]), 0];
+  /* Kids' shoes: 13K (or 13C) comes before 1Y. */
+  if ((m = /^(\d+(?:\.\d+)?)\s?([CKY])$/.exec(s))) return [4 + (m[2] === 'Y' ? 0.5 : 0), parseFloat(m[1]), 0];
+  /* A letter before the number: Crocs' C11 (child) < J1 (junior). */
+  if ((m = /^([CJMWY])\s?(\d+(?:\.\d+)?)$/.exec(s))) return [4 + 'CJYMW'.indexOf(m[1]), parseFloat(m[2]), 0];
+  /* A number with a fit letter: Macy's 10S (short), 16W (women's). */
+  if ((m = /^(\d+(?:\.\d+)?)\s?(S|P|L|W|R|T|SHORT|PETITE|LONG|TALL|REG|REGULAR)$/.exec(s))) return [3 + ({ R: 0, REG: 0, REGULAR: 0, P: .1, PETITE: .1, S: .2, SHORT: .2, W: .3, L: .4, LONG: .4, T: .5, TALL: .5 })[m[2]], parseFloat(m[1]), 0];
+  return null;
+}
+function sortSizes(sizes){
+  var keys = sizes.map(sizeKey);
+  if (keys.some(function(k){ return !k; })) return sizes.slice();
+  return sizes.map(function(s, i){ return { s: s, k: keys[i], i: i }; }).sort(function(a, b){
+    return (a.k[0] - b.k[0]) || (a.k[1] - b.k[1]) || (a.k[2] - b.k[2]) || (a.i - b.i);
+  }).map(function(x){ return x.s; });
+}
+function truthfulSizes(list){
+  if (!Array.isArray(list)) return [];
+  var out = [], seen = {};
+  for (var i = 0; i < list.length; i++){
+    var v = list[i], s = '';
+    if (typeof v === 'string') s = v;
+    else if (typeof v === 'number' && isFinite(v)) s = String(v);
+    else if (v && typeof v === 'object' && v.available !== false && (typeof v.size === 'string' || typeof v.size === 'number')) s = String(v.size);
+    s = s.trim();
+    if (!s || seen[s.toUpperCase()]) continue;
+    seen[s.toUpperCase()] = true;
+    out.push(s);
+  }
+  return sortSizes(out);
+}
+/* A bag, wallet, charm or phone case is not sized, whatever garment word
+   its name carries ("Soccer Jersey Bag Charm", "Zip Wallet", "Heels
+   Phone Case"). Judged on the HEAD noun -- the last word once the colour
+   suffix (" - Pink"), a trailing capacity ("55L") and a "for women" tail
+   are dropped -- so "Boxer Brief with Support Pouch" and "Charm Strappy
+   Thong Panty" stay garments. */
+var ACCESSORY_HEAD = /\b(?:bag charms?|charms?|wallets?|wristlets?|phone cases?|card cases?|card holders?|keychains?|key rings?|totes?|purses?|backpacks?|handbags?|clutch(?:es)?|bags?|pouch(?:es)?|sunglasses|umbrellas?|lanyards?|satchels?|duffels?|duffles?)$/i;
+function isAccessoryTitle(title){
+  var t = String(title || '')
+    .replace(/\s+[-–—|]\s+.*$/, '')
+    .replace(/\s+for\s+[\w' ]+$/i, '')
+    .replace(/[\s,]*\d+(?:\.\d+)?\s*(?:l|cm|in|oz)?$/i, '')
+    .trim();
+  // "Faux Suede Handbag, Cognac": the colour after the first comma.
+  return ACCESSORY_HEAD.test(t) || ACCESSORY_HEAD.test(t.split(',')[0].trim());
 }
 
 /* ============================================================
@@ -18595,7 +18993,7 @@ function renderProductThumbs(){
     <button onclick="selectProductImage(${i})" aria-label="Imagen ${i + 1}"
       class="flex-shrink-0 w-[62px] h-[62px] rounded-xl overflow-hidden border-2 focus-ring transition"
       style="border-color:${i === productGalleryIndex ? 'var(--blue)' : 'var(--line)'}; background:var(--sky)">
-      <img src="${escapeHtml(src)}" alt="" loading="lazy" class="w-full h-full" style="object-fit:contain">
+      <img src="${escapeHtml(sizedImageUrl(src, 200))}" alt="" loading="lazy" class="w-full h-full" style="object-fit:contain" data-img-orig="${escapeHtml(src)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">
     </button>`).join('');
 }
 
@@ -19098,20 +19496,20 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
   const sizeNote = document.getElementById('productSizeNote');
-  const rawSizes = Array.isArray(sizes) ? sizes.filter(s => typeof s === 'string' && s.trim()) : [];
+  const rawSizes = truthfulSizes(sizes);
   if (rawSizes.length){
     sizeWrap.hidden = false;
     sizeSelect.required = true;
     sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
       + rawSizes.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
     sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
-  } else if (needsSize || (name && APPAREL_KEYWORDS.test(name))){
-    sizeWrap.hidden = false;
-    sizeSelect.required = true;
-    const options = standardSizeOptions(name || '', sizeCategory);
-    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
-      + options.map(s => `<option value="${s}">${s}</option>`).join('');
-    sizeNote.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
+  } else if (needsSize || (name && APPAREL_KEYWORDS.test(name) && !isAccessoryTitle(name))){
+    /* No verified size list: not sold by size yet (Danny, #411). No
+       invented grid and no free text -- the buy button says why. */
+    sizeWrap.hidden = true;
+    sizeSelect.required = false;
+    sizeSelect.innerHTML = '';
+    if (hasPrice) setProductSizesUnconfirmed();
   } else {
     sizeWrap.hidden = true;
     sizeSelect.required = false;
@@ -19164,27 +19562,26 @@ function goBack(){
    the moment of purchase as well as when the page is drawn, so the two
    cannot disagree about the same product. */
 function apparelNeedsSize(retailer, title){
-  return needsSizeSelection(retailer, title) || APPAREL_KEYWORDS.test(String(title || ''));
+  return needsSizeSelection(retailer, title) || (APPAREL_KEYWORDS.test(String(title || '')) && !isAccessoryTitle(title));
 }
 
-/* The same standard picker showProduct() builds, reachable from the buy
-   path so a garment it failed to recognise can still be given a size
-   rather than refused outright. Same honest note: these are reference
-   sizes, not the store's own. */
-function revealStandardSizePicker(title, sizeCategory){
-  const wrap = document.getElementById('productSizeWrap');
-  const select = document.getElementById('productSizeSelect');
-  const note = document.getElementById('productSizeNote');
-  if (!wrap || !select) return;
-  wrap.hidden = false;
-  select.required = true;
-  const sgLink = document.getElementById('sizeGuideLink');
-  if (sgLink) sgLink.hidden = false;
-  const options = standardSizeOptions(title || '', sizeCategory);
-  select.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
-    + options.map(s => `<option value="${s}">${s}</option>`).join('');
-  if (note) note.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
-  wrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
+/* A garment with no verified size list (2026-10-18, #411). The button
+   says why it cannot be bought yet; the note says what happens next.
+   Called after setProductBuyable(), which every render runs first. */
+function setProductSizesUnconfirmed(){
+  const btn = document.getElementById('addToCartBtn');
+  const note = document.getElementById('productNoPriceNote');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.setAttribute('aria-disabled', 'true');
+  btn.textContent = 'Tallas por confirmar';
+  btn.style.background = '#C8CDD8';
+  btn.style.color = '#5B6478';
+  btn.style.cursor = 'not-allowed';
+  if (note){
+    note.hidden = false;
+    note.textContent = 'Todavía estamos confirmando con la tienda las tallas exactas de este producto. Apenas las tengamos, podrás comprarlo aquí.';
+  }
 }
 /* The buy button's two states, in one place so they cannot drift apart.
 
@@ -19236,13 +19633,12 @@ function addToCartFromProduct(){
 
      The question asked is now "is this a garment?", not "is there a
      picker?" -- so a word we still do not know cannot silently sell a
-     sizeless item. And rather than only refusing, the picker is BUILT
-     on the spot: the shopper gets the thing they were missing instead
-     of a dead end. */
+     sizeless item. It used to build a standard "reference" picker on
+     the spot; that list was invented (#411), so a garment with no
+     verified sizes is simply not sold by size yet. */
   const wantsSize = apparelNeedsSize(p.retailer, p.name);
   if (wantsSize && sizeWrap.hidden){
-    revealStandardSizePicker(p.name, p.sizeCategory);
-    showToast('Elige una talla para este producto.');
+    showToast('Todavía estamos confirmando las tallas de este producto con la tienda.');
     return;
   }
   if ((wantsSize || (!sizeWrap.hidden && sizeSelect.required)) && !sizeSelect.value){
@@ -19282,7 +19678,9 @@ function addToCartFromProduct(){
        than a guess from the title. Absent for every store that
        publishes no weight, which is every store but this catalogue. */
     ...(Number.isFinite(p.catalogWeightKg) && p.catalogWeightKg > 0 ? { specWeightKg: p.catalogWeightKg } : {}),
-    image: p.imageUrl || '',
+    /* The photo the shopper is looking at, even when the card that
+       opened this page passed none (#367: blank Macy's / AE thumbs). */
+    image: p.imageUrl || (Array.isArray(productGallery) && productGallery[0]) || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
@@ -19609,6 +20007,10 @@ const RETAILERS = {
   farfetch:        { key: 'farfetch',        label: 'Farfetch',        color: '#000000', logo: 'logos/farfetch.svg', tagline: 'Disenadores latinos — Farm Rio, Johanna Ortiz y mas', kind: 'general', search: false, browse: true },
   hottopic:         { key: 'hottopic',     label: 'Hot Topic',          color: '#D8232A', logo: 'logos/hottopic.png',               tagline: 'Band tees, anime y cultura pop',                kind: 'general', search: false, browse: true },
   boxlunch:         { key: 'boxlunch',     label: 'BoxLunch',           color: '#F26522', logo: 'logos/boxlunch.png',               tagline: 'Regalos pop que donan comidas',                 kind: 'general', search: false, browse: true },
+  bananarepublic: { key: 'bananarepublic', label: 'Banana Republic', color: '#766A57', logo: 'logos/bananarepublic.png', tagline: 'Clásicos premium y básicos elevados', kind: 'general', search: false, browse: true },
+  gap: { key: 'gap', label: 'Gap', color: '#001E41', logo: 'logos/gap.png', tagline: 'Jeans y básicos para toda la familia', kind: 'general', search: false, browse: true },
+  abercrombie: { key: 'abercrombie', label: 'Abercrombie & Fitch', color: '#111111', logo: 'logos/abercrombie-fitch.png', tagline: 'Jeans y clásicos americanos premium', kind: 'general', search: false, browse: true },
+  hollister: { key: 'hollister', label: 'Hollister', color: '#041E42', logo: 'logos/hollister.png', tagline: 'Estilo californiano juvenil', kind: 'general', search: false, browse: true },
 };
 
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
@@ -19657,6 +20059,10 @@ const RETAILER_DELIVERY = {
   bathandbodyworks: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
   hottopic: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
   boxlunch: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
+  abercrombie: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
+  hollister: { miamiMin: 4, miamiMax: 9, tier: "yellow" },
+  bananarepublic: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
+  gap: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   oldnavy: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   partycity: { miamiMin: 5, miamiMax: 7, tier: "yellow" },
   samsclub: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
@@ -19884,6 +20290,10 @@ const STORE_THEMES = {
   bathandbodyworks: { glow: '#5AA9E6' },
   hottopic: { glow: '#E5322D' },
   boxlunch: { glow: '#F26522' },
+  abercrombie: { glow: '#9AA5B1' },
+  hollister: { glow: '#C8102E' },
+  bananarepublic: { glow: '#B49B6D' },
+  gap: { glow: '#5B84C4' },
   macys: { glow: '#F04444' },
   skims: { glow: '#A68B6B' },
   revolve: { glow: '#F2EDE6' },
@@ -20336,7 +20746,7 @@ const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
    stay verbatim in sync -- edit both or neither.
    ============================================================ */
 function needsSizeSelection(retailer, title){
-  return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');
+  return (APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '')) && !isAccessoryTitle(title);
 }
 
 // Retailers whose catalog defaults to footwear when a title has no
@@ -20363,7 +20773,26 @@ function sizeCategoryFor(retailer, title){
 
 let liveScrapeQuery = '';
 
-function escapeHtml(str){
+/* SCRAPED TEXT IS TEXT (2026-10-19, #417 night order 4): titles arrive
+   as "Lizzie &#38; Oliver"; escaping that printed "&#38;" to shoppers.
+   Entities are decoded first, then everything is escaped as before. */
+var ENTITY_NAMED = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", reg:"\u00ae", trade:"\u2122", copy:"\u00a9", deg:"\u00b0", eacute:"\u00e9", ntilde:"\u00f1", rsquo:"\u2019", lsquo:"\u2018", rdquo:"\u201d", ldquo:"\u201c", ndash:"\u2013", mdash:"\u2014", hellip:"\u2026" };
+function decodeEntitiesText(s){
+  if (typeof s !== "string" || s.indexOf("&") < 0) return s;
+  for (var pass = 0; pass < 2 && s.indexOf("&") >= 0; pass++){
+    s = s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function(m, e){
+      if (e.charAt(0) === "#"){
+        var cp = (e.charAt(1) === "x" || e.charAt(1) === "X") ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return (cp > 0 && cp <= 0x10ffff) ? String.fromCodePoint(cp) : m;
+      }
+      var v = ENTITY_NAMED[e.toLowerCase()];
+      return v === undefined ? m : v;
+    });
+  }
+  return s;
+}
+function escapeHtml(str){ return escapeHtmlRaw(decodeEntitiesText(str)); }
+function escapeHtmlRaw(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
@@ -20566,6 +20995,10 @@ const TAX_EXEMPT_STATUS = {
   zumiez: 'unknown',
   hottopic: 'unknown',
   boxlunch: 'unknown',
+  abercrombie: 'unknown',
+  hollister: 'unknown',
+  bananarepublic: 'unknown',
+  gap: 'unknown',
   pacsun: 'unknown',
   gymshark: 'unknown',
   youngla: 'unknown',
@@ -22673,7 +23106,11 @@ function normalizeLiveItem(item, hints){
   // `variants` array is empty at our listing-level scrape depth, Foot
   // Locker has no such field either). Never fabricated — checkout.html
   // asks the customer to type their size instead when this is empty.
-  const sizes = Array.isArray(item.sizes ?? item.availableSizes) ? (item.sizes ?? item.availableSizes).filter(s => typeof s === 'string' && s.trim()) : [];
+  /* truthfulSizes (#411): the retailer's own list, naturally sorted;
+     {size, available} objects (Foot Locker) keep the sizes in stock --
+     they used to be filtered out as non-strings, and the PDP then
+     invented a "reference" grid for shoes that had a real one. */
+  const sizes = truthfulSizes(Array.isArray(item.sizes) && item.sizes.length ? item.sizes : item.availableSizes);
 
   // Real on-sale signal, only when the retailer's own scrape data reports
   // one — confirmed present on live Target (isOnSale/regularPrice/
@@ -25504,6 +25941,15 @@ function addToCart(item){
     showToast('Este producto aún no tiene precio confirmado.');
     return false;
   }
+  /* AND A GARMENT WITH NO SIZE (2026-10-18, #411). The product page
+     already refuses one; the cross-sell rail and the combo path passed
+     selectedSize: '' straight through. Aria cannot buy "a shirt" in
+     Miami, so no door into the cart may carry one. */
+  if (item.lineType !== 'bundle-discount' && apparelNeedsSize(item.retailer, item.title)
+      && !String(item.selectedSize || '').trim()){
+    showToast('Elige tu talla en la página del producto.');
+    return false;
+  }
   /* THE DUTIABLE BASE IS STAMPED AT THE FUNNEL (2026-09-27).
 
      Every entry point (product page, cross-sell, Aria Auto, chat)
@@ -25655,7 +26101,7 @@ function comboDealHTML(combo, resolved){
   const rows = resolved.lines.map(l => `
     <div class="flex items-center gap-2.5">
       ${l.image
-        ? `<img src="${escapeHtml(l.image)}" alt="" loading="lazy" class="w-12 h-12 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)">`
+        ? `<img src="${escapeHtml(sizedImageUrl(l.image, 200))}" alt="" loading="lazy" class="w-12 h-12 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" data-img-orig="${escapeHtml(l.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">`
         : `<div class="w-12 h-12 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
       <div class="min-w-0 flex-1">
         <div class="text-[12.5px] font-semibold leading-snug truncate">${escapeHtml(l.title)}</div>
@@ -25825,7 +26271,7 @@ function cartLineItemHTML(it){
   </div>`;
   }
   return `<div class="flex items-center gap-3 py-4 border-b" style="border-color:var(--line)">
-    ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+    ${it.image ? `<img src="${escapeHtml(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-img-orig="${escapeHtml(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
       <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
@@ -25971,6 +26417,7 @@ function renderCartView(){
   emptyEl.hidden = true;
   summaryEl.hidden = false;
   wrap.innerHTML = cart.map(cartLineItemHTML).join('');
+  healCartLineImages();
 
   const totals = cartTotals();
   /* Itemised freight. cartTotals() already summed the per-item weight
@@ -26077,6 +26524,38 @@ const TAX_ZONE_AMBER_START_USD = 150;
 // Informational only: states the real rule, never coaches splitting
 // orders to dodge duties (Peru's anti-fraccionamiento rules are a real
 // legal question for the courier, not something to route around here).
+/* PHOTOLESS CART LINES RECOVER THEIR PHOTO (2026-10-18, #367 round 3:
+   Macy's / American Eagle lines showed blank thumbnails while Victoria's
+   Secret lines had photos). A line written before the product pages
+   carried the image -- it persists in localStorage and the server cart --
+   keeps rendering an empty box forever. Look the title up in the same
+   catalogue pool the product route uses, once per line per page load,
+   and save the photo back so checkout shows it too. */
+const cartImageHealTried = new Set();
+function healCartLineImages(){
+  const missing = cart.filter(it => it && it.lineType !== 'bundle-discount' && !it.image && it.title
+    && !cartImageHealTried.has(cartItemKey(it)));
+  if (!missing.length) return;
+  missing.forEach(it => cartImageHealTried.add(cartItemKey(it)));
+  Promise.all(missing.map(it => findCatalogProductByTitle(it.title).catch(() => null))).then((found) => {
+    let changed = false;
+    found.forEach((f, i) => {
+      const want = missing[i];
+      if (!f || (want.retailer && f.retailer && f.retailer !== want.retailer)) return;
+      const img = f.image || (Array.isArray(f.images) && f.images[0]) || '';
+      /* By key, not identity: initCart() rebuilds the line objects
+         (local load, server merge) while the lookup is in flight. */
+      const key = cartItemKey(want);
+      const line = cart.find(it => it && cartItemKey(it) === key && !it.image);
+      if (img && line){ line.image = img; changed = true; }
+    });
+    if (!changed) return;
+    saveCartLocal();
+    if (currentUser) syncCartToServer();
+    if (document.getElementById('cartView')?.classList.contains('active')) renderCartView();
+  });
+}
+
 function renderTaxZoneBar(usdSubtotal){
   const wrap = document.getElementById('taxZoneBarWrap');
   if (!wrap) return;
@@ -26093,7 +26572,10 @@ function renderTaxZoneBar(usdSubtotal){
     copy = `Te acercas a la zona de impuestos ($${TAX_ZONE_THRESHOLD_USD}). Si pasas de $${TAX_ZONE_THRESHOLD_USD}, este pedido paga ~${dutyPct}% en impuestos de importación. Recuerda: los pedidos menores a $${TAX_ZONE_THRESHOLD_USD} no pagan impuestos.`;
   } else {
     color = 'var(--green)';
-    copy = `Vas en $${Math.round(usdSubtotal)} — sin impuestos.`;
+    /* No dollar figure (2026-10-18, finding #9): usdSubtotal is the
+       declared, margin-free value -- next to the cart total it reads
+       Aria's margin. The bar shows the position. */
+    copy = `Tu pedido está por debajo de los $${TAX_ZONE_THRESHOLD_USD} — sin impuestos.`;
   }
 
   wrap.innerHTML = `
@@ -26263,7 +26745,7 @@ async function renderCrossSellRail(){
                quick-add stays as its own small button underneath. -->
           <button onclick="openCrossSellProduct(${i})" class="w-full text-left focus-ring" aria-label="Ver ${jsAttr(it.title)}">
             <div class="h-[110px] relative" style="background:var(--sky)">
-              <img src="${escapeHtml(it.image)}" class="w-full h-full object-cover" alt="">
+              <img src="${escapeHtml(sizedImageUrl(it.image, 360))}" class="w-full h-full object-cover" alt="" loading="lazy" data-img-orig="${escapeHtml(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">
               <span class="absolute bottom-1.5 right-1.5 text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(10,31,68,0.72); color:#fff">Ver</span>
             </div>
             <div class="px-2.5 pt-2.5">
@@ -26301,6 +26783,8 @@ function openCrossSellProduct(idx){
 function addCrossSellToCart(idx){
   const it = crossSellItems[idx];
   if (!it) return;
+  // A garment needs its size: open its page, where the real list is.
+  if (apparelNeedsSize(it.retailer, it.title)){ openCrossSellProduct(idx); return; }
   /* This rail passed `priceUsd: it.price` straight through and never
      looked at it. A catalogue record with price: null reaches it the
      same way it reaches the product page, so it was the second door
@@ -27955,7 +28439,16 @@ function setOrbState(state){
     }, 2000 + Math.random() * 2600);
   /* 2026-09-27, Danny: ~2-4.6s between blinks reads more alive than ~6s */
   }
-  function start(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); }
+  /* The closed-eyes frame (92KB) downloads after the page has loaded
+     (2026-10-19, #417): on a slow phone it competed with the app itself
+     for the first screen. The first blink waits for it. */
+  function start(){
+    var go = function(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); };
+    if (!blinkImg.getAttribute('src') && blinkImg.dataset.src){
+      blinkImg.onload = go;
+      blinkImg.src = blinkImg.dataset.src;
+    } else go();
+  }
   if (document.readyState === 'complete') start();
   else window.addEventListener('load', start);
 })();
@@ -29470,7 +29963,7 @@ function addAssistantProductCard(item, retailer){
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
-    ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
+    ${item.image ? `<img src="${escapeHtml(sizedImageUrl(item.image, 200))}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0" data-img-orig="${escapeHtml(item.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}

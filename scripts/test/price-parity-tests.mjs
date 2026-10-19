@@ -37,7 +37,9 @@ async function check(name, fn) {
   catch (e) { failures.push(`${name}\n         ${e.message}`); }
 }
 
-const PAGES = ["tienda.html", "search.html", "marca.html", "producto.html", "departamento.html", "motos.html", "ropa-interior.html"];
+/* Search prices on the server since #409: its pricing lives in the
+   search endpoint's core, which is what the cards show. */
+const PAGES = ["tienda.html", "netlify/functions/_search-core.js", "marca.html", "producto.html", "departamento.html", "motos.html", "ropa-interior.html"];
 const ENGINE = loadPageEngine();
 const spa = (raw, retailer) => ENGINE.pricing.normalizeLiveItem({ title: "x", price: raw, retailer }, { retailer });
 

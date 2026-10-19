@@ -47,10 +47,22 @@
      shows the total before the personal-info form is ever reached. On
      desktop the same areas are reflowed into the familiar 2-column,
      sticky-summary layout. */
-  #checkoutForm{ display:grid; gap:1.5rem; grid-template-areas:"product" "summary" "customer" "shipping" "destination"; }
+  /* PAGAR WHERE THE THUMB IS (2026-10-18, rehearsal finding #8, Danny:
+     "I fill my information and then the pay button should be underneath").
+     On a phone the total still shows before the form (above), but the pay
+     action moves to a closing bar after the delivery section -- the last
+     thing filled in. It mirrors the summary's total and button state
+     exactly (one renderer, see mirrorPayEnd), so the two can never say
+     different numbers. On desktop too (Lucifer, #367 round 3): the
+     summary's own button sat beside the top of the form while the form
+     continued below it, so the bar closes the left column there as well
+     and the summary column shows the total only. */
+  #checkoutForm{ display:grid; gap:1.5rem; grid-template-areas:"product" "summary" "customer" "shipping" "destination" "payend"; }
+  .gridPayEnd{ grid-area:payend; }
+  #payBtn{ display:none; }
   @media (min-width:1024px){
     #checkoutForm{ grid-template-columns:1fr 360px; gap:2rem; align-items:start;
-      grid-template-areas:"product summary" "customer summary" "shipping summary" "destination summary"; }
+      grid-template-areas:"product summary" "customer summary" "shipping summary" "destination summary" "payend summary"; }
     #checkoutForm .gridSummary{ position:sticky; top:6rem; }
   }
   .gridProduct{ grid-area:product; }
@@ -62,6 +74,7 @@
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
   .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463; display:flex; align-items:center; gap:8px }
 </style>
+<script src="/ref.js"></script>
 </head>
 <body class="antialiased">
 
@@ -129,7 +142,26 @@
           + 'Aria está eligiendo a mano a los 1000 fundadores — si eres elegido, te avisamos y compras.</p>'
           + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Seguir armando mi carrito</a>';
       }
-      function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+      /* SCRAPED TEXT IS TEXT (2026-10-19, #417 night order 4): titles arrive
+         as "Lizzie &#38; Oliver"; escaping that printed "&#38;" to shoppers.
+         Entities are decoded first, then everything is escaped as before. */
+      var ENTITY_NAMED = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", reg:"\u00ae", trade:"\u2122", copy:"\u00a9", deg:"\u00b0", eacute:"\u00e9", ntilde:"\u00f1", rsquo:"\u2019", lsquo:"\u2018", rdquo:"\u201d", ldquo:"\u201c", ndash:"\u2013", mdash:"\u2014", hellip:"\u2026" };
+      function decodeEntitiesText(s){
+        if (typeof s !== "string" || s.indexOf("&") < 0) return s;
+        for (var pass = 0; pass < 2 && s.indexOf("&") >= 0; pass++){
+          s = s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function(m, e){
+            if (e.charAt(0) === "#"){
+              var cp = (e.charAt(1) === "x" || e.charAt(1) === "X") ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+              return (cp > 0 && cp <= 0x10ffff) ? String.fromCodePoint(cp) : m;
+            }
+            var v = ENTITY_NAMED[e.toLowerCase()];
+            return v === undefined ? m : v;
+          });
+        }
+        return s;
+      }
+      function esc(s){ return escRaw(decodeEntitiesText(s)); }
+      function escRaw(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
       wrap.innerHTML =
         '<section class="relative overflow-hidden rounded-3xl" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 60%, #0A1F44 100%)">'
         + '<div class="ariaGoldHair"></div>'
@@ -191,6 +223,30 @@
              in DOM order. -->
         <aside class="gridSummary bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
+          <!-- SHIPPING TOGGLE (standing decision 2026-09-25): one choice,
+               plain language. Consolidated is free and pre-selected;
+               express is $8 (raised from $5 on purpose). How Aria batches
+               boxes in Miami stays out of sight. The fee is recomputed
+               server-side (_checkout-model.js SHIPPING_MODES). -->
+          <fieldset id="shippingModeWrap" class="space-y-2">
+            <legend class="text-[12px] font-bold mb-1.5" style="color:var(--navy)">¿Cómo quieres recibirlo?</legend>
+            <label class="flex items-start gap-3 rounded-2xl border px-3.5 py-3 cursor-pointer" style="border-color:var(--line)">
+              <input type="radio" name="shippingMode" value="consolidated" checked class="mt-1">
+              <span class="flex-1">
+                <span class="block text-[13.5px] font-bold" style="color:var(--navy)">Recibir todo junto</span>
+                <span class="block text-[12px]" style="color:#5B6478">Te llega en un solo envío.</span>
+              </span>
+              <span class="text-[13px] font-extrabold" style="color:var(--green)">Gratis</span>
+            </label>
+            <label class="flex items-start gap-3 rounded-2xl border px-3.5 py-3 cursor-pointer" style="border-color:var(--line)">
+              <input type="radio" name="shippingMode" value="express" class="mt-1">
+              <span class="flex-1">
+                <span class="block text-[13.5px] font-bold" style="color:var(--navy)">Recibir cada paquete ni bien llegue</span>
+                <span class="block text-[12px]" style="color:#5B6478">Cada tienda te llega por separado.</span>
+              </span>
+              <span id="expressFeeLabel" class="text-[13px] font-extrabold tabular" style="color:var(--navy)">$8</span>
+            </label>
+          </fieldset>
           <!-- DELIVERY TRANSPARENCY (2026-09-26): per-store Miami ranges, set by renderDeliverySummary. -->
           <div id="deliverySummaryWrap"></div>
           <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
@@ -222,6 +278,13 @@
                  underneath. It is the real cost of receiving, checking
                  and delivering a small parcel, and it is worded as that
                  rather than as a penalty. -->
+            <div id="sumExpressRow" class="flex items-start justify-between gap-2" hidden>
+              <span class="flex flex-col">
+                <span>Envío por paquete</span>
+                <span class="text-[11px]" style="color:#8A93A8">Recibir cada paquete ni bien llegue</span>
+              </span>
+              <span id="sumExpress" class="tabular font-semibold" style="color:var(--navy)">—</span>
+            </div>
             <div id="sumSmallOrderRow" class="flex items-start justify-between gap-2" hidden>
               <span class="flex flex-col">
                 <span id="sumSmallOrderLabel">Pedido pequeño</span>
@@ -273,7 +336,17 @@
                though every other number on this page now leads with PEN. -->
           <div class="rounded-xl px-3.5 py-3 flex items-start gap-2" style="background:var(--yellow); border:1px solid var(--yellow-dark)">
             <svg class="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-            <p id="taxPolicyNote" class="text-[12.5px] font-bold leading-snug" style="color:var(--navy)"></p>
+            <div class="flex-1">
+              <!-- DE-MINIMIS TRACKER (2026-10-08): progress toward the $200
+                   FOB threshold, on the DUTIABLE value (raw US price x the
+                   retailer's sales-tax rate), never the card price and never
+                   freight. A tax tracker, not a fee bar. -->
+              <p id="taxTrackerLine" class="text-[13px] font-extrabold leading-snug" style="color:var(--navy)"></p>
+              <div class="h-2 rounded-full mt-1.5 mb-2 overflow-hidden" style="background:rgba(10,31,68,.12)">
+                <div id="taxTrackerBar" class="h-full rounded-full" style="width:0%; background:var(--navy)"></div>
+              </div>
+              <p id="taxPolicyNote" class="text-[12px] font-semibold leading-snug" style="color:var(--navy)"></p>
+            </div>
           </div>
           <div class="h-px" style="background:var(--line)"></div>
           <div class="flex justify-between items-baseline">
@@ -328,6 +401,16 @@
             <div>
               <label for="custPhone" class="block text-[12px] font-bold mb-1.5">Teléfono</label>
               <input id="custPhone" name="custPhone" type="tel" required autocomplete="tel" placeholder="+51 987 654 321"
+                class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring tabular" style="border-color:var(--line)">
+            </div>
+            <!-- THE BUYER'S DOCUMENT (2026-10-17, #367 test order). The
+                 order record has to carry name, DNI and address for the
+                 courier and customs; only an alternate recipient was ever
+                 asked for one. -->
+            <div>
+              <label for="custDoc" class="block text-[12px] font-bold mb-1.5">Documento (DNI / CE)</label>
+              <input id="custDoc" name="custDoc" type="text" required autocomplete="off" maxlength="12" pattern="[A-Za-z0-9]{8,12}"
+                title="DNI de 8 dígitos o carné de extranjería" placeholder="45678912"
                 class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring tabular" style="border-color:var(--line)">
             </div>
           </div>
@@ -496,7 +579,15 @@
               <p id="kgAutoNote" class="text-[11px] mt-1.5" style="color:#8A93A8" hidden></p>
               <p id="kgHonorNote" class="text-[11px] mt-1" style="color:#2F7A46" hidden>Si el peso real resulta mayor, asumimos la diferencia: pagas el precio cotizado.</p>
             </div>
-            <div>
+            <!-- VALOR DECLARADO AND THE CONTENT DESCRIPTION ARE BACKSTAGE DATA
+                 (2026-10-18, Danny, finding #9 -- launch blocker). Both are
+                 customs/manifest figures: the declared value is the goods'
+                 raw US cost, so printing it beside "Total a pagar" let any
+                 shopper divide the two and read Aria's margin. The inputs
+                 stay in the form (the quote and the order record read
+                 them, both filled by renderCartItems) but are never shown.
+                 The customer sees products, freight and the total. -->
+            <div hidden>
               <label for="valorInput" class="block text-[12px] font-bold mb-1.5">Valor declarado</label>
               <div class="relative">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-bold" style="color:#9AA3B8">$</span>
@@ -506,12 +597,30 @@
             </div>
           </div>
           <div>
-            <label for="descInput" class="block text-[12px] font-bold mb-1.5">Descripción del contenido</label>
-            <input id="descInput" name="descInput" type="text" required placeholder="Ej. Ropa y zapatillas"
-              class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
-            <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Completa peso, valor y descripción para calcular tu flete.</p>
+            <div hidden>
+              <label for="descInput" class="block text-[12px] font-bold mb-1.5">Descripción del contenido</label>
+              <input id="descInput" name="descInput" type="text" required placeholder="Ej. Ropa y zapatillas"
+                class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+            </div>
+            <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Agrega productos a tu carrito para calcular tu flete.</p>
           </div>
         </section>
+        </div>
+
+        <div class="gridPayEnd bg-white border rounded-3xl p-5 space-y-3" style="border-color:var(--line)">
+          <div class="flex items-baseline justify-between gap-3">
+            <span class="text-[13.5px] font-bold" style="color:var(--navy)">Total a pagar</span>
+            <span id="payEndTotal" class="text-[22px] font-extrabold tabular text-right" style="color:var(--blue)">—</span>
+          </div>
+          <button id="payBtnEnd" type="submit" disabled
+            class="w-full h-[52px] rounded-2xl text-white text-[14.5px] font-bold focus-ring transition disabled:opacity-40 disabled:cursor-not-allowed"
+            style="background:var(--blue)">
+            Completa el formulario para cotizar
+          </button>
+          <p class="text-[11.5px] flex items-center gap-1.5 justify-center" style="color:#9AA3B8">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Pago seguro · protegido por Aria
+          </p>
         </div>
     </form>
   </div>
@@ -521,9 +630,9 @@
     <div class="w-16 h-16 rounded-full grid place-items-center mx-auto mb-5" style="background:var(--green-bg)">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
     </div>
-    <h1 class="text-[24px] sm:text-[28px] font-extrabold tracking-[-0.02em] mb-2" style="color:var(--navy)">¡Pago simulado con éxito!</h1>
+    <h1 id="successTitle" class="text-[24px] sm:text-[28px] font-extrabold tracking-[-0.02em] mb-2" style="color:var(--navy)">¡Pago simulado con éxito!</h1>
     <p class="text-[13.5px] leading-relaxed mb-6" style="color:#5B6478">
-      Este es un prototipo — no se realizó ningún cargo real. Tu pedido <span id="orderId" class="font-bold tabular" style="color:var(--navy)"></span> por <span id="orderTotal" class="font-bold tabular" style="color:var(--navy)"></span> quedó registrado y te contactaremos a <span id="orderEmail" class="font-semibold" style="color:var(--navy)"></span>.
+      <span id="successLead">Este es un prototipo — no se realizó ningún cargo real.</span> Tu pedido <span id="orderId" class="font-bold tabular" style="color:var(--navy)"></span> por <span id="orderTotal" class="font-bold tabular" style="color:var(--navy)"></span> quedó registrado y te contactaremos a <span id="orderEmail" class="font-semibold" style="color:var(--navy)"></span>.
     </p>
     <a href="index.html" class="inline-flex items-center justify-center h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring" style="background:var(--blue)">Volver a la tienda</a>
   </div>
@@ -648,6 +757,108 @@
   const LIVE_RETAILER_LABEL = RETAILER_LABELS;
   const RETAILER_BADGE_COLOR = RETAILER_COLORS;
   const RETAILER_LOGO_FILE = RETAILER_LOGOS;
+/* Sized retailer derivatives (2026-10-16) -- the same rules the app
+   bundle's sizedImageUrl applies: card slots are small, retailer
+   originals are 1600-2000px, and decoding them by the hundred is
+   what kills phone tabs. A derivative that fails swaps back to the
+   original URL (data-img-orig) before the page's own error handling
+   runs, so a card never breaks because of the resize. Hosts with no
+   verified resize parameter return the URL unchanged. */
+var CARD_IMG_WIDTHS = [360, 560, 800];
+var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
+/* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sizedImageUrl(url, w){
+  var u = typeof url === "string" ? url : "";
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  function setQ(base, key, val){
+    var re = new RegExp("([?&]" + key + "=)(\\d+)", "i");
+    if (re.test(base)) return base.replace(re, function(m, p){ return p + val; });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
+  }
+  var out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, "odnWidth", w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
+      : out + "&odnHeight=" + w;
+    if (!/odnBg=/i.test(out)) out += "&odnBg=FFFFFF";
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width; the bare
+       default is already card-sized on these hosts. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, "wid", w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, function(m, p){ return p + w; });
+    }
+  } else if (/macysassets\.com/i.test(u)){
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, "wid", w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, "imwidth", w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, "w", w);
+    if (/[?&]h=\d+/i.test(out)) out = out.replace(/([?&]h=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
+      else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
+  }
+  return out || u;
+}
+function imageSrcset(url){
+  var u = typeof url === "string" ? url : "";
+  if (!u) return "";
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, "_500.jpg") + " 500w, " + u + " 1000w";
+  }
+  var seen = {}, parts = [];
+  for (var i = 0; i < CARD_IMG_WIDTHS.length; i++){
+    var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
+    if (s === u || seen[s]) continue;
+    seen[s] = 1;
+    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
+  }
+  return parts.length ? parts.join(", ") : "";
+}
+function imgOrigRetry(el){
+  if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
+    el.src = el.dataset.imgOrig;
+    el.removeAttribute("data-img-orig");
+    el.removeAttribute("srcset");
+    return true;
+  }
+  return false;
+}
+function cardImgAttrs(url, sizes){
+  var ss = imageSrcset(url);
+  return 'src="' + escapeHtmlLocal(sizedImageUrl(url, 560)) + '"' +
+    (ss ? ' srcset="' + escapeHtmlLocal(ss) + '" sizes="' + (sizes || CARD_IMG_SIZES) + '"' : '') +
+    ' data-img-orig="' + escapeHtmlLocal(url || "") + '"';
+}
   function escapeHtmlLocal(str){
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
@@ -705,6 +916,24 @@
   const fxVenta = document.getElementById('fxVenta');
   const fxOrigen = document.getElementById('fxOrigen');
   const payBtn = document.getElementById('payBtn');
+  /* The closing pay bar (phones) is a mirror, never a second source:
+     whatever renderSummary and the submit handler write on #payBtn and
+     #sumTotal -- label, disabled, total -- is copied here as it happens. */
+  (function mirrorPayEnd(){
+    const endBtn = document.getElementById('payBtnEnd');
+    const endTotal = document.getElementById('payEndTotal');
+    const sumTotalEl = document.getElementById('sumTotal');
+    if (!endBtn || !endTotal || !sumTotalEl) return;
+    const sync = () => {
+      endBtn.textContent = payBtn.textContent;
+      endBtn.disabled = payBtn.disabled;
+      endTotal.innerHTML = sumTotalEl.innerHTML;
+    };
+    const mo = new MutationObserver(sync);
+    mo.observe(payBtn, { attributes: true, attributeFilter: ['disabled'], childList: true, characterData: true, subtree: true });
+    mo.observe(sumTotalEl, { childList: true, characterData: true, subtree: true });
+    sync();
+  })();
   const destCitySel = document.getElementById('destCity');
   const courierSelect = document.getElementById('courierSelect');
   const courierEta = document.getElementById('courierEta');
@@ -836,7 +1065,18 @@
      different number than the one on screen. */
   function orderTotalPenNow(){
     if (!fxRates || !latestQuote) return 0;
-    return round2(orderTotalsUsd().totalUsd * fxRates.venta + currentSmallOrderFeePen());
+    return round2(orderTotalsUsd().totalUsd * fxRates.venta + currentSmallOrderFeePen()
+      + currentProvinciaFeePen() + currentExpressFeePen());
+  }
+
+  /* The dollar figure on screen for the same order. The soles fees
+     (small order, provincia, express) are part of the order in BOTH
+     currencies: the provincia S/ 9.90 used to sit inside the soles total
+     but not the dollar one, so the two totals on screen disagreed by
+     ~$2.89 (Lucifer, #367 round 3). Without a rate the fees cannot be
+     converted and only the dollar subtotal is shown. */
+  function orderTotalUsdShown(totalUsd, feesPen){
+    return fxRates ? round2(totalUsd + feesPen / fxRates.venta) : totalUsd;
   }
 
   // What this order can actually consume: never more than the balance,
@@ -1044,6 +1284,45 @@
     return smallOrderFeePen(round2(orderUsd * fxRates.venta));
   }
 
+  /* SHIPPING TOGGLE. $8 for "cada paquete ni bien llegue", in soles at
+     today's rate; free for "todo junto". Mirrors SHIPPING_MODES in
+     netlify/functions/_checkout-model.js, which charges it (and a test
+     holds the two to the same number). */
+  const EXPRESS_FEE_USD = 8;
+  function currentShippingMode(){
+    const el = document.querySelector('input[name="shippingMode"]:checked');
+    return el && el.value === 'express' ? 'express' : 'consolidated';
+  }
+  function currentExpressFeePen(){
+    return currentShippingMode() === 'express' && fxRates ? round2(EXPRESS_FEE_USD * fxRates.venta) : 0;
+  }
+  function renderExpressRow(fee){
+    document.getElementById('sumExpress').textContent = fmtWalletPen(fee);
+    document.getElementById('sumExpressRow').hidden = !(fee > 0);
+    const lbl = document.getElementById('expressFeeLabel');
+    lbl.textContent = fxRates ? fmtWalletPen(round2(EXPRESS_FEE_USD * fxRates.venta)) : `$${EXPRESS_FEE_USD}`;
+  }
+  document.querySelectorAll('input[name="shippingMode"]').forEach((r) => r.addEventListener('change', () => renderSummary()));
+
+  /* DE-MINIMIS TRACKER: the dutiable value (never freight) against $200. */
+  function renderTaxTracker(){
+    const fob = currentValor();
+    const pct = Math.max(0, Math.min(100, fob / TAX_ESTIMATE_THRESHOLD_USD * 100));
+    const line = document.getElementById('taxTrackerLine');
+    const bar = document.getElementById('taxTrackerBar');
+    bar.style.width = pct.toFixed(1) + '%';
+    /* No dollar figure: fob is the declared (margin-free) value, and
+       printing it next to the total discloses the margin (finding #9).
+       The bar shows the position; the words say which side of $200. */
+    if (fob <= TAX_ESTIMATE_THRESHOLD_USD){
+      line.textContent = `Tu pedido está por debajo de los $${TAX_ESTIMATE_THRESHOLD_USD} – sin impuestos`;
+      bar.style.background = 'var(--navy)';
+    } else {
+      line.textContent = `Pasaste los $${TAX_ESTIMATE_THRESHOLD_USD} – se aplican impuestos de importación`;
+      bar.style.background = '#B7791F';
+    }
+  }
+
   /* EVERY FIGURE THE SUMMARY PRINTS, FROM ONE FUNCTION (2026-09-21).
 
      The total used to be the courier's total_usd plus the handling fee,
@@ -1157,8 +1436,11 @@
     const valor = currentValor();
     const smallOrderFee = currentSmallOrderFeePen();
     const provFee = currentProvinciaFeePen();
+    const expressFee = currentExpressFeePen();
     renderSmallOrderRow(smallOrderFee);
     renderProvinciaRow(provFee);
+    renderExpressRow(expressFee);
+    renderTaxTracker();
     sumWeight.textContent = kg.toFixed(2) + ' kg';
 
     /* A freight line that reads "—" and a total that reads S/ 0.00 are not
@@ -1176,8 +1458,8 @@
       const q = latestQuote || provisional;
       if (q){
         setMoney(sumFlete, q.flete_usd, ' (estimado)');
-        sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + ' (estimado)'
-          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee)) : '');
+        sumTotal.innerHTML = fmtPrimary(orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee)) + ' (estimado)'
+          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee)) : '');
       } else {
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
@@ -1199,7 +1481,8 @@
     // The small-order fee is part of the order total, so saldo applies
     // against it too and it is inside every figure below. The provincia
     // leg is treated the same way.
-    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee) : 0;
+    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee) : 0;
+    const shownUsd = orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee);
 
     /* A weight we do not believe must not become a price. Everything on
        the line is still shown — the customer can see what is in the
@@ -1217,7 +1500,7 @@
        fragrances is a contract limit, not a guideline. */
     if (fragranceState.overLimit){
       sumWalletRow.hidden = true;
-      sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+      sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
       payBtn.disabled = true;
       payBtn.textContent = `Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío`;
       return;
@@ -1246,9 +1529,9 @@
        printing it here quoted the customer a figure with the tax row
        missing from it — and only in the degraded no-FX path, which is
        exactly where a wrong number survives longest. */
-    sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+    sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
     payBtn.disabled = false;
-    payBtn.textContent = payLabel(totals.totalUsd, fxRates ? orderTotalPen : null);
+    payBtn.textContent = payLabel(shownUsd, fxRates ? orderTotalPen : null);
   }
 
   function requestQuote(){
@@ -1259,7 +1542,7 @@
 
     if (kg <= 0 || valor <= 0 || !description){
       latestQuote = null;
-      quoteStatus.textContent = 'Completa peso, valor y descripción para calcular tu flete.';
+      quoteStatus.textContent = 'Agrega productos a tu carrito para calcular tu flete.';
       renderSummary();
       return;
     }
@@ -1444,7 +1727,7 @@
   }
     checkoutItemsWrap.innerHTML = cart.map((it, i) => `
       <div class="flex items-center gap-3 pb-4 border-b last:border-b-0 last:pb-0" style="border-color:var(--line)">
-        ${it.image ? `<img src="${escapeHtmlLocal(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+        ${it.image ? `<img src="${escapeHtmlLocal(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-img-orig="${escapeHtmlLocal(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
         <div class="min-w-0 flex-1">
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
@@ -1557,12 +1840,55 @@
     toastTimer = setTimeout(() => { el.style.opacity = 0; el.style.transform = 'translate(-50%, 24px)'; }, 2600);
   }
 
-  // BUG FIX (launch cash control): "Pagar" used to just fake success
-  // locally with no server involved at all. It now calls
-  // orders-create.js, which enforces the daily order cap / kill switch
-  // and persists a real order record (still a *simulated* charge — no
-  // real payment gateway exists or is in scope here) that the admin
-  // margin-test view reads from.
+  // "Pagar" calls orders-create.js, which enforces the daily order cap /
+  // kill switch, prices the order itself and -- with Stripe configured
+  // (2026-10-08) -- answers with a Stripe Checkout URL. The customer pays
+  // there, in soles, and comes back to ?pagado=... (see returnFromStripe
+  // below). Without a key in production it still records the order with
+  // no charge, and says so on the success screen.
+  function storedRef(){
+    try { const r = JSON.parse(localStorage.getItem('aria_ref') || 'null'); return r && r.ref ? r.ref : null; } catch { return null; }
+  }
+
+  /* BACK FROM STRIPE. ?pagado=ORDER&session_id=cs_... -- ask the server
+     whether the money arrived (the webhook, or Stripe itself) before
+     saying so; only then is the cart cleared. ?cancelado=ORDER -- the
+     customer left Stripe's page; the cart is untouched. */
+  async function returnFromStripe(){
+    const params = new URLSearchParams(location.search);
+    const paidId = params.get('pagado'), sessionId = params.get('session_id');
+    if (params.get('cancelado')){
+      showToast('No se completó el pago. Tu carrito sigue aquí cuando quieras intentarlo de nuevo.');
+      history.replaceState(null, '', location.pathname);
+      return;
+    }
+    if (!paidId || !sessionId) return;
+    document.getElementById('checkoutWrap').hidden = true;
+    document.getElementById('successWrap').hidden = false;
+    document.getElementById('successTitle').textContent = 'Confirmando tu pago…';
+    document.getElementById('successLead').textContent = '';
+    document.getElementById('orderId').textContent = '#' + paidId;
+    for (let i = 0; i < 12; i++){
+      try {
+        const r = await fetch(`/.netlify/functions/order-status?order=${encodeURIComponent(paidId)}&session=${encodeURIComponent(sessionId)}`);
+        const d = await r.json();
+        if (r.ok && d.paid){
+          document.getElementById('successTitle').textContent = '¡Pago recibido!';
+          document.getElementById('successLead').textContent = 'Gracias por tu compra.';
+          document.getElementById('orderTotal').textContent = fmtWalletPen(d.chargedPen);
+          document.getElementById('orderEmail').textContent = d.email || 'tu correo';
+          clearCart();
+          history.replaceState(null, '', location.pathname);
+          return;
+        }
+      } catch { /* retry */ }
+      await new Promise((ok) => setTimeout(ok, 2500));
+    }
+    document.getElementById('successTitle').textContent = 'Estamos confirmando tu pago';
+    document.getElementById('successLead').textContent = 'Stripe todavía no nos confirma el cobro. Te escribiremos apenas llegue; no vuelvas a pagar.';
+  }
+  returnFromStripe();
+
   document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -1591,7 +1917,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer: { name, email, phone: document.getElementById('custPhone').value.trim() },
+          customer: { name, email, phone: document.getElementById('custPhone').value.trim(),
+            idNumber: document.getElementById('custDoc').value.replace(/\s+/g, '').trim() },
           shipping: {
             addrLine: document.getElementById('addrLine').value.trim(),
             addrDistrict: document.getElementById('addrDistrict').value.trim(),
@@ -1625,10 +1952,49 @@
           // Sent so the record shows what the customer saw; the server
           // recomputes it from destCity and charges its own answer.
           provinciaFeePen: currentProvinciaFeePen(),
+          // "Recibir todo junto" (free) or "cada paquete ni bien llegue" ($8).
+          shippingMode: currentShippingMode(),
+          // The soles total on screen. The server charges its own figure
+          // and refuses (409) when the two disagree, so the customer never
+          // pays a number they did not see.
+          shownTotalPen: orderTotalPenNow(),
+          // ?ref= attribution when the browser blocked the cookie.
+          ref: storedRef(),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'No se pudo procesar el pedido');
+      /* The body is read as text first: a platform failure (a function
+         timeout or crash) answers with Netlify's own JSON or an HTML page,
+         never our { error }, and used to surface as a bare "No se pudo
+         procesar el pedido" that told nobody anything (2026-10-17
+         rehearsal). */
+      const raw = await res.text();
+      let data = {};
+      try { data = JSON.parse(raw); } catch { data = {}; }
+      if (res.status === 409 && data.totalChanged){
+        /* A stale exchange rate, a repriced line or a freight quote under
+           the weight floor: redraw on the server's figures and let the
+           customer look before paying. Nothing was created or charged. */
+        try { localStorage.removeItem(FX_CACHE_KEY); } catch {}
+        if (latestQuote && typeof data.freightUsd === 'number') latestQuote = { ...latestQuote, flete_usd: data.freightUsd };
+        if (Array.isArray(data.priceAdjustments)) for (const a of data.priceAdjustments){
+          const line = cart.find((l) => l.retailer === a.retailer && (l.title || l.name) === a.title);
+          if (line) line.priceUsd = a.chargedUsd;
+        }
+        await initFxRates();
+        throw new Error(`El total se actualizó a ${fmtWalletPen(data.totalPen)}. Revísalo y vuelve a pagar.`);
+      }
+      if (!res.ok){
+        if (data.error) throw new Error(data.error);
+        const why = data.errorType || data.errorMessage ? ` · ${String(data.errorType || data.errorMessage).slice(0, 60)}` : '';
+        throw new Error(`El servidor de pagos no respondió (código ${res.status}${why}). No se cobró nada; intenta de nuevo en un momento.`);
+      }
+      if (data.checkoutUrl){
+        /* To Stripe's page. The cart is NOT cleared: if the customer
+           comes back without paying it is all still here. */
+        payBtn.textContent = 'Abriendo el pago seguro…';
+        location.assign(data.checkoutUrl);
+        return;
+      }
 
       if (data.held){
         document.getElementById('heldBatchTime').textContent =
@@ -1645,7 +2011,8 @@
       // of truth for both numbers.
       document.getElementById('orderTotal').textContent = data.chargedPen != null
         ? fmtWalletPen(data.chargedPen) + (data.walletAppliedPen > 0 ? ` (saldo Aria aplicado: ${fmtWalletPen(data.walletAppliedPen)})` : '')
-        : fmtPrimary(latestQuote.total_usd);
+        : fmtPrimary(orderTotalUsdShown(orderTotalsUsd().totalUsd,
+            currentSmallOrderFeePen() + currentProvinciaFeePen() + currentExpressFeePen()));   /* the summary's figure, never the courier quote's (Lucifer, #367) */
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;
@@ -1653,8 +2020,11 @@
       window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (err) {
       showToast(err.message || 'No pudimos procesar tu pedido — intenta de nuevo.');
-      payBtn.disabled = false;
-      payBtn.textContent = payLabel(latestQuote.total_usd, fxRates ? round2(latestQuote.total_usd * fxRates.venta) : null);
+      /* Back to the summary's own figures. This used to print the
+         courier quote's total_usd (declared value + freight, no Aria
+         margin), so after one failed Pagar the button read $84.94 under a
+         $102.12 total (2026-10-17 rehearsal). */
+      renderSummary();
     }
   });
 </script>

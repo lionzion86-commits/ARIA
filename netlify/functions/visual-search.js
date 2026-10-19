@@ -120,7 +120,8 @@ async function getManifest() {
   if (!res.ok) throw new Error(`manifest ${res.status}`);
   manifestCache = await res.json();
   for (const s of manifestCache.shards) {
-    s._centroid = new Float32Array(Buffer.from(s.centroid, "base64").buffer);
+    const b = Buffer.from(s.centroid, "base64");
+    s._centroid = new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4);
   }
   return manifestCache;
 }

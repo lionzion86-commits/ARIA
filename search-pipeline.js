@@ -34,8 +34,10 @@
   'use strict';
 
   var RESERVED = { _readme: 1, phrases: 1, brands: 1, stopwords: 1, intents: 1, senses: 1 };
-  /* Up to 500 kept; search.html draws 60 at a time ("Mostrar más"). */
+  /* Up to 500 kept unless the caller sets ctx.resultLimit (the search
+     endpoint keeps 2000 and serves them 48 at a time). */
   var RESULT_LIMIT = 500;
+  function limitOf(ctx) { return (ctx && ctx.resultLimit) || RESULT_LIMIT; }
   var MAX_VARIANTS = 6;
 
   /* Lower case, no accents (ñ -> n), apostrophes joined ("levi's" ->
@@ -132,6 +134,20 @@
       if (Math.abs(c.key.length - t.length) > 2) continue;
       var d = D.S.fuzzyEditDist(c.key, t, 2);
       if (d < bestD || (d === bestD && best && !best.brand && c.brand)) { best = c; bestD = d; }
+    }
+    /* THE CATALOGUE'S OWN WORD WINS WHEN IT IS NEARER (2026-10-19,
+       #416). "dreses" was corrected to "aretes" (earrings, two edits)
+       because "dresses" is not a dictionary key -- yet it is one edit
+       away and in thousands of titles. A common catalogue word nearer
+       than the dictionary's best leaves the word to the engine, which
+       matches catalogue words itself. */
+    if (best && bestD >= 1 && windex && typeof windex.forEach === 'function') {
+      var nearer = false;
+      windex.forEach(function (list, w) {
+        if (nearer || list.length < 50 || Math.abs(w.length - t.length) > 2) return;
+        if (D.S.fuzzyEditDist(w, t, bestD) < bestD) nearer = true;
+      });
+      if (nearer) return null;
     }
     return bestD <= 2 ? best : null;
   }
@@ -266,7 +282,7 @@
       if (fixed.changed) fixedRest = fixed.query;
     }
     var query = (v.brand + ' ' + rest).trim();
-    var opts = { limit: RESULT_LIMIT * 2, retailers: ctx.retailers };
+    var opts = { limit: limitOf(ctx) * 2, retailers: ctx.retailers };
     if (filter) opts.filter = filter;
     var res = S.rankCatalogMatches(ctx.products, query, opts);
     var items = (res && res.items) || [];
@@ -337,17 +353,22 @@
     }
     var hits = r.hits;
     if (plan.intents.cheap) {
-      hits = hits.slice(0, RESULT_LIMIT).sort(function (a, b) { return priceOf(a) - priceOf(b); });
+      hits = hits.slice(0, limitOf(ctx)).sort(function (a, b) { return priceOf(a) - priceOf(b); });
     }
-    hits = hits.slice(0, RESULT_LIMIT);
+    hits = hits.slice(0, limitOf(ctx));
     var shown = relaxed || plan.corrected || r.engineFix || null;
     if (!hits.length) {
       return { state: 'none', hits: [], query: q,
         sense: sense ? sense.label : null,
         suggestion: ctx.S.suggestSearchQuery(queries[0] ? textOf(queries[0]) : q, windex) || null };
     }
+    /* What kind of words the shopper typed (#416 generic lanes): only
+       dictionary words ("dolls", "muñecas", "vestidos") is a browse
+       query; a brand, a model, a number or a word the dictionary does
+       not know is a specific one. */
     return { state: 'results', hits: hits, query: q, shown: shown && shown !== norm(q) ? shown : null,
-      sense: sense ? sense.label : null };
+      sense: sense ? sense.label : null,
+      kinds: plan.slots.map(function (s) { return s.kind; }), intents: Object.keys(plan.intents) };
   }
   function priceOf(it) { return Number(it && it.price) || Infinity; }
 

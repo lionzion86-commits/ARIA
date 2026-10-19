@@ -5,12 +5,29 @@
 # settings that must live in the repo. Adding a [build] section here would
 # override the UI — do not add one without checking the UI first.
 
-[functions]
-  # The MCP connector (netlify/functions/mcp.js) reads index.html and the
-  # catalogue JSONs off disk at boot. Lambda bundles do not include repo
-  # files by default, so without this the function fails with ENOENT.
-  # ~91MB total — well under the 250MB unzipped Lambda limit.
+# REPO FILES GO ONLY TO THE FUNCTION THAT READS THEM (2026-10-18, #367).
+# This list used to sit under [functions] itself, which copies it into
+# EVERY function: with the October catalogues it reached 221MB per
+# function -- against Lambda's 250MB unzipped ceiling, and a cold start
+# that has to fetch and unpack all of it. orders-create (checkout's Pagar)
+# carried 216MB of catalogues it never opens, and the rehearsal's Pagar
+# died with a bare platform error. Only two functions read repo files.
+
+# The MCP connector (netlify/functions/mcp.js) reads index.html, the JS
+# bundle and the catalogue JSONs off disk at boot (scripts/lib/mcp/paths.mjs).
+[functions."mcp"]
   included_files = ["index.html", "build/*.js", "*-catalog.json", "department-cache*.json"]
+
+# price-index.json (~5MB): what checkout charges per product, built by
+# scripts/build-price-index.mjs (orders-create.js reprices every line).
+[functions."orders-create"]
+  included_files = ["price-index.json"]
+
+# Search (2026-10-19, #409): the slim index, the engine and the Spanish
+# dictionary answer /api/search on the server; the phone never downloads
+# them. search.html fetches 48 cards at a time.
+[functions."search"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js"]
 
 # /api/* is the public name for the functions the front end calls. The
 # realtime token endpoint is the one that matters: the build spec curls
@@ -20,5 +37,28 @@
 [[redirects]]
   from = "/api/realtime-token"
   to = "/.netlify/functions/realtime-token"
+  status = 200
+  force = true
+
+# THE APP BUNDLE PHONES DOWNLOAD (2026-10-19, #417 night order 3).
+# index.html, the tests and the MCP connector name the bundle's source,
+# build/app-<hash>.js (596KB gzipped, comments and all). Browsers get the
+# minified copy (241KB) that scripts/build-app-min.mjs writes beside it.
+# force = true because the source file exists at the requested path.
+# The first rule keeps /build/min/ itself from being rewritten again.
+[[redirects]]
+  from = "/build/min/*"
+  to = "/build/min/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/build/*"
+  to = "/build/min/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/search"
+  to = "/.netlify/functions/search"
   status = 200
   force = true

@@ -178,11 +178,22 @@ await check("a turn that throws ends honestly, and the next turn is answered", a
 });
 
 await check("the history the model sees pairs every answer with its question", async () => {
-  const { ctx, page, send, agentCalls } = await openChat();
+  const { ctx, page, send, agentCalls, column } = await openChat();
   await send("mejor zapatos para mujer");   // answered in the page
-  await page.waitForTimeout(3000);
+  /* Wait for that answer (since #417 the page loads catalogues on the
+     first question, not at open), then ask the next one. */
+  for (let i = 0; i < 160; i++) {
+    const col = await column();
+    const u = col.map((m) => m.who).lastIndexOf("user");
+    if (u >= 0 && col.slice(u + 1).some((m) => m.who === "bot" || m.who === "card")) break;
+    await page.waitForTimeout(250);
+  }
+  const before = agentCalls.length;
   await send("muéstrame joyas");            // answered by the agent
-  await page.waitForTimeout(2500);
+  /* Since #417 the home page no longer holds the catalogues, so the turn
+     before can take longer to settle: wait for the agent call itself. */
+  for (let i = 0; i < 120 && agentCalls.length === before; i++) await page.waitForTimeout(250);
+  assert.ok(agentCalls.length > before, "the agent was never asked");
   const h = agentCalls.at(-1).history.map((m) => m.role + ":" + m.content);
   assert.ok(h.some((x) => x === "user:mejor zapatos para mujer"), "a routed answer was recorded without its question: " + h.join(" | "));
   assert.equal(agentCalls.at(-1).message, "muéstrame joyas");

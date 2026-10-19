@@ -5,11 +5,10 @@
    Danny: "If we're going to leave the search bar, it needs to be
    workable. Easier and better for the customer, not more confusing."
 
-   This suite loads what the page loads -- the precomputed index
-   (assets/search/catalog-index.json), the engine (search-engine.js),
-   the pipeline (search-pipeline.js) and the dictionary
-   (assets/search/synonyms-es.json) -- and calls the same
-   AriaSearchPage.run() the page calls. A query passes when the top
+   Since #409 (2026-10-19) the search runs on the server: this suite
+   builds the endpoint's own context (netlify/functions/_search-core.js:
+   the precomputed index, the engine, the pipeline and the dictionary)
+   and asks it exactly what /api/search asks it. A query passes when the top
    results are the thing asked for, not merely when something comes
    back.
 
@@ -18,8 +17,8 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import vm from "node:vm";
 import { buildIndex, INDEX_PATH } from "../build-search-index.mjs";
+import { buildSearchContext, runQuery } from "../../netlify/functions/_search-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -33,13 +32,11 @@ function check(name, fn) {
    THE PAGE IS WIRED TO WHAT THIS SUITE TESTS.
    ------------------------------------------------------------------ */
 const page = readFileSync(ROOT + "search.html", "utf8");
-check("search.html runs the pipeline on the index and the dictionary", () => {
-  assert.match(page, /<script src="search-pipeline\.js"><\/script>/, "the pipeline is not loaded");
-  assert.match(page, /var SEARCH_INDEX = "\/assets\/search\/catalog-index\.json";/, "the index is not loaded");
-  assert.match(page, /var SEARCH_DICT = "\/assets\/search\/synonyms-es\.json";/, "the dictionary is not loaded");
-  assert.match(page, /window\.AriaSearchPage\.run\(PIPE, query\)/, "the page does not search through the pipeline");
+check("search.html asks the endpoint, which runs the pipeline on the index and the dictionary", () => {
+  assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/, "the page does not call the search endpoint");
+  assert.ok(!/catalog-index\.json|synonyms-es\.json|search-pipeline\.js|search-engine\.js/.test(page),
+    "the page still loads the index, the dictionary or the engine itself");
   assert.ok(!/Sin imagen/.test(page), "the page can still draw a \"Sin imagen\" card");
-  assert.match(page, /if \(!img \|\| typeof img !== "string"\) return null;/, "the fallback path keeps imageless products");
 });
 
 const index = JSON.parse(readFileSync(ROOT + INDEX_PATH, "utf8"));
@@ -60,31 +57,17 @@ check("the index is what the catalogues give today", () => {
 });
 
 /* ------------------------------------------------------------------
-   LOADED THE WAY search.html LOADS IT (fromIndex + catalogReady).
+   THE ENDPOINT'S OWN CONTEXT (netlify/functions/_search-core.js).
    ------------------------------------------------------------------ */
-const sandbox = { window: {}, console };
-vm.createContext(sandbox);
-vm.runInContext(readFileSync(ROOT + "search-engine.js", "utf8"), sandbox, { filename: "search-engine.js" });
-vm.runInContext(readFileSync(ROOT + "search-pipeline.js", "utf8"), sandbox, { filename: "search-pipeline.js" });
-const S = sandbox.window.AriaSearch;
-const P = sandbox.window.AriaSearchPage;
+const ctx = buildSearchContext({ index, read: (f) => readFileSync(ROOT + f, "utf8") });
+const { S, P, products } = ctx;
 const at = Object.fromEntries(index.fields.map((f, i) => [f, i]));
-const products = index.rows.map(r => ({
-  name: r[at.title], title: r[at.title], brand: r[at.brand] || "", price: r[at.price],
-  originalPrice: r[at.originalPrice] || null, onSale: r[at.onSale] === 1,
-  departments: r[at.department] ? [r[at.department]] : [], finalPrice: r[at.finalPrice] === 1,
-  image: r[at.image], url: "", retailer: r[at.retailer] || "", _cat: r[at.cat] || null,
-}));
-S.buildSearchWordIndex(products);
 const dict = JSON.parse(readFileSync(ROOT + "assets/search/synonyms-es.json", "utf8"));
-const ctx = {
-  S, products, retailers: [...new Set(products.map(p => p.retailer))].map(k => ({ key: k, label: k })),
-  dict: P.prepare(dict, S, products),
-};
 let slowest = { q: "", ms: 0 };
 function search(q) {
   const t = Date.now();
-  const r = P.run(ctx, q);
+  ctx.cache.clear();
+  const r = runQuery(ctx, q);
   const ms = Date.now() - t;
   if (ms > slowest.ms) slowest = { q, ms };
   return r;
