@@ -148,6 +148,60 @@ export function runQuery(ctx, q) {
   return r;
 }
 
+/* ¿QUISISTE DECIR? (2026-10-19, #416). "shor" flooded 2,000 prefix
+   matches with no word about it; "shore" showed Cape Shore magnets to a
+   shopper who almost certainly meant shorts. When a word of the query is
+   rare in the catalogue (or not a word in it at all) and a far more common
+   catalogue word completes it ("shor" -> short...) or is one or two typos
+   away ("shore" -> short), the page offers it as a tappable chip. The
+   results stay: the chip is an offer, never a redirect. Plurals win when
+   the catalogue uses them ("shorts", not "short"). Numbers and words the
+   engine already corrected out loud are left alone. */
+const DYM_RARE = 50;          // a word in fewer products than this is suspect
+const DYM_COMMON = 200;       // a suggestion must be in at least this many
+const DYM_RATIO = 20;         // ...and this many times more than the typed word
+export function didYouMean(ctx, q, r) {
+  if (!r || r.state !== "results" || r.shown) return null;
+  const S = ctx.S, windex = ctx.products && ctx.products._windex;
+  if (!windex || typeof S.searchTokens !== "function" || typeof S.fuzzyEditDist !== "function") return null;
+  const toks = S.searchTokens(q);
+  if (!toks.length || toks.length > 3) return null;
+  const freq = (w) => { const l = windex.get(w); return l ? l.length : 0; };
+  /* A whole brand name is a name, not a typo ("levis" is Levi's). A
+     word that is only part of one ("shore" in Cape Shore) is still
+     open to the question. */
+  if (!ctx.brandWords) {
+    ctx.brandWords = new Set();
+    for (const p of ctx.products) if (p.brand) ctx.brandWords.add(S.searchTokens(p.brand).join(""));
+  }
+  let changed = false;
+  const out = toks.map((t) => {
+    if (t.length < 3 || /\d/.test(t) || ctx.brandWords.has(t)) return t;
+    const own = freq(t);
+    if (own >= DYM_RARE) return t;
+    /* Two typos only in long words: "lizzie" is not "sizes". */
+    const maxD = t.length >= 7 ? 2 : 1;
+    let best = null;
+    for (const [w, list] of windex) {
+      const n = list.length;
+      if (w === t || n < Math.max(DYM_COMMON, own * DYM_RATIO) || /\d/.test(w)) continue;
+      let d;
+      if (own === 0 && w.length > t.length && w.startsWith(t)) d = 0;
+      else if (Math.abs(w.length - t.length) <= maxD) d = S.fuzzyEditDist(t, w, maxD);
+      else continue;
+      if (d > maxD) continue;
+      if (!best || d < best.d || (d === best.d && n > best.n)) best = { w, d, n };
+    }
+    if (!best) return t;
+    const plural = best.w + "s";
+    const word = !best.w.endsWith("s") && freq(plural) >= best.n * 0.2 ? plural : best.w;
+    if (word === t) return t;
+    changed = true;
+    return word;
+  });
+  return changed ? out.join(" ") : null;
+}
+
 /* One card's worth of a product -- what the page draws, nothing more. */
 export function cardOf(p, fx, labels = {}) {
   const usd = p.finalPrice ? Number(p.price) : finalUsd(p.price, p.retailer);
@@ -191,6 +245,7 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
     missingBrand: r.missingBrand || null,
     sense: r.sense || null,
     suggestion: r.suggestion || null,
+    didYouMean: n === 1 ? didYouMean(ctx, query, r) : null,
     fx: fx || null,
     items: slice.map((p) => cardOf(p, fx, ctx.labels)),
   };

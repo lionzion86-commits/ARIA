@@ -51,6 +51,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 #meta-line{font-size:13px; color:var(--muted); margin:6px 0 14px; text-align:center;}
 #meta-line .fix, .empty .dym{display:block; margin-top:6px; font-size:14px; color:var(--ink);}
 .dym a{font-weight:700; cursor:pointer;}
+/* ¿Quisiste decir? chip (#416): an offer above the results, one tap away. */
+.dymchip{display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:14px; color:var(--ink);}
+.dymchip button{border:1px solid var(--blue); background:#fff; color:var(--blue); font-weight:700; font-size:14px; border-radius:999px; padding:6px 14px; cursor:pointer; touch-action:manipulation;}
 .examples{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px;}
 .examples a{border:1px solid var(--line); border-radius:999px; padding:6px 12px; color:var(--navy); font-weight:600; cursor:pointer; text-decoration:none;}
 .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
@@ -395,6 +398,22 @@ function renderAnswer(query, data){
       fx.className = "fix";
       fx.textContent = "Mostrando resultados para “" + data.shown + "”";
       meta.appendChild(fx);
+    }
+    /* A near-miss ("shor", "shore"): the results stay, and the word the
+       shopper probably meant is one tap away (#416). */
+    if (data.didYouMean && !data.shown){
+      var wrap = document.createElement("div");
+      var chip = document.createElement("span");
+      chip.className = "dymchip";
+      chip.appendChild(document.createTextNode("¿Quisiste decir:"));
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = data.didYouMean;
+      b.addEventListener("click", function(){ searchFor(data.didYouMean); });
+      chip.appendChild(b);
+      chip.appendChild(document.createTextNode("?"));
+      wrap.appendChild(chip);
+      meta.appendChild(wrap);
     }
   }
   showingStatus();

@@ -4944,6 +4944,50 @@ function detectBrandIntent(rawToks, pool, opts){
      beat "yougla"->"youngla". Now each window size runs exact-then-
      fuzzy before a smaller size is tried, so a multi-word brand always
      outranks a one-word coincidence. */
+  /* EXACT BRANDS FIRST, AND THE ONE THE REST OF THE QUERY BELONGS TO
+     (2026-10-19, #416). "nike air max 90" showed Hairmax hair-growth
+     lasers: the two-word window "air max" fuzzy-matched the brand
+     Hairmax before the exact brand "nike" was ever tried. An exact
+     brand, anywhere in the query, now beats any fuzzy one (the case the
+     longest-window order once protected -- "secret" inside "victoria
+     secret" -- is already refused by brandOwnsItsName). Two exact
+     brands ("lego star wars": LEGO and the Star Wars clothing label)
+     go to the brand whose own products carry the rest of the query:
+     LEGO's titles say "Star Wars", Star Wars' baby clothes never say
+     "LEGO". */
+  const exactHits = [];
+  for (const windows of windowsBySize){
+    for (const w of windows){
+      if (singleSkipped(w)) continue;
+      if (exactHits.some(h => h.consumed.some(i => w.idx.includes(i)))) continue;
+      for (const j of w.joins){
+        const k = searchBrandKey(j);
+        if (!k || k.length < 2) continue;
+        const hit = vocab.get(k);
+        if (hit && brandOwnsItsName(w, hit)){ exactHits.push({ key: k, label: hit.label, consumed: w.idx }); break; }
+      }
+    }
+  }
+  if (exactHits.length === 1) return exactHits[0];
+  if (exactHits.length > 1){
+    const support = (h) => {
+      const rest = rawToks.filter((_, i) => !h.consumed.includes(i) && rawToks[i].length > 1);
+      if (!rest.length) return 0;
+      let n = 0;
+      for (const it of (pool || [])){
+        if (!it || searchBrandKey(it.brand) !== h.key) continue;
+        const ws = it._wordSet || (typeof catalogWordsOf === 'function' ? catalogWordsOf(it) : null);
+        if (ws && rest.every(t => ws.has(t))) n++;
+      }
+      return n;
+    };
+    let pick = exactHits[0], best = -1;
+    for (const h of exactHits){
+      const s = support(h);
+      if (s > best || (s === best && h.consumed.length > pick.consumed.length)){ best = s; pick = h; }
+    }
+    return pick;
+  }
   for (const windows of windowsBySize){
     for (const w of windows){
       if (singleSkipped(w)) continue;
@@ -4960,6 +5004,11 @@ function detectBrandIntent(rawToks, pool, opts){
       /* The exact pass above already had its chance at this token.
          If the catalogue sells the word, it is a product word. */
       if (knownProductWord(w)) continue;
+      /* A MODEL NUMBER IS NEVER A TYPO (2026-10-19, #416). "jordan air 1"
+         (the Spanish pipeline puts the brand first) joined "air"+"1" ->
+         "air1", one edit from the sunglasses brand AIRE. Numbers are
+         exact; a window holding one is matched exactly or not at all. */
+      if (w.idx.some(i => /^\d+$/.test(rawToks[i]))) continue;
       for (const j of w.joins){
         const k = searchBrandKey(j);
         if (!k || k.length < 2) continue;

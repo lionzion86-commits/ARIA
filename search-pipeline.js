@@ -135,6 +135,20 @@
       var d = D.S.fuzzyEditDist(c.key, t, 2);
       if (d < bestD || (d === bestD && best && !best.brand && c.brand)) { best = c; bestD = d; }
     }
+    /* THE CATALOGUE'S OWN WORD WINS WHEN IT IS NEARER (2026-10-19,
+       #416). "dreses" was corrected to "aretes" (earrings, two edits)
+       because "dresses" is not a dictionary key -- yet it is one edit
+       away and in thousands of titles. A common catalogue word nearer
+       than the dictionary's best leaves the word to the engine, which
+       matches catalogue words itself. */
+    if (best && bestD >= 1 && windex && typeof windex.forEach === 'function') {
+      var nearer = false;
+      windex.forEach(function (list, w) {
+        if (nearer || list.length < 50 || Math.abs(w.length - t.length) > 2) return;
+        if (D.S.fuzzyEditDist(w, t, bestD) < bestD) nearer = true;
+      });
+      if (nearer) return null;
+    }
     return bestD <= 2 ? best : null;
   }
 

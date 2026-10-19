@@ -85,6 +85,42 @@ await check('"dolls" pages: the next 48, no repeats, an honest total', async () 
   assert.equal(p1.body.pages, Math.ceil(p1.body.total / PAGE_SIZE));
 });
 
+/* ------------------------------------------------------------------
+   #416 FAST PIECES: brand + model never lose to a look-alike brand, and
+   near-misses get a "¿Quisiste decir?" chip.
+   ------------------------------------------------------------------ */
+await check("brand + model queries answer with that model", async () => {
+  const want = {
+    "nike air max 90": /air max 90/i,          // was: Hairmax laser caps
+    "air jordan 1": /air jordan 1/i,           // was: AIRE x Von Dutch sunglasses
+    "lego star wars": /^lego star wars/i,      // was: Star Wars baby clothes
+    "nike air force 1": /air force 1/i,        // was: a Costco hair supplement
+    "nike dunk low": /dunk low/i,
+    "adidas gazelle": /gazelle/i,
+    "converse chuck taylor": /chuck taylor/i,
+  };
+  for (const [q, rx] of Object.entries(want)) {
+    const r = await ask(q);
+    const top = r.body.items.slice(0, 4);
+    assert.ok(top.length && top.every((i) => rx.test(i.title)), `"${q}": ${top.map((i) => i.title).join(" | ")}`);
+  }
+});
+
+await check('near-misses get a chip; real words and brands do not', async () => {
+  for (const [q, want] of [["shor", "shorts"], ["shore", "shorts"], ["nkie", "nike"], ["sneakrs", "sneakers"], ["hoddie", "hoodie"]]) {
+    const r = await ask(q);
+    assert.equal(r.body.didYouMean, want, `"${q}" offered ${r.body.didYouMean}`);
+    assert.ok(r.body.items.length > 0, `"${q}" dropped its results`);
+  }
+  for (const q of ["gazelle", "samba", "levis 501", "lizzie", "dolls", "shorts", "nike air force 1"]) {
+    assert.equal((await ask(q)).body.didYouMean, null, `"${q}" got a chip it should not`);
+  }
+  assert.equal((await ask("dreses")).body.shown, "dresses", '"dreses" must read as dresses, not aretes (earrings)');
+  const page = readFileSync(ROOT + "search.html", "utf8");
+  assert.match(page, /if \(data\.didYouMean && !data\.shown\)/, "search.html does not draw the chip");
+  assert.match(page, /b\.addEventListener\("click", function\(\)\{ searchFor\(data\.didYouMean\); \}\);/, "the chip does not re-run the search");
+});
+
 await check("Lizzie & Oliver, not Lizzie &#38; Oliver", async () => {
   const r = await ask("our generation lizzie oliver");
   const hit = r.body.items.find((i) => /lizzie/i.test(i.title));
@@ -179,7 +215,7 @@ await check("the function ships with its files, and only it does", () => {
   }
 });
 
-const MIN_CHECKS = 17;
+const MIN_CHECKS = 19;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
