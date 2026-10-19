@@ -29973,6 +29973,9 @@ function addAssistantProductCard(item, retailer){
       ${item.price != null && Number.isFinite(Number(item.price)) ? solesUnderHTML(displayPriceUsd(Number(item.price), item.dutiableUsd), 'text-[10.5px] text-zinc-400 truncate') : ''}
     </div>`;
   card.setAttribute('data-assistant-card', '');
+  /* What the card shows, kept on it: the conversation is saved from the
+     column itself, cards included (see THE CONVERSATION OUTLIVES THE PAGE). */
+  card._ariaCard = { item, retailer };
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
   /* Remembered, so "esa" / "la segunda" / "la de 30 dólares" resolve to
@@ -31401,8 +31404,11 @@ function rememberShownProduct(item, retailer, card){
   ariaCardsSinceReply.push(card);
 }
 /* F13: the cards shown for a reply go directly under it, and the view
-   holds the reply's first line and the cards -- or, when they do not
-   fit, the cards. */
+   holds the reply's first line and the cards. Reading order is hers
+   (2026-10-19, Danny: "she speaks (text), then she shows (cards
+   underneath)"): when they do not all fit, the reply's first line stays
+   at the top and the cards follow below it -- the view never jumps to
+   the last card and leaves her words above the fold. */
 function placeCardsUnderReply(bubble){
   const cards = ariaCardsSinceReply.filter(c => c && c.isConnected);
   ariaCardsSinceReply = [];
@@ -31441,10 +31447,7 @@ function pinLatestReplyInView(){
     const top = (el) => el.getBoundingClientRect().top - wrap.getBoundingClientRect().top + wrap.scrollTop;
     const first = kids[firstCard], last = kids[lastCard];
     const head = bubble || first;
-    const span = top(last) + last.offsetHeight - top(head);
-    wrap.scrollTop = Math.max(0, span + 16 <= wrap.clientHeight
-      ? top(head) - 8
-      : top(last) + last.offsetHeight + 8 - wrap.clientHeight);
+    wrap.scrollTop = Math.max(0, top(head) - 8);
   };
   run();
   if (ariaPinStop) return;          // already watching: this call re-pinned
@@ -36244,3 +36247,133 @@ function showVisualResults(items, verdict){
   updateResultsFilterBadge();
   window.scrollTo(0, 0);
 }
+
+/* ==================================================================
+   THE CONVERSATION OUTLIVES THE PAGE (2026-10-19, #386, Danny's field
+   test at Walmart: "tapping a card navigates to the product page and
+   the chat vanishes ... the only way back into the chat is returning
+   to the homepage").
+
+   Aria is a router: her job ends at the click, the doorway stays.
+   Picking a product closes the panel, which already ends a live call
+   (hideAssistant -> endRealtimeCallIfPanelClosed: no open mic while
+   he reads the page). What was missing is the way back:
+
+   - The conversation is kept in sessionStorage as it happens: the
+     column as the shopper saw it (her words, his words, the notes and
+     the cards, in their final order -- cards sit under the reply that
+     showed them) and the history the model is sent. One observer on
+     the column saves both, so no reply path can forget to.
+   - Every page carries the orb (assets/js/aria-launcher.js on the
+     standalone pages, this page's own orb here). Tapping it on another
+     page comes back to /?aria=1, which reopens the panel with the
+     conversation intact. It opens QUIET: the mic is call-ready and the
+     call starts on its tap, as every open does since 2026-10-15.
+   - Restoring draws the column without speaking, searching or
+     re-sending anything. Cards come back as cards: tappable, and
+     "esa" / "la segunda" resolve against them again (F14).
+   Kept for two hours of the tab's life; a new tab starts fresh.
+   ================================================================== */
+const ARIA_CHAT_KEY = 'aria_chat_v1';
+const ARIA_CHAT_TTL_MS = 2 * 60 * 60 * 1000;
+const ARIA_CHAT_MAX_ITEMS = 60;
+let ariaChatRestoring = false;
+let ariaChatSaveTimer = null;
+
+/* What a card needs to be drawn again and opened: nothing more. */
+function ariaSlimCardItem(item){
+  const keep = ['title', 'name', 'price', 'originalPrice', 'dutiableUsd', 'image', 'brand', 'weightKg',
+    'rating', 'sizes', 'partNumber', 'onSale', 'id'];
+  const out = {};
+  for (const k of keep) if (item && item[k] != null) out[k] = item[k];
+  return out;
+}
+
+function ariaSerializeChat(){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return null;
+  const column = [];
+  for (const el of wrap.children){
+    if (el.hasAttribute && el.hasAttribute('data-assistant-card') && el._ariaCard){
+      column.push({ t: 'c', item: ariaSlimCardItem(el._ariaCard.item), retailer: el._ariaCard.retailer });
+    } else if (el.classList && el.classList.contains('assistantNote')){
+      if (el.textContent.trim()) column.push({ t: 'n', text: el.textContent });
+    } else if (el.classList && el.classList.contains('ariaChatMsg')){
+      const text = el.textContent.trim();
+      if (text) column.push({ t: el.classList.contains('ml-auto') ? 'u' : 'b', text });
+    }
+  }
+  return { at: Date.now(), column: column.slice(-ARIA_CHAT_MAX_ITEMS), history: ariaChatHistory.slice(-20) };
+}
+
+function ariaSaveChatSoon(){
+  if (ariaChatRestoring) return;
+  clearTimeout(ariaChatSaveTimer);
+  ariaChatSaveTimer = setTimeout(() => {
+    try {
+      const snap = ariaSerializeChat();
+      if (snap && snap.column.length) sessionStorage.setItem(ARIA_CHAT_KEY, JSON.stringify(snap));
+    } catch (e) { /* private mode or full: the chat simply does not travel */ }
+  }, 250);
+}
+
+function ariaRestoreChat(){
+  let snap = null;
+  try { snap = JSON.parse(sessionStorage.getItem(ARIA_CHAT_KEY) || 'null'); } catch (e) { snap = null; }
+  if (!snap || !Array.isArray(snap.column) || !snap.column.length) return false;
+  if (!(Date.now() - Number(snap.at) < ARIA_CHAT_TTL_MS)){
+    try { sessionStorage.removeItem(ARIA_CHAT_KEY); } catch (e) {}
+    return false;
+  }
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap || wrap.children.length) return false;
+  ariaChatRestoring = true;
+  try {
+    for (const m of snap.column){
+      if (m.t === 'c' && m.item){
+        addAssistantProductCard(m.item, m.retailer);
+        /* Already under its reply: the next restored reply must not
+           collect it. */
+        ariaCardsSinceReply = [];
+      } else if (m.t === 'n'){
+        addAssistantNote(m.text);
+      } else if (m.t === 'u' || m.t === 'b'){
+        /* Drawn, not spoken: speak:false for hers, and his own words go
+           in without starting a new card batch per line. */
+        addAssistantMessage(m.t === 'u' ? 'user' : 'bot', m.text, null, { speak: false });
+      }
+    }
+    if (Array.isArray(snap.history)) ariaChatHistory = snap.history.slice(-20);
+    /* A restored card is something to look at, not a reply waiting for
+       its cards: nothing is pinned, the column simply ends at the bottom. */
+    ariaCardsSinceReply = [];
+    wrap.scrollTop = wrap.scrollHeight;
+  } finally {
+    ariaChatRestoring = false;
+  }
+  return true;
+}
+
+(function ariaChatPersistence(){
+  const boot = () => {
+    const wrap = document.getElementById('assistantMessages');
+    if (!wrap) return;
+    ariaRestoreChat();
+    try {
+      new MutationObserver(() => ariaSaveChatSoon()).observe(wrap, { childList: true, subtree: true, characterData: true });
+    } catch (e) { /* very old engine: the chat does not travel, nothing else changes */ }
+    /* Back from another page's orb: open the conversation, quietly. */
+    try {
+      const u = new URL(location.href);
+      if (u.searchParams.get('aria') === '1'){
+        u.searchParams.delete('aria');
+        history.replaceState(history.state, '', u.pathname + (u.search || '') + u.hash);
+        if (!assistantOpen) toggleAssistant();
+        const w = document.getElementById('assistantMessages');
+        if (w) w.scrollTop = w.scrollHeight;
+      }
+    } catch (e) {}
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
+})();

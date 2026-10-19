@@ -220,7 +220,7 @@ const LONE_DUP_SIM = 0.96;
 const BRAND_SIM = 0.84;
 const FLOOR_SIM = 0.6;
 
-function tierResults(scored) {
+export function tierResults(scored) {
   const pool = scored.filter((x) => x.s >= FLOOR_SIM).slice(0, CANDIDATES);
   // The photo's brand family: the brand with the strongest cluster
   // near the top (most members in the top 12, best sim breaks ties).

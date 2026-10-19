@@ -22,7 +22,7 @@
    ================================================================== */
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const BASE = process.env.ARIA_BASE_URL || "http://127.0.0.1:8899";
@@ -338,6 +338,108 @@ await check("F13: the cards shown for a reply sit directly under it", async () =
   await ctx.close();
 });
 
+/* ------------------------------------------------------------------
+   DANNY'S WALMART FIELD TEST (2026-10-19, #386): text above the cards
+   and both in view; the orb on every page; a product tap ends the live
+   session and the orb brings the conversation back, intact.
+   ------------------------------------------------------------------ */
+const BARBIES = [
+  { title: "Barbie Royal Fashion Doll with Blonde Hair", brand: "Barbie", price: 7.4, image: "https://x/b1.jpg" },
+  { title: "Barbie Chelsea Doll, Small Doll", brand: "Barbie", price: 5.69, image: "https://x/b2.jpg" },
+  { title: "Barbie Mini BarbieLand Doll", brand: "Barbie", price: 9.86, image: "https://x/b3.jpg" },
+  { title: "Barbie Dream Besties Weekend Getaway", brand: "Barbie", price: 27.13, image: "https://x/b4.jpg" },
+  { title: "Barbie Color Reveal Mermaid", brand: "Barbie", price: 18.56, image: "https://x/b5.jpg" },
+];
+async function barbieTurn(page) {
+  await page.evaluate((items) => {
+    addAssistantMessage("user", "quiero barbies");
+    for (const it of items) addAssistantProductCard(it, "walmart");
+    addAssistantMessage("bot", "Aquí tienes Barbies a buen precio en Walmart: la Royal Fashion, la Chelsea y más. Toca la que te guste para verla.", null, { speak: false });
+  }, BARBIES);
+  await page.waitForTimeout(400);
+}
+
+await check("Barbies: her words first, the cards under them, and the view starts at her words", async () => {
+  const { ctx, page } = await openChat();
+  await barbieTurn(page);
+  const v = await page.evaluate(() => {
+    const wrap = document.getElementById("assistantMessages");
+    const kids = [...wrap.children];
+    const reply = kids.filter((e) => e.classList.contains("ariaChatMsg") && !e.classList.contains("ml-auto")).at(-1);
+    const cards = kids.filter((e) => e.hasAttribute("data-assistant-card"));
+    const w = wrap.getBoundingClientRect(), r = reply.getBoundingClientRect(), c0 = cards[0].getBoundingClientRect();
+    return { replyBeforeCards: kids.indexOf(reply) < kids.indexOf(cards[0]),
+      replyTopVisible: r.top >= w.top - 1 && r.top < w.bottom, firstCardVisible: c0.top < w.bottom && c0.bottom > w.top };
+  });
+  assert.ok(v.replyBeforeCards, "a card sits above her words");
+  assert.ok(v.replyTopVisible, "her words are scrolled out of view");
+  assert.ok(v.firstCardVisible, "the first card is not in view");
+  await ctx.close();
+});
+
+await check("Tapping a Barbie: panel closed, no call left open, the orb on the product view", async () => {
+  const { ctx, page } = await openChat();
+  await barbieTurn(page);
+  /* As if a call were up: the tap must end it before the page changes. */
+  await page.evaluate(() => {
+    ariaRTWanted = true;
+    window.__ended = false;
+    const orig = endRealtimeCallIfPanelClosed;
+    endRealtimeCallIfPanelClosed = function(){ window.__ended = true; try { sessionStorage.setItem("__ended", "1"); } catch (e) {} return orig.apply(this, arguments); };
+  });
+  await Promise.all([page.waitForURL(/producto\.html/, { timeout: 15000 }).catch(() => null), page.click("#assistantMessages [data-assistant-card]")]);
+  await page.waitForLoadState("load");
+  const s = await page.evaluate(() => {
+    const onPdp = /producto\.html/.test(location.pathname);
+    const btn = document.getElementById(onPdp ? "ariaLauncher" : "assistantBtn");
+    const r = btn ? btn.getBoundingClientRect() : null, cs = btn ? getComputedStyle(btn) : null;
+    return { onPdp, ended: sessionStorage.getItem("__ended") === "1",
+      orb: !!btn && cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity) > 0.5 && r.width > 0 && r.bottom <= innerHeight + 1 };
+  });
+  assert.ok(s.ended, "the live call was not ended by the product tap");
+  assert.ok(s.orb, "the orb is not visible on the product page");
+  await ctx.close();
+});
+
+await check("producto.html carries the orb; it brings the conversation back, quiet, nothing re-sent", async () => {
+  const { ctx, page, agentCalls } = await openChat();
+  await barbieTurn(page);
+  await page.waitForTimeout(500);   // the column is saved a moment after it changes
+  const saved = await page.evaluate(() => JSON.parse(sessionStorage.getItem("aria_chat_v1") || "null"));
+  assert.ok(saved && saved.column.filter((m) => m.t === "c").length === 5, "the conversation was not saved with its cards");
+  await page.goto(`${BASE}/producto.html?producto=${encodeURIComponent(BARBIES[0].title)}&tienda=walmart`, { waitUntil: "load" });
+  await page.waitForSelector("#ariaLauncher", { timeout: 10000 });
+  assert.equal(await page.getAttribute("#ariaLauncher", "href"), "/?aria=1");
+  const calls = agentCalls.length;
+  await page.click("#ariaLauncher");
+  await page.waitForFunction(() => typeof assistantOpen !== "undefined" && assistantOpen, null, { timeout: 15000 });
+  await page.waitForTimeout(500);
+  const back = await page.evaluate(() => ({
+    url: location.search,
+    texts: [...document.querySelectorAll("#assistantMessages .ariaChatMsg")].map((e) => e.textContent.trim()),
+    cards: [...document.querySelectorAll("#assistantMessages [data-assistant-card]")].map((e) => e.textContent.replace(/\s+/g, " ").trim()),
+    order: [...document.querySelectorAll("#assistantMessages > *")].map((e) => e.hasAttribute("data-assistant-card") ? "card" : e.classList.contains("ml-auto") ? "user" : "reply"),
+    history: ariaChatHistory.length, live: ariaLiveCallActive(),
+  }));
+  assert.equal(back.url, "", "?aria=1 stayed in the address bar");
+  assert.deepEqual(back.texts, ["quiero barbies", "Aquí tienes Barbies a buen precio en Walmart: la Royal Fashion, la Chelsea y más. Toca la que te guste para verla."]);
+  assert.equal(back.cards.length, 5, "the cards did not come back");
+  assert.ok(back.cards[0].includes("Barbie Royal Fashion Doll"), back.cards[0]);
+  assert.deepEqual(back.order, ["user", "reply", "card", "card", "card", "card", "card"]);
+  assert.ok(!back.live, "reopening started a call on its own");
+  assert.equal(agentCalls.length, calls, "reopening sent something to the agent");
+  /* And "la segunda" still resolves against what she showed (F14). */
+  const second = await page.evaluate(() => ariaShown.at(-4) && ariaShown.at(-4).item.title);
+  assert.match(second, /Chelsea/);
+  await ctx.close();
+});
+
+await check("every page but the home page and admin loads the orb launcher", () => {
+  for (const f of readdirSync(ROOT).filter((f) => f.endsWith(".html") && !["index.html", "admin.html"].includes(f))) {
+    assert.ok(readFileSync(ROOT + f, "utf8").includes('<script src="/assets/js/aria-launcher.js" defer></script>'), f + " has no orb");
+  }
+});
+
 await check("F14/F15: 'llévame a la de 30 dólares' opens the Adi Ease she showed, never a fresh search", async () => {
   const { ctx, page, send, agentCalls } = await openChat();
   await page.waitForTimeout(1500);
@@ -501,23 +603,40 @@ await check("F15: a bare 'llévame a esa' goes to the product her last reply nam
   await ctx.close();
 });
 
-await check("F13: the cards stay fully in view when the panel shrinks under them", async () => {
-  const { ctx, page } = await openChat();
-  const gap = await page.evaluate(async () => {
+/* Run 2: the quick-reply row filled in after the scroll and the last card
+   slid ~80px under it. Since Danny's 2026-10-19 field test the reading
+   order also binds: when the reply and its cards do not all fit, her
+   words stay at the top and the cards continue below -- never a jump to
+   the last card with her words above the fold. */
+async function shrinkCase(page, titles, shrinkBy = 80) {
+  return page.evaluate(async ({ titles, shrinkBy }) => {
     const wrap = document.getElementById("assistantMessages");
-    wrap.style.cssText = "height:420px; overflow-y:auto; display:block";
+    wrap.innerHTML = "";
+    /* The panel's own max-height decides the list's height; the shrink is
+       relative to whatever that is on this viewport. */
+    const h0 = wrap.clientHeight;
     for (let i = 0; i < 6; i++) addAssistantMessage(i % 2 ? "bot" : "user", "relleno " + i + " ".repeat(10) + "x".repeat(200), null, { speak: false });
     addAssistantMessage("user", "busco zapatillas");
-    addAssistantMessage("bot", "Mira estas tres.", null, { speak: false });
-    for (const t of ["Uno", "Dos", "Tres"]) addAssistantProductCard({ title: t + " Shoes", price: 30, image: "https://x/" + t + ".jpg" }, "ccs");
+    const reply = addAssistantMessage("bot", "Mira estas.", null, { speak: false });
+    for (const t of titles) addAssistantProductCard({ title: t + " Shoes", price: 30, image: "https://x/" + t + ".jpg" }, "ccs");
     /* the quick-reply row fills in: the list loses 80px */
     await new Promise((r) => setTimeout(r, 50));
-    wrap.style.height = "340px";
+    wrap.style.maxHeight = (h0 - shrinkBy) + "px";
     await new Promise((r) => setTimeout(r, 300));
+    const w = wrap.getBoundingClientRect(), r = reply.getBoundingClientRect();
     const last = [...wrap.querySelectorAll("[data-assistant-card]")].pop().getBoundingClientRect();
-    return Math.round(wrap.getBoundingClientRect().bottom - last.bottom);
-  });
-  assert.ok(gap >= 0, `the last card is ${-gap}px below the visible list`);
+    return { lastGap: Math.round(w.bottom - last.bottom), replyTop: Math.round(r.top - w.top), fits: last.bottom - r.top + 16 <= w.height };
+  }, { titles, shrinkBy });
+}
+await check("F13: reply and cards stay in view when the panel shrinks under them; when they cannot all fit, her words lead", async () => {
+  const { ctx, page } = await openChat();
+  const two = await shrinkCase(page, ["Uno"], 40);
+  assert.ok(two.fits, "test setup: one card should fit");
+  assert.ok(two.lastGap >= 0, `the last card is ${-two.lastGap}px below the visible list`);
+  assert.ok(two.replyTop >= 0, "her words are above the visible list");
+  const five = await shrinkCase(page, ["Uno", "Dos", "Tres", "Cuatro", "Cinco"]);
+  assert.ok(!five.fits, "test setup: five cards should not fit");
+  assert.ok(five.replyTop >= 0 && five.replyTop < 40, `her words are not at the top of the view (${five.replyTop}px)`);
   await ctx.close();
 });
 
@@ -614,7 +733,7 @@ await check("the prompts carry the policy and no tax figure but the published on
 });
 
 await browser.close();
-const MIN_CHECKS = 29;
+const MIN_CHECKS = 33;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
