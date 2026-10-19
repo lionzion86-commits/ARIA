@@ -63,6 +63,13 @@
   status = 200
   force = true
 
+# Brands (2026-10-19, #409 track T5): marca.html's first screen is a
+# static head (assets/sections/marca/<key>.json) for every brand with 12+
+# products; this function answers smaller brands, title-word keys and
+# "Ver todo" from one row per product. The phone never downloads it.
+[functions."brand"]
+  included_files = ["assets/sections/marca/_fn/items.json"]
+
 # Departments (2026-10-19, #409 track T5): departamento.html's first
 # screen is static slices (assets/sections/departamento/<dept>/); this
 # function answers "Ver todo", the store chips and the department search
