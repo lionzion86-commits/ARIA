@@ -73,13 +73,39 @@ export function sourceFiles(P) {
   return [...new Set([...P.CATALOG_FILES, ...Object.values(P.STORE_FILES).flat()])];
 }
 
+/* THE GALLERY, COMPACT (2026-10-19, #434 / #440). normalizeItem gives
+   every record its full gallery (card photo first, real photos only,
+   one copy each, at most 12). In the shard each URL is written against
+   the one before it (the first against the record's own `image`): a
+   shared beginning becomes its length, so a Shopify gallery of eight
+   "https://cdn.shopify.com/s/files/1/0123/4567/files/..." costs one
+   prefix, not eight -- "57|IMG_2.jpg?v=1". A URL that shares under 12
+   characters is written whole (it starts with "http", never a digit).
+   A gallery that is only the card photo is left out: the page falls
+   back to [image]. unpackImages in producto.html reverses this, and
+   pdp-thin-tests round-trips every record. */
+export function packImages(images, image) {
+  if (!Array.isArray(images) || !images.length) return null;
+  if (images.length === 1 && images[0] === image) return null;
+  if (process.env.PDP_PLAIN_IMAGES) return images.slice();
+  const out = [];
+  let prev = String(image || "");
+  for (const u of images) {
+    let n = 0;
+    while (n < u.length && n < prev.length && u[n] === prev[n]) n++;
+    out.push(n >= 12 ? n + "|" + u.slice(n) : u);
+    prev = u;
+  }
+  return out;
+}
+
 /* What the page renders, and nothing else (no retailer url: the page
    never links out). Empty fields are left out. */
-const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "description", "sizes", "dept", "retailer"];
+const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "dept", "retailer"];
 function recordOf(it) {
   const out = {};
   for (const k of RECORD_FIELDS) {
-    const v = it[k];
+    const v = k === "images" ? packImages(it.images, it.image) : it[k];
     if (v === undefined || v === null || v === "" || v === 0 || (Array.isArray(v) && !v.length)) continue;
     out[k] = Array.isArray(v) ? Array.from(v) : v;
   }
