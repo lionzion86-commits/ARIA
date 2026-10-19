@@ -91,22 +91,31 @@ button{font:inherit;cursor:pointer}
 
 /* ---------- designer room (gallery) ---------- */
 .room{margin:26px 0 8px;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
-.room-banner{position:relative;min-height:240px;background:linear-gradient(120deg,#0d1526,#1d2c4e)}
-@media(min-width:640px){.room-banner{min-height:320px}}
+.room-banner{position:relative;min-height:290px;background:linear-gradient(120deg,#0d1526,#1d2c4e)}
+@media(min-width:640px){.room-banner{min-height:340px}}
 .room{border-top:4px solid var(--raccent,#C9A227)}
-.room-logo{max-height:84px;max-width:62%;object-fit:contain;filter:drop-shadow(0 2px 12px rgba(0,0,0,.45))}
-@media(min-width:640px){.room-logo{max-height:110px}}
+/* THE LOCKUP FITS THE BAND (#437): the whole logo, centred, scaled
+   down to the band (never cropped): at most 104px tall and 82% of the
+   band's width on a phone, 120px on desktop. */
+.room-logo{max-height:104px;max-width:min(82%,340px);object-fit:contain;filter:drop-shadow(0 2px 12px rgba(0,0,0,.45))}
+@media(min-width:640px){.room-logo{max-height:120px}}
 .room-wordmark{font-size:34px;font-weight:800;letter-spacing:-.01em;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.5)}
 @media(min-width:640px){.room-wordmark{font-size:44px}}
 .show-all{background:var(--raccent,#C9A227) !important;color:var(--raccentInk,#fff) !important;border:none !important}
-.room-banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 22%}
+/* The backdrop photo only: a bare `.room-banner img` also caught the
+   designer's logo inside .room-id, pulled it out of the line flow and
+   stretched it over the country and the count (#437, Agua Bendita). */
+.room-banner > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 22%}
 .room-banner .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,16,32,.05) 20%,rgba(10,16,32,.82) 100%)}
 .room-banner .sheen{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,0) 40%)}
-.room-id{position:absolute;left:18px;right:18px;bottom:14px;color:#fff}
-.room-id .c{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold2)}
+.room-id{position:absolute;left:16px;right:16px;bottom:16px;color:#fff;display:flex;flex-direction:column;align-items:center;text-align:center}
+.room-id .c{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold2);line-height:1.2;margin-bottom:10px}
+/* Eyebrow, logo and count each on their own line, in that order. */
+.room-id .room-logo{display:block;position:static;width:auto;height:auto;margin:0 auto 12px}
+.room-id .room-wordmark{line-height:1.05;margin:0 0 8px}
 .room-id h2{margin:2px 0;font-size:24px;letter-spacing:-.01em}
 @media(min-width:640px){.room-id h2{font-size:30px}}
-.room-id .m{font-size:13px;color:rgba(255,255,255,.78)}
+.room-id .m{font-size:13px;line-height:1.3;color:rgba(255,255,255,.78)}
 .room-sub{margin-top:6px}
 .room-subhead{display:flex;align-items:center;gap:8px;padding:16px 18px 4px;font-size:15px;font-weight:800;color:var(--ink)}
 .room-subcount{font-size:11px;font-weight:700;color:#fff;background:var(--raccent,#C9A227);border-radius:999px;padding:2px 8px}
@@ -214,7 +223,7 @@ button{font:inherit;cursor:pointer}
 <main>
   <!-- HERO: static, renders with zero JS -->
   <section class="hero" aria-label="Diseñadores Latinos">
-    <img class="hero-bg" src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" loading="eager" decoding="async" onerror="this.remove()">
+    <picture><source media="(max-width:640px)" srcset="assets/latino/m/runway-hero.jpg"><img class="hero-bg" src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" loading="eager" decoding="async" onerror="this.remove()"></picture>
     <div class="scrim" aria-hidden="true"></div>
     <div class="scrim2" aria-hidden="true"></div>
     <div class="hero-inner">
@@ -691,6 +700,11 @@ function fillRoom(sec){
       var rail = sec.querySelector('.rail[data-ri="' + idx + '"]');
       if (rail){ rail.innerHTML = r.cards.map(cardHTML).join(''); }
     });
+    /* The room's own logo (5-16KB) loads with the room. Left to the
+       photo observer it was observed while the room was off screen and
+       never reported again, so every room below the first screen kept
+       an empty logo slot (#437). */
+    railPhoto(sec.querySelector('img.room-logo[data-src]'));
     watchPhotos(sec);
     bannerAfterPhotos(sec);
   };
@@ -715,8 +729,16 @@ function bannerAfterPhotos(sec){
       if (r.top < vh && r.bottom > 0 && r.left < (window.innerWidth || 400) && r.right > 0 && (imgs[i].getAttribute('data-src') || !imgs[i].complete)) waiting++;
     }
     if (waiting && Date.now() - started < 10000){ setTimeout(check, 300); return; }
-    img.src = img.getAttribute('data-banner');
+    /* PHONE-SIZED (#437): 900px copies in <dir>/m/ (scripts/
+       build-designer-heroes.py), about a third of the weight; the
+       original is the fallback and the desktop photo. */
+    var full = img.getAttribute('data-banner');
     img.removeAttribute('data-banner');
+    var phone = (window.innerWidth || 1024) <= 640 ? full.replace(/\/([^\/]+)$/, '/m/$1') : full;
+    if (phone !== full){
+      img.onerror = function(){ img.onerror = function(){ img.remove(); }; img.src = full; };
+    }
+    img.src = phone;
   })();
 }
 var ROOM_IO = null;
