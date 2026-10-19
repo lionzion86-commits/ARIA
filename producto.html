@@ -93,6 +93,24 @@ footer a{color:#fff}
 .p-photo{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;border:1px solid var(--line);background:#f7f8fb;overflow:hidden}
 @supports not (aspect-ratio:1/1){.p-photo{height:0;padding-top:100%}}
 .p-photo img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block}
+/* THE GALLERY (2026-10-19, #434 / #440): every photo of the product in
+   the same square box -- a swipe track of square slides (scroll-snap),
+   a counter, and a row of square thumbnails whose height is reserved
+   when the product renders. A slide's photo waits in data-src until the
+   slide is next to the one on screen; the thumbnails wait for the
+   first photo. Buttons only: nothing here links anywhere. */
+.g-track{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.g-track::-webkit-scrollbar{display:none}
+.g-slide{position:relative;flex:0 0 100%;width:100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always}
+.g-count{position:absolute;right:10px;bottom:10px;background:rgba(10,31,68,.72);color:#fff;font-size:12px;font-weight:700;border-radius:10px;padding:3px 8px;pointer-events:none;font-variant-numeric:tabular-nums}
+.g-nav{position:absolute;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--navy);font-size:20px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0}
+.g-prev{left:8px}.g-next{right:8px}
+@media(hover:hover) and (pointer:fine){.g-nav{display:flex}}
+.grid2>*{min-width:0}
+.g-thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 1px 4px;height:74px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.g-thumb{position:relative;flex:0 0 56px;width:56px;height:56px;border-radius:10px;border:1.5px solid var(--line);background:#f7f8fb;overflow:hidden;padding:0;cursor:pointer}
+.g-thumb img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block}
+.g-thumb[aria-current="true"]{border-color:var(--navy);border-width:2px}
 .p-sk-line{display:block;height:14px;border-radius:7px;background:var(--line);margin:0 0 10px}
 .p-pen{font-size:28px;font-weight:800;color:var(--navy)}
 .p-was{font-size:15px;color:var(--muted);text-decoration:line-through;margin-left:8px;font-weight:500}
@@ -207,12 +225,29 @@ function pickRecord(cands, files){
   }
   return null;
 }
+/* A shard's gallery back to its URLs (scripts/build-pdp-slices.mjs
+   packImages): "57|rest" is the previous URL's first 57 characters
+   (the first entry's previous is the record's `image`) then the rest;
+   an entry starting "http" is whole. No gallery: the card photo alone. */
+function unpackImages(list, image){
+  if (!Array.isArray(list) || !list.length) return image ? [String(image)] : [];
+  var out = [], prev = String(image || "");
+  for (var i = 0; i < list.length; i++){
+    var e = String(list[i] || ""), m = e.match(/^(\d+)\|/);
+    var u = m ? prev.slice(0, +m[1]) + e.slice(m[0].length) : e;
+    if (u) out.push(u);
+    prev = u;
+  }
+  return out;
+}
 /* A shard record as the page's product (normalizeItem's shape). */
 function recordToItem(r){
   return {
     name: r.name || "", brand: r.brand || "", price: Number(r.price) || 0,
     image: r.image || "", url: "", retailer: r.retailer || "",
     description: r.description || "", sizes: Array.isArray(r.sizes) ? r.sizes : [],
+    images: unpackImages(r.images, r.image),
+    sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "",
     originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
     wasPrice: Number(r.wasPrice) || 0, dept: r.dept || ""
   };
@@ -401,6 +436,24 @@ function normalizeItem(it, retailerKey){
     if (!name || !(price > 0)) return null;
     var img = it.thumbnail || it.image || "";
     if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
+    /* THE GALLERY (2026-10-19, #434 / #440): every photo the store
+       gives, the card's photo first. Real http(s) photos only, one copy
+       of each (the same file at another size or ?v= is the same photo:
+       host + path decide), at most GALLERY_MAX. Self-contained on
+       purpose -- tests lift this function on its own. */
+    var images = [], seenImg = {};
+    [img].concat(Array.isArray(it.images) ? it.images : []).forEach(function(u){
+      if (images.length >= 12) return;
+      if (u && typeof u === "object") u = u.src || u.url || "";
+      u = String(u || "").trim();
+      if (u.indexOf("//") === 0) u = "https:" + u;
+      var m = u.match(/^https?:\/\/([^\/?#\s]+)([^?#\s]*)/i);
+      if (!m || /\.svg$|placeholder|no[-_]?image|spacer\.gif/i.test(m[2])) return;
+      var k = m[1].toLowerCase() + m[2];
+      if (seenImg[k]) return;
+      seenImg[k] = 1;
+      images.push(u);
+    });
     return {
       name: decodeEntities(name), brand: decodeEntities(it.brand || ""), price: price,
       image: String(img || ""), url: String(it.url || it.link || ""),
@@ -409,6 +462,12 @@ function normalizeItem(it, retailerKey){
       /* `sizes` is where the variant-truth merge writes (#411);
          availableSizes is the older scrape field. Never invented. */
       sizes: truthfulSizes(Array.isArray(it.sizes) && it.sizes.length ? it.sizes : it.availableSizes),
+      images: images,
+      /* Where the size list came from (#411 provenance), as the
+         catalogue record says it: a tier (scrape / verified / live /
+         inferred) and its source. Data only -- never rendered as a link. */
+      sizesTier: typeof it.sizesTier === "string" ? it.sizesTier : "",
+      sizesSource: typeof it.sizesSource === "string" ? it.sizesSource : "",
       originalPrice: Number(it.originalPrice) || 0,
       /* The site's one sale rule (sale-rule.js) judged on the raw item,
          whatever field the store keeps its was-price in (compareAt,
@@ -501,9 +560,7 @@ function render(p){
       + '<div class="p-usd">' + esc(fmtUsd(usd)) + ' · puesto en Perú</div>'
     : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
-  var img = '<div class="p-photo">' + (p.image
-    ? '<img src="' + esc(sizedImageUrl(p.image, 1000)) + '" data-img-orig="' + esc(p.image) + '" alt="' + esc(p.name) + '" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
-    : '') + '</div>';
+  var img = galleryHTML(p);
   var desc = p.description
     ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
   el("p-body").innerHTML =
@@ -531,7 +588,132 @@ function render(p){
     + '</div></div>' + desc
     + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
   document.title = p.name + " — Aria Shop";
+  wireGallery(el("p-body").querySelector(".p-gallery"));
   buildBuyBox(p);
+}
+
+/* =====================================================================
+   THE GALLERY (2026-10-19, #434 / #440). The shard carries the product's
+   whole gallery again (scripts/build-pdp-slices.mjs). One square box
+   holds a swipe track; the first photo loads with the page (as the one
+   photo did), every other one only when its slide is next to the one on
+   screen, and the thumbnails only after the first photo has arrived --
+   on 400 kbps the photo the shopper is looking at never queues behind
+   photos they have not asked for.
+   ===================================================================== */
+function galleryList(p){
+  var list = Array.isArray(p.images) ? p.images.filter(function(u){ return /^https?:\/\//i.test(u); }) : [];
+  if (!list.length && p.image) list = [p.image];
+  return list.slice(0, 12);
+}
+function galleryHTML(p){
+  var list = galleryList(p);
+  if (list.length <= 1){
+    return '<div class="p-photo">' + (list[0]
+      ? '<img src="' + esc(sizedImageUrl(list[0], 1000)) + '" data-img-orig="' + esc(list[0]) + '" alt="' + esc(p.name) + '" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
+      : '') + '</div>';
+  }
+  var n = list.length;
+  var slides = list.map(function(u, i){
+    var alt = esc(p.name) + (i ? ' (foto ' + (i + 1) + ' de ' + n + ')' : '');
+    var attr = i === 0 ? 'src="' + esc(sizedImageUrl(u, 1000)) + '"' : 'data-gsrc="' + esc(sizedImageUrl(u, 1000)) + '"';
+    return '<div class="g-slide" data-i="' + i + '"><img ' + attr + ' data-img-orig="' + esc(u) + '" alt="' + alt + '" onerror="galleryPhotoFailed(this)"></div>';
+  }).join("");
+  var thumbs = list.map(function(u, i){
+    return '<button type="button" class="g-thumb" data-i="' + i + '" aria-label="Foto ' + (i + 1) + ' de ' + n + '"' + (i === 0 ? ' aria-current="true"' : '') + '>'
+      + '<img data-tsrc="' + esc(sizedImageUrl(u, 180)) + '" data-img-orig="' + esc(u) + '" alt="" onerror="imgOrigRetry(this)"></button>';
+  }).join("");
+  return '<div class="p-gallery" data-count="' + n + '">'
+    + '<div class="p-photo" role="region" aria-roledescription="carrusel" aria-label="Fotos del producto">'
+    +   '<div class="g-track">' + slides + '</div>'
+    +   '<button type="button" class="g-nav g-prev" aria-label="Foto anterior">‹</button>'
+    +   '<button type="button" class="g-nav g-next" aria-label="Foto siguiente">›</button>'
+    +   '<span class="g-count" aria-live="polite">1 / ' + n + '</span>'
+    + '</div>'
+    + '<div class="g-thumbs">' + thumbs + '</div>'
+    + '</div>';
+}
+/* A photo that fails (after the original-URL retry) takes its slide and
+   thumbnail with it: a gallery never shows an empty square. */
+function galleryPhotoFailed(img){
+  if (imgOrigRetry(img)) return;
+  var slide = img.closest(".g-slide"), gal = img.closest(".p-gallery");
+  if (!slide || !gal) { img.style.display = "none"; return; }
+  var slides = gal.querySelectorAll(".g-slide");
+  if (slides.length <= 1) { img.style.display = "none"; return; }
+  var t = gal.querySelector('.g-thumb[data-i="' + slide.getAttribute("data-i") + '"]');
+  slide.parentNode.removeChild(slide);
+  if (t) t.parentNode.removeChild(t);
+  if (gal._sync) gal._sync();
+}
+function galleryLoad(slide){
+  var img = slide && slide.querySelector("img[data-gsrc]");
+  if (!img) return;
+  img.src = img.getAttribute("data-gsrc");
+  img.removeAttribute("data-gsrc");
+}
+function wireGallery(gal){
+  if (!gal) return;
+  var track = gal.querySelector(".g-track"), count = gal.querySelector(".g-count");
+  var first = track.querySelector("img");
+  function slides(){ return Array.prototype.slice.call(track.querySelectorAll(".g-slide")); }
+  function current(){
+    var w = track.clientWidth || 1;
+    return Math.max(0, Math.min(slides().length - 1, Math.round(track.scrollLeft / w)));
+  }
+  /* The photo on screen, then its neighbours, once the first is in. */
+  var firstIn = false;
+  function prime(){
+    var s = slides(), i = current();
+    galleryLoad(s[i]);
+    if (firstIn){ galleryLoad(s[i + 1]); galleryLoad(s[i - 1]); }
+  }
+  function sync(){
+    var s = slides(), i = current();
+    if (count) count.textContent = (i + 1) + " / " + s.length;
+    var cur = s[i] && s[i].getAttribute("data-i");
+    Array.prototype.forEach.call(gal.querySelectorAll(".g-thumb"), function(t){
+      if (t.getAttribute("data-i") === cur) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");
+    });
+    prime();
+  }
+  gal._sync = sync;
+  function go(i){
+    var s = slides();
+    i = Math.max(0, Math.min(s.length - 1, i));
+    galleryLoad(s[i]);
+    track.scrollTo ? track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" }) : (track.scrollLeft = i * track.clientWidth);
+  }
+  var raf = 0;
+  track.addEventListener("scroll", function(){
+    if (raf) return;
+    var run = function(){ raf = 0; sync(); };
+    raf = window.requestAnimationFrame ? window.requestAnimationFrame(run) : setTimeout(run, 16);
+  }, { passive: true });
+  gal.querySelector(".g-prev").addEventListener("click", function(){ go(current() - 1); });
+  gal.querySelector(".g-next").addEventListener("click", function(){ go(current() + 1); });
+  gal.querySelector(".g-thumbs").addEventListener("click", function(e){
+    var t = e.target.closest(".g-thumb");
+    if (!t) return;
+    var s = slides();
+    for (var k = 0; k < s.length; k++) if (s[k].getAttribute("data-i") === t.getAttribute("data-i")) { go(k); return; }
+  });
+  /* Thumbnails: after the first photo, and only those in view. */
+  function afterFirst(){
+    if (firstIn) return;
+    firstIn = true;
+    Array.prototype.forEach.call(gal.querySelectorAll(".g-thumb img[data-tsrc]"), function(i){
+      i.setAttribute("data-src", i.getAttribute("data-tsrc"));
+      i.removeAttribute("data-tsrc");
+    });
+    watchPhotos(gal.querySelector(".g-thumbs"));
+    prime();
+  }
+  if (!first || first.complete) afterFirst();
+  else {
+    first.addEventListener("load", afterFirst);
+    first.addEventListener("error", function(){ setTimeout(afterFirst, 0); });
+  }
 }
 
 /* =====================================================================

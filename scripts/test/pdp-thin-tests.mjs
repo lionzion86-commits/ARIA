@@ -39,7 +39,7 @@ async function check(name, fn) {
 const page = readFileSync(ROOT + "producto.html", "utf8").replace(/\r\n/g, "\n");
 const P = liftPage(ROOT);
 const extra = "var window = {};\n" + readFileSync(ROOT + "sale-rule.js", "utf8") + "\n" + readFileSync(ROOT + "product-type.js", "utf8") + "\n";
-const R = liftDeclarations(page, ["NAMED_ENTITIES", "decodeEntities", "norm", "REL_MAX", "REL_MIN", "REL_LANES", "relLane", "relGender", "relKey", "relPick", "pdpHash", "deptSlug", "railPath", "recordToItem"], { extra });
+const R = liftDeclarations(page, ["NAMED_ENTITIES", "decodeEntities", "norm", "REL_MAX", "REL_MIN", "REL_LANES", "relLane", "relGender", "relKey", "relPick", "pdpHash", "deptSlug", "railPath", "unpackImages", "recordToItem"], { extra });
 const shardCache = new Map();
 const shard = (s) => {
   if (!shardCache.has(s)) shardCache.set(s, JSON.parse(readFileSync(PDP + "p/" + s + ".json", "utf8")));
@@ -83,10 +83,13 @@ function oldHunt(key, files) {
   for (const f of files) { const it = firstByFile.get(f) && firstByFile.get(f).get(key); if (it) return it; }
   return null;
 }
-const SAME = ["name", "brand", "price", "wasPrice", "salePct", "image", "description", "dept", "retailer"];
+const SAME = ["name", "brand", "price", "wasPrice", "salePct", "image", "description", "dept", "retailer", "sizesTier", "sizesSource"];
 function same(a, b) {
   for (const k of SAME) if ((a[k] || "") !== (b[k] || "")) return k;
   if (JSON.stringify(Array.from(a.sizes || [])) !== JSON.stringify(Array.from(b.sizes || []))) return "sizes";
+  /* The gallery (#434 / #440): the record's photos, the card photo alone when it has no other. */
+  const gal = (x) => JSON.stringify(Array.from(x.images && x.images.length ? x.images : x.image ? [x.image] : []));
+  if (gal(a) !== gal(b)) return "images";
   return null;
 }
 
