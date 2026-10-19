@@ -44,20 +44,30 @@
   .grid{max-width:1240px;margin:0 auto;padding:14px 20px 40px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
   @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
   @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
-  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative}
-  .card-img{aspect-ratio:1/1;background:#F2F3F6;display:grid;place-items:center;overflow:hidden}
-  .card-img img{width:100%;height:100%;object-fit:contain}
-  .card-img .noimg{font-size:12px;color:#9AA3B5}
+  /* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (2026-10-19, #409):
+     a square photo box from the first paint (aspect-ratio, plus the
+     padding-top square for Safari older than 15) and reserved rows. */
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative;text-decoration:none;color:inherit;min-width:0}
+  .card-img{position:relative;width:100%;aspect-ratio:1/1;background:#F2F3F6;overflow:hidden}
+  @supports not (aspect-ratio:1/1){ .card-img{height:0;padding-top:100%} }
+  .card-img img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain}
+  .card-img .noimg{position:absolute;top:50%;left:0;right:0;margin-top:-8px;text-align:center;font-size:12px;color:#9AA3B5}
   .card-body{padding:12px 12px 14px;display:flex;flex-direction:column;flex:1}
-  .card-retailer{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8A93A8;margin-bottom:4px}
-  .card-brand{font-size:11px;font-weight:700;color:#6B7487;margin-bottom:2px}
-  .card-title{font-size:13px;line-height:1.35;color:#4A5568;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
-  .card-title a{color:inherit;text-decoration:none}
-  .card-title a:hover{color:var(--blue)}
-  .card-price{margin-top:auto}
-  .price-usd{font-size:15px;font-weight:800;color:var(--navy)}
-  .price-pen{font-size:11.5px;color:#8A93A8;margin-top:2px}
-  .badge{position:absolute;top:10px;left:10px;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--yellow);color:var(--navy)}
+  .card-retailer{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8A93A8;margin-bottom:4px;min-height:14px}
+  .card-brand{font-size:11px;font-weight:700;color:#6B7487;margin-bottom:2px;min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-title{font-size:13px;line-height:1.35;color:#4A5568;font-weight:400;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+  /* SOLES FIRST (#416): the bold price is what a shopper in Peru pays. */
+  .price{margin-top:auto;min-height:40px}
+  .price .pen{font-size:16px;font-weight:800;color:var(--navy)}
+  .price .was{font-size:11.5px;color:#8A93A8;text-decoration:line-through;margin-left:5px;font-weight:400}
+  .price .usd{font-size:11.5px;color:#8A93A8;margin-top:2px}
+  /* Yellow is for sale badges only. */
+  .badge{position:absolute;top:10px;left:10px;z-index:1;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--yellow);color:var(--navy)}
+  /* Placeholder cards: the same boxes, grey bars where the words go. */
+  .card.sk i, .price .pen i{display:block;height:10px;border-radius:5px;background:var(--line);margin:3px 0}
+  .card.sk .card-title i:last-child{width:60%}
+  .price .pen i{height:16px;width:45%}
+  .card.sk .card-retailer i, .card.sk .card-brand i{width:40%}
   /* States */
   .state{max-width:1240px;margin:0 auto;padding:48px 20px;text-align:center}
   .state h2{font-size:20px;margin:0 0 8px}
@@ -117,11 +127,10 @@
   <span class="count" id="count"></span>
 </div>
 
-<!-- Loading state: rendered in HTML so it shows even if JS fails -->
-<div class="state" id="loadingState">
-  <div class="spinner" aria-hidden="true"></div>
+<!-- Loading text kept for old links; the visible placeholder is the
+     card-shaped grid below, painted before any script. -->
+<div class="state" id="loadingState" hidden>
   <h2>Cargando el catálogo de Motos…</h2>
-  <p>Estamos trayendo cascos, llantas y repuestos de RevZilla y Dennis Kirk.</p>
 </div>
 
 <!-- Error state: hidden until needed -->
@@ -140,14 +149,14 @@
   <button class="btn" id="clearBtn">Limpiar filtros</button>
 </div>
 
-<main class="grid" id="grid" aria-live="polite"></main>
+<main class="grid" id="grid" aria-live="polite"><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></main>
 
 <div class="more-wrap" id="moreWrap" hidden>
   <button class="btn" id="moreBtn">Ver más productos</button>
 </div>
 
 <footer>
-  <p><a href="https://ariashop.pe/">Aria Shop</a> — Compra en Estados Unidos, entregado en Perú. Precios en dólares con conversión a soles al tipo de cambio venta del día.</p>
+  <p><a href="https://ariashop.pe/">Aria Shop</a> — Compra en Estados Unidos, entregado en Perú. Precios en soles al tipo de cambio venta del día; el precio en dólares va como referencia.</p>
   <p style="margin-top:8px">Aria Motos · RevZilla · Dennis Kirk</p>
 </footer>
 
@@ -165,11 +174,7 @@
   var countEl = document.getElementById('count');
   var moreWrap = document.getElementById('moreWrap');
 
-  var ALL = [];        // all products
-  var FILTERED = [];   // after filters
-  var SHOWN = 0;       // how many rendered
-  var PAGE = 48;
-  var fxRate = null;   // PEN venta rate, null = USD only
+  var fxRate;          // undefined: asking; null: unavailable; number: S/ per US$
   var fType = 'all', fRet = 'all', fQ = '';
 
   function show(el){ if(el) el.hidden = false; }
@@ -204,17 +209,8 @@
   }
   function fmtUSD(n){
     if (!isFinite(n)) return 'Precio no disponible';
-    return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return 'US$ ' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   }
-  function fmtPEN(usd){
-    if (!isFinite(usd)) return '';
-    if (!fxRate) return '';
-    try {
-      return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(Math.round(usd*fxRate*100)/100)
-        + ' · TC ' + fxRate.toFixed(2);
-    } catch(e){ return ''; }
-  }
-
   /* ---------- escaping (never break markup on weird data) ---------- */
   /* SCRAPED TEXT IS TEXT (2026-10-19, #417 night order 4): titles arrive
      as "Lizzie &#38; Oliver"; escaping that printed "&#38;" to shoppers.
@@ -241,214 +237,287 @@
       .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  /* ---------- moto subtype (simplified from main site logic) ---------- */
-  function subType(p){
-    var t = (p.title || '').toLowerCase();
-    if (/\b(helmet|casco)s?\b/.test(t)) return 'cascos';
-    if (/\b(tire|tyre|tires|llanta)s?\b/.test(t)) return 'llantas';
-    if (/\b(brake|pad|rotor|chain|sprocket|filter|gasket|clutch|battery|mirror|lever|spark|belt|repuesto)s?\b/.test(t)) return 'repuestos';
-    if (/\b(glove|boot|jacket|pant|vest|suit|rain|guante|bota|chaqueta)s?\b/.test(t)) return 'ropa_equipo';
-    return 'accesorios';
-  }
+  /* ---------- moto subtype: the build applies it (netlify/functions/_motos-core.js) ---------- */
   var TYPE_LABEL = {cascos:'Cascos', llantas:'Llantas', repuestos:'Repuestos', ropa_equipo:'Ropa y equipo', accesorios:'Accesorios'};
   var RET_LABEL = {revzilla:'RevZilla', denniskirk:'Dennis Kirk'};
 
-  /* ---------- card ---------- */
-  function cardHTML(p){
-    var price = finalUsd(p.rawPrice, p.retailer);
-    var pen = fmtPEN(price);
-    var badge = '';
-    if (p.salePct > 0) badge = '<span class="badge">-' + p.salePct + '%</span>';
-    var img = p.image
-      ? '<img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;&gt;Sin imagen</span>\'">'
-      : '<span class="noimg">Sin imagen</span>';
-    var _href = 'producto.html?producto=' + encodeURIComponent(p.title || '')
-      + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
-    return '<a class="card" href="' + esc(_href) + '">' + badge
-      + '<div class="card-img">' + img + '</div>'
-      + '<div class="card-body">'
-      + '<div class="card-retailer">' + esc(RET_LABEL[p.retailer] || p.retailer) + '</div>'
-      + (p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '')
-      + '<h3 class="card-title">' + esc(p.title) + '</h3>'
-      + '<div class="card-price"><div class="price-usd">' + esc(fmtUSD(price)) + '</div>'
-      + (pen ? '<div class="price-pen">' + esc(pen) + '</div>' : '')
-      + '</div></div></a>';
-  }
+/* Sized retailer derivatives (2026-10-16) -- the same rules the app
+   bundle's sizedImageUrl applies: card slots are small, retailer
+   originals are 1600-2000px, and decoding them by the hundred is
+   what kills phone tabs. A derivative that fails swaps back to the
+   original URL (data-img-orig) before the page's own error handling
+   runs, so a card never breaks because of the resize. Hosts with no
+   verified resize parameter return the URL unchanged. */
+  var CARD_IMG_WIDTHS = [360, 560, 800];
+  var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
+  /* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
 
-  /* ---------- filtering + rendering ---------- */
-  function applyFilters(){
-    var q = fQ.trim().toLowerCase();
-    FILTERED = ALL.filter(function(p){
-      if (fRet !== 'all' && p.retailer !== fRet) return false;
-      if (fType !== 'all' && p.subtype !== fType) return false;
-      if (q) {
-        var hay = (p.title + ' ' + (p.brand||'') + ' ' + (p.type||'')).toLowerCase();
-        var words = q.split(/\s+/);
-        for (var i=0;i<words.length;i++){ if (hay.indexOf(words[i]) === -1) return false; }
-      }
-      return true;
-    });
-    SHOWN = 0;
-    grid.innerHTML = '';
-    renderMore();
+function sizedImageUrl(url, w){
+  var u = typeof url === "string" ? url : "";
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  function setQ(base, key, val){
+    var re = new RegExp("([?&]" + key + "=)(\\d+)", "i");
+    if (re.test(base)) return base.replace(re, function(m, p){ return p + val; });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
   }
-
-  function renderMore(){
-    hide(emptyState);
-    var next = FILTERED.slice(SHOWN, SHOWN + PAGE);
-    var html = '';
-    for (var i=0;i<next.length;i++){
-      try { html += cardHTML(next[i]); }
-      catch(e){ /* one bad product never kills the grid */ }
+  var out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, "odnWidth", w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
+      : out + "&odnHeight=" + w;
+    if (!/odnBg=/i.test(out)) out += "&odnBg=FFFFFF";
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width; the bare
+       default is already card-sized on these hosts. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, "wid", w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, function(m, p){ return p + w; });
     }
-    // Use a template to avoid nuking existing nodes on append
-    var tmp = document.createElement('template');
-    tmp.innerHTML = html.trim();
-    grid.appendChild(tmp.content);
-    SHOWN += next.length;
-    countEl.textContent = FILTERED.length
-      ? (SHOWN >= FILTERED.length
-          ? FILTERED.length.toLocaleString('es-PE') + ' productos'
-          : 'Mostrando ' + SHOWN.toLocaleString('es-PE') + ' de ' + FILTERED.length.toLocaleString('es-PE'))
-      : '';
-    if (FILTERED.length === 0) { show(emptyState); hide(moreWrap); }
-    else { hide(emptyState); moreWrap.hidden = SHOWN >= FILTERED.length; }
-  }
-
-  /* ---------- data loading ---------- */
-  var JSON_URLS = ['moto-catalog.json', '/moto-catalog.json', 'https://ariashop.pe/moto-catalog.json'];
-
-  function normalize(items, retailer){
-    var out = [];
-    for (var i=0;i<items.length;i++){
-      try {
-        var it = items[i] || {};
-        var title = it.title || it.name || it.productTitle || '';
-        if (!title) continue;
-        var rawPrice = Number(it.price);
-        if (!(rawPrice > 0)) continue; // skip unpriced
-        var p = {
-          title: String(title),
-          brand: it.brand || '',
-          type: it.type || '',
-          rawPrice: rawPrice,
-          /* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule
-             (sale-rule.js) -- a real was-price, 5-70% off. Dennis Kirk's
-             feed flags onSale with a salePct and no was-price (406
-             items): nothing to cross out, so not a sale. */
-          salePct: window.AriaSale ? window.AriaSale.discountPct(it) : 0,
-          image: it.thumbnail || (it.images && it.images[0]) || '',
-          url: it.url || '#',
-          retailer: retailer
-        };
-        p.subtype = subType(p);
-        out.push(p);
-      } catch(e){ /* skip malformed item */ }
+  } else if (/macysassets\.com/i.test(u)){
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, "wid", w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, "imwidth", w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, "w", w);
+    if (/[?&]h=\d+/i.test(out)) out = out.replace(/([?&]h=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
+      else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
     }
-    return out;
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
   }
-
-  function loadCatalog(){
-    hide(errorState); hide(emptyState); show(loadingState);
-    grid.innerHTML = ''; hide(moreWrap); countEl.textContent = '';
-
-    function tryUrl(idx){
-      if (idx >= JSON_URLS.length) {
-        showError('No pudimos descargar el catálogo de Motos desde ninguna fuente. Revisa tu conexión e inténtalo de nuevo.');
-        return;
-      }
-      var url = JSON_URLS[idx];
-      var ctrl = null, timer = null;
-      try {
-        if (window.AbortController) {
-          ctrl = new AbortController();
-          timer = setTimeout(function(){ try{ctrl.abort();}catch(e){} }, 25000);
-        }
-      } catch(e){}
-      fetch(url, ctrl ? {signal: ctrl.signal} : {})
-        .then(function(res){
-          if (timer) clearTimeout(timer);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
-        .then(function(data){
-          boot(data);
-        })
-        .catch(function(err){
-          if (timer) clearTimeout(timer);
-          tryUrl(idx + 1);
-        });
-    }
-    tryUrl(0);
+  return out || u;
+}
+  function imageSrcset(url){
+  var u = typeof url === "string" ? url : "";
+  if (!u) return "";
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, "_500.jpg") + " 500w, " + u + " 1000w";
   }
-
-  function boot(data){
-    try {
-      var retailers = (data && data.retailers) || {};
-      ALL = [];
-      ['revzilla','denniskirk'].forEach(function(rk){
-        try {
-          var items = (((retailers[rk]||{}).departments||{}).motos||{}).items || [];
-          ALL = ALL.concat(normalize(items, rk));
-        } catch(e){}
-      });
-      if (!ALL.length) {
-        showError('El catálogo se descargó pero no contiene productos. Inténtalo de nuevo en unos minutos.');
-        return;
-      }
-      // Sort: sale items first, then by price ascending (cheap-first discovery)
-      ALL.sort(function(a,b){
-        var as = (a.salePct > 0 ? 1 : 0), bs = (b.salePct > 0 ? 1 : 0);
-        if (as !== bs) return bs - as;
-        return a.rawPrice - b.rawPrice;
-      });
-      hide(loadingState);
-      applyFilters();
-      loadFx(); // non-blocking; prices show USD until rate arrives
-    } catch(e){
-      showError('Ocurrió un error inesperado al procesar el catálogo. Inténtalo de nuevo.');
-    }
+  var seen = {}, parts = [];
+  for (var i = 0; i < CARD_IMG_WIDTHS.length; i++){
+    var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
+    if (s === u || seen[s]) continue;
+    seen[s] = 1;
+    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
   }
+  return parts.length ? parts.join(", ") : "";
+}
+  function imgOrigRetry(el){
+  if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
+    el.src = el.dataset.imgOrig;
+    el.removeAttribute("data-img-orig");
+    el.removeAttribute("srcset");
+    return true;
+  }
+  return false;
+}
+  function cardImgAttrs(url, sizes){
+  var ss = imageSrcset(url);
+  return 'src="' + esc(sizedImageUrl(url, 560)) + '"' +
+    (ss ? ' srcset="' + esc(ss) + '" sizes="' + (sizes || CARD_IMG_SIZES) + '"' : '') +
+    ' data-img-orig="' + esc(url || "") + '"';
+}
 
+  /* ---------- soles, always (#416) ----------
+     The site's own rate: the same endpoint and 24-hour cache key the
+     home page, search and checkout use. Until it is known the price row
+     holds its place; if it cannot be had at all, dollars, plainly
+     labelled, rather than nothing. */
+  var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
   function loadFx(){
-    function paint(){
-      // Re-render PEN lines for everything currently shown (preserves "Ver más" pagination)
-      try {
-        var target = SHOWN;
-        grid.innerHTML = '';
-        SHOWN = 0;
-        while (SHOWN < target && SHOWN < FILTERED.length) {
-          renderMore();
-        }
-      } catch(e){}
-    }
-    try {
-      var cached = null;
-      try {
-        var raw = localStorage.getItem('aria_fx_cache');
-        if (raw) cached = JSON.parse(raw);
-      } catch(e){}
-      if (cached && typeof cached.venta === 'number' && Date.now() - (cached.fetchedAt||0) < 6*3600*1000) {
-        fxRate = cached.venta; paint(); return;
-      }
-    } catch(e){}
+    try{
+      var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+      if (c && typeof c.venta === 'number' && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){ fxRate = c.venta; return; }
+    }catch(e){}
     var done = false;
     function fin(rate){
       if (done) return; done = true;
-      if (rate) {
-        fxRate = rate;
-        try { localStorage.setItem('aria_fx_cache', JSON.stringify({venta: rate, fetchedAt: Date.now()})); } catch(e){}
-        paint();
-      }
+      fxRate = rate > 0 ? rate : null;
+      paintPrices(document);
     }
+    var to = setTimeout(function(){ fin(0); }, 8000);
     try {
-      var to = setTimeout(function(){ fin(0); }, 8000);
       fetch('/.netlify/functions/exchange-rate')
-        .then(function(r){ return r.json(); })
-        .then(function(d){ clearTimeout(to); fin(typeof d.venta === 'number' ? d.venta : 0); })
+        .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+        .then(function(x){
+          clearTimeout(to);
+          var v = x.ok && x.d && typeof x.d.venta === 'number' && x.d.venta > 0 ? x.d.venta : 0;
+          if (v){ try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, x.d, { fetchedAt: Date.now() }))); } catch(e){} }
+          fin(v);
+        })
         .catch(function(){ clearTimeout(to); fin(0); });
-    } catch(e){ fin(0); }
+    } catch(e){ clearTimeout(to); fin(0); }
   }
+  function fmtPENn(n){
+    try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n); }
+    catch(e){ return 'S/ ' + Number(n).toFixed(2); }
+  }
+  function priceInner(usd, wasUsd){
+    if (fxRate === undefined) return '<div class="pen"><i></i></div><div class="usd">&nbsp;</div>';
+    if (!fxRate) return '<div class="pen">' + esc(fmtUSD(usd)) + '</div><div class="usd">&nbsp;</div>';
+    var pen = Math.round(usd * fxRate * 100) / 100;
+    var was = wasUsd > usd ? Math.round(wasUsd * fxRate * 100) / 100 : 0;
+    return '<div class="pen">' + esc(fmtPENn(pen)) + (was ? '<span class="was">' + esc(fmtPENn(was)) + '</span>' : '') + '</div>'
+      + '<div class="usd">' + esc(fmtUSD(usd)) + '</div>';
+  }
+  /* Prices are painted in place: a rate that lands late never redraws the grid. */
+  function paintPrices(root){
+    var els = (root || document).querySelectorAll('.price[data-usd]');
+    for (var i = 0; i < els.length; i++){
+      var e = els[i];
+      e.innerHTML = priceInner(Number(e.getAttribute('data-usd')), Number(e.getAttribute('data-was')) || 0);
+    }
+  }
+
+  /* ---------- photos load when about to be seen ----------
+     search.html's watchPhotos (#409): native lazy-loading started the
+     grid's photos about 2,500px ahead on a slow link. */
+  var PHOTO_IO = null;
+  function railPhoto(img){
+    if (!img || !img.dataset.src) return;
+    if (img.dataset.srcset){ img.srcset = img.dataset.srcset; img.sizes = img.dataset.sizes || ''; }
+    img.src = img.dataset.src;
+    img.removeAttribute('data-src');
+    img.removeAttribute('data-srcset');
+  }
+  function watchPhotos(root){
+    var imgs = (root || document).querySelectorAll('img[data-src]');
+    if (!imgs.length) return;
+    if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < imgs.length; i++) railPhoto(imgs[i]); return; }
+    if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (!e.isIntersecting) return;
+        PHOTO_IO.unobserve(e.target);
+        railPhoto(e.target);
+      });
+    }, { rootMargin: '200px 0px' });
+    for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
+  }
+  window.imgOrigRetry = imgOrigRetry;
+
+  /* ---------- card ----------
+     THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409). */
+  function salePct(c){
+    var s = Number(c.s) || 0;
+    var min = window.AriaSale ? window.AriaSale.MIN_PCT : 5;
+    return s >= min ? s : 0;
+  }
+  function cardHTML(c){
+    var price = finalUsd(c.p, c.r);
+    var was = c.o ? finalUsd(c.o, c.r) : 0;
+    var pct = salePct(c);
+    var badge = pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '';
+    var img = c.i
+      ? '<img ' + cardImgAttrs(c.i).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=')
+        + ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;>Sin imagen</span>\'}">'
+      : '<span class="noimg">Sin imagen</span>';
+    var _href = 'producto.html?producto=' + encodeURIComponent(decodeEntitiesText(c.t) || '')
+      + (c.r ? '&tienda=' + encodeURIComponent(c.r) : '');
+    return '<a class="card" href="' + escRaw(_href) + '">'
+      + '<div class="card-img">' + badge + img + '</div>'
+      + '<div class="card-body">'
+      + '<div class="card-retailer">' + esc(RET_LABEL[c.r] || c.r) + '</div>'
+      + '<div class="card-brand">' + (c.b ? esc(c.b) : '&nbsp;') + '</div>'
+      + '<h3 class="card-title">' + esc(c.t) + '</h3>'
+      + '<div class="price" data-usd="' + (isFinite(price) ? price : '') + '"' + (was > price ? ' data-was="' + was + '"' : '') + '>' + priceInner(price, was) + '</div>'
+      + '</div></a>';
+  }
+  var SKELETON = '<div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body">'
+    + '<div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div>'
+    + '<div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div>';
+  function skeletons(n){ var h = ''; for (var i = 0; i < n; i++) h += SKELETON; return h; }
+
+  /* ---------- data: 48 cards at a time ----------
+     THIN (2026-10-19, #409 track T5). This page used to download the
+     whole Motos catalogue (4.7MB raw) and filter it on the phone. The
+     grid for every type chip x store chip is now static pages built by
+     scripts/build-motos-slices.mjs (assets/sections/motos/), and the
+     search box asks /.netlify/functions/motos -- 48 cards at a time. */
+  var SLICES = 'assets/sections/motos/';
+  var ENDPOINT = '/.netlify/functions/motos';
+  var SEQ = 0, PAGE_NO = -1, PAGES = 1, TOTAL = 0, BUSY = false;
+  function pageUrl(n){
+    if (fQ.trim()) return ENDPOINT + '?q=' + encodeURIComponent(fQ.trim()) + '&t=' + fType + '&r=' + fRet + '&page=' + n;
+    return SLICES + fType + '-' + fRet + '-' + n + '.json';
+  }
+  function getJSON(url){
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, 25000) : null;
+    return fetch(url, ctl ? { signal: ctl.signal } : {}).then(function(r){
+      if (timer) clearTimeout(timer);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }, function(e){ if (timer) clearTimeout(timer); throw e; });
+  }
+  function updateCount(){
+    var shown = grid.querySelectorAll('.card:not(.sk)').length;
+    countEl.textContent = TOTAL
+      ? (shown >= TOTAL ? TOTAL.toLocaleString('es-PE') + ' productos'
+         : 'Mostrando ' + shown.toLocaleString('es-PE') + ' de ' + TOTAL.toLocaleString('es-PE'))
+      : '';
+  }
+  function applyFilters(){
+    var seq = ++SEQ;
+    PAGE_NO = -1; PAGES = 1; TOTAL = 0; BUSY = false;
+    hide(errorState); hide(emptyState); hide(moreWrap); hide(loadingState);
+    grid.innerHTML = skeletons(6);
+    countEl.textContent = '';
+    renderMore(seq, true);
+  }
+  function renderMore(seq, first){
+    if (BUSY) return;
+    if (seq == null) seq = SEQ;
+    if (PAGE_NO + 1 >= PAGES && !first) return;
+    BUSY = true;
+    var btn = document.getElementById('moreBtn');
+    if (btn && !first){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+    getJSON(pageUrl(PAGE_NO + 1)).then(function(data){
+      if (seq !== SEQ) return;
+      BUSY = false;
+      if (btn){ btn.disabled = false; btn.textContent = 'Ver más productos'; }
+      PAGE_NO = data.page; PAGES = data.pages; TOTAL = data.count;
+      if (first) grid.innerHTML = '';
+      var tmp = document.createElement('template');
+      tmp.innerHTML = (data.cards || []).map(function(c){ try { return cardHTML(c); } catch(e){ return ''; } }).join('').trim();
+      grid.appendChild(tmp.content);
+      watchPhotos(grid);
+      updateCount();
+      if (!TOTAL){ show(emptyState); hide(moreWrap); }
+      else { hide(emptyState); moreWrap.hidden = PAGE_NO + 1 >= PAGES; }
+    }).catch(function(){
+      if (seq !== SEQ) return;
+      BUSY = false;
+      if (btn){ btn.disabled = false; btn.textContent = 'Ver más productos'; }
+      if (first) showError('No pudimos cargar los productos de Motos. Revisa tu conexión e inténtalo de nuevo.');
+    });
+  }
+  function loadCatalog(){ applyFilters(); }
 
   /* ---------- events ---------- */
   document.getElementById('retryBtn').addEventListener('click', loadCatalog);
@@ -457,13 +526,16 @@
     document.getElementById('q').value='';
     syncChips(); applyFilters();
   });
-  document.getElementById('moreBtn').addEventListener('click', renderMore);
+  document.getElementById('moreBtn').addEventListener('click', function(){ renderMore(); });
 
   var qInput = document.getElementById('q');
   var qTimer = null;
   qInput.addEventListener('input', function(){
     clearTimeout(qTimer);
-    qTimer = setTimeout(function(){ fQ = qInput.value; applyFilters(); }, 250);
+    qTimer = setTimeout(function(){
+      if (qInput.value.trim() === fQ.trim()) return;
+      fQ = qInput.value; applyFilters();
+    }, 400);
   });
 
   function syncChips(){
@@ -484,6 +556,7 @@
   });
 
   /* ---------- go ---------- */
+  try { loadFx(); } catch(e){ fxRate = null; }
   try { loadCatalog(); }
   catch(e){ showError('No se pudo iniciar la carga del catálogo. Inténtalo de nuevo.'); }
 })();
