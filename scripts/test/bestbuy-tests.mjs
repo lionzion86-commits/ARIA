@@ -33,7 +33,7 @@ import { gzipSync } from "node:zlib";
 import vm from "node:vm";
 import { RETAILERS } from "../lib/retailers.js";
 import { BUCKET_SPEC, departmentItems } from "../lib/department-map.js";
-import { readSource, ingest, isExcludedRecord, OUT_FILE } from "../build-bestbuy-catalog.mjs";
+import { readSource, ingest, isExcludedRecord, isMarketplaceRecord, HELD_FOR_PRICE_REVIEW, OUT_FILE } from "../build-bestbuy-catalog.mjs";
 import { buildStore, SLICES_DIR, FN_DIR, PAGE_SIZE } from "../build-store-slices.mjs";
 import { liftPage } from "../build-pdp-slices.mjs";
 
@@ -71,23 +71,44 @@ await check("the catalogue holds no third-party marketplace record", () => {
     assert.equal(p.retailer, "bestbuy", `${p.name} is not filed as bestbuy`);
   }
   if (!source) return;
-  const thirdParty = new Set();
-  for (const d of Object.values(source.retailers.bestbuy.departments)) for (const p of d.items) if (isExcludedRecord(p)) thirdParty.add(p.sku);
+  const thirdParty = new Set(), market = new Set();
+  for (const d of Object.values(source.retailers.bestbuy.departments)) for (const p of d.items) {
+    if (String(p.sellerType || "").toUpperCase() === "3P") thirdParty.add(p.sku);
+    if (isMarketplaceRecord(p)) market.add(String(p.sku));
+  }
   assert.equal(thirdParty.size, 178, "the dataset's 3P count moved");
-  for (const p of items) assert.ok(!thirdParty.has(p.sku), `3P SKU ${p.sku} reached the catalogue`);
+  for (const p of items) assert.ok(!market.has(String(p.sku)), `Marketplace SKU ${p.sku} reached the catalogue: ${p.name}`);
 });
 
-await check("counts: 5,142 pulled, 178 excluded, 4,964 ingested, per department", () => {
-  assert.equal(items.length, 4964);
-  assert.equal(catalog.declaredProductCount, 4964);
+/* #432: a Marketplace seller's offer never becomes Best Buy's price. */
+await check("sold by Best Buy only: no Marketplace SKU, the audit's rows fixed", () => {
+  for (const p of items) if (p.sku != null) assert.match(String(p.sku), /^\d{1,7}$/, `${p.name}: SKU ${p.sku} is a Marketplace listing`);
+  const ps5pro = items.filter((p) => /^PlayStation 5 Pro Console$/.test(p.name));
+  assert.equal(ps5pro.length, 1);
+  assert.equal(ps5pro[0].price, 699.99, "the PS5 Pro is not Best Buy's own price");
+  assert.equal(ps5pro[0].sku, "6601524");
+  const bad = items.filter((p) => (/DJI - Mini 4 Pro Drone and RC 2/.test(p.name) && p.price >= 4000)
+    || /^Bundle - Switch 2/.test(p.name) || (/^XBOX Series X 1TB Console - XBOX Wireless Controller/.test(p.name) && p.price === 879)
+    || (/PlayStation 5 Slim/.test(p.name) && (p.price === 710 || p.price === 439.99)));
+  assert.deepEqual(bad.map((p) => `${p.name} $${p.price}`), []);
+  for (const sku of Object.keys(HELD_FOR_PRICE_REVIEW)) assert.ok(!items.some((p) => String(p.sku) === sku), `held SKU ${sku} is in the catalogue`);
+  assert.ok(!items.some((p) => /Echo Dot \(5th Gen/.test(p.name) && p.price === 79.99), "the $79.99 Echo Dot is back");
+});
+
+await check("counts: 5,142 pulled, 2,253 Marketplace excluded, 2 replaced, 2 held, 2,889 ingested, per department", () => {
+  assert.equal(items.length, 2889);
+  assert.equal(catalog.declaredProductCount, 2889);
   const per = Object.fromEntries(Object.entries(depts).map(([k, d]) => [k, d.items.length]));
-  assert.deepEqual(per, { tablets: 215, laptops: 1104, phones: 530, cameras: 473, gaming: 926, audio: 629, monitors: 146,
-    small_appliances: 596, wearables: 236, accessories: 91, electronics: 18 });
+  assert.deepEqual(per, { tablets: 98, laptops: 455, phones: 494, cameras: 230, gaming: 691, audio: 354, monitors: 106,
+    small_appliances: 203, wearables: 155, accessories: 87, electronics: 16 });
   if (!source) return;
   const { stats } = ingest(source);
   assert.equal(stats.source, 5142);
   assert.equal(stats.excluded3P, 178);
-  assert.equal(stats.ingested, 4964);
+  assert.equal(stats.excludedMarketplace, 2073);
+  assert.equal(stats.replaced, 2);
+  assert.equal(stats.held, 2);
+  assert.equal(stats.ingested, 2889);
 });
 
 await check("the ingest is the committed catalogue (rebuild after a ruling or a re-pull)", () => {
@@ -117,7 +138,7 @@ await check("weights: the record's own where Best Buy published one, the site's 
       if (s) assert.ok(!(s.weightEstimated === false && s.weightKg > 0), `${p.name}: a real weight was replaced by an estimate`);
     }
   }
-  assert.equal(real, 3961);
+  assert.equal(real, 2217);
 });
 
 await check("no invented sizes, no retailer link on a card", () => {
@@ -153,8 +174,8 @@ await check("its departments map into the site's taxonomy (Electrónica, Hogar)"
   }
   const elec = departmentItems(catalog.retailers.bestbuy, "electronics", "bestbuy").length;
   const homeN = departmentItems(catalog.retailers.bestbuy, "home_goods", "bestbuy").length;
-  assert.ok(elec > 4000, `only ${elec} Best Buy items reach Electrónica`);
-  assert.equal(homeN, 596);
+  assert.ok(elec > 2500, `only ${elec} Best Buy items reach Electrónica`);
+  assert.equal(homeN, 203);
 });
 
 await check("customer price: the standing stack (tiered margin + 7%), exemption never itemized", () => {
@@ -279,7 +300,7 @@ await check("every Best Buy record opens on producto.html through the shards", (
     assert.equal(rec.retailer, "bestbuy", `${p.name} resolves to ${rec.retailer}`);
     n++;
   }
-  assert.equal(n, 4964);
+  assert.equal(n, 2889);
 });
 
 /* ---------------- search, Ofertas, comparison ---------------- */
@@ -287,7 +308,7 @@ await check("search covers Best Buy with the same row fields every store carries
   const idx = JSON.parse(read("assets/search/catalog-index.json"));
   const ri = idx.fields.indexOf("retailer");
   const rows = idx.rows.filter((r) => r[ri] === "bestbuy");
-  assert.ok(rows.length >= 4900, `only ${rows.length} Best Buy rows in the search index`);
+  assert.ok(rows.length >= 2850, `only ${rows.length} Best Buy rows in the search index`);
   for (const r of rows.slice(0, 500)) assert.equal(r.length, idx.fields.length);
   const di = idx.fields.indexOf("department");
   assert.ok(rows.some((r) => r[di] === "laptops") && rows.some((r) => r[di] === "gaming"));
@@ -304,7 +325,7 @@ await check("Ofertas carries Best Buy deals (feed and slices)", () => {
 await check("the assistant knows Best Buy is stocked", async () => {
   const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
   assert.ok(K.STORE_KNOWLEDGE.bestbuy && !K.NOT_STOCKED.bestbuy);
-  assert.equal(K.STORE_KNOWLEDGE.bestbuy.product_count, 4964);
+  assert.equal(K.STORE_KNOWLEDGE.bestbuy.product_count, 2889);
 });
 
 await check("no emoji in the Best Buy surfaces", () => {
