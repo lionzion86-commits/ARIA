@@ -70,13 +70,34 @@ footer a{color:#fff}
 .rel-row{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;-webkit-overflow-scrolling:touch}
 .rel-card{flex:0 0 156px;scroll-snap-align:start;border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;color:var(--ink);text-decoration:none;display:flex;flex-direction:column}
 .rel-card:hover{text-decoration:none;border-color:var(--blue)}
-.rel-card img{width:100%;aspect-ratio:1;object-fit:cover;background:#f7f8fb;display:block}
+/* THE CARD HOLDS ITS SHAPE (2026-10-19, #409 T1): the photo box is a
+   square from the first paint -- aspect-ratio, plus the padding-top
+   square for Safari releases that ignore it -- and the text rows
+   reserve their lines, so nothing collapses while photos arrive. */
+.rel-img{position:relative;width:100%;aspect-ratio:1/1;background:#f7f8fb;overflow:hidden}
+@supports not (aspect-ratio:1/1){.rel-img{height:0;padding-top:100%}}
+.rel-img img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block}
 .rel-body{padding:9px 10px 11px;display:flex;flex-direction:column;gap:3px}
-.rel-store{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.rel-title{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rel-store{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;min-height:14px}
+.rel-title{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.rel-pricebox{min-height:36px}
 .rel-price{font-size:15px;font-weight:800;color:var(--navy)}
 .rel-was{font-size:12px;color:var(--muted);text-decoration:line-through;margin-left:4px;font-weight:500}
-.rel-off{font-size:11px;font-weight:800;color:var(--red)}
+.rel-usd{display:block;font-size:11.5px;color:var(--muted)}
+.rel-off{font-size:11px;font-weight:800;color:var(--red);min-height:14px}
+/* Placeholders: the same boxes, grey bars where the words go. */
+.sk i{display:block;height:10px;border-radius:5px;background:var(--line);margin:3px 0}
+.sk .rel-title i:last-child{width:60%}
+.sk .rel-pricebox i{height:15px;width:50%}
+/* The product photo: a square box before the photo arrives. */
+.p-photo{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;border:1px solid var(--line);background:#f7f8fb;overflow:hidden}
+@supports not (aspect-ratio:1/1){.p-photo{height:0;padding-top:100%}}
+.p-photo img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block}
+.p-sk-line{display:block;height:14px;border-radius:7px;background:var(--line);margin:0 0 10px}
+.p-pen{font-size:28px;font-weight:800;color:var(--navy)}
+.p-was{font-size:15px;color:var(--muted);text-decoration:line-through;margin-left:8px;font-weight:500}
+.p-off{display:inline-block;background:var(--gold);color:var(--navy);font-size:12px;font-weight:800;border-radius:8px;padding:3px 7px;margin-left:8px;vertical-align:middle}
+.p-usd{font-size:14px;color:var(--muted);margin-top:2px}
 </style>
 <script src="/ref.js"></script>
 <script src="sale-rule.js"></script>
@@ -103,10 +124,16 @@ footer a{color:#fff}
 </header>
 <main>
 <div id="product-wrap">
-  <div id="p-loading" class="hero">
-    <div class="kicker">Producto</div>
-    <h1 id="p-title">Cargando producto…</h1>
-    <p class="lead" id="p-status">Buscando en el catálogo…</p>
+  <div id="p-loading" class="grid2" style="align-items:start" aria-busy="true">
+    <div class="p-photo"></div>
+    <div>
+      <div class="kicker">Producto</div>
+      <h1 id="p-title" style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 12px">Cargando producto…</h1>
+      <span class="p-sk-line" style="width:40%"></span>
+      <span class="p-sk-line" style="width:55%;height:26px"></span>
+      <span class="p-sk-line" style="width:100%;height:46px;border-radius:12px;margin-top:22px"></span>
+      <p class="size-note" id="p-status">Cargando…</p>
+    </div>
   </div>
   <div id="p-body"></div>
 </div>
@@ -126,13 +153,113 @@ footer a{color:#fff}
    product costs the same here as it does everywhere else.
 
    THE STORE IS A FAST PATH, NOT A REQUIREMENT. A card knows which
-   store it came from and passes ?tienda=, so the page fetches one
-   catalogue instead of sixty-three. Without it, or on a miss, it
-   falls back to loading everything rather than failing.
+   store it came from and passes ?tienda=; without it, or on a miss,
+   the page still looks everywhere rather than failing.
+
+   ONE PRODUCT, NOT A CATALOGUE (2026-10-19, #409 track T1). The page
+   used to download that store's whole catalogue to show one product
+   -- 39.8MB for SSENSE, three files for Target, all 210MB on a miss --
+   which never finished on the Mountain profile. The catalogue scan now
+   runs at build time (scripts/build-pdp-slices.mjs lifts this page's
+   own STORE_FILES, CATALOG_FILES, extractItems and normalizeItem) and
+   the page fetches one shard of a few KB: assets/pdp/p/<hash of the
+   title>.json, which lists every record carrying that title with the
+   file and position it came from. pickRecord() then chooses the
+   record the old scan chose: the ?tienda= files first, in order, then
+   CATALOG_FILES order. The tables below stay as the build's source.
    ===================================================================== */
 var CATALOG_FILES = ["/department-cache-walmart.json", "/department-cache-target.json", "/department-cache-oldnavy.json", "/department-cache-footlocker.json", "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json", "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json", "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json", "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json", "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json", "/kohls-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json", "/advanceauto-catalog.json", "/nautilus-catalog.json", "/islandwatersports-catalog.json", "/quietstorm-catalog.json", "/surfworld-catalog.json", "/surfstation-catalog.json", "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json", "/everlast-catalog.json", "/mmawarehouse-catalog.json", "/combatcorner-catalog.json", "/fuji-catalog.json", "/fightclub-catalog.json", "/crocs-catalog.json", "/baublebar-catalog.json", "/jwpei-catalog.json", "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json", "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json", "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json", "/target-catalog.json", "/soccer-catalog.json", "/tennis-catalog.json", "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json", "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json", "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json", "/boxlunch-catalog.json", "/hollister-catalog.json", "/abercrombie-catalog.json", "/gap-catalog.json", "/bananarepublic-catalog.json"];
 var STORE_FILES   = {"revolve": ["/revolve-catalog.json"], "target": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"], "footlocker": ["/department-cache-footlocker.json"], "newbalance": ["/newbalance-catalog.json"], "walmart": ["/department-cache-walmart.json", "/juguetes-catalog.json"], "advanceauto": ["/advanceauto-catalog.json"], "macys": ["/macys-catalog.json"], "kohls": ["/kohls-catalog.json"], "dicks": ["/dicks-catalog.json"], "finishline": ["/finishline-catalog.json"], "bhphoto": ["/bhphoto-catalog.json"], "costco": ["/costco-catalog.json", "/juguetes-catalog.json"], "victoriassecret": ["/beauty-catalog.json"], "ulta": ["/ulta-catalog.json"], "pacsun": ["/pacsun-catalog.json"], "zumiez": ["/zumiez-catalog.json"], "nautilus": ["/nautilus-catalog.json"], "prosoccer": ["/soccer-catalog.json"], "xtremesoccer": ["/soccer-catalog.json"], "tennisexpress": ["/tennis-catalog.json"], "tenniswarehouse": ["/tennis-catalog.json"], "academy": ["/soccer-catalog.json"], "islandwatersports": ["/islandwatersports-catalog.json"], "quietstorm": ["/quietstorm-catalog.json"], "surfworld": ["/surfworld-catalog.json"], "surfstation": ["/surfstation-catalog.json"], "mainland": ["/mainland-catalog.json"], "parrot": ["/parrot-catalog.json"], "ccs": ["/ccs-catalog.json"], "valsurf": ["/valsurf-catalog.json"], "oldnavy": ["/department-cache-oldnavy.json"], "samsclub": ["/samsclub-catalog.json"], "lanebryant": ["/lanebryant-catalog.json"], "alphalete": ["/gymrat-catalog.json"], "youngla": ["/gymrat-catalog.json"], "gymshark": ["/gymrat-catalog.json"], "venum": ["/venum-catalog.json"], "tatami": ["/tatami-catalog.json"], "everlast": ["/everlast-catalog.json"], "mmawarehouse": ["/mmawarehouse-catalog.json"], "combatcorner": ["/combatcorner-catalog.json"], "fuji": ["/fuji-catalog.json"], "crocs": ["/crocs-catalog.json"], "baublebar": ["/baublebar-catalog.json", "/jewelry-catalog.json"], "jwpei": ["/jwpei-catalog.json"], "meliebianco": ["/meliebianco-catalog.json"], "bentgo": ["/bentgo-catalog.json"], "mushie": ["/mushie-catalog.json"], "ezpz": ["/ezpz-catalog.json"], "statebags": ["/statebags-catalog.json"], "assouline": ["/books-catalog.json"], "chronicle": ["/books-catalog.json"], "walmartbaby": ["/moms-catalog.json"], "momcozy": ["/moms-catalog.json"], "elvie": ["/moms-catalog.json"], "spectra": ["/moms-catalog.json"], "munchkin": ["/moms-catalog.json"], "babybrezza": ["/moms-catalog.json"], "drbrowns": ["/moms-catalog.json"], "mockingbird": ["/moms-catalog.json"], "nanit": ["/nanit-catalog.json", "/moms-catalog.json"], "owlet": ["/owlet-catalog.json", "/moms-catalog.json"], "kindredbravely": ["/moms-catalog.json"], "hatch": ["/moms-catalog.json"], "bellybandit": ["/moms-catalog.json"], "freshlypicked": ["/moms-catalog.json"], "jujube": ["/moms-catalog.json"], "dagnedover": ["/moms-catalog.json"], "lillebaby": ["/moms-catalog.json"], "skims": ["/skims-catalog.json"], "ssense": ["/ssense-catalog.json"], "miumiu": ["/miumiu-catalog.json"], "yesstyle": ["/yesstyle-catalog.json"], "farfetch": ["/farfetch-catalog.json"], "hottopic": ["/hottopic-catalog.json"], "boxlunch": ["/boxlunch-catalog.json"], "sephora": ["/beauty-catalog.json"], "partycity": ["/partycity-catalog.json"], "elite": ["/fightclub-catalog.json"], "gameness": ["/fightclub-catalog.json"], "americaneagle": ["/ae-catalog.json"], "farmrio": ["/latino-designers-dtc-catalog.json"], "aguabendita": ["/latino-designers-dtc-catalog.json"], "patbo": ["/latino-designers-dtc-catalog.json"], "johannaortiz": ["/latino-designers-dtc-catalog.json"], "silviatcherassi": ["/latino-designers-dtc-catalog.json"], "capittana": ["/latino-designers-dtc-catalog.json"], "ancora": ["/latino-designers-dtc-catalog.json"], "vix": ["/latino-designers-dtc-catalog.json"], "montce": ["/latino-designers-dtc-catalog.json"], "eberjey": ["/latino-designers-dtc-catalog.json"], "tns": ["/latino-designers-dtc-catalog.json"], "revzilla": ["/moto-catalog.json"], "denniskirk": ["/moto-catalog.json"], "smartbuyglasses": ["/sunglasses-catalog.json"], "hollister": ["/hollister-catalog.json"], "abercrombie": ["/abercrombie-catalog.json"], "gap": ["/gap-catalog.json"], "bananarepublic": ["/bananarepublic-catalog.json"]};
 var STORE_LABELS  = {"revolve": "Revolve", "target": "Target", "footlocker": "Foot Locker", "newbalance": "New Balance", "walmart": "Walmart", "advanceauto": "Advance Auto Parts", "macys": "Macy's", "kohls": "Kohl's", "dicks": "Dick's Sporting Goods", "finishline": "Finish Line", "bhphoto": "B&H Photo", "costco": "Costco", "victoriassecret": "Victoria's Secret", "ulta": "Ulta Beauty", "pacsun": "PacSun", "zumiez": "Zumiez", "nautilus": "Nautilus Spearfishing", "prosoccer": "ProSoccer", "xtremesoccer": "Xtreme Soccer", "tennisexpress": "Tennis Express", "tenniswarehouse": "Tennis Warehouse", "academy": "Academy Sports", "islandwatersports": "Island Water Sports", "quietstorm": "Quiet Storm Surf Shop", "surfworld": "Surf World", "surfstation": "Surf Station", "mainland": "Mainland Skate & Surf", "parrot": "Parrot Surf & Skate", "ccs": "CCS", "valsurf": "Val Surf", "oldnavy": "Old Navy", "samsclub": "Sam's Club", "lanebryant": "Lane Bryant", "alphalete": "Alphalete", "youngla": "YoungLA", "gymshark": "Gymshark", "venum": "Venum", "tatami": "Tatami Fightwear", "everlast": "Everlast", "mmawarehouse": "MMAWarehouse", "combatcorner": "Combat Corner", "fuji": "FUJI Sports", "crocs": "Crocs", "baublebar": "BaubleBar", "jwpei": "JW PEI", "meliebianco": "Melie Bianco", "bentgo": "Bentgo", "mushie": "Mushie", "ezpz": "ezpz", "statebags": "State Bags", "assouline": "Assouline", "chronicle": "Chronicle Books", "walmartbaby": "Walmart Bebé", "momcozy": "Momcozy", "elvie": "Elvie", "spectra": "Spectra", "munchkin": "Munchkin", "babybrezza": "Baby Brezza", "drbrowns": "Dr. Brown's", "mockingbird": "Mockingbird", "nanit": "Nanit", "owlet": "Owlet", "kindredbravely": "Kindred Bravely", "hatch": "Hatch", "bellybandit": "Belly Bandit", "freshlypicked": "Freshly Picked", "jujube": "JuJuBe", "dagnedover": "Dagne Dover", "lillebaby": "LÍLLÉbaby", "skims": "Skims", "ssense": "SSENSE", "miumiu": "Miu Miu", "yesstyle": "YesStyle", "bathandbodyworks": "Bath & Body Works", "farfetch": "Farfetch", "hottopic": "Hot Topic", "boxlunch": "BoxLunch", "sephora": "Sephora", "partycity": "Party City", "elite": "Elite Sports", "gameness": "Gameness", "americaneagle": "American Eagle", "farmrio": "FARM Rio", "aguabendita": "Agua Bendita", "patbo": "PatBO", "johannaortiz": "Johanna Ortiz", "silviatcherassi": "Silvia Tcherassi", "capittana": "Capittana", "ancora": "Ancora", "vix": "ViX", "montce": "Montce", "eberjey": "Eberjey", "tns": "TNS", "revzilla": "RevZilla", "denniskirk": "Dennis Kirk", "smartbuyglasses": "SmartBuyGlasses", "autozone": "AutoZone", "hollister": "Hollister", "abercrombie": "Abercrombie & Fitch", "gap": "Gap", "bananarepublic": "Banana Republic"};
+
+/* THE SHARDS (2026-10-19, #409 T1). FNV-1a over the normalised title
+   (or part number), the same function at build time and here. The
+   build fails if a shard outgrows 30KB gzipped; raise the count then. */
+var PDP_SHARDS = 4096;
+var AUTO_SHARDS = 32;
+var PDP_BASE = "/assets/pdp/";
+function pdpHash(key){
+  var h = 0x811c9dc5;
+  for (var i = 0; i < key.length; i++){ h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
+}
+function pdpShard(key){ return ("00" + (pdpHash(key) % PDP_SHARDS).toString(16)).slice(-3); }
+function autoShard(key){ return ("0" + (pdpHash(key) % AUTO_SHARDS).toString(16)).slice(-2); }
+/* The record the old download-and-scan returned: the first file of
+   `files` (in order) that carries the title, at its earliest position. */
+function pickRecord(cands, files){
+  if (!Array.isArray(cands) || !Array.isArray(files)) return null;
+  /* A title only one record carries is the answer from any store (the
+     build leaves its positions out). */
+  if (cands.length === 1 && !cands[0].src) return cands[0];
+  for (var i = 0; i < files.length; i++){
+    var best = null, bestPos = Infinity;
+    for (var j = 0; j < cands.length; j++){
+      var src = cands[j].src || [];
+      for (var k = 0; k < src.length; k++){
+        if (src[k][0] === files[i] && src[k][1] < bestPos){ best = cands[j]; bestPos = src[k][1]; }
+      }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+/* A shard record as the page's product (normalizeItem's shape). */
+function recordToItem(r){
+  return {
+    name: r.name || "", brand: r.brand || "", price: Number(r.price) || 0,
+    image: r.image || "", url: "", retailer: r.retailer || "",
+    description: r.description || "", sizes: Array.isArray(r.sizes) ? r.sizes : [],
+    originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
+    wasPrice: Number(r.wasPrice) || 0, dept: r.dept || ""
+  };
+}
+function fetchJson(url, ms){
+  var ctl = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = ctl ? setTimeout(function(){ ctl.abort(); }, ms || 20000) : null;
+  return fetch(url, ctl ? { signal: ctl.signal } : {})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .catch(function(){ return null; })
+    .then(function(d){ if (timer) clearTimeout(timer); return d; });
+}
+var SHARD_CACHE = {};
+function fetchShard(key){
+  var s = pdpShard(key);
+  if (!SHARD_CACHE[s]) SHARD_CACHE[s] = fetchJson(PDP_BASE + "p/" + s + ".json");
+  return SHARD_CACHE[s].then(function(d){ return (d && d[key]) || null; });
+}
+/* One store's rail slice for one kind of product: the anchor's lane and
+   department name the file (relPick ranks by those, its gender and the
+   discount, so the file holds every item that could make its top 12). */
+function deptSlug(d){ return d ? pdpHash(String(d)).toString(36) : "all"; }
+function railPath(retailer, anchor){
+  var lane = relLane(anchor);
+  return "rails/" + String(retailer || "").toLowerCase() + "/" + (lane ? lane.key : "none") + "-" + deptSlug(anchor.dept || "") + ".json";
+}
+function fetchStoreRail(retailer, anchor){
+  if (!/^[a-z0-9_-]+$/i.test(String(retailer || ""))) return Promise.resolve([]);
+  return fetchJson(PDP_BASE + railPath(retailer, anchor)).then(function(d){ return (d && d.items) || []; });
+}
+
+/* SOLES FIRST (#416): the site's own rate -- the same endpoint and
+   24-hour cache key the home page, search and checkout use -- so a
+   slow exchange-rate call never flips the page to dollars when a
+   recent rate is on the phone already. */
+var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var PAGE_FX = null;
+async function pageRate(){
+  if (PAGE_FX) return PAGE_FX;
+  try{
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS) return (PAGE_FX = c.venta);
+  }catch(e){}
+  var d = await fetchJson("/.netlify/functions/exchange-rate", 6000);
+  if (d && typeof d.venta === "number" && d.venta > 0){
+    try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); }catch(e){}
+    PAGE_FX = d.venta;
+  }
+  return PAGE_FX;
+}
 
 /* Sized retailer derivatives (2026-10-16) -- the same rules the app
    bundle's sizedImageUrl applies: card slots are small, retailer
@@ -289,6 +416,9 @@ function normalizeItem(it, retailerKey){
     };
   }catch(e){ return null; }
 }
+/* The catalogue reader. The page no longer runs it (no catalogue is
+   downloaded); scripts/build-pdp-slices.mjs lifts it from here and runs
+   it over every file at build time. */
 function extractItems(data){
   var out = [];
   try{
@@ -311,11 +441,6 @@ function extractItems(data){
     });
   }catch(e){}
   return out;
-}
-function fetchOne(f){
-  return fetch(f).then(function(r){ return r.ok ? r.json() : null; })
-                 .then(function(d){ return d ? extractItems(d) : []; })
-                 .catch(function(){ return []; });
 }
 /* HTML ENTITIES ARE TEXT, NOT TWO SPELLINGS (2026-10-19, #409). Some
    catalogue titles carry "&#38;" where they mean "&"; search now links
@@ -361,15 +486,18 @@ function fail(msg, ctx){
 function render(p){
   el("p-loading").style.display = "none";
   var usd = finalUsd(p.price, p.retailer);
+  /* The was-price the card showed, by the site's one sale rule. */
+  var wasUsd = p.salePct > 0 && p.wasPrice > p.price ? finalUsd(p.wasPrice, p.retailer) : 0;
   var store = STORE_LABELS[p.retailer] || p.retailer || "";
+  var offHtml = wasUsd ? '<span class="p-off">-' + esc(p.salePct) + '%</span>' : '';
   var priceHtml = FX_RATE
-    ? '<div style="font-size:28px;font-weight:800;color:var(--navy)">' + esc(fmtPen(usd * FX_RATE)) + '</div>'
-      + '<div style="font-size:14px;color:var(--muted);margin-top:2px">' + esc(fmtUsd(usd)) + ' · puesto en Perú</div>'
-    : '<div style="font-size:28px;font-weight:800;color:var(--navy)">' + esc(fmtUsd(usd)) + '</div>'
-      + '<div style="font-size:13px;color:var(--muted);margin-top:2px">Tipo de cambio no disponible</div>';
-  var img = p.image
-    ? '<img src="' + esc(sizedImageUrl(p.image, 1000)) + '" data-img-orig="' + esc(p.image) + '" alt="' + esc(p.name) + '" style="width:100%;border-radius:16px;border:1px solid var(--line);background:#f7f8fb" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
-    : '<div style="aspect-ratio:1;border-radius:16px;border:1px solid var(--line);background:#f7f8fb"></div>';
+    ? '<div><span class="p-pen">' + esc(fmtPen(usd * FX_RATE)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtPen(wasUsd * FX_RATE)) + '</span>' : '') + offHtml + '</div>'
+      + '<div class="p-usd">' + esc(fmtUsd(usd)) + ' · puesto en Perú</div>'
+    : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
+      + '<div class="p-usd">Tipo de cambio no disponible</div>';
+  var img = '<div class="p-photo">' + (p.image
+    ? '<img src="' + esc(sizedImageUrl(p.image, 1000)) + '" data-img-orig="' + esc(p.image) + '" alt="' + esc(p.name) + '" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
+    : '') + '</div>';
   var desc = p.description
     ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
   el("p-body").innerHTML =
@@ -395,7 +523,7 @@ function render(p){
         })()
       + '<div id="buy-box" class="buy-box"></div>'
     + '</div></div>' + desc
-    + '<div id="rel-rails"></div>';
+    + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
   document.title = p.name + " — Aria Shop";
   buildBuyBox(p);
 }
@@ -409,10 +537,15 @@ function render(p){
    and gender, never cross-department randoms. A rail with fewer than
    three cards is not shown.
 
-   The store rail comes from the catalogue this page already downloaded.
-   The category rail reads the Ofertas head (ofertas-feed-lite.json,
-   650KB, every store, sale items only); the full feed is 18MB, too much
-   for a phone on a product page.
+   Both rails read small precomputed slices (2026-10-19, #409 T1), the
+   same relPick ranks them:
+     assets/pdp/rails/store-<retailer>.json  the store's sale items a
+       rail can ever pick (per lane, department and gender, the 13
+       deepest discounts) -- a few KB instead of the store's catalogue;
+     assets/pdp/rails/lane-<lane>.json  the Ofertas head's rows in this
+       lane (it was the whole 750KB head).
+   scripts/build-pdp-slices.mjs writes them with this page's own code;
+   scripts/test/pdp-thin-tests.mjs checks the rails match the old ones.
    ===================================================================== */
 var REL_MAX = 12;
 var REL_MIN = 3;
@@ -451,17 +584,51 @@ function relCardHTML(it){
   var price = FX_RATE ? fmtPen(usd * FX_RATE) : fmtUsd(usd);
   var was = wasUsd ? (FX_RATE ? fmtPen(wasUsd * FX_RATE) : fmtUsd(wasUsd)) : "";
   var href = "producto.html?producto=" + encodeURIComponent(it.name) + "&tienda=" + encodeURIComponent(it.retailer);
+  /* The photo waits in data-src until its card is about to be seen. */
   return '<a class="rel-card" href="' + esc(href) + '">'
-    + (it.image ? '<img src="' + esc(sizedImageUrl(it.image, 360)) + '" data-img-orig="' + esc(it.image) + '" alt="" loading="lazy" onerror="imgOrigRetry(this)">' : '<img alt="">')
+    + '<div class="rel-img">' + (it.image ? '<img data-src="' + esc(sizedImageUrl(it.image, 360)) + '" data-img-orig="' + esc(it.image) + '" alt="" onerror="imgOrigRetry(this)">' : '') + '</div>'
     + '<div class="rel-body">'
     +   '<span class="rel-store">' + esc(STORE_LABELS[it.retailer] || it.retailer) + '</span>'
     +   '<span class="rel-title">' + esc(it.name) + '</span>'
-    +   '<span><span class="rel-price">' + esc(price) + '</span>' + (was ? '<span class="rel-was">' + esc(was) + '</span>' : '') + '</span>'
-    +   (it.salePct ? '<span class="rel-off">-' + it.salePct + '%</span>' : '')
+    +   '<span class="rel-pricebox"><span class="rel-price">' + esc(price) + '</span>' + (was ? '<span class="rel-was">' + esc(was) + '</span>' : '')
+    +     (FX_RATE ? '<span class="rel-usd">' + esc(fmtUsd(usd)) + '</span>' : '') + '</span>'
+    +   '<span class="rel-off">' + (it.salePct ? '-' + it.salePct + '%' : '') + '</span>'
     + '</div></a>';
 }
 function relRailHTML(title, items){
   return '<section class="rel-rail"><h2>' + esc(title) + '</h2><div class="rel-row">' + items.map(relCardHTML).join("") + '</div></section>';
+}
+/* A rail-shaped placeholder while a slice is on its way. */
+function relSkeletonHTML(){
+  var card = '<div class="rel-card sk" aria-hidden="true"><div class="rel-img"></div><div class="rel-body">'
+    + '<span class="rel-store"><i style="width:45%"></i></span><span class="rel-title"><i></i><i></i></span>'
+    + '<span class="rel-pricebox"><i></i></span><span class="rel-off"></span></div></div>';
+  return '<section class="rel-rail" aria-busy="true"><h2>&nbsp;</h2><div class="rel-row">' + card + card + card + '</div></section>';
+}
+/* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN (search.html's
+   watchPhotos, #417): native loading="lazy" fetched every rail photo at
+   once on slow links. An IntersectionObserver honours the rail's
+   clipping and a 200px margin; a swipe brings the next card's photo. */
+var PHOTO_IO = null;
+function railPhoto(img){
+  if (!img || !img.dataset.src) return;
+  img.src = img.dataset.src;
+  img.removeAttribute("data-src");
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll("img[data-src]");
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== "function"){ Array.prototype.forEach.call(imgs, railPhoto); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      railPhoto(e.target);
+      var rail = e.target.closest(".rel-row"), card = e.target.closest(".rel-card");
+      if (rail && rail.scrollLeft > 0 && card && card.nextElementSibling) railPhoto(card.nextElementSibling.querySelector("img[data-src]"));
+    });
+  }, { rootMargin: "200px 0px" });
+  Array.prototype.forEach.call(imgs, function(i){ PHOTO_IO.observe(i); });
 }
 /* Ranks a candidate list for an anchor: same lane and gender first, then
    same department, then the deepest real discount. Out-of-lane items are
@@ -495,16 +662,18 @@ async function buildRelatedRails(p, storePool){
   var sameStore = relPick(p, storePool || [], { sameStore: true, requireLane: true });
   if (sameStore.length < REL_MIN) sameStore = relPick(p, storePool || [], { sameStore: true });
   var html = sameStore.length >= REL_MIN ? relRailHTML("Más ofertas en " + store, sameStore) : "";
-  host.innerHTML = html;
   var lane = relLane(p);
+  host.innerHTML = html + (lane ? relSkeletonHTML() : "");
+  watchPhotos(host);
   if (!lane) return;
   try {
-    var r = await fetch("/ofertas-feed-lite.json");
-    var feed = r.ok ? await r.json() : null;
-    var rows = (feed && feed.items || []).map(function(row){ return normalizeItem(row, row.retailer); }).filter(Boolean);
+    /* Rows of the Ofertas head in this lane, already normalised. */
+    var feed = await fetchJson(PDP_BASE + "rails/lane-" + lane.key + ".json");
+    var rows = (feed && feed.items) || [];
     var cross = relPick(p, rows.concat(storePool || []), { requireLane: true, exclude: sameStore, preferOtherStores: true });
-    if (cross.length >= REL_MIN) host.innerHTML = html + relRailHTML("Más " + lane.label + " en oferta", cross);
-  } catch (e) { /* the store rail stands on its own */ }
+    host.innerHTML = html + (cross.length >= REL_MIN ? relRailHTML("Más " + lane.label + " en oferta", cross) : "");
+    watchPhotos(host);
+  } catch (e) { host.innerHTML = html; watchPhotos(host); /* the store rail stands on its own */ }
 }
 
 /* =====================================================================
@@ -781,33 +950,60 @@ function addCurrentToCart(p, wantsSize){
 
     var tienda = (params.get("tienda") || params.get("store") || "").toLowerCase();
     var list = (tienda && STORE_FILES[tienda]) ? STORE_FILES[tienda] : null;
+    var w = norm(want);
 
-    try{
-      var fx = await fetch("/.netlify/functions/exchange-rate");
-      var fxd = fx.ok ? await fx.json() : null;
-      if (fxd && typeof fxd.venta === "number") FX_RATE = fxd.venta;
-    }catch(e){}
+    /* Everything the first screen needs leaves at once: the rate (from
+       the phone's cache when it has one), the product's shard and the
+       store's rail slice. On a 2-second round trip, one trip, not three. */
+    var fxP = pageRate().then(function(r){ FX_RATE = r; }).catch(function(){});
+    fetchShard(w);   /* on its way while the rate is read */
 
     var lastPool = [];
+    /* By exact title, from the shard: the ?tienda= files first, then
+       every catalogue in the fallback order -- the order the old
+       download-and-scan used. */
     async function hunt(fileList){
-      var got = await Promise.all(fileList.map(fetchOne));
-      var all = [].concat.apply([], got);
-      var w = norm(want);
-      lastPool = all;
-      return all.find(function(p){ return norm(p.name) === w; })
-          || all.find(function(p){ return norm(p.name).indexOf(w) === 0; })
-          || all.find(function(p){ return w.length > 8 && norm(p.name).indexOf(w) >= 0; })
-          || null;
+      var cands = await fetchShard(w);
+      var rec = pickRecord(cands, fileList);
+      return rec ? recordToItem(rec) : null;
+    }
+    /* NAMED, NOT EXACT (the old scan's prefix and substring passes): a
+       link whose title is cut short or longer than the card's. The
+       search endpoint names the candidates; the shard of the one that
+       matches gives its record. One more trip, only on a miss. */
+    async function huntByName(){
+      var d = await fetchJson("/.netlify/functions/search?q=" + encodeURIComponent(want.slice(0, 120)), 15000);
+      var cards = (d && d.items) || [];
+      var tests = [
+        function(c){ return c.store === tienda && norm(c.title).indexOf(w) === 0; },
+        function(c){ return c.store === tienda && w.length > 8 && norm(c.title).indexOf(w) >= 0; },
+        function(c){ return norm(c.title).indexOf(w) === 0; },
+        function(c){ return w.length > 8 && norm(c.title).indexOf(w) >= 0; }
+      ];
+      for (var t = 0; t < tests.length; t++){
+        for (var i = 0; i < cards.length; i++){
+          var c = cards[i];
+          if (!c || !c.title || !tests[t](c)) continue;
+          var key = norm(c.title);
+          var cands = (await fetchShard(key)) || [];
+          var own = cands.filter(function(x){ return x.retailer === c.store; });
+          var rec = pickRecord(own.length ? own : cands, (STORE_FILES[c.store] || []).concat(CATALOG_FILES));
+          if (rec) return recordToItem(rec);
+        }
+      }
+      return null;
     }
 
     /* AUTO PARTS (2026-10-09). Voice and Aria Auto part cards (AutoZone)
        live only in auto-cache.json, never in the store catalogs, so the
        tap landed on "no encontrado". Look the part up there: by part
        number (?pn=) first, then by title. The retailer's url is dropped;
-       the card never links out. */
-    async function huntAuto(){
+       the card never links out. Since #409 T1 the page reads one small
+       auto-cache-shaped shard (assets/pdp/auto-pn or auto-t), holding
+       the record the full-cache scan below would have found. */
+    async function huntAuto(url){
       try{
-        var r = await fetch("/auto-cache.json");
+        var r = await fetch(url);
         if (!r.ok) return null;
         var d = await r.json(), ps = (d && d.partSearches) || {};
         var pn = String(params.get("pn") || "").trim().toUpperCase(), w = norm(want);
@@ -838,15 +1034,27 @@ function addCurrentToCart(p, wantsSize){
         return p;
       }catch(e){ return null; }
     }
+    function autoUrl(){
+      var pn = String(params.get("pn") || "").trim().toUpperCase();
+      return pn ? PDP_BASE + "auto-pn/" + autoShard(pn) + ".json" : PDP_BASE + "auto-t/" + autoShard(w) + ".json";
+    }
     var AUTO_STORES = { autozone: 1 };
 
-    var found = AUTO_STORES[tienda] ? await huntAuto() : null;
+    var found = AUTO_STORES[tienda] ? await huntAuto(autoUrl()) : null;
     if (!found) found = list ? await hunt(list) : null;
-    /* The fast path missed, so pay for the slow one rather than lie. */
+    /* The fast path missed: every catalogue's record of this title (the
+       same shard), then by name, rather than lie. */
     if (!found) found = await hunt(CATALOG_FILES);
-    if (!found && !AUTO_STORES[tienda] && params.get("pn")) found = await huntAuto();
-    if (!found){ fail("No encontramos \u201c" + want + "\u201d en el catálogo. Puede que ya no esté disponible.", { store: tienda, query: want, pool: lastPool }); return; }
+    if (!found) found = await huntByName();
+    if (!found && !AUTO_STORES[tienda] && params.get("pn")) found = await huntAuto(autoUrl());
+    await fxP;
+    if (!found){
+      if (tienda) lastPool = await fetchStoreRail(tienda, { name: want, dept: "" });
+      fail("No encontramos “" + want + "” en el catálogo. Puede que ya no esté disponible.", { store: tienda, query: want, pool: lastPool });
+      return;
+    }
     render(found);
+    lastPool = await fetchStoreRail(found.retailer, found);
     buildRelatedRails(found, lastPool.filter(function(it){ return it.retailer === found.retailer; }));
   }catch(e){ fail("Ocurrió un error inesperado."); }
 })();
