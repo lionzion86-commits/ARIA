@@ -36,6 +36,13 @@
    them (about half the catalogue): the "Más vendidos" lane and the
    lead slots of every lane rank by them. 0 means not published.
 
+   STORES (2026-10-19, #416 comparison block). The index also carries
+   a small `stores` table -- each store's name and logo, as the Tiendas
+   page draws them (tienda.html's STORES, then scripts/lib/retailers.js,
+   then a logo file named after the store) -- so the comparison block
+   can show the store's own logo without the function shipping the
+   logos folder. A logo is listed only when its file exists.
+
    REGENERATE after any catalogue change:
      node scripts/build-search-index.mjs
    scripts/test/search-brief-tests.mjs fails when the index has fallen
@@ -44,6 +51,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { RETAILERS } from "./lib/retailers.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
@@ -148,6 +156,26 @@ function normalize(it, retailer, department, finalPrice) {
   };
 }
 
+/* Each store's display name and logo path (relative, no leading slash). */
+export function storeTable(keys) {
+  let site = {};
+  try {
+    const m = /^var STORES = (\{.*\});\s*$/m.exec(readFileSync(ROOT + "tienda.html", "utf8"));
+    if (m) site = JSON.parse(m[1]);
+  } catch { /* the retailers table answers */ }
+  const exists = (rel) => !!rel && existsSync(ROOT + rel);
+  const out = {};
+  for (const k of [...keys].sort()) {
+    const s = site[k] || {}, r = RETAILERS[k] || {};
+    const label = s.label || r.label || k;
+    const tries = [s.logo, r.logo, `logos/${k}.svg`, `logos/${k}.png`, `logos/brands/${k}.svg`, `logos/brands/${k}.png`]
+      .filter(Boolean).map((x) => String(x).replace(/^\//, ""));
+    const logo = tries.find(exists) || "";
+    out[k] = logo ? { label, logo } : { label };
+  }
+  return out;
+}
+
 export function buildIndex() {
   const S = loadEngine();
   const products = [];
@@ -190,7 +218,8 @@ export function buildIndex() {
     rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
       p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
   }
-  return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, rows };
+  const stores = storeTable(new Set(rows.map((r) => r[7]).filter(Boolean)));
+  return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, stores, rows };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

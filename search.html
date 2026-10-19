@@ -109,6 +109,33 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .card.sk .name i:last-child{width:60%;}
 .card.sk .pen i{height:16px; width:45%;}
 .card.sk .brand i, .card.sk .retailer i{width:40%;}
+/* ONE PRODUCT, EVERY STORE (2026-10-19, #416): the comparison block.
+   The same product at 2+ stores is one block at the top, each store's
+   TOTAL door price in soles first and bold. Badges are not yellow:
+   yellow is for sale badges only. */
+.cmp{grid-column:1/-1; min-width:0; border:1px solid var(--line); border-radius:16px; padding:14px; margin:0 0 6px; background:#fff;}
+.cmp-head{display:flex; gap:12px; align-items:center; margin-bottom:10px;}
+.cmp-photo{position:relative; flex:0 0 72px; width:72px; height:72px; border-radius:12px; background:var(--sky); overflow:hidden;}
+.cmp-photo img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain;}
+.cmp-kicker{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--blue);}
+.cmp-title{font-size:15px; font-weight:800; color:var(--navy); line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:39px;}
+.cmp-note{font-size:12px; color:var(--muted); margin:0 0 8px;}
+.cmp-row{display:flex; align-items:center; gap:12px; min-height:72px; padding:10px 0; border-top:1px solid var(--line); color:var(--ink); text-decoration:none;}
+.cmp-row:hover{text-decoration:none; background:#FAFBFE;}
+.cmp-store{flex:1; min-width:0;}
+.cmp-logo{display:flex; align-items:center; gap:8px; min-height:24px;}
+.cmp-logo img{height:22px; width:auto; max-width:96px; object-fit:contain;}
+.cmp-name{font-size:14px; font-weight:700; color:var(--navy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cmp-ship{font-size:12px; color:var(--muted); margin-top:3px; min-height:15px;}
+.cmp-badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+.cmp-badge{font-size:11px; font-weight:800; border-radius:999px; padding:3px 8px; white-space:nowrap;}
+.cmp-badge.best{background:#E8F7EE; color:#15803D;}
+.cmp-badge.fast{background:var(--sky); color:var(--blue);}
+.cmp-badge.off{background:var(--gold); color:var(--navy);}
+.cmp-price{flex:0 0 auto; text-align:right; min-width:104px;}
+.cmp-price .pen{font-size:18px; font-weight:800; color:var(--navy); white-space:nowrap;}
+.cmp-price .usd{font-size:12px; color:var(--muted); white-space:nowrap;}
+.cmp-price .tbd{font-size:13px; font-weight:700; color:var(--muted);}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
@@ -395,6 +422,19 @@ async function withSoles(data){
   };
   (data.items || []).forEach(conv);
   (data.lanes || []).forEach(function(l){ (l.items || []).forEach(conv); });
+  /* The comparison block's door prices: the dollar total at the rate,
+     plus the small-order fee when goods + freight come under its line
+     (the checkout's rule, sent with the answer). */
+  if (data.compare){
+    var so = data.compare.smallOrder || {};
+    (data.compare.stores || []).forEach(function(s){
+      conv(s);
+      if (!s.door) return;
+      var base = Math.round(Number(s.door.baseUsd) * fx * 100) / 100;
+      var fee = so.thresholdPen && base < so.thresholdPen ? Number(so.feePen) || 0 : 0;
+      s.door.pen = Math.round((Number(s.door.usd) * fx + fee) * 100) / 100;
+    });
+  }
   data.fx = fx;
   return data;
 }
@@ -443,13 +483,72 @@ var SPECIFIC_LEAD = 8;
 function answerHTML(data){
   var lanes = (data.lanes || []).filter(function(l){ return l.items && l.items.length; });
   var cards = data.items.map(cardHTML);
-  if (!lanes.length) return cards.join("");
+  var head = compareHTML(data.compare);
+  if (!lanes.length) return head + cards.join("");
   if (data.mode === "generic"){
-    return lanes.map(function(l){ return laneHTML(l); }).join("") +
+    return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
       '<h2 class="grid-head">Todos los resultados</h2>' + cards.join("");
   }
-  return cards.slice(0, SPECIFIC_LEAD).join("") + lanes.map(function(l){ return laneHTML(l); }).join("") +
+  return head + cards.slice(0, SPECIFIC_LEAD).join("") + lanes.map(function(l){ return laneHTML(l); }).join("") +
     cards.slice(SPECIFIC_LEAD).join("");
+}
+
+/* ---------- one product, every store (#416) ----------
+   The server groups the same product found at 2+ stores (same brand,
+   model and colour; _search-core.js) and prices each at the door with
+   the checkout's own math. Each row opens THAT store's product page on
+   Aria -- never the store's site. */
+function productHref(title, store){
+  return "producto.html?producto=" + encodeURIComponent(title || "") +
+    (store ? "&tienda=" + encodeURIComponent(store) : "");
+}
+function compareRowHTML(s){
+  var title = decodeEntities(s.title);
+  var label = s.storeLabel || s.store || "";
+  /* The store's own logo, as the Tiendas page shows it; its name stays
+     beside it, and stands alone if the logo cannot load. */
+  var logo = s.logo
+    ? '<img src="' + esc(BASE + "/" + s.logo) + '" alt="" height="22" decoding="async" onerror="this.remove()">'
+    : "";
+  var price;
+  if (s.door && (s.door.pen || s.door.usd)){
+    price = s.door.pen
+      ? '<div class="pen">' + esc(fmtPen(s.door.pen)) + '</div><div class="usd">' + esc(fmtUsd(s.door.usd)) + "</div>"
+      : '<div class="pen">' + esc(fmtUsd(s.door.usd)) + '</div><div class="usd">&nbsp;</div>';
+  } else {
+    /* Checkout cannot quote this weight yet: no total rather than a
+       shelf price passed off as one. */
+    price = '<div class="tbd">Total por confirmar</div><div class="usd">Envío por confirmar</div>';
+  }
+  var badges = "";
+  if (s.best) badges += '<span class="cmp-badge best">Mejor precio</span>';
+  if (s.fastest) badges += '<span class="cmp-badge fast">Entrega más rápida</span>';
+  var was = Number(s.wasUsd), now = Number(s.usd);
+  if (was > now && now > 0){
+    var pct = Math.round((1 - now / was) * 100);
+    if (pct >= 5) badges += '<span class="cmp-badge off">-' + pct + "%</span>";
+  }
+  var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "&nbsp;";
+  return '<a class="cmp-row" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
+    '<div class="cmp-store"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
+      '<div class="cmp-ship">' + ship + "</div>" +
+      (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") +
+    "</div>" +
+    '<div class="cmp-price">' + price + "</div></a>";
+}
+function compareHTML(c){
+  if (!c || !c.stores || c.stores.length < 2) return "";
+  var title = decodeEntities(c.title), brand = decodeEntities(c.brand);
+  var img = c.image
+    ? '<img ' + cardImgAttrs(c.image, "72px").replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
+      ' alt="" width="72" height="72" decoding="async" onerror="if(!imgOrigRetry(this)){this.remove()}">'
+    : "";
+  return '<section class="cmp" aria-label="Este producto en ' + c.stores.length + ' tiendas">' +
+    '<div class="cmp-head"><div class="cmp-photo">' + img + "</div><div style=\"min-width:0\">" +
+      '<div class="cmp-kicker">' + (brand ? esc(brand) + " · " : "") + "En " + c.stores.length + " tiendas</div>" +
+      '<div class="cmp-title">' + esc(title) + "</div></div></div>" +
+    '<p class="cmp-note">Precio total puesto en tu puerta: producto, envío e impuestos.</p>' +
+    c.stores.map(compareRowHTML).join("") + "</section>";
 }
 
 /* ---------- search ---------- */
@@ -510,7 +609,9 @@ function renderAnswer(query, data){
   STATE.page = data.page; STATE.pages = data.pages; STATE.total = data.total; STATE.capped = !!data.capped;
   grid.innerHTML = answerHTML(data);
   watchPhotos(grid);
-  STATE.shown = data.items.length;
+  /* The comparison block's products count as shown (they are part of
+     the total, and not repeated in the grid). */
+  STATE.shown = data.items.length + (data.compare && data.compare.stores ? data.compare.stores.length : 0);
   var meta = el("meta-line");
   if (meta){
     meta.textContent = (STATE.capped ? "Más de " : "") + fmtCount(data.total) + " resultado" + (data.total === 1 ? "" : "s") +
