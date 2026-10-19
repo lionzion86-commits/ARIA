@@ -740,6 +740,22 @@ window.doSearch = function(which){
     animation:ariaShimmer 1.5s ease 4;
   }
   @media (prefers-reduced-motion: reduce){ .ariaSkeleton{ animation:none } }
+  /* BEST BUY BANNER + CAROUSEL (2026-10-19, Danny, #413): "promoted hard",
+     billed like the electronics specialist it is -- directly under the
+     brand band, above Aria Auto. Best Buy's own blue (#0046BE) with its
+     yellow tag accent (#FFE000) as a rule, the real yellow-tag mark
+     (logos/bestbuy.svg), then the
+     store's sale rail (sale items only: storeRailPicks + sale-rule.js),
+     painted from assets/home/shelves/store-bestbuy.json like every rail.
+     No photo on the home page: no catalogue, no extra weight. */
+  .bbBand{ background:linear-gradient(160deg, #0046BE 0%, #003A9E 60%, #002B7A 100%) }
+  .bbTagRule{ position:absolute; left:0; right:0; top:0; height:5px; background:#FFE000 }
+  .bbLogo{ display:block; height:56px; width:auto }
+  .bbKicker{ font-size:11px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:#FFE000 }
+  .bbCta{ display:inline-flex; align-items:center; justify-content:center; height:46px; padding:0 22px;
+    border-radius:14px; background:#FFE000; color:#001E5A; font-size:14.5px; font-weight:800; letter-spacing:-0.01em }
+  .bbPoints{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:12px; font-weight:700; color:rgba(255,255,255,.86) }
+  .bbPoints span::before{ content:''; display:inline-block; width:6px; height:6px; border-radius:2px; background:#FFE000; margin-right:6px; vertical-align:1px }
   /* ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): Aria Auto is a huge
      section nobody discovers from the homepage -- a shopper browsing deals
      never learns it exists. A full-width house banner (not an ad, not a
@@ -2081,6 +2097,27 @@ window.doSearch = function(which){
     </div>
   </div>
 
+<!-- BEST BUY BANNER + CAROUSEL (2026-10-19, Danny, #413): featured, not
+     buried -- the electronics specialist sits right under the brand band.
+     Banner, then Best Buy's sale rail; every tap lands on its storefront
+     (tienda.html?tienda=bestbuy, answered from slices). -->
+<section aria-label="Best Buy" data-store-rail="bestbuy" data-bestbuy-feature class="bbBand relative overflow-hidden">
+  <div class="bbTagRule" aria-hidden="true"></div>
+  <div class="relative px-5 pt-7 pb-4">
+    <div class="bbKicker">Nueva tienda en Aria</div>
+    <div class="mt-3"><img class="bbLogo" src="/logos/bestbuy.svg" alt="Best Buy" data-retailer="bestbuy" width="81" height="56" decoding="async"></div>
+    <h2 class="text-[25px] font-extrabold tracking-[-0.02em] leading-[1.08] mt-3" style="color:#fff">La tecnolog&iacute;a de Best Buy, en soles y en tu puerta.</h2>
+    <p class="text-[14px] mt-2 leading-snug max-w-[34ch]" style="color:rgba(255,255,255,.80)">Laptops, consolas, aud&iacute;fonos y celulares al precio de Best Buy en Estados Unidos.</p>
+    <div class="bbPoints"><span>Computaci&oacute;n</span><span>Gaming</span><span>Audio</span><span>Celulares</span></div>
+    <button onclick="tiendaJump('bestbuy')" class="bbCta focus-ring mt-5">Entrar a Best Buy &#8594;</button>
+  </div>
+  <div class="flex items-center justify-between gap-3 px-5 pt-2 pb-3">
+    <span class="text-[17px] font-extrabold tracking-[-0.01em] leading-none" style="color:#fff">Ofertas de Best Buy</span>
+    <button onclick="tiendaJump('bestbuy')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#FFE000">Ver tienda &#8594;</button>
+  </div>
+  <div id="mStoreRail-bestbuy" data-store-rail-row="bestbuy" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section>
+
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
       <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
@@ -2739,6 +2776,28 @@ window.doSearch = function(which){
       </div>
     </div>
   </div>
+
+<!-- BEST BUY BANNER + CAROUSEL (desktop, 2026-10-19, Danny, #413). -->
+<section aria-label="Best Buy" data-store-rail="bestbuy" data-bestbuy-feature class="bbBand relative overflow-hidden">
+  <div class="bbTagRule" aria-hidden="true"></div>
+  <div class="relative max-w-[1240px] mx-auto">
+    <div class="px-8 pt-9 pb-5 flex items-center justify-between gap-10">
+      <div class="min-w-0">
+        <div class="bbKicker">Nueva tienda en Aria</div>
+        <div class="mt-3"><img class="bbLogo" src="/logos/bestbuy.svg" alt="Best Buy" data-retailer="bestbuy" width="81" height="56" decoding="async"></div>
+        <h2 class="text-[30px] font-extrabold tracking-[-0.02em] leading-[1.08] mt-3" style="color:#fff">La tecnolog&iacute;a de Best Buy, en soles y en tu puerta.</h2>
+        <p class="text-[15px] mt-2 leading-snug max-w-[56ch]" style="color:rgba(255,255,255,.80)">Laptops, consolas, aud&iacute;fonos y celulares al precio de Best Buy en Estados Unidos.</p>
+        <div class="bbPoints"><span>Computaci&oacute;n</span><span>Gaming</span><span>Audio</span><span>Celulares</span><span>Smartwatches</span><span>C&aacute;maras y drones</span></div>
+      </div>
+      <button onclick="tiendaJump('bestbuy')" class="bbCta focus-ring flex-shrink-0">Entrar a Best Buy &#8594;</button>
+    </div>
+    <div class="flex items-center justify-between gap-3 px-8 pt-1 pb-4">
+      <span class="text-[20px] font-extrabold tracking-[-0.01em] leading-none" style="color:#fff">Ofertas de Best Buy</span>
+      <button onclick="tiendaJump('bestbuy')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#FFE000">Ver tienda &#8594;</button>
+    </div>
+    <div id="dStoreRail-bestbuy" data-store-rail-row="bestbuy" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+  </div>
+</section>
 
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
@@ -6789,7 +6848,7 @@ window.doSearch = function(which){
   </div>
 </div>
 
-<script src="/build/app-3ebba0bdc11bdf1f.js"></script>
+<script src="/build/app-7c367e2082b77476.js"></script>
 
 
 

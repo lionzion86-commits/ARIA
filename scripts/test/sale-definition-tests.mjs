@@ -144,8 +144,10 @@ check("the store page: New Balance's flagged items make no Ofertas rail; CCS's c
   assert.equal((byStore.newbalance || []).filter(it => T.saleTier(it) > 0).length, 0, "New Balance's store page has an Ofertas rail");
   const ccs = (byStore.ccs || []);
   assert.equal(ccs.filter(it => T.saleTier(it) > 0).length, ccs.filter(P.rawItemOnSale).length, "CCS's store page and department disagree");
-  /* The crossed-out price carries the same margin and tax as the price. */
-  assert.match(src, /'<span class="price-old">' \+ fmtUSD\(finalUsd\(p\.originalPrice, storeKey\)\)/, "the store card crosses out the raw US price");
+  /* The crossed-out price carries the same margin and tax as the price
+     (the storefront card draws slices since #409 T2: the was-price goes
+     through finalUsd before it is shown). */
+  assert.match(src, /var wasF = p\.was && p\.was > p\.price \? finalUsd\(p\.was, storeKey\) : 0;/, "the store card crosses out the raw US price");
 });
 
 check("no standalone page treats a bare onSale flag as a sale", () => {
