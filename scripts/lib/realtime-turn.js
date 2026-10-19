@@ -63,6 +63,25 @@ export const REALTIME_TOOLS = Object.freeze([
       additionalProperties: false,
     },
   },
+  /* WHAT SHE SHOWED (2026-10-13, issue #386, the Adi Ease incident):
+     "llévame a esa" must open the product she showed, never trigger a
+     fresh search that can say it is not in the catalogue. */
+  {
+    type: "function",
+    name: "open_product",
+    description:
+      "Abre la página de UN producto que TÚ ya mostraste en esta conversación, cuando el cliente pide ir a él " +
+      "(\"llévame a esa\", \"la de 30 dólares\", \"la segunda\", \"muéstrame la Adidas\"). Úsala en vez de volver a buscar.",
+    parameters: {
+      type: "object",
+      properties: {
+        product_id: { type: "string", description: "El id que devolvió search_products, si lo sabes." },
+        reference: { type: "string", description: "Las palabras del cliente para referirse al producto, tal cual." },
+      },
+      required: ["reference"],
+      additionalProperties: false,
+    },
+  },
   {
     type: "function",
     name: "calculate_total_delivered_price",

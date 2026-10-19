@@ -10,6 +10,11 @@ function translateQuery(raw) {
 
   let text = normalizeQueryText(original);
   let hit = false;
+  /* The English words this function wrote (2026-10-14, #386): they are
+     the shopper's product words by construction -- "anillo" is a ring,
+     never the doorbell brand Ring -- and the search's brand pass must
+     not claim them. */
+  const produced = [];
 
   // Phrases first, longest first: the phrase means what its words do not.
   const phrases = [...ES_EN_PHRASES].sort((a, b) => b[0].length - a[0].length);
@@ -51,13 +56,20 @@ function translateQuery(raw) {
     if (re.test(text)) {
       re.lastIndex = 0;
       text = text.replace(re, (m, before) => `${before} ${en} `);
+      produced.push(en);
       hit = true;
     }
   }
 
+  /* A SIZE IS NOT A SEARCH WORD. "zapatos para niña talla 7" asked
+     the catalogue for titles containing "talla" and "7" and found
+     none; the size is chosen on the product. */
+  const unsized = text.replace(/(^|\s)talla\s+(?:us\s+)?[a-z0-9.]{1,4}(?=\s|$)/g, ' ');
+  if (unsized !== text) { text = unsized; hit = true; }
+
   const words = text.split(/\s+/).filter(Boolean).map((w) => {
     const en = translateWord(w);
-    if (en) { hit = true; return en; }
+    if (en) { hit = true; produced.push(en); return en; }
     return w;
   });
 
@@ -78,7 +90,8 @@ function translateQuery(raw) {
 
   // A translation that produced nothing usable is not a translation.
   if (!query) return { query: original, translated: false, changed: false };
-  return { query, translated: true, changed: query !== normalizeQueryText(original) };
+  return { query, translated: true, changed: query !== normalizeQueryText(original),
+    productWords: produced.join(' ').split(/\s+/).filter(Boolean) };
 }
 
 /** Just the string, for callers that do not care whether anything changed. */
@@ -238,6 +251,25 @@ const ES_EN_PHRASES = [
      and got zero results — the Dick's catalog already had the fin sets. */
   ["aletas de buceo", "diving fins"],
   ["zapatillas de correr", "running shoes"],
+  /* BATTERY RUN 2 (2026-10-14, #386 N3/N6/N8). Three everyday asks the
+     bridge did not know, each of which fell through to a stocked
+     "brand" or a substring: "zapatillas para correr" -> SSENSE's
+     CARRER hoodies (correr ~ carrer), "joyas" -> a "Caja de Joyas"
+     board game and "La Joya" surf pants, "casa de barbie" -> a $790
+     Costco console. */
+  ["zapatillas para correr", "running shoes"],
+  ["zapatos para correr", "running shoes"],
+  ["para correr", "running"],
+  ["casa de barbie", "barbie house"],
+  ["casa de la barbie", "barbie house"],
+  ["casita de barbie", "barbie house"],
+  ["casa de munecas", "doll house"],
+  ["casita de munecas", "doll house"],
+  ["collar de perro", "dog collar"],
+  ["collar para perro", "dog collar"],
+  /* "¿y zapatillas de nuevo?" -- "again", not a product word. */
+  ["de nuevo", ""],
+  ["otra vez", ""],
   ["zapatos de vestir", "dress shoes"],
   ["casaca de cuero", "leather jacket"],
   ["pantalon corto", "shorts"],
@@ -472,6 +504,14 @@ const ES_EN_WORDS = {
   // kids, sport, misc
   juguete: "toy",
   muneca: "doll",
+  joya: "jewelry",
+  anillo: "jewelry ring",
+  arete: "earrings",
+  pulsera: "bracelet",
+  collar: "necklace",
+  correr: "running",
+  invierno: "winter",
+  nieve: "snow",
   pelota: "ball",
   bicicleta: "bicycle",
   patineta: "skateboard",
@@ -678,7 +718,10 @@ const ES_EN_WORDS = {
 
 /* Plural endings, longest first. Spanish pluralises predictably enough
    that one rule saves a second entry for every noun in the table. */
-const FILLER = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "para", "con", "y"]);
+const FILLER = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "para", "con", "y",
+  /* Possessives and "también" carry nothing a title says either
+     ("tmb zapatillas para correr", "para mi hija"). */
+  "mi", "mis", "tu", "su", "unos", "unas", "tmb", "tambien"]);
 
 /**
  * A shopper's query, in the language the retailer speaks.
@@ -1528,6 +1571,8 @@ function detectBrandIntent(rawToks, pool, opts){
     }
     if (arr.length) windowsBySize.push(arr);
   }
+  const translatedWords = new Set();
+  for (const pw of (opts && opts.productWords) || []) for (const t of searchTokens(pw)) translatedWords.add(t);
   const singleSkipped = (w) => {
     if (w.joins.length !== 1 || w.idx.length !== 1) return false;
     const tok = rawToks[w.idx[0]];
@@ -1536,7 +1581,8 @@ function detectBrandIntent(rawToks, pool, opts){
        how "hasta" became HABA. Single-token only: "de" and "la" are
        in that set and multi-word brands are built out of them.
        ("sol de janeiro", "young la".) */
-    if (ES_SEARCH_STOPWORDS.has(tok)) return true;
+    if (ES_SEARCH_STOPWORDS.has(tok) || ES_COMMON_WORDS.has(tok)) return true;
+    if (translatedWords.has(tok)) return true;
     return !!synonymGroupOf(tok) || retailerNames.has(tok);
   };
   /* ============================================================
@@ -1809,6 +1855,17 @@ const ES_SEARCH_STOPWORDS = new Set(['de', 'la', 'el', 'los', 'las',
   'en', 'con', 'para', 'por', 'un', 'una', 'uno', 'y', 'e', 'o',
   'u', 'al', 'del', 'mi', 'tu', 'su', 'que', 'se', 'lo',
   'hasta', 'desde', 'dolar', 'dolares']);
+/* ORDINARY SPANISH IS NOT A BRAND (2026-10-14, #386 N3/N4). Neither the
+   router nor the search's fuzzy brand pass may read these as a label:
+   "¿es la misma?" became "Ver todo eS — 13 productos" (eS, the skate
+   shoe brand) and "para correr" became SSENSE's CARRER. The search's
+   exact-vocabulary guard cannot catch them -- the catalogue is English,
+   so a Spanish word is always "unknown" there. */
+const ES_COMMON_WORDS = new Set(['es', 'son', 'si', 'no', 'ya', 'mas', 'muy', 'mismo', 'misma', 'igual', 'otro', 'otra',
+  'esa', 'ese', 'eso', 'esta', 'este', 'esto', 'aqui', 'alla', 'hoy', 'bien', 'bueno', 'buena', 'nuevo', 'nueva',
+  'correr', 'caminar', 'jugar', 'nieve', 'casa', 'regalo', 'hija', 'hijo', 'mama', 'papa', 'amor', 'vida', 'sol',
+  'tienda', 'precio', 'talla', 'color', 'barato', 'barata', 'caro', 'cara', 'quiero', 'busco', 'tienen', 'hay',
+  'tmb', 'tambien', 'algo', 'como', 'cuanto', 'cual', 'donde', 'porque', 'pero', 'sin', 'sobre', 'entre']);
 
 /* Coverage is the backbone; the two bonuses only order items that
    already matched. Matching every token outranks matching some, and a
@@ -1882,11 +1939,25 @@ const CATALOG_CATEGORY_INTENT = [
      type. (Queries are accent-stripped before intent runs, so "futbol"
      covers "fútbol".) */
   { key: 'soccer', re: /\b(?:soccer|football|futbol|chimpunes?|guayos?)\b/i },
+  /* JEWELRY (2026-10-14, #386 N6 and the rings answer of Battery Run 2).
+     "joyas" led with a "Caja de Joyas" board game and a LEGO jewelry
+     box; "anillos" with a Ring doorbell and Ring Pops. A jewelry ask is
+     answered from jewelry. "ring" alone stays a word (ring light, Ring
+     doorbell) -- the Spanish bridge sends "anillo" as "jewelry ring". */
+  { key: 'jewelry', re: /^(?!.*\b(?:watch(?:es)?|smartwatch|fitbit|garmin)\b).*(?:\bjewel(?:ry|lery)\b|\b(?:earrings?|necklaces?|bracelets?|anklets?|pendants?)\b)/i },
 ];
 /* The words an item of this category counts as carrying, so a title
    that never says "shoes" can still answer "shoes". */
 const CATEGORY_IMPLIED_WORDS = { footwear: ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear'],
-  soccer: ['soccer', 'football', 'futbol'] };
+  soccer: ['soccer', 'football', 'futbol'], jewelry: ['jewelry'] };
+/* What a piece of jewelry is called, and what only looks like one. The
+   "always" nouns are jewelry whatever else the title says; the
+   "material" ones (a ring, a hoop) need a jewelry material beside them,
+   so a candle ring or a basketball hoop never qualifies. */
+const JEWELRY_ALWAYS_RX = /\b(?:earrings?|necklaces?|anklets?|pendants?|chokers?|jewel(?:ry|lery))\b/i;
+const JEWELRY_MATERIAL_NOUN_RX = /\b(?:rings?|bracelets?|bangles?|hoops?|studs?|cuffs?|charms?)\b/i;
+const JEWELRY_MATERIAL_RX = /\b(?:gold|silver|sterling|diamonds?|cz|zirconia|crystals?|pearls?|plated|stainless|titanium|gemstones?|birthstones?|beads?|beaded|karat|\d{1,2}k|ct|opal|sapphire|emerald|ruby|amethyst|topaz|onyx|quartz|turquoise|enamel)\b/i;
+const JEWELRY_NOT_RX = /\b(?:doorbell|lights?|pops?|candles?|keys?|keychains?|key\s*rings?|phones?|grips?|stands?|stacking|stacker|teethers?|toys?|napkins?|curtains?|shower|o-?rings?|pistons?|seals?|gaskets?|wreaths?|basketball|boxes|box|organizers?|holders?|towers?|displays?|watch|watches|dolls?|kits?|making|hoodie|shirt|tee|socks?|costume)\b/i;
 
 function queryCategoryIntent(query){
   const q = String(query || '');
@@ -1904,6 +1975,14 @@ function catalogItemCategory(item){
      a shoe second; it answers "football", not generic "zapatos". */
   if (typeof isSoccer === 'function'
       && isSoccer(item, item && item.retailer)) return 'soccer';
+  /* JEWELRY: a jewelry department or store settles it; otherwise the
+     title has to name a piece of jewelry and nothing that only looks
+     like one (see JEWELRY_NOT_RX). */
+  if (depts.some(d => /^(?:jewelry|joyas|joyeria|fine_jewelry)$/i.test(String(d)))
+      && !JEWELRY_NOT_RX.test(title)) return 'jewelry';
+  if (!depts.some(d => /^(?:toys?|juguetes|home(?:_decor)?|decor|electronics|kitchen|party|pets?|baby_gear|crafts?|auto(?:motive)?)$/i.test(String(d)))
+      && !JEWELRY_NOT_RX.test(title)
+      && (JEWELRY_ALWAYS_RX.test(title) || (JEWELRY_MATERIAL_NOUN_RX.test(title) && JEWELRY_MATERIAL_RX.test(title)))) return 'jewelry';
   // A catalogue that names a footwear department settles it outright.
   if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
   /* SOCKS ARE NOT SHOES (2026-10-07: "zapatilla" led with Hanes crew
@@ -2123,6 +2202,7 @@ const GENDER_QUERY_TOKENS = new Set([...GENDER_MALE_TOKENS, ...GENDER_FEMALE_TOK
    them cleanly. */
 const GENDERLESS_CATEGORY_TOKENS = new Set(['fins', 'fin', 'snorkel', 'snorkels']);
 const GENDER_MATCH_BOOST = 0.5;
+const KID_MATCH_BOOST = 1;
 function genderIntentFromTokens(toks){
   const t = toks || [];
   const m = t.some((x) => GENDER_MALE_TOKENS.has(x));
@@ -2419,6 +2499,17 @@ function rankCatalogMatches(pool, query, opts){
       /* "zapatos hombre" is men's shoes: a boys' shoe is the right
          gender and the wrong person, unless the shopper asked for kids. */
       if (aud && aud.gender === genderBoost && (kidQuery || (aud.age !== 'kids' && aud.age !== 'baby'))) itemScore += GENDER_MATCH_BOOST;
+    }
+    /* A KIDS QUERY IS A KIDS QUERY (2026-10-15, #386 N9: "zapatos para mi
+       hija", size 7, got women's shoes). "girls" is a gender token, and
+       the gender boost alone rewarded every female title the same --
+       "girls shoes" led with Women's tennis shoes. Asked for kids, a
+       kids' title leads and an adult-marked one falls behind every
+       unmarked one. */
+    if (kidQuery && typeof titleAudience === 'function'){
+      const aud = titleAudience(item.title || item.name || '');
+      if (aud && (aud.age === 'kids' || aud.age === 'baby') && (!genderBoost || !aud.gender || aud.gender === genderBoost)) itemScore += KID_MATCH_BOOST;
+      else if (aud && aud.age === 'adult') itemScore -= KID_MATCH_BOOST;
     }
     if (saleIntent){
       const p = Number(item.price), o = Number(item.originalPrice);

@@ -70,6 +70,13 @@
 [functions."brand"]
   included_files = ["assets/sections/marca/_fn/items.json"]
 
+# Departments (2026-10-19, #409 track T5): departamento.html's first
+# screen is static slices (assets/sections/departamento/<dept>/); this
+# function answers "Ver todo", the store chips and the department search
+# box from each department's full card list. The phone never downloads it.
+[functions."department"]
+  included_files = ["assets/sections/departamento/_fn/*.json"]
+
 # Ofertas (2026-10-19, #409): ofertas.html paints its first 48 deals from
 # static slices (assets/ofertas/slices/); this answers "Mostrar más" and
 # the page's search box from the packed deal list. Built by
