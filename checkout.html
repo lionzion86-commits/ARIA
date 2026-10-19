@@ -75,6 +75,9 @@
   .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463; display:flex; align-items:center; gap:8px }
 </style>
 <script src="/ref.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
 </head>
 <body class="antialiased">
 
@@ -1898,6 +1901,11 @@ function cardImgAttrs(url, sizes){
           document.getElementById('successLead').textContent = 'Gracias por tu compra.';
           document.getElementById('orderTotal').textContent = fmtWalletPen(d.chargedPen);
           document.getElementById('orderEmail').textContent = d.email || 'tu correo';
+          /* #415: Purchase, once, only when the server says the money
+             arrived (the params are dropped below, so a reload cannot
+             send it twice). Dormant until an ID is set in assets/js/pixels.js. */
+          if (window.ariaTrack) ariaTrack('Purchase', { value: Number(d.chargedPen) || 0, currency: 'PEN', orderId: paidId,
+            contentIds: pixelContentIds(), numItems: pixelItemCount() });
           clearCart();
           history.replaceState(null, '', location.pathname);
           return;
@@ -1907,6 +1915,19 @@ function cardImgAttrs(url, sizes){
     }
     document.getElementById('successTitle').textContent = 'Estamos confirmando tu pago';
     document.getElementById('successLead').textContent = 'Stripe todavía no nos confirma el cobro. Te escribiremos apenas llegue; no vuelvas a pagar.';
+  }
+  /* #415: the ad pixels' checkout events (dormant until an ID is set in
+     assets/js/pixels.js). Cart prices are dollars; Purchase is in the
+     soles Stripe charged. */
+  function pixelContentIds(){
+    return cart.filter((l) => l.lineType !== 'bundle-discount').map((l) => String(l.retailer || '') + '|' + String(l.title || l.name || ''));
+  }
+  function pixelItemCount(){
+    return cart.reduce((n, l) => n + (l.lineType === 'bundle-discount' ? 0 : Math.max(1, Math.floor(Number(l.qty) || 1))), 0);
+  }
+  if (window.ariaTrack && cart.length && !new URLSearchParams(location.search).get('pagado')){
+    const usd = cart.reduce((s, l) => s + (Number(l.priceUsd) || 0) * Math.max(1, Math.floor(Number(l.qty) || 1)), 0);
+    ariaTrack('InitiateCheckout', { value: Math.round(usd * 100) / 100, currency: 'USD', contentIds: pixelContentIds(), numItems: pixelItemCount() });
   }
   returnFromStripe();
 

@@ -30,6 +30,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import vm from "node:vm";
+import { cartLineFor, doorPrice, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN } from "./_door-price.js";
+import { deliveryFor, miamiRangeEs } from "../../scripts/lib/retailer-delivery.js";
 
 export const PAGE_SIZE = 48;
 /* How many ranked results a search keeps. The pipeline's own default
@@ -37,6 +39,10 @@ export const PAGE_SIZE = 48;
 export const RESULT_LIMIT = 2000;
 export const INDEX_FILE = "assets/search/catalog-index.json";
 export const DICT_FILE = "assets/search/synonyms-es.json";
+/* The auto-parts glossary Aria Auto and the assistant share (#416:
+   "frenos" was answering with swimsuits). Its multi-word part names
+   join the dictionary's phrases; see withPartsGlossary. */
+export const GLOSSARY_FILE = "scripts/lib/es-en-parts-glossary.json";
 const ENGINE_FILES = ["search-engine.js", "search-pipeline.js"];
 
 const CANDIDATES = [
@@ -103,17 +109,54 @@ export function productsFromIndex(index) {
   return out;
 }
 
+/* "FRENOS" WAS ANSWERING WITH SWIMSUITS (2026-10-19, #416 battery).
+   The dictionary did not know "frenos", so the pipeline's typo fixer
+   moved it one letter to "ternos" (suits) and the engine found
+   swimwear; "pastillas de freno" and "discos de freno" did the same.
+   The site already keeps the canonical Spanish names of car parts in
+   one place, the Aria Auto glossary. Every MULTI-WORD name in it
+   ("pastillas de freno", "filtro de aceite", "bujías de encendido")
+   becomes a dictionary phrase here -- unambiguous, so it can never
+   take over a shopping word. Single words stay in the dictionary's own
+   "auto" section, chosen by hand: the glossary's single words include
+   "clutch" (a handbag too) and "batería" (a phone's too). A phrase the
+   dictionary already defines keeps its own meaning. */
+export function withPartsGlossary(dict, glossary) {
+  const entries = (glossary && Array.isArray(glossary.entries)) ? glossary.entries : [];
+  if (!entries.length) return dict;
+  const phrases = { ...((dict && dict.phrases) || {}) };
+  const have = new Set(Object.keys(phrases).map((k) => brandKey(k)));
+  for (const e of entries) {
+    const en = (Array.isArray(e.en) ? e.en : [e.en]).filter(Boolean).map(String);
+    if (!en.length) continue;
+    for (const es of [e.es, ...(e.synonyms_es || [])]) {
+      const k = brandKey(es);
+      if (!k || k.indexOf(" ") < 0 || have.has(k)) continue;
+      have.add(k);
+      phrases[k] = en.length === 1 ? en[0] : en;
+    }
+  }
+  return { ...dict, phrases };
+}
+
 /* Everything a search needs, built once. `index` and `dict` may be
    passed in (tests); otherwise they are read from beside the function. */
-export function buildSearchContext({ index, dict, read = readRepoFile, labels = {} } = {}) {
+export function buildSearchContext({ index, dict, glossary, read = readRepoFile, labels = {} } = {}) {
   const { S, P } = loadEngine(read);
   index = index || JSON.parse(read(INDEX_FILE));
   dict = dict || JSON.parse(read(DICT_FILE));
+  if (glossary === undefined) {
+    try { glossary = JSON.parse(read(GLOSSARY_FILE)); } catch { glossary = null; }
+  }
+  dict = withPartsGlossary(dict, glossary);
   const products = productsFromIndex(index);
   S.buildSearchWordIndex(products);
   const stores = [...new Set(products.map((p) => p.retailer).filter(Boolean))];
+  /* Store names and logos (the index's `stores` table); the label map
+     search.js passes wins for the name. */
+  const storeInfo = index.stores || {};
   return {
-    S, P, products, labels,
+    S, P, products, labels, storeInfo,
     retailers: stores.map((k) => ({ key: k, label: k })),
     dict: P.prepare(dict, S, products),
     resultLimit: RESULT_LIMIT,
@@ -141,12 +184,37 @@ export function runQuery(ctx, q) {
   let r;
   try {
     r = ctx.P.run({ S: ctx.S, products: ctx.products, retailers: ctx.retailers, dict: ctx.dict, resultLimit: ctx.resultLimit }, q);
+    if (r && r.state === "results") r.hits = toysLead(r.hits);
   } catch (e) {
     r = { state: "error", hits: [], error: String(e && e.message || e) };
   }
   ctx.cache.set(key, r);
   if (ctx.cache.size > CACHE_MAX) ctx.cache.delete(ctx.cache.keys().next().value);
   return r;
+}
+
+/* TOYS LEAD A TOY SEARCH (2026-10-19, #416 battery). "barbie" and
+   "lego" opened with Barbie- and LEGO-branded girls' dresses and a
+   toddler sweatshirt ahead of the dolls and the sets: the engine ranks
+   a title that starts with the brand the same whether it is a doll or a
+   T-shirt. Whether a search is a toy search is read from its own
+   answer, not from a list of names: when most of what it found sits in
+   the stores' toy departments (Barbie 282 of 293, LEGO 668 of 669, Hot
+   Wheels 36 of 45, Pokémon 452 of 567), the toys lead and everything
+   else -- the branded apparel, the pajamas -- follows, each part in the
+   engine's order. "disney" (half toys, half jewellery and tees) is not
+   a toy search and is left alone. */
+const TOY_DEPT = /toy|juguete/i;
+const TOY_SHARE = 0.5, TOY_MIN = 10;
+export function isToyDept(p) { return TOY_DEPT.test((p.departments && p.departments[0]) || ""); }
+export function toysLead(hits) {
+  if (!Array.isArray(hits) || !hits.length) return hits;
+  let toys = 0;
+  for (const p of hits) if (isToyDept(p)) toys++;
+  if (toys < TOY_MIN || toys / hits.length < TOY_SHARE || toys === hits.length) return hits;
+  const lead = [], rest = [];
+  for (const p of hits) (isToyDept(p) ? lead : rest).push(p);
+  return lead.concat(rest);
 }
 
 /* ¿QUISISTE DECIR? (2026-10-19, #416). "shor" flooded 2,000 prefix
@@ -467,7 +535,9 @@ export function lanesFor(ctx, q, r, fx) {
   const acc = (p) => Math.max(-1, 1 - A.of(p).usd / A.bands.premium);
 
   /* 1. Sales: deep discounts on relevant, recognized products first. */
-  const shelf = r.hits.filter((p) => A.of(p).aisle);
+  /* (Products the comparison block shows are not repeated here.) */
+  const inBlock = new Set(compareGroup(ctx, r) || []);
+  const shelf = r.hits.filter((p) => A.of(p).aisle && !inBlock.has(p));
   const sales = shelf.filter(onSaleOf)
     .map((p) => ({ p, s: Math.min(discountOf(p), 0.6) * 2 + demandOf(p) * 0.4 + (A.of(p).marquee ? 1 : A.of(p).brand ? 0.4 : 0) + acc(p) * 2 - rank.get(p) * 1.5 }))
     .sort((a, b) => b.s - a.s).map((x) => x.p);
@@ -509,12 +579,175 @@ export function lanesFor(ctx, q, r, fx) {
   return lanesFor(ctx, q, r, fx);
 }
 
+/* ============================================================
+   ONE PRODUCT, EVERY STORE: THE COMPARISON BLOCK (2026-10-19, #416).
+
+   "Never 30 ungrouped duplicate cards again." When a specific search
+   finds the SAME product at two or more stores, the page opens with
+   one block: each store's logo, its total door price in soles (the
+   checkout's own math, _door-price.js), "Mejor precio" on the cheapest
+   door price and "Entrega más rápida" on the store that is genuinely
+   faster to Miami (scripts/lib/retailer-delivery.js), each row linking
+   to that store's product page on Aria.
+
+   "The same product" is decided conservatively, from the title, since
+   the stores share no product code in the index:
+     - the same brand (the brand field, or a recognized brand at the
+       start of the title when a store left the field empty);
+     - the same wearer (men's, women's, kids', toddler) when a title
+       says so -- a title that says nothing only matches another that
+       says nothing;
+     - exactly the same remaining words, in any order, after removing
+       the brand, the wearer and a few words that only describe the
+       kind of thing ("shoes", "skate shoes", "wireless earbuds"). So
+       "Samba ADV Shoes - Dark Brown/Core Black/Gum" and "Samba ADV Dark
+       Brown, Black & Gum Skate Shoes" are one shoe ("core black" is
+       adidas's name for black), while "Samba ADV Grey/Cream White/Grey"
+       and "Samba ADV Grey & White" are not: "cream" may be a colour.
+     - a store that lists two products under the same words (colourways
+       its titles do not name) takes no part: we cannot tell which one
+       the other store sells;
+     - a beauty product must state its size in the title (a travel and
+       a full-size mascara share a name), and list prices more than
+       2x apart are not trusted to be the same item.
+   ============================================================ */
+const normWords = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/[®™©]/g, " ").replace(/['’`´]/g, "").replace(/[^a-z0-9.]+/g, " ").replace(/(^|\s)\.+|\.+(?=\s|$)/g, " ").trim();
+const WEARER = [
+  ["t", /\b(?:toddlers?|infants?|baby|babies|preschool|little kids?|td|ps)\b/],
+  ["k", /\b(?:boys?|girls?|kids?|youth|grade school|gs|big kids?|juniors?)\b/],
+  ["w", /\b(?:womens?|ladies|mujer)\b/],
+  ["m", /\b(?:mens?|hombre)\b/],
+];
+const WEARER_WORDS = /\b(?:toddlers?|infants?|baby|babies|preschool|little|big|kids?|boys?|girls?|youth|grade|school|gs|td|ps|juniors?|womens?|ladies|mujer|mens?|hombre|unisex)\b/g;
+const KIND_PHRASES = /\b(?:skate shoes?|wireless earbuds|wireless headphones|basketball shoes?|running shoes?)\b/g;
+const KIND_WORDS = new Set("shoes shoe sneakers sneaker the and with for of in originals earbuds headphones jeans fit".split(" "));
+const MAKER_COLOURS = /\b(?:core|ftwr|footwear|cloud)\s+(black|white)\b/g;
+const BEAUTY_WORDS = /\b(?:mascara|serum|moisturi[sz]er|cream|cleanser|lotion|perfume|parfum|eau de|cologne|fragrance|lipstick|lip gloss|foundation|concealer|shampoo|conditioner|sunscreen|spf|toner|balm|primer|powder|blush|bronzer|palette|body mist|body spray)\b/;
+const SIZE_WORDS = /\b\d+(?:\.\d+)?\s?(?:oz|ml|fl|g|ct|count|pack|pk)\b/;
+const MAX_LIST_RATIO = 2;
+export const COMPARE_MAX_STORES = 6;
+
+/** The product's identity key, or null when the title cannot carry one. */
+export function sameProductKey(ctx, p) {
+  const brand = normWords(recognizedBrand(ctx, p) || p.brand);
+  if (!brand) return null;
+  let t = normWords(p.title);
+  if (BEAUTY_WORDS.test(t) && !SIZE_WORDS.test(t)) return null;
+  let wearer = "";
+  for (const [k, re] of WEARER) if (re.test(t)) { wearer = k; break; }
+  t = t.replace(MAKER_COLOURS, "$1").replace(KIND_PHRASES, " ").replace(WEARER_WORDS, " ");
+  const bw = new Set(brand.split(" "));
+  const words = [...new Set(t.split(" ").filter((w) => w && !bw.has(w) && !KIND_WORDS.has(w)))];
+  if (words.length < 2) return null;
+  return brand + "|" + wearer + "|" + words.sort().join(" ");
+}
+
+const listUsd = (p) => Math.max(Number(p.price) || 0, Number(p.originalPrice) || 0);
+
+/* The best group of this answer (cached): the one whose best-ranked
+   product ranks highest, among products on the first page. */
+function compareGroup(ctx, r) {
+  if (r._cmp !== undefined) return r._cmp;
+  r._cmp = null;
+  if (!r || r.state !== "results" || isGenericQuery(ctx, r)) return null;
+  const groups = new Map();
+  r.hits.forEach((p, i) => {
+    const k = sameProductKey(ctx, p);
+    if (!k) return;
+    let g = groups.get(k);
+    if (!g) groups.set(k, g = { first: i, byStore: new Map() });
+    const l = g.byStore.get(p.retailer) || [];
+    l.push(p);
+    g.byStore.set(p.retailer, l);
+  });
+  let best = null;
+  for (const g of groups.values()) {
+    const members = [...g.byStore.values()].filter((l) => l.length === 1).map((l) => l[0]);
+    if (members.length < 2 || g.first >= PAGE_SIZE) continue;
+    const lists = members.map(listUsd).filter((x) => x > 0);
+    if (Math.max(...lists) > MAX_LIST_RATIO * Math.min(...lists)) continue;
+    const first = Math.min(...members.map((p) => r.hits.indexOf(p)));
+    if (first >= PAGE_SIZE) continue;
+    if (!best || first < best.first || (first === best.first && members.length > best.members.length)) best = { first, members };
+  }
+  if (best) {
+    best.members.sort((a, b) => r.hits.indexOf(a) - r.hits.indexOf(b));
+    best.members = best.members.slice(0, COMPARE_MAX_STORES);
+  }
+  return (r._cmp = best ? best.members : null);
+}
+
+/* "Entrega más rápida" only when one store is genuinely faster: every
+   store in the block has researched transit days, and this one's
+   slowest case beats every other store's slowest case without starting
+   later. No data for a store, or a tie, is no badge. */
+export function fastestStore(stores) {
+  const rows = stores.map((s) => ({ s, d: deliveryFor(s) }));
+  if (rows.length < 2 || rows.some((x) => !x.d)) return null;
+  const maxOf = (d) => (d.plus ? Infinity : d.miamiMax);
+  const minOf = (d) => (d.miamiMin == null ? d.miamiMax : d.miamiMin);
+  const sorted = rows.slice().sort((a, b) => maxOf(a.d) - maxOf(b.d));
+  const win = sorted[0], next = sorted[1];
+  if (!(maxOf(win.d) < maxOf(next.d))) return null;
+  if (rows.some((x) => x !== win && minOf(x.d) < minOf(win.d))) return null;
+  return win.s;
+}
+
+/** The comparison block of one answer (page 1), or null. */
+export function compareFor(ctx, r, fx) {
+  const members = compareGroup(ctx, r);
+  if (!members) return null;
+  const info = ctx.storeInfo || {};
+  const rows = members.map((p) => {
+    const card = cardOf(p, fx, ctx.labels);
+    const door = doorPrice(cartLineFor({
+      retailer: p.retailer, title: p.title, brand: p.brand, cardUsd: card.usd,
+      rawUsd: p.finalPrice ? null : p.price, taxRate: salesTaxRate(p.retailer),
+    }), fx);
+    const d = deliveryFor(p.retailer);
+    return {
+      id: card.id, store: card.store,
+      storeLabel: (info[p.retailer] && info[p.retailer].label) || card.storeLabel,
+      logo: (info[p.retailer] && info[p.retailer].logo) || "",
+      title: card.title, image: card.image,
+      usd: card.usd, pen: card.pen, wasUsd: card.wasUsd, wasPen: card.wasPen,
+      door: door.quotable
+        ? { usd: door.usd, pen: door.pen, baseUsd: door.baseUsd, freightUsd: door.freightUsd, taxUsd: door.taxUsd, feePen: door.feePen, kg: door.kg }
+        : null,
+      delivery: d ? { min: d.miamiMin, max: d.miamiMax, plus: !!d.plus, text: miamiRangeEs(d) } : null,
+      best: false, fastest: false,
+    };
+  });
+  /* Cheapest door price first; a store checkout cannot quote goes last. */
+  rows.sort((a, b) => (a.door ? a.door.usd : Infinity) - (b.door ? b.door.usd : Infinity));
+  const quoted = rows.filter((x) => x.door);
+  if (quoted.length >= 2 && quoted[0].door.usd < quoted[1].door.usd) quoted[0].best = true;
+  const fast = fastestStore(rows.map((x) => x.store));
+  if (fast) rows.find((x) => x.store === fast).fastest = true;
+  const lead = members[0];
+  return {
+    title: lead.title,
+    brand: lead.brand || "",
+    image: lead.image,
+    stores: rows,
+    /* How the page turns a dollar door price into soles when the
+       answer came without a rate (search.html's withSoles). */
+    smallOrder: { thresholdPen: SMALL_ORDER_THRESHOLD_PEN, feePen: SMALL_ORDER_FEE_PEN },
+  };
+}
+
 /* A browse query's grid follows the same rule as a lane: its first
    cards are lead-eligible, obscure premium products go to the back.
-   The order is computed once per query, so pages never overlap. */
+   The order is computed once per query, so pages never overlap. A
+   specific query's grid leaves out the products its comparison block
+   already shows. */
 function gridOrder(ctx, r) {
   if (r._grid) return r._grid;
-  if (!isGenericQuery(ctx, r)) return (r._grid = r.hits);
+  if (!isGenericQuery(ctx, r)) {
+    const shown = compareGroup(ctx, r);
+    return (r._grid = shown ? r.hits.filter((p) => !shown.includes(p)) : r.hits);
+  }
   const A = annotate(ctx, r);
   return (r._grid = leadFirst(r.hits, A, LEAD_SLOTS + 2));
 }
@@ -547,11 +780,15 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   const query = String(q == null ? "" : q).trim().slice(0, 120);
   const r = runQuery(ctx, query);
   const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
-  const total = hits.length;
-  const pages = Math.max(1, Math.ceil(total / pageSize));
+  /* The total counts every product found: the grid's and the
+     comparison block's. Pages are the grid's. */
+  const grouped = r.state === "results" ? (compareGroup(ctx, r) || []).length : 0;
+  const total = hits.length + grouped;
+  const pages = Math.max(1, Math.ceil(hits.length / pageSize));
   const n = Math.min(Math.max(1, Math.floor(Number(page)) || 1), pages);
   const slice = hits.slice((n - 1) * pageSize, n * pageSize);
   const lanes = n === 1 ? lanesFor(ctx, query, r, fx) : null;
+  const compare = n === 1 && grouped ? compareFor(ctx, r, fx) : null;
   return {
     q: query,
     state: r.state,
@@ -570,6 +807,9 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
        lanes follow (#416). Page 1 only. */
     mode: lanes ? lanes.mode : null,
     lanes: lanes ? lanes.lanes : null,
+    /* One product at 2+ stores, door prices side by side (#416).
+       Page 1 only; its products are not repeated in the grid. */
+    compare,
     fx: fx || null,
     items: slice.map((p) => cardOf(p, fx, ctx.labels)),
   };

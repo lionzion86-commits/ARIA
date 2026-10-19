@@ -6,6 +6,7 @@
     "  An array means OR: 'lentes': ['sunglasses', 'glasses'] shows both. Words in different slots are AND.",
     "  An empty string drops the word ('para': '').",
     "phrases: multi-word Spanish matched before single words, longest first ('lentes de sol').",
+    "  The search endpoint also adds every multi-word part name of scripts/lib/es-en-parts-glossary.json ('pastillas de freno' -> 'brake pads'); single auto words live in 'auto' here.",
     "brands: matched as whole phrases and never translated ('new balance', 'miu miu'); typos are corrected to them.",
     "intents: words that change ordering, not matching ('barato' sorts by price).",
     "senses: words with two meanings. keep = the title must match (unless the query has an 'unless' word);",
@@ -71,6 +72,12 @@
     "juegos de mesa": "board game", "videojuegos": "video game", "consola": "game console", "triciclo": "tricycle",
     "coche de bebe": "stroller", "cochecito": "stroller", "biberones": "baby bottle", "biberon": "baby bottle",
     "panales": "diapers", "chupones": "pacifier"
+  },
+
+  "auto": {
+    "frenos": "brake", "freno": "brake",
+    "delanteros": "front", "delantero": "front", "delanteras": "front", "delantera": "front",
+    "traseros": "rear", "trasero": "rear", "traseras": "rear", "trasera": "rear"
   },
 
   "modifiers": {
