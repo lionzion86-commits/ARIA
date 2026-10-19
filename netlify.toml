@@ -83,3 +83,11 @@
 # scripts/build-ofertas-slices.mjs.
 [functions."ofertas"]
   included_files = ["assets/ofertas/deals.json"]
+
+# Storefronts (2026-10-19, #409 track T2): tienda.html paints every
+# store's first screen from a static file (assets/tienda/<key>/index.json);
+# this answers "Ver todo", the chips, the store's search box and the sort
+# menu from each store's full card list. Built by
+# scripts/build-store-slices.mjs. The phone never downloads it.
+[functions."tienda"]
+  included_files = ["assets/tienda/_fn/*.json"]
