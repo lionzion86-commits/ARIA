@@ -66,5 +66,13 @@ check("the decoder turns codes into text and leaves everything else alone", () =
   assert.equal(d(42), 42);
 });
 
+check("the variant-truth merge matches decoded titles to the dataset's encoded keys", () => {
+  /* The dataset (#411) was keyed before the titles were decoded; a
+     re-merge that compared raw strings would lose 783 records' sizes. */
+  const src = readFileSync(ROOT + "scripts/merge-variant-truth.py", "utf8");
+  assert.match(src, /by_file\.setdefault\(f, \{\}\)\[plain\(name\)\]/, "dataset keys are not decoded");
+  assert.match(src, /name = plain\(r\["name"\]/, "record names are not decoded");
+});
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }
