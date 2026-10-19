@@ -364,7 +364,7 @@ await check("product pages upsell: same store and same kind of thing, sale items
   const page = readFileSync(ROOT + "producto.html", "utf8");
   assert.ok(page.indexOf('<script src="sale-rule.js"></script>') > 0 && page.indexOf('<script src="product-type.js"></script>') > 0, "producto.html does not load the sale rule and the classifier");
   const extra = "var window = {};\n" + readFileSync(ROOT + "product-type.js", "utf8").replace(/\r\n/g, "\n") + "\n";
-  const P = liftDeclarations(page, ["norm", "REL_MAX", "REL_MIN", "REL_LANES", "relLane", "relGender", "relKey", "relPick"], { extra });
+  const P = liftDeclarations(page, ["NAMED_ENTITIES", "decodeEntities", "norm", "REL_MAX", "REL_MIN", "REL_LANES", "relLane", "relGender", "relKey", "relPick"], { extra });
   const lane = (t, dept = "") => (P.relLane({ name: t, dept }) || {}).key;
   assert.equal(lane("Adidas Samba ADV Shoes - Blush Pink"), "zapatos", "'Blush Pink' shoes read as beauty");
   assert.notEqual(lane("Women's 725 High-Rise Kick Boot Jeans"), "zapatos", "kick-boot jeans read as shoes");

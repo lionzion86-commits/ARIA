@@ -155,6 +155,13 @@ await check("ref.js no longer blocks the first paint of search.html", () => {
   assert.match(page, /<script src="\/ref\.js" defer><\/script>/);
 });
 
+await check("the home page's skeleton shimmer stops (it repainted off-screen rails forever)", () => {
+  const home = readFileSync(ROOT + "index.html", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...home.matchAll(/\.(ariaSkeleton|ariaShimmer)\s*\{([^}]*)\}/g)].filter((m) => /animation\s*:/.test(m[2]));
+  assert.ok(rules.length >= 2, "the shimmer rules moved");
+  for (const m of rules) assert.ok(!/infinite/.test(m[2]), `.${m[1]} animates forever again`);
+});
+
 /* ------------------------------------------------------------------
    THE BUNDLE.
    ------------------------------------------------------------------ */
@@ -172,7 +179,7 @@ await check("the function ships with its files, and only it does", () => {
   }
 });
 
-const MIN_CHECKS = 16;
+const MIN_CHECKS = 17;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

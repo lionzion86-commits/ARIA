@@ -707,7 +707,13 @@
   .ariaSkeleton{
     background:linear-gradient(90deg,#EDF0F6 25%,#DFE5EF 37%,#EDF0F6 63%);
     background-size:800px 100%;
-    animation:ariaShimmer 1.5s ease infinite;
+    /* FOUR SWEEPS, THEN STILL (2026-10-19, #417 iPhone QA). A rail whose
+       catalogue is never fetched keeps its skeleton, and an infinite
+       background-position animation repaints it on the main thread every
+       frame: 132 off-screen skeleton cards, ~4.5 million pixels, painted
+       nonstop. On Danny's iPhone the home search box ignored taps until
+       pressed hard. After ~6s the placeholder simply holds still. */
+    animation:ariaShimmer 1.5s ease 4;
   }
   @media (prefers-reduced-motion: reduce){ .ariaSkeleton{ animation:none } }
   /* ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): Aria Auto is a huge
@@ -6260,7 +6266,8 @@
 .ariaShimmer {
   background: linear-gradient(90deg, #EEF1F7 0%, #F7F9FC 50%, #EEF1F7 100%);
   background-size: 420px 100%;
-  animation: ariaShimmer 1.25s linear infinite;
+  /* Finite, like .ariaSkeleton above: an endless sheen repaints forever. */
+  animation: ariaShimmer 1.25s linear 4;
 }
 @media (prefers-reduced-motion: reduce) {
   .ariaShimmer { animation: none; }
