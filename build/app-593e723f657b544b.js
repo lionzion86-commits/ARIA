@@ -19573,29 +19573,43 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
   const sizeNote = document.getElementById('productSizeNote');
+  /* THE RECORD DECIDES (2026-10-19, #411 P0 size gate). The picker used
+     to be gated on title words as well as the list: a garment word with
+     no list locked the product behind "Tallas por confirmar" -- "Barbie
+     Dreamhouse ... 3 Story Slide" (a slide is a shoe to that regex),
+     "Barbie Royal Doll with ... Skirt" -- while producto.html threw real
+     lists away for titles with no shoe word ("9060"). Now the record's
+     own list is the whole rule: a list -> the picker, and the cart
+     refuses the line until a size is chosen; no list -> the product
+     sells plainly. A card that arrived without its list (a thin slice)
+     asks the product's shard, the same record producto.html reads, and
+     the buy button waits for that answer. */
+  const pageProduct = pendingProduct;
+  const drawSizes = (list) => {
+    pageProduct.sizeList = list;
+    if (list.length){
+      sizeWrap.hidden = false;
+      sizeSelect.required = true;
+      sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
+        + list.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
+      sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
+    } else {
+      sizeWrap.hidden = true;
+      sizeSelect.required = false;
+      sizeSelect.innerHTML = '';
+    }
+    /* The size-guide link lives and dies with the size picker: it is
+       only useful — and only shown — when sizes are on the page. */
+    document.getElementById('sizeGuideLink').hidden = sizeWrap.hidden;
+  };
   const rawSizes = truthfulSizes(sizes);
-  if (rawSizes.length){
-    sizeWrap.hidden = false;
-    sizeSelect.required = true;
-    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
-      + rawSizes.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
-    sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
-  } else if (needsSize || (name && APPAREL_KEYWORDS.test(name) && !isAccessoryTitle(name))){
-    /* No verified size list: not sold by size yet (Danny, #411). No
-       invented grid and no free text -- the buy button says why. */
-    sizeWrap.hidden = true;
-    sizeSelect.required = false;
-    sizeSelect.innerHTML = '';
-    if (hasPrice) setProductSizesUnconfirmed();
-  } else {
-    sizeWrap.hidden = true;
-    sizeSelect.required = false;
-    sizeSelect.innerHTML = '';
+  drawSizes(rawSizes);
+  if (!rawSizes.length){
+    pageProduct.sizeLookup = recordSizeList(retailer, name).then((list) => {
+      if (pendingProduct === pageProduct && list.length) drawSizes(list);
+      return list;
+    });
   }
-
-  /* The size-guide link lives and dies with the size picker: it is
-     only useful — and only shown — when sizes are on the page. */
-  document.getElementById('sizeGuideLink').hidden = sizeWrap.hidden;
 
   /* showPage('productView') moved above: the tap commits before population. */
 
@@ -19635,31 +19649,40 @@ function goBack(){
 // a concrete size already attached, and checkout.html reads the cart
 // itself instead of URL params. One path for every purchase, single item
 // or many.
-/* Is this thing sold in sizes? One question, one list -- asked here at
-   the moment of purchase as well as when the page is drawn, so the two
-   cannot disagree about the same product. */
-function apparelNeedsSize(retailer, title){
-  return needsSizeSelection(retailer, title) || (APPAREL_KEYWORDS.test(String(title || '')) && !isAccessoryTitle(title));
+/* Is this thing sold in sizes? The RECORD answers (2026-10-19, #411 P0):
+   the store's own list, or none. Never a title keyword -- a doll's dress
+   is not a woman's, and "9060" is a shoe with no shoe word in it.
+
+   recordSizeList() asks the product's PDP shard (assets/pdp/p/<FNV-1a
+   of the normalised title>.json, built by scripts/build-pdp-slices.mjs,
+   the same file producto.html reads) for the list, for cards whose
+   slice carried none. A miss or a network failure is "no list". */
+function sizeRecordKey(title){
+  return decodeEntitiesText(String(title || '')).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+}
+function sizeShardOf(key){
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++){ h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return ('00' + ((h >>> 0) % 4096).toString(16)).slice(-3);
+}
+const SIZE_SHARD_CACHE = {};
+function recordSizeList(retailer, title){
+  const key = sizeRecordKey(title);
+  if (!key) return Promise.resolve([]);
+  const shard = sizeShardOf(key);
+  if (!SIZE_SHARD_CACHE[shard]){
+    SIZE_SHARD_CACHE[shard] = fetch('/assets/pdp/p/' + shard + '.json')
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  const rk = String(retailer || '').toLowerCase();
+  return SIZE_SHARD_CACHE[shard].then((d) => {
+    const cands = (d && Array.isArray(d[key])) ? d[key] : [];
+    const own = cands.filter(c => c && String(c.retailer || '').toLowerCase() === rk);
+    const rec = (own.length ? own : (cands.length === 1 ? cands : []))[0];
+    return rec ? truthfulSizes(rec.sizes) : [];
+  }).catch(() => []);
 }
 
-/* A garment with no verified size list (2026-10-18, #411). The button
-   says why it cannot be bought yet; the note says what happens next.
-   Called after setProductBuyable(), which every render runs first. */
-function setProductSizesUnconfirmed(){
-  const btn = document.getElementById('addToCartBtn');
-  const note = document.getElementById('productNoPriceNote');
-  if (!btn) return;
-  btn.disabled = true;
-  btn.setAttribute('aria-disabled', 'true');
-  btn.textContent = 'Tallas por confirmar';
-  btn.style.background = '#C8CDD8';
-  btn.style.color = '#5B6478';
-  btn.style.cursor = 'not-allowed';
-  if (note){
-    note.hidden = false;
-    note.textContent = 'Todavía estamos confirmando con la tienda las tallas exactas de este producto. Apenas las tengamos, podrás comprarlo aquí.';
-  }
-}
 /* The buy button's two states, in one place so they cannot drift apart.
 
    Greyed AND disabled AND relabelled: a button that merely looks dead
@@ -19688,9 +19711,15 @@ function setProductBuyable(hasPrice){
   }
 }
 
-function addToCartFromProduct(){
+async function addToCartFromProduct(){
   if (!pendingProduct) return;
   const p = pendingProduct;
+  /* A card that came without its list is still being looked up: the
+     answer decides, so wait for it rather than sell around it. */
+  if (p.sizeLookup){
+    await p.sizeLookup;
+    if (pendingProduct !== p) return;
+  }
   /* The disabled button is the courtesy; this is the rule. */
   if (!(Number.isFinite(p.totalUsd) && p.totalUsd > 0)){
     showToast('Este producto aún no tiene precio confirmado.');
@@ -19699,27 +19728,16 @@ function addToCartFromProduct(){
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
 
-  /* FAIL CLOSED ON A GARMENT WITH NO SIZE.
+  /* FAIL CLOSED ON A SIZED PRODUCT WITH NO SIZE (#411 P0).
 
-     This used to read `!sizeWrap.hidden && ...` -- it only refused when
-     a picker was ALREADY on screen. So the one case that matters went
-     straight through: a garment the word list did not recognise got no
-     picker, and the order completed with no size on it at all. Measured
-     before the list was fixed, that was 906 SSENSE garments, including
-     a S/ 2,946 blazer.
-
-     The question asked is now "is this a garment?", not "is there a
-     picker?" -- so a word we still do not know cannot silently sell a
-     sizeless item. It used to build a standard "reference" picker on
-     the spot; that list was invented (#411), so a garment with no
-     verified sizes is simply not sold by size yet. */
-  const wantsSize = apparelNeedsSize(p.retailer, p.name);
-  if (wantsSize && sizeWrap.hidden){
-    showToast('Todavía estamos confirmando las tallas de este producto con la tienda.');
-    return;
-  }
-  if ((wantsSize || (!sizeWrap.hidden && sizeSelect.required)) && !sizeSelect.value){
+     The question is the record's, not the title's: does the store sell
+     this in sizes (a list on the record)? Then no size, no cart -- and
+     only a size from that list. No list: it sells plainly. */
+  const sizeList = Array.isArray(p.sizeList) ? p.sizeList : truthfulSizes(p.sizes);
+  const chosen = sizeList.length ? String(sizeSelect.value || '') : '';
+  if (sizeList.length && (!chosen || !sizeList.includes(chosen))){
     showToast('Selecciona una talla antes de agregar al carrito.');
+    try { sizeSelect.focus(); } catch {}
     return;
   }
   if (!addToCart({
@@ -19758,7 +19776,8 @@ function addToCartFromProduct(){
     /* The photo the shopper is looking at, even when the card that
        opened this page passed none (#367: blank Macy's / AE thumbs). */
     image: p.imageUrl || (Array.isArray(productGallery) && productGallery[0]) || '',
-    selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
+    selectedSize: chosen,
+    sizeOptions: sizeList,
   })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
   showContinueToCart();
@@ -26028,14 +26047,22 @@ function addToCart(item){
     showToast('Este producto aún no tiene precio confirmado.');
     return false;
   }
-  /* AND A GARMENT WITH NO SIZE (2026-10-18, #411). The product page
-     already refuses one; the cross-sell rail and the combo path passed
-     selectedSize: '' straight through. Aria cannot buy "a shirt" in
-     Miami, so no door into the cart may carry one. */
-  if (item.lineType !== 'bundle-discount' && apparelNeedsSize(item.retailer, item.title)
-      && !String(item.selectedSize || '').trim()){
-    showToast('Elige tu talla en la página del producto.');
-    return false;
+  /* AND A SIZED PRODUCT WITH NO SIZE (2026-10-18, #411; the record
+     decides since the 2026-10-19 P0). Every door passes the record's
+     list as sizeOptions (or sizes): a line with a list and no size from
+     it is refused; a line with no list is a plain product. The list
+     rides on the line so checkout can hold a sized line without a size
+     (checkout.html also asks the product's shard for lines that came
+     in without one). */
+  if (item.lineType !== 'bundle-discount'){
+    const sizeList = truthfulSizes(Array.isArray(item.sizeOptions) && item.sizeOptions.length ? item.sizeOptions : item.sizes);
+    const chosen = String(item.selectedSize || '').trim();
+    if (sizeList.length && (!chosen || !sizeList.includes(chosen))){
+      showToast('Elige tu talla en la página del producto.');
+      return false;
+    }
+    const { sizes: _recordSizes, ...line } = item;
+    item = { ...line, sizeOptions: sizeList.length ? sizeList : undefined };
   }
   /* THE DUTIABLE BASE IS STAMPED AT THE FUNNEL (2026-09-27).
 
@@ -26165,7 +26192,8 @@ async function resolveComboDeal(combo, anchor){
         && Number.isFinite(Number(anchor.price)) && Number(anchor.price) > 0){
       found = { retailer: anchor.retailer, title: anchor.title, price: Number(anchor.price),
         image: anchor.image || null, dutiableUsd: anchor.dutiableUsd ?? null,
-        weightKg: anchor.weightKg, brand: anchor.brand || '' };
+        weightKg: anchor.weightKg, brand: anchor.brand || '',
+        sizes: anchor.sizes || [], selectedSize: anchor.selectedSize || '' };
     } else {
       const hit = pool.find(it => it && it.retailer === ref.retailer && it.title === ref.title);
       if (hit && Number.isFinite(Number(hit.price)) && Number(hit.price) > 0) found = hit;
@@ -26180,6 +26208,8 @@ async function resolveComboDeal(combo, anchor){
       weightKg: (Number.isFinite(w) && w > 0) ? w : estimateRetailWeightKg(found.title || ''),
       image: found.image || null,
       brand: found.brand || '',
+      sizeOptions: truthfulSizes(found.sizes),
+      selectedSize: found.selectedSize || '',
     });
   }
   const math = comboBundleMath(lines.reduce((s, l) => s + l.priceUsd, 0), combo.savingUsd);
@@ -26257,10 +26287,18 @@ async function addComboToCart(comboId){
   const combo = comboDeals().find(c => c && c.id === comboId);
   if (!combo){ showToast('Este combo ya no está disponible.'); return; }
   const p = (typeof pendingProduct !== 'undefined' && pendingProduct) || null;
+  const anchorSizes = p ? (Array.isArray(p.sizeList) ? p.sizeList : truthfulSizes(p.sizes)) : [];
   const anchor = p ? { retailer: p.retailer, title: p.name, price: p.totalUsd,
-    image: p.imageUrl, dutiableUsd: p.dutiableUsd, weightKg: p.weightKg, brand: p.brand } : null;
+    image: p.imageUrl, dutiableUsd: p.dutiableUsd, weightKg: p.weightKg, brand: p.brand,
+    sizes: anchorSizes, selectedSize: anchorSizes.length ? (document.getElementById('productSizeSelect')?.value || '') : '' } : null;
   const resolved = await resolveComboDeal(combo, anchor);
   if (!resolved){ showToast('Este combo ya no está disponible.'); return; }
+  /* All or nothing: a combo with a sized line and no size is not added
+     in part (#411 P0). The shopper picks the size on that product. */
+  if (resolved.lines.some(l => l.sizeOptions.length && !l.sizeOptions.includes(l.selectedSize))){
+    showToast('Elige la talla de cada producto del combo en su página antes de agregarlo.');
+    return;
+  }
   let added = 0;
   for (const line of resolved.lines){ if (addToCart(line)) added++; }
   if (!added) return;
@@ -26859,15 +26897,15 @@ function openCrossSellProduct(idx){
 function addCrossSellToCart(idx){
   const it = crossSellItems[idx];
   if (!it) return;
-  // A garment needs its size: open its page, where the real list is.
-  if (apparelNeedsSize(it.retailer, it.title)){ openCrossSellProduct(idx); return; }
+  // A sized product needs its size: open its page, where the store's list is.
+  if (truthfulSizes(it.sizes).length){ openCrossSellProduct(idx); return; }
   /* This rail passed `priceUsd: it.price` straight through and never
      looked at it. A catalogue record with price: null reaches it the
      same way it reaches the product page, so it was the second door
      into a $0 line item. addToCart refuses and says so; all this has
      to do is not claim a success that did not happen. */
   if (!addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg,
-    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '' })) return;
+    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '', sizes: it.sizes })) return;
   showToast('Agregado al carrito.');
   renderCartView();
 }
@@ -31757,15 +31795,12 @@ function chatShownProductRoute(text){
   const entry = r.entry;
   if (cart){
     const it = entry.item;
-    /* Shoes and anything the store sells in sizes count, not only the
-       garment words: "Black Skipton Derbys" must ask too. */
-    const needs = (typeof apparelNeedsSize === 'function' && apparelNeedsSize(entry.retailer, it.title))
-      || needsSizeSelection(entry.retailer, it.title)
-      || (Array.isArray(it.sizes) && it.sizes.length > 0)
-      || it.sizeHint === 'shoe'
-      || isFootwear({ ...it, retailer: entry.retailer }, entry.retailer);
+    /* The record decides (#411 P0): the store's own list means Aria
+       asks for a size and adds nothing without one; no list, no
+       question -- and never a template list. */
     const said = raw.match(/\btalla\s+([a-z0-9.,]{1,6})\b/i);
     const sizes = chatSizeOptions(entry);
+    const needs = sizes.length > 0;
     const sz = said ? chatMatchSize(said[1], sizes) : null;
     if (needs && !sz){
       ariaPendingCartAdd = { entry, sizes };
@@ -31777,10 +31812,7 @@ function chatShownProductRoute(text){
   return { line: 'Te llevo a ' + shownLabel(entry) + '.', after: () => openShownProduct(entry), navigates: true };
 }
 function chatSizeOptions(entry){
-  const it = entry.item;
-  if (Array.isArray(it.sizes) && it.sizes.length) return it.sizes.map(String).slice(0, 24);
-  const shoe = it.sizeHint === 'shoe' || isFootwear({ ...it, retailer: entry.retailer }, entry.retailer);
-  return standardSizeOptions(it.title || '', shoe ? 'shoe' : sizeCategoryFor(entry.retailer, it.title)).map(String);
+  return truthfulSizes(entry.item.sizes).slice(0, 24);
 }
 function chatMatchSize(said, sizes){
   const s = String(said || '').toLowerCase().replace(',', '.').replace(/\s+/g, ' ').trim();
@@ -31806,9 +31838,9 @@ function chatAddShownToCart(entry, size){
     dutiableUsd: it.dutiableUsd ?? null,
     weightKg: Number.isFinite(it.weightKg) && it.weightKg > 0 ? it.weightKg : estimateRetailWeightKg(it.title || ''),
     ...(Number.isFinite(it.catalogWeightKg) && it.catalogWeightKg > 0 ? { specWeightKg: it.catalogWeightKg } : {}),
-    image: it.image || '', selectedSize: size || '',
+    image: it.image || '', selectedSize: size || '', sizes: it.sizes,
   });
-  if (!ok) return { line: 'No pude agregar ' + it.title + ' al carrito: todavía no tiene precio confirmado.' };
+  if (!ok) return { line: 'No pude agregar ' + it.title + ' al carrito: ' + (Number(it.price) > 0 ? 'falta elegir la talla.' : 'todavía no tiene precio confirmado.') };
   return { line: 'Listo: agregué ' + it.title + (size ? ' en talla ' + size : '') + ' a tu carrito.',
     after: () => addAssistantPageOffer('Ver carrito', 'Revisa tu pedido y el total con envío', 'carrito.html') };
 }

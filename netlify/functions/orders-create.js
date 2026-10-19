@@ -41,7 +41,7 @@ import { loadPriceIndex } from "./_price-index.js";
 import { createCheckoutSession } from "./_stripe-api.js";
 import {
   repriceCart, goodsTotals, freightFloorUsd, expressFeePen, shippingModeOf, SHIPPING_MODES,
-  totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm,
+  totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm, missingSizeLines,
 } from "./_checkout-model.js";
 
 /* The production hosts. Anything else (deploy previews, branch deploys,
@@ -140,6 +140,16 @@ async function createOrderHandler(event) {
   const quote = body.quote || {};
   if (!sentItems.length || typeof quote.total_usd !== "number") {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Pedido inválido" }) };
+  }
+
+  /* NO SIZED PRODUCT WITHOUT ITS SIZE (#411 P0, see _checkout-model.js).
+     Refused before anything is written or charged. */
+  const unsized = missingSizeLines(sentItems);
+  if (unsized.length) {
+    return { statusCode: 400, headers, body: JSON.stringify({
+      error: `Falta elegir la talla de “${String(unsized[0].title || unsized[0].name || "un producto")}”. Elígela en tu carrito antes de pagar. No se cobró nada.`,
+      missingSize: unsized.map((it) => String(it.title || it.name || "")),
+    }) };
   }
 
   /* WHO MAY CHARGE, decided before anything is written. */

@@ -919,6 +919,108 @@ function cardImgAttrs(url, sizes){
   const fxVenta = document.getElementById('fxVenta');
   const fxOrigen = document.getElementById('fxOrigen');
   const payBtn = document.getElementById('payBtn');
+
+  /* THE SIZE GATE (2026-10-19, #411 P0). A line whose product the store
+     sells in sizes cannot be paid without a size; a plain product (no
+     list on its record) passes. Sized-ness is the RECORD's, never a
+     title word: a line carries the store's list as sizeOptions when it
+     was added (producto.html, the app's product view, the chat), and a
+     line with no size and no list on it -- an older cart, or a door that
+     had no list to hand -- is checked against the product's PDP shard
+     (assets/pdp/p/<FNV-1a of the normalised title>.json, the record
+     producto.html shows). Until those answers are in, Pagar waits. */
+  var sizeGate = { pending: 0, lists: new Map(), missing: [] };
+  function sizeGateKey(it){ return String(it.retailer || '').toLowerCase() + '::' + String(it.title || ''); }
+  function sizeGateNorm(t){
+    const ta = document.createElement('textarea');
+    ta.innerHTML = String(t || '');
+    return ta.value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+  }
+  function sizeGateShard(key){
+    let h = 0x811c9dc5;
+    for (let i = 0; i < key.length; i++){ h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return ('00' + ((h >>> 0) % 4096).toString(16)).slice(-3);
+  }
+  function sizeGateList(v){
+    if (!Array.isArray(v)) return [];
+    const out = [];
+    for (const x of v){
+      const s = typeof x === 'string' || typeof x === 'number' ? String(x)
+        : (x && x.available !== false && (typeof x.size === 'string' || typeof x.size === 'number')) ? String(x.size) : '';
+      if (s.trim() && !out.includes(s.trim())) out.push(s.trim());
+    }
+    return out;
+  }
+  const sizeGateShards = {};
+  function recordSizesFor(it){
+    const key = sizeGateNorm(it.title);
+    if (!key) return Promise.resolve([]);
+    const shard = sizeGateShard(key);
+    if (!sizeGateShards[shard]){
+      sizeGateShards[shard] = fetch('/assets/pdp/p/' + shard + '.json')
+        .then((r) => r.ok ? r.json() : null).catch(() => null);
+    }
+    const rk = String(it.retailer || '').toLowerCase();
+    return sizeGateShards[shard].then((d) => {
+      const cands = (d && Array.isArray(d[key])) ? d[key] : [];
+      const own = cands.filter((c) => c && String(c.retailer || '').toLowerCase() === rk);
+      const rec = (own.length ? own : (cands.length === 1 ? cands : []))[0];
+      return rec ? sizeGateList(rec.sizes) : [];
+    }).catch(() => []);
+  }
+  function sizeListOfLine(it){
+    const own = sizeGateList(it && it.sizeOptions);
+    return own.length ? own : (sizeGate.lists.get(sizeGateKey(it)) || []);
+  }
+  function lineNeedsSize(it){
+    return !!it && it.lineType !== 'bundle-discount' && !String(it.selectedSize || it.size || '').trim()
+      && sizeListOfLine(it).length > 0;
+  }
+  function refreshSizeGate(){
+    sizeGate.missing = [];
+    cart.forEach((it, i) => { if (lineNeedsSize(it)) sizeGate.missing.push(i); });
+  }
+  /* Ask the shard about every line that has neither a size nor a list. */
+  function checkCartSizes(){
+    for (const it of cart){
+      if (!it || it.lineType === 'bundle-discount' || String(it.selectedSize || it.size || '').trim()) continue;
+      if (sizeGateList(it.sizeOptions).length) continue;
+      const k = sizeGateKey(it);
+      if (sizeGate.lists.has(k)) continue;
+      sizeGate.lists.set(k, []);
+      sizeGate.pending++;
+      recordSizesFor(it).then((list) => {
+        sizeGate.lists.set(k, list);
+      }).finally(() => {
+        sizeGate.pending--;
+        refreshSizeGate();
+        if (!sizeGate.pending){ renderCartItems(); renderSummary(); }
+      });
+    }
+    refreshSizeGate();
+  }
+  /* The shopper picks the missing size right on the line: only a size
+     from the store's own list, and the same product in the same size
+     becomes one line. */
+  function chooseLineSize(idx, value){
+    const it = cart[idx];
+    if (!it) return;
+    const list = sizeListOfLine(it);
+    if (!list.includes(value)) return;
+    it.selectedSize = value;
+    it.sizeOptions = list;
+    const dup = cart.findIndex((o, j) => j !== idx && cartLineKey(o) === cartLineKey(it));
+    if (dup >= 0){
+      cart[dup].qty = (Math.floor(Number(cart[dup].qty) || 0) || 1) + (Math.floor(Number(it.qty) || 0) || 1);
+      cart.splice(idx, 1);
+    }
+    saveCart();
+    refreshSizeGate();
+    renderCartItems();
+    renderSummary();
+    showToast('Talla ' + value + ' elegida.');
+    if (cart.length) requestQuote();
+  }
   /* The closing pay bar (phones) is a mirror, never a second source:
      whatever renderSummary and the submit handler write on #payBtn and
      #sumTotal -- label, disabled, total -- is copied here as it happens. */
@@ -1520,6 +1622,17 @@ function cardImgAttrs(url, sizes){
       return;
     }
 
+    /* A sized product with no size is not payable (#411 P0): the line
+       itself says what is missing and offers the store's sizes. */
+    if (sizeGate && (sizeGate.pending > 0 || sizeGate.missing.length)){
+      sumWalletRow.hidden = true;
+      sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+      payBtn.disabled = true;
+      payBtn.textContent = sizeGate.pending > 0 ? 'Revisando las tallas…'
+        : (sizeGate.missing.length === 1 ? 'Elige la talla de tu producto' : 'Elige la talla de tus productos');
+      return;
+    }
+
     /* A shipment the courier will not carry must not be payable. Four
        fragrances is a contract limit, not a guideline. */
     if (fragranceState.overLimit){
@@ -1714,7 +1827,9 @@ function cardImgAttrs(url, sizes){
     if (!Number.isInteger(idx) || idx < 0 || idx >= cart.length) return;
     cart.splice(idx, 1);
     saveCart();
+    refreshSizeGate();
     renderCartItems();
+    renderSummary();
     showToast('Producto eliminado del carrito.');
     // The freight quote was priced for the old weight/value — re-quote,
     // or stand down when nothing is left to ship.
@@ -1726,6 +1841,11 @@ function cardImgAttrs(url, sizes){
     const btn = e.target.closest('[data-remove-line]');
     if (!btn) return;
     removeCartLine(Number(btn.getAttribute('data-remove-line')));
+  });
+  checkoutItemsWrap.addEventListener('change', (e) => {
+    const sel = e.target.closest('[data-line-size]');
+    if (!sel || !sel.value) return;
+    chooseLineSize(Number(sel.getAttribute('data-line-size')), sel.value);
   });
 
   function renderCartItems(){
@@ -1756,6 +1876,13 @@ function cardImgAttrs(url, sizes){
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
           <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+          ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
+            <label for="lineSize${i}" class="block text-[12px] font-bold leading-snug" style="color:#B03A2E">Falta elegir la talla de este producto. Elígela para poder pagar.</label>
+            <select id="lineSize${i}" data-line-size="${i}" class="mt-1.5 w-full h-[40px] bg-white border rounded-xl px-3 text-[13.5px] outline-none focus-ring" style="border-color:#B03A2E">
+              <option value="" disabled selected>Selecciona una talla</option>
+              ${sizeListOfLine(it).map((s) => `<option value="${escapeHtmlLocal(s)}">${escapeHtmlLocal(s)}</option>`).join('')}
+            </select>
+          </div>` : ''}
         </div>
         <button type="button" data-remove-line="${i}" data-line-key="${escapeHtmlLocal(cartLineKey(it))}" aria-label="Quitar ${escapeHtmlLocal(it.title)}" class="flex-shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">Quitar</button>
       </div>
@@ -1795,6 +1922,7 @@ function cardImgAttrs(url, sizes){
     descInput.disabled = true;
     renderDeliverySummary();
   }
+  checkCartSizes();
   renderCartItems();
 
   /* DELIVERY TRANSPARENCY (2026-09-26). One store: one delivery line.
@@ -1934,6 +2062,15 @@ function cardImgAttrs(url, sizes){
   document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    refreshSizeGate();
+    if (sizeGate.pending > 0 || sizeGate.missing.length){
+      const first = sizeGate.missing[0];
+      const it = first != null ? cart[first] : null;
+      showToast(it ? `Falta elegir la talla de “${it.title}”. Elígela en tu carrito, arriba, antes de pagar.` : 'Estamos revisando las tallas de tu carrito. Un momento.');
+      const box = first != null ? document.querySelector(`[data-size-missing="${first}"]`) : null;
+      if (box){ box.scrollIntoView({ block: 'center' }); box.querySelector('select')?.focus(); }
+      return;
+    }
     if (weightReview.needsReview){
       showToast('Estamos confirmando el peso de un producto — te cotizamos el flete real antes de cobrar.');
       return;

@@ -107,6 +107,20 @@ export function repriceCart(items, prices) {
 }
 
 /** Goods (what the cards charge) and the dutiable FOB, in USD. */
+/* THE SIZE GATE, SERVER SIDE (2026-10-19, #411 P0). A line whose
+   product the store sells in sizes carries the store's list as
+   sizeOptions (every door into the cart stamps it); such a line with no
+   size chosen is refused before anything is written or charged. A line
+   with no list is a plain product and passes. The page checks first
+   (checkout.html, against the product's record too); this is the rule
+   at the door the money goes through. Returns the offending lines. */
+export function missingSizeLines(items) {
+  return (Array.isArray(items) ? items : []).filter((it) => it && typeof it === "object"
+    && it.lineType !== "bundle-discount"
+    && Array.isArray(it.sizeOptions) && it.sizeOptions.some((s) => String(s ?? "").trim())
+    && !String(it.selectedSize ?? it.size ?? "").trim());
+}
+
 export function goodsTotals(lines) {
   let goodsUsd = 0, fobUsd = 0, preDiscountGoodsUsd = 0;
   for (const l of lines) {
