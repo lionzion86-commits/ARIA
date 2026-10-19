@@ -1626,7 +1626,7 @@ function cardImgAttrs(url, sizes){
        itself says what is missing and offers the store's sizes. */
     if (sizeGate && (sizeGate.pending > 0 || sizeGate.missing.length)){
       sumWalletRow.hidden = true;
-      sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+      sumTotal.innerHTML = penLead(fxRates ? orderTotalPen : NaN, shownUsd);
       payBtn.disabled = true;
       payBtn.textContent = sizeGate.pending > 0 ? 'Revisando las tallas…'
         : (sizeGate.missing.length === 1 ? 'Elige la talla de tu producto' : 'Elige la talla de tus productos');
