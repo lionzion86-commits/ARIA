@@ -102,6 +102,9 @@ footer a{color:#fff}
 <script src="/ref.js"></script>
 <script src="sale-rule.js"></script>
 <script src="product-type.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
 </head>
 <body>
 <header class="site-header">
@@ -486,6 +489,9 @@ function fail(msg, ctx){
 function render(p){
   el("p-loading").style.display = "none";
   var usd = finalUsd(p.price, p.retailer);
+  /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
+  if (window.ariaTrack) ariaTrack('ViewContent', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: usd > 0 ? usd : undefined, currency: 'USD' });
+
   /* The was-price the card showed, by the site's one sale rule. */
   var wasUsd = p.salePct > 0 && p.wasPrice > p.price ? finalUsd(p.wasPrice, p.retailer) : 0;
   var store = STORE_LABELS[p.retailer] || p.retailer || "";
@@ -934,6 +940,8 @@ function addCurrentToCart(p, wantsSize){
     qty: 1
   });
   toast('Agregado al carrito.');
+  /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
+  if (window.ariaTrack) ariaTrack('AddToCart', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: priceUsd, currency: 'USD' });
   var c = el('cart-confirm');
   if (c) c.hidden = false;
 }

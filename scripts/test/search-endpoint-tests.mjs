@@ -166,7 +166,7 @@ const page = readFileSync(ROOT + "search.html", "utf8");
 await check("search.html downloads no catalogue, index or engine", () => {
   const fetched = [...page.matchAll(/["'](\/?[\w./-]+\.(?:json|js))["']/g)].map((m) => m[1]);
   /* ref.js and Aria's orb launcher (#386, deferred, no data) are the only scripts. */
-  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/aria-launcher)\.js$/.test(u));
+  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/(aria-launcher|pixels))\.js$/.test(u));
   assert.deepEqual(heavy, [], "the page still references " + heavy.join(", "));
   assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/);
   assert.match(page, /var PAGE_SIZE = 48;/);
