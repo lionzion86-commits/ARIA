@@ -139,6 +139,19 @@ export const BUCKET_SPEC = {
   books:           { category: "books" },
   /* ARIA MOMS (2026-09-27, Danny). Mirrors index.html. */
   moms:            { category: "moms" },
+  /* BEST BUY (2026-10-19, #413). Mirrors index.html: its own department
+     names, used by no other retailer -- tech is Electrónica, small
+     appliances are Hogar. */
+  laptops:          { category: "electronics" },
+  gaming:           { category: "electronics" },
+  audio:            { category: "electronics" },
+  phones:           { category: "electronics" },
+  cameras:          { category: "electronics" },
+  accessories:      { category: "electronics" },
+  wearables:        { category: "electronics" },
+  tablets:          { category: "electronics" },
+  monitors:         { category: "electronics" },
+  small_appliances: { category: "home" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:
