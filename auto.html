@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aria Auto — El repuesto exacto para tu auto | Aria Shop</title>
-<!-- Part names both ways (index.html translatePartQueryToEs), loaded before the page script. -->
-<script src="parts-glossary.js"></script>
 <meta name="description" content="Elige tu vehículo y busca repuestos: comparamos precios en tiendas de Estados Unidos.">
 <style>
   :root{
@@ -65,18 +63,35 @@
   .srcsub{font-size:12.5px;color:var(--mut);margin:0 0 14px}
   .cards{display:grid;gap:12px}
   @media(min-width:640px){.cards{grid-template-columns:1fr 1fr}}
-  .pcard{display:flex;gap:14px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}
-  .pcard img{width:96px;height:96px;object-fit:contain;border-radius:10px;background:#F8FAFC;flex-shrink:0}
-  .pimg-fallback{width:96px;height:96px;border-radius:10px;background:var(--sky);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;text-align:center;flex-shrink:0;padding:6px}
-  .pbody{min-width:0;flex:1}
-  .ptitle{font-size:14px;font-weight:700;color:var(--ink);margin:0 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .pmeta{font-size:12px;color:var(--mut);margin:0 0 6px}
-  .ppart{font-size:12px;font-weight:700;color:var(--navy);margin:0 0 8px}
-  .pprice{font-size:19px;font-weight:900;color:var(--navy)}
-  .pprice small{font-size:12.5px;font-weight:600;color:var(--mut);display:block}
+  /* SHAPE-HELD CARDS (#409): the photo box is a fixed square and every
+     text row keeps its height, so a card is the same size before its
+     data, its photo or its "Sin imagen" stand-in arrives. */
+  .pcard{display:flex;gap:14px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:204px}
+  .pimg{position:relative;display:block;width:96px;height:96px;flex:0 0 96px;border-radius:10px;background:#F8FAFC;overflow:hidden}
+  .pimg img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain}
+  .pimg-fallback{position:absolute;top:0;left:0;width:100%;height:100%;background:var(--sky);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;text-align:center;padding:6px}
+  .pbody{min-width:0;flex:1;display:flex;flex-direction:column;align-items:flex-start}
+  .ptitle{font-size:14px;font-weight:700;line-height:1.35;color:var(--ink);margin:0 0 4px;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+  .pmeta{font-size:12px;line-height:1.4;color:var(--mut);margin:0 0 4px;min-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .ppart{font-size:12px;line-height:1.4;font-weight:700;color:var(--navy);margin:0 0 6px;min-height:1.4em}
+  .pprice{line-height:1.2;min-height:40px}
+  .pprice b{display:block;font-size:19px;font-weight:900;color:var(--navy)}
+  .pprice b.na{font-size:14px;color:var(--mut);font-weight:700}
+  .pprice small{display:block;font-size:12px;font-weight:600;color:var(--mut)}
   .badge{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px;margin-top:8px}
   .badge.ok{background:#DCFCE7;color:var(--ok)}
-  .badge.warn{background:#FEF3C7;color:var(--warn)}
+  .badge.chk{background:#F1F5F9;color:#475569}
+  .addbtn{margin-top:10px;min-height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--navy);color:#fff;font-size:13px;font-weight:800;cursor:pointer}
+  .addbtn[disabled]{opacity:.45;cursor:not-allowed}
+  .pcard.sk .pimg,.pcard.sk .bar{background:linear-gradient(90deg,#EEF2F7 25%,#E2E8F0 50%,#EEF2F7 75%);background-size:200% 100%;animation:sh 1.2s infinite}
+  .pcard.sk .bar{display:block;height:12px;border-radius:6px;margin:4px 0 10px}
+  .pcard.sk .bar.tall{height:22px}
+  .bar.w90{width:90%}.bar.w70{width:70%}.bar.w60{width:60%}.bar.w50{width:50%}.bar.w40{width:40%}
+  .morewrap{text-align:center}
+  .more-btn{width:100%;max-width:420px;margin-top:20px}
+  #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(200%);visibility:hidden;background:var(--navy);color:#fff;font-size:14px;font-weight:700;padding:12px 18px;border-radius:12px;box-shadow:0 8px 24px rgba(10,31,68,.3);transition:transform .25s,visibility .25s;z-index:80;max-width:calc(100% - 32px)}
+  #toast.show{transform:translateX(-50%) translateY(0);visibility:visible}
+  #toast a{color:var(--gold);margin-left:8px}
   /* States */
   .statecard{text-align:center;padding:40px 20px;background:#fff;border:1px dashed var(--line);border-radius:20px;color:var(--mut)}
   .statecard h3{color:var(--navy);margin:0 0 8px;font-size:17px}
@@ -122,6 +137,7 @@
     <div class="navlinks">
       <a href="index.html">Inicio</a>
       <a href="auto.html" class="active" aria-current="page">Aria Auto</a>
+      <a href="checkout.html" id="cartLink">Carrito</a>
     </div>
   </div>
 </nav>
@@ -180,7 +196,7 @@
   <!-- Results -->
   <div id="results" style="margin-top:8px" aria-live="polite"></div>
 
-  <p class="note">Precios estimados en dólares con nuestro margen de servicio incluido; el equivalente en soles usa el tipo de cambio venta del día. El precio final puerta a puerta se confirma antes de pedir. Los números de parte mostrados te sirven para verificar el calce por tu cuenta.</p>
+  <p class="note">Precios en soles con nuestro margen de servicio y el impuesto de venta de la tienda incluidos, al tipo de cambio venta del día; debajo va el equivalente en dólares. El precio final puerta a puerta se confirma antes de pedir. Los números de parte mostrados te sirven para verificar el calce por tu cuenta.</p>
 </main>
 
 <footer>
@@ -192,6 +208,7 @@
     </div>
   </div>
 </footer>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 "use strict";
@@ -199,6 +216,19 @@
    ARIA AUTO — standalone page (2026-10-05).
    Zero dependencies on the SPA (no showPage, no pushRoute).
    Every failure path renders a message + retry. Never blank.
+
+   THIN (2026-10-19, #409 track T4). This page used to download the
+   whole auto-cache.json (22.5MB, 1.0MB gzipped) for one search: on
+   the mountain profile the first card took 24s. It now reads small
+   build-time slices (scripts/build-auto-slices.mjs -> assets/auto/):
+     index.json                 part names (es + synonyms + English),
+                                which vehicles have which parts
+     v/<vehicle>/<part>.json    this vehicle's results for this part
+     fb/<part>/<make>.json      "También te puede servir"
+     pn/<c>.json                part-number lookup
+   24 cards are drawn at a time ("Mostrar más" draws the next 24),
+   cards hold their shape before data and photos arrive, and a photo
+   loads only when its card is about to be seen.
    ============================================================ */
 
 function showFatal(msg){
@@ -218,7 +248,7 @@ function $(id){ try{ return document.getElementById(id); }catch(e){ return null;
 /* SCRAPED TEXT IS TEXT (2026-10-19, #417 night order 4): titles arrive
    as "Lizzie &#38; Oliver"; escaping that printed "&#38;" to shoppers.
    Entities are decoded first, then everything is escaped as before. */
-var ENTITY_NAMED = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", reg:"\u00ae", trade:"\u2122", copy:"\u00a9", deg:"\u00b0", eacute:"\u00e9", ntilde:"\u00f1", rsquo:"\u2019", lsquo:"\u2018", rdquo:"\u201d", ldquo:"\u201c", ndash:"\u2013", mdash:"\u2014", hellip:"\u2026" };
+var ENTITY_NAMED = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", reg:"®", trade:"™", copy:"©", deg:"°", eacute:"é", ntilde:"ñ", rsquo:"’", lsquo:"‘", rdquo:"”", ldquo:"“", ndash:"–", mdash:"—", hellip:"…" };
 function decodeEntitiesText(s){
   if (typeof s !== "string" || s.indexOf("&") < 0) return s;
   for (var pass = 0; pass < 2 && s.indexOf("&") >= 0; pass++){
@@ -263,225 +293,303 @@ var VEHICLES = [
 ];
 var selectedVehicle = null;
 
-/* ---------- Pricing: tiered marginal margin (locked 2026-10-02) ----------
-   24% on first $500, 18% on $500–$2,000, 12% on $2,000–$5,000, 8% above. */
-function marginPrice(usd){
-  var p = Number(usd);
-  if (!(p > 0)) return null;
-  var m = 0, prev = 0;
-  var bands = [[500,0.24],[2000,0.18],[5000,0.12],[Infinity,0.08]];
-  for (var i = 0; i < bands.length; i++){
-    var cap = bands[i][0], rate = bands[i][1];
-    var slice = Math.min(p, cap) - prev;
-    if (slice > 0) m += slice * rate;
-    prev = cap;
-    if (p <= cap) break;
-  }
-  return p + m;
+/* ---------- pricing: tiered marginal margin (LOCKED 2026-10-02) ----------
+   ONE PRICE EVERYWHERE: the same formula as tienda.html, producto.html
+   and the SPA -- (raw + tieredMarginUsd(raw)) x the retailer's Miami
+   sales tax. This page used to stop at the margin, 7% under the price
+   the product page and checkout charge for the same AutoZone part. */
+function tieredMarginUsd(raw){
+  var r = Number(raw);
+  if (!(r > 0)) return 0;
+  return Math.min(r,500)*0.24
+    + Math.min(Math.max(r-500,0),1500)*0.18
+    + Math.min(Math.max(r-2000,0),3000)*0.12
+    + Math.max(r-5000,0)*0.08;
 }
-function fmtUSD(n){ return '$' + Number(n).toFixed(2); }
+var TAX_EXEMPT = {"walmart": 1};
+function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+function finalUsd(raw, retailer){
+  var r = Number(raw);
+  if (!(r > 0)) return NaN;
+  return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;
+}
+function fmtUSD(n){ return 'US$ ' + Number(n).toFixed(2); }
 function fmtPEN(n){ return 'S/ ' + Number(n).toFixed(2); }
 
-/* ---------- FX rate (venta), with fallback ---------- */
-var fxRate = 3.44, fxLoaded = false;
-function loadFx(){
-  if (fxLoaded) return Promise.resolve(fxRate);
-  fxLoaded = true;
+/* ---------- soles, always (#416) ----------
+   The site's own rate: the 24-hour cache key the home page, search and
+   checkout share, then the exchange-rate function. If both are out of
+   reach the page keeps soles with its standing approximate rate rather
+   than flipping every card to dollars. */
+var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var FX_FALLBACK = 3.44;
+var fxRate = null, fxPromise = null;
+function pageRate(){
+  if (fxRate) return Promise.resolve(fxRate);
+  if (fxPromise) return fxPromise;
+  try{
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (c && typeof c.venta === "number" && c.venta > 0 && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){
+      fxRate = c.venta;
+      return Promise.resolve(fxRate);
+    }
+  }catch(e){}
   var ctl = null;
   try{ ctl = new AbortController(); }catch(e){}
   var timer = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, 8000);
-  return fetch('/.netlify/functions/exchange-rate', ctl ? { signal: ctl.signal } : {})
+  fxPromise = fetch('/.netlify/functions/exchange-rate', ctl ? { signal: ctl.signal } : {})
     .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(j){
-      var v = j && (Number(j.venta) || Number(j.rate));
-      if (v > 0 && v < 20) fxRate = v;
-      return fxRate;
+    .then(function(d){
+      if (d && typeof d.venta === "number" && d.venta > 0 && d.venta < 20){
+        fxRate = d.venta;
+        try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); }catch(e){}
+      }
+      return fxRate || FX_FALLBACK;
     })
-    .catch(function(){ return fxRate; })
-    .then(function(v){ clearTimeout(timer); return v; });
+    .catch(function(){ return fxRate || FX_FALLBACK; })
+    .then(function(v){ clearTimeout(timer); fxPromise = null; return v; });
+  return fxPromise;
 }
+function rateNow(){ return fxRate || FX_FALLBACK; }
 
-/* ---------- Auto cache (lazy, timeout, never throws) ---------- */
-var cachePromise = null;
-function getAutoCache(){
-  if (cachePromise) return cachePromise;
+/* ---------- slices (assets/auto/, built by scripts/build-auto-slices.mjs) ---------- */
+var AUTO_BASE = '/assets/auto/';
+/* Same slug as the build script (the test pins the two). */
+function slug(s){
+  return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+function normPn(pn){ return String(pn || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+var jsonCache = {};
+function getJson(path, timeoutMs){
+  if (jsonCache[path]) return jsonCache[path];
   var ctl = null;
   try{ ctl = new AbortController(); }catch(e){}
-  var timer = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, 25000);
-  cachePromise = fetch('/auto-cache.json', ctl ? { signal: ctl.signal } : {})
+  var timer = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, timeoutMs || 30000);
+  var p = fetch(AUTO_BASE + path, ctl ? { signal: ctl.signal } : {})
     .then(function(r){
+      clearTimeout(timer);
+      if (r.status === 404) return null;
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     })
-    .then(function(j){ clearTimeout(timer); return j; })
     .catch(function(err){
       clearTimeout(timer);
-      cachePromise = null; // allow retry
+      delete jsonCache[path];   // allow retry
       throw err;
     });
-  return cachePromise;
+  jsonCache[path] = p;
+  return p;
+}
+function getIndex(){ return getJson('index.json'); }
+
+/* ---------- part names: Spanish, synonyms and English ----------
+   "pastillas de freno", "balatas", "brake pads" and "pastilla de
+   freno" all find the same part. The names come from the shared
+   glossary (scripts/lib/es-en-parts-glossary.json) and AutoZone's own
+   English part types, written into index.json at build time. */
+var STOP = { de:1, del:1, la:1, el:1, los:1, las:1, para:1, por:1, con:1, mi:1, the:1, for:1, of:1, and:1, my:1, car:1, auto:1, carro:1 };
+function normText(s){
+  return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+function stemTok(t){ return t.length > 4 ? t.replace(/(es|s)$/, "") : t; }
+function phraseToks(s){
+  return normText(s).split(" ").filter(function(t){ return t && !STOP[t]; }).map(stemTok);
+}
+function partTerms(p){ return [p.es].concat(p.syn || [], p.en || []); }
+/* 100 = the query names this part; 80 = the query contains one of its
+   names ("pastillas de freno delanteras", "brake pads toyota");
+   otherwise 10 a shared word (the old keyword fallback). */
+function scorePart(qToks, p){
+  var qs = " " + qToks.join(" ") + " ", best = 0, terms = partTerms(p);
+  for (var i = 0; i < terms.length; i++){
+    var tt = phraseToks(terms[i]);
+    if (!tt.length) continue;
+    var ts = tt.join(" ");
+    if (ts === qToks.join(" ")) return 100;
+    if (qs.indexOf(" " + ts + " ") >= 0) best = Math.max(best, 80 + Math.min(ts.length, 19) / 20);
+  }
+  if (best) return best;
+  var hits = 0, all = " " + terms.map(function(t){ return phraseToks(t).join(" "); }).join(" | ") + " ";
+  for (var q = 0; q < qToks.length; q++) if (qToks[q].length > 2 && all.indexOf(qToks[q]) >= 0) hits++;
+  return hits * 10;
+}
+function matchQuery(q, idx){
+  var qToks = phraseToks(q);
+  var ranked = [];
+  (idx.parts || []).forEach(function(p, i){
+    var s = qToks.length ? scorePart(qToks, p) : 0;
+    if (s > 0) ranked.push({ i: i, score: s });
+  });
+  ranked.sort(function(a, b){ return b.score - a.score || a.i - b.i; });
+  var exact = ranked.length && ranked[0].score >= 80 ? ranked[0].i : -1;
+  var unstocked = null;
+  if (exact < 0){
+    (idx.unstocked || []).forEach(function(u){
+      if (unstocked) return;
+      if (scorePart(qToks, u) >= 80) unstocked = u;
+    });
+  }
+  /* A part number: one word with letters and digits (D2076, MKD436). */
+  var raw = String(q || "").trim(), pn = null;
+  if (/^[A-Za-z0-9][A-Za-z0-9.\-\/]{2,24}$/.test(raw) && /\d/.test(raw)) pn = normPn(raw);
+  return { exact: exact, ranked: ranked, unstocked: unstocked, pn: pn };
 }
 
-/* ---------- Search across the cache ----------
-   Exact key first (year|make|model|query), then keyword fallback. */
-function searchCache(cache, vehicle, query){
-  var out = { exact: [], fallback: [] };
-  try{
-    var ps = (cache && cache.partSearches) || {};
-    var q = String(query || '').trim().toLowerCase();
-    if (!q) return out;
-    var prefix = vehicle.year + '|' + vehicle.make.toLowerCase() + '|' + vehicle.model.toLowerCase() + '|';
-    /* ENGLISH PART NAMES (2026-10-13, issue #386 F10 / BASE-5). The cache
-       is keyed in Spanish; "brake pads" typed here found nothing while
-       the voice path translated it. Same translator, same glossary
-       (parts-glossary.js), preferring the Spanish this vehicle's own
-       cache uses. */
-    var prefer = new Set();
-    Object.keys(ps).forEach(function(k){ if (k.indexOf(prefix) === 0) prefer.add(k.slice(prefix.length)); });
-    var qEs = (window.AriaPartsGlossary ? window.AriaPartsGlossary.toSpanish(q, prefer) : q).toLowerCase();
-    var key = prefix + q;
-    /* A PART NUMBER IS A PART NUMBER (2026-10-13). The empty state tells
-       shoppers to try "el número de parte del fabricante", and that search
-       never matched anything: it was compared against part NAMES. A
-       query shaped like one (letters and digits, no spaces) is matched
-       against the part numbers -- this vehicle's first, then any. */
-    if (/^[a-z0-9-]{3,}$/i.test(q) && /\d/.test(q)){
-      var pnq = q.replace(/[^a-z0-9]/g, '');
-      var pnSeen = {};
-      var pnScan = function(keys, into){
-        keys.forEach(function(k){
-          collectItems(ps[k]).forEach(function(it){
-            var pn = String(it.partNumber || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            var full = String((it.lineCode || '') + (it.partNumber || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
-            if (!pn || (pn !== pnq && full !== pnq)) return;
-            var id = itemId(it);
-            if (pnSeen[id]) return;
-            pnSeen[id] = 1;
-            into.push(it);
-          });
-        });
-      };
-      var all = Object.keys(ps);
-      pnScan(all.filter(function(k){ return k.indexOf(prefix) === 0; }), out.exact);
-      pnScan(all.filter(function(k){ return k.indexOf(prefix) !== 0; }), out.fallback);
-      if (out.exact.length || out.fallback.length) return out;
-    }
-    if (ps[key]) out.exact = collectItems(ps[key]);
-    else if (qEs !== q && ps[prefix + qEs]){ key = prefix + qEs; out.exact = collectItems(ps[key]); }
-    // Keyword fallback: score other keys by token overlap on the query part.
-    var tokens = (q + ' ' + (qEs !== q ? qEs : '')).split(/[\s,;:\/\\-]+/).filter(function(t){ return t.length > 2; });
-    if (!tokens.length) return out;
-    var seen = {};
-    var scored = [];
-    var keys = Object.keys(ps);
-    for (var i = 0; i < keys.length; i++){
-      var k = keys[i];
-      if (k === key) continue;
-      var parts = k.split('|');
-      if (parts.length < 4) continue;
-      var kq = parts.slice(3).join('|');
-      var hits = 0;
-      for (var t = 0; t < tokens.length; t++){
-        if (kq.indexOf(tokens[t]) !== -1) hits++;
-      }
-      if (!hits) continue;
-      var sameMake = parts[1] === vehicle.make.toLowerCase();
-      scored.push({ key: k, score: hits * 10 + (sameMake ? 5 : 0) });
-    }
-    scored.sort(function(a,b){ return b.score - a.score; });
-    for (var s = 0; s < scored.length && out.fallback.length < 60; s++){
-      /* SAME CAR, SAME ANSWER (2026-10-14, #386 N5: "Compatible con tu 2020
-         Toyota Corolla" for one wording, "Verifica el calce" for the same
-         pads under another). A part found under THIS vehicle's own key is
-         as compatible as an exact-key hit, whatever words found it. */
-      var ownCar = scored[s].key.indexOf(prefix) === 0;
-      var items = collectItems(ps[scored[s].key]);
-      for (var j = 0; j < items.length && out.fallback.length < 60; j++){
-        var id = itemId(items[j]);
-        if (!id || seen[id]) continue;
-        seen[id] = 1;
-        if (ownCar) items[j].ownVehicle = true;
-        out.fallback.push(items[j]);
-      }
-    }
-  }catch(e){ /* never throw from search */ }
-  return out;
-}
-function collectItems(bySource){
-  var items = [];
-  try{
-    var sources = Object.keys(bySource || {});
-    for (var i = 0; i < sources.length; i++){
-      var arr = bySource[sources[i]];
-      if (!Array.isArray(arr)) continue;
-      for (var j = 0; j < arr.length; j++){
-        var n = normItem(sources[i], arr[j]);
-        if (n) items.push(n);
-      }
-    }
-  }catch(e){}
-  return items;
-}
-function itemId(it){
-  return String((it && (it.partNumber || it.title)) || '');
-}
-function normItem(sourceKey, raw){
-  try{
-    if (!raw || typeof raw !== 'object') return null;
-    var price = raw.discounted_price != null ? raw.discounted_price : raw.price;
-    price = Number(price);
-    return {
-      source: sourceKey,
-      title: raw.productTitle || raw.title || 'Repuesto',
-      image: raw.thumbnail || (Array.isArray(raw.images) && raw.images[0]) || null,
-      brand: raw.brand || raw.sub_brand || '',
-      partNumber: raw.part_number || raw.partNumber || raw.sku || raw.mpn || null,
-      oem: raw.oem_part_number || raw.oemPartNumber || null,
-      lineCode: raw.line_code || raw.lineCode || '',
-      priceUSD: (price > 0) ? price : null,
-      /* Brake pads come front or rear (2026-10-13, F10): the store says
-         which, and the shopper must see it before ordering. */
-      axle: /^front/i.test(String(raw.location || '')) ? 'Delantero' : /^rear/i.test(String(raw.location || '')) ? 'Trasero' : '',
-      fitted: String(raw.vehicle_fitment || '').toUpperCase() === 'VEHICLE_SPECIFIC'
-    };
-  }catch(e){ return null; }
-}
+/* ---------- cards ---------- */
 var SOURCE_LABELS = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts', rockauto: 'RockAuto' };
 function sourceLabel(k){ return SOURCE_LABELS[String(k||'').toLowerCase()] || String(k||'Tienda'); }
-
-/* ---------- Render ---------- */
-function partCard(it, vehicle, exact){
-  var aria = marginPrice(it.priceUSD);
-  var pen = aria != null ? fmtPEN(aria * fxRate) : null;
-  var pn = it.partNumber ? (it.lineCode ? it.lineCode + ' ' + it.partNumber : it.partNumber) : null;
-  var img = it.image
-    ? '<img src="' + esc(it.image) + '" alt="' + esc(it.title) + '" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;pimg-fallback&quot;>Sin imagen</div>\'">'
-    : '<div class="pimg-fallback">Sin imagen</div>';
-  var fit = (exact || it.ownVehicle) && it.fitted
+var LOCATION_ES = { front: 'Delantera', rear: 'Trasera', 'front and rear': 'Delantera y trasera', left: 'Izquierda', right: 'Derecha' };
+/* DELANTERO / TRASERO (2026-10-13, #386 F10). Pads and rotors go on one
+   axle; when a search finds both, the shopper picks theirs first -- a
+   front pad on a rear axle is a return Aria pays for. */
+function axleOf(it){
+  var l = String((it && it.loc) || '').toLowerCase();
+  return l === 'front' ? 'Delantero' : l === 'rear' ? 'Trasero' : '';
+}
+function itemKey(it){ return String((it && (it.pn || it.t)) || ''); }
+function productHref(it){
+  return 'producto.html?producto=' + encodeURIComponent(decodeEntitiesText(it.t || '')) +
+    '&tienda=' + encodeURIComponent(it.s || 'autozone') +
+    (it.pn ? '&pn=' + encodeURIComponent(it.pn) : '');
+}
+var CARDS = [];   // every drawn card's item, by data-i (for the cart button)
+/* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN (search.html's
+   watchPhotos). The photo box is a fixed square, so the card never
+   changes shape when the photo, or its "Sin imagen" stand-in, lands.
+   AutoZone's photo CDN has no width parameter the shared sizedImageUrl
+   helper knows, so the URL goes as stored. */
+var PHOTO_IO = null;
+function railPhoto(img){
+  if (!img || !img.dataset.src) return;
+  img.src = img.dataset.src;
+  img.removeAttribute("data-src");
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll("img[data-src]");
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== "function"){ Array.prototype.forEach.call(imgs, railPhoto); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      railPhoto(e.target);
+    });
+  }, { rootMargin: "200px 0px" });
+  Array.prototype.forEach.call(imgs, function(i){ PHOTO_IO.observe(i); });
+}
+function photoFailed(img){
+  try{ var box = img.parentNode; box.innerHTML = '<span class="pimg-fallback">Sin imagen</span>'; }catch(e){}
+}
+function partCard(it, vehicle, fitted){
+  var usd = finalUsd(it.u, it.s || 'autozone');
+  var ok = usd > 0;
+  var i = CARDS.push(it) - 1;
+  var href = productHref(it);
+  var pn = it.pn ? (it.lc ? it.lc + ' ' + it.pn : it.pn) : null;
+  var loc = it.loc ? LOCATION_ES[String(it.loc).toLowerCase()] || it.loc : '';
+  var img = it.img
+    ? '<img data-src="' + esc(it.img) + '" alt="' + esc(it.t) + '" decoding="async" onerror="photoFailed(this)">'
+    : '<span class="pimg-fallback">Sin imagen</span>';
+  var fit = fitted
     ? '<span class="badge ok">Compatible con tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) + '</span>'
-    : '<span class="badge warn">Verifica el calce con el número de parte</span>';
-  return '<div class="pcard">' + img +
+    : '<span class="badge chk">Verifica el calce con el número de parte</span>';
+  var ax = axleOf(it);
+  return '<div class="pcard" data-i="' + i + '"' + (ax ? ' data-axle="' + ax + '"' : '') + '>' +
+    '<a class="pimg" href="' + esc(href) + '" aria-hidden="true" tabindex="-1">' + img + '</a>' +
     '<div class="pbody">' +
-      '<p class="ptitle">' + esc(it.title) + '</p>' +
-      '<p class="pmeta">' + esc(sourceLabel(it.source)) + (it.brand ? ' · ' + esc(it.brand) : '') + '</p>' +
-      (it.axle ? '<p class="ppart" data-axle="' + esc(it.axle) + '"><strong>Eje: ' + esc(it.axle) + '</strong></p>' : '') +
-      (pn ? '<p class="ppart">N.º de parte: ' + esc(pn) + '</p>' : '') +
-      (aria != null
-        ? '<div class="pprice">' + fmtUSD(aria) + (pen ? '<small>' + pen + ' aprox.</small>' : '') + '</div>'
-        : '<div class="pprice" style="font-size:14px;color:var(--mut)">Precio no disponible</div>') +
+      '<a class="ptitle" href="' + esc(href) + '">' + esc(it.t) + '</a>' +
+      '<p class="pmeta">' + esc(sourceLabel(it.s)) + (it.b ? ' · ' + esc(it.b) : '') + (loc ? ' · ' + esc(loc) : '') + '</p>' +
+      '<p class="ppart">' + (pn ? 'N.º de parte: ' + esc(pn) : '&nbsp;') + '</p>' +
+      (ok
+        ? '<div class="pprice"><b>' + fmtPEN(usd * rateNow()) + '</b><small>' + fmtUSD(usd) + '</small></div>'
+        : '<div class="pprice"><b class="na">Precio no disponible</b><small>&nbsp;</small></div>') +
       fit +
+      '<button class="addbtn" type="button" data-add="' + i + '"' + (ok ? '' : ' disabled') + '>Agregar al carrito</button>' +
     '</div></div>';
 }
+function skelCards(n){
+  var h = '';
+  for (var i = 0; i < n; i++){
+    h += '<div class="pcard sk" aria-hidden="true"><span class="pimg"></span><div class="pbody">' +
+      '<span class="bar w90"></span><span class="bar w60"></span><span class="bar w40"></span>' +
+      '<span class="bar w50 tall"></span><span class="bar w70"></span></div></div>';
+  }
+  return h;
+}
 
+/* ---------- cart (same key and line shape as producto.html) ---------- */
+var CART_KEY = 'aria_cart_v1';
+function readCartLocal(){
+  try{
+    var raw = localStorage.getItem(CART_KEY);
+    var a = raw ? JSON.parse(raw) : [];
+    return Array.isArray(a) ? a : [];
+  }catch(e){ return []; }
+}
+function saveCartLocal(c){
+  try{ localStorage.setItem(CART_KEY, JSON.stringify(c)); return true; }catch(e){ return false; }
+}
+function cartLineKey(it){ return [it.retailer || '', it.title || '', it.selectedSize || ''].join('::'); }
+function addPartToCart(it, btn){
+  var retailer = it.s || 'autozone';
+  var priceUsd = finalUsd(it.u, retailer);
+  /* The price guard: never a priceless or $0 line. */
+  if (!(priceUsd > 0)){ toast('Este repuesto aún no tiene precio confirmado.'); return; }
+  var line = {
+    retailer: retailer,
+    title: decodeEntitiesText(it.t || 'Repuesto'),
+    priceUsd: priceUsd,
+    /* What the goods really cost: raw price plus the register's sales
+       tax, never the margin (the SPA's and producto.html's stamp). */
+    dutiableUsd: Math.round(Number(it.u) * salesTaxRate(retailer) * 100) / 100,
+    /* The catalogue's estimate when it has one; checkout re-resolves
+       every weight server side either way. */
+    weightKg: it.kg > 0 ? it.kg : 0.2,
+    weightEstimated: true,
+    image: it.img || '',
+    brand: it.b || '',
+    partNumber: it.pn || null,
+    selectedSize: null,
+    qty: 1
+  };
+  var c = readCartLocal().filter(function(x){ return x && typeof x === 'object'; });
+  var key = cartLineKey(line), found = null;
+  for (var i = 0; i < c.length; i++) if (cartLineKey(c[i]) === key){ found = c[i]; break; }
+  if (found) found.qty = Math.floor(Number(found.qty) || 0) + 1;
+  else c.push(line);
+  if (!saveCartLocal(c)){ toast('No pudimos guardar tu carrito en este navegador.'); return; }
+  toast('Agregado al carrito.', true);
+  if (btn){ btn.textContent = 'Agregado'; setTimeout(function(){ btn.textContent = 'Agregar al carrito'; }, 2500); }
+  renderCartLink();
+}
+function renderCartLink(){
+  var a = $('cartLink');
+  if (!a) return;
+  var n = 0;
+  readCartLocal().forEach(function(x){ n += Math.max(0, Math.floor(Number(x && x.qty) || 0)); });
+  a.textContent = n ? 'Carrito (' + n + ')' : 'Carrito';
+}
+var toastTimer = null;
+function toast(msg, withCart){
+  var t = $('toast');
+  if (!t) return;
+  t.innerHTML = esc(msg) + (withCart ? ' <a href="checkout.html">Ver carrito</a>' : '');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 3200);
+}
+
+/* ---------- Render ---------- */
+var PAGE = 24;
 function renderLoading(){
   var r = $('results');
   if (!r) return;
   r.classList.remove('hidden');
-  var sk = '';
-  for (var i = 0; i < 4; i++) sk += '<div class="skel" style="height:124px"></div>';
   r.innerHTML = '<div class="srcblock"><h2>Buscando repuestos…</h2>' +
-    '<p class="srcsub">Descargando el catálogo y filtrando por tu vehículo.</p>' +
-    '<div class="cards">' + sk + '</div></div>';
+    '<p class="srcsub">Filtrando por tu vehículo.</p>' +
+    '<div class="cards">' + skelCards(4) + '</div></div>';
 }
 
 function renderError(title, msg, retryFnName){
@@ -489,96 +597,137 @@ function renderError(title, msg, retryFnName){
   if (!r) return;
   r.classList.remove('hidden');
   r.innerHTML = '<div class="statecard" style="margin-top:26px">' +
-    '<div class="spinner" style="display:none"></div>' +
     '<h3>' + esc(title) + '</h3><p>' + esc(msg) + '</p>' +
     '<button class="btn" onclick="' + retryFnName + '()">Reintentar</button> ' +
     '<a class="btn btn-ghost" href="index.html">Volver al inicio</a></div>';
-  var sp = r.querySelector('.spinner');
-  if (sp) sp.style.display = 'none';
-  window.scrollTo({ top: r.offsetTop - 80, behavior: 'smooth' });
+  try{ window.scrollTo({ top: r.offsetTop - 80, behavior: 'smooth' }); }catch(e){}
 }
 
-function renderEmpty(query, vehicle){
+function renderEmpty(query, vehicle, unstocked){
   var r = $('results');
   if (!r) return;
   r.classList.remove('hidden');
+  var why = unstocked
+    ? 'Todavía no tenemos ' + unstocked.es + ' en el catálogo de Aria Auto. Prueba con otra pieza o con el número de parte del fabricante.'
+    : 'No encontramos ese repuesto para tu ' + vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model +
+      ' en el catálogo actual. Prueba con un término más general (ej. "filtro", "freno") o con el número de parte del fabricante.';
   r.innerHTML = '<div class="statecard" style="margin-top:26px">' +
     '<h3>Sin resultados para "' + esc(query) + '"</h3>' +
-    '<p>No encontramos ese repuesto para tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) +
-    ' en el catálogo actual. Prueba con un término más general (ej. "filtro", "freno") o con el número de parte del fabricante.</p>' +
-    '<button class="btn btn-ghost" onclick="document.getElementById(\'partQuery\').focus()">Probar otra búsqueda</button></div>';
+    '<p>' + esc(why) + '</p>' +
+    '<button class="btn btn-ghost" onclick="focusQuery()">Probar otra búsqueda</button></div>';
 }
 
-/* DELANTERO / TRASERO (2026-10-13, F10). When results carry an axle,
-   the shopper picks it before anything else -- a front pad on a rear
-   axle is a return Aria pays for. */
-var axleFilter = '';
-var lastRender = null;
-function setAxle(a){
-  axleFilter = a;
-  if (lastRender) renderResults(lastRender.groups, lastRender.vehicle, lastRender.query);
-}
-function renderResults(groups, vehicle, query){
+/* One answer = ordered segments (part number, this vehicle, other
+   vehicles), drawn PAGE cards at a time into their blocks. */
+var VIEW = null;
+function newView(seq, vehicle, query){
   var r = $('results');
-  if (!r) return;
   r.classList.remove('hidden');
-  if (!lastRender || lastRender.groups !== groups) axleFilter = '';
-  lastRender = { groups: groups, vehicle: vehicle, query: query };
-  var all = groups.exact.concat(groups.fallback);
-  var nFront = all.filter(function(it){ return it.axle === 'Delantero'; }).length;
-  var nRear = all.filter(function(it){ return it.axle === 'Trasero'; }).length;
-  if (axleFilter){
-    var keep = function(it){ return it.axle === axleFilter; };
-    groups = { exact: groups.exact.filter(keep), fallback: groups.fallback.filter(keep) };
-  }
-  var html = '';
-  if (nFront && nRear){
-    var chip = function(val, label){
-      return '<button type="button" class="chip" data-axle-filter="' + val + '"' +
-        (axleFilter === val ? ' style="background:var(--navy);color:#fff"' : '') +
-        ' onclick="setAxle(\'' + val + '\')">' + label + '</button>';
-    };
-    html += '<div class="srcblock" data-axle-picker><h2>¿Delantero o trasero?</h2>' +
-      '<p class="srcsub">Las pastillas y discos van en un eje específico. Elige el tuyo.</p>' +
-      '<div class="chips">' + chip('', 'Todos') + chip('Delantero', 'Delanteros (' + nFront + ')') + chip('Trasero', 'Traseros (' + nRear + ')') + '</div></div>';
-  }
-  function block(title, sub, items, exact){
-    if (!items.length) return;
-    var cards = items.slice(0, 24).map(function(it){ return partCard(it, vehicle, exact); }).join('');
-    html += '<div class="srcblock"><h2>' + esc(title) + '</h2>' +
-      '<p class="srcsub">' + esc(sub) + '</p>' +
-      '<div class="cards">' + cards + '</div></div>';
-  }
-  // Group by source for the "compare stores" feel.
-  function bySource(items){
-    var m = {};
-    items.forEach(function(it){
-      var k = it.source || 'tienda';
-      (m[k] = m[k] || []).push(it);
-    });
-    return m;
-  }
-  var eg = bySource(groups.exact), fg = bySource(groups.fallback);
-  Object.keys(eg).forEach(function(s){
-    block('Resultados para tu vehículo — ' + sourceLabel(s),
-          'Coincidencias del catálogo para ' + vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '.',
-          eg[s], true);
+  r.innerHTML = '<div id="axlePick"></div><div id="segs"></div><div id="pendingSeg"></div><div class="morewrap" id="moreWrap"></div>';
+  CARDS = [];
+  VIEW = { seq: seq, vehicle: vehicle, query: query, segs: [], target: PAGE, drawn: 0, pending: 0, scrolled: false, axle: '' };
+  return VIEW;
+}
+function addSeg(view, title, sub, items, fitted){
+  if (!items || !items.length) return;
+  view.segs.push({ title: title, sub: sub, items: items, fitted: fitted, done: 0, el: null });
+}
+function addBySource(view, items, titleFor, sub, fittedFn){
+  var m = {}, order = [];
+  items.forEach(function(it){
+    var k = it.s || 'tienda';
+    if (!m[k]){ m[k] = []; order.push(k); }
+    m[k].push(it);
   });
-  Object.keys(fg).forEach(function(s){
-    block('También te puede servir — ' + sourceLabel(s),
-          'Coincidencias por palabra clave. Confirma el calce con el número de parte antes de pedir.',
-          fg[s], false);
-  });
-  if (!html || (!groups.exact.length && !groups.fallback.length && !(nFront && nRear))){
-    renderEmpty(query, vehicle);
-    return;
+  order.forEach(function(k){ addSeg(view, titleFor(k), sub, m[k], fittedFn); });
+}
+function segItems(view, s){
+  return view.axle ? s.items.filter(function(it){ return axleOf(it) === view.axle; }) : s.items;
+}
+function remaining(view){
+  var n = 0;
+  view.segs.forEach(function(s){ n += segItems(view, s).length - s.done; });
+  return n;
+}
+function draw(view){
+  if (view !== VIEW) return;
+  var host = $('segs');
+  if (!host) return;
+  var budget = view.target - view.drawn;
+  for (var i = 0; i < view.segs.length && budget > 0; i++){
+    var s = view.segs[i];
+    var list = segItems(view, s);
+    if (s.done >= list.length) continue;
+    if (!s.el){
+      var blk = document.createElement('div');
+      blk.className = 'srcblock';
+      blk.innerHTML = '<h2>' + esc(s.title) + '</h2><p class="srcsub">' + esc(s.sub) + '</p><div class="cards"></div>';
+      host.appendChild(blk);
+      s.el = blk.querySelector('.cards');
+    }
+    var take = list.slice(s.done, s.done + budget);
+    var html = '';
+    for (var j = 0; j < take.length; j++){
+      var it = take[j];
+      html += partCard(it, view.vehicle, typeof s.fitted === 'function' ? s.fitted(it) : !!(s.fitted && it.f));
+    }
+    s.el.insertAdjacentHTML('beforeend', html);
+    s.done += take.length; view.drawn += take.length; budget -= take.length;
   }
-  r.innerHTML = html;
-  try{ window.scrollTo({ top: r.offsetTop - 80, behavior: 'smooth' }); }catch(e){}
+  watchPhotos(host);
+  drawAxlePick(view);
+  var ps = $('pendingSeg');
+  if (ps){
+    ps.innerHTML = (view.pending && view.drawn < view.target)
+      ? '<div class="srcblock"><h2>Buscando más opciones…</h2><p class="srcsub">Repuestos de otros vehículos que también te pueden servir.</p><div class="cards">' + skelCards(2) + '</div></div>'
+      : '';
+  }
+  var mw = $('moreWrap'), left = remaining(view);
+  if (mw){
+    mw.innerHTML = left > 0
+      ? '<button class="btn btn-ghost more-btn" type="button" onclick="showMore()">Mostrar más (' + left + ')</button>'
+      : '';
+  }
+  if (!view.scrolled && view.drawn){
+    view.scrolled = true;
+    try{ var r = $('results'); window.scrollTo({ top: r.offsetTop - 80, behavior: 'smooth' }); }catch(e){}
+  }
+}
+function drawAxlePick(view){
+  var el = $('axlePick');
+  if (!el) return;
+  var n = { Delantero: 0, Trasero: 0 };
+  view.segs.forEach(function(s){ s.items.forEach(function(it){ var a = axleOf(it); if (a) n[a]++; }); });
+  if (!n.Delantero || !n.Trasero){ el.innerHTML = ''; return; }
+  var chip = function(val, label){
+    return '<button type="button" class="chip" data-axle-filter="' + val + '"' +
+      (view.axle === val ? ' style="background:var(--navy);color:#fff"' : '') +
+      ' onclick="setAxle(\'' + val + '\')">' + label + '</button>';
+  };
+  el.innerHTML = '<div class="srcblock" data-axle-picker><h2>¿Delantero o trasero?</h2>' +
+    '<p class="srcsub">Las pastillas y discos van en un eje específico. Elige el tuyo.</p>' +
+    '<div class="chips">' + chip('', 'Todos') + chip('Delantero', 'Delanteros (' + n.Delantero + ')') + chip('Trasero', 'Traseros (' + n.Trasero + ')') + '</div></div>';
+}
+function setAxle(a){
+  var view = VIEW;
+  if (!view) return;
+  view.axle = a || '';
+  view.segs.forEach(function(s){ s.done = 0; s.el = null; });
+  view.drawn = 0; view.target = PAGE;
+  var host = $('segs');
+  if (host) host.innerHTML = '';
+  CARDS = [];
+  draw(view);
+}
+function showMore(){
+  if (!VIEW) return;
+  VIEW.target = VIEW.drawn + PAGE;
+  draw(VIEW);
 }
 
 /* ---------- Search flow ---------- */
 var lastQuery = '';
+var SEQ = 0;
 function doSearch(){
   lastQuery = '';
   try{
@@ -593,27 +742,106 @@ function doSearch(){
       return;
     }
     lastQuery = q;
+    var seq = ++SEQ, vehicle = selectedVehicle;
     renderLoading();
-    loadFx().catch(function(){});
-    getAutoCache().then(function(cache){
-      var groups;
-      try{ groups = searchCache(cache, selectedVehicle, q); }
-      catch(e){ groups = { exact: [], fallback: [] }; }
-      if (!groups.exact.length && !groups.fallback.length){
-        renderEmpty(q, selectedVehicle);
-      } else {
-        renderResults(groups, selectedVehicle, q);
-      }
+    var ratePromise = pageRate();
+    getIndex().then(function(idx){
+      if (seq !== SEQ) return;
+      if (!idx || !Array.isArray(idx.parts)) throw new Error('índice no disponible');
+      runSearch(seq, idx, vehicle, q, ratePromise);
     }).catch(function(err){
-      renderError(
-        'No pudimos cargar el catálogo',
+      if (seq !== SEQ) return;
+      renderError('No pudimos cargar los repuestos',
         'Revisa tu conexión e inténtalo de nuevo. (' + String((err && err.message) || 'error de red') + ')',
-        'retrySearch'
-      );
+        'retrySearch');
     });
   }catch(e){
     showFatal('No pudimos iniciar la búsqueda.');
   }
+}
+function runSearch(seq, idx, vehicle, q, ratePromise){
+  var m = matchQuery(q, idx);
+  var vKey = vehicle.year + '|' + vehicle.make.toLowerCase() + '|' + vehicle.model.toLowerCase();
+  var vNum = (idx.vehicles || []).indexOf(vKey);
+  var has = (idx.has && idx.has[vKey]) || [];
+  var vSlug = slug(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model);
+  var mSlug = slug(vehicle.make);
+
+  var exactP = (m.exact >= 0 && has.indexOf(m.exact) >= 0)
+    ? getJson('v/' + vSlug + '/' + idx.parts[m.exact].s + '.json') : Promise.resolve(null);
+  var pnP = m.pn ? getJson('pn/' + (m.pn.charAt(0) || '_') + '.json').catch(function(){ return null; }) : Promise.resolve(null);
+  /* "También te puede servir": the best-matching parts, same make first.
+     Started now, in parallel, so it never costs a second round trip. */
+  var fbParts = m.ranked.slice(0, 2).map(function(r){ return idx.parts[r.i].s; });
+  var fbP = Promise.all(fbParts.map(function(ps){
+    return getJson('fb/' + ps + '/' + mSlug + '.json').catch(function(){ return null; });
+  }));
+
+  var view = null;
+  Promise.all([exactP, pnP, ratePromise]).then(function(res){
+    if (seq !== SEQ) return;
+    var exactDoc = res[0], pnDoc = res[1];
+    view = newView(seq, vehicle, q);
+    if (m.unstocked){
+      var sg = $('segs');
+      if (sg) sg.insertAdjacentHTML('beforebegin', '<p class="note">Todavía no tenemos ' + esc(m.unstocked.es) +
+        ' en el catálogo de Aria Auto. Si encontramos piezas relacionadas, aparecen abajo.</p>');
+    }
+    var seen = {};
+    /* Part number first: the shopper typed exactly this. */
+    var hit = pnDoc && m.pn ? pnDoc[m.pn] : null;
+    if (hit && hit.c){
+      var it = Object.assign({ s: hit.s }, hit.c);
+      var fitsMine = vNum >= 0 && (hit.fv || []).indexOf(vNum) >= 0;
+      seen[itemKey(it)] = 1;
+      addSeg(view, 'Número de parte ' + (hit.c.pn || m.pn), fitsMine
+        ? 'Este número está catalogado para tu ' + vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '.'
+        : 'Confirma que este número calza con tu vehículo antes de pedir.', [it], function(){ return fitsMine; });
+    }
+    var exact = [];
+    var bySrc = (exactDoc && exactDoc.bySource) || {};
+    Object.keys(bySrc).forEach(function(src){
+      (bySrc[src] || []).forEach(function(c){
+        var it = Object.assign({ s: src }, c), k = itemKey(it);
+        if (seen[k]) return;
+        seen[k] = 1; exact.push(it);
+      });
+    });
+    addBySource(view, exact, function(s){ return 'Resultados para tu vehículo — ' + sourceLabel(s); },
+      'Coincidencias del catálogo para ' + vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '.', true);
+    view.pending = 1;
+    view.seen = seen;
+    draw(view);
+  }).catch(function(err){
+    if (seq !== SEQ) return;
+    view = null;
+    renderError('No pudimos cargar los repuestos',
+      'Revisa tu conexión e inténtalo de nuevo. (' + String((err && err.message) || 'error de red') + ')',
+      'retrySearch');
+  });
+
+  Promise.all([fbP, exactP.catch(function(){ return null; }), pnP, ratePromise]).then(function(res){
+    /* Wait for the first draw (it may still be on its way). */
+    var tries = 0;
+    (function land(){
+      if (seq !== SEQ) return;
+      if (!view){ if (++tries < 400) setTimeout(land, 50); return; }
+      if (view !== VIEW) return;
+      var fb = [], seen = view.seen || {};
+      (res[0] || []).forEach(function(doc){
+        ((doc && doc.items) || []).forEach(function(it){
+          var k = itemKey(it);
+          if (!k || seen[k] || fb.length >= 60) return;
+          seen[k] = 1; fb.push(it);
+        });
+      });
+      addBySource(view, fb, function(s){ return 'También te puede servir — ' + sourceLabel(s); },
+        'Coincidencias por palabra clave. Confirma el calce con el número de parte antes de pedir.', false);
+      view.pending = 0;
+      if (!view.drawn && !remaining(view)){ renderEmpty(q, vehicle, m.unstocked); return; }
+      draw(view);
+    })();
+  });
 }
 function retrySearch(){ doSearch(); }
 function focusVehicle(){
@@ -638,6 +866,7 @@ function setOptions(sel, items, placeholder){
 }
 function hideSearch(){
   selectedVehicle = null;
+  SEQ++;
   var sc = $('searchCard'), rw = $('results');
   if (sc) sc.classList.add('hidden');
   if (rw){ rw.classList.add('hidden'); rw.innerHTML = ''; }
@@ -655,6 +884,10 @@ function maybeReveal(){
     if (rw){ rw.classList.add('hidden'); rw.innerHTML = ''; }
     var note = $('vehicleNote');
     if (note) note.textContent = 'Vehículo seleccionado: ' + yv + ' ' + mkv + ' ' + mdv + '. Ahora busca tu repuesto abajo.';
+    /* Warm the small part index (5KB) and the rate while the shopper
+       types: the search then needs one small slice. */
+    getIndex().catch(function(){});
+    pageRate();
   }catch(e){ showFatal('No pudimos activar el buscador.'); }
 }
 
@@ -664,6 +897,7 @@ function init(){
     if (!y || !mk || !md) throw new Error('selector no encontrado');
     setOptions(y, YEARS, 'Selecciona un año');
     mk.disabled = true; md.disabled = true;
+    renderCartLink();
 
     y.addEventListener('change', function(){
       try{
@@ -719,6 +953,14 @@ function init(){
         });
       })(chips[c]);
     }
+
+    var rs = $('results');
+    if (rs) rs.addEventListener('click', function(ev){
+      var b = ev.target && ev.target.closest ? ev.target.closest('button[data-add]') : null;
+      if (!b) return;
+      var it = CARDS[Number(b.getAttribute('data-add'))];
+      if (it) addPartToCart(it, b);
+    });
   }catch(e){
     showFatal('No pudimos cargar el selector de vehículos. Recarga la página.');
   }

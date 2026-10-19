@@ -659,20 +659,23 @@ await check("N7 / N7b: noise, other scripts, stock hallucinations and her own ec
 });
 
 await check("N5: the same car's parts read 'Compatible' whatever words found them", async () => {
-  const ctx = await browser.newContext();
+  /* Since #409 every wording that names a part opens this car's own
+     slice of it; "pastillas de freno", "brake pads" and "balatas" must
+     mark the same parts compatible. */
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   await page.route("**/.netlify/functions/**", (r) => r.fulfill({ status: 404, body: "{}" }));
   await page.goto(`${BASE}/auto.html`, { waitUntil: "load" });
-  const html = await page.evaluate(() => {
-    const v = { year: "2020", make: "Toyota", model: "Corolla" };
-    const cache = { partSearches: { "2020|toyota|corolla|pastillas de freno": { autozone: [{ title: "Pads", part_number: "D1", price: 30, vehicle_fitment: "VEHICLE_SPECIFIC" }] },
-      "2019|honda|civic|pastillas de freno": { autozone: [{ title: "Civic pads", part_number: "D2", price: 30, vehicle_fitment: "VEHICLE_SPECIFIC" }] } } };
-    const g = searchCache(cache, v, "freno");
-    return g.fallback.map((it) => partCard(it, v, false));
-  });
-  assert.equal(html.length, 2);
-  assert.match(html.find((h) => /D1/.test(h)), /Compatible con tu 2020 Toyota Corolla/, "this car's own part was marked 'verifica'");
-  assert.match(html.find((h) => /D2/.test(h)), /Verifica el calce/, "another car's part was marked compatible");
+  const fits = {};
+  for (const q of ["pastillas de freno", "brake pads", "balatas"]) {
+    await page.evaluate((q) => { selectedVehicle = { year: "2020", make: "Toyota", model: "Corolla" }; document.getElementById("partQuery").value = q; doSearch(); }, q);
+    await page.waitForFunction(() => document.querySelectorAll("#results .pcard").length > 0 || /Sin resultados/.test(document.getElementById("results").innerText), null, { timeout: 60000 });
+    fits[q] = await page.evaluate(() => [...document.querySelectorAll("#results .pcard")]
+      .filter((c) => /Compatible con tu 2020 Toyota Corolla/.test(c.innerText)).map((c) => c.querySelector(".ptitle").innerText).sort());
+  }
+  assert.ok(fits["pastillas de freno"].length > 0, "no compatible pads for the 2020 Corolla");
+  assert.deepEqual(fits["brake pads"], fits["pastillas de freno"], "'brake pads' marks other parts compatible");
+  assert.deepEqual(fits["balatas"], fits["pastillas de freno"], "'balatas' marks other parts compatible");
   await ctx.close();
 });
 

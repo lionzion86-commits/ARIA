@@ -89,7 +89,23 @@ check("ofertas.html reads this site's feed, all of it, and nothing else", () => 
   const page = readFileSync(ROOT + "ofertas.html", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   assert.ok(!/https:\/\/ariashop\.pe/.test(page.replace(/<link[^>]*>|<meta[^>]*>/g, "")), "ofertas.html still points a preview at production");
   assert.ok(!/sales-cache/.test(page), "ofertas.html still merges the live scrape over the catalogue feed");
-  assert.match(page, /ofertas-feed\.json/);
+  /* Its slices are cut from this feed (scripts/build-ofertas-slices.mjs). */
+  assert.match(readFileSync(ROOT + "scripts/build-ofertas-slices.mjs", "utf8"), /"ofertas-feed\.json"/);
+});
+
+check("Ofertas: a chosen store shows every markdown; the all-stores mix keeps the $150 cap", () => {
+  const deals = JSON.parse(readFileSync(ROOT + "assets/ofertas/deals.json", "utf8"));
+  const usd = 4, m = 8;
+  const over = deals.items.filter((a) => a[usd] > 150);
+  assert.ok(over.length > 0, "no deal over US$ 150 reaches a store's own filter");
+  assert.ok(over.every((a) => a[m] === 0), "a deal over US$ 150 is marked for the mix");
+  for (const s of deals.stores) {
+    const slice = JSON.parse(readFileSync(ROOT + `assets/ofertas/slices/${s.key}.discount.json`, "utf8"));
+    assert.equal(slice.total, s.n, `${s.key}: the filter shows ${slice.total} of its ${s.n}`);
+  }
+  const all = JSON.parse(readFileSync(ROOT + "assets/ofertas/slices/all.discount.json", "utf8"));
+  assert.equal(all.total, deals.items.filter((a) => a[m] === 1).length);
+  assert.ok(all.items.every((c) => c.usd <= 150), "the mix shows a deal over US$ 150");
 });
 
 check("the homepage's 'Ver todo N ofertas' is the department page's own all-stores count", () => {
