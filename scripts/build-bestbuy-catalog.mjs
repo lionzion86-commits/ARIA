@@ -71,9 +71,47 @@ export const SOURCE_PATH = "data/bestbuy/bestbuy-catalog.json";
 
 /* Danny, 2026-10-19: third-party marketplace records are excluded. */
 export const EXCLUDED_SELLER_TYPES = new Set(["3P"]);
-export function isExcludedRecord(p) {
-  return !!(p && EXCLUDED_SELLER_TYPES.has(String(p.sellerType || "").toUpperCase()));
+
+/* SOLD BY BEST BUY, ONLY (#432 audit, Lucifer, 2026-10-19). On some
+   product pages the pull captured a Marketplace seller's offer instead
+   of Best Buy's own price: the PS5 Pro at $1,553.39 (Best Buy sells it
+   at $699.99), a DJI Mini 4 Pro + RC 2 at $4,000, Switch 2 "bundles"
+   from $584.95, a duplicate $879 Xbox, a $710 PS5 Slim. Every one of
+   them is a Marketplace listing: Best Buy's own SKUs are 7 digits
+   (6601524), Marketplace listings carry 8-digit SKUs (12906125). The
+   pull agrees exactly -- all 178 records it tagged "3P" have 8-digit
+   SKUs, all 59 it tagged "1P" have 7. So a record is Best Buy's own
+   when the pull says 1P, or says nothing and the SKU is Best Buy's
+   (7 digits or fewer); a marketplace price never becomes the store's. */
+export function isMarketplaceRecord(p) {
+  const seller = String((p && p.sellerType) || "").toUpperCase();
+  if (seller === "1P") return false;
+  if (EXCLUDED_SELLER_TYPES.has(seller)) return true;
+  const sku = String((p && p.sku) || "").trim();
+  return !/^\d{1,7}$/.test(sku);
 }
+export function isExcludedRecord(p) {
+  return !!p && isMarketplaceRecord(p);
+}
+
+/* FIRST-PARTY PRICES VERIFIED ON BESTBUY.COM (#432 cross-store audit,
+   hidden_files/price-audit-cross-store-2026-10-19.md). The pull only
+   reached these products through a Marketplace listing; the audit read
+   Best Buy's own price on the live product page. Keyed by the
+   Marketplace SKU the pull holds; the record keeps its photos and specs
+   (same product) and takes Best Buy's SKU and price. */
+export const FIRST_PARTY_REPLACEMENTS = {
+  "12906125": { name: "PlayStation 5 Pro Console", sku: "6601524", price: 699.99 },
+  "10926658": { name: "Samsung - Galaxy Tab S11 Ultra - 14.6\" 1TB", sku: null, price: 1899.99 },
+};
+
+/* HELD FOR A PRICE RE-CHECK (#432): Best Buy's own SKUs whose price the
+   audit could not confirm. They stay out of the catalogue until a
+   person verifies them on bestbuy.com, then come off this list. */
+export const HELD_FOR_PRICE_REVIEW = {
+  "6522258": "Echo Dot (5th Gen) at $79.99 vs Target $49.59 (+61%)",
+  "6566039": "PlayStation 5 Slim Console at $439.99 (stray row)",
+};
 
 /* Pull bucket key -> catalogue bucket key. */
 export const BUCKET_KEYS = {
@@ -118,15 +156,29 @@ export function ingest(src) {
   const bb = src && src.retailers && src.retailers.bestbuy;
   if (!bb || !bb.departments) throw new Error("the source has no retailers.bestbuy.departments");
   const departments = {};
-  const stats = { source: 0, excluded3P: 0, ingested: 0, onSale: 0, realWeight: 0, perDepartment: {} };
+  const stats = { source: 0, excluded3P: 0, excludedMarketplace: 0, replaced: 0, held: 0, ingested: 0, onSale: 0, realWeight: 0, perDepartment: {} };
   for (const [srcKey, dept] of Object.entries(bb.departments)) {
     const key = BUCKET_KEYS[srcKey];
     if (!key) throw new Error("unmapped Best Buy department: " + srcKey);
     const items = [];
     for (const p of dept.items || []) {
       stats.source++;
-      if (isExcludedRecord(p)) { stats.excluded3P++; continue; }
+      const fix = FIRST_PARTY_REPLACEMENTS[String(p.sku)];
+      if (HELD_FOR_PRICE_REVIEW[String(p.sku)]) { stats.held++; continue; }
+      if (isExcludedRecord(p) && !fix) {
+        if (String(p.sellerType || "").toUpperCase() === "3P") stats.excluded3P++;
+        else stats.excludedMarketplace++;
+        continue;
+      }
       const rec = ingestRecord(p);
+      if (fix) {
+        stats.replaced++;
+        rec.price = fix.price;
+        if (fix.sku) rec.sku = fix.sku; else delete rec.sku;
+        /* Best Buy's own shelf price; the Marketplace was-price is not it. */
+        delete rec.originalPrice; rec.onSale = false;
+        delete rec.url;
+      }
       if (rec.onSale) stats.onSale++;
       if (rec.weightEstimated === false) stats.realWeight++;
       items.push(rec);
@@ -138,7 +190,7 @@ export function ingest(src) {
   return {
     catalog: {
       generatedAt: src.generatedAt || null,
-      source: (src.source || "") + " -- ingested by scripts/build-bestbuy-catalog.mjs (3P excluded)",
+      source: (src.source || "") + " -- ingested by scripts/build-bestbuy-catalog.mjs (sold by Best Buy only)",
       declaredProductCount: stats.ingested,
       retailers: { bestbuy: { label: "Best Buy", departments } },
     },
@@ -154,6 +206,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   /* The site's own weight estimator fills every weight the pull did not
      really have (never overwrites a real one). */
   execFileSync("python3", ["apply-weight-estimates.py", "weight-estimates.json", OUT_FILE, "--in-place"], { cwd: ROOT, stdio: ["ignore", "inherit", "inherit"] });
-  console.log(`${OUT_FILE}: ${stats.ingested} ingested of ${stats.source} (${stats.excluded3P} third-party excluded), ${stats.onSale} with a was-price, ${stats.realWeight} real weights`);
+  console.log(`${OUT_FILE}: ${stats.ingested} ingested of ${stats.source} (${stats.excluded3P} tagged third-party + ${stats.excludedMarketplace} other Marketplace listings excluded, ${stats.replaced} replaced by Best Buy's verified price, ${stats.held} held for a price re-check), ${stats.onSale} with a was-price, ${stats.realWeight} real weights`);
   console.log(JSON.stringify(stats.perDepartment));
 }

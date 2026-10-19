@@ -771,15 +771,15 @@ export const STORE_KNOWLEDGE = {
   },
 
   /* ---------- ELECTRÓNICA Y AUTO ---------- */
-  /* BEST BUY (2026-10-19, #413): launched with 4,964 first-party
-     products (the marketplace sellers excluded). Counted off
-     bestbuy-catalog.json; median $109.99. */
+  /* BEST BUY (2026-10-19, #413): 2,889 products sold by Best Buy
+     itself -- every Marketplace listing excluded (#432). Counted off
+     bestbuy-catalog.json; median $87.99. */
   bestbuy: {
     name: "Best Buy",
     vibe: "la tienda de tecnología de Estados Unidos, la especialista",
     specialties: ["laptops", "computadoras", "gaming", "consolas", "videojuegos", "audífonos", "parlantes", "celulares", "tablets", "smartwatches", "cámaras", "drones", "monitores", "freidoras de aire", "aspiradoras robot", "electrónica"],
-    price_range: "premium", median_usd: 109.99, product_count: 4964,
-    catalog_depth: "4,964 productos",
+    price_range: "premium", median_usd: 87.99, product_count: 2889,
+    catalog_depth: "2,889 productos",
     top_categories: ["computación", "gaming", "audio", "electrodomésticos pequeños", "celulares", "cámaras y drones"],
     best_for: "laptops, consolas, audífonos y celulares de marca: Apple, Samsung, Sony, HP, Lenovo, Nintendo",
     not_for: "televisores y electrodomésticos grandes — no se envían",

@@ -48,7 +48,7 @@
    looks like a bug to a shopper and is one to us. */
 export const RETAILERS = {
   /* BEST BUY (2026-10-19, Issue #413) — launched. Catalogue, no actor
-     (the Macy's pattern): bestbuy-catalog.json, 4,964 first-party
+     (the Macy's pattern): bestbuy-catalog.json, 2,889 sold-by-Best-Buy
      products, built by scripts/build-bestbuy-catalog.mjs from the Oct 18
      pull (the 178 marketplace-seller records excluded by flag, Danny's
      ruling). Billed first: the electronics specialist (Danny, #413
