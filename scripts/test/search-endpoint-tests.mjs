@@ -166,7 +166,7 @@ const page = readFileSync(ROOT + "search.html", "utf8");
 await check("search.html downloads no catalogue, index or engine", () => {
   const fetched = [...page.matchAll(/["'](\/?[\w./-]+\.(?:json|js))["']/g)].map((m) => m[1]);
   /* ref.js and Aria's orb launcher (#386, deferred, no data) are the only scripts. */
-  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/aria-launcher)\.js$/.test(u));
+  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/(aria-launcher|pixels))\.js$/.test(u));
   assert.deepEqual(heavy, [], "the page still references " + heavy.join(", "));
   assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/);
   assert.match(page, /var PAGE_SIZE = 48;/);
@@ -206,11 +206,11 @@ await check("the function ships with its files, and only it does", () => {
   const toml = readFileSync(ROOT + "netlify.toml", "utf8");
   const block = /\[functions\."search"\]\s*\n\s*included_files = \[([^\]]*)\]/.exec(toml);
   assert.ok(block, "no [functions.\"search\"] block");
-  for (const f of ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js"]) {
+  for (const f of ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json"]) {
     assert.ok(block[1].includes(`"${f}"`), `${f} is not shipped with the function`);
   }
   assert.ok(!/^\[functions\]\s*\n\s*included_files/m.test(toml), "included_files went global again (every function would carry the index)");
-  for (const f of ["netlify/functions/search.js", "netlify/functions/_search-core.js"]) {
+  for (const f of ["netlify/functions/search.js", "netlify/functions/_search-core.js", "netlify/functions/_door-price.js"]) {
     const src = readFileSync(ROOT + f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     assert.ok(!/import\.meta/.test(src), `${f} uses import.meta (Netlify compiles functions to CommonJS)`);
   }

@@ -19400,6 +19400,10 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   const pendingDutiable = dutiableBaseUsd(totalUsd, opts?.dutiableUsd);
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg, brand: String(opts?.brand || '').trim(),
     dutiableUsd: Number.isFinite(pendingDutiable) ? pendingDutiable : null };
+  /* #415: the ad pixels' ViewContent (dormant until an ID is set in
+     assets/js/pixels.js). Card prices are dollars; the pixel is told so. */
+  if (window.ariaTrack) ariaTrack('ViewContent', { contentId: retailer + '|' + name, contentName: name,
+    value: Number.isFinite(totalUsd) ? totalUsd : undefined, currency: 'USD' });
 
   /* THE STORE DOORWAY (2026-09-25, Danny): the badge slot is the door
      into the product's own store — logo + name, one obvious tap,
@@ -26069,6 +26073,9 @@ function addToCart(item){
   saveCartLocal();
   syncCartToServer();
   renderCartBadge();
+  /* #415: every door into the cart passes here, so AddToCart is sent once, here. */
+  if (window.ariaTrack && item.lineType !== 'bundle-discount')
+    ariaTrack('AddToCart', { contentId: item.retailer + '|' + item.title, contentName: item.title, value: usd, currency: 'USD' });
   return true;
 }
 

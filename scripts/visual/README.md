@@ -52,3 +52,14 @@ rule). Until then, re-running them by hand after a pull is enough.
 Python deps for the pipeline: `onnxruntime requests pillow numpy`.
 Node deps for the function: `jpeg-js pngjs` only. Inference runs on the WASM build of onnxruntime, committed as static files under `visual-index/runtime/` and downloaded by the function at cold start — the native onnxruntime-node package (~288MB installed) cannot ship in a Netlify function bundle.
 (root package.json).
+
+## Keeping the index current (automatic since 2026-10-18)
+
+`scripts/visual/index-new-products.py` is the pull-time step the
+pipeline above was missing: run it at the end of every catalog pull
+and it embeds only the products that are new (pool minus the ids
+already in `visual-index/manifest.json`), appends fresh shards, and
+updates the manifest + a coverage state file. Existing shards are
+never rewritten; a failed run leaves the live index untouched.
+Before it existed, the refresh was manual and whole stores
+(BoxLunch, Hot Topic, Best Buy) sat unindexed after their launches.
