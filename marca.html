@@ -46,8 +46,6 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 #status .err{color:var(--red); font-weight:600;}
 #status .ok{color:var(--green);}
 #status button.retry{margin-left:8px; background:var(--blue); color:#fff; border:none; border-radius:10px; padding:8px 16px; font-size:14px; cursor:pointer;}
-.progress{height:6px; background:var(--line); border-radius:3px; overflow:hidden; max-width:640px; margin:10px auto 0;}
-.progress > div{height:100%; background:var(--blue); width:0%; transition:width .2s;}
 
 /* ---------- carousels (DANNY 2026-10-07: sales first, category rails, all expandable) ---------- */
 .rail-section{margin:26px 0 8px;}
@@ -61,19 +59,34 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .rail .card{flex:0 0 164px; scroll-snap-align:start;}
 @media(min-width:640px){ .rail .card{flex:0 0 196px;} }
 
-/* Product card */
-.card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column; text-decoration:none; color:inherit;}
-.card .img{aspect-ratio:1/1; background:var(--sky); display:flex; align-items:center; justify-content:center; overflow:hidden;}
-.card .img img{width:100%; height:100%; object-fit:contain;}
+/* Product card. THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES
+   (2026-10-19, #409): a square photo box from the first paint
+   (aspect-ratio, plus the padding-top square for Safari older than 15)
+   and reserved rows for every line. */
+.card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column; text-decoration:none; color:inherit; min-width:0;}
+.card .img{position:relative; width:100%; aspect-ratio:1/1; background:var(--sky); overflow:hidden;}
+@supports not (aspect-ratio:1/1){ .card .img{height:0; padding-top:100%;} }
+.card .img img{position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain;}
+.card .img .noimg{position:absolute; top:50%; left:0; right:0; margin-top:-8px; text-align:center; font-size:12px; color:#9AA3B5;}
 .card .body{padding:12px; display:flex; flex-direction:column; gap:6px; flex:1;}
-.card .brand{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--blue);}
+.card .brand{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--blue); min-height:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .card .name{font-size:13px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:35px;}
-.card .retailer{font-size:11px; color:var(--muted);}
-.card .price{margin-top:auto; padding-top:6px;}
-.card .price .usd{font-size:17px; font-weight:800; color:var(--navy);}
-.card .price .pen{font-size:12px; color:var(--muted);}
-.card .price .was{font-size:13px; color:var(--muted); text-decoration:line-through; margin-left:6px;}
-.card .sale-badge{display:inline-block; background:#FFDE59; color:var(--navy); font-size:11px; font-weight:800; border-radius:6px; padding:2px 7px; margin-left:6px; vertical-align:1px;}
+.card .retailer{font-size:11px; color:var(--muted); min-height:14px;}
+/* SOLES FIRST (#416): the price a shopper in Peru pays is the bold one;
+   dollars are the small grey reference. */
+.card .price{margin-top:auto; padding-top:6px; min-height:42px;}
+.card .price .pen{font-size:17px; font-weight:800; color:var(--navy);}
+.card .price .usd{font-size:12px; color:var(--muted);}
+.card .price .was{font-size:12px; color:var(--muted); text-decoration:line-through; margin-left:5px; font-weight:400;}
+/* Yellow is for sale badges only. */
+.card .sale-badge{position:absolute; top:8px; left:8px; z-index:1; background:#FFDE59; color:var(--navy); font-size:12px; font-weight:800; border-radius:8px; padding:3px 7px;}
+/* Placeholder cards: the same boxes, grey bars where the words go. */
+.card.sk i, .card .price .pen i{display:block; height:10px; border-radius:5px; background:var(--line); margin:3px 0;}
+.card.sk .name i:last-child{width:60%;}
+.card .price .pen i{height:16px; width:45%;}
+.card.sk .brand i, .card.sk .retailer i{width:40%;}
+.re-more{grid-column:1/-1; text-align:center; padding:10px 0 24px; color:var(--muted); font-size:14px;}
+.more-btn{background:var(--blue); color:#fff; border:none; border-radius:12px; padding:12px 28px; font-size:15px; font-weight:700; cursor:pointer;}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
@@ -126,10 +139,10 @@ footer a{color:#fff;}
     </div>
   </div>
 
-  <div class="progress" id="progress" hidden><div id="progressBar"></div></div>
-  <div id="status" role="status">Cargando catálogo…</div>
+  <div id="status" role="status">Cargando productos…</div>
 
-  <div id="rails" aria-live="polite"></div>
+  <!-- Card-shaped placeholders from the first paint, before any script. -->
+  <div id="rails" aria-live="polite"><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section></div>
 </main>
 
 <!-- RAIL EXPAND OVERLAY: full-screen "Ver todo" for every carousel -->
@@ -156,47 +169,27 @@ footer a{color:#fff;}
 <script>
 "use strict";
 /* ================================================================
-   STANDALONE BRAND PAGE — one template for ALL 5,043 brands.
+   STANDALONE BRAND PAGE — one template for ALL 5,000+ brands.
    - Reads ?marca=<key> (also accepts ?categoria=<key>&kind=brand for
      compatibility with existing site links).
    - Key is normalized with the site's exact brandKeyOf logic:
      lowercase, strip non-alphanumeric.
-   - Filters across all 61 catalog files by normalized brand key.
    - No SPA navigation, no shared view code, no external JS libs.
    - Every failure path renders a message + retry. Never blank.
+
+   THIN (2026-10-19, #409 track T5). This page used to download all 63
+   catalogue files to show one brand. Now its first screen is one small
+   file: assets/sections/marca/<key>.json (every brand with 12+
+   products), or /.netlify/functions/brand?marca=<key> for the rest;
+   "Ver todo" / "Mostrar más" ask the same endpoint, 48 cards at a time.
+   Built by scripts/build-brand-index.mjs with this page's old rules
+   (netlify/functions/_brand-core.js), unchanged.
    ================================================================ */
 
 var BASE = "";
-var CATALOG_FILES = [
-  "/department-cache-walmart.json","/department-cache-target.json",
-  "/department-cache-oldnavy.json","/department-cache-footlocker.json",
-  "/macys-catalog.json","/ssense-catalog.json","/beauty-catalog.json",
-  "/lanebryant-catalog.json","/dicks-catalog.json","/pacsun-catalog.json",
-  "/skims-catalog.json","/revolve-catalog.json","/ulta-catalog.json",
-  "/yesstyle-catalog.json","/miumiu-catalog.json","/partycity-catalog.json",
-  "/samsclub-catalog.json","/costco-catalog.json","/gymrat-catalog.json",
-  "/kohls-catalog.json","/newbalance-catalog.json","/bhphoto-catalog.json",
-  "/advanceauto-catalog.json","/nautilus-catalog.json",
-  "/islandwatersports-catalog.json","/quietstorm-catalog.json",
-  "/surfworld-catalog.json","/surfstation-catalog.json",
-  "/mainland-catalog.json","/parrot-catalog.json","/ccs-catalog.json",
-  "/valsurf-catalog.json","/venum-catalog.json","/tatami-catalog.json",
-  "/everlast-catalog.json","/mmawarehouse-catalog.json",
-  "/combatcorner-catalog.json","/fuji-catalog.json","/fightclub-catalog.json",
-  "/crocs-catalog.json","/baublebar-catalog.json","/jwpei-catalog.json",
-  "/meliebianco-catalog.json","/bentgo-catalog.json","/mushie-catalog.json",
-  "/ezpz-catalog.json","/statebags-catalog.json","/books-catalog.json",
-  "/moms-catalog.json","/ae-catalog.json","/farfetch-catalog.json",
-  "/target-catalog.json","/soccer-catalog.json","/tennis-catalog.json",
-  "/latino-designers-dtc-catalog.json","/jewelry-catalog.json",
-  "/moto-catalog.json","/juguetes-catalog.json","/sunglasses-catalog.json",
-  "/finishline-catalog.json","/zumiez-catalog.json","/hottopic-catalog.json",
-  "/boxlunch-catalog.json"
-];
-
-var ALL_PRODUCTS = [];   // all normalized products
-var BRAND_PRODUCTS = [];  // filtered to this brand
-var FX_RATE = null;
+var SLICES = "assets/sections/marca/";
+var ENDPOINT = "/.netlify/functions/brand";
+var HEAD = null;          // the brand's answer: label, count, carousels
 var BRAND_KEY = "";
 var BRAND_LABEL = "";
 
@@ -334,6 +327,7 @@ function escRaw(s){
 }
 window.addEventListener("error", function(){
   try {
+    if (HEAD) return;
     setStatus('<span class="err">Ocurrió un error inesperado.</span> ' +
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   } catch(e){}
@@ -356,7 +350,6 @@ function getBrandKeyFromUrl(){
     return "";
   }catch(e){ return ""; }
 }
-
 /* ---------- price math (tiered marginal margin, 2026-10-02) ---------- */
 function tieredMarginUsd(rawUsd){
   var r = Number(rawUsd);
@@ -376,32 +369,36 @@ function finalUsd(raw, retailer){ return Math.round((Number(raw) + tieredMarginU
 function fmtUsd(n){ return "US$ " + Number(n).toFixed(2); }
 function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
 
-/* ---------- catalog loading ---------- */
-function normalizeItem(it, retailerKey){
+/* ---------- soles, always (#416) ----------
+   The site's own rate: the same endpoint and 24-hour cache key the
+   home page, search and checkout use. Until it is known the price row
+   holds its place; if it cannot be had at all, dollars, plainly
+   labelled, rather than nothing. */
+var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var FX_RATE;             // undefined: asking; null: unavailable; number: S/ per US$
+function loadFx(){
   try{
-    if (!it || typeof it !== "object") return null;
-    var name = it.name || it.title || "";
-    var price = Number(it.price);
-    if (!name || !(price > 0)) return null;
-    var img = it.thumbnail || it.image || "";
-    if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
-    /* Sale fields: the was-price index.html's one sale rule measured
-       (sale-rule.js; compareAt included), kept only when the item is on
-       sale by that rule. */
-    var op = (window.AriaSale && window.AriaSale.isOnSale(it)) ? window.AriaSale.originalPrice(it) : null;
-    return {
-      name: String(name),
-      brand: String(it.brand || ""),
-      brandKey: brandKeyOf(it.brand || ""),
-      price: price,
-      originalPrice: op,
-      onSale: op != null,
-      image: String(img || ""),
-      url: String(it.url || it.link || ""),
-      retailer: String(it.retailer || retailerKey || ""),
-      ptype: productTypeOf({ name: name, type: it.type, retailer: it.retailer || retailerKey, brand: it.brand })
-    };
-  }catch(e){ return null; }
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){ FX_RATE = c.venta; return; }
+  }catch(e){}
+  var done = false;
+  function fin(rate){
+    if (done) return; done = true;
+    FX_RATE = rate > 0 ? rate : null;
+    paintPrices(document);
+  }
+  var to = setTimeout(function(){ fin(0); }, 8000);
+  try{
+    fetch(BASE + "/.netlify/functions/exchange-rate")
+      .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+      .then(function(x){
+        clearTimeout(to);
+        var v = x.ok && x.d && typeof x.d.venta === "number" && x.d.venta > 0 ? x.d.venta : 0;
+        if (v){ try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, x.d, { fetchedAt: Date.now() }))); }catch(e){} }
+        fin(v);
+      })
+      .catch(function(){ clearTimeout(to); fin(0); });
+  }catch(e){ clearTimeout(to); fin(0); }
 }
 
 /* ---------- product-type classification (word-boundary, not substring) ---------- */
@@ -420,7 +417,11 @@ var TYPE_RES = PRODUCT_TYPES.map(function(t){
   });
 });
 /* ONE CLASSIFIER (2026-10-13 audit): index.html's, via product-type.js.
-   The keyword loop below is only the fallback if that file fails to load. */
+   The keyword loop below is only the fallback if that file fails to load.
+   Since #409 the carousels are grouped at build time with the same file
+   (scripts/build-brand-index.mjs); this stays because
+   scripts/test/classification-tests.mjs pins the page to it -- a shared
+   change can retire both together (listed on #409). */
 function productTypeOf(item){
   var n = String((item && item.name) || '');
   if (window.AriaProductType){
@@ -436,315 +437,285 @@ function productTypeOf(item){
   return 'ropa';
 }
 
-/* Whole percent off, by index.html's one sale rule (sale-rule.js):
-   a real was-price, 5-70% off. 0 = not on sale. */
-function discountPct(p){
-  return window.AriaSale ? window.AriaSale.discountPct(p) : 0;
+/* ONE ON-SALE DEFINITION: the build stamps the percent index.html's
+   rule measures (sale-rule.js: a real was-price, 5-70% off); the page
+   only shows it. */
+function discountPct(c){
+  var s = Number(c && c.s) || 0;
+  var min = window.AriaSale ? window.AriaSale.MIN_PCT : 5;
+  return s >= min ? s : 0;
 }
 
-function extractItems(data){
-  var out = [];
-  try{
-    var retailers = data && data.retailers;
-    if (!retailers || typeof retailers !== "object") return out;
-    Object.keys(retailers).forEach(function(rkey){
-      var r = retailers[rkey];
-      if (!r || typeof r !== "object") return;
-      ["departments","brands"].forEach(function(section){
-        var sec = r[section];
-        if (!sec || typeof sec !== "object") return;
-        Object.keys(sec).forEach(function(skey){
-          var bucket = sec[skey];
-          var arr = Array.isArray(bucket) ? bucket
-                  : (bucket && Array.isArray(bucket.items) ? bucket.items : null);
-          if (!arr) return;
-          arr.forEach(function(it){
-            var n = normalizeItem(it, rkey);
-            if (n) out.push(n);
-          });
-        });
-      });
-    });
-  }catch(e){}
-  return out;
-}
-
-var LOADED_FILES = 0, FAILED_FILES = 0;
-function updateProgress(){
-  var bar = el("progressBar"), wrap = el("progress");
-  var total = CATALOG_FILES.length;
-  var done = LOADED_FILES + FAILED_FILES;
-  if (wrap) wrap.hidden = done >= total;
-  if (bar && total) bar.style.width = Math.round(done/total*100) + "%";
-  setStatus("Cargando catálogo… " + done + " de " + total +
-    (FAILED_FILES ? " (" + FAILED_FILES + " no disponibles)" : ""));
-}
-
-async function fetchOne(path){
-  try{
-    var res = await fetch(BASE + path, {cache:"default"});
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    var data = await res.json();
-    var items = extractItems(data);
-    LOADED_FILES++;
-    return items;
-  }catch(e){
-    FAILED_FILES++;
-    return [];
-  }finally{
-    updateProgress();
-  }
-}
-
-async function loadFx(){
-  try{
-    var res = await fetch(BASE + "/.netlify/functions/exchange-rate");
-    if (!res.ok) return;
-    var data = await res.json();
-    if (data && typeof data.venta === "number") FX_RATE = data.venta;
-  }catch(e){}
-}
-
-/* ---------- brand filtering ---------- */
-/* Matches the site's logic: exact normalized brand key match.
-   For keys >= 4 chars, also match title words (handles "Young LA"
-   style cases where brand field is empty but title contains it). */
-function filterByBrand(products, bkey){
-  if (!bkey) return [];
-  var out = [];
-  for (var i = 0; i < products.length; i++){
-    var p = products[i];
-    try{
-      if (p.brandKey === bkey){ out.push(p); continue; }
-      if (bkey.length < 4) continue;
-      var tWords = String(p.name || "").toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .match(/[a-z0-9]+/g) || [];
-      for (var w = 0; w < tWords.length; w++){
-        if (tWords[w] === bkey){ out.push(p); break; }
-      }
-    }catch(e){}
-  }
-  return out;
-}
-
-/* Most common brand label among matches → display name */
-function deriveBrandLabel(products){
-  var counts = {}, best = "", bestN = 0;
-  for (var i = 0; i < products.length; i++){
-    var b = products[i].brand;
-    if (!b) continue;
-    counts[b] = (counts[b] || 0) + 1;
-    if (counts[b] > bestN){ bestN = counts[b]; best = b; }
-  }
-  return best;
-}
-
-/* ---------- carousel rendering (DANNY 2026-10-07) ----------
+/* ---------- carousels (DANNY 2026-10-07) ----------
    Sales rail first ("Ofertas de [brand]", biggest discount first).
-   If zero sales, a "Destacados" rail leads instead.
-   Then one carousel per product category. Every rail is expandable
-   via "Ver todo" -> full-screen overlay with the complete list. */
-var CARDS_PER_RAIL = 16;
-var RAIL_POOLS = {};   // railKey -> full item list for Ver todo
+   If zero sales, a "Destacados" rail leads instead. Then one carousel
+   per product category. At most 12 cards per carousel; the first three
+   carousels draw at once, the rest as the shopper scrolls near them.
+   Every rail is expandable via "Ver todo" -> full-screen overlay, 48
+   cards at a time. */
+var FIRST_RAILS = 3;
 
 /* ---------- rendering ---------- */
-function priceHTML(p){
-  try{
-    var f = finalUsd(p.price, p.retailer);
-    var h = '<div class="usd">' + esc(fmtUsd(f)) + "</div>";
-    if (FX_RATE) h += '<div class="pen">' + esc(fmtPen(f * FX_RATE)) + " aprox.</div>";
-    return h;
-  }catch(e){ return ""; }
+function priceInner(f, was){
+  if (FX_RATE === undefined) return '<div class="pen"><i></i></div><div class="usd">&nbsp;</div>';
+  if (!FX_RATE) return '<div class="pen">' + esc(fmtUsd(f)) + '</div><div class="usd">&nbsp;</div>';
+  var h = '<div class="pen">' + esc(fmtPen(f * FX_RATE)) + (was > f ? '<span class="was">' + esc(fmtPen(was * FX_RATE)) + '</span>' : '') + '</div>';
+  return h + '<div class="usd">' + esc(fmtUsd(f)) + '</div>';
+}
+/* Prices are painted in place, so a rate that lands after the cards
+   never redraws a carousel (scroll position and photos stay). */
+function paintPrices(root){
+  var els = (root || document).querySelectorAll(".price[data-usd]");
+  for (var i = 0; i < els.length; i++){
+    var e = els[i];
+    e.innerHTML = priceInner(Number(e.getAttribute("data-usd")), Number(e.getAttribute("data-was")) || 0);
+  }
 }
 
-function cardHTML(p){
-  var img = p.image
-    ? '<img ' + cardImgAttrs(p.image) + ' alt="" loading="lazy" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
-    : '<span style="font-size:12px;color:#9AA3B5">Sin imagen</span>';
+/* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN (search.html's
+   watchPhotos, #409): native lazy-loading fetched a whole carousel's
+   photos at once on a slow link. */
+var PHOTO_IO = null;
+function railPhoto(img){
+  if (!img || !img.dataset.src) return;
+  if (img.dataset.srcset){ img.srcset = img.dataset.srcset; img.sizes = img.dataset.sizes || ""; }
+  img.src = img.dataset.src;
+  img.removeAttribute("data-src");
+  img.removeAttribute("data-srcset");
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll("img[data-src]");
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== "function"){ for (var i = 0; i < imgs.length; i++) railPhoto(imgs[i]); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      railPhoto(e.target);
+      var rail = e.target.closest(".rail"), card = e.target.closest(".card");
+      if (rail && rail.scrollLeft > 0 && card && card.nextElementSibling) railPhoto(card.nextElementSibling.querySelector("img[data-src]"));
+    });
+  }, { rootMargin: "200px 0px" });
+  for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
+}
+
+function storeLabel(r){ return (HEAD && HEAD.labels && HEAD.labels[r]) || r; }
+/* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409). */
+function cardHTML(c){
+  var f = finalUsd(c.p, c.r);
+  var was = c.o ? finalUsd(c.o, c.r) : 0;
+  var img = c.i
+    ? '<img ' + cardImgAttrs(c.i).replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
+      ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
+    : '<span class="noimg">Sin imagen</span>';
   /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
-  var _href = 'producto.html?producto=' + encodeURIComponent(p.name || '')
-    + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
-  var pct = discountPct(p);
+  var _href = 'producto.html?producto=' + encodeURIComponent(decodeEntitiesText(c.t) || '')
+    + (c.r ? '&tienda=' + encodeURIComponent(c.r) : '');
+  var pct = discountPct(c);
   var saleBadge = pct > 0 ? '<span class="sale-badge">-' + pct + '%</span>' : '';
-  var wasHtml = '';
-  if (pct > 0 && p.originalPrice){
-    wasHtml = '<span class="was">' + esc(fmtUsd(finalUsd(p.originalPrice, p.retailer))) + '</span>';
-  }
-  return '<a class="card" href="' + esc(_href) + '">' +
-    '<div class="img">' + img + "</div>" +
+  return '<a class="card" href="' + escRaw(_href) + '">' +
+    '<div class="img">' + saleBadge + img + "</div>" +
     '<div class="body">' +
-      '<div class="brand">' + esc(p.brand || BRAND_LABEL) + "</div>" +
-      '<div class="name">' + esc(p.name) + "</div>" +
-      (p.retailer ? '<div class="retailer">Vendido por ' + esc(p.retailer) + "</div>" : "") +
-      '<div class="price">' + priceHTML(p) + wasHtml + saleBadge + "</div>" +
+      '<div class="brand">' + esc(c.b || BRAND_LABEL) + "</div>" +
+      '<div class="name">' + esc(c.t) + "</div>" +
+      '<div class="retailer">' + (c.r ? 'Vendido por ' + esc(storeLabel(c.r)) : "&nbsp;") + "</div>" +
+      '<div class="price" data-usd="' + f + '"' + (was > f ? ' data-was="' + was + '"' : '') + '>' + priceInner(f, was) + "</div>" +
     "</div></a>";
 }
+var SKELETON = '<div class="card sk" aria-hidden="true"><div class="img"></div><div class="body">' +
+  '<div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div>' +
+  '<div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div>';
+function skeletons(n){ var h = ""; for (var i = 0; i < n; i++) h += SKELETON; return h; }
 
-function railHTML(key, title, list){
-  var rk = 'brand::' + key;
-  RAIL_POOLS[rk] = list;
-  var shown = list.slice(0, CARDS_PER_RAIL);
-  var cards = "";
-  for (var i = 0; i < shown.length; i++){
-    try{ cards += cardHTML(shown[i]); }catch(e){}
-  }
-  var door = (list.length > CARDS_PER_RAIL)
-    ? '<button type="button" class="ver-todo" data-rk="' + esc(rk) + '" data-title="' + esc(title) + '">Ver todo \u2192</button>'
+function railHTML(r){
+  var n = HEAD.railCards || 12;
+  var door = (r.count > n)
+    ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '">Ver todo →</button>'
     : '';
-  return '<section class="rail-section">' +
-    '<div class="rail-head"><h2>' + esc(title) + '</h2>' +
-    '<span class="rail-count">' + list.length + '</span>' + door + '</div>' +
+  var cards = r.i < FIRST_RAILS ? (r.cards || []).map(cardHTML).join("") : skeletons(Math.min(r.count, 4));
+  return '<section class="rail-section" data-ri="' + r.i + '"' + (r.i < FIRST_RAILS ? '' : ' data-pending="1"') + '>' +
+    '<div class="rail-head"><h2>' + esc(r.title) + '</h2>' +
+    '<span class="rail-count">' + Number(r.count).toLocaleString("es-PE") + '</span>' + door + '</div>' +
     '<div class="rail">' + cards + '</div></section>';
+}
+/* Carousels below the first screen draw their cards (already in hand)
+   when the shopper scrolls near them. */
+var RAIL_IO = null;
+function drawPending(sec){
+  if (!sec || !sec.getAttribute("data-pending")) return;
+  sec.removeAttribute("data-pending");
+  var r = HEAD.rails[Number(sec.getAttribute("data-ri"))];
+  var rail = sec.querySelector(".rail");
+  if (r && rail){ rail.innerHTML = (r.cards || []).map(cardHTML).join(""); watchPhotos(rail); }
+}
+function watchRails(container){
+  var secs = container.querySelectorAll(".rail-section[data-pending]");
+  if (!secs.length) return;
+  if (typeof IntersectionObserver !== "function"){ for (var i = 0; i < secs.length; i++) drawPending(secs[i]); return; }
+  if (!RAIL_IO) RAIL_IO = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if (e.isIntersecting){ RAIL_IO.unobserve(e.target); drawPending(e.target); } });
+  }, { rootMargin: "600px 0px" });
+  for (var j = 0; j < secs.length; j++) RAIL_IO.observe(secs[j]);
 }
 
 function renderRails(){
   var container = el("rails");
   if (!container) return;
   try{
-    if (!BRAND_PRODUCTS.length){
+    if (!HEAD.count){
       setStatus("No encontramos productos de esta marca.");
-      container.innerHTML = '<div class="empty"><strong>Sin productos de \u201c' + esc(BRAND_LABEL) + '\u201d</strong><span>Es posible que la marca no est\u00e9 en nuestro cat\u00e1logo actual. Prueba con el <a href="/search.html">buscador</a>.</span></div>';
+      container.innerHTML = '<div class="empty"><strong>Sin productos de “' + esc(BRAND_LABEL) + '”</strong><span>Es posible que la marca no esté en nuestro catálogo actual, o que el nombre en la URL no coincida. Prueba con el <a href="/search.html">buscador</a>.</span></div>';
       return;
     }
-    var html = "";
-    /* 1. Sales first — or Destacados when there are no sales. */
-    var sales = BRAND_PRODUCTS.filter(function(p){ return discountPct(p) > 0; });
-    sales.sort(function(a,b){ return discountPct(b) - discountPct(a); });
-    if (sales.length){
-      html += railHTML('ofertas', 'Ofertas de ' + BRAND_LABEL, sales);
-    } else {
-      var featured = BRAND_PRODUCTS.slice().sort(function(a,b){ return b.price - a.price; });
-      html += railHTML('destacados', 'Destacados de ' + BRAND_LABEL, featured);
-    }
-    /* 2. Category carousels. */
-    var byType = {};
-    BRAND_PRODUCTS.forEach(function(p){
-      var k = p.ptype || 'ropa';
-      (byType[k] = byType[k] || []).push(p);
-    });
-    PRODUCT_TYPES.forEach(function(t){
-      var list = byType[t.key] || [];
-      if (list.length) html += railHTML(t.key, t.label, list);
-    });
-    container.innerHTML = html;
-    /* 3. Wire up every Ver todo door. */
-    Array.prototype.forEach.call(container.querySelectorAll('.ver-todo'), function(btn){
-      btn.addEventListener('click', function(){
-        try{ openRailExpand(btn.getAttribute('data-rk'), btn.getAttribute('data-title')); }catch(e){}
-      });
-    });
-    setStatus('<span class="ok">' + BRAND_PRODUCTS.length.toLocaleString("es-PE") + " productos de " + esc(BRAND_LABEL) + ".</span>");
+    container.innerHTML = HEAD.rails.map(railHTML).join("");
+    watchPhotos(container);
+    watchRails(container);
+    setStatus('<span class="ok">' + HEAD.count.toLocaleString("es-PE") + " productos de " + esc(BRAND_LABEL) + ".</span>");
   }catch(e){
     setStatus('<span class="err">No pudimos mostrar los productos.</span> ' +
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   }
 }
 
-/* ---------- rail expand overlay ---------- */
+/* ---------- data ---------- */
+function getJSON(url){
+  var ctl = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = ctl ? setTimeout(function(){ ctl.abort(); }, 25000) : null;
+  return fetch(BASE + url, ctl ? { signal: ctl.signal } : {}).then(function(r){
+    if (timer) clearTimeout(timer);
+    if (!r.ok){ var err = new Error("HTTP " + r.status); err.status = r.status; throw err; }
+    return r.json();
+  }, function(e){ if (timer) clearTimeout(timer); throw e; });
+}
+/* The static head when the brand has one; the endpoint otherwise. */
+function loadHead(){
+  return getJSON(SLICES + encodeURIComponent(BRAND_KEY) + ".json").catch(function(e){
+    if (e && e.status === 404) return getJSON(ENDPOINT + "?marca=" + encodeURIComponent(BRAND_KEY));
+    throw e;
+  });
+}
+
+/* ---------- rail expand overlay: the whole carousel, 48 at a time ---------- */
+var OV = { rk: 0, page: -1, pages: 1, busy: false, seq: 0 };
 function openRailExpand(rk, title){
   try{
-    var list = RAIL_POOLS[rk] || [];
+    var r = HEAD && HEAD.rails[Number(rk)];
     var ov = el('railExpand');
     if (!ov) return;
     el('reTitle').textContent = title || 'Productos';
-    el('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
-    var html = "";
-    for (var i = 0; i < list.length; i++){
-      try{ html += cardHTML(list[i]); }catch(e){}
-    }
-    el('reGrid').innerHTML = html;
+    el('reCount').textContent = r ? r.count.toLocaleString("es-PE") + (r.count === 1 ? ' producto' : ' productos') : '';
+    el('reGrid').innerHTML = skeletons(6);
     ov.hidden = false;
     document.body.style.overflow = 'hidden';
     el('reGrid').scrollTop = 0;
+    OV = { rk: Number(rk), page: -1, pages: 1, busy: false, seq: OV.seq + 1 };
+    moreExpand(true);
   }catch(e){}
+}
+function moreExpand(first){
+  if (OV.busy || OV.page + 1 >= OV.pages) return;
+  OV.busy = true;
+  var seq = OV.seq, grid = el('reGrid');
+  var btn = el('reMore');
+  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  getJSON(ENDPOINT + "?marca=" + encodeURIComponent(BRAND_KEY) + "&rail=" + OV.rk + "&page=" + (OV.page + 1)).then(function(data){
+    if (seq !== OV.seq) return;
+    OV.busy = false; OV.page = data.page; OV.pages = data.pages;
+    var wrap = el('reMoreWrap'); if (wrap) wrap.remove();
+    if (first) grid.innerHTML = '';
+    grid.insertAdjacentHTML('beforeend', (data.cards || []).map(cardHTML).join(''));
+    if (OV.page + 1 < OV.pages) grid.insertAdjacentHTML('beforeend', '<div id="reMoreWrap" class="re-more"><button type="button" class="more-btn" id="reMore">Mostrar más</button></div>');
+    watchPhotos(grid);
+  }).catch(function(){
+    if (seq !== OV.seq) return;
+    OV.busy = false;
+    if (first) grid.innerHTML = '';
+    var wrap = el('reMoreWrap'); if (wrap) wrap.remove();
+    grid.insertAdjacentHTML('beforeend', '<div id="reMoreWrap" class="re-more"><p>No pudimos cargar los productos.</p><button type="button" class="more-btn" id="reMore">Reintentar</button></div>');
+  });
 }
 function closeRailExpand(){
   try{
     var ov = el('railExpand');
     if (ov) ov.hidden = true;
+    OV.seq++;
     document.body.style.overflow = '';
   }catch(e){}
 }
 window.closeRailExpand = closeRailExpand;
+document.addEventListener("click", function(e){
+  var t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest("#reMore")){ moreExpand(false); return; }
+  var b = t.closest(".ver-todo");
+  if (b) openRailExpand(b.getAttribute("data-rk"), b.getAttribute("data-title"));
+});
 
 /* ---------- boot ---------- */
-async function init(){
+function init(){
   try{
     BRAND_KEY = getBrandKeyFromUrl();
     var heroName = el("brandName"), heroSub = el("brandSub");
     if (!BRAND_KEY){
       if (heroName) heroName.textContent = "Marca no especificada";
       if (heroSub) heroSub.textContent = "Usa ?marca=<nombre> en la URL. Ej: marca.html?marca=nike";
-      setStatus('<span class="err">Falta el par\u00e1metro ?marca= en la URL.</span>');
+      setStatus('<span class="err">Falta el parámetro ?marca= en la URL.</span>');
       var railsA = el("rails");
       if (railsA) railsA.innerHTML = '<div class="empty"><strong>Sin marca</strong><span>Agrega <em>?marca=nike</em> a la URL para ver productos de Nike.</span></div>';
-      var pw = el("progress"); if (pw) pw.hidden = true;
       return;
     }
-    // Temporary title from key; replaced once products load
+    // Temporary title from key; replaced once the head arrives
     if (heroName) heroName.textContent = BRAND_KEY.charAt(0).toUpperCase() + BRAND_KEY.slice(1);
-
-    var wrap = el("progress"); if (wrap) wrap.hidden = false;
-    updateProgress();
+    setStatus("Cargando productos…");
     loadFx();
-
-    var lists = await Promise.allSettled(CATALOG_FILES.map(fetchOne));
-    var all = [];
-    lists.forEach(function(r){
-      if (r.status === "fulfilled" && Array.isArray(r.value)) all = all.concat(r.value);
-    });
-    // De-dupe
-    var seen = new Set(), uniq = [];
-    all.forEach(function(p){
-      var k = (p.retailer + "|" + (p.url || p.name)).toLowerCase();
-      if (!seen.has(k)){ seen.add(k); uniq.push(p); }
-    });
-    ALL_PRODUCTS = uniq;
-
-    if (!ALL_PRODUCTS.length){
-      setStatus('<span class="err">No pudimos cargar el catálogo.</span> ' +
+    loadHead().then(function(head){
+      if (!head || !Array.isArray(head.rails)) throw new Error("bad answer");
+      HEAD = head;
+      BRAND_LABEL = head.label || (BRAND_KEY.charAt(0).toUpperCase() + BRAND_KEY.slice(1));
+      if (heroName) heroName.textContent = BRAND_LABEL;
+      if (heroSub) heroSub.textContent = head.count.toLocaleString("es-PE") + " productos en tiendas de EE. UU.";
+      try{ document.title = BRAND_LABEL + " — Aria Shop"; }catch(e){}
+      renderRails();
+      afterFirstPhotos(heroImage);
+    }).catch(function(){
+      setStatus('<span class="err">No pudimos cargar los productos.</span> ' +
         '<button class="retry" onclick="location.reload()">Reintentar</button>');
-      if (heroName) heroName.textContent = "Error de cat\u00e1logo";
       var railsB = el("rails");
-      if (railsB) railsB.innerHTML = '<div class="empty"><strong>Sin cat\u00e1logo</strong><span>No se pudo cargar ning\u00fan cat\u00e1logo. Revisa tu conexi\u00f3n e int\u00e9ntalo de nuevo.</span></div>';
-      return;
-    }
-
-    BRAND_PRODUCTS = filterByBrand(ALL_PRODUCTS, BRAND_KEY);
-    BRAND_LABEL = deriveBrandLabel(BRAND_PRODUCTS) ||
-      (BRAND_KEY.charAt(0).toUpperCase() + BRAND_KEY.slice(1));
-
-    if (heroName) heroName.textContent = BRAND_LABEL;
-    if (heroSub) heroSub.textContent = BRAND_PRODUCTS.length.toLocaleString("es-PE") +
-      " productos en tiendas de EE. UU.";
-    /* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop from assets/brands/ */
-    try{
-      var _heroKey = (BRAND_KEY||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-      var _heroImg = document.getElementById('brandHeroBg');
-      var _heroScrim = document.getElementById('brandHeroScrim');
-      if (_heroImg){
-        _heroImg.src = 'assets/brands/' + _heroKey + '-hero.jpg';
-        _heroImg.hidden = false;
-        if (_heroScrim) _heroScrim.hidden = false;
-        _heroImg.onerror = function(){ _heroImg.hidden = true; if(_heroScrim) _heroScrim.hidden = true; };
-      }
-    }catch(_e){}
-    try{ document.title = BRAND_LABEL + " — Aria Shop"; }catch(e){}
-
-    if (!BRAND_PRODUCTS.length){
-      setStatus("No encontramos productos de esta marca.");
-      var rails0 = el("rails");
-      if (rails0) rails0.innerHTML = '<div class="empty"><strong>Sin productos de \u201c' + esc(BRAND_LABEL) + '\u201d</strong><span>Es posible que la marca no est\u00e9 en nuestro cat\u00e1logo actual, o que el nombre en la URL no coincida. Prueba con el <a href="/search.html">buscador</a>.</span></div>';
-      var pw2 = el("progress"); if (pw2) pw2.hidden = true;
-      return;
-    }
-
-    renderRails();
+      if (railsB) railsB.innerHTML = '<div class="empty"><strong>Sin conexión</strong><span>No pudimos traer los productos de esta marca. Revisa tu conexión e inténtalo de nuevo.</span></div>';
+    });
   }catch(e){
     setStatus('<span class="err">No se pudo iniciar la página.</span> ' +
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   }
+}
+/* BRAND HERO IMAGE (2026-10-07): brand-specific backdrop from
+   assets/brands/ -- decoration, so it waits for the first screen's
+   product photos (12s at most) instead of sharing a slow link. */
+function heroImage(){
+  try{
+    var _heroKey = (BRAND_KEY||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    var _heroImg = document.getElementById('brandHeroBg');
+    var _heroScrim = document.getElementById('brandHeroScrim');
+    if (_heroImg){
+      _heroImg.onload = function(){ _heroImg.hidden = false; if (_heroScrim) _heroScrim.hidden = false; };
+      _heroImg.onerror = function(){ _heroImg.hidden = true; if(_heroScrim) _heroScrim.hidden = true; };
+      _heroImg.src = 'assets/brands/' + _heroKey + '-hero.jpg';
+    }
+  }catch(_e){}
+}
+function afterFirstPhotos(fn){
+  var done = false;
+  function go(){ if (!done){ done = true; fn(); } }
+  setTimeout(go, 12000);
+  setTimeout(function check(){
+    if (done) return;
+    var imgs = document.querySelectorAll("#rails .card img"), vh = window.innerHeight || 800, waiting = 0;
+    for (var i = 0; i < imgs.length; i++){
+      var r = imgs[i].getBoundingClientRect();
+      if (r.top < vh && r.bottom > 0 && r.left < (window.innerWidth || 400) && r.right > 0 && (imgs[i].getAttribute("data-src") || !imgs[i].complete)) waiting++;
+    }
+    if (!waiting) go(); else setTimeout(check, 300);
+  }, 300);
 }
 
 init();
