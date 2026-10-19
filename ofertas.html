@@ -42,37 +42,63 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   padding:6px 12px;border-radius:999px;margin-bottom:12px}
 h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;letter-spacing:-.02em}
 .page-sub{margin:0 0 16px;color:#4b5563;font-size:15px;max-width:640px}
-.fresh{display:inline-block;font-size:12.5px;font-weight:700;color:var(--navy);
-  background:var(--yellow);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+/* Yellow is for sale badges only: the freshness line is green. */
+.fresh{display:inline-block;font-size:12.5px;font-weight:700;color:var(--green);
+  background:var(--green-bg);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+.fresh[hidden]{display:none}
 /* ---- toolbar ---- */
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center}
 .toolbar input[type="search"]{flex:1 1 220px;min-width:0;padding:11px 14px;font-size:14px;
   border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--navy)}
 .toolbar select{padding:11px 12px;font-size:14px;border:1px solid var(--line);
   border-radius:12px;background:#fff;color:var(--navy)}
-.count-line{font-size:13.5px;color:#4b5563;margin:0 0 14px}
+.count-line{font-size:13.5px;color:#4b5563;margin:0 0 14px;min-height:1.4em}
 /* ---- grid & cards ---- */
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:16px}}
 @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
 .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;
-  display:flex;flex-direction:column;position:relative}
-.card-img{position:relative;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
-.card-img img{width:100%;height:100%;object-fit:contain;display:block}
-.badge{position:absolute;top:8px;left:8px;background:var(--red);color:#fff;
+  display:flex;flex-direction:column;position:relative;min-width:0}
+/* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409): the photo
+   box is a square from the first paint -- aspect-ratio, plus the
+   padding-top square for Safari releases older than 15 -- and the
+   text rows reserve their lines, empty or not. */
+.card-img{position:relative;width:100%;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
+@supports not (aspect-ratio:1/1){.card-img{height:0;padding-top:100%}}
+.card-img img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block}
+/* Yellow is for sale badges only. */
+.badge{position:absolute;top:8px;left:8px;background:var(--yellow);color:var(--navy);
   font-size:12px;font-weight:800;padding:4px 9px;border-radius:999px;z-index:2}
 .store-tag{position:absolute;bottom:8px;left:8px;background:rgba(10,31,68,.85);color:#fff;
   font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;z-index:2;max-width:calc(100% - 16px);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card-body{padding:10px 12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
-.card-brand{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}
-.card-title{font-size:13.5px;font-weight:600;line-height:1.35;margin:0;
+.card-brand{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;
+  min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-title{font-size:13.5px;font-weight:600;line-height:1.35;margin:0;min-height:36px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.card-prices{margin-top:auto;padding-top:8px}
-.price-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.price{font-size:19px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
-.price-old{font-size:13.5px;color:#9aa1b2;text-decoration:line-through;font-variant-numeric:tabular-nums}
-.price-pen{font-size:12.5px;color:#4b5563;font-variant-numeric:tabular-nums}
+/* SOLES FIRST (#416): the price a shopper in Peru pays is the bold
+   one, the was-price struck through beside it; dollars are the small
+   grey reference. */
+.card-prices{margin-top:auto;padding-top:8px;min-height:50px}
+.price-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.price{font-size:18px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.price-old{font-size:12.5px;color:#9aa1b2;text-decoration:line-through;font-variant-numeric:tabular-nums}
+.price-usd{font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;min-height:16px}
+/* Placeholder cards: the same boxes, grey bars where the words go. */
+.card.sk .card-img{background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);
+  background-size:200% 100%;animation:sh 1.4s infinite}
+.card.sk i{display:block;height:10px;border-radius:5px;background:#eef0f4;margin:3px 0}
+.card.sk .card-title i:last-child{width:60%}
+.card.sk .card-brand i{width:40%}
+.card.sk .price i{height:16px;width:45%;margin-top:6px}
+.more-wrap{text-align:center;margin:22px 0 8px}
+.more-wrap .btn[disabled]{opacity:.6;cursor:default}
+.more-note{display:block;font-size:12.5px;color:#6b7280;margin-top:8px}
+.lane{margin:0 0 22px}
+.lane h2{font-size:17px;font-weight:800;margin:0 0 10px}
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+.rail .card{flex:0 0 42%;max-width:200px;scroll-snap-align:start}
 /* ---- states ---- */
 .state{border:1px dashed var(--line);border-radius:16px;background:#fff;
   padding:48px 24px;text-align:center;color:#4b5563;font-size:15px}
@@ -81,16 +107,8 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 .btn{display:inline-block;background:var(--blue);color:#fff;border:0;cursor:pointer;
   font-size:15px;font-weight:800;padding:12px 26px;border-radius:12px}
 .btn:hover{background:var(--blue-dark)}
-.skel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:640px){.skel-grid{grid-template-columns:repeat(3,1fr);gap:16px}}
-@media(min-width:1024px){.skel-grid{grid-template-columns:repeat(4,1fr)}}
-.skel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.skel .ph{aspect-ratio:1/1;background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);
-  background-size:200% 100%;animation:sh 1.4s infinite}
-.skel .ln{height:12px;border-radius:6px;background:#eef0f4;margin:10px 12px}
-.skel .ln.short{width:55%}
 @keyframes sh{to{background-position:-200% 0}}
-@media(prefers-reduced-motion:reduce){.skel .ph{animation:none}}
+@media(prefers-reduced-motion:reduce){.card.sk .card-img{animation:none}}
 /* ---- footer ---- */
 .site-footer{border-top:1px solid var(--line);background:#fff;margin-top:24px}
 .footer-inner{max-width:1240px;margin:0 auto;padding:28px 12px;font-size:13px;color:#6b7280;
@@ -122,7 +140,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
   <span class="eyebrow">Ofertas reales</span>
   <h1 class="page-title">Ofertas</h1>
   <p class="page-sub">Descuentos verificados de tiendas de Estados Unidos, con el precio honesto que pagas puesto en Perú.</p>
-  <div><span class="fresh" id="freshBadge" hidden></span></div>
+  <div style="min-height:46px"><span class="fresh" id="freshBadge" hidden></span></div>
 
   <div class="toolbar">
     <input type="search" id="q" placeholder="Busca en las ofertas…" aria-label="Buscar en las ofertas" autocomplete="off">
@@ -138,15 +156,15 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
   <p class="count-line" id="countLine"></p>
 
   <div id="content">
-    <div class="skel-grid" id="skeleton" aria-hidden="true">
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+    <div class="grid" id="skeleton" aria-hidden="true">
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
     </div>
   </div>
   <noscript>
@@ -267,14 +285,28 @@ var RETAILER_LABELS = {
 };
 
 /* ---------- config ---------- */
-var BASE = 'https://ariashop.pe';
+/* THIN OFERTAS (2026-10-19, #409, the Mountain Test). This page used to
+   download ofertas-feed-lite.json -- 800 full feed items with sizes,
+   descriptions and weights, ~100KB gzipped -- and draw every deal at
+   once (~750 cards), and it only ever saw the four stores at the head
+   of the feed. Now:
+     - the first 48 deals of the chosen store and sort are a static
+       slice (assets/ofertas/slices/<store|all>.<sort>.json, ~5KB
+       gzipped), built by scripts/build-ofertas-slices.mjs;
+     - "Mostrar más" and the search box ask /.netlify/functions/ofertas
+       for 48 more (the same order: netlify/functions/_ofertas-core.js);
+     - a photo loads when its card is about to be seen (watchPhotos).
+   Every URL is same-origin: the page works on a deploy preview too. */
+var BASE = '';
 var SRC = {
-  lite:  BASE + '/ofertas-feed-lite.json',
-  full:  BASE + '/ofertas-feed.json',
+  slice: BASE + '/assets/ofertas/slices/',
+  fn:    BASE + '/.netlify/functions/ofertas',
   cache: BASE + '/.netlify/functions/sales-cache',
   fx:    BASE + '/.netlify/functions/exchange-rate'
 };
 var TIMEOUT_MS = 20000;      // per-request timeout: never hang forever
+var PAGE_SIZE = 48;          // cards drawn per step, never more
+var CACHE_LANE_MAX = 16;     // the live-scan lane's cap
 
 /* ---------- tiny helpers ---------- */
 /* Sized retailer derivatives (2026-10-16) -- the same rules the app
@@ -409,11 +441,6 @@ function storeLabel(key){
   if (RETAILER_LABELS[key]) return RETAILER_LABELS[key];
   return String(key).replace(/[-_]+/g,' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
 }
-function money(n){
-  var v = Number(n);
-  if (!Number.isFinite(v)) return '—';
-  return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
-}
 /* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule, served as
    sale-rule.js -- a real was-price, 5-70% off. 0 = not on sale. */
 function discountPct(p){
@@ -473,177 +500,210 @@ function fetchJson(url){
   });
 }
 
-/* ---------- state ---------- */
-var allDeals = [];      // normalized deal items
-var fxVenta = null;     // PEN per USD (venta), null until loaded
-var generatedAt = null; // feed timestamp for the freshness badge
-
-/* ---------- data loading: 3 sources, best-first ---------- */
-function loadDeals(){
-  var liteItems = [], liteAt = null;
-  var fullItems = [], fullAt = null;
-  var cacheItems = [], cacheAt = null;
-
-  function fromFeed(json){
-    if (!json || !Array.isArray(json.items)) return { items: [], at: null };
-    return { items: json.items, at: json.generatedAt || null };
-  }
-
-  // Source 1: lite feed (fast, 800 items). Source 2: full feed.
-  // Source 3: Netlify sales-cache (scraped deals). Merge all, dedupe.
-  return fetchJson(SRC.lite).then(function(j){
-    var r = fromFeed(j); liteItems = r.items; liteAt = r.at;
-  }, function(){ /* fall through */ }).then(function(){
-    if (liteItems.length) return null; // lite is enough to paint
-    return fetchJson(SRC.full).then(function(j){
-      var r = fromFeed(j); fullItems = r.items; fullAt = r.at;
-    }, function(){ /* fall through */ });
-  }).then(function(){
-    return fetchJson(SRC.cache).then(function(j){
-      var r = fromFeed(j); cacheItems = r.items; cacheAt = r.at;
-    }, function(){ /* cache is optional */ });
-  }).then(function(){
-    var seen = {}, merged = [];
-    function push(items){
-      for (var i = 0; i < items.length; i++){
-        var p = items[i];
-        if (!p) continue;
-        var k = (p.retailer || '') + '::' + (p.title || '');
-        if (seen[k]) continue;
-        seen[k] = 1;
-        merged.push(p);
-      }
+/* ---------- soles, always (#416) ----------
+   The site's own rate: the same endpoint and 24-hour cache key the
+   home page, search and checkout use. Asked for alongside the first
+   slice, so it costs no extra round trip. Only if both fail does a
+   card show dollars, plainly labelled, rather than nothing. */
+var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var fxVenta = null;     // PEN per USD (venta)
+var fxPromise = null;
+function pageRate(){
+  if (fxVenta) return Promise.resolve(fxVenta);
+  try {
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+    if (c && typeof c.venta === 'number' && c.venta > 0 && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){
+      fxVenta = c.venta;
+      return Promise.resolve(fxVenta);
     }
-    push(cacheItems); push(liteItems); push(fullItems);
-    generatedAt = cacheAt || liteAt || fullAt || null;
-    allDeals = merged.filter(isDeal);
-    return allDeals;
-  });
-}
-
-/* ---------- FX rate (non-blocking, PEN display only) ---------- */
-function loadFx(){
-  fetchJson(SRC.fx).then(function(j){
+  } catch (e) { /* private mode: ask the server */ }
+  if (fxPromise) return fxPromise;
+  fxPromise = fetchJson(SRC.fx).then(function(j){
     var v = Number(j && (j.venta || j.Venta));
     if (Number.isFinite(v) && v > 0){
       fxVenta = v;
-      try { renderPenPrices(); } catch (e) { /* PEN line is decorative */ }
+      try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, j, { venta: v, fetchedAt: Date.now() }))); } catch (e) {}
     }
-  }, function(){ /* USD-only is fine */ });
+    return fxVenta;
+  }, function(){ fxPromise = null; return null; });
+  return fxPromise;
+}
+function fmtPen(n){ return 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtUsd(n){ return 'US$ ' + Number(n).toFixed(2); }
+
+/* ---------- state ---------- */
+var S = {
+  store: '', sort: 'discount', q: '',
+  page: 0, pages: 0, total: 0,
+  shown: {},            // ids drawn, so a page boundary never repeats a card
+  stores: null,         // [{key, label, n}] from the first slice
+  generatedAt: null,
+  view: 0,              // bumps on every filter change; late answers are dropped
+  loadingMore: false,
+  cacheDeals: null      // live-scan deals from the sales cache, or []
+};
+
+function sliceUrl(){
+  return SRC.slice + encodeURIComponent(S.store || 'all') + '.' + S.sort + '.json';
+}
+function fnUrl(page){
+  return SRC.fn + '?store=' + encodeURIComponent(S.store) + '&sort=' + encodeURIComponent(S.sort) +
+    '&q=' + encodeURIComponent(S.q) + '&page=' + page;
+}
+/* Page 1 without a search is a static file; if it is missing the
+   function answers the same page. A search is always the function. */
+function fetchFirstPage(){
+  if (S.q) return fetchJson(fnUrl(1));
+  return fetchJson(sliceUrl()).then(null, function(){ return fetchJson(fnUrl(1)); });
+}
+
+/* ---------- photos load when their card is about to be seen ----------
+   search.html's watchPhotos (#409): native loading="lazy" fetched
+   every photo of a carousel at once on a slow link (1.2MB, measured);
+   an IntersectionObserver with a 200px margin gives the first screen's
+   photos the link to themselves, and the rest come as the shopper
+   scrolls or swipes. */
+var PHOTO_IO = null;
+function showPhoto(img){
+  if (!img || !img.dataset.src) return;
+  if (img.dataset.srcset){ img.srcset = img.dataset.srcset; img.sizes = img.dataset.sizes || ''; }
+  img.src = img.dataset.src;
+  img.removeAttribute('data-src');
+  img.removeAttribute('data-srcset');
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll('img[data-src]');
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < imgs.length; i++) showPhoto(imgs[i]); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      showPhoto(e.target);
+      var rail = e.target.closest('.rail'), card = e.target.closest('.card');
+      if (rail && rail.scrollLeft > 0 && card && card.nextElementSibling) showPhoto(card.nextElementSibling.querySelector('img[data-src]'));
+    });
+  }, { rootMargin: '200px 0px' });
+  for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
 }
 
 /* ---------- rendering ---------- */
-function currentFilters(){
-  var q = (($('q') || {}).value || '').trim().toLowerCase();
-  var sort = (($('sort') || {}).value || 'discount');
-  var store = (($('store') || {}).value || '');
-  return { q: q, sort: sort, store: store };
+var SK_CARD = '<div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body">' +
+  '<div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div>' +
+  '<div class="card-prices"><div class="price"><i></i></div></div></div></div>';
+function skeletons(n){ var h = ''; for (var i = 0; i < n; i++) h += SK_CARD; return h; }
+
+function priceHTML(c){
+  var usd = Number(c.usd), was = Number(c.wasUsd);
+  if (fxVenta){
+    return '<div class="price-row"><span class="price">' + fmtPen(usd * fxVenta) + '</span>' +
+      (was > usd ? '<span class="price-old">' + fmtPen(was * fxVenta) + '</span>' : '') + '</div>' +
+      '<div class="price-usd">' + fmtUsd(usd) + '</div>';
+  }
+  /* No rate from the server or the cache: dollars, labelled, never blank. */
+  return '<div class="price-row"><span class="price">' + fmtUsd(usd) + '</span>' +
+    (was > usd ? '<span class="price-old">' + fmtUsd(was) + '</span>' : '') + '</div>' +
+    '<div class="price-usd">&nbsp;</div>';
 }
-function filteredDeals(){
-  var f = currentFilters();
-  var pool = allDeals;
-  if (f.store) pool = pool.filter(function(p){ return String(p.retailer) === f.store; });
-  if (f.q) pool = pool.filter(function(p){
-    var t = ((p.title || '') + ' ' + (p.brand || '')).toLowerCase();
-    return t.indexOf(f.q) !== -1;
-  });
-  var arr = pool.slice();
-  if (f.sort === 'priceAsc') arr.sort(function(a,b){ return Number(a.price) - Number(b.price); });
-  else if (f.sort === 'priceDesc') arr.sort(function(a,b){ return Number(b.price) - Number(a.price); });
-  else arr.sort(function(a,b){ return discountPct(b) - discountPct(a); });
-  return arr;
-}
-function cardHTML(p){
-  var img = realImage(p);
-  var pct = discountPct(p);
-  var brand = p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '';
-  /* THE CARD IS A LINK NOW. It was an <article> with no href and no
-     handler — every deal on this page was dead to the touch. It
-     carries the store as well as the name so the product page can
-     read one catalogue instead of sixty-three. */
-  var href = 'producto.html?producto=' + encodeURIComponent(p.title || '')
-    + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
-  return '<a class="card" href="' + esc(href) + '">' +
+function cardHTML(c){
+  var pct = Number(c.pct) || 0;
+  var title = decodeEntitiesText(c.title || '') || 'Producto';
+  /* The card links into Aria's own product page, with the store, so it
+     reads one catalogue. Never out to the retailer. */
+  var href = 'producto.html?producto=' + encodeURIComponent(title) +
+    (c.store ? '&tienda=' + encodeURIComponent(c.store) : '');
+  /* src/srcset parked in data- until the card is about to be seen. */
+  var img = c.image
+    ? '<img ' + cardImgAttrs(c.image, '(max-width: 640px) 46vw, 300px').replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
+      ' alt="' + esc(title) + '" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
+    : '';
+  return '<a class="card" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '">' +
     '<div class="card-img">' +
-      '<span class="badge">-' + pct + '%</span>' +
-      (img ? '<img ' + cardImgAttrs(img, "(max-width: 640px) 46vw, 600px") + ' alt="' + esc(p.title || 'Producto') + '" loading="lazy" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">' : '') +
-      '<span class="store-tag">' + esc(storeLabel(p.retailer)) + '</span>' +
+      (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img +
+      '<span class="store-tag">' + esc(storeName(c.store)) + '</span>' +
     '</div>' +
-    '<div class="card-body">' + brand +
-      '<h3 class="card-title">' + esc(p.title || 'Producto') + '</h3>' +
-      '<div class="card-prices"><div class="price-row">' +
-        '<span class="price">' + money(p.price) + '</span>' +
-        '<span class="price-old">' + money(window.AriaSale.originalPrice(p)) + '</span>' +
-      '</div>' +
-      '<div class="price-pen" data-usd="' + esc(p.price) + '"' + (fxVenta ? '' : ' hidden') + '>' +
-        (fxVenta ? 'S/ ' + (Number(p.price) * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) : '') +
-      '</div></div>' +
+    '<div class="card-body">' +
+      '<div class="card-brand">' + (c.brand ? esc(c.brand) : '&nbsp;') + '</div>' +
+      '<h3 class="card-title">' + esc(title) + '</h3>' +
+      '<div class="card-prices">' + priceHTML(c) + '</div>' +
     '</div></a>';
 }
-function renderPenPrices(){
-  if (!fxVenta) return;
-  var els = document.querySelectorAll('.price-pen');
-  for (var i = 0; i < els.length; i++){
-    var usd = Number(els[i].getAttribute('data-usd'));
-    if (!Number.isFinite(usd)) continue;
-    els[i].hidden = false;
-    els[i].textContent = 'S/ ' + (usd * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2});
+function storeName(key){
+  if (S.stores){
+    for (var i = 0; i < S.stores.length; i++) if (S.stores[i].key === key && S.stores[i].label) return S.stores[i].label;
   }
+  return storeLabel(key);
+}
+function cardsHTML(items){
+  var html = '';
+  for (var i = 0; i < items.length; i++){
+    var c = items[i];
+    if (!c || (c.id && S.shown[c.id])) continue;
+    if (c.id) S.shown[c.id] = 1;
+    try { html += cardHTML(c); } catch (e) { /* one bad card never kills the grid */ }
+  }
+  return html;
+}
+function moreHTML(){
+  if (S.page >= S.pages) return '';
+  var seen = Math.min(S.page * PAGE_SIZE, S.total);
+  return '<div class="more-wrap" id="moreWrap"><button class="btn" id="moreBtn" type="button">Mostrar más</button>' +
+    '<span class="more-note" id="moreNote">Viendo ' + seen.toLocaleString('es-PE') + ' de ' + S.total.toLocaleString('es-PE') + '</span></div>';
+}
+function renderCount(){
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = S.total ? S.total.toLocaleString('es-PE') + (S.total === 1 ? ' oferta real' : ' ofertas reales') : '';
 }
 function renderFresh(){
   var b = $('freshBadge');
   if (!b) return;
-  var rel = relTime(generatedAt);
+  var rel = relTime(S.generatedAt);
   if (rel){ b.hidden = false; b.textContent = 'Actualizado ' + rel; }
   else { b.hidden = true; }
 }
 function renderStoreFilter(){
   var sel = $('store');
-  if (!sel) return;
-  var cur = sel.value;
-  var map = {};
-  for (var i = 0; i < allDeals.length; i++){ map[allDeals[i].retailer] = 1; }
-  var keys = Object.keys(map).sort(function(a,b){
-    return storeLabel(a).localeCompare(storeLabel(b), 'es');
+  if (!sel || !S.stores) return;
+  var keys = S.stores.slice().sort(function(a, b){
+    return storeName(a.key).localeCompare(storeName(b.key), 'es');
   });
   var html = '<option value="">Todas las tiendas</option>';
   for (var j = 0; j < keys.length; j++){
-    var k = keys[j];
-    html += '<option value="' + esc(k) + '"' + (k === cur ? ' selected' : '') + '>' + esc(storeLabel(k)) + '</option>';
+    var k = keys[j].key;
+    html += '<option value="' + esc(k) + '"' + (k === S.store ? ' selected' : '') + '>' + esc(storeName(k)) + '</option>';
   }
   sel.innerHTML = html;
 }
-function render(){
+/* The first page of a view: the grid, then "Mostrar más". */
+function renderView(data){
   var host = $('content');
   if (!host) return;
-  var deals;
-  try { deals = filteredDeals(); }
-  catch (e){ return renderError('No pudimos ordenar las ofertas.', true); }
-  var cnt = $('countLine');
-  if (cnt) cnt.textContent = deals.length
-    ? deals.length.toLocaleString('es-PE') + ' ofertas reales'
-    : '';
-  if (!allDeals.length){
-    // Sources answered but nothing qualified: say so plainly, never blank.
-    host.innerHTML = '<div class="state"><h2>Estamos actualizando las ofertas</h2>' +
-      '<p>Vuelve en unos minutos — las revisamos varias veces al día.</p>' +
-      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
-    bindRetry();
-    return;
-  }
-  if (!deals.length){
-    host.innerHTML = '<div class="state"><h2>Sin resultados</h2>' +
-      '<p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>';
-    return;
-  }
-  var html = '<div class="grid">';
-  for (var i = 0; i < deals.length; i++){
-    try { html += cardHTML(deals[i]); }
-    catch (e) { /* one bad card never kills the grid */ }
-  }
-  html += '</div>';
-  host.innerHTML = html;
+  S.shown = {};
+  S.page = data.page || 1;
+  S.pages = data.pages || 1;
+  S.total = data.total || 0;
+  if (data.generatedAt) S.generatedAt = data.generatedAt;
+  if (!S.stores && Array.isArray(data.stores)){ S.stores = data.stores; renderStoreFilter(); }
+  renderCount();
   renderFresh();
+  if (!S.total){
+    host.innerHTML = laneHTML() + (S.q || S.store
+      ? '<div class="state"><h2>Sin resultados</h2><p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>'
+      : '<div class="state"><h2>Estamos actualizando las ofertas</h2>' +
+        '<p>Vuelve en unos minutos — las revisamos varias veces al día.</p>' +
+        '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>');
+    bindRetry();
+    watchPhotos(host);
+    return;
+  }
+  host.innerHTML = laneHTML() + '<div class="grid" id="grid">' + cardsHTML(data.items || []) + '</div>' + moreHTML();
+  bindMore();
+  watchPhotos(host);
+}
+function renderLoading(){
+  var host = $('content');
+  if (!host) return;
+  host.innerHTML = '<div class="grid" aria-hidden="true">' + skeletons(8) + '</div>';
 }
 function renderError(msg, allowRetry){
   var host = $('content');
@@ -655,45 +715,164 @@ function renderError(msg, allowRetry){
 }
 function bindRetry(){
   var b = $('retryBtn');
-  if (b) b.addEventListener('click', function(){ boot(true); });
+  if (b) b.addEventListener('click', function(){ openView(); });
+}
+function bindMore(){
+  var b = $('moreBtn');
+  if (!b) return;
+  b.addEventListener('click', showMore);
+  /* The next 48 are asked for while the shopper scrolls toward the
+     button (a few KB), so on a 2-second link the tap answers at once. */
+  if (typeof IntersectionObserver !== 'function') return;
+  var io = new IntersectionObserver(function(entries){
+    if (!entries.some(function(e){ return e.isIntersecting; })) return;
+    io.disconnect();
+    nextPage();
+  }, { rootMargin: '900px 0px' });
+  io.observe(b);
+}
+/* One request per next page, shared by the prefetch and the tap. */
+var NEXT = null;   // { key, promise }
+function nextPage(){
+  var key = S.view + ':' + (S.page + 1);
+  if (NEXT && NEXT.key === key) return NEXT.promise;
+  var p = fetchJson(fnUrl(S.page + 1));
+  NEXT = { key: key, promise: p };
+  p.then(null, function(){ if (NEXT && NEXT.key === key) NEXT = null; });
+  return p;
 }
 
-/* ---------- boot ---------- */
-var booted = false;
-function boot(isRetry){
-  if (booted && !isRetry) return;
-  booted = true;
-  if (isRetry) renderLoading();
-  loadFx(); // background, never blocks
-  loadDeals().then(function(){
-    try {
-      renderStoreFilter();
-      render();
-    } catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
+/* ---------- a view: store x sort x search ---------- */
+function openView(){
+  var my = ++S.view;
+  S.loadingMore = false;
+  if (my > 1) renderLoading();   // the first view shows the HTML placeholders
+  Promise.all([fetchFirstPage(), pageRate()]).then(function(r){
+    if (my !== S.view) return;
+    try { renderView(r[0] || {}); }
+    catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
+    if (!S.cacheDeals) loadCacheDeals();
   }, function(){
+    if (my !== S.view) return;
     renderError('No pudimos cargar las ofertas. Revisa tu conexión e inténtalo de nuevo.', true);
   });
 }
-function renderLoading(){
-  var host = $('content');
-  if (!host) return;
-  host.innerHTML = '<div class="state"><h2>Cargando ofertas…</h2>' +
-    '<p>Buscando los mejores descuentos.</p></div>';
+
+/* "Mostrar más": the next 48, drawn under the ones already there. */
+function showMore(){
+  if (S.loadingMore || S.page >= S.pages) return;
+  var my = S.view, grid = $('grid'), btn = $('moreBtn');
+  if (!grid) return;
+  S.loadingMore = true;
+  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  grid.insertAdjacentHTML('beforeend', skeletons(4));
+  function dropSkeletons(){
+    var sk = grid.querySelectorAll('.card.sk');
+    for (var i = 0; i < sk.length; i++) sk[i].parentNode.removeChild(sk[i]);
+  }
+  Promise.all([nextPage(), pageRate()]).then(function(r){
+    if (my !== S.view) return;
+    S.loadingMore = false;
+    dropSkeletons();
+    var data = r[0] || {};
+    S.page = data.page || S.page + 1;
+    S.pages = data.pages || S.pages;
+    grid.insertAdjacentHTML('beforeend', cardsHTML(data.items || []));
+    watchPhotos(grid);
+    var wrap = $('moreWrap');
+    if (wrap){
+      var html = moreHTML();
+      if (!html) wrap.parentNode.removeChild(wrap);
+      else { wrap.insertAdjacentHTML('afterend', html); wrap.parentNode.removeChild(wrap); bindMore(); }
+    }
+  }, function(){
+    if (my !== S.view) return;
+    S.loadingMore = false;
+    dropSkeletons();
+    if (btn){ btn.disabled = false; btn.textContent = 'Reintentar'; }
+    var note = $('moreNote');
+    if (note) note.textContent = 'No pudimos cargar más ofertas. Revisa tu conexión.';
+  });
+}
+
+/* ---------- the live scan (sales cache), optional ----------
+   Deals a store scan donated to the server cache (sales-cache.js; cold
+   most of the time). Asked for after the first paint, never before;
+   shown as one capped lane above the grid, filtered like the grid. */
+function loadCacheDeals(){
+  S.cacheDeals = [];
+  fetchJson(SRC.cache).then(function(j){
+    var items = (j && Array.isArray(j.items)) ? j.items : [];
+    var out = [], seen = {};
+    for (var i = 0; i < items.length; i++){
+      var p = items[i];
+      if (!isDeal(p)) continue;
+      var k = (p.retailer || '') + '::' + (p.title || '');
+      if (seen[k]) continue;
+      seen[k] = 1;
+      out.push({ id: 'live-' + i, title: p.title || '', brand: p.brand || '', store: String(p.retailer || ''),
+        usd: Number(p.price), wasUsd: window.AriaSale.originalPrice(p), pct: discountPct(p), image: realImage(p) });
+    }
+    S.cacheDeals = out;
+    if (j && j.generatedAt && (!S.generatedAt || j.generatedAt > S.generatedAt)){ S.generatedAt = j.generatedAt; renderFresh(); }
+    if (!out.length) return;
+    var host = $('content');
+    if (!host || $('liveLane')) return;
+    var html = laneHTML();
+    if (!html) return;
+    /* Above the grid while the shopper is still at the top; below it
+       once they have scrolled, so nothing jumps under their thumb. */
+    var grid = $('grid');
+    if ((window.scrollY || 0) < 40 || !grid) host.insertAdjacentHTML('afterbegin', html);
+    else { var w = $('moreWrap') || grid; w.insertAdjacentHTML('afterend', html); }
+    watchPhotos($('liveLane'));
+  }, function(){ /* the cache is optional */ });
+}
+function laneHTML(){
+  if (!S.cacheDeals || !S.cacheDeals.length) return '';
+  var words = S.q.toLowerCase().split(/\s+/).filter(Boolean), picked = [];
+  for (var i = 0; i < S.cacheDeals.length && picked.length < CACHE_LANE_MAX; i++){
+    var c = S.cacheDeals[i];
+    if (S.store && c.store !== S.store) continue;
+    var t = (c.title + ' ' + c.brand).toLowerCase();
+    if (words.some(function(w){ return t.indexOf(w) < 0; })) continue;
+    picked.push(c);
+  }
+  if (!picked.length) return '';
+  picked.sort(function(a, b){
+    if (S.sort === 'priceAsc') return a.usd - b.usd;
+    if (S.sort === 'priceDesc') return b.usd - a.usd;
+    return b.pct - a.pct;
+  });
+  var html = '';
+  for (var j = 0; j < picked.length; j++){ try { html += cardHTML(picked[j]); } catch (e) {} }
+  return '<section class="lane" id="liveLane" aria-label="Recién revisadas en tienda"><h2>Recién revisadas en tienda</h2>' +
+    '<div class="rail">' + html + '</div></section>';
+}
+
+/* ---------- boot ---------- */
+function readUI(){
+  S.q = (($('q') || {}).value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  S.sort = (($('sort') || {}).value || 'discount');
+  S.store = (($('store') || {}).value || '');
 }
 function bindUI(){
   var q = $('q'), s = $('sort'), st = $('store');
   var t = null;
+  function change(){ var before = S.store + '|' + S.sort + '|' + S.q; readUI(); if (before !== S.store + '|' + S.sort + '|' + S.q) openView(); }
+  /* A search asks the server: wait until the typing pauses. */
   if (q) q.addEventListener('input', function(){
     if (t) clearTimeout(t);
-    t = setTimeout(function(){ try { render(); } catch (e) {} }, 180);
+    t = setTimeout(function(){ try { change(); } catch (e) {} }, 400);
   });
-  if (s) s.addEventListener('change', function(){ try { render(); } catch (e) {} });
-  if (st) st.addEventListener('change', function(){ try { render(); } catch (e) {} });
+  if (s) s.addEventListener('change', function(){ try { change(); } catch (e) {} });
+  if (st) st.addEventListener('change', function(){ try { change(); } catch (e) {} });
 }
 
 try {
   bindUI();
-  boot(false);
+  readUI();
+  openView();
 } catch (e) {
   renderError('No pudimos iniciar la página de ofertas.', true);
 }
