@@ -97,6 +97,7 @@ export function productsFromIndex(index) {
       onSale: r[at.onSale] === 1, departments: r[at.department] ? [r[at.department]] : [],
       finalPrice: r[at.finalPrice] === 1, image: r[at.image], url: "",
       retailer: r[at.retailer] || "", _cat: r[at.cat] || null,
+      reviews: r[at.reviews] || 0, rating: r[at.rating] || 0,
     };
   }
   return out;
@@ -202,6 +203,311 @@ export function didYouMean(ctx, q, r) {
   return changed ? out.join(" ") : null;
 }
 
+/* ============================================================
+   THE MALL, NOT A WALL (2026-10-19, #416: Danny on "dolls").
+
+   "We cannot lead with an $80 doll -- Peruvians are going to run
+   away." "Don't put me a Cabbage Patch Kid for $90 as one of the
+   first options in any area." A browse query ("dolls", "muñecas",
+   "vestidos") opens the mall: a carousel of sales first, then the
+   best-sellers, then everything. A specific query ("adidas samba",
+   "barbie", "airpods") leads with what was asked for, and the
+   carousels follow.
+
+   The lead slots of every lane -- its first LEAD_SLOTS cards, and the
+   first cards of a browse query's grid -- are reserved for products
+   a shopper in Peru will take: a RECOGNIZED brand or a sale, at an
+   ACCESSIBLE price for this search. Nothing from an obscure brand at
+   a premium price ever leads; premium is sprinkled further along.
+
+   Every judgement is relative to the search's own results, so a
+   "cheap" vestido and a "cheap" laptop are each cheap for their
+   aisle:
+     accessible  final price at or under the demand-weighted median of the
+                 aisle's mass-market prices (see bandsOf);
+     premium     above its 80th percentile;
+     recognized  a brand the whole catalogue carries in depth
+                 (BRAND_MIN_PRODUCTS products at 2+ stores, or
+                 BRAND_MIN_REVIEWS reviews), read from the brand
+                 field or, when a store left it empty, from the
+                 start of the title ("Barbie Royal Fashion Doll");
+     demand      the store's review count and rating, where it
+                 published them.
+   ============================================================ */
+export const LEAD_SLOTS = 6;
+export const LANE_SIZE = 16;
+const BRAND_MIN_PRODUCTS = 25;
+const BRAND_MIN_REVIEWS = 5000;
+const LANE_MIN = 4;              // a lane with fewer cards is not drawn
+const BESTSELLER_MIN = 6;        // reviewed products needed to say "Más vendidos"
+const GENERIC_MIN_HITS = 60;     // a one-word browse query finds an aisle, not a model
+
+const brandKey = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+
+/* The catalogue's well-known brands, computed once per container. */
+function brandTable(ctx) {
+  if (ctx._brands) return ctx._brands;
+  const stats = new Map();
+  for (const p of ctx.products) {
+    const k = brandKey(p.brand);
+    if (!k) continue;
+    let s = stats.get(k);
+    if (!s) stats.set(k, s = { n: 0, stores: new Set(), reviews: 0 });
+    s.n++; s.stores.add(p.retailer); s.reviews += p.reviews || 0;
+  }
+  const known = new Set(), marquee = new Set();
+  let longest = 1;
+  for (const [k, s] of stats) {
+    if ((s.n >= BRAND_MIN_PRODUCTS && s.stores.size >= 2) || s.reviews >= BRAND_MIN_REVIEWS) {
+      known.add(k);
+      longest = Math.max(longest, k.split(" ").length);
+    }
+    /* MARQUEE: a name sold everywhere (Nike at 16 stores, Barbie and
+       Skechers at 3, LEGO's 669 products at 2), not a store's own
+       label that is recognized only through its store's reviews
+       (Athletic Works, Time and Tru: Walmart only). */
+    if (s.stores.size >= 3 || (s.stores.size >= 2 && s.n >= 200) || s.n >= 500) marquee.add(k);
+  }
+  return (ctx._brands = { known, marquee, longest });
+}
+
+/** Is this recognized brand a marquee one? */
+export function isMarquee(ctx, brand) {
+  return !!brand && brandTable(ctx).marquee.has(brand);
+}
+
+/* The product's brand if it is a recognized one, else "". */
+export function recognizedBrand(ctx, p) {
+  const T = brandTable(ctx);
+  const own = brandKey(p.brand);
+  if (own) return T.known.has(own) ? own : "";
+  const words = brandKey(p.title).split(" ");
+  for (let n = Math.min(T.longest, words.length); n >= 1; n--) {
+    const k = words.slice(0, n).join(" ");
+    if (T.known.has(k)) return k;
+  }
+  return "";
+}
+
+const usdOf = (p) => (p.finalPrice ? Number(p.price) : finalUsd(p.price, p.retailer));
+const onSaleOf = (p) => Number(p.originalPrice) > Number(p.price);
+const discountOf = (p) => (onSaleOf(p) ? 1 - Number(p.price) / Number(p.originalPrice) : 0);
+const demandOf = (p) => Math.log10(1 + (p.reviews || 0)) * (p.rating ? p.rating / 5 : 0.8);
+
+/** Is this a browse query (an aisle) rather than a specific product? */
+export function isGenericQuery(ctx, r) {
+  const kinds = (r && r.kinds) || [];
+  if (!kinds.length || kinds.includes("brand")) return false;
+  if (/\d/.test(String(r.query || ""))) return false;
+  if (kinds.every((k) => k === "word")) return true;
+  /* "dolls" and "sneakers" are not dictionary words (the dictionary is
+     Spanish -> English), so a word the dictionary does not know is an
+     aisle when it finds many products and no named brand holds half
+     of them ("samba" is almost all adidas; "airpods" all Apple). */
+  const hits = r.hits || [];
+  if (hits.length < GENERIC_MIN_HITS) return false;
+  const by = new Map();
+  let named = 0;
+  for (const p of hits) {
+    const k = recognizedBrand(ctx, p) || brandKey(p.brand);
+    if (!k) continue;
+    named++;
+    by.set(k, (by.get(k) || 0) + 1);
+  }
+  const top = Math.max(0, ...by.values());
+  return named === 0 || top / named < 0.5;
+}
+
+/* THE AISLE. The engine matches words, so "dolls" also finds a men's
+   T-shirt from a brand called Former Doll, and "vestidos" finds bags
+   named after dresses. A lane is a shelf of the aisle the search is
+   about: the departments holding a real share of the results (10% of
+   all of them, or 1% of them and 10% of the top 100 -- Walmart's
+   dresses are 2% of "vestidos" but a third of its best matches). Catch-all
+   departments (clearance, general) belong to every aisle. */
+const NEUTRAL_DEPTS = new Set(["", "clearance", "general", "sale", "sales", "ofertas", "deals"]);
+function aisleOf(hits) {
+  const all = new Map(), top = new Map();
+  hits.forEach((p, i) => {
+    const d = (p.departments && p.departments[0]) || "";
+    all.set(d, (all.get(d) || 0) + 1);
+    if (i < 100) top.set(d, (top.get(d) || 0) + 1);
+  });
+  const n = hits.length, t = Math.min(100, n), keep = new Set(NEUTRAL_DEPTS);
+  for (const [d, c] of all) {
+    if (c / n >= 0.1 || (c / n >= 0.01 && (top.get(d) || 0) / t >= 0.1)) keep.add(d);
+  }
+  return (p) => keep.has((p.departments && p.departments[0]) || "");
+}
+
+/* Quantiles of the aisle's mass-market prices, weighted by demand
+   (see bandsOf). Measured on the battery: at the median, "vestidos"
+   called a S/ 400 dress accessible. */
+const ACCESSIBLE_Q = 0.5, PREMIUM_Q = 0.8;
+
+/* Price bands of this search's own aisle, read from its MASS-MARKET
+   part (recognized brands, or products a store published reviews for)
+   when there is enough of it: "vestidos" also finds 1,000 designer
+   dresses, and their prices must not make a S/ 375 dress look
+   ordinary. */
+function bandsOf(hits, ctx) {
+  const mass = hits.filter((p) => p.reviews > 0 || recognizedBrand(ctx, p));
+  const base = mass.length >= 30 ? mass : hits;
+  /* Weighted by what sells: each price counts sqrt(reviews) times (a
+     recognized brand without published reviews counts once). A plain
+     percentile let 300 department-store dresses with a dozen reviews
+     each outvote a S/ 26 dress with 4,000, and put the "accessible"
+     line at S/ 318. */
+  const pts = base.map((p) => [usdOf(p), Math.sqrt(p.reviews || 1)]).filter((x) => x[0] > 0).sort((a, b) => a[0] - b[0]);
+  const total = pts.reduce((s, x) => s + x[1], 0);
+  const at = (q) => {
+    let acc = 0;
+    for (const [usd, w] of pts) { acc += w; if (acc >= total * q) return usd; }
+    return pts.length ? pts[pts.length - 1][0] : Infinity;
+  };
+  const accessible = at(ACCESSIBLE_Q);
+  return { accessible, premium: Math.max(accessible * 1.25, at(PREMIUM_Q)) };
+}
+
+/* Annotated once per query (cached with the answer). */
+function annotate(ctx, r) {
+  if (r._ann) return r._ann;
+  const inAisle = aisleOf(r.hits);
+  const bands = bandsOf(r.hits.filter(inAisle), ctx);
+  const ann = new Map();
+  for (const p of r.hits) {
+    const usd = usdOf(p), brand = recognizedBrand(ctx, p), sale = onSaleOf(p), aisle = inAisle(p);
+    const marquee = isMarquee(ctx, brand);
+    ann.set(p, {
+      usd, brand, sale, aisle, marquee,
+      /* Lead slots: a marquee name up to the premium line; any other
+         recognized brand, or a sale, at an accessible price. */
+      lead: aisle && ((marquee && usd <= bands.premium) || (usd <= bands.accessible && (!!brand || sale))),
+      obscurePremium: !brand && usd > bands.premium,
+      premium: usd > bands.premium,
+    });
+  }
+  return (r._ann = { bands, of: (p) => ann.get(p) });
+}
+
+/* A lane's order: its first `slots` from the lead-eligible products
+   (in the lane's own order); then the rest with premium products
+   SPRINKLED -- one in every PREMIUM_EVERY cards, never two together;
+   obscure premium products last. */
+const PREMIUM_EVERY = 4;
+function leadFirst(list, A, slots = LEAD_SLOTS) {
+  const lead = [], plain = [], premium = [], late = [];
+  for (const p of list) {
+    const a = A.of(p);
+    if (lead.length < slots && a.lead) lead.push(p);
+    else if (a.obscurePremium) late.push(p);
+    else if (a.premium) premium.push(p);
+    else plain.push(p);
+  }
+  /* Too few eligible products to fill the lead: the next best are
+     accessible-priced ones, then other plain (non-premium) ones --
+     never premium. */
+  while (lead.length < slots && plain.length) {
+    const i = plain.findIndex((p) => A.of(p).usd <= A.bands.accessible);
+    lead.push(plain.splice(i < 0 ? 0 : i, 1)[0]);
+  }
+  const out = lead.slice();
+  while (plain.length || premium.length) {
+    for (let k = 0; k < PREMIUM_EVERY - 1 && plain.length; k++) out.push(plain.shift());
+    if (premium.length) out.push(premium.shift());
+    if (!plain.length) { out.push(...premium); premium.length = 0; }
+  }
+  return out.concat(late);
+}
+
+/* The same product listed twice (colourways, a store's re-listing)
+   is one card in a lane. */
+function distinct(list, max) {
+  const seen = new Set(), out = [];
+  for (const p of list) {
+    /* Colourways differ at the end of the title ("..., Blonde" /
+       "..., Brunette"); the first 30 letters name the product. */
+    const k = brandKey(p.title).slice(0, 30);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(p);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+/** The lanes of one answer (page 1 only). */
+export function lanesFor(ctx, q, r, fx) {
+  if (!r || r.state !== "results" || !r.hits.length) return { mode: "specific", lanes: [] };
+  if (r._lanes) return { mode: r._mode, lanes: r._lanes.map((l) => ({ ...l, items: l.items.map((p) => cardOf(p, fx, ctx.labels)) })) };
+  const A = annotate(ctx, r);
+  const generic = isGenericQuery(ctx, r);
+  const lanes = [];
+  const used = new Set();
+
+  /* Relevance still counts in a lane: a sale far down the ranking
+     ("Former Doll" T-shirts under "dolls") is a weaker match than a
+     doll on sale, so the ranking position weighs as much as the
+     discount does. */
+  const rank = new Map(r.hits.map((p, i) => [p, i / r.hits.length]));
+  /* Price accessibility (Danny: "sale depth + best-seller demand +
+     price accessibility first"): +1 for a free product, 0 at the
+     premium line, below 0 above it. */
+  const acc = (p) => Math.max(-1, 1 - A.of(p).usd / A.bands.premium);
+
+  /* 1. Sales: deep discounts on relevant, recognized products first. */
+  const shelf = r.hits.filter((p) => A.of(p).aisle);
+  const sales = shelf.filter(onSaleOf)
+    .map((p) => ({ p, s: Math.min(discountOf(p), 0.6) * 2 + demandOf(p) * 0.4 + (A.of(p).marquee ? 1 : A.of(p).brand ? 0.4 : 0) + acc(p) * 2 - rank.get(p) * 1.5 }))
+    .sort((a, b) => b.s - a.s).map((x) => x.p);
+  if (sales.length >= LANE_MIN) {
+    const items = distinct(leadFirst(sales, A), LANE_SIZE);
+    items.forEach((p) => used.add(p));
+    lanes.push({ key: "ofertas", title: "En oferta", items });
+  }
+
+  /* 2. Best-sellers: the stores' own demand. Without enough reviewed
+     products the lane says what it is -- the brands everybody knows --
+     rather than claiming sales numbers it does not have. */
+  const reviewed = shelf.filter((p) => p.reviews > 0 && !used.has(p))
+    .map((p) => ({ p, s: demandOf(p) + (A.of(p).marquee ? 0.6 : 0) + acc(p) * 2 - rank.get(p) })).sort((a, b) => b.s - a.s).map((x) => x.p);
+  if (reviewed.length >= BESTSELLER_MIN) {
+    const items = distinct(leadFirst(reviewed, A), LANE_SIZE);
+    items.forEach((p) => used.add(p));
+    lanes.push({ key: "vendidos", title: "Más vendidos", items });
+  } else if (generic) {
+    /* (A specific query's results are already one brand or model; a
+       brand-mix lane would only repeat them.) */
+    const fav = shelf.filter((p) => !used.has(p) && A.of(p).brand && !A.of(p).premium);
+    /* One brand must not fill the lane: round-robin across brands, in
+       relevance order within each. */
+    const byBrand = new Map();
+    for (const p of fav) { const b = A.of(p).brand; if (!byBrand.has(b)) byBrand.set(b, []); byBrand.get(b).push(p); }
+    const queues = [...byBrand.values()], mixed = [];
+    for (let i = 0; mixed.length < LANE_SIZE * 2 && queues.some((qq) => qq.length); i = (i + 1) % queues.length) {
+      if (queues[i].length) mixed.push(queues[i].shift());
+    }
+    if (mixed.length >= LANE_MIN) {
+      const items = distinct(leadFirst(mixed, A), LANE_SIZE);
+      items.forEach((p) => used.add(p));
+      lanes.push({ key: "marcas", title: "Marcas favoritas", items });
+    }
+  }
+  r._mode = generic ? "generic" : "specific";
+  r._lanes = lanes;
+  return lanesFor(ctx, q, r, fx);
+}
+
+/* A browse query's grid follows the same rule as a lane: its first
+   cards are lead-eligible, obscure premium products go to the back.
+   The order is computed once per query, so pages never overlap. */
+function gridOrder(ctx, r) {
+  if (r._grid) return r._grid;
+  if (!isGenericQuery(ctx, r)) return (r._grid = r.hits);
+  const A = annotate(ctx, r);
+  return (r._grid = leadFirst(r.hits, A, LEAD_SLOTS + 2));
+}
+
 /* One card's worth of a product -- what the page draws, nothing more. */
 export function cardOf(p, fx, labels = {}) {
   const usd = p.finalPrice ? Number(p.price) : finalUsd(p.price, p.retailer);
@@ -215,6 +521,7 @@ export function cardOf(p, fx, labels = {}) {
     storeLabel: labels[p.retailer] || p.retailer || "",
     usd,
     pen: fx ? Math.round(usd * fx * 100) / 100 : null,
+    wasPen: fx && was ? Math.round(was * fx * 100) / 100 : null,
     wasUsd: was,
     image: p.image,
     category: p._cat || "",
@@ -228,10 +535,12 @@ export function cardOf(p, fx, labels = {}) {
 export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE } = {}) {
   const query = String(q == null ? "" : q).trim().slice(0, 120);
   const r = runQuery(ctx, query);
-  const total = r.hits.length;
+  const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
+  const total = hits.length;
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const n = Math.min(Math.max(1, Math.floor(Number(page)) || 1), pages);
-  const slice = r.hits.slice((n - 1) * pageSize, n * pageSize);
+  const slice = hits.slice((n - 1) * pageSize, n * pageSize);
+  const lanes = n === 1 ? lanesFor(ctx, query, r, fx) : null;
   return {
     q: query,
     state: r.state,
@@ -246,6 +555,10 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
     sense: r.sense || null,
     suggestion: r.suggestion || null,
     didYouMean: n === 1 ? didYouMean(ctx, query, r) : null,
+    /* "generic": the lanes lead; "specific": the results lead, the
+       lanes follow (#416). Page 1 only. */
+    mode: lanes ? lanes.mode : null,
+    lanes: lanes ? lanes.lanes : null,
     fx: fx || null,
     items: slice.map((p) => cardOf(p, fx, ctx.labels)),
   };
