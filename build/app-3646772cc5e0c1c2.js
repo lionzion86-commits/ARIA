@@ -11550,8 +11550,8 @@ function brandStripTileHTML(b){
    with no logo asset renders the same text pill storeLogoFallback() paints. */
 const TIENDAS_STRIP = [
   /* BEST BUY BILLED FIRST (2026-10-19, Danny, #413): the electronics
-     specialist leads the strip. No logo file yet -- the brand-colour pill. */
-  {k:'bestbuy',l:'Best Buy',c:'#0046BE',logo:null},
+     specialist leads the strip, with its real yellow-tag mark. */
+  {k:'bestbuy',l:'Best Buy',c:'#0046BE',logo:'logos/bestbuy.svg'},
   {k:'footlocker',l:'Foot Locker',c:'#000000',logo:'logos/footlocker.png'},
   {k:'gymshark',l:'Gymshark',c:'#000000',logo:'logos/gymshark.png'},
   {k:'macys',l:'Macy\'s',c:'#E21A2C',logo:'logos/macys.png'},
@@ -19764,10 +19764,9 @@ const RETAILERS = {
      (4,964 first-party products; the 178 marketplace-seller records are
      excluded by flag in scripts/build-bestbuy-catalog.mjs) is committed at
      repo root. Billed first (Danny, #413 addendum 2): the specialist that
-     anchors Aria's electronics lane. logo stays null until the real mark
-     lands in logos/bestbuy.svg -- the wordmark pill on Best Buy blue is the
-     honest fallback. Mirrors scripts/lib/retailers.js. */
-  bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: null,                   tagline: 'Laptops, gaming, audio y celulares',            kind: 'general', search: false, browse: true },
+     anchors Aria's electronics lane. The real mark is logos/bestbuy.svg.
+     Mirrors scripts/lib/retailers.js. */
+  bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: 'logos/bestbuy.svg',    tagline: 'Laptops, gaming, audio y celulares',            kind: 'general', search: false, browse: true },
   revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
   target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
