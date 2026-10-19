@@ -44,5 +44,15 @@ check("the search boxes work before the app bundle arrives", () => {
   for (const id of ["searchInput", "searchInputD", "searchInput2"]) assert.ok(home.includes(`id="${id}"`), `#${id} moved`);
 });
 
+check("nothing heavy or third-party holds the home page's first paint", () => {
+  const inlined = home.match(/data:image\/[a-z]+;base64,/g) || [];
+  assert.equal(inlined.length, 0, `${inlined.length} images are inlined into the HTML every visitor downloads before first paint`);
+  const blocking = [...home.matchAll(/<link[^>]+rel="stylesheet"[^>]*>/g)].map((m) => m[0])
+    .filter((l) => /https?:\/\//.test(l) && !/<noscript>/.test(l));
+  const outsideNoscript = blocking.filter((l) => !home.includes("<noscript>" + l));
+  assert.deepEqual(outsideNoscript, [], "a third-party stylesheet blocks the first paint");
+  assert.match(home, /<link rel="preload" as="style" href="\/assets\/css\/tailwind\.css">/, "tailwind.css is not fetched early");
+});
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }
