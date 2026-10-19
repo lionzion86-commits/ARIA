@@ -46,7 +46,7 @@ const call = async (qs, method = "GET") => {
 const fresh = build(ROOT);
 const committed = JSON.parse(readFileSync(ROOT + "assets/ofertas/deals.json", "utf8"));
 const html = readFileSync(ROOT + "ofertas.html", "utf8");
-const script = html.slice(html.lastIndexOf("<script>") + 8, html.lastIndexOf("</script>"));
+const script = html.slice(html.lastIndexOf("<script>") + 8, html.indexOf("</script>", html.lastIndexOf("<script>")));
 const noComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, "");
 
 console.log("\n  ofertas.html, thin\n");
@@ -60,11 +60,12 @@ await check("deals.json is current with ofertas-feed.json (else: node scripts/bu
   assert.deepEqual(committed.stores, fresh.stores, "store list differs");
 });
 
-await check("the deals are the page's own: the one sale rule, the $150 cap, a real photo, no duplicates", () => {
+await check("the deals are the page's own: the one sale rule, the $150 cap for the mix, a real photo, no duplicates", () => {
   const seen = new Set();
   for (const c of fresh.cards) {
     assert.ok(c.pct >= 5 && c.pct <= 70, `${c.title}: ${c.pct}%`);
-    assert.ok(c.usd > 0 && c.usd <= 150 && c.wasUsd > c.usd, `${c.title}: ${c.usd} / ${c.wasUsd}`);
+    assert.ok(c.usd > 0 && c.wasUsd > c.usd, `${c.title}: ${c.usd} / ${c.wasUsd}`);
+    assert.equal(c.m, c.usd <= 150 ? 1 : 0, `${c.title}: US$ ${c.usd} mix flag ${c.m}`);
     assert.match(c.image, /^https?:\/\//, `${c.title}: no photo`);
     const k = c.store + "::" + c.title;
     assert.ok(!seen.has(k), "duplicate " + k);
