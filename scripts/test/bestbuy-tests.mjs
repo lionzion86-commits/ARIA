@@ -133,7 +133,13 @@ await check("Best Buy is a live browse-only store in the module and the page mir
   assert.ok(r && r.browse === true && !r.retired && r.search === false, "registry row is not live/browse-only");
   assert.equal(r.color, "#0046BE");
   assert.equal(Object.keys(RETAILERS)[0], "bestbuy", "Best Buy is not billed first in the registry");
-  assert.match(bundle, /bestbuy:\s+\{ key: 'bestbuy',\s+label: 'Best Buy',\s+color: '#0046BE', logo: null,[^\n]*browse: true \}/);
+  /* The real yellow-tag mark (#431 QA), in the module and the page mirror,
+     as a plain SVG a phone renders as an <img> (no DTD entities). */
+  assert.equal(r.logo, "logos/bestbuy.svg");
+  assert.match(bundle, /bestbuy:\s+\{ key: 'bestbuy',\s+label: 'Best Buy',\s+color: '#0046BE', logo: 'logos\/bestbuy\.svg',[^\n]*browse: true \}/);
+  const svg = read("logos/bestbuy.svg");
+  assert.match(svg, /<svg[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
+  assert.doesNotMatch(svg, /<!DOCTYPE|&ns_/, "the logo still carries Illustrator DTD entities");
   assert.doesNotMatch(bundle, /key: 'bestbuy'[^\n]*retired: true/);
   assert.match(bundle, /const CATALOGUE_FILES = \[[^\]]*'\/bestbuy-catalog\.json'\]/);
   assert.match(bundle, /"\/bestbuy-catalog\.json":\["bestbuy"\]/);

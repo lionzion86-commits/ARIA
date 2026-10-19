@@ -52,14 +52,13 @@ export const RETAILERS = {
      products, built by scripts/build-bestbuy-catalog.mjs from the Oct 18
      pull (the 178 marketplace-seller records excluded by flag, Danny's
      ruling). Billed first: the electronics specialist (Danny, #413
-     addendum 2). `logo` stays null until the real mark is dropped in
-     logos/bestbuy.svg; the wordmark pill on Best Buy blue is the honest
-     fallback meanwhile. */
+     addendum 2). The real yellow-tag mark is logos/bestbuy.svg (#431 QA,
+     committed by Lucifer). */
   bestbuy: {
     key: "bestbuy",
     label: "Best Buy",
     color: "#0046BE",
-    logo: null,
+    logo: "logos/bestbuy.svg",
     tagline: "Laptops, gaming, audio y celulares",
     kind: "general",
     search: false,
