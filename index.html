@@ -6753,7 +6753,7 @@
   </div>
 </div>
 
-<script src="/build/app-58607c279f1d588d.js"></script>
+<script src="/build/app-32fa6bf52cca2723.js"></script>
 
 
 
@@ -6902,6 +6902,20 @@ initRouter();
     }
     window.location.href = '/search.html?q=' + encodeURIComponent(raw);
   };
+  /* WARM THE SEARCH SERVER WHILE THE SHOPPER TYPES (2026-10-19, #409).
+     Search answers on the server now; the first request to a cold
+     function spends a couple of seconds loading the index. One ping on
+     the first focus of a search box pays that while the words are still
+     being typed. Fire and forget: it can only help. */
+  let searchWarmed = false;
+  ['searchInput', 'searchInput2', 'searchInputD'].forEach(function(id){
+    const box = document.getElementById(id);
+    if (box) box.addEventListener('focus', function(){
+      if (searchWarmed) return;
+      searchWarmed = true;
+      try { fetch('/.netlify/functions/search?warm=1').catch(function(){}); } catch(e){}
+    });
+  });
   // Override openAriaAuto
   window.openAriaAuto = function(sourceKey){
     window.location.href = '/auto.html';

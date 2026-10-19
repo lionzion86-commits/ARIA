@@ -1707,9 +1707,18 @@ function detectBrandIntent(rawToks, pool, opts){
            space ("victoria secret", "under armor", "calvin klien" are
            all d=1). Two edits there is a coincidence. */
         if (w.idx.length > 1 && w.idx.every(i => poolKnows(rawToks[i]))) maxDist = 1;
+        /* ONE OF THE WINDOW'S OWN WORDS IS NOT A JOIN (2026-10-19, #409).
+           "nike air force 1" joined "force"+"1" -> "force1", one edit
+           from a one-product Costco brand called "Force", and the hard
+           brand filter turned 116 Air Force 1s into a hair supplement.
+           Dropping a whole word is not a join repair; that word alone
+           already had its turn in the single-word pass, where
+           brandOwnsItsName turned it down. */
+        const ownWords = w.idx.length > 1 ? new Set(w.idx.map(i => searchBrandKey(rawToks[i]))) : null;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
+          if (ownWords && ownWords.has(bk)) continue;
           const d = fuzzyEditDistRaw(sk, sqKeys[bki], maxDist);
           if (d <= maxDist && (!best || d < best.d)){
             best = { d, key: bk, label: vocab.get(bk).label, consumed: w.idx };

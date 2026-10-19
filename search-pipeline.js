@@ -34,8 +34,10 @@
   'use strict';
 
   var RESERVED = { _readme: 1, phrases: 1, brands: 1, stopwords: 1, intents: 1, senses: 1 };
-  /* Up to 500 kept; search.html draws 60 at a time ("Mostrar más"). */
+  /* Up to 500 kept unless the caller sets ctx.resultLimit (the search
+     endpoint keeps 2000 and serves them 48 at a time). */
   var RESULT_LIMIT = 500;
+  function limitOf(ctx) { return (ctx && ctx.resultLimit) || RESULT_LIMIT; }
   var MAX_VARIANTS = 6;
 
   /* Lower case, no accents (ñ -> n), apostrophes joined ("levi's" ->
@@ -266,7 +268,7 @@
       if (fixed.changed) fixedRest = fixed.query;
     }
     var query = (v.brand + ' ' + rest).trim();
-    var opts = { limit: RESULT_LIMIT * 2, retailers: ctx.retailers };
+    var opts = { limit: limitOf(ctx) * 2, retailers: ctx.retailers };
     if (filter) opts.filter = filter;
     var res = S.rankCatalogMatches(ctx.products, query, opts);
     var items = (res && res.items) || [];
@@ -337,9 +339,9 @@
     }
     var hits = r.hits;
     if (plan.intents.cheap) {
-      hits = hits.slice(0, RESULT_LIMIT).sort(function (a, b) { return priceOf(a) - priceOf(b); });
+      hits = hits.slice(0, limitOf(ctx)).sort(function (a, b) { return priceOf(a) - priceOf(b); });
     }
-    hits = hits.slice(0, RESULT_LIMIT);
+    hits = hits.slice(0, limitOf(ctx));
     var shown = relaxed || plan.corrected || r.engineFix || null;
     if (!hits.length) {
       return { state: 'none', hits: [], query: q,
