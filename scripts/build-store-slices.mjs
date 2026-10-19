@@ -1,48 +1,59 @@
 #!/usr/bin/env node
 /* ============================================================
-   assets/tienda/<store>/ — A STOREFRONT, SLICED (Issue #413, #409 format).
+   assets/tienda/ — EVERY STOREFRONT, SLICED (Issue #413 Best Buy,
+   generalised to every store by #409 track T2).
 
-   WHY. tienda.html draws a store by downloading its whole catalogue --
-   for Best Buy that would be 9.9MB (2.5MB gzipped) before the first
-   card, 50 seconds on the Mountain profile (400 kbps). A store launched
-   in the thin format answers from small files instead, and the page
-   never touches the catalogue.
+   WHY. tienda.html drew a store by downloading its whole catalogue --
+   SSENSE 39.8MB, Target three files (18MB), Walmart 11MB -- before the
+   first card. On the Mountain profile (400 kbps, 2 s RTT) most stores
+   never drew a card at all. Now every storefront answers from small
+   files and the page never touches a catalogue.
 
-   WHAT. For each store in SLICED_STORES, from its committed catalogue:
+   WHAT. For each store in tienda.html's STORES registry, from its
+   committed catalogues:
 
-     index.json             what the first screen needs, in one file: the
-                            store's count, its department chips, and every
-                            rail's title, total and first RAIL_HEAD cards
-     rails/<rail>-<n>.json  page n (PAGE_SIZE cards) of one rail, for
-                            "Ver todo" and "Mostrar más"
-     find.json              title + brand + card fields of every product,
-                            packed; fetched only when the shopper types in
-                            the store's search box
+     assets/tienda/<key>/index.json   the first screen, in one file: the
+                                      store's count, its chips, and every
+                                      rail's title, total and first
+                                      RAIL_HEAD cards
+     assets/tienda/_fn/<key>.json     the store's full card list (one row
+                                      per product) and each rail's order,
+                                      for netlify/functions/tienda.js:
+                                      "Ver todo", chips, search, sort --
+                                      48 cards at a time. The phone never
+                                      downloads it.
+   Themed stores (SLICED_STORES: Best Buy, #413) also keep their rail
+   pages as static files (assets/tienda/<key>/rails/<rail>-<n>.json).
 
-   Cards carry only what a card draws: name, brand, Best Buy's price, the
-   was-price when sale-rule.js calls it a sale, the photo. The customer
-   price (tiered margin + 7%) and the soles are computed on the page by
-   the same finalUsd every storefront uses.
+   ONE SET OF RULES. Nothing is re-implemented for the generic stores:
+   the storefront's own rules are lifted out of tienda.html (normItem,
+   the department chip words, the type facets, the sale-first sort, the
+   product-type rails) and run here over the catalogues, exactly as the
+   page used to run them in the shopper's phone (its old loadStore's
+   file loop and dedupe included). Merchandising, in order (Danny's law):
+     1. Ofertas de <store> -- sale items only (sale-rule.js, the one
+        rule), deepest discount first; with no sales, Destacados;
+     2. Más vendidos -- the store's own review counts, when its
+        catalogue publishes them for at least RAIL_HEAD products;
+     3. one rail per product type (tienda.html's PRODUCT_TYPES).
+   Best Buy keeps its own (#413): Ofertas (sale depth + demand, premium
+   sprinkled, never leading), Más vendidos, then its departments.
 
-   MERCHANDISING (Danny, #413 storefront-feel addendum). Rails in order:
-     1. Ofertas de <store> -- sale items only (the one sale rule), sale
-        depth + demand lead, premium sprinkled, never leading;
-     2. Más vendidos -- demand: the store's own review counts (the same
-        signal the search "Más vendidos" lane ranks by, #416);
-     3. one rail per department the data supports, in DEPT_ORDER.
-
-   REGENERATE after the catalogue changes:
+   REGENERATE after any catalogue changes:
      node scripts/build-store-slices.mjs
-   scripts/test/bestbuy-tests.mjs fails when the slices are stale.
+   scripts/test/tienda-thin-tests.mjs and bestbuy-tests.mjs fail when
+   the slices are stale.
    ============================================================ */
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
-import { liftDeclarations, pageHtml } from "./lib/page-lift.mjs";
+import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift.mjs";
+import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
+export { FN_DIR };
 export const PAGE_SIZE = 48;
 export const RAIL_HEAD = 16;
 /* A product at or above this Best Buy price is "premium": it may appear
@@ -90,6 +101,101 @@ function realImage(p) {
   return null;
 }
 
+/* ---------------- tienda.html's registry and rules ---------------- */
+export function tiendaStores(root = ROOT) {
+  return JSON.parse(/var STORES = (\{.*\});/.exec(readFileSync(join(root, "tienda.html"), "utf8"))[1]);
+}
+
+/* The storefront rules, as tienda.html declares them. */
+export const STORE_RULES = ["realImage", "DEPT_CHIP_LABELS", "deptChipLabel", "discountPct", "saleTier", "saleSort",
+  "normItem", "PRODUCT_TYPES", "TYPE_RES", "typeKeywordBlocked", "productTypeOf",
+  "GENDER_LABELS", "GENDER_ORDER", "FACET_MIN", "facetLabel", "typeFacets", "buildFacets"];
+export function loadStoreRules(root = ROOT) {
+  const win = {};
+  vm.runInNewContext(readFileSync(join(root, "product-type.js"), "utf8"), { window: win });
+  win.AriaSale = loadSaleRule(root);
+  const ctx = { window: win, console };
+  vm.createContext(ctx);
+  const src = extractDeclarations(readFileSync(join(root, "tienda.html"), "utf8"), STORE_RULES);
+  vm.runInContext("var storeKey = '', allItems = [], deptLabels = {}, facetMode = false, facetGenders = [], facetCats = [], activeGender = '', activeCat = '';\n" +
+    src + "\n;globalThis.__R = {" + STORE_RULES.map((n) => n + ": " + n).join(", ") + "};", ctx, { filename: "tienda.html#rules" });
+  return { R: ctx.__R, ctx };
+}
+
+const catalogueCache = new Map();
+function readCatalogue(root, f) {
+  const p = join(root, String(f).replace(/^\//, ""));
+  if (!catalogueCache.has(p)) {
+    try { catalogueCache.set(p, JSON.parse(readFileSync(p, "utf8"))); } catch { catalogueCache.set(p, null); }
+  }
+  return catalogueCache.get(p);
+}
+const reviewsOf = (raw) => {
+  const n = Number(raw && (raw.reviewCount != null ? raw.reviewCount : raw.reviews));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/* What the page's loadStore() built in the phone: every department of
+   the store in every file it names, normItem, deduped by name + photo. */
+export function genericItems(key, meta, rules, root = ROOT) {
+  const { R, ctx } = rules;
+  ctx.storeKey = key;
+  const items = [], depts = {};
+  for (const f of meta.files || []) {
+    const bucket = readCatalogue(root, f)?.retailers?.[key];
+    if (!bucket) continue;
+    for (const [dk, entry] of Object.entries(bucket.departments || {})) {
+      let label = dk, arr = null;
+      if (entry && typeof entry === "object" && !Array.isArray(entry)) { label = entry.label || dk; arr = entry.items; }
+      else if (Array.isArray(entry)) arr = entry;
+      if (!Array.isArray(arr)) continue;
+      depts[dk] = R.deptChipLabel(dk, label);
+      for (const raw of arr) {
+        let n = null;
+        try { n = R.normItem(raw, dk); } catch { n = null; }
+        if (!n) continue;
+        n.reviews = reviewsOf(raw);
+        n.rating = Number(raw.rating) || 0;
+        items.push(n);
+      }
+    }
+  }
+  const seen = new Set(), out = [];
+  for (const it of items) {
+    const k = it.name + "||" + it.image;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(it);
+  }
+  ctx.allItems = out;
+  ctx.deptLabels = depts;
+  try { R.buildFacets(); } catch { ctx.facetMode = false; }
+  return { items: out, depts, facetMode: !!ctx.facetMode, facetGenders: Array.from(ctx.facetGenders || []), facetCats: Array.from(ctx.facetCats || []) };
+}
+
+export function genericRails(key, label, items, rules) {
+  const { R, ctx } = rules;
+  ctx.storeKey = key;
+  const rails = [];
+  const sales = items.filter((p) => R.saleTier(p) > 0).sort(R.saleSort);
+  if (sales.length) rails.push({ key: "ofertas", title: "Ofertas de " + label, items: sales });
+  else if (items.length) rails.push({ key: "destacados", title: "Destacados de " + label, items: items.slice().sort((a, b) => b.price - a.price) });
+  const reviewed = items.filter((p) => p.reviews > 0);
+  if (reviewed.length >= RAIL_HEAD) {
+    rails.push({ key: "masvendidos", title: "Más vendidos", items: reviewed.slice().sort((a, b) => (b.reviews - a.reviews) || (b.rating - a.rating)) });
+  }
+  /* One carousel per PRODUCT TYPE, never per Aria department (Danny,
+     2026-10-07: a Gymshark page shows Leggings/Tops/Shorts). */
+  const byType = {};
+  for (const p of items) { const t = R.productTypeOf(p); (byType[t] = byType[t] || []).push(p); }
+  for (const t of R.PRODUCT_TYPES) {
+    const list = (byType[t.key] || []).slice().sort(R.saleSort);
+    if (list.length) rails.push({ key: "t-" + t.key, title: t.label, items: list });
+  }
+  return rails;
+}
+
+/* ---------------- Best Buy (#413) ---------------- */
 /* Every product of the store, once, as the page will draw it. */
 export function storeProducts(key, root = ROOT) {
   const cfg = SLICED_STORES[key];
@@ -166,18 +272,13 @@ export function storeRails(key, products) {
   return rails;
 }
 
-/* The search box's file: one row per product, the shared photo prefix
-   stripped once. [name, brand, price, was, imageTail, deptIndex] */
-export function findFile(key, products) {
-  const cfg = SLICED_STORES[key];
-  const imgs = products.map((p) => p.image);
-  let prefix = imgs[0] || "";
-  for (const u of imgs) { while (prefix && !u.startsWith(prefix)) prefix = prefix.slice(0, -1); }
-  const ranked = products.slice().sort((a, b) => (saleScore(b) - saleScore(a)) || (b.reviews - a.reviews));
-  return {
-    v: 1, store: key, prefix, depts: cfg.DEPT_ORDER,
-    rows: ranked.map((p) => [p.name, p.brand, p.price, p.was || 0, p.image.slice(prefix.length), cfg.DEPT_ORDER.indexOf(p.dept)]),
-  };
+/* The endpoint's copy of a store: rows in the store's own order (the
+   search box's "Destacados" order), and each rail as row numbers. */
+function fnFile(key, rows, products, rails) {
+  const at = new Map(products.map((p, i) => [p, i]));
+  const railIdx = {};
+  for (const r of rails) railIdx[r.key] = r.items.map((p) => at.get(p));
+  return { v: 1, store: key, count: rows.length, rows, rails: railIdx };
 }
 
 export function buildStore(key, root = ROOT) {
@@ -186,7 +287,7 @@ export function buildStore(key, root = ROOT) {
   const rails = storeRails(key, products);
   const files = {};
   const index = {
-    v: 1, store: key, label: cfg.label, count: products.length, pageSize: PAGE_SIZE,
+    v: 1, store: key, label: cfg.label, count: products.length, pageSize: PAGE_SIZE, railPages: "static",
     onSale: products.filter((p) => p.pct > 0).length,
     depts: cfg.DEPT_ORDER.filter((d) => products.some((p) => p.dept === d))
       .map((d) => ({ key: d, label: cfg.DEPT_LABELS[d] || d, count: products.filter((p) => p.dept === d).length })),
@@ -200,23 +301,85 @@ export function buildStore(key, root = ROOT) {
         total: r.items.length, items: r.items.slice((n - 1) * PAGE_SIZE, n * PAGE_SIZE).map(cardOf) };
     }
   }
-  files["find.json"] = findFile(key, products);
-  return { files, products, rails };
+  /* The search box ranks in this order: sale depth + demand. */
+  const ranked = products.slice().sort((a, b) => (saleScore(b) - saleScore(a)) || (b.reviews - a.reviews));
+  const rows = ranked.map((p) => [p.name, p.brand, p.price, p.was || 0, p.pct || 0, p.image, p.dept, "", ""]);
+  const fn = fnFile(key, rows, ranked, rails);
+  return { files, fn, products, rails };
+}
+
+/* ---------------- every other store ---------------- */
+export function buildGenericStore(key, meta, rules, root = ROOT) {
+  const { items, depts, facetMode, facetGenders, facetCats } = genericItems(key, meta, rules, root);
+  const { R } = rules;
+  const rails = genericRails(key, meta.label, items, rules);
+  const rows = items.map((p) => {
+    const pct = R.discountPct(p);
+    return [p.name, p.brand || "", p.price, pct > 0 && p.originalPrice ? p.originalPrice : 0, pct > 0 ? pct : 0, p.image, p.dept || "",
+      facetMode ? (p.gender || "") : "", facetMode ? (p.cat || "") : ""];
+  });
+  const fn = fnFile(key, rows, items, rails);
+  const at = new Map(items.map((p, i) => [p, i]));
+  const card = (p) => cardOfRow(rows[at.get(p)]);
+  const count = (pred) => { let n = 0; for (const p of items) if (pred(p)) n++; return n; };
+  let chips;
+  if (facetMode) {
+    chips = { mode: "facet",
+      genders: facetGenders.map((g) => ({ key: g, label: g, count: count((p) => p.gender === g) })),
+      cats: facetCats.map((c) => ({ key: c, label: R.facetLabel(c), count: count((p) => p.cat === c) })) };
+  } else {
+    const keys = Object.keys(depts).sort((a, b) => String(depts[a]).localeCompare(String(depts[b]), "es"));
+    chips = { mode: "dept", depts: keys.map((k) => ({ key: k, label: depts[k], count: count((p) => p.dept === k) })).filter((d) => d.count > 0) };
+  }
+  const index = {
+    v: 1, store: key, label: meta.label, count: items.length, pageSize: PAGE_SIZE, railPages: "fn",
+    onSale: rows.filter((r) => r[4] > 0).length,
+    chips,
+    rails: rails.map((r) => ({ key: r.key, title: r.title, total: r.items.length,
+      pages: Math.ceil(r.items.length / PAGE_SIZE), head: r.items.slice(0, RAIL_HEAD).map(card) })),
+  };
+  return { files: { "index.json": index }, fn, products: items, rails };
+}
+
+/* Every store in tienda.html's registry, built. */
+export function buildAll(root = ROOT, only = null) {
+  const stores = tiendaStores(root);
+  const rules = loadStoreRules(root);
+  const out = {};
+  for (const [key, meta] of Object.entries(stores)) {
+    if (only && !only.includes(key)) continue;
+    out[key] = SLICED_STORES[key] ? buildStore(key, root) : buildGenericStore(key, meta, rules, root);
+  }
+  return out;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  for (const key of Object.keys(SLICED_STORES)) {
-    const { files, products, rails } = buildStore(key);
+  const t0 = Date.now();
+  const built = buildAll(ROOT);
+  const fnDir = join(ROOT, FN_DIR);
+  if (existsSync(fnDir)) rmSync(fnDir, { recursive: true });
+  mkdirSync(fnDir, { recursive: true });
+  /* A store dropped from the registry loses its folder. */
+  for (const d of existsSync(join(ROOT, SLICES_DIR)) ? readdirSync(join(ROOT, SLICES_DIR)) : []) {
+    if (d !== "_fn" && d !== "hero" && !built[d]) rmSync(join(ROOT, SLICES_DIR, d), { recursive: true });
+  }
+  let total = 0, fnBytes = 0;
+  for (const [key, { files, fn, products, rails }] of Object.entries(built)) {
     const dir = join(ROOT, SLICES_DIR, key);
     if (existsSync(dir)) rmSync(dir, { recursive: true });
-    mkdirSync(join(dir, "rails"), { recursive: true });
+    mkdirSync(dir, { recursive: true });
     let bytes = 0;
     for (const [name, body] of Object.entries(files)) {
       const text = JSON.stringify(body);
       bytes += text.length;
+      mkdirSync(join(dir, name, ".."), { recursive: true });
       writeFileSync(join(dir, name), text);
     }
-    console.log(`${SLICES_DIR}/${key}: ${products.length} products, ${rails.length} rails, ${Object.keys(files).length} files, ${(bytes / 1024).toFixed(0)}KB raw`);
-    console.log(rails.map((r) => `${r.title}: ${r.items.length}`).join(" | "));
+    const fnText = JSON.stringify(fn);
+    fnBytes += fnText.length;
+    writeFileSync(join(fnDir, key + ".json"), fnText);
+    total += products.length;
+    console.log(`${key}: ${products.length} products, ${rails.length} rails (${rails.map((r) => r.key + " " + r.items.length).join(", ")}), index ${(bytes / 1024).toFixed(0)}KB, fn ${(fnText.length / 1024).toFixed(0)}KB`);
   }
+  console.log(`${Object.keys(built).length} stores, ${total} products, endpoint data ${(fnBytes / 1048576).toFixed(1)}MB, ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }

@@ -34,7 +34,7 @@ import vm from "node:vm";
 import { RETAILERS } from "../lib/retailers.js";
 import { BUCKET_SPEC, departmentItems } from "../lib/department-map.js";
 import { readSource, ingest, isExcludedRecord, isMarketplaceRecord, HELD_FOR_PRICE_REVIEW, OUT_FILE } from "../build-bestbuy-catalog.mjs";
-import { buildStore, SLICES_DIR, PAGE_SIZE } from "../build-store-slices.mjs";
+import { buildStore, SLICES_DIR, FN_DIR, PAGE_SIZE } from "../build-store-slices.mjs";
 import { liftPage } from "../build-pdp-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -143,7 +143,9 @@ await check("weights: the record's own where Best Buy published one, the site's 
 
 await check("no invented sizes, no retailer link on a card", () => {
   for (const p of items) assert.deepEqual(p.availableSizes, [], `${p.name} carries sizes`);
-  for (const f of ["index.json", "find.json"]) assert.doesNotMatch(read(`${SLICES_DIR}/bestbuy/${f}`), /bestbuy\.com/i, `${f} carries a bestbuy.com link`);
+  /* The store's search box asks the storefront endpoint (#409 T2), whose
+     rows live in assets/tienda/_fn/bestbuy.json. */
+  for (const f of [`${SLICES_DIR}/bestbuy/index.json`, `${FN_DIR}/bestbuy.json`]) assert.doesNotMatch(read(f), /bestbuy\.com/i, `${f} carries a bestbuy.com link`);
 });
 
 /* ---------------- registries, taxonomy, price ---------------- */
@@ -242,14 +244,14 @@ await check("tienda.html registers a themed, sliced Best Buy storefront", () => 
   assert.equal(s.tag, "#FFE000");
   assert.equal(s.slices, "/" + sliceDir);
   /* `files` names the catalogue for the build scripts (Ofertas feed);
-     the page boots from the slices and returns before loadStore. */
+     every storefront boots from its slices (#409 T2: the page has no
+     catalogue loader at all any more). */
   assert.equal(JSON.stringify(s.files), JSON.stringify(["/bestbuy-catalog.json"]));
   const boot = tienda.slice(tienda.indexOf("function boot(isRetry)"), tienda.indexOf("function bindUI()"));
-  assert.ok(boot.indexOf("bootSliced(); return;") !== -1 && boot.indexOf("bootSliced(); return;") < boot.indexOf("loadStore()"),
-    "the sliced storefront would reach loadStore (the catalogue download)");
+  assert.ok(boot.indexOf("bootSliced();") !== -1 && !/function loadStore\(/.test(tienda),
+    "the storefront could reach a catalogue download");
   assert.equal(s.trust, "bestbuy");
   assert.match(s.heroPhoto, /^\/assets\/stores\/bestbuy-interior\.jpg$/);
-  assert.match(tienda, /if \(storeMeta\.slices\)\{ bootSliced\(\); return; \}/);
   assert.match(tienda, /<h2>Por qué compramos en Best Buy<\/h2>/);
   assert.match(tienda, /la política de devoluciones de Aria/, "the trust strip does not keep the shopper's promise Aria's own");
   assert.match(bundle, /const THIN_STOREFRONTS = new Set\(\['bestbuy'\]\);/);
@@ -274,12 +276,12 @@ await check("storefront rails: Ofertas first (sale only), Más vendidos second, 
 
 await check("storefront slices are current and phone-sized", () => {
   const { files } = buildStore("bestbuy");
-  const committed = readdirSync(ROOT + sliceDir + "rails").map((f) => "rails/" + f).concat(["index.json", "find.json"]);
+  const committed = readdirSync(ROOT + sliceDir + "rails").map((f) => "rails/" + f).concat(["index.json"]);
   assert.deepEqual(committed.sort(), Object.keys(files).sort(), "slice files differ from a fresh build");
   for (const [name, body] of Object.entries(files)) {
     const text = read(sliceDir + name);
     assert.equal(text, JSON.stringify(body), `${name} is stale -- node scripts/build-store-slices.mjs`);
-    if (name !== "find.json") assert.ok(gzipSync(text).length < 30 * 1024, `${name} is over 30KB gzipped`);
+    assert.ok(gzipSync(text).length < 30 * 1024, `${name} is over 30KB gzipped`);
   }
 });
 

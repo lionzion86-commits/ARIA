@@ -103,7 +103,14 @@ check("product-type.js is index.html's classifier today, and the store pages loa
   const T = sandbox.window.AriaProductType;
   for (const [name, extra] of [["Jordan 6 Rings", {}], ["FuelCell Rebel v5", { type: "Ropa", retailer: "newbalance" }], ["Spring Dish Towels", {}], ["Women's Baggy Jeans", {}]])
     assert.equal(T.classify({ name, ...extra }), m1(name, extra), `product-type.js and index.html disagree on "${name}"`);
-  for (const page of ["tienda.html", "marca.html"]) {
+  /* tienda.html classifies at build time since #409 T2: the build lifts
+     its productTypeOf and runs it with product-type.js; the page itself
+     draws slices and loads no classifier. */
+  const sb = readFileSync(ROOT + "scripts/build-store-slices.mjs", "utf8");
+  assert.match(sb, /readFileSync\(join\(root, "product-type\.js"\), "utf8"\)/, "the storefront build does not load product-type.js");
+  assert.match(sb, /"productTypeOf"/, "the storefront build does not run tienda.html's productTypeOf");
+  assert.match(readFileSync(ROOT + "tienda.html", "utf8"), /window\.AriaProductType\.classify\(/, "tienda.html does not classify with it");
+  for (const page of ["marca.html"]) {
     const src = readFileSync(ROOT + page, "utf8");
     assert.match(src, /<script src="product-type\.js"><\/script>/, `${page} does not load product-type.js`);
     assert.match(src, /window\.AriaProductType\.classify\(/, `${page} does not classify with it`);
