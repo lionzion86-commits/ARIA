@@ -40,6 +40,23 @@
   status = 200
   force = true
 
+# THE APP BUNDLE PHONES DOWNLOAD (2026-10-19, #417 night order 3).
+# index.html, the tests and the MCP connector name the bundle's source,
+# build/app-<hash>.js (596KB gzipped, comments and all). Browsers get the
+# minified copy (241KB) that scripts/build-app-min.mjs writes beside it.
+# force = true because the source file exists at the requested path.
+# The first rule keeps /build/min/ itself from being rewritten again.
+[[redirects]]
+  from = "/build/min/*"
+  to = "/build/min/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/build/*"
+  to = "/build/min/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/api/search"
   to = "/.netlify/functions/search"

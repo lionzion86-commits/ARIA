@@ -28229,7 +28229,16 @@ function setOrbState(state){
     }, 2000 + Math.random() * 2600);
   /* 2026-09-27, Danny: ~2-4.6s between blinks reads more alive than ~6s */
   }
-  function start(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); }
+  /* The closed-eyes frame (92KB) downloads after the page has loaded
+     (2026-10-19, #417): on a slow phone it competed with the app itself
+     for the first screen. The first blink waits for it. */
+  function start(){
+    var go = function(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); };
+    if (!blinkImg.getAttribute('src') && blinkImg.dataset.src){
+      blinkImg.onload = go;
+      blinkImg.src = blinkImg.dataset.src;
+    } else go();
+  }
   if (document.readyState === 'complete') start();
   else window.addEventListener('load', start);
 })();
