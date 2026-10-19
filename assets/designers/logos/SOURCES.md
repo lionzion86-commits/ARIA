@@ -21,3 +21,5 @@ recruit inbound partnerships). Keep usage to brand identification in their rooms
 | vix | vix.svg | vector | https://www.vixpaulahermanny.com/cdn/shop/t/754/assets/logo.svg?v=118840093702627181181790777609 (vixpaulahermanny.com header; "ViX PAULAHERMANNY" gold + emblem. Note: vixswimwear.com is dead — brand site is vixpaulahermanny.com) |
 | montce | montce.png | 750×200 | https://www.montce.com/cdn/shop/files/montce_logo_ff3a3cd2-cb3f-4c66-b37e-be9e1471ba16.png?v=1747477296&width=1500 (montce.com; montceswim.com redirects to montce.com) |
 | tns | tns.svg | vector, ~square | https://cdn.shopify.com/s/files/1/0801/3466/8576/files/logo-footer.svg?v=1711054993 (tns.us footer; emblem format "tns 19 76" + crossed rackets — not a horizontal wordmark, the brand's official lockup is square-ish) |
+
+2026-10-19 (#437): aguabendita.png and ancora.png were tight crops whose art touched the file edge; both were scaled to phone size (800px / 900px wide) and given a transparent margin (6% of their height) so the lockup never reads as clipped. The art itself is unchanged.

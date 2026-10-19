@@ -669,8 +669,10 @@ await check("N5: the same car's parts read 'Compatible' whatever words found the
   const fits = {};
   for (const q of ["pastillas de freno", "brake pads", "balatas"]) {
     await page.evaluate((q) => { selectedVehicle = { year: "2020", make: "Toyota", model: "Corolla" }; document.getElementById("partQuery").value = q; doSearch(); }, q);
-    await page.waitForFunction(() => document.querySelectorAll("#results .pcard").length > 0 || /Sin resultados/.test(document.getElementById("results").innerText), null, { timeout: 60000 });
-    fits[q] = await page.evaluate(() => [...document.querySelectorAll("#results .pcard")]
+    /* Real cards, not the loading placeholders (they are .pcard.sk too). */
+    await page.waitForFunction(() => !/Buscando repuestos/.test(document.getElementById("results").innerText) &&
+      (document.querySelectorAll("#results .pcard:not(.sk)").length > 0 || /Sin resultados/.test(document.getElementById("results").innerText)), null, { timeout: 60000 });
+    fits[q] = await page.evaluate(() => [...document.querySelectorAll("#results .pcard:not(.sk)")]
       .filter((c) => /Compatible con tu 2020 Toyota Corolla/.test(c.innerText)).map((c) => c.querySelector(".ptitle").innerText).sort());
   }
   assert.ok(fits["pastillas de freno"].length > 0, "no compatible pads for the 2020 Corolla");
