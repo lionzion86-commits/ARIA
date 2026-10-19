@@ -31,6 +31,11 @@
    (726 products were missing: its feed has no name/title field), and
    the was-price fields of the site's one sale rule (SALE_ORIGINAL_FIELDS).
 
+   DEMAND (2026-10-19, #416 generic lanes). Each row also carries the
+   store's review count and star rating, where the store published
+   them (about half the catalogue): the "Más vendidos" lane and the
+   lead slots of every lane rank by them. 0 means not published.
+
    REGENERATE after any catalogue change:
      node scripts/build-search-index.mjs
    scripts/test/search-brief-tests.mjs fails when the index has fallen
@@ -42,7 +47,7 @@ import vm from "node:vm";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
-export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat"];
+export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating"];
 
 /* Everything search covers: the catalogues below, then the sale feed
    for deals no catalogue carries. (This list lived in search.html while
@@ -116,6 +121,12 @@ function loadEngine() {
   return sandbox.window.AriaSearch;
 }
 
+/* The first positive finite number among the store's spellings. */
+function firstNumber(...vals) {
+  for (const v of vals) { const n = Number(v); if (v != null && Number.isFinite(n) && n > 0) return n; }
+  return 0;
+}
+
 function normalize(it, retailer, department, finalPrice) {
   if (!it || typeof it !== "object") return null;
   const title = decodeEntities(it.name || it.title || it.productName || "").trim();
@@ -130,6 +141,7 @@ function normalize(it, retailer, department, finalPrice) {
     originalPrice: orig > price ? orig : 0, onSale: it.onSale === true,
     department: department ? String(department) : "", retailer: String(it.retailer || retailer || ""),
     finalPrice: !!finalPrice, image: typeof image === "string" ? image : "", url: String(it.url || it.link || it.productUrl || ""),
+    reviews: firstNumber(it.reviewCount, it.reviews), rating: Math.round(firstNumber(it.rating, it.averageRating, it.reviewScore) * 10) / 10,
   };
 }
 
@@ -173,7 +185,7 @@ export function buildIndex() {
     const cat = S.catalogItemCategory({ title: p.title, name: p.title, brand: p.brand, retailer: p.retailer,
       departments: p.department ? [p.department] : [] }) || "";
     rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
-      p.finalPrice ? 1 : 0, p.image, cat]);
+      p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
   }
   return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, rows };
 }
