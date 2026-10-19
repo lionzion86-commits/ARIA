@@ -137,6 +137,49 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start}
 @media(min-width:640px){.re-grid{grid-template-columns:repeat(3,1fr);max-width:1100px;margin:0 auto;width:100%}}
 @media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,1fr)}}
+
+/* ---- SLICED STOREFRONT (2026-10-19, #413 + #409) ----
+   A store launched in the thin format (STORES[k].slices) never downloads
+   its catalogue: index.json paints the first screen, rail pages come 48
+   cards at a time. Cards hold their shape from the first paint (square
+   photo box via aspect-ratio, padding-top for Safari < 15; reserved text
+   and price rows), photos load when about to be seen, soles lead. */
+.sl .card{border-radius:14px}
+.sl .card-img{aspect-ratio:1/1;background:#F3F5F9}
+@supports not (aspect-ratio:1/1){ .sl .card-img{height:0;padding-top:100%} }
+.sl .card-img img{position:absolute;inset:0;top:0;left:0;width:100%;height:100%;object-fit:contain}
+.sl .card-brand{min-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl .card-title{min-height:36px}
+.sl .card-prices{min-height:44px;padding-top:6px}
+.sl .pen{font-size:18px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.sl .usd{font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl .usd s{color:#9aa1b2}
+.sl .badge{background:var(--tag,#FFC72C);color:#111;border-radius:6px}
+.sl .card.sk .ln{height:11px;border-radius:6px;background:#eef0f4;margin:4px 0}
+.sl .card.sk .ln.short{width:55%}
+.sl .card.sk .card-img{background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);background-size:200% 100%;animation:sh 1.4s 4}
+.sl .rail-title{color:var(--store)}
+.sl .rail-count{background:var(--store)}
+.sl .rail-ver{color:var(--store)}
+.sl .chip.active{background:var(--store);border-color:var(--store)}
+.sl .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.sl .chips::-webkit-scrollbar{display:none}
+.sl .chip{flex:0 0 auto;white-space:nowrap}
+.sl-more{text-align:center;margin:18px 0 6px}
+.sl-more .btn{background:var(--store)}
+.hero.themed{background:linear-gradient(135deg,var(--store) 0%,#002B7A 100%)}
+.hero.themed .hero-scrim{background:linear-gradient(135deg,rgba(0,40,120,.78) 0%,rgba(0,20,70,.88) 100%)}
+.hero-tagbar{position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--tag,#FFC72C);z-index:1}
+.hero-word{display:inline-block;background:#fff;color:var(--store);font-weight:900;font-size:22px;letter-spacing:-.01em;border-radius:12px;padding:8px 16px;margin-bottom:12px}
+.hero-word[hidden]{display:none}
+.trust{background:#fff;border:1px solid var(--line);border-left:5px solid var(--store);border-radius:16px;padding:16px;margin:0 0 28px}
+.trust h2{margin:0 0 10px;font-size:16px;font-weight:800;color:var(--navy)}
+.trust ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+@media(min-width:760px){.trust ul{grid-template-columns:repeat(3,1fr)}}
+.trust li{font-size:13px;line-height:1.45;color:#374151}
+.trust li b{display:block;color:var(--navy);font-size:13.5px;margin-bottom:2px}
+.trust a{color:var(--store);font-weight:700}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 <script src="/ref.js"></script>
 </head>
@@ -159,9 +202,11 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 <div class="hero" id="hero" hidden>
   <img class="hero-bg" id="heroBg" alt="" aria-hidden="true" hidden>
   <div class="hero-scrim" id="heroScrim" hidden></div>
+  <div class="hero-tagbar" id="heroTagbar" hidden></div>
   <div class="hero-inner">
     <span class="eyebrow">Tienda en Estados Unidos</span>
     <div class="hero-logo" id="heroLogo" hidden><img id="heroLogoImg" alt=""></div>
+    <div class="hero-word" id="heroWord" hidden></div>
     <h1 class="hero-name" id="heroName">Tienda</h1>
     <p class="hero-tag" id="heroTag"></p>
   </div>
@@ -227,7 +272,7 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 'use strict';
 
 /* ---------- embedded store registry (77 active stores) ---------- */
-var STORES = {"revolve": {"label": "Revolve", "color": "#000000", "logo": "/logos/revolve.png", "tagline": "Moda contemporánea y de diseñador", "files": ["/revolve-catalog.json"]}, "target": {"label": "Target", "color": "#CC0000", "logo": "/logos/target.svg", "tagline": "Ropa, hogar y belleza", "files": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"]}, "footlocker": {"label": "Foot Locker", "color": "#000000", "logo": "/logos/footlocker.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/department-cache-footlocker.json"]}, "newbalance": {"label": "New Balance", "color": "#E21836", "logo": "/logos/brands/newbalance.svg", "tagline": "Zapatillas y ropa deportiva", "files": ["/newbalance-catalog.json"]}, "walmart": {"label": "Walmart", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Ahorra dinero. Vive mejor.", "files": ["/department-cache-walmart.json", "/juguetes-catalog.json"]}, "advanceauto": {"label": "Advance Auto Parts", "color": "#EA1927", "logo": "/logos/advanceauto.svg", "tagline": "Frenos y repuestos — vía Aria Auto", "files": ["/advanceauto-catalog.json"]}, "macys": {"label": "Macy's", "color": "#E21A2C", "logo": "/logos/macys.png", "tagline": "Moda mujer, marcas y vestidos", "files": ["/macys-catalog.json"]}, "kohls": {"label": "Kohl's", "color": "#C41230", "logo": "/logos/kohls.svg", "tagline": "Ropa y hogar para toda la familia", "files": ["/kohls-catalog.json"]}, "dicks": {"label": "Dick's Sporting Goods", "color": "#D22630", "logo": "/logos/dicks.png", "tagline": "Skate, surf y fitness", "files": ["/dicks-catalog.json"]}, "finishline": {"label": "Finish Line", "color": "#000000", "logo": "/logos/finishline.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/finishline-catalog.json"]}, "bhphoto": {"label": "B&H Photo", "color": "#A7392F", "logo": "/logos/bhphoto.svg", "tagline": "Cámaras, fotografía y electrónica", "files": ["/bhphoto-catalog.json"]}, "costco": {"label": "Costco", "color": "#E31837", "logo": "/logos/costco.svg", "tagline": "Precios de almacén, todo por mayor", "files": ["/costco-catalog.json", "/juguetes-catalog.json"]}, "victoriassecret": {"label": "Victoria's Secret", "color": "#E31C79", "logo": "/logos/victoriassecret.png", "tagline": "Lencería, brumas corporales y fragancias", "files": ["/beauty-catalog.json"]}, "ulta": {"label": "Ulta Beauty", "color": "#F88038", "logo": "/logos/ulta.png", "tagline": "Maquillaje, skincare y cuidado del cabello", "files": ["/ulta-catalog.json"]}, "pacsun": {"label": "PacSun", "color": "#111111", "logo": "/logos/pacsun.png", "tagline": "Moda surf y skate", "files": ["/pacsun-catalog.json"]}, "zumiez": {"label": "Zumiez", "color": "#111111", "logo": "/logos/zumiez.png", "tagline": "Streetwear, skate y sneakers", "files": ["/zumiez-catalog.json"]}, "nautilus": {"label": "Nautilus Spearfishing", "color": "#213236", "logo": "/logos/nautilus.png", "tagline": "Pesca submarina — arpones y buceo", "files": ["/nautilus-catalog.json"]}, "prosoccer": {"label": "ProSoccer", "color": "#0066CC", "logo": "/logos/prosoccer.png", "tagline": "Fútbol en oferta — chimpunes y más", "files": ["/soccer-catalog.json"]}, "xtremesoccer": {"label": "Xtreme Soccer", "color": "#CC0000", "logo": "/logos/xtremesoccer.png", "tagline": "Fútbol en oferta", "files": ["/soccer-catalog.json"]}, "tennisexpress": {"label": "Tennis Express", "color": "#008000", "logo": "/logos/tennisexpress.png", "tagline": "Tenis en oferta — raquetas y más", "files": ["/tennis-catalog.json"]}, "tenniswarehouse": {"label": "Tennis Warehouse", "color": "#FF6600", "logo": "/logos/tenniswarehouse.png", "tagline": "Tenis en oferta", "files": ["/tennis-catalog.json"]}, "academy": {"label": "Academy Sports", "color": "#003DA5", "logo": "/logos/academy.png", "tagline": "Fútbol en oferta — chimpunes", "files": ["/soccer-catalog.json"]}, "islandwatersports": {"label": "Island Water Sports", "color": "#373435", "logo": "/logos/islandwatersports.svg", "tagline": "Surf shop de Florida — tablas y playa", "files": ["/islandwatersports-catalog.json"]}, "quietstorm": {"label": "Quiet Storm Surf Shop", "color": "#141414", "logo": "/logos/quietstorm.png", "tagline": "Surf shop — tablas, skate y ropa", "files": ["/quietstorm-catalog.json"]}, "surfworld": {"label": "Surf World", "color": "#00A9DC", "logo": "/logos/surfworld.png", "tagline": "Surf shop Fort Lauderdale", "files": ["/surfworld-catalog.json"]}, "surfstation": {"label": "Surf Station", "color": "#111111", "logo": "/logos/surfstation.png", "tagline": "Surf, skate y ropa desde 1984", "files": ["/surfstation-catalog.json"]}, "mainland": {"label": "Mainland Skate & Surf", "color": "#0F6FEF", "logo": "/logos/mainland.png", "tagline": "Skate shop — tablas y marcas", "files": ["/mainland-catalog.json"]}, "parrot": {"label": "Parrot Surf & Skate", "color": "#111111", "logo": "/logos/parrot.png", "tagline": "Surf y skate — tablas y neopreno", "files": ["/parrot-catalog.json"]}, "ccs": {"label": "CCS", "color": "#2AADEB", "logo": "/logos/ccs.png", "tagline": "El skate shop online", "files": ["/ccs-catalog.json"]}, "valsurf": {"label": "Val Surf", "color": "#0F506F", "logo": "/logos/valsurf.png", "tagline": "Surf y skate — 60 años", "files": ["/valsurf-catalog.json"]}, "oldnavy": {"label": "Old Navy", "color": "#001E62", "logo": "/logos/oldnavy.svg", "tagline": "Ropa casual para toda la familia", "files": ["/department-cache-oldnavy.json"]}, "samsclub": {"label": "Sam's Club", "color": "#0B6CFF", "logo": "/logos/samsclub.svg", "tagline": "Mayoreo y esenciales para el hogar", "files": ["/samsclub-catalog.json"]}, "lanebryant": {"label": "Lane Bryant", "color": "#C41230", "logo": "/logos/lanebryant.png", "tagline": "Moda femenina en tallas grandes", "files": ["/lanebryant-catalog.json"]}, "alphalete": {"label": "Alphalete", "color": "#000000", "logo": "/logos/alphalete.png", "tagline": "Ropa de gym premium", "files": ["/gymrat-catalog.json"]}, "youngla": {"label": "YoungLA", "color": "#000000", "logo": "/logos/youngla.png", "tagline": "Ropa de gym — oversize y streetwear", "files": ["/gymrat-catalog.json"]}, "gymshark": {"label": "Gymshark", "color": "#000000", "logo": "/logos/gymshark.png", "tagline": "Ropa de gym — leggings, tops y conjuntos", "files": ["/gymrat-catalog.json"]}, "venum": {"label": "Venum", "color": "#000000", "logo": "/logos/brands/venum.png", "tagline": "MMA y boxeo — guantes, shorts y equipo", "files": ["/venum-catalog.json"]}, "tatami": {"label": "Tatami Fightwear", "color": "#1A1A1A", "logo": "/logos/brands/tatamifightwear.svg", "tagline": "Jiu-jitsu — gis, rashguards y spats", "files": ["/tatami-catalog.json"]}, "everlast": {"label": "Everlast", "color": "#000000", "logo": "/logos/brands/everlast.svg", "tagline": "Boxeo — guantes, sacos y protección", "files": ["/everlast-catalog.json"]}, "mmawarehouse": {"label": "MMAWarehouse", "color": "#1A1A1A", "logo": "/logos/mmawarehouse.png", "tagline": "MMA — guantes, canilleras y equipo", "files": ["/mmawarehouse-catalog.json"]}, "combatcorner": {"label": "Combat Corner", "color": "#000000", "logo": "/logos/combatcorner.png", "tagline": "Boxeo y MMA — equipo de pelea", "files": ["/combatcorner-catalog.json"]}, "fuji": {"label": "FUJI Sports", "color": "#1A1A1A", "logo": "/logos/fuji.png", "tagline": "Jiu-jitsu y judo — gis y equipo", "files": ["/fuji-catalog.json"]}, "crocs": {"label": "Crocs", "color": "#000000", "logo": "/logos/brands/crocs.svg", "tagline": "Clogs, sandalias y calzado cómodo", "files": ["/crocs-catalog.json"]}, "baublebar": {"label": "BaubleBar", "color": "#000000", "logo": "/logos/brands/baublebar.png", "tagline": "Joyería de moda — collares, aretes y pulseras", "files": ["/baublebar-catalog.json"]}, "jwpei": {"label": "JW PEI", "color": "#000000", "logo": "/logos/brands/jwpei.png", "tagline": "Carteras veganas — crossbody, totes y minis", "files": ["/jwpei-catalog.json"]}, "meliebianco": {"label": "Melie Bianco", "color": "#000000", "logo": "/logos/brands/meliebianco.png", "tagline": "Carteras y accesorios", "files": ["/meliebianco-catalog.json"]}, "bentgo": {"label": "Bentgo", "color": "#000000", "logo": "/logos/brands/bentgo.png", "tagline": "Loncheras bento para niños", "files": ["/bentgo-catalog.json"]}, "mushie": {"label": "Mushie", "color": "#000000", "logo": "/logos/brands/mushie.png", "tagline": "Vasos y vajilla para niños", "files": ["/mushie-catalog.json"]}, "ezpz": {"label": "ezpz", "color": "#000000", "logo": "/logos/ezpz.png", "tagline": "Platos y vasos para niños", "files": ["/ezpz-catalog.json"]}, "statebags": {"label": "State Bags", "color": "#000000", "logo": "/logos/statebags.png", "tagline": "Mochilas y loncheras para niños", "files": ["/statebags-catalog.json"]}, "assouline": {"label": "Assouline", "color": "#000000", "logo": "/logos/assouline.png", "tagline": "Libros de mesa de lujo — moda, arte y viajes", "files": ["/books-catalog.json"]}, "chronicle": {"label": "Chronicle Books", "color": "#1A1A1A", "logo": "/logos/chronicle.png", "tagline": "Libros ilustrados — fotografía, arte y diseño", "files": ["/books-catalog.json"]}, "walmartbaby": {"label": "Walmart Bebé", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Coches, autoasientos y todo para el bebé", "files": ["/moms-catalog.json"]}, "momcozy": {"label": "Momcozy", "color": "#2E6E63", "logo": "/logos/momcozy.png", "tagline": "Lactancia y cuidado del bebé", "files": ["/moms-catalog.json"]}, "elvie": {"label": "Elvie", "color": "#7A4E8C", "logo": "/logos/elvie.png", "tagline": "Extractores de leche inteligentes", "files": ["/moms-catalog.json"]}, "spectra": {"label": "Spectra", "color": "#C2185B", "logo": "/logos/spectra.png", "tagline": "Extractores de leche", "files": ["/moms-catalog.json"]}, "munchkin": {"label": "Munchkin", "color": "#E8590C", "logo": "/logos/munchkin.png", "tagline": "Alimentación y cuidado del bebé", "files": ["/moms-catalog.json"]}, "babybrezza": {"label": "Baby Brezza", "color": "#1971C2", "logo": "/logos/babybrezza.png", "tagline": "Alimentación del bebé", "files": ["/moms-catalog.json"]}, "drbrowns": {"label": "Dr. Brown's", "color": "#1864AB", "logo": "/logos/drbrowns.png", "tagline": "Biberones y alimentación", "files": ["/moms-catalog.json"]}, "mockingbird": {"label": "Mockingbird", "color": "#343A40", "logo": "/logos/mockingbird.png", "tagline": "Coches premium", "files": ["/moms-catalog.json"]}, "nanit": {"label": "Nanit", "color": "#0C8599", "logo": "/logos/nanit.png", "tagline": "Monitoreo inteligente del bebé", "files": ["/moms-catalog.json"]}, "owlet": {"label": "Owlet", "color": "#5F3DC4", "logo": "/logos/owlet.png", "tagline": "Monitoreo del bebé", "files": ["/moms-catalog.json"]}, "kindredbravely": {"label": "Kindred Bravely", "color": "#8C5E58", "logo": "/logos/kindredbravely.png", "tagline": "Lactancia y maternidad", "files": ["/moms-catalog.json"]}, "hatch": {"label": "Hatch", "color": "#A61E4D", "logo": "/logos/hatch.png", "tagline": "Ropa de maternidad", "files": ["/moms-catalog.json"]}, "bellybandit": {"label": "Belly Bandit", "color": "#6B4F2A", "logo": "/logos/bellybandit.png", "tagline": "Soporte pre y postparto", "files": ["/moms-catalog.json"]}, "freshlypicked": {"label": "Freshly Picked", "color": "#B07D4F", "logo": "/logos/freshlypicked.png", "tagline": "Pañaleras de cuero", "files": ["/moms-catalog.json"]}, "jujube": {"label": "JuJuBe", "color": "#E64980", "logo": "/logos/jujube.png", "tagline": "Pañaleras y accesorios", "files": ["/moms-catalog.json"]}, "dagnedover": {"label": "Dagne Dover", "color": "#495057", "logo": "/logos/dagnedover.png", "tagline": "Pañaleras", "files": ["/moms-catalog.json"]}, "lillebaby": {"label": "LÍLLÉbaby", "color": "#2B8A3E", "logo": "/logos/lillebaby.png", "tagline": "Portabebés ergonómicos", "files": ["/moms-catalog.json"]}, "skims": {"label": "Skims", "color": "#605848", "logo": "/logos/skims.png", "tagline": "Shapewear, ropa interior y loungewear", "files": ["/skims-catalog.json"]}, "ssense": {"label": "SSENSE", "color": "#000000", "logo": "/logos/ssense.png", "tagline": "Diseñador y lujo, importado igual que todo lo demás", "files": ["/ssense-catalog.json"]}, "miumiu": {"label": "Miu Miu", "color": "#000000", "logo": "/logos/miumiu.png", "tagline": "Bolsos, calzado y moda italiana", "files": ["/miumiu-catalog.json"]}, "yesstyle": {"label": "YesStyle", "color": "#50A838", "logo": "/logos/yesstyle.png", "tagline": "Belleza coreana y japonesa", "files": ["/yesstyle-catalog.json"]}, "bathandbodyworks": {"label": "Bath & Body Works", "color": "#0F4C81", "logo": "/logos/bathandbodyworks.png", "tagline": "Cremas, jabones y velas aromáticas", "files": []}, "farfetch": {"label": "Farfetch", "color": "#000000", "logo": "/logos/farfetch.svg", "tagline": "Disenadores latinos — Farm Rio, Johanna Ortiz y mas", "files": ["/farfetch-catalog.json"]}, "hottopic": {"label": "Hot Topic", "color": "#D8232A", "logo": "/logos/hottopic.png", "tagline": "Band tees, anime y cultura pop", "files": ["/hottopic-catalog.json"]}, "boxlunch": {"label": "BoxLunch", "color": "#F26522", "logo": "/logos/boxlunch.png", "tagline": "Regalos pop que donan comidas", "files": ["/boxlunch-catalog.json"]}, "bananarepublic": {"label": "Banana Republic", "color": "#766A57", "tagline": "Cl\u00e1sicos premium y b\u00e1sicos elevados", "files": ["/bananarepublic-catalog.json"]}, "gap": {"label": "Gap", "color": "#001E41", "tagline": "Jeans y b\u00e1sicos para toda la familia", "files": ["/gap-catalog.json"]}, "abercrombie": {"label": "Abercrombie & Fitch", "color": "#111111", "logo": "/logos/abercrombie-fitch.png", "tagline": "Jeans y cl\u00e1sicos americanos premium", "files": ["/abercrombie-catalog.json"]}, "hollister": {"label": "Hollister", "color": "#041E42", "logo": "/logos/hollister.png", "tagline": "Estilo californiano juvenil", "files": ["/hollister-catalog.json"]}, "aguabendita": {"label": "Agua Bendita", "color": "#0A1F44", "logo": "/logos/aguabendita.png", "tagline": "Diseño colombiano — baño y resort", "files": ["/latino-designers-dtc-catalog.json"]}, "americaneagle": {"label": "American Eagle", "color": "#0A1F44", "logo": "/logos/americaneagle.png", "tagline": "Jeans y ropa casual", "files": ["/ae-catalog.json"]}, "ancora": {"label": "Ancora", "color": "#0A1F44", "logo": "/logos/ancora.png", "tagline": "Diseño latino — baño y playa", "files": ["/latino-designers-dtc-catalog.json"]}, "capittana": {"label": "Capittana", "color": "#0A1F44", "logo": "/logos/capittana.png", "tagline": "Diseño peruano — ropa de baño", "files": ["/latino-designers-dtc-catalog.json"]}, "denniskirk": {"label": "Dennis Kirk", "color": "#0A1F44", "logo": "/logos/denniskirk.png", "tagline": "Repuestos y accesorios de moto", "files": ["/moto-catalog.json"]}, "eberjey": {"label": "Eberjey", "color": "#0A1F44", "logo": "/logos/eberjey.png", "tagline": "Lencería y loungewear", "files": ["/latino-designers-dtc-catalog.json"]}, "elite": {"label": "Elite Sports", "color": "#0A1F44", "logo": "/logos/elite.png", "tagline": "Equipo de artes marciales", "files": ["/fightclub-catalog.json"]}, "farmrio": {"label": "FARM Rio", "color": "#0A1F44", "logo": "/logos/farmrio.png", "tagline": "Moda brasileña — estampados y color", "files": ["/latino-designers-dtc-catalog.json"]}, "gameness": {"label": "Gameness", "color": "#0A1F44", "logo": "/logos/gameness.png", "tagline": "Jiu-jitsu — gis y equipo", "files": ["/fightclub-catalog.json"]}, "johannaortiz": {"label": "Johanna Ortiz", "color": "#0A1F44", "logo": "/logos/johannaortiz.png", "tagline": "Alta costura colombiana", "files": ["/latino-designers-dtc-catalog.json"]}, "montce": {"label": "Montce", "color": "#0A1F44", "logo": "/logos/montce.png", "tagline": "Ropa de baño de autor", "files": ["/latino-designers-dtc-catalog.json"]}, "partycity": {"label": "Party City", "color": "#0A1F44", "logo": "/logos/partycity.png", "tagline": "Fiestas, globos y disfraces", "files": ["/partycity-catalog.json"]}, "patbo": {"label": "PatBO", "color": "#0A1F44", "logo": "/logos/patbo.png", "tagline": "Moda brasileña de fiesta", "files": ["/latino-designers-dtc-catalog.json"]}, "revzilla": {"label": "RevZilla", "color": "#0A1F44", "logo": "/logos/revzilla.png", "tagline": "Cascos y equipo de moto", "files": ["/moto-catalog.json"]}, "sephora": {"label": "Sephora", "color": "#0A1F44", "logo": "/logos/sephora.png", "tagline": "Maquillaje, skincare y fragancias", "files": ["/beauty-catalog.json"]}, "silviatcherassi": {"label": "Silvia Tcherassi", "color": "#0A1F44", "logo": "/logos/silviatcherassi.png", "tagline": "Diseño colombiano de lujo", "files": ["/latino-designers-dtc-catalog.json"]}, "smartbuyglasses": {"label": "SmartBuyGlasses", "color": "#0A1F44", "logo": "/logos/smartbuyglasses.png", "tagline": "Lentes de sol y de medida", "files": ["/sunglasses-catalog.json"]}, "tns": {"label": "TNS", "color": "#0A1F44", "logo": "/logos/tns.png", "tagline": "Moda latina contemporánea", "files": ["/latino-designers-dtc-catalog.json"]}, "vix": {"label": "ViX", "color": "#0A1F44", "logo": "/logos/vix.png", "tagline": "Ropa de baño brasileña", "files": ["/latino-designers-dtc-catalog.json"]}};
+var STORES = {"bestbuy": {"label": "Best Buy", "color": "#0046BE", "tag": "#FFE000", "logo": "/logos/bestbuy.svg", "heroPhoto": "/assets/stores/bestbuy-interior.jpg", "tagline": "Laptops, gaming, audio, celulares y más, al precio de Best Buy en Estados Unidos.", "slices": "/assets/tienda/bestbuy/", "trust": "bestbuy", "files": ["/bestbuy-catalog.json"]}, "revolve": {"label": "Revolve", "color": "#000000", "logo": "/logos/revolve.png", "tagline": "Moda contemporánea y de diseñador", "files": ["/revolve-catalog.json"]}, "target": {"label": "Target", "color": "#CC0000", "logo": "/logos/target.svg", "tagline": "Ropa, hogar y belleza", "files": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"]}, "footlocker": {"label": "Foot Locker", "color": "#000000", "logo": "/logos/footlocker.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/department-cache-footlocker.json"]}, "newbalance": {"label": "New Balance", "color": "#E21836", "logo": "/logos/brands/newbalance.svg", "tagline": "Zapatillas y ropa deportiva", "files": ["/newbalance-catalog.json"]}, "walmart": {"label": "Walmart", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Ahorra dinero. Vive mejor.", "files": ["/department-cache-walmart.json", "/juguetes-catalog.json"]}, "advanceauto": {"label": "Advance Auto Parts", "color": "#EA1927", "logo": "/logos/advanceauto.svg", "tagline": "Frenos y repuestos — vía Aria Auto", "files": ["/advanceauto-catalog.json"]}, "macys": {"label": "Macy's", "color": "#E21A2C", "logo": "/logos/macys.png", "tagline": "Moda mujer, marcas y vestidos", "files": ["/macys-catalog.json"]}, "kohls": {"label": "Kohl's", "color": "#C41230", "logo": "/logos/kohls.svg", "tagline": "Ropa y hogar para toda la familia", "files": ["/kohls-catalog.json"]}, "dicks": {"label": "Dick's Sporting Goods", "color": "#D22630", "logo": "/logos/dicks.png", "tagline": "Skate, surf y fitness", "files": ["/dicks-catalog.json"]}, "finishline": {"label": "Finish Line", "color": "#000000", "logo": "/logos/finishline.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/finishline-catalog.json"]}, "bhphoto": {"label": "B&H Photo", "color": "#A7392F", "logo": "/logos/bhphoto.svg", "tagline": "Cámaras, fotografía y electrónica", "files": ["/bhphoto-catalog.json"]}, "costco": {"label": "Costco", "color": "#E31837", "logo": "/logos/costco.svg", "tagline": "Precios de almacén, todo por mayor", "files": ["/costco-catalog.json", "/juguetes-catalog.json"]}, "victoriassecret": {"label": "Victoria's Secret", "color": "#E31C79", "logo": "/logos/victoriassecret.png", "tagline": "Lencería, brumas corporales y fragancias", "files": ["/beauty-catalog.json"]}, "ulta": {"label": "Ulta Beauty", "color": "#F88038", "logo": "/logos/ulta.png", "tagline": "Maquillaje, skincare y cuidado del cabello", "files": ["/ulta-catalog.json"]}, "pacsun": {"label": "PacSun", "color": "#111111", "logo": "/logos/pacsun.png", "tagline": "Moda surf y skate", "files": ["/pacsun-catalog.json"]}, "zumiez": {"label": "Zumiez", "color": "#111111", "logo": "/logos/zumiez.png", "tagline": "Streetwear, skate y sneakers", "files": ["/zumiez-catalog.json"]}, "nautilus": {"label": "Nautilus Spearfishing", "color": "#213236", "logo": "/logos/nautilus.png", "tagline": "Pesca submarina — arpones y buceo", "files": ["/nautilus-catalog.json"]}, "prosoccer": {"label": "ProSoccer", "color": "#0066CC", "logo": "/logos/prosoccer.png", "tagline": "Fútbol en oferta — chimpunes y más", "files": ["/soccer-catalog.json"]}, "xtremesoccer": {"label": "Xtreme Soccer", "color": "#CC0000", "logo": "/logos/xtremesoccer.png", "tagline": "Fútbol en oferta", "files": ["/soccer-catalog.json"]}, "tennisexpress": {"label": "Tennis Express", "color": "#008000", "logo": "/logos/tennisexpress.png", "tagline": "Tenis en oferta — raquetas y más", "files": ["/tennis-catalog.json"]}, "tenniswarehouse": {"label": "Tennis Warehouse", "color": "#FF6600", "logo": "/logos/tenniswarehouse.png", "tagline": "Tenis en oferta", "files": ["/tennis-catalog.json"]}, "academy": {"label": "Academy Sports", "color": "#003DA5", "logo": "/logos/academy.png", "tagline": "Fútbol en oferta — chimpunes", "files": ["/soccer-catalog.json"]}, "islandwatersports": {"label": "Island Water Sports", "color": "#373435", "logo": "/logos/islandwatersports.svg", "tagline": "Surf shop de Florida — tablas y playa", "files": ["/islandwatersports-catalog.json"]}, "quietstorm": {"label": "Quiet Storm Surf Shop", "color": "#141414", "logo": "/logos/quietstorm.png", "tagline": "Surf shop — tablas, skate y ropa", "files": ["/quietstorm-catalog.json"]}, "surfworld": {"label": "Surf World", "color": "#00A9DC", "logo": "/logos/surfworld.png", "tagline": "Surf shop Fort Lauderdale", "files": ["/surfworld-catalog.json"]}, "surfstation": {"label": "Surf Station", "color": "#111111", "logo": "/logos/surfstation.png", "tagline": "Surf, skate y ropa desde 1984", "files": ["/surfstation-catalog.json"]}, "mainland": {"label": "Mainland Skate & Surf", "color": "#0F6FEF", "logo": "/logos/mainland.png", "tagline": "Skate shop — tablas y marcas", "files": ["/mainland-catalog.json"]}, "parrot": {"label": "Parrot Surf & Skate", "color": "#111111", "logo": "/logos/parrot.png", "tagline": "Surf y skate — tablas y neopreno", "files": ["/parrot-catalog.json"]}, "ccs": {"label": "CCS", "color": "#2AADEB", "logo": "/logos/ccs.png", "tagline": "El skate shop online", "files": ["/ccs-catalog.json"]}, "valsurf": {"label": "Val Surf", "color": "#0F506F", "logo": "/logos/valsurf.png", "tagline": "Surf y skate — 60 años", "files": ["/valsurf-catalog.json"]}, "oldnavy": {"label": "Old Navy", "color": "#001E62", "logo": "/logos/oldnavy.svg", "tagline": "Ropa casual para toda la familia", "files": ["/department-cache-oldnavy.json"]}, "samsclub": {"label": "Sam's Club", "color": "#0B6CFF", "logo": "/logos/samsclub.svg", "tagline": "Mayoreo y esenciales para el hogar", "files": ["/samsclub-catalog.json"]}, "lanebryant": {"label": "Lane Bryant", "color": "#C41230", "logo": "/logos/lanebryant.png", "tagline": "Moda femenina en tallas grandes", "files": ["/lanebryant-catalog.json"]}, "alphalete": {"label": "Alphalete", "color": "#000000", "logo": "/logos/alphalete.png", "tagline": "Ropa de gym premium", "files": ["/gymrat-catalog.json"]}, "youngla": {"label": "YoungLA", "color": "#000000", "logo": "/logos/youngla.png", "tagline": "Ropa de gym — oversize y streetwear", "files": ["/gymrat-catalog.json"]}, "gymshark": {"label": "Gymshark", "color": "#000000", "logo": "/logos/gymshark.png", "tagline": "Ropa de gym — leggings, tops y conjuntos", "files": ["/gymrat-catalog.json"]}, "venum": {"label": "Venum", "color": "#000000", "logo": "/logos/brands/venum.png", "tagline": "MMA y boxeo — guantes, shorts y equipo", "files": ["/venum-catalog.json"]}, "tatami": {"label": "Tatami Fightwear", "color": "#1A1A1A", "logo": "/logos/brands/tatamifightwear.svg", "tagline": "Jiu-jitsu — gis, rashguards y spats", "files": ["/tatami-catalog.json"]}, "everlast": {"label": "Everlast", "color": "#000000", "logo": "/logos/brands/everlast.svg", "tagline": "Boxeo — guantes, sacos y protección", "files": ["/everlast-catalog.json"]}, "mmawarehouse": {"label": "MMAWarehouse", "color": "#1A1A1A", "logo": "/logos/mmawarehouse.png", "tagline": "MMA — guantes, canilleras y equipo", "files": ["/mmawarehouse-catalog.json"]}, "combatcorner": {"label": "Combat Corner", "color": "#000000", "logo": "/logos/combatcorner.png", "tagline": "Boxeo y MMA — equipo de pelea", "files": ["/combatcorner-catalog.json"]}, "fuji": {"label": "FUJI Sports", "color": "#1A1A1A", "logo": "/logos/fuji.png", "tagline": "Jiu-jitsu y judo — gis y equipo", "files": ["/fuji-catalog.json"]}, "crocs": {"label": "Crocs", "color": "#000000", "logo": "/logos/brands/crocs.svg", "tagline": "Clogs, sandalias y calzado cómodo", "files": ["/crocs-catalog.json"]}, "baublebar": {"label": "BaubleBar", "color": "#000000", "logo": "/logos/brands/baublebar.png", "tagline": "Joyería de moda — collares, aretes y pulseras", "files": ["/baublebar-catalog.json"]}, "jwpei": {"label": "JW PEI", "color": "#000000", "logo": "/logos/brands/jwpei.png", "tagline": "Carteras veganas — crossbody, totes y minis", "files": ["/jwpei-catalog.json"]}, "meliebianco": {"label": "Melie Bianco", "color": "#000000", "logo": "/logos/brands/meliebianco.png", "tagline": "Carteras y accesorios", "files": ["/meliebianco-catalog.json"]}, "bentgo": {"label": "Bentgo", "color": "#000000", "logo": "/logos/brands/bentgo.png", "tagline": "Loncheras bento para niños", "files": ["/bentgo-catalog.json"]}, "mushie": {"label": "Mushie", "color": "#000000", "logo": "/logos/brands/mushie.png", "tagline": "Vasos y vajilla para niños", "files": ["/mushie-catalog.json"]}, "ezpz": {"label": "ezpz", "color": "#000000", "logo": "/logos/ezpz.png", "tagline": "Platos y vasos para niños", "files": ["/ezpz-catalog.json"]}, "statebags": {"label": "State Bags", "color": "#000000", "logo": "/logos/statebags.png", "tagline": "Mochilas y loncheras para niños", "files": ["/statebags-catalog.json"]}, "assouline": {"label": "Assouline", "color": "#000000", "logo": "/logos/assouline.png", "tagline": "Libros de mesa de lujo — moda, arte y viajes", "files": ["/books-catalog.json"]}, "chronicle": {"label": "Chronicle Books", "color": "#1A1A1A", "logo": "/logos/chronicle.png", "tagline": "Libros ilustrados — fotografía, arte y diseño", "files": ["/books-catalog.json"]}, "walmartbaby": {"label": "Walmart Bebé", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Coches, autoasientos y todo para el bebé", "files": ["/moms-catalog.json"]}, "momcozy": {"label": "Momcozy", "color": "#2E6E63", "logo": "/logos/momcozy.png", "tagline": "Lactancia y cuidado del bebé", "files": ["/moms-catalog.json"]}, "elvie": {"label": "Elvie", "color": "#7A4E8C", "logo": "/logos/elvie.png", "tagline": "Extractores de leche inteligentes", "files": ["/moms-catalog.json"]}, "spectra": {"label": "Spectra", "color": "#C2185B", "logo": "/logos/spectra.png", "tagline": "Extractores de leche", "files": ["/moms-catalog.json"]}, "munchkin": {"label": "Munchkin", "color": "#E8590C", "logo": "/logos/munchkin.png", "tagline": "Alimentación y cuidado del bebé", "files": ["/moms-catalog.json"]}, "babybrezza": {"label": "Baby Brezza", "color": "#1971C2", "logo": "/logos/babybrezza.png", "tagline": "Alimentación del bebé", "files": ["/moms-catalog.json"]}, "drbrowns": {"label": "Dr. Brown's", "color": "#1864AB", "logo": "/logos/drbrowns.png", "tagline": "Biberones y alimentación", "files": ["/moms-catalog.json"]}, "mockingbird": {"label": "Mockingbird", "color": "#343A40", "logo": "/logos/mockingbird.png", "tagline": "Coches premium", "files": ["/moms-catalog.json"]}, "nanit": {"label": "Nanit", "color": "#0C8599", "logo": "/logos/nanit.png", "tagline": "Monitoreo inteligente del bebé", "files": ["/moms-catalog.json"]}, "owlet": {"label": "Owlet", "color": "#5F3DC4", "logo": "/logos/owlet.png", "tagline": "Monitoreo del bebé", "files": ["/moms-catalog.json"]}, "kindredbravely": {"label": "Kindred Bravely", "color": "#8C5E58", "logo": "/logos/kindredbravely.png", "tagline": "Lactancia y maternidad", "files": ["/moms-catalog.json"]}, "hatch": {"label": "Hatch", "color": "#A61E4D", "logo": "/logos/hatch.png", "tagline": "Ropa de maternidad", "files": ["/moms-catalog.json"]}, "bellybandit": {"label": "Belly Bandit", "color": "#6B4F2A", "logo": "/logos/bellybandit.png", "tagline": "Soporte pre y postparto", "files": ["/moms-catalog.json"]}, "freshlypicked": {"label": "Freshly Picked", "color": "#B07D4F", "logo": "/logos/freshlypicked.png", "tagline": "Pañaleras de cuero", "files": ["/moms-catalog.json"]}, "jujube": {"label": "JuJuBe", "color": "#E64980", "logo": "/logos/jujube.png", "tagline": "Pañaleras y accesorios", "files": ["/moms-catalog.json"]}, "dagnedover": {"label": "Dagne Dover", "color": "#495057", "logo": "/logos/dagnedover.png", "tagline": "Pañaleras", "files": ["/moms-catalog.json"]}, "lillebaby": {"label": "LÍLLÉbaby", "color": "#2B8A3E", "logo": "/logos/lillebaby.png", "tagline": "Portabebés ergonómicos", "files": ["/moms-catalog.json"]}, "skims": {"label": "Skims", "color": "#605848", "logo": "/logos/skims.png", "tagline": "Shapewear, ropa interior y loungewear", "files": ["/skims-catalog.json"]}, "ssense": {"label": "SSENSE", "color": "#000000", "logo": "/logos/ssense.png", "tagline": "Diseñador y lujo, importado igual que todo lo demás", "files": ["/ssense-catalog.json"]}, "miumiu": {"label": "Miu Miu", "color": "#000000", "logo": "/logos/miumiu.png", "tagline": "Bolsos, calzado y moda italiana", "files": ["/miumiu-catalog.json"]}, "yesstyle": {"label": "YesStyle", "color": "#50A838", "logo": "/logos/yesstyle.png", "tagline": "Belleza coreana y japonesa", "files": ["/yesstyle-catalog.json"]}, "bathandbodyworks": {"label": "Bath & Body Works", "color": "#0F4C81", "logo": "/logos/bathandbodyworks.png", "tagline": "Cremas, jabones y velas aromáticas", "files": []}, "farfetch": {"label": "Farfetch", "color": "#000000", "logo": "/logos/farfetch.svg", "tagline": "Disenadores latinos — Farm Rio, Johanna Ortiz y mas", "files": ["/farfetch-catalog.json"]}, "hottopic": {"label": "Hot Topic", "color": "#D8232A", "logo": "/logos/hottopic.png", "tagline": "Band tees, anime y cultura pop", "files": ["/hottopic-catalog.json"]}, "boxlunch": {"label": "BoxLunch", "color": "#F26522", "logo": "/logos/boxlunch.png", "tagline": "Regalos pop que donan comidas", "files": ["/boxlunch-catalog.json"]}, "bananarepublic": {"label": "Banana Republic", "color": "#766A57", "tagline": "Cl\u00e1sicos premium y b\u00e1sicos elevados", "files": ["/bananarepublic-catalog.json"]}, "gap": {"label": "Gap", "color": "#001E41", "tagline": "Jeans y b\u00e1sicos para toda la familia", "files": ["/gap-catalog.json"]}, "abercrombie": {"label": "Abercrombie & Fitch", "color": "#111111", "logo": "/logos/abercrombie-fitch.png", "tagline": "Jeans y cl\u00e1sicos americanos premium", "files": ["/abercrombie-catalog.json"]}, "hollister": {"label": "Hollister", "color": "#041E42", "logo": "/logos/hollister.png", "tagline": "Estilo californiano juvenil", "files": ["/hollister-catalog.json"]}, "aguabendita": {"label": "Agua Bendita", "color": "#0A1F44", "logo": "/logos/aguabendita.png", "tagline": "Diseño colombiano — baño y resort", "files": ["/latino-designers-dtc-catalog.json"]}, "americaneagle": {"label": "American Eagle", "color": "#0A1F44", "logo": "/logos/americaneagle.png", "tagline": "Jeans y ropa casual", "files": ["/ae-catalog.json"]}, "ancora": {"label": "Ancora", "color": "#0A1F44", "logo": "/logos/ancora.png", "tagline": "Diseño latino — baño y playa", "files": ["/latino-designers-dtc-catalog.json"]}, "capittana": {"label": "Capittana", "color": "#0A1F44", "logo": "/logos/capittana.png", "tagline": "Diseño peruano — ropa de baño", "files": ["/latino-designers-dtc-catalog.json"]}, "denniskirk": {"label": "Dennis Kirk", "color": "#0A1F44", "logo": "/logos/denniskirk.png", "tagline": "Repuestos y accesorios de moto", "files": ["/moto-catalog.json"]}, "eberjey": {"label": "Eberjey", "color": "#0A1F44", "logo": "/logos/eberjey.png", "tagline": "Lencería y loungewear", "files": ["/latino-designers-dtc-catalog.json"]}, "elite": {"label": "Elite Sports", "color": "#0A1F44", "logo": "/logos/elite.png", "tagline": "Equipo de artes marciales", "files": ["/fightclub-catalog.json"]}, "farmrio": {"label": "FARM Rio", "color": "#0A1F44", "logo": "/logos/farmrio.png", "tagline": "Moda brasileña — estampados y color", "files": ["/latino-designers-dtc-catalog.json"]}, "gameness": {"label": "Gameness", "color": "#0A1F44", "logo": "/logos/gameness.png", "tagline": "Jiu-jitsu — gis y equipo", "files": ["/fightclub-catalog.json"]}, "johannaortiz": {"label": "Johanna Ortiz", "color": "#0A1F44", "logo": "/logos/johannaortiz.png", "tagline": "Alta costura colombiana", "files": ["/latino-designers-dtc-catalog.json"]}, "montce": {"label": "Montce", "color": "#0A1F44", "logo": "/logos/montce.png", "tagline": "Ropa de baño de autor", "files": ["/latino-designers-dtc-catalog.json"]}, "partycity": {"label": "Party City", "color": "#0A1F44", "logo": "/logos/partycity.png", "tagline": "Fiestas, globos y disfraces", "files": ["/partycity-catalog.json"]}, "patbo": {"label": "PatBO", "color": "#0A1F44", "logo": "/logos/patbo.png", "tagline": "Moda brasileña de fiesta", "files": ["/latino-designers-dtc-catalog.json"]}, "revzilla": {"label": "RevZilla", "color": "#0A1F44", "logo": "/logos/revzilla.png", "tagline": "Cascos y equipo de moto", "files": ["/moto-catalog.json"]}, "sephora": {"label": "Sephora", "color": "#0A1F44", "logo": "/logos/sephora.png", "tagline": "Maquillaje, skincare y fragancias", "files": ["/beauty-catalog.json"]}, "silviatcherassi": {"label": "Silvia Tcherassi", "color": "#0A1F44", "logo": "/logos/silviatcherassi.png", "tagline": "Diseño colombiano de lujo", "files": ["/latino-designers-dtc-catalog.json"]}, "smartbuyglasses": {"label": "SmartBuyGlasses", "color": "#0A1F44", "logo": "/logos/smartbuyglasses.png", "tagline": "Lentes de sol y de medida", "files": ["/sunglasses-catalog.json"]}, "tns": {"label": "TNS", "color": "#0A1F44", "logo": "/logos/tns.png", "tagline": "Moda latina contemporánea", "files": ["/latino-designers-dtc-catalog.json"]}, "vix": {"label": "ViX", "color": "#0A1F44", "logo": "/logos/vix.png", "tagline": "Ropa de baño brasileña", "files": ["/latino-designers-dtc-catalog.json"]}};
 
 /* ---------- config ---------- */
 var BASE = '';
@@ -332,6 +377,10 @@ function imgOrigRetry(el){
   }
   return false;
 }
+/* The cards' inline onerror runs in the global scope, outside this
+   page's wrapper: without this a failed sized photo threw (and raised
+   the "Algo salió mal" bar) instead of falling back to the original. */
+window.imgOrigRetry = imgOrigRetry;
 function cardImgAttrs(url, sizes){
   var ss = imageSrcset(url);
   return 'src="' + esc(sizedImageUrl(url, 560)) + '"' +
@@ -1021,6 +1070,305 @@ function renderDirectory(){
   if (grid) grid.innerHTML = html;
 }
 
+/* ============================================================
+   SLICED STOREFRONT (2026-10-19, #413 Best Buy launch, #409 format).
+   STORES[k].slices names a folder built by scripts/build-store-slices.mjs:
+     index.json             count, department chips, every rail's title,
+                            total and first cards -- the first screen
+     rails/<rail>-<n>.json  48 cards per page, for Ver todo / Mostrar más
+     find.json              the store's search box (fetched on first use)
+   The catalogue is never fetched. Rails: Ofertas first, Más vendidos
+   second, then the departments the data supports (Danny's order).
+   ============================================================ */
+var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+function cachedFx(){
+  try {
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+    if (c && typeof c.venta === 'number' && c.venta > 0 && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS) return c.venta;
+  } catch (e) {}
+  return null;
+}
+function storeFx(v){
+  try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify({ venta: v, fetchedAt: Date.now() })); } catch (e) {}
+}
+var slIndex = null;
+var SL_SKEL_CARD = '<div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body">' +
+  '<div class="ln short"></div><div class="ln"></div><div class="ln"></div><div class="card-prices"><div class="ln short"></div></div></div></div>';
+function slSkeleton(){
+  var host = $('content');
+  if (!host) return;
+  var one = '<section class="rail-sec"><div class="rail-head"><h2 class="rail-title">&nbsp;</h2></div><div class="rail">' +
+    SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + '</div></section>';
+  host.innerHTML = one + one + one;
+}
+function fmtPen(n){
+  return 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+/* Soles lead. Without a rate yet the row keeps its height and fills
+   when the rate lands (renderSlPrices); with no rate at all, dollars,
+   plainly labelled -- never an empty card. */
+function slPriceHTML(p){
+  var f = finalUsd(p.price, storeKey);
+  var wasF = p.was && p.was > p.price ? finalUsd(p.was, storeKey) : 0;
+  return '<div class="card-prices" data-usd="' + esc(f) + '" data-was="' + esc(wasF || '') + '">' + slPriceInner(f, wasF) + '</div>';
+}
+function slPriceInner(f, wasF){
+  if (!isFinite(f)) return '<div class="pen">Precio no disponible</div><div class="usd">&nbsp;</div>';
+  if (fxVenta){
+    return '<div class="pen">' + fmtPen(f * fxVenta) + '</div>' +
+      '<div class="usd">' + (wasF ? '<s>' + fmtPen(wasF * fxVenta) + '</s> &middot; ' : '') + 'US' + fmtUSD(f) + '</div>';
+  }
+  return '<div class="pen">' + (fxFailed ? 'US' + fmtUSD(f) : '&nbsp;') + '</div><div class="usd">' +
+    (fxFailed && wasF ? '<s>US' + fmtUSD(wasF) + '</s>' : '&nbsp;') + '</div>';
+}
+var fxFailed = false;
+function renderSlPrices(){
+  var els = document.querySelectorAll('.sl .card-prices[data-usd]');
+  for (var i = 0; i < els.length; i++){
+    var f = Number(els[i].getAttribute('data-usd'));
+    var w = Number(els[i].getAttribute('data-was')) || 0;
+    els[i].innerHTML = slPriceInner(f, w);
+  }
+}
+function slCardHTML(p){
+  var pct = discountPct({ price: p.price, originalPrice: p.was });
+  var href = 'producto.html?producto=' + encodeURIComponent(p.name || '') + '&tienda=' + encodeURIComponent(storeKey);
+  /* src parked in data- until the card is about to be seen (watchPhotos). */
+  var img = '<img ' + cardImgAttrs(p.image).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
+    ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">';
+  return '<a class="card" href="' + esc(href) + '">' +
+    '<div class="card-img">' + (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img + '</div>' +
+    '<div class="card-body"><div class="card-brand">' + (p.brand ? esc(p.brand) : '&nbsp;') + '</div>' +
+      '<h3 class="card-title">' + esc(p.name) + '</h3>' + slPriceHTML(p) + '</div></a>';
+}
+/* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN -- search.html's
+   watchPhotos: native lazy loading fetched a whole carousel's photos at
+   once on a slow link. The rail's clipping is honoured; a swipe brings
+   the next card's photo with it. */
+var PHOTO_IO = null;
+function railPhoto(img){
+  if (!img || !img.dataset.src) return;
+  if (img.dataset.srcset){ img.srcset = img.dataset.srcset; img.sizes = img.dataset.sizes || ''; }
+  img.src = img.dataset.src;
+  img.removeAttribute('data-src');
+  img.removeAttribute('data-srcset');
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll('img[data-src]');
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < imgs.length; i++) railPhoto(imgs[i]); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      railPhoto(e.target);
+      var rail = e.target.closest('.rail'), card = e.target.closest('.card');
+      if (rail && rail.scrollLeft > 0 && card && card.nextElementSibling) railPhoto(card.nextElementSibling.querySelector('img[data-src]'));
+    });
+  }, { rootMargin: '200px 0px' });
+  for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
+}
+/* THE TRUST STRIP (Danny, #413 addendum 2): why Aria buys at this store.
+   It sells the store's credibility as Aria's buying-side confidence; the
+   promises to the shopper stay Aria's own. */
+var TRUST = {
+  bestbuy: '<section class="trust" aria-label="Por qué compramos en Best Buy">' +
+    '<h2>Por qué compramos en Best Buy</h2><ul>' +
+    '<li><b>Precio igualado, no inflado</b>Best Buy es conocida por igualar los precios de las grandes tiendas de Estados Unidos. Comprar ahí nos da un precio de partida en el que confiamos.</li>' +
+    '<li><b>Una tienda que responde por lo que vende</b>Su reputación en devoluciones y garantía es de las mejores del país. Si algo llega mal, sabemos con quién resolverlo.</li>' +
+    '<li><b>Tu compra la respalda Aria</b>El precio que ves es el final, en soles. Tu pedido se rige por <a href="devoluciones.html">la política de devoluciones de Aria</a>.</li>' +
+    '</ul></section>'
+};
+var slRailsByKey = {};
+function slRailHTML(r){
+  slRailsByKey[r.key] = r;
+  var cards = '';
+  for (var i = 0; i < r.head.length; i++){ try { cards += slCardHTML(r.head[i]); } catch (e) {} }
+  var door = r.total > r.head.length
+    ? '<button type="button" class="rail-ver" data-rail="' + esc(r.key) + '">Ver todo &#8594;</button>' : '';
+  return '<section class="rail-sec" aria-label="' + esc(r.title) + '"><div class="rail-head"><h2 class="rail-title">' + esc(r.title) + '</h2>' +
+    '<span class="rail-count">' + Number(r.total).toLocaleString('es-PE') + '</span>' + door + '</div>' +
+    '<div class="rail">' + cards + '</div></section>';
+}
+function slRenderHome(){
+  var host = $('content');
+  if (!host || !slIndex) return;
+  var html = '';
+  var rails = slIndex.rails || [];
+  for (var i = 0; i < rails.length; i++){
+    html += slRailHTML(rails[i]);
+    /* The trust strip sits under the two lead rails: sales and demand
+       first, then why the store is worth it. */
+    if (i === 1 && storeMeta.trust && TRUST[storeMeta.trust]) html += TRUST[storeMeta.trust];
+  }
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.rail-ver');
+  for (var k = 0; k < btns.length; k++){
+    btns[k].addEventListener('click', function(){ slOpenRail(this.getAttribute('data-rail')); });
+  }
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = Number(slIndex.count).toLocaleString('es-PE') + ' productos en ' + storeMeta.label +
+    (slIndex.onSale ? ' · ' + Number(slIndex.onSale).toLocaleString('es-PE') + ' en oferta' : '');
+  watchPhotos(host);
+}
+function slChips(){
+  var host = $('deptChips');
+  if (!host || !slIndex) return;
+  var html = '<button type="button" class="chip active" data-dept="">Todo</button>';
+  for (var i = 0; i < slIndex.depts.length; i++){
+    var d = slIndex.depts[i];
+    html += '<button type="button" class="chip" data-dept="' + esc(d.key) + '">' + esc(d.label) + '</button>';
+  }
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.chip');
+  for (var j = 0; j < btns.length; j++){
+    btns[j].addEventListener('click', function(){
+      var d = this.getAttribute('data-dept');
+      if (d) slOpenRail('d-' + d);
+    });
+  }
+}
+/* Ver todo / a department chip: the rail's pages, 48 cards at a time,
+   in the full-screen overlay. */
+var slOverlay = { key: '', page: 0, pages: 0, busy: false };
+function slFetchPage(key, n){
+  return fetchJson(BASE + storeMeta.slices + 'rails/' + encodeURIComponent(key) + '-' + n + '.json');
+}
+function slOpenRail(key){
+  var r = slRailsByKey[key];
+  var ov = $('railExpand'), grid = $('reGrid');
+  if (!r || !ov || !grid) return;
+  slOverlay = { key: key, page: 0, pages: r.pages || 1, busy: false };
+  $('reTitle').textContent = r.title;
+  $('reCount').textContent = Number(r.total).toLocaleString('es-PE') + (r.total === 1 ? ' producto' : ' productos');
+  var sk = '';
+  for (var i = 0; i < 8; i++) sk += SL_SKEL_CARD;
+  grid.classList.add('sl');
+  grid.innerHTML = sk;
+  ov.hidden = false;
+  document.body.style.overflow = 'hidden';
+  grid.scrollTop = 0;
+  slMore(true);
+}
+function slMore(first){
+  if (slOverlay.busy || slOverlay.page >= slOverlay.pages) return;
+  slOverlay.busy = true;
+  var key = slOverlay.key, grid = $('reGrid');
+  var btn = $('slMoreBtn');
+  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  slFetchPage(key, slOverlay.page + 1).then(function(j){
+    if (key !== slOverlay.key) return;
+    slOverlay.busy = false;
+    slOverlay.page = j.page || slOverlay.page + 1;
+    var html = '';
+    for (var i = 0; i < (j.items || []).length; i++){ try { html += slCardHTML(j.items[i]); } catch (e) {} }
+    var old = $('slMoreWrap');
+    if (old) old.remove();
+    if (first) grid.innerHTML = html; else grid.insertAdjacentHTML('beforeend', html);
+    if (slOverlay.page < slOverlay.pages){
+      grid.insertAdjacentHTML('beforeend', '<div class="sl-more" id="slMoreWrap" style="grid-column:1/-1"><button class="btn" id="slMoreBtn" type="button">Mostrar más</button></div>');
+      $('slMoreBtn').addEventListener('click', function(){ slMore(false); });
+    }
+    watchPhotos(grid);
+  }, function(){
+    slOverlay.busy = false;
+    if (first) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#6B7280"><p style="font-weight:700;margin-bottom:8px">No pudimos cargar estos productos.</p><p style="font-size:13px">Revisa tu conexión y vuelve a intentarlo.</p></div>';
+    else if (btn){ btn.disabled = false; btn.textContent = 'Reintentar'; }
+  });
+}
+/* The store's search box: find.json on first use, then every word must
+   match title or brand; 48 cards drawn at a time. */
+var slFind = null, slFindP = null, slHits = [], slShown = 0;
+function slLoadFind(){
+  if (!slFindP) slFindP = fetchJson(BASE + storeMeta.slices + 'find.json').then(function(j){ slFind = j; return j; }, function(e){ slFindP = null; throw e; });
+  return slFindP;
+}
+function slFoldText(s){
+  s = String(s || '').toLowerCase();
+  try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+  return s;
+}
+function slSearch(q){
+  var host = $('content');
+  if (!host) return;
+  q = String(q || '').trim();
+  if (!q){ slRenderHome(); return; }
+  var sk = '<div class="grid">';
+  for (var i = 0; i < 4; i++) sk += SL_SKEL_CARD;
+  host.innerHTML = sk + '</div>';
+  slLoadFind().then(function(f){
+    if ((($('q') || {}).value || '').trim() !== q) return;
+    var words = slFoldText(q).split(/\s+/).filter(Boolean);
+    /* The product the words name leads: a title whose head ("Brand -
+       Product", before the first qualifier) holds every word comes
+       before one that only mentions them ("...for AirPods"). Within each
+       group the file's order (sale depth + demand) stands. */
+    var lead = [], rest = [];
+    for (var i = 0; i < f.rows.length; i++){
+      var row = f.rows[i], t = slFoldText(row[0] + ' ' + row[1]), ok = true;
+      for (var w = 0; w < words.length; w++){ if (t.indexOf(words[w]) === -1){ ok = false; break; } }
+      if (!ok) continue;
+      var head = slFoldText(String(row[0]).split(/ - | with | for | para | con /i).slice(0, 2).join(' ')), inHead = true;
+      for (var h = 0; h < words.length; h++){ if (head.indexOf(words[h]) === -1){ inHead = false; break; } }
+      (inHead ? lead : rest).push({ name: row[0], brand: row[1], price: row[2], was: row[3], image: f.prefix + row[4] });
+    }
+    slHits = lead.concat(rest);
+    slShown = 0;
+    var cnt = $('countLine');
+    if (cnt) cnt.textContent = slHits.length.toLocaleString('es-PE') + (slHits.length === 1 ? ' producto' : ' productos') + ' en ' + storeMeta.label;
+    if (!slHits.length){
+      host.innerHTML = '<div class="state"><h2>Sin resultados</h2><p>Ningún producto de ' + esc(storeMeta.label) + ' coincide con tu búsqueda.</p></div>';
+      return;
+    }
+    host.innerHTML = '<div class="grid" id="slGrid"></div>';
+    slSearchMore();
+  }, function(){
+    host.innerHTML = '<div class="state"><h2>No pudimos buscar</h2><p>Revisa tu conexión y vuelve a intentarlo.</p></div>';
+  });
+}
+function slSearchMore(){
+  var grid = $('slGrid');
+  if (!grid) return;
+  var next = slHits.slice(slShown, slShown + PAGE_SIZE);
+  slShown += next.length;
+  var html = '';
+  for (var i = 0; i < next.length; i++){ try { html += slCardHTML(next[i]); } catch (e) {} }
+  grid.insertAdjacentHTML('beforeend', html);
+  var old = $('slSearchMoreWrap');
+  if (old) old.remove();
+  if (slShown < slHits.length){
+    grid.insertAdjacentHTML('afterend', '<div class="sl-more" id="slSearchMoreWrap"><button class="btn" type="button" id="slSearchMoreBtn">Mostrar más</button></div>');
+    $('slSearchMoreBtn').addEventListener('click', slSearchMore);
+  }
+  watchPhotos(grid);
+}
+function bootSliced(){
+  var sw = $('storeWrap');
+  if (sw) sw.classList.add('sl');
+  var s = $('sort');
+  if (s) s.style.display = 'none';
+  try { document.documentElement.style.setProperty('--store', storeMeta.color || '#0A1F44'); } catch (e) {}
+  try { if (storeMeta.tag) document.documentElement.style.setProperty('--tag', storeMeta.tag); } catch (e) {}
+  var q = $('q');
+  if (q) q.placeholder = 'Busca en ' + storeMeta.label + '…';
+  slSkeleton();
+  /* The rate the home page and search already cached, then the live one. */
+  fxVenta = cachedFx();
+  fetchJson(FX_URL).then(function(j){
+    var v = Number(j && (j.venta || j.Venta));
+    if (Number.isFinite(v) && v > 0){ fxVenta = v; storeFx(v); }
+    else if (!fxVenta) fxFailed = true;
+    renderSlPrices();
+  }, function(){ if (!fxVenta){ fxFailed = true; renderSlPrices(); } });
+  fetchJson(BASE + storeMeta.slices + 'index.json').then(function(j){
+    slIndex = j;
+    slChips();
+    slRenderHome();
+  }, function(){
+    renderError('No pudimos cargar ' + storeMeta.label + '. Revisa tu conexión e inténtalo de nuevo.', true);
+  });
+}
+
 /* ---------- boot ---------- */
 var booted = false;
 function paintHero(){
@@ -1028,11 +1376,28 @@ function paintHero(){
   if (!hero || !storeMeta) return;
   hero.hidden = false;
   try { hero.style.setProperty('--store', storeMeta.color || '#0A1F44'); } catch (e) {}
+  /* THEMED HERO (2026-10-19, #413): a store that names its own colours
+     and photo (Best Buy) wears them -- its blue, its yellow tag rule, and
+     a real interior photo of the store once one is supplied (heroPhoto;
+     when the file is absent the hero stays a clean brand-blue band, never
+     a stand-in). */
+  if (storeMeta.slices){
+    hero.classList.add('themed');
+    var _tb = $('heroTagbar');
+    if (_tb && storeMeta.tag){ hero.style.setProperty('--tag', storeMeta.tag); _tb.hidden = false; }
+    if (!storeMeta.logo){
+      var _hw = $('heroWord');
+      if (_hw){ _hw.textContent = storeMeta.label; _hw.hidden = false; }
+      var _nm = $('heroName');
+      if (_nm) _nm.className = 'hero-name sr-only';
+    }
+  }
   /* STORE BACKDROP (2026-10-07): store imagery from assets/stores/ for mall feel */
   try{
     var _hb = $('heroBg'), _hs = $('heroScrim');
-    if (_hb && storeKey){
-      _hb.src = 'assets/stores/' + storeKey + '.jpg';
+    if (_hb && storeKey && storeMeta.slices && !storeMeta.heroPhoto){ /* no photo yet: brand band */ }
+    else if (_hb && storeKey){
+      _hb.src = storeMeta.heroPhoto || ('assets/stores/' + storeKey + '.jpg');
       _hb.hidden = false;
       if (_hs) _hs.hidden = false;
       _hb.onerror = function(){ _hb.hidden = true; if(_hs) _hs.hidden = true; };
@@ -1064,6 +1429,7 @@ function boot(isRetry){
   if (dw) dw.hidden = true;
   if (sw) sw.hidden = false;
   paintHero();
+  if (storeMeta.slices){ bootSliced(); return; }
   loadFx();
   loadStore().then(function(res){
     allItems = res.items || [];
@@ -1089,11 +1455,20 @@ function bindUI(){
   var q = $('q'), s = $('sort'), t = null;
   if (q) q.addEventListener('input', function(){
     if (t) clearTimeout(t);
-    t = setTimeout(function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} }, 180);
+    t = setTimeout(function(){
+      visibleCount = PAGE_SIZE;
+      if (storeMeta && storeMeta.slices){ try { slSearch(q.value); } catch (e) {} return; }
+      try { render(); } catch (e) {}
+    }, storeMeta && storeMeta.slices ? 300 : 180);
   });
   if (s) s.addEventListener('change', function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} });
-  var rb = $('reBack');
-  if (rb) rb.addEventListener('click', function(){ try { closeRailExpand(); } catch (e) {} });
+  /* The overlay's markup comes after this script, so #reBack does not
+     exist yet when this runs (the back arrow never closed "Ver todo").
+     One delegated listener answers it whenever it is there. */
+  document.addEventListener('click', function(ev){
+    var t = ev && ev.target;
+    if (t && t.closest && t.closest('#reBack')){ try { closeRailExpand(); } catch (e) {} }
+  });
   document.addEventListener('keydown', function(ev){
     if (ev && ev.key === 'Escape'){ try { closeRailExpand(); } catch (e) {} }
   });

@@ -306,10 +306,21 @@ export function isGenericQuery(ctx, r) {
      of them ("samba" is almost all adidas; "airpods" all Apple). */
   const hits = r.hits || [];
   if (hits.length < GENERIC_MIN_HITS) return false;
+  /* Accessories name the product they fit ("Case for AirPods 4",
+     "Charger with ... AirPods"): they are not the product, so they do
+     not vote. A store that leaves the brand blank ("Apple AirPods 4")
+     names it first in the title. (#413: Best Buy's cases and chargers
+     had turned "airpods" into an aisle.) */
+  const qw = String(r.query || "").toLowerCase().trim().split(/\s+/)[0] || "";
+  const fits = (t) => {
+    const i = t.indexOf(qw);
+    return i > 0 && /\b(for|with|compatible|fits|para|con)\b/.test(t.slice(0, i));
+  };
   const by = new Map();
   let named = 0;
   for (const p of hits) {
-    const k = recognizedBrand(ctx, p) || brandKey(p.brand);
+    if (qw && fits(String(p.title || "").toLowerCase())) continue;
+    const k = recognizedBrand(ctx, p) || brandKey(p.brand) || brandKey(String(p.title || "").split(/\s+/)[0]);
     if (!k) continue;
     named++;
     by.set(k, (by.get(k) || 0) + 1);

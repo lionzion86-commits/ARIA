@@ -103,6 +103,12 @@ for (const [retailer, list] of Object.entries(perStore)){
       if (!rawItemOnSale(raw)) continue;
       const it = normalizeLiveItem(raw, { retailer, department });
       if (!it.title || !(Number(it.price) > 0) || !(it.onSale && Number(it.originalPrice) > Number(it.price))) continue;
+      /* THE BADGE IS JUDGED ON THE PRICES SHOWN (2026-10-19, #413). The
+         tiered margin is lighter on the dearer was-price, so a raw 5%
+         markdown on a $1,000+ item can land at 4% once priced -- Best
+         Buy's laptops and consoles were the first to do it. The one sale
+         rule decides again on the card's own prices. */
+      if (!(saleDiscountPct({ price: it.price, originalPrice: it.originalPrice }) > 0)) continue;
       out.push({
         retailer, title: it.title, price: it.price, originalPrice: it.originalPrice,
         image: it.image || (it.images && it.images[0]) || null, images: (it.images || []).slice(0, 3),
