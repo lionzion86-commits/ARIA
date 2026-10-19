@@ -116,6 +116,11 @@ footer a{color:#fff}
 .p-was{font-size:15px;color:var(--muted);text-decoration:line-through;margin-left:8px;font-weight:500}
 .p-off{display:inline-block;background:var(--gold);color:var(--navy);font-size:12px;font-weight:800;border-radius:8px;padding:3px 7px;margin-left:8px;vertical-align:middle}
 .p-usd{font-size:14px;color:var(--muted);margin-top:2px}
+.p-tax{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f7f8fb;border:1px solid var(--line);min-height:58px}
+.p-tax-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;color:var(--navy)}
+.p-tax-row b{white-space:nowrap;text-align:right}
+.p-tax-row small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.p-tax-note{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
 </style>
 <script src="/ref.js"></script>
 <script src="sale-rule.js"></script>
@@ -423,6 +428,49 @@ function finalUsd(raw, retailer){ return Math.round((Number(raw) + tieredMarginU
 function fmtUsd(n){ return "US$ " + Number(n).toFixed(2); }
 function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
 var FX_RATE = null;
+/* IMPORT-TAX ESTIMATE LINE (#439). Mirrors weight-data.js (a test pins
+   the two): the threshold is on the goods' dutiable value (raw x the
+   store's sales-tax rate), the estimate on goods + freight. The buy box
+   shows only the product price and this line -- never the dutiable value,
+   the rate or anything else a shopper could subtract to a margin. */
+var TAX_ESTIMATE_THRESHOLD_USD = 200;
+var TAX_ESTIMATE_RATE = 0.25;
+var CHARGE_PER_KG = 13;
+var PDP_LINE_KG = 0.2;
+function importTaxEstimateUsd(fobUsd, freightUsd){
+  var fob = Number(fobUsd);
+  if (!isFinite(fob) || fob <= TAX_ESTIMATE_THRESHOLD_USD) return 0;
+  var f = Number(freightUsd);
+  return Math.round((fob + (isFinite(f) && f > 0 ? f : 0)) * TAX_ESTIMATE_RATE * 100) / 100;
+}
+function dutiableUsd(raw, retailer){ return Math.round(Number(raw) * salesTaxRate(retailer) * 100) / 100; }
+/* Soles first, dollars small and grey; dollars alone only without a rate. */
+function moneyHtml(usd){
+  return FX_RATE ? esc(fmtPen(usd * FX_RATE)) + ' <small>' + esc(fmtUsd(usd)) + '</small>' : esc(fmtUsd(usd));
+}
+function taxLineHtml(p){
+  var fob = dutiableUsd(p.price, p.retailer);
+  if (!(fob > TAX_ESTIMATE_THRESHOLD_USD)){
+    return '<div class="p-tax-row"><span>Impuestos de importación</span><b>' + moneyHtml(0) + '</b></div>'
+      + '<div class="p-tax-note">Sin recargo en pedidos de hasta US$ ' + TAX_ESTIMATE_THRESHOLD_USD + ' en productos.</div>';
+  }
+  return '<div class="p-tax-row"><span>Impuestos de importación (estimado)</span><b id="p-tax-amt">calculando…</b></div>'
+    + '<div class="p-tax-note">Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.</div>';
+}
+/* Over the threshold the estimate needs the freight, so the weight the
+   checkout will use: the same resolver, the same 0.2 kg line fallback. */
+function fillTaxEstimate(p){
+  var fob = dutiableUsd(p.price, p.retailer);
+  if (!(fob > TAX_ESTIMATE_THRESHOLD_USD)) return;
+  var line = { title: p.name, retailer: p.retailer, priceUsd: finalUsd(p.price, p.retailer), weightKg: PDP_LINE_KG, weightEstimated: true, qty: 1 };
+  var done = function(kg){
+    var amt = el("p-tax-amt");
+    if (amt) amt.innerHTML = moneyHtml(importTaxEstimateUsd(fob, (kg > 0 ? kg : PDP_LINE_KG) * CHARGE_PER_KG));
+  };
+  fetch("/.netlify/functions/resolve-weight", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [line] }) })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){ done(d && Number(d.totalKg)); }, function(){ done(0); });
+}
 
 function normalizeItem(it, retailerKey){
   try{
@@ -557,9 +605,11 @@ function render(p){
   var offHtml = wasUsd ? '<span class="p-off">-' + esc(p.salePct) + '%</span>' : '';
   var priceHtml = FX_RATE
     ? '<div><span class="p-pen">' + esc(fmtPen(usd * FX_RATE)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtPen(wasUsd * FX_RATE)) + '</span>' : '') + offHtml + '</div>'
-      + '<div class="p-usd">' + esc(fmtUsd(usd)) + ' · puesto en Perú</div>'
+      + '<div class="p-usd">' + esc(fmtUsd(usd)) + '</div>'
     : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
+  /* #439: the import-tax estimate sits directly under the product price. */
+  priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
   var img = galleryHTML(p);
   var desc = p.description
     ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
@@ -572,7 +622,7 @@ function render(p){
       + (store ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
       + (p.partNumber ? '<p style="font-size:14px;color:var(--muted);margin:0 0 10px">N.° de parte: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' + esc(p.partNumber) + '</span></p>' : '')
       + priceHtml
-      + '<p style="font-size:13px;color:var(--muted);margin-top:14px">Precio honesto: incluye compra, envío y aduana hasta tu puerta en Perú.</p>'
+      + '<p style="font-size:13px;color:var(--muted);margin-top:14px">El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar.</p>'
       /* DANNY 2026-10-07: NEVER link out to the retailer's/designer's own site.
          Designer products -> our Diseñadores Latinos room; store products -> our store page. */
       + (function(){
@@ -590,6 +640,7 @@ function render(p){
   document.title = p.name + " — Aria Shop";
   wireGallery(el("p-body").querySelector(".p-gallery"));
   buildBuyBox(p);
+  fillTaxEstimate(p);
 }
 
 /* =====================================================================

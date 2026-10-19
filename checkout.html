@@ -317,9 +317,9 @@
                show the courier's own duty, derived back out of the quote
                total. It is Aria's own estimate now, and the promise under
                it is the reason that matters: an over-estimate comes back
-               as saldo, an under-estimate is absorbed. Only ever rendered
-               when the goods alone clear $200 — under that, nothing is
-               owed and nothing is shown. -->
+               as saldo, an under-estimate is absorbed. #439: shown on every
+               order with goods -- over $200 the estimate, under it S/ 0
+               with the franquicia stated. -->
           <div id="sumTaxRow" class="rounded-xl px-3 py-2.5" style="background:#FFF6E0; border:1px solid #F0D28A" hidden>
             <div class="flex items-center justify-between gap-2">
               <span class="flex flex-col">
@@ -1326,22 +1326,9 @@ function cardImgAttrs(url, sizes){
     return fxRates ? `TC hoy ${fxRates.venta.toFixed(2)}` : '';
   }
 
-  /** The small soles line under a dollar figure. '' with no live rate. */
-  function solesUnder(usdAmount){
-    if (!fxRates || !Number.isFinite(usdAmount)) return '';
-    return `<span class="ariaPricePen text-[11px] tabular font-normal" style="color:#6B7487">${
-      pen.format(round2(usdAmount * fxRates.venta))} · ${fxLabel()}</span>`;
-  }
-
-  /** Same line for a figure ALREADY in soles — the order total and the
-      charged amount are computed in soles (the small-order fee and the
-      saldo are soles-denominated), so re-converting the dollar figure
-      could print a céntimo off what the card is actually charged. */
-  function solesUnderPen(penAmount){
-    if (!fxRates || !Number.isFinite(penAmount)) return '';
-    return `<span class="ariaPricePen text-[11px] tabular font-normal" style="color:#6B7487">${
-      pen.format(penAmount)} · ${fxLabel()}</span>`;
-  }
+  /* The soles line under a dollar figure is gone from the summary (#439,
+     soles first): penLead() below leads with the soles figure it is
+     given -- the computed one for totals, never a re-conversion. */
 
   /* THE PAY BUTTON NAMES BOTH, ON ONE LINE. Everywhere else the soles
      figure sits under the dollar in small grey type; on the button it
@@ -1354,9 +1341,34 @@ function cardImgAttrs(url, sizes){
     return (fxRates && Number.isFinite(penAmount)) ? `Pagar ${d} · ${pen.format(penAmount)}` : `Pagar ${d}`;
   }
 
-  /** A summary line: dollars on top, soles under. */
-  function setMoney(el, usdAmount, suffix = ''){
-    el.innerHTML = fmtPrimary(usdAmount) + escapeSuffix(suffix) + solesUnder(usdAmount);
+  /* SOLES FIRST IN THE BREAKDOWN (#439): every summary line leads with
+     the soles figure, the dollar small and grey under it with the rate.
+     Without a live rate the line degrades to dollars, never a made-up
+     conversion. */
+  function penLead(penAmount, usdAmount, suffix = ''){
+    if (!fxRates || !Number.isFinite(penAmount)) return fmtPrimary(usdAmount) + escapeSuffix(suffix);
+    return pen.format(penAmount) + escapeSuffix(suffix)
+      + `<span class="ariaPricePen text-[11px] tabular font-normal" style="color:#6B7487">${usd.format(usdAmount)} · ${fxLabel()}</span>`;
+  }
+  /** A summary line: soles on top, dollars under. `penAmount`, when
+      given, is the soles figure breakdownPens() decided for the line. */
+  function setMoney(el, usdAmount, suffix = '', penAmount){
+    const p = Number.isFinite(penAmount) ? penAmount : (fxRates ? round2(usdAmount * fxRates.venta) : NaN);
+    el.innerHTML = penLead(p, usdAmount, suffix);
+  }
+
+  /* THE LINES ADD UP TO THE TOTAL, TO THE CÉNTIMO (#439). Productos and
+     impuestos are each rounded once; the total is the figure the server
+     charges (round2(totalUsd x venta + fees), orders-create.js). Freight,
+     already a quote, carries the at-most-a-céntimo rounding remainder,
+     so a shopper adding the column gets exactly the total. */
+  function breakdownPens(totals, feesPen){
+    if (!fxRates) return null;
+    const v = fxRates.venta;
+    const products = round2(totals.goods * v);
+    const tax = round2(totals.tax * v);
+    const total = round2(totals.totalUsd * v + feesPen);
+    return { products, tax, total, freight: round2(total - feesPen - products - tax) };
   }
   function escapeSuffix(s){
     return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
@@ -1412,10 +1424,11 @@ function cardImgAttrs(url, sizes){
   /* DE-MINIMIS TRACKER: the dutiable value (never freight) against $200. */
   function renderTaxTracker(){
     const fob = currentValor();
-    const pct = Math.max(0, Math.min(100, fob / TAX_ESTIMATE_THRESHOLD_USD * 100));
+    /* 10% steps (#439): an exact width is the declared value in disguise. */
+    const pct = Math.max(0, Math.min(100, Math.floor(fob / TAX_ESTIMATE_THRESHOLD_USD * 10) * 10));
     const line = document.getElementById('taxTrackerLine');
     const bar = document.getElementById('taxTrackerBar');
-    bar.style.width = pct.toFixed(1) + '%';
+    bar.style.width = pct + '%';
     /* No dollar figure: fob is the declared (margin-free) value, and
        printing it next to the total discloses the margin (finding #9).
        The bar shows the position; the words say which side of $200. */
@@ -1470,14 +1483,21 @@ function cardImgAttrs(url, sizes){
      the same two constants or they drift apart again. */
   document.getElementById('taxPolicyNote').textContent =
     `Envíos de hasta $${TAX_ESTIMATE_THRESHOLD_USD} en productos no pagan impuestos de importación. `
-    + `Por encima de $${TAX_ESTIMATE_THRESHOLD_USD} estimamos ~${Math.round(TAX_ESTIMATE_RATE * 100)}% sobre el valor de los productos más el flete.`;
+    + `Por encima de $${TAX_ESTIMATE_THRESHOLD_USD} los estimamos sobre los productos más el flete y los ves en su propia línea.`;
 
-  function renderTaxRow(taxUsd){
-    document.getElementById('sumTaxLabel').textContent = TAX_ESTIMATE_LABEL;
-    document.getElementById('sumTaxNote').textContent = TAX_ESTIMATE_NOTE;
-    if (!(taxUsd > 0)){ sumTaxRow.hidden = true; return; }
-    setMoney(sumTax, taxUsd);
-    sumTaxRow.hidden = false;
+  /* #439: THE ROW IS ALWAYS THERE once the cart has goods. Over the
+     threshold it is the real estimate for this cart; under it, S/ 0 with
+     the franquicia stated, so the exemption reads as what it is. The
+     row never prints the dutiable value or the rate: next to Productos
+     either one would let a shopper work out Aria's margin. */
+  function renderTaxRow(taxUsd, taxPen){
+    const owes = taxUsd > 0;
+    document.getElementById('sumTaxLabel').textContent = owes ? TAX_ESTIMATE_LABEL : 'Impuestos de importación';
+    document.getElementById('sumTaxNote').textContent = owes
+      ? TAX_ESTIMATE_NOTE
+      : `Sin recargo: los pedidos de hasta US$ ${TAX_ESTIMATE_THRESHOLD_USD} en productos no pagan impuestos de importación.`;
+    setMoney(sumTax, owes ? taxUsd : 0, '', owes ? taxPen : 0);
+    sumTaxRow.hidden = !(currentGoodsUsd() > 0);
   }
 
   /* ALTERNATE RECIPIENT. `required` is toggled with the checkbox rather
@@ -1556,15 +1576,16 @@ function cardImgAttrs(url, sizes){
        quote; only the numbers on screen are filled in. */
     const provisional = kg > 0 && valor > 0 ? fallbackQuote(kg, valor) : null;
     const totals = orderTotalsUsd();
-    setMoney(sumProducts, totals.goods);
-    renderTaxRow(totals.tax);
+    const pens = breakdownPens(totals, smallOrderFee + provFee + expressFee);
+    setMoney(sumProducts, totals.goods, '', pens ? pens.products : NaN);
+    renderTaxRow(totals.tax, pens ? pens.tax : NaN);
 
     if (loading || !latestQuote){
       const q = latestQuote || provisional;
       if (q){
-        setMoney(sumFlete, q.flete_usd, ' (estimado)');
-        sumTotal.innerHTML = fmtPrimary(orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee)) + ' (estimado)'
-          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee)) : '');
+        setMoney(sumFlete, q.flete_usd, ' (estimado)', pens ? pens.freight : NaN);
+        sumTotal.innerHTML = penLead(fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee) : NaN,
+          orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee), ' (estimado)');
       } else {
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
@@ -1578,7 +1599,7 @@ function cardImgAttrs(url, sizes){
     /* The tax row is rendered from Aria's own estimate above, for both
        the provisional and the settled case, so it never changes when the
        live quote lands — only the freight does. */
-    setMoney(sumFlete, latestQuote.flete_usd, latestQuote.source === 'fallback' ? ' (estimado)' : '');
+    setMoney(sumFlete, latestQuote.flete_usd, latestQuote.source === 'fallback' ? ' (estimado)' : '', pens ? pens.freight : NaN);
 
     // Saldo comes off the top of what the card pays. Without a live FX
     // rate the total is in USD and a soles balance cannot be applied
@@ -1616,7 +1637,7 @@ function cardImgAttrs(url, sizes){
        fragrances is a contract limit, not a guideline. */
     if (fragranceState.overLimit){
       sumWalletRow.hidden = true;
-      sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+      sumTotal.innerHTML = penLead(fxRates ? orderTotalPen : NaN, shownUsd);
       payBtn.disabled = true;
       payBtn.textContent = `Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío`;
       return;
@@ -1634,7 +1655,7 @@ function cardImgAttrs(url, sizes){
          charged soles converted back — the soles line under it is the
          authoritative one. */
       const chargedUsd = fxRates ? chargedPen / fxRates.venta : totals.totalUsd;
-      sumTotal.innerHTML = fmtPrimary(chargedUsd) + solesUnderPen(chargedPen);
+      sumTotal.innerHTML = penLead(chargedPen, chargedUsd);
       payBtn.disabled = false;
       payBtn.textContent = payLabel(chargedUsd, chargedPen);
       return;
@@ -1645,7 +1666,7 @@ function cardImgAttrs(url, sizes){
        printing it here quoted the customer a figure with the tax row
        missing from it — and only in the degraded no-FX path, which is
        exactly where a wrong number survives longest. */
-    sumTotal.innerHTML = fmtPrimary(shownUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
+    sumTotal.innerHTML = penLead(fxRates ? orderTotalPen : NaN, shownUsd);
     payBtn.disabled = false;
     payBtn.textContent = payLabel(shownUsd, fxRates ? orderTotalPen : null);
   }
