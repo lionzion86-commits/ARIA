@@ -238,6 +238,8 @@ await check("cards hold their shape and lead with soles; cards open producto.htm
   assert.match(page, /var href = 'producto\.html\?producto=' \+ encodeURIComponent\(p\.name \|\| ''\) \+ '&tienda=' \+ encodeURIComponent\(storeKey\);/);
   assert.ok(!/target="_blank"|\.url\b.*href|href="' \+ esc\(p\.url/.test(page), "a card links out");
   assert.match(page, /aria_fx_rate_v1/, "no cached rate");
+  /* The card's inline onerror runs in the global scope. */
+  assert.match(page, /window\.imgOrigRetry = imgOrigRetry;/, "a failed photo would throw (imgOrigRetry is not global)");
 });
 
 await check("no emoji in the page or the slices", () => {
