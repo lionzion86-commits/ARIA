@@ -314,6 +314,12 @@
   var ENDPOINT = '/.netlify/functions/department';
   var HEAD = null;           // the answer on screen (static or filtered)
   var fQ = '', fRet = 'all';
+  /* A store's own "Ropa de <tienda>" door can open the department
+     already filtered: departamento.html?dept=clothing&tienda=<store>. */
+  try {
+    var _rm = /[?&](?:tienda|r)=([a-z0-9]{2,40})(?:&|$)/.exec(window.location.search || '');
+    if (_rm) fRet = _rm[1];
+  } catch(e){}
   var SEQ = 0;               // a newer filter wins over an older answer
   var nextBatch = 0;         // the next carousels to append
   var batchBusy = false;
@@ -720,10 +726,17 @@ function sizedImageUrl(url, w){
         showError('No encontramos productos para ' + dept.name + ' en este momento. Inténtalo de nuevo en unos minutos.');
         return;
       }
-      var stores = STORES || data.stores;
+      /* The chips always list the whole department's stores. */
+      if (!filtered()) STORES = data.stores;
       HEAD = data;
-      if (!STORES){ STORES = data.stores; }
-      HEAD.stores = stores;
+      HEAD.stores = STORES || data.stores;
+      if (!STORES){
+        /* Opened already filtered: the full chip row comes from the static head. */
+        getJSON(SLICES + 'head.json').then(function(full){
+          STORES = full.stores;
+          if (HEAD){ HEAD.stores = STORES; for (var k in full.labels) if (!HEAD.labels[k]) HEAD.labels[k] = full.labels[k]; renderChips(); }
+        }).catch(function(){});
+      }
       show(toolbar);
       renderChips();
       renderHead();
