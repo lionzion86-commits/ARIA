@@ -222,9 +222,36 @@ function dutiableBaseUsd(usd, dutiableUsd){
   return NaN;
 }
 
+/* #439 (Danny, 2026-10-19): NO PRICE ON THE SITE CARRIES THE IMPORT TAX
+   ANY MORE. Cards show the product price alone; the tax is its own line,
+   "Impuestos de importación (estimado)", on the product page and in
+   checkout. A card that baked in dutiable x 23% beside a product page
+   that did not let a shopper subtract the two and divide back to Aria's
+   margin. So nothing "includes" the tax: displayPriceUsd() passes the
+   price through, and the "incl. impuestos" note and badge never render. */
 function priceIncludesImportTax(usd, dutiableUsd){
+  return false;
+}
+
+/* The product view's tax line (#439): the per-item estimate on the same
+   rule checkout charges (weight-data.js importTaxEstimateUsd: threshold
+   on the dutiable goods, TAX_ZONE_RATE on goods + freight), soles first.
+   Under the threshold it reads S/ 0 with the franquicia stated. It never
+   prints the dutiable value or the rate. */
+function productTaxLineHTML(usd, dutiableUsd, weightKg){
   const d = dutiableBaseUsd(usd, dutiableUsd);
-  return Number.isFinite(d) && d > IMPORT_TAX_THRESHOLD_USD;
+  const owes = Number.isFinite(d) && d > IMPORT_TAX_THRESHOLD_USD;
+  const tax = owes ? Math.round((d + freightUsd(weightKg)) * TAX_ZONE_RATE * 100) / 100 : 0;
+  const money = fxRate
+    ? `${escapeHtml(fmtPEN(tax))} <span class="block text-[11.5px] font-normal" style="color:#6B7487">${escapeHtml(fmtUSD(tax))}</span>`
+    : escapeHtml(fmtUSD(tax));
+  const note = owes
+    ? 'Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.'
+    : `Sin recargo en pedidos de hasta US$ ${IMPORT_TAX_THRESHOLD_USD} en productos.`;
+  return `<div data-tax-line class="rounded-xl px-3 py-2.5 mt-3 text-[13.5px] font-semibold" style="background:#F7F8FB; border:1px solid var(--line)">
+    <div class="flex items-baseline justify-between gap-3"><span>${owes ? 'Impuestos de importación (estimado)' : 'Impuestos de importación'}</span><span class="text-right tabular" style="white-space:nowrap">${money}</span></div>
+    <div class="text-[11.5px] font-normal mt-1 leading-snug" style="color:#6B7487">${escapeHtml(note)}</div>
+  </div>`;
 }
 
 /** What a card shows: one baked-in price. Over the $200 de minimis the
@@ -266,7 +293,7 @@ function impuestosBadgeHTML(usd, dutiableUsd){
    adding the attribute and nothing else. */
 const HONEST_PRICING_BANNER_HTML = `
   <div class="rounded-xl px-4 py-2.5 mb-5 text-[12.5px] font-bold leading-snug" style="background:var(--yellow); color:var(--navy)">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline-block;vertical-align:-2px"><path d="M12 20.3C7.2 16.6 3.4 13.5 3.4 9.6c0-2.7 2-4.6 4.4-4.6 1.6 0 3.1.8 4.2 2.3 1.1-1.5 2.6-2.3 4.2-2.3 2.4 0 4.4 1.9 4.4 4.6 0 3.9-3.8 7-8.6 10.7z"/></svg> Precios honestos: los pedidos de hasta $${IMPORT_TAX_THRESHOLD_USD} no pagan impuestos de importación; lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya los incluye (~${Math.round(IMPORT_TAX_RATE * 100)}%). Lo que ves es lo que pagas.
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline-block;vertical-align:-2px"><path d="M12 20.3C7.2 16.6 3.4 13.5 3.4 9.6c0-2.7 2-4.6 4.4-4.6 1.6 0 3.1.8 4.2 2.3 1.1-1.5 2.6-2.3 4.2-2.3 2.4 0 4.4 1.9 4.4 4.6 0 3.9-3.8 7-8.6 10.7z"/></svg> Precios honestos: los pedidos de hasta $${IMPORT_TAX_THRESHOLD_USD} no pagan impuestos de importación; por encima, los ves aparte, como estimado (~${Math.round(IMPORT_TAX_RATE * 100)}%), antes de pagar. Lo que ves es lo que pagas.
   </div>`;
 
 /* The founder's photo is a real asset the founder supplies. Until the
@@ -293,7 +320,7 @@ function sweepFounderPhoto(){
 const PRECIO_HONESTO_CARDS = [
   { icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3" fill="#F4C463"/></svg>',
     title: 'Lo que ves es lo que pagas',
-    body: 'Si el producto pasa de $200, el precio que ves en la tarjeta ya trae los impuestos de importación (~23%). No hay una cifra distinta esperándote en el checkout.' },
+    body: 'Si tu pedido pasa de $200 en productos, los impuestos de importación (~23%) aparecen en su propia línea, como estimado, en el producto y en el checkout. Nada extra al recibir.' },
   { icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>',
     title: 'Flete honesto, siempre',
     body: 'Cotizamos el flete por peso, con estimados conservadores y la cuenta a la vista: kilos × $13/kg. Si el flete real sale menor, la diferencia vuelve a ti como saldo Aria.' },
@@ -19449,14 +19476,15 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      addToCartFromProduct() and again in addToCart(), because a disabled
      button is a courtesy, not a guarantee: the console, a stale page
      and a second entry point all route around it. */
-  /* The product page's headline price: the dollar at 26px, the soles
-     conversion and its rate directly under it at 12.5px. See the
-     DOLLARS FIRST note beside solesUnderHTML for why this order. */
+  /* The product view's headline price (#439): soles first at 26px, the
+     dollar small and grey under it, then the import-tax line. Without a
+     rate, dollars alone -- never an invented conversion. */
   const hasPrice = Number.isFinite(totalUsd) && totalUsd > 0;
   document.getElementById('productViewPrice').innerHTML = hasPrice
-    ? fmtDisplayPrice(totalUsd, pendingProduct.dutiableUsd)
-      + solesUnderHTML(displayPriceUsd(totalUsd, pendingProduct.dutiableUsd), 'text-[12.5px] tabular mt-1 font-semibold')
-      + taxIncludedNoteHTML(totalUsd, pendingProduct.dutiableUsd, 'text-[12px] mt-1 font-semibold')
+    ? (fxRate
+        ? escapeHtml(fmtPEN(totalUsd)) + `<span class="block text-[12.5px] tabular mt-1 font-semibold" style="color:#6B7487">${escapeHtml(fmtUSD(totalUsd))}</span>`
+        : escapeHtml(fmtUSD(totalUsd)))
+      + productTaxLineHTML(totalUsd, pendingProduct.dutiableUsd, weightKg)
     : 'Precio no disponible';
   setProductBuyable(hasPrice);
 
@@ -26705,39 +26733,25 @@ function renderCustomsDisclosure(usdSubtotal){
       <div class="rounded-2xl border p-4" style="border-color:var(--line); background:var(--sky)">
         <p class="text-[12.5px] leading-relaxed" style="color:var(--navy)">
           Para que lo tengas claro: los pedidos que superan los $${TAX_ZONE_THRESHOLD_USD} de valor declarado pagan
-          aproximadamente <b>${dutyPct}% en aranceles e impuestos</b> al Estado peruano. Tu pedido va en
-          <b>${escapeHtml(penWithUsd(usdSubtotal))}</b>.
+          aproximadamente <b>${dutyPct}% en aranceles e impuestos</b> al Estado peruano. Tu pedido se acerca a ese monto.
         </p>
         ${closing}
       </div>`;
     return;
   }
 
-  // Over the threshold: show the arithmetic, live.
-  const charges = usdSubtotal * TAX_ZONE_RATE;
-  const total = usdSubtotal + charges;
+  /* Over the threshold (#439): no figures here. The declared value next
+     to the cart subtotal reads Aria's margin, and the estimate on it
+     alone (no freight) was not the number checkout charges. Checkout
+     shows the real estimate in its own line. */
   wrap.innerHTML = `
     <div class="rounded-2xl border p-4" style="border-color:#E3B7B1; background:#FFF5F5">
       <p class="text-[12.5px] leading-relaxed mb-3" style="color:var(--navy)">
         Tu pedido supera los $${TAX_ZONE_THRESHOLD_USD} de valor declarado, así que paga
-        aranceles e impuestos de importación al Estado peruano. Este es el estimado:
+        aranceles e impuestos de importación al Estado peruano.
       </p>
-      <div class="text-[12.5px]" style="color:var(--navy)">
-        <div class="flex items-center justify-between py-1.5">
-          <span>Valor declarado</span>
-          <span class="font-bold tabular">${escapeHtml(penWithUsd(usdSubtotal))}</span>
-        </div>
-        <div class="flex items-center justify-between py-1.5 border-t" style="border-color:#E3B7B1">
-          <span>Aranceles e impuestos (~${dutyPct}%)</span>
-          <span class="font-bold tabular">${escapeHtml(penWithUsd(charges))}</span>
-        </div>
-        <div class="flex items-center justify-between py-1.5 border-t" style="border-color:#E3B7B1">
-          <span class="font-bold">Total estimado (sin flete)</span>
-          <span class="font-extrabold tabular">${escapeHtml(penWithUsd(total))}</span>
-        </div>
-      </div>
-      <p class="text-[11.5px] mt-2" style="color:#7A5A56">
-        Estimado sobre el valor declarado; el monto exacto se confirma en el checkout.
+      <p class="text-[12.5px] font-bold" style="color:var(--navy)">
+        Los verás en su propia línea, "Impuestos de importación (estimado)", en el checkout antes de pagar.
       </p>
       ${closing}
     </div>`;
@@ -31832,7 +31846,7 @@ const CHAT_OFF_DOMAIN_SHOPPING_RE = /\b(?:compra[rn]?|precio|cu[aá]nto\s+cuesta
 function chatTaxPct(){ return Math.round(IMPORT_TAX_RATE * 100); }
 function chatTaxLineEs(){
   return 'Sobre los impuestos: solo se pagan si los productos de tu pedido pasan de $' + IMPORT_TAX_THRESHOLD_USD
-    + ', y en las tarjetas de más de $' + IMPORT_TAX_THRESHOLD_USD + ' el precio ya los trae incluidos (~' + chatTaxPct() + '%), con la etiqueta "incl. impuestos". Si tus productos suman $'
+    + ' (~' + chatTaxPct() + '%), y los ves aparte, en su propia línea como estimado, en la página del producto y en el checkout. Si tus productos suman $'
     + IMPORT_TAX_THRESHOLD_USD + ' o menos, no pagas impuestos. Todo se paga en el checkout; nada al recibir.';
 }
 /* devoluciones.html, in one breath. Change one, change the other. */
@@ -31876,7 +31890,7 @@ function chatPolicyRoute(text){
   if (CHAT_PRICE_WHY_RE.test(t)){
     return { kind: 'price',
       line: 'Buena pregunta. El precio de la tienda en Estados Unidos es solo el producto allá; el nuestro es el producto traído hasta Perú: lo compramos por ti, pagamos el impuesto de venta de la tienda cuando lo cobra, lo recibimos en nuestro almacén de Miami, hacemos el trámite de aduana y cobramos nuestro servicio. '
-        + 'Si el producto pasa de $' + IMPORT_TAX_THRESHOLD_USD + ', la tarjeta ya trae los impuestos de importación (~' + chatTaxPct() + '%). El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar. '
+        + 'Si el producto pasa de $' + IMPORT_TAX_THRESHOLD_USD + ', los impuestos de importación (~' + chatTaxPct() + '%) van en su propia línea, como estimado. El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar. '
         + 'No puedo quitar el margen, pero sí puedo mostrarte las ofertas de hoy.',
       door: () => addAssistantSectionOffer('Ofertas', 'Las mejores ofertas y liquidaciones de hoy', 'department', 'sale') };
   }
