@@ -18345,29 +18345,72 @@ const PRODUCT_WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
 /* VARIANT TRUTH (2026-10-18, Issue #411, Danny): the sizes a product
    offers are the retailer's own list or nothing -- never a template.
    Strings as the store wrote them; {size, available} objects (the Foot
-   Locker feed) keep the sizes in stock. Natural order: XXS..6XL then
-   1X..5X, or numbers ascending (shoe 6.5, waist 32x30, 12 oz); any other
-   list (band x cup "34DD", "One Size") keeps the retailer's order.
-   index.html's bundle and producto.html carry this same text; the test
-   suite pins them identical. */
+   Locker feed) keep the sizes in stock. index.html's bundle and
+   producto.html carry this same text; the test suite pins them
+   identical.
+
+   NATURAL ORDER, WHATEVER THE STORE'S SPELLING (2026-10-19, #411
+   render audit). The first sorter knew XS..XXL and plain numbers, so
+   18,803 of the catalogue's 52,901 size lists kept the store's own
+   order -- and stores list sizes largest first ("XL | LG | MD", 1,900
+   CCS lists), backwards ("4T | 3T | 2T") or shuffled ("Men's 12 |
+   Men's 10 | Men's 13", Macy's "10S | 0 | 2 | 0S"). Every size now
+   gets a place -- months < toddler < youth < the XS..6XL ladder (SM,
+   Small, X-Large, 2X Large and XS/S spelled any way) < numbers (shoe
+   6.5, waist 32x30, 12 oz, "7-8 years", "Men's 9", "IT 38", fit
+   suffixes 10S/16W after the plain sizes) < lettered numbers (C11 <
+   J1, 13K < 1Y) -- and a list with any size it cannot place keeps the
+   retailer's order: band x cup ("34DD") is the store's ladder, never
+   re-sorted. 50,280 of the 52,901 lists now sort. */
 var SIZE_ALPHA_ORDER = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL', '6XL', '0X', '1X', '2X', '3X', '4X', '5X'];
 var SIZE_NUMERIC = /^(\d+(?:\.\d+)?)(?:\s*[xX×\/]\s*(\d+(?:\.\d+)?))?\s*(?:oz)?$/i;
+/* Stores spell one ladder many ways: "SM", "Small", "X-Large", "XLG". */
+var SIZE_ALPHA_ALIAS = { SM: 'S', SMALL: 'S', MD: 'M', MED: 'M', MEDIUM: 'M', LG: 'L', LRG: 'L', LARGE: 'L', XLG: 'XL', XLARGE: 'XL', XXLARGE: 'XXL', XXXLARGE: 'XXXL', XSMALL: 'XS', XXSMALL: 'XXS' };
+function alphaRank(t){
+  var k = t.replace(/[\s-]+/g, '').replace(/^EXTRA/, 'X').replace(/^(\d)XLARGE$/, '$1XL').replace(/^XXXXL$/, '4XL');
+  k = SIZE_ALPHA_ALIAS[k] || k;
+  var r = SIZE_ALPHA_ORDER.indexOf(k);
+  if (r >= 0) return r === 8 ? 7.1 : r === 10 ? 9.1 : r;   // 2XL = XXL, 3XL = XXXL
+  return -1;
+}
+/* One size's place: [group, value, second value], or null when this
+   is not a size we can place (then the store's order stands).
+   Groups: months 0, toddler 1, alpha 2, numbers 3, lettered numbers
+   4+ (C 11 < J 1 < M 8 < W 6). */
+function sizeKey(raw){
+  var s = String(raw).toUpperCase().replace(/\s+/g, ' ').trim();
+  /* "IT 38 = WAIST US 24" is IT 38; "36(XXS)" is 36. */
+  s = s.split('=')[0].trim().replace(/\s*\([^)]*\)$/, '');
+  s = s.replace(/^(?:MEN'?S|WOMEN'?S|MENS|WOMENS|BOYS'?|GIRLS'?|KIDS'?|UNISEX)\s+/, '');
+  s = s.replace(/^(?:WAIST\s+)?(?:US|EU|UK|IT|FR|DK|JP|AU)\s+(?=\d)/, '').replace(/^WAIST\s+(?=\d)/, '');
+  var m;
+  if (/^NEWBORN$|^NB$|^PREEMIE$/.test(s)) return [0, -1, 0];
+  if ((m = /^(\d+(?:\.\d+)?)\s*(?:-\s*(\d+)\s*)?M(?:OS?|ONTHS?)?$/.exec(s))) return [0, +m[1], +(m[2] || 0)];
+  /* Kids' ages sit among the kids' numbers: 5 | 6 | 7-8 years. */
+  if ((m = /^(\d+)\s*(?:-\s*(\d+)\s*)?(?:YR|YRS|YEARS?)$/.exec(s))) return [3, +m[1], +(m[2] || 0)];
+  if ((m = /^(\d+)\s*T$/.exec(s))) return [1, +m[1], 0];
+  var half = s.split(/\s*[\/-]\s*/);
+  if (half.length === 2 && alphaRank(half[0]) >= 0 && alphaRank(half[1]) >= 0) return [2, alphaRank(half[0]) + 0.5, 0];
+  if ((m = /^Y\s?(.+)$/.exec(s)) && alphaRank(m[1]) >= 0) return [1.5, alphaRank(m[1]), 0];   // youth YS..YXL
+  if (alphaRank(s) >= 0) return [2, alphaRank(s), 0];
+  if ((m = SIZE_NUMERIC.exec(s))) return [3, parseFloat(m[1]), parseFloat(m[2]) || 0];
+  if ((m = /^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/.exec(s))) return [3, parseFloat(m[1]), parseFloat(m[2])];
+  /* "M 4 / W 5", "W 6 / M 4.5", "M2W4": the first number. */
+  if ((m = /^([MW])\s*(\d+(?:\.\d+)?)\s*(?:\/\s*[MW]\s*\d+(?:\.\d+)?|[MW]\d+(?:\.\d+)?)$/.exec(s))) return [3, parseFloat(m[2]), 0];
+  /* Kids' shoes: 13K (or 13C) comes before 1Y. */
+  if ((m = /^(\d+(?:\.\d+)?)\s?([CKY])$/.exec(s))) return [4 + (m[2] === 'Y' ? 0.5 : 0), parseFloat(m[1]), 0];
+  /* A letter before the number: Crocs' C11 (child) < J1 (junior). */
+  if ((m = /^([CJMWY])\s?(\d+(?:\.\d+)?)$/.exec(s))) return [4 + 'CJYMW'.indexOf(m[1]), parseFloat(m[2]), 0];
+  /* A number with a fit letter: Macy's 10S (short), 16W (women's). */
+  if ((m = /^(\d+(?:\.\d+)?)\s?(S|P|L|W|R|T|SHORT|PETITE|LONG|TALL|REG|REGULAR)$/.exec(s))) return [3 + ({ R: 0, REG: 0, REGULAR: 0, P: .1, PETITE: .1, S: .2, SHORT: .2, W: .3, L: .4, LONG: .4, T: .5, TALL: .5 })[m[2]], parseFloat(m[1]), 0];
+  return null;
+}
 function sortSizes(sizes){
-  // "XLarge" ranks as XL, "Small" as S: stores spell the same ladder in words.
-  var rank = function(s){
-    return SIZE_ALPHA_ORDER.indexOf(String(s).toUpperCase().replace(/[\s-]+/g, '')
-      .replace(/SMALL$/, 'S').replace(/MEDIUM$/, 'M').replace(/LARGE$/, 'L'));
-  };
-  if (sizes.every(function(s){ return rank(s) >= 0; })){
-    return sizes.slice().sort(function(a, b){ return rank(a) - rank(b); });
-  }
-  if (sizes.every(function(s){ return SIZE_NUMERIC.test(s); })){
-    return sizes.slice().sort(function(a, b){
-      var ma = SIZE_NUMERIC.exec(a), mb = SIZE_NUMERIC.exec(b);
-      return (parseFloat(ma[1]) - parseFloat(mb[1])) || ((parseFloat(ma[2]) || 0) - (parseFloat(mb[2]) || 0));
-    });
-  }
-  return sizes.slice();
+  var keys = sizes.map(sizeKey);
+  if (keys.some(function(k){ return !k; })) return sizes.slice();
+  return sizes.map(function(s, i){ return { s: s, k: keys[i], i: i }; }).sort(function(a, b){
+    return (a.k[0] - b.k[0]) || (a.k[1] - b.k[1]) || (a.k[2] - b.k[2]) || (a.i - b.i);
+  }).map(function(x){ return x.s; });
 }
 function truthfulSizes(list){
   if (!Array.isArray(list)) return [];
