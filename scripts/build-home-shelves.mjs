@@ -122,6 +122,14 @@ export async function snapshotShelves() {
       throw new Error("the page did not compute every shelf: " + JSON.stringify(state));
     });
     await page.evaluate(() => loadDepartmentCache());
+    /* THE SHELVES A SHOPPER SEES AFTER THE MARKDOWNS ARRIVE (2026-10-19,
+       #413). The store rails are sales-only (storeRailPicks, Danny
+       2026-10-03), but they first compute before the file-backed
+       markdowns are folded in, and the snapshot used to be taken in that
+       window: 17 of 19 saved store shelves were the best-seller fill,
+       not one sale among them. The page's own enrich runs here, and its
+       own repaint recomputes every shelf, before anything is read. */
+    await page.evaluate(async () => { await enrichSalesFromCatalog(); await repaintRailsAfterEnrich(); });
     return await page.evaluate(() => {
       const keys = [...new Set([...document.querySelectorAll("[data-store-rail-row]")].filter((r) => { const v = r.closest(".view"); return !r.closest("[hidden]") && (!v || getComputedStyle(v).display !== "none"); }).map((r) => r.getAttribute("data-store-rail-row")))];
       const brandLines = {};

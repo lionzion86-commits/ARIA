@@ -85,6 +85,9 @@ export const CATALOG_FILES = [
   "moto-catalog.json", "juguetes-catalog.json", "sunglasses-catalog.json",
   "finishline-catalog.json", "zumiez-catalog.json", "hottopic-catalog.json",
   "boxlunch-catalog.json",
+  /* Best Buy (2026-10-19, #413): the third electronics leg beside
+     Walmart and Target. */
+  "bestbuy-catalog.json",
 ];
 export function catalogFiles() { return CATALOG_FILES.slice(); }
 

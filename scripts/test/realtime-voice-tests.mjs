@@ -2809,7 +2809,7 @@ await checkAsync("naming a store gets the truth, including when we do not carry 
      and Dyson all have a row, a logo and a tagline in the page's own
      RETAILERS registry, and zero products. Read off the registry they
      look live, and Aria would offer them. */
-  for (const dead of ["Best Buy", "Nordstrom", "Dyson", "Sunglass Hut"]){
+  for (const dead of ["Nordstrom", "Dyson", "Sunglass Hut"]){
     const r = K.getStoreInfo(dead);
     assert.equal(r.not_stocked, true, `${dead} does not answer as unstocked`);
     assert.match(r.note, /no inventes|No tenemos|no ofrezcas/i,
