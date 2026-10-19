@@ -30,6 +30,7 @@
     "test:tailwind": "node scripts/test/tailwind-tests.mjs",
     "test:home-shelves": "node scripts/test/home-shelves-tests.mjs",
     "test:app-min": "node scripts/test/app-min-tests.mjs",
+    "test:entities": "node scripts/test/entity-tests.mjs",
     "build:search-index": "node scripts/build-search-index.mjs",
     "test:checkout": "node scripts/test/checkout-tests.mjs",
     "build:price-index": "node scripts/build-price-index.mjs",
