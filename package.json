@@ -28,6 +28,7 @@
     "test:search-brief": "node scripts/test/search-brief-tests.mjs",
     "test:search-endpoint": "node scripts/test/search-endpoint-tests.mjs",
     "test:tailwind": "node scripts/test/tailwind-tests.mjs",
+    "test:home-shelves": "node scripts/test/home-shelves-tests.mjs",
     "build:search-index": "node scripts/build-search-index.mjs",
     "test:checkout": "node scripts/test/checkout-tests.mjs",
     "build:price-index": "node scripts/build-price-index.mjs",

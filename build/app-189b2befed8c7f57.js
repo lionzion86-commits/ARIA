@@ -639,6 +639,30 @@ const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
 const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"]};
+/* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
+   page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
+   a dozen cards per rail, and Safari reloaded the tab under the memory.
+   scripts/build-home-shelves.mjs now runs this page's own code over the
+   committed catalogues and saves what every home rail picks; each rail
+   fetches its own slice (about 1-3KB gzipped) instead of catalogues.
+   A missing slice answers null and the rail takes its old path, so a
+   stale or absent build can never leave a shelf empty. */
+const HOME_SHELVES_DIR = '/assets/home/shelves/';
+const homeShelfCache = new Map();
+function homeShelf(name){
+  if (!homeShelfCache.has(name)){
+    homeShelfCache.set(name, fetchWithTimeout(HOME_SHELVES_DIR + name + '.json', FETCH_DEADLINE_MS)
+      .then(r => (r.ok ? r.json() : null))
+      .catch(() => null));
+  }
+  return homeShelfCache.get(name);
+}
+/* A family's saved picks, or null when the page should compute them. */
+async function homeShelfPicks(name){
+  const shelf = await homeShelf(name);
+  return shelf && Array.isArray(shelf.picks) ? shelf.picks : null;
+}
+
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -3639,10 +3663,27 @@ function initDepartmentTiles(){
      downloading all 63 sources because the tile rail scrolled
      near. repaintHomeTiles() corrects the counts if the full
      catalogue is fetched later in the page life. */
-  loadCatalogTilesStage().then(data => {
-    departmentCacheData = data;
-    homeTilesStaged = true;
-    paintHomeTiles(data);
+  /* The saved tiles and brand lines first (HOME SHELVES): their counts
+     come from the full catalogue, without downloading it. */
+  homeShelf('index').then(index => {
+    if (index && Array.isArray(index.tiles) && index.tiles.length){
+      for (const el of document.querySelectorAll('[data-brandline]')){
+        const brands = (index.brandLines || {})[el.getAttribute('data-brandline')] || [];
+        if (!brands.length) continue;
+        el.textContent = brands.join(' · ');
+        el.hidden = false;
+      }
+      const tiles = index.tiles.map(t => ({ t, kind: 'department' }));
+      const grid = document.getElementById('catGrid');
+      if (grid) grid.innerHTML = tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('');
+      renderMobileCatsRail(tiles);
+      return;
+    }
+    loadCatalogTilesStage().then(data => {
+      departmentCacheData = data;
+      homeTilesStaged = true;
+      paintHomeTiles(data);
+    });
   });
   };
   const watchTargets = ['mobileCatsRow', 'desktopCatsRow', 'catGrid']
@@ -10923,6 +10964,14 @@ function paintRailSkeletons(){
    shows what its department would refuse. Sale items lead, featured
    picks fill; every card keeps its brand and its store badge. */
 async function computeCategoryZonePicks(ofertasKeys){
+  /* The saved zone (HOME SHELVES): every category rail's picks in one
+     ~27KB slice, instead of all 63 catalogue sources. */
+  const saved = await homeShelf('category');
+  if (saved && saved.rails && typeof saved.rails === 'object'){
+    for (const cat of CATEGORY_RAILS) categoryRailsRendered[cat.key] = Array.isArray(saved.rails[cat.key]) ? saved.rails[cat.key] : [];
+    try { renderCategoryTabs(); } catch (e) {}
+    return;
+  }
   const pool = await relatedPool();
   for (const cat of CATEGORY_RAILS){
     /* A rail with its own feed (Ropa Interior Mujer / Hombre) takes its picks
@@ -11013,6 +11062,16 @@ function initStoreRails(){
   const computeStorePicks = (key) => {
     if (!railLoadPromises[key]){
       railLoadPromises[key] = (async () => {
+        /* The saved shelf first (HOME SHELVES); Ofertas still leads on
+           what it shows, so its cards leave this shelf as before. */
+        const index = await homeShelf('index');
+        if (index && Array.isArray(index.stores) && index.stores.indexOf(key) !== -1){
+          const saved = await homeShelfPicks('store-' + key);
+          if (saved){
+            storeRailsRendered[key] = saved.filter(p => !ofertasKeys.has(`${p.retailer || ''}::${p.title || ''}`));
+            return storeRailsRendered[key];
+          }
+        }
         const pool = await poolForRetailers([key]);
         storeRailsRendered[key] = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
         return storeRailsRendered[key];
@@ -11465,8 +11524,13 @@ async function initBrandStrip(){
   const load = async () => {
     /* A failed pool leaves the strip empty, never a broken boot. */
     try {
-      await poolForRetailers(BRAND_STRIP_RETAILERS);
-      const html = brandStripBrands().map(brandStripTileHTML).join('');
+      const index = await homeShelf('index');
+      let brands = index && Array.isArray(index.brandStrip) && index.brandStrip.length ? index.brandStrip : null;
+      if (!brands){
+        await poolForRetailers(BRAND_STRIP_RETAILERS);
+        brands = brandStripBrands();
+      }
+      const html = brands.map(brandStripTileHTML).join('');
       document.querySelectorAll('[data-brand-strip]').forEach(el => { el.innerHTML = html; });
     } catch { /* the shelf stays empty */ }
   };
@@ -11799,12 +11863,18 @@ function openBolsosProduct(idx){
    limit. A rail above the fold intersects immediately and paints
    at once; without IntersectionObserver the paint is immediate,
    exactly as before. */
-function paintRailWhenNear(anchor, paint){
-  if (anchor && 'IntersectionObserver' in window){
+/* EVERY COPY IS WATCHED (2026-10-19, #417). Each of these sections
+   exists once per shopfront (phone and desktop). Watching only the
+   first -- the phone copy, display:none on a laptop -- meant Bolsos,
+   Joyas, Joyas de lujo and Moda never painted at desktop width: an
+   IntersectionObserver never sees a display:none element. */
+function paintRailWhenNear(anchors, paint){
+  const list = !anchors ? [] : (anchors.nodeType ? [anchors] : [...anchors].filter(Boolean));
+  if (list.length && 'IntersectionObserver' in window){
     const io = new IntersectionObserver((es) => {
       es.forEach(e => { if (e.isIntersecting){ io.disconnect(); paint(); } });
     }, { rootMargin: '1000px 0px' });
-    io.observe(anchor);
+    list.forEach(a => io.observe(a));
   } else {
     paint();
   }
@@ -11823,8 +11893,7 @@ function initBolsosRail(){
       /* PERF (2026-09-28): the shelf mixes every store's handbags, so it
          waits for the full catalogue -- but only once the shopper
          scrolls near, not at boot. */
-      const cache = await loadDepartmentCache();
-      bolsosRendered = bolsosPicks(cache);
+      bolsosRendered = (await homeShelfPicks('bolsos')) || bolsosPicks(await loadDepartmentCache());
       /* An empty shelf is worse than none: the section stands down. */
       if (!bolsosRendered.length){ hideSection(); return; }
       for (const row of rows){
@@ -11836,7 +11905,7 @@ function initBolsosRail(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-bolsos-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-bolsos-section]').length ? document.querySelectorAll('[data-bolsos-section]') : rows, loadAndPaint);
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
 /* JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
@@ -11882,9 +11951,10 @@ function initJoyasRails(){
   joyasStarted = true;
   const loadAndPaint = async () => {
     try {
-      const cache = await loadDepartmentCache();
-      const perStyle = [];
-      for (const styleKey of JOYAS_STYLE_RAILS){
+      const saved = await homeShelfPicks('joyas');
+      const cache = saved ? null : await loadDepartmentCache();
+      const perStyle = saved ? [saved] : [];
+      if (!saved) for (const styleKey of JOYAS_STYLE_RAILS){
         const picks = joyasPicksForStyle(cache, styleKey);
         if (picks.length) perStyle.push(picks.map(p => ({ ...p, joyasStyle: styleKey })));
       }
@@ -11909,7 +11979,7 @@ function initJoyasRails(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-joyas-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-joyas-section]').length ? document.querySelectorAll('[data-joyas-section]') : rows, loadAndPaint);
 }
 function openJoyasProduct(styleKey, idx){
   openRailProduct((joyasRendered[styleKey] || [])[idx]);
@@ -11978,8 +12048,7 @@ function initJoyasLujoRail(){
   joyasLujoStarted = true;
   const loadAndPaint = async () => {
     try {
-      const cache = await loadDepartmentCache();
-      joyasLujoRendered = joyasLujoPicks(cache);
+      joyasLujoRendered = (await homeShelfPicks('joyasLujo')) || joyasLujoPicks(await loadDepartmentCache());
       if (!joyasLujoRendered.length){
         document.querySelectorAll('[data-joyas-lujo-section]').forEach(sec => { sec.hidden = true; });
         return;
@@ -11993,7 +12062,7 @@ function initJoyasLujoRail(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-joyas-lujo-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-joyas-lujo-section]').length ? document.querySelectorAll('[data-joyas-lujo-section]') : rows, loadAndPaint);
 }
 function openJoyasLujoProduct(idx){
   openRailProduct(joyasLujoRendered[idx]);
@@ -12061,8 +12130,7 @@ function initModaRail(){
   modaStarted = true;
   const loadAndPaint = async () => {
     try {
-      const cache = await loadDepartmentCache();
-      modaRendered = modaPicks(cache);
+      modaRendered = (await homeShelfPicks('moda')) || modaPicks(await loadDepartmentCache());
       if (!modaRendered.length){
         document.querySelectorAll('[data-moda-section]').forEach(sec => { sec.hidden = true; });
         return;
@@ -12076,7 +12144,7 @@ function initModaRail(){
   };
   /* PERF (2026-10-15, Danny): scroll-triggered paint (paintRailWhenNear);
      the full catalogue no longer loads at boot for this rail. */
-  paintRailWhenNear(document.querySelector('[data-moda-section]') || rows[0], loadAndPaint);
+  paintRailWhenNear(document.querySelectorAll('[data-moda-section]').length ? document.querySelectorAll('[data-moda-section]') : rows, loadAndPaint);
 }
 function openModaProduct(idx){
   openRailProduct(modaRendered[idx]);
