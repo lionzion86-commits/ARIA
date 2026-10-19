@@ -62,3 +62,9 @@
   to = "/.netlify/functions/search"
   status = 200
   force = true
+
+# Aria Motos (2026-10-19, #409 track T5): motos.html's grid is static
+# pages (assets/sections/motos/); this function answers its search box
+# from one row per product. The phone never downloads the catalogue.
+[functions."motos"]
+  included_files = ["assets/sections/motos/_fn/items.json"]
