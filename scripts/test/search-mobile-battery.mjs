@@ -2,9 +2,11 @@
    #409 ACCEPTANCE BATTERY — search on a throttled phone, measured.
 
    Opens search.html?q=<query> the way the home page's search box does,
-   cold cache, on an iPhone-sized viewport with the CPU slowed 4x and
-   the network at DevTools' "Fast 3G" (562.5ms round trip, 1.44 Mbps
-   down), and reports per query:
+   cold cache, on an iPhone-sized viewport, and reports per query.
+   PROFILE=fast3g (default): DevTools "Fast 3G" (562.5ms round trip,
+   1.44 Mbps down), CPU 4x slower. PROFILE=mountain (#417 night orders,
+   "worst phone, worst signal"): Slow 3G (2s round trip, 400 kbps),
+   CPU 6x slower. Per query:
 
      placeholdersMs   card-shaped placeholders on screen
      firstCardsMs     the first real cards painted
@@ -32,8 +34,12 @@ import { chromium } from "playwright";
 
 const BASE = (process.env.ARIA_BASE_URL || "http://127.0.0.1:8899").replace(/\/$/, "");
 const QUERIES = (process.env.QUERIES || "dolls|muñecas|adidas samba|nike air force 1").split("|");
-const FAST_3G = { latency: 562.5, downloadThroughput: 1.44e6 / 8, uploadThroughput: 675e3 / 8 };
-const CPU_SLOWDOWN = 4;
+const PROFILES = {
+  fast3g: { net: { latency: 562.5, downloadThroughput: 1.44e6 / 8, uploadThroughput: 675e3 / 8 }, cpu: 4 },
+  mountain: { net: { latency: 2000, downloadThroughput: 400e3 / 8, uploadThroughput: 400e3 / 8 }, cpu: 6 },
+};
+const PROFILE = PROFILES[process.env.PROFILE || "fast3g"];
+if (!PROFILE) throw new Error("PROFILE must be fast3g or mountain");
 
 const exe = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
@@ -48,8 +54,8 @@ for (const q of QUERIES) {
   const cdp = await context.newCDPSession(page);
   await cdp.send("Network.enable");
   await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
-  await cdp.send("Network.emulateNetworkConditions", { offline: false, ...FAST_3G });
-  await cdp.send("Emulation.setCPUThrottlingRate", { rate: CPU_SLOWDOWN });
+  await cdp.send("Network.emulateNetworkConditions", { offline: false, ...PROFILE.net });
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: PROFILE.cpu });
   const reqs = new Map();
   cdp.on("Network.responseReceived", (e) => reqs.set(e.requestId, { ...(reqs.get(e.requestId) || {}), url: e.response.url, type: e.type }));
   cdp.on("Network.loadingFinished", (e) => reqs.set(e.requestId, { ...(reqs.get(e.requestId) || {}), bytes: e.encodedDataLength }));
