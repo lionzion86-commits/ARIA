@@ -27,7 +27,22 @@
 <meta name="google-site-verification" content="REEMPLAZAR_CON_CODIGO_DE_SEARCH_CONSOLE">
 <link rel="icon" type="image/png" href="assets/aria-orb-pixar-64.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<script src="https://cdn.tailwindcss.com"></script>
+<script>
+/* THE SEARCH BOX WORKS BEFORE THE APP DOES (2026-10-19, #417). The
+   boxes call doSearch(), which used to exist only once the 583KB app
+   bundle had arrived -- ~20s on a slow phone connection. Typing "dolls"
+   and pressing Enter before that threw "doSearch is not defined" and
+   nothing ever happened. This is the same redirect the page installs
+   after the bundle (window.doSearch override below), available from
+   the first paint. */
+window.doSearch = function(which){
+  var id = which===2 ? 'searchInput2' : (which==='d' ? 'searchInputD' : 'searchInput');
+  var el = document.getElementById(id);
+  var raw = el ? el.value.trim() : '';
+  if (!raw) return;
+  window.location.href = '/search.html?q=' + encodeURIComponent(raw);
+};
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
 <style>
   @keyframes blink{50%{opacity:0}}
@@ -1721,6 +1736,11 @@
   }
 </style>
 <script src="/ref.js"></script>
+<!-- TAILWIND, PREBUILT (2026-10-19, #417 iPhone QA): scripts/build-tailwind.mjs.
+     It was the cdn.tailwindcss.com runtime, compiling every class on the
+     shopper's phone while the page sat white. Last in <head>, where the
+     runtime put its <style>, so the cascade order is unchanged. -->
+<link rel="stylesheet" href="/assets/css/tailwind.css">
 </head>
 <body class="antialiased">
 
