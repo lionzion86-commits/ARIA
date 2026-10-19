@@ -26,15 +26,26 @@ Rules:
   gets the dataset's list when every dataset entry with that title
   agrees on one list. Regenerate the lite feed afterwards
   (node scripts/build-ofertas-lite.mjs).
+- Names are compared as plain text. The catalogues' titles were
+  HTML-decoded on 2026-10-19 (#417, "Lizzie &#38; Oliver" -> "Lizzie &
+  Oliver"); the dataset was keyed before that, so both sides go through
+  the same decoder (scripts/decode-catalog-entities.py) before they are
+  matched.
 - Each file is written back in its own JSON style (separators, indent,
   ASCII escaping), sniffed by an exact round-trip, so the diff is the
   sizes and nothing else. A file is only written when it changed.
 """
+import importlib.util
 import json
 import os
 import sys
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+_spec = importlib.util.spec_from_file_location(
+    "decode_catalog_entities", os.path.join(os.path.dirname(os.path.abspath(__file__)), "decode-catalog-entities.py"))
+_dec = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_dec)
+plain = _dec.decode
 
 
 def sniff_style(raw, data):
@@ -72,7 +83,7 @@ def main():
         if "|" not in key:
             continue
         f, name = key.split("|", 1)
-        by_file.setdefault(f, {})[name] = rec
+        by_file.setdefault(f, {})[plain(name)] = rec
 
     total = {"files": 0, "written": 0, "sized": 0, "unmatched": 0}
     for f, recs in sorted(by_file.items()):
@@ -86,7 +97,7 @@ def main():
         style, newline = sniff_style(raw, data)
         seen, counts, sized = set(), {}, 0
         for r in records(data):
-            name = r["name"] if isinstance(r.get("name"), str) else r["title"]
+            name = plain(r["name"] if isinstance(r.get("name"), str) else r["title"])
             counts[name] = counts.get(name, 0) + 1
             n = counts[name]
             key = f"{name} #{n}" if n > 1 and f"{name} #{n}" in recs else name
@@ -124,7 +135,7 @@ def main():
     for key, rec in truth.items():
         if "|" not in key:
             continue
-        name = key.split("|", 1)[1]
+        name = plain(key.split("|", 1)[1])
         base = name.rsplit(" #", 1)[0] if name.rsplit(" #", 1)[-1].isdigit() else name
         lst = []
         for s in (rec or {}).get("sizes") or []:
@@ -141,7 +152,7 @@ def main():
         style, newline = sniff_style(raw, data)
         n = 0
         for it in data.get("items", []):
-            lists = by_title.get(it.get("title"))
+            lists = by_title.get(plain(it.get("title") or ""))
             if lists and len(lists) == 1:
                 lst = list(next(iter(lists)))
                 if it.get("sizes") != lst:

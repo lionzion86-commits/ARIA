@@ -3,8 +3,8 @@
   "dependencies": {
     "@netlify/blobs": "^10.7.13",
     "jpeg-js": "^0.4.4",
-    "pngjs": "^7.0.0",
-    "nodemailer": "9.1.1"
+    "nodemailer": "9.1.1",
+    "pngjs": "^7.0.0"
   },
   "scripts": {
     "test": "node scripts/test/run-tests.mjs",
@@ -26,11 +26,20 @@
     "build:search-engine": "node scripts/build-search-engine.mjs",
     "mcp": "node mcp-server.js",
     "test:search-brief": "node scripts/test/search-brief-tests.mjs",
+    "test:search-endpoint": "node scripts/test/search-endpoint-tests.mjs",
+    "test:tailwind": "node scripts/test/tailwind-tests.mjs",
+    "test:home-shelves": "node scripts/test/home-shelves-tests.mjs",
+    "test:app-min": "node scripts/test/app-min-tests.mjs",
+    "test:entities": "node scripts/test/entity-tests.mjs",
     "build:search-index": "node scripts/build-search-index.mjs",
     "test:checkout": "node scripts/test/checkout-tests.mjs",
     "build:price-index": "node scripts/build-price-index.mjs",
     "test:visual": "node scripts/test/visual-search-tests.mjs",
     "test:pdp": "node scripts/test/pdp-resolve-tests.mjs",
     "test:variant-truth": "node scripts/test/variant-truth-tests.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "tailwindcss": "3.4.19"
   }
 }
