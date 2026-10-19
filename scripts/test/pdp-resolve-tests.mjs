@@ -29,7 +29,7 @@ function check(name, fn) {
 
 const I = liftDeclarations(pageHtml(ROOT), ["CATALOGUE_FILES", "SOURCE_RETAILERS", "RETAILERS"]);
 const P = liftDeclarations(readFileSync(ROOT + "producto.html", "utf8"),
-  ["STORE_FILES", "CATALOG_FILES", "STORE_LABELS", "normalizeItem", "extractItems", "norm", "SIZE_ALPHA_ORDER", "SIZE_NUMERIC", "sortSizes", "truthfulSizes"], { extra: "var window = {};\n" });
+  ["STORE_FILES", "CATALOG_FILES", "STORE_LABELS", "NAMED_ENTITIES", "decodeEntities", "normalizeItem", "extractItems", "norm", "SIZE_ALPHA_ORDER", "SIZE_NUMERIC", "sortSizes", "truthfulSizes"], { extra: "var window = {};\n" });
 
 check("producto.html knows every store and file the site's registry does", () => {
   const missingFiles = [...I.CATALOGUE_FILES].filter((f) => !P.CATALOG_FILES.includes(f));

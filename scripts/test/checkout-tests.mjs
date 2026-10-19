@@ -129,7 +129,8 @@ await check("?ref= attribution: 30-day cookie, most recent wins, codes validated
   assert.match(js, /\/\^\[a-z0-9\]\[a-z0-9_-\]\{0,39\}\$\//, "ref.js validates differently from the server");
   assert.match(js, /30 \* 24 \* 60 \* 60/);
   for (const f of readdirSync(ROOT).filter((f) => f.endsWith(".html") && f !== "admin.html")) {
-    assert.match(readFileSync(ROOT + f, "utf8"), /<script src="\/ref\.js"><\/script>/, `${f} does not capture ?ref=`);
+    /* defer is fine (search.html, #409): it still runs before anyone can check out. */
+    assert.match(readFileSync(ROOT + f, "utf8"), /<script src="\/ref\.js"( defer)?><\/script>/, `${f} does not capture ?ref=`);
   }
 });
 await check("a live Stripe key can never charge from a preview", () => {
@@ -363,7 +364,7 @@ await check("product pages upsell: same store and same kind of thing, sale items
   const page = readFileSync(ROOT + "producto.html", "utf8");
   assert.ok(page.indexOf('<script src="sale-rule.js"></script>') > 0 && page.indexOf('<script src="product-type.js"></script>') > 0, "producto.html does not load the sale rule and the classifier");
   const extra = "var window = {};\n" + readFileSync(ROOT + "product-type.js", "utf8").replace(/\r\n/g, "\n") + "\n";
-  const P = liftDeclarations(page, ["norm", "REL_MAX", "REL_MIN", "REL_LANES", "relLane", "relGender", "relKey", "relPick"], { extra });
+  const P = liftDeclarations(page, ["NAMED_ENTITIES", "decodeEntities", "norm", "REL_MAX", "REL_MIN", "REL_LANES", "relLane", "relGender", "relKey", "relPick"], { extra });
   const lane = (t, dept = "") => (P.relLane({ name: t, dept }) || {}).key;
   assert.equal(lane("Adidas Samba ADV Shoes - Blush Pink"), "zapatos", "'Blush Pink' shoes read as beauty");
   assert.notEqual(lane("Women's 725 High-Rise Kick Boot Jeans"), "zapatos", "kick-boot jeans read as shoes");

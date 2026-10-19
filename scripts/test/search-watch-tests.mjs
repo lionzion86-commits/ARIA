@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
 import { buildSearchEngineSource } from "../build-search-engine.mjs";
+import { CATALOG_FILES } from "../build-search-index.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -37,13 +38,19 @@ check("search-engine.js is the engine index.html has today", () => {
     "search-engine.js is stale — run: node scripts/build-search-engine.mjs");
 });
 
-check("search.html runs the engine, not its own matcher", () => {
+/* Since #409 search.html asks /api/search; the endpoint runs this
+   engine through search-pipeline.js (netlify/functions/_search-core.js). */
+check("search.html asks the endpoint, and the endpoint runs the engine", () => {
   const page = readFileSync(ROOT + "search.html", "utf8");
-  assert.match(page, /<script src="search-engine\.js"><\/script>/, "search.html does not load the engine");
-  assert.match(page, /S\.rankCatalogMatches\(PRODUCTS,/, "search.html does not rank with the engine");
-  assert.match(page, /S\.soundCorrectQuery\(/, "search.html does not correct typos");
-  assert.match(page, /suggestSearchQuery\(/, "a zero-result search has no \"¿Quisiste decir?\"");
-  assert.match(page, /var SALE_FEED = "\/ofertas-feed\.json";/, "sale-only deals are not searchable");
+  assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/, "search.html does not ask the endpoint");
+  assert.match(page, /r\.suggestion/, "a zero-result search has no \"¿Quisiste decir?\"");
+  const core = readFileSync(ROOT + "netlify/functions/_search-core.js", "utf8");
+  assert.match(core, /"search-engine\.js", "search-pipeline\.js"/, "the endpoint does not load the engine and the pipeline");
+  const pipe = readFileSync(ROOT + "search-pipeline.js", "utf8");
+  assert.match(pipe, /S\.rankCatalogMatches\(ctx\.products,/, "the pipeline does not rank with the engine");
+  assert.match(pipe, /S\.soundCorrectQuery\(/, "the pipeline does not correct typos");
+  const build = readFileSync(ROOT + "scripts/build-search-index.mjs", "utf8");
+  assert.match(build, /ofertas-feed\.json/, "sale-only deals are not searchable");
 });
 
 /* ------------------------------------------------------------------
@@ -54,8 +61,7 @@ vm.createContext(sandbox);
 vm.runInContext(engineSrc, sandbox, { filename: "search-engine.js" });
 const S = sandbox.window.AriaSearch;
 
-const page = readFileSync(ROOT + "search.html", "utf8");
-const files = JSON.parse("[" + /var CATALOG_FILES = \[([\s\S]*?)\];/.exec(page)[1] + "]");
+const files = CATALOG_FILES.map((f) => "/" + f);
 const products = [];
 const seen = new Set();
 const norm = (it, retailer, department, finalPrice) => {

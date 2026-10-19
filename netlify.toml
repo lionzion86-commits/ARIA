@@ -23,6 +23,12 @@
 [functions."orders-create"]
   included_files = ["price-index.json"]
 
+# Search (2026-10-19, #409): the slim index, the engine and the Spanish
+# dictionary answer /api/search on the server; the phone never downloads
+# them. search.html fetches 48 cards at a time.
+[functions."search"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js"]
+
 # /api/* is the public name for the functions the front end calls. The
 # realtime token endpoint is the one that matters: the build spec curls
 # /api/realtime-token, and until this redirect existed that path 404'd
@@ -31,5 +37,28 @@
 [[redirects]]
   from = "/api/realtime-token"
   to = "/.netlify/functions/realtime-token"
+  status = 200
+  force = true
+
+# THE APP BUNDLE PHONES DOWNLOAD (2026-10-19, #417 night order 3).
+# index.html, the tests and the MCP connector name the bundle's source,
+# build/app-<hash>.js (596KB gzipped, comments and all). Browsers get the
+# minified copy (241KB) that scripts/build-app-min.mjs writes beside it.
+# force = true because the source file exists at the requested path.
+# The first rule keeps /build/min/ itself from being rewritten again.
+[[redirects]]
+  from = "/build/min/*"
+  to = "/build/min/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/build/*"
+  to = "/build/min/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/search"
+  to = "/.netlify/functions/search"
   status = 200
   force = true
