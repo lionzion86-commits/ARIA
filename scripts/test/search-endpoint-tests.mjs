@@ -206,11 +206,11 @@ await check("the function ships with its files, and only it does", () => {
   const toml = readFileSync(ROOT + "netlify.toml", "utf8");
   const block = /\[functions\."search"\]\s*\n\s*included_files = \[([^\]]*)\]/.exec(toml);
   assert.ok(block, "no [functions.\"search\"] block");
-  for (const f of ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js"]) {
+  for (const f of ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json"]) {
     assert.ok(block[1].includes(`"${f}"`), `${f} is not shipped with the function`);
   }
   assert.ok(!/^\[functions\]\s*\n\s*included_files/m.test(toml), "included_files went global again (every function would carry the index)");
-  for (const f of ["netlify/functions/search.js", "netlify/functions/_search-core.js"]) {
+  for (const f of ["netlify/functions/search.js", "netlify/functions/_search-core.js", "netlify/functions/_door-price.js"]) {
     const src = readFileSync(ROOT + f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     assert.ok(!/import\.meta/.test(src), `${f} uses import.meta (Netlify compiles functions to CommonJS)`);
   }

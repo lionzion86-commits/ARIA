@@ -25,9 +25,10 @@
 
 # Search (2026-10-19, #409): the slim index, the engine and the Spanish
 # dictionary answer /api/search on the server; the phone never downloads
-# them. search.html fetches 48 cards at a time.
+# them. search.html fetches 48 cards at a time. The auto-parts glossary
+# (#416) gives the dictionary its car-part phrases ("pastillas de freno").
 [functions."search"]
-  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json"]
 
 # /api/* is the public name for the functions the front end calls. The
 # realtime token endpoint is the one that matters: the build spec curls
