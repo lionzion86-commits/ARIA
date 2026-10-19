@@ -3761,6 +3761,20 @@ function openMobileDeal(idx){
 /* BLUE TILES (2026-09-29, Danny): on navy-backed rails the tile carries the
    navy itself (#1a2744) with white branding/pricing. Product photos keep their
    white frames. opts.dark selects it; every other surface keeps white cards. */
+/* SOLES LEAD THE CAROUSELS (2026-10-19, #413 QA + the #416 doctrine:
+   "cards lead with soles, always"). The homepage carousels are the
+   first prices a shopper sees and sit beside storefront, search and
+   department cards that all lead with S/; they now lead with soles too,
+   the dollar figure small under them WITH the rate it was converted at
+   (the 2026-09-23 reason for dollars first: the shopper can redo the
+   arithmetic). No rate, no invented soles: the dollar stands alone. */
+function railLeadPrice(usd){
+  return fxRate ? fmtPEN(usd) : fmtPriceLabel(usd);
+}
+function railRefPriceHTML(usd, cls, color){
+  if (!Number.isFinite(usd) || !fxRate) return '';
+  return `<span class="ariaPricePen ${cls}" style="color:${color}">${escapeHtml(fmtUSD(usd).replace('$', 'US$ '))} · ${escapeHtml(fxRateLabel())}</span>`;
+}
 function railCardHTML(p, onclick, attr, opts){
   const dark = !!(opts && opts.dark);
   const xl = !!(opts && opts.xl);
@@ -3786,10 +3800,10 @@ function railCardHTML(p, onclick, attr, opts){
       <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:${ink}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(p.title)}</span>
       <span class="block">
         <span class="flex items-baseline gap-1.5">
-          <span class="text-[15px] font-extrabold tabular" style="color:${ink}">${fmtDisplayPrice(p.price, p.dutiableUsd)}</span>
-          ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:${dark ? '#AFBBD6' : '#9AA3B5'}">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
+          <span class="text-[15px] font-extrabold tabular" style="color:${ink}">${railLeadPrice(displayPriceUsd(p.price, p.dutiableUsd))}</span>
+          ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:${dark ? '#AFBBD6' : '#9AA3B5'}">${railLeadPrice(displayPriceUsd(original))}</span>` : ''}
         </span>
-        ${solesUnderHTML(displayPriceUsd(p.price, p.dutiableUsd), 'text-[11px] tabular mt-0.5', dim)}
+        ${railRefPriceHTML(displayPriceUsd(p.price, p.dutiableUsd), 'text-[11px] tabular mt-0.5', dim)}
         ${impuestosBadgeHTML(p.price, p.dutiableUsd)}
         ${weightLabelHTML(p.title, 'text-[10.5px] tabular mt-0.5', dark ? '#8A94AD' : '#7A8296')}
       </span>
