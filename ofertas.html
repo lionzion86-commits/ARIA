@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ofertas — Aria Shop</title>
-<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
-<script src="sale-rule.js"></script>
 <meta name="description" content="Las mayores ofertas de tiendas de Estados Unidos, con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
 /* Standalone Ofertas page. Zero dependencies: no frameworks, no CDN.
@@ -95,8 +93,6 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 .more-wrap{text-align:center;margin:22px 0 8px}
 .more-wrap .btn[disabled]{opacity:.6;cursor:default}
 .more-note{display:block;font-size:12.5px;color:#6b7280;margin-top:8px}
-.lane{margin:0 0 22px}
-.lane h2{font-size:17px;font-weight:800;margin:0 0 10px}
 .rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;-webkit-overflow-scrolling:touch}
 .rail .card{flex:0 0 42%;max-width:200px;scroll-snap-align:start}
 /* ---- states ---- */
@@ -120,14 +116,14 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 <body>
 <header class="site-header">
   <div class="header-inner">
-    <a class="wordmark" href="https://ariashop.pe/" aria-label="Aria Shop — inicio">
+    <a class="wordmark" href="/" aria-label="Aria Shop — inicio">
       <span class="w1">Aria</span><span class="w2">Shop</span>
     </a>
     <nav class="main-nav" aria-label="Principal">
-      <a href="https://ariashop.pe/">Inicio</a>
+      <a href="/">Inicio</a>
       <a href="ofertas.html" class="active" aria-current="page">Ofertas</a>
-      <a href="https://ariashop.pe/?tiendas=1">Tiendas en Estados Unidos</a>
-      <a href="https://ariashop.pe/?nosotros=1">Nosotros</a>
+      <a href="/?tiendas=1">Tiendas en Estados Unidos</a>
+      <a href="/?nosotros=1">Nosotros</a>
     </nav>
     <span class="header-meta">Perú · PEN</span>
   </div>
@@ -173,7 +169,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 <footer class="site-footer">
   <div class="footer-inner">
     <span>Aria Shop — Compra en Estados Unidos, entregado en Perú.</span>
-    <span><a href="https://ariashop.pe/">Volver al inicio</a></span>
+    <span><a href="/">Volver al inicio</a></span>
   </div>
 </footer>
 
@@ -298,12 +294,10 @@ var BASE = '';
 var SRC = {
   slice: BASE + '/assets/ofertas/slices/',
   fn:    BASE + '/.netlify/functions/ofertas',
-  cache: BASE + '/.netlify/functions/sales-cache',
   fx:    BASE + '/.netlify/functions/exchange-rate'
 };
 var TIMEOUT_MS = 20000;      // per-request timeout: never hang forever
 var PAGE_SIZE = 48;          // cards drawn per step, never more
-var CACHE_LANE_MAX = 16;     // the live-scan lane's cap
 
 /* ---------- tiny helpers ---------- */
 /* Sized retailer derivatives (2026-10-16) -- the same rules the app
@@ -402,6 +396,10 @@ function imgOrigRetry(el){
   }
   return false;
 }
+/* The card's inline onerror runs in the global scope, outside this
+   wrapper: without this, a failed sized photo threw instead of falling
+   back to the original. */
+window.imgOrigRetry = imgOrigRetry;
 function cardImgAttrs(url, sizes){
   var ss = imageSrcset(url);
   return 'src="' + esc(sizedImageUrl(url, 560)) + '"' +
@@ -437,33 +435,6 @@ function storeLabel(key){
   if (!key) return 'Tienda';
   if (RETAILER_LABELS[key]) return RETAILER_LABELS[key];
   return String(key).replace(/[-_]+/g,' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
-}
-/* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule, served as
-   sale-rule.js -- a real was-price, 5-70% off. 0 = not on sale. */
-function discountPct(p){
-  return window.AriaSale ? window.AriaSale.discountPct(p) : 0;
-}
-function realImage(p){
-  var cands = [];
-  if (p.image) cands.push(p.image);
-  if (p.imageUrl) cands.push(p.imageUrl);
-  if (p.img) cands.push(p.img);
-  if (p.thumbnail) cands.push(p.thumbnail);
-  if (Array.isArray(p.images)) for (var i = 0; i < p.images.length; i++) cands.push(p.images[i]);
-  for (var j = 0; j < cands.length; j++){
-    var u = cands[j];
-    if (typeof u !== 'string' || !u) continue;
-    if (u.indexOf('foto-en-camino') !== -1 || u.indexOf('placeholder') !== -1 || u.indexOf('no-image') !== -1) continue;
-    if (u.indexOf('http') === 0 && u.length > 20) return u;
-  }
-  return null;
-}
-/* The cross-store Ofertas mix: the one sale definition plus Danny's
-   $150 entry-shopper cap -- index.html's isSaleItem, the same function
-   (sale-rule.js isMixDeal) -- and a real photo. */
-function isDeal(p){
-  if (!p || !window.AriaSale) return false;
-  return window.AriaSale.isMixDeal(p) && !!realImage(p);
 }
 function relTime(iso){
   if (!iso) return null;
@@ -536,8 +507,7 @@ var S = {
   stores: null,         // [{key, label, n}] from the first slice
   generatedAt: null,
   view: 0,              // bumps on every filter change; late answers are dropped
-  loadingMore: false,
-  cacheDeals: null      // live-scan deals from the sales cache, or []
+  loadingMore: false
 };
 
 function sliceUrl(){
@@ -684,7 +654,7 @@ function renderView(data){
   renderCount();
   renderFresh();
   if (!S.total){
-    host.innerHTML = laneHTML() + (S.q || S.store
+    host.innerHTML = (S.q || S.store
       ? '<div class="state"><h2>Sin resultados</h2><p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>'
       : '<div class="state"><h2>Estamos actualizando las ofertas</h2>' +
         '<p>Vuelve en unos minutos — las revisamos varias veces al día.</p>' +
@@ -693,7 +663,7 @@ function renderView(data){
     watchPhotos(host);
     return;
   }
-  host.innerHTML = laneHTML() + '<div class="grid" id="grid">' + cardsHTML(data.items || []) + '</div>' + moreHTML();
+  host.innerHTML = '<div class="grid" id="grid">' + cardsHTML(data.items || []) + '</div>' + moreHTML();
   bindMore();
   watchPhotos(host);
 }
@@ -748,7 +718,6 @@ function openView(){
     if (my !== S.view) return;
     try { renderView(r[0] || {}); }
     catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
-    if (!S.cacheDeals) loadCacheDeals();
   }, function(){
     if (my !== S.view) return;
     renderError('No pudimos cargar las ofertas. Revisa tu conexión e inténtalo de nuevo.', true);
@@ -792,60 +761,9 @@ function showMore(){
   });
 }
 
-/* ---------- the live scan (sales cache), optional ----------
-   Deals a store scan donated to the server cache (sales-cache.js; cold
-   most of the time). Asked for after the first paint, never before;
-   shown as one capped lane above the grid, filtered like the grid. */
-function loadCacheDeals(){
-  S.cacheDeals = [];
-  fetchJson(SRC.cache).then(function(j){
-    var items = (j && Array.isArray(j.items)) ? j.items : [];
-    var out = [], seen = {};
-    for (var i = 0; i < items.length; i++){
-      var p = items[i];
-      if (!isDeal(p)) continue;
-      var k = (p.retailer || '') + '::' + (p.title || '');
-      if (seen[k]) continue;
-      seen[k] = 1;
-      out.push({ id: 'live-' + i, title: p.title || '', brand: p.brand || '', store: String(p.retailer || ''),
-        usd: Number(p.price), wasUsd: window.AriaSale.originalPrice(p), pct: discountPct(p), image: realImage(p) });
-    }
-    S.cacheDeals = out;
-    if (j && j.generatedAt && (!S.generatedAt || j.generatedAt > S.generatedAt)){ S.generatedAt = j.generatedAt; renderFresh(); }
-    if (!out.length) return;
-    var host = $('content');
-    if (!host || $('liveLane')) return;
-    var html = laneHTML();
-    if (!html) return;
-    /* Above the grid while the shopper is still at the top; below it
-       once they have scrolled, so nothing jumps under their thumb. */
-    var grid = $('grid');
-    if ((window.scrollY || 0) < 40 || !grid) host.insertAdjacentHTML('afterbegin', html);
-    else { var w = $('moreWrap') || grid; w.insertAdjacentHTML('afterend', html); }
-    watchPhotos($('liveLane'));
-  }, function(){ /* the cache is optional */ });
-}
-function laneHTML(){
-  if (!S.cacheDeals || !S.cacheDeals.length) return '';
-  var words = S.q.toLowerCase().split(/\s+/).filter(Boolean), picked = [];
-  for (var i = 0; i < S.cacheDeals.length && picked.length < CACHE_LANE_MAX; i++){
-    var c = S.cacheDeals[i];
-    if (S.store && c.store !== S.store) continue;
-    var t = (c.title + ' ' + c.brand).toLowerCase();
-    if (words.some(function(w){ return t.indexOf(w) < 0; })) continue;
-    picked.push(c);
-  }
-  if (!picked.length) return '';
-  picked.sort(function(a, b){
-    if (S.sort === 'priceAsc') return a.usd - b.usd;
-    if (S.sort === 'priceDesc') return b.usd - a.usd;
-    return b.pct - a.pct;
-  });
-  var html = '';
-  for (var j = 0; j < picked.length; j++){ try { html += cardHTML(picked[j]); } catch (e) {} }
-  return '<section class="lane" id="liveLane" aria-label="Recién revisadas en tienda"><h2>Recién revisadas en tienda</h2>' +
-    '<div class="rail">' + html + '</div></section>';
-}
+/* ONE SOURCE (2026-10-13, #386). The live scrape (sales-cache, 33 rows
+   from three stores in production) no longer sits beside the catalogue
+   feed: a store's count here is its count on its own page. */
 
 /* ---------- boot ---------- */
 function readUI(){
@@ -875,5 +793,7 @@ try {
 }
 })();
 </script>
+<!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/assets/js/aria-launcher.js" defer></script>
 </body>
 </html>

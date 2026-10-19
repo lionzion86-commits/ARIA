@@ -10,9 +10,10 @@
    catalogue-sized on the path, 48 cards at a time.
 
    WHAT. From ofertas-feed.json, the deals the page has always shown
-   (sale-rule.js isMixDeal -- the one sale definition and the $150
-   cap -- plus a real photo, deduplicated by store + title), reduced to
-   card fields, written as:
+   (sale-rule.js isOnSale -- the one sale definition -- plus a real
+   photo, deduplicated by store + title; m marks the ones under the
+   $150 cap, isMixDeal, which alone make the all-stores mix), reduced
+   to card fields, written as:
 
      assets/ofertas/deals.json
         every deal, packed (netlify/functions/ofertas.js reads it to
@@ -87,10 +88,12 @@ export function buildCards(items, sale) {
   const seen = new Set(), cards = [];
   for (const p of items || []) {
     if (!p) continue;
-    const k = (p.retailer || "") + "::" + (p.title || "");
+    /* Keyed on the title as the card shows it: two rows whose titles
+       differ only in entities or spacing are one card. */
+    const k = (p.retailer || "") + "::" + decodeEntities(p.title || "").trim();
     if (seen.has(k)) continue;
     seen.add(k);
-    if (!sale.isMixDeal(p)) continue;
+    if (!sale.isOnSale(p)) continue;
     const image = realImage(p);
     if (!image) continue;
     cards.push({
@@ -102,6 +105,7 @@ export function buildCards(items, sale) {
       wasUsd: round2(sale.originalPrice(p)),
       pct: sale.discountPct(p),
       image,
+      m: sale.isMixDeal(p) ? 1 : 0,
     });
   }
   return cards;
