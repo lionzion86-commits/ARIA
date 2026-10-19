@@ -47,6 +47,23 @@
    calls an unconfigured retailer just returns a failed store card, which
    looks like a bug to a shopper and is one to us. */
 export const RETAILERS = {
+  /* BEST BUY (2026-10-19, Issue #413) — launched. Catalogue, no actor
+     (the Macy's pattern): bestbuy-catalog.json, 2,889 sold-by-Best-Buy
+     products, built by scripts/build-bestbuy-catalog.mjs from the Oct 18
+     pull (the 178 marketplace-seller records excluded by flag, Danny's
+     ruling). Billed first: the electronics specialist (Danny, #413
+     addendum 2). The real yellow-tag mark is logos/bestbuy.svg (#431 QA,
+     committed by Lucifer). */
+  bestbuy: {
+    key: "bestbuy",
+    label: "Best Buy",
+    color: "#0046BE",
+    logo: "logos/bestbuy.svg",
+    tagline: "Laptops, gaming, audio y celulares",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   revolve: {
     key: "revolve",
     label: "Revolve",
@@ -1091,6 +1108,46 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  abercrombie: {
+    key: "abercrombie",
+    label: "Abercrombie & Fitch",
+    color: "#111111",
+    logo: "logos/abercrombie-fitch.png",
+    tagline: "Jeans y clásicos americanos premium",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  hollister: {
+    key: "hollister",
+    label: "Hollister",
+    color: "#041E42",
+    logo: "logos/hollister.png",
+    tagline: "Estilo californiano juvenil",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  bananarepublic: {
+    key: "bananarepublic",
+    label: "Banana Republic",
+    color: "#766A57",
+    logo: "logos/bananarepublic.png",
+    tagline: "Clásicos premium y básicos elevados",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  gap: {
+    key: "gap",
+    label: "Gap",
+    color: "#001E41",
+    logo: "logos/gap.png",
+    tagline: "Jeans y básicos para toda la familia",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
 
      Both are real rows: they appear on Tiendas, they carry their own
@@ -1175,7 +1232,6 @@ export const RETAILERS = {
      search so an unconfigured retailer cannot return a failed store
      card. Flip `browse: true` the day the catalogue is committed.
      ============================================================ */
-  bestbuy: { key: "bestbuy", label: "Best Buy", color: "#0046BE", logo: null, kind: "general", search: false, retired: true },
   nordstrom: { key: "nordstrom", label: "Nordstrom", color: "#000000", logo: null, kind: "general", search: false, retired: true,
     retiredNote: "Bot protection: tres integraciones, cero productos. Reemplazada por SSENSE." },
 };

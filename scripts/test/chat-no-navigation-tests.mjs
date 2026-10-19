@@ -48,7 +48,9 @@ function lift(sig) {
 }
 
 check("the chat brain never navigates by itself", () => {
-  const brain = lift("async function runAssistantBrain(text){");
+  /* The turn's body moved into runAssistantTurn (2026-10-13, F-LAG);
+     the wrapper and the body are checked together. */
+  const brain = lift("async function runAssistantBrain(text") + "\n" + lift("async function runAssistantTurn(text, turn){");
   /* Comments may name the functions; code may not call them. */
   const code = brain.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   for (const re of [/\bgoSales\(/, /\bopenCatalog\(/, /\bopenStore\(/, /\bopenAriaAuto\(/, /\bshowProduct\(/,
@@ -58,13 +60,15 @@ check("the chat brain never navigates by itself", () => {
 });
 
 check("the sales and gendered-shoe shortcuts answer in place with a door", () => {
-  const brain = lift("async function runAssistantBrain(text){");
+  /* The turn's body moved into runAssistantTurn (2026-10-13, F-LAG);
+     the wrapper and the body are checked together. */
+  const brain = lift("async function runAssistantBrain(text") + "\n" + lift("async function runAssistantTurn(text, turn){");
   const uses = (brain.match(/answerInChatWithDoor\(/g) || []).length;
   assert.ok(uses >= 2, "a shortcut no longer answers in the chat");
   assert.match(brain, /addAssistantSectionOffer\('Ofertas', [^)]*'department', 'sale'\)/, "the generic sales answer has no Ofertas door");
   assert.match(brain, /addAssistantStoreOffer\(salesTarget\.key/, "a store's sales have no store door");
   assert.match(brain, /addAssistantBrandOffer\(salesTarget\.key/, "a brand's sales have no brand door");
-  const door = lift("function answerInChatWithDoor(line, addDoor, statusEl, prevStatus){");
+  const door = lift("function answerInChatWithDoor(line, addDoor, statusEl, prevStatus, userText){");
   assert.match(door, /assistantThinking = false;/, "the turn is never closed — the next message would be ignored");
   assert.doesNotMatch(door.replace(/\/\*[\s\S]*?\*\//g, ""), /goSales\(|openCatalog\(|location\./, "the door helper navigates");
 });

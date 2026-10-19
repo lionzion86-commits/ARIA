@@ -34,6 +34,13 @@
 /*.ico
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
+# Visual-search index (2026-10-15): shards and the CLIP model are
+# versioned through visual-index/manifest.json and refreshed with
+# catalog pulls; a day of cache keeps photo queries off the network
+# path while letting a refreshed index land within a day.
+/visual-index/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
 # PERF (2026-10-14, Issue #388): fingerprinted app bundle. This rule
 # is LAST on purpose: in _headers the last matching rule wins, and
 # the bundle also matches /*.js above. The filename

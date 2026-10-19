@@ -42,6 +42,7 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .hero-logo{background:#fff;border-radius:16px;display:inline-flex;align-items:center;
   padding:10px 18px;margin-bottom:14px;max-width:100%}
 .hero-logo img{height:40px;max-width:220px;object-fit:contain;display:block}
+.hero-logo[hidden]{display:none}
 .hero-name{margin:0 0 6px;font-size:clamp(26px,5vw,38px);font-weight:800;letter-spacing:-.02em}
 .hero-tag{margin:0;color:rgba(255,255,255,.82);font-size:15px;max-width:640px}
 .eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.14em;
@@ -136,7 +137,62 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start}
 @media(min-width:640px){.re-grid{grid-template-columns:repeat(3,1fr);max-width:1100px;margin:0 auto;width:100%}}
 @media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,1fr)}}
+
+/* ---- SLICED STOREFRONT (2026-10-19, #413 + #409) ----
+   A store launched in the thin format (STORES[k].slices) never downloads
+   its catalogue: index.json paints the first screen, rail pages come 48
+   cards at a time. Cards hold their shape from the first paint (square
+   photo box via aspect-ratio, padding-top for Safari < 15; reserved text
+   and price rows), photos load when about to be seen, soles lead. */
+.sl .card{border-radius:14px}
+/* THE OVERLAY'S CARDS ARE CARDS, NOT LINES (2026-10-19, #409 T2). The
+   "Ver todo" grid is a fixed-height scroller (flex:1), and auto rows in a
+   grid of definite height are squeezed to fit it: 48 cards became 16px
+   slivers -- the customer's "million lines" -- and, all being on screen,
+   fetched all 48 photos at once. Rows take their content's height, and a
+   card's photo box never shrinks. */
+.re-grid.sl{grid-auto-rows:max-content}
+.sl .card-img{flex-shrink:0}
+.sl .card-img{aspect-ratio:1/1;background:#F3F5F9}
+@supports not (aspect-ratio:1/1){ .sl .card-img{height:0;padding-top:100%} }
+.sl .card-img img{position:absolute;inset:0;top:0;left:0;width:100%;height:100%;object-fit:contain}
+.sl .card-brand{min-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl .card-title{min-height:36px}
+.sl .card-prices{min-height:44px;padding-top:6px}
+.sl .pen{font-size:18px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.sl .usd{font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl .usd s{color:#9aa1b2}
+.sl .badge{background:var(--tag,#FFC72C);color:#111;border-radius:6px}
+.sl .card.sk .ln{height:11px;border-radius:6px;background:#eef0f4;margin:4px 0}
+.sl .card.sk .ln.short{width:55%}
+.sl .card.sk .card-img{background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);background-size:200% 100%;animation:sh 1.4s 4}
+.sl .rail-title{color:var(--store)}
+.sl .rail-count{background:var(--store)}
+.sl .rail-ver{color:var(--store)}
+.sl .chip.active{background:var(--store);border-color:var(--store)}
+.sl .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.sl .chips::-webkit-scrollbar{display:none}
+.sl .chip{flex:0 0 auto;white-space:nowrap}
+.sl-more{text-align:center;margin:18px 0 6px}
+.sl-more .btn{background:var(--store)}
+.hero.themed{background:linear-gradient(135deg,var(--store) 0%,#002B7A 100%)}
+.hero.themed .hero-scrim{background:linear-gradient(135deg,rgba(0,40,120,.78) 0%,rgba(0,20,70,.88) 100%)}
+.hero-tagbar{position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--tag,#FFC72C);z-index:1}
+.hero-word{display:inline-block;background:#fff;color:var(--store);font-weight:900;font-size:22px;letter-spacing:-.01em;border-radius:12px;padding:8px 16px;margin-bottom:12px}
+.hero-word[hidden]{display:none}
+.trust{background:#fff;border:1px solid var(--line);border-left:5px solid var(--store);border-radius:16px;padding:16px;margin:0 0 28px}
+.trust h2{margin:0 0 10px;font-size:16px;font-weight:800;color:var(--navy)}
+.trust ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+@media(min-width:760px){.trust ul{grid-template-columns:repeat(3,1fr)}}
+.trust li{font-size:13px;line-height:1.45;color:#374151}
+.trust li b{display:block;color:var(--navy);font-size:13.5px;margin-bottom:2px}
+.trust a{color:var(--store);font-weight:700}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
+<script src="/ref.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
 </head>
 <body>
 <header class="site-header">
@@ -157,9 +213,11 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 <div class="hero" id="hero" hidden>
   <img class="hero-bg" id="heroBg" alt="" aria-hidden="true" hidden>
   <div class="hero-scrim" id="heroScrim" hidden></div>
+  <div class="hero-tagbar" id="heroTagbar" hidden></div>
   <div class="hero-inner">
     <span class="eyebrow">Tienda en Estados Unidos</span>
     <div class="hero-logo" id="heroLogo" hidden><img id="heroLogoImg" alt=""></div>
+    <div class="hero-word" id="heroWord" hidden></div>
     <h1 class="hero-name" id="heroName">Tienda</h1>
     <p class="hero-tag" id="heroTag"></p>
   </div>
@@ -211,11 +269,13 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   </div>
 </footer>
 
-<!-- The product-type classifier, generated from index.html (scripts/build-product-type.mjs). -->
-<script src="product-type.js"></script>
 <script>
-/* Standalone Tienda template — one page for all 77 stores (?tienda=clave).
-   Bulletproof by design:
+/* Standalone Tienda template — one page for every store (?tienda=clave).
+   Thin by design (#409 track T2): no storefront downloads its catalogue.
+   The first screen is one small static file per store
+   (assets/tienda/<key>/index.json); a chip, the search box, the sort
+   menu and "Ver todo" ask /.netlify/functions/tienda for 48 cards at a
+   time. Bulletproof by design:
    - Static HTML shell renders immediately (never blank).
    - Missing/invalid ?tienda renders the full store directory, not an error.
    - Every fetch has a timeout; total failure shows a retry panel.
@@ -224,8 +284,10 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 (function(){
 'use strict';
 
-/* ---------- embedded store registry (77 active stores) ---------- */
-var STORES = {"revolve": {"label": "Revolve", "color": "#000000", "logo": "/logos/revolve.png", "tagline": "Moda contemporánea y de diseñador", "files": ["/revolve-catalog.json"]}, "target": {"label": "Target", "color": "#CC0000", "logo": "/logos/target.svg", "tagline": "Ropa, hogar y belleza", "files": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"]}, "footlocker": {"label": "Foot Locker", "color": "#000000", "logo": "/logos/footlocker.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/department-cache-footlocker.json"]}, "newbalance": {"label": "New Balance", "color": "#E21836", "logo": "/logos/brands/newbalance.svg", "tagline": "Zapatillas y ropa deportiva", "files": ["/newbalance-catalog.json"]}, "walmart": {"label": "Walmart", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Ahorra dinero. Vive mejor.", "files": ["/department-cache-walmart.json", "/juguetes-catalog.json"]}, "advanceauto": {"label": "Advance Auto Parts", "color": "#EA1927", "logo": "/logos/advanceauto.svg", "tagline": "Frenos y repuestos — vía Aria Auto", "files": ["/advanceauto-catalog.json"]}, "macys": {"label": "Macy's", "color": "#E21A2C", "logo": "/logos/macys.png", "tagline": "Moda mujer, marcas y vestidos", "files": ["/macys-catalog.json"]}, "kohls": {"label": "Kohl's", "color": "#C41230", "logo": "/logos/kohls.svg", "tagline": "Ropa y hogar para toda la familia", "files": ["/kohls-catalog.json"]}, "dicks": {"label": "Dick's Sporting Goods", "color": "#D22630", "logo": "/logos/dicks.png", "tagline": "Skate, surf y fitness", "files": ["/dicks-catalog.json"]}, "finishline": {"label": "Finish Line", "color": "#000000", "logo": "/logos/finishline.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/finishline-catalog.json"]}, "bhphoto": {"label": "B&H Photo", "color": "#A7392F", "logo": "/logos/bhphoto.svg", "tagline": "Cámaras, fotografía y electrónica", "files": ["/bhphoto-catalog.json"]}, "costco": {"label": "Costco", "color": "#E31837", "logo": "/logos/costco.svg", "tagline": "Precios de almacén, todo por mayor", "files": ["/costco-catalog.json", "/juguetes-catalog.json"]}, "victoriassecret": {"label": "Victoria's Secret", "color": "#E31C79", "logo": "/logos/victoriassecret.png", "tagline": "Lencería, brumas corporales y fragancias", "files": ["/beauty-catalog.json"]}, "ulta": {"label": "Ulta Beauty", "color": "#F88038", "logo": "/logos/ulta.png", "tagline": "Maquillaje, skincare y cuidado del cabello", "files": ["/ulta-catalog.json"]}, "pacsun": {"label": "PacSun", "color": "#111111", "logo": "/logos/pacsun.png", "tagline": "Moda surf y skate", "files": ["/pacsun-catalog.json"]}, "zumiez": {"label": "Zumiez", "color": "#111111", "logo": "/logos/zumiez.png", "tagline": "Streetwear, skate y sneakers", "files": ["/zumiez-catalog.json"]}, "nautilus": {"label": "Nautilus Spearfishing", "color": "#213236", "logo": "/logos/nautilus.png", "tagline": "Pesca submarina — arpones y buceo", "files": ["/nautilus-catalog.json"]}, "prosoccer": {"label": "ProSoccer", "color": "#0066CC", "logo": "/logos/prosoccer.png", "tagline": "Fútbol en oferta — chimpunes y más", "files": ["/soccer-catalog.json"]}, "xtremesoccer": {"label": "Xtreme Soccer", "color": "#CC0000", "logo": "/logos/xtremesoccer.png", "tagline": "Fútbol en oferta", "files": ["/soccer-catalog.json"]}, "tennisexpress": {"label": "Tennis Express", "color": "#008000", "logo": "/logos/tennisexpress.png", "tagline": "Tenis en oferta — raquetas y más", "files": ["/tennis-catalog.json"]}, "tenniswarehouse": {"label": "Tennis Warehouse", "color": "#FF6600", "logo": "/logos/tenniswarehouse.png", "tagline": "Tenis en oferta", "files": ["/tennis-catalog.json"]}, "academy": {"label": "Academy Sports", "color": "#003DA5", "logo": "/logos/academy.png", "tagline": "Fútbol en oferta — chimpunes", "files": ["/soccer-catalog.json"]}, "islandwatersports": {"label": "Island Water Sports", "color": "#373435", "logo": "/logos/islandwatersports.svg", "tagline": "Surf shop de Florida — tablas y playa", "files": ["/islandwatersports-catalog.json"]}, "quietstorm": {"label": "Quiet Storm Surf Shop", "color": "#141414", "logo": "/logos/quietstorm.png", "tagline": "Surf shop — tablas, skate y ropa", "files": ["/quietstorm-catalog.json"]}, "surfworld": {"label": "Surf World", "color": "#00A9DC", "logo": "/logos/surfworld.png", "tagline": "Surf shop Fort Lauderdale", "files": ["/surfworld-catalog.json"]}, "surfstation": {"label": "Surf Station", "color": "#111111", "logo": "/logos/surfstation.png", "tagline": "Surf, skate y ropa desde 1984", "files": ["/surfstation-catalog.json"]}, "mainland": {"label": "Mainland Skate & Surf", "color": "#0F6FEF", "logo": "/logos/mainland.png", "tagline": "Skate shop — tablas y marcas", "files": ["/mainland-catalog.json"]}, "parrot": {"label": "Parrot Surf & Skate", "color": "#111111", "logo": "/logos/parrot.png", "tagline": "Surf y skate — tablas y neopreno", "files": ["/parrot-catalog.json"]}, "ccs": {"label": "CCS", "color": "#2AADEB", "logo": "/logos/ccs.png", "tagline": "El skate shop online", "files": ["/ccs-catalog.json"]}, "valsurf": {"label": "Val Surf", "color": "#0F506F", "logo": "/logos/valsurf.png", "tagline": "Surf y skate — 60 años", "files": ["/valsurf-catalog.json"]}, "oldnavy": {"label": "Old Navy", "color": "#001E62", "logo": "/logos/oldnavy.svg", "tagline": "Ropa casual para toda la familia", "files": ["/department-cache-oldnavy.json"]}, "samsclub": {"label": "Sam's Club", "color": "#0B6CFF", "logo": "/logos/samsclub.svg", "tagline": "Mayoreo y esenciales para el hogar", "files": ["/samsclub-catalog.json"]}, "lanebryant": {"label": "Lane Bryant", "color": "#C41230", "logo": "/logos/lanebryant.png", "tagline": "Moda femenina en tallas grandes", "files": ["/lanebryant-catalog.json"]}, "alphalete": {"label": "Alphalete", "color": "#000000", "logo": "/logos/alphalete.png", "tagline": "Ropa de gym premium", "files": ["/gymrat-catalog.json"]}, "youngla": {"label": "YoungLA", "color": "#000000", "logo": "/logos/youngla.png", "tagline": "Ropa de gym — oversize y streetwear", "files": ["/gymrat-catalog.json"]}, "gymshark": {"label": "Gymshark", "color": "#000000", "logo": "/logos/gymshark.png", "tagline": "Ropa de gym — leggings, tops y conjuntos", "files": ["/gymrat-catalog.json"]}, "venum": {"label": "Venum", "color": "#000000", "logo": "/logos/brands/venum.png", "tagline": "MMA y boxeo — guantes, shorts y equipo", "files": ["/venum-catalog.json"]}, "tatami": {"label": "Tatami Fightwear", "color": "#1A1A1A", "logo": "/logos/brands/tatamifightwear.svg", "tagline": "Jiu-jitsu — gis, rashguards y spats", "files": ["/tatami-catalog.json"]}, "everlast": {"label": "Everlast", "color": "#000000", "logo": "/logos/brands/everlast.svg", "tagline": "Boxeo — guantes, sacos y protección", "files": ["/everlast-catalog.json"]}, "mmawarehouse": {"label": "MMAWarehouse", "color": "#1A1A1A", "logo": "/logos/mmawarehouse.png", "tagline": "MMA — guantes, canilleras y equipo", "files": ["/mmawarehouse-catalog.json"]}, "combatcorner": {"label": "Combat Corner", "color": "#000000", "logo": "/logos/combatcorner.png", "tagline": "Boxeo y MMA — equipo de pelea", "files": ["/combatcorner-catalog.json"]}, "fuji": {"label": "FUJI Sports", "color": "#1A1A1A", "logo": "/logos/fuji.png", "tagline": "Jiu-jitsu y judo — gis y equipo", "files": ["/fuji-catalog.json"]}, "crocs": {"label": "Crocs", "color": "#000000", "logo": "/logos/brands/crocs.svg", "tagline": "Clogs, sandalias y calzado cómodo", "files": ["/crocs-catalog.json"]}, "baublebar": {"label": "BaubleBar", "color": "#000000", "logo": "/logos/brands/baublebar.png", "tagline": "Joyería de moda — collares, aretes y pulseras", "files": ["/baublebar-catalog.json"]}, "jwpei": {"label": "JW PEI", "color": "#000000", "logo": "/logos/brands/jwpei.png", "tagline": "Carteras veganas — crossbody, totes y minis", "files": ["/jwpei-catalog.json"]}, "meliebianco": {"label": "Melie Bianco", "color": "#000000", "logo": "/logos/brands/meliebianco.png", "tagline": "Carteras y accesorios", "files": ["/meliebianco-catalog.json"]}, "bentgo": {"label": "Bentgo", "color": "#000000", "logo": "/logos/brands/bentgo.png", "tagline": "Loncheras bento para niños", "files": ["/bentgo-catalog.json"]}, "mushie": {"label": "Mushie", "color": "#000000", "logo": "/logos/brands/mushie.png", "tagline": "Vasos y vajilla para niños", "files": ["/mushie-catalog.json"]}, "ezpz": {"label": "ezpz", "color": "#000000", "logo": "/logos/ezpz.png", "tagline": "Platos y vasos para niños", "files": ["/ezpz-catalog.json"]}, "statebags": {"label": "State Bags", "color": "#000000", "logo": "/logos/statebags.png", "tagline": "Mochilas y loncheras para niños", "files": ["/statebags-catalog.json"]}, "assouline": {"label": "Assouline", "color": "#000000", "logo": "/logos/assouline.png", "tagline": "Libros de mesa de lujo — moda, arte y viajes", "files": ["/books-catalog.json"]}, "chronicle": {"label": "Chronicle Books", "color": "#1A1A1A", "logo": "/logos/chronicle.png", "tagline": "Libros ilustrados — fotografía, arte y diseño", "files": ["/books-catalog.json"]}, "walmartbaby": {"label": "Walmart Bebé", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Coches, autoasientos y todo para el bebé", "files": ["/moms-catalog.json"]}, "momcozy": {"label": "Momcozy", "color": "#2E6E63", "logo": "/logos/momcozy.png", "tagline": "Lactancia y cuidado del bebé", "files": ["/moms-catalog.json"]}, "elvie": {"label": "Elvie", "color": "#7A4E8C", "logo": "/logos/elvie.png", "tagline": "Extractores de leche inteligentes", "files": ["/moms-catalog.json"]}, "spectra": {"label": "Spectra", "color": "#C2185B", "logo": "/logos/spectra.png", "tagline": "Extractores de leche", "files": ["/moms-catalog.json"]}, "munchkin": {"label": "Munchkin", "color": "#E8590C", "logo": "/logos/munchkin.png", "tagline": "Alimentación y cuidado del bebé", "files": ["/moms-catalog.json"]}, "babybrezza": {"label": "Baby Brezza", "color": "#1971C2", "logo": "/logos/babybrezza.png", "tagline": "Alimentación del bebé", "files": ["/moms-catalog.json"]}, "drbrowns": {"label": "Dr. Brown's", "color": "#1864AB", "logo": "/logos/drbrowns.png", "tagline": "Biberones y alimentación", "files": ["/moms-catalog.json"]}, "mockingbird": {"label": "Mockingbird", "color": "#343A40", "logo": "/logos/mockingbird.png", "tagline": "Coches premium", "files": ["/moms-catalog.json"]}, "nanit": {"label": "Nanit", "color": "#0C8599", "logo": "/logos/nanit.png", "tagline": "Monitoreo inteligente del bebé", "files": ["/moms-catalog.json"]}, "owlet": {"label": "Owlet", "color": "#5F3DC4", "logo": "/logos/owlet.png", "tagline": "Monitoreo del bebé", "files": ["/moms-catalog.json"]}, "kindredbravely": {"label": "Kindred Bravely", "color": "#8C5E58", "logo": "/logos/kindredbravely.png", "tagline": "Lactancia y maternidad", "files": ["/moms-catalog.json"]}, "hatch": {"label": "Hatch", "color": "#A61E4D", "logo": "/logos/hatch.png", "tagline": "Ropa de maternidad", "files": ["/moms-catalog.json"]}, "bellybandit": {"label": "Belly Bandit", "color": "#6B4F2A", "logo": "/logos/bellybandit.png", "tagline": "Soporte pre y postparto", "files": ["/moms-catalog.json"]}, "freshlypicked": {"label": "Freshly Picked", "color": "#B07D4F", "logo": "/logos/freshlypicked.png", "tagline": "Pañaleras de cuero", "files": ["/moms-catalog.json"]}, "jujube": {"label": "JuJuBe", "color": "#E64980", "logo": "/logos/jujube.png", "tagline": "Pañaleras y accesorios", "files": ["/moms-catalog.json"]}, "dagnedover": {"label": "Dagne Dover", "color": "#495057", "logo": "/logos/dagnedover.png", "tagline": "Pañaleras", "files": ["/moms-catalog.json"]}, "lillebaby": {"label": "LÍLLÉbaby", "color": "#2B8A3E", "logo": "/logos/lillebaby.png", "tagline": "Portabebés ergonómicos", "files": ["/moms-catalog.json"]}, "skims": {"label": "Skims", "color": "#605848", "logo": "/logos/skims.png", "tagline": "Shapewear, ropa interior y loungewear", "files": ["/skims-catalog.json"]}, "ssense": {"label": "SSENSE", "color": "#000000", "logo": "/logos/ssense.png", "tagline": "Diseñador y lujo, importado igual que todo lo demás", "files": ["/ssense-catalog.json"]}, "miumiu": {"label": "Miu Miu", "color": "#000000", "logo": "/logos/miumiu.png", "tagline": "Bolsos, calzado y moda italiana", "files": ["/miumiu-catalog.json"]}, "yesstyle": {"label": "YesStyle", "color": "#50A838", "logo": "/logos/yesstyle.png", "tagline": "Belleza coreana y japonesa", "files": ["/yesstyle-catalog.json"]}, "bathandbodyworks": {"label": "Bath & Body Works", "color": "#0F4C81", "logo": "/logos/bathandbodyworks.png", "tagline": "Cremas, jabones y velas aromáticas", "files": []}, "farfetch": {"label": "Farfetch", "color": "#000000", "logo": "/logos/farfetch.svg", "tagline": "Disenadores latinos — Farm Rio, Johanna Ortiz y mas", "files": ["/farfetch-catalog.json"]}, "hottopic": {"label": "Hot Topic", "color": "#D8232A", "logo": "/logos/hottopic.png", "tagline": "Band tees, anime y cultura pop", "files": ["/hottopic-catalog.json"]}, "boxlunch": {"label": "BoxLunch", "color": "#F26522", "logo": "/logos/boxlunch.png", "tagline": "Regalos pop que donan comidas", "files": ["/boxlunch-catalog.json"]}, "aguabendita": {"label": "Agua Bendita", "color": "#0A1F44", "logo": "/logos/aguabendita.png", "tagline": "Diseño colombiano — baño y resort", "files": ["/latino-designers-dtc-catalog.json"]}, "americaneagle": {"label": "American Eagle", "color": "#0A1F44", "logo": "/logos/americaneagle.png", "tagline": "Jeans y ropa casual", "files": ["/ae-catalog.json"]}, "ancora": {"label": "Ancora", "color": "#0A1F44", "logo": "/logos/ancora.png", "tagline": "Diseño latino — baño y playa", "files": ["/latino-designers-dtc-catalog.json"]}, "capittana": {"label": "Capittana", "color": "#0A1F44", "logo": "/logos/capittana.png", "tagline": "Diseño peruano — ropa de baño", "files": ["/latino-designers-dtc-catalog.json"]}, "denniskirk": {"label": "Dennis Kirk", "color": "#0A1F44", "logo": "/logos/denniskirk.png", "tagline": "Repuestos y accesorios de moto", "files": ["/moto-catalog.json"]}, "eberjey": {"label": "Eberjey", "color": "#0A1F44", "logo": "/logos/eberjey.png", "tagline": "Lencería y loungewear", "files": ["/latino-designers-dtc-catalog.json"]}, "elite": {"label": "Elite Sports", "color": "#0A1F44", "logo": "/logos/elite.png", "tagline": "Equipo de artes marciales", "files": ["/fightclub-catalog.json"]}, "farmrio": {"label": "FARM Rio", "color": "#0A1F44", "logo": "/logos/farmrio.png", "tagline": "Moda brasileña — estampados y color", "files": ["/latino-designers-dtc-catalog.json"]}, "gameness": {"label": "Gameness", "color": "#0A1F44", "logo": "/logos/gameness.png", "tagline": "Jiu-jitsu — gis y equipo", "files": ["/fightclub-catalog.json"]}, "johannaortiz": {"label": "Johanna Ortiz", "color": "#0A1F44", "logo": "/logos/johannaortiz.png", "tagline": "Alta costura colombiana", "files": ["/latino-designers-dtc-catalog.json"]}, "montce": {"label": "Montce", "color": "#0A1F44", "logo": "/logos/montce.png", "tagline": "Ropa de baño de autor", "files": ["/latino-designers-dtc-catalog.json"]}, "partycity": {"label": "Party City", "color": "#0A1F44", "logo": "/logos/partycity.png", "tagline": "Fiestas, globos y disfraces", "files": ["/partycity-catalog.json"]}, "patbo": {"label": "PatBO", "color": "#0A1F44", "logo": "/logos/patbo.png", "tagline": "Moda brasileña de fiesta", "files": ["/latino-designers-dtc-catalog.json"]}, "revzilla": {"label": "RevZilla", "color": "#0A1F44", "logo": "/logos/revzilla.png", "tagline": "Cascos y equipo de moto", "files": ["/moto-catalog.json"]}, "sephora": {"label": "Sephora", "color": "#0A1F44", "logo": "/logos/sephora.png", "tagline": "Maquillaje, skincare y fragancias", "files": ["/beauty-catalog.json"]}, "silviatcherassi": {"label": "Silvia Tcherassi", "color": "#0A1F44", "logo": "/logos/silviatcherassi.png", "tagline": "Diseño colombiano de lujo", "files": ["/latino-designers-dtc-catalog.json"]}, "smartbuyglasses": {"label": "SmartBuyGlasses", "color": "#0A1F44", "logo": "/logos/smartbuyglasses.png", "tagline": "Lentes de sol y de medida", "files": ["/sunglasses-catalog.json"]}, "tns": {"label": "TNS", "color": "#0A1F44", "logo": "/logos/tns.png", "tagline": "Moda latina contemporánea", "files": ["/latino-designers-dtc-catalog.json"]}, "vix": {"label": "ViX", "color": "#0A1F44", "logo": "/logos/vix.png", "tagline": "Ropa de baño brasileña", "files": ["/latino-designers-dtc-catalog.json"]}};
+/* ---------- embedded store registry ----------
+   `files` names each store's catalogues for the build scripts
+   (build-store-slices, the Ofertas feed); the page never fetches them. */
+var STORES = {"bestbuy": {"label": "Best Buy", "color": "#0046BE", "tag": "#FFE000", "logo": "/logos/bestbuy.svg", "heroPhoto": "/assets/stores/bestbuy-interior.jpg", "tagline": "Laptops, gaming, audio, celulares y más, al precio de Best Buy en Estados Unidos.", "slices": "/assets/tienda/bestbuy/", "trust": "bestbuy", "files": ["/bestbuy-catalog.json"]}, "revolve": {"label": "Revolve", "color": "#000000", "logo": "/logos/revolve.png", "tagline": "Moda contemporánea y de diseñador", "files": ["/revolve-catalog.json"]}, "target": {"label": "Target", "color": "#CC0000", "logo": "/logos/target.svg", "tagline": "Ropa, hogar y belleza", "files": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"]}, "footlocker": {"label": "Foot Locker", "color": "#000000", "logo": "/logos/footlocker.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/department-cache-footlocker.json"]}, "newbalance": {"label": "New Balance", "color": "#E21836", "logo": "/logos/brands/newbalance.svg", "tagline": "Zapatillas y ropa deportiva", "files": ["/newbalance-catalog.json"]}, "walmart": {"label": "Walmart", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Ahorra dinero. Vive mejor.", "files": ["/department-cache-walmart.json", "/juguetes-catalog.json"]}, "advanceauto": {"label": "Advance Auto Parts", "color": "#EA1927", "logo": "/logos/advanceauto.svg", "tagline": "Frenos y repuestos — vía Aria Auto", "files": ["/advanceauto-catalog.json"]}, "macys": {"label": "Macy's", "color": "#E21A2C", "logo": "/logos/macys.png", "tagline": "Moda mujer, marcas y vestidos", "files": ["/macys-catalog.json"]}, "kohls": {"label": "Kohl's", "color": "#C41230", "logo": "/logos/kohls.svg", "tagline": "Ropa y hogar para toda la familia", "files": ["/kohls-catalog.json"]}, "dicks": {"label": "Dick's Sporting Goods", "color": "#D22630", "logo": "/logos/dicks.png", "tagline": "Skate, surf y fitness", "files": ["/dicks-catalog.json"]}, "finishline": {"label": "Finish Line", "color": "#000000", "logo": "/logos/finishline.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/finishline-catalog.json"]}, "bhphoto": {"label": "B&H Photo", "color": "#A7392F", "logo": "/logos/bhphoto.svg", "tagline": "Cámaras, fotografía y electrónica", "files": ["/bhphoto-catalog.json"]}, "costco": {"label": "Costco", "color": "#E31837", "logo": "/logos/costco.svg", "tagline": "Precios de almacén, todo por mayor", "files": ["/costco-catalog.json", "/juguetes-catalog.json"]}, "victoriassecret": {"label": "Victoria's Secret", "color": "#E31C79", "logo": "/logos/victoriassecret.png", "tagline": "Lencería, brumas corporales y fragancias", "files": ["/beauty-catalog.json"]}, "ulta": {"label": "Ulta Beauty", "color": "#F88038", "logo": "/logos/ulta.png", "tagline": "Maquillaje, skincare y cuidado del cabello", "files": ["/ulta-catalog.json"]}, "pacsun": {"label": "PacSun", "color": "#111111", "logo": "/logos/pacsun.png", "tagline": "Moda surf y skate", "files": ["/pacsun-catalog.json"]}, "zumiez": {"label": "Zumiez", "color": "#111111", "logo": "/logos/zumiez.png", "tagline": "Streetwear, skate y sneakers", "files": ["/zumiez-catalog.json"]}, "nautilus": {"label": "Nautilus Spearfishing", "color": "#213236", "logo": "/logos/nautilus.png", "tagline": "Pesca submarina — arpones y buceo", "files": ["/nautilus-catalog.json"]}, "prosoccer": {"label": "ProSoccer", "color": "#0066CC", "logo": "/logos/prosoccer.png", "tagline": "Fútbol en oferta — chimpunes y más", "files": ["/soccer-catalog.json"]}, "xtremesoccer": {"label": "Xtreme Soccer", "color": "#CC0000", "logo": "/logos/xtremesoccer.png", "tagline": "Fútbol en oferta", "files": ["/soccer-catalog.json"]}, "tennisexpress": {"label": "Tennis Express", "color": "#008000", "logo": "/logos/tennisexpress.png", "tagline": "Tenis en oferta — raquetas y más", "files": ["/tennis-catalog.json"]}, "tenniswarehouse": {"label": "Tennis Warehouse", "color": "#FF6600", "logo": "/logos/tenniswarehouse.png", "tagline": "Tenis en oferta", "files": ["/tennis-catalog.json"]}, "academy": {"label": "Academy Sports", "color": "#003DA5", "logo": "/logos/academy.png", "tagline": "Fútbol en oferta — chimpunes", "files": ["/soccer-catalog.json"]}, "islandwatersports": {"label": "Island Water Sports", "color": "#373435", "logo": "/logos/islandwatersports.svg", "tagline": "Surf shop de Florida — tablas y playa", "files": ["/islandwatersports-catalog.json"]}, "quietstorm": {"label": "Quiet Storm Surf Shop", "color": "#141414", "logo": "/logos/quietstorm.png", "tagline": "Surf shop — tablas, skate y ropa", "files": ["/quietstorm-catalog.json"]}, "surfworld": {"label": "Surf World", "color": "#00A9DC", "logo": "/logos/surfworld.png", "tagline": "Surf shop Fort Lauderdale", "files": ["/surfworld-catalog.json"]}, "surfstation": {"label": "Surf Station", "color": "#111111", "logo": "/logos/surfstation.png", "tagline": "Surf, skate y ropa desde 1984", "files": ["/surfstation-catalog.json"]}, "mainland": {"label": "Mainland Skate & Surf", "color": "#0F6FEF", "logo": "/logos/mainland.png", "tagline": "Skate shop — tablas y marcas", "files": ["/mainland-catalog.json"]}, "parrot": {"label": "Parrot Surf & Skate", "color": "#111111", "logo": "/logos/parrot.png", "tagline": "Surf y skate — tablas y neopreno", "files": ["/parrot-catalog.json"]}, "ccs": {"label": "CCS", "color": "#2AADEB", "logo": "/logos/ccs.png", "tagline": "El skate shop online", "files": ["/ccs-catalog.json"]}, "valsurf": {"label": "Val Surf", "color": "#0F506F", "logo": "/logos/valsurf.png", "tagline": "Surf y skate — 60 años", "files": ["/valsurf-catalog.json"]}, "oldnavy": {"label": "Old Navy", "color": "#001E62", "logo": "/logos/oldnavy.svg", "tagline": "Ropa casual para toda la familia", "files": ["/department-cache-oldnavy.json"]}, "samsclub": {"label": "Sam's Club", "color": "#0B6CFF", "logo": "/logos/samsclub.svg", "tagline": "Mayoreo y esenciales para el hogar", "files": ["/samsclub-catalog.json"]}, "lanebryant": {"label": "Lane Bryant", "color": "#C41230", "logo": "/logos/lanebryant.png", "tagline": "Moda femenina en tallas grandes", "files": ["/lanebryant-catalog.json"]}, "alphalete": {"label": "Alphalete", "color": "#000000", "logo": "/logos/alphalete.png", "tagline": "Ropa de gym premium", "files": ["/gymrat-catalog.json"]}, "youngla": {"label": "YoungLA", "color": "#000000", "logo": "/logos/youngla.png", "tagline": "Ropa de gym — oversize y streetwear", "files": ["/gymrat-catalog.json"]}, "gymshark": {"label": "Gymshark", "color": "#000000", "logo": "/logos/gymshark.png", "tagline": "Ropa de gym — leggings, tops y conjuntos", "files": ["/gymrat-catalog.json"]}, "venum": {"label": "Venum", "color": "#000000", "logo": "/logos/brands/venum.png", "tagline": "MMA y boxeo — guantes, shorts y equipo", "files": ["/venum-catalog.json"]}, "tatami": {"label": "Tatami Fightwear", "color": "#1A1A1A", "logo": "/logos/brands/tatamifightwear.svg", "tagline": "Jiu-jitsu — gis, rashguards y spats", "files": ["/tatami-catalog.json"]}, "everlast": {"label": "Everlast", "color": "#000000", "logo": "/logos/brands/everlast.svg", "tagline": "Boxeo — guantes, sacos y protección", "files": ["/everlast-catalog.json"]}, "mmawarehouse": {"label": "MMAWarehouse", "color": "#1A1A1A", "logo": "/logos/mmawarehouse.png", "tagline": "MMA — guantes, canilleras y equipo", "files": ["/mmawarehouse-catalog.json"]}, "combatcorner": {"label": "Combat Corner", "color": "#000000", "logo": "/logos/combatcorner.png", "tagline": "Boxeo y MMA — equipo de pelea", "files": ["/combatcorner-catalog.json"]}, "fuji": {"label": "FUJI Sports", "color": "#1A1A1A", "logo": "/logos/fuji.png", "tagline": "Jiu-jitsu y judo — gis y equipo", "files": ["/fuji-catalog.json"]}, "crocs": {"label": "Crocs", "color": "#000000", "logo": "/logos/brands/crocs.svg", "tagline": "Clogs, sandalias y calzado cómodo", "files": ["/crocs-catalog.json"]}, "baublebar": {"label": "BaubleBar", "color": "#000000", "logo": "/logos/brands/baublebar.png", "tagline": "Joyería de moda — collares, aretes y pulseras", "files": ["/baublebar-catalog.json"]}, "jwpei": {"label": "JW PEI", "color": "#000000", "logo": "/logos/brands/jwpei.png", "tagline": "Carteras veganas — crossbody, totes y minis", "files": ["/jwpei-catalog.json"]}, "meliebianco": {"label": "Melie Bianco", "color": "#000000", "logo": "/logos/brands/meliebianco.png", "tagline": "Carteras y accesorios", "files": ["/meliebianco-catalog.json"]}, "bentgo": {"label": "Bentgo", "color": "#000000", "logo": "/logos/brands/bentgo.png", "tagline": "Loncheras bento para niños", "files": ["/bentgo-catalog.json"]}, "mushie": {"label": "Mushie", "color": "#000000", "logo": "/logos/brands/mushie.png", "tagline": "Vasos y vajilla para niños", "files": ["/mushie-catalog.json"]}, "ezpz": {"label": "ezpz", "color": "#000000", "logo": "/logos/ezpz.png", "tagline": "Platos y vasos para niños", "files": ["/ezpz-catalog.json"]}, "statebags": {"label": "State Bags", "color": "#000000", "logo": "/logos/statebags.png", "tagline": "Mochilas y loncheras para niños", "files": ["/statebags-catalog.json"]}, "assouline": {"label": "Assouline", "color": "#000000", "logo": "/logos/assouline.png", "tagline": "Libros de mesa de lujo — moda, arte y viajes", "files": ["/books-catalog.json"]}, "chronicle": {"label": "Chronicle Books", "color": "#1A1A1A", "logo": "/logos/chronicle.png", "tagline": "Libros ilustrados — fotografía, arte y diseño", "files": ["/books-catalog.json"]}, "walmartbaby": {"label": "Walmart Bebé", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Coches, autoasientos y todo para el bebé", "files": ["/moms-catalog.json"]}, "momcozy": {"label": "Momcozy", "color": "#2E6E63", "logo": "/logos/momcozy.png", "tagline": "Lactancia y cuidado del bebé", "files": ["/moms-catalog.json"]}, "elvie": {"label": "Elvie", "color": "#7A4E8C", "logo": "/logos/elvie.png", "tagline": "Extractores de leche inteligentes", "files": ["/moms-catalog.json"]}, "spectra": {"label": "Spectra", "color": "#C2185B", "logo": "/logos/spectra.png", "tagline": "Extractores de leche", "files": ["/moms-catalog.json"]}, "munchkin": {"label": "Munchkin", "color": "#E8590C", "logo": "/logos/munchkin.png", "tagline": "Alimentación y cuidado del bebé", "files": ["/moms-catalog.json"]}, "babybrezza": {"label": "Baby Brezza", "color": "#1971C2", "logo": "/logos/babybrezza.png", "tagline": "Alimentación del bebé", "files": ["/moms-catalog.json"]}, "drbrowns": {"label": "Dr. Brown's", "color": "#1864AB", "logo": "/logos/drbrowns.png", "tagline": "Biberones y alimentación", "files": ["/moms-catalog.json"]}, "mockingbird": {"label": "Mockingbird", "color": "#343A40", "logo": "/logos/mockingbird.png", "tagline": "Coches premium", "files": ["/moms-catalog.json"]}, "nanit": {"label": "Nanit", "color": "#0C8599", "logo": "/logos/nanit.png", "tagline": "Monitoreo inteligente del bebé", "files": ["/moms-catalog.json"]}, "owlet": {"label": "Owlet", "color": "#5F3DC4", "logo": "/logos/owlet.png", "tagline": "Monitoreo del bebé", "files": ["/moms-catalog.json"]}, "kindredbravely": {"label": "Kindred Bravely", "color": "#8C5E58", "logo": "/logos/kindredbravely.png", "tagline": "Lactancia y maternidad", "files": ["/moms-catalog.json"]}, "hatch": {"label": "Hatch", "color": "#A61E4D", "logo": "/logos/hatch.png", "tagline": "Ropa de maternidad", "files": ["/moms-catalog.json"]}, "bellybandit": {"label": "Belly Bandit", "color": "#6B4F2A", "logo": "/logos/bellybandit.png", "tagline": "Soporte pre y postparto", "files": ["/moms-catalog.json"]}, "freshlypicked": {"label": "Freshly Picked", "color": "#B07D4F", "logo": "/logos/freshlypicked.png", "tagline": "Pañaleras de cuero", "files": ["/moms-catalog.json"]}, "jujube": {"label": "JuJuBe", "color": "#E64980", "logo": "/logos/jujube.png", "tagline": "Pañaleras y accesorios", "files": ["/moms-catalog.json"]}, "dagnedover": {"label": "Dagne Dover", "color": "#495057", "logo": "/logos/dagnedover.png", "tagline": "Pañaleras", "files": ["/moms-catalog.json"]}, "lillebaby": {"label": "LÍLLÉbaby", "color": "#2B8A3E", "logo": "/logos/lillebaby.png", "tagline": "Portabebés ergonómicos", "files": ["/moms-catalog.json"]}, "skims": {"label": "Skims", "color": "#605848", "logo": "/logos/skims.png", "tagline": "Shapewear, ropa interior y loungewear", "files": ["/skims-catalog.json"]}, "ssense": {"label": "SSENSE", "color": "#000000", "logo": "/logos/ssense.png", "tagline": "Diseñador y lujo, importado igual que todo lo demás", "files": ["/ssense-catalog.json"]}, "miumiu": {"label": "Miu Miu", "color": "#000000", "logo": "/logos/miumiu.png", "tagline": "Bolsos, calzado y moda italiana", "files": ["/miumiu-catalog.json"]}, "yesstyle": {"label": "YesStyle", "color": "#50A838", "logo": "/logos/yesstyle.png", "tagline": "Belleza coreana y japonesa", "files": ["/yesstyle-catalog.json"]}, "bathandbodyworks": {"label": "Bath & Body Works", "color": "#0F4C81", "logo": "/logos/bathandbodyworks.png", "tagline": "Cremas, jabones y velas aromáticas", "files": []}, "farfetch": {"label": "Farfetch", "color": "#000000", "logo": "/logos/farfetch.svg", "tagline": "Disenadores latinos — Farm Rio, Johanna Ortiz y mas", "files": ["/farfetch-catalog.json"]}, "hottopic": {"label": "Hot Topic", "color": "#D8232A", "logo": "/logos/hottopic.png", "tagline": "Band tees, anime y cultura pop", "files": ["/hottopic-catalog.json"]}, "boxlunch": {"label": "BoxLunch", "color": "#F26522", "logo": "/logos/boxlunch.png", "tagline": "Regalos pop que donan comidas", "files": ["/boxlunch-catalog.json"]}, "bananarepublic": {"label": "Banana Republic", "color": "#766A57", "tagline": "Cl\u00e1sicos premium y b\u00e1sicos elevados", "files": ["/bananarepublic-catalog.json"]}, "gap": {"label": "Gap", "color": "#001E41", "tagline": "Jeans y b\u00e1sicos para toda la familia", "files": ["/gap-catalog.json"]}, "abercrombie": {"label": "Abercrombie & Fitch", "color": "#111111", "logo": "/logos/abercrombie-fitch.png", "tagline": "Jeans y cl\u00e1sicos americanos premium", "files": ["/abercrombie-catalog.json"]}, "hollister": {"label": "Hollister", "color": "#041E42", "logo": "/logos/hollister.png", "tagline": "Estilo californiano juvenil", "files": ["/hollister-catalog.json"]}, "aguabendita": {"label": "Agua Bendita", "color": "#0A1F44", "logo": "/logos/aguabendita.png", "tagline": "Diseño colombiano — baño y resort", "files": ["/latino-designers-dtc-catalog.json"]}, "americaneagle": {"label": "American Eagle", "color": "#0A1F44", "logo": "/logos/americaneagle.png", "tagline": "Jeans y ropa casual", "files": ["/ae-catalog.json"]}, "ancora": {"label": "Ancora", "color": "#0A1F44", "logo": "/logos/ancora.png", "tagline": "Diseño latino — baño y playa", "files": ["/latino-designers-dtc-catalog.json"]}, "capittana": {"label": "Capittana", "color": "#0A1F44", "logo": "/logos/capittana.png", "tagline": "Diseño peruano — ropa de baño", "files": ["/latino-designers-dtc-catalog.json"]}, "denniskirk": {"label": "Dennis Kirk", "color": "#0A1F44", "logo": "/logos/denniskirk.png", "tagline": "Repuestos y accesorios de moto", "files": ["/moto-catalog.json"]}, "eberjey": {"label": "Eberjey", "color": "#0A1F44", "logo": "/logos/eberjey.png", "tagline": "Lencería y loungewear", "files": ["/latino-designers-dtc-catalog.json"]}, "elite": {"label": "Elite Sports", "color": "#0A1F44", "logo": "/logos/elite.png", "tagline": "Equipo de artes marciales", "files": ["/fightclub-catalog.json"]}, "farmrio": {"label": "FARM Rio", "color": "#0A1F44", "logo": "/logos/farmrio.png", "tagline": "Moda brasileña — estampados y color", "files": ["/latino-designers-dtc-catalog.json"]}, "gameness": {"label": "Gameness", "color": "#0A1F44", "logo": "/logos/gameness.png", "tagline": "Jiu-jitsu — gis y equipo", "files": ["/fightclub-catalog.json"]}, "johannaortiz": {"label": "Johanna Ortiz", "color": "#0A1F44", "logo": "/logos/johannaortiz.png", "tagline": "Alta costura colombiana", "files": ["/latino-designers-dtc-catalog.json"]}, "montce": {"label": "Montce", "color": "#0A1F44", "logo": "/logos/montce.png", "tagline": "Ropa de baño de autor", "files": ["/latino-designers-dtc-catalog.json"]}, "partycity": {"label": "Party City", "color": "#0A1F44", "logo": "/logos/partycity.png", "tagline": "Fiestas, globos y disfraces", "files": ["/partycity-catalog.json"]}, "patbo": {"label": "PatBO", "color": "#0A1F44", "logo": "/logos/patbo.png", "tagline": "Moda brasileña de fiesta", "files": ["/latino-designers-dtc-catalog.json"]}, "revzilla": {"label": "RevZilla", "color": "#0A1F44", "logo": "/logos/revzilla.png", "tagline": "Cascos y equipo de moto", "files": ["/moto-catalog.json"]}, "sephora": {"label": "Sephora", "color": "#0A1F44", "logo": "/logos/sephora.png", "tagline": "Maquillaje, skincare y fragancias", "files": ["/beauty-catalog.json"]}, "silviatcherassi": {"label": "Silvia Tcherassi", "color": "#0A1F44", "logo": "/logos/silviatcherassi.png", "tagline": "Diseño colombiano de lujo", "files": ["/latino-designers-dtc-catalog.json"]}, "smartbuyglasses": {"label": "SmartBuyGlasses", "color": "#0A1F44", "logo": "/logos/smartbuyglasses.png", "tagline": "Lentes de sol y de medida", "files": ["/sunglasses-catalog.json"]}, "tns": {"label": "TNS", "color": "#0A1F44", "logo": "/logos/tns.png", "tagline": "Moda latina contemporánea", "files": ["/latino-designers-dtc-catalog.json"]}, "vix": {"label": "ViX", "color": "#0A1F44", "logo": "/logos/vix.png", "tagline": "Ropa de baño brasileña", "files": ["/latino-designers-dtc-catalog.json"]}};
 
 /* ---------- config ---------- */
 var BASE = '';
@@ -234,7 +296,132 @@ var TIMEOUT_MS = 25000;
 var PAGE_SIZE = 48;
 
 /* ---------- tiny helpers ---------- */
-function esc(s){
+/* Sized retailer derivatives (2026-10-16) -- the same rules the app
+   bundle's sizedImageUrl applies: card slots are small, retailer
+   originals are 1600-2000px, and decoding them by the hundred is
+   what kills phone tabs. A derivative that fails swaps back to the
+   original URL (data-img-orig) before the page's own error handling
+   runs, so a card never breaks because of the resize. Hosts with no
+   verified resize parameter return the URL unchanged. */
+var CARD_IMG_WIDTHS = [360, 560, 800];
+var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
+/* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sizedImageUrl(url, w){
+  var u = typeof url === "string" ? url : "";
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  function setQ(base, key, val){
+    var re = new RegExp("([?&]" + key + "=)(\\d+)", "i");
+    if (re.test(base)) return base.replace(re, function(m, p){ return p + val; });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
+  }
+  var out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, "odnWidth", w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
+      : out + "&odnHeight=" + w;
+    if (!/odnBg=/i.test(out)) out += "&odnBg=FFFFFF";
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width; the bare
+       default is already card-sized on these hosts. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, "wid", w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, function(m, p){ return p + w; });
+    }
+  } else if (/macysassets\.com/i.test(u)){
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, "wid", w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, "imwidth", w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, "w", w);
+    if (/[?&]h=\d+/i.test(out)) out = out.replace(/([?&]h=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
+      else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
+  }
+  return out || u;
+}
+function imageSrcset(url){
+  var u = typeof url === "string" ? url : "";
+  if (!u) return "";
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, "_500.jpg") + " 500w, " + u + " 1000w";
+  }
+  var seen = {}, parts = [];
+  for (var i = 0; i < CARD_IMG_WIDTHS.length; i++){
+    var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
+    if (s === u || seen[s]) continue;
+    seen[s] = 1;
+    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
+  }
+  return parts.length ? parts.join(", ") : "";
+}
+function imgOrigRetry(el){
+  if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
+    el.src = el.dataset.imgOrig;
+    el.removeAttribute("data-img-orig");
+    el.removeAttribute("srcset");
+    return true;
+  }
+  return false;
+}
+/* The cards' inline onerror runs in the global scope, outside this
+   page's wrapper: without this a failed sized photo threw (and raised
+   the "Algo salió mal" bar) instead of falling back to the original. */
+window.imgOrigRetry = imgOrigRetry;
+function cardImgAttrs(url, sizes){
+  var ss = imageSrcset(url);
+  return 'src="' + esc(sizedImageUrl(url, 560)) + '"' +
+    (ss ? ' srcset="' + esc(ss) + '" sizes="' + (sizes || CARD_IMG_SIZES) + '"' : '') +
+    ' data-img-orig="' + esc(url || "") + '"';
+}
+/* SCRAPED TEXT IS TEXT (2026-10-19, #417 night order 4): titles arrive
+   as "Lizzie &#38; Oliver"; escaping that printed "&#38;" to shoppers.
+   Entities are decoded first, then everything is escaped as before. */
+var ENTITY_NAMED = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", reg:"\u00ae", trade:"\u2122", copy:"\u00a9", deg:"\u00b0", eacute:"\u00e9", ntilde:"\u00f1", rsquo:"\u2019", lsquo:"\u2018", rdquo:"\u201d", ldquo:"\u201c", ndash:"\u2013", mdash:"\u2014", hellip:"\u2026" };
+function decodeEntitiesText(s){
+  if (typeof s !== "string" || s.indexOf("&") < 0) return s;
+  for (var pass = 0; pass < 2 && s.indexOf("&") >= 0; pass++){
+    s = s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function(m, e){
+      if (e.charAt(0) === "#"){
+        var cp = (e.charAt(1) === "x" || e.charAt(1) === "X") ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return (cp > 0 && cp <= 0x10ffff) ? String.fromCodePoint(cp) : m;
+      }
+      var v = ENTITY_NAMED[e.toLowerCase()];
+      return v === undefined ? m : v;
+    });
+  }
+  return s;
+}
+function esc(s){ return escRaw(decodeEntitiesText(s)); }
+function escRaw(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
   });
@@ -270,6 +457,13 @@ function fmtUSD(n){
   if (!isFinite(n)) return 'Precio no disponible';
   return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
+/* ---------- STOREFRONT RULES ----------
+   discountPct / saleTier / saleSort, the product types and productTypeOf,
+   realImage, normItem, the department chip words and the type facets are
+   the storefront's rules. The page no longer runs them over a catalogue:
+   scripts/build-store-slices.mjs lifts them from here and runs them at
+   build time (with sale-rule.js and product-type.js), so the slices and
+   this page can never disagree. Only discountPct runs here, on a card. */
 /* ONE ON-SALE DEFINITION (2026-10-13): index.html's rule, served as
    sale-rule.js -- a real was-price (regularPrice / wasPrice /
    originalPrice / compareAt), 5-70% off. A merchant flag with no
@@ -384,8 +578,30 @@ var storeKey = '';
 var storeMeta = null;
 var allItems = [];     // normalized products
 var deptLabels = {};   // dept key -> label
+/* SHOPPER WORDS, NEVER TAXONOMY (2026-10-13, issue #386 F-NB-CHIP). The
+   chips were the catalogue's own department labels, so New Balance's page
+   offered a chip called "Gym Rat" -- Aria's internal name for its gym
+   section -- and other stores showed "combat_sports", "latino_designers",
+   "moms", "jewelry", "Sporting Goods", "Sale". Known keys get the word a
+   shopper uses; any other label that is still a raw key is tidied. */
+var DEPT_CHIP_LABELS = {
+  gym_rat: 'Ropa deportiva', combat_sports: 'Deportes de combate', latino_designers: 'Diseñadores',
+  moms: 'Mamá y bebé', motos: 'Motos', women: 'Mujer', men: 'Hombre', mens: 'Hombre', kids: 'Niños',
+  apparel_women: 'Ropa Mujer', apparel_men: 'Ropa Hombre', apparel_kids: 'Ropa Niños',
+  jewelry: 'Joyas', jewelry_accessories: 'Joyas y accesorios', purses: 'Carteras', footwear: 'Calzado', shoes: 'Calzado',
+  toys: 'Juguetes', toys_games: 'Juguetes y juegos', books: 'Libros', beauty: 'Belleza', home: 'Hogar',
+  home_goods: 'Artículos para el hogar', home_decor: 'Decoración', small_home: 'Hogar', sporting_goods: 'Deportes', fitness: 'Fitness',
+  fashion: 'Moda', clothing: 'Ropa', clearance: 'Liquidación', sale: 'Ofertas', electronics: 'Electrónica',
+  candy_chocolate: 'Dulces y chocolates', baby: 'Bebé', skate_snow: 'Skate y nieve', sunglasses: 'Lentes de sol',
+  auto_parts: 'Repuestos', grooming_men: 'Cuidado masculino', grooming_women: 'Cuidado femenino'
+};
+function deptChipLabel(key, label){
+  if (DEPT_CHIP_LABELS[key]) return DEPT_CHIP_LABELS[key];
+  var l = String(label || key);
+  if (/_/.test(l) || l === key) l = l.replace(/[_-]+/g, ' ').replace(/^\w/, function(c){ return c.toUpperCase(); });
+  return l;
+}
 var fxVenta = null;
-var visibleCount = PAGE_SIZE;
 
 /* ---------- item normalization ---------- */
 function normItem(raw, deptKey){
@@ -424,6 +640,13 @@ var GENDER_LABELS = { womens: 'Mujer', women: 'Mujer', 'for her': 'Mujer',
                       mens: 'Hombre', men: 'Hombre', 'for him': 'Hombre', unisex: 'Unisex' };
 var GENDER_ORDER = ['Mujer', 'Hombre', 'Unisex'];
 var FACET_MIN = 5;  /* a category pill needs this many products; smaller ones stay under Todo */
+/* A facet is filtered by its key but shown in words: "BOXING_GLOVES"
+   reads "Boxing gloves" (2026-10-13, F-NB-CHIP). */
+function facetLabel(cat){
+  var l = String(cat || '').replace(/_+/g, ' ').trim();
+  if (l && l === l.toUpperCase()) l = l.charAt(0) + l.slice(1).toLowerCase();
+  return l;
+}
 function typeFacets(type){
   var t = String(type || '').trim();
   if (!t) return { gender: '', cat: '' };
@@ -465,252 +688,7 @@ function buildFacets(){
   if (!facetGenders.length && !facetCats.length) facetMode = false;
 }
 
-/* ---------- data loading ---------- */
-function loadStore(){
-  var files = storeMeta.files || [];
-  if (!files.length){
-    return Promise.resolve({ items: [], empty: 'nocatalog' });
-  }
-  return Promise.all(files.map(function(f){
-    var url = f.charAt(0) === '/' ? BASE + f : f;
-    return fetchJson(url).then(function(j){ return { ok: true, json: j }; },
-                               function(){ return { ok: false }; });
-  })).then(function(results){
-    var items = [], depts = {}, anyOk = false;
-    for (var i = 0; i < results.length; i++){
-      var r = results[i];
-      if (!r.ok || !r.json) continue;
-      anyOk = true;
-      var retailers = r.json.retailers;
-      if (!retailers || typeof retailers !== 'object') continue;
-      var bucket = retailers[storeKey];
-      if (!bucket) continue;
-      var departments = bucket.departments || {};
-      var keys = Object.keys(departments);
-      for (var d = 0; d < keys.length; d++){
-        var dk = keys[d];
-        var entry = departments[dk];
-        var label = dk, arr = null;
-        if (entry && typeof entry === 'object' && !Array.isArray(entry)){
-          label = entry.label || dk;
-          arr = entry.items;
-        } else if (Array.isArray(entry)){
-          arr = entry;
-        }
-        if (!Array.isArray(arr)) continue;
-        depts[dk] = String(label);
-        for (var j = 0; j < arr.length; j++){
-          var n = null;
-          try { n = normItem(arr[j], dk); } catch (e) { n = null; }
-          if (n) items.push(n);
-        }
-      }
-    }
-    // dedupe by name+image
-    var seen = {}, out = [];
-    for (var k = 0; k < items.length; k++){
-      var key = items[k].name + '||' + items[k].image;
-      if (seen[key]) continue;
-      seen[key] = 1;
-      out.push(items[k]);
-    }
-    deptLabels = depts;
-    return { items: out, empty: anyOk ? (out.length ? '' : 'nodata') : 'failed' };
-  });
-}
-
-/* ---------- FX (non-blocking) ---------- */
-function loadFx(){
-  fetchJson(FX_URL).then(function(j){
-    var v = Number(j && (j.venta || j.Venta));
-    if (Number.isFinite(v) && v > 0){
-      fxVenta = v;
-      try { renderPenPrices(); } catch (e) {}
-    }
-  }, function(){});
-}
-
-/* ---------- rendering: store page ---------- */
-function currentFilters(){
-  var q = (($('q') || {}).value || '').trim().toLowerCase();
-  var sort = (($('sort') || {}).value || 'relevance');
-  return { q: q, sort: sort, dept: activeDept, gender: activeGender, cat: activeCat };
-}
-var activeDept = '';
-function filteredItems(){
-  var f = currentFilters();
-  var pool = allItems;
-  if (f.dept) pool = pool.filter(function(p){ return p.dept === f.dept; });
-  if (f.gender) pool = pool.filter(function(p){ return p.gender === f.gender; });
-  if (f.cat) pool = pool.filter(function(p){ return p.cat === f.cat; });
-  if (f.q){
-    var words = f.q.split(/\s+/).filter(Boolean);
-    pool = pool.filter(function(p){
-      var t = (p.name + ' ' + p.brand).toLowerCase();
-      for (var i = 0; i < words.length; i++){
-        if (t.indexOf(words[i]) === -1) return false;
-      }
-      return true;
-    });
-  }
-  var arr = pool.slice();
-  if (f.sort === 'priceAsc') arr.sort(function(a,b){ return a.price - b.price; });
-  else if (f.sort === 'priceDesc') arr.sort(function(a,b){ return b.price - a.price; });
-  else if (f.sort === 'discount') arr.sort(saleSort);
-  return arr;
-}
-function penHTML(usd){
-  var f = finalUsd(usd, storeKey);
-  if (!fxVenta || !isFinite(f)) return '';
-  return '<div class="price-pen" data-usd="' + esc(f) + '">S/ ' +
-    (f * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) + '</div>';
-}
-function cardHTML(p){
-  var f = finalUsd(p.price, storeKey);
-  var pct = discountPct(p);
-  var brand = p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '';
-  /* THE CARD STAYS IN THE SHOP. It used to open the retailer's own
-     site in a new tab when it had a url, and be dead when it did
-     not. Now every card lands on our product page, where the price
-     is the honest one; the product page carries the link out. */
-  var _href = 'producto.html?producto=' + encodeURIComponent(p.name || '')
-    + (p.retailer ? '&tienda=' + encodeURIComponent(p.retailer) : '');
-  var open = '<a class="card" href="' + esc(_href) + '">';
-  var close = '</a>';
-  return open +
-    '<div class="card-img">' +
-      (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') +
-      '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' +
-    '</div>' +
-    '<div class="card-body">' + brand +
-      '<h3 class="card-title">' + esc(p.name) + '</h3>' +
-      '<div class="card-prices"><div class="price-row">' +
-        '<span class="price">' + fmtUSD(f) + '</span>' +
-        /* The crossed-out price carries the same margin and tax as the
-           price beside it -- it showed the raw US price, so a 10%
-           markdown read "$100" crossed out next to "$119.40". */
-        (pct > 0 && p.originalPrice ? '<span class="price-old">' + fmtUSD(finalUsd(p.originalPrice, storeKey)) + '</span>' : '') +
-      '</div>' + penHTML(p.price) + '</div>' +
-    '</div>' + close;
-}
-function renderPenPrices(){
-  if (!fxVenta) return;
-  var els = document.querySelectorAll('.price-pen');
-  for (var i = 0; i < els.length; i++){
-    var usd = Number(els[i].getAttribute('data-usd'));
-    if (!Number.isFinite(usd)) continue;
-    els[i].textContent = 'S/ ' + (usd * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2});
-  }
-}
-function renderFacetChips(host){
-  var chip = function(kind, val, label, on){
-    return '<button type="button" class="chip' + (on ? ' active' : '') + '" data-' + kind + '="' + esc(val) + '">' + esc(label) + '</button>';
-  };
-  var html = chip('all', '', 'Todo', !activeGender && !activeCat);
-  for (var i = 0; i < facetGenders.length; i++) html += chip('gender', facetGenders[i], facetGenders[i], activeGender === facetGenders[i]);
-  for (var j = 0; j < facetCats.length; j++) html += chip('cat', facetCats[j], facetCats[j], activeCat === facetCats[j]);
-  host.innerHTML = html;
-  var btns = host.querySelectorAll('.chip');
-  for (var k = 0; k < btns.length; k++){
-    btns[k].addEventListener('click', function(){
-      /* Gender and category combine (Mujer + Leggings); tapping an
-         active pill clears it; Todo clears both. */
-      if (this.hasAttribute('data-all')){ activeGender = ''; activeCat = ''; }
-      else if (this.hasAttribute('data-gender')){
-        var g = this.getAttribute('data-gender');
-        activeGender = activeGender === g ? '' : g;
-      } else {
-        var c = this.getAttribute('data-cat');
-        activeCat = activeCat === c ? '' : c;
-      }
-      visibleCount = PAGE_SIZE;
-      try { renderDeptChips(); render(); } catch (e) {}
-    });
-  }
-}
-function renderDeptChips(){
-  var host = $('deptChips');
-  if (!host) return;
-  if (facetMode){ renderFacetChips(host); return; }
-  var keys = Object.keys(deptLabels).sort(function(a,b){
-    return String(deptLabels[a]).localeCompare(String(deptLabels[b]), 'es');
-  });
-  if (!keys.length){ host.innerHTML = ''; return; }
-  var html = '<button type="button" class="chip' + (activeDept === '' ? ' active' : '') + '" data-dept="">Todo</button>';
-  for (var i = 0; i < keys.length; i++){
-    html += '<button type="button" class="chip' + (activeDept === keys[i] ? ' active' : '') +
-      '" data-dept="' + esc(keys[i]) + '">' + esc(deptLabels[keys[i]]) + '</button>';
-  }
-  host.innerHTML = html;
-  var btns = host.querySelectorAll('.chip');
-  for (var j = 0; j < btns.length; j++){
-    btns[j].addEventListener('click', function(){
-      activeDept = this.getAttribute('data-dept') || '';
-      visibleCount = PAGE_SIZE;
-      try { renderDeptChips(); render(); } catch (e) {}
-    });
-  }
-}
-/* ---------- carousel merchandising (2026-10-07, Danny) ----------
-   Store pages lead with sales, then one carousel per category.
-   Every rail expands to a full-screen grid via "Ver todo". */
-var RAIL_MAX = 16;
-var railPools = {};  /* rail key -> full sorted item list (legacy lookup) */
-var railPoolList = []; /* DANNY 2026-10-07: bulletproof pool by numeric index.
-   The string-key lookup could silently fail (encoding/pool resets), leaving
-   an empty overlay. Buttons now carry a numeric data-idx into this array,
-   rebuilt on every renderCarousels() alongside the buttons themselves. */
-
-function railHTML(title, list, railKey){
-  if (!list || !list.length) return '';
-  var rk = 'rail::' + railKey;
-  railPools[rk] = list;
-  var idx = railPoolList.length;
-  railPoolList.push(list);
-  var shown = list.slice(0, RAIL_MAX);
-  var cards = '';
-  for (var i = 0; i < shown.length; i++){
-    try { cards += cardHTML(shown[i]); }
-    catch (e) { /* one bad card never kills the rail */ }
-  }
-  var door = list.length > RAIL_MAX
-    ? '<button type="button" class="rail-ver" data-idx="' + idx + '" data-title="' + esc(title) + '">Ver todo &#8594;</button>'
-    : '';
-  return '<section class="rail-sec">' +
-    '<div class="rail-head"><h2 class="rail-title">' + esc(title) + '</h2>' +
-    '<span class="rail-count">' + list.length + '</span>' + door + '</div>' +
-    '<div class="rail">' + cards + '</div></section>';
-}
-function openRailExpand(list, title){
-  try {
-    list = list || [];
-    var ov = $('railExpand');
-    if (!ov) return;
-    $('reTitle').textContent = title || 'Productos';
-    $('reCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
-    var grid = $('reGrid');
-    if (!grid) return;
-    if (!list.length){
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#6B7280">'
-        + '<p style="font-weight:700;margin-bottom:8px">No pudimos cargar estos productos.</p>'
-        + '<p style="font-size:13px">Cierra y vuelve a intentarlo.</p></div>';
-    } else {
-      var out = '';
-      for (var i = 0; i < list.length; i++){
-        try { out += cardHTML(list[i]); } catch (e) {}
-      }
-      grid.innerHTML = out;
-    }
-    ov.hidden = false;
-    document.body.style.overflow = 'hidden';
-    grid.scrollTop = 0;
-    try { renderPenPrices(); } catch (e) {}
-  } catch (e) {}
-}
-/* Legacy string-key entry point (kept for any external callers) */
-function openRailExpandByKey(rk, title){
-  try { openRailExpand(railPools[rk] || [], title); } catch (e) {}
-}
+/* ---------- the Ver todo overlay ---------- */
 function closeRailExpand(){
   try {
     var ov = $('railExpand');
@@ -719,104 +697,6 @@ function closeRailExpand(){
   } catch (e) {}
 }
 if (typeof window !== 'undefined'){ window.closeRailExpand = closeRailExpand; }
-function renderCarousels(){
-  var host = $('content');
-  if (!host) return;
-  railPools = {};
-  railPoolList = [];
-  var cnt = $('countLine');
-  if (cnt) cnt.textContent = allItems.length
-    ? allItems.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
-    : '';
-  /* Lead section: sales first (biggest discount), or Destacados when zero sales */
-  var sales = allItems.filter(function(p){ return saleTier(p) > 0; });
-  sales.sort(saleSort);
-  var html = '';
-  if (sales.length){
-    html += railHTML('Ofertas de ' + storeMeta.label, sales, 'ofertas');
-  } else {
-    var feat = allItems.slice().sort(function(a,b){ return b.price - a.price; });
-    html += railHTML('Destacados de ' + storeMeta.label, feat, 'destacados');
-  }
-  /* Category carousels: one per PRODUCT TYPE (DANNY 2026-10-07).
-     Never group by department inside a store page -- a Gymshark page shows
-     Leggings/Tops/Shorts, not a "Gym Rat" department carousel. */
-  var byType = {};
-  for (var i = 0; i < allItems.length; i++){
-    var tk = productTypeOf(allItems[i]);
-    (byType[tk] = byType[tk] || []).push(allItems[i]);
-  }
-  for (var j = 0; j < PRODUCT_TYPES.length; j++){
-    var t = PRODUCT_TYPES[j];
-    var list = (byType[t.key] || []).slice().sort(saleSort);
-    if (list.length) html += railHTML(t.label, list, 'type::' + t.key);
-  }
-  host.innerHTML = html;
-  var btns = host.querySelectorAll('.rail-ver');
-  for (var k = 0; k < btns.length; k++){
-    (function(btn){
-      var idx = parseInt(btn.getAttribute('data-idx'), 10);
-      var title = btn.getAttribute('data-title');
-      btn.addEventListener('click', function(){
-        try { openRailExpand(railPoolList[idx] || [], title); }
-        catch (e) {}
-      });
-    })(btns[k]);
-  }
-  /* sort dropdown only applies to grid view; hide it in carousel mode */
-  var s = $('sort');
-  if (s) s.style.display = 'none';
-}
-function render(){
-  var host = $('content');
-  if (!host) return;
-  /* empty catalog: same state as before, regardless of view */
-  if (!allItems.length){
-    host.innerHTML = '<div class="state"><h2>Estamos actualizando el catálogo</h2>' +
-      '<p>' + esc(storeMeta.label) + ' está cargando sus productos. Vuelve en unos minutos.</p>' +
-      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
-    bindRetry();
-    var c0 = $('countLine');
-    if (c0) c0.textContent = '';
-    return;
-  }
-  var f0 = currentFilters();
-  /* DEFAULT VIEW: carousel merchandising (no search, no dept chip) */
-  if (!f0.q && !f0.dept && !f0.gender && !f0.cat){ renderCarousels(); return; }
-  /* SEARCH / FILTER VIEW: flat grid as before */
-  var s = $('sort');
-  if (s) s.style.display = '';
-  var list;
-  try { list = filteredItems(); }
-  catch (e){ return renderError('No pudimos ordenar los productos.', true); }
-  var cnt = $('countLine');
-  if (cnt) cnt.textContent = list.length
-    ? list.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
-    : '';
-  if (!list.length){
-    var emptyMsg = '<h2>Sin resultados</h2><p>Ningún producto coincide con tu búsqueda en ' + esc(storeMeta.label) + '.</p>';
-    host.innerHTML = '<div class="state">' + emptyMsg +
-      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
-    bindRetry();
-    return;
-  }
-  var html = '<div class="grid">';
-  var n = Math.min(visibleCount, list.length);
-  for (var i = 0; i < n; i++){
-    try { html += cardHTML(list[i]); }
-    catch (e) { /* one bad card never kills the grid */ }
-  }
-  html += '</div>';
-  if (list.length > n){
-    html += '<div style="text-align:center;margin-top:22px"><button class="btn" id="moreBtn" type="button">Ver más productos</button></div>';
-  }
-  host.innerHTML = html;
-  var more = $('moreBtn');
-  if (more) more.addEventListener('click', function(){
-    visibleCount += PAGE_SIZE;
-    try { render(); } catch (e) {}
-  });
-}
 function renderError(msg, allowRetry){
   var host = $('content');
   if (!host) return;
@@ -868,23 +748,426 @@ function renderDirectory(){
   if (grid) grid.innerHTML = html;
 }
 
+/* ============================================================
+   SLICED STOREFRONT (2026-10-19, #413 Best Buy launch; every store since
+   #409 track T2). No storefront downloads its catalogue any more --
+   SSENSE was 39.8MB, Target three files. scripts/build-store-slices.mjs
+   runs this page's own rules (above) over the catalogues and writes:
+     assets/tienda/<key>/index.json  count, chips, every rail's title,
+                                     total and first cards -- the first
+                                     screen, in one small file
+     /.netlify/functions/tienda      everything that depends on the
+                                     shopper, 48 cards at a time: "Ver
+                                     todo", a chip, the search box, the
+                                     sort menu (netlify/functions/tienda.js)
+   Best Buy (a themed store, #413) also has its rail pages as static
+   files (index.railPages === 'static'). Rails: Ofertas first (the one
+   sale rule), Más vendidos when the store publishes demand, then the
+   product types. Cards hold their shape from the first paint, photos
+   load when about to be seen, soles lead.
+   ============================================================ */
+var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var TIENDA_FN = BASE + '/.netlify/functions/tienda';
+function cachedFx(){
+  try {
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+    if (c && typeof c.venta === 'number' && c.venta > 0 && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS) return c.venta;
+  } catch (e) {}
+  return null;
+}
+function storeFx(v){
+  try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify({ venta: v, fetchedAt: Date.now() })); } catch (e) {}
+}
+/* A store's slice folder: the registry's own (Best Buy) or the build's
+   default for every other store. */
+function sliceDir(){
+  return storeMeta.slices || ('/assets/tienda/' + storeKey + '/');
+}
+/* A themed store wears its own colours and tag accent (Best Buy). */
+function isThemed(){ return !!(storeMeta && storeMeta.tag); }
+var slIndex = null;
+var SL_SKEL_CARD = '<div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body">' +
+  '<div class="ln short"></div><div class="ln"></div><div class="ln"></div><div class="card-prices"><div class="ln short"></div></div></div></div>';
+function slSkeleton(){
+  var host = $('content');
+  if (!host) return;
+  var one = '<section class="rail-sec"><div class="rail-head"><h2 class="rail-title">&nbsp;</h2></div><div class="rail">' +
+    SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + '</div></section>';
+  host.innerHTML = one + one + one;
+}
+function fmtPen(n){
+  return 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+/* Soles lead. Without a rate yet the row keeps its height and fills
+   when the rate lands (renderSlPrices); with no rate at all, dollars,
+   plainly labelled -- never an empty card. The crossed-out price
+   carries the same margin and tax as the price beside it. */
+function slPriceHTML(p){
+  var f = finalUsd(p.price, storeKey);
+  var wasF = p.was && p.was > p.price ? finalUsd(p.was, storeKey) : 0;
+  return '<div class="card-prices" data-usd="' + esc(f) + '" data-was="' + esc(wasF || '') + '">' + slPriceInner(f, wasF) + '</div>';
+}
+function slPriceInner(f, wasF){
+  if (!isFinite(f)) return '<div class="pen">Precio no disponible</div><div class="usd">&nbsp;</div>';
+  if (fxVenta){
+    return '<div class="pen">' + fmtPen(f * fxVenta) + '</div>' +
+      '<div class="usd">' + (wasF ? '<s>' + fmtPen(wasF * fxVenta) + '</s> &middot; ' : '') + 'US' + fmtUSD(f) + '</div>';
+  }
+  return '<div class="pen">' + (fxFailed ? 'US' + fmtUSD(f) : '&nbsp;') + '</div><div class="usd">' +
+    (fxFailed && wasF ? '<s>US' + fmtUSD(wasF) + '</s>' : '&nbsp;') + '</div>';
+}
+var fxFailed = false;
+function renderSlPrices(){
+  var els = document.querySelectorAll('.sl .card-prices[data-usd]');
+  for (var i = 0; i < els.length; i++){
+    var f = Number(els[i].getAttribute('data-usd'));
+    var w = Number(els[i].getAttribute('data-was')) || 0;
+    els[i].innerHTML = slPriceInner(f, w);
+  }
+}
+/* THE CARD STAYS IN THE SHOP: every card lands on our product page,
+   where the price is the honest one and the sizes are the verified ones
+   (#411); never on the retailer's site. */
+function slCardHTML(p){
+  var pct = discountPct({ price: p.price, originalPrice: p.was });
+  var href = 'producto.html?producto=' + encodeURIComponent(p.name || '') + '&tienda=' + encodeURIComponent(storeKey);
+  /* src parked in data- until the card is about to be seen (watchPhotos). */
+  var img = '<img ' + cardImgAttrs(p.image).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
+    ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">';
+  return '<a class="card" href="' + esc(href) + '">' +
+    '<div class="card-img">' + (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img + '</div>' +
+    '<div class="card-body"><div class="card-brand">' + (p.brand ? esc(p.brand) : '&nbsp;') + '</div>' +
+      '<h3 class="card-title">' + esc(p.name) + '</h3>' + slPriceHTML(p) + '</div></a>';
+}
+/* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN -- search.html's
+   watchPhotos: native lazy loading fetched a whole carousel's photos at
+   once on a slow link. The rail's clipping is honoured; a swipe brings
+   the next card's photo with it. */
+var PHOTO_IO = null;
+function railPhoto(img){
+  if (!img || !img.dataset.src) return;
+  if (img.dataset.srcset){ img.srcset = img.dataset.srcset; img.sizes = img.dataset.sizes || ''; }
+  img.src = img.dataset.src;
+  img.removeAttribute('data-src');
+  img.removeAttribute('data-srcset');
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll('img[data-src]');
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < imgs.length; i++) railPhoto(imgs[i]); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      railPhoto(e.target);
+      var rail = e.target.closest('.rail'), card = e.target.closest('.card');
+      if (rail && rail.scrollLeft > 0 && card && card.nextElementSibling) railPhoto(card.nextElementSibling.querySelector('img[data-src]'));
+    });
+  }, { rootMargin: '200px 0px' });
+  for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
+}
+/* THE TRUST STRIP (Danny, #413 addendum 2): why Aria buys at this store.
+   It sells the store's credibility as Aria's buying-side confidence; the
+   promises to the shopper stay Aria's own. */
+var TRUST = {
+  bestbuy: '<section class="trust" aria-label="Por qué compramos en Best Buy">' +
+    '<h2>Por qué compramos en Best Buy</h2><ul>' +
+    '<li><b>Precio igualado, no inflado</b>Best Buy es conocida por igualar los precios de las grandes tiendas de Estados Unidos. Comprar ahí nos da un precio de partida en el que confiamos.</li>' +
+    '<li><b>Una tienda que responde por lo que vende</b>Su reputación en devoluciones y garantía es de las mejores del país. Si algo llega mal, sabemos con quién resolverlo.</li>' +
+    '<li><b>Tu compra la respalda Aria</b>El precio que ves es el final, en soles. Tu pedido se rige por <a href="devoluciones.html">la política de devoluciones de Aria</a>.</li>' +
+    '</ul></section>'
+};
+var slRailsByKey = {};
+function slRailHTML(r){
+  slRailsByKey[r.key] = r;
+  var cards = '';
+  for (var i = 0; i < r.head.length; i++){ try { cards += slCardHTML(r.head[i]); } catch (e) {} }
+  var door = r.total > r.head.length
+    ? '<button type="button" class="rail-ver" data-rail="' + esc(r.key) + '">Ver todo &#8594;</button>' : '';
+  return '<section class="rail-sec" aria-label="' + esc(r.title) + '"><div class="rail-head"><h2 class="rail-title">' + esc(r.title) + '</h2>' +
+    '<span class="rail-count">' + Number(r.total).toLocaleString('es-PE') + '</span>' + door + '</div>' +
+    '<div class="rail">' + cards + '</div></section>';
+}
+function slCountLine(){
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = Number(slIndex.count).toLocaleString('es-PE') + ' productos en ' + storeMeta.label +
+    (slIndex.onSale ? ' · ' + Number(slIndex.onSale).toLocaleString('es-PE') + ' en oferta' : '');
+}
+function slRenderHome(){
+  var host = $('content');
+  if (!host || !slIndex) return;
+  slGrid.key = '';
+  var s = $('sort');
+  if (s) s.style.display = 'none';
+  var html = '';
+  var rails = slIndex.rails || [];
+  for (var i = 0; i < rails.length; i++){
+    html += slRailHTML(rails[i]);
+    /* The trust strip sits under the two lead rails: sales and demand
+       first, then why the store is worth it. */
+    if (i === 1 && storeMeta.trust && TRUST[storeMeta.trust]) html += TRUST[storeMeta.trust];
+  }
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.rail-ver');
+  for (var k = 0; k < btns.length; k++){
+    btns[k].addEventListener('click', function(){ slOpenRail(this.getAttribute('data-rail')); });
+  }
+  slCountLine();
+  watchPhotos(host);
+}
+/* CHIPS. Best Buy's departments open their rail in the overlay (#413).
+   Every other store keeps its old chips: its departments in shopper words
+   (F-NB-CHIP), or -- for a one-department brand store (Gymshark) -- the
+   gender and category pills from each product's own type, which combine
+   (Mujer + Leggings). A chip draws the store's grid, 48 cards at a time. */
+var slFilter = { d: '', g: '', c: '' };
+function slChipBtn(attr, val, label, on){
+  return '<button type="button" class="chip' + (on ? ' active' : '') + '" data-' + attr + '="' + esc(val) + '">' + esc(label) + '</button>';
+}
+function slChips(){
+  var host = $('deptChips');
+  if (!host || !slIndex) return;
+  var html = '';
+  if (slIndex.depts){
+    html = slChipBtn('dept', '', 'Todo', true);
+    for (var i = 0; i < slIndex.depts.length; i++) html += slChipBtn('dept', slIndex.depts[i].key, slIndex.depts[i].label, false);
+    host.innerHTML = html;
+    var bb = host.querySelectorAll('.chip');
+    for (var j = 0; j < bb.length; j++){
+      bb[j].addEventListener('click', function(){
+        var d = this.getAttribute('data-dept');
+        if (d) slOpenRail('d-' + d);
+      });
+    }
+    return;
+  }
+  var ch = slIndex.chips || {};
+  var list = ch.mode === 'facet' ? [] : (ch.depts || []);
+  if (ch.mode !== 'facet' && !list.length){ host.innerHTML = ''; return; }
+  html = slChipBtn('all', '', 'Todo', !slFilter.d && !slFilter.g && !slFilter.c);
+  if (ch.mode === 'facet'){
+    for (var g = 0; g < (ch.genders || []).length; g++) html += slChipBtn('g', ch.genders[g].key, ch.genders[g].label, slFilter.g === ch.genders[g].key);
+    for (var c = 0; c < (ch.cats || []).length; c++) html += slChipBtn('c', ch.cats[c].key, ch.cats[c].label, slFilter.c === ch.cats[c].key);
+  } else {
+    for (var d2 = 0; d2 < list.length; d2++) html += slChipBtn('d', list[d2].key, list[d2].label, slFilter.d === list[d2].key);
+  }
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.chip');
+  for (var k = 0; k < btns.length; k++){
+    btns[k].addEventListener('click', function(){
+      if (this.hasAttribute('data-all')) slFilter = { d: '', g: '', c: '' };
+      else if (this.hasAttribute('data-d')) slFilter.d = this.getAttribute('data-d');
+      /* tapping an active pill clears it */
+      else if (this.hasAttribute('data-g')){ var gv = this.getAttribute('data-g'); slFilter.g = slFilter.g === gv ? '' : gv; }
+      else { var cv = this.getAttribute('data-c'); slFilter.c = slFilter.c === cv ? '' : cv; }
+      slChips();
+      slApply();
+    });
+  }
+}
+/* Ver todo / a Best Buy department chip: the rail's pages, 48 cards at a
+   time, in the full-screen overlay. */
+var slOverlay = { key: '', page: 0, pages: 0, busy: false };
+function slFetchPage(key, n){
+  if (slIndex && slIndex.railPages === 'static')
+    return fetchJson(BASE + sliceDir() + 'rails/' + encodeURIComponent(key) + '-' + n + '.json');
+  return fetchJson(TIENDA_FN + '?store=' + encodeURIComponent(storeKey) + '&rail=' + encodeURIComponent(key) + '&page=' + n);
+}
+function slOpenRail(key){
+  var r = slRailsByKey[key];
+  var ov = $('railExpand'), grid = $('reGrid');
+  if (!r || !ov || !grid) return;
+  slOverlay = { key: key, page: 0, pages: r.pages || 1, busy: false };
+  $('reTitle').textContent = r.title;
+  $('reCount').textContent = Number(r.total).toLocaleString('es-PE') + (r.total === 1 ? ' producto' : ' productos');
+  var sk = '';
+  for (var i = 0; i < 8; i++) sk += SL_SKEL_CARD;
+  grid.classList.add('sl');
+  grid.innerHTML = sk;
+  ov.hidden = false;
+  document.body.style.overflow = 'hidden';
+  grid.scrollTop = 0;
+  slMore(true);
+}
+function slMore(first){
+  if (slOverlay.busy || slOverlay.page >= slOverlay.pages) return;
+  slOverlay.busy = true;
+  var key = slOverlay.key, grid = $('reGrid');
+  var btn = $('slMoreBtn');
+  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  slFetchPage(key, slOverlay.page + 1).then(function(j){
+    if (key !== slOverlay.key) return;
+    slOverlay.busy = false;
+    slOverlay.page = j.page || slOverlay.page + 1;
+    if (j.pages) slOverlay.pages = j.pages;
+    var html = '';
+    for (var i = 0; i < (j.items || []).length; i++){ try { html += slCardHTML(j.items[i]); } catch (e) {} }
+    var old = $('slMoreWrap');
+    if (old) old.remove();
+    if (first) grid.innerHTML = html; else grid.insertAdjacentHTML('beforeend', html);
+    if (slOverlay.page < slOverlay.pages){
+      grid.insertAdjacentHTML('beforeend', '<div class="sl-more" id="slMoreWrap" style="grid-column:1/-1"><button class="btn" id="slMoreBtn" type="button">Mostrar más</button></div>');
+      $('slMoreBtn').addEventListener('click', function(){ slMore(false); });
+    }
+    watchPhotos(grid);
+  }, function(){
+    slOverlay.busy = false;
+    if (first) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#6B7280"><p style="font-weight:700;margin-bottom:8px">No pudimos cargar estos productos.</p><p style="font-size:13px">Revisa tu conexión y vuelve a intentarlo.</p></div>';
+    else if (btn){ btn.disabled = false; btn.textContent = 'Reintentar'; }
+  });
+}
+/* THE GRID: a chip, the search box and the sort menu, together, answered
+   by the endpoint 48 cards at a time ("Mostrar más" asks for the next
+   48). With none of them set the store's rails come back. */
+var slGrid = { key: '', page: 0, pages: 0, busy: false };
+function slQuery(){
+  var q = (($('q') || {}).value || '').trim();
+  /* Best Buy's search ranks by the product the words name (#413); every
+     other store keeps its sort menu (Mayor descuento by default). */
+  var sort = isThemed() ? 'relevance' : ((($('sort') || {}).value) || 'discount');
+  return 'store=' + encodeURIComponent(storeKey) +
+    (slFilter.d ? '&d=' + encodeURIComponent(slFilter.d) : '') +
+    (slFilter.g ? '&g=' + encodeURIComponent(slFilter.g) : '') +
+    (slFilter.c ? '&c=' + encodeURIComponent(slFilter.c) : '') +
+    (q ? '&q=' + encodeURIComponent(q.slice(0, 80)) : '') +
+    '&sort=' + encodeURIComponent(sort);
+}
+function slApply(){
+  var host = $('content');
+  if (!host || !slIndex) return;
+  var q = (($('q') || {}).value || '').trim();
+  if (!q && !slFilter.d && !slFilter.g && !slFilter.c){ slRenderHome(); return; }
+  var s = $('sort');
+  if (s) s.style.display = isThemed() ? 'none' : '';
+  var sk = '<div class="grid">';
+  for (var i = 0; i < 4; i++) sk += SL_SKEL_CARD;
+  host.innerHTML = sk + '</div>';
+  slGrid = { key: slQuery(), page: 0, pages: 1, busy: false };
+  slGridMore();
+}
+function slGridMore(){
+  if (slGrid.busy || slGrid.page >= slGrid.pages) return;
+  slGrid.busy = true;
+  var key = slGrid.key, host = $('content');
+  var btn = $('slSearchMoreBtn');
+  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  fetchJson(TIENDA_FN + '?' + key + '&page=' + (slGrid.page + 1)).then(function(j){
+    if (key !== slGrid.key) return;
+    slGrid.busy = false;
+    slGrid.page = j.page || slGrid.page + 1;
+    slGrid.pages = j.pages || slGrid.page;
+    var cnt = $('countLine');
+    if (cnt) cnt.textContent = Number(j.total || 0).toLocaleString('es-PE') + (j.total === 1 ? ' producto' : ' productos') + ' en ' + storeMeta.label;
+    if (slGrid.page === 1 && !(j.items || []).length){
+      host.innerHTML = '<div class="state"><h2>Sin resultados</h2><p>Ningún producto de ' + esc(storeMeta.label) + ' coincide con tu búsqueda.</p></div>';
+      return;
+    }
+    if (slGrid.page === 1) host.innerHTML = '<div class="grid" id="slGrid"></div>';
+    var grid = $('slGrid');
+    var html = '';
+    for (var i = 0; i < (j.items || []).length; i++){ try { html += slCardHTML(j.items[i]); } catch (e) {} }
+    grid.insertAdjacentHTML('beforeend', html);
+    var old = $('slSearchMoreWrap');
+    if (old) old.remove();
+    if (slGrid.page < slGrid.pages){
+      grid.insertAdjacentHTML('afterend', '<div class="sl-more" id="slSearchMoreWrap"><button class="btn" type="button" id="slSearchMoreBtn">Mostrar más</button></div>');
+      $('slSearchMoreBtn').addEventListener('click', slGridMore);
+    }
+    watchPhotos(grid);
+  }, function(){
+    if (key !== slGrid.key) return;
+    slGrid.busy = false;
+    if (slGrid.page === 0){
+      host.innerHTML = '<div class="state"><h2>No pudimos cargar estos productos</h2><p>Revisa tu conexión y vuelve a intentarlo.</p>' +
+        '<button class="btn" id="slGridRetry" type="button">Reintentar</button></div>';
+      var rb = $('slGridRetry');
+      if (rb) rb.addEventListener('click', slApply);
+    } else if (btn){ btn.disabled = false; btn.textContent = 'Reintentar'; }
+  });
+}
+/* The store's backdrop photo waits for the first-screen product photos
+   (or four seconds): on a 400 kbps link a 300KB interior shot used to
+   arrive before a single product. The phone-sized copy is ~45KB
+   (scripts/build-tienda-heroes.py). */
+function slHeroLater(){
+  var started = false;
+  function go(){ if (started) return; started = true; try { loadHeroPhoto(); } catch (e) {} }
+  setTimeout(go, 4000);
+  try {
+    var first = [].slice.call(document.querySelectorAll('#content .rail-sec:first-child img')).slice(0, 4);
+    if (!first.length){ go(); return; }
+    var left = first.length;
+    var done = function(){ if (--left <= 0) go(); };
+    first.forEach(function(im){
+      if (im.complete && im.src) done();
+      else { im.addEventListener('load', done); im.addEventListener('error', done); }
+    });
+  } catch (e) { go(); }
+}
+function bootSliced(){
+  var sw = $('storeWrap');
+  if (sw) sw.classList.add('sl');
+  var s = $('sort');
+  if (s) s.style.display = 'none';
+  try { document.documentElement.style.setProperty('--store', storeMeta.color || '#0A1F44'); } catch (e) {}
+  try { if (storeMeta.tag) document.documentElement.style.setProperty('--tag', storeMeta.tag); } catch (e) {}
+  var q = $('q');
+  if (q) q.placeholder = 'Busca en ' + storeMeta.label + '…';
+  slSkeleton();
+  /* The rate the home page and search already cached, then the live one. */
+  fxVenta = cachedFx();
+  fetchJson(FX_URL).then(function(j){
+    var v = Number(j && (j.venta || j.Venta));
+    if (Number.isFinite(v) && v > 0){ fxVenta = v; storeFx(v); }
+    else if (!fxVenta) fxFailed = true;
+    renderSlPrices();
+  }, function(){ if (!fxVenta){ fxFailed = true; renderSlPrices(); } });
+  fetchJson(BASE + sliceDir() + 'index.json').then(function(j){
+    slIndex = j;
+    if (!j || !j.count){ renderNoCatalog(); loadHeroPhoto(); return; }
+    slChips();
+    slRenderHome();
+    slHeroLater();
+  }, function(){
+    renderError('No pudimos cargar ' + storeMeta.label + '. Revisa tu conexión e inténtalo de nuevo.', true);
+  });
+}
+
 /* ---------- boot ---------- */
 var booted = false;
+/* STORE BACKDROP (2026-10-07): store imagery for the mall feel. A store
+   that names its own photo (Best Buy's interior, #413) wears that one;
+   when the file is absent the hero stays a clean brand band, never a
+   stand-in. */
+function loadHeroPhoto(){
+  var _hb = $('heroBg'), _hs = $('heroScrim');
+  if (!_hb || !storeKey || !storeMeta) return;
+  var src = storeMeta.heroPhoto || (isThemed() ? '' : '/assets/tienda/hero/' + storeKey + '.jpg');
+  if (!src) return;
+  _hb.onerror = function(){ _hb.hidden = true; if (_hs) _hs.hidden = true; };
+  _hb.onload = function(){ _hb.hidden = false; if (_hs) _hs.hidden = false; };
+  try { _hb.setAttribute('fetchpriority', 'low'); } catch (e) {}
+  _hb.src = src;
+}
 function paintHero(){
   var hero = $('hero');
   if (!hero || !storeMeta) return;
   hero.hidden = false;
   try { hero.style.setProperty('--store', storeMeta.color || '#0A1F44'); } catch (e) {}
-  /* STORE BACKDROP (2026-10-07): store imagery from assets/stores/ for mall feel */
-  try{
-    var _hb = $('heroBg'), _hs = $('heroScrim');
-    if (_hb && storeKey){
-      _hb.src = 'assets/stores/' + storeKey + '.jpg';
-      _hb.hidden = false;
-      if (_hs) _hs.hidden = false;
-      _hb.onerror = function(){ _hb.hidden = true; if(_hs) _hs.hidden = true; };
+  /* THEMED HERO (2026-10-19, #413): a store that names its own colours
+     (Best Buy) wears them -- its blue, its yellow tag rule, its name as a
+     wordmark until its logo file lands. */
+  if (isThemed()){
+    hero.classList.add('themed');
+    var _tb = $('heroTagbar');
+    if (_tb){ hero.style.setProperty('--tag', storeMeta.tag); _tb.hidden = false; }
+    if (!storeMeta.logo){
+      var _hw = $('heroWord');
+      if (_hw){ _hw.textContent = storeMeta.label; _hw.hidden = false; }
+      var _nm = $('heroName');
+      if (_nm) _nm.className = 'hero-name sr-only';
     }
-  }catch(_e){}
+  }
   var nm = $('heroName'), tag = $('heroTag'), lw = $('heroLogo'), li = $('heroLogoImg');
   if (nm) nm.textContent = storeMeta.label;
   if (tag) tag.textContent = storeMeta.tagline || 'Compra en Estados Unidos, entregado en Perú.';
@@ -911,40 +1194,29 @@ function boot(isRetry){
   if (dw) dw.hidden = true;
   if (sw) sw.hidden = false;
   paintHero();
-  loadFx();
-  loadStore().then(function(res){
-    allItems = res.items || [];
-    visibleCount = PAGE_SIZE;
-    try {
-      if (res.empty === 'nocatalog' || res.empty === 'nodata'){
-        renderNoCatalog();
-        return;
-      }
-      if (res.empty === 'failed' && !allItems.length){
-        renderError('No pudimos cargar ' + storeMeta.label + '. Revisa tu conexión e inténtalo de nuevo.', true);
-        return;
-      }
-      try { buildFacets(); } catch (e) { facetMode = false; }
-      renderDeptChips();
-      render();
-    } catch (e){ renderError('No pudimos mostrar la tienda.', true); }
-  }, function(){
-    renderError('No pudimos cargar ' + (storeMeta ? storeMeta.label : 'la tienda') + '. Revisa tu conexión e inténtalo de nuevo.', true);
-  });
+  /* Every store answers from its slices; the registry's `files` only tell the
+     build which catalogues to read. */
+  bootSliced();
 }
 function bindUI(){
   var q = $('q'), s = $('sort'), t = null;
   if (q) q.addEventListener('input', function(){
     if (t) clearTimeout(t);
-    t = setTimeout(function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} }, 180);
+    t = setTimeout(function(){ try { slApply(); } catch (e) {} }, 300);
   });
-  if (s) s.addEventListener('change', function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} });
-  var rb = $('reBack');
-  if (rb) rb.addEventListener('click', function(){ try { closeRailExpand(); } catch (e) {} });
+  if (s) s.addEventListener('change', function(){ try { slApply(); } catch (e) {} });
+  /* The overlay's markup comes after this script, so #reBack does not
+     exist yet when this runs (the back arrow never closed "Ver todo").
+     One delegated listener answers it whenever it is there. */
+  document.addEventListener('click', function(ev){
+    var t = ev && ev.target;
+    if (t && t.closest && t.closest('#reBack')){ try { closeRailExpand(); } catch (e) {} }
+  });
   document.addEventListener('keydown', function(ev){
     if (ev && ev.key === 'Escape'){ try { closeRailExpand(); } catch (e) {} }
   });
 }
+
 window.addEventListener('error', function(ev){
   try {
     if (document.getElementById('fatalBanner')) return;
@@ -978,5 +1250,7 @@ try {
   </div>
   <div id="reGrid" class="re-grid"></div>
 </div>
+<!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/assets/js/aria-launcher.js" defer></script>
 </body>
 </html>

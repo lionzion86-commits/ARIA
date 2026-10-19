@@ -10,9 +10,13 @@
           'both'      → offered everywhere                                       */
 export const LAST_MILE_COURIERS = [
   { id: 'aria-lima',     name: 'Reparto Aria',              scope: 'lima' },
-  { id: 'olva',          name: 'Olva Courier',              scope: 'both' },
-  { id: 'shalom',        name: 'Shalom',                    scope: 'both' },
-  { id: 'aria-asignado', name: 'Courier asignado por Aria', scope: 'provincia' },
+  /* Danny, 2026-10-17 rehearsal: Lima is Reparto Aria only; Olva and
+     Shalom are the provincia partners and never offered for Lima. */
+  { id: 'olva',          name: 'Olva Courier',              scope: 'provincia' },
+  { id: 'shalom',        name: 'Shalom',                    scope: 'provincia' },
+  /* "Courier asignado por Aria" was a third provincia option; Danny's rule
+     is Olva or Shalom only (Lucifer, #367 round 3). Out of the list, so no
+     dropdown offers it. */
 ];
 
 /* Flat fee for the Lima → province leg, in soles. Exact per-courier rates

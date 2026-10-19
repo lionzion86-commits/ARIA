@@ -8545,12 +8545,11 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
       if (code.includes(dead)) throw new Error(`${dead} is back — a second list of size words will drift from the first`);
     }
     // And the two places that used them read the shared list now.
-    if (!/needsSize \|\| \(name && APPAREL_KEYWORDS\.test\(name\)\)/.test(code)) {
+    if (!/needsSize \|\| \(name && APPAREL_KEYWORDS\.test\(name\) && !isAccessoryTitle\(name\)\)/.test(code)) {
       throw new Error("the PDP's size picker no longer reads the shared list");
     }
-    if (!/sizeCategory === 'shoe' : SHOE_KEYWORDS\.test\(title\)/.test(code)) {
-      throw new Error("standardSizeOptions no longer reads the shared shoe list");
-    }
+    /* standardSizeOptions() is gone (#411): the template grid it built was
+       an invented list. See scripts/test/variant-truth-tests.mjs. */
   });
 
   check("Spanish names the same garments", () => {
@@ -8572,24 +8571,29 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
        picker -- completed with no size at all. A S/ 2,946 blazer could
        be bought sizeless. */
     const src = pageHtml().replace(/\r\n/g, "\n");
-    const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("  addToCart({"));
+    const fn = src.slice(src.indexOf("async function addToCartFromProduct(){"), src.indexOf("  addToCart({"));
     if (!fn) throw new Error("the add-to-cart guard is gone");
     if (/if \(!sizeWrap\.hidden && sizeSelect\.required && !sizeSelect\.value\)\{/.test(fn)) {
       throw new Error("the guard is fail-open again — it only refuses when a picker is already showing");
     }
-    if (!/const wantsSize = apparelNeedsSize\(p\.retailer, p\.name\);/.test(fn)) {
-      throw new Error("the buy path no longer asks whether the product is a garment");
+    /* #411 P0 (2026-10-19): the RECORD decides -- the store's size list,
+       looked up from the product's shard when the card carried none. */
+    if (!/const sizeList = Array\.isArray\(p\.sizeList\) \? p\.sizeList : truthfulSizes\(p\.sizes\);/.test(fn)) {
+      throw new Error("the buy path no longer asks the record for its size list");
     }
-    if (!/if \(wantsSize && sizeWrap\.hidden\)\{/.test(fn)) {
-      throw new Error("a garment with no picker is no longer stopped");
+    if (!/if \(sizeList\.length && \(!chosen \|\| !sizeList\.includes\(chosen\)\)\)\{/.test(fn)) {
+      throw new Error("a sized product with no size is no longer stopped");
     }
-    if (!/revealStandardSizePicker\(p\.name, p\.sizeCategory\)/.test(fn)) {
-      throw new Error("the shopper is refused without being given the picker they were missing");
+    if (!/await p\.sizeLookup;/.test(fn)) {
+      throw new Error("the buy path no longer waits for the record's list");
     }
-    // The recovery picker must carry the same honest note as the page's.
-    const rev = src.slice(src.indexOf("function revealStandardSizePicker(title, sizeCategory){"), src.indexOf("function addToCartFromProduct(){"));
-    if (!/No pudimos confirmar las tallas exactas/.test(rev)) {
-      throw new Error("the recovered picker drops the disclaimer that these are reference sizes");
+    /* #411: the refusal no longer builds a "reference" picker -- that list
+       was invented. A garment with no verified sizes says so and stops. */
+    if (/revealStandardSizePicker/.test(fn)) {
+      throw new Error("the buy path invents a size picker again");
+    }
+    if (/apparelNeedsSize/.test(fn)) {
+      throw new Error("the buy path gates on title words again");
     }
   });
 

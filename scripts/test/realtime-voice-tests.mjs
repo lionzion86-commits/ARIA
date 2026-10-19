@@ -117,7 +117,7 @@ check("only tools with a real backend are offered", () => {
      "get_cart_items", "get_cart_total", "get_current_user", "get_order_history",
      "get_order_status", "get_product_details", "get_sale_scoop", "get_store_info",
      "get_top_sales", "get_user_preferences", "lookup_part_by_number",
-     "lookup_parts_by_vehicle", "recommend_stores_for", "request_brand",
+     "lookup_parts_by_vehicle", "open_product", "recommend_stores_for", "request_brand",
      "search_products"]);
 
   /* AND THE BACKEND IS CHECKED, not just the list. The list above
@@ -2413,6 +2413,25 @@ check("ten seconds of silence and she signs off and hangs up", () => {
     "tapping a product does not keep the call alive");
   assert.match(page, /addEventListener\('scroll'/, "scrolling does not keep the call alive");
   assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
+
+  /* N7 / N7b still holds at ten seconds: a phantom turn cannot reset
+     the clock. speech_started only HOLDS it, the hold keeps just the
+     idle clock (the check-in clock it used to keep is gone), and a
+     resume after a dropped phantom turn re-arms the remaining time,
+     never a fresh ten seconds. */
+  const ss = page.slice(page.indexOf("case 'input_audio_buffer.speech_started':"));
+  const ssBody = ss.slice(0, ss.indexOf("break;"));
+  assert.match(ssBody, /holdRealtimeIdle\(\);/, "speech_started no longer holds the silence clock");
+  assert.ok(!/noteRealtimeActivity\(\)/.test(ssBody), "speech_started resets the silence clock, so phantom speech keeps the call alive");
+  const hold = page.slice(page.indexOf("function holdRealtimeIdle(){"), page.indexOf("const REALTIME_HALLUCINATION_RE"));
+  assert.match(hold, /ariaRTHeld = \{ idle: Math\.max\(0, ariaRTIdleDeadline - now\) \};/, "the hold does not keep the remaining idle time");
+  assert.match(hold, /ariaRTIdleDeadline = Date\.now\(\) \+ idle;/, "the resume does not re-arm from the remaining time");
+  assert.ok(!/CALL_IDLE_MS/.test(hold), "a resume after a phantom turn grants a fresh ten seconds");
+  assert.ok(!/[Cc]heckin/.test(hold), "the hold still references the removed check-in clock");
+  const phantom = page.slice(page.indexOf("function dropPhantomRealtimeTurn("));
+  const phantomBody = phantom.slice(0, phantom.indexOf("\n}"));
+  assert.match(phantomBody, /resumeRealtimeIdle\(\);/, "a dropped phantom turn does not release the hold");
+  assert.ok(!/noteRealtimeActivity\(\)/.test(phantomBody), "a dropped phantom turn resets the silence clock");
 });
 
 await checkAsync("the scoop is relevant by construction, and never invented", async () => {
@@ -2824,7 +2843,7 @@ await checkAsync("naming a store gets the truth, including when we do not carry 
      and Dyson all have a row, a logo and a tagline in the page's own
      RETAILERS registry, and zero products. Read off the registry they
      look live, and Aria would offer them. */
-  for (const dead of ["Best Buy", "Nordstrom", "Dyson", "Sunglass Hut"]){
+  for (const dead of ["Nordstrom", "Dyson", "Sunglass Hut"]){
     const r = K.getStoreInfo(dead);
     assert.equal(r.not_stocked, true, `${dead} does not answer as unstocked`);
     assert.match(r.note, /no inventes|No tenemos|no ofrezcas/i,

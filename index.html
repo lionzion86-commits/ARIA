@@ -27,8 +27,32 @@
 <meta name="google-site-verification" content="REEMPLAZAR_CON_CODIGO_DE_SEARCH_CONSOLE">
 <link rel="icon" type="image/png" href="assets/aria-orb-pixar-64.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
+<!-- FIRST PAINT ON A BAD PHONE (2026-10-19, #417). The Tailwind file is
+     fetched now, not when the parser reaches the end of this <head>. -->
+<link rel="preload" as="style" href="/assets/css/tailwind.css">
+<script>
+/* THE SEARCH BOX WORKS BEFORE THE APP DOES (2026-10-19, #417). The
+   boxes call doSearch(), which used to exist only once the 583KB app
+   bundle had arrived -- ~20s on a slow phone connection. Typing "dolls"
+   and pressing Enter before that threw "doSearch is not defined" and
+   nothing ever happened. This is the same redirect the page installs
+   after the bundle (window.doSearch override below), available from
+   the first paint. */
+window.doSearch = function(which){
+  var id = which===2 ? 'searchInput2' : (which==='d' ? 'searchInputD' : 'searchInput');
+  var el = document.getElementById(id);
+  var raw = el ? el.value.trim() : '';
+  if (!raw) return;
+  window.location.href = '/search.html?q=' + encodeURIComponent(raw);
+};
+</script>
+<!-- Fonts never hold the first paint (2026-10-19, #417): a third-party
+     stylesheet costs a DNS + TLS + request before anything shows, ~6-8s on
+     slow 3G. Text paints in the fallback font and swaps (display=swap). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap"></noscript>
 <style>
   @keyframes blink{50%{opacity:0}}
   /* LISTENING PILL DOT (2026-09-27): the header status pulses green while
@@ -707,9 +731,31 @@
   .ariaSkeleton{
     background:linear-gradient(90deg,#EDF0F6 25%,#DFE5EF 37%,#EDF0F6 63%);
     background-size:800px 100%;
-    animation:ariaShimmer 1.5s ease infinite;
+    /* FOUR SWEEPS, THEN STILL (2026-10-19, #417 iPhone QA). A rail whose
+       catalogue is never fetched keeps its skeleton, and an infinite
+       background-position animation repaints it on the main thread every
+       frame: 132 off-screen skeleton cards, ~4.5 million pixels, painted
+       nonstop. On Danny's iPhone the home search box ignored taps until
+       pressed hard. After ~6s the placeholder simply holds still. */
+    animation:ariaShimmer 1.5s ease 4;
   }
   @media (prefers-reduced-motion: reduce){ .ariaSkeleton{ animation:none } }
+  /* BEST BUY BANNER + CAROUSEL (2026-10-19, Danny, #413): "promoted hard",
+     billed like the electronics specialist it is -- directly under the
+     brand band, above Aria Auto. Best Buy's own blue (#0046BE) with its
+     yellow tag accent (#FFE000) as a rule, the real yellow-tag mark
+     (logos/bestbuy.svg), then the
+     store's sale rail (sale items only: storeRailPicks + sale-rule.js),
+     painted from assets/home/shelves/store-bestbuy.json like every rail.
+     No photo on the home page: no catalogue, no extra weight. */
+  .bbBand{ background:linear-gradient(160deg, #0046BE 0%, #003A9E 60%, #002B7A 100%) }
+  .bbTagRule{ position:absolute; left:0; right:0; top:0; height:5px; background:#FFE000 }
+  .bbLogo{ display:block; height:56px; width:auto }
+  .bbKicker{ font-size:11px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:#FFE000 }
+  .bbCta{ display:inline-flex; align-items:center; justify-content:center; height:46px; padding:0 22px;
+    border-radius:14px; background:#FFE000; color:#001E5A; font-size:14.5px; font-weight:800; letter-spacing:-0.01em }
+  .bbPoints{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:12px; font-weight:700; color:rgba(255,255,255,.86) }
+  .bbPoints span::before{ content:''; display:inline-block; width:6px; height:6px; border-radius:2px; background:#FFE000; margin-right:6px; vertical-align:1px }
   /* ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): Aria Auto is a huge
      section nobody discovers from the homepage -- a shopper browsing deals
      never learns it exists. A full-width house banner (not an ad, not a
@@ -1714,6 +1760,15 @@
     border-radius:0 !important;
   }
 </style>
+<script src="/ref.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
+<!-- TAILWIND, PREBUILT (2026-10-19, #417 iPhone QA): scripts/build-tailwind.mjs.
+     It was the cdn.tailwindcss.com runtime, compiling every class on the
+     shopper's phone while the page sat white. Last in the head, where the
+     runtime put its generated rules, so the cascade order is unchanged. -->
+<link rel="stylesheet" href="/assets/css/tailwind.css">
 </head>
 <body class="antialiased">
 
@@ -1843,7 +1898,7 @@
        strip, then Categorias follow.
        ============================================================ -->
   <section class="ariaHero" aria-label="Todo USA ahora en Lima">
-    <img src="assets/hero/flatlay-hero.jpg" alt="" aria-hidden="true" class="ariaHeroPhoto"
+    <img src="assets/hero/flatlay-hero.jpg" srcset="assets/hero/flatlay-hero-1200.jpg 1200w, assets/hero/flatlay-hero.jpg 2080w" sizes="100vw" alt="" aria-hidden="true" class="ariaHeroPhoto"
          decoding="async" fetchpriority="high" onerror="this.remove()">
     <div class="ariaHeroScrim" aria-hidden="true"></div>
     <div class="ariaHeroInner">
@@ -1894,7 +1949,7 @@
   <section aria-label="Aria Key Club — Sé de los primeros 1000" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
     <!-- KEY CLUB VAULT BACKDROP (2026-10-05, Danny): bank-vault atmosphere behind the hero. Image stays dim under a navy overlay so the white/gold headline stays fully readable. -->
     <!-- COMPACT BANNER (2026-10-07, Danny): same info at ~half the height — the full section buried the products on scroll. -->
-    <div aria-hidden="true" style="position:absolute;inset:0;background:url('assets/keyclub/vault-hero-bg.jpg') center/cover no-repeat;opacity:.5"></div>
+    <img src="assets/keyclub/vault-hero-bg.jpg" srcset="assets/keyclub/vault-hero-bg-1200.jpg 1200w, assets/keyclub/vault-hero-bg.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:.5">
     <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(10,31,68,.88) 0%, rgba(10,31,68,.62) 45%, rgba(10,31,68,.90) 100%)"></div>
     <div class="ariaGoldHair"></div>
     <div class="relative max-w-[1020px] mx-auto px-5 py-7 sm:py-8 text-center">
@@ -2018,8 +2073,11 @@
 
       <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
         <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
-          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[112px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
           style="border-color:var(--line)">
+        <button onclick="openVisualSearch('search')" aria-label="Buscar por foto" title="Buscar por foto" class="absolute right-[52px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center focus-ring transition" style="background:#EEF3FB; color:var(--navy)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
         <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
@@ -2041,6 +2099,27 @@
       </div>
     </div>
   </div>
+
+<!-- BEST BUY BANNER + CAROUSEL (2026-10-19, Danny, #413): featured, not
+     buried -- the electronics specialist sits right under the brand band.
+     Banner, then Best Buy's sale rail; every tap lands on its storefront
+     (tienda.html?tienda=bestbuy, answered from slices). -->
+<section aria-label="Best Buy" data-store-rail="bestbuy" data-bestbuy-feature class="bbBand relative overflow-hidden">
+  <div class="bbTagRule" aria-hidden="true"></div>
+  <div class="relative px-5 pt-7 pb-4">
+    <div class="bbKicker">Nueva tienda en Aria</div>
+    <div class="mt-3"><img class="bbLogo" src="/logos/bestbuy.svg" alt="Best Buy" data-retailer="bestbuy" width="81" height="56" decoding="async"></div>
+    <h2 class="text-[25px] font-extrabold tracking-[-0.02em] leading-[1.08] mt-3" style="color:#fff">La tecnolog&iacute;a de Best Buy, en soles y en tu puerta.</h2>
+    <p class="text-[14px] mt-2 leading-snug max-w-[34ch]" style="color:rgba(255,255,255,.80)">Laptops, consolas, aud&iacute;fonos y celulares al precio de Best Buy en Estados Unidos.</p>
+    <div class="bbPoints"><span>Computaci&oacute;n</span><span>Gaming</span><span>Audio</span><span>Celulares</span></div>
+    <button onclick="tiendaJump('bestbuy')" class="bbCta focus-ring mt-5">Entrar a Best Buy &#8594;</button>
+  </div>
+  <div class="flex items-center justify-between gap-3 px-5 pt-2 pb-3">
+    <span class="text-[17px] font-extrabold tracking-[-0.01em] leading-none" style="color:#fff">Ofertas de Best Buy</span>
+    <button onclick="tiendaJump('bestbuy')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#FFE000">Ver tienda &#8594;</button>
+  </div>
+  <div id="mStoreRail-bestbuy" data-store-rail-row="bestbuy" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section>
 
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
@@ -2103,7 +2182,7 @@
          the Aria Auto banner breaks the scroll. Opens the designer
          department. -->
     <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
-      <img src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="${eager ? 'eager' : 'lazy'}" decoding="async" onerror="this.remove()">
+      <img src="assets/latino/runway-hero.jpg" srcset="assets/latino/runway-hero-1200.jpg 1200w, assets/latino/runway-hero.jpg 1920w" sizes="100vw" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="${eager ? 'eager' : 'lazy'}" decoding="async" onerror="this.remove()">
       <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
       <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
       <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
@@ -2163,7 +2242,7 @@
          rule in renderCategoryTabs. -->
     <!-- ARIA BEAUTY BACKDROP (2026-09-30, Danny): premium salon backdrop, like Aria Luxury -->
     <div data-beauty-wrap class="relative overflow-hidden" style="background:#FDF6F3">
-      <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/beauty/aria-beauty-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
+      <img src="assets/beauty/aria-beauty-backdrop.jpg" srcset="assets/beauty/aria-beauty-backdrop-1200.jpg 1200w, assets/beauty/aria-beauty-backdrop.jpg 2048w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
     <section aria-label="Aria Beauty" data-featured-rail class="relative overflow-hidden storeRailCompact" hidden style="background:transparent">
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -2264,7 +2343,7 @@
          (runway/boutique), gold accents. Inclusive luxury: the $27 purse belongs here
          just as much as the $782 one. -->
     <div data-luxury-wrap class="relative overflow-hidden" style="background:#FFFFFF">
-      <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/luxury/aria-luxury-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
+      <img src="assets/luxury/aria-luxury-backdrop.jpg" srcset="assets/luxury/aria-luxury-backdrop-1200.jpg 1200w, assets/luxury/aria-luxury-backdrop.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
     <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="relative px-5 pt-6 pb-1">
@@ -2433,6 +2512,7 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="mStoreRail-finishline" data-store-rail-row="finishline" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
     <section aria-label="Zumiez" data-store-rail="zumiez" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -2515,13 +2595,80 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="mStoreRail-hottopic" data-store-rail-row="hottopic" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 <section aria-label="BoxLunch" data-store-rail="boxlunch" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #F26522 20%, #F26522 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
           <span class="storeRailPlaque"><img src="logos/boxlunch.png" alt="BoxLunch" data-retailer="boxlunch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
           <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">BoxLunch</span>
+        </span>
         <button onclick="openStore('boxlunch')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
       <div id="mStoreRail-boxlunch" data-store-rail-row="boxlunch" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+<section aria-label="Banana Republic" data-store-rail="bananarepublic" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #766A57 20%, #766A57 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/bananarepublic.png" alt="Banana Republic" data-retailer="bananarepublic" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Banana Republic</span>
+        </span>
+        <button onclick="openStore('bananarepublic')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="mStoreRail-bananarepublic" data-store-rail-row="bananarepublic" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Gap" data-store-rail="gap" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #001E41 20%, #001E41 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/gap.png" alt="Gap" data-retailer="gap" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Gap</span>
+        </span>
+        <button onclick="openStore('gap')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="mStoreRail-gap" data-store-rail-row="gap" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Abercrombie & Fitch" data-store-rail="abercrombie" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/abercrombie-fitch.png" alt="Abercrombie & Fitch" data-retailer="abercrombie" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Abercrombie & Fitch</span>
+        </span>
+        <button onclick="openStore('abercrombie')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="mStoreRail-abercrombie" data-store-rail-row="abercrombie" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Hollister" data-store-rail="hollister" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #041E42 20%, #041E42 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/hollister.png" alt="Hollister" data-retailer="hollister" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Hollister</span>
+        </span>
+        <button onclick="openStore('hollister')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 4–9 días.</span></div>
+      <div id="mStoreRail-hollister" data-store-rail-row="hollister" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
 <!-- Target rail removed per Danny 2026-09-30: Target has its own store page -->
 
 
@@ -2606,8 +2753,11 @@
 
       <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
         <input id="searchInputD" onkeydown="if(event.key==='Enter')doSearch('d')" placeholder="¿Qué estás buscando hoy?"
-          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[112px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
           style="border-color:var(--line)">
+        <button onclick="openVisualSearch('search')" aria-label="Buscar por foto" title="Buscar por foto" class="absolute right-[52px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center focus-ring transition" style="background:#EEF3FB; color:var(--navy)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
         <button onclick="doSearch('d')" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
@@ -2629,6 +2779,28 @@
       </div>
     </div>
   </div>
+
+<!-- BEST BUY BANNER + CAROUSEL (desktop, 2026-10-19, Danny, #413). -->
+<section aria-label="Best Buy" data-store-rail="bestbuy" data-bestbuy-feature class="bbBand relative overflow-hidden">
+  <div class="bbTagRule" aria-hidden="true"></div>
+  <div class="relative max-w-[1240px] mx-auto">
+    <div class="px-8 pt-9 pb-5 flex items-center justify-between gap-10">
+      <div class="min-w-0">
+        <div class="bbKicker">Nueva tienda en Aria</div>
+        <div class="mt-3"><img class="bbLogo" src="/logos/bestbuy.svg" alt="Best Buy" data-retailer="bestbuy" width="81" height="56" decoding="async"></div>
+        <h2 class="text-[30px] font-extrabold tracking-[-0.02em] leading-[1.08] mt-3" style="color:#fff">La tecnolog&iacute;a de Best Buy, en soles y en tu puerta.</h2>
+        <p class="text-[15px] mt-2 leading-snug max-w-[56ch]" style="color:rgba(255,255,255,.80)">Laptops, consolas, aud&iacute;fonos y celulares al precio de Best Buy en Estados Unidos.</p>
+        <div class="bbPoints"><span>Computaci&oacute;n</span><span>Gaming</span><span>Audio</span><span>Celulares</span><span>Smartwatches</span><span>C&aacute;maras y drones</span></div>
+      </div>
+      <button onclick="tiendaJump('bestbuy')" class="bbCta focus-ring flex-shrink-0">Entrar a Best Buy &#8594;</button>
+    </div>
+    <div class="flex items-center justify-between gap-3 px-8 pt-1 pb-4">
+      <span class="text-[20px] font-extrabold tracking-[-0.01em] leading-none" style="color:#fff">Ofertas de Best Buy</span>
+      <button onclick="tiendaJump('bestbuy')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#FFE000">Ver tienda &#8594;</button>
+    </div>
+    <div id="dStoreRail-bestbuy" data-store-rail-row="bestbuy" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+  </div>
+</section>
 
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
@@ -2695,7 +2867,7 @@
          the Aria Auto banner breaks the scroll. Opens the designer
          department. -->
     <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
-      <img src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="lazy" decoding="async" onerror="this.remove()">
+      <img src="assets/latino/runway-hero.jpg" srcset="assets/latino/runway-hero-1200.jpg 1200w, assets/latino/runway-hero.jpg 1920w" sizes="100vw" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="lazy" decoding="async" onerror="this.remove()">
       <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
       <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
       <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
@@ -2754,7 +2926,7 @@
          in the Hogar rail's old slot. -->
     <!-- ARIA BEAUTY BACKDROP (2026-09-30, Danny): premium salon backdrop, like Aria Luxury -->
     <div data-beauty-wrap class="relative overflow-hidden" style="background:#FDF6F3">
-      <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/beauty/aria-beauty-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
+      <img src="assets/beauty/aria-beauty-backdrop.jpg" srcset="assets/beauty/aria-beauty-backdrop-1200.jpg 1200w, assets/beauty/aria-beauty-backdrop.jpg 2048w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
     <section aria-label="Aria Beauty" data-featured-rail class="relative overflow-hidden storeRailCompact" hidden style="background:transparent">
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -2845,7 +3017,7 @@
 <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny.
          ARIA LUXURY (2026-09-30, Danny): renamed, premium backdrop. -->
     <div data-luxury-wrap-desktop class="relative overflow-hidden" style="background:#FFFFFF">
-      <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/luxury/aria-luxury-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
+      <img src="assets/luxury/aria-luxury-backdrop.jpg" srcset="assets/luxury/aria-luxury-backdrop-1200.jpg 1200w, assets/luxury/aria-luxury-backdrop.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
     <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="relative max-w-[1240px] mx-auto">
@@ -3016,6 +3188,8 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="dStoreRail-finishline" data-store-rail-row="finishline" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
     <section aria-label="Zumiez" data-store-rail="zumiez" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -3104,12 +3278,90 @@
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="dStoreRail-hottopic" data-store-rail-row="hottopic" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <section aria-label="BoxLunch" data-store-rail="boxlunch" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #F26522 20%, #F26522 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
           <span class="storeRailPlaque"><img src="logos/boxlunch.png" alt="BoxLunch" data-retailer="boxlunch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
           <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">BoxLunch</span>
+        </span>
           <button onclick="openStore('boxlunch')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
       <div id="dStoreRail-boxlunch" data-store-rail-row="boxlunch" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Banana Republic" data-store-rail="bananarepublic" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #766A57 20%, #766A57 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/bananarepublic.png" alt="Banana Republic" data-retailer="bananarepublic" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Banana Republic</span>
+        </span>
+          <button onclick="openStore('bananarepublic')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="dStoreRail-bananarepublic" data-store-rail-row="bananarepublic" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Gap" data-store-rail="gap" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #001E41 20%, #001E41 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/gap.png" alt="Gap" data-retailer="gap" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Gap</span>
+        </span>
+          <button onclick="openStore('gap')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="dStoreRail-gap" data-store-rail-row="gap" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Abercrombie & Fitch" data-store-rail="abercrombie" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/abercrombie-fitch.png" alt="Abercrombie & Fitch" data-retailer="abercrombie" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Abercrombie & Fitch</span>
+        </span>
+          <button onclick="openStore('abercrombie')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="dStoreRail-abercrombie" data-store-rail-row="abercrombie" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Hollister" data-store-rail="hollister" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #041E42 20%, #041E42 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/hollister.png" alt="Hollister" data-retailer="hollister" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Hollister</span>
+        </span>
+          <button onclick="openStore('hollister')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 4–9 días.</span></div>
+      <div id="dStoreRail-hollister" data-store-rail-row="hollister" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 <!-- Target rail removed per Danny 2026-09-30 -->
@@ -3175,7 +3427,7 @@
        white text above 4.5:1. Measured in the browser check.
        ============================================================ -->
   <div id="whyUs" class="relative overflow-hidden">
-    <img src="assets/portal-girl-bg.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
+    <img srcset="assets/portal-girl-bg-1200.jpg 1200w, assets/portal-girl-bg.jpg 1320w" sizes="100vw" loading="lazy" src="assets/portal-girl-bg.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
       decoding="async" onerror="this.remove()">
     <div class="ariaWhyScrim" aria-hidden="true"></div>
 
@@ -3372,7 +3624,7 @@
         <div class="ariaCard ariaCard--light">
           <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-4" style="background:var(--blue)">3</div>
           <div class="rounded-2xl border h-[110px] mb-4 relative overflow-hidden" style="border-color:var(--line); background:var(--sky)">
-            <img src="data:image/jpeg;base64,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" alt="Envío internacional a Perú" class="absolute inset-0 w-full h-full object-contain">
+            <img src="/assets/home/como-funciona-28fb3faa27.jpg" loading="lazy" decoding="async" alt="Envío internacional a Perú" class="absolute inset-0 w-full h-full object-contain">
           </div>
           <h3 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Te lo entregamos en Perú</h3>
           <p class="text-[13.5px] mt-1.5 leading-relaxed" style="color:#4A5568">Nos encargamos de la compra, la aduana y el envío hasta tu puerta.</p>
@@ -3500,7 +3752,7 @@
              loading="lazy" decoding="async" onerror="this.remove()">
         <div class="ariaTrustScrim" aria-hidden="true"></div>
         <div class="ariaTrustBody">
-          <img src="data:image/jpeg;base64,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" alt="" width="64" height="64" class="rounded-full">
+          <img src="/assets/home/como-funciona-2536642e5d.jpg" loading="lazy" decoding="async" alt="" width="64" height="64" class="rounded-full">
           <div class="font-bold text-[14px] mt-3" style="color:#fff">Precio transparente</div>
           <div class="text-[12.5px] mt-1 leading-relaxed" style="color:#E3EAF8">Sin cargos escondidos. Ves el costo total antes de pagar.</div>
         </div>
@@ -3510,7 +3762,7 @@
              loading="lazy" decoding="async" onerror="this.remove()">
         <div class="ariaTrustScrim" aria-hidden="true"></div>
         <div class="ariaTrustBody">
-          <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACgAKADASIAAhEBAxEB/8QAHAAAAQUBAQEAAAAAAAAAAAAABgABBAUHAgMI/8QAThAAAQMDAQYDBAUIBQcNAAAAAQIDBAAFEQYHEiExQVETImEUMnGBFWKRobEII0JScoKSwSQzotHwFhclJkOElDQ1NlNjc4OTo7PC0vH/xAAZAQADAQEBAAAAAAAAAAAAAAABAgMABAX/xAAqEQACAgIBAgUEAgMAAAAAAAAAAQIRAyExEkEEIlFxsWGRwfATgTJyof/aAAwDAQACEQMRAD8A+s6VIUq6yIqVKkKxhUqVKsYanp8U1YwqVMSB1pZFYw9LNNkUuFYAs0qfFNWMKlSpdKIBUqVNRMPTZpU1Yx3TU9LFKEVKnAp8YrBG5UuJOAMn0qq1BfoVmDbbodkzH8+zQ44CnnscyBkAJHVaiEjqelULllvmp/8ApDKMOArna4TqkoUOzrvBTnwG6n0POikBskX3X+nrZJVBjuyLxcU8DDtjXjrSey1AhCP3lD4VTqvO028n/RWn7RYY6uTlweVKeA77iN1A+GTRrabJa7RFRGhQ2I7SBhKGkBKR8hUtToHBIplXZAf1M7OjdezzvXXaZdWQebdtjMRkj4EJKvvrzVsvfWcv7QdbuK7/AEy4n8MVoalqPKuFpWRzpk2CkAA2b3VjjB2ma1jqHLeuIeH2OJIpGzbVrXxtuurbeEp/2V4taQVeniMlJ+eDR0UL70ykr70eRdAIraJqWw+XWmgpzbCfeuFic9uYHqWyA6kfAKov0jq3TerYapWnLzEuTaP6xLS/zjR7LQcKQfiBXo74ieOaCdWaF07e5ibmY71pvTf9TdrY4Y8ps+qk+8PRWQazgjdTRptP0rI42ttT6FKWdeo+mrCDup1JBYwtgdPa2E8vVxHDuK1G2z4dxgsToMpmVFfQHGXmVhaHEnkUkcCKSUGhlKyVSpUqUIqbrT01Ex1T4pCuwMClboI2OFUeory/HkN2m0sok3Z9O+lK8+HHb5eK7jju5BASOKiCBgBSh7apvItMJHgMiTPlOeDCjk48VzGcqPRCQCpR6AdyBXOmbMIDDi3nTImSF+LNkrGFPOEcfgkDACRwSAAOWTjHGnNPMW9Tst11yZPkEKlTXsFx4jkOHBKR0SMADkOZN2pSUDdQAMUlrwMDlXnjJzWQGMrKutMEca9AKo9Tarsmnx4c6Vvyj7kRgb7yj+z+j8VECmv0BZdBHHAGT6CuFghWCMfGgWXb9Ra1bIu5esdkUD/Q2lYffH1yRw+YA+qeCqDGLFrLZo6ZOiJL2o9PqO+/p+4SCXmu6ozp5fsngex51SGNtc7Ec6ZtZAxXBoQ0JtL0rq9wwoUtyDd2+D1quCPAltnqNw++PVJPyouUeJHUVmmtMa7OFpBqO8wlY5CpJrk0yFKiVCwFFGOIwoEZBHYjqKzldquuz24PXrRcRyTZnVl256bQeBz7z0PPBDnUt+6rpg1rSxkcqhSoqV8RwV0NMgM9NLagteorLGvFolplQpKN5twcPQpIPFKgeBSeIIxVwDmsbuzMjZ5qJ/VkBKjp+a4FX+GhOQyo8PbW0jkR/tAOY83MVrMGU1IjtvMuodbWkKQtJyFAjIIPUGpzhW1wxoyvT5JlNSzmlUxz0SO9Oo4zxAHcmkKFdpUxabOxZYy1JlXp8QklBwpLRBU8odsNgjPdYpUrYWc6WxqC7P6rdTmOQY1qCujAOS7ju4QFfshsdDRYohCd1NRrbHahwmYzKUobZQEJSkYAA7V6k5NGrAU2qtSQNOxEvS0vPvu58CKwAXXiCkEJBIBOVJHqSMZodTrDWVwTm07PJMYHk5dZiWQPXdAz99eOvUp/zt6BKwDhM4pz0VhrBod2q7QtVWvXtv0Poy0xJl2nMeMlUlaUJxuqUTvK4DASeh/lXRDDaVbtWSeTbCsWfXF5/wCfNSs21g+9FtDRSSOxcPm+8iq26XnZrsyiKly5kNmSgE76nA7IWfj0J9MUFyNIbXdR4/yu2hwLHFPvRrW2Xl47bx3UA+oBqz03s50FpqWm4JgvX67J4+33Vz2hwHulJ8ifkKdY4rl/YVyZUXDUu0Xau0qNpqGvSWlHspdusxBD0hHXwmzgqz3OBQctW0nY48WYbx1lpJHFLSs+NHT1wBlSPlvI9BW3zZ8qUeZA7CqO6x3F7pBORxFdGOuK0Tk+4HwNV7KNrLDMe5ezNXIf1bU0+BJbV/2boIyR9VXyojj2HaLpgAaX1yq4w0jyW/UbBkpA7JfThwD7aA9ZaB03e3FvXC0pbkq5yYx8Jw+pxwV8waobTprX2njuaM2jOoYHuw7kCUfDiFo+4VV4bWhFlXc2VvaNr+3eS+7LXZYHAv2S6tvJPr4bgSofbRVoDXdr1iqfHiw7lbp9vUlMuFcGA263ve6rgSFA4PEH49KyXZjrnWzm0SPozX0C0LL0dbrcqGQCd1G9x3TukEegNagzLgx9pNyLCUJdXb2d4gc0jdxXPPF06rfJSOS2thoa4UBUZqYlY5ivQOb3WoFrPGZGbfaW26hK0LBSpKhkEHmCO1BegFnS17k6GfcWYjKDLsylnOYpVhTOepaUQB9RSe1HfOg/ajbnfoWPqOA2VXCxPCWgJ5uNYw63+8gq+eO1Pj2+h9/kSevMuwdx3Qoc6kA8KGrDcWpTDbzLgcacSFoUP0kkZB+yr9peRmuaUaZZOyVnhQI+6brtgW3zZsduQhPo8+d9R+IQlqjrnwHWs52WuLuOp9ZXhRyl69vMtn6jQDY+5AoRWmwy7GiEhKQKdNebhyoV2k8KHYxnO0klO1nZyc4Cnpqf/TQaB9Zfm/ytdKr/AF7coD/ynhRvtWPhbRdmsk8vpWQz/EyP7qBtp6vZ/wAp/QTx4B1jcz8nk16GDiP+r+Wck+X7r8B7NKnpagSTxNdNxciuSpJlK/aq4aiSvYPa0x1La5jBG8odSkcz/jFSbUeR1vggpjgDlUWZH3iBjpVkhaHEBbagpKhkEdanW22plKEiSMRxyAOC6ew9O5+QqnWsatiOLk6QITdO3CVAXMYhqcZTniCAVY57o5q+VBLkRtbgKOSuRFa9r7V0HStp9qkkKfX5IsZHArI5ADokd6xKy3pUySpTxR4i3FOK3RwBUSSB6ca6PCZJ5E3JaJeIhGFJMob6XbXtntchrJWiA9/7TQ/+VXlo1DKlbSrotZx4VsjZ+eP7qrH1t3TbklokKEa2vk/MR00R2uysI1RqCY2CFCJFaV8QM105Np+35RFaa/fUPrJcy6lOVUTRnt5IrOtPKUh4IzRzAV5BmvNnGjtg7RctqyK9Sht1tTTgCkLSUqB5EGojJ4ipbYzwqEvUotmdaAW5a2HbI6eNtkuRUZ5+GlR3P7JA+VaPCd30is3moXG2oX+KOCHYsWagfHeQr70ijmzO7zScnpT+JVy6vXf3FwOlXoEjPFxH7Q/Gsv8AyfHQ/ol2Z1fuk1wn/wAdY/lWnMn84g/WH41lv5PgEfRkqARhcS7TmVDsRIXUILyS/r8lW/MjSicqzXonlXgk8a9UqrBM0/KDeECFpC+Hgm3amiqWeyXN5B/lQF+Ua8bTtR2dahPBpmd4DiuwDqf5LNant1sjuodkuoYEdBVKbi+1RgOfiskOJx6+Uj51lW2lCNfbAIWp4GVPxmWbkkjiU4TuPD4jJP7td3hWqj/a+/6zmyrbDxb5RcHEk+6sj76LdO3gPJbt0kJQ8hG6yocnUgdOygOY+Y64yfR+oEah07a74kjelx0l4Z911PlcH8QNFYWHmAneUkjBSpJwpJHIg9CO9Lkw9WmCGTpdhuLRFNxMneWlteVOMp91au+f0c9cc/jxqFrzVkDStoM6YQt1Q3I0dPAuK6ADoBQzcNo4sduKLnbJkuUgEJcjpTuO9irj5D36du1YhqG73bVF5duVycJcXwQjPkZT0Sn/ABxpcPhJ5JefhDZM8Yry8njqa+XTUl5cuFwd33nOCUj3Wk9Ep9PxqXYWFsuJIzkmu7bbEgAq3SfjV43ES1GW4FoSUpJBKhgHufQc/lXsJRjGkec5OTBnZ7J9r2qX+4keVEcNJJ+u6cf2Wwa0LRE5VxGrphSnw03X2VtQPMNowfxFB2xO3Jkx5t8bSFImyVyWkk8Sw0NxofvBOf3qP9M2M6d0U1AcVvSX3nZUhX6zjiiSfwqGWapr1r9/4VivN7HrYxmXnNHMH3BQfp+Oou72CePajOKhSUgEEcOorhyHVAmtHFTWDxFQUHhUyLxIrmnwWXJnmo5ONu8eCB/X6ZdUr9x8EfiaLbIVDyk8qFZ7CpX5RDrw4og6VSlXop19RH3Jootow+Rmq5v8Y+yJ4uX7sLk8his52fxxa9ba0tHuj6VVNbT9V9KXM/ao1oqPdoH1Ez9FbUbddhwZusMxHT08Ro5Tn91X9mo4F1dUfVfGymV1Uvr8hc2eNeoqM2ob1SEnrkUiHsRIwQQCDzB5GsV0Iw1pfWGodmM9lJgLK7jZ0r916G8T4jQ77pJBHbNbQs5oA2x6SnX+1xLxp5aGNT2R0ybY6rgHP12FH9VY4fHHrXRhlTp8MlkVq0YLpov7OdoNx0Bc3Cm3S3vabQ+s8Fb3BIz9YDdP10etavAnAoAzxoZ1PDs+2XQ2+0n6Nv1vcUgodBDsGSPfZcHPcJHP0BHEUD6L1lcIFxVpbWKVQrzGIbS46fK/2yrlvEclclfHhXpRj177nHLy8Gr3ZKJLRSvCvjQhKvOmbSZFruL9qiyVuBSnJKUqWW91JCUhQITxJJI4nhV8zL8Xy/bWV7UtBao1Hqh65WiEw9FCENlSpCUHeDac8Dx6ijKKUdixfUwoeu+hlp43uy/u+GPwTQ5qO9abZLbNpusArcOFPbyClA6nBHb8azm4aD1VCkiO7AYLpGd1ElCsfHtXvD2Xa1mIW41bY4SgZUpcpCR99Kmlsbp+psViv+hWrY4Z99srz5ThCVhsEevBP+MV3GvezdCwVX+zpP8A3uB9wrFjsy1hkp9ii/8AFor0b2V61WcJgxP+MRSzcWGMUu59DW3V2y9pIDmp7MP94WPwok0DftHS9VSIumdTx53tUUuuwWpK3EoUhQBcSlXukhQBwcHA4V8wNbHder92BCP+/IrRtgWg9VaP2i/SN7jRmo67Y+2FNSUueYqbwMD4GoShGnTLRk7Pp1og1OiA5FUESWlZAzRBa1JU6krOEJBUo9gOJrjyaRaO2UkK1oa1ZqW9qOVyVMRGz2Qy0M/2lq+yu4I/PE1ayPJD8w3Vry4sfWUSo/jj5VXwUjfJrOTlHZoxrQTI5VQbQbY5cdMvORm1LmQVCZGSnmpSOJSP2k7yfiRV+nlXQJByOYqMJuElJdis4qSaYM2K5NXK2R5jKwpLiAcjrkZzVu2sYoRLC9N6let6UhNunlUiF2Qc5ca/dJ3h9VX1aII72Rir5IpO48PgjCTap8osAc1w7xSa5QoUlKBpUh7Mp2laFuSL6rW+iHGo1/CQmbEcOGLo0P0F9l9l/bQBqOLpnabanY8lh2DfIAKXo7iQiXCV1BB99BPxSfQ19FyUBQx0rMtpuz626hcbuTan4F2j/wDJ7hEV4b7fpke8n0PCu7DmrTOeePujBrZedU6BlJi3uOq72RtQSJSCd5pOepPEY7K4dlVrFq1GqfaHJtkhuvxpLy0IfW2pseVDY3wFAEg9DgA4oWVMv+n5yG9YWv26IlQSbrbWcq3e7zHP4lPD0rQ2LhDmFx2Ctam5G84gOjCgkBAB3egPT4VfNLqiiEEkyU5L0qlx1x9VkMzy+CVIazg4CiccP4qEZ03xZstmK4j2QSFlsNY3CM8CMcMfCodxi31UlxRgRCkqOP6Qrl06Vxb2bqJSA9DittZ85S6VHl04d8VCGBY7l1WPPM56qiziMqPEpov08rTDNvCbpDluy99RKkBRTu9ORFVEGNkcq71BBvKrWkWRsqkFwb2CkEJ48irhzxStfyNRboyfQrqwvZf0sUHwYE3OPLwUOP8AFUN9G7BQ5gBe/j7qAWLbtG30hKXk5I4+0NYHx41qcmCtURs7h3Co8emcChkxRwtVK7GxzeTmNFXBfLfmV3o5sKQq2Kdczh3h8UA8ftOB86zPVE1i0xS+/vFDfHdQPMsk4CUjqongKvNnsi4sW1928K3Jktzx1tb2QyMYQ2OwSOnck1PJic4XY8Z1KgqurwUrdz5icmmiN7oHCoCHTIk73TNWzCeFc89aLothXVciuqiUK3UloYvdrXCecWwsKDjD7fvsuD3Vj4duoJHWhWzTJTLzluuSEtXCPhLqU53FA+6tBPNCunbiDxFHlUmprM3c2UOIcMeaxkx5CU5KM80kfpIPVJ+PAgGrYsmuiXHwSnDfVHkdh0KTXtzoYtV3U3PFpubIh3HiUtlWUPgfpNK/SHce8Oo60RtLChVXFxBGSZ0tORUOQyFAgip+7muVt5oWFoEbtZmX8kt8e9BF50mtNwZnxXJDL7OcKbcKSpJ5pVjmk4HCtcdYyOVQZEQKzlIqscjROUEzKLnGmvoKHEFk/rNLWCPtJqiFikBefp69J48g8jH3orXptrSsHyjNUr9l8/BNOp6JuAMWYPwiN6ZJlAf9eUn8AKJ4dzWoAGJF+O6r/wC1JFnxjy1KZt25zpG0xkmidFfCwCoIR+yVD+dWsy7oERCXVpUlpOEISMf/AKaHZeIsdx1xaUIbTvLWpWEoHck8qo3GZd1QoPpeiwF8woFD0lPbHNts+vmV6DmFBPbM5taXJQWi7XLUet370WGkWa3KLcHxEb3jP8lOJzwwnkD6nHOjSG+4p0DeJJOSc86r/DbaSllltLaEDdShAwEjsBVzZYZKgpXWtlyJ8BhCuQgtTZ3QTV2wOAqDBaCEgYqxaTXK3ZdIniuq5FOKmOPTKGRilT0TA/qexwrxBVFmx0vNk7w4kKSropKhxSodxxoIdl6u0m4fzLmqLWnkneSic0PicJeHx3VfGtVUkEcqr50JDiT5atjzOKp7ROWNPfcF9K7QdJ6geMOHdmmbgng5AlAsSUHsW14P2ZFFoGRWe600PZb+jdu1pjTCj3FrRhxH7Kx5k/I0Eu6V1ZYT/qrr2+29pPuxZpE1kenn8wHzqvklw6EuS5N1UjNeLjOeYrGYOq9skE7jydI3sDkVKciLV9uRVvF11tTcUA5s4tqvrNXhBH4UVil2aN1o0lUUKPKvJduKjkN0PW6+67lIHtGnrTb8/rTi4R/CmryE5cFK37jLaV9RlvA+1RP4UsoSirtGUk3wdC3pzugb6v1UDeP9wrv6JAR4sp1MZr0PmPz5fZmpS7gEI3UKQgep3j/d91V0ucFqySp1XcnNR87+g+iBdER17iYzCd1pW8hx1PBKv1kp/W+srJ7btUsoDJSklajzJ5mrlxL0hXm8qe1erFtSDnFOmooWrKO320rWFrFEcKKEAcMCpTERKQOAFSkNCpuVjpUJhOBUtAxXCEYr1SKVjJH/2Q==" alt="" width="64" height="64" class="rounded-full">
+          <img src="/assets/home/como-funciona-efd346ec7b.jpg" loading="lazy" decoding="async" alt="" width="64" height="64" class="rounded-full">
           <div class="font-bold text-[14px] mt-3" style="color:#fff">Pagos seguros</div>
           <div class="text-[12.5px] mt-1 leading-relaxed" style="color:#E3EAF8">Paga con tarjeta, Yape o Plin, con protección en cada compra.</div>
         </div>
@@ -3520,7 +3772,7 @@
              loading="lazy" decoding="async" onerror="this.remove()">
         <div class="ariaTrustScrim" aria-hidden="true"></div>
         <div class="ariaTrustBody">
-          <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACgAKADASIAAhEBAxEB/8QAHAAAAQUBAQEAAAAAAAAAAAAABQABAwQGAgcI/8QAVBAAAQMDAgMCBgsKCA8BAAAAAQIDBAAFEQYhEjFBUWEHExQicYEVMkJSYpGhscHR4RYjJTNygoSSlKMkJlN0orKzwjQ1NkNERVVWY3N1g5OV0uL/xAAYAQADAQEAAAAAAAAAAAAAAAAAAQIDBP/EAB4RAQEAAgMBAQEBAAAAAAAAAAABAhESITFhQQMi/9oADAMBAAIRAxEAPwD6ypUwp67XObFPTUqAelTU9AKlSpUtgqVNSyDQD0xpGmzTBzTUqQ50AqVPzpqAVKlSoBU1PSxQD9aVIUqAelSpUAqcCmJCQSSAAMknpQZVwl3MlNm4ER+RnOpyg/8ALT7v0nzfTSMRuE6Hb2PHzZTUdvOApxWMnsA5k9woYL1NmD8FWd91HR+Wryds94BBWfiFTwrNDjyPK3ErlTMbyZB43PV0SO4YFEVbYxQXoGuLqOT+PvMeGPeQ4oJ/Wcz81cixPK/wi/3p39K4PkSBRpWajVxGnulqBB0+0Pa3W8pPb5e4fnNdC0zWxmNqK6II6OqQ6P6SaIqQs8ia48W5jmae6Og8valif7OuaB3GO58mU/IK7a1PCbcSzdGZFrdJwPKUfeye5wZT8eKtqDiaidwtBbcQlaSMFKhkEUF4LIWlaUrQoKSoZSQcgjtFPWQFsetpU/p6SIZJ4lRHMqjufm+4PenHronY9QtTn/IZbCoNySCVRnDkLA5qbVyWn0bjqBRxOUcpxTJINdVJmxSxT0qNg1PTYp6YKuXnG2WlvOuJbbQkqWtRwEgcyT0FdUGUj2annxmFWuI5jh6Snknr2oQfjUOwboGaZdvoEiY2tq1c2YqgUqk9i3R0R1COvNXYDAA22AAGAAMADsFdEnOScmqV0lSWUNswWW3pj5KWkuq4UJAGVLWRvwpHQbnIHXNHgXMUuGsctjwiKeWW9QWMNk+aPYsjHxrPz0kxfCNn/KCykf8ATv8A9U9fS38bHgBNLhFZQMa/T7a8WY/oRH01E63r0Da72j9k+ynx+jfxrikdlMUjurHBvX5OPZqzD9DP1VHNTrqLCkS3b/auBhpTqgiACSEgnrjs7aOP0uXxsFpBqFbQNANFamduwXbru0zFvDHFxJaJ8VJQCR41rO/Dtuk7pPaN60pou4PVNxnbah13tce4xw1ISQpJ4m3EHhW2oclJUNwR2ijShtUCwDtTl0VgVZLvKiy0Wi9OBUhW0aUBwpkgdCOQcA5jkeY6itKhYUMg0AuVvYuMVcWSnIOClQOFJI3CgehB3BrjT1zf8e7a7moeXRgCVjYPtnZLg+Yjoe4inZubgl/K0tKo23Aoc67BrPSz0hSpwOgopwOvTrywzborvi5MxRSFjm02PbueoHA7yKtx2mYzDbEdAbYaSENpHRIoZZ1eWzZt15pcWYsY/wDCbOFKH5S+I+gCiazvinIW0g33rP6i8zVunVj2xTLRz6FtOfmrQoGBWc1Qf436ZT2qlf2QonpXxoIyMipVYG1cMnhTXLqqlThxYqq68AKUlfSqDzh3qpE2p1SMHnVPUMgHTVzzv/A3v6hqB1w880zqW5cJ+I+T4p9pbS8HfhUCDjv3q+KNgCmIt0YbSy4qPKjOqXGkN7LaWFHcfSORFajT95XL/gNxQlm4tJypI2Q8ke7R3do6V5lBXqvTzhiv2Zm4obJCJTUpCA6nOyilRBBPUfPzq5Pv93nxglvTfBNaPFGcTPQkoX0ORn5jmtcsNomWnqri+lRmsx4P9TSNQ2Iv3GEIVxjPrizGUrC0h1OMlJHNJBBFaLxgPWsbNVpvboHehWo4by227lCQFTYhK2x/KJ902e5Q+XB6UUKhiukqBGKJdXYs2hs9xZmRGpDKstuJCknuPb30WbUCkVjYB9jb3Jt42aWfKGO4KOFgehW/51amM7xJG9PPHV6PG7na8mqWoZS4NjmSm/xqGiGvy1ean+kRVxBoRqslaLZE6P3BriHwUBTh+VIqJN1Vuot2yMiFBjxEe1jtJbHfgbn46nR5y81wNk1IzQUTJrNaoGdbaWHfL/shWmRWX1Wrh1xpL4TsofuqMfRl40hOE1mXbhqoE4sED13D7K0jxISetZR69X0E/wAVX8d8xunjCyqCRcNVnP4Bt3/sPsqk7P1Tg5sduH6f9lTvXq+EH+Kr47/LG/qqk5eb2Tg6YeH6Yj6q1kZuFztTZ/xJA/bvspCfqYf6kgft32Vz7KXcnfTbw/S0fVTLul3A2049+1I+qqhJWFXmXIQida4bLBJ41olcaht0GN6JW+2x25CFhG4UKH264XJ+Uht+yOx21Z4nDISoJ27Bzo7GOHU+kUURkNJuJgm6JGy3btKWvvIXw/MkVrokoLA3rDPNuRpk1zOy5r6x63V/VRq1SicZNVnjvssa1qFZrtKsHNUYjnEkb1bSawsaQL1QyEuQrgnYsvcCj8Bfmn5eE+qilreJQM1Be2DJsspocy0SPSBkVWtL+eE59sAoesZq7N4FOsmraO1Cb8OK+2NPFgBb68duGwPpoqzyoXfwkXuyLO3nvoHpLYP92sp60vi8s4AqRg1A4cqFStmgRZBrIazcCde6LG28iV/Ymtak1htfOFPhG0EnfzpMzl/NzTwnZZXpsn1YSSBnA6VkHr/PJJ+5a7+vgH01qZC8IJ7qyEjU7XEcWe8+uJj6aeMTlUEjUM3l9zF1+NH11TXfphO+m7p8aPrruTqZknazXn1RPtqmvUTPP2HvOf5r9tayfEbTovkxRx9zd0HrR9ddm7TP93bn8aPrqWzXFNxcWhMGdHKEg5kM8APcDnnWd1PraU3e3dMaLtSb9f2seUlTnBEt+eRfc6HsQPONOT4G1ZBUhKuBSCoA8KuY7jVplJC08WU7jnXiWsHm2JDUTXvhjlQpiU5Nr06jxKt+eQhKnFd2QNu3nR1ywwLSm0WCL4UNV2yXNdW9b23pyHXXjwZIwtvKgM54VHnt0p3Dobaq4RwvygJIJEl8fv3KhtyShYBrMQr1e9KW+9yteTI0y2RZBVHuUSIoOLSp5SVl5tOySCQrKRjHF2AVqrVIiT4zM6DIakxX0BbTzSuJC0nkQeynJqJ/WigK2G9E2zkChMLkKKM8qxyaRZA42ykj2wxQWCnxSY6eX3pI+ICjkcEkbUNlseJebT71IHyU8b1or60rB2oXq8cEa3zOQjT2io9iV5bP9cUUZ5VBf4arjYpsJH4x1lQbPwxun+kBWW9VrZuIVnzqnbPKhtulidbI01Ix45tKyOwkbj1HIq8yrYU7EyriDtWI142V+EfQih7h+Yf3GPprZoVWS1kOLXejjnk5LP7sU8J2M/Gglq4UGsZJ1dZ+Ijim/sjn1VrJ6iEnJrGv6qsRUfwkP/Gv6q0wxRlULmq7RzBn/sbn1VxH1FbJcpthozONxQSniirAye042ro6qsJ29k8/9tf1VPbbvbrhJDESZ41zhKuHhUNhz5jvqrPidgvhLv0+0wYFksCm/uhvr/kcBS9wwMZcfI6hCcq9OKDPMCROd0Fo9z2IhQ0pXfbpFTwvlxwcXim1b/f17qUs5KEkY3IrnyhuR4cdQ3CY141GmtPM+TZ5ILvE46QO0hIGezPbVvwRMyVaJttxlIxOuiTcpSgMFTr5K9/QkoT6EitNcYNudFXLwd2uPdo2mZVsjptBUbiWz99HD7Zxa1ec518/JGds1k/BSiVrfXE/wqXVpaYbZVCsDC/cNgkKd9PMZ7SrsFd+FLwLaUukwXxi7M6Vdee4ZqiUpZfCj52AogJcPdseorTsar0TYbvD0MxPTFkRi1CZjpYcLbSin72hTnDwhShuMncmn1r/ACTlNufs07UWposu4S4i35Tk2zkh1p4pJ85oK9orA3A81QBGMkVQ0DbZOm9VMRtOMOzdC6gYVPiKQk8NseKQop35NOA7DorbpQ+4+ElcK3eEBqy29CrtpuUt8tSlEoeaLuFuAJwcJ32z2dtCrlqrU17uFu0fdrp7Evm9tRJdysi1M+OakRlORFo4slKVL2UOvCB1qphS29/hgBO1EGRnYVgPAzqCVqHQUCbcT+EWC5CnZVkl9lRbWo96sBX51egw8KIrmzmq0gjbmeN5KTyzk0MuYCpOR1JNHYaQ1FdfPPh4U+k0ElgGRjsrPC92rs6GmqsJOKrs9anHKs60jMRUC3XebaccLS1GZF7ChZ89I/JXn1KFEGl74zS1RCffiNTIKAudCWXWU/yiSMLb/OTy7wmqUGU3JYalsK4mnU8ST9B7D0IrWdzbK9XQwhWRWX1WhS9c6TWOSFSifW2K0jKsgVndXPIjao0y88Clpbz7Ic9ylZbykH04OPRTw9GXgncDtnNZ+SlPHnA+Kj8xCykkJUfVQGU27x/i1/qmtMUVwkJPuR8VTMhIOwA9FQIQ7j8WsfmmrDSHAc+LV+qaZRi7rqm0WTwxw9LGyMMS9QQEKXdwcFbw40sMrGNx5igDnmQK8cma+11dtP3eGb1HM5NtkzX2rYz5M/bFxJASttSgSeBxsKwTv2ct/SvC5oPUertZRXLJIFvbTZT/AAxbSVAS2ZIdjtgkhSCVZPEAcDI61bg2WPo+z6sumqZlrZt98kiTL8mSpaYy3W0tvpUsDdHjCojbCQTnG9a43GT6XdeTRJVu1A9a4t4mTZ1hY1G7Abi3pRW/HjTogEd5wq54WFFC8nAPTNZ9+RPZtlrlm4usyXrYgNxhG8oRcbla5JaabIAJ3QU7j17V73aNBaTj21hpUJN2YVbGbep2SsOolR2zxNlQHmKI2woDIAABrVWa2MRGI1utNtajR2R4thlhoJS2knkMchV3+knhaeLxtHawuGuLrehbo8eC/dZDEqM55jj8WYygSCFk8KktqAIGMlQO9W4GgVW3TE25eETU0CEiPBgQWZluUrijLiOHxLylqB4nckJwE4xtW3f1E7bTIt1vYTcL9PuMgW+ClXuA5w+OcPuGU4JKjz5DJIoPcrNa7pqK1+DW1hx2221/2Yv7nGV5XxlbbS1Hmt10lR68I5CpuVEbbQ9giaWsht8STJmKekOy5EqQR4x951XEtZwABnsAwK11tdyoDbJ2FUVN5BUefOrGmnE+WuS5CfvDA80e/X0FY5dy1c6umqnrDLLUbqhPEv0nlQQ+e6Vd9PKlqcJUVAqWcqp44yc1hrjjppvlRdupkmok7VIk5qFujWYukc2ea7NbH4Nkr45IH+juH/OD4Cvddh35E1p64dQFoKSAQRggjnTxuis2FsKI2PLtru6W+Bd7a7b7lGRIjOgcSFZ5g5BBG4IO4I3FB3m3rC75qVv2rOeFIKlxfQOam+7mnvHIzEfaeYQ8w6h1pYyhaDkEdoNXZ+xEv5Wfm6QheIDZvOoEoSMJCbgU4HZkDNZe46OtSFFXstqRau+8vfQa9Jk+cjFAZ0PjJIq8M7P1OWMYE2aLHXhE+9n8q6vn+9UzTLbZBEq4Kx7+Y4ofKa0Mi1FSskCq/sPvyrXkzuKGDc3o5BbLWRyUppKj8ZFeczrDqTSNym3HRA9lbNcXlvXCwOupQUrX7dcdSsgZycoOx7+npwtIHJJrr2MKRtTlkGq8Ltd20FFllq36v1H4PZHEovWuUSywFnnhtaVNjffzCAeytjbnGFaOuN2n+FqfcLY0oBy4W7xTJZCfbICkBXnK4kjtGRjnW8nWxmU14qZFYkt+8eaS4PiUDXNvt8W3R/JoUGNFY4iotMspQjJ5nAAGdqq5ShgdFzPGNu2/wZ6TkwLfK4TK1JditC1nI85KXAXH1AcQGcJBx05+gaP07atLW5yFa0vLLzyn5MmQ54x+S6rmtxfuldOwAYAFWFPLByoknvp2HeNY4lhCOp5n1Dqam9nsajNKklSEngbSOJxw8kiq70lvjDbA4WUbIHb3mq0q4eNaEaOktR0nJGd1HtNcRm1LWNjis/D1sSiqUtWTRVhOBVKE3gDaiTY2rHK7ayaEUV2K4RXdQt1mnrmnpUIZLIcTyrLzLfKtkhcq0rS1xHicYUMtOHtwPanvHrBrXVDIZStOCKvHLRWbZuLqOA6sMTcwJJOOB72qj8FfI/Ie6iamgocQGQevbVK6WVl9BBbSoHmCMg0BFsnwDi3zJMVPvUK4kfqKyPixVzjWfc9aVTAPTNceSjOeGg8a531k4dNvlD4SVsq+TiHzUQZu8xZw5Z897cttXz4o438G4sGMMbAVGqN2pqZE59Q2tTwPwnm//qu0yZKtjEZaHat4H5qJKOlNULi5Co1wCTwhGVHoBk0SUtJ3W5nuTsPrqF+SrgKEK4UnonbPp6mqmVGgG4QQ0TxuJSv3g3I9PQUNQxwqPCCSeZPM0ddZKjsnanahjYlNVz1E8QuPGKjvsKLw44SBgVZaipHSrTbQHSscsttJNEy3gCrLac0yEVKkYqNqj//Z" alt="" width="64" height="64" class="rounded-full">
+          <img src="/assets/home/como-funciona-3338a52358.jpg" loading="lazy" decoding="async" alt="" width="64" height="64" class="rounded-full">
           <div class="font-bold text-[14px] mt-3" style="color:#fff">Aduana resuelta</div>
           <div class="text-[12.5px] mt-1 leading-relaxed" style="color:#E3EAF8">Nosotros nos encargamos de todo el trámite de importación.</div>
         </div>
@@ -3530,7 +3782,7 @@
              loading="lazy" decoding="async" onerror="this.remove()">
         <div class="ariaTrustScrim" aria-hidden="true"></div>
         <div class="ariaTrustBody">
-          <img src="data:image/jpeg;base64,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" alt="" width="64" height="64" class="rounded-full">
+          <img src="/assets/home/como-funciona-8fb37917b8.jpg" loading="lazy" decoding="async" alt="" width="64" height="64" class="rounded-full">
           <div class="font-bold text-[14px] mt-3" style="color:#fff">Entrega puerta a puerta</div>
           <div class="text-[12.5px] mt-1 leading-relaxed" style="color:#E3EAF8">Rápido y confiable a cualquier parte de Perú.</div>
         </div>
@@ -3547,8 +3799,11 @@
     <div data-honest-banner></div>
     <div class="relative mb-5">
       <input id="searchInput2" onkeydown="if(event.key==='Enter')doSearch(2)" placeholder="¿Qué estás buscando hoy?"
-        class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition"
+        class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[94px] text-[14px] outline-none focus-ring transition"
         style="border-color:var(--line)">
+      <button onclick="openVisualSearch('search')" aria-label="Buscar por foto" title="Buscar por foto" class="absolute right-[46px] top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl grid place-items-center focus-ring transition" style="background:#EEF3FB; color:var(--navy)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
       <button onclick="doSearch(2)" aria-label="Buscar" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
       </button>
@@ -4422,7 +4677,7 @@
        The white top nav stays. Gold is for accents; yellow is only ever
        a sale badge, never a header. -->
   <section class="ariaTiendasHero">
-    <img src="assets/tiendas/tiendas-hero.jpg" alt="" aria-hidden="true" class="ariaTiendasHeroPhoto"
+    <img loading="lazy" src="assets/tiendas/tiendas-hero.jpg" alt="" aria-hidden="true" class="ariaTiendasHeroPhoto"
          decoding="async" fetchpriority="high" onerror="this.remove()">
     <div class="ariaTiendasHeroScrim" aria-hidden="true"></div>
     <div class="ariaGoldHair"></div>
@@ -4560,6 +4815,8 @@
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="tStoreRail-finishline" data-store-rail-row="finishline" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <section aria-label="Zumiez" data-store-rail="zumiez" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
@@ -4908,12 +5165,90 @@
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="tStoreRail-hottopic" data-store-rail-row="hottopic" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <section aria-label="BoxLunch" data-store-rail="boxlunch" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #F26522 20%, #F26522 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
           <span class="storeRailPlaque"><img src="logos/boxlunch.png" alt="BoxLunch" data-retailer="boxlunch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
           <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">BoxLunch</span>
+        </span>
           <button onclick="openStore('boxlunch')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
       <div id="tStoreRail-boxlunch" data-store-rail-row="boxlunch" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Banana Republic" data-store-rail="bananarepublic" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #766A57 20%, #766A57 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/bananarepublic.png" alt="Banana Republic" data-retailer="bananarepublic" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Banana Republic</span>
+        </span>
+          <button onclick="openStore('bananarepublic')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="tStoreRail-bananarepublic" data-store-rail-row="bananarepublic" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Gap" data-store-rail="gap" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #001E41 20%, #001E41 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/gap.png" alt="Gap" data-retailer="gap" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Gap</span>
+        </span>
+          <button onclick="openStore('gap')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="tStoreRail-gap" data-store-rail-row="gap" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Abercrombie & Fitch" data-store-rail="abercrombie" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/abercrombie-fitch.png" alt="Abercrombie & Fitch" data-retailer="abercrombie" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Abercrombie & Fitch</span>
+        </span>
+          <button onclick="openStore('abercrombie')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="tStoreRail-abercrombie" data-store-rail-row="abercrombie" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Hollister" data-store-rail="hollister" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #041E42 20%, #041E42 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/hollister.png" alt="Hollister" data-retailer="hollister" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Hollister</span>
+        </span>
+          <button onclick="openStore('hollister')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 4–9 días.</span></div>
+      <div id="tStoreRail-hollister" data-store-rail-row="hollister" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
   </section>
@@ -5157,7 +5492,7 @@
              width. No stand-in person is ever generated or shown. -->
         <figure id="aboutFounderPhoto" class="md:sticky md:top-[92px]">
           <div class="rounded-3xl overflow-hidden" style="border:1px solid var(--line); background:var(--sky)">
-            <img src="assets/about-fundador.jpg" alt="El fundador de Aria" class="w-full h-auto block"
+            <img loading="lazy" decoding="async" src="assets/about-fundador.jpg" alt="El fundador de Aria" class="w-full h-auto block"
                  onerror="this.setAttribute('data-img-failed','1'); window.hideFounderPhoto && hideFounderPhoto()">
           </div>
           <figcaption class="text-[12.5px] mt-3" style="color:#6B7487">Lima, Perú.</figcaption>
@@ -5329,7 +5664,7 @@
 
   <section class="ariaNavyBand relative overflow-hidden">
     <!-- HERO FOTOGRAFICO (2026-09-25): pedido por Danny. Overlay navy para legibilidad. -->
-    <img class="ariaDevolHeroBg" src="assets/devoluciones/hero-contenedores.jpg" alt="" aria-hidden="true">
+    <img srcset="assets/devoluciones/hero-contenedores-1200.jpg 1200w, assets/devoluciones/hero-contenedores.jpg 1920w" sizes="100vw" loading="lazy" decoding="async" class="ariaDevolHeroBg" src="assets/devoluciones/hero-contenedores.jpg" alt="" aria-hidden="true">
     <div class="ariaDevolHeroShade" aria-hidden="true"></div>
     <div class="ariaGoldHair"></div>
     <div class="max-w-[1120px] mx-auto px-5 py-14 sm:py-16 ariaDevolHeroContent">
@@ -5597,7 +5932,7 @@
      same honest "en trámite" framing as the footer and Nosotros page. -->
 <div id="termsView" class="view">
   <section class="ariaNavyBand relative overflow-hidden">
-    <img src="assets/terminos/header-texture.jpg" alt="" aria-hidden="true" class="terms-texture" />
+    <img loading="lazy" decoding="async" src="assets/terminos/header-texture.jpg" alt="" aria-hidden="true" class="terms-texture" />
     <div class="ariaGoldHair"></div>
     <div class="max-w-[860px] mx-auto px-5 py-10 sm:py-12">
       <h1 class="text-[32px] sm:text-[36px] font-extrabold tracking-[-0.03em] mb-3" style="color:#fff">Términos y condiciones</h1>
@@ -6022,7 +6357,8 @@
 .ariaShimmer {
   background: linear-gradient(90deg, #EEF1F7 0%, #F7F9FC 50%, #EEF1F7 100%);
   background-size: 420px 100%;
-  animation: ariaShimmer 1.25s linear infinite;
+  /* Finite, like .ariaSkeleton above: an endless sheen repaints forever. */
+  animation: ariaShimmer 1.25s linear 4;
 }
 @media (prefers-reduced-motion: reduce) {
   .ariaShimmer { animation: none; }
@@ -6236,7 +6572,7 @@
          wrapper so both frames move as one. -->
     <div id="ariaOrbFloat" style="width:100%;height:100%;position:relative;">
       <img id="ariaOrbImg" src="assets/aria-orb-pixar-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
-      <img id="ariaOrbBlink" src="assets/aria-orb-pixar-blink-320.png" alt="" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity 90ms ease-in-out;pointer-events:none;">
+      <img id="ariaOrbBlink" data-src="assets/aria-orb-pixar-blink-320.png" alt="" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity 90ms ease-in-out;pointer-events:none;">
     </div>
     <span class="aria-orb-ring" aria-hidden="true"></span>
   </div>
@@ -6321,6 +6657,11 @@
     <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleAriaVoice()" aria-label="Hablar con Aria" title="Hablar con Aria" aria-pressed="false" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--navy); color:#fff">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
     </button>
+    <button id="assistantPhotoBtn" onclick="openVisualSearch('assistant')" aria-label="Buscar por foto" title="Buscar por foto" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 focus-ring transition" style="border:1.5px solid var(--line); background:#fff; color:var(--navy)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </button>
+    <input id="visualFileAssistant" type="file" accept="image/*" class="hidden" onchange="onVisualFileChosen(this,'assistant')">
+    <input id="visualFileSearch" type="file" accept="image/*" class="hidden" onchange="onVisualFileChosen(this,'search')">
     <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" class="flex-1 h-12 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
     <button id="assistantSendBtn" onclick="sendAssistantText()" aria-label="Enviar" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14-7-7 14-2-5-5-2Z"/></svg>
@@ -6510,7 +6851,7 @@
   </div>
 </div>
 
-<script src="/build/app-dd9a4b1ddf77.js"></script>
+<script src="/build/app-00f144af35f91d9b.js"></script>
 
 
 
@@ -6659,6 +7000,20 @@ initRouter();
     }
     window.location.href = '/search.html?q=' + encodeURIComponent(raw);
   };
+  /* WARM THE SEARCH SERVER WHILE THE SHOPPER TYPES (2026-10-19, #409).
+     Search answers on the server now; the first request to a cold
+     function spends a couple of seconds loading the index. One ping on
+     the first focus of a search box pays that while the words are still
+     being typed. Fire and forget: it can only help. */
+  let searchWarmed = false;
+  ['searchInput', 'searchInput2', 'searchInputD'].forEach(function(id){
+    const box = document.getElementById(id);
+    if (box) box.addEventListener('focus', function(){
+      if (searchWarmed) return;
+      searchWarmed = true;
+      try { fetch('/.netlify/functions/search?warm=1').catch(function(){}); } catch(e){}
+    });
+  });
   // Override openAriaAuto
   window.openAriaAuto = function(sourceKey){
     window.location.href = '/auto.html';

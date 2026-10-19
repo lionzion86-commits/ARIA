@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tu carrito — Aria Shop</title>
 <meta name="description" content="Revisa tu pedido antes de pagar.">
+<!-- THE CART LIVES IN ONE PLACE (2026-10-18, #367 rehearsal). This page
+     was an "under construction" placeholder with no cart in it; the
+     real cart is the homepage's cart view (?carrito=1), which reads the
+     same aria_cart_v1 every product page writes. Any old link, bookmark or
+     history entry to /carrito.html lands there instead of a blank page. -->
+<meta http-equiv="refresh" content="0; url=/?carrito=1">
+<script>location.replace('/?carrito=1' + (location.hash || ''));</script>
 <style>
 :root{--navy:#0A1F44;--blue:#2456A0;--gold:#F4C463;--sky:#F2F6FF;--line:#E4E9F2;--ink:#1A2333;--muted:#6B7280;--green:#16A34A;--red:#DC2626}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -49,6 +56,10 @@ footer a{color:#fff}
 .err-box{border:1px solid #FECACA;background:#FEF2F2;border-radius:16px;padding:32px 20px;text-align:center;margin:24px 0}
 .err-box strong{display:block;font-size:18px;color:var(--navy);margin-bottom:8px}
 </style>
+<script src="/ref.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
 </head>
 <body>
 <header class="site-header">
@@ -73,13 +84,9 @@ footer a{color:#fff}
 <div class="hero">
 <div class="kicker">Tu pedido</div>
 <h1>Tu <span class="gold">carrito</span></h1>
-<p class="lead">Estamos reconstruyendo el carrito para que nunca falle.</p>
+<p class="lead">Abriendo tu carrito…</p>
 </div>
-<div class="err-box">
-<strong>Carrito en reconstrucción</strong>
-<span>Estamos moviendo el carrito a la nueva plataforma a prueba de fallos.<br>Vuelve pronto — tus compras están a salvo.</span>
-</div>
-<div style="text-align:center"><a class="btn" href="search.html">Seguir buscando</a></div></main>
+<div style="text-align:center"><a class="btn" href="/?carrito=1">Ver mi carrito</a> <a class="btn" href="checkout.html">Finalizar compra</a></div></main>
 <footer>
 <a href="https://ariashop.pe/">Aria Shop</a> · 
 <a href="como-funciona.html">Cómo funciona</a> · 
@@ -91,5 +98,7 @@ footer a{color:#fff}
 <a href="https://ariashop.pe/privacidad">Privacidad</a>
 <br><br>© 2026 Aria Shop. Todos los derechos reservados.
 </footer>
+<!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/assets/js/aria-launcher.js" defer></script>
 </body>
 </html>

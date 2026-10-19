@@ -91,9 +91,17 @@ check("every item on sale has a was-price above its price and a badge between 5%
     assert.ok(pct >= 5 && pct <= 70, `${rk} "${it.name || it.title}" badges -${pct}%`);
   }
   const feed = JSON.parse(readFileSync(ROOT + "ofertas-feed.json", "utf8")).items || [];
+  /* The feed is built with this rule (scripts/build-ofertas-feed.mjs,
+     2026-10-13 #386), so no row may sit outside it: none over 70% off,
+     none the rule would not call a sale. */
   const over = feed.filter(it => Math.round((1 - it.price / it.originalPrice) * 100) > 70);
-  assert.ok(over.length > 0, "the feed has no over-70% rows left (update this check)");
-  assert.ok(over.every(it => !P.isOnSaleItem(it)), "an over-70% feed row is on sale");
+  assert.equal(over.length, 0, `${over.length} feed rows are over 70% off — rebuild: node scripts/build-ofertas-feed.mjs`);
+  /* Feed prices are card prices: the tiered margin can round a raw 5%
+     markdown down to a 4% badge above $500 (one RevZilla helmet today).
+     Nothing else may fall under the floor. */
+  const under = feed.filter(it => Math.round((1 - it.price / it.originalPrice) * 100) < 5);
+  assert.ok(under.length <= 3 && under.every(it => Math.round((1 - it.price / it.originalPrice) * 100) === 4 && it.originalPrice > 500),
+    "feed rows under the 5% floor: " + under.slice(0, 3).map(it => it.retailer + " " + it.title).join(" | "));
 });
 
 check("normalizeLiveItem builds its badge from the same rule", () => {
@@ -109,6 +117,9 @@ check("normalizeLiveItem builds its badge from the same rule", () => {
 
 /* The standalone pages. */
 const PAGES = ["tienda.html", "marca.html", "ofertas.html", "departamento.html", "motos.html", "disenadores.html", "ropa-interior.html"];
+/* ofertas.html draws server-built slices (#409): its sale rule runs in
+   scripts/build-ofertas-slices.mjs, so it loads no rule of its own. */
+const RULE_PAGES = PAGES.filter((p) => p !== "ofertas.html");
 const win = {};
 new Function("window", readFileSync(ROOT + "sale-rule.js", "utf8"))(win);
 
@@ -116,7 +127,7 @@ check("sale-rule.js is index.html's rule today, and the standalone pages load it
   assert.equal(readFileSync(ROOT + "sale-rule.js", "utf8"), buildSaleRuleSource(), "sale-rule.js is stale — run: node scripts/build-sale-rule.mjs");
   for (const [rk, items] of Object.entries(byStore)) for (const it of items.slice(0, 400))
     assert.equal(win.AriaSale.discountPct(it), P.saleDiscountPct(it), `sale-rule.js and index.html disagree on ${rk} "${it.name || it.title}"`);
-  for (const page of PAGES) {
+  for (const page of RULE_PAGES) {
     const src = readFileSync(ROOT + page, "utf8");
     const tag = src.indexOf('<script src="sale-rule.js"></script>');
     assert.ok(tag > 0, `${page} does not load sale-rule.js`);
@@ -133,8 +144,10 @@ check("the store page: New Balance's flagged items make no Ofertas rail; CCS's c
   assert.equal((byStore.newbalance || []).filter(it => T.saleTier(it) > 0).length, 0, "New Balance's store page has an Ofertas rail");
   const ccs = (byStore.ccs || []);
   assert.equal(ccs.filter(it => T.saleTier(it) > 0).length, ccs.filter(P.rawItemOnSale).length, "CCS's store page and department disagree");
-  /* The crossed-out price carries the same margin and tax as the price. */
-  assert.match(src, /'<span class="price-old">' \+ fmtUSD\(finalUsd\(p\.originalPrice, storeKey\)\)/, "the store card crosses out the raw US price");
+  /* The crossed-out price carries the same margin and tax as the price
+     (the storefront card draws slices since #409 T2: the was-price goes
+     through finalUsd before it is shown). */
+  assert.match(src, /var wasF = p\.was && p\.was > p\.price \? finalUsd\(p\.was, storeKey\) : 0;/, "the store card crosses out the raw US price");
 });
 
 check("no standalone page treats a bare onSale flag as a sale", () => {
@@ -143,9 +156,13 @@ check("no standalone page treats a bare onSale flag as a sale", () => {
     assert.ok(!/!!\(\s*(?:raw|it)\.onSale\b/.test(src), `${page} copies the merchant flag into onSale`);
     assert.ok(!/\(\s*a\.onSale\s*\?\s*1/.test(src), `${page} sorts by the merchant flag`);
   }
-  const ofertas = readFileSync(ROOT + "ofertas.html", "utf8");
-  assert.match(ofertas, /window\.AriaSale\.isMixDeal\(p\)/, "ofertas.html has its own deal gate");
-  assert.ok(!/PRICE_CAP_USD|MAX_PCT\s*=/.test(ofertas), "ofertas.html keeps its own cap or ceiling");
+  const ofertas = readFileSync(ROOT + "scripts/build-ofertas-slices.mjs", "utf8");
+  /* The gate is the one rule; the $150 cap is the shared rule's own and
+     applies to the all-stores mix only (#386: a single store shows its
+     full count). */
+  assert.match(ofertas, /if \(!sale\.isOnSale\(p\)\) continue;/, "the Ofertas slices have their own deal gate");
+  assert.match(ofertas, /m: sale\.isMixDeal\(p\) \? 1 : 0/, "the Ofertas mix keeps its own price cap");
+  assert.ok(!/PRICE_CAP_USD|MAX_PCT\s*=/.test(ofertas), "the Ofertas slices keep their own cap or ceiling");
 });
 
 const MIN_CHECKS = 8;

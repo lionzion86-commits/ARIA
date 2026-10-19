@@ -64,7 +64,70 @@ footer a{color:#fff}
 .confirm-msg{font-size:15px;font-weight:700;color:var(--green);margin-bottom:10px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,24px);background:var(--navy);color:#fff;padding:13px 22px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:999;max-width:90vw;text-align:center;line-height:1.4}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+/* Related rails (2026-10-18): same store, same category, sale items only. */
+.rel-rail{margin:28px 0 8px}
+.rel-rail h2{font-size:19px;font-weight:800;color:var(--navy);margin:0 0 12px;letter-spacing:-.01em}
+.rel-row{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+.rel-card{flex:0 0 156px;scroll-snap-align:start;border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;color:var(--ink);text-decoration:none;display:flex;flex-direction:column}
+.rel-card:hover{text-decoration:none;border-color:var(--blue)}
+/* THE CARD HOLDS ITS SHAPE (2026-10-19, #409 T1): the photo box is a
+   square from the first paint -- aspect-ratio, plus the padding-top
+   square for Safari releases that ignore it -- and the text rows
+   reserve their lines, so nothing collapses while photos arrive. */
+.rel-img{position:relative;width:100%;aspect-ratio:1/1;background:#f7f8fb;overflow:hidden}
+@supports not (aspect-ratio:1/1){.rel-img{height:0;padding-top:100%}}
+.rel-img img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block}
+.rel-body{padding:9px 10px 11px;display:flex;flex-direction:column;gap:3px}
+.rel-store{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;min-height:14px}
+.rel-title{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.rel-pricebox{min-height:36px}
+.rel-price{font-size:15px;font-weight:800;color:var(--navy)}
+.rel-was{font-size:12px;color:var(--muted);text-decoration:line-through;margin-left:4px;font-weight:500}
+.rel-usd{display:block;font-size:11.5px;color:var(--muted)}
+.rel-off{font-size:11px;font-weight:800;color:var(--red);min-height:14px}
+/* Placeholders: the same boxes, grey bars where the words go. */
+.sk i{display:block;height:10px;border-radius:5px;background:var(--line);margin:3px 0}
+.sk .rel-title i:last-child{width:60%}
+.sk .rel-pricebox i{height:15px;width:50%}
+/* The product photo: a square box before the photo arrives. */
+.p-photo{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;border:1px solid var(--line);background:#f7f8fb;overflow:hidden}
+@supports not (aspect-ratio:1/1){.p-photo{height:0;padding-top:100%}}
+.p-photo img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block}
+/* THE GALLERY (2026-10-19, #434 / #440): every photo of the product in
+   the same square box -- a swipe track of square slides (scroll-snap),
+   a counter, and a row of square thumbnails whose height is reserved
+   when the product renders. A slide's photo waits in data-src until the
+   slide is next to the one on screen; the thumbnails wait for the
+   first photo. Buttons only: nothing here links anywhere. */
+.g-track{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.g-track::-webkit-scrollbar{display:none}
+.g-slide{position:relative;flex:0 0 100%;width:100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always}
+.g-count{position:absolute;right:10px;bottom:10px;background:rgba(10,31,68,.72);color:#fff;font-size:12px;font-weight:700;border-radius:10px;padding:3px 8px;pointer-events:none;font-variant-numeric:tabular-nums}
+.g-nav{position:absolute;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--navy);font-size:20px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0}
+.g-prev{left:8px}.g-next{right:8px}
+@media(hover:hover) and (pointer:fine){.g-nav{display:flex}}
+.grid2>*{min-width:0}
+.g-thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 1px 4px;height:74px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.g-thumb{position:relative;flex:0 0 56px;width:56px;height:56px;border-radius:10px;border:1.5px solid var(--line);background:#f7f8fb;overflow:hidden;padding:0;cursor:pointer}
+.g-thumb img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block}
+.g-thumb[aria-current="true"]{border-color:var(--navy);border-width:2px}
+.p-sk-line{display:block;height:14px;border-radius:7px;background:var(--line);margin:0 0 10px}
+.p-pen{font-size:28px;font-weight:800;color:var(--navy)}
+.p-was{font-size:15px;color:var(--muted);text-decoration:line-through;margin-left:8px;font-weight:500}
+.p-off{display:inline-block;background:var(--gold);color:var(--navy);font-size:12px;font-weight:800;border-radius:8px;padding:3px 7px;margin-left:8px;vertical-align:middle}
+.p-usd{font-size:14px;color:var(--muted);margin-top:2px}
+.p-tax{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f7f8fb;border:1px solid var(--line);min-height:58px}
+.p-tax-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;color:var(--navy)}
+.p-tax-row b{white-space:nowrap;text-align:right}
+.p-tax-row small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.p-tax-note{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
 </style>
+<script src="/ref.js"></script>
+<script src="sale-rule.js"></script>
+<script src="product-type.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
 </head>
 <body>
 <header class="site-header">
@@ -87,10 +150,16 @@ footer a{color:#fff}
 </header>
 <main>
 <div id="product-wrap">
-  <div id="p-loading" class="hero">
-    <div class="kicker">Producto</div>
-    <h1 id="p-title">Cargando producto…</h1>
-    <p class="lead" id="p-status">Buscando en el catálogo…</p>
+  <div id="p-loading" class="grid2" style="align-items:start" aria-busy="true">
+    <div class="p-photo"></div>
+    <div>
+      <div class="kicker">Producto</div>
+      <h1 id="p-title" style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 12px">Cargando producto…</h1>
+      <span class="p-sk-line" style="width:40%"></span>
+      <span class="p-sk-line" style="width:55%;height:26px"></span>
+      <span class="p-sk-line" style="width:100%;height:46px;border-radius:12px;margin-top:22px"></span>
+      <p class="size-note" id="p-status">Cargando…</p>
+    </div>
   </div>
   <div id="p-body"></div>
 </div>
@@ -110,14 +179,233 @@ footer a{color:#fff}
    product costs the same here as it does everywhere else.
 
    THE STORE IS A FAST PATH, NOT A REQUIREMENT. A card knows which
-   store it came from and passes ?tienda=, so the page fetches one
-   catalogue instead of sixty-three. Without it, or on a miss, it
-   falls back to loading everything rather than failing.
-   ===================================================================== */
-var CATALOG_FILES = ["/department-cache-walmart.json", "/department-cache-target.json", "/department-cache-oldnavy.json", "/department-cache-footlocker.json", "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json", "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json", "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json", "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json", "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json", "/kohls-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json", "/advanceauto-catalog.json", "/nautilus-catalog.json", "/islandwatersports-catalog.json", "/quietstorm-catalog.json", "/surfworld-catalog.json", "/surfstation-catalog.json", "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json", "/everlast-catalog.json", "/mmawarehouse-catalog.json", "/combatcorner-catalog.json", "/fuji-catalog.json", "/fightclub-catalog.json", "/crocs-catalog.json", "/baublebar-catalog.json", "/jwpei-catalog.json", "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json", "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json", "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json", "/target-catalog.json", "/soccer-catalog.json", "/tennis-catalog.json", "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json", "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json", "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json", "/boxlunch-catalog.json"];
-var STORE_FILES   = {"revolve": ["/revolve-catalog.json"], "target": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"], "footlocker": ["/department-cache-footlocker.json"], "newbalance": ["/newbalance-catalog.json"], "walmart": ["/department-cache-walmart.json", "/juguetes-catalog.json"], "advanceauto": ["/advanceauto-catalog.json"], "macys": ["/macys-catalog.json"], "kohls": ["/kohls-catalog.json"], "dicks": ["/dicks-catalog.json"], "finishline": ["/finishline-catalog.json"], "bhphoto": ["/bhphoto-catalog.json"], "costco": ["/costco-catalog.json", "/juguetes-catalog.json"], "victoriassecret": ["/beauty-catalog.json"], "ulta": ["/ulta-catalog.json"], "pacsun": ["/pacsun-catalog.json"], "zumiez": ["/zumiez-catalog.json"], "nautilus": ["/nautilus-catalog.json"], "prosoccer": ["/soccer-catalog.json"], "xtremesoccer": ["/soccer-catalog.json"], "tennisexpress": ["/tennis-catalog.json"], "tenniswarehouse": ["/tennis-catalog.json"], "academy": ["/soccer-catalog.json"], "islandwatersports": ["/islandwatersports-catalog.json"], "quietstorm": ["/quietstorm-catalog.json"], "surfworld": ["/surfworld-catalog.json"], "surfstation": ["/surfstation-catalog.json"], "mainland": ["/mainland-catalog.json"], "parrot": ["/parrot-catalog.json"], "ccs": ["/ccs-catalog.json"], "valsurf": ["/valsurf-catalog.json"], "oldnavy": ["/department-cache-oldnavy.json"], "samsclub": ["/samsclub-catalog.json"], "lanebryant": ["/lanebryant-catalog.json"], "alphalete": ["/gymrat-catalog.json"], "youngla": ["/gymrat-catalog.json"], "gymshark": ["/gymrat-catalog.json"], "venum": ["/venum-catalog.json"], "tatami": ["/tatami-catalog.json"], "everlast": ["/everlast-catalog.json"], "mmawarehouse": ["/mmawarehouse-catalog.json"], "combatcorner": ["/combatcorner-catalog.json"], "fuji": ["/fuji-catalog.json"], "crocs": ["/crocs-catalog.json"], "baublebar": ["/baublebar-catalog.json"], "jwpei": ["/jwpei-catalog.json"], "meliebianco": ["/meliebianco-catalog.json"], "bentgo": ["/bentgo-catalog.json"], "mushie": ["/mushie-catalog.json"], "ezpz": ["/ezpz-catalog.json"], "statebags": ["/statebags-catalog.json"], "assouline": ["/books-catalog.json"], "chronicle": ["/books-catalog.json"], "walmartbaby": ["/moms-catalog.json"], "momcozy": ["/moms-catalog.json"], "elvie": ["/moms-catalog.json"], "spectra": ["/moms-catalog.json"], "munchkin": ["/moms-catalog.json"], "babybrezza": ["/moms-catalog.json"], "drbrowns": ["/moms-catalog.json"], "mockingbird": ["/moms-catalog.json"], "nanit": ["/nanit-catalog.json"], "owlet": ["/owlet-catalog.json"], "kindredbravely": ["/moms-catalog.json"], "hatch": ["/moms-catalog.json"], "bellybandit": ["/moms-catalog.json"], "freshlypicked": ["/moms-catalog.json"], "jujube": ["/moms-catalog.json"], "dagnedover": ["/moms-catalog.json"], "lillebaby": ["/moms-catalog.json"], "skims": ["/skims-catalog.json"], "ssense": ["/ssense-catalog.json"], "miumiu": ["/miumiu-catalog.json"], "yesstyle": ["/yesstyle-catalog.json"], "farfetch": ["/farfetch-catalog.json"], "hottopic": ["/hottopic-catalog.json"], "boxlunch": ["/boxlunch-catalog.json"], "sephora": ["/beauty-catalog.json"], "partycity": ["/partycity-catalog.json"], "elite": ["/fightclub-catalog.json"], "gameness": ["/fightclub-catalog.json"], "americaneagle": ["/ae-catalog.json"], "farmrio": ["/latino-designers-dtc-catalog.json"], "aguabendita": ["/latino-designers-dtc-catalog.json"], "patbo": ["/latino-designers-dtc-catalog.json"], "johannaortiz": ["/latino-designers-dtc-catalog.json"], "silviatcherassi": ["/latino-designers-dtc-catalog.json"], "capittana": ["/latino-designers-dtc-catalog.json"], "ancora": ["/latino-designers-dtc-catalog.json"], "vix": ["/latino-designers-dtc-catalog.json"], "montce": ["/latino-designers-dtc-catalog.json"], "eberjey": ["/latino-designers-dtc-catalog.json"], "tns": ["/latino-designers-dtc-catalog.json"], "revzilla": ["/moto-catalog.json"], "denniskirk": ["/moto-catalog.json"], "smartbuyglasses": ["/sunglasses-catalog.json"]};
-var STORE_LABELS  = {"revolve": "Revolve", "target": "Target", "footlocker": "Foot Locker", "newbalance": "New Balance", "walmart": "Walmart", "advanceauto": "Advance Auto Parts", "macys": "Macy's", "kohls": "Kohl's", "dicks": "Dick's Sporting Goods", "finishline": "Finish Line", "bhphoto": "B&H Photo", "costco": "Costco", "victoriassecret": "Victoria's Secret", "ulta": "Ulta Beauty", "pacsun": "PacSun", "zumiez": "Zumiez", "nautilus": "Nautilus Spearfishing", "prosoccer": "ProSoccer", "xtremesoccer": "Xtreme Soccer", "tennisexpress": "Tennis Express", "tenniswarehouse": "Tennis Warehouse", "academy": "Academy Sports", "islandwatersports": "Island Water Sports", "quietstorm": "Quiet Storm Surf Shop", "surfworld": "Surf World", "surfstation": "Surf Station", "mainland": "Mainland Skate & Surf", "parrot": "Parrot Surf & Skate", "ccs": "CCS", "valsurf": "Val Surf", "oldnavy": "Old Navy", "samsclub": "Sam's Club", "lanebryant": "Lane Bryant", "alphalete": "Alphalete", "youngla": "YoungLA", "gymshark": "Gymshark", "venum": "Venum", "tatami": "Tatami Fightwear", "everlast": "Everlast", "mmawarehouse": "MMAWarehouse", "combatcorner": "Combat Corner", "fuji": "FUJI Sports", "crocs": "Crocs", "baublebar": "BaubleBar", "jwpei": "JW PEI", "meliebianco": "Melie Bianco", "bentgo": "Bentgo", "mushie": "Mushie", "ezpz": "ezpz", "statebags": "State Bags", "assouline": "Assouline", "chronicle": "Chronicle Books", "walmartbaby": "Walmart Bebé", "momcozy": "Momcozy", "elvie": "Elvie", "spectra": "Spectra", "munchkin": "Munchkin", "babybrezza": "Baby Brezza", "drbrowns": "Dr. Brown's", "mockingbird": "Mockingbird", "nanit": "Nanit", "owlet": "Owlet", "kindredbravely": "Kindred Bravely", "hatch": "Hatch", "bellybandit": "Belly Bandit", "freshlypicked": "Freshly Picked", "jujube": "JuJuBe", "dagnedover": "Dagne Dover", "lillebaby": "LÍLLÉbaby", "skims": "Skims", "ssense": "SSENSE", "miumiu": "Miu Miu", "yesstyle": "YesStyle", "bathandbodyworks": "Bath & Body Works", "farfetch": "Farfetch", "hottopic": "Hot Topic", "boxlunch": "BoxLunch", "sephora": "Sephora", "partycity": "Party City", "elite": "Elite Sports", "gameness": "Gameness", "americaneagle": "American Eagle", "farmrio": "FARM Rio", "aguabendita": "Agua Bendita", "patbo": "PatBO", "johannaortiz": "Johanna Ortiz", "silviatcherassi": "Silvia Tcherassi", "capittana": "Capittana", "ancora": "Ancora", "vix": "ViX", "montce": "Montce", "eberjey": "Eberjey", "tns": "TNS", "revzilla": "RevZilla", "denniskirk": "Dennis Kirk", "smartbuyglasses": "SmartBuyGlasses", "autozone": "AutoZone"};
+   store it came from and passes ?tienda=; without it, or on a miss,
+   the page still looks everywhere rather than failing.
 
+   ONE PRODUCT, NOT A CATALOGUE (2026-10-19, #409 track T1). The page
+   used to download that store's whole catalogue to show one product
+   -- 39.8MB for SSENSE, three files for Target, all 210MB on a miss --
+   which never finished on the Mountain profile. The catalogue scan now
+   runs at build time (scripts/build-pdp-slices.mjs lifts this page's
+   own STORE_FILES, CATALOG_FILES, extractItems and normalizeItem) and
+   the page fetches one shard of a few KB: assets/pdp/p/<hash of the
+   title>.json, which lists every record carrying that title with the
+   file and position it came from. pickRecord() then chooses the
+   record the old scan chose: the ?tienda= files first, in order, then
+   CATALOG_FILES order. The tables below stay as the build's source.
+   ===================================================================== */
+var CATALOG_FILES = ["/department-cache-walmart.json", "/department-cache-target.json", "/department-cache-oldnavy.json", "/department-cache-footlocker.json", "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json", "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json", "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json", "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json", "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json", "/kohls-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json", "/advanceauto-catalog.json", "/nautilus-catalog.json", "/islandwatersports-catalog.json", "/quietstorm-catalog.json", "/surfworld-catalog.json", "/surfstation-catalog.json", "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json", "/everlast-catalog.json", "/mmawarehouse-catalog.json", "/combatcorner-catalog.json", "/fuji-catalog.json", "/fightclub-catalog.json", "/crocs-catalog.json", "/baublebar-catalog.json", "/jwpei-catalog.json", "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json", "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json", "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json", "/target-catalog.json", "/soccer-catalog.json", "/tennis-catalog.json", "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json", "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json", "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json", "/boxlunch-catalog.json", "/hollister-catalog.json", "/abercrombie-catalog.json", "/gap-catalog.json", "/bananarepublic-catalog.json", "/bestbuy-catalog.json"];
+var STORE_FILES   = {"revolve": ["/revolve-catalog.json"], "target": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"], "footlocker": ["/department-cache-footlocker.json"], "newbalance": ["/newbalance-catalog.json"], "walmart": ["/department-cache-walmart.json", "/juguetes-catalog.json"], "advanceauto": ["/advanceauto-catalog.json"], "macys": ["/macys-catalog.json"], "kohls": ["/kohls-catalog.json"], "dicks": ["/dicks-catalog.json"], "finishline": ["/finishline-catalog.json"], "bhphoto": ["/bhphoto-catalog.json"], "costco": ["/costco-catalog.json", "/juguetes-catalog.json"], "victoriassecret": ["/beauty-catalog.json"], "ulta": ["/ulta-catalog.json"], "pacsun": ["/pacsun-catalog.json"], "zumiez": ["/zumiez-catalog.json"], "nautilus": ["/nautilus-catalog.json"], "prosoccer": ["/soccer-catalog.json"], "xtremesoccer": ["/soccer-catalog.json"], "tennisexpress": ["/tennis-catalog.json"], "tenniswarehouse": ["/tennis-catalog.json"], "academy": ["/soccer-catalog.json"], "islandwatersports": ["/islandwatersports-catalog.json"], "quietstorm": ["/quietstorm-catalog.json"], "surfworld": ["/surfworld-catalog.json"], "surfstation": ["/surfstation-catalog.json"], "mainland": ["/mainland-catalog.json"], "parrot": ["/parrot-catalog.json"], "ccs": ["/ccs-catalog.json"], "valsurf": ["/valsurf-catalog.json"], "oldnavy": ["/department-cache-oldnavy.json"], "samsclub": ["/samsclub-catalog.json"], "lanebryant": ["/lanebryant-catalog.json"], "alphalete": ["/gymrat-catalog.json"], "youngla": ["/gymrat-catalog.json"], "gymshark": ["/gymrat-catalog.json"], "venum": ["/venum-catalog.json"], "tatami": ["/tatami-catalog.json"], "everlast": ["/everlast-catalog.json"], "mmawarehouse": ["/mmawarehouse-catalog.json"], "combatcorner": ["/combatcorner-catalog.json"], "fuji": ["/fuji-catalog.json"], "crocs": ["/crocs-catalog.json"], "baublebar": ["/baublebar-catalog.json", "/jewelry-catalog.json"], "jwpei": ["/jwpei-catalog.json"], "meliebianco": ["/meliebianco-catalog.json"], "bentgo": ["/bentgo-catalog.json"], "mushie": ["/mushie-catalog.json"], "ezpz": ["/ezpz-catalog.json"], "statebags": ["/statebags-catalog.json"], "assouline": ["/books-catalog.json"], "chronicle": ["/books-catalog.json"], "walmartbaby": ["/moms-catalog.json"], "momcozy": ["/moms-catalog.json"], "elvie": ["/moms-catalog.json"], "spectra": ["/moms-catalog.json"], "munchkin": ["/moms-catalog.json"], "babybrezza": ["/moms-catalog.json"], "drbrowns": ["/moms-catalog.json"], "mockingbird": ["/moms-catalog.json"], "nanit": ["/nanit-catalog.json", "/moms-catalog.json"], "owlet": ["/owlet-catalog.json", "/moms-catalog.json"], "kindredbravely": ["/moms-catalog.json"], "hatch": ["/moms-catalog.json"], "bellybandit": ["/moms-catalog.json"], "freshlypicked": ["/moms-catalog.json"], "jujube": ["/moms-catalog.json"], "dagnedover": ["/moms-catalog.json"], "lillebaby": ["/moms-catalog.json"], "skims": ["/skims-catalog.json"], "ssense": ["/ssense-catalog.json"], "miumiu": ["/miumiu-catalog.json"], "yesstyle": ["/yesstyle-catalog.json"], "farfetch": ["/farfetch-catalog.json"], "hottopic": ["/hottopic-catalog.json"], "boxlunch": ["/boxlunch-catalog.json"], "sephora": ["/beauty-catalog.json"], "partycity": ["/partycity-catalog.json"], "elite": ["/fightclub-catalog.json"], "gameness": ["/fightclub-catalog.json"], "americaneagle": ["/ae-catalog.json"], "farmrio": ["/latino-designers-dtc-catalog.json"], "aguabendita": ["/latino-designers-dtc-catalog.json"], "patbo": ["/latino-designers-dtc-catalog.json"], "johannaortiz": ["/latino-designers-dtc-catalog.json"], "silviatcherassi": ["/latino-designers-dtc-catalog.json"], "capittana": ["/latino-designers-dtc-catalog.json"], "ancora": ["/latino-designers-dtc-catalog.json"], "vix": ["/latino-designers-dtc-catalog.json"], "montce": ["/latino-designers-dtc-catalog.json"], "eberjey": ["/latino-designers-dtc-catalog.json"], "tns": ["/latino-designers-dtc-catalog.json"], "revzilla": ["/moto-catalog.json"], "denniskirk": ["/moto-catalog.json"], "smartbuyglasses": ["/sunglasses-catalog.json"], "hollister": ["/hollister-catalog.json"], "abercrombie": ["/abercrombie-catalog.json"], "gap": ["/gap-catalog.json"], "bananarepublic": ["/bananarepublic-catalog.json"], "bestbuy": ["/bestbuy-catalog.json"]};
+var STORE_LABELS  = {"revolve": "Revolve", "target": "Target", "footlocker": "Foot Locker", "newbalance": "New Balance", "walmart": "Walmart", "advanceauto": "Advance Auto Parts", "macys": "Macy's", "kohls": "Kohl's", "dicks": "Dick's Sporting Goods", "finishline": "Finish Line", "bhphoto": "B&H Photo", "costco": "Costco", "victoriassecret": "Victoria's Secret", "ulta": "Ulta Beauty", "pacsun": "PacSun", "zumiez": "Zumiez", "nautilus": "Nautilus Spearfishing", "prosoccer": "ProSoccer", "xtremesoccer": "Xtreme Soccer", "tennisexpress": "Tennis Express", "tenniswarehouse": "Tennis Warehouse", "academy": "Academy Sports", "islandwatersports": "Island Water Sports", "quietstorm": "Quiet Storm Surf Shop", "surfworld": "Surf World", "surfstation": "Surf Station", "mainland": "Mainland Skate & Surf", "parrot": "Parrot Surf & Skate", "ccs": "CCS", "valsurf": "Val Surf", "oldnavy": "Old Navy", "samsclub": "Sam's Club", "lanebryant": "Lane Bryant", "alphalete": "Alphalete", "youngla": "YoungLA", "gymshark": "Gymshark", "venum": "Venum", "tatami": "Tatami Fightwear", "everlast": "Everlast", "mmawarehouse": "MMAWarehouse", "combatcorner": "Combat Corner", "fuji": "FUJI Sports", "crocs": "Crocs", "baublebar": "BaubleBar", "jwpei": "JW PEI", "meliebianco": "Melie Bianco", "bentgo": "Bentgo", "mushie": "Mushie", "ezpz": "ezpz", "statebags": "State Bags", "assouline": "Assouline", "chronicle": "Chronicle Books", "walmartbaby": "Walmart Bebé", "momcozy": "Momcozy", "elvie": "Elvie", "spectra": "Spectra", "munchkin": "Munchkin", "babybrezza": "Baby Brezza", "drbrowns": "Dr. Brown's", "mockingbird": "Mockingbird", "nanit": "Nanit", "owlet": "Owlet", "kindredbravely": "Kindred Bravely", "hatch": "Hatch", "bellybandit": "Belly Bandit", "freshlypicked": "Freshly Picked", "jujube": "JuJuBe", "dagnedover": "Dagne Dover", "lillebaby": "LÍLLÉbaby", "skims": "Skims", "ssense": "SSENSE", "miumiu": "Miu Miu", "yesstyle": "YesStyle", "bathandbodyworks": "Bath & Body Works", "farfetch": "Farfetch", "hottopic": "Hot Topic", "boxlunch": "BoxLunch", "sephora": "Sephora", "partycity": "Party City", "elite": "Elite Sports", "gameness": "Gameness", "americaneagle": "American Eagle", "farmrio": "FARM Rio", "aguabendita": "Agua Bendita", "patbo": "PatBO", "johannaortiz": "Johanna Ortiz", "silviatcherassi": "Silvia Tcherassi", "capittana": "Capittana", "ancora": "Ancora", "vix": "ViX", "montce": "Montce", "eberjey": "Eberjey", "tns": "TNS", "revzilla": "RevZilla", "denniskirk": "Dennis Kirk", "smartbuyglasses": "SmartBuyGlasses", "autozone": "AutoZone", "hollister": "Hollister", "abercrombie": "Abercrombie & Fitch", "gap": "Gap", "bananarepublic": "Banana Republic", "bestbuy": "Best Buy"};
+
+/* THE SHARDS (2026-10-19, #409 T1). FNV-1a over the normalised title
+   (or part number), the same function at build time and here. The
+   build fails if a shard outgrows 30KB gzipped; raise the count then. */
+var PDP_SHARDS = 4096;
+var AUTO_SHARDS = 32;
+var PDP_BASE = "/assets/pdp/";
+function pdpHash(key){
+  var h = 0x811c9dc5;
+  for (var i = 0; i < key.length; i++){ h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
+}
+function pdpShard(key){ return ("00" + (pdpHash(key) % PDP_SHARDS).toString(16)).slice(-3); }
+function autoShard(key){ return ("0" + (pdpHash(key) % AUTO_SHARDS).toString(16)).slice(-2); }
+/* The record the old download-and-scan returned: the first file of
+   `files` (in order) that carries the title, at its earliest position. */
+function pickRecord(cands, files){
+  if (!Array.isArray(cands) || !Array.isArray(files)) return null;
+  /* A title only one record carries is the answer from any store (the
+     build leaves its positions out). */
+  if (cands.length === 1 && !cands[0].src) return cands[0];
+  for (var i = 0; i < files.length; i++){
+    var best = null, bestPos = Infinity;
+    for (var j = 0; j < cands.length; j++){
+      var src = cands[j].src || [];
+      for (var k = 0; k < src.length; k++){
+        if (src[k][0] === files[i] && src[k][1] < bestPos){ best = cands[j]; bestPos = src[k][1]; }
+      }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+/* A shard's gallery back to its URLs (scripts/build-pdp-slices.mjs
+   packImages): "57|rest" is the previous URL's first 57 characters
+   (the first entry's previous is the record's `image`) then the rest;
+   an entry starting "http" is whole. No gallery: the card photo alone. */
+function unpackImages(list, image){
+  if (!Array.isArray(list) || !list.length) return image ? [String(image)] : [];
+  var out = [], prev = String(image || "");
+  for (var i = 0; i < list.length; i++){
+    var e = String(list[i] || ""), m = e.match(/^(\d+)\|/);
+    var u = m ? prev.slice(0, +m[1]) + e.slice(m[0].length) : e;
+    if (u) out.push(u);
+    prev = u;
+  }
+  return out;
+}
+/* A shard record as the page's product (normalizeItem's shape). */
+function recordToItem(r){
+  return {
+    name: r.name || "", brand: r.brand || "", price: Number(r.price) || 0,
+    image: r.image || "", url: "", retailer: r.retailer || "",
+    description: r.description || "", sizes: Array.isArray(r.sizes) ? r.sizes : [],
+    images: unpackImages(r.images, r.image),
+    sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "",
+    originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
+    wasPrice: Number(r.wasPrice) || 0, dept: r.dept || ""
+  };
+}
+function fetchJson(url, ms){
+  var ctl = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = ctl ? setTimeout(function(){ ctl.abort(); }, ms || 20000) : null;
+  return fetch(url, ctl ? { signal: ctl.signal } : {})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .catch(function(){ return null; })
+    .then(function(d){ if (timer) clearTimeout(timer); return d; });
+}
+var SHARD_CACHE = {};
+function fetchShard(key){
+  var s = pdpShard(key);
+  if (!SHARD_CACHE[s]) SHARD_CACHE[s] = fetchJson(PDP_BASE + "p/" + s + ".json");
+  return SHARD_CACHE[s].then(function(d){ return (d && d[key]) || null; });
+}
+/* One store's rail slice for one kind of product: the anchor's lane and
+   department name the file (relPick ranks by those, its gender and the
+   discount, so the file holds every item that could make its top 12). */
+function deptSlug(d){ return d ? pdpHash(String(d)).toString(36) : "all"; }
+function railPath(retailer, anchor){
+  var lane = relLane(anchor);
+  return "rails/" + String(retailer || "").toLowerCase() + "/" + (lane ? lane.key : "none") + "-" + deptSlug(anchor.dept || "") + ".json";
+}
+function fetchStoreRail(retailer, anchor){
+  if (!/^[a-z0-9_-]+$/i.test(String(retailer || ""))) return Promise.resolve([]);
+  return fetchJson(PDP_BASE + railPath(retailer, anchor)).then(function(d){ return (d && d.items) || []; });
+}
+
+/* SOLES FIRST (#416): the site's own rate -- the same endpoint and
+   24-hour cache key the home page, search and checkout use -- so a
+   slow exchange-rate call never flips the page to dollars when a
+   recent rate is on the phone already. */
+var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var PAGE_FX = null;
+async function pageRate(){
+  if (PAGE_FX) return PAGE_FX;
+  try{
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS) return (PAGE_FX = c.venta);
+  }catch(e){}
+  var d = await fetchJson("/.netlify/functions/exchange-rate", 6000);
+  if (d && typeof d.venta === "number" && d.venta > 0){
+    try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); }catch(e){}
+    PAGE_FX = d.venta;
+  }
+  return PAGE_FX;
+}
+
+/* Sized retailer derivatives (2026-10-16) -- the same rules the app
+   bundle's sizedImageUrl applies: card slots are small, retailer
+   originals are 1600-2000px, and decoding them by the hundred is
+   what kills phone tabs. A derivative that fails swaps back to the
+   original URL (data-img-orig) before the page's own error handling
+   runs, so a card never breaks because of the resize. Hosts with no
+   verified resize parameter return the URL unchanged. */
+var CARD_IMG_WIDTHS = [360, 560, 800];
+var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
+/* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sizedImageUrl(url, w){
+  var u = typeof url === "string" ? url : "";
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  function setQ(base, key, val){
+    var re = new RegExp("([?&]" + key + "=)(\\d+)", "i");
+    if (re.test(base)) return base.replace(re, function(m, p){ return p + val; });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
+  }
+  var out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, "odnWidth", w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
+      : out + "&odnHeight=" + w;
+    if (!/odnBg=/i.test(out)) out += "&odnBg=FFFFFF";
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width; the bare
+       default is already card-sized on these hosts. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, "wid", w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, function(m, p){ return p + w; });
+    }
+  } else if (/macysassets\.com/i.test(u)){
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, "wid", w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, "imwidth", w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, "w", w);
+    if (/[?&]h=\d+/i.test(out)) out = out.replace(/([?&]h=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
+      else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
+  }
+  return out || u;
+}
+function imageSrcset(url){
+  var u = typeof url === "string" ? url : "";
+  if (!u) return "";
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, "_500.jpg") + " 500w, " + u + " 1000w";
+  }
+  var seen = {}, parts = [];
+  for (var i = 0; i < CARD_IMG_WIDTHS.length; i++){
+    var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
+    if (s === u || seen[s]) continue;
+    seen[s] = 1;
+    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
+  }
+  return parts.length ? parts.join(", ") : "";
+}
+function imgOrigRetry(el){
+  if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
+    el.src = el.dataset.imgOrig;
+    el.removeAttribute("data-img-orig");
+    el.removeAttribute("srcset");
+    return true;
+  }
+  return false;
+}
+function cardImgAttrs(url, sizes){
+  var ss = imageSrcset(url);
+  return 'src="' + esc(sizedImageUrl(url, 560)) + '"' +
+    (ss ? ' srcset="' + esc(ss) + '" sizes="' + (sizes || CARD_IMG_SIZES) + '"' : '') +
+    ' data-img-orig="' + esc(url || "") + '"';
+}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function el(id){ return document.getElementById(id); }
 
@@ -140,25 +428,107 @@ function finalUsd(raw, retailer){ return Math.round((Number(raw) + tieredMarginU
 function fmtUsd(n){ return "US$ " + Number(n).toFixed(2); }
 function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
 var FX_RATE = null;
+/* IMPORT-TAX ESTIMATE LINE (#439). Mirrors weight-data.js (a test pins
+   the two): the threshold is on the goods' dutiable value (raw x the
+   store's sales-tax rate), the estimate on goods + freight. The buy box
+   shows only the product price and this line -- never the dutiable value,
+   the rate or anything else a shopper could subtract to a margin. */
+var TAX_ESTIMATE_THRESHOLD_USD = 200;
+var TAX_ESTIMATE_RATE = 0.25;
+var CHARGE_PER_KG = 13;
+var PDP_LINE_KG = 0.2;
+function importTaxEstimateUsd(fobUsd, freightUsd){
+  var fob = Number(fobUsd);
+  if (!isFinite(fob) || fob <= TAX_ESTIMATE_THRESHOLD_USD) return 0;
+  var f = Number(freightUsd);
+  return Math.round((fob + (isFinite(f) && f > 0 ? f : 0)) * TAX_ESTIMATE_RATE * 100) / 100;
+}
+function dutiableUsd(raw, retailer){ return Math.round(Number(raw) * salesTaxRate(retailer) * 100) / 100; }
+/* Soles first, dollars small and grey; dollars alone only without a rate. */
+function moneyHtml(usd){
+  return FX_RATE ? esc(fmtPen(usd * FX_RATE)) + ' <small>' + esc(fmtUsd(usd)) + '</small>' : esc(fmtUsd(usd));
+}
+function taxLineHtml(p){
+  var fob = dutiableUsd(p.price, p.retailer);
+  if (!(fob > TAX_ESTIMATE_THRESHOLD_USD)){
+    return '<div class="p-tax-row"><span>Impuestos de importación</span><b>' + moneyHtml(0) + '</b></div>'
+      + '<div class="p-tax-note">Sin recargo en pedidos de hasta US$ ' + TAX_ESTIMATE_THRESHOLD_USD + ' en productos.</div>';
+  }
+  return '<div class="p-tax-row"><span>Impuestos de importación (estimado)</span><b id="p-tax-amt">calculando…</b></div>'
+    + '<div class="p-tax-note">Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.</div>';
+}
+/* Over the threshold the estimate needs the freight, so the weight the
+   checkout will use: the same resolver, the same 0.2 kg line fallback. */
+function fillTaxEstimate(p){
+  var fob = dutiableUsd(p.price, p.retailer);
+  if (!(fob > TAX_ESTIMATE_THRESHOLD_USD)) return;
+  var line = { title: p.name, retailer: p.retailer, priceUsd: finalUsd(p.price, p.retailer), weightKg: PDP_LINE_KG, weightEstimated: true, qty: 1 };
+  var done = function(kg){
+    var amt = el("p-tax-amt");
+    if (amt) amt.innerHTML = moneyHtml(importTaxEstimateUsd(fob, (kg > 0 ? kg : PDP_LINE_KG) * CHARGE_PER_KG));
+  };
+  fetch("/.netlify/functions/resolve-weight", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [line] }) })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){ done(d && Number(d.totalKg)); }, function(){ done(0); });
+}
 
 function normalizeItem(it, retailerKey){
   try{
     if (!it || typeof it !== "object") return null;
-    var name = it.name || it.title || it.productName || "";  /* footlocker catalog uses productName */
+    /* The SAME title the cards link with (index.html normalizeLiveItem:
+       title || name || productTitle || productName). Reading name first
+       made any item carrying both a name and a different title open to
+       "No encontramos" (2026-10-18, rehearsal finding #6). */
+    var name = it.title || it.name || it.productTitle || it.productName || "";  /* footlocker catalog uses productName */
     var price = Number(it.price);
     if (!name || !(price > 0)) return null;
     var img = it.thumbnail || it.image || "";
     if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
+    /* THE GALLERY (2026-10-19, #434 / #440): every photo the store
+       gives, the card's photo first. Real http(s) photos only, one copy
+       of each (the same file at another size or ?v= is the same photo:
+       host + path decide), at most GALLERY_MAX. Self-contained on
+       purpose -- tests lift this function on its own. */
+    var images = [], seenImg = {};
+    [img].concat(Array.isArray(it.images) ? it.images : []).forEach(function(u){
+      if (images.length >= 12) return;
+      if (u && typeof u === "object") u = u.src || u.url || "";
+      u = String(u || "").trim();
+      if (u.indexOf("//") === 0) u = "https:" + u;
+      var m = u.match(/^https?:\/\/([^\/?#\s]+)([^?#\s]*)/i);
+      if (!m || /\.svg$|placeholder|no[-_]?image|spacer\.gif/i.test(m[2])) return;
+      var k = m[1].toLowerCase() + m[2];
+      if (seenImg[k]) return;
+      seenImg[k] = 1;
+      images.push(u);
+    });
     return {
-      name: String(name), brand: String(it.brand || ""), price: price,
+      name: decodeEntities(name), brand: decodeEntities(it.brand || ""), price: price,
       image: String(img || ""), url: String(it.url || it.link || ""),
       retailer: String(it.retailer || retailerKey || ""),
       description: String(it.description || it.description_en || ""),
-      sizes: Array.isArray(it.availableSizes) ? it.availableSizes : [],
-      originalPrice: Number(it.originalPrice) || 0
+      /* `sizes` is where the variant-truth merge writes (#411);
+         availableSizes is the older scrape field. Never invented. */
+      sizes: truthfulSizes(Array.isArray(it.sizes) && it.sizes.length ? it.sizes : it.availableSizes),
+      images: images,
+      /* Where the size list came from (#411 provenance), as the
+         catalogue record says it: a tier (scrape / verified / live /
+         inferred) and its source. Data only -- never rendered as a link. */
+      sizesTier: typeof it.sizesTier === "string" ? it.sizesTier : "",
+      sizesSource: typeof it.sizesSource === "string" ? it.sizesSource : "",
+      originalPrice: Number(it.originalPrice) || 0,
+      /* The site's one sale rule (sale-rule.js) judged on the raw item,
+         whatever field the store keeps its was-price in (compareAt,
+         regularPrice...). Feeds the related rails. */
+      salePct: window.AriaSale ? window.AriaSale.discountPct(it) : 0,
+      wasPrice: window.AriaSale ? (Number(window.AriaSale.originalPrice(it)) || 0) : 0,
+      dept: ""
     };
   }catch(e){ return null; }
 }
+/* The catalogue reader. The page no longer runs it (no catalogue is
+   downloaded); scripts/build-pdp-slices.mjs lifts it from here and runs
+   it over every file at build time. */
 function extractItems(data){
   var out = [];
   try{
@@ -175,39 +545,72 @@ function extractItems(data){
           var arr = Array.isArray(bucket) ? bucket
                   : (bucket && Array.isArray(bucket.items) ? bucket.items : null);
           if (!arr) return;
-          arr.forEach(function(it){ var n = normalizeItem(it, rkey); if (n) out.push(n); });
+          arr.forEach(function(it){ var n = normalizeItem(it, rkey); if (n){ if (section === "departments") n.dept = skey; out.push(n); } });
         });
       });
     });
   }catch(e){}
   return out;
 }
-function fetchOne(f){
-  return fetch(f).then(function(r){ return r.ok ? r.json() : null; })
-                 .then(function(d){ return d ? extractItems(d) : []; })
-                 .catch(function(){ return []; });
+/* HTML ENTITIES ARE TEXT, NOT TWO SPELLINGS (2026-10-19, #409). Some
+   catalogue titles carry "&#38;" where they mean "&"; search now links
+   with the plain title ("Lizzie & Oliver"), so both sides of every
+   name comparison are decoded, and so is the title this page shows. */
+var NAMED_ENTITIES = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", reg:"\u00ae", trade:"\u2122", copy:"\u00a9",
+  deg:"\u00b0", eacute:"\u00e9", ntilde:"\u00f1", rsquo:"\u2019", lsquo:"\u2018", rdquo:"\u201d", ldquo:"\u201c",
+  ndash:"\u2013", mdash:"\u2014", hellip:"\u2026" };
+function decodeEntities(s){
+  var out = String(s == null ? "" : s);
+  for (var pass = 0; pass < 2 && out.indexOf("&") >= 0; pass++){
+    out = out.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function(m, e){
+      if (e.charAt(0) === "#"){
+        var cp = (e.charAt(1) === "x" || e.charAt(1) === "X") ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return (cp > 0 && cp <= 0x10ffff) ? String.fromCodePoint(cp) : m;
+      }
+      var v = NAMED_ENTITIES[e.toLowerCase()];
+      return v === undefined ? m : v;
+    });
+  }
+  return out;
 }
-function norm(s){ return String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," "); }
+function norm(s){ return decodeEntities(s).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," "); }
 
-function fail(msg){
+/* NEVER A DEAD END (2026-10-18, rehearsal finding #6). "Buscar en el
+   catálogo" used to drop the shopper on an empty search box. A miss now
+   offers the product's own store, a search for what they tapped, and the
+   store's sale items in the same lane, when the page knows them. */
+function fail(msg, ctx){
+  ctx = ctx || {};
   el("p-loading").style.display = "none";
+  var store = ctx.store && (STORE_LABELS[ctx.store] || ctx.store);
+  var actions = (ctx.store ? '<a class="btn" href="tienda.html?tienda=' + encodeURIComponent(ctx.store) + '">Ver la tienda ' + esc(store) + '</a> ' : '')
+    + (ctx.query ? '<a class="btn btn-secondary" href="search.html?q=' + encodeURIComponent(ctx.query) + '">Buscar \u201c' + esc(ctx.query) + '\u201d</a>'
+                 : '<a class="btn btn-secondary" href="tiendas.html">Ver todas las tiendas</a>');
   el("p-body").innerHTML = '<div class="err-box"><strong>No pudimos cargar este producto.</strong><span>'
-    + esc(msg) + '</span><br><br><a class="btn" href="search.html">Buscar en el catálogo</a></div>';
+    + esc(msg) + '</span><br><br>' + actions + '</div><div id="rel-rails"></div>';
   document.title = "Producto no encontrado — Aria Shop";
+  if (ctx.store && ctx.query && Array.isArray(ctx.pool) && ctx.pool.length)
+    buildRelatedRails({ name: ctx.query, retailer: ctx.store, dept: "" }, ctx.pool.filter(function(it){ return it.retailer === ctx.store; }));
 }
 
 function render(p){
   el("p-loading").style.display = "none";
   var usd = finalUsd(p.price, p.retailer);
+  /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
+  if (window.ariaTrack) ariaTrack('ViewContent', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: usd > 0 ? usd : undefined, currency: 'USD' });
+
+  /* The was-price the card showed, by the site's one sale rule. */
+  var wasUsd = p.salePct > 0 && p.wasPrice > p.price ? finalUsd(p.wasPrice, p.retailer) : 0;
   var store = STORE_LABELS[p.retailer] || p.retailer || "";
+  var offHtml = wasUsd ? '<span class="p-off">-' + esc(p.salePct) + '%</span>' : '';
   var priceHtml = FX_RATE
-    ? '<div style="font-size:28px;font-weight:800;color:var(--navy)">' + esc(fmtPen(usd * FX_RATE)) + '</div>'
-      + '<div style="font-size:14px;color:var(--muted);margin-top:2px">' + esc(fmtUsd(usd)) + ' · puesto en Perú</div>'
-    : '<div style="font-size:28px;font-weight:800;color:var(--navy)">' + esc(fmtUsd(usd)) + '</div>'
-      + '<div style="font-size:13px;color:var(--muted);margin-top:2px">Tipo de cambio no disponible</div>';
-  var img = p.image
-    ? '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" style="width:100%;border-radius:16px;border:1px solid var(--line);background:#f7f8fb" onerror="this.style.display=\'none\'">'
-    : '<div style="aspect-ratio:1;border-radius:16px;border:1px solid var(--line);background:#f7f8fb"></div>';
+    ? '<div><span class="p-pen">' + esc(fmtPen(usd * FX_RATE)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtPen(wasUsd * FX_RATE)) + '</span>' : '') + offHtml + '</div>'
+      + '<div class="p-usd">' + esc(fmtUsd(usd)) + '</div>'
+    : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
+      + '<div class="p-usd">Tipo de cambio no disponible</div>';
+  /* #439: the import-tax estimate sits directly under the product price. */
+  priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
+  var img = galleryHTML(p);
   var desc = p.description
     ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
   el("p-body").innerHTML =
@@ -219,7 +622,7 @@ function render(p){
       + (store ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
       + (p.partNumber ? '<p style="font-size:14px;color:var(--muted);margin:0 0 10px">N.° de parte: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' + esc(p.partNumber) + '</span></p>' : '')
       + priceHtml
-      + '<p style="font-size:13px;color:var(--muted);margin-top:14px">Precio honesto: incluye compra, envío y aduana hasta tu puerta en Perú.</p>'
+      + '<p style="font-size:13px;color:var(--muted);margin-top:14px">El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar.</p>'
       /* DANNY 2026-10-07: NEVER link out to the retailer's/designer's own site.
          Designer products -> our Diseñadores Latinos room; store products -> our store page. */
       + (function(){
@@ -232,9 +635,284 @@ function render(p){
           return '';
         })()
       + '<div id="buy-box" class="buy-box"></div>'
-    + '</div></div>' + desc;
+    + '</div></div>' + desc
+    + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
   document.title = p.name + " — Aria Shop";
+  wireGallery(el("p-body").querySelector(".p-gallery"));
   buildBuyBox(p);
+  fillTaxEstimate(p);
+}
+
+/* =====================================================================
+   THE GALLERY (2026-10-19, #434 / #440). The shard carries the product's
+   whole gallery again (scripts/build-pdp-slices.mjs). One square box
+   holds a swipe track; the first photo loads with the page (as the one
+   photo did), every other one only when its slide is next to the one on
+   screen, and the thumbnails only after the first photo has arrived --
+   on 400 kbps the photo the shopper is looking at never queues behind
+   photos they have not asked for.
+   ===================================================================== */
+function galleryList(p){
+  var list = Array.isArray(p.images) ? p.images.filter(function(u){ return /^https?:\/\//i.test(u); }) : [];
+  if (!list.length && p.image) list = [p.image];
+  return list.slice(0, 12);
+}
+function galleryHTML(p){
+  var list = galleryList(p);
+  if (list.length <= 1){
+    return '<div class="p-photo">' + (list[0]
+      ? '<img src="' + esc(sizedImageUrl(list[0], 1000)) + '" data-img-orig="' + esc(list[0]) + '" alt="' + esc(p.name) + '" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
+      : '') + '</div>';
+  }
+  var n = list.length;
+  var slides = list.map(function(u, i){
+    var alt = esc(p.name) + (i ? ' (foto ' + (i + 1) + ' de ' + n + ')' : '');
+    var attr = i === 0 ? 'src="' + esc(sizedImageUrl(u, 1000)) + '"' : 'data-gsrc="' + esc(sizedImageUrl(u, 1000)) + '"';
+    return '<div class="g-slide" data-i="' + i + '"><img ' + attr + ' data-img-orig="' + esc(u) + '" alt="' + alt + '" onerror="galleryPhotoFailed(this)"></div>';
+  }).join("");
+  var thumbs = list.map(function(u, i){
+    return '<button type="button" class="g-thumb" data-i="' + i + '" aria-label="Foto ' + (i + 1) + ' de ' + n + '"' + (i === 0 ? ' aria-current="true"' : '') + '>'
+      + '<img data-tsrc="' + esc(sizedImageUrl(u, 180)) + '" data-img-orig="' + esc(u) + '" alt="" onerror="imgOrigRetry(this)"></button>';
+  }).join("");
+  return '<div class="p-gallery" data-count="' + n + '">'
+    + '<div class="p-photo" role="region" aria-roledescription="carrusel" aria-label="Fotos del producto">'
+    +   '<div class="g-track">' + slides + '</div>'
+    +   '<button type="button" class="g-nav g-prev" aria-label="Foto anterior">‹</button>'
+    +   '<button type="button" class="g-nav g-next" aria-label="Foto siguiente">›</button>'
+    +   '<span class="g-count" aria-live="polite">1 / ' + n + '</span>'
+    + '</div>'
+    + '<div class="g-thumbs">' + thumbs + '</div>'
+    + '</div>';
+}
+/* A photo that fails (after the original-URL retry) takes its slide and
+   thumbnail with it: a gallery never shows an empty square. */
+function galleryPhotoFailed(img){
+  if (imgOrigRetry(img)) return;
+  var slide = img.closest(".g-slide"), gal = img.closest(".p-gallery");
+  if (!slide || !gal) { img.style.display = "none"; return; }
+  var slides = gal.querySelectorAll(".g-slide");
+  if (slides.length <= 1) { img.style.display = "none"; return; }
+  var t = gal.querySelector('.g-thumb[data-i="' + slide.getAttribute("data-i") + '"]');
+  slide.parentNode.removeChild(slide);
+  if (t) t.parentNode.removeChild(t);
+  if (gal._sync) gal._sync();
+}
+function galleryLoad(slide){
+  var img = slide && slide.querySelector("img[data-gsrc]");
+  if (!img) return;
+  img.src = img.getAttribute("data-gsrc");
+  img.removeAttribute("data-gsrc");
+}
+function wireGallery(gal){
+  if (!gal) return;
+  var track = gal.querySelector(".g-track"), count = gal.querySelector(".g-count");
+  var first = track.querySelector("img");
+  function slides(){ return Array.prototype.slice.call(track.querySelectorAll(".g-slide")); }
+  function current(){
+    var w = track.clientWidth || 1;
+    return Math.max(0, Math.min(slides().length - 1, Math.round(track.scrollLeft / w)));
+  }
+  /* The photo on screen, then its neighbours, once the first is in. */
+  var firstIn = false;
+  function prime(){
+    var s = slides(), i = current();
+    galleryLoad(s[i]);
+    if (firstIn){ galleryLoad(s[i + 1]); galleryLoad(s[i - 1]); }
+  }
+  function sync(){
+    var s = slides(), i = current();
+    if (count) count.textContent = (i + 1) + " / " + s.length;
+    var cur = s[i] && s[i].getAttribute("data-i");
+    Array.prototype.forEach.call(gal.querySelectorAll(".g-thumb"), function(t){
+      if (t.getAttribute("data-i") === cur) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");
+    });
+    prime();
+  }
+  gal._sync = sync;
+  function go(i){
+    var s = slides();
+    i = Math.max(0, Math.min(s.length - 1, i));
+    galleryLoad(s[i]);
+    track.scrollTo ? track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" }) : (track.scrollLeft = i * track.clientWidth);
+  }
+  var raf = 0;
+  track.addEventListener("scroll", function(){
+    if (raf) return;
+    var run = function(){ raf = 0; sync(); };
+    raf = window.requestAnimationFrame ? window.requestAnimationFrame(run) : setTimeout(run, 16);
+  }, { passive: true });
+  gal.querySelector(".g-prev").addEventListener("click", function(){ go(current() - 1); });
+  gal.querySelector(".g-next").addEventListener("click", function(){ go(current() + 1); });
+  gal.querySelector(".g-thumbs").addEventListener("click", function(e){
+    var t = e.target.closest(".g-thumb");
+    if (!t) return;
+    var s = slides();
+    for (var k = 0; k < s.length; k++) if (s[k].getAttribute("data-i") === t.getAttribute("data-i")) { go(k); return; }
+  });
+  /* Thumbnails: after the first photo, and only those in view. */
+  function afterFirst(){
+    if (firstIn) return;
+    firstIn = true;
+    Array.prototype.forEach.call(gal.querySelectorAll(".g-thumb img[data-tsrc]"), function(i){
+      i.setAttribute("data-src", i.getAttribute("data-tsrc"));
+      i.removeAttribute("data-tsrc");
+    });
+    watchPhotos(gal.querySelector(".g-thumbs"));
+    prime();
+  }
+  if (!first || first.complete) afterFirst();
+  else {
+    first.addEventListener("load", afterFirst);
+    first.addEventListener("error", function(){ setTimeout(afterFirst, 0); });
+  }
+}
+
+/* =====================================================================
+   THE NEXT THING TO ADD (2026-10-18, Danny's rehearsal addendum, #367).
+   Every product page upsells: one rail of more offers from the same
+   store, one rail of the same kind of thing from other stores. His
+   merchandising doctrine (2026-10-02) holds: SALE ITEMS ONLY, by the
+   site's one sale rule, and IN THE SHOPPER'S LANE -- the same department
+   and gender, never cross-department randoms. A rail with fewer than
+   three cards is not shown.
+
+   Both rails read small precomputed slices (2026-10-19, #409 T1), the
+   same relPick ranks them:
+     assets/pdp/rails/store-<retailer>.json  the store's sale items a
+       rail can ever pick (per lane, department and gender, the 13
+       deepest discounts) -- a few KB instead of the store's catalogue;
+     assets/pdp/rails/lane-<lane>.json  the Ofertas head's rows in this
+       lane (it was the whole 750KB head).
+   scripts/build-pdp-slices.mjs writes them with this page's own code;
+   scripts/test/pdp-thin-tests.mjs checks the rails match the old ones.
+   ===================================================================== */
+var REL_MAX = 12;
+var REL_MIN = 3;
+var REL_LANES = [
+  /* Footwear is the site's own classifier (product-type.js): shoelaces
+     and bootcut jeans are not shoes. */
+  { key: "zapatos", label: "zapatos",   test: function(t){ return window.AriaProductType ? (window.AriaProductType.isFootwear({ title: t }) && !/\b(jeans|pants|trousers|leggings|shorts|socks?)\b/i.test(t)) : /\b(shoes?|sneakers?|boots?|sandals?|slides?|heels?|loafers?)\b/i.test(t); }, dept: /shoe|footwear|zapat/i },
+  { key: "beauty",  label: "belleza",   rx: /\b(makeup|make-up|maquillaje|lipstick|lip\s*(gloss|liner|oil|balm)|mascara|eyeliner|eyeshadow|palette|foundation|concealer|blush|bronzer|highlighter|primer|serum|moisturi[sz]er|cleanser|skincare|skin\s*care|fragrance|perfume|eau\s+de|cologne|nail\s*polish|beauty|glamour|cosmetic)\b/i, dept: /beauty|makeup|fragrance|skincare|belleza/i },
+  { key: "sombreros", label: "gorras y sombreros", rx: /\b(hats?|caps?|beanies?|snapbacks?|bucket\s+hat|visors?|gorras?|sombreros?)\b/i, not: /\bcap[-\s]?sleeve/i },
+  { key: "joyas",   label: "joyas",     rx: /\b(earrings?|necklaces?|bracelets?|rings?|pendants?|anklets?|jewel(?:ry|lery)|chokers?)\b/i, dept: /jewel|joya/i },
+  { key: "carteras", label: "carteras y mochilas", rx: /\b(handbags?|purses?|totes?|crossbody|backpacks?|clutch|wallets?|mochilas?|carteras?)\b/i, dept: /bag|cartera/i },
+  { key: "juguetes", label: "juguetes", rx: /\b(toys?|lego|dolls?|barbie|playsets?|puzzles?|plush|juguetes?)\b/i, dept: /toy|juguete/i },
+  { key: "ropa",    label: "ropa",      rx: /\b(sweatshirts?|hoodies?|t-?shirts?|tees?|tops?|blouses?|shirts?|sweaters?|cardigans?|jackets?|coats?|jeans|pants|leggings|shorts|skirts?|dress(es)?|joggers?|polos?|vests?)\b/i, dept: /women|men|kids|cloth|apparel|ropa|moda/i }
+];
+function relLane(item){
+  var t = String(item.name || item.title || "");
+  var d = String(item.dept || "");
+  for (var i = 0; i < REL_LANES.length; i++){
+    var L = REL_LANES[i];
+    if ((L.test ? L.test(t) : L.rx.test(t)) && !(L.not && L.not.test(t))) return L;
+  }
+  for (var j = 0; j < REL_LANES.length; j++) if (REL_LANES[j].dept && d && REL_LANES[j].dept.test(d)) return REL_LANES[j];
+  return null;
+}
+function relGender(item){
+  var s = String(item.name || item.title || "") + " " + String(item.dept || "");
+  if (/\b(girls?|boys?|kids?|toddlers?|baby|ni[ñn][oa]s?)\b/i.test(s)) return "kids";
+  if (/\b(women'?s?|womens|ladies|mujer|her)\b/i.test(s)) return "women";
+  if (/\b(men'?s?|mens|hombre|him)\b/i.test(s)) return "men";
+  return "";
+}
+function relKey(item){ return (item.retailer || "") + "|" + norm(item.name || item.title || ""); }
+function relCardHTML(it){
+  var usd = finalUsd(it.price, it.retailer);
+  var wasUsd = it.wasPrice > it.price ? finalUsd(it.wasPrice, it.retailer) : 0;
+  var price = FX_RATE ? fmtPen(usd * FX_RATE) : fmtUsd(usd);
+  var was = wasUsd ? (FX_RATE ? fmtPen(wasUsd * FX_RATE) : fmtUsd(wasUsd)) : "";
+  var href = "producto.html?producto=" + encodeURIComponent(it.name) + "&tienda=" + encodeURIComponent(it.retailer);
+  /* The photo waits in data-src until its card is about to be seen. */
+  return '<a class="rel-card" href="' + esc(href) + '">'
+    + '<div class="rel-img">' + (it.image ? '<img data-src="' + esc(sizedImageUrl(it.image, 360)) + '" data-img-orig="' + esc(it.image) + '" alt="" onerror="imgOrigRetry(this)">' : '') + '</div>'
+    + '<div class="rel-body">'
+    +   '<span class="rel-store">' + esc(STORE_LABELS[it.retailer] || it.retailer) + '</span>'
+    +   '<span class="rel-title">' + esc(it.name) + '</span>'
+    +   '<span class="rel-pricebox"><span class="rel-price">' + esc(price) + '</span>' + (was ? '<span class="rel-was">' + esc(was) + '</span>' : '')
+    +     (FX_RATE ? '<span class="rel-usd">' + esc(fmtUsd(usd)) + '</span>' : '') + '</span>'
+    +   '<span class="rel-off">' + (it.salePct ? '-' + it.salePct + '%' : '') + '</span>'
+    + '</div></a>';
+}
+function relRailHTML(title, items){
+  return '<section class="rel-rail"><h2>' + esc(title) + '</h2><div class="rel-row">' + items.map(relCardHTML).join("") + '</div></section>';
+}
+/* A rail-shaped placeholder while a slice is on its way. */
+function relSkeletonHTML(){
+  var card = '<div class="rel-card sk" aria-hidden="true"><div class="rel-img"></div><div class="rel-body">'
+    + '<span class="rel-store"><i style="width:45%"></i></span><span class="rel-title"><i></i><i></i></span>'
+    + '<span class="rel-pricebox"><i></i></span><span class="rel-off"></span></div></div>';
+  return '<section class="rel-rail" aria-busy="true"><h2>&nbsp;</h2><div class="rel-row">' + card + card + card + '</div></section>';
+}
+/* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN (search.html's
+   watchPhotos, #417): native loading="lazy" fetched every rail photo at
+   once on slow links. An IntersectionObserver honours the rail's
+   clipping and a 200px margin; a swipe brings the next card's photo. */
+var PHOTO_IO = null;
+function railPhoto(img){
+  if (!img || !img.dataset.src) return;
+  img.src = img.dataset.src;
+  img.removeAttribute("data-src");
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll("img[data-src]");
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== "function"){ Array.prototype.forEach.call(imgs, railPhoto); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      railPhoto(e.target);
+      var rail = e.target.closest(".rel-row"), card = e.target.closest(".rel-card");
+      if (rail && rail.scrollLeft > 0 && card && card.nextElementSibling) railPhoto(card.nextElementSibling.querySelector("img[data-src]"));
+    });
+  }, { rootMargin: "200px 0px" });
+  Array.prototype.forEach.call(imgs, function(i){ PHOTO_IO.observe(i); });
+}
+/* Ranks a candidate list for an anchor: same lane and gender first, then
+   same department, then the deepest real discount. Out-of-lane items are
+   dropped, not just ranked down. */
+function relPick(anchor, pool, opts){
+  var lane = relLane(anchor), g = relGender(anchor), seen = {};
+  seen[relKey(anchor)] = 1;
+  (opts.exclude || []).forEach(function(it){ seen[relKey(it)] = 1; });
+  var out = [];
+  pool.forEach(function(it){
+    if (!it || !it.image || !(it.salePct > 0) || seen[relKey(it)]) return;
+    if (opts.sameStore !== undefined && (it.retailer === anchor.retailer) !== opts.sameStore) return;
+    var l = relLane(it), ig = relGender(it);
+    if (opts.requireLane && (!lane || !l || l.key !== lane.key)) return;
+    if (g && ig && g !== ig) return;                   /* never the other gender */
+    var score = (lane && l && l.key === lane.key ? 4 : 0) + (anchor.dept && it.dept === anchor.dept ? 2 : 0) + (g && ig === g ? 1 : 0)
+      + (opts.preferOtherStores && it.retailer !== anchor.retailer ? 3 : 0);
+    if (!opts.requireLane && score === 0) return;       /* same store, but another lane: not shown */
+    seen[relKey(it)] = 1;
+    out.push({ it: it, score: score });
+  });
+  out.sort(function(a, b){ return (b.score - a.score) || (b.it.salePct - a.it.salePct); });
+  return out.slice(0, REL_MAX).map(function(x){ return x.it; });
+}
+async function buildRelatedRails(p, storePool){
+  var host = el("rel-rails");
+  if (!host || !window.AriaSale) return;
+  var store = STORE_LABELS[p.retailer] || p.retailer || "la tienda";
+  /* The same kind of thing first; the same department only when the
+     store has too few of those on sale. */
+  var sameStore = relPick(p, storePool || [], { sameStore: true, requireLane: true });
+  if (sameStore.length < REL_MIN) sameStore = relPick(p, storePool || [], { sameStore: true });
+  var html = sameStore.length >= REL_MIN ? relRailHTML("Más ofertas en " + store, sameStore) : "";
+  var lane = relLane(p);
+  host.innerHTML = html + (lane ? relSkeletonHTML() : "");
+  watchPhotos(host);
+  if (!lane) return;
+  try {
+    /* Rows of the Ofertas head in this lane, already normalised. */
+    var feed = await fetchJson(PDP_BASE + "rails/lane-" + lane.key + ".json");
+    var rows = (feed && feed.items) || [];
+    var cross = relPick(p, rows.concat(storePool || []), { requireLane: true, exclude: sameStore, preferOtherStores: true });
+    host.innerHTML = html + (cross.length >= REL_MIN ? relRailHTML("Más " + lane.label + " en oferta", cross) : "");
+    watchPhotos(host);
+  } catch (e) { host.innerHTML = html; watchPhotos(host); /* the store rail stands on its own */ }
 }
 
 /* =====================================================================
@@ -243,64 +921,126 @@ function render(p){
    a real size picker, a fail-closed add-to-cart, and the same cart
    localStorage key/shape checkout.html reads ('aria_cart_v1').
 
-   Ported from index.html (APPAREL_KEYWORDS, needsSizeSelection,
-   sizeCategoryFor, standardSizeOptions, cart merge). The full
+   Ported from index.html (truthfulSizes, cart merge). The full
    title-based weight estimator lives only in the SPA; this page marks
    its line honestly estimated (weightEstimated: true) and checkout
    re-resolves it server side.
+
+   THE RECORD DECIDES (2026-10-19, #411 P0 size gate). Whether this
+   page shows a size picker used to be asked of the TITLE: a keyword
+   regex (apparelNeedsSize) that never looked at the record. It failed
+   both ways. "RAV v2 Hook & Loop", "9060" and "Made in USA 990v6"
+   carry no shoe word, so their real size lists were thrown away and
+   the shoe went into the cart sizeless (639 of New Balance's 1,269
+   sized records); "Barbie ... Purple Dress", "Barbie Dreamhouse ...
+   3 Story Slide" and "Barbie Royal Doll with ... Skirt" carry a garment
+   word, have no size list, and were locked behind a dead "Tallas por
+   confirmar" button. Now the record's own list is the whole rule: a
+   list -> the picker, and no cart without a size; no list -> the
+   product sells plainly. Sizes are still the store's own or nothing.
    ===================================================================== */
 var CART_KEY = 'aria_cart_v1';
 
-/* The words that mean "this has a size" — one list, copied verbatim
-   from index.html. Note the \bboot lookahead: "bootcut" is a trouser
-   leg, not a shoe (see index.html comment).
-   2026-10-08 audit-2: extended with zip, bra/bralette/brassiere/sosten,
-   long sleeve + LS, and the other garment words added to index.html
-   the same day; SHOE copy re-synced (was missing slides/flip-flops/
-   wedges/cleats). This copy stays verbatim in sync with index.html. */
-var SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b|\bzapatos?\b|\bzapatillas?\b|\bbotas?\b|\bsandalias?\b|\bmocasines?\b|\bslides?\b|flip[-\s]?flops?|\bwedges?\b|\bcleats?\b/i;
-var CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b|\btrajes?\b|\bsu[eé]ter(?:es)?\b|\bchalecos?\b|\bblusas?\b|\bpantal[oó]n(?:es)?\b|\bfaldas?\b|\bvestidos?\b|\bchaquetas?\b|\babrigos?\b|\bcasacas?\b|\bzip\b|\bbras?\b|\bbralettes?\b|\bbrassieres?\b|long[-\s]?sleeves?|\bLS\b|\bjoggers?\b|\bsweatpants?\b|\bbikinis?\b|\bswimsuits?\b|\bpajamas?\b|\bpyjamas?\b|\btights?\b|\bhenleys?\b|\btunics?\b|\bbodysuits?\b|\bleotards?\b|\bunitards?\b|\boveralls?\b|\bpuffer\b|\btrench\b|\bponchos?\b|\bcamisoles?\b|\bskorts?\b|\bcorsets?\b|\bwindbreakers?\b|\braincoats?\b|\bpeacoats?\b|crew[-\s]?necks?|mock[-\s]?necks?|\bshapewear\b|\blingerie\b|\bpantyhose\b|base[-\s]?layers?|rash[-\s]?guards?|\bwetsuits?\b|board[-\s]?shorts?|\buniforms?\b|\bgloves\b|\bmittens\b|cover[-\s]?ups?|\bkimonos?\b|\bsudaderas?\b|\bbrasieres?\b|\bsost[eé]nes?\b/i;
-var APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
-/* Retailers whose entire catalogue is apparel/footwear: every item gets
-   a size there even when the title carries no generic size word. */
-var APPAREL_ONLY_RETAILERS = {oldnavy: 1, footlocker: 1};
-var SHOE_DEFAULT_RETAILERS = {footlocker: 1};
-var KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
-var MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
-var WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
-var ADULT_CLOTHING_SIZES = ['XS','S','M','L','XL','XXL','1X','2X','3X'];
-var ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
-var ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
-var ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
-var KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
-var KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
+/* VARIANT TRUTH (2026-10-18, Issue #411, Danny): the sizes a product
+   offers are the retailer's own list or nothing -- never a template.
+   Strings as the store wrote them; {size, available} objects (the Foot
+   Locker feed) keep the sizes in stock. index.html's bundle and
+   producto.html carry this same text; the test suite pins them
+   identical.
 
-function apparelNeedsSize(retailer, title){
-  var rk = String(retailer || '').toLowerCase();
-  return !!APPAREL_ONLY_RETAILERS[rk] || APPAREL_KEYWORDS.test(title || '');
+   NATURAL ORDER, WHATEVER THE STORE'S SPELLING (2026-10-19, #411
+   render audit). The first sorter knew XS..XXL and plain numbers, so
+   18,803 of the catalogue's 52,901 size lists kept the store's own
+   order -- and stores list sizes largest first ("XL | LG | MD", 1,900
+   CCS lists), backwards ("4T | 3T | 2T") or shuffled ("Men's 12 |
+   Men's 10 | Men's 13", Macy's "10S | 0 | 2 | 0S"). Every size now
+   gets a place -- months < toddler < youth < the XS..6XL ladder (SM,
+   Small, X-Large, 2X Large and XS/S spelled any way) < numbers (shoe
+   6.5, waist 32x30, 12 oz, "7-8 years", "Men's 9", "IT 38", fit
+   suffixes 10S/16W after the plain sizes) < lettered numbers (C11 <
+   J1, 13K < 1Y) -- and a list with any size it cannot place keeps the
+   retailer's order: band x cup ("34DD") is the store's ladder, never
+   re-sorted. 50,280 of the 52,901 lists now sort. */
+var SIZE_ALPHA_ORDER = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL', '6XL', '0X', '1X', '2X', '3X', '4X', '5X'];
+var SIZE_NUMERIC = /^(\d+(?:\.\d+)?)(?:\s*[xX×\/]\s*(\d+(?:\.\d+)?))?\s*(?:oz)?$/i;
+/* Stores spell one ladder many ways: "SM", "Small", "X-Large", "XLG". */
+var SIZE_ALPHA_ALIAS = { SM: 'S', SMALL: 'S', MD: 'M', MED: 'M', MEDIUM: 'M', LG: 'L', LRG: 'L', LARGE: 'L', XLG: 'XL', XLARGE: 'XL', XXLARGE: 'XXL', XXXLARGE: 'XXXL', XSMALL: 'XS', XXSMALL: 'XXS' };
+function alphaRank(t){
+  var k = t.replace(/[\s-]+/g, '').replace(/^EXTRA/, 'X').replace(/^(\d)XLARGE$/, '$1XL').replace(/^XXXXL$/, '4XL');
+  k = SIZE_ALPHA_ALIAS[k] || k;
+  var r = SIZE_ALPHA_ORDER.indexOf(k);
+  if (r >= 0) return r === 8 ? 7.1 : r === 10 ? 9.1 : r;   // 2XL = XXL, 3XL = XXXL
+  return -1;
 }
-function sizeCategoryFor(retailer, title){
-  var t = title || '';
-  var rk = String(retailer || '').toLowerCase();
-  /* A garment word beats a lone "boot": "Wedgie Boot High-Rise Jeans"
-     is a trouser, not a shoe. "Chelsea Boot" carries no garment word
-     and still classifies as footwear. */
-  var bootish = /\bboot/i.test(t);
-  if (SHOE_KEYWORDS.test(t) && !(bootish && CLOTHING_KEYWORDS.test(t))) return 'shoe';
-  if (CLOTHING_KEYWORDS.test(t)) return 'clothing';
-  if (SHOE_KEYWORDS.test(t)) return 'shoe';
-  if (SHOE_DEFAULT_RETAILERS[rk]) return 'shoe';
-  return 'clothing';
+/* One size's place: [group, value, second value], or null when this
+   is not a size we can place (then the store's order stands).
+   Groups: months 0, toddler 1, alpha 2, numbers 3, lettered numbers
+   4+ (C 11 < J 1 < M 8 < W 6). */
+function sizeKey(raw){
+  var s = String(raw).toUpperCase().replace(/\s+/g, ' ').trim();
+  /* "IT 38 = WAIST US 24" is IT 38; "36(XXS)" is 36. */
+  s = s.split('=')[0].trim().replace(/\s*\([^)]*\)$/, '');
+  s = s.replace(/^(?:MEN'?S|WOMEN'?S|MENS|WOMENS|BOYS'?|GIRLS'?|KIDS'?|UNISEX)\s+/, '');
+  s = s.replace(/^(?:WAIST\s+)?(?:US|EU|UK|IT|FR|DK|JP|AU)\s+(?=\d)/, '').replace(/^WAIST\s+(?=\d)/, '');
+  var m;
+  if (/^NEWBORN$|^NB$|^PREEMIE$/.test(s)) return [0, -1, 0];
+  if ((m = /^(\d+(?:\.\d+)?)\s*(?:-\s*(\d+)\s*)?M(?:OS?|ONTHS?)?$/.exec(s))) return [0, +m[1], +(m[2] || 0)];
+  /* Kids' ages sit among the kids' numbers: 5 | 6 | 7-8 years. */
+  if ((m = /^(\d+)\s*(?:-\s*(\d+)\s*)?(?:YR|YRS|YEARS?)$/.exec(s))) return [3, +m[1], +(m[2] || 0)];
+  if ((m = /^(\d+)\s*T$/.exec(s))) return [1, +m[1], 0];
+  var half = s.split(/\s*[\/-]\s*/);
+  if (half.length === 2 && alphaRank(half[0]) >= 0 && alphaRank(half[1]) >= 0) return [2, alphaRank(half[0]) + 0.5, 0];
+  if ((m = /^Y\s?(.+)$/.exec(s)) && alphaRank(m[1]) >= 0) return [1.5, alphaRank(m[1]), 0];   // youth YS..YXL
+  if (alphaRank(s) >= 0) return [2, alphaRank(s), 0];
+  if ((m = SIZE_NUMERIC.exec(s))) return [3, parseFloat(m[1]), parseFloat(m[2]) || 0];
+  if ((m = /^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/.exec(s))) return [3, parseFloat(m[1]), parseFloat(m[2])];
+  /* "M 4 / W 5", "W 6 / M 4.5", "M2W4": the first number. */
+  if ((m = /^([MW])\s*(\d+(?:\.\d+)?)\s*(?:\/\s*[MW]\s*\d+(?:\.\d+)?|[MW]\d+(?:\.\d+)?)$/.exec(s))) return [3, parseFloat(m[2]), 0];
+  /* Kids' shoes: 13K (or 13C) comes before 1Y. */
+  if ((m = /^(\d+(?:\.\d+)?)\s?([CKY])$/.exec(s))) return [4 + (m[2] === 'Y' ? 0.5 : 0), parseFloat(m[1]), 0];
+  /* A letter before the number: Crocs' C11 (child) < J1 (junior). */
+  if ((m = /^([CJMWY])\s?(\d+(?:\.\d+)?)$/.exec(s))) return [4 + 'CJYMW'.indexOf(m[1]), parseFloat(m[2]), 0];
+  /* A number with a fit letter: Macy's 10S (short), 16W (women's). */
+  if ((m = /^(\d+(?:\.\d+)?)\s?(S|P|L|W|R|T|SHORT|PETITE|LONG|TALL|REG|REGULAR)$/.exec(s))) return [3 + ({ R: 0, REG: 0, REGULAR: 0, P: .1, PETITE: .1, S: .2, SHORT: .2, W: .3, L: .4, LONG: .4, T: .5, TALL: .5 })[m[2]], parseFloat(m[1]), 0];
+  return null;
 }
-function standardSizeOptions(title, sizeCategory){
-  var isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title || '');
-  var isKids = KIDS_KEYWORDS.test(title || '');
-  if (isShoe && isKids) return KIDS_SHOE_SIZES;
-  if (isShoe && MENS_KEYWORDS.test(title || '')) return ADULT_SHOE_SIZES_MEN;
-  if (isShoe && WOMENS_KEYWORDS.test(title || '')) return ADULT_SHOE_SIZES_WOMEN;
-  if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
-  if (isKids) return KIDS_CLOTHING_SIZES;
-  return ADULT_CLOTHING_SIZES;
+function sortSizes(sizes){
+  var keys = sizes.map(sizeKey);
+  if (keys.some(function(k){ return !k; })) return sizes.slice();
+  return sizes.map(function(s, i){ return { s: s, k: keys[i], i: i }; }).sort(function(a, b){
+    return (a.k[0] - b.k[0]) || (a.k[1] - b.k[1]) || (a.k[2] - b.k[2]) || (a.i - b.i);
+  }).map(function(x){ return x.s; });
+}
+function truthfulSizes(list){
+  if (!Array.isArray(list)) return [];
+  var out = [], seen = {};
+  for (var i = 0; i < list.length; i++){
+    var v = list[i], s = '';
+    if (typeof v === 'string') s = v;
+    else if (typeof v === 'number' && isFinite(v)) s = String(v);
+    else if (v && typeof v === 'object' && v.available !== false && (typeof v.size === 'string' || typeof v.size === 'number')) s = String(v.size);
+    s = s.trim();
+    if (!s || seen[s.toUpperCase()]) continue;
+    seen[s.toUpperCase()] = true;
+    out.push(s);
+  }
+  return sortSizes(out);
+}
+/* A bag, wallet, charm or phone case is not sized, whatever garment word
+   its name carries ("Soccer Jersey Bag Charm", "Zip Wallet", "Heels
+   Phone Case"). Judged on the HEAD noun -- the last word once the colour
+   suffix (" - Pink"), a trailing capacity ("55L") and a "for women" tail
+   are dropped -- so "Boxer Brief with Support Pouch" and "Charm Strappy
+   Thong Panty" stay garments. */
+var ACCESSORY_HEAD = /\b(?:bag charms?|charms?|wallets?|wristlets?|phone cases?|card cases?|card holders?|keychains?|key rings?|totes?|purses?|backpacks?|handbags?|clutch(?:es)?|bags?|pouch(?:es)?|sunglasses|umbrellas?|lanyards?|satchels?|duffels?|duffles?)$/i;
+function isAccessoryTitle(title){
+  var t = String(title || '')
+    .replace(/\s+[-–—|]\s+.*$/, '')
+    .replace(/\s+for\s+[\w' ]+$/i, '')
+    .replace(/[\s,]*\d+(?:\.\d+)?\s*(?:l|cm|in|oz)?$/i, '')
+    .trim();
+  // "Faux Suede Handbag, Cognac": the colour after the first comma.
+  return ACCESSORY_HEAD.test(t) || ACCESSORY_HEAD.test(t.split(',')[0].trim());
 }
 
 var toastTimer = null;
@@ -347,19 +1087,17 @@ function mergeCartLine(line){
 function buildBuyBox(p){
   var box = el('buy-box');
   if (!box) return;
-  var wantsSize = apparelNeedsSize(p.retailer, p.name);
+  /* The record's own size list is the whole question (#411 P0): a list
+     means a picker and no cart without a size; no list means the
+     product sells plainly. Never a title keyword, never a template. */
+  var sizes = truthfulSizes(p.sizes);
+  var wantsSize = sizes.length > 0;
   var sizeHtml = '';
   if (wantsSize){
-    var options = (p.sizes && p.sizes.length)
-      ? p.sizes.slice()
-      : standardSizeOptions(p.name, sizeCategoryFor(p.retailer, p.name));
     var optsHtml = '<option value="" disabled selected>Selecciona una talla</option>'
-      + options.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
-    var note = (p.sizes && p.sizes.length)
-      ? ''
-      : '<p class="size-note">La tienda no publica las tallas exactas de este producto; estas son tallas estándar de referencia.</p>';
+      + sizes.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
     sizeHtml = '<label class="size-label" for="size-select">Talla</label>'
-      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>' + note;
+      + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>';
   }
   box.innerHTML = sizeHtml
     + '<button id="add-cart-btn" class="btn btn-add" type="button">Agregar al carrito</button>'
@@ -367,22 +1105,23 @@ function buildBuyBox(p){
     +   '<p class="confirm-msg">Agregado al carrito.</p>'
     +   '<a class="btn btn-checkout" href="checkout.html">Ver carrito / Finalizar compra</a>'
     + '</div>';
-  el('add-cart-btn').addEventListener('click', function(){ addCurrentToCart(p, wantsSize); });
+  el('add-cart-btn').addEventListener('click', function(){ addCurrentToCart(p, sizes); });
 }
 
-function addCurrentToCart(p, wantsSize){
+function addCurrentToCart(p, sizes){
   /* The price guard: never a priceless or $0 line. */
   var priceUsd = finalUsd(p.price, p.retailer);
   if (!(Number(priceUsd) > 0)){
     toast('Este producto aún no tiene precio confirmado.');
     return;
   }
-  /* FAIL CLOSED: a garment with no size never reaches the cart. */
+  /* FAIL CLOSED: a product the store sells in sizes never reaches the
+     cart without one, and only a size from the store's own list. */
   var size = null;
-  if (wantsSize){
+  if (sizes && sizes.length){
     var sel = el('size-select');
     size = sel ? sel.value : '';
-    if (!size){
+    if (!size || sizes.indexOf(size) < 0){
       toast('Selecciona una talla antes de agregar al carrito.');
       if (sel) sel.focus();
       return;
@@ -400,10 +1139,19 @@ function addCurrentToCart(p, wantsSize){
        this page; checkout re-resolves the weight server side. */
     weightKg: 0.2,
     weightEstimated: true,
+    /* The photo rides with the line (2026-10-17 rehearsal: every
+       checkout thumbnail was a blank box for items added here). */
+    image: p.image || (Array.isArray(p.images) && p.images[0]) || '',
+    brand: p.brand || '',
     selectedSize: size,
+    /* The store's list rides with a sized line, so the cart and checkout
+       can tell a sized line from a plain one without a title guess. */
+    sizeOptions: sizes && sizes.length ? sizes.slice() : undefined,
     qty: 1
   });
   toast('Agregado al carrito.');
+  /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
+  if (window.ariaTrack) ariaTrack('AddToCart', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: priceUsd, currency: 'USD' });
   var c = el('cart-confirm');
   if (c) c.hidden = false;
 }
@@ -420,31 +1168,60 @@ function addCurrentToCart(p, wantsSize){
 
     var tienda = (params.get("tienda") || params.get("store") || "").toLowerCase();
     var list = (tienda && STORE_FILES[tienda]) ? STORE_FILES[tienda] : null;
+    var w = norm(want);
 
-    try{
-      var fx = await fetch("/.netlify/functions/exchange-rate");
-      var fxd = fx.ok ? await fx.json() : null;
-      if (fxd && typeof fxd.venta === "number") FX_RATE = fxd.venta;
-    }catch(e){}
+    /* Everything the first screen needs leaves at once: the rate (from
+       the phone's cache when it has one), the product's shard and the
+       store's rail slice. On a 2-second round trip, one trip, not three. */
+    var fxP = pageRate().then(function(r){ FX_RATE = r; }).catch(function(){});
+    fetchShard(w);   /* on its way while the rate is read */
 
+    var lastPool = [];
+    /* By exact title, from the shard: the ?tienda= files first, then
+       every catalogue in the fallback order -- the order the old
+       download-and-scan used. */
     async function hunt(fileList){
-      var got = await Promise.all(fileList.map(fetchOne));
-      var all = [].concat.apply([], got);
-      var w = norm(want);
-      return all.find(function(p){ return norm(p.name) === w; })
-          || all.find(function(p){ return norm(p.name).indexOf(w) === 0; })
-          || all.find(function(p){ return w.length > 8 && norm(p.name).indexOf(w) >= 0; })
-          || null;
+      var cands = await fetchShard(w);
+      var rec = pickRecord(cands, fileList);
+      return rec ? recordToItem(rec) : null;
+    }
+    /* NAMED, NOT EXACT (the old scan's prefix and substring passes): a
+       link whose title is cut short or longer than the card's. The
+       search endpoint names the candidates; the shard of the one that
+       matches gives its record. One more trip, only on a miss. */
+    async function huntByName(){
+      var d = await fetchJson("/.netlify/functions/search?q=" + encodeURIComponent(want.slice(0, 120)), 15000);
+      var cards = (d && d.items) || [];
+      var tests = [
+        function(c){ return c.store === tienda && norm(c.title).indexOf(w) === 0; },
+        function(c){ return c.store === tienda && w.length > 8 && norm(c.title).indexOf(w) >= 0; },
+        function(c){ return norm(c.title).indexOf(w) === 0; },
+        function(c){ return w.length > 8 && norm(c.title).indexOf(w) >= 0; }
+      ];
+      for (var t = 0; t < tests.length; t++){
+        for (var i = 0; i < cards.length; i++){
+          var c = cards[i];
+          if (!c || !c.title || !tests[t](c)) continue;
+          var key = norm(c.title);
+          var cands = (await fetchShard(key)) || [];
+          var own = cands.filter(function(x){ return x.retailer === c.store; });
+          var rec = pickRecord(own.length ? own : cands, (STORE_FILES[c.store] || []).concat(CATALOG_FILES));
+          if (rec) return recordToItem(rec);
+        }
+      }
+      return null;
     }
 
     /* AUTO PARTS (2026-10-09). Voice and Aria Auto part cards (AutoZone)
        live only in auto-cache.json, never in the store catalogs, so the
        tap landed on "no encontrado". Look the part up there: by part
        number (?pn=) first, then by title. The retailer's url is dropped;
-       the card never links out. */
-    async function huntAuto(){
+       the card never links out. Since #409 T1 the page reads one small
+       auto-cache-shaped shard (assets/pdp/auto-pn or auto-t), holding
+       the record the full-cache scan below would have found. */
+    async function huntAuto(url){
       try{
-        var r = await fetch("/auto-cache.json");
+        var r = await fetch(url);
         if (!r.ok) return null;
         var d = await r.json(), ps = (d && d.partSearches) || {};
         var pn = String(params.get("pn") || "").trim().toUpperCase(), w = norm(want);
@@ -475,15 +1252,28 @@ function addCurrentToCart(p, wantsSize){
         return p;
       }catch(e){ return null; }
     }
+    function autoUrl(){
+      var pn = String(params.get("pn") || "").trim().toUpperCase();
+      return pn ? PDP_BASE + "auto-pn/" + autoShard(pn) + ".json" : PDP_BASE + "auto-t/" + autoShard(w) + ".json";
+    }
     var AUTO_STORES = { autozone: 1 };
 
-    var found = AUTO_STORES[tienda] ? await huntAuto() : null;
+    var found = AUTO_STORES[tienda] ? await huntAuto(autoUrl()) : null;
     if (!found) found = list ? await hunt(list) : null;
-    /* The fast path missed, so pay for the slow one rather than lie. */
+    /* The fast path missed: every catalogue's record of this title (the
+       same shard), then by name, rather than lie. */
     if (!found) found = await hunt(CATALOG_FILES);
-    if (!found && !AUTO_STORES[tienda] && params.get("pn")) found = await huntAuto();
-    if (!found){ fail("No encontramos \u201c" + want + "\u201d en el catálogo. Puede que ya no esté disponible."); return; }
+    if (!found) found = await huntByName();
+    if (!found && !AUTO_STORES[tienda] && params.get("pn")) found = await huntAuto(autoUrl());
+    await fxP;
+    if (!found){
+      if (tienda) lastPool = await fetchStoreRail(tienda, { name: want, dept: "" });
+      fail("No encontramos “" + want + "” en el catálogo. Puede que ya no esté disponible.", { store: tienda, query: want, pool: lastPool });
+      return;
+    }
     render(found);
+    lastPool = await fetchStoreRail(found.retailer, found);
+    buildRelatedRails(found, lastPool.filter(function(it){ return it.retailer === found.retailer; }));
   }catch(e){ fail("Ocurrió un error inesperado."); }
 })();
 
@@ -499,5 +1289,7 @@ function addCurrentToCart(p, wantsSize){
 <a href="https://ariashop.pe/privacidad">Privacidad</a>
 <br><br>© 2026 Aria Shop. Todos los derechos reservados.
 </footer>
+<!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/assets/js/aria-launcher.js" defer></script>
 </body>
 </html>
