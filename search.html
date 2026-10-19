@@ -33,7 +33,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .search-hero{text-align:center; margin:8px 0 22px;}
 .search-hero h1{font-size:clamp(24px,4vw,34px); font-weight:800; letter-spacing:-0.02em; color:var(--navy);}
 .search-hero p{color:var(--muted); font-size:14px; margin-top:8px;}
-.search-box{position:relative; max-width:640px; margin:18px auto 0;}
+.search-box{position:relative; z-index:1; max-width:640px; margin:18px auto 0;}
+/* The first tap is a tap: no double-tap-zoom gesture for iOS to wait on. */
+.search-box input, .search-box button{touch-action:manipulation;}
 .search-box input{width:100%; height:54px; border:2px solid var(--line); border-radius:16px; padding:0 60px 0 20px; font-size:16px; outline:none;}
 .search-box input:focus{border-color:var(--blue);}
 .search-box button{position:absolute; right:6px; top:50%; transform:translateY(-50%); width:42px; height:42px; border:none; border-radius:12px; background:var(--blue); color:#fff; font-size:18px; cursor:pointer;}
@@ -56,10 +58,10 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 #more-wrap button{background:var(--blue); color:#fff; border:none; border-radius:12px; padding:12px 28px; font-size:15px; font-weight:700; cursor:pointer;}
 @media(min-width:640px){ .grid{grid-template-columns:repeat(3,1fr);} }
 @media(min-width:960px){ .grid{grid-template-columns:repeat(4,1fr);} }
-.card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column; min-width:0;
-  /* Off-screen cards cost nothing to lay out or paint; the reserved size
-     keeps the scrollbar honest. */
-  content-visibility:auto; contain-intrinsic-size:auto 330px;}
+.card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column; min-width:0;}
+/* NO content-visibility HERE (2026-10-19, #417 iPhone QA). It was the
+   one WebKit-young feature this page used (Safari 18), and Danny's
+   iPhone ignored taps on the search box. 48 cards do not need it. */
 /* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (2026-10-19, #409).
    The customer's "dolls" frame: hundreds of cards collapsed to lines a
    few pixels tall while photos were still loading. The photo box is a
