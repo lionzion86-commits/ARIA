@@ -25840,10 +25840,23 @@ async function loadCartFromServer(){
 // client after every mutation), so summing quantities here doubled every line
 // on every page load. qty = max() can never double and still unions genuine
 // cross-device adds (an item present on only one side still appears).
+/* A saved line is only mergeable when it is a plain object carrying the
+   fields cartItemKey reads (#442). One null or malformed line in a
+   server-saved cart used to throw inside cartItemKey, and initCart then
+   silently dropped the whole server cart. Such lines are skipped; every
+   well-formed line merges exactly as before. */
+function isMergeableCartLine(it){
+  if (!it || typeof it !== 'object' || Array.isArray(it)) return false;
+  return typeof it.retailer === 'string' && it.retailer !== ''
+    && typeof it.title === 'string' && it.title !== '';
+}
+
 function mergeCarts(localCart, serverCart){
   const map = new Map();
-  for (const it of serverCart) map.set(cartItemKey(it), { ...it, qty: normalizeCartQty(it.qty) });
-  for (const it of localCart){
+  const server = Array.isArray(serverCart) ? serverCart.filter(isMergeableCartLine) : [];
+  const local = Array.isArray(localCart) ? localCart.filter(isMergeableCartLine) : [];
+  for (const it of server) map.set(cartItemKey(it), { ...it, qty: normalizeCartQty(it.qty) });
+  for (const it of local){
     const key = cartItemKey(it);
     const qty = normalizeCartQty(it.qty);
     if (map.has(key)) map.get(key).qty = Math.max(map.get(key).qty, qty);
