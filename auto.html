@@ -444,6 +444,13 @@ function matchQuery(q, idx){
 var SOURCE_LABELS = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts', rockauto: 'RockAuto' };
 function sourceLabel(k){ return SOURCE_LABELS[String(k||'').toLowerCase()] || String(k||'Tienda'); }
 var LOCATION_ES = { front: 'Delantera', rear: 'Trasera', 'front and rear': 'Delantera y trasera', left: 'Izquierda', right: 'Derecha' };
+/* DELANTERO / TRASERO (2026-10-13, #386 F10). Pads and rotors go on one
+   axle; when a search finds both, the shopper picks theirs first -- a
+   front pad on a rear axle is a return Aria pays for. */
+function axleOf(it){
+  var l = String((it && it.loc) || '').toLowerCase();
+  return l === 'front' ? 'Delantero' : l === 'rear' ? 'Trasero' : '';
+}
 function itemKey(it){ return String((it && (it.pn || it.t)) || ''); }
 function productHref(it){
   return 'producto.html?producto=' + encodeURIComponent(decodeEntitiesText(it.t || '')) +
@@ -491,7 +498,8 @@ function partCard(it, vehicle, fitted){
   var fit = fitted
     ? '<span class="badge ok">Compatible con tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) + '</span>'
     : '<span class="badge chk">Verifica el calce con el número de parte</span>';
-  return '<div class="pcard" data-i="' + i + '">' +
+  var ax = axleOf(it);
+  return '<div class="pcard" data-i="' + i + '"' + (ax ? ' data-axle="' + ax + '"' : '') + '>' +
     '<a class="pimg" href="' + esc(href) + '" aria-hidden="true" tabindex="-1">' + img + '</a>' +
     '<div class="pbody">' +
       '<a class="ptitle" href="' + esc(href) + '">' + esc(it.t) + '</a>' +
@@ -618,9 +626,9 @@ var VIEW = null;
 function newView(seq, vehicle, query){
   var r = $('results');
   r.classList.remove('hidden');
-  r.innerHTML = '<div id="segs"></div><div id="pendingSeg"></div><div class="morewrap" id="moreWrap"></div>';
+  r.innerHTML = '<div id="axlePick"></div><div id="segs"></div><div id="pendingSeg"></div><div class="morewrap" id="moreWrap"></div>';
   CARDS = [];
-  VIEW = { seq: seq, vehicle: vehicle, query: query, segs: [], target: PAGE, drawn: 0, pending: 0, scrolled: false };
+  VIEW = { seq: seq, vehicle: vehicle, query: query, segs: [], target: PAGE, drawn: 0, pending: 0, scrolled: false, axle: '' };
   return VIEW;
 }
 function addSeg(view, title, sub, items, fitted){
@@ -636,9 +644,12 @@ function addBySource(view, items, titleFor, sub, fittedFn){
   });
   order.forEach(function(k){ addSeg(view, titleFor(k), sub, m[k], fittedFn); });
 }
+function segItems(view, s){
+  return view.axle ? s.items.filter(function(it){ return axleOf(it) === view.axle; }) : s.items;
+}
 function remaining(view){
   var n = 0;
-  view.segs.forEach(function(s){ n += s.items.length - s.done; });
+  view.segs.forEach(function(s){ n += segItems(view, s).length - s.done; });
   return n;
 }
 function draw(view){
@@ -648,7 +659,8 @@ function draw(view){
   var budget = view.target - view.drawn;
   for (var i = 0; i < view.segs.length && budget > 0; i++){
     var s = view.segs[i];
-    if (s.done >= s.items.length) continue;
+    var list = segItems(view, s);
+    if (s.done >= list.length) continue;
     if (!s.el){
       var blk = document.createElement('div');
       blk.className = 'srcblock';
@@ -656,7 +668,7 @@ function draw(view){
       host.appendChild(blk);
       s.el = blk.querySelector('.cards');
     }
-    var take = s.items.slice(s.done, s.done + budget);
+    var take = list.slice(s.done, s.done + budget);
     var html = '';
     for (var j = 0; j < take.length; j++){
       var it = take[j];
@@ -666,6 +678,7 @@ function draw(view){
     s.done += take.length; view.drawn += take.length; budget -= take.length;
   }
   watchPhotos(host);
+  drawAxlePick(view);
   var ps = $('pendingSeg');
   if (ps){
     ps.innerHTML = (view.pending && view.drawn < view.target)
@@ -682,6 +695,32 @@ function draw(view){
     view.scrolled = true;
     try{ var r = $('results'); window.scrollTo({ top: r.offsetTop - 80, behavior: 'smooth' }); }catch(e){}
   }
+}
+function drawAxlePick(view){
+  var el = $('axlePick');
+  if (!el) return;
+  var n = { Delantero: 0, Trasero: 0 };
+  view.segs.forEach(function(s){ s.items.forEach(function(it){ var a = axleOf(it); if (a) n[a]++; }); });
+  if (!n.Delantero || !n.Trasero){ el.innerHTML = ''; return; }
+  var chip = function(val, label){
+    return '<button type="button" class="chip" data-axle-filter="' + val + '"' +
+      (view.axle === val ? ' style="background:var(--navy);color:#fff"' : '') +
+      ' onclick="setAxle(\'' + val + '\')">' + label + '</button>';
+  };
+  el.innerHTML = '<div class="srcblock" data-axle-picker><h2>¿Delantero o trasero?</h2>' +
+    '<p class="srcsub">Las pastillas y discos van en un eje específico. Elige el tuyo.</p>' +
+    '<div class="chips">' + chip('', 'Todos') + chip('Delantero', 'Delanteros (' + n.Delantero + ')') + chip('Trasero', 'Traseros (' + n.Trasero + ')') + '</div></div>';
+}
+function setAxle(a){
+  var view = VIEW;
+  if (!view) return;
+  view.axle = a || '';
+  view.segs.forEach(function(s){ s.done = 0; s.el = null; });
+  view.drawn = 0; view.target = PAGE;
+  var host = $('segs');
+  if (host) host.innerHTML = '';
+  CARDS = [];
+  draw(view);
 }
 function showMore(){
   if (!VIEW) return;
@@ -936,5 +975,7 @@ if (document.readyState === 'loading'){
   init();
 }
 </script>
+<!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/assets/js/aria-launcher.js" defer></script>
 </body>
 </html>

@@ -9,7 +9,11 @@
    so page 2 always continues page 1 in the same order.
 
    A deal card carries only what the card draws: id, title, brand,
-   store, usd, wasUsd, pct, image. Never sizes, descriptions or weights.
+   store, usd, wasUsd, pct, image -- plus m, 1 when it passes Danny's
+   $150 entry-shopper cap (sale-rule.js isMixDeal). The cap is for the
+   all-stores mix only: a store chosen in the filter shows every one of
+   its markdowns, the same count its own page shows (#386). Never sizes,
+   descriptions or weights.
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -21,7 +25,7 @@ export const SORTS = ["discount", "priceAsc", "priceDesc"];
 export const MAX_Q = 80;
 
 /* deals.json keeps each card as an array, in this order. */
-export const FIELDS = ["id", "title", "brand", "store", "usd", "wasUsd", "pct", "image"];
+export const FIELDS = ["id", "title", "brand", "store", "usd", "wasUsd", "pct", "image", "m"];
 export function packCard(c) { return FIELDS.map((f) => (c[f] == null ? "" : c[f])); }
 export function unpackCard(a) {
   const c = {};
@@ -51,7 +55,7 @@ export function normQ(q) { return String(q || "").replace(/\s+/g, " ").trim().sl
 /* Every word of the query must appear in the title or the brand --
    the old page's substring match, accent-blind and word by word. */
 export function selectDeals(cards, { store = "", sort = "discount", q = "" } = {}) {
-  let pool = store ? cards.filter((c) => c.store === store) : cards.slice();
+  let pool = store ? cards.filter((c) => c.store === store) : cards.filter((c) => c.m === 1);
   const words = fold(normQ(q)).split(" ").filter(Boolean);
   if (words.length) {
     pool = pool.filter((c) => {

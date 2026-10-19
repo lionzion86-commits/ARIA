@@ -165,8 +165,8 @@ await check("answers are edge-cached per (q, page); the warm ping is not", async
 const page = readFileSync(ROOT + "search.html", "utf8");
 await check("search.html downloads no catalogue, index or engine", () => {
   const fetched = [...page.matchAll(/["'](\/?[\w./-]+\.(?:json|js))["']/g)].map((m) => m[1]);
-  /* ref.js and the ad-pixel loader (#415, 5KB, async) are the only scripts. */
-  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/pixels)\.js$/.test(u));
+  /* ref.js and Aria's orb launcher (#386, deferred, no data) are the only scripts. */
+  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/(aria-launcher|pixels))\.js$/.test(u));
   assert.deepEqual(heavy, [], "the page still references " + heavy.join(", "));
   assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/);
   assert.match(page, /var PAGE_SIZE = 48;/);
