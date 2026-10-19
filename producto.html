@@ -870,49 +870,26 @@ async function buildRelatedRails(p, storePool){
    a real size picker, a fail-closed add-to-cart, and the same cart
    localStorage key/shape checkout.html reads ('aria_cart_v1').
 
-   Ported from index.html (APPAREL_KEYWORDS, needsSizeSelection,
-   sizeCategoryFor, truthfulSizes, cart merge). The full
+   Ported from index.html (truthfulSizes, cart merge). The full
    title-based weight estimator lives only in the SPA; this page marks
    its line honestly estimated (weightEstimated: true) and checkout
    re-resolves it server side.
+
+   THE RECORD DECIDES (2026-10-19, #411 P0 size gate). Whether this
+   page shows a size picker used to be asked of the TITLE: a keyword
+   regex (apparelNeedsSize) that never looked at the record. It failed
+   both ways. "RAV v2 Hook & Loop", "9060" and "Made in USA 990v6"
+   carry no shoe word, so their real size lists were thrown away and
+   the shoe went into the cart sizeless (639 of New Balance's 1,269
+   sized records); "Barbie ... Purple Dress", "Barbie Dreamhouse ...
+   3 Story Slide" and "Barbie Royal Doll with ... Skirt" carry a garment
+   word, have no size list, and were locked behind a dead "Tallas por
+   confirmar" button. Now the record's own list is the whole rule: a
+   list -> the picker, and no cart without a size; no list -> the
+   product sells plainly. Sizes are still the store's own or nothing.
    ===================================================================== */
 var CART_KEY = 'aria_cart_v1';
 
-/* The words that mean "this has a size" — one list, copied verbatim
-   from index.html. Note the \bboot lookahead: "bootcut" is a trouser
-   leg, not a shoe (see index.html comment).
-   2026-10-08 audit-2: extended with zip, bra/bralette/brassiere/sosten,
-   long sleeve + LS, and the other garment words added to index.html
-   the same day; SHOE copy re-synced (was missing slides/flip-flops/
-   wedges/cleats). This copy stays verbatim in sync with index.html. */
-var SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b|\bzapatos?\b|\bzapatillas?\b|\bbotas?\b|\bsandalias?\b|\bmocasines?\b|\bslides?\b|flip[-\s]?flops?|\bwedges?\b|\bcleats?\b/i;
-var CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b|\btrajes?\b|\bsu[eé]ter(?:es)?\b|\bchalecos?\b|\bblusas?\b|\bpantal[oó]n(?:es)?\b|\bfaldas?\b|\bvestidos?\b|\bchaquetas?\b|\babrigos?\b|\bcasacas?\b|\bzip\b|\bbras?\b|\bbralettes?\b|\bbrassieres?\b|long[-\s]?sleeves?|\bLS\b|\bjoggers?\b|\bsweatpants?\b|\bbikinis?\b|\bswimsuits?\b|\bpajamas?\b|\bpyjamas?\b|\btights?\b|\bhenleys?\b|\btunics?\b|\bbodysuits?\b|\bleotards?\b|\bunitards?\b|\boveralls?\b|\bpuffer\b|\btrench\b|\bponchos?\b|\bcamisoles?\b|\bskorts?\b|\bcorsets?\b|\bwindbreakers?\b|\braincoats?\b|\bpeacoats?\b|crew[-\s]?necks?|mock[-\s]?necks?|\bshapewear\b|\blingerie\b|\bpantyhose\b|base[-\s]?layers?|rash[-\s]?guards?|\bwetsuits?\b|board[-\s]?shorts?|\buniforms?\b|\bgloves\b|\bmittens\b|cover[-\s]?ups?|\bkimonos?\b|\bsudaderas?\b|\bbrasieres?\b|\bsost[eé]nes?\b/i;
-var APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
-/* Retailers whose entire catalogue is apparel/footwear: every item gets
-   a size there even when the title carries no generic size word. */
-var APPAREL_ONLY_RETAILERS = {oldnavy: 1, footlocker: 1};
-var SHOE_DEFAULT_RETAILERS = {footlocker: 1};
-var KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
-var MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
-var WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
-
-function apparelNeedsSize(retailer, title){
-  var rk = String(retailer || '').toLowerCase();
-  return (!!APPAREL_ONLY_RETAILERS[rk] || APPAREL_KEYWORDS.test(title || '')) && !isAccessoryTitle(title);
-}
-function sizeCategoryFor(retailer, title){
-  var t = title || '';
-  var rk = String(retailer || '').toLowerCase();
-  /* A garment word beats a lone "boot": "Wedgie Boot High-Rise Jeans"
-     is a trouser, not a shoe. "Chelsea Boot" carries no garment word
-     and still classifies as footwear. */
-  var bootish = /\bboot/i.test(t);
-  if (SHOE_KEYWORDS.test(t) && !(bootish && CLOTHING_KEYWORDS.test(t))) return 'shoe';
-  if (CLOTHING_KEYWORDS.test(t)) return 'clothing';
-  if (SHOE_KEYWORDS.test(t)) return 'shoe';
-  if (SHOE_DEFAULT_RETAILERS[rk]) return 'shoe';
-  return 'clothing';
-}
 /* VARIANT TRUTH (2026-10-18, Issue #411, Danny): the sizes a product
    offers are the retailer's own list or nothing -- never a template.
    Strings as the store wrote them; {size, available} objects (the Foot
@@ -1059,16 +1036,12 @@ function mergeCartLine(line){
 function buildBuyBox(p){
   var box = el('buy-box');
   if (!box) return;
-  var wantsSize = apparelNeedsSize(p.retailer, p.name);
+  /* The record's own size list is the whole question (#411 P0): a list
+     means a picker and no cart without a size; no list means the
+     product sells plainly. Never a title keyword, never a template. */
   var sizes = truthfulSizes(p.sizes);
+  var wantsSize = sizes.length > 0;
   var sizeHtml = '';
-  if (wantsSize && !sizes.length){
-    /* No verified size list (Danny, #411): not sold by size yet. No
-       invented grid, no free text -- the button says why. */
-    box.innerHTML = '<button id="add-cart-btn" class="btn btn-add" type="button" disabled aria-disabled="true">Tallas por confirmar</button>'
-      + '<p class="size-note">Todavía estamos confirmando con la tienda las tallas exactas de este producto. Apenas las tengamos, podrás comprarlo aquí.</p>';
-    return;
-  }
   if (wantsSize){
     var optsHtml = '<option value="" disabled selected>Selecciona una talla</option>'
       + sizes.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
@@ -1081,22 +1054,23 @@ function buildBuyBox(p){
     +   '<p class="confirm-msg">Agregado al carrito.</p>'
     +   '<a class="btn btn-checkout" href="checkout.html">Ver carrito / Finalizar compra</a>'
     + '</div>';
-  el('add-cart-btn').addEventListener('click', function(){ addCurrentToCart(p, wantsSize); });
+  el('add-cart-btn').addEventListener('click', function(){ addCurrentToCart(p, sizes); });
 }
 
-function addCurrentToCart(p, wantsSize){
+function addCurrentToCart(p, sizes){
   /* The price guard: never a priceless or $0 line. */
   var priceUsd = finalUsd(p.price, p.retailer);
   if (!(Number(priceUsd) > 0)){
     toast('Este producto aún no tiene precio confirmado.');
     return;
   }
-  /* FAIL CLOSED: a garment with no size never reaches the cart. */
+  /* FAIL CLOSED: a product the store sells in sizes never reaches the
+     cart without one, and only a size from the store's own list. */
   var size = null;
-  if (wantsSize){
+  if (sizes && sizes.length){
     var sel = el('size-select');
     size = sel ? sel.value : '';
-    if (!size){
+    if (!size || sizes.indexOf(size) < 0){
       toast('Selecciona una talla antes de agregar al carrito.');
       if (sel) sel.focus();
       return;
@@ -1119,6 +1093,9 @@ function addCurrentToCart(p, wantsSize){
     image: p.image || (Array.isArray(p.images) && p.images[0]) || '',
     brand: p.brand || '',
     selectedSize: size,
+    /* The store's list rides with a sized line, so the cart and checkout
+       can tell a sized line from a plain one without a title guess. */
+    sizeOptions: sizes && sizes.length ? sizes.slice() : undefined,
     qty: 1
   });
   toast('Agregado al carrito.');
