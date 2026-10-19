@@ -47,6 +47,24 @@
    calls an unconfigured retailer just returns a failed store card, which
    looks like a bug to a shopper and is one to us. */
 export const RETAILERS = {
+  /* BEST BUY (2026-10-19, Issue #413) — launched. Catalogue, no actor
+     (the Macy's pattern): bestbuy-catalog.json, 4,964 first-party
+     products, built by scripts/build-bestbuy-catalog.mjs from the Oct 18
+     pull (the 178 marketplace-seller records excluded by flag, Danny's
+     ruling). Billed first: the electronics specialist (Danny, #413
+     addendum 2). `logo` stays null until the real mark is dropped in
+     logos/bestbuy.svg; the wordmark pill on Best Buy blue is the honest
+     fallback meanwhile. */
+  bestbuy: {
+    key: "bestbuy",
+    label: "Best Buy",
+    color: "#0046BE",
+    logo: null,
+    tagline: "Laptops, gaming, audio y celulares",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   revolve: {
     key: "revolve",
     label: "Revolve",
@@ -1215,7 +1233,6 @@ export const RETAILERS = {
      search so an unconfigured retailer cannot return a failed store
      card. Flip `browse: true` the day the catalogue is committed.
      ============================================================ */
-  bestbuy: { key: "bestbuy", label: "Best Buy", color: "#0046BE", logo: null, kind: "general", search: false, retired: true },
   nordstrom: { key: "nordstrom", label: "Nordstrom", color: "#000000", logo: null, kind: "general", search: false, retired: true,
     retiredNote: "Bot protection: tres integraciones, cero productos. Reemplazada por SSENSE." },
 };

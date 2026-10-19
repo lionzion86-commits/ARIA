@@ -68,20 +68,26 @@ export const CATALOG_FILES = [
   "/target-catalog.json", "/tatami-catalog.json", "/tennis-catalog.json",
   "/ulta-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json",
   "/yesstyle-catalog.json", "/zumiez-catalog.json",
+  /* Best Buy (2026-10-19, #413): Electrónica's specialist and Hogar's
+     small appliances. */
+  "/bestbuy-catalog.json",
 ];
+/* Best Buy files under its own department names (scripts/lib/
+   department-map.js maps them the same way). */
+const BESTBUY_TECH = ["laptops", "gaming", "audio", "phones", "cameras", "accessories", "wearables", "tablets", "monitors"];
 
 /* Membership rules per department (names and hero copy stay in the page,
    which needs them before any data arrives). A department with its own
    page (ropa_interior*) is a redirect there and has no rule here. */
 export const DEPT_RULES = {
-  electronics: { buckets: ["electronics", "electronica"] },
+  electronics: { buckets: ["electronics", "electronica", ...BESTBUY_TECH] },
   clothing: { buckets: ["clothing"] },
   men: { buckets: ["men", "apparel_men"] },
   women: { buckets: ["women", "apparel_women"] },
   kids: { buckets: ["kids", "apparel_kids"] },
   candy_chocolate: { buckets: ["candy_chocolate"] },
   sporting_goods: { buckets: ["sporting_goods"] },
-  home_goods: { buckets: ["home_goods", "home", "hogar"] },
+  home_goods: { buckets: ["home_goods", "home", "hogar", "small_appliances"] },
   home_decor: { buckets: ["home_decor"] },
   curvy: { buckets: ["clothing", "men", "women", "apparel_men", "apparel_women", "apparel_kids"], extendedSizes: true },
   gym_rat: { buckets: ["gym_rat"] },

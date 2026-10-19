@@ -540,7 +540,12 @@ const TV_SIZE_BRAND_RX = /\b(43|50|55|58|60|65|70|75|77|83|85|98)["']\s*(class)?
    never bring them back. */
 const AXE_DEODORANT_RX = /\baxe\b/i;
 const AXE_DEODORANT_TYPE_RX = /\b(deodorant|desodorante|antiperspirant|antitranspirante|body\s*sprays?)\b/i;
-const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter|tv\sseries|serie\sde\stv/i;
+/* AN OLED SCREEN IS NOT A TELEVISION (2026-10-19, #413). The Best Buy
+   launch measured 172 laptops, iPad Pros, Surface tablets, phones and
+   sub-32" monitors refused as TVs on the word "OLED" alone -- every one
+   a parcel. A device word carves them out; a television's title names
+   none of these, so the TV rule still holds. */
+const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter|tv\sseries|serie\sde\stv|\blaptops?\b|\bnotebook\b|chromebook|\bipad\b|\btablets?\b|touch[-\s]?screen|\bmonitors?\b|smartphone|\biphone\b|steam\sdeck|handheld/i;
 /* TV STANDS ARE FURNITURE (2026-09-26, Danny): a stand or console that holds a TV is not a television. */
 const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|fireplace|chimenea|\bshed\b|cobertizo|playset|gazebo|patio\sset|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero|kettlebell|pesa\srusa/i;
 /* TV STANDS ARE FURNITURE (2026-09-26, Danny): tv stand / tv console /
@@ -633,12 +638,12 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-t
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"]};
 /* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
    page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
    a dozen cards per rail, and Safari reloaded the tab under the memory.
@@ -1650,6 +1655,19 @@ gym_rat:         { category: 'gymrat' },
      through search. */
   electronica:     { category: 'electronics' },
   hogar:           { category: 'home' },
+  /* BEST BUY (2026-10-19, #413) files under its own department names, which
+     no other retailer uses, so they map here without touching anyone else:
+     every tech bucket is Electrónica, small appliances are Hogar. */
+  laptops:          { category: 'electronics' },
+  gaming:           { category: 'electronics' },
+  audio:            { category: 'electronics' },
+  phones:           { category: 'electronics' },
+  cameras:          { category: 'electronics' },
+  accessories:      { category: 'electronics' },
+  wearables:        { category: 'electronics' },
+  tablets:          { category: 'electronics' },
+  monitors:         { category: 'electronics' },
+  small_appliances: { category: 'home' },
   belleza:         { category: 'beauty' },
 };
 
@@ -6212,7 +6230,7 @@ function renderMobileDealsRail(){
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE and Farfetch anchor the luxury end: browsable and honest,
    but slow. (Farfetch added 2026-09-29, Danny.) */
-const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'finishline', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['bestbuy', 'newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'finishline', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 /* HOMEPAGE_HIDDEN_STORES (2026-09-26, Danny): front-page real estate is
    for things people buy consistently. Rare big-ticket destinations --
    B&H's $3,000 cameras -- stay findable (Tiendas directory, category
@@ -11517,6 +11535,9 @@ function brandStripTileHTML(b){
    Featured rails first in rail order, then the rest by catalogue size. A store
    with no logo asset renders the same text pill storeLogoFallback() paints. */
 const TIENDAS_STRIP = [
+  /* BEST BUY BILLED FIRST (2026-10-19, Danny, #413): the electronics
+     specialist leads the strip. No logo file yet -- the brand-colour pill. */
+  {k:'bestbuy',l:'Best Buy',c:'#0046BE',logo:null},
   {k:'footlocker',l:'Foot Locker',c:'#000000',logo:'logos/footlocker.png'},
   {k:'gymshark',l:'Gymshark',c:'#000000',logo:'logos/gymshark.png'},
   {k:'macys',l:'Macy\'s',c:'#E21A2C',logo:'logos/macys.png'},
@@ -15958,7 +15979,17 @@ function armStorePhotoBackdrop(retailer){
     if (v && v.classList.contains('active')) layoutStorePhotoBackdrop(retailer);
   }, 1600);
 }
+/* THIN STOREFRONTS (2026-10-19, #413 + #409). A store launched in the
+   sliced format has no in-page storefront: this view would download its
+   whole catalogue. Every door into it (rail "Ver tienda", badges, the
+   Tiendas grid) lands on tienda.html, which answers from
+   assets/tienda/<key>/ slices. */
+const THIN_STOREFRONTS = new Set(['bestbuy']);
 async function openStore(retailer){
+  if (THIN_STOREFRONTS.has(String(retailer || '').toLowerCase())){
+    location.href = 'tienda.html?tienda=' + encodeURIComponent(String(retailer).toLowerCase());
+    return;
+  }
   pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
   applyStoreTheme('storeView', retailer);
@@ -19714,6 +19745,15 @@ function addToCartFromProduct(){
    returns a failed-store card that reads like a bug.
    ============================================================ */
 const RETAILERS = {
+  /* BEST BUY (2026-10-19, Issue #413) -- launched, catalogue but no actor
+     (the Macy's pattern): browse: true, search: false. bestbuy-catalog.json
+     (4,964 first-party products; the 178 marketplace-seller records are
+     excluded by flag in scripts/build-bestbuy-catalog.mjs) is committed at
+     repo root. Billed first (Danny, #413 addendum 2): the specialist that
+     anchors Aria's electronics lane. logo stays null until the real mark
+     lands in logos/bestbuy.svg -- the wordmark pill on Best Buy blue is the
+     honest fallback. Mirrors scripts/lib/retailers.js. */
+  bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: null,                   tagline: 'Laptops, gaming, audio y celulares',            kind: 'general', search: false, browse: true },
   revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
   target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
@@ -19997,7 +20037,6 @@ const RETAILERS = {
   rockauto:        { key: 'rockauto',        label: 'RockAuto',          color: '#303090', logo: 'logos/rockauto.png',   tagline: 'Catálogo profundo de repuestos — vía Aria Auto', kind: 'auto',    search: false, retired: true, retiredNote: 'Eliminada por Danny (2026-09-26).' },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
-  bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: null, kind: 'general', search: false, retired: true },
   nordstrom:       { key: 'nordstrom',       label: 'Nordstrom',         color: '#000000', logo: null, kind: 'general', search: false, retired: true },
   /* FARFETCH (2026-09-28) -- catalogue but no actor (Macy's pattern):
      browse: true, search: false. farfetch-catalog.json (Latino designer
@@ -20984,6 +21023,9 @@ const TAX_EXEMPT_STATUS = {
   bhphoto: 'unknown',
   nordstrom: 'unknown',
   dicks: 'unknown',
+  /* Best Buy honours the Florida DR-13 (#413). The exemption converts
+     Aria's buying cost; the customer stack keeps the 7% (Danny), so this
+     stays 'unknown' and the exemption is never itemized to shoppers. */
   bestbuy: 'unknown',
   dyson: 'unknown',
   lanebryant: 'unknown',

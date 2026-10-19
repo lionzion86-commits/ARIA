@@ -25,8 +25,8 @@
 
    WHY A STORE CAN BE ABSENT. A store is in here when a committed
    catalogue actually carries its products. Twenty rows of the page's
-   own RETAILERS registry — Best Buy, Nordstrom, Dyson, Sunglass Hut
-   and the K-beauty brands among them — have a registry entry, a logo
+   own RETAILERS registry — Nordstrom, Dyson, Sunglass Hut and the
+   K-beauty brands among them — have a registry entry, a logo
    and a tagline, and zero products. They are listed in NOT_STOCKED
    so that Aria naming one is impossible rather than merely
    discouraged: section 4 of the brief is absolute, every store she
@@ -66,7 +66,7 @@ export const MIN_RECOMMEND_DEPTH = 50;
    exist so she can answer honestly when a shopper names one, and she
    is never allowed to recommend them. */
 export const NOT_STOCKED = {
-  bestbuy: "Best Buy", nordstrom: "Nordstrom", dyson: "Dyson",
+  nordstrom: "Nordstrom", dyson: "Dyson",
   sunglasshut: "Sunglass Hut", rockauto: "RockAuto", autozone: "AutoZone",
   bathandbodyworks: "Bath & Body Works", morphe: "Morphe",
   fendi: "Fendi", goldengoose: "Golden Goose", townley: "Townley",
@@ -771,6 +771,20 @@ export const STORE_KNOWLEDGE = {
   },
 
   /* ---------- ELECTRÓNICA Y AUTO ---------- */
+  /* BEST BUY (2026-10-19, #413): launched with 4,964 first-party
+     products (the marketplace sellers excluded). Counted off
+     bestbuy-catalog.json; median $109.99. */
+  bestbuy: {
+    name: "Best Buy",
+    vibe: "la tienda de tecnología de Estados Unidos, la especialista",
+    specialties: ["laptops", "computadoras", "gaming", "consolas", "videojuegos", "audífonos", "parlantes", "celulares", "tablets", "smartwatches", "cámaras", "drones", "monitores", "freidoras de aire", "aspiradoras robot", "electrónica"],
+    price_range: "premium", median_usd: 109.99, product_count: 4964,
+    catalog_depth: "4,964 productos",
+    top_categories: ["computación", "gaming", "audio", "electrodomésticos pequeños", "celulares", "cámaras y drones"],
+    best_for: "laptops, consolas, audífonos y celulares de marca: Apple, Samsung, Sony, HP, Lenovo, Nintendo",
+    not_for: "televisores y electrodomésticos grandes — no se envían",
+    peru_note: "La tecnología de marca cuesta bastante más en Perú — acá se compara contra Walmart y Target en la misma búsqueda.",
+  },
   bhphoto: {
     name: "B&H Photo",
     vibe: "la tienda de fotógrafos y creadores, en serio",
