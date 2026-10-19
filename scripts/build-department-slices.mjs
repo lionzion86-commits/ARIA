@@ -1,0 +1,252 @@
+#!/usr/bin/env node
+/* ============================================================
+   assets/sections/departamento/ — EVERY DEPARTMENT, PRECOMPUTED.
+
+   WHY (2026-10-19, #409 track T5). departamento.html serves 31
+   departments (Moda Mujer/Hombre/Niños, Curvy, Gym Rat, Aria Beauty,
+   Mama's Fashion, Aria Fight Club, Juguetes, Surf & Skate, Zapatos,
+   Diseñador y Lujo, ...). Every one of them downloaded the same 60
+   catalogue files -- 219MB raw -- and filtered them on the phone to
+   draw a handful of carousels. The Mountain Test: nothing
+   catalogue-sized on any path a shopper takes.
+
+   WHAT THIS WRITES (per department <key>):
+     <key>/head.json   the hero count, the store chips, every carousel
+                       (title + count) and the first cards of the first
+                       carousels -- everything the first screen needs
+     <key>/rails-<b>.json
+                       the first cards of the next 6 carousels, fetched
+                       when the shopper scrolls near them
+     _fn/<key>.json    every card of the department plus its product
+                       type, for netlify/functions/department.js, which
+                       answers "Ver todo" / "Mostrar más" (48 cards at a
+                       time), the store chips and the department search
+                       box. It is never sent to a phone.
+
+   The rules are the page's own, moved here unchanged: the same 60
+   files in the same order, the same item normalisation and de-dup,
+   the same bucket / keyword membership, the same sort (on sale first,
+   then cheapest) and the same carousels (netlify/functions/
+   _department-core.js, which the endpoint shares) (Ofertas or Destacados, then
+   one per product type with 3+ items, then "Más productos").
+
+   REGENERATE after any catalogue change:
+     node scripts/build-department-slices.mjs
+   scripts/test/departamento-thin-tests.mjs fails when the slices no
+   longer match what the rules compute from the committed catalogues.
+   ============================================================ */
+import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { RETAILERS } from "./lib/retailers.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, headOf, batchOf, batchCount, fnRow, labelsOf } from "../netlify/functions/_department-core.js";
+export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
+
+const ROOT = fileURLToPath(new URL("../", import.meta.url));
+export const OUT_DIR = "assets/sections/departamento";
+
+/* The page's 60 sources, in the page's order (first file wins a de-dup). */
+export const CATALOG_FILES = [
+  "/department-cache-walmart.json", "/department-cache-target.json",
+  "/department-cache-oldnavy.json", "/department-cache-footlocker.json",
+  "/advanceauto-catalog.json", "/ae-catalog.json", "/baublebar-catalog.json",
+  "/beauty-catalog.json", "/bentgo-catalog.json", "/bhphoto-catalog.json",
+  "/books-catalog.json", "/boxlunch-catalog.json", "/ccs-catalog.json",
+  "/combatcorner-catalog.json", "/costco-catalog.json", "/crocs-catalog.json",
+  "/dicks-catalog.json", "/everlast-catalog.json", "/ezpz-catalog.json",
+  "/farfetch-catalog.json", "/fightclub-catalog.json", "/finishline-catalog.json",
+  "/fuji-catalog.json", "/gymrat-catalog.json", "/hottopic-catalog.json",
+  "/islandwatersports-catalog.json", "/juguetes-catalog.json", "/jwpei-catalog.json",
+  "/kohls-catalog.json", "/lanebryant-catalog.json", "/macys-catalog.json",
+  "/mainland-catalog.json", "/meliebianco-catalog.json", "/miumiu-catalog.json",
+  "/mmawarehouse-catalog.json", "/moms-catalog.json", "/mushie-catalog.json",
+  "/nautilus-catalog.json", "/newbalance-catalog.json", "/pacsun-catalog.json",
+  "/parrot-catalog.json", "/partycity-catalog.json", "/quietstorm-catalog.json",
+  "/revolve-catalog.json", "/samsclub-catalog.json", "/skims-catalog.json",
+  "/soccer-catalog.json", "/ssense-catalog.json", "/statebags-catalog.json",
+  "/sunglasses-catalog.json", "/surfstation-catalog.json", "/surfworld-catalog.json",
+  "/target-catalog.json", "/tatami-catalog.json", "/tennis-catalog.json",
+  "/ulta-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json",
+  "/yesstyle-catalog.json", "/zumiez-catalog.json",
+];
+
+/* Membership rules per department (names and hero copy stay in the page,
+   which needs them before any data arrives). A department with its own
+   page (ropa_interior*) is a redirect there and has no rule here. */
+export const DEPT_RULES = {
+  electronics: { buckets: ["electronics", "electronica"] },
+  clothing: { buckets: ["clothing"] },
+  men: { buckets: ["men", "apparel_men"] },
+  women: { buckets: ["women", "apparel_women"] },
+  kids: { buckets: ["kids", "apparel_kids"] },
+  candy_chocolate: { buckets: ["candy_chocolate"] },
+  sporting_goods: { buckets: ["sporting_goods"] },
+  home_goods: { buckets: ["home_goods", "home", "hogar"] },
+  home_decor: { buckets: ["home_decor"] },
+  curvy: { buckets: ["clothing", "men", "women", "apparel_men", "apparel_women", "apparel_kids"], extendedSizes: true },
+  gym_rat: { buckets: ["gym_rat"] },
+  surf_skate: { kind: "surfskate" },
+  spearfishing: { kind: "spearfishing" },
+  soccer: { kind: "soccer" },
+  tennis: { kind: "tennis" },
+  sunglasses: { kind: "sunglasses" },
+  mens_grooming: { buckets: ["grooming_men"] },
+  combat_sports: { buckets: ["combat_sports"] },
+  jewelry: { buckets: ["jewelry"] },
+  joyas_accesorios: { kind: "joyas" },
+  purses: { buckets: ["purses"] },
+  party: { kind: "party" },
+  toys: { kind: "toys" },
+  beauty: { buckets: ["beauty", "fragrance", "grooming_women", "belleza"] },
+  books: { buckets: ["books"] },
+  moms: { buckets: ["moms", "baby"] },
+  shoes: { kind: "shoes" },
+  shoes_women: { kind: "shoes_women" },
+  shoes_men: { kind: "shoes_men" },
+  auto_parts: { kind: "autoparts" },
+  luxury: { kind: "luxury" },
+};
+
+function hasAny(hay, words) {
+  for (const w of words) if (hay.indexOf(w) !== -1) return true;
+  return false;
+}
+export const KIND_MATCH = {
+  surfskate: (t) => hasAny(t, ["surfboard", "surf board", "skateboard", "skate board", "longboard", "wakeboard", "bodyboard", "paddleboard", "sup board"]),
+  spearfishing: (t) => hasAny(t, ["speargun", "spear gun", "freediv", "apnea", "wetsuit", "neoprene", "fins", "snorkel", "weight belt", "dive knife"]),
+  soccer: (t) => hasAny(t, ["soccer", "futbol", "football boot", "cleat"]) && t.indexOf("american football") === -1,
+  tennis: (t) => hasAny(t, ["tennis racket", "tennis racquet", "tennis ball", "tennis shoe", "tennis skirt"]),
+  sunglasses: (t) => hasAny(t, ["sunglasses", "lentes de sol", "gafas de sol", "sun glasses"]),
+  joyas: (t) => hasAny(t, ["earring", "necklace", "bracelet", "pendant", "charm", "anillo", "collar", "pulsera", "arete"]),
+  party: (t) => hasAny(t, ["party", "fiesta", "balloon", "globo", "birthday", "cumplea", "decoration", "decoraci", "confetti", "piñata", "pinata"]),
+  toys: (t) => hasAny(t, ["toy", "juguete", "lego", "doll", "muñeca", "action figure", "plush", "peluche", "board game", "puzzle"]),
+  shoes: (t) => hasAny(t, ["shoe", "zapato", "sneaker", "boot", "bota", "sandal", "sandalia", "loafer", "mocasin", "heel", "tacon", "tacón", "slipper", "pantufla", "cleat", "taco"]),
+  shoes_women: (t) => KIND_MATCH.shoes(t) && hasAny(t, ["women", "woman", "mujer", "ladies", "dama", "female"]),
+  shoes_men: (t) => KIND_MATCH.shoes(t) && hasAny(t, ["men", "man", "hombre", "mens", "caballero", "male"]),
+  autoparts: (t) => hasAny(t, ["brake", "freno", "oil filter", "filtro de aceite", "spark plug", "bujía", "bujias", "air filter", "filtro de aire", "alternator", "alternador", "battery", "batería", "radiator", "radiador", "shock absorber", "amortiguador", "clutch", "embrague", "timing belt", "correa"]),
+  luxury: (t, p) => ["ssense", "miumiu", "farfetch"].indexOf(p.retailer) !== -1 ||
+    hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino"]),
+};
+
+export function belongsToDept(rule, p) {
+  try {
+    if (rule.buckets) {
+      if (rule.buckets.indexOf(p.bucket) === -1) return false;
+      if (rule.extendedSizes) {
+        const sz = ((p.sizes || "") + " " + (p.title || "")).toLowerCase();
+        if (!/(\b[2-9]x\b|xxl|3xl|4xl|plus|curvy|talla grande)/.test(sz)) return false;
+      }
+      return true;
+    }
+    if (rule.kind && KIND_MATCH[rule.kind]) {
+      const hay = ((p.title || "") + " " + (p.brand || "") + " " + (p.type || "")).toLowerCase();
+      return KIND_MATCH[rule.kind](hay, p);
+    }
+    return false;
+  } catch { return false; }
+}
+
+/* sale-rule.js is index.html's one on-sale definition; run it here. */
+export function loadSaleRule(root = ROOT) {
+  const win = {};
+  new Function("window", readFileSync(join(root, "sale-rule.js"), "utf8"))(win);
+  return win.AriaSale;
+}
+
+export function normalizeItem(raw, retailer, bucket, AriaSale) {
+  const title = raw.name || raw.title || "";
+  if (!title) return null;
+  const price = Number(raw.price);
+  if (!(price > 0)) return null;
+  const salePct = AriaSale.discountPct(raw);
+  return {
+    title: String(title),
+    brand: raw.brand || "",
+    type: raw.type || "",
+    rawPrice: price,
+    wasPrice: salePct > 0 ? Number(AriaSale.originalPrice(raw)) || 0 : 0,
+    salePct,
+    image: raw.image || (raw.images && raw.images[0]) || "",
+    retailer,
+    bucket,
+    sizes: (raw.availableSizes || []).join(" "),
+  };
+}
+
+/* Every normalised item across the 60 sources, de-duplicated exactly as
+   the page did (retailer + title, first source wins). */
+export function loadAllItems(root = ROOT) {
+  const AriaSale = loadSaleRule(root);
+  const out = [], seen = new Set();
+  for (const f of CATALOG_FILES) {
+    let data;
+    try { data = JSON.parse(readFileSync(join(root, f), "utf8")); } catch { continue; }
+    if (!data || !data.retailers) continue;
+    for (const rk of Object.keys(data.retailers)) {
+      const buckets = (data.retailers[rk] || {}).departments || {};
+      for (const bk of Object.keys(buckets)) {
+        const items = (buckets[bk] || {}).items || [];
+        for (const it of items) {
+          let p;
+          try { p = normalizeItem(it, rk, bk, AriaSale); } catch { p = null; }
+          if (!p) continue;
+          const key = rk + "::" + p.title;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(p);
+        }
+      }
+    }
+  }
+  return out;
+}
+
+export function deptItems(all, key) {
+  const rule = DEPT_RULES[key];
+  const list = all.filter((p) => belongsToDept(rule, p));
+  /* Stable sort: on sale first, then cheapest (the page's order). */
+  return list
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => {
+      const as = a.p.salePct > 0 ? 1 : 0, bs = b.p.salePct > 0 ? 1 : 0;
+      if (as !== bs) return bs - as;
+      return (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i);
+    })
+    .map((x) => x.p);
+}
+
+/* Store names for chips and cards, from the retailer registry. */
+/* Catalogue retailer keys the registry does not list (sub-stores of a
+   catalogue file); without these the chip would read the raw key. */
+const EXTRA_LABELS = {
+  americaneagle: "American Eagle", partycity: "Party City", elite: "Elite Sports", gameness: "Gameness",
+  tennisexpress: "Tennis Express", academy: "Academy Sports", prosoccer: "Pro Soccer", xtremesoccer: "Xtreme Soccer",
+};
+export const ALL_LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k])) };
+
+export function build(root = ROOT) {
+  const all = loadAllItems(root);
+  const outRoot = join(root, OUT_DIR);
+  const summary = {};
+  for (const key of Object.keys(DEPT_RULES)) {
+    const dir = join(outRoot, key);
+    if (existsSync(dir)) rmSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true });
+    const list = deptItems(all, key);
+    const sections = buildSections(list);
+    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS)));
+    let files = 1;
+    for (let b = 0; b < batchCount(sections); b++) { writeFileSync(join(dir, `rails-${b}.json`), JSON.stringify(batchOf(sections, b))); files++; }
+    mkdirSync(join(root, FN_DIR), { recursive: true });
+    writeFileSync(join(root, FN_DIR, key + ".json"), JSON.stringify({ v: 1, dept: key, labels: labelsOf(list, ALL_LABELS), rows: list.map(fnRow) }));
+    summary[key] = { items: list.length, rails: sections.length, files };
+  }
+  return summary;
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const t = Date.now();
+  const s = build();
+  for (const [k, v] of Object.entries(s)) console.log(`${k.padEnd(18)} ${String(v.items).padStart(6)} items  ${String(v.rails).padStart(3)} rails  ${v.files} files`);
+  console.log(`done in ${((Date.now() - t) / 1000).toFixed(1)}s -> ${OUT_DIR}/`);
+}

@@ -62,3 +62,10 @@
   to = "/.netlify/functions/search"
   status = 200
   force = true
+
+# Departments (2026-10-19, #409 track T5): departamento.html's first
+# screen is static slices (assets/sections/departamento/<dept>/); this
+# function answers "Ver todo", the store chips and the department search
+# box from each department's full card list. The phone never downloads it.
+[functions."department"]
+  included_files = ["assets/sections/departamento/_fn/*.json"]
