@@ -326,7 +326,11 @@ await check("checkout: a sized line with no size blocks Pagar, names the line, a
     }, x);
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector("[data-size-missing]", { timeout: 30000 });
-    await page.waitForTimeout(1500);
+    /* Once the quote and the shard lookup have settled, Pagar must still be closed, and say why. */
+    await page.waitForFunction(() => {
+      const b = document.getElementById("payBtn");
+      return b && !/Calculando|Revisando|Completa/i.test(b.textContent);
+    }, null, { timeout: 30000 });
     const btn = await page.$eval("#payBtn", (b) => ({ d: b.disabled, t: b.textContent.trim() }));
     assert(btn.d && /talla/i.test(btn.t), "Pagar is " + JSON.stringify(btn));
     const msg = await page.$eval("[data-size-missing]", (b) => b.textContent);
