@@ -362,8 +362,13 @@
         sense: sense ? sense.label : null,
         suggestion: ctx.S.suggestSearchQuery(queries[0] ? textOf(queries[0]) : q, windex) || null };
     }
+    /* What kind of words the shopper typed (#416 generic lanes): only
+       dictionary words ("dolls", "muñecas", "vestidos") is a browse
+       query; a brand, a model, a number or a word the dictionary does
+       not know is a specific one. */
     return { state: 'results', hits: hits, query: q, shown: shown && shown !== norm(q) ? shown : null,
-      sense: sense ? sense.label : null };
+      sense: sense ? sense.label : null,
+      kinds: plan.slots.map(function (s) { return s.kind; }), intents: Object.keys(plan.intents) };
   }
   function priceOf(it) { return Number(it && it.price) || Infinity; }
 

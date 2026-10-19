@@ -19,6 +19,9 @@
      minCardH         the shortest card in the first screen, in px
                       (a collapsed card would be a few px)
      entities         whether any card shows "&#38;"-style text
+     domCards         result-grid cards drawn (48 a page at most)
+     laneCards        cards in the mall's lanes (#416; 16 per lane)
+     firstScreen      what the first screen shows, top to bottom
 
    Targets (#409 fire order): JSON < 300KB a page, first results
    painted < 2s, no catalogue request, shaped cards with photos.
@@ -28,7 +31,9 @@
      ARIA_BASE_URL=https://deploy-preview-NNN--<site>.netlify.app \
        node scripts/test/search-mobile-battery.mjs
    PLAYWRIGHT_CHROMIUM=<path> uses an installed Chromium. QUERIES="a|b"
-   overrides the battery.
+   overrides the battery. STANDIN_PHOTO=<url> answers every retailer
+   photo with that one image, for sandboxes that cannot reach the
+   retailers' CDNs (the run then measures the page, not the photos).
    ================================================================== */
 import { chromium } from "playwright";
 
@@ -51,6 +56,11 @@ for (const q of QUERIES) {
     userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
   });
   const page = await context.newPage();
+  if (process.env.STANDIN_PHOTO) {
+    const own = new URL(BASE).host;
+    await page.route((url) => url.host !== own && url.host !== new URL(process.env.STANDIN_PHOTO).host, (r) =>
+      r.request().resourceType() === "image" ? r.fulfill({ status: 302, headers: { location: process.env.STANDIN_PHOTO } }) : r.abort());
+  }
   const cdp = await context.newCDPSession(page);
   await cdp.send("Network.enable");
   await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
@@ -62,11 +72,13 @@ for (const q of QUERIES) {
   await page.addInitScript(() => {
     const m = (window.__m = {});
     const tick = () => {
-      const cards = document.querySelectorAll("#results .card:not(.sk)");
+      const cards = document.querySelectorAll("#results .card:not(.sk)");   // grid and lanes
       if (!m.placeholders && document.querySelector("#results .card.sk")) m.placeholders = performance.now();
       if (!m.firstCards && cards.length) m.firstCards = performance.now();
       if (m.firstCards && !m.screenPhotos) {
-        const imgs = [...cards].filter((c) => c.getBoundingClientRect().top < innerHeight).map((c) => c.querySelector("img")).filter(Boolean);
+        /* On the screen: a lane's cards off to the side are not. */
+        const imgs = [...cards].filter((c) => { const b = c.getBoundingClientRect(); return b.top < innerHeight && b.left < innerWidth && b.right > 0; })
+          .map((c) => c.querySelector("img")).filter(Boolean);
         if (imgs.length && imgs.every((i) => i.complete && i.naturalWidth > 0)) m.screenPhotos = performance.now();
       }
       if (!(m.firstCards && m.screenPhotos)) requestAnimationFrame(tick);
@@ -81,8 +93,13 @@ for (const q of QUERIES) {
   } catch (e) { error = String(e.message).split("\n")[0]; }
   const m = await page.evaluate(() => {
     const cards = [...document.querySelectorAll("#results .card:not(.sk)")];
-    const first = cards.filter((c) => c.getBoundingClientRect().top < innerHeight);
-    return { ...window.__m, domCards: cards.length,
+    const first = cards.filter((c) => c.getBoundingClientRect().top < innerHeight && c.getBoundingClientRect().left < innerWidth);
+    const screen = [...document.querySelectorAll("#results > .lane h2, #results > .grid-head, #results > .card:not(.sk)")]
+      .filter((e) => e.getBoundingClientRect().top < innerHeight)
+      .map((e) => e.tagName === "H2" ? "[" + e.textContent + "]" : "card");
+    return { ...window.__m, domCards: document.querySelectorAll("#results > .card:not(.sk)").length,
+      laneCards: document.querySelectorAll("#results .lane .card").length,
+      firstScreen: screen.join(" ").replace(/(card ?)+/g, (m) => (m.trim().split(" ").length) + " cards "),
       minCardH: first.length ? Math.round(Math.min(...first.map((c) => c.getBoundingClientRect().height))) : null,
       entities: cards.some((c) => /&#\d+;|&#x[0-9a-f]+;|&amp;|&quot;/i.test(c.textContent)),
       meta: (document.getElementById("meta-line") || {}).textContent || "" };
@@ -97,7 +114,7 @@ for (const q of QUERIES) {
     totalKB: +(done.reduce((s, r) => s + r.bytes, 0) / 1024).toFixed(1),
     largest: largest ? `${largest.url.replace(/^https?:\/\/[^/]+/, "").slice(0, 60)} ${(largest.bytes / 1024).toFixed(1)}KB` : null,
     catalogue: done.filter((r) => /-catalog\.json|department-cache|catalog-index|search-engine\.js|search-pipeline\.js/.test(r.url)).map((r) => r.url),
-    domCards: m.domCards, minCardH: m.minCardH, entities: m.entities, meta: m.meta,
+    domCards: m.domCards, laneCards: m.laneCards, firstScreen: (m.firstScreen || "").trim(), minCardH: m.minCardH, entities: m.entities, meta: m.meta,
   };
   const bad = row.error || row.catalogue.length || row.apiKB.some((k) => k > 300) || !(row.minCardH > 150) || row.entities || !(row.domCards <= 48);
   if (bad) failed++;

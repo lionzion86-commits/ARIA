@@ -33,6 +33,14 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .search-hero{text-align:center; margin:8px 0 22px;}
 .search-hero h1{font-size:clamp(24px,4vw,34px); font-weight:800; letter-spacing:-0.02em; color:var(--navy);}
 .search-hero p{color:var(--muted); font-size:14px; margin-top:8px;}
+/* With a search on a phone, the results own the first screen: the
+   heading and its line step aside, the box stays (#416). */
+@media(max-width:640px){
+  body.searching .search-hero h1, body.searching .search-hero p{display:none;}
+  body.searching .search-hero{margin:0 0 6px;}
+  body.searching .search-box{margin-top:0;}
+  body.searching #status{margin:10px auto 4px;}
+}
 .search-box{position:relative; z-index:1; max-width:640px; margin:18px auto 0;}
 /* The first tap is a tap: no double-tap-zoom gesture for iOS to wait on. */
 .search-box input, .search-box button{touch-action:manipulation;}
@@ -78,13 +86,28 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .card .brand{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--blue); min-height:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .card .name{font-size:13px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:35px;}
 .card .retailer{font-size:11px; color:var(--muted); min-height:14px;}
+/* SOLES FIRST (2026-10-19, #416): the price a shopper in Peru pays is
+   the bold one; dollars are the small grey reference. */
 .card .price{margin-top:auto; padding-top:6px; min-height:42px;}
-.card .price .usd{font-size:17px; font-weight:800; color:var(--navy);}
-.card .price .pen{font-size:12px; color:var(--muted);}
+.card .price .pen{font-size:17px; font-weight:800; color:var(--navy);}
+.card .price .was{font-size:12px; color:var(--muted); text-decoration:line-through; margin-left:4px; font-weight:400;}
+.card .price .usd{font-size:12px; color:var(--muted);}
+/* Yellow is for sale badges only. */
+.card .off{position:absolute; top:8px; left:8px; z-index:1; background:var(--gold); color:var(--navy); font-size:12px; font-weight:800; border-radius:8px; padding:3px 7px;}
+
+/* THE MALL (2026-10-19, #416): carousels. A browse query opens with
+   them; a specific one shows its results first and the carousels
+   after the first rows. Each lane spans the whole grid row. */
+.lane{grid-column:1/-1; min-width:0; margin:6px 0 4px;}
+.lane h2, .grid-head{font-size:17px; font-weight:800; color:var(--navy); margin:0 0 10px;}
+.grid-head{grid-column:1/-1; margin-top:12px;}
+.rail{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; -webkit-overflow-scrolling:touch;}
+.rail .card{flex:0 0 42%; max-width:200px; scroll-snap-align:start;}
+@media(min-width:640px){ .rail .card{flex-basis:200px;} }
 /* Placeholder cards: the same boxes, grey bars where the words go. */
 .card.sk i{display:block; height:10px; border-radius:5px; background:var(--line); margin:3px 0;}
 .card.sk .name i:last-child{width:60%;}
-.card.sk .usd i{height:16px; width:45%;}
+.card.sk .pen i{height:16px; width:45%;}
 .card.sk .brand i, .card.sk .retailer i{width:40%;}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
@@ -335,6 +358,100 @@ async function fetchPage(q, page){
   return data;
 }
 
+/* ---------- soles, always (#416) ----------
+   The server answers with soles. If an answer ever arrives without
+   them (SUNAT and the stored rate both unavailable to the function),
+   the page converts with the site's own rate -- the same endpoint and
+   24-hour cache key the home page and checkout use -- instead of
+   flipping every card to dollars. */
+var FX_CACHE_KEY = "aria_fx_rate_v1", FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var PAGE_FX = null;
+async function pageRate(){
+  if (PAGE_FX) return PAGE_FX;
+  try{
+    var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || "null");
+    if (c && typeof c.venta === "number" && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS) return (PAGE_FX = c.venta);
+  }catch(e){}
+  try{
+    var ctl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, 6000) : null;
+    var res = await fetch(BASE + "/.netlify/functions/exchange-rate", ctl ? { signal: ctl.signal } : {});
+    if (timer) clearTimeout(timer);
+    var d = await res.json();
+    if (res.ok && typeof d.venta === "number" && d.venta > 0){
+      try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, d, { fetchedAt: Date.now() }))); }catch(e){}
+      PAGE_FX = d.venta;
+    }
+  }catch(e){}
+  return PAGE_FX;
+}
+async function withSoles(data){
+  if (!data || data.fx) return data;
+  var fx = await pageRate();
+  if (!fx) return data;
+  var conv = function(c){
+    c.pen = Math.round(Number(c.usd) * fx * 100) / 100;
+    c.wasPen = c.wasUsd ? Math.round(Number(c.wasUsd) * fx * 100) / 100 : null;
+  };
+  (data.items || []).forEach(conv);
+  (data.lanes || []).forEach(function(l){ (l.items || []).forEach(conv); });
+  data.fx = fx;
+  return data;
+}
+
+/* ---------- the mall's lanes ---------- */
+/* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN. Measured on the
+   mountain profile: with loading="lazy", Chrome counted every card of
+   a carousel as "near the screen" and fetched all 32 lane photos at
+   once -- 1.2MB, and the first screen's photos took 37s instead of 11
+   -- and on a slow connection it also starts the grid's photos about
+   2,500px ahead. An IntersectionObserver honours the rail's clipping
+   and a 200px margin: the first screen's photos have the link to
+   themselves, a card off to the side waits until the shopper swipes
+   (then the next one is fetched with it), and the grid's photos come
+   as the shopper scrolls. */
+var PHOTO_IO = null;
+function railPhoto(img){
+  if (!img || !img.dataset.src) return;
+  if (img.dataset.srcset){ img.srcset = img.dataset.srcset; img.sizes = img.dataset.sizes || ""; }
+  img.src = img.dataset.src;
+  img.removeAttribute("data-src");
+  img.removeAttribute("data-srcset");
+}
+function watchPhotos(root){
+  var imgs = (root || document).querySelectorAll("img[data-src]");
+  if (!imgs.length) return;
+  if (typeof IntersectionObserver !== "function"){ imgs.forEach(railPhoto); return; }
+  if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      PHOTO_IO.unobserve(e.target);
+      railPhoto(e.target);
+      var rail = e.target.closest(".rail"), card = e.target.closest(".card");
+      if (rail && rail.scrollLeft > 0 && card && card.nextElementSibling) railPhoto(card.nextElementSibling.querySelector("img[data-src]"));
+    });
+  }, { rootMargin: "200px 0px" });
+  imgs.forEach(function(i){ PHOTO_IO.observe(i); });
+}
+function laneHTML(l){
+  return '<section class="lane" aria-label="' + esc(l.title) + '"><h2>' + esc(l.title) + "</h2>" +
+    '<div class="rail">' + l.items.map(cardHTML).join("") + "</div></section>";
+}
+/* A browse query: the lanes, then "Todos los resultados". A specific
+   query: its first rows of results, then the lanes, then the rest. */
+var SPECIFIC_LEAD = 8;
+function answerHTML(data){
+  var lanes = (data.lanes || []).filter(function(l){ return l.items && l.items.length; });
+  var cards = data.items.map(cardHTML);
+  if (!lanes.length) return cards.join("");
+  if (data.mode === "generic"){
+    return lanes.map(function(l){ return laneHTML(l); }).join("") +
+      '<h2 class="grid-head">Todos los resultados</h2>' + cards.join("");
+  }
+  return cards.slice(0, SPECIFIC_LEAD).join("") + lanes.map(function(l){ return laneHTML(l); }).join("") +
+    cards.slice(SPECIFIC_LEAD).join("");
+}
+
 /* ---------- search ---------- */
 function searchFor(q){
   var input = el("q");
@@ -352,10 +469,12 @@ async function doSearch(){
     history.replaceState(null, "", u.toString());
   }catch(e){}
   if (!query){
+    document.body.classList.remove("searching");
     setStatus("Escribe lo que buscas y presiona Buscar.");
     showStart();
     return;
   }
+  document.body.classList.add("searching");
   var seq = ++SEQ;
   STATE = { q: query, page: 0, pages: 0, total: 0, capped: false, shown: 0, busy: true };
   setStatus("Buscando…");
@@ -365,7 +484,7 @@ async function doSearch(){
     if (input && document.activeElement === input) input.blur();
   }catch(e){}
   try{
-    var data = await fetchPage(query, 1);
+    var data = await withSoles(await fetchPage(query, 1));
     if (seq !== SEQ) return;
     STATE.busy = false;
     renderAnswer(query, data);
@@ -389,12 +508,13 @@ function renderAnswer(query, data){
   var grid = el("results");
   if (!grid) return;
   STATE.page = data.page; STATE.pages = data.pages; STATE.total = data.total; STATE.capped = !!data.capped;
-  grid.innerHTML = data.items.map(cardHTML).join("");
+  grid.innerHTML = answerHTML(data);
+  watchPhotos(grid);
   STATE.shown = data.items.length;
   var meta = el("meta-line");
   if (meta){
     meta.textContent = (STATE.capped ? "Más de " : "") + fmtCount(data.total) + " resultado" + (data.total === 1 ? "" : "s") +
-      ' para "' + query + '"' + (data.fx ? "" : " · precios en USD (tipo de cambio no disponible)");
+      ' para "' + query + '"';
     /* Said the way Google says it, when a word was corrected. */
     if (data.shown){
       var fx = document.createElement("span");
@@ -442,11 +562,12 @@ async function showMore(){
   STATE.busy = true;
   if (btn){ btn.disabled = true; btn.textContent = "Cargando…"; }
   try{
-    var data = await fetchPage(STATE.q, STATE.page + 1);
+    var data = await withSoles(await fetchPage(STATE.q, STATE.page + 1));
     if (seq !== SEQ) return;
     STATE.busy = false;
     if (data && data.items && data.items.length){
       grid.insertAdjacentHTML("beforeend", data.items.map(cardHTML).join(""));
+      watchPhotos(grid);
       STATE.shown += data.items.length;
       STATE.page = data.page; STATE.pages = data.pages;
     } else {
@@ -464,23 +585,37 @@ async function showMore(){
 
 function priceHTML(p){
   try{
-    var h = '<div class="usd">' + esc(fmtUsd(p.usd)) + "</div>";
-    h += '<div class="pen">' + (p.pen ? esc(fmtPen(p.pen)) + " aprox." : "&nbsp;") + "</div>";
+    /* Soles lead, always. A card reaches this without soles only when
+       the server and the page's own rate both failed (see withSoles):
+       then dollars, plainly labelled, rather than nothing. */
+    if (!p.pen) return '<div class="pen">' + esc(fmtUsd(p.usd)) + '</div><div class="usd">&nbsp;</div>';
+    var h = '<div class="pen">' + esc(fmtPen(p.pen)) +
+      (p.wasPen > p.pen ? '<span class="was">' + esc(fmtPen(p.wasPen)) + "</span>" : "") + "</div>";
+    h += '<div class="usd">' + esc(fmtUsd(p.usd)) + "</div>";
     return h;
   }catch(e){ return ""; }
+}
+function offBadge(p){
+  var was = Number(p.wasUsd), now = Number(p.usd);
+  if (!(was > now && now > 0)) return "";
+  var pct = Math.round((1 - now / was) * 100);
+  return pct >= 5 ? '<span class="off">-' + pct + "%</span>" : "";
 }
 
 function cardHTML(p){
   var title = decodeEntities(p.title), brand = decodeEntities(p.brand);
   /* A photo that fails takes its card with it rather than leaving a
      blank tile -- after the original URL has had its chance. */
-  var img = '<img ' + cardImgAttrs(p.image) + ' alt="" width="560" height="560" loading="lazy" decoding="async"' +
+  /* src/srcset parked in data- until the card is about to be seen
+     (watchPhotos). */
+  var img = '<img ' + cardImgAttrs(p.image).replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
+    ' alt="" width="560" height="560" decoding="async"' +
     ' onerror="if(!imgOrigRetry(this)){var c=this.closest(\'.card\'); if(c) c.remove();}">';
   /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   var href = "producto.html?producto=" + encodeURIComponent(title || "") +
     (p.store ? "&tienda=" + encodeURIComponent(p.store) : "");
   return '<a class="card" href="' + esc(href) + '" data-id="' + esc(p.id || "") + '">' +
-    '<div class="img">' + img + "</div>" +
+    '<div class="img">' + offBadge(p) + img + "</div>" +
     '<div class="body">' +
       '<div class="brand">' + (brand ? esc(brand) : "&nbsp;") + "</div>" +
       '<div class="name">' + esc(title) + "</div>" +
@@ -497,7 +632,7 @@ function renderSkeleton(){
   var more = el("more-wrap"); if (more) more.hidden = true;
   var one = '<div class="card sk" aria-hidden="true"><div class="img"></div><div class="body">' +
     '<div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div>' +
-    '<div class="price"><div class="usd"><i></i></div><div class="pen">&nbsp;</div></div></div></div>';
+    '<div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div>';
   var html = "";
   for (var i = 0; i < 8; i++) html += one;
   grid.innerHTML = html;
