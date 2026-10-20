@@ -18,8 +18,13 @@
      2. beauty     — our beauty/fragrance shipped-weight table
      3. title      — a net weight the retailer stated in the product title
                      ("4 oz"), plus a flat packaging allowance
-     4. category   — our category table, at actual scale weight
-     5. fallback   — a labeled generic, never zero
+     4. category   — our category table, at actual scale weight (toys
+                     included since #449, at published box weights)
+     5. department — no row matched and the line is $75 or more: the upper
+                     end of the product's department band (department
+                     hint, single-department store, toy title, else
+                     general). Under $75 the fallback below stands. #449.
+     6. fallback   — a labeled generic, never zero
 
    WHY BEAUTY OUTRANKS THE TITLE: a cosmetic's title states the volume of
    liquid in the bottle, not what ships. "Eau de Toilette 3.4 oz" read as
@@ -49,7 +54,7 @@
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { titleWeight, weightSanity, freightQuotable, candleWeightKg, GENERIC_FALLBACK_KG } from "../../scripts/lib/item-weight.js";
+import { titleWeight, weightSanity, freightQuotable, candleWeightKg, GENERIC_FALLBACK_KG, departmentFallbackKg } from "../../scripts/lib/item-weight.js";
 import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beauty-weight.js";
 // The PUBLIC charged rate only — the internal courier cost never travels
 // with anything a browser can reach, and this module answers checkout.
@@ -184,7 +189,12 @@ export function catalogWeightKg(item) {
  */
 export function resolveItemWeight(item) {
   const title = String(item?.title ?? item?.name ?? "");
-  const hints = { retailer: item?.retailer, department: item?.department };
+  /* The line's price rides along (#449): LEGO without a piece count is
+     weighed by price, and an unplaceable product at $75+ is quoted
+     conservatively rather than at the 0.6 kg generic. */
+  const priceUsd = Number(item?.priceUsd ?? item?.price);
+  const hints = { retailer: item?.retailer, department: item?.department,
+    priceUsd: Number.isFinite(priceUsd) && priceUsd > 0 ? priceUsd : undefined };
 
   // A weight the retailer published is the one fact here, and it wins
   // over everything below, beauty included.
@@ -245,6 +255,14 @@ export function resolveItemWeight(item) {
   if (category != null && category > 0) {
     return banded(category, "category", "categoría del producto");
   }
+
+  /* CONSERVATIVE FALL-THROUGH (#449). No row matched and the line is $75
+     or more: quote the upper end of the product's department band, never
+     the silent 0.6 kg. Under $75 departmentFallbackKg() answers null and
+     the existing fallback below stands (Danny's ruling on #443), so no
+     new freight-confirm hold comes from here. Still a "gap" for review. */
+  const dept = departmentFallbackKg(title, hints);
+  if (dept) return banded(dept.kg, "department", `tope conservador de ${dept.key} (sin regla de peso)`, "gap");
 
   return banded(GENERIC_FALLBACK_KG, "fallback", "estimado genérico", "gap");
 }

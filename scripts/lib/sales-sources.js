@@ -51,7 +51,7 @@ export function tieredMarginUsd(rawUsd) {
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
   titleWeight, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
-  candleWeightKg, GENERIC_FALLBACK_KG,
+  candleWeightKg, GENERIC_FALLBACK_KG, smallToyWeightKg, departmentFallbackKg,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 import { supplementWeightKg } from "./supplement-weight.js";
@@ -247,7 +247,10 @@ export function categoryWeightKg(title, hints = {}) {
   /* No TV branch: Danny banned TVs and TV mounts outright (2026-09-26).
      tvWeightKg stays defined below for reference only. */
   const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
-  if (!hit) return null;
+  /* Small toys AFTER the retail table (#449): a doll titled with its
+     dress keeps the dress row's figure; a doll with no garment word
+     gets the doll row instead of the generic. */
+  if (!hit) return smallToyWeightKg(t, hints);
   return withBuffer(hit.kg, hit.tier);
 }
 
@@ -294,8 +297,12 @@ export function estimateWeightDetail(title, hints = {}) {
     : stated ? { kg: stated.kg, source: "title" }
     : (() => {
         const category = categoryWeightKg(title, hints);
-        return category != null
-          ? { kg: category, source: "category" }
+        if (category != null) return { kg: category, source: "category" };
+        /* No row: the department band's upper end, not the 0.6 kg generic
+           (#449). See departmentFallbackKg(). */
+        const dept = departmentFallbackKg(title, hints);
+        return dept
+          ? { kg: dept.kg, source: "department", deptKey: dept.key }
           : { kg: GENERIC_FALLBACK_KG, source: "fallback" };
       })();
 
@@ -330,6 +337,12 @@ export function estimateWeightDetail(title, hints = {}) {
     return { kg, source: raw.source, estimated: true, flagged: true, needsReview: false,
       reviewKind: "gap", bound: check.key, minKg: check.minKg, maxKg: check.maxKg,
       reason: `sin categoría — estimado genérico de ${kg} kg, necesita una fila de categoría` };
+  }
+  // Still a gap: no row knows this product, the band only bounds it.
+  if (raw.source === "department") {
+    return { kg, source: raw.source, estimated: true, flagged: true, needsReview: false,
+      reviewKind: "gap", bound: check.key, minKg: check.minKg, maxKg: check.maxKg,
+      reason: `sin categoría — tope conservador de ${raw.deptKey} (${kg} kg), necesita una fila de categoría` };
   }
   if (raw.source === "beauty") {
     return { kg, source: "beauty", estimated: true, flagged: false, needsReview: false,
