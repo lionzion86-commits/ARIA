@@ -49,7 +49,7 @@
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { titleWeight, weightSanity, freightQuotable, candleWeightKg, GENERIC_FALLBACK_KG } from "../../scripts/lib/item-weight.js";
+import { titleWeight, weightSanity, freightQuotable, candleWeightKg, GENERIC_FALLBACK_KG, departmentFallbackKg } from "../../scripts/lib/item-weight.js";
 import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beauty-weight.js";
 // The PUBLIC charged rate only — the internal courier cost never travels
 // with anything a browser can reach, and this module answers checkout.
@@ -184,7 +184,12 @@ export function catalogWeightKg(item) {
  */
 export function resolveItemWeight(item) {
   const title = String(item?.title ?? item?.name ?? "");
-  const hints = { retailer: item?.retailer, department: item?.department };
+  /* The line's price rides along (#449): LEGO without a piece count is
+     weighed by price, and an unplaceable product at $75+ is quoted
+     conservatively rather than at the 0.6 kg generic. */
+  const priceUsd = Number(item?.priceUsd ?? item?.price);
+  const hints = { retailer: item?.retailer, department: item?.department,
+    priceUsd: Number.isFinite(priceUsd) && priceUsd > 0 ? priceUsd : undefined };
 
   // A weight the retailer published is the one fact here, and it wins
   // over everything below, beauty included.
@@ -245,6 +250,13 @@ export function resolveItemWeight(item) {
   if (category != null && category > 0) {
     return banded(category, "category", "categoría del producto");
   }
+
+  /* CONSERVATIVE FALL-THROUGH (#449). No row matched: quote the upper
+     end of the product's department band, never the silent 0.6 kg. Still
+     a "gap", so freightQuotable() holds it for a human when that freight
+     would exceed the product's price. */
+  const dept = departmentFallbackKg(title, hints);
+  if (dept) return banded(dept.kg, "department", `tope conservador de ${dept.key} (sin regla de peso)`, "gap");
 
   return banded(GENERIC_FALLBACK_KG, "fallback", "estimado genérico", "gap");
 }

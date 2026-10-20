@@ -73,7 +73,13 @@ const TENT_IMPOSTOR_RE = /\b(play|pop[-\s]?up|kids|toddler|toy|dress|string)\b|f
    projector that ships WITH a light fabric screen — not the 12 kg
    standalone projection screen the bulky row prices. Mirrors index.html. */
 const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
-const PLAYSET_IMPOSTOR_RE = /\b(pretend|camping|toy)\b/i;
+/* Toy playsets are not backyard swing sets (#449): "Barbie Dreamhouse ...
+   Playset" and "Calico Critters ... Dollhouse Playset" quoted the 55 kg
+   swing-set row (74 kg with the buffer). A toy word knocks out the row
+   only when no real play structure (swing set, playhouse, jungle gym,
+   climbing frame) is named, so a wooden outdoor playhouse that lists
+   "Toys" among its parts keeps its weight. The toy rows own the rest. */
+const PLAYSET_IMPOSTOR_RE = /\b(pretend|camping|toy)\b|^(?![\s\S]*\b(?:swing set|playhouse|play house|jungle gym|climbing frame)\b)[\s\S]*\b(?:dolls?|doll ?house|dream ?house|barbie|figures?|lego|miniatures?|mini|replacement|polly pocket|calico critters|little people|playmobil|hot wheels|gabby'?s|minnie|disney|vehicles?|dinosaurs?|animals?|pets)\b/i;
 const MATTRESS_IMPOSTOR_RE = /\bmattress\s*(pad|protector|topper)\b/i;
 const MONITOR_IMPOSTOR_RE = /\b(baby|audio|security)\b/i;
 const SKATEBOARD_PARTS_RE = /\b(wheels?|bearings?|trucks?|hardware|griptape|riser\s*pads?|book\b)/i;
@@ -451,8 +457,204 @@ export function candleWeightKg(title) {
   return Math.round(hit.kg * titlePackCount(t) * 100) / 100;
 }
 
+/* ============================================================
+   TOYS, AND THE CONSERVATIVE FALL-THROUGH (2026-10-20, #449)
+
+   REPORTED LIVE: the Barbie Dreamhouse Pool Party (Target) quoted
+   0.60 kg at checkout. Its published box weight is 14,499 g (box
+   76.2 x 76.2 x 21.6 cm). No table had a toy row, so the title matched
+   nothing and fell to GENERIC_FALLBACK_KG -- about $93 of freight Aria
+   paid on every sale of that one SKU.
+
+   Two halves, both mirrored in the app bundle (the parity tests compare
+   them title by title):
+
+   1. TOY ROWS, at PUBLISHED boxed/shipping weights rather than reasoned
+      ones, so they take no buffer (like the candle table). Sources, as
+      listed by the retailer or maker on 2026-10-20:
+        Barbie Dreamhouse Pool Party (Mattel)  14.499 kg box   (#449 spec sheet)
+        KidKraft wooden dollhouses             10.7-17.3 kg    (costco.ca: Abbey Manor 10.7,
+                                                                Hallie 13.0, Annabelle 14.47,
+                                                                Charlotte 17.28)
+        Little People Barbie Little DreamHouse 8.87 lb = 4.0 kg (staples.com / quill.com, HKB80)
+        Power Wheels 12V Jeep Wrangler         55.12-60.25 lb   (kohls.com; macrobaby.com JoJo
+                                                                Jeep 60 lb 4 oz = 27.3 kg)
+        Little Tikes Cozy Coupe                28 lb carton = 12.7 kg (littletikes.com)
+        KidKraft play kitchens                 19-76 lb product (cymax.com); Garden Gourmet
+                                                                21.5 kg (costco.ca)
+        Hot Wheels City Ultimate Garage        18.52 lb ship = 8.4 kg (colorlandtoys.com;
+                                                                johnlewis.com 7.69 kg)
+        Barbie Fashionistas doll, boxed        190-274 g        (galaxus.ch, dateks.lv)
+        Monopoly Classic                       0.45-0.96 kg     (Hasbro C1009 listings; galaxus)
+        LEGO 75192 Millennium Falcon           13.5-14.4 kg box, 7,541 pieces, $849.99 MSRP
+                                                                (galaxus, kitstore.cz, eurobricks)
+                                               -> ~1.9 g per piece, ~16.5 g per MSRP dollar
+      The one reasoned row is the 18-inch doll (no published figure in
+      hand); it is marked as such and sits well above the fashion doll.
+
+   2. A CONSERVATIVE FALL-THROUGH. A title no row recognises used to quote
+      GENERIC_FALLBACK_KG (0.6 kg) whatever it was. Now, when the product's
+      department is known, it quotes the UPPER end of that department's
+      band -- the bandKg idea footwear and books already use, extended per
+      department. The department comes from the caller's hint when it has
+      one, else from a single-department store, else from a toy title.
+      With no department at all, a product priced at $75 or more takes the
+      general band's upper end; only a cheap, unplaceable product keeps the
+      0.6 kg generic. The answer is still a "gap" (reviewKind), so the
+      freight-above-price rule in freightQuotable() still holds it for a
+      human instead of quoting it.
+
+   Retailer-published weights (specWeightKg) still beat every row here;
+   capturing them at pull time is the follow-up on #449.
+   ============================================================ */
+
+/* Words that make a "dollhouse" title a small thing: miniature craft
+   kits, a pets set, stickers, a replacement part, a book about one. */
+export const DOLLHOUSE_SMALL_RE =
+  /\b(mini|miniatures?|diy|kits?|book ?nooks?|pets|replacement|labels?|stickers?|decals?|tote-?ables|portable|take along|foldable|compact|getaway|polly pocket|gabby'?s|calico critters|sylvanian|honey bee acres|stacking|scale|lego|playmobil|books?|board games?|juegos?|surprise|mini brands|puzzles?|bookcases?|bookshel(?:f|ves)|shelf|costumes?|ornaments?|keychains?|backpacks?|shirts?|tees?|pajamas?|blankets?|bedding|lamps?|night ?lights?)\b|\b1:\d+\b|\bdoll ?house furniture\b|\bfurniture (?:sets?|packs?|kits?)\b|\bdoll family\b|\bfigures? for\b/i;
+
+/* Never a toy row: the parts and print-on-anything goods that reuse
+   toy words. */
+export const TOY_ROW_IMPOSTOR_RE =
+  /\b(replacement|parts? for|stickers?|decals?|costumes?|disfraz|t-?shirts?|tees?|hoodies?|sweatshirts?|pajamas?|pijamas?|backpacks?|lunch ?box|blankets?|bedding|pillows?|socks?|cake toppers?|balloons?|invitations?|party favors?)\b/i;
+
+export const LARGE_TOY_WEIGHTS_KG = [
+  { key: "casa de muñecas mediana", match: /\blittle people\b[^,]{0,40}\b(dream ?house|doll ?house)\b|\blittle dream ?house\b/i, kg: 4.0 },
+  { key: "casa de muñecas", match: /\b(dream ?house|doll ?houses?)\b/i, not: DOLLHOUSE_SMALL_RE, kg: 14.5 },
+  { key: "montable 12V+", match: /\b(12|18|24|36)\s*-?\s*v(?:olts?)?\b[^,]{0,60}\b(ride[- ]?on|power wheels|jeep|atv|quad|utv|truck|car|tractor)\b|\b(ride[- ]?on|power wheels)\b[^,]{0,60}\b(12|18|24|36)\s*-?\s*v(?:olts?)?\b/i, kg: 27.3 },
+  { key: "montable", match: /\bpower wheels\b|\bcozy coupe\b|\b6\s*-?\s*v(?:olts?)?\b[^,]{0,60}\bride[- ]?on\b|\bride[- ]?on\b[^,]{0,60}\b(6\s*-?\s*v(?:olts?)?|electric|battery[- ]powered|motorized)\b|\b(electric|battery[- ]powered|motorized)\b[^,]{0,40}\bride[- ]?on\b/i, kg: 12.7 },
+  { key: "cocina de juguete", match: /\bplay ?kitchens?\b|\bkitchenettes?\b|\b(pretend|kids'?|toddler|toy)\s+kitchen\b|\bkitchen (?:play ?sets?|set de juego)\b/i,
+    not: /\b(accessor(?:y|ies)|play food|food set|utensils?|cookware|pots|pans|dishes|tea set|kitchen toys?)\b|play-?doh/i, kg: 21.5 },
+  { key: "garaje de juguete", match: /\b(ultimate|mega|super ultimate)\s+garage\b|\bgarage\s+play ?set\b|\bparking garage\b[^,]{0,40}\b(toy|play ?set|cars?)\b/i, kg: 8.4 },
+];
+
+/** A large toy's published shipping weight, or null. Checked before the
+    bulky table: a dollhouse "playset" is not a backyard swing set. */
+export function largeToyWeightKg(title) {
+  const t = String(title || "");
+  if (TOY_ROW_IMPOSTOR_RE.test(t)) return null;
+  const hit = LARGE_TOY_WEIGHTS_KG.find((r) => r.match.test(t) && !(r.not && r.not.test(t)));
+  return hit ? hit.kg : null;
+}
+
+export const SMALL_TOY_WEIGHTS_KG = [
+  // Reasoned: an 18-inch play doll ships in a box several times a
+  // fashion doll's. No published figure in hand; kept well above 0.3.
+  { key: "muñeca 18 pulgadas", match: /\b18\s*(?:-?\s*inch|in\b|["”])[^,]{0,40}\bdolls?\b|\bamerican girl\b[^,]{0,40}\bdolls?\b/i, kg: 1.2 },
+  /* A doll or figure on its own. A doll that comes WITH a house, a
+     vehicle or a playset is a bigger box, and is left to the band. */
+  { key: "muñeca/figura", match: /\b(dolls?|muñecas?|action figures?|figures?|figurines?)\b/i,
+    not: /\b(doll ?houses?|dream ?house|houses?|play ?sets?|playhouse|kits?|vehicles?|cars?|campers?|furniture|stroller|pram)\b/i, kg: 0.3 },
+  { key: "juego de mesa", match: /\bboard ?games?\b|\bjuegos? de mesa\b|\b(monopoly|scrabble|catan|candy ?land|chutes (?:and|&) ladders|connect ?4|guess who)\b/i, kg: 1.0 },
+];
+
+/* LEGO, by what the box states. Pieces when the title gives a count
+   (75192: 7,541 pieces in a ~14 kg box -> 1.9 g a piece), else the price
+   the line carries. That price is the CUSTOMER's (shelf x ~1.33 after
+   margin and Miami sales tax), so the 75192 at its $849.99 MSRP shows
+   about $1,131: 14 kg / $1,131 = 12.4 g per shown dollar. A resale price
+   above MSRP only pushes the figure up, the safe direction. */
+export const LEGO_RE = /\blego\b/i;
+export const LEGO_KG_PER_PIECE = 0.0019;
+export const LEGO_KG_PER_USD = 0.0124;
+export function legoWeightKg(title, priceUsd) {
+  const t = String(title || "");
+  if (!LEGO_RE.test(t) || TOY_ROW_IMPOSTOR_RE.test(t)) return null;
+  const m = /\b(\d{1,2}(?:,\d{3})|\d{2,5})\s*(?:-?\s*)(?:pieces|pcs?|piezas)\b/i.exec(t);
+  const pieces = m ? parseInt(m[1].replace(",", ""), 10) : null;
+  const price = Number(priceUsd);
+  const kg = pieces ? pieces * LEGO_KG_PER_PIECE + 0.2
+    : price > 0 ? price * LEGO_KG_PER_USD
+    : null;
+  if (kg == null) return null;
+  return Math.round(Math.min(25, Math.max(0.3, kg)) * 100) / 100;
+}
+
+/** A small toy's shipping weight, or null. Read AFTER the general retail
+    table, so a doll titled with its dress keeps the dress row's figure. */
+export function smallToyWeightKg(title, hints = {}) {
+  const t = String(title || "");
+  const lego = legoWeightKg(t, hints && hints.priceUsd);
+  if (lego != null) return lego;
+  if (TOY_ROW_IMPOSTOR_RE.test(t)) return null;
+  const hit = SMALL_TOY_WEIGHTS_KG.find((r) => r.match.test(t) && !(r.not && r.not.test(t)));
+  return hit ? hit.kg : null;
+}
+
+/* PER-DEPARTMENT BANDS for a product no row recognised. The quote is the
+   UPPER end. Footwear and books reuse their own default bands. */
+export const DEPARTMENT_FALLBACK_BANDS = [
+  { key: "belleza",     dept: /beauty|belleza|grooming|fragrance|makeup|skincare/i,     bandKg: [0.05, 0.8] },
+  { key: "calzado",     dept: /footwear|shoes|calzado|zapat/i,                          bandKg: FOOTWEAR_DEFAULT.bandKg },
+  { key: "libros",      dept: /books?|libros?/i,                                        bandKg: BOOK_DEFAULT.bandKg },
+  { key: "juguetes",    dept: /toys?|juguetes?|^games$/i,                               bandKg: [0.2, 2.0] },
+  { key: "ropa",        dept: /cloth|women|men|kids|apparel|moda|ropa|latino|luxury|gym_rat|curvy|socks|underwear|swim/i, bandKg: [0.2, 1.0] },
+  { key: "accesorios",  dept: /jewel|joya|sunglass|accesori|accessor|purses|bags|carteras|elegante|boho|personaliz|personajes|otaku|edgy|punk|fan_shop|novedad|otros|ninos/i, bandKg: [0.05, 0.8] },
+  { key: "hogar",       dept: /home|hogar|appliance|kitchen/i,                          bandKg: [0.5, 5.0] },
+  { key: "electrónica", dept: /electronic|electr[oó]nica|camera|phone|audio|laptop|tablet|wearable|monitor|gaming/i, bandKg: [0.3, 3.0] },
+  { key: "deportes",    dept: /sport|combat|skate|snow|surf|soccer|tennis|fitness|spearfishing/i, bandKg: [0.3, 3.0] },
+  { key: "autopartes",  dept: /auto|motos?\b|parts/i,                                   bandKg: [0.5, 5.0] },
+  { key: "bebé",        dept: /baby|beb[eé]|moms/i,                                     bandKg: [0.2, 2.0] },
+  { key: "fiesta",      dept: /fiesta|party|balloon|plates|napkin|favor|banner|decorat|cutlery|tableware|confetti|streamer|ribbon|dulces|candy/i, bandKg: [0.1, 1.0] },
+];
+/* No department, but priced at $75 or more: the general band. */
+export const GENERAL_FALLBACK_BAND = { key: "general", bandKg: [0.3, 2.5] };
+export const CONSERVATIVE_PRICE_USD = 75;
+
+/* Stores that sell one department, for lines that carry no department
+   (every cart line today). Mixed stores (Target, Walmart, Costco, Kohl's,
+   Macy's, the surf shops...) are deliberately absent. */
+export const RETAILER_DEPARTMENT = {
+  abercrombie: "ropa", aguabendita: "ropa", alphalete: "ropa", americaneagle: "ropa", ancora: "ropa",
+  bananarepublic: "ropa", capittana: "ropa", eberjey: "ropa", farfetch: "ropa", farmrio: "ropa", gap: "ropa",
+  gymshark: "ropa", hollister: "ropa", johannaortiz: "ropa", lanebryant: "ropa", miumiu: "ropa", montce: "ropa",
+  patbo: "ropa", revolve: "ropa", silviatcherassi: "ropa", skims: "ropa", ssense: "ropa", tns: "ropa", vix: "ropa",
+  youngla: "ropa",
+  assouline: "libros", chronicle: "libros",
+  advanceauto: "autopartes", denniskirk: "autopartes", revzilla: "autopartes",
+  baublebar: "accesorios", jwpei: "accesorios", meliebianco: "accesorios", smartbuyglasses: "accesorios",
+  babybrezza: "bebé", bellybandit: "bebé", dagnedover: "bebé", drbrowns: "bebé", elvie: "bebé", freshlypicked: "bebé",
+  hatch: "bebé", jujube: "bebé", kindredbravely: "bebé", lillebaby: "bebé", mockingbird: "bebé", momcozy: "bebé",
+  munchkin: "bebé", nanit: "bebé", owlet: "bebé", spectra: "bebé", walmartbaby: "bebé", bentgo: "bebé", ezpz: "bebé",
+  mushie: "bebé",
+  academy: "deportes", combatcorner: "deportes", dicks: "deportes", elite: "deportes", everlast: "deportes",
+  fuji: "deportes", gameness: "deportes", mmawarehouse: "deportes", prosoccer: "deportes", tatami: "deportes",
+  tennisexpress: "deportes", venum: "deportes", xtremesoccer: "deportes",
+  crocs: "calzado",
+  sephora: "belleza", ulta: "belleza", yesstyle: "belleza",
+  bestbuy: "electrónica", bhphoto: "electrónica",
+  partycity: "fiesta", samsclub: "fiesta",
+};
+
+/* A title that is plainly a toy, for a line with no department. */
+export const TOY_FAMILY_RE =
+  /\b(toys?|juguetes?|lego|barbie|dolls?|muñecas?|play ?sets?|action figures?|plush(?:ies)?|peluches?|stuffed animals?|hot wheels|nerf|funko|board games?|card games?|puzzles?|rompecabezas|building (?:sets?|kits?|blocks?)|pok[eé]mon|squishmallows?|figurines?)\b/i;
+
+/**
+ * The conservative quote for a product NO row recognised, or null when
+ * nothing places it (then the caller keeps GENERIC_FALLBACK_KG).
+ * hints: { department, retailer, priceUsd }.
+ * Returns { kg, key, minKg, maxKg }.
+ */
+export function departmentFallbackKg(title, hints = {}) {
+  const h = hints || {};
+  const dept = String(h.department || "").trim();
+  let row = dept ? DEPARTMENT_FALLBACK_BANDS.find((r) => r.dept.test(dept)) : null;
+  if (!row) {
+    const fam = RETAILER_DEPARTMENT[String(h.retailer || "").toLowerCase()];
+    if (fam) row = DEPARTMENT_FALLBACK_BANDS.find((r) => r.key === fam) || null;
+  }
+  if (!row && TOY_FAMILY_RE.test(String(title || ""))) row = DEPARTMENT_FALLBACK_BANDS.find((r) => r.key === "juguetes");
+  if (!row && Number(h.priceUsd) >= CONSERVATIVE_PRICE_USD) row = GENERAL_FALLBACK_BAND;
+  if (!row) return null;
+  return { kg: row.bandKg[1], key: row.key, minKg: row.bandKg[0], maxKg: row.bandKg[1] };
+}
+
 export function bulkyWeightKg(text) {
   const t = String(text || "");
+  // Toys first, at published weights: see LARGE_TOY_WEIGHTS_KG.
+  const toy = largeToyWeightKg(t);
+  if (toy != null) return toy;
   const goal = goalWeightKg(t);
   if (goal != null) return goal;
   const hit = BULKY_WEIGHT_ESTIMATES_KG.find((p) => p.match.test(t) && !(p.not && p.not.test(t)));
