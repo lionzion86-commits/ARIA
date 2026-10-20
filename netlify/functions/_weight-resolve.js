@@ -18,8 +18,12 @@
      2. beauty     — our beauty/fragrance shipped-weight table
      3. title      — a net weight the retailer stated in the product title
                      ("4 oz"), plus a flat packaging allowance
-     4. category   — our category table, at actual scale weight
-     5. fallback   — a labeled generic, never zero
+     4. category   — our category table, at actual scale weight (toys
+                     included since #449, at published box weights)
+     5. department — no row matched: the upper end of the product's
+                     department band (department hint, single-department
+                     store, toy title, or $75+ -> general). #449.
+     6. fallback   — a labeled generic, never zero
 
    WHY BEAUTY OUTRANKS THE TITLE: a cosmetic's title states the volume of
    liquid in the bottle, not what ships. "Eau de Toilette 3.4 oz" read as
