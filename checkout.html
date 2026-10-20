@@ -968,6 +968,66 @@ function cardImgAttrs(url, sizes){
       return rec ? sizeGateList(rec.sizes) : [];
     }).catch(() => []);
   }
+  /* CART THUMBNAILS COME BACK FROM THE RECORD (2026-10-20, #443). A line
+     saved by an older build can carry no image, or one the store has
+     since taken down; the derivative-then-original swap ran out and the
+     box stayed blank. The same PDP shard the size gate reads holds the
+     product's current photo: the line's retailer + title find the
+     record, and its own image (never a guess) replaces the missing or
+     dead one, once per line per page load, saved back to the cart. */
+  function recordImagesFor(it){
+    const key = sizeGateNorm(it.title);
+    if (!key) return Promise.resolve([]);
+    const shard = sizeGateShard(key);
+    if (!sizeGateShards[shard]){
+      sizeGateShards[shard] = fetch('/assets/pdp/p/' + shard + '.json')
+        .then((r) => r.ok ? r.json() : null).catch(() => null);
+    }
+    const rk = String(it.retailer || '').toLowerCase();
+    return sizeGateShards[shard].then((d) => {
+      const cands = (d && Array.isArray(d[key])) ? d[key] : [];
+      const own = cands.filter((c) => c && String(c.retailer || '').toLowerCase() === rk);
+      const pos = (c) => Math.min(Infinity, ...((c && c.src) || []).map((s) => Number(s[1])).filter(Number.isFinite));
+      const recs = (own.length ? own : (cands.length === 1 ? cands : [])).slice().sort((a, b) => (pos(a) - pos(b)) || 0);
+      return recs.map((r) => (typeof r.image === 'string' && /^https?:\/\//i.test(r.image)) ? r.image : '').filter(Boolean);
+    }).catch(() => []);
+  }
+  const lineThumbTried = new Set();
+  function lineThumbHTML(it){
+    const k = escapeHtmlLocal(cartLineKey(it));
+    return it.image
+      ? `<img src="${escapeHtmlLocal(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-line-thumb="${k}" data-img-orig="${escapeHtmlLocal(it.image)}" onerror="cartThumbError(this)">`
+      : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)" data-line-thumb="${k}"></div>`;
+  }
+  function recoverLineThumb(key, dead){
+    if (lineThumbTried.has(key)) return;
+    const it = cart.find((o) => o && cartLineKey(o) === key);
+    if (!it || it.lineType === 'bundle-discount' || !it.title) return;
+    lineThumbTried.add(key);
+    recordImagesFor(it).then((imgs) => {
+      /* By key again: a line can be removed or re-sized meanwhile. */
+      const line = cart.find((o) => o && cartLineKey(o) === key);
+      if (!line) return;
+      const img = imgs.find((u) => !dead || u !== line.image);
+      if (!img) return;
+      line.image = img;
+      saveCart();
+      for (const el of checkoutItemsWrap.querySelectorAll('[data-line-thumb]')){
+        if (el.getAttribute('data-line-thumb') === key) el.outerHTML = lineThumbHTML(line);
+      }
+    });
+  }
+  /* Resized copy fails: the original. The original fails too: the record. */
+  window.cartThumbError = function(el){
+    if (imgOrigRetry(el)) return;
+    el.onerror = null;
+    recoverLineThumb(el.getAttribute('data-line-thumb') || '', true);
+  };
+  function healLineThumbs(){
+    for (const it of cart){
+      if (it && !it.image && it.lineType !== 'bundle-discount') recoverLineThumb(cartLineKey(it), false);
+    }
+  }
   function sizeListOfLine(it){
     const own = sizeGateList(it && it.sizeOptions);
     return own.length ? own : (sizeGate.lists.get(sizeGateKey(it)) || []);
@@ -1871,7 +1931,7 @@ function cardImgAttrs(url, sizes){
   }
     checkoutItemsWrap.innerHTML = cart.map((it, i) => `
       <div class="flex items-center gap-3 pb-4 border-b last:border-b-0 last:pb-0" style="border-color:var(--line)">
-        ${it.image ? `<img src="${escapeHtmlLocal(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-img-orig="${escapeHtmlLocal(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+        ${lineThumbHTML(it)}
         <div class="min-w-0 flex-1">
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
@@ -1887,6 +1947,7 @@ function cardImgAttrs(url, sizes){
         <button type="button" data-remove-line="${i}" data-line-key="${escapeHtmlLocal(cartLineKey(it))}" aria-label="Quitar ${escapeHtmlLocal(it.title)}" class="flex-shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">Quitar</button>
       </div>
     `).join('');
+    healLineThumbs();
 
     /* VALOR DECLARADO IS THE DUTIABLE SUM (2026-09-27): the $200
        threshold and the import-tax estimate are the state's rules and
