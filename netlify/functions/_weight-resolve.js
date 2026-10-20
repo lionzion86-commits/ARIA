@@ -20,9 +20,10 @@
                      ("4 oz"), plus a flat packaging allowance
      4. category   — our category table, at actual scale weight (toys
                      included since #449, at published box weights)
-     5. department — no row matched: the upper end of the product's
-                     department band (department hint, single-department
-                     store, toy title, or $75+ -> general). #449.
+     5. department — no row matched and the line is $75 or more: the upper
+                     end of the product's department band (department
+                     hint, single-department store, toy title, else
+                     general). Under $75 the fallback below stands. #449.
      6. fallback   — a labeled generic, never zero
 
    WHY BEAUTY OUTRANKS THE TITLE: a cosmetic's title states the volume of
@@ -255,10 +256,11 @@ export function resolveItemWeight(item) {
     return banded(category, "category", "categoría del producto");
   }
 
-  /* CONSERVATIVE FALL-THROUGH (#449). No row matched: quote the upper
-     end of the product's department band, never the silent 0.6 kg. Still
-     a "gap", so freightQuotable() holds it for a human when that freight
-     would exceed the product's price. */
+  /* CONSERVATIVE FALL-THROUGH (#449). No row matched and the line is $75
+     or more: quote the upper end of the product's department band, never
+     the silent 0.6 kg. Under $75 departmentFallbackKg() answers null and
+     the existing fallback below stands (Danny's ruling on #443), so no
+     new freight-confirm hold comes from here. Still a "gap" for review. */
   const dept = departmentFallbackKg(title, hints);
   if (dept) return banded(dept.kg, "department", `tope conservador de ${dept.key} (sin regla de peso)`, "gap");
 

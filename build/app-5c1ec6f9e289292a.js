@@ -22526,6 +22526,10 @@ const WEIGHT_SANITY_BOUNDS = [
      is judged against 0.1-1.2 and a textbook against 0.3-3.5 — see
      BOOK_TIERS for the reported case this came from. */
   { key: "libro", test: (t) => bookTierFor(t) != null, band: bookBandKg },
+  /* A toy a LARGE_TOY row priced (#449) is judged as a toy: "Doll House
+     Playset with Light Projector" is not a projector, and a dollhouse
+     "Playhouse" is not a backyard one. Wide on purpose; the rows price it. */
+  { key: "juguete grande", test: (t) => largeToyWeightKg(t) != null, minKg: 2, maxKg: 40 },
   { key: "goal", match: GOAL_RE, minKg: 3, maxKg: 45 },
   { key: "trampolín/columpio", test: (t) => /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i.test(t) && !PLAYSET_IMPOSTOR_RE.test(t), minKg: 20, maxKg: 130 },
   { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15, maxKg: 130 },
@@ -22715,12 +22719,15 @@ function candleWeightKg(title) {
       department is known, it quotes the UPPER end of that department's
       band -- the bandKg idea footwear and books already use, extended per
       department. The department comes from the caller's hint when it has
-      one, else from a single-department store, else from a toy title.
-      With no department at all, a product priced at $75 or more takes the
-      general band's upper end; only a cheap, unplaceable product keeps the
-      0.6 kg generic. The answer is still a "gap" (reviewKind), so the
-      freight-above-price rule in freightQuotable() still holds it for a
-      human instead of quoting it.
+      one, else from a single-department store, else from a toy title;
+      with no department, the general band's upper end.
+      ONLY AT $75 AND UP (Danny's ruling on #443, 2026-10-19 21:44 EDT):
+      a no-match product under $75 keeps the existing fall-through
+      estimate, so this guard creates no new freight-confirm holds; better
+      estimates for those come from sibling inference in a separate PR.
+      At $75+ the largest band top (5 kg, $65 of freight) is below the
+      price, so freightQuotable() never holds one of these. The answer is
+      still a "gap" (reviewKind) for the refresh scripts' review queue.
 
    Retailer-published weights (specWeightKg) still beat every row here;
    capturing them at pull time is the follow-up on #449.
@@ -22815,7 +22822,7 @@ const DEPARTMENT_FALLBACK_BANDS = [
   { key: "bebé",        dept: /baby|beb[eé]|moms/i,                                     bandKg: [0.2, 2.0] },
   { key: "fiesta",      dept: /fiesta|party|balloon|plates|napkin|favor|banner|decorat|cutlery|tableware|confetti|streamer|ribbon|dulces|candy/i, bandKg: [0.1, 1.0] },
 ];
-/* No department, but priced at $75 or more: the general band. */
+/* No department (at $75 or more, like every band here): the general band. */
 const GENERAL_FALLBACK_BAND = { key: "general", bandKg: [0.3, 2.5] };
 const CONSERVATIVE_PRICE_USD = 75;
 
@@ -22856,6 +22863,8 @@ const TOY_FAMILY_RE =
  */
 function departmentFallbackKg(title, hints = {}) {
   const h = hints || {};
+  // Under $75 (or no price): the existing fall-through stands.
+  if (!(Number(h.priceUsd) >= CONSERVATIVE_PRICE_USD)) return null;
   const dept = String(h.department || "").trim();
   let row = dept ? DEPARTMENT_FALLBACK_BANDS.find((r) => r.dept.test(dept)) : null;
   if (!row) {
@@ -22863,7 +22872,7 @@ function departmentFallbackKg(title, hints = {}) {
     if (fam) row = DEPARTMENT_FALLBACK_BANDS.find((r) => r.key === fam) || null;
   }
   if (!row && TOY_FAMILY_RE.test(String(title || ""))) row = DEPARTMENT_FALLBACK_BANDS.find((r) => r.key === "juguetes");
-  if (!row && Number(h.priceUsd) >= CONSERVATIVE_PRICE_USD) row = GENERAL_FALLBACK_BAND;
+  if (!row) row = GENERAL_FALLBACK_BAND;
   if (!row) return null;
   return { kg: row.bandKg[1], key: row.key, minKg: row.bandKg[0], maxKg: row.bandKg[1] };
 }

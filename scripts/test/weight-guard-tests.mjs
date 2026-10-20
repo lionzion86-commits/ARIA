@@ -13,7 +13,8 @@
        the dress row's 0.48), and a bare fashion doll quotes 0.3;
      - a seeded no-match product at $100+ quotes its band's UPPER end
        (general 2.5 kg; a known department or store its own), never 0.6;
-       a cheap unplaceable product keeps the 0.6 generic;
+       a no-match product under $75 quotes exactly as on main (the 0.6 kg
+       fall-through) and is never held for freight confirmation;
      - the page's mirror (the app bundle) agrees with the module and with
        the server, title by title, with and without store + price.
    BROWSER (if Chromium is available): the Dreamhouse goes product page ->
@@ -94,6 +95,15 @@ await check("small dollhouse craft kits and pet sets do not take the 14.5 kg row
   }
 });
 
+await check("a dollhouse is judged as a toy, not as a projector or a backyard playhouse, and is not held", () => {
+  for (const t of ["Kid Connection Doll House Playset with Light Projector & Sound, 28 Pieces",
+    "Huge Doll House - 143 PCS Large Dollhouse with Full-Plastic, 7 Rooms Playhouse with Furniture"]) {
+    const r = one(line(t, 33, { retailer: "walmart" }));
+    eq(r.totalKg, 14.5, t);
+    assert(!r.needsReview, "held: " + t);
+  }
+});
+
 await check("an outdoor playhouse that lists Toys among its parts keeps its swing-set-class weight", () => {
   const t = "EROMMY Wooden Playhouse For Kids Outdoor, Cottage Play House With Door, Windows, Fence, Bench, Service Station, Blackboard, Toys, For Kids 3-8 Years";
   assert(resolveItemWeight({ title: t }).weightKg >= 50, "playhouse lost its row");
@@ -108,20 +118,29 @@ await check("a seeded no-match product at $100+ quotes its band's UPPER end, nev
   eq(one(line(t, 120, { department: "toys" })).totalKg, 2, "toys band upper");
   eq(one(line(t, 120, { retailer: "advanceauto" })).totalKg, 5, "auto-parts store band upper");
   eq(one(line(t, 120, { retailer: "skims" })).totalKg, 1, "apparel store band upper");
-  eq(one(line("Squishy Galaxy Toy", 12)).totalKg, 2, "a toy title with no row: toys band");
+  eq(one(line("Squishy Galaxy Toy", 120)).totalKg, 2, "a $120 toy title with no row: toys band");
   return `$120 no-match -> ${r.totalKg} kg`;
 });
 
-await check("a cheap unplaceable product keeps the 0.6 kg generic", () => {
-  const r = one(line("Zorblax Quantum Widget", 20));
-  eq(r.totalKg, GENERIC_FALLBACK_KG, "totalKg");
-  eq(r.items[0].source, "fallback", "source");
-  eq(departmentFallbackKg("Zorblax Quantum Widget", { priceUsd: 74.99 }), null, "under $75");
+/* Danny's ruling (#443, 2026-10-19 21:44 EDT): under $75 the existing
+   fall-through stands, so the guard creates no new freight-confirm holds. */
+await check("a no-match $30 product quotes as on main (the 0.6 kg fall-through) and is NOT held", () => {
+  for (const extra of [{}, { retailer: "advanceauto" }, { retailer: "skims" }, { department: "toys" }]) {
+    const r = one(line("Zorblax Quantum Widget", 30, extra));
+    eq(r.totalKg, GENERIC_FALLBACK_KG, "totalKg " + JSON.stringify(extra));
+    eq(r.items[0].source, "fallback", "source " + JSON.stringify(extra));
+    assert(!r.needsReview, "held for review " + JSON.stringify(extra));
+  }
+  eq(one(line("Squishy Galaxy Toy", 12)).totalKg, GENERIC_FALLBACK_KG, "a cheap toy title with no row");
+  eq(departmentFallbackKg("Zorblax Quantum Widget", { priceUsd: 74.99 }), null, "$74.99");
+  eq(departmentFallbackKg("Zorblax Quantum Widget", { retailer: "advanceauto" }), null, "no price");
+  assert(departmentFallbackKg("Zorblax Quantum Widget", { priceUsd: 75 }) != null, "$75 exactly takes the band");
 });
 
-await check("a band quote whose freight would exceed the price is held for a human, not quoted", () => {
-  const r = one(line("Zorblax Quantum Widget", 9, { retailer: "advanceauto" }));
-  assert(r.needsReview, "a 5 kg guess on a $9 line was quoted");
+await check("no band quote is ever held: at $75+ the largest band top's freight is below the price", () => {
+  for (const retailer of ["advanceauto", "target", "sephora", "partycity"]) {
+    assert(!one(line("Zorblax Quantum Widget", 75, { retailer })).needsReview, "held at $75 (" + retailer + ")");
+  }
 });
 
 await check("the Ofertas estimator agrees: the band is a gap (flagged), the toy rows are not", () => {
