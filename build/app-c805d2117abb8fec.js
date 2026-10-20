@@ -19682,6 +19682,26 @@ function recordSizeList(retailer, title){
     return rec ? truthfulSizes(rec.sizes) : [];
   }).catch(() => []);
 }
+/* The same shard's photos for a cart line (#443): the line's store's
+   records first, in catalogue order; a title one record carries
+   answers from any store. Only the record's own image URLs. */
+function recordImageList(retailer, title){
+  const key = sizeRecordKey(title);
+  if (!key) return Promise.resolve([]);
+  const shard = sizeShardOf(key);
+  if (!SIZE_SHARD_CACHE[shard]){
+    SIZE_SHARD_CACHE[shard] = fetch('/assets/pdp/p/' + shard + '.json')
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  const rk = String(retailer || '').toLowerCase();
+  return SIZE_SHARD_CACHE[shard].then((d) => {
+    const cands = (d && Array.isArray(d[key])) ? d[key] : [];
+    const own = cands.filter(c => c && String(c.retailer || '').toLowerCase() === rk);
+    const pos = c => Math.min(Infinity, ...((c && c.src) || []).map(x => Number(x[1])).filter(Number.isFinite));
+    const recs = (own.length ? own : (cands.length === 1 ? cands : [])).slice().sort((a, b) => (pos(a) - pos(b)) || 0);
+    return recs.map(r => (typeof r.image === 'string' && /^https?:\/\//i.test(r.image)) ? r.image : '').filter(Boolean);
+  }).catch(() => []);
+}
 
 /* The buy button's two states, in one place so they cannot drift apart.
 
@@ -26412,7 +26432,7 @@ function cartLineItemHTML(it){
   </div>`;
   }
   return `<div class="flex items-center gap-3 py-4 border-b" style="border-color:var(--line)">
-    ${it.image ? `<img src="${escapeHtml(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-img-orig="${escapeHtml(it.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+    ${it.image ? `<img src="${escapeHtml(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-line-thumb="${escapeHtml(key)}" data-img-orig="${escapeHtml(it.image)}" onerror="cartThumbError(this)">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
       <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
@@ -26672,23 +26692,37 @@ const TAX_ZONE_AMBER_START_USD = 150;
    keeps rendering an empty box forever. Look the title up in the same
    catalogue pool the product route uses, once per line per page load,
    and save the photo back so checkout shows it too. */
+/* #443: the lookup is the product's PDP shard (the record producto.html
+   shows, any store), and a photo that is there but dead -- the resized
+   copy and the original both failed -- recovers the same way. */
 const cartImageHealTried = new Set();
+const cartImageDead = new Set();
+function cartThumbError(el){
+  const orig = el.getAttribute('data-img-orig');
+  if (orig && el.src !== orig){ el.removeAttribute('data-img-orig'); el.src = orig; return; }
+  el.onerror = null;
+  const key = el.getAttribute('data-line-thumb') || '';
+  if (!key || cartImageDead.has(key)) return;
+  cartImageDead.add(key);
+  healCartLineImages();
+}
 function healCartLineImages(){
-  const missing = cart.filter(it => it && it.lineType !== 'bundle-discount' && !it.image && it.title
+  const missing = cart.filter(it => it && it.lineType !== 'bundle-discount' && it.title
+    && (!it.image || cartImageDead.has(cartItemKey(it)))
     && !cartImageHealTried.has(cartItemKey(it)));
   if (!missing.length) return;
   missing.forEach(it => cartImageHealTried.add(cartItemKey(it)));
-  Promise.all(missing.map(it => findCatalogProductByTitle(it.title).catch(() => null))).then((found) => {
+  Promise.all(missing.map(it => recordImageList(it.retailer, it.title).catch(() => []))).then((found) => {
     let changed = false;
-    found.forEach((f, i) => {
+    found.forEach((imgs, i) => {
       const want = missing[i];
-      if (!f || (want.retailer && f.retailer && f.retailer !== want.retailer)) return;
-      const img = f.image || (Array.isArray(f.images) && f.images[0]) || '';
       /* By key, not identity: initCart() rebuilds the line objects
          (local load, server merge) while the lookup is in flight. */
       const key = cartItemKey(want);
-      const line = cart.find(it => it && cartItemKey(it) === key && !it.image);
-      if (img && line){ line.image = img; changed = true; }
+      const dead = cartImageDead.has(key);
+      const line = cart.find(it => it && cartItemKey(it) === key && (!it.image || dead));
+      const img = line && imgs.find(u => !dead || u !== line.image);
+      if (img){ line.image = img; changed = true; }
     });
     if (!changed) return;
     saveCartLocal();
