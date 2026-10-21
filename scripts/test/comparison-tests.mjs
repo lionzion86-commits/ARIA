@@ -152,13 +152,20 @@ await check("the math's edges: import tax over the $200 line, the small-order fe
   const noFx = door.doorPrice(small, null);
   assert.equal(noFx.pen, null);
   assert.equal(door.doorPen(noFx, FX), s.pen);
-  /* A generic weight guess that would cost more than the item: checkout
-     refuses to quote it (resolveCartWeights needsReview), so no total. */
-  const odd = door.cartLineFor({ retailer: "target", title: "Zorblax", brand: "", cardUsd: 1.5, rawUsd: 1.13, taxRate: 1.07 });
+  /* A weight checkout does not believe (a catalogue figure outside its
+     plausible band): checkout refuses to quote it (resolveCartWeights
+     needsReview), so no total. */
+  const odd = { ...door.cartLineFor({ retailer: "target", title: "5G WiFi Bluetooth Projector", brand: "", cardUsd: 60, rawUsd: 45, taxRate: 1.07 }), specWeightKg: 0.065 };
   assert.equal(resolveCartWeights([odd]).needsReview, true);
   const u = door.doorPrice(odd, FX);
   assert.equal(u.quotable, false);
   assert.equal(u.pen, null);
+  /* Danny's 889 ruling (#449): a truthful quote is not refused just
+     because the freight costs more than the item. A $1.50 product no row
+     knows is weighed by its siblings and gets a door price. */
+  const cheap = door.cartLineFor({ retailer: "target", title: "Zorblax", brand: "", cardUsd: 1.5, rawUsd: 1.13, taxRate: 1.07 });
+  assert.equal(resolveCartWeights([cheap]).needsReview, false);
+  assert.equal(door.doorPrice(cheap, FX).quotable, true);
 });
 
 /* ------------------------------------------------------------------

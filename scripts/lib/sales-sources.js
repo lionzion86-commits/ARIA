@@ -52,6 +52,7 @@ import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
   titleWeight, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
   candleWeightKg, GENERIC_FALLBACK_KG, smallToyWeightKg, departmentFallbackKg,
+  inferredWeightKg, clampToBand,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 import { supplementWeightKg } from "./supplement-weight.js";
@@ -220,7 +221,7 @@ function tvWeightKg(title) {
  */
 export function categoryWeightKg(title, hints = {}) {
   const t = String(title || "");
-  const bulky = bulkyWeightKg(t);
+  const bulky = bulkyWeightKg(t, hints);
   if (bulky != null) return bulky;
   /* Beauty is read BEFORE footwear, because the footwear detector matches
      on brand names and several of those brands also sell fragrance —
@@ -301,12 +302,15 @@ export function estimateWeightDetail(title, hints = {}) {
         /* No row: the department band's upper end, not the 0.6 kg generic
            (#449). See departmentFallbackKg(). */
         const dept = departmentFallbackKg(title, hints);
-        return dept
-          ? { kg: dept.kg, source: "department", deptKey: dept.key }
-          : { kg: GENERIC_FALLBACK_KG, source: "fallback" };
+        if (dept) return { kg: dept.kg, source: "department", deptKey: dept.key };
+        /* Under $75 with a store and a price: sibling inference (#449),
+           the same answer the checkout resolver gives. */
+        const inf = inferredWeightKg(title, hints);
+        if (inf) return { kg: clampToBand(title, inf.kg), source: "inferred", inferred: inf };
+        return { kg: GENERIC_FALLBACK_KG, source: "fallback" };
       })();
 
-  const check = weightSanity(title, raw.kg);
+  const check = weightSanity(title, raw.kg, hints);
   const kg = check.kg;
 
   /* THREE STATES, NOT TWO (2026-09-20).
@@ -343,6 +347,15 @@ export function estimateWeightDetail(title, hints = {}) {
     return { kg, source: raw.source, estimated: true, flagged: true, needsReview: false,
       reviewKind: "gap", bound: check.key, minKg: check.minKg, maxKg: check.maxKg,
       reason: `sin categoría — tope conservador de ${raw.deptKey} (${kg} kg), necesita una fila de categoría` };
+  }
+  /* Inferred from verified siblings (#449): an estimate with knowledge
+     behind it, not a gap -- quotable, and not held for costing more
+     than the product (Danny's 889 ruling). */
+  if (raw.source === "inferred") {
+    return { kg, source: "inferred", estimated: true, flagged: false, needsReview: false,
+      reviewKind: "inferred", inferred: true, inferredBasis: raw.inferred.basis, inferredKey: raw.inferred.key,
+      bound: check.key, minKg: check.minKg, maxKg: check.maxKg,
+      reason: `peso inferido de productos similares (${raw.inferred.key}) — ${kg} kg` };
   }
   if (raw.source === "beauty") {
     return { kg, source: "beauty", estimated: true, flagged: false, needsReview: false,
