@@ -46,15 +46,27 @@ export function mailEnvReport(env = process.env) {
   };
 }
 
-/** A made-up paid order for the test send. */
+/** A made-up paid order for the test send. Two lines carry catalog
+    photos (hosted links, as a real order line stores them) and one has
+    none, so the QA email shows both cases (#443). */
 export function testOrder(to) {
+  const fxRateUsed = 3.4;
+  const items = [
+    { title: "Prueba: maletín deportivo 45L (no es un pedido real)", qty: 1, priceUsd: 24.65,
+      image: "https://i5.walmartimages.com/seo/3-In-1-Duffle-Bag-45L-Sports-Gym-Bag-Backpack-for-Weekender-Travel-Workout_9aba96b1-9e3c-4819-9b9d-0f427dd14d0a.640cf026d5d19ee281807d44a604f4c4.jpeg" },
+    { title: "Prueba: pantalón de bambú (no es un pedido real)", qty: 1, selectedSize: "M", priceUsd: 56.9,
+      image: "https://cdn.shopify.com/s/files/1/0869/4382/files/AriaBambooBottoms_granite.jpg" },
+    { title: "Prueba: producto sin foto (no es un pedido real)", qty: 1, priceUsd: 10 },
+  ];
+  const pricePenCharged = Math.round(items.reduce((s, it) => s + it.priceUsd * it.qty * fxRateUsed, 0) * 100) / 100;
   return {
     orderId: "ARIA-PRUEBA-" + new Date().toISOString().replace(/\D/g, "").slice(0, 12),
     paymentStatus: "paid",
-    pricePenCharged: 1.0,
+    pricePenCharged,
+    fxRateUsed,
     customer: { name: "Prueba", email: to },
     shipping: { destCity: "Arequipa", courier: { id: "olva", name: "Olva Courier" } },
-    items: [{ title: "Producto de prueba (no es un pedido real)", qty: 1 }],
+    items,
   };
 }
 

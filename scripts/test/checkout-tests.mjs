@@ -219,6 +219,17 @@ await check("the order is priced by the server and charged in soles, exactly wha
   assert.equal(order.needsPriceReview, false);
   assert.equal(stripeCalls[0].opts.headers["Idempotency-Key"], `checkout-${r.data.orderId}`);
 });
+await check("the order line keeps the cart's photo as a hosted http(s) link, and drops anything else (#443)", async () => {
+  const photo = "https://cdn.shopify.com/s/files/1/0869/4382/files/AriaBambooBottoms_granite.jpg";
+  const ok = await post(orderBody({ items: [{ ...product, image: photo }], shownTotalPen: expectedPen() }));
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.equal(JSON.parse(globalThis.__blobs.get("orders").get(ok.data.orderId)).items[0].image, photo);
+  for (const bad of ["javascript:alert(1)", 'https://x.test/a.jpg" onerror="alert(1)', "data:image/png;base64,AAAA"]) {
+    const r = await post(orderBody({ items: [{ ...product, image: bad }], shownTotalPen: expectedPen() }));
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.ok(!("image" in JSON.parse(globalThis.__blobs.get("orders").get(r.data.orderId)).items[0]), `stored ${bad}`);
+  }
+});
 await check("a rewritten price in the request is not what gets charged", async () => {
   stripeCalls = [];
   const cheap = { ...product, priceUsd: 0.5 };

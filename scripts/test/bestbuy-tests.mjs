@@ -171,7 +171,7 @@ await check("Best Buy is a live browse-only store in the module and the page mir
   assert.match(svg, /<svg[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
   assert.doesNotMatch(svg, /<!DOCTYPE|&ns_/, "the logo still carries Illustrator DTD entities");
   assert.doesNotMatch(bundle, /key: 'bestbuy'[^\n]*retired: true/);
-  assert.match(bundle, /const CATALOGUE_FILES = \[[^\]]*'\/bestbuy-catalog\.json'\]/);
+  assert.match(bundle, /const CATALOGUE_FILES = \[[^\]]*'\/bestbuy-catalog\.json'[,\]]/);
   assert.match(bundle, /"\/bestbuy-catalog\.json":\["bestbuy"\]/);
 });
 
@@ -263,7 +263,7 @@ await check("tienda.html registers a themed, sliced Best Buy storefront", () => 
   assert.match(s.heroPhoto, /^\/assets\/stores\/bestbuy-interior\.jpg$/);
   assert.match(tienda, /<h2>Por qué compramos en Best Buy<\/h2>/);
   assert.match(tienda, /la política de devoluciones de Aria/, "the trust strip does not keep the shopper's promise Aria's own");
-  assert.match(bundle, /const THIN_STOREFRONTS = new Set\(\['bestbuy'\]\);/);
+  assert.match(bundle, /const THIN_STOREFRONTS = new Set\(\['bestbuy'(, '[a-z]+')*\]\);/);
 });
 
 await launchOnly("storefront rails: Ofertas first (sale only), Más vendidos second, departments after", () => {

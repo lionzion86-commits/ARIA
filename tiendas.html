@@ -98,6 +98,7 @@ footer a{color:#fff}
 <a class="store-card" href="tienda.html?tienda=dagnedover">Dagne Dover</a>
 <a class="store-card" href="tienda.html?tienda=dicks">Dick's Sporting Goods</a>
 <a class="store-card" href="tienda.html?tienda=drbrowns">Dr. Brown's</a>
+<a class="store-card" href="tienda.html?tienda=dsw" data-pending-catalog="dsw" hidden>DSW</a>
 <a class="store-card" href="tienda.html?tienda=elvie">Elvie</a>
 <a class="store-card" href="tienda.html?tienda=everlast">Everlast</a>
 <a class="store-card" href="tienda.html?tienda=ezpz">ezpz</a>
@@ -145,7 +146,26 @@ footer a{color:#fff}
 <a class="store-card" href="tienda.html?tienda=youngla">YoungLA</a>
 <a class="store-card" href="tienda.html?tienda=zumiez">Zumiez</a>
 </div>
-<p style="text-align:center;color:var(--muted);font-size:14px;margin-top:16px">81 tiendas activas</p></main>
+<p id="storeCountLine" style="text-align:center;color:var(--muted);font-size:14px;margin-top:16px">81 tiendas activas</p></main>
+<script>
+/* PENDING STORES (DSW, #443): a store is listed here only once its storefront
+   has products (assets/tienda/<key>/index.json, written by
+   scripts/build-store-slices.mjs from its catalogue). No tile that opens onto
+   nothing. */
+(function(){
+  var links = document.querySelectorAll("a[data-pending-catalog]");
+  for (var i = 0; i < links.length; i++) (function(a){
+    var key = a.getAttribute("data-pending-catalog");
+    fetch("/assets/tienda/" + key + "/index.json").then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+      if (!j || !(j.count > 0)) return;
+      a.hidden = false;
+      var line = document.getElementById("storeCountLine");
+      var n = line ? parseInt(line.textContent, 10) : NaN;
+      if (line && n > 0) line.textContent = (n + 1) + " tiendas activas";
+    }).catch(function(){});
+  })(links[i]);
+})();
+</script>
 <footer>
 <a href="https://ariashop.pe/">Aria Shop</a> · 
 <a href="como-funciona.html">Cómo funciona</a> · 

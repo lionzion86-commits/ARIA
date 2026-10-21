@@ -761,7 +761,7 @@ const MIN_DISCOUNT_PCT = 5;
    finding more, few enough that the page is not carrying a hundred
    product photos before the hero. "Ver todo" carries the rest. */
 const OFERTAS_MAX_DISCOUNT_PCT = 70;
-const SHOE_DEFAULT_RETAILERS = new Set(['footlocker']);
+const SHOE_DEFAULT_RETAILERS = new Set(['footlocker', 'dsw']);
 const CATALOG_SEARCH_LIMIT = 200;
 /* Fewer than this many full-token matches is "thin", and thin is what
    makes the live offer the loudest thing on the page. */

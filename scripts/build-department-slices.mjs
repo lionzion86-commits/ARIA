@@ -72,6 +72,9 @@ export const CATALOG_FILES = [
   /* Best Buy (2026-10-19, #413): Electrónica's specialist and Hogar's
      small appliances. */
   "/bestbuy-catalog.json",
+  /* DSW (#443): Zapatos' shoe warehouse. The committed empty envelope
+     until the pull lands. */
+  "/dsw-catalog.json",
 ];
 /* Best Buy files under its own department names (scripts/lib/
    department-map.js maps them the same way). */
@@ -127,9 +130,13 @@ export const KIND_MATCH = {
   joyas: (t) => hasAny(t, ["earring", "necklace", "bracelet", "pendant", "charm", "anillo", "collar", "pulsera", "arete"]),
   party: (t) => hasAny(t, ["party", "fiesta", "balloon", "globo", "birthday", "cumplea", "decoration", "decoraci", "confetti", "piñata", "pinata"]),
   toys: (t) => hasAny(t, ["toy", "juguete", "lego", "doll", "muñeca", "action figure", "plush", "peluche", "board game", "puzzle"]),
-  shoes: (t) => hasAny(t, ["shoe", "zapato", "sneaker", "boot", "bota", "sandal", "sandalia", "loafer", "mocasin", "heel", "tacon", "tacón", "slipper", "pantufla", "cleat", "taco"]),
-  shoes_women: (t) => KIND_MATCH.shoes(t) && hasAny(t, ["women", "woman", "mujer", "ladies", "dama", "female"]),
-  shoes_men: (t) => KIND_MATCH.shoes(t) && hasAny(t, ["men", "man", "hombre", "mens", "caballero", "male"]),
+  /* DSW (#443) is a shoe warehouse: everything it files outside its
+     bags bucket is footwear, whatever the title calls it ("Kassy Pump",
+     "Rina Mule"). Only DSW rows take this branch. */
+  shoes: (t, p) => (p && p.retailer === "dsw" && p.bucket !== "purses") ||
+    hasAny(t, ["shoe", "zapato", "sneaker", "boot", "bota", "sandal", "sandalia", "loafer", "mocasin", "heel", "tacon", "tacón", "slipper", "pantufla", "cleat", "taco"]),
+  shoes_women: (t, p) => KIND_MATCH.shoes(t, p) && (hasAny(t, ["women", "woman", "mujer", "ladies", "dama", "female"]) || (p && p.retailer === "dsw" && p.bucket === "women")),
+  shoes_men: (t, p) => KIND_MATCH.shoes(t, p) && (hasAny(t, ["men", "man", "hombre", "mens", "caballero", "male"]) || (p && p.retailer === "dsw" && p.bucket === "men")),
   autoparts: (t) => hasAny(t, ["brake", "freno", "oil filter", "filtro de aceite", "spark plug", "bujía", "bujias", "air filter", "filtro de aire", "alternator", "alternador", "battery", "batería", "radiator", "radiador", "shock absorber", "amortiguador", "clutch", "embrague", "timing belt", "correa"]),
   luxury: (t, p) => ["ssense", "miumiu", "farfetch"].indexOf(p.retailer) !== -1 ||
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino"]),

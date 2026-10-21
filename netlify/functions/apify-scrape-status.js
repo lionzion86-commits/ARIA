@@ -96,7 +96,12 @@ export async function handler(event) {
       // recorded, and hand this run's slot back.
       await settleOndemandRun(runId, items);
 
-      return { statusCode: 200, headers, body: JSON.stringify({ status, items }) };
+      /* What the run cost, as Apify reports it (usageTotalUsd). A catalogue
+         pull (scripts/build-dsw-catalog.mjs) checks its spend against the
+         quote after every run with it; absent, it falls back to its own
+         per-run estimate. */
+      const usageUsd = Number(runJson.data.usageTotalUsd);
+      return { statusCode: 200, headers, body: JSON.stringify({ status, items, ...(Number.isFinite(usageUsd) ? { usageUsd } : {}) }) };
     }
 
     if (TERMINAL_FAILURE_STATUSES.includes(status)) {

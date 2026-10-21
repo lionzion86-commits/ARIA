@@ -43,6 +43,35 @@ export const REPLY_TO = "contacto@ariashop.pe";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const soles = (n) => "S/ " + (Math.round(Number(n) * 100) / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/* PRODUCT PHOTOS PER LINE (2026-10-21, #443, Ale on the first real
+   order, Danny's ruling). Each line shows the catalog photo the PDP and
+   cart showed: the hosted URL stored on the order line (item.image),
+   referenced by link -- never attached, so the email stays light for
+   phones on mountain data. A line with no usable image renders with no
+   <img> at all, never a broken-image box. The URL came from a browser,
+   so it is checked twice (stored by orders-create.js, rendered here):
+   http(s) only, no credentials, no whitespace or markup characters,
+   and it is HTML-escaped where it lands. A protocol-relative or
+   root-relative URL is made absolute; nothing is ever fetched. */
+export const SITE_ORIGIN = "https://ariashop.pe";
+export const EMAIL_THUMB_PX = 72;
+
+/** A line image safe to reference from an email, absolute; else null. */
+export function emailImageUrl(raw) {
+  if (typeof raw !== "string") return null;
+  let u = raw.trim();
+  if (!u || u.length > 2048) return null;
+  if (/[\s"'<>`\\\u0000-\u001f\u007f]/.test(u)) return null;
+  if (u.startsWith("//")) u = "https:" + u;
+  else if (u.startsWith("/")) u = SITE_ORIGIN + u;
+  if (!/^https?:\/\//i.test(u)) return null;
+  let url;
+  try { url = new URL(u); } catch { return null; }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (!url.hostname || url.username || url.password) return null;
+  return url.href;
+}
+
 /** Who gets it: the address typed at checkout, else the signed-in one. */
 export function confirmationRecipient(order) {
   const typed = String(order?.customer?.email || "").trim();
@@ -77,6 +106,29 @@ export function orderConfirmationEmail(order) {
     const size = String(it.selectedSize || "").trim();
     return `${it.title}${size ? ` (talla ${size})` : ""} x${qty}`;
   };
+  /* The line's own price in soles: its card price at the rate this
+     order was charged at -- the soles figure the product card showed.
+     Omitted when the order does not carry both. */
+  const fx = Number(order?.fxRateUsed);
+  const linePen = (it) => {
+    const usd = Number(it.priceUsd);
+    const qty = Math.max(1, Math.floor(Number(it.qty) || 1));
+    return Number.isFinite(usd) && usd > 0 && Number.isFinite(fx) && fx > 0 ? Math.round(usd * qty * fx * 100) / 100 : null;
+  };
+  const thumbCol = EMAIL_THUMB_PX + 12;
+  const anyImage = items.some((it) => emailImageUrl(it.image));
+  const cell = "padding:8px 0;border-bottom:1px solid #EEF1F7;vertical-align:middle";
+  const lineHtml = (it) => {
+    const img = emailImageUrl(it.image);
+    const pen = linePen(it);
+    return `<tr>`
+      + (anyImage ? `<td width="${thumbCol}" style="${cell};width:${thumbCol}px">`
+        + (img ? `<img src="${esc(img)}" width="${EMAIL_THUMB_PX}" height="${EMAIL_THUMB_PX}" alt="${esc(it.title)}" style="display:block;width:${EMAIL_THUMB_PX}px;height:${EMAIL_THUMB_PX}px;object-fit:contain;border:0;border-radius:8px;background:#F4F6FB">` : "")
+        + `</td>` : "")
+      + `<td style="${cell}">${esc(lineText(it))}</td>`
+      + `<td align="right" style="${cell};text-align:right;white-space:nowrap;padding-left:8px">${pen != null ? esc(soles(pen)) : ""}</td>`
+      + `</tr>`;
+  };
   const subject = `Confirmamos tu pedido ${id}`;
   const steps = [
     "Compramos tus productos en las tiendas de Estados Unidos y los recibimos en nuestro almacén de Miami.",
@@ -107,8 +159,8 @@ export function orderConfirmationEmail(order) {
   <div style="background:#fff;border-radius:16px;padding:24px;border:1px solid #E3E8F2">
     <p style="font-size:15px;margin:0 0 12px">Hola${name ? " " + esc(name) : ""},</p>
     <p style="font-size:15px;margin:0 0 16px">Recibimos tu pago. Tu pedido <b>${esc(id)}</b> está confirmado.</p>
-    <table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px">
-      ${items.map((it) => `<tr><td style="padding:8px 0;border-bottom:1px solid #EEF1F7">${esc(lineText(it))}</td></tr>`).join("")}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;font-size:14px">
+      ${items.map(lineHtml).join("")}
     </table>
     ${total != null ? `<p style="font-size:16px;font-weight:bold;margin:16px 0 4px">Total pagado: ${esc(soles(total))}</p>` : ""}
     ${wallet ? `<p style="font-size:13px;margin:0 0 4px;color:#5B6478">Saldo Aria aplicado: ${esc(soles(wallet))}</p>` : ""}

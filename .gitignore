@@ -7,3 +7,4 @@ package-lock.json
 # Visual search working files (the built index under visual-index/ IS committed)
 visual-pool.json
 visual-embeddings/
+data/dsw/
