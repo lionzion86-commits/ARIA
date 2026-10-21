@@ -258,11 +258,12 @@ if (!chromium) {
       return await checkoutKg(page);
     } finally { await context.close(); }
   }
+  /* Walmart's records: Target is off sale since #443 (/off-sale.js). */
   await check("the Dreamhouse: product page -> cart -> checkout reads 14.50 kg", async () => {
-    eq(await viaPdp(DREAMHOUSE_T, "target"), 14.5, "Peso del paquete");
+    eq(await viaPdp(DREAMHOUSE_W, "walmart"), 14.5, "Peso del paquete");
   });
   await check("a doll: product page -> cart -> checkout reads its unchanged 0.48 kg", async () => {
-    eq(await viaPdp(DOLLS[0][0], "target"), 0.48, "Peso del paquete");
+    eq(await viaPdp(DOLLS[2][0], "walmart"), 0.48, "Peso del paquete");
   });
   await check("a seeded no-match $120 line: checkout reads the general band's 2.50 kg, not 0.60", async () => {
     const { context, page } = await newPage();

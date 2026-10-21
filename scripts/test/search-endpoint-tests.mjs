@@ -19,6 +19,7 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { isOffSaleRetailer } from "../lib/off-sale.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 process.chdir(ROOT);
@@ -66,13 +67,16 @@ for (const [q, right] of Object.entries(BATTERY)) {
 
 await check('"nike air force 1" is never a one-product brand called Force', async () => {
   const r = await ask("nike air force 1");
-  assert.ok(r.body.total >= 10, `${r.body.total} results`);
+  /* 10+ while Foot Locker sold (off sale since #443); never one product. */
+  assert.ok(r.body.total >= 5, `${r.body.total} results`);
   assert.ok(!r.body.items.some((it) => /force factor/i.test(it.title)), "the Costco hair supplement is back");
 });
 
-await check("Foot Locker's products are searchable (its feed names them productName)", async () => {
+await check("Foot Locker's products are searchable (its feed names them productName) -- or, off sale, absent", async () => {
   const r = await ask("adidas samba");
-  assert.ok(r.body.items.some((it) => it.store === "footlocker"), "no Foot Locker Samba");
+  /* Foot Locker is a REMOVE store (#443, /off-sale.js): retained, never a result. */
+  if (isOffSaleRetailer("footlocker")) assert.ok(!r.body.items.some((it) => it.store === "footlocker"), "an off-sale Foot Locker Samba");
+  else assert.ok(r.body.items.some((it) => it.store === "footlocker"), "no Foot Locker Samba");
 });
 
 await check('"dolls" pages: the next 48, no repeats, an honest total', async () => {
@@ -123,9 +127,12 @@ await check('near-misses get a chip; real words and brands do not', async () => 
 
 await check("Lizzie & Oliver, not Lizzie &#38; Oliver", async () => {
   const r = await ask("our generation lizzie oliver");
-  const hit = r.body.items.find((i) => /lizzie/i.test(i.title));
-  assert.ok(hit, "the Our Generation set is not found");
-  assert.match(hit.title, /Lizzie & Oliver/);
+  const hit = r.body.items.find((i) => /lizzie & oliver|lizzie &#/i.test(i.title));
+  /* The Our Generation set was Target's (off sale since #443); while a
+     live store carries it, it reads decoded. */
+  if (isOffSaleRetailer("target")) assert.ok(!r.body.items.some((i) => i.store === "target"), "an off-sale Target row");
+  else { assert.ok(hit, "the Our Generation set is not found"); assert.match(hit.title, /Lizzie & Oliver/); }
+  if (hit) assert.match(hit.title, /Lizzie & Oliver/);
   assert.equal(decodeEntities("18&#34; Dolls"), '18" Dolls');
   assert.equal(decodeEntities("Li&#39;l Woodzeez &amp;amp; Co"), "Li'l Woodzeez & Co");
   assert.equal(decodeEntities("AT&T 5&x;"), "AT&T 5&x;");

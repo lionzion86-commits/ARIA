@@ -100,7 +100,7 @@ await check("no sizes, descriptions or weights in anything the phone receives", 
 });
 
 await check("the function continues page 1: page 2 follows in the same order, no repeats", async () => {
-  for (const [store, sort] of [["", "discount"], ["target", "priceAsc"], ["ccs", "priceDesc"]]) {
+  for (const [store, sort] of [["", "discount"], ["walmart", "priceAsc"], ["ccs", "priceDesc"]]) {
     const p1 = JSON.parse(readFileSync(SLICES + `${store || "all"}.${sort}.json`, "utf8"));
     const p2 = (await call({ store, sort, page: "2" })).body;
     assert.equal(p2.page, 2);
@@ -116,9 +116,10 @@ await check("the function continues page 1: page 2 follows in the same order, no
 });
 
 await check("the function's search matches every word, accent-blind, within the chosen store", async () => {
-  const r = (await call({ q: "Lego", store: "target" })).body;
-  assert.ok(r.total > 0, "lego at target: nothing");
-  assert.ok(r.items.every((i) => /lego/i.test(i.title + " " + i.brand) && i.store === "target"));
+  /* Walmart: Target is off sale (#443). */
+  const r = (await call({ q: "Lego", store: "walmart" })).body;
+  assert.ok(r.total > 0, "lego at walmart: nothing");
+  assert.ok(r.items.every((i) => /lego/i.test(i.title + " " + i.brand) && i.store === "walmart"));
   const two = (await call({ q: "nike shorts" })).body;
   assert.ok(two.items.every((i) => /nike/i.test(i.title + i.brand) && /shorts/i.test(i.title + i.brand)), "a word was ignored");
   const none = (await call({ q: "zzqqxxnothing" })).body;

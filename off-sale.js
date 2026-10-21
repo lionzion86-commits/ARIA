@@ -4,15 +4,13 @@
    purpose (no import/export): pages load it with <script src>. */
 (function (root) {
   'use strict';
-  /* Retailer keys (the catalogue's `retailers.<key>` and every record's
-     `retailer`). In-store / other-channel twins of a store are separate
-     keys and are not listed here. */
+  /* Retailer keys. Why each store is here: scripts/lib/off-sale.js. */
   var OFF_SALE_RETAILERS = [
-    /* Victoria's Secret direct (2026-10-20, #443 c.6304525284, Danny):
-       personal-use-only terms, no warehouse channel. A VS carousel may
-       return later sourced from Amazon's VS listings (retailer of
-       record = Amazon), never from victoriassecret.com. */
-    'victoriassecret',
+    'victoriassecret', 'target',
+    'bestbuy', 'costco', 'nike', 'footlocker', 'kohls', 'macys',
+    'gap', 'oldnavy', 'bananarepublic', 'athleta',
+    'ulta', 'ssense', 'yesstyle', 'newbalance', 'gymshark', 'alphalete',
+    'miumiu', 'fendi', 'goldengoose', 'pacsun',
   ];
   var SET = {};
   for (var i = 0; i < OFF_SALE_RETAILERS.length; i++) SET[OFF_SALE_RETAILERS[i]] = true;

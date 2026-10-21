@@ -27,6 +27,29 @@
    context. It must stay free of import/export for that reason.
    ============================================================ */
 
+/* THE STORES ON THE LIST, AND WHY (keys as the catalogues spell them;
+   the list itself is in /off-sale.js, kept short for the phone):
+     victoriassecret  Victoria's Secret direct (2026-10-20, #443
+                      c.6304525284, Danny): personal-use-only terms, no
+                      warehouse channel. A VS carousel may return sourced
+                      from Amazon's VS listings (retailer of record =
+                      Amazon), never from victoriassecret.com.
+     target           Target (2026-10-20, c.6301033619, Danny): residential-
+                      only shipping, no resale exemption, reseller account
+                      flagged.
+     the rest         Sourcing audit Part A, step 1 (c.6303274201): REMOVE as
+                      a source -- bestbuy, costco (its costco.com catalogue;
+                      the in-store channel is Part B and has no data key),
+                      nike, footlocker, kohls, macys, gap, oldnavy,
+                      bananarepublic, athleta, ulta, ssense, yesstyle,
+                      newbalance, gymshark, alphalete, miumiu, fendi,
+                      goldengoose, pacsun. Listings off sale, data retained;
+                      porting to the fallback lanes is a later step. Nike
+                      direct, Athleta, Fendi and Golden Goose direct have no
+                      listings today and are listed so none is added by
+                      mistake; Golden Goose through Farfetch/Revolve is
+                      retailer `farfetch` / `revolve` and stays. */
+
 /* This module re-exports /off-sale.js for the builders, checkout.html and
    the Netlify functions; the list itself lives there, once. */
 import "../../off-sale.js";

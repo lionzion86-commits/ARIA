@@ -41,6 +41,7 @@
 import { getStore, connectLambda } from "@netlify/blobs";
 import { corsHeaders, getSessionEmail, isAdmin } from "./_auth-helpers.js";
 import { timingSafeEqual } from "node:crypto";
+import { isOffSaleItem } from "../../scripts/lib/off-sale.js";
 
 // Mirrors GENERAL_RETAILERS in index.html (LIVE_RETAILERS minus autozone,
 // which is the auto-parts lane and never appears in Ofertas).
@@ -225,7 +226,8 @@ export async function handler(event) {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ items: cached.items, generatedAt: cached.generatedAt, stale }),
+        /* Off-sale stores (#443, /off-sale.js) are never served as deals. */
+        body: JSON.stringify({ items: cached.items.filter((it) => !isOffSaleItem(it)), generatedAt: cached.generatedAt, stale }),
       };
     } catch (error) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };

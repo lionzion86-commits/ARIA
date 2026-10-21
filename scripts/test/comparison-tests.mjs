@@ -333,7 +333,7 @@ await check("the index's store table: every store named, every logo a real file"
     assert.ok(ix.stores[k] && ix.stores[k].label, k + " has no name");
     if (ix.stores[k].logo) assert.ok(existsSync(ROOT + ix.stores[k].logo), k + ": " + ix.stores[k].logo + " missing");
   }
-  for (const k of ["ccs", "zumiez", "walmart", "target", "footlocker"]) assert.ok(ix.stores[k].logo, k + " lost its logo");
+  for (const k of ["ccs", "zumiez", "walmart", "dicks", "finishline"]) assert.ok(ix.stores[k].logo, k + " lost its logo");   /* live lanes (#443) */
 });
 
 const MIN_CHECKS = 18;
