@@ -99,3 +99,21 @@ The full list of matches is in `reports/port-remove-stores.json`.
 Target's "Barbie Royal Doll with Brightly Highlighted Hair, Butterfly-Print Skirt and Accessories" and Walmart's "Barbie Royal Fashion Doll with Blonde Hair, Removable Skirt & Accessories [Walmart Exclusive]" are different dolls. Neither carries a GTIN or a model code, so they do not match. The Target doll stays off sale, and the Walmart doll keeps its own price and data. `scripts/test/port-tests.mjs` pins this.
 
 <!-- Notes below this line are kept when the script re-runs. -->
+
+## Search-quality checks after the port
+
+None of the 7 checks that #457 broke recovers, and "bisicleta" still returns nothing. The tests were not loosened.
+
+- "zapatos mujer" still shows a LEGO set.
+- "nike air max 90" still leads with Max 90 tees.
+- "ring light" still returns jewelry rings.
+- "hot wheels" still shows a skateboard before a toy.
+- "mochila escolar" is still 6 of 8 right.
+- The "dreses" typo still reads as "aretes".
+- "maquillaje" still ranks the $17.68 Revlon among the obscure premium products.
+
+The reason: porting only enriches products that are already on sale in a live lane, and every one of the 151 matches was already searchable there. The search index is byte-identical apart from its timestamp. The products that would answer these queries (women's shoes, Air Max 90s, ring lights, Hot Wheels cars, bicycles, makeup) were sold only by the off-sale stores, and no live-lane catalogue in this repo carries them under a GTIN or model code. Bringing them back needs new sourcing, such as a live-lane pull or Amazon Business, not porting.
+
+## Seccion Hombre
+
+Seccion Hombre (`mens_grooming`) still holds 0 products, because porting adds no listings to it. Its categorias.html link stays removed.
