@@ -39,6 +39,7 @@ import { CHARGE_PER_KG } from "../../weight-data.js";
 import { resolveCartWeights } from "./_weight-resolve.js";
 import { loadPriceIndex } from "./_price-index.js";
 import { createCheckoutSession } from "./_stripe-api.js";
+import { emailImageUrl } from "./_order-email.js";
 import {
   repriceCart, goodsTotals, freightFloorUsd, expressFeePen, shippingModeOf, SHIPPING_MODES,
   totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm, missingSizeLines,
@@ -384,10 +385,18 @@ async function createOrderHandler(event) {
       shipping: body.shipping || {},
       /* Per-line dutiable base, resolved server-side: the set-aside
          bucket below is auditable line by line against the courier's
-         SUNAT invoice. */
+         SUNAT invoice.
+         The line's photo (#443, confirmation email) is the cart line's
+         own image, kept only as an absolute http(s) URL; anything else
+         is dropped, never fetched (see emailImageUrl). */
       items: items.map((it) => {
         const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
-        return Number.isFinite(d) && !(Number(it.dutiableUsd) > 0) ? { ...it, dutiableUsd: d } : it;
+        const line = Number.isFinite(d) && !(Number(it.dutiableUsd) > 0) ? { ...it, dutiableUsd: d } : { ...it };
+        if ("image" in line) {
+          const img = emailImageUrl(line.image);
+          if (img) line.image = img; else delete line.image;
+        }
+        return line;
       }),
       weightEstimatedKg: Math.round(weightKgTotal * 100) / 100,
       priceScrapedUsdTotal: null, // admin view reverses each line with its own retailer rate (see computeMargin) — not re-sent over the wire
