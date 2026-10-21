@@ -23,8 +23,19 @@
      5. department — no row matched and the line is $75 or more: the upper
                      end of the product's department band (department
                      hint, single-department store, toy title, else
-                     general). Under $75 the fallback below stands. #449.
-     6. fallback   — a labeled generic, never zero
+                     general). #449.
+     6. inferred   — no row matched and the line is under $75: its verified
+                     siblings' median x 1.10 (same department, same kind
+                     of product), capped at 2 kg, flagged `inferred`.
+                     #449 pricing; see inferredWeightKg().
+     7. fallback   — a labeled generic, never zero (a line with no price)
+
+   HOLDS (#449, Danny's 889 ruling): a truthful quote -- a published,
+   catalogue, row or inferred weight -- is information, not a wall, so
+   it is never held for costing more than the product. The hold stays
+   where the weight is not known: an estimate outside its plausible band
+   (a misfire) and the generic guess whose freight exceeds the price.
+   See freightQuotable().
 
    WHY BEAUTY OUTRANKS THE TITLE: a cosmetic's title states the volume of
    liquid in the bottle, not what ships. "Eau de Toilette 3.4 oz" read as
@@ -54,7 +65,8 @@
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { titleWeight, weightSanity, freightQuotable, candleWeightKg, GENERIC_FALLBACK_KG, departmentFallbackKg } from "../../scripts/lib/item-weight.js";
+import { titleWeight, weightSanity, freightQuotable, candleWeightKg, GENERIC_FALLBACK_KG, departmentFallbackKg,
+  inferredWeightKg, clampToBand, isCatalogPlaceholder } from "../../scripts/lib/item-weight.js";
 import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beauty-weight.js";
 // The PUBLIC charged rate only — the internal courier cost never travels
 // with anything a browser can reach, and this module answers checkout.
@@ -179,6 +191,8 @@ export function catalogWeightKg(item) {
   if (!item || typeof item !== "object") return null;
   if (item.weightEstimated === false) return null;  // a real spec: not ours to answer
   const kg = toKg(item.specWeightKg, "kg");
+  // The moms catalogue's flat 4/12/25 kg stamps are not weights (#449).
+  if (kg && isCatalogPlaceholder(kg, item.retailer, item.title ?? item.name, { priceUsd: item.priceUsd ?? item.price })) return null;
   return kg ? { kg, from: "specWeightKg" } : null;
 }
 
@@ -208,7 +222,7 @@ export function resolveItemWeight(item) {
      check on its way out. banded() is the single exit so no future branch
      can be added that skips it. */
   const banded = (kg, source, basis, reviewKind = null) => {
-    const check = weightSanity(title, kg);
+    const check = weightSanity(title, kg, hints);
     return {
       weightKg: check.kg,
       source,
@@ -259,10 +273,22 @@ export function resolveItemWeight(item) {
   /* CONSERVATIVE FALL-THROUGH (#449). No row matched and the line is $75
      or more: quote the upper end of the product's department band, never
      the silent 0.6 kg. Under $75 departmentFallbackKg() answers null and
-     the existing fallback below stands (Danny's ruling on #443), so no
+     sibling inference below answers instead (Danny's ruling on #443), so no
      new freight-confirm hold comes from here. Still a "gap" for review. */
   const dept = departmentFallbackKg(title, hints);
   if (dept) return banded(dept.kg, "department", `tope conservador de ${dept.key} (sin regla de peso)`, "gap");
+
+  /* SIBLING INFERENCE (#449 pricing). No row matched and the line is
+     under $75: the median weight of its verified siblings (same
+     department, same kind of product) x 1.10, capped at 2 kg -- see
+     inferredWeightKg(). Flagged `inferred`; not a "gap", so a truthful
+     quote that costs more than the product is not held (Danny's 889
+     ruling). Moved inside the title's sanity band if one claims it. */
+  const inf = inferredWeightKg(title, hints);
+  if (inf) {
+    const r = banded(clampToBand(title, inf.kg), "inferred", `peso inferido de productos similares (${inf.key})`, "inferred");
+    return { ...r, inferred: true, inferredBasis: inf.basis, inferredKey: inf.key, inferredCapped: inf.capped };
+  }
 
   return banded(GENERIC_FALLBACK_KG, "fallback", "estimado genérico", "gap");
 }
