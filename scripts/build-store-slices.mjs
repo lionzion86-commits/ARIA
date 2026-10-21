@@ -49,6 +49,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift.mjs";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -118,8 +119,11 @@ function realImage(p) {
 }
 
 /* ---------------- tienda.html's registry and rules ---------------- */
+/* The storefronts: the page's registry minus the stores taken off sale
+   (/off-sale.js), as the page itself drops them. */
 export function tiendaStores(root = ROOT) {
-  return JSON.parse(/var STORES = (\{.*\});/.exec(readFileSync(join(root, "tienda.html"), "utf8"))[1]);
+  const all = JSON.parse(/var STORES = (\{.*\});/.exec(readFileSync(join(root, "tienda.html"), "utf8"))[1]);
+  return Object.fromEntries(Object.entries(all).filter(([k]) => !isOffSaleRetailer(k)));
 }
 
 /* The storefront rules, as tienda.html declares them. */
@@ -368,6 +372,8 @@ export function buildAll(root = ROOT, only = null) {
   const out = {};
   for (const [key, meta] of Object.entries(stores)) {
     if (only && !only.includes(key)) continue;
+    /* Off sale (/off-sale.js): no storefront; its folder is removed below. */
+    if (isOffSaleRetailer(key)) continue;
     out[key] = SLICED_STORES[key] ? buildStore(key, root) : buildGenericStore(key, meta, rules, root);
   }
   return out;

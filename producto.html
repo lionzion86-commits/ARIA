@@ -125,6 +125,7 @@ footer a{color:#fff}
 <script src="/ref.js"></script>
 <script src="sale-rule.js"></script>
 <script src="product-type.js"></script>
+<script src="/off-sale.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
 <script src="/assets/js/pixels.js" async></script>
@@ -610,6 +611,10 @@ function render(p){
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
   /* #439: the import-tax estimate sits directly under the product price. */
   priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
+  /* OFF SALE (#443, /off-sale.js): the record stays, the sale does not --
+     no price to promise, no store door, no cart. */
+  var offSale = isOffSaleProduct(p);
+  if (offSale) priceHtml = '<p class="p-offsale" role="status" style="font-size:15px;font-weight:700;color:#B03A2E;margin:0">' + esc(window.AriaOffSale.OFF_SALE_PRODUCT_NOTE) + '</p>';
   var img = galleryHTML(p);
   var desc = p.description
     ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
@@ -619,7 +624,7 @@ function render(p){
     + '<div>'
       + (p.brand ? '<div class="kicker">' + esc(p.brand) + '</div>' : '')
       + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(p.name) + '</h1>'
-      + (store ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
+      + (store && !offSale ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
       + (p.partNumber ? '<p style="font-size:14px;color:var(--muted);margin:0 0 10px">N.° de parte: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' + esc(p.partNumber) + '</span></p>' : '')
       + priceHtml
       + '<p style="font-size:13px;color:var(--muted);margin-top:14px">El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar.</p>'
@@ -629,6 +634,7 @@ function render(p){
           var tk = String(p.retailer || '').toLowerCase();
           var label = esc(store || 'la tienda');
           var designers = {farmrio:1,aguabendita:1,patbo:1,johannaortiz:1,silviatcherassi:1,capittana:1,ancora:1,vix:1,montce:1,eberjey:1,tns:1};
+          if (offSale) return '';
           if (p.partNumber) return '<a class="btn btn-secondary" href="auto.html">Ver más en Aria Auto</a>';
           if (designers[tk]) return '<a class="btn btn-secondary" href="disenadores.html#d-' + tk + '">Ver más de ' + label + '</a>';
           if (tk) return '<a class="btn btn-secondary" href="tienda.html?tienda=' + encodeURIComponent(tk) + '">Ver más en ' + label + '</a>';
@@ -1084,9 +1090,13 @@ function mergeCartLine(line){
   saveCartLocal(c);
 }
 
+function isOffSaleProduct(p){
+  return !!(window.AriaOffSale && p && window.AriaOffSale.isOffSaleRetailer(p.retailer));
+}
 function buildBuyBox(p){
   var box = el('buy-box');
   if (!box) return;
+  if (isOffSaleProduct(p)){ box.innerHTML = ''; return; }
   /* The record's own size list is the whole question (#411 P0): a list
      means a picker and no cart without a size; no list means the
      product sells plainly. Never a title keyword, never a template. */
@@ -1109,6 +1119,7 @@ function buildBuyBox(p){
 }
 
 function addCurrentToCart(p, sizes){
+  if (isOffSaleProduct(p)){ toast(window.AriaOffSale.OFF_SALE_PRODUCT_NOTE); return; }
   /* The price guard: never a priceless or $0 line. */
   var priceUsd = finalUsd(p.price, p.retailer);
   if (!(Number(priceUsd) > 0)){

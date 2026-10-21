@@ -20,6 +20,7 @@
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
@@ -53,6 +54,7 @@ function buildWith(E, classifyFn, opts = {}) {
     let data;
     try { data = JSON.parse(readFileSync(ROOT + f, "utf8")); } catch { continue; }
     for (const [rk, r] of Object.entries((data && data.retailers) || {})) {
+      if (isOffSaleRetailer(rk)) continue;   /* /off-sale.js: retained, not sold */
       for (const section of ["departments", "brands"]) {
         for (const [bk, bucket] of Object.entries((r && r[section]) || {})) {
           const arr = Array.isArray(bucket) ? bucket : (bucket && bucket.items) || [];

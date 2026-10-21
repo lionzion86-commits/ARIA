@@ -13,6 +13,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { loadEngine, buildFeed, buildWomenFeed } from "../build-ropa-interior-feed.mjs";
+import { isOffSaleRetailer } from "../lib/off-sale.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 
@@ -112,7 +113,8 @@ check("the assortment is the department Danny asked for", () => {
   const stores = new Set(feed.items.map(i => i.r));
   assert.ok(under.length >= 400, `only ${under.length} underwear products`);
   assert.ok(socks.length >= 600, `only ${socks.length} sock products`);
-  assert.ok(stores.size >= 20, `only ${stores.size} stores`);
+  /* 20+ before the REMOVE stores went off sale (#443). */
+  assert.ok(stores.size >= 15, `only ${stores.size} stores`);
   const brand = (re) => feed.items.filter(i => re.test(i.b)).length;
   assert.ok(brand(/^stance$/i) >= 300, "Stance is missing");
   assert.ok(brand(/^skims$/i) >= 100, "SKIMS men's is missing");
@@ -136,7 +138,7 @@ check("the page follows the department pattern", () => {
   /* Carousels first, filters after. */
   assert.ok(page.indexOf('id="m-tipo"') < page.indexOf('id="m-explorar"'), "the filters come before the carousels");
   for (const t of ["Bóxer briefs", "Briefs", "Trunks", "Medias deportivas", "Medias casuales", "Medias de vestir",
-    "Stance", "SKIMS", "PSD", "Nike", "adidas", "CCS", "Kohl's", "SSENSE", "Tiendas de surf"])
+    "Stance", "SKIMS", "PSD", "Nike", "adidas", "CCS", "Tiendas de surf"])
     assert.ok(page.includes(`title:'${t}'`) || page.includes(`title:"${t}"`), `the "${t}" carousel is missing`);
   /* Brands aggregate across stores; a store is never a brand. */
   assert.match(page, /brandKey\(p\.b\) === r\.key/, "brand carousels are not built by brand");
@@ -301,13 +303,14 @@ check("ropa-interior-women-feed.json is what the catalogues give today", () => {
 check("the women's assortment is the department Danny asked for", () => {
   const items = wfeed.items;
   const under = items.filter(i => i.ty === "underwear"), socks = items.filter(i => i.ty === "socks");
-  assert.ok(under.length >= 2000, `only ${under.length} women's intimates`);
-  assert.ok(socks.length >= 100, `only ${socks.length} women's socks`);
+  /* 2,000+ with Victoria's Secret, Kohl's and Macy's; off sale since #443 (/off-sale.js). */
+  assert.ok(under.length >= 1200, `only ${under.length} women's intimates`);
+  assert.ok(socks.length >= 60, `only ${socks.length} women's socks`);   /* 100+ before #443 */
   const from = (r) => items.filter(i => i.r === r).length;
-  assert.ok(from("victoriassecret") >= 700, "Victoria's Secret intimates are missing");
+  assert.equal(items.filter(i => isOffSaleRetailer(i.r)).length, 0, "an off-sale store's intimates are listed");
   assert.ok(from("skims") >= 700, "SKIMS women's is missing");
   assert.ok(from("kindredbravely") >= 100, "Kindred Bravely is missing");
-  for (const r of ["kohls", "macys", "lanebryant"]) assert.ok(from(r) >= 20, `${r} women's intimates are missing`);
+  for (const r of ["lanebryant"]) assert.ok(from(r) >= 20, `${r} women's intimates are missing`);
   for (const sub of ["bra", "panty", "lingerie", "shapewear"]) assert.ok(under.some(i => i.sub === sub), `no ${sub}`);
   for (const i of items) {
     assert.ok(!/\b(?:men'?s|mens|for him|hombres?|boys?'?|girls?'?|kids?'?|toddler)\b/i.test(i.t), "a men's or kids' product got in: " + i.t);
@@ -394,7 +397,7 @@ check("the page has a Mujer and a Hombre section, each carousels first", () => {
   assert.match(page, /\.sec-m\{[^}]*--bg:#0B0F17/, "the Hombre section is not dark");
   assert.match(page, /getFeed\('\/ropa-interior-women-feed\.json'\)/, "the page does not read the women's feed");
   assert.match(page, /p\.ty === 'socks' && p\.g === 'u'/, "the unisex sale socks are not surfaced in Mujer");
-  for (const t of ["Sostenes", "Panties", "Lencería", "Modeladores", "Medias", "Victoria's Secret", "SKIMS", "Kindred Bravely", "Bali", "Wacoal"])
+  for (const t of ["Sostenes", "Panties", "Lencería", "Modeladores", "Medias", "SKIMS", "Kindred Bravely", "Bali", "Wacoal"])
     assert.ok(page.includes(`title:'${t}'`) || page.includes(`title:"${t}"`), `the Mujer "${t}" carousel is missing`);
   assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/u.test(page), "an emoji is on the page");
   /* Every card prints title, image, price and a description line. */

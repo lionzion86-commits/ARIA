@@ -463,7 +463,7 @@ await check("F14: 'la segunda', a name and an ambiguous 'esa' resolve against wh
   const r = await page.evaluate(() => {
     addAssistantMessage("user", "busco algo");
     addAssistantProductCard({ title: "Ninja Professional Blender 1000W", price: 89.99, image: "https://x/n.jpg" }, "walmart");
-    addAssistantProductCard({ title: "Men's Puffer Jacket", price: 45, sizes: ["S", "M", "L"], image: "https://x/p.jpg" }, "oldnavy");
+    addAssistantProductCard({ title: "Men's Puffer Jacket", price: 45, sizes: ["S", "M", "L"], image: "https://x/p.jpg" }, "zumiez");   /* Old Navy is off sale (#443) */
     const one = (t) => { const x = resolveShownProduct(t); return x.kind === "one" ? x.entry.item.title : x.kind; };
     return { second: one("la segunda"), name: one("la licuadora"), esa: one("esa"), store: one("la de walmart"), none: one("el reloj") };
   });
@@ -481,7 +481,7 @@ await check("F-A7: 'agrégame esa casaca al carrito' asks the size and adds noth
   await page.evaluate(() => {
     try { localStorage.removeItem("aria_cart"); } catch (e) {}
     addAssistantMessage("user", "busco una casaca");
-    addAssistantProductCard({ title: "Men's Puffer Jacket", price: 45, sizes: ["S", "M", "L"], image: "https://x/p.jpg" }, "oldnavy");
+    addAssistantProductCard({ title: "Men's Puffer Jacket", price: 45, sizes: ["S", "M", "L"], image: "https://x/p.jpg" }, "zumiez");   /* Old Navy is off sale (#443) */
     addAssistantMessage("bot", "Mira esta casaca.", null, { speak: false });
   });
   const cartTitles = () => page.evaluate(() => (typeof cart !== "undefined" ? cart : []).map((i) => i.title + "|" + (i.selectedSize || "")));
@@ -710,7 +710,7 @@ await check("F10: typed 'brake pads' finds the 2020 Corolla's pads, labelled Del
 
 await check("F-NB-CHIP: store chips never show internal taxonomy names", async () => {
   const ctx = await browser.newContext();
-  for (const store of ["newbalance", "venum", "baublebar", "target"]) {
+  for (const store of ["youngla", "venum", "baublebar", "walmart"]) {   /* live lanes (#443) */
     const page = await ctx.newPage();
     await page.goto(`${BASE}/tienda.html?tienda=${store}`, { waitUntil: "load" });
     await page.waitForFunction(() => document.querySelectorAll(".chips .chip").length > 1, null, { timeout: 30000 }).catch(() => {});

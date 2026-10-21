@@ -36,6 +36,7 @@ import { BUCKET_SPEC, departmentItems } from "../lib/department-map.js";
 import { readSource, ingest, isExcludedRecord, isMarketplaceRecord, HELD_FOR_PRICE_REVIEW, OUT_FILE } from "../build-bestbuy-catalog.mjs";
 import { buildStore, SLICES_DIR, FN_DIR, PAGE_SIZE } from "../build-store-slices.mjs";
 import { liftPage } from "../build-pdp-slices.mjs";
+import { isOffSaleRetailer } from "../lib/off-sale.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0, skipped = 0;
@@ -59,6 +60,14 @@ const tienda = read("tienda.html");
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;
+
+/* OFF SALE (#443, sourcing audit Part A). Best Buy is a REMOVE store:
+   its catalogue and registry row stay (the checks on them still run),
+   while every selling surface is gone. The launch checks below run while
+   Best Buy sells, and are skipped -- and their absence asserted -- while
+   it is off sale. */
+const BB_OFF = isOffSaleRetailer("bestbuy");
+const launchOnly = (name, fn) => check(name, () => (BB_OFF ? "skip" : fn()));
 
 /* The Oct 18 dataset, when this checkout can reach it. */
 let source = null;
@@ -145,7 +154,7 @@ await check("no invented sizes, no retailer link on a card", () => {
   for (const p of items) assert.deepEqual(p.availableSizes, [], `${p.name} carries sizes`);
   /* The store's search box asks the storefront endpoint (#409 T2), whose
      rows live in assets/tienda/_fn/bestbuy.json. */
-  for (const f of [`${SLICES_DIR}/bestbuy/index.json`, `${FN_DIR}/bestbuy.json`]) assert.doesNotMatch(read(f), /bestbuy\.com/i, `${f} carries a bestbuy.com link`);
+  for (const f of [`${SLICES_DIR}/bestbuy/index.json`, `${FN_DIR}/bestbuy.json`].filter((f) => existsSync(ROOT + f))) assert.doesNotMatch(read(f), /bestbuy\.com/i, `${f} carries a bestbuy.com link`);
 });
 
 /* ---------------- registries, taxonomy, price ---------------- */
@@ -178,7 +187,7 @@ await check("its departments map into the site's taxonomy (Electrónica, Hogar)"
   assert.equal(homeN, 203);
 });
 
-await check("customer price: the standing stack (tiered margin + 7%), exemption never itemized", () => {
+await launchOnly("customer price: the standing stack (tiered margin + 7%), exemption never itemized", () => {
   assert.match(bundle, /\n  bestbuy: 'unknown',/, "Best Buy's tax status is not 'unknown' (x1.07)");
   const idx = JSON.parse(read("price-index.json"));
   const margin = (r) => Math.min(r, 500) * 0.24 + Math.min(Math.max(r - 500, 0), 1500) * 0.18 + Math.min(Math.max(r - 2000, 0), 3000) * 0.12 + Math.max(r - 5000, 0) * 0.08;
@@ -204,7 +213,7 @@ await check("customer price: the standing stack (tiered margin + 7%), exemption 
 });
 
 /* ---------------- homepage ---------------- */
-await check("homepage: Best Buy banner + carousel, phone and desktop, billed before Aria Auto", () => {
+await launchOnly("homepage: Best Buy banner + carousel, phone and desktop, billed before Aria Auto", () => {
   const feats = [...home.matchAll(/<section aria-label="Best Buy" data-store-rail="bestbuy" data-bestbuy-feature/g)];
   assert.equal(feats.length, 2, "expected one banner per breakpoint");
   for (const id of ["mStoreRail-bestbuy", "dStoreRail-bestbuy"]) assert.match(home, new RegExp(`id="${id}" data-store-rail-row="bestbuy"`));
@@ -214,14 +223,14 @@ await check("homepage: Best Buy banner + carousel, phone and desktop, billed bef
   assert.match(bundle, /const STORE_RAIL_STORES = \['bestbuy',/);
 });
 
-await check("Tiendas strip: Best Buy leads, Walmart and Target stay at the back", () => {
+await launchOnly("Tiendas strip: Best Buy leads, Walmart and Target stay at the back", () => {
   const strip = /const TIENDAS_STRIP = \[([\s\S]*?)\n\];/.exec(bundle)[1];
   const keys = [...strip.matchAll(/\{k:'([a-z0-9]+)'/g)].map((m) => m[1]);
   assert.equal(keys[0], "bestbuy");
   assert.ok(keys.indexOf("walmart") > keys.length / 2 && keys.indexOf("target") > keys.length / 2, "Walmart/Target moved forward");
 });
 
-await check("the homepage Best Buy carousel is sale items only (one sale rule)", () => {
+await launchOnly("the homepage Best Buy carousel is sale items only (one sale rule)", () => {
   const shelf = JSON.parse(read("assets/home/shelves/store-bestbuy.json"));
   assert.ok(shelf.picks.length >= 8, "the shelf is thin");
   for (const p of shelf.picks) {
@@ -235,7 +244,7 @@ await check("the homepage Best Buy carousel is sale items only (one sale rule)",
 /* ---------------- storefront ---------------- */
 const STORES = JSON.parse(/var STORES = (\{.*\});/.exec(tienda)[1]);
 const sliceDir = `${SLICES_DIR}/bestbuy/`;
-const sIndex = JSON.parse(read(sliceDir + "index.json"));
+const sIndex = existsSync(ROOT + sliceDir + "index.json") ? JSON.parse(read(sliceDir + "index.json")) : null;
 
 await check("tienda.html registers a themed, sliced Best Buy storefront", () => {
   const s = STORES.bestbuy;
@@ -257,7 +266,7 @@ await check("tienda.html registers a themed, sliced Best Buy storefront", () => 
   assert.match(bundle, /const THIN_STOREFRONTS = new Set\(\['bestbuy'(, '[a-z]+')*\]\);/);
 });
 
-await check("storefront rails: Ofertas first (sale only), Más vendidos second, departments after", () => {
+await launchOnly("storefront rails: Ofertas first (sale only), Más vendidos second, departments after", () => {
   const keys = sIndex.rails.map((r) => r.key);
   assert.equal(keys[0], "ofertas");
   assert.equal(sIndex.rails[0].title, "Ofertas de Best Buy");
@@ -274,7 +283,7 @@ await check("storefront rails: Ofertas first (sale only), Más vendidos second, 
   for (const c of r.head.slice(0, 4)) assert.ok(c.price < 1000, `premium ${c.name} leads Ofertas`);
 });
 
-await check("storefront slices are current and phone-sized", () => {
+await launchOnly("storefront slices are current and phone-sized", () => {
   const { files } = buildStore("bestbuy");
   const committed = readdirSync(ROOT + sliceDir + "rails").map((f) => "rails/" + f).concat(["index.json"]);
   assert.deepEqual(committed.sort(), Object.keys(files).sort(), "slice files differ from a fresh build");
@@ -304,7 +313,7 @@ await check("every Best Buy record opens on producto.html through the shards", (
 });
 
 /* ---------------- search, Ofertas, comparison ---------------- */
-await check("search covers Best Buy with the same row fields every store carries", () => {
+await launchOnly("search covers Best Buy with the same row fields every store carries", () => {
   const idx = JSON.parse(read("assets/search/catalog-index.json"));
   const ri = idx.fields.indexOf("retailer");
   const rows = idx.rows.filter((r) => r[ri] === "bestbuy");
@@ -315,20 +324,20 @@ await check("search covers Best Buy with the same row fields every store carries
   assert.match(read("scripts/build-search-index.mjs"), /"bestbuy-catalog\.json"/);
 });
 
-await check("Ofertas carries Best Buy deals (feed and slices)", () => {
+await launchOnly("Ofertas carries Best Buy deals (feed and slices)", () => {
   const d = JSON.parse(read("assets/ofertas/deals.json"));
   const s = d.stores.find((x) => x.key === "bestbuy");
   assert.ok(s && s.n > 500, "Best Buy missing from the Ofertas slices");
   assert.ok(existsSync(ROOT + "assets/ofertas/slices/bestbuy.discount.json"));
 });
 
-await check("the assistant knows Best Buy is stocked", async () => {
+await launchOnly("the assistant knows Best Buy is stocked", async () => {
   const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
   assert.ok(K.STORE_KNOWLEDGE.bestbuy && !K.NOT_STOCKED.bestbuy);
   assert.equal(K.STORE_KNOWLEDGE.bestbuy.product_count, 2889);
 });
 
-await check("no emoji in the Best Buy surfaces", () => {
+await launchOnly("no emoji in the Best Buy surfaces", () => {
   const rx = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/u;
   const block = home.slice(home.indexOf("<!-- BEST BUY BANNER + CAROUSEL (2026-10-19"), home.indexOf('<section aria-label="Aria Auto"'));
   assert.doesNotMatch(block, rx);
@@ -337,8 +346,26 @@ await check("no emoji in the Best Buy surfaces", () => {
   assert.doesNotMatch(read(sliceDir + "index.json"), rx);
 });
 
+/* ---------------- off sale (#443) ---------------- */
+await check("off sale: no Best Buy banner, tile, shelf, storefront, search row, deal, price or assistant entry; the data stays", async () => {
+  if (!BB_OFF) return "skip";
+  assert.ok(items.length === 2889, "the Best Buy catalogue was not retained");
+  assert.ok(!home.includes('data-store-rail="bestbuy"'), "the homepage still carries the Best Buy banner");
+  assert.ok(!existsSync(ROOT + "assets/home/shelves/store-bestbuy.json"), "a Best Buy home shelf");
+  assert.ok(!existsSync(ROOT + sliceDir + "index.json") && !existsSync(ROOT + `${FN_DIR}/bestbuy.json`), "Best Buy storefront slices");
+  const idx = JSON.parse(read("assets/search/catalog-index.json"));
+  const ri = idx.fields.indexOf("retailer");
+  assert.equal(idx.rows.filter((r) => r[ri] === "bestbuy").length, 0, "Best Buy rows in search");
+  assert.ok(!JSON.parse(read("assets/ofertas/deals.json")).stores.some((x) => x.key === "bestbuy"), "Best Buy in Ofertas");
+  assert.ok(!existsSync(ROOT + "assets/ofertas/slices/bestbuy.discount.json"), "a Best Buy Ofertas slice");
+  assert.equal(JSON.parse(read("ofertas-feed.json")).items.filter((i) => i.retailer === "bestbuy").length, 0, "Best Buy deals in the feed");
+  const K = await import(ROOT + "netlify/functions/_store-knowledge.js");
+  assert.ok(!K.STORE_KNOWLEDGE.bestbuy, "the assistant still describes Best Buy");
+  assert.equal(K.getStoreInfo("best buy").off_sale, true);
+});
+
 /* ---------------- no catalogue on the critical path ---------------- */
-await check("the storefront and homepage fetch no catalogue (headless)", async () => {
+await launchOnly("the storefront and homepage fetch no catalogue (headless)", async () => {
   const exe = process.env.PLAYWRIGHT_CHROMIUM || (existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : null);
   let chromium;
   try { ({ chromium } = await import("playwright")); }

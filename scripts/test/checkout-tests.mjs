@@ -61,14 +61,15 @@ await check("the function bundle ships the price index", () => {
   assert.match(readFileSync(ROOT + "netlify.toml", "utf8"), /included_files = \[[^\]]*"price-index\.json"/);
 });
 
-/* A real product, priced the way its card is. */
-const kohls = JSON.parse(readFileSync(ROOT + "kohls-catalog.json", "utf8"));
+/* A real product, priced the way its card is. Zumiez, a live lane
+   (Kohl's, the old fixture, is off sale since #443). */
+const zumiez = JSON.parse(readFileSync(ROOT + "zumiez-catalog.json", "utf8"));
 let product = null;
-for (const b of Object.values(kohls.retailers.kohls.departments)) {
+for (const b of Object.values(zumiez.retailers.zumiez.departments)) {
   for (const it of (Array.isArray(b) ? b : b.items || [])) {
     const title = it.title || it.name;
-    const p = index.prices[M.productIdFor("kohls", title)];
-    if (p && p[0] > 15 && p[0] < 60) { product = { retailer: "kohls", title, priceUsd: p[0], dutiableUsd: p[1], weightKg: 0.4, qty: 1 }; break; }
+    const p = index.prices[M.productIdFor("zumiez", title)];
+    if (p && p[0] > 15 && p[0] < 60) { product = { retailer: "zumiez", title, priceUsd: p[0], dutiableUsd: p[1], weightKg: 0.4, qty: 1 }; break; }
   }
   if (product) break;
 }
@@ -77,7 +78,7 @@ for (const b of Object.values(kohls.retailers.kohls.departments)) {
    THE RULES.
    ------------------------------------------------------------------ */
 await check("a line at its card price is kept; a rewritten price is not", () => {
-  assert.ok(product, "no Kohl's product in the index");
+  assert.ok(product, "no Zumiez product in the index");
   const ok = M.repriceCart([product], index.prices);
   assert.equal(ok.lines[0].priceUsd, product.priceUsd);
   assert.equal(ok.lines[0].priceVerified, true);

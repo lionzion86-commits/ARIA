@@ -39,6 +39,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, headOf, batchOf, batchCount, fnRow, labelsOf } from "../netlify/functions/_department-core.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
@@ -196,6 +197,7 @@ export function loadAllItems(root = ROOT) {
     try { data = JSON.parse(readFileSync(join(root, f), "utf8")); } catch { continue; }
     if (!data || !data.retailers) continue;
     for (const rk of Object.keys(data.retailers)) {
+      if (isOffSaleRetailer(rk)) continue;   /* /off-sale.js */
       const buckets = (data.retailers[rk] || {}).departments || {};
       for (const bk of Object.keys(buckets)) {
         const items = (buckets[bk] || {}).items || [];

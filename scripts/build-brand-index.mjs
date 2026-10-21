@@ -32,6 +32,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_FILE, brandKeyOf, titleWords, filterByBrand, headOf, fnRow } from "../netlify/functions/_brand-core.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -112,6 +113,7 @@ export function loadAllItems(root = ROOT) {
             const onSale = AriaSale.isOnSale(it);
             const orig = onSale ? Number(AriaSale.originalPrice(it)) : 0;
             const retailer = String(it.retailer || rkey || "");
+            if (isOffSaleRetailer(retailer) || isOffSaleRetailer(rkey)) continue;   /* /off-sale.js */
             const p = {
               name: String(name), brand: String(it.brand || ""), brandKey: brandKeyOf(it.brand || ""),
               price, orig, image: String(img || ""), url: String(it.url || it.link || ""), retailer,
