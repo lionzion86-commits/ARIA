@@ -539,7 +539,7 @@ await check("Aria Auto lists its sources without touching the Tiendas grid", asy
       .filter((id) => id !== "autozone")
       .filter((id) => Object.keys(RETAILERS).includes(id) && !RETAILERS[id].retired),
     tiendaTiles: document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length,
-    listedStores: Object.values(RETAILERS).filter((x) => !x.retired).length,
+    listedStores: Object.values(RETAILERS).filter((x) => !x.retired && !x.pendingCatalog).length,
   }));
   eq(r.sources.join(","), "autozone:live,rockauto:pending", "the source list comes from the registry");
   if (!/RockAuto/.test(r.pendingBlock)) throw new Error("the pending source has no block of its own");
@@ -660,7 +660,7 @@ await check("the three beauty stores render their real logo, unfiltered", async 
      pinning a number would have blocked every store the shop signs. */
   const grid = await page.evaluate(() => ({
     rendered: document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length,
-    listed: Object.values(RETAILERS).filter((x) => !x.retired).length,
+    listed: Object.values(RETAILERS).filter((x) => !x.retired && !x.pendingCatalog).length,
   }));
   eq(grid.rendered, grid.listed, "every listed store gets a tile");
   if (grid.rendered < 8) throw new Error(`Tiendas is down to ${grid.rendered} stores`);

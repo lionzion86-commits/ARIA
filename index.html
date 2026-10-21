@@ -2434,6 +2434,18 @@ window.doSearch = function(which){
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="mStoreRail-finishline" data-store-rail-row="finishline" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+    <!-- STORE RAIL: DSW (#443) -- phone. Hidden until DSW's catalogue lands: the
+         bundle unhides [data-pending-catalog] only once the registry row drops
+         pendingCatalog. No logo file yet (TODO(dsw-logo)): DSW's name on black. -->
+    <section aria-label="DSW" data-store-rail="dsw" data-pending-catalog="dsw" hidden class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">DSW</span>
+        <button onclick="openStore('dsw')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-dsw" data-store-rail-row="dsw" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
     <section aria-label="Zumiez" data-store-rail="zumiez" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -2957,6 +2969,20 @@ window.doSearch = function(which){
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="dStoreRail-finishline" data-store-rail-row="finishline" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: DSW (#443) -- desktop. Hidden until DSW's catalogue lands: the
+         bundle unhides [data-pending-catalog] only once the registry row drops
+         pendingCatalog. No logo file yet (TODO(dsw-logo)): DSW's name on black. -->
+    <section aria-label="DSW" data-store-rail="dsw" data-pending-catalog="dsw" hidden class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+      <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">DSW</span>
+        <button onclick="openStore('dsw')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="dStoreRail-dsw" data-store-rail-row="dsw" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <section aria-label="Zumiez" data-store-rail="zumiez" class="ariaNavyBand relative overflow-hidden storeRailCompact">
@@ -4471,6 +4497,20 @@ window.doSearch = function(which){
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
       <div id="tStoreRail-finishline" data-store-rail-row="finishline" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: DSW (#443) -- tablet. Hidden until DSW's catalogue lands: the
+         bundle unhides [data-pending-catalog] only once the registry row drops
+         pendingCatalog. No logo file yet (TODO(dsw-logo)): DSW's name on black. -->
+    <section aria-label="DSW" data-store-rail="dsw" data-pending-catalog="dsw" hidden class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+      <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">DSW</span>
+        <button onclick="openStore('dsw')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="tStoreRail-dsw" data-store-rail-row="dsw" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
 <section aria-label="Zumiez" data-store-rail="zumiez" class="ariaNavyBand relative overflow-hidden">
@@ -6409,7 +6449,7 @@ window.doSearch = function(which){
 </div>
 
 <script src="/off-sale.js"></script>
-<script src="/build/app-a68817e95946cd5c.js"></script>
+<script src="/build/app-3713550877c79d13.js"></script>
 
 
 
