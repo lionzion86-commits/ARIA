@@ -14,6 +14,7 @@
    number from 1 to 50 (got 500)" is worth more than a zod union dump.
    ============================================================ */
 import { freightForWeight, pricePen, discountPct } from "./pricing.mjs";
+import { isOffSaleRetailer } from "../off-sale.js";
 
 /* ---------- validation ---------- */
 
@@ -95,7 +96,7 @@ export const TOOL_DEFINITIONS = [
         query: { type: "string", description: "What the shopper is looking for. Spanish or English; misspellings are tolerated." },
         category: { type: "string", description: "Narrow to a department, e.g. \"clothing\", \"shoes\", \"beauty\"." },
         brand: { type: "string", description: "Narrow to a brand, e.g. \"Nike\"." },
-        store: { type: "string", description: "Narrow to one US store, e.g. \"walmart\", \"macys\"." },
+        store: { type: "string", description: "Narrow to one US store, e.g. \"walmart\", \"sephora\"." },
         max_price_usd: { type: "number", description: "Only products at or below this USD price." },
         on_sale_only: { type: "boolean", description: "Only products currently discounted." },
         limit: { type: "integer", description: "How many products to return (1-50, default 20).", minimum: 1, maximum: 50 },
@@ -204,8 +205,13 @@ export function searchProducts(args, ctx) {
     products: out,
     /* Said plainly rather than left for the agent to infer from a short
        list — Muse will otherwise tell a shopper we have nothing. */
+    /* A store taken off sale (#443, /off-sale.js) is named as such, so
+       the agent drops the store filter instead of telling the shopper
+       the product does not exist. */
     note: out.length === 0
-      ? "No products matched. Try fewer filters or a broader query."
+      ? (store && isOffSaleRetailer(store.toLowerCase().replace(/[^a-z0-9]+/g, ""))
+        ? `Aria no longer sells from "${store}". Search again without the store filter to see the same kind of product from the stores Aria sells from.`
+        : "No products matched. Try fewer filters or a broader query.")
       : undefined,
   };
 }
