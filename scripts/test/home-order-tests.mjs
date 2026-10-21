@@ -12,7 +12,11 @@
    On an iPhone-sized page (390x844) served from this checkout:
 
    - the search input's top is inside the first viewport and above the
-     Key Club block;
+     Key Club block, and its bottom is at or above 600px (iPhone Safari
+     shows ~660-750px of page under its bars);
+   - nothing (greeting bubble, orb) covers the search box or its photo
+     and search buttons at first paint or once the greeting is due; on a
+     390x664 screen the greeting waits for a scroll;
    - none of the selection framing is left anywhere in index.html's text
      (hidden views and modals included), nor in the Key Club, cart and
      checkout copy the bundle and checkout.html paint;
@@ -108,9 +112,30 @@ async function openPhone() {
   return { ctx, page };
 }
 
+/* What sits on the search box: elementFromPoint at the input's centre
+   and at the centre of each of its buttons (photo, search) must land in
+   the search box itself, not on the greeting bubble or the orb. */
+async function searchCovers(page) {
+  return page.evaluate(() => {
+    const input = document.getElementById("searchInput");
+    const wrap = input.parentElement;
+    const pts = [input, ...wrap.querySelectorAll("button")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { what: el.getAttribute("aria-label") || el.id, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    return pts.map((p) => {
+      const hit = document.elementFromPoint(p.x, p.y);
+      if (hit && wrap.contains(hit)) return null;
+      const owner = hit ? (hit.id || (hit.closest("[id]") || {}).id || "") : "";
+      return `${p.what} at ${Math.round(p.x)},${Math.round(p.y)} is covered by ${hit ? hit.tagName + "#" + owner : "nothing"}`;
+    }).filter(Boolean);
+  });
+}
+
 try {
   const { ctx, page } = await openPhone();
   await page.goto(BASE + "/index.html", { waitUntil: "load" });
+  const coveredAtPaint = await searchCovers(page);
   await page.waitForTimeout(500);
   const layout = await page.evaluate(() => {
     const top = (el) => el ? Math.round(el.getBoundingClientRect().top + scrollY) : null;
@@ -118,16 +143,45 @@ try {
     const input = document.getElementById("searchInput");
     const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { w: r.width, h: r.height }; };
     return {
-      inputTop: top(input), inputBox: box(input), clubTop: top(club), clubBox: box(club),
+      inputTop: top(input), inputBottom: input ? Math.round(input.getBoundingClientRect().bottom + scrollY) : null,
+      inputBox: box(input), clubTop: top(club), clubBox: box(club),
       clubText: club ? club.textContent.replace(/\s+/g, " ").trim() : "",
       clubHeadline: club && club.querySelector("h2") ? club.querySelector("h2").textContent.replace(/\s+/g, " ").trim() : "",
       viewport: innerHeight,
     };
   });
+  console.log(`    ..   390x844: search input top ${layout.inputTop}px, bottom ${layout.inputBottom}px; Key Club at ${layout.clubTop}px`);
 
   await check("the search input's top is inside the first viewport at 390x844", () => {
     assert.ok(layout.inputBox && layout.inputBox.w > 200 && layout.inputBox.h > 30, `the search input is not drawn: ${JSON.stringify(layout.inputBox)}`);
     assert.ok(layout.inputTop >= 0 && layout.inputTop < layout.viewport, `the search input starts at ${layout.inputTop}px, past the ${layout.viewport}px first screen`);
+  });
+
+  await check("the search input ends at or above 600px (iPhone Safari shows ~660-750px under its bars)", () => {
+    assert.ok(layout.inputBottom <= 600, `the search input ends at ${layout.inputBottom}px`);
+  });
+
+  await check("nothing covers the search box or its buttons at first paint, nor once the greeting is due", async () => {
+    assert.deepEqual(coveredAtPaint, [], "at first paint");
+    await page.waitForTimeout(3000); /* the greeting bubble's turn comes at 2.2s */
+    assert.deepEqual(await searchCovers(page), [], "after the greeting's 2.2s");
+  });
+
+  await check("on a Safari-sized screen (390x664) the greeting waits until the search box is scrolled clear", async () => {
+    const short = await browser.newContext({ ...PHONE, viewport: { width: 390, height: 664 } });
+    const sp = await short.newPage();
+    await sp.route((url) => url.host !== `127.0.0.1:${PORT}`, (r) => r.abort());
+    await sp.goto(BASE + "/index.html", { waitUntil: "load" });
+    await sp.waitForTimeout(3000);
+    const covered = await searchCovers(sp);
+    const bottom = await sp.evaluate(() => document.getElementById("searchInput").getBoundingClientRect().bottom);
+    await sp.evaluate(() => window.scrollTo(0, 700));
+    await sp.waitForTimeout(600);
+    const shownAfterScroll = await sp.evaluate(() => !document.getElementById("assistantGreetBubble").classList.contains("hidden"));
+    await short.close();
+    assert.ok(bottom <= 664, `the search input ends at ${Math.round(bottom)}px on a 664px screen`);
+    assert.deepEqual(covered, []);
+    assert.ok(shownAfterScroll, "the greeting never appeared once the search box was scrolled clear");
   });
 
   await check("the search sits above the Key Club block", () => {

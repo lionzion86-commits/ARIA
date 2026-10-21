@@ -1759,6 +1759,16 @@ window.doSearch = function(which){
   .ariaLatinoBannerImg,.ariaLatinoBannerScrim,.ariaLatinoBannerHair{
     border-radius:0 !important;
   }
+  /* SEARCH FIRST ON A PHONE (2026-10-21, #443). The phone's logo + search
+     band opens the page, and iPhone Safari shows only ~660-750px of it
+     under its bars: the band is compacted so the search box ends near
+     500px. Phone copy only (the band is lg:hidden); desktop's is its own. */
+  [data-search-band]>.relative{padding-top:20px;padding-bottom:28px}
+  [data-search-band] .mb-6{margin-bottom:12px}
+  [data-search-band] img{width:110px}
+  [data-search-band] h1{font-size:28px}
+  [data-search-band] h1+p{font-size:13.5px;margin-top:10px}
+  [data-search-band] .mt-8{margin-top:16px}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -1900,7 +1910,7 @@ window.doSearch = function(which){
        Rails, cards and prices are untouched.
        scripts/test/home-order-tests.mjs holds this in place.
        ============================================================ -->
-  <div class="relative overflow-hidden lg:hidden" aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+  <div class="relative overflow-hidden lg:hidden" data-search-band aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
     <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
       <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
       <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
@@ -6842,7 +6852,7 @@ window.doSearch = function(which){
   </div>
 </div>
 
-<script src="/build/app-c3944ffd09b624fe.js"></script>
+<script src="/build/app-4e63a40607482b6e.js"></script>
 
 
 

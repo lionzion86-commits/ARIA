@@ -29629,11 +29629,26 @@ function hideGreetBubble(){
 (function initAssistantGreetBubble(){
   const bubble = document.getElementById('assistantGreetBubble');
   if (!bubble) return;
-  setTimeout(() => {
-    const onHome = document.querySelector('.view.active')?.id === 'homeView';
-    if (!assistantOpen && onHome) bubble.classList.remove('hidden');
-  }, 2200);
-  setTimeout(hideGreetBubble, 12000);
+  /* SEARCH FIRST (2026-10-21, #443): the home page opens on the search
+     box, and the bubble must never sit on it or its photo/search buttons.
+     If it would, it waits until a scroll moves the box out from under it. */
+  const coversSearch = () => {
+    const input = document.getElementById(window.innerWidth >= 1024 ? 'searchInputD' : 'searchInput');
+    const a = input && input.parentElement.getBoundingClientRect();
+    const b = bubble.getBoundingClientRect();
+    return !!a && a.width > 0 && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  };
+  let ready = false, shown = false;
+  const tryShow = () => {
+    if (!ready || shown || assistantOpen || document.querySelector('.view.active')?.id !== 'homeView') return;
+    bubble.classList.remove('hidden');
+    if (coversSearch()) { bubble.classList.add('hidden'); return; }
+    shown = true;
+    window.removeEventListener('scroll', tryShow);
+    setTimeout(hideGreetBubble, 9800);
+  };
+  window.addEventListener('scroll', tryShow, { passive: true });
+  setTimeout(() => { ready = true; tryShow(); }, 2200);
 })();
 
 function addAssistantMessage(role, text, audioBase64, opts){
