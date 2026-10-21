@@ -19,6 +19,7 @@ import jpeg from "jpeg-js";
 import { PNG } from "pngjs";
 import { existsSync, writeFileSync, statSync, mkdirSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { isOffSaleRetailer } from "../../scripts/lib/off-sale.js";
 
 const DIM = 512;
 const TOPK = 24;
@@ -221,7 +222,8 @@ const BRAND_SIM = 0.84;
 const FLOOR_SIM = 0.6;
 
 export function tierResults(scored) {
-  const pool = scored.filter((x) => x.s >= FLOOR_SIM).slice(0, CANDIDATES);
+  /* Off-sale stores (/off-sale.js) stay in the embeddings, never in an answer. */
+  const pool = scored.filter((x) => x.s >= FLOOR_SIM && !isOffSaleRetailer(x.meta && x.meta.retailer)).slice(0, CANDIDATES);
   // The photo's brand family: the brand with the strongest cluster
   // near the top (most members in the top 12, best sim breaks ties).
   const clusters = new Map();

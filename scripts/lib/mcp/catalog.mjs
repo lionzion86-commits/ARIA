@@ -18,6 +18,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { loadPageEngine } from "./page-slices.mjs";
+import { isOffSaleRetailer } from "../off-sale.js";
 import { repoFile } from "./paths.mjs";
 
 /* The site's own list, read out of index.html so a catalogue added to
@@ -86,6 +87,8 @@ export function buildCatalog(opts = {}) {
     stats.files++;
 
     for (const [retailer, bucket] of Object.entries(env?.retailers || {})) {
+      /* Off sale (/off-sale.js): retained on disk, never offered or priced. */
+      if (isOffSaleRetailer(retailer)) { stats.offSale = (stats.offSale || 0) + 1; continue; }
       for (const [department, entry] of Object.entries(bucket?.departments || {})) {
         if (ship.RESTRICTED_DEPARTMENTS.has(String(department).toLowerCase())) { stats.restricted++; continue; }
         const raws = Array.isArray(entry) ? entry : (entry?.items || []);

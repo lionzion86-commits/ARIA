@@ -46,6 +46,8 @@
    labelled, but it is kept OUT of the live search fan-out — a search that
    calls an unconfigured retailer just returns a failed store card, which
    looks like a bug to a shopper and is one to us. */
+import { isOffSaleRetailer } from "./off-sale.js";
+
 export const RETAILERS = {
   /* BEST BUY (2026-10-19, Issue #413) — launched. Catalogue, no actor
      (the Macy's pattern): bestbuy-catalog.json, 2,889 sold-by-Best-Buy
@@ -1289,9 +1291,11 @@ export function retailersByTier() {
     .filter((t) => t.stores.length);
 }
 
-/** Every row, in display order, minus the retired ones. */
+/** Every row, in display order, minus the retired ones and the stores
+    taken off sale (/off-sale.js: their rows and catalogues stay, no
+    storefront, tile or search leg does). */
 export function activeRetailers() {
-  return Object.values(RETAILERS).filter((r) => !r.retired);
+  return Object.values(RETAILERS).filter((r) => !r.retired && !isOffSaleRetailer(r.key));
 }
 
 /** Stores the live cross-store product search actually fans out to. */
@@ -1355,7 +1359,7 @@ export function isBeautyRetailer(key) {
  */
 export function storeDoorFor(key) {
   const r = retailerFor(key);
-  if (!r || r.retired) return null;
+  if (!r || r.retired || isOffSaleRetailer(r.key)) return null;
   return { key: r.key, action: r.kind === "auto" ? "auto" : "store" };
 }
 

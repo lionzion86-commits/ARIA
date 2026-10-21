@@ -20,6 +20,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { liftDeclarations, pageHtml } from "../lib/page-lift.mjs";
 import { ofertasDeptTotal } from "../lib/ofertas-dept-total.mjs";
+import { isOffSaleRetailer } from "../lib/off-sale.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -64,6 +65,8 @@ check("the feed holds every store's catalogue markdowns, not the four scraped st
 check("per store, the feed counts exactly what the store's page and sale rule count (Target, CCS, New Balance, ...)", () => {
   const off = [];
   for (const s of Object.keys(T.STORES)) {
+    /* Off sale (#443, /off-sale.js): its markdowns are never deals. */
+    if (isOffSaleRetailer(s)) { if (feed.counts[s]) off.push(`${s}: off sale, feed ${feed.counts[s]}`); continue; }
     const want = storeSales(s), got = feed.counts[s] || 0;
     /* normalizeLiveItem may still refuse a row (an absurd price); never more than a handful. */
     if (got > want || want - got > Math.max(3, want * 0.01)) off.push(`${s}: feed ${got}, store ${want}`);

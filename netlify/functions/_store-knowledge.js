@@ -84,7 +84,12 @@ export const NOT_STOCKED = {
    field that earns its keep: it is what stops Aria sending someone
    to PacSun for a skateboard.
    ============================================================ */
-export const STORE_KNOWLEDGE = {
+import { isOffSaleRetailer } from "../../scripts/lib/off-sale.js";
+
+/* Every store's measured entry, off-sale ones included (the data is
+   retained, #443). Aria reads STORE_KNOWLEDGE below, which leaves out
+   the stores on /off-sale.js. */
+const STORE_KNOWLEDGE_ALL = {
 
   /* ---------- DE TODO / DEPARTAMENTALES ---------- */
   walmart: {
@@ -654,7 +659,7 @@ export const STORE_KNOWLEDGE = {
     price_range: "premium", median_usd: 148.0, product_count: 734,
     catalog_depth: "734 productos, 211 en oferta", top_categories: ["diseñadores latinos"],
     best_for: "pijamas de buena tela, de regalo",
-    not_for: "lencería de marca reconocible — para eso Victoria's Secret", peru_note: null,
+    not_for: "lencería básica de todos los días", peru_note: null,
   },
   capittana: {
     name: "Capittana", vibe: "playa peruana",
@@ -1060,6 +1065,12 @@ export const STORE_KNOWLEDGE = {
   },
 };
 
+/* OFF SALE (#443): a store Aria no longer sells from is never
+   described, recommended or offered. Named by a shopper, it answers
+   `off_sale` (see getStoreInfo). */
+export const STORE_KNOWLEDGE = Object.fromEntries(
+  Object.entries(STORE_KNOWLEDGE_ALL).filter(([k]) => !isOffSaleRetailer(k)));
+
 /* ============================================================
    NAMING A STORE OUT LOUD.
 
@@ -1120,10 +1131,15 @@ export function getStoreInfo(storeName){
   const q = fold(storeName);
   if (!q) return { unavailable: "dime el nombre de la tienda y te cuento qué tiene" };
   const direct = q.replace(/ /g, "");
-  const key = STORE_ALIASES[q] || (STORE_KNOWLEDGE[direct] ? direct : null)
-    || (STORE_KNOWLEDGE[q] ? q : null)
-    || Object.keys(STORE_KNOWLEDGE).find(k => fold(STORE_KNOWLEDGE[k].name) === q)
+  const key = STORE_ALIASES[q] || (STORE_KNOWLEDGE_ALL[direct] ? direct : null)
+    || (STORE_KNOWLEDGE_ALL[q] ? q : null)
+    || Object.keys(STORE_KNOWLEDGE_ALL).find(k => fold(STORE_KNOWLEDGE_ALL[k].name) === q)
     || null;
+  if (key && isOffSaleRetailer(key)) {
+    return { store: key, name: (STORE_KNOWLEDGE_ALL[key] && STORE_KNOWLEDGE_ALL[key].name) || key, off_sale: true,
+             note: "Ya no vendemos productos de esa tienda. No la recomiendes, no ofrezcas sus productos " +
+                   "ni lleves al cliente a ella: dilo en una oración y ofrece una tienda que sí tenga lo que busca." };
+  }
   if (key && STORE_KNOWLEDGE[key]) {
     return { store: key, ...STORE_KNOWLEDGE[key],
              recommendable: STORE_KNOWLEDGE[key].product_count >= MIN_RECOMMEND_DEPTH };
@@ -1173,7 +1189,7 @@ export const AMBIGUOUS_INTERESTS = {
     branches: {
       maquillaje: ["sephora", "ulta", "target"],
       skincare: ["yesstyle", "sephora", "ulta"],
-      perfumes: ["sephora", "victoriassecret"],
+      perfumes: ["sephora"],
     },
   },
   "artes marciales": {

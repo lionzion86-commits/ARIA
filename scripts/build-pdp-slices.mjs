@@ -50,6 +50,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { liftDeclarations } from "./lib/page-lift.mjs";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PDP_DIR = "assets/pdp";
@@ -290,7 +291,8 @@ export function laneRails(P, rows) {
 }
 export function ofertasRows(P, root = ROOT) {
   const feed = JSON.parse(readFileSync(root + "ofertas-feed-lite.json", "utf8"));
-  return (feed && feed.items || []).map((row) => P.normalizeItem(row, row.retailer)).filter(Boolean);
+  return (feed && feed.items || []).filter((row) => !isOffSaleRetailer(row && row.retailer))
+    .map((row) => P.normalizeItem(row, row.retailer)).filter(Boolean);
 }
 
 /* ---------- main ---------- */
@@ -351,6 +353,9 @@ function main() {
   const masked = new Set(rows.map((it) => P.relKey(it)));
   for (const [retailer, list] of [...byRetailer].sort((a, b) => a[0].localeCompare(b[0]))) {
     if (!/^[a-z0-9_-]+$/i.test(retailer)) continue;
+    /* An off-sale store (/off-sale.js) keeps its records in the shards
+       (the product page says it is no longer available) but no rail. */
+    if (isOffSaleRetailer(retailer)) continue;
     const dir = `${PDP_DIR}/rails/${retailer.toLowerCase()}`;
     mkdirSync(join(ROOT, dir), { recursive: true });
     for (const [name, slice] of storeRails(P, list, masked)) {

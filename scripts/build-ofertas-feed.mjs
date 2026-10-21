@@ -29,6 +29,7 @@ import { fileURLToPath } from "node:url";
 import { extname, join, normalize } from "node:path";
 import { liftDeclarations } from "./lib/page-lift.mjs";
 import { ofertasDeptTotal } from "./lib/ofertas-dept-total.mjs";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const LITE_N = 800;
@@ -66,6 +67,8 @@ async function readCatalogue(f){
 }
 const perStore = {};
 for (const [storeKey, meta] of Object.entries(T.STORES)){
+  /* Off sale (/off-sale.js): its markdowns are not deals Aria can sell. */
+  if (isOffSaleRetailer(storeKey)) continue;
   const raws = [];
   for (const f of meta.files || []){
     const j = await readCatalogue(f);
