@@ -880,14 +880,7 @@ function watchPhotos(root){
 /* THE TRUST STRIP (Danny, #413 addendum 2): why Aria buys at this store.
    It sells the store's credibility as Aria's buying-side confidence; the
    promises to the shopper stay Aria's own. */
-var TRUST = {
-  bestbuy: '<section class="trust" aria-label="Por qué compramos en Best Buy">' +
-    '<h2>Por qué compramos en Best Buy</h2><ul>' +
-    '<li><b>Precio igualado, no inflado</b>Best Buy es conocida por igualar los precios de las grandes tiendas de Estados Unidos. Comprar ahí nos da un precio de partida en el que confiamos.</li>' +
-    '<li><b>Una tienda que responde por lo que vende</b>Su reputación en devoluciones y garantía es de las mejores del país. Si algo llega mal, sabemos con quién resolverlo.</li>' +
-    '<li><b>Tu compra la respalda Aria</b>El precio que ves es el final, en soles. Tu pedido se rige por <a href="devoluciones.html">la política de devoluciones de Aria</a>.</li>' +
-    '</ul></section>'
-};
+var TRUST = {};  /* the only entry was Best Buy's; Best Buy is off sale (#457) */
 var slRailsByKey = {};
 function slRailHTML(r){
   slRailsByKey[r.key] = r;
