@@ -118,6 +118,10 @@ await check("Ofertas: no off-sale card in the feeds, deals.json or any slice; no
   }
   const raw = read("assets/ofertas/deals.json");
   for (const k of KEYS) assert(!raw.includes(`"${k}"`), "deals.json mentions " + k);
+  /* The carousel page's first file (#443): the lead rail, the store rails, Más tiendas. */
+  const rails = readJson("assets/ofertas/rails.json");
+  for (const it of rails.lead.concat(rails.more)) assert(!isOff(it.store), `rails.json card from an off-sale store: ${it.store}`);
+  for (const s of rails.stores.concat(rails.moreStores)) assert(!isOff(s.key), "rails.json store rail " + s.key);
   return `${slices.length} slices`;
 });
 

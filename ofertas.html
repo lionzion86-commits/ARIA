@@ -5,19 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ofertas — Aria Shop</title>
 <meta name="description" content="Las mayores ofertas de tiendas de Estados Unidos, con entrega en Perú. Precio honesto, sin letra pequeña.">
+<!-- The first paint's one file, asked for before the parser reaches the script. -->
+<link rel="preload" href="/assets/ofertas/rails.json" as="fetch" crossorigin="anonymous">
 <style>
 /* Standalone Ofertas page. Zero dependencies: no frameworks, no CDN.
    If this stylesheet failed to load, the page would still render as
-   plain readable HTML — never blank. */
+   plain readable HTML — never blank.
+   CAROUSELS, LIKE THE HOMEPAGE (#443, Danny): the flat grid is gone.
+   The page is the homepage's Ofertas section, page-long: the azure
+   band, the gold OFERTAS mark, and horizontal rails of the homepage's
+   navy deal cards (railCardHTML, dark: 172px wide, white photo square,
+   gold discount badge, soles first). */
 :root{
   --navy:#0A1F44; --blue:#2F5FEE; --blue-dark:#1E46C4; --sky:#EAF0FF;
   --paper:#FAFAF8; --green:#1C8A4B; --green-bg:#EAF7EF; --line:#E4E6EC;
-  --amber:#B8860B; --yellow:#FFC72C; --red:#D92D20;
+  --amber:#B8860B; --gold:#F4C463; --red:#D92D20;
+  --azure:#2159E8; --azure-deep:#1A4BD2; --tile:#1a2744; --dim:#AFBBD6;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  background:var(--paper);color:var(--navy);-webkit-font-smoothing:antialiased}
+  background:var(--azure-deep);color:var(--navy);-webkit-font-smoothing:antialiased}
 /* ---- header ---- */
 .site-header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.94);
   backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
@@ -32,81 +40,99 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .main-nav a.active{opacity:1;color:var(--blue);font-weight:800}
 @media(min-width:1024px){.main-nav{display:flex}}
 .header-meta{font-size:13px;color:#6b7280;white-space:nowrap}
-/* ---- page ---- */
-.page{max-width:1240px;margin:0 auto;padding:20px 12px 64px}
-@media(min-width:640px){.page{padding:28px 20px 72px}}
-.eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--blue);background:var(--sky);
-  padding:6px 12px;border-radius:999px;margin-bottom:12px}
-h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;letter-spacing:-.02em}
-.page-sub{margin:0 0 16px;color:#4b5563;font-size:15px;max-width:640px}
-/* Yellow is for sale badges only: the freshness line is green. */
-.fresh{display:inline-block;font-size:12.5px;font-weight:700;color:var(--green);
-  background:var(--green-bg);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+/* ---- page: the homepage's azure band ---- */
+.page{background:linear-gradient(160deg,var(--azure) 0%,var(--azure-deep) 55%,var(--azure) 100%);
+  color:#fff;padding:0 0 40px;min-height:70vh}
+.intro{max-width:1240px;margin:0 auto;padding:18px 20px 6px}
+@media(min-width:1024px){.intro{padding:26px 32px 8px}}
+h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;letter-spacing:-.02em;
+  line-height:1;color:var(--gold);text-transform:uppercase}
+.page-sub{margin:0 0 12px;color:#DCE4F7;font-size:14px;max-width:640px;line-height:1.45}
+/* The freshness line is green on white: never gold. */
+.fresh{display:inline-block;font-size:12px;font-weight:700;color:var(--green);
+  background:var(--green-bg);padding:4px 11px;border-radius:999px}
 .fresh[hidden]{display:none}
-/* ---- toolbar ---- */
-.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center}
-.toolbar input[type="search"]{flex:1 1 220px;min-width:0;padding:11px 14px;font-size:14px;
-  border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--navy)}
-.toolbar select{padding:11px 12px;font-size:14px;border:1px solid var(--line);
-  border-radius:12px;background:#fff;color:var(--navy)}
-.count-line{font-size:13.5px;color:#4b5563;margin:0 0 14px;min-height:1.4em}
-/* ---- grid & cards ---- */
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:16px}}
-@media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
-.card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;
-  display:flex;flex-direction:column;position:relative;min-width:0}
+.fresh-row{min-height:26px;margin-bottom:12px}
+/* ---- search ---- */
+.toolbar{display:flex;gap:10px;margin-bottom:10px;align-items:center}
+.toolbar input[type="search"]{flex:1 1 auto;min-width:0;padding:11px 14px;font-size:15px;
+  border:1px solid rgba(255,255,255,.35);border-radius:12px;background:#fff;color:var(--navy)}
+.count-line{font-size:13px;color:var(--dim);margin:0;min-height:1.4em}
+/* ---- rails ---- */
+.rail-sec{position:relative;max-width:1240px;margin:0 auto;padding-top:14px}
+.hair{position:absolute;left:0;right:0;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(244,196,99,.55),transparent)}
+.rail-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:0 20px 10px}
+@media(min-width:1024px){.rail-head{padding:0 32px 12px}}
+.rail-title{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em;color:#fff;
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-meta{font-size:12px;font-weight:600;color:var(--dim);white-space:nowrap;flex-shrink:0}
+.rail{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  padding:0 20px 20px;scroll-padding-left:20px;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  overscroll-behavior-x:contain}
+.rail::-webkit-scrollbar{display:none}
+@media(hover:none){.rail{scroll-snap-type:x proximity}}
+@media(min-width:1024px){.rail{gap:16px;padding:0 32px 26px;scroll-padding-left:32px}}
+/* ---- the homepage's deal card ---- */
+.card{flex:0 0 172px;width:172px;scroll-snap-align:start;background:var(--tile);border-radius:16px;
+  overflow:hidden;text-decoration:none;color:#fff;display:flex;flex-direction:column;position:relative;min-width:0}
 /* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409): the photo
    box is a square from the first paint -- aspect-ratio, plus the
    padding-top square for Safari releases older than 15 -- and the
    text rows reserve their lines, empty or not. */
-.card-img{position:relative;width:100%;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
+.card-img{position:relative;width:100%;aspect-ratio:1/1;background:#fff;overflow:hidden}
 @supports not (aspect-ratio:1/1){.card-img{height:0;padding-top:100%}}
-.card-img img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block}
-/* Yellow is for sale badges only. */
-.badge{position:absolute;top:8px;left:8px;background:var(--yellow);color:var(--navy);
-  font-size:12px;font-weight:800;padding:4px 9px;border-radius:999px;z-index:2}
-.store-tag{position:absolute;bottom:8px;left:8px;background:rgba(10,31,68,.85);color:#fff;
-  font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;z-index:2;max-width:calc(100% - 16px);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-body{padding:10px 12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
-.card-brand{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;
-  min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card-title{font-size:13.5px;font-weight:600;line-height:1.35;margin:0;min-height:36px;
+.card-img img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;padding:10px;display:block}
+/* Gold is for the sale badge and the OFERTAS mark, as on the homepage. */
+.badge{position:absolute;top:8px;left:8px;background:var(--gold);color:var(--navy);
+  font-size:13px;font-weight:800;padding:4px 8px;border-radius:999px;z-index:2}
+.card-body{padding:10px 12px 12px;display:flex;flex-direction:column;flex:1}
+.store-tag{align-self:flex-start;max-width:100%;background:#fff;color:var(--navy);font-size:11px;font-weight:800;
+  padding:3px 10px;border-radius:999px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:20px}
+.card-brand{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#fff;
+  min-height:13px;line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-title{font-size:12.5px;font-weight:700;line-height:1.35;margin:0 0 6px;min-height:34px;color:#fff;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* SOLES FIRST (#416): the price a shopper in Peru pays is the bold
    one, the was-price struck through beside it; dollars are the small
-   grey reference. */
-.card-prices{margin-top:auto;padding-top:8px;min-height:50px}
+   reference under them. */
+.card-prices{margin-top:auto;min-height:40px}
 .price-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.price{font-size:18px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
-.price-old{font-size:12.5px;color:#9aa1b2;text-decoration:line-through;font-variant-numeric:tabular-nums}
-.price-usd{font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;min-height:16px}
-/* Placeholder cards: the same boxes, grey bars where the words go. */
-.card.sk .card-img{background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);
+.price{font-size:15px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+.price-old{font-size:11.5px;color:var(--dim);text-decoration:line-through;font-variant-numeric:tabular-nums}
+.price-usd{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;min-height:15px;margin-top:2px}
+/* The rail's last tile: more of the same rail, drawn in place. */
+.more-tile{flex:0 0 128px;width:128px;scroll-snap-align:start;border-radius:16px;cursor:pointer;
+  background:rgba(255,255,255,.08);border:1px solid rgba(244,196,99,.45);color:#fff;font:inherit;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px}
+.more-tile b{font-size:13px;font-weight:800}
+.more-tile span{font-size:11.5px;color:var(--dim);margin-top:4px}
+.more-tile[disabled]{opacity:.7;cursor:default}
+/* Placeholder cards: the same boxes, soft bars where the words go. */
+.card.sk .card-img{background:linear-gradient(100deg,#e9edf6 40%,#f6f8fc 50%,#e9edf6 60%);
   background-size:200% 100%;animation:sh 1.4s infinite}
-.card.sk i{display:block;height:10px;border-radius:5px;background:#eef0f4;margin:3px 0}
+.card.sk i{display:block;height:10px;border-radius:5px;background:rgba(255,255,255,.14);margin:3px 0}
 .card.sk .card-title i:last-child{width:60%}
 .card.sk .card-brand i{width:40%}
-.card.sk .price i{height:16px;width:45%;margin-top:6px}
-.more-wrap{text-align:center;margin:22px 0 8px}
+.card.sk .price i{height:15px;width:55%;margin-top:6px}
+.rail-sec.sk-sec .rail-title i{display:inline-block;width:140px;height:14px;border-radius:7px;background:rgba(255,255,255,.18)}
+.more-wrap{text-align:center;margin:8px 0 8px;padding:0 20px}
 .more-wrap .btn[disabled]{opacity:.6;cursor:default}
-.more-note{display:block;font-size:12.5px;color:#6b7280;margin-top:8px}
-.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;-webkit-overflow-scrolling:touch}
-.rail .card{flex:0 0 42%;max-width:200px;scroll-snap-align:start}
+.more-note{display:block;font-size:12.5px;color:var(--dim);margin-top:8px}
 /* ---- states ---- */
-.state{border:1px dashed var(--line);border-radius:16px;background:#fff;
-  padding:48px 24px;text-align:center;color:#4b5563;font-size:15px}
-.state h2{color:var(--navy);font-size:20px;margin:0 0 8px}
+.state{max-width:640px;margin:16px auto;border:1px dashed rgba(255,255,255,.4);border-radius:16px;
+  background:rgba(255,255,255,.06);padding:40px 24px;text-align:center;color:#DCE4F7;font-size:15px}
+.state h2{color:#fff;font-size:20px;margin:0 0 8px}
 .state p{margin:0 0 18px}
-.btn{display:inline-block;background:var(--blue);color:#fff;border:0;cursor:pointer;
+.wrap-pad{padding:0 20px}
+.btn{display:inline-block;background:#fff;color:var(--navy);border:0;cursor:pointer;
   font-size:15px;font-weight:800;padding:12px 26px;border-radius:12px}
-.btn:hover{background:var(--blue-dark)}
+.btn:hover{background:var(--sky)}
+[hidden]{display:none!important}
 @keyframes sh{to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.card.sk .card-img{animation:none}}
 /* ---- footer ---- */
-.site-footer{border-top:1px solid var(--line);background:#fff;margin-top:24px}
+.site-footer{border-top:1px solid var(--line);background:#fff}
 .footer-inner{max-width:1240px;margin:0 auto;padding:28px 12px;font-size:13px;color:#6b7280;
   display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between}
 .site-footer a{color:var(--blue);text-decoration:none}
@@ -133,36 +159,37 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
 </header>
 
 <main class="page">
-  <span class="eyebrow">Ofertas reales</span>
-  <h1 class="page-title">Ofertas</h1>
-  <p class="page-sub">Descuentos verificados de tiendas de Estados Unidos, con el precio honesto que pagas puesto en Perú.</p>
-  <div style="min-height:46px"><span class="fresh" id="freshBadge" hidden></span></div>
-
-  <div class="toolbar">
-    <input type="search" id="q" placeholder="Busca en las ofertas…" aria-label="Buscar en las ofertas" autocomplete="off">
-    <select id="sort" aria-label="Ordenar">
-      <option value="discount">Mayor descuento</option>
-      <option value="priceAsc">Menor precio</option>
-      <option value="priceDesc">Mayor precio</option>
-    </select>
-    <select id="store" aria-label="Filtrar por tienda">
-      <option value="">Todas las tiendas</option>
-    </select>
+  <div class="intro">
+    <h1 class="page-title">Ofertas</h1>
+    <p class="page-sub">Descuentos verificados de tiendas de Estados Unidos, con el precio honesto que pagas puesto en Perú.</p>
+    <div class="fresh-row"><span class="fresh" id="freshBadge" hidden></span></div>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Busca en las ofertas…" aria-label="Buscar en las ofertas" autocomplete="off">
+    </div>
+    <p class="count-line" id="countLine"></p>
   </div>
-  <p class="count-line" id="countLine"></p>
 
   <div id="content">
-    <div class="grid" id="skeleton" aria-hidden="true">
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-      <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
-    </div>
+    <section class="rail-sec sk-sec" aria-hidden="true">
+      <div class="hair"></div>
+      <div class="rail-head"><h2 class="rail-title"><i></i></h2></div>
+      <div class="rail">
+        <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+        <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+        <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      </div>
+    </section>
+    <section class="rail-sec sk-sec" aria-hidden="true">
+      <div class="hair"></div>
+      <div class="rail-head"><h2 class="rail-title"><i></i></h2></div>
+      <div class="rail">
+        <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+        <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+        <div class="card sk"><div class="card-img"></div><div class="card-body"><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="card-prices"><div class="price"><i></i></div></div></div></div>
+      </div>
+    </section>
   </div>
+  <div id="results" hidden></div>
   <noscript>
     <div class="state"><h2>Activa JavaScript</h2>
     <p>Las ofertas se cargan con JavaScript. Actívalo para verlas.</p></div>
@@ -176,10 +203,14 @@ h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;lett
   </div>
 </footer>
 
+<!-- OFF SALE (#443): the one list. The builders already leave these
+     stores out of every file this page reads; the page checks again. -->
+<script src="/off-sale.js"></script>
 <script>
 /* Standalone Ofertas — bulletproof by design.
    - Static HTML shell renders immediately (never blank).
-   - Data loads from 3 independent sources, best-first.
+   - The first paint is one small file (rails.json); every store rail
+     fills from its own slice as it nears the screen.
    - Every step is guarded; total failure shows an error panel with retry. */
 (function(){
 'use strict';
@@ -281,27 +312,30 @@ var RETAILER_LABELS = {
   'zumiez': 'Zumiez',
 };
 
+
 /* ---------- config ---------- */
-/* THIN OFERTAS (2026-10-19, #409, the Mountain Test). This page used to
-   download ofertas-feed-lite.json -- 800 full feed items with sizes,
-   descriptions and weights, ~100KB gzipped -- and draw every deal at
-   once (~750 cards), and it only ever saw the four stores at the head
-   of the feed. Now:
-     - the first 48 deals of the chosen store and sort are a static
-       slice (assets/ofertas/slices/<store|all>.<sort>.json, ~5KB
-       gzipped), built by scripts/build-ofertas-slices.mjs;
-     - "Mostrar más" and the search box ask /.netlify/functions/ofertas
-       for 48 more (the same order: netlify/functions/_ofertas-core.js);
-     - a photo loads when its card is about to be seen (watchPhotos).
+/* THIN OFERTAS (2026-10-19, #409, the Mountain Test), NOW CAROUSELS
+   (#443, Danny: the flat grid is not acceptable -- the same carousel
+   experience as the homepage Ofertas section). What the phone asks for:
+     - rails.json (~5KB gzipped, scripts/build-ofertas-slices.mjs): the
+       lead rail's 20 cards in the homepage rail's own order, the store
+       rails in sales-led order, the few cards of the smallest stores;
+     - one store's first 48 deals (assets/ofertas/slices/<store>.
+       discount.json, ~5KB) only when that store's rail nears the screen;
+     - the next 48 of a rail, or of a search, from
+       /.netlify/functions/ofertas (netlify/functions/_ofertas-core.js);
+     - a photo only when its card is about to be seen (watchPhotos).
    Every URL is same-origin: the page works on a deploy preview too. */
 var BASE = '';
 var SRC = {
+  rails: BASE + '/assets/ofertas/rails.json',
   slice: BASE + '/assets/ofertas/slices/',
   fn:    BASE + '/.netlify/functions/ofertas',
   fx:    BASE + '/.netlify/functions/exchange-rate'
 };
 var TIMEOUT_MS = 20000;      // per-request timeout: never hang forever
-var PAGE_SIZE = 48;          // cards drawn per step, never more
+var PAGE_SIZE = 48;          // cards per request, never more
+var RAIL_STEP = 20;          // cards a rail draws at a time (the homepage rail's 20)
 
 /* ---------- tiny helpers ---------- */
 /* Sized retailer derivatives (2026-10-16) -- the same rules the app
@@ -503,29 +537,35 @@ function pageRate(){
 function fmtPen(n){ return 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtUsd(n){ return 'US$ ' + Number(n).toFixed(2); }
 
+/* ---------- off sale (#443) ---------- */
+function onSale(store){
+  try { return !(window.AriaOffSale && window.AriaOffSale.isOffSaleRetailer(store)); }
+  catch (e) { return true; }
+}
+
 /* ---------- state ---------- */
 var S = {
-  store: '', sort: 'discount', q: '',
-  page: 0, pages: 0, total: 0,
-  shown: {},            // ids drawn, so a page boundary never repeats a card
-  stores: null,         // [{key, label, n}] from the first slice
+  q: '',
+  index: null,          // rails.json (or the fallback built from a slice)
+  rails: [],            // the default view's rails
+  lead: {},             // ids in the lead rail: store rails show them last
   generatedAt: null,
-  view: 0,              // bumps on every filter change; late answers are dropped
-  loadingMore: false
+  view: 0,              // bumps on every search; late answers are dropped
+  search: null          // { page, pages, total, rails: {store: rail} }
 };
 
-function sliceUrl(){
-  return SRC.slice + encodeURIComponent(S.store || 'all') + '.' + S.sort + '.json';
+function fnUrl(store, q, page){
+  return SRC.fn + '?store=' + encodeURIComponent(store || '') + '&sort=discount' +
+    '&q=' + encodeURIComponent(q || '') + '&page=' + page;
 }
-function fnUrl(page){
-  return SRC.fn + '?store=' + encodeURIComponent(S.store) + '&sort=' + encodeURIComponent(S.sort) +
-    '&q=' + encodeURIComponent(S.q) + '&page=' + page;
+function sliceUrl(store){
+  return SRC.slice + encodeURIComponent(store || 'all') + '.discount.json';
 }
-/* Page 1 without a search is a static file; if it is missing the
-   function answers the same page. A search is always the function. */
-function fetchFirstPage(){
-  if (S.q) return fetchJson(fnUrl(1));
-  return fetchJson(sliceUrl()).then(null, function(){ return fetchJson(fnUrl(1)); });
+/* Page 1 of a store is a static file; if it is missing the function
+   answers the same page. Later pages are always the function. */
+function fetchPage(store, page){
+  if (page === 1) return fetchJson(sliceUrl(store)).then(null, function(){ return fetchJson(fnUrl(store, '', 1)); });
+  return fetchJson(fnUrl(store, '', page));
 }
 
 /* ---------- photos load when their card is about to be seen ----------
@@ -585,46 +625,26 @@ function cardHTML(c){
     (c.store ? '&tienda=' + encodeURIComponent(c.store) : '');
   /* src/srcset parked in data- until the card is about to be seen. */
   var img = c.image
-    ? '<img ' + cardImgAttrs(c.image, '(max-width: 640px) 46vw, 300px').replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
-      ' alt="' + esc(title) + '" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
+    ? '<img ' + cardImgAttrs(c.image, '172px').replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
+      ' alt="' + esc(title) + '" width="560" height="560" decoding="async" draggable="false" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
     : '';
-  return '<a class="card" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '">' +
+  return '<a class="card" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '" data-store="' + esc(c.store || '') + '">' +
     '<div class="card-img">' +
       (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img +
-      '<span class="store-tag">' + esc(storeName(c.store)) + '</span>' +
     '</div>' +
     '<div class="card-body">' +
+      '<span class="store-tag">' + esc(storeName(c.store)) + '</span>' +
       '<div class="card-brand">' + (c.brand ? esc(c.brand) : '&nbsp;') + '</div>' +
       '<h3 class="card-title">' + esc(title) + '</h3>' +
       '<div class="card-prices">' + priceHTML(c) + '</div>' +
     '</div></a>';
 }
 function storeName(key){
-  if (S.stores){
-    for (var i = 0; i < S.stores.length; i++) if (S.stores[i].key === key && S.stores[i].label) return S.stores[i].label;
-  }
+  var list = S.index ? (S.index.stores || []).concat(S.index.moreStores || []) : [];
+  for (var i = 0; i < list.length; i++) if (list[i].key === key && list[i].label) return list[i].label;
   return storeLabel(key);
 }
-function cardsHTML(items){
-  var html = '';
-  for (var i = 0; i < items.length; i++){
-    var c = items[i];
-    if (!c || (c.id && S.shown[c.id])) continue;
-    if (c.id) S.shown[c.id] = 1;
-    try { html += cardHTML(c); } catch (e) { /* one bad card never kills the grid */ }
-  }
-  return html;
-}
-function moreHTML(){
-  if (S.page >= S.pages) return '';
-  var seen = Math.min(S.page * PAGE_SIZE, S.total);
-  return '<div class="more-wrap" id="moreWrap"><button class="btn" id="moreBtn" type="button">Mostrar más</button>' +
-    '<span class="more-note" id="moreNote">Viendo ' + seen.toLocaleString('es-PE') + ' de ' + S.total.toLocaleString('es-PE') + '</span></div>';
-}
-function renderCount(){
-  var cnt = $('countLine');
-  if (cnt) cnt.textContent = S.total ? S.total.toLocaleString('es-PE') + (S.total === 1 ? ' oferta real' : ' ofertas reales') : '';
-}
+function num(n){ return Number(n || 0).toLocaleString('es-PE'); }
 function renderFresh(){
   var b = $('freshBadge');
   if (!b) return;
@@ -632,49 +652,185 @@ function renderFresh(){
   if (rel){ b.hidden = false; b.textContent = 'Actualizado ' + rel; }
   else { b.hidden = true; }
 }
-function renderStoreFilter(){
-  var sel = $('store');
-  if (!sel || !S.stores) return;
-  var keys = S.stores.slice().sort(function(a, b){
-    return storeName(a.key).localeCompare(storeName(b.key), 'es');
-  });
-  var html = '<option value="">Todas las tiendas</option>';
-  for (var j = 0; j < keys.length; j++){
-    var k = keys[j].key;
-    html += '<option value="' + esc(k) + '"' + (k === S.store ? ' selected' : '') + '>' + esc(storeName(k)) + '</option>';
-  }
-  sel.innerHTML = html;
+function setCount(text){ var c = $('countLine'); if (c) c.textContent = text || ''; }
+
+/* ---------- one rail ----------
+   A rail is a section: its title, its meta line, a horizontal track
+   of cards and, while it has more, a last tile that draws the next
+   RAIL_STEP in place. buf holds cards fetched but not yet drawn. */
+function railSectionHTML(r){
+  return '<section class="rail-sec" data-rail="' + esc(r.key) + '" aria-label="' + esc(r.title) + '">' +
+    '<div class="hair"></div>' +
+    '<div class="rail-head"><h2 class="rail-title">' + esc(r.title) + '</h2>' +
+    (r.meta ? '<span class="rail-meta">' + esc(r.meta) + '</span>' : '') + '</div>' +
+    '<div class="rail">' + (r.filled ? '' : skeletons(3)) + '</div></section>';
 }
-/* The first page of a view: the grid, then "Mostrar más". */
-function renderView(data){
+function makeRail(o){
+  return { key: o.key, store: o.store || '', title: o.title, meta: o.meta || '', total: o.total || 0,
+    buf: (o.items || []).slice(), drawn: {}, count: 0, page: o.page || 0, pages: o.pages == null ? 1 : o.pages,
+    filled: !!o.items, paged: o.paged !== false, busy: false, el: null };
+}
+function railHasMore(r){ return r.buf.length > 0 || (r.paged && r.page < r.pages); }
+function moreTileHTML(r){
+  var left = r.total ? Math.max(0, r.total - r.count) : 0;
+  return '<button class="more-tile" type="button" data-more="' + esc(r.key) + '"><b>Ver más</b>' +
+    (left ? '<span>' + num(left) + ' ofertas más</span>' : '') + '</button>';
+}
+/* Draw up to RAIL_STEP undrawn cards from the buffer into the track. */
+function drawFromBuf(r){
+  var track = r.el && r.el.querySelector('.rail');
+  if (!track) return;
+  var html = '', n = 0;
+  while (r.buf.length && n < RAIL_STEP){
+    var c = r.buf.shift();
+    if (!c || !onSale(c.store) || (c.id && r.drawn[c.id])) continue;
+    if (c.id) r.drawn[c.id] = 1;
+    try { html += cardHTML(c); n++; r.count++; } catch (e) { /* one bad card never kills the rail */ }
+  }
+  var sk = track.querySelectorAll('.card.sk, .more-tile');
+  for (var i = 0; i < sk.length; i++) sk[i].parentNode.removeChild(sk[i]);
+  track.insertAdjacentHTML('beforeend', html + (railHasMore(r) ? moreTileHTML(r) : ''));
+  if (!track.querySelector('.card') && r.store){
+    /* Nothing left to show (every card filtered): the rail steps aside. */
+    r.el.hidden = true;
+  }
+  watchPhotos(track);
+  watchTile(r);
+}
+/* The next page of the rail's store, into the buffer. */
+function fetchMore(r){
+  if (r.busy || !r.paged || r.page >= r.pages) return Promise.resolve(false);
+  r.busy = true;
+  var next = r.page + 1;
+  return fetchPage(r.store, next).then(function(data){
+    r.busy = false;
+    data = data || {};
+    r.page = data.page || next;
+    r.pages = data.pages || r.page;
+    if (data.total) r.total = r.store ? data.total : r.total;
+    var items = (data.items || []).filter(function(c){ return c && !(c.id && r.drawn[c.id]); });
+    /* A store rail never opens on the lead rail's cards: they ride last
+       on its first page (deprioritised, never dropped). */
+    if (r.store && next === 1){
+      var fresh = [], seenInLead = [];
+      items.forEach(function(c){ (S.lead[c.id] ? seenInLead : fresh).push(c); });
+      items = fresh.concat(seenInLead);
+    }
+    r.buf = r.buf.concat(items);
+    return true;
+  }, function(e){ r.busy = false; throw e; });
+}
+/* "Ver más": draw what is buffered, fetching first when it runs short. */
+function railMore(r){
+  if (r.busy) return;
+  var tile = r.el && r.el.querySelector('.more-tile');
+  if (r.buf.length >= RAIL_STEP || !(r.paged && r.page < r.pages)){ drawFromBuf(r); return; }
+  if (tile){ tile.disabled = true; tile.innerHTML = '<b>Cargando…</b>'; }
+  fetchMore(r).then(function(){ drawFromBuf(r); }, function(){
+    if (tile){ tile.disabled = false; tile.innerHTML = '<b>Reintentar</b><span>No pudimos cargar más.</span>'; }
+  });
+}
+/* Swiping to the end of a rail draws more by itself; the tile is also a button. */
+var TILE_IO = null;
+function watchTile(r){
+  var tile = r.el && r.el.querySelector('.more-tile');
+  if (!tile || typeof IntersectionObserver !== 'function') return;
+  if (!TILE_IO) TILE_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      TILE_IO.unobserve(e.target);
+      var rail = railByKey(e.target.getAttribute('data-more'));
+      /* Only once the shopper has swiped: a short rail never runs on its own. */
+      if (!rail || !rail.el) return;
+      var track = rail.el.querySelector('.rail');
+      if (track.scrollLeft > 0){ railMore(rail); return; }
+      track.addEventListener('scroll', function again(){
+        track.removeEventListener('scroll', again);
+        watchTile(rail);
+      }, { passive: true });
+    });
+  }, { threshold: 0.5 });
+  TILE_IO.observe(tile);
+}
+function railByKey(k){
+  for (var i = 0; i < S.rails.length; i++) if (S.rails[i].key === k) return S.rails[i];
+  if (S.search) for (var s in S.search.rails) if (S.search.rails[s].key === k) return S.search.rails[s];
+  return null;
+}
+/* A store rail fills when it nears the screen: one slice, ~5KB. */
+function fillRail(r){
+  if (r.filled || r.busy) return;
+  fetchMore(r).then(function(){ r.filled = true; drawFromBuf(r); }, function(){
+    var track = r.el && r.el.querySelector('.rail');
+    if (track) track.innerHTML = '<div class="state" style="margin:0;padding:18px;flex:1 0 100%"><p style="margin:0 0 10px">No pudimos cargar esta tienda.</p>' +
+      '<button class="btn" type="button" data-retry-rail="' + esc(r.key) + '">Reintentar</button></div>';
+  });
+}
+var RAIL_IO = null;
+function watchRails(){
+  var pending = S.rails.filter(function(r){ return !r.filled; });
+  if (typeof IntersectionObserver !== 'function'){ pending.slice(0, 6).forEach(fillRail); return; }
+  if (!RAIL_IO) RAIL_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      RAIL_IO.unobserve(e.target);
+      var r = railByKey(e.target.getAttribute('data-rail'));
+      if (r) fillRail(r);
+    });
+  }, { rootMargin: '600px 0px' });
+  pending.forEach(function(r){ if (r.el) RAIL_IO.observe(r.el); });
+}
+
+/* ---------- the default view: the carousels ---------- */
+function railsFromIndex(ix){
+  var rails = [];
+  var lead = (ix.lead || []).filter(function(c){ return c && onSale(c.store); });
+  S.lead = {};
+  lead.forEach(function(c){ if (c.id) S.lead[c.id] = 1; });
+  if (lead.length){
+    var mix = makeRail({ key: 'lead', store: '', title: 'Las mejores ofertas', items: lead, page: 0, pages: 1, paged: true });
+    mix.lead = true;
+    rails.push(mix);
+  }
+  (ix.stores || []).forEach(function(s){
+    if (!s || !s.key || !onSale(s.key)) return;
+    rails.push(makeRail({ key: s.key, store: s.key, title: s.label || storeLabel(s.key), total: s.n,
+      meta: num(s.n) + (s.n === 1 ? ' oferta' : ' ofertas') + (s.top ? ' · hasta -' + s.top + '%' : '') }));
+  });
+  var more = (ix.more || []).filter(function(c){ return c && onSale(c.store); });
+  if (more.length) rails.push(makeRail({ key: 'more', store: '', title: 'Más tiendas', items: more, paged: false,
+    meta: num(more.length) + (more.length === 1 ? ' oferta' : ' ofertas') }));
+  return rails;
+}
+function renderRails(ix){
   var host = $('content');
   if (!host) return;
-  S.shown = {};
-  S.page = data.page || 1;
-  S.pages = data.pages || 1;
-  S.total = data.total || 0;
-  if (data.generatedAt) S.generatedAt = data.generatedAt;
-  if (!S.stores && Array.isArray(data.stores)){ S.stores = data.stores; renderStoreFilter(); }
-  renderCount();
+  S.index = ix;
+  if (ix.generatedAt) S.generatedAt = ix.generatedAt;
   renderFresh();
-  if (!S.total){
-    host.innerHTML = (S.q || S.store
-      ? '<div class="state"><h2>Sin resultados</h2><p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>'
-      : '<div class="state"><h2>Estamos actualizando las ofertas</h2>' +
-        '<p>Vuelve en unos minutos — las revisamos varias veces al día.</p>' +
-        '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>');
+  S.rails = railsFromIndex(ix);
+  if (!S.rails.length){
+    host.innerHTML = '<div class="state"><h2>Estamos actualizando las ofertas</h2>' +
+      '<p>Vuelve en unos minutos — las revisamos varias veces al día.</p>' +
+      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
     bindRetry();
-    watchPhotos(host);
     return;
   }
-  host.innerHTML = '<div class="grid" id="grid">' + cardsHTML(data.items || []) + '</div>' + moreHTML();
-  bindMore();
-  watchPhotos(host);
+  var total = 0, stores = 0;
+  (ix.stores || []).concat(ix.moreStores || []).forEach(function(s){ if (s && onSale(s.key)){ total += s.n || 0; stores++; } });
+  if (!total) total = ix.total || 0;
+  if (!S.q) setCount(total ? num(total) + ' ofertas reales en ' + num(stores) + (stores === 1 ? ' tienda' : ' tiendas') : '');
+  host.innerHTML = S.rails.map(railSectionHTML).join('');
+  S.rails.forEach(function(r){ r.el = host.querySelector('[data-rail="' + r.key + '"]'); });
+  S.rails.forEach(function(r){ if (r.filled) drawFromBuf(r); });
+  watchRails();
 }
-function renderLoading(){
-  var host = $('content');
-  if (!host) return;
-  host.innerHTML = '<div class="grid" aria-hidden="true">' + skeletons(8) + '</div>';
+/* rails.json missing: the all-stores slice still makes a lead rail,
+   and its store list still makes the store rails (largest first). */
+function indexFromSlice(data){
+  var stores = (data.stores || []).slice().sort(function(a, b){ return (b.n || 0) - (a.n || 0); });
+  return { generatedAt: data.generatedAt, total: data.total, lead: (data.items || []).slice(0, RAIL_STEP),
+    stores: stores, more: [], moreStores: [] };
 }
 function renderError(msg, allowRetry){
   var host = $('content');
@@ -686,7 +842,96 @@ function renderError(msg, allowRetry){
 }
 function bindRetry(){
   var b = $('retryBtn');
-  if (b) b.addEventListener('click', function(){ openView(); });
+  if (b) b.addEventListener('click', function(){ openRails(); });
+}
+function openRails(){
+  Promise.all([
+    fetchJson(SRC.rails).then(null, function(){ return fetchJson(sliceUrl('')).then(indexFromSlice); }),
+    pageRate()
+  ]).then(function(r){
+    try { renderRails(r[0] || {}); }
+    catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
+  }, function(){
+    renderError('No pudimos cargar las ofertas. Revisa tu conexión e inténtalo de nuevo.', true);
+  });
+}
+
+/* ---------- a search: the same rails, one per store ----------
+   The function's answer comes biggest discount first; each store's
+   cards gather in that store's rail, the stores in the order their
+   best deal came. "Mostrar más" brings the next 48 into the rails. */
+function searchRail(store){
+  var sr = S.search.rails[store];
+  if (sr) return sr;
+  sr = makeRail({ key: 'q-' + store, store: store, title: storeName(store), items: [], paged: false });
+  sr.filled = true;
+  S.search.rails[store] = sr;
+  var list = $('qRails');
+  list.insertAdjacentHTML('beforeend', railSectionHTML(sr));
+  sr.el = list.lastElementChild;
+  return sr;
+}
+function drawSearch(items){
+  var touched = {};
+  (items || []).forEach(function(c){
+    if (!c || !c.store || !onSale(c.store)) return;
+    var sr = searchRail(c.store);
+    sr.buf.push(c);
+    touched[c.store] = sr;
+  });
+  for (var k in touched){ var sr = touched[k]; while (sr.buf.length) drawFromBuf(sr); sr.count = sr.el.querySelectorAll('.card').length;
+    var meta = sr.el.querySelector('.rail-meta'), txt = num(sr.count) + (sr.count === 1 ? ' resultado' : ' resultados');
+    if (meta) meta.textContent = txt; else sr.el.querySelector('.rail-head').insertAdjacentHTML('beforeend', '<span class="rail-meta">' + txt + '</span>'); }
+}
+function searchMoreHTML(){
+  var s = S.search;
+  if (!s || s.page >= s.pages) return '';
+  var seen = Math.min(s.page * PAGE_SIZE, s.total);
+  return '<div class="more-wrap" id="moreWrap"><button class="btn" id="moreBtn" type="button">Mostrar más</button>' +
+    '<span class="more-note" id="moreNote">Viendo ' + num(seen) + ' de ' + num(s.total) + '</span></div>';
+}
+function placeMore(){
+  var old = $('moreWrap');
+  if (old) old.parentNode.removeChild(old);
+  var host = $('results');
+  host.insertAdjacentHTML('beforeend', searchMoreHTML());
+  bindMore();
+}
+function openSearch(){
+  var my = ++S.view;
+  var content = $('content'), host = $('results');
+  if (!S.q){
+    host.hidden = true; host.innerHTML = '';
+    content.hidden = false;
+    S.search = null;
+    if (S.index) renderRails(S.index);
+    return;
+  }
+  content.hidden = true;
+  host.hidden = false;
+  host.innerHTML = '<section class="rail-sec" aria-hidden="true"><div class="hair"></div><div class="rail-head"><h2 class="rail-title">Buscando…</h2></div>' +
+    '<div class="rail">' + skeletons(3) + '</div></section>';
+  setCount('');
+  Promise.all([fetchJson(fnUrl('', S.q, 1)), pageRate()]).then(function(r){
+    if (my !== S.view) return;
+    var data = r[0] || {};
+    S.search = { page: data.page || 1, pages: data.pages || 1, total: data.total || 0, rails: {} };
+    if (!S.search.total){
+      host.innerHTML = '<div class="state"><h2>Sin resultados</h2><p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>';
+      setCount('');
+      return;
+    }
+    setCount(num(S.search.total) + (S.search.total === 1 ? ' oferta' : ' ofertas') + ' para «' + S.q + '»');
+    host.innerHTML = '<div id="qRails"></div>';
+    drawSearch(data.items);
+    placeMore();
+  }, function(){
+    if (my !== S.view) return;
+    host.innerHTML = '<div class="state"><h2>Algo salió mal</h2><p>No pudimos buscar en las ofertas. Revisa tu conexión e inténtalo de nuevo.</p>' +
+      '<button class="btn" id="retryQ" type="button">Reintentar</button></div>';
+    var b = $('retryQ');
+    if (b) b.addEventListener('click', openSearch);
+  });
 }
 function bindMore(){
   var b = $('moreBtn');
@@ -705,93 +950,62 @@ function bindMore(){
 /* One request per next page, shared by the prefetch and the tap. */
 var NEXT = null;   // { key, promise }
 function nextPage(){
-  var key = S.view + ':' + (S.page + 1);
+  var key = S.view + ':' + (S.search.page + 1);
   if (NEXT && NEXT.key === key) return NEXT.promise;
-  var p = fetchJson(fnUrl(S.page + 1));
+  var p = fetchJson(fnUrl('', S.q, S.search.page + 1));
   NEXT = { key: key, promise: p };
   p.then(null, function(){ if (NEXT && NEXT.key === key) NEXT = null; });
   return p;
 }
-
-/* ---------- a view: store x sort x search ---------- */
-function openView(){
-  var my = ++S.view;
-  S.loadingMore = false;
-  if (my > 1) renderLoading();   // the first view shows the HTML placeholders
-  Promise.all([fetchFirstPage(), pageRate()]).then(function(r){
-    if (my !== S.view) return;
-    try { renderView(r[0] || {}); }
-    catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
-  }, function(){
-    if (my !== S.view) return;
-    renderError('No pudimos cargar las ofertas. Revisa tu conexión e inténtalo de nuevo.', true);
-  });
-}
-
-/* "Mostrar más": the next 48, drawn under the ones already there. */
 function showMore(){
-  if (S.loadingMore || S.page >= S.pages) return;
-  var my = S.view, grid = $('grid'), btn = $('moreBtn');
-  if (!grid) return;
-  S.loadingMore = true;
+  var s = S.search, my = S.view, btn = $('moreBtn');
+  if (!s || s.loading || s.page >= s.pages) return;
+  s.loading = true;
   if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
-  grid.insertAdjacentHTML('beforeend', skeletons(4));
-  function dropSkeletons(){
-    var sk = grid.querySelectorAll('.card.sk');
-    for (var i = 0; i < sk.length; i++) sk[i].parentNode.removeChild(sk[i]);
-  }
   Promise.all([nextPage(), pageRate()]).then(function(r){
     if (my !== S.view) return;
-    S.loadingMore = false;
-    dropSkeletons();
+    s.loading = false;
     var data = r[0] || {};
-    S.page = data.page || S.page + 1;
-    S.pages = data.pages || S.pages;
-    grid.insertAdjacentHTML('beforeend', cardsHTML(data.items || []));
-    watchPhotos(grid);
-    var wrap = $('moreWrap');
-    if (wrap){
-      var html = moreHTML();
-      if (!html) wrap.parentNode.removeChild(wrap);
-      else { wrap.insertAdjacentHTML('afterend', html); wrap.parentNode.removeChild(wrap); bindMore(); }
-    }
+    s.page = data.page || s.page + 1;
+    s.pages = data.pages || s.pages;
+    drawSearch(data.items);
+    placeMore();
   }, function(){
     if (my !== S.view) return;
-    S.loadingMore = false;
-    dropSkeletons();
+    s.loading = false;
     if (btn){ btn.disabled = false; btn.textContent = 'Reintentar'; }
     var note = $('moreNote');
     if (note) note.textContent = 'No pudimos cargar más ofertas. Revisa tu conexión.';
   });
 }
 
-/* ONE SOURCE (2026-10-13, #386). The live scrape (sales-cache, 33 rows
-   from three stores in production) no longer sits beside the catalogue
-   feed: a store's count here is its count on its own page. */
-
 /* ---------- boot ---------- */
-function readUI(){
-  S.q = (($('q') || {}).value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
-  S.sort = (($('sort') || {}).value || 'discount');
-  S.store = (($('store') || {}).value || '');
-}
 function bindUI(){
-  var q = $('q'), s = $('sort'), st = $('store');
-  var t = null;
-  function change(){ var before = S.store + '|' + S.sort + '|' + S.q; readUI(); if (before !== S.store + '|' + S.sort + '|' + S.q) openView(); }
+  var q = $('q'), t = null;
   /* A search asks the server: wait until the typing pauses. */
   if (q) q.addEventListener('input', function(){
     if (t) clearTimeout(t);
-    t = setTimeout(function(){ try { change(); } catch (e) {} }, 400);
+    t = setTimeout(function(){
+      try {
+        var v = (q.value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+        if (v !== S.q){ S.q = v; openSearch(); }
+      } catch (e) {}
+    }, 400);
   });
-  if (s) s.addEventListener('change', function(){ try { change(); } catch (e) {} });
-  if (st) st.addEventListener('change', function(){ try { change(); } catch (e) {} });
+  /* One listener for every rail's tile and retry button. */
+  document.addEventListener('click', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('[data-more], [data-retry-rail]') : null;
+    if (!el) return;
+    var r = railByKey(el.getAttribute('data-more') || el.getAttribute('data-retry-rail'));
+    if (!r) return;
+    if (el.hasAttribute('data-retry-rail')){ r.el.querySelector('.rail').innerHTML = skeletons(3); fillRail(r); }
+    else railMore(r);
+  });
 }
 
 try {
   bindUI();
-  readUI();
-  openView();
+  openRails();
 } catch (e) {
   renderError('No pudimos iniciar la página de ofertas.', true);
 }

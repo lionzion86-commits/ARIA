@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
-import { build } from "../build-ofertas-slices.mjs";
+import { build, railsIndex, leadRail, RAILS_FILE, LEAD_N, LEAD_SPREAD, MAX_RUN, MIN_RAIL } from "../build-ofertas-slices.mjs";
 import { PAGE_SIZE, SORTS, FIELDS, unpackCard, selectDeals, pageOf, loadDeals } from "../../netlify/functions/_ofertas-core.js";
 import { handler } from "../../netlify/functions/ofertas.js";
 
@@ -169,10 +169,11 @@ await check("photos wait for the IntersectionObserver; no native lazy loader", (
 await check("cards hold their shape: square photo box with the old-Safari fallback, reserved rows, card placeholders", () => {
   assert.match(html, /\.card-img\{[^}]*aspect-ratio:1\/1/);
   assert.match(html, /@supports not \(aspect-ratio:1\/1\)\{\.card-img\{height:0;padding-top:100%\}\}/);
-  assert.match(html, /\.card-title\{[^}]*min-height:36px/);
-  assert.match(html, /\.card-prices\{[^}]*min-height:50px/);
+  assert.match(html, /\.card-title\{[^}]*min-height:34px/);
+  assert.match(html, /\.card-prices\{[^}]*min-height:40px/);
   const sk = (html.match(/<div class="card sk"><div class="card-img"><\/div>/g) || []).length;
   assert.ok(sk >= 6, "first paint has " + sk + " card placeholders");
+  assert.ok((html.match(/<section class="rail-sec sk-sec"/g) || []).length >= 2, "first paint is not placeholder rails");
 });
 
 await check("soles first, struck-through soles was-price, small grey dollars, shared rate key", () => {
@@ -184,18 +185,69 @@ await check("soles first, struck-through soles was-price, small grey dollars, sh
   assert.match(script, /fx:\s*BASE \+ '\/\.netlify\/functions\/exchange-rate'/);
 });
 
-await check("yellow is for sale badges only; no emojis; no link out to a retailer", () => {
+await check("gold is the homepage's: the sale badge, the OFERTAS mark, the rail hairline; no emojis; no link out to a retailer", () => {
   const css = noComments(html.slice(html.indexOf("<style>") + 7, html.indexOf("</style>")));
-  const yellowRules = css.split("}").filter((r) => /var\(--yellow\)|#FFC72C/i.test(r) && !/^\s*:root/.test(r));
-  assert.deepEqual(yellowRules.map((r) => r.trim().split("{")[0]), [".badge"], "yellow outside the sale badge");
+  const goldRules = css.split("}").filter((r) => /var\(--gold\)|#F4C463|rgba\(244,196,99/i.test(r) && !/^\s*:root/.test(r));
+  assert.deepEqual(goldRules.map((r) => r.trim().split("{")[0].replace(/^@media[^{]*\{/, "")).sort(),
+    [".badge", ".hair", ".more-tile", "h1.page-title"], "gold outside the badge, the mark and the rail furniture");
+  assert.ok(!/#FFC72C|var\(--yellow\)/i.test(css), "the old sale yellow is back");
   assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(html), "an emoji in the page");
   assert.match(script, /var href = 'producto\.html\?producto=' \+ encodeURIComponent\(title\)/);
   assert.ok(!/target="_blank"|window\.open/.test(script), "a link out");
 });
 
-await check("Mostrar más draws 48 more under the grid, prefetched as the button nears", () => {
+await check("rails.json is current and small: the lead rail, the store rails, the small stores", () => {
+  const raw = readFileSync(ROOT + RAILS_FILE);
+  const j = JSON.parse(raw);
+  assert.deepEqual(j, JSON.parse(JSON.stringify(railsIndex(fresh.cards, fresh.stores, fresh.generatedAt))), "stale: node scripts/build-ofertas-slices.mjs");
+  assert.ok(gzipSync(raw).length < 12 * 1024, `rails.json is ${gzipSync(raw).length} bytes gzipped`);
+  const allowed = new Set(FIELDS);
+  for (const it of j.lead.concat(j.more)) for (const k of Object.keys(it)) assert.ok(allowed.has(k), "rails.json card field " + k);
+  assert.equal(j.lead.length, LEAD_N);
+  assert.equal(j.stores.length + j.moreStores.length, fresh.stores.length, "a store has no rail and is not in Más tiendas");
+  assert.ok(j.stores.every((s) => s.n >= MIN_RAIL) && j.moreStores.every((s) => s.n < MIN_RAIL));
+  assert.equal(j.more.length, j.moreStores.reduce((a, s) => a + s.n, 0), "Más tiendas lost a card");
+});
+
+await check("the lead rail is the homepage's Ofertas rail: mix only, spread over stores, no store runs past the cap", () => {
+  const lead = leadRail(fresh.cards);
+  assert.ok(lead.every((c) => c.m === 1), "a card over the mix cap in the lead");
+  const first = lead.slice(0, LEAD_SPREAD).map((c) => c.store);
+  assert.equal(new Set(first).size, LEAD_SPREAD, "the first cards repeat a store: " + first.join(","));
+  let run = 0, prev = null, worst = 0;
+  for (const c of lead) { run = c.store === prev ? run + 1 : 1; prev = c.store; worst = Math.max(worst, run); }
+  assert.ok(worst <= MAX_RUN, `a ${worst}-card run from one store`);
+  /* The interleave and spread are the bundle's own (renderMobileDealsRail). */
+  const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]+\.js$/.test(f)), "utf8");
+  assert.match(bundle, /const OFERTAS_LEAD_BRANDS = \['victoriassecret', 'sephora', 'macys', 'gymshark', 'youngla'\];/, "the homepage's pull brands moved: update LEAD_BRANDS");
+  assert.match(bundle, /const OFERTAS_MAX_RUN = 3;/);
+  assert.match(bundle, /const MOBILE_RAIL_LEAD = 5;/);
+  assert.match(bundle, /const MOBILE_RAIL_DEALS = 20;/);
+});
+
+await check("store rails are sales-led: most deep markdowns first, then the deepest, then the most deals", () => {
+  const j = JSON.parse(readFileSync(ROOT + RAILS_FILE, "utf8"));
+  for (let i = 1; i < j.stores.length; i++) {
+    const a = j.stores[i - 1], b = j.stores[i];
+    assert.ok(a.deep > b.deep || (a.deep === b.deep && (a.top > b.top || (a.top === b.top && a.n >= b.n))), `${a.key} before ${b.key}`);
+  }
+});
+
+await check("the page is carousels: rails of homepage-size cards, one rail per store, no grid", () => {
+  assert.ok(!/\.grid\{/.test(html) && !/class="grid"/.test(html), "the flat grid is back");
+  assert.match(html, /\.rail\{[^}]*overflow-x:auto/);
+  assert.match(html, /\.card\{flex:0 0 172px;width:172px/, "the card is not the homepage's 172px rail card");
+  assert.match(script, /rails: BASE \+ '\/assets\/ofertas\/rails\.json'/);
+  assert.match(script, /var RAIL_STEP = 20;/);
+  assert.match(html, /<link rel="preload" href="\/assets\/ofertas\/rails\.json" as="fetch" crossorigin="anonymous">/);
+  assert.match(html, /<script src="\/off-sale\.js"><\/script>/, "the page does not check the off-sale list");
+  assert.match(script, /window\.AriaOffSale\.isOffSaleRetailer\(store\)/);
+  assert.match(script, /rootMargin: '600px 0px'/, "store rails do not wait until they near the screen");
+});
+
+await check("a search's Mostrar más brings 48 more into the store rails, prefetched as the button nears", () => {
   assert.match(script, /id="moreBtn" type="button">Mostrar más</);
-  assert.match(script, /grid\.insertAdjacentHTML\('beforeend', cardsHTML\(data\.items \|\| \[\]\)\)/);
+  assert.match(script, /drawSearch\(data\.items\);\s*placeMore\(\);/);
   assert.match(script, /rootMargin: '900px 0px'/);
 });
 
