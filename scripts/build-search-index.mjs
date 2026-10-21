@@ -159,6 +159,70 @@ function normalize(it, retailer, department, finalPrice) {
   };
 }
 
+/* ============================================================
+   A BRAND THE ROW LEAVES BLANK, READ FROM ITS TITLE (#443 follow-up).
+
+   Walmart's feed carries no brand field. While Target was on sale its
+   rows said "LEGO", so search knew LEGO was carried; with Target off
+   sale the only LEGO left is 860 Walmart sets with brand "", and the
+   pipeline's "a brand we do not carry is an honest no" guard answered
+   "lego" with "Todavía no vendemos LEGO". The same gap hit Play-Doh,
+   Fisher-Price, Maybelline, CeraVe and L'Oréal.
+
+   The rule: a row with no brand whose title STARTS with a brand from
+   search's own brand list (assets/search/synonyms-es.json `brands`, the
+   list that makes a query word a brand slot) takes that brand. Only the
+   first three words are read, and whole words must spell the brand
+   ("Legoland" is not LEGO). The spelling kept is the one the catalogue
+   already uses for that brand, else the titles' most common one.
+   FALSE_BRAND_PREFIXES are titles whose first words name a product,
+   not its maker ("Guess Who?" is a Hasbro game).
+   ============================================================ */
+export const BRAND_LIST_FILE = "assets/search/synonyms-es.json";
+export const FALSE_BRAND_PREFIXES = ["guess who", "champion sports"];
+export const brandKey = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+export function knownBrands(root = ROOT) {
+  const d = JSON.parse(readFileSync(root + BRAND_LIST_FILE, "utf8"));
+  return new Set((d.brands || []).map(brandKey).filter(Boolean));
+}
+/* The brand a title opens with, as the title spells it, or "". */
+export function brandFromTitle(title, brands) {
+  const toks = String(title || "").trim().split(/\s+/).slice(0, 3);
+  const lead = brandKey(toks.join(" "));
+  if (FALSE_BRAND_PREFIXES.some((f) => lead.startsWith(brandKey(f)))) return "";
+  let acc = "";
+  for (let n = 0; n < toks.length; n++) {
+    acc += brandKey(toks[n]);
+    if (brands.has(acc)) return toks.slice(0, n + 1).join(" ").replace(/[^\p{L}\p{N}]+$/u, "");
+  }
+  return "";
+}
+/* Fills blank brands in place; returns { brandKey: rows filled }. */
+export function inferBrands(products, brands) {
+  const forms = new Map();
+  const count = (k, form, w) => {
+    if (!forms.has(k)) forms.set(k, new Map());
+    const m = forms.get(k);
+    m.set(form, (m.get(form) || 0) + w);
+  };
+  /* The catalogue's own spelling outweighs any title's. */
+  for (const p of products) if (p.brand) count(brandKey(p.brand), p.brand, 1e6);
+  const pending = [];
+  for (const p of products) {
+    if (p.brand) continue;
+    const b = brandFromTitle(p.title, brands);
+    if (!b) continue;
+    count(brandKey(b), b, 1);
+    pending.push([p, brandKey(b)]);
+  }
+  const filled = {};
+  for (const [p, k] of pending) {
+    p.brand = [...forms.get(k).entries()].sort((a, b) => b[1] - a[1])[0][0];
+    filled[k] = (filled[k] || 0) + 1;
+  }
+  return filled;
+}
+
 /* Each store's display name and logo path (relative, no leading slash). */
 export function storeTable(keys) {
   let site = {};
@@ -214,6 +278,7 @@ export function buildIndex() {
     have.add(k);
     products.push(n);
   }
+  inferBrands(products, knownBrands());
   const rows = [];
   for (const p of products) {
     if (!p.image) continue;
