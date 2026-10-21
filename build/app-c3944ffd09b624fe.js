@@ -25847,14 +25847,14 @@ function renderFoundersBadges(){
     if (!currentUser) { badgeEl.hidden = true; }
     else if (currentUserFounderStatus === 'fundador') {
       badgeEl.hidden = false;
-      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold" style="background:#F4C463;color:#0A1F44">Miembro del Aria Key Club — tu checkout está desbloqueado</span>`;
+      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold" style="background:#F4C463;color:#0A1F44">Fundador del Aria Key Club</span>`;
     } else if (currentUserFounderStatus === 'rechazado') {
       badgeEl.hidden = false;
-      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#B9C6E8">Tu carrito sigue guardado — las puertas se abren muy pronto</span>`;
+      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#B9C6E8">Miembro del Aria Key Club — tu carrito está guardado</span>`;
     } else {
       badgeEl.hidden = false;
       const first = currentUserName ? `, ${escapeHtml(currentUserName.split(' ')[0])}` : '';
-      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(244,196,99,.5);color:#F4C463">En revisión${first} — arma tu carrito. Si eres elegido, compras.</span>`;
+      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(244,196,99,.5);color:#F4C463">Miembro del Aria Key Club${first} — arma tu carrito y compra cuando quieras.</span>`;
     }
   }
 }
@@ -25869,19 +25869,19 @@ function renderFoundersCartBanner(){
   if (!currentUser) {
     wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 flex items-start gap-3 mb-4" style="background:#0A1F44;border:1px solid rgba(244,196,99,.4)">
       <div>
-        <div class="text-[13.5px] font-extrabold" style="color:#F4C463">Guarda tu carrito y entra a Los Elegidos</div>
-        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#B9C6E8">Únete gratis al Key Club: tu carrito queda guardado y Aria lo revisa para elegir a los 1000 miembros. Arma tu carrito. Si eres elegido, compras.</div>
+        <div class="text-[13.5px] font-extrabold" style="color:#F4C463">Guarda tu carrito en el Aria Key Club</div>
+        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#B9C6E8">Únete gratis al Aria Key Club: tu carrito queda guardado, compras cuando quieras y recibes $5 de vuelta por cada $100 en crédito Aria. Los primeros 1000 miembros quedan registrados como Fundadores.</div>
         <button onclick="openAuthModal('signup')" class="mt-2.5 inline-flex items-center justify-center h-10 px-5 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme gratis</button>
       </div>
     </div>`;
     return;
   }
   if (currentUserFounderStatus === 'fundador') {
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-bold" style="background:#FFF6E0;border:1px solid #F0D28A;color:#5C4813">Miembro del Aria Key Club — tu checkout está desbloqueado.</div>`;
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-bold" style="background:#FFF6E0;border:1px solid #F0D28A;color:#5C4813">Fundador del Aria Key Club — tu carrito está guardado.</div>`;
   } else if (currentUserFounderStatus === 'rechazado') {
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Aún no eres miembro — las puertas se abren muy pronto.</div>`;
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Miembro del Aria Key Club.</div>`;
   } else {
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado y <b>en revisión</b>. Arma tu carrito. Si eres elegido, compras.</div>`;
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Compra cuando quieras.</div>`;
   }
 }
 

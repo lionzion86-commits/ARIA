@@ -1889,6 +1889,115 @@ window.doSearch = function(which){
 <div id="homeView" class="view active">
   
   <!-- ============================================================
+       SEARCH FIRST (2026-10-21, Danny's order on #443). Two live
+       shoppers in one day scrolled past the hero, the deals and the Key
+       Club before they found the search. The logo + search band and the
+       Aria Key Club block traded places: the band opens the page (the
+       first screen of a phone is the logo and the search bar), and the
+       Key Club sits where the band used to -- after the Ofertas rail and
+       the Tiendas strip, right before the store rails. One band per
+       breakpoint, as before; the desktop copy reads searchInputD.
+       Rails, cards and prices are untouched.
+       scripts/test/home-order-tests.mjs holds this in place.
+       ============================================================ -->
+  <div class="relative overflow-hidden lg:hidden" aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
+      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
+      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
+      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Estados Unidos</text>
+      <g transform="translate(1120 130) rotate(24)">
+        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
+    </svg>
+    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
+      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
+      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
+        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
+      </h1>
+      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
+        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de Estados Unidos, y te mostramos un solo total ya puesto en tu puerta.
+      </p>
+
+      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
+        <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[112px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          style="border-color:var(--line)">
+        <button onclick="openVisualSearch('search')" aria-label="Buscar por foto" title="Buscar por foto" class="absolute right-[52px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center focus-ring transition" style="background:#EEF3FB; color:var(--navy)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px] lg:hidden">
+        <span style="color:#8FA3D6">Prueba con:</span>
+        <button onclick="searchFor('MacBook Air')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
+        <button onclick="searchFor('Nike Air Force')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
+        <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
+             promise that the search behind it returns something, and the
+             one thing this one could still reach is the live scrape at
+             the aisle we are not allowed to import from. "Toallas" keeps
+             what the row was for -- a third department, and the only
+             Spanish example, so the chips also show that the search
+             understands Spanish. Verified: translateQuery gives "towel"
+             and the catalogue holds 21 of them. -->
+        <button onclick="searchFor('Toallas')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative overflow-hidden hidden lg:block" aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
+      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
+      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
+      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Estados Unidos</text>
+      <g transform="translate(1120 130) rotate(24)">
+        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
+    </svg>
+    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
+      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
+      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
+        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
+      </h1>
+      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
+        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de Estados Unidos, y te mostramos un solo total ya puesto en tu puerta.
+      </p>
+
+      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
+        <input id="searchInputD" onkeydown="if(event.key==='Enter')doSearch('d')" placeholder="¿Qué estás buscando hoy?"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[112px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          style="border-color:var(--line)">
+        <button onclick="openVisualSearch('search')" aria-label="Buscar por foto" title="Buscar por foto" class="absolute right-[52px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center focus-ring transition" style="background:#EEF3FB; color:var(--navy)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <button onclick="doSearch('d')" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px]">
+        <span style="color:#8FA3D6">Prueba con:</span>
+        <button onclick="searchFor('MacBook Air','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
+        <button onclick="searchFor('Nike Air Force','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
+        <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
+             promise that the search behind it returns something, and the
+             one thing this one could still reach is the live scrape at
+             the aisle we are not allowed to import from. "Toallas" keeps
+             what the row was for -- a third department, and the only
+             Spanish example, so the chips also show that the search
+             understands Spanish. Verified: translateQuery gives "towel"
+             and the catalogue holds 21 of them. -->
+        <button onclick="searchFor('Toallas','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
        PHOTO HERO, FIRST (2026-09-26, DANNY'S HOMEPAGE ORDER V2): "Todo
        USA ahora en Lima" is the strong opening message -- it hits you
        the moment you walk in, like it originally did. Danny's 2026-09-25
@@ -1939,14 +2048,32 @@ window.doSearch = function(which){
       </div>
     </section>
 
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
+      <div class="px-5 pt-4 pb-1 flex items-baseline justify-between gap-3">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
+        <span class="text-[12px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
+      </div>
+      <div id="mTiendasStripRow" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden hidden lg:block" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-5 pb-1 flex items-baseline justify-between gap-3">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
+        <span class="text-[13px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
+      </div>
+      <div id="dTiendasStripRow" class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+    </section>
+
   <!-- ============================================================
-       LOS ELEGIDOS — Founding 1000 campaign module (2026-10-01).
-       Oct 20 (lanzamiento) → Nov 10 (apertura): Danny elige a mano
-       1,000 miembros entre los carritos guardados. Curado, no por
-       orden de llegada. Copy rules: "Aria Key Club", nunca "beta test" ni "fundadores".
-       El contador lee miembros ELEGIDOS (pickedCount), no registros.
+       ARIA KEY CLUB — Founding 1000 campaign module (2026-10-01).
+       COPY (2026-10-21, Danny's order on #443): no selection framing.
+       Nobody has to be chosen to buy: anyone in the club arms a cart
+       and buys when they want. The first 1000 members are registered
+       as Fundadores -- a status, never a buying gate. Headline and body
+       are Danny's words, verbatim; the perks are unchanged.
        ============================================================ -->
-  <section aria-label="Aria Key Club — Sé de los primeros 1000" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+  <section aria-label="Aria Key Club" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
     <!-- KEY CLUB VAULT BACKDROP (2026-10-05, Danny): bank-vault atmosphere behind the hero. Image stays dim under a navy overlay so the white/gold headline stays fully readable. -->
     <!-- COMPACT BANNER (2026-10-07, Danny): same info at ~half the height — the full section buried the products on scroll. -->
     <img src="assets/keyclub/vault-hero-bg.jpg" srcset="assets/keyclub/vault-hero-bg-1200.jpg 1200w, assets/keyclub/vault-hero-bg.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:.5">
@@ -1954,14 +2081,9 @@ window.doSearch = function(which){
     <div class="ariaGoldHair"></div>
     <div class="relative max-w-[1020px] mx-auto px-5 py-7 sm:py-8 text-center">
       <div class="ariaKicker mb-2" style="justify-content:center">Aria Key Club · Lanzamiento</div>
-      <h2 class="text-[22px] sm:text-[28px] font-extrabold tracking-[-0.02em] leading-[1.1] mb-2" style="color:#fff">
-        Sé de los primeros <span style="color:#F4C463">1000</span> en el Aria Key Club.
-      </h2>
-      <p class="text-[13px] sm:text-[14.5px] font-bold leading-snug mb-2" style="color:#F4C463">
-        Arma tu carrito. Si eres elegido, compras.
-      </p>
+      <h2 class="text-[22px] sm:text-[28px] font-extrabold tracking-[-0.02em] leading-[1.1] mb-2" style="color:#fff">Aria Key Club</h2>
       <p class="text-[12.5px] sm:text-[13.5px] leading-relaxed max-w-[62ch] mx-auto mb-4" style="color:#B9C6E8">
-        Únete gratis al Aria Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran antes que todos. Gratis por tiempo limitado — después, la membresía tiene un costo.
+        Únete gratis al Aria Key Club: arma tu carrito, compra cuando quieras y recibe $5 de vuelta por cada $100 en crédito Aria. Los primeros 1000 miembros quedan registrados como Fundadores. Gratis por tiempo limitado — después, la membresía tiene un costo.
       </p>
       <div id="foundersMemberBadge" class="mb-4" hidden></div>
       <div class="flex items-center justify-center mb-5">
@@ -1979,14 +2101,13 @@ window.doSearch = function(which){
         </div>
         <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
           <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Entra primero a las ofertas</h4>
-          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros compran antes que todos.</p>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros del Key Club entran primero.</p>
         </div>
         <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
           <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Exprés a precio de miembro</h4>
           <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p>
         </div>
       </div>
-      <p class="mt-4 text-[11.5px] font-semibold" style="color:#8FA3D6">Solo 1000. Las puertas se abren muy pronto.</p>
     </div>
   </section>
   <!-- ============================================================
@@ -2030,75 +2151,11 @@ window.doSearch = function(which){
        SSENSE -> Todas las otras tiendas -> Categorías. -->
 
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
-<!-- TIENDAS STRIP (2026-09-28, Danny): every shoppable store's logo in one compact
+<!-- TIENDAS STRIP (2026-09-28, Danny; markup moved above the Key Club block 2026-10-21, #443): every shoppable store's logo in one compact
      horizontal strip, each independently tappable to jump to that store's storefront
      (rail scroll, or the store page when the store has no homepage rail). Stores with
      zero catalogue items are excluded -- no dead storefronts. Painted by
      paintTiendasStrip() from TIENDAS_STRIP. -->
-    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
-      <div class="px-5 pt-4 pb-1 flex items-baseline justify-between gap-3">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
-        <span class="text-[12px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
-      </div>
-      <div id="mTiendasStripRow" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-    </section>
-
-<!-- ============================================================
-       BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
-       "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
-       search sit directly under the Ofertas rail -- deals first because
-       that is what stops the scroll, then the brand the moment they
-       look up. The six store rails follow; the photo hero moved below
-       the rails. One copy per breakpoint (mobile/desktop), same as the
-       rails themselves; the desktop copy reads searchInputD.
-       ============================================================ -->
-  <div class="relative overflow-hidden" aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
-      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
-      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
-      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Estados Unidos</text>
-      <g transform="translate(1120 130) rotate(24)">
-        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </g>
-      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
-    </svg>
-    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
-      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
-      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
-        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
-      </h1>
-      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
-        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de Estados Unidos, y te mostramos un solo total ya puesto en tu puerta.
-      </p>
-
-      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
-        <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
-          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[112px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
-          style="border-color:var(--line)">
-        <button onclick="openVisualSearch('search')" aria-label="Buscar por foto" title="Buscar por foto" class="absolute right-[52px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center focus-ring transition" style="background:#EEF3FB; color:var(--navy)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        </button>
-        <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
-        </button>
-      </div>
-
-      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px] lg:hidden">
-        <span style="color:#8FA3D6">Prueba con:</span>
-        <button onclick="searchFor('MacBook Air')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
-        <button onclick="searchFor('Nike Air Force')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
-        <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
-             promise that the search behind it returns something, and the
-             one thing this one could still reach is the live scrape at
-             the aisle we are not allowed to import from. "Toallas" keeps
-             what the row was for -- a third department, and the only
-             Spanish example, so the chips also show that the search
-             understands Spanish. Verified: translateQuery gives "towel"
-             and the catalogue holds 21 of them. -->
-        <button onclick="searchFor('Toallas')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
-      </div>
-    </div>
-  </div>
 
 <!-- BEST BUY BANNER + CAROUSEL (2026-10-19, Danny, #413): featured, not
      buried -- the electronics specialist sits right under the brand band.
@@ -2712,73 +2769,7 @@ window.doSearch = function(which){
   <!-- HOME ORDER, DESKTOP (2026-09-26, Danny): same run as the phone. -->
 
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
-<!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's. -->
-    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
-      <div class="max-w-[1240px] mx-auto">
-      <div class="px-8 pt-5 pb-1 flex items-baseline justify-between gap-3">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
-        <span class="text-[13px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
-      </div>
-      <div id="dTiendasStripRow" class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
-      </div>
-    </section>
-
-<!-- ============================================================
-       BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
-       "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
-       search sit directly under the Ofertas rail -- deals first because
-       that is what stops the scroll, then the brand the moment they
-       look up. The six store rails follow; the photo hero moved below
-       the rails. One copy per breakpoint (mobile/desktop), same as the
-       rails themselves; the desktop copy reads searchInputD.
-       ============================================================ -->
-  <div class="relative overflow-hidden" aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
-      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
-      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
-      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Estados Unidos</text>
-      <g transform="translate(1120 130) rotate(24)">
-        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </g>
-      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
-    </svg>
-    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
-      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
-      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
-        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
-      </h1>
-      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
-        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de Estados Unidos, y te mostramos un solo total ya puesto en tu puerta.
-      </p>
-
-      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
-        <input id="searchInputD" onkeydown="if(event.key==='Enter')doSearch('d')" placeholder="¿Qué estás buscando hoy?"
-          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[112px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
-          style="border-color:var(--line)">
-        <button onclick="openVisualSearch('search')" aria-label="Buscar por foto" title="Buscar por foto" class="absolute right-[52px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center focus-ring transition" style="background:#EEF3FB; color:var(--navy)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        </button>
-        <button onclick="doSearch('d')" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
-        </button>
-      </div>
-
-      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px]">
-        <span style="color:#8FA3D6">Prueba con:</span>
-        <button onclick="searchFor('MacBook Air','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
-        <button onclick="searchFor('Nike Air Force','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
-        <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
-             promise that the search behind it returns something, and the
-             one thing this one could still reach is the live scrape at
-             the aisle we are not allowed to import from. "Toallas" keeps
-             what the row was for -- a third department, and the only
-             Spanish example, so the chips also show that the search
-             understands Spanish. Verified: translateQuery gives "towel"
-             and the catalogue holds 21 of them. -->
-        <button onclick="searchFor('Toallas','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
-      </div>
-    </div>
-  </div>
+<!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's; moved above the Key Club block 2026-10-21 (#443). -->
 
 <!-- BEST BUY BANNER + CAROUSEL (desktop, 2026-10-19, Danny, #413). -->
 <section aria-label="Best Buy" data-store-rail="bestbuy" data-bestbuy-feature class="bbBand relative overflow-hidden">
@@ -4152,7 +4143,7 @@ window.doSearch = function(which){
           El flete se calcula sobre el peso estimado de tu pedido. El monto exacto se confirma en el checkout.
         </p>
       </div>
-      <!-- Los Elegidos (2026-10-01): Key Club save prompt / member status banner -->
+      <!-- Aria Key Club (2026-10-01): Key Club save prompt / member status banner -->
       <div id="foundersCartBanner"></div>
       <button id="cartCheckoutBtn" onclick="location.href='checkout.html'" class="w-full h-[52px] mt-4 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Proceder al pago</button>
     </div>
@@ -6190,7 +6181,7 @@ window.doSearch = function(which){
           <img src="assets/keyclub/thumb-bolt.jpg" alt="" aria-hidden="true" loading="lazy" class="keyclubThumb">
           <div>
             <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:#F4C463">Entra primero a las ofertas</h3>
-            <p class="text-[13.5px] leading-relaxed" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros compran antes que todos.</p>
+            <p class="text-[13.5px] leading-relaxed" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros del Key Club entran primero.</p>
           </div>
         </article>
         <article class="keyclubCard">
@@ -6818,7 +6809,7 @@ window.doSearch = function(which){
     <h2 id="authModalTitle" class="text-[19px] font-extrabold tracking-[-0.02em] mb-1" style="color:var(--navy)">Entrar</h2>
     <p id="authModalSubtitle" class="text-[12.5px] text-zinc-500 mb-5">Ingresa tu correo y contraseña.</p>
     <form id="authForm" onsubmit="submitAuth(event)" novalidate>
-      <!-- Los Elegidos (2026-10-01): el Key Club guarda tu carrito para la selección de miembros. Nombre obligatorio, teléfono opcional. Sin DNI. -->
+      <!-- Aria Key Club (2026-10-01): el Key Club guarda tu carrito. Nombre obligatorio, teléfono opcional. Sin DNI. -->
       <div class="mb-3" id="authNameWrap">
         <label for="authName" class="block text-[12px] font-bold mb-1.5">Nombre</label>
         <input id="authName" type="text" autocomplete="name" placeholder="Ana Torres"
@@ -6851,7 +6842,7 @@ window.doSearch = function(which){
   </div>
 </div>
 
-<script src="/build/app-5cc5678aab68262d.js"></script>
+<script src="/build/app-c3944ffd09b624fe.js"></script>
 
 
 
