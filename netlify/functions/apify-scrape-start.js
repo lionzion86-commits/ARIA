@@ -25,6 +25,8 @@
 // hand-duplicating this list and risking drift.
 import { connectLambda } from "@netlify/blobs";
 import { retailerFor } from "../../scripts/lib/retailers.js";
+import { quotasFor } from "../../scripts/lib/catalog-quotas.js";
+import { dswActorInput } from "../../scripts/lib/dsw.js";
 import {
   readOndemandCache, recordOndemandRun, acquireOndemandLease, ondemandInFlight,
   ondemandUserKey, MAX_CONCURRENT_PER_USER,
@@ -125,6 +127,19 @@ export const DEPARTMENT_CONFIG = {
     kids:  { category: "kids-shoes" },
     sale:  { category: "mens-shoes", onSaleOnly: true }, // one representative category + the sale filter, not a dedicated sale category (none exists)
   },
+  /* DSW (Issue #443, 2026-10-21) — UNVERIFIED, every entry. No actor has
+     been run against dsw.com from this repo (the build environment
+     cannot reach dsw.com or api.apify.com), so none of these is a
+     confirmed category URL: they are the keyword fallbacks from
+     CATALOG_QUOTAS.dsw (scripts/lib/catalog-quotas.js), which degrade to
+     "fewer results", never to a wrong page. Replace a `searchQuery` with
+     a `startUrl` copied from dsw.com in a browser once one real run has
+     confirmed the chosen actor returns that listing, and date the
+     confirmation here the way the Walmart/Target blocks above are. */
+  dsw: Object.fromEntries(quotasFor("dsw").map((q) => [q.department, {
+    searchQuery: q.query,
+    ...(q.saleOnly ? { onSaleOnly: true } : {}),
+  }])),
 };
 
 // Cross-retailer brand search (Phase 4) — same "real candidate, not yet
@@ -346,6 +361,51 @@ const RETAILER_CONFIG = {
      which is enough to launch on. */
   sephora: null,
   victoriassecret: null,
+  /* DSW (Issue #443, 2026-10-21) — UNVERIFIED. NO ACTOR IS CONFIRMED FOR
+     dsw.com. Same situation as Sephora above: apify.com and dsw.com are
+     unreachable from the build environment, and a guessed actor ID
+     completes with zero items, which reads downstream as "DSW has no
+     products". So the entry is null unless DSW_ACTOR_ID is set in the
+     site's environment by someone who has run the actor by hand.
+
+     CANDIDATES TO EVALUATE — named, NOT asserted to work against dsw.com:
+       - a dsw.com-specific scraper, if a search of https://apify.com/store
+         for "dsw" turns one up (none is known to this repo);
+       - apify/e-commerce-scraping-tool, Apify's generic product scraper
+         (takes listing/product URLs; check its schema for the input
+         field names);
+       - apify/playwright-scraper or apify/puppeteer-scraper with a page
+         function that reads the product page's schema.org Product data
+         (name, brand, offers.price, offers.priceCurrency, gtin, image).
+
+     TO FINISH THE INTEGRATION:
+       1. Run the candidate once by hand on one dsw.com listing URL and
+          one product URL. Confirm real titles, USD prices, the image
+          gallery, the size list and (ideally) the spec table come back.
+       2. If its input is not { startUrls: [{url}], maxItems } /
+          { searchQueries: [q], maxItems }, change dswActorInput() in
+          scripts/lib/dsw.js — the one place the shape lives, shared with
+          the direct (--via apify) path of scripts/build-dsw-catalog.mjs.
+       3. Set DSW_ACTOR_ID (owner/name) and APIFY_API_KEY in the Netlify
+          environment for the context that will serve the pull (production,
+          or deploy previews if the pull targets a preview URL), deploy,
+          and replace the UNVERIFIED notes here and in DEPARTMENT_CONFIG.dsw
+          with the dated confirmation.
+     `search` stays false on the registry row: DSW answers from its
+     committed catalogue, never from the live search fan-out. */
+  dsw: process.env.DSW_ACTOR_ID
+    ? {
+        actorId: process.env.DSW_ACTOR_ID,
+        buildInput: (query, maxItems, department) => {
+          const q = quotasFor("dsw").find((x) => x.department === department);
+          const dept = department && DEPARTMENT_CONFIG.dsw[department];
+          return dswActorInput(
+            { url: dept && dept.startUrl ? dept.startUrl : null, query: dept ? dept.searchQuery : (q ? q.query : query) },
+            maxItems,
+          );
+        },
+      }
+    : null,
 };
 
 const DEFAULT_MAX_ITEMS = 20;

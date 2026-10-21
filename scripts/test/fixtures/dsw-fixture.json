@@ -1,0 +1,88 @@
+{
+  "_fixture": "FAKE TEST DATA for scripts/test/dsw-store-tests.mjs ONLY. Not DSW products, not real prices, not real sizes. Never loaded by the site: the test serves it in place of dsw-catalog.json inside its own throwaway server.",
+  "generatedAt": null,
+  "source": "scripts/test/fixtures (fake)",
+  "declaredProductCount": 4,
+  "retailers": {
+    "dsw": {
+      "label": "DSW",
+      "departments": {
+        "women": {
+          "label": "Zapatos de mujer",
+          "items": [
+            {
+              "name": "FIXTURE Test Sneaker Alpha (not a real product)",
+              "retailer": "dsw",
+              "brand": "Fixture Brand",
+              "price": 40,
+              "currency": "USD",
+              "onSale": true,
+              "originalPrice": 60,
+              "image": "https://fixture.invalid/dsw/alpha-1.jpg",
+              "images": ["https://fixture.invalid/dsw/alpha-1.jpg", "https://fixture.invalid/dsw/alpha-2.jpg"],
+              "type": "Sneakers",
+              "availableSizes": ["7", "8"],
+              "sizeSource": "fixture",
+              "description": "Producto de prueba. No es un producto real.",
+              "bestSellerRank": 1
+            },
+            {
+              "name": "FIXTURE Test Boot Beta (not a real product)",
+              "retailer": "dsw",
+              "brand": "Fixture Brand",
+              "price": 55,
+              "currency": "USD",
+              "onSale": true,
+              "originalPrice": 80,
+              "image": "https://fixture.invalid/dsw/beta-1.jpg",
+              "images": ["https://fixture.invalid/dsw/beta-1.jpg"],
+              "type": "Boots",
+              "availableSizes": [],
+              "sizeSource": "fixture",
+              "description": "Producto de prueba. No es un producto real."
+            }
+          ]
+        },
+        "men": {
+          "label": "Zapatos de hombre",
+          "items": [
+            {
+              "name": "FIXTURE Test Loafer Gamma (not a real product)",
+              "retailer": "dsw",
+              "brand": "Fixture Brand",
+              "price": 45,
+              "currency": "USD",
+              "onSale": false,
+              "image": "https://fixture.invalid/dsw/gamma-1.jpg",
+              "images": ["https://fixture.invalid/dsw/gamma-1.jpg"],
+              "type": "Loafers",
+              "availableSizes": ["9", "10"],
+              "sizeSource": "fixture",
+              "description": "Producto de prueba. No es un producto real."
+            }
+          ]
+        },
+        "kids": {
+          "label": "Zapatos de niños",
+          "items": [
+            {
+              "name": "FIXTURE Test Sandal Delta (not a real product)",
+              "retailer": "dsw",
+              "brand": "Fixture Brand",
+              "price": 20,
+              "currency": "USD",
+              "onSale": true,
+              "originalPrice": 30,
+              "image": "https://fixture.invalid/dsw/delta-1.jpg",
+              "images": ["https://fixture.invalid/dsw/delta-1.jpg"],
+              "type": "Sandals",
+              "availableSizes": [],
+              "sizeSource": "fixture",
+              "description": "Producto de prueba. No es un producto real."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

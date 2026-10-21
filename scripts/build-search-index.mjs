@@ -88,6 +88,8 @@ export const CATALOG_FILES = [
   /* Best Buy (2026-10-19, #413): the third electronics leg beside
      Walmart and Target. */
   "bestbuy-catalog.json",
+  /* DSW (#443): the committed empty envelope until the pull lands. */
+  "dsw-catalog.json",
 ];
 export function catalogFiles() { return CATALOG_FILES.slice(); }
 

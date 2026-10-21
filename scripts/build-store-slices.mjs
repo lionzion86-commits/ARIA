@@ -77,6 +77,22 @@ export const SLICED_STORES = {
       electronics: "Más electrónica",
     },
   },
+  /* DSW (Issue #443). Danny's order: "Ofertas de DSW" first, then the
+     category rails. The buckets are the ones scripts/build-dsw-catalog.mjs
+     files under (scripts/lib/dsw.js BUCKET_LABELS). Más vendidos reads
+     the place each product held in DSW's own best-sellers listing
+     (bestSellerRank) when the pull captured it, then review counts.
+     While dsw-catalog.json is the empty envelope this writes a count-0
+     index, and tienda.html never opens it (STORES.dsw.pendingCatalog). */
+  dsw: {
+    file: "dsw-catalog.json",
+    label: "DSW",
+    DEPT_ORDER: ["women", "men", "kids", "footwear", "purses"],
+    DEPT_LABELS: {
+      women: "Zapatos de mujer", men: "Zapatos de hombre", kids: "Zapatos de niños",
+      footwear: "Más zapatos", purses: "Carteras y bolsos",
+    },
+  },
 };
 
 export function loadSaleRule(root = ROOT) {
@@ -218,6 +234,7 @@ export function storeProducts(key, root = ROOT) {
       out.push({
         name, brand: p.brand || "", price, was: pct > 0 ? sale.originalPrice(p) : 0, pct, image, dept,
         reviews: Number(p.reviewCount) || 0, rating: Number(p.rating) || 0,
+        rank: Number(p.bestSellerRank) || 0,
       });
     }
   }
@@ -255,7 +272,10 @@ export function storeRails(key, products) {
   const rails = [];
   const sales = products.filter((p) => p.pct > 0).sort(bySale);
   if (sales.length) rails.push({ key: "ofertas", title: "Ofertas de " + cfg.label, items: sprinklePremium(sales) });
-  const best = products.filter((p) => p.reviews > 0).sort((a, b) => (b.reviews - a.reviews) || (b.rating - a.rating));
+  /* A store's own best-sellers listing outranks review counts (DSW). */
+  const byRank = (a, b) => (a.rank && b.rank ? a.rank - b.rank : (b.rank ? 1 : 0) - (a.rank ? 1 : 0));
+  const best = products.filter((p) => p.reviews > 0 || p.rank > 0)
+    .sort((a, b) => byRank(a, b) || (b.reviews - a.reviews) || (b.rating - a.rating));
   if (best.length) rails.push({ key: "masvendidos", title: "Más vendidos", items: sprinklePremium(best) });
   /* A department window is not a copy of the two lead rails: what their
      first cards already show yields its place to what they do not

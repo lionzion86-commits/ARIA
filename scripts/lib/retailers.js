@@ -124,6 +124,36 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* DSW (Issue #443, 2026-10-21) — BUILT, NOT LAUNCHED. Designer Shoe
+     Warehouse: the store, its storefront, its home rail and its Tiendas
+     tile are wired, and every one of them stays invisible while
+     `pendingCatalog` is true — activeRetailers() leaves the row out, so
+     no tile, rail, door or count ever points at a store with nothing in
+     it (the no-dead-ends rule). The catalogue is dsw-catalog.json,
+     written by scripts/build-dsw-catalog.mjs from a real pull; it is the
+     committed empty envelope until then. Flip `pendingCatalog` off here,
+     in the app bundle's mirror and in tienda.html's STORES.dsw on the
+     day that file has products; scripts/test/dsw-store-tests.mjs fails
+     whenever the flag and the file disagree.
+
+     BRAND. Black and white are DSW's published wordmark colours. Its
+     accent is NOT set: it has to be sampled from DSW's own published
+     brand artwork, which could not be fetched from the build
+     environment, and an invented hex is not their brand.
+     TODO(dsw-logo): logos/dsw.svg — DSW's real mark, from DSW's own
+     press/brand assets. Until it lands the store renders as its name on
+     black (the registry's wordmark fallback), never a drawn logo. */
+  dsw: {
+    key: "dsw",
+    label: "DSW",
+    color: "#000000",
+    logo: null,
+    tagline: "Zapatos de marca para toda la familia",
+    kind: "general",
+    search: false,
+    browse: true,
+    pendingCatalog: true,
+  },
   /* NEW BALANCE (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
      plain <script> and cannot import. */
@@ -1289,9 +1319,17 @@ export function retailersByTier() {
     .filter((t) => t.stores.length);
 }
 
-/** Every row, in display order, minus the retired ones. */
+/** Every row, in display order, minus the retired ones and the ones
+    whose catalogue has not landed yet (`pendingCatalog`, see DSW): a
+    store with nothing in it is not listed anywhere. */
 export function activeRetailers() {
-  return Object.values(RETAILERS).filter((r) => !r.retired);
+  return Object.values(RETAILERS).filter((r) => !r.retired && !r.pendingCatalog);
+}
+
+/** True while a registered store's catalogue is still pending. */
+export function isPendingCatalog(key) {
+  const r = retailerFor(key);
+  return Boolean(r && r.pendingCatalog);
 }
 
 /** Stores the live cross-store product search actually fans out to. */
@@ -1355,7 +1393,7 @@ export function isBeautyRetailer(key) {
  */
 export function storeDoorFor(key) {
   const r = retailerFor(key);
-  if (!r || r.retired) return null;
+  if (!r || r.retired || r.pendingCatalog) return null;
   return { key: r.key, action: r.kind === "auto" ? "auto" : "store" };
 }
 

@@ -66,6 +66,8 @@ export const CATALOG_FILES = [
   "/boxlunch-catalog.json",
   /* Best Buy (2026-10-19, #413): Apple, Sony, Samsung, Nintendo... */
   "/bestbuy-catalog.json",
+  /* DSW (#443): the committed empty envelope until the pull lands. */
+  "/dsw-catalog.json",
 ];
 
 const EXTRA_LABELS = {

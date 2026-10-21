@@ -117,6 +117,30 @@ export const CATALOG_QUOTAS = {
     { category: "candles", query: "3-wick candle", target: 60 },
     { category: "hand_soap", query: "hand soap", target: 60 },
   ],
+  /* DSW (Issue #443, c.6323171170 + c.6323202929). A one-time catalogue
+     PULL, not a refresh-tier store: scripts/build-dsw-catalog.mjs reads
+     these, prints the estimated cost, and spends nothing without
+     --confirm-spend. Danny's order: best sellers plus ALL sale and
+     clearance first, then the category depth.
+
+     `phase: 1` runs first and is never skipped by the spend stop; a
+     `target: "all"` quota asks for the whole listing up to the pull's
+     sale ceiling (DSW_SALE_MAX in scripts/lib/dsw.js), because "all
+     sale" is the order and a fixed 60 would silently cut it.
+
+     No actor is verified for dsw.com yet (see RETAILER_CONFIG.dsw in
+     netlify/functions/apify-scrape-start.js), so the queries below are
+     keyword fallbacks; a real listing URL per quota is passed with
+     --urls once someone has copied it from dsw.com in a browser. */
+  dsw: [
+    { category: "clearance", phase: 1, saleOnly: true, department: "clearance", query: "clearance shoes", target: "all" },
+    { category: "sale", phase: 1, saleOnly: true, department: "sale", query: "sale shoes", target: "all" },
+    { category: "bestsellers", phase: 1, department: "bestsellers", query: "best sellers shoes", target: 200 },
+    { category: "women", phase: 2, department: "women", query: "womens shoes", target: 200, gender: "women" },
+    { category: "men", phase: 2, department: "men", query: "mens shoes", target: 150, gender: "men" },
+    { category: "kids", phase: 2, department: "kids", query: "kids shoes", target: 100, gender: "kids" },
+    { category: "bags", phase: 2, department: "bags", query: "handbags", target: 60, bucket: "purses" },
+  ],
 };
 
 /** The quotas for one store, or an empty list. */
