@@ -100,7 +100,7 @@ const STORE_KNOWLEDGE_ALL = {
     catalog_depth: "7,562 productos",
     top_categories: ["juguetes", "decoración", "dulces y chocolates", "ropa"],
     best_for: "compras grandes, esenciales de casa, juguetes para niños sin gastar mucho",
-    not_for: "marcas de moda o diseñador — para eso Macy's, SSENSE o Farfetch",
+    not_for: "marcas de moda o diseñador — para eso Farfetch o Revolve",
     peru_note: "Es la tienda que todo el mundo ya conoce de nombre, así que no hay que explicar qué es.",
   },
   target: {
@@ -336,7 +336,7 @@ const STORE_KNOWLEDGE_ALL = {
     catalog_depth: "2,003 productos",
     top_categories: ["belleza"],
     best_for: "las marcas de prestigio: NARS, Dior, Lancôme, Rare Beauty, tarte",
-    not_for: "productos de peluquería profesional — para eso Ulta",
+    not_for: "productos de peluquería profesional",
     peru_note: "Sephora sí existe en Lima, pero el catálogo de allá es más corto y más caro que el de acá.",
   },
   ulta: {
@@ -420,7 +420,7 @@ const STORE_KNOWLEDGE_ALL = {
     catalog_depth: "1,099 productos",
     top_categories: ["ropa", "hombre", "mujer", "niños"],
     best_for: "la mayor variedad de zapatillas y ropa deportiva — Nike, adidas, Jordan, The North Face",
-    not_for: "los lanzamientos más exclusivos — eso es Foot Locker",
+    not_for: "los lanzamientos más exclusivos",
     peru_note: null,
   },
   newbalance: {
@@ -1187,8 +1187,8 @@ export const AMBIGUOUS_INTERESTS = {
   belleza: {
     ask: "¿Maquillaje, skincare, o perfumes?",
     branches: {
-      maquillaje: ["sephora", "ulta", "target"],
-      skincare: ["yesstyle", "sephora", "ulta"],
+      maquillaje: ["sephora"],
+      skincare: ["sephora"],
       perfumes: ["sephora"],
     },
   },

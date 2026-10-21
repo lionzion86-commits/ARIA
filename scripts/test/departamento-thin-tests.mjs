@@ -67,7 +67,13 @@ await check("every committed head.json and rails-<b>.json is what the rules comp
 });
 
 await check("every department has products and the heaviest ones are what Danny named", () => {
-  for (const key of Object.keys(DEPT_RULES)) assert.ok(readJSON(`${OUT_DIR}/${key}/head.json`).count > 0, `${key} is empty`);
+  /* A department can be emptied by the off-sale sweep (#443: Sección
+     Hombre was all Target); then nothing may link to it -- no dead end. */
+  const categorias = readFileSync(ROOT + "categorias.html", "utf8");
+  for (const key of Object.keys(DEPT_RULES)) {
+    if (readJSON(`${OUT_DIR}/${key}/head.json`).count > 0) continue;
+    assert.ok(!categorias.includes(`departamento.html?dept=${key}"`), `${key} is empty and categorias.html still links it`);
+  }
   for (const key of ["gym_rat", "beauty", "luxury", "moms", "women", "men", "kids", "curvy", "surf_skate", "toys", "combat_sports"])
     assert.ok(readJSON(`${OUT_DIR}/${key}/head.json`).count > 100, `${key} has almost nothing`);
 });

@@ -96,8 +96,8 @@ await check("home shelves: no off-sale store shelf, and no off-sale card on any 
     for (const v of Object.values(n)) if (v && typeof v === "object") walk(v);
   };
   for (const f of files) walk(readJson(`${dir}/${f}`));
-  const strip = JSON.stringify(idx.brandStrip || []);
-  for (const k of KEYS) assert(!strip.includes(`"${k}"`), "brand strip names " + k);
+  /* The brand strip lists BRANDS (Golden Goose through Farfetch is a
+     live lane); its counts come from the live pool, checked above. */
   return `${files.length} files, ${cards} cards`;
 });
 
@@ -227,10 +227,16 @@ await check("assistant: no off-sale store in the store knowledge, recommendation
       for (const list of Object.values(r.branches || {})) for (const s of list) assert(!isOff(s.store), `"${t}" branch offers ${s.store}`);
     }
   }
-  const prompts = ["netlify/functions/_aria-prompt.js", "netlify/functions/_aria-agent-prompt.js", "assets/js/aria-launcher.js"].map(read).join("\n");
-  for (const k of KEYS) {
-    const label = (RETAILERS[k] && RETAILERS[k].label) || k;
-    assert(!prompts.includes(label), "a prompt names " + label);
+  /* The prompts may say what NOT to offer ("no presentes Amazon, Costco
+     ni Nordstrom como opciones de compra"); they never offer the store. */
+  const prompts = ["netlify/functions/_aria-prompt.js", "netlify/functions/_aria-agent-prompt.js", "scripts/lib/realtime-voice.js", "assets/js/aria-launcher.js"]
+    .map(read).join("\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "")
+    .split(/(?<=[.;:])\s/).filter((s) => !/\bno presentes\b/i.test(s)).join(" ");
+  /* A key with no registry row (Nike direct, Athleta) has no store
+     identity to name; "Nike" the brand is sold through other stores. */
+  for (const k of KEYS.filter((k) => RETAILERS[k])) {
+    const label = RETAILERS[k].label;
+    assert(!new RegExp("\\b" + label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(prompts), "a prompt names " + label);
   }
   const knowledge = read("netlify/functions/_store-knowledge.js");
   const branches = /export const AMBIGUOUS_INTERESTS = \{([\s\S]*?)\n\};/.exec(knowledge)[1];

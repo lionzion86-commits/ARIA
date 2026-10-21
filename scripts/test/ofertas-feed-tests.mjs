@@ -57,7 +57,8 @@ function storeSales(storeKey) {
 }
 
 check("the feed holds every store's catalogue markdowns, not the four scraped stores alone", () => {
-  for (const s of ["target", "walmart", "ccs", "ssense", "footlocker", "kohls", "macys"])
+  /* Live lanes; Target, SSENSE, Foot Locker, Kohl's and Macy's are off sale (#443). */
+  for (const s of ["walmart", "ccs", "zumiez", "farfetch", "skims", "prosoccer"])
     assert.ok((feed.counts[s] || 0) > 0, `${s} has no rows in the feed`);
   assert.ok(feed.items.length > 20000, `only ${feed.items.length} rows`);
 });
