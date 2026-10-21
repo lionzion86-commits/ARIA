@@ -21246,6 +21246,28 @@ const PLAYSET_IMPOSTOR_RE = /\b(pretend|camping|toy)\b|^(?![\s\S]*\b(?:swing set
 const MATTRESS_IMPOSTOR_RE = /\bmattress\s*(pad|protector|topper)\b/i;
 const MONITOR_IMPOSTOR_RE = /\b(baby|audio|security)\b/i;
 const SKATEBOARD_PARTS_RE = /\b(wheels?|bearings?|trucks?|hardware|griptape|riser\s*pads?|book\b)/i;
+/* #449: small goods that name a bulky thing; cheap lines only. Mirrors scripts/lib/item-weight.js. */
+const NOT_BULKY_RE = /\b(t[- ]?shirts?|tees?|jerseys?|hoodies?|sweatshirts?|pajamas?|pijamas?|sandals?|wallets?|socks?|toys?(?!\s*(?:storage|box(?:es)?|chests?|organi[sz]ers?|shel(?:f|ves)|bins?|racks?))|juguetes?|set de juego|pretend|dolls?|muñecas?|mini brands|figuras?|funko|bobbleheads?|lego|building (?:sets?|kits?|toys?|blocks?)|learning desks?|playing cards|board games?|puzzles?|jigsaw|rompecabezas|rattles?|bubbles?|magnets?|miniatures?|book ?nooks?|dishwasher[- ]safe|desk lamps?|lap desks?|sofa surfers?|couch consoles?|power strips?|outlet extenders?|curtains?|throw pillows?|bed ?skirts?|dust ruffles?|figurines?|statues?|sculptures?|stickers?|decals?|posters?|keychains?|mugs?|tumblers?|wreaths?|play-?doh|charms?|(?:artificial|fake|faux)\s+(?:potted\s+)?(?:flowers?|plants?|succulents?|bonsai|orchids?)|cruiser wheels|skateboard wheels?)\b/i;
+const PLAY_STRUCTURE_RE = /\b(swing set|jungle gym|climbing frame|trampoline)\b|^(?![\s\S]*\b(?:dolls?|doll ?house|dollhouse|miniatures?)\b)[\s\S]*\b(?:playhouse|play house)\b/i;
+function notBulkyTitle(title) {
+  const t = String(title || "");
+  if (PLAY_STRUCTURE_RE.test(t)) return false;
+  return NOT_BULKY_RE.test(t.replace(/\bwith\b[^,;]*/gi, " "));
+}
+/* Row guards for the generic words: a cabinet ORGANIZER, a desk LAMP,
+   home-gym BANDS, ping-pong BALLS, a toddler DINING SET of plates. */
+const CABINET_IMPOSTOR_RE = /\b(spice racks?|shelf\s*bins?|over the cabinet|cabinet\s*(?:doors?|drawers?|knobs?|pulls?|hinges?|locks?|liners?|lights?|shel(?:f|ves)|storage|cutting|organi[sz]ers?)|under[- ]cabinet|(?:for|in) (?:the |kitchen |bathroom )?cabinets?|for\s+(?:[\w&]+,?\s+){1,6}cabinets?|bookshelf\s*(?:decor|edition|inserts?))\b/i;
+const DESK_IMPOSTOR_RE = /\b(desk\s*(?:lamps?|lights?|organi[sz]ers?|mats?|pads?|fans?|clocks?|calendars?|accessor\w*|shel(?:f|ves)|decor|plants?|frames?|mounts?|mounting|stands?|clamps?)|desktop|mounts?|clamps?|stools?|drawer organi[sz]ers?|(?:for|on) (?:your |the |a )?(?:\w+ )?(?:or )?desks?)\b/i;
+const GYM_IMPOSTOR_RE = /\b(bands?|mats?|gloves?|straps?|ropes?|towels?|bottles?|(?:for|in) (?:the |your |a )?home gym)\b/i;
+const GAME_TABLE_IMPOSTOR_RE = /\b(?:ping ?pong|table tennis)\s+(?:balls?|paddles?|rackets?|nets?|sets?)\b/i;
+const DINING_SET_IMPOSTOR_RE = /\b(toddlers?|kids'?|baby|bab(?:y|ies)|splash|\d+\s*pk|plates?|bowls?|utensils?|placemats?)\b/i;
+const CANOPY_IMPOSTOR_RE = /\b(bedding|banners?|comfort canopy|replacement|sunshade|woven|(?:for|on) (?:\w+ )?(?:porch|patio|gazebo|pergola))\b/i;
+const BED_FRAME_IMPOSTOR_RE = /\b(bed\s*frame\s*covers?|covers?)\b/i;
+const APPLIANCE_ACCESSORY_RE = /\b(?:washer\s*kits?|scents?)\b|\b(?:fridge|refrigerator|freezer)\s*(?:and\s*|&\s*)?(?:pantry\s*)?(?:kitchen\s*)?(?:drink\s*|can\s*|produce\s*)?(?:organi[sz]ers?|bins?|storage|containers?|trays?|bags?|mats?|liners?|magnets?|deodori[sz]ers?|pushers?)\b|\b(?:organi[sz]ers?|bins?|storage|containers?|racks?|trays?|filters?|lids?|domes?|tablets?|pushers?)\b[^,]{0,60}\bfor\s+(?:[\w&,]+\s+){0,6}(?:fridge|refrigerator|freezer)\b|\bbottle\s*(?:washer|sterilizer|dryer)|\bdishwasher\s*(?:baskets?|bags?)\b|\bfreezer\s*(?:sticks?|packs?|molds?|trays?)\b|\bhigh ?chairs?\b|\bsterilizer|\bhepa\b|\bdescal\w*|\bdetergent|\b(?:gear|lock|flat|thrust|spring|shim|crush|seal)\s*washers?\b|\bwashers?\s*,/i;
+const STROLLER_ACCESSORY_RE = /\bstroller\s*(?:party|clips?|liners?|caddy|bags?|organi[sz]ers?|hooks?|fans?|covers?|toys?|straps?|handles?|cup ?holders?|blankets?)\b|\bcar\s*seat\s*(?:covers?|protectors?|mirrors?|toys?|organi[sz]ers?|canopy|blankets?|head support)\b/i;
+const GRILL_ACCESSORY_RE = /\b(play[- ]?doh|bubbles?|blankets?|tool\s*sets?|tools|mount|role\s*play|grill\s*(?:brush|mats?|covers?|cleaner|gloves?|baskets?|grates?|pans?))\b/i;
+const CHEAP_PLAYSET_RE = /^(?![\s\S]*\b(?:swing|playhouse|play house|jungle gym|climbing|outdoor|backyard)\b)/i;
+const PUNCHING_ACCESSORY_RE = /\b(attachments?|kits?|gloves?|wraps?|hooks?|chains?|swivels?|hangers?|mounts?|springs?|fillers?)\b/i;
 const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /\bjeans?\b|denim/i, kg: 1, tier: 'cited' },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: 'cited' },   // std cotton tee ~140-200g (printful.com, printkk.com)
@@ -21416,6 +21438,10 @@ function titlePackCount(text){
   return Number.isFinite(n) && n >= 2 && n <= MAX_PACK_COUNT ? n : 1;
 }
 
+/* #449: the top of a lb range, and a heavy figure on a mount or hook, are not weights. */
+const RANGE_BEFORE_RE = /\d\s?[\u2013\u2014]\s?$/;
+const MOUNT_CAPACITY_RE = /\b(mounts?|mounting|hooks?|hangers?|clamps?|brackets?|suction|magnetic)\b/i;
+const MOUNT_CAPACITY_MIN_KG = 5;
 function titleWeight(title){
   const text = String(title || '');
   if (!text) return null;
@@ -21427,6 +21453,7 @@ function titleWeight(title){
   let match;
   while ((match = re.exec(text)) !== null){
     if (CAPACITY_BEFORE_RE.test(text.slice(0, match.index + match[1].length))) continue;  // "up to 70 lb" is a limit
+    if (RANGE_BEFORE_RE.test(text.slice(0, match.index + match[1].length))) continue;    // "(30-50 lb)" is a range (#449)
     const value = parseFloat(match[2].replace(',', '.'));
     if (!Number.isFinite(value) || value <= 0) continue;
     const unit = match[3].toLowerCase().replace(/\s+/g, ' ');
@@ -21438,6 +21465,7 @@ function titleWeight(title){
       : /^(kg|kilogram|kilograms)$/.test(unit) ? value
       : value / 1000;
     if (!(netKg > 0) || netKg > MAX_TITLE_WEIGHT_KG) continue;
+    if (netKg > MOUNT_CAPACITY_MIN_KG && MOUNT_CAPACITY_RE.test(text)) continue;  // a mount's load (#449)
     const packs = titlePackCount(text);
     const totalNetKg = netKg * packs;
     if (totalNetKg > MAX_TITLE_WEIGHT_KG) continue;
@@ -21591,13 +21619,15 @@ const APPLIANCE_IMPOSTOR_RE = /\b(washer\s*fluid|windshield\s*washer|windscreen\
 const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
 const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(sofa|loveseat|couch|sectional|futon)\b/i, kg: 70 },
+  { match: /\b(?:crib|toddler|bassinet|playard|pack ?n ?play|cradle)(?:\s*(?:&|and)\s*toddler)?\s+mattress(?:es)?\b/i, not: MATTRESS_IMPOSTOR_RE, cheapOnly: true, kg: 8 },
+  { match: /\bhigh ?chairs?\b/i, not: /\b(covers?|cushions?|straps?|trays?|toys?|pads?|liners?|mats?)\b/i, cheapOnly: true, kg: 8 },
   { match: /\b(mattress|box spring|boxspring)\b/i, not: MATTRESS_IMPOSTOR_RE, kg: 40 },
-  { match: /\b(bed frame|headboard|bunk bed|platform bed)\b/i, kg: 45 },
+  { match: /\b(bed frame|headboard|bunk bed|platform bed)\b/i, cheapNot: BED_FRAME_IMPOSTOR_RE, kg: 45 },
   { match: /\b(wardrobe|armoire|china cabinet)\b/i, kg: 60 },
   { match: /\b(dresser|chest of drawers|drawer chest)\b/i, kg: 55 },
-  { match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym)\b/i, kg: 90 },
-  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, not: APPLIANCE_IMPOSTOR_RE, kg: 90 },
-  { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, kg: 40 },
+  { match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym)\b/i, cheapNot: GYM_IMPOSTOR_RE, kg: 90 },
+  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, not: APPLIANCE_IMPOSTOR_RE, cheapNot: APPLIANCE_ACCESSORY_RE, kg: 90 },
+  { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, cheapNot: DESK_IMPOSTOR_RE, kg: 40 },
   { match: /\b(tv stand|media console|entertainment center|credenza)\b/i, kg: 35 },
   /* TELEVISIONS (2026-09-29). TVs are banned from catalogues but live search
      is never filtered, so a TV can still reach a card - where it quoted the
@@ -21606,9 +21636,9 @@ const BULKY_WEIGHT_ESTIMATES_KG = [
      cables); Apple TV and TV furniture stay out via the guard. */
   { match: /\b\d{2,3}\s?(?:-?inch|["\u201c\u201d])[^,]{0,40}\btvs?\b|\btvs?\b[^,]{0,40}\b\d{2,3}\s?(?:-?inch|["\u201c\u201d])|\b(qled|oled)\b/i,
     not: /\bapple\s*tv\b|tv\s*(series|stand|background|mount)/i, kg: 8 },
-  { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, kg: 30 },
-  { match: /\b(grill|smoker|bbq)\b/i, not: GRILL_IMPOSTOR_RE, kg: 50 },
-  { match: /\b(patio set|outdoor set|sofa set|dining set)\b/i, kg: 55 },
+  { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, cheapNot: CABINET_IMPOSTOR_RE, kg: 30 },
+  { match: /\b(grill|smoker|bbq)\b/i, not: GRILL_IMPOSTOR_RE, cheapNot: GRILL_ACCESSORY_RE, kg: 50 },
+  { match: /\b(patio set|outdoor set|sofa set|dining set)\b/i, cheapNot: DINING_SET_IMPOSTOR_RE, kg: 55 },
   { match: /\b(air conditioner|dehumidifier|space heater)\b/i, kg: 30 },
   { match: /\bmini fridge\b/i, kg: 18 },
   { match: /\bmicrowave\b/i, not: /\bskateboard\b/i, kg: 12 },
@@ -21616,7 +21646,7 @@ const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\bskateboards?\b|\bskate\s*decks?\b/i, not: SKATEBOARD_PARTS_RE, kg: 2.5 },
   { match: /\b(recliner|armchair|accent chair|office chair|dining chair)\b/i, kg: 18 },
   { match: /\b(rug|carpet|area rug)\b/i, kg: 16 },
-  { match: /\b(vacuum|stroller|car seat)\b/i, not: VACUUM_IMPOSTOR_RE, kg: 12 },
+  { match: /\b(vacuum|stroller|car seat)\b/i, not: VACUUM_IMPOSTOR_RE, cheapNot: STROLLER_ACCESSORY_RE, kg: 12 },
   { match: /\b(suitcase|luggage)\b/i, kg: 6 },
 
   /* SPORTING AND OUTDOOR GOODS (2026-09-19).
@@ -21628,15 +21658,15 @@ const BULKY_WEIGHT_ESTIMATES_KG = [
      These are the bulky sports categories a general retailer actually
      sells, with the same conservative bias as everything above. */
   { match: /\b(trampoline)\b/i, kg: 45 },
-  { match: /\b(swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, not: PLAYSET_IMPOSTOR_RE, kg: 55 },
-  { match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, kg: 45 },
+  { match: /\b(swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, not: PLAYSET_IMPOSTOR_RE, cheapNot: CHEAP_PLAYSET_RE, kg: 55 },
+  { match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, cheapNot: GAME_TABLE_IMPOSTOR_RE, kg: 45 },
   { match: /\b(basketball (hoop|system|goal)|backboard)\b/i, kg: 40 },
-  { match: /\b(punching bag|heavy bag|boxing bag)\b/i, kg: 35 },
+  { match: /\b(punching bag|heavy bag|boxing bag)\b/i, cheapNot: PUNCHING_ACCESSORY_RE, kg: 35 },
   { match: /\b(lawn ?mower|snow blower)\b/i, kg: 35 },
   { match: /\b(kayak|canoe|paddle ?board)\b/i, not: KAYAK_IMPOSTOR_RE, kg: 25 },
-  { match: /\b(canopy|gazebo|pergola|car ?port)\b/i, kg: 25 },
+  { match: /\b(canopy|gazebo|pergola|car ?port)\b/i, cheapNot: CANOPY_IMPOSTOR_RE, kg: 25 },
   { match: /\b(wheelbarrow)\b/i, kg: 20 },
-  { match: /\b(weight set|barbell|kettlebell|dumbbell|weight plates?)\b/i, kg: 20 },
+  { match: /\b(weight set|barbell|kettlebell|dumbbell|weight plates?)\b/i, cheapNot: GYM_IMPOSTOR_RE, kg: 20 },
   { match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle)\b/i, kg: 16 },
   { match: /\b(above ?ground pool|swimming pool|inflatable pool|pool set)\b/i, kg: 15 },
   { match: /\b(step ladder|extension ladder)\b/i, kg: 12 },
@@ -22529,19 +22559,19 @@ const WEIGHT_SANITY_BOUNDS = [
   /* A toy a LARGE_TOY row priced (#449) is judged as a toy: "Doll House
      Playset with Light Projector" is not a projector, and a dollhouse
      "Playhouse" is not a backyard one. Wide on purpose; the rows price it. */
-  { key: "juguete grande", test: (t) => largeToyWeightKg(t) != null, minKg: 2, maxKg: 40 },
+  { key: "juguete grande", test: (t, cheap) => largeToyWeightKg(t, cheap ? {} : { priceUsd: CONSERVATIVE_PRICE_USD }) != null, minKg: 2, maxKg: 40 },
   { key: "goal", match: GOAL_RE, minKg: 3, maxKg: 45 },
-  { key: "trampolín/columpio", test: (t) => /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i.test(t) && !PLAYSET_IMPOSTOR_RE.test(t), minKg: 20, maxKg: 130 },
-  { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15, maxKg: 130 },
-  { key: "aro de básquet", match: /\b(basketball (hoop|system|goal)|backboard)\b/i, minKg: 10, maxKg: 90 },
-  { key: "equipo de gimnasio", match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym|punching bag|heavy bag|weight set|barbell|kettlebell|weight plates?)\b/i, minKg: 10, maxKg: 220 },
+  { key: "trampolín/columpio", test: (t, cheap) => /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i.test(t) && !PLAYSET_IMPOSTOR_RE.test(t) && !(cheap && CHEAP_PLAYSET_RE.test(t)), minKg: 20, maxKg: 130 },
+  { key: "mesa de juego", test: (t, cheap) => /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i.test(t) && !(cheap && (GAME_TABLE_IMPOSTOR_RE.test(t) || notBulkyTitle(t))), minKg: 15, maxKg: 130 },
+  { key: "aro de básquet", test: (t, cheap) => /\b(basketball (hoop|system|goal)|backboard)\b/i.test(t) && !(cheap && notBulkyTitle(t)), minKg: 10, maxKg: 90 },
+  { key: "equipo de gimnasio", test: (t, cheap) => /\b(treadmill|elliptical|exercise bike|weight bench|home gym|punching bag|heavy bag|weight set|barbell|kettlebell|weight plates?)\b/i.test(t) && !(cheap && (GYM_IMPOSTOR_RE.test(t) || PUNCHING_ACCESSORY_RE.test(t) || notBulkyTitle(t))), minKg: 10, maxKg: 220 },
   { key: "electrodoméstico grande",
-    test: (t) => /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove|air conditioner|dehumidifier|lawn ?mower|snow blower)\b/i.test(t)
-      && !APPLIANCE_IMPOSTOR_RE.test(t),
+    test: (t, cheap) => /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove|air conditioner|dehumidifier|lawn ?mower|snow blower)\b/i.test(t)
+      && !APPLIANCE_IMPOSTOR_RE.test(t) && !(cheap && (APPLIANCE_ACCESSORY_RE.test(t) || notBulkyTitle(t))),
     minKg: 8, maxKg: 220 },
-  { key: "muebles", test: (t) => /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i.test(t) && !MATTRESS_IMPOSTOR_RE.test(t), minKg: 8, maxKg: 160 },
-  { key: "exterior/camping", test: (t) => /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i.test(t) && !GRILL_IMPOSTOR_RE.test(t) && !KAYAK_IMPOSTOR_RE.test(t) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 90 },
-  { key: "bicicleta", test: (t) => /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i.test(t) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 45 },
+  { key: "muebles", test: (t, cheap) => /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i.test(t) && !MATTRESS_IMPOSTOR_RE.test(t) && !(cheap && (notBulkyTitle(t) || CABINET_IMPOSTOR_RE.test(t) || BED_FRAME_IMPOSTOR_RE.test(t))), minKg: 8, maxKg: 160 },
+  { key: "exterior/camping", test: (t, cheap) => /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i.test(t) && !GRILL_IMPOSTOR_RE.test(t) && !KAYAK_IMPOSTOR_RE.test(t) && !(cheap && (GRILL_ACCESSORY_RE.test(t) || CANOPY_IMPOSTOR_RE.test(t) || notBulkyTitle(t))) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 90 },
+  { key: "bicicleta", test: (t, cheap) => /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i.test(t) && !(cheap && notBulkyTitle(t)) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 45 },
   /* Tier-aware: the band comes from the same tier that produced the
      estimate, so a men's sneaker is judged against 0.8-1.6 and an infant
      shoe against 0.1-0.6. One "calzado" band cannot serve both, and a
@@ -22593,16 +22623,17 @@ const WEIGHT_SANITY_BOUNDS = [
    under-quote ourselves); above the ceiling the original is kept, so a
    path that forgets to check the flag over-quotes rather than losing
    money. Mirrors weightSanity() in scripts/lib/item-weight.js. */
-function bandFor(title){
+function bandFor(title, hints = {}){
   const t = String(title || '');
-  const bound = WEIGHT_SANITY_BOUNDS.find((b) => (b.match ? b.match.test(t) : b.test(t)));
+  const cheap = isCheapLine(hints);
+  const bound = WEIGHT_SANITY_BOUNDS.find((b) => (b.match ? b.match.test(t) : b.test(t, cheap)));
   if (!bound) return null;
   const pair = typeof bound.band === 'function' ? bound.band(t) : null;
   return { key: bound.key, minKg: pair ? pair[0] : bound.minKg, maxKg: pair ? pair[1] : (bound.maxKg ?? null) };
 }
 
-function weightSanity(title, kg) {
-  const band = bandFor(title);
+function weightSanity(title, kg, hints = {}) {
+  const band = bandFor(title, hints);
   const n = Number(kg);
   const key = band ? band.key : "sin categoría";
   const range = band && band.maxKg != null ? `${band.minKg}–${band.maxKg} kg` : `mínimo ${band?.minKg} kg`;
@@ -22749,16 +22780,19 @@ const LARGE_TOY_WEIGHTS_KG = [
   { key: "montable 12V+", match: /\b(12|18|24|36)\s*-?\s*v(?:olts?)?\b[^,]{0,60}\b(ride[- ]?on|power wheels|jeep|atv|quad|utv|truck|car|tractor)\b|\b(ride[- ]?on|power wheels)\b[^,]{0,60}\b(12|18|24|36)\s*-?\s*v(?:olts?)?\b/i, kg: 27.3 },
   { key: "montable", match: /\bpower wheels\b|\bcozy coupe\b|\b6\s*-?\s*v(?:olts?)?\b[^,]{0,60}\bride[- ]?on\b|\bride[- ]?on\b[^,]{0,60}\b(6\s*-?\s*v(?:olts?)?|electric|battery[- ]powered|motorized)\b|\b(electric|battery[- ]powered|motorized)\b[^,]{0,40}\bride[- ]?on\b/i, kg: 12.7 },
   { key: "cocina de juguete", match: /\bplay ?kitchens?\b|\bkitchenettes?\b|\b(pretend|kids'?|toddler|toy)\s+kitchen\b|\bkitchen (?:play ?sets?|set de juego)\b/i,
-    not: /\b(accessor(?:y|ies)|play food|food set|utensils?|cookware|pots|pans|dishes|tea set|kitchen toys?)\b|play-?doh/i, kg: 21.5 },
+    not: /\b(accessor(?:y|ies)|play food|food set|utensils?|cookware|pots|pans|dishes|tea set|kitchen toys?)\b|play-?doh/i,
+    notCore: /\b(accesorios|food|bucket|bbq|grill|coffee|appliances?|fruits?|frutas|steak|cutting)\b/i, kg: 21.5 },
   { key: "garaje de juguete", match: /\b(ultimate|mega|super ultimate)\s+garage\b|\bgarage\s+play ?set\b|\bparking garage\b[^,]{0,40}\b(toy|play ?set|cars?)\b/i, kg: 8.4 },
 ];
 
 /** A large toy's published shipping weight, or null. Checked before the
     bulky table: a dollhouse "playset" is not a backyard swing set. */
-function largeToyWeightKg(title) {
+function largeToyWeightKg(title, hints = {}) {
   const t = String(title || "");
   if (TOY_ROW_IMPOSTOR_RE.test(t)) return null;
-  const hit = LARGE_TOY_WEIGHTS_KG.find((r) => r.match.test(t) && !(r.not && r.not.test(t)));
+  /* notCore (#449, cheap lines): read without the "with ..." clauses. */
+  const core = isCheapLine(hints) ? t.replace(/\bwith\b[^,;]*/gi, " ") : null;
+  const hit = LARGE_TOY_WEIGHTS_KG.find((r) => r.match.test(t) && !(r.not && r.not.test(t)) && !(core != null && r.notCore && r.notCore.test(core)));
   return hit ? hit.kg : null;
 }
 
@@ -22877,15 +22911,157 @@ function departmentFallbackKg(title, hints = {}) {
   return { kg: row.bandKg[1], key: row.key, minKg: row.bandKg[0], maxKg: row.bandKg[1] };
 }
 
-function bulkyWeightKg(text){
-  const t = String(text || '');
+/* #449 SIBLING WEIGHT INFERENCE: under $75, a no-match line is weighed by its verified siblings
+   (median x 1.10, 2 kg cap, flagged `inferred`). Mirrors scripts/lib/item-weight.js, where the rationale lives. */
+const INFERENCE_UNDER_USD = CONSERVATIVE_PRICE_USD;
+
+/* The title the type rules read: lower case, accents and curly quotes
+   folded, exactly as the builder normalised it. */
+function inferenceTitle(title) {
+  return String(title || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’']/g, "'");
+}
+
+let inferenceCompiled = null, inferenceCompiledFor = null;
+function compileInference(data) {
+  if (inferenceCompiledFor === data) return inferenceCompiled;
+  inferenceCompiled = {
+    types: (data.types || []).map(([k, src]) => [k, new RegExp(src)]),
+    pins: (data.pins || []).map((p) => ({ ...p, re: p.match ? new RegExp(p.match) : null, steps: (p.steps || []).map(([src, kg]) => [new RegExp(src), kg]) })),
+  };
+  inferenceCompiledFor = data;
+  return inferenceCompiled;
+}
+
+/**
+ * The inferred shipping weight for a product no row recognised, or null
+ * (no price, $75 or more, or no data). hints: { retailer, priceUsd }.
+ * Returns { kg, basis, key, dept, type, capped } where basis is
+ * "pinned" | "sibling" | "dept-median" | "catalog-median".
+ */
+/* THE DATA, ON THIS PAGE (#449). The page cannot import the module, so
+   it fetches the same object the server bundles: once, async, at low
+   priority (about 12 KB gzipped, cached an hour like every JSON). Until
+   it lands, a no-match line keeps the 0.6 kg generic it had before;
+   checkout re-resolves every line on the server either way. */
+let ACTIVE_INFERRED_WEIGHTS = null;
+function useInferredWeights(data) { ACTIVE_INFERRED_WEIGHTS = data; }
+const INFERRED_WEIGHTS_URL = '/assets/weight/inferred-weights.json';
+try {
+  if (typeof window !== 'undefined' && typeof fetch === 'function') {
+    fetch(INFERRED_WEIGHTS_URL, { priority: 'low' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && Array.isArray(d.types)) useInferredWeights(d); })
+      .catch(() => {});
+  }
+} catch (e) { /* no data: the generic stands */ }
+function inferredWeightKg(title, hints = {}, data = ACTIVE_INFERRED_WEIGHTS) {
+  if (!data || !Array.isArray(data.types)) return null;
+  const h = hints || {};
+  const price = Number(h.priceUsd);
+  if (!(price > 0) || !(price < (data.underUsd || INFERENCE_UNDER_USD))) return null;
+  const c = compileInference(data);
+  const t = inferenceTitle(title);
+  let type = "other";
+  for (const [k, re] of c.types) if (re.test(t)) { type = k; break; }
+  const store = (data.stores || {})[String(h.retailer || "").toLowerCase()] || null;
+  const dept = store ? ((store[1] && store[1][type]) || store[0]) : null;
+  for (const pin of c.pins) {
+    if (pin.dept && pin.dept !== dept) continue;
+    if (pin.types ? !pin.types.includes(type) : !(pin.re && pin.re.test(t))) continue;
+    let kg = pin.kg;
+    for (const [re, k] of pin.steps) if (re.test(t)) { kg = k; break; }
+    return { kg, basis: "pinned", key: pin.key, dept, type, capped: false };
+  }
+  const cluster = dept && type !== "other" && data.clusters && data.clusters[dept] ? data.clusters[dept][type] : undefined;
+  let kg, basis, key;
+  if (cluster != null) { kg = cluster; basis = "sibling"; key = dept + "/" + type; }
+  else if (dept && data.depts && data.depts[dept] != null) { kg = data.depts[dept]; basis = "dept-median"; key = dept; }
+  else { kg = data.catalog; basis = "catalog-median"; key = "catálogo"; }
+  /* The type's physical-sanity range. */
+  const range = data.ranges && data.ranges[type];
+  if (range) kg = Math.min(range[1], Math.max(range[0], kg));
+  const cap = data.capKg || 2;
+  const capped = kg > cap;
+  return { kg: Math.round((capped ? cap : kg) * 100) / 100, basis, key, dept, type, capped };
+}
+
+/* An inferred figure is moved into the title's sanity band, never held outside it. */
+function clampToBand(title, kg) {
+  const band = bandFor(title);
+  let n = Number(kg);
+  if (!band) return n;
+  if (n < band.minKg) n = band.minKg;
+  if (band.maxKg != null && n > band.maxKg) n = band.maxKg;
+  return n;
+}
+
+/* #449: the moms catalogue's flat 4/12/25 kg stamps are not weights. Mirrors item-weight.js. */
+const CATALOG_PLACEHOLDERS = [
+  { kg: 4 },
+  { kg: 12, keep: /\b(strollers?|car ?seats?|travel systems?|playards?|pack ?n ?play|high ?chairs?|bassinets?)\b/i, unless: STROLLER_ACCESSORY_RE },
+  { kg: 25, keep: /\bcribs?\b/i, unless: /\b(sheets?|mattress(?:es)?)\b/i },
+];
+function isCatalogPlaceholder(kg, retailer, title, hints = {}) {
+  if (RETAILER_DEPARTMENT[String(retailer || "").toLowerCase()] !== "bebé") return false;
+  const n = Number(kg);
+  const t = String(title || "");
+  const p = CATALOG_PLACEHOLDERS.find((x) => x.kg === n);
+  if (!p) return false;
+  /* Judged on cheap lines only (#449): under $75 a stamp is no weight and
+     inference answers. At $75+ the stamp stands as on main -- dropping it
+     there sends playards, high chairs and cribs to the 2 kg band top. */
+  if (!isCheapLine(hints)) return false;
+  if (!p.keep) return true;
+  return !(p.keep.test(t) && !(p.unless && p.unless.test(t)));
+}
+
+/* #449: the misfire guards (cheapNot, NOT_BULKY_RE, rugs by area) read only lines under $75 or unpriced. */
+function bulkyWeightKg(text, hints = {}) {
+  const t = String(text || "");
+  const cheap = isCheapLine(hints);
   // Toys first, at published weights: see LARGE_TOY_WEIGHTS_KG.
-  const toy = largeToyWeightKg(t);
+  const toy = largeToyWeightKg(t, hints);
   if (toy != null) return toy;
   const goal = goalWeightKg(t);
   if (goal != null) return goal;
-  const hit = BULKY_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t) && !(p.not && p.not.test(t)));
-  return hit ? withBuffer(hit.kg, 'reasoned') : null;
+  if (cheap) {
+    const rug = rugWeightKg(t);
+    if (rug != null) return rug;
+  }
+  const hit = BULKY_WEIGHT_ESTIMATES_KG.find((p) => p.match.test(t) && !(p.not && p.not.test(t))
+    && !(cheap && p.cheapNot && p.cheapNot.test(t)) && !(p.cheapOnly && !cheap));
+  if (!hit) return null;
+  // Small goods that name a bulky thing (#449): see NOT_BULKY_RE.
+  if (cheap && hit.kg >= 10 && notBulkyTitle(t)) return null;
+  return withBuffer(hit.kg, "reasoned");
+}
+
+/** A line under $75, or one with no price: the #449 misfire guards apply. */
+function isCheapLine(hints) {
+  return !(Number((hints || {}).priceUsd) >= CONSERVATIVE_PRICE_USD);
+}
+
+/* #449: a sized rug is weighed by its area (cheap lines). Mirrors item-weight.js. */
+const RUG_KG_PER_SQFT = 0.12;
+function rugWeightKg(title) {
+  const t = String(title || "");
+  if (!/\b(rug|carpet|area rug)\b/i.test(t)) return null;
+  /* No usable size: a cheap rug is a small one (a mat 2 kg, else 4 kg,
+     buffer on top), never the 16 kg area-rug row. */
+  const unsized = () => withBuffer(/\b(mats?|doormats?)\b/i.test(t) ? 2 : 4, "reasoned");
+  const m = /(\d+(?:\.\d+)?)\s*('|′|ft|feet|"|″|in(?:ch(?:es)?)?)?\s*[x×*]\s*(\d+(?:\.\d+)?)\s*('|′|ft\b|feet\b|"|″|in(?:ch(?:es)?)?\b)?/i.exec(t);
+  if (!m) return unsized();
+  const a = parseFloat(m[1]), b = parseFloat(m[3]);
+  const unit = String(m[2] || "") + String(m[4] || "");
+  const inches = /"|″|in/i.test(unit) || (!/'|′|ft|feet/i.test(unit) && a > 15 && b > 15);
+  if (!inches && !/'|′|ft|feet/i.test(unit) && (a > 15 || b > 15)) return unsized();
+  const sqft = inches ? (a * b) / 144 : a * b;
+  if (!(sqft > 0)) return unsized();
+  const kg = withBuffer(Math.min(30, Math.max(0.5, sqft * RUG_KG_PER_SQFT)), "reasoned");
+  /* A rug that states 4 ft or more meets the oversized band's 4 kg floor
+     (see WEIGHT_SANITY_BOUNDS): quoted at it, never held below it. */
+  const longestFt = inches ? Math.max(a, b) / 12 : Math.max(a, b);
+  return longestFt >= 4 ? Math.max(kg, 4) : kg;
 }
 
 /* ONE FREIGHT LINE, AND IT IS NOT A WARNING (2026-09-21).
@@ -23182,7 +23358,7 @@ function freightSharePct(weightKg, priceUsd){
    The two MUST agree: the card shows this number and checkout
    re-resolves it server side, and a card and a bill that disagree about
    what a parcel weighs is the bug that rule exists for. */
-function catalogWeightDetail(item, title){
+function catalogWeightDetail(item, title, hints = {}){
   /* THE NORMALIZED weightKg FIELD (2026-09-26). The catalogue schema
      writes `weightKg` (+10% display buffer, weightEstimated flag), but
      this read only `specWeightKg` — so thousands of real catalogue
@@ -23195,7 +23371,9 @@ function catalogWeightDetail(item, title){
   if (!item) return null;
   const kg = Number(item.weightKg ?? item.specWeightKg);
   if (!(Number.isFinite(kg) && kg > 0)) return null;
-  const check = weightSanity(title || '', kg);
+  // The moms catalogue's flat 4/12/25 kg stamps are not weights (#449).
+  if (isCatalogPlaceholder(kg, (hints || {}).retailer ?? item.retailer, title, hints || {})) return null;
+  const check = weightSanity(title || '', kg, hints || {});
   const estimated = item.weightEstimated !== false;
   return {
     kg: check.kg,
@@ -23220,7 +23398,7 @@ function estimateRetailWeightDetail(text, hints){
   const retailHit = RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t) && !(p.not && p.not.test(t)));
   // Small toys read AFTER the retail table (#449), as in sales-sources.js.
   const smallToy = retailHit ? null : smallToyWeightKg(t, hints || {});
-  const classified = !beauty && !stated && (bulkyWeightKg(t) != null
+  const classified = !beauty && !stated && (bulkyWeightKg(t, hints || {}) != null
     || bookWeightKg(t) != null
     || supplementWeightKg(t, hints || {}) != null
     || footwearWeightKg(t) != null
@@ -23234,24 +23412,32 @@ function estimateRetailWeightDetail(text, hints){
   const deptFall = (!beauty && candle == null && !stated && !classified)
     ? departmentFallbackKg(t, { retailer: (hints || {}).retailer, priceUsd: (hints || {}).priceUsd })
     : null;
+  /* Under $75 with a store and a price: sibling inference (#449), the
+     same question checkout's resolver answers for the line. */
+  const inferred = (!beauty && candle == null && !stated && !classified && !deptFall)
+    ? inferredWeightKg(t, { retailer: (hints || {}).retailer, priceUsd: (hints || {}).priceUsd })
+    : null;
 
   // The raw estimate, before the band is applied, is what the band judges.
   const raw = beauty ? beauty.kg
     : candle != null ? candle
     : stated ? stated.kg
-    : classified ? (bulkyWeightKg(t) ?? bookWeightKg(t) ?? supplementWeightKg(t, hints || {}) ?? footwearWeightKg(t) ?? ballWeightKg(t)
+    : classified ? (bulkyWeightKg(t, hints || {}) ?? bookWeightKg(t) ?? supplementWeightKg(t, hints || {}) ?? footwearWeightKg(t) ?? ballWeightKg(t)
         ?? (retailHit ? withBuffer(retailHit.kg, retailHit.tier) : smallToy))
     : deptFall ? deptFall.kg
+    : inferred ? clampToBand(t, inferred.kg)
     : GENERIC_FALLBACK_KG;
 
-  const check = weightSanity(t, raw);
-  const source = beauty ? 'beauty' : candle != null ? 'candle' : stated ? 'title' : classified ? 'category' : deptFall ? 'department' : 'fallback';
+  const check = weightSanity(t, raw, hints || {});
+  const source = beauty ? 'beauty' : candle != null ? 'candle' : stated ? 'title' : classified ? 'category' : deptFall ? 'department' : inferred ? 'inferred' : 'fallback';
   /* THREE STATES. out-of-band fails closed (no freight figure is
      rendered anywhere and it is kept out of Ofertas); a gap is quotable
      on the generic estimate but never promoted as a deal; a beauty
      estimate is neither — it has a real row and only wants calibrating.
      Mirrors estimateWeightDetail() in scripts/lib/sales-sources.js. */
-  const reviewKind = !check.ok ? 'out-of-band' : (source === 'fallback' || source === 'department') ? 'gap' : source === 'beauty' ? 'calibration' : null;
+  /* An inferred weight is not a gap (#449, Danny's 889 ruling): quoted,
+     and not held for costing more than the product. */
+  const reviewKind = !check.ok ? 'out-of-band' : (source === 'fallback' || source === 'department') ? 'gap' : source === 'beauty' ? 'calibration' : source === 'inferred' ? 'inferred' : null;
   return {
     kg: check.kg,
     source,
@@ -23261,6 +23447,7 @@ function estimateRetailWeightDetail(text, hints){
     flagged: reviewKind === 'out-of-band' || reviewKind === 'gap',
     reason: check.reason,
     bound: check.key,
+    ...(inferred && source === 'inferred' ? { inferred: true, inferredBasis: inferred.basis, inferredKey: inferred.key } : {}),
   };
 }
 
@@ -23438,7 +23625,7 @@ function normalizeLiveItem(item, hints){
   const reviewCount = Number.isFinite(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
     ? Math.round(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
     : null;
-  const weightDetail = catalogWeightDetail(item, title) || estimateRetailWeightDetail(title, {
+  const weightDetail = catalogWeightDetail(item, title, { retailer: hints?.retailer ?? item.retailer, priceUsd: price ?? undefined }) || estimateRetailWeightDetail(title, {
     retailer: hints?.retailer ?? item.retailer,
     department: hints?.department ?? item.department,
     priceUsd: price ?? undefined,
@@ -26717,7 +26904,7 @@ function fmtPEN_direct(pen){
 function cartWeightReviewItems(){
   return cart.filter(it => {
     if (it && it.lineType === 'bundle-discount') return false;
-    const detail = estimateRetailWeightDetail(it.title || '');
+    const detail = estimateRetailWeightDetail(it.title || '', { retailer: it.retailer, priceUsd: Number(it.priceUsd ?? it.price) });
     return !freightQuotable(detail, Number(it.priceUsd ?? it.price)).quotable;
   });
 }
@@ -28113,7 +28300,7 @@ function salesFreshnessNote(generatedAt, stale){
    never overwritten — only our own estimate is. */
 function refreshCachedWeight(p){
   if (!p || p.weightEstimated === false) return p;
-  const detail = estimateRetailWeightDetail(p.title || '');
+  const detail = estimateRetailWeightDetail(p.title || '', { retailer: p.retailer, priceUsd: p.price });
   return { ...p, weightKg: detail.kg, weightEstimated: detail.estimated,
     weightSource: detail.source, weightReviewKind: detail.reviewKind,
     weightNeedsReview: detail.needsReview, weightFlagged: detail.flagged };
@@ -28491,7 +28678,7 @@ function productCardHTML(p, opts){
      0.065 kg and a men's sneaker at 1.94 kg are both wrong, and both used
      to be printed as freight. The card says the freight is being
      confirmed instead of showing a figure nobody believes. */
-  const localDetail = p.weightNeedsReview === undefined ? estimateRetailWeightDetail(p.title || '') : null;
+  const localDetail = p.weightNeedsReview === undefined ? estimateRetailWeightDetail(p.title || '', { retailer: p.retailer, priceUsd: p.price }) : null;
   const reviewKind = localDetail ? localDetail.reviewKind : p.weightReviewKind;
   /* AND A GENERIC GUESS THAT COSTS MORE THAN THE PRODUCT (2026-09-20).
 
