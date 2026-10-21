@@ -7,7 +7,7 @@
    touches the DOM at load, so this deliberately evaluates only the slice
    between the two markers below — pure functions and data, nothing that
    needs a browser. */
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
@@ -67,7 +67,12 @@ export function loadPageWeightSlice() {
     LIVE_PRICE_MARKUP: 1.24,
   };
   vm.createContext(sandbox);
-  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, candleWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, catalogWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, priceIncludesImportTax, dutiableBaseUsd, fmtDisplayPrice, taxIncludedNoteHTML, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
+  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, candleWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, catalogWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, priceIncludesImportTax, dutiableBaseUsd, fmtDisplayPrice, taxIncludedNoteHTML, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD, useInferredWeights, inferredWeightKg, clampToBand, isCatalogPlaceholder, notBulkyTitle, NOT_BULKY_RE, rugWeightKg, isCheapLine };", sandbox, { filename: "index.html#weights" });
+  /* #449: the page fetches its inferred-weight data at load; the sandbox
+     has no fetch, so it is handed the same file here, as the browser
+     would have it once the request lands. */
+  const data = fileURLToPath(new URL("../../assets/weight/inferred-weights.json", import.meta.url));
+  if (existsSync(data)) sandbox.__exports.useInferredWeights(JSON.parse(readFileSync(data, "utf8")));
   return sandbox.__exports;
 }
 
