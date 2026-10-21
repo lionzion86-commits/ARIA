@@ -49,7 +49,8 @@ const keys = Object.keys(STORES);
    still sell: CCS (the big catalogue, no demand), Walmart (departments,
    demand), YoungLA (gender facets), ProSoccer (category facets). Best
    Buy's themed slices are checked while a themed store is live. */
-const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k]);
+/* A store whose catalogue is still pending (DSW, #443) is not live. */
+const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORES[k].pendingCatalog);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;

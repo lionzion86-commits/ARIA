@@ -66,9 +66,11 @@ function bundleRegistry(src = bundleSrc()) {
     grab(/^function storeDoorFor\(key\)\{[\s\S]*?\r?\n\}/m),
     "globalThis.__R = { RETAILERS, retailerFor, activeRetailers, storeDoorFor };",
   ].join("\n");
+  /* The page loads /off-sale.js before the bundle; the bundle reads it. */
   const ctx = {};
   vm.createContext(ctx);
-  vm.runInContext(code, ctx);
+  if (existsSync(ROOT + "off-sale.js")) vm.runInContext(read("off-sale.js"), ctx);
+  vm.runInContext("var isOffSaleRetailer = (k) => !!(globalThis.AriaOffSale && globalThis.AriaOffSale.isOffSaleRetailer(k));\n" + code, ctx);
   return ctx.__R;
 }
 
@@ -96,6 +98,12 @@ await check("the pending flag agrees with the catalogue in all three mirrors", (
   assert.equal(mod.color, bun.color, "registry colour drifted between mirrors");
   assert.equal(mod.color, tie.color, "storefront colour drifted from the registry");
   assert.equal(mod.search, false, "DSW never joins the live search fan-out");
+  /* DSW is a store being launched, not one taken off sale: pendingCatalog
+     hides it today, and nothing else may once the catalogue lands. */
+  if (existsSync(ROOT + "off-sale.js")) {
+    const ctx = {}; vm.createContext(ctx); vm.runInContext(read("off-sale.js"), ctx);
+    assert.equal(ctx.AriaOffSale.isOffSaleRetailer(DSW_KEY), false, "DSW is on OFF_SALE_RETAILERS");
+  }
   assert.equal(bun.search, false);
 });
 
@@ -149,7 +157,7 @@ await check("every home DSW rail ships [hidden] and is revealed only by the live
   }
   const src = bundleSrc();
   assert.match(src, /section\[data-pending-catalog\][\s\S]{0,200}!pr\.pendingCatalog\) sec\.hidden = false/, "the reveal reads the registry");
-  assert.match(src, /TIENDAS_STRIP\.filter\(s => !\(retailerFor\(s\.k\) \|\| \{\}\)\.pendingCatalog\)/, "the Tiendas strip filters pending stores");
+  assert.match(src, /TIENDAS_STRIP\.filter\(s => [^\n]*!\(retailerFor\(s\.k\) \|\| \{\}\)\.pendingCatalog\)/, "the Tiendas strip filters pending stores");
 });
 
 await check("tienda.html: no directory card, and ?tienda=dsw is the directory, not 'Catálogo en preparación'", () => {
