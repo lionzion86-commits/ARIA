@@ -43,6 +43,13 @@ const read = (f) => readFileSync(ROOT + f, "utf8");
 const page = read("tienda.html");
 const STORES = tiendaStores(ROOT);
 const keys = Object.keys(STORES);
+/* LIVE LANES (#443). The registry's stores minus the ones taken off sale
+   (/off-sale.js). This battery first ran on SSENSE, Target, Gymshark,
+   New Balance and Best Buy; the same shapes now come from stores that
+   still sell: CCS (the big catalogue, no demand), Walmart (departments,
+   demand), YoungLA (gender facets), ProSoccer (category facets). Best
+   Buy's themed slices are checked while a themed store is live. */
+const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k]);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;
@@ -53,7 +60,7 @@ const roots = [ROOT];
 const built = buildAll(ROOT);
 
 await check("every store in the registry has its first screen and its endpoint file", () => {
-  assert.ok(keys.length >= 100, `only ${keys.length} stores in the registry`);
+  assert.ok(keys.length >= 80, `only ${keys.length} stores in the registry`);
   for (const k of keys) {
     assert.ok(existsSync(ROOT + `${SLICES_DIR}/${k}/index.json`), `${k}: no index.json`);
     assert.ok(existsSync(ROOT + `${FN_DIR}/${k}.json`), `${k}: no endpoint file`);
@@ -76,24 +83,27 @@ await check("the slices are current with the catalogues (node scripts/build-stor
 });
 
 await check("the build runs the page's own rules: same items, dedupe and chips the old loadStore made", () => {
-  /* Gymshark's single gym_rat bucket becomes gender + category pills. */
-  const g = idx("gymshark");
+  /* YoungLA's single gym_rat bucket becomes gender pills; ProSoccer's
+     feed types become category pills. */
+  const g = idx("youngla");
   assert.equal(g.chips.mode, "facet");
-  assert.deepEqual(g.chips.genders.map((x) => x.key), ["Mujer", "Hombre", "Unisex"]);
-  assert.ok(g.chips.cats.some((c) => c.key === "Leggings"));
-  /* Target's departments in shopper words, sorted as the page sorted them. */
-  const t = idx("target");
+  assert.deepEqual(g.chips.genders.map((x) => x.key), ["Mujer", "Hombre"]);
+  const ps = idx("prosoccer");
+  assert.equal(ps.chips.mode, "facet");
+  assert.ok(ps.chips.cats.some((c) => c.key === "Chimpunes"));
+  /* Walmart's departments in shopper words, sorted as the page sorted them. */
+  const t = idx("walmart");
   assert.equal(t.chips.mode, "dept");
   const labels = t.chips.depts.map((d) => d.label);
   assert.deepEqual(labels, labels.slice().sort((a, b) => a.localeCompare(b, "es")));
   /* Counts: every catalogue item with a name, a price and a real photo, once. */
-  const cat = JSON.parse(read("ssense-catalog.json")).retailers.ssense;
+  const cat = JSON.parse(read("ccs-catalog.json")).retailers.ccs;
   const seen = new Set();
   for (const d of Object.values(cat.departments)) for (const p of (d.items || d)) {
     const img = [p.image, p.imageUrl, p.img, p.thumbnail, ...(p.images || [])].find((u) => typeof u === "string" && u.indexOf("http") === 0 && u.length > 20 && !/foto-en-camino|placeholder|no-image/.test(u));
     if ((p.name || p.title || p.productName) && Number(p.price) > 0 && img) seen.add((p.name || p.title || p.productName) + "||" + img);
   }
-  assert.equal(idx("ssense").count, seen.size, "SSENSE's count differs from its catalogue");
+  assert.equal(idx("ccs").count, seen.size, "CCS's count differs from its catalogue");
 });
 
 await check("Ofertas de <store> leads whenever the store has a sale, and holds sale items only", () => {
@@ -114,12 +124,12 @@ await check("Ofertas de <store> leads whenever the store has a sale, and holds s
     /* A card's was-price only where the rule says sale. */
     for (const r of fn.rows) if (r[3]) assert.ok(r[4] > 0, `${k}: "${r[0]}" carries a was-price but no sale`);
   }
-  /* New Balance's merchant-flagged items are not sales (one rule). */
-  assert.equal(idx("newbalance").rails[0].key, "destacados");
+  /* A store whose items carry no real was-price leads with Destacados (one rule). */
+  assert.equal(idx("valsurf").rails[0].key, "destacados");
 });
 
 await check("Más vendidos follows Ofertas where the store publishes demand; type rails after", () => {
-  for (const k of ["walmart", "macys", "gymshark", "sephora", "bestbuy"]) {
+  for (const k of ["walmart", "sephora", "abercrombie", "finishline", "crocs", ...LIVE_SLICED]) {
     const ks = idx(k).rails.map((r) => r.key);
     assert.equal(ks[1], "masvendidos", `${k}: ${ks.join(",")}`);
   }
@@ -127,7 +137,7 @@ await check("Más vendidos follows Ofertas where the store publishes demand; typ
     const ks = idx(k).rails.map((r) => r.key);
     assert.ok(ks.slice(ks[1] === "masvendidos" ? 2 : 1).every((x) => x.startsWith("t-")), `${k}: ${ks.join(",")}`);
   }
-  assert.equal(idx("ssense").rails[1].key, "t-trajes_bano", "SSENSE publishes no demand: no Más vendidos");
+  assert.equal(idx("ccs").rails[1].key, "t-trajes_bano", "CCS publishes no demand: no Más vendidos");
 });
 
 await check("caps: 16 cards per rail on the first screen, 48 per page, first screen under 30KB gzipped", () => {
@@ -139,9 +149,9 @@ await check("caps: 16 cards per rail on the first screen, 48 per page, first scr
       assert.equal(r.pages, Math.ceil(r.total / PAGE_SIZE));
     }
   }
-  const big = answer({ store: "ssense", c: "", d: "", q: "" }, roots);
+  const big = answer({ store: "ccs", c: "", d: "", q: "" }, roots);
   assert.equal(big.body.items.length, PAGE_SIZE);
-  assert.equal(big.body.total, idx("ssense").count);
+  assert.equal(big.body.total, idx("ccs").count);
 });
 
 await check("cards: no sizes, no retailer link, nothing but what a tile draws", () => {
@@ -150,7 +160,7 @@ await check("cards: no sizes, no retailer link, nothing but what a tile draws", 
       assert.deepEqual(Object.keys(c).filter((x) => !["name", "brand", "price", "was", "image"].includes(x)), [], `${k}: card fields`);
     }
   }
-  for (const k of ["ssense", "target", "walmart"]) {
+  for (const k of ["ccs", "walmart", "zumiez"]) {
     const t = read(`${FN_DIR}/${k}.json`);
     assert.ok(!/"(url|link|sizes)"/.test(t), `${k}: endpoint file carries url/link/sizes`);
   }
@@ -170,42 +180,51 @@ await check("chips use shopper words, never Aria's taxonomy (F-NB-CHIP)", () => 
 
 /* ---------------- the endpoint ---------------- */
 await check("the endpoint pages a rail in the build's order, 48 at a time", () => {
-  const fn = loadStore("ssense", roots);
-  const p2 = answer({ store: "ssense", rail: "t-zapatos", page: "2" }, roots).body;
+  const fn = loadStore("ccs", roots);
+  const p2 = answer({ store: "ccs", rail: "t-zapatos", page: "2" }, roots).body;
   assert.equal(p2.page, 2);
   assert.equal(p2.total, fn.rails["t-zapatos"].length);
   assert.deepEqual(p2.items.map((c) => c.name), fn.rails["t-zapatos"].slice(48, 96).map((i) => fn.rows[i][0]));
-  const head = idx("ssense").rails.find((r) => r.key === "t-zapatos").head.map((c) => c.name);
-  assert.deepEqual(answer({ store: "ssense", rail: "t-zapatos", page: "1" }, roots).body.items.slice(0, head.length).map((c) => c.name), head);
-  /* Best Buy's static pages and the endpoint agree. */
-  const bb = JSON.parse(read(`${SLICES_DIR}/bestbuy/rails/ofertas-2.json`));
-  assert.deepEqual(answer({ store: "bestbuy", rail: "ofertas", page: "2" }, roots).body.items, bb.items);
+  const head = idx("ccs").rails.find((r) => r.key === "t-zapatos").head.map((c) => c.name);
+  assert.deepEqual(answer({ store: "ccs", rail: "t-zapatos", page: "1" }, roots).body.items.slice(0, head.length).map((c) => c.name), head);
+  /* A themed store's static pages and the endpoint agree. */
+  for (const k of LIVE_SLICED) {
+    const bb = JSON.parse(read(`${SLICES_DIR}/${k}/rails/ofertas-2.json`));
+    assert.deepEqual(answer({ store: k, rail: "ofertas", page: "2" }, roots).body.items, bb.items);
+  }
+  /* An off-sale store has no endpoint. */
+  assert.equal(answer({ store: "ssense", rail: "ofertas" }, roots).status, 404);
   assert.equal(answer({ store: "nope", rail: "x" }, roots).status, 404);
   assert.equal(answer({ store: "../etc" }, roots).status, 404);
-  assert.equal(answer({ store: "ssense", rail: "x" }, roots).status, 404);
+  assert.equal(answer({ store: "ccs", rail: "x" }, roots).status, 404);
 });
 
 await check("the endpoint filters by chip (facets combine), searches and sorts like the old page", () => {
-  const both = answer({ store: "gymshark", g: "Mujer", c: "Leggings", sort: "discount" }, roots).body;
-  const fn = loadStore("gymshark", roots);
-  assert.equal(both.total, fn.rows.filter((r) => r[7] === "Mujer" && r[8] === "Leggings").length);
+  /* No live store carries both facets today (Gymshark did): each is
+     checked on its own store. */
+  const both = answer({ store: "youngla", g: "Mujer", sort: "discount" }, roots).body;
+  const fn = loadStore("youngla", roots);
+  assert.equal(both.total, fn.rows.filter((r) => r[7] === "Mujer").length);
   assert.ok(both.total > 10);
+  const chimp = answer({ store: "prosoccer", c: "Chimpunes" }, roots).body;
+  assert.equal(chimp.total, loadStore("prosoccer", roots).rows.filter((r) => r[8] === "Chimpunes").length);
+  assert.ok(chimp.total > 10);
   /* Mayor descuento: sales first, deepest first. */
   const pct = (c) => Sale.discountPct({ price: c.price, originalPrice: c.was });
   for (let i = 1; i < both.items.length; i++) assert.ok(pct(both.items[i - 1]) >= pct(both.items[i]), "discount order");
-  const asc = answer({ store: "target", d: "toys", sort: "priceAsc" }, roots).body;
+  const asc = answer({ store: "walmart", d: "toys", sort: "priceAsc" }, roots).body;
   for (let i = 1; i < asc.items.length; i++) assert.ok(asc.items[i - 1].price <= asc.items[i].price, "priceAsc order");
-  const desc = answer({ store: "target", sort: "priceDesc" }, roots).body;
+  const desc = answer({ store: "walmart", sort: "priceDesc" }, roots).body;
   for (let i = 1; i < desc.items.length; i++) assert.ok(desc.items[i - 1].price >= desc.items[i].price, "priceDesc order");
   /* Every word, title or brand, accents folded. */
-  const s = answer({ store: "ssense", q: "black boots", sort: "relevance" }, roots).body;
+  const s = answer({ store: "ccs", q: "black hoodie", sort: "relevance" }, roots).body;
   assert.ok(s.total > 20);
-  for (const c of s.items) assert.ok(/black/i.test(c.name + " " + (c.brand || "")) && /boots/i.test(c.name + " " + (c.brand || "")), c.name);
-  /* The product the words name leads (Best Buy's AirPods, not cases for them). */
-  const a = answer({ store: "bestbuy", q: "airpods", sort: "relevance" }, roots).body;
-  assert.match(a.items[0].name, /^Apple - AirPods/);
-  assert.equal(answer({ store: "ssense", q: "zzqxv" }, roots).body.total, 0);
-  const last = answer({ store: "target", page: "99999" }, roots).body;
+  for (const c of s.items) assert.ok(/black/i.test(c.name + " " + (c.brand || "")) && /hoodie/i.test(c.name + " " + (c.brand || "")), c.name);
+  /* The product the words name leads (Walmart's AirPods, not cases for them). */
+  const a = answer({ store: "walmart", q: "airpods", sort: "relevance" }, roots).body;
+  assert.match(a.items[0].name, /^Apple AirPods/);
+  assert.equal(answer({ store: "ccs", q: "zzqxv" }, roots).body.total, 0);
+  const last = answer({ store: "walmart", page: "99999" }, roots).body;
   assert.equal(last.page, last.pages, "a page past the end is clamped");
 });
 
@@ -285,7 +304,7 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
   const base = `http://127.0.0.1:${srv.address().port}`;
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   try {
-    for (const store of ["ssense", "target", "walmart", "newbalance", "gymshark", "bestbuy", "ccs"]) {
+    for (const store of ["ccs", "walmart", "zumiez", "youngla", "prosoccer", "sephora", ...LIVE_SLICED]) {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
       const pg = await ctx.newPage();
       await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());

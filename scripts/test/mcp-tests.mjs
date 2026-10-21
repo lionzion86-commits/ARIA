@@ -52,7 +52,9 @@ await check("the catalogue is the site's, and it is not half empty", () => {
      which is exactly what the first build of this did (every price
      threw, and it reported zero shippable products as though that were
      a fact about the data). */
-  assert.ok(catalog.stats.kept > 100_000, `only ${catalog.stats.kept} products in the pool`);
+  /* 127k+ before the sourcing audit took the REMOVE stores off sale
+     (#443); their records are retained but never offered. */
+  assert.ok(catalog.stats.kept > 90_000, `only ${catalog.stats.kept} products in the pool`);
   assert.equal(catalog.stats.threw, 0, `${catalog.stats.threw} products failed to price`);
   assert.ok(catalog.stats.files >= 55, `only ${catalog.stats.files} catalogue files read`);
   assert.deepEqual(catalog.stats.missing, [], "catalogue files named by index.html are missing from the repo");
@@ -228,10 +230,12 @@ await check("a narrowing filter does not starve the result list", () => {
      Barbie dolls ("Doll … Pink Sneakers") until dolls stopped counting
      as footwear; it stocks five real pairs. Target's seventy, out of
      ~10,000 shoes in the pool, test the same over-fetch honestly. */
-  const narrow = searchProducts({ query: "shoes", store: "target", limit: 20 }, ctx);
+  /* DICK'S SINCE #443: Target is off sale. Dick's sporting shoes are a
+     small share of the pool's shoes and test the same over-fetch. */
+  const narrow = searchProducts({ query: "shoes", store: "dicks", limit: 20 }, ctx);
   assert.ok(narrow.products.length >= 20,
     `a filtered search returned ${narrow.products.length} of a requested 20 — the over-fetch is too small again`);
-  for (const p of narrow.products) assert.equal(p.store, "target");
+  for (const p of narrow.products) assert.equal(p.store, "dicks");
   /* …and the same must hold for a price cap, the other narrow filter a
      shopper actually uses. */
   const cheap = searchProducts({ query: "shoes", max_price_usd: 40, limit: 20 }, ctx);

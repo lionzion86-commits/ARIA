@@ -7,14 +7,16 @@
    "Tallas por confirmar". Never a title keyword: "9060" is a shoe with
    no shoe word in it, and a doll's dress is not a woman's.
 
-   Real records from the catalogues, driven in headless Chromium:
-     sized    New Balance RAV v2 Hook & Loop, 9060, Made in USA 990v6,
-              FuelCell 990v6 Lace -- producto.html shows the store's own
+   Real records from the catalogues, driven in headless Chromium (live
+   lanes since #443; the first run used New Balance and Target):
+     sized    Zumiez: Cali 1850 shorts, adidas Adistar Control 5 (a shoe
+              with no shoe word), Vans Super Lowpro, New Balance XRCT
+              -- producto.html shows the store's own
               sizes, Agregar is refused until one is chosen, then the
               size reaches the cart line and checkout's "Talla X";
-     unsized  Barbie Brunette Doll with Logo Print Purple Dress, Barbie
-              Dreamhouse Pool Party ... 3 Story Slide, Barbie Royal Doll
-              with ... Butterfly-Print Skirt -- no picker, Agregar works,
+     unsized  Walmart: Barbie Petal Pop ... Pink Tulip Dress, Barbie Royal
+              Doll ... Butterfly-Print Skirt, Barbie Dreamhouse Pool Party
+              ... Puppy Elevator -- no picker, Agregar works,
               checkout reaches the payment step (Pagar enabled).
      The Dreamhouse goes product page -> cart -> checkout -> Pagar, and the
      Pagar POST is caught before orders-create/Stripe (no keys here).
@@ -124,16 +126,21 @@ function findRecord(file, title) {
   }
   throw new Error(`${title} is gone from ${file}`);
 }
+/* LIVE LANES (#443). The battery first ran on New Balance and Target
+   records; both stores are off sale now (/off-sale.js), so it runs on
+   the same shapes from stores that still sell: Zumiez sized records
+   (the Adistar is a shoe with no shoe word in its title, the "9060"
+   case) and Walmart's dolls and Dreamhouse (garment words, no list). */
 const SIZED = [
-  { title: "RAV v2 Hook & Loop", store: "newbalance", file: "newbalance-catalog.json" },
-  { title: "9060", store: "newbalance", file: "newbalance-catalog.json" },
-  { title: "Made in USA 990v6", store: "newbalance", file: "newbalance-catalog.json" },
-  { title: "FuelCell 990v6 Lace", store: "newbalance", file: "newbalance-catalog.json" },
+  { title: "Cali 1850 Leopard Low Rise Micro Shorts", store: "zumiez", file: "zumiez-catalog.json" },
+  { title: "adidas Adistar Control 5 Grey Two, Cream White & Wonder Sage", store: "zumiez", file: "zumiez-catalog.json" },
+  { title: "Vans Super Lowpro Emerald Green Shoes", store: "zumiez", file: "zumiez-catalog.json" },
+  { title: "New Balance Lifestyle XRCT Outer Space & Energy Lime Shoes", store: "zumiez", file: "zumiez-catalog.json" },
 ];
 const DOLLS = [
-  { title: "Barbie Brunette Doll with Logo Print Purple Dress", store: "target", file: "target-catalog.json" },
-  { title: "Barbie Royal Doll with Brightly Highlighted Hair, Butterfly-Print Skirt and Accessories", store: "target", file: "target-catalog.json" },
-  { title: "Barbie Dreamhouse Pool Party Doll House with 75+ pc, 3 Story Slide: Adult Assembly, Fits 12 Inch Dolls", store: "target", file: "juguetes-catalog.json" },
+  { title: "Barbie Petal Pop Scented Fashion Doll with Pink Tulip Dress, Reveal Accessories like Bunny & More", store: "walmart", file: "juguetes-catalog.json" },
+  { title: "Barbie Royal Doll with Pink and Blonde Hair, Butterfly-Print Skirt and Accessories", store: "walmart", file: "juguetes-catalog.json" },
+  { title: "Barbie Dreamhouse Pool Party Doll House and Playset with 75+ Pieces, 45 in, Slide & Puppy Elevator", store: "walmart", file: "juguetes-catalog.json" },
 ];
 for (const x of [...SIZED, ...DOLLS]) {
   x.rec = findRecord(x.file, x.title);
@@ -269,12 +276,12 @@ async function openHome(page) {
   await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => typeof addToCart === "function" && typeof recordSizeList === "function" && typeof showProduct === "function", null, { timeout: 30000 });
 }
-await check("home: tapping the 9060 card lands on its product page, with the store's sizes", async () => {
+await check("home: tapping the Adistar card (a shoe with no shoe word) lands on its product page, with the store's sizes", async () => {
   const x = SIZED[1];
   const { context, page } = await newPage();
   try {
     await openHome(page);
-    await Promise.all([page.waitForURL(/producto\.html/, { timeout: 30000 }), page.evaluate((t) => showProduct("newbalance", t), x.title)]);
+    await Promise.all([page.waitForURL(/producto\.html/, { timeout: 30000 }), page.evaluate((x) => showProduct(x.store, x.title), { store: x.store, title: x.title })]);
     await page.waitForSelector("#add-cart-btn", { timeout: 30000 });
     const n = await page.$$eval("#size-select option", (os) => os.filter((o) => o.value).length);
     assert(n === new Set(x.sizes).size, `${n} sizes on the page`);
@@ -286,30 +293,32 @@ await check("bundle funnel: a sized line without a size is refused, with one it 
   const { context, page } = await newPage();
   try {
     await openHome(page);
-    const r = await page.evaluate(({ shoe, house }) => {
-      const base = { retailer: "newbalance", title: shoe.title, priceUsd: 200, weightKg: 1 };
+    const pick = shoe.sizes[Math.floor(shoe.sizes.length / 2)];
+    const r = await page.evaluate(({ shoe, house, pick }) => {
+      const base = { retailer: shoe.store, title: shoe.title, priceUsd: 200, weightKg: 1 };
       return {
         noSize: addToCart({ ...base, sizes: shoe.sizes, selectedSize: "" }),
         badSize: addToCart({ ...base, sizes: shoe.sizes, selectedSize: "99" }),
-        withSize: addToCart({ ...base, sizes: shoe.sizes, selectedSize: "10" }),
-        house: addToCart({ retailer: "target", title: house.title, priceUsd: 150, weightKg: 8 }),
+        withSize: addToCart({ ...base, sizes: shoe.sizes, selectedSize: pick }),
+        house: addToCart({ retailer: house.store, title: house.title, priceUsd: 150, weightKg: 8 }),
         cart: JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"),
       };
-    }, { shoe: { title: shoe.title, sizes: shoe.sizes }, house: { title: house.title } });
+    }, { shoe: { title: shoe.title, sizes: shoe.sizes, store: shoe.store }, house: { title: house.title, store: house.store }, pick });
     assert(r.noSize === false && r.badSize === false, "a sized line got in without a store size: " + JSON.stringify(r));
     assert(r.withSize === true && r.house === true, "a valid line was refused: " + JSON.stringify(r));
     const shoeLine = r.cart.find((l) => l.title === shoe.title);
-    assert(shoeLine && shoeLine.selectedSize === "10" && shoeLine.sizeOptions.length === new Set(shoe.sizes).size && !("sizes" in shoeLine), "shoe line: " + JSON.stringify(shoeLine));
+    assert(shoeLine && shoeLine.selectedSize === pick && shoeLine.sizeOptions.length === new Set(shoe.sizes).size && !("sizes" in shoeLine), "shoe line: " + JSON.stringify(shoeLine));
   } finally { await context.close(); }
 });
 await check("bundle: a card that carried no list is sized from its record (recordSizeList reads the PDP shard)", async () => {
   const { context, page } = await newPage();
   try {
     await openHome(page);
-    const r = await page.evaluate(async ({ a, b }) => ({ shoe: await recordSizeList("newbalance", a), house: await recordSizeList("target", b) }), { a: SIZED[1].title, b: DOLLS[2].title });
-    assert(r.shoe.length === new Set(SIZED[1].sizes).size, "9060 lookup: " + JSON.stringify(r.shoe));
+    const r = await page.evaluate(async ({ a, b }) => ({ shoe: await recordSizeList(a.store, a.title), house: await recordSizeList(b.store, b.title) }),
+      { a: { store: SIZED[1].store, title: SIZED[1].title }, b: { store: DOLLS[2].store, title: DOLLS[2].title } });
+    assert(r.shoe.length === new Set(SIZED[1].sizes).size, "Adistar lookup: " + JSON.stringify(r.shoe));
     assert(r.house.length === 0, "the Dreamhouse got sizes: " + JSON.stringify(r.house));
-    return `9060 -> ${r.shoe.length} sizes, Dreamhouse -> none`;
+    return `Adistar -> ${r.shoe.length} sizes, Dreamhouse -> none`;
   } finally { await context.close(); }
 });
 
@@ -321,9 +330,9 @@ await check("checkout: a sized line with no size blocks Pagar, names the line, a
     await page.goto(`${BASE}/checkout.html`, { waitUntil: "domcontentloaded" });
     await page.evaluate((x) => {
       localStorage.setItem("aria_cart_v1", JSON.stringify([
-        { retailer: "newbalance", title: x.title, priceUsd: 80, dutiableUsd: 58, weightKg: 0.6, weightEstimated: true, selectedSize: null, qty: 1 },
+        { retailer: x.store, title: x.title, priceUsd: 80, dutiableUsd: 58, weightKg: 0.6, weightEstimated: true, selectedSize: null, qty: 1 },
       ]));
-    }, x);
+    }, { store: x.store, title: x.title });
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector("[data-size-missing]", { timeout: 30000 });
     /* Once the quote and the shard lookup have settled, Pagar must still be closed, and say why. */
@@ -337,10 +346,10 @@ await check("checkout: a sized line with no size blocks Pagar, names the line, a
     assert(/Falta elegir la talla/.test(msg), "message: " + msg);
     const opts = await page.$$eval("[data-line-size] option", (os) => os.map((o) => o.value).filter(Boolean));
     for (const o of opts) assert(x.sizes.includes(o), "checkout invented size " + o);
-    await page.selectOption("[data-line-size]", "2");
+    await page.selectOption("[data-line-size]", opts[1]);
     const pay = await waitPayStep(page);
     const cart = await cartOf(page);
-    assert(cart[0].selectedSize === "2", "the chosen size was not saved");
+    assert(cart[0].selectedSize === opts[1], "the chosen size was not saved");
     return `blocked as "${btn.t}", then "${pay}"`;
   } finally { await context.close(); }
 });
@@ -354,7 +363,7 @@ await check("orders-create refuses a sized line with no size (400, nothing charg
   const { handler } = await import(join(ROOT, "netlify/functions/orders-create.js"));
   const r = await handler({ httpMethod: "POST", headers: { host: "deploy-preview-1--ariashopperu.netlify.app" },
     blobs: Buffer.from(JSON.stringify({ url: "http://127.0.0.1:9", token: "battery" })).toString("base64"),
-    body: JSON.stringify({ items: [{ retailer: "newbalance", title: "9060", priceUsd: 200, qty: 1, sizeOptions: ["9", "10"], selectedSize: "" }], quote: { total_usd: 1 } }) });
+    body: JSON.stringify({ items: [{ retailer: "zumiez", title: "9060", priceUsd: 200, qty: 1, sizeOptions: ["9", "10"], selectedSize: "" }], quote: { total_usd: 1 } }) });
   const b = JSON.parse(r.body);
   assert(r.statusCode === 400 && /Falta elegir la talla de “9060”/.test(b.error), r.statusCode + " " + r.body);
 });

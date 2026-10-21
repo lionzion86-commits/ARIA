@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, statSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { isOffSaleRetailer } from './lib/off-sale.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LITE_N = 800;
@@ -22,6 +23,8 @@ const feed = JSON.parse(readFileSync(join(root, 'ofertas-feed.json'), 'utf8'));
    head scripts/build-ofertas-feed.mjs writes, so the first paint is every
    store, not the first four in the file. */
 const byStore = new Map();
+/* Off sale (/off-sale.js): never in the head, even from an older feed. */
+feed.items = feed.items.filter((it) => !isOffSaleRetailer(it && it.retailer));
 for (const it of feed.items) (byStore.get(it.retailer) || byStore.set(it.retailer, []).get(it.retailer)).push(it);
 for (const list of byStore.values()) list.sort((a, b) => (1 - a.price / a.originalPrice) < (1 - b.price / b.originalPrice) ? 1 : -1);
 const lists = [...byStore.values()];

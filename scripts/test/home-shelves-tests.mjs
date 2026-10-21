@@ -38,7 +38,8 @@ const index = read("index.json");
 
 check("every home store rail and rail family has its slice", () => {
   const rows = [...home.matchAll(/data-store-rail-row="([a-z0-9_]+)"/g)].map((m) => m[1]);
-  assert.ok(index.stores.length >= 15, `only ${index.stores.length} store slices`);
+  /* 19 before the sourcing audit took the REMOVE stores off sale (#443). */
+  assert.ok(index.stores.length >= 8, `only ${index.stores.length} store slices`);
   for (const k of index.stores) {
     assert.ok(rows.includes(k), `store slice ${k} has no rail on the page`);
     assert.ok(existsSync(DIR + `store-${k}.json`), `store-${k}.json is missing`);

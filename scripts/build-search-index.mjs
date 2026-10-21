@@ -52,6 +52,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { RETAILERS } from "./lib/retailers.js";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
@@ -190,7 +191,8 @@ export function buildIndex() {
           const arr = Array.isArray(bucket) ? bucket : (bucket && bucket.items) || [];
           for (const it of arr) {
             const n = normalize(it, rkey, section === "departments" ? skey : "", false);
-            if (!n) continue;
+            /* Off sale (/off-sale.js): kept in the catalogue, never searchable. */
+            if (!n || isOffSaleRetailer(n.retailer) || isOffSaleRetailer(rkey)) continue;
             const k = (n.retailer + "|" + (n.url || n.title)).toLowerCase();
             if (seen.has(k)) continue;
             seen.add(k);
@@ -204,7 +206,7 @@ export function buildIndex() {
   const have = new Set(products.map(p => (p.retailer + "|" + p.title).toLowerCase()));
   for (const it of JSON.parse(readFileSync(ROOT + "ofertas-feed.json", "utf8")).items || []) {
     const n = normalize(it, it && it.retailer, "", true);
-    if (!n) continue;
+    if (!n || isOffSaleRetailer(n.retailer)) continue;
     const k = (n.retailer + "|" + n.title).toLowerCase();
     if (have.has(k)) continue;
     have.add(k);

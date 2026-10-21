@@ -38,6 +38,7 @@ import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import vm from "node:vm";
 import { RETAILERS } from "./lib/retailers.js";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { PAGE_SIZE, DEALS_FILE, SLICES_DIR, SORTS, packCard, selectDeals, pageOf } from "../netlify/functions/_ofertas-core.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -87,7 +88,7 @@ export function dealId(store, title) {
 export function buildCards(items, sale) {
   const seen = new Set(), cards = [];
   for (const p of items || []) {
-    if (!p) continue;
+    if (!p || isOffSaleRetailer(p.retailer)) continue;
     /* Keyed on the title as the card shows it: two rows whose titles
        differ only in entities or spacing are one card. */
     const k = (p.retailer || "") + "::" + decodeEntities(p.title || "").trim();

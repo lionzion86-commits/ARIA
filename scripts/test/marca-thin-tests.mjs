@@ -42,7 +42,9 @@ await check("every static head is what the rules compute today, and every brand 
   const keys = staticBrands(ITEMS);
   const files = readdirSync(ROOT + OUT_DIR).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort();
   assert.deepEqual(files, keys, "the static heads are not the brands with 12+ products");
-  for (const key of ["nike", "gymshark", "youngla", "crocs", "lego", "miumiu", "adidas", "alphalete", "everlast"]) {
+  /* gymshark, alphalete and miumiu were their own stores, and LEGO was
+     mostly Target: off sale since #443. */
+  for (const key of ["nike", "youngla", "crocs", "adidas", "everlast"]) {
     assert.ok(keys.includes(key), `${key} has no static head`);
     assert.deepEqual(readJSON(`${OUT_DIR}/${key}.json`), JSON.parse(JSON.stringify(headOf(key, filterByBrand(ITEMS, key), labels))), `${key}.json is stale`);
   }

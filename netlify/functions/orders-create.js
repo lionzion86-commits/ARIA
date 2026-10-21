@@ -43,6 +43,7 @@ import {
   repriceCart, goodsTotals, freightFloorUsd, expressFeePen, shippingModeOf, SHIPPING_MODES,
   totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm, missingSizeLines,
 } from "./_checkout-model.js";
+import { offSaleLines, offSaleOrderError } from "../../scripts/lib/off-sale.js";
 
 /* The production hosts. Anything else (deploy previews, branch deploys,
    localhost) is a test environment and may only hold a test key. */
@@ -140,6 +141,18 @@ async function createOrderHandler(event) {
   const quote = body.quote || {};
   if (!sentItems.length || typeof quote.total_usd !== "number") {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Pedido inválido" }) };
+  }
+
+  /* NOTHING FROM A STORE TAKEN OFF SALE (#443, /off-sale.js). A cart
+     saved before the store came off sale can still hold its line; the
+     page blocks Pagar, and this is the rule at the door the money goes
+     through. Refused before anything is written or charged. */
+  const offSale = offSaleLines(sentItems);
+  if (offSale.length) {
+    return { statusCode: 400, headers, body: JSON.stringify({
+      error: offSaleOrderError(offSale[0].title || offSale[0].name),
+      offSale: offSale.map((it) => String(it.title || it.name || "")),
+    }) };
   }
 
   /* NO SIZED PRODUCT WITHOUT ITS SIZE (#411 P0, see _checkout-model.js).

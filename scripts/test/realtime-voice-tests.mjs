@@ -2726,8 +2726,12 @@ await checkAsync("a store too thin to visit is never recommended", async () => {
      has eighteen, so it must never be offered — and must still answer
      honestly when a shopper names it. */
   const pac = K.getStoreInfo("PacSun");
-  assert.equal(pac.product_count, 18, "PacSun's count moved; re-check the recommendation floor");
-  assert.equal(pac.recommendable, false, "an 18-product store is offered as a recommendation");
+  /* PacSun is off sale since #443 (/off-sale.js): named, it answers so. */
+  if (pac.off_sale) assert.ok(!pac.product_count && !pac.recommendable, "an off-sale PacSun is described");
+  else {
+    assert.equal(pac.product_count, 18, "PacSun's count moved; re-check the recommendation floor");
+    assert.equal(pac.recommendable, false, "an 18-product store is offered as a recommendation");
+  }
 
   const thin = Object.entries(K.STORE_KNOWLEDGE)
     .filter(([, s]) => s.product_count < K.MIN_RECOMMEND_DEPTH)
@@ -2860,8 +2864,10 @@ await checkAsync("naming a store gets the truth, including when we do not carry 
   /* Two stores selling the same thing need a stated difference, which
      is the brief's rule: explain, do not list. */
   const makeup = K.recommendStoresFor("maquillaje", { resolved: true });
-  assert.ok((makeup.stores || []).length >= 2, "makeup resolves to fewer than two stores");
-  assert.ok(makeup.difference, "two makeup stores came back with no difference between them");
+  /* Ulta and Target are off sale since #443: Sephora alone answers
+     makeup today. Two stores still need a stated difference. */
+  assert.ok((makeup.stores || []).length >= 1, "makeup resolves to no store");
+  if (makeup.stores.length >= 2) assert.ok(makeup.difference, "two makeup stores came back with no difference between them");
   for (const s of makeup.stores) assert.ok(s.not_for, `${s.store} has nothing it is not for`);
 
   /* Nothing to offer is said out loud, not papered over. */

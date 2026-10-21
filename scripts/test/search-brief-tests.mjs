@@ -19,6 +19,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { buildIndex, INDEX_PATH } from "../build-search-index.mjs";
 import { buildSearchContext, runQuery } from "../../netlify/functions/_search-core.js";
+import { isOffSaleRetailer } from "../lib/off-sale.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -200,7 +201,8 @@ const TYPOS = {
   hoddie: [null, /\bhoodies?\b/i], zapatilas: ["zapatillas", SHOE], addidas: ["adidas", /adidas/i],
   nik: ["nike", /nike/i], conberse: ["converse", /converse/i], camiza: ["camisa", /\bshirts?\b/i],
   relog: ["reloj", /\b(?:watch|watches)\b/i], jugete: ["juguete", /\b(?:toys?|play|playset|game|kit|set)\b/i],
-  bisicleta: ["bicicleta", /\b(?:bikes?|bicycles?)\b/i],
+  /* bisicleta: every bicycle came from a store now off sale (#443), so
+     there is nothing live to correct the typo toward. */
 };
 for (const [q, [fixed, re]] of Object.entries(TYPOS)) {
   check(`typo "${q}"${fixed ? ` -> "${fixed}"` : ""}`, () => {
@@ -220,7 +222,8 @@ for (const [q, [fixed, re]] of Object.entries(TYPOS)) {
    ------------------------------------------------------------------ */
 check('"mouse" is a computer mouse, "mickey mouse" is Mickey', () => {
   const r = search("mouse");
-  assert.ok(r.hits.length >= 1, "no computer mouse");
+  /* The computer mice were Best Buy's and Target's (off sale since #443):
+     no mouse is fine, Mickey for "mouse" is not. */
   for (const h of r.hits) assert.match(h.title, /\bmouse\b/i), assert.doesNotMatch(h.title, /mickey|minnie|disney/i, h.title);
   const m = search("mickey mouse");
   assert.ok(m.hits.length && m.hits.every(h => /mickey/i.test(h.title + " " + h.brand)), "mickey mouse lost Mickey");
@@ -262,9 +265,16 @@ check('"tv" is a television (never a tripod, stand or T-shirt)', () => {
   for (const h of r.hits) assert.doesNotMatch(h.title, /tripod|stand|mount|shirt|hat|skateboard|funko/i, h.title);
   if (!r.hits.length) assert.equal(r.sense, "televisores");
 });
+/* OFF SALE (#443, /off-sale.js): a store Aria no longer sells from is
+   never a search answer, by name or by brand. */
+check("an off-sale store is never a search answer (victoria secret sales)", () => {
+  const r = search("victoria secret sales");
+  for (const h of r.hits) assert.ok(!isOffSaleRetailer(h.retailer), `"victoria secret sales" showed ${h.retailer} ${h.title}`);
+});
 check("brand names win over the dictionary", () => {
-  for (const [q, re] of [["new balance", /new balance/i], ["tommy hilfiger", /tommy hilfiger/i], ["miu miu", /miu miu/i],
-    ["polo ralph lauren", /ralph lauren/i], ["youg la", /youngla|young la/i], ["victoria secret sales", /victoria/i]]) {
+  for (const [q, re] of [["new balance", /new balance/i], ["miu miu", /miu miu/i],
+    ["polo ralph lauren", /ralph lauren/i], ["youg la", /youngla|young la/i], ["calvin klein", /calvin klein/i]]) {
+    /* tommy hilfiger was Macy's and Kohl's (off sale since #443). */
     const r = search(q);
     assert.ok(r.hits.length >= 5, `"${q}" found ${r.hits.length}`);
     for (const h of head(r)) assert.match(h.brand + " " + h.title, re, `"${q}" showed ${h.brand} ${h.title}`);
