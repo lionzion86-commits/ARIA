@@ -1111,7 +1111,53 @@ const STORE_ALIASES = {
   "party city": "partycity", "chronicle books": "chronicle",
   "ulta beauty": "ulta", "yes style": "yesstyle", "nautilus spearfishing": "nautilus",
   "macy's": "macys", "kohl's": "kohls", "ssense": "ssense", "sense": "ssense",
+  /* Off-sale stores with no knowledge entry of their own (#443): named,
+     they still have to resolve, or Aria answers "no conozco esa tienda"
+     about a store she sold from last week. */
+  "banana republic": "bananarepublic", "best buy": "bestbuy", "gym shark": "gymshark",
+  "nike com": "nike", "nike direct": "nike", "tienda nike": "nike",
+  "costco online": "costco", "costco com": "costco", "golden goose": "goldengoose",
 };
+
+/* OFF SALE, AND WHERE TO GO INSTEAD (#443). A store Aria no longer sells
+   from answers `off_sale` with the live stores that carry the same kind
+   of thing, so she names a real door instead of improvising one. The
+   lists are filtered at answer time against STORE_KNOWLEDGE and
+   MIN_RECOMMEND_DEPTH, so an alternative that later goes off sale or
+   thin simply drops out; it can never point at a dead store. */
+const OFF_SALE_NAMES = {
+  nike: "Nike", gap: "Gap", bananarepublic: "Banana Republic", athleta: "Athleta",
+  fendi: "Fendi", goldengoose: "Golden Goose", costco: "Costco",
+};
+const OFF_SALE_ALTERNATIVES = {
+  victoriassecret: ["skims", "eberjey"],
+  target: ["walmart", "samsclub"],
+  bestbuy: ["bhphoto", "walmart"],
+  costco: ["samsclub", "walmart"],
+  nike: ["finishline", "dicks"],
+  footlocker: ["finishline", "dicks"],
+  newbalance: ["finishline", "dicks"],
+  kohls: ["walmart", "americaneagle"],
+  macys: ["americaneagle", "walmart"],
+  gap: ["americaneagle", "walmart"],
+  oldnavy: ["americaneagle", "walmart"],
+  bananarepublic: ["americaneagle", "revolve"],
+  athleta: ["skims", "dicks"],
+  ulta: ["sephora"],
+  yesstyle: ["sephora"],
+  ssense: ["farfetch", "revolve"],
+  miumiu: ["farfetch", "revolve"],
+  fendi: ["farfetch", "revolve"],
+  goldengoose: ["farfetch", "revolve"],
+  gymshark: ["youngla", "dicks"],
+  alphalete: ["youngla", "dicks"],
+  pacsun: ["zumiez", "americaneagle"],
+};
+function liveAlternativesFor(key){
+  return (OFF_SALE_ALTERNATIVES[key] || [])
+    .filter(k => STORE_KNOWLEDGE[k] && STORE_KNOWLEDGE[k].product_count >= MIN_RECOMMEND_DEPTH)
+    .map(k => ({ store: k, name: STORE_KNOWLEDGE[k].name, why: STORE_KNOWLEDGE[k].best_for }));
+}
 
 const fold = (s) => String(s || "")
   .toLowerCase()
@@ -1134,11 +1180,17 @@ export function getStoreInfo(storeName){
   const key = STORE_ALIASES[q] || (STORE_KNOWLEDGE_ALL[direct] ? direct : null)
     || (STORE_KNOWLEDGE_ALL[q] ? q : null)
     || Object.keys(STORE_KNOWLEDGE_ALL).find(k => fold(STORE_KNOWLEDGE_ALL[k].name) === q)
+    /* An off-sale key with no knowledge entry (Nike direct, Gap...). */
+    || (isOffSaleRetailer(direct) ? direct : null)
     || null;
   if (key && isOffSaleRetailer(key)) {
-    return { store: key, name: (STORE_KNOWLEDGE_ALL[key] && STORE_KNOWLEDGE_ALL[key].name) || key, off_sale: true,
+    const alternatives = liveAlternativesFor(key);
+    return { store: key,
+             name: (STORE_KNOWLEDGE_ALL[key] && STORE_KNOWLEDGE_ALL[key].name) || OFF_SALE_NAMES[key] || key,
+             off_sale: true, alternatives,
              note: "Ya no vendemos productos de esa tienda. No la recomiendes, no ofrezcas sus productos " +
-                   "ni lleves al cliente a ella: dilo en una oración y ofrece una tienda que sí tenga lo que busca." };
+                   "ni lleves al cliente a ella: dilo en una oración y ofrece una tienda que sí tenga lo que busca" +
+                   (alternatives.length ? " (en alternatives)." : ".") };
   }
   if (key && STORE_KNOWLEDGE[key]) {
     return { store: key, ...STORE_KNOWLEDGE[key],
