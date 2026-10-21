@@ -137,6 +137,8 @@ const KEEP_FIELDS = [
 // the second pass has not run yet. The product itself stays listed and
 // buyable — only a confirmed "quarantined" verdict withholds the product,
 // because hiding every item after every refresh would empty the store.
+/* Where an actor's row can carry its photo gallery, `images` first. */
+const GALLERY_FIELDS = ["images", "imageUrls", "gallery"];
 function slimItem(item) {
   const slim = {};
   for (const k of KEEP_FIELDS) {
@@ -149,7 +151,23 @@ function slimItem(item) {
   // not just images[0]. The product page's thumbnail strip renders from
   // this list, so truncating it here meant cached items could never show
   // one however many photos the retailer actually returned.
-  if (Array.isArray(item.images) && item.images.length) slim.images = item.images.slice(0, 8);
+  //
+  // GALLERY FIELDS (#443 gallery coverage, 2026-10-21): an actor that
+  // returns its extra photos under imageUrls or gallery (the names
+  // scripts/lib/dsw.js imagesOf already reads) had them deleted here,
+  // because only `images` was kept. They are folded into `images` now,
+  // after the actor's own `images`, one copy each. Real retailer URLs
+  // from the actor's output only; nothing is made up.
+  const gallery = [];
+  for (const k of GALLERY_FIELDS) {
+    if (!Array.isArray(item[k])) continue;
+    for (const u of item[k]) {
+      if (!u || (typeof u !== "string" && typeof u !== "object")) continue;
+      const same = typeof u === "string" ? u : JSON.stringify(u);
+      if (!gallery.some((g) => (typeof g === "string" ? g : JSON.stringify(g)) === same)) gallery.push(u);
+    }
+  }
+  if (gallery.length) slim.images = gallery.slice(0, 8);
   // Unscreened until image-price-scan.js says otherwise.
   if (slim.image || slim.imageUrl || slim.thumbnail || slim.images) slim.imageReview = "pending";
   return slim;
