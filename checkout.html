@@ -98,9 +98,10 @@
 <main class="max-w-[1100px] mx-auto px-5 py-8 sm:py-12">
 
   <!-- ============ CHECKOUT FORM ============ -->
-  <!-- LOS ELEGIDOS — checkout gate panel (2026-10-01). Rendered by the
+  <!-- KEY CLUB — checkout gate panel (2026-10-01). Rendered by the
        gate pre-script below when foundersMode is 'gate' and the shopper
-       is not a picked founder. checkoutWrap starts hidden and is only
+       is not a founder. Copy (2026-10-21, #443): no selection framing --
+       nobody is told they must be chosen to buy. checkoutWrap starts hidden and is only
        revealed once the gate check passes, so there is no flash of the
        payment form for a locked shopper. -->
   <div id="foundersGateWrap" hidden></div>
@@ -131,8 +132,8 @@
       var msg;
       if (!gs.email) {
         msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
-          + 'Únete gratis al Key Club: tu carrito queda guardado y entra a la selección de los 1000 fundadores. '
-          + 'Arma tu carrito. Si eres elegido, compras.</p>'
+          + 'Únete gratis al Aria Key Club: tu carrito queda guardado y recibes $5 de vuelta por cada $100 en crédito Aria. '
+          + 'Los primeros 1000 miembros quedan registrados como Fundadores.</p>'
           + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Ir a la tienda y unirme</a>';
       } else if (gs.founderStatus === 'rechazado') {
         msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
@@ -141,8 +142,8 @@
           + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Seguir explorando</a>';
       } else {
         msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
-          + (firstName ? esc(firstName) + ', tu' : 'Tu') + ' carrito está guardado y en revisión. '
-          + 'Aria está eligiendo a mano a los 1000 fundadores — si eres elegido, te avisamos y compras.</p>'
+          + (firstName ? esc(firstName) + ', tu' : 'Tu') + ' carrito está guardado tal como lo dejaste. '
+          + 'Eres miembro del Aria Key Club.</p>'
           + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Seguir armando mi carrito</a>';
       }
       /* SCRAPED TEXT IS TEXT (2026-10-19, #417 night order 4): titles arrive
@@ -169,8 +170,8 @@
         '<section class="relative overflow-hidden rounded-3xl" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 60%, #0A1F44 100%)">'
         + '<div class="ariaGoldHair"></div>'
         + '<div class="relative max-w-[640px] mx-auto px-6 py-12 sm:py-14 text-center">'
-        + '<div class="ariaKicker mb-4" style="justify-content:center">Los Elegidos</div>'
-        + '<h1 class="text-[28px] sm:text-[36px] font-extrabold tracking-[-0.03em] leading-[1.08] mb-3" style="color:#fff">Aún no eres fundador</h1>'
+        + '<div class="ariaKicker mb-4" style="justify-content:center">Aria Key Club</div>'
+        + '<h1 class="text-[28px] sm:text-[36px] font-extrabold tracking-[-0.03em] leading-[1.08] mb-3" style="color:#fff">Tu carrito está guardado</h1>'
         + '<p class="text-[15px] font-bold" style="color:#F4C463">Las puertas se abren el 10 de noviembre.</p>'
         + (items > 0
             ? '<div class="inline-flex items-center gap-2 rounded-2xl px-5 py-3 mt-5" style="background:rgba(255,255,255,.06);border:1px solid rgba(244,196,99,.35)">'
@@ -178,7 +179,7 @@
               + '<span class="text-[15px] font-extrabold" style="color:#F4C463">' + usd + '</span></div>'
             : '')
         + msg
-        + '<p class="mt-6 text-[12.5px] font-semibold" style="color:#8FA3D6">Solo 1000. Fundador por siempre.</p>'
+        + '<p class="mt-6 text-[12.5px] font-semibold" style="color:#8FA3D6">Los primeros 1000 miembros: Fundadores por siempre.</p>'
         + '</div></section>';
       wrap.hidden = false;
       window.scrollTo(0, 0);
@@ -901,7 +902,7 @@ function cardImgAttrs(url, sizes){
   const __gs = await window.__foundersGatePromise;
   if (__gs && __gs.foundersMode === 'gate' && __gs.founderStatus !== 'fundador') {
     window.renderFoundersGatePanel(__gs);
-    throw new Error('checkout bloqueado por Los Elegidos');
+    throw new Error('checkout en pausa: modo gate del Key Club');
   }
   document.getElementById('checkoutWrap').hidden = false;
   const valorInput = document.getElementById('valorInput');
