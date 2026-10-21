@@ -13,8 +13,9 @@
        the dress row's 0.48), and a bare fashion doll quotes 0.3;
      - a seeded no-match product at $100+ quotes its band's UPPER end
        (general 2.5 kg; a known department or store its own), never 0.6;
-       a no-match product under $75 quotes exactly as on main (the 0.6 kg
-       fall-through) and is never held for freight confirmation;
+       a no-match product under $75 never takes the band: it is weighed
+       by sibling inference (#449 pricing) and is never held for freight
+       confirmation;
      - the page's mirror (the app bundle) agrees with the module and with
        the server, title by title, with and without store + price.
    BROWSER (if Chromium is available): the Dreamhouse goes product page ->
@@ -122,16 +123,20 @@ await check("a seeded no-match product at $100+ quotes its band's UPPER end, nev
   return `$120 no-match -> ${r.totalKg} kg`;
 });
 
-/* Danny's ruling (#443, 2026-10-19 21:44 EDT): under $75 the existing
-   fall-through stands, so the guard creates no new freight-confirm holds. */
-await check("a no-match $30 product quotes as on main (the 0.6 kg fall-through) and is NOT held", () => {
+/* Danny's ruling (#443, 2026-10-19 21:44 EDT): under $75 the band never
+   applies, so the guard creates no new freight-confirm holds. Since the
+   #449 pricing PR such a line is weighed by sibling inference (see
+   weight-inference-tests.mjs), flagged `inferred`, and still not held. */
+await check("a no-match $30 product is inferred from its siblings (never the band), flagged, and NOT held", () => {
   for (const extra of [{}, { retailer: "advanceauto" }, { retailer: "skims" }, { department: "toys" }]) {
     const r = one(line("Zorblax Quantum Widget", 30, extra));
-    eq(r.totalKg, GENERIC_FALLBACK_KG, "totalKg " + JSON.stringify(extra));
-    eq(r.items[0].source, "fallback", "source " + JSON.stringify(extra));
+    eq(r.items[0].source, "inferred", "source " + JSON.stringify(extra));
+    assert(r.items[0].inferred === true, "not flagged inferred " + JSON.stringify(extra));
+    assert(r.totalKg > 0 && r.totalKg <= 2, "totalKg " + r.totalKg + " " + JSON.stringify(extra));
     assert(!r.needsReview, "held for review " + JSON.stringify(extra));
   }
-  eq(one(line("Squishy Galaxy Toy", 12)).totalKg, GENERIC_FALLBACK_KG, "a cheap toy title with no row");
+  assert(one(line("Squishy Galaxy Toy", 12)).items[0].source === "inferred", "a cheap toy title with no row");
+  eq(resolveItemWeight({ title: "Zorblax Quantum Widget" }).weightKg, GENERIC_FALLBACK_KG, "no price: the 0.6 kg generic stands");
   eq(departmentFallbackKg("Zorblax Quantum Widget", { priceUsd: 74.99 }), null, "$74.99");
   eq(departmentFallbackKg("Zorblax Quantum Widget", { retailer: "advanceauto" }), null, "no price");
   assert(departmentFallbackKg("Zorblax Quantum Widget", { priceUsd: 75 }) != null, "$75 exactly takes the band");
