@@ -697,6 +697,10 @@
            SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN, smallOrderFeePen,
            SMALL_ORDER_FEE_LABEL, SMALL_ORDER_FEE_NOTE } from './weight-data.js';
   import { RETAILER_LABELS, RETAILER_COLORS, RETAILER_LOGOS } from './scripts/lib/retailers.js';
+  /* OFF SALE (#443): one list, /off-sale.js. A line from a store taken
+     off sale is shown as unavailable with Quitar and Pagar stays closed
+     (orders-create.js refuses it too). */
+  import { isOffSaleItem, OFF_SALE_LINE_NOTE } from './scripts/lib/off-sale.js';
   /* DELIVERY TRANSPARENCY (2026-09-26): the researched Miami-transit dataset. */
   import { deliveryFor, miamiRangeEs, slowestDeliveryKey,
            MIAMI_TO_DOOR_MIN, MIAMI_TO_DOOR_MAX } from './scripts/lib/retailer-delivery.js';
@@ -1027,6 +1031,9 @@ function cardImgAttrs(url, sizes){
     for (const it of cart){
       if (it && !it.image && it.lineType !== 'bundle-discount') recoverLineThumb(cartLineKey(it), false);
     }
+  }
+  function offSaleCartLines(){
+    return cart.filter((it) => it && it.lineType !== 'bundle-discount' && isOffSaleItem(it));
   }
   function sizeListOfLine(it){
     const own = sizeGateList(it && it.sizeOptions);
@@ -1682,6 +1689,15 @@ function cardImgAttrs(url, sizes){
       return;
     }
 
+    /* A line from a store taken off sale is not payable (#443). */
+    if (offSaleCartLines().length){
+      sumWalletRow.hidden = true;
+      sumTotal.innerHTML = penLead(fxRates ? orderTotalPen : NaN, shownUsd);
+      payBtn.disabled = true;
+      payBtn.textContent = 'Quita los productos no disponibles';
+      return;
+    }
+
     /* A sized product with no size is not payable (#411 P0): the line
        itself says what is missing and offers the store's sizes. */
     if (sizeGate && (sizeGate.pending > 0 || sizeGate.missing.length)){
@@ -1936,6 +1952,7 @@ function cardImgAttrs(url, sizes){
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
           <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+          ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
             <label for="lineSize${i}" class="block text-[12px] font-bold leading-snug" style="color:#B03A2E">Falta elegir la talla de este producto. Elígela para poder pagar.</label>
             <select id="lineSize${i}" data-line-size="${i}" class="mt-1.5 w-full h-[40px] bg-white border rounded-xl px-3 text-[13.5px] outline-none focus-ring" style="border-color:#B03A2E">
@@ -2123,6 +2140,12 @@ function cardImgAttrs(url, sizes){
   document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    if (offSaleCartLines().length){
+      showToast(OFF_SALE_LINE_NOTE);
+      const box = document.querySelector('[data-off-sale]');
+      if (box) box.scrollIntoView({ block: 'center' });
+      return;
+    }
     refreshSizeGate();
     if (sizeGate.pending > 0 || sizeGate.missing.length){
       const first = sizeGate.missing[0];

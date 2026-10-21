@@ -699,6 +699,20 @@ async function homeShelfPicks(name){
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
 const catalogSourceCache = new Map();
+/* OFF SALE (2026-10-20, #443). /off-sale.js (loaded before this bundle)
+   is the one list of stores Aria no longer sells from. Their catalogues
+   stay on disk; here they never enter the page's pool, so no rail,
+   shelf, search, deal or brand count can show them. No list, no filter:
+   the server still refuses the line at orders-create. */
+function isOffSaleRetailer(key){
+  const o = typeof globalThis !== 'undefined' ? globalThis.AriaOffSale : null;
+  return !!(o && o.isOffSaleRetailer(key));
+}
+function withoutOffSaleRetailers(env){
+  if (env && env.retailers && typeof env.retailers === 'object')
+    for (const k of Object.keys(env.retailers)) if (isOffSaleRetailer(k)) delete env.retailers[k];
+  return env;
+}
 function fetchCatalogPart(url){
   if (!catalogSourceCache.has(url)){
     /* The split department-cache parts already wear the scraped
@@ -709,6 +723,7 @@ function fetchCatalogPart(url){
       .then(f => normalize ? normalizeCatalogueEnvelope(f) : f)
       .then(withoutRestrictedDepartments)
       .then(withoutUnshippableItems)
+      .then(withoutOffSaleRetailers)
       .then(aliasEnvelopeTitles)
       .then(repairNativeTypes)
       .then(env => {
@@ -8857,7 +8872,7 @@ function menIsSale(p){
 }
 
 function menHeroHTML(){
-  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'footlocker', 'oldnavy'];
+  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'footlocker', 'oldnavy'].filter(function(k){ return !isOffSaleRetailer(k); });
   var pills = stores.map(function(k){
     return '<button onclick="menStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaMenPill focus-ring">' + menEsc(menStoreLabel(k)) + '</button>';
@@ -9033,7 +9048,7 @@ function womenIsSale(p){
 }
 
 function womenHeroHTML(){
-  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'victoriassecret', 'revolve'];
+  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'victoriassecret', 'revolve'].filter(function(k){ return !isOffSaleRetailer(k); });
   var pills = stores.map(function(k){
     return '<button onclick="womenStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaWomenPill focus-ring">' + womenEsc(womenStoreLabel(k)) + '</button>';
@@ -11643,7 +11658,7 @@ function tiendaTileHTML(s){
   return "<button onclick=\"tiendaJump('" + s.k + "')\" aria-label=\"" + escapeHtml(s.l) + "\" class=\"flex-shrink-0 w-[132px] rounded-2xl px-2 py-2 flex flex-col items-center justify-center focus-ring\" style=\"background:#1a2744;border:1px solid rgba(255,255,255,.14);min-height:72px;gap:6px;min-width:0;overflow:hidden\">" + art + name + "</button>";
 }
 function paintTiendasStrip(){
-  const html = TIENDAS_STRIP.map(tiendaTileHTML).join("");
+  const html = TIENDAS_STRIP.filter(s => !isOffSaleRetailer(s.k)).map(tiendaTileHTML).join("");
   const m = document.getElementById("mTiendasStripRow");
   const d = document.getElementById("dTiendasStripRow");
   if (m) m.innerHTML = html;
@@ -16027,6 +16042,7 @@ function armStorePhotoBackdrop(retailer){
    assets/tienda/<key>/ slices. */
 const THIN_STOREFRONTS = new Set(['bestbuy']);
 async function openStore(retailer){
+  if (isOffSaleRetailer(retailer)){ showToast('Esta tienda ya no está disponible en Aria.'); return; }
   if (THIN_STOREFRONTS.has(String(retailer || '').toLowerCase())){
     location.href = 'tienda.html?tienda=' + encodeURIComponent(String(retailer).toLowerCase());
     return;
@@ -20270,7 +20286,7 @@ function deliverySummaryHTML(cart){
     ${keys.length > 1 ? `<div class="text-[12px] mt-1 leading-snug" style="color:#8A93A8">Tu pedido sale de Miami cuando llegue lo de ${slowLabel}.</div>` : ''}
   </div>`;
 }
-function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired); }
+function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired && !isOffSaleRetailer(r.key)); }
 /* ============================================================
    PER-STORE AMBIENT THEMES (2026-09-24) — full rollout: every carried
    store gets a brand-grounded ambient (PR #49). Each row's `glow` is
@@ -20285,7 +20301,7 @@ function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retir
    ============================================================ */
 function storeDoorFor(key){
   const r = retailerFor(key);
-  if (!r || r.retired) return null;
+  if (!r || r.retired || isOffSaleRetailer(r.key)) return null;
   return { key: r.key, action: r.kind === 'auto' ? 'auto' : 'store' };
 }
 /* END OF THE STORE DOOR MIRROR */
@@ -26304,6 +26320,11 @@ function addToCart(item){
     showToast('Este producto aún no tiene precio confirmado.');
     return false;
   }
+  /* OFF SALE (#443): a store Aria no longer sells from never reaches the cart. */
+  if (item.lineType !== 'bundle-discount' && isOffSaleRetailer(item.retailer)){
+    showToast('Este producto ya no está disponible en Aria.');
+    return false;
+  }
   /* AND A SIZED PRODUCT WITH NO SIZE (2026-10-18, #411; the record
      decides since the 2026-10-19 P0). Every door passes the record's
      list as sizeOptions (or sizes): a line with a list and no size from
@@ -26660,6 +26681,7 @@ function cartLineItemHTML(it){
     <div class="min-w-0 flex-1">
       <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
       <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
+      ${isOffSaleRetailer(it.retailer) ? `<div class="text-[12px] font-bold leading-snug mt-1 rounded-lg px-2 py-1" style="color:#B03A2E;background:#FDECEA" data-off-sale-line role="alert">No disponible. Quítalo de tu carrito para continuar.</div>` : ''}
       ${it.selectedSize ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">Talla: ${escapeHtml(it.selectedSize)}</div>` : ''}
       <div class="text-[14px] font-extrabold tabular mt-1" style="color:var(--navy)">${fmtPriceLabel(it.priceUsd)}</div>
       ${solesUnderHTML(it.priceUsd, 'text-[11px] tabular')}
@@ -26752,7 +26774,8 @@ function renderCartFragranceLimit(){
   /* One gate, two reasons. The fragrance limit and an unconfirmed weight
      both block checkout, so whichever renders last must not re-enable the
      button the other just disabled. */
-  const blockedByWeight = cartWeightReviewItems().length > 0;
+  const blockedByWeight = cartWeightReviewItems().length > 0
+    || cart.some(it => it && it.lineType !== 'bundle-discount' && isOffSaleRetailer(it.retailer));
   const setBlocked = (blocked) => {
     if (!btn) return;
     btn.disabled = blocked;
@@ -28177,7 +28200,7 @@ function passesOfertasPhotoGate(p){
 }
 
 function passesOfertasGate(p){
-  return passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p) && passesOfertasPhotoGate(p);
+  return !!p && !isOffSaleRetailer(p.retailer) && passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p) && passesOfertasPhotoGate(p);
 }
 
 
@@ -31115,7 +31138,7 @@ function chatStoreIndex(){
      Sports, ProSoccer, Quiet Storm...) open real storefronts, so
      "llevame a la tienda de Island Water Sports" must find them. A
      store the site cannot open still never gets a button. */
-  let keys = Object.keys(all).filter((k) => { const r = all[k]; return r && !r.retired && (r.search || r.browse); });
+  let keys = Object.keys(all).filter((k) => { const r = all[k]; return r && !r.retired && !isOffSaleRetailer(k) && (r.search || r.browse); });
   if (!keys.length) keys = (typeof LIVE_RETAILERS !== 'undefined' && Array.isArray(LIVE_RETAILERS)) ? LIVE_RETAILERS : Object.keys(labels);
   const seen = new Set();
   const out = [];

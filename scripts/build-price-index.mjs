@@ -27,6 +27,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildCatalog, productIdFor } from "./lib/mcp/catalog.mjs";
+import { isOffSaleRetailer } from "./lib/off-sale.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PRICE_INDEX_FILE = "price-index.json";
@@ -41,7 +42,8 @@ export function buildPriceIndex() {
   for (const it of JSON.parse(readFileSync(ROOT + "ofertas-feed.json", "utf8")).items || []) {
     const title = it && (it.title || it.name);
     const price = Number(it && it.price);
-    if (!title || !(price > 0) || !it.retailer) continue;
+    /* Off sale (/off-sale.js): checkout never vouches for its price. */
+    if (!title || !(price > 0) || !it.retailer || isOffSaleRetailer(it.retailer)) continue;
     const id = productIdFor(it.retailer, title);
     const had = prices[id];
     if (!had) prices[id] = [r2(price), r2(it.dutiableUsd ?? price)];

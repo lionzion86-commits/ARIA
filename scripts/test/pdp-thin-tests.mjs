@@ -26,6 +26,7 @@ import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { liftDeclarations, pageHtml } from "../lib/page-lift.mjs";
 import { liftPage, sourceFiles, MAX_SHARD_GZ, ofertasRows } from "../build-pdp-slices.mjs";
+import { isOffSaleRetailer } from "../lib/off-sale.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const PDP = ROOT + "assets/pdp/";
@@ -196,6 +197,8 @@ await check("the related rails from the slices are the rails the full pools gave
   const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
   for (const [retailer, all] of byRetailer) {
     if (!/^[a-z0-9_-]+$/i.test(retailer)) continue;
+    /* Off sale (#443, /off-sale.js): the store has no rail by design. */
+    if (isOffSaleRetailer(retailer)) continue;
     const oldPool = (P.STORE_FILES[retailer] || []).flatMap((f) => itemsOf.get(f) || []).filter((it) => it.retailer === retailer);
     const pool = oldPool.length ? oldPool : all;
     for (let i = 0; i < 12; i++) {
