@@ -1,5 +1,13 @@
 /* ==================================================================
-   THE HOME PAGE OPENS ON THE SEARCH (#443, Danny's order of 2026-10-21).
+   THE HOME PAGE ORDER (#443).
+
+   2026-10-21 16:03 EDT, Danny on the live site: the "Todo USA ahora en
+   Lima. ARIA te lo trae." block opens the page and the navy search band
+   (logo, headline, search bar) sits directly underneath it. That
+   corrects the earlier same-day order below, which had put the search
+   band first; the Key Club move and copy from that order stand.
+
+   Earlier on 2026-10-21:
 
    Two live shoppers in one day scrolled past the hero, the deals and the
    Aria Key Club block before they found the search box. Danny's order:
@@ -11,19 +19,20 @@
 
    On an iPhone-sized page (390x844) served from this checkout:
 
-   - the search input's top is inside the first viewport and above the
-     Key Club block, and its bottom is at or above 600px (iPhone Safari
-     shows ~660-750px of page under its bars);
+   - the Todo USA block comes first, the search band follows it with
+     nothing in between, and both sit above the Key Club block (the
+     search's position on the first screen is printed, not asserted:
+     under the Todo USA block it lands near the bottom edge);
    - nothing (greeting bubble, orb) covers the search box or its photo
-     and search buttons at first paint or once the greeting is due; on a
-     390x664 screen the greeting waits for a scroll;
+     and search buttons at first paint, once the greeting is due, or
+     once the shopper scrolls to it on a 390x664 screen;
    - none of the selection framing is left anywhere in index.html's text
      (hidden views and modals included), nor in the Key Club, cart and
      checkout copy the bundle and checkout.html paint;
    - the Key Club block carries the replacement copy word for word;
    - on the Mountain profile (2s round trip, 400 kbps, CPU 6x slower) the
-     home search box is on screen and takes a search within 2s of the
-     first paint, and a tap + type + Enter really opens search.html.
+     home search box is drawn and takes a search within 2s of the first
+     paint, and a tap + type + Enter really opens search.html.
 
    The page is served by this script's own static server (gzip, and the
    same /build/app-*.js -> /build/min/ rewrite netlify.toml makes), so
@@ -148,17 +157,16 @@ try {
       clubText: club ? club.textContent.replace(/\s+/g, " ").trim() : "",
       clubHeadline: club && club.querySelector("h2") ? club.querySelector("h2").textContent.replace(/\s+/g, " ").trim() : "",
       viewport: innerHeight,
+      order: [...document.getElementById("homeView").children]
+        .filter((el) => el.tagName !== "SCRIPT" && getComputedStyle(el).display !== "none")
+        .slice(0, 3).map((el) => el.getAttribute("aria-label") || el.tagName),
     };
   });
-  console.log(`    ..   390x844: search input top ${layout.inputTop}px, bottom ${layout.inputBottom}px; Key Club at ${layout.clubTop}px`);
+  console.log(`    ..   390x844: ${layout.order.join(" > ")}; search input top ${layout.inputTop}px, bottom ${layout.inputBottom}px; Key Club at ${layout.clubTop}px`);
 
-  await check("the search input's top is inside the first viewport at 390x844", () => {
+  await check("the Todo USA block opens the page and the search band sits directly under it", () => {
+    assert.deepEqual(layout.order.slice(0, 2), ["Todo USA ahora en Lima", "Compra en Estados Unidos"]);
     assert.ok(layout.inputBox && layout.inputBox.w > 200 && layout.inputBox.h > 30, `the search input is not drawn: ${JSON.stringify(layout.inputBox)}`);
-    assert.ok(layout.inputTop >= 0 && layout.inputTop < layout.viewport, `the search input starts at ${layout.inputTop}px, past the ${layout.viewport}px first screen`);
-  });
-
-  await check("the search input ends at or above 600px (iPhone Safari shows ~660-750px under its bars)", () => {
-    assert.ok(layout.inputBottom <= 600, `the search input ends at ${layout.inputBottom}px`);
   });
 
   await check("nothing covers the search box or its buttons at first paint, nor once the greeting is due", async () => {
@@ -167,25 +175,22 @@ try {
     assert.deepEqual(await searchCovers(page), [], "after the greeting's 2.2s");
   });
 
-  await check("on a Safari-sized screen (390x664) the greeting waits until the search box is scrolled clear", async () => {
+  await check("on a Safari-sized screen (390x664) nothing covers the search box once the shopper scrolls to it", async () => {
     const short = await browser.newContext({ ...PHONE, viewport: { width: 390, height: 664 } });
     const sp = await short.newPage();
     await sp.route((url) => url.host !== `127.0.0.1:${PORT}`, (r) => r.abort());
     await sp.goto(BASE + "/index.html", { waitUntil: "load" });
     await sp.waitForTimeout(3000);
-    const covered = await searchCovers(sp);
-    const bottom = await sp.evaluate(() => document.getElementById("searchInput").getBoundingClientRect().bottom);
-    await sp.evaluate(() => window.scrollTo(0, 700));
+    await sp.evaluate(() => document.getElementById("searchInput").scrollIntoView({ block: "center" }));
     await sp.waitForTimeout(600);
-    const shownAfterScroll = await sp.evaluate(() => !document.getElementById("assistantGreetBubble").classList.contains("hidden"));
+    const covered = await searchCovers(sp);
     await short.close();
-    assert.ok(bottom <= 664, `the search input ends at ${Math.round(bottom)}px on a 664px screen`);
     assert.deepEqual(covered, []);
-    assert.ok(shownAfterScroll, "the greeting never appeared once the search box was scrolled clear");
   });
 
   await check("the search sits above the Key Club block", () => {
     assert.ok(layout.clubBox && layout.clubBox.h > 100, "the Key Club block is missing from the home page");
+    assert.ok(layout.inputTop > 0, `search at ${layout.inputTop}px`);
     assert.ok(layout.inputTop < layout.clubTop, `search at ${layout.inputTop}px, Key Club at ${layout.clubTop}px`);
   });
 
@@ -283,9 +288,9 @@ try {
   const gap = mountain.ready === null ? null : Math.max(0, Math.round(mountain.ready - mountain.fcp));
   console.log(`    ..   mountain: first paint ${Math.round(mountain.fcp)}ms, search drawn and live ${Math.round(mountain.drawn)}ms (${Math.max(0, Math.round(mountain.drawn - mountain.fcp))}ms after first paint), in the first screen ${gap === null ? "never" : gap + "ms after first paint"}, tap->search.html ${mountain.tapMs}ms, index.html ${mountain.htmlBytes} bytes on the wire`);
 
-  await check("Mountain: the home search is on screen and takes a search within 2s of first paint", () => {
-    assert.ok(gap !== null, "the search box never reached the first screen");
-    assert.ok(gap <= 2000, `the search box was ready ${gap}ms after the first paint`);
+  await check("Mountain: the home search is drawn and takes a search within 2s of first paint", () => {
+    const drawnGap = Math.max(0, Math.round(mountain.drawn - mountain.fcp));
+    assert.ok(drawnGap <= 2000, `the search box was ready ${drawnGap}ms after the first paint`);
     assert.ok(mountain.navigated, "tap + type + Enter did not open search.html");
   });
 
