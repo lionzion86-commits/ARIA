@@ -23007,9 +23007,11 @@ function isCatalogPlaceholder(kg, retailer, title, hints = {}) {
   const t = String(title || "");
   const p = CATALOG_PLACEHOLDERS.find((x) => x.kg === n);
   if (!p) return false;
-  if (!p.keep) return true;
-  // The 12 / 25 kg stamps are judged on cheap lines only; $75+ is as on main.
+  /* Judged on cheap lines only (#449): under $75 a stamp is no weight and
+     inference answers. At $75+ the stamp stands as on main -- dropping it
+     there sends playards, high chairs and cribs to the 2 kg band top. */
   if (!isCheapLine(hints)) return false;
+  if (!p.keep) return true;
   return !(p.keep.test(t) && !(p.unless && p.unless.test(t)));
 }
 

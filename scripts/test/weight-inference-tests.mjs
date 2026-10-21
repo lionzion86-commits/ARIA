@@ -198,6 +198,22 @@ await check("$75+ lines keep main's rows: a real pantry cabinet, a grill tool se
   eq(one(line("Toy Machine Fists Skateboard Complete - 8.00\"", "ccs", 70)).totalKg, W.withBuffer(2.5, "reasoned"), "cheap complete");
 });
 
+await check("a $90+ baby monitor is not a screen: checkout, the Node estimator and the page agree (2 kg band, not the 7.43 kg monitor row)", () => {
+  for (const [t, store, price] of [["Momcozy 5-Inch Dual-mode Smart Baby Monitor-BM04", "momcozy", 252.08],
+    ["1080p Full HD Camera for Video Baby Monitor BM03 Black", "momcozy", 119.4],
+    ["Smart Baby Monitor System", "nanit", 384.76]]) {
+    const r = one(line(t, store, price)).items[0];
+    eq(r.weightKg, 2, t); eq(r.source, "department", "source " + t);
+    assert(!r.needsReview, "held: " + t);
+    eq(estimateWeightDetail(t, { retailer: store, priceUsd: price }).kg, 2, "Node: " + t);
+    eq(P.estimateRetailWeightDetail(t, { retailer: store, priceUsd: price }).kg, 2, "page: " + t);
+  }
+  /* A screen is still a screen, and a $75+ moms line keeps its catalogue stamp as on main. */
+  eq(one(line("Dell 27 Inch Monitor S2721H", "target", 199)).totalKg, W.withBuffer(5.5, "reasoned"), "a real monitor");
+  eq(one(line("Momcozy 5-Inch Dual-mode Smart Baby Monitor-BM04", "momcozy", 252.08, { specWeightKg: 4 })).totalKg, 4, "$75+ stamp");
+  assert(!W.isCatalogPlaceholder(4, "momcozy", "Playard & Smart Baby Monitor BM04 Bundle", { priceUsd: 552.59 }), "$75+ playard keeps 4");
+});
+
 await check("Danny's 889 ruling: a cheap inferred line whose freight exceeds its price is NOT held", () => {
   const tyre = one(line("IRC MX IX Kids Tires", "revzilla", 38.26));
   assert(tyre.totalKg * CHARGE_PER_KG > 38.26, "the tyre's freight should exceed its price");

@@ -172,7 +172,12 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   // Rigid boxed goods. All reasoned.
   { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
   { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
-  { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned" },
+  /* A baby, audio or security monitor is not a screen: the page's row
+     carries MONITOR_IMPOSTOR_RE as a not-guard (#449). This table's
+     lookup reads `match` only, so the guard is written into the match.
+     A playard bundle keeps the row as on main: neither the page nor this
+     table has a playard row, and the 2 kg band top would under-quote it. */
+  { match: /\bplayards?\b[\s\S]*\bmonitor\b|^(?![\s\S]*\b(?:baby|audio|security)\b)[\s\S]*\bmonitor\b/i, kg: 5.5, tier: "reasoned" },
   { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned" },
   { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned" },
   { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned" },

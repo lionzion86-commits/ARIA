@@ -818,9 +818,11 @@ export function clampToBand(title, kg) {
    4.0 kg (swaddles, a bath thermometer, a monitor), 12 kg ("Stroller
    Party" clips and seat liners) and 25 kg (crib SHEETS). Those are not
    weights; read as catalogue weights they poisoned the sibling pools and
-   quoted a swaddle at 4 kg. 4.0 is never a weight; 12 and 25 stay only
-   on the stroller / crib they were stamped for. Store-scoped to the baby
-   stores, so no other catalogue's 4.0 is touched. Mirrored in the bundle. */
+   quoted a swaddle at 4 kg. On a line under $75, 4.0 is never a weight
+   and 12 / 25 stay only on the stroller / crib they were stamped for; a
+   $75+ line keeps the stamp as on main (a playard or a crib is heavier
+   than the band top). Store-scoped to the baby stores, so no other
+   catalogue's 4.0 is touched. Mirrored in the bundle. */
 export const CATALOG_PLACEHOLDERS = [
   { kg: 4 },
   { kg: 12, keep: /\b(strollers?|car ?seats?|travel systems?|playards?|pack ?n ?play|high ?chairs?|bassinets?)\b/i, unless: STROLLER_ACCESSORY_RE },
@@ -832,9 +834,11 @@ export function isCatalogPlaceholder(kg, retailer, title, hints = {}) {
   const t = String(title || "");
   const p = CATALOG_PLACEHOLDERS.find((x) => x.kg === n);
   if (!p) return false;
-  if (!p.keep) return true;
-  // The 12 / 25 kg stamps are judged on cheap lines only; $75+ is as on main.
+  /* Judged on cheap lines only (#449): under $75 a stamp is no weight and
+     inference answers. At $75+ the stamp stands as on main -- dropping it
+     there sends playards, high chairs and cribs to the 2 kg band top. */
   if (!isCheapLine(hints)) return false;
+  if (!p.keep) return true;
   return !(p.keep.test(t) && !(p.unless && p.unless.test(t)));
 }
 
