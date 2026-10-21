@@ -288,9 +288,9 @@ await check("a search that is not mostly toys keeps the engine's order", () => {
   const toyish = [P("apparel_kids", "a"), ...Array.from({ length: 12 }, (_, i) => P("toys", i))];
   assert.equal(core.toysLead(toyish)[0].id, 0);
   assert.equal(core.toysLead(toyish).at(-1).id, "a");
-  const raw = ctx.P.run({ S: ctx.S, products: ctx.products, retailers: ctx.retailers, dict: ctx.dict, resultLimit: ctx.resultLimit }, "disney").hits;
-  assert.ok(raw.filter(core.isToyDept).length / raw.length < 0.5, "disney became mostly toys: pick another mixed search");
-  assert.deepEqual(core.runQuery(ctx, "disney").hits.slice(0, 50).map((p) => p.id), raw.slice(0, 50).map((p) => p.id));
+  const raw = ctx.P.run({ S: ctx.S, products: ctx.products, retailers: ctx.retailers, dict: ctx.dict, resultLimit: ctx.resultLimit }, "mickey").hits;
+  assert.ok(raw.filter(core.isToyDept).length / raw.length < 0.5, "mickey became mostly toys: pick another mixed search");
+  assert.deepEqual(core.runQuery(ctx, "mickey").hits.slice(0, 50).map((p) => p.id), raw.slice(0, 50).map((p) => p.id));
 });
 
 /* ------------------------------------------------------------------
