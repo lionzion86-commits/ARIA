@@ -11045,26 +11045,9 @@ group("store carousels: window-shopping rails");
     for (const rule of ["scroll-snap-type:x mandatory", "scroll-snap-align:start", "-webkit-overflow-scrolling:touch", "margin:0 -20px", "78vw"]) {
       if (!css.includes(rule)) throw new Error(`carousel CSS missing: ${rule}`);
     }
-    // The VS plum re-inks the rail title the way it re-inks subtitles —
-    // cards keep their white faces on the dark ambience.
-    if (!css.includes('[data-store-theme="victoriassecret"] .ariaCarouselTitle')) {
-      throw new Error("the VS theme does not re-ink the rail title");
-    }
-    // PINK-NOT-BLACK (2026-09-24): Danny — the VS ambient stays
-    // recognizably pink all the way down. The base gradient must end in
-    // a deep pink, never a near-black.
-    const vsTheme = css.slice(css.indexOf('[data-store-theme="victoriassecret"]{'), css.indexOf('[data-store-theme="victoriassecret"] h1'));
-    if (!/linear-gradient\(180deg,\s*#[0-9A-Fa-f]{6}\s*0%,\s*#[0-9A-Fa-f]{6}\s*52%,\s*#[0-9A-Fa-f]{6}\s*100%\)/.test(vsTheme)) {
-      throw new Error("the VS theme lost its three-stop pink base gradient");
-    }
-    const stops = vsTheme.match(/#[0-9A-Fa-f]{6}/g) || [];
-    const lum = (hex) => {
-      const n = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
-      return 0.2126 * n[0] + 0.7152 * n[1] + 0.0722 * n[2];
-    };
-    for (const s of stops) {
-      if (lum(s) < 0.03) throw new Error(`the VS base gradient stop ${s} is near-black — keep it pink`);
-    }
+    // Victoria's Secret's plum ambient (the theme that pioneered the
+    // re-inked rail title) left with the store (#443 off sale); the dark
+    // themes still on sale are pinned in the group below.
     const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
     if (!/background:#fff/.test(card)) throw new Error("rail cards lost their light surface");
   });
@@ -11083,6 +11066,9 @@ group("store carousels: window-shopping rails");
 group("per-store ambient themes: full rollout");
 
 {
+  /* Off-sale stores (#443) keep their STORE_THEMES row (mechanism data,
+     gated by off-sale.js) but lose their merchandising CSS. */
+  const OFF = new Set(JSON.parse("[" + /var OFF_SALE_RETAILERS = \[([\s\S]*?)\];/.exec(readFileSync(new URL("../../off-sale.js", import.meta.url), "utf8"))[1].replace(/'/g, '"').replace(/,\s*$/, "") + "]"));
   const themeKeys = () => {
     const src = pageHtml();
     const lit = src.slice(src.indexOf("const STORE_THEMES = {"), src.indexOf("function storeThemeFor("));
@@ -11112,9 +11098,8 @@ group("per-store ambient themes: full rollout");
 
   check("every carried store has an ambient theme", () => {
     const keys = themeKeys();
-    const expected = ["walmart","target","oldnavy","footlocker","sephora","ulta",
-      "yesstyle","victoriassecret","bathandbodyworks","macys","skims","revolve",
-      "dyson","sunglasshut","ssense","fendi","miumiu","goldengoose","autozone"];
+    const expected = ["walmart","sephora","bathandbodyworks","skims","revolve",
+      "dyson","sunglasshut","autozone"];
     for (const k of expected) {
       if (!keys.includes(k)) throw new Error(`no STORE_THEMES row for ${k}`);
     }
@@ -11124,15 +11109,11 @@ group("per-store ambient themes: full rollout");
     if (new Set(keys).size !== keys.length) throw new Error("duplicate theme keys");
   });
 
-  check("the Victoria's Secret theme is untouched", () => {
-    const src = pageHtml();
-    if (!/victoriassecret: \{ glow: '#E31C79' \},/.test(src)) {
-      throw new Error("the VS registry row changed");
-    }
-    const css = cssFor("victoriassecret");
-    // 2026-09-24 restyle (Danny: keep it pink all the way down) — the
-    // approved base is now the pink gradient, not the old near-black plum.
-    if (!css || !css.includes("#D6337F")) throw new Error("the VS ambient changed");
+  check("off-sale stores carry no ambient theme CSS (#443 removal completeness)", () => {
+    const src = pageHtml().replace(/\r\n/g, "\n");
+    const css = src.slice(0, src.indexOf("</style>"));
+    const left = [...OFF].filter((k) => css.includes(`[data-store-theme="${k}"]`) || css.includes(`storePhotoBg--${k}`));
+    if (left.length) throw new Error(`theme CSS survives for off-sale stores: ${left.join(", ")}`);
   });
 
   check("every theme has the full CSS block", () => {
@@ -11141,7 +11122,7 @@ group("per-store ambient themes: full rollout");
     for (const k of themeKeys()) {
       // AutoZone keeps Aria Auto's light surfaces with a brand-colour wash
       // instead of a dark ambient — pinned separately below.
-      if (k === "autozone") continue;
+      if (k === "autozone" || OFF.has(k)) continue;
       const css = cssFor(k);
       if (!css) throw new Error(`no CSS block for ${k}`);
       if (!/radial-gradient/.test(css) || !/linear-gradient\(180deg/.test(css)) {
@@ -11158,7 +11139,7 @@ group("per-store ambient themes: full rollout");
       // Victoria's Secret is the pilot (PR #42, owned elsewhere): its approved
       // values predate this bar and compute to 4.46:1. Grandfathered, not touched.
       // AutoZone has no pressed-chip rule: it wears the light wash, not a dark ambient.
-      if (k === "victoriassecret" || k === "autozone") continue;
+      if (k === "autozone" || OFF.has(k)) continue;
       const css = cssFor(k);
       const m = css.match(/\[aria-pressed="true"\]\{\s*background:(#[0-9A-Fa-f]{3,6}) !important; border-color:(#[0-9A-Fa-f]{3,6}) !important; color:(#[0-9A-Fa-f]{3,6}) !important;/);
       if (!m) throw new Error(`${k}: pressed-chip rule not in the expected shape`);

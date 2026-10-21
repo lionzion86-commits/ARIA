@@ -101,10 +101,6 @@ window.doSearch = function(which){
      surfaces with a brand-colour wash. Chip text must hold 4.5:1
      against the chip color. */
   [data-store-theme]{ min-height:72vh; }
-  /* VICTORIA'S SECRET — moody plum-charcoal with a soft pink glow:
-     the real store's lighting. A pink bloom on each upper side (so the
-     hero never sits in a dead spot) and a deep magenta pool low, over a
-     pink base, never near black (2026-09-24: Danny — keep it pink all the way down). */
   /* STORE INTERIOR BACKDROPS (2026-10-02, Danny): the store's interior
      photo behind its section, darkened for legibility. Bespoke per-store
      blocks below take precedence where they exist. */
@@ -113,34 +109,8 @@ window.doSearch = function(which){
     background-size: cover, cover; background-position: center top, center top;
     background-repeat: no-repeat, no-repeat;
   }
-  [data-store-theme="victoriassecret"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(255,110,170,.25), rgba(255,110,170,0) 70%),
-      radial-gradient(620px 330px at 88% 4%, rgba(227,28,121,.22), rgba(227,28,121,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(140,20,80,.35), rgba(140,20,80,0) 72%),
-      linear-gradient(180deg, #D6337F 0%, #A81E63 52%, #7E1749 100%);
-  }
-  /* Headings turn bridal-white, helper text turns soft rose — both hold
-     well past 7:1 against the base. */
-  [data-store-theme="victoriassecret"] h1{ color:#FDF3F7; }
-  [data-store-theme="victoriassecret"] #catalogSubtitle,
-  [data-store-theme="victoriassecret"] #storeViewSubtitle,
-  [data-store-theme="victoriassecret"] #storeResultsSubtitle{ color:#DFA9C0; }
-  /* The "Volver" back link is inked --blue inline; the theme lifts it to
-     a powder blue that holds contrast on plum. */
-  [data-store-theme="victoriassecret"] .themeBack{ color:#C9D6FF !important; }
-  /* Chip rows: inactive pills stay white and pop on the dark; the
-     pressed pill goes VS pink so the active filter reads as the brand
-     (white on #E31C79 holds 4.6:1). */
-  [data-store-theme="victoriassecret"] .themeChips [aria-pressed="true"]{
-    background:#E31C79 !important; border-color:#F06BA4 !important; color:#fff !important;
-  }
-  [data-store-theme="victoriassecret"] .themeChips .chipLabel{ color:#DFA9C0 !important; }
-  /* The sort select keeps its white surface; its hairline turns rose so
-     it does not look pasted on. */
-  [data-store-theme="victoriassecret"] #catalogSort{ border-color:#E8A9C4 !important; }
-  /* AUTO STORES — light brand wash (2026-09-24). Unlike the dark VS
-     ambient, Aria Auto keeps its light surfaces: the store's colour only
+  /* AUTO STORES — light brand wash (2026-09-24). Unlike the dark
+     store ambients, Aria Auto keeps its light surfaces: the store's colour only
      tints the page background behind the cards, so no text re-inking is
      needed. Worn when the view is opened from that store's tile. */
   [data-store-theme="autozone"]{ background:linear-gradient(180deg, #DFF0E4 0%, var(--paper) 340px); }
@@ -176,9 +146,6 @@ window.doSearch = function(which){
   @media (min-width:640px){ .ariaCarouselCard{ width:280px; } }
   @media (min-width:1024px){ .ariaCarouselCard{ width:300px; } }
   @media (prefers-reduced-motion: reduce){ .ariaCarousel{ scroll-snap-type:x proximity; } }
-  /* Rail titles ink light on the VS plum, the way the subtitles do. A
-     future dark theme adds its own .ariaCarouselTitle line here. */
-  [data-store-theme="victoriassecret"] .ariaCarouselTitle{ color:#FDF3F7 !important; }
   /* WALMART (2026-10-02, Danny): no more dark navy. The page IS Walmart
      blue (#0071CE) — it opens on a real photo of the store interior
      (see .storePhotoBg) that fades down into the blue, and the blue
@@ -199,26 +166,6 @@ window.doSearch = function(which){
   [data-store-theme="walmart"] .themeChips .chipLabel{ color:#EAF3FD !important; }
   [data-store-theme="walmart"] #catalogSort{ border-color:#7FB8EE !important; }
   [data-store-theme="walmart"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* TARGET (2026-10-02, Danny): no more dark maroon. The page IS Target red -- LOUD,
-     striking (#CC0000 vivid, never muted) — it opens on a real photo of the store interior
-     (see .storePhotoBg) that fades down into the red, and the red
-     carries the rest of the page. Red and white, nothing else.
-  */
-  [data-store-theme="target"]{
-    background:linear-gradient(180deg, #D40000 0%, #CC0000 55%, #CC0000 100%);
-  }
-  [data-store-theme="target"] h1{ color:#FFFFFF; }
-  [data-store-theme="target"] #catalogSubtitle,
-  [data-store-theme="target"] #storeViewSubtitle,
-  [data-store-theme="target"] #storeResultsSubtitle{ color:#FFE9E7; }
-  [data-store-theme="target"] #storeViewDelivery{ color:#FFFFFF !important; }
-  [data-store-theme="target"] .themeBack{ color:#FFFFFF !important; }
-  [data-store-theme="target"] .themeChips [aria-pressed="true"]{
-    background:#CC0000 !important; border-color:#FFFFFF !important; color:#fff !important;
-  }
-  [data-store-theme="target"] .themeChips .chipLabel{ color:#FFE9E7 !important; }
-  [data-store-theme="target"] #catalogSort{ border-color:#F0A0A0 !important; }
-  [data-store-theme="target"] .ariaCarouselTitle{ color:#FFFFFF !important; }
   /* TALL STORE PHOTO BACKDROP (2026-10-02, Danny — "make it telling"):
      the store-interior photo is a tall full-bleed backdrop spanning the
      top of the store page THROUGH the end of the first (Destacados)
@@ -229,10 +176,8 @@ window.doSearch = function(which){
      the busy photo; product cards keep their own white backgrounds.
      Full-bleed: the negative offsets cancel the view's px-5 py-10.
      Local assets only, never hotlinked (assets/stores/). */
-  #storeView > div.storePhotoBg--walmart,
-  #storeView > div.storePhotoBg--target{ position:relative; }
-  #storeView > div.storePhotoBg--walmart::before,
-  #storeView > div.storePhotoBg--target::before{
+  #storeView > div.storePhotoBg--walmart{ position:relative; }
+  #storeView > div.storePhotoBg--walmart::before{
     content:""; position:absolute; top:-40px; left:-20px; right:-20px;
     height:var(--storePhotoH, 620px);
     background:
@@ -244,52 +189,8 @@ window.doSearch = function(which){
   }
   /* Photo: 'Inside Austintown Walmart Supercenter, 2024-08-08' by Deans Charbal, CC BY-SA 4.0, via Wikimedia Commons */
   #storeView > div.storePhotoBg--walmart::before{ --storePhotoImg:url('assets/stores/walmart-interior.jpg'); }
-  #storeView > div.storePhotoBg--target::before{ --storePhotoImg:url('assets/stores/target-interior.jpg'); }
   /* All page content rides above the photo layer. */
-  #storeView > div.storePhotoBg--walmart > *,
-  #storeView > div.storePhotoBg--target > *{ position:relative; z-index:1; }
-  /* OLD NAVY — upbeat Americana, nautical navy-and-white
-     Real Old Navy navy #003764 lifted bright; a whisper of flag red.
-  */
-  [data-store-theme="oldnavy"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(61,99,245,0.32), rgba(61,99,245,0) 70%),
-      radial-gradient(560px 300px at 88% 4%, rgba(224,52,43,0.18), rgba(224,52,43,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(18,36,92,0.38), rgba(18,36,92,0) 72%),
-      linear-gradient(180deg, #0A1130 0%, #080D26 52%, #05081A 100%);
-  }
-  [data-store-theme="oldnavy"] h1{ color:#FFFFFF; }
-  [data-store-theme="oldnavy"] #catalogSubtitle,
-  [data-store-theme="oldnavy"] #storeViewSubtitle,
-  [data-store-theme="oldnavy"] #storeResultsSubtitle{ color:#B9C6F5; }
-  [data-store-theme="oldnavy"] .themeBack{ color:#C9D6FF !important; }
-  [data-store-theme="oldnavy"] .themeChips [aria-pressed="true"]{
-    background:#2440B8 !important; border-color:#6B86F0 !important; color:#fff !important;
-  }
-  [data-store-theme="oldnavy"] .themeChips .chipLabel{ color:#B9C6F5 !important; }
-  [data-store-theme="oldnavy"] #catalogSort{ border-color:#93A7F2 !important; }
-  [data-store-theme="oldnavy"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* FOOT LOCKER — street-sneaker culture, referee stripes
-     Striper red #E52935 over sport black; gray like the stripes.
-  */
-  [data-store-theme="footlocker"]{
-    background:
-      radial-gradient(560px 300px at 10% -4%, rgba(229,50,45,0.3), rgba(229,50,45,0) 70%),
-      radial-gradient(600px 320px at 90% 6%, rgba(138,143,152,0.18), rgba(138,143,152,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(61,15,14,0.36), rgba(61,15,14,0) 72%),
-      linear-gradient(180deg, #0D0D10 0%, #0A0A0C 52%, #060607 100%);
-  }
-  [data-store-theme="footlocker"] h1{ color:#FFFFFF; }
-  [data-store-theme="footlocker"] #catalogSubtitle,
-  [data-store-theme="footlocker"] #storeViewSubtitle,
-  [data-store-theme="footlocker"] #storeResultsSubtitle{ color:#C9CDD4; }
-  [data-store-theme="footlocker"] .themeBack{ color:#DDE2EA !important; }
-  [data-store-theme="footlocker"] .themeChips [aria-pressed="true"]{
-    background:#D22630 !important; border-color:#F06666 !important; color:#fff !important;
-  }
-  [data-store-theme="footlocker"] .themeChips .chipLabel{ color:#C9CDD4 !important; }
-  [data-store-theme="footlocker"] #catalogSort{ border-color:#9AA0AA !important; }
-  [data-store-theme="footlocker"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  #storeView > div.storePhotoBg--walmart > *{ position:relative; z-index:1; }
   /* SEPHORA — black-and-white striped luxe
      Cool monochrome; the pressed pill is white-on-black inverted:
      the brand IS black-and-white, so the active filter goes white.
@@ -312,49 +213,6 @@ window.doSearch = function(which){
   [data-store-theme="sephora"] .themeChips .chipLabel{ color:#CFCFD6 !important; }
   [data-store-theme="sephora"] #catalogSort{ border-color:#8E8E96 !important; }
   [data-store-theme="sephora"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* ULTA BEAUTY — bright beauty playground, orange pop
-     Ulta orange #F88038 glowing warm; BLACK text on the orange pill
-     (white on #F88038 fails contrast).
-  */
-  [data-store-theme="ulta"]{
-    background:
-      radial-gradient(580px 310px at 12% -4%, rgba(255,154,77,0.32), rgba(255,154,77,0) 70%),
-      radial-gradient(600px 320px at 88% 6%, rgba(255,201,138,0.2), rgba(255,201,138,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(90,42,14,0.38), rgba(90,42,14,0) 72%),
-      linear-gradient(180deg, #1E1108 0%, #170D06 52%, #0F0804 100%);
-  }
-  [data-store-theme="ulta"] h1{ color:#FFF8F0; }
-  [data-store-theme="ulta"] #catalogSubtitle,
-  [data-store-theme="ulta"] #storeViewSubtitle,
-  [data-store-theme="ulta"] #storeResultsSubtitle{ color:#F5C99A; }
-  [data-store-theme="ulta"] .themeBack{ color:#FFE3C2 !important; }
-  [data-store-theme="ulta"] .themeChips [aria-pressed="true"]{
-    background:#F88038 !important; border-color:#FFB37A !important; color:#1A120A !important;
-  }
-  [data-store-theme="ulta"] .themeChips .chipLabel{ color:#F5C99A !important; }
-  [data-store-theme="ulta"] #catalogSort{ border-color:#E8A06A !important; }
-  [data-store-theme="ulta"] .ariaCarouselTitle{ color:#FFF8F0 !important; }
-  /* YESSTYLE — fresh K-beauty glow
-     YesStyle green #50A838 lifted fresh over deep botanical charcoal.
-  */
-  [data-store-theme="yesstyle"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(111,211,95,0.3), rgba(111,211,95,0) 70%),
-      radial-gradient(600px 320px at 88% 6%, rgba(184,230,160,0.18), rgba(184,230,160,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(30,74,36,0.38), rgba(30,74,36,0) 72%),
-      linear-gradient(180deg, #0B1A0E 0%, #081408 52%, #050C06 100%);
-  }
-  [data-store-theme="yesstyle"] h1{ color:#FFFFFF; }
-  [data-store-theme="yesstyle"] #catalogSubtitle,
-  [data-store-theme="yesstyle"] #storeViewSubtitle,
-  [data-store-theme="yesstyle"] #storeResultsSubtitle{ color:#BDE5B4; }
-  [data-store-theme="yesstyle"] .themeBack{ color:#D6F5CE !important; }
-  [data-store-theme="yesstyle"] .themeChips [aria-pressed="true"]{
-    background:#257A33 !important; border-color:#6FCF7F !important; color:#fff !important;
-  }
-  [data-store-theme="yesstyle"] .themeChips .chipLabel{ color:#BDE5B4 !important; }
-  [data-store-theme="yesstyle"] #catalogSort{ border-color:#8FD49A !important; }
-  [data-store-theme="yesstyle"] .ariaCarouselTitle{ color:#FFFFFF !important; }
   /* BATH & BODY WORKS — fragrance mist over brand blue
      Brand blue #005699 (Pantone 2945 C) with a pink fragrance-mist second glow.
   */
@@ -415,27 +273,6 @@ window.doSearch = function(which){
   [data-store-theme="boxlunch"] #catalogSort{ border-color:#E8A96F !important; }
   [data-store-theme="boxlunch"] .ariaCarouselTitle{ color:#FFFFFF !important; }
 
-  /* MACY'S — heritage department-store glamour, red star + gold
-     Macy's red #E21A2C with star-gold; chip deepened for contrast.
-  */
-  [data-store-theme="macys"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(240,68,68,0.3), rgba(240,68,68,0) 70%),
-      radial-gradient(600px 320px at 88% 6%, rgba(232,184,75,0.2), rgba(232,184,75,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(78,20,24,0.38), rgba(78,20,24,0) 72%),
-      linear-gradient(180deg, #1E0C0E 0%, #17090B 52%, #0F0607 100%);
-  }
-  [data-store-theme="macys"] h1{ color:#FFFFFF; }
-  [data-store-theme="macys"] #catalogSubtitle,
-  [data-store-theme="macys"] #storeViewSubtitle,
-  [data-store-theme="macys"] #storeResultsSubtitle{ color:#F2B8B8; }
-  [data-store-theme="macys"] .themeBack{ color:#FFE3C9 !important; }
-  [data-store-theme="macys"] .themeChips [aria-pressed="true"]{
-    background:#C81626 !important; border-color:#F06666 !important; color:#fff !important;
-  }
-  [data-store-theme="macys"] .themeChips .chipLabel{ color:#F2B8B8 !important; }
-  [data-store-theme="macys"] #catalogSort{ border-color:#E8A9A9 !important; }
-  [data-store-theme="macys"] .ariaCarouselTitle{ color:#FFFFFF !important; }
   /* SKIMS — warm minimal neutral luxury
      Skims taupe #605848 warmed and deepened; espresso base.
   */
@@ -521,90 +358,6 @@ window.doSearch = function(which){
   [data-store-theme="sunglasshut"] .themeChips .chipLabel{ color:#F5D998 !important; }
   [data-store-theme="sunglasshut"] #catalogSort{ border-color:#E8B84B !important; }
   [data-store-theme="sunglasshut"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* SSENSE — brutalist avant-garde, cold minimal
-     Coldest and most restrained of the monochromes — brutalist.
-  */
-  [data-store-theme="ssense"]{
-    background:
-      radial-gradient(520px 280px at 12% -4%, rgba(237,237,239,0.16), rgba(237,237,239,0) 70%),
-      radial-gradient(560px 300px at 88% 6%, rgba(110,110,120,0.12), rgba(110,110,120,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(16,16,20,0.42), rgba(16,16,20,0) 72%),
-      linear-gradient(180deg, #08080A 0%, #060607 52%, #030304 100%);
-  }
-  [data-store-theme="ssense"] h1{ color:#FFFFFF; }
-  [data-store-theme="ssense"] #catalogSubtitle,
-  [data-store-theme="ssense"] #storeViewSubtitle,
-  [data-store-theme="ssense"] #storeResultsSubtitle{ color:#C6C6CE; }
-  [data-store-theme="ssense"] .themeBack{ color:#E4E4EA !important; }
-  [data-store-theme="ssense"] .themeChips [aria-pressed="true"]{
-    background:#FFFFFF !important; border-color:#FFFFFF !important; color:#000000 !important;
-  }
-  [data-store-theme="ssense"] .themeChips .chipLabel{ color:#C6C6CE !important; }
-  [data-store-theme="ssense"] #catalogSort{ border-color:#6E6E78 !important; }
-  [data-store-theme="ssense"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* FENDI — Roman luxury, FF yellow gold
-     Fendi yellow glowing like the Zucca FF over espresso-black.
-  */
-  [data-store-theme="fendi"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(245,197,24,0.3), rgba(245,197,24,0) 70%),
-      radial-gradient(600px 320px at 88% 6%, rgba(255,223,107,0.2), rgba(255,223,107,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(74,56,8,0.38), rgba(74,56,8,0) 72%),
-      linear-gradient(180deg, #171106 0%, #120D05 52%, #0B0803 100%);
-  }
-  [data-store-theme="fendi"] h1{ color:#FFFFFF; }
-  [data-store-theme="fendi"] #catalogSubtitle,
-  [data-store-theme="fendi"] #storeViewSubtitle,
-  [data-store-theme="fendi"] #storeResultsSubtitle{ color:#F2D98C; }
-  [data-store-theme="fendi"] .themeBack{ color:#FFEDBE !important; }
-  [data-store-theme="fendi"] .themeChips [aria-pressed="true"]{
-    background:#EAB308 !important; border-color:#FFD968 !important; color:#1A1206 !important;
-  }
-  [data-store-theme="fendi"] .themeChips .chipLabel{ color:#F2D98C !important; }
-  [data-store-theme="fendi"] #catalogSort{ border-color:#D4A437 !important; }
-  [data-store-theme="fendi"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* MIU MIU — playful vintage luxe, muted rose
-     Muted vintage rose — deliberately distinct from VS's hot pink.
-  */
-  [data-store-theme="miumiu"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(217,140,160,0.3), rgba(217,140,160,0) 70%),
-      radial-gradient(600px 320px at 88% 6%, rgba(242,196,206,0.2), rgba(242,196,206,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(61,31,40,0.38), rgba(61,31,40,0) 72%),
-      linear-gradient(180deg, #190D12 0%, #130A0E 52%, #0B0609 100%);
-  }
-  [data-store-theme="miumiu"] h1{ color:#FFF5F7; }
-  [data-store-theme="miumiu"] #catalogSubtitle,
-  [data-store-theme="miumiu"] #storeViewSubtitle,
-  [data-store-theme="miumiu"] #storeResultsSubtitle{ color:#E8B7C2; }
-  [data-store-theme="miumiu"] .themeBack{ color:#F5D9E0 !important; }
-  [data-store-theme="miumiu"] .themeChips [aria-pressed="true"]{
-    background:#A85D6F !important; border-color:#D98CA0 !important; color:#fff !important;
-  }
-  [data-store-theme="miumiu"] .themeChips .chipLabel{ color:#E8B7C2 !important; }
-  [data-store-theme="miumiu"] #catalogSort{ border-color:#C98A99 !important; }
-  [data-store-theme="miumiu"] .ariaCarouselTitle{ color:#FFF5F7 !important; }
-  /* GOLDEN GOOSE — distressed Venetian luxury, vintage gold
-     Antique gold star-glow on near-black; dark text on the gold pill.
-  */
-  [data-store-theme="goldengoose"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(212,164,55,0.3), rgba(212,164,55,0) 70%),
-      radial-gradient(600px 320px at 88% 6%, rgba(240,212,136,0.18), rgba(240,212,136,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(58,44,16,0.38), rgba(58,44,16,0) 72%),
-      linear-gradient(180deg, #14100A 0%, #0F0C07 52%, #090705 100%);
-  }
-  [data-store-theme="goldengoose"] h1{ color:#FFFFFF; }
-  [data-store-theme="goldengoose"] #catalogSubtitle,
-  [data-store-theme="goldengoose"] #storeViewSubtitle,
-  [data-store-theme="goldengoose"] #storeResultsSubtitle{ color:#E8D5A0; }
-  [data-store-theme="goldengoose"] .themeBack{ color:#F5E8C4 !important; }
-  [data-store-theme="goldengoose"] .themeChips [aria-pressed="true"]{
-    background:#B8912F !important; border-color:#D4A437 !important; color:#14100A !important;
-  }
-  [data-store-theme="goldengoose"] .themeChips .chipLabel{ color:#E8D5A0 !important; }
-  [data-store-theme="goldengoose"] #catalogSort{ border-color:#B89B5A !important; }
-  [data-store-theme="goldengoose"] .ariaCarouselTitle{ color:#FFFFFF !important; }
   /* ============================================================
      PER-DEPARTMENT AMBIENT THEMES (2026-09-27, Danny): every category
      gets its own colored section, on a separate attribute
@@ -740,22 +493,6 @@ window.doSearch = function(which){
     animation:ariaShimmer 1.5s ease 4;
   }
   @media (prefers-reduced-motion: reduce){ .ariaSkeleton{ animation:none } }
-  /* BEST BUY BANNER + CAROUSEL (2026-10-19, Danny, #413): "promoted hard",
-     billed like the electronics specialist it is -- directly under the
-     brand band, above Aria Auto. Best Buy's own blue (#0046BE) with its
-     yellow tag accent (#FFE000) as a rule, the real yellow-tag mark
-     (logos/bestbuy.svg), then the
-     store's sale rail (sale items only: storeRailPicks + sale-rule.js),
-     painted from assets/home/shelves/store-bestbuy.json like every rail.
-     No photo on the home page: no catalogue, no extra weight. */
-  .bbBand{ background:linear-gradient(160deg, #0046BE 0%, #003A9E 60%, #002B7A 100%) }
-  .bbTagRule{ position:absolute; left:0; right:0; top:0; height:5px; background:#FFE000 }
-  .bbLogo{ display:block; height:56px; width:auto }
-  .bbKicker{ font-size:11px; font-weight:800; letter-spacing:0.16em; text-transform:uppercase; color:#FFE000 }
-  .bbCta{ display:inline-flex; align-items:center; justify-content:center; height:46px; padding:0 22px;
-    border-radius:14px; background:#FFE000; color:#001E5A; font-size:14.5px; font-weight:800; letter-spacing:-0.01em }
-  .bbPoints{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:12px; font-size:12px; font-weight:700; color:rgba(255,255,255,.86) }
-  .bbPoints span::before{ content:''; display:inline-block; width:6px; height:6px; border-radius:2px; background:#FFE000; margin-right:6px; vertical-align:1px }
   /* ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): Aria Auto is a huge
      section nobody discovers from the homepage -- a shopper browsing deals
      never learns it exists. A full-width house banner (not an ad, not a
@@ -2158,11 +1895,6 @@ window.doSearch = function(which){
      zero catalogue items are excluded -- no dead storefronts. Painted by
      paintTiendasStrip() from TIENDAS_STRIP. -->
 
-<!-- BEST BUY BANNER + CAROUSEL (2026-10-19, Danny, #413): featured, not
-     buried -- the electronics specialist sits right under the brand band.
-     Banner, then Best Buy's sale rail; every tap lands on its storefront
-     (tienda.html?tienda=bestbuy, answered from slices). -->
-
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
       <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
@@ -2521,11 +2253,6 @@ window.doSearch = function(which){
     </section>
 
 
-    <!-- COSTCO: THE TREASURE-HUNT SHELF (2026-09-26, Danny's call). Costco
-         is not a brand directory -- its own section below the brand strip,
-         curated cozy-home-first for Danny's women-shopper lens, no candy (see costcoCuratedItems).
-         The header keeps the official logo + the big store name; the row
-         is painted by initStoreRails like every other rail. -->
 
 
 <section aria-label="Farfetch" data-store-rail="farfetch" class="ariaNavyBand relative overflow-hidden storeRailCompact">
@@ -2600,7 +2327,6 @@ window.doSearch = function(which){
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 4–9 días.</span></div>
       <div id="mStoreRail-hollister" data-store-rail-row="hollister" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-<!-- Target rail removed per Danny 2026-09-30: Target has its own store page -->
 
 
 <section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
@@ -2644,8 +2370,6 @@ window.doSearch = function(which){
 
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
 <!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's; moved above the Key Club block 2026-10-21 (#443). -->
-
-<!-- BEST BUY BANNER + CAROUSEL (desktop, 2026-10-19, Danny, #413). -->
 
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
@@ -2996,8 +2720,6 @@ window.doSearch = function(which){
     </section>
 
 
-    <!-- COSTCO: THE TREASURE-HUNT SHELF (desktop, 2026-09-26, Danny's call).
-         Same curated shelf as the phone -- electronics first, no candy. -->
 
 
 <section aria-label="Farfetch" data-store-rail="farfetch" class="ariaNavyBand relative overflow-hidden storeRailCompact">
@@ -3083,7 +2805,6 @@ window.doSearch = function(which){
       <div id="dStoreRail-hollister" data-store-rail-row="hollister" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
-<!-- Target rail removed per Danny 2026-09-30 -->
 
 
 <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
@@ -4618,7 +4339,6 @@ window.doSearch = function(which){
       <div id="tStoreRail-farfetch" data-store-rail-row="farfetch" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
-<!-- Target rail removed per Danny 2026-09-30 -->
 
 <section aria-label="Nautilus Spearfishing" data-store-rail="nautilus" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #213236 20%, #213236 80%, transparent)"></div>

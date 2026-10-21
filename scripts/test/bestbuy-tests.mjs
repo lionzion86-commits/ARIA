@@ -261,8 +261,9 @@ await check("tienda.html registers a themed, sliced Best Buy storefront", () => 
     "the storefront could reach a catalogue download");
   assert.equal(s.trust, "bestbuy");
   assert.match(s.heroPhoto, /^\/assets\/stores\/bestbuy-interior\.jpg$/);
-  assert.match(tienda, /<h2>Por qué compramos en Best Buy<\/h2>/);
-  assert.match(tienda, /la política de devoluciones de Aria/, "the trust strip does not keep the shopper's promise Aria's own");
+  /* The "Por qué compramos en Best Buy" trust strip was promotional
+     markup; it went with the rest of Best Buy's merchandising (#443). */
+  assert.doesNotMatch(tienda, /Por qué compramos en Best Buy/);
   assert.match(bundle, /const THIN_STOREFRONTS = new Set\(\['bestbuy'(, '[a-z]+')*\]\);/);
 });
 
@@ -351,6 +352,7 @@ await check("off sale: no Best Buy banner, tile, shelf, storefront, search row, 
   if (!BB_OFF) return "skip";
   assert.ok(items.length === 2889, "the Best Buy catalogue was not retained");
   assert.ok(!home.includes('data-store-rail="bestbuy"'), "the homepage still carries the Best Buy banner");
+  assert.ok(!/BEST BUY BANNER|\.bb(Band|TagRule|Logo|Kicker|Cta|Points)\b/.test(home), "the Best Buy banner's markup comments or CSS survived");
   assert.ok(!existsSync(ROOT + "assets/home/shelves/store-bestbuy.json"), "a Best Buy home shelf");
   assert.ok(!existsSync(ROOT + sliceDir + "index.json") && !existsSync(ROOT + `${FN_DIR}/bestbuy.json`), "Best Buy storefront slices");
   const idx = JSON.parse(read("assets/search/catalog-index.json"));
