@@ -1,0 +1,3222 @@
+{
+ "generatedBy": "scripts/port-offsale-to-live.mjs",
+ "stores": {
+  "victoriassecret": {
+   "catalogueProducts": 1107,
+   "catalogueRecords": 1649,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 1107,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "target": {
+   "catalogueProducts": 13224,
+   "catalogueRecords": 15773,
+   "resourced": 150,
+   "byLane": {
+    "walmart": 150
+   },
+   "offSale": 13074,
+   "gtin": 0,
+   "modelCode": 150,
+   "nameOnlyHeldBack": 71
+  },
+  "bestbuy": {
+   "catalogueProducts": 2889,
+   "catalogueRecords": 2889,
+   "resourced": 1,
+   "byLane": {
+    "walmart": 1
+   },
+   "offSale": 2888,
+   "gtin": 0,
+   "modelCode": 1,
+   "nameOnlyHeldBack": 2
+  },
+  "costco": {
+   "catalogueProducts": 1456,
+   "catalogueRecords": 1468,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 1456,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "nike": {
+   "catalogueProducts": 0,
+   "catalogueRecords": 0,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 0,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "footlocker": {
+   "catalogueProducts": 503,
+   "catalogueRecords": 726,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 503,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "kohls": {
+   "catalogueProducts": 4026,
+   "catalogueRecords": 4401,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 4026,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "macys": {
+   "catalogueProducts": 2565,
+   "catalogueRecords": 2565,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 2565,
+   "gtin": 0,
+   "modelCode": 0,
+   "nameOnlyHeldBack": 2
+  },
+  "gap": {
+   "catalogueProducts": 635,
+   "catalogueRecords": 635,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 635,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "oldnavy": {
+   "catalogueProducts": 21,
+   "catalogueRecords": 168,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 21,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "bananarepublic": {
+   "catalogueProducts": 827,
+   "catalogueRecords": 827,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 827,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "athleta": {
+   "catalogueProducts": 0,
+   "catalogueRecords": 0,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 0,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "ulta": {
+   "catalogueProducts": 690,
+   "catalogueRecords": 690,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 690,
+   "gtin": 0,
+   "modelCode": 0,
+   "nameOnlyHeldBack": 60
+  },
+  "ssense": {
+   "catalogueProducts": 18000,
+   "catalogueRecords": 36000,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 18000,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "yesstyle": {
+   "catalogueProducts": 1225,
+   "catalogueRecords": 1225,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 1225,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "newbalance": {
+   "catalogueProducts": 802,
+   "catalogueRecords": 1269,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 802,
+   "gtin": 0,
+   "modelCode": 0,
+   "nameOnlyHeldBack": 2
+  },
+  "gymshark": {
+   "catalogueProducts": 861,
+   "catalogueRecords": 861,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 861,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "alphalete": {
+   "catalogueProducts": 999,
+   "catalogueRecords": 999,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 999,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "miumiu": {
+   "catalogueProducts": 2468,
+   "catalogueRecords": 2468,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 2468,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "fendi": {
+   "catalogueProducts": 0,
+   "catalogueRecords": 0,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 0,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "goldengoose": {
+   "catalogueProducts": 0,
+   "catalogueRecords": 0,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 0,
+   "gtin": 0,
+   "modelCode": 0
+  },
+  "pacsun": {
+   "catalogueProducts": 18,
+   "catalogueRecords": 18,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 18,
+   "gtin": 0,
+   "modelCode": 0
+  }
+ },
+ "methods": {
+  "gtin": 0,
+  "model-code": 151
+ },
+ "ported": {
+  "images": 1,
+  "weightKg": 0,
+  "description": 32,
+  "description_en": 10,
+  "variantAttributes": 0
+ },
+ "liveEnriched": 43,
+ "rejectReasons": {
+  "code-shared-by-several-dead-products": 80,
+  "code-shared-by-several-live-products": 14,
+  "title": 9,
+  "price-ratio": 2
+ },
+ "matches": [
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "17oqio45g8",
+    "title": "LEGO Classic Medium Creative Brick Box Building Toys for Creative Play, Kids Creative Kit 10696",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10696",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1vwif3r1x6",
+     "title": "LEGO Classic Medium Creative Brick Box , Toy Set with Train, Car, Tiger, Birthday Gift for Kids 4+, 10696",
+     "price": 21.42,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1kml886afj",
+    "title": "LEGO Star Wars Darth Maul Mech Kids Toy, 6+ 75411",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75411",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "13qtobu27d",
+     "title": "LEGO Star Wars Darth Maul Mech Kids Toy - Building Toy with Pretend Play Lightsaber - Birthday Gift Idea for Boys and Girls, Ages 6+ - Collectible Decor for Fans of The Clone Wars - 75411",
+     "price": 13.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "z2ks445jl",
+    "title": "LEGO Technic Ferrari FXX K Kids Toy Car Building Set 42212",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42212",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "18jtya0uhc",
+     "title": "LEGO Technic Ferrari FXX K Toy Car - Building Toy for Boys & Girls, Ages 10+ - Birthday Gift - Race Car Model for Play & Display - 42212",
+     "price": 51.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "q1t3ny1ee",
+    "title": "LEGO Technic Ford Bronco SUV Kids Toy Car Building Set 42213",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42213",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "15bqz2uyjl",
+     "title": "LEGO Technic Ford Bronco Kids Toy Car - Building Toy for Boys and Girls, Ages 10+ - Car Toy and Model Kit - Gift for Birthdays - Authentic Ford Bronco Trim & Details - 42213",
+     "price": 51.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1g6lbi1eg",
+    "title": "LEGO Star Wars Cobb Vanth’s Speeder Kids Toy 75437",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75437",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "11fk4qs12y",
+     "title": "LEGO Star Wars Cobb Vanths Speeder Building Toy for Boys & Girls - Pretend Play Space Vehicle for Kids & Fans, Ages 7+ - Includes Cobb Vanth & Cad Bane Minifigures - Gift Idea for Birthdays - 75437",
+     "price": 27.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "xl7axomdy",
+    "title": "LEGO Editions Soccer Ball Kids Building Toy 43019",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "43019",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1dok41t14v",
+     "title": "LEGO Editions Soccer Ball - Building Toy for Kids - Collectible Sports Decor for Boys & Girls, Ages 10+ - Includes Micro Stadium - Fathers Day Gift - 43019",
+     "price": 129.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1afv5xz116",
+    "title": "LEGO Star Wars BB-8 Astromech Droid Kids Toy 75452",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75452",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "106ghdz1c1",
+     "title": "LEGO Star Wars BB-8 Astromech Droid Building Toy for Boys & Girls - Play & Display Building Kit W/Spinning Head Action & Burner Arm for Kids & Fans, Ages 10+ - Gift Idea for Birthdays - 75452",
+     "price": 86.1,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "wa47tf198",
+    "title": "LEGO Minecraft The Pickaxe Mine Kids' Building Toy 21277",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21277",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1jqmhrgjw4",
+     "title": "LEGO Minecraft: la mina del pico, juguete de construcción para niños y niñas; juguete de Minecraft para fans de 8 años en adelante. Incluye minifiguras de Alex, el minero y el jinete arácnido descarriado. Idea de regalo de cumpleaños - 21277",
+     "price": 48.88,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "zevm1gm8h",
+    "title": "LEGO Technic Kawasaki Ninja H2R Motorcycle Toy, Kids Room Décor, 42170",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42170",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1krhiai1dq",
+     "title": "LEGO Technic Kawasaki Ninja H2R Motorcycle Toy for Build and Display, Kid's Room Dcor, Collectible Building Set for Boys and Girls Ages 10 and Up, Scale Model Kit for Independent Play,42170",
+     "price": 84.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1tbm3l111v",
+    "title": "LEGO Botanicals Rocking Plants Flower Building Set 11506",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "11506",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "5w4e961uk",
+     "title": "LEGO Botanicals Rocking Plants - juguete de construcción para niños y niñas, para niños de 9 años en adelante - decoración para dormitorio o librero - idea de regalo para casa nueva - 11506",
+     "price": 22.96,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1v0p3g21u0",
+    "title": "LEGO Creator 3 in 1 Exotic Parrot Animals Building Toy 31136",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "31136",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "12ngfbl15t",
+     "title": "LEGO Creator 3 en 1 loro exótico a rana a pez, figuras de animales, juguete de construcción, juguetes creativos para niños de 7 años en adelante, 31136",
+     "price": 15.98,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "h65h68o42",
+    "title": "LEGO City Burger Truck Toy Building Set, Pretend Play Toy 60404",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "60404",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "10xvc7s1xu",
+     "title": "LEGO City Burger Truck Toy Building Set, Fun Gift for Kids Ages 5 Plus, Burger Van and Kitchen Playset, Vendor Minifigure and Accessories, Imaginative Pretend Play for Boys and Girls, 60404",
+     "price": 15.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "wvjhpyde1",
+    "title": "LEGO City Holiday Adventure Camper Van Building Toy Set 60454",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "60454",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "17my9bu1ok",
+     "title": "LEGO City Holiday Adventure Camper Van Building Toys Set - Vacation Toys for Kids, Boys & Girls, Ages 6+ - Includes 3 Minifigures & Accessories - Gift Ideas for Birthdays & Holidays - 60454",
+     "price": 23.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "17olznh8qj",
+    "title": "LEGO Creator 3 in 1 Turtle with a Water Lily Flower 31377",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "31377",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "em3l5zxcs",
+     "title": "LEGO Creator 3 in 1 Turtle with a Water Lily Flower - Building Toy for Girls & Boys, Ages 7+ - Cute Birthday Gift for Kids - Build a Chameleon, Frog, or Turtle - 31377",
+     "price": 8.02,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "14oq4tx119",
+    "title": "LEGO Botanicals Mini Orchid Building Set for Adults, Decor for Home or Office 10343",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10343",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1ua7egy1y5",
+     "title": "LEGO Botanicals Mini Orchid Building Set - Artificial, Fake Orchid for Home Decor, Adults Ages 18+ - Indoor Plant Decorations for Table, Desk, Office - Gift for Graduation - 10343",
+     "price": 23.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "16huvts1wu",
+    "title": "LEGO Ideas Mineral Collection Building Set for Adults - 21362",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21362",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1gniidz1q6",
+     "title": "LEGO Ideas Mineral Collection Building Set for Adults, Ages 18+ - Bedroom or Office Decor with 3 Display Shelves - Unique Gift Idea for Men & Women - 21362",
+     "price": 79.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1ys09jo1lc",
+    "title": "LEGO Botanicals Hibiscus Flower Building Set 10372",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10372",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "ihkg4u7p7",
+     "title": "LEGO Botanicals Hibiscus Flower Building Set - Artificial Plant & Flower Building Blocks for Women & Men, Ages 18+ - Home, Office Decor Gift Idea - 10372",
+     "price": 55.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "x1v5jtqnu",
+    "title": "LEGO Ideas Home Alone McCallisters House Building Set 21330",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21330",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "g7su0pvmw",
+     "title": "LEGO Ideas Home Alone McCallisters' House Building Set for Adults - Collectible Movie Model Kit for Office or Bookshelf Decor - Gift for Holidays or Birthdays - W/ 5 Minifigures - 21330",
+     "price": 449.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1hbxs0w5i4",
+    "title": "LEGO Super Mario Game Boy Building Sets for Adults, Ages 18+ 72046",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "72046",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "18ob3zvb7m",
+     "title": "LEGO Super Mario Game Boy - Retro Building Sets for Adults, Ages 18+ - Gift for Gamers - Collectible Model with Game Paks and Display Stand - 72046",
+     "price": 59.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "ii4pdxsb1",
+    "title": "LEGO Ideas Floating Sea Otters Building Sets for Adults 21366",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21366",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "12bzp9s1sw",
+     "title": "LEGO Ideas Floating Sea Otters Building Sets for Adults - Room or Office Decor for Women & Men, Ages 18+ - Gift Ideas for Birthday - 21366",
+     "price": 119.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "14urmkg1bb",
+    "title": "LEGO Art LOVE Collectible Building Set, Home Decor Gift Idea 31214",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "31214",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "12ezkaz24j",
+     "title": "LEGO Art Love Collectible Building Set - DIY Kit for Adults, Ages 18+ - Gifts for Birthdays - Home Decor to Display on Table - 31214",
+     "price": 63.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "k6ezd0qtv",
+    "title": "LEGO Speed Champions The Fast and The Furious Toyota Supra MK4 77260",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "77260",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "102vvik18t",
+     "title": "LEGO Speed Champions The Fast and The Furious Toyota Supra MK4 – juguete de construcción para niños y niñas de 10 años en adelante, auto de Fast and Furious con minifigura, regalo de cumpleaños – 77260",
+     "price": 27.98,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "me04z91yx",
+    "title": "LEGO Marvel Doctor Doom Bust Building Set 76345",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "76345",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "ibvrwj16d",
+     "title": "LEGO Marvel Doctor Doom Bust - Building Set for Adults, Ages 18+ - Marvel Avengers Model Kit - Bedroom, Shelf or Home Office Decor for Men & Women - Gift for Super Hero Fans - 76345",
+     "price": 49.98,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1es9zce111",
+    "title": "LEGO Star Wars Boba Fett Building Set 75455",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75455",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "gecd9516r",
+     "title": "LEGO Star Wars Return of the Jedi Boba Fett - Building Set for Adults, Ages 18+ - Home Office, Shelf or Desk Decor - Star Wars Gifts for Fans - 75455",
+     "price": 169.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "jbamdg1k5",
+    "title": "LEGO Architecture Trevi Fountain Building Set for Adults 21062",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21062",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1mwy71d1uc",
+     "title": "LEGO Architecture Trevi Fountain Building Set - Collectible 3D Puzzle of Italian Landmark - Model for Display - Home & Book Shelf Decor - Gift for Birthdays - 21062",
+     "price": 145.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1vlh641e1t",
+    "title": "LEGO Star Wars SMART Play: Millennium Falcon Set 75426",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75426",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "368fonw8u",
+     "title": "LEGO Star Wars SMART Play: Millennium Falcon Starship Building Toy for Kids - Compatible Set with 4 SMART Tags and 4 LEGO Minifigures - Gift for Boys, Girls and Fans Ages 9+ - 75426",
+     "price": 79.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1x8iu2ugqj",
+    "title": "LEGO Botanicals Lucky Bamboo Building Set for Adults, Decor for Home or Office 10344",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10344",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "16zdovhsr2",
+     "title": "LEGO Botanicals Lucky Bamboo Building Set - Artificial Plants for Indoor Home Dcor, Adults Ages 18+ - Unique Birthday Gift Idea - Fake Plants Decoration for Table, Desk, Office - 10344",
+     "price": 23.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1ooy1jldg5",
+    "title": "LEGO Star Wars The Mandalorian Helmet Model Adult Set 75328",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75328",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1kxvol1wbo",
+     "title": "LEGO Star Wars The Mandalorian Helmet 75328 Buildable Model Kit, Display Collectible Decoration Set for Adults, Men, Women, Mom, Dad, Collectible Gift Idea",
+     "price": 74,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "bxd01z1di",
+    "title": "LEGO Star Wars SMART Play: Luke’s Landspeeder Set 75420",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75420",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "f1cg1l646",
+     "title": "LEGO Star Wars SMART Play: Lukes Landspeeder - Building Toy for Action Play - Compatible Set with a SMART Tag and 2 LEGO Minifigures - Gift for Boys, Girls and Kids Ages 6+ - 75420",
+     "price": 31.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "72nvk71gi",
+    "title": "LEGO Botanicals Sunflower Bouquet Building Set 11502",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "11502",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "lwqx5sfh8",
+     "title": "LEGO Botanicals ramo de girasoles, set de construcción para adultos de 18 años en adelante, flores artificiales para decoración, 11502",
+     "price": 59.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1534ea01ac",
+    "title": "LEGO Star Wars AT-AT Walker Building Set 75440",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75440",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1a2y0ictsy",
+     "title": "LEGO Star Wars AT-AT Walker - Collectible Building Set for Adults, Ages 18+ - Star Wars Gift - Room Decor for Office, Bedroom, or Book Shelf - Activity for Men, Women, & Movie Fans - 75440",
+     "price": 51.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1jvw0d21gw",
+    "title": "LEGO Creator 3 in 1 Flatbed Truck with Helicopter Toy 31146",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "31146",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1x3ywyg115",
+     "title": "LEGO Creator 3 en 1, camión de plataforma con helicóptero de juguete, se transforma en avión de hélice, hot rod y SUV, idea de regalo para niños y niñas de 7 años en adelante, 31146",
+     "price": 19.79,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "3hj26ue5",
+    "title": "LEGO Technic Planet Earth and Moon in Orbit Space Toys Set 42179",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42179",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "jg0p3a163",
+     "title": "LEGO Technic Planet Earth and Moon in Orbit Building Set, Outer Space Birthday Gift for 10 Year Olds, Solar System Space Toy for Imaginative, Independent Play, Space Room Dcor for Boys & Girls, 42179",
+     "price": 89.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "15x8adg1m2",
+    "title": "LEGO Technic 2022 Ford GT Car Model Set 42154",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42154",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1ihurpvc3l",
+     "title": "LEGO Technic 2022 Ford GT 42154 Car Model Kit for Adults to Build, 1:12 Scale Supercar, Collectible Set, Great Gift Idea",
+     "price": 95.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "e2eszw1od",
+    "title": "LEGO Star Wars Millennium Falcon 25th Anniversary Buildable Starship Model 75375",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75375",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1o969mq4a6",
+     "title": "LEGO Star Wars: A New Hope Millennium Falcon 25th Anniversary Buildable Starship Model, Collectible Star Wars Home Dcor, Building Set for Adults, Gift Idea for Star Wars Fans, 75375",
+     "price": 67.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1tpfcgdqqy",
+    "title": "LEGO Technic Yellow Motorcycle Toy 42225",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42225",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "jprt69rrz",
+     "title": "LEGO Technic Yellow Motorcycle Toy - Building Toy for Boys & Girls, Ages 7+ - Model Kit with Detailed Features - Bedroom Decor for Kids - Gift for Birthdays - 42225",
+     "price": 9.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "th1npt14b",
+    "title": "LEGO Architecture Paris – City of Love 21064",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21064",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "54xayedbo",
+     "title": "LEGO Architecture Paris City of Love Building Set for Adults - DIY Office or Home Decor for Women & Men, Ages 18+ - Buildable Frame to Hang or Stand for Display - Gift Idea for Birthdays - 21064",
+     "price": 79.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1qwzi221n5",
+    "title": "LEGO Ideas E.T. the Extra-Terrestrial 21370",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21370",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "qennjdths",
+     "title": "LEGO Ideas E.T. el extraterrestre, set de construcción para adultos de 18 años en adelante, decoración para escritorio u oficina, figura articulada con ladrillo de luz, 21370",
+     "price": 139.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "hpewzadgo",
+    "title": "LEGO Botanicals Peace Lily Flower Room Decor 11504",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "11504",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1eqy4tz1o0",
+     "title": "LEGO Botanicals Peace Lily Flower Building Set for Adults - DIY Bedroom, Book Shelf & Home Decor for Women & Men, Ages 18+ - Artificial Flowers Crafting Kit - Gift Idea for Birthdays - 11504",
+     "price": 39.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "7ok7om1qe",
+    "title": "LEGO Technic Chevrolet Corvette Stingray Toy Car Model Building Kit 42205",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42205",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "6fttd51f9",
+     "title": "LEGO Technic Chevrolet Corvette Stingray Toy Car - Building Toy Set for Kids, Boys and Girls, Ages 9+ - Birthday Gift Idea - Model Car Kit for Display - 42205",
+     "price": 54.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "hl0uiywr2",
+    "title": "LEGO Ideas Polaroid OneStep SX-70 Camera Model 21345",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21345",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "kw6ye316c",
+     "title": "LEGO Ideas cámara Polaroid OneStep SX-70 set de construcción - modelo coleccionable para exhibir de cámara Polaroid - regalo de graduación - decoración para cuarto u oficina para amantes de la fotografía - 21345",
+     "price": 65.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "daj32scz3",
+    "title": "LEGO Technic Jeep Wrangler Rubicon SUV 42227",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42227",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1jg54wg1ro",
+     "title": "LEGO Technic Jeep Wrangler Rubicon SUV - Building Toy for Boys & Girls, Ages 10+ - Model Car Kit with Detailed Features - Display Set for Bedroom Decor - Gift for Birthdays - 42227",
+     "price": 51.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1tmi1n0b7l",
+    "title": "LEGO Ideas Italian Riviera Building Set 21359",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21359",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "lcyacj19t",
+     "title": "LEGO Ideas Italian Riviera Building Set for Adults - DIY Home Decor for Men & Women, Ages 18+ - Construct 3 Colorful Buildings & 10 Minifigures W/Accessories - Gift Idea for Birthdays - 21359",
+     "price": 299.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1y2couu64n",
+    "title": "LEGO Star Wars AT-ST Walker Building Set 75417",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75417",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "rrbrsnelt",
+     "title": "LEGO Star Wars AT-ST Walker Building Set - Adult Building Blocks for Fans, Ages 18+ - Imperial Forces Collectible Model Kit - Star Wars Gift Idea for Men & Women - 75417",
+     "price": 171.94,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1jwowj4ih0",
+    "title": "LEGO Speed Champions Jaguar Project 7 & Land Rover Defender 77264",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "77264",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1a08l2muo8",
+     "title": "LEGO Speed Champions Jaguar Project 7 y Land Rover Defender, juguete de construcción para niños y niñas de 10 años en adelante, 77264",
+     "price": 59.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "lmwxcgcay",
+    "title": "LEGO Disney and Pixar Up House for Disney Movie Fans 43217",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "43217",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "2mxmqaf3r",
+     "title": "LEGO Disney and Pixar Up House 43217 Disney 100 Celebration Classic Building Toy Set for Kids and Movie Fans Ages 9+, A Fun Gift for Disney Fans and Anyone Who Loves Creative Play",
+     "price": 47.98,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1fq4ekt51",
+    "title": "LEGO Star Wars SMART Play: Mos Eisley Cantina Set 75425",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75425",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1k9r9whk9q",
+     "title": "LEGO Star Wars SMART Play: Mos Eisley Cantina Toy Building Set for Kids - Compatible Set with 3 SMART Tags and 5 LEGO Minifigures - Gift for Boys, Girls and Fans Ages 8+ - 75425",
+     "price": 63.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "95cp613j",
+    "title": "LEGO Disney Moana's Island Fun Building Toy Princess Playset 43260",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "43260",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1nj6mf9b60",
+     "title": "LEGO Disney Moana's Island Fun Building Toy Playset - Princess Moana Toy for Kids, Girls and Boys, Ages 5+ - with 2 Disney Micro-Dolls and Pua Animal Figure - Gift Idea for Birthdays - 43260",
+     "price": 15.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "x6akrl1dd",
+    "title": "LEGO Fortnite Supply Llama Collectible Building Toy 77071",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "77071",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "h9nlqpn0i",
+     "title": "LEGO Fortnite Supply Llama Building Set - Kids Toy for Gamers, Ages 12+ - Display Model, Collectible Fortnite Toy - Gift for Birthdays- 77071",
+     "price": 34.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "fjzv6nwiw",
+    "title": "LEGO Technic Koenigsegg Jesko Absolut Gray Hypercar Sport Car Building Toy 42173",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42173",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "15yd8d21vr",
+     "title": "LEGO Technic Koenigsegg Jesko Absolut Grey Hypercar, Sports Car Building Toy Set for Boys and Girls, Vehicle Racing Car for Kids, Buildable Model Kit, Sports Car Toy, Motor Enthusiasts Gift, 42173",
+     "price": 45.1,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1h9y30e1hq",
+    "title": "LEGO Icons Tranquil Garden Building Kit 10315",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10315",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "5ox0ck11q",
+     "title": "LEGO Icons Tranquil Garden Building Set - Detailed Japanese Zen Garden DIY Kit for Adults, Ages 18+ - Gift for Wedding - Building Block Set for Home Decor - 10315",
+     "price": 103.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "7nrydghpt",
+    "title": "LEGO Star Wars: The Mandalorian and Grogu Anzellan Starship 75445",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75445",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "6k1su8rf5",
+     "title": "LEGO Star Wars: The Mandalorian and Grogu Anzellan Starship Building Toy - Build and Display Set for Boys & Girls, Ages 9+ - Star Wars Gifts for Kids - W/ Grogu & 2 Anzellan Figures - 75445",
+     "price": 59.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1yw4cd7akn",
+    "title": "LEGO Ideas Magic of Disney Collectible Building Set for Adults 21352",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21352",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1hx28wc5ky",
+     "title": "LEGO Ideas Magic of Disney Building Set, Collectible Display Model, Classic Disney Gift for Adults, 21352",
+     "price": 120,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "ccju7y1kx",
+    "title": "LEGO Star Wars Revenge of the Sith ARC-170 Starfighter Spaceship Building Toy 75402",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "ARC170",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "jqgt19edp",
+     "title": "LEGO Star Wars ARC-170 Starfighter 75402",
+     "price": 55.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "12m9oha1fs",
+    "title": "LEGO Star Wars Grogu’s Homestead Building Toy 75443",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75443",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "pyun901j7",
+     "title": "LEGO Star Wars Grogus Homestead Building Toy for Boys & Girls - The Mandalorian Pretend Play Set W/Sorgan Frog & Poseable Grogu Figures for Preschool Kids, Ages 4+ - Gift Idea for Birthdays - 75443",
+     "price": 15.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1oobudb143",
+    "title": "LEGO Technic Custom Garage Ford Mustang GT Car 42236",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42236",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1xlxpfw1uk",
+     "title": "LEGO Technic Custom Garage Ford Mustang GT Car Toy - Building Toy for Boys & Girls, Ages 10+ - Kids Bedroom Decor - Customizable Model Car with Realistic Details - Gift for Birthdays - 42236",
+     "price": 99.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "14iygxn1u2",
+    "title": "LEGO Technic McLaren MCL39 F1 Car Building Set - 42228",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "MCL39",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "3nmc3v2hp",
+     "title": "LEGO Technic McLaren MCL39 F1 Car Building Set for Adults - Room or Office Decor for Men & Women, Ages 18+ - F1 Gifts for Fans - Authentic Details - 42228",
+     "price": 229.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "nqtjpfata",
+    "title": "LEGO Star Wars The Mandalorian: Grogu with Hover Pram Buildable Toy Figure 75403",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75403",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1ifnhscjbv",
+     "title": "LEGO Star Wars Grogu with Hover Pram Building Toy Set - Star Wars Toy for Kids, Boys & Girls, Ages 10+ - Gift for Birthdays - 75403",
+     "price": 79.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "13b325p19y",
+    "title": "LEGO Star Wars: Attack of the Clones Jango Fett’s Starship 75433",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75433",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "fta34m1ly",
+     "title": "LEGO Star Wars: Attack of the Clones Jango Fett's Starship Building Toy - Pretend Play Set for Boys & Girls, Ages 9+ - Collectible Model Kit & Kids Room Decor - Gift for Birthdays - 75433",
+     "price": 55.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "115piigkww",
+    "title": "LEGO Disney 101 Dalmatians Puppy DIY Building Kit for Adults 43269",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "43269",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "azix791gy",
+     "title": "LEGO Disney cachorro de 101 dálmatas, set de construcción para adultos, kit coleccionable para fans de la película de 18 años en adelante: construye a Patch, Penny, Rolly o un cachorro personalizado, 43269",
+     "price": 140.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "gs8y46eey",
+    "title": "LEGO Technic Fast and Furious Mitsubishi Eclipse Car 42229",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42229",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "m4gew11s8",
+     "title": "LEGO Technic Fast and Furious Mitsubishi Eclipse Car - Building Set for Teens, Ages 14+ - Collectible Model Car Kit for Fans - Detailed Features - Gift for Birthdays - 42229",
+     "price": 64.96,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "okzbi915k",
+    "title": "LEGO Technic Ducati Panigale V4 S Motorcycle Model Building Set 42202",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42202",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1r18ml6wpd",
+     "title": "LEGO Technic Ducati Panigale V4 S Motorcycle Toy - Building Set for Adults, Men & Women, Ages 18+ - Gift for Ducati & Motorcycle Fans - 42202",
+     "price": 179.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "6i41vi1lc",
+    "title": "LEGO Star Wars Ultimate Collector Series TIE Interceptor Model Set 75382",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75382",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "kvurphkif",
+     "title": "LEGO Star Wars Ultimate Collector Series TIE Interceptor Model, Build and Display Star Wars Collectible, 75382",
+     "price": 229.98,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "198oizs7jk",
+    "title": "LEGO Star Wars: Ahsoka Chopper (C1-10P) Astromech Droid Building Set 75416",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "C110P",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "m217cadwu",
+     "title": "LEGO Star Wars: Ahsoka Chopper (C1-10P) Astromech Droid Set - Building Toy For Kids, Ages 10+ - Makes a Cool Gift for Boys and Girls - Model Kit and Room Decor Idea For Sci-Fi Adventure Fans - 75416",
+     "price": 84.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1l3basv51t",
+    "title": "LEGO Icons Transformers Bumblebee Collectible Building Set 10338",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10338",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "14hujyyq0z",
+     "title": "LEGO Icons Transformers Bumblebee Action Figure, Collectible Building Set for Adults,10338",
+     "price": 114.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1j3nx5615f",
+    "title": "LEGO Star Wars 501st Clone Troopers Battle Pack Set 75345",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75345",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "160n2188o1",
+     "title": "LEGO Star Wars 501st Clone Troopers Battle Pack 75345 Toy Set - Buildable AV-7 Anti Vehicle Cannon, 4 Minifigures Clone Squadron Collection, Great Gift for Kids Ages 6+",
+     "price": 28.66,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "uj1vex18h",
+    "title": "LEGO Star Wars TIE Bomber Starfighter Buildable Toy 75347",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75347",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "kihz9xsx7",
+     "title": "LEGO Star Wars TIE Bomber Starfighter Buildable Toy 75347",
+     "price": 69.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "16kcfuw1ca",
+    "title": "LEGO Star Wars Ambush on Mandalore Battle Pack Building Set 75373",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75373",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "12x9jfiuoj",
+     "title": "LEGO Star Wars: The Mandalorian Ambush on Mandalore Battle Pack, Building Toy with 4 Star Wars Minifigures, Collectible Brick Built Playset, Star Wars Gift Idea for Boys and Girls Ages 6 and Up, 75373",
+     "price": 23.75,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1hf6pm18mv",
+    "title": "LEGO Technic Heavy-Duty Bulldozer Building Set, Construction Toy 42163",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42163",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "o8ysg1md",
+     "title": "LEGO Technic Heavy-Duty Bulldozer Building Set, Kids Construction Toy, Vehicle Gift for Boys and Girls Ages 7 and Up, 42163",
+     "price": 15,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1yuy7mv1uh",
+    "title": "LEGO Disney Encanto Mini House Building Toy Set for Disney Fans 43261",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "43261",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "z99zsv1e9",
+     "title": "LEGO Disney Encanto Mini House Building Toy Set - Encanto Dollhouse for Girls and Boys, Ages 5+ - Kids Toy for Disney Fans - Gift Idea for Birthdays & Holidays - 43261",
+     "price": 21.27,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "16y0lrcamn",
+    "title": "LEGO Technic NASA Apollo Lunar Roving Vehicle – LRV Space Set 42182",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42182",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1rasy4wz8n",
+     "title": "LEGO Technic NASA Apollo Lunar Roving Vehicle LRV, Space Rover NASA Model for Adults, Buildable Space Set with Details, Collectible Outer Space Gift for Science Fans, 42182",
+     "price": 165.98,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "c4g98mvuy",
+    "title": "LEGO Technic Bugatti Bolide Model Car Toy Building Set 42151",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42151",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "x4z8221xr",
+     "title": "LEGO Technic Bugatti Bolide Race Car Model Building Set, Collectible Sports Car Toy, 42151",
+     "price": 39.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "l6v82uz8v",
+    "title": "LEGO Speed Champions 2 Fast 2 Furious Nissan Skyline GT-R (R34) 76917",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "76917",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "y152i6pxh",
+     "title": "LEGO Speed Champions 2 Fast 2 Furious Nissan Skyline GT-R (R34)  76917 Race Car Toy Model Building Kit, Collectible with Racer Minifigure, 2023 Set for Kids",
+     "price": 34,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "175mb0236h",
+    "title": "LEGO Star Wars Return of the Jedi Jabba's Sail Barge Building Set with 11 Minifigures 75397",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75397",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "h58c5b1op",
+     "title": "LEGO Star Wars: Return of the Jedi Jabba's Sail Barge Building Set for Adults - Star Wars Ship Collectible Set for Fans - with 11 Minifigures - Gift for Men and Women - 75397",
+     "price": 499.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "scwdaj1u3",
+    "title": "LEGO Technic Mercedes-Benz G 500 PROFESSIONAL Line Car Building Set 42177",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42177",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "rs8psv1au",
+     "title": "LEGO Technic Mercedes-Benz G 500 PROFESSIONAL Line Car Building Set, G-Wagon Model Car Gift for Adults, 4X4 and Off-Road Vehicle, Mercedes-Benz Collectibles and Merchandise, 42177",
+     "price": 249.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "dvr6tt2yu",
+    "title": "LEGO Technic Volvo EC500 Hybrid Excavator Building Set for Adults 42215",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "EC500",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1g0j9rs1ok",
+     "title": "LEGO Technic Volvo EC500 Hybrid Excavator - Building Set for Adults - Collectible Model Kit for Men & Women, Ages 18+ - Gift Idea for Those Who Enjoy 3D Puzzles, DIY Kits, or Engineering - 42215",
+     "price": 369.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1bbuv4i8rl",
+    "title": "LEGO Architecture Statue of Liberty Model Building Set 21042",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21042",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "154ptcf1pi",
+     "title": "LEGO Architecture Statue of Liberty 21042 Model Building Set - Collectible New York City Souvenir, Creative Home Décor or Office Centerpiece, Great Gift Idea for Adults and Teens",
+     "price": 142.98,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "13n2owzrg9",
+    "title": "LEGO Disney Frozen Anna's Sleigh Adventure Building Toy Set for Toddlers 43256",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "43256",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "un62c51fe",
+     "title": "LEGO Disney Frozen Anna's Sleigh Adventure Building Toy Set - Frozen Toy for Toddlers with 2 Disney Princess Minidolls - Learning and Educational Set for Girls & Boys, Ages 4+ - 43256",
+     "price": 34.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "xjzvf8jaw",
+    "title": "LEGO Creator 3 in 1 Playful Cat Building Toy with 3 Building Options, Cat, Dog or Pigeon 31163",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "31163",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "lk6acu1xn",
+     "title": "LEGO Creator 3 en 1 gato juguetón - juguetes de construcción con 3 opciones de armado, gato, perro o paloma - figuras de animales para niñas y niños de 8 años en adelante - ideas de regalo de cumpleaños - 31163",
+     "price": 19.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "bqfwdi1gj",
+    "title": "LEGO City Emergency Air Ambulance Airplane Toy 60465",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "60465",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1j17a1rsrm",
+     "title": "LEGO City avión ambulancia aérea de emergencia, juguete de construcción para niños y niñas de 6 años en adelante, con minifiguras de héroes, 60465",
+     "price": 51.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "ob5ued1u8",
+    "title": "LEGO Botanicals Tulip Bouquet Flower Decor 11501",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "11501",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "il3esgufy",
+     "title": "LEGO Botanicals ramo de tulipanes, set de construcción para adultos, flores artificiales para decoración del hogar, para mayores de 18 años, 11501",
+     "price": 59.8,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "2ihlxhm5x",
+    "title": "LEGO Botanicals Petite Sunny Bouquet Flower 10347",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10347",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1om1yvwj4d",
+     "title": "LEGO Botanicals Petite Sunny Bouquet Flower Set - Building Toy for Kids 9+ - DIY Flower Arrangement for Home Decor - Gift for Birthdays - Faux Bluebells, Tulip, Daisy, & More - 10347",
+     "price": 23.99,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1l8f0m911x",
+    "title": "LEGO Technic Dodge Viper GTS-R Sports Car 42234",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42234",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "fi5g447zh",
+     "title": "LEGO Technic Dodge Viper GTS-R Sports Car Toy - Building Toy for Boys & Girls, Ages 10+ - Kids Bedroom Decor - Model Car with Realistic Details - Gift for Birthdays - 42234",
+     "price": 64.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "gqs99up77",
+    "title": "LEGO Technic 1966 Ford GT40 MKII Race Car 42223",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42223",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "345enw4uh",
+     "title": "LEGO Technic 1966 Ford GT40 MKII Race Car Building Set for Adults - Collectible Car Toy W/Realistic Functions & Features for Adult Sports Car Fans, Ages 18+ - Gift Idea for Birthdays - 42223",
+     "price": 59.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1mii893c6",
+    "title": "LEGO Speed Champions Mercedes-AMG G 63 & Mercedes-AMG SL 63 Toy Car 76924",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "76924",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "ty97e5sa9",
+     "title": "LEGO Speed Champions Mercedes-AMG G 63 & Mercedes-AMG SL 63 Toy Cars - Building Toys Set for Boys & Girls, Ages 10+ - Gift for Birthdays - W/ 2 Minifigures - 76924",
+     "price": 39.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "7581rluc0",
+    "title": "LEGO Technic Fast and Furious Toyota Supra MK4 42204",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42204",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "adyrg14p3",
+     "title": "LEGO Technic Fast and Furious Toyota Supra MK4 Building Kit- Toy Car for Kids, Boys, and Girls, Ages 9+ - Gift for Birthdays - Realistic Engineering Details - 42204",
+     "price": 47.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1apz18u1sk",
+    "title": "LEGO Star Wars Advent Calendar 2026 75456",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75456",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "p657z81k5",
+     "title": "LEGO Star Wars Advent Calendar 2026 - Christmas Advent Calendar for Kids, Ages 6+ - Family Holiday Activity - Includes Festive Star Wars Minifigures - 75456",
+     "price": 35,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "15s7naflfg",
+    "title": "LEGO Star Wars The Mandalorian & Grogu’s Speeder Bike 75436",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75436",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "t3swmc1yu",
+     "title": "LEGO Star Wars The Mandalorian & Grogu's Speeder Bike - Building Toy for Boys & Girls, Ages 6+ - Great Gift for Kids - W/ 2 Star Wars Figures - 75436",
+     "price": 9.49,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1t1gmyviwd",
+    "title": "LEGO Technic Koenigsegg Sadair’s Spear Megacar 42232",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42232",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "dln477exe",
+     "title": "LEGO Technic Koenigsegg Sadairs Spear Megacar - Building Set for Adults, Ages 18+ - Model Car Kit for Display - Gift for Men & Women - 42232",
+     "price": 449.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "s6585w1ht",
+    "title": "LEGO Technic BMW M4 GT3 EVO Race Car Toy 42226",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42226",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "hpvaqs1ps",
+     "title": "LEGO Technic BMW M4 GT3 EVO Race Car Toy - Building Toy for Boys & Girls, Ages 11+ - Model Car Display Kit for Bedroom Decor - Gift for Birthdays - 42226",
+     "price": 51.99,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "mo6lutmvh",
+    "title": "LEGO Technic Ferrari SF-24 F1 Car Model Kit for Adult F1 Fans 42207",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42207",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "ceosb011a",
+     "title": "LEGO Technic Ferrari SF-24 F1 Model Car Kit - Building Set for Adults, Ages 18+ with Realistic Features - Gift for Groom, Groomsmen - Ferrari F1 DIY Craft for Display - 42207",
+     "price": 218.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1ktbe9p8pj",
+    "title": "LEGO Star Wars SMART Play: Darth Vader’s TIE Fighter 75421",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75421",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1x1yybw18n",
+     "title": "LEGO Star Wars SMART Play: Darth Vaders TIE Fighter Interactive Building Toy - All-In-One Set - Reacts to How You Move and Play with a SMART Brick - Gift for Boys, Girls and Kids Ages 8+ - 75421",
+     "price": 69.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1ioxzvs888",
+    "title": "LEGO Star Wars Hutt Palace Sentry Droid Showdown 75451",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75451",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "96ii6cx9x",
+     "title": "LEGO Star Wars Hutt Palace Sentry Droid Showdown - Building Toy for Boys & Girls, Ages 9+ - Includes The Mandalorian & Grogu Minifigures - Star Wars Gifts for Kids - 75451",
+     "price": 49.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "14n75t4t4p",
+    "title": "LEGO Star Wars The Razor Crest Building Toy - 75447",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75447",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "172r68crz9",
+     "title": "LEGO Star Wars: The Mandalorian and Grogu The Razor Crest Building Toy - Build and Display Set for Boys & Girls, Ages 10+ - Star Wars Gifts for Birthdays & Fans - 75447",
+     "price": 144.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "pnpzidyuo",
+    "title": "LEGO Star Wars C-3PO Buildable Droid Figure for Build and Display 75398",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75398",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1c0zz47950",
+     "title": "LEGO Star Wars C-3PO Buildable Droid Figure, Build and Display Model with C-3PO Minifigure, Star Wars Collectible for Home or Office Dcor, Nostalgic Gift Idea for Adults, Fans or Collectors, 75398",
+     "price": 194.95,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1kpbhsdr4a",
+    "title": "LEGO Star Wars TIE Advanced Mini-Build 30727",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "30727",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1hkqrh1hok",
+     "title": "LEGO Star Wars TM TIE Advanced Mini-Build 30727",
+     "price": 11.61,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "z3kmb9hx3",
+    "title": "LEGO Star Wars Offworld Sandcrawler and Mudhorn 75453",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75453",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "aagp4616i",
+     "title": "LEGO Star Wars Offworld Sandcrawler and Mudhorn - Building Set for Boys & Girls, Ages 14+ - Star Wars Toy with 5 Minifigures - Gift for Teens - 75453",
+     "price": 199.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "6qso78e5t",
+    "title": "LEGO Star Wars Siege of Mandalore Battle Pack 75449",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75449",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "q7cysz1c9",
+     "title": "LEGO Star Wars Siege of Mandalore Battle Pack Building Toy for Boys & Girls - The Mandalorian Pretend Play Set W/4 Character Minifigures for Kids & Fans, Ages 6+ - Gift Idea for Birthdays - 75449",
+     "price": 18.39,
+     "ported": [
+      "description",
+      "descriptionSource"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1k2fuxk1hn",
+    "title": "LEGO Star Wars: The Empire Strikes Back AT-AT Driver Helmet Building Set for Adults 75429",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75429",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "65s9li149",
+     "title": "LEGO Star Wars: The Empire Strikes Back AT-AT Driver Helmet Building Set for Adults 75429",
+     "price": 99.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "ebk0315au",
+    "title": "LEGO Creator 3 in 1 Cute Hamster with a Flower 31376",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "31376",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "162h60s5n6",
+     "title": "LEGO Creator 3 in 1 Cute Hamster with a Flower - Building Toy for Girls & Boys, Ages 7+ - Birthday Gift for Kids & Animal Lovers - Build a Hamster, Hedgehog or Eagle - 31376",
+     "price": 9.97,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "lhp30u1s5",
+    "title": "LEGO Speed Champions Time Machine from Back to the Future 77256",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "77256",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "u4lnoqgz2",
+     "title": "LEGO Speed Champions máquina del tiempo de Back to the Future, juguete de construcción para niños - auto de juguete de juego de imitación y exhibición con 2 modos de armado para niños y niñas de 9 años en adelante - ideas de regalo para cumpleaños y fans - 77256",
+     "price": 22.49,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "i3097c11t",
+    "title": "LEGO Minifigures Shrek Series Mystery Box 71053",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "71053",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "130963k2pa",
+     "title": "LEGO Minifigures Shrek Series 1-Pack - Mystery Box Set - 12 Shrek Toys to Collect for Boys & Girls, Ages 6+ - 71053",
+     "price": 4.97,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "86be3q1mw",
+    "title": "LEGO Star Wars Clone Trooper & Battle Droid Battle Pack 75372",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75372",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "lbvwki1v6",
+     "title": "LEGO Star Wars Clone Trooper & Battle Droid Battle Pack Set for Kids, Buildable Toy Speeder Bike Vehicle, Tri-Droid and Defensive Post, Collectible, Gift for Boys and Girls Aged 7 and Up, 75372",
+     "price": 37.5,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "4aw2lq17g",
+    "title": "LEGO Shrek: Shrek, Donkey & Puss in Boots 72423",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "72423",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1c4ma2u1xr",
+     "title": "LEGO Shrek: Shrek, Donkey & Puss in Boots - Building Set for Adults, Ages 18+ - Movie Memorabilia for Home Office, Book Shelf Decor - Collectible Gift for Women & Men - 72423",
+     "price": 129.95,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1dramuyw0",
+    "title": "LEGO Ideas Tuxedo Cat 21349",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "21349",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "getn0c1e3",
+     "title": "LEGO Ideas gato esmoquin (Tuxedo Cat), set de construcción para adultos de 18 años en adelante, kit de manualidades para decoración del hogar, 21349",
+     "price": 99.99,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "h537gv1qy",
+    "title": "LEGO Botanicals Pretty Pink Flower Bouquet for Home Decor 10342",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10342",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1w8q60y1e0",
+     "title": "LEGO Botanicals Pretty Pink Flower Bouquet Building Set for Adults - Artificial Flowers for Home Decor or Table Display - Gift for Birthdays - 10342",
+     "price": 47.99,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "ep6p701uh",
+    "title": "LEGO Star Wars Up-Scaled Darth Vader Minifigure 75461",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75461",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "15m4w9ok19",
+     "title": "LEGO Star Wars Up-Scaled Darth Vader Minifigure Set #75461 1,028 Pieces, Posable 11-Inch Figure with Fabric Cape & Lightsaber | 6X Standard Size | Ages 10+ | Star Wars Gift",
+     "price": 189.96,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1fon15h42",
+    "title": "LEGO Star Wars The Dark Falcon Buildable Toy Vehicle 75389",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75389",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "3xdzg2ip1",
+     "title": "LEGO Star Wars The Dark Falcon Building Set, Star Wars Toy with 8 Minifigures, Birthday Gift for Kids, 75389",
+     "price": 255,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1272v2wmx7",
+    "title": "LEGO Technic Ducati Desmo450 MX Factory Motorcycle 42238",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "DESMO450",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1r8qir1agn",
+     "title": "LEGO Technic Ducati Desmo450 MX Factory Motorcycle Toy - Building Toy for Boys & Girls, Ages 10+ - Kids Bedroom Decor - Motorcycle Model with Realistic Details - Gift for Birthdays - 42238",
+     "price": 49.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "13qfcti1g9",
+    "title": "LEGO Harry Potter Diagon Alley Wizarding Shops Collectible Building Set 76444",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "76444",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1mjmtdyr8o",
+     "title": "LEGO Harry Potter Diagon Alley Wizarding Shops Building Set for Adults - Collectible Kit for Harry Potter Fans With 12 Microfigures - Gift Idea for Men, Women, Fans - 76444",
+     "price": 239.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1k5jdmb1bs",
+    "title": "LEGO Disney and Pixar WALL-E and EVE 43279",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "43279",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1ja6qub4l1",
+     "title": "LEGO Disney & Pixar Wall-E & EVE Building Set for Adults, Ages 18+ - Home Office, Book Shelf, or Room Decor for Disney Fans - Gift for Birthdays- 43279",
+     "price": 67.99,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "18lq1me1d8",
+    "title": "LEGO Technic NASA Artemis Space Launch System Rocket 42221",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42221",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "mca82x4xl",
+     "title": "LEGO Technic NASA Artemis Space Launch System Rocket Building Toy for Boys & Girls - STEM Learning & Space Toy W/3-Stage Launch Function for Kids, Ages 9+ - Idea for Birthdays - 42221",
+     "price": 74.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "mk3rh11x5",
+    "title": "LEGO Star Wars Darth Vader Bust 75439",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75439",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "g0gn8be6q",
+     "title": "LEGO Star Wars Darth Vader Bust - Collectible Building Set for Adults, Ages 18+ - Birthday Gift Idea - With Darth Vader Minifigure - Bedroom or Shelf Decor - 75439",
+     "price": 49.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1tfb8axa2u",
+    "title": "LEGO Marvel Spider-Man vs Doc Ock Subway Train Scene Building Set 76321",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "76321",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "bkh3s4mit",
+     "title": "LEGO Marvel Spider-Man vs. Doc Ock Subway Train Scene - Action Figures Kids Toy - Spider-Man Building Toy for Boys & Girls, Ages 9+ - Marvel Collectible with 4 Minifigures - Gift for Birthdays -76321",
+     "price": 54.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1088dty1qr",
+    "title": "LEGO Icons How to Train Your Dragon: Toothless 10375",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "10375",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "okmduuzov",
+     "title": "LEGO Icons How to Train Your Dragon: Toothless Building Set for Adults, Ages 18+ - Room Decor for Office, Bedroom, or Book Shelf - Collectible for Movie Fans - Gift Idea for Birthdays - 10375",
+     "price": 69.95,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1cb3458vm6",
+    "title": "LEGO Technic 2 Fast 2 Furious Nissan Skyline GT-R R34 Car 42210",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42210",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1ubxk44rf",
+     "title": "LEGO Technic 2 Fast 2 Furious Nissan Skyline GT-R (R34) Car - DIY Kit & Building Set for Adults - Collectible Model Street Racer with Drift Function - Gift for Car Enthusiasts and Movie Fans - 42210",
+     "price": 111.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "fo60fdypx",
+    "title": "LEGO Technic Fast and Furious Dodge Charger R/T Car 42231",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42231",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "lvrnsxqon",
+     "title": "LEGO Technic Fast and Furious Dodge Charger R/T Car - Building Set for Adults, Ages 18+ - Collectible Model Car Kit for Fans - Detailed Features - Gift for Birthdays - 42231",
+     "price": 159.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "xz0wtk14l",
+    "title": "LEGO Star Wars Imperial Remnant AT-AT with INT-4 75454",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75454",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "sxmf7u9ou",
+     "title": "LEGO Star Wars Imperial Remnant AT-AT with INT-4 - Building Toy for Boys & Girls, Ages 10+ - The Mandalorian Merch with 6 Minifigures - Gift Idea for Kids - 75454",
+     "price": 159.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "7lgvkd1xv",
+    "title": "LEGO Technic Batmobile Tumbler Building Toy 42239",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42239",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1zg6ex18k",
+     "title": "LEGO Technic Batmobile Tumbler - Building Toy for Boys & Girls, Ages 12+ - Remote Control Batmobile for Kids - Working Steering & Headlights - Gift for Batman Fans - 42239",
+     "price": 189.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1qjc3z4nvx",
+    "title": "LEGO Creator 3 in 1 Cute Animals: Playful Puppy Dog 31382",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "31382",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "aiukkz1el",
+     "title": "LEGO Creator 3 in 1 Cute Animals: Playful Puppy Building Toy for Girls & Boys, Ages 8+ - Birthday Gift for Kids - 3 Building Options, Dog, Squirrel, or Duck - 31382",
+     "price": 21,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1omxy4q1h8",
+    "title": "LEGO Star Wars SMART Play: AT-ST Attack on Endor 75424",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75424",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "dmz7i01q8",
+     "title": "LEGO Star Wars SMART Play: AT-ST Attack on Endor Toy Building Set for Kids - Compatible Set with 2 SMART Tags and 3 LEGO Minifigures - Gift for Boys, Girls and Fans Ages 8+ - 75424",
+     "price": 39.95,
+     "ported": [
+      "images"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "pamiwq136",
+    "title": "LEGO Technic Ferrari 488 PISTA Car Toy 42235",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42235",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1yny5r6160",
+     "title": "LEGO Technic Ferrari 488 PISTA Car Toy - Building Toy for Boys & Girls, Ages 9+ - Kids Bedroom Decor - Model Car with Realistic Details - Gift for Birthdays - 42235",
+     "price": 64.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1yr320x1tz",
+    "title": "LEGO Star Wars: Attack of the Clones Yoda Bust 75438",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75438",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "531q7vxca",
+     "title": "LEGO Star Wars: Attack of the Clones Yoda Bust with Lightsaber - Collectible Building Set for Adults, Ages 18+ - Star Wars Gift for Men & Women - Bedroom or Shelf Decor - 75438",
+     "price": 32.49,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1qeh2sj1tw",
+    "title": "LEGO Technic Oracle Red Bull Racing RB20 F1 Car Model Kit for Adults 42206",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42206",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1wqukze9g4",
+     "title": "LEGO Technic Oracle Red Bull Racing RB20 F1 Race Car Model Kits - Building Set for Adults, Ages 18+ with Realistic Features - Gift for Groom, Groomsmen - 42206",
+     "price": 229.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1rpxed81v3",
+    "title": "LEGO Star Wars 327th Star Corps Clone Troopers Battle Pack 75431",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75431",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1lnvjl3y54",
+     "title": "LEGO Star Wars 327th Star Corps Clone Troopers Battle Pack Building Toy - Pretend Play Set for Boys & Girls, Ages 7+ - Gift for Birthdays - Collectible Model Kit & Kids Room Decor - 75431",
+     "price": 35.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "gudzpml3z",
+    "title": "LEGO Technic Monster Jam Grave Digger Fire and Ice 42219",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42219",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "117zr241n9",
+     "title": "LEGO Technic Monster Jam Grave Digger Fire and Ice Building Toy for Boys & Girls - Monster Truck Toy W/Pull-Back Racing Action for Kids, Ages 7+ - Gift Idea for Birthdays - 42219",
+     "price": 27.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "8g4ihy4ir",
+    "title": "LEGO Star Wars SMART Play: Luke’s Red Five X-Wing 75423",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75423",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1uc10oxlg5",
+     "title": "LEGO Star Wars SMART Play: Lukes Red Five X-Wing Interactive Building Toy - All-In-One Set - Reacts to How You Move and Play with a SMART Brick - Gift for Boys, Girls, Kids Ages 6+ - 75423",
+     "price": 71.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "151ro4w1e4",
+    "title": "LEGO Star Wars Rebel U-Wing Starfighter Age 8+ 75399",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75399",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "15li4qziky",
+     "title": "LEGO Star Wars Rebel U-Wing Starfighter Building Set - Includes Cassian Andor, Dedra Meero and K-2SO - Model Action Toy for Andor Fans - Birthday Gift Idea for Boys, Girls, Kids, Ages 8+ - 75399",
+     "price": 55.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "tcbv0fme",
+    "title": "LEGO Star Wars: The Clone Wars Republic Juggernaut 75413",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75413",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1qk3bia1xg",
+     "title": "LEGO Star Wars: The Clone Wars Republic Juggernaut Building Toy for Kids - Pretend Play Set W 8/ Toy Figures - Collectible Model Kit for Boys & Girls, Ages 9+ - Gift Idea for Birthdays - 75413",
+     "price": 238.39,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1mq7yn15s3",
+    "title": "LEGO Marvel Logo & Minifigures Collectible Building Toy 76313",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "76313",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "19d1c6y16l",
+     "title": "LEGO Marvel: logo MARVEL y minifiguras, juguete de construcción coleccionable para niños y niñas de 12 años en adelante, kit de modelo con 5 minifiguras, 76313",
+     "price": 99.95,
+     "ported": [
+      "description_en"
+     ]
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1tun5rgqa4",
+    "title": "LEGO Technic Porsche 911 GT3 R REXY AO Racing Car 42224",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42224",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1gefb7b1hv",
+     "title": "LEGO Technic Porsche 911 GT3 R REXY AO Racing Car Building Toy for Boys & Girls - Car Toy W/Realistic Steering & 6-Cylinder Engine for Kids & Auto Fans, Ages 11+ - Gift Idea for Birthdays - 42224",
+     "price": 145,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1vwfkfu6kk",
+    "title": "LEGO Star Wars Brick-Built Star Wars Logo, Collectible Building Kit 75407",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75407",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "uxtuibgq",
+     "title": "LEGO Star Wars Brick-Built Star Wars Logo - Building Blocks for Adults 18+ - Collectible DIY Model Kit - Unique Gift For Men and Women - Home Decor Idea for Fans of the Movie Series - 75407",
+     "price": 49.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "2zrkai1f8",
+    "title": "LEGO Star Wars Death Trooper & Night Trooper Battle Pack 75412",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75412",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "9l7ak91yh",
+     "title": "LEGO Star Wars Death Trooper & Night Trooper Battle Pack Kids Toy - Building Set for Pretend Play - Ahsoka Series Model Kit for Boys and Girls, Ages 6+ - Birthday Gift Idea for Movie Fans -75412",
+     "price": 18.39,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "13r8mejzt8",
+    "title": "LEGO Star Wars AT-RT Attack 75444",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75444",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "jfwico1gw",
+     "title": "LEGO Star Wars AT-RT Attack - Building Toy for Boys & Girls, Ages 7+ - With The Mandalorian & Grogu Minifigures - Playset for Kids - Gift for Birthdays - 75444",
+     "price": 35.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1rv6u243lh",
+    "title": "LEGO Technic Bugatti Chiron Pur Sport Hypercar 42222",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42222",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1gk2gf62mq",
+     "title": "LEGO Technic Bugatti Chiron Pur Sport Hypercar Building Toy for Boys & Girls - Sports Car Toy W/Realistic Steering & Engine for Kids & Racing Fans, Ages 9+ - Gift Idea for Birthdays - 42222",
+     "price": 51.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "d9olhespx",
+    "title": "LEGO Technic Aston Martin Aramco AMR25 F1 Car 42240",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "AMR25",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1haef81m4",
+     "title": "LEGO Technic Aston Martin Aramco AMR25 F1 Car - Building Set for Adults, Ages 18+ - Model Car Kit with Detailed Features - Bedroom or Desk Decor - Gift for Men & Women - 42240",
+     "price": 229.95,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1nltgpgre4",
+    "title": "LEGO Star Wars Wicket the Ewok Building Toy 75430",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75430",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "yta8cir4w",
+     "title": "Lego Star Wars Wicket the Ewok Building 75430",
+     "price": 164,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1y109z14l",
+    "title": "LEGO Technic John Deere 1470H Wheeled Harvester 42218",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "1470H",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1q0aod2l5l",
+     "title": "LEGO Technic John Deere 1470H Wheeled Harvester - Building Toy for Boys & Girls, Ages 7+ - Birthday Gift for Kids - W/ Realistic Suspension & Steering - 42218",
+     "price": 7.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "ew815z98a",
+    "title": "LEGO Star Wars Jango Fett Helmet DIY Model Building Kit 75408",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75408",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1uolabo1ta",
+     "title": "LEGO Star Wars Jango Fett Helmet - DIY Model Kit For Adults 18+ - Collectible Building Set - Room Decor Idea For Attack of the Clones Fans - Unique Gift Idea for Men and Women - 75408",
+     "price": 55.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "7rnaxe134",
+    "title": "LEGO Star Wars The Force Burner Snowspeeder 75414",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75414",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "jyysw81yw",
+     "title": "LEGO Star Wars: Rebuild The Galaxy The Force Burner Snowspeeder Building Toy - 2 in 1 Pretend Play Set W/ 3 Minifigures for Kids, Ages 7+ - Collectible Room Decor & Gift Idea for Boys & Girls - 75414",
+     "price": 59.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1uty1v62yk",
+    "title": "LEGO Star Wars Clone Shock Trooper Mech Toy 75448",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75448",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1itjd07rza",
+     "title": "LEGO Star Wars Clone Shock Trooper Mech Building Toy for Boys & Girls - Poseable Star Wars Figure W/Pretend Play Blaster & Stud Shooter for Kids & Fans, Ages 6+ - Gift Idea for Birthdays - 75448",
+     "price": 11.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1p7xy8r11f",
+    "title": "LEGO Star Wars: The Clone Wars V-19 Torrent Starfighter 75432",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75432",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "vw4tabvvo",
+     "title": "LEGO Star Wars: The Clone Wars V-19 Torrent Starfighter Building Toy - Pretend Play Set for Boys & Girls, Ages 9+ - Starship Model Kit W/ 3 Minifigures - Gift Idea for Birthdays - 75432",
+     "price": 61.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "hnc4lkj9w",
+    "title": "LEGO Technic Aston Martin Valkyrie Toy Car 42208",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42208",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "fusxpg12z",
+     "title": "LEGO Technic Aston Martin Valkyrie Toy Car - Kids Model Kit Toy for Boys and Girls, Ages 9+ - Vehicle Building Set for Pretend Play & STEM Learning - Sports Car Gift Idea for Birthdays - 42208",
+     "price": 54.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "10kc5uv194",
+    "title": "LEGO Star Wars PloKoon's Jedi Starfighter Microfighter 75400",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75400",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "89y0to16l",
+     "title": "LEGO Star Wars Plo Koon’s Jedi Starfighter Microfighter Kids Toy - Building Toy for Pretend Play - Clone Wars Playset and Room Decor for Boys and Girls, Ages 6+ - Birthday Gift Idea - 75400",
+     "price": 14.97,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1ujbqxszvs",
+    "title": "LEGO Star Wars The Mandalorian Mando and Grogu's N-1 Starfighter Toddler Building Toy 75410",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75410",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "h0xr69qhz",
+     "title": "LEGO Star Wars: The Mandalorian Mando and Grogu's N-1 Starfighter Toddler Building Toy - Star Wars Baby Yoda Toy for Kids, Boys & Girls, Ages 4+ - Educational Preschool Toy Gift for Birthdays - 75410",
+     "price": 39.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "rw126j3oh",
+    "title": "LEGO Star Wars: Andor K-2SO Security Droid Building Set 75434",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75434",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1l7gb9814y",
+     "title": "LEGO Star Wars: Andor K-2SO Security Droid - Building Toy For Kids, Ages 10+ - Makes a Cool Gift for Boys and Girls - Model Kit and Room Decor Idea For Sci-Fi Adventure Fans - 75434",
+     "price": 71.99,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "1ffp7ivdki",
+    "title": "LEGO Technic Monster Jam ThunderROARus Pull-Back Monster Truck Building Toy 42200",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42200",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "2dhtwc1ri",
+     "title": "LEGO Technic Monster Jam ThunderROARus Pull-Back Monster Truck Building Toy - Birthday Gifts for Kids, Boys & Girls, Ages 7+ - 42200",
+     "price": 22.49,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "4inax3lwm",
+    "title": "LEGO Star Wars Grogu (Mandalorian Apprentice) Building Toy - 75446",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75446",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1lvpw491we",
+     "title": "LEGO Star Wars Grogu (Mandalorian Apprentice) Building Toy - Build and Display Set for Boys & Girls, Ages 10+ - Star Wars Gifts for Kids - 75446",
+     "price": 123.53,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "17pg3p9unf",
+    "title": "LEGO Technic Bush Plane Building Toy with Spinning Propeller, 4-Cylinder Piston Engine 42198",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42198",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1f6cgam1ep",
+     "title": "LEGO Technic Bush Plane 42198",
+     "price": 22.49,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "target",
+    "id": "ldjm6co21",
+    "title": "LEGO Technic Mercedes-AMG F1 W14 E Performance Model Car 42171",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "42171",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "1p5c8r5zrn",
+     "title": "LEGO Technic Mercedes-AMG F1 W14 E Performance Race Car Building Set, Scale Model Car Gift for Adults, Authentically Detailed Build and Display Model for Home or Office Dcor, 42171",
+     "price": 203.6,
+     "ported": []
+    }
+   ]
+  },
+  {
+   "dead": {
+    "retailer": "bestbuy",
+    "id": "wm60zr15i",
+    "title": "LEGO - Star Wars SMART Play: AT-ST Attack on Endor 75424",
+    "brand": "LEGO"
+   },
+   "method": "model-code",
+   "key": "75424",
+   "live": [
+    {
+     "retailer": "walmart",
+     "id": "dmz7i01q8",
+     "title": "LEGO Star Wars SMART Play: AT-ST Attack on Endor Toy Building Set for Kids - Compatible Set with 2 SMART Tags and 3 LEGO Minifigures - Gift for Boys, Girls and Fans Ages 8+ - 75424",
+     "price": 39.95,
+     "ported": [
+      "images"
+     ]
+    }
+   ]
+  }
+ ],
+ "recordsWritten": 47
+}
