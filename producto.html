@@ -106,6 +106,10 @@ footer a{color:#fff}
 .g-nav{position:absolute;top:50%;margin-top:-18px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--navy);font-size:20px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0}
 .g-prev{left:8px}.g-next{right:8px}
 @media(hover:hover) and (pointer:fine){.g-nav{display:flex}}
+/* ONE PHOTO LEFT, NO CONTROLS (#443): a gallery whose other photos failed
+   to load (galleryPhotoFailed takes their slides out) is a single photo;
+   its arrows, counter and thumbnails go with them. */
+.p-gallery.is-single .g-nav,.p-gallery.is-single .g-count,.p-gallery.is-single .g-thumbs{display:none !important}
 .grid2>*{min-width:0}
 .g-thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 1px 4px;height:74px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
 .g-thumb{position:relative;flex:0 0 56px;width:56px;height:56px;border-radius:10px;border:1.5px solid var(--line);background:#f7f8fb;overflow:hidden;padding:0;cursor:pointer}
@@ -665,7 +669,7 @@ function fail(msg, ctx){
   ctx = ctx || {};
   el("p-loading").style.display = "none";
   var store = ctx.store && (STORE_LABELS[ctx.store] || ctx.store);
-  var actions = (ctx.store ? '<a class="btn" href="tienda.html?tienda=' + encodeURIComponent(ctx.store) + '">Ver la tienda ' + esc(store) + '</a> ' : '')
+  var actions = (ctx.store && !NO_STOREFRONT[String(ctx.store).toLowerCase()] ? '<a class="btn" href="tienda.html?tienda=' + encodeURIComponent(ctx.store) + '">Ver la tienda ' + esc(store) + '</a> ' : '')
     + (ctx.query ? '<a class="btn btn-secondary" href="search.html?q=' + encodeURIComponent(ctx.query) + '">Buscar \u201c' + esc(ctx.query) + '\u201d</a>'
                  : '<a class="btn btn-secondary" href="tiendas.html">Ver todas las tiendas</a>');
   el("p-body").innerHTML = '<div class="err-box"><strong>No pudimos cargar este producto.</strong><span>'
@@ -675,6 +679,11 @@ function fail(msg, ctx){
     buildRelatedRails({ name: ctx.query, retailer: ctx.store, dept: "" }, ctx.pool.filter(function(it){ return it.retailer === ctx.store; }));
 }
 
+/* NO STOREFRONT (#443): Sephora is DO NOT BUILD -- no store window, so
+   no "Ver más en" door to one. Its products stay as they are until Danny
+   and Lucifer decide. Mirrors NO_STOREFRONT_STORES in the app bundle;
+   scripts/test/removed-store-merch-tests.mjs pins the two. */
+var NO_STOREFRONT = { sephora: 1 };
 function render(p){
   el("p-loading").style.display = "none";
   var usd = finalUsd(p.price, p.retailer);
@@ -718,6 +727,7 @@ function render(p){
           if (offSale) return '';
           if (p.partNumber) return '<a class="btn btn-secondary" href="auto.html">Ver más en Aria Auto</a>';
           if (designers[tk]) return '<a class="btn btn-secondary" href="disenadores.html#d-' + tk + '">Ver más de ' + label + '</a>';
+          if (tk && NO_STOREFRONT[tk]) return '';
           if (tk) return '<a class="btn btn-secondary" href="tienda.html?tienda=' + encodeURIComponent(tk) + '">Ver más en ' + label + '</a>';
           return '';
         })()
@@ -813,6 +823,8 @@ function wireGallery(gal){
   function sync(){
     var s = slides(), i = current();
     if (count) count.textContent = (i + 1) + " / " + s.length;
+    gal.setAttribute("data-count", String(s.length));
+    gal.classList.toggle("is-single", s.length <= 1);
     var cur = s[i] && s[i].getAttribute("data-i");
     Array.prototype.forEach.call(gal.querySelectorAll(".g-thumb"), function(t){
       if (t.getAttribute("data-i") === cur) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");

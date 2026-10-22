@@ -191,28 +191,6 @@ window.doSearch = function(which){
   #storeView > div.storePhotoBg--walmart::before{ --storePhotoImg:url('assets/stores/walmart-interior.jpg'); }
   /* All page content rides above the photo layer. */
   #storeView > div.storePhotoBg--walmart > *{ position:relative; z-index:1; }
-  /* SEPHORA — black-and-white striped luxe
-     Cool monochrome; the pressed pill is white-on-black inverted:
-     the brand IS black-and-white, so the active filter goes white.
-  */
-  [data-store-theme="sephora"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(245,245,247,0.2), rgba(245,245,247,0) 70%),
-      radial-gradient(600px 320px at 88% 4%, rgba(154,154,162,0.14), rgba(154,154,162,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(30,30,36,0.4), rgba(30,30,36,0) 72%),
-      linear-gradient(180deg, #0B0B0D 0%, #09090B 52%, #060607 100%);
-  }
-  [data-store-theme="sephora"] h1{ color:#FFFFFF; }
-  [data-store-theme="sephora"] #catalogSubtitle,
-  [data-store-theme="sephora"] #storeViewSubtitle,
-  [data-store-theme="sephora"] #storeResultsSubtitle{ color:#CFCFD6; }
-  [data-store-theme="sephora"] .themeBack{ color:#E8E8EE !important; }
-  [data-store-theme="sephora"] .themeChips [aria-pressed="true"]{
-    background:#FFFFFF !important; border-color:#FFFFFF !important; color:#000000 !important;
-  }
-  [data-store-theme="sephora"] .themeChips .chipLabel{ color:#CFCFD6 !important; }
-  [data-store-theme="sephora"] #catalogSort{ border-color:#8E8E96 !important; }
-  [data-store-theme="sephora"] .ariaCarouselTitle{ color:#FFFFFF !important; }
   /* BATH & BODY WORKS — fragrance mist over brand blue
      Brand blue #005699 (Pantone 2945 C) with a pink fragrance-mist second glow.
   */
@@ -296,7 +274,7 @@ window.doSearch = function(which){
   [data-store-theme="skims"] .ariaCarouselTitle{ color:#FFF9F2 !important; }
   /* REVOLVE — LA cool-girl minimalism, warm monochrome
      Warm (not cool) monochrome — the white pill reads Revolve's
-     stark warmth vs Sephora's cool luxe and SSENSE's brutalism.
+     stark warmth vs SSENSE's brutalism.
   */
   [data-store-theme="revolve"]{
     background:
@@ -691,7 +669,7 @@ window.doSearch = function(which){
      pop against the navy. Each band carries a thin per-store brand accent
      so the six don't read as identical wallpaper; the logo rides on a white
      plaque for contrast, with the store name in big legible letters beside
-     it (icon-only marks like Sephora's are unreadable at rail size without
+     it (icon-only marks are unreadable at rail size without
      the name). */
   .storeRailPlaque{ background:#fff; border-radius:10px; padding:5px 10px; box-shadow:0 2px 10px rgba(0,0,0,0.28); display:inline-flex; align-items:center; flex-shrink:0 }
   .storeRailPlaqueDark{ background:#101d24; border-radius:10px; padding:5px 10px; box-shadow:0 2px 10px rgba(0,0,0,0.28); display:inline-flex; align-items:center; flex-shrink:0 }
@@ -2196,22 +2174,7 @@ window.doSearch = function(which){
          Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
          newly registered store appears here with no markup change. -->
 
-<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Sephora</span>
-        </span>
-        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
-      <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+<section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
@@ -2666,24 +2629,7 @@ window.doSearch = function(which){
     <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
          mall directory between the six featured rails and Categorías. -->
 
-<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Sephora</span>
-        </span>
-          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
-      <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+<section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -4191,23 +4137,6 @@ window.doSearch = function(which){
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">Cada tienda, en su vitrina.</h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#4A5568">Las ofertas y los destacados de cada tienda, sin salir de esta p&aacute;gina. Toca &laquo;Ver tienda&raquo; para entrar al cat&aacute;logo completo.</p>
     </div>
-<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="max-w-[1120px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Sephora</span>
-        </span>
-          <button onclick="openStore('sephora')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
-      <div id="tStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
-      </div>
-    </section>
 <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
@@ -6188,7 +6117,7 @@ window.doSearch = function(which){
 
 <script src="/off-sale.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-744f68cca4cb71ed.js"></script>
+<script src="/build/app-b911c581ec44333e.js"></script>
 
 
 

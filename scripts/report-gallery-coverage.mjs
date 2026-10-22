@@ -38,6 +38,10 @@
      node scripts/report-gallery-coverage.mjs        -> prints the tables
      node scripts/report-gallery-coverage.mjs --json -> also writes
                                     reports/gallery-coverage.json
+     node scripts/report-gallery-coverage.mjs --by-store [--json]
+                                 -> the per-store picture audit (buckets
+                                    0 / 1 / 2-3 / 4+ distinct photos),
+                                    reports/gallery-audit-by-store.json
    Read-only on the catalogues; no network.
    ================================================================== */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -298,8 +302,57 @@ export function tables(m) {
   return { md: out.join("\n"), total, byDept: Object.fromEntries(depts.map((d) => [d, agg(byDept.get(d))])), byStore: Object.fromEntries([...byStore].map(([s, l]) => [s, agg(l)])) };
 }
 
+/* ---------- the per-store audit (#443, comms #443 "picture audit") ----------
+   One row per LIVE store (off-sale.js stores left out), every catalogue
+   that carries it pooled: one product = store + normalised title across
+   files (the copy with the most photos). Buckets are of REAL, DISTINCT
+   photos as above (producto.html's galleryPhotoKey / tidyGallery, shared
+   non-product images left out): 0, exactly 1, 2-3, 4+. A store with more
+   than half its products on one photo (or none) is flagged. */
+export const SINGLE_FLAG = 0.5;
+export function storeAudit(m) {
+  const best = new Map();
+  for (const p of m.products) {
+    if (p.offSale) continue;
+    const k = p.retailer + "|" + String(p.name).trim().toLowerCase();
+    const prev = best.get(k);
+    if (!prev || p.real > prev.real) best.set(k, p);
+  }
+  const by = new Map();
+  for (const p of best.values()) {
+    if (!by.has(p.retailer)) by.set(p.retailer, { store: p.retailer, products: 0, zero: 0, one: 0, twoThree: 0, fourPlus: 0, photos: 0, files: new Set() });
+    const s = by.get(p.retailer);
+    s.products++; s.photos += p.real; s.files.add(p.file.slice(1));
+    if (p.real <= 0) s.zero++; else if (p.real === 1) s.one++; else if (p.real <= 3) s.twoThree++; else s.fourPlus++;
+  }
+  const r1 = (x) => Math.round(x * 1000) / 10;
+  const rows = [...by.values()].map((s) => ({
+    store: s.store, products: s.products,
+    pctZero: r1(s.zero / s.products), pctOne: r1(s.one / s.products), pctTwoThree: r1(s.twoThree / s.products), pctFourPlus: r1(s.fourPlus / s.products),
+    avgPhotos: Math.round((s.photos / s.products) * 100) / 100,
+    singleShare: r1((s.zero + s.one) / s.products),
+    flagged: (s.zero + s.one) / s.products > SINGLE_FLAG,
+    files: [...s.files].sort(),
+  })).sort((a, b) => b.products - a.products || a.store.localeCompare(b.store));
+  const tot = rows.reduce((t, r) => t + r.products, 0);
+  return { rows, products: tot, stores: rows.length, flagged: rows.filter((r) => r.flagged).length };
+}
+export function storeAuditMd(a) {
+  const out = ["| store | products | 0 photos | exactly 1 | 2-3 | 4+ | avg distinct photos | flag |", "|---|---:|---:|---:|---:|---:|---:|---|"];
+  for (const r of a.rows) out.push(`| ${r.store} | ${r.products.toLocaleString("en-US")} | ${r.pctZero.toFixed(1)}% | ${r.pctOne.toFixed(1)}% | ${r.pctTwoThree.toFixed(1)}% | ${r.pctFourPlus.toFixed(1)}% | ${r.avgPhotos.toFixed(2)} | ${r.flagged ? "**>50% single**" : ""} |`);
+  return out.join("\n");
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const m = measure();
+  if (process.argv.includes("--by-store")) {
+    const a = storeAudit(m);
+    const md = storeAuditMd(a);
+    console.log(md);
+    console.log(`\n${a.stores} live stores, ${a.products} products, ${a.flagged} flagged (>50% of products on 0-1 photo).`);
+    if (process.argv.includes("--json")) writeFileSync(ROOT + "reports/gallery-audit-by-store.json", JSON.stringify(a, null, 1) + "\n");
+    process.exit(0);
+  }
   const t = tables(m);
   console.log(t.md);
   const shared = [...m.sharedByStore].map(([s, set]) => `${s}: ${set.size}`).join(", ");
