@@ -321,7 +321,7 @@ async function maybeEnrichGtins(pulled, args, { spentSoFarUsd, rates, rawPathBas
     if (next > left) { console.log(`  TOPE DE GASTO: the next enrichment run (~$${next.toFixed(2)}) would pass the $${left.toFixed(2)} left. Stopped.`); break; }
     process.stdout.write(`  enrichment ${i / GTIN_ENRICH_URLS_PER_RUN + 1}/${est.runs} (${chunk.length} pages) ... `);
     try {
-      const runId = await runner.startInput(gtinEnrichInput(chunk, args.gtinInputKey || "startUrls"), { chargeLimitUsd: left });
+      const runId = await runner.startInput(gtinEnrichInput(chunk, args.gtinInputKey || undefined), { chargeLimitUsd: left });
       const { items, usageUsd } = await runner.poll(runId);
       spent += Number.isFinite(usageUsd) ? usageUsd : next;
       rows.push(...items);
