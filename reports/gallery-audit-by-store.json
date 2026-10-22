@@ -1,0 +1,1143 @@
+{
+ "rows": [
+  {
+   "store": "ccs",
+   "products": 13735,
+   "pctZero": 0.6,
+   "pctOne": 24.3,
+   "pctTwoThree": 47.8,
+   "pctFourPlus": 27.4,
+   "avgPhotos": 2.6,
+   "singleShare": 24.8,
+   "flagged": false,
+   "files": [
+    "ccs-catalog.json"
+   ]
+  },
+  {
+   "store": "walmart",
+   "products": 10734,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "department-cache-walmart.json",
+    "juguetes-catalog.json"
+   ]
+  },
+  {
+   "store": "islandwatersports",
+   "products": 8833,
+   "pctZero": 2.2,
+   "pctOne": 4.4,
+   "pctTwoThree": 15.4,
+   "pctFourPlus": 77.9,
+   "avgPhotos": 6.06,
+   "singleShare": 6.6,
+   "flagged": false,
+   "files": [
+    "islandwatersports-catalog.json"
+   ]
+  },
+  {
+   "store": "surfstation",
+   "products": 6173,
+   "pctZero": 0.2,
+   "pctOne": 42.1,
+   "pctTwoThree": 49.6,
+   "pctFourPlus": 8.2,
+   "avgPhotos": 1.91,
+   "singleShare": 42.3,
+   "flagged": false,
+   "files": [
+    "surfstation-catalog.json"
+   ]
+  },
+  {
+   "store": "parrot",
+   "products": 4018,
+   "pctZero": 4.6,
+   "pctOne": 37,
+   "pctTwoThree": 46.6,
+   "pctFourPlus": 11.8,
+   "avgPhotos": 2.04,
+   "singleShare": 41.5,
+   "flagged": false,
+   "files": [
+    "parrot-catalog.json"
+   ]
+  },
+  {
+   "store": "baublebar",
+   "products": 3551,
+   "pctZero": 0,
+   "pctOne": 0.4,
+   "pctTwoThree": 49.9,
+   "pctFourPlus": 49.7,
+   "avgPhotos": 4.11,
+   "singleShare": 0.4,
+   "flagged": false,
+   "files": [
+    "baublebar-catalog.json",
+    "jewelry-catalog.json"
+   ]
+  },
+  {
+   "store": "farfetch",
+   "products": 3279,
+   "pctZero": 0,
+   "pctOne": 0.1,
+   "pctTwoThree": 23,
+   "pctFourPlus": 76.9,
+   "avgPhotos": 4.4,
+   "singleShare": 0.1,
+   "flagged": false,
+   "files": [
+    "farfetch-catalog.json"
+   ]
+  },
+  {
+   "store": "valsurf",
+   "products": 3207,
+   "pctZero": 0,
+   "pctOne": 29.1,
+   "pctTwoThree": 44.8,
+   "pctFourPlus": 26.1,
+   "avgPhotos": 2.69,
+   "singleShare": 29.1,
+   "flagged": false,
+   "files": [
+    "valsurf-catalog.json"
+   ]
+  },
+  {
+   "store": "hottopic",
+   "products": 2538,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "hottopic-catalog.json"
+   ]
+  },
+  {
+   "store": "boxlunch",
+   "products": 2496,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "boxlunch-catalog.json"
+   ]
+  },
+  {
+   "store": "zumiez",
+   "products": 2492,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "zumiez-catalog.json"
+   ]
+  },
+  {
+   "store": "jwpei",
+   "products": 2351,
+   "pctZero": 0,
+   "pctOne": 19.1,
+   "pctTwoThree": 22,
+   "pctFourPlus": 58.9,
+   "avgPhotos": 3.6,
+   "singleShare": 19.1,
+   "flagged": false,
+   "files": [
+    "jwpei-catalog.json"
+   ]
+  },
+  {
+   "store": "mainland",
+   "products": 2238,
+   "pctZero": 0,
+   "pctOne": 6.9,
+   "pctTwoThree": 27.2,
+   "pctFourPlus": 65.9,
+   "avgPhotos": 4.91,
+   "singleShare": 6.9,
+   "flagged": false,
+   "files": [
+    "mainland-catalog.json"
+   ]
+  },
+  {
+   "store": "skims",
+   "products": 2161,
+   "pctZero": 0,
+   "pctOne": 0.1,
+   "pctTwoThree": 2.2,
+   "pctFourPlus": 97.7,
+   "avgPhotos": 5.84,
+   "singleShare": 0.1,
+   "flagged": false,
+   "files": [
+    "skims-catalog.json"
+   ]
+  },
+  {
+   "store": "prosoccer",
+   "products": 2011,
+   "pctZero": 0,
+   "pctOne": 16.1,
+   "pctTwoThree": 14.9,
+   "pctFourPlus": 69,
+   "avgPhotos": 4.36,
+   "singleShare": 16.1,
+   "flagged": false,
+   "files": [
+    "soccer-catalog.json"
+   ]
+  },
+  {
+   "store": "sephora",
+   "products": 2001,
+   "pctZero": 0.1,
+   "pctOne": 99.7,
+   "pctTwoThree": 0.2,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 99.8,
+   "flagged": true,
+   "files": [
+    "beauty-catalog.json"
+   ]
+  },
+  {
+   "store": "revolve",
+   "products": 1649,
+   "pctZero": 0,
+   "pctOne": 0.5,
+   "pctTwoThree": 25.9,
+   "pctFourPlus": 73.6,
+   "avgPhotos": 4.47,
+   "singleShare": 0.5,
+   "flagged": false,
+   "files": [
+    "revolve-catalog.json"
+   ]
+  },
+  {
+   "store": "vix",
+   "products": 1602,
+   "pctZero": 0,
+   "pctOne": 0.1,
+   "pctTwoThree": 0.7,
+   "pctFourPlus": 99.2,
+   "avgPhotos": 5.8,
+   "singleShare": 0.1,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "bhphoto",
+   "products": 1590,
+   "pctZero": 0,
+   "pctOne": 4.8,
+   "pctTwoThree": 40.3,
+   "pctFourPlus": 54.8,
+   "avgPhotos": 4.27,
+   "singleShare": 4.8,
+   "flagged": false,
+   "files": [
+    "bhphoto-catalog.json"
+   ]
+  },
+  {
+   "store": "montce",
+   "products": 1566,
+   "pctZero": 0,
+   "pctOne": 8.5,
+   "pctTwoThree": 28.9,
+   "pctFourPlus": 62.6,
+   "avgPhotos": 4.05,
+   "singleShare": 8.5,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "tns",
+   "products": 1518,
+   "pctZero": 0,
+   "pctOne": 0.2,
+   "pctTwoThree": 6.7,
+   "pctFourPlus": 93.1,
+   "avgPhotos": 4.33,
+   "singleShare": 0.2,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "advanceauto",
+   "products": 1365,
+   "pctZero": 1.5,
+   "pctOne": 92.1,
+   "pctTwoThree": 5.5,
+   "pctFourPlus": 0.9,
+   "avgPhotos": 1.11,
+   "singleShare": 93.6,
+   "flagged": true,
+   "files": [
+    "advanceauto-catalog.json"
+   ]
+  },
+  {
+   "store": "denniskirk",
+   "products": 1335,
+   "pctZero": 0,
+   "pctOne": 30,
+   "pctTwoThree": 20.8,
+   "pctFourPlus": 49.1,
+   "avgPhotos": 4.88,
+   "singleShare": 30,
+   "flagged": false,
+   "files": [
+    "moto-catalog.json"
+   ]
+  },
+  {
+   "store": "farmrio",
+   "products": 1195,
+   "pctZero": 0,
+   "pctOne": 0.4,
+   "pctTwoThree": 24.2,
+   "pctFourPlus": 75.4,
+   "avgPhotos": 4.11,
+   "singleShare": 0.4,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "revzilla",
+   "products": 1153,
+   "pctZero": 0,
+   "pctOne": 18,
+   "pctTwoThree": 26.3,
+   "pctFourPlus": 55.8,
+   "avgPhotos": 4.88,
+   "singleShare": 18,
+   "flagged": false,
+   "files": [
+    "moto-catalog.json"
+   ]
+  },
+  {
+   "store": "kindredbravely",
+   "products": 919,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "tennisexpress",
+   "products": 800,
+   "pctZero": 0,
+   "pctOne": 19.6,
+   "pctTwoThree": 21.5,
+   "pctFourPlus": 58.9,
+   "avgPhotos": 3.99,
+   "singleShare": 19.6,
+   "flagged": false,
+   "files": [
+    "tennis-catalog.json"
+   ]
+  },
+  {
+   "store": "youngla",
+   "products": 800,
+   "pctZero": 0,
+   "pctOne": 0.1,
+   "pctTwoThree": 1.5,
+   "pctFourPlus": 98.4,
+   "avgPhotos": 7.74,
+   "singleShare": 0.1,
+   "flagged": false,
+   "files": [
+    "gymrat-catalog.json"
+   ]
+  },
+  {
+   "store": "crocs",
+   "products": 564,
+   "pctZero": 0,
+   "pctOne": 3,
+   "pctTwoThree": 97,
+   "pctFourPlus": 0,
+   "avgPhotos": 1.97,
+   "singleShare": 3,
+   "flagged": false,
+   "files": [
+    "crocs-catalog.json"
+   ]
+  },
+  {
+   "store": "venum",
+   "products": 554,
+   "pctZero": 0,
+   "pctOne": 3.1,
+   "pctTwoThree": 2.3,
+   "pctFourPlus": 94.6,
+   "avgPhotos": 5.42,
+   "singleShare": 3.1,
+   "flagged": false,
+   "files": [
+    "venum-catalog.json"
+   ]
+  },
+  {
+   "store": "smartbuyglasses",
+   "products": 544,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "sunglasses-catalog.json"
+   ]
+  },
+  {
+   "store": "partycity",
+   "products": 518,
+   "pctZero": 0,
+   "pctOne": 36.9,
+   "pctTwoThree": 34,
+   "pctFourPlus": 29.2,
+   "avgPhotos": 3.22,
+   "singleShare": 36.9,
+   "flagged": false,
+   "files": [
+    "partycity-catalog.json"
+   ]
+  },
+  {
+   "store": "dicks",
+   "products": 517,
+   "pctZero": 0,
+   "pctOne": 59,
+   "pctTwoThree": 34.6,
+   "pctFourPlus": 6.4,
+   "avgPhotos": 1.79,
+   "singleShare": 59,
+   "flagged": true,
+   "files": [
+    "dicks-catalog.json"
+   ]
+  },
+  {
+   "store": "capittana",
+   "products": 516,
+   "pctZero": 0,
+   "pctOne": 0.8,
+   "pctTwoThree": 9.1,
+   "pctFourPlus": 90.1,
+   "avgPhotos": 5.07,
+   "singleShare": 0.8,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "ancora",
+   "products": 508,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 11.8,
+   "pctFourPlus": 88.2,
+   "avgPhotos": 4.72,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "nautilus",
+   "products": 501,
+   "pctZero": 1.4,
+   "pctOne": 53.1,
+   "pctTwoThree": 30.7,
+   "pctFourPlus": 14.8,
+   "avgPhotos": 1.98,
+   "singleShare": 54.5,
+   "flagged": true,
+   "files": [
+    "nautilus-catalog.json"
+   ]
+  },
+  {
+   "store": "patbo",
+   "products": 496,
+   "pctZero": 0,
+   "pctOne": 4,
+   "pctTwoThree": 43.8,
+   "pctFourPlus": 52.2,
+   "avgPhotos": 3.73,
+   "singleShare": 4,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "silviatcherassi",
+   "products": 494,
+   "pctZero": 0,
+   "pctOne": 15.8,
+   "pctTwoThree": 80.8,
+   "pctFourPlus": 3.4,
+   "avgPhotos": 2.65,
+   "singleShare": 15.8,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "johannaortiz",
+   "products": 473,
+   "pctZero": 0,
+   "pctOne": 1.9,
+   "pctTwoThree": 45.9,
+   "pctFourPlus": 52.2,
+   "avgPhotos": 3.73,
+   "singleShare": 1.9,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "quietstorm",
+   "products": 454,
+   "pctZero": 0,
+   "pctOne": 9.7,
+   "pctTwoThree": 48,
+   "pctFourPlus": 42.3,
+   "avgPhotos": 3.67,
+   "singleShare": 9.7,
+   "flagged": false,
+   "files": [
+    "quietstorm-catalog.json"
+   ]
+  },
+  {
+   "store": "walmartbaby",
+   "products": 454,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "finishline",
+   "products": 450,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "finishline-catalog.json"
+   ]
+  },
+  {
+   "store": "aguabendita",
+   "products": 417,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 0,
+   "pctFourPlus": 100,
+   "avgPhotos": 5.94,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "meliebianco",
+   "products": 310,
+   "pctZero": 0,
+   "pctOne": 4.5,
+   "pctTwoThree": 38.1,
+   "pctFourPlus": 57.4,
+   "avgPhotos": 5.5,
+   "singleShare": 4.5,
+   "flagged": false,
+   "files": [
+    "meliebianco-catalog.json"
+   ]
+  },
+  {
+   "store": "hatch",
+   "products": 288,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "abercrombie",
+   "products": 273,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "abercrombie-catalog.json"
+   ]
+  },
+  {
+   "store": "assouline",
+   "products": 270,
+   "pctZero": 0,
+   "pctOne": 0.4,
+   "pctTwoThree": 67.8,
+   "pctFourPlus": 31.9,
+   "avgPhotos": 3.69,
+   "singleShare": 0.4,
+   "flagged": false,
+   "files": [
+    "books-catalog.json"
+   ]
+  },
+  {
+   "store": "hollister",
+   "products": 249,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "hollister-catalog.json"
+   ]
+  },
+  {
+   "store": "xtremesoccer",
+   "products": 242,
+   "pctZero": 0,
+   "pctOne": 0.4,
+   "pctTwoThree": 2.5,
+   "pctFourPlus": 97.1,
+   "avgPhotos": 5.79,
+   "singleShare": 0.4,
+   "flagged": false,
+   "files": [
+    "soccer-catalog.json"
+   ]
+  },
+  {
+   "store": "momcozy",
+   "products": 238,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "eberjey",
+   "products": 237,
+   "pctZero": 0,
+   "pctOne": 3.8,
+   "pctTwoThree": 19,
+   "pctFourPlus": 77.2,
+   "avgPhotos": 4.38,
+   "singleShare": 3.8,
+   "flagged": false,
+   "files": [
+    "latino-designers-dtc-catalog.json"
+   ]
+  },
+  {
+   "store": "drbrowns",
+   "products": 215,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "chronicle",
+   "products": 209,
+   "pctZero": 0,
+   "pctOne": 54.1,
+   "pctTwoThree": 4.3,
+   "pctFourPlus": 41.6,
+   "avgPhotos": 2.95,
+   "singleShare": 54.1,
+   "flagged": true,
+   "files": [
+    "books-catalog.json"
+   ]
+  },
+  {
+   "store": "tatami",
+   "products": 168,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 3.6,
+   "pctFourPlus": 96.4,
+   "avgPhotos": 4.79,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "tatami-catalog.json"
+   ]
+  },
+  {
+   "store": "bentgo",
+   "products": 154,
+   "pctZero": 0,
+   "pctOne": 0.6,
+   "pctTwoThree": 1.9,
+   "pctFourPlus": 97.4,
+   "avgPhotos": 11.06,
+   "singleShare": 0.6,
+   "flagged": false,
+   "files": [
+    "bentgo-catalog.json"
+   ]
+  },
+  {
+   "store": "lanebryant",
+   "products": 150,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "lanebryant-catalog.json"
+   ]
+  },
+  {
+   "store": "americaneagle",
+   "products": 148,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "ae-catalog.json"
+   ]
+  },
+  {
+   "store": "munchkin",
+   "products": 128,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "samsclub",
+   "products": 118,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "samsclub-catalog.json"
+   ]
+  },
+  {
+   "store": "everlast",
+   "products": 112,
+   "pctZero": 0,
+   "pctOne": 11.6,
+   "pctTwoThree": 9.8,
+   "pctFourPlus": 78.6,
+   "avgPhotos": 4.76,
+   "singleShare": 11.6,
+   "flagged": false,
+   "files": [
+    "everlast-catalog.json"
+   ]
+  },
+  {
+   "store": "ezpz",
+   "products": 107,
+   "pctZero": 0,
+   "pctOne": 0.9,
+   "pctTwoThree": 3.7,
+   "pctFourPlus": 95.3,
+   "avgPhotos": 11.18,
+   "singleShare": 0.9,
+   "flagged": false,
+   "files": [
+    "ezpz-catalog.json"
+   ]
+  },
+  {
+   "store": "gameness",
+   "products": 100,
+   "pctZero": 0,
+   "pctOne": 2,
+   "pctTwoThree": 4,
+   "pctFourPlus": 94,
+   "avgPhotos": 6.88,
+   "singleShare": 2,
+   "flagged": false,
+   "files": [
+    "fightclub-catalog.json"
+   ]
+  },
+  {
+   "store": "elite",
+   "products": 95,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 0,
+   "pctFourPlus": 100,
+   "avgPhotos": 8.03,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "fightclub-catalog.json"
+   ]
+  },
+  {
+   "store": "jujube",
+   "products": 86,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "elvie",
+   "products": 63,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "mmawarehouse",
+   "products": 49,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 4.1,
+   "pctFourPlus": 95.9,
+   "avgPhotos": 5.57,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "mmawarehouse-catalog.json"
+   ]
+  },
+  {
+   "store": "mockingbird",
+   "products": 48,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "spectra",
+   "products": 46,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "statebags",
+   "products": 43,
+   "pctZero": 0,
+   "pctOne": 7,
+   "pctTwoThree": 37.2,
+   "pctFourPlus": 55.8,
+   "avgPhotos": 4.77,
+   "singleShare": 7,
+   "flagged": false,
+   "files": [
+    "statebags-catalog.json"
+   ]
+  },
+  {
+   "store": "freshlypicked",
+   "products": 42,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "nanit",
+   "products": 36,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "academy",
+   "products": 33,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "soccer-catalog.json"
+   ]
+  },
+  {
+   "store": "mushie",
+   "products": 33,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 0,
+   "pctFourPlus": 100,
+   "avgPhotos": 11.94,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "mushie-catalog.json"
+   ]
+  },
+  {
+   "store": "babybrezza",
+   "products": 31,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "lillebaby",
+   "products": 29,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "bellybandit",
+   "products": 27,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "owlet",
+   "products": 26,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "combatcorner",
+   "products": 21,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 14.3,
+   "pctFourPlus": 85.7,
+   "avgPhotos": 5.14,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "combatcorner-catalog.json"
+   ]
+  },
+  {
+   "store": "dagnedover",
+   "products": 19,
+   "pctZero": 0,
+   "pctOne": 100,
+   "pctTwoThree": 0,
+   "pctFourPlus": 0,
+   "avgPhotos": 1,
+   "singleShare": 100,
+   "flagged": true,
+   "files": [
+    "moms-catalog.json"
+   ]
+  },
+  {
+   "store": "fuji",
+   "products": 4,
+   "pctZero": 0,
+   "pctOne": 0,
+   "pctTwoThree": 0,
+   "pctFourPlus": 100,
+   "avgPhotos": 6,
+   "singleShare": 0,
+   "flagged": false,
+   "files": [
+    "fuji-catalog.json"
+   ]
+  },
+  {
+   "store": "surfworld",
+   "products": 3,
+   "pctZero": 0,
+   "pctOne": 33.3,
+   "pctTwoThree": 0,
+   "pctFourPlus": 66.7,
+   "avgPhotos": 3,
+   "singleShare": 33.3,
+   "flagged": false,
+   "files": [
+    "surfworld-catalog.json"
+   ]
+  }
+ ],
+ "products": 99220,
+ "stores": 81,
+ "flagged": 34
+}

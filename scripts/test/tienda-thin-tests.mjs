@@ -130,7 +130,9 @@ await check("Ofertas de <store> leads whenever the store has a sale, and holds s
 });
 
 await check("Más vendidos follows Ofertas where the store publishes demand; type rails after", () => {
-  for (const k of ["walmart", "sephora", "abercrombie", "finishline", "crocs", ...LIVE_SLICED]) {
+  /* Sephora was the beauty sample here; it has no storefront since #443
+     (DO NOT BUILD), so Hollister (Destacados, then Más vendidos) stands in. */
+  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED]) {
     const ks = idx(k).rails.map((r) => r.key);
     assert.equal(ks[1], "masvendidos", `${k}: ${ks.join(",")}`);
   }
@@ -305,7 +307,7 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
   const base = `http://127.0.0.1:${srv.address().port}`;
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   try {
-    for (const store of ["ccs", "walmart", "zumiez", "youngla", "prosoccer", "sephora", ...LIVE_SLICED]) {
+    for (const store of ["ccs", "walmart", "zumiez", "youngla", "prosoccer", "hollister", ...LIVE_SLICED]) {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
       const pg = await ctx.newPage();
       await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());

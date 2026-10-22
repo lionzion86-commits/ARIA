@@ -3368,12 +3368,88 @@ function cardPhotoFallback(img){
    without leaving the carousel. Arrows render only when there is
    something to swipe to, and never cover the discount badge (they sit
    at the vertical middle, the badge at the top). Zero emojis. */
+/* ONE PHOTO, NO ARROWS (#443, Danny's iPhone QA). A card showed
+   prev/next arrows on a product that has ONE photo: its data listed the
+   same photo twice (the card copy and the gallery copy, or the same file
+   at another size or ?v=), and this list only folded identical strings,
+   so the arrows swapped a photo for itself. Photos are now counted with
+   the product page's own rule -- producto.html's galleryPhotoKey,
+   galleryIsChart and tidyGallery (#468), copied here VERBATIM under
+   card* names (scripts/test/gallery-arrows-tests.mjs fails the moment
+   the copies drift): the same photo at any size is one photo, size
+   charts go last, and only real http(s) photos count (no .svg,
+   placeholder or spacer files, as normalizeItem). The arrows, and the
+   swipe list they walk, exist only for 2+ DISTINCT photos. */
+function cardGalleryPhotoKey(u){
+  var m = String(u || "").match(/^https?:\/\/([^\/?#\s]+)([^?#\s]*)/i);
+  if (!m) return "";
+  var host = m[1].toLowerCase(), path = m[2];
+  try { path = decodeURIComponent(path); } catch (e) {}
+  path = path.toLowerCase();
+  /* B&H keeps every shot at 500, 345 and 150px and smallimages/
+     (.../<ts>_<id>.jpg) plus the card's fb/<slug>_<id>.jpg. */
+  if (/bhphoto\.com$/.test(host)){
+    var t = path.match(/(\d{9,11})_(\d+)\.\w+$/);
+    if (t) return "bh:" + t[2] + ":" + t[1];
+    var f = path.match(/_(\d+)\.\w+$/);
+    if (f) return "bh:" + f[1] + ":fb";
+  }
+  var segs = path.split("/"), file = segs.pop();
+  segs = segs.filter(function(seg){ return !/^(images)?\d+x\d+$|^\d+pix$|^t_[\w-]+$|^[a-z]_[\w%,.-]+(,[a-z]_[\w%,.-]+)*$/.test(seg); });
+  file = file
+    .replace(/[_-](\d+x\d*|x\d+)(@\dx)?(?=\.\w+$|$)/, "")
+    .replace(/_(pico|icon|thumb|small|compact|medium|large|grande|original|master|1024x1024|2048x2048)(@\dx)?(?=\.\w+$|$)/, "")
+    .replace(/\.(jpe?g|png|webp|avif)$/, "");   /* a .gif stays its own: often the animated one */
+  return host + segs.concat([file]).join("/");
+}
+function cardGalleryIsChart(u){
+  var m = String(u || "").match(/^https?:\/\/[^\/?#\s]+([^?#\s]*)/i);
+  if (!m) return false;
+  var file = m[1];
+  try { file = decodeURIComponent(file); } catch (e) {}
+  file = file.toLowerCase().split("/").pop();
+  return /chart(?!er|ed|reuse)|size[-_ ]?(guide|comparison)|sizecomparison|fit[-_ ]?guide|how[-_ ]?to[-_ ]?measure|charmssizing|(^|_)font(_|\.|$)|scale[-_]?comp|(^|_)grid_(\d|vis|rs|14k)|numberssym|block_(\d+_)?vis|(^|_)letters?(length)?_vis|_colou?rs?_(vis|sq)|namesize|(^|_)sizes?_(\d{4}_|m_|label|rs_)/.test(file);
+}
+function cardTidyGallery(list, max){
+  var out = [], seen = {}, shotOf = {}, fbOpen = {};
+  (Array.isArray(list) ? list : []).forEach(function(u){
+    var k = cardGalleryPhotoKey(u);
+    if (!k) return;
+    if (k.indexOf("bh:") === 0){
+      var id = k.split(":")[1];
+      if (/:fb$/.test(k)){
+        if (shotOf[id]) return;           /* the card copy of a shot already in */
+        fbOpen[id] = 1;
+      } else if (fbOpen[id]){
+        delete fbOpen[id];                /* the card's own shot, at its other sizes */
+        seen[k] = 1;
+        return;
+      }
+      shotOf[id] = 1;
+    }
+    if (seen[k]) return;
+    seen[k] = 1;
+    out.push(u);
+  });
+  out = out.slice(0, max || 12);
+  var photos = [], charts = [];
+  out.forEach(function(u, i){ (i && cardGalleryIsChart(u) ? charts : photos).push(u); });
+  return photos.concat(charts);
+}
 function cardSwipeList(p){
-  const list = [];
-  const push = u => { u = String(u == null ? '' : u).trim(); if (u && list.indexOf(u) < 0) list.push(u); };
-  push(p && p.image);
+  const raw = [];
+  const push = u => {
+    if (u && typeof u === 'object') u = u.src || u.url || '';
+    u = String(u == null ? '' : u).trim();
+    if (u.indexOf('//') === 0) u = 'https:' + u;
+    const m = u.match(/^https?:\/\/([^\/?#\s]+)([^?#\s]*)/i);
+    if (!m || /\.svg$|placeholder|no[-_]?image|spacer\.gif/i.test(m[2])) return;
+    raw.push(u);
+  };
+  push(p && (p.image || p.imageUrl || p.thumbnail));
   const extra = p && Array.isArray(p.images) ? p.images : [];
   for (let i = 0; i < extra.length; i++) push(extra[i]);
+  const list = cardTidyGallery(raw, 12);
   return list.length > 1 ? list : null;
 }
 function cardSwipeNavHTML(){
@@ -6286,13 +6362,24 @@ function renderMobileDealsRail(){
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE and Farfetch anchor the luxury end: browsable and honest,
    but slow. (Farfetch added 2026-09-29, Danny.) */
-const STORE_RAIL_STORES = ['bestbuy', 'newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'finishline', 'dsw', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['bestbuy', 'newbalance', 'victoriassecret', 'gymshark', 'macys', 'kohls', 'dicks', 'finishline', 'dsw', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 /* HOMEPAGE_HIDDEN_STORES (2026-09-26, Danny): front-page real estate is
    for things people buy consistently. Rare big-ticket destinations --
    B&H's $3,000 cameras -- stay findable (Tiendas directory, category
    tabs) but earn no homepage rail and no strip tile. Photographers will
    look and find. */
 const HOMEPAGE_HIDDEN_STORES = new Set(['bhphoto']);
+/* NO STOREFRONT (#443, comms #443, Danny's iPhone QA). Sephora is DO
+   NOT BUILD (its terms prohibit resale): no homepage rail, no strip or
+   directory tile, no store window, no store door from a product, no
+   ambient theme. Its products that are already in beauty-catalog.json
+   are NOT taken off sale here -- whether they should be is Danny's and
+   Lucifer's decision -- so the registry row stays (search, Aria Beauty
+   and fragrances read the catalogue through it). Mirrors producto.html
+   NO_STOREFRONT and tienda.html's STORES registry (no row);
+   scripts/test/removed-store-merch-tests.mjs pins all three. */
+const NO_STOREFRONT_STORES = new Set(['sephora']);
+function hasStorefront(key){ return !NO_STOREFRONT_STORES.has(String(key || '').toLowerCase()); }
 
 
 let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
@@ -15334,7 +15421,7 @@ function otherStoresStripOrder(){
   const featured = new Set(STORE_RAIL_STORES);
   const band = r => r.kind === 'auto' ? 2 : (r.search || r.browse) ? 0 : 1;
   return activeRetailers()
-    .filter(r => !featured.has(r.key) && !HOMEPAGE_HIDDEN_STORES.has(r.key))
+    .filter(r => !featured.has(r.key) && !HOMEPAGE_HIDDEN_STORES.has(r.key) && hasStorefront(r.key))
     .map((r, i) => ({ r, i }))
     .sort((a, b) => (band(a.r) - band(b.r)) || (a.i - b.i))
     .map(x => x.r);
@@ -16053,6 +16140,7 @@ function armStorePhotoBackdrop(retailer){
 const THIN_STOREFRONTS = new Set(['bestbuy', 'dsw']);
 async function openStore(retailer){
   if (isOffSaleRetailer(retailer)){ showToast('Esta tienda ya no está disponible en Aria.'); return; }
+  if (!hasStorefront(retailer)){ showToast('Esta tienda no tiene vitrina en Aria.'); return; }
   if (THIN_STOREFRONTS.has(String(retailer || '').toLowerCase())){
     location.href = 'tienda.html?tienda=' + encodeURIComponent(String(retailer).toLowerCase());
     return;
@@ -20316,7 +20404,7 @@ function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retir
    ============================================================ */
 function storeDoorFor(key){
   const r = retailerFor(key);
-  if (!r || r.retired || r.pendingCatalog || isOffSaleRetailer(r.key)) return null;
+  if (!r || r.retired || r.pendingCatalog || isOffSaleRetailer(r.key) || !hasStorefront(r.key)) return null;
   return { key: r.key, action: r.kind === 'auto' ? 'auto' : 'store' };
 }
 /* END OF THE STORE DOOR MIRROR */
@@ -20338,7 +20426,6 @@ const STORE_BACKDROPS = {
   target: 'assets/stores/target.jpg',
   walmart: 'assets/stores/walmart.jpg',
   footlocker: 'assets/stores/footlocker.jpg',
-  sephora: 'assets/stores/sephora.jpg',
   macys: 'assets/stores/macys.jpg',
   kohls: 'assets/stores/kohls.jpg',
   dicks: 'assets/stores/dicks.jpg',
@@ -20438,7 +20525,6 @@ const STORE_THEMES = {
   target: { glow: '#F04438' },
   oldnavy: { glow: '#3D63F5' },
   footlocker: { glow: '#E5322D' },
-  sephora: { glow: '#F5F5F7' },
   ulta: { glow: '#FF9A4D' },
   yesstyle: { glow: '#6FD35F' },
   bathandbodyworks: { glow: '#5AA9E6' },
@@ -20673,7 +20759,7 @@ function tierOf(r){
 }
 
 function retailersByTier(){
-  const active = activeRetailers();
+  const active = activeRetailers().filter(r => hasStorefront(r.key));
   return TIERS.map(t => ({ ...t, stores: active.filter(r => tierOf(r) === t.key) }))
     .filter(t => t.stores.length);
 }
@@ -31355,7 +31441,7 @@ function chatStoreIndex(){
      Sports, ProSoccer, Quiet Storm...) open real storefronts, so
      "llevame a la tienda de Island Water Sports" must find them. A
      store the site cannot open still never gets a button. */
-  let keys = Object.keys(all).filter((k) => { const r = all[k]; return r && !r.retired && !isOffSaleRetailer(k) && (r.search || r.browse); });
+  let keys = Object.keys(all).filter((k) => { const r = all[k]; return r && !r.retired && !isOffSaleRetailer(k) && hasStorefront(k) && (r.search || r.browse); });
   if (!keys.length) keys = (typeof LIVE_RETAILERS !== 'undefined' && Array.isArray(LIVE_RETAILERS)) ? LIVE_RETAILERS : Object.keys(labels);
   const seen = new Set();
   const out = [];
