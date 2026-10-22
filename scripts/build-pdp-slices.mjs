@@ -58,7 +58,7 @@ export const PDP_DIR = "assets/pdp";
 export const MAX_SHARD_GZ = 30 * 1024;
 
 export const LIFTED = ["PDP_SHARDS", "AUTO_SHARDS", "pdpHash", "pdpShard", "autoShard", "STORE_FILES", "CATALOG_FILES",
-  "NAMED_ENTITIES", "decodeEntities", "normalizeItem", "extractItems", "norm", "SIZE_ALPHA_ORDER", "SIZE_NUMERIC",
+  "NAMED_ENTITIES", "decodeEntities", "galleryPhotoKey", "galleryIsChart", "tidyGallery", "normalizeItem", "extractItems", "norm", "SIZE_ALPHA_ORDER", "SIZE_NUMERIC",
   "SIZE_ALPHA_ALIAS", "alphaRank", "sizeKey", "sortSizes", "truthfulSizes", "REL_MAX", "REL_LANES", "relLane",
   "relGender", "relKey", "pickRecord", "deptSlug", "railPath"];
 

@@ -48,48 +48,21 @@ import { isOffSaleRetailer } from "./lib/off-sale.js";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const SHARED_MIN = 10;
 
-/* ---------- one photo, whatever size it was saved at ---------- */
-export function photoKey(u) {
-  const m = String(u || "").match(/^https?:\/\/([^\/?#\s]+)([^?#\s]*)/i);
-  if (!m) return null;
-  const host = m[1].toLowerCase();
-  let path = decodeURIComponent(m[2]).toLowerCase();
-  /* B&H keeps every shot at 500x500, 345x345, 150x150 and a "fb" copy:
-     .../images500x500/<slug>_<ts>_<id>.jpg, .../images345x345/<ts>_<id>.jpg,
-     .../fb/<slug>_<id>.jpg -- one photo per <ts>_<id> (the fb copy is the
-     card shot). */
-  if (/bhphoto\.com$/.test(host)) {
-    const t = path.match(/(\d{9,11})_(\d+)\.\w+$/);
-    if (t) return "bh:" + t[2] + ":" + t[1];
-    const f = path.match(/_(\d+)\.\w+$/);
-    if (f) return "bh:" + f[1] + ":fb";
-  }
-  path = path
-    .split("/")
-    .filter((seg) => !/^(images)?\d+x\d+$|^\d+pix$|^t_[\w-]+$|^[a-z]_[\w%,.-]+(,[a-z]_[\w%,.-]+)*$/.test(seg))
-    .join("/");
-  path = path
-    .replace(/[_-](\d+x\d*|x\d+)(@\dx)?(?=\.\w+$|$)/, "")
-    .replace(/_(pico|icon|thumb|small|compact|medium|large|grande|original|master|1024x1024|2048x2048)(@\dx)?(?=\.\w+$|$)/, "")
-    .replace(/\.(jpe?g|png|webp|avif|gif)$/, "");
-  return host + path;
-}
+/* ---------- one photo, whatever size it was saved at ----------
+   Danny's gallery policy (#443) lives in producto.html now:
+   galleryPhotoKey (the size-variant test this report used to carry),
+   galleryIsChart and tidyGallery. The report counts with the page's own
+   code, so "distinct" here is exactly what a gallery shows. */
+let PAGE = null;
+const page = () => PAGE || (PAGE = liftPage(ROOT));
+export function photoKey(u) { return page().galleryPhotoKey(u) || null; }
 
-/* The real, distinct photos of a gallery (shown = normalizeItem's list). */
+/* The real, distinct photos of a gallery (shown = normalizeItem's list):
+   one per photo whatever its size, a store's shared images left out
+   (unless it is the card photo). */
 export function realPhotos(shown, sharedSet, cardPhoto) {
-  const keys = [], seen = new Set();
-  for (const u of shown) {
-    const bare = String(u).replace(/[?#].*$/, "");
-    if (sharedSet && sharedSet.has(bare) && u !== cardPhoto) continue;
-    let k = photoKey(u);
-    if (!k) continue;
-    /* A B&H card copy is the same shot as one of the sized copies. */
-    if (k.startsWith("bh:") && k.endsWith(":fb")) { if (keys.some((x) => x.startsWith(k.slice(0, -2)))) continue; }
-    else if (k.startsWith("bh:")) { const fb = k.replace(/:\d+$/, ":fb"); const i = keys.indexOf(fb); if (i >= 0) { keys.splice(i, 1); seen.delete(fb); } }
-    if (seen.has(k)) continue;
-    seen.add(k); keys.push(k);
-  }
-  return keys.length;
+  const kept = shown.filter((u) => !(sharedSet && sharedSet.has(String(u).replace(/[?#].*$/, "")) && u !== cardPhoto));
+  return page().tidyGallery(kept, 99).length;
 }
 
 /* ---------- departments ---------- */
@@ -214,9 +187,16 @@ export function measure(root = ROOT) {
     const shared = sharedByStore.get(r.retailer);
     const real = realPhotos(r.it.images, shared, r.it.image);
     const slides = r.it.images.length || (r.it.image ? 1 : 0);
+    /* What the policy promises of the shown gallery: no photo twice, any
+       chart after every photo. */
+    const P2 = page();
+    const repeats = r.it.images.length - P2.tidyGallery(r.it.images, 99).length;
+    const isChart = r.it.images.map((u, i) => i > 0 && P2.galleryIsChart(u));
+    const charts = isChart.filter(Boolean).length;
+    const chartNotLast = isChart.some((c, i) => c && isChart.slice(i + 1).some((x) => !x));
     const prev = products.get(r.file + "|" + r.key);
     if (prev && (prev.real > real || (prev.real === real && prev.dept))) continue;
-    products.set(r.file + "|" + r.key, { file: r.file, retailer: r.retailer, name: r.it.name, real, slides,
+    products.set(r.file + "|" + r.key, { file: r.file, retailer: r.retailer, name: r.it.name, real, slides, repeats, charts, chartNotLast,
       offSale: isOffSaleRetailer(r.retailer), dept: deptOf(r.it, r.raw, r.dept || (prev && prev.bucket) || ""), bucket: r.dept || (prev && prev.bucket) || "" });
   }
   /* auto-cache.json (the auto-pn / auto-t shards). */
@@ -296,11 +276,24 @@ export function tables(m) {
   for (const p of on) { if (!byStore.has(p.retailer)) byStore.set(p.retailer, []); byStore.get(p.retailer).push(p); }
   for (const [s, l] of [...byStore].sort((a, b) => agg(a[1]).multi / a[1].length - agg(b[1]).multi / b[1].length)) out.push(row(s, agg(l)));
   out.push("");
-  /* Galleries that show one photo twice (at two sizes) or a shared chart. */
-  const dup = new Map();
-  for (const p of on) if (p.slides > p.real && p.slides > 1) { if (!dup.has(p.retailer)) dup.set(p.retailer, { n: 0, extra: 0 }); const x = dup.get(p.retailer); x.n++; x.extra += p.slides - p.real; }
-  out.push("### PDP galleries that repeat a photo (resized copy) or show a shared chart\n", "| store | products affected | extra slides | share of the store's products |", "|---|---:|---:|---:|");
-  for (const [s, x] of [...dup].sort((a, b) => b[1].n - a[1].n)) out.push(`| ${s} | ${x.n} | ${x.extra} | ${pct(x.n, byStore.get(s).length)} |`);
+  /* Danny's gallery policy (#443): no photo twice, size charts last. */
+  const rep = on.filter((p) => p.repeats > 0), late = on.filter((p) => p.chartNotLast);
+  out.push("### Gallery policy check (#443): repeated photos and size charts\n",
+    `- Galleries that show one photo twice (resized copy): **${rep.length}** (${rep.reduce((s, p) => s + p.repeats, 0)} extra slides).`,
+    `- Galleries with a size / fit / font / colour chart that is not after every photo: **${late.length}**.`, "");
+  const ch = new Map();
+  for (const p of on) if (p.charts) { if (!ch.has(p.retailer)) ch.set(p.retailer, { n: 0, slides: 0 }); const x = ch.get(p.retailer); x.n++; x.slides += p.charts; }
+  out.push("Galleries that carry a chart (shown last):\n", "| store | products with a chart | chart slides | share of the store's products |", "|---|---:|---:|---:|");
+  for (const [s, x] of [...ch].sort((a, b) => b[1].n - a[1].n)) out.push(`| ${s} | ${x.n} | ${x.slides} | ${pct(x.n, byStore.get(s).length)} |`);
+  out.push("");
+  /* Shared images still shown in place (not charts): a photo other
+     products of the store also use is kept where the retailer put it. */
+  const sh = new Map();
+  for (const p of on) if (p.slides > p.real && p.slides > 1) { if (!sh.has(p.retailer)) sh.set(p.retailer, { n: 0, extra: 0 }); const x = sh.get(p.retailer); x.n++; x.extra += p.slides - p.real; }
+  out.push("### Galleries that show an image 10+ other products of the store also show\n",
+    "Not repeats: each appears once in its gallery. Charts among them sit last; the rest (bundle items, parts diagrams, collection swatches) stay where the retailer put them.\n",
+    "| store | products | shared slides | share of the store's products |", "|---|---:|---:|---:|");
+  for (const [s, x] of [...sh].sort((a, b) => b[1].n - a[1].n)) out.push(`| ${s} | ${x.n} | ${x.extra} | ${pct(x.n, byStore.get(s).length)} |`);
   out.push("");
   return { md: out.join("\n"), total, byDept: Object.fromEntries(depts.map((d) => [d, agg(byDept.get(d))])), byStore: Object.fromEntries([...byStore].map(([s, l]) => [s, agg(l)])) };
 }

@@ -6,9 +6,11 @@ Measured on origin/main 43c2c1d (with #444's PDP gallery and the `/off-sale.js` 
 
 Regenerate: `node scripts/report-gallery-coverage.mjs --json`. It reads the catalogues only and makes no network calls.
 
+**Update (gallery dedupe, Danny's gallery policy on #443):** the figures and tables below are re-measured after producto.html's `tidyGallery` (one copy of each photo, size charts last). The repeat counts that section 6 of "Dropped and duplicated images" reported are now 0. See "Gallery policy" below.
+
 ## Headline
 
-- **All on-sale catalogues: 64,172 of 102,661 on-sale products (62.5%) carry more than one real, distinct photo.** 47.5% have 3 or more. The average is 3.15 real photos.
+- **All on-sale catalogues: 64,199 of 102,661 on-sale products (62.5%) carry more than one real, distinct photo.** 47.6% have 3 or more. The average is 3.16 real photos. (Before the dedupe: 64,172, 47.5%, 3.15. The increase comes from counting the 12 photos after repeats are removed, so photos that sat past a run of resized copies now count, and from a `.gif` no longer being merged with a still that has the same name.)
 - **Women's apparel: 85.7%** (10,754 of 12,545). Nearly all of the gap is nine stores whose data carries one photo per product: Zumiez 739, Walmart 190, Abercrombie 157, Hollister 123, Finish Line 117, American Eagle 86, BoxLunch 41, Lane Bryant 25 and Hot Topic 17.
 - **Lingerie and intimates (women): 73.1%** (1,570 of 2,149). SKIMS (1,044), Eberjey, Revolve, YoungLA, Ancora and Farfetch are at 95-100%. The gap is Kindred Bravely (302 nursing bras and sleepwear), Lane Bryant (118 bras and panties), Zumiez (63), Momcozy (30), Hatch (17), Abercrombie (13) and Hot Topic (11), all at 0%.
 - **Swim (women): 94.0%** (4,167 of 4,431). Island Water Sports, Montce, Farfetch, Vix, Capittana, Agua Bendita and SKIMS are at 97-100%. The gap is Zumiez (98), Walmart (49), Hollister (9), Hatch (7) and Abercrombie (5), all at 0%.
@@ -28,7 +30,7 @@ The renderer is not the limit. The PDP shows a swipe gallery for every product w
   - size suffixes (`_480x480`, `_1800x1800`, Shopify `_grande`);
   - B&H's per-size copies of one shot (`images500x500/`, `images345x345/`, `images150x150/`, `fb/`).
 - **Shared non-product images are excluded:** a photo used by 10 or more different products of one store, unless it is that product's own card photo. These are size charts, font charts, fit guides and promo banners. They occur at SKIMS (10, e.g. `fitseverybody_bra_thong.gif`), BaubleBar (22 font and colour charts), B&H (12), Surf Station (6), Dennis Kirk, Melie Bianco and FARM Rio. The per-store counts printed by the script also include off-sale Macy's and Best Buy.
-- "PDP shows >1 slide" is what the page renders today, using normalizeItem's host+path dedupe only. Where it is higher than "share", the gallery repeats a photo (see the dropped/duplicated images section).
+- "PDP shows >1 slide" is what the page renders. Since the gallery dedupe it equals "share" except where a store's shared image is the second slide.
 - **Departments** are this report's own grouping, built from the title, the catalogue's `type` and the bucket (`deptOf()` in the script). Lingerie and swim are matched first. Gender comes from the title, type or bucket, or from the store for women-only stores. The grouping is approximate at the edges. For example, "Corset Top" goes under lingerie, and a hockey jersey from Hot Topic's untyped `general` bucket goes under "gender not stated". The store-level numbers are exact.
 
 ## Rendering check
@@ -57,7 +59,7 @@ Places where the data has multiple images but the pipeline drops them before the
    - **Dennis Kirk**: 1,283 products. A shared parts diagram and `ina.jpg` repeated across products.
    - **BaubleBar** (341) and **SKIMS** (110): shared font, colour and fit charts shown as product slides.
 
-   `normalizeItem` dedupes on host+path only. Merging size variants in it, or in the builder, would fix these. That changes producto.html and every shard, so it is left for a separate PR that Danny signs off.
+   **Fixed by the gallery dedupe (Danny's policy):** producto.html `tidyGallery` merges size variants. It runs inside `normalizeItem`, so it applies to the shards, and again in `galleryList`, so it applies to whatever the page draws. B&H, RevZilla and Dennis Kirk galleries no longer repeat a photo. BaubleBar and Elite size, font and colour charts are kept but shown after the photos. SKIMS has no size-chart image in its data. Its shared images are product GIFs and fabric swatches, and they stay in place.
 
 No catalogue on main holds a multi-image source that a builder then cut to one. The single-photo catalogues are single-photo in the committed data itself, because their pull captured one image.
 
@@ -110,13 +112,30 @@ The PDP shard budget is 30 KB gz (`MAX_SHARD_GZ`).
 
 The rebuild changed only `assets/pdp/index.json` (`files` 70 to 71, since dsw-catalog.json is now in the source list). No shard bytes changed.
 
+Gallery dedupe rebuild (`node scripts/build-pdp-slices.mjs`). 2,677 of 4,096 product shards changed. The largest product shard is still `p/e89` at 16,168 B gz. All product shards together went from 37,808,671 to 37,719,414 B gz. The auto shards and rails are byte-identical, because they carry no gallery.
+
+## Gallery policy (Danny, #443)
+
+Implemented in producto.html (`galleryPhotoKey`, `galleryIsChart`, `tidyGallery`). It runs in `normalizeItem`, which the shard builder lifts, and again in `galleryList` when the page draws a gallery.
+
+1. **One copy of each photo.** Two URLs are the same photo when they differ only by size. That covers:
+   - the query string;
+   - a size folder (`images500x500/`, `290pix/`, a Cloudinary `t_`/`w_` folder);
+   - a size suffix (`_480x480`, `_1800x1800`, `-600x`, Shopify `_grande`/`_thumb`);
+   - the file format, except that a `.gif` stays its own because it is often the animated version;
+   - B&H's 500/345/150/`smallimages` copies of one shot, plus the card's `fb/` copy.
+
+   The first copy keeps its place in the retailer's order. Repeats are removed *before* the 12-photo cap, so a gallery that used to fill its 12 slots with copies now reaches photos further down the list.
+2. **Size charts last.** An image whose file is named as a size, fit, font, colour or option chart is kept and moved after the product's photos, in its original order. Examples: `size-chart`, `size-guide`, `SizeComparison`, `FontChart`, `ColorChart`, `Birthstone_Chart`, a BaubleBar letter `Grid`. The card photo never moves.
+3. **Nothing else changes.** An image that other products also show is **not** dropped for that reason. Examples are a Dennis Kirk parts diagram, a B&H bundle item and a SKIMS collection swatch. Only a repeat within one gallery is removed.
+
 ## Data tables
 
 ### Headline
 
 | | on-sale products | >1 real photo | share | 3+ photos | avg real photos | PDP shows >1 slide |
 |---|---:|---:|---:|---:|---:|---:|
-| **All on-sale catalogues** | 102661 | 64172 | 62.5% | 47.5% | 3.15 | 63.2% |
+| **All on-sale catalogues** | 102661 | 64199 | 62.5% | 47.6% | 3.16 | 62.6% |
 | auto-cache.json (AutoZone parts, auto shards) | 1984 | 0 | 0.0% | - | - | - |
 
 ### By department (women's apparel, lingerie and swim first)
@@ -125,24 +144,24 @@ The rebuild changed only `assets/pdp/index.json` (`files` 70 to 71, since dsw-ca
 |---|---:|---:|---:|---:|---:|---:|
 | **Women's apparel** | 12545 | 10754 | 85.7% | 80.5% | 4.14 | 85.7% |
 | **Lingerie & intimates (women)** | 2149 | 1570 | 73.1% | 71.1% | 4.33 | 73.1% |
-| **Swim (women)** | 4431 | 4167 | 94.0% | 87.9% | 5.15 | 94.1% |
-| Apparel (gender not stated) | 17648 | 12564 | 71.2% | 52.0% | 3.55 | 71.2% |
-| Sports & outdoor gear | 14731 | 9306 | 63.2% | 23.2% | 2.26 | 63.3% |
-| Jewelry & accessories | 10596 | 8202 | 77.4% | 60.6% | 3.35 | 77.5% |
+| **Swim (women)** | 4431 | 4168 | 94.1% | 87.9% | 5.15 | 94.1% |
+| Apparel (gender not stated) | 17648 | 12573 | 71.2% | 52.1% | 3.55 | 71.2% |
+| Sports & outdoor gear | 14731 | 9314 | 63.2% | 23.2% | 2.26 | 63.3% |
+| Jewelry & accessories | 10596 | 8208 | 77.5% | 60.6% | 3.35 | 77.5% |
 | Toys | 6636 | 2 | 0.0% | 0.0% | 1.00 | 0.0% |
 | Footwear | 6053 | 4616 | 76.3% | 64.7% | 3.84 | 76.3% |
 | Bags | 5457 | 3351 | 61.4% | 49.8% | 3.19 | 61.6% |
-| Men's apparel | 4338 | 2949 | 68.0% | 51.7% | 3.53 | 68.0% |
-| Auto & moto | 3765 | 1967 | 52.2% | 44.1% | 3.48 | 67.9% |
-| Baby, kids & moms (non-apparel) | 2562 | 437 | 17.1% | 14.5% | 2.26 | 17.1% |
+| Men's apparel | 4338 | 2950 | 68.0% | 51.7% | 3.53 | 68.0% |
+| Auto & moto | 3765 | 1967 | 52.2% | 44.1% | 3.60 | 52.2% |
+| Baby, kids & moms (non-apparel) | 2562 | 438 | 17.1% | 14.5% | 2.26 | 17.1% |
 | Beauty | 2555 | 5 | 0.2% | 0.0% | 1.00 | 0.2% |
 | Kids' apparel | 2119 | 1209 | 57.1% | 42.2% | 3.12 | 57.1% |
 | Home, party & grocery | 1931 | 326 | 16.9% | 11.9% | 1.59 | 16.9% |
 | Other (general merchandise) | 1643 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
-| Electronics | 1603 | 1513 | 94.4% | 77.2% | 4.25 | 99.2% |
+| Electronics | 1603 | 1513 | 94.4% | 77.2% | 4.25 | 94.4% |
 | Underwear & sleepwear (men) | 590 | 363 | 61.5% | 55.3% | 3.78 | 61.5% |
-| Books | 479 | 365 | 76.2% | 74.7% | 3.37 | 76.4% |
-| Swim (men) | 405 | 284 | 70.1% | 39.3% | 2.50 | 70.4% |
+| Books | 479 | 365 | 76.2% | 74.7% | 3.37 | 76.2% |
+| Swim (men) | 405 | 285 | 70.4% | 39.3% | 2.50 | 70.4% |
 | Swim (kids) | 222 | 174 | 78.4% | 54.5% | 3.85 | 78.4% |
 | Underwear & sleepwear (kids) | 115 | 25 | 21.7% | 20.9% | 1.90 | 21.7% |
 | Underwear & sleepwear (gender not stated) | 88 | 23 | 26.1% | 25.0% | 2.55 | 26.1% |
@@ -161,7 +180,7 @@ The rebuild changed only `assets/pdp/index.json` (`files` 70 to 71, since dsw-ca
 | montce | 492 | 411 | 83.5% | 68.1% | 3.51 | 83.5% |
 | silviatcherassi | 412 | 387 | 93.9% | 90.3% | 2.88 | 93.9% |
 | patbo | 374 | 360 | 96.3% | 86.6% | 3.79 | 96.3% |
-| ancora | 366 | 366 | 100.0% | 100.0% | 4.79 | 100.0% |
+| ancora | 366 | 366 | 100.0% | 100.0% | 4.80 | 100.0% |
 | johannaortiz | 347 | 343 | 98.8% | 90.5% | 3.94 | 98.8% |
 | surfstation | 329 | 293 | 89.1% | 61.7% | 2.85 | 89.1% |
 | capittana | 320 | 317 | 99.1% | 97.5% | 5.02 | 99.1% |
@@ -243,7 +262,7 @@ The rebuild changed only `assets/pdp/index.json` (`files` 70 to 71, since dsw-ca
 | islandwatersports | 1365 | 1356 | 99.3% | 98.3% | 7.20 | 99.3% |
 | montce | 878 | 852 | 97.0% | 90.3% | 4.38 | 97.0% |
 | farfetch | 367 | 367 | 100.0% | 92.4% | 4.64 | 100.0% |
-| surfstation | 288 | 265 | 92.0% | 69.8% | 3.34 | 92.0% |
+| surfstation | 288 | 265 | 92.0% | 70.1% | 3.34 | 92.0% |
 | vix | 220 | 220 | 100.0% | 100.0% | 5.82 | 100.0% |
 | capittana | 189 | 189 | 100.0% | 99.5% | 5.23 | 100.0% |
 | aguabendita | 183 | 183 | 100.0% | 100.0% | 5.89 | 100.0% |
@@ -251,8 +270,8 @@ The rebuild changed only `assets/pdp/index.json` (`files` 70 to 71, since dsw-ca
 | skims | 141 | 141 | 100.0% | 100.0% | 5.50 | 100.0% |
 | zumiez | 98 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
 | ccs | 96 | 94 | 97.9% | 79.2% | 4.43 | 97.9% |
-| parrot | 84 | 74 | 88.1% | 67.9% | 2.83 | 89.3% |
-| ancora | 65 | 65 | 100.0% | 98.5% | 4.51 | 100.0% |
+| parrot | 84 | 75 | 89.3% | 69.0% | 2.86 | 89.3% |
+| ancora | 65 | 65 | 100.0% | 98.5% | 4.57 | 100.0% |
 | farmrio | 60 | 60 | 100.0% | 88.3% | 3.52 | 100.0% |
 | patbo | 60 | 59 | 98.3% | 73.3% | 3.42 | 98.3% |
 | walmart | 49 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
@@ -287,18 +306,18 @@ The rebuild changed only `assets/pdp/index.json` (`files` 70 to 71, since dsw-ca
 | partycity-catalog.json (partycity) | 518 | 327 | 63.1% | 44.4% | 3.22 | 63.1% |
 | samsclub-catalog.json (samsclub) **low** | 118 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
 | gymrat-catalog.json (youngla) -- excl. gymshark, alphalete | 800 | 799 | 99.9% | 99.1% | 7.74 | 99.9% |
-| bhphoto-catalog.json (bhphoto) | 1590 | 1513 | 95.2% | 77.8% | 4.27 | 100.0% |
+| bhphoto-catalog.json (bhphoto) | 1590 | 1513 | 95.2% | 77.8% | 4.27 | 95.2% |
 | advanceauto-catalog.json (advanceauto) **low** | 1365 | 87 | 6.4% | 5.4% | 1.11 | 6.4% |
 | nautilus-catalog.json (nautilus) **low** | 501 | 228 | 45.5% | 23.8% | 1.98 | 45.5% |
 | islandwatersports-catalog.json (islandwatersports) | 8833 | 8249 | 93.4% | 86.1% | 6.06 | 93.4% |
 | quietstorm-catalog.json (quietstorm) | 454 | 410 | 90.3% | 55.1% | 3.67 | 90.3% |
 | surfworld-catalog.json (surfworld) | 3 | 2 | 66.7% | 66.7% | 3.00 | 66.7% |
-| surfstation-catalog.json (surfstation) | 6173 | 3555 | 57.6% | 19.5% | 1.91 | 57.9% |
+| surfstation-catalog.json (surfstation) | 6173 | 3564 | 57.7% | 19.6% | 1.91 | 57.9% |
 | mainland-catalog.json (mainland) | 2238 | 2084 | 93.1% | 77.3% | 4.91 | 93.1% |
-| parrot-catalog.json (parrot) | 4018 | 2338 | 58.2% | 26.3% | 2.03 | 58.5% |
+| parrot-catalog.json (parrot) | 4018 | 2349 | 58.5% | 26.5% | 2.04 | 58.5% |
 | ccs-catalog.json (ccs) | 13735 | 10327 | 75.2% | 37.2% | 2.60 | 75.2% |
 | valsurf-catalog.json (valsurf) | 3207 | 2275 | 70.9% | 45.3% | 2.69 | 70.9% |
-| venum-catalog.json (venum) | 554 | 536 | 96.8% | 96.2% | 5.41 | 96.9% |
+| venum-catalog.json (venum) | 554 | 537 | 96.9% | 96.6% | 5.42 | 96.9% |
 | tatami-catalog.json (tatami) | 168 | 168 | 100.0% | 99.4% | 4.79 | 100.0% |
 | everlast-catalog.json (everlast) | 112 | 99 | 88.4% | 85.7% | 4.76 | 88.4% |
 | mmawarehouse-catalog.json (mmawarehouse) | 49 | 49 | 100.0% | 98.0% | 5.57 | 100.0% |
@@ -306,22 +325,22 @@ The rebuild changed only `assets/pdp/index.json` (`files` 70 to 71, since dsw-ca
 | fuji-catalog.json (fuji) | 4 | 4 | 100.0% | 100.0% | 6.00 | 100.0% |
 | fightclub-catalog.json (elite, gameness) | 195 | 193 | 99.0% | 99.0% | 7.44 | 99.0% |
 | crocs-catalog.json (crocs) | 564 | 547 | 97.0% | 0.0% | 1.97 | 97.0% |
-| baublebar-catalog.json (baublebar) | 3523 | 3511 | 99.7% | 77.2% | 4.12 | 99.7% |
+| baublebar-catalog.json (baublebar) | 3523 | 3514 | 99.7% | 77.2% | 4.12 | 99.7% |
 | jwpei-catalog.json (jwpei) | 2351 | 1902 | 80.9% | 68.1% | 3.60 | 80.9% |
 | meliebianco-catalog.json (meliebianco) | 310 | 296 | 95.5% | 70.6% | 5.50 | 97.4% |
 | bentgo-catalog.json (bentgo) | 154 | 153 | 99.4% | 97.4% | 11.06 | 99.4% |
 | mushie-catalog.json (mushie) | 33 | 33 | 100.0% | 100.0% | 11.94 | 100.0% |
 | ezpz-catalog.json (ezpz) | 107 | 106 | 99.1% | 97.2% | 11.18 | 99.1% |
 | statebags-catalog.json (statebags) | 43 | 40 | 93.0% | 69.8% | 4.77 | 93.0% |
-| books-catalog.json (assouline, chronicle) | 479 | 365 | 76.2% | 74.7% | 3.37 | 76.4% |
+| books-catalog.json (assouline, chronicle) | 479 | 365 | 76.2% | 74.7% | 3.37 | 76.2% |
 | moms-catalog.json (17 stores) **low** | 2695 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
 | ae-catalog.json (americaneagle) **low** | 148 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
 | farfetch-catalog.json (farfetch) | 3279 | 3276 | 99.9% | 89.4% | 4.40 | 99.9% |
 | soccer-catalog.json (prosoccer, xtremesoccer, academy) | 2286 | 1929 | 84.4% | 73.8% | 4.46 | 84.4% |
 | tennis-catalog.json (tennisexpress) | 800 | 643 | 80.4% | 73.6% | 3.99 | 80.4% |
-| latino-designers-dtc-catalog.json (11 stores) | 9022 | 8760 | 97.1% | 92.7% | 4.49 | 97.1% |
-| jewelry-catalog.json (baublebar) | 3469 | 3451 | 99.5% | 76.3% | 3.82 | 99.7% |
-| moto-catalog.json (revzilla, denniskirk) | 2488 | 1880 | 75.6% | 63.7% | 4.68 | 99.3% |
+| latino-designers-dtc-catalog.json (11 stores) | 9022 | 8760 | 97.1% | 92.7% | 4.50 | 97.1% |
+| jewelry-catalog.json (baublebar) | 3469 | 3454 | 99.6% | 76.3% | 3.82 | 99.7% |
+| moto-catalog.json (revzilla, denniskirk) | 2488 | 1880 | 75.6% | 63.7% | 4.88 | 75.6% |
 | juguetes-catalog.json (walmart) -- excl. target, costco **low** | 6423 | 1 | 0.0% | 0.0% | 1.00 | 0.0% |
 | sunglasses-catalog.json (smartbuyglasses) **low** | 544 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
 | finishline-catalog.json (finishline) **low** | 450 | 0 | 0.0% | 0.0% | 1.00 | 0.0% |
@@ -370,17 +389,17 @@ Not counted (every record off sale, or no records): /department-cache-target.jso
 | advanceauto | 1365 | 87 | 6.4% | 5.4% | 1.11 | 6.4% |
 | dicks | 517 | 212 | 41.0% | 22.1% | 1.79 | 41.0% |
 | nautilus | 501 | 228 | 45.5% | 23.8% | 1.98 | 45.5% |
-| chronicle | 209 | 96 | 45.9% | 45.0% | 2.95 | 46.4% |
-| surfstation | 6173 | 3555 | 57.6% | 19.5% | 1.91 | 57.9% |
-| parrot | 4018 | 2338 | 58.2% | 26.3% | 2.03 | 58.5% |
+| chronicle | 209 | 96 | 45.9% | 45.0% | 2.95 | 45.9% |
+| surfstation | 6173 | 3564 | 57.7% | 19.6% | 1.91 | 57.9% |
+| parrot | 4018 | 2349 | 58.5% | 26.5% | 2.04 | 58.5% |
 | partycity | 518 | 327 | 63.1% | 44.4% | 3.22 | 63.1% |
 | surfworld | 3 | 2 | 66.7% | 66.7% | 3.00 | 66.7% |
-| denniskirk | 1335 | 934 | 70.0% | 60.5% | 4.61 | 99.3% |
+| denniskirk | 1335 | 934 | 70.0% | 60.5% | 4.88 | 70.0% |
 | valsurf | 3207 | 2275 | 70.9% | 45.3% | 2.69 | 70.9% |
 | ccs | 13735 | 10327 | 75.2% | 37.2% | 2.60 | 75.2% |
 | tennisexpress | 800 | 643 | 80.4% | 73.6% | 3.99 | 80.4% |
 | jwpei | 2351 | 1902 | 80.9% | 68.1% | 3.60 | 80.9% |
-| revzilla | 1153 | 946 | 82.0% | 67.4% | 4.77 | 99.3% |
+| revzilla | 1153 | 946 | 82.0% | 67.4% | 4.88 | 82.0% |
 | prosoccer | 2011 | 1688 | 83.9% | 72.1% | 4.36 | 83.9% |
 | silviatcherassi | 494 | 416 | 84.2% | 76.9% | 2.65 | 84.2% |
 | everlast | 112 | 99 | 88.4% | 85.7% | 4.76 | 88.4% |
@@ -389,11 +408,11 @@ Not counted (every record off sale, or no records): /department-cache-target.jso
 | statebags | 43 | 40 | 93.0% | 69.8% | 4.77 | 93.0% |
 | mainland | 2238 | 2084 | 93.1% | 77.3% | 4.91 | 93.1% |
 | islandwatersports | 8833 | 8249 | 93.4% | 86.1% | 6.06 | 93.4% |
-| bhphoto | 1590 | 1513 | 95.2% | 77.8% | 4.27 | 100.0% |
+| bhphoto | 1590 | 1513 | 95.2% | 77.8% | 4.27 | 95.2% |
 | meliebianco | 310 | 296 | 95.5% | 70.6% | 5.50 | 97.4% |
 | patbo | 496 | 476 | 96.0% | 84.1% | 3.73 | 96.0% |
 | eberjey | 237 | 228 | 96.2% | 92.0% | 4.38 | 96.2% |
-| venum | 554 | 536 | 96.8% | 96.2% | 5.41 | 96.9% |
+| venum | 554 | 537 | 96.9% | 96.6% | 5.42 | 96.9% |
 | crocs | 564 | 547 | 97.0% | 0.0% | 1.97 | 97.0% |
 | gameness | 100 | 98 | 98.0% | 98.0% | 6.88 | 98.0% |
 | johannaortiz | 473 | 464 | 98.1% | 85.6% | 3.73 | 98.1% |
@@ -401,10 +420,10 @@ Not counted (every record off sale, or no records): /department-cache-target.jso
 | capittana | 516 | 512 | 99.2% | 98.1% | 5.07 | 99.2% |
 | bentgo | 154 | 153 | 99.4% | 97.4% | 11.06 | 99.4% |
 | revolve | 1649 | 1640 | 99.5% | 97.9% | 4.47 | 99.5% |
-| baublebar | 6992 | 6962 | 99.6% | 76.7% | 3.97 | 99.7% |
 | farmrio | 1195 | 1190 | 99.6% | 97.8% | 4.11 | 99.6% |
 | xtremesoccer | 242 | 241 | 99.6% | 98.3% | 5.79 | 99.6% |
 | assouline | 270 | 269 | 99.6% | 97.8% | 3.69 | 99.6% |
+| baublebar | 6992 | 6968 | 99.7% | 76.7% | 3.97 | 99.7% |
 | tns | 1518 | 1515 | 99.8% | 97.9% | 4.33 | 99.8% |
 | skims | 2161 | 2158 | 99.9% | 99.0% | 5.84 | 99.9% |
 | youngla | 800 | 799 | 99.9% | 99.1% | 7.74 | 99.9% |
@@ -417,37 +436,39 @@ Not counted (every record off sale, or no records): /department-cache-target.jso
 | elite | 95 | 95 | 100.0% | 100.0% | 8.03 | 100.0% |
 | mushie | 33 | 33 | 100.0% | 100.0% | 11.94 | 100.0% |
 | aguabendita | 417 | 417 | 100.0% | 100.0% | 5.94 | 100.0% |
-| ancora | 508 | 508 | 100.0% | 98.0% | 4.70 | 100.0% |
+| ancora | 508 | 508 | 100.0% | 98.0% | 4.72 | 100.0% |
 
-### PDP galleries that repeat a photo (resized copy) or show a shared chart
+### Gallery policy check (#443): repeated photos and size charts
 
-| store | products affected | extra slides | share of the store's products |
+- Galleries that show one photo twice (resized copy): **0** (0 extra slides).
+- Galleries with a size / fit / font / colour chart that is not after every photo: **0**.
+
+Galleries that carry a chart (shown last):
+
+| store | products with a chart | chart slides | share of the store's products |
 |---|---:|---:|---:|
-| bhphoto | 1589 | 7172 | 99.9% |
-| denniskirk | 1283 | 2738 | 96.1% |
-| revzilla | 1143 | 2149 | 99.1% |
-| baublebar | 341 | 581 | 4.9% |
-| skims | 110 | 112 | 5.1% |
-| surfstation | 40 | 72 | 0.6% |
-| parrot | 14 | 32 | 0.3% |
+| baublebar | 2366 | 3358 | 33.8% |
+| elite | 91 | 91 | 95.8% |
+| youngla | 27 | 27 | 3.4% |
+| mainland | 12 | 12 | 0.5% |
+| statebags | 7 | 7 | 16.3% |
+| valsurf | 4 | 4 | 0.1% |
+| nautilus | 3 | 3 | 0.6% |
+| jwpei | 3 | 3 | 0.1% |
+| ezpz | 2 | 2 | 1.9% |
+
+### Galleries that show an image 10+ other products of the store also show
+
+Not repeats: each appears once in its gallery. Charts among them sit last; the rest (bundle items, parts diagrams, collection swatches) stay where the retailer put them.
+
+| store | products | shared slides | share of the store's products |
+|---|---:|---:|---:|
+| baublebar | 335 | 575 | 4.8% |
+| skims | 109 | 111 | 5.0% |
+| bhphoto | 60 | 60 | 3.8% |
+| surfstation | 30 | 60 | 0.5% |
 | farmrio | 11 | 11 | 0.9% |
 | meliebianco | 10 | 10 | 3.2% |
-| patbo | 10 | 10 | 2.0% |
-| ancora | 8 | 8 | 1.6% |
-| mainland | 6 | 11 | 0.3% |
-| montce | 6 | 7 | 0.4% |
-| tns | 5 | 8 | 0.3% |
-| islandwatersports | 4 | 6 | 0.0% |
-| ccs | 4 | 4 | 0.0% |
-| vix | 4 | 4 | 0.2% |
-| partycity | 2 | 2 | 0.4% |
-| venum | 2 | 3 | 0.4% |
-| elite | 2 | 2 | 2.1% |
-| jwpei | 2 | 2 | 0.1% |
-| chronicle | 2 | 2 | 1.0% |
-| youngla | 1 | 1 | 0.1% |
-| farfetch | 1 | 1 | 0.0% |
-| silviatcherassi | 1 | 1 | 0.2% |
-| capittana | 1 | 1 | 0.2% |
+| denniskirk | 10 | 10 | 0.7% |
 
-Shared non-product photos left out (used by 10+ products of one store): macys: 5, skims: 10, bhphoto: 12, surfstation: 6, baublebar: 22, meliebianco: 1, farmrio: 1, denniskirk: 1, bestbuy: 1
+Shared non-product photos left out (used by 10+ products of one store): macys: 5, skims: 10, bhphoto: 4, surfstation: 6, baublebar: 22, meliebianco: 1, farmrio: 1, denniskirk: 1, bestbuy: 1

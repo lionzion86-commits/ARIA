@@ -122,7 +122,175 @@ await check("every stored gallery unpacks to real, distinct photos, card photo f
 
 /* GALLERY COVERAGE (#443, c.6304525284): the page renders a gallery
    WHEREVER the data has one -- every shard record, not three samples. */
-const G = liftDeclarations(page, ["esc", "declaredImageWidth", "sizedImageUrl", "galleryList", "galleryHTML", "unpackImages", "recordToItem"]);
+const G = liftDeclarations(page, ["esc", "declaredImageWidth", "sizedImageUrl", "galleryPhotoKey", "galleryIsChart", "tidyGallery", "galleryList", "galleryHTML", "unpackImages", "recordToItem"]);
+/* DANNY'S GALLERY POLICY (#443): one copy of each photo (a photo at
+   another size is the same photo), size charts kept but last, the
+   retailer's photos otherwise in the retailer's order. producto.html
+   tidyGallery does it, inside normalizeItem (so in every shard) and
+   again in galleryList (so on every page). */
+const raws = new Map();          // retailer|name -> the catalogue row
+const RAW_STORES = new Set(["bhphoto", "revzilla", "denniskirk", "baublebar", "skims", "aguabendita", "elite"]);
+for (const f of sourceFiles(P)) {
+  const p = ROOT + f.slice(1);
+  if (!existsSync(p)) continue;
+  const rs = JSON.parse(readFileSync(p, "utf8")).retailers || {};
+  for (const rk of Object.keys(rs)) for (const section of ["departments", "brands"]) for (const b of Object.values((rs[rk] || {})[section] || {})) {
+    for (const raw of Array.isArray(b) ? b : (b && b.items) || []) {
+      const it = P.normalizeItem(raw, rk);
+      if (it && RAW_STORES.has(it.retailer) && !raws.has(it.retailer + "|" + it.name)) raws.set(it.retailer + "|" + it.name, raw);
+    }
+  }
+}
+/* The gallery as it was before the policy: host + path decide, at most 12. */
+function hostPathGallery(raw) {
+  const out = [], seen = new Set();
+  const card = raw.thumbnail || raw.image || (Array.isArray(raw.images) && raw.images[0]) || "";
+  for (let u of [card].concat(Array.isArray(raw.images) ? raw.images : [])) {
+    if (out.length >= 12) break;
+    if (u && typeof u === "object") u = u.src || u.url || "";
+    u = String(u || "").trim();
+    if (u.startsWith("//")) u = "https:" + u;
+    const k = hostPath(u);
+    if (!k || /\.svg$|placeholder|no[-_]?image|spacer\.gif/i.test(k) || seen.has(k)) continue;
+    seen.add(k); out.push(u);
+  }
+  return out;
+}
+const shardGallery = (it) => {
+  const r = (lookup(P.norm(it.name)) || []).find((x) => x.name === it.name && (x.retailer || "") === it.retailer && (x.image || "") === it.image);
+  return r ? plain(R.unpackImages(r.images, r.image)) : null;
+};
+function plain(x) { return JSON.parse(JSON.stringify(x)); }
+const keysOf = (g) => g.map((u) => P.galleryPhotoKey(u));
+const chartsLast = (g) => { const c = g.map((u, i) => i > 0 && P.galleryIsChart(u)); return !c.some((x, i) => x && c.slice(i + 1).some((y) => !y)); };
+
+await check("tidyGallery: one copy per photo whatever its size, charts last, the card first, order kept", () => {
+  const bh = "https://static.bhphoto.com/images/";
+  assert.deepEqual(plain(P.tidyGallery([bh + "fb/sony_a7_v_mirrorless_camera_1935439.jpg", bh + "images500x500/sony_a7_v_mirrorless_camera_1764667996_1935439.jpg",
+    bh + "images345x345/1764667996_1935439.jpg", bh + "images150x150/1764667996_1935439.jpg", bh + "smallimages/1764667996_1935439.jpg",
+    bh + "multiple_images/images500x500/1764668011_IMG_2624210.jpg", bh + "multiple_images/images500x500/1764668011_IMG_2624211.jpg"], 12)),
+    [bh + "fb/sony_a7_v_mirrorless_camera_1935439.jpg", bh + "multiple_images/images500x500/1764668011_IMG_2624210.jpg", bh + "multiple_images/images500x500/1764668011_IMG_2624211.jpg"]);
+  const rz = "https://www.revzilla.com/product_images/2616/";
+  assert.deepEqual(plain(P.tidyGallery([rz + "7402/helmet_grey_480x480.jpg", rz + "7402/helmet_grey_1800x1800.jpg", rz + "7419/helmet_thumb.jpg", rz + "7402/helmet_grey.jpg", rz + "7402/helmet_grey_thumb.jpg"], 12)),
+    [rz + "7402/helmet_grey_480x480.jpg", rz + "7419/helmet_thumb.jpg"]);
+  const dk = "https://www.denniskirk.com/dk/product_images/oe/";
+  assert.deepEqual(plain(P.tidyGallery([dk + "290pix/oe_1b16.jpg", dk + "75pix/oe_1b16.jpg", dk + "600pix/oe_1b16.jpg", dk + "290pix/oe_2c27.jpg"], 12)), [dk + "290pix/oe_1b16.jpg", dk + "290pix/oe_2c27.jpg"]);
+  const s = "https://cdn.shopify.com/s/files/1/0030/files/";
+  /* The size chart goes last; the card never moves; a .gif is not the still of the same name. */
+  assert.deepEqual(plain(P.tidyGallery([s + "gi_1.jpg?v=1", s + "gi_2.jpg", s + "gi-size-chart.jpg", s + "gi_3.jpg", s + "gi_3.jpg?v=9", s + "gi_3.gif", s + "Paracord_FontChart_Gold_vis.jpg"], 12)),
+    [s + "gi_1.jpg?v=1", s + "gi_2.jpg", s + "gi_3.jpg", s + "gi_3.gif", s + "gi-size-chart.jpg", s + "Paracord_FontChart_Gold_vis.jpg"]);
+  assert.deepEqual(plain(P.tidyGallery([s + "size-chart.png", s + "a.jpg"], 12)), [s + "size-chart.png", s + "a.jpg"], "the card photo moved");
+  /* Not charts: a product named Charter, a deck "size_80in", a SKIMS swatch and GIF, a helmet called Grid. */
+  for (const u of [s + "Charter_Backpack_Blk_3.png", s + "Creature_Skateboard_Deck_size_80inx318in_1800x.webp", s + "SKIMS-FITSEVERYBODY-JSP-SW.jpg",
+    "https://www.revzilla.com/product_images/1/2/bell_race_star_flex_dlx_grid_helmet_yellow_thumb.jpg", s + "cottonrib_tank_boxer.gif"]) assert.equal(P.galleryIsChart(u), false, u);
+  for (const u of [s + "5033-Size-Chart.png", s + "ugg-all-gender-size-guide.png", s + "STATE_25_KANE_FAM_SIZE_COMPARISON_CHART_1.png", s + "Birthstone_Chart_1_RS_SQ_2026_x.jpg",
+    s + "108982_G_Grid_vis.jpg", s + "Pisa_Sizes_3456_Label_6mm_x_RS_SQ_2026.jpg", s + "WaterproofInitals_ColorChart_102925_vis.jpg"]) assert.equal(P.galleryIsChart(u), true, u);
+  /* Repeats go before the cap: 12 real photos survive 12 copies. */
+  const many = []; for (let i = 0; i < 12; i++) many.push(dk + "290pix/oe_p" + i + ".jpg", dk + "75pix/oe_p" + i + ".jpg");
+  assert.equal(P.normalizeItem({ title: "T", price: 1, image: many[0], images: many }, "denniskirk").images.length, 12);
+});
+
+await check("B&H and RevZilla product pages no longer repeat a photo at another size", () => {
+  const out = {};
+  for (const store of ["bhphoto", "revzilla", "denniskirk"]) {
+    let products = 0, before = 0, after = 0, fewer = 0;
+    for (const [k, raw] of raws) {
+      if (!k.startsWith(store + "|")) continue;
+      const it = P.normalizeItem(raw, store);
+      const g = shardGallery(it);
+      assert.ok(g, `${it.name}: no shard record`);
+      const old = hostPathGallery(raw);
+      assert.equal(new Set(keysOf(g)).size, g.length, `${it.name}: a photo twice in ${JSON.stringify(g)}`);
+      assert.equal(g[0], it.image, `${it.name}: the gallery does not open on the card photo`);
+      products++; before += old.length; after += g.length; if (g.length < old.length) fewer++;
+    }
+    out[store] = { products, slidesBefore: before, slidesAfter: after, galleriesShortened: fewer };
+    assert.ok(products > 1000 && fewer > 0.8 * products, `${store}: ${JSON.stringify(out[store])}`);
+  }
+  /* The B&H camera from the report: 7 slides of 3 photos. */
+  const a7 = raws.get("bhphoto|Sony a7 V Mirrorless Camera");
+  assert.ok(a7, "the Sony a7 V left the B&H catalogue -- pick another");
+  assert.equal(hostPathGallery(a7).length, 7);
+  assert.deepEqual(shardGallery(P.normalizeItem(a7, "bhphoto")).map((u) => u.split("/").pop()), ["sony_a7_v_mirrorless_camera_1935439.jpg", "1764668011_IMG_2624210.jpg", "1764668011_IMG_2624211.jpg"]);
+  console.log("         (" + Object.entries(out).map(([s, x]) => `${s}: ${x.products} products, ${x.galleriesShortened} shortened, ${x.slidesBefore} -> ${x.slidesAfter} slides`).join("; ") + ")");
+});
+
+await check("size charts are kept and come last (BaubleBar, Elite); SKIMS galleries keep the retailer's order", () => {
+  let withChart = 0, moved = 0, skims = 0, skimsCharts = 0;
+  const photos = (l) => l.filter((u, i) => !i || !P.galleryIsChart(u));
+  for (const [k, raw] of raws) {
+    const store = k.slice(0, k.indexOf("|"));
+    if (store !== "skims" && store !== "baublebar" && store !== "elite") continue;
+    const it = P.normalizeItem(raw, store);
+    const g = shardGallery(it);
+    const old = hostPathGallery(raw);
+    if (store === "skims") {
+      skims++;
+      skimsCharts += g.filter((u, i) => i && P.galleryIsChart(u)).length;
+      /* No SKIMS chart: where nothing repeats, the gallery is exactly the retailer's. */
+      if (new Set(keysOf(old)).size === old.length) assert.deepEqual(g, old, `${it.name}: SKIMS order changed`);
+      continue;
+    }
+    if (!g.some((u, i) => i && P.galleryIsChart(u))) continue;
+    withChart++;
+    assert.ok(chartsLast(g), `${it.name}: a chart before a photo: ${JSON.stringify(g)}`);
+    /* Kept, not dropped: every chart the old 12 showed is still there. */
+    for (const u of old.slice(1)) if (P.galleryIsChart(u) && new Set(keysOf(old)).size === old.length) assert.ok(g.includes(u), `${it.name}: chart ${u} dropped`);
+    if (JSON.stringify(g) !== JSON.stringify(old)) moved++;
+    /* The photos keep the retailer's order. */
+    assert.deepEqual(photos(g), photos(old).filter((u) => g.includes(u)), `${it.name}: photo order changed`);
+  }
+  assert.ok(withChart > 1000 && moved > 200, `${withChart} galleries with a chart, ${moved} reordered`);
+  assert.ok(skims > 2000, `${skims} SKIMS products`);
+  assert.equal(skimsCharts, 0, "SKIMS data now carries a size chart -- check it sits last");
+  console.log(`         (${withChart} BaubleBar/Elite galleries carry a chart, all last; ${moved} reordered; ${skims} SKIMS galleries keep the retailer's order)`);
+});
+
+await check("a normal multi-photo product keeps every photo in the retailer's order", () => {
+  let n = 0;
+  for (const [k, raw] of raws) {
+    if (!k.startsWith("aguabendita|")) continue;
+    const it = P.normalizeItem(raw, "aguabendita");
+    const old = hostPathGallery(raw);
+    if (old.length < 4) continue;
+    assert.deepEqual(shardGallery(it), old, `${it.name}: gallery changed`);
+    n++;
+  }
+  assert.ok(n > 300, `only ${n} Agua Bendita galleries`);
+  console.log(`         (${n} Agua Bendita galleries of 4+ photos unchanged)`);
+});
+
+await check("full shard sweep: 0 galleries repeat a photo, 0 show a size chart before a photo", () => {
+  let recs = 0, galleries = 0, withChart = 0;
+  const dup = [], late = [];
+  for (let i = 0; i < 4096; i++) {
+    const s = ("00" + i.toString(16)).slice(-3);
+    for (const cands of Object.values(shard(s))) for (const r of cands) {
+      recs++;
+      if (!r.images) continue;
+      galleries++;
+      const g = R.unpackImages(r.images, r.image);
+      if (new Set(keysOf(g)).size !== g.length) dup.push(`${r.retailer}: ${r.name}`);
+      if (!chartsLast(g)) late.push(`${r.retailer}: ${r.name}`);
+      if (g.some((u, i) => i && P.galleryIsChart(u))) withChart++;
+      /* The page's own pass is a no-op on a tidy gallery. */
+      if (JSON.stringify(G.galleryList({ images: g, image: r.image })) !== JSON.stringify(g)) dup.push(`${r.name}: galleryList changes it`);
+    }
+    shardCache.delete(s);
+  }
+  assert.deepEqual(dup.slice(0, 8), [], `${dup.length} galleries repeat a photo`);
+  assert.deepEqual(late.slice(0, 8), [], `${late.length} galleries show a chart before a photo`);
+  console.log(`         (${recs} records, ${galleries} galleries: 0 repeat a photo, 0 show a chart before a photo; ${withChart} carry a chart, last)`);
+});
+
+await check("producto.html's gallery drops a repeat and moves a chart last even from an untidy record", () => {
+  const s = "https://cdn.shopify.com/s/files/1/0030/files/";
+  const html = G.galleryHTML({ name: "T", image: s + "a.jpg", images: [s + "a.jpg", s + "a_1800x1800.jpg", s + "size-chart.png", s + "b.jpg"] });
+  const slides = [...html.matchAll(/class="g-slide"[^>]*><img [^>]*data-img-orig="([^"]+)"/g)].map((m) => m[1].split("/").pop());
+  assert.deepEqual(slides, ["a.jpg", "b.jpg", "size-chart.png"]);
+  assert.match(html, /data-count="3"/);
+});
+
 await check("producto.html renders the gallery for every shard record with 2+ photos, and one photo otherwise", () => {
   let multi = 0, single = 0;
   const bad = [];
@@ -194,6 +362,11 @@ const PRODUCTS = [
   { label: "Gymshark, 4+ photos", store: "gymshark", it: pick("gymshark", (it) => it.images.length >= 6), min: 4 },
   /* Women's lingerie (#443 c.6324227678: multiple angles sell lingerie). */
   { label: "SKIMS bra, 5+ photos", store: "skims", it: pick("skims", (it) => /\bbra\b/i.test(it.name) && it.images.length >= 5), min: 5 },
+  /* Danny's gallery policy (#443): the B&H camera that swiped through 7
+     slides of 3 photos shows 3; a size chart sits on the last slide. */
+  { label: "B&H camera, one slide per photo", store: "bhphoto", it: pick("bhphoto", (it) => it.name === "Sony a7 V Mirrorless Camera"), min: 3 },
+  { label: "Elite women's rash guard, size chart last", store: "elite", it: pick("elite", (it) => /women/i.test(it.name) && it.images.length >= 6 && P.galleryIsChart(it.images[it.images.length - 1])), min: 6, chartLast: true },
+  { label: "BaubleBar, chart last", store: "baublebar", it: pick("baublebar", (it) => it.images.length >= 5 && it.images.filter((u, i) => i && P.galleryIsChart(u)).length === 1 && P.galleryIsChart(it.images[it.images.length - 1])), min: 5, chartLast: true },
 ];
 
 const exe = process.env.PLAYWRIGHT_CHROMIUM || (existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined);
@@ -254,6 +427,10 @@ if (chromium) {
         };
       });
       assert.equal(first.title, prod.it.name);
+      const order = await pg.evaluate(() => [...document.querySelectorAll(".g-slide img")].map((i) => i.getAttribute("data-img-orig")));
+      assert.deepEqual(order, JSON.parse(JSON.stringify(prod.it.images)), "the slides are not the gallery, in order");
+      assert.equal(new Set(order.map((u) => P.galleryPhotoKey(u))).size, order.length, "a photo twice");
+      if (prod.chartLast) assert.ok(P.galleryIsChart(order[order.length - 1]) && !order.slice(0, -1).some((u, i) => i && P.galleryIsChart(u)), "the size chart is not the last slide");
       assert.equal(first.slides, want, `${first.slides} gallery slots for ${want} photos`);
       assert.equal(first.thumbs, want, `${first.thumbs} thumbnails for ${want} photos`);
       assert.equal(first.count, `1 / ${want}`);

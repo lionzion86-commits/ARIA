@@ -148,6 +148,7 @@ await check("every AutoZone part number and title resolves through its small sha
     return page.slice(at, i + 1);
   };
   const src = [lift("function norm("), lift("function decodeEntities("), "var NAMED_ENTITIES = " + JSON.stringify(R.NAMED_ENTITIES) + ";",
+    lift("function galleryPhotoKey("), lift("function galleryIsChart("), lift("function tidyGallery("),
     lift("function normalizeItem("), lift("function truthfulSizes("), lift("function sortSizes("), lift("function sizeKey("), lift("function alphaRank("),
     "var SIZE_ALPHA_ORDER = " + JSON.stringify(P.SIZE_ALPHA_ORDER) + "; var SIZE_NUMERIC = " + P.SIZE_NUMERIC + "; var SIZE_ALPHA_ALIAS = " + JSON.stringify(P.SIZE_ALPHA_ALIAS) + ";",
     lift("async function huntAuto(")].join("\n");

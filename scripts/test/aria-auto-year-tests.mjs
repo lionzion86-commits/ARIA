@@ -332,7 +332,7 @@ await check("(g) the product page finds the tapped part in the auto cache, part 
     for (; i < prod.length; i++) { if (prod[i] === "{") depth++; else if (prod[i] === "}" && --depth === 0) break; }
     return prod.slice(at, i + 1);
   };
-  const src = [lift("function norm("), lift("function normalizeItem("), lift("async function huntAuto(")].join("\n");
+  const src = [lift("function norm("), lift("function galleryPhotoKey("), lift("function galleryIsChart("), lift("function tidyGallery("), lift("function normalizeItem("), lift("async function huntAuto(")].join("\n");
   const run = (q) => {
     const params = new URLSearchParams(q);
     const fetch = async () => ({ ok: true, json: async () => REAL });

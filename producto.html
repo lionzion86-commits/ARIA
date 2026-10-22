@@ -473,6 +473,83 @@ function fillTaxEstimate(p){
     .then(function(d){ done(d && Number(d.totalKg)); }, function(){ done(0); });
 }
 
+/* GALLERY POLICY (#443, Danny's decision). Every gallery, wherever it
+   is built (scripts/build-pdp-slices.mjs lifts normalizeItem) or drawn
+   (galleryList), goes through tidyGallery:
+   1. ONE copy of each photo. Two URLs are the same photo when they
+      differ only by size: the query string, a size folder
+      (images500x500/, 290pix/, a Cloudinary t_/w_ transform folder), a
+      size suffix (_480x480, _1800x1800, -600x, Shopify _grande/_thumb...)
+      or B&H's per-size copies of one shot (500/345/150/smallimages and
+      the card's fb/ copy). galleryPhotoKey is the one test; the
+      coverage report (scripts/report-gallery-coverage.mjs) counts with
+      it too. The first copy, in the retailer's order, keeps its place.
+   2. SIZE CHARTS LAST. A size / fit / font / colour / option chart
+      (galleryIsChart: the file is named as one -- size-chart,
+      size-guide, sizecomparison, FontChart, ColorChart, Birthstone_Chart,
+      a letter Grid...) is kept, after the product's photos, in its
+      original order. The card photo (first) never moves.
+   3. Nothing else changes: the retailer's photos, in the retailer's
+      order. A photo other products also use (a parts diagram, a bundle
+      item) is NOT dropped for that -- only its repeat inside one
+      gallery is. At most `max` (12) photos, counted after the repeats
+      are gone. */
+function galleryPhotoKey(u){
+  var m = String(u || "").match(/^https?:\/\/([^\/?#\s]+)([^?#\s]*)/i);
+  if (!m) return "";
+  var host = m[1].toLowerCase(), path = m[2];
+  try { path = decodeURIComponent(path); } catch (e) {}
+  path = path.toLowerCase();
+  /* B&H keeps every shot at 500, 345 and 150px and smallimages/
+     (.../<ts>_<id>.jpg) plus the card's fb/<slug>_<id>.jpg. */
+  if (/bhphoto\.com$/.test(host)){
+    var t = path.match(/(\d{9,11})_(\d+)\.\w+$/);
+    if (t) return "bh:" + t[2] + ":" + t[1];
+    var f = path.match(/_(\d+)\.\w+$/);
+    if (f) return "bh:" + f[1] + ":fb";
+  }
+  var segs = path.split("/"), file = segs.pop();
+  segs = segs.filter(function(seg){ return !/^(images)?\d+x\d+$|^\d+pix$|^t_[\w-]+$|^[a-z]_[\w%,.-]+(,[a-z]_[\w%,.-]+)*$/.test(seg); });
+  file = file
+    .replace(/[_-](\d+x\d*|x\d+)(@\dx)?(?=\.\w+$|$)/, "")
+    .replace(/_(pico|icon|thumb|small|compact|medium|large|grande|original|master|1024x1024|2048x2048)(@\dx)?(?=\.\w+$|$)/, "")
+    .replace(/\.(jpe?g|png|webp|avif)$/, "");   /* a .gif stays its own: often the animated one */
+  return host + segs.concat([file]).join("/");
+}
+function galleryIsChart(u){
+  var m = String(u || "").match(/^https?:\/\/[^\/?#\s]+([^?#\s]*)/i);
+  if (!m) return false;
+  var file = m[1];
+  try { file = decodeURIComponent(file); } catch (e) {}
+  file = file.toLowerCase().split("/").pop();
+  return /chart(?!er|ed|reuse)|size[-_ ]?(guide|comparison)|sizecomparison|fit[-_ ]?guide|how[-_ ]?to[-_ ]?measure|charmssizing|(^|_)font(_|\.|$)|scale[-_]?comp|(^|_)grid_(\d|vis|rs|14k)|numberssym|block_(\d+_)?vis|(^|_)letters?(length)?_vis|_colou?rs?_(vis|sq)|namesize|(^|_)sizes?_(\d{4}_|m_|label|rs_)/.test(file);
+}
+function tidyGallery(list, max){
+  var out = [], seen = {}, shotOf = {}, fbOpen = {};
+  (Array.isArray(list) ? list : []).forEach(function(u){
+    var k = galleryPhotoKey(u);
+    if (!k) return;
+    if (k.indexOf("bh:") === 0){
+      var id = k.split(":")[1];
+      if (/:fb$/.test(k)){
+        if (shotOf[id]) return;           /* the card copy of a shot already in */
+        fbOpen[id] = 1;
+      } else if (fbOpen[id]){
+        delete fbOpen[id];                /* the card's own shot, at its other sizes */
+        seen[k] = 1;
+        return;
+      }
+      shotOf[id] = 1;
+    }
+    if (seen[k]) return;
+    seen[k] = 1;
+    out.push(u);
+  });
+  out = out.slice(0, max || 12);
+  var photos = [], charts = [];
+  out.forEach(function(u, i){ (i && galleryIsChart(u) ? charts : photos).push(u); });
+  return photos.concat(charts);
+}
 function normalizeItem(it, retailerKey){
   try{
     if (!it || typeof it !== "object") return null;
@@ -488,11 +565,14 @@ function normalizeItem(it, retailerKey){
     /* THE GALLERY (2026-10-19, #434 / #440): every photo the store
        gives, the card's photo first. Real http(s) photos only, one copy
        of each (the same file at another size or ?v= is the same photo:
-       host + path decide), at most GALLERY_MAX. Self-contained on
-       purpose -- tests lift this function on its own. */
+       host + path decide), at most 12. Then Danny's gallery policy
+       (tidyGallery, #443): a photo repeated at another size is dropped
+       before the 12 are counted, and size charts go last. Tests that
+       lift this function lift tidyGallery and galleryPhotoKey /
+       galleryIsChart with it. */
     var images = [], seenImg = {};
     [img].concat(Array.isArray(it.images) ? it.images : []).forEach(function(u){
-      if (images.length >= 12) return;
+      if (images.length >= 60) return;
       if (u && typeof u === "object") u = u.src || u.url || "";
       u = String(u || "").trim();
       if (u.indexOf("//") === 0) u = "https:" + u;
@@ -503,6 +583,7 @@ function normalizeItem(it, retailerKey){
       seenImg[k] = 1;
       images.push(u);
     });
+    images = tidyGallery(images, 12);
     return {
       name: decodeEntities(name), brand: decodeEntities(it.brand || ""), price: price,
       image: String(img || ""), url: String(it.url || it.link || ""),
@@ -661,7 +742,11 @@ function render(p){
 function galleryList(p){
   var list = Array.isArray(p.images) ? p.images.filter(function(u){ return /^https?:\/\//i.test(u); }) : [];
   if (!list.length && p.image) list = [p.image];
-  return list.slice(0, 12);
+  /* Danny's gallery policy again, whatever path the product came by (a
+     shard built before it, an auto part, a cached record): one copy of
+     each photo, size charts last. A no-op on a tidy gallery. */
+  var tidy = tidyGallery(list, 12);
+  return tidy.length ? tidy : list.slice(0, 1);
 }
 function galleryHTML(p){
   var list = galleryList(p);
