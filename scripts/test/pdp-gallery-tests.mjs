@@ -29,7 +29,8 @@
      node scripts/test/pdp-gallery-tests.mjs
    PLAYWRIGHT_CHROMIUM=<path> picks the Chromium binary (default
    /opt/pw-browsers/chromium when present). SKIP_BROWSER=1 runs the data
-   checks only.
+   checks only. PDP_GALLERY_PORT=<port> pins the local server's port
+   (default: any free port).
    ================================================================== */
 import assert from "node:assert/strict";
 import http from "node:http";
@@ -37,7 +38,7 @@ import { readFileSync, existsSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join, extname } from "node:path";
 import { liftDeclarations } from "../lib/page-lift.mjs";
-import { liftPage, sourceFiles } from "../build-pdp-slices.mjs";
+import { liftPage, sourceFiles, autoRecOf } from "../build-pdp-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const PDP = ROOT + "assets/pdp/";
@@ -119,6 +120,55 @@ await check("every stored gallery unpacks to real, distinct photos, card photo f
   assert.ok(recs > 140000);
 });
 
+/* GALLERY COVERAGE (#443, c.6304525284): the page renders a gallery
+   WHEREVER the data has one -- every shard record, not three samples. */
+const G = liftDeclarations(page, ["esc", "declaredImageWidth", "sizedImageUrl", "galleryList", "galleryHTML", "unpackImages", "recordToItem"]);
+await check("producto.html renders the gallery for every shard record with 2+ photos, and one photo otherwise", () => {
+  let multi = 0, single = 0;
+  const bad = [];
+  for (let i = 0; i < 4096; i++) {
+    const s = ("00" + i.toString(16)).slice(-3);
+    for (const cands of Object.values(shard(s))) for (const r of cands) {
+      const item = G.recordToItem(r);
+      const photos = item.images.filter((u) => /^https?:\/\//i.test(u)).slice(0, 12);
+      const html = G.galleryHTML(item);
+      const slides = (html.match(/class="g-slide"/g) || []).length;
+      const thumbs = (html.match(/class="g-thumb"/g) || []).length;
+      if (photos.length > 1) {
+        multi++;
+        if (!html.includes(`class="p-gallery" data-count="${photos.length}"`) || slides !== photos.length || thumbs !== photos.length) bad.push(`${r.name}: ${photos.length} photos, ${slides} slides`);
+      } else {
+        single++;
+        if (html.includes("p-gallery") || slides) bad.push(`${r.name}: one photo drew a gallery`);
+      }
+    }
+    shardCache.delete(s);
+  }
+  assert.deepEqual(bad.slice(0, 8), [], `${bad.length} records render the wrong gallery`);
+  assert.ok(multi > 100000, `only ${multi} records render a gallery`);
+  console.log(`         (${multi} records render a swipe gallery, ${single} a single photo)`);
+});
+
+await check("the AutoZone part shard keeps the part's whole gallery (it kept images[0] only)", () => {
+  const rec = { productTitle: "Brake Pad Set", price: 40, thumbnail: "https://a.example/p1.jpg", part_number: "X1",
+    images: ["https://a.example/p1.jpg", "https://a.example/p2.jpg", "https://a.example/p3.jpg"] };
+  const out = autoRecOf(rec);
+  assert.deepEqual(out.images, rec.images);
+  const it = P.normalizeItem({ name: out.productTitle, price: out.price, thumbnail: out.thumbnail, images: out.images }, "autozone");
+  assert.equal(it.images.length, 3);
+  assert.equal(autoRecOf({ productTitle: "T", price: 1 }).images, undefined);
+});
+
+await check("the department-cache pull keeps every gallery field the actor returns (images, imageUrls, gallery)", () => {
+  const src = readFileSync(ROOT + "scripts/refresh-department-cache.js", "utf8");
+  const fields = src.match(/const GALLERY_FIELDS = \[([^\]]*)\]/);
+  assert.ok(fields, "GALLERY_FIELDS is gone from refresh-department-cache.js");
+  for (const f of ["images", "imageUrls", "gallery"]) assert.ok(fields[1].includes(`"${f}"`), `${f} is dropped at pull time`);
+  const slim = src.slice(src.indexOf("function slimItem("), src.indexOf("function labelFor("));
+  assert.match(slim, /for \(const k of GALLERY_FIELDS\)/);
+  assert.doesNotMatch(slim, /item\.images\.slice\(0, 1\)|images\[0\]\]/, "the pull keeps only the first photo");
+});
+
 await check("size provenance is data, never a link (the page never links out)", () => {
   const code = page.replace(/\/\*[\s\S]*?\*\//g, "");
   assert.doesNotMatch(code, /href[^;\n]{0,80}sizesSource/);
@@ -142,6 +192,8 @@ const PRODUCTS = [
   { label: "Agua Bendita, 6 photos", store: "aguabendita", it: pick("aguabendita", (it) => it.images.length === 6), min: 6 },
   { label: "New Balance shoe, full set", store: "newbalance", it: pick("newbalance", (it) => it.images.length === nbMax && it.sizes.length), min: 8 },
   { label: "Gymshark, 4+ photos", store: "gymshark", it: pick("gymshark", (it) => it.images.length >= 6), min: 4 },
+  /* Women's lingerie (#443 c.6324227678: multiple angles sell lingerie). */
+  { label: "SKIMS bra, 5+ photos", store: "skims", it: pick("skims", (it) => /\bbra\b/i.test(it.name) && it.images.length >= 5), min: 5 },
 ];
 
 const exe = process.env.PLAYWRIGHT_CHROMIUM || (existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined);
@@ -172,7 +224,7 @@ if (chromium) {
     if (!existsSync(p)) return send(404, "text/plain", "nf");
     send(200, TYPES[extname(p)] || "application/octet-stream", readFileSync(p));
   });
-  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  await new Promise((r) => server.listen(Number(process.env.PDP_GALLERY_PORT || 0), "127.0.0.1", r));
   const BASE = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const results = [];

@@ -1,0 +1,745 @@
+{
+ "total": {
+  "n": 102661,
+  "multi": 64172,
+  "slides": 64890,
+  "three": 48807,
+  "avg": 3.1542163041466575
+ },
+ "auto": {
+  "products": 1984,
+  "multi": 0
+ },
+ "byDept": {
+  "Women's apparel": {
+   "n": 12545,
+   "multi": 10754,
+   "slides": 10754,
+   "three": 10098,
+   "avg": 4.139896373056994
+  },
+  "Lingerie & intimates (women)": {
+   "n": 2149,
+   "multi": 1570,
+   "slides": 1570,
+   "three": 1527,
+   "avg": 4.3257328990228014
+  },
+  "Swim (women)": {
+   "n": 4431,
+   "multi": 4167,
+   "slides": 4168,
+   "three": 3894,
+   "avg": 5.150981719702099
+  },
+  "Apparel (gender not stated)": {
+   "n": 17648,
+   "multi": 12564,
+   "slides": 12574,
+   "three": 9182,
+   "avg": 3.5501473254759746
+  },
+  "Sports & outdoor gear": {
+   "n": 14731,
+   "multi": 9306,
+   "slides": 9324,
+   "three": 3411,
+   "avg": 2.2603353472269365
+  },
+  "Jewelry & accessories": {
+   "n": 10596,
+   "multi": 8202,
+   "slides": 8208,
+   "three": 6416,
+   "avg": 3.350604001510004
+  },
+  "Toys": {
+   "n": 6636,
+   "multi": 2,
+   "slides": 2,
+   "three": 2,
+   "avg": 1.001205545509343
+  },
+  "Footwear": {
+   "n": 6053,
+   "multi": 4616,
+   "slides": 4616,
+   "three": 3918,
+   "avg": 3.837931604163225
+  },
+  "Bags": {
+   "n": 5457,
+   "multi": 3351,
+   "slides": 3363,
+   "three": 2717,
+   "avg": 3.1907641561297417
+  },
+  "Men's apparel": {
+   "n": 4338,
+   "multi": 2949,
+   "slides": 2950,
+   "three": 2242,
+   "avg": 3.5253573075149838
+  },
+  "Auto & moto": {
+   "n": 3765,
+   "multi": 1967,
+   "slides": 2557,
+   "three": 1659,
+   "avg": 3.4764940239043827
+  },
+  "Baby, kids & moms (non-apparel)": {
+   "n": 2562,
+   "multi": 437,
+   "slides": 438,
+   "three": 371,
+   "avg": 2.256440281030445
+  },
+  "Beauty": {
+   "n": 2555,
+   "multi": 5,
+   "slides": 5,
+   "three": 0,
+   "avg": 1.001174168297456
+  },
+  "Kids' apparel": {
+   "n": 2119,
+   "multi": 1209,
+   "slides": 1209,
+   "three": 894,
+   "avg": 3.121283624351109
+  },
+  "Home, party & grocery": {
+   "n": 1931,
+   "multi": 326,
+   "slides": 326,
+   "three": 229,
+   "avg": 1.5939927498705333
+  },
+  "Other (general merchandise)": {
+   "n": 1643,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "Electronics": {
+   "n": 1603,
+   "multi": 1513,
+   "slides": 1590,
+   "three": 1237,
+   "avg": 4.248284466625078
+  },
+  "Underwear & sleepwear (men)": {
+   "n": 590,
+   "multi": 363,
+   "slides": 363,
+   "three": 326,
+   "avg": 3.7847457627118644
+  },
+  "Books": {
+   "n": 479,
+   "multi": 365,
+   "slides": 366,
+   "three": 358,
+   "avg": 3.3653444676409188
+  },
+  "Swim (men)": {
+   "n": 405,
+   "multi": 284,
+   "slides": 285,
+   "three": 159,
+   "avg": 2.4962962962962965
+  },
+  "Swim (kids)": {
+   "n": 222,
+   "multi": 174,
+   "slides": 174,
+   "three": 121,
+   "avg": 3.8513513513513513
+  },
+  "Underwear & sleepwear (kids)": {
+   "n": 115,
+   "multi": 25,
+   "slides": 25,
+   "three": 24,
+   "avg": 1.9043478260869566
+  },
+  "Underwear & sleepwear (gender not stated)": {
+   "n": 88,
+   "multi": 23,
+   "slides": 23,
+   "three": 22,
+   "avg": 2.5454545454545454
+  }
+ },
+ "byStore": {
+  "walmart": {
+   "n": 10734,
+   "multi": 1,
+   "slides": 1,
+   "three": 1,
+   "avg": 1.0005589714924539
+  },
+  "sephora": {
+   "n": 2001,
+   "multi": 5,
+   "slides": 5,
+   "three": 0,
+   "avg": 1.0014992503748126
+  },
+  "lanebryant": {
+   "n": 150,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "dicks": {
+   "n": 517,
+   "multi": 212,
+   "slides": 212,
+   "three": 114,
+   "avg": 1.793036750483559
+  },
+  "skims": {
+   "n": 2161,
+   "multi": 2158,
+   "slides": 2158,
+   "three": 2140,
+   "avg": 5.836649699213327
+  },
+  "revolve": {
+   "n": 1649,
+   "multi": 1640,
+   "slides": 1640,
+   "three": 1614,
+   "avg": 4.466949666464524
+  },
+  "partycity": {
+   "n": 518,
+   "multi": 327,
+   "slides": 327,
+   "three": 230,
+   "avg": 3.218146718146718
+  },
+  "samsclub": {
+   "n": 118,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "youngla": {
+   "n": 800,
+   "multi": 799,
+   "slides": 799,
+   "three": 793,
+   "avg": 7.7425
+  },
+  "bhphoto": {
+   "n": 1590,
+   "multi": 1513,
+   "slides": 1590,
+   "three": 1237,
+   "avg": 4.274842767295597
+  },
+  "advanceauto": {
+   "n": 1365,
+   "multi": 87,
+   "slides": 87,
+   "three": 74,
+   "avg": 1.1142857142857143
+  },
+  "nautilus": {
+   "n": 501,
+   "multi": 228,
+   "slides": 228,
+   "three": 119,
+   "avg": 1.9820359281437125
+  },
+  "islandwatersports": {
+   "n": 8833,
+   "multi": 8249,
+   "slides": 8249,
+   "three": 7601,
+   "avg": 6.061474017887467
+  },
+  "quietstorm": {
+   "n": 454,
+   "multi": 410,
+   "slides": 410,
+   "three": 250,
+   "avg": 3.671806167400881
+  },
+  "surfworld": {
+   "n": 3,
+   "multi": 2,
+   "slides": 2,
+   "three": 2,
+   "avg": 3
+  },
+  "surfstation": {
+   "n": 6173,
+   "multi": 3555,
+   "slides": 3574,
+   "three": 1206,
+   "avg": 1.9113883039040984
+  },
+  "mainland": {
+   "n": 2238,
+   "multi": 2084,
+   "slides": 2084,
+   "three": 1731,
+   "avg": 4.909740840035746
+  },
+  "parrot": {
+   "n": 4018,
+   "multi": 2338,
+   "slides": 2350,
+   "three": 1055,
+   "avg": 2.0303633648581383
+  },
+  "ccs": {
+   "n": 13735,
+   "multi": 10327,
+   "slides": 10327,
+   "three": 5109,
+   "avg": 2.598471059337459
+  },
+  "valsurf": {
+   "n": 3207,
+   "multi": 2275,
+   "slides": 2275,
+   "three": 1453,
+   "avg": 2.6888057374493295
+  },
+  "venum": {
+   "n": 554,
+   "multi": 536,
+   "slides": 537,
+   "three": 533,
+   "avg": 5.413357400722021
+  },
+  "tatami": {
+   "n": 168,
+   "multi": 168,
+   "slides": 168,
+   "three": 167,
+   "avg": 4.785714285714286
+  },
+  "everlast": {
+   "n": 112,
+   "multi": 99,
+   "slides": 99,
+   "three": 96,
+   "avg": 4.758928571428571
+  },
+  "mmawarehouse": {
+   "n": 49,
+   "multi": 49,
+   "slides": 49,
+   "three": 48,
+   "avg": 5.571428571428571
+  },
+  "combatcorner": {
+   "n": 21,
+   "multi": 21,
+   "slides": 21,
+   "three": 18,
+   "avg": 5.142857142857143
+  },
+  "fuji": {
+   "n": 4,
+   "multi": 4,
+   "slides": 4,
+   "three": 4,
+   "avg": 6
+  },
+  "elite": {
+   "n": 95,
+   "multi": 95,
+   "slides": 95,
+   "three": 95,
+   "avg": 8.031578947368422
+  },
+  "gameness": {
+   "n": 100,
+   "multi": 98,
+   "slides": 98,
+   "three": 98,
+   "avg": 6.88
+  },
+  "crocs": {
+   "n": 564,
+   "multi": 547,
+   "slides": 547,
+   "three": 0,
+   "avg": 1.9698581560283688
+  },
+  "baublebar": {
+   "n": 6992,
+   "multi": 6962,
+   "slides": 6974,
+   "three": 5366,
+   "avg": 3.9695366132723113
+  },
+  "jwpei": {
+   "n": 2351,
+   "multi": 1902,
+   "slides": 1902,
+   "three": 1600,
+   "avg": 3.6035729476818377
+  },
+  "meliebianco": {
+   "n": 310,
+   "multi": 296,
+   "slides": 302,
+   "three": 219,
+   "avg": 5.503225806451613
+  },
+  "bentgo": {
+   "n": 154,
+   "multi": 153,
+   "slides": 153,
+   "three": 150,
+   "avg": 11.064935064935066
+  },
+  "mushie": {
+   "n": 33,
+   "multi": 33,
+   "slides": 33,
+   "three": 33,
+   "avg": 11.93939393939394
+  },
+  "ezpz": {
+   "n": 107,
+   "multi": 106,
+   "slides": 106,
+   "three": 104,
+   "avg": 11.177570093457945
+  },
+  "statebags": {
+   "n": 43,
+   "multi": 40,
+   "slides": 40,
+   "three": 30,
+   "avg": 4.767441860465116
+  },
+  "assouline": {
+   "n": 270,
+   "multi": 269,
+   "slides": 269,
+   "three": 264,
+   "avg": 3.688888888888889
+  },
+  "chronicle": {
+   "n": 209,
+   "multi": 96,
+   "slides": 97,
+   "three": 94,
+   "avg": 2.9473684210526314
+  },
+  "babybrezza": {
+   "n": 31,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "bellybandit": {
+   "n": 27,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "dagnedover": {
+   "n": 19,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "drbrowns": {
+   "n": 215,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "elvie": {
+   "n": 63,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "freshlypicked": {
+   "n": 42,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "hatch": {
+   "n": 288,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "jujube": {
+   "n": 86,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "kindredbravely": {
+   "n": 919,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "lillebaby": {
+   "n": 29,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "mockingbird": {
+   "n": 48,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "momcozy": {
+   "n": 238,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "munchkin": {
+   "n": 128,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "nanit": {
+   "n": 36,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "owlet": {
+   "n": 26,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "spectra": {
+   "n": 46,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "walmartbaby": {
+   "n": 454,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "americaneagle": {
+   "n": 148,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "farfetch": {
+   "n": 3279,
+   "multi": 3276,
+   "slides": 3276,
+   "three": 2932,
+   "avg": 4.399817017383349
+  },
+  "prosoccer": {
+   "n": 2011,
+   "multi": 1688,
+   "slides": 1688,
+   "three": 1449,
+   "avg": 4.357036300348086
+  },
+  "xtremesoccer": {
+   "n": 242,
+   "multi": 241,
+   "slides": 241,
+   "three": 238,
+   "avg": 5.785123966942149
+  },
+  "academy": {
+   "n": 33,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "tennisexpress": {
+   "n": 800,
+   "multi": 643,
+   "slides": 643,
+   "three": 589,
+   "avg": 3.98625
+  },
+  "farmrio": {
+   "n": 1195,
+   "multi": 1190,
+   "slides": 1190,
+   "three": 1169,
+   "avg": 4.112133891213389
+  },
+  "aguabendita": {
+   "n": 417,
+   "multi": 417,
+   "slides": 417,
+   "three": 417,
+   "avg": 5.937649880095924
+  },
+  "patbo": {
+   "n": 496,
+   "multi": 476,
+   "slides": 476,
+   "three": 417,
+   "avg": 3.7318548387096775
+  },
+  "johannaortiz": {
+   "n": 473,
+   "multi": 464,
+   "slides": 464,
+   "three": 405,
+   "avg": 3.7251585623678647
+  },
+  "silviatcherassi": {
+   "n": 494,
+   "multi": 416,
+   "slides": 416,
+   "three": 380,
+   "avg": 2.645748987854251
+  },
+  "capittana": {
+   "n": 516,
+   "multi": 512,
+   "slides": 512,
+   "three": 506,
+   "avg": 5.069767441860465
+  },
+  "ancora": {
+   "n": 508,
+   "multi": 508,
+   "slides": 508,
+   "three": 498,
+   "avg": 4.702755905511811
+  },
+  "vix": {
+   "n": 1602,
+   "multi": 1601,
+   "slides": 1601,
+   "three": 1600,
+   "avg": 5.798377028714107
+  },
+  "montce": {
+   "n": 1566,
+   "multi": 1433,
+   "slides": 1433,
+   "three": 1270,
+   "avg": 4.046615581098339
+  },
+  "eberjey": {
+   "n": 237,
+   "multi": 228,
+   "slides": 228,
+   "three": 218,
+   "avg": 4.383966244725738
+  },
+  "tns": {
+   "n": 1518,
+   "multi": 1515,
+   "slides": 1515,
+   "three": 1486,
+   "avg": 4.328722002635046
+  },
+  "revzilla": {
+   "n": 1153,
+   "multi": 946,
+   "slides": 1145,
+   "three": 777,
+   "avg": 4.771899392888118
+  },
+  "denniskirk": {
+   "n": 1335,
+   "multi": 934,
+   "slides": 1325,
+   "three": 808,
+   "avg": 4.609737827715356
+  },
+  "smartbuyglasses": {
+   "n": 544,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "finishline": {
+   "n": 450,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "zumiez": {
+   "n": 2492,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "hottopic": {
+   "n": 2538,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "boxlunch": {
+   "n": 2496,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "hollister": {
+   "n": 249,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  },
+  "abercrombie": {
+   "n": 273,
+   "multi": 0,
+   "slides": 0,
+   "three": 0,
+   "avg": 1
+  }
+ }
+}

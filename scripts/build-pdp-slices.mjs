@@ -163,10 +163,18 @@ function resetDir(rel) {
 
 /* ---------- AutoZone parts (auto-cache.json, 22MB) ---------- */
 const AUTO_FIELDS = ["productTitle", "title", "brand", "price", "thumbnail", "part_number"];
-function autoRecOf(rec) {
+export function autoRecOf(rec) {
   const out = {};
   for (const k of AUTO_FIELDS) if (rec[k] !== undefined && rec[k] !== null && rec[k] !== "") out[k] = rec[k];
-  if (Array.isArray(rec.images) && rec.images[0]) out.images = [rec.images[0]];
+  /* The whole gallery, as huntAuto hands it to normalizeItem (which keeps
+     real photos, one copy each, at most 12). It kept only images[0]
+     until the gallery coverage report (#443): no cached part has a
+     second photo yet, so no shard changed, but a refresh that brings
+     galleries back must not lose them here. */
+  if (Array.isArray(rec.images)) {
+    const imgs = rec.images.filter((u) => u && (typeof u === "string" || typeof u === "object")).slice(0, 12);
+    if (imgs.length) out.images = imgs;
+  }
   return out;
 }
 /* The record huntAuto's full-cache scan returns, for every part number
