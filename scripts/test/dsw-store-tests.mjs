@@ -35,7 +35,10 @@ import * as registry from "../lib/retailers.js";
 import {
   DSW_KEY, OUT_FILE, pullPlan, estimatePull, spendCheck, ingestRow, ingestPull, validGtin, sizesOf,
   pdpSentences, productCount, currencyOf, emptyCatalog, costRatesFromEnv,
+  dswActorInput, normalizeRow, imagesOf, galleryKey, isSizeChart, capGuard, WAVE_CAP_USD, DSW_SALE_MAX,
+  gtinEnrichTargets, estimateGtinEnrich, mergeGtins, extractedGtins, GTIN_ENRICH_USD_PER_ROW,
 } from "../lib/dsw.js";
+import { coverageOf, verdictOf, formatReport, THRESHOLDS, parseExplain } from "../lib/pull-quality.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const FIXTURE = JSON.parse(readFileSync(ROOT + "scripts/test/fixtures/dsw-fixture.json", "utf8"));
@@ -285,6 +288,159 @@ await check("buckets are the site's own (women/men/kids/purses), duplicates keep
 });
 
 /* ------------------------------------------------------------------
+   2b. THE E-COMMERCE TOOL'S ROWS, THE GALLERY POLICY, THE INGEST REPORT
+   Every row below is a TEST FIXTURE written by hand: FAKE names, prices,
+   GTINs and example.test image hosts. Its shape is the schema.org /
+   JSON-LD Product shape normalizeRow() assumes for the actor's output
+   (the repo has no recorded run of it); nothing here is DSW data.
+   ------------------------------------------------------------------ */
+console.log("\n  DSW — e-commerce tool rows, gallery policy, ingest report (fixture rows)");
+
+const ecomRow = (over = {}) => ({
+  url: "https://shop.example.test/p/fixture-ecom-1?color=black",
+  name: "FIXTURE Women's Ecom Sneaker (not a real product)",
+  brand: { "@type": "Brand", name: "Fixture Brand" },
+  description: "A fixture sneaker for tests. Second sentence here. Third is cut.",
+  image: ["https://img.example.test/e/1.jpg?wid=800&hei=800", "https://img.example.test/e/size-chart.jpg", "https://img.example.test/e/1.jpg?wid=400", "https://img.example.test/e/2.jpg"],
+  offers: { "@type": "AggregateOffer", lowPrice: "59.99", priceCurrency: "USD", availability: "https://schema.org/InStock" },
+  hasVariant: [
+    { "@type": "Product", sku: "F-7", gtin12: "036000291452", additionalProperty: [{ name: "Size", value: "7" }], offers: { availability: "https://schema.org/InStock" } },
+    { "@type": "Product", sku: "F-8", gtin12: "012345678905", additionalProperty: [{ name: "Size", value: "8" }], offers: { availability: "https://schema.org/OutOfStock" } },
+  ],
+  weight: { "@type": "QuantitativeValue", value: 1.1, unitCode: "LBR" },
+  material: "Synthetic upper",
+  breadcrumb: { "@type": "BreadcrumbList", itemListElement: [{ name: "Women" }, { name: "Sneakers" }] },
+  ...over,
+});
+
+await check("output mapping: schema.org offers / brand / hasVariant / weight / material / breadcrumb fold into the row", async () => {
+  const { specWeightKg } = await import("../../netlify/functions/_weight-resolve.js");
+  const v = ingestRow(ecomRow(), { category: "women" }, { specWeightKg });
+  assert.ok(v.item, JSON.stringify(v));
+  const it = v.item;
+  assert.equal(it.price, 59.99);
+  assert.equal(it.currency, "USD");
+  assert.equal(it.brand, "Fixture Brand");
+  assert.deepEqual(it.availableSizes, ["7"], "in-stock sizes only, from hasVariant");
+  assert.deepEqual(it.variantGtins, { 7: "036000291452", 8: "012345678905" }, "GTIN per variant, checksum-valid");
+  assert.equal(it.weightEstimated, false);
+  assert.ok(it.weightKg > 0.45 && it.weightKg < 0.55, "1.1 lb");
+  assert.ok(it.specifications.some((s) => s.name === "Material" && s.value === "Synthetic upper"));
+  assert.equal(it.category, "Women > Sneakers");
+  assert.equal(v.bucket, "women");
+  assert.equal(it.description, "A fixture sneaker for tests. Second sentence here.");
+  const n = normalizeRow({ name: "x", offers: [{ price: 10, availability: "https://schema.org/OutOfStock" }] });
+  assert.equal(n.availability, "Out Of Stock");
+  assert.equal(ingestRow({ ...ecomRow(), offers: { price: "59.99", priceCurrency: "USD", availability: "https://schema.org/OutOfStock" } }, quota).drop, "out-of-stock");
+  assert.equal(ingestRow({ ...ecomRow(), offers: { price: "59.99", priceCurrency: "CAD" } }, quota).quarantine, "currency-CAD");
+  /* Flat spellings too: title, price string, images, variants[].attributes.size. */
+  const flat = ingestRow({ title: "FIXTURE Men's Loafer (not a real product)", price: "$49.99", currency: "USD", images: ["https://img.example.test/f/1.jpg"], variants: [{ attributes: { size: "10" }, inStock: true }] }, quota).item;
+  assert.deepEqual(flat.availableSizes, ["10"]);
+});
+
+await check("gallery policy: every image, exact duplicates (render-size copies) dropped, size chart last", () => {
+  const imgs = imagesOf(ecomRow());
+  assert.deepEqual(imgs, ["https://img.example.test/e/1.jpg?wid=800&hei=800", "https://img.example.test/e/2.jpg", "https://img.example.test/e/size-chart.jpg"]);
+  assert.equal(imgs.sizeCharts, 1);
+  assert.equal(galleryKey("https://a.example.test/x.jpg?wid=1&fmt=webp"), galleryKey("https://A.example.test/x.jpg"));
+  assert.notEqual(galleryKey("https://a.example.test/x_01.jpg"), galleryKey("https://a.example.test/x_02.jpg"), "different paths are different photos");
+  assert.ok(isSizeChart({ url: "https://a.example.test/123.jpg", alt: "Size Guide" }));
+  const many = imagesOf({ images: Array.from({ length: 20 }, (_, i) => `https://img.example.test/m/${i}.jpg`) });
+  assert.equal(many.length, 20, "no 8-photo cut: every image the source offers");
+  const it = ingestRow(ecomRow(), quota).item;
+  assert.equal(it.image, "https://img.example.test/e/1.jpg?wid=800&hei=800", "a size chart is never the card photo");
+  assert.equal(it.sizeChartImages, 1);
+  assert.equal(ingestRow({ ...ecomRow(), image: ["https://img.example.test/e/size-chart.jpg"] }, quota).drop, "no-product-photo");
+});
+
+await check("sizes: sibling inference is flagged, never counted as scraped", () => {
+  const it = ingestRow({ ...baseRow(), variants: undefined, sizes: ["6", "7"], sizeSource: "sibling-color" }, quota).item;
+  assert.deepEqual(it.availableSizes, ["6", "7"]);
+  assert.equal(it.sizeSource, "sibling-inferred");
+  assert.equal(it.sizeInferred, true);
+});
+
+await check("bags slot: bags only from the accessories listing", () => {
+  const bags = pullPlan().find((q) => q.category === "bags");
+  assert.equal(ingestRow({ ...baseRow(), name: "FIXTURE Crew Socks 3-Pack", breadcrumbs: ["Accessories", "Socks"] }, bags).drop, "out-of-scope-accessory");
+  const bag = ingestRow({ ...baseRow(), name: "FIXTURE Leather Tote", breadcrumbs: ["Accessories", "Handbags"] }, bags);
+  assert.equal(bag.bucket, "purses");
+});
+
+/* A tiny catalogue for the report, every item a fixture. */
+function reportCatalogFixture({ spanish = true, gtin = true, gallery = true, sizes = true } = {}) {
+  const item = (i) => ({
+    name: `FIXTURE ${i} (not a real product)`, brand: "Fixture Brand", price: 40, currency: "USD",
+    images: gallery ? [`https://img.example.test/r/${i}a.jpg`, `https://img.example.test/r/${i}b.jpg`] : [`https://img.example.test/r/${i}a.jpg`, `https://img.example.test/r/sc.jpg`],
+    ...(gallery ? {} : { sizeChartImages: 1 }),
+    description: spanish ? "Una zapatilla ligera para todos los días con suela de goma." : "A light sneaker for all the days with comfort and a rubber sole.",
+    weightKg: 0.5, weightEstimated: i % 2 === 0 ? false : true,
+    ...(gtin ? { gtin: "036000291452" } : {}),
+    availableSizes: sizes ? ["7", "8"] : [],
+  });
+  return { retailers: { dsw: { departments: { women: { items: [item(1), item(2), item(3), item(4)] }, purses: { items: [{ ...item(5), availableSizes: [] }] } } } } };
+}
+
+await check("INGEST REPORT: rows, gallery, ES, weight, GTIN, size-run coverage, thresholds, and SHIP", () => {
+  const cov = coverageOf(reportCatalogFixture(), "dsw", { rows: 9 });
+  assert.equal(cov.rows, 9);
+  assert.equal(cov.published, 5);
+  assert.equal(cov.shares.gallery, 1);
+  assert.equal(cov.shares.es, 1);
+  assert.equal(cov.shares.weight, 1);
+  assert.equal(cov.shares.realWeight, 0.4);
+  assert.equal(cov.shares.gtin, 1);
+  assert.equal(cov.counts.sized, 4, "the purse is not in a sized department");
+  assert.equal(cov.shares.sizeRun, 1);
+  const v = verdictOf(cov);
+  assert.equal(v.ship, true);
+  const text = formatReport("DSW", cov, v);
+  for (const label of ["rows:", "gallery (>1 real photo)", "ES description", "weight (published or flagged estimate)", "GTIN (checksum-valid)", "size run (as scraped)"]) assert.ok(text.includes(label), label);
+  assert.match(text, /min 80\.0%/);
+  assert.match(text, /VERDICT: SHIP/);
+});
+
+await check("INGEST REPORT: an unexplained hole is DO NOT SHIP; an explained one is not; size charts are not photos", () => {
+  const english = coverageOf(reportCatalogFixture({ spanish: false }), "dsw");
+  assert.equal(english.shares.es, 0);
+  const v = verdictOf(english);
+  assert.equal(v.ship, false);
+  assert.deepEqual(v.holes, ["es"]);
+  assert.match(formatReport("DSW", english, v), /VERDICT: DO NOT SHIP -- unexplained coverage holes: es/);
+  const noGtin = coverageOf(reportCatalogFixture({ gtin: false }), "dsw");
+  assert.equal(verdictOf(noGtin).ship, false);
+  const explained = verdictOf(noGtin, { explain: parseExplain(['gtin="the source publishes no GTIN"']) });
+  assert.equal(explained.ship, true);
+  assert.match(formatReport("DSW", noGtin, explained), /HOLE, explained: the source publishes no GTIN/);
+  const oneReal = coverageOf(reportCatalogFixture({ gallery: false }), "dsw");
+  assert.equal(oneReal.shares.gallery, 0, "one photo + a size chart is not a gallery");
+  assert.ok(verdictOf(oneReal).holes.includes("gallery"));
+  assert.ok(verdictOf(coverageOf(reportCatalogFixture({ sizes: false }), "dsw")).holes.includes("sizeRun"));
+  assert.equal(verdictOf(coverageOf({ retailers: { dsw: { departments: {} } } }, "dsw")).ship, false, "nothing published is never SHIP");
+  assert.throws(() => parseExplain(["nonsense"]));
+  assert.deepEqual(Object.keys(THRESHOLDS), ["gallery", "es", "weight", "gtin", "sizeRun", "brand"]);
+});
+
+await check("GTIN enrichment (optional second step): only rows without a GTIN, $0.0015/row, merged onto scraped sizes only", () => {
+  const noGtin = { ...ecomRow(), hasVariant: undefined, offers: { price: "59.99", priceCurrency: "USD" }, sizes: ["7", "8"], url: "https://shop.example.test/p/fixture-ecom-2" };
+  const withGtin = ecomRow();
+  const pulled = [{ quota, items: [noGtin, withGtin] }];
+  const urls = gtinEnrichTargets(pulled);
+  assert.deepEqual(urls, ["https://shop.example.test/p/fixture-ecom-2"]);
+  const est = estimateGtinEnrich(1500, { costPerRun: 0.06 }, { capRemainingUsd: 1 });
+  assert.equal(est.runs, 2);
+  assert.equal(est.estimateUsd, Math.round((2 * 0.06 + 1500 * GTIN_ENRICH_USD_PER_ROW) * 100) / 100);
+  assert.equal(est.overCap, true, "above what is left of the cap");
+  const extracted = [{ url: "https://shop.example.test/p/fixture-ecom-2?ref=x", jsonLd: [{ "@type": "Product", gtin13: "4006381333931" }] }];
+  assert.equal(extractedGtins(extracted[0]).gtin, "4006381333931");
+  const merged = mergeGtins(pulled, extracted);
+  assert.equal(merged.filled, 1);
+  const it = ingestRow(merged.pulled[0].items[0], quota).item;
+  assert.equal(it.gtin, "4006381333931");
+  assert.equal(mergeGtins(pulled, [{ url: noGtin.url, gtin: "4006381333932" }]).filled, 0, "a bad check digit is not merged");
+});
+
+/* ------------------------------------------------------------------
    3. THE COST ESTIMATE AND THE SPEND GUARD
    ------------------------------------------------------------------ */
 console.log("\n  DSW — the cost estimate comes first, and money needs a flag");
@@ -327,10 +483,41 @@ async function stubSite(handler) {
   return { url: `http://127.0.0.1:${port}`, calls, close: () => new Promise((r) => srv.close(r)) };
 }
 
-await check("the estimate: best sellers + all sale first, each quota priced, a quote and a stop line", () => {
+/* The six listing URLs Lucifer verified live on dsw.com (#443,
+   2026-10-22), with the result counts she saw. */
+const VERIFIED_URLS = {
+  clearance: "https://www.dsw.com/category/clearance",
+  bestsellers: "https://www.dsw.com/category/womens/top-rated",
+  women: "https://www.dsw.com/category/womens",
+  men: "https://www.dsw.com/category/mens",
+  kids: "https://www.dsw.com/category/kids",
+  bags: "https://www.dsw.com/category/accessories",
+};
+
+await check("the plan: six verified listings, clearance (DSW's sale surface) and best sellers first, no 'sale' slot", () => {
   const plan = pullPlan();
-  assert.deepEqual(plan.slice(0, 3).map((q) => q.category), ["clearance", "sale", "bestsellers"], "phase 1 runs first");
-  assert.ok(plan.find((q) => q.category === "sale").maxItems >= 1000, "'all sale' is not a fixed 60");
+  assert.deepEqual(plan.map((q) => q.category), ["clearance", "bestsellers", "women", "men", "kids", "bags"]);
+  for (const q of plan) assert.equal(q.url, VERIFIED_URLS[q.category], q.category + " listing URL");
+  assert.ok(!plan.some((q) => /\/category\/sale\b/.test(q.url || "")), "/category/sale is a 404 on dsw.com");
+  const clearance = plan.find((q) => q.category === "clearance");
+  assert.ok(clearance.maxItems >= 5812, "clearance is pulled fully (5,812 listed)");
+  assert.equal(clearance.maxItems, DSW_SALE_MAX);
+  assert.ok(plan.find((q) => q.category === "bestsellers").maxItems >= 4035);
+  assert.ok(plan.find((q) => q.category === "bags").maxItems >= 2389);
+  assert.equal(plan.find((q) => q.category === "bags").scope, "bags");
+});
+
+await check("e-commerce tool input: { listingUrls: [{url}], maxProductResults }, never startUrls/maxItems", () => {
+  const q = pullPlan().find((x) => x.category === "clearance");
+  assert.deepEqual(dswActorInput(q, q.maxItems), { listingUrls: [{ url: VERIFIED_URLS.clearance }], maxProductResults: DSW_SALE_MAX });
+  const input = dswActorInput({ url: VERIFIED_URLS.kids }, 0);
+  assert.equal(input.maxProductResults, 1, "at least one");
+  assert.ok(!("startUrls" in input) && !("maxItems" in input));
+  assert.throws(() => dswActorInput({ category: "x", query: "shoes" }, 10), /listingUrls/, "a keyword is not a listing URL");
+});
+
+await check("the estimate: each quota priced, a quote and a stop line", () => {
+  const plan = pullPlan();
   const est = estimatePull(plan, costRatesFromEnv({}), { quoteUsd: 10 });
   assert.equal(est.runs, plan.length);
   assert.equal(est.quoteUsd, 10);
@@ -371,18 +558,84 @@ await check("--confirm-spend: a run that projects above the quote stops after it
   } finally { await site.close(); rmSync(dataDir, { recursive: true, force: true }); }
 });
 
-await check("apify-scrape-start: DSW is UNVERIFIED and off unless DSW_ACTOR_ID is set", async () => {
+await check("the $200 wave cap: stop line = min(quote +25%, cap left); a run that would pass the cap is not started", () => {
+  const plan = pullPlan();
+  const rates = costRatesFromEnv({});
+  assert.equal(WAVE_CAP_USD, 200);
+  const est = estimatePull(plan, rates, { capUsd: 200 });
+  assert.equal(est.stopAboveUsd, Math.min(est.overrunLineUsd, 200));
+  assert.equal(est.overCap, false, "the default plan fits the cap");
+  const big = estimatePull(plan, rates, { quoteUsd: 180, capUsd: 200 });
+  assert.equal(big.overrunLineUsd, 225);
+  assert.equal(big.stopAboveUsd, 200, "the cap, not the +25%, is the stop line");
+  const later = estimatePull(plan, rates, { quoteUsd: 180, capUsd: 200, spentBeforeUsd: 50 });
+  assert.equal(later.capRemainingUsd, 150);
+  assert.equal(later.stopAboveUsd, 150);
+  assert.equal(estimatePull(plan, rates, { capUsd: 50 }).overCap, true);
+  const g1 = capGuard([], plan[0], est);
+  assert.equal(g1.ok, true);
+  assert.equal(g1.chargeLimitUsd, 200, "Apify is told the most this run may charge");
+  const g2 = capGuard([{ quota: plan[0], usd: 190 }], plan[1], est);
+  assert.equal(g2.ok, false);
+  assert.match(g2.reason, /TOPE DE GASTO/);
+});
+
+await check("--confirm-spend over the cap left: REFUSED before any run (exit 3)", async () => {
+  const env = { ...process.env };
+  delete env.APIFY_API_KEY; delete env.DSW_ACTOR_ID;
+  const r = await runCli(["--via", "apify", "--confirm-spend", "--max-spend-usd", "50"], { APIFY_API_KEY: "", DSW_ACTOR_ID: "" });
+  assert.equal(r.code, 3, r.out);
+  assert.match(r.out, /OVER THE CAP/);
+  assert.match(r.out, /REFUSED: the estimate/);
+});
+
+await check("--confirm-spend with a high quote: the $200 cap is the stop line and the pull stops (exit 3)", async () => {
+  const dataDir = mkdtempSync(join(tmpdir(), "dsw-data-"));
+  const site = await stubSite((req) => {
+    if (req.url.startsWith("/.netlify/functions/apify-scrape-start")) return { json: { runId: "run-1" } };
+    if (req.url.startsWith("/.netlify/functions/apify-scrape-status")) return { json: { status: "SUCCEEDED", items: [], usageUsd: 150 } };
+    return { status: 404, json: {} };
+  });
+  try {
+    const r = await runCli(["--site", site.url, "--confirm-spend", "--quote", "1000"], { DSW_DATA_DIR: dataDir });
+    assert.equal(r.code, 3, r.out);
+    assert.match(r.out, /stops if it projects above \$200\.00/);
+    assert.equal(site.calls.filter((c) => c.url.startsWith("/.netlify/functions/apify-scrape-start")).length, 1);
+  } finally { await site.close(); rmSync(dataDir, { recursive: true, force: true }); }
+});
+
+await check("--src ingest: INGEST REPORT printed; English with no GROQ_API_KEY is DO NOT SHIP (exit 4), file only in a temp dir", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "dsw-src-"));
+  try {
+    const src = join(dir, "raw-fixture.json");
+    const out = join(dir, "out-catalog.json");
+    writeFileSync(src, JSON.stringify({ pulled: [{ quota: { category: "clearance", phase: 1 }, usageUsd: 1, items: [ecomRow(), baseRow(), { ...baseRow(), productId: "P9", name: "FIXTURE Women's Flat, no weight (not a real product)", specifications: [] }] }] }));
+    const r = await runCli(["--src", src, "--out", out, "--no-weight-estimates"], { DSW_DATA_DIR: join(dir, "data"), GROQ_API_KEY: "" });
+    assert.equal(r.code, 4, r.out);
+    assert.match(r.out, /INGEST REPORT — DSW/);
+    assert.match(r.out, /ES description coverage is 0\.0%: GROQ_API_KEY is not set/);
+    assert.match(r.out, /VERDICT: DO NOT SHIP/);
+    assert.ok(existsSync(out));
+    const dry = await runCli(["--src", src, "--dry-run"], { DSW_DATA_DIR: join(dir, "data"), GROQ_API_KEY: "" });
+    assert.equal(dry.code, 0, dry.out);
+    assert.match(dry.out, /INGEST REPORT — DSW \(dry run, nothing written\)/);
+    assert.match(dry.out, /weight \(published or flagged estimate\).*HOLE, explained: apply-weight-estimates\.py/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+await check("apify-scrape-start: DSW is verified (dated), and off unless DSW_ACTOR_ID is set", async () => {
   const src = read("netlify/functions/apify-scrape-start.js");
-  assert.match(src, /DSW \(Issue #443, 2026-10-21\) — UNVERIFIED/);
-  assert.match(src, /TO FINISH THE INTEGRATION/);
+  assert.match(src, /VERIFIED 2026-10-22 \(Lucifer\)/);
+  assert.match(src, /apify\/e-commerce-scraping-tool/);
   const prev = process.env.DSW_ACTOR_ID;
   delete process.env.DSW_ACTOR_ID;
   const mod = await import("../../netlify/functions/apify-scrape-start.js?nodsw=" + Date.now());
   if (prev !== undefined) process.env.DSW_ACTOR_ID = prev;
-  assert.deepEqual(Object.keys(mod.DEPARTMENT_CONFIG.dsw), ["clearance", "sale", "bestsellers", "women", "men", "kids", "bags"]);
+  assert.deepEqual(Object.keys(mod.DEPARTMENT_CONFIG.dsw), ["clearance", "bestsellers", "women", "men", "kids", "bags"]);
+  for (const [k, v] of Object.entries(mod.DEPARTMENT_CONFIG.dsw)) assert.equal(v.startUrl, VERIFIED_URLS[k], k);
   /* connectLambda wants a blobs context; the pending path never touches it. */
   const blobs = Buffer.from(JSON.stringify({ url: "http://127.0.0.1:1", token: "test" })).toString("base64");
-  const res = await mod.handler({ httpMethod: "POST", headers: { "x-nf-site-id": "test", "x-nf-deploy-id": "test" }, blobs, body: JSON.stringify({ retailer: "dsw", department: "sale" }) });
+  const res = await mod.handler({ httpMethod: "POST", headers: { "x-nf-site-id": "test", "x-nf-deploy-id": "test" }, blobs, body: JSON.stringify({ retailer: "dsw", department: "clearance" }) });
   assert.equal(res.statusCode, 400);
   assert.equal(JSON.parse(res.body).pendingIntegration, true, "an unconfigured DSW is a named pending integration, not a silent empty run");
 });

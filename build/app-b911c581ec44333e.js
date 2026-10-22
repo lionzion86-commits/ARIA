@@ -12180,6 +12180,52 @@ function initBolsosRail(){
   paintRailWhenNear(document.querySelectorAll('[data-bolsos-section]').length ? document.querySelectorAll('[data-bolsos-section]') : rows, loadAndPaint);
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
+/* PERFUMES (2026-10-22, #443, Danny). One shelf, two doors: the home
+   page's Perfumes rail and the lead rail of Aria Beauty > Fragancias.
+   Both paint from assets/home/shelves/perfumes.json (a few KB, built by
+   scripts/build-perfumes-shelf.mjs: perfume bottles from every live
+   catalogue, sales only plus the named hero anchors, designer houses
+   first, cheapest first, Sephora excluded). The home rail paints when
+   its section nears the screen (paintRailWhenNear), never at boot, and
+   never reaches for a catalogue: no shelf, or a shelf shorter than its
+   own `min`, and the section stands down. */
+let perfumesRendered = [];
+let perfumesStarted = false;
+async function perfumesShelfPicks(){
+  const shelf = await homeShelf('perfumes');
+  const picks = shelf && Array.isArray(shelf.picks) ? shelf.picks : [];
+  const min = shelf && Number.isFinite(shelf.min) ? shelf.min : 4;
+  return picks.length >= min ? picks : [];
+}
+function openPerfumeProduct(idx){
+  const p = perfumesRendered[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, dutiableUsd: p.dutiableUsd ?? null });
+}
+async function paintPerfumeRows(rows, sections){
+  const standDown = () => sections.forEach(sec => { sec.hidden = true; });
+  try {
+    if (!perfumesRendered.length) perfumesRendered = await perfumesShelfPicks();
+    if (!perfumesRendered.length){ standDown(); return; }
+    for (const row of rows){
+      row.innerHTML = perfumesRendered.map((p, i) => railCardHTML(p, `openPerfumeProduct(${i})`,
+        `data-perfume-card="${i}"${p.heroAnchor ? ` data-hero-anchor="${escapeHtml(p.heroAnchor)}"` : ''}`,
+        { dark: true })).join('');
+    }
+  } catch { standDown(); }
+}
+function initPerfumesRail(){
+  if (perfumesStarted) return;
+  const rows = [...document.querySelectorAll('[data-perfumes-rail]')];
+  if (!rows.length) return;
+  perfumesStarted = true;
+  const sections = [...document.querySelectorAll('[data-perfumes-section]')];
+  paintRailWhenNear(sections.length ? sections : rows, () => paintPerfumeRows(rows, sections));
+}
+window.addEventListener('DOMContentLoaded', initPerfumesRail);
 /* JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
    homepage. Every style (Elegante, Boho, Personalizado, Otaku, Edgy, Punk)
    is picked sale-led, then round-robin interleaved so the single shelf
@@ -22068,6 +22114,11 @@ function titleVolumeMl(title) {
 function isFragrance(title) {
   const t = String(title || "");
   if (BEAUTY_IMPOSTOR_RE.test(t)) return false;
+  /* ONE DEFINITION (#443): /fragrance.js (loaded before this bundle) is
+     the classifier the Perfumes carousel, checkout and orders-create
+     read. The title test below is only for a context without it. */
+  const shared = typeof globalThis !== 'undefined' ? globalThis.AriaFragrance : null;
+  if (shared) return shared.isFragranceItem(t);
   // A body mist is alcohol-based fragrance, so it counts against the
   // same allowance even though it is not sold as "perfume".
   return PERFUME_RE.test(t) || /\b(body mist|body splash|fragrance mist|bruma corporal)\b/i.test(t);
@@ -22204,7 +22255,9 @@ function beautyWeightKg(title, hints = {}) {
 function fragranceCount(items) {
   return (Array.isArray(items) ? items : []).reduce((sum, it) => {
     const title = String(it?.title ?? it?.name ?? "");
-    if (!isFragrance(title)) return sum;
+    if (it?.lineType === 'bundle-discount') return sum;
+    const shared = typeof globalThis !== 'undefined' ? globalThis.AriaFragrance : null;
+    if (shared ? (BEAUTY_IMPOSTOR_RE.test(title) || !shared.isFragranceItem(it)) : !isFragrance(title)) return sum;
     return sum + Math.max(1, Math.round(Number(it?.qty) || 1));
   }, 0);
 }
@@ -27055,6 +27108,76 @@ function renderCartWeightReview(){
    blocking message once the basket is over the limit. Checkout is
    disabled in the over-limit case — letting someone pay for a shipment
    the courier will not carry is the worst of the options. */
+/* FOUR PERFUMES PER ORDER, AND A WAY OUT (#443, Danny). Over the limit
+   the cart does not dead-end: one tap keeps four perfume units in this
+   order and moves the rest to "Siguiente pedido" (localStorage
+   aria_cart_next_v1, /fragrance.js NEXT_ORDER_KEY). When this order is
+   paid, checkout puts them back in the cart for the second order; the
+   shopper can also bring them back while there is room. The split is
+   /fragrance.js splitForCap -- the same classifier orders-create
+   enforces with a 400. */
+function loadNextOrder(){
+  const F = globalThis.AriaFragrance;
+  try {
+    const v = JSON.parse(localStorage.getItem((F && F.NEXT_ORDER_KEY) || 'aria_cart_next_v1') || '[]');
+    return Array.isArray(v) ? v.filter(it => it && typeof it === 'object') : [];
+  } catch { return []; }
+}
+function saveNextOrder(list){
+  const F = globalThis.AriaFragrance;
+  const key = (F && F.NEXT_ORDER_KEY) || 'aria_cart_next_v1';
+  try { if (list.length) localStorage.setItem(key, JSON.stringify(list)); else localStorage.removeItem(key); } catch {}
+}
+function mergeCartLines(into, add){
+  const out = into.map(it => ({ ...it }));
+  for (const it of add){
+    const k = cartItemKey(it);
+    const hit = out.find(o => cartItemKey(o) === k);
+    if (hit) hit.qty = normalizeCartQty(hit.qty) + normalizeCartQty(it.qty);
+    else out.push({ ...it, qty: normalizeCartQty(it.qty) });
+  }
+  return out;
+}
+function afterCartSplit(){
+  syncBundleDiscounts();
+  saveCartLocal();
+  syncCartToServer();
+  renderCartBadge();
+  renderCartView();
+}
+function movePerfumeExtrasToNextOrder(){
+  const F = globalThis.AriaFragrance;
+  if (!F) return;
+  const { keep, next, moved } = F.splitForCap(cart);
+  if (!next.length) return;
+  cart = keep.map(it => ({ ...it, qty: normalizeCartQty(it.qty) }));
+  saveNextOrder(mergeCartLines(loadNextOrder(), next));
+  afterCartSplit();
+  showToast(`${moved} perfume${moved === 1 ? '' : 's'} pasado${moved === 1 ? '' : 's'} a tu siguiente pedido.`);
+}
+function moveNextOrderToCart(){
+  const F = globalThis.AriaFragrance;
+  const held = loadNextOrder();
+  if (!held.length) return;
+  const merged = mergeCartLines(cart, held);
+  const { keep, next } = F ? F.splitForCap(merged) : { keep: merged, next: [] };
+  cart = keep.map(it => ({ ...it, qty: normalizeCartQty(it.qty) }));
+  saveNextOrder(next);
+  afterCartSplit();
+}
+function nextOrderNoticeHTML(){
+  const held = loadNextOrder();
+  if (!held.length) return '';
+  const units = held.reduce((n, it) => n + normalizeCartQty(it.qty), 0);
+  const F = globalThis.AriaFragrance;
+  const room = F ? F.capState(cart).remaining : 0;
+  return `<div data-next-order class="rounded-2xl px-4 py-3 mt-3" style="background:#EEF3FF; border:1px solid #C9D6F2">
+    <div class="text-[13px] font-extrabold" style="color:#0A1F44">Siguiente pedido: ${units} perfume${units === 1 ? '' : 's'} guardado${units === 1 ? '' : 's'}</div>
+    <div class="text-[12.5px] leading-snug mt-0.5" style="color:#41506E">${held.map(it => escapeHtml(String(it.title || '').slice(0, 60)) + (normalizeCartQty(it.qty) > 1 ? ' x' + normalizeCartQty(it.qty) : '')).join(' · ')}</div>
+    <div class="text-[12.5px] leading-snug mt-1" style="color:#41506E">Paga este pedido y los ponemos en tu carrito para el segundo.</div>
+    ${room > 0 ? `<button type="button" onclick="moveNextOrderToCart()" data-next-order-restore class="inline-flex items-center h-9 px-4 mt-2 rounded-full text-[12.5px] font-bold focus-ring" style="background:#fff;color:#0A1F44;border:1px solid #C9D6F2">Pasar a este pedido</button>` : ''}
+  </div>`;
+}
 function renderCartFragranceLimit(){
   const wrap = document.getElementById('cartFragranceWrap');
   const btn = document.getElementById('cartCheckoutBtn');
@@ -27071,21 +27194,24 @@ function renderCartFragranceLimit(){
     btn.style.cursor = blocked ? 'not-allowed' : '';
   };
   const state = fragranceLimitState(cart);
+  const held = nextOrderNoticeHTML();
   if (!state.count){
-    wrap.innerHTML = '';
+    wrap.innerHTML = held;
     setBlocked(blockedByWeight);
     return;
   }
   if (state.overLimit){
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 flex items-start gap-3" style="background:#FDEDEC; border:1px solid #E6B0AA">
+    const extra = state.count - state.limit;
+    wrap.innerHTML = `<div data-perfume-cap class="rounded-2xl px-4 py-3.5 flex items-start gap-3" style="background:#FDEDEC; border:1px solid #E6B0AA">
       <svg class="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A93226" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
       <div>
-        <div class="text-[13.5px] font-extrabold" style="color:#922B21">Tienes ${state.count} perfumes y el máximo por envío es ${state.limit}</div>
+        <div class="text-[13.5px] font-extrabold" style="color:#922B21">Máximo ${state.limit} perfumes por pedido — el resto puede ir en un segundo pedido</div>
         <div class="text-[12.5px] leading-snug mt-0.5" style="color:#A93226">
-          Los perfumes y las brumas corporales son carga restringida por aire. Quita ${state.count - state.limit} para continuar, o haz un segundo pedido con el resto.
+          Tienes ${state.count}. Los perfumes y las brumas corporales son carga restringida por aire. Deja ${state.limit} en este pedido y pasa ${extra === 1 ? 'el otro' : `los otros ${extra}`} a tu siguiente pedido.
         </div>
+        <button type="button" onclick="movePerfumeExtrasToNextOrder()" data-perfume-split class="inline-flex items-center min-h-[44px] px-4 mt-2.5 rounded-full text-white text-[13px] font-bold focus-ring" style="background:#A93226">Pasar ${extra} al siguiente pedido</button>
       </div>
-    </div>`;
+    </div>` + held;
     setBlocked(true);
     return;
   }
@@ -27094,7 +27220,7 @@ function renderCartFragranceLimit(){
     <div class="text-[12.5px] leading-snug" style="color:#7A5B12">
       <b>${state.count} de ${state.limit} perfumes</b> en este envío. Nuestro courier permite hasta ${state.limit} por paquete.
     </div>
-  </div>`;
+  </div>` + held;
   setBlocked(blockedByWeight);
 }
 
