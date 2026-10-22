@@ -128,18 +128,22 @@ export const CATALOG_QUOTAS = {
      sale ceiling (DSW_SALE_MAX in scripts/lib/dsw.js), because "all
      sale" is the order and a fixed 60 would silently cut it.
 
-     No actor is verified for dsw.com yet (see RETAILER_CONFIG.dsw in
-     netlify/functions/apify-scrape-start.js), so the queries below are
-     keyword fallbacks; a real listing URL per quota is passed with
-     --urls once someone has copied it from dsw.com in a browser. */
+     ACTOR AND LISTINGS VERIFIED (Lucifer, #443, 2026-10-22):
+     apify/e-commerce-scraping-tool, and the six listing URLs below were
+     opened live on dsw.com with their result counts (`listed`). There
+     is no separate sale listing: /category/sale is a 404 and
+     /category/clearance IS DSW's sale surface. Bags live under
+     /category/accessories (non-bag accessories there are dropped at
+     ingest, see `scope`). The keyword `query` is kept only for the
+     site path's fallback. Targets are depth caps per run; products seen
+     in two listings are paid twice and kept once (ingest dedupe). */
   dsw: [
-    { category: "clearance", phase: 1, saleOnly: true, department: "clearance", query: "clearance shoes", target: "all" },
-    { category: "sale", phase: 1, saleOnly: true, department: "sale", query: "sale shoes", target: "all" },
-    { category: "bestsellers", phase: 1, department: "bestsellers", query: "best sellers shoes", target: 200 },
-    { category: "women", phase: 2, department: "women", query: "womens shoes", target: 200, gender: "women" },
-    { category: "men", phase: 2, department: "men", query: "mens shoes", target: 150, gender: "men" },
-    { category: "kids", phase: 2, department: "kids", query: "kids shoes", target: 100, gender: "kids" },
-    { category: "bags", phase: 2, department: "bags", query: "handbags", target: 60, bucket: "purses" },
+    { category: "clearance", phase: 1, saleOnly: true, department: "clearance", url: "https://www.dsw.com/category/clearance", listed: 5812, query: "clearance shoes", target: "all" },
+    { category: "bestsellers", phase: 1, department: "bestsellers", url: "https://www.dsw.com/category/womens/top-rated", listed: 4035, query: "best sellers shoes", target: 4100 },
+    { category: "women", phase: 2, department: "women", url: "https://www.dsw.com/category/womens", query: "womens shoes", target: 3000, gender: "women" },
+    { category: "men", phase: 2, department: "men", url: "https://www.dsw.com/category/mens", query: "mens shoes", target: 2000, gender: "men" },
+    { category: "kids", phase: 2, department: "kids", url: "https://www.dsw.com/category/kids", query: "kids shoes", target: 1500, gender: "kids" },
+    { category: "bags", phase: 2, department: "bags", url: "https://www.dsw.com/category/accessories", listed: 2389, query: "handbags", target: 2400, scope: "bags" },
   ],
 };
 
