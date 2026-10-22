@@ -528,6 +528,78 @@
             </div>
           </div>
         </section>
+
+        <!-- ============================================================
+             THE RECIPIENT'S DNI PHOTOS (#443, embarque brief, 2026-10-22).
+             Aduanas and the courier need both sides of the document of
+             whoever receives the box. Collected HERE and nowhere else
+             (Danny: checkout only, never WhatsApp). The phone compresses
+             each photo before it goes up, the preview is the phone's own
+             copy (no photo is ever loaded from the server on this page),
+             and a failed upload retries just that photo.
+             Key Club: the pack is saved to the account and reused; the
+             section then shows the saved document instead of the slots.
+             ============================================================ -->
+        <section id="dniSection" class="bg-white border rounded-3xl p-5 sm:p-6 mt-4" style="border-color:var(--line)">
+          <h2 class="text-[15px] font-extrabold tracking-[-0.01em] mb-1.5 flex items-center gap-2" style="color:var(--navy)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.3 1.5-2 2.5-2s1.9.7 2.5 2M14 10h4M14 13h3"/></svg>
+            <span id="dniHeading">Foto de tu DNI</span>
+          </h2>
+          <p class="text-[12.5px] leading-snug mb-4" style="color:#6B7280">
+            La aduana y el courier piden el documento de quien recibe el paquete. Solo lo usamos para tu envío.
+            <span id="dniKeepNote"></span>
+          </p>
+          <div id="dniSaved" class="rounded-2xl p-4 mb-1" style="background:var(--sky)" hidden>
+            <p class="text-[13px] font-semibold" style="color:var(--navy)">Usaremos el documento guardado en tu cuenta Key Club: <span id="dniSavedLabel"></span></p>
+            <button type="button" id="dniUseNew" class="mt-1.5 text-[12.5px] font-bold underline" style="color:var(--blue)">Subir fotos nuevas</button>
+          </div>
+          <div id="dniSlots" class="grid sm:grid-cols-2 gap-3">
+              <div class="dniSlot rounded-2xl border p-3.5" data-side="front" style="border-color:var(--line)">
+                <p class="dniSlotTitle text-[12.5px] font-bold mb-2" data-word="frente">Foto de tu DNI — frente</p>
+                <div class="dniPreview rounded-xl mb-2.5 flex items-center justify-center overflow-hidden" style="background:var(--sky);aspect-ratio:1.58/1">
+                  <img alt="" hidden class="w-full h-full object-cover">
+                  <svg class="dniPlaceholder" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9AA3B8" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.5 16.2c.7-1.6 1.8-2.4 3-2.4s2.3.8 3 2.4M14 10h4.5M14 13h3"/></svg>
+                </div>
+                <div class="dniActions grid grid-cols-2 gap-2">
+                  <label class="dniBtn h-[40px] rounded-xl flex items-center justify-center text-[12.5px] font-bold cursor-pointer" style="background:var(--blue);color:#fff">
+                    <input type="file" accept="image/*" capture="environment" class="sr-only" data-pick="camera">
+                    <span class="dniCameraLabel">Tomar foto</span>
+                  </label>
+                  <label class="dniBtn h-[40px] rounded-xl border flex items-center justify-center text-[12.5px] font-bold cursor-pointer" style="border-color:var(--line);color:var(--navy)">
+                    <input type="file" accept="image/*" class="sr-only" data-pick="library">
+                    <span>Subir de la galería</span>
+                  </label>
+                </div>
+                <div class="dniStatus mt-2 text-[11.5px] leading-snug" style="color:#6B7280" aria-live="polite">
+                  <div class="dniBar h-[4px] rounded-full overflow-hidden mb-1.5" style="background:var(--line)" hidden><div style="height:100%;width:0;background:var(--blue);transition:width .2s"></div></div>
+                  <span class="dniStatusText">De frente, con las cuatro esquinas a la vista y sin reflejos.</span>
+                  <button type="button" class="dniRetry font-bold underline ml-1" style="color:var(--blue)" hidden>Reintentar</button>
+                </div>
+              </div>
+              <div class="dniSlot rounded-2xl border p-3.5" data-side="back" style="border-color:var(--line)">
+                <p class="dniSlotTitle text-[12.5px] font-bold mb-2" data-word="reverso">Foto de tu DNI — reverso</p>
+                <div class="dniPreview rounded-xl mb-2.5 flex items-center justify-center overflow-hidden" style="background:var(--sky);aspect-ratio:1.58/1">
+                  <img alt="" hidden class="w-full h-full object-cover">
+                  <svg class="dniPlaceholder" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9AA3B8" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.5 16.2c.7-1.6 1.8-2.4 3-2.4s2.3.8 3 2.4M14 10h4.5M14 13h3"/></svg>
+                </div>
+                <div class="dniActions grid grid-cols-2 gap-2">
+                  <label class="dniBtn h-[40px] rounded-xl flex items-center justify-center text-[12.5px] font-bold cursor-pointer" style="background:var(--blue);color:#fff">
+                    <input type="file" accept="image/*" capture="environment" class="sr-only" data-pick="camera">
+                    <span class="dniCameraLabel">Tomar foto</span>
+                  </label>
+                  <label class="dniBtn h-[40px] rounded-xl border flex items-center justify-center text-[12.5px] font-bold cursor-pointer" style="border-color:var(--line);color:var(--navy)">
+                    <input type="file" accept="image/*" class="sr-only" data-pick="library">
+                    <span>Subir de la galería</span>
+                  </label>
+                </div>
+                <div class="dniStatus mt-2 text-[11.5px] leading-snug" style="color:#6B7280" aria-live="polite">
+                  <div class="dniBar h-[4px] rounded-full overflow-hidden mb-1.5" style="background:var(--line)" hidden><div style="height:100%;width:0;background:var(--blue);transition:width .2s"></div></div>
+                  <span class="dniStatusText">De frente, con las cuatro esquinas a la vista y sin reflejos.</span>
+                  <button type="button" class="dniRetry font-bold underline ml-1" style="color:var(--blue)" hidden>Reintentar</button>
+                </div>
+              </div>
+          </div>
+        </section>
         </div>
 
         <div class="gridDestination">
@@ -1658,6 +1730,163 @@ function cardImgAttrs(url, sizes){
     };
   }
 
+  /* ============================================================
+     THE RECIPIENT'S DNI PHOTOS (#443). Two slots, frente and reverso,
+     each with the camera and the library. Under the Mountain Test:
+       - the photo is shrunk ON the phone (longest side <= 1600 px, JPEG,
+         a few hundred KB) before anything goes up a slow connection;
+       - the preview is the phone's own compressed copy, instantly;
+       - the bar shows the upload; a failure keeps the photo and the
+         whole checkout, and "Reintentar" resends just that photo.
+     What the server keeps is an opaque token per side; Pagar sends the
+     two tokens (dni-upload.js / orders-create.js). A Key Club member
+     whose document is saved sees it instead of the slots.
+     ============================================================ */
+  const DNI_MAX_EDGE = 1600;
+  const DNI_TARGET_BYTES = 600 * 1024;
+  const dni = { front: { token: null, blob: null, busy: false }, back: { token: null, blob: null, busy: false } };
+  let dniSavedPacks = [];
+  let dniUseSaved = null;      // the saved document number in use, or null
+  let dniForceNew = false;     // the member chose "Subir fotos nuevas"
+
+  const normDoc = (v) => String(v || '').replace(/[\s.-]+/g, '').toUpperCase();
+  function consigneeDocNumber(){
+    return normDoc(document.getElementById(altRecipientToggle.checked ? 'recDoc' : 'custDoc').value);
+  }
+  function dniSlot(side){ return document.querySelector(`.dniSlot[data-side="${side}"]`); }
+
+  function syncDniCopy(){
+    const other = altRecipientToggle.checked;
+    document.getElementById('dniHeading').textContent = other ? 'Foto del DNI de quien recibe' : 'Foto de tu DNI';
+    for (const t of document.querySelectorAll('.dniSlotTitle')){
+      t.textContent = (other ? 'Foto del DNI de quien recibe — ' : 'Foto de tu DNI — ') + t.dataset.word;
+    }
+    document.getElementById('dniKeepNote').textContent = dniSavedPacks.signedIn
+      ? 'Se guarda en tu cuenta Key Club: no te lo volveremos a pedir.'
+      : 'Lo borramos 30 días después de la entrega. Con Key Club lo subes una sola vez.';
+    const doc = consigneeDocNumber();
+    const saved = !dniForceNew && (dniSavedPacks.recipients || []).find((r) => r.docNumber === doc);
+    dniUseSaved = saved ? saved.docNumber : null;
+    document.getElementById('dniSaved').hidden = !saved;
+    document.getElementById('dniSlots').hidden = Boolean(saved);
+    if (saved) document.getElementById('dniSavedLabel').textContent = `${saved.name || 'documento'} · terminado en ${saved.docNumber.slice(-3)}`;
+  }
+
+  function setDniStatus(side, text, { bar = null, retry = false, tone = 'muted' } = {}){
+    const el = dniSlot(side);
+    const barEl = el.querySelector('.dniBar');
+    barEl.hidden = bar == null;
+    if (bar != null) barEl.firstElementChild.style.width = Math.round(bar * 100) + '%';
+    const t = el.querySelector('.dniStatusText');
+    t.textContent = text;
+    t.style.color = tone === 'error' ? '#B42318' : tone === 'ok' ? '#0F7A3D' : '#6B7280';
+    el.querySelector('.dniRetry').hidden = !retry;
+  }
+
+  function resetDniSlot(side){
+    const st = dni[side];
+    st.token = null; st.blob = null; st.busy = false;
+    const img = dniSlot(side).querySelector('.dniPreview img');
+    if (img.src) URL.revokeObjectURL(img.src);
+    img.removeAttribute('src'); img.hidden = true;
+    dniSlot(side).querySelector('.dniPlaceholder').style.display = '';
+    dniSlot(side).querySelector('.dniCameraLabel').textContent = 'Tomar foto';
+    setDniStatus(side, 'De frente, con las cuatro esquinas a la vista y sin reflejos.');
+  }
+
+  async function decodePhoto(file){
+    if ('createImageBitmap' in window){
+      try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch {}
+    }
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
+      return img;
+    } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  }
+  /* Shrink on the phone: never send a multi-MB camera original. */
+  async function compressPhoto(file){
+    const src = await decodePhoto(file);
+    const w0 = src.width, h0 = src.height;
+    let edge = Math.min(DNI_MAX_EDGE, Math.max(w0, h0));
+    for (const quality of [0.82, 0.72, 0.62, 0.55]){
+      const k = edge / Math.max(w0, h0);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w0 * k); canvas.height = Math.round(h0 * k);
+      canvas.getContext('2d').drawImage(src, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', quality));
+      if (blob && (blob.size <= DNI_TARGET_BYTES || quality === 0.55)) return blob;
+      edge = Math.max(1000, Math.round(edge * 0.85));
+    }
+    throw new Error('no se pudo comprimir');
+  }
+  function blobToBase64(blob){
+    return new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = fail; r.readAsDataURL(blob); });
+  }
+  async function uploadDni(side){
+    const st = dni[side];
+    if (!st.blob) return;
+    st.busy = true; st.token = null;
+    setDniStatus(side, 'Subiendo la foto…', { bar: 0 });
+    try {
+      const data = await blobToBase64(st.blob);
+      const token = await new Promise((ok, fail) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/.netlify/functions/dni-upload');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 90000;
+        xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) setDniStatus(side, 'Subiendo la foto…', { bar: ev.loaded / ev.total }); };
+        xhr.onload = () => {
+          let body = {};
+          try { body = JSON.parse(xhr.responseText); } catch {}
+          if (xhr.status === 200 && body.token) ok(body.token); else fail(new Error(body.error || 'No se pudo subir la foto.'));
+        };
+        xhr.onerror = () => fail(new Error('Sin conexión. Tu foto sigue aquí.'));
+        xhr.ontimeout = () => fail(new Error('La conexión está lenta. Tu foto sigue aquí.'));
+        xhr.send(JSON.stringify({ side, data }));
+      });
+      st.token = token;
+      setDniStatus(side, 'Foto lista.', { tone: 'ok' });
+    } catch (err){
+      setDniStatus(side, err.message || 'No se pudo subir la foto.', { retry: true, tone: 'error' });
+    } finally { st.busy = false; }
+  }
+  async function takeDniPhoto(side, file){
+    if (!file) return;
+    const st = dni[side];
+    setDniStatus(side, 'Preparando la foto…');
+    try { st.blob = await compressPhoto(file); }
+    catch { setDniStatus(side, 'No pudimos leer esa foto. Prueba con otra.', { tone: 'error' }); return; }
+    const img = dniSlot(side).querySelector('.dniPreview img');
+    if (img.src) URL.revokeObjectURL(img.src);
+    img.src = URL.createObjectURL(st.blob); img.hidden = false;
+    dniSlot(side).querySelector('.dniPlaceholder').style.display = 'none';
+    dniSlot(side).querySelector('.dniCameraLabel').textContent = 'Volver a tomar';
+    await uploadDni(side);
+  }
+  for (const side of ['front', 'back']){
+    const el = dniSlot(side);
+    for (const input of el.querySelectorAll('input[type=file]')){
+      input.addEventListener('change', () => { const f = input.files && input.files[0]; input.value = ''; takeDniPhoto(side, f); });
+    }
+    el.querySelector('.dniRetry').addEventListener('click', () => uploadDni(side));
+  }
+  document.getElementById('dniUseNew').addEventListener('click', () => { dniForceNew = true; syncDniCopy(); });
+  /* Another person receives the box: the photos already taken are of the
+     wrong document, so the slots start over. */
+  altRecipientToggle.addEventListener('change', () => { resetDniSlot('front'); resetDniSlot('back'); dniForceNew = false; syncDniCopy(); });
+  for (const id of ['custDoc', 'recDoc']) document.getElementById(id).addEventListener('input', syncDniCopy);
+  syncDniCopy();
+  fetch('/.netlify/functions/dni-pack', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => { if (d) { dniSavedPacks = d; syncDniCopy(); } })
+    .catch(() => {});
+
+  /* Ready to pay: a saved Key Club document, or both photos uploaded. */
+  function dniReady(){ return Boolean(dniUseSaved) || Boolean(dni.front.token && dni.back.token); }
+  function dniPayload(){ return dniUseSaved ? null : { front: dni.front.token, back: dni.back.token }; }
+
   /* PROVINCIA LAST-MILE. What goes on the order and onto the partner
      courier's manifest for the Lima → province leg. Routing info, not a
      price instruction: the server re-derives the fee from destCity
@@ -2229,6 +2458,12 @@ function cardImgAttrs(url, sizes){
       if (box) box.scrollIntoView({ block: 'center' });
       return;
     }
+    if (!dniReady()){
+      const busy = dni.front.busy || dni.back.busy;
+      showToast(busy ? 'Espera a que termine de subir la foto del DNI.' : 'Falta la foto del DNI (frente y reverso) de quien recibe el paquete.');
+      document.getElementById('dniSection').scrollIntoView({ block: 'center' });
+      return;
+    }
     if (!form.checkValidity() || !latestQuote){
       form.reportValidity();
       showToast(latestQuote ? 'Completa todos los campos obligatorios.' : 'Espera a que termine la cotización antes de pagar.');
@@ -2263,6 +2498,9 @@ function cardImgAttrs(url, sizes){
           // Null unless the buyer ticked the box. The server re-checks
           // that a recipient carries a document before accepting it.
           recipient: altRecipientPayload(),
+          // The recipient's DNI photos, by token; null when a Key Club
+          // member's saved document is used (the server finds it).
+          dniDocs: dniPayload(),
           items: cart,
           quote: latestQuote,
           fxRateVenta: fxRates?.venta ?? null,
@@ -2311,6 +2549,12 @@ function cardImgAttrs(url, sizes){
         }
         await initFxRates();
         throw new Error(`El total se actualizó a ${fmtWalletPen(data.totalPen)}. Revísalo y vuelve a pagar.`);
+      }
+      if (!res.ok && data.dniMissing){
+        /* An expired or missing photo: the slots start over, the rest of
+           the checkout stays as it is. */
+        resetDniSlot('front'); resetDniSlot('back'); dniForceNew = true; syncDniCopy();
+        document.getElementById('dniSection').scrollIntoView({ block: 'center' });
       }
       if (!res.ok){
         if (data.error) throw new Error(data.error);

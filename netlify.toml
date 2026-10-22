@@ -98,3 +98,12 @@
 # scripts/build-store-slices.mjs. The phone never downloads it.
 [functions."tienda"]
   included_files = ["assets/tienda/_fn/*.json"]
+
+# hidden-docs/ (#443): internal briefs and the blank Amex template live in
+# the repo for the build, not on the site. Forced so a published copy is
+# never served; any path under it answers 404.
+[[redirects]]
+  from = "/hidden-docs/*"
+  to = "/404"
+  status = 404
+  force = true
