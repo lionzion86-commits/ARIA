@@ -17,7 +17,8 @@
      real weights / dims where published       dsw.weightOf/dimensionsOf
      GTIN captured when present                dsw.gtinOf (checksum-valid);
                                                the report counts it
-     full multi-photo galleries                dsw.imagesOf (cap 12 here)
+     full multi-photo galleries                dsw.imagesOf (every image;
+                                               duplicates out, size charts last)
      size runs exactly as scraped              dsw.sizesOf; feed variants
                                                grouped in feed order
      Spanish 1-2 sentences, faithful to PDP    dsw.pdpSentences, then
@@ -26,6 +27,12 @@
      seller == Neiman Marcus itself            sellerVerdict()
      currency USD asserted at capture          dsw.currencyOf via ingestRow
      projected cost BEFORE running             estimatePull() (DSW's)
+     ~30,000 products (SSENSE parity)          selectForTarget(): sale all,
+                                               best sellers, then department
+                                               quotas proportional to pool
+     no freight / duplicates / out of scope    the site's shippable rule,
+                                               scopeVerdict(), id + look
+                                               dedupe in ingestPull()
 
    ACCESS NOTE (read before any spend). The repo's own recon
    (scripts/luxury-feed/README.md, 2026-09-28) found neimanmarcus.com
@@ -39,12 +46,12 @@
    NOTHING HERE INVENTS A PRODUCT FACT. Every field comes from the row.
    ============================================================ */
 import {
-  ingestRow as dswIngestRow, breadcrumbOf, imagesOf, moneyOf, validGtin,
-  estimatePull, spendCheck, quotaCostUsd, costRatesFromEnv, dswActorInput, MATERIAL_OVERRUN,
-  DEFAULT_COST_PER_1000_RESULTS_USD,
+  ingestRow as dswIngestRow, breadcrumbOf, moneyOf,
+  estimatePull, spendCheck, quotaCostUsd, costRatesFromEnv, MATERIAL_OVERRUN,
+  DEFAULT_COST_PER_1000_RESULTS_USD, GALLERY_CAP,
 } from "./dsw.js";
 
-export { estimatePull, spendCheck, quotaCostUsd, costRatesFromEnv, MATERIAL_OVERRUN, DEFAULT_COST_PER_1000_RESULTS_USD };
+export { estimatePull, spendCheck, quotaCostUsd, costRatesFromEnv, MATERIAL_OVERRUN, DEFAULT_COST_PER_1000_RESULTS_USD, GALLERY_CAP };
 
 export const NM_KEY = "neimanmarcus";
 export const NM_LABEL = "Neiman Marcus";
@@ -61,8 +68,9 @@ export const NM_SALE_MAX = 3000;
    Override per run with --min-usd / --max-usd. An assumption, stated. */
 export const PRICE_BAND_USD = { min: 10, max: 5000 };
 
-/* The gallery cap: luxury PDPs carry more angles than DSW's. */
-export const GALLERY_CAP = 12;
+/* THE TARGET: SSENSE parity, ~30,000 products (#443). Selection from
+   the feed's shippable, in-scope pool: see selectForTarget(). */
+export const NM_TARGET = 30000;
 
 /* THE PLAN — and the ASSUMPTIONS the estimate is built on. These
    targets are ASSUMED counts per department (one actor run per quota,
@@ -97,9 +105,15 @@ export function pullPlan({ saleMax = NM_SALE_MAX, urls = null } = {}) {
     .sort((a, b) => (a.phase - b.phase) || (a.order - b.order));
 }
 
-/* The actor input: DSW's (startUrls of {url} or a keyword list), the
-   one place to change once a chosen actor's schema is known. */
-export const nmActorInput = dswActorInput;
+/* The actor input for the gated, generic Apify path: no actor is
+   verified for neimanmarcus.com (DataDome; the feed is the route), so
+   this is Apify's common convention — startUrls of {url}, or a keyword
+   list — and the one place to change if an actor is ever chosen. */
+export function nmActorInput(quota, maxItems) {
+  const n = Math.max(1, Number(maxItems) || 1);
+  if (quota && quota.url) return { startUrls: [{ url: quota.url }], maxItems: n };
+  return { searchQueries: [String((quota && quota.query) || "neiman marcus")], maxItems: n };
+}
 
 export function formatEstimate(est) {
   const out = [];
@@ -202,41 +216,176 @@ export function ingestRow(raw, quota, ctx = {}) {
   if (!raw || typeof raw !== "object") return { drop: "not-an-object" };
   const sv = sellerVerdict(raw);
   if (!sv.ok) return { quarantine: "seller-not-neiman-marcus", row: raw };
+  const scope = scopeVerdict(raw);
+  if (scope) return { drop: scope };
   const v = dswIngestRow(raw, quota, { ...ctx, band: ctx.band || PRICE_BAND_USD });
   if (!v.item) return v;
   const item = v.item;
   item.retailer = NM_KEY;
   item.seller = NM_LABEL;
   item.sellerSource = sv.source;
-  const gallery = imagesOf(raw, GALLERY_CAP);
-  if (gallery.length) { item.images = gallery; item.image = gallery[0]; }
+  /* The gallery (every image, duplicates dropped, size charts last) and
+     GTIN per size come from DSW's ingestRow, shared. */
   if (item.description) item.descriptionSource = "neimanmarcus-pdp";
-  /* GTIN per size, when the row's variants carry them (a feed publishes
-     one GTIN per size, not one per product). Checksum-valid only. */
-  if (Array.isArray(raw.variants)) {
-    const vg = {};
-    for (const x of raw.variants) {
-      const code = x && String(first(x.gtin, x.upc, x.ean) || "").replace(/\s|-/g, "");
-      const size = x && first(x.size, x.sizeLabel, x.name);
-      if (size != null && validGtin(code)) vg[String(size).replace(/\s+/g, " ").trim()] = code;
-    }
-    if (Object.keys(vg).length) item.variantGtins = vg;
-  }
+  if (isBestSellerRow(raw)) item.bestSeller = true;
   return { item, id: v.id, bucket: bucketOf(raw, quota) };
+}
+
+/* ---------------- scope ---------------- */
+/* OUT OF SCOPE for a parcel shipment to Peru, whatever the feed lists:
+   gift cards and services (not goods), furniture / rugs / mattresses /
+   lighting fixtures (freight-killers even when a weight is missing),
+   alcohol (not shippable cross-border here). Dropped, counted, never
+   used to pad the target. */
+const OUT_OF_SCOPE = [
+  ["gift-card", /\b(e-?gift\s*cards?|gift\s*cards?|gift\s*certificates?|monogram(ming)?\s+service|alterations?)\b/i],
+  ["furniture", /\b(sofas?|sectionals?|loveseats?|armchairs?|dining\s+(tables?|chairs?)|coffee\s+tables?|console\s+tables?|side\s+tables?|nightstands?|dressers?|bookcases?|bed\s*frames?|headboards?|ottomans?|benches|bar\s*stools?|cabinets?|chandeliers?|floor\s+lamps?|area\s+rugs?|rugs?|mattress(es)?)\b/i],
+  ["alcohol", /\b(wine|champagne|prosecco|spirits|whisk(e)?y|vodka|tequila|bourbon|cognac)\b/i],
+];
+/** null when the row is in scope, else "out-of-scope-<kind>". */
+export function scopeVerdict(raw) {
+  const crumbs = breadcrumbOf(raw).join(" ");
+  const name = String(first(raw.name, raw.title, raw.productName) || "");
+  for (const [kind, rx] of OUT_OF_SCOPE) {
+    /* Category first; the name only for the unambiguous kinds (a
+       "wine-colored dress" is a dress). */
+    if (rx.test(crumbs) || (kind !== "alcohol" && kind !== "furniture" && rx.test(name))) return `out-of-scope-${kind}`;
+    if (kind === "furniture" && rx.test(name) && /\bhome\b|furniture|decor/i.test(crumbs)) return `out-of-scope-${kind}`;
+  }
+  return null;
+}
+
+/** A best-seller signal the SOURCE gives (feed label/flag, or the
+ *  best-sellers listing), never one we infer. */
+export function isBestSellerRow(raw) {
+  if (raw.bestSeller === true || raw.isBestSeller === true) return true;
+  const labels = [].concat(raw.labels || [], raw.badges || [], raw.badge || []).map(String).join(" | ");
+  return /\b(best\s*-?\s*sell(er|ers|ing)|top\s*-?\s*sell(er|ers|ing)|bestsell(er|ers|ing))\b/i.test(labels);
+}
+
+/* ---------------- the 30k selection ---------------- */
+
+/**
+ * Split `slots` across buckets in proportion to each bucket's pool
+ * (largest remainder; ties in bucket order); never more than a bucket
+ * has. `pool` is { bucket: count } in a stable order.
+ */
+export function proportionalQuotas(pool, slots) {
+  const keys = Object.keys(pool);
+  const total = keys.reduce((n, k) => n + pool[k], 0);
+  const out = Object.fromEntries(keys.map((k) => [k, 0]));
+  if (slots <= 0 || !total) return out;
+  if (slots >= total) { for (const k of keys) out[k] = pool[k]; return out; }
+  const exact = keys.map((k, i) => ({ k, i, x: (slots * pool[k]) / total }));
+  let given = 0;
+  for (const e of exact) { out[e.k] = Math.min(pool[e.k], Math.floor(e.x)); given += out[e.k]; }
+  exact.sort((a, b) => (b.x - Math.floor(b.x)) - (a.x - Math.floor(a.x)) || a.i - b.i);
+  for (let j = 0; given < slots && j < exact.length * 2; j++) {
+    const e = exact[j % exact.length];
+    if (out[e.k] < pool[e.k]) { out[e.k]++; given++; }
+  }
+  return out;
+}
+
+const countBy = (entries) => {
+  const o = {};
+  for (const e of entries) o[e.bucket] = (o[e.bucket] || 0) + 1;
+  return o;
+};
+
+/* Take `n` entries from a tier, spread across buckets in proportion. */
+function takeProportional(entries, n) {
+  if (n >= entries.length) return entries.slice();
+  const q = proportionalQuotas(countBy(entries), n);
+  const left = { ...q };
+  return entries.filter((e) => (left[e.bucket] > 0 ? (left[e.bucket]--, true) : false));
+}
+
+/**
+ * THE TARGET SELECTION (#443: ~30,000, SSENSE parity). `entries` is the
+ * whole shippable, in-scope, de-duplicated pool, [{ item, bucket }] in
+ * feed order. Order of preference:
+ *   1. sale / clearance — ALL of it (proportional by department only if
+ *      the sale tier alone is larger than the target);
+ *   2. best sellers — the source's own signal (feed label / flag or the
+ *      best-sellers listing), all of it while slots remain;
+ *   3. the remaining slots split across departments in proportion to
+ *      each department's remaining pool (largest remainder).
+ * A pool at or under the target is taken WHOLE and the true ceiling is
+ * stated. Nothing pads: the pool is all there is.
+ */
+export function selectForTarget(entries, target) {
+  const t = Math.max(0, Math.floor(Number(target) || 0));
+  const poolByBucket = countBy(entries);
+  const plan = { target: t, pool: entries.length, poolByBucket, sale: { pool: 0, taken: 0 }, best: { pool: 0, taken: 0 }, quotas: {}, selected: 0, ceiling: null };
+  const sale = entries.filter((e) => e.item.onSale);
+  const best = entries.filter((e) => !e.item.onSale && (e.item.bestSeller || e.item.bestSellerRank));
+  const rest = entries.filter((e) => !e.item.onSale && !(e.item.bestSeller || e.item.bestSellerRank));
+  plan.sale.pool = sale.length; plan.best.pool = best.length;
+  if (entries.length <= t) {
+    plan.sale.taken = sale.length; plan.best.taken = best.length;
+    const rb = countBy(rest);
+    for (const k of Object.keys(poolByBucket)) plan.quotas[k] = { pool: rb[k] || 0, quota: rb[k] || 0 };
+    plan.selected = entries.length;
+    plan.ceiling = entries.length;
+    return { selected: entries.slice(), plan };
+  }
+  const pickedSale = takeProportional(sale, t);
+  const pickedBest = takeProportional(best, t - pickedSale.length);
+  const slots = t - pickedSale.length - pickedBest.length;
+  const rb = countBy(rest);
+  const q = proportionalQuotas(rb, slots);
+  const left = { ...q };
+  const pickedRest = rest.filter((e) => (left[e.bucket] > 0 ? (left[e.bucket]--, true) : false));
+  for (const k of Object.keys(rb)) plan.quotas[k] = { pool: rb[k], quota: q[k] };
+  plan.sale.taken = pickedSale.length; plan.best.taken = pickedBest.length;
+  const keep = new Set([...pickedSale, ...pickedBest, ...pickedRest]);
+  const selected = entries.filter((e) => keep.has(e));
+  plan.selected = selected.length;
+  return { selected, plan };
+}
+
+/** The pre-run selection report (printed by --src ... --dry-run). */
+export function formatSelection(plan, dropped = {}) {
+  const out = [];
+  const n = (x) => Number(x).toLocaleString("en-US");
+  out.push("");
+  out.push("  ====================================================");
+  out.push(`  NEIMAN MARCUS — CANDIDATE POOL AND THE ${n(plan.target)} SELECTION`);
+  out.push("  ====================================================");
+  out.push(`  candidate pool (shippable, in scope, de-duplicated): ${n(plan.pool)}`);
+  const drops = Object.entries(dropped).filter(([, v]) => v);
+  if (drops.length) out.push(`  left out of the pool: ${drops.map(([k, v]) => `${k} ${n(v)}`).join(", ")}`);
+  out.push(`  pool by department: ${Object.entries(plan.poolByBucket).map(([k, v]) => `${k} ${n(v)}`).join(", ") || "(none)"}`);
+  out.push("  selection, in order:");
+  out.push(`    1. sale / clearance, ALL:           ${n(plan.sale.taken)} of ${n(plan.sale.pool)}`);
+  out.push(`    2. best sellers (source's signal):  ${n(plan.best.taken)} of ${n(plan.best.pool)}`);
+  out.push("    3. department quotas, proportional to the remaining pool:");
+  for (const [k, v] of Object.entries(plan.quotas)) out.push(`         ${k.padEnd(12)} ${n(v.quota).padStart(7)} of ${n(v.pool)}`);
+  out.push(`  SELECTED: ${n(plan.selected)}`);
+  if (plan.ceiling != null) {
+    out.push(`  THE POOL IS UNDER THE TARGET: all ${n(plan.ceiling)} are taken. The true ceiling from this feed is ${n(plan.ceiling)}, not ${n(plan.target)};`);
+    out.push("  nothing is padded (no freight, no duplicates, nothing out of scope).");
+  }
+  out.push("  ====================================================");
+  return out.join("\n");
 }
 
 /**
  * The whole pull in, the catalogue envelope out — the same envelope and
  * row shape scripts/lib/dsw.js's ingestPull writes, under
- * retailers.neimanmarcus. A product seen twice keeps its first
- * (sale/clearance) copy; its place in the best-sellers listing becomes
- * bestSellerRank.
+ * retailers.neimanmarcus. A product seen twice (same id, or same brand +
+ * name + colour under another id) keeps its first (sale/clearance)
+ * copy; its place in the best-sellers listing becomes bestSellerRank.
+ * With ctx.target, the published set is selectForTarget()'s choice and
+ * stats.selection carries the plan.
  */
 export function ingestPull(pulled, ctx = {}) {
-  const departments = {};
   const seen = new Map();
+  const seenLook = new Set();
+  const entries = [];
   const quarantined = [];
-  const stats = { rows: 0, published: 0, quarantined: {}, dropped: {}, perBucket: {}, onSale: 0, realWeight: 0, dimensions: 0, gtin: 0, withSizes: 0, gallery: 0, described: 0, currencyAssumed: 0, sellerFromRow: 0 };
+  const stats = { rows: 0, published: 0, pool: 0, quarantined: {}, dropped: {}, perBucket: {}, onSale: 0, realWeight: 0, dimensions: 0, gtin: 0, withSizes: 0, gallery: 0, described: 0, currencyAssumed: 0, sellerFromRow: 0 };
   for (const { quota, items } of pulled) {
     (items || []).forEach((raw, idx) => {
       stats.rows++;
@@ -248,16 +397,29 @@ export function ingestPull(pulled, ctx = {}) {
       }
       if (v.drop) { stats.dropped[v.drop] = (stats.dropped[v.drop] || 0) + 1; return; }
       const key = v.id || (v.item.brand || "") + "::" + v.item.name;
-      if (seen.has(key)) {
+      const look = [v.item.brand || "", v.item.name, v.item.color || ""].join("::").toLowerCase();
+      if (seen.has(key) || seenLook.has(look)) {
         const prev = seen.get(key);
-        if (quota.category === "bestsellers" && !prev.bestSellerRank) prev.bestSellerRank = idx + 1;
+        if (prev && quota.category === "bestsellers" && !prev.bestSellerRank) prev.bestSellerRank = idx + 1;
         stats.dropped.duplicate = (stats.dropped.duplicate || 0) + 1;
         return;
       }
       if (quota.category === "bestsellers") v.item.bestSellerRank = idx + 1;
       seen.set(key, v.item);
-      (departments[v.bucket] = departments[v.bucket] || { label: BUCKET_LABELS[v.bucket] || v.bucket, items: [] }).items.push(v.item);
+      seenLook.add(look);
+      entries.push({ item: v.item, bucket: v.bucket });
     });
+  }
+  stats.pool = entries.length;
+  let chosen = entries;
+  if (Number(ctx.target) > 0) {
+    const { selected, plan } = selectForTarget(entries, ctx.target);
+    chosen = selected;
+    stats.selection = plan;
+  }
+  const departments = {};
+  for (const { item, bucket } of chosen) {
+    (departments[bucket] = departments[bucket] || { label: BUCKET_LABELS[bucket] || bucket, items: [] }).items.push(item);
   }
   for (const [b, d] of Object.entries(departments)) {
     stats.perBucket[b] = d.items.length;
@@ -374,6 +536,8 @@ export function feedToRows(records) {
     if (dims.length === 3) specs.push({ name: "Product Dimensions", value: dims.join(" x ") });
     if (r.material) specs.push({ name: "Material", value: r.material });
     const anyInStock = vs.some((v) => inStockFeed(first(v.availability, v.in_stock)));
+    const labels = ["custom_label_0", "custom_label_1", "custom_label_2", "custom_label_3", "custom_label_4", "promotion_id", "badge"]
+      .map((k) => r[k]).filter((x) => x && String(x).trim()).map((x) => String(x).trim());
     const row = {
       productId: String(gid),
       name: first(r.title, r.product_name),
@@ -392,6 +556,8 @@ export function feedToRows(records) {
       ...(specs.length ? { specifications: specs } : {}),
       ...(sized.length ? { variants: sized.map((v) => ({ size: v.size, inStock: inStockFeed(first(v.availability, v.in_stock)), ...(first(v.gtin, v.upc, v.ean) ? { gtin: first(v.gtin, v.upc, v.ean) } : {}) })) } : {}),
       ...(anyInStock ? {} : { inStock: false }),
+      /* The feed's own merchandising labels (best seller, etc.), as given. */
+      ...(labels.length ? { labels } : {}),
     };
     out.push(row);
   }

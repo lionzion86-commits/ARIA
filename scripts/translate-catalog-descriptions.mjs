@@ -20,6 +20,11 @@
 //   or prices, and requires brand names / model numbers / sizes kept as-is.
 // - Writes back compact JSON (the served format); reports counts.
 //
+// --strict (used by the catalogue pull builders): translate every
+// description that is not positively Spanish (looksSpanish), not only the
+// ones the English word test catches -- short PDP sentences like "A
+// fixture sneaker for tests." slip past that test.
+//
 // Env: GROQ_API_KEY (required to translate; without it the script reports
 // what WOULD be translated and exits non-zero so a build step can't
 // silently ship English).
@@ -35,7 +40,7 @@ const BATCH = 8;
 const EN_CORE = new Set(("the and for with from that this these those they their them there then than which when will would your you are was were been has have had not but all any each every more most other some such only just about into over after before between through during very made make many much get new used using design designed crafted built featuring features includes including provides perfect ideal great ultimate premium quality comfort comfortable durable lightweight soft breathable stylish versatile collection").split(" "));
 const ES_CORE = new Set(("el la los las un una unos unas de del en y con por para como muy sin sobre entre hasta desde donde cuando este esta estos estas ese esa esos esas son estan fue fueron han tiene tienen sus nuestro nuestra pero porque tambien todo toda todos todas hay ser estar").split(" "));
 
-function isEnglish(s) {
+export function isEnglish(s) {
   const words = (s.toLowerCase().match(/[a-z]+/g) || []).filter((w) => w.length > 1);
   if (words.length < 3) return false;
   let en = 0, es = 0;
@@ -44,6 +49,17 @@ function isEnglish(s) {
     if (ES_CORE.has(w)) es++;
   }
   return en >= 2 && en > es * 2;
+}
+
+/* Positive Spanish evidence: a core Spanish word or Spanish-only
+   characters, and not English by the test above. A short fragment with
+   neither ("Synthetic upper.") is NOT Spanish. */
+const ES_MARK = /[áéíóúñ¿¡]/i;
+export function looksSpanish(s) {
+  const t = String(s || "");
+  if (!t.trim() || isEnglish(t)) return false;
+  const words = (t.toLowerCase().match(/[a-záéíóúñü]+/g) || []);
+  return ES_MARK.test(t) || words.some((w) => ES_CORE.has(w));
 }
 
 function* walkItems(obj) {
@@ -98,6 +114,7 @@ async function translateBatch(texts, apiKey) {
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
+  const strict = args.includes("--strict");
   const files = args.includes("--all")
     ? fs.readdirSync(ROOT).filter((f) => f.endsWith("-catalog.json")).map((f) => path.join(ROOT, f))
     : args.filter((a) => !a.startsWith("--"));
@@ -114,9 +131,10 @@ async function main() {
     const targets = [];
     for (const item of walkItems(data)) {
       const d = item.description;
-      if (typeof d === "string" && d.trim().length >= 12 && isEnglish(d)) targets.push(item);
+      if (typeof d !== "string") continue;
+      if (strict ? (d.trim().length >= 3 && /[a-z]{2}/i.test(d) && !looksSpanish(d)) : (d.trim().length >= 12 && isEnglish(d))) targets.push(item);
     }
-    console.log(`${path.basename(file)}: ${targets.length} English descriptions`);
+    console.log(`${path.basename(file)}: ${targets.length} ${strict ? "not-yet-Spanish" : "English"} descriptions`);
     totalFound += targets.length;
     if (dryRun || !targets.length) continue;
     if (!apiKey) {
@@ -138,4 +156,8 @@ async function main() {
   console.log(`done: ${totalDone}/${totalFound} translated${dryRun ? " (dry run)" : ""}`);
 }
 
-main().catch((e) => { console.error("FATAL:", e.message); process.exit(1); });
+/* Run only as a command: scripts/lib/pull-quality.js imports isEnglish
+   so the INGEST REPORT's Spanish coverage uses this same word test. */
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((e) => { console.error("FATAL:", e.message); process.exit(1); });
+}

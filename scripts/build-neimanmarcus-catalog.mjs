@@ -19,7 +19,15 @@
          total from what Apify reports the run cost; above the quote +25%
          it STOPS, saves what it has, and says so. Then it ingests.
 
-     node scripts/build-neimanmarcus-catalog.mjs --src <file>
+     node scripts/build-neimanmarcus-catalog.mjs --src <feed> --target 30000 --dry-run
+         THE PRE-RUN REPORT. Reads the feed, prints the candidate pool
+         (shippable, in scope, de-duplicated), what was left out and why,
+         and the selection to reach the target: sale/clearance ALL first,
+         then best sellers (the feed's own label), then department quotas
+         proportional to the pool. A pool under the target is taken whole
+         and the true ceiling is stated. Writes nothing.
+
+     node scripts/build-neimanmarcus-catalog.mjs --src <file> [--target 30000]
          Ingest only. Spends nothing on Apify. <file> is either
            - a raw pull saved by a run above (data/neimanmarcus/raw-*.json),
            - a JSON array of product rows (an Apify dataset export), or
@@ -51,8 +59,11 @@
    Then apply-weight-estimates.py fills unpublished weights, flagged
    weightEstimated, exactly as for DSW.
 
-   AFTER IT WRITES neimanmarcus-catalog.json:
-     GROQ_API_KEY=... node scripts/translate-catalog-descriptions.mjs neimanmarcus-catalog.json
+   THEN, AS PART OF THE BUILD: translate-catalog-descriptions.mjs makes
+   the descriptions Spanish when GROQ_API_KEY is set (without it: loud,
+   and DO NOT SHIP), and the INGEST REPORT prints every coverage line
+   with its minimum and SHIP / DO NOT SHIP (exit 4 on DO NOT SHIP);
+   --explain <metric>="<reason>" records a hole the feed cannot fill.
    Wiring the store into the site (registry row, tienda.html, slices) is
    a separate build step, done once this file has products.
    ============================================================ */
@@ -63,7 +74,10 @@ import { fileURLToPath } from "node:url";
 import {
   OUT_FILE, NM_SALE_MAX, PRICE_BAND_USD, pullPlan, nmActorInput, costRatesFromEnv,
   estimatePull, formatEstimate, spendCheck, ingestPull, productCount, parseDelimited, feedToRows,
+  NM_LABEL, NM_KEY, formatSelection,
 } from "./lib/neimanmarcus.js";
+import { parseExplain } from "./lib/pull-quality.js";
+import { runTranslation, reportCatalog, readCatalog, DO_NOT_SHIP_EXIT } from "./lib/pull-finish.mjs";
 import { DEFAULT_COST_PER_RUN_USD } from "./lib/refresh-tiers.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -75,7 +89,7 @@ const FETCH_TIMEOUT_MS = 60000;
 const DATA_DIR = process.env.NM_DATA_DIR ? resolve(process.env.NM_DATA_DIR) : join(ROOT, "data/neimanmarcus");
 
 export function parseArgs(argv) {
-  const a = {};
+  const a = { explain: [] };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const next = () => argv[++i];
@@ -93,8 +107,12 @@ export function parseArgs(argv) {
     else if (k === "--dry-run") a.dryRun = true;
     else if (k === "--ingest-partial") a.ingestPartial = true;
     else if (k === "--no-weight-estimates") a.noWeightEstimates = true;
+    else if (k === "--target") a.target = Number(next());
+    else if (k === "--explain") a.explain.push(next());
     else throw new Error(`unknown option ${k}`);
   }
+  if (a.target != null && !(a.target > 0)) throw new Error("--target must be a positive number of products");
+  a.explainMap = parseExplain(a.explain);
   return a;
 }
 
@@ -156,7 +174,7 @@ async function ingestContext(args) {
 }
 
 function printIngestReport(stats, quarantinePath) {
-  console.log(`\n  Neiman Marcus ingest: ${stats.published} published of ${stats.rows} rows`);
+  console.log(`\n  Neiman Marcus ingest: ${stats.published} published of ${stats.rows} rows${stats.selection ? ` (pool ${stats.pool}, target ${stats.selection.target})` : ""}`);
   console.log(`    per bucket:     ${JSON.stringify(stats.perBucket)}`);
   console.log(`    on sale:        ${stats.onSale}`);
   console.log(`    real weight:    ${stats.realWeight}  (published by the source; the rest get the site's estimate, flagged)`);
@@ -175,11 +193,20 @@ function printIngestReport(stats, quarantinePath) {
 async function ingestAndWrite(pulled, args, meta = {}) {
   const ctx = await ingestContext(args);
   if (meta.source) ctx.source = meta.source;
+  if (args.target > 0) ctx.target = args.target;
   const { catalog, quarantined, stats } = ingestPull(pulled, ctx);
   const s = meta.stamp || stamp();
   const qPath = join(DATA_DIR, `quarantine-${s}.json`);
+  if (stats.selection) {
+    const left = { ...stats.dropped, ...Object.fromEntries(Object.entries(stats.quarantined).map(([k, v]) => [`quarantined:${k}`, v])) };
+    console.log(formatSelection(stats.selection, left));
+  }
   printIngestReport(stats, qPath);
-  if (args.dryRun) { console.log("\n  --dry-run: nothing written"); return { catalog, stats }; }
+  if (args.dryRun) {
+    reportCatalog({ label: `${NM_LABEL} (dry run, nothing written)`, key: NM_KEY, catalog, rows: stats.rows, explain: args.explainMap, stage: "dry-run", weightEstimates: !args.noWeightEstimates });
+    console.log("\n  --dry-run: nothing written");
+    return { catalog, stats };
+  }
   if (!productCount(catalog)) {
     console.error("\n  refusing to write an empty catalogue");
     process.exitCode = 1;
@@ -195,7 +222,12 @@ async function ingestAndWrite(pulled, args, meta = {}) {
     execFileSync("python3", ["apply-weight-estimates.py", "weight-estimates.json", out, "--in-place"], { cwd: ROOT, stdio: ["ignore", "inherit", "inherit"] });
   }
   console.log(`\n  wrote ${out}  (${productCount(catalog)} products)`);
-  console.log("  NEXT: GROQ_API_KEY=... node scripts/translate-catalog-descriptions.mjs neimanmarcus-catalog.json");
+  const translation = runTranslation(out, { root: ROOT });
+  const { verdict } = reportCatalog({ label: NM_LABEL, key: NM_KEY, catalog: readCatalog(out), rows: stats.rows, explain: args.explainMap, stage: "written", translation });
+  if (!verdict.ship) {
+    console.log(`\n  DO NOT SHIP: ${out} stays local. Do not commit it or wire the store.`);
+    process.exitCode = DO_NOT_SHIP_EXIT;
+  }
   return { catalog, stats };
 }
 
