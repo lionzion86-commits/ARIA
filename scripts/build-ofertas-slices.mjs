@@ -20,7 +20,13 @@
         answer "Mostrar más" and the search box; never sent to a phone)
      assets/ofertas/slices/<store|all>.<sort>.json
         page 1 (48 cards) of each store and sort, with the total and
-        the store list -- what the page paints first, from the CDN
+        the store list -- each store rail fills from its own
+     assets/ofertas/rails.json
+        THE CAROUSEL PAGE'S FIRST PAINT (#443, Danny: "the same
+        carousel experience as the homepage Ofertas section"): the
+        lead rail's cards in the homepage's own order (railsIndex),
+        the store rails in sales-led order, and the few cards of the
+        stores too small for a rail of their own
 
    Order and paging come from netlify/functions/_ofertas-core.js, the
    same module the function uses, so page 2 continues page 1.
@@ -41,6 +47,7 @@ import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { PAGE_SIZE, DEALS_FILE, SLICES_DIR, SORTS, packCard, selectDeals, pageOf } from "../netlify/functions/_ofertas-core.js";
 
+export const RAILS_FILE = "assets/ofertas/rails.json";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
 /* The one on-sale definition, exactly as the page loads it. */
@@ -121,6 +128,73 @@ export function storeList(cards) {
   });
 }
 
+/* ---------- the carousel page's index (#443) ----------
+   THE LEAD RAIL IS THE HOMEPAGE'S OFERTAS RAIL. The same three steps
+   the app bundle's renderMobileDealsRail takes over the sale cache,
+   taken here over the all-stores mix (m = 1):
+     1. pull brands first (OFERTAS_LEAD_BRANDS, ofertasLeadRank), the
+        biggest discount deciding within;
+     2. the first LEAD_SPREAD cards from different stores
+        (spreadDealsByStore);
+     3. never more than MAX_RUN cards in a row from one store
+        (interleaveRetailerCap), cut to LEAD_N (MOBILE_RAIL_DEALS).
+   A pull brand that is off sale has no cards, so it simply ranks
+   nothing. STORE RAILS, SALES-LED: the stores with the most deep
+   markdowns (50% or more) first, then the deepest single markdown,
+   then the most deals. A store with fewer than MIN_RAIL deals has no
+   rail of its own: its cards ride in one last rail, deepest first. */
+export const LEAD_BRANDS = ["victoriassecret", "sephora", "macys", "gymshark", "youngla"];
+export const LEAD_N = 20, LEAD_SPREAD = 5, MAX_RUN = 3, MIN_RAIL = 4, DEEP_PCT = 50;
+const leadRank = (c) => { const i = LEAD_BRANDS.indexOf(c.store); return i === -1 ? LEAD_BRANDS.length : i; };
+export function spreadByStore(sorted, lead) {
+  const first = [], held = [], seen = new Set();
+  for (const c of sorted) {
+    if (first.length >= lead || seen.has(c.store)) { held.push(c); continue; }
+    seen.add(c.store);
+    first.push(c);
+  }
+  while (first.length < lead && held.length) first.push(held.shift());
+  return first.concat(held);
+}
+export function interleaveStoreCap(items, maxRun) {
+  const pool = [...items], out = [];
+  let run = null, count = 0;
+  while (pool.length) {
+    let i = pool.findIndex((c) => c.store !== run || count < maxRun);
+    if (i < 0) i = 0;
+    const c = pool.splice(i, 1)[0];
+    if (c.store === run) count++; else { run = c.store; count = 1; }
+    out.push(c);
+  }
+  return out;
+}
+export function leadRail(cards) {
+  const mix = selectDeals(cards, { sort: "discount" });
+  const sorted = [...mix].sort((a, b) => (leadRank(a) - leadRank(b)) || (b.pct - a.pct));
+  return interleaveStoreCap(spreadByStore(sorted, LEAD_SPREAD), MAX_RUN).slice(0, LEAD_N).map(({ _text, ...c }) => c);
+}
+export function railsIndex(cards, stores, generatedAt) {
+  const stat = {};
+  for (const c of cards) {
+    const s = stat[c.store] || (stat[c.store] = { top: 0, deep: 0 });
+    if (c.pct > s.top) s.top = c.pct;
+    if (c.pct >= DEEP_PCT) s.deep++;
+  }
+  const ranked = stores.map((s) => ({ ...s, top: stat[s.key].top, deep: stat[s.key].deep }))
+    .sort((a, b) => (b.deep - a.deep) || (b.top - a.top) || (b.n - a.n) || (a.key < b.key ? -1 : 1));
+  const small = new Set(ranked.filter((s) => s.n < MIN_RAIL).map((s) => s.key));
+  return {
+    generatedAt,
+    total: cards.length,
+    lead: leadRail(cards),
+    stores: ranked.filter((s) => !small.has(s.key)),
+    more: cards.filter((c) => small.has(c.store))
+      .sort((a, b) => (b.pct - a.pct) || (a.usd - b.usd) || (a.id < b.id ? -1 : 1))
+      .map(({ _text, ...c }) => c),
+    moreStores: ranked.filter((s) => small.has(s.key)),
+  };
+}
+
 export function build(root = ROOT) {
   const sale = loadSaleRule(root);
   const feed = JSON.parse(readFileSync(join(root, "ofertas-feed.json"), "utf8"));
@@ -136,6 +210,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(ROOT, DEALS_FILE), JSON.stringify({ generatedAt, pageSize: PAGE_SIZE, stores, items: cards.map(packCard) }));
+  writeFileSync(join(ROOT, RAILS_FILE), JSON.stringify(railsIndex(cards, stores, generatedAt)));
   let files = 0, biggest = 0;
   for (const scope of ["all", ...stores.map((s) => s.key)]) {
     for (const sort of SORTS) {

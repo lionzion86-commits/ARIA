@@ -5,11 +5,12 @@
    (default): Slow 3G -- 2s round trip, 400 kbps both ways -- and CPU
    6x slower. PROFILE=fast3g: 562.5ms, 1.44 Mbps, CPU 4x.
 
-   Steps, one browser tab:
+   Steps, one browser tab (the carousel page, #443):
      landing    open ofertas.html
-     store      pick one store in the filter (STORE, default target)
-     more       tap "Mostrar más" (skipped when the page has none)
+     rail-more  swipe the first store rail to its end (draws the next
+                cards in place)
      search     type a word in the search box (Q, default dress)
+     more       tap the search's "Mostrar más" (skipped when it has none)
    Per step: placeholders (card-shaped boxes on screen), firstCards,
    screenPhotos (every photo in the first screen loaded), KB moved,
    the largest response, catalogue requests (must be none), the
@@ -26,7 +27,6 @@
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 
 const BASE = (process.env.ARIA_BASE_URL || "http://127.0.0.1:8973").replace(/\/$/, "");
-const STORE = process.env.STORE || "target";
 const Q = process.env.Q || "dress";
 const PROFILES = {
   fast3g: { net: { latency: 562.5, downloadThroughput: 1.44e6 / 8, uploadThroughput: 675e3 / 8 }, cpu: 4 },
@@ -66,11 +66,11 @@ await page.addInitScript(() => {
     const m = (window.__m = { t0 });
     const tick = () => {
       const now = performance.now() - t0;
-      const cards = [...document.querySelectorAll("#content .card:not(.sk)")].filter((c) => !c.hasAttribute("data-seen"));
-      if (!m.placeholders && document.querySelector("#content .skel, #content .card.sk")) m.placeholders = now;
+      const cards = [...document.querySelectorAll("#content .card:not(.sk), #results .card:not(.sk)")].filter((c) => !c.hasAttribute("data-seen"));
+      if (!m.placeholders && document.querySelector("#content .card.sk, #results .card.sk")) m.placeholders = now;
       if (!m.firstCards && cards.length) m.firstCards = now;
       if (m.firstCards && !m.screenPhotos) {
-        const imgs = cards.filter((c) => { const b = c.getBoundingClientRect(); return b.bottom > 0 && b.top < innerHeight; })
+        const imgs = cards.filter((c) => { const b = c.getBoundingClientRect(); return b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth; })
           .map((c) => c.querySelector("img")).filter(Boolean);
         if (imgs.length && imgs.every((i) => i.complete && i.naturalWidth > 0)) m.screenPhotos = now;
       }
@@ -88,7 +88,7 @@ async function measure(step, act) {
   try {
     if (step === "landing") await act();
     else {
-      await page.evaluate(() => document.querySelectorAll("#content .card").forEach((c) => c.setAttribute("data-seen", "")));
+      await page.evaluate(() => document.querySelectorAll("#content .card, #results .card").forEach((c) => c.setAttribute("data-seen", "")));
       await page.evaluate(() => window.__step(performance.now()));
       await act();
     }
@@ -98,11 +98,11 @@ async function measure(step, act) {
   /* Let in-flight responses settle so the bytes count what the step moved. */
   await new Promise((r) => setTimeout(r, Number(process.env.SETTLE_MS || 8000)));
   const m = await page.evaluate(() => {
-    const cards = [...document.querySelectorAll("#content .card:not(.sk)")].filter((c) => !c.hasAttribute("data-seen"));
-    const first = cards.filter((c) => { const b = c.getBoundingClientRect(); return b.bottom > 0 && b.top < innerHeight; });
-    return { ...window.__m, gridCards: document.querySelectorAll("#content .card:not(.sk)").length,
+    const cards = [...document.querySelectorAll("#content .card:not(.sk), #results .card:not(.sk)")].filter((c) => !c.hasAttribute("data-seen"));
+    const first = cards.filter((c) => { const b = c.getBoundingClientRect(); return b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth; });
+    return { ...window.__m, gridCards: document.querySelectorAll("#content .card:not(.sk), #results .card:not(.sk)").length,
       minCardH: first.length ? Math.round(Math.min(...first.map((c) => c.getBoundingClientRect().height))) : null,
-      imgsRequested: [...document.querySelectorAll("#content .card img")].filter((i) => i.currentSrc || (i.getAttribute("src") || "")).length,
+      imgsRequested: [...document.querySelectorAll("#content .card img, #results .card img")].filter((i) => i.currentSrc || (i.getAttribute("src") || "")).length,
       count: (document.getElementById("countLine") || {}).textContent || "" };
   }).catch(() => ({}));
   const done = [...reqs.values()].filter((r) => r.seq > from && r.bytes != null);
@@ -121,28 +121,26 @@ async function measure(step, act) {
 await measure("landing", async () => {
   await page.goto(`${BASE}/ofertas.html`, { waitUntil: "commit", timeout: 120000 });
 });
-const hasStore = await page.evaluate((s) => !!document.querySelector(`#store option[value="${s}"]`), STORE);
-if (hasStore) {
-  await measure(`store:${STORE}`, async () => {
-    await page.evaluate(() => scrollTo(0, 0));
-    await page.selectOption("#store", STORE);
+await measure("rail-more", async () => {
+  await page.evaluate(() => {
+    const sec = document.querySelectorAll("#content .rail-sec")[1];
+    sec.scrollIntoView({ block: "start" });
+    const t = sec.querySelector(".rail");
+    t.scrollLeft = t.scrollWidth;
   });
-} else rows.push({ step: `store:${STORE}`, error: "store not offered" });
-const hasMore = await page.evaluate(() => { const b = document.getElementById("moreBtn"); return !!(b && !b.closest("[hidden]")); });
-if (hasMore) {
-  await measure("mostrar-mas", async () => {
-    await page.evaluate(() => { const b = document.getElementById("moreBtn"); b.scrollIntoView({ block: "end" }); });
-    await page.tap("#moreBtn");
-    await page.waitForFunction(() => document.querySelector("#content .card:not(.sk):not([data-seen])"), null, { timeout: 180000, polling: 100 });
-    await page.evaluate(() => { const c = document.querySelector("#content .card:not(.sk):not([data-seen])"); c.scrollIntoView({ block: "start" }); });
-  });
-} else rows.push({ step: "mostrar-mas", error: "no Mostrar más on this page (every card drawn at once)" });
-await page.selectOption("#store", "");
-await new Promise((r) => setTimeout(r, 4000));
+});
+await page.evaluate(() => scrollTo(0, 0));
 await measure(`search:${Q}`, async () => {
-  await page.evaluate(() => scrollTo(0, 0));
   await page.fill("#q", Q);
 });
-
+const hasMore = await page.evaluate(() => !!document.getElementById("moreBtn"));
+if (hasMore) {
+  await measure("mostrar-mas", async () => {
+    await page.evaluate(() => document.getElementById("moreBtn").scrollIntoView({ block: "end" }));
+    await page.tap("#moreBtn");
+    await page.waitForFunction(() => document.querySelector("#results .card:not(.sk):not([data-seen])"), null, { timeout: 180000, polling: 100 });
+    await page.evaluate(() => document.querySelector("#results .card:not(.sk):not([data-seen])").scrollIntoView({ block: "start" }));
+  });
+} else rows.push({ step: "mostrar-mas", error: "the search has no Mostrar más" });
 await browser.close();
 console.log(JSON.stringify({ base: BASE, profile: process.env.PROFILE || "mountain", rows }, null, 1));
