@@ -226,8 +226,12 @@ export function perfumeWeightKg(title) {
 export const BEAUTY_CATEGORY_RE =
   /\b(makeup|make[- ]?up|cosmetics?|skin ?care|beauty|maquillaje|cosm[ée]tic\w*|belleza|cuidado de la piel|primer|prebase|toner|t[óo]nico|micellar|micelar|cleanser|limpiador facial|sunscreen|protector solar|face mask|mascarilla|exfoliant|exfoliante|eye cream|contorno de ojos|brow|cejas|lash|pesta[ñn]as|nail|u[ñn]as|fragrance|fragancia|perfume)\b/i;
 
-/** Retailers whose whole catalogue is beauty — their items are beauty by origin. */
-export const BEAUTY_RETAILERS = new Set(["sephora", "victoriassecret"]);
+/** Retailers whose whole catalogue is beauty — their items are beauty by origin.
+ *  Not Victoria's Secret (2026-10-22, order #ARIA-20261018-0C6674): most of
+ *  its catalogue is lingerie and sleepwear, and as a "beauty store" every
+ *  dress and bra fell to the 0.05 kg beauty catch-all -- a dress + bra order
+ *  charged 0.10 kg. Its mists and lotions still read as beauty by title. */
+export const BEAUTY_RETAILERS = new Set(["sephora"]);
 
 /** Scraped department buckets that hold beauty. */
 export const BEAUTY_DEPARTMENTS = new Set(["beauty", "fragrance", "skincare", "makeup"]);

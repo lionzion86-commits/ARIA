@@ -21432,6 +21432,9 @@ const GRILL_ACCESSORY_RE = /\b(play[- ]?doh|bubbles?|blankets?|tool\s*sets?|tool
 const CHEAP_PLAYSET_RE = /^(?![\s\S]*\b(?:swing|playhouse|play house|jungle gym|climbing|outdoor|backyard)\b)/i;
 const PUNCHING_ACCESSORY_RE = /\b(attachments?|kits?|gloves?|wraps?|hooks?|chains?|swivels?|hangers?|mounts?|springs?|fillers?)\b/i;
 const RETAIL_WEIGHT_ESTIMATES_KG = [
+  // UNDERWEAR AND LINGERIE FIRST (2026-10-22, order 0C6674): ahead of denim/embroidery, which are cited for jeans and dresses.
+  { match: /\b(panty|panties|thongs?|v-string|g-string)\b/i, kg: 0.08, tier: 'cited' },
+  { match: /\b(bras?|bralettes?|balconette|teddy|teddies|babydoll|garter|corset|bustier|lingerie|slip)\b/i, not: /\b(bear|dress|gown|skirt|tank|shoes?|sneakers?|sandals?|slides?|loafers?|rugs?|mats?|socks?)\b|(non|anti)[- ]?slip|slip[- ]?(on|resist|proof)/i, kg: 0.15, tier: 'cited' }, // bra in polybag ~0.15 kg (weight-estimates.json)
   { match: /\bjeans?\b|denim/i, kg: 1, tier: 'cited' },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: 'cited' },   // std cotton tee ~140-200g (printful.com, printkk.com)
   { match: /hoodie|sweatshirt/i, kg: 0.8, tier: 'cited' },              // cotton hoodie ~450-680g (printful.com)
@@ -22140,7 +22143,9 @@ const BEAUTY_CATEGORY_RE =
   /\b(makeup|make[- ]?up|cosmetics?|skin ?care|beauty|maquillaje|cosm[ée]tic\w*|belleza|cuidado de la piel|primer|prebase|toner|t[óo]nico|micellar|micelar|cleanser|limpiador facial|sunscreen|protector solar|face mask|mascarilla|exfoliant|exfoliante|eye cream|contorno de ojos|brow|cejas|lash|pesta[ñn]as|nail|u[ñn]as|fragrance|fragancia|perfume)\b/i;
 
 /** Retailers whose whole catalogue is beauty — their items are beauty by origin. */
-const BEAUTY_RETAILERS = new Set(["sephora", "victoriassecret"]);
+/* Not Victoria's Secret (2026-10-22, order #ARIA-20261018-0C6674): mostly lingerie; as a
+   "beauty store" every dress and bra fell to the 0.05 kg beauty catch-all. */
+const BEAUTY_RETAILERS = new Set(["sephora"]);
 
 /** Scraped department buckets that hold beauty. */
 const BEAUTY_DEPARTMENTS = new Set(["beauty", "fragrance", "skincare", "makeup"]);
