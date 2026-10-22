@@ -62,6 +62,8 @@
    FACT, AN ID OR A URL.
    ============================================================ */
 
+import { bannerOf } from "./nmg-banners.js";
+
 export const SOVRN_PRODUCTS_URL = "https://shopping-gallery.prd-commerce.sovrnservices.com/ai-orchestration/products";
 export const SOVRN_NM_MERCHANT_ID = "2243";
 export const SOVRN_MAX_PER_REQUEST = 50;
@@ -85,7 +87,9 @@ const first = (...vals) => {
 /* ---------------- the group id ---------------- */
 
 /** How to get the group id. Printed when it is missing; nothing is invented. */
-export function groupIdGuidance({ approvedMerchantsUrl = null } = {}) {
+export function groupIdGuidance({ approvedMerchantsUrl = null, banner = bannerOf() } = {}) {
+  const b = bannerOf(banner);
+  if (b.key !== "neimanmarcus") return bannerGroupIdGuidance(b, approvedMerchantsUrl);
   const out = [];
   out.push("");
   out.push("  ====================================================");
@@ -107,6 +111,39 @@ export function groupIdGuidance({ approvedMerchantsUrl = null } = {}) {
   if (approvedMerchantsUrl) out.push(`  (approved-merchants URL given: ${approvedMerchantsUrl})`);
   out.push("  ====================================================");
   return out.join("\n");
+}
+
+/* The same guidance for Bergdorf Goodman / Horchow: their own merchant id and env var. */
+function bannerGroupIdGuidance(b, approvedMerchantsUrl) {
+  const out = [];
+  out.push("");
+  out.push("  ====================================================");
+  out.push(`  ${b.label.toUpperCase()} GROUP ID MISSING -- nothing was requested`);
+  out.push("  ====================================================");
+  out.push("  The Product Recommendation API filters by merchant with includeMerchants=<group ID>.");
+  out.push(`  ${b.label} is Sovrn merchant ${b.merchantId}; its group ID comes from Sovrn's Approved Merchants API`);
+  out.push("  and may not equal the merchant id. It is not guessed here. Either:");
+  out.push(`    1. read it from the Approved Merchants API / dashboard and set ${b.groupEnv}=<id> (or --merchant-group <id>); or`);
+  out.push(`    2. pass --approved-merchants-url <url> (or ${SOVRN_ENV.approvedMerchantsUrl}): it is fetched once, saved, and every`);
+  out.push(`       entry naming ${b.label} or merchant ${b.merchantId} is printed. The script still stops there.`);
+  if (approvedMerchantsUrl) out.push(`  (approved-merchants URL given: ${approvedMerchantsUrl})`);
+  out.push("  ====================================================");
+  return out.join("\n");
+}
+
+/** Entries of an Approved Merchants answer that name a banner / its merchant id (Neiman Marcus / 2243 by default). */
+export function bannerEntries(body, banner = bannerOf()) {
+  const b = bannerOf(banner);
+  const hits = [];
+  const walk = (x, depth) => {
+    if (!x || typeof x !== "object" || depth > 6) return;
+    if (Array.isArray(x)) { for (const y of x) walk(y, depth + 1); return; }
+    const flat = Object.entries(x).filter(([, v]) => v == null || typeof v !== "object").map(([, v]) => String(v)).join(" | ");
+    if (b.sellerRx.test(flat) || Object.values(x).some((v) => String(v) === b.merchantId)) { hits.push(x); return; }
+    for (const v of Object.values(x)) walk(v, depth + 1);
+  };
+  walk(body, 0);
+  return hits;
 }
 
 /** Entries of an Approved Merchants answer that name Neiman Marcus / 2243. */
@@ -282,8 +319,14 @@ const ISO_IN_TEXT = /\b(USD|CAD|EUR|GBP|MXN|AUD|PEN)\b/;
 
 /** A plain neimanmarcus.com product page (A7), or null. Query/fragment cut. */
 export function plainNmUrl(u) {
+  return plainBannerUrl(u, "neimanmarcus.com");
+}
+
+/** A plain product page on the banner's own host (A7), or null. Query/fragment cut. */
+export function plainBannerUrl(u, host) {
   const s = typeof u === "string" ? u.trim() : "";
-  const m = /^https:\/\/((?:[a-z0-9-]+\.)*neimanmarcus\.com)(\/[^?#\s]*)(?:[?#]\S*)?$/i.exec(s);
+  const h = String(host).replace(/[.]/g, "\\.");
+  const m = new RegExp(`^https:\\/\\/((?:[a-z0-9-]+\\.)*${h})(\\/[^?#\\s]*)(?:[?#]\\S*)?$`, "i").exec(s);
   /* A page, not the home page: a path beyond "/". */
   return m && m[2].length > 1 ? `https://${m[1].toLowerCase()}${m[2]}` : null;
 }
@@ -292,7 +335,8 @@ export function plainNmUrl(u) {
  * One Sovrn product in, one raw row in the shape ingestRow reads out.
  * Only fills what the product states; returns null for a non-object.
  */
-export function sovrnToRow(raw, { merchantIds = [SOVRN_NM_MERCHANT_ID] } = {}) {
+export function sovrnToRow(raw, { merchantIds = [SOVRN_NM_MERCHANT_ID], banner = bannerOf() } = {}) {
+  const b = bannerOf(banner);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const row = {};
   const id = pick(raw, "id");
@@ -363,12 +407,12 @@ export function sovrnToRow(raw, { merchantIds = [SOVRN_NM_MERCHANT_ID] } = {}) {
   const mName = first(raw.merchantName, raw.merchant_name, raw.retailerName, scalar(raw.merchant), scalar(raw.retailer), scalar(raw.store));
   const mId = first(raw.merchantId, raw.merchant_id, raw.merchant && typeof raw.merchant === "object" ? raw.merchant.id : null);
   const ok = new Set(merchantIds.filter((x) => x != null && x !== "").map(String));
-  if (mId != null && !ok.has(String(mId))) row.seller = mName && !/neiman\s*marcus/i.test(String(mName)) ? String(mName) : `Sovrn merchant ${mId}`;
+  if (mId != null && !ok.has(String(mId))) row.seller = mName && !b.sellerRx.test(String(mName)) ? String(mName) : `Sovrn merchant ${mId}`;
   else if (mName && typeof mName !== "object") row.seller = String(mName);
 
-  /* The source page (A7): a plain neimanmarcus.com URL only. */
+  /* The source page (A7): a plain URL on the banner's own host only. */
   for (const k of SOVRN_FIELD_KEYS.url) {
-    const u = plainNmUrl(at(raw, k));
+    const u = plainBannerUrl(at(raw, k), b.host);
     if (u) { row.url = u; break; }
   }
   return row;
@@ -466,7 +510,7 @@ export function formatFieldReport(rep) {
  * of a product id or of a brand + name + colour, and returns how many
  * were new. Shared by the live sweep and the replay of saved raw files.
  */
-export function makePool({ merchantIds = [SOVRN_NM_MERCHANT_ID] } = {}) {
+export function makePool({ merchantIds = [SOVRN_NM_MERCHANT_ID], banner = bannerOf() } = {}) {
   const seenId = new Set(), seenLook = new Set();
   const found = [];
   return {
@@ -475,7 +519,7 @@ export function makePool({ merchantIds = [SOVRN_NM_MERCHANT_ID] } = {}) {
       let fresh = 0;
       for (const raw of list || []) {
         if (found.length >= cap) break;
-        const row = sovrnToRow(raw, { merchantIds });
+        const row = sovrnToRow(raw, { merchantIds, banner });
         if (!row) continue;
         if (stats) stats.returned++;
         const { id, look } = dedupeKeys(row);
@@ -495,8 +539,8 @@ export function makePool({ merchantIds = [SOVRN_NM_MERCHANT_ID] } = {}) {
  * order) through the CURRENT mapper -- the way to fix the field mapping
  * after the first real run without one new request.
  */
-export function replayResponses(responses, { merchantIds = [SOVRN_NM_MERCHANT_ID] } = {}) {
-  const pool = makePool({ merchantIds });
+export function replayResponses(responses, { merchantIds = [SOVRN_NM_MERCHANT_ID], banner = bannerOf() } = {}) {
+  const pool = makePool({ merchantIds, banner });
   const perDepartment = {};
   const shapes = {};
   for (const r of responses) {
@@ -530,10 +574,10 @@ export function replayResponses(responses, { merchantIds = [SOVRN_NM_MERCHANT_ID
 export async function runSweep({
   plan, request, onResponse = () => {}, throttle = makeThrottle(), log = () => {},
   target = 30000, maxRequests = SOVRN_MAX_REQUESTS, minYield = SOVRN_MIN_YIELD, yieldWindow = SOVRN_YIELD_WINDOW,
-  merchantIds = [SOVRN_NM_MERCHANT_ID], retries429 = 3, backoffMs = 60000,
+  merchantIds = [SOVRN_NM_MERCHANT_ID], retries429 = 3, backoffMs = 60000, banner = bannerOf(),
 }) {
   checkSweepPlan(plan);
-  const pool = makePool({ merchantIds });
+  const pool = makePool({ merchantIds, banner });
   const found = pool.found;       // { department, raw, row }
   const perDepartment = {};
   const shapes = {};
@@ -601,12 +645,12 @@ export function sweepToPulled(found, plan) {
 }
 
 /** The sweep summary block (requests, unique pool, per department, against the target). */
-export function formatSweep(sweep, { target = 30000, intervalMs = null, rawDir = null } = {}) {
+export function formatSweep(sweep, { target = 30000, intervalMs = null, rawDir = null, banner = bannerOf() } = {}) {
   const n = (x) => Number(x).toLocaleString("en-US");
   const out = [];
   out.push("");
   out.push("  ====================================================");
-  out.push("  NEIMAN MARCUS VIA SOVRN — THE SWEEP");
+  out.push(`  ${bannerOf(banner).label.toUpperCase()} VIA SOVRN — THE SWEEP`);
   out.push("  ====================================================");
   out.push(`  requests made: ${n(sweep.requests)}${intervalMs ? `  (one every ${intervalMs} ms = ${n(requestsPerWindow(intervalMs))} per 5 min max; Sovrn's limit is ${n(SOVRN_RATE_LIMIT.requests)})` : ""}`);
   out.push(`  stopped by: ${sweep.stopped}`);

@@ -51,6 +51,7 @@ import {
   DEFAULT_COST_PER_1000_RESULTS_USD, GALLERY_CAP,
 } from "./dsw.js";
 
+import { bannerOf, parcelVerdict } from "./nmg-banners.js";
 export { estimatePull, spendCheck, quotaCostUsd, costRatesFromEnv, MATERIAL_OVERRUN, DEFAULT_COST_PER_1000_RESULTS_USD, GALLERY_CAP };
 
 export const NM_KEY = "neimanmarcus";
@@ -157,10 +158,10 @@ export function sellerOf(raw) {
  * affiliate feed, and the item records that the seller came from the
  * source, not the row.
  */
-export function sellerVerdict(raw) {
+export function sellerVerdict(raw, banner = bannerOf()) {
   const s = sellerOf(raw);
   if (s == null) return { ok: true, source: "source" };
-  if (/neiman\s*marcus/i.test(s)) return { ok: true, source: "row" };
+  if (bannerOf(banner).sellerRx.test(s)) return { ok: true, source: "row" };
   return { ok: false, seller: s };
 }
 
@@ -214,19 +215,30 @@ export const BUCKET_LABELS = {
  */
 export function ingestRow(raw, quota, ctx = {}) {
   if (!raw || typeof raw !== "object") return { drop: "not-an-object" };
-  const sv = sellerVerdict(raw);
-  if (!sv.ok) return { quarantine: "seller-not-neiman-marcus", row: raw };
+  /* ctx.banner: which Neiman Marcus Group banner this pull is for
+     (scripts/lib/nmg-banners.js); Neiman Marcus when unset. */
+  const banner = bannerOf(ctx.banner);
+  const sv = sellerVerdict(raw, banner);
+  if (!sv.ok) return { quarantine: banner.quarantineSeller, row: raw };
   const scope = scopeVerdict(raw);
   if (scope) return { drop: scope };
+  if (banner.parcelOnly) {
+    const p = parcelVerdict(raw);
+    if (p) return { drop: p };
+  }
   const v = dswIngestRow(raw, quota, { ...ctx, band: ctx.band || PRICE_BAND_USD });
   if (!v.item) return v;
   const item = v.item;
-  item.retailer = NM_KEY;
-  item.seller = NM_LABEL;
+  if (banner.parcelOnly) {
+    const p = parcelVerdict(raw, item, { isShippableItem: ctx.isShippableItem });
+    if (p) return { drop: p };
+  }
+  item.retailer = banner.key;
+  item.seller = banner.label;
   item.sellerSource = sv.source;
   /* The gallery (every image, duplicates dropped, size charts last) and
      GTIN per size come from DSW's ingestRow, shared. */
-  if (item.description) item.descriptionSource = "neimanmarcus-pdp";
+  if (item.description) item.descriptionSource = `${banner.key}-pdp`;
   if (isBestSellerRow(raw)) item.bestSeller = true;
   return { item, id: v.id, bucket: bucketOf(raw, quota) };
 }
@@ -439,26 +451,27 @@ export function ingestPull(pulled, ctx = {}) {
   return {
     catalog: {
       generatedAt: ctx.generatedAt || new Date().toISOString(),
-      source: ctx.source || "neimanmarcus.com -- ingested by scripts/build-neimanmarcus-catalog.mjs",
+      source: ctx.source || `${bannerOf(ctx.banner).host} -- ingested by scripts/build-neimanmarcus-catalog.mjs`,
       declaredProductCount: stats.published,
-      retailers: { [NM_KEY]: { label: NM_LABEL, departments } },
+      retailers: { [bannerOf(ctx.banner).key]: { label: bannerOf(ctx.banner).label, departments } },
     },
     quarantined,
     stats,
   };
 }
 
-export function emptyCatalog() {
+export function emptyCatalog(banner = bannerOf()) {
+  const b = bannerOf(banner);
   return {
     generatedAt: null,
-    source: "neimanmarcus.com -- catalogue pull pending; scripts/build-neimanmarcus-catalog.mjs writes this file",
+    source: `${b.host} -- catalogue pull pending; scripts/build-neimanmarcus-catalog.mjs writes this file`,
     declaredProductCount: 0,
-    retailers: { [NM_KEY]: { label: NM_LABEL, departments: {} } },
+    retailers: { [b.key]: { label: b.label, departments: {} } },
   };
 }
 
-export function productCount(catalog) {
-  const r = catalog && catalog.retailers && catalog.retailers[NM_KEY];
+export function productCount(catalog, banner = bannerOf()) {
+  const r = catalog && catalog.retailers && catalog.retailers[bannerOf(banner).key];
   if (!r || !r.departments) return 0;
   return Object.values(r.departments).reduce((n, d) => n + ((d && Array.isArray(d.items)) ? d.items.length : 0), 0);
 }

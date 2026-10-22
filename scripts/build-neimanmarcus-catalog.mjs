@@ -58,6 +58,18 @@
          prints the sweep, the field-mapping report, the 30k selection
          and the coverage report, and writes no catalogue; without it the
          SAME ingest as the feed runs and writes the catalogue.
+     node scripts/build-neimanmarcus-catalog.mjs --banner bergdorfgoodman|horchow --via sovrn --dry-run
+         THE OTHER NEIMAN MARCUS GROUP BANNERS (#443, Danny 2026-10-22),
+         through the same harvest and ingest (scripts/lib/nmg-banners.js):
+         Bergdorf Goodman (Sovrn merchant 6756, BG_SOVRN_GROUP_ID,
+         bergdorfgoodman-catalog.json) and Horchow (merchant 666,
+         HORCHOW_SOVRN_GROUP_ID, horchow-catalog.json; PARCEL-ONLY:
+         bedding, bath, tabletop, small decor and kitchen, never
+         furniture). Each has its own sweep plan under
+         scripts/neimanmarcus/ and its raw answers under
+         data/neimanmarcus/<banner>/. Only --via sovrn and --src serve
+         them. The first --approved-merchants-url call logs whether the
+         banner's group id equals its merchant id.
      node scripts/build-neimanmarcus-catalog.mjs --src data/neimanmarcus/sovrn-raw-<stamp> [--dry-run]
          Re-ingest saved Sovrn answers through the current mapper (after
          fixing scripts/lib/sovrn.js SOVRN_FIELD_KEYS). No requests.
@@ -95,15 +107,16 @@ import { join, resolve, extname } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
-  OUT_FILE, NM_SALE_MAX, PRICE_BAND_USD, pullPlan, nmActorInput, costRatesFromEnv,
+  NM_SALE_MAX, PRICE_BAND_USD, pullPlan, nmActorInput, costRatesFromEnv,
   estimatePull, formatEstimate, spendCheck, ingestPull, productCount, parseDelimited, feedToRows,
-  NM_LABEL, NM_KEY, NM_TARGET, formatSelection,
+  formatSelection,
 } from "./lib/neimanmarcus.js";
 import {
-  SOVRN_PRODUCTS_URL, SOVRN_NM_MERCHANT_ID, SOVRN_MAX_REQUESTS, SOVRN_MIN_YIELD, SOVRN_YIELD_WINDOW, SOVRN_THROTTLE_SHARE, SOVRN_ENV,
+  SOVRN_PRODUCTS_URL, SOVRN_MAX_REQUESTS, SOVRN_MIN_YIELD, SOVRN_YIELD_WINDOW, SOVRN_THROTTLE_SHARE, SOVRN_ENV,
   checkSweepPlan, buildRequest, throttleIntervalMs, makeThrottle, runSweep, replayResponses, sweepToPulled,
-  fieldReport, formatFieldReport, formatSweep, groupIdGuidance, neimanEntries,
+  fieldReport, formatFieldReport, formatSweep, groupIdGuidance, bannerEntries,
 } from "./lib/sovrn.js";
+import { bannerOf } from "./lib/nmg-banners.js";
 import { parseExplain } from "./lib/pull-quality.js";
 import { runTranslation, reportCatalog, readCatalog, DO_NOT_SHIP_EXIT } from "./lib/pull-finish.mjs";
 import { DEFAULT_COST_PER_RUN_USD } from "./lib/refresh-tiers.js";
@@ -114,10 +127,12 @@ const POLL_MS = 5000;
 const FETCH_TIMEOUT_MS = 60000;
 /* Raw pulls and quarantined rows: never served, never committed
    (data/neimanmarcus/ is gitignored). NM_DATA_DIR moves them. */
-const DATA_DIR = process.env.NM_DATA_DIR ? resolve(process.env.NM_DATA_DIR) : join(ROOT, "data/neimanmarcus");
+const DATA_ROOT = process.env.NM_DATA_DIR ? resolve(process.env.NM_DATA_DIR) : join(ROOT, "data/neimanmarcus");
+/* Bergdorf Goodman / Horchow keep theirs in a sub-folder (same ignore rule). */
+const dataDir = (banner) => (bannerOf(banner).key === "neimanmarcus" ? DATA_ROOT : join(DATA_ROOT, bannerOf(banner).key));
 
 export function parseArgs(argv) {
-  const a = { explain: [] };
+  const a = { explain: [], banner: bannerOf() };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     const next = () => argv[++i];
@@ -138,6 +153,7 @@ export function parseArgs(argv) {
     else if (k === "--target") a.target = Number(next());
     else if (k === "--explain") a.explain.push(next());
     else if (k === "--via") a.via = next();
+    else if (k === "--banner") a.banner = bannerOf(next());
     else if (k === "--merchant-group") a.merchantGroup = next();
     else if (k === "--approved-merchants-url") a.approvedMerchantsUrl = next();
     else if (k === "--sweep-plan") a.sweepPlan = next();
@@ -149,6 +165,7 @@ export function parseArgs(argv) {
   }
   if (a.target != null && !(a.target > 0)) throw new Error("--target must be a positive number of products");
   if (a.via != null && a.via !== "sovrn") throw new Error(`--via ${a.via}: the only harvest mode is --via sovrn (Neiman Marcus is behind DataDome; it is never scraped)`);
+  if (a.banner.key !== "neimanmarcus" && a.via !== "sovrn" && !a.src) throw new Error(`--banner ${a.banner.key}: the only routes are --via sovrn and --src (no Apify actor is verified for ${a.banner.host})`);
   if (a.maxRequests != null && !(a.maxRequests > 0)) throw new Error("--max-requests must be a positive number");
   if (a.minYield != null && !(a.minYield >= 0)) throw new Error("--min-yield must be >= 0");
   if (a.yieldWindow != null && !(a.yieldWindow >= 1)) throw new Error("--yield-window must be >= 1");
@@ -210,12 +227,13 @@ async function ingestContext(args) {
     assumeUsd: Boolean(args.assumeUsd),
     band: { min: Number.isFinite(args.minUsd) ? args.minUsd : PRICE_BAND_USD.min, max: Number.isFinite(args.maxUsd) ? args.maxUsd : PRICE_BAND_USD.max },
     isShippableItem: loadShippable(ROOT),
+    banner: args.banner,
     specWeightKg: (x) => specWeightKg(x),
   };
 }
 
-function printIngestReport(stats, quarantinePath) {
-  console.log(`\n  Neiman Marcus ingest: ${stats.published} published of ${stats.rows} rows${stats.selection ? ` (pool ${stats.pool}, target ${stats.selection.target})` : ""}`);
+function printIngestReport(stats, quarantinePath, banner = bannerOf()) {
+  console.log(`\n  ${banner.label} ingest: ${stats.published} published of ${stats.rows} rows${stats.selection ? ` (pool ${stats.pool}, target ${stats.selection.target})` : ""}`);
   console.log(`    per bucket:     ${JSON.stringify(stats.perBucket)}`);
   console.log(`    on sale:        ${stats.onSale}`);
   console.log(`    real weight:    ${stats.realWeight}  (published by the source; the rest get the site's estimate, flagged)`);
@@ -224,7 +242,7 @@ function printIngestReport(stats, quarantinePath) {
   console.log(`    size runs:      ${stats.withSizes}  (as scraped; none invented)`);
   console.log(`    galleries (2+): ${stats.gallery}`);
   console.log(`    PDP sentences:  ${stats.described}  (English until translate-catalog-descriptions.mjs runs)`);
-  console.log(`    seller stated:  ${stats.sellerFromRow}  (Neiman Marcus named by the row; the rest by the source)`);
+  console.log(`    seller stated:  ${stats.sellerFromRow}  (${banner.label} named by the row; the rest by the source)`);
   if (stats.currencyAssumed) console.log(`    currency ASSUMED USD (--assume-usd): ${stats.currencyAssumed}`);
   console.log(`    dropped:        ${JSON.stringify(stats.dropped)}`);
   const q = Object.values(stats.quarantined).reduce((a, b) => a + b, 0);
@@ -237,18 +255,20 @@ async function ingestAndWrite(pulled, args, meta = {}) {
   if (args.target > 0) ctx.target = args.target;
   const { catalog, quarantined, stats } = ingestPull(pulled, ctx);
   const s = meta.stamp || stamp();
+  const banner = args.banner;
+  const DATA_DIR = dataDir(banner);
   const qPath = join(DATA_DIR, `quarantine-${s}.json`);
   if (stats.selection) {
     const left = { ...stats.dropped, ...Object.fromEntries(Object.entries(stats.quarantined).map(([k, v]) => [`quarantined:${k}`, v])) };
     console.log(formatSelection(stats.selection, left));
   }
-  printIngestReport(stats, qPath);
+  printIngestReport(stats, qPath, banner);
   if (args.dryRun) {
-    reportCatalog({ label: `${NM_LABEL} (dry run, nothing written)`, key: NM_KEY, catalog, rows: stats.rows, explain: args.explainMap, stage: "dry-run", weightEstimates: !args.noWeightEstimates });
+    reportCatalog({ label: `${banner.label} (dry run, nothing written)`, key: banner.key, catalog, rows: stats.rows, explain: args.explainMap, stage: "dry-run", weightEstimates: !args.noWeightEstimates });
     console.log("\n  --dry-run: nothing written");
     return { catalog, stats };
   }
-  if (!productCount(catalog)) {
+  if (!productCount(catalog, banner)) {
     console.error("\n  refusing to write an empty catalogue");
     process.exitCode = 1;
     return { catalog, stats };
@@ -257,14 +277,14 @@ async function ingestAndWrite(pulled, args, meta = {}) {
     mkdirSync(DATA_DIR, { recursive: true });
     writeFileSync(qPath, JSON.stringify({ generatedAt: new Date().toISOString(), rows: quarantined }, null, 1));
   }
-  const out = args.out ? resolve(args.out) : join(ROOT, OUT_FILE);
+  const out = args.out ? resolve(args.out) : join(ROOT, banner.outFile);
   writeFileSync(out, JSON.stringify(catalog));
   if (!args.noWeightEstimates) {
     execFileSync("python3", ["apply-weight-estimates.py", "weight-estimates.json", out, "--in-place"], { cwd: ROOT, stdio: ["ignore", "inherit", "inherit"] });
   }
-  console.log(`\n  wrote ${out}  (${productCount(catalog)} products)`);
+  console.log(`\n  wrote ${out}  (${productCount(catalog, banner)} products)`);
   const translation = runTranslation(out, { root: ROOT });
-  const { verdict } = reportCatalog({ label: NM_LABEL, key: NM_KEY, catalog: readCatalog(out), rows: stats.rows, explain: args.explainMap, stage: "written", translation });
+  const { verdict } = reportCatalog({ label: banner.label, key: banner.key, catalog: readCatalog(out), rows: stats.rows, explain: args.explainMap, stage: "written", translation });
   if (!verdict.ship) {
     console.log(`\n  DO NOT SHIP: ${out} stays local. Do not commit it or wire the store.`);
     process.exitCode = DO_NOT_SHIP_EXIT;
@@ -273,13 +293,13 @@ async function ingestAndWrite(pulled, args, meta = {}) {
 }
 
 /** --src: a saved raw pull, a JSON row array, or the affiliate feed. */
-export function loadSrc(path) {
-  if (statSync(resolve(path)).isDirectory()) return loadSovrnRaw(path);
+export function loadSrc(path, banner = bannerOf()) {
+  if (statSync(resolve(path)).isDirectory()) return loadSovrnRaw(path, banner);
   const text = readFileSync(resolve(path), "utf8");
   const ext = extname(path).toLowerCase();
   if ([".csv", ".tsv", ".txt"].includes(ext)) {
     const rows = feedToRows(parseDelimited(text, ext === ".tsv" ? "\t" : null));
-    return { pulled: [{ quota: { category: "feed", phase: 1 }, items: rows }], source: "Neiman Marcus affiliate product feed -- ingested by scripts/build-neimanmarcus-catalog.mjs" };
+    return { pulled: [{ quota: { category: "feed", phase: 1 }, items: rows }], source: `${bannerOf(banner).label} affiliate product feed -- ingested by scripts/build-neimanmarcus-catalog.mjs` };
   }
   const raw = JSON.parse(text);
   if (Array.isArray(raw.pulled)) return { pulled: raw.pulled.filter((p) => !p.error) };
@@ -293,25 +313,28 @@ export function loadSrc(path) {
    never written), then the products go through the SAME ingest as the
    feed (ingestRow, the 30k selection, the INGEST REPORT, the Spanish
    step). */
-const DEFAULT_SWEEP_PLAN = join(ROOT, "scripts/neimanmarcus/sovrn-sweep-plan.json");
-const SOVRN_SOURCE = "Neiman Marcus via the Sovrn Commerce Product Recommendation API (keyword sweep) -- ingested by scripts/build-neimanmarcus-catalog.mjs --via sovrn";
+const sovrnSource = (banner) => `${bannerOf(banner).label} via the Sovrn Commerce Product Recommendation API (keyword sweep) -- ingested by scripts/build-neimanmarcus-catalog.mjs --via sovrn${bannerOf(banner).key === "neimanmarcus" ? "" : ` --banner ${bannerOf(banner).key}`}`;
 
-function readPlan(path) {
-  return checkSweepPlan(JSON.parse(readFileSync(resolve(path || DEFAULT_SWEEP_PLAN), "utf8")));
+/* Each banner's own plan (scripts/lib/nmg-banners.js sweepPlan); --sweep-plan overrides. */
+function readPlan(path, banner = bannerOf()) {
+  return checkSweepPlan(JSON.parse(readFileSync(resolve(path || join(ROOT, bannerOf(banner).sweepPlan)), "utf8")));
 }
 
 /** --src <sovrn-raw dir>: replay saved answers through the current mapper. */
-export function loadSovrnRaw(dir) {
+export function loadSovrnRaw(dir, banner = bannerOf()) {
   const d = resolve(dir);
   const index = JSON.parse(readFileSync(join(d, "index.json"), "utf8"));
   if (index.via !== "sovrn") throw new Error(`${d}/index.json is not a Sovrn harvest (via: ${index.via})`);
+  /* A harvest records its banner; replaying it as another one is refused. */
+  const b = bannerOf(banner);
+  if ((index.banner || "neimanmarcus") !== b.key) throw new Error(`${d} is a ${index.banner || "neimanmarcus"} harvest; re-run with --banner ${index.banner || "neimanmarcus"}`);
   const responses = readdirSync(d).filter((f) => /^req-\d+\.json$/.test(f)).sort()
     .map((f) => JSON.parse(readFileSync(join(d, f), "utf8")));
-  const merchantIds = [SOVRN_NM_MERCHANT_ID, index.groupId].filter(Boolean);
-  const sweep = replayResponses(responses, { merchantIds });
+  const merchantIds = [b.merchantId, index.groupId].filter(Boolean);
+  const sweep = replayResponses(responses, { merchantIds, banner: b });
   const plan = { departments: (index.departments || []).map((x) => (typeof x === "string" ? { category: x, terms: ["-"] } : x)) };
   for (const r of responses) if (!plan.departments.some((x) => x.category === r.department)) plan.departments.push({ category: r.department, terms: ["-"] });
-  return { pulled: sweepToPulled(sweep.found, plan), source: SOVRN_SOURCE, sweep };
+  return { pulled: sweepToPulled(sweep.found, plan), source: sovrnSource(b), sweep };
 }
 
 async function fetchSovrn(req, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -321,7 +344,7 @@ async function fetchSovrn(req, timeoutMs = FETCH_TIMEOUT_MS) {
   catch (err) { return { ok: false, status: 0, body: { error: String(err && err.message || err) } }; }
 }
 
-async function lookUpGroupId(url, apiKey, dataDir) {
+async function lookUpGroupId(url, apiKey, dataDir, banner = bannerOf()) {
   const u = new URL(url);
   if (!u.searchParams.has("apiKey")) u.searchParams.set("apiKey", apiKey);
   const r = await fetchSovrn({ method: "GET", url: u.toString(), body: null });
@@ -329,48 +352,54 @@ async function lookUpGroupId(url, apiKey, dataDir) {
   const p = join(dataDir, `sovrn-approved-merchants-${stamp()}.json`);
   writeFileSync(p, JSON.stringify({ fetchedAt: new Date().toISOString(), url, status: r.status, body: r.body }, null, 1));
   console.log(`\n  Approved Merchants answer: HTTP ${r.status}, saved to ${p}`);
-  const hits = r.ok ? neimanEntries(r.body) : [];
-  if (!hits.length) console.log("  No entry naming Neiman Marcus or merchant 2243 was found in it. Read the saved answer.");
+  const hits = r.ok ? bannerEntries(r.body, banner) : [];
+  if (!hits.length) console.log(`  No entry naming ${banner.label} or merchant ${banner.merchantId} was found in it. Read the saved answer.`);
   for (const h of hits) console.log("  " + JSON.stringify(h));
-  console.log(`  Set ${SOVRN_ENV.groupId}=<the Neiman Marcus group ID from above> (or --merchant-group) and re-run.`);
+  /* Merchant id and group id may differ: say which this answer shows, for the #443 log. */
+  const sameId = hits.some((h) => Object.entries(h).some(([k, v]) => /group/i.test(k) && String(v) === banner.merchantId));
+  if (hits.length) console.log(`  ${banner.label}: merchant ${banner.merchantId}; ${sameId ? "a group field in the answer EQUALS the merchant id" : "no group field in the answer equals the merchant id -- read the group ID above"}.`);
+  console.log(`  Set ${banner.groupEnv}=<the ${banner.label} group ID from above> (or --merchant-group) and re-run.`);
 }
 
 async function runSovrn(args) {
   const env = process.env;
   const apiKey = String(env[SOVRN_ENV.apiKey] || "").trim();
-  const groupId = String(args.merchantGroup || env[SOVRN_ENV.groupId] || "").trim();
+  const banner = args.banner;
+  const DATA_DIR = dataDir(banner);
+  const groupId = String(args.merchantGroup || env[banner.groupEnv] || "").trim();
   const approvedUrl = args.approvedMerchantsUrl || env[SOVRN_ENV.approvedMerchantsUrl] || null;
-  const plan = readPlan(args.sweepPlan);
+  const plan = readPlan(args.sweepPlan, banner);
   if (!apiKey) {
     console.error(`\n  --via sovrn needs ${SOVRN_ENV.apiKey} (the Sovrn site API key) in the environment. Nothing was requested.`);
     process.exitCode = 1;
     return;
   }
   if (!groupId) {
-    console.log(groupIdGuidance({ approvedMerchantsUrl: approvedUrl }));
-    if (approvedUrl) await lookUpGroupId(approvedUrl, apiKey, DATA_DIR);
+    console.log(groupIdGuidance({ approvedMerchantsUrl: approvedUrl, banner }));
+    if (approvedUrl) await lookUpGroupId(approvedUrl, apiKey, DATA_DIR, banner);
     process.exitCode = 5;
     return;
   }
-  const target = args.target > 0 ? args.target : NM_TARGET;
+  const target = args.target > 0 ? args.target : banner.target;
   const endpoint = env[SOVRN_ENV.productsUrl] || SOVRN_PRODUCTS_URL;
   const intervalMs = throttleIntervalMs({ share: args.throttleShare || SOVRN_THROTTLE_SHARE });
   const maxRequests = args.maxRequests || SOVRN_MAX_REQUESTS;
   const s = stamp();
   const rawDir = join(DATA_DIR, `sovrn-raw-${s}`);
   mkdirSync(rawDir, { recursive: true });
-  const index = { via: "sovrn", startedAt: new Date().toISOString(), endpoint, groupId, target, maxRequests, intervalMs,
+  const index = { via: "sovrn", banner: banner.key, merchantId: banner.merchantId, startedAt: new Date().toISOString(), endpoint, groupId, target, maxRequests, intervalMs,
     departments: plan.departments.map((d) => ({ category: d.category, phase: d.phase || 2, ...(d.gender ? { gender: d.gender } : {}), ...(d.bucket ? { bucket: d.bucket } : {}), terms: ["-"] })),
     requestTemplate: plan.request || null, note: "Raw Sovrn answers, one file per request. The API key is never written here." };
   writeFileSync(join(rawDir, "index.json"), JSON.stringify(index, null, 1));
 
-  console.log("\n  Neiman Marcus via Sovrn Commerce -- Product Recommendation API keyword sweep");
-  console.log(`  group ID ${groupId}, up to 50 products per request, target ${target.toLocaleString("en-US")}, at most ${maxRequests.toLocaleString("en-US")} requests, one every ${intervalMs} ms`);
+  console.log(`\n  ${banner.label} via Sovrn Commerce -- Product Recommendation API keyword sweep`);
+  console.log(`  merchant ${banner.merchantId}, group ID ${groupId}${groupId === banner.merchantId ? " (equals the merchant id)" : " (differs from the merchant id)"}, up to 50 products per request, target ${target.toLocaleString("en-US")}, at most ${maxRequests.toLocaleString("en-US")} requests, one every ${intervalMs} ms`);
   const sweep = await runSweep({
     plan, target, maxRequests,
     minYield: args.minYield != null ? args.minYield : SOVRN_MIN_YIELD,
     yieldWindow: args.yieldWindow || SOVRN_YIELD_WINDOW,
-    merchantIds: [SOVRN_NM_MERCHANT_ID, groupId],
+    merchantIds: [banner.merchantId, groupId],
+    banner,
     throttle: makeThrottle({ intervalMs }),
     log: (m) => console.log(m),
     request: (term) => fetchSovrn(buildRequest(plan, { term, apiKey, groupId, endpoint })),
@@ -386,15 +415,15 @@ async function runSovrn(args) {
   index.stopped = sweep.stopped;
   index.unique = sweep.unique;
   writeFileSync(join(rawDir, "index.json"), JSON.stringify(index, null, 1));
-  console.log(formatSweep(sweep, { target, intervalMs, rawDir }));
+  console.log(formatSweep(sweep, { target, intervalMs, rawDir, banner }));
   console.log(formatFieldReport(fieldReport(sweep.found)));
   if (!sweep.unique) {
     console.error(`\n  No products came back (${sweep.stopped}). Read the raw answers in ${rawDir} and fix the request template in the sweep plan.`);
     process.exitCode = 1;
     return;
   }
-  console.log(`  re-ingest these raw answers later (no new requests): node scripts/build-neimanmarcus-catalog.mjs --src ${rawDir} --target ${target} --dry-run`);
-  await ingestAndWrite(sweepToPulled(sweep.found, plan), { ...args, target }, { source: SOVRN_SOURCE, stamp: s });
+  console.log(`  re-ingest these raw answers later (no new requests): node scripts/build-neimanmarcus-catalog.mjs${banner.key === "neimanmarcus" ? "" : ` --banner ${banner.key}`} --src ${rawDir} --target ${target} --dry-run`);
+  await ingestAndWrite(sweepToPulled(sweep.found, plan), { ...args, target }, { source: sovrnSource(banner), stamp: s });
 }
 
 /* ---------------- main ---------------- */
@@ -407,9 +436,9 @@ async function main() {
   }
 
   if (args.src) {
-    const { pulled, source, sweep } = loadSrc(args.src);
+    const { pulled, source, sweep } = loadSrc(args.src, args.banner);
     if (sweep) {
-      console.log(formatSweep(sweep, { target: args.target || NM_TARGET, rawDir: resolve(args.src) }));
+      console.log(formatSweep(sweep, { target: args.target || args.banner.target, rawDir: resolve(args.src), banner: args.banner }));
       console.log(formatFieldReport(fieldReport(sweep.found)));
     }
     await ingestAndWrite(pulled, args, { source });
@@ -441,8 +470,8 @@ async function main() {
   const runner = viaApify(token, actor);
 
   const s = stamp();
-  const rawPath = join(DATA_DIR, `raw-${s}.json`);
-  mkdirSync(DATA_DIR, { recursive: true });
+  const rawPath = join(DATA_ROOT, `raw-${s}.json`);
+  mkdirSync(DATA_ROOT, { recursive: true });
   const pulled = [];
   const done = [];
   let stopped = null;
