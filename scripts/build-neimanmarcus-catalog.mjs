@@ -32,7 +32,9 @@
            - a raw pull saved by a run above (data/neimanmarcus/raw-*.json),
            - a JSON array of product rows (an Apify dataset export), or
            - Neiman Marcus's affiliate product feed (.csv / .tsv / .txt,
-             Google-Shopping columns: Sovrn / AWIN export).
+             Google-Shopping columns: the AWIN export; Sovrn Commerce has
+             no feed file -- use --via sovrn below)
+           - a saved Sovrn harvest directory (data/neimanmarcus/sovrn-raw-*/).
 
    ACCESS NOTE. scripts/luxury-feed/README.md (recon 2026-09-28) records
    neimanmarcus.com behind DataDome and the repo's decision not to defeat
@@ -40,8 +42,29 @@
    the --src path. The --confirm-spend path starts whatever actor
    NM_ACTOR_ID names; no actor is verified for neimanmarcus.com.
 
+     node scripts/build-neimanmarcus-catalog.mjs --via sovrn --dry-run [--target 30000]
+         THE SOVRN API HARVEST (Sovrn Commerce has NO feed file; product
+         data is API-only). Needs SOVRN_API_KEY and the Neiman Marcus
+         group ID (NM_SOVRN_GROUP_ID or --merchant-group; without it the
+         script prints how to get it and stops, exit 5). Sweeps the
+         Product Recommendation API by keyword (50 products per request;
+         scripts/neimanmarcus/sovrn-sweep-plan.json, extendable), de-
+         duplicates, stops at the target, at --max-requests (default
+         3000) or when a department's new-product yield falls below
+         --min-yield per request over --yield-window requests; throttled
+         to --throttle-share (default 10%) of Sovrn's 30k / 5 min limit.
+         Every raw answer is saved under data/neimanmarcus/sovrn-raw-
+         <stamp>/ (gitignored; the key is never written). --dry-run
+         prints the sweep, the field-mapping report, the 30k selection
+         and the coverage report, and writes no catalogue; without it the
+         SAME ingest as the feed runs and writes the catalogue.
+     node scripts/build-neimanmarcus-catalog.mjs --src data/neimanmarcus/sovrn-raw-<stamp> [--dry-run]
+         Re-ingest saved Sovrn answers through the current mapper (after
+         fixing scripts/lib/sovrn.js SOVRN_FIELD_KEYS). No requests.
+
    No --via site path: the store is not wired into the deployed
-   functions (RETAILER_CONFIG has no neimanmarcus entry), on purpose.
+   functions (RETAILER_CONFIG has no neimanmarcus entry), on purpose,
+   and neimanmarcus.com is never scraped (DataDome).
 
    INGEST (scripts/lib/neimanmarcus.js; DSW's rules from scripts/lib/dsw.js)
      - seller must be Neiman Marcus (a row naming another seller is
@@ -67,15 +90,20 @@
    Wiring the store into the site (registry row, tienda.html, slices) is
    a separate build step, done once this file has products.
    ============================================================ */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   OUT_FILE, NM_SALE_MAX, PRICE_BAND_USD, pullPlan, nmActorInput, costRatesFromEnv,
   estimatePull, formatEstimate, spendCheck, ingestPull, productCount, parseDelimited, feedToRows,
-  NM_LABEL, NM_KEY, formatSelection,
+  NM_LABEL, NM_KEY, NM_TARGET, formatSelection,
 } from "./lib/neimanmarcus.js";
+import {
+  SOVRN_PRODUCTS_URL, SOVRN_NM_MERCHANT_ID, SOVRN_MAX_REQUESTS, SOVRN_MIN_YIELD, SOVRN_YIELD_WINDOW, SOVRN_THROTTLE_SHARE, SOVRN_ENV,
+  checkSweepPlan, buildRequest, throttleIntervalMs, makeThrottle, runSweep, replayResponses, sweepToPulled,
+  fieldReport, formatFieldReport, formatSweep, groupIdGuidance, neimanEntries,
+} from "./lib/sovrn.js";
 import { parseExplain } from "./lib/pull-quality.js";
 import { runTranslation, reportCatalog, readCatalog, DO_NOT_SHIP_EXIT } from "./lib/pull-finish.mjs";
 import { DEFAULT_COST_PER_RUN_USD } from "./lib/refresh-tiers.js";
@@ -109,9 +137,22 @@ export function parseArgs(argv) {
     else if (k === "--no-weight-estimates") a.noWeightEstimates = true;
     else if (k === "--target") a.target = Number(next());
     else if (k === "--explain") a.explain.push(next());
+    else if (k === "--via") a.via = next();
+    else if (k === "--merchant-group") a.merchantGroup = next();
+    else if (k === "--approved-merchants-url") a.approvedMerchantsUrl = next();
+    else if (k === "--sweep-plan") a.sweepPlan = next();
+    else if (k === "--max-requests") a.maxRequests = Number(next());
+    else if (k === "--min-yield") a.minYield = Number(next());
+    else if (k === "--yield-window") a.yieldWindow = Number(next());
+    else if (k === "--throttle-share") a.throttleShare = Number(next());
     else throw new Error(`unknown option ${k}`);
   }
   if (a.target != null && !(a.target > 0)) throw new Error("--target must be a positive number of products");
+  if (a.via != null && a.via !== "sovrn") throw new Error(`--via ${a.via}: the only harvest mode is --via sovrn (Neiman Marcus is behind DataDome; it is never scraped)`);
+  if (a.maxRequests != null && !(a.maxRequests > 0)) throw new Error("--max-requests must be a positive number");
+  if (a.minYield != null && !(a.minYield >= 0)) throw new Error("--min-yield must be >= 0");
+  if (a.yieldWindow != null && !(a.yieldWindow >= 1)) throw new Error("--yield-window must be >= 1");
+  if (a.throttleShare != null && !(a.throttleShare > 0 && a.throttleShare <= 0.5)) throw new Error("--throttle-share must be in (0, 0.5]: the harvest stays well under Sovrn's limit");
   a.explainMap = parseExplain(a.explain);
   return a;
 }
@@ -233,6 +274,7 @@ async function ingestAndWrite(pulled, args, meta = {}) {
 
 /** --src: a saved raw pull, a JSON row array, or the affiliate feed. */
 export function loadSrc(path) {
+  if (statSync(resolve(path)).isDirectory()) return loadSovrnRaw(path);
   const text = readFileSync(resolve(path), "utf8");
   const ext = extname(path).toLowerCase();
   if ([".csv", ".tsv", ".txt"].includes(ext)) {
@@ -244,12 +286,132 @@ export function loadSrc(path) {
   return { pulled: [{ quota: { category: "export", phase: 1 }, items: Array.isArray(raw) ? raw : raw.items || [] }] };
 }
 
+/* ---------------- --via sovrn: the Sovrn Commerce API harvest ----------------
+   Sovrn has no product feed file; scripts/lib/sovrn.js holds the API
+   facts, the assumptions, the mapper and the sweep. Every raw answer is
+   saved under data/neimanmarcus/sovrn-raw-<stamp>/ (gitignored, key
+   never written), then the products go through the SAME ingest as the
+   feed (ingestRow, the 30k selection, the INGEST REPORT, the Spanish
+   step). */
+const DEFAULT_SWEEP_PLAN = join(ROOT, "scripts/neimanmarcus/sovrn-sweep-plan.json");
+const SOVRN_SOURCE = "Neiman Marcus via the Sovrn Commerce Product Recommendation API (keyword sweep) -- ingested by scripts/build-neimanmarcus-catalog.mjs --via sovrn";
+
+function readPlan(path) {
+  return checkSweepPlan(JSON.parse(readFileSync(resolve(path || DEFAULT_SWEEP_PLAN), "utf8")));
+}
+
+/** --src <sovrn-raw dir>: replay saved answers through the current mapper. */
+export function loadSovrnRaw(dir) {
+  const d = resolve(dir);
+  const index = JSON.parse(readFileSync(join(d, "index.json"), "utf8"));
+  if (index.via !== "sovrn") throw new Error(`${d}/index.json is not a Sovrn harvest (via: ${index.via})`);
+  const responses = readdirSync(d).filter((f) => /^req-\d+\.json$/.test(f)).sort()
+    .map((f) => JSON.parse(readFileSync(join(d, f), "utf8")));
+  const merchantIds = [SOVRN_NM_MERCHANT_ID, index.groupId].filter(Boolean);
+  const sweep = replayResponses(responses, { merchantIds });
+  const plan = { departments: (index.departments || []).map((x) => (typeof x === "string" ? { category: x, terms: ["-"] } : x)) };
+  for (const r of responses) if (!plan.departments.some((x) => x.category === r.department)) plan.departments.push({ category: r.department, terms: ["-"] });
+  return { pulled: sweepToPulled(sweep.found, plan), source: SOVRN_SOURCE, sweep };
+}
+
+async function fetchSovrn(req, timeoutMs = FETCH_TIMEOUT_MS) {
+  const options = { method: req.method, headers: { Accept: "application/json" } };
+  if (req.body != null && req.method !== "GET") { options.headers["Content-Type"] = "application/json"; options.body = JSON.stringify(req.body); }
+  try { return await fetchJson(req.url, options, timeoutMs); }
+  catch (err) { return { ok: false, status: 0, body: { error: String(err && err.message || err) } }; }
+}
+
+async function lookUpGroupId(url, apiKey, dataDir) {
+  const u = new URL(url);
+  if (!u.searchParams.has("apiKey")) u.searchParams.set("apiKey", apiKey);
+  const r = await fetchSovrn({ method: "GET", url: u.toString(), body: null });
+  mkdirSync(dataDir, { recursive: true });
+  const p = join(dataDir, `sovrn-approved-merchants-${stamp()}.json`);
+  writeFileSync(p, JSON.stringify({ fetchedAt: new Date().toISOString(), url, status: r.status, body: r.body }, null, 1));
+  console.log(`\n  Approved Merchants answer: HTTP ${r.status}, saved to ${p}`);
+  const hits = r.ok ? neimanEntries(r.body) : [];
+  if (!hits.length) console.log("  No entry naming Neiman Marcus or merchant 2243 was found in it. Read the saved answer.");
+  for (const h of hits) console.log("  " + JSON.stringify(h));
+  console.log(`  Set ${SOVRN_ENV.groupId}=<the Neiman Marcus group ID from above> (or --merchant-group) and re-run.`);
+}
+
+async function runSovrn(args) {
+  const env = process.env;
+  const apiKey = String(env[SOVRN_ENV.apiKey] || "").trim();
+  const groupId = String(args.merchantGroup || env[SOVRN_ENV.groupId] || "").trim();
+  const approvedUrl = args.approvedMerchantsUrl || env[SOVRN_ENV.approvedMerchantsUrl] || null;
+  const plan = readPlan(args.sweepPlan);
+  if (!apiKey) {
+    console.error(`\n  --via sovrn needs ${SOVRN_ENV.apiKey} (the Sovrn site API key) in the environment. Nothing was requested.`);
+    process.exitCode = 1;
+    return;
+  }
+  if (!groupId) {
+    console.log(groupIdGuidance({ approvedMerchantsUrl: approvedUrl }));
+    if (approvedUrl) await lookUpGroupId(approvedUrl, apiKey, DATA_DIR);
+    process.exitCode = 5;
+    return;
+  }
+  const target = args.target > 0 ? args.target : NM_TARGET;
+  const endpoint = env[SOVRN_ENV.productsUrl] || SOVRN_PRODUCTS_URL;
+  const intervalMs = throttleIntervalMs({ share: args.throttleShare || SOVRN_THROTTLE_SHARE });
+  const maxRequests = args.maxRequests || SOVRN_MAX_REQUESTS;
+  const s = stamp();
+  const rawDir = join(DATA_DIR, `sovrn-raw-${s}`);
+  mkdirSync(rawDir, { recursive: true });
+  const index = { via: "sovrn", startedAt: new Date().toISOString(), endpoint, groupId, target, maxRequests, intervalMs,
+    departments: plan.departments.map((d) => ({ category: d.category, phase: d.phase || 2, ...(d.gender ? { gender: d.gender } : {}), ...(d.bucket ? { bucket: d.bucket } : {}), terms: ["-"] })),
+    requestTemplate: plan.request || null, note: "Raw Sovrn answers, one file per request. The API key is never written here." };
+  writeFileSync(join(rawDir, "index.json"), JSON.stringify(index, null, 1));
+
+  console.log("\n  Neiman Marcus via Sovrn Commerce -- Product Recommendation API keyword sweep");
+  console.log(`  group ID ${groupId}, up to 50 products per request, target ${target.toLocaleString("en-US")}, at most ${maxRequests.toLocaleString("en-US")} requests, one every ${intervalMs} ms`);
+  const sweep = await runSweep({
+    plan, target, maxRequests,
+    minYield: args.minYield != null ? args.minYield : SOVRN_MIN_YIELD,
+    yieldWindow: args.yieldWindow || SOVRN_YIELD_WINDOW,
+    merchantIds: [SOVRN_NM_MERCHANT_ID, groupId],
+    throttle: makeThrottle({ intervalMs }),
+    log: (m) => console.log(m),
+    request: (term) => fetchSovrn(buildRequest(plan, { term, apiKey, groupId, endpoint })),
+    onResponse: (seq, dept, term, res) => {
+      const logged = buildRequest(plan, { term, apiKey: "", groupId, endpoint }).logged;
+      writeFileSync(join(rawDir, `req-${String(seq).padStart(5, "0")}.json`),
+        JSON.stringify({ seq, department: dept.category, term, request: logged, status: res ? res.status : 0, body: res ? res.body : null }));
+      if (seq % 50 === 0) console.log(`    ${seq} requests ...`);
+    },
+  });
+  index.finishedAt = new Date().toISOString();
+  index.requests = sweep.requests;
+  index.stopped = sweep.stopped;
+  index.unique = sweep.unique;
+  writeFileSync(join(rawDir, "index.json"), JSON.stringify(index, null, 1));
+  console.log(formatSweep(sweep, { target, intervalMs, rawDir }));
+  console.log(formatFieldReport(fieldReport(sweep.found)));
+  if (!sweep.unique) {
+    console.error(`\n  No products came back (${sweep.stopped}). Read the raw answers in ${rawDir} and fix the request template in the sweep plan.`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`  re-ingest these raw answers later (no new requests): node scripts/build-neimanmarcus-catalog.mjs --src ${rawDir} --target ${target} --dry-run`);
+  await ingestAndWrite(sweepToPulled(sweep.found, plan), { ...args, target }, { source: SOVRN_SOURCE, stamp: s });
+}
+
 /* ---------------- main ---------------- */
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
+  if (args.via === "sovrn" && !args.src) {
+    await runSovrn(args);
+    return;
+  }
+
   if (args.src) {
-    const { pulled, source } = loadSrc(args.src);
+    const { pulled, source, sweep } = loadSrc(args.src);
+    if (sweep) {
+      console.log(formatSweep(sweep, { target: args.target || NM_TARGET, rawDir: resolve(args.src) }));
+      console.log(formatFieldReport(fieldReport(sweep.found)));
+    }
     await ingestAndWrite(pulled, args, { source });
     return;
   }
