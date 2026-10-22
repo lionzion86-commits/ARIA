@@ -1,0 +1,69 @@
+{
+  "_about": "PERFUME HERO ANCHORS (#443 amendment, Danny). The ONLY products the Perfumes carousel may show at full price: iconic bottles Peruvians recognize on sight. Curated few, not a category -- every entry is named and reviewed here. scripts/build-perfumes-shelf.mjs places an entry only when that exact product (brand + every titleAll phrase, none of titleNone) is in a live, on-sale-channel catalogue in the repo; an entry with no such listing simply does not appear. Never add a listing here: add a product name, and let a real catalogue row decide. Flankers (Intense, Elixir, Absolu, Parfum, minis, sets, travel sprays) are excluded by titleNone so the anchor is the bottle people actually picture.",
+  "anchors": [
+    {
+      "id": "paco-rabanne-1-million",
+      "name": "Paco Rabanne 1 Million Eau de Toilette",
+      "brands": ["Paco Rabanne", "Rabanne"],
+      "titleAll": ["1 million"],
+      "titleNone": ["parfum", "elixir", "royal", "lucky", "prive", "privé", "golden oud", "mini", "set", "travel", "lady"],
+      "why": "The gold ingot bottle; the best-known men's designer fragrance in Peru's department stores and duty-free."
+    },
+    {
+      "id": "carolina-herrera-212",
+      "name": "Carolina Herrera 212 (Men / Women / VIP)",
+      "brands": ["Carolina Herrera"],
+      "titleAll": ["212"],
+      "titleNone": ["mini", "set", "travel", "body"],
+      "why": "Carolina Herrera's 212 family is the most-recognized designer line in Latin America; the 212 VIP bottle is an icon."
+    },
+    {
+      "id": "carolina-herrera-good-girl",
+      "name": "Carolina Herrera Good Girl Eau de Parfum",
+      "brands": ["Carolina Herrera"],
+      "titleAll": ["good girl", "eau de parfum"],
+      "titleNone": ["blush", "jasmine", "supreme", "legere", "légère", "fantastic", "crystal", "mini", "set", "travel", "duo"],
+      "why": "The stiletto bottle; a top-selling women's fragrance in the region, recognized on sight."
+    },
+    {
+      "id": "creed-aventus",
+      "name": "Creed Aventus Eau de Parfum",
+      "brands": ["Creed"],
+      "titleAll": ["aventus"],
+      "titleNone": ["absolu", "cologne", "for her", "mini", "set", "travel"],
+      "why": "The most famous luxury men's fragrance worldwide. The flanker Absolu Aventus is NOT this product and does not qualify."
+    },
+    {
+      "id": "ysl-black-opium",
+      "name": "Yves Saint Laurent Black Opium Eau de Parfum",
+      "brands": ["Yves Saint Laurent", "YSL"],
+      "titleAll": ["black opium", "eau de parfum"],
+      "titleNone": ["intense", "extreme", "le parfum", "over red", "glitter", "illicit", "neon", "mini", "set", "travel", "duo"],
+      "why": "Global best seller; the black glitter bottle is as recognized in Lima as 212 or 1 Million."
+    },
+    {
+      "id": "ysl-libre",
+      "name": "Yves Saint Laurent Libre Eau de Parfum",
+      "brands": ["Yves Saint Laurent", "YSL"],
+      "titleAll": ["libre", "eau de parfum"],
+      "titleNone": ["intense", "santal", "vanille", "berry", "flowers", "nue", "absolu", "platine", "le parfum", "mini", "set", "travel", "duo", "collection"],
+      "why": "One of the best-selling women's fragrances in the world since 2019; the gold-cassandre bottle is recognized on sight."
+    },
+    {
+      "id": "dior-sauvage",
+      "name": "Dior Sauvage Eau de Toilette",
+      "brands": ["Dior", "Christian Dior"],
+      "titleAll": ["sauvage"],
+      "titleNone": ["elixir", "parfum", "mini", "set", "travel", "after", "deodorant", "balm"],
+      "why": "The best-selling men's fragrance in the world; same fame tier as 1 Million."
+    },
+    {
+      "id": "armani-acqua-di-gio",
+      "name": "Giorgio Armani Acqua di Gio",
+      "brands": ["Giorgio Armani", "Armani", "Armani Beauty"],
+      "titleAll": ["acqua di gi"],
+      "titleNone": ["gioia", "profondo", "profumo", "parfum", "mini", "set", "travel"],
+      "why": "The classic men's designer fragrance in Peru for two decades."
+    }
+  ]
+}

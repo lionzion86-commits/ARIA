@@ -52,11 +52,15 @@ export const BEAUTY_PACK_ALLOWANCE_KG = {
    (a lipstick) is the honest middle of this catalogue. */
 export const BEAUTY_DEFAULT_KG = 0.05;
 
+/* What a fragrance is: one definition, shared with the carousel and the
+   order door (scripts/lib/fragrance.js). */
+import { isFragranceItem, MAX_PERFUMES_PER_ORDER } from "./fragrance.js";
+
 /* Courier contract clause: no shipment may carry more than four
    fragrances. Alcohol-based fragrance is a restricted air-freight
    commodity and the consolidator's allowance per parcel is four units.
    Surfaced in the UI, not buried — see the cart and the beauty pages. */
-export const MAX_FRAGRANCES_PER_SHIPMENT = 4;
+export const MAX_FRAGRANCES_PER_SHIPMENT = MAX_PERFUMES_PER_ORDER;
 
 /* ------------------------------------------------------------
    DETECTION
@@ -196,13 +200,15 @@ export function titleVolumeMl(title) {
   return null;
 }
 
-/** True when a title is a fragrance the courier's 4-per-shipment clause covers. */
+/** True when a title is a fragrance the courier's 4-per-shipment clause covers.
+ *  ONE DEFINITION (#443, 2026-10-22): /fragrance.js decides, the same
+ *  classifier the Perfumes carousel and orders-create read. It still
+ *  counts body mists (alcohol-based fragrance, same allowance) and it no
+ *  longer counts "Fragrance Free" wipes or a perfume tray. */
 export function isFragrance(title) {
   const t = String(title || "");
   if (BEAUTY_IMPOSTOR_RE.test(t)) return false;
-  // A body mist is alcohol-based fragrance, so it counts against the
-  // same allowance even though it is not sold as "perfume".
-  return PERFUME_RE.test(t) || /\b(body mist|body splash|fragrance mist|bruma corporal)\b/i.test(t);
+  return isFragranceItem(t);
 }
 
 /** Shipped weight for a perfume title, or null when it is not one. */
@@ -344,7 +350,8 @@ export function beautyWeightKg(title, hints = {}) {
 export function fragranceCount(items) {
   return (Array.isArray(items) ? items : []).reduce((sum, it) => {
     const title = String(it?.title ?? it?.name ?? "");
-    if (!isFragrance(title)) return sum;
+    if (BEAUTY_IMPOSTOR_RE.test(title) || !isFragranceItem(it)) return sum;
+    if (it?.lineType === "bundle-discount") return sum;
     return sum + Math.max(1, Math.round(Number(it?.qty) || 1));
   }, 0);
 }
