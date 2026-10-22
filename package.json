@@ -43,7 +43,8 @@
     "test:variant-truth": "node scripts/test/variant-truth-tests.mjs",
     "test:results-lanes": "node scripts/test/results-lanes-tests.mjs",
     "test:pixels": "node scripts/test/pixels-tests.mjs",
-    "test:dsw": "node scripts/test/dsw-store-tests.mjs"
+    "test:dsw": "node scripts/test/dsw-store-tests.mjs",
+    "test:neimanmarcus-pull": "node scripts/test/neimanmarcus-pull-tests.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.1",
