@@ -34,7 +34,7 @@
            - Neiman Marcus's affiliate product feed (.csv / .tsv / .txt,
              Google-Shopping columns: the AWIN export; Sovrn Commerce has
              no feed file -- use --via sovrn below)
-           - a saved Sovrn harvest directory (data/neimanmarcus/sovrn-raw-*/).
+           - a saved Sovrn harvest directory (data/neimanmarcus/sovrn-raw-<stamp>/).
 
    ACCESS NOTE. scripts/luxury-feed/README.md (recon 2026-09-28) records
    neimanmarcus.com behind DataDome and the repo's decision not to defeat
