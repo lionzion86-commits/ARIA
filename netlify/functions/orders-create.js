@@ -45,6 +45,7 @@ import {
   totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm, missingSizeLines,
 } from "./_checkout-model.js";
 import { offSaleLines, offSaleOrderError } from "../../scripts/lib/off-sale.js";
+import { capState as perfumeCapState, capOrderError as perfumeCapOrderError } from "../../scripts/lib/fragrance.js";
 
 /* The production hosts. Anything else (deploy previews, branch deploys,
    localhost) is a test environment and may only hold a test key. */
@@ -153,6 +154,19 @@ async function createOrderHandler(event) {
     return { statusCode: 400, headers, body: JSON.stringify({
       error: offSaleOrderError(offSale[0].title || offSale[0].name),
       offSale: offSale.map((it) => String(it.title || it.name || "")),
+    }) };
+  }
+
+  /* FOUR PERFUMES PER ORDER (#443, scripts/lib/fragrance.js -- the same
+     classifier the Perfumes carousel uses). The cart and checkout offer
+     to move the extras into a second order; this is the rule at the door
+     the money goes through, refused like an off-sale line: a 400 before
+     anything is written or charged. Quantity counts. */
+  const perfumeCap = perfumeCapState(sentItems);
+  if (perfumeCap.overLimit) {
+    return { statusCode: 400, headers, body: JSON.stringify({
+      error: perfumeCapOrderError(perfumeCap.count),
+      perfumeCap: { count: perfumeCap.count, limit: perfumeCap.limit },
     }) };
   }
 

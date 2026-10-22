@@ -179,7 +179,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const snap = await snapshotShelves();
   const files = shelfFiles(snap);
   const dir = join(ROOT, SHELVES_DIR);
-  if (existsSync(dir)) for (const f of readdirSync(dir)) rmSync(join(dir, f));
+  /* perfumes.json is scripts/build-perfumes-shelf.mjs's file (#443): kept. */
+  if (existsSync(dir)) for (const f of readdirSync(dir)) if (f !== "perfumes.json") rmSync(join(dir, f));
   mkdirSync(dir, { recursive: true });
   let total = 0;
   for (const [name, body] of Object.entries(files)) {

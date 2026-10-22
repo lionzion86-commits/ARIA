@@ -85,6 +85,10 @@
   /* ---------- carousels (2026-10-07): sales first, then category rails ---------- */
   #rails{max-width:1240px;margin:0 auto;padding:8px 0 44px}
   .rail-sec{margin:20px 0 4px}
+  .perfumes-lead{scroll-margin-top:76px}
+  .perfumes-lead .rail-head h2{font-size:22px;text-transform:uppercase}
+  .perfumes-lead .pl-kicker{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+  .perfumes-lead .pl-sub{margin:2px 20px 0;font-size:12px;font-weight:600;color:#6B7487}
   .rail-head{display:flex;align-items:center;gap:8px;padding:0 20px;margin-bottom:2px}
   .rail-head h2{font-size:19px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
   .rail-count{font-size:11px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px}
@@ -177,6 +181,14 @@
 </div>
 
 <!-- Card-shaped placeholders from the first paint, before any script. -->
+<!-- ARIA BEAUTY > FRAGANCIAS (#443): the Perfumes rail leads the beauty
+     department, painted from assets/home/shelves/perfumes.json (the same
+     small shelf as the home page's Perfumes rail). Hidden elsewhere. -->
+<section id="perfumesLead" class="rail-sec perfumes-lead" aria-label="Fragancias: Perfumes" hidden>
+  <div class="rail-head"><div><div class="pl-kicker">Fragancias</div><h2>Perfumes</h2></div><span class="rail-count" id="perfumesLeadCount"></span></div>
+  <p class="pl-sub">Las grandes casas: ofertas y cl&#x00E1;sicos. M&#x00E1;ximo 4 perfumes por pedido.</p>
+  <div class="rail" id="perfumesLeadRail"></div>
+</section>
 <main id="rails" aria-live="polite"><section class="rail-sec" aria-hidden="true"><div class="rail-head"><h2 class="sk-h"><i></i></h2></div><div class="rail"><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section><section class="rail-sec" aria-hidden="true"><div class="rail-head"><h2 class="sk-h"><i></i></h2></div><div class="rail"><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body"><div class="card-retailer"><i></i></div><div class="card-brand"><i></i></div><div class="card-title"><i></i><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section></main>
 
 <footer>
@@ -592,8 +604,10 @@ function sizedImageUrl(url, w){
   /* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409): a square
      photo box from the first paint and reserved rows for every line. */
   function cardHTML(c){
-    var usd = finalUsd(c.p, c.r);
-    var wasUsd = c.o ? finalUsd(c.o, c.r) : 0;
+    /* u / w: a card already priced by the site's own rule (the Perfumes
+       shelf); p / o: a raw store price, priced here. */
+    var usd = c.u != null ? Number(c.u) : finalUsd(c.p, c.r);
+    var wasUsd = c.w != null ? Number(c.w) : (c.o ? finalUsd(c.o, c.r) : 0);
     var pct = salePct(c);
     var badge = pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '';
     var img = c.i
@@ -720,6 +734,10 @@ function sizedImageUrl(url, w){
   var STORES = null;          // the unfiltered store chips stay put while filtering
   function loadAll(){
     hide(errorState); hide(emptyState); hide(invalidState);
+    /* The Perfumes lead rail is the whole department's; a store chip or a
+       search narrows the page, and it steps aside. */
+    var pl = document.getElementById('perfumesLead');
+    if (pl && pl.getAttribute('data-ready')) pl.hidden = filtered();
     var seq = ++SEQ;
     if (!railsEl.querySelector('.sk')) railsEl.innerHTML = skeletonRails();
     getJSON(headUrl()).then(function(data){
@@ -866,7 +884,31 @@ function sizedImageUrl(url, w){
     if (e.target && e.target.closest && e.target.closest('#reMore')) moreExpand(false);
   });
 
+  /* ---------- Aria Beauty > Fragancias: the Perfumes lead rail (#443) ----------
+     One small file (the home page's Perfumes shelf), sales plus the named
+     hero anchors, built by scripts/build-perfumes-shelf.mjs. No shelf, or
+     fewer cards than its own minimum: the section stays hidden. */
+  function paintPerfumesLead(){
+    var sec = document.getElementById('perfumesLead');
+    if (!sec || deptKey !== 'beauty') return;
+    getJSON('assets/home/shelves/perfumes.json').then(function(shelf){
+      var picks = shelf && Array.isArray(shelf.picks) ? shelf.picks : [];
+      if (picks.length < (Number(shelf && shelf.min) || 4)) return;
+      document.getElementById('perfumesLeadRail').innerHTML = picks.map(function(p){
+        var pct = window.AriaSale ? window.AriaSale.discountPct({ price: p.price, originalPrice: p.originalPrice }) : 0;
+        return cardHTML({ t: p.title, b: p.brand, r: p.retailer, i: p.image, u: p.price,
+          w: p.onSale && p.originalPrice > p.price ? p.originalPrice : 0, s: pct });
+      }).join('');
+      document.getElementById('perfumesLeadCount').textContent = String(picks.length);
+      sec.setAttribute('data-ready', '1');
+      if (!filtered()) show(sec);
+      watchPhotos(sec);
+      if (/[?&]pasillo=fragancias\b/.test(location.search)) sec.scrollIntoView({ block: 'start' });
+    }).catch(function(){});
+  }
+
   /* ---------- go ---------- */
+  try { paintPerfumesLead(); } catch(e){}
   try { loadFx(); } catch(e){ fxRate = null; }
   try { loadAll(); }
   catch(e){ showError('No se pudo iniciar la carga. Inténtalo de nuevo.'); }

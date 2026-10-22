@@ -44,7 +44,10 @@
     "test:results-lanes": "node scripts/test/results-lanes-tests.mjs",
     "test:pixels": "node scripts/test/pixels-tests.mjs",
     "test:dsw": "node scripts/test/dsw-store-tests.mjs",
-    "test:neimanmarcus-pull": "node scripts/test/neimanmarcus-pull-tests.mjs"
+    "test:neimanmarcus-pull": "node scripts/test/neimanmarcus-pull-tests.mjs",
+    "build:perfumes-shelf": "node scripts/build-perfumes-shelf.mjs",
+    "test:perfume-carousel": "node scripts/test/perfume-carousel-tests.mjs",
+    "test:perfume-cap": "node scripts/test/perfume-cap-tests.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.1",
