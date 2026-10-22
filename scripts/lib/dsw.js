@@ -886,9 +886,10 @@ export function productCount(catalog) {
    reads a product page's JSON-LD (gtin*) at $0.0015 per successful row
    (Lucifer, #443). It is estimated separately, spends from the same
    wave cap, and needs its own --confirm-spend.
-   ASSUMPTION (unverified in this repo): its input takes the page URLs
-   as `startUrls: [{url}]` (Apify's common convention); --gtin-input-key
-   renames that field without a code change. Its output is read
+   Its input takes the page URLs as `productUrls`, an array of plain
+   URL strings (the actor's live input schema, read by Lucifer on
+   2026-10-22, #443). --gtin-input-key renames that field without a
+   code change; `startUrls` is sent as [{url}], Apify's usual shape. Its output is read
    tolerantly: the row itself, or any JSON-LD Product it carries
    (jsonLd / jsonld / structuredData / data), for gtin* and per-size
    hasVariant / offers GTINs. Nothing but a checksum-valid GTIN is
@@ -923,8 +924,10 @@ export function estimateGtinEnrich(urlCount, rates, { capRemainingUsd = null } =
   return { urls: urlCount, runs, usdPerRow: GTIN_ENRICH_USD_PER_ROW, estimateUsd: usd, capRemainingUsd, overCap: capRemainingUsd != null && usd > capRemainingUsd };
 }
 
-export function gtinEnrichInput(urls, key = "startUrls") {
-  return { [key]: urls.map((url) => ({ url })) };
+export const GTIN_ENRICH_INPUT_KEY = "productUrls";
+
+export function gtinEnrichInput(urls, key = GTIN_ENRICH_INPUT_KEY) {
+  return { [key]: key === "startUrls" ? urls.map((url) => ({ url })) : urls.slice() };
 }
 
 function* productNodes(x, depth = 0) {

@@ -92,6 +92,9 @@ await check("cardSwipeList: one photo at any size is no swipe list; two photos a
   assert.equal(cardSwipeList({ image: dk + "290pix/oe_1.jpg", images: [dk + "75pix/oe_1.jpg", dk + "600pix/oe_1.jpg"] }), null, "Dennis Kirk: three sizes");
   const z = "https://scene7.zumiez.com/is/image/zumiez/cat_max/X-_1.jpg";
   assert.equal(cardSwipeList({ image: z, images: [z] }), null, "Zumiez: the card photo listed again");
+  assert.equal(cardSwipeList({ image: z, images: [z.replace("/cat_max/", "/product_main_medium/")] }), null, "Zumiez: one asset at two Scene7 presets (#443 backfill trial)");
+  const mcy = "https://slimages.macysassets.com/is/image/MCY/products/1/optimized/";
+  assert.deepEqual(cardSwipeList({ image: mcy + "11.jpg", images: [mcy + "12.jpg"] }), [mcy + "11.jpg", mcy + "12.jpg"], "Macy's folders are not presets: two photos stay two");
   assert.equal(cardSwipeList({ image: z }), null);
   assert.equal(cardSwipeList({ image: "https://x.com/a.jpg", images: ["https://x.com/placeholder.png", "https://x.com/logo.svg", "/rel.jpg"] }), null, "non-photos count");
   assert.deepEqual(cardSwipeList({ image: "https://x.com/a.jpg", images: ["https://x.com/a.jpg?v=2", "//x.com/b.jpg"] }), ["https://x.com/a.jpg", "https://x.com/b.jpg"]);

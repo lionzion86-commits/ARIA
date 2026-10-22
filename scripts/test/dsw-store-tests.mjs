@@ -37,6 +37,7 @@ import {
   pdpSentences, productCount, currencyOf, emptyCatalog, costRatesFromEnv,
   dswActorInput, normalizeRow, imagesOf, galleryKey, isSizeChart, capGuard, WAVE_CAP_USD, DSW_SALE_MAX,
   gtinEnrichTargets, estimateGtinEnrich, mergeGtins, extractedGtins, GTIN_ENRICH_USD_PER_ROW,
+  gtinEnrichInput, GTIN_ENRICH_INPUT_KEY,
 } from "../lib/dsw.js";
 import { coverageOf, verdictOf, formatReport, THRESHOLDS, parseExplain } from "../lib/pull-quality.js";
 
@@ -246,6 +247,13 @@ await check("sizes exactly as scraped: in-stock variants, the row's own words, n
   assert.deepEqual(sizesOf({}).sizes, [], "no list means no sizes, not a template run");
   const noStock = sizesOf({ variants: [{ size: "9" }, { size: "10" }] });
   assert.deepEqual(noStock.sizes, ["9", "10"]);
+});
+
+await check("GTIN enrichment sends pistachio's live input: productUrls, plain strings", () => {
+  const urls = ["https://www.dsw.com/product/a/1", "https://www.dsw.com/product/b/2"];
+  assert.equal(GTIN_ENRICH_INPUT_KEY, "productUrls");
+  assert.deepEqual(gtinEnrichInput(urls), { productUrls: urls });
+  assert.deepEqual(gtinEnrichInput(urls, "startUrls"), { startUrls: urls.map((url) => ({ url })) }, "--gtin-input-key startUrls keeps Apify's {url} shape");
 });
 
 await check("real weight, specs, checksum-valid GTIN, gallery, the PDP's own sentences", async () => {

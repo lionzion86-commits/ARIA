@@ -514,6 +514,12 @@ function galleryPhotoKey(u){
   }
   var segs = path.split("/"), file = segs.pop();
   segs = segs.filter(function(seg){ return !/^(images)?\d+x\d+$|^\d+pix$|^t_[\w-]+$|^[a-z]_[\w%,.-]+(,[a-z]_[\w%,.-]+)*$/.test(seg); });
+  /* Scene7 (/is/image/<company>/...) names a render preset as a folder:
+     Zumiez serves one asset at cat_max/ and product_main_medium/. A
+     folder of letters joined by underscores there is a preset, not a
+     different photo (Macy's products/, optimized/ stay). */
+  var s7 = /\/is\/image\//.test(path);
+  segs = segs.filter(function(seg, i){ return !(s7 && i > 3 && /^[a-z]+(_[a-z]+)+$/.test(seg)); });
   file = file
     .replace(/[_-](\d+x\d*|x\d+)(@\dx)?(?=\.\w+$|$)/, "")
     .replace(/_(pico|icon|thumb|small|compact|medium|large|grande|original|master|1024x1024|2048x2048)(@\dx)?(?=\.\w+$|$)/, "")
