@@ -187,6 +187,24 @@ export async function registerPack(stores, email, { docNumber, name = "", front,
   if (old) await releaseDocs(stores, [old.front, old.back].filter((id) => id !== front && id !== back));
 }
 
+/**
+ * Mi cuenta "Reemplazar": new photos for a saved document, outside any
+ * order. Only photos this member uploaded while signed in qualify (a
+ * guest-uploaded token cannot be pulled into an account).
+ */
+export async function replacePack(stores, email, { docNumber, name = "", front, back, now = Date.now() } = {}) {
+  if (!email) return { ok: false, error: "Inicia sesión en tu cuenta Key Club." };
+  const r = await resolveOrderDocs(stores, { upload: { front, back }, docNumber, owner: email, now });
+  if (!r.ok) return r;
+  for (const id of [r.front, r.back]) {
+    const meta = await readMeta(stores.docs, id);
+    if (!meta || meta.owner !== email) return { ok: false, error: "Sube las fotos desde tu cuenta, con tu sesión iniciada." };
+  }
+  const prev = await packFor(stores.packs, email, r.docNumber);
+  await registerPack(stores, email, { docNumber: r.docNumber, name: name || (prev && prev.name) || "", front: r.front, back: r.back, now });
+  return { ok: true, docNumber: r.docNumber };
+}
+
 /** What the account page may show: names and numbers, never the photo ids. */
 export async function listPack(packs, email) {
   const rec = await packs.get(email, { type: "json" });

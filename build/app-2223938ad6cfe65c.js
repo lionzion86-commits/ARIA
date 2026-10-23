@@ -26118,6 +26118,7 @@ function renderAuthUI(){
       ${walletChipHTML('desktop')}
       ${adminLinkDesktop}
     </div>
+    <a href="/cuenta.html" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Mi cuenta</a>
     <button onclick="logout()" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const loggedOutHTML = `
     <button onclick="openAuthModal('login')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Entrar</button>
@@ -26131,6 +26132,7 @@ function renderAuthUI(){
       ${walletChipHTML('mobile')}
     </div>
     ${adminLinkMobile}
+    <a href="/cuenta.html" class="w-full h-11 mb-2.5 inline-flex items-center justify-center rounded-full text-[13.5px] font-bold text-white focus-ring transition" style="background:var(--navy)">Mi cuenta</a>
     <button onclick="logout();closeMobileMenu();" class="w-full h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const mobileLoggedOutHTML = `
     <div class="flex items-center gap-2.5">
