@@ -193,6 +193,25 @@ for (const [label, item, e] of [["over $200", OVER, OVER_E], ["under $200", UNDE
   });
 }
 
+/* The weight on the PDP (#443 competitor study): the same kilos the
+   checkout will charge for, the published rate, and no freight figure. */
+for (const [label, item, e] of [["over $200", OVER, OVER_E], ["under $200", UNDER, UNDER_E]]) {
+  await check(`PDP ${label}: the weight row shows the checkout's kilos and the US$ 13/kg rate, never a freight amount`, async () => {
+    const page = await openPdp(item);
+    await page.waitForFunction(() => { const w = document.getElementById("p-weight-kg"); return w && !/calculando/.test(w.textContent); }, null, { timeout: 15000 });
+    const w = await page.evaluate(() => ({ text: document.getElementById("p-weight").innerText, afterTax: Boolean(document.getElementById("p-tax").compareDocumentPosition(document.getElementById("p-weight")) & Node.DOCUMENT_POSITION_FOLLOWING) }));
+    const kgShown = String(Math.round(e.kg * 100) / 100) + " kg";
+    assert.ok(w.text.includes(kgShown), `weight row ${JSON.stringify(w.text)} does not show ${kgShown}`);
+    assert.match(w.text, /estimado/);
+    assert.match(w.text, /US\$ 13 por kilo/);
+    assert.match(w.text, /te devolvemos la diferencia como saldo Aria/);
+    assert.ok(w.afterTax, "the weight row is not under the tax line");
+    assert.equal(moneyFigures(w.text).filter((f) => f.soles != null || f.usd !== 13).length, 0, "the weight row shows a money figure other than the rate");
+    if (label === "over $200") await page.locator("#p-body .grid2 > div:last-child").screenshot({ path: new URL("../../reports/screens/pdp-weight-390.png", import.meta.url).pathname });
+    await page.context().close();
+  });
+}
+
 for (const [label, item, e] of [["over $200", OVER, OVER_E], ["under $200", UNDER, UNDER_E]]) {
   await check(`home product view ${label}: same price, same tax line, no "incl. impuestos"`, async () => {
     const bundleSrc = readFileSync(ROOT + readFileSync(ROOT + "index.html", "utf8").match(/build\/app-[0-9a-f]+\.js/)[0], "utf8");

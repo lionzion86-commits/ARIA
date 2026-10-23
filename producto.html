@@ -462,19 +462,42 @@ function taxLineHtml(p){
   return '<div class="p-tax-row"><span>Impuestos de importación (estimado)</span><b id="p-tax-amt">calculando…</b></div>'
     + '<div class="p-tax-note">Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.</div>';
 }
-/* Over the threshold the estimate needs the freight, so the weight the
-   checkout will use: the same resolver, the same 0.2 kg line fallback. */
-function fillTaxEstimate(p){
+/* THE WEIGHT ON THE PAGE (#443 competitor study: "the weight is the
+   honesty proof"). One resolve-weight call feeds both the weight row and,
+   over the threshold, the tax estimate -- the same resolver, the same
+   0.2 kg line fallback the checkout uses. Only the weight and the
+   published rate are shown, never a freight figure: checkout's freight
+   comes from the courier quote, and two numbers that could disagree are
+   worse than one. */
+function weightRowHtml(){
+  return '<div class="p-tax-row"><span>Peso para el flete</span><b id="p-weight-kg">calculando…</b></div>'
+    + '<div class="p-tax-note">Cobramos el flete a US$ ' + CHARGE_PER_KG + ' por kilo. Si tu paquete pesa menos de lo estimado, te devolvemos la diferencia como saldo Aria.</div>';
+}
+function fmtKg(kg){
+  var n = Math.round(kg * 100) / 100;
+  return String(n) + ' kg';
+}
+function fillWeightAndTax(p){
   var fob = dutiableUsd(p.price, p.retailer);
-  if (!(fob > TAX_ESTIMATE_THRESHOLD_USD)) return;
+  var wantTax = fob > TAX_ESTIMATE_THRESHOLD_USD;
   var line = { title: p.name, retailer: p.retailer, priceUsd: finalUsd(p.price, p.retailer), weightKg: PDP_LINE_KG, weightEstimated: true, qty: 1 };
-  var done = function(kg){
-    var amt = el("p-tax-amt");
-    if (amt) amt.innerHTML = moneyHtml(importTaxEstimateUsd(fob, (kg > 0 ? kg : PDP_LINE_KG) * CHARGE_PER_KG));
+  if (p.weightKg > 0) { line.weightKg = p.weightKg; line.weightEstimated = !!p.weightEstimated; }
+  var done = function(d){
+    var it = d && d.items && d.items[0];
+    var kg = d && Number(d.totalKg);
+    var wEl = el("p-weight-kg");
+    if (wEl) {
+      if (kg > 0) wEl.innerHTML = esc(fmtKg(kg)) + '<small>' + (it && it.estimated === false ? 'publicado por la tienda' : 'estimado') + '</small>';
+      else { var row = el("p-weight"); if (row) row.hidden = true; }
+    }
+    if (wantTax) {
+      var amt = el("p-tax-amt");
+      if (amt) amt.innerHTML = moneyHtml(importTaxEstimateUsd(fob, (kg > 0 ? kg : PDP_LINE_KG) * CHARGE_PER_KG));
+    }
   };
   fetch("/.netlify/functions/resolve-weight", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [line] }) })
     .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(d){ done(d && Number(d.totalKg)); }, function(){ done(0); });
+    .then(done, function(){ done(null); });
 }
 
 /* GALLERY POLICY (#443, Danny's decision). Every gallery, wherever it
@@ -707,6 +730,7 @@ function render(p){
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
   /* #439: the import-tax estimate sits directly under the product price. */
   priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
+  priceHtml += '<div id="p-weight" class="p-tax">' + weightRowHtml() + '</div>';
   /* OFF SALE (#443, /off-sale.js): the record stays, the sale does not --
      no price to promise, no store door, no cart. */
   var offSale = isOffSaleProduct(p);
@@ -743,7 +767,7 @@ function render(p){
   document.title = p.name + " — Aria Shop";
   wireGallery(el("p-body").querySelector(".p-gallery"));
   buildBuyBox(p);
-  fillTaxEstimate(p);
+  if (!offSale) fillWeightAndTax(p);
 }
 
 /* =====================================================================
