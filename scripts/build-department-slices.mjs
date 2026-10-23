@@ -40,7 +40,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, headOf, batchOf, batchCount, fnRow, labelsOf } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -115,6 +115,9 @@ export const DEPT_RULES = {
   shoes_men: { kind: "shoes_men" },
   auto_parts: { kind: "autoparts" },
   luxury: { kind: "luxury" },
+  /* Reacondicionados (#443): every store's refurbished, used and
+     open-box stock the law lets us sell, by its own title. */
+  reacondicionados: { kind: "refurb" },
 };
 
 function hasAny(hay, words) {
@@ -122,6 +125,7 @@ function hasAny(hay, words) {
   return false;
 }
 export const KIND_MATCH = {
+  refurb: (t, p) => Boolean(conditionOfTitle(p && p.title)),
   surfskate: (t) => hasAny(t, ["surfboard", "surf board", "skateboard", "skate board", "longboard", "wakeboard", "bodyboard", "paddleboard", "sup board"]),
   spearfishing: (t) => hasAny(t, ["speargun", "spear gun", "freediv", "apnea", "wetsuit", "neoprene", "fins", "snorkel", "weight belt", "dive knife"]),
   soccer: (t) => hasAny(t, ["soccer", "futbol", "football boot", "cleat"]) && t.indexOf("american football") === -1,

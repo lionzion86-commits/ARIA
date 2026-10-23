@@ -79,7 +79,7 @@ await check("an order view carries no cost, margin, courier or operator field; a
   assert.deepEqual(mine.delivery.recipient, { name: "Recibe Prueba", relationship: "Hermana" });
   assert.equal(guest.delivery, undefined, "guest-attached order must not show the address");
   assert.deepEqual(mine.totals, { totalPen: 250.5, saldoPen: 20, cardPen: 230.5 });
-  assert.deepEqual(mine.items[0], { title: "Fixture Doll", brand: "Fixture", size: null, qty: 2, image: "https://img.example.test/doll.jpg" });
+  assert.deepEqual(mine.items[0], { title: "Fixture Doll", brand: "Fixture", size: null, condition: null, qty: 2, image: "https://img.example.test/doll.jpg" });
 });
 
 console.log("\n  Mi cuenta -- status as a message from Aria");
@@ -192,7 +192,7 @@ await check("profile and Key Club state; recipients from own orders and saved pa
 await check("the saved cart comes back as lines with photo, size, qty and USD price", async () => {
   const S = stores({ carts: { [ME]: { cart: [{ title: "Fixture Sneaker", priceUsd: 89.99, qty: 1, selectedSize: "9", image: "https://img.example.test/s.jpg", dutiableUsd: 70, weightKg: 1.1 }, { priceUsd: 3 }] } } });
   const ov = await A.accountOverview(S, ME);
-  assert.deepEqual(ov.cart, [{ title: "Fixture Sneaker", brand: null, size: "9", qty: 1, image: "https://img.example.test/s.jpg", priceUsd: 89.99 }]);
+  assert.deepEqual(ov.cart, [{ title: "Fixture Sneaker", brand: null, size: "9", condition: null, qty: 1, image: "https://img.example.test/s.jpg", priceUsd: 89.99 }]);
   assert.deepEqual(await A.accountOverview(S, null), { signedIn: false });
 });
 

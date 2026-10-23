@@ -41,6 +41,7 @@ import { loadPriceIndex } from "./_price-index.js";
 import { DNI_DOCS_STORE, DNI_PACKS_STORE, resolveOrderDocs, attachToOrder } from "./_dni-docs.js";
 import { createCheckoutSession } from "./_stripe-api.js";
 import { emailImageUrl } from "./_order-email.js";
+import { conditionOfTitle } from "../../scripts/lib/condition.js";
 import {
   repriceCart, goodsTotals, freightFloorUsd, expressFeePen, shippingModeOf, SHIPPING_MODES,
   totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm, missingSizeLines,
@@ -436,6 +437,10 @@ async function createOrderHandler(event) {
       items: items.map((it) => {
         const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
         const line = Number.isFinite(d) && !(Number(it.dutiableUsd) > 0) ? { ...it, dutiableUsd: d } : { ...it };
+        /* REACONDICIONADOS (#443): the condition is the title's, read
+           here by /condition.js -- never the browser's word. */
+        const cond = line.lineType === "bundle-discount" ? null : conditionOfTitle(line.title);
+        if (cond) line.condition = cond.label; else delete line.condition;
         if ("image" in line) {
           const img = emailImageUrl(line.image);
           if (img) line.image = img; else delete line.image;

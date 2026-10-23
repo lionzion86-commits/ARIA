@@ -59,6 +59,7 @@
   .price .was{font-size:11.5px;color:#8A93A8;text-decoration:line-through;margin-left:5px;font-weight:400}
   .price .usd{font-size:11.5px;color:#8A93A8;margin-top:2px}
   /* Yellow is for sale badges only. */
+  .card-cond{display:inline-block;margin-right:6px;font-size:10px;font-weight:800;letter-spacing:0;text-transform:none;padding:1px 7px;border-radius:999px;background:var(--navy);color:#fff;vertical-align:1px}
   .badge{position:absolute;top:10px;left:10px;z-index:1;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--yellow);color:var(--navy)}
   /* Placeholder cards: the same boxes, grey bars where the words go. */
   .card.sk i, .sk-h i, .price .pen i{display:block;height:10px;border-radius:5px;background:var(--line);margin:3px 0}
@@ -261,6 +262,7 @@
     shoes_men:       {name:'Zapatos de Hombre', desc:'Calzado para él.'},
     auto_parts:      {name:'Repuestos', desc:'Repuestos y autopartes.'},
     luxury:          {name:'Diseñador y Lujo', desc:'Lujo y diseñador — piezas exclusivas.'},
+    reacondicionados: {name:'Reacondicionados', desc:'Reacondicionados, de caja abierta y usados, con el estado que indica la tienda.'},
     /* Its own themed page (carousels first): ropa-interior.html. */
     ropa_interior:   {name:'Ropa Interior y Medias', desc:'Lo esencial, de las mejores marcas de USA.', href:'ropa-interior.html#hombre'},
     ropa_interior_mujer: {name:'Ropa Interior Mujer', desc:'Sostenes, panties y lencería de las mejores marcas de USA.', href:'ropa-interior.html#mujer'}
@@ -621,7 +623,9 @@ function sizedImageUrl(url, w){
       + '<div class="card-img">' + badge + img + '</div>'
       + '<div class="card-body">'
       + '<div class="card-retailer">' + esc(storeLabel(c.r)) + '</div>'
-      + '<div class="card-brand">' + (c.b ? esc(c.b) : '&nbsp;') + '</div>'
+      /* The condition (/condition.js) leads the brand row, outside the
+         photo box: a photo that fails to load never takes it away. */
+      + '<div class="card-brand">' + (c.k ? '<span class="card-cond">' + esc(c.k) + '</span>' : '') + (c.b ? esc(c.b) : (c.k ? '' : '&nbsp;')) + '</div>'
       + '<h3 class="card-title">' + esc(c.t) + '</h3>'
       + '<div class="price" data-usd="' + (isFinite(usd) ? usd : '') + '"' + (wasUsd > usd ? ' data-was="' + wasUsd + '"' : '') + '>' + priceInner(usd, wasUsd) + '</div>'
       + '</div></a>';

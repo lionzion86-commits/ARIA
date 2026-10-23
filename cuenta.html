@@ -251,7 +251,7 @@ function renderOrders(){
 function orderDetail(o){
   var tl = o.timeline.length ? '<ol class="tl">' + o.timeline.map(function(s){ return '<li class="' + s.state + '"><i></i>' + esc(s.label) + '</li>'; }).join('') + '</ol>' : '';
   var items = '<div class="items">' + o.items.map(function(it){
-    var meta = [it.brand, it.size ? 'Talla ' + it.size : '', it.qty > 1 ? it.qty + ' unidades' : ''].filter(Boolean).join(' · ');
+    var meta = [it.condition, it.brand, it.size ? 'Talla ' + it.size : '', it.qty > 1 ? it.qty + ' unidades' : ''].filter(Boolean).join(' · ');
     return '<div class="item">' + (it.image ? '<img loading="lazy" alt="" src="' + esc(it.image) + '">' : '<div class="ph"></div>') +
       '<div><div class="t">' + esc(it.title) + '</div>' + (meta ? '<div class="s">' + esc(meta) + '</div>' : '') + '</div></div>';
   }).join('') + '</div>';
@@ -290,7 +290,7 @@ function renderCart(){
   $('cartBox').innerHTML = '<div class="card"><div class="items">' + cart.map(function(it){
     var p = fx && it.priceUsd ? pen(it.priceUsd * fx * (it.qty || 1)) : '';
     return '<div class="item">' + (it.image ? '<img loading="lazy" alt="" src="' + esc(it.image) + '">' : '<div class="ph"></div>') +
-      '<div style="flex:1"><div class="t">' + esc(it.title) + '</div><div class="s">' + esc([it.size ? 'Talla ' + it.size : '', it.qty > 1 ? it.qty + ' unidades' : ''].filter(Boolean).join(' · ')) + '</div></div>' +
+      '<div style="flex:1"><div class="t">' + esc(it.title) + '</div><div class="s">' + esc([it.condition, it.size ? 'Talla ' + it.size : '', it.qty > 1 ? it.qty + ' unidades' : ''].filter(Boolean).join(' · ')) + '</div></div>' +
       (p ? '<div class="small" style="font-weight:700;white-space:nowrap">' + p + '</div>' : '') + '</div>';
   }).join('') + '</div>' +
   (fx ? '<div class="sums"><div class="grand"><span>Productos</span><span>' + pen(totalUsd * fx) + '</span></div></div><p class="small muted">El total con envío e impuestos se confirma en el pago.</p>' : '') +

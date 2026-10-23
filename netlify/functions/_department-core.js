@@ -13,6 +13,7 @@
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { conditionOfTitle } from "../../scripts/lib/condition.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;    // cards drawn in one carousel
@@ -28,12 +29,20 @@ export function typeLabel(t) {
 /* The page's carousels, from a (possibly filtered) list in page order:
    Ofertas (biggest discount first) or, with no sales, Destacados; then
    one per product type with 3+ items, biggest first; then the rest. */
+/* REACONDICIONADOS (#443): the rule is /condition.js, shared with the
+   product page and the order line. Re-exported for the builder. */
+export { conditionOfTitle };
+
 export function buildSections(list) {
   const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
     .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
   const sections = [];
   if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
   else if (list.length) sections.push({ key: "destacados", title: "Destacados", items: list });
+  /* Reacondicionados: second in every department with 3+ such products
+     (not in the department made of nothing else). */
+  const refurb = list.filter((p) => conditionOfTitle(p.title));
+  if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", items: refurb });
   const byType = {}, order = [];
   for (const p of list) {
     const t = (String(p.type || "").trim().toLowerCase()) || "__otros__";
@@ -55,12 +64,16 @@ export function buildSections(list) {
 /* A card: what the tile and the tap need, nothing else.
    t title, b brand, r store, p store price (USD, before Aria's margin
    and tax -- the page prices it with its own finalUsd), o the was-price
-   on the same basis (sales only), s percent off, i photo. */
+   on the same basis (sales only), s percent off, i photo, k condition. */
 export function cardOf(p) {
   const c = { t: p.title, r: p.retailer, p: p.rawPrice };
   if (p.brand) c.b = p.brand;
   if (p.salePct > 0) { c.s = p.salePct; if (p.wasPrice > p.rawPrice) c.o = p.wasPrice; }
   if (p.image) c.i = p.image;
+  /* k: the condition label (/condition.js) when the store's title says
+     refurbished, used or open-box. */
+  const cond = conditionOfTitle(p.title);
+  if (cond) c.k = cond.label;
   return c;
 }
 
