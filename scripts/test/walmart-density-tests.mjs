@@ -118,6 +118,22 @@ await check("a listing row with no detail row keeps its one photo and its price,
   assert.equal(W.productCount(catalog), 2);
 });
 
+await check("trial shape (c.6354958458): listing rows carry productUrl only, detail priceInfo.price is a string -- the join and the price both land", () => {
+  const { url, ...noUrl } = listing();
+  const trialListing = { ...noUrl, productUrl: url };
+  assert.equal(W.listingUrl(trialListing), url);
+  const trialDetail = detail({ priceInfo: { price: "$9.97", wasPrice: { price: 20.39 } } });
+  const row = W.detailToRow(trialDetail);
+  assert.equal(row.price, 9.97, "string price not parsed");
+  assert.equal(row.originalPrice, 20.39);
+  assert.equal(W.detailToRow(detail({ priceInfo: { price: "$9.97" }, wasPrice: { price: 20.39 } })).originalPrice, 20.39, "top-level wasPrice.price");
+  const pulled = mergePull([{ run: { dept: "toys", bucket: "toys_games", clearance: true, maxItems: 5 }, items: [trialListing] }], [trialDetail]);
+  const { stats } = W.ingestProgram(pulled, ctx);
+  assert.equal(stats.published, 1);
+  assert.equal(stats.gallery, 1, "the detail row did not join on productUrl");
+  assert.equal(W.trialReport([trialDetail]).priceShare, 1);
+});
+
 await check("the trial report: distinct photos with presets collapsed, coverage, raw keys, PASS/FAIL", () => {
   const html = readFileSync(ROOT + "producto.html", "utf8").replace(/<script\b[^>]*>/g, "\n").replace(/<\/script>/g, "\n");
   const photoKey = liftDeclarations(html, ["galleryPhotoKey"]).galleryPhotoKey;

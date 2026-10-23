@@ -41,7 +41,7 @@ import { fileURLToPath } from "node:url";
 import {
   WALMART_KEY, WALMART_LABEL, OUT_FILE, WAVE_CAP_USD, LISTING_ACTOR, DETAIL_ACTOR, DETAIL_URLS_PER_RUN, PRICE_BAND_USD,
   listingPlan, listingInput, detailInput, ratesFromEnv, estimateProgram, formatProgramEstimate,
-  detailToRow, ingestProgram, productCount, trialReport, formatTrialReport,
+  detailToRow, ingestProgram, productCount, trialReport, formatTrialReport, listingUrl,
 } from "./lib/walmart-density.js";
 import { parseExplain } from "./lib/pull-quality.js";
 import { runTranslation, reportCatalog, readCatalog, DO_NOT_SHIP_EXIT } from "./lib/pull-finish.mjs";
@@ -136,7 +136,7 @@ export function mergePull(listings, details) {
   for (const d of details || []) { const u = bareUrl(d && (d.url || d.productUrl || d.canonicalUrl)); if (u) byUrl.set(u, d); }
   return listings.map(({ run, items }) => ({
     run,
-    rows: (items || []).map((l) => detailToRow(byUrl.get(bareUrl(l && l.url)) || null, l)),
+    rows: (items || []).map((l) => detailToRow(byUrl.get(bareUrl(listingUrl(l))) || null, l)),
   }));
 }
 
@@ -201,7 +201,7 @@ async function main() {
     const run = { ...plan[0], maxItems: args.trial };
     console.log(`\n  TRIAL: "${run.term}" (${run.dept}), ${args.trial} rows, then the detail pass over them`);
     const listing = await apifyActor(token, LISTING_ACTOR).run(listingInput(run), { chargeLimitUsd: 1 });
-    const urls = [...new Set(listing.items.map((l) => l && l.url).filter(Boolean))].slice(0, args.trial);
+    const urls = [...new Set(listing.items.map(listingUrl).filter(Boolean))].slice(0, args.trial);
     const detail = urls.length ? await apifyActor(token, DETAIL_ACTOR).run(detailInput(urls, args.detailInputKey), { chargeLimitUsd: 1 }) : { items: [], usageUsd: 0 };
     mkdirSync(DATA_DIR, { recursive: true });
     const p = join(DATA_DIR, `trial-${stamp()}.json`);
@@ -246,7 +246,7 @@ async function main() {
     }
     save();
   }
-  const urls = [...new Set(listings.flatMap((l) => l.items.map((x) => x && x.url)).filter(Boolean).map((u) => u.split("?")[0]))];
+  const urls = [...new Set(listings.flatMap((l) => l.items.map(listingUrl)).filter(Boolean).map((u) => u.split("?")[0]))];
   const details = [];
   for (let i = 0; i < urls.length; i += DETAIL_URLS_PER_RUN) {
     const chunk = urls.slice(i, i + DETAIL_URLS_PER_RUN);

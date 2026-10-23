@@ -28,7 +28,7 @@
          strings).
      D2  Detail row fields, read tolerantly by detailToRow():
            images   allImages | images | imageUrls | imageInfo.allImages[].url
-           price    priceInfo.currentPrice.price | currentPrice | price
+           price    priceInfo.currentPrice.price | priceInfo.price ("$9.97") | currentPrice | price
            was      priceInfo.wasPrice.price | wasPrice | listPrice
            gtin     upc | gtin | gtin13 | ean
            text     shortDescription | longDescription | description
@@ -216,6 +216,12 @@ export function exclusionOf(name, crumbs = "") {
   return null;
 }
 
+/* The listing actor names the product link productUrl, never url (trial
+   c.6354958458: 0/20 rows had url). Every join and detail input reads it here. */
+export function listingUrl(l) {
+  return (l && (l.url || l.productUrl)) || null;
+}
+
 /* ---------------- reading the detail row (assumption D2) ---------------- */
 const first = (...vals) => {
   for (const v of vals) if (v !== undefined && v !== null && v !== "") return v;
@@ -244,9 +250,11 @@ export function detailToRow(detail, listing = null) {
   const row = {};
   row.name = first(d.name, d.title, d.productName, l.name, l.title);
   row.brand = first(typeof d.brand === "object" && d.brand ? d.brand.name : d.brand, l.brand);
-  const price = moneyOf(first(at(d, "priceInfo.currentPrice.price"), at(d, "priceInfo.currentPrice"), d.currentPrice, d.price, l.price));
+  /* The trial (c.6354958458) showed priceInfo.price as a string ("$9.97")
+     and wasPrice.price as a number; moneyOf reads both. */
+  const price = moneyOf(first(at(d, "priceInfo.currentPrice.price"), at(d, "priceInfo.currentPrice"), at(d, "priceInfo.price"), d.currentPrice, d.price, l.price));
   if (price) row.price = price;
-  const was = moneyOf(first(at(d, "priceInfo.wasPrice.price"), at(d, "priceInfo.wasPrice"), d.wasPrice, d.listPrice, l.originalPrice, l.regularPrice));
+  const was = moneyOf(first(at(d, "priceInfo.wasPrice.price"), at(d, "priceInfo.wasPrice"), at(d, "wasPrice.price"), d.wasPrice, d.listPrice, l.originalPrice, l.regularPrice));
   if (was && price && was > price) row.originalPrice = was;
   /* Walmart.com prices are US dollars; the row's own currency wins when stated. */
   row.currency = String(first(at(d, "priceInfo.currentPrice.currencyUnit"), d.currency, "USD")).toUpperCase();
@@ -260,7 +268,7 @@ export function detailToRow(detail, listing = null) {
   if (d.variants) row.variants = d.variants;
   else if (d.sizes || l.sizes) row.availableSizes = first(d.sizes, l.sizes);
   row.breadcrumbs = first(d.breadcrumbs, d.categoryPath, d.category, l.category);
-  row.url = first(d.url, d.productUrl, d.canonicalUrl, l.url);
+  row.url = first(d.url, d.productUrl, d.canonicalUrl, listingUrl(l));
   row.productId = first(d.usItemId, d.itemId, d.productId, d.id, l.usItemId, l.id);
   const stock = first(d.availabilityStatus, d.availability, d.inStock);
   if (typeof stock === "boolean") row.inStock = stock; else if (stock != null) row.availability = String(stock);
