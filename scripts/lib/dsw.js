@@ -451,11 +451,12 @@ function urlOf(u) {
    1. Every image the source offers (GALLERY_CAP is a runaway guard).
    2. Exact duplicates dropped: the same file twice, including the same
       file asked for at another render size/format (only the CDN's
-      render parameters differ: wid/hei/w/h/fmt/qlt/impolicy/$preset$).
+      render parameters differ: wid/hei/w/h/fmt/qlt/impolicy/$preset$,
+      Walmart's odnHeight/odnWidth/odnBg).
       Different paths are different photos and are all kept.
    3. Size charts / size guides LAST, never the card photo. A gallery
       that is nothing but a size chart has no product photo. */
-const RENDER_PARAM = /^(w|h|wid|hei|width|height|size|sz|fmt|format|fm|qlt|quality|q|fit|crop|dpr|impolicy|policy|op_sharpen|op_usm|resmode|scl|bgc|bg|auto|sw|sh|sm|align|extend|ext|v|cb|ts|version)$/i;
+const RENDER_PARAM = /^(w|h|wid|hei|width|height|size|sz|fmt|format|fm|qlt|quality|q|fit|crop|dpr|impolicy|policy|op_sharpen|op_usm|resmode|scl|bgc|bg|auto|sw|sh|sm|align|extend|ext|v|cb|ts|version|odnHeight|odnWidth|odnBg)$/i;
 export function galleryKey(u) {
   const m = /^https?:\/\/([^/?#\s]+)([^?#\s]*)(\?[^#\s]*)?/i.exec(String(u || ""));
   if (!m) return null;
