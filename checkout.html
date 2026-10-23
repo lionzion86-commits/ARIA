@@ -2258,12 +2258,19 @@ function cardImgAttrs(url, sizes){
   function cartLineKey(it){
     return [String(it.retailer || '').toLowerCase(), String(it.title || ''), String(it.selectedSize || it.size || '')].join('::');
   }
+  /* FAMILIA: the card price each line had before this page showed it at
+     cost. The saved cart always keeps the card price (the account's
+     prices are decided at checkout, every time, by the server). */
+  const familiaCardPrice = new WeakMap();
+  function cartForSaving(){
+    return cart.map((it) => (familiaCardPrice.has(it) ? { ...it, priceUsd: familiaCardPrice.get(it) } : it));
+  }
   function saveCart(){
-    try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch {}
+    try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartForSaving())); } catch {}
     // Best-effort — keeps the logged-in user's server cart in step, a
     // no-op (401, ignored) if they're not logged in.
     fetch('/.netlify/functions/cart-save', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart: cartForSaving() }),
     }).catch(() => {});
   }
   /* QUITAR (2026-10-08, audit 2): checkout had no way to remove a line —
@@ -2428,6 +2435,27 @@ function cardImgAttrs(url, sizes){
   initFxRates();
   loadWalletBalance();
   if (cart.length) requestQuote();
+  /* FAMILIA (#443 c.6364959264): an account Danny flagged sees and pays
+     Aria's cost for products -- each line's dutiable value -- with the
+     same freight and tax as everyone. Nothing announces it. The lines
+     change in this page only (never written back to the saved cart),
+     the server prices them at cost from the account itself, and a race
+     here only ends in the usual "el total cambió" redraw. */
+  fetch('/.netlify/functions/auth-me', { credentials: 'same-origin' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((me) => {
+      if (!me || me.familia !== true || !cart.length) return;
+      for (const it of cart){
+        if (familiaCardPrice.has(it)) continue;
+        if (it.lineType === 'bundle-discount'){ familiaCardPrice.set(it, it.priceUsd); it.priceUsd = 0; continue; }
+        const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
+        if (Number.isFinite(d) && d > 0){ familiaCardPrice.set(it, it.priceUsd); it.dutiableUsd = d; it.priceUsd = d; }
+      }
+      renderCartItems();
+      renderSummary();
+      requestQuote();
+    })
+    .catch(() => {});
   // Prefilled fields don't fire 'input' events, so the quote never
   // starts on its own — kick it off directly when everything needed is
   // already here (i.e. arrived from Aria Auto with weight+value+desc).

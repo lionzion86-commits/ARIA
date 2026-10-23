@@ -192,6 +192,9 @@ export function ledgerRow(order, payment, wallet) {
     paymentStatus: order.paymentStatus || "unpaid",
     paymentId: payment?.paymentId || order.paymentId || "",
     orderStatus: order.status || "",
+    /* FAMILIA (#443): product sold at cost, no product margin by design --
+       said on the row so a thin margin is never read as a pricing error. */
+    tier: order.familia === true ? "Familia (producto al costo)" : "",
     notes: actuals.notas || "",
   };
 }
@@ -221,6 +224,7 @@ export const LEDGER_COLUMNS = [
   ["Ciudad", "city"],
   ["Ítems", "itemCount"],
   ["Tipo de cambio", "fxRateUsed"],
+  ["Tarifa", "tier"],
   ["Producto (PEN)", "productsPen"],
   ["Flete cobrado (PEN)", "freightPen"],
   ["Cargo pedido pequeño (PEN)", "smallOrderFeePen"],

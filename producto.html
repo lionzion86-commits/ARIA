@@ -429,7 +429,11 @@ function tieredMarginUsd(rawUsd){
    This page used to stop at the margin, 7% under the SPA's price. */
 var TAX_EXEMPT = {"walmart": 1};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
-function finalUsd(raw, retailer){ return Math.round((Number(raw) + tieredMarginUsd(raw)) * salesTaxRate(retailer) * 100) / 100; }
+function finalUsd(raw, retailer){
+  /* FAMILIA (#443): a flagged account sees Aria's cost -- no margin. */
+  if (typeof ARIA_FAMILIA !== "undefined" && ARIA_FAMILIA === true) return dutiableUsd(raw, retailer);
+  return Math.round((Number(raw) + tieredMarginUsd(raw)) * salesTaxRate(retailer) * 100) / 100;
+}
 function fmtUsd(n){ return "US$ " + Number(n).toFixed(2); }
 function fmtPen(n){ return "S/ " + Number(n).toFixed(2); }
 var FX_RATE = null;
@@ -1386,6 +1390,12 @@ function addCurrentToCart(p, sizes){
       return;
     }
     render(found);
+    /* FAMILIA (#443 c.6364959264): only a flagged account's page changes,
+       and only after it has already painted -- nobody else waits on this. */
+    fetch("/.netlify/functions/auth-me", { credentials: "same-origin" })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(me){ if (me && me.familia === true) { window.ARIA_FAMILIA = true; render(found); } })
+      .catch(function(){});
     lastPool = await fetchStoreRail(found.retailer, found);
     buildRelatedRails(found, lastPool.filter(function(it){ return it.retailer === found.retailer; }));
   }catch(e){ fail("Ocurrió un error inesperado."); }

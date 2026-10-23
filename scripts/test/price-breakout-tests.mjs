@@ -122,7 +122,7 @@ await check("producto.html's tax rule is weight-data.js's, on the same base the 
 });
 
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
-async function newPage({ cart = null } = {}) {
+async function newPage({ cart = null, familia = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await ctx.addInitScript(({ venta, cart }) => {
     try {
@@ -141,6 +141,7 @@ async function newPage({ cart = null } = {}) {
     if (!fn) return route.continue();
     const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     if (fn === "exchange-rate") return json({ venta: VENTA, compra: VENTA - 0.02, origen: "test" });
+    if (fn === "auth-me") return json(familia ? { email: "familia@correo.test", familia: true } : { email: null });
     if (fn === "resolve-weight") return json(resolveCartWeights(JSON.parse(route.request().postData() || "{}").items || []));
     if (fn === "shipping-quote") {
       const b = JSON.parse(route.request().postData() || "{}");
@@ -159,8 +160,8 @@ const fmtS = (pen) => pen.toFixed(2);
 /* The PDP formats usd x rate with toFixed, as its cards always have. */
 const pdpSoles = (usd) => (usd * VENTA).toFixed(2);
 
-async function openPdp(item) {
-  const page = await newPage();
+async function openPdp(item, opts = {}) {
+  const page = await newPage(opts);
   await page.goto(`${BASE}/producto.html?producto=${encodeURIComponent(item.name)}&tienda=${item.retailer}`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector("#p-tax", { timeout: 20000 });
   await page.waitForFunction(() => { const a = document.getElementById("p-tax-amt"); return !a || !/calculando/.test(a.textContent); }, null, { timeout: 15000 });
@@ -263,6 +264,26 @@ for (const [label, item, e] of [["over $200", OVER, OVER_E], ["under $200", UNDE
     await page.context().close();
   });
 }
+
+/* FAMILIA (#443 c.6364959264): a flagged account sees Aria's cost on the
+   product page and pays cost + the standard freight and tax at checkout. */
+await check("Familia: the product page shows the cost price, the checkout total is cost + standard freight + tax", async () => {
+  const e = OVER_E;
+  let page = await openPdp(OVER, { familia: true });
+  await page.waitForFunction((want) => (document.querySelector(".p-pen") || {}).textContent === want, "S/ " + pdpSoles(e.d), { timeout: 15000 });
+  await page.context().close();
+  const line = { ...e.line, dutiableUsd: e.d, image: "", brand: "Agua Bendita", selectedSize: "M" };
+  page = await newPage({ cart: [line], familia: true });
+  await page.goto(`${BASE}/checkout.html`, { waitUntil: "load" });
+  const fees = smallOrderFeePen(r2((e.d + e.freight) * VENTA));
+  const want = r2(r2(e.d + e.freight + e.tax) * VENTA + fees);
+  await page.waitForFunction((w) => { const f = (document.getElementById("sumTotal") || {}).innerText || ""; const m = /S\/\s?([\d,]+\.\d{2})/.exec(f); return Boolean(m) && m[1].replace(/,/g, "") === w.toFixed(2); }, want, { timeout: 20000 })
+    .catch(async () => { throw new Error("checkout total " + (await page.textContent("#sumTotal")) + ", want S/ " + want.toFixed(2)); });
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1"))[0].priceUsd);
+  assert.equal(saved, e.line.priceUsd, "the saved cart was rewritten to cost");
+  assert.ok(!page.__errors, "page errors: " + (page.__errors || []).join(" | "));
+  await page.context().close();
+});
 
 await check("the cart's customs box no longer prints the declared value", () => {
   const bundle = readFileSync(ROOT + (readFileSync(ROOT + "index.html", "utf8").match(/build\/app-[0-9a-f]+\.js/) || [])[0], "utf8").replace(/\r\n/g, "\n");
