@@ -120,6 +120,8 @@ footer a{color:#fff}
 .p-was{font-size:15px;color:var(--muted);text-decoration:line-through;margin-left:8px;font-weight:500}
 .p-off{display:inline-block;background:var(--gold);color:var(--navy);font-size:12px;font-weight:800;border-radius:8px;padding:3px 7px;margin-left:8px;vertical-align:middle}
 .p-usd{font-size:14px;color:var(--muted);margin-top:2px}
+.p-cond{margin:0 0 14px;padding:10px 12px;border-radius:12px;background:#f7f8fb;border:1px solid var(--line);font-size:14px;color:var(--navy)}
+.p-cond b{font-weight:800}
 .p-tax{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f7f8fb;border:1px solid var(--line);min-height:58px}
 .p-tax-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;color:var(--navy)}
 .p-tax-row b{white-space:nowrap;text-align:right}
@@ -130,6 +132,7 @@ footer a{color:#fff}
 <script src="sale-rule.js"></script>
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
+<script src="/condition.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
 <script src="/assets/js/pixels.js" async></script>
@@ -690,6 +693,20 @@ function fail(msg, ctx){
    and Lucifer decide. Mirrors NO_STOREFRONT_STORES in the app bundle;
    scripts/test/removed-store-merch-tests.mjs pins the two. */
 var NO_STOREFRONT = { sephora: 1 };
+/* REACONDICIONADOS (#443, /condition.js): the condition the store's own
+   title states, and its grade in the store's words, or that it gives
+   none. Shown before the price; never upgraded. */
+function conditionOfProduct(p){
+  return window.AriaCondition ? window.AriaCondition.conditionOfTitle(p && p.name) : null;
+}
+function conditionHtml(p){
+  var c = conditionOfProduct(p);
+  if (!c) return '';
+  var grade = window.AriaCondition.gradeOfTitle(p.name);
+  return '<div class="p-cond" id="p-cond" role="note"><b>Estado: ' + esc(c.label) + '.</b> '
+    + (grade ? 'Grado según la tienda: ' + esc(grade) + '.' : esc(window.AriaCondition.NO_GRADE_NOTE))
+    + ' No es un producto nuevo.</div>';
+}
 function render(p){
   el("p-loading").style.display = "none";
   var usd = finalUsd(p.price, p.retailer);
@@ -721,6 +738,7 @@ function render(p){
       + (p.brand ? '<div class="kicker">' + esc(p.brand) + '</div>' : '')
       + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(p.name) + '</h1>'
       + (store && !offSale ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
+      + conditionHtml(p)
       + (p.partNumber ? '<p style="font-size:14px;color:var(--muted);margin:0 0 10px">N.° de parte: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' + esc(p.partNumber) + '</span></p>' : '')
       + priceHtml
       + '<p style="font-size:13px;color:var(--muted);margin-top:14px">El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar.</p>'
@@ -1261,6 +1279,8 @@ function addCurrentToCart(p, sizes){
     /* The store's list rides with a sized line, so the cart and checkout
        can tell a sized line from a plain one without a title guess. */
     sizeOptions: sizes && sizes.length ? sizes.slice() : undefined,
+    /* The disclosure rides with the line to checkout and the order. */
+    condition: (conditionOfProduct(p) || {}).label || undefined,
     qty: 1
   });
   toast('Agregado al carrito.');
