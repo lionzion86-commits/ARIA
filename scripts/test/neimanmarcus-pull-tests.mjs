@@ -10,8 +10,9 @@
      node scripts/test/neimanmarcus-pull-tests.mjs
    ================================================================== */
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
+import { spawnSync, spawn } from "node:child_process";
+import { createServer } from "node:http";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -20,6 +21,11 @@ import {
   selectForTarget, proportionalQuotas, formatSelection, scopeVerdict, isBestSellerRow, NM_TARGET, nmActorInput,
 } from "../lib/neimanmarcus.js";
 import { coverageOf, verdictOf } from "../lib/pull-quality.js";
+import {
+  SOVRN_PRODUCTS_URL, SOVRN_MAX_PER_REQUEST, SOVRN_RATE_LIMIT, SOVRN_NM_MERCHANT_ID, checkSweepPlan, termsOf, buildRequest,
+  throttleIntervalMs, requestsPerWindow, makeThrottle, productsOf, sovrnToRow, plainNmUrl, dedupeKeys, fieldReport,
+  formatFieldReport, runSweep, replayResponses, sweepToPulled, groupIdGuidance, neimanEntries,
+} from "../lib/sovrn.js";
 import { ingestPull as dswIngestPull, DSW_KEY } from "../lib/dsw.js";
 import { loadShippable } from "../build-store-slices.mjs";
 import { specWeightKg } from "../../netlify/functions/_weight-resolve.js";
@@ -409,6 +415,416 @@ test("no catalogue file is committed and the store is not wired", () => {
   assert.equal(existsSync(join(ROOT, OUT_FILE)), false);
   const reg = readFileSync(join(ROOT, "scripts/lib/retailers.js"), "utf8");
   assert.equal(/neimanmarcus/i.test(reg), false);
+});
+
+/* ==================================================================
+   --via sovrn: THE SOVRN API HARVEST. Every Sovrn "response" below is a
+   TEST FIXTURE written by hand: the product ids, names, brands, prices,
+   GTINs and image URLs are FAKE (FIXTURE ids, example.test image hosts,
+   "Fixture" brands) and are NOT product data; the response shapes are
+   plausible guesses for the tolerant mapper, NOT Sovrn's documented
+   format (the repo has none). No request leaves this machine: the sweep
+   takes an injected request function, and the one CLI run against an
+   HTTP answer uses a local server on 127.0.0.1:8990.
+   ================================================================== */
+console.log("\n  Neiman Marcus via Sovrn — sweep, throttle, mapper, report (fixture responses)");
+
+async function atest(name, fn) {
+  try { await fn(); passed++; console.log("    ok   " + name); }
+  catch (err) { failures.push(name); console.log("    FAIL " + name + "\n         " + String(err && err.stack || err).split("\n").slice(0, 6).join("\n         ")); }
+}
+
+/* TEST FIXTURE — not product data. One plausible flat product shape. */
+function sovrnFixture(n, over = {}) {
+  return {
+    productId: `FIXTURE-SV-${n}`,
+    name: `Fixture Women's Knit Top ${n}`,
+    brand: "Fixture Brand",
+    price: 120 + n,
+    currency: "USD",
+    imageUrl: img(`sv-${n}-a`),
+    additionalImages: [img(`sv-${n}-b`)],
+    merchantName: "Neiman Marcus",
+    merchantId: 2243,
+    description: "A fixture top for tests. Second fixture sentence.",
+    category: "Women > Clothing > Tops",
+    ...over,
+  };
+}
+const fakeClock = () => {
+  let t = 0;
+  const slept = [];
+  return { now: () => t, sleep: async (ms) => { slept.push(ms); t += ms; }, slept, advance: (ms) => { t += ms; } };
+};
+const noWait = () => { const c = fakeClock(); return makeThrottle({ intervalMs: 0, now: c.now, sleep: c.sleep }); };
+const tinyPlan = (departments, extra = {}) => ({ request: { method: "POST", query: { apiKey: "{apiKey}", includeMerchants: "{groupId}", numProducts: "{numProducts}" }, body: { keywords: "{term}" } }, departments, ...extra });
+const ok = (list, key = "products") => ({ ok: true, status: 200, body: key ? { [key]: list } : list });
+
+test("the checked-in sweep plan is valid, sale/clearance first, and covers every department #443 names", () => {
+  const plan = checkSweepPlan(JSON.parse(readFileSync(join(ROOT, "scripts/neimanmarcus/sovrn-sweep-plan.json"), "utf8")));
+  const cats = plan.departments.map((d) => d.category);
+  assert.deepEqual(cats.slice(0, 2), ["sale", "clearance"]);
+  for (const c of ["women_apparel", "men_apparel", "women_shoes", "men_shoes", "handbags", "accessories", "jewelry", "beauty", "kids", "home_small"]) assert.ok(cats.includes(c), c);
+  assert.ok(plan.departments[0].terms.some((t) => /\bsale\b/.test(t)) && plan.departments.some((d) => d.terms.some((t) => /clearance/.test(t))));
+  assert.match(JSON.stringify(plan.request), /\{term\}/);
+  assert.doesNotMatch(JSON.stringify(plan), /[A-Za-z0-9]{24,}/, "a key-like string in the plan");
+  const expanded = termsOf({ category: "x", expand: true, terms: ["dress", "Dress", "top"] }, ["black"]);
+  assert.deepEqual(expanded, ["dress", "top", "black dress", "black top"]);
+});
+
+test("the request: key in the query only, redacted from what is logged; numProducts capped at 50", () => {
+  const plan = tinyPlan([{ category: "a", terms: ["t"] }]);
+  const r = buildRequest(plan, { term: "silk scarf", apiKey: "TESTKEY123", groupId: "G-FIXTURE", numProducts: 500 });
+  assert.equal(r.method, "POST");
+  assert.ok(r.url.startsWith(SOVRN_PRODUCTS_URL + "?"));
+  assert.match(r.url, /apiKey=TESTKEY123/);
+  assert.match(r.url, /includeMerchants=G-FIXTURE/);
+  assert.match(r.url, /numProducts=50\b/);
+  assert.deepEqual(r.body, { keywords: "silk scarf" });
+  assert.doesNotMatch(JSON.stringify(r.logged), /TESTKEY123/);
+  assert.match(r.logged.url, /apiKey=%3Credacted%3E/);
+  assert.equal(SOVRN_MAX_PER_REQUEST, 50);
+});
+
+test("throttle math: 10% of 30k / 5 min = one request per 100 ms = 3,000 per window, well under the limit", () => {
+  assert.deepEqual(SOVRN_RATE_LIMIT, { requests: 30000, windowMs: 300000 });
+  assert.equal(throttleIntervalMs(), 100);
+  assert.equal(requestsPerWindow(100), 3000);
+  assert.ok(requestsPerWindow(throttleIntervalMs()) <= SOVRN_RATE_LIMIT.requests * 0.1);
+  assert.equal(throttleIntervalMs({ share: 0.5 }), 20);
+  assert.ok(requestsPerWindow(throttleIntervalMs({ share: 0.5 })) <= SOVRN_RATE_LIMIT.requests / 2);
+  for (const share of [0.01, 0.05, 0.1, 0.25, 0.5]) assert.ok(requestsPerWindow(throttleIntervalMs({ share })) <= SOVRN_RATE_LIMIT.requests * share, String(share));
+});
+
+await atest("throttle spacing: N waits take at least (N-1) x interval on the clock", async () => {
+  const c = fakeClock();
+  const th = makeThrottle({ intervalMs: 100, now: c.now, sleep: c.sleep });
+  const starts = [];
+  for (let i = 0; i < 25; i++) { starts.push(await th.wait()); c.advance(7); }
+  for (let i = 1; i < starts.length; i++) assert.ok(starts[i] - starts[i - 1] >= 100, `gap ${i}`);
+  assert.ok(starts[24] - starts[0] >= 2400);
+});
+
+await atest("sweep de-duplicates by product id and by brand + name + colour; the first (sale) copy wins", async () => {
+  const plan = tinyPlan([{ category: "sale", phase: 1, terms: ["sale"] }, { category: "women_apparel", gender: "women", terms: ["top", "blouse"] }]);
+  const answers = {
+    sale: [sovrnFixture(1, { originalPrice: 200 }), sovrnFixture(2)],
+    top: [sovrnFixture(1), sovrnFixture(3)],
+    /* same brand + name + colour under another id: one product */
+    blouse: [sovrnFixture(4, { productId: "FIXTURE-SV-OTHER", name: "Fixture Women's Knit Top 3" }), sovrnFixture(5)],
+  };
+  const sweep = await runSweep({ plan, throttle: noWait(), request: async (term) => ok(answers[term]) });
+  assert.equal(sweep.requests, 3);
+  assert.equal(sweep.unique, 4);
+  assert.deepEqual(sweep.found.map((f) => f.row.productId), ["FIXTURE-SV-1", "FIXTURE-SV-2", "FIXTURE-SV-3", "FIXTURE-SV-5"]);
+  assert.equal(sweep.found[0].department, "sale");
+  assert.equal(sweep.found[0].row.originalPrice, 200);
+  assert.deepEqual(sweep.perDepartment.women_apparel, { requests: 2, returned: 4, new: 2, terms: 2, stoppedBy: "terms-exhausted" });
+  const pulled = sweepToPulled(sweep.found, plan);
+  assert.deepEqual(pulled.map((p) => [p.quota.category, p.items.length]), [["sale", 2], ["women_apparel", 2]]);
+  assert.equal(pulled[1].quota.gender, "women");
+  assert.notEqual(dedupeKeys({ name: "A", brand: "B", color: "Red" }).look, dedupeKeys({ name: "A", brand: "B", color: "Blue" }).look);
+});
+
+await atest("yield stop: a department whose last window finds too few new products stops; the next department still runs", async () => {
+  const terms = Array.from({ length: 30 }, (_, i) => `term ${i}`);
+  const plan = tinyPlan([{ category: "beauty", bucket: "beauty", terms }, { category: "kids", gender: "kids", terms: ["kids a"] }]);
+  let k = 0;
+  const sweep = await runSweep({
+    plan, throttle: noWait(), minYield: 2, yieldWindow: 4,
+    request: async (term) => {
+      if (term === "kids a") return ok([sovrnFixture(900)]);
+      /* first two terms: 5 new each; after that the same products again */
+      k++;
+      return ok(k <= 2 ? Array.from({ length: 5 }, (_, i) => sovrnFixture(k * 10 + i)) : [sovrnFixture(10)]);
+    },
+  });
+  assert.equal(sweep.perDepartment.beauty.requests, 5, "4-request window, min 2 x 4 = 8: after request 4, 5+5+0+0 = 10 keeps going; after request 5, 5+0+0+0 = 5 stops");
+  assert.match(sweep.perDepartment.beauty.stoppedBy, /^yield \(5 new in the last 4 requests\)/);
+  assert.equal(sweep.perDepartment.kids.new, 1);
+  assert.equal(sweep.stopped, "plan-exhausted");
+});
+
+await atest("target stop: the sweep stops as soon as the unique pool reaches --target", async () => {
+  const plan = tinyPlan([{ category: "women_apparel", terms: Array.from({ length: 20 }, (_, i) => `t${i}`) }]);
+  let n = 0;
+  const sweep = await runSweep({ plan, throttle: noWait(), target: 120, request: async () => ok(Array.from({ length: 50 }, () => sovrnFixture(n++))) });
+  assert.equal(sweep.requests, 3);
+  assert.equal(sweep.unique, 120);
+  assert.equal(sweep.stopped, "target");
+});
+
+await atest("--max-requests guard: never more requests than allowed, 429 retries counted", async () => {
+  const plan = tinyPlan([{ category: "a", terms: Array.from({ length: 50 }, (_, i) => `t${i}`) }]);
+  const c = fakeClock();
+  let calls = 0, n = 0;
+  const sweep = await runSweep({
+    plan, throttle: makeThrottle({ intervalMs: 100, now: c.now, sleep: c.sleep }), maxRequests: 7, backoffMs: 1000, minYield: 0,
+    request: async () => { calls++; return calls === 2 ? { ok: false, status: 429, body: {} } : ok([sovrnFixture(n++)]); },
+  });
+  assert.equal(calls, 7);
+  assert.equal(sweep.requests, 7);
+  assert.equal(sweep.stopped, "max-requests");
+  assert.ok(c.slept.includes(1000), "backed off after the 429");
+});
+
+await atest("a failing first request stops the sweep at once (auth / template / shape problem), answer saved", async () => {
+  const plan = tinyPlan([{ category: "a", terms: ["t1", "t2", "t3"] }]);
+  const saved = [];
+  const s1 = await runSweep({ plan, throttle: noWait(), request: async () => ({ ok: false, status: 401, body: { error: "fixture" } }), onResponse: (seq, d, t, r) => saved.push([seq, r.status]) });
+  assert.equal(s1.requests, 1);
+  assert.match(s1.stopped, /^first-request-failed \(HTTP 401\)/);
+  assert.deepEqual(saved, [[1, 401]]);
+  const s2 = await runSweep({ plan, throttle: noWait(), request: async () => ok({ unexpected: true }, null) });
+  assert.match(s2.stopped, /no product array/);
+});
+
+test("missing group id: the guidance names the env var, the flag and the Approved Merchants API, and invents no ID or URL", () => {
+  const g = groupIdGuidance();
+  assert.match(g, /NM_SOVRN_GROUP_ID/);
+  assert.match(g, /--merchant-group/);
+  assert.match(g, /Approved Merchants API/);
+  assert.match(g, /--approved-merchants-url/);
+  assert.doesNotMatch(g, /https?:\/\//, "an endpoint was invented");
+  const hits = neimanEntries({ merchants: [{ name: "Fixture Other", id: 1 }, { name: "Neiman Marcus", groupId: "G-FIXTURE" }, { merchantId: "2243" }] });
+  assert.equal(hits.length, 2);
+});
+
+test("CLI --via sovrn: no SOVRN_API_KEY -> exit 1; no group id -> guidance and exit 5; nothing requested or saved", () => {
+  const dir = mkdtempSync(join(tmpdir(), "nm-sovrn-"));
+  try {
+    const base = { ...process.env, NM_DATA_DIR: join(dir, "data"), SOVRN_PRODUCTS_URL: "http://127.0.0.1:9/never" };
+    delete base.SOVRN_API_KEY; delete base.NM_SOVRN_GROUP_ID; delete base.SOVRN_APPROVED_MERCHANTS_URL;
+    const a = spawnSync(process.execPath, [join(ROOT, "scripts/build-neimanmarcus-catalog.mjs"), "--via", "sovrn", "--dry-run"], { env: base, encoding: "utf8" });
+    assert.equal(a.status, 1, a.stdout + a.stderr);
+    assert.match(a.stderr, /SOVRN_API_KEY/);
+    const b = spawnSync(process.execPath, [join(ROOT, "scripts/build-neimanmarcus-catalog.mjs"), "--via", "sovrn", "--dry-run"], { env: { ...base, SOVRN_API_KEY: "TESTKEY" }, encoding: "utf8" });
+    assert.equal(b.status, 5, b.stdout + b.stderr);
+    assert.match(b.stdout, /GROUP ID MISSING -- nothing was requested/);
+    assert.equal(existsSync(join(dir, "data")), false, "something was saved");
+    const c = spawnSync(process.execPath, [join(ROOT, "scripts/build-neimanmarcus-catalog.mjs"), "--via", "site"], { env: base, encoding: "utf8" });
+    assert.notEqual(c.status, 0);
+    assert.match(c.stderr, /only harvest mode is --via sovrn/);
+    const d = spawnSync(process.execPath, [join(ROOT, "scripts/build-neimanmarcus-catalog.mjs"), "--via", "sovrn", "--throttle-share", "0.9"], { env: base, encoding: "utf8" });
+    assert.notEqual(d.status, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("mapper: three plausible response shapes (flat camelCase, snake_case with nested price, data.products)", () => {
+  /* TEST FIXTURES — not product data. */
+  const flat = {
+    productId: "FIXTURE-SV-A", name: "Fixture Silk Scarf", brand: "Fixture Brand", price: "495.00", salePrice: 395, currency: "usd",
+    imageUrl: img("a1"), images: [img("a1"), img("a2")], gtin: "036000291452", merchantName: "Neiman Marcus", merchantId: 2243,
+    url: "https://redirect.example.test/click?u=fixture", merchantUrl: "https://www.neimanmarcus.com/TEST-FIXTURE-not-a-product?ecid=x#top",
+    color: "Ivory", inStock: true, description: "Fixture copy.",
+  };
+  const a = sovrnToRow(flat);
+  assert.equal(a.productId, "FIXTURE-SV-A");
+  assert.equal(a.price, 395);
+  assert.equal(a.originalPrice, 495);
+  assert.equal(a.currency, "USD");
+  assert.deepEqual(a.images, [img("a1"), img("a2"), img("a1")], "every listed image, as given (ingest dedupes)");
+  assert.equal(a.url, "https://www.neimanmarcus.com/TEST-FIXTURE-not-a-product");
+  assert.equal(a.seller, "Neiman Marcus");
+  assert.equal(a.inStock, true);
+
+  const snake = {
+    product_id: 77, title: "Fixture Leather Belt", brand: { name: "Fixture Maker" }, price: { amount: "180.00", currency: "USD" },
+    image_url: img("b1"), upc: "4006381333931", sizes: "S, M, L", product_url: "https://sovrn.example.test/r/fixture", merchant: { id: 2243, name: "Neiman Marcus" },
+    categories: ["Men", "Accessories", "Belts"],
+  };
+  const b = sovrnToRow(snake);
+  assert.equal(b.productId, "77");
+  assert.equal(b.name, "Fixture Leather Belt");
+  assert.equal(b.brand, "Fixture Maker");
+  assert.equal(b.price, 180);
+  assert.equal(b.currency, "USD");
+  assert.deepEqual(b.availableSizes, ["S", "M", "L"]);
+  assert.equal(b.gtin, "4006381333931");
+  assert.equal(b.url, undefined, "a non-Neiman-Marcus (redirect) URL was kept");
+
+  const body = { data: { products: [{ id: "FIXTURE-SV-C", productName: "Fixture Tote", brandName: "Fixture House", finalPrice: "$1,250.00 USD", thumbnail: img("c1"), merchantId: 999, merchantName: "Fixture Other Store", variants: [{ size: "One Size", inStock: true }] }] } };
+  const { list, at: where } = productsOf(body);
+  assert.equal(where, "data.products");
+  const c = sovrnToRow(list[0]);
+  assert.equal(c.price, 1250);
+  assert.equal(c.currency, "USD");
+  assert.equal(c.seller, "Fixture Other Store");
+  assert.equal(productsOf([{ a: 1 }]).at, "(body)");
+  assert.equal(productsOf({ results: [] }).at, "results");
+  assert.equal(productsOf({ nothing: 1 }).at, null);
+  assert.equal(sovrnToRow({ id: "FIXTURE-X", merchantId: 2243 }, { merchantIds: ["2243"] }).seller, undefined);
+  assert.equal(sovrnToRow({ id: "FIXTURE-Y", merchantId: "G-FIXTURE" }, { merchantIds: ["2243", "G-FIXTURE"] }).seller, undefined);
+});
+
+test("mapped rows go through the SAME ingest: USD asserted, seller == Neiman Marcus, shippable only, GTIN checksum, gallery dedupe", () => {
+  /* TEST FIXTURES — not product data. */
+  const rows = [
+    sovrnToRow(sovrnFixture(1, { gtin: "036000291452", images: [img("g1"), img("g1") + "?wid=200", img("size-chart-g1")] })),
+    sovrnToRow(sovrnFixture(2, { currency: undefined })),
+    sovrnToRow(sovrnFixture(3, { currency: "EUR" })),
+    sovrnToRow(sovrnFixture(4, { merchantId: 999, merchantName: "Fixture Other Store" })),
+    sovrnToRow(sovrnFixture(5, { inStock: false })),
+    sovrnToRow(sovrnFixture(6, { gtin: "036000291453" })),
+  ];
+  const { catalog, stats, quarantined } = ingestPull([{ quota: { category: "women_apparel", phase: 2, gender: "women" }, items: rows }], { ...ctx, target: 30000 });
+  assert.equal(stats.published, 2);
+  assert.equal(stats.quarantined["currency-unstated"], 1);
+  assert.equal(stats.quarantined["currency-EUR"], 1);
+  assert.equal(stats.quarantined["seller-not-neiman-marcus"], 1);
+  assert.equal(stats.dropped["out-of-stock"], 1);
+  assert.equal(quarantined.length, 3);
+  const items = catalog.retailers[NM_KEY].departments.women.items;
+  assert.equal(items[0].gtin, "036000291452");
+  assert.equal(items[1].gtin, undefined, "a bad check digit was kept");
+  assert.equal(items[0].images[items[0].images.length - 1], img("size-chart-g1"), "size chart not last");
+  assert.equal(items[0].images.filter((u) => u.startsWith(img("g1"))).length, 1, "the same photo twice");
+  assert.ok(items.every((it) => it.currency === "USD" && it.seller === NM_LABEL));
+});
+
+test("field report: a field missing in >50% of rows is flagged and every raw key name seen is listed", () => {
+  /* TEST FIXTURES with keys the mapper does not know (pname, cost, pic). */
+  const raws = [
+    { pname: "Fixture One", cost: "10.00", pic: img("u1"), brand: "Fixture Brand", productId: "FIXTURE-U1", merchant: { id: 2243 } },
+    { pname: "Fixture Two", cost: "12.00", pic: img("u2"), brand: "Fixture Brand", productId: "FIXTURE-U2", merchant: { id: 2243 } },
+    sovrnFixture(9),
+  ];
+  const rep = fieldReport(raws.map((raw) => ({ raw, row: sovrnToRow(raw) })));
+  assert.ok(rep.flagged.includes("name") && rep.flagged.includes("price") && rep.flagged.includes("images"));
+  assert.ok(!rep.flagged.includes("brand") && !rep.flagged.includes("id"));
+  const keys = rep.rawKeys.map((k) => k.key);
+  for (const k of ["pname", "cost", "pic", "merchant.id"]) assert.ok(keys.includes(k), k);
+  assert.equal(rep.rawKeys.find((k) => k.key === "pname").read, false);
+  const text = formatFieldReport(rep);
+  assert.match(text, /MAPPING TO FIX: .*name/);
+  assert.match(text, /pname\(2\)\*/);
+  assert.match(text, /cost\(2\)\*/);
+  assert.match(text, /--src <sovrn-raw dir>/);
+  const full = sovrnFixture(1, { gtin: "036000291452", sizes: ["S", "M"], color: "Black", inStock: true, productUrl: "https://www.neimanmarcus.com/TEST-FIXTURE-1" });
+  const clean = formatFieldReport(fieldReport([{ raw: full, row: sovrnToRow(full) }]));
+  assert.doesNotMatch(clean, /MAPPING TO FIX/);
+});
+
+test("never a link out: no affiliate / redirect URL survives; `url` is a plain neimanmarcus.com page, data only, never in a rendered record", () => {
+  /* TEST FIXTURES — not product data. */
+  const raw = sovrnFixture(1, {
+    url: "https://redirect.example.test/click?id=fixture", deepLink: "https://sovrn.example.test/deep/fixture", affiliateUrl: "https://aff.example.test/fixture",
+    clickUrl: "https://click.example.test/fixture", link: "http://www.neimanmarcus.com/insecure-fixture",
+  });
+  const row = sovrnToRow(raw);
+  assert.equal(row.url, undefined, "an affiliate / redirect / http URL was stored");
+  const { catalog } = ingestPull([{ quota: { category: "women_apparel", gender: "women" }, items: [row, sovrnToRow(sovrnFixture(2, { productUrl: "https://www.neimanmarcus.com/TEST-FIXTURE-2?utm_source=sovrn" }))] }], ctx);
+  const items = catalog.retailers[NM_KEY].departments.women.items;
+  for (const it of items) {
+    for (const [k, v] of Object.entries(it)) {
+      assert.doesNotMatch(k, /link|href|affiliate|deep|click|redirect/i, "an outbound link field: " + k);
+      if (typeof v === "string" && /^https?:/.test(v) && k !== "image") assert.ok(k === "url" && plainNmUrl(v) === v, `${k}: ${v}`);
+    }
+  }
+  assert.equal(items[1].url, "https://www.neimanmarcus.com/TEST-FIXTURE-2");
+  assert.equal(plainNmUrl("https://www.neimanmarcus.com.evil.example.test/x"), null);
+  /* The product page's record never carries the source url. */
+  const slices = readFileSync(join(ROOT, "scripts/build-pdp-slices.mjs"), "utf8");
+  const fields = /const RECORD_FIELDS = \[([^\]]*)\]/.exec(slices)[1];
+  assert.doesNotMatch(fields, /"url"|"link"/);
+  const rail = /const RAIL_FIELDS = \[([^\]]*)\]/.exec(slices)[1];
+  assert.doesNotMatch(rail, /"url"|"link"/);
+});
+
+test("replay: saved raw answers re-map through the current mapper with no request", () => {
+  const responses = [
+    { department: "sale", status: 200, body: { products: [sovrnFixture(1), sovrnFixture(2)] } },
+    { department: "women_apparel", status: 500, body: { error: "fixture" } },
+    { department: "women_apparel", status: 200, body: { products: [sovrnFixture(2), sovrnFixture(3)] } },
+  ];
+  const sweep = replayResponses(responses);
+  assert.equal(sweep.unique, 3);
+  assert.equal(sweep.perDepartment.women_apparel.new, 1);
+  assert.equal(sweep.requests, 3);
+});
+
+function sovrnRawDir(root, responses, index = {}) {
+  const d = join(root, "sovrn-raw-fixture");
+  mkdirSync(d, { recursive: true });
+  writeFileSync(join(d, "index.json"), JSON.stringify({ via: "sovrn", groupId: "G-FIXTURE", departments: [{ category: "sale", phase: 1, terms: ["-"] }, { category: "women_apparel", phase: 2, gender: "women", terms: ["-"] }], ...index }));
+  responses.forEach((r, i) => writeFileSync(join(d, `req-${String(i + 1).padStart(5, "0")}.json`), JSON.stringify({ seq: i + 1, ...r })));
+  return d;
+}
+
+test("CLI --src <sovrn-raw dir> --dry-run: sweep summary, field report, 30k selection, coverage report; writes nothing", () => {
+  const dir = mkdtempSync(join(tmpdir(), "nm-sovrn-"));
+  try {
+    const raw = sovrnRawDir(dir, [
+      { department: "sale", status: 200, body: { products: [sovrnFixture(1, { originalPrice: 300 }), sovrnFixture(2)] } },
+      { department: "women_apparel", status: 200, body: { products: [sovrnFixture(2), sovrnFixture(3)] } },
+    ]);
+    const r = spawnSync(process.execPath, [join(ROOT, "scripts/build-neimanmarcus-catalog.mjs"), "--src", raw, "--target", "30000", "--dry-run", "--no-weight-estimates"],
+      { env: { ...process.env, NM_DATA_DIR: join(dir, "data"), GROQ_API_KEY: "" }, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /NEIMAN MARCUS VIA SOVRN — THE SWEEP/);
+    assert.match(r.stdout, /unique products found \(the candidate pool before ingest\): 3/);
+    assert.match(r.stdout, /PARTIAL/);
+    assert.match(r.stdout, /SOVRN FIELD MAPPING/);
+    assert.match(r.stdout, /candidate pool \(shippable, in scope, de-duplicated\): 3/);
+    assert.match(r.stdout, /THE POOL IS UNDER THE TARGET/);
+    assert.match(r.stdout, /INGEST REPORT/);
+    assert.match(r.stdout, /--dry-run: nothing written/);
+    assert.equal(existsSync(join(dir, "data")), false);
+    assert.equal(existsSync(join(ROOT, OUT_FILE)), false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+/* One end-to-end run over HTTP against a LOCAL fixture server
+   (127.0.0.1:8990; SOVRN_PRODUCTS_URL points the CLI at it). */
+function runCli(argv, env) {
+  return new Promise((res) => {
+    const p = spawn(process.execPath, argv, { env });
+    let out = "", err = "";
+    p.stdout.on("data", (d) => { out += d; });
+    p.stderr.on("data", (d) => { err += d; });
+    p.on("close", (code) => res({ status: code, stdout: out, stderr: err }));
+  });
+}
+await atest("CLI --via sovrn --dry-run (local fixture server): sweep, raw answers saved without the key, selection, no catalogue", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "nm-sovrn-"));
+  const seen = [];
+  let n = 0;
+  const server = createServer((req, res) => {
+    let body = "";
+    req.on("data", (d) => { body += d; });
+    req.on("end", () => {
+      seen.push({ method: req.method, url: req.url, body });
+      const list = n < 6 ? Array.from({ length: 3 }, () => sovrnFixture(n++)) : [];
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ products: list }));
+    });
+  });
+  await new Promise((r) => server.listen(8990, "127.0.0.1", r));
+  try {
+    const plan = join(dir, "plan.json");
+    writeFileSync(plan, JSON.stringify(tinyPlan([{ category: "sale", phase: 1, terms: ["sale"] }, { category: "women_apparel", gender: "women", terms: ["top", "dress", "skirt"] }])));
+    const env = { ...process.env, NM_DATA_DIR: join(dir, "data"), GROQ_API_KEY: "", SOVRN_API_KEY: "TESTKEY-FIXTURE-0001", NM_SOVRN_GROUP_ID: "G-FIXTURE", SOVRN_PRODUCTS_URL: "http://127.0.0.1:8990/ai-orchestration/products" };
+    const r = await runCli([join(ROOT, "scripts/build-neimanmarcus-catalog.mjs"), "--via", "sovrn", "--dry-run", "--sweep-plan", plan, "--max-requests", "10", "--no-weight-estimates"], env);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(seen.length, 4);
+    assert.ok(seen.every((s) => s.method === "POST" && /apiKey=TESTKEY-FIXTURE-0001/.test(s.url) && /includeMerchants=G-FIXTURE/.test(s.url) && /numProducts=50/.test(s.url)));
+    assert.deepEqual(JSON.parse(seen[1].body), { keywords: "top" });
+    assert.match(r.stdout, /requests made: 4/);
+    assert.match(r.stdout, /unique products found \(the candidate pool before ingest\): 6/);
+    assert.match(r.stdout, /sale\s+1 \/\s+3 \/\s+3/);
+    assert.match(r.stdout, /THE 30,000 SELECTION/);
+    assert.match(r.stdout, /--dry-run: nothing written/);
+    const dataDirs = readdirSync(join(dir, "data"));
+    assert.equal(dataDirs.length, 1);
+    assert.match(dataDirs[0], /^sovrn-raw-/);
+    const files = readdirSync(join(dir, "data", dataDirs[0])).sort();
+    assert.deepEqual(files, ["index.json", "req-00001.json", "req-00002.json", "req-00003.json", "req-00004.json"]);
+    for (const f of files) assert.doesNotMatch(readFileSync(join(dir, "data", dataDirs[0], f), "utf8"), /TESTKEY-FIXTURE-0001/, `the key was written to ${f}`);
+    assert.equal(existsSync(join(ROOT, OUT_FILE)), false);
+  } finally {
+    await new Promise((r) => server.close(r));
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

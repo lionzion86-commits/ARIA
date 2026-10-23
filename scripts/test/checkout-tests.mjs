@@ -179,7 +179,27 @@ function orderBody(extra = {}) {
     ...extra,
   };
 }
+/* Every charged order carries the recipient's DNI photos (#443, embarque
+   brief): two TEST photos (random pixels, not a document) uploaded the way
+   checkout does, through dni-upload. A body that sets dniDocs itself, or
+   null, is sent as it is. */
+const { handler: dniUpload } = await import(ROOT + "netlify/functions/dni-upload.js");
+const jpeg = (await import("jpeg-js")).default;
+function fixturePhotoBase64(w = 160, h = 110) {
+  const data = Buffer.alloc(w * h * 4);
+  for (let i = 0; i < data.length; i++) data[i] = (i * 7919 + (i >> 5) * 104729) % 251;
+  return jpeg.encode({ data, width: w, height: h }, 90).data.toString("base64");
+}
+async function uploadFixturePhotos(cookie = "") {
+  const out = {};
+  for (const side of ["front", "back"]) {
+    const r = await dniUpload({ httpMethod: "POST", headers: { cookie }, body: JSON.stringify({ side, data: fixturePhotoBase64() }) });
+    out[side] = JSON.parse(r.body).token;
+  }
+  return out;
+}
 async function post(body, { host = "deploy-preview-1--ariashopperu.netlify.app", cookie = "" } = {}) {
+  if (!("dniDocs" in body)) body = { ...body, dniDocs: await uploadFixturePhotos(cookie) };
   const res = await createOrder({ httpMethod: "POST", headers: { host, cookie }, body: JSON.stringify(body) });
   return { status: res.statusCode, data: JSON.parse(res.body) };
 }
@@ -339,6 +359,32 @@ await check("a charged order carries the buyer's DNI, and one without it charges
   const page = readFileSync(ROOT + "checkout.html", "utf8");
   assert.match(page, /id="custDoc"[^>]*required/, "the checkout form does not ask for the buyer's document");
   assert.match(page, /idNumber: document\.getElementById\('custDoc'\)/, "the document is not sent");
+});
+
+await check("a charged order carries the recipient's DNI photos by id only; without them nothing is created or charged (#443)", async () => {
+  process.env.STRIPE_SECRET_KEY = "sk_test_x";
+  const calls = stripeCalls.length;
+  const none = await post(orderBody({ dniDocs: null, shownTotalPen: expectedPen() }));
+  assert.equal(none.status, 400);
+  assert.equal(none.data.dniMissing, true);
+  assert.match(none.data.error, /frente y reverso/);
+  assert.equal(stripeCalls.length, calls, "a session was opened without the DNI photos");
+
+  const ok = await post(orderBody({ shownTotalPen: expectedPen() }));
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  const rec = JSON.parse(await globalThis.__blobs.get("orders").get(ok.data.orderId));
+  assert.equal(rec.consigneeDocs.docNumber, "45678912");
+  assert.match(rec.consigneeDocs.front, /^[a-f0-9]{32}$/);
+  assert.match(rec.consigneeDocs.back, /^[a-f0-9]{32}$/);
+  assert.equal(rec.consigneeDocs.source, "upload");
+  assert.ok(JSON.stringify(rec).length < 20000, "an image was written into the order record");
+  const meta = JSON.parse(await globalThis.__blobs.get("dni-docs").get(`meta:${rec.consigneeDocs.front}`));
+  assert.deepEqual(meta.orderIds, [ok.data.orderId]);
+
+  /* Someone else receives the box: the photos are the recipient's. */
+  const alt = await post(orderBody({ recipient: { name: "María Torres", idNumber: "11112222" }, shownTotalPen: expectedPen() }));
+  assert.equal(alt.status, 200, JSON.stringify(alt.data));
+  assert.equal(JSON.parse(await globalThis.__blobs.get("orders").get(alt.data.orderId)).consigneeDocs.docNumber, "11112222");
 });
 
 await check("rehearsal (Oct 17): Pagar's function ships only what it reads; couriers by destination; photos; honest failures", async () => {

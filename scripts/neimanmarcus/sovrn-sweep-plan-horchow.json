@@ -1,0 +1,171 @@
+{
+  "_note": "Horchow via Sovrn Commerce (merchant 666): the keyword sweep plan for scripts/build-neimanmarcus-catalog.mjs --banner horchow --via sovrn. PARCEL-ONLY (binding, Danny 2026-10-22): only the five parcel departments are swept -- bedding, bath, tabletop, small decor, kitchen -- and the ingest drops anything else (furniture, lighting, rugs, mirrors, wall art, outdoor pieces, a published weight over the site's parcel limit or a side over 100 cm; scripts/lib/nmg-banners.js parcelVerdict). Never add a furniture or lighting department here. Same request template and assumptions as the Neiman Marcus plan. includeMerchants is the Horchow GROUP id (HORCHOW_SOVRN_GROUP_ID or --merchant-group), never guessed.",
+  "request": {
+    "method": "POST",
+    "query": {
+      "apiKey": "{apiKey}",
+      "includeMerchants": "{groupId}",
+      "numProducts": "{numProducts}"
+    },
+    "body": {
+      "keywords": "{term}"
+    }
+  },
+  "modifiers": [
+    "white",
+    "ivory",
+    "blue",
+    "gray",
+    "gold",
+    "silver",
+    "linen",
+    "cotton",
+    "porcelain",
+    "crystal",
+    "marble",
+    "velvet",
+    "embroidered",
+    "monogram",
+    "holiday"
+  ],
+  "departments": [
+    {
+      "category": "sale",
+      "phase": 1,
+      "bucket": "home_decor",
+      "terms": [
+        "sale",
+        "on sale",
+        "clearance",
+        "bedding sale",
+        "bath sale",
+        "tabletop sale",
+        "dinnerware sale",
+        "kitchen sale",
+        "decor sale",
+        "candles sale",
+        "holiday sale"
+      ]
+    },
+    {
+      "category": "bedding",
+      "phase": 2,
+      "bucket": "home_decor",
+      "expand": true,
+      "terms": [
+        "sheet set",
+        "duvet cover",
+        "comforter",
+        "quilt",
+        "coverlet",
+        "pillow sham",
+        "pillowcase",
+        "bed skirt",
+        "throw blanket",
+        "decorative pillow",
+        "throw pillow",
+        "down pillow"
+      ]
+    },
+    {
+      "category": "bath",
+      "phase": 2,
+      "bucket": "home_decor",
+      "expand": true,
+      "terms": [
+        "bath towel",
+        "hand towel",
+        "towel set",
+        "bath mat",
+        "bath rug",
+        "bathrobe",
+        "shower curtain",
+        "soap dispenser",
+        "bath accessories",
+        "vanity tray",
+        "tissue box cover"
+      ]
+    },
+    {
+      "category": "tabletop",
+      "phase": 2,
+      "bucket": "home_decor",
+      "expand": true,
+      "terms": [
+        "dinnerware",
+        "dinner plate",
+        "salad plate",
+        "bowls",
+        "charger plate",
+        "flatware",
+        "wine glasses",
+        "glassware",
+        "stemware",
+        "tumblers",
+        "mugs",
+        "serveware",
+        "serving bowl",
+        "platter",
+        "pitcher",
+        "decanter",
+        "ice bucket",
+        "barware",
+        "napkins",
+        "placemats",
+        "table runner",
+        "tablecloth",
+        "coasters",
+        "cake stand"
+      ]
+    },
+    {
+      "category": "small_decor",
+      "phase": 2,
+      "bucket": "home_decor",
+      "expand": true,
+      "terms": [
+        "candle",
+        "candle holder",
+        "candlestick",
+        "hurricane",
+        "vase",
+        "picture frame",
+        "decorative box",
+        "decorative tray",
+        "bookends",
+        "figurine",
+        "ornament",
+        "diffuser",
+        "faux flowers",
+        "wreath",
+        "garland",
+        "christmas stocking"
+      ]
+    },
+    {
+      "category": "kitchen",
+      "phase": 2,
+      "bucket": "home_decor",
+      "expand": false,
+      "terms": [
+        "cookware",
+        "skillet",
+        "saucepan",
+        "dutch oven",
+        "bakeware",
+        "cutting board",
+        "cheese board",
+        "charcuterie board",
+        "kitchen utensils",
+        "knife set",
+        "apron",
+        "oven mitt",
+        "dish towel",
+        "canister",
+        "teapot",
+        "tea kettle",
+        "salad servers"
+      ]
+    }
+  ]
+}

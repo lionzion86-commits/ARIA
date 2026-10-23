@@ -32,6 +32,7 @@
    with a 1x1 stand-in. ARIA_BASE_URL=<url> runs against a deploy instead.
    PLAYWRIGHT_CHROMIUM=<path> picks the browser binary.
    ================================================================== */
+import { randomBytes } from "node:crypto";
 import http from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -257,12 +258,25 @@ await check("the Dreamhouse can be bought: product page -> cart -> checkout -> P
     await page.waitForTimeout(300);
     const courierOpts = await page.$$eval("#courierSelect option", (os) => os.filter((o) => o.value && !o.disabled).map((o) => o.value));
     if (courierOpts.length) await page.selectOption("#courierSelect", courierOpts[0]);
+    /* The recipient's DNI photos (#443): two TEST photos of random pixels,
+       taken through the section's own inputs; the upload is answered here. */
+    await context.route("**/.netlify/functions/dni-upload", (route) => route.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ token: randomBytes(16).toString("hex") }) }));
+    const { default: jpegjs } = await import("jpeg-js");
+    const px = Buffer.alloc(320 * 220 * 4);
+    for (let i = 0; i < px.length; i++) px[i] = (i * 7919) % 251;
+    const photo = { name: "dni.jpg", mimeType: "image/jpeg", buffer: jpegjs.encode({ data: px, width: 320, height: 220 }, 90).data };
+    for (const side of ["front", "back"]) {
+      await page.setInputFiles(`.dniSlot[data-side="${side}"] input[data-pick="camera"]`, photo);
+      await page.waitForFunction((s) => document.querySelector(`.dniSlot[data-side="${s}"] .dniStatusText`).textContent.includes("Foto lista"), side, { timeout: 20000 });
+    }
     const pay = await waitPayStep(page);
     /* The phone's closing pay bar sits over the button; a tap on either submits the form. */
     await page.evaluate(() => document.getElementById("payBtn").click());
     for (let i = 0; i < 50 && !posted; i++) await page.waitForTimeout(100);
     assert(posted, "Pagar did not post the order");
     assert(posted.items.length === 1 && posted.items[0].title === x.title, "posted items: " + JSON.stringify(posted.items));
+    assert(posted.dniDocs && posted.dniDocs.front && posted.dniDocs.back, "Pagar sent no DNI photo tokens");
     return `Pagar "${pay}" -> orders-create POST with 1 line, S/ ${posted.shownTotalPen}`;
   } finally { await context.close(); }
 });

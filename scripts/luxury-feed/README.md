@@ -16,10 +16,19 @@ images, brand, description, deep links):
 |---|---|---|
 | Saks Fifth Avenue | Rakuten Advertising | Open |
 | Neiman Marcus | Sovrn Commerce (ex-VigLink) | Open |
+| Neiman Marcus | Sovrn Commerce: correction (#443, 2026-10-22) | NO feed file; API only (see below) |
 | Neiman Marcus | AWIN | feed format documented |
 
 Affiliate coverage is typically ~60–70% of SKUs, refreshed daily. Luxury
 flagship items are usually included; deep clearance sometimes isn't.
+
+**Correction (#443, 2026-10-22): Sovrn Commerce has no downloadable
+product feed.** Its product data is API-only (Product Recommendation API,
+50 products per request; Price Comparisons API by barcode / keywords).
+For Neiman Marcus via Sovrn use
+`node scripts/build-neimanmarcus-catalog.mjs --via sovrn --dry-run`
+(SOVRN_API_KEY and NM_SOVRN_GROUP_ID in the environment; see
+scripts/lib/sovrn.js). The feed steps below still apply to Rakuten and AWIN.
 
 ## What Danny needs to do (one time per network)
 

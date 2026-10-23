@@ -77,6 +77,17 @@ export const CHARGE_PER_KG_USD = 13;
 // contract bills actual scale weight only, so the box no longer enters
 // the quote and these are plain masses.
 const RETAIL_WEIGHT_FALLBACK_KG = [
+  /* UNDERWEAR AND LINGERIE FIRST (2026-10-22, order #ARIA-20261018-0C6674):
+     ahead of the denim and embroidery rows, which are cited for jeans and
+     embroidered dresses -- a "Denim Embroidery Panty" or an embroidered
+     demi bra is still a few grams of lace, not a kilo. Bras ~0.15 kg in
+     their polybag (weight-estimates.json). The teddy guard keeps the bear
+     with the toys; a slip DRESS falls through to the dress row, and a
+     non-slip shoe or rug never reads as a slip. Boxers and briefs keep
+     their own row further down, so a boxer-short pajama set is not 80 g. */
+  { match: /\b(panty|panties|thongs?|v-string|g-string)\b/i, kg: 0.08, tier: "cited" },
+  { match: /\b(bras?|bralettes?|balconette|teddy|teddies|babydoll|garter|corset|bustier|lingerie|slip)\b/i,
+    not: /\b(bear|dress|gown|skirt|tank|shoes?|sneakers?|sandals?|slides?|loafers?|rugs?|mats?|socks?)\b|(non|anti)[- ]?slip|slip[- ]?(on|resist|proof)/i, kg: 0.15, tier: "cited" },
   { match: /\bjeans?\b|denim/i, kg: 1, tier: "cited" },
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
   { match: /hoodie|sweatshirt/i, kg: 0.8, tier: "cited" },
@@ -252,7 +263,8 @@ export function categoryWeightKg(title, hints = {}) {
   if (ball != null) return ball;
   /* No TV branch: Danny banned TVs and TV mounts outright (2026-09-26).
      tvWeightKg stays defined below for reference only. */
-  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
+  /* `not` guards a row, as on the page (index.html's lookup honours it). */
+  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t) && !(p.not && p.not.test(t)));
   /* Small toys AFTER the retail table (#449): a doll titled with its
      dress keeps the dress row's figure; a doll with no garment word
      gets the doll row instead of the generic. */
