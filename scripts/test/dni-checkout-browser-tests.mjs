@@ -56,7 +56,7 @@ function bigPhoto(w = 2400, h = 1600) {
 const fixtureBytes = bigPhoto();
 writeFileSync(FIXTURE, fixtureBytes);
 
-const state = { uploads: [], failNext: 0, orders: [], member: null };
+const state = { uploads: [], failNext: 0, orders: [], member: null, accounts: {}, auth: [] };
 async function fn(name, req, body) {
   if (name === "exchange-rate") return [200, { compra: 3.72, venta: 3.75, fecha: "2026-10-22" }];
   if (["wallet-get", "cart-save", "cart-get"].includes(name)) return [401, { error: "No autenticado" }];
@@ -69,6 +69,15 @@ async function fn(name, req, body) {
     if (state.failNext > 0) { state.failNext--; return [500, { error: "No pudimos guardar la foto. Vuelve a intentarlo; el resto de tu pedido sigue aquí." }]; }
     const v = validateUpload(b);
     return v.ok ? [200, { token: newDocId(), side: b.side }] : [400, { error: v.error }];
+  }
+  if (name === "auth-signup" || name === "auth-login") {
+    const b = JSON.parse(body || "{}");
+    state.auth.push({ ...b, fn: name, password: b.password ? "(set)" : "" });
+    if (name === "auth-signup") {
+      if (state.accounts[b.email]) return [409, { error: "Ya existe una cuenta con este correo" }];
+      state.accounts[b.email] = b.password; return [200, { email: b.email }];
+    }
+    return state.accounts[b.email] === b.password ? [200, { email: b.email }] : [401, { error: "Correo o contraseña incorrectos" }];
   }
   if (name === "orders-create") { state.orders.push(JSON.parse(body)); return [400, { error: "Prueba: pedido capturado, no se cobró nada." }]; }
   if (name === "shipping-quote") {
@@ -250,6 +259,91 @@ await check("a Key Club member with the document saved sees it instead of the sl
     assert(state.orders.length === 1 && state.orders[0].dniDocs === null, "saved pack: " + JSON.stringify(state.orders[0] && state.orders[0].dniDocs));
     await page.fill("#custDoc", "11112222");
     assert(await page.isVisible("#dniSlots"), "another document number must ask for photos");
+  } finally { await context.close(); state.member = null; }
+});
+
+async function bothPhotos(page) {
+  for (const side of ["front", "back"]) {
+    await page.setInputFiles(`.dniSlot[data-side="${side}"] input[data-pick="camera"]`, FIXTURE);
+    await page.waitForFunction((s) => document.querySelector(`.dniSlot[data-side="${s}"] .dniStatusText`).textContent.includes("Foto lista"), side, { timeout: 30000 });
+  }
+}
+async function payAndWait(page) {
+  await page.waitForFunction(() => !document.getElementById("payBtnEnd").disabled, null, { timeout: 30000 });
+  await page.click("#payBtnEnd");
+  for (let i = 0; i < 50 && !state.orders.length; i++) await page.waitForTimeout(200);
+}
+
+/* KEY CLUB INVITE (#443 c.6354380345). */
+await check("a guest sees the Key Club invite only after both photos are up; 'Ahora no' closes it and the order goes through unchanged", async () => {
+  state.orders.length = 0; state.auth.length = 0;
+  const { context, page } = await openCheckout();
+  try {
+    await fillForm(page);
+    assert(!(await page.isVisible("#kcInvite")), "invite before any photo");
+    await page.setInputFiles('.dniSlot[data-side="front"] input[data-pick="camera"]', FIXTURE);
+    await page.waitForFunction(() => document.querySelector('.dniSlot[data-side="front"] .dniStatusText').textContent.includes("Foto lista"), null, { timeout: 30000 });
+    assert(!(await page.isVisible("#kcInvite")), "invite after one photo");
+    await page.setInputFiles('.dniSlot[data-side="back"] input[data-pick="camera"]', FIXTURE);
+    await page.waitForSelector("#kcInvite", { state: "visible", timeout: 30000 });
+    const text = await page.textContent("#kcInvite");
+    for (const want of ["Sube tus documentos una sola vez", "Ahora es gratis", "Guardar mis documentos", "Ahora no", "puedes eliminarlos cuando quieras"]) assert(text.includes(want), "missing: " + want);
+    assert(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), "emoji in the invite");
+    await shot(page, "keyclub-invite");
+    await page.click("#kcInviteNo");
+    assert(!(await page.isVisible("#kcInvite")), "Ahora no did not close it");
+    await payAndWait(page);
+    assert(state.orders.length === 1 && state.orders[0].dniDocs && state.orders[0].dniDocs.front, "order not sent after Ahora no");
+    assert(state.auth.length === 0, "an account was created without asking");
+  } finally { await context.close(); }
+});
+
+await check("'Guardar mis documentos' creates the account from the checkout's own name, email and phone; Pagar then sends the same photos", async () => {
+  state.orders.length = 0; state.auth.length = 0; state.accounts = {};
+  const { context, page } = await openCheckout();
+  try {
+    await fillForm(page);
+    await bothPhotos(page);
+    await page.click("#kcInviteYes");
+    await page.fill("#kcPass", "corta");
+    await page.click("#kcInviteGo");
+    assert(/al menos 8/.test(await page.textContent("#kcInviteErr")), "short password not refused");
+    await page.fill("#kcPass", "clave-de-prueba");
+    await page.click("#kcInviteGo");
+    await page.waitForSelector("#kcInviteDone", { state: "visible" });
+    const su = state.auth.find((a) => a.fn === "auth-signup");
+    assert(su && su.email === "ana@correo.test" && su.name === "Ana Prueba" && su.phone === "+51 900 000 000", JSON.stringify(state.auth));
+    assert(/no te lo volveremos a pedir/.test(await page.textContent("#dniKeepNote")), "keep note did not switch to the member wording");
+    await shot(page, "keyclub-invite-done");
+    await payAndWait(page);
+    const d = state.orders[0] && state.orders[0].dniDocs;
+    assert(d && d.front && d.back, "the uploaded photos were not sent with the order: " + JSON.stringify(d));
+  } finally { await context.close(); }
+});
+
+await check("an email that already has an account switches the invite to sign-in, and a member never sees the invite", async () => {
+  state.orders.length = 0; state.auth.length = 0; state.accounts = { "ana@correo.test": "clave-existente" };
+  let { context, page } = await openCheckout();
+  try {
+    await fillForm(page);
+    await bothPhotos(page);
+    await page.click("#kcInviteYes");
+    await page.fill("#kcPass", "clave-cualquiera");
+    await page.click("#kcInviteGo");
+    await page.waitForFunction(() => /Ya tienes una cuenta/.test(document.getElementById("kcPassLabel").textContent));
+    await page.fill("#kcPass", "clave-existente");
+    await page.click("#kcInviteGo");
+    await page.waitForSelector("#kcInviteDone", { state: "visible" });
+    assert(state.auth.map((a) => a.fn).join() === "auth-signup,auth-login", state.auth.map((a) => a.fn).join());
+  } finally { await context.close(); }
+  state.member = [];
+  ({ context, page } = await openCheckout());
+  try {
+    await fillForm(page);
+    await page.waitForFunction(() => /no te lo volveremos a pedir/.test(document.getElementById("dniKeepNote").textContent), null, { timeout: 10000 });
+    await bothPhotos(page);
+    await page.waitForTimeout(300);
+    assert(!(await page.isVisible("#kcInvite")), "a signed-in member was shown the invite");
   } finally { await context.close(); state.member = null; }
 });
 

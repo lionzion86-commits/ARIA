@@ -599,7 +599,26 @@
                 </div>
               </div>
           </div>
-        </section>
+                  <!-- KEY CLUB INVITE (Danny, #443 c.6354380345): guests only, only
+               after both photos are up, never blocking Pagar. -->
+          <div id="kcInvite" class="rounded-2xl p-4 mt-3" style="background:var(--sky)" hidden>
+            <p class="text-[14px] font-extrabold" style="color:var(--navy)">Sube tus documentos una sola vez</p>
+            <p class="text-[12.5px] leading-snug mt-1" style="color:#374151">Con Key Club, tus documentos quedan guardados en tu cuenta y no vuelves a subirlos en tus próximas compras. Ahora es gratis.</p>
+            <div id="kcInviteAsk" class="grid grid-cols-2 gap-2 mt-3">
+              <button type="button" id="kcInviteYes" class="h-[40px] rounded-xl text-[12.5px] font-bold" style="background:var(--navy);color:#fff">Guardar mis documentos</button>
+              <button type="button" id="kcInviteNo" class="h-[40px] rounded-xl border text-[12.5px] font-bold" style="border-color:var(--line);color:var(--navy);background:#fff">Ahora no</button>
+            </div>
+            <div id="kcInviteForm" class="mt-3" hidden>
+              <label for="kcPass" id="kcPassLabel" class="block text-[12.5px] font-bold mb-1" style="color:var(--navy)">Crea una contraseña para tu cuenta</label>
+              <input id="kcPass" type="password" autocomplete="new-password" minlength="8" class="w-full h-[44px] rounded-xl border px-3 text-[16px]" style="border-color:var(--line)" placeholder="Al menos 8 caracteres">
+              <p id="kcInviteErr" class="text-[12px] mt-1.5" style="color:#B42318" hidden></p>
+              <button type="button" id="kcInviteGo" class="w-full h-[42px] rounded-xl text-[13px] font-bold mt-2" style="background:var(--navy);color:#fff">Crear mi cuenta y guardar</button>
+              <p class="text-[11.5px] mt-1.5" style="color:#6B7280">Usamos el nombre, correo y teléfono que ya pusiste arriba. Tu pedido sigue igual.</p>
+            </div>
+            <p id="kcInviteDone" class="text-[13px] font-semibold mt-2" style="color:#0F7A3D" hidden></p>
+            <p class="text-[11.5px] mt-2" style="color:#6B7280">Tus documentos quedan en tu cuenta y puedes eliminarlos cuando quieras.</p>
+          </div>
+</section>
         </div>
 
         <div class="gridDestination">
@@ -1770,6 +1789,7 @@ function cardImgAttrs(url, sizes){
     document.getElementById('dniSaved').hidden = !saved;
     document.getElementById('dniSlots').hidden = Boolean(saved);
     if (saved) document.getElementById('dniSavedLabel').textContent = `${saved.name || 'documento'} · terminado en ${saved.docNumber.slice(-3)}`;
+    if (typeof syncKcInvite === 'function') syncKcInvite();
   }
 
   function setDniStatus(side, text, { bar = null, retry = false, tone = 'muted' } = {}){
@@ -1792,6 +1812,7 @@ function cardImgAttrs(url, sizes){
     dniSlot(side).querySelector('.dniPlaceholder').style.display = '';
     dniSlot(side).querySelector('.dniCameraLabel').textContent = 'Tomar foto';
     setDniStatus(side, 'De frente, con las cuatro esquinas a la vista y sin reflejos.');
+    if (typeof syncKcInvite === 'function') syncKcInvite();
   }
 
   async function decodePhoto(file){
@@ -1848,6 +1869,7 @@ function cardImgAttrs(url, sizes){
       });
       st.token = token;
       setDniStatus(side, 'Foto lista.', { tone: 'ok' });
+      syncKcInvite();
     } catch (err){
       setDniStatus(side, err.message || 'No se pudo subir la foto.', { retry: true, tone: 'error' });
     } finally { st.busy = false; }
@@ -1886,6 +1908,63 @@ function cardImgAttrs(url, sizes){
   /* Ready to pay: a saved Key Club document, or both photos uploaded. */
   function dniReady(){ return Boolean(dniUseSaved) || Boolean(dni.front.token && dni.back.token); }
   function dniPayload(){ return dniUseSaved ? null : { front: dni.front.token, back: dni.back.token }; }
+
+  /* KEY CLUB INVITE. A guest who just uploaded both sides is offered an
+     account at the moment the friction is felt. Creating it (or signing in
+     to the account that already has this email) before Pagar is all it
+     takes: the order is then placed by the account, and orders-create
+     registers these same photos to it (attachToOrder). "Ahora no" and a
+     failed sign-up leave the checkout exactly as it was. */
+  var kcInviteDismissed = false;
+  var kcInviteMode = 'signup';
+  function syncKcInvite(){
+    const el = document.getElementById('kcInvite');
+    const show = !kcInviteDismissed && !dniSavedPacks.signedIn && !dniUseSaved && Boolean(dni.front.token && dni.back.token);
+    if (!show && !document.getElementById('kcInviteDone').textContent) el.hidden = true;
+    else if (show) el.hidden = false;
+  }
+  function kcInviteError(msg){ const e = document.getElementById('kcInviteErr'); e.textContent = msg || ''; e.hidden = !msg; }
+  document.getElementById('kcInviteNo').addEventListener('click', () => { kcInviteDismissed = true; document.getElementById('kcInvite').hidden = true; });
+  document.getElementById('kcInviteYes').addEventListener('click', () => {
+    document.getElementById('kcInviteAsk').hidden = true;
+    document.getElementById('kcInviteForm').hidden = false;
+    document.getElementById('kcPass').focus();
+  });
+  document.getElementById('kcInviteGo').addEventListener('click', async () => {
+    const name = document.getElementById('custName').value.trim();
+    const email = document.getElementById('custEmail').value.trim();
+    const phone = document.getElementById('custPhone').value.trim();
+    const password = document.getElementById('kcPass').value;
+    if (!name || !email) return kcInviteError('Completa tu nombre y tu correo arriba primero.');
+    if (password.length < 8) return kcInviteError('La contraseña debe tener al menos 8 caracteres.');
+    const btn = document.getElementById('kcInviteGo');
+    btn.disabled = true; kcInviteError('');
+    try {
+      const endpoint = kcInviteMode === 'signup' ? 'auth-signup' : 'auth-login';
+      const res = await fetch('/.netlify/functions/' + endpoint, {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(kcInviteMode === 'signup' ? { email, password, name, phone } : { email, password }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 409 && kcInviteMode === 'signup') {
+        kcInviteMode = 'login';
+        document.getElementById('kcPassLabel').textContent = 'Ya tienes una cuenta con este correo. Ingresa tu contraseña';
+        btn.textContent = 'Entrar y guardar';
+        document.getElementById('kcPass').value = '';
+        document.getElementById('kcPass').setAttribute('autocomplete', 'current-password');
+        return;
+      }
+      if (!res.ok) throw new Error(body.error || 'No pudimos crear tu cuenta. Tu pedido sigue igual.');
+      dniSavedPacks = { ...dniSavedPacks, signedIn: true };
+      document.getElementById('kcInviteForm').hidden = true;
+      const done = document.getElementById('kcInviteDone');
+      done.textContent = 'Listo. Al pagar, tus documentos quedan guardados en tu cuenta Key Club.';
+      done.hidden = false;
+      syncDniCopy();
+    } catch (err) {
+      kcInviteError(err.message);
+    } finally { btn.disabled = false; }
+  });
 
   /* PROVINCIA LAST-MILE. What goes on the order and onto the partner
      courier's manifest for the Lima → province leg. Routing info, not a

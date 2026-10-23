@@ -184,6 +184,17 @@ export async function registerPack(stores, email, { docNumber, name = "", front,
   const next = recipients.filter((r) => r.docNumber !== doc);
   next.push({ docNumber: doc, name: String(name || "").slice(0, 120), front, back, updatedAt: new Date(now).toISOString() });
   await stores.packs.setJSON(email, { recipients: next });
+  /* The pack's photos are now the account's: kept until the member
+     deletes them or closes the account, whoever uploaded them. A photo
+     uploaded as a guest a minute before signing up (the Key Club invite
+     at checkout) would otherwise still carry the guest rule and be
+     purged 30 days after delivery from under the saved pack. */
+  for (const id of [front, back]) {
+    const meta = await readMeta(stores.docs, id);
+    if (meta && (meta.owner !== email || meta.retention !== "member")) {
+      await stores.docs.setJSON(`meta:${id}`, { ...meta, owner: email, retention: "member" });
+    }
+  }
   if (old) await releaseDocs(stores, [old.front, old.back].filter((id) => id !== front && id !== back));
 }
 
