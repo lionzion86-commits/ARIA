@@ -38,6 +38,7 @@ import { provinciaFeePen as provinciaFeeFor } from "../../couriers.js";
 import { CHARGE_PER_KG } from "../../weight-data.js";
 import { resolveCartWeights } from "./_weight-resolve.js";
 import { loadPriceIndex } from "./_price-index.js";
+import { DNI_DOCS_STORE, DNI_PACKS_STORE, resolveOrderDocs, attachToOrder } from "./_dni-docs.js";
 import { createCheckoutSession } from "./_stripe-api.js";
 import { emailImageUrl } from "./_order-email.js";
 import {
@@ -354,6 +355,22 @@ async function createOrderHandler(event) {
     const bodyRef = normalizeRef(body.ref);
     const attribution = cookieRef ? { ...cookieRef, source: "cookie" }
       : bodyRef ? { ref: bodyRef, setAt: null, source: "page" } : null;
+    /* THE RECIPIENT'S DNI PHOTOS (#443, embarque brief). Amex's packet
+       needs both sides of the consignee's document, collected here at
+       checkout and nowhere else: the photos this checkout just uploaded,
+       or a Key Club member's registered pack for that document. A charged
+       order without them is refused before anything is written, the same
+       as a missing document number. The record carries only the two
+       photo ids, never an image (see _dni-docs.js). */
+    const dniStores = { docs: getStore(DNI_DOCS_STORE), packs: getStore(DNI_PACKS_STORE) };
+    const consigneeDocNumber = recipient ? recipient.idNumber : buyerDoc;
+    const consigneeName = recipient ? recipient.name : String((body.customer && body.customer.name) || "");
+    const dni = charging
+      ? await resolveOrderDocs(dniStores, { upload: body.dniDocs || null, docNumber: consigneeDocNumber, owner: buyerEmail })
+      : null;
+    if (charging && !dni.ok) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: dni.error + " No se cobró nada.", dniMissing: true }) };
+    }
     let walletAppliedPen = 0;
     let walletBalanceBeforePen = null;
     if (buyerEmail && totalPen != null && Number(body.applyWalletPen) > 0) {
@@ -495,8 +512,18 @@ async function createOrderHandler(event) {
       /* Null when the buyer receives it themselves. Carried onto the
          courier manifest — see manifestRow() in _shipping/service.js. */
       recipient,
+      /* Photo ids only. Who receives the box is the consignee: the
+         alternate recipient when there is one, else the buyer. */
+      consigneeDocs: dni && dni.ok ? { docNumber: dni.docNumber, front: dni.front, back: dni.back, source: dni.source } : null,
     };
 
+    /* The photos are tied to the order BEFORE it is written: a failure
+       here stops the order with nothing charged, rather than leaving an
+       order whose photos the 48-hour purge would treat as abandoned. */
+    if (dni && dni.ok) {
+      await attachToOrder(dniStores, { front: dni.front, back: dni.back, orderId, docNumber: dni.docNumber,
+        name: consigneeName, owner: buyerEmail, source: dni.source });
+    }
     await ordersStore.setJSON(orderId, order);
     await ordersStore.setJSON(counterKey, { count: counter.count + 1 });
 
