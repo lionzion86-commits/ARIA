@@ -7172,6 +7172,14 @@ const CATEGORY_RAILS = [
     blurb: 'Lo esencial, de las mejores marcas de USA. Solo ofertas.',
     feed: () => ropaInteriorRailPicks('/ropa-interior-feed.json'),
     open: "location.href='/ropa-interior.html#hombre'" },
+  /* REACONDICIONADOS (2026-10-23, #443, Danny: "refurbished electronics
+     is our biggest hit"). The shelf is the department's own first cards
+     (assets/sections/departamento/reacondicionados/head.json, built by
+     /condition.js), so the pill and the page can never disagree. */
+  { key: 'reacondicionados', label: 'Reacondicionados', icon: '', stores: null, poolOnly: true,
+    blurb: 'Reacondicionados, de caja abierta y usados, con el estado que indica la tienda.',
+    feed: () => reacondicionadosRailPicks(),
+    open: "location.href='/departamento.html?dept=reacondicionados'" },
 ];
 /* Tab order on the pills (2026-09-27, Danny): Mama's Fashion is second-in-command
    (right after the Ofertas section), then Aria Fight Club, then Surf &
@@ -7179,12 +7187,14 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['latino_designers', 'moms', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'women', 'men', 'mens_grooming', 'ropa_interior_mujer', 'ropa_interior', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty']; /* latino_designers leads (Danny 2026-10-07): strongest sales, incl. $20 bikinis */
+const CATEGORY_TAB_ORDER = ['latino_designers', 'moms', 'reacondicionados', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'women', 'men', 'mens_grooming', 'ropa_interior_mujer', 'ropa_interior', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty']; /* latino_designers leads (Danny 2026-10-07): strongest sales, incl. $20 bikinis */
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* DANNY 2026-10-02 QA: the "L" letter pill looked terrible. Sleek gold
    wayfarer SVG for Lentes de Sol -- fashionable, not emoji, not clip-art. */
 const CATEGORY_SVG_ICONS = {
+  /* Two turning arrows, gold line art: renewed, not new. */
+  reacondicionados: `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#F4C463" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3.5V8h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20.5V16h-4.5"/></svg>`,
   /* A crew sock, gold line art -- the pill never falls back to a letter or an emoji. */
   /* A bra, gold line art -- same family as the sock. */
   ropa_interior_mujer: `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#F4C463" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4v5.5"/><path d="M18 4v5.5"/><path d="M3 12.5c0-2 1.6-3.4 3.6-3.4 2.4 0 4.4 1.9 5.4 4.4 1-2.5 3-4.4 5.4-4.4 2 0 3.6 1.4 3.6 3.4 0 2.4-2.2 4.5-5 4.5-1.8 0-3.2-.9-4-2.2-.8 1.3-2.2 2.2-4 2.2-2.8 0-5-2.1-5-4.5z"/></svg>`,
@@ -7321,6 +7331,35 @@ async function ropaInteriorRailPicks(feedUrl = '/ropa-interior-feed.json'){
   return out.slice(0, ROPA_INTERIOR_RAIL_TOTAL);
 }
 const ROPA_INTERIOR_RAIL_TOTAL = 20;
+
+/* The Reacondicionados pill's shelf: the department head's first cards,
+   each rail in order, one card per title. */
+let reacondicionadosHeadPromise = null;
+async function reacondicionadosRailPicks(){
+  if (!reacondicionadosHeadPromise){
+    reacondicionadosHeadPromise = fetch('/assets/sections/departamento/reacondicionados/head.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(h => (h && Array.isArray(h.rails)) ? h.rails : [])
+      .catch(() => { reacondicionadosHeadPromise = null; return []; });
+  }
+  const rails = await reacondicionadosHeadPromise;
+  const out = [], seen = new Set();
+  for (const r of rails){
+    for (const c of (r.cards || [])){
+      if (!c || !c.t || seen.has(c.r + '::' + c.t)) continue;
+      let it = null;
+      try {
+        it = normalizeLiveItem({ title: c.t, brand: c.b, price: c.p, originalPrice: c.o, onSale: Number(c.s) > 0, image: c.i },
+          { retailer: c.r, department: 'reacondicionados' });
+      } catch (e) { continue; }
+      if (!it || !it.title || !hasRealImage(it)) continue;
+      seen.add(c.r + '::' + c.t);
+      out.push({ ...it, retailer: c.r, departments: ['reacondicionados'] });
+      if (out.length >= ROPA_INTERIOR_RAIL_TOTAL) return out;
+    }
+  }
+  return out;
+}
 
 function paintCategoryRail(row){
   const key = row.getAttribute('data-category-rail-row');

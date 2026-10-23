@@ -104,7 +104,9 @@ export function orderConfirmationEmail(order) {
   const lineText = (it) => {
     const qty = Math.max(1, Math.floor(Number(it.qty) || 1));
     const size = String(it.selectedSize || "").trim();
-    return `${it.title}${size ? ` (talla ${size})` : ""} x${qty}`;
+    /* The condition the order stored (#443, Reacondicionados). */
+    const cond = String(it.condition || "").trim();
+    return `${it.title}${cond ? ` [${cond}]` : ""}${size ? ` (talla ${size})` : ""} x${qty}`;
   };
   /* The line's own price in soles: its card price at the rate this
      order was charged at -- the soles figure the product card showed.
