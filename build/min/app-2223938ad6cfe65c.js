@@ -786,6 +786,7 @@ function fmtUSD(e){return"$"+Number(e).toLocaleString("en-US",{minimumFractionDi
       ${walletChipHTML("desktop")}
       ${a}
     </div>
+    <a href="/cuenta.html" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Mi cuenta</a>
     <button onclick="logout()" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`,r=`
     <button onclick="openAuthModal('login')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Entrar</button>
     <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:var(--navy)">Crear cuenta</button>`;document.getElementById("authArea").innerHTML=currentUser?n:r;const s=`
@@ -795,6 +796,7 @@ function fmtUSD(e){return"$"+Number(e).toLocaleString("en-US",{minimumFractionDi
       ${walletChipHTML("mobile")}
     </div>
     ${o}
+    <a href="/cuenta.html" class="w-full h-11 mb-2.5 inline-flex items-center justify-center rounded-full text-[13.5px] font-bold text-white focus-ring transition" style="background:var(--navy)">Mi cuenta</a>
     <button onclick="logout();closeMobileMenu();" class="w-full h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Salir</button>`,i=`
     <div class="flex items-center gap-2.5">
       <button onclick="openAuthModal('login');closeMobileMenu();" class="flex-1 h-11 inline-flex items-center justify-center rounded-full text-[13.5px] font-bold text-white focus-ring transition" style="background:var(--navy)">Entrar</button>

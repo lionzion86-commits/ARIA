@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi cuenta — Aria Shop</title>
+<meta name="robots" content="noindex">
+<!-- ============================================================
+     MI CUENTA (#443, member-account-area brief, 2026-10-22).
+
+     One read (account.js) paints everything: orders with Aria's own
+     status messages and a progress line, the tracking spot, the saved
+     cart, the Key Club documents, the wallet (always, even at S/ 0.00)
+     and the profile. Plain CSS and one small script, no framework and no
+     CDN: the Mountain Test is a slow phone line, and this page is where
+     a customer waits for her parcel.
+
+     Spanish, zero emojis. Statuses are Aria's words only; the courier's
+     name and number never reach this page (the server never sends them).
+     ============================================================ -->
+<style>
+:root{--navy:#0A1F44;--blue:#2456A0;--gold:#F4C463;--sky:#F2F6FF;--line:#E4E9F2;--ink:#1A2333;--muted:#6B7280;--green:#16A34A;--red:#DC2626}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#F7F9FC;min-height:100vh;display:flex;flex-direction:column}
+a{color:var(--blue);text-decoration:none}
+.site-header{background:var(--navy);color:#fff}
+.main-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;max-width:900px;margin:0 auto;width:100%}
+.logo{font-weight:800;font-size:20px;color:#fff;letter-spacing:-.02em}
+.logo span{color:var(--gold)}
+.nav-out{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+main{flex:1;width:100%;max-width:900px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.hello{color:var(--muted);font-size:14px;margin:4px 0 14px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin:0 -16px 6px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+.chips a{flex:none;font-size:13px;font-weight:700;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;white-space:nowrap}
+section.block{margin:22px 0}
+section.block>h2{font-size:18px;font-weight:800;color:var(--navy);margin:0 0 10px}
+.card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;margin:10px 0}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.empty{color:var(--muted);font-size:14px;line-height:1.6}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--navy);color:#fff;font-weight:700;border:0;border-radius:12px;font-size:14.5px;padding:12px 18px;cursor:pointer;min-height:44px}
+.btn.alt{background:#fff;color:var(--navy);border:1px solid var(--line)}
+.btn.danger{background:#fff;color:var(--red);border:1px solid #FECACA}
+.btn[disabled]{opacity:.55;cursor:default}
+.row{display:flex;gap:10px;align-items:center}
+.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+/* Orders */
+.order{padding:0;overflow:hidden}
+.order>button{all:unset;display:block;width:100%;padding:14px 16px;cursor:pointer;box-sizing:border-box}
+.order .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.oid{font-weight:800;color:var(--navy);font-size:14px}
+.odate{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pill{flex:none;font-size:12px;font-weight:800;border-radius:999px;padding:5px 10px;background:var(--sky);color:var(--blue)}
+.pill.delivered{background:#E7F7EC;color:var(--green)}
+.pill.cancelled{background:#FEF2F2;color:var(--red)}
+.thumbs{display:flex;gap:6px;margin-top:10px}
+.thumbs img,.thumbs span{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--sky);border:1px solid var(--line);flex:none}
+.thumbs span{display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--muted)}
+.ototal{font-weight:800;color:var(--navy);margin-top:8px;font-size:15px}
+.detail{border-top:1px solid var(--line);padding:14px 16px 16px}
+.msg{background:var(--sky);border-radius:14px;padding:12px 14px;font-size:14.5px;line-height:1.55;color:var(--navy)}
+.msg b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:4px}
+.tl{list-style:none;margin:16px 0 6px;position:relative}
+.tl li{position:relative;padding:0 0 16px 30px;font-size:14px;color:var(--muted)}
+.tl li:last-child{padding-bottom:0}
+.tl li::before{content:"";position:absolute;left:8px;top:16px;bottom:-2px;width:2px;background:var(--line)}
+.tl li:last-child::before{display:none}
+.tl li.done::before{background:var(--blue)}
+.tl li i{position:absolute;left:2px;top:3px;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:#fff}
+.tl li.done i{background:var(--blue);border-color:var(--blue)}
+.tl li.current{color:var(--navy);font-weight:800}
+.tl li.current i{border-color:var(--blue);box-shadow:0 0 0 4px rgba(36,86,160,.15)}
+.tl li.done{color:var(--navy)}
+.items{margin:14px 0 4px}
+.item{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item img,.item .ph{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--sky);flex:none}
+.item .t{font-size:13.5px;line-height:1.35}
+.item .s{font-size:12px;color:var(--muted);margin-top:2px}
+.sums{margin-top:10px;font-size:14px}
+.sums div{display:flex;justify-content:space-between;padding:3px 0}
+.sums .grand{font-weight:800;color:var(--navy);border-top:1px solid var(--line);margin-top:4px;padding-top:7px}
+.track{margin-top:14px;border:1px dashed var(--line);border-radius:14px;padding:12px 14px;font-size:13.5px}
+.track h3,.sub{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:6px}
+/* Wallet */
+.wallet{background:linear-gradient(135deg,#0A1F44,#2456A0);color:#fff;border:0}
+.wallet .bal{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
+.wallet .lbl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#C9D6F2;font-weight:700}
+.rules{list-style:none;margin:10px 0 0;font-size:13.5px;line-height:1.5}
+.rules li{padding:6px 0 6px 16px;position:relative}
+.rules li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.ledger div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.ledger div:first-child{border-top:0}
+.plus{color:var(--green);font-weight:800;white-space:nowrap}
+.minus{color:var(--ink);font-weight:800;white-space:nowrap}
+/* Forms */
+label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin:12px 0 6px}
+input[type=email],input[type=password],input[type=text]{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px;background:#fff}
+.err{color:var(--red);font-size:13.5px;margin-top:10px}
+.doc-photos{display:flex;gap:10px;margin-top:10px}
+.doc-photos img{width:50%;border-radius:10px;border:1px solid var(--line)}
+.slot{border:1px dashed var(--line);border-radius:12px;padding:10px;margin-top:10px;font-size:13.5px}
+.slot img{display:block;max-width:100%;max-height:140px;border-radius:8px;margin-top:8px}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
+footer{background:var(--navy);color:#B9C6E4;font-size:13px;padding:24px 16px;text-align:center}
+footer a{color:#fff}
+</style>
+<script src="/ref.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
+</head>
+<body>
+<header class="site-header">
+<nav class="main-nav">
+<a class="logo" href="/">ARIA<span>SHOP</span></a>
+<button class="nav-out" id="logoutBtn" type="button" hidden>Salir</button>
+</nav>
+</header>
+<main>
+<div id="loading" class="empty">Cargando tu cuenta...</div>
+<div id="loadErr" class="card" hidden><p class="empty" id="loadErrMsg"></p><button class="btn alt" type="button" onclick="load()" style="margin-top:10px">Reintentar</button></div>
+
+<!-- Signed out: sign in right here. -->
+<section id="signedOut" hidden>
+<h1>Mi cuenta</h1>
+<p class="hello">Entra para ver tus pedidos, tu saldo y tus documentos.</p>
+<form class="card" id="loginForm">
+<label for="loginEmail">Correo</label>
+<input type="email" id="loginEmail" autocomplete="email" required>
+<label for="loginPass">Contraseña</label>
+<input type="password" id="loginPass" autocomplete="current-password" required>
+<p class="err" id="loginErr" hidden></p>
+<button class="btn" type="submit" style="width:100%;margin-top:16px">Entrar</button>
+<p class="small muted" style="margin-top:12px">¿Aún no tienes cuenta? <a href="/">Créala en la página principal</a> con el mismo correo de tus compras y tus pedidos aparecerán aquí.</p>
+</form>
+<p class="small muted" style="margin-top:8px;line-height:1.5">Si compraste como invitado, las fotos de tu documento se borran 30 días después de que tu pedido se entrega.</p>
+</section>
+
+<!-- Signed in -->
+<section id="signedIn" hidden>
+<h1>Mi cuenta</h1>
+<p class="hello" id="hello"></p>
+<nav class="chips" aria-label="Secciones">
+<a href="#pedidos">Mis pedidos</a><a href="#carrito">Mi carrito</a><a href="#keyclub">Mi Key Club</a><a href="#documentos">Mis documentos</a><a href="#datos">Mis datos</a>
+</nav>
+
+<section class="block" id="pedidos"><h2>Mis pedidos</h2><div id="ordersList"></div></section>
+<section class="block" id="carrito"><h2>Mi carrito</h2><div id="cartBox"></div></section>
+<section class="block" id="keyclub"><h2>Mi Key Club</h2><div id="walletBox"></div></section>
+<section class="block" id="documentos"><h2>Mis documentos</h2><div id="docsBox"></div></section>
+<section class="block" id="datos"><h2>Mis datos</h2><div id="profileBox"></div></section>
+</section>
+</main>
+<footer>
+<a href="/">Aria Shop</a> · <a href="como-funciona.html">Cómo funciona</a> · <a href="devoluciones.html">Devoluciones</a> · <a href="keyclub.html">Key Club</a> · <a href="privacidad.html">Privacidad</a>
+</footer>
+<script>
+(function(){
+'use strict';
+var data = null, fx = null;
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function pen(n){ return 'S/ ' + Number(n || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+var MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+function fdate(iso){ var d = new Date(iso); if (isNaN(d)) return ''; return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+
+window.load = load;
+/* A slow line or a platform error page must still end in words she can
+   act on, never an endless "Cargando" or a JSON parse error. The code in
+   brackets is for us when she sends a screenshot. */
+var LOAD_TIMEOUT_MS = 15000;
+async function getJson(url){
+  var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  var timer = ctl ? setTimeout(function(){ ctl.abort(); }, LOAD_TIMEOUT_MS) : null;
+  try {
+    var res = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+    var text = await res.text(), body = null;
+    try { body = JSON.parse(text); } catch (e) { body = null; }
+    return { ok: res.ok, status: res.status, body: body };
+  } catch (e) {
+    return { ok: false, status: e && e.name === 'AbortError' ? 'tiempo' : 'red', body: null };
+  } finally { if (timer) clearTimeout(timer); }
+}
+async function load(){
+  $('loading').hidden = false; $('loadErr').hidden = true;
+  try {
+    var r = await getJson('/.netlify/functions/account');
+    if (!r.ok || !r.body) {
+      var msg = r.status === 'tiempo' ? 'Tu cuenta está tardando en cargar. Revisa tu conexión y vuelve a intentarlo.'
+        : r.status === 'red' ? 'No pudimos conectarnos. Revisa tu conexión y vuelve a intentarlo.'
+        : (r.body && r.body.error) || 'No pudimos cargar tu cuenta. Intenta de nuevo en un momento.';
+      throw new Error(msg + ' [' + r.status + ']');
+    }
+    /* Signed in on the header but not here: ask once more before
+       showing the sign-in form (a session cookie still settling). */
+    if (!r.body.signedIn) {
+      var me = await getJson('/.netlify/functions/auth-me');
+      if (me.ok && me.body && me.body.email) {
+        var again = await getJson('/.netlify/functions/account');
+        if (again.ok && again.body) r = again;
+      }
+    }
+    data = r.body;
+    render();
+  } catch (e) {
+    $('loadErrMsg').textContent = (e && e.message) || 'No pudimos cargar tu cuenta.';
+    $('loadErr').hidden = false;
+  } finally { $('loading').hidden = true; }
+}
+
+function render(){
+  var on = !!(data && data.signedIn);
+  $('signedOut').hidden = on; $('signedIn').hidden = !on; $('logoutBtn').hidden = !on;
+  if (!on) return;
+  var p = data.profile || {};
+  $('hello').textContent = 'Hola' + (p.name ? ', ' + p.name.split(/\s+/)[0] : '') + '. Aquí está todo lo tuyo con Aria.';
+  renderOrders(); renderCart(); renderWallet(); renderDocs(); renderProfile();
+}
+
+/* ---------------- Mis pedidos ---------------- */
+function renderOrders(){
+  var list = data.orders || [];
+  if (!list.length){ $('ordersList').innerHTML = '<div class="card empty">Todavía no tienes pedidos con este correo. Cuando compres, aquí verás cada paso hasta tu puerta.</div>'; return; }
+  $('ordersList').innerHTML = list.map(function(o, i){
+    var thumbs = o.items.slice(0, 4).map(function(it){ return it.image ? '<img loading="lazy" alt="" src="' + esc(it.image) + '">' : '<span></span>'; }).join('');
+    if (o.items.length > 4) thumbs += '<span>+' + (o.items.length - 4) + '</span>';
+    var count = o.items.reduce(function(s, it){ return s + (it.qty || 1); }, 0);
+    return '<article class="card order" data-order="' + esc(o.orderId) + '">' +
+      '<button type="button" aria-expanded="false" data-i="' + i + '">' +
+        '<div class="top"><div><div class="oid">' + esc(o.orderId) + '</div><div class="odate">' + fdate(o.createdAt) + ' · ' + count + (count === 1 ? ' producto' : ' productos') + '</div></div>' +
+        '<span class="pill ' + esc(o.stage) + '">' + esc(o.label) + '</span></div>' +
+        '<div class="thumbs">' + thumbs + '</div>' +
+        (o.totals.totalPen != null ? '<div class="ototal">' + pen(o.totals.totalPen) + '</div>' : '') +
+      '</button><div class="detail" hidden></div></article>';
+  }).join('');
+  Array.prototype.forEach.call($('ordersList').querySelectorAll('.order>button'), function(b){
+    b.addEventListener('click', function(){
+      var box = b.nextElementSibling, open = box.hidden;
+      if (open && !box.innerHTML) box.innerHTML = orderDetail(list[+b.dataset.i]);
+      box.hidden = !open; b.setAttribute('aria-expanded', String(open));
+    });
+  });
+  if (list.length === 1) $('ordersList').querySelector('.order>button').click();
+}
+
+function orderDetail(o){
+  var tl = o.timeline.length ? '<ol class="tl">' + o.timeline.map(function(s){ return '<li class="' + s.state + '"><i></i>' + esc(s.label) + '</li>'; }).join('') + '</ol>' : '';
+  var items = '<div class="items">' + o.items.map(function(it){
+    var meta = [it.brand, it.size ? 'Talla ' + it.size : '', it.qty > 1 ? it.qty + ' unidades' : ''].filter(Boolean).join(' · ');
+    return '<div class="item">' + (it.image ? '<img loading="lazy" alt="" src="' + esc(it.image) + '">' : '<div class="ph"></div>') +
+      '<div><div class="t">' + esc(it.title) + '</div>' + (meta ? '<div class="s">' + esc(meta) + '</div>' : '') + '</div></div>';
+  }).join('') + '</div>';
+  var t = o.totals, sums = '<div class="sums">';
+  if (t.saldoPen > 0) sums += '<div><span>Pagado con saldo Aria</span><span>' + pen(t.saldoPen) + '</span></div>';
+  if (t.cardPen != null && t.saldoPen > 0) sums += '<div><span>Pagado con tarjeta</span><span>' + pen(t.cardPen) + '</span></div>';
+  if (t.totalPen != null) sums += '<div class="grand"><span>Total</span><span>' + pen(t.totalPen) + '</span></div>';
+  sums += '</div>';
+  var refund = '';
+  if (o.refund && (o.refund.refundedToCardPen > 0 || o.refund.creditedAsSaldoPen > 0)) {
+    refund = '<div class="sums">' +
+      (o.refund.refundedToCardPen > 0 ? '<div><span>Devuelto a tu tarjeta</span><span>' + pen(o.refund.refundedToCardPen) + '</span></div>' : '') +
+      (o.refund.creditedAsSaldoPen > 0 ? '<div><span>Devuelto como saldo Aria</span><span>' + pen(o.refund.creditedAsSaldoPen) + '</span></div>' : '') + '</div>';
+  }
+  /* The tracking spot. The live tracking view replaces this block's body
+     later; the guía and the history are already real. */
+  var tr = o.tracking;
+  var track = '<div class="track" data-slot="tracking"><h3>Seguimiento</h3>' + (tr
+    ? '<div>Tu guía Aria: <b>' + esc(tr.guia) + '</b></div>' +
+      (tr.history.length ? '<div class="small muted" style="margin-top:6px">' + tr.history.map(function(h){ return esc(h.label) + (h.at ? ' · ' + fdate(h.at) : ''); }).join('<br>') + '</div>' : '')
+    : '<div class="muted">Tu guía aparece aquí apenas tu pedido salga de Miami.</div>') + '</div>';
+  var delivery = '';
+  if (o.delivery && (o.delivery.address || o.delivery.recipient)) {
+    delivery = '<div class="track"><h3>Entrega</h3>' +
+      (o.delivery.address ? '<div>' + esc(o.delivery.address) + '</div>' : '') +
+      (o.delivery.recipient ? '<div class="small muted" style="margin-top:4px">Recibe: ' + esc(o.delivery.recipient.name) + (o.delivery.recipient.relationship ? ' (' + esc(o.delivery.recipient.relationship) + ')' : '') + '</div>' : '') + '</div>';
+  }
+  return '<div class="msg"><b>Mensaje de Aria</b>' + esc(o.message) + '</div>' + tl + items + sums + refund + track + delivery;
+}
+
+/* ---------------- Mi carrito ---------------- */
+function renderCart(){
+  var cart = data.cart || [];
+  if (!cart.length){ $('cartBox').innerHTML = '<div class="card empty">Tu carrito guardado está vacío.</div>'; return; }
+  var totalUsd = cart.reduce(function(s, it){ return s + (it.priceUsd || 0) * (it.qty || 1); }, 0);
+  $('cartBox').innerHTML = '<div class="card"><div class="items">' + cart.map(function(it){
+    var p = fx && it.priceUsd ? pen(it.priceUsd * fx * (it.qty || 1)) : '';
+    return '<div class="item">' + (it.image ? '<img loading="lazy" alt="" src="' + esc(it.image) + '">' : '<div class="ph"></div>') +
+      '<div style="flex:1"><div class="t">' + esc(it.title) + '</div><div class="s">' + esc([it.size ? 'Talla ' + it.size : '', it.qty > 1 ? it.qty + ' unidades' : ''].filter(Boolean).join(' · ')) + '</div></div>' +
+      (p ? '<div class="small" style="font-weight:700;white-space:nowrap">' + p + '</div>' : '') + '</div>';
+  }).join('') + '</div>' +
+  (fx ? '<div class="sums"><div class="grand"><span>Productos</span><span>' + pen(totalUsd * fx) + '</span></div></div><p class="small muted">El total con envío e impuestos se confirma en el pago.</p>' : '') +
+  '<button class="btn" type="button" id="resumeBtn" style="width:100%;margin-top:12px">Retomar mi compra</button></div>';
+  $('resumeBtn').addEventListener('click', resumeCart);
+}
+
+/* The checkout reads the browser's cart. When this browser has none, the
+   saved one goes in whole and the checkout opens; when it already has
+   one, the homepage cart merges the two with its own rules. */
+async function resumeCart(){
+  var local = [];
+  try { local = JSON.parse(localStorage.getItem('aria_cart_v1') || '[]'); } catch (e) { local = []; }
+  if (Array.isArray(local) && local.length){ location.href = '/?carrito=1'; return; }
+  try {
+    var res = await fetch('/.netlify/functions/cart-get', { credentials: 'same-origin' });
+    var body = await res.json();
+    if (Array.isArray(body.cart) && body.cart.length) localStorage.setItem('aria_cart_v1', JSON.stringify(body.cart));
+    location.href = '/checkout.html';
+  } catch (e) { location.href = '/?carrito=1'; }
+}
+
+/* ---------------- Mi Key Club ---------------- */
+function renderWallet(){
+  var w = data.wallet || { balancePen: 0, ledger: [], rules: [] };
+  var kc = (data.profile && data.profile.keyClub) || {};
+  var state = kc.member ? 'Eres miembro del Aria Key Club.' : 'Tu membresía Key Club está en revisión. Mientras tanto, tu saldo funciona igual.';
+  var ledger = w.ledger.length
+    ? '<div class="card ledger">' + w.ledger.map(function(t){
+        var sign = t.kind === 'debit' ? '-' : '+';
+        return '<div><span><span style="display:block;color:var(--navy);font-weight:600">' + esc(t.reason) + '</span><span class="small muted">' + fdate(t.date) + (t.orderId ? ' · ' + esc(t.orderId) : '') + '</span></span>' +
+          '<span class="' + (t.kind === 'debit' ? 'minus' : 'plus') + '">' + sign + pen(t.amountPen) + '</span></div>';
+      }).join('') + '</div>'
+    : '<div class="card empty">Aún no tienes movimientos. Cada sol que ganes o uses aparecerá aquí, con su motivo y su fecha.</div>';
+  $('walletBox').innerHTML = '<div class="card wallet"><div class="lbl">Tu saldo Aria</div><div class="bal">' + pen(w.balancePen) + '</div>' +
+    '<div class="small" style="color:#DCE4F7">' + esc(state) + '</div></div>' +
+    '<div class="card"><div class="sub">Cómo ganas y usas tu saldo</div><ul class="rules">' + w.rules.map(function(r){ return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>' +
+    '<div class="sub" style="margin-top:14px">Movimientos</div>' + ledger;
+}
+
+/* ---------------- Mis documentos ---------------- */
+function renderDocs(){
+  var docs = data.documents || [];
+  var kc = (data.profile && data.profile.keyClub) || {};
+  var head = '<p class="small muted" style="margin-bottom:6px;line-height:1.5">Tus documentos quedan guardados en tu cuenta para que no vuelvas a subirlos. Solo tú puedes verlos, y puedes eliminarlos cuando quieras.</p>';
+  if (!docs.length){ $('docsBox').innerHTML = head + '<div class="card empty">No tienes documentos guardados. Se guardan la primera vez que los subes en el pago con tu sesión iniciada.</div>'; return; }
+  $('docsBox').innerHTML = head + docs.map(function(d, i){
+    return '<div class="card" data-doc="' + i + '"><div class="row between"><div><div style="font-weight:700;color:var(--navy)">' + esc(d.name || 'Documento') + '</div>' +
+      '<div class="small muted">Terminado en ' + esc(d.docEnd) + (d.updatedAt ? ' · guardado el ' + fdate(d.updatedAt) : '') + '</div></div></div>' +
+      '<div class="row wrap" style="margin-top:12px"><button class="btn alt" type="button" data-act="view">Ver fotos</button><button class="btn alt" type="button" data-act="replace">Reemplazar</button><button class="btn danger" type="button" data-act="delete">Eliminar</button></div>' +
+      '<div class="doc-photos" hidden></div><div class="replace" hidden></div><p class="err" hidden></p></div>';
+  }).join('');
+  Array.prototype.forEach.call($('docsBox').querySelectorAll('[data-doc]'), function(card){
+    var d = docs[+card.dataset.doc];
+    card.querySelector('[data-act=view]').addEventListener('click', function(){
+      var box = card.querySelector('.doc-photos');
+      if (!box.innerHTML) box.innerHTML = ['front', 'back'].map(function(side){ return '<img alt="' + (side === 'front' ? 'Frente' : 'Reverso') + '" src="/.netlify/functions/dni-pack?doc=' + encodeURIComponent(d.ref) + '&side=' + side + '">'; }).join('');
+      box.hidden = !box.hidden;
+    });
+    card.querySelector('[data-act=delete]').addEventListener('click', async function(){
+      if (!confirm('¿Eliminar las fotos de este documento de tu cuenta? Si un pedido en camino las necesita, se guardan solo hasta 30 días después de su entrega.')) return;
+      var err = card.querySelector('.err'); err.hidden = true;
+      try {
+        var res = await fetch('/.netlify/functions/dni-pack?doc=' + encodeURIComponent(d.ref), { method: 'DELETE', credentials: 'same-origin' });
+        if (!res.ok) throw new Error((await res.json()).error);
+        data.documents = docs.filter(function(x){ return x !== d; }); renderDocs();
+      } catch (e) { err.textContent = (e && e.message) || 'No pudimos eliminarlo. Intenta de nuevo.'; err.hidden = false; }
+    });
+    card.querySelector('[data-act=replace]').addEventListener('click', function(){ openReplace(card, d); });
+  });
+}
+
+/* Replace: frente and reverso, compressed on the phone, uploaded with
+   progress, then the pack swaps over. The old photos are released by
+   the server (deleted unless an order in flight still needs them). */
+function openReplace(card, d){
+  var box = card.querySelector('.replace');
+  box.hidden = false;
+  var tokens = {};
+  box.innerHTML = ['front', 'back'].map(function(side){
+    return '<div class="slot" data-side="' + side + '"><b>' + (side === 'front' ? 'Frente' : 'Reverso') + '</b>' +
+      '<div class="row wrap" style="margin-top:8px"><label class="btn alt" style="margin:0">Tomar foto<input type="file" accept="image/*" capture="environment" hidden></label>' +
+      '<label class="btn alt" style="margin:0">Subir de la galería<input type="file" accept="image/*" hidden></label></div>' +
+      '<div class="bar" hidden><i></i></div><img alt="" hidden><div class="small muted st"></div></div>';
+  }).join('') + '<p class="small muted" style="margin-top:8px">De frente, con las cuatro esquinas a la vista y sin reflejos.</p>' +
+  '<button class="btn" type="button" disabled style="width:100%;margin-top:10px">Guardar fotos nuevas</button>';
+  var save = box.querySelector('button.btn:last-child');
+  Array.prototype.forEach.call(box.querySelectorAll('.slot'), function(slot){
+    var side = slot.dataset.side;
+    Array.prototype.forEach.call(slot.querySelectorAll('input[type=file]'), function(inp){
+      inp.addEventListener('change', async function(){
+        var f = inp.files && inp.files[0]; if (!f) return;
+        var st = slot.querySelector('.st'), img = slot.querySelector('img'), bar = slot.querySelector('.bar'), fill = bar.querySelector('i');
+        delete tokens[side]; save.disabled = true;
+        try {
+          var blob = await compressPhoto(f);
+          img.src = URL.createObjectURL(blob); img.hidden = false;
+          bar.hidden = false; fill.style.width = '0'; st.textContent = 'Subiendo...';
+          tokens[side] = await upload(side, blob, function(p){ fill.style.width = Math.round(p * 100) + '%'; });
+          st.textContent = 'Foto lista';
+        } catch (e) { st.textContent = (e && e.message) || 'No pudimos subir la foto. Inténtalo de nuevo.'; }
+        save.disabled = !(tokens.front && tokens.back);
+      });
+    });
+  });
+  save.addEventListener('click', async function(){
+    var err = card.querySelector('.err'); err.hidden = true; save.disabled = true;
+    try {
+      var res = await fetch('/.netlify/functions/dni-pack', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docNumber: d.ref, name: d.name, front: tokens.front, back: tokens.back }) });
+      var body = await res.json();
+      if (!res.ok) throw new Error(body.error);
+      d.updatedAt = new Date().toISOString(); renderDocs();
+    } catch (e) { err.textContent = (e && e.message) || 'No pudimos guardar las fotos. Intenta de nuevo.'; err.hidden = false; save.disabled = false; }
+  });
+}
+
+function compressPhoto(file){
+  return new Promise(function(resolve, reject){
+    var url = URL.createObjectURL(file), im = new Image();
+    im.onload = function(){
+      var max = 1600, s = Math.min(1, max / Math.max(im.width, im.height));
+      var c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      var q = 0.82;
+      (function tryQ(){ c.toBlob(function(b){ if (!b) return reject(new Error('No pudimos leer la foto.')); if (b.size > 600000 && q > 0.5){ q -= 0.1; tryQ(); } else resolve(b); }, 'image/jpeg', q); })();
+    };
+    im.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('No pudimos leer la foto. Prueba con otra.')); };
+    im.src = url;
+  });
+}
+
+function upload(side, blob, onProgress){
+  return new Promise(function(resolve, reject){
+    var r = new FileReader();
+    r.onload = function(){
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/.netlify/functions/dni-upload');
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.upload.onprogress = function(e){ if (e.lengthComputable) onProgress(e.loaded / e.total); };
+      xhr.onload = function(){
+        var body = {}; try { body = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status === 200 && body.token) { onProgress(1); resolve(body.token); } else reject(new Error(body.error || 'No pudimos subir la foto.'));
+      };
+      xhr.onerror = function(){ reject(new Error('Se cortó la conexión. Vuelve a intentarlo.')); };
+      xhr.send(JSON.stringify({ side: side, data: String(r.result).split(',')[1] }));
+    };
+    r.onerror = function(){ reject(new Error('No pudimos leer la foto.')); };
+    r.readAsDataURL(blob);
+  });
+}
+
+/* ---------------- Mis datos ---------------- */
+function renderProfile(){
+  var p = data.profile || {};
+  var rows = [['Nombre', p.name], ['Correo', p.email], ['Teléfono', p.phone], ['Cliente desde', p.memberSince ? fdate(p.memberSince) : '']]
+    .filter(function(r){ return r[1]; })
+    .map(function(r){ return '<div><span class="muted">' + r[0] + '</span><span style="font-weight:600;text-align:right">' + esc(r[1]) + '</span></div>'; }).join('');
+  var rec = (p.recipients || []).length
+    ? '<div class="card ledger">' + p.recipients.map(function(r){
+        return '<div><span><span style="display:block;color:var(--navy);font-weight:600">' + esc(r.name || 'Destinatario') + '</span><span class="small muted">' +
+          esc(['Documento terminado en ' + r.docEnd, r.relationship].filter(Boolean).join(' · ')) + '</span></span>' +
+          (r.savedDocuments ? '<span class="small" style="color:var(--green);font-weight:700;white-space:nowrap">Documento guardado</span>' : '') + '</div>';
+      }).join('') + '</div>'
+    : '<div class="card empty">Cuando alguien más reciba uno de tus pedidos, sus datos quedan aquí para la próxima vez.</div>';
+  $('profileBox').innerHTML = '<div class="card ledger">' + rows + '</div><div class="sub" style="margin-top:14px">Quienes reciben tus pedidos</div>' + rec;
+}
+
+/* ---------------- sign in / out ---------------- */
+$('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var err = $('loginErr'); err.hidden = true;
+  try {
+    var res = await fetch('/.netlify/functions/auth-login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: $('loginEmail').value.trim(), password: $('loginPass').value }) });
+    var body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'No pudimos entrar.');
+    await load();
+  } catch (e2) { err.textContent = (e2 && e2.message) || 'No pudimos entrar.'; err.hidden = false; }
+});
+$('logoutBtn').addEventListener('click', async function(){
+  try { await fetch('/.netlify/functions/auth-logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
+  data = { signedIn: false }; render();
+});
+
+/* The soles rate, for the saved cart only (orders carry their own soles). */
+fetch('/.netlify/functions/exchange-rate').then(function(r){ return r.json(); }).then(function(b){
+  var v = Number(b && b.venta); if (v > 0){ fx = v; if (data && data.signedIn) renderCart(); }
+}).catch(function(){});
+
+load();
+})();
+</script>
+<!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/assets/js/aria-launcher.js" defer></script>
+</body>
+</html>
