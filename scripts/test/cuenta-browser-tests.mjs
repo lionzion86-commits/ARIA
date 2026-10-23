@@ -105,14 +105,17 @@ function fixtureStores({ balance = 0 } = {}) {
   };
 }
 
-const state = { signedIn: false, stores: fixtureStores(), calls: [] };
+const state = { signedIn: false, admin: false, accountFail: null, stores: fixtureStores(), calls: [] };
 async function fn(name, req, body, u) {
   state.calls.push({ name, method: req.method, q: u.search, body });
   if (name === "exchange-rate") return [200, { compra: 3.72, venta: 3.75 }];
-  if (name === "auth-me") return [200, { email: state.signedIn ? ME : null, name: "Socia Prueba", founderStatus: "fundador" }];
+  if (name === "auth-me") return [200, { email: state.signedIn ? ME : null, isAdmin: state.signedIn && state.admin, name: "Socia Prueba", founderStatus: "fundador" }];
   if (name === "auth-login") { const b = JSON.parse(body || "{}"); if (b.password !== "fixture-pass") return [401, { error: "Correo o contraseña incorrectos" }]; state.signedIn = true; return [200, { email: ME }]; }
   if (name === "auth-logout") { state.signedIn = false; return [200, { ok: true }]; }
-  if (name === "account") return [200, await accountOverview(state.stores, state.signedIn ? ME : null)];
+  if (name === "account") {
+    if (state.accountFail === "html502") return ["html", "<html><body>Bad Gateway</body></html>", 502];
+    return [200, await accountOverview(state.stores, state.signedIn ? ME : null)];
+  }
   if (name === "cart-get") { const c = await state.stores.carts.get(ME, { type: "json" }); return [200, { cart: state.signedIn ? c.cart : [] }]; }
   if (name === "dni-upload") {
     const b = JSON.parse(body || "{}");
@@ -147,12 +150,14 @@ const server = http.createServer((req, res) => {
       }
       const m = /^\/\.netlify\/functions\/([a-z-]+)/.exec(u.pathname);
       if (m) {
-        const [code, json] = await fn(m[1], req, body, u);
+        const [code, json, htmlStatus] = await fn(m[1], req, body, u);
+        if (code === "html") { res.writeHead(htmlStatus, { "Content-Type": "text/html" }); return res.end(json); }
         if (code === "raw") { res.writeHead(200, { "Content-Type": "image/jpeg", "Cache-Control": "private, no-store" }); return res.end(json); }
         res.writeHead(code, { "Content-Type": "application/json" });
         return res.end(JSON.stringify(json));
       }
-      let p = join(ROOT, decodeURIComponent(u.pathname));
+      /* netlify.toml serves /build/* from /build/min/. */
+      let p = join(ROOT, decodeURIComponent(u.pathname.replace(/^\/build\/(?!min\/)/, "/build/min/")));
       if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
       if (!existsSync(p)) { res.writeHead(404); return res.end("nf"); }
       res.writeHead(200, { "Content-Type": TYPES[extname(p)] || "application/octet-stream" });
@@ -276,6 +281,44 @@ await check("the saved cart shows in soles and 'Retomar mi compra' opens the che
   await Promise.all([page.waitForURL(/checkout\.html/), page.click("#resumeBtn")]);
   const cart = await page.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
   assert(cart.length === 1 && cart[0].title === "Fixture Graphic Tee" && cart[0].dutiableUsd === 22.43, JSON.stringify(cart));
+  await context.close();
+});
+
+/* Danny's iPhone pass (#443 c.6357269524): the entry point itself, from
+   the homepage, for an admin (both entries present) and a plain member. */
+for (const admin of [true, false]) {
+  await check(`from the homepage at 390 px, ${admin ? "an admin" : "a plain member"} taps Mi cuenta (header, then menu) and lands in the account with the orders`, async () => {
+    state.signedIn = true; state.admin = admin; state.accountFail = null; state.stores = fixtureStores();
+    const { context, page } = await open("/index.html");
+    await page.waitForSelector('#authArea a[href="/cuenta.html"]', { state: "visible", timeout: 30000 });
+    if (admin) await page.waitForSelector('#authAreaMobile a[href="/admin.html"]', { state: "attached" });
+    await Promise.all([page.waitForURL(/cuenta\.html/), page.tap('#authArea a[href="/cuenta.html"]')]);
+    await page.waitForSelector("#signedIn:not([hidden]) #ordersList .oid");
+    if (admin) await page.screenshot({ path: join(SHOTS, "cuenta-from-home-admin.png"), fullPage: false });
+    await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
+    await page.waitForSelector('#authArea a[href="/cuenta.html"]', { state: "visible", timeout: 30000 });
+    await page.tap('button[aria-label="Menú"]');
+    await page.waitForSelector('#authAreaMobile a[href="/cuenta.html"]', { state: "visible" });
+    await Promise.all([page.waitForURL(/cuenta\.html/), page.tap('#authAreaMobile a[href="/cuenta.html"]')]);
+    await page.waitForSelector("#signedIn:not([hidden]) #ordersList .oid");
+    const ids = await page.$$eval("#ordersList .oid", (els) => els.map((e) => e.textContent));
+    assert(ids[0] === "ARIA-20261020-B7F0X1", ids.join());
+    await context.close();
+  });
+}
+state.admin = false;
+
+await check("a platform error page (502 HTML) ends in words and a code, never a parse error or an endless spinner", async () => {
+  state.signedIn = true; state.accountFail = "html502";
+  const { context, page, errors } = await open();
+  await page.waitForSelector("#loadErr:not([hidden])");
+  const msg = await page.textContent("#loadErrMsg");
+  assert(/No pudimos cargar tu cuenta.*\[502\]/.test(msg), msg);
+  assert(await page.isHidden("#loading"), "spinner still showing");
+  state.accountFail = null;
+  await page.click("#loadErr button");
+  await page.waitForSelector("#signedIn:not([hidden]) #ordersList .oid");
+  assert(!errors.length, errors.join("; "));
   await context.close();
 });
 

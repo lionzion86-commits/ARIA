@@ -170,13 +170,42 @@ var MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov',
 function fdate(iso){ var d = new Date(iso); if (isNaN(d)) return ''; return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
 
 window.load = load;
+/* A slow line or a platform error page must still end in words she can
+   act on, never an endless "Cargando" or a JSON parse error. The code in
+   brackets is for us when she sends a screenshot. */
+var LOAD_TIMEOUT_MS = 15000;
+async function getJson(url){
+  var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  var timer = ctl ? setTimeout(function(){ ctl.abort(); }, LOAD_TIMEOUT_MS) : null;
+  try {
+    var res = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+    var text = await res.text(), body = null;
+    try { body = JSON.parse(text); } catch (e) { body = null; }
+    return { ok: res.ok, status: res.status, body: body };
+  } catch (e) {
+    return { ok: false, status: e && e.name === 'AbortError' ? 'tiempo' : 'red', body: null };
+  } finally { if (timer) clearTimeout(timer); }
+}
 async function load(){
   $('loading').hidden = false; $('loadErr').hidden = true;
   try {
-    var res = await fetch('/.netlify/functions/account', { credentials: 'same-origin' });
-    var body = await res.json();
-    if (!res.ok) throw new Error(body && body.error || 'No pudimos cargar tu cuenta.');
-    data = body;
+    var r = await getJson('/.netlify/functions/account');
+    if (!r.ok || !r.body) {
+      var msg = r.status === 'tiempo' ? 'Tu cuenta está tardando en cargar. Revisa tu conexión y vuelve a intentarlo.'
+        : r.status === 'red' ? 'No pudimos conectarnos. Revisa tu conexión y vuelve a intentarlo.'
+        : (r.body && r.body.error) || 'No pudimos cargar tu cuenta. Intenta de nuevo en un momento.';
+      throw new Error(msg + ' [' + r.status + ']');
+    }
+    /* Signed in on the header but not here: ask once more before
+       showing the sign-in form (a session cookie still settling). */
+    if (!r.body.signedIn) {
+      var me = await getJson('/.netlify/functions/auth-me');
+      if (me.ok && me.body && me.body.email) {
+        var again = await getJson('/.netlify/functions/account');
+        if (again.ok && again.body) r = again;
+      }
+    }
+    data = r.body;
     render();
   } catch (e) {
     $('loadErrMsg').textContent = (e && e.message) || 'No pudimos cargar tu cuenta.';

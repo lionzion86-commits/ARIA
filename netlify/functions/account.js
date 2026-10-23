@@ -11,7 +11,7 @@ import { WALLET_STORE } from "./_wallet.js";
 
 export async function handler(event) {
   connectLambda(event);
-  const headers = { ...corsHeaders("GET, OPTIONS"), "Cache-Control": "private, no-store" };
+  const headers = { ...corsHeaders("GET, OPTIONS"), "Content-Type": "application/json", "Cache-Control": "private, no-store" };
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "" };
   if (event.httpMethod !== "GET") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
 
@@ -28,7 +28,11 @@ export async function handler(event) {
       users: getStore("users"),
       packs: getStore(DNI_PACKS_STORE),
     };
-    return { statusCode: 200, headers, body: JSON.stringify(await accountOverview(stores, email)) };
+    const t0 = Date.now();
+    const overview = await accountOverview(stores, email);
+    // Counts and timings only: never the email or an order id.
+    console.info("[account]", JSON.stringify({ ms: Date.now() - t0, orders: overview.orders.length, problems: overview.problems }));
+    return { statusCode: 200, headers, body: JSON.stringify(overview) };
   } catch (error) {
     // Counts and messages only: never the email or an order id.
     console.error("[account] failed", error && error.message);

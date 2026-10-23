@@ -292,8 +292,16 @@ export function orderView(order, { shipment = null, credits = [], via = "account
 
 /* ---------------- the stores, read ---------------- */
 
+/* In batches, not hundreds of reads at once: a burst like that is what a
+   store throttles, and a throttled read here is a member staring at an
+   empty account. */
+const READ_BATCH = 40;
 async function listJson(store, keys) {
-  return Promise.all(keys.map((k) => store.get(k, { type: "json" }).catch(() => null)));
+  const out = [];
+  for (let i = 0; i < keys.length; i += READ_BATCH) {
+    out.push(...await Promise.all(keys.slice(i, i + READ_BATCH).map((k) => store.get(k, { type: "json" }).catch(() => null))));
+  }
+  return out;
 }
 
 /** The raw records that belong to this email, newest first, each with how it attached. */
@@ -391,8 +399,14 @@ export async function accountOverview(stores, email) {
     stores.carts.get(email, { type: "json" }).catch(() => null),
     stores.packs ? stores.packs.get(email, { type: "json" }).catch(() => null) : null,
   ]);
-  const mine = await collectOrders(stores, email);
-  const orders = viewsOf(mine, await shipmentsFor(stores, new Set(mine.map(({ o }) => o.orderId))), wallet);
+  /* Each part fails on its own: an unreadable shipments store still shows
+     the orders, an unreadable orders store still shows the wallet. */
+  const problems = [];
+  let mine = [];
+  try { mine = await collectOrders(stores, email); } catch (e) { problems.push("orders"); }
+  let shipments = new Map();
+  try { shipments = await shipmentsFor(stores, new Set(mine.map(({ o }) => o.orderId))); } catch (e) { problems.push("shipments"); }
+  const orders = viewsOf(mine, shipments, wallet);
   const recipients = packRec && Array.isArray(packRec.recipients) ? packRec.recipients : [];
   /* Saved recipients come from orders placed FROM this account only. */
   const ownOrders = mine.filter(({ via }) => via === "account").map(({ o }) => o);
@@ -403,5 +417,6 @@ export async function accountOverview(stores, email) {
     cart: cartView(cartRec),
     wallet: walletView(wallet),
     documents: recipients.map((r) => ({ docEnd: maskDoc(r.docNumber), name: str(r.name, 120), updatedAt: str(r.updatedAt, 40), ref: r.docNumber })),
+    problems,
   };
 }
