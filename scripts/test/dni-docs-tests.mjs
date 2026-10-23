@@ -189,5 +189,20 @@ await check("photos are never served from the site: own store, no public path, h
   assert.match(purge, /export const config = \{ schedule: "@daily" \}/);
 });
 
+await check("Key Club invite: photos uploaded as a guest, then an account created before Pagar, become the account's pack and are never purged under the guest rule", async () => {
+  const S = stores();
+  const t0 = Date.now();
+  const front = await upload(S, "front", null, t0), back = await upload(S, "back", null, t0);
+  const r = await D.resolveOrderDocs(S, { upload: { front, back }, docNumber: "45678912", owner: "nueva@correo.test", now: t0 });
+  assert.ok(r.ok, r.error);
+  await D.attachToOrder(S, { front, back, orderId: "ARIA-1", docNumber: "45678912", name: "Nueva", owner: "nueva@correo.test", source: r.source, now: t0 });
+  assert.ok(await D.packFor(S.packs, "nueva@correo.test", "45678912"), "pack not registered");
+  const meta = JSON.parse(S.docs.m.get(`meta:${front}`));
+  assert.equal(meta.owner, "nueva@correo.test");
+  assert.equal(meta.retention, "member");
+  const later = D.purgeDecision(meta, { now: t0 + 90 * DAY, orders: { "ARIA-1": { status: "confirmed", createdAt: new Date(t0).toISOString(), deliveredAt: new Date(t0 + 10 * DAY).toISOString() } } });
+  assert.equal(later.action, "keep", later.reason);
+});
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL " + f + "\n"); process.exit(1); }
