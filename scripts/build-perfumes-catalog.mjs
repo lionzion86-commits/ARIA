@@ -91,11 +91,15 @@ function baseName(p) {
 
 /** The Spanish title, built from the feed's own parts -- no free text invented. */
 export function titleEs(p) {
-  const what = p.primary_class === "fragrance_adjacent"
+  /* A body-care line keeps its own name even as a tester (a 248 ml body
+     mist is not a perfume); a bottle whose concentration the feed does
+     not state is a "Perfume" -- the word a shopper searches. */
+  const adjacent = p.primary_class === "fragrance_adjacent" || (p.adjacent_subtype && ADJ[p.adjacent_subtype]);
+  const what = adjacent
     ? (ADJ[p.adjacent_subtype] || "Cuidado corporal")
     : p.primary_class === "gift_set" ? "Set de regalo"
-    : (CONC[p.concentration] || (p.form === "oil" ? "Aceite de perfume" : "Fragancia"));
-  const form = p.form === "spray" && p.primary_class !== "fragrance_adjacent" && p.primary_class !== "gift_set" ? " en spray" : "";
+    : (CONC[p.concentration] || (p.form === "oil" ? "Aceite de perfume" : "Perfume"));
+  const form = p.form === "spray" && !adjacent && p.primary_class !== "gift_set" ? " en spray" : "";
   const marks = [p.classes.includes("tester") ? "Tester" : "", p.classes.includes("unboxed") ? "Sin caja" : "", p.classes.includes("refill") ? "Repuesto" : "",
     p.classes.includes("mini") || p.classes.includes("travel") || p.primary_class === "mini_travel" ? "Mini" : ""].filter(Boolean);
   const who = p.unisex ? "unisex" : (FOR[p.gender] || "");
