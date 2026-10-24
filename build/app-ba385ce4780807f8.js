@@ -678,12 +678,12 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-t
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json', '/perfumes-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"],"/perfumes-catalog.json":["ariaperfumes"]};
 /* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
    page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
    a dozen cards per rail, and Safari reloaded the tab under the memory.
@@ -20064,6 +20064,9 @@ const RETAILERS = {
      has products. Black/white are DSW's wordmark colours; no logo file yet
      (TODO(dsw-logo)). Mirrors scripts/lib/retailers.js. */
   dsw:             { key: 'dsw',             label: 'DSW',               color: '#000000', logo: null,                   tagline: 'Zapatos de marca para toda la familia',        kind: 'general', search: false, browse: true, pendingCatalog: true },
+  /* ARIA PERFUMES (#443 item 32): the Perfumes department's own stock,
+     priced by Aria (PRE_PRICED). No logo file: the name is the badge. */
+  ariaperfumes:    { key: 'ariaperfumes',    label: 'Aria Perfumes',     color: '#0A1F44', logo: null,                   tagline: 'Perfumes originales, de diseñador y de nicho',  kind: 'general', search: false, browse: true },
   /* NEW BALANCE (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. newbalance-catalog.json (203 products,
      colourways merged) is committed at repo root. Footwear answers to
@@ -23113,7 +23116,7 @@ const RETAILER_DEPARTMENT = {
   fuji: "deportes", gameness: "deportes", mmawarehouse: "deportes", prosoccer: "deportes", tatami: "deportes",
   tennisexpress: "deportes", venum: "deportes", xtremesoccer: "deportes",
   crocs: "calzado",
-  sephora: "belleza", ulta: "belleza", yesstyle: "belleza",
+  sephora: "belleza", ulta: "belleza", yesstyle: "belleza", ariaperfumes: "belleza",
   bestbuy: "electrónica", bhphoto: "electrónica",
   partycity: "fiesta", samsclub: "fiesta",
 };
@@ -23776,6 +23779,10 @@ function productDedupeKey(retailer, title){
    came from, and which department bucket it was scraped into. The beauty
    estimator uses it so a Sephora item with an unrecognisable title still
    lands on the 0.05 kg beauty floor instead of the 1.08 kg generic. */
+/* PRE-PRICED STORES (#443 item 32): mirrored from weight-data.js PRE_PRICED.
+   The row's price is Aria's already; the factor takes it to the goods'
+   true value for the import-tax base. */
+const PRE_PRICED = { ariaperfumes: 1.18 };
 function normalizeLiveItem(item, hints){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
@@ -23797,8 +23804,12 @@ function normalizeLiveItem(item, hints){
   if (__absurd && typeof console !== 'undefined' && console.warn) console.warn('[aria] absurd price quarantined:', __rkey, title, rawPrice);
   /* TIERED MARGIN (2026-10-02, Danny): brackets on the raw US shelf price,
      then the per-retailer Miami sales tax multiplies. */
+  /* PRE-PRICED (#443 item 32, Aria Perfumes): the row already carries
+     Aria's price -- see PRE_PRICED. */
+  const __pre = PRE_PRICED[__rkey];
   const price = !Number.isFinite(rawPrice) ? null
     : __absurd ? null
+    : __pre ? round2(rawPrice)
     : round2((rawPrice + tieredMarginUsd(rawPrice)) * taxRate);
   /* DUTIABLE BASE (2026-09-27): the true acquisition cost — raw US price
      plus whatever Miami sales tax Aria really pays at that retailer's
@@ -23807,7 +23818,7 @@ function normalizeLiveItem(item, hints){
      Stamped here because every product path (catalog + live) normalizes
      through this function, so the base travels with the item to the
      card, the product page, the cart, checkout and the order record. */
-  const dutiableUsd = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate) : null;
+  const dutiableUsd = Number.isFinite(rawPrice) ? round2(__pre ? rawPrice / __pre : rawPrice * taxRate) : null;
   // The whole gallery, not just the first frame — spec §6 wants a
   // thumbnail strip "when the retailer supplies multiple images", so the
   // rest can no longer be thrown away here. Deduped and cleaned; an empty
@@ -23901,7 +23912,7 @@ function normalizeLiveItem(item, hints){
      discount on what the shopper actually pays. */
   const rawOriginalNum = saleOriginalPrice(item);
   const hasRealDiscount = price != null && saleDiscountPct(item) > 0;
-  const originalPrice = hasRealDiscount ? round2((rawOriginalNum + tieredMarginUsd(rawOriginalNum)) * taxRate) : null;
+  const originalPrice = hasRealDiscount ? (__pre ? round2(rawOriginalNum) : round2((rawOriginalNum + tieredMarginUsd(rawOriginalNum)) * taxRate)) : null;
 
   /* THE DESIGNER SURVIVES NORMALISATION.
 

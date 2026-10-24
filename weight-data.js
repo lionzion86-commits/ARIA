@@ -91,6 +91,15 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
    because it is not a module — the two must stay identical, and the
    test suite pins that.
    ============================================================ */
+/* PRE-PRICED STORES (#443 item 32, Aria Perfumes). The catalogue row's
+   price is already Aria's price (scripts/build-perfumes-catalog.mjs
+   applies the lane's margin, so the supplier's cost never reaches a
+   public file): the pages add no margin and no Miami tax, and the
+   import-tax base is price / factor -- the goods' true value, never the
+   margin. Every page copy (var PRE_PRICED) and the bundle mirror this;
+   scripts/test/price-parity-tests.mjs pins them. When the 90-day promo
+   ends, the builder prices at the tiered margin and this factor goes. */
+export const PRE_PRICED = Object.freeze({ ariaperfumes: 1.18 });
 const PRICE_STACK_MARKUP = 1.24; // band-1 rate; mirrors LIVE_PRICE_MARKUP in index.html
 
 /* TIERED MARGINAL MARGIN (2026-10-02, Danny — LOCKED). Must match

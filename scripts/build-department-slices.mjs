@@ -75,6 +75,8 @@ export const CATALOG_FILES = [
   /* DSW (#443): Zapatos' shoe warehouse. The committed empty envelope
      until the pull lands. */
   "/dsw-catalog.json",
+  /* Aria Perfumes (#443 item 32): the Perfumes department's own stock. */
+  "/perfumes-catalog.json",
 ];
 /* Best Buy files under its own department names (scripts/lib/
    department-map.js maps them the same way). */
@@ -118,6 +120,8 @@ export const DEPT_RULES = {
   /* Reacondicionados (#443): every store's refurbished, used and
      open-box stock the law lets us sell, by its own title. */
   reacondicionados: { kind: "refurb" },
+  /* Perfumes (#443 item 32): the Aria Perfumes stock, its own department. */
+  perfumes: { kind: "perfumes" },
 };
 
 function hasAny(hay, words) {
@@ -125,6 +129,7 @@ function hasAny(hay, words) {
   return false;
 }
 export const KIND_MATCH = {
+  perfumes: (t, p) => Boolean(p && p.retailer === "ariaperfumes"),
   refurb: (t, p) => Boolean(conditionOfTitle(p && p.title)),
   surfskate: (t) => hasAny(t, ["surfboard", "surf board", "skateboard", "skate board", "longboard", "wakeboard", "bodyboard", "paddleboard", "sup board"]),
   spearfishing: (t) => hasAny(t, ["speargun", "spear gun", "freediv", "apnea", "wetsuit", "neoprene", "fins", "snorkel", "weight belt", "dive knife"]),

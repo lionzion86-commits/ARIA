@@ -456,8 +456,13 @@ function tieredMarginUsd(raw){
    the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
    This page used to stop at the margin, 7% under the SPA's price. */
 var TAX_EXEMPT = {"walmart": 1};
+/* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
+   price -- no margin, no Miami tax on top; the value is the factor that
+   takes it back to the goods' true value (the import-tax base). One list,
+   mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
+var PRE_PRICED = {"ariaperfumes": 1.18};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
-function finalUsd(raw, retailer){
+function finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(raw) * 100) / 100;
   var r = Number(raw);
   if (!(r > 0)) return NaN;
   return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;

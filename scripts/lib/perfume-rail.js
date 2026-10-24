@@ -39,12 +39,18 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { isPerfumeBottle } from "./fragrance.js";
 import { isOffSaleRetailer } from "./off-sale.js";
+import { perfumeClassOf } from "../../netlify/functions/_department-core.js";
 import "../../sale-rule.js";
 
 const AriaSale = globalThis.AriaSale;
 
 /* Stores this rail never shows, with the ruling. Off-sale stores are
    already out by /off-sale.js; these are on top of that. */
+/* THE RAIL IS ARIA PERFUMES NOW (#443 item 32, Danny's order): the
+   generic perfume carousel is replaced by the FragranceX stock. Every
+   other store's bottles are excluded from it (they stay in their own
+   stores and in search). */
+export const PERFUME_RAIL_STORE = "ariaperfumes";
 export const EXCLUDED_RETAILERS = Object.freeze({
   sephora: "DO NOT BUILD (Danny, #443): Sephora's terms prohibit resale; its home rail is being removed.",
 });
@@ -160,6 +166,11 @@ export function scanPerfumeRows(root) {
         const list = Array.isArray(entry) ? entry : (entry && entry.items) || [];
         for (const raw of list) {
           if (!raw || !isPerfumeBottle(raw)) continue;
+          /* Aria Perfumes: the boxed retail bottle only -- minis, vials,
+             testers, sets, refills, unboxed and body care keep their own
+             rails in the Perfumes department, never this carousel. */
+          if (retailer === PERFUME_RAIL_STORE && (perfumeClassOf({ title: titleOf(raw), type: raw.type }) !== "frasco"
+            || /\((?:[^)]*\b)?(?:Repuesto|Sin caja)\b/.test(titleOf(raw)))) continue;
           const key = retailer + "::" + titleOf(raw).trim();
           if (seen.has(key)) continue;
           seen.add(key);
@@ -167,7 +178,7 @@ export function scanPerfumeRows(root) {
             file: f, retailer, dept, raw,
             title: titleOf(raw).trim(),
             offSale: isOffSaleRetailer(retailer),
-            excluded: Object.prototype.hasOwnProperty.call(EXCLUDED_RETAILERS, retailer),
+            excluded: Object.prototype.hasOwnProperty.call(EXCLUDED_RETAILERS, retailer) || retailer !== PERFUME_RAIL_STORE,
             onSale: AriaSale.isOnSale(raw),
             designer: designerOf(raw),
           });
