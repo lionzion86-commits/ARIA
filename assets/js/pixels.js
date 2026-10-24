@@ -6,8 +6,18 @@
    not exist: no script is fetched, no request reaches Meta or TikTok,
    nothing is logged, and every page works exactly as before.
    ============================================================ */
-var ARIA_META_PIXEL_ID = "";
-var ARIA_TIKTOK_PIXEL_ID = "";
+/* Set 2026-10-24 (#443 item 34): Danny created both in a guided session.
+   Meta: dataset "Aria Shop" (Business 942559271983847), Automatic
+   Advanced Matching on. TikTok: "TikTok Pixel + Events API" (advertiser
+   770024903322438932); the server token is a later step. These are public
+   IDs that every page view sends anyway, not secrets. */
+var ARIA_META_PIXEL_ID = "1459100226418221";
+var ARIA_TIKTOK_PIXEL_ID = "DBECJTJC77U4J2JQD4SG";
+
+/* ONLY ON THE LIVE SITE (#443 item 34: "never on test/preview pages").
+   A deploy preview, a branch deploy or localhost loads no pixel and
+   sends nothing, so the ad accounts only ever see real shoppers. */
+var ARIA_PIXEL_HOSTS = /(^|\.)ariashop\.pe$/i;
 
 /* HOW THE PAGES TALK TO IT. Each page's <head> carries a two-line stub,
 
@@ -32,8 +42,9 @@ var ARIA_TIKTOK_PIXEL_ID = "";
    before then are queued by the vendors' own stubs and sent when the
    script arrives. */
 (function(){
-  var META = String(ARIA_META_PIXEL_ID || "").trim();
-  var TIKTOK = String(ARIA_TIKTOK_PIXEL_ID || "").trim();
+  var live = ARIA_PIXEL_HOSTS.test(String((window.location && window.location.hostname) || ""));
+  var META = live ? String(ARIA_META_PIXEL_ID || "").trim() : "";
+  var TIKTOK = live ? String(ARIA_TIKTOK_PIXEL_ID || "").trim() : "";
   var queued = (window.ariaTrack && window.ariaTrack.q) || [];
 
   if (!META && !TIKTOK){
@@ -94,6 +105,13 @@ var ARIA_TIKTOK_PIXEL_ID = "";
      numItems, orderId }. Only what a call gives is sent. */
   function track(event, params){
     params = params || {};
+    /* SOLES OR NOTHING (#443 item 34). Aria charges in PEN and both
+       accounts are set to PEN; a value in any other currency is dropped,
+       never sent. */
+    if (params.currency !== "PEN" || !(Number(params.value) >= 0)) {
+      params = Object.assign({}, params);
+      delete params.value; delete params.currency;
+    }
     try {
       var ids = params.contentIds || (params.contentId ? [String(params.contentId)] : null);
       if (META){
@@ -104,9 +122,9 @@ var ARIA_TIKTOK_PIXEL_ID = "";
         if (params.contentName) m.content_name = params.contentName;
         if (params.numItems != null) m.num_items = params.numItems;
         if (params.orderId) m.order_id = String(params.orderId);
-        /* The order id doubles as the event id, so one order is one
-           Purchase even if a future server-side event repeats it. */
-        window.fbq("track", event, m, params.orderId ? { eventID: "order-" + params.orderId } : undefined);
+        /* The ARIA order id is the event id (item 34), so the Conversions
+           API can dedupe one order to one Purchase. */
+        window.fbq("track", event, m, params.orderId ? { eventID: String(params.orderId) } : undefined);
       }
       if (TIKTOK){
         var k = {};
@@ -117,7 +135,7 @@ var ARIA_TIKTOK_PIXEL_ID = "";
           k.contents = ids.map(function(id){ return { content_id: id, content_name: params.contentName || undefined }; });
         }
         if (params.orderId) k.order_id = String(params.orderId);
-        window.ttq.track(TIKTOK_NAME[event] || event, k, params.orderId ? { event_id: "order-" + params.orderId } : undefined);
+        window.ttq.track(TIKTOK_NAME[event] || event, k, params.orderId ? { event_id: String(params.orderId) } : undefined);
       }
     } catch (e) { /* a pixel never breaks the page */ }
   }
