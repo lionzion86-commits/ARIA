@@ -35437,7 +35437,7 @@ let ariaRTDropReply = false;        // the reply in flight answers a phantom tur
 function holdRealtimeIdle(){
   if (!ariaRT || ariaRTHeld) return;
   const now = Date.now();
-  ariaRTHeld = { idle: Math.max(0, ariaRTIdleDeadline - now) };
+  ariaRTHeld = { idle: Math.max(0, ariaRTIdleDeadline - now), at: now };
   if (ariaRTIdleTimer){ clearTimeout(ariaRTIdleTimer); ariaRTIdleTimer = null; }
   /* A transcript that never arrives must not hold the call open forever. */
   ariaRTHeldTimer = setTimeout(resumeRealtimeIdle, 20000);
@@ -35447,7 +35447,13 @@ function resumeRealtimeIdle(){
   const h = ariaRTHeld;
   ariaRTHeld = null;
   if (ariaRTHeldTimer){ clearTimeout(ariaRTHeldTimer); ariaRTHeldTimer = null; }
-  const idle = Math.max(h.idle, 3000);
+  /* THE HOLD WAS SILENCE TOO (#443 c.6373560777, Danny's live call did
+     not hang up). A turn that came back as noise spent its hold time
+     in silence; returning the full remainder -- with a 3-second floor
+     -- meant background noise every couple of seconds refilled the
+     clock forever. Now the hold's own time is taken off, and the floor
+     is one second. A real transcript still resets the full ten. */
+  const idle = Math.max(h.idle - (Date.now() - (h.at || Date.now())), 1000);
   ariaRTIdleDeadline = Date.now() + idle;
   ariaRTIdleTimer = setTimeout(() => {
     /* Same deferral as noteRealtimeActivity: a pending opening offer
@@ -35521,13 +35527,19 @@ function endRealtimeCallIfPanelClosed(){
    it fires continuously. */
 document.addEventListener('click', () => { if (ariaRT) noteRealtimeActivity(); }, { passive: true, capture: true });
 let ariaRTScrollAt = 0;
-document.addEventListener('scroll', () => {
+/* HIS scrolling, not the page's (#443 c.6373560777). A 'scroll' event
+   also fires when the chat sticks itself to the bottom or a card photo
+   lands and moves the list -- the page talking to itself kept the
+   call alive. Touch and wheel only happen under a hand. */
+const noteRealtimeScroll = () => {
   if (!ariaRT) return;
   const now = Date.now();
   if (now - ariaRTScrollAt < 2000) return;
   ariaRTScrollAt = now;
   noteRealtimeActivity();
-}, { passive: true, capture: true });
+};
+document.addEventListener('touchmove', noteRealtimeScroll, { passive: true, capture: true });
+document.addEventListener('wheel', noteRealtimeScroll, { passive: true, capture: true });
 
 /* …and the page going to the background, with a short grace so a
    notification banner does not hang up on him. */
@@ -35846,6 +35858,114 @@ async function runRealtimeTool(event, send){
   askRealtimeResponse(send, 'after tool result');
 }
 
+/* ============================================================
+   WHO IT IS FOR, AND NEVER A FALSE "NO TENEMOS" (#443 c.6373560777,
+   Danny's live call, Oct 23).
+
+   He asked for men's Adidas running shoes and got Women's Adizero SL2
+   as the pick; asked again and heard "no tenemos zapatillas Adidas de
+   running para hombre". The shelf has no men's Adidas runners -- so
+   the search filled the slots with women's -- and plenty of men's
+   running shoes. Two rules:
+
+   GENDER. The shopper's own word ("para hombre", "de mujer") or the
+   gender the model passes wins; the other gender's products, and kids'
+   for an adult (or adults' for a kid), never reach him. With no gender
+   at all the tool does not guess: for clothing and shoes the model
+   asks once (see the prompt).
+
+   BROADEN BEFORE SAYING NO. An empty result is retried, in order:
+   without the brand, then with the category widened (running ->
+   zapatillas). The answer says what was dropped, so she can say "no
+   tengo Adidas de running para hombre, pero estas son las más
+   cercanas". Only when the widest search is empty too may she say it.
+   ============================================================ */
+const RT_GENDER_WORDS = {
+  hombre: /\b(?:hombres?|caballeros?|varon(?:es)?|masculin[oa]s?|men|mens|men's|male)\b/i,
+  mujer: /\b(?:mujer(?:es)?|damas?|femenin[oa]s?|women|womens|women's|ladies|female)\b/i,
+  'niño': /\b(?:niños?|nino?s|boys?|boys'|varoncitos?)\b/i,
+  'niña': /\b(?:niñas?|ninas?|girls?|girls')\b/i,
+};
+const RT_ITEM_WOMEN = /\b(?:women'?s?|womens|ladies|female|mujer(?:es)?|dama)\b/i;
+const RT_ITEM_MEN = /\b(?:men'?s?|mens|male|hombres?|caballero)\b/i;
+const RT_ITEM_GIRLS = /\b(?:girls?'?|niñas?|toddler girls?)\b/i;
+const RT_ITEM_BOYS = /\b(?:boys?'?|niños?)\b/i;
+const RT_ITEM_KIDS = /\b(?:kids?'?|youth|toddlers?|baby|babies|infants?|little kids?|big kids?|grade school|preschool|juvenil)\b/i;
+
+/** The gender the shopper asked for: the model's field, else his own words. */
+function realtimeGenderOf(args){
+  const g = String((args && args.gender) || '').toLowerCase().trim();
+  if (/^(hombre|mujer|niño|niña)$/.test(g)) return g;
+  const text = [args && args.query, args && args.brand].filter(Boolean).join(' ');
+  for (const k of ['niña', 'niño', 'mujer', 'hombre']) if (RT_GENDER_WORDS[k].test(text)) return k;
+  return '';
+}
+/** Whether a product can be shown to a shopper shopping for `g`. Unmarked items fit everyone. */
+function realtimeGenderFits(item, g){
+  if (!g) return true;
+  const t = ((item && item.title) || '') + ' ' + ((item && item.gender) || '');
+  const women = RT_ITEM_WOMEN.test(t), girls = RT_ITEM_GIRLS.test(t), boys = RT_ITEM_BOYS.test(t), kids = RT_ITEM_KIDS.test(t);
+  const men = RT_ITEM_MEN.test(t.replace(/\bwomen'?s?\b|\bwomens\b/gi, ' '));
+  if (g === 'hombre') return !women && !girls && !boys && !kids;
+  if (g === 'mujer') return !men && !boys && !girls && !kids;
+  if (g === 'niño') return !women && !men && !girls;
+  if (g === 'niña') return !women && !men && !boys;
+  return true;
+}
+/* The words that only say who it is for: dropped from the search once the
+   filter carries them, so "hombre" cannot be read as a product word. */
+function realtimeQueryWithoutGender(q){
+  let out = String(q || '');
+  for (const rx of Object.values(RT_GENDER_WORDS)) out = out.replace(new RegExp(rx.source, 'gi'), ' ');
+  return out.replace(/\b(?:para|de|del|la|el|los|las)\s+(?=\s|$)/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+/* One step wider: the category behind a specific kind (running shoes ->
+   zapatillas). Only the families shoppers name; anything else widens to
+   its last word. */
+const RT_WIDER = [
+  [/\b(?:running|correr|trail|maratón|marathon|basketball|básquet|basquet|tenis de|training|walking|caminar|skate)\b/i, 'zapatillas'],
+  [/\b(?:chimpunes?|cleats?|botines)\b/i, 'zapatillas'],
+  [/\b(?:casacas?|chaquetas?|parkas?|puffer|cortavientos|windbreaker)\b/i, 'casaca'],
+  [/\b(?:polos?|camisetas?|t-?shirts?|tees?)\b/i, 'polo'],
+  [/\b(?:jeans|pantalones?|joggers?|buzos?)\b/i, 'pantalón'],
+];
+function realtimeWiderQuery(q){
+  const s = String(q || '');
+  for (const [rx, wide] of RT_WIDER) if (rx.test(s)) {
+    const shoes = /\b(?:zapatillas?|shoes?|sneakers?|tenis|calzado)\b/i.test(s) || wide === 'zapatillas';
+    return shoes ? 'zapatillas' : wide;
+  }
+  const words = s.split(/\s+/).filter(w => w.length > 2);
+  return words.length > 1 ? words[words.length - 1] : '';
+}
+
+/**
+ * search_products with the two rules above. Returns { items, broadened }
+ * where broadened names what was given up to find something ('' when
+ * the exact ask was found).
+ */
+async function realtimeSearchWithFallback(args, budgetUsd){
+  const gender = realtimeGenderOf(args);
+  const brand = String(args.brand || '').trim();
+  const base = realtimeQueryWithoutGender(args.query || '') || String(args.query || '');
+  const wider = realtimeWiderQuery(base);
+  const steps = [
+    { q: [brand, base].filter(Boolean).join(' '), broadened: '' },
+    ...(brand ? [{ q: base, broadened: 'sin la marca ' + brand }] : []),
+    ...(wider && wider.toLowerCase() !== base.toLowerCase() ? [{ q: wider, broadened: (brand ? 'sin la marca ' + brand + ' y ' : '') + 'en ' + wider + ' en general' }] : []),
+  ];
+  for (const step of steps){
+    if (!step.q) continue;
+    const res = await catalogSearch(step.q, { limit: 60 });
+    let items = ((res && res.items) || []).filter(i => realtimeGenderFits(i, gender));
+    /* A brand step only counts if the brand is really what came back. */
+    if (brand && !step.broadened) items = items.filter(i => normBrandText(i.brand || i.title || '').includes(normBrandText(brand)) || normBrandText(i.title || '').includes(normBrandText(brand)));
+    if (budgetUsd) items = items.filter(i => Number(i.price) <= budgetUsd);
+    if (items.length) return { items, broadened: step.broadened, gender };
+  }
+  return { items: [], broadened: 'todo', gender };
+}
+
 async function executeRealtimeTool(name, args){
   if (name === 'search_products'){
     /* The car parts are already on screen (see ariaRTPartsShown): the
@@ -35872,10 +35992,10 @@ async function executeRealtimeTool(name, args){
     }
     const budgetUsd = budget.usd;
     const q = [args.brand, args.query].filter(Boolean).join(' ');
-    let res;
-    try { res = await catalogSearch(q, { limit: 60 }); }
+    let found;
+    try { found = await realtimeSearchWithFallback(args, budgetUsd); }
     catch { return { unavailable: 'el catálogo no cargó, no puedo buscar ahorita' }; }
-    let items = (res && res.items) || [];
+    let items = found.items;
     /* F14: a product she already showed that matches these words leads,
        so a second search can never say "no aparece" about a card on
        screen (the Adi Ease incident). */
@@ -35886,9 +36006,11 @@ async function executeRealtimeTool(name, args){
       const have = new Set(again.map(e => k({ ...e.item, retailer: e.retailer })));
       items = again.map(e => ({ ...e.item, retailer: e.retailer })).concat(items.filter(i => !have.has(k(i))));
     }
+    items = items.filter(i => realtimeGenderFits(i, found.gender));
     if (budgetUsd) items = items.filter(i => Number(i.price) <= budgetUsd);
     items = items.slice(0, limit);
-    if (!items.length) return { products: [], note: 'no encontré nada que encaje con eso' };
+    if (!items.length) return { products: [], searched_wide: true,
+      note: 'Ni buscando más amplio encontré algo así. No digas "no tenemos": dile qué buscaste y pregúntale si quiere ver algo parecido o con otro detalle.' };
     /* The cards go up as she speaks, so the shopper is looking at the
        products while hearing about them. */
     for (const it of items){
@@ -35902,6 +36024,9 @@ async function executeRealtimeTool(name, args){
         title: i.title, brand: i.brand || null, store: i.retailer,
         price_usd: i.price, weight_kg: i.weightKg ?? null,
       })),
+      ...(found.gender ? { for_gender: found.gender } : {}),
+      ...(found.broadened ? { broadened: found.broadened,
+        note: 'No hay exactamente lo que pidió; estas son las más cercanas (' + found.broadened + '). Díselo así, en una frase, y muéstraselas. NUNCA digas "no tenemos" ni "no encontré" a secas.' } : {}),
     };
   }
 

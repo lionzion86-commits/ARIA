@@ -2411,7 +2411,11 @@ check("ten seconds of silence and she signs off and hangs up", () => {
   /* Browsing counts as activity — Danny: only when BOTH go quiet. */
   assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
     "tapping a product does not keep the call alive");
-  assert.match(page, /addEventListener\('scroll'/, "scrolling does not keep the call alive");
+  assert.match(page, /addEventListener\('touchmove', noteRealtimeScroll/, "scrolling does not keep the call alive");
+  assert.match(page, /addEventListener\('wheel', noteRealtimeScroll/, "wheel scrolling does not keep the call alive");
+  /* #443 c.6373560777: the page's own scrolls (chat stick-to-bottom,
+     a photo landing) are not him, so they must not reset the clock. */
+  assert.ok(!/addEventListener\('scroll', \(\) => \{\s*if \(!ariaRT\)/.test(page), "a programmatic scroll keeps the call alive");
   assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
 
   /* N7 / N7b still holds at ten seconds: a phantom turn cannot reset
@@ -2424,9 +2428,14 @@ check("ten seconds of silence and she signs off and hangs up", () => {
   assert.match(ssBody, /holdRealtimeIdle\(\);/, "speech_started no longer holds the silence clock");
   assert.ok(!/noteRealtimeActivity\(\)/.test(ssBody), "speech_started resets the silence clock, so phantom speech keeps the call alive");
   const hold = page.slice(page.indexOf("function holdRealtimeIdle(){"), page.indexOf("const REALTIME_HALLUCINATION_RE"));
-  assert.match(hold, /ariaRTHeld = \{ idle: Math\.max\(0, ariaRTIdleDeadline - now\) \};/, "the hold does not keep the remaining idle time");
+  assert.match(hold, /ariaRTHeld = \{ idle: Math\.max\(0, ariaRTIdleDeadline - now\)/, "the hold does not keep the remaining idle time");
   assert.match(hold, /ariaRTIdleDeadline = Date\.now\(\) \+ idle;/, "the resume does not re-arm from the remaining time");
   assert.ok(!/CALL_IDLE_MS/.test(hold), "a resume after a phantom turn grants a fresh ten seconds");
+  /* #443 c.6373560777: the hold's own time is silence, and the floor is
+     one second -- a 3-second floor let steady noise refill the clock. */
+  assert.match(hold, /ariaRTHeld = \{ idle: Math\.max\(0, ariaRTIdleDeadline - now\), at: now \};/, "the hold does not record when it began");
+  assert.match(hold, /h\.idle - \(Date\.now\(\) - \(h\.at/, "the hold's own time is not taken off the clock");
+  assert.ok(!/Math\.max\(h\.idle, 3000\)/.test(hold), "a phantom turn still refills the clock to 3 seconds");
   assert.ok(!/[Cc]heckin/.test(hold), "the hold still references the removed check-in clock");
   const phantom = page.slice(page.indexOf("function dropPhantomRealtimeTurn("));
   const phantomBody = phantom.slice(0, phantom.indexOf("\n}"));
