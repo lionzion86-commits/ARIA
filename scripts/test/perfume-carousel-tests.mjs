@@ -304,13 +304,15 @@ if (!process.env.PERFUME_STATIC) {
       } finally { await context.close(); }
     });
 
-    await check("Aria Beauty > Fragancias opens on the Perfumes rail (the home rail's Ver todo lands there)", async () => {
+    await check("the home rail's Ver todo opens the Perfumes department; Aria Beauty > Fragancias opens on the Perfumes rail", async () => {
       const { context, page, requests } = await newPage();
       try {
         await page.goto(BASE + "/", { waitUntil: "load" });
         const href = await page.$eval("#mobileShopfront [data-perfumes-section] a[href]", (a) => a.getAttribute("href"));
-        assert(href === "/departamento.html?dept=beauty&pasillo=fragancias", "Ver todo: " + href);
-        await page.goto(BASE + href, { waitUntil: "load" });
+        /* #443 item 32: the Perfumes department is the perfume home now;
+           Aria Beauty > Fragancias keeps its lead rail. */
+        assert(href === "/departamento.html?dept=perfumes", "Ver todo: " + href);
+        await page.goto(BASE + "/departamento.html?dept=beauty&pasillo=fragancias", { waitUntil: "load" });
         await page.waitForSelector("#perfumesLead:not([hidden]) #perfumesLeadRail .card", { timeout: 60000 });
         const r = await page.evaluate(() => {
           const lead = document.getElementById("perfumesLead");

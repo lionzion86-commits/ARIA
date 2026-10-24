@@ -51,7 +51,7 @@ const OVER = { name: "Durazno Playa One piece", retailer: "aguabendita", raw: 38
 const UNDER = { name: "Olmo Petalo Bikini Top", retailer: "aguabendita", raw: 60 };
 
 const pdpSrc = readFileSync(ROOT + "producto.html", "utf8").replace(/\r\n/g, "\n");
-const PDP = liftDeclarations(pdpSrc, ["tieredMarginUsd", "TAX_EXEMPT", "salesTaxRate", "finalUsd", "TAX_ESTIMATE_THRESHOLD_USD", "TAX_ESTIMATE_RATE", "importTaxEstimateUsd", "dutiableUsd", "PDP_LINE_KG", "CHARGE_PER_KG"]);
+const PDP = liftDeclarations(pdpSrc, ["tieredMarginUsd", "TAX_EXEMPT", "PRE_PRICED", "salesTaxRate", "finalUsd", "TAX_ESTIMATE_THRESHOLD_USD", "TAX_ESTIMATE_RATE", "importTaxEstimateUsd", "dutiableUsd", "PDP_LINE_KG", "CHARGE_PER_KG"]);
 
 /* What every figure should be, from the shared definitions. */
 function expected(item) {

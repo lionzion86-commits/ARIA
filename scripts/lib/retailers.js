@@ -147,6 +147,20 @@ export const RETAILERS = {
     browse: true,
     pendingCatalog: true,
   },
+  /* ARIA PERFUMES (#443 item 32) -- the Perfumes department's own stock,
+     from the audited FragranceX feed (scripts/build-perfumes-catalog.mjs).
+     Catalogue, no actor (browse: true, search: false). Priced by Aria
+     (PRE_PRICED in weight-data.js). No logo file: the name is the badge. */
+  ariaperfumes: {
+    key: "ariaperfumes",
+    label: "Aria Perfumes",
+    color: "#0A1F44",
+    logo: null,
+    tagline: "Perfumes originales, de diseñador y de nicho",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* NEW BALANCE (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
      plain <script> and cannot import. */

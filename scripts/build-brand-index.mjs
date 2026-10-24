@@ -69,6 +69,8 @@ export const CATALOG_FILES = [
   "/bestbuy-catalog.json",
   /* DSW (#443): the committed empty envelope until the pull lands. */
   "/dsw-catalog.json",
+  /* Aria Perfumes (#443 item 32). */
+  "/perfumes-catalog.json",
 ];
 
 const EXTRA_LABELS = {

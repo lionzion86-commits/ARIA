@@ -177,7 +177,7 @@ export function searchSlice() {
       "searchTokens", "catalogWordsOf", "catalogItemCategory", "rankCatalogMatches",
       "detectBrandIntent", "expandBrandAliases", "synonymGroupOf", "synonymsOf",
       "canonicalizeTokens", "fuzzyFormsForToken", "fuzzyVocabBuckets",
-      "CATALOG_SEARCH_LIMIT",
+      "CATALOG_SEARCH_LIMIT", "brandShelfSort",
     ],
     probe(api) {
       const words = api.catalogWordsOf({ title: "Nike Club Fleece Hoodie", brand: "Nike" });
@@ -185,6 +185,12 @@ export function searchSlice() {
         throw new Error("catalogWordsOf did not tokenise a hoodie title");
       }
       if (!api.searchTokens("zapatillas").length) throw new Error("searchTokens returned nothing");
+      /* A brand query over two markdowns reaches the brand-shelf sort and
+         the sale rule (saleDiscountPct): exercised here so the slice pulls
+         them in. Without it, the first on-sale brand hit in production
+         (#443 item 32: "victoria's secret" now finds Aria Perfumes' VS
+         fragrances on sale) threw "saleDiscountPct is not defined". */
+      api.brandShelfSort({ title: "a", price: 100, originalPrice: 150 }, { title: "b", price: 90, originalPrice: 120 });
     },
   });
 }

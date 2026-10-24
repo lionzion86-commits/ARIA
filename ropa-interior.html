@@ -394,8 +394,13 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
      the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
      This page used to stop at the margin, 7% under the SPA's price. */
   var TAX_EXEMPT = {"walmart": 1};
+  /* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
+     price -- no margin, no Miami tax on top; the value is the factor that
+     takes it back to the goods' true value (the import-tax base). One list,
+     mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
+  var PRE_PRICED = {"ariaperfumes": 1.18};
   function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
-  function finalUsd(r, retailer){ r = Number(r); return r > 0 ? Math.round((r + marginUsd(r)) * salesTaxRate(retailer) * 100) / 100 : NaN; }
+  function finalUsd(r, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(r) * 100) / 100; r = Number(r); return r > 0 ? Math.round((r + marginUsd(r)) * salesTaxRate(retailer) * 100) / 100 : NaN; }
   function usd(n){ return isFinite(n) ? 'US$ ' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''; }
   var fx;   /* undefined: asking; null: unavailable; number: S/ per US$ */
   function pen(n){ if (!fx || !isFinite(n)) return ''; try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n * fx); } catch(e){ return ''; } }

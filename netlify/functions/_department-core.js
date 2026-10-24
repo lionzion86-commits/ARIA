@@ -33,7 +33,67 @@ export function typeLabel(t) {
    product page and the order line. Re-exported for the builder. */
 export { conditionOfTitle };
 
+/* ---------- PERFUMES (#443 item 32, Aria Perfumes) ----------
+   The department that is all Aria Perfumes gets its own rails, in
+   Danny's order: the sales, then the classics Peru's department stores
+   do not range online, then each class on its own rail (testers,
+   minis, gift sets -- never merged with the boxed bottle), then the
+   houses by how much of each we carry, body care last. The class is
+   read from the title scripts/build-perfumes-catalog.mjs writes, so the
+   static slices and the endpoint (fn rows: title, brand, type) agree. */
+export const PERFUME_STORE = "ariaperfumes";
+export const PERFUME_CLASSICS = [
+  ["Christian Dior", "Sauvage"], ["Creed", "Aventus"], ["Paco Rabanne", "1 Million"],
+  ["Carolina Herrera", "Good Girl"], ["Yves Saint Laurent", "Black Opium"], ["Calvin Klein", "Ck One"],
+];
+export function perfumeClassOf(p) {
+  const t = String((p && p.title) || "");
+  if (/\(([^)]*\b)?Tester\b/.test(t)) return "testers";
+  if (/— Set de regalo\b/.test(t)) return "sets";
+  if (/\(([^)]*\b)?Mini\)/.test(t)) return "minis";
+  if (String((p && p.type) || "") === "Cuidado corporal" || /— (Body mist|Body spray|After shave|Perfume para el cabello|Desodorante|Gel de ducha|Loción corporal|Jabón|Crema|Talco|Aroma para el hogar|Labial|Afeitado|Baño|Gel de baño|Aceite corporal|Manteca corporal|Vela)\b/.test(t)) return "cuidado";
+  return "frasco";
+}
+const PERFUME_RAILS = { testers: "Testers", minis: "Minis y de viaje", sets: "Sets de regalo", cuidado: "Cuerpo y cuidado" };
+export function buildPerfumeSections(list) {
+  const sections = [];
+  const sales = list.filter((p) => p.salePct > 0 && perfumeClassOf(p) === "frasco").map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  const classics = [];
+  PERFUME_CLASSICS.forEach(([brand, name], rank) => {
+    for (const p of list) {
+      if (perfumeClassOf(p) !== "frasco" || String(p.brand || "") !== brand) continue;
+      /* The bottle people picture: no refill, no unboxed variant. */
+      if (/\((?:[^)]*\b)?(?:Repuesto|Sin caja)\b/.test(String(p.title || ""))) continue;
+      if (String(p.title || "").indexOf(name + " — ") === 0) classics.push({ p, rank });
+    }
+  });
+  classics.sort((a, b) => (a.rank - b.rank) || (a.p.rawPrice - b.p.rawPrice));
+  if (classics.length) sections.push({ key: "clasicos", title: "Los clásicos", items: classics.map((x) => x.p) });
+  for (const k of ["testers", "minis", "sets"]) {
+    const l = list.filter((p) => perfumeClassOf(p) === k);
+    if (l.length) sections.push({ key: "clase:" + k, title: PERFUME_RAILS[k], items: l });
+  }
+  const byBrand = {}, order = [];
+  for (const p of list) {
+    if (perfumeClassOf(p) !== "frasco") continue;
+    const b = String(p.brand || "").trim() || "__otros__";
+    if (!byBrand[b]) { byBrand[b] = []; order.push(b); }
+    byBrand[b].push(p);
+  }
+  const groups = []; let small = [];
+  order.forEach((b, idx) => { const l = byBrand[b]; if (b !== "__otros__" && l.length >= 3) groups.push({ b, l, idx }); else small = small.concat(l); });
+  groups.sort((a, b) => (b.l.length - a.l.length) || (a.idx - b.idx));
+  for (const g of groups) sections.push({ key: "marca:" + g.b.toLowerCase(), title: g.b, items: g.l });
+  if (small.length) sections.push({ key: "marca:otras", title: "Más perfumes", items: small });
+  const care = list.filter((p) => perfumeClassOf(p) === "cuidado");
+  if (care.length) sections.push({ key: "clase:cuidado", title: PERFUME_RAILS.cuidado, items: care });
+  return sections;
+}
+
 export function buildSections(list) {
+  if (list.length && list.every((p) => p.retailer === PERFUME_STORE)) return buildPerfumeSections(list);
   const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
     .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
   const sections = [];
