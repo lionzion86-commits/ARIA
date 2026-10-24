@@ -738,7 +738,8 @@ function render(p){
   el("p-loading").style.display = "none";
   var usd = finalUsd(p.price, p.retailer);
   /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
-  if (window.ariaTrack) ariaTrack('ViewContent', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: usd > 0 ? usd : undefined, currency: 'USD' });
+  /* In soles, as shown (#443 item 34); no rate, no value -- never dollars. */
+  if (window.ariaTrack) ariaTrack('ViewContent', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: usd > 0 && FX_RATE ? Math.round(usd * FX_RATE * 100) / 100 : undefined, currency: 'PEN' });
 
   /* The was-price the card showed, by the site's one sale rule. */
   var wasUsd = p.salePct > 0 && p.wasPrice > p.price ? finalUsd(p.wasPrice, p.retailer) : 0;
@@ -1313,7 +1314,7 @@ function addCurrentToCart(p, sizes){
   });
   toast('Agregado al carrito.');
   /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
-  if (window.ariaTrack) ariaTrack('AddToCart', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: priceUsd, currency: 'USD' });
+  if (window.ariaTrack) ariaTrack('AddToCart', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: FX_RATE ? Math.round(priceUsd * FX_RATE * 100) / 100 : undefined, currency: 'PEN' });
   var c = el('cart-confirm');
   if (c) c.hidden = false;
 }
