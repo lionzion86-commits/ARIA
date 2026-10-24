@@ -19648,7 +19648,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   /* #415: the ad pixels' ViewContent (dormant until an ID is set in
      assets/js/pixels.js). Card prices are dollars; the pixel is told so. */
   if (window.ariaTrack) ariaTrack('ViewContent', { contentId: retailer + '|' + name, contentName: name,
-    value: Number.isFinite(totalUsd) ? totalUsd : undefined, currency: 'USD' });
+    value: Number.isFinite(totalUsd) && fxRate ? Math.round(totalUsd * fxRate * 100) / 100 : undefined, currency: 'PEN' });
 
   /* THE STORE DOORWAY (2026-09-25, Danny): the badge slot is the door
      into the product's own store — logo + name, one obvious tap,
@@ -26787,7 +26787,8 @@ function addToCart(item){
   renderCartBadge();
   /* #415: every door into the cart passes here, so AddToCart is sent once, here. */
   if (window.ariaTrack && item.lineType !== 'bundle-discount')
-    ariaTrack('AddToCart', { contentId: item.retailer + '|' + item.title, contentName: item.title, value: usd, currency: 'USD' });
+    ariaTrack('AddToCart', { contentId: item.retailer + '|' + item.title, contentName: item.title,
+      value: Number.isFinite(usd) && fxRate ? Math.round(usd * fxRate * 100) / 100 : undefined, currency: 'PEN' });
   return true;
 }
 
