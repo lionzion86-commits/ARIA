@@ -119,7 +119,7 @@ export function census(P, truth) {
   out.rooms = {};
   const ROOMS = { ropa_hombre: "isMenFashionItem", ropa_mujer: "isWomenFashionItem", ropa_ninos: "isKidsFashionItem",
     zapatos_hombre: "isMensShoeItem", zapatos_mujer: "isWomensShoeItem", zapatos_ninos: "isKidsShoeItem" };
-  for (const rk of ["walmart", "target"]) {
+  for (const rk of ["walmart"]) {
     const r = retailers[rk]; if (!r) continue;
     const items = [];
     for (const d of Object.values(r.departments || {})) for (const it of d.items || []) items.push({ ...it, retailer: rk });

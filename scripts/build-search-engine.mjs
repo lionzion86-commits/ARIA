@@ -60,7 +60,7 @@ export function buildSearchEngineSource() {
       /* Every branch of the category rules, so nothing they reach only
          for some titles is left out of the file. */
       for (const [r, title] of [["dicks", pool[0].title], ["footlocker", "Nike Dunk Low - Women's"],
-        ["walmart", "Wedgie Boot High-Rise Jeans"], ["target", "Plain Mug"], ["prosoccer", "Predator Elite FG"],
+        ["walmart", "Wedgie Boot High-Rise Jeans"], ["walmart", "Plain Mug"], ["prosoccer", "Predator Elite FG"],
         ["macys", "Silk Scarf"], ["ulta", "Lipstick"], ["walmart", "Hanes Ankle Socks reinforced heel"]]){
         api.sizeCategoryFor(r, title);
         api.isSoccer({ title, retailer: r }, r);

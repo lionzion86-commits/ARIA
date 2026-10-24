@@ -48,7 +48,7 @@ export const OUT_DIR = "assets/sections/departamento";
 
 /* The page's 60 sources, in the page's order (first file wins a de-dup). */
 export const CATALOG_FILES = [
-  "/department-cache-walmart.json", "/department-cache-target.json",
+  "/department-cache-walmart.json",
   "/department-cache-oldnavy.json", "/department-cache-footlocker.json",
   "/advanceauto-catalog.json", "/ae-catalog.json", "/baublebar-catalog.json",
   "/beauty-catalog.json", "/bentgo-catalog.json", "/bhphoto-catalog.json",
@@ -66,7 +66,7 @@ export const CATALOG_FILES = [
   "/revolve-catalog.json", "/samsclub-catalog.json", "/skims-catalog.json",
   "/soccer-catalog.json", "/ssense-catalog.json", "/statebags-catalog.json",
   "/sunglasses-catalog.json", "/surfstation-catalog.json", "/surfworld-catalog.json",
-  "/target-catalog.json", "/tatami-catalog.json", "/tennis-catalog.json",
+  "/tatami-catalog.json", "/tennis-catalog.json",
   "/ulta-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json",
   "/yesstyle-catalog.json", "/zumiez-catalog.json",
   /* Best Buy (2026-10-19, #413): Electrónica's specialist and Hogar's

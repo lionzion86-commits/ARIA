@@ -664,7 +664,7 @@ function fetchWithTimeout(url, ms){
    load without Walmart's megabyte riding along. Written alongside the
    monolith by scripts/refresh-department-cache.js; the monolith stays
    for back-compat with older branches. */
-const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-target.json', '/department-cache-oldnavy.json', '/department-cache-footlocker.json'];
+const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-oldnavy.json', '/department-cache-footlocker.json'];
 /* CATALOGUE FILES, one per browse-only store. A missing or broken one
    must not take the rest down with it: each catches its own failure,
    so that store simply has nothing to show, which openStore already
@@ -678,12 +678,12 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-t
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"]};
 /* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
    page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
    a dozen cards per rail, and Safari reloaded the tab under the memory.
@@ -1690,7 +1690,7 @@ gym_rat:         { category: 'gymrat' },
      new catalogues file under. */
   jewelry:         { category: 'jewelry' },
   purses:          { category: 'purses' },
-  /* TARGET EXPANSION (2026-09-29, Danny): target-catalog.json buckets.
+  /* GROOMING, BABY, APPAREL, HOME, TOYS BUCKETS (2026-09-29, Danny).
      grooming_men feeds Seccion Hombre; grooming_women feeds Aria Beauty;
      baby feeds Mama & Bebe; apparel_* carry gender for Moda Hombre/Mujer/Ninos. */
   grooming_men:    { category: 'mens_grooming' },
@@ -6381,7 +6381,7 @@ function renderMobileDealsRail(){
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE and Farfetch anchor the luxury end: browsable and honest,
    but slow. (Farfetch added 2026-09-29, Danny.) */
-const STORE_RAIL_STORES = ['bestbuy', 'newbalance', 'victoriassecret', 'gymshark', 'macys', 'kohls', 'dicks', 'finishline', 'dsw', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['bestbuy', 'newbalance', 'victoriassecret', 'gymshark', 'macys', 'kohls', 'dicks', 'finishline', 'dsw', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 /* HOMEPAGE_HIDDEN_STORES (2026-09-26, Danny): front-page real estate is
    for things people buy consistently. Rare big-ticket destinations --
    B&H's $3,000 cameras -- stay findable (Tiendas directory, category
@@ -8434,7 +8434,6 @@ function carouselCityRailsHTML(sectionKey, items, opts){
 // THEME: clothing: { attr: 'clothing', glow: '#D8C3A5' }
 
 var CLOTHING_STORE_LABELS = {
-  target: 'Target',
   walmart: 'Walmart',
   macys: "Macy's",
   kohls: "Kohl's",
@@ -8474,7 +8473,7 @@ function clothingIsSale(p){
 }
 
 function clothingHeroHTML(){
-  var stores = ['target', 'walmart', 'macys', 'kohls', 'nordstrom', 'costco'];
+  var stores = ['walmart', 'macys', 'kohls', 'nordstrom', 'costco'];
   var pills = stores.map(function(k){
     return '<button onclick="clothingStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaClothingPill focus-ring">' + clothingEsc(clothingStoreLabel(k)) + '</button>';
@@ -8604,7 +8603,6 @@ function clothingDeptRailsHTML(items){
 // THEME: curvy: { attr: 'curvy', glow: '#E8A87C' }
 
 var CURVY_STORE_LABELS = {
-  target: 'Target',
   walmart: 'Walmart',
   macys: "Macy's",
   kohls: "Kohl's",
@@ -8644,7 +8642,7 @@ function curvyIsSale(p){
 }
 
 function curvyHeroHTML(){
-  var stores = ['target', 'walmart', 'macys', 'kohls', 'nordstrom', 'lanebryant'];
+  var stores = ['walmart', 'macys', 'kohls', 'nordstrom', 'lanebryant'];
   var pills = stores.map(function(k){
     return '<button onclick="curvyStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaCurvyPill focus-ring">' + curvyEsc(curvyStoreLabel(k)) + '</button>';
@@ -8809,7 +8807,6 @@ function curvyDeptRailsHTML(items){
    ============================================================================ */
 
 var KIDS_STORE_LABELS = {
-  target: 'Target',
   walmart: 'Walmart',
   costco: 'Costco',
   kohls: "Kohl's",
@@ -8849,7 +8846,7 @@ function kidsIsSale(p){
 }
 
 function kidsHeroHTML(){
-  var stores = ['target', 'walmart', 'costco', 'kohls', 'macys', 'oldnavy'];
+  var stores = ['walmart', 'costco', 'kohls', 'macys', 'oldnavy'];
   var pills = stores.map(function(k){
     return '<button onclick="kidsStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaKidsPill focus-ring">' + kidsEsc(kidsStoreLabel(k)) + '</button>';
@@ -8976,7 +8973,6 @@ function kidsDeptRailsHTML(items){
    ============================================================================ */
 
 var MEN_STORE_LABELS = {
-  target: 'Target',
   walmart: 'Walmart',
   macys: "Macy's",
   nordstrom: 'Nordstrom',
@@ -9017,7 +9013,7 @@ function menIsSale(p){
 }
 
 function menHeroHTML(){
-  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'footlocker', 'oldnavy'].filter(function(k){ return !isOffSaleRetailer(k); });
+  var stores = ['walmart', 'macys', 'nordstrom', 'kohls', 'footlocker', 'oldnavy'].filter(function(k){ return !isOffSaleRetailer(k); });
   var pills = stores.map(function(k){
     return '<button onclick="menStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaMenPill focus-ring">' + menEsc(menStoreLabel(k)) + '</button>';
@@ -9144,7 +9140,6 @@ function menDeptRailsHTML(items){
    ============================================================================ */
 
 var WOMEN_STORE_LABELS = {
-  target: 'Target',
   walmart: 'Walmart',
   macys: "Macy's",
   nordstrom: 'Nordstrom',
@@ -9193,7 +9188,7 @@ function womenIsSale(p){
 }
 
 function womenHeroHTML(){
-  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'victoriassecret', 'revolve'].filter(function(k){ return !isOffSaleRetailer(k); });
+  var stores = ['walmart', 'macys', 'nordstrom', 'kohls', 'victoriassecret', 'revolve'].filter(function(k){ return !isOffSaleRetailer(k); });
   var pills = stores.map(function(k){
     return '<button onclick="womenStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaWomenPill focus-ring">' + womenEsc(womenStoreLabel(k)) + '</button>';
@@ -11774,7 +11769,6 @@ const TIENDAS_STRIP = [
   {k:'venum',l:'Venum',c:'#000000',logo:'logos/brands/venum.png'},
   {k:'walmart',l:'Walmart',c:'#0071CE',logo:'logos/walmart.svg'},
   {k:'alphalete',l:'Alphalete',c:'#000000',logo:'logos/alphalete.png'},
-  {k:'target',l:'Target',c:'#CC0000',logo:'logos/target.svg'},
   {k:'youngla',l:'YoungLA',c:'#000000',logo:'logos/youngla.png'},
   {k:'ulta',l:'Ulta Beauty',c:'#F88038',logo:'logos/ulta.png'},
   {k:'partycity',l:'Party City',c:'#0A1F44',logo:'logos/partycity.svg'},
@@ -14603,14 +14597,9 @@ function sunglassesTierFilter(tier){
   document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
 }
 /* TOYS R US DEPT (2026-10-02, Danny): "feel like you're walking into
-   Toys R Us". Department hero with vibrant toy-store backdrop, store
-   pills (Walmart vs Target -- the competitive battle) and brand pills. */
+   Toys R Us". Department hero with vibrant toy-store backdrop and
+   brand pills (one store, Walmart, since Target closed as a source). */
 function toysHeroHTML(){
-  var stores = [['walmart', 'Walmart'], ['target', 'Target']].filter(function(st){ return !isOffSaleRetailer(st[0]); });
-  var storePills = stores.map(function(st){
-    return '<button onclick="toysStoreFilter(\'' + st[0] + '\');return false;"'
-      + ' class="ariaToysPill focus-ring">' + st[1] + '</button>';
-  }).join('');
   var brands = ['LEGO', 'Barbie', 'Hot Wheels', 'Fisher-Price', 'NERF', 'Disney'];
   var brandPills = brands.map(function(b){
     return '<button onclick="toysBrandFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
@@ -14623,8 +14612,7 @@ function toysHeroHTML(){
     + 'Juguetes</h2>'
     + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
     + 'Walmart, LEGO, Barbie, Hot Wheels y m\u00e1s \u2014 compara precios tienda por tienda.</p>'
-    + '<div class="flex flex-wrap gap-2 mt-5">' + storePills + '</div>'
-    + '<div class="flex flex-wrap gap-2 mt-3">' + brandPills + '</div>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + brandPills + '</div>'
     + '<div class="flex flex-wrap gap-2.5 mt-5">'
     + '<button onclick="toysStoreFilter(\'walmart\');return false;" class="ariaToysCta focus-ring">Ver Walmart &#8594;</button>'
     + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
@@ -14664,8 +14652,7 @@ function toysStoreRailSectionHTML(railId, storeKey, picks){
     + '<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">' + cards + '</div></section>';
 }
 /* TOYS R US DEPT RAILS (2026-10-02, Danny): store carousels FIRST --
-   Walmart's toys get their own big-card carousel, Target's gets its
-   own, so shoppers compare one store against the other without
+   Walmart's toys get their own big-card carousel so shoppers are not
    scrolling through a million mixed cards. Brand carousels follow
    (LEGO, Barbie, Hot Wheels...), then real-discount Ofertas. The aisle
    list + filters render after the rails for deeper browsing. */
@@ -14681,7 +14668,7 @@ function toysDeptRailsHTML(items){
   };
   var toysFirst = (typeof toyLeadRank === 'function') ? toyLeadRank : null;
   /* ---- STORE CAROUSELS: the competitive battle, big cards. ---- */
-  ['walmart', 'target'].forEach(function(sk){
+  ['walmart'].forEach(function(sk){
     var pool = saleFirst(list.filter(function(p){ return String(p.retailer || '').toLowerCase() === sk; }));
     if (pool.length >= 4){
       var picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
@@ -15765,7 +15752,7 @@ const STORE_CATEGORY_DEFS = [
   { key: 'decoracion',     label: 'Decoraci\u00f3n',  dept: 'home_decor' },
   { key: 'dulces',         label: 'Dulces',            dept: 'candy_chocolate' },
 ];
-const STORE_CATEGORY_STORES = ['walmart', 'target'];
+const STORE_CATEGORY_STORES = ['walmart'];
 /* Gallery hero images (2026-09-30, Danny): "with nice pictures" -- aspirational
    flat-lays, not product thumbnails. Each category banner uses its hero. */
 const GALLERY_HERO_IMAGES = {
@@ -16202,8 +16189,8 @@ function storeCategoryGalleryHTML(def, items, retailer, storeLabel){
 function layoutStorePhotoBackdrop(retailer){
   const inner = document.querySelector('#storeView > div');
   if (!inner) return;
-  const want = (retailer === 'walmart' || retailer === 'target') ? retailer : '';
-  inner.classList.remove('storePhotoBg--walmart', 'storePhotoBg--target');
+  const want = retailer === 'walmart' ? retailer : '';
+  inner.classList.remove('storePhotoBg--walmart');
   if (!want) return;
   inner.classList.add('storePhotoBg--' + want);
   const sections = document.getElementById('storeViewSections');
@@ -16221,7 +16208,7 @@ function layoutStorePhotoBackdrop(retailer){
 let __storePhotoResizeH = null;
 function armStorePhotoBackdrop(retailer){
   if (__storePhotoResizeH){ window.removeEventListener('resize', __storePhotoResizeH); __storePhotoResizeH = null; }
-  if (retailer !== 'walmart' && retailer !== 'target') return;
+  if (retailer !== 'walmart') return;
   let t = null;
   __storePhotoResizeH = () => {
     clearTimeout(t);
@@ -16263,7 +16250,7 @@ async function openStore(retailer){
      color (see .storePhotoBg CSS + layoutStorePhotoBackdrop). The logos ride on
      the white chip here: Walmart's blue wordmark and Target's red
      bullseye would vanish straight onto the brand-color page. */
-  const __photoStore = (retailer === 'walmart' || retailer === 'target') ? retailer : '';
+  const __photoStore = retailer === 'walmart' ? retailer : '';
   document.getElementById('storeViewHero').innerHTML =
     retailerBadgeHTML(retailer, 44, __photoStore ? { dark: true } : undefined);
   document.getElementById('storeViewSubtitle').textContent = 'Cargando artículos…';
@@ -16570,7 +16557,7 @@ async function openStoreResults(retailer, query){
   /* Same white-chip rule as the storeView hero (2026-10-02): the brand-color
      page would swallow Walmart's blue wordmark and Target's red bullseye. */
   document.getElementById('storeResultsHero').innerHTML =
-    retailerBadgeHTML(retailer, 32, (retailer === 'walmart' || retailer === 'target') ? { dark: true } : undefined);
+    retailerBadgeHTML(retailer, 32, retailer === 'walmart' ? { dark: true } : undefined);
   document.getElementById('storeResultsSubtitle').textContent = `Buscando "${query}" en vivo…`;
   document.getElementById('storeResultsGrid').innerHTML = '';
   try {
@@ -20057,7 +20044,6 @@ const RETAILERS = {
      Mirrors scripts/lib/retailers.js. */
   bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: 'logos/bestbuy.svg',    tagline: 'Laptops, gaming, audio y celulares',            kind: 'general', search: false, browse: true },
   revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
-  target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
   /* DSW (#443) -- built, not launched: `pendingCatalog` keeps it out of
      activeRetailers() (no tile, rail, door or count) until dsw-catalog.json
@@ -20341,7 +20327,6 @@ const RETAILERS = {
   bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty' },
   sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, retired: true, retiredNote: 'Descartada por Danny (2026-09-25). Sin pull.' },
   dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.' },
-  rockauto:        { key: 'rockauto',        label: 'RockAuto',          color: '#303090', logo: 'logos/rockauto.png',   tagline: 'Catálogo profundo de repuestos — vía Aria Auto', kind: 'auto',    search: false, retired: true, retiredNote: 'Eliminada por Danny (2026-09-26).' },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
   nordstrom:       { key: 'nordstrom',       label: 'Nordstrom',         color: '#000000', logo: null, kind: 'general', search: false, retired: true },
@@ -20377,7 +20362,6 @@ const MIAMI_TO_DOOR_MAX = 7;
 const RETAILER_DELIVERY = {
   revolve: { miamiMin: 2, miamiMax: 2, tier: "green", noteEs: "Entrega típica: unos 2 días." },
   zumiez: { miamiMin: 2, miamiMax: 5, tier: "green" },
-  target: { miamiMin: 2, miamiMax: 5, tier: "green" },
   footlocker: { miamiMin: 3, miamiMax: 5, tier: "green" },
   walmart: { miamiMin: 2, miamiMax: 5, tier: "green" },
   autozone: { miamiMin: 3, miamiMax: 5, tier: "green" },
@@ -20527,7 +20511,6 @@ function storeDoorFor(key){
    interior as its section backdrop — walk into the store. Generated
    photorealistic, no logos/trademarks baked in. */
 const STORE_BACKDROPS = {
-  target: 'assets/stores/target.jpg',
   walmart: 'assets/stores/walmart.jpg',
   footlocker: 'assets/stores/footlocker.jpg',
   macys: 'assets/stores/macys.jpg',
@@ -20626,7 +20609,6 @@ const STORE_THEMES = {
   /* FULL ROLLOUT (PR #49, 2026-09-24) — every carried store gets a
      brand-grounded ambient. */
   walmart: { glow: '#2E9BEB' },
-  target: { glow: '#F04438' },
   oldnavy: { glow: '#3D63F5' },
   footlocker: { glow: '#E5322D' },
   ulta: { glow: '#FF9A4D' },
@@ -21313,7 +21295,6 @@ const TAX_EXEMPT_STATUS = {
   // CONFIRMED EXEMPT -- flip more retailers here as enrollments confirm:
   walmart: 'exempt',
   // REFUSE RESALE -- 7% stays permanently, no enrollment to attempt:
-  target: 'taxable',
   macys: 'taxable',
   kohls: 'taxable',
   oldnavy: 'taxable',
@@ -21366,7 +21347,6 @@ const TAX_EXEMPT_STATUS = {
   parrot: 'unknown',
   ccs: 'unknown',
   valsurf: 'unknown',
-  rockauto: 'unknown',
 };
 /* The acquisition-cost multiplier for one retailer's goods: the Miami
    shelf price plus whatever sales tax Aria really pays at that
@@ -24979,10 +24959,6 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
      free cache for this part type across vehicles before any paid call. */
   const kwFallback = searchAutoCacheKeyword(cache, sourceKey, vehicle, query);
   if (kwFallback.length) return kwFallback;
-  /* RockAuto has no live-scrape actor configured (see AUTO_SOURCES): a
-     live call can only throw "No se pudo iniciar la búsqueda". Return the
-     honest empty state instead of a fake error. */
-  if (sourceKey === 'rockauto') return [];
   // Translated before it leaves: every parts catalogue is in English.
   const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
   /* (RockAuto's live branch was removed with the source 2026-09-26, Danny's call.) */
@@ -28267,9 +28243,6 @@ const SALES_SOURCES = [
   { retailer: 'walmart',    department: 'clothing' },
   { retailer: 'walmart',    department: 'electronics' },
   { retailer: 'walmart',    department: 'sporting_goods' },
-  { retailer: 'target',     department: 'clothing' },
-  { retailer: 'target',     department: 'electronics' },
-  { retailer: 'target',     department: 'sporting_goods' },
 ];
 
 let saleItemsCache = [];
