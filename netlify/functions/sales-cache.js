@@ -45,7 +45,7 @@ import { isOffSaleItem } from "../../scripts/lib/off-sale.js";
 
 // Mirrors GENERAL_RETAILERS in index.html (LIVE_RETAILERS minus autozone,
 // which is the auto-parts lane and never appears in Ofertas).
-const ALLOWED_RETAILERS = new Set(["walmart", "target", "oldnavy", "footlocker"]);
+const ALLOWED_RETAILERS = new Set(["walmart", "oldnavy", "footlocker"]);
 
 const TTL_MS = 6 * 60 * 60 * 1000; // 6h — deals move, but not minute to minute
 // Mirrors MIN_DISCOUNT_PCT in index.html. Enforced here too so a trivial

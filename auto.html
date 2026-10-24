@@ -441,7 +441,7 @@ function matchQuery(q, idx){
 }
 
 /* ---------- cards ---------- */
-var SOURCE_LABELS = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts', rockauto: 'RockAuto' };
+var SOURCE_LABELS = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts' };
 function sourceLabel(k){ return SOURCE_LABELS[String(k||'').toLowerCase()] || String(k||'Tienda'); }
 var LOCATION_ES = { front: 'Delantera', rear: 'Trasera', 'front and rear': 'Delantera y trasera', left: 'Izquierda', right: 'Derecha' };
 /* DELANTERO / TRASERO (2026-10-13, #386 F10). Pads and rotors go on one

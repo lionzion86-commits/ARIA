@@ -46,7 +46,7 @@ const CONCURRENCY = 3;
 // as of 2026-09-17. Add a retailer here once its config gets the same
 // real-Apify-run confirmation (see the dated comments in
 // apify-scrape-start.js), not before.
-const RETAILERS = ["walmart", "target", "oldnavy", "footlocker"];
+const RETAILERS = ["walmart", "oldnavy", "footlocker"];
 
 const RETAILER_LABELS = {
   walmart: "Walmart",
@@ -492,7 +492,7 @@ async function main() {
      without Walmart's megabyte riding along. The monolith above stays
      as the canonical artifact; these slices wear the same envelope
      shape so the frontend's normalizer treats them identically. */
-  const SPLIT_RETAILERS = ["walmart", "target", "oldnavy", "footlocker"];
+  const SPLIT_RETAILERS = ["walmart", "oldnavy", "footlocker"];
   for (const retailer of SPLIT_RETAILERS) {
     const bucket = cache.retailers[retailer];
     if (!bucket) {
