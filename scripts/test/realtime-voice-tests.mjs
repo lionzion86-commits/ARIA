@@ -76,7 +76,9 @@ check("turn detection is semantic VAD that can be interrupted", () => {
      deciding the shopper finished. That wait is what Danny felt as
      walkie-talkie. `high` caps it at two. */
   assert.equal(TURN_DETECTION.eagerness, "high");
-  assert.equal(TURN_DETECTION.create_response, true);
+  /* #443 item 31: the page starts her answer on a real transcript;
+     the server answering every VAD turn is what made her talk to herself. */
+  assert.equal(TURN_DETECTION.create_response, false);
   assert.equal(TURN_DETECTION.interrupt_response, true);
   const s = buildRealtimeSession();
   assert.deepEqual({ ...s.audio.input.turn_detection }, { ...TURN_DETECTION });
@@ -586,7 +588,9 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
      the subtitles off entirely, which reads as her not listening. */
   const tr = session.audio.input.transcription;
   assert.ok(tr && tr.model, "there is no transcription model, so no transcript appears");
-  assert.equal(tr.model, "whisper-1", "the transcription model changed without a decision");
+  /* #443 item 31 (Danny's decision via the iPhone FAIL): the transcript now
+     gates her answer, and whisper-1 turns silence into "Gracias." */
+  assert.equal(tr.model, "gpt-4o-mini-transcribe", "the transcription model changed without a decision");
   /* The language hint is the half of Danny's fix 2 that is real: it
      stops the ASR guessing at Spanish with brand names in English. */
   assert.equal(tr.language, "es", "the Spanish hint is gone, so the ASR will guess");
@@ -672,9 +676,10 @@ check("the two VAD modes never borrow each other's parameters", () => {
   assert.equal(srv.prefix_padding_ms, 300);
   assert.equal(srv.threshold, 0.5);
 
-  /* Both modes must still answer on their own and still yield. */
+  /* Neither mode answers on its own (#443 item 31): the page answers a
+     real transcript. Both still yield to barge-in. */
   for (const td of [sem, srv]){
-    assert.equal(td.create_response, true, "she will not answer without a send button");
+    assert.equal(td.create_response, false, "the server answers noise before the page can check it");
     assert.equal(td.interrupt_response, true, "barge-in is off");
   }
   /* Only the two real modes exist; a typo must not invent a third. */
@@ -2411,7 +2416,11 @@ check("ten seconds of silence and she signs off and hangs up", () => {
   /* Browsing counts as activity — Danny: only when BOTH go quiet. */
   assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
     "tapping a product does not keep the call alive");
-  assert.match(page, /addEventListener\('scroll'/, "scrolling does not keep the call alive");
+  assert.match(page, /addEventListener\('touchmove', noteRealtimeScroll/, "scrolling does not keep the call alive");
+  assert.match(page, /addEventListener\('wheel', noteRealtimeScroll/, "wheel scrolling does not keep the call alive");
+  /* #443 c.6373560777: the page's own scrolls (chat stick-to-bottom,
+     a photo landing) are not him, so they must not reset the clock. */
+  assert.ok(!/addEventListener\('scroll', \(\) => \{\s*if \(!ariaRT\)/.test(page), "a programmatic scroll keeps the call alive");
   assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
 
   /* N7 / N7b still holds at ten seconds: a phantom turn cannot reset
@@ -2424,14 +2433,35 @@ check("ten seconds of silence and she signs off and hangs up", () => {
   assert.match(ssBody, /holdRealtimeIdle\(\);/, "speech_started no longer holds the silence clock");
   assert.ok(!/noteRealtimeActivity\(\)/.test(ssBody), "speech_started resets the silence clock, so phantom speech keeps the call alive");
   const hold = page.slice(page.indexOf("function holdRealtimeIdle(){"), page.indexOf("const REALTIME_HALLUCINATION_RE"));
-  assert.match(hold, /ariaRTHeld = \{ idle: Math\.max\(0, ariaRTIdleDeadline - now\) \};/, "the hold does not keep the remaining idle time");
+  assert.match(hold, /ariaRTHeld = \{ idle: Math\.max\(0, ariaRTIdleDeadline - now\)/, "the hold does not keep the remaining idle time");
   assert.match(hold, /ariaRTIdleDeadline = Date\.now\(\) \+ idle;/, "the resume does not re-arm from the remaining time");
   assert.ok(!/CALL_IDLE_MS/.test(hold), "a resume after a phantom turn grants a fresh ten seconds");
+  /* #443 c.6373560777: the hold's own time is silence, and the floor is
+     one second -- a 3-second floor let steady noise refill the clock. */
+  assert.match(hold, /ariaRTHeld = \{ idle: Math\.max\(0, ariaRTIdleDeadline - now\), at: now \};/, "the hold does not record when it began");
+  assert.match(hold, /h\.idle - \(Date\.now\(\) - \(h\.at/, "the hold's own time is not taken off the clock");
+  assert.ok(!/Math\.max\(h\.idle, 3000\)/.test(hold), "a phantom turn still refills the clock to 3 seconds");
   assert.ok(!/[Cc]heckin/.test(hold), "the hold still references the removed check-in clock");
   const phantom = page.slice(page.indexOf("function dropPhantomRealtimeTurn("));
   const phantomBody = phantom.slice(0, phantom.indexOf("\n}"));
   assert.match(phantomBody, /resumeRealtimeIdle\(\);/, "a dropped phantom turn does not release the hold");
   assert.ok(!/noteRealtimeActivity\(\)/.test(phantomBody), "a dropped phantom turn resets the silence clock");
+});
+
+check("#443 item 31: she answers only a real transcript, never noise, and markup is never chat text", () => {
+  const page = pageHtml();
+  const done = page.slice(page.indexOf("case 'conversation.item.input_audio_transcription.completed':"));
+  const doneBody = done.slice(0, done.indexOf("case 'conversation.item.input_audio_transcription.failed':"));
+  const noiseAt = doneBody.indexOf("realtimeTranscriptIsNoise(event.transcript)");
+  const askAt = doneBody.indexOf("askRealtimeResponse(send, 'his turn');");
+  assert.ok(noiseAt > 0 && askAt > noiseAt, "her answer is not started after the noise check");
+  const failed = page.slice(page.indexOf("case 'conversation.item.input_audio_transcription.failed':"));
+  assert.ok(!/askRealtimeResponse/.test(failed.slice(0, failed.indexOf("break;"))), "a failed transcript still gets an answer");
+  const tr = page.slice(page.indexOf("case 'response.output_audio_transcript.done': {"));
+  const trBody = tr.slice(0, tr.indexOf("case 'response.function_call_arguments.done':"));
+  assert.match(trBody, /cleanSpokenText\(event\.transcript/, "her transcript is not cleaned of markup");
+  assert.ok(!/addAssistantMessage\('bot', event\.transcript/.test(trBody), "the raw transcript still reaches the chat");
+  assert.match(page, /\^\\s\*\(\?:muchas\\s\+\)\?gracias/, "a bare 'Gracias.' from silence still counts as speech");
 });
 
 await checkAsync("the scoop is relevant by construction, and never invented", async () => {
@@ -2929,7 +2959,7 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
     "the greeting arms the nudge again — her talking would eat the shopper's ten seconds");
 
   /* It is armed when her audio ends instead. */
-  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,500}armOpeningNudge\(\);/,
+  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,800}armOpeningNudge\(\);/,
     "nothing arms the nudge when she stops talking — a silent shopper is never offered anything");
 
   const aAt = page.indexOf("function armOpeningNudge(){");

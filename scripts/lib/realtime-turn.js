@@ -40,6 +40,9 @@ export const REALTIME_TOOLS = Object.freeze([
       properties: {
         query: { type: "string", description: "Qué busca, en español o inglés." },
         brand: { type: "string", description: "Marca, solo si el cliente la nombró." },
+        gender: { type: "string", enum: ["hombre", "mujer", "niño", "niña"], description:
+          "Para quién es, en ropa, calzado y accesorios con género. Si el cliente lo dijo, eso. " +
+          "Si no lo dijo pero su voz lo deja claro sin duda, úsalo. Si no estás segura, NO lo adivines: pregúntale una vez antes de buscar." },
         max_price_usd: { type: "number", description:
           "Tope EN DÓLARES. Solo si dijo 'dólares'. Si habló en SOLES no uses este campo." },
         max_price_pen: { type: "number", description:
