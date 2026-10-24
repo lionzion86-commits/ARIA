@@ -44,6 +44,11 @@
    left to merchandising and the report says so.
    ============================================================ */
 import { ingestRow as dswIngestRow, moneyOf, validGtin } from "./dsw.js";
+import {
+  COMPRESSED_GAS_RX, CAMP_CONTEXT_RX, ROOFTOP_TENT_RX, stripApplianceCare, TOOL_GUN_RX, perishableFood, sub2Verdict,
+  LETHAL_BAIT_RX, PEST_DEVICE_RX, NON_CHEMICAL_RX, REPELLENT_RX, supplementVerdict, heavyByTitle,
+  decodeVariantSizes, routeBucket, merchFlags, voltageVerdict, conditionOf, lockedPhone,
+} from "./walmart-write.js";
 
 export const WALMART_KEY = "walmart";
 export const WALMART_LABEL = "Walmart";
@@ -60,7 +65,9 @@ export const LISTING_USD_PER_1000 = 5.7;
 export const DETAIL_USD_PER_1000 = 2.9;
 export const USD_PER_RUN = 0.06;
 export const BLAST_MAX_KG = 5;
-export const PRICE_BAND_USD = { min: 2, max: 1500 };
+/* Item 30 (Danny, 2026-10-23): no floor -- sub-$2 rows are judged on
+   evidence (walmart-write.js sub2Verdict). The ceiling stands. */
+export const PRICE_BAND_USD = { min: 0, max: 1500 };
 
 /* ---------------- the plan ---------------- */
 /* Departments in Danny's priority order. Within each, clearance and
@@ -204,15 +211,35 @@ export const EXCLUSIONS = [
   ["firearm", /\b(firearms?|rifles?|shotguns?|pistols?|handguns?|ammo|ammunition|riflescopes?|rifle scopes?|air rifles?|bb guns?|pellet guns?)\b/i],
   ["food-import", /\b(freeze[- ]dried (meals?|food)|mre|emergency food)\b/i],
 ];
-/** null when the row may enter, else "excluded-<kind>". */
-export function exclusionOf(name, crumbs = "") {
+/** null when the row may enter, else "excluded-<kind>". The guards are the
+    write-stage findings (#443 items 2-27); each says which item it is. */
+export function exclusionOf(name, crumbs = "", brand = "") {
   const hay = `${name} ${crumbs}`;
-  /* A toy blaster is a toy; traps and devices are in (Danny's pest split). */
+  /* Item 29: fresh / perishable food. */
+  if (perishableFood(name, brand, crumbs)) return "excluded-perishable-food";
+  /* Item 17 + Danny's ruling: lethal chemical pest control is out. */
+  if (LETHAL_BAIT_RX.test(name)) return "excluded-dangerous-goods";
+  /* Item 2: compressed-gas dusters are aerosols. */
+  if (COMPRESSED_GAS_RX.test(name)) return "excluded-dangerous-goods";
+  /* Item 3: a fitness weight the title states above the parcel line. */
+  if (heavyByTitle(name)) return "excluded-heavy-by-title";
   for (const [kind, rx] of EXCLUSIONS) {
-    if (kind === "firearm" && /\b(nerf|toy|water gun|squirt)\b/i.test(hay)) continue;
-    if (kind === "dangerous-goods" && /\b(glue trap|snap trap|mouse trap|fly ribbon|fly trap|live[- ]catch)\b/i.test(hay) && !/\b(aerosol|spray|insecticide)\b/i.test(hay)) continue;
+    /* A toy blaster is a toy; tool vocabulary is a tool (item 9). */
+    if (kind === "firearm" && (/\b(nerf|toy|water gun|squirt)\b/i.test(hay) || TOOL_GUN_RX.test(name))) continue;
+    /* Items 17/20: a device phrase outranks a brand token; repellents and
+       "insecticide-free" goods are not the chemical class. */
+    if (kind === "dangerous-goods") {
+      if ((PEST_DEVICE_RX.test(name) || NON_CHEMICAL_RX.test(name) || REPELLENT_RX.test(name)) && !/\b(aerosol|spray can)\b/i.test(name)) continue;
+    }
+    /* Item 6: camp chairs, cots and airbeds are parcel goods. */
+    if (kind === "furniture" && CAMP_CONTEXT_RX.test(hay) && !ROOFTOP_TENT_RX.test(name)) continue;
+    /* Items 7/18: "dishwasher safe", fridge organizers, toy dryers. */
+    if (kind === "large-appliance") { if (rx.test(stripApplianceCare(hay))) return `excluded-${kind}`; continue; }
+    /* Item 27: a supplement needs ingestible form; topicals stay. */
+    if (kind === "supplement") { if (supplementVerdict(name)) return `excluded-${kind}`; continue; }
     if (rx.test(hay)) return `excluded-${kind}`;
   }
+  if (ROOFTOP_TENT_RX.test(name)) return "excluded-furniture";
   return null;
 }
 
@@ -265,6 +292,10 @@ export function detailToRow(detail, listing = null) {
   row.description = first(d.shortDescription, d.longDescription, d.description);
   const specs = first(d.specifications, d.specs, d.attributes);
   if (specs) row.specifications = specs;
+  /* Items 12/15/21/22: the PDP's variantList carries the size run; the
+     department decides which token families are sizes (ingestRow). */
+  if (Array.isArray(d.variantList)) row.variantList = d.variantList;
+  if (d.gender) row.pdpGender = String(d.gender);
   if (d.variants) row.variants = d.variants;
   else if (d.sizes || l.sizes) row.availableSizes = first(d.sizes, l.sizes);
   row.breadcrumbs = first(d.breadcrumbs, d.categoryPath, d.category, l.category);
@@ -295,16 +326,46 @@ export function blastVerdict(item) {
  */
 export function ingestRow(raw, run, ctx = {}) {
   if (!raw || typeof raw !== "object") return { drop: "not-an-object" };
+  const name = String(raw.name || "");
+  const dept = (run && run.dept) || "";
   const crumbs = Array.isArray(raw.breadcrumbs) ? raw.breadcrumbs.join(" ") : String(raw.breadcrumbs || "");
-  const ex = exclusionOf(String(raw.name || ""), crumbs);
+  const brand = typeof raw.brand === "object" && raw.brand ? String(raw.brand.name || "") : String(raw.brand || "");
+  const ex = exclusionOf(name, crumbs, brand);
   if (ex) return { drop: ex };
+  /* Item 28: used clothing/footwear and used auto parts never enter. */
+  const cond = conditionOf(name, dept);
+  if (cond && cond.excluded) return { drop: cond.excluded };
+  if (cond && lockedPhone(name)) return { drop: "excluded-locked-phone" };
+  /* Items 25/26: the voltage gate. Held is not published -- never on a guess. */
+  const volt = voltageVerdict(name, raw.description);
+  if (volt === "excluded-110v") return { drop: "excluded-110v-only" };
+  if (volt === "held-unstated" || volt === "held-contradicting") return { quarantine: `voltage-${volt.slice(5)}`, row: { name, url: raw.url || null } };
+  /* Items 12/15/21/22: sizes the PDP lists in stock, verbatim. */
+  if (raw.variantList && !(Array.isArray(raw.availableSizes) && raw.availableSizes.length) && !raw.variants) {
+    const dec = decodeVariantSizes(raw.variantList, dept);
+    if (dec.sizes.length) raw = { ...raw, availableSizes: dec.sizes };
+    if (dec.widths.length) raw = { ...raw, widths: dec.widths };
+    if (dec.review.length) raw = { ...raw, sizeReview: dec.review };
+  }
   const v = dswIngestRow(raw, run, { ...ctx, band: ctx.band || PRICE_BAND_USD });
   if (!v.item) return v;
   const item = v.item;
   item.retailer = WALMART_KEY;
+  /* Item 30: sub-$2 evidence holds and write-time scrubs. */
+  const s2 = sub2Verdict({ name: item.name, price: Number(item.price), wasPrice: item.originalPrice != null ? Number(item.originalPrice) : null, seller: raw.seller || "", dept });
+  if (s2 && s2.hold) return { quarantine: s2.hold, row: { name, url: raw.url || null, price: item.price } };
+  if (s2 && s2.dropWasPrice) { delete item.originalPrice; item.onSale = false; }
+  if (s2 && s2.name) item.name = s2.name;
   if (item.description) item.descriptionSource = "walmart-pdp";
   if (raw.seller) item.seller = raw.seller;
   if (run && run.clearance) item.clearanceListing = true;
+  if (volt === "verified") item.voltage = "dual-220";
+  if (cond) { item.condition = cond.condition; item.conditionLabel = cond.label; }
+  if (raw.widths) item.widths = raw.widths;
+  if (raw.sizeReview) item.sizeReview = raw.sizeReview;
+  if (raw.pdpGender) item.gender = raw.pdpGender;
+  const flags = merchFlags(name);
+  if (flags.length) item.merchReview = flags;
   Object.assign(item, blastVerdict(item));
   /* Safety gear: car seats are sold new and sealed; any manufacture or
      expiry date the PDP publishes is kept on the record (Danny). */
@@ -313,7 +374,8 @@ export function ingestRow(raw, run, ctx = {}) {
     const dates = (item.specifications || []).filter((s) => /manufactur|expir|date/i.test(s.name));
     if (dates.length) item.safetyDates = dates;
   }
-  return { item, id: v.id, bucket: (run && run.bucket) || "clearance" };
+  /* Items 11/13/15: age first, then the PDP's own gender. */
+  return { item, id: v.id, bucket: routeBucket(run, name, raw.pdpGender) };
 }
 
 /**

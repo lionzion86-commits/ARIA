@@ -43,6 +43,7 @@ import {
   listingPlan, listingInput, detailInput, ratesFromEnv, estimateProgram, formatProgramEstimate,
   detailToRow, ingestProgram, productCount, trialReport, formatTrialReport, listingUrl,
 } from "./lib/walmart-density.js";
+import { itemIdOf, variantsAgree } from "./lib/walmart-write.js";
 import { parseExplain } from "./lib/pull-quality.js";
 import { runTranslation, reportCatalog, readCatalog, DO_NOT_SHIP_EXIT } from "./lib/pull-finish.mjs";
 
@@ -130,13 +131,27 @@ const apifyActor = (token, actorId) => {
   };
 };
 
-/** Merge listing rows with their detail rows (by product URL): [{ run, rows }]. */
+/** Merge listing rows with their detail rows: [{ run, rows }]. The bare URL
+    first, then Walmart's trailing item ID (#443 item 1: a detail row whose
+    slug differs from the listing's is the same product), refused when the
+    two names disagree on the variant (rider a: 15-pc vs 21-pc). */
 export function mergePull(listings, details) {
   const byUrl = new Map();
-  for (const d of details || []) { const u = bareUrl(d && (d.url || d.productUrl || d.canonicalUrl)); if (u) byUrl.set(u, d); }
+  const byId = new Map();
+  for (const d of details || []) {
+    const raw = d && (d.url || d.productUrl || d.canonicalUrl);
+    const u = bareUrl(raw); if (u) byUrl.set(u, d);
+    const id = itemIdOf(raw) || (d && d.usItemId ? String(d.usItemId) : null); if (id && !byId.has(id)) byId.set(id, d);
+  }
+  const detailFor = (l) => {
+    const exact = byUrl.get(bareUrl(listingUrl(l)));
+    if (exact) return exact;
+    const d = byId.get(itemIdOf(listingUrl(l)) || String((l && (l.usItemId || l.id)) || ""));
+    return d && variantsAgree(l && (l.name || l.title), d.name || d.title || d.productName) ? d : null;
+  };
   return listings.map(({ run, items }) => ({
     run,
-    rows: (items || []).map((l) => detailToRow(byUrl.get(bareUrl(listingUrl(l))) || null, l)),
+    rows: (items || []).map((l) => detailToRow(detailFor(l) || null, l)),
   }));
 }
 

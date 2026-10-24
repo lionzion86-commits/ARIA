@@ -23,6 +23,7 @@ import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
 import { quotasFor, targetDepth, plannedRuns, ITEMS_PER_QUOTA, MIN_HONEST_STOREFRONT, isHonestStorefront, departmentItemsFor, brandItemsFor } from "./lib/catalog-quotas.js";
 import { retailerFor } from "./lib/retailers.js";
 import { specWeightKg } from "../netlify/functions/_weight-resolve.js";
+import { perishableFood } from "./lib/walmart-write.js";
 
 const SITE = "https://ariashop.pe";
 const OUT_FILE = new URL("../department-cache.json", import.meta.url);
@@ -139,6 +140,9 @@ const KEEP_FIELDS = [
 // because hiding every item after every refresh would empty the store.
 /* Where an actor's row can carry its photo gallery, `images` first. */
 const GALLERY_FIELDS = ["images", "imageUrls", "gallery"];
+/* ITEM 29 (#443): fresh / perishable food never enters a cache -- the
+   onions, celery and watermelon Danny found came in through this file. */
+const notPerishable = (item) => !perishableFood(String(item.name || item.title || ""), typeof item.brand === "string" ? item.brand : "");
 function slimItem(item) {
   const slim = {};
   for (const k of KEEP_FIELDS) {
@@ -349,7 +353,7 @@ async function main() {
         ? await fetchDepartment(task.retailer, task.key)
         : await fetchBrand(task.retailer, task.key);
       const target = task.type === "department" ? bucket.departments : bucket.brands;
-      target[task.key] = { label: labelFor(task.key), items: items.map(slimItem), fetchedAt: new Date().toISOString() };
+      target[task.key] = { label: labelFor(task.key), items: items.filter(notPerishable).map(slimItem), fetchedAt: new Date().toISOString() };
       await saveCache();
     } catch (err) {
       console.error(`  ${task.retailer}/${task.type}/${task.key} failed: ${err.message}`);
@@ -376,7 +380,7 @@ async function main() {
         if (girls[i]) merged.push(girls[i]);
       }
       const bucket = retailerBucket("oldnavy");
-      bucket.departments.kids = { label: labelFor("kids"), items: merged.map(slimItem), fetchedAt: new Date().toISOString() };
+      bucket.departments.kids = { label: labelFor("kids"), items: merged.filter(notPerishable).map(slimItem), fetchedAt: new Date().toISOString() };
       await saveCache();
       console.log(`  [merge] oldnavy kids: ${boys.length} boys + ${girls.length} girls = ${merged.length} items`);
     } catch (err) {

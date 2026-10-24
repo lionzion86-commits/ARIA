@@ -107,7 +107,8 @@ export function loadSaleRule(root = ROOT) {
    freight, nothing over the parcel weight) -- the storefront lists
    exactly what every other surface keeps when it loads a catalogue. */
 const SHIP_NAMES = ["UNSHIPPABLE_TV_RX", "TV_SIZE_BRAND_RX", "TV_PARCEL_OK_RX", "AXE_DEODORANT_RX", "AXE_DEODORANT_TYPE_RX",
-  "UNSHIPPABLE_BULKY_RX", "BULKY_SMALL_OK_RX", "UNSHIPPABLE_WEIGHT_KG", "PROJECTOR_RX", "BULKY_PROJECTOR_PACKAGE_RX", "isShippableItem"];
+  "UNSHIPPABLE_BULKY_RX", "BULKY_SMALL_OK_RX", "UNSHIPPABLE_WEIGHT_KG", "PROJECTOR_RX", "BULKY_PROJECTOR_PACKAGE_RX",
+  "PERISHABLE_TITLE_RX", "PERISHABLE_BRAND_RX", "PERISHABLE_DAIRY_RX", "isPerishableFood", "isShippableItem"];
 export function loadShippable(root = ROOT) {
   return liftDeclarations(pageHtml(root), SHIP_NAMES).isShippableItem;
 }

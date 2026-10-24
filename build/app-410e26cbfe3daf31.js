@@ -572,15 +572,15 @@ const AXE_DEODORANT_TYPE_RX = /\b(deodorant|desodorante|antiperspirant|antitrans
    sub-32" monitors refused as TVs on the word "OLED" alone -- every one
    a parcel. A device word carves them out; a television's title names
    none of these, so the TV rule still holds. */
-const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter|tv\sseries|serie\sde\stv|\blaptops?\b|\bnotebook\b|chromebook|\bipad\b|\btablets?\b|touch[-\s]?screen|\bmonitors?\b|smartphone|\biphone\b|steam\sdeck|handheld/i;
+const TV_PARCEL_OK_RX = /as\sseen\son\stv|nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter|tv\sseries|serie\sde\stv|\blaptops?\b|\bnotebook\b|chromebook|\bipad\b|\btablets?\b|touch[-\s]?screen|\bmonitors?\b|smartphone|\biphone\b|steam\sdeck|handheld/i;
 /* TV STANDS ARE FURNITURE (2026-09-26, Danny): a stand or console that holds a TV is not a television. */
-const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|fireplace|chimenea|\bshed\b|cobertizo|playset|gazebo|patio\sset|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero|kettlebell|pesa\srusa/i;
+const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|fireplace|chimenea|\bshed\b|cobertizo|playset|gazebo|patio\sset|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero|kettle\sbells?\b(?=.{0,50}\b(lbs?|kg|set|weights?|fitness|workout|exercise)\b)|pesa\srusa|^(?!.*\b(kids|toddlers?|youth|mini|over[-\s]the[-\s]door)\b)(.*(portable|in-?ground)\s.{0,25}basketball|.*basketball\s(hoop|goal)\s(system|stand))|party\stents?|event\stents?|wedding\stents?|glamping\stents?|roof\s?top\stents?|inflatable\s(tents?|paint\sbooth|booth)|paint\sbooth/i;
 /* TV STANDS ARE FURNITURE (2026-09-26, Danny): tv stand / tv console /
    entertainment center were removed from the pattern above, along with the
    bare \bconsole\b that only ever targeted the TV console. Stands stay
    visible and shippable; only TV sets and TV mounts are banned
    (UNSHIPPABLE_TV_RX). */
-const BULKY_SMALL_OK_RX = /\bhair\b|\bpelo\b|blow|styler|dyson|conair|babyliss|infinitipro|bed head|revlon|hot tools|pressure|hidrolavadora|\btray\b|perfume|fragancia|cologne|\bfor\b.{0,30}\b(sofas?|couch(es)?|mattress(es)?|beds?|dressers?)\b|\btoy\b|\bdoll\b|lego|nintendo|playstation|xbox/i;
+const BULKY_SMALL_OK_RX = /\bhair\b|\bpelo\b|blow|styler|dyson|conair|babyliss|infinitipro|bed head|revlon|hot tools|pressure|hidrolavadora|\btray\b|perfume|fragancia|cologne|\bfor\b.{0,30}\b(sofas?|couch(es)?|mattress(es)?|beds?|dressers?|fireplaces?|dining\stables?|tables?|home\sgyms?|freezers?|kayaks?)\b|(?=.*\b(sheets?|pillowcases?|protectors?|pads?)\b).*\bfits?\b.{0,40}\bmattress|deep\spockets?|dishwasher[-\s](safe|friendly)|\b(sofas?|couch(es)?|loveseats?|recliners?|mattress(es)?|futons?|fireplaces?|dressers?|freezers?|refrigerators?|dishwashers?)\s(sheets?|pillowcases?|blankets?|throws?|slipcovers?|covers?|cushion\scovers?|organi[sz]ers?|magnets?|protectors?|pads?|toppers?\scovers?)\b|\b(camping|camp|folding)\s.{0,20}\b(chairs?|cots?|loveseats?|couch|beds?)\b|\bcamping\scots?\b|air\s?mattress|airbeds?|self[-\s]inflating|\btoy\b|\bdoll\b|lego|nintendo|playstation|xbox/i;
 /* Anything over this is freight, not a parcel -- a backstop for the day
    the catalogues start carrying real weights (weightKg is null today). */
 const UNSHIPPABLE_WEIGHT_KG = 15;
@@ -595,12 +595,25 @@ const UNSHIPPABLE_WEIGHT_KG = 15;
    naming a screen size it merely supports. */
 const PROJECTOR_RX = /(projector|proyector)/i;
 const BULKY_PROJECTOR_PACKAGE_RX = /\bUST\b|(bundl|inclu|kit|combo|pack).{0,60}\b(80|100|110|120|130|150)\s?["\u201c\u201d]|bundl.{0,40}(soundbar|dolby|atmos|speaker|bocina|parlante)/i;
+/* ITEM 29 (#443, Danny's #483 iPhone pass): no fresh or perishable food --
+   it spoils through Miami consolidation and fresh produce sits under
+   SENASA phytosanitary control. Same three patterns as the write stage
+   (scripts/lib/walmart-write.js PERISHABLE_*_RX); a test holds them equal.
+   Shelf-stable packaged food is not this class. */
+const PERISHABLE_TITLE_RX = /^\s*(?:organic\s+)?fresh\s+(?:(?:whole|seedless|sweet|baby|organic|large|small|jumbo|red|yellow|white|green|gala|honeycrisp|fuji|russet|roma|hass|atlantic|boneless|skinless|ground|all natural)[\s,]+)*(?:onions?|potato(?:es)?|tomato(?:es)?|bananas?|apples?|avocados?|lemons?|limes?|carrots?|celery|lettuce|broccoli|cauliflower|cabbage|strawberr(?:y|ies)|blueberr(?:y|ies)|raspberr(?:y|ies)|blackberr(?:y|ies)|grapes|oranges?|peppers?|cucumbers?|garlic|cilantro|parsley|spinach|kale|mushrooms?|pineapples?|mangoe?s?|watermelons?|cantaloupes?|honeydew|peach(?:es)?|pears?|plums?|kiwis?|zucchini|squash|corn|asparagus|green beans|chicken|beef|pork|steaks?|salmon|shrimp|tilapia|cod|tuna steaks?|turkey|eggs|milk|bread)\b(?![^,]*\b(?:tees?|t-shirts?|shirts?|hoodies?|sweatshirts?|print|graphic|stickers?|candles?|scent(?:ed)?|toys?|plush|costumes?|socks|pajamas?|onesies?|bodysuits?|cases?|wraps?|decor|ornaments?|magnets?|squishmallows?|air fresheners?)\b)/i;
+const PERISHABLE_BRAND_RX = /^\s*(?:fresh produce|freshness guaranteed|marketside|fresh meat|fresh seafood|fresh bakery)\s*$/i;
+const PERISHABLE_DAIRY_RX = /\b(?:(?:large|extra large|jumbo|medium) (?:white|brown|grade a) eggs|(?:whole|2%|1%|skim|fat free|reduced fat) milk,? (?:1 |one )?(?:gallon|half gallon))\b/i;
+function isPerishableFood(p){
+  const t = String(p.name || p.title || '');
+  return PERISHABLE_TITLE_RX.test(t) || PERISHABLE_BRAND_RX.test(String(p.brand || '')) || PERISHABLE_DAIRY_RX.test(t);
+}
 function isShippableItem(p){
 
   if (!p) return false;
   const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
   if ((UNSHIPPABLE_TV_RX.test(hay) || TV_SIZE_BRAND_RX.test(hay)) && !TV_PARCEL_OK_RX.test(hay)) return false;
   if (AXE_DEODORANT_RX.test(hay) && AXE_DEODORANT_TYPE_RX.test(hay)) return false;
+  if (isPerishableFood(p)) return false;
   if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
   if (PROJECTOR_RX.test(hay) && BULKY_PROJECTOR_PACKAGE_RX.test(hay)) return false;
   const w = Number(p.weightKg);
