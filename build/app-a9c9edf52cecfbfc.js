@@ -6454,7 +6454,74 @@ function gymsharkRailLead(picks){
   }
   return picks;
 }
+/* ============================================================
+   WALMART'S HOME SHELF (2026-10-24, #443 item 33, Danny: "they have
+   toys, they have everything", and cheap). The anchor tenant leads the
+   store rails with its sales, mixed across departments the way the
+   store is: toys first, then each department in turn, so one bucket
+   never fills the twelve. Within a department the accessible price
+   (US$40 and under) and the deepest markdown lead. A premium markdown
+   (US$100 and up) never leads: it sits at card 6 and card 12 only,
+   the standing browse-rails sprinkle. Sales only, like every browse
+   surface; the store's own catalogues (the department cache and the
+   toy shelf) are the pool.
+   ============================================================ */
+const WALMART_RAIL_ACCESSIBLE_USD = 40;
+const WALMART_RAIL_PREMIUM_USD = 100;
+const WALMART_RAIL_PREMIUM_SLOTS = [5, 11];
+const WALMART_TOY_RX = /\b(?:toys?|juguetes?|lego|barbie|hot wheels|paw patrol|plush|peluche|dolls?|muñecas?|action figures?|playsets?|puzzles?|rompecabezas|nerf|play-?doh|fisher-price|vtech|board games?|juegos? de mesa)\b/i;
+function walmartRailGroup(p){
+  const dept = String((Array.isArray(p.departments) && p.departments[0]) || p.department || p.category || '').toLowerCase();
+  if (/toy|juguet/.test(dept) || WALMART_TOY_RX.test(p.title || '')) return 'toys';
+  return dept || 'otros';
+}
+function walmartRailPicks(saleItems, pool, ofertasKeys){
+  const itemKey = (p) => `${p.retailer || ''}::${p.title || ''}`;
+  const seen = new Set();
+  const sale = [].concat(Array.isArray(saleItems) ? saleItems : [], Array.isArray(pool) ? pool : [])
+    .filter(p => p && String(p.retailer || '').toLowerCase() === 'walmart' && hasRealImage(p)
+      && Number.isFinite(Number(p.price)) && Number(p.price) > 0 && itemSaleTier(p) > 0)
+    .filter(p => { const k = itemKey(p); if (seen.has(k)) return false; seen.add(k); return true; });
+  const byDeal = (a, b) => {
+    const aa = Number(a.price) <= WALMART_RAIL_ACCESSIBLE_USD ? 0 : 1, bb = Number(b.price) <= WALMART_RAIL_ACCESSIBLE_USD ? 0 : 1;
+    if (aa !== bb) return aa - bb;
+    /* A markdown Ofertas already leads on yields to one it does not. */
+    const ao = ofertasKeys && ofertasKeys.has(itemKey(a)) ? 1 : 0, bo = ofertasKeys && ofertasKeys.has(itemKey(b)) ? 1 : 0;
+    return (ao - bo) || (carouselDiscountPct(b) - carouselDiscountPct(a)) || (Number(a.price) - Number(b.price));
+  };
+  const premium = sale.filter(p => Number(p.price) >= WALMART_RAIL_PREMIUM_USD).sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
+  const groups = new Map();
+  for (const p of sale){
+    if (Number(p.price) >= WALMART_RAIL_PREMIUM_USD) continue;
+    const g = walmartRailGroup(p);
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(p);
+  }
+  for (const list of groups.values()) list.sort(byDeal);
+  /* Toys first, then the departments with the deepest lead markdown. */
+  const order = [...groups.keys()].sort((a, b) => (a === 'toys' ? -1 : b === 'toys' ? 1 : 0)
+    || (carouselDiscountPct(groups.get(b)[0]) - carouselDiscountPct(groups.get(a)[0])));
+  const regular = [];
+  for (let round = 0; regular.length < STORE_RAIL_TOTAL * 2; round++){
+    let added = false;
+    for (const g of order){
+      const p = groups.get(g)[round];
+      if (p){ regular.push(p); added = true; }
+    }
+    if (!added) break;
+  }
+  const out = [];
+  let pi = 0;
+  while (out.length < STORE_RAIL_TOTAL && (regular.length || pi < premium.length)){
+    if (WALMART_RAIL_PREMIUM_SLOTS.includes(out.length) && pi < premium.length) out.push(premium[pi++]);
+    else if (regular.length) out.push(regular.shift());
+    else break;
+  }
+  return out;
+}
+
 function storeRailPicks(key, saleItems, pool, ofertasKeys){
+  if (String(key || '').toLowerCase() === 'walmart') return walmartRailPicks(saleItems, pool, ofertasKeys);
   /* COSTCO NEVER GOES THROUGH THE SALE/FEATURED FILL: its shelf is the
      women-shopper curation (cozy home first, boring tech accessories at
      the back, never candy) and the rail takes the first twelve of it. */
