@@ -32,6 +32,58 @@ export function variantsAgree(listingName, detailName) {
 /* ---------- exclusion guards (items 2, 6, 7, 9, 17, 18, 20, 27) ---------- */
 
 /* Item 2: compressed-gas dusters are aerosols whatever their name says. */
+/* ITEM 29 (Danny's #483 iPhone pass): fresh food never flies this lane --
+   perishable through Miami consolidation, and fresh produce sits under
+   SENASA phytosanitary control. Walmart's own grocery marker ("Fresh
+   Produce" as brand or department) is the detector, then a title that
+   opens with "Fresh" + a produce, meat or seafood noun, and fresh eggs or
+   milk. Shelf-stable packaged food is not this class. The same three
+   patterns run on the site (isShippableItem in build/app-*.js); a test
+   holds them equal. */
+export const PERISHABLE_TITLE_RX = /^\s*(?:organic\s+)?fresh\s+(?:(?:whole|seedless|sweet|baby|organic|large|small|jumbo|red|yellow|white|green|gala|honeycrisp|fuji|russet|roma|hass|atlantic|boneless|skinless|ground|all natural)[\s,]+)*(?:onions?|potato(?:es)?|tomato(?:es)?|bananas?|apples?|avocados?|lemons?|limes?|carrots?|celery|lettuce|broccoli|cauliflower|cabbage|strawberr(?:y|ies)|blueberr(?:y|ies)|raspberr(?:y|ies)|blackberr(?:y|ies)|grapes|oranges?|peppers?|cucumbers?|garlic|cilantro|parsley|spinach|kale|mushrooms?|pineapples?|mangoe?s?|watermelons?|cantaloupes?|honeydew|peach(?:es)?|pears?|plums?|kiwis?|zucchini|squash|corn|asparagus|green beans|chicken|beef|pork|steaks?|salmon|shrimp|tilapia|cod|tuna steaks?|turkey|eggs|milk|bread)\b(?![^,]*\b(?:tees?|t-shirts?|shirts?|hoodies?|sweatshirts?|print|graphic|stickers?|candles?|scent(?:ed)?|toys?|plush|costumes?|socks|pajamas?|onesies?|bodysuits?|cases?|wraps?|decor|ornaments?|magnets?|squishmallows?|air fresheners?)\b)/i;
+export const PERISHABLE_BRAND_RX = /^\s*(?:fresh produce|freshness guaranteed|marketside|fresh meat|fresh seafood|fresh bakery)\s*$/i;
+export const PERISHABLE_DAIRY_RX = /\b(?:(?:large|extra large|jumbo|medium) (?:white|brown|grade a) eggs|(?:whole|2%|1%|skim|fat free|reduced fat) milk,? (?:1 |one )?(?:gallon|half gallon))\b/i;
+export const PERISHABLE_CRUMB_RX = /\b(fresh produce|fresh meat|fresh seafood|meat & seafood|fresh dairy|deli|bakery & bread|fresh fruit|fresh vegetables)\b/i;
+export function perishableFood(name, brand = "", crumbs = "") {
+  return PERISHABLE_TITLE_RX.test(name) || PERISHABLE_BRAND_RX.test(brand) || PERISHABLE_DAIRY_RX.test(name) || PERISHABLE_CRUMB_RX.test(crumbs);
+}
+
+/* ITEM 30 (Danny's ruling, 2026-10-23): the $2 floor no longer holds a
+   product at write. What held the junk was never the price; it is held
+   now on the evidence the audit named (sub2-quarantine-audit-2026-10-23
+   §2), and the sellable sub-$2 products publish.
+     - a title that states a price ("Clearance Under $1") is spam;
+     - under $1.10 a pack, set or N-piece title is a variant minimum or
+       per-piece price, not the titled product (Stage 8 / Stage 2);
+     - marketplace apparel under $2 gets one PDP check first (Stage 9);
+     - per-letter ornaments are fragments of one product (item 24): held
+       for the parent PDP, never published alone, never deleted.
+   And two write-time scrubs: a was-price over 5x a sub-$2 price is not
+   credible and is dropped (the HARIBO peg bag), and "Clearance 2023!"
+   comes off a title. The $1,500 ceiling is unchanged. */
+export const SUB2_USD = 2;
+export const PRICE_STUFFED_TITLE_RX = /\b(?:clearance|deals?|items?|everything|all)\s+under\s+\$?\d+(?:\.\d+)?\b|\$\d*\.\d\d\s*(?:deals?|items?|each|only)\b/i;
+export const MULTI_UNIT_TITLE_RX = /\b\d+\s*-?\s*(?:pack|pk|pcs|pieces?|pairs?|sets?)\b|\b(?:two|three|four|five|2|3|4|5)[- ]piece\b|\boutfit sets?\b/i;
+export const APPAREL_TITLE_RX = /\b(?:t-?shirts?|tees?|tops?|blouses?|shorts|pants|leggings|dress(?:es)?|skirts?|hoodies?|sweatshirts?|tank(?: tops?)?|panties|underwear|bras?|socks|pajamas?|outfits?|rompers?|jumpsuits?)\b/i;
+export const LETTER_ORNAMENT_RX = /\b(?:letter|initial|alphabet|monogram)\b(?=.*\bornaments?\b)|\bornaments?\b(?=.*\b(?:letter|initial)\s+[a-z]\b)/i;
+export const TITLE_SPAM_RX = /\s*[-|,!]*\s*\b(?:hot |big |mega )?(?:clearance|sale)\s+20\d\d\b!*\s*/gi;
+
+/** The item-30 verdict for one ingested row: a hold, scrubs, or nothing. */
+export function sub2Verdict({ name = "", price = 0, wasPrice = null, seller = "", dept = "" } = {}) {
+  const out = {};
+  if (LETTER_ORNAMENT_RX.test(name)) return { hold: "fragment-letter-variant" };
+  if (price < SUB2_USD) {
+    if (PRICE_STUFFED_TITLE_RX.test(name)) return { hold: "price-stuffed-title" };
+    if (price < 1.1 && MULTI_UNIT_TITLE_RX.test(name)) return { hold: "variant-floor" };
+    const marketplace = seller && !/^walmart(\.com)?$/i.test(String(seller).trim());
+    if (marketplace && (APPAREL_TITLE_RX.test(name) || /^(apparel|basics|womens|mens|fashion|clothing|kids)/i.test(dept))) return { hold: "verify-pdp-price" };
+    if (wasPrice != null && wasPrice > price * 5) out.dropWasPrice = true;
+  }
+  const clean = name.replace(TITLE_SPAM_RX, " ").replace(/\s{2,}/g, " ").trim();
+  if (clean && clean !== name.trim()) out.name = clean;
+  return Object.keys(out).length ? out : null;
+}
+
 export const COMPRESSED_GAS_RX = /\b(compressed (gas|air)|canned air|air duster|dust[- ]?off|gas duster|electronics duster)\b/i;
 
 /* Item 6: camp furniture (chairs, cots, airbeds) is parcel-shippable. */

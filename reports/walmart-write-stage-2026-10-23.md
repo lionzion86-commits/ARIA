@@ -34,3 +34,45 @@ Every product in every catalogue checked before and after: **76 now ship that we
 - candle holders/decor: 9
 - bedding (sheets, pads, protectors): 5
 - covers/throws: 1
+
+## Item 29: fresh and perishable food (2026-10-24)
+
+**Rule:** `perishableFood()` in `scripts/lib/walmart-write.js`. It fires on any of:
+- Walmart's grocery marker ("Fresh Produce", "Marketside", "Freshness Guaranteed") as the brand or the department;
+- a title that starts with "Fresh" followed by a produce, meat or seafood noun, unless an apparel or decor word follows ("Fresh Pear Tie Dye Tee" stays);
+- fresh eggs and milk.
+
+Shelf-stable packaged food is not in this class.
+
+**Where it runs:**
+- the write stage (`excluded-perishable-food`);
+- the site rule (`isShippableItem` → `isPerishableFood`, the same three patterns, held equal by a test);
+- the department-cache scraper (`refresh-department-cache.js`);
+- photo search (`visual-search.js`, at query time, because the shards are positional).
+
+**Kill count:** 3 unique products, 4 committed rows.
+- `department-cache-walmart.json` (bucket "clearance"): "Fresh Yellow Onions, 3 lb Bag", "Fresh  Whole Celery, 1ea", "Fresh Seedless Watermelon, Each".
+- `ofertas-feed.json`: the celery, removed by rebuilding the feed (22,367 → 22,366, Walmart 2,162 → 2,161).
+
+`scripts/scrub-perishable.mjs` cut the rows out of the raw text, so no other byte of the file changed. A census test fails if any committed catalogue or built slice holds a perishable row.
+
+**The rider:** "Más vendidos" is ordered by the store's own review count, not by raw ingest order. The onions led because they carry 86,501 reviews. With fresh food gone, the lead goes to the next most-reviewed product. Re-ranking that rail by sale-first or hero categories is open for Danny.
+
+## Item 30: the $2 floor release (2026-10-24)
+
+`PRICE_BAND_USD` is now `{ min: 0, max: 1500 }`; the ceiling is unchanged. `sub2Verdict()` holds on evidence instead:
+
+| Verdict | Applies to | Audit group |
+|---|---|---|
+| `price-stuffed-title` | sub-$2 titles that state a price ("Clearance Under $1") | Stage 11 |
+| `variant-floor` | under $1.10 with a pack, set or N-piece title | Stage 8 spam, Stage 2 outfit sets |
+| `verify-pdp-price` | sub-$2 marketplace apparel | Stage 9 |
+| `fragment-letter-variant` | per-letter ornaments | Stage 12 / item 24: held for the parent PDP |
+
+**Write-time scrubs:**
+- a was-price over 5× a sub-$2 price is dropped (HARIBO);
+- "Clearance 2023!" comes off a title (CWCWFHZH).
+
+**Not done here, because the stage pulls and the audit file are not in the repo:**
+- replaying the per-item lists to confirm 118 release / 12 hold / 6 verify / 8 fragment;
+- the Kinder Bueno "30 Count" title/price check, which needs its PDP.

@@ -20,6 +20,7 @@ import { PNG } from "pngjs";
 import { existsSync, writeFileSync, statSync, mkdirSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { isOffSaleRetailer } from "../../scripts/lib/off-sale.js";
+import { perishableFood } from "../../scripts/lib/walmart-write.js";
 
 const DIM = 512;
 const TOPK = 24;
@@ -223,7 +224,10 @@ const FLOOR_SIM = 0.6;
 
 export function tierResults(scored) {
   /* Off-sale stores (/off-sale.js) stay in the embeddings, never in an answer. */
-  const pool = scored.filter((x) => x.s >= FLOOR_SIM && !isOffSaleRetailer(x.meta && x.meta.retailer)).slice(0, CANDIDATES);
+  /* Item 29 (#443): the shards are positional (row i <-> vector i), so
+     fresh / perishable food is dropped here, like the off-sale stores. */
+  const pool = scored.filter((x) => x.s >= FLOOR_SIM && !isOffSaleRetailer(x.meta && x.meta.retailer)
+    && !perishableFood(String((x.meta && x.meta.title) || ""), String((x.meta && x.meta.brand) || ""))).slice(0, CANDIDATES);
   // The photo's brand family: the brand with the strongest cluster
   // near the top (most members in the top 12, best sim breaks ties).
   const clusters = new Map();

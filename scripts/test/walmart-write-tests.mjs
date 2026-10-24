@@ -158,5 +158,82 @@ await check("refurbished electronics enter labeled; used clothing, footwear, aut
   assert.equal(drop("Mixing Bowl Set Used for Baking", "home").item.condition, undefined, "'used for' read as a used product");
 });
 
+await check("item 29: fresh produce, meat, seafood, eggs and milk never publish; look-alikes stay", () => {
+  const out = ["Fresh Yellow Onions, 3 lb Bag", "Fresh  Whole Celery, 1ea Premium Quality, Rich in antioxidants", "Fresh Seedless Watermelon, Each",
+    "Fresh Boneless Skinless Chicken Breasts, 2.5 lb", "Fresh Atlantic Salmon Fillet, 1 lb", "Great Value Large White Eggs, 12 Count", "Great Value Whole Milk, 1 Gallon"];
+  for (const n of out) {
+    assert.equal(D.exclusionOf(n), "excluded-perishable-food", n);
+    assert.equal(ship({ name: n, price: 3 }), false, "site rule: " + n);
+  }
+  assert.equal(D.exclusionOf("Celery Hearts", "", "Fresh Produce"), "excluded-perishable-food");
+  assert.equal(D.exclusionOf("Bananas, each", "Food Fresh Produce Fresh Fruit"), "excluded-perishable-food");
+  assert.equal(ship({ name: "Celery Hearts", brand: "Fresh Produce", price: 2 }), false);
+  assert.equal(D.ingestRow(row("Fresh Yellow Onions, 3 lb Bag", { brand: "Fresh Produce" }), { dept: "home" }, ctx).drop, "excluded-perishable-food");
+  const stay = ["Fresh Pear Tie Dye Tee", "Fresh Strawberry Scented Candle", "Better Homes & Gardens 5-Wick 100 oz Glass Jar Candle, Fresh Cut Frasier",
+    "Toddler Girls' Disney Minnie Fresh Strawberries Toddler Short Sleeve Graphic T-Shirt", "MIKE AND IKE SOUR Watermelon Chewy Candy, 4.25 ounce Theater Box",
+    "Great Value Bowties, 12 oz", "Little Spoon Kid's YoGos, Organic Whole Milk Greek Yogurt Pouches, Variety 35 Pack", "Fresh Kidz Boys Blue Roll-On Deodorant - 1.86 fl oz"];
+  for (const n of stay) {
+    assert.notEqual(D.exclusionOf(n), "excluded-perishable-food", n);
+    assert.equal(ship({ name: n, price: 3 }), true, "site rule: " + n);
+  }
+  assert.equal(ship({ name: "Classic Diaper Bag", brand: "Freshly Picked", price: 60 }), true);
+});
+
+await check("item 29: the site rule and the write stage hold the same perishable patterns", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const f = readdirSync(ROOT + "build").find((n) => /^app-[0-9a-f]{16}\.js$/.test(n));
+  const src = readFileSync(ROOT + "build/" + f, "utf8");
+  for (const k of ["PERISHABLE_TITLE_RX", "PERISHABLE_BRAND_RX", "PERISHABLE_DAIRY_RX"]) {
+    const m = src.match(new RegExp("const " + k + " = (/.*/i);"));
+    assert.ok(m, k + " in the bundle");
+    assert.equal(m[1], W[k].toString(), k);
+  }
+  assert.ok(!/\(\?<[=!]/.test(src.match(/const PERISHABLE_TITLE_RX = .*/)[0]), "no lookbehind (older iOS Safari)");
+});
+
+await check("item 29 census: no committed catalogue or built slice holds fresh food", async () => {
+  const { readFileSync, readdirSync, statSync } = await import("node:fs");
+  const { catalogueFiles, perishableTitles } = await import("../scrub-perishable.mjs");
+  const files = catalogueFiles(ROOT).map((f) => ROOT + f);
+  const walk = (d) => { for (const n of readdirSync(d)) { const p = d + "/" + n; if (statSync(p).isDirectory()) walk(p); else if (n.endsWith(".json")) files.push(p); } };
+  for (const d of ["assets/tienda", "assets/ofertas", "assets/sections", "assets/home", "assets/pdp", "assets/search"]) walk(ROOT + d);
+  const found = [];
+  for (const f of files) {
+    const raw = readFileSync(f, "utf8");
+    if (!/fresh|eggs|milk/i.test(raw)) continue;
+    let data; try { data = JSON.parse(raw); } catch { continue; }
+    for (const t of perishableTitles(data)) found.push(f.slice(ROOT.length) + ": " + t);
+    /* Compact card shapes ({ t, b }) the generic walk does not read as products. */
+    (function cards(o) { if (Array.isArray(o)) return o.forEach(cards); if (o && typeof o === "object") { if (typeof o.t === "string" && W.perishableFood(o.t, typeof o.b === "string" ? o.b : "")) found.push(f.slice(ROOT.length) + ": " + o.t); else Object.values(o).forEach(cards); } })(data);
+  }
+  assert.deepEqual(found, []);
+});
+
+await check("item 30: no $2 floor; sub-$2 junk held on evidence, real sub-$2 products publish", () => {
+  assert.equal(D.PRICE_BAND_USD.min, 0);
+  assert.equal(D.PRICE_BAND_USD.max, 1500, "the ceiling is unchanged");
+  const v = (name, price, extra = {}) => W.sub2Verdict({ name, price, ...extra });
+  assert.equal(v("Boovnll Clearance Under $1 Hand Towels", 0.69).hold, "price-stuffed-title");
+  assert.equal(v("Women 3 Pack Panties Seamless Hipster", 0.49).hold, "variant-floor");
+  assert.equal(v("Swuxness Toddler Girl 2-Piece Outfit Set", 0.69).hold, "variant-floor");
+  assert.equal(v("Bovxnpu Toddler Boys Graphic Tee", 1.75, { seller: "Bovxnpu" }).hold, "verify-pdp-price");
+  assert.equal(v("Personalized Letter A Christmas Ornament", 1.5).hold, "fragment-letter-variant");
+  assert.equal(v("Christmas Ornament, Initial B Glitter", 1.2).hold, "fragment-letter-variant");
+  assert.deepEqual(v("HARIBO Unicorn-i-licious Gummi Candy, 4 oz Peg Bag", 1.28, { wasPrice: 10 }), { dropWasPrice: true });
+  assert.deepEqual(v("CWCWFHZH Mini Dinosaur Toy Car Clearance 2023!", 1.58), { name: "CWCWFHZH Mini Dinosaur Toy Car" });
+  for (const [n, p, extra] of [["Catchmaster Glue Board Mouse Trap", 1.47, { seller: "Walmart.com" }], ["Hot Wheels Basic Car", 1.24, { seller: "Walmart.com" }],
+    ["Victor Mouse Traps, 2 Pack", 1.97, { seller: "Walmart.com" }], ["Hello Kitty Toddler Tee", 6.5, { seller: "Zz" }], ["Fly Ribbon, 4 Pack", 1.48, {}]]) {
+    assert.equal(v(n, p, extra), null, n);
+  }
+  const held = D.ingestRow(row("Boovnll Clearance Under $1 Hand Towels", { price: 0.69 }), { dept: "home" }, ctx);
+  assert.equal(held.quarantine, "price-stuffed-title");
+  const pub = D.ingestRow(row("Hot Wheels Basic Car 1:64", { price: 1.24, seller: "Walmart.com" }), { dept: "toys" }, ctx);
+  assert.ok(pub.item, JSON.stringify(pub).slice(0, 200));
+  const scrub = D.ingestRow(row("HARIBO Unicorn-i-licious Gummi Candy, 4 oz Peg Bag", { price: 1.28, originalPrice: 10, seller: "Walmart.com" }), { dept: "candy" }, ctx);
+  assert.ok(scrub.item, JSON.stringify(scrub).slice(0, 200));
+  assert.equal(scrub.item.originalPrice, undefined);
+  assert.equal(scrub.item.onSale, false);
+});
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL " + f + "\n"); process.exit(1); }

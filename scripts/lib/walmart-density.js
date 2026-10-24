@@ -45,7 +45,7 @@
    ============================================================ */
 import { ingestRow as dswIngestRow, moneyOf, validGtin } from "./dsw.js";
 import {
-  COMPRESSED_GAS_RX, CAMP_CONTEXT_RX, ROOFTOP_TENT_RX, stripApplianceCare, TOOL_GUN_RX,
+  COMPRESSED_GAS_RX, CAMP_CONTEXT_RX, ROOFTOP_TENT_RX, stripApplianceCare, TOOL_GUN_RX, perishableFood, sub2Verdict,
   LETHAL_BAIT_RX, PEST_DEVICE_RX, NON_CHEMICAL_RX, REPELLENT_RX, supplementVerdict, heavyByTitle,
   decodeVariantSizes, routeBucket, merchFlags, voltageVerdict, conditionOf, lockedPhone,
 } from "./walmart-write.js";
@@ -65,7 +65,9 @@ export const LISTING_USD_PER_1000 = 5.7;
 export const DETAIL_USD_PER_1000 = 2.9;
 export const USD_PER_RUN = 0.06;
 export const BLAST_MAX_KG = 5;
-export const PRICE_BAND_USD = { min: 2, max: 1500 };
+/* Item 30 (Danny, 2026-10-23): no floor -- sub-$2 rows are judged on
+   evidence (walmart-write.js sub2Verdict). The ceiling stands. */
+export const PRICE_BAND_USD = { min: 0, max: 1500 };
 
 /* ---------------- the plan ---------------- */
 /* Departments in Danny's priority order. Within each, clearance and
@@ -211,8 +213,10 @@ export const EXCLUSIONS = [
 ];
 /** null when the row may enter, else "excluded-<kind>". The guards are the
     write-stage findings (#443 items 2-27); each says which item it is. */
-export function exclusionOf(name, crumbs = "") {
+export function exclusionOf(name, crumbs = "", brand = "") {
   const hay = `${name} ${crumbs}`;
+  /* Item 29: fresh / perishable food. */
+  if (perishableFood(name, brand, crumbs)) return "excluded-perishable-food";
   /* Item 17 + Danny's ruling: lethal chemical pest control is out. */
   if (LETHAL_BAIT_RX.test(name)) return "excluded-dangerous-goods";
   /* Item 2: compressed-gas dusters are aerosols. */
@@ -325,7 +329,8 @@ export function ingestRow(raw, run, ctx = {}) {
   const name = String(raw.name || "");
   const dept = (run && run.dept) || "";
   const crumbs = Array.isArray(raw.breadcrumbs) ? raw.breadcrumbs.join(" ") : String(raw.breadcrumbs || "");
-  const ex = exclusionOf(name, crumbs);
+  const brand = typeof raw.brand === "object" && raw.brand ? String(raw.brand.name || "") : String(raw.brand || "");
+  const ex = exclusionOf(name, crumbs, brand);
   if (ex) return { drop: ex };
   /* Item 28: used clothing/footwear and used auto parts never enter. */
   const cond = conditionOf(name, dept);
@@ -346,6 +351,11 @@ export function ingestRow(raw, run, ctx = {}) {
   if (!v.item) return v;
   const item = v.item;
   item.retailer = WALMART_KEY;
+  /* Item 30: sub-$2 evidence holds and write-time scrubs. */
+  const s2 = sub2Verdict({ name: item.name, price: Number(item.price), wasPrice: item.originalPrice != null ? Number(item.originalPrice) : null, seller: raw.seller || "", dept });
+  if (s2 && s2.hold) return { quarantine: s2.hold, row: { name, url: raw.url || null, price: item.price } };
+  if (s2 && s2.dropWasPrice) { delete item.originalPrice; item.onSale = false; }
+  if (s2 && s2.name) item.name = s2.name;
   if (item.description) item.descriptionSource = "walmart-pdp";
   if (raw.seller) item.seller = raw.seller;
   if (run && run.clearance) item.clearanceListing = true;

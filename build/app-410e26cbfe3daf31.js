@@ -595,12 +595,25 @@ const UNSHIPPABLE_WEIGHT_KG = 15;
    naming a screen size it merely supports. */
 const PROJECTOR_RX = /(projector|proyector)/i;
 const BULKY_PROJECTOR_PACKAGE_RX = /\bUST\b|(bundl|inclu|kit|combo|pack).{0,60}\b(80|100|110|120|130|150)\s?["\u201c\u201d]|bundl.{0,40}(soundbar|dolby|atmos|speaker|bocina|parlante)/i;
+/* ITEM 29 (#443, Danny's #483 iPhone pass): no fresh or perishable food --
+   it spoils through Miami consolidation and fresh produce sits under
+   SENASA phytosanitary control. Same three patterns as the write stage
+   (scripts/lib/walmart-write.js PERISHABLE_*_RX); a test holds them equal.
+   Shelf-stable packaged food is not this class. */
+const PERISHABLE_TITLE_RX = /^\s*(?:organic\s+)?fresh\s+(?:(?:whole|seedless|sweet|baby|organic|large|small|jumbo|red|yellow|white|green|gala|honeycrisp|fuji|russet|roma|hass|atlantic|boneless|skinless|ground|all natural)[\s,]+)*(?:onions?|potato(?:es)?|tomato(?:es)?|bananas?|apples?|avocados?|lemons?|limes?|carrots?|celery|lettuce|broccoli|cauliflower|cabbage|strawberr(?:y|ies)|blueberr(?:y|ies)|raspberr(?:y|ies)|blackberr(?:y|ies)|grapes|oranges?|peppers?|cucumbers?|garlic|cilantro|parsley|spinach|kale|mushrooms?|pineapples?|mangoe?s?|watermelons?|cantaloupes?|honeydew|peach(?:es)?|pears?|plums?|kiwis?|zucchini|squash|corn|asparagus|green beans|chicken|beef|pork|steaks?|salmon|shrimp|tilapia|cod|tuna steaks?|turkey|eggs|milk|bread)\b(?![^,]*\b(?:tees?|t-shirts?|shirts?|hoodies?|sweatshirts?|print|graphic|stickers?|candles?|scent(?:ed)?|toys?|plush|costumes?|socks|pajamas?|onesies?|bodysuits?|cases?|wraps?|decor|ornaments?|magnets?|squishmallows?|air fresheners?)\b)/i;
+const PERISHABLE_BRAND_RX = /^\s*(?:fresh produce|freshness guaranteed|marketside|fresh meat|fresh seafood|fresh bakery)\s*$/i;
+const PERISHABLE_DAIRY_RX = /\b(?:(?:large|extra large|jumbo|medium) (?:white|brown|grade a) eggs|(?:whole|2%|1%|skim|fat free|reduced fat) milk,? (?:1 |one )?(?:gallon|half gallon))\b/i;
+function isPerishableFood(p){
+  const t = String(p.name || p.title || '');
+  return PERISHABLE_TITLE_RX.test(t) || PERISHABLE_BRAND_RX.test(String(p.brand || '')) || PERISHABLE_DAIRY_RX.test(t);
+}
 function isShippableItem(p){
 
   if (!p) return false;
   const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
   if ((UNSHIPPABLE_TV_RX.test(hay) || TV_SIZE_BRAND_RX.test(hay)) && !TV_PARCEL_OK_RX.test(hay)) return false;
   if (AXE_DEODORANT_RX.test(hay) && AXE_DEODORANT_TYPE_RX.test(hay)) return false;
+  if (isPerishableFood(p)) return false;
   if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
   if (PROJECTOR_RX.test(hay) && BULKY_PROJECTOR_PACKAGE_RX.test(hay)) return false;
   const w = Number(p.weightKg);
