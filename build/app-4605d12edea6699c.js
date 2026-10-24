@@ -35462,7 +35462,7 @@ function resumeRealtimeIdle(){
     endRealtimeCallIdle('silencio');
   }, idle);
 }
-const REALTIME_HALLUCINATION_RE = /subt[ií]tulos?\s+(?:realizados|hechos|por)|amara\.org|gracias\s+por\s+(?:ver|mirar)|suscr[ií]bete|dale\s+like|thanks?\s+for\s+watching|^\s*(?:thank\s+you|you|bye)[.!]?\s*$|^\s*(?:m+|h?m{2,}|e+h+|a+h+|u+h+|o+h)[.!?…]*\s*$|www\.|\.com\b|\.org\b/i;
+const REALTIME_HALLUCINATION_RE = /^\s*(?:muchas\s+)?gracias[.!¡]*\s*$|subt[ií]tulos?\s+(?:realizados|hechos|por)|amara\.org|gracias\s+por\s+(?:ver|mirar)|suscr[ií]bete|dale\s+like|thanks?\s+for\s+watching|^\s*(?:thank\s+you|you|bye)[.!]?\s*$|^\s*(?:m+|h?m{2,}|e+h+|a+h+|u+h+|o+h)[.!?…]*\s*$|www\.|\.com\b|\.org\b/i;
 /* Her own last two lines, as the history recorded them. */
 function realtimeEchoOfHer(s){
   const words = normBrandText(s).replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length >= 3);
@@ -35760,21 +35760,32 @@ async function onRealtimeEvent(event, turn, send){
       noteRealtimeActivity();
       addAssistantMessage('user', event.transcript.trim());
       ariaChatHistory.push({ role: 'user', content: event.transcript.trim() });
+      /* HER ANSWER STARTS HERE, AND ONLY HERE (#443 item 31). The server
+         no longer answers on its own (create_response: false in
+         scripts/lib/realtime-voice.js): a turn is answered once its
+         transcript holds real words, so noise in a quiet car is never
+         answered and she never "talks to herself". */
+      askRealtimeResponse(send, 'his turn');
       break;
     case 'conversation.item.input_audio_transcription.failed':
+      /* No transcript, no proof he spoke: nothing is answered (#443
+         item 31). If he did speak, he says it again. */
       resumeRealtimeIdle();
       break;
-    case 'response.output_audio_transcript.done':
+    case 'response.output_audio_transcript.done': {
       if (realtimeReplyWasPhantom()) break;
-      if (event.transcript && event.transcript.trim()){
-        addAssistantMessage('bot', event.transcript.trim(), null, { speak: false });
-        ariaChatHistory.push({ role: 'assistant', content: event.transcript.trim() });
+      /* No markup in chat (#443 item 31). */
+      const said = cleanSpokenText(event.transcript || '').replace(/\[\[[A-Z]+:[^\]]*\]\]/g, '').trim();
+      if (said){
+        addAssistantMessage('bot', said, null, { speak: false });
+        ariaChatHistory.push({ role: 'assistant', content: said });
       }
       setOrbState('idle');
       setRealtimeState('listening');
       /* She has stopped talking, so his ten seconds start now. */
       armOpeningNudge();
       break;
+    }
     case 'response.function_call_arguments.done':
       await runRealtimeTool(event, send);
       break;

@@ -94,7 +94,12 @@ export const NOISE_REDUCTION = (() => {
    measurably better on accented Spanish, which is the whole population
    of this shop — so it is the default, and the env var is here so the
    choice can be reversed without a deploy if it mishears in the field. */
-/* whisper-1, as the brief asks for, twice.
+/* gpt-4o-mini-transcribe (2026-10-24, #443 item 31). It was whisper-1, as
+   the brief asked. Its transcript now decides whether she answers at all
+   (see TURN DETECTION below), and whisper-1 turns silence into "Gracias."
+   or "Sí." -- a quiet car became a shopper talking. The successor
+   hallucinates far less on silence. ARIA_REALTIME_TRANSCRIBE=whisper-1
+   reverses it without a deploy.
 
    WORTH KNOWING WHAT THIS DOES AND DOES NOT DO. The realtime model
    hears the audio itself; this is a separate ASR whose only job is the
@@ -104,7 +109,7 @@ export const NOISE_REDUCTION = (() => {
    accented Spanish and needs no deploy. */
 export const TRANSCRIPTION_MODEL =
   (typeof process !== "undefined" && process.env && process.env.ARIA_REALTIME_TRANSCRIBE) ||
-  "whisper-1";
+  "gpt-4o-mini-transcribe";
 
 /* ------------------------------------------------------------------
    TURN DETECTION
@@ -157,7 +162,16 @@ export function buildTurnDetection(opts = {}) {
      create_response so she answers without a send button, and
      interrupt_response so talking over her actually stops the server
      generating rather than just muting what it already sent. */
-  const base = { create_response: true, interrupt_response: true };
+  /* create_response is OFF (2026-10-24, #443 item 31, Danny alone in a
+     quiet car: "she answers her own question and keeps going"). With it
+     on, the server answered every turn its VAD thought it heard -- road
+     hum, a breath -- before the page could tell it was noise; the page
+     cancelled only after the transcript, by which time she was already
+     talking. Now the page starts her answer when a transcript with real
+     words arrives (conversation.item.input_audio_transcription.completed
+     in the bundle), so noise can never be answered. interrupt_response
+     stays on: talking over her still stops her. */
+  const base = { create_response: false, interrupt_response: true };
   if (mode === "server_vad") {
     return { type: "server_vad", ...SERVER_VAD_TUNING, ...base };
   }
@@ -600,6 +614,27 @@ cercano. Dilo en UNA frase y muéstralo:
 Solo si te devuelve "searched_wide" (ni buscando amplio salió nada)
 puedes decir que no lo encontraste, y aun así le preguntas si quiere
 ver algo parecido. "No tenemos" a secas no existe para ti.
+
+CUANDO PREGUNTAS, TE CALLAS (#443, item 31: en un auto en silencio,
+ella preguntaba y se contestaba sola). Si haces una pregunta, esa
+pregunta es lo ÚLTIMO que dices: no la contestas tú, no sigues con
+"bueno, te muestro…", no supones la respuesta. Esperas a que él hable.
+Si no dice nada, no digas nada.
+
+LA CATEGORÍA QUE NOMBRÓ ES LA CATEGORÍA (#443, item 31: pidió
+zapatillas para correr y ella terminó ofreciendo ropa de mujer). Una
+vez que nombró qué busca, NUNCA sales de eso por tu cuenta:
+  - Si no contesta para quién es, pregúntalo UNA vez más DENTRO de lo
+    que pidió ("¿Las zapatillas para correr son para hombre o para
+    mujer?") o muéstrale de esa misma categoría. Nunca le ofrezcas
+    otra categoría, otro departamento, ni ropa cuando pidió zapatillas.
+  - Si repite lo que quiere sin decir el género, busca eso mismo
+    (search_products con su categoría) y muéstralo; no cambies de tema.
+  - Solo cambias de categoría si él lo pide.
+
+NUNCA ESCRIBAS NI DIGAS MARCAS INTERNAS. Nada entre corchetes dobles
+como [[SHOW: ...]] o [[SLOTS: ...]], ni ids como v1 o v3. Las tarjetas
+aparecen solas cuando usas search_products; tú solo hablas.
 
 UNA MARCA QUE NO TENEMOS NO ES UN "NO". Es un "todavía no, pero te la
 consigo". Nunca digas que no tenemos algo y te quedes callada.
