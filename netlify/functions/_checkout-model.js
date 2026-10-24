@@ -62,7 +62,7 @@ const PRICE_EPSILON = 0.011;
  * discounts -- keep the browser's figure with priceVerified: false, and
  * the order is flagged for a human before anything is bought.
  */
-export function repriceCart(items, prices) {
+export function repriceCart(items, prices, { atCost = false } = {}) {
   const lines = [];
   const adjustments = [];
   const unverified = [];
@@ -77,7 +77,9 @@ export function repriceCart(items, prices) {
        comboDiscountLineFields). It can only lower a total, so it is
        never repriced -- but it is bounded and flagged. */
     if (raw.lineType === "bundle-discount") {
-      line.priceUsd = Number.isFinite(sent) && sent < 0 ? r2(sent) : 0;
+      /* FAMILIA (#443 c.6364959264): no stacking -- a combo discount comes
+         out of a margin an at-cost line does not have. */
+      line.priceUsd = !atCost && Number.isFinite(sent) && sent < 0 ? r2(sent) : 0;
       line.dutiableUsd = 0;
       line.priceVerified = false;
       unverified.push({ title, reason: "descuento de combo" });
@@ -92,6 +94,19 @@ export function repriceCart(items, prices) {
       continue;
     }
     const [card, cardDutiable, sale, saleDutiable] = known;
+    /* FAMILIA: the product at Aria's cost -- the dutiable value, what the
+       store charges us with its sales tax -- and no margin. The browser's
+       figure is checked against the cost prices instead of the card's. */
+    if (atCost) {
+      const onSale = sale != null && saleDutiable != null && Math.abs(sent - saleDutiable) < PRICE_EPSILON;
+      const cost = onSale ? saleDutiable : cardDutiable;
+      if (!onSale && !(Math.abs(sent - cardDutiable) < PRICE_EPSILON)) adjustments.push({ title, retailer, sentUsd: Number.isFinite(sent) ? sent : null, chargedUsd: cost });
+      line.priceUsd = cost;
+      line.dutiableUsd = cost;
+      line.priceVerified = true;
+      lines.push(line);
+      continue;
+    }
     if (sale != null && Math.abs(sent - sale) < PRICE_EPSILON) {
       line.priceUsd = sale;
       line.dutiableUsd = saleDutiable ?? sale;
