@@ -38,6 +38,7 @@ import { provinciaFeePen as provinciaFeeFor } from "../../couriers.js";
 import { CHARGE_PER_KG } from "../../weight-data.js";
 import { resolveCartWeights } from "./_weight-resolve.js";
 import { loadPriceIndex } from "./_price-index.js";
+import { isFamiliaAccount } from "./_familia.js";
 import { DNI_DOCS_STORE, DNI_PACKS_STORE, resolveOrderDocs, attachToOrder } from "./_dni-docs.js";
 import { createCheckoutSession } from "./_stripe-api.js";
 import { emailImageUrl } from "./_order-email.js";
@@ -196,8 +197,11 @@ async function createOrderHandler(event) {
   }
 
   /* EVERY LINE AT THE PRICE THE CARD SHOWED (see _checkout-model.js). */
+  /* FAMILIA (#443 c.6364959264): an account Danny flagged buys products
+     at Aria's cost. The flag is read from the account, never the request. */
+  const familia = await isFamiliaAccount(await getSessionEmail(event));
   const { lines: items, adjustments: priceAdjustments, unverified: unverifiedLines } =
-    charging ? repriceCart(sentItems, loadPriceIndex()) : { lines: sentItems, adjustments: [], unverified: [] };
+    charging ? repriceCart(sentItems, loadPriceIndex(), { atCost: familia }) : { lines: sentItems, adjustments: [], unverified: [] };
 
   try {
     const settingsStore = getStore("settings");
@@ -354,7 +358,8 @@ async function createOrderHandler(event) {
        browser blocked the cookie. */
     const cookieRef = refFromCookie(event.headers?.cookie || event.headers?.Cookie);
     const bodyRef = normalizeRef(body.ref);
-    const attribution = cookieRef ? { ...cookieRef, source: "cookie" }
+    /* A Familia order carries no margin, so no commission (no stacking). */
+    const attribution = familia ? null : cookieRef ? { ...cookieRef, source: "cookie" }
       : bodyRef ? { ref: bodyRef, setAt: null, source: "page" } : null;
     /* THE RECIPIENT'S DNI PHOTOS (#443, embarque brief). Amex's packet
        needs both sides of the consignee's document, collected here at
@@ -466,6 +471,8 @@ async function createOrderHandler(event) {
          the PRE-DISCOUNT figures -- preDiscountGoodsUsd and orderTotalPen
          (before saldo) -- always. */
       attribution,
+      /* Products at cost, margin 0 (the ledger and the Key Club 5% read this). */
+      familia: familia || undefined,
       preDiscountGoodsUsd: goodsTotals(items).preDiscountGoodsUsd,
       /* What the server changed or could not vouch for. Unverified lines
          are charged at the page's price and must be checked by a human

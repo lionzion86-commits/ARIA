@@ -44,15 +44,19 @@ export async function handler(event) {
     // storefront can paint the member badge without an extra round trip.
     let name = null;
     let founderStatus = null;
+    let familia = false;
     try {
       const users = getStore("users");
       const u = await users.get(session.email, { type: "json" });
       if (u) {
         name = u.name || null;
         founderStatus = u.founderStatus || "pending";
+        // Familia (#443): the product and checkout pages show cost prices.
+        // A display hint only; orders-create reads the flag itself.
+        familia = u.familia === true;
       }
     } catch { /* non-fatal — logged in, just without profile fields */ }
-    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email, isAdmin: isAdmin(session.email), name, founderStatus }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email, isAdmin: isAdmin(session.email), name, founderStatus, familia }) };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }

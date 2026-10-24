@@ -660,7 +660,78 @@ await check("email-check: says why mail would fail, sends a test only to @ariash
   globalThis.__blobsFail = null;
 });
 
-const MIN_CHECKS = 32;
+/* ------------------------------------------------------------------
+   FAMILIA (#443 c.6364959264): a flagged account buys at Aria's cost.
+   ------------------------------------------------------------------ */
+await check("Familia pricing: every verified line at its dutiable cost, combo discounts dropped, a card price re-priced down", () => {
+  const r = M.repriceCart([{ ...product, priceUsd: product.dutiableUsd },
+    { lineType: "bundle-discount", title: "Descuento combo", priceUsd: -5 }], index.prices, { atCost: true });
+  assert.equal(r.lines[0].priceUsd, product.dutiableUsd);
+  assert.equal(r.lines[0].dutiableUsd, product.dutiableUsd);
+  assert.equal(r.adjustments.length, 0);
+  assert.equal(r.lines[1].priceUsd, 0, "a combo discount stacked on cost");
+  const card = M.repriceCart([product], index.prices, { atCost: true });
+  assert.equal(card.lines[0].priceUsd, product.dutiableUsd, "a card price was charged to Familia");
+  assert.equal(card.adjustments.length, 1);
+  const live = M.repriceCart([{ retailer: "live", title: "Live scraped thing", priceUsd: 12, dutiableUsd: 1 }], index.prices, { atCost: true });
+  assert.equal(live.lines[0].priceUsd, 12, "an unverifiable line must not take the browser's 'cost'");
+});
+function familiaPen(freight = 26) {
+  const goods = product.dutiableUsd;
+  const tax = W.importTaxEstimateUsd(product.dutiableUsd, freight);
+  const usd = Math.round((goods + freight + tax) * 100) / 100;
+  const base = Math.round((goods + freight) * FX * 100) / 100;
+  return Math.round((usd * FX + W.smallOrderFeePen(base) + M.expressFeePen("consolidated", FX)) * 100) / 100;
+}
+function signIn(email, extra = {}) {
+  if (!globalThis.__blobs.has("users")) globalThis.__blobs.set("users", new Map());
+  if (!globalThis.__blobs.has("sessions")) globalThis.__blobs.set("sessions", new Map());
+  globalThis.__blobs.get("users").set(email, JSON.stringify({ email, name: "Fixture", founderStatus: "fundador", ...extra }));
+  const sid = "sess-" + email.replace(/\W/g, "");
+  globalThis.__blobs.get("sessions").set(sid, JSON.stringify({ email, createdAt: new Date().toISOString() }));
+  return `aria_session=${sid}`;
+}
+await check("a Familia account is charged cost + standard freight + tax, with no commission; a plain account pays the card price", async () => {
+  stripeCalls = [];
+  const ref = `aria_ref=${encodeURIComponent("ale|" + Date.now())}`;
+  const fam = signIn("familia@correo.test", { familia: true });
+  const shown = familiaPen();
+  assert.ok(shown < expectedPen(), "cost is not below the card total");
+  const r = await post(orderBody({ items: [{ ...product, priceUsd: product.dutiableUsd }], shownTotalPen: shown }), { cookie: `${fam}; ${ref}` });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(Number(stripeCalls.at(-1).form["line_items[0][price_data][unit_amount]"]), Math.round(shown * 100));
+  const order = JSON.parse(globalThis.__blobs.get("orders").get(r.data.orderId));
+  assert.equal(order.familia, true);
+  assert.equal(order.attribution, null, "a Familia order earned a commission");
+  assert.equal(order.items[0].priceUsd, product.dutiableUsd);
+  const plain = signIn("plain@correo.test");
+  const p = await post(orderBody({ items: [{ ...product, priceUsd: product.dutiableUsd }], shownTotalPen: familiaPen() }), { cookie: plain });
+  assert.equal(p.status, 409, "an unflagged account got the cost price by sending it");
+  const ok = await post(orderBody({ shownTotalPen: expectedPen() }), { cookie: plain });
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.equal(JSON.parse(globalThis.__blobs.get("orders").get(ok.data.orderId)).familia, undefined);
+});
+await check("the flag is Danny's to set: admin-familia needs an admin session, an existing account, and true/false", async () => {
+  const { handler: famAdmin } = await import(ROOT + "netlify/functions/admin-familia.js");
+  const prev = process.env.ADMIN_EMAILS;
+  process.env.ADMIN_EMAILS = "admin@correo.test";
+  try {
+    const admin = signIn("admin@correo.test");
+    const plain = signIn("nadie@correo.test");
+    const call = (cookie, method, body) => famAdmin({ httpMethod: method, headers: { cookie }, body: body ? JSON.stringify(body) : undefined });
+    assert.equal((await call(plain, "POST", { email: "nadie@correo.test", familia: true })).statusCode, 403);
+    assert.equal((await call(admin, "POST", { email: "noexiste@correo.test", familia: true })).statusCode, 404);
+    assert.equal((await call(admin, "POST", { email: "nadie@correo.test", familia: "si" })).statusCode, 400);
+    assert.equal((await call(admin, "POST", { email: "nadie@correo.test", familia: true })).statusCode, 200);
+    assert.ok(JSON.parse((await call(admin, "GET")).body).familia.includes("nadie@correo.test"));
+    const me = await (await import(ROOT + "netlify/functions/auth-me.js")).handler({ httpMethod: "GET", headers: { cookie: plain } });
+    assert.equal(JSON.parse(me.body).familia, true, "auth-me does not report the flag");
+    assert.equal((await call(admin, "POST", { email: "nadie@correo.test", familia: false })).statusCode, 200);
+    assert.equal(JSON.parse(globalThis.__blobs.get("users").get("nadie@correo.test")).familia, undefined);
+  } finally { process.env.ADMIN_EMAILS = prev; }
+});
+
+const MIN_CHECKS = 35;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
