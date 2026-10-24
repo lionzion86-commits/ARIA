@@ -2532,9 +2532,16 @@ function cardImgAttrs(url, sizes){
   function pixelItemCount(){
     return cart.reduce((n, l) => n + (l.lineType === 'bundle-discount' ? 0 : Math.max(1, Math.floor(Number(l.qty) || 1))), 0);
   }
+  /* InitiateCheckout in soles (#443 item 34): it waits for today's rate
+     (loaded above, async) and goes without a value if none arrives --
+     never in dollars. */
   if (window.ariaTrack && cart.length && !new URLSearchParams(location.search).get('pagado')){
-    const usd = cart.reduce((s, l) => s + (Number(l.priceUsd) || 0) * Math.max(1, Math.floor(Number(l.qty) || 1)), 0);
-    ariaTrack('InitiateCheckout', { value: Math.round(usd * 100) / 100, currency: 'USD', contentIds: pixelContentIds(), numItems: pixelItemCount() });
+    (async () => {
+      for (let i = 0; i < 20 && !fxRates; i++) await new Promise((ok) => setTimeout(ok, 500));
+      const usd = cart.reduce((s, l) => s + (Number(l.priceUsd) || 0) * Math.max(1, Math.floor(Number(l.qty) || 1)), 0);
+      ariaTrack('InitiateCheckout', { value: fxRates ? Math.round(usd * fxRates.venta * 100) / 100 : undefined, currency: 'PEN',
+        contentIds: pixelContentIds(), numItems: pixelItemCount() });
+    })();
   }
   returnFromStripe();
 
