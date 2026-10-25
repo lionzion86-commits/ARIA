@@ -56,7 +56,6 @@ const SPOKEN = {
   victoriassecret: ["Victoria's Secret", "Victorias Secret", "Victoria Secret", "VS"],
   newbalance: ["New Balance"], gymshark: ["Gymshark", "gym shark"], alphalete: ["Alphalete"],
   miumiu: ["Miu Miu"], fendi: ["Fendi"], goldengoose: ["Golden Goose"], pacsun: ["PacSun", "Pac Sun"],
-  sephora: ["Sephora"], surfworld: ["Surf World"],
 };
 
 /* ------------------------------------------------------------------ */

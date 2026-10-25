@@ -662,7 +662,7 @@ export const RETAILER_DEPARTMENT = {
   abercrombie: "ropa", aguabendita: "ropa", alphalete: "ropa", americaneagle: "ropa", ancora: "ropa",
   bananarepublic: "ropa", capittana: "ropa", eberjey: "ropa", farfetch: "ropa", farmrio: "ropa", gap: "ropa",
   gymshark: "ropa", hollister: "ropa", johannaortiz: "ropa", lanebryant: "ropa", miumiu: "ropa", montce: "ropa",
-  patbo: "ropa", revolve: "ropa", silviatcherassi: "ropa", skims: "ropa", tns: "ropa", vix: "ropa",
+  patbo: "ropa", revolve: "ropa", silviatcherassi: "ropa", skims: "ropa", ssense: "ropa", tns: "ropa", vix: "ropa",
   youngla: "ropa",
   assouline: "libros", chronicle: "libros",
   advanceauto: "autopartes", denniskirk: "autopartes", revzilla: "autopartes",
@@ -675,7 +675,7 @@ export const RETAILER_DEPARTMENT = {
   fuji: "deportes", gameness: "deportes", mmawarehouse: "deportes", prosoccer: "deportes", tatami: "deportes",
   tennisexpress: "deportes", venum: "deportes", xtremesoccer: "deportes",
   crocs: "calzado",
-  ulta: "belleza", yesstyle: "belleza",
+  sephora: "belleza", ulta: "belleza", yesstyle: "belleza",
   bestbuy: "electrónica", bhphoto: "electrónica",
   partycity: "fiesta", samsclub: "fiesta",
 };

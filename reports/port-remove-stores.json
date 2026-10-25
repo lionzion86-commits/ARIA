@@ -74,7 +74,8 @@
    "byLane": {},
    "offSale": 2565,
    "gtin": 0,
-   "modelCode": 0
+   "modelCode": 0,
+   "nameOnlyHeldBack": 2
   },
   "gap": {
    "catalogueProducts": 635,
@@ -120,14 +121,14 @@
    "offSale": 690,
    "gtin": 0,
    "modelCode": 0,
-   "nameOnlyHeldBack": 2
+   "nameOnlyHeldBack": 60
   },
   "ssense": {
-   "catalogueProducts": 0,
-   "catalogueRecords": 0,
+   "catalogueProducts": 18000,
+   "catalogueRecords": 36000,
    "resourced": 0,
    "byLane": {},
-   "offSale": 0,
+   "offSale": 18000,
    "gtin": 0,
    "modelCode": 0
   },
@@ -203,24 +204,6 @@
    "offSale": 18,
    "gtin": 0,
    "modelCode": 0
-  },
-  "sephora": {
-   "catalogueProducts": 0,
-   "catalogueRecords": 0,
-   "resourced": 0,
-   "byLane": {},
-   "offSale": 0,
-   "gtin": 0,
-   "modelCode": 0
-  },
-  "surfworld": {
-   "catalogueProducts": 0,
-   "catalogueRecords": 0,
-   "resourced": 0,
-   "byLane": {},
-   "offSale": 0,
-   "gtin": 0,
-   "modelCode": 0
   }
  },
  "methods": {
@@ -236,7 +219,7 @@
  },
  "liveEnriched": 1,
  "rejectReasons": {
-  "code-shared-by-several-dead-products": 57,
+  "code-shared-by-several-dead-products": 72,
   "code-shared-by-several-live-products": 2,
   "title": 3
  },

@@ -231,7 +231,7 @@ export const BEAUTY_CATEGORY_RE =
  *  its catalogue is lingerie and sleepwear, and as a "beauty store" every
  *  dress and bra fell to the 0.05 kg beauty catch-all -- a dress + bra order
  *  charged 0.10 kg. Its mists and lotions still read as beauty by title. */
-export const BEAUTY_RETAILERS = new Set([]);
+export const BEAUTY_RETAILERS = new Set(["sephora"]);
 
 /** Scraped department buckets that hold beauty. */
 export const BEAUTY_DEPARTMENTS = new Set(["beauty", "fragrance", "skincare", "makeup"]);

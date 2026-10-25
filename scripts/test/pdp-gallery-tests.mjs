@@ -97,9 +97,8 @@ await check("every catalogue item's shard record carries its whole gallery and i
     photos += want.length;
   }
   assert.deepEqual(misses.slice(0, 8), [], `${misses.length} of ${all.length} items lost photos or provenance in their shard (rebuild: node scripts/build-pdp-slices.mjs)`);
-  /* SSENSE's and Sephora's galleries left with their lanes (#443 item 40). */
-  assert.ok(multi > 75000, `only ${multi} records with a gallery`);
-  assert.ok(tiered > 38000, `only ${tiered} records with size provenance`);
+  assert.ok(multi > 100000, `only ${multi} records with a gallery`);
+  assert.ok(tiered > 40000, `only ${tiered} records with size provenance`);
   console.log(`         (${all.length} items: ${multi} with 2+ photos, ${photos} photos, ${tiered} with sizesTier/sizesSource)`);
 });
 
@@ -314,7 +313,7 @@ await check("producto.html renders the gallery for every shard record with 2+ ph
     shardCache.delete(s);
   }
   assert.deepEqual(bad.slice(0, 8), [], `${bad.length} records render the wrong gallery`);
-  assert.ok(multi > 75000, `only ${multi} records render a gallery`);
+  assert.ok(multi > 100000, `only ${multi} records render a gallery`);
   console.log(`         (${multi} records render a swipe gallery, ${single} a single photo)`);
 });
 

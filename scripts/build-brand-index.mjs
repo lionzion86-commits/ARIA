@@ -43,7 +43,7 @@ export const STATIC_MIN = 12;
 export const CATALOG_FILES = [
   "/department-cache-walmart.json",
   "/department-cache-oldnavy.json", "/department-cache-footlocker.json",
-  "/macys-catalog.json", "/beauty-catalog.json",
+  "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json",
   "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json",
   "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json",
   "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json",
@@ -51,7 +51,7 @@ export const CATALOG_FILES = [
   "/kohls-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json",
   "/advanceauto-catalog.json", "/nautilus-catalog.json",
   "/islandwatersports-catalog.json", "/quietstorm-catalog.json",
-  "/surfstation-catalog.json",
+  "/surfworld-catalog.json", "/surfstation-catalog.json",
   "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json",
   "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json",
   "/everlast-catalog.json", "/mmawarehouse-catalog.json",

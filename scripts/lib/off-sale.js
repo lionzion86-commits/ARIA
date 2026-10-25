@@ -48,13 +48,7 @@
                       direct, Athleta, Fendi and Golden Goose direct have no
                       listings today and are listed so none is added by
                       mistake; Golden Goose through Farfetch/Revolve is
-                      retailer `farfetch` / `revolve` and stays.
-     sephora          Sephora (#443 item 40): lane closed, resale prohibited.
-                      Data shelved under hidden-docs/shelved/ (never served).
-     surfworld        Surf World (#443 item 40): the store closed, Sept 2026.
-     Sephora, SSENSE, Surf World (and Target) are also GONE from every
-     served file (scripts/purge-store.py, closed-store-purge-tests); the
-     list only stops a stale cart line. */
+                      retailer `farfetch` / `revolve` and stays. */
 
 /* This module re-exports /off-sale.js for the builders, checkout.html and
    the Netlify functions; the list itself lives there, once. */

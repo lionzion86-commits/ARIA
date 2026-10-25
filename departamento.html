@@ -249,9 +249,7 @@
     sunglasses:      {name:'Lentes de Sol', desc:'Protege tus ojos con estilo.'},
     mens_grooming:   {name:'Sección Hombre', desc:'Cuidado personal para él.'},
     combat_sports:   {name:'Aria Fight Club', desc:'Jiu-jitsu, boxeo, Muay Thai, MMA.'},
-    /* ONE JEWELRY DEPARTMENT (#443 item 40): Joyas y Accesorios carries
-       every store Joyería did and more; old links land there. */
-    jewelry:         {name:'Joyería y Accesorios', desc:'Brilla con piezas únicas.', href:'departamento.html?dept=joyas_accesorios', alias:true},
+    jewelry:         {name:'Joyería y Accesorios', desc:'Brilla con piezas únicas.'},
     joyas_accesorios:{name:'Joyas y Accesorios', desc:'Joyería accesible para todos los días.'},
     purses:          {name:'Carteras', desc:'Carteras y bolsos de diseñador.'},
     party:           {name:'Aria Party', desc:'Todo para tu fiesta — decoración, sorpresas y más.'},
@@ -296,7 +294,7 @@
     document.getElementById('heroDesc').textContent = 'Elige un departamento para ver sus productos.';
     var list = document.getElementById('deptList');
     var html = '';
-    Object.keys(DEPTS).sort().filter(function(k){ return !DEPTS[k].alias; }).forEach(function(k){
+    Object.keys(DEPTS).sort().forEach(function(k){
       html += '<a href="' + (DEPTS[k].href ? esc(DEPTS[k].href) : 'departamento.html?dept=' + encodeURIComponent(k)) + '">' + esc(DEPTS[k].name) + '</a>';
     });
     list.innerHTML = html;
@@ -594,12 +592,12 @@ function sizedImageUrl(url, w){
   /* ---------- card ---------- */
   var RET_LABELS = {
     walmart:'Walmart', oldnavy:'Old Navy', footlocker:'Foot Locker',
-    macys:"Macy's", victoriassecret:"Victoria's Secret",
+    macys:"Macy's", sephora:'Sephora', victoriassecret:"Victoria's Secret",
     dicks:"Dick's", pacsun:'Pacsun', skims:'SKIMS', revolve:'Revolve', ulta:'Ulta',
     yesstyle:'YesStyle', miumiu:'Miu Miu', partycity:'Party City', samsclub:"Sam's Club",
     costco:'Costco', kohls:"Kohl's", newbalance:'New Balance', bhphoto:'B&H Photo',
     crocs:'Crocs', dsw:'DSW', baublebar:'BaubleBar', jwpei:'JW PEI', finishline:'Finish Line',
-    zumiez:'Zumiez', hottopic:'Hot Topic', boxlunch:'BoxLunch', 
+    zumiez:'Zumiez', hottopic:'Hot Topic', boxlunch:'BoxLunch', ssense:'SSENSE',
     farfetch:'Farfetch', ccs:'CCS', venum:'Venum', tatami:'Tatami', everlast:'Everlast'
   };
   function storeLabel(r){ return (HEAD && HEAD.labels && HEAD.labels[r]) || RET_LABELS[r] || r; }

@@ -143,7 +143,7 @@ export function storeList(cards) {
    markdowns (50% or more) first, then the deepest single markdown,
    then the most deals. A store with fewer than MIN_RAIL deals has no
    rail of its own: its cards ride in one last rail, deepest first. */
-export const LEAD_BRANDS = ["victoriassecret", "macys", "gymshark", "youngla"];
+export const LEAD_BRANDS = ["victoriassecret", "sephora", "macys", "gymshark", "youngla"];
 export const LEAD_N = 20, LEAD_SPREAD = 5, MAX_RUN = 3, MIN_RAIL = 4, DEEP_PCT = 50;
 const leadRank = (c) => { const i = LEAD_BRANDS.indexOf(c.store); return i === -1 ? LEAD_BRANDS.length : i; };
 export function spreadByStore(sorted, lead) {

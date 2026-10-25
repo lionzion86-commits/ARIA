@@ -64,8 +64,8 @@ export const CATALOG_FILES = [
   "/nautilus-catalog.json", "/newbalance-catalog.json", "/pacsun-catalog.json",
   "/parrot-catalog.json", "/partycity-catalog.json", "/quietstorm-catalog.json",
   "/revolve-catalog.json", "/samsclub-catalog.json", "/skims-catalog.json",
-  "/soccer-catalog.json", "/statebags-catalog.json",
-  "/sunglasses-catalog.json", "/surfstation-catalog.json", 
+  "/soccer-catalog.json", "/ssense-catalog.json", "/statebags-catalog.json",
+  "/sunglasses-catalog.json", "/surfstation-catalog.json", "/surfworld-catalog.json",
   "/tatami-catalog.json", "/tennis-catalog.json",
   "/ulta-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json",
   "/yesstyle-catalog.json", "/zumiez-catalog.json",
@@ -104,8 +104,7 @@ export const DEPT_RULES = {
   sunglasses: { kind: "sunglasses" },
   mens_grooming: { buckets: ["grooming_men"] },
   combat_sports: { buckets: ["combat_sports"] },
-  /* jewelry folded into joyas_accesorios (#443 item 40): its old links
-     land there (departamento.html DEPTS.jewelry.href). */
+  jewelry: { buckets: ["jewelry"] },
   joyas_accesorios: { kind: "joyas" },
   purses: { buckets: ["purses"] },
   party: { kind: "party" },
@@ -137,8 +136,7 @@ export const KIND_MATCH = {
   soccer: (t) => hasAny(t, ["soccer", "futbol", "football boot", "cleat"]) && t.indexOf("american football") === -1,
   tennis: (t) => hasAny(t, ["tennis racket", "tennis racquet", "tennis ball", "tennis shoe", "tennis skirt"]),
   sunglasses: (t) => hasAny(t, ["sunglasses", "lentes de sol", "gafas de sol", "sun glasses"]),
-  /* A perfume called "Miss Charming" is not a charm (#443 item 40). */
-  joyas: (t, p) => (!p || p.retailer !== "ariaperfumes") && hasAny(t, ["earring", "necklace", "bracelet", "pendant", "charm", "anillo", "collar", "pulsera", "arete"]),
+  joyas: (t) => hasAny(t, ["earring", "necklace", "bracelet", "pendant", "charm", "anillo", "collar", "pulsera", "arete"]),
   party: (t) => hasAny(t, ["party", "fiesta", "balloon", "globo", "birthday", "cumplea", "decoration", "decoraci", "confetti", "piñata", "pinata"]),
   toys: (t) => hasAny(t, ["toy", "juguete", "lego", "doll", "muñeca", "action figure", "plush", "peluche", "board game", "puzzle"]),
   /* DSW (#443) is a shoe warehouse: everything it files outside its
@@ -149,7 +147,7 @@ export const KIND_MATCH = {
   shoes_women: (t, p) => KIND_MATCH.shoes(t, p) && (hasAny(t, ["women", "woman", "mujer", "ladies", "dama", "female"]) || (p && p.retailer === "dsw" && p.bucket === "women")),
   shoes_men: (t, p) => KIND_MATCH.shoes(t, p) && (hasAny(t, ["men", "man", "hombre", "mens", "caballero", "male"]) || (p && p.retailer === "dsw" && p.bucket === "men")),
   autoparts: (t) => hasAny(t, ["brake", "freno", "oil filter", "filtro de aceite", "spark plug", "bujía", "bujias", "air filter", "filtro de aire", "alternator", "alternador", "battery", "batería", "radiator", "radiador", "shock absorber", "amortiguador", "clutch", "embrague", "timing belt", "correa"]),
-  luxury: (t, p) => ["miumiu", "farfetch"].indexOf(p.retailer) !== -1 ||
+  luxury: (t, p) => ["ssense", "miumiu", "farfetch"].indexOf(p.retailer) !== -1 ||
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino"]),
 };
 

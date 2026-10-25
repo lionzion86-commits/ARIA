@@ -56,7 +56,7 @@
    ============================================================ */
 
 /* Matched against the retailer's own `type`, upper-cased. These are the
-   real values in the SSENSE catalogue and macys-catalog.json, not a
+   real values in ssense-catalog.json and macys-catalog.json, not a
    guess at what a type field might contain. */
 const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?)\b/;
 

@@ -219,7 +219,7 @@ await check("the lead rail is the homepage's Ofertas rail: mix only, spread over
   assert.ok(worst <= MAX_RUN, `a ${worst}-card run from one store`);
   /* The interleave and spread are the bundle's own (renderMobileDealsRail). */
   const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]+\.js$/.test(f)), "utf8");
-  assert.match(bundle, /const OFERTAS_LEAD_BRANDS = \['victoriassecret', 'macys', 'gymshark', 'youngla'\];/, "the homepage's pull brands moved: update LEAD_BRANDS");
+  assert.match(bundle, /const OFERTAS_LEAD_BRANDS = \['victoriassecret', 'sephora', 'macys', 'gymshark', 'youngla'\];/, "the homepage's pull brands moved: update LEAD_BRANDS");
   assert.match(bundle, /const OFERTAS_MAX_RUN = 3;/);
   assert.match(bundle, /const MOBILE_RAIL_LEAD = 5;/);
   assert.match(bundle, /const MOBILE_RAIL_DEALS = 20;/);

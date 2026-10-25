@@ -311,6 +311,7 @@ const RETAILER_CONFIG = {
      Add a DEPARTMENT_CONFIG block only if the actor supports real
      category browsing; without one, the store answers keyword searches,
      which is enough to launch on. */
+  sephora: null,
   victoriassecret: null,
   /* DSW (Issue #443) — VERIFIED 2026-10-22 (Lucifer): the actor is
      apify/e-commerce-scraping-tool, run on the dsw.com listing URLs in

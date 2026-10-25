@@ -24,11 +24,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
-/* Sephora (lane closed, resale prohibited), SSENSE (lane closed) and
-   Surf World (the store closed) followed Target out (#443 item 40);
-   Sephora's and SSENSE's data is shelved under hidden-docs/shelved/,
-   which is never served. */
-const CLOSED = { target: "Target", rockauto: "RockAuto", sephora: "Sephora", ssense: "SSENSE", surfworld: "Surf World" };
+const CLOSED = { target: "Target", rockauto: "RockAuto" };
 
 let passed = 0;
 const failures = [];
@@ -50,7 +46,7 @@ for (const [key, label] of Object.entries(CLOSED)) {
   });
 
   check(`${label}: no catalogue, logo or file-map entry`, () => {
-    const files = tracked.filter((f) => !f.startsWith("hidden-docs/") && new RegExp(`(^|/)(${key}-catalog|department-cache-${key})\\.json$|^logos/${key}\\.`).test(f));
+    const files = tracked.filter((f) => new RegExp(`(^|/)(${key}-catalog|department-cache-${key})\\.json$|^logos/${key}\\.`).test(f));
     assert.deepEqual(files, [], "files still present");
     const rx = new RegExp(`${key}-catalog\\.json|department-cache-${key}\\.json|logos/${key}\\.`);
     const bad = tracked.filter((f) => /\.(html|js|mjs)$/.test(f) && !/^(build\/min|scripts\/test|reports|hidden-docs)\//.test(f) && rx.test(readFileSync(ROOT + f, "utf8")));
@@ -59,14 +55,9 @@ for (const [key, label] of Object.entries(CLOSED)) {
 
   check(`${label}: no registry row in the bundle, the store pages or retailers.js`, () => {
     const rx = new RegExp(`(?:\\b${key}\\s*:\\s*\\{|['"]${key}['"]\\s*:\\s*\\{|\\{\\s*k:\\s*'${key}'|key:\\s*['"]${key}['"]|['"]${key}['"]\\s*:\\s*['"]${label}['"]|\\b${key}\\s*:\\s*['"]${label}['"])`);
-    const where = [`build/${bundle}`, "index.html", "tienda.html", "tiendas.html", "producto.html", "ofertas.html", "auto.html", "departamento.html", "scripts/lib/retailers.js"];
+    const where = [`build/${bundle}`, "index.html", "tienda.html", "producto.html", "ofertas.html", "auto.html", "departamento.html", "scripts/lib/retailers.js", "netlify/functions/_store-knowledge.js"];
     const bad = where.filter((f) => rx.test(readFileSync(ROOT + f, "utf8")));
     assert.deepEqual(bad, []);
-    /* The assistant's knowledge keeps no entry for it; its off-sale names
-       and live alternatives stay (named, she says it is off sale and names
-       a live door -- mechanism, like off-sale.js). */
-    const K = readFileSync(ROOT + "netlify/functions/_store-knowledge.js", "utf8");
-    assert.doesNotMatch(K, new RegExp(`\\n  ${key}: \\{\\n\\s+name:`), "the assistant still describes it as a store");
   });
 }
 
@@ -75,13 +66,6 @@ check("the Toys aisle and the store photo backdrop are Walmart only", () => {
   assert.match(src, /const STORE_CATEGORY_STORES = \['walmart'\];/);
   assert.ok(!/['"]target['"]\s*[,:\]]/.test(src), "a quoted 'target' store key survives in the bundle");
   assert.ok(!/storePhotoBg--target/.test(src));
-});
-
-check("the shelved data is under hidden-docs/ (forced 404), never at the root", () => {
-  assert.ok(existsSync(ROOT + "hidden-docs/shelved/ssense-catalog.json"), "SSENSE's catalogue is not shelved");
-  assert.ok(existsSync(ROOT + "hidden-docs/shelved/sephora-beauty-catalog.json"), "Sephora's rows are not shelved");
-  const toml = readFileSync(ROOT + "netlify.toml", "utf8");
-  assert.match(toml, /from = "\/hidden-docs\/\*"\s+to = "\/404"\s+status = 404\s+force = true/);
 });
 
 check("the photo-search manifest counts match the shards after the purge", () => {
