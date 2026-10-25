@@ -70,8 +70,9 @@ check("department, rails and the mix ask the same question of every catalogue it
   assert.ok(n > 100000, `only ${n} items loaded`);
 });
 
-check("the brief's spot checks: CCS, Walmart, SSENSE count the same everywhere; New Balance has no Ofertas", () => {
-  for (const rk of ["ccs", "walmart", "ssense", "finishline", "mainland"]) {
+check("the brief's spot checks: CCS, Walmart, Farfetch count the same everywhere; New Balance has no Ofertas", () => {
+  /* SSENSE closed (#443 item 40): Farfetch, the other designer house, takes its spot. */
+  for (const rk of ["ccs", "walmart", "farfetch", "finishline", "mainland"]) {
     const items = byStore[rk] || [];
     const dept = items.filter(P.rawItemOnSale).length, rail = items.filter(it => P.itemSaleTier(it) > 0).length;
     assert.ok(dept > 0, `${rk} has no sales at all`);

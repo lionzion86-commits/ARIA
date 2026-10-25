@@ -96,7 +96,7 @@ export const TOOL_DEFINITIONS = [
         query: { type: "string", description: "What the shopper is looking for. Spanish or English; misspellings are tolerated." },
         category: { type: "string", description: "Narrow to a department, e.g. \"clothing\", \"shoes\", \"beauty\"." },
         brand: { type: "string", description: "Narrow to a brand, e.g. \"Nike\"." },
-        store: { type: "string", description: "Narrow to one US store, e.g. \"walmart\", \"sephora\"." },
+        store: { type: "string", description: "Narrow to one US store, e.g. \"walmart\", \"ariaperfumes\"." },
         max_price_usd: { type: "number", description: "Only products at or below this USD price." },
         on_sale_only: { type: "boolean", description: "Only products currently discounted." },
         limit: { type: "integer", description: "How many products to return (1-50, default 20).", minimum: 1, maximum: 50 },

@@ -42,11 +42,9 @@ await check("the order's dress + bra resolve to a dress and a bra, not 0.05 kg e
   return `${c.totalKg} kg`;
 });
 
-await check("Victoria's Secret is no longer a beauty store; Sephora still is", () => {
+await check("Victoria's Secret is no longer a beauty store, and neither is Sephora (closed, #443 item 40)", () => {
   assert(!BEAUTY_RETAILERS.has("victoriassecret"), "victoriassecret still in BEAUTY_RETAILERS");
-  assert(BEAUTY_RETAILERS.has("sephora"), "sephora dropped");
-  const s = resolveItemWeight({ title: "Fixture Glow Balm", retailer: "sephora", priceUsd: 30 });
-  assert(s.source === "beauty", `a plain Sephora title should stay beauty, got ${s.source}`);
+  assert(!BEAUTY_RETAILERS.has("sephora"), "sephora is closed and still a beauty store");
 });
 
 const CLASSES = [
@@ -98,7 +96,7 @@ const PARITY = [...CLASSES.map((c) => c[0]), "Vintage Blossom Chiffon Ruffled Ma
 await check("the app bundle's estimator agrees with the module and the server, title by title", () => {
   for (const t of PARITY) {
     eq(P.estimateRetailWeightDetail(t, {}).kg, estimateWeightDetail(t, {}).kg, "page vs module: " + t);
-    for (const [retailer, priceUsd] of [["victoriassecret", 40], ["walmart", 20], ["sephora", 25]]) {
+    for (const [retailer, priceUsd] of [["victoriassecret", 40], ["walmart", 20], ["ulta", 25]]) {
       eq(P.estimateRetailWeightDetail(t, { retailer, priceUsd }).kg, resolveItemWeight({ title: t, retailer, priceUsd }).weightKg,
         `page vs server (${retailer}, $${priceUsd}): ${t}`);
     }

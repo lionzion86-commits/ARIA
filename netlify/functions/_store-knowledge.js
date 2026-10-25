@@ -1066,7 +1066,7 @@ const STORE_ALIASES = {
   "tatami fightwear": "tatami", "fuji sports": "fuji",
   "party city": "partycity", "chronicle books": "chronicle",
   "ulta beauty": "ulta", "yes style": "yesstyle", "nautilus spearfishing": "nautilus",
-  "macy's": "macys", "kohl's": "kohls",
+  "macy's": "macys", "kohl's": "kohls", "ssense": "ssense", "sense": "ssense", "surf world": "surfworld",
   /* Off-sale stores with no knowledge entry of their own (#443): named,
      they still have to resolve, or Aria answers "no conozco esa tienda"
      about a store she sold from last week. */
@@ -1084,6 +1084,9 @@ const STORE_ALIASES = {
 const OFF_SALE_NAMES = {
   nike: "Nike", gap: "Gap", bananarepublic: "Banana Republic", athleta: "Athleta",
   fendi: "Fendi", goldengoose: "Golden Goose", costco: "Costco",
+  /* Closed lanes whose store-knowledge entry is gone (#443 item 40): named,
+     she still says they are off sale and names a live door. */
+  ssense: "SSENSE", sephora: "Sephora", surfworld: "Surf World",
 };
 const OFF_SALE_ALTERNATIVES = {
   victoriassecret: ["skims", "eberjey"],
@@ -1099,8 +1102,11 @@ const OFF_SALE_ALTERNATIVES = {
   oldnavy: ["americaneagle", "walmart"],
   bananarepublic: ["americaneagle", "revolve"],
   athleta: ["skims", "dicks"],
-  ulta: [],
-  yesstyle: [],
+  ulta: ["walmart"],
+  yesstyle: ["walmart"],
+  ssense: ["farfetch", "revolve"],
+  sephora: ["walmart"],
+  surfworld: ["surfstation", "islandwatersports"],
   miumiu: ["farfetch", "revolve"],
   fendi: ["farfetch", "revolve"],
   goldengoose: ["farfetch", "revolve"],
@@ -1194,9 +1200,9 @@ export const AMBIGUOUS_INTERESTS = {
   belleza: {
     ask: "¿Maquillaje, skincare, o perfumes?",
     branches: {
-      maquillaje: [],
-      skincare: [],
-      perfumes: [],
+      maquillaje: ["walmart"],
+      skincare: ["walmart"],
+      perfumes: ["walmart"],
     },
   },
   "artes marciales": {

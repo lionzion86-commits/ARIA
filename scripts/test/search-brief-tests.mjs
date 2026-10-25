@@ -272,7 +272,9 @@ check("an off-sale store is never a search answer (victoria secret sales)", () =
   for (const h of r.hits) assert.ok(!isOffSaleRetailer(h.retailer), `"victoria secret sales" showed ${h.retailer} ${h.title}`);
 });
 check("brand names win over the dictionary", () => {
-  for (const [q, re] of [["new balance", /new balance/i], ["miu miu", /miu miu/i],
+  /* miu miu was SSENSE's (closed, #443 item 40): one Miu Miu product is left,
+     so Golden Goose ("golden" is a dictionary word) carries the check. */
+  for (const [q, re] of [["new balance", /new balance/i], ["golden goose", /golden goose/i],
     ["polo ralph lauren", /ralph lauren/i], ["youg la", /youngla|young la/i], ["calvin klein", /calvin klein/i]]) {
     /* tommy hilfiger was Macy's and Kohl's (off sale since #443). */
     const r = search(q);

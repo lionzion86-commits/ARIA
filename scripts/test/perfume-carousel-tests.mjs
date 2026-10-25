@@ -121,7 +121,8 @@ await check("no off-sale store and no Sephora on the rail", () => {
     assert(!isOffSaleRetailer(p.retailer), "off-sale store: " + p.retailer);
     assert(!Object.prototype.hasOwnProperty.call(EXCLUDED_RETAILERS, p.retailer), "excluded store: " + p.retailer);
   }
-  assert(EXCLUDED_RETAILERS.sephora, "Sephora is not on the rail's exclusion list");
+  /* Sephora is closed (#443 item 40): off sale, so off this rail with every other off-sale store. */
+  assert(isOffSaleRetailer("sephora"), "Sephora is neither excluded nor off sale");
 });
 await check("SALES ONLY, except the named hero anchors", () => {
   let sale = 0, anchors = 0;

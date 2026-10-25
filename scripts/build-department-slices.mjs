@@ -104,7 +104,8 @@ export const DEPT_RULES = {
   sunglasses: { kind: "sunglasses" },
   mens_grooming: { buckets: ["grooming_men"] },
   combat_sports: { buckets: ["combat_sports"] },
-  jewelry: { buckets: ["jewelry"] },
+  /* jewelry folded into joyas_accesorios (#443 item 40): its old links
+     land there (departamento.html DEPTS.jewelry.href). */
   joyas_accesorios: { kind: "joyas" },
   purses: { buckets: ["purses"] },
   party: { kind: "party" },

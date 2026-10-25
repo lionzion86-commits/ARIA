@@ -126,7 +126,8 @@ check("index.html: no Sephora word left anywhere in the page (rails, CSS, commen
 check("the app bundle: Sephora has no rail, strip or directory tile, store door, theme or interior photo", () => {
   const rails = /const STORE_RAIL_STORES = \[([^\]]*)\]/.exec(BUNDLE)[1];
   assert.doesNotMatch(rails, /'sephora'/, "Sephora is a homepage rail");
-  assert.match(BUNDLE, /const NO_STOREFRONT_STORES = new Set\(\['sephora'\]\);/);
+  /* Closed (#443 item 40): no registry row left to need a no-storefront flag. */
+  assert.doesNotMatch(BUNDLE, /\bsephora:\s*\{\s*key:\s*'sephora'/, "Sephora is still a registered store");
   const fnOf = (name) => { const i = BUNDLE.indexOf("function " + name + "("); assert.ok(i >= 0, name + " is gone"); return BUNDLE.slice(i, BUNDLE.indexOf("\n}\n", i)); };
   assert.match(fnOf("otherStoresStripOrder"), /hasStorefront\(r\.key\)/, "the Tiendas strip shows it");
   assert.match(fnOf("retailersByTier"), /hasStorefront\(r\.key\)/, "the Tiendas directory shows it");
@@ -146,7 +147,7 @@ check("tienda.html and producto.html: no Sephora storefront, no door to one", ()
   const stores = JSON.parse(/var STORES = (\{.*\});/.exec(readFileSync(ROOT + "tienda.html", "utf8"))[1]);
   assert.ok(!("sephora" in stores), "tienda.html still opens a Sephora storefront");
   const pdp = readFileSync(ROOT + "producto.html", "utf8");
-  assert.match(pdp, /var NO_STOREFRONT = \{ sephora: 1 \};/);
+  assert.doesNotMatch(pdp, /"sephora"/, "producto.html still maps Sephora");
   assert.match(pdp, /if \(tk && NO_STOREFRONT\[tk\]\) return '';/, "the product page links to the Sephora storefront");
 });
 
@@ -157,12 +158,15 @@ check("no generated Sephora merchandising: home shelf, storefront slices, store 
     assert.ok(!existsSync(ROOT + f), `${f} still exists`);
 });
 
-check("scope: Sephora is NOT off sale and its products stay (Danny's and Lucifer's decision)", () => {
-  assert.ok(!OFF.includes("sephora"), "sephora went onto off-sale.js -- that is a separate decision");
+/* SCOPE, UPDATED (#443 item 40, Lucifer: "Sephora (lane closed) ... comes
+   out in the Item 37-style sweep under existing rulings"): Sephora is off
+   sale and its products are gone from every served file -- shelved under
+   hidden-docs/shelved/, which is never served. */
+check("scope: Sephora is closed -- off sale, its products off the site, the data shelved", () => {
+  assert.ok(OFF.includes("sephora"), "sephora is not on off-sale.js");
   const beauty = JSON.parse(readFileSync(ROOT + "beauty-catalog.json", "utf8"));
-  const r = beauty.retailers && beauty.retailers.sephora;
-  const n = r ? Object.values(r.departments || {}).reduce((t, d) => t + (Array.isArray(d) ? d : (d && d.items) || []).length, 0) : 0;
-  assert.ok(n > 1000, `beauty-catalog.json carries ${n} Sephora products`);
+  assert.ok(!(beauty.retailers && beauty.retailers.sephora), "beauty-catalog.json still serves Sephora products");
+  assert.ok(existsSync(ROOT + "hidden-docs/shelved/sephora-beauty-catalog.json"), "Sephora's rows are not shelved");
 });
 
 /* ---------------- rendered: the word, as a shopper's phone shows it ---------------- */
