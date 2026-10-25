@@ -43,6 +43,8 @@ const PAGES = ["tienda.html", "netlify/functions/_search-core.js", "marca.html",
 const ENGINE = loadPageEngine();
 const spa = (raw, retailer) => ENGINE.pricing.normalizeLiveItem({ title: "x", price: raw, retailer }, { retailer });
 
+import { PRE_PRICED as PRE_PRICED_SRC } from "../../weight-data.js";
+
 function lift(src, sig) {
   const at = src.indexOf(sig);
   if (at < 0) return null;
@@ -54,9 +56,11 @@ function pagePricing(file) {
   const src = readFileSync(ROOT + file, "utf8");
   const margin = lift(src, "function tieredMarginUsd(") || lift(src, "function marginUsd(");
   const exempt = /var TAX_EXEMPT = (\{[^}]*\});/.exec(src);
-  const parts = [margin, exempt && exempt[0], lift(src, "function salesTaxRate("), lift(src, "function finalUsd(")];
+  /* #443 item 32: the pre-priced stores (Aria Perfumes). */
+  const pre = /var PRE_PRICED = (\{[^}]*\});/.exec(src);
+  const parts = [margin, exempt && exempt[0], pre && pre[0], lift(src, "function salesTaxRate("), lift(src, "function finalUsd(")];
   assert.ok(parts.every(Boolean), `${file}: pricing functions moved — update this test`);
-  const api = new Function(parts.join("\n") + "\nreturn { finalUsd, salesTaxRate, TAX_EXEMPT };")();
+  const api = new Function(parts.join("\n") + "\nreturn { finalUsd, salesTaxRate, TAX_EXEMPT, PRE_PRICED };")();
   return { ...api, src };
 }
 
@@ -72,7 +76,8 @@ for (const file of PAGES) {
   await check(`${file}: same price as the SPA card, tax included, for every kind of retailer`, () => {
     const P = pagePricing(file);
     assert.deepEqual(Object.keys(P.TAX_EXEMPT).sort(), SPA_EXEMPT, `${file}'s exempt list drifted from index.html`);
-    for (const retailer of ["walmart", "target", "autozone", "gymshark", "somebrandnew"]) {
+    assert.deepEqual(P.PRE_PRICED, { ...PRE_PRICED_SRC }, `${file}'s pre-priced list drifted from weight-data.js`);
+    for (const retailer of ["walmart", "target", "autozone", "gymshark", "somebrandnew", "ariaperfumes"]) {
       for (const raw of [5, 54.99, 499.99, 750, 2600]) {
         assert.equal(P.finalUsd(raw, retailer), spa(raw, retailer).price,
           `${file}: ${retailer} $${raw} shows ${P.finalUsd(raw, retailer)}, the SPA card shows ${spa(raw, retailer).price}`);

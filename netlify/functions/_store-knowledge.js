@@ -67,7 +67,7 @@ export const MIN_RECOMMEND_DEPTH = 50;
    is never allowed to recommend them. */
 export const NOT_STOCKED = {
   nordstrom: "Nordstrom", dyson: "Dyson",
-  sunglasshut: "Sunglass Hut", rockauto: "RockAuto", autozone: "AutoZone",
+  sunglasshut: "Sunglass Hut", autozone: "AutoZone",
   bathandbodyworks: "Bath & Body Works", morphe: "Morphe",
   fendi: "Fendi", goldengoose: "Golden Goose", townley: "Townley",
   cosrx: "COSRX", anua: "Anua", laneige: "Laneige", medicube: "medicube",
@@ -102,17 +102,6 @@ const STORE_KNOWLEDGE_ALL = {
     best_for: "compras grandes, esenciales de casa, juguetes para niños sin gastar mucho",
     not_for: "marcas de moda o diseñador — para eso Farfetch o Revolve",
     peru_note: "Es la tienda que todo el mundo ya conoce de nombre, así que no hay que explicar qué es.",
-  },
-  target: {
-    name: "Target",
-    vibe: "como Walmart pero más bonito — mejor diseño por casi el mismo precio",
-    specialties: ["juguetes", "hogar", "ropa de niños", "ropa casual", "decoración"],
-    price_range: "medio", median_usd: 30.99, product_count: 15773,
-    catalog_depth: "15,773 productos",
-    top_categories: ["juguetes", "ropa de niños", "hogar", "ropa"],
-    best_for: "juguetes, cosas de casa y ropa de niños con mejor diseño que Walmart",
-    not_for: "equipo deportivo serio o marcas de lujo",
-    peru_note: "LEGO, Barbie y Disney son el fuerte — las marcas que un papá peruano reconoce al instante.",
   },
   costco: {
     name: "Costco",
@@ -788,7 +777,7 @@ const STORE_KNOWLEDGE_ALL = {
     top_categories: ["computación", "gaming", "audio", "electrodomésticos pequeños", "celulares", "cámaras y drones"],
     best_for: "laptops, consolas, audífonos y celulares de marca: Apple, Samsung, Sony, HP, Lenovo, Nintendo",
     not_for: "televisores y electrodomésticos grandes — no se envían",
-    peru_note: "La tecnología de marca cuesta bastante más en Perú — acá se compara contra Walmart y Target en la misma búsqueda.",
+    peru_note: "La tecnología de marca cuesta bastante más en Perú — acá se compara contra Walmart en la misma búsqueda.",
   },
   bhphoto: {
     name: "B&H Photo",

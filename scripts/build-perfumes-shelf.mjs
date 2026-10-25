@@ -110,7 +110,10 @@ export async function buildPerfumesShelf() {
        the store's own numbers. */
     card.onSale = r.onSale;
     if (!r.onSale) { delete card.originalPrice; }
-    if (r.anchor) card.heroAnchor = r.anchor.id;
+    /* A hero anchor rides the rail at full price; one that is really on
+       sale (Aria Perfumes rows carry the store's list price) is a sale
+       card, not an anchor. */
+    if (r.anchor && !r.onSale) card.heroAnchor = r.anchor.id;
     cards.push(card);
   });
   const picks = orderRail(cards);

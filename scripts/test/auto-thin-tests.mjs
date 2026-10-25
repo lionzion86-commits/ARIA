@@ -41,7 +41,7 @@ function liftVar(src, name) {
   return m[0];
 }
 const pageFns = (() => {
-  const code = [liftVar(script, "STOP"), liftVar(script, "TAX_EXEMPT"),
+  const code = [liftVar(script, "STOP"), liftVar(script, "TAX_EXEMPT"), liftVar(script, "PRE_PRICED"),
     ...["function slug(", "function normPn(", "function normText(", "function stemTok(", "function phraseToks(", "function partTerms(",
       "function scorePart(", "function matchQuery(", "function tieredMarginUsd(", "function salesTaxRate(", "function finalUsd("].map((s) => lift(script, s)),
     /var VEHICLES = \[[\s\S]*?\n\];/.exec(script)[0]].join("\n");

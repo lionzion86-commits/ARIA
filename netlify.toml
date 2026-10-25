@@ -102,6 +102,16 @@
 # hidden-docs/ (#443): internal briefs and the blank Amex template live in
 # the repo for the build, not on the site. Forced so a published copy is
 # never served; any path under it answers 404.
+# price-index.json (#443 item 32): checkout's own price list, read only by
+# orders-create (included_files above). It carries each product's dutiable
+# base -- for Aria Perfumes that is the supplier's cost -- so it is never
+# served to a browser. No page fetches it.
+[[redirects]]
+  from = "/price-index.json"
+  to = "/404"
+  status = 404
+  force = true
+
 [[redirects]]
   from = "/hidden-docs/*"
   to = "/404"

@@ -262,6 +262,7 @@
     shoes_men:       {name:'Zapatos de Hombre', desc:'Calzado para él.'},
     auto_parts:      {name:'Repuestos', desc:'Repuestos y autopartes.'},
     luxury:          {name:'Diseñador y Lujo', desc:'Lujo y diseñador — piezas exclusivas.'},
+    perfumes:        {name:'Perfumes', desc:'Perfumes originales de diseñador y de nicho, con el precio final en soles.'},
     reacondicionados: {name:'Reacondicionados', desc:'Reacondicionados, de caja abierta y usados, con el estado que indica la tienda.'},
     /* Its own themed page (carousels first): ropa-interior.html. */
     ropa_interior:   {name:'Ropa Interior y Medias', desc:'Lo esencial, de las mejores marcas de USA.', href:'ropa-interior.html#hombre'},
@@ -362,8 +363,13 @@
      the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
      This page used to stop at the margin, 7% under the SPA's price. */
   var TAX_EXEMPT = {"walmart": 1};
+  /* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
+     price -- no margin, no Miami tax on top; the value is the factor that
+     takes it back to the goods' true value (the import-tax base). One list,
+     mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
+  var PRE_PRICED = {"ariaperfumes": 1.18};
   function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
-  function finalUsd(raw, retailer){
+  function finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(raw) * 100) / 100;
     var r = Number(raw);
     if (!(r > 0)) return NaN;
     return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;
@@ -585,7 +591,7 @@ function sizedImageUrl(url, w){
 
   /* ---------- card ---------- */
   var RET_LABELS = {
-    walmart:'Walmart', target:'Target', oldnavy:'Old Navy', footlocker:'Foot Locker',
+    walmart:'Walmart', oldnavy:'Old Navy', footlocker:'Foot Locker',
     macys:"Macy's", sephora:'Sephora', victoriassecret:"Victoria's Secret",
     dicks:"Dick's", pacsun:'Pacsun', skims:'SKIMS', revolve:'Revolve', ulta:'Ulta',
     yesstyle:'YesStyle', miumiu:'Miu Miu', partycity:'Party City', samsclub:"Sam's Club",
