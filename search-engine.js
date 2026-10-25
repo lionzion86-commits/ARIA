@@ -2139,7 +2139,7 @@ const DIVE_FIN_MARKERS = /\bfreediv|\bscuba\b|\bdive\b|\bdiving\b|\bsnorkel|\bap
 const SURF_FIN_MARKERS = /\bsurfboard\b|\blongboard\b|\bthruster\b|\bquad\b|\bfcs\b|\bfutures\b|\btraction\b|\bsurf\b/i;
 const TRACTION_PAD_RE = /\btraction pad\b/i;
 const DIVE_FIN_RETAILERS = new Set(['nautilus']);
-const SURF_FIN_RETAILERS = new Set(['islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland']);
+const SURF_FIN_RETAILERS = new Set(['islandwatersports', 'quietstorm', 'surfstation', 'mainland']);
 function hasFinWord(title){
   return FIN_PRODUCT_PLURAL.test(title) || FIN_PRODUCT_PHRASES.test(title);
 }

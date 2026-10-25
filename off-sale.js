@@ -7,10 +7,10 @@
   /* Retailer keys. Why each store is here: scripts/lib/off-sale.js. */
   var OFF_SALE_RETAILERS = [
     'victoriassecret', 'target',
-    'bestbuy', 'costco', 'nike', 'footlocker', 'kohls', 'macys',
+    'bestbuy', 'costco', 'nike', 'kohls', 'macys',
     'gap', 'oldnavy', 'bananarepublic', 'athleta',
-    'ulta', 'ssense', 'yesstyle', 'newbalance', 'gymshark', 'alphalete',
-    'miumiu', 'fendi', 'goldengoose', 'pacsun',
+    'ulta', 'yesstyle', 'newbalance', 'gymshark', 'alphalete',
+    'miumiu', 'fendi', 'goldengoose', 'pacsun', 'surfworld',
   ];
   var SET = {};
   for (var i = 0; i < OFF_SALE_RETAILERS.length; i++) SET[OFF_SALE_RETAILERS[i]] = true;

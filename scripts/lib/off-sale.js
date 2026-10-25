@@ -48,7 +48,14 @@
                       direct, Athleta, Fendi and Golden Goose direct have no
                       listings today and are listed so none is added by
                       mistake; Golden Goose through Farfetch/Revolve is
-                      retailer `farfetch` / `revolve` and stays. */
+                      retailer `farfetch` / `revolve` and stays.
+     surfworld        Surf World (#443 item 40): the store closed, Sept 2026.
+                      Gone from every served file as well (closed-store-purge).
+   BACK ON SALE AS UNTESTED LANES (#443, Danny, 2026-10-24; Item 35: real
+   orders or a test order decide the verdict):
+     ssense           22:50 -- Neiman Marcus is not secured; premium depth.
+     footlocker       23:34 -- no forwarder ban on its shipping page; its
+                      carousel returns with the lead store rails. */
 
 /* This module re-exports /off-sale.js for the builders, checkout.html and
    the Netlify functions; the list itself lives there, once. */
