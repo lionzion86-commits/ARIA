@@ -57,16 +57,28 @@ await check("launch pricing is one switch: the label shows exactly while the pro
   assert.ok(bm && (bm[1] === "true") === !!LAUNCH_PRICED.ariaperfumes, "the bundle's launch list drifted");
 });
 
-await check("the Perfumes banner sits high: right under Ofertas, above Aria Auto; motion is CSS only and stops for reduced motion", () => {
+await check("ONE Aria Perfumes block on the homepage (Danny's final spec, 2026-10-25): no standalone banner; the flagship carries the trio wall and the sheen; standard-size cards", () => {
   const html = readFileSync(ROOT + "index.html", "utf8");
-  const banner = html.indexOf("data-perfumes-banner"), ofertas = html.lastIndexOf('aria-label="Ofertas"', banner), auto = html.indexOf('aria-label="Aria Auto"');
-  assert.ok(banner > 0 && ofertas > 0 && banner < auto, "the banner is not between Ofertas and Aria Auto");
-  const between = html.slice(html.indexOf("</section>", ofertas) + 10, html.lastIndexOf("<section", banner)).replace(/<!--[\s\S]*?-->/g, "");
-  assert.ok(!/<section/.test(between), "something sits between Ofertas and the banner");
-  assert.match(html, /href="\/departamento\.html\?dept=perfumes" class="relative flex/);
+  assert.ok(!/data-perfumes-banner|ariaPerfumesBanner/.test(html), "the duplicate standalone banner is back");
+  /* one block per render: the phone and the desktop shopfronts each carry exactly one */
+  assert.equal((html.match(/<section aria-label="Aria Perfumes[^"]*"/g) || []).length, 2, "more than one Perfumes block per render");
+  for (const sec of html.split("data-perfumes-section class=").slice(1).map((x) => x.slice(0, x.indexOf("</section>")))) {
+    assert.match(sec, /class="ariaPerfumesSheen"/, "the flagship lost its sheen");
+    const trio = (sec.match(/data-perfumes-trio[\s\S]*?<\/div>/) || [""])[0];
+    for (const sku of ["ave34mc", "COMES17", "yyslm33"]) assert.ok(trio.includes(`/large/${sku}.jpg`), `the trio wall lacks ${sku}`);
+    assert.equal((trio.match(/<img /g) || []).length, 3, "the trio wall is not three bottles");
+  }
+  assert.match(html, /\.ariaPerfumesTrioTile img\{[^}]*object-fit:contain/, "the trio crops the bottles");
   assert.match(html, /@keyframes ariaPerfumesSheen\{[^}]*transform/);
-  assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \.ariaPerfumesBanner/);
-  assert.ok(!/<video|\.gif"/.test(html.slice(banner - 2000, banner + 2000)), "the banner carries a video or a GIF");
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \.ariaPerfumesBand \.ariaPerfumesSheen\{ animation:none/);
+  assert.ok(!/<video|\.gif"/.test(html), "the homepage carries a video or a GIF");
+  const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((x) => /^app-[0-9a-f]{16}\.js$/.test(x)), "utf8");
+  const paint = bundle.slice(bundle.indexOf("async function paintPerfumeRows"), bundle.indexOf("function initPerfumesRail"));
+  assert.ok(paint && !/xl:/.test(paint), "the flagship carousel still asks for the big cards");
+  /* the card's size classes are written whole so Tailwind can compile them */
+  assert.match(bundle, /\$\{xl \? 'w-\[224px\]' : 'w-\[172px\]'\}/);
+  const css = readFileSync(ROOT + "assets/css/tailwind.css", "utf8");
+  for (const c of ["w-\\[172px\\]", "h-\\[172px\\]", "w-\\[224px\\]", "h-\\[224px\\]"]) assert.ok(css.includes("." + c + "{"), c + " is not compiled");
 });
 
 await check("a public row carries no cost, no supplier link, no stock count", () => {
