@@ -57,16 +57,36 @@ await check("launch pricing is one switch: the label shows exactly while the pro
   assert.ok(bm && (bm[1] === "true") === !!LAUNCH_PRICED.ariaperfumes, "the bundle's launch list drifted");
 });
 
-await check("the Perfumes banner sits high: right under Ofertas, above Aria Auto; motion is CSS only and stops for reduced motion", () => {
+await check("ONE Aria Perfumes block (Danny's revision, 2026-10-25): store-photo backdrop with the sheen, no card row above the carousel, the trio leads it, cards feel alive", () => {
   const html = readFileSync(ROOT + "index.html", "utf8");
-  const banner = html.indexOf("data-perfumes-banner"), ofertas = html.lastIndexOf('aria-label="Ofertas"', banner), auto = html.indexOf('aria-label="Aria Auto"');
-  assert.ok(banner > 0 && ofertas > 0 && banner < auto, "the banner is not between Ofertas and Aria Auto");
-  const between = html.slice(html.indexOf("</section>", ofertas) + 10, html.lastIndexOf("<section", banner)).replace(/<!--[\s\S]*?-->/g, "");
-  assert.ok(!/<section/.test(between), "something sits between Ofertas and the banner");
-  assert.match(html, /href="\/departamento\.html\?dept=perfumes" class="relative flex/);
+  assert.ok(!/data-perfumes-banner|ariaPerfumesBanner/.test(html), "the duplicate standalone banner is back");
+  assert.ok(!/data-perfumes-trio|ariaPerfumesTrio/.test(html), "the static trio card row is back");
+  assert.equal((html.match(/<section aria-label="Aria Perfumes[^"]*"/g) || []).length, 2, "more than one Perfumes block per render");
+  for (const sec of html.split("data-perfumes-section class=").slice(1).map((x) => x.slice(0, x.indexOf("</section>")))) {
+    const hero = sec.slice(sec.indexOf("data-perfumes-hero"), sec.indexOf("data-perfumes-houses"));
+    assert.match(hero, /images\.pexels\.com\/photos\/36459921\//, "the backdrop is not Pexels 36459921");
+    assert.match(hero, /class="ariaPerfumesSheen"/, "the sheen is not over the backdrop");
+    assert.match(hero, /Precio de lanzamiento/, "the headline is not over the backdrop");
+    assert.ok(!/fragrancex|data-perfume-card/.test(hero), "the backdrop carries product photos or cards");
+  }
+  assert.match(html, /\.ariaPerfumesBackdrop\{[^}]*object-fit:cover/);
   assert.match(html, /@keyframes ariaPerfumesSheen\{[^}]*transform/);
-  assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \.ariaPerfumesBanner/);
-  assert.ok(!/<video|\.gif"/.test(html.slice(banner - 2000, banner + 2000)), "the banner carries a video or a GIF");
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \.ariaPerfumesBand \.ariaPerfumesSheen\{ animation:none/);
+  /* card motion: transform/box-shadow only, hover on pointers, focus on phones, none for reduced motion */
+  assert.match(html, /@media \(hover:hover\) and \(pointer:fine\)\{\s*\[data-perfumes-rail\] > button:hover\{ transform:scale\(1\.0[3-5]\)/);
+  assert.match(html, /\[data-perfumes-rail\] > button\.is-focus\{ transform:scale\(1\.0[3-5]\)/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \[data-perfumes-rail\] > button, \[data-perfumes-rail\] > button img\{ transition:none !important; transform:none !important \} \}/);
+  assert.ok(!/<video|\.gif"/.test(html), "the homepage carries a video or a GIF");
+  /* the trio leads the carousel, in Danny's order, as the exact bottles he named */
+  const shelf = JSON.parse(readFileSync(ROOT + "assets/home/shelves/perfumes.json", "utf8"));
+  assert.deepEqual(shelf.picks.slice(0, 3).map((p) => p.heroAnchor), ["creed-aventus", "chanel-coco-mademoiselle", "ysl-y"]);
+  assert.deepEqual(shelf.picks.slice(0, 3).map((p) => p.image.split("/").pop()), ["ave34mc.jpg", "COMES17.jpg", "yyslm33.jpg"]);
+  const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((x) => /^app-[0-9a-f]{16}\.js$/.test(x)), "utf8");
+  const paint = bundle.slice(bundle.indexOf("async function paintPerfumeRows"), bundle.indexOf("function initPerfumesRail"));
+  assert.ok(paint && !/xl:/.test(paint), "the flagship carousel still asks for the big cards");
+  assert.match(bundle, /\$\{xl \? 'w-\[224px\]' : 'w-\[172px\]'\}/);
+  const css = readFileSync(ROOT + "assets/css/tailwind.css", "utf8");
+  for (const c of ["w-\\[172px\\]", "h-\\[172px\\]", "w-\\[224px\\]", "h-\\[224px\\]"]) assert.ok(css.includes("." + c + "{"), c + " is not compiled");
 });
 
 await check("a public row carries no cost, no supplier link, no stock count", () => {

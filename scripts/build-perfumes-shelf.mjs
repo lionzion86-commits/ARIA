@@ -118,7 +118,8 @@ export async function buildPerfumesShelf() {
     if (r.anchor) card.heroAnchor = r.anchor.id;
     cards.push(card);
   });
-  const picks = orderRail(cards);
+  const leadOf = Object.fromEntries(anchors.filter((a) => Number.isFinite(a.lead)).map((a) => [a.id, a.lead]));
+  const picks = orderRail(cards, undefined, leadOf);
   return { rows, picks, census: census(rows), anchorsFound: [...new Set(cards.filter((c) => c.heroAnchor).map((c) => c.heroAnchor))] };
 }
 

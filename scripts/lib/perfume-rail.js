@@ -130,6 +130,13 @@ export function brandTier(it) { return designerOf(it) ? 0 : 1; }
 
 /* The hero anchor this row IS, or null: brand + every titleAll phrase,
    none of titleNone. */
+/* The file name of a row's photo, lower-cased, without extension or query:
+   .../large/COMES17.jpg -> "comes17". */
+export function imageKeyOf(row) {
+  const src = String((row && (row.image || row.imageUrl || row.image_url)) || "").split("?")[0];
+  return (src.split("/").pop() || "").replace(/\.[a-z0-9]+$/i, "").toLowerCase();
+}
+
 export function heroAnchorOf(row, anchors) {
   const title = titleOf(row);
   const hay = words(String(row.brand || "") + " | " + title);
@@ -140,6 +147,8 @@ export function heroAnchorOf(row, anchors) {
     /* An anchor pinned to one side (Creed Aventus is the men's bottle)
        skips a row the catalogue files for the other. */
     if (a.gender && row.gender && String(row.gender).toLowerCase() !== a.gender) continue;
+    /* An anchor pinned to one photo (Danny's lead trio) is that exact bottle. */
+    if (a.image && imageKeyOf(row) !== String(a.image).toLowerCase()) continue;
     return a;
   }
   return null;
@@ -222,7 +231,12 @@ export function census(rows) {
    bottle -- three 212s is one hero, not three), the premium heroes
    (Creed Aventus) get their reserved slots instead of being crowded out
    by a full rail, one fragrance never shows twice in two sizes, and no
-   house takes more than SALES_PER_HOUSE of the sale slots. */
+   house takes more than SALES_PER_HOUSE of the sale slots.
+
+   LEAD FIRST (#443 item 39 revision, Danny 2026-10-25): the anchors
+   carrying `lead` (Aventus, Coco Mademoiselle, Y) open the carousel in
+   that order, ahead of every rule below; `leadOf` maps a hero id to its
+   position. The rest of the rail is ordered as before. */
 export const SALES_PER_HOUSE = 2;
 export const PREMIUM_MAX = 2;
 const fragranceName = (p) => String(titleOf(p).split(" \u2014 ")[0] || titleOf(p)).toLowerCase().trim();
@@ -230,7 +244,13 @@ function onePerKey(list, keyOf) {
   const seen = new Set();
   return list.filter((p) => { const k = keyOf(p); if (seen.has(k)) return false; seen.add(k); return true; });
 }
-export function orderRail(cards, max = RAIL_MAX) {
+export function orderRail(cards, max = RAIL_MAX, leadOf = {}) {
+  const leadPos = (p) => (p.heroAnchor && Number.isFinite(leadOf[p.heroAnchor]) ? leadOf[p.heroAnchor] : null);
+  const leads = onePerKey([...cards].filter((p) => leadPos(p) != null).sort((a, b) => leadPos(a) - leadPos(b)), (p) => p.heroAnchor);
+  if (leads.length) {
+    const rest = orderRail(cards.filter((p) => leadPos(p) == null), max - leads.length);
+    return [...leads, ...rest].slice(0, max);
+  }
   const price = (p) => Number(p.price);
   const isPremium = (p) => price(p) >= PREMIUM_USD;
   const byTierThenPrice = (a, b) => (brandTier(a) - brandTier(b)) || (price(a) - price(b));

@@ -164,16 +164,34 @@ await check("designer houses lead the sales, cheapest first inside each tier", (
   }
   assert(PICKS.length && brandTier(PICKS[0]) === 0, "the rail does not open on a designer house");
 });
-await check("anchors take the anchor slots cheapest first; the most expensive card never leads", () => {
-  /* The premium heroes (Creed Aventus) ride their own reserved slots. */
-  const anchors = PICKS.map((p, i) => ({ p, i })).filter((x) => x.p.heroAnchor && Number(x.p.price) < PREMIUM_USD);
+await check("Danny's lead trio opens the rail; after it, anchors take the anchor slots cheapest first and the most expensive card never leads", () => {
+  /* LEAD FIRST (#443 item 39 revision, 2026-10-25): the anchors carrying
+     `lead` open the rail in that order; every rule below holds for the rest. */
+  const LEADS = ANCHORS
+    .filter((a) => Number.isFinite(a.lead)).sort((x, y) => x.lead - y.lead).map((a) => a.id);
+  assert(JSON.stringify(PICKS.slice(0, LEADS.length).map((p) => p.heroAnchor)) === JSON.stringify(LEADS), "the lead trio does not open the rail");
+  const REST = PICKS.slice(LEADS.length);
   const ids = PICKS.filter((p) => p.heroAnchor).map((p) => p.heroAnchor);
   assert(new Set(ids).size === ids.length, "a hero shows twice: " + ids.join(", "));
+  /* The premium heroes (Creed Aventus) ride their own reserved slots. */
+  const anchors = REST.map((p, i) => ({ p, i })).filter((x) => x.p.heroAnchor && Number(x.p.price) < PREMIUM_USD);
   for (let k = 1; k < anchors.length; k++) assert(Number(anchors[k - 1].p.price) <= Number(anchors[k].p.price), "anchors not cheapest first");
   for (const { i } of anchors.slice(0, ANCHOR_SLOTS.length)) assert(ANCHOR_SLOTS.includes(i) || i >= ANCHOR_SLOTS.length, "anchor off its slot at " + i);
-  const top = Math.max(...PICKS.map((p) => Number(p.price)));
-  assert(Number(PICKS[0].price) < top, "the most expensive card leads");
-  assert(Number(PICKS[0].price) < PREMIUM_USD, "a premium card leads");
+  const top = Math.max(...REST.map((p) => Number(p.price)));
+  assert(Number(REST[0].price) < top, "the most expensive card leads the rest of the rail");
+  assert(Number(REST[0].price) < PREMIUM_USD, "a premium card leads the rest of the rail");
+});
+await check("orderRail: lead anchors open the rail in their order, whatever their price", () => {
+  const card = (title, price, extra = {}) => ({ title, price, onSale: true, ...extra });
+  const rail = orderRail([
+    card("Versace Eros Eau de Toilette", 60),
+    card("Y Eau de Toilette", 127, { onSale: false, heroAnchor: "ysl-y" }),
+    card("Creed Aventus Eau de Parfum", 480, { onSale: false, heroAnchor: "creed-aventus" }),
+    card("Coco Mademoiselle Eau de Parfum", 179, { onSale: false, heroAnchor: "chanel-coco-mademoiselle" }),
+    card("Dior Sauvage Eau de Toilette", 105, { onSale: false, heroAnchor: "dior-sauvage" }),
+  ], 16, { "creed-aventus": 1, "chanel-coco-mademoiselle": 2, "ysl-y": 3 });
+  assert(rail.slice(0, 3).map((p) => p.heroAnchor).join() === "creed-aventus,chanel-coco-mademoiselle,ysl-y", "the leads are out of order");
+  assert(rail.length === 5, "a card was lost");
 });
 await check("orderRail: anchors in slots, sales by tier then price, premium sprinkled never first", () => {
   const card = (title, price, extra = {}) => ({ title, price, onSale: true, ...extra });
