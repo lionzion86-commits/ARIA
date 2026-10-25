@@ -141,9 +141,10 @@ await check("horizontal rails, not a grid: the lead rail first, a rail per store
 await check("the homepage's large card: 172px navy tile, white photo square, gold badge, soles first", async () => {
   const c = await page.evaluate(() => {
     const card = document.querySelector("#content .rail .card:not(.sk)");
-    const img = card.querySelector(".card-img").getBoundingClientRect();
-    const b = card.getBoundingClientRect();
-    return { w: b.width, imgW: img.width, imgH: img.height, bg: getComputedStyle(card).backgroundColor,
+    /* layout sizes: the card nearest the middle is grown by the focus
+       scale (assets/js/card-grow.js), which a bounding box would include */
+    const img = card.querySelector(".card-img");
+    return { w: card.offsetWidth, imgW: img.offsetWidth, imgH: img.offsetHeight, bg: getComputedStyle(card).backgroundColor,
       badgeBg: getComputedStyle(card.querySelector(".badge")).backgroundColor,
       price: card.querySelector(".price").textContent, old: card.querySelector(".price-old").textContent,
       usd: card.querySelector(".price-usd").textContent, href: card.getAttribute("href"),
