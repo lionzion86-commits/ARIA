@@ -11,10 +11,10 @@
 // returning empty results, since Actors and their schemas can change.
 // Department/category browsing (Phase 0/1 of the department-store
 // restructuring). PHASE 0 STATUS (2026-09-17): all four retailers below
-// (walmart, target, oldnavy, footlocker) are now REAL-TEST CONFIRMED —
+// (walmart, oldnavy, footlocker) are now REAL-TEST CONFIRMED —
 // actual Apify runs through this exact buildInput, verified to return
 // real, non-empty product data (see the dated comment on each section).
-// Still open: BRAND_CONFIG.target.nike (unconfirmed, prior 404), plus
+// Still open:
 // refresh-department-cache.js and the frontend UI to actually call any
 // of this haven't been built yet. An entry that fails real testing
 // should be set to null (falls back to plain keyword search for that
@@ -33,7 +33,8 @@ import {
 } from "./_ondemand.js";
 
 export const DEPARTMENT_CONFIG = {
-  // All 6 Walmart URLs and all 6 Target URLs below are REAL-TEST CONFIRMED
+  // All 6 Walmart URLs below are REAL-TEST CONFIRMED (Target, closed as a
+  // source 2026-10-22, was removed with its URLs: #443 item 37)
   // (2026-09-17) — actual Apify runs against this exact actor+URL,
   // verified to return real, non-empty product data. Not guesses.
   //
@@ -68,22 +69,6 @@ export const DEPARTMENT_CONFIG = {
     // degrades to "fewer results", never to a hard error. Swap in a
     // confirmed categoryUrl once one has been verified by a real run.
     men:              { categoryUrl: "https://www.walmart.com/browse/clothing/mens-clothing/5438_133197_7185501" },
-    women:            { searchQuery: "womens clothing" },
-    kids:             { searchQuery: "kids clothing" },
-  },
-  target: {
-    electronics:      { startUrl: "https://www.target.com/c/electronics/-/N-5xtg6" },
-    clothing:         { startUrl: "https://www.target.com/c/men/-/N-18y1l" },
-    candy_chocolate:  { startUrl: "https://www.target.com/c/chocolate-candy-grocery/candy-bars/-/N-5xt0bZh20t5" },
-    sporting_goods:   { startUrl: "https://www.target.com/c/sports-equipment-outdoors/-/N-5xt52" },
-    home_goods:       { startUrl: "https://www.target.com/c/bedding-home-decor/-/N-5xtv4" },
-
-    // Same reasoning as Walmart above. `men` reuses the REAL-TEST
-    // CONFIRMED /c/men/ start URL (which "clothing" also points at).
-    // NOT TEST CONFIRMED: `women` and `kids` go through the keyword
-    // mechanism — Target's /c/<slug>/-/N-<code> URLs need the exact
-    // N-code, and a wrong one returns nothing at all.
-    men:              { startUrl: "https://www.target.com/c/men/-/N-18y1l" },
     women:            { searchQuery: "womens clothing" },
     kids:             { searchQuery: "kids clothing" },
   },
@@ -144,17 +129,6 @@ export const DEPARTMENT_CONFIG = {
 // Cross-retailer brand search (Phase 4) — same "real candidate, not yet
 // test-confirmed" status as DEPARTMENT_CONFIG above.
 export const BRAND_CONFIG = {
-  target: {
-    // REAL-TEST CONFIRMED NULL (2026-09-17): Target does not carry Nike.
-    // The old startUrl (a stale category facet ID) doesn't 404 — worse,
-    // it silently resolves to a generic shoes page (Reebok/Universal
-    // Thread/etc, zero Nike items). Three separate real keyword searches
-    // ("nike shoes", "nike", "jordan") against this exact actor also
-    // returned zero Nike-branded items. Matches Nike's real-world 2005
-    // split from Target's wholesale channel — not a scraper bug. Left
-    // unset so brand="nike" falls back to a plain keyword search per the
-    // plan's fallback rule, same as Walmart's no-brand-mode case.
-  },
   footlocker: {
     // browseByBrand mode is actor-confirmed; the brand strings are the
     // actor's own case-sensitive enum (revealed by its input validation
@@ -228,27 +202,6 @@ const RETAILER_CONFIG = {
       // both, so either kind resolves to a real run.
       const target = dept ? (dept.categoryUrl || dept.searchQuery) : query;
       return { targets: [target], maxResults: maxItems };
-    },
-  },
-  target: {
-    // Switched from scrapers_lat/target-scraper: real test runs against it
-    // came back with 0 items even for common search terms (e.g. "phone
-    // charger") regardless of zip. This one defaults to Target's online
-    // catalog store rather than requiring a specific local store to match.
-    actorId: "rigelbytes/target-scraper",
-    buildInput: (query, maxItems, department, brand) => {
-      const dept = department && DEPARTMENT_CONFIG.target[department];
-      const brandCfg = brand && BRAND_CONFIG.target?.[brand];
-      // BUG FIX (found via real test call): startUrls needs an array of
-      // {url} objects, not bare strings — confirmed via the actor's own
-      // input schema example after a real call failed with "do not
-      // contain valid URLs".
-      // startUrl where a confirmed category URL exists; otherwise the
-      // department falls back to its keyword (see DEPARTMENT_CONFIG).
-      if (dept?.startUrl) return { startUrls: [{ url: dept.startUrl }], maxItems };
-      if (dept?.searchQuery) return { searchQueries: [dept.searchQuery], maxItems };
-      if (brandCfg) return { startUrls: [{ url: brandCfg.startUrl }], maxItems };
-      return { searchQueries: [query], maxItems };
     },
   },
   oldnavy: {

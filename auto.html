@@ -310,8 +310,13 @@ function tieredMarginUsd(raw){
     + Math.max(r-5000,0)*0.08;
 }
 var TAX_EXEMPT = {"walmart": 1};
+/* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
+   price -- no margin, no Miami tax on top; the value is the factor that
+   takes it back to the goods' true value (the import-tax base). One list,
+   mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
+var PRE_PRICED = {"ariaperfumes": 1.18};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
-function finalUsd(raw, retailer){
+function finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(raw) * 100) / 100;
   var r = Number(raw);
   if (!(r > 0)) return NaN;
   return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;
@@ -441,7 +446,7 @@ function matchQuery(q, idx){
 }
 
 /* ---------- cards ---------- */
-var SOURCE_LABELS = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts', rockauto: 'RockAuto' };
+var SOURCE_LABELS = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts' };
 function sourceLabel(k){ return SOURCE_LABELS[String(k||'').toLowerCase()] || String(k||'Tienda'); }
 var LOCATION_ES = { front: 'Delantera', rear: 'Trasera', 'front and rear': 'Delantera y trasera', left: 'Izquierda', right: 'Derecha' };
 /* DELANTERO / TRASERO (2026-10-13, #386 F10). Pads and rotors go on one

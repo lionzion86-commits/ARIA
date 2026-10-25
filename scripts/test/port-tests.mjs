@@ -17,7 +17,8 @@
                 several products (a model line in many colourways)
                 matches nothing;
      off sale   an unmatched off-sale product stays off sale: retained
-                on disk, never searchable, never priced;
+                on disk, never searchable, never priced; a CLOSED store
+                (Target, #443 item 37) is gone from disk entirely;
      data       every ported record names only allowed fields, keeps its
                 own price/url/retailer/sizes, and the script is
                 idempotent (a dry re-run writes exactly what is on disk).
@@ -112,12 +113,15 @@ await check("model code: LEGO 75424 (Best Buy, off sale) is on sale under Walmar
 const BARBIE_DEAD = "Barbie Royal Doll with Brightly Highlighted Hair, Butterfly-Print Skirt and Accessories";
 const BARBIE_LIVE = "Barbie Royal Fashion Doll with Blonde Hair, Removable Skirt & Accessories [Walmart Exclusive]";
 await check("name only: the Barbie Royal pair (c.6299236303) does NOT match", async () => {
-  const dead = findRec("target", BARBIE_DEAD), live = findRec("walmart", BARBIE_LIVE);
-  assert(dead && live, "both Barbie records must be in the catalogues");
+  /* Target's catalogue is gone (#443 item 37), so its doll is rebuilt
+     from the record as it was listed; Walmart's is the live one. */
+  const dead = toRecord({ name: BARBIE_DEAD, brand: "Barbie", price: 13.99, url: "https://dead.example/barbie-royal" }, "target");
+  const live = findRec("walmart", BARBIE_LIVE);
+  assert(live, "the Walmart Barbie record must be in the catalogues");
   assert(matchAll([dead, live]).matches.length === 0, "the pair matched");
   assert(!report.matches.some((m) => m.dead.title === BARBIE_DEAD || m.live.some((l) => l.title === BARBIE_LIVE)), "the report carries a Barbie Royal match");
   assert(!live.it.portedFrom, "the Walmart doll must keep its own data");
-  return "Target $" + dead.it.price + " doll vs Walmart $" + live.it.price + " doll: no match";
+  return "Target doll vs Walmart $" + live.it.price + " doll: no match";
 });
 await check("name only: an identical title with no GTIN and no code does NOT match", async () => {
   const it = { name: "Sparkle Pony Plush Friend", brand: "Toyco", price: 12 };
@@ -141,14 +145,21 @@ await check("variants: the same code with a conflicting capacity does NOT match"
 });
 
 /* ---------------- unmatched stays off sale ---------------- */
-await check("unmatched: the Target Barbie Royal Doll stays off sale, data retained", async () => {
-  const dead = findRec("target", BARBIE_DEAD);
-  assert(dead && isOffSaleRetailer(dead.retailer), "retained on disk under its off-sale store");
+await check("unmatched: an off-sale store's unmatched products stay off sale, data retained", async () => {
+  const kept = Object.entries(report.stores).filter(([k, st]) => k !== "target" && st.catalogueProducts > 0 && st.offSale > 0);
+  assert(kept.length, "no off-sale store with retained products in the report");
+  for (const [k, st] of kept) {
+    assert(isOffSaleRetailer(k), k + " is not off sale");
+    assert(!rows.some((r) => r.retailer === k), "a " + k + " row in search");
+    assert(st.offSale + st.resourced === st.catalogueProducts, "every " + k + " product is either off sale or re-sourced");
+  }
+  return kept.map(([k, st]) => `${k} ${st.offSale}`).slice(0, 4).join(", ");
+});
+await check("closed: Target (#443 item 37) is gone from disk, search and prices, not merely off sale", async () => {
+  assert(!recs.some((r) => r.retailer === "target"), "a Target record is still on disk");
   assert(!rows.some((r) => r.retailer === "target"), "no Target row in search");
   assert(!priceIndex[productIdFor("target", BARBIE_DEAD)], "no Target price");
-  const s = report.stores.target;
-  assert(s.offSale + s.resourced === s.catalogueProducts, "every Target product is either off sale or re-sourced");
-  return `target: ${s.offSale} off sale, ${s.resourced} re-sourced of ${s.catalogueProducts}`;
+  assert(!recs.some((r) => r.it.portedFrom && r.it.portedFrom.from === "target"), "a listing still carries data ported from Target");
 });
 
 /* ---------------- the ported data ---------------- */

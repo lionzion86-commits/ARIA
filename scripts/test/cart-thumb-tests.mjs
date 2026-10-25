@@ -130,7 +130,8 @@ const LEGACY = [
 ];
 const DEAD = { retailer: "americaneagle", title: "AE Laidback Luxe Quarter-Zip Sweatshirt", file: "ae-catalog.json", selectedSize: "L", priceUsd: 59.95, weightKg: 0.6,
   image: "https://s7d2.scene7.com/is/image/aeo/battery_dead_photo_of" };
-const HOUSE = { retailer: "target", title: "Barbie Dreamhouse Pool Party Doll House with 75+ pc, 3 Story Slide: Adult Assembly, Fits 12 Inch Dolls", file: "juguetes-catalog.json", priceUsd: 150, weightKg: 8 };
+/* The Dreamhouse line was Target's; Target is gone (#443 item 37), so Walmart's carries it. */
+const HOUSE = { retailer: "walmart", title: "Barbie Dreamhouse Pool Party Doll House and Playset with 75+ Pieces, 45 in, Slide & Puppy Elevator", file: "juguetes-catalog.json", priceUsd: 279.99, weightKg: 8 };
 for (const x of [...LEGACY, DEAD, HOUSE]) {
   x.want = recordImage(x.retailer, x.title);
   assert(inCatalog(x.file, x.want), `${x.title}: shard photo not in ${x.file}`);

@@ -74,8 +74,13 @@ function tieredMarginUsd(rawUsd){
        + Math.max(r-5000,0)*0.08;
 }
 var TAX_EXEMPT = {"walmart": 1};
+/* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
+   price -- no margin, no Miami tax on top; the value is the factor that
+   takes it back to the goods' true value (the import-tax base). One list,
+   mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
+var PRE_PRICED = {"ariaperfumes": 1.18};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
-function finalUsd(raw, retailer){ return Math.round((Number(raw) + tieredMarginUsd(raw)) * salesTaxRate(retailer) * 100) / 100; }
+function finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(raw) * 100) / 100; return Math.round((Number(raw) + tieredMarginUsd(raw)) * salesTaxRate(retailer) * 100) / 100; }
 export { tieredMarginUsd, salesTaxRate, finalUsd, TAX_EXEMPT };
 
 /* ---------- the engine, in its own realm ---------- */

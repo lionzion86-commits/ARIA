@@ -41,7 +41,7 @@ export const STATIC_MIN = 12;
 
 /* The page's 63 sources, in the page's order. */
 export const CATALOG_FILES = [
-  "/department-cache-walmart.json", "/department-cache-target.json",
+  "/department-cache-walmart.json",
   "/department-cache-oldnavy.json", "/department-cache-footlocker.json",
   "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json",
   "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json",
@@ -60,7 +60,7 @@ export const CATALOG_FILES = [
   "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json",
   "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json",
   "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json",
-  "/target-catalog.json", "/soccer-catalog.json", "/tennis-catalog.json",
+  "/soccer-catalog.json", "/tennis-catalog.json",
   "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json",
   "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json",
   "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json",
@@ -69,6 +69,8 @@ export const CATALOG_FILES = [
   "/bestbuy-catalog.json",
   /* DSW (#443): the committed empty envelope until the pull lands. */
   "/dsw-catalog.json",
+  /* Aria Perfumes (#443 item 32). */
+  "/perfumes-catalog.json",
 ];
 
 const EXTRA_LABELS = {

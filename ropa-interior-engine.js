@@ -88,6 +88,7 @@
     if (!title) return null;
     var brand = String(it.brand || '').trim();
     if (EXCLUDED_BRANDS.test(brand) || EXCLUDED_RETAILERS[retailer]) return null;
+    if (/^(?:fragancia|fragrance|cologne|perfume)$/i.test(String(it.type || '')) || retailer === 'ariaperfumes') return null;
     var hay = text(it);
     var dept = String(bucket || '');
     /* 2. Women's and kids' are out, by any signal. */
@@ -210,6 +211,8 @@
     var dept = String(bucket || '');
     var hay = text(it);
     if (W_EXCLUDED_DEPTS.test(dept)) return null;
+    /* A fragrance is never intimates (#443 item 32: "My Baby Doll" is a perfume). */
+    if (/^(?:fragancia|fragrance|cologne|perfume)$/i.test(typeField) || retailer === 'ariaperfumes') return null;
     /* Victoria's Secret: intimates types only (no Ropa, Pijamas, beauty). */
     if (retailer === 'victoriassecret' && !VS_INTIMATE_TYPES.test(typeField)) return null;
     /* 1. Men's anywhere: the men's feed's item. */

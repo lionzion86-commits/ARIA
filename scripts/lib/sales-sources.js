@@ -25,9 +25,6 @@ export const SALES_SOURCES = [
   { retailer: "walmart", department: "clothing" },
   { retailer: "walmart", department: "electronics" },
   { retailer: "walmart", department: "sporting_goods" },
-  { retailer: "target", department: "clothing" },
-  { retailer: "target", department: "electronics" },
-  { retailer: "target", department: "sporting_goods" },
 ];
 
 // Must match index.html exactly.

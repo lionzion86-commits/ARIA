@@ -76,15 +76,6 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
-  target: {
-    key: "target",
-    label: "Target",
-    color: "#CC0000",
-    logo: "logos/target.svg",
-    tagline: "Ropa, hogar y belleza",
-    kind: "general",
-    search: true,
-  },
   /* ============================================================
      THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
 
@@ -155,6 +146,20 @@ export const RETAILERS = {
     search: false,
     browse: true,
     pendingCatalog: true,
+  },
+  /* ARIA PERFUMES (#443 item 32) -- the Perfumes department's own stock,
+     from the audited FragranceX feed (scripts/build-perfumes-catalog.mjs).
+     Catalogue, no actor (browse: true, search: false). Priced by Aria
+     (PRE_PRICED in weight-data.js). No logo file: the name is the badge. */
+  ariaperfumes: {
+    key: "ariaperfumes",
+    label: "Aria Perfumes",
+    color: "#0A1F44",
+    logo: null,
+    tagline: "Perfumes originales, de diseñador y de nicho",
+    kind: "general",
+    search: false,
+    browse: true,
   },
   /* NEW BALANCE (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
@@ -998,9 +1003,7 @@ export const RETAILERS = {
   },
   /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
      Mirrors index.html. Within each tier: green-tier shippers, then
-     yellow, then red, then stores with no researched delivery data yet.
-     RockAuto removed 2026-09-26 (Danny's call); row kept retired so a
-     label still resolves for historical orders. */
+     yellow, then red, then stores with no researched delivery data yet. */
   ssense: {
     key: "ssense",
     label: "SSENSE",
@@ -1230,18 +1233,6 @@ export const RETAILERS = {
     retired: true,
     retiredNote: "Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.",
   },
-  rockauto: {
-    key: "rockauto",
-    label: "RockAuto",
-    color: "#303090",
-    logo: "logos/rockauto.png",
-    tagline: "Catálogo profundo de repuestos — vía Aria Auto",
-    // Aria Auto's second part-search source; same exclusion as AutoZone.
-    kind: "auto",
-    search: false,
-    retired: true,
-    retiredNote: "Eliminada por Danny (2026-09-26).",
-  },
   /* ============================================================
      SSENSE (2026-09-22) — THE HIGH-END TIER, AND NORDSTROM'S REPLACEMENT
 
@@ -1388,7 +1379,7 @@ export function isBeautyRetailer(key) {
  * The door resolves from the PRODUCT's own store field, never from the
  * browsing context: a shirt opened from Big and Tall and the same shirt
  * opened from Curvy each resolve to their own store. Auto-kind
- * retailers (AutoZone, RockAuto) open the Aria Auto workshop; every
+ * retailers (AutoZone) open the Aria Auto workshop; every
  * other known store opens its storefront through openStore(), which
  * says plainly "Catálogo en preparación" while a catalogue is still
  * being connected — a door, never a dead end. Retired rows and unknown
