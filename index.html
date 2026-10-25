@@ -655,23 +655,6 @@ window.doSearch = function(which){
   .ariaPerfumesHero{ position:relative; overflow:hidden }
   .ariaPerfumesBackdrop{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 62% }
   .ariaPerfumesScrim{ position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg, rgba(11,10,8,.80) 0%, rgba(11,10,8,.55) 48%, rgba(11,10,8,.30) 72%, #0B0A08 100%) }
-  /* CARDS THAT FEEL ALIVE (#443 interaction standard, Danny 2026-10-25; pilot on
-     the Perfumes carousel): a pointer hover grows the card a touch, deepens its
-     shadow and eases the photo in; on a phone the card nearest the middle of
-     the carousel takes the same focus, and a tap presses it. Transform and
-     box-shadow only, nothing under reduced motion. */
-  [data-perfumes-rail] > button{ transition:transform 260ms ease, box-shadow 260ms ease; will-change:transform }
-  [data-perfumes-rail] > button img{ transition:transform 300ms ease }
-  @media (hover:hover) and (pointer:fine){
-    [data-perfumes-rail] > button:hover{ transform:scale(1.04); box-shadow:0 14px 30px rgba(0,0,0,.45) }
-    [data-perfumes-rail] > button:hover img{ transform:scale(1.06) }
-  }
-  @media (hover:none){
-    [data-perfumes-rail] > button.is-focus{ transform:scale(1.04); box-shadow:0 14px 30px rgba(0,0,0,.45) }
-    [data-perfumes-rail] > button.is-focus img{ transform:scale(1.04) }
-    [data-perfumes-rail] > button:active{ transform:scale(.97) }
-  }
-  @media (prefers-reduced-motion: reduce){ [data-perfumes-rail] > button, [data-perfumes-rail] > button img{ transition:none !important; transform:none !important } }
   .ariaHouseCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
   .ariaJyCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
   .ariaKidsCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
@@ -1526,6 +1509,8 @@ window.doSearch = function(which){
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
 <script src="/assets/js/pixels.js" async></script>
+<!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
+<script src="/assets/js/card-grow.js" defer></script>
 <!-- TAILWIND, PREBUILT (2026-10-19, #417 iPhone QA): scripts/build-tailwind.mjs.
      It was the cdn.tailwindcss.com runtime, compiling every class on the
      shopper's phone while the page sat white. Last in the head, where the
@@ -6506,37 +6491,6 @@ initRouter();
 })();
 </script>
 
-<script>
-/* PHONE FOCUS (#443 interaction standard, pilot on the Perfumes carousel): with
-   no hover, the card nearest the middle of the carousel takes the focus scale
-   as it scrolls in. One passive listener per rail, one rAF per frame, class
-   toggles only; off under reduced motion and on pointer devices (they hover). */
-(function(){
-  if (!window.matchMedia || !matchMedia("(hover: none)").matches) return;
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  function watch(row){
-    var queued = false, last = null;
-    function focus(){
-      queued = false;
-      var r = row.getBoundingClientRect(), mid = r.left + r.width / 2, best = null, bestD = Infinity;
-      for (var c = row.firstElementChild; c; c = c.nextElementSibling) {
-        var b = c.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - mid);
-        if (d < bestD) { bestD = d; best = c; }
-      }
-      if (best === last) return;
-      if (last) last.classList.remove("is-focus");
-      if (best) best.classList.add("is-focus");
-      last = best;
-    }
-    function queue(){ if (!queued) { queued = true; requestAnimationFrame(focus); } }
-    row.addEventListener("scroll", queue, { passive: true });
-    new MutationObserver(function(){ last = null; queue(); }).observe(row, { childList: true });
-    queue();
-  }
-  function arm(){ document.querySelectorAll("[data-perfumes-rail]").forEach(watch); }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arm); else arm();
-})();
-</script>
 </body>
 </html>
 

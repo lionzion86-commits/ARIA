@@ -72,10 +72,10 @@ await check("ONE Aria Perfumes block (Danny's revision, 2026-10-25): store-photo
   assert.match(html, /\.ariaPerfumesBackdrop\{[^}]*object-fit:cover/);
   assert.match(html, /@keyframes ariaPerfumesSheen\{[^}]*transform/);
   assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \.ariaPerfumesBand \.ariaPerfumesSheen\{ animation:none/);
-  /* card motion: transform/box-shadow only, hover on pointers, focus on phones, none for reduced motion */
-  assert.match(html, /@media \(hover:hover\) and \(pointer:fine\)\{\s*\[data-perfumes-rail\] > button:hover\{ transform:scale\(1\.0[3-5]\)/);
-  assert.match(html, /\[data-perfumes-rail\] > button\.is-focus\{ transform:scale\(1\.0[3-5]\)/);
-  assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \[data-perfumes-rail\] > button, \[data-perfumes-rail\] > button img\{ transition:none !important; transform:none !important \} \}/);
+  /* card motion: the Perfumes cards grow like every other carousel's
+     (assets/js/card-grow.js, checked in card-grow-tests.mjs) */
+  assert.match(html, /<script src="\/assets\/js\/card-grow\.js" defer><\/script>/);
+  assert.ok(!/\[data-perfumes-rail\] > button\.is-focus/.test(html), "the Perfumes-only pilot is still on the page");
   assert.ok(!/<video|\.gif"/.test(html), "the homepage carries a video or a GIF");
   /* the trio leads the carousel, in Danny's order, as the exact bottles he named */
   const shelf = JSON.parse(readFileSync(ROOT + "assets/home/shelves/perfumes.json", "utf8"));
