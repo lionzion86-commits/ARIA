@@ -151,5 +151,25 @@ check("every call sends one transport report when it ends; the report carries ti
   assert.match(fnSrc("diagSample"), /outbound-rtp[\s\S]*bytesSent[\s\S]*inbound-rtp[\s\S]*bytesReceived[\s\S]*media-source[\s\S]*audioLevel/);
 });
 
+
+check("dead air ends the call whatever the noise does: 25s with no real words from him and no voice from her (#443 c.6401078614)", () => {
+  const arm = fnSrc("armRealtimeIdleTimers");
+  assert.match(arm, /noteRealtimeWords\(\);/);
+  assert.match(arm, /Date\.now\(\) - ariaRTWordsAt >= CALL_DEAD_AIR_MS[\s\S]{0,200}endRealtimeCallIdle\('silencio'\)/);
+  assert.match(bundle, /const CALL_DEAD_AIR_MS = 25000;/);
+  const cases = bundle.slice(bundle.indexOf("case 'conversation.item.input_audio_transcription.completed':"));
+  assert.match(cases.slice(0, 1600), /ariaRTSpoke = true;\n\s+noteRealtimeActivity\(\);\n\s+noteRealtimeWords\(\);/, "his real words do not count");
+  const td = bundle.slice(bundle.indexOf("case 'response.output_audio_transcript.done': {"));
+  assert.match(td.slice(0, 2000), /noteRealtimeWords\(\);/, "her finished line does not count");
+  /* speech_started (which noise also opens) is not words */
+  const ss = bundle.slice(bundle.indexOf("case 'input_audio_buffer.speech_started':"));
+  assert.ok(!/noteRealtimeWords/.test(ss.slice(0, ss.indexOf("break;"))), "a VAD start counts as words");
+  assert.match(fnSrc("clearRealtimeIdleTimers"), /clearInterval\(ariaRTDeadAirTimer\)/, "the backstop outlives the call");
+});
+
+check("browsing never keeps the metered line open (#443 c.6398393590)", () => {
+  assert.ok(!/addEventListener\('(click|touchmove|wheel)', (\(\) => \{ if \(ariaRT\) noteRealtimeActivity|noteRealtimeScroll)/.test(bundle));
+});
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL " + f + "\n"); process.exit(1); }

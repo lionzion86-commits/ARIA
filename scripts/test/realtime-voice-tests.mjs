@@ -2420,15 +2420,14 @@ check("ten seconds of silence and she signs off and hangs up", () => {
   assert.match(page, /const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos\./,
     "the written sign-off lost the tap-the-mic line");
 
-  /* Browsing counts as activity — Danny: only when BOTH go quiet. */
-  assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
-    "tapping a product does not keep the call alive");
-  assert.match(page, /addEventListener\('touchmove', noteRealtimeScroll/, "scrolling does not keep the call alive");
-  assert.match(page, /addEventListener\('wheel', noteRealtimeScroll/, "wheel scrolling does not keep the call alive");
-  /* #443 c.6373560777: the page's own scrolls (chat stick-to-bottom,
-     a photo landing) are not him, so they must not reset the clock. */
+  /* BROWSING IS FREE (#443 c.6398393590, Danny 2026-10-25, replacing the
+     Oct 7 "only when BOTH go quiet" rule): the cards stay on the page
+     after the call ends, so no tap, touch, wheel or scroll may keep the
+     metered line open (c.6401078614: the shutoff never fired for a
+     shopper holding the phone). Only talking does. */
+  assert.ok(!/addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity/.test(page), "a tap keeps the call alive");
+  assert.ok(!/addEventListener\('(touchmove|wheel)', noteRealtimeScroll/.test(page), "scrolling keeps the call alive");
   assert.ok(!/addEventListener\('scroll', \(\) => \{\s*if \(!ariaRT\)/.test(page), "a programmatic scroll keeps the call alive");
-  assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
 
   /* N7 / N7b still holds at ten seconds: a phantom turn cannot reset
      the clock. speech_started only HOLDS it, the hold keeps just the

@@ -35457,6 +35457,7 @@ function clearRealtimeIdleTimers(){
     if (t) clearTimeout(t);
   }
   ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = ariaRTExitTimer = null;
+  if (typeof ariaRTDeadAirTimer !== 'undefined' && ariaRTDeadAirTimer){ clearInterval(ariaRTDeadAirTimer); ariaRTDeadAirTimer = null; }
   ariaRTOpeningTimer = null;
 }
 
@@ -35704,9 +35705,29 @@ function dropPhantomRealtimeTurn(event, send){
   resumeRealtimeIdle();
 }
 
+/* DEAD AIR ENDS THE CALL, WHATEVER THE NOISE DOES (#443 c.6401078614: he
+   waited her out and she never hung up). Background noise opens
+   speech_started after speech_started, and each one holds the ten-second
+   clock, so a noisy room could keep a silent line open for good. The
+   backstop does not listen to the detector at all: 25 seconds with no real
+   words from him and no voice from her, and she signs off. */
+const CALL_DEAD_AIR_MS = 25000;
+let ariaRTWordsAt = 0, ariaRTDeadAirTimer = null;
+function noteRealtimeWords(){ ariaRTWordsAt = Date.now(); }
 function armRealtimeIdleTimers(){
   clearRealtimeIdleTimers();
   noteRealtimeActivity();
+  noteRealtimeWords();
+  if (ariaRTDeadAirTimer) clearInterval(ariaRTDeadAirTimer);
+  ariaRTDeadAirTimer = setInterval(() => {
+    if (!ariaRT){ clearInterval(ariaRTDeadAirTimer); ariaRTDeadAirTimer = null; return; }
+    if (ariaRTResponding) return;
+    if (Date.now() - ariaRTWordsAt >= CALL_DEAD_AIR_MS){
+      clearInterval(ariaRTDeadAirTimer); ariaRTDeadAirTimer = null;
+      diagMark('dead-air');
+      endRealtimeCallIdle('silencio');
+    }
+  }, 2500);
   /* The backstop: far longer than any real shopping question, far
      shorter than a forgotten tab. */
   ariaRTMaxTimer = setTimeout(() => endRealtimeCallIdle('duración máxima'), CALL_MAX_MS);
@@ -35720,29 +35741,13 @@ function endRealtimeCallIfPanelClosed(){
   if (ariaRT && !assistantOpen) endRealtimeCallIdle('cerró el chat');
 }
 
-/* BROWSING IS ACTIVITY. Tapping a card she just put up, adding to the
-   cart, scrolling the shelf — a shopper doing any of that is still in
-   the conversation even while neither of them is talking. Only when
-   the talking AND the browsing stop does the countdown run.
-
-   Registered once, cheap when no call is open: noteRealtimeActivity
-   returns immediately without a session. Scroll is throttled because
-   it fires continuously. */
-document.addEventListener('click', () => { if (ariaRT) noteRealtimeActivity(); }, { passive: true, capture: true });
-let ariaRTScrollAt = 0;
-/* HIS scrolling, not the page's (#443 c.6373560777). A 'scroll' event
-   also fires when the chat sticks itself to the bottom or a card photo
-   lands and moves the list -- the page talking to itself kept the
-   call alive. Touch and wheel only happen under a hand. */
-const noteRealtimeScroll = () => {
-  if (!ariaRT) return;
-  const now = Date.now();
-  if (now - ariaRTScrollAt < 2000) return;
-  ariaRTScrollAt = now;
-  noteRealtimeActivity();
-};
-document.addEventListener('touchmove', noteRealtimeScroll, { passive: true, capture: true });
-document.addEventListener('wheel', noteRealtimeScroll, { passive: true, capture: true });
+/* BROWSING IS FREE, AND IT NEVER KEEPS THE LINE OPEN (#443 c.6398393590,
+   Danny 2026-10-25: "her job is SELLING MINUTES, not open-line minutes;
+   the cards stay on the page after the call ends -- browsing is free and
+   must never sit inside a metered session"). This used to count a tap, a
+   touchmove and the wheel as call activity (the Oct 7 rule), which is why
+   the silence shutoff never fired for a shopper holding the phone
+   (c.6401078614). Only talking -- his real words, her voice -- keeps it. */
 
 /* …and the page going to the background, with a short grace so a
    notification banner does not hang up on him. */
@@ -36013,6 +36018,7 @@ async function onRealtimeEvent(event, turn, send){
       }
       ariaRTSpoke = true;
       noteRealtimeActivity();
+      noteRealtimeWords();
       addAssistantMessage('user', event.transcript.trim());
       ariaChatHistory.push({ role: 'user', content: event.transcript.trim() });
       /* HER ANSWER STARTS HERE, AND ONLY HERE (#443 item 31). The server
@@ -36047,6 +36053,7 @@ async function onRealtimeEvent(event, turn, send){
         addAssistantMessage('bot', said, null, { speak: false });
         ariaChatHistory.push({ role: 'assistant', content: said });
       }
+      noteRealtimeWords();
       setOrbState('idle');
       setRealtimeState('listening');
       /* She has stopped talking, so his ten seconds start now. */
