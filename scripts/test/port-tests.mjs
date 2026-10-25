@@ -130,8 +130,8 @@ await check("name only: an identical title with no GTIN and no code does NOT mat
 });
 await check("model line: a code several dead products share (colourways) matches nothing", async () => {
   const live = toRecord({ name: "Asics Gel-1130 Sneaker", brand: "Asics", price: 110, url: "https://live.example/g" }, "revolve");
-  const d1 = toRecord({ name: "ASICS GEL-1130 - Men's", brand: "ASICS", price: 110, url: "https://dead.example/g1" }, "footlocker");
-  const d2 = toRecord({ name: "ASICS GEL-1130 - Men's", brand: "ASICS", price: 110, url: "https://dead.example/g2" }, "footlocker");
+  const d1 = toRecord({ name: "ASICS GEL-1130 - Men's", brand: "ASICS", price: 110, url: "https://dead.example/g1" }, "kohls");
+  const d2 = toRecord({ name: "ASICS GEL-1130 - Men's", brand: "ASICS", price: 110, url: "https://dead.example/g2" }, "kohls");
   const res = matchAll([live, d1, d2]);
   assert(res.matches.length === 0, "a model line matched");
   assert(res.rejects.some((r) => r.reason === "code-shared-by-several-dead-products"), "rejected for the shared code");

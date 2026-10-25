@@ -288,17 +288,6 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "equipo de surf — casi no tiene",
     peru_note: null,
   },
-  surfworld: {
-    name: "Surf World",
-    vibe: "surf shop",
-    specialties: ["surf"],
-    price_range: "medio", median_usd: 55.95, product_count: 3,
-    catalog_depth: "3 productos — prácticamente vacío",
-    top_categories: ["deportes"],
-    best_for: "nada: tres productos no son una tienda",
-    not_for: "todo. Para surf, Surf Station o Island Water Sports",
-    peru_note: null,
-  },
   nautilus: {
     name: "Nautilus Spearfishing",
     vibe: "pesca submarina y apnea, especialista puro",
@@ -1099,7 +1088,7 @@ const STORE_ALIASES = {
   "tatami fightwear": "tatami", "fuji sports": "fuji",
   "party city": "partycity", "chronicle books": "chronicle",
   "ulta beauty": "ulta", "yes style": "yesstyle", "nautilus spearfishing": "nautilus",
-  "macy's": "macys", "kohl's": "kohls", "ssense": "ssense", "sense": "ssense",
+  "macy's": "macys", "kohl's": "kohls", "surf world": "surfworld", "ssense": "ssense", "sense": "ssense",
   /* Off-sale stores with no knowledge entry of their own (#443): named,
      they still have to resolve, or Aria answers "no conozco esa tienda"
      about a store she sold from last week. */
@@ -1117,8 +1106,11 @@ const STORE_ALIASES = {
 const OFF_SALE_NAMES = {
   nike: "Nike", gap: "Gap", bananarepublic: "Banana Republic", athleta: "Athleta",
   fendi: "Fendi", goldengoose: "Golden Goose", costco: "Costco",
+  /* Surf World closed (#443 item 40): named, she says so and names a live door. */
+  surfworld: "Surf World",
 };
 const OFF_SALE_ALTERNATIVES = {
+  surfworld: ["surfstation", "islandwatersports"],
   victoriassecret: ["skims", "eberjey"],
   target: ["walmart", "samsclub"],
   bestbuy: ["bhphoto", "walmart"],
@@ -1348,7 +1340,6 @@ const SPECIALTY_DEPTH = {
   nautilus:          { surf: 29, "tablas de surf": 29, wetsuits: 29 },
   quietstorm:        { surf: 6, "tablas de surf": 6, wetsuits: 6 },
   pacsun:            { patinetas: 0, skate: 0, surf: 0 },
-  surfworld:         { patinetas: 0, skate: 0, surf: 0 },
 };
 
 /* A STORE CAN CLAIM A SPECIALTY AND STILL BE THE WRONG ANSWER. Val

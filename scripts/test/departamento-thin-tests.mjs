@@ -44,10 +44,10 @@ const GRID_KEYS = PAGE_KEYS.filter((k) => !DOORS.includes(k));
 
 const ALL = loadAllItems(ROOT);
 
-await check("the page and the build agree on the 33 departments (plus the two doors to ropa-interior.html)", () => {
-  assert.equal(GRID_KEYS.length, 33, `page lists ${GRID_KEYS.length} grid departments`);
+await check("the page and the build agree on the 32 departments (plus the doors: ropa-interior.html, and Joyería into Joyas y Accesorios)", () => {
+  assert.equal(GRID_KEYS.length, 32, `page lists ${GRID_KEYS.length} grid departments`);
   assert.deepEqual([...GRID_KEYS].sort(), Object.keys(DEPT_RULES).sort());
-  assert.deepEqual(DOORS.sort(), ["ropa_interior", "ropa_interior_mujer"]);
+  assert.deepEqual(DOORS.sort(), ["jewelry", "ropa_interior", "ropa_interior_mujer"]);
 });
 
 await check("every committed head.json and rails-<b>.json is what the rules compute from today's catalogues", () => {

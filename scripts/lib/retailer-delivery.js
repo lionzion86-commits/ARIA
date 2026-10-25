@@ -56,7 +56,6 @@ export const RETAILER_DELIVERY = {
   nautilus:        { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   islandwatersports:{ miamiMin: 3, miamiMax: 6, tier: "yellow" },
   quietstorm:      { miamiMin: 3, miamiMax: 6, tier: "yellow" },
-  surfworld:       { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   surfstation:     { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   mainland:        { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   parrot:          { miamiMin: 3, miamiMax: 6, tier: "yellow" },

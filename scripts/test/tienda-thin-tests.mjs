@@ -196,7 +196,8 @@ await check("the endpoint pages a rail in the build's order, 48 at a time", () =
     assert.deepEqual(answer({ store: k, rail: "ofertas", page: "2" }, roots).body.items, bb.items);
   }
   /* An off-sale store has no endpoint. */
-  assert.equal(answer({ store: "ssense", rail: "ofertas" }, roots).status, 404);
+  /* (SSENSE is back as an untested lane, #443 2026-10-24; Kohl's is still off sale.) */
+  assert.equal(answer({ store: "kohls", rail: "ofertas" }, roots).status, 404);
   assert.equal(answer({ store: "nope", rail: "x" }, roots).status, 404);
   assert.equal(answer({ store: "../etc" }, roots).status, 404);
   assert.equal(answer({ store: "ccs", rail: "x" }, roots).status, 404);
