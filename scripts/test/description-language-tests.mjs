@@ -20,6 +20,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { descKey, loadMemory, spanishFor } from "../lib/description-es.js";
 import { auditDescriptions, descLanguage } from "../audit-description-language.mjs";
+import { applyToCatalog, catalogFiles } from "../apply-description-memory.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 let passed = 0;
@@ -92,6 +93,35 @@ check("the memory is keyed by the English text, so a rewritten feed copy is not 
   assert.notEqual(descKey("Seduction In Black"), descKey("Seduction In Blue"));
   assert.equal(spanishFor("ariaperfumes", "an English text nobody has translated"), null);
   assert.ok(Object.keys(mem).length >= 7000, "the memory lost entries");
+});
+
+/* TOYS, AT THE SAME PRIORITY (#443 c.6403135059): children read these
+   pages themselves. Walmart's toy copy is stored Spanish in the catalogue. */
+check("toy pages read Spanish: no English prose left on Walmart's toys", () => {
+  const recs = [];
+  for (const f of catalogFiles()) {
+    if (f !== "juguetes-catalog.json") continue;
+    (function walk(o, st) {
+      if (Array.isArray(o)) return o.forEach((v) => walk(v, st));
+      if (!o || typeof o !== "object") return;
+      if (o.retailers && !Array.isArray(o.retailers)) return Object.entries(o.retailers).forEach(([k, v]) => walk(v, k));
+      if (typeof o.description === "string" && o.title) recs.push(o);
+      Object.values(o).forEach((v) => walk(v, st));
+    })(JSON.parse(readFileSync(ROOT + f, "utf8")));
+  }
+  assert.ok(recs.length > 6000, "the toy catalogue lost its items");
+  /* a product name copied into the description is not English prose: at most 12 words, no sentence */
+  const prose = recs.filter((r) => r.description && descLanguage(r.description) === "en" && (r.description.split(" ").length > 12 || /[a-z]\. [A-Z]/.test(r.description)));
+  /* what is left are franchise and set names ("POKEMON TCG: SCARLET AND
+     VIOLET ..."), English by nature; the word test cannot tell them from
+     prose, so a handful are allowed and named in the failure */
+  assert.ok(prose.length <= 10, `${prose.length} toys still read English, e.g. ${prose.slice(0, 3).map((r) => r.description.slice(0, 70)).join(" | ")}`);
+  assert.ok(recs.filter((r) => r.description_en).length >= 4600, "the feed's English is not kept for the record");
+});
+
+check("writing the stored Spanish into a catalogue is idempotent", () => {
+  const cat = JSON.parse(readFileSync(ROOT + "juguetes-catalog.json", "utf8"));
+  assert.equal(applyToCatalog(cat), 0, "a second run still changes the toy catalogue");
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
