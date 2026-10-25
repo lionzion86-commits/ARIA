@@ -409,16 +409,6 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
-  surfworld: {
-    key: "surfworld",
-    label: "Surf World",
-    color: "#00A9DC",
-    logo: "logos/surfworld.png",
-    tagline: "Surf shop Fort Lauderdale",
-    kind: "general",
-    search: false,
-    browse: true,
-  },
   surfstation: {
     key: "surfstation",
     label: "Surf Station",

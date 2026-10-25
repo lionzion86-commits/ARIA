@@ -49,15 +49,6 @@
    "gtin": 0,
    "modelCode": 0
   },
-  "footlocker": {
-   "catalogueProducts": 503,
-   "catalogueRecords": 726,
-   "resourced": 0,
-   "byLane": {},
-   "offSale": 503,
-   "gtin": 0,
-   "modelCode": 0
-  },
   "kohls": {
    "catalogueProducts": 4026,
    "catalogueRecords": 4401,
@@ -122,15 +113,6 @@
    "gtin": 0,
    "modelCode": 0,
    "nameOnlyHeldBack": 60
-  },
-  "ssense": {
-   "catalogueProducts": 18000,
-   "catalogueRecords": 36000,
-   "resourced": 0,
-   "byLane": {},
-   "offSale": 18000,
-   "gtin": 0,
-   "modelCode": 0
   },
   "yesstyle": {
    "catalogueProducts": 1225,
@@ -204,6 +186,15 @@
    "offSale": 18,
    "gtin": 0,
    "modelCode": 0
+  },
+  "surfworld": {
+   "catalogueProducts": 0,
+   "catalogueRecords": 0,
+   "resourced": 0,
+   "byLane": {},
+   "offSale": 0,
+   "gtin": 0,
+   "modelCode": 0
   }
  },
  "methods": {
@@ -219,9 +210,9 @@
  },
  "liveEnriched": 1,
  "rejectReasons": {
-  "code-shared-by-several-dead-products": 72,
-  "code-shared-by-several-live-products": 2,
-  "title": 3
+  "title": 3,
+  "code-shared-by-several-dead-products": 23,
+  "code-shared-by-several-live-products": 2
  },
  "matches": [
   {

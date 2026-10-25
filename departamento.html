@@ -249,7 +249,9 @@
     sunglasses:      {name:'Lentes de Sol', desc:'Protege tus ojos con estilo.'},
     mens_grooming:   {name:'Sección Hombre', desc:'Cuidado personal para él.'},
     combat_sports:   {name:'Aria Fight Club', desc:'Jiu-jitsu, boxeo, Muay Thai, MMA.'},
-    jewelry:         {name:'Joyería y Accesorios', desc:'Brilla con piezas únicas.'},
+    /* ONE JEWELRY DEPARTMENT (#443 item 40): Joyas y Accesorios carries
+       every store Joyería did and more; old links land there. */
+    jewelry:         {name:'Joyería y Accesorios', desc:'Brilla con piezas únicas.', href:'departamento.html?dept=joyas_accesorios', alias:true},
     joyas_accesorios:{name:'Joyas y Accesorios', desc:'Joyería accesible para todos los días.'},
     purses:          {name:'Carteras', desc:'Carteras y bolsos de diseñador.'},
     party:           {name:'Aria Party', desc:'Todo para tu fiesta — decoración, sorpresas y más.'},
@@ -294,7 +296,7 @@
     document.getElementById('heroDesc').textContent = 'Elige un departamento para ver sus productos.';
     var list = document.getElementById('deptList');
     var html = '';
-    Object.keys(DEPTS).sort().forEach(function(k){
+    Object.keys(DEPTS).sort().filter(function(k){ return !DEPTS[k].alias; }).forEach(function(k){
       html += '<a href="' + (DEPTS[k].href ? esc(DEPTS[k].href) : 'departamento.html?dept=' + encodeURIComponent(k)) + '">' + esc(DEPTS[k].name) + '</a>';
     });
     list.innerHTML = html;

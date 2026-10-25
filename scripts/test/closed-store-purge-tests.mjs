@@ -24,7 +24,8 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
-const CLOSED = { target: "Target", rockauto: "RockAuto" };
+/* Surf World closed (the store itself, Sept 2026; #443 item 40). */
+const CLOSED = { target: "Target", rockauto: "RockAuto", surfworld: "Surf World" };
 
 let passed = 0;
 const failures = [];
@@ -55,9 +56,14 @@ for (const [key, label] of Object.entries(CLOSED)) {
 
   check(`${label}: no registry row in the bundle, the store pages or retailers.js`, () => {
     const rx = new RegExp(`(?:\\b${key}\\s*:\\s*\\{|['"]${key}['"]\\s*:\\s*\\{|\\{\\s*k:\\s*'${key}'|key:\\s*['"]${key}['"]|['"]${key}['"]\\s*:\\s*['"]${label}['"]|\\b${key}\\s*:\\s*['"]${label}['"])`);
-    const where = [`build/${bundle}`, "index.html", "tienda.html", "producto.html", "ofertas.html", "auto.html", "departamento.html", "scripts/lib/retailers.js", "netlify/functions/_store-knowledge.js"];
+    const where = [`build/${bundle}`, "index.html", "tienda.html", "tiendas.html", "producto.html", "ofertas.html", "auto.html", "departamento.html", "scripts/lib/retailers.js"];
     const bad = where.filter((f) => rx.test(readFileSync(ROOT + f, "utf8")));
     assert.deepEqual(bad, []);
+    /* The assistant's knowledge keeps no entry for it; its off-sale name and
+       live alternatives stay (named, she says it is off sale and names a
+       live door -- mechanism, like off-sale.js). */
+    const K = readFileSync(ROOT + "netlify/functions/_store-knowledge.js", "utf8");
+    assert.doesNotMatch(K, new RegExp(`\\n  ${key}: \\{\\n\\s+name:`), "the assistant still describes it as a store");
   });
 }
 
