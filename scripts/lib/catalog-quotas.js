@@ -98,13 +98,6 @@ export const CATALOG_QUOTAS = {
      script skips any store whose scraper is not wired up rather than
      starting runs against a guess. The day an actor ID lands, the depth
      is already specified. */
-  sephora: [
-    { category: "makeup_face", query: "foundation", target: 60 },
-    { category: "makeup_lips", query: "lipstick", target: 60 },
-    { category: "makeup_eyes", query: "mascara eyeshadow", target: 60 },
-    { category: "skincare", query: "serum moisturizer", target: 60 },
-    { category: "fragrance", query: "perfume", target: 60 },
-  ],
   victoriassecret: [
     { category: "lingerie", query: "bras", target: 60 },
     { category: "sleepwear", query: "pajamas", target: 60 },

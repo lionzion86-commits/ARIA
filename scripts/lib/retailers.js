@@ -218,25 +218,6 @@ export const RETAILERS = {
      store — which is what makes the stores grid symmetric at 4x2 instead
      of leaving a hole. Same status as the other two beauty stores: a
      real row, quotas written, no verified actor yet. */
-  sephora: {
-    key: "sephora",
-    label: "Sephora",
-    color: "#000000",
-    logo: "logos/sephora.png",
-    /* NO BRAND NAMED HERE — the SSENSE rule, applied before it can bite.
-       The brief's line was "Maquillaje y skincare — NARS, Rare Beauty",
-       and both ARE in the export, so it would have been true today. It
-       is still the wrong place to say it: the card already paints a
-       brand line read from the catalogue (topBrandsFor), so naming the
-       same two by hand would print them twice on one card and would go
-       stale the first time the export changes. The data says the
-       brands; the tagline says the department. */
-    tagline: "Maquillaje, skincare y perfumes",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
-  },
   macys: {
     key: "macys",
     label: "Macy's",
@@ -405,16 +386,6 @@ export const RETAILERS = {
     color: "#141414",
     logo: "logos/quietstorm.png",
     tagline: "Surf shop — tablas, skate y ropa",
-    kind: "general",
-    search: false,
-    browse: true,
-  },
-  surfworld: {
-    key: "surfworld",
-    label: "Surf World",
-    color: "#00A9DC",
-    logo: "logos/surfworld.png",
-    tagline: "Surf shop Fort Lauderdale",
     kind: "general",
     search: false,
     browse: true,
@@ -1004,24 +975,6 @@ export const RETAILERS = {
   /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
      Mirrors index.html. Within each tier: green-tier shippers, then
      yellow, then red, then stores with no researched delivery data yet. */
-  ssense: {
-    key: "ssense",
-    label: "SSENSE",
-    color: "#000000",
-    logo: "logos/ssense.png",
-    /* NO BRAND NAMED HERE, and that is the correction. This row was
-       written from the brief as "Gucci, Prada, Balenciaga" before the
-       catalogue existed. The export that arrived carries 192 brands and
-       NEITHER Gucci NOR Prada — its biggest names are Rick Owens, Dries
-       Van Noten, Stone Island, Moncler and Thom Browne. A hand-written
-       brand list is a promise nobody checks, so the card reads its
-       brands from the catalogue instead. */
-    tagline: "Diseñador y lujo, importado igual que todo lo demás",
-    kind: "general",
-    tier: "luxury",
-    search: false,
-    browse: true,
-  },
   /* FARFETCH (2026-09-29, Danny): the Latino-designer source becomes a
      proper store rail, sale-first. Mirrors index.html. */
   farfetch: {

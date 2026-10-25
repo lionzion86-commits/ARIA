@@ -42,7 +42,6 @@ export const RETAILER_DELIVERY = {
   miumiu:     { miamiMin: 3, miamiMax: 5, tier: "green" },
   goldengoose:{ miamiMin: 2, miamiMax: 5, tier: "green" },
   /* YELLOW — standard. */
-  sephora:        { miamiMin: 1, miamiMax: 3, tier: "yellow" },
   macys:          { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   dicks:          { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   costco:         { miamiMin: 5, miamiMax: 7, tier: "yellow" },
@@ -56,7 +55,6 @@ export const RETAILER_DELIVERY = {
   nautilus:        { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   islandwatersports:{ miamiMin: 3, miamiMax: 6, tier: "yellow" },
   quietstorm:      { miamiMin: 3, miamiMax: 6, tier: "yellow" },
-  surfworld:       { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   surfstation:     { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   mainland:        { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   parrot:          { miamiMin: 3, miamiMax: 6, tier: "yellow" },
@@ -77,7 +75,6 @@ export const RETAILER_DELIVERY = {
   yesstyle:   { miamiMin: 14, miamiMax: 28, tier: "red", noteEs: "Se envía desde Hong Kong." },
   lanebryant: { miamiMin: 5, miamiMax: 8, tier: "red" },
   alphalete:  { miamiMin: 7, miamiMax: 30, tier: "red", plus: true, noteEs: "Puede superar los 30 días." },
-  ssense:     { miamiMin: 5, miamiMax: 5, tier: "red", noteEs: "Se envía desde Montreal, Canadá." },
   fendi:      { miamiMin: 3, miamiMax: 30, tier: "red", noteEs: "Normalmente unos 3 días, pero hasta 30 si el pedido se prepara en Italia." },
   qvc:        { miamiMin: 7, miamiMax: 10, tier: "red" },
   /* FUTURE STORES — researched, no catalogue yet. Rows exist so the UI

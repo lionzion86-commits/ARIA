@@ -76,7 +76,7 @@
   var SOCK_BRANDS = /^(?:stance|nike|adidas|crocs|huf|ripndip|kirkland signature)$/i;
   /* Surf and skate shops: their underwear and socks are men's-led and
      rarely say so in the title. */
-  var MEN_SHOPS = { ccs: 1, parrot: 1, islandwatersports: 1, mainland: 1, surfstation: 1, surfworld: 1, valsurf: 1, quietstorm: 1, zumiez: 1 };
+  var MEN_SHOPS = { ccs: 1, parrot: 1, islandwatersports: 1, mainland: 1, surfstation: 1, valsurf: 1, quietstorm: 1, zumiez: 1 };
 
   function text(it) {
     return [it.title || it.name || '', it.type || '', it.gender || ''].join(' ');

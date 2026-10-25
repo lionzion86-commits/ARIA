@@ -288,17 +288,6 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "equipo de surf — casi no tiene",
     peru_note: null,
   },
-  surfworld: {
-    name: "Surf World",
-    vibe: "surf shop",
-    specialties: ["surf"],
-    price_range: "medio", median_usd: 55.95, product_count: 3,
-    catalog_depth: "3 productos — prácticamente vacío",
-    top_categories: ["deportes"],
-    best_for: "nada: tres productos no son una tienda",
-    not_for: "todo. Para surf, Surf Station o Island Water Sports",
-    peru_note: null,
-  },
   nautilus: {
     name: "Nautilus Spearfishing",
     vibe: "pesca submarina y apnea, especialista puro",
@@ -317,17 +306,6 @@ const STORE_KNOWLEDGE_ALL = {
      prestige houses, Ulta 690 leaning salon and drugstore, Target
      basics inside a general store, YesStyle 1,225 K-beauty at a
      median of $17.50. */
-  sephora: {
-    name: "Sephora",
-    vibe: "belleza premium, las marcas que salen en todos lados",
-    specialties: ["maquillaje", "skincare", "perfumes", "belleza"],
-    price_range: "medio", median_usd: 32.0, product_count: 2003,
-    catalog_depth: "2,003 productos",
-    top_categories: ["belleza"],
-    best_for: "las marcas de prestigio: NARS, Dior, Lancôme, Rare Beauty, tarte",
-    not_for: "productos de peluquería profesional",
-    peru_note: "Sephora sí existe en Lima, pero el catálogo de allá es más corto y más caro que el de acá.",
-  },
   ulta: {
     name: "Ulta Beauty",
     vibe: "belleza accesible, de farmacia a salón en la misma tienda",
@@ -539,17 +517,6 @@ const STORE_KNOWLEDGE_ALL = {
   },
 
   /* ---------- LUJO Y DISEÑADOR ---------- */
-  ssense: {
-    name: "SSENSE",
-    vibe: "diseñador y vanguardia, sin concesiones",
-    specialties: ["diseñador", "lujo", "moda de hombre", "moda de mujer"],
-    price_range: "lujo", median_usd: 490.0, product_count: 18000,
-    catalog_depth: "18,000 productos — el catálogo más grande del sitio",
-    top_categories: ["hombre", "mujer"],
-    best_for: "diseñador de verdad, hombre y mujer, con la selección más honda que tenemos",
-    not_for: "un presupuesto normal — la mitad del catálogo pasa los $490",
-    peru_note: null,
-  },
   farfetch: {
     name: "Farfetch",
     vibe: "lujo de boutiques del mundo en un solo sitio",
@@ -1099,7 +1066,7 @@ const STORE_ALIASES = {
   "tatami fightwear": "tatami", "fuji sports": "fuji",
   "party city": "partycity", "chronicle books": "chronicle",
   "ulta beauty": "ulta", "yes style": "yesstyle", "nautilus spearfishing": "nautilus",
-  "macy's": "macys", "kohl's": "kohls", "ssense": "ssense", "sense": "ssense",
+  "macy's": "macys", "kohl's": "kohls",
   /* Off-sale stores with no knowledge entry of their own (#443): named,
      they still have to resolve, or Aria answers "no conozco esa tienda"
      about a store she sold from last week. */
@@ -1132,9 +1099,8 @@ const OFF_SALE_ALTERNATIVES = {
   oldnavy: ["americaneagle", "walmart"],
   bananarepublic: ["americaneagle", "revolve"],
   athleta: ["skims", "dicks"],
-  ulta: ["sephora"],
-  yesstyle: ["sephora"],
-  ssense: ["farfetch", "revolve"],
+  ulta: [],
+  yesstyle: [],
   miumiu: ["farfetch", "revolve"],
   fendi: ["farfetch", "revolve"],
   goldengoose: ["farfetch", "revolve"],
@@ -1228,9 +1194,9 @@ export const AMBIGUOUS_INTERESTS = {
   belleza: {
     ask: "¿Maquillaje, skincare, o perfumes?",
     branches: {
-      maquillaje: ["sephora"],
-      skincare: ["sephora"],
-      perfumes: ["sephora"],
+      maquillaje: [],
+      skincare: [],
+      perfumes: [],
     },
   },
   "artes marciales": {
@@ -1348,7 +1314,6 @@ const SPECIALTY_DEPTH = {
   nautilus:          { surf: 29, "tablas de surf": 29, wetsuits: 29 },
   quietstorm:        { surf: 6, "tablas de surf": 6, wetsuits: 6 },
   pacsun:            { patinetas: 0, skate: 0, surf: 0 },
-  surfworld:         { patinetas: 0, skate: 0, surf: 0 },
 };
 
 /* A STORE CAN CLAIM A SPECIALTY AND STILL BE THE WRONG ANSWER. Val

@@ -69,7 +69,7 @@ export function buildSearchEngineSource() {
       }
       for (const q of ["zapatillas nike", "aletas de buceo", "quillas", "victoria secret sales", "youg la",
         "chimpunes hasta 500 dolares", "polo hombre", "vs", "sephora", "nik", "short sleeve shirt"])
-        api.rankCatalogMatches(pool, api.translateQuery(q).query, { limit: 5, retailers: [{ key: "sephora", label: "Sephora" }] });
+        api.rankCatalogMatches(pool, api.translateQuery(q).query, { limit: 5, retailers: [{ key: "ulta", label: "Ulta Beauty" }] });
     },
   });
   return [

@@ -52,7 +52,6 @@ const AriaSale = globalThis.AriaSale;
    stores and in search). */
 export const PERFUME_RAIL_STORE = "ariaperfumes";
 export const EXCLUDED_RETAILERS = Object.freeze({
-  sephora: "DO NOT BUILD (Danny, #443): Sephora's terms prohibit resale; its home rail is being removed.",
 });
 
 /* The houses a Peruvian shopper knows by name. Tier 0 leads the rail.
