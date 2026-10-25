@@ -61,7 +61,8 @@ await check("the Perfumes banner sits high: right under Ofertas, above Aria Auto
   const html = readFileSync(ROOT + "index.html", "utf8");
   const banner = html.indexOf("data-perfumes-banner"), ofertas = html.lastIndexOf('aria-label="Ofertas"', banner), auto = html.indexOf('aria-label="Aria Auto"');
   assert.ok(banner > 0 && ofertas > 0 && banner < auto, "the banner is not between Ofertas and Aria Auto");
-  assert.ok(!/<section[^>]*aria-label=/.test(html.slice(html.indexOf("</section>", ofertas), banner).replace(/<section aria-label="Ofertas"[^>]*>[\s\S]*?<\/section>/g, "")), "something sits between Ofertas and the banner");
+  const between = html.slice(html.indexOf("</section>", ofertas) + 10, html.lastIndexOf("<section", banner)).replace(/<!--[\s\S]*?-->/g, "");
+  assert.ok(!/<section/.test(between), "something sits between Ofertas and the banner");
   assert.match(html, /href="\/departamento\.html\?dept=perfumes" class="relative flex/);
   assert.match(html, /@keyframes ariaPerfumesSheen\{[^}]*transform/);
   assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \.ariaPerfumesBanner/);
