@@ -3923,6 +3923,11 @@ function railRefPriceHTML(usd, cls, color){
   return `<span class="ariaPricePen ${cls}" style="color:${color}">${escapeHtml(fmtUSD(usd).replace('$', 'US$ '))} · ${escapeHtml(fxRateLabel())}</span>`;
 }
 function railCardHTML(p, onclick, attr, opts){
+  /* NEVER AN EMPTY CARD (#443 c.6398961263): no name or no price, no card. */
+  if (!p || !String(p.title || '').trim() || !(Number(p.price) > 0)){
+    try { console.warn('[aria] card without name or price not drawn:', JSON.stringify(p).slice(0, 200)); } catch (e) {}
+    return '';
+  }
   const dark = !!(opts && opts.dark);
   const xl = !!(opts && opts.xl);
   const swipeImgs = cardSwipeList(p);

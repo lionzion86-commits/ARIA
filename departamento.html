@@ -646,6 +646,13 @@ function sizedImageUrl(url, w){
   /* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409): a square
      photo box from the first paint and reserved rows for every line. */
   function cardHTML(c){
+    /* NEVER AN EMPTY CARD (#443 c.6398961263: the Ofertas expand showed pills
+       with only the store name -- no photo, name or price). A card without
+       a name or a price is not drawn at all, and the console says so. */
+    if (!c || !String(c.t || '').trim() || !(Number(c.u != null ? c.u : c.p) > 0)){
+      try { console.warn('[aria] card without name or price not drawn:', JSON.stringify(c).slice(0, 200)); } catch (e) {}
+      return '';
+    }
     /* u / w: a card already priced by the site's own rule (the Perfumes
        shelf); p / o: a raw store price, priced here. */
     var usd = c.u != null ? Number(c.u) : finalUsd(c.p, c.r);
