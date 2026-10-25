@@ -119,6 +119,20 @@ check("toy pages read Spanish: no English prose left on Walmart's toys", () => {
   assert.ok(recs.filter((r) => r.description_en).length >= 4600, "the feed's English is not kept for the record");
 });
 
+/* HOT TOPIC AND BOXLUNCH (c.6403123731 item 3): retailer templates around
+   the product name, translated as templates; the retailer's "shop at
+   BoxLunch" line is dropped, never shown to a shopper in Peru. */
+check("Hot Topic and BoxLunch pages read Spanish and never send the shopper to the retailer", () => {
+  for (const f of ["hottopic-catalog.json", "boxlunch-catalog.json"]) {
+    const items = [];
+    (function walk(o) { if (Array.isArray(o)) return o.forEach(walk); if (!o || typeof o !== "object") return; if (typeof o.description === "string" && o.name) items.push(o); Object.values(o).forEach(walk); })(JSON.parse(readFileSync(ROOT + f, "utf8")));
+    assert.ok(items.length > 2400, f + " lost its items");
+    const untranslated = items.filter((o) => !o.description_en || o.description === o.description_en);
+    assert.equal(untranslated.length, 0, `${f}: ${untranslated.length} descriptions not translated`);
+    assert.ok(!items.some((o) => /shop online|in-store|en tiendas? (BoxLunch|Hot Topic)/i.test(o.description)), f + ": a description sends the shopper to the retailer");
+  }
+});
+
 check("writing the stored Spanish into a catalogue is idempotent", () => {
   const cat = JSON.parse(readFileSync(ROOT + "juguetes-catalog.json", "utf8"));
   assert.equal(applyToCatalog(cat), 0, "a second run still changes the toy catalogue");
