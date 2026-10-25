@@ -34447,6 +34447,76 @@ const CUT_RESTORE_MS = 1200;
    when the page closes. */
 const CALL_TAPE_MAX = 40;
 let ariaRTTape = [];
+
+/* THE TRANSPORT REPORT (#443 c.6400516868, Danny's iPhone on #493: she
+   never heard him, and her first words were clipped). The tape says what
+   the conversation did; this says what the AUDIO did -- when the mic was
+   granted and in what state, every mute and unmute of his track, when the
+   line connected, when her audio element actually started playing, and,
+   every second for the first fifteen and every five after, how many bytes
+   and how much audio energy left the phone and arrived from the server.
+   It is sent once when the call ends (sendBeacon to voice-diag, a function
+   that only logs it), so a single run on the phone that fails shows where
+   the audio stops. Event names, timings and counters only: no transcript,
+   no audio, nothing the shopper said. */
+let ariaRTDiag = null, ariaRTDiagLast = null, ariaRTStatsTimer = null;
+function diagStart(){
+  ariaRTDiag = { v: 1, ua: String(navigator.userAgent || '').slice(0, 160), t0: Date.now(), marks: [], stats: [] };
+}
+function diagMark(name, extra){
+  if (!ariaRTDiag) return;
+  try {
+    const m = { t: Date.now() - ariaRTDiag.t0, n: name };
+    if (extra != null) m.x = extra;
+    if (ariaRTDiag.marks.length < 120) ariaRTDiag.marks.push(m);
+  } catch (e) {}
+}
+function diagTrackInfo(t){
+  if (!t) return null;
+  let st = {};
+  try { st = t.getSettings ? t.getSettings() : {}; } catch (e) {}
+  return { ready: t.readyState, muted: t.muted, enabled: t.enabled,
+    rate: st.sampleRate, ch: st.channelCount, ec: st.echoCancellation, ns: st.noiseSuppression, agc: st.autoGainControl };
+}
+function diagWatchTrack(t){
+  if (!t) return;
+  try {
+    t.addEventListener('mute', () => diagMark('mic-mute', diagTrackInfo(t)));
+    t.addEventListener('unmute', () => diagMark('mic-unmute'));
+    t.addEventListener('ended', () => diagMark('mic-ended'));
+  } catch (e) {}
+}
+async function diagSample(pc){
+  if (!ariaRTDiag || !pc || !pc.getStats) return;
+  try {
+    const rep = await pc.getStats();
+    const s = { t: Date.now() - ariaRTDiag.t0 };
+    rep.forEach((r) => {
+      if (r.type === 'outbound-rtp' && (r.kind === 'audio' || r.mediaType === 'audio')){ s.outB = r.bytesSent; s.outP = r.packetsSent; }
+      else if (r.type === 'inbound-rtp' && (r.kind === 'audio' || r.mediaType === 'audio')){ s.inB = r.bytesReceived; s.inP = r.packetsReceived; s.lost = r.packetsLost; s.inLvl = r.audioLevel; }
+      else if (r.type === 'media-source' && r.kind === 'audio'){ s.micLvl = r.audioLevel; s.micE = r.totalAudioEnergy; }
+    });
+    if (ariaRTDiag.stats.length < 80) ariaRTDiag.stats.push(s);
+  } catch (e) {}
+}
+function diagStartStats(pc){
+  if (ariaRTStatsTimer) clearTimeout(ariaRTStatsTimer);
+  let n = 0;
+  const tick = () => { n++; diagSample(pc); ariaRTStatsTimer = setTimeout(tick, n < 15 ? 1000 : 5000); };
+  ariaRTStatsTimer = setTimeout(tick, 1000);
+}
+function diagSend(why){
+  if (ariaRTStatsTimer){ clearTimeout(ariaRTStatsTimer); ariaRTStatsTimer = null; }
+  if (!ariaRTDiag) return;
+  diagMark('end', why || null);
+  ariaRTDiag.tape = ariaRTTape.slice(-40).map(l => String(l).slice(0, 160));
+  ariaRTDiagLast = ariaRTDiag;
+  ariaRTDiag = null;
+  try {
+    const body = JSON.stringify(ariaRTDiagLast).slice(0, 30000);
+    if (navigator.sendBeacon) navigator.sendBeacon('/.netlify/functions/voice-diag', new Blob([body], { type: 'application/json' }));
+  } catch (e) {}
+}
 function tape(kind, what){
   try {
     ariaRTTape.push(((Date.now() - (ariaRTStartedAt || Date.now())) / 1000).toFixed(1)
@@ -34728,6 +34798,8 @@ function ariaVoiceDiag(){
        first when the voice misbehaves — it is the only account of the
        call that is not a reconstruction. */
     cinta: ariaRTTape.slice(),
+    /* The transport report: the live call's, or the last call's. */
+    transporte: ariaRTDiag || ariaRTDiagLast,
     audioCrudo: realtimeRawAudio(),
   };
 }
@@ -35045,6 +35117,8 @@ async function startRealtimeVoiceOnce(){
      not from the moment the call finishes connecting. */
   ariaRTOpening = true;
   ariaRTAbort = false;
+  diagStart();
+  diagMark('tap');
   const can = realtimeAvailable();
   if (!can.ok) return noteRealtimeFailure('el navegador no la soporta', can.reason);
 
@@ -35053,6 +35127,7 @@ async function startRealtimeVoiceOnce(){
      one now, which is what every path that is not the orb does — the
      retry button, the microphone, a call reopened from a link. */
   const got = await ariaWarmRealtimeToken();
+  diagMark('token', got && got.ok ? 'ok' : 'fail');
   if (ariaRTAbort) return abortRealtimeOpening(null, null, 'colgó mientras conectaba (token)');
   /* AN EPHEMERAL SECRET IS GOOD FOR ONE SESSION. Dropping it here
      means a second call mints its own instead of replaying a secret
@@ -35093,6 +35168,8 @@ async function startRealtimeVoiceOnce(){
      said on the last one — otherwise the second call never nudges. */
   ariaRTSpoke = false;
   ariaRTNudged = false;
+  ariaRTOutputReady = false;
+  ariaRTGreetHeld = null;
   ariaRTPendingTurn = false;
 
   /* BEFORE THE MICROPHONE, so WebKit never infers the session itself. */
@@ -35124,6 +35201,7 @@ async function startRealtimeVoiceOnce(){
     return noteRealtimeFailure('el micrófono fue denegado', e.name);
   }
   if (ariaRTAbort) return abortRealtimeOpening(mic, null, 'colgó mientras conectaba (micrófono)');
+  try { const mt = mic.getAudioTracks()[0]; diagMark('mic', diagTrackInfo(mt)); diagWatchTrack(mt); } catch (e) {}
 
   /* Re-asserted with capture live: iOS settles the output route when
      capture BEGINS, not when the type is set. */
@@ -35158,6 +35236,8 @@ async function startRealtimeVoiceOnce(){
   };
   pc.onconnectionstatechange = () => {
     const st = pc.connectionState;
+    diagMark('pc', st);
+    if (st === 'connected'){ try { diagMark('mic@connected', diagTrackInfo(mic.getAudioTracks()[0])); } catch (e) {} }
     console.info('[aria] pc connectionState:', st);
     if (st === 'connected'){ clearDropTimer(); return; }
     if (st === 'failed'){ callDropped('connectionState: failed'); return; }
@@ -35180,7 +35260,22 @@ async function startRealtimeVoiceOnce(){
     if (!stream && ev.track){
       try { stream = new MediaStream([ev.track]); } catch (e) { stream = null; }
     }
-    if (stream){ console.info('[aria] remote track attached'); sink.attach(stream); }
+    if (stream){
+      console.info('[aria] remote track attached'); diagMark('remote-track');
+      /* HER FIRST WORDS WERE CLIPPED (#443 c.6400516868). Audio that
+         arrives before the element is actually playing is dropped -- a
+         live stream does not wait -- so the greeting is held until the
+         element reports 'playing', plus a short settle while iOS moves
+         the route to the loudspeaker. */
+      try {
+        sink.el.addEventListener('playing', function onPlaying(){
+          sink.el.removeEventListener('playing', onPlaying);
+          diagMark('el-playing');
+          setTimeout(markRealtimeOutputReady, 300);
+        });
+      } catch (e) {}
+      sink.attach(stream);
+    }
     else console.warn('[aria] ontrack fired with neither a stream nor a track');
   };
   for (const track of mic.getTracks()) pc.addTrack(track, mic);
@@ -35223,6 +35318,7 @@ async function startRealtimeVoiceOnce(){
         noteRealtimeActivity();
         if (!ariaRTHeardAudio){
           ariaRTHeardAudio = true;
+          diagMark('first-audio');
           console.info('[aria] greeting audio started');
         }
         /* If audio arrives after she was asked to sign off, that IS
@@ -35282,6 +35378,8 @@ async function startRealtimeVoiceOnce(){
 
   if (ariaRTAbort) return abortRealtimeOpening(mic, pc, 'colgó mientras conectaba');
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
+  diagMark('live');
+  diagStartStats(pc);
   ariaRTOpening = false;
   ariaRTStartedAt = Date.now();
   armRealtimeIdleTimers();
@@ -35728,7 +35826,8 @@ async function retryRealtimeVoice(){
    and the live audio element still held the remote stream, and either
    keeps the OS session in a recording category. Both are handed back
    on every way a call ends. */
-function releaseRealtimeAudio(mic){
+function releaseRealtimeAudio(mic, why){
+  diagSend(why);
   try { if (mic) mic.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); } catch (e) {}
   try { if (ariaLiveAudioEl){ ariaLiveAudioEl.pause(); ariaLiveAudioEl.srcObject = null; } } catch (e) {}
   ariaSetAudioSession('auto');
@@ -35741,7 +35840,7 @@ function abortRealtimeOpening(mic, pc, why){
   console.info('[aria] call aborted before it came up —', why);
   try { tape('--', 'aborted: ' + why); } catch (e) {}
   try { if (pc) pc.close(); } catch (e) {}
-  releaseRealtimeAudio(mic);
+  releaseRealtimeAudio(mic, why);
   ariaRTOpening = false;
   ariaRTAbort = false;
   ariaRTWanted = false;
@@ -35764,7 +35863,7 @@ function stopRealtimeVoice(opts){
   try { ariaRT.dc.close(); } catch {}
   try { ariaRT.pc.close(); } catch {}
   try { ariaRT.sink.cut(); } catch {}
-  releaseRealtimeAudio(ariaRT.mic);
+  releaseRealtimeAudio(ariaRT.mic, (opts && opts.why) || 'colgó');
   clearRealtimeIdleTimers();
   ariaRT = null;
   ariaRTOpening = false;
@@ -35813,8 +35912,24 @@ function toggleRealtimeMute(){
  * It also used to be fired blind: send() swallowed a closed channel,
  * so a dropped greeting looked identical to a model that declined.
  */
+let ariaRTOutputReady = false, ariaRTGreetHeld = null;
+function markRealtimeOutputReady(){
+  if (ariaRTOutputReady) return;
+  ariaRTOutputReady = true;
+  diagMark('output-ready');
+  if (ariaRTGreetHeld){ const go = ariaRTGreetHeld; ariaRTGreetHeld = null; go(); }
+}
 function sendRealtimeGreeting(send, left){
   if (ariaRTGreeted) return false;
+  /* Held until her audio can actually be heard; never more than 2.5s. */
+  if (!ariaRTOutputReady){
+    if (!ariaRTGreetHeld){
+      const go = () => { ariaRTGreetHeld = null; ariaRTOutputReady = true; sendRealtimeGreeting(send, left); };
+      ariaRTGreetHeld = go;
+      setTimeout(() => { if (ariaRTGreetHeld === go){ diagMark('greeting-unheld-by-timeout'); go(); } }, 2500);
+    }
+    return false;
+  }
   const remaining = typeof left === 'number' ? left : GREETING_ATTEMPTS;
   /* A BARE response.create, AND THAT IS THE FIX.
 
@@ -35837,6 +35952,7 @@ function sendRealtimeGreeting(send, left){
        greeting dropped by a channel that was not open yet could never
        be retried — she just never spoke, and nothing said why. */
     ariaRTGreeted = true;
+    diagMark('greeting-sent');
     console.info('[aria] greeting sent');
     /* THE NUDGE IS ARMED WHERE SHE STOPS TALKING, not here. This
        block used to start the ten seconds the moment the greeting
@@ -35871,6 +35987,7 @@ async function onRealtimeEvent(event, turn, send){
       sendRealtimeGreeting(send);
       break;
     case 'input_audio_buffer.speech_started':
+      diagMark('speech-started');
       setOrbState('listening');
       setRealtimeState('listening');
       /* He started talking, so he is not the shopper who went quiet

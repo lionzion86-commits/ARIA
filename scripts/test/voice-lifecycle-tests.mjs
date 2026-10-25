@@ -65,7 +65,7 @@ check("every step of the opening checks for a hang-up, and the last check is bef
 check("an aborted opening releases what it holds and shows no error", () => {
   const ab = fnSrc("abortRealtimeOpening");
   assert.match(ab, /pc\.close\(\)/);
-  assert.match(ab, /releaseRealtimeAudio\(mic\)/);
+  assert.match(ab, /releaseRealtimeAudio\(mic, why\)/);
   assert.match(ab, /ariaRTOpening = false;/);
   assert.match(ab, /ariaRTFailure = null;/);
   assert.ok(!/showRealtimeError/.test(ab), "a hang-up is reported as a failure");
@@ -77,13 +77,13 @@ check("ending a call gives iOS its microphone back: tracks, the audio element's 
   assert.match(rel, /t\.stop\(\)/);
   assert.match(rel, /ariaLiveAudioEl\.srcObject = null/);
   assert.match(rel, /ariaSetAudioSession\('auto'\)/);
-  assert.match(fnSrc("stopRealtimeVoice"), /releaseRealtimeAudio\(ariaRT\.mic\)/);
+  assert.match(fnSrc("stopRealtimeVoice"), /releaseRealtimeAudio\(ariaRT\.mic, /);
   /* run it: tracks stopped, stream dropped, session back to auto */
   const stopped = [];
   const el = { srcObject: {}, pause() { this.paused = true; } };
   const session = { type: "play-and-record" };
-  new Function("ariaLiveAudioEl", "ariaSetAudioSession", fnSrc("releaseRealtimeAudio") + "\nreturn releaseRealtimeAudio;")(
-    el, (t) => { session.type = t; })({ getTracks: () => [{ stop: () => stopped.push(1) }, { stop: () => stopped.push(2) }] });
+  new Function("ariaLiveAudioEl", "ariaSetAudioSession", "diagSend", fnSrc("releaseRealtimeAudio") + "\nreturn releaseRealtimeAudio;")(
+    el, (t) => { session.type = t; }, () => {})({ getTracks: () => [{ stop: () => stopped.push(1) }, { stop: () => stopped.push(2) }] });
   assert.equal(stopped.length, 2);
   assert.equal(el.srcObject, null);
   assert.equal(session.type, "auto");
@@ -117,6 +117,38 @@ check("the opening nudge is offered once per call, so a silent call reaches the 
 check("the same line of hers twice in a row is written once, and the tape keeps the second", () => {
   const td = bundle.slice(bundle.indexOf("case 'response.output_audio_transcript.done': {"));
   assert.match(td.slice(0, 1600), /if \(said && lastHer && lastHer\.content === said\)\{\n\s+tape\('!!', 'duplicate line not written: '/);
+});
+
+
+check("her greeting waits until her audio is actually playing, never more than 2.5s (#443 c.6400516868: first words clipped)", () => {
+  const g = fnSrc("sendRealtimeGreeting");
+  assert.match(g, /if \(!ariaRTOutputReady\)\{/);
+  assert.match(g, /setTimeout\(\(\) => \{ if \(ariaRTGreetHeld === go\)\{[^}]*go\(\); \} \}, 2500\)/);
+  const open = fnSrc("startRealtimeVoiceOnce");
+  assert.match(open, /addEventListener\('playing'[\s\S]{0,300}setTimeout\(markRealtimeOutputReady, 300\)/, "nothing marks her audio as playing");
+  assert.match(open, /ariaRTOutputReady = false;\n\s+ariaRTGreetHeld = null;/, "the last call's ready state leaks into the next");
+  /* run it: held, then released by the element's 'playing' */
+  const sent = [];
+  const env = new Function("askRealtimeResponse", "diagMark", "setTimeout", "console",
+    "let ariaRTGreeted = false, ariaRTGreetRetrying = false, GREETING_ATTEMPTS = 3, GREETING_RETRY_MS = 500;\n" +
+    fnSrc("markRealtimeOutputReady").replace(/^function/, "var ariaRTOutputReady = false, ariaRTGreetHeld = null;\nfunction") + "\n" + g +
+    "\nreturn { greet: sendRealtimeGreeting, ready: markRealtimeOutputReady, greeted: () => ariaRTGreeted };")(
+    (send, why) => { sent.push(why); return true; }, () => {}, () => 0, { info() {}, warn() {} });
+  assert.equal(env.greet(() => true), false, "the greeting went out before her audio could be heard");
+  assert.deepEqual(sent, []);
+  env.ready();
+  assert.deepEqual(sent, ["greeting"], "the held greeting was not sent once her audio was playing");
+  assert.equal(env.greeted(), true);
+});
+
+check("every call sends one transport report when it ends; the report carries timings and counters, never what he said", async () => {
+  const rel = fnSrc("releaseRealtimeAudio");
+  assert.match(rel, /^function releaseRealtimeAudio\(mic, why\)\{\n  diagSend\(why\);/);
+  const send = fnSrc("diagSend");
+  assert.match(send, /navigator\.sendBeacon\('\/\.netlify\/functions\/voice-diag'/);
+  const open = fnSrc("startRealtimeVoiceOnce");
+  for (const m of ["diagMark('tap')", "diagMark('token'", "diagMark('mic'", "diagMark('pc', st)", "diagMark('remote-track')", "diagMark('el-playing')", "diagMark('live')", "diagStartStats(pc)"]) assert.ok(open.includes(m), "the opening does not record " + m);
+  assert.match(fnSrc("diagSample"), /outbound-rtp[\s\S]*bytesSent[\s\S]*inbound-rtp[\s\S]*bytesReceived[\s\S]*media-source[\s\S]*audioLevel/);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

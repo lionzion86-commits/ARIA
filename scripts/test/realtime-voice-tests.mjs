@@ -877,7 +877,7 @@ check("nothing in the live path records, chunks, or auto-sends", () => {
   /* The release lives in one helper every ending goes through (#443
      c.6393367532): the tracks stop, the live audio element lets go of
      the remote stream, and the iOS audio session goes back to auto. */
-  assert.match(stopFn.slice(0, 1200), /releaseRealtimeAudio\(ariaRT\.mic\)/,
+  assert.match(stopFn.slice(0, 1200), /releaseRealtimeAudio\(ariaRT\.mic, /,
     "ending the call no longer releases the microphone");
   const rel = page.slice(page.indexOf("function releaseRealtimeAudio("));
   assert.match(rel.slice(0, 500), /mic\.getTracks\(\)\.forEach\(t => \{ try \{ t\.stop\(\); \}/, "the release does not stop the tracks");
