@@ -99,7 +99,7 @@ await check("every catalogue item's shard record carries its whole gallery and i
   assert.deepEqual(misses.slice(0, 8), [], `${misses.length} of ${all.length} items lost photos or provenance in their shard (rebuild: node scripts/build-pdp-slices.mjs)`);
   /* SSENSE's and Sephora's galleries left with their lanes (#443 item 40). */
   assert.ok(multi > 75000, `only ${multi} records with a gallery`);
-  assert.ok(tiered > 40000, `only ${tiered} records with size provenance`);
+  assert.ok(tiered > 38000, `only ${tiered} records with size provenance`);
   console.log(`         (${all.length} items: ${multi} with 2+ photos, ${photos} photos, ${tiered} with sizesTier/sizesSource)`);
 });
 

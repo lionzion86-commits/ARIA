@@ -95,7 +95,9 @@ const STORE_KNOWLEDGE_ALL = {
   walmart: {
     name: "Walmart",
     vibe: "de todo y barato, lo esencial sin vueltas",
-    specialties: ["juguetes", "hogar", "decoración", "dulces", "ropa básica", "esenciales"],
+    /* maquillaje: Maybelline, L'Oréal and the drugstore brands (#443 item 40:
+       with Sephora closed, Walmart is the live makeup door). */
+    specialties: ["juguetes", "hogar", "decoración", "dulces", "ropa básica", "esenciales", "maquillaje"],
     price_range: "economico", median_usd: 23.99, product_count: 7562,
     catalog_depth: "7,562 productos",
     top_categories: ["juguetes", "decoración", "dulces y chocolates", "ropa"],
