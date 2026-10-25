@@ -1,5 +1,6 @@
 {
   "_about": "PERFUME HERO ANCHORS (#443 amendment, Danny). The ONLY products the Perfumes carousel may show at full price: iconic bottles Peruvians recognize on sight. Curated few, not a category -- every entry is named and reviewed here. scripts/build-perfumes-shelf.mjs places an entry only when that exact product (brand + every titleAll phrase, none of titleNone) is in a live, on-sale-channel catalogue in the repo; an entry with no such listing simply does not appear. Never add a listing here: add a product name, and let a real catalogue row decide. Flankers (Intense, Elixir, Absolu, Parfum, minis, sets, travel sprays) are excluded by titleNone so the anchor is the bottle people actually picture.",
+  "_lead": "LEAD (#443 item 39 revision, Danny 2026-10-25 08:30): an anchor with \"lead\": n opens the carousel at position n, in that order, ahead of every other rule (cheap-first, premium never first). \"image\" pins the anchor to the one catalogue photo Danny named (the file name in the row's image URL), so the card is that exact bottle.",
   "anchors": [
     {
       "id": "paco-rabanne-1-million",
@@ -32,6 +33,8 @@
       "titleAll": ["aventus"],
       "titleNone": ["absolu", "cologne", "for her", "mini", "set", "travel"],
       "gender": "hombre",
+      "image": "ave34mc",
+      "lead": 1,
       "why": "The most famous luxury men's fragrance worldwide. The flanker Absolu Aventus is NOT this product and does not qualify."
     },
     {
@@ -65,6 +68,26 @@
       "titleAll": ["acqua di gi"],
       "titleNone": ["gioia", "profondo", "profumo", "parfum", "mini", "set", "travel"],
       "why": "The classic men's designer fragrance in Peru for two decades."
+    },
+    {
+      "id": "chanel-coco-mademoiselle",
+      "name": "Chanel Coco Mademoiselle Eau de Parfum",
+      "brands": ["Chanel"],
+      "titleAll": ["coco mademoiselle", "eau de parfum"],
+      "titleNone": ["crush", "intense", "absolu", "l'eau", "privee", "privée", "mini", "set", "travel", "body"],
+      "image": "COMES17",
+      "lead": 2,
+      "why": "Chanel's best-selling women's fragrance; the bottle is recognized on sight (Danny's lead trio, #443 item 39)."
+    },
+    {
+      "id": "ysl-y",
+      "name": "Yves Saint Laurent Y Eau de Toilette",
+      "brands": ["Yves Saint Laurent", "YSL"],
+      "titleAll": ["y", "eau de toilette"],
+      "titleNone": ["intense", "le parfum", "iced", "live", "elixir", "mini", "set", "travel"],
+      "image": "yyslm33",
+      "lead": 3,
+      "why": "YSL's men's best seller since 2017 (Danny's lead trio, #443 item 39)."
     }
   ]
 }
