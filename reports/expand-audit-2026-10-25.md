@@ -1,17 +1,28 @@
 # Expand-view audit, 2026-10-25 (#443 c.6398965809)
 
-Every "Ver todo" on every department page, opened at 390px, with the department function answering in-process (`scripts/test/expand-view-audit.mjs`).
-A rail passes when its overlay draws as many cards as its count promises (first page, 48 at most) and every card has a name and a price.
+Every "Ver todo" on every department page, opened at 390px, with the department function answering in-process: `node scripts/test/expand-view-audit.mjs`.
+
+**Danny's iPhone failure, reproduced.** The overlay grid was the scrolling flex child of a fixed column, and every card clipped its overflow. An engine that sizes the grid's auto rows to the screen squeezes every card:
+- Prada (33): label-only "ARIA PERFUMES" pills.
+- Burberry (49): blank outlines.
+
+The audit forces that sizing on every run (`grid-auto-rows:minmax(0,1fr)`), so Chromium shows what the iPhone showed.
+- On main: 4 of 4 Prada/Burberry overlays FAIL, every card under 40px tall.
+- With the fix: every card stays 340px.
+
+Screenshots in `reports/shots-expand-audit/`:
+- `repro-main-*`: main under the squeeze.
+- `fix-*`: the fix under the same squeeze.
+
+A rail passes when its overlay draws as many cards as its count promises (first page, 48 at most), every card has a name and a price, and no card is under 200px tall.
 Photos are checked for a photo URL, not for loading: the sandbox blocks the retailer image hosts.
 
-**Total: 788 overlays, 0 failed.**
+**Total with the fix: 792 overlays across 34 pages, 0 failed.**
 
-| Department | Overlays | Failed |
+| Page | Overlays | Failed |
 |---|---|---|
-| perfumes | 101 | 0 |
-| perfumes&q=Prada | 2 | 0 |
 | auto_parts | 5 | 0 |
-| beauty | 4 | 0 |
+| beauty | 2 | 0 |
 | books | 2 | 0 |
 | candy_chocolate | 1 | 0 |
 | clothing | 22 | 0 |
@@ -27,6 +38,7 @@ Photos are checked for a photo URL, not for loading: the sandbox blocks the reta
 | men | 80 | 0 |
 | moms | 10 | 0 |
 | party | 16 | 0 |
+| perfumes | 101 | 0 |
 | purses | 28 | 0 |
 | reacondicionados | 1 | 0 |
 | shoes | 41 | 0 |
@@ -40,121 +52,19 @@ Photos are checked for a photo URL, not for loading: the sandbox blocks the reta
 | tennis | 4 | 0 |
 | toys | 15 | 0 |
 | women | 117 | 0 |
+| perfumes&q=Prada | 2 | 0 |
+| perfumes&q=Burberry | 2 | 0 |
+| perfumes&q=Paco+Rabanne | 4 | 0 |
 
 ## Every overlay
 
-| Department | Rail | Count | Cards drawn | Result |
+| Page | Rail | Count | Cards drawn | Result |
 |---|---|---|---|---|
-| perfumes | Ofertas | 4,423 productos | 48 | pass |
-| perfumes | Testers | 576 productos | 48 | pass |
-| perfumes | Minis y de viaje | 359 productos | 48 | pass |
-| perfumes | Sets de regalo | 16 productos | 16 | pass |
-| perfumes | Christian Dior | 61 productos | 48 | pass |
-| perfumes | Creed | 31 productos | 31 | pass |
-| perfumes | Paco Rabanne | 82 productos | 48 | pass |
-| perfumes | Carolina Herrera | 85 productos | 48 | pass |
-| perfumes | Yves Saint Laurent | 55 productos | 48 | pass |
-| perfumes | Calvin Klein | 78 productos | 48 | pass |
-| perfumes | Xerjoff | 101 productos | 48 | pass |
-| perfumes | Hermes | 92 productos | 48 | pass |
-| perfumes | Dolce & Gabbana | 82 productos | 48 | pass |
-| perfumes | Hugo Boss | 69 productos | 48 | pass |
-| perfumes | Versace | 68 productos | 48 | pass |
-| perfumes | Burberry | 67 productos | 48 | pass |
-| perfumes | Jimmy Choo | 62 productos | 48 | pass |
-| perfumes | Giorgio Armani | 61 productos | 48 | pass |
-| perfumes | Tom Ford | 54 productos | 48 | pass |
-| perfumes | Gucci | 53 productos | 48 | pass |
-| perfumes | Givenchy | 52 productos | 48 | pass |
-| perfumes | Jean Paul Gaultier | 49 productos | 48 | pass |
-| perfumes | Ralph Lauren | 48 productos | 48 | pass |
-| perfumes | Mont Blanc | 43 productos | 43 | pass |
-| perfumes | Bvlgari | 43 productos | 43 | pass |
-| perfumes | Coach | 42 productos | 42 | pass |
-| perfumes | Lacoste | 40 productos | 40 | pass |
-| perfumes | Marc Jacobs | 39 productos | 39 | pass |
-| perfumes | Prada | 39 productos | 39 | pass |
-| perfumes | Issey Miyake | 37 productos | 37 | pass |
-| perfumes | Viktor & Rolf | 36 productos | 36 | pass |
-| perfumes | Azzaro | 33 productos | 33 | pass |
-| perfumes | Valentino | 33 productos | 33 | pass |
-| perfumes | Narciso Rodriguez | 32 productos | 32 | pass |
-| perfumes | Parfums De Marly | 32 productos | 32 | pass |
-| perfumes | Thierry Mugler | 29 productos | 29 | pass |
-| perfumes | Kilian | 28 productos | 28 | pass |
-| perfumes | Lancome | 25 productos | 25 | pass |
-| perfumes | Estee Lauder | 23 productos | 23 | pass |
-| perfumes | Kenzo | 23 productos | 23 | pass |
-| perfumes | Tommy Hilfiger | 16 productos | 16 | pass |
-| perfumes | Lattafa | 306 productos | 48 | pass |
-| perfumes | Demeter | 288 productos | 48 | pass |
-| perfumes | Armaf | 260 productos | 48 | pass |
-| perfumes | Al Haramain | 181 productos | 48 | pass |
-| perfumes | Fragluxe | 162 productos | 48 | pass |
-| perfumes | Maison Alhambra | 145 productos | 48 | pass |
-| perfumes | Rasasi | 125 productos | 48 | pass |
-| perfumes | Afnan | 114 productos | 48 | pass |
-| perfumes | Montale | 105 productos | 48 | pass |
-| perfumes | Risala | 91 productos | 48 | pass |
-| perfumes | Dumont Paris | 79 productos | 48 | pass |
-| perfumes | Khalis | 72 productos | 48 | pass |
-| perfumes | Perry Ellis | 69 productos | 48 | pass |
-| perfumes | Swiss Arabian | 66 productos | 48 | pass |
-| perfumes | Guerlain | 64 productos | 48 | pass |
-| perfumes | Hamidi | 64 productos | 48 | pass |
-| perfumes | Mancera | 61 productos | 48 | pass |
-| perfumes | Anfar | 59 productos | 48 | pass |
-| perfumes | Arabiyat Prestige | 58 productos | 48 | pass |
-| perfumes | Azha | 57 productos | 48 | pass |
-| perfumes | Al Zaafaran | 57 productos | 48 | pass |
-| perfumes | Riiffs | 55 productos | 48 | pass |
-| perfumes | Tiziana Terenzi | 54 productos | 48 | pass |
-| perfumes | Police Colognes | 52 productos | 48 | pass |
-| perfumes | Salvatore Ferragamo | 52 productos | 48 | pass |
-| perfumes | Victoria's Secret | 51 productos | 48 | pass |
-| perfumes | Guess | 49 productos | 48 | pass |
-| perfumes | Lomani | 48 productos | 48 | pass |
-| perfumes | Michael Malul | 48 productos | 48 | pass |
-| perfumes | Ajmal | 46 productos | 46 | pass |
-| perfumes | Elizabeth Arden | 43 productos | 43 | pass |
-| perfumes | Juicy Couture | 42 productos | 42 | pass |
-| perfumes | Donna Karan | 41 productos | 41 | pass |
-| perfumes | Jo Malone | 40 productos | 40 | pass |
-| perfumes | Fragrance World | 39 productos | 39 | pass |
-| perfumes | Liz Claiborne | 39 productos | 39 | pass |
-| perfumes | Franck Boclet | 39 productos | 39 | pass |
-| perfumes | Banana Republic | 36 productos | 36 | pass |
-| perfumes | Nusuk | 36 productos | 36 | pass |
-| perfumes | Flavia | 35 productos | 35 | pass |
-| perfumes | Clean | 35 productos | 35 | pass |
-| perfumes | Jo Milano | 33 productos | 33 | pass |
-| perfumes | Lalique | 32 productos | 32 | pass |
-| perfumes | Mercedes Benz | 31 productos | 31 | pass |
-| perfumes | Disney | 30 productos | 30 | pass |
-| perfumes | Oscar De La Renta | 30 productos | 30 | pass |
-| perfumes | Bharara Beauty | 30 productos | 30 | pass |
-| perfumes | Sapil | 28 productos | 28 | pass |
-| perfumes | Kenneth Cole | 28 productos | 28 | pass |
-| perfumes | Roberto Cavalli | 27 productos | 27 | pass |
-| perfumes | Vince Camuto | 27 productos | 27 | pass |
-| perfumes | Maison Margiela | 27 productos | 27 | pass |
-| perfumes | 4711 | 26 productos | 26 | pass |
-| perfumes | Khadlaj | 26 productos | 26 | pass |
-| perfumes | Paris Hilton | 25 productos | 25 | pass |
-| perfumes | V Canto | 25 productos | 25 | pass |
-| perfumes | Memo | 25 productos | 25 | pass |
-| perfumes | Byredo | 25 productos | 25 | pass |
-| perfumes | Roja Parfums | 25 productos | 25 | pass |
-| perfumes | Chloe | 24 productos | 24 | pass |
-| perfumes&q=Prada | Ofertas | 33 productos | 33 | pass |
-| perfumes&q=Prada | Prada | 39 productos | 39 | pass |
 | auto_parts | Ofertas | 37 productos | 37 | pass |
 | auto_parts | Repuestos | 454 productos | 48 | pass |
 | auto_parts | Pastillas De Freno | 120 productos | 48 | pass |
 | auto_parts | Clutches | 31 productos | 31 | pass |
 | auto_parts | Más productos | 130 productos | 48 | pass |
-| beauty | Ofertas | 40 productos | 40 | pass |
-| beauty | Más productos | 554 productos | 48 | pass |
 | beauty | Ofertas | 40 productos | 40 | pass |
 | beauty | Más productos | 554 productos | 48 | pass |
 | books | Destacados | 479 productos | 48 | pass |
@@ -514,6 +424,107 @@ Photos are checked for a photo URL, not for loading: the sandbox blocks the reta
 | party | Polos Y Camisetas | 15 productos | 15 | pass |
 | party | Tabletop Decorations | 15 productos | 15 | pass |
 | party | Más productos | 749 productos | 48 | pass |
+| perfumes | Ofertas | 4,423 productos | 48 | pass |
+| perfumes | Testers | 576 productos | 48 | pass |
+| perfumes | Minis y de viaje | 359 productos | 48 | pass |
+| perfumes | Sets de regalo | 16 productos | 16 | pass |
+| perfumes | Christian Dior | 61 productos | 48 | pass |
+| perfumes | Creed | 31 productos | 31 | pass |
+| perfumes | Paco Rabanne | 82 productos | 48 | pass |
+| perfumes | Carolina Herrera | 85 productos | 48 | pass |
+| perfumes | Yves Saint Laurent | 55 productos | 48 | pass |
+| perfumes | Calvin Klein | 78 productos | 48 | pass |
+| perfumes | Xerjoff | 101 productos | 48 | pass |
+| perfumes | Hermes | 92 productos | 48 | pass |
+| perfumes | Dolce & Gabbana | 82 productos | 48 | pass |
+| perfumes | Hugo Boss | 69 productos | 48 | pass |
+| perfumes | Versace | 68 productos | 48 | pass |
+| perfumes | Burberry | 67 productos | 48 | pass |
+| perfumes | Jimmy Choo | 62 productos | 48 | pass |
+| perfumes | Giorgio Armani | 61 productos | 48 | pass |
+| perfumes | Tom Ford | 54 productos | 48 | pass |
+| perfumes | Gucci | 53 productos | 48 | pass |
+| perfumes | Givenchy | 52 productos | 48 | pass |
+| perfumes | Jean Paul Gaultier | 49 productos | 48 | pass |
+| perfumes | Ralph Lauren | 48 productos | 48 | pass |
+| perfumes | Mont Blanc | 43 productos | 43 | pass |
+| perfumes | Bvlgari | 43 productos | 43 | pass |
+| perfumes | Coach | 42 productos | 42 | pass |
+| perfumes | Lacoste | 40 productos | 40 | pass |
+| perfumes | Marc Jacobs | 39 productos | 39 | pass |
+| perfumes | Prada | 39 productos | 39 | pass |
+| perfumes | Issey Miyake | 37 productos | 37 | pass |
+| perfumes | Viktor & Rolf | 36 productos | 36 | pass |
+| perfumes | Azzaro | 33 productos | 33 | pass |
+| perfumes | Valentino | 33 productos | 33 | pass |
+| perfumes | Narciso Rodriguez | 32 productos | 32 | pass |
+| perfumes | Parfums De Marly | 32 productos | 32 | pass |
+| perfumes | Thierry Mugler | 29 productos | 29 | pass |
+| perfumes | Kilian | 28 productos | 28 | pass |
+| perfumes | Lancome | 25 productos | 25 | pass |
+| perfumes | Estee Lauder | 23 productos | 23 | pass |
+| perfumes | Kenzo | 23 productos | 23 | pass |
+| perfumes | Tommy Hilfiger | 16 productos | 16 | pass |
+| perfumes | Lattafa | 306 productos | 48 | pass |
+| perfumes | Demeter | 288 productos | 48 | pass |
+| perfumes | Armaf | 260 productos | 48 | pass |
+| perfumes | Al Haramain | 181 productos | 48 | pass |
+| perfumes | Fragluxe | 162 productos | 48 | pass |
+| perfumes | Maison Alhambra | 145 productos | 48 | pass |
+| perfumes | Rasasi | 125 productos | 48 | pass |
+| perfumes | Afnan | 114 productos | 48 | pass |
+| perfumes | Montale | 105 productos | 48 | pass |
+| perfumes | Risala | 91 productos | 48 | pass |
+| perfumes | Dumont Paris | 79 productos | 48 | pass |
+| perfumes | Khalis | 72 productos | 48 | pass |
+| perfumes | Perry Ellis | 69 productos | 48 | pass |
+| perfumes | Swiss Arabian | 66 productos | 48 | pass |
+| perfumes | Guerlain | 64 productos | 48 | pass |
+| perfumes | Hamidi | 64 productos | 48 | pass |
+| perfumes | Mancera | 61 productos | 48 | pass |
+| perfumes | Anfar | 59 productos | 48 | pass |
+| perfumes | Arabiyat Prestige | 58 productos | 48 | pass |
+| perfumes | Azha | 57 productos | 48 | pass |
+| perfumes | Al Zaafaran | 57 productos | 48 | pass |
+| perfumes | Riiffs | 55 productos | 48 | pass |
+| perfumes | Tiziana Terenzi | 54 productos | 48 | pass |
+| perfumes | Police Colognes | 52 productos | 48 | pass |
+| perfumes | Salvatore Ferragamo | 52 productos | 48 | pass |
+| perfumes | Victoria's Secret | 51 productos | 48 | pass |
+| perfumes | Guess | 49 productos | 48 | pass |
+| perfumes | Lomani | 48 productos | 48 | pass |
+| perfumes | Michael Malul | 48 productos | 48 | pass |
+| perfumes | Ajmal | 46 productos | 46 | pass |
+| perfumes | Elizabeth Arden | 43 productos | 43 | pass |
+| perfumes | Juicy Couture | 42 productos | 42 | pass |
+| perfumes | Donna Karan | 41 productos | 41 | pass |
+| perfumes | Jo Malone | 40 productos | 40 | pass |
+| perfumes | Fragrance World | 39 productos | 39 | pass |
+| perfumes | Liz Claiborne | 39 productos | 39 | pass |
+| perfumes | Franck Boclet | 39 productos | 39 | pass |
+| perfumes | Banana Republic | 36 productos | 36 | pass |
+| perfumes | Nusuk | 36 productos | 36 | pass |
+| perfumes | Flavia | 35 productos | 35 | pass |
+| perfumes | Clean | 35 productos | 35 | pass |
+| perfumes | Jo Milano | 33 productos | 33 | pass |
+| perfumes | Lalique | 32 productos | 32 | pass |
+| perfumes | Mercedes Benz | 31 productos | 31 | pass |
+| perfumes | Disney | 30 productos | 30 | pass |
+| perfumes | Oscar De La Renta | 30 productos | 30 | pass |
+| perfumes | Bharara Beauty | 30 productos | 30 | pass |
+| perfumes | Sapil | 28 productos | 28 | pass |
+| perfumes | Kenneth Cole | 28 productos | 28 | pass |
+| perfumes | Roberto Cavalli | 27 productos | 27 | pass |
+| perfumes | Vince Camuto | 27 productos | 27 | pass |
+| perfumes | Maison Margiela | 27 productos | 27 | pass |
+| perfumes | 4711 | 26 productos | 26 | pass |
+| perfumes | Khadlaj | 26 productos | 26 | pass |
+| perfumes | Paris Hilton | 25 productos | 25 | pass |
+| perfumes | V Canto | 25 productos | 25 | pass |
+| perfumes | Memo | 25 productos | 25 | pass |
+| perfumes | Byredo | 25 productos | 25 | pass |
+| perfumes | Roja Parfums | 25 productos | 25 | pass |
+| perfumes | Chloe | 24 productos | 24 | pass |
 | purses | Ofertas | 67 productos | 48 | pass |
 | purses | Sample | 104 productos | 48 | pass |
 | purses | Totes | 71 productos | 48 | pass |
@@ -833,3 +844,11 @@ Photos are checked for a photo URL, not for loading: the sandbox blocks the reta
 | women | Eyewear | 14 productos | 14 | pass |
 | women | Bag Accessories | 14 productos | 14 | pass |
 | women | Vests | 14 productos | 14 | pass |
+| perfumes&q=Prada | Ofertas | 33 productos | 33 | pass |
+| perfumes&q=Prada | Prada | 39 productos | 39 | pass |
+| perfumes&q=Burberry | Ofertas | 49 productos | 48 | pass |
+| perfumes&q=Burberry | Burberry | 67 productos | 48 | pass |
+| perfumes&q=Paco+Rabanne | Ofertas | 71 productos | 48 | pass |
+| perfumes&q=Paco+Rabanne | Testers | 15 productos | 15 | pass |
+| perfumes&q=Paco+Rabanne | Paco Rabanne | 82 productos | 48 | pass |
+| perfumes&q=Paco+Rabanne | Cuerpo y cuidado | 14 productos | 14 | pass |

@@ -7,7 +7,8 @@
    (the same answer() Netlify runs), opens each department page at
    phone width, scrolls every carousel in, presses every "Ver todo" and
    checks the overlay: as many cards as the count promises (first page,
-   48 at most), and every card with a name and a price.
+   48 at most), every card with a name and a price, and no card cut to
+   a sliver (under 200px tall).
 
      node scripts/test/expand-view-audit.mjs                 # every department
      DEPTS=perfumes,beauty node scripts/test/expand-view-audit.mjs
@@ -56,6 +57,12 @@ for (const path of pages) {
   await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
   await pg.goto(`${BASE}/${path}`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(3000);
+  /* THE IPHONE'S SQUEEZE, FORCED (#443 c.6398974665). On Danny's phone the
+     overlay's rows were fitted to the screen instead of to the cards:
+     33 cards became label-only pills, 49 became blank outlines. Chromium
+     sizes them correctly on its own, so the audit forces that behaviour
+     and the overlay must still draw full cards under it. */
+  await pg.addStyleTag({ content: ".re-grid{grid-auto-rows:minmax(0,1fr) !important}" });
   for (let y = 0; y < 25; y++) { await pg.mouse.wheel(0, 2000); await pg.waitForTimeout(200); }
   await pg.waitForTimeout(1500);
   const doors = () => [...document.querySelectorAll(".rail-sec")].filter((s) => s.offsetParent && [...s.querySelectorAll("button,a")].some((e) => /Ver todo/.test(e.textContent)));
@@ -72,11 +79,13 @@ for (const path of pages) {
         noName: cards.filter((c) => !((c.querySelector(".card-title") || {}).textContent || "").trim()).length,
         noPrice: cards.filter((c) => !/\d/.test((c.querySelector(".price") || {}).textContent || "")).length,
         noPhoto: cards.filter((c) => !c.querySelector("img")).length,
+        /* a card cut to a sliver (the iPhone failure, c.6398974665) */
+        squeezed: cards.filter((c) => c.getBoundingClientRect().height < 200).length,
         failed: !!g.querySelector("#reMoreWrap p"),
       };
     });
     const promised = Math.min(48, parseInt(String(r.count).replace(/\D/g, ""), 10) || 0);
-    rows.push({ page: path, rail, ...r, pass: !r.failed && r.cards === promised && !r.noName && !r.noPrice });
+    rows.push({ page: path, rail, ...r, pass: !r.failed && r.cards === promised && !r.noName && !r.noPrice && !r.squeezed });
     await pg.evaluate(() => closeRailExpand());
   }
   if (errs.length) rows.push({ page: path, rail: "(page errors)", errors: errs.slice(0, 3), pass: false });
@@ -86,6 +95,6 @@ await browser.close();
 server.close();
 
 const failed = rows.filter((r) => !r.pass);
-for (const r of rows) console.log(`${r.pass ? "ok  " : "FAIL"} ${r.page.replace("departamento.html?dept=", "")} | ${r.rail} | ${r.count || ""} | cards ${r.cards ?? "-"}${r.noName ? " no-name " + r.noName : ""}${r.noPrice ? " no-price " + r.noPrice : ""}${r.noPhoto ? " no-photo " + r.noPhoto : ""}${r.errors ? " " + r.errors.join("; ") : ""}`);
+for (const r of rows) console.log(`${r.pass ? "ok  " : "FAIL"} ${r.page.replace("departamento.html?dept=", "")} | ${r.rail} | ${r.count || ""} | cards ${r.cards ?? "-"}${r.noName ? " no-name " + r.noName : ""}${r.noPrice ? " no-price " + r.noPrice : ""}${r.noPhoto ? " no-photo " + r.noPhoto : ""}${r.squeezed ? " squeezed " + r.squeezed : ""}${r.errors ? " " + r.errors.join("; ") : ""}`);
 console.log(`\n  ${rows.length - failed.length} passed, ${failed.length} failed (${pages.length} pages)\n`);
 if (failed.length) process.exit(1);

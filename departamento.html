@@ -115,17 +115,30 @@
   .rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
   .rail .card{flex:0 0 164px;scroll-snap-align:start}
   @media(min-width:640px){.rail .card{flex-basis:200px}}
-  /* expand overlay: full-screen "Ver todo" */
-  .rail-expand{position:fixed;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column}
+  /* expand overlay: full-screen "Ver todo".
+     ONE SCROLLER, A PLAIN GRID (#443 c.6398961263 / c.6398974665: on
+     Danny's iPhone the expanded Ofertas drew label-only pills and, for
+     Burberry's 49, blank outlines). The grid used to be the scrolling
+     flex child of a fixed column and every card clipped its overflow, so
+     an engine that sized the grid's auto rows to the screen instead of
+     to the cards squeezed 17-25 rows into one viewport and cut each card
+     to a sliver. Now the overlay itself scrolls, the header is sticky,
+     and the grid is an ordinary two-across block whose rows are as tall
+     as their cards -- nothing left for an engine to read two ways. */
+  .rail-expand{position:fixed;inset:0;z-index:90;background:var(--paper);display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   .rail-expand[hidden]{display:none}
-  .re-head{flex-shrink:0;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px}
+  .re-head{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px}
   .re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12)}
   .re-title{font-size:17px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .re-count{font-size:12px;font-weight:600;color:#8A93A8}
-  .re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start;max-width:1240px;margin:0 auto;width:100%}
-  .re-grid .card{flex:none;min-width:0}
-  @media(min-width:640px){.re-grid{grid-template-columns:repeat(3,1fr)}}
-  @media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,1fr)}}
+  .re-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:auto;align-items:start;gap:12px;padding:16px;max-width:1240px;margin:0 auto;box-sizing:border-box}
+  .re-grid .card{flex:none;min-width:0;height:auto;overflow:visible}
+  .re-grid .card-img{border-radius:15px 15px 0 0}
+  /* and nothing inside a card may shrink to fit: the photo box and every
+     line keep their own height whatever the row does */
+  .re-grid .card > *, .re-grid .card-body > *{flex-shrink:0}
+  @media(min-width:640px){.re-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
   footer a{color:var(--blue);text-decoration:none;font-weight:700}
 </style>
 <script src="/ref.js"></script>
@@ -622,6 +635,18 @@ function sizedImageUrl(url, w){
     for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
   }
   window.imgOrigRetry = imgOrigRetry;
+  /* The overlay's photos are watched against the overlay, its own
+     scroller, not the page behind it. */
+  var OV_IO = null;
+  function watchOverlayPhotos(root){
+    var imgs = root.querySelectorAll('img[data-src]');
+    if (!imgs.length) return;
+    if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < imgs.length; i++) railPhoto(imgs[i]); return; }
+    if (!OV_IO) OV_IO = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting){ OV_IO.unobserve(e.target); railPhoto(e.target); } });
+    }, { root: document.getElementById('railExpand'), rootMargin: '600px 0px' });
+    for (var j = 0; j < imgs.length; j++) OV_IO.observe(imgs[j]);
+  }
 
   /* ---------- card ---------- */
   var RET_LABELS = {
@@ -859,7 +884,7 @@ function sizedImageUrl(url, w){
       grid.innerHTML = skeletons(6);
       ov.hidden = false;
       document.body.style.overflow = 'hidden';
-      grid.scrollTop = 0;
+      ov.scrollTop = 0;
       OV = { rk: Number(rk), page: -1, pages: 1, busy: false, seq: OV.seq + 1 };
       moreExpand(true);
     }catch(e){ showError('No pudimos mostrar todos los productos.'); }
@@ -881,7 +906,7 @@ function sizedImageUrl(url, w){
       if (OV.page + 1 < OV.pages){
         grid.insertAdjacentHTML('beforeend', '<div id="reMoreWrap" class="re-more"><button type="button" class="btn" id="reMore">Mostrar más</button></div>');
       }
-      watchPhotos(grid);
+      watchOverlayPhotos(grid);
     }).catch(function(){
       if (seq !== OV.seq) return;
       OV.busy = false;
