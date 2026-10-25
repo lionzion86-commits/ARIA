@@ -34641,6 +34641,17 @@ let ariaRTGreeted = false;
 /* Set only while WE are closing the call, so a "closed" peer
    connection is not reported as a dropped one. */
 let ariaRTClosing = false;
+/* TERMINAR WHILE IT IS STILL CONNECTING (#443 c.6393367532, Danny's iPhone).
+   The mic button used to look only at ariaRT, which is null until the
+   handshake finishes, so a tap during the connect started nothing and
+   stopped nothing -- and the call came up anyway, microphone and meter
+   both running. Now a tap during the connect sets this, and every await
+   in startRealtimeVoiceOnce checks it and tears down what it has. */
+let ariaRTAbort = false;
+/* The opening nudge is offered once per call (#443 c.6393367532). */
+let ariaRTNudged = false;
+/* His words arrived while another response was running (#443 c.6393367532). */
+let ariaRTPendingTurn = false;
 /* One retry chain for the greeting, never two. */
 let ariaRTGreetRetrying = false;
 /* First audio of the call, which for a fresh call is the greeting.
@@ -35033,6 +35044,7 @@ async function startRealtimeVoiceOnce(){
   /* Before anything else: from here the old pipeline is off limits,
      not from the moment the call finishes connecting. */
   ariaRTOpening = true;
+  ariaRTAbort = false;
   const can = realtimeAvailable();
   if (!can.ok) return noteRealtimeFailure('el navegador no la soporta', can.reason);
 
@@ -35041,6 +35053,7 @@ async function startRealtimeVoiceOnce(){
      one now, which is what every path that is not the orb does — the
      retry button, the microphone, a call reopened from a link. */
   const got = await ariaWarmRealtimeToken();
+  if (ariaRTAbort) return abortRealtimeOpening(null, null, 'colgó mientras conectaba (token)');
   /* AN EPHEMERAL SECRET IS GOOD FOR ONE SESSION. Dropping it here
      means a second call mints its own instead of replaying a secret
      the server has already spent. */
@@ -35079,6 +35092,8 @@ async function startRealtimeVoiceOnce(){
   /* A fresh call means he has not spoken on THIS call, whatever he
      said on the last one — otherwise the second call never nudges. */
   ariaRTSpoke = false;
+  ariaRTNudged = false;
+  ariaRTPendingTurn = false;
 
   /* BEFORE THE MICROPHONE, so WebKit never infers the session itself. */
   ariaSetAudioSession('play-and-record');
@@ -35108,6 +35123,7 @@ async function startRealtimeVoiceOnce(){
        and leave the old mic button exactly as it was. */
     return noteRealtimeFailure('el micrófono fue denegado', e.name);
   }
+  if (ariaRTAbort) return abortRealtimeOpening(mic, null, 'colgó mientras conectaba (micrófono)');
 
   /* Re-asserted with capture live: iOS settles the output route when
      capture BEGINS, not when the type is set. */
@@ -35258,11 +35274,13 @@ async function startRealtimeVoiceOnce(){
     if (!sdpRes.ok) throw new Error('SDP ' + sdpRes.status);
     await pc.setRemoteDescription({ type: 'answer', sdp: await sdpRes.text() });
   } catch (e){
+    if (ariaRTAbort) return abortRealtimeOpening(mic, pc, 'colgó mientras conectaba (SDP)');
     try { mic.getTracks().forEach(t => t.stop()); } catch {}
     try { pc.close(); } catch {}
     return noteRealtimeFailure('la conexión WebRTC no se estableció', e.message);
   }
 
+  if (ariaRTAbort) return abortRealtimeOpening(mic, pc, 'colgó mientras conectaba');
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
   ariaRTOpening = false;
   ariaRTStartedAt = Date.now();
@@ -35445,11 +35463,17 @@ function cueRealtime(cue){
    good and the ten-second sign-off is the right handler for a
    later lull. */
 function armOpeningNudge(){
-  if (!ariaRT || ariaRTSpoke) return;
+  /* ONCE PER CALL (#443 c.6393367532: the silence shutoff never fired).
+     It was re-armed every time her audio ended, so a shopper who never
+     spoke got a nudge, then her answer to the nudge re-armed it, and the
+     hang-up timer deferred to it every time -- a silent call ran until the
+     five-minute cap. Now the second silence is the hang-up's. */
+  if (!ariaRT || ariaRTSpoke || ariaRTNudged) return;
   if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
   ariaRTOpeningTimer = setTimeout(() => {
     ariaRTOpeningTimer = null;
     if (!ariaRT || ariaRTSpoke) return;
+    ariaRTNudged = true;
     cueRealtime(CUE_OPENING_SILENCE);
   }, CALL_OPENING_SILENCE_MS);
 }
@@ -35539,7 +35563,11 @@ const REALTIME_HALLUCINATION_RE = /^\s*(?:muchas\s+)?gracias[.!¡]*\s*$|subt[ií
 function realtimeEchoOfHer(s){
   const words = normBrandText(s).replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length >= 3);
   const herLines = (ariaChatHistory || []).filter(m => m && m.role === 'assistant' && typeof m.content === 'string').slice(-2).map(m => m.content);
-  if (words.length < 3 || !herLines.length) return false;
+  /* FIVE WORDS, NOT THREE (#443 c.6393367532). 'Hola Aria, ¿qué tal?' is
+     three-quarters her greeting's words, so a shopper answering her hello
+     was dropped as her own echo -- she did not hear him at open. An echo
+     of her speaker is a sentence of hers, not a reply to it. */
+  if (words.length < 5 || !herLines.length) return false;
   const hers = new Set(normBrandText(herLines.join(' ')).replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length >= 3));
   return words.filter(w => hers.has(w)).length / words.length >= 0.7;
 }
@@ -35693,17 +35721,50 @@ async function retryRealtimeVoice(){
   if (!ok) showRealtimeError();
 }
 
+/* GIVE THE PHONE ITS MICROPHONE BACK (#443 c.6393367532: after Terminar
+   iOS still treated the mic as held by this page -- he could not record
+   a voice note in another app). Stopping the tracks is not the whole of
+   it on WebKit: the page had declared a play-and-record audio session
+   and the live audio element still held the remote stream, and either
+   keeps the OS session in a recording category. Both are handed back
+   on every way a call ends. */
+function releaseRealtimeAudio(mic){
+  try { if (mic) mic.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); } catch (e) {}
+  try { if (ariaLiveAudioEl){ ariaLiveAudioEl.pause(); ariaLiveAudioEl.srcObject = null; } } catch (e) {}
+  ariaSetAudioSession('auto');
+}
+
+/* A tap on Terminar while the call was still connecting: everything the
+   opening holds so far is released, no error is shown (he asked for
+   this), and the call never comes up. */
+function abortRealtimeOpening(mic, pc, why){
+  console.info('[aria] call aborted before it came up —', why);
+  try { tape('--', 'aborted: ' + why); } catch (e) {}
+  try { if (pc) pc.close(); } catch (e) {}
+  releaseRealtimeAudio(mic);
+  ariaRTOpening = false;
+  ariaRTAbort = false;
+  ariaRTWanted = false;
+  ariaRTFailure = null;
+  setRealtimeUi(false);
+  return false;
+}
+
 /** End the session and give the microphone back. */
 function stopRealtimeVoice(opts){
-  if (!ariaRT) return;
+  if (!ariaRT){
+    /* Still connecting: the opening is told to stop at its next step. */
+    if (ariaRTOpening){ ariaRTAbort = true; setRealtimeUi(false); }
+    return;
+  }
   /* So the connectionstatechange handler can tell a hang-up from a
      dropped call: closing the peer connection fires "closed" either
      way. */
   ariaRTClosing = true;
-  try { ariaRT.mic.getTracks().forEach(t => t.stop()); } catch {}
   try { ariaRT.dc.close(); } catch {}
   try { ariaRT.pc.close(); } catch {}
   try { ariaRT.sink.cut(); } catch {}
+  releaseRealtimeAudio(ariaRT.mic);
   clearRealtimeIdleTimers();
   ariaRT = null;
   ariaRTOpening = false;
@@ -35837,7 +35898,13 @@ async function onRealtimeEvent(event, turn, send){
          scripts/lib/realtime-voice.js): a turn is answered once its
          transcript holds real words, so noise in a quiet car is never
          answered and she never "talks to herself". */
-      askRealtimeResponse(send, 'his turn');
+      /* HEARD EVEN WHEN SHE WAS STILL TALKING (#443 c.6393367532: 'at
+         session start Aria does not hear me'). His first words usually land
+         while the greeting response is still open -- barge-in cancels it,
+         but the cancel is a round trip, and a transcript that arrives first
+         was refused by the one-at-a-time gate and never answered. Now a
+         refused turn waits and is answered the moment that response ends. */
+      if (!askRealtimeResponse(send, 'his turn')){ ariaRTPendingTurn = true; tape('--', 'his turn queued behind a running response'); }
       break;
     case 'conversation.item.input_audio_transcription.failed':
       /* No transcript, no proof he spoke: nothing is answered (#443
@@ -35848,7 +35915,13 @@ async function onRealtimeEvent(event, turn, send){
       if (realtimeReplyWasPhantom()) break;
       /* No markup in chat (#443 item 31). */
       const said = cleanSpokenText(event.transcript || '').replace(/\[\[[A-Z]+:[^\]]*\]\]/g, '').trim();
-      if (said){
+      /* ONE LINE ONCE (#443 c.6393462271: the greeting written twice). The
+         same words twice in a row from the same call are one line on screen;
+         the tape keeps the second so the cause can be read off a live call. */
+      const lastHer = (ariaChatHistory || []).filter(m => m && m.role === 'assistant').slice(-1)[0];
+      if (said && lastHer && lastHer.content === said){
+        tape('!!', 'duplicate line not written: ' + said.slice(0, 80) + ' | response ' + (event.response_id || '?'));
+      } else if (said){
         addAssistantMessage('bot', said, null, { speak: false });
         ariaChatHistory.push({ role: 'assistant', content: said });
       }
@@ -35884,6 +35957,10 @@ async function onRealtimeEvent(event, turn, send){
          response that left the gate shut would mute her for the rest
          of the call. */
       ariaRTResponding = false;
+      if (ariaRTPendingTurn){
+        ariaRTPendingTurn = false;
+        if (!askRealtimeResponse(send, 'his turn (queued)')) ariaRTPendingTurn = true;
+      }
       if (st === 'failed'){
         /* A response can fail on its own without an `error` event.
            This is where a malformed response.create surfaces, and it
@@ -36971,10 +37048,12 @@ function setRealtimeUi(live, muted){
  * nothing.
  */
 async function toggleAriaVoice(){
-  if (ariaRT){ stopRealtimeVoice(); return; }
+  if (ariaRT || ariaRTOpening){ stopRealtimeVoice(); return; }
   ariaRTWanted = true;
   unlockAudioForMobile();
   if (await startRealtimeVoice()) return;
+  /* He hung up while it connected: nothing failed. */
+  if (!ariaRTWanted) return;
   /* NO FALLBACK. NOT EVEN A DELIBERATE ONE.
 
      The old loop used to take over here, and then — after the first
