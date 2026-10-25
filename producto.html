@@ -640,7 +640,10 @@ function normalizeItem(it, retailerKey){
       name: decodeEntities(name), brand: decodeEntities(it.brand || ""), price: price,
       image: String(img || ""), url: String(it.url || it.link || ""),
       retailer: String(it.retailer || retailerKey || ""),
-      description: String(it.description || it.description_en || ""),
+      /* Spanish only (#443 c.6402691998): an untranslated English copy
+         (description_en) is never shown; the stores keep Spanish in
+         `description`. */
+      description: String(it.description || ""),
       /* `sizes` is where the variant-truth merge writes (#411);
          availableSizes is the older scrape field. Never invented. */
       sizes: truthfulSizes(Array.isArray(it.sizes) && it.sizes.length ? it.sizes : it.availableSizes),
