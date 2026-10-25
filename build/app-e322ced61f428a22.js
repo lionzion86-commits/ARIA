@@ -34727,6 +34727,13 @@ let ariaRTAbort = false;
 let ariaRTNudged = false;
 /* His words arrived while another response was running (#443 c.6393367532). */
 let ariaRTPendingTurn = false;
+/* A committed turn still waiting for its transcript, and the session's
+   own word on whether transcripts come at all (#443 c.6401531233). */
+let ariaRTTranscriptTimer = null;
+let ariaRTTranscribes = true;
+/* That turn was answered from the audio; its late transcript is only written down. */
+let ariaRTAnsweredFromAudio = false;
+const TRANSCRIPT_WAIT_MS = 3500;
 /* One retry chain for the greeting, never two. */
 let ariaRTGreetRetrying = false;
 /* First audio of the call, which for a fresh call is the greeting.
@@ -35177,6 +35184,15 @@ async function startRealtimeVoiceOnce(){
   ariaRTGreetHeld = null;
   ariaRTPendingTurn = false;
 
+  /* WHICH SESSION THE SERVER ACCEPTED (#443 c.6401531233, the 17:51Z
+     call: four turns committed, no transcript, no answer). The mint
+     sheds fields one layer at a time when the API rejects one; two of
+     its layers carry no transcription, and since item 31 she answers
+     only on a transcript. A session without one is answered by the
+     server itself instead (see dc.onopen). */
+  ariaRTTranscribes = mint.transcribes !== false;
+  diagMark('session', { variant: String(mint.variant || '?'), transcribes: ariaRTTranscribes });
+
   /* BEFORE THE MICROPHONE, so WebKit never infers the session itself. */
   ariaSetAudioSession('play-and-record');
   try {
@@ -35352,8 +35368,15 @@ async function startRealtimeVoiceOnce(){
        copy to get wrong. */
     console.info('[aria] onopen fired');
     if (mint.turn_detection){
-      send({ type: 'session.update', session: { type: 'realtime',
-        audio: { input: { turn_detection: mint.turn_detection } } } });
+      /* No transcripts means nothing would ever start her answer, so
+         the server answers each turn itself; and when there are
+         transcripts the setting is sent again with the turn detection,
+         so the update can never leave the session without it. */
+      const input = { turn_detection: mint.turn_detection };
+      if (!ariaRTTranscribes) input.turn_detection = { ...mint.turn_detection, create_response: true };
+      if (ariaRTTranscribes && mint.transcription) input.transcription = mint.transcription;
+      if (!ariaRTTranscribes) tape('!!', 'session has no transcription: the server answers turns');
+      send({ type: 'session.update', session: { type: 'realtime', audio: { input } } });
     }
     /* AFTER THE SERVER CONFIRMS, NOT A MOMENT BEFORE. The greeting
        used to go out in the same tick as session.update, which races
@@ -35458,6 +35481,8 @@ function clearRealtimeIdleTimers(){
   }
   ariaRTIdleTimer = ariaRTMaxTimer = ariaRTHiddenTimer = ariaRTExitTimer = null;
   if (typeof ariaRTDeadAirTimer !== 'undefined' && ariaRTDeadAirTimer){ clearInterval(ariaRTDeadAirTimer); ariaRTDeadAirTimer = null; }
+  if (ariaRTTranscriptTimer){ clearTimeout(ariaRTTranscriptTimer); ariaRTTranscriptTimer = null; }
+  ariaRTAnsweredFromAudio = false;
   ariaRTOpeningTimer = null;
 }
 
@@ -36008,7 +36033,31 @@ async function onRealtimeEvent(event, turn, send){
       /* Held, not reset: only real words reset the clock (N7b). */
       holdRealtimeIdle();
       break;
-    case 'conversation.item.input_audio_transcription.completed':
+    case 'input_audio_buffer.committed':
+      /* A TURN IS NEVER LEFT UNANSWERED FOR WANT OF A TRANSCRIPT
+         (#443 c.6401531233). Her answer waits on the transcript (item
+         31); if none arrives -- neither completed nor failed -- she
+         answers from his audio, which the server already holds. */
+      if (ariaRTTranscribes){
+        if (ariaRTTranscriptTimer) clearTimeout(ariaRTTranscriptTimer);
+        ariaRTTranscriptTimer = setTimeout(() => {
+          ariaRTTranscriptTimer = null;
+          if (!ariaRT) return;
+          tape('!!', 'no transcript ' + TRANSCRIPT_WAIT_MS + 'ms after his turn: answered from the audio');
+          diagMark('no-transcript');
+          ariaRTAnsweredFromAudio = true;
+          if (!askRealtimeResponse(send, 'his turn (no transcript)')) ariaRTPendingTurn = true;
+        }, TRANSCRIPT_WAIT_MS);
+      }
+      break;
+    case 'conversation.item.input_audio_transcription.delta':
+      /* His words are on their way: the transcript will start the answer. */
+      if (ariaRTTranscriptTimer){ clearTimeout(ariaRTTranscriptTimer); ariaRTTranscriptTimer = null; }
+      break;
+    case 'conversation.item.input_audio_transcription.completed': {
+      if (ariaRTTranscriptTimer){ clearTimeout(ariaRTTranscriptTimer); ariaRTTranscriptTimer = null; }
+      const fromAudio = ariaRTAnsweredFromAudio;
+      ariaRTAnsweredFromAudio = false;
       /* What the shopper said, on screen, so the conversation has a
          readable record and the text history stays in step. Noise is
          not something he said (N7 / N7b). */
@@ -36032,9 +36081,12 @@ async function onRealtimeEvent(event, turn, send){
          but the cancel is a round trip, and a transcript that arrives first
          was refused by the one-at-a-time gate and never answered. Now a
          refused turn waits and is answered the moment that response ends. */
-      if (!askRealtimeResponse(send, 'his turn')){ ariaRTPendingTurn = true; tape('--', 'his turn queued behind a running response'); }
+      if (fromAudio) tape('--', 'late transcript: already answered from the audio');
+      else if (!askRealtimeResponse(send, 'his turn')){ ariaRTPendingTurn = true; tape('--', 'his turn queued behind a running response'); }
       break;
+    }
     case 'conversation.item.input_audio_transcription.failed':
+      if (ariaRTTranscriptTimer){ clearTimeout(ariaRTTranscriptTimer); ariaRTTranscriptTimer = null; }
       /* No transcript, no proof he spoke: nothing is answered (#443
          item 31). If he did speak, he says it again. */
       resumeRealtimeIdle();

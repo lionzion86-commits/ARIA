@@ -171,5 +171,62 @@ check("browsing never keeps the metered line open (#443 c.6398393590)", () => {
   assert.ok(!/addEventListener\('(click|touchmove|wheel)', (\(\) => \{ if \(ariaRT\) noteRealtimeActivity|noteRealtimeScroll)/.test(bundle));
 });
 
+/* THE 17:51Z CALL (#443 c.6401531233): four of his turns committed, no
+   transcript ever came back, and she never answered -- her answer
+   waits on a transcript (item 31). */
+check("a committed turn with no transcript is answered from his audio after 3.5s, once", () => {
+  const c = bundle.slice(bundle.indexOf("case 'input_audio_buffer.committed':"));
+  const blk = c.slice(0, c.indexOf("case 'conversation.item.input_audio_transcription.completed':"));
+  assert.match(blk, /if \(ariaRTTranscribes\)\{[\s\S]*setTimeout\([\s\S]*ariaRTAnsweredFromAudio = true;\n\s+if \(!askRealtimeResponse\(send, 'his turn \(no transcript\)'\)\) ariaRTPendingTurn = true;[\s\S]*TRANSCRIPT_WAIT_MS\)/);
+  assert.match(bundle, /const TRANSCRIPT_WAIT_MS = 3500;/);
+  /* a delta, a transcript or a failure each stop the wait */
+  for (const ev of ["delta", "completed", "failed"]) {
+    const at = bundle.indexOf("case 'conversation.item.input_audio_transcription." + ev + "':");
+    assert.ok(at > 0, ev + " is not handled");
+    assert.match(bundle.slice(at, at + 300), /clearTimeout\(ariaRTTranscriptTimer\)/, ev + " leaves the wait running");
+  }
+  /* the late transcript of a turn already answered is written, not answered again */
+  const done = bundle.slice(bundle.indexOf("case 'conversation.item.input_audio_transcription.completed': {"));
+  assert.match(done.slice(0, 2600), /const fromAudio = ariaRTAnsweredFromAudio;\n\s+ariaRTAnsweredFromAudio = false;[\s\S]*if \(fromAudio\) tape\([\s\S]*else if \(!askRealtimeResponse\(send, 'his turn'\)\)/);
+  assert.match(fnSrc("clearRealtimeIdleTimers"), /clearTimeout\(ariaRTTranscriptTimer\)[\s\S]*ariaRTAnsweredFromAudio = false;/, "the wait outlives the call");
+});
+
+check("a session minted without transcription is answered by the server; with it, the update re-sends transcription", async () => {
+  const open = fnSrc("startRealtimeVoiceOnce");
+  assert.match(open, /ariaRTTranscribes = mint\.transcribes !== false;/);
+  assert.match(open, /diagMark\('session', \{ variant: String\(mint\.variant \|\| '\?'\), transcribes: ariaRTTranscribes \}\)/);
+  assert.match(open, /if \(!ariaRTTranscribes\) input\.turn_detection = \{ \.\.\.mint\.turn_detection, create_response: true \};/);
+  assert.match(open, /if \(ariaRTTranscribes && mint\.transcription\) input\.transcription = mint\.transcription;/);
+});
+
+/* The mint itself: an API that rejects transcription is reported, not hidden. */
+{
+  const realFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = "test-key-not-real";
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    const p = JSON.parse(init.body);
+    const s = p.session || p;
+    seen.push(!!(s.audio && s.audio.input && s.audio.input.transcription));
+    const ok = !(s.audio && s.audio.input && s.audio.input.transcription);
+    return { ok, status: ok ? 200 : 400, text: async () => ok ? JSON.stringify({ value: "ek_test", expires_at: 9999999999 }) : JSON.stringify({ error: { message: "Unknown parameter: 'session.audio.input.transcription'." } }) };
+  };
+  const { handler } = await import("../../netlify/functions/aria-realtime-session.js");
+  const out = JSON.parse((await handler({ httpMethod: "POST", body: "{}" })).body);
+  globalThis.fetch = async (url, init) => ({ ok: true, status: 200, text: async () => JSON.stringify({ value: "ek_test" }) });
+  const full = JSON.parse((await handler({ httpMethod: "POST", body: "{}" })).body);
+  globalThis.fetch = realFetch;
+  check("the mint says which session it got and whether it transcribes", () => {
+    assert.equal(out.token, "ek_test");
+    assert.equal(out.variant, "sin transcripción");
+    assert.equal(out.transcribes, false);
+    assert.equal(out.transcription, null);
+    assert.deepEqual(seen, [true, true, false]);
+    assert.equal(full.variant, "completa");
+    assert.equal(full.transcribes, true);
+    assert.equal(full.transcription.language, "es");
+  });
+}
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL " + f + "\n"); process.exit(1); }
