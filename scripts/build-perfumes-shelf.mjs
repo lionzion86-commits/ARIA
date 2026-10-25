@@ -110,10 +110,12 @@ export async function buildPerfumesShelf() {
        the store's own numbers. */
     card.onSale = r.onSale;
     if (!r.onSale) { delete card.originalPrice; }
-    /* A hero anchor rides the rail at full price; one that is really on
-       sale (Aria Perfumes rows carry the store's list price) is a sale
-       card, not an anchor. */
-    if (r.anchor && !r.onSale) card.heroAnchor = r.anchor.id;
+    /* A hero anchor keeps its hero slot whether it is at full price or
+       really on sale (Aria Perfumes rows carry the store's list price):
+       recognition stops the scroll, then the price is the shock (#443
+       item 39 D). An anchor at full price shows no discount; one on
+       sale shows the store's own was-price, like every sale card. */
+    if (r.anchor) card.heroAnchor = r.anchor.id;
     cards.push(card);
   });
   const picks = orderRail(cards);

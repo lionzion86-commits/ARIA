@@ -137,6 +137,9 @@ export function heroAnchorOf(row, anchors) {
     if (!(a.brands || []).some((b) => hasPhrase(hay, b))) continue;
     if (!(a.titleAll || []).every((p) => hasPhrase(words(title), p))) continue;
     if ((a.titleNone || []).some((p) => hasPhrase(words(title), p))) continue;
+    /* An anchor pinned to one side (Creed Aventus is the men's bottle)
+       skips a row the catalogue files for the other. */
+    if (a.gender && row.gender && String(row.gender).toLowerCase() !== a.gender) continue;
     return a;
   }
   return null;
@@ -212,17 +215,37 @@ export function census(rows) {
 
 /* THE ORDER. `cards` are priced cards ({ price, onSale, heroAnchor? }).
    Sales lead by house tier then price; anchors take ANCHOR_SLOTS,
-   cheapest first; premium is sprinkled, never first. */
+   cheapest first; premium is sprinkled, never first.
+
+   RECOGNITION FIRST (#443 item 39 D, Danny): the names stop the scroll,
+   then the price is the shock. So every hero shows once (its cheapest
+   bottle -- three 212s is one hero, not three), the premium heroes
+   (Creed Aventus) get their reserved slots instead of being crowded out
+   by a full rail, one fragrance never shows twice in two sizes, and no
+   house takes more than SALES_PER_HOUSE of the sale slots. */
+export const SALES_PER_HOUSE = 2;
+export const PREMIUM_MAX = 2;
+const fragranceName = (p) => String(titleOf(p).split(" \u2014 ")[0] || titleOf(p)).toLowerCase().trim();
+function onePerKey(list, keyOf) {
+  const seen = new Set();
+  return list.filter((p) => { const k = keyOf(p); if (seen.has(k)) return false; seen.add(k); return true; });
+}
 export function orderRail(cards, max = RAIL_MAX) {
   const price = (p) => Number(p.price);
   const isPremium = (p) => price(p) >= PREMIUM_USD;
   const byTierThenPrice = (a, b) => (brandTier(a) - brandTier(b)) || (price(a) - price(b));
-  const anchors = cards.filter((p) => p.heroAnchor && !isPremium(p)).sort((a, b) => price(a) - price(b));
-  const sales = cards.filter((p) => !p.heroAnchor && p.onSale && !isPremium(p)).sort(byTierThenPrice);
-  const premium = cards.filter((p) => isPremium(p) && (p.heroAnchor || p.onSale)).sort(byTierThenPrice);
+  const cheapestFirst = [...cards].sort((a, b) => price(a) - price(b));
+  const heroes = onePerKey(cheapestFirst.filter((p) => p.heroAnchor), (p) => p.heroAnchor);
+  const anchors = heroes.filter((p) => !isPremium(p));
+  const perHouse = {};
+  const sales = onePerKey(cards.filter((p) => !p.heroAnchor && p.onSale && !isPremium(p)).sort(byTierThenPrice), fragranceName)
+    .filter((p) => { const h = designerOf(p) || String(p.brand || "").toLowerCase(); perHouse[h] = (perHouse[h] || 0) + 1; return perHouse[h] <= SALES_PER_HOUSE; });
+  const premium = [...heroes.filter(isPremium), ...onePerKey(cards.filter((p) => isPremium(p) && !p.heroAnchor && p.onSale).sort(byTierThenPrice), fragranceName)]
+    .slice(0, PREMIUM_MAX);
+  const base = max - premium.length;
   const rail = [];
   let ai = 0, si = 0;
-  while (rail.length < max && (ai < anchors.length || si < sales.length)) {
+  while (rail.length < base && (ai < anchors.length || si < sales.length)) {
     const slot = rail.length;
     if (ANCHOR_SLOTS.includes(slot) && ai < anchors.length) rail.push(anchors[ai++]);
     else if (si < sales.length) rail.push(sales[si++]);

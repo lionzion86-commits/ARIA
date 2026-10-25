@@ -11,9 +11,9 @@
      node scripts/test/perfumes-tests.mjs
    ================================================================== */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import * as B from "../build-perfumes-catalog.mjs";
-import { PRE_PRICED, tieredMarginUsd } from "../../weight-data.js";
+import { PRE_PRICED, LAUNCH_PRICED, LAUNCH_LABEL, tieredMarginUsd } from "../../weight-data.js";
 import { buildPerfumeSections, perfumeClassOf } from "../../netlify/functions/_department-core.js";
 import { isFragranceItem } from "../lib/fragrance.js";
 
@@ -40,6 +40,33 @@ await check("Aria's price is cost x 1.18 during the promo, the tiered margin aft
   assert.equal(B.promoActive(new Date("2026-11-20"), "2026-11-01"), true);
   assert.equal(B.promoActive(new Date("2027-02-01"), "2026-11-01"), false, "90 days after launch the promo ends");
   assert.equal(PRE_PRICED.ariaperfumes, 1 + B.PROMO_MARGIN, "the pages' factor is the builder's margin");
+});
+
+await check("launch pricing is one switch: the label shows exactly while the promo prices the lane", () => {
+  assert.equal(!!LAUNCH_PRICED.ariaperfumes, B.promoActive(), "weight-data.js LAUNCH_PRICED disagrees with the builder's promo");
+  assert.equal(LAUNCH_LABEL, "Precio de lanzamiento");
+  const pages = { "departamento.html": /var LAUNCH_PRICED = (\{[^}]*\});/, "producto.html": /var LAUNCH_PRICED = (\{[^}]*\});/, "search.html": /var LAUNCH_PRICED = (\{[^}]*\});/ };
+  for (const [f, rx] of Object.entries(pages)) {
+    const m = rx.exec(readFileSync(ROOT + f, "utf8"));
+    assert.ok(m, f + " has no LAUNCH_PRICED");
+    assert.deepEqual(JSON.parse(m[1]), { ...LAUNCH_PRICED }, f + "'s launch list drifted from weight-data.js");
+    assert.ok(readFileSync(ROOT + f, "utf8").includes(LAUNCH_LABEL), f + " never prints the label");
+  }
+  const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((x) => /^app-[0-9a-f]{16}\.js$/.test(x)), "utf8");
+  const bm = /const LAUNCH_PRICED = \{ ariaperfumes: (true|false) \};/.exec(bundle);
+  assert.ok(bm && (bm[1] === "true") === !!LAUNCH_PRICED.ariaperfumes, "the bundle's launch list drifted");
+});
+
+await check("the Perfumes banner sits high: right under Ofertas, above Aria Auto; motion is CSS only and stops for reduced motion", () => {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const banner = html.indexOf("data-perfumes-banner"), ofertas = html.lastIndexOf('aria-label="Ofertas"', banner), auto = html.indexOf('aria-label="Aria Auto"');
+  assert.ok(banner > 0 && ofertas > 0 && banner < auto, "the banner is not between Ofertas and Aria Auto");
+  const between = html.slice(html.indexOf("</section>", ofertas) + 10, html.lastIndexOf("<section", banner)).replace(/<!--[\s\S]*?-->/g, "");
+  assert.ok(!/<section/.test(between), "something sits between Ofertas and the banner");
+  assert.match(html, /href="\/departamento\.html\?dept=perfumes" class="relative flex/);
+  assert.match(html, /@keyframes ariaPerfumesSheen\{[^}]*transform/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)\{ \.ariaPerfumesBanner/);
+  assert.ok(!/<video|\.gif"/.test(html.slice(banner - 2000, banner + 2000)), "the banner carries a video or a GIF");
 });
 
 await check("a public row carries no cost, no supplier link, no stock count", () => {
@@ -110,15 +137,22 @@ await check("checkout charges Aria's price and taxes the goods' true value, neve
   assert.ok(vals.some(([p, d]) => p === 468.46 && d === 397), "Aventus 100 ml: US$468.46, dutiable US$397 (over the US$200 line)");
 });
 
-await check("the department: sales, the classics, each class, then the houses, body care last", () => {
+await check("the department: the great houses first, then the sales, each class, the houses (classics first), body care last", () => {
   const head = JSON.parse(readFileSync(ROOT + "assets/sections/departamento/perfumes/head.json", "utf8"));
   const titles = head.rails.map((r) => r.title);
-  assert.deepEqual(titles.slice(0, 5), ["Ofertas", "Los clásicos", "Testers", "Minis y de viaje", "Sets de regalo"]);
+  assert.deepEqual(titles.slice(0, 5), ["Las grandes casas", "Ofertas", "Testers", "Minis y de viaje", "Sets de regalo"]);
+  assert.equal(titles[5], "Christian Dior", "the house rails open on the classics' houses");
   assert.equal(titles[titles.length - 1], "Cuerpo y cuidado");
   assert.deepEqual(head.labels, { ariaperfumes: "Aria Perfumes" });
-  for (const c of head.rails[1].cards) {
-    assert.ok(!/\((?:[^)]*\b)?(?:Tester|Mini|Repuesto|Sin caja)\b/.test(c.t), "a classic is the boxed bottle: " + c.t);
+  const lead = head.rails[0].cards;
+  for (const c of lead) {
+    assert.ok(!/\((?:[^)]*\b)?(?:Tester|Mini|Repuesto|Sin caja)\b/.test(c.t), "a great-house card is the boxed bottle: " + c.t);
   }
+  assert.match(lead[0].t, /^Sauvage — /, "Sauvage leads");
+  assert.ok(lead.some((c) => /^Aventus — .* para hombre$/.test(c.t)), "the men's Aventus is the classic");
+  const names = lead.map((c) => c.t.split(" — ")[0]);
+  assert.equal(new Set(names).size, names.length, "a fragrance shows twice on the lead rail");
+  assert.ok(lead.some((c) => c.s > 0) && lead.some((c) => !(c.s > 0)), "classics and sales interleave");
   assert.ok(head.rails[2].cards.every((c) => /\bTester\b/.test(c.t)), "the Testers rail is testers");
   /* A tester never sits on a house rail. */
   const sections = buildPerfumeSections([

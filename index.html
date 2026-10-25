@@ -634,6 +634,23 @@ window.doSearch = function(which){
   .ariaCurvyCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
   .ariaGymRatCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
   .ariaHeroCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  /* ARIA PERFUMES BAND (#443 item 39): black and champagne gold, the
+     register of a fragrance hall. No photo until a real one is supplied. */
+  .ariaPerfumesBand{ background:radial-gradient(120% 90% at 85% 0%, #3A2E14 0%, #17130B 42%, #0B0A08 100%) }
+  .ariaPerfumesHair{ position:absolute; left:0; right:0; top:0; height:2px; background:linear-gradient(90deg, transparent, #C9A227 20%, #E7C873 50%, #C9A227 80%, transparent) }
+  .ariaPerfumesHouse{ flex-shrink:0; display:grid; place-items:center; height:44px; min-width:104px; padding:0 14px; border-radius:12px; background:#fff; box-shadow:0 0 0 1px rgba(231,200,115,.35) }
+  .ariaPerfumesHouse img{ max-height:22px; max-width:84px; width:auto; height:auto; min-width:0; min-height:0; object-fit:contain }
+  /* The high banner (#443 item 39): the band's colours, one slow sheen. */
+  .ariaPerfumesBanner{ background:radial-gradient(120% 140% at 88% 0%, #3A2E14 0%, #17130B 45%, #0B0A08 100%) }
+  .ariaPerfumesBannerPhoto{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.55; transform:scale(1.02); will-change:transform }
+  .ariaPerfumesSheen{ position:absolute; top:0; bottom:0; left:-40%; width:40%; pointer-events:none; opacity:0;
+    background:linear-gradient(100deg, transparent 0%, rgba(231,200,115,0) 30%, rgba(255,240,200,.16) 50%, rgba(231,200,115,0) 70%, transparent 100%);
+    transform:translateX(0) skewX(-12deg); will-change:transform, opacity }
+  .ariaPerfumesBanner.is-visible .ariaPerfumesSheen{ animation:ariaPerfumesSheen 9s ease-in-out 0.6s infinite }
+  .ariaPerfumesBanner.is-visible .ariaPerfumesBannerPhoto{ animation:ariaPerfumesDrift 24s ease-in-out infinite alternate }
+  @keyframes ariaPerfumesSheen{ 0%{ transform:translateX(0) skewX(-12deg); opacity:0 } 8%{ opacity:1 } 38%{ transform:translateX(360%) skewX(-12deg); opacity:1 } 44%,100%{ transform:translateX(360%) skewX(-12deg); opacity:0 } }
+  @keyframes ariaPerfumesDrift{ from{ transform:scale(1.02) } to{ transform:scale(1.06) translate3d(-1%, 0, 0) } }
+  @media (prefers-reduced-motion: reduce){ .ariaPerfumesBanner .ariaPerfumesSheen, .ariaPerfumesBanner .ariaPerfumesBannerPhoto{ animation:none !important } .ariaPerfumesSheen{ display:none } }
   .ariaHouseCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
   .ariaJyCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
   .ariaKidsCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
@@ -1599,6 +1616,7 @@ window.doSearch = function(which){
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
     <a href="#" onclick="openCategories();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
     <a href="#" onclick="openAriaAuto();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Aria Auto</a>
+    <a href="/departamento.html?dept=perfumes" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:#8A6D1F">Aria Perfumes <span class="text-[11px] font-extrabold uppercase tracking-[0.06em]" style="color:#8A6D1F">&middot; Precio de lanzamiento</span></a>
     <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:#5B9BD5">Ofertas</a>
     <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Precio Honesto</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en Estados Unidos</a>
@@ -1762,6 +1780,25 @@ window.doSearch = function(which){
         </div>
         <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
+    </section>
+
+    <!-- ARIA PERFUMES BANNER, HIGH (#443 item 39 amendments, Danny 2026-10-24 23:54-23:59):
+         directly under Ofertas, above Aria Auto and Aria Motos -- it meets the shopper
+         before the long scroll. One slow light sweep across it while it is on screen
+         (transform/opacity only, no asset, paused off screen, none under reduced
+         motion). The real luxury photograph drops into .ariaPerfumesBannerPhoto when
+         one is supplied; until then the band is black and gold, never a placeholder. -->
+    <section aria-label="Aria Perfumes, precio de lanzamiento" data-perfumes-banner class="ariaPerfumesBanner relative overflow-hidden">
+      <div class="ariaPerfumesHair" aria-hidden="true"></div>
+      <div class="ariaPerfumesSheen" aria-hidden="true"></div>
+      <a href="/departamento.html?dept=perfumes" class="relative flex items-center justify-between gap-4 max-w-[1240px] mx-auto px-5 lg:px-8 py-6 lg:py-8 no-underline focus-ring" style="z-index:1">
+        <span class="min-w-0">
+          <span class="ariaKicker block mb-1.5" style="color:#E7C873">Precio de lanzamiento</span>
+          <span class="block text-[26px] lg:text-[34px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Perfumes</span>
+          <span class="block text-[13.5px] lg:text-[15px] mt-1.5 leading-snug max-w-[40ch]" style="color:rgba(255,255,255,.80)">Dior, Creed, Carolina Herrera, Paco Rabanne y las grandes casas, originales y sellados.</span>
+        </span>
+        <span class="ariaHouseCta flex-shrink-0" style="height:44px;padding:0 18px;font-size:14px">Entrar &#8594;</span>
+      </a>
     </section>
 
     <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
@@ -1944,6 +1981,24 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
       </div>
     </section>
+    <!-- ARIA PERFUMES, THE FLAGSHIP (phone) (#443 items 32 + 39, Danny): its own band in the
+         premium stretch, right after Diseñadores Latinos -- the launch price up top,
+         the houses as real logos (each opens its perfumes), then the big carousel
+         painted by initPerfumesRail() from assets/home/shelves/perfumes.json when
+         the band nears the screen. No lifestyle photo ships until a real one is
+         supplied; the band never shows a placeholder. -->
+    <section aria-label="Aria Perfumes" data-perfumes-section class="ariaPerfumesBand relative overflow-hidden">
+      <div class="ariaPerfumesHair" aria-hidden="true"></div>
+      <div class="relative px-5 pt-8 pb-4" style="z-index:1">
+        <div class="ariaKicker mb-2" style="color:#E7C873">Precio de lanzamiento</div>
+        <h2 class="text-[28px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Perfumes</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.80)">Las grandes casas, originales y selladas: Dior, Creed, Carolina Herrera, Paco Rabanne y m&#225;s. M&#225;ximo 4 por pedido.</p>
+        <a href="/departamento.html?dept=perfumes" class="ariaHouseCta focus-ring mt-5 no-underline">Entrar a Aria Perfumes &#8594;</a>
+      </div>
+      <div class="ariaPerfumesHouses flex gap-2 overflow-x-auto px-5 pb-1 ariaRail" data-perfumes-houses style="position:relative;z-index:1"><a href="/departamento.html?dept=perfumes&amp;q=Christian+Dior" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Dior"><img src="logos/brands/dior.svg" alt="Dior" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Versace" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Versace"><img src="logos/brands/versace.svg" alt="Versace" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Yves+Saint+Laurent" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Yves Saint Laurent"><img src="logos/brands/saintlaurent.svg" alt="Yves Saint Laurent" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Gucci" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Gucci"><img src="logos/brands/gucci.svg" alt="Gucci" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Prada" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Prada"><img src="logos/brands/prada.svg" alt="Prada" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Burberry" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Burberry"><img src="logos/brands/burberry.svg" alt="Burberry" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Calvin+Klein" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Calvin Klein"><img src="logos/brands/calvinklein.svg" alt="Calvin Klein" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Tom+Ford" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Tom Ford"><img src="logos/brands/tomford.svg" alt="Tom Ford" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Valentino" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Valentino"><img src="logos/brands/valentino.svg" alt="Valentino" loading="lazy" decoding="async" width="88" height="28"></a></div>
+      <div id="mPerfumesRail" data-perfumes-rail class="flex gap-3 overflow-x-auto px-5 pt-4 pb-7 ariaRail" style="position:relative;z-index:1"></div>
+    </section>
+
     <!-- PERMANENT GYM RAT RAIL (2026-09-27, Danny): the category is that
          good, so it keeps an always-visible rail right under the tab
          browser. Painted from the same gym_rat shelf as the pill via the
@@ -2005,19 +2060,6 @@ window.doSearch = function(which){
       <div data-category-rail-row="beauty" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     </div>
-
-    <!-- PERFUMES (2026-10-22, #443, Danny): sale-led designer perfumes plus a few
-         named hero anchors. Painted by initPerfumesRail() from
-         assets/home/shelves/perfumes.json when the section nears the screen. -->
-    <section aria-label="Perfumes" data-perfumes-section class="ariaNavyBand relative overflow-hidden storeRailCompact">
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <h2 class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Perfumes</h2>
-        <a href="/departamento.html?dept=perfumes" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded no-underline" style="color:#F4C463">Ver todo &#8594;</a>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Las grandes casas: ofertas y cl&#x00E1;sicos. M&#x00E1;ximo 4 por pedido.</span></div>
-      <div id="mPerfumesRail" data-perfumes-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
 
     <!-- PERMANENT SURF & SKATE RAIL (2026-10-05, Danny): Surf & Skate carousel
          after Aria Beauty. Same shared painter, same stand-down rule
@@ -2469,6 +2511,24 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
       </div>
     </section>
+    <!-- ARIA PERFUMES, THE FLAGSHIP (desktop) (#443 items 32 + 39, Danny): its own band in the
+         premium stretch, right after Diseñadores Latinos -- the launch price up top,
+         the houses as real logos (each opens its perfumes), then the big carousel
+         painted by initPerfumesRail() from assets/home/shelves/perfumes.json when
+         the band nears the screen. No lifestyle photo ships until a real one is
+         supplied; the band never shows a placeholder. -->
+    <section aria-label="Aria Perfumes" data-perfumes-section class="ariaPerfumesBand relative overflow-hidden">
+      <div class="ariaPerfumesHair" aria-hidden="true"></div>
+      <div class="max-w-[1240px] mx-auto"><div class="relative px-8 pt-8 pb-4" style="z-index:1">
+        <div class="ariaKicker mb-2" style="color:#E7C873">Precio de lanzamiento</div>
+        <h2 class="text-[36px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Perfumes</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.80)">Las grandes casas, originales y selladas: Dior, Creed, Carolina Herrera, Paco Rabanne y m&#225;s. M&#225;ximo 4 por pedido.</p>
+        <a href="/departamento.html?dept=perfumes" class="ariaHouseCta focus-ring mt-5 no-underline">Entrar a Aria Perfumes &#8594;</a>
+      </div>
+      <div class="ariaPerfumesHouses flex gap-2 overflow-x-auto px-8 pb-1 ariaRail" data-perfumes-houses style="position:relative;z-index:1"><a href="/departamento.html?dept=perfumes&amp;q=Christian+Dior" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Dior"><img src="logos/brands/dior.svg" alt="Dior" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Versace" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Versace"><img src="logos/brands/versace.svg" alt="Versace" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Yves+Saint+Laurent" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Yves Saint Laurent"><img src="logos/brands/saintlaurent.svg" alt="Yves Saint Laurent" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Gucci" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Gucci"><img src="logos/brands/gucci.svg" alt="Gucci" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Prada" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Prada"><img src="logos/brands/prada.svg" alt="Prada" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Burberry" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Burberry"><img src="logos/brands/burberry.svg" alt="Burberry" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Calvin+Klein" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Calvin Klein"><img src="logos/brands/calvinklein.svg" alt="Calvin Klein" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Tom+Ford" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Tom Ford"><img src="logos/brands/tomford.svg" alt="Tom Ford" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Valentino" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Valentino"><img src="logos/brands/valentino.svg" alt="Valentino" loading="lazy" decoding="async" width="88" height="28"></a></div>
+      <div id="dPerfumesRail" data-perfumes-rail class="flex gap-4 overflow-x-auto px-8 pt-4 pb-7 ariaRail" style="position:relative;z-index:1"></div></div>
+    </section>
+
     <!-- PERMANENT GYM RAT RAIL (desktop, 2026-09-27, Danny). Same shelf as
          the phone's: always visible under the tab browser, stands down
          while the Gym Rat pill is active. -->
@@ -2531,19 +2591,6 @@ window.doSearch = function(which){
       </div>
     </section>
     </div>
-
-    <!-- PERFUMES (desktop). Same shelf as the phone's. -->
-    <section aria-label="Perfumes" data-perfumes-section class="ariaNavyBand relative overflow-hidden storeRailCompact">
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <h2 class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Perfumes</h2>
-          <a href="/departamento.html?dept=perfumes" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded no-underline" style="color:#F4C463">Ver todo &#8594;</a>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Las grandes casas: ofertas y cl&#x00E1;sicos. M&#x00E1;ximo 4 por pedido.</span></div>
-        <div id="dPerfumesRail" data-perfumes-rail class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
 
     <!-- PERMANENT SURF & SKATE RAIL (2026-10-05, Danny): Surf & Skate carousel
          after Aria Beauty. Same shared painter, same stand-down rule
@@ -6253,7 +6300,7 @@ window.doSearch = function(which){
 
 <script src="/off-sale.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-c40ac2f063bee7e3.js"></script>
+<script src="/build/app-e1fa6b24842e1e90.js"></script>
 
 
 
@@ -6437,6 +6484,18 @@ initRouter();
 })();
 </script>
 
+<script>
+/* The Perfumes banner sheen runs only while the banner is on screen (#443 item 39). */
+(function(){
+  function arm(){
+    var b = document.querySelector("[data-perfumes-banner]");
+    if (!b) return;
+    if (!("IntersectionObserver" in window)) { b.classList.add("is-visible"); return; }
+    new IntersectionObserver(function(es){ es.forEach(function(e){ b.classList.toggle("is-visible", e.isIntersecting); }); }, { threshold: 0.2 }).observe(b);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arm); else arm();
+})();
+</script>
 </body>
 </html>
 

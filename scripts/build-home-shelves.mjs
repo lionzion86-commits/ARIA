@@ -89,7 +89,9 @@ export async function snapshotShelves() {
        Tiendas view's rails), are not the home page: they keep their own
        path. */
     /* The snapshot computes from the catalogues, never from a shelf. */
-    await page.route(/\/assets\/home\/shelves\//, (r) => r.fulfill({ status: 404, body: "" }));
+    /* perfumes.json is the exception: scripts/build-perfumes-shelf.mjs
+       builds it first, and the Perfumes pill's shelf is that file. */
+    await page.route(/\/assets\/home\/shelves\/(?!perfumes\.json)/, (r) => r.fulfill({ status: 404, body: "" }));
     await page.goto(base + "/", { waitUntil: "load" });
     await scrollThrough(page);
     /* Phone, tablet (the surf shops' rails live only there) and desktop

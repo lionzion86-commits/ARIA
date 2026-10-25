@@ -22,7 +22,7 @@
       "name": "Carolina Herrera Good Girl Eau de Parfum",
       "brands": ["Carolina Herrera"],
       "titleAll": ["good girl", "eau de parfum"],
-      "titleNone": ["blush", "jasmine", "supreme", "legere", "légère", "fantastic", "crystal", "mini", "set", "travel", "duo"],
+      "titleNone": ["blush", "jasmine", "supreme", "legere", "légère", "fantastic", "crystal", "mini", "set", "travel", "duo", "midnight", "gone bad"],
       "why": "The stiletto bottle; a top-selling women's fragrance in the region, recognized on sight."
     },
     {
@@ -31,6 +31,7 @@
       "brands": ["Creed"],
       "titleAll": ["aventus"],
       "titleNone": ["absolu", "cologne", "for her", "mini", "set", "travel"],
+      "gender": "hombre",
       "why": "The most famous luxury men's fragrance worldwide. The flanker Absolu Aventus is NOT this product and does not qualify."
     },
     {
@@ -54,7 +55,7 @@
       "name": "Dior Sauvage Eau de Toilette",
       "brands": ["Dior", "Christian Dior"],
       "titleAll": ["sauvage"],
-      "titleNone": ["elixir", "parfum", "mini", "set", "travel", "after", "deodorant", "balm"],
+      "titleNone": ["elixir", "parfum", "mini", "set", "travel", "after", "deodorant", "balm", "eau sauvage", "eau forte"],
       "why": "The best-selling men's fragrance in the world; same fame tier as 1 Million."
     },
     {
