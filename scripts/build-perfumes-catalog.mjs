@@ -42,6 +42,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { tieredMarginUsd } from "../weight-data.js";
+import { spanishFor } from "./lib/description-es.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INGEST = "hidden-docs/fragrancex/aria-perfumes-ingest.json";
@@ -160,7 +161,14 @@ export function rowOf(p, promo = promoActive()) {
     weightBasis: "size-class",
     currency: "USD",
   };
-  if (p.description_en) row.description_en = p.description_en;
+  /* SPANISH ON THE PAGE (#443 c.6402691998): the feed's copy is English;
+     the stored translation (scripts/lib/description-es.js) is the
+     description. The English stays for the record and is never shown. */
+  if (p.description_en) {
+    const es = spanishFor(STORE_KEY, p.description_en);
+    if (es) row.description = es;
+    row.description_en = p.description_en;
+  }
   if (p.low_stock_signal || (Number(p.qty_feed) > 0 && Number(p.qty_feed) <= 20)) row.lowStock = true;
   /* WAS-PRICE WARNING (the audit): the feed MSRP is stale on 132 rows and
      missing on 35%. A compare-at is shown only when it really is above
