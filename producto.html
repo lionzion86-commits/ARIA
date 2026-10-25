@@ -120,6 +120,7 @@ footer a{color:#fff}
 .p-was{font-size:15px;color:var(--muted);text-decoration:line-through;margin-left:8px;font-weight:500}
 .p-off{display:inline-block;background:var(--gold);color:var(--navy);font-size:12px;font-weight:800;border-radius:8px;padding:3px 7px;margin-left:8px;vertical-align:middle}
 .p-usd{font-size:14px;color:var(--muted);margin-top:2px}
+.p-launch{display:inline-block;margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:999px;background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3}
 .p-cond{margin:0 0 14px;padding:10px 12px;border-radius:12px;background:#f7f8fb;border:1px solid var(--line);font-size:14px;color:var(--navy)}
 .p-cond b{font-weight:800}
 .p-tax{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f7f8fb;border:1px solid var(--line);min-height:58px}
@@ -436,6 +437,9 @@ var TAX_EXEMPT = {"walmart": 1};
    takes it back to the goods' true value (the import-tax base). One list,
    mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
 var PRE_PRICED = {"ariaperfumes": 1.18};
+/* LAUNCH PRICING (#443 item 32): "Precio de lanzamiento" over the price of
+   a store in its launch promo. Mirrored from weight-data.js LAUNCH_PRICED. */
+var LAUNCH_PRICED = {"ariaperfumes": true};
 function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
 function finalUsd(raw, retailer){
   /* FAMILIA (#443): a flagged account sees Aria's cost -- no margin. */
@@ -756,6 +760,7 @@ function render(p){
       + '<div class="p-usd">' + esc(fmtUsd(usd)) + '</div>'
     : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
+  if (LAUNCH_PRICED[String(p.retailer || "").toLowerCase()]) priceHtml = '<div class="p-launch">Precio de lanzamiento</div>' + priceHtml;
   /* #439: the import-tax estimate sits directly under the product price. */
   priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
   priceHtml += '<div id="p-weight" class="p-tax">' + weightRowHtml() + '</div>';

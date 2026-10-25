@@ -165,7 +165,10 @@ await check("designer houses lead the sales, cheapest first inside each tier", (
   assert(PICKS.length && brandTier(PICKS[0]) === 0, "the rail does not open on a designer house");
 });
 await check("anchors take the anchor slots cheapest first; the most expensive card never leads", () => {
-  const anchors = PICKS.map((p, i) => ({ p, i })).filter((x) => x.p.heroAnchor);
+  /* The premium heroes (Creed Aventus) ride their own reserved slots. */
+  const anchors = PICKS.map((p, i) => ({ p, i })).filter((x) => x.p.heroAnchor && Number(x.p.price) < PREMIUM_USD);
+  const ids = PICKS.filter((p) => p.heroAnchor).map((p) => p.heroAnchor);
+  assert(new Set(ids).size === ids.length, "a hero shows twice: " + ids.join(", "));
   for (let k = 1; k < anchors.length; k++) assert(Number(anchors[k - 1].p.price) <= Number(anchors[k].p.price), "anchors not cheapest first");
   for (const { i } of anchors.slice(0, ANCHOR_SLOTS.length)) assert(ANCHOR_SLOTS.includes(i) || i >= ANCHOR_SLOTS.length, "anchor off its slot at " + i);
   const top = Math.max(...PICKS.map((p) => Number(p.price)));
@@ -191,6 +194,26 @@ await check("orderRail: anchors in slots, sales by tier then price, premium spri
   assert(rail.findIndex((p) => p.title.startsWith("Versace")) < rail.findIndex((p) => p.title.startsWith("Unknown")), "a designer house trails an unknown");
   assert(Number(rail[0].price) < PREMIUM_USD, "premium leads");
   return t.join(" ");
+});
+await check("orderRail: each hero once, the premium hero keeps its slot on a full rail, no fragrance twice, two sale slots per house", () => {
+  const card = (title, price, extra = {}) => ({ title, price, onSale: true, ...extra });
+  const houses = ["Versace", "Gucci", "Prada", "Burberry", "Azzaro", "Kenzo", "Lacoste", "Coach", "Moschino", "Valentino"];
+  const many = Array.from({ length: 30 }, (_, i) => card(`Scent${i} \u2014 Eau de Toilette 100 ml`, 10 + i, { brand: houses[i % houses.length] }));
+  const rail = orderRail([
+    card("212 NYC \u2014 Eau de Toilette 50 ml", 50, { onSale: false, heroAnchor: "carolina-herrera-212", brand: "Carolina Herrera" }),
+    card("212 VIP \u2014 Eau de Parfum 80 ml", 90, { onSale: false, heroAnchor: "carolina-herrera-212", brand: "Carolina Herrera" }),
+    card("Aventus \u2014 Eau de Parfum 100 ml", 468, { onSale: false, heroAnchor: "creed-aventus", brand: "Creed" }),
+    card("Euphoria \u2014 Eau de Toilette 30 ml", 12, { brand: "Calvin Klein" }),
+    card("Euphoria \u2014 Eau de Toilette 100 ml", 20, { brand: "Calvin Klein" }),
+    ...many,
+  ]);
+  assert(rail.length === 16, "rail length " + rail.length);
+  assert(rail.filter((p) => p.heroAnchor === "carolina-herrera-212").length === 1, "212 shows twice");
+  assert(rail.find((p) => p.heroAnchor === "carolina-herrera-212").price === 50, "the hero is not its cheapest bottle");
+  assert(rail.some((p) => p.heroAnchor === "creed-aventus"), "the premium hero was crowded out");
+  assert(rail.filter((p) => /^Euphoria/.test(p.title)).length === 1, "one fragrance shows in two sizes");
+  for (const h of houses) assert(rail.filter((p) => p.brand === h).length <= 2, h + " took more than two sale slots");
+  assert(Number(rail[0].price) < PREMIUM_USD, "premium leads");
 });
 await check("filed under beauty, no link to the store's site, no emoji, thin payload", () => {
   for (const p of PICKS) {
@@ -298,7 +321,10 @@ if (!process.env.PERFUME_STATIC) {
         });
         assert(/^S\//.test(card.lead || ""), "lead price is not soles: " + card.lead);
         assert(/US\$/.test(card.ref || "") && card.refFs < card.leadFs, "US$ line: " + JSON.stringify(card));
-        if (card.anchor) assert(!card.badge, "an anchor card shows a discount badge");
+        /* A hero at full price shows no badge; a hero on a real sale shows
+           the store's own was-price, like any sale card (#443 item 39 D). */
+        const shelfCard = PICKS.find((p) => p.heroAnchor === card.anchor);
+        if (card.anchor && !(shelfCard && shelfCard.onSale && Number(shelfCard.originalPrice) > Number(shelfCard.price))) assert(!card.badge, "a full-price anchor card shows a discount badge");
         assert(card.links === 0, "the card links out");
         return `${card.lead} / ${card.ref}`;
       } finally { await context.close(); }

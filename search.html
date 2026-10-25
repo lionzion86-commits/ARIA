@@ -83,6 +83,7 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 @supports not (aspect-ratio:1/1){ .card .img{height:0; padding-top:100%;} }
 .card .img img{position:absolute; inset:0; top:0; left:0; width:100%; height:100%; object-fit:contain;}
 .card .body{padding:12px; display:flex; flex-direction:column; gap:6px; flex:1;}
+.card .launch{display:inline-block;align-self:flex-start;font-size:9px;font-weight:800;letter-spacing:.02em;white-space:nowrap;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3;margin:2px 0}
 .card .brand{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--blue); min-height:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .card .name{font-size:13px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:35px;}
 .card .retailer{font-size:11px; color:var(--muted); min-height:14px;}
@@ -703,6 +704,8 @@ function offBadge(p){
   return pct >= 5 ? '<span class="off">-' + pct + "%</span>" : "";
 }
 
+/* LAUNCH PRICING (#443 item 32): mirrored from weight-data.js LAUNCH_PRICED. */
+var LAUNCH_PRICED = {"ariaperfumes": true};
 function cardHTML(p){
   var title = decodeEntities(p.title), brand = decodeEntities(p.brand);
   /* A photo that fails takes its card with it rather than leaving a
@@ -721,6 +724,7 @@ function cardHTML(p){
       '<div class="brand">' + (brand ? esc(brand) : "&nbsp;") + "</div>" +
       '<div class="name">' + esc(title) + "</div>" +
       '<div class="retailer">' + (p.storeLabel || p.store ? "Vendido por " + esc(p.storeLabel || p.store) : "&nbsp;") + "</div>" +
+      (LAUNCH_PRICED[String(p.store || "").toLowerCase()] ? '<div class="launch">Precio de lanzamiento</div>' : "") +
       '<div class="price">' + priceHTML(p) + "</div>" +
     "</div></a>";
 }

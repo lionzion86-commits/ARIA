@@ -1270,6 +1270,9 @@ function brandLabelFor(key, fallback){
    filenames are the department keys verbatim, so a typo here is a
    missing file rather than a silently wrong picture. */
 const CATEGORY_COVERS = {
+  /* PERFUMES (#443 items 32/38): a real product photo -- the catalogue's own
+     Dior Sauvage bottle, the photo its card shows. */
+  perfumes:        'https://img.fragrancex.com/images/products/sku/large/sauv34m.jpg',
   soccer:          'assets/category/soccer.jpg',
   tennis:          'assets/category/tennis.jpg',
   beauty:          'assets/category/beauty.jpg',
@@ -3933,7 +3936,7 @@ function railCardHTML(p, onclick, attr, opts){
     <span class="block px-3 pt-2.5 pb-3">
       <span class="block mb-1.5">${retailerBadgeHTML(p.retailer, 16, { dark })}</span>
       ${brandEyebrowHTML(p.brand, { tag: 'span', cls: 'block text-[10px] mb-0.5', color: ink })}
-      ${(opts && opts.styleLabel) ? `<span class="inline-block text-[9.5px] font-bold uppercase tracking-[0.08em] px-2 py-0.5 rounded-full mb-1.5" style="background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3">${escapeHtml(opts.styleLabel)}</span>` : ''}
+      ${((opts && opts.styleLabel) || launchLabelOf(p)) ? `<span class="inline-block text-[9px] font-bold uppercase tracking-[0.03em] whitespace-nowrap px-2 py-0.5 rounded-full mb-1.5" style="background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3">${escapeHtml((opts && opts.styleLabel) || launchLabelOf(p))}</span>` : ''}
       <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:${ink}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(p.title)}</span>
       <span class="block">
         <span class="flex items-baseline gap-1.5">
@@ -7256,6 +7259,13 @@ const CATEGORY_RAILS = [
      is our biggest hit"). The shelf is the department's own first cards
      (assets/sections/departamento/reacondicionados/head.json, built by
      /condition.js), so the pill and the page can never disagree. */
+  /* PERFUMES (#443 item 32 defect, Danny): the launch department has its
+     pill, ahead of Reacondicionados. Same shelf as the flagship carousel. */
+  { key: 'perfumes', label: 'Perfumes', icon: '', stores: null, poolOnly: true,
+    blurb: 'Las grandes casas, originales. Precio de lanzamiento.',
+    test: (p) => String((p && p.retailer) || '').toLowerCase() === 'ariaperfumes',
+    feed: () => perfumesShelfPicks(),
+    open: "location.href='/departamento.html?dept=perfumes'" },
   { key: 'reacondicionados', label: 'Reacondicionados', icon: '', stores: null, poolOnly: true,
     blurb: 'Reacondicionados, de caja abierta y usados, con el estado que indica la tienda.',
     feed: () => reacondicionadosRailPicks(),
@@ -7267,7 +7277,7 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['latino_designers', 'moms', 'reacondicionados', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'women', 'men', 'mens_grooming', 'ropa_interior_mujer', 'ropa_interior', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty']; /* latino_designers leads (Danny 2026-10-07): strongest sales, incl. $20 bikinis */
+const CATEGORY_TAB_ORDER = ['latino_designers', 'perfumes', 'moms', 'reacondicionados', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'women', 'men', 'mens_grooming', 'ropa_interior_mujer', 'ropa_interior', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty']; /* latino_designers leads (Danny 2026-10-07): strongest sales, incl. $20 bikinis */
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* DANNY 2026-10-02 QA: the "L" letter pill looked terrible. Sleek gold
@@ -9385,7 +9395,7 @@ function beautyHeroHTML(){
     ['Mascarillas', 'masks'],
     ['Maquillaje', 'makeup'],
     ['Labios', 'lips'],
-    ['Fragancia', 'fragrance'],
+    ['Perfumes', 'fragrance'],
     ['Skincare', 'skincare']
   ];
   var pills = rows.map(function(r){
@@ -12332,7 +12342,8 @@ async function paintPerfumeRows(rows, sections){
     for (const row of rows){
       row.innerHTML = perfumesRendered.map((p, i) => railCardHTML(p, `openPerfumeProduct(${i})`,
         `data-perfume-card="${i}"${p.heroAnchor ? ` data-hero-anchor="${escapeHtml(p.heroAnchor)}"` : ''}`,
-        { dark: true })).join('');
+        /* The flagship carousel's cards are the big ones (#443 item 39 B). */
+        { dark: true, xl: !!row.closest('.ariaPerfumesBand') })).join('');
     }
   } catch { standDown(); }
 }
@@ -19756,8 +19767,10 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      dollar small and grey under it, then the import-tax line. Without a
      rate, dollars alone -- never an invented conversion. */
   const hasPrice = Number.isFinite(totalUsd) && totalUsd > 0;
+  const __launch = launchLabelOf({ retailer });
   document.getElementById('productViewPrice').innerHTML = hasPrice
-    ? (fxRate
+    ? (__launch ? `<span class="block w-fit text-[10.5px] font-extrabold uppercase tracking-[0.06em] px-2.5 py-0.5 rounded-full mb-1.5" style="background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3">${__launch}</span>` : '')
+      + (fxRate
         ? escapeHtml(fmtPEN(totalUsd)) + `<span class="block text-[12.5px] tabular mt-1 font-semibold" style="color:#6B7487">${escapeHtml(fmtUSD(totalUsd))}</span>`
         : escapeHtml(fmtUSD(totalUsd)))
       + productTaxLineHTML(totalUsd, pendingProduct.dutiableUsd, weightKg)
@@ -23830,6 +23843,10 @@ function productDedupeKey(retailer, title){
    The row's price is Aria's already; the factor takes it to the goods'
    true value for the import-tax base. */
 const PRE_PRICED = { ariaperfumes: 1.18 };
+/* LAUNCH PRICING (#443 item 32): "Precio de lanzamiento" on every card of
+   a store in its launch promo. Mirrored from weight-data.js LAUNCH_PRICED. */
+const LAUNCH_PRICED = { ariaperfumes: true };
+function launchLabelOf(p){ return LAUNCH_PRICED[String((p && p.retailer) || '').toLowerCase()] ? 'Precio de lanzamiento' : ''; }
 function normalizeLiveItem(item, hints){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
@@ -29098,6 +29115,7 @@ function productCardHTML(p, opts){
     <div class="pt-3 pb-1 flex flex-col flex-1 ariaCardText">
       <div class="mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</div>
       ${brandEyebrowHTML(p.brand, { cls: 'text-[10.5px] mb-1' })}
+      ${launchLabelOf(p) ? `<span class="inline-block text-[9px] font-bold uppercase tracking-[0.03em] whitespace-nowrap px-2 py-0.5 rounded-full mb-1.5" style="background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3">${launchLabelOf(p)}</span>` : ''}
       <div class="text-[13px] leading-snug mb-2 cursor-pointer line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
       <!-- THE RATING CAME OFF THE STORE MARK'S ROW. Side by side they
            needed more than a two-across card has: measured at 393px the

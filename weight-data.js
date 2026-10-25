@@ -100,6 +100,15 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
    scripts/test/price-parity-tests.mjs pins them. When the 90-day promo
    ends, the builder prices at the tiered margin and this factor goes. */
 export const PRE_PRICED = Object.freeze({ ariaperfumes: 1.18 });
+/* LAUNCH PRICING (#443 item 32 amendment, Danny): while a pre-priced
+   store's launch promo runs, every card and product page of it says
+   "Precio de lanzamiento" -- the promo is temporary by announcement, so
+   its end needs no explanation. The switch: scripts/build-perfumes-
+   catalog.mjs promoActive() (PERFUME_LAUNCH + 90 days) must agree with
+   this list, and every page copy (var LAUNCH_PRICED) mirrors it
+   (perfumes-tests, price-parity-tests). */
+export const LAUNCH_PRICED = Object.freeze({ ariaperfumes: true });
+export const LAUNCH_LABEL = "Precio de lanzamiento";
 const PRICE_STACK_MARKUP = 1.24; // band-1 rate; mirrors LIVE_PRICE_MARKUP in index.html
 
 /* TIERED MARGINAL MARGIN (2026-10-02, Danny — LOCKED). Must match
