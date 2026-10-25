@@ -294,7 +294,8 @@ if (!process.env.PERFUME_STATIC) {
         assert(requests.includes("/assets/home/shelves/perfumes.json"), "the shelf was never fetched");
         assert(!sinceScroll.some((u) => /-catalog\.json$|department-cache/.test(u)), "a catalogue was fetched for the rail: " + sinceScroll.filter((u) => /catalog|cache/.test(u)).join(", "));
         const head = await page.$eval("#mobileShopfront [data-perfumes-section] h2", (h) => ({ t: h.textContent.trim(), fs: parseFloat(getComputedStyle(h).fontSize), up: getComputedStyle(h).textTransform }));
-        assert(head.t === "Perfumes" && head.fs >= 19 && head.up === "uppercase", "header: " + JSON.stringify(head));
+        /* The flagship band (#443 item 39): its own title, set large. */
+        assert(head.t === "Aria Perfumes" && head.fs >= 24, "header: " + JSON.stringify(head));
         await page.waitForTimeout(400);
         if (SHOTS) {
           await page.evaluate(() => { const s = document.querySelector("#mobileShopfront [data-perfumes-section]"); window.scrollTo(0, s.getBoundingClientRect().top + window.scrollY - 120); });
