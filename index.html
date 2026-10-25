@@ -1903,8 +1903,8 @@ window.doSearch = function(which){
      full band height, right under Aria Auto. Brand colors, real logos. -->
 <section aria-label="Walmart y Sam's Club" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
   <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Los gigantes de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Las tiendas m&aacute;s grandes, con precios bajos todos los d&iacute;as. Toca para entrar.</p>
+    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
+    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
   </div>
   <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
     <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
@@ -2174,6 +2174,23 @@ window.doSearch = function(which){
          Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
          newly registered store appears here with no markup change. -->
 
+<!-- STORE RAIL: WALMART (2026-10-24, #443 item 33, Danny) -- the anchor tenant
+     leads the store rails: its sales across departments, toys first
+     (walmartRailPicks in the bundle). No arrival-days line: none is
+     published for Walmart yet, and none is invented. -->
+<section aria-label="Walmart" data-store-rail="walmart" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFC220 20%, #FFC220 80%, transparent)"></div>
+        <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="storeRailPlaque"><img src="logos/walmart.svg" alt="Walmart" data-retailer="walmart" loading="lazy" decoding="async"
+             class="h-[22px] w-auto max-w-[120px] object-contain"
+             onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)"></span>
+            <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Walmart</span>
+          </span>
+          <button onclick="openStore('walmart')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+      <div id="mStoreRail-walmart" data-store-rail-row="walmart" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -2378,8 +2395,8 @@ window.doSearch = function(which){
      full band height, right under Aria Auto. Brand colors, real logos. -->
 <section aria-label="Walmart y Sam's Club" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
   <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Los gigantes de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Las tiendas m&aacute;s grandes, con precios bajos todos los d&iacute;as. Toca para entrar.</p>
+    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
+    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
   </div>
   <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
     <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
@@ -2629,6 +2646,25 @@ window.doSearch = function(which){
     <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
          mall directory between the six featured rails and Categorías. -->
 
+<!-- STORE RAIL: WALMART (2026-10-24, #443 item 33, Danny) -- the anchor tenant
+     leads the store rails: its sales across departments, toys first
+     (walmartRailPicks in the bundle). No arrival-days line: none is
+     published for Walmart yet, and none is invented. -->
+<section aria-label="Walmart" data-store-rail="walmart" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFC220 20%, #FFC220 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="storeRailPlaque"><img src="logos/walmart.svg" alt="Walmart" data-retailer="walmart" loading="lazy" decoding="async"
+             class="h-[22px] w-auto max-w-[120px] object-contain"
+             onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)"></span>
+            <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Walmart</span>
+          </span>
+          <button onclick="openStore('walmart')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+      <div id="dStoreRail-walmart" data-store-rail-row="walmart" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -4137,6 +4173,25 @@ window.doSearch = function(which){
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">Cada tienda, en su vitrina.</h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#4A5568">Las ofertas y los destacados de cada tienda, sin salir de esta p&aacute;gina. Toca &laquo;Ver tienda&raquo; para entrar al cat&aacute;logo completo.</p>
     </div>
+<!-- STORE RAIL: WALMART (2026-10-24, #443 item 33, Danny) -- the anchor tenant
+     leads the store rails: its sales across departments, toys first
+     (walmartRailPicks in the bundle). No arrival-days line: none is
+     published for Walmart yet, and none is invented. -->
+<section aria-label="Walmart" data-store-rail="walmart" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFC220 20%, #FFC220 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="storeRailPlaque"><img src="logos/walmart.svg" alt="Walmart" data-retailer="walmart" loading="lazy" decoding="async"
+             class="h-[22px] w-auto max-w-[120px] object-contain"
+             onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)"></span>
+            <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Walmart</span>
+          </span>
+          <button onclick="openStore('walmart')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+      <div id="tStoreRail-walmart" data-store-rail-row="walmart" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
@@ -6117,7 +6172,7 @@ window.doSearch = function(which){
 
 <script src="/off-sale.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-837b617830141b37.js"></script>
+<script src="/build/app-d0887c73c6cdd012.js"></script>
 
 
 
