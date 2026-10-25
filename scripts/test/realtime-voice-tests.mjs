@@ -1593,10 +1593,10 @@ check("a track without a stream wrapper is still attached", () => {
 
   /* Run it both ways. */
   const attached = [];
-  const fn = new Function("pc", "sink", "console", "MediaStream",
+  const fn = new Function("pc", "sink", "console", "MediaStream", "diagMark", "markRealtimeOutputReady",
     body.replace("  pc.ontrack = (ev) => {", "  const handler = (ev) => {") + "\n return handler;");
-  const handler = fn({}, { attach: (s) => attached.push(s) }, { info(){}, warn(){} },
-    function(tracks){ this.tracks = tracks; return { fromTrack: true }; });
+  const handler = fn({}, { attach: (s) => attached.push(s), el: { addEventListener(){}, removeEventListener(){} } }, { info(){}, warn(){} },
+    function(tracks){ this.tracks = tracks; return { fromTrack: true }; }, () => {}, () => {});
   handler({ streams: [{ id: "normal" }] });
   handler({ track: { id: "bare" } });
   handler({});
