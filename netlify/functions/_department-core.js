@@ -22,7 +22,11 @@ export const RAIL_BATCH = 6;     // carousels per rails-<b>.json after those
 export const FN_DIR = "assets/sections/departamento/_fn";
 export const DEPT_KEY_RX = /^[a-z_]{2,40}$/;
 
+/* Aria's own footwear classes (scripts/lib/footwear.js SHOE_CLASSES) are
+   titles already: "Botas y botines", not "Botas Y Botines". */
+const SHOE_CLASS_LABELS = new Map(["Zapatillas", "Sandalias", "Botas y botines", "Tacones", "Chimpunes", "Mocasines y pantuflas", "Zapatos"].map((l) => [l.toLowerCase(), l]));
 export function typeLabel(t) {
+  if (SHOE_CLASS_LABELS.has(String(t).toLowerCase())) return SHOE_CLASS_LABELS.get(String(t).toLowerCase());
   return String(t).split(/[\s_\-]+/).map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
 }
 
@@ -122,7 +126,46 @@ export function buildPerfumeSections(list) {
   return sections;
 }
 
-export function buildSections(list) {
+/* The shoe departments (#443 c.6405702652): their types are Aria's own
+   footwear classes, and the front of a mixed rail is interleaved so one
+   cheap class cannot take it (the Shoes rail's first 24 cards were all
+   sandals). */
+export const SHOE_DEPTS = new Set(["shoes", "shoes_women", "shoes_men"]);
+export function sectionOpts(key) { return SHOE_DEPTS.has(key) ? { interleave: true } : {}; }
+export const FRONT = 24, FRONT_CAP = 6;
+
+/* The first FRONT cards of a mixed rail hold at most FRONT_CAP of any one
+   type, taken round-robin in rail order; the rest follow unchanged. */
+export function interleaveFront(items, front = FRONT, cap = FRONT_CAP) {
+  const types = new Set(items.slice(0, front * 4).map((p) => p.type || ""));
+  if (types.size < 2) return items;
+  const head = [], used = new Map(), rest = [];
+  for (const p of items) {
+    const t = p.type || "", n = used.get(t) || 0;
+    if (head.length < front && n < cap) { head.push(p); used.set(t, n + 1); }
+    else rest.push(p);
+  }
+  return head.concat(rest);
+}
+
+/* A card without a photo never leads a rail (the Sandalias lead was the
+   rail's only imageless item): photographed items keep their order and
+   come first. */
+export function photosFirst(items) {
+  const a = [], b = [];
+  for (const p of items) (p.image ? a : b).push(p);
+  return b.length ? a.concat(b) : items;
+}
+
+export function buildSections(list, opts = {}) {
+  const secs = buildSectionsRaw(list);
+  for (const s of secs) {
+    s.items = photosFirst(s.items);
+    if (opts.interleave && (s.key === "ofertas" || s.key === "destacados")) s.items = interleaveFront(s.items);
+  }
+  return secs;
+}
+function buildSectionsRaw(list) {
   if (list.length && list.every((p) => p.retailer === PERFUME_STORE)) return buildPerfumeSections(list);
   const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
     .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
@@ -266,7 +309,7 @@ export function answer(qs, roots) {
   if (!d) return { status: 404, body: { error: "Departamento no encontrado." } };
   const r = String(qs.r || "").slice(0, 40), q = String(qs.q || "").slice(0, 80);
   const list = (r && r !== "all") || q.trim() ? filterList(d.list, { r, q }) : d.list;
-  const sections = buildSections(list);
+  const sections = buildSections(list, sectionOpts(d.key));
   if (qs.rail !== undefined && qs.rail !== "") {
     const out = pageOf(sections, Number(qs.rail), Number(qs.page) || 0);
     return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más productos." } };

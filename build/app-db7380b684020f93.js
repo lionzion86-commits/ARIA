@@ -1760,7 +1760,7 @@ gym_rat:         { category: 'gymrat' },
    sneaker in Britain, gym equipment here — it matched two SKLZ
    resistance trainers and zero shoes).
    ============================================================ */
-const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?)\b/;
+const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?|CHIMPUNES?|CLEATS?|FOOTWEAR|CALZADO)\b/;
 /* "flats" (plural) joined 2026-10-13: isShoeItem now delegates here, and
    Walmart's "Women's Ballet Flats" would otherwise fall out of Zapatos.
    Plural only: "Flat Front Shorts" and "Flat Back Earrings" are singular. */
@@ -1805,7 +1805,8 @@ const FOOTWEAR_RETAILERS = new Set(['footlocker']);
 const NON_ATHLETIC_FOOTWEAR =
   /\b(heels?|tacones?|tac[oó]n|pumps|stilettos?|slingbacks?|ballerinas?|bailarinas?|mary\s*janes?|princess|princesa|dress\s+shoes?|wedges?|cu[ñn]as?|bridal|wedding|novia|boda|evening\s+shoes?|costume|disfraz|peep[-\s]?toes?|mules?)\b/i;
 function isFootwearType(type){
-  const t = String(type ?? '').toUpperCase();
+  /* "BOXING_SHOES": an underscore reads as a space (mirror of scripts/lib/footwear.js) */
+  const t = String(type ?? '').toUpperCase().replace(/_/g, ' ');
   return t ? FOOTWEAR_TYPE.test(t) : false;
 }
 /* A singular "oxford" is a cloth unless something else in the title is

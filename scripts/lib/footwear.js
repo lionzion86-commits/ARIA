@@ -58,7 +58,7 @@
 /* Matched against the retailer's own `type`, upper-cased. These are the
    real values in ssense-catalog.json and macys-catalog.json, not a
    guess at what a type field might contain. */
-const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?)\b/;
+const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?|CHIMPUNES?|CLEATS?|FOOTWEAR|CALZADO)\b/;
 
 /* Spanish and English, because the shopper is Peruvian and the
    catalogue is American. Ordered loosely by how often they appear. */
@@ -84,7 +84,9 @@ const NOT_FOOTWEAR =
 export const FOOTWEAR_RETAILERS = new Set(["footlocker"]);
 
 export function isFootwearType(type) {
-  const t = String(type ?? "").toUpperCase();
+  /* "BOXING_SHOES" (Venum): an underscore is a word character, so it
+     reads as a space here */
+  const t = String(type ?? "").toUpperCase().replace(/_/g, " ");
   if (!t) return false;
   return FOOTWEAR_TYPE.test(t);
 }
@@ -137,4 +139,66 @@ export function isFootwear(item, retailer) {
   if (item.type) return isFootwearType(item.type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
+}
+
+/* ============================================================
+   THE SHOE DEPARTMENT'S DOOR AND ITS AISLES (#443 c.6405702652).
+
+   The Zapatos audit: 1,579 of 8,994 items (17.6%) were not footwear.
+   The department builder admitted by raw substring -- "heel" inside
+   "wHEELs" let in 678 skate trucks and wheels, "boot" inside "bootcut"
+   the jeans, "bota" inside "Botanical" a prenatal drink -- while this
+   file's vetted classifier sat unused. isShoeForDept is that classifier
+   for the department, with one addition: a type that names a gender
+   ("WOMEN", "MEN": Farfetch's whole catalogue) or nothing says nothing
+   about footwear, so the title decides; a type that names any other
+   category ("Trucks, ruedas y partes", "Polos y camisetas", "Accesorios",
+   "SUNGLASSES") keeps the item out, as the published type always has.
+   ============================================================ */
+const GENERIC_TYPE = /^\s*(men|mens|men's|women|womens|women's|kids|boys|girls|baby|unisex|general|hombre|mujer|niños|niñas|unisex)?\s*$/i;
+/* Catch-all types are as silent as a gender: stores file real shoes
+   there (ProSoccer's "Turf Soccer Shoes" under "Accesorios de fútbol",
+   Zumiez's "Slide Sandals" under APPAREL), so the title decides -- the
+   veto above still keeps laces, socks and insoles out. */
+const CATCHALL_TYPE = /^\s*(apparel|accessories|accesorios(\s+de\s+[\wáéíóúñ]+)?|other|otros|misc\w*)\s*$/i;
+
+/* Things that mention a shoe without being one: a Barbie "with
+   zapatillas", a "Boot Bouquet" enamel pin filed under Calzado. */
+const DEPT_VETO = /\b(enamel\s+pins?|blind\s+box|keychains?|key\s+chains?|stickers?|ornaments?|dolls?|muñecas?|barbie|lego|toys?|juguetes?|plush|peluches?|figures?|figurines?|pins?|skateboards?|surfskates?|longboards?|cruiser\s+boards?|wheels?|bearings?|griptape|grip\s+tape|gloves?|guantes?|liners?|hoods?|capuchas?|charms?|mittens?|laces)\b/i;
+
+export function isShoeForDept(item, retailer) {
+  if (!item || typeof item !== "object") return false;
+  const title = item.title || item.name || "";
+  if (NOT_FOOTWEAR.test(title) || DEPT_VETO.test(title)) return false;
+  const type = String(item.type || "");
+  if (type && !GENERIC_TYPE.test(type) && !CATCHALL_TYPE.test(type)) return isFootwearType(type);
+  if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
+  return isFootwearTitle(title);
+}
+
+/* The aisles: one Aria class per shoe, whatever words the store used
+   (SSENSE alone had Sandalias / HEELED SANDALS / SANDALS / FLAT SANDALS /
+   SANDAL). The title decides first -- CCS files its Vans slides under
+   'Zapatillas' -- then the store's type; a shoe that says neither is
+   "Zapatos". Order matters: a heeled sandal is a sandal, a sock boot a
+   boot, a cleat never a sneaker. */
+export const SHOE_CLASSES = ["Zapatillas", "Sandalias", "Botas y botines", "Tacones", "Chimpunes", "Mocasines y pantuflas", "Zapatos"];
+const CLASS_RULES = [
+  ["Sandalias", /\b(sandals?|sandalias?|slides?|flip[- ]?flops?|chanclas?|thongs?|jandals?)\b/i],
+  ["Chimpunes", /\b(cleats?|chimpunes?|tacos|tekela|furon)\b|\b[FM]G\s*V?\d*\b|firm[-\s]?ground|multi[-\s]?ground|\bturf\b/i],
+  ["Botas y botines", /\b(boots?|booties|bootie|botas?|botines?|chelsea)\b/i],
+  ["Tacones", /\b(heels?|heeled|pumps?|stilettos?|tacones?|tac[oó]n|slingbacks?)\b/i],
+  ["Mocasines y pantuflas", /\b(slippers?|pantuflas?|loafers?|moccasins?|mocasines?|mules?|clogs?|zuecos?|espadrilles?|slip[- ]?ons?\s+loafers?)\b/i],
+  ["Zapatillas", /\b(sneakers?|zapatillas?|trainers?|runners?|running|basketball|skate\s+shoes?|low[- ]?tops?|high[- ]?tops?|court|tennis\s+shoes?|chucks?|air\s+max|air\s+force|jordan|dunk|gel[- ]\w+|ultraboost|samba|gazelle|campus)\b/i],
+];
+/* Parts of a shoe are not its class: a "heel tab" sneaker is a sneaker. */
+const SHOE_PART_RX = /\bheels?\s+(tabs?|counters?|pulls?|loops?|cups?|cushion\w*|support|clips?)\b/gi;
+export function footwearClass(item, retailer) {
+  const title = String((item && (item.title || item.name)) || "").replace(SHOE_PART_RX, " ");
+  const type = String((item && item.type) || "");
+  for (const [cls, rx] of CLASS_RULES) if (rx.test(title)) return cls;
+  for (const [cls, rx] of CLASS_RULES) if (rx.test(type)) return cls;
+  if (/\bSHOES?\b/i.test(type) || /\bshoes?\b|zapatos?/i.test(title)) return "Zapatos";
+  if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return "Zapatillas";
+  return "Zapatos";
 }
