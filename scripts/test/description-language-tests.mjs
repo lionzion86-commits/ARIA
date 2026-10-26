@@ -133,6 +133,20 @@ check("Hot Topic and BoxLunch pages read Spanish and never send the shopper to t
   }
 });
 
+/* THE REST OF THE SWEEP (c.6403123731 item 4, every catalogue): the
+   stores whose copy was all English -- Best Buy, Zumiez, BaubleBar, JW
+   Pei, B&H -- read Spanish on their product pages. What English is left
+   anywhere is a product name inside a Spanish sentence. */
+check("every catalogue: the big English stores read Spanish on their product pages", () => {
+  const a = auditDescriptions();
+  for (const store of ["bestbuy", "zumiez", "baublebar", "jwpei", "bhphoto", "smartbuyglasses"]) {
+    assert.ok(a[store] && a[store].records > 0, store + " has no product pages");
+    assert.ok(a[store].en <= 3, `${store}: ${a[store].en} English descriptions on product pages`);
+  }
+  const total = Object.values(a).reduce((n, r) => n + r.en, 0);
+  assert.ok(total < 600, `${total} English descriptions on product pages`);
+});
+
 check("writing the stored Spanish into a catalogue is idempotent", () => {
   const cat = JSON.parse(readFileSync(ROOT + "juguetes-catalog.json", "utf8"));
   assert.equal(applyToCatalog(cat), 0, "a second run still changes the toy catalogue");
