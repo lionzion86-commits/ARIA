@@ -49,14 +49,27 @@
     return clientPromise;
   }
 
+  /* RETURN WITH MEMORY (#443 rider 3): the thread id this device was
+     given, brought back so the worker reads the same thread from our
+     store. The id opens nothing by itself; only the worker can read a
+     thread. Private windows and blocked storage just start fresh. */
+  var THREAD_KEY = 'aria.voice.thread';
+  function savedThread() {
+    try { return localStorage.getItem(THREAD_KEY) || ''; } catch (e) { return ''; }
+  }
+  function saveThread(id) {
+    try { if (id) localStorage.setItem(THREAD_KEY, id); } catch (e) { /* fresh next time */ }
+  }
+
   async function mintToken() {
     try {
-      var res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      var res = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ thread: savedThread() }) });
       var body = null;
       try { body = await res.json(); } catch (e) { body = null; }
       if (!res.ok || !body || !body.token || !body.url) {
         return { ok: false, said: (body && body.error) || ('el servidor respondió ' + res.status) };
       }
+      saveThread(body.thread);
       return { ok: true, mint: body };
     } catch (e) {
       return { ok: false, said: 'no pude contactar al servidor', detail: e.message };

@@ -36,11 +36,14 @@ export function newRoomName() {
  * The shopper's token for a fresh room with the agent dispatched.
  * `now` is seconds since the epoch, injectable for tests.
  */
-export function shopperToken({ apiKey, apiSecret, agentName, room = newRoomName(), identity, now = Math.floor(Date.now() / 1000) }) {
+export function shopperToken({ apiKey, apiSecret, agentName, room = newRoomName(), identity, metadata, now = Math.floor(Date.now() / 1000) }) {
   const who = identity || "shopper-" + randomBytes(6).toString("base64url");
   const claims = {
     iss: apiKey,
     sub: who,
+    /* Sealed by the signature: the worker reads the shopper's thread
+       from here, never from anything the page says (_voice-thread.js). */
+    ...(metadata ? { metadata: JSON.stringify(metadata) } : {}),
     nbf: now - 5,
     exp: now + TOKEN_TTL_SECONDS,
     video: { roomJoin: true, room, canPublish: true, canSubscribe: true, canPublishData: true },

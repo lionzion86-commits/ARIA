@@ -22,7 +22,12 @@
        agent's requests reach the page's own tool, transcript and noise
        code, the greeting waits for the speaker, and a tap the owned
        voice cannot take goes to the Realtime voice;
-     - the gates' scoring: Spanish price numbers, latency percentiles.
+     - the gates' scoring: Spanish price numbers, latency percentiles;
+     - the memory is ours (#443 rider 3): the thread is sealed in the
+       token, only the worker reads or writes it, the last 40 lines come
+       back on the next call and she greets a returning shopper with
+       them, each finished call is kept whole for review with only the
+       spoken words, and a dead store never costs the voice.
 
      node scripts/test/owned-voice-tests.mjs
    The worker checks need voice-agent's own packages
@@ -179,6 +184,140 @@ await check("/api/voice-token: off or unconfigured it sends the page to the Real
   assert.match(toml, /from = "\/api\/voice-token"\s+to = "\/\.netlify\/functions\/voice-token"/);
   assert.match(toml, /from = "\/voice-agent\/\*"\s+to = "\/404"\s+status = 404/);
 });
+
+/* ---------------- the memory, in our systems (#443 rider 3) ---------------- */
+function memStore() {
+  const m = new Map();
+  return {
+    m,
+    async get(k) { return m.has(k) ? JSON.parse(m.get(k)) : null; },
+    async setJSON(k, v) { m.set(k, JSON.stringify(v)); },
+  };
+}
+const SECRET = "secret-value-xyz";
+
+await check("memory: the worker's token is the store's; a wrong secret, an old token or a page's guess is refused", async () => {
+  const S = await import(ROOT + "netlify/functions/_voice-thread.js");
+  const W = await import(VA + "src/thread-store.mjs");
+  const th = S.newThreadId();
+  assert.ok(S.isThreadId(th));
+  assert.equal(S.verifyWorkerToken(W.workerToken(SECRET, th), SECRET), th, "the worker's token is refused");
+  assert.equal(S.verifyWorkerToken(S.workerToken(SECRET, th), SECRET), th);
+  assert.equal(S.verifyWorkerToken(W.workerToken("other", th), SECRET), null, "a wrong secret passed");
+  assert.equal(S.verifyWorkerToken(W.workerToken(SECRET, th, 1000), SECRET), null, "an expired token passed");
+  assert.equal(S.verifyWorkerToken(W.workerToken(SECRET, th, Math.floor(Date.now() / 1000), 3600), SECRET), null, "an hour-long token passed");
+  assert.equal(S.verifyWorkerToken(th, SECRET), null, "the bare thread id opened the thread");
+  assert.deepEqual(S.threadFor(th), { thread: th, resumed: true });
+  for (const junk of ["", "../../etc", "a".repeat(23), null, 42]) assert.equal(S.threadFor(junk).resumed, false, String(junk));
+});
+
+await check("memory: /api/voice-thread keeps the last 40 lines and each finished call whole, and only the spoken words", async () => {
+  const S = await import(ROOT + "netlify/functions/_voice-thread.js");
+  const { handler } = await import(ROOT + "netlify/functions/voice-thread.js");
+  const store = memStore(), env = { LIVEKIT_API_SECRET: SECRET };
+  const th = S.newThreadId(), other = S.newThreadId();
+  const auth = (t) => ({ authorization: "Bearer " + S.workerToken(SECRET, t) });
+  const get = (t, as = t) => handler({ httpMethod: "GET", headers: auth(as), queryStringParameters: { thread: t } }, env, store);
+  const post = (body, as = body.thread) => handler({ httpMethod: "POST", headers: auth(as), body: JSON.stringify(body) }, env, store);
+  assert.equal((await handler({ httpMethod: "GET", headers: {}, queryStringParameters: { thread: th } }, env, store)).statusCode, 401);
+  assert.equal((await get(th, other)).statusCode, 403, "one thread's token read another");
+  assert.equal((await post({ thread: th, room: "aria-x", lines: [] }, other)).statusCode, 403);
+  assert.equal((await handler({ httpMethod: "GET", headers: auth(th), queryStringParameters: { thread: th } }, {}, store)).statusCode, 503);
+  for (let i = 0; i < 25; i++) {
+    const r = await post({ thread: th, room: "aria-room1", lines: [{ role: "user", text: "línea " + i }, { role: "assistant", text: "respuesta " + i }, { role: "system", text: "x" }] });
+    assert.equal(JSON.parse(r.body).added, 2);
+  }
+  const mem = JSON.parse((await get(th)).body);
+  assert.equal(mem.turns.length, S.MEMORY_TURNS);
+  assert.equal(mem.turns.at(-1).text, "respuesta 24");
+  assert.equal(mem.turns[0].room, "aria-room1");
+  const saved = await post({ thread: th, room: "aria-room1", call: {
+    memory: "server", plan: { lane: "quality" }, seconds: 42, usd: null, latency: [{ k: "eou", ms: 300 }],
+    tools: [{ name: "search_products", ms: 800, failed: false, output: "never kept" }],
+    lines: [{ role: "user", text: "hola" }, { role: "assistant", text: "¡Hola!" }],
+    recipient: { name: "X", dni: "12345678" }, email: "x@y.z",
+  } });
+  assert.equal(saved.statusCode, 200);
+  const rec = JSON.parse(store.m.get(`corpus/${th}/aria-room1`));
+  assert.equal(rec.review, "pending");
+  assert.equal(rec.lines.length, 2);
+  assert.deepEqual(rec.tools, [{ name: "search_products", ms: 800, failed: false }]);
+  assert.ok(!/12345678|x@y\.z|never kept/.test(JSON.stringify(rec)), "the corpus kept more than the words");
+  assert.equal(JSON.parse((await get(th)).body).calls, 1);
+  assert.equal((await post({ thread: th, room: "../../x", call: {} })).statusCode, 400);
+});
+
+await check("memory: /api/voice-token seals this device's thread and the store's address into the token", async () => {
+  const S = await import(ROOT + "netlify/functions/_voice-thread.js");
+  const { handler } = await import(ROOT + "netlify/functions/voice-token.js");
+  const env = { LIVEKIT_URL: "wss://aria.livekit.cloud", LIVEKIT_API_KEY: "k", LIVEKIT_API_SECRET: SECRET, DEPLOY_PRIME_URL: "https://deploy-preview-501--ariashopperu.netlify.app" };
+  const claims = (tok) => JSON.parse(Buffer.from(tok.split(".")[1], "base64url").toString());
+  const fresh = JSON.parse((await handler({ httpMethod: "POST", body: "{}" }, env)).body);
+  assert.ok(S.isThreadId(fresh.thread));
+  const meta = JSON.parse(claims(fresh.token).metadata);
+  assert.deepEqual(meta, { thread: fresh.thread, memoryUrl: "https://deploy-preview-501--ariashopperu.netlify.app/api/voice-thread" });
+  const again = JSON.parse((await handler({ httpMethod: "POST", body: JSON.stringify({ thread: fresh.thread }) }, env)).body);
+  assert.equal(again.thread, fresh.thread, "a returning device got a new thread");
+  assert.notEqual(again.room, fresh.room, "a returning device reused a room");
+  const forged = JSON.parse((await handler({ httpMethod: "POST", body: JSON.stringify({ thread: "x/../../y" }) }, env)).body);
+  assert.notEqual(forged.thread, "x/../../y");
+  const toml = readFileSync(ROOT + "netlify.toml", "utf8");
+  assert.match(toml, /from = "\/api\/voice-thread"\s+to = "\/\.netlify\/functions\/voice-thread"/);
+  const page = readFileSync(ROOT + "assets/js/aria-voice-owned.js", "utf8");
+  assert.match(page, /body: JSON\.stringify\(\{ thread: savedThread\(\) \}\)/);
+  assert.match(page, /saveThread\(body\.thread\)/);
+});
+
+await check("memory: the worker reads the thread, writes every line, saves the call; a dead store never costs the voice", async () => {
+  const S = await import(ROOT + "netlify/functions/_voice-thread.js");
+  const W = await import(VA + "src/thread-store.mjs");
+  const { handler } = await import(ROOT + "netlify/functions/voice-thread.js");
+  const store = memStore(), env = { LIVEKIT_API_SECRET: SECRET };
+  const th = S.newThreadId();
+  const URL0 = "https://deploy-preview-501--ariashopperu.netlify.app/api/voice-thread";
+  const fetchImpl = async (url, o) => {
+    const u = new URL(url);
+    const r = await handler({ httpMethod: o.method, headers: { authorization: o.headers.Authorization }, body: o.body, queryStringParameters: Object.fromEntries(u.searchParams) }, env, store);
+    return { ok: r.statusCode < 300, status: r.statusCode, json: async () => JSON.parse(r.body) };
+  };
+  assert.equal(W.threadFromMetadata(JSON.stringify({ thread: th, memoryUrl: "https://evil.example/steal" })), null);
+  assert.equal(W.threadFromMetadata("not json"), null);
+  const meta = W.threadFromMetadata(JSON.stringify({ thread: th, memoryUrl: URL0 }));
+  const one = W.threadStore({ meta, secret: SECRET, room: "aria-call1", fetchImpl });
+  assert.deepEqual(await one.history(), [], "a first call has a memory");
+  one.say("assistant", "¡Hola! Soy Aria.");
+  one.say("user", "busco zapatillas Nike talla 42");
+  one.say("assistant", "Te muestro tres Nike en talla 42.");
+  await one.flush();
+  /* she hangs up and taps again before the room closes */
+  const two = W.threadStore({ meta, secret: SECRET, room: "aria-call2", fetchImpl });
+  const hist = await two.history();
+  assert.deepEqual(hist.map((h) => h.role), ["assistant", "user", "assistant"]);
+  assert.equal(hist[1].content, "busco zapatillas Nike talla 42");
+  await one.finish({ memory: "none", plan: { lane: "quality" }, seconds: 30, usd: null, latency: [], tools: [{ name: "search_products", ms: 900 }] });
+  assert.equal(JSON.parse(store.m.get(`corpus/${th}/aria-call1`)).lines.length, 3);
+  const logs = [];
+  const dead = W.threadStore({ meta, secret: SECRET, room: "aria-call3", fetchImpl: async () => { throw new Error("ECONNREFUSED"); }, log: (e) => logs.push(e) });
+  assert.deepEqual(await dead.history(), []);
+  dead.say("user", "hola");
+  await dead.flush();
+  await dead.finish({});
+  assert.deepEqual(logs, ["memory-read-failed", "memory-write-failed", "corpus-write-failed"]);
+  const off = W.threadStore({ meta: null, secret: SECRET, room: "aria-call4", fetchImpl });
+  assert.equal(off.enabled, false);
+  assert.deepEqual(await off.history(), []);
+});
+
+await check("memory: a returning shopper is greeted with the thread, a new one with the welcome", async () => {
+  const A = await import(VA + "src/agent.mjs");
+  assert.equal(A.greetingFor([]), A.GREETING_INSTRUCTIONS);
+  assert.equal(A.greetingFor([{ role: "user", content: "hola" }]), A.RETURN_GREETING_INSTRUCTIONS);
+  assert.match(A.RETURN_GREETING_INSTRUCTIONS, /ni inventes nada que no esté en el historial/);
+  const src = readFileSync(VA + "src/agent.mjs", "utf8");
+  assert.match(src, /const history = ours\.length \? ours : page\.history;/, "our store no longer comes first");
+  assert.match(src, /session\.generateReply\(\{ instructions: greetingFor\(history\) \}\)/);
+  assert.match(src, /await memory\.finish\(/);
+}, { needsWorker: true });
 
 /* ---------------- the gates' scoring ---------------- */
 await check("gate scoring: Spanish price numbers read both ways; percentiles", async () => {

@@ -17,10 +17,16 @@ It sits **behind a flag**. The Realtime voice stays the shop's voice until this 
 | Her hands (the tools) | The shopper's page, over LiveKit RPC: `executeRealtimeTool`, the same as Realtime | `src/page-bridge.mjs` |
 | Token: one shopper, one fresh room, agent dispatched | Netlify function `/api/voice-token` | `netlify/functions/voice-token.js`, `_livekit-token.js` |
 | Page side | Loaded only on a mic tap with the flag on | `assets/js/aria-voice-owned.js` plus the vendored `assets/vendor/livekit-client-2.22.4.umd.js` |
+| Memory and call log (ours) | Netlify Blobs store `voice-threads`, behind `/api/voice-thread` (worker only) | `src/thread-store.mjs`; `netlify/functions/voice-thread.js`, `_voice-thread.js` |
 
-**Stateless.** The conversation's memory belongs to the page:
-- it is read once over RPC when a session starts;
-- each line is written back to the page as it is spoken.
+**Stateless, with the memory in our systems** (#443 rider 3):
+- `/api/voice-token` gives each device a thread id (the page keeps it and brings it back) and seals the thread and the store's address into the LiveKit token. The worker reads them from the shopper's participant metadata, never from the page.
+- When a call opens, the worker reads the thread's last lines from `/api/voice-thread`. A returning shopper is greeted with the thread (`RETURN_GREETING_INSTRUCTIONS`). The page's own memory stands in only when the store has nothing.
+- Every spoken line, the shopper's and Aria's, is written to the thread as it is said. The store keeps the last 40.
+- When the call ends, it is saved whole under `corpus/<thread>/<room>` with `review: "pending"`: the lines, the tools run (names and timings only), the plan, latency and cost. That is the review queue for the training corpus.
+- Only the spoken words are kept: no recipient, DNI, payment data or email.
+- The worker signs its requests with `LIVEKIT_API_SECRET`, which it already holds, so no new secret is needed. The page cannot read a thread.
+- A store that is down costs the call its memory, never its voice.
 
 Any worker can therefore serve any session, and scaling means adding workers.
 
@@ -47,6 +53,7 @@ Any worker can therefore serve any session, and scaling means adding workers.
 - `LIVEKIT_API_SECRET`
 - `ARIA_VOICE_AGENT_NAME` (optional, default `aria`)
 - `ARIA_VOICE_OWNED=off` is the kill switch.
+- `/api/voice-thread` uses `LIVEKIT_API_SECRET` and the site's Blobs. Netlify's own `URL` / `DEPLOY_PRIME_URL` give the store's address, so a preview's calls stay in the preview's store.
 
 **LiveKit Cloud agent secrets** (the worker):
 

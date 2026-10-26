@@ -16,6 +16,7 @@
    ARIA_VOICE_OWNED=off is the kill switch.
    ============================================================ */
 import { shopperToken } from "./_livekit-token.js";
+import { threadFor } from "./_voice-thread.js";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -42,13 +43,23 @@ export async function handler(event, env = process.env) {
     return reply(503, { error: `${missing.join(", ")} not configured`, fallback: "realtime" });
   }
 
+  /* RETURN WITH MEMORY (#443 c.6420805882 rider 3): the page brings
+     back the thread id it was given last time; the worker reads that
+     thread from our store (/api/voice-thread) at the address sealed
+     here. The address is this deploy's own, so a preview's calls stay
+     in the preview's store. */
+  let asked = null;
+  try { asked = JSON.parse(event.body || "{}").thread; } catch { /* a fresh thread */ }
+  const { thread, resumed } = threadFor(asked);
+  const site = String(env.DEPLOY_PRIME_URL || env.URL || "").replace(/\/+$/, "");
   const t = shopperToken({
     apiKey: env.LIVEKIT_API_KEY,
     apiSecret: env.LIVEKIT_API_SECRET,
     agentName: env.ARIA_VOICE_AGENT_NAME || "aria",
+    metadata: { thread, memoryUrl: site ? site + "/api/voice-thread" : null },
   });
   /* The served variant, logged per mint (#443 c.6416056033 item 2):
      there is only one, and the log says so. */
-  console.log(`[voice-token] minted room=${t.room} engine=owned-cascade`);
-  return reply(200, { engine: "owned", url: env.LIVEKIT_URL, token: t.token, room: t.room, identity: t.identity, expires_at: t.expires_at });
+  console.log(`[voice-token] minted room=${t.room} engine=owned-cascade thread=${resumed ? "resumed" : "new"}`);
+  return reply(200, { engine: "owned", url: env.LIVEKIT_URL, token: t.token, room: t.room, identity: t.identity, expires_at: t.expires_at, thread });
 }

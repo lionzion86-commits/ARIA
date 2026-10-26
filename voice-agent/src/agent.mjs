@@ -17,8 +17,10 @@
    (config.mjs, fail closed). There is no variant to draw.
 
    STATELESS WORKER. Nothing about a conversation lives in this process
-   past its session: the memory is the page's (read once over RPC at
-   the start, written back line by line), so any worker can serve any
+   past its session: the memory is OURS (thread-store.mjs, the
+   "voice-threads" store behind /api/voice-thread), read when the call
+   opens and written line by line, with the page's memory only as the
+   stand-in when the store has nothing; so any worker can serve any
    session and scaling is more workers, never a rebuild.
 
    The doctrine timers -- the opening nudge, the ten-second silence
@@ -37,6 +39,7 @@ import * as brain from "./brain.generated.mjs";
 import { planFromEnv, planSummary, STT_KEYTERMS } from "./config.mjs";
 import { emptyUsage, usageFrom, ratesFromEnv, priceUsage } from "./cost.mjs";
 import { RPC, readContext, sendTurn, pageTools, stripCardMarkers } from "./page-bridge.mjs";
+import { threadFromMetadata, threadStore } from "./thread-store.mjs";
 
 /* The Realtime voice's ceiling on one answer (MAX_RESPONSE_OUTPUT_TOKENS):
    one to three spoken sentences, impossible to filibuster from. */
@@ -47,6 +50,14 @@ export const MAX_REPLY_TOKENS = 500;
    told that nobody has spoken yet. What to say stays in the rules. */
 export const GREETING_INSTRUCTIONS =
   "La llamada acaba de abrirse y el cliente todavía no ha dicho nada. Salúdalo como dicen tus reglas de saludo, en una sola frase breve.";
+
+/* RETURN WITH MEMORY (#443 c.6420805882 rider 3): a shopper who comes
+   back is greeted with the live thread, not as a stranger. */
+export const RETURN_GREETING_INSTRUCTIONS =
+  "La llamada acaba de abrirse y el cliente todavía no ha dicho nada, pero ya conversaron antes: el historial de arriba es esa conversación. Salúdalo como a alguien que vuelve, en una sola frase breve, retomando lo último que estaban viendo según el historial, y pregúntale si sigue con eso. No repitas la bienvenida de la primera vez ni inventes nada que no esté en el historial.";
+
+/** The opening line's instructions: a returning shopper gets the thread back. */
+export const greetingFor = (history) => (history && history.length ? RETURN_GREETING_INSTRUCTIONS : GREETING_INSTRUCTIONS);
 
 /* A page that vanished without hanging up still ends: the page's own
    five-minute cap is the rule, this is its server-side backstop. */
@@ -127,7 +138,7 @@ export const stripMarkersTransform = (stream) => stream.pipeThrough(markerFilter
  * tools, her history from the page, and the page's noise filter in
  * front of every answer.
  */
-export function createAriaAgent({ rpc, history = [], recipient = null, onTool = () => {}, llmModel } = {}) {
+export function createAriaAgent({ rpc, history = [], recipient = null, onTool = () => {}, onUserLine = () => {}, llmModel } = {}) {
   const chatCtx = llm.ChatContext.empty();
   for (const m of history) chatCtx.addMessage({ role: m.role, content: m.content });
   class AriaVoice extends voice.Agent {
@@ -136,6 +147,7 @@ export function createAriaAgent({ rpc, history = [], recipient = null, onTool = 
       const { speech } = await sendTurn(rpc, "user", text);
       /* The page read it as noise: no answer, as on the Realtime voice. */
       if (!speech) throw new voice.StopResponse();
+      onUserLine(text);
     }
   }
   return new AriaVoice({
@@ -167,9 +179,15 @@ export default defineAgent({
     const rpc = (method, payload, responseTimeout) =>
       room.localParticipant.performRpc({ destinationIdentity: shopper.identity, method, payload, responseTimeout });
 
-    const { history, recipient } = await readContext(rpc);
+    /* The memory: our store's thread first; the page's only when ours
+       has nothing (a first call, a store that is down). */
+    const memory = threadStore({ meta: threadFromMetadata(shopper.metadata), secret: process.env.LIVEKIT_API_SECRET, room: room.name, log });
+    const [page, ours] = await Promise.all([readContext(rpc), memory.history()]);
+    const { recipient } = page;
+    const history = ours.length ? ours : page.history;
+    const memorySource = ours.length ? "server" : page.history.length ? "page" : "none";
     const tools = [];
-    const agent = createAriaAgent({ rpc, history, recipient, onTool: (t) => tools.push(t) });
+    const agent = createAriaAgent({ rpc, history, recipient, onTool: (t) => tools.push(t), onUserLine: (text) => memory.say("user", text) });
 
     const session = new voice.AgentSession({
       vad: ctx.proc.userData.vad,
@@ -199,7 +217,9 @@ export default defineAgent({
       const item = ev.item;
       if (!item || item.role !== "assistant") return;
       const said = brain.sanitizeEmojiNarration(brain.sanitizeSpokenPunctuation(stripCardMarkers(item.textContent || ""))).trim();
-      if (said) sendTurn(rpc, "assistant", said);
+      if (!said) return;
+      sendTurn(rpc, "assistant", said);
+      memory.say("assistant", said);
     });
 
     let ready;
@@ -223,7 +243,7 @@ export default defineAgent({
     });
 
     await session.start({ agent, room });
-    log("session-start", { room: room.name, ...planSummary(plan), history: history.length });
+    log("session-start", { room: room.name, ...planSummary(plan), history: history.length, memory: memorySource, thread: memory.enabled });
 
     /* THE GREETING WAITS FOR THE SPEAKER (#443 c.6416056033 item 3):
        audio sent before the page is playing is lost, which is how the
@@ -231,7 +251,7 @@ export default defineAgent({
        if it never does, she greets anyway after the wait. */
     const why = await Promise.race([readyNow, new Promise((r) => setTimeout(() => r("timeout"), plan.readyWaitMs))]);
     log("greeting", { room: room.name, after: why, ms: Date.now() - t0 });
-    session.generateReply({ instructions: GREETING_INSTRUCTIONS });
+    session.generateReply({ instructions: greetingFor(history) });
 
     const cap = setTimeout(() => {
       log("max-duration", { room: room.name, seconds: plan.maxSeconds + MAX_GRACE_SECONDS });
@@ -241,15 +261,20 @@ export default defineAgent({
     ctx.addShutdownCallback(async () => {
       clearTimeout(cap);
       usage.sessionSeconds = Math.round((Date.now() - t0) / 1000);
+      const usd = priceUsage(usage, ratesFromEnv());
       log("session-end", {
         room: room.name,
         ...planSummary(plan),
         seconds: usage.sessionSeconds,
         usage,
-        usd: priceUsage(usage, ratesFromEnv()),
+        usd,
         latency,
         tools,
+        lines: memory.lines.length,
       });
+      /* The whole call, for review (Stage 0 of the own-AI goal: every
+         owned-engine conversation becomes corpus). */
+      await memory.finish({ memory: memorySource, plan: planSummary(plan), seconds: usage.sessionSeconds, usd, latency, tools });
     });
   },
 });
