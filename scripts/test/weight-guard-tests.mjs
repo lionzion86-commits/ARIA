@@ -36,6 +36,13 @@ import { estimateWeightDetail } from "../lib/sales-sources.js";
 import { GENERIC_FALLBACK_KG, departmentFallbackKg, GENERAL_FALLBACK_BAND } from "../lib/item-weight.js";
 import { loadPageWeightSlice } from "./_page-script.mjs";
 
+/* The department ceiling below is the machinery behind
+   ARIA_NO_WEIGHT_POLICY=ceiling. Since the #443 weight ruling
+   (2026-10-26) the default holds a product with no weight, no rule and
+   no comparable instead ("por confirmar"; pdp-weight-truth-tests.mjs
+   pins that default). This suite pins the ceiling itself, so it runs
+   under the switch. */
+process.env.ARIA_NO_WEIGHT_POLICY = "ceiling";
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 let passed = 0, failed = 0;
 async function check(name, fn) {

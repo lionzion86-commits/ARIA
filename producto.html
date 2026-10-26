@@ -265,7 +265,8 @@ function recordToItem(r){
     images: unpackImages(r.images, r.image),
     sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "",
     originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
-    wasPrice: Number(r.wasPrice) || 0, dept: r.dept || ""
+    wasPrice: Number(r.wasPrice) || 0, dept: r.dept || "",
+    weightKg: Number(r.weightKg) || 0, weightPub: r.weightPub === true, specWeightKg: Number(r.specWeightKg) || 0
   };
 }
 function fetchJson(url, ms){
@@ -492,6 +493,29 @@ function weightRowHtml(){
   return '<div class="p-tax-row"><span>Peso para el flete</span><b id="p-weight-kg">calculando…</b></div>'
     + '<div class="p-tax-note">Cobramos el flete a US$ ' + CHARGE_PER_KG + ' por kilo. Si tu paquete pesa menos de lo estimado, te devolvemos la diferencia como saldo Aria.</div>';
 }
+/* WHAT THE PAGE MAY SAY ABOUT A WEIGHT (#443, Danny 2026-10-26: "a PDP
+   must NEVER print a weight the data doesn't hold"). The resolver says
+   where its number came from: a published weight, the store's catalogue,
+   a per-class rule, similar products -- or nothing but a constant (a
+   department's ceiling, the generic guess), which is never printed as a
+   weight: the page says "por confirmar". */
+function weightUnknown(it){
+  if (!it) return true;
+  return !!it.needsReview || it.source === "department" || it.source === "fallback";
+}
+function weightLabel(it){
+  if (it && it.estimated === false) return 'publicado por la tienda';
+  if (it && it.source === "comparables") return 'estimado por productos similares';
+  return 'estimado';
+}
+/* The line the resolver weighs, the same for the weight row and the
+   cart: the catalogue's own figures ride along when it has them. */
+function weightLineOf(p, priceUsd){
+  var line = { title: p.name, retailer: p.retailer, priceUsd: priceUsd, weightKg: PDP_LINE_KG, weightEstimated: true, qty: 1 };
+  if (p.weightKg > 0) { line.weightKg = p.weightKg; line.weightEstimated = !p.weightPub; }
+  if (p.specWeightKg > 0) line.specWeightKg = p.specWeightKg;
+  return line;
+}
 function fmtKg(kg){
   var n = Math.round(kg * 100) / 100;
   return String(n) + ' kg';
@@ -499,19 +523,21 @@ function fmtKg(kg){
 function fillWeightAndTax(p){
   var fob = dutiableUsd(p.price, p.retailer);
   var wantTax = fob > TAX_ESTIMATE_THRESHOLD_USD;
-  var line = { title: p.name, retailer: p.retailer, priceUsd: finalUsd(p.price, p.retailer), weightKg: PDP_LINE_KG, weightEstimated: true, qty: 1 };
-  if (p.weightKg > 0) { line.weightKg = p.weightKg; line.weightEstimated = !!p.weightEstimated; }
+  var line = weightLineOf(p, finalUsd(p.price, p.retailer));
   var done = function(d){
     var it = d && d.items && d.items[0];
     var kg = d && Number(d.totalKg);
     var wEl = el("p-weight-kg");
+    var unknown = weightUnknown(it);
     if (wEl) {
-      if (kg > 0) wEl.innerHTML = esc(fmtKg(kg)) + '<small>' + (it && it.estimated === false ? 'publicado por la tienda' : 'estimado') + '</small>';
+      if (unknown) wEl.innerHTML = 'Por confirmar<small>te confirmamos el peso antes de cobrar el flete</small>';
+      else if (kg > 0) wEl.innerHTML = esc(fmtKg(kg)) + '<small>' + weightLabel(it) + '</small>';
       else { var row = el("p-weight"); if (row) row.hidden = true; }
     }
     if (wantTax) {
       var amt = el("p-tax-amt");
-      if (amt) amt.innerHTML = moneyHtml(importTaxEstimateUsd(fob, (kg > 0 ? kg : PDP_LINE_KG) * CHARGE_PER_KG));
+      /* No freight math built on a weight nobody knows. */
+      if (amt) amt.innerHTML = unknown ? 'Se calcula con el peso' : moneyHtml(importTaxEstimateUsd(fob, (kg > 0 ? kg : PDP_LINE_KG) * CHARGE_PER_KG));
     }
   };
   fetch("/.netlify/functions/resolve-weight", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items: [line] }) })
@@ -659,6 +685,14 @@ function normalizeItem(it, retailerKey){
          regularPrice...). Feeds the related rails. */
       salePct: window.AriaSale ? window.AriaSale.discountPct(it) : 0,
       wasPrice: window.AriaSale ? (Number(window.AriaSale.originalPrice(it)) || 0) : 0,
+      /* THE CATALOGUE'S WEIGHT (#443 weight fabrication, 2026-10-26). The
+         page used to drop it and re-estimate every product from its
+         title; a weight the store published is now the one shown and
+         sent to checkout. weightPub marks a published (not estimated)
+         figure; specWeightKg is the store's own catalogue number. */
+      weightKg: Number(it.weightKg) > 0 ? Number(it.weightKg) : 0,
+      weightPub: Number(it.weightKg) > 0 && it.weightEstimated === false,
+      specWeightKg: Number(it.specWeightKg) > 0 ? Number(it.specWeightKg) : 0,
       dept: ""
     };
   }catch(e){ return null; }
@@ -1312,10 +1346,12 @@ function addCurrentToCart(p, sizes){
        plus the sales tax Aria pays at that register, never the margin
        (same stamp as the SPA's normalizeLiveItem). */
     dutiableUsd: Math.round(Number(p.price) * salesTaxRate(p.retailer) * 100) / 100,
-    /* Honest estimate: the SPA's title-based weight table is not on
-       this page; checkout re-resolves the weight server side. */
-    weightKg: 0.2,
-    weightEstimated: true,
+    /* The catalogue's weight when it has one (a published figure is a
+       spec checkout honours); otherwise an honest placeholder that
+       checkout re-resolves server side. */
+    weightKg: weightLineOf(p, priceUsd).weightKg,
+    weightEstimated: weightLineOf(p, priceUsd).weightEstimated,
+    specWeightKg: p.specWeightKg > 0 ? p.specWeightKg : undefined,
     /* The photo rides with the line (2026-10-17 rehearsal: every
        checkout thumbnail was a blank box for items added here). */
     image: p.image || (Array.isArray(p.images) && p.images[0]) || '',
