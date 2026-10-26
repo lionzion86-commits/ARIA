@@ -314,8 +314,8 @@ await check("memory: a returning shopper is greeted with the thread, a new one w
   assert.equal(A.greetingFor([{ role: "user", content: "hola" }]), A.RETURN_GREETING_INSTRUCTIONS);
   assert.match(A.RETURN_GREETING_INSTRUCTIONS, /ni inventes nada que no esté en el historial/);
   const src = readFileSync(VA + "src/agent.mjs", "utf8");
-  assert.match(src, /const history = ours\.length \? ours : page\.history;/, "our store no longer comes first");
-  assert.match(src, /session\.generateReply\(\{ instructions: greetingFor\(history\) \}\)/);
+  assert.match(src, /if \(ours\.length\) \{ history = ours; memorySource = "server"; \}/, "our store no longer comes first");
+  assert.match(src, /const opening = openingFor\(\{ history, facts \}\);/);
   assert.match(src, /await memory\.finish\(/);
 }, { needsWorker: true });
 
@@ -465,7 +465,11 @@ await check("page, ?voz=propia: the call comes up owned; the agent's requests re
 await check("page, ?voz=propia with the owned voice unavailable: the same tap goes to the Realtime voice", async () => {
   tokenMode = "off"; hits.length = 0;
   const { pg, errs } = await open("?voz=propia");
+  await pg.waitForTimeout(500);
+  const before = hits.filter((h) => /token/.test(h));
+  hits.length = 0;
   await pg.evaluate(() => startRealtimeVoice());
+  assert.deepEqual(before, [], "a token was minted before any tap or open");
   assert.deepEqual(hits.filter((h) => /token/.test(h)), ["/api/voice-token", "/api/realtime-token"], "no fallback to the Realtime voice");
   assert.ok(await pg.evaluate(() => ariaRTTape.some((t) => /voz propia no disponible/.test(t))));
   /* the microphone the owned try opened is released */
@@ -490,6 +494,142 @@ await check("page: an agent that never joins hands the call to the Realtime voic
   assert.equal(await pg.evaluate(() => window.__lk.disconnected), 1, "the empty room was not left");
   await pg.close();
 });
+
+/* ---------------- ear tests 1 and 2 (#443, 2026-10-26) ---------------- */
+async function openClocked(q) {
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on("pageerror", (e) => errs.push(e.message));
+  await pg.clock.install();
+  await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  await pg.goto(`${BASE}/index.html${q}`, { waitUntil: "domcontentloaded" });
+  await pg.waitForFunction(() => typeof startRealtimeVoice === "function" && window.AriaRealtimeTurn, null, { timeout: 20000 });
+  return { pg, errs };
+}
+const agentState = (pg, s) => pg.evaluate((s) => window.__lk.rooms.at(-1).emit("participantAttributesChanged", { "lk.agent.state": s }, { identity: "agent-1", isAgent: true }), s);
+const userState = (pg, s) => pg.evaluate((s) => window.__lk.rooms.at(-1).handlers["aria.user"]({ payload: JSON.stringify({ state: s }) }), s);
+const userSays = (pg, t) => pg.evaluate((t) => window.__lk.rooms.at(-1).handlers["aria.turn"]({ payload: JSON.stringify({ role: "user", text: t }) }), t);
+const herLine = (pg, t) => pg.evaluate((t) => window.__lk.rooms.at(-1).handlers["aria.turn"]({ payload: JSON.stringify({ role: "assistant", text: t }) }), t);
+const byeCues = (pg) => pg.evaluate(() => window.__lk.rpcOut.filter((p) => p.method === "aria.cue" && /cerrar por silencio/.test(p.payload)).length);
+const live = (pg) => pg.evaluate(() => !!(ariaRT && ariaRT.owned));
+
+await check("ear test 1: a pause-heavy conversation never ends itself -- long answers, a slow search, a long mid-thought pause; a dead line still signs off", async () => {
+  tokenMode = "ok";
+  const { pg, errs } = await openClocked("?voz=propia");
+  /* the tap answers at once */
+  const firstFrame = await pg.evaluate(() => { const p = startRealtimeVoice(); const s = document.getElementById("assistantStatus").textContent; window.__p = p; return s; });
+  assert.equal(firstFrame, "Conectando con Aria…", "the tap showed nothing");
+  await pg.clock.runFor(200);
+  assert.equal(await pg.evaluate(() => window.__p), true);
+  /* greeting: she speaks for 4s */
+  await agentState(pg, "speaking"); await pg.clock.runFor(4000); await herLine(pg, "¡Hola! Soy Aria, tu shopper personal. ¿Qué estás buscando?"); await agentState(pg, "listening");
+  /* he answers after 6s, talks for 12s in one breath with a pause in the middle */
+  await pg.clock.runFor(6000);
+  await userState(pg, "speaking"); await pg.clock.runFor(7000);
+  await userState(pg, "listening"); await pg.clock.runFor(2500);   // a mid-thought pause
+  await userState(pg, "speaking"); await pg.clock.runFor(5000);
+  await userState(pg, "listening"); await userSays(pg, "busco unas zapatillas para correr, algo cómodo para todos los días");
+  /* her first search is slow (cold catalogue): 14s thinking, then a 13s answer */
+  await agentState(pg, "thinking"); await pg.clock.runFor(14000);
+  await agentState(pg, "speaking"); await pg.clock.runFor(13000);
+  await herLine(pg, "Te muestro tres opciones muy cómodas para correr."); await agentState(pg, "listening");
+  /* he thinks it over for 8s, then a cough (speech with no words) */
+  await pg.clock.runFor(8000);
+  assert.equal(await byeCues(pg), 0, "she signed off mid-conversation");
+  assert.equal(await live(pg), true, "the call ended mid-conversation");
+  /* an abandoned line still ends: ten seconds of nothing from either side */
+  await pg.clock.runFor(2500);
+  assert.equal(await byeCues(pg), 1, "a silent line never signed off");
+  await pg.clock.runFor(4500);
+  assert.equal(await live(pg), false, "the line stayed open after the goodbye");
+  /* ear test 1 addendum, item 2: the mic is live again and a tap starts a fresh call */
+  const again = await pg.evaluate(async () => { const p = toggleAriaVoice(); const s = document.getElementById("assistantStatus").textContent; await p; return { s, live: !!(ariaRT && ariaRT.owned), rooms: window.__lk.rooms.length }; });
+  assert.deepEqual(again, { s: "Conectando con Aria…", live: true, rooms: 2 });
+  /* and the new call's context carries the conversation so far */
+  const ctxOut = JSON.parse(await pg.evaluate(() => window.__lk.rooms.at(-1).handlers["aria.context"]({ payload: "{}" })));
+  assert.ok(ctxOut.history.some((m) => /zapatillas para correr/.test(m.content)), "the second call lost the thread");
+  await pg.evaluate(() => stopRealtimeVoice());
+  assert.deepEqual(errs, []);
+  await pg.close();
+});
+
+await check("ear test 1: the silence sign-off is refused while she has the floor or he is talking", async () => {
+  tokenMode = "ok";
+  const { pg } = await openClocked("?voz=propia");
+  await pg.evaluate(() => startRealtimeVoice()); await pg.clock.runFor(100);
+  await agentState(pg, "speaking");
+  await pg.evaluate(() => endRealtimeCallIdle("silencio"));
+  assert.equal(await byeCues(pg), 0, "signed off over her own answer");
+  await agentState(pg, "listening"); await userState(pg, "speaking");
+  await pg.evaluate(() => endRealtimeCallIdle("silencio"));
+  assert.equal(await byeCues(pg), 0, "signed off while he was talking");
+  assert.equal(await live(pg), true);
+  /* his hang-up is still his: the button ends the call at once */
+  await pg.evaluate(() => toggleAriaVoice());
+  assert.equal(await live(pg), false);
+  await pg.close();
+});
+
+await check("ear test 2: a product her answer points at gets its card; one already on screen is not duplicated; she never disowns one", async () => {
+  tokenMode = "ok";
+  const { pg, errs } = await open("?voz=propia");
+  await pg.evaluate(() => startRealtimeVoice());
+  const out = await pg.evaluate(async () => {
+    ariaRTProducts.set("vtest1", { title: "Nike Pegasus 41 Test", retailer: "ccs", price: 120, brand: "Nike" });
+    const h = window.__lk.rooms.at(-1).handlers;
+    const cards = () => document.querySelectorAll("#assistantMessages button").length;
+    const c0 = cards();
+    const first = JSON.parse(await h["aria.show"]({ payload: JSON.stringify({ ids: ["vtest1", "nope"] }) }));
+    const c1 = cards();
+    const second = JSON.parse(await h["aria.show"]({ payload: JSON.stringify({ ids: ["vtest1"] }) }));
+    const c2 = cards();
+    const disown = await executeRealtimeTool("open_product", { reference: "unas Adidas que nunca mostró" });
+    return { first, second, added: c1 - c0, again: c2 - c1, disown };
+  });
+  assert.deepEqual(out.first, { shown: 1 });
+  assert.equal(out.added, 1, "no card for the product she pointed at");
+  assert.deepEqual(out.second, { shown: 0 });
+  assert.equal(out.again, 0, "the card was put up twice");
+  assert.equal(out.disown.not_shown, true);
+  assert.match(out.disown.note, /búscalo AHORA con search_products/);
+  assert.match(out.disown.note, /NUNCA digas que ya no lo tienes/);
+  await pg.evaluate(() => stopRealtimeVoice());
+  assert.deepEqual(errs, []);
+  await pg.close();
+});
+
+await check("ear tests 1-2, the worker: interruptions need words; the opening needs no model turn for a guest; the lookup and the thread ride the wait; the budget is logged", async () => {
+  const A = await import(VA + "src/agent.mjs");
+  const B = await import(VA + "src/page-bridge.mjs");
+  assert.deepEqual({ ...A.INTERRUPTION }, { minDuration: 600, minWords: 2, falseInterruptionTimeout: 1500, resumeFalseInterruption: true });
+  assert.deepEqual(A.openingFor({}), { say: A.GUEST_GREETING });
+  assert.deepEqual(A.openingFor({ facts: { get_current_user: { logged_in: false } } }), { say: A.GUEST_GREETING });
+  const member = A.openingFor({ facts: { get_current_user: { logged_in: true, first_name: "Daniel" } } });
+  assert.ok(member.instructions && /no llames ninguna herramienta/.test(member.instructions));
+  assert.ok(A.openingFor({ history: [{ role: "user", content: "hola" }] }).instructions.startsWith(A.RETURN_GREETING_INSTRUCTIONS));
+  /* the lookup: guest stops at get_current_user; a member also gets orders; a dead page answers null in time */
+  const calls = [];
+  const fake = (user) => async (method, payload) => { const r = JSON.parse(payload); calls.push(r.name); return JSON.stringify(r.name === "get_current_user" ? user : { orders: [] }); };
+  assert.deepEqual(await A.shopperFacts(fake({ logged_in: false })), { get_current_user: { logged_in: false } });
+  assert.deepEqual(calls, ["get_current_user"]);
+  const m = await A.shopperFacts(fake({ logged_in: true, first_name: "Daniel" }));
+  assert.deepEqual(Object.keys(m), ["get_current_user", "get_order_history"]);
+  const t0 = Date.now();
+  assert.equal(await A.shopperFacts(() => new Promise(() => {}), 200), null);
+  assert.ok(Date.now() - t0 < 1000);
+  assert.match(A.factsMessage(m), /^DATOS DEL CLIENTE, ya consultados/);
+  /* [[SHOW]] ids reach the page; the voice never says them */
+  assert.deepEqual(B.showIdsFrom("Te recomiendo estas. [[SHOW: v1, v2]]"), ["v1", "v2"]);
+  assert.equal(B.stripCardMarkers("Te recomiendo estas. [[SHOW: v1, v2]]").trim(), "Te recomiendo estas.");
+  const src = readFileSync(VA + "src/agent.mjs", "utf8");
+  assert.match(src, /turnHandling: \{ interruption: \{ \.\.\.INTERRUPTION \} \}/);
+  assert.match(src, /notifyPage\(rpc, RPC\.USER, \{ state: ev\.newState \}\)/);
+  assert.match(src, /notifyPage\(rpc, RPC\.SHOW, \{ ids \}\)/);
+  assert.match(src, /log\("spinup", \{ room: room\.name, \.\.\.spin \}\)/);
+  /* nothing slow before the session starts: our thread and the lookup are awaited only with the speaker */
+  const entry = src.slice(src.indexOf("entry: async"));
+  assert.ok(entry.indexOf("await session.start(") < entry.indexOf("bounded(ourThread"), "the thread read is back on the critical path");
+}, { needsWorker: true });
 
 await browser.close();
 server.close();

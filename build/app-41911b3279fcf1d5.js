@@ -30053,6 +30053,9 @@ function toggleAssistant(){
        and the quick replies, which are the fastest way in, would be the
        first thing covered. A tap on the field is one tap. */
     if (!isMobileChat()) document.getElementById('assistantInput')?.focus();
+    /* The owned voice gets its client and a room token ready (no room
+       is opened and nothing is billed until the mic tap). */
+    warmOwnedVoice();
   }
 hideGreetBubble();
 if (assistantOpen) {
@@ -35526,6 +35529,15 @@ function endRealtimeCallIdle(why){
      WITH, and the line closes on a timer either way. Asking her and
      then waiting for her to finish would mean a model that stays
      quiet keeps the call — and the meter — running. */
+  /* NEVER MID-CONVERSATION (#443 ear test 1: "I'm not done talking, I
+     was still talking"). On the owned voice the page knows when she is
+     thinking or speaking and when he is talking; a silence that lands
+     inside either is not silence, and the clock starts again. */
+  if (why === 'silencio' && ariaRT.owned && (ariaRTResponding || ariaOwnedUserSpeaking)){
+    tape('--', 'silence sign-off refused: ' + (ariaRTResponding ? 'her turn' : 'he is talking'));
+    noteRealtimeActivity();
+    return;
+  }
   if (why === 'silencio' && !ariaRTSignedOff){
     ariaRTSignedOff = true;
     clearRealtimeIdleTimers();
@@ -36404,7 +36416,9 @@ async function executeRealtimeTool(name, args){
     const r = entryById ? { kind: 'one', entry: entryById } : resolveShownProduct(args.reference || args.product_id || '');
     if (r.kind === 'many') return { ambiguous: true, options: r.entries.map(e => ({ title: e.item.title, store: e.retailer, price_usd: e.item.price })),
       note: 'Hay varios; pregúntale cuál de estos.' };
-    if (r.kind !== 'one') return { not_shown: true, note: 'No encuentro eso entre lo que mostraste. Pregúntale cuál, o búscalo si es algo nuevo.' };
+    /* NEVER DISOWNED (#443 ear test 2): a product she named that has no
+       card on screen is searched for and shown, never "ya no lo tengo". */
+    if (r.kind !== 'one') return { not_shown: true, note: 'No está entre las tarjetas en pantalla. Si es un producto que tú nombraste, búscalo AHORA con search_products por su nombre para mostrárselo; si es otra cosa, pregúntale cuál. NUNCA digas que ya no lo tienes.' };
     /* She says the line, then the page opens: the call ends with the
        shopper on the product he asked for. */
     openShownProduct(r.entry, 2500);
@@ -37378,8 +37392,27 @@ function ownedVoiceTurn(role, text){
   return true;
 }
 
-/* Her state, from the agent: the same orb and call bar as Realtime. */
+/* THE SILENCE CLOCK STOPS WHILE ANYONE HAS THE FLOOR (#443 ear test 1).
+
+   Danny, mid-sentence: she said "gracias por tu tiempo" and hung up.
+   On this voice the ten-second clock was reset when she STARTED
+   speaking and then kept running: a twelve-second answer, or a
+   thirteen-second first search, ran it out under her own turn. The
+   sign-off cue then cut her answer short (the self-interruption he
+   heard) and the line closed while he was talking.
+
+   Now the clock is stopped outright while she is thinking or
+   speaking, and held while he is talking (aria.user, our VAD); it
+   starts its full ten seconds only when she hands the floor back. */
 let ariaOwnedWasSpeaking = false;
+let ariaOwnedUserSpeaking = false;
+let ariaOwnedUserQuietTimer = null;
+function pauseRealtimeIdleForTurn(){
+  if (ariaRTIdleTimer){ clearTimeout(ariaRTIdleTimer); ariaRTIdleTimer = null; }
+  if (ariaRTHeldTimer){ clearTimeout(ariaRTHeldTimer); ariaRTHeldTimer = null; }
+  ariaRTHeld = null;
+}
+/* Her state, from the agent: the same orb and call bar as Realtime. */
 function ownedVoiceState(kind){
   if (!ariaRT || !ariaRT.owned) return;
   ariaRTResponding = kind === 'thinking' || kind === 'speaking';
@@ -37387,20 +37420,85 @@ function ownedVoiceState(kind){
     ariaOwnedWasSpeaking = true;
     setOrbState('speaking');
     setRealtimeState('speaking');
-    noteRealtimeActivity();
+    pauseRealtimeIdleForTurn();
+    noteRealtimeWords();
+    if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
     if (!ariaRTHeardAudio){ ariaRTHeardAudio = true; diagMark('first-audio'); }
     if (ariaRTSignedOff) ariaRTHeardSignOff = true;
   } else if (kind === 'thinking'){
     setOrbState('thinking');
+    pauseRealtimeIdleForTurn();
   } else if (kind === 'listening'){
     setOrbState('idle');
     setRealtimeState('listening');
+    /* The floor is his again: ten fresh seconds, unless he is already
+       talking, in which case the clock waits for him. */
+    noteRealtimeActivity();
+    if (ariaOwnedUserSpeaking) holdRealtimeIdle();
     if (ariaOwnedWasSpeaking){
       ariaOwnedWasSpeaking = false;
       noteRealtimeWords();
       armOpeningNudge();
     }
   }
+}
+
+/* His voice, from the agent's VAD. Talking holds the clock where it
+   is; a stop with no turn after it (a cough, a door) gives the clock
+   back after a short grace, minus the time it held, as on Realtime. */
+function ownedVoiceUser(state){
+  if (!ariaRT || !ariaRT.owned) return;
+  if (ariaOwnedUserQuietTimer){ clearTimeout(ariaOwnedUserQuietTimer); ariaOwnedUserQuietTimer = null; }
+  if (state === 'speaking'){
+    ariaOwnedUserSpeaking = true;
+    if (ariaRTOpeningTimer){ clearTimeout(ariaRTOpeningTimer); ariaRTOpeningTimer = null; }
+    if (!ariaRTResponding){ setOrbState('listening'); setRealtimeState('listening'); holdRealtimeIdle(); }
+  } else {
+    ariaOwnedUserSpeaking = false;
+    ariaOwnedUserQuietTimer = setTimeout(() => {
+      ariaOwnedUserQuietTimer = null;
+      if (ariaRT && ariaRT.owned && !ariaRTResponding && ariaRTHeld) resumeRealtimeIdle();
+    }, OWNED_USER_QUIET_GRACE_MS);
+  }
+}
+const OWNED_USER_QUIET_GRACE_MS = 3000;
+
+/* THE CARDS ARE THE STORE (#443 ear test 2: she recommended a product
+   and nothing appeared to tap). Ids her answer pointed at get their
+   cards, unless they are already on screen. */
+function ownedVoiceShow(ids){
+  let shown = 0;
+  for (const id of (ids || []).slice(0, 8)){
+    const it = realtimeProductById(id);
+    if (!it) continue;
+    const on = ariaShown.find(s => (s.item === it || (s.item.title === it.title && s.retailer === it.retailer)) && s.card && s.card.isConnected);
+    if (on){ highlightShownCard(on); continue; }
+    addAssistantProductCard(it, it.retailer);
+    shown++;
+  }
+  if (shown) tape('--', 'cards from her answer: ' + shown);
+  return shown;
+}
+
+/* Ready the owned voice when the chat opens: its script, its client and
+   a room token. No room exists until the tap connects. */
+function warmOwnedVoice(){
+  try {
+    if (!ariaOwnedVoiceWanted()) return;
+    loadOwnedVoice().then((OV) => { if (OV && OV.warm) OV.warm(); }).catch(() => {});
+  } catch (e) {}
+}
+
+/* THE TAP ANSWERS AT ONCE (#443 ear test 2: "Did the whole page freeze?
+   Should I hit the mic again?"). The same frame as the tap, the call
+   bar says she is connecting; a second tap is a hang-up he can see. */
+function setOwnedConnectingUi(){
+  setRealtimeUi(true);
+  const status = document.getElementById('assistantStatus');
+  if (status) status.textContent = 'Conectando con Aria…';
+  const text = document.getElementById('assistantCallText');
+  if (text) text.textContent = 'Conectando con Aria…';
+  try { setOrbState('thinking'); } catch (e) {}
 }
 
 /* The microphone an owned try opened, given back WITHOUT ending the
@@ -37412,15 +37510,20 @@ function releaseOwnedTryMic(mic){
 
 async function startOwnedVoice(){
   diagMark('engine', 'owned');
+  setOwnedConnectingUi();
   let OV;
   try { OV = await loadOwnedVoice(); }
   catch (e){ tape('!!', 'voz propia: ' + e.message); return false; }
   if (ariaRTAbort) return false;
+  /* The room and the client, in parallel with the microphone prompt. */
+  try { if (OV.warm) OV.warm(); } catch (e) {}
 
   const sink = buildAudioSink();
   try { if (sink.ctx && sink.ctx.state === 'suspended') await sink.ctx.resume(); } catch (e) {}
   resetRealtimeCallFlags();
   ariaOwnedWasSpeaking = false;
+  ariaOwnedUserSpeaking = false;
+  if (ariaOwnedUserQuietTimer){ clearTimeout(ariaOwnedUserQuietTimer); ariaOwnedUserQuietTimer = null; }
 
   ariaSetAudioSession('play-and-record');
   let mic = null;
@@ -37461,6 +37564,8 @@ async function startOwnedVoice(){
     tool: ownedVoiceTool,
     turn: ownedVoiceTurn,
     state: ownedVoiceState,
+    user: ownedVoiceUser,
+    show: ownedVoiceShow,
     dropped(why){
       if (ariaRTClosing || !ariaRT) return;
       console.warn('[aria] the owned call dropped:', why);

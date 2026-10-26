@@ -31,7 +31,7 @@
   var AGENT_JOIN_MS = 8000;
   var CLIENT_LOAD_MS = 10000;
 
-  var RPC = { READY: 'aria.ready', CUE: 'aria.cue', TEXT: 'aria.text', CONTEXT: 'aria.context', TOOL: 'aria.tool', TURN: 'aria.turn' };
+  var RPC = { READY: 'aria.ready', CUE: 'aria.cue', TEXT: 'aria.text', CONTEXT: 'aria.context', TOOL: 'aria.tool', TURN: 'aria.turn', USER: 'aria.user', SHOW: 'aria.show' };
 
   var clientPromise = null;
   function loadClient() {
@@ -70,10 +70,38 @@
         return { ok: false, said: (body && body.error) || ('el servidor respondió ' + res.status) };
       }
       saveThread(body.thread);
-      return { ok: true, mint: body };
+      return { ok: true, mint: body, at: Date.now() };
     } catch (e) {
       return { ok: false, said: 'no pude contactar al servidor', detail: e.message };
     }
+  }
+
+  /* WARM BEFORE THE TAP (#443 ear test 2: ten seconds from tap to her
+     hello). Opening the chat loads the client and mints a room, so the
+     tap only connects. A minted room is good for one call and a few
+     minutes; anything older is minted again at the tap. */
+  var WARM_MAX_AGE_MS = 4 * 60 * 1000;
+  /* A failed warm-up is this moment's answer (the tap that started it
+     falls back on it rather than asking twice), but not for long. */
+  var WARM_FAILED_AGE_MS = 15000;
+  var warmed = null;
+  function fresh(w) {
+    return !!w && Date.now() - w.at < (w.failed ? WARM_FAILED_AGE_MS : WARM_MAX_AGE_MS);
+  }
+  function warm() {
+    if (fresh(warmed)) return warmed.ready;
+    var w = { at: Date.now(), failed: false, ready: null };
+    w.ready = Promise.all([mintToken(), loadClient().catch(function (e) { return { error: e }; })]);
+    w.ready.then(function (r) { if (!r[0].ok || (r[1] && r[1].error)) w.failed = true; });
+    warmed = w;
+    return w.ready;
+  }
+  /** The warm room if there is a fresh one, taken once; otherwise a new one. Client and token in parallel. */
+  function takeWarm() {
+    var w = warmed;
+    warmed = null;
+    if (fresh(w)) return w.ready;
+    return Promise.all([mintToken(), loadClient().catch(function (e) { return { error: e }; })]);
   }
 
   /**
@@ -103,6 +131,22 @@
       catch (e) { speech = true; }
       return JSON.stringify({ speech: speech });
     };
+    /* Notices: his voice started or stopped (our VAD), and product ids
+       her answer pointed at. Never an error back to the worker. */
+    h[RPC.USER] = async function (payload) {
+      var req = {};
+      try { req = JSON.parse(payload || '{}'); } catch (e) { req = {}; }
+      try { if (hooks.user) hooks.user(String(req.state || '')); } catch (e) {}
+      return '{}';
+    };
+    h[RPC.SHOW] = async function (payload) {
+      var req = {};
+      try { req = JSON.parse(payload || '{}'); } catch (e) { req = {}; }
+      var ids = Array.isArray(req.ids) ? req.ids.filter(function (x) { return typeof x === 'string'; }).slice(0, 8) : [];
+      var shown = 0;
+      try { if (hooks.show && ids.length) shown = hooks.show(ids) || 0; } catch (e) {}
+      return JSON.stringify({ shown: shown });
+    };
     return h;
   }
 
@@ -114,16 +158,18 @@
    *   tool(name, rawArgs) the tool's output object
    *   turn(role, text)    false when the page reads it as noise
    *   state(kind)         'listening' | 'thinking' | 'speaking' | ...
+   *   user(state)         his voice: 'speaking' | 'listening' | ...
+   *   show(ids)           put up the cards for these product ids
    *   dropped(why)        the line died under the call
    *   ended(why)          the agent closed the call (its cap)
    * Resolves { ok:true, call } or { ok:false, said, detail }.
    */
   async function start(hooks) {
-    var got = await mintToken();
+    var both = await takeWarm();
+    var got = both[0];
     if (!got.ok) return { ok: false, said: got.said, detail: got.detail || null };
-    var LK;
-    try { LK = await loadClient(); }
-    catch (e) { return { ok: false, said: e.message }; }
+    if (both[1] && both[1].error) return { ok: false, said: both[1].error.message };
+    var LK = both[1];
 
     var room = new LK.Room({ adaptiveStream: false, dynacast: false });
     var stopping = false;
@@ -193,5 +239,5 @@
     return { ok: true, call: call };
   }
 
-  window.AriaOwnedVoice = { start: start, rpcHandlers: rpcHandlers, RPC: RPC, TOKEN_URL: TOKEN_URL, CLIENT_SRC: CLIENT_SRC };
+  window.AriaOwnedVoice = { start: start, warm: warm, rpcHandlers: rpcHandlers, RPC: RPC, TOKEN_URL: TOKEN_URL, CLIENT_SRC: CLIENT_SRC };
 })();

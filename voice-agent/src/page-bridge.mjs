@@ -28,6 +28,14 @@
                                     answers whether it was speech or
                                     noise (its filter, the same one
                                     the Realtime session uses)
+     worker -> page   aria.user     the shopper started or stopped
+                                    talking (our VAD): the page holds
+                                    its silence clock while he talks
+                                    (#443 ear test 1, the hang-up)
+     worker -> page   aria.show     product ids her answer pointed at:
+                                    the page puts up any card that is
+                                    not on screen yet (ear test 2,
+                                    "recommended without cards")
    ============================================================ */
 
 export const RPC = Object.freeze({
@@ -37,6 +45,8 @@ export const RPC = Object.freeze({
   CONTEXT: "aria.context",
   TOOL: "aria.tool",
   TURN: "aria.turn",
+  USER: "aria.user",
+  SHOW: "aria.show",
 });
 
 /* The first catalogue-backed search on a cold page loads the related
@@ -44,6 +54,7 @@ export const RPC = Object.freeze({
    that times out before that is a silence the shopper hears twice. */
 export const TOOL_TIMEOUT_MS = 15000;
 export const TURN_TIMEOUT_MS = 3000;
+export const NOTICE_TIMEOUT_MS = 2000;
 export const CONTEXT_TIMEOUT_MS = 3000;
 
 /* What she says when the page could not run a tool: the page's own
@@ -129,4 +140,26 @@ export function pageTools(specs, makeTool, rpc, onCall = () => {}) {
    be read aloud. Applied to the text on its way to the voice. */
 export function stripCardMarkers(text) {
   return String(text || "").replace(/\[\[[A-Z]+:[^\]]*\]\]/g, "").replace(/[ \t]{2,}/g, " ");
+}
+
+/** Fire-and-forget notices to the page (aria.user, aria.show): a slow page never holds her up. */
+export function notifyPage(rpc, method, body) {
+  try {
+    const p = rpc(method, JSON.stringify(body), NOTICE_TIMEOUT_MS);
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch { /* the page will catch up */ }
+}
+
+/* The product ids a [[SHOW: ...]] line names. The chat rules teach the
+   model that line; the voice never speaks it (stripCardMarkers), but
+   the ids are a promise of cards, and the page keeps that promise. */
+export function showIdsFrom(text) {
+  const ids = [];
+  for (const m of String(text || "").matchAll(/\[\[SHOW:([^\]]*)\]\]/g)) {
+    for (const id of m[1].split(",")) {
+      const t = id.trim();
+      if (/^[A-Za-z0-9_:.-]{1,80}$/.test(t) && !ids.includes(t)) ids.push(t);
+    }
+  }
+  return ids.slice(0, 8);
 }

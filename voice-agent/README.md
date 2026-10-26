@@ -39,6 +39,17 @@ Any worker can therefore serve any session, and scaling means adding workers.
 - The worker owns only the hard cap on session length.
 - The greeting waits until the page reports that its speaker is actually playing (`aria.ready`). This is the fix for the clipped greeting.
 
+**Ear tests 1 and 2 (#443, 2026-10-26).**
+- *Silence and hang-ups.* The page's 10-second silence clock stops while she is thinking or speaking. It is held while the shopper talks: the worker forwards our VAD's user state over `aria.user`. It restarts only when she hands the floor back. A silence goodbye that lands inside anyone's turn is refused.
+- *Interruptions.* An interruption needs at least 2 transcribed words over 600 ms (`INTERRUPTION` in `src/agent.mjs`). One with no words within 1.5 s resumes her sentence.
+- *Opening.*
+  - The worker looks the shopper up itself (`get_current_user`, plus `get_order_history` for a member) while the room comes up.
+  - A guest with no thread hears the rules' own opening line straight from the voice, with no model turn. A member or a returning shopper gets one model turn, told the lookup is done.
+  - Our thread and the lookup are awaited only alongside the speaker-ready wait, never before `session.start`.
+- *Startup budget.* The worker logs `spinup` at her first audio: ms from job start to connected, joined, context, sessionStart, memory, facts, ready, greeting and firstAudio. The page's `ariaVoiceDiag()` covers tap → token → room.
+- *Tap feedback.* The tap shows "Conectando con Aria…" in the same frame. The page warms the client and a room token when the chat opens. No room exists, and nothing is billed, until the tap connects.
+- *Cards.* Product ids in a `[[SHOW: …]]` line are never spoken; they go to the page over `aria.show`, which puts up any card not already on screen. `open_product` on a product with no card tells her to search for it by name, never to say she no longer has it.
+
 ## Turning it on for a browser
 
 - Open `https://<preview>/?voz=propia`. The setting sticks.
