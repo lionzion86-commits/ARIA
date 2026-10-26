@@ -874,8 +874,15 @@ check("nothing in the live path records, chunks, or auto-sends", () => {
 
   /* Stopping belongs to ending the call and to a failed connect. */
   const stopFn = page.slice(page.indexOf("function stopRealtimeVoice("));
-  assert.match(stopFn.slice(0, 400), /mic\.getTracks\(\)\.forEach\(t => t\.stop\(\)\)/,
+  /* The release lives in one helper every ending goes through (#443
+     c.6393367532): the tracks stop, the live audio element lets go of
+     the remote stream, and the iOS audio session goes back to auto. */
+  assert.match(stopFn.slice(0, 1200), /releaseRealtimeAudio\(ariaRT\.mic, /,
     "ending the call no longer releases the microphone");
+  const rel = page.slice(page.indexOf("function releaseRealtimeAudio("));
+  assert.match(rel.slice(0, 500), /mic\.getTracks\(\)\.forEach\(t => \{ try \{ t\.stop\(\); \}/, "the release does not stop the tracks");
+  assert.match(rel.slice(0, 500), /srcObject = null/, "the release keeps the remote stream on the audio element");
+  assert.match(rel.slice(0, 500), /ariaSetAudioSession\('auto'\)/, "the release leaves iOS in play-and-record");
   /* Disabling belongs to mute, and to nothing else. */
   const mute = page.slice(page.indexOf("function toggleRealtimeMute()"));
   assert.match(mute.slice(0, 700), /t\.enabled = !muted/, "mute no longer owns the enabled flag");
@@ -1586,10 +1593,10 @@ check("a track without a stream wrapper is still attached", () => {
 
   /* Run it both ways. */
   const attached = [];
-  const fn = new Function("pc", "sink", "console", "MediaStream",
+  const fn = new Function("pc", "sink", "console", "MediaStream", "diagMark", "markRealtimeOutputReady",
     body.replace("  pc.ontrack = (ev) => {", "  const handler = (ev) => {") + "\n return handler;");
-  const handler = fn({}, { attach: (s) => attached.push(s) }, { info(){}, warn(){} },
-    function(tracks){ this.tracks = tracks; return { fromTrack: true }; });
+  const handler = fn({}, { attach: (s) => attached.push(s), el: { addEventListener(){}, removeEventListener(){} } }, { info(){}, warn(){} },
+    function(tracks){ this.tracks = tracks; return { fromTrack: true }; }, () => {}, () => {});
   handler({ streams: [{ id: "normal" }] });
   handler({ track: { id: "bare" } });
   handler({});
@@ -2413,15 +2420,14 @@ check("ten seconds of silence and she signs off and hangs up", () => {
   assert.match(page, /const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos\./,
     "the written sign-off lost the tap-the-mic line");
 
-  /* Browsing counts as activity — Danny: only when BOTH go quiet. */
-  assert.match(page, /addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity\(\); \}/,
-    "tapping a product does not keep the call alive");
-  assert.match(page, /addEventListener\('touchmove', noteRealtimeScroll/, "scrolling does not keep the call alive");
-  assert.match(page, /addEventListener\('wheel', noteRealtimeScroll/, "wheel scrolling does not keep the call alive");
-  /* #443 c.6373560777: the page's own scrolls (chat stick-to-bottom,
-     a photo landing) are not him, so they must not reset the clock. */
+  /* BROWSING IS FREE (#443 c.6398393590, Danny 2026-10-25, replacing the
+     Oct 7 "only when BOTH go quiet" rule): the cards stay on the page
+     after the call ends, so no tap, touch, wheel or scroll may keep the
+     metered line open (c.6401078614: the shutoff never fired for a
+     shopper holding the phone). Only talking does. */
+  assert.ok(!/addEventListener\('click', \(\) => \{ if \(ariaRT\) noteRealtimeActivity/.test(page), "a tap keeps the call alive");
+  assert.ok(!/addEventListener\('(touchmove|wheel)', noteRealtimeScroll/.test(page), "scrolling keeps the call alive");
   assert.ok(!/addEventListener\('scroll', \(\) => \{\s*if \(!ariaRT\)/.test(page), "a programmatic scroll keeps the call alive");
-  assert.match(page, /now - ariaRTScrollAt < 2000/, "the scroll listener is not throttled");
 
   /* N7 / N7b still holds at ten seconds: a phantom turn cannot reset
      the clock. speech_started only HOLDS it, the hold keeps just the
@@ -2453,7 +2459,7 @@ check("#443 item 31: she answers only a real transcript, never noise, and markup
   const done = page.slice(page.indexOf("case 'conversation.item.input_audio_transcription.completed':"));
   const doneBody = done.slice(0, done.indexOf("case 'conversation.item.input_audio_transcription.failed':"));
   const noiseAt = doneBody.indexOf("realtimeTranscriptIsNoise(event.transcript)");
-  const askAt = doneBody.indexOf("askRealtimeResponse(send, 'his turn');");
+  const askAt = doneBody.indexOf("askRealtimeResponse(send, 'his turn')");
   assert.ok(noiseAt > 0 && askAt > noiseAt, "her answer is not started after the noise check");
   const failed = page.slice(page.indexOf("case 'conversation.item.input_audio_transcription.failed':"));
   assert.ok(!/askRealtimeResponse/.test(failed.slice(0, failed.indexOf("break;"))), "a failed transcript still gets an answer");
@@ -2959,7 +2965,7 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
     "the greeting arms the nudge again — her talking would eat the shopper's ten seconds");
 
   /* It is armed when her audio ends instead. */
-  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,800}armOpeningNudge\(\);/,
+  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,1600}armOpeningNudge\(\);/,
     "nothing arms the nudge when she stops talking — a silent shopper is never offered anything");
 
   const aAt = page.indexOf("function armOpeningNudge(){");
@@ -2975,11 +2981,12 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
     const st = { cues: [], timers: [] };
     const fn = new Function("ariaRT", "ariaRTSpoke", "ariaRTOpeningTimer", "setTimeout",
       "clearTimeout", "cueRealtime", "CUE_OPENING_SILENCE", "CALL_OPENING_SILENCE_MS",
-      armSrc + "\n return armOpeningNudge;")(
+      "let ariaRTNudged = false;\n" + armSrc + "\n return armOpeningNudge;")(
         {}, spoke, null,
         (f, delay) => { st.timers.push({ f, delay }); return st.timers.length; },
         () => {}, (c) => { st.cues.push(c); return true; }, "[nudge]", 10000);
     fn();
+    st.arm = fn;
     return st;
   };
 
@@ -2989,6 +2996,11 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
   assert.ok(nudge, "her audio ending armed no opening-silence nudge");
   nudge.f();
   assert.deepEqual(quiet.cues, ["[nudge]"], "ten seconds of silence produced no offer");
+  /* ONCE PER CALL (#443 c.6393367532): her answer to the nudge ends, the
+     arm runs again, and nothing is armed -- the next silence is the
+     hang-up's, so a silent call ends instead of nudging forever. */
+  quiet.arm();
+  assert.equal(quiet.timers.length, 1, "the opening nudge re-armed after it was offered -- a silent call never hangs up");
 
   /* He said "hola": nothing is armed at all. A greeting is a reply,
      and replying to it with a product pitch is the Legos bug. */
