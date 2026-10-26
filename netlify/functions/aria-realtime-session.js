@@ -195,6 +195,8 @@ export async function handler(event) {
     }
 
     const { text, name, endpoint } = out;
+    /* The session the API actually accepted, not the one asked for. */
+    const accepted = variants.find(([n]) => n === name)[1](session);
     if (name !== "completa") {
       console.warn(`[aria-realtime] accepted only the "${name}" session on /${endpoint}:`, JSON.stringify(attempts));
     }
@@ -222,6 +224,12 @@ export async function handler(event) {
            reconnect without keeping a second copy of it that will
            drift from this one. */
         turn_detection: session.audio.input.turn_detection,
+        /* Which layer was accepted and whether it transcribes: the page
+           answers only on a transcript, so a session without one has
+           the server answer instead (#443 c.6401531233). */
+        variant: name,
+        transcribes: !!(accepted.audio && accepted.audio.input && accepted.audio.input.transcription),
+        transcription: (accepted.audio && accepted.audio.input && accepted.audio.input.transcription) || null,
         /* The page needs the URL to POST its SDP offer to; keeping it
            server-chosen means an API move is a deploy, not a rebuild
            of the client. */
