@@ -13,7 +13,7 @@
        never a store's placeholder art (RevZilla's missing_480x480.png);
      - the addresses: auto.ariashop.pe and ariaauto.pe serve the page;
      - in a phone-width browser: the first screen is an auto store with
-       its own header (Aria Auto, by Aria Shop -- ARIA SHOP LLC), none of
+       its own header (Aria Auto, by Aria Shop, and the way back to the mall), none of
        the mall's chrome, soles big and dollars small, no horizontal
        scroll, no catalogue download; a tile's deep link lands on its
        chip in motos.html.
@@ -161,6 +161,10 @@ await check("phone width: autos-led by default -- its own header, the garage pho
     return {
       mark: document.querySelector(".aa-mark").textContent.trim(),
       parent: document.querySelector(".aa-parent").textContent.trim(),
+      shop: (() => { const a = document.querySelector(".aa-hdr .aa-shop"); const r = a && a.getBoundingClientRect(); return a && { text: a.textContent.trim(), href: a.getAttribute("href"), seen: r.width > 0 && r.right <= innerWidth && r.top < 80, bg: getComputedStyle(a).backgroundColor }; })(),
+      chromeLLC: /\bLLC\b/.test(document.querySelector(".aa-hdr").innerText + document.querySelector(".aa-hero").innerText + (document.querySelector('meta[name="description"]') || {}).content),
+      legal: (document.querySelector(".aa-foot .aa-legal") || {}).textContent,
+      footShop: [...document.querySelectorAll(".aa-foot a")].some((a) => a.getAttribute("href") === "https://ariashop.pe/"),
       h1: document.querySelector("h1").textContent,
       mallChrome: !!document.querySelector(".hdr, #assistantPanel, #ariaLauncher"),
       ctas: [...document.querySelectorAll(".aa-ctas a")].map((a) => a.childNodes[0].textContent.trim()),
@@ -174,12 +178,19 @@ await check("phone width: autos-led by default -- its own header, the garage pho
       overflow: document.documentElement.scrollWidth - innerWidth,
       pen: getComputedStyle(document.querySelector("#aaAutoRails .price .pen")).fontSize,
       usd: getComputedStyle(document.querySelector("#aaAutoRails .price .usd")).fontSize,
-      emoji: /\p{Extended_Pictographic}/u.test(document.body.innerText),
+      emoji: /(?![\u00a9\u00ae\u2122])\p{Extended_Pictographic}/u.test(document.body.innerText), /* not the © of the legal line */
       retailerLinks: [...document.querySelectorAll("a[href]")].filter((a) => /^https?:\/\/[^/]*(revzilla|denniskirk|advanceautoparts|autozone)\./i.test(a.href)).length,
     };
   });
   assert.equal(first.mark, "Aria Auto");
-  assert.equal(first.parent, "by Aria Shop — ARIA SHOP LLC");
+  /* brand up top, the legal name only in the footer's legal line (#443 c.6449784488) */
+  assert.equal(first.parent, "by Aria Shop");
+  assert.equal(first.chromeLLC, false, "a legal suffix in the header, hero or description");
+  assert.equal(first.legal, "© 2026 ARIA SHOP LLC. Todos los derechos reservados.");
+  /* the way back to the mall, in the header and the footer (#443 c.6449719394) */
+  assert.ok(first.shop && first.shop.text === "Aria Shop" && first.shop.href === "https://ariashop.pe/" && first.shop.seen, "no Aria Shop pill in the header: " + JSON.stringify(first.shop));
+  assert.notEqual(first.shop.bg, "rgb(255, 176, 32)", "the Aria Shop pill competes with the amber section pills");
+  assert.equal(first.footShop, true);
   assert.ok(first.h1.indexOf("auto") < first.h1.indexOf("moto"), "the headline does not lead with the auto: " + first.h1);
   assert.equal(first.mallChrome, false);
   assert.deepEqual(first.ctas, ["Autos", "Motos"], "Autos is not the left tile");
@@ -212,6 +223,7 @@ await check("one storefront, two sections: the Motos tile opens the motorcycle s
   /* the amber follows the section (#443 c.6444241146 fix 2) */
   const lit = () => pg.evaluate(() => [...document.querySelectorAll(".aa-ctas a.on, .aa-nav a.on")].map((a) => a.getAttribute("data-go") + ":" + getComputedStyle(a).backgroundColor));
   assert.deepEqual(await lit(), ["motos:rgb(255, 176, 32)", "motos:rgb(255, 176, 32)"]);
+  assert.ok(await pg.evaluate(() => { const r = document.querySelector(".aa-hdr .aa-shop").getBoundingClientRect(); return r.width > 0 && r.right <= innerWidth; }), "the Aria Shop pill is gone in the motos section");
   assert.ok(m.tiles >= 8);
   await pg.click(".aa-brand");
   await pg.waitForFunction(() => !document.getElementById("autos").hidden && document.getElementById("motos").hidden, null, { timeout: 10000 });
@@ -248,6 +260,15 @@ await check("a basics card opens the vehicle pick, and once the car is chosen th
   assert.equal(out.noImg, 0, "a part without a photo was drawn");
   assert.deepEqual(errs, []);
   await pg.close();
+});
+
+await check("the mall: no legal suffix outside the legal lines; the legal name in every footer's legal line", () => {
+  const LEGAL = /©\s*2026 ARIA SHOP LLC\./;
+  for (const f of ["index.html", "checkout.html", "aria-auto.html", "como-funciona.html", "devoluciones.html", "nosotros.html", "tiendas.html", "producto.html", "carrito.html"]) {
+    const html = readFileSync(join(ROOT, f), "utf8").replace(/<!--[\s\S]*?-->/g, "").replace(/<script[\s\S]*?<\/script>/g, "");
+    const lines = html.split("\n").filter((l) => /\bLLC\b/.test(l));
+    assert.ok(lines.length >= 1 && lines.every((l) => LEGAL.test(l)), f + ": " + (lines.find((l) => !LEGAL.test(l)) || "no legal line").trim().slice(0, 140));
+  }
 });
 
 await check("the mall's Aria Auto button opens the store", async () => {
