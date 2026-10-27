@@ -506,6 +506,7 @@ function weightUnknown(it){
 function weightLabel(it){
   if (it && it.estimated === false) return 'publicado por la tienda';
   if (it && it.source === "comparables") return 'estimado por productos similares';
+  if (it && it.source === "web") return 'estimado con el peso publicado';
   return 'estimado';
 }
 /* The line the resolver weighs, the same for the weight row and the

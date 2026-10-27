@@ -296,6 +296,14 @@ export function resolveItemWeight(item) {
      a padded estimate from its most similar products, recorded with them
      (scripts/build-weight-comparables.mjs), before any constant. */
   const comp = comparableWeight(item?.retailer, title);
+  /* THE WEB PASS (#443 c.6420102856, Danny: for a product with no
+     comparable, the weight found on the open web, x1.10). Harvested
+     with its source (hidden-docs/weight-tail-full-*.csv) and served
+     from the same table, so every surface quotes the same number. */
+  if (comp && comp.method === "web") {
+    const r = banded(comp.kg, "web", "estimado con el peso publicado (+10%)");
+    return { ...r, webFoundKg: comp.baseKg, webPad: comp.pad, webSource: comp.src, webKind: comp.kind };
+  }
   if (comp) {
     const r = banded(comp.kg, "comparables", `estimado por productos similares (${comp.comps.length})`);
     return { ...r, comparables: comp.comps, comparableBaseKg: comp.baseKg, comparablePad: comp.pad, comparableMethod: comp.method || "título" };

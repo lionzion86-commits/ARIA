@@ -67,9 +67,33 @@ await check("every stored estimate is auditable: at least two comparables, the b
   assert.ok(entries.length > 3000, "the table lost its estimates");
   for (const [k, c] of entries) {
     assert.match(k, /^[a-z0-9]+::/);
+    if (c.method === "web") {
+      /* a web-pass weight: the found kg, the 1.10 pad, the source type and the harvest row it came from */
+      assert.equal(c.pad, 1.1, k);
+      assert.ok(Math.abs(c.kg - c.baseKg * 1.1) < 0.002, k);
+      assert.ok(["retailer", "manufacturer", "other"].includes(c.src) && c.id, k);
+      assert.ok(!JSON.stringify(c).includes("http"), "a source URL is served: " + k);
+      continue;
+    }
     assert.ok(c.comps.length >= 2 && c.comps.length <= W.MAX_COMPARABLES, k);
     assert.ok(Math.abs(c.kg - Math.round(c.baseKg * c.pad * 100) / 100) < 0.011, k);
   }
+});
+
+await check("the web pass (#443 c.6420102856): a product with no comparable takes its published weight x1.10, sourced; Miu Miu's inferred units are held", async () => {
+  const B = await import(ROOT + "scripts/build-weight-comparables.mjs");
+  const web = Object.entries(TABLE).filter(([, c]) => c.method === "web");
+  assert.ok(web.length > 1200, "the web pass is missing: " + web.length);
+  assert.ok(!web.some(([k]) => k.startsWith("miumiu::")), "a held Miu Miu row is served");
+  const r = one({ title: "Libec HS-250MQ Quick Lock Tripod System with H25 Head, Mid-Level Spreader, Rubber Feet & Case", retailer: "bhphoto", priceUsd: 1439, qty: 1 });
+  assert.equal(r.source, "web");
+  assert.equal(r.webFoundKg, 5.9);
+  assert.equal(r.weightKg, 6.49);
+  assert.equal(r.webPad, 1.1);
+  assert.match(r.reviewReason || r.basis || "", /peso publicado/);
+  /* the CSV (with its URLs) stays in hidden-docs, which the site never serves */
+  assert.ok(B.loadWebWeights(ROOT).size >= 1280);
+  assert.match(readFileSync(ROOT + "netlify.toml", "utf8"), /from = "\/hidden-docs\/\*"/);
 });
 
 await check("same class AND same ballpark size: two shared words, a price within 2x; class tier for soft goods only", () => {
@@ -147,6 +171,12 @@ await check("product page: a similar-products estimate says so; a store's publis
   assert.match(b.weight, /publicado por la tienda/);
   assert.equal(lines[0].weightKg, 9.42);
   assert.equal(lines[0].weightEstimated, false, "the published weight left the page as an estimate");
+});
+
+await check("product page: a web-pass weight says so", async () => {
+  const o = await weightRow("Libec HS-250MQ Quick Lock Tripod System with H25 Head, Mid-Level Spreader, Rubber Feet & Case", "bhphoto");
+  assert.match(o.weight, /^6\.49 kg/);
+  assert.match(o.weight, /estimado con el peso publicado/);
 });
 
 await check("the cart line from the product page carries the catalogue's weight, not a flat 0.2 kg", () => {
