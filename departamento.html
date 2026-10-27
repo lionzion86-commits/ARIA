@@ -109,6 +109,13 @@
   .rail-head{display:flex;align-items:center;gap:8px;padding:0 20px;margin-bottom:2px}
   .rail-head h2{font-size:19px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
   .rail-count{font-size:11px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px}
+  /* END-OF-CAROUSEL CARD (#443 c.6405624575): the Perfumes lead rail ends
+     in a card that opens the whole department in the overlay. */
+  .rail .rail-more{flex:0 0 164px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;
+    border:1px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);font-family:inherit;cursor:pointer;padding:12px}
+  .rail .rail-more b{font-size:14px;font-weight:800;color:var(--blue)}
+  .rail .rail-more span{font-size:12px;color:#6B7487}
+  @media(min-width:640px){.rail .rail-more{flex-basis:200px}}
   .rail-head .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px;font-family:inherit}
   .rail{display:flex;gap:12px;overflow-x:auto;padding:10px 20px 16px;scroll-snap-type:x mandatory;scrollbar-width:thin}
   .rail::-webkit-scrollbar{height:6px}
@@ -742,6 +749,11 @@ function sizedImageUrl(url, w){
       ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '">Ver todo &#8594;</button>'
       : '';
     var cards = r.cards ? r.cards.map(cardHTML).join('') : skeletons(Math.min(r.count, 4));
+    /* The Perfumes lead rail is short (the great houses) and used to just
+       end: its last card opens every perfume, page by page. */
+    if (deptKey === 'perfumes' && r.i === 0 && r.cards && HEAD.count > r.count)
+      cards += '<button type="button" class="ver-todo rail-more" data-rk="all" data-title="Todos los perfumes">'
+        + '<b>Ver todos los perfumes &#8594;</b><span>' + Number(HEAD.count).toLocaleString('es-PE') + ' productos</span></button>';
     return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '">'
       + '<div class="rail-head"><h2>' + esc(r.title) + '</h2>'
       + '<span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span>' + door + '</div>'
@@ -873,11 +885,13 @@ function sizedImageUrl(url, w){
 
   /* ---------- rail expand overlay: the whole carousel, 48 at a time ---------- */
   var OV = { rk: null, page: 0, pages: 0, busy: false, seq: 0 };
-  function openRailExpand(rk, title){
+  /* odept: another department's carousel in this page's overlay (the Aria
+     Beauty Fragancias lead rail opens every perfume). */
+  function openRailExpand(rk, title, odept){
     try{
       var ov = document.getElementById('railExpand');
       if (!ov) return;
-      var r = HEAD && HEAD.rails[Number(rk)];
+      var r = odept ? null : HEAD && (rk === 'all' ? { count: HEAD.count } : HEAD.rails[Number(rk)]);
       ov.setAttribute('data-rk', rk);
       ov.setAttribute('data-title', title || 'Productos');
       document.getElementById('reTitle').textContent = title || 'Productos';
@@ -887,7 +901,7 @@ function sizedImageUrl(url, w){
       ov.hidden = false;
       document.body.style.overflow = 'hidden';
       ov.scrollTop = 0;
-      OV = { rk: Number(rk), page: -1, pages: 1, busy: false, seq: OV.seq + 1 };
+      OV = { rk: rk === 'all' ? 'all' : Number(rk), dept: odept || '', page: -1, pages: 1, busy: false, seq: OV.seq + 1 };
       moreExpand(true);
     }catch(e){ showError('No pudimos mostrar todos los productos.'); }
   }
@@ -897,8 +911,11 @@ function sizedImageUrl(url, w){
     var seq = OV.seq, grid = document.getElementById('reGrid');
     var btn = document.getElementById('reMore');
     if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
-    getJSON(pageUrl(OV.rk, OV.page + 1)).then(function(data){
+    var url = OV.dept ? ENDPOINT + '?dept=' + encodeURIComponent(OV.dept) + '&rail=' + OV.rk + '&page=' + (OV.page + 1)
+      : pageUrl(OV.rk, OV.page + 1);
+    getJSON(url).then(function(data){
       if (seq !== OV.seq) return;
+      if (first && data.count) document.getElementById('reCount').textContent = Number(data.count).toLocaleString('es-PE') + ' productos';
       OV.busy = false; OV.page = data.page; OV.pages = data.pages;
       var wrap = document.getElementById('reMoreWrap'); if (wrap) wrap.remove();
       if (first) grid.innerHTML = '';
@@ -999,6 +1016,12 @@ function sizedImageUrl(url, w){
         return cardHTML({ t: p.title, b: p.brand, r: p.retailer, i: p.image, u: p.price,
           w: p.onSale && p.originalPrice > p.price ? p.originalPrice : 0, s: pct });
       }).join('');
+      /* ...and it ends in a card that opens every perfume (#443 c.6405624575). */
+      document.getElementById('perfumesLeadRail').insertAdjacentHTML('beforeend',
+        '<button type="button" class="rail-more" data-perfumes-all><b>Ver todos los perfumes &#8594;</b><span>Toda la tienda de perfumes</span></button>');
+      sec.addEventListener('click', function(e){
+        if (e.target.closest('[data-perfumes-all]')) openRailExpand('all', 'Todos los perfumes', 'perfumes');
+      });
       document.getElementById('perfumesLeadCount').textContent = String(picks.length);
       sec.setAttribute('data-ready', '1');
       if (!filtered()) show(sec);

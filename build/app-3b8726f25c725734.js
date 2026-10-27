@@ -7526,6 +7526,9 @@ function openRailExpand(railId){
 }
 function closeRailExpand(){
   try{
+    /* a perfumes page still loading must not land in the next overlay */
+    perfumesExpand.seq++;
+    const w = document.getElementById('perfumesExpandMoreWrap'); if (w) w.remove();
     const bd = document.getElementById('railExpandBackdrop');
     if (bd) bd.classList.add('hidden');
     document.body.style.overflow = '';
@@ -12355,9 +12358,86 @@ async function paintPerfumeRows(rows, sections){
         `data-perfume-card="${i}"${p.heroAnchor ? ` data-hero-anchor="${escapeHtml(p.heroAnchor)}"` : ''}`,
         /* Standard carousel cards, the same size as every other homepage rail
            (#443 item 39, Danny's final spec 2026-10-25). */
-        { dark: true })).join('');
+        { dark: true })).join('') + perfumesMoreTileHTML();
     }
   } catch { standDown(); }
+}
+/* THE CAROUSEL'S LAST CARD OPENS EVERY PERFUME (#443 c.6405624575, Danny):
+   the rail used to just end, the pill above it the only door. Like every
+   other carousel it now ends in a card; this one opens the whole Perfumes
+   department in the full-screen overlay, 48 at a time, without leaving
+   the page. */
+function perfumesMoreTileHTML(){
+  return `<button type="button" onclick="openPerfumesExpand()" data-perfumes-more
+    class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3"
+    style="background:#1a2744; border:1px solid rgba(244,196,99,0.45)">
+    <span class="block">
+      <span class="block text-[11.5px]" style="color:#AFBBD6">Ver todos los</span>
+      <span class="block text-[13px] font-extrabold mt-0.5 leading-snug" style="color:#F4C463">Perfumes &#8594;</span>
+    </span>
+  </button>`;
+}
+const PERFUMES_ALL = 'perfumes-all';
+let perfumesExpand = { page: -1, pages: 1, busy: false, seq: 0 };
+function perfumesExpandCard(c){
+  try {
+    const it = normalizeLiveItem({ title: c.t, brand: c.b, price: c.p, originalPrice: c.o, onSale: Number(c.s) > 0, image: c.i },
+      { retailer: c.r, department: 'perfumes' });
+    return it && it.title ? { ...it, retailer: c.r } : null;
+  } catch (e) { return null; }
+}
+function openPerfumesExpand(){
+  const bd = document.getElementById('railExpandBackdrop');
+  const grid = document.getElementById('railExpandGrid');
+  if (!bd || !grid) return;
+  railExpandTitles[PERFUMES_ALL] = 'Todos los perfumes';
+  deptRailPools[PERFUMES_ALL] = [];
+  const titleEl = document.getElementById('railExpandTitle');
+  const countEl = document.getElementById('railExpandCount');
+  if (titleEl) titleEl.textContent = 'Todos los perfumes';
+  if (countEl) countEl.textContent = '';
+  grid.innerHTML = '';
+  bd.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  const sc = bd.querySelector('.railExpandScroll');
+  if (sc) sc.scrollTop = 0;
+  perfumesExpand = { page: -1, pages: 1, busy: false, seq: perfumesExpand.seq + 1 };
+  morePerfumesExpand();
+}
+function morePerfumesExpand(){
+  const st = perfumesExpand;
+  if (st.busy || st.page + 1 >= st.pages) return;
+  st.busy = true;
+  const seq = st.seq, grid = document.getElementById('railExpandGrid');
+  const btn = document.getElementById('perfumesExpandMore');
+  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
+  fetch('/.netlify/functions/department?dept=perfumes&rail=all&page=' + (st.page + 1))
+    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+    .then(data => {
+      if (seq !== perfumesExpand.seq) return;
+      st.busy = false; st.page = data.page; st.pages = data.pages;
+      const pool = deptRailPools[PERFUMES_ALL];
+      const start = pool.length;
+      for (const c of (data.cards || [])){ const it = perfumesExpandCard(c); if (it) pool.push(it); }
+      const countEl = document.getElementById('railExpandCount');
+      if (countEl && data.count) countEl.textContent = Number(data.count).toLocaleString('es-PE') + ' productos';
+      const wrap = document.getElementById('perfumesExpandMoreWrap'); if (wrap) wrap.remove();
+      grid.insertAdjacentHTML('beforeend', pool.slice(start).map((p, k) => railCardHTML(p,
+        `openRailExpandProduct('${PERFUMES_ALL}',${start + k})`,
+        `data-rail-expand-card="${PERFUMES_ALL}" data-idx="${start + k}"`, {})).join(''));
+      if (st.page + 1 < st.pages){
+        grid.insertAdjacentHTML('afterend', `<div id="perfumesExpandMoreWrap" class="text-center py-5">
+          <button type="button" id="perfumesExpandMore" onclick="morePerfumesExpand()" class="h-11 px-6 rounded-2xl font-extrabold text-[14px] focus-ring" style="background:var(--navy);color:#fff">Mostrar más</button></div>`);
+      }
+    })
+    .catch(() => {
+      if (seq !== perfumesExpand.seq) return;
+      st.busy = false;
+      const wrap = document.getElementById('perfumesExpandMoreWrap'); if (wrap) wrap.remove();
+      grid.insertAdjacentHTML('afterend', `<div id="perfumesExpandMoreWrap" class="text-center py-5">
+        <p class="text-[13px] mb-2" style="color:#6B7487">No pudimos cargar los perfumes.</p>
+        <button type="button" id="perfumesExpandMore" onclick="morePerfumesExpand()" class="h-11 px-6 rounded-2xl font-extrabold text-[14px] focus-ring" style="background:var(--navy);color:#fff">Reintentar</button></div>`);
+    });
 }
 function initPerfumesRail(){
   if (perfumesStarted) return;

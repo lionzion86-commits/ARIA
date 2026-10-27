@@ -21,14 +21,54 @@
 # price-index.json (~5MB): what checkout charges per product, built by
 # scripts/build-price-index.mjs (orders-create.js reprices every line).
 [functions."orders-create"]
-  included_files = ["price-index.json"]
+  included_files = ["price-index.json", "assets/data/weight-comparables.json"]
+
+# Weights from similar products (#443 weight ruling, 2026-10-26): the
+# resolver reads assets/data/weight-comparables.json (built by
+# scripts/build-weight-comparables.mjs) in every function that weighs a
+# cart -- here, orders-create above and search below -- so the product
+# page, checkout, payment and the comparison block quote one number.
+[functions."resolve-weight"]
+  included_files = ["assets/data/weight-comparables.json"]
 
 # Search (2026-10-19, #409): the slim index, the engine and the Spanish
 # dictionary answer /api/search on the server; the phone never downloads
 # them. search.html fetches 48 cards at a time. The auto-parts glossary
 # (#416) gives the dictionary its car-part phrases ("pastillas de freno").
 [functions."search"]
-  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
+
+# ARIA AUTO, ITS OWN ADDRESS (#443 c.6427505203 + c.6428323317): the
+# front door auto-industry reviewers are sent to. The root of each
+# address serves aria-auto.html; every other path on them is the same
+# site (motos.html, auto.html, producto.html...). The domains must be
+# added to the Netlify site as aliases, and DNS pointed at it, before
+# these rules see traffic.
+# /auto is the store too (#443 c.6440620713); the vehicle finder stays
+# at /auto.html, a tool inside it.
+[[redirects]]
+  from = "/auto"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://auto.ariashop.pe/"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariaauto.pe/"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://www.ariaauto.pe/"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
 
 # /api/* is the public name for the functions the front end calls. The
 # realtime token endpoint is the one that matters: the build spec curls

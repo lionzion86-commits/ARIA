@@ -14,6 +14,8 @@
     "test:owned-voice": "node scripts/test/owned-voice-tests.mjs",
     "test:aria-auto-year": "node scripts/test/aria-auto-year-tests.mjs",
     "test:price-parity": "node scripts/test/price-parity-tests.mjs",
+    "test:aria-auto": "node scripts/test/aria-auto-front-tests.mjs",
+    "test:aria-auto-mountain": "node scripts/test/aria-auto-mountain-battery.mjs",
     "test:classification": "node scripts/test/classification-tests.mjs",
     "build:product-type": "node scripts/build-product-type.mjs",
     "census:classification": "node scripts/census-classification.mjs",
