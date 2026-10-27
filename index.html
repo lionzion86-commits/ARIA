@@ -1175,15 +1175,19 @@ window.doSearch = function(which){
      unreadable as brands). Official logo SVGs live in logos/brands/,
      keyed by brandKeyOf(label). A brand with no sourced logo keeps the
      text label -- a missing logo is never faked or redrawn. */
+  /* ONE BOX FOR EVERY BRAND (#443 c.6448683605, Danny on iPhone): the
+     Golden Goose tile ballooned and its count wrapped. Every tile is the
+     same fixed box, the logo is contained inside its band whatever the
+     file's own size, and the name and count keep one line each. */
   .brandTile{ display:flex; flex-direction:column; align-items:center; justify-content:center;
-              gap:6px; min-width:132px; max-width:184px; min-height:108px;
+              gap:6px; width:152px; height:108px; box-sizing:border-box; overflow:hidden;
               padding:12px 12px; border-radius:16px; border:1px solid var(--line);
               background:#fff; flex-shrink:0; text-align:center }
-  .brandTile-logo{ display:flex; align-items:center; justify-content:center; height:38px; width:100% }
-  .brandTile-logo img{ height:38px; width:auto; max-width:148px; object-fit:contain }
+  .brandTile-logo{ display:flex; align-items:center; justify-content:center; height:38px; width:100%; flex:none; overflow:hidden }
+  .brandTile-logo img{ display:block; width:auto; height:auto; max-width:100%; max-height:38px; object-fit:contain }
   .brandTile-name{ font-size:12px; font-weight:800; letter-spacing:-0.01em; color:var(--navy);
                   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100% }
-  .brandTile-count{ font-size:11px; color:#6B7487; font-variant-numeric:tabular-nums }
+  .brandTile-count{ font-size:11px; color:#6B7487; font-variant-numeric:tabular-nums; white-space:nowrap }
   .brandTile--dark{ background:#111318; border-color:#23262e }
   .brandTile--dark .brandTile-name{ color:#fff }
   .brandTile--dark .brandTile-count{ color:rgba(255,255,255,.62) }
@@ -5771,7 +5775,7 @@ window.doSearch = function(which){
       </div>
     </div>
     <div class="pt-5 border-t text-[11.5px] text-zinc-400 leading-relaxed flex items-center justify-between gap-3" style="border-color:var(--line)">
-      <span>Entidad legal en trámite de registro — RUC y datos legales completos próximamente.</span>
+      <span>© 2026 ARIA SHOP LLC. Entidad legal en trámite de registro — RUC y datos legales completos próximamente.</span>
       <!-- The public "Admin" link lived here until 2026-09-20. An admin
            entry point in a shopper's footer is an invitation to rattle
            the door, and it bought us nothing: the page is still reachable
@@ -6293,7 +6297,7 @@ window.doSearch = function(which){
 
 <script src="/off-sale.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-3b8726f25c725734.js"></script>
+<script src="/build/app-4b9e69cfce0ebd98.js"></script>
 
 
 

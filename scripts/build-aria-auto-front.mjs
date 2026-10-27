@@ -141,8 +141,13 @@ export function loadAutoParts(root = ROOT) {
    "ELIGE TU AÑO, MARCA Y MODELO", which opens the vehicle pick and
    only then shows what fits that car. Batteries are not in the data,
    so they have no card. */
+/* A card's photo is the store's own picture of that kind of part. Brake
+   pads are the exception (#443 c.6444241146 fix 1): the picture the rule
+   picked was not a brake pad, so their card takes only a photo a person
+   has looked at and confirmed (`photo`), and stays off the page until
+   one is set. */
 export const BASICS = [
-  { s: "pastillas-de-freno", label: "Pastillas de freno", type: "Brake Pads" },
+  { s: "pastillas-de-freno", label: "Pastillas de freno", type: "Brake Pads", vetted: true, photo: null },
   { s: "bujias", label: "Bujías", type: "Spark Plugs" },
   { s: "filtro-de-aceite", label: "Filtros de aceite", type: "Oil Filter" },
   { s: "filtro-de-aire", label: "Filtros de aire", type: "Air Filter" },
@@ -183,7 +188,9 @@ export function buildAutos(root = ROOT) {
     const vehicles = Object.values(idx.has).filter((l) => l.includes(at)).length;
     const pick = az.filter((p) => p.type === b.type).sort((a, z) => z.rawPrice - a.rawPrice)[0];
     if (!vehicles || !pick) continue;   // no data, no card
-    basics.push({ s: b.s, label: b.label, q: idx.parts[at].es, vehicles, img: pick.image });
+    const img = b.vetted ? b.photo : pick.image;
+    if (!img) continue;                 // no confirmed photo, no card
+    basics.push({ s: b.s, label: b.label, q: idx.parts[at].es, vehicles, img });
   }
   /* A card for an AutoZone part carries its part number, which is how
      the product page and the finder confirm the fit. */
