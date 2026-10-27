@@ -36,6 +36,14 @@
 # site (motos.html, auto.html, producto.html...). The domains must be
 # added to the Netlify site as aliases, and DNS pointed at it, before
 # these rules see traffic.
+# /auto is the store too (#443 c.6440620713); the vehicle finder stays
+# at /auto.html, a tool inside it.
+[[redirects]]
+  from = "/auto"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "https://auto.ariashop.pe/"
   to = "/aria-auto.html"

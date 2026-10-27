@@ -91,6 +91,17 @@ await check("its own addresses: auto.ariashop.pe and ariaauto.pe serve the front
   }
 });
 
+await check("every way into Aria Auto lands on the store, the vehicle finder is a tool inside it (#443 c.6440620713)", () => {
+  assert.match(readFileSync(ROOT + "index.html", "utf8"), /window\.openAriaAuto = function\(sourceKey\)\{[\s\S]{0,200}window\.location\.href = '\/aria-auto\.html';/);
+  for (const f of ["carrito.html", "categorias.html", "como-funciona.html", "devoluciones.html", "keyclub.html", "marca.html", "auto.html"]) {
+    const src = readFileSync(ROOT + f, "utf8");
+    assert.doesNotMatch(src, /href="\/?auto\.html"[^>]*>Aria Auto</, f + " still sends Aria Auto to the finder");
+    assert.match(src, /href="\/?aria-auto\.html"[^>]*>Aria Auto</, f + " has no Aria Auto link to the store");
+  }
+  assert.match(readFileSync(ROOT + "netlify.toml", "utf8"), /from = "\/auto"\s+to = "\/aria-auto\.html"\s+status = 200\s+force = true/);
+  assert.match(HTML, /<a class="aa-fit-go" href="auto\.html">/);
+});
+
 /* ---------------- the browser ---------------- */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const TYPES = { ".html": "text/html", ".js": "application/javascript", ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg" };
@@ -168,6 +179,14 @@ await check("phone width: the first screen is an auto store of its own -- its he
   assert.ok(!seen.some((p) => /-catalog\.json|catalog-index|department-cache|\/_fn\//.test(p)), "the front door downloaded a catalogue: " + seen.filter((p) => /json/.test(p)).join(", "));
   if (process.env.ARIA_AUTO_SHOT) await pg.screenshot({ path: process.env.ARIA_AUTO_SHOT, fullPage: false });
   assert.deepEqual(errs, []);
+  await pg.close();
+});
+
+await check("the mall's Aria Auto button opens the store", async () => {
+  const { pg } = await open("index.html");
+  await pg.waitForFunction(() => typeof window.openAriaAuto === "function", null, { timeout: 20000 });
+  await Promise.all([pg.waitForURL(/aria-auto\.html/, { timeout: 20000 }), pg.evaluate(() => window.openAriaAuto())]);
+  await pg.waitForSelector(".aa-mark", { timeout: 15000 });
   await pg.close();
 });
 
