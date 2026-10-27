@@ -255,6 +255,16 @@ export function pageOf(sections, rail, page) {
   return { rail, title: s.title, page, pages: Math.ceil(s.items.length / PAGE_SIZE), count: s.items.length, cards };
 }
 
+/* Every product of the department once, in the order its carousels show
+   them; anything no carousel holds comes last, in the list's order. */
+export function allInRailOrder(sections, list) {
+  const seen = new Set(), out = [];
+  const add = (p) => { const k = p.retailer + "::" + p.title; if (!seen.has(k)) { seen.add(k); out.push(p); } };
+  for (const s of sections) for (const p of s.items) add(p);
+  for (const p of list) add(p);
+  return out;
+}
+
 /* The endpoint's copy of a department: one row per card plus its type. */
 export function fnRow(p) {
   return [p.title, p.brand || "", p.retailer, p.rawPrice, p.wasPrice || 0, p.salePct || 0, p.image || "", p.type || ""];
@@ -311,7 +321,12 @@ export function answer(qs, roots) {
   const list = (r && r !== "all") || q.trim() ? filterList(d.list, { r, q }) : d.list;
   const sections = buildSections(list, sectionOpts(d.key));
   if (qs.rail !== undefined && qs.rail !== "") {
-    const out = pageOf(sections, Number(qs.rail), Number(qs.page) || 0);
+    /* rail=all: the whole department, page by page, in its carousels'
+       order (the lead rail first, each product once) -- the Perfumes
+       end-of-carousel card opens it (#443 c.6405624575). */
+    const out = qs.rail === "all"
+      ? pageOf([{ title: "Todo", items: allInRailOrder(sections, list) }], 0, Number(qs.page) || 0)
+      : pageOf(sections, Number(qs.rail), Number(qs.page) || 0);
     return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más productos." } };
   }
   if (qs.batch !== undefined && qs.batch !== "") {

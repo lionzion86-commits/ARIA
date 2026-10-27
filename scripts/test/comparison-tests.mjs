@@ -116,7 +116,10 @@ await check("the cart line is the one producto.html writes (rows link there)", (
   const body = pdp.slice(at, pdp.indexOf("});", at));
   assert.match(body, /priceUsd: priceUsd/);
   assert.match(body, /dutiableUsd: Math\.round\(Number\(p\.price\) \* salesTaxRate\(p\.retailer\) \* 100\) \/ 100/);
-  assert.match(body, /weightKg: 0\.2,\s*weightEstimated: true/);
+  /* The product page now sends the catalogue's weight (#443 weight
+     ruling); a search row has none, so its 0.2 stays a flagged
+     placeholder the resolver re-weighs (specWeightKg skips an estimate). */
+  assert.match(body, /weightKg: weightLineOf\(p, priceUsd\)\.weightKg,\s*weightEstimated: weightLineOf\(p, priceUsd\)\.weightEstimated/);
   const line = door.cartLineFor({ retailer: "ccs", title: "X", brand: "Y", cardUsd: 38.48, rawUsd: 29, taxRate: 1.07 });
   assert.deepEqual(line, { retailer: "ccs", title: "X", priceUsd: 38.48, dutiableUsd: 31.03, weightKg: 0.2, weightEstimated: true, brand: "Y", qty: 1 });
 });
