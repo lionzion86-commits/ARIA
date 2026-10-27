@@ -102,12 +102,12 @@ export function packImages(images, image) {
 
 /* What the page renders, and nothing else (no retailer url: the page
    never links out). Empty fields are left out. */
-const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "dept", "retailer"];
+const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "dept", "retailer", "weightKg", "weightPub", "specWeightKg"];
 function recordOf(it) {
   const out = {};
   for (const k of RECORD_FIELDS) {
     const v = k === "images" ? packImages(it.images, it.image) : it[k];
-    if (v === undefined || v === null || v === "" || v === 0 || (Array.isArray(v) && !v.length)) continue;
+    if (v === undefined || v === null || v === "" || v === 0 || v === false || (Array.isArray(v) && !v.length)) continue;
     out[k] = Array.isArray(v) ? Array.from(v) : v;
   }
   return out;

@@ -393,7 +393,7 @@ await check("rehearsal (Oct 17): Pagar's function ships only what it reads; cour
   const toml = readFileSync(ROOT + "netlify.toml", "utf8").replace(/#.*$/gm, "");
   const globalBlock = (toml.match(/^\[functions\]\s*\n([\s\S]*?)(?=^\[)/m) || [, ""])[1];
   assert.ok(!/included_files/.test(globalBlock), "included_files is back under [functions] for every function");
-  assert.match(toml, /\[functions\."orders-create"\]\s*\n\s*included_files = \["price-index\.json"\]/);
+  assert.match(toml, /\[functions\."orders-create"\]\s*\n\s*included_files = \["price-index\.json", "assets\/data\/weight-comparables\.json"\]/);
   assert.match(toml, /\[functions\."mcp"\]\s*\n\s*included_files = \[[^\]]*\*-catalog\.json/);
   /* 2. Lima is Reparto Aria only; provincias never get it. */
   const C = await import(ROOT + "couriers.js");
