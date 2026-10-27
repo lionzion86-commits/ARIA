@@ -574,7 +574,7 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
   /* Output audio is the expensive half and a prompt is only a
      preference. 500 tokens is generous for three sentences and
      impossible to filibuster from. */
-  assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
+  assert.equal(session.max_output_tokens, 500, "there is no ceiling on response length");
   /* coral, and NOT nova. Danny asked for Nova; nova is a text-to-
      speech voice and the Realtime API does not accept it, so it had
      to be reverted. An unknown voice fails the mint outright — the
@@ -924,7 +924,10 @@ check("there is no automatic fallback to the old loop, at all", () => {
 
   /* The error is visible, says why, and offers a retry. */
   assert.match(page, /function showRealtimeError\(\)/, "there is no visible error");
-  assert.match(page, /Voz en vivo no disponible: ' \+ why/, "the error does not say what failed");
+  /* Since #443 c.6440605798 the shopper reads one calm line and the
+     reason goes to the console, never the API's words on screen. */
+  assert.match(page, /text\.textContent = REALTIME_UNAVAILABLE_LINE;/, "the error bar is not the calm line");
+  assert.match(page, /console\.error\('REALTIME VOICE FAILED:', why, detail \|\| ''\);/, "the error does not say what failed");
   assert.match(page, /id="assistantRetryBtn"[^>]*onclick="retryRealtimeVoice\(\)"/,
     "there is no way to try again");
   assert.match(page, /Intentar de nuevo/, "the retry button has no label");
@@ -1052,7 +1055,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
        cap, which is the one that separates the third rung from the
        fourth. */
     const optional = sess.audio?.input?.noise_reduction || sess.audio?.output?.speed
-      || sess.audio?.input?.transcription || sess.max_response_output_tokens;
+      || sess.audio?.input?.transcription || sess.max_output_tokens;
     if (optional) return jsonRes(400, { error: { message: "Unknown parameter" } });
     minimal = sess;
     return jsonRes(200, { value: "ek_min", expires_at: 9 });

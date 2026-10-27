@@ -720,7 +720,7 @@ export function buildRealtimeSession(opts = {}) {
        monologues for ninety seconds is both a worse salesperson and a
        bigger bill. 500 tokens is roughly a long paragraph — generous
        for three sentences, impossible to filibuster from. */
-    max_response_output_tokens: MAX_RESPONSE_OUTPUT_TOKENS,
+    max_output_tokens: MAX_RESPONSE_OUTPUT_TOKENS,
   };
 }
 

@@ -29864,7 +29864,9 @@ function startOrbSwim(){
 const ARIA_CHAT_MOBILE_MQ = '(max-width: 1023px)';
 
 /* What Aria says when the greeting endpoint gives us nothing usable. Matches her signature greeting script (GREETING_SCRIPT_ES in netlify/functions/_aria-prompt.js). No emoji: this line can be spoken aloud by the browser-voice fallback. */
-const ARIA_GREETING_FALLBACK = '¡Hola! Soy Aria, tu shopper personal. ¿Qué buscas hoy?';
+/* ONE GREETING TEXT (#443 c.6440605798): the same words as the spoken
+   opening (CÓMO ABRES LA LLAMADA in scripts/lib/realtime-voice.js). */
+const ARIA_GREETING_FALLBACK = '¡Hola! Soy Aria, tu shopper personal. ¿Qué estás buscando?';
 
 function isMobileChat(){
   return !!(window.matchMedia && window.matchMedia(ARIA_CHAT_MOBILE_MQ).matches);
@@ -35819,6 +35821,7 @@ function speakIntoRealtime(text){
  * can tap to try again or keep typing. The old voice loop is reachable
  * only by someone who asks for it in the URL.
  */
+const REALTIME_UNAVAILABLE_LINE = 'La voz no está disponible ahorita. Escríbeme aquí y te ayudo igual.';
 function showRealtimeError(){
   const why = (ariaRTFailure && ariaRTFailure.reason) || 'no pude abrir la llamada';
   const detail = ariaRTFailure && ariaRTFailure.detail;
@@ -35831,7 +35834,12 @@ function showRealtimeError(){
   const retry = document.getElementById('assistantRetryBtn');
   if (bar) bar.hidden = false;
   if (dot) dot.style.background = '#B42318';
-  if (text) text.textContent = 'Voz en vivo no disponible: ' + why;
+  /* NEVER THE API'S WORDS ON SCREEN (#443 c.6440605798: the bar printed
+     "Unknown parameter: 'session.max_response_output_tokens'" to the
+     shopper). The shopper reads one calm line in Aria's voice and is
+     offered the keyboard; the reason and the upstream detail go to the
+     console and the call report only. */
+  if (text) text.textContent = REALTIME_UNAVAILABLE_LINE;
   /* Mute means nothing without a call; retry is the only useful tap. */
   if (mute) mute.hidden = true;
   if (retry) retry.hidden = false;

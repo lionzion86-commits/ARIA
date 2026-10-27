@@ -101,7 +101,7 @@ check("his words are answered even when a response was still running: refused tu
 check("a short reply to her hello is his, not her echo; a sentence of hers coming back still is", () => {
   const normBrandText = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const echo = (said, history) => new Function("normBrandText", "ariaChatHistory", fnSrc("realtimeEchoOfHer") + "\nreturn realtimeEchoOfHer;")(normBrandText, history)(said);
-  const hello = [{ role: "assistant", content: "¡Hola! Soy Aria, tu shopper personal. ¿Qué buscas hoy?" }];
+  const hello = [{ role: "assistant", content: "¡Hola! Soy Aria, tu shopper personal. ¿Qué estás buscando?" }];
   assert.equal(echo("Hola Aria, ¿qué tal?", hello), false, "'Hola Aria, ¿qué tal?' was dropped as her echo");
   assert.equal(echo("hola aria que buscas", hello), false);
   assert.equal(echo("Hola, soy Aria, tu shopper personal, qué buscas hoy", hello), true, "her own greeting coming back is not caught");
@@ -200,6 +200,25 @@ check("one transcribing config, fail closed: a session without transcription is 
   assert.ok(open.indexOf("return noteRealtimeFailure('la sesión de voz no transcribe'") < open.indexOf("getUserMedia("), "the refusal comes after the mic opened");
   assert.match(open, /if \(mint\.transcription\) input\.transcription = mint\.transcription;/);
   assert.doesNotMatch(bundle, /create_response: true/, "the page can still switch the server to answering turns itself");
+});
+
+check("the session is the current API's schema: max_output_tokens, never the rejected max_response_output_tokens (#443 c.6440605798)", async () => {
+  const { buildRealtimeSession } = await import("../lib/realtime-voice.js");
+  const sess = buildRealtimeSession();
+  assert.equal(sess.max_output_tokens, 500);
+  assert.ok(!("max_response_output_tokens" in sess), "the session still sends the field the API rejects");
+  assert.ok(sess.audio.input.transcription, "the session does not transcribe");
+  assert.doesNotMatch(bundle, /max_response_output_tokens/);
+});
+
+check("a failure never prints the API's words to the shopper; one greeting text everywhere", async () => {
+  const err = fnSrc("showRealtimeError");
+  assert.match(err, /text\.textContent = REALTIME_UNAVAILABLE_LINE;/);
+  assert.doesNotMatch(err, /textContent = [^;]*(why|detail)/, "the reason reaches the screen");
+  assert.match(bundle, /const REALTIME_UNAVAILABLE_LINE = 'La voz no está disponible ahorita\. Escríbeme aquí y te ayudo igual\.';/);
+  assert.match(err, /console\.error\('REALTIME VOICE FAILED:', why, detail \|\| ''\);/, "the reason is no longer logged");
+  const spoken = /CÓMO ABRES LA LLAMADA[\s\S]*?"(¡Hola! Soy Aria[^"]+)"/.exec(readFileSync(ROOT + "scripts/lib/realtime-voice.js", "utf8"))[1];
+  assert.match(bundle, new RegExp("const ARIA_GREETING_FALLBACK = '" + spoken.replace(/[?¿!¡.]/g, (c) => "\\" + c) + "';"), "the written greeting differs from the spoken one");
 });
 
 /* The mint itself: an API that rejects transcription is reported, not hidden. */
