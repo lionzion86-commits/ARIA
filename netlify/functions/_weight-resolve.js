@@ -71,6 +71,23 @@ import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beaut
 // The PUBLIC charged rate only — the internal courier cost never travels
 // with anything a browser can reach, and this module answers checkout.
 import { CHARGE_PER_KG } from "../../weight-data.js";
+import { comparableWeight } from "./_weight-comparables.js";
+
+/* THE PRODUCTS NO RULE AND NO COMPARABLE CAN WEIGH (#443 weight
+   ruling, 2026-10-26: "no 1 kg defaults anywhere; a null weight triggers
+   the comparables method, never a constant"). The department's
+   conservative ceiling is a constant, and it is wrong in both directions
+   when the department guess is wrong (a resin bar cart read as "party"
+   quoted 1 kg). Until such a product has a human estimate:
+     ARIA_NO_WEIGHT_POLICY=hold     the line is held like any weight we
+                                    do not believe: checkout does not
+                                    quote it, the product page says
+                                    "por confirmar" (default);
+     ARIA_NO_WEIGHT_POLICY=ceiling  the old ceiling quote, still shown
+                                    as "por confirmar" on the page. */
+export function noWeightPolicy(env = process.env) {
+  return String(env.ARIA_NO_WEIGHT_POLICY || "hold").toLowerCase() === "ceiling" ? "ceiling" : "hold";
+}
 
 /* Re-exported, not redeclared. This file used to define its own 0.6
    beside index.html's 1.08 under a comment asserting they were the same
@@ -275,8 +292,29 @@ export function resolveItemWeight(item) {
      the silent 0.6 kg. Under $75 departmentFallbackKg() answers null and
      sibling inference below answers instead (Danny's ruling on #443), so no
      new freight-confirm hold comes from here. Still a "gap" for review. */
+  /* SIMILAR PRODUCTS (#443 weight ruling). No rule places the product:
+     a padded estimate from its most similar products, recorded with them
+     (scripts/build-weight-comparables.mjs), before any constant. */
+  const comp = comparableWeight(item?.retailer, title);
+  /* THE WEB PASS (#443 c.6420102856, Danny: for a product with no
+     comparable, the weight found on the open web, x1.10). Harvested
+     with its source (hidden-docs/weight-tail-full-*.csv) and served
+     from the same table, so every surface quotes the same number. */
+  if (comp && comp.method === "web") {
+    const r = banded(comp.kg, "web", "estimado con el peso publicado (+10%)");
+    return { ...r, webFoundKg: comp.baseKg, webPad: comp.pad, webSource: comp.src, webKind: comp.kind };
+  }
+  if (comp) {
+    const r = banded(comp.kg, "comparables", `estimado por productos similares (${comp.comps.length})`);
+    return { ...r, comparables: comp.comps, comparableBaseKg: comp.baseKg, comparablePad: comp.pad, comparableMethod: comp.method || "título" };
+  }
+
   const dept = departmentFallbackKg(title, hints);
-  if (dept) return banded(dept.kg, "department", `tope conservador de ${dept.key} (sin regla de peso)`, "gap");
+  if (dept) {
+    const r = banded(dept.kg, "department", `tope conservador de ${dept.key} (sin regla de peso)`, "gap");
+    if (noWeightPolicy() === "hold") return { ...r, needsReview: true, reviewKind: "no-weight", reviewReason: "sin peso en los datos ni productos similares: peso por confirmar" };
+    return r;
+  }
 
   /* SIBLING INFERENCE (#449 pricing). No row matched and the line is
      under $75: the median weight of its verified siblings (same

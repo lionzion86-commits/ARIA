@@ -563,6 +563,18 @@ function sizedImageUrl(url, w){
     fRet = b.dataset.r; syncChips(); applyFilters();
   });
 
+  /* ---------- deep links (#443 Aria Auto front door) ----------
+     aria-auto.html's tiles and search box land here on a type (?t=) and
+     a query (?q=); anything that is not a chip is ignored. */
+  try {
+    var sp = new URLSearchParams(location.search);
+    var tq = (sp.get('t') || '').replace(/[^a-z_]/g, '');
+    if (tq && document.querySelector('#typeChips .chip[data-t="' + tq + '"]')) fType = tq;
+    var qq = (sp.get('q') || '').trim().slice(0, 80);
+    if (qq){ fQ = qq; qInput.value = qq; }
+    syncChips();
+  } catch(e){}
+
   /* ---------- go ---------- */
   try { loadFx(); } catch(e){ fxRate = null; }
   try { loadCatalog(); }
