@@ -134,7 +134,9 @@ await check("phone width: the first screen is an auto store of its own -- its he
       parent: document.querySelector(".aa-parent").textContent.trim(),
       h1: document.querySelector("h1").textContent,
       mallChrome: !!document.querySelector(".hdr, #assistantPanel, #ariaLauncher"),
-      heroPhotos: [...document.querySelectorAll("#aaMosaic img")].filter(vis).length,
+      firstScreenCards: [...document.querySelectorAll(".rail .card")].filter((c) => { const r = c.getBoundingClientRect(); return r.top < innerHeight && r.left < innerWidth && r.bottom > 0; }).length,
+      firstShelves: [...document.querySelectorAll("#aaRailsTop .aa-sec")].map((x) => x.id),
+      fitAfterTop: !!document.querySelector("#aaRailsTop + .aa-fit"),
       tiles: document.querySelectorAll(".aa-tile").length,
       tileOrder: [...document.querySelectorAll(".aa-tile b")].map((b) => b.textContent),
       overflow: document.documentElement.scrollWidth - innerWidth,
@@ -149,7 +151,14 @@ await check("phone width: the first screen is an auto store of its own -- its he
   assert.equal(first.parent, "by Aria Shop — ARIA SHOP LLC");
   assert.match(first.h1, /moto.*auto/);
   assert.equal(first.mallChrome, false, "the mall's header or assistant is on the front door");
-  assert.equal(first.heroPhotos, 3, "the hero lost its real product photos");
+  /* A store, not a landing page (#443 c.6431103818): real products with
+     prices in the first screen, the deals and the auto parts first, the
+     vehicle finder as a tool after them. */
+  assert.ok(first.firstScreenCards >= 2, "no products in the first screen: " + first.firstScreenCards);
+  assert.deepEqual(first.firstShelves, ["ofertas", "autopartes"]);
+  assert.equal(first.fitAfterTop, true, "the vehicle finder is not a tool inside the store");
+  /* The garage photograph's slot: a missing file removes itself, leaving the blue. */
+  assert.match(HTML, /<img class="aa-hero-photo" src="assets\/aria-auto\/garage-hero\.jpg" alt="" aria-hidden="true"[^>]*onerror="this\.remove\(\)">/);
   assert.deepEqual(first.tileOrder, ["Ofertas", "Cascos", "Llantas", "Accesorios", "Repuestos de moto", "Repuestos de auto", "Equipaje", "Equipo de protección", "Ropa"]);
   assert.ok(first.overflow <= 0, "the page scrolls sideways on a phone: " + first.overflow + "px");
   assert.ok(parseFloat(first.pen) > parseFloat(first.usd) * 1.3, "soles are not the big price");

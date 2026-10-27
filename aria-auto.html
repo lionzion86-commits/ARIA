@@ -48,9 +48,14 @@
   .aa-nav a:hover{background:var(--steel)}
   @media(max-width:560px){ .aa-nav a.opt{display:none} .aa-nav a{padding:8px 7px;font-size:13px} .aa-mark{font-size:19px} }
   /* ---- hero ---- */
-  .aa-hero{background:linear-gradient(135deg,var(--asphalt) 0%,var(--asphalt2) 60%,#1F242B 100%);color:#fff;position:relative;overflow:hidden}
-  .aa-hero::before{content:"";position:absolute;inset:auto -20% -40% auto;width:70%;height:140%;background:repeating-linear-gradient(115deg,rgba(255,176,32,.10) 0 14px,transparent 14px 46px);transform:skewX(-12deg);pointer-events:none}
-  .aa-hero .wrap{position:relative;display:grid;gap:16px;padding:20px 16px 20px}
+  .aa-hero{background:linear-gradient(135deg,#071533 0%,#0B1F4A 60%,#0A1838 100%);color:#fff;position:relative;overflow:hidden}
+  /* THE GARAGE (#443 c.6431103818: "a backdrop of a garage / an auto shop
+     where it's blue"). A real photograph only -- never generated. The
+     photo sits behind a deep blue scrim so the white headline always
+     reads; a missing file leaves the blue, never a broken image. */
+  .aa-hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+  .aa-hero::after{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,rgba(5,14,38,.78) 0%,rgba(5,14,38,.70) 55%,rgba(5,14,38,.90) 100%)}
+  .aa-hero .wrap{position:relative;z-index:1;display:grid;gap:14px;padding:18px 16px 18px}
   @media(min-width:860px){ .aa-hero .wrap{grid-template-columns:1.1fr .9fr;align-items:center;padding:48px 16px} }
   .aa-kicker{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--amber)}
   .aa-hero h1{font-size:clamp(27px,7vw,52px);font-weight:900;letter-spacing:-.025em;line-height:1.04;margin:8px 0 10px}
@@ -64,6 +69,9 @@
   .aa-proof{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:11.5px;color:var(--chrome)}
   .aa-proof strong{color:#fff;font-size:15px;display:block;font-weight:900}
   .aa-mosaic{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  /* On a phone the store's own shelves follow the hero at once; the
+     photo strip is for the wide screen. */
+  @media(max-width:859px){ .aa-mosaic{display:none} .aa-proof{display:none} }
   .aa-mosaic a{background:#fff;border-radius:14px;aspect-ratio:1/1;overflow:hidden;position:relative;display:block}
   .aa-mosaic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px}
   .aa-mosaic span{position:absolute;left:8px;bottom:8px;background:rgba(11,13,16,.82);color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px}
@@ -104,6 +112,11 @@
   .price .pen i{display:block;height:16px;width:45%;border-radius:5px;background:var(--line);margin:3px 0}
   /* Yellow is for sale badges only. */
   .badge{position:absolute;top:10px;left:10px;z-index:1;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--yellow);color:#111}
+  /* ---- the vehicle finder, a tool inside the store ---- */
+  .aa-fit{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:18px 0 4px;padding:16px;border-radius:16px;background:#0B1F4A;color:#fff}
+  .aa-fit h2{margin:0 0 4px;font-size:17px;font-weight:900}
+  .aa-fit p{margin:0;font-size:13.5px;color:#C7D2E8}
+  .aa-fit-go{display:inline-flex;align-items:center;height:46px;padding:0 18px;border-radius:12px;background:var(--amber);color:#111;font-weight:800;text-decoration:none;white-space:nowrap}
   /* ---- how it works + footer ---- */
   .aa-how{display:grid;gap:10px;margin:26px 0 8px}
   @media(min-width:760px){ .aa-how{grid-template-columns:repeat(3,1fr)} }
@@ -140,11 +153,12 @@
 </header>
 
 <section class="aa-hero" aria-label="Aria Auto">
+  <img class="aa-hero-photo" src="assets/aria-auto/garage-hero.jpg" alt="" aria-hidden="true" decoding="async" fetchpriority="low" onerror="this.remove()">
   <div class="wrap">
     <div>
       <span class="aa-kicker">Motos y autos · Desde Estados Unidos</span>
       <h1>Repuestos y equipo para tu <em>moto</em> y tu <em>auto</em>.</h1>
-      <p id="aaLede">Cascos, llantas, repuestos y equipo de las mejores tiendas de Estados Unidos, con precios en soles. El envío desde Miami se calcula por peso en el carrito.</p>
+      <p id="aaLede">Repuestos, llantas, cascos y equipo de tiendas de Estados Unidos, con precios en soles.</p>
       <div class="aa-ctas">
         <a class="aa-cta moto" href="motos.html">Motos <small id="aaMotoCount"></small></a>
         <a class="aa-cta auto" href="auto.html">Autos <small id="aaAutoCount"></small></a>
@@ -165,6 +179,18 @@
 </div>
 
 <main class="wrap">
+  <!-- STORE FIRST (#443 c.6431103818: "that just looks like a landing
+       page"). The first shelves -- Ofertas, then the auto parts -- come
+       right after the hero; the vehicle finder is a tool inside the
+       store, then the categories, then the rest of the shelves. -->
+  <div id="aaRailsTop"></div>
+  <section class="aa-fit" aria-labelledby="fitH">
+    <div>
+      <h2 id="fitH">Busca repuestos para tu vehículo</h2>
+      <p>Elige año, marca y modelo y te mostramos lo que le calza.</p>
+    </div>
+    <a class="aa-fit-go" href="auto.html">Elegir mi vehículo</a>
+  </section>
   <section class="aa-sec" aria-labelledby="catsH">
     <h2 id="catsH">Categorías</h2>
     <div class="aa-tiles" id="aaTiles"></div>
@@ -485,15 +511,18 @@ function sizedImageUrl(url, w){
       tiles += '<a class="aa-tile" href="' + escRaw(r.href) + '"><div class="ph">' + eagerImg(r.img, r.label) + '</div><b>' + esc(r.label) + '</b><small>' + fmtCount(r.count) + ' productos</small></a>';
     });
     document.getElementById('aaTiles').innerHTML = tiles;
-    var html = '';
-    rails.forEach(function(r){
+    function railHTML(r){
       var cards = r.cards.map(cardHTML).join('');
-      if (!cards) return;
-      html += '<section class="aa-sec" id="' + escRaw(r.key) + '" aria-label="' + esc(r.label) + '"><h2>' + esc(r.label)
+      if (!cards) return '';
+      return '<section class="aa-sec" id="' + escRaw(r.key) + '" aria-label="' + esc(r.label) + '"><h2>' + esc(r.label)
         + ' <a href="' + escRaw(r.href) + '">Ver todo</a></h2><div class="rail">' + cards + '</div></section>';
-    });
-    var box = document.getElementById('aaRails');
-    box.innerHTML = html;
+    }
+    /* The store's first shelves: the deals, then the auto parts. */
+    var TOP = ['ofertas', 'autopartes'];
+    var top = document.getElementById('aaRailsTop'), box = document.getElementById('aaRails');
+    top.innerHTML = TOP.map(function(k){ return rails.filter(function(r){ return r.key === k; })[0]; }).filter(Boolean).map(railHTML).join('');
+    box.innerHTML = rails.filter(function(r){ return TOP.indexOf(r.key) < 0; }).map(railHTML).join('');
+    watchPhotos(top);
     watchPhotos(box);
   }
 
