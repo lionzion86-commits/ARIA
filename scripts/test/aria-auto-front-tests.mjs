@@ -26,7 +26,7 @@ import http from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildFront, realPhoto, frontClass, CLASSES, PAGE } from "../build-aria-auto-front.mjs";
+import { buildFront, realPhoto, frontClass, CLASSES, PAGE, BASICS } from "../build-aria-auto-front.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 let passed = 0;
@@ -55,8 +55,13 @@ await check("autos first (#443 c.6441034782): basics of every car, then each sto
   assert.ok(embedded.rails[0].cards.every((c) => c.s >= 5), "a card in Ofertas is not on sale");
   for (const r of embedded.rails) assert.ok(r.cards.length >= 6 && r.count >= r.cards.length, r.key);
   /* the basics: part categories, with how many vehicles each covers */
-  assert.deepEqual(A.basics.slice(0, 3).map((b) => b.s), ["pastillas-de-freno", "bujias", "filtro-de-aceite"]);
-  for (const b of ["pastillas-de-freno", "bujias", "filtro-de-combustible"]) assert.ok(A.basics.some((x) => x.s === b), "no basics card for " + b);
+  /* brake pads show only with a photo a person confirmed (#443 c.6444241146 fix 1) */
+  const brake = BASICS.find((b) => b.s === "pastillas-de-freno");
+  assert.ok(brake.vetted, "brake pads take only a confirmed photo");
+  assert.equal(A.basics.some((x) => x.s === "pastillas-de-freno"), !!brake.photo, "the brake-pad card is shown without a confirmed photo");
+  if (brake.photo) assert.equal(A.basics[0].img, brake.photo);
+  assert.deepEqual(A.basics.filter((b) => b.s !== "pastillas-de-freno").slice(0, 2).map((b) => b.s), ["bujias", "filtro-de-aceite"]);
+  for (const b of ["bujias", "filtro-de-combustible"]) assert.ok(A.basics.some((x) => x.s === b), "no basics card for " + b);
   for (const b of A.basics) assert.ok(b.vehicles > 0 && realPhoto(b.img) && b.q, b.s);
   /* the stores' shelves: real data only, the accessories named as missing */
   assert.deepEqual(A.rails.map((r) => r.key), ["advance-repuestos", "autozone-repuestos"]);
@@ -204,9 +209,14 @@ await check("one storefront, two sections: the Motos tile opens the motorcycle s
   const m = await pg.evaluate(() => ({ url: location.href, autos: document.getElementById("autos").hidden, first: (document.querySelector("#aaRailsTop .aa-sec") || {}).id, tiles: document.querySelectorAll("#aaTiles .aa-tile").length }));
   assert.match(m.url, /aria-auto\.html#motos$/, "the Motos tile left Aria Auto");
   assert.deepEqual([m.autos, m.first], [true, "ofertas"]);
+  /* the amber follows the section (#443 c.6444241146 fix 2) */
+  const lit = () => pg.evaluate(() => [...document.querySelectorAll(".aa-ctas a.on, .aa-nav a.on")].map((a) => a.getAttribute("data-go") + ":" + getComputedStyle(a).backgroundColor));
+  assert.deepEqual(await lit(), ["motos:rgb(255, 176, 32)", "motos:rgb(255, 176, 32)"]);
   assert.ok(m.tiles >= 8);
   await pg.click(".aa-brand");
   await pg.waitForFunction(() => !document.getElementById("autos").hidden && document.getElementById("motos").hidden, null, { timeout: 10000 });
+  assert.deepEqual(await lit(), ["autos:rgb(255, 176, 32)", "autos:rgb(255, 176, 32)"]);
+  assert.equal(await pg.evaluate(() => document.querySelectorAll('[aria-current="true"]').length), 2);
   assert.deepEqual(errs, []);
   await pg.close();
 });
@@ -214,12 +224,12 @@ await check("one storefront, two sections: the Motos tile opens the motorcycle s
 await check("a basics card opens the vehicle pick, and once the car is chosen the parts that fit it appear -- the lookup works", async () => {
   const { pg, errs } = await open(PAGE);
   await pg.waitForFunction(() => document.querySelectorAll("#autoYear option").length > 3, null, { timeout: 15000 });
-  await pg.click('#aaBasics .aa-basic[data-q="pastillas de freno"]');
-  assert.equal(await pg.evaluate(() => document.getElementById("partQuery").value), "pastillas de freno");
-  /* pick the first car the index stocks for brake pads */
+  await pg.click('#aaBasics .aa-basic[data-q="bujías"]');
+  assert.equal(await pg.evaluate(() => document.getElementById("partQuery").value), "bujías");
+  /* pick the first car the index stocks for spark plugs */
   const pick = await pg.evaluate(async () => {
     const idx = await (await fetch("/assets/auto/index.json")).json();
-    const at = idx.parts.findIndex((p) => p.s === "pastillas-de-freno");
+    const at = idx.parts.findIndex((p) => p.s === "bujias");
     const v = idx.vehicles.find((k) => (idx.has[k] || []).includes(at)).split("|");
     return v;
   });
