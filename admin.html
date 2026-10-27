@@ -1111,6 +1111,7 @@ function renderMoreMenu() {
     item("tax", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.6-2 1.6-2-1.6L10 21l-2-1.6L6 21z"/><path d="M9 8h6M9 12h6"/></svg>', "Impuestos", "Estimado contra real SUNAT") +
     item("express", '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>', "Express", "Pedidos «ni bien llegue» y su control") +
     item("ledger", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>', "Libro", "Libro mayor y descarga CSV") +
+    item("feedback", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>', "Feedback", "Lo que nos recomiendan y las tiendas que piden") +
     item("founders", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10l7-7 7 7v11"/><path d="M9 21v-6h6v6"/></svg>', "Los Elegidos", "Revisar carritos y elegir a los 1000 fundadores");
 }
 
@@ -1122,6 +1123,7 @@ function renderMore() {
     case "express": return renderExpress();
     case "ledger": return renderLedger();
     case "founders": return renderFounders();
+    case "feedback": return renderFeedback();
     default: return renderMoreMenu();
   }
 }
@@ -1134,7 +1136,7 @@ async function goMore(sub) {
   state.more = sub;
   paint();
   window.scrollTo({ top: 0, behavior: "instant" });
-  const need = { batches: "batches", claims: "claims", tax: "tax", express: "expressOrders", ledger: "ledger", founders: "founders" }[sub];
+  const need = { batches: "batches", claims: "claims", tax: "tax", express: "expressOrders", ledger: "ledger", founders: "founders", feedback: "feedback" }[sub];
   if (need && !state[need]) {
     try {
       state[need] = await LOADER[need]();
@@ -1146,6 +1148,26 @@ async function goMore(sub) {
     }
     paint();
   }
+}
+
+/* ---- más → feedback (#443 c.6447438497) --------------------------------
+   The improvement inbox from the homepage section and /opinion.html:
+   every message, newest first, and the stores shoppers ask for, most
+   asked first -- demand data for the catalogue. Not complaints: those
+   have their own legal channel. */
+const FEEDBACK_TIPO = { recomendacion: "Recomendación", consejo: "Consejo", tienda: "Tienda que quiero", opinion: "Mi opinión" };
+function renderFeedback() {
+  const d = state.feedback;
+  if (!d) return moreHead("Feedback") + '<div class="spin">Cargando mensajes…</div>';
+  const tiendas = (d.tiendas || []).length
+    ? `<div class="card tight"><div class="head"><b>Tiendas que piden</b></div>${d.tiendas.map((t) => `<div>${esc(t.tienda)} <span class="muted">· ${t.n}</span></div>`).join("")}</div>`
+    : "";
+  const cards = (d.items || []).map((m) => `<div class="card tight">
+      <div class="head"><span class="pill">${esc(FEEDBACK_TIPO[m.tipo] || m.tipo)}</span>${m.tienda ? ` <b>${esc(m.tienda)}</b>` : ""} <span class="muted">${esc(String(m.at || "").slice(0, 16).replace("T", " "))}</span>${m.emailed === false ? ' <span class="pill warn">sin copia por correo</span>' : ""}</div>
+      <div style="white-space:pre-wrap;margin:6px 0">${esc(m.mensaje)}</div>
+      <div class="muted">${esc(m.nombre || "Sin nombre")}${m.contacto ? " · " + esc(m.contacto) : " · no pidió respuesta"}${m.page ? " · desde " + esc(m.page) : ""}</div>
+    </div>`).join("");
+  return moreHead(`Feedback · ${d.total || 0}`) + tiendas + (cards || '<div class="muted">Todavía no hay mensajes.</div>');
 }
 
 /* ---- más → lotes -------------------------------------------------------
@@ -1667,6 +1689,12 @@ const LOADER = {
   tax: () => api2(TAX_API, { view: "tax", filter: state.taxFilter }),
   expressOrders: () => api2(PIPELINE_API, { view: "pipeline", express: "express", limit: 50 }),
   ledger: () => api({ view: "ledger" }),
+  feedback: () => fetch("/.netlify/functions/admin-feedback", { credentials: "same-origin" }).then(async (r) => {
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 403) throw Object.assign(new Error("no-autorizado"), { code: 403 });
+    if (!r.ok) throw new Error(data.error || ("Error " + r.status));
+    return data;
+  }),
   founders: () => fetch("/.netlify/functions/founders-list?sort=" + state.foundersSort + "&status=" + state.foundersFilter + "&page=" + state.foundersPage + "&per=25", { credentials: "same-origin" }).then(async (r) => {
     const data = await r.json().catch(() => ({}));
     if (r.status === 403) throw Object.assign(new Error("no-autorizado"), { code: 403 });
