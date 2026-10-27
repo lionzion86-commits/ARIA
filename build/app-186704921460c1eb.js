@@ -11818,7 +11818,7 @@ function brandStripTileHTML(b){
          onerror="this.closest('.brandTile-logo').style.display='none'"></span>`
     : '';
   return `<button type="button" onclick="brandJump('${jsAttr(b.key)}')" data-brand-strip-item="${escapeHtml(b.key)}"
-    class="brandTile${logo && logo.dark ? ' brandTile--dark' : ''}{logo && logo.navy ? ' brandTile--navy' : ''} focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]">
+    class="brandTile${logo && logo.dark ? ' brandTile--dark' : ''}${logo && logo.navy ? ' brandTile--navy' : ''} focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]">
     ${logoHTML}
     <span class="brandTile-name">${label}</span>
     <span class="brandTile-count">${b.count} productos</span>
