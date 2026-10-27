@@ -1082,7 +1082,8 @@ await checkAsync("a 502 says which field OpenAI refused", async () => {
      point: one curl instead of another round of guessing. */
   assert.match(body.detail, /Invalid value/, "the upstream message is not passed on");
   assert.match(body.detail, /session\.model/, "the offending parameter is not named");
-  assert.ok(Array.isArray(body.attempts) && body.attempts.length === 4,
+  /* Two layers since #443 c.6431664255: every layer transcribes. */
+  assert.ok(Array.isArray(body.attempts) && body.attempts.length === 2,
     "the ladder of attempts is not reported");
   for (const a of body.attempts){
     assert.ok(a.variant && a.endpoint && a.status, "an attempt is missing its detail");

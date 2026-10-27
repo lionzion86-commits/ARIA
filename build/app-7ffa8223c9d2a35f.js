@@ -35184,14 +35184,22 @@ async function startRealtimeVoiceOnce(){
   ariaRTGreetHeld = null;
   ariaRTPendingTurn = false;
 
-  /* WHICH SESSION THE SERVER ACCEPTED (#443 c.6401531233, the 17:51Z
-     call: four turns committed, no transcript, no answer). The mint
-     sheds fields one layer at a time when the API rejects one; two of
-     its layers carry no transcription, and since item 31 she answers
-     only on a transcript. A session without one is answered by the
-     server itself instead (see dc.onopen). */
-  ariaRTTranscribes = mint.transcribes !== false;
+  /* ONE TRANSCRIBING CONFIG, FAIL CLOSED (#443 c.6416056033 item 1;
+     c.6431664255, Danny on production 2026-10-26 20:58 EDT: a greeting
+     loop, a hang-up while he talked, then a deaf reopen). A session with
+     no transcription used to be answered by the server itself
+     (create_response on): her own voice coming back through the speaker
+     was a "turn", so she greeted herself in a loop; with no transcripts
+     nothing reset the silence clock, so she signed off while he was
+     talking. The mint no longer offers such a session, and a mint that
+     does not say it transcribes is refused here: no voice beats a voice
+     that answers itself. */
+  ariaRTTranscribes = mint.transcribes === true;
   diagMark('session', { variant: String(mint.variant || '?'), transcribes: ariaRTTranscribes });
+  if (!ariaRTTranscribes){
+    tape('!!', 'session without transcription refused: ' + String(mint.variant || '?'));
+    return noteRealtimeFailure('la sesión de voz no transcribe', 'variant ' + String(mint.variant || '?'));
+  }
 
   /* BEFORE THE MICROPHONE, so WebKit never infers the session itself. */
   ariaSetAudioSession('play-and-record');
@@ -35372,10 +35380,11 @@ async function startRealtimeVoiceOnce(){
          the server answers each turn itself; and when there are
          transcripts the setting is sent again with the turn detection,
          so the update can never leave the session without it. */
+      /* Always the transcribing config: the server never answers a
+         turn on its own (create_response stays off), so only a
+         transcript with real words starts her answer. */
       const input = { turn_detection: mint.turn_detection };
-      if (!ariaRTTranscribes) input.turn_detection = { ...mint.turn_detection, create_response: true };
-      if (ariaRTTranscribes && mint.transcription) input.transcription = mint.transcription;
-      if (!ariaRTTranscribes) tape('!!', 'session has no transcription: the server answers turns');
+      if (mint.transcription) input.transcription = mint.transcription;
       send({ type: 'session.update', session: { type: 'realtime', audio: { input } } });
     }
     /* AFTER THE SERVER CONFIRMS, NOT A MOMENT BEFORE. The greeting
