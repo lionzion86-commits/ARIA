@@ -139,7 +139,7 @@
     <a class="brand" href="index.html">ARIA<span>SHOP</span></a>
     <div class="navlinks">
       <a href="index.html">Inicio</a>
-      <a href="auto.html" class="active" aria-current="page">Aria Auto</a>
+      <a href="aria-auto.html">Aria Auto</a>
       <a href="checkout.html" id="cartLink">Carrito</a>
     </div>
   </div>
@@ -207,7 +207,7 @@
     <a class="brand" href="index.html" style="color:#fff">ARIA<span style="color:var(--gold)">SHOP</span></a>
     <div style="display:flex;gap:18px;flex-wrap:wrap">
       <a href="index.html">Inicio</a>
-      <a href="auto.html">Aria Auto</a>
+      <a href="aria-auto.html">Aria Auto</a>
     </div>
   </div>
 </footer>
@@ -465,7 +465,7 @@ function productHref(it){
 var CARDS = [];   // every drawn card's item, by data-i (for the cart button)
 /* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN (search.html's
    watchPhotos). The photo box is a fixed square, so the card never
-   changes shape when the photo, or its "Sin imagen" stand-in, lands.
+   changes shape when the photo lands (a part with no photo is not drawn).
    AutoZone's photo CDN has no width parameter the shared sizedImageUrl
    helper knows, so the URL goes as stored. */
 var PHOTO_IO = null;
@@ -487,19 +487,20 @@ function watchPhotos(root){
   }, { rootMargin: "200px 0px" });
   Array.prototype.forEach.call(imgs, function(i){ PHOTO_IO.observe(i); });
 }
+/* NO IMAGE, NO CARD (#443 c.6406145536): a part without a photo is not
+   drawn, and a photo that fails takes its card with it. */
 function photoFailed(img){
-  try{ var box = img.parentNode; box.innerHTML = '<span class="pimg-fallback">Sin imagen</span>'; }catch(e){}
+  try{ var c = img.closest ? img.closest('.pcard') : null; if (c) c.remove(); }catch(e){}
 }
 function partCard(it, vehicle, fitted){
+  if (!it || !it.img) return '';
   var usd = finalUsd(it.u, it.s || 'autozone');
   var ok = usd > 0;
   var i = CARDS.push(it) - 1;
   var href = productHref(it);
   var pn = it.pn ? (it.lc ? it.lc + ' ' + it.pn : it.pn) : null;
   var loc = it.loc ? LOCATION_ES[String(it.loc).toLowerCase()] || it.loc : '';
-  var img = it.img
-    ? '<img data-src="' + esc(it.img) + '" alt="' + esc(it.t) + '" decoding="async" onerror="photoFailed(this)">'
-    : '<span class="pimg-fallback">Sin imagen</span>';
+  var img = '<img data-src="' + esc(it.img) + '" alt="' + esc(it.t) + '" decoding="async" onerror="photoFailed(this)">';
   var fit = fitted
     ? '<span class="badge ok">Compatible con tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) + '</span>'
     : '<span class="badge chk">Verifica el calce con el número de parte</span>';

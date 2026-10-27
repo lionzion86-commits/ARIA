@@ -6458,7 +6458,9 @@ initRouter();
   });
   // Override openAriaAuto
   window.openAriaAuto = function(sourceKey){
-    window.location.href = '/auto.html';
+    /* The store (#443 c.6440620713: Danny kept landing on the vehicle
+       finder, "still landing-page shape"); the finder is a tool in it. */
+    window.location.href = '/aria-auto.html';
   };
   /* AND THE CLICK PATH FOR PRODUCTS. Tapping a card called
      showProduct(), which renders the SPA product view — the same view
