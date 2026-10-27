@@ -21,7 +21,7 @@ import {
   DEPT_RULES, CATALOG_FILES, ALL_LABELS, OUT_DIR, loadAllItems, deptItems,
 } from "../build-department-slices.mjs";
 import {
-  PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, buildSections, headOf, batchOf, batchCount, answer, filterList,
+  PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, buildSections, sectionOpts, headOf, batchOf, batchCount, answer, filterList,
 } from "../../netlify/functions/_department-core.js";
 import { handler } from "../../netlify/functions/department.js";
 
@@ -53,7 +53,7 @@ await check("the page and the build agree on the 32 departments (plus the doors:
 await check("every committed head.json and rails-<b>.json is what the rules compute from today's catalogues", () => {
   for (const key of Object.keys(DEPT_RULES)) {
     const list = deptItems(ALL, key);
-    const sections = buildSections(list);
+    const sections = buildSections(list, sectionOpts(key));
     const head = readJSON(`${OUT_DIR}/${key}/head.json`);
     assert.deepEqual(head, JSON.parse(JSON.stringify(headOf(key, list, sections, ALL_LABELS))), `${key}/head.json is stale — run: node scripts/build-department-slices.mjs`);
     const n = batchCount(sections);

@@ -131,7 +131,7 @@ export function buildPerfumeSections(list) {
    cheap class cannot take it (the Shoes rail's first 24 cards were all
    sandals). */
 export const SHOE_DEPTS = new Set(["shoes", "shoes_women", "shoes_men"]);
-export function sectionOpts(key) { return SHOE_DEPTS.has(key) ? { interleave: true } : {}; }
+export function sectionOpts(key) { return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {}; }
 export const FRONT = 24, FRONT_CAP = 6;
 
 /* The first FRONT cards of a mixed rail hold at most FRONT_CAP of any one
@@ -157,15 +157,45 @@ export function photosFirst(items) {
   return b.length ? a.concat(b) : items;
 }
 
+/* THE GENDER AXIS (#443 c.6412658814, c.6412683747): in Zapatos every
+   class is two aisles, Mujer and Hombre, then the Niños aisles after all
+   the adult ones. p.g is scripts/lib/footwear.js shoeGender; a "unisex"
+   shoe (the data names no gender, or both) is on BOTH adult shelves of
+   its class. The lead rail stays the mixed sale showcase. */
+const AISLE_GENDERS = [["women", "Mujer"], ["men", "Hombre"]];
+export function genderAisles(list) {
+  const byClass = new Map(), small = [], smallSeen = new Set();
+  for (const p of list) {
+    const c = String(p.type || "").trim().toLowerCase();
+    if (!c) { small.push(p); smallSeen.add(p); continue; }
+    if (!byClass.has(c)) byClass.set(c, { c, n: 0, women: [], men: [], kids: [] });
+    const a = byClass.get(c);
+    a.n++;
+    const g = p.g || "unisex";
+    if (g === "unisex") { a.women.push(p); a.men.push(p); } else a[g].push(p);
+  }
+  const classes = [...byClass.values()].sort((x, y) => y.n - x.n);
+  const adult = [], kids = [];
+  const keep = (l, key, title, into) => {
+    if (l.length >= 3) into.push({ key, title, items: l });
+    else for (const p of l) if (!smallSeen.has(p)) { smallSeen.add(p); small.push(p); }
+  };
+  for (const a of classes) for (const [g, label] of AISLE_GENDERS) keep(a[g], `tipo:${a.c}:${g}`, `${typeLabel(a.c)} ${label}`, adult);
+  for (const a of [...classes].sort((x, y) => y.kids.length - x.kids.length)) keep(a.kids, `tipo:${a.c}:kids`, `${typeLabel(a.c)} Niños`, kids);
+  const out = adult.concat(kids);
+  if (small.length) out.push({ key: "tipo:otros", title: "Más productos", items: small });
+  return out;
+}
+
 export function buildSections(list, opts = {}) {
-  const secs = buildSectionsRaw(list);
+  const secs = buildSectionsRaw(list, opts);
   for (const s of secs) {
     s.items = photosFirst(s.items);
     if (opts.interleave && (s.key === "ofertas" || s.key === "destacados")) s.items = interleaveFront(s.items);
   }
   return secs;
 }
-function buildSectionsRaw(list) {
+function buildSectionsRaw(list, opts = {}) {
   if (list.length && list.every((p) => p.retailer === PERFUME_STORE)) return buildPerfumeSections(list);
   const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
     .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
@@ -176,6 +206,7 @@ function buildSectionsRaw(list) {
      (not in the department made of nothing else). */
   const refurb = list.filter((p) => conditionOfTitle(p.title));
   if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", items: refurb });
+  if (opts.genderAisles) return sections.concat(genderAisles(list));
   const byType = {}, order = [];
   for (const p of list) {
     const t = (String(p.type || "").trim().toLowerCase()) || "__otros__";
@@ -265,12 +296,17 @@ export function allInRailOrder(sections, list) {
   return out;
 }
 
-/* The endpoint's copy of a department: one row per card plus its type. */
+/* The endpoint's copy of a department: one row per card plus its type,
+   and its gender where the department has a gender axis (Zapatos). */
 export function fnRow(p) {
-  return [p.title, p.brand || "", p.retailer, p.rawPrice, p.wasPrice || 0, p.salePct || 0, p.image || "", p.type || ""];
+  const r = [p.title, p.brand || "", p.retailer, p.rawPrice, p.wasPrice || 0, p.salePct || 0, p.image || "", p.type || ""];
+  if (p.g) r.push(p.g);
+  return r;
 }
 export function rowItem(r) {
-  return { title: r[0], brand: r[1], retailer: r[2], rawPrice: r[3], wasPrice: r[4], salePct: r[5], image: r[6], type: r[7] };
+  const p = { title: r[0], brand: r[1], retailer: r[2], rawPrice: r[3], wasPrice: r[4], salePct: r[5], image: r[6], type: r[7] };
+  if (r[8]) p.g = r[8];
+  return p;
 }
 
 /* The page's filters, unchanged: one store, and every word of the

@@ -41,7 +41,7 @@ import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
-import { isShoeForDept, footwearClass } from "./lib/footwear.js";
+import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -238,7 +238,10 @@ export function deptItems(all, key) {
   /* THE SHOE AISLES (#443 c.6405702652): the rails are Aria's classes
      (Zapatillas, Sandalias, Botas y botines...), not each store's own
      words -- sandals no longer split five ways or land in Zapatillas. */
-  if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer) }));
+  /* ...and in Zapatos each class is a Mujer and a Hombre aisle (#443
+     c.6412658814): the gender is read before the class replaces the
+     store's own type, which is where Farfetch says WOMEN or MEN. */
+  if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer), ...(key === "shoes" ? { g: shoeGender(p, p.bucket) } : {}) }));
   /* Stable sort: on sale first, then cheapest (the page's order). */
   return list
     .map((p, i) => ({ p, i }))

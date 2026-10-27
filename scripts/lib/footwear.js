@@ -163,8 +163,11 @@ const GENERIC_TYPE = /^\s*(men|mens|men's|women|womens|women's|kids|boys|girls|b
 const CATCHALL_TYPE = /^\s*(apparel|accessories|accesorios(\s+de\s+[\wáéíóúñ]+)?|other|otros|misc\w*)\s*$/i;
 
 /* Things that mention a shoe without being one: a Barbie "with
-   zapatillas", a "Boot Bouquet" enamel pin filed under Calzado. */
-const DEPT_VETO = /\b(enamel\s+pins?|blind\s+box|keychains?|key\s+chains?|stickers?|ornaments?|dolls?|muñecas?|barbie|lego|toys?|juguetes?|plush|peluches?|figures?|figurines?|pins?|skateboards?|surfskates?|longboards?|cruiser\s+boards?|wheels?|bearings?|griptape|grip\s+tape|gloves?|guantes?|liners?|hoods?|capuchas?|charms?|mittens?|laces)\b/i;
+   zapatillas", a "Boot Bouquet" enamel pin filed under Calzado; a "Flip
+   Flop Bracelet", dive-fin "Slide Rings", a "Horseshoes" decor piece and
+   a lunch set's "Food Jars, Boots", bridal "Shoe Clips" (the gender pass
+   surfaced them). */
+const DEPT_VETO = /\b(enamel\s+pins?|blind\s+box|keychains?|key\s+chains?|stickers?|ornaments?|dolls?|muñecas?|barbie|lego|toys?|juguetes?|plush|peluches?|figures?|figurines?|pins?|skateboards?|surfskates?|longboards?|cruiser\s+boards?|wheels?|bearings?|griptape|grip\s+tape|gloves?|guantes?|liners?|hoods?|capuchas?|charms?|mittens?|laces|bracelets?|anklets?|necklaces?|slide\s+rings?|horseshoes?|jars?|shoe\s+clips?)\b/i;
 
 export function isShoeForDept(item, retailer) {
   if (!item || typeof item !== "object") return false;
@@ -191,14 +194,67 @@ const CLASS_RULES = [
   ["Mocasines y pantuflas", /\b(slippers?|pantuflas?|loafers?|moccasins?|mocasines?|mules?|clogs?|zuecos?|espadrilles?|slip[- ]?ons?\s+loafers?)\b/i],
   ["Zapatillas", /\b(sneakers?|zapatillas?|trainers?|runners?|running|basketball|skate\s+shoes?|low[- ]?tops?|high[- ]?tops?|court|tennis\s+shoes?|chucks?|air\s+max|air\s+force|jordan|dunk|gel[- ]\w+|ultraboost|samba|gazelle|campus)\b/i],
 ];
-/* Parts of a shoe are not its class: a "heel tab" sneaker is a sneaker. */
-const SHOE_PART_RX = /\bheels?\s+(tabs?|counters?|pulls?|loops?|cups?|cushion\w*|support|clips?)\b/gi;
+/* Parts of a shoe are not its class: a "heel tab" sneaker is a sneaker,
+   a "Heel-less Loafer" a loafer, a "Flat Heel" slip-on a slip-on. */
+const SHOE_PART_RX = /\bheels?\s+(tabs?|counters?|pulls?|loops?|cups?|cushion\w*|support|clips?)\b|\bheel[- ]?less\b|\bflat\s+heels?\b/gi;
+/* A shoe its title calls a sneaker is never a heel, whatever else the
+   title says of its heel ("black leather heel sneakers", Farfetch). */
+const SNEAKER_WORD_RX = /\b(sneakers?|trainers?|zapatillas?)\b/i;
 export function footwearClass(item, retailer) {
   const title = String((item && (item.title || item.name)) || "").replace(SHOE_PART_RX, " ");
   const type = String((item && item.type) || "");
-  for (const [cls, rx] of CLASS_RULES) if (rx.test(title)) return cls;
+  for (const [cls, rx] of CLASS_RULES) if (rx.test(title) && !(cls === "Tacones" && SNEAKER_WORD_RX.test(title))) return cls;
   for (const [cls, rx] of CLASS_RULES) if (rx.test(type)) return cls;
   if (/\bSHOES?\b/i.test(type) || /\bshoes?\b|zapatos?/i.test(title)) return "Zapatos";
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return "Zapatillas";
   return "Zapatos";
+}
+
+/* ============================================================
+   THE GENDER AXIS (#443 c.6412658814, amended c.6412683747): the
+   Zapatos aisles are GENDER x CLASS -- Zapatillas Mujer / Zapatillas
+   Hombre, Sandalias Mujer / Sandalias Hombre... -- because "men and
+   women shoes are vastly just, you know, different."
+
+   Gender comes from the catalogue, never a guess, in the order
+   scripts/lib/department-map.js genderOfItem reads it: the title first
+   (kids wins, as there), then the store's own type (Farfetch files every
+   item under WOMEN or MEN), then the gendered bucket it was scraped from.
+   Footwear adds the words its titles really use: "Jr." and "Youth" sizes
+   are kids' cleats and skate shoes, and "Men’s" comes with a curly
+   apostrophe (Walmart) or a backtick (Tennis Express).
+
+   "unisex": the title says unisex, names both ("Womens Mens Basketball
+   Shoes"), or nothing in the data says -- a Crocs Classic Clog, a Vans
+   slide. Danny: "the ones that are unisex can go in both carousels", so
+   these earn the Mujer AND the Hombre rail of their class.
+   "kids": the Niños rails, never folded into the adult ones.
+   ============================================================ */
+const APOS = "['’`]?";
+/* "Girl" and "Baby" alone are style words in this catalogue (Bella Donna
+   "Sad Girl" and "Cry Baby" slides are adult): a girl is a kid as
+   "Girls", "Girl's"; a baby as a title that starts with it, "Baby
+   Boys"/"Baby Girls" (as department-map.js reads it) or a "Baby
+   Sneaker" -- never "Baby Blue Shoes". */
+const SHOE_KIDS_RX = new RegExp("\\b(kids?|toddlers?|infants?|ni[ñn][oa]s?|newborn|youth|juniors?|jr|little\\s+kids|big\\s+kids|preschool|grade\\s+school)" + APOS + "s?\\b|\\b(boys|girls|boy['’`]s|girl['’`]s)|\\bbaby\\s+(and\\s+toddler|boys?|girls?|(casual\\s+)?(sneakers?|shoes?|sandals?|boots?|clogs?))\\b|^(little|baby)\\s", "i");
+const SHOE_KIDS_SIZE_RX = /\((GS|PS|TD)\)/;
+const SHOE_WOMEN_RX = new RegExp("\\b(women" + APOS + "s?|womens|woman|ladies|lady|mujer(es)?|damas?|female)\\b", "i");
+const SHOE_MEN_RX = new RegExp("\\b(men" + APOS + "s?|mens|hombres?|caballeros?|male)\\b", "i");
+const SHOE_UNISEX_RX = /\bunisex\b/i;
+const TYPE_GENDER = { WOMEN: "women", WOMENS: "women", MUJER: "women", MEN: "men", MENS: "men", HOMBRE: "men", KIDS: "kids", "NIÑOS": "kids" };
+const BUCKET_GENDER = { women: "women", apparel_women: "women", moda_mujer: "women", men: "men", apparel_men: "men", moda_hombre: "men", kids: "kids", apparel_kids: "kids" };
+
+/** "women", "men", "kids" or "unisex" (both adult rails). `type` is the store's own, before footwearClass. */
+/* Brand names that carry a kids' word: Billionaire Boys Club is adult. */
+const KIDS_WORD_BRANDS_RX = /\bbillionaire\s+boys\s+club\b/gi;
+export function shoeGender(item, bucket) {
+  const title = String((item && (item.title || item.name)) || "").replace(KIDS_WORD_BRANDS_RX, " ");
+  if (SHOE_KIDS_RX.test(title) || SHOE_KIDS_SIZE_RX.test(title)) return "kids";
+  const w = SHOE_WOMEN_RX.test(title), m = SHOE_MEN_RX.test(title);
+  if (SHOE_UNISEX_RX.test(title) || (w && m)) return "unisex";
+  if (w) return "women";
+  if (m) return "men";
+  const t = TYPE_GENDER[String((item && item.type) || "").trim().toUpperCase()];
+  if (t) return t;
+  return BUCKET_GENDER[String(bucket || "")] || "unisex";
 }
