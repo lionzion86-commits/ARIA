@@ -48,16 +48,22 @@ await check("the page carries today's catalogue, and the census is the real one"
   assert.ok(embedded.census.autoParts > 1000, "the auto parts are missing");
 });
 
-await check("the standing Motos order: Ofertas, Cascos, Llantas, Accesorios, Repuestos, Equipaje, Equipo, Ropa last; auto parts their own rail", () => {
-  const keys = embedded.rails.map((r) => r.key);
-  assert.deepEqual(keys, ["ofertas", "cascos", "llantas", "accesorios", "repuestos", "autopartes", "equipaje", "equipo", "ropa"]);
-  assert.equal(keys.at(-1), "ropa");
-  for (const r of embedded.rails) {
-    assert.ok(r.cards.length >= 6, r.key + " has too few cards to be a shelf");
-    assert.ok(r.count >= r.cards.length);
-  }
+await check("autos first (#443 c.6441034782): basics of every car, then each store's Repuestos shelf; motos keeps the standing order, Ropa last", () => {
+  const A = embedded.autos;
+  assert.deepEqual(embedded.rails.map((r) => r.key), ["ofertas", "cascos", "llantas", "accesorios", "repuestos", "equipaje", "equipo", "ropa"]);
+  assert.equal(embedded.rails.at(-1).key, "ropa");
   assert.ok(embedded.rails[0].cards.every((c) => c.s >= 5), "a card in Ofertas is not on sale");
-  assert.deepEqual(CLASSES.map((c) => c.key), keys);
+  for (const r of embedded.rails) assert.ok(r.cards.length >= 6 && r.count >= r.cards.length, r.key);
+  /* the basics: part categories, with how many vehicles each covers */
+  assert.deepEqual(A.basics.slice(0, 3).map((b) => b.s), ["pastillas-de-freno", "bujias", "filtro-de-aceite"]);
+  for (const b of ["pastillas-de-freno", "bujias", "filtro-de-combustible"]) assert.ok(A.basics.some((x) => x.s === b), "no basics card for " + b);
+  for (const b of A.basics) assert.ok(b.vehicles > 0 && realPhoto(b.img) && b.q, b.s);
+  /* the stores' shelves: real data only, the accessories named as missing */
+  assert.deepEqual(A.rails.map((r) => r.key), ["advance-repuestos", "autozone-repuestos"]);
+  assert.deepEqual(A.missing, ["advance-accesorios", "autozone-accesorios"]);
+  for (const r of A.rails) assert.ok(r.cards.length >= 6 && r.cards.every((c) => realPhoto(c.i)), r.key);
+  assert.ok(A.rails[1].cards.every((c) => c.r === "autozone" && c.pn), "an AutoZone card lost its part number");
+  assert.ok(A.vehicles > 400 && A.parts > 3000);
 });
 
 await check("the classes read the titles honestly: gear is gear, hardware that borrows a gear word is not", () => {
@@ -72,7 +78,7 @@ await check("the classes read the titles honestly: gear is gear, hardware that b
   assert.equal(f("AGV K6 Helmet", "cascos"), "cascos");
 });
 
-await check("no image, no card: every card and tile is a real photo, never placeholder art", () => {
+await check("no image, no card: every card and tile is a real photo, never placeholder art -- the finder's parts too", () => {
   assert.equal(realPhoto("https://www.revzilla.com/product_images/missing_480x480.png"), "");
   assert.equal(realPhoto(""), "");
   assert.equal(realPhoto("http://insecure.example/x.jpg"), "");
@@ -81,6 +87,7 @@ await check("no image, no card: every card and tile is a real photo, never place
     for (const c of r.cards) assert.ok(realPhoto(c.i), `${r.key}: ${c.t} has no real photo`);
   }
   assert.match(HTML, /if \(!c \|\| !c\.i\) return '';/, "the card renderer lost its no-image guard");
+  assert.match(HTML, /function partCard\(it, vehicle, fitted\)\{\n  if \(!it \|\| !it\.img\) return '';/, "the finder draws parts without a photo");
   assert.doesNotMatch(HTML, /Sin imagen/);
 });
 
@@ -91,7 +98,7 @@ await check("its own addresses: auto.ariashop.pe and ariaauto.pe serve the front
   }
 });
 
-await check("every way into Aria Auto lands on the store, the vehicle finder is a tool inside it (#443 c.6440620713)", () => {
+await check("every way into Aria Auto lands on the store; the finder inside it is auto.html's own, copied unchanged", async () => {
   assert.match(readFileSync(ROOT + "index.html", "utf8"), /window\.openAriaAuto = function\(sourceKey\)\{[\s\S]{0,200}window\.location\.href = '\/aria-auto\.html';/);
   for (const f of ["carrito.html", "categorias.html", "como-funciona.html", "devoluciones.html", "keyclub.html", "marca.html", "auto.html"]) {
     const src = readFileSync(ROOT + f, "utf8");
@@ -99,7 +106,13 @@ await check("every way into Aria Auto lands on the store, the vehicle finder is 
     assert.match(src, /href="\/?aria-auto\.html"[^>]*>Aria Auto</, f + " has no Aria Auto link to the store");
   }
   assert.match(readFileSync(ROOT + "netlify.toml", "utf8"), /from = "\/auto"\s+to = "\/aria-auto\.html"\s+status = 200\s+force = true/);
-  assert.match(HTML, /<a class="aa-fit-go" href="auto\.html">/);
+  const { extractFinder } = await import("../build-aria-auto-front.mjs");
+  const f = extractFinder(ROOT);
+  assert.ok(HTML.includes(f.script) && HTML.includes(f.markup) && HTML.includes(f.css), "the store's finder drifted from auto.html -- run: node scripts/build-aria-auto-front.mjs");
+  /* the tiles and the nav stay inside Aria Auto */
+  const hdr = HTML.slice(HTML.indexOf('<header class="aa-hdr">'), HTML.indexOf("</header>"));
+  assert.doesNotMatch(hdr, /href="(motos|auto)\.html"/, "the header jumps out to the mall's old pages");
+  assert.match(hdr, /href="#autos"[^>]*>Autos<\/a>\s*<a href="#motos"[^>]*>Motos</, "Autos is not before Motos in the nav");
 });
 
 /* ---------------- the browser ---------------- */
@@ -134,50 +147,95 @@ async function open(path) {
   return { pg, errs };
 }
 
-await check("phone width: the first screen is an auto store of its own -- its header and parent line, no mall chrome, real cards, soles big", async () => {
+await check("phone width: autos-led by default -- its own header, the garage photo, Autos left and Motos right, the basics in the first screen, soles big", async () => {
   seen.length = 0;
   const { pg, errs } = await open(PAGE);
-  await pg.waitForFunction(() => document.querySelectorAll(".rail .card").length > 20 && /S\//.test(document.querySelector(".rail .price .pen").textContent), null, { timeout: 15000 });
+  await pg.waitForFunction(() => document.querySelectorAll("#aaBasics .aa-basic").length >= 4 && /S\//.test((document.querySelector("#aaAutoRails .price .pen") || {}).textContent || ""), null, { timeout: 15000 });
   const first = await pg.evaluate(() => {
-    const vis = (el) => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
+    const onScreen = (el) => { const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0 && r.left < innerWidth; };
     return {
       mark: document.querySelector(".aa-mark").textContent.trim(),
       parent: document.querySelector(".aa-parent").textContent.trim(),
       h1: document.querySelector("h1").textContent,
       mallChrome: !!document.querySelector(".hdr, #assistantPanel, #ariaLauncher"),
-      firstScreenCards: [...document.querySelectorAll(".rail .card")].filter((c) => { const r = c.getBoundingClientRect(); return r.top < innerHeight && r.left < innerWidth && r.bottom > 0; }).length,
-      firstShelves: [...document.querySelectorAll("#aaRailsTop .aa-sec")].map((x) => x.id),
-      fitAfterTop: !!document.querySelector("#aaRailsTop + .aa-fit"),
-      tiles: document.querySelectorAll(".aa-tile").length,
-      tileOrder: [...document.querySelectorAll(".aa-tile b")].map((b) => b.textContent),
+      ctas: [...document.querySelectorAll(".aa-ctas a")].map((a) => a.childNodes[0].textContent.trim()),
+      autosShown: !document.getElementById("autos").hidden,
+      motosHidden: document.getElementById("motos").hidden,
+      basicsOnScreen: [...document.querySelectorAll("#aaBasics .aa-basic")].filter(onScreen).length,
+      basicCall: (document.querySelector("#aaBasics .aa-basic .go") || {}).textContent,
+      order: [...document.querySelectorAll("#autos > section, #autos > div > section")].map((x) => x.id || x.querySelector("h2").id),
+      railTitles: [...document.querySelectorAll("#aaAutoRails h2")].map((h) => h.childNodes[0].textContent.trim()),
+      finder: !!document.querySelector("#aaFinder #autoYear") && !!document.querySelector("#aaFinder #partQuery"),
       overflow: document.documentElement.scrollWidth - innerWidth,
-      pen: getComputedStyle(document.querySelector(".rail .price .pen")).fontSize,
-      usd: getComputedStyle(document.querySelector(".rail .price .usd")).fontSize,
-      noImgCards: [...document.querySelectorAll(".rail .card")].filter((c) => !c.querySelector("img")).length,
+      pen: getComputedStyle(document.querySelector("#aaAutoRails .price .pen")).fontSize,
+      usd: getComputedStyle(document.querySelector("#aaAutoRails .price .usd")).fontSize,
       emoji: /\p{Extended_Pictographic}/u.test(document.body.innerText),
-      retailerLinks: [...document.querySelectorAll("a[href]")].filter((a) => /^https?:\/\/[^/]*(revzilla|denniskirk|advanceautoparts)\./i.test(a.href)).length,
+      retailerLinks: [...document.querySelectorAll("a[href]")].filter((a) => /^https?:\/\/[^/]*(revzilla|denniskirk|advanceautoparts|autozone)\./i.test(a.href)).length,
     };
   });
   assert.equal(first.mark, "Aria Auto");
   assert.equal(first.parent, "by Aria Shop — ARIA SHOP LLC");
-  assert.match(first.h1, /moto.*auto/);
-  assert.equal(first.mallChrome, false, "the mall's header or assistant is on the front door");
-  /* A store, not a landing page (#443 c.6431103818): real products with
-     prices in the first screen, the deals and the auto parts first, the
-     vehicle finder as a tool after them. */
-  assert.ok(first.firstScreenCards >= 2, "no products in the first screen: " + first.firstScreenCards);
-  assert.deepEqual(first.firstShelves, ["ofertas", "autopartes"]);
-  assert.equal(first.fitAfterTop, true, "the vehicle finder is not a tool inside the store");
-  /* The garage photograph's slot: a missing file removes itself, leaving the blue. */
-  assert.match(HTML, /<img class="aa-hero-photo" src="assets\/aria-auto\/garage-hero\.jpg" alt="" aria-hidden="true"[^>]*onerror="this\.remove\(\)">/);
-  assert.deepEqual(first.tileOrder, ["Ofertas", "Cascos", "Llantas", "Accesorios", "Repuestos de moto", "Repuestos de auto", "Equipaje", "Equipo de protección", "Ropa"]);
+  assert.ok(first.h1.indexOf("auto") < first.h1.indexOf("moto"), "the headline does not lead with the auto: " + first.h1);
+  assert.equal(first.mallChrome, false);
+  assert.deepEqual(first.ctas, ["Autos", "Motos"], "Autos is not the left tile");
+  assert.equal(first.autosShown, true, "the address does not land on the car section");
+  assert.equal(first.motosHidden, true);
+  assert.ok(first.basicsOnScreen >= 2, "no part categories in the first screen: " + first.basicsOnScreen);
+  assert.equal(first.basicCall, "ELIGE TU AÑO, MARCA Y MODELO");
+  assert.deepEqual(first.order, ["basicsH", "advance-repuestos", "autozone-repuestos", "buscar"], "the car section's order: " + first.order.join(", "));
+  assert.deepEqual(first.railTitles, ["Advance Auto Parts — Repuestos", "AutoZone — Repuestos"]);
+  assert.equal(first.finder, true, "the part lookup is not inside the store");
   assert.ok(first.overflow <= 0, "the page scrolls sideways on a phone: " + first.overflow + "px");
   assert.ok(parseFloat(first.pen) > parseFloat(first.usd) * 1.3, "soles are not the big price");
-  assert.equal(first.noImgCards, 0);
-  assert.equal(first.emoji, false, "an emoji on the page");
+  assert.equal(first.emoji, false);
   assert.equal(first.retailerLinks, 0, "a link out to a retailer");
-  assert.ok(!seen.some((p) => /-catalog\.json|catalog-index|department-cache|\/_fn\//.test(p)), "the front door downloaded a catalogue: " + seen.filter((p) => /json/.test(p)).join(", "));
+  assert.ok(!seen.some((p) => /-catalog\.json|auto-cache|catalog-index|department-cache|\/_fn\//.test(p)), "the front door downloaded a catalogue");
+  assert.match(HTML, /<img class="aa-hero-photo" src="assets\/aria-auto\/garage-hero\.jpg" alt="" aria-hidden="true"[^>]*onerror="this\.remove\(\)">/);
   if (process.env.ARIA_AUTO_SHOT) await pg.screenshot({ path: process.env.ARIA_AUTO_SHOT, fullPage: false });
+  assert.deepEqual(errs, []);
+  await pg.close();
+});
+
+await check("one storefront, two sections: the Motos tile opens the motorcycle section (Ofertas first), the logo brings back the autos", async () => {
+  const { pg, errs } = await open(PAGE);
+  await pg.waitForFunction(() => document.querySelectorAll("#aaBasics .aa-basic").length >= 4, null, { timeout: 15000 });
+  await pg.click('.aa-ctas a[data-go="motos"]');
+  await pg.waitForFunction(() => !document.getElementById("motos").hidden, null, { timeout: 5000 });
+  const m = await pg.evaluate(() => ({ url: location.href, autos: document.getElementById("autos").hidden, first: (document.querySelector("#aaRailsTop .aa-sec") || {}).id, tiles: document.querySelectorAll("#aaTiles .aa-tile").length }));
+  assert.match(m.url, /aria-auto\.html#motos$/, "the Motos tile left Aria Auto");
+  assert.deepEqual([m.autos, m.first], [true, "ofertas"]);
+  assert.ok(m.tiles >= 8);
+  await pg.click(".aa-brand");
+  await pg.waitForFunction(() => !document.getElementById("autos").hidden && document.getElementById("motos").hidden, null, { timeout: 10000 });
+  assert.deepEqual(errs, []);
+  await pg.close();
+});
+
+await check("a basics card opens the vehicle pick, and once the car is chosen the parts that fit it appear -- the lookup works", async () => {
+  const { pg, errs } = await open(PAGE);
+  await pg.waitForFunction(() => document.querySelectorAll("#autoYear option").length > 3, null, { timeout: 15000 });
+  await pg.click('#aaBasics .aa-basic[data-q="pastillas de freno"]');
+  assert.equal(await pg.evaluate(() => document.getElementById("partQuery").value), "pastillas de freno");
+  /* pick the first car the index stocks for brake pads */
+  const pick = await pg.evaluate(async () => {
+    const idx = await (await fetch("/assets/auto/index.json")).json();
+    const at = idx.parts.findIndex((p) => p.s === "pastillas-de-freno");
+    const v = idx.vehicles.find((k) => (idx.has[k] || []).includes(at)).split("|");
+    return v;
+  });
+  const choose = async (id, val) => pg.evaluate(([id, val]) => {
+    const sel = document.getElementById(id);
+    const opt = [...sel.options].find((o) => o.value && (o.value.toLowerCase() === val || o.textContent.trim().toLowerCase().replace(/\s+/g, "-") === val));
+    sel.value = opt.value; sel.dispatchEvent(new Event("change", { bubbles: true }));
+    return opt.value;
+  }, [id, val]);
+  await choose("autoYear", pick[0]);
+  await choose("autoMake", pick[1]);
+  await choose("autoModel", pick[2]);
+  await pg.waitForFunction(() => document.querySelectorAll("#aaFinder #results .pcard:not(.sk)").length > 0, null, { timeout: 20000 });
+  const out = await pg.evaluate(() => ({ cards: document.querySelectorAll("#aaFinder #results .pcard:not(.sk)").length, fit: /Compatible con tu/.test(document.getElementById("results").textContent), noImg: [...document.querySelectorAll("#aaFinder #results .pcard:not(.sk)")].filter((c) => !c.querySelector("img")).length }));
+  assert.ok(out.cards > 0 && out.fit, JSON.stringify(out));
+  assert.equal(out.noImg, 0, "a part without a photo was drawn");
   assert.deepEqual(errs, []);
   await pg.close();
 });

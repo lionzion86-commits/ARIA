@@ -89,32 +89,29 @@ for (const name of want) {
   const t0 = Date.now();
   await page.goto(`${BASE}/aria-auto.html`, { waitUntil: "commit" });
   await page.waitForFunction(() => {
-    const c = document.querySelector(".rail .card");
+    const c = document.querySelector("#aaBasics .aa-basic") || document.querySelector(".rail .card");
     return c && c.getBoundingClientRect().top < innerHeight * 3;
   }, null, { timeout: 120000, polling: 50 });
   const firstCards = Date.now() - t0;
   await page.waitForFunction(() => /S\//.test((document.querySelector(".rail .price .pen") || {}).textContent || ""), null, { timeout: 120000, polling: 100 });
   const soles = Date.now() - t0;
 
-  /* First tap: from the tap on the first tile to the navigation it
-     starts, as soon as the prices are painted (the shopper does not wait
-     for the photos to settle). The page's own handling is measured too:
-     the Event Timing entry's processing delay. */
+  /* First tap: the Motos doorway (a section of this page, no navigation),
+     as soon as the prices are painted. Measured as the page's own input
+     delay (the tap's timestamp to its handler) and the time until the
+     motorcycle section is on screen. */
   await page.evaluate(() => {
-    /* The page's input delay: from the tap's own timestamp to the moment
-       the page's main thread got to handle it. Kept across the navigation. */
-    const note = (e) => { try { if (!sessionStorage.getItem("__tapDelay")) sessionStorage.setItem("__tapDelay", String(Math.round(performance.now() - e.timeStamp))); } catch (x) {} };
+    window.__tapDelay = null;
+    const note = (e) => { if (window.__tapDelay == null) window.__tapDelay = Math.round(performance.now() - e.timeStamp); };
     addEventListener("pointerdown", note, true);
     addEventListener("click", note, true);
   });
-  const tile = page.locator(".aa-tile").first();
-  const navStarted = page.waitForEvent("request", (r) => r.isNavigationRequest() && /motos\.html/.test(r.url()), { timeout: 30000 });
+  const door = page.locator('.aa-ctas a[data-go="motos"]');
   const tTap = Date.now();
-  if (P.ctx.hasTouch) await tile.tap(); else await tile.click();
-  await navStarted;
+  if (P.ctx.hasTouch) await door.tap(); else await door.click();
+  await page.waitForFunction(() => !document.getElementById("motos").hidden, null, { timeout: 30000, polling: 20 });
   const firstTap = Date.now() - tTap;
-  await page.waitForURL(/motos\.html/, { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
-  const inputDelay = await page.evaluate(() => Number(sessionStorage.getItem("__tapDelay"))).catch(() => null);
+  const inputDelay = await page.evaluate(() => window.__tapDelay);
 
   const row = { profile: name, firstCards, soles, firstTap, inputDelay, kb: Math.round(bytes / 1024), kbNoPhotos: Math.round((bytes - imgBytes) / 1024), catalogue: cat.length };
   rows.push(row);

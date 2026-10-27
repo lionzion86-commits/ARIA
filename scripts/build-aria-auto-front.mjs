@@ -74,7 +74,6 @@ export const CLASSES = [
   { key: "llantas", label: "Llantas", href: "motos.html?t=llantas" },
   { key: "accesorios", label: "Accesorios", href: "motos.html?t=accesorios" },
   { key: "repuestos", label: "Repuestos de moto", href: "motos.html?t=repuestos" },
-  { key: "autopartes", label: "Repuestos de auto", href: "auto.html" },
   { key: "equipaje", label: "Equipaje", href: "motos.html?t=accesorios&q=bag" },
   { key: "equipo", label: "Equipo de protección", href: "motos.html?t=ropa_equipo" },
   { key: "ropa", label: "Ropa", href: "motos.html?t=ropa_equipo" },
@@ -133,22 +132,134 @@ export function loadAutoParts(root = ROOT) {
   return out;
 }
 
+/* ---------------- THE AUTOS SECTION (#443 c.6441034782, c.6441108929,
+   c.6441157548: Danny's autos-first ruling) ----------------
+
+   BASICS: the everyday parts every car needs, one card per part
+   CATEGORY (never one SKU): a real AutoZone photo of that kind of part,
+   how many vehicles the store carries it for, and the call
+   "ELIGE TU AÑO, MARCA Y MODELO", which opens the vehicle pick and
+   only then shows what fits that car. Batteries are not in the data,
+   so they have no card. */
+export const BASICS = [
+  { s: "pastillas-de-freno", label: "Pastillas de freno", type: "Brake Pads" },
+  { s: "bujias", label: "Bujías", type: "Spark Plugs" },
+  { s: "filtro-de-aceite", label: "Filtros de aceite", type: "Oil Filter" },
+  { s: "filtro-de-aire", label: "Filtros de aire", type: "Air Filter" },
+  { s: "filtro-de-combustible", label: "Filtros de combustible", type: "Fuel Filter" },
+  { s: "limpiaparabrisas", label: "Plumillas limpiaparabrisas", type: "Windshield Wiper Blade" },
+  { s: "filtro-de-aire-de-cabina", label: "Filtros de aire de cabina", type: "Cabin Air Filter" },
+  { s: "bobina-de-encendido", label: "Bobinas de encendido", type: "Ignition Coil" },
+];
+
+/** AutoZone's priced, photographed parts from the auto cache, one per part number. */
+export function loadAutoZone(root = ROOT) {
+  const c = JSON.parse(readFileSync(join(root, "auto-cache.json"), "utf8"));
+  const seen = new Set(), out = [];
+  for (const v of Object.values(c.partSearches || {})) {
+    for (const it of (v && v.autozone) || []) {
+      const pn = it.part_number || "";
+      const title = it.productTitle || "";
+      const price = Number(it.discounted_price || it.price);
+      const img = realPhoto(it.thumbnail || (it.images && it.images[0]));
+      if (!title || !(price > 0) || !img) continue;
+      const key = pn || title;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ title, brand: it.brand || "", retailer: "autozone", rawPrice: price, salePct: 0, wasPrice: 0, image: img, type: it.part_type || "", pn });
+    }
+  }
+  return out;
+}
+
+export function buildAutos(root = ROOT) {
+  const idx = JSON.parse(readFileSync(join(root, "assets/auto/index.json"), "utf8"));
+  const az = loadAutoZone(root);
+  const adv = loadAutoParts(root).filter((p) => (p.image = realPhoto(p.image)));
+  const basics = [];
+  for (const b of BASICS) {
+    const at = idx.parts.findIndex((x) => x.s === b.s);
+    if (at < 0) continue;
+    const vehicles = Object.values(idx.has).filter((l) => l.includes(at)).length;
+    const pick = az.filter((p) => p.type === b.type).sort((a, z) => z.rawPrice - a.rawPrice)[0];
+    if (!vehicles || !pick) continue;   // no data, no card
+    basics.push({ s: b.s, label: b.label, q: idx.parts[at].es, vehicles, img: pick.image });
+  }
+  /* A card for an AutoZone part carries its part number, which is how
+     the product page and the finder confirm the fit. */
+  const azCard = (p) => ({ ...card(p), pn: p.pn });
+  const rails = [
+    { key: "advance-repuestos", store: "Advance Auto Parts", label: "Repuestos", href: "#buscar", count: adv.length, cards: pickRail(adv).map(card) },
+    { key: "autozone-repuestos", store: "AutoZone", label: "Repuestos", href: "#buscar", count: az.length, cards: pickRail(az).map(azCard) },
+  ].filter((r) => r.cards.length);
+  return {
+    basics,
+    rails,
+    vehicles: idx.vehicles.length,
+    makes: idx.makes.length,
+    /* No accessories in either store's data yet: those rails ship when
+       the data is real (c.6441034782 item 3), never with filler. */
+    missing: ["advance-accesorios", "autozone-accesorios"],
+    parts: az.length + adv.length,
+  };
+}
+
+/* ---------------- THE FINDER, FROM auto.html ----------------
+   The car section's part lookup is auto.html's own finder (year, make,
+   model, then a part name or number against the auto catalogue): its
+   markup and script are copied in here, so there is one finder, and
+   its stylesheet is scoped under #aaFinder so it cannot touch the
+   store's own cards. aria-auto-front-tests fails if the copy drifts. */
+const SKIP_CSS = /^(:root|\*|html|body|a|\.wrap|\.topbar.*|\.mainnav.*|\.brand.*|\.navlinks.*|\.hero.*|\.kicker|footer.*)$/;
+function scopeCss(css) {
+  const out = [];
+  let i = 0;
+  const block = (from) => { let d = 0, j = css.indexOf("{", from); for (; j < css.length; j++) { if (css[j] === "{") d++; else if (css[j] === "}" && --d === 0) break; } return j; };
+  while (i < css.length) {
+    const open = css.indexOf("{", i);
+    if (open < 0) break;
+    const head = css.slice(i, open).replace(/\/\*[\s\S]*?\*\//g, "").trim();
+    const close = block(open);
+    const body = css.slice(open + 1, close);
+    i = close + 1;
+    if (head.startsWith("@keyframes")) { out.push(head.replace(/@keyframes\s+(\S+)/, "@keyframes aaf-$1") + "{" + body + "}"); continue; }
+    if (head.startsWith("@media")) { const inner = scopeCss(body); if (inner) out.push(head + "{" + inner + "}"); continue; }
+    if (head === ":root") { out.push("#aaFinder{" + body.trim() + "}"); continue; }
+    const sels = head.split(",").map((x) => x.trim()).filter((x) => x && !SKIP_CSS.test(x));
+    if (!sels.length) continue;
+    out.push(sels.map((x) => "#aaFinder " + x.replace(/^\.card\b/, ".fcard")).join(",") + "{" + body.trim().replace(/animation:\s*(spin|sh)\b/g, "animation:aaf-$1") + "}");
+  }
+  return out.join("\n");
+}
+export function extractFinder(root = ROOT) {
+  const page = readFileSync(join(root, "auto.html"), "utf8").replace(/\r\n/g, "\n");
+  const css = page.slice(page.indexOf("<style>") + 7, page.indexOf("</style>"));
+  const banner = page.slice(page.indexOf('<div id="fatalBanner"'), page.indexOf("</div>\n</div>", page.indexOf('<div id="fatalBanner"')) + 13);
+  const m0 = page.indexOf("<!-- STEP 1: vehicle -->");
+  const m1 = page.indexOf('<div id="results"', m0);
+  const markup = page.slice(m0, page.indexOf("</div>", m1) + 6).replace(/class="card(\s|")/g, 'class="fcard$1');
+  const toast = '<div id="toast" role="status" aria-live="polite"></div>';
+  const s0 = page.indexOf('<script>\n"use strict";');
+  const script = page.slice(s0 + 8, page.indexOf("</script>", s0));
+  if (m0 < 0 || m1 < 0 || s0 < 0 || !banner.includes("fatalMsg")) throw new Error("auto.html: the finder moved -- update build-aria-auto-front.mjs");
+  return { css: scopeCss(css), markup: banner + "\n" + markup + "\n" + toast, script };
+}
+
 export function buildFront(root = ROOT) {
   const motos = loadMotoItems(root);
   const autos = loadAutoParts(root);
   const census = { motos: motos.length, revzilla: motos.filter((p) => p.retailer === "revzilla").length, denniskirk: motos.filter((p) => p.retailer === "denniskirk").length, autoParts: autos.length };
   const shown = (list) => list.filter((p) => (p.image = realPhoto(p.image)));
   const motoShown = shown(motos), autoShown = shown(autos);
-  const byClass = { autopartes: autoShown };
+  const byClass = {};
   for (const p of motoShown) (byClass[frontClass(p)] = byClass[frontClass(p)] || []).push(p);
-  const countAll = { ofertas: motos.filter((p) => p.salePct > 0).length, autopartes: autos.length };
+  const countAll = { ofertas: motos.filter((p) => p.salePct > 0).length };
   for (const p of motos) countAll[frontClass(p)] = (countAll[frontClass(p)] || 0) + 1;
   /* Ofertas shows the range: the best sale of each class in turn. */
   const saleLanes = CLASSES.filter((c) => c.key !== "ofertas").map((c) => pickRail((byClass[c.key] || []).filter((p) => p.salePct > 0)));
   const ofertas = [];
   for (let i = 0; ofertas.length < RAIL_CARDS && saleLanes.some((l) => i < l.length); i++) for (const l of saleLanes) if (l[i] && ofertas.length < RAIL_CARDS) ofertas.push(l[i]);
   byClass.ofertas = ofertas;
-  countAll.ofertas += autos.filter((p) => p.salePct > 0).length;
   const rails = [];
   for (const c of CLASSES) {
     const list = byClass[c.key] || [];
@@ -156,23 +267,30 @@ export function buildFront(root = ROOT) {
     const picked = c.key === "ofertas" ? list : pickRail(list);
     rails.push({ key: c.key, label: c.label, href: c.href, count: countAll[c.key] || 0, img: picked[0].image, cards: picked.map(card) });
   }
-  return { v: 1, census, rails };
+  return { v: 1, census, rails, autos: buildAutos(root) };
 }
 
+function between(html, start, end, inner) {
+  const a = html.indexOf(start), b = html.indexOf(end);
+  if (a < 0 || b < a) throw new Error(`${PAGE}: ${start} markers missing`);
+  return html.slice(0, a) + start + inner + html.slice(b);
+}
 export function writePage(root = ROOT) {
   const front = buildFront(root);
+  const finder = extractFinder(root);
   const file = join(root, PAGE);
-  const html = readFileSync(file, "utf8");
-  const a = html.indexOf(START), b = html.indexOf(END);
-  if (a < 0 || b < a) throw new Error(`${PAGE}: data markers missing`);
+  let html = readFileSync(file, "utf8");
   /* </ in a title can never close the script. */
   const json = JSON.stringify(front).replace(/</g, "\\u003c");
-  const block = `${START}<script type="application/json" id="ariaAutoData">${json}</script>`;
-  writeFileSync(file, html.slice(0, a) + block + html.slice(b));
+  html = between(html, START, END, `<script type="application/json" id="ariaAutoData">${json}</script>`);
+  html = between(html, "/*ARIA-AUTO-FINDER-CSS*/", "/*/ARIA-AUTO-FINDER-CSS*/", "\n" + finder.css + "\n");
+  html = between(html, "<!--ARIA-AUTO-FINDER-->", "<!--/ARIA-AUTO-FINDER-->", "\n" + finder.markup + "\n");
+  html = between(html, "<!--ARIA-AUTO-FINDER-JS-->", "<!--/ARIA-AUTO-FINDER-JS-->", "<script>\n" + finder.script + "</script>");
+  writeFileSync(file, html);
   return front;
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const f = writePage();
-  console.log(`census ${JSON.stringify(f.census)}; rails ${f.rails.map((r) => r.key + ":" + r.cards.length + "/" + r.count).join(" ")}`);
+  console.log(`census ${JSON.stringify(f.census)}; rails ${f.rails.map((r) => r.key + ":" + r.cards.length + "/" + r.count).join(" ")}; autos basics ${f.autos.basics.map((b) => b.s + ":" + b.vehicles).join(" ")} rails ${f.autos.rails.map((r) => r.key + ":" + r.cards.length + "/" + r.count).join(" ")}`);
 }
