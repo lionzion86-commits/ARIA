@@ -30,6 +30,30 @@
 [functions."search"]
   included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json"]
 
+# ARIA AUTO, ITS OWN ADDRESS (#443 c.6427505203 + c.6428323317): the
+# front door auto-industry reviewers are sent to. The root of each
+# address serves aria-auto.html; every other path on them is the same
+# site (motos.html, auto.html, producto.html...). The domains must be
+# added to the Netlify site as aliases, and DNS pointed at it, before
+# these rules see traffic.
+[[redirects]]
+  from = "https://auto.ariashop.pe/"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://ariaauto.pe/"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://www.ariaauto.pe/"
+  to = "/aria-auto.html"
+  status = 200
+  force = true
+
 # /api/* is the public name for the functions the front end calls. The
 # realtime token endpoint is the one that matters: the build spec curls
 # /api/realtime-token, and until this redirect existed that path 404'd

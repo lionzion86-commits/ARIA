@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aria Auto — Repuestos y equipo para tu moto y tu auto</title>
+<meta name="description" content="Aria Auto: cascos, llantas, repuestos y equipo para moto de RevZilla y Dennis Kirk, y repuestos de auto de Advance Auto Parts, con precios en soles. Una tienda de Aria Shop (ARIA SHOP LLC).">
+<meta name="theme-color" content="#0B0D10">
+<!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
+<script src="sale-rule.js"></script>
+<!-- ==================================================================
+     ARIA AUTO, ITS OWN STORE (#443 c.6427505203 + c.6428323317, Danny
+     2026-10-26: "it looks like just a page within a page -- make it its
+     own thing").
+
+     The address auto-industry reviewers are sent to: auto.ariashop.pe
+     and ariaauto.pe both serve this file (netlify.toml). Its own header,
+     hero and storefront; the parent line (by Aria Shop -- ARIA SHOP LLC)
+     is the only sign of the mall behind it. Every tile and card routes
+     into the existing sections (motos.html, auto.html, producto.html).
+
+     The tiles and rails are written into this file by
+     scripts/build-aria-auto-front.mjs (between the data markers), so the
+     first screen draws real products with no catalogue request.
+     ================================================================== -->
+<style>
+  :root{
+    --asphalt:#0B0D10; --asphalt2:#15181D; --steel:#2A2F37; --chrome:#C9CED6;
+    --amber:#FFB020; --amber2:#E89400; --red:#E63946;
+    --paper:#F6F6F4; --line:#E4E6EC; --ink:#0F1115; --mut:#6B7280;
+    --navy:#0F1115; --yellow:#FFC72C; --blue:#2F5FEE;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  a{color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+  /* ---- its own header ---- */
+  .aa-hdr{background:var(--asphalt);color:#fff;position:sticky;top:0;z-index:50;border-bottom:3px solid var(--amber)}
+  .aa-hdr .wrap{display:flex;align-items:center;gap:16px;min-height:62px}
+  .aa-brand{display:flex;flex-direction:column;text-decoration:none;line-height:1}
+  .aa-mark{font-weight:900;font-size:22px;letter-spacing:.14em;text-transform:uppercase}
+  .aa-mark b{color:var(--amber);font-weight:900}
+  .aa-parent{font-size:10px;letter-spacing:.04em;color:var(--chrome);margin-top:5px;font-weight:600;white-space:nowrap}
+  .aa-nav{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+  .aa-nav::-webkit-scrollbar{display:none}
+  .aa-nav a{color:#E5E7EB;text-decoration:none;font-weight:700;font-size:13.5px;padding:8px 10px;border-radius:8px;white-space:nowrap}
+  .aa-nav a:hover{background:var(--steel)}
+  @media(max-width:560px){ .aa-nav a.opt{display:none} .aa-nav a{padding:8px 7px;font-size:13px} .aa-mark{font-size:19px} }
+  /* ---- hero ---- */
+  .aa-hero{background:linear-gradient(135deg,var(--asphalt) 0%,var(--asphalt2) 60%,#1F242B 100%);color:#fff;position:relative;overflow:hidden}
+  .aa-hero::before{content:"";position:absolute;inset:auto -20% -40% auto;width:70%;height:140%;background:repeating-linear-gradient(115deg,rgba(255,176,32,.10) 0 14px,transparent 14px 46px);transform:skewX(-12deg);pointer-events:none}
+  .aa-hero .wrap{position:relative;display:grid;gap:16px;padding:20px 16px 20px}
+  @media(min-width:860px){ .aa-hero .wrap{grid-template-columns:1.1fr .9fr;align-items:center;padding:48px 16px} }
+  .aa-kicker{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--amber)}
+  .aa-hero h1{font-size:clamp(27px,7vw,52px);font-weight:900;letter-spacing:-.025em;line-height:1.04;margin:8px 0 10px}
+  .aa-hero h1 em{font-style:normal;color:var(--amber)}
+  .aa-hero p{margin:0;color:#B9C0CA;font-size:14.5px;max-width:52ch}
+  .aa-ctas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;max-width:460px}
+  .aa-cta{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:56px;padding:8px 14px;border-radius:12px;text-decoration:none;font-weight:800;font-size:15px;line-height:1.15}
+  .aa-cta.moto{background:var(--amber);color:#111}
+  .aa-cta.auto{background:#fff;color:#111}
+  .aa-cta small{font-weight:700;font-size:11.5px;opacity:.7}
+  .aa-proof{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:11.5px;color:var(--chrome)}
+  .aa-proof strong{color:#fff;font-size:15px;display:block;font-weight:900}
+  .aa-mosaic{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .aa-mosaic a{background:#fff;border-radius:14px;aspect-ratio:1/1;overflow:hidden;position:relative;display:block}
+  .aa-mosaic img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px}
+  .aa-mosaic span{position:absolute;left:8px;bottom:8px;background:rgba(11,13,16,.82);color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px}
+  /* ---- search ---- */
+  .aa-search{background:#fff;border-bottom:1px solid var(--line)}
+  .aa-search form{display:flex;gap:8px;padding:12px 0}
+  .aa-search input{flex:1;min-width:0;height:46px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:15px;font-family:inherit}
+  .aa-search button{height:46px;padding:0 18px;border:0;border-radius:12px;background:var(--asphalt);color:#fff;font-weight:800;font-size:14px;font-family:inherit;cursor:pointer}
+  /* ---- category tiles ---- */
+  .aa-sec{padding:22px 0 6px}
+  .aa-sec h2{font-size:20px;font-weight:900;letter-spacing:-.01em;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
+  .aa-sec h2 a{margin-left:auto;font-size:13px;font-weight:800;color:var(--amber2);text-decoration:none;white-space:nowrap}
+  .aa-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media(min-width:860px){ .aa-tiles{grid-template-columns:repeat(9,1fr)} }
+  .aa-tile{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;display:flex;flex-direction:column}
+  .aa-tile .ph{aspect-ratio:1/1;position:relative;background:#F2F3F6}
+  .aa-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:6px}
+  .aa-tile b{font-size:12.5px;font-weight:800;padding:8px 8px 0;line-height:1.2}
+  .aa-tile small{font-size:11px;color:var(--mut);padding:2px 8px 9px}
+  /* ---- rails ---- */
+  .rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(156px,44%);gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity;scrollbar-width:thin}
+  @media(min-width:640px){ .rail{grid-auto-columns:minmax(180px,22%)} }
+  @media(min-width:1024px){ .rail{grid-auto-columns:minmax(180px,16%)} }
+  .rail > *{scroll-snap-align:start}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative;text-decoration:none;color:inherit;min-width:0}
+  .card-img{position:relative;width:100%;aspect-ratio:1/1;background:#F2F3F6;overflow:hidden}
+  @supports not (aspect-ratio:1/1){ .card-img{height:0;padding-top:100%} }
+  .card-img img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain}
+  .card-body{padding:12px 12px 14px;display:flex;flex-direction:column;flex:1}
+  .card-retailer{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8A93A8;margin-bottom:4px;min-height:14px}
+  .card-brand{font-size:11px;font-weight:700;color:#6B7487;margin-bottom:2px;min-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-title{font-size:13px;line-height:1.35;color:#4A5568;font-weight:400;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+  /* SOLES FIRST (#416): the bold price is what a shopper in Peru pays. */
+  .price{margin-top:auto;min-height:40px}
+  .price .pen{font-size:16px;font-weight:800;color:var(--ink)}
+  .price .was{font-size:11.5px;color:#8A93A8;text-decoration:line-through;margin-left:5px;font-weight:400}
+  .price .usd{font-size:11.5px;color:#8A93A8;margin-top:2px}
+  .price .pen i{display:block;height:16px;width:45%;border-radius:5px;background:var(--line);margin:3px 0}
+  /* Yellow is for sale badges only. */
+  .badge{position:absolute;top:10px;left:10px;z-index:1;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--yellow);color:#111}
+  /* ---- how it works + footer ---- */
+  .aa-how{display:grid;gap:10px;margin:26px 0 8px}
+  @media(min-width:760px){ .aa-how{grid-template-columns:repeat(3,1fr)} }
+  .aa-how div{background:var(--asphalt);color:#E5E7EB;border-radius:14px;padding:16px}
+  .aa-how b{display:block;color:var(--amber);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+  .aa-how p{margin:0;font-size:14px}
+  .aa-foot{background:var(--asphalt);color:var(--chrome);margin-top:28px;padding:26px 0 30px;font-size:13px}
+  .aa-foot .wrap{display:grid;gap:10px}
+  .aa-foot strong{color:#fff;letter-spacing:.12em;text-transform:uppercase}
+  .aa-foot nav{display:flex;gap:16px;flex-wrap:wrap}
+  .aa-foot a{color:#fff;text-decoration:none;font-weight:700}
+</style>
+<script src="/ref.js"></script>
+<!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
+<script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
+<script src="/assets/js/pixels.js" async></script>
+</head>
+<body>
+
+<header class="aa-hdr">
+  <div class="wrap">
+    <a class="aa-brand" href="aria-auto.html" aria-label="Aria Auto — inicio">
+      <span class="aa-mark">Aria <b>Auto</b></span>
+      <span class="aa-parent">by Aria Shop — ARIA SHOP LLC</span>
+    </a>
+    <nav class="aa-nav" aria-label="Aria Auto">
+      <a href="motos.html">Motos</a>
+      <a href="auto.html">Autos</a>
+      <a href="#ofertas">Ofertas</a>
+      <a class="opt" href="#cascos">Cascos</a>
+      <a class="opt" href="#llantas">Llantas</a>
+    </nav>
+  </div>
+</header>
+
+<section class="aa-hero" aria-label="Aria Auto">
+  <div class="wrap">
+    <div>
+      <span class="aa-kicker">Motos y autos · Desde Estados Unidos</span>
+      <h1>Repuestos y equipo para tu <em>moto</em> y tu <em>auto</em>.</h1>
+      <p id="aaLede">Cascos, llantas, repuestos y equipo de las mejores tiendas de Estados Unidos, con precios en soles. El envío desde Miami se calcula por peso en el carrito.</p>
+      <div class="aa-ctas">
+        <a class="aa-cta moto" href="motos.html">Motos <small id="aaMotoCount"></small></a>
+        <a class="aa-cta auto" href="auto.html">Autos <small id="aaAutoCount"></small></a>
+      </div>
+      <div class="aa-proof" id="aaProof"></div>
+    </div>
+    <div class="aa-mosaic" id="aaMosaic" aria-label="Del catálogo"></div>
+  </div>
+</section>
+
+<div class="aa-search">
+  <div class="wrap">
+    <form action="motos.html" method="get" role="search">
+      <input type="search" name="q" placeholder="Buscar en motos: casco, llanta, guantes…" aria-label="Buscar en Aria Auto">
+      <button type="submit">Buscar</button>
+    </form>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="aa-sec" aria-labelledby="catsH">
+    <h2 id="catsH">Categorías</h2>
+    <div class="aa-tiles" id="aaTiles"></div>
+  </section>
+  <div id="aaRails"></div>
+  <div class="aa-how">
+    <div><b>Compras en EE. UU.</b><p>Productos reales de RevZilla, Dennis Kirk y Advance Auto Parts, con su precio en soles.</p></div>
+    <div><b>Consolidamos en Miami</b><p>Tu pedido llega a nuestro almacén y viaja en un solo envío; el flete se calcula por peso.</p></div>
+    <div><b>Lo recibes en Perú</b><p><a href="como-funciona.html" style="color:#fff">Cómo funciona</a> · <a href="devoluciones.html" style="color:#fff">Devoluciones</a></p></div>
+  </div>
+</main>
+
+<footer class="aa-foot">
+  <div class="wrap">
+    <strong>Aria Auto</strong>
+    <span>Aria Auto es una tienda de Aria Shop — ARIA SHOP LLC. Precios en soles al tipo de cambio venta del día; el precio en dólares va como referencia.</span>
+    <nav aria-label="Información">
+      <a href="motos.html">Motos</a><a href="auto.html">Autos</a><a href="como-funciona.html">Cómo funciona</a><a href="devoluciones.html">Devoluciones</a><a href="terminos.html">Términos</a><a href="privacidad.html">Privacidad</a><a href="https://ariashop.pe/">Aria Shop</a>
+    </nav>
+  </div>
+</footer>
+
+<!--ARIA-AUTO-DATA--><script type="application/json" id="ariaAutoData">{"v":1,"census":{"motos":2495,"revzilla":1153,"denniskirk":1342,"autoParts":1365},"rails":[{"key":"ofertas","label":"Ofertas","href":"motos.html","count":458,"img":"https://www.revzilla.com/product_images/2266/1682/biltax1_helmet_black_red_480x480.jpg","cards":[{"t":"BILT AX-1 Helmet","r":"revzilla","p":69.97,"b":"BILT","s":36,"o":109.99,"i":"https://www.revzilla.com/product_images/2266/1682/biltax1_helmet_black_red_480x480.jpg"},{"t":"Bridgestone Battlax Adventure Trail AT41T Tires","r":"revzilla","p":205.99,"b":"Bridgestone","s":39,"o":339.32,"i":"https://www.revzilla.com/product_images/1677/1937/bridgestone_battlax_adventure_trail_at41_tires_10090_b1957_vtl_480x480.jpg"},{"t":"Kuryakyn Orbit Headlight Adapter For Indian","r":"revzilla","p":26.24,"b":"Kuryakyn","s":25,"o":34.99,"i":"https://www.revzilla.com/product_images/1628/3965/kuryakyn_orbit_headlight_adapter_kit_for_indian_480x480.jpg"},{"t":"R&G Racing Universal Lever Guard","r":"revzilla","p":45.49,"b":"R&G Racing","s":30,"o":64.99,"i":"https://www.revzilla.com/product_images/1562/2244/rg_racing_lever_guard_red_480x480.jpg"},{"t":"Warn Epic Trail Roll Bar Cylinder Bag (MD)","r":"revzilla","p":33,"b":"Warn Industries","s":12,"o":37.49,"i":"https://www.revzilla.com/product_images/1539/4103/warn_industries_epic_trail_roll_bar_cylinder_bag_480x480.jpg"},{"t":"Leatt Moto 4.5 Enduro Boots","r":"revzilla","p":307,"b":"Leatt","s":30,"o":438.7,"i":"https://www.revzilla.com/product_images/1470/2254/leatt_moto45_enduro_boots_480x480.jpg"},{"t":"Klim Badlands Pro Jacket","r":"revzilla","p":749.99,"b":"Klim","s":38,"o":1211.24,"i":"https://www.revzilla.com/product_images/2076/2285/klim_badlands_pro_jacket_grey_blue_480x480.jpg"},{"t":"Schuberth E2 Explorer Helmet","r":"revzilla","p":599,"b":"Schuberth Helmets","s":33,"o":899,"i":"https://www.revzilla.com/product_images/2089/1318/schuberth_e2_explorer_helmet_anthracite_480x480.jpg"},{"t":"Avon Cobra Chrome AV91 / AV92 Tires","r":"revzilla","p":196.47,"b":"Avon Tire","s":39,"o":323.38,"i":"https://www.revzilla.com/product_images/0781/3002/avon_cobra_chrome_tires_480x480.jpg"},{"t":"509 Kingpin Offroad Fuzion Flow Lens","r":"revzilla","p":31.96,"b":"509","s":24,"o":41.95,"i":"https://www.revzilla.com/product_images/2353/3808/509_kingpin_offroad_fuzion_flow_lens_clear_480x480.jpg"},{"t":"Galfer Semi-Metallic 1054 Front Brake Pads For Indian Scout Sixty 2016-2021","r":"revzilla","p":25.27,"b":"Galfer Braking Systems","s":30,"o":36.11,"i":"https://www.revzilla.com/product_images/0209/2071/galfer_semi_metallic1054_front_brake_pads_for_indian20142016_480x480.jpg"},{"t":"Highway 21 7V Radiant Heated Gloves","r":"revzilla","p":167.97,"b":"Highway 21","s":30,"o":239.95,"i":"https://www.revzilla.com/product_images/0352/2048/highway217_v_radiant_heated_gloves_black_480x480.jpg"}]},{"key":"cascos","label":"Cascos","href":"motos.html?t=cascos","count":936,"img":"https://www.revzilla.com/product_images/2266/1682/biltax1_helmet_black_red_480x480.jpg","cards":[{"t":"BILT AX-1 Helmet","r":"revzilla","p":69.97,"b":"BILT","s":36,"o":109.99,"i":"https://www.revzilla.com/product_images/2266/1682/biltax1_helmet_black_red_480x480.jpg"},{"t":"Corsair-X Helmet","r":"denniskirk","p":1069.95,"b":"Arai Helmets","i":"https://www.denniskirk.com/dk/product_images/01/290pix/010116734_03_07_2024_472ff9b05b1831b56e0549e0f1969a5237739915.jpg"},{"t":"Schuberth E2 Explorer Helmet","r":"revzilla","p":599,"b":"Schuberth Helmets","s":33,"o":899,"i":"https://www.revzilla.com/product_images/2089/1318/schuberth_e2_explorer_helmet_anthracite_480x480.jpg"},{"t":"Blue/Black/Red Contour-X Mark Helmet","r":"denniskirk","p":999.95,"b":"Arai Helmets","i":"https://www.denniskirk.com/dk/product_images/01/290pix/010118140_2414aa53b459c973de7e894e6f0388e6924e81f5.jpg"},{"t":"Klim Krios Pro Charger Helmet - Closeout","r":"revzilla","p":499.97,"b":"Klim","s":33,"o":749.99,"i":"https://www.revzilla.com/product_images/1731/5657/klim_krios_pro_charger_helmet_grey_480x480.jpg"},{"t":"Contour-X Proto Helmet","r":"denniskirk","p":999.95,"b":"Arai Helmets","i":"https://www.denniskirk.com/dk/product_images/01/290pix/010120471_9eaf5cf7e3fe1362ed458bcd446bf17cc6a62212.jpg"},{"t":"Sena Outforce Bluetooth Helmet","r":"revzilla","p":199,"b":"Sena","s":33,"o":299,"i":"https://www.revzilla.com/product_images/1784/6266/sena_outforce_bluetooth_helmet_matte_black_480x480.jpg"},{"t":"X-Fifteen Helmet","r":"denniskirk","p":979.99,"b":"Shoei Helmets","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep3317028_f39826341236a2ff943d288c5713bf4aa4158087.jpg"},{"t":"Simpson Mod Bandit Wildfire Helmet","r":"revzilla","p":399.95,"b":"Simpson Helmets","s":32,"o":589.95,"i":"https://www.revzilla.com/product_images/2569/5681/simpson_mod_bandit_wildfire_helmet_silver_grey_gold_480x480.jpg"},{"t":"Silver/Red Quantum-X Steel Helmet","r":"denniskirk","p":959.95,"b":"Arai Helmets","i":"https://www.denniskirk.com/dk/product_images/01/290pix/010115736_0a0c8aadd547215ea7803e4377e6ff5ed2978c0f.jpg"},{"t":"AGV Pista GP RR LE Soleluna 2023 Helmet","r":"revzilla","p":1347.18,"b":"AGV Helmets","s":31,"o":1947.18,"i":"https://www.revzilla.com/product_images/2351/0323/agv_helmets_hlmt_pista_gprrle_soleluna2023_480x480.jpg"},{"t":"Neotec 3 Modular Helmet","r":"denniskirk","p":949.99,"b":"Shoei Helmets","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oepds33z6448_e6c15fe1ed36728358872726a1bec27dc5904e73.jpg"}]},{"key":"llantas","label":"Llantas","href":"motos.html?t=llantas","count":439,"img":"https://www.revzilla.com/product_images/1677/1937/bridgestone_battlax_adventure_trail_at41_tires_10090_b1957_vtl_480x480.jpg","cards":[{"t":"Bridgestone Battlax Adventure Trail AT41T Tires","r":"revzilla","p":205.99,"b":"Bridgestone","s":39,"o":339.32,"i":"https://www.revzilla.com/product_images/1677/1937/bridgestone_battlax_adventure_trail_at41_tires_10090_b1957_vtl_480x480.jpg"},{"t":"SS360 33x12-15 Tire","r":"denniskirk","p":348.57,"b":"System 3","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_571e5439cf431c141ffd7b5bc76bd712cc475527.jpg"},{"t":"Avon Cobra Chrome AV91 / AV92 Tires","r":"revzilla","p":196.47,"b":"Avon Tire","s":39,"o":323.38,"i":"https://www.revzilla.com/product_images/0781/3002/avon_cobra_chrome_tires_480x480.jpg"},{"t":"XCR350 28x10R-14 Tire","r":"denniskirk","p":341.81,"b":"System 3","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_56c2ce2dd30adec234321c32e2e07a041d6aad5e.jpg"},{"t":"Pirelli Diablo Rosso IV Corsa Tires","r":"revzilla","p":165.33,"b":"Pirelli","s":39,"o":272.42,"i":"https://www.revzilla.com/product_images/1829/6167/pirelli_diablo_rosso_iv_corsa_tires_480x480.jpg"},{"t":"RT320 32x10R-15 Tire","r":"denniskirk","p":329.26,"b":"System 3","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_e644aae28d2a5ed9f96788c383ffd9d5fb2e9c4d.jpg"},{"t":"Continental ContiMotion Evo Tires","r":"revzilla","p":134.25,"b":"Continental Tire","s":39,"o":220.86,"i":"https://www.revzilla.com/product_images/2659/8434/continental_conti_motion_evo_tires_480x480.jpg"},{"t":"XTR370 28x10R-14 Tire","r":"denniskirk","p":279.45,"b":"System 3","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_680787a3cef5066ed1ebc4b5a134517a91d7a91e.jpg"},{"t":"IRC VE-33S Gekkota Tires","r":"revzilla","p":123.56,"b":"IRC Tires","s":39,"o":201.44,"i":"https://www.revzilla.com/product_images/1903/5005/ircve33_s_gekkota_tires_480x480.jpg"},{"t":"Commander II Tires","r":"denniskirk","p":268.88,"b":"Michelin","i":"https://www.denniskirk.com/dk/product_images/dk/290pix/dkpfp544126_cd0f1c964bd4655548b75b63837f0d2f775a9ff4.jpg"},{"t":"Metzeler Roadtec Scooter Tires","r":"revzilla","p":87.59,"b":"Metzeler","s":39,"o":142.96,"i":"https://www.revzilla.com/product_images/1835/2870/metzeler_roadtec_scooter_tires_480x480.jpg"},{"t":"Front/Rear QBT680 36x9.5-20 Mud Tire","r":"denniskirk","p":249.07,"b":"Quadboss","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oepfp654699_e35379a0ceb226d0d7a1f93eb1926862b619bf96.jpg"}]},{"key":"accesorios","label":"Accesorios","href":"motos.html?t=accesorios","count":821,"img":"https://www.revzilla.com/product_images/1628/3965/kuryakyn_orbit_headlight_adapter_kit_for_indian_480x480.jpg","cards":[{"t":"Kuryakyn Orbit Headlight Adapter For Indian","r":"revzilla","p":26.24,"b":"Kuryakyn","s":25,"o":34.99,"i":"https://www.revzilla.com/product_images/1628/3965/kuryakyn_orbit_headlight_adapter_kit_for_indian_480x480.jpg"},{"t":"X3 Thunder3 Bluetooth Radio and Amplifier Audio System with Two Speakers and One Sub","r":"denniskirk","p":1099.98,"b":"MTX","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep4002866_12f6f82da48ab5d1d61006334bacd43df61b1f1f.jpg"},{"t":"509 Kingpin Offroad Fuzion Flow Lens","r":"revzilla","p":31.96,"b":"509","s":24,"o":41.95,"i":"https://www.revzilla.com/product_images/2353/3808/509_kingpin_offroad_fuzion_flow_lens_clear_480x480.jpg"},{"t":"Chrome Slash Cut Mufflers for 2018-2024 Harley-Davidson Softail Motorcycles","r":"denniskirk","p":1034.96,"b":"S&S Cycle","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep4411526_dd08a734241b7650be199b397e245695ff83d7ae.jpg"},{"t":"K & L Supply Company Economy Carburetor Repair Kit Kawasaki KZ550 1981-1984","r":"revzilla","p":28,"b":"K & L Supply Company","s":24,"o":36.94,"i":"https://www.revzilla.com/product_images/2034/6988/kl_supply_company_economy_carburetor_repair_kit_kawasaki_kz55019811984_480x480.jpg"},{"t":"Bluetooth Radio/Subwoofer/Speaker Pod System","r":"denniskirk","p":1012.46,"b":"MTX","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep4001650_aac08ed9d1f3b50dc26a3bc5a5583c2de5601a54.jpg"},{"t":"Sena 60S Bluetooth Headset - Dual Pack","r":"revzilla","p":663,"b":"Sena","s":20,"o":828.8,"i":"https://www.revzilla.com/product_images/2356/9693/sena60_s_bluetooth_headset_dual_pack_480x480.jpg"},{"t":"Chrome Grand National 2-Into-2 Exhaust System w/Black End Caps","r":"denniskirk","p":982.76,"b":"S&S Cycle","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep4410419_9222dbf55ffda2f3b2ebba5b1ae82ed8bf710021.jpg"},{"t":"DragonFire Racing Shifter Knob","r":"revzilla","p":47.99,"b":"DragonFire Racing","s":20,"o":59.99,"i":"https://www.revzilla.com/product_images/1680/1165/dragon_fire_racing_shifter_knob_480x480.jpg"},{"t":"Push Tubes for use with V-Plows","r":"denniskirk","p":769.95,"b":"Moose Offroad","i":"https://www.denniskirk.com/dk/product_images/51/290pix/5100457_3cb66f8a49f3bbbc9f7a1b09be5905d5489b5c9d.jpg"},{"t":"Fox Racing Absolute Women's Tank Top","r":"revzilla","p":23.99,"b":"Fox Racing","s":20,"o":29.95,"i":"https://www.revzilla.com/product_images/2589/6963/fox_racing_absolute_womens_tank_top_black_480x480.jpg"},{"t":"Black Seat Jack 2-Up Seat","r":"denniskirk","p":729.99,"b":"Kimpex","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep4501153_52bef17d9c714191e7d379384e65577579c7a0bc.jpg"}]},{"key":"repuestos","label":"Repuestos de moto","href":"motos.html?t=repuestos","count":178,"img":"https://www.revzilla.com/product_images/1562/2244/rg_racing_lever_guard_red_480x480.jpg","cards":[{"t":"R&G Racing Universal Lever Guard","r":"revzilla","p":45.49,"b":"R&G Racing","s":30,"o":64.99,"i":"https://www.revzilla.com/product_images/1562/2244/rg_racing_lever_guard_red_480x480.jpg"},{"t":"Core Manual TorqDrive Clutch","r":"denniskirk","p":854.25,"b":"Rekluse","i":"https://www.denniskirk.com/dk/product_images/dk/290pix/dkp386174_2ae64d9d8c19e3b707362e56e14f709bccdea73a.jpg"},{"t":"Galfer Semi-Metallic 1054 Front Brake Pads For Indian Scout Sixty 2016-2021","r":"revzilla","p":25.27,"b":"Galfer Braking Systems","s":30,"o":36.11,"i":"https://www.revzilla.com/product_images/0209/2071/galfer_semi_metallic1054_front_brake_pads_for_indian20142016_480x480.jpg"},{"t":"Core EXP 3.0 DDS Clutch","r":"denniskirk","p":737,"b":"Rekluse","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep385643_8a850b5f5dce5c13cb12dadba120b24bbb3966d9.jpg"},{"t":"No Toil Dual Stage Air Filter Polaris RZR XP 1000 2014-2018","r":"revzilla","p":27.96,"b":"No Toil","s":20,"o":34.95,"i":"https://www.revzilla.com/product_images/1649/2691/no_toil_dual_stage_air_filter_polaris_rzrxp100020142018_480x480.jpg"},{"t":"Core EXP 3.0 Clutch","r":"denniskirk","p":737,"b":"Rekluse","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep385130_04ade8fbcab8394d45c2d4bee95153345e1fddbf.jpg"},{"t":"Emgo Air Filter Yamaha Banshee 2000-2006","r":"revzilla","p":15.16,"b":"Emgo","s":20,"o":18.95,"i":"https://www.revzilla.com/product_images/1620/4917/emgo_air_filter_480x480.jpg"},{"t":"Radius X Clutch","r":"denniskirk","p":509,"b":"Rekluse","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep385113_f3a038b95244da496da8f57fd24d4302b5a48b66.jpg"},{"t":"Arlen Ness Mini Stocker Billet Mirror","r":"revzilla","p":89.96,"b":"Arlen Ness","s":10,"o":99.95,"i":"https://www.revzilla.com/product_images/2341/4241/arlen_ness_mini_stocker_billet_mirror_480x480.jpg"},{"t":"Muffler w/Spark Arrestor","r":"denniskirk","p":287.99,"b":"Kimpex","i":"https://www.denniskirk.com/dk/product_images/dk/290pix/dkp4411349_7256f1dd02dcc50df1a9df1ba3ab631ef4e09e36.jpg"},{"t":"Arlen Ness Big Sucker Factory Oval Upgrade Air Filter For Harley M8","r":"revzilla","p":89.96,"b":"Arlen Ness","s":10,"o":99.95,"i":"https://www.revzilla.com/product_images/1912/3516/arlen_ness_big_sucker_factory_oval_upgrade_air_filter_for_harley_m8_black_480x480.jpg"},{"t":"RCM II Slip-On Muffler with Spark Arrestor","r":"denniskirk","p":267.26,"b":"DG","i":"https://www.denniskirk.com/dk/product_images/dk/290pix/dk435938.jpg"}]},{"key":"autopartes","label":"Repuestos de auto","href":"auto.html","count":1365,"img":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/244/large/12243301_luk_05167_pri_larg.jpg","cards":[{"t":"Clutch Kit: 9 7/16\" Disc Diameter, 1\" Input Shaft Diameter, 23 Tooth Spline (05-167)","r":"advanceauto","p":1114,"b":"LuK","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/244/large/12243301_luk_05167_pri_larg.jpg"},{"t":"Automatic Dual Clutch Transmission Clutch Kit, Sold by kit (07-233)","r":"advanceauto","p":827.99,"b":"LuK","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/21535/large/12243145_luk_07233_pri_larg.jpg"},{"t":"Clutch Kit: 9\" Disc Diameter, 7/8 \" Input Shaft Diameter, 28 Tooth Spline (17-075)","r":"advanceauto","p":768.99,"b":"LuK","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/244/large/12243274_luk_17075_pri_larg.jpg"},{"t":"Repset With Release Bearing (15-032)","r":"advanceauto","p":616.99,"b":"LuK","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/244/large/12243358_luk_15032_pri_larg.jpg"},{"t":"Repset Pro With CSC (05-188)","r":"advanceauto","p":562.99,"b":"LuK","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/244/large/12243280_luk_05188_pri_larg.jpg"},{"t":"New Clutch Set (MU72149-1)","r":"advanceauto","p":433.99,"b":"Carquest Premium","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/244/large/19330263_qcl_mu721491_pri_larg.jpg"},{"t":"Repset Without Release Bearing (04-134)","r":"advanceauto","p":276.99,"b":"LuK","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/244/large/10645848_luk_04134_pri_larg.jpg"},{"t":"CV Axle Shaft Assembly (NCV328181)","r":"advanceauto","p":259.99,"b":"Carquest Premium","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/945/large/10857662_ccv_ncv328181_pri_larg.jpg"},{"t":"Extreme Duty CV Axle (NCV545841XD)","r":"advanceauto","p":254.99,"b":"Carquest Premium","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/945/large/11827264_ccv_ncv545841xd_pri_larg.jpg"},{"t":"Painted Brake Rotor: Meets or Exceeds OE Specs, Features RotorShield (YH324789P)","r":"advanceauto","p":245.99,"b":"Carquest Premium","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/2352/large/11395384_qpr_yh324789p_pri_larg.jpg"},{"t":"Master / Slave Cylinder Kit, Clutch (CRS048)","r":"advanceauto","p":211.99,"b":"LuK","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/685/large/12243278_luk_crs048_pri_larg.jpg"},{"t":"100% New CV Axle (NCV876401)","r":"advanceauto","p":209.99,"b":"Carquest Premium","i":"https://shop.advanceautoparts.com/wcsstore/CVWEB/staticproductimage/945/large/12453191_ccv_ncv876401_pri_larg.jpg"}]},{"key":"equipaje","label":"Equipaje","href":"motos.html?t=accesorios&q=bag","count":31,"img":"https://www.revzilla.com/product_images/1539/4103/warn_industries_epic_trail_roll_bar_cylinder_bag_480x480.jpg","cards":[{"t":"Warn Epic Trail Roll Bar Cylinder Bag (MD)","r":"revzilla","p":33,"b":"Warn Industries","s":12,"o":37.49,"i":"https://www.revzilla.com/product_images/1539/4103/warn_industries_epic_trail_roll_bar_cylinder_bag_480x480.jpg"},{"t":"Soft Shell Sissy Bar Bag","r":"denniskirk","p":189.71,"b":"Saddlemen","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep5003345_a3553fbb2369c2871d9f926aa4c2901aa15706c2.jpg"},{"t":"Kriega Trail 18 Adventure Backpack","r":"revzilla","p":259.99,"b":"Kriega","i":"https://www.revzilla.com/product_images/1411/5175/kriega_backpack_trail18_480x480.jpg"},{"t":"Black Ops Gear Bag","r":"denniskirk","p":170.99,"b":"FXR Racing","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep5002876_1b3ce535f39b93d165f03d9ac783dbd9366340b2.jpg"},{"t":"Kriega R20 Backpack","r":"revzilla","p":179.99,"b":"Kriega","i":"https://www.revzilla.com/product_images/2477/6984/kriega_r20_backpack_camo_480x480.jpg"},{"t":"Gray Nac Pak Shape Shift Backpack w/3L Hydrapak","r":"denniskirk","p":169.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/dk/290pix/dkp5002563_dcb241a01bf342c231061a9130a06c99c5c040a7.jpg"},{"t":"Klim Arsenal 30 Backpack","r":"revzilla","p":129.99,"b":"Klim","i":"https://www.revzilla.com/product_images/1729/6141/klim_arsenal30_backpack_petrol_strike_orange_480x480.jpg"},{"t":"Lime Nac Pak Shape Shift Backpack w/3L Hydrapak","r":"denniskirk","p":169.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/dk/290pix/dkp5002562_dba4b447498d86fb403182a4c56218fbb384ceb0.jpg"},{"t":"BILT V3 Backpack","r":"revzilla","p":54.99,"b":"BILT","i":"https://www.revzilla.com/product_images/1622/0988/biltv3_backpack_black_480x480.jpg"},{"t":"Black Nac Pak Concealment Shape Shift Backpack w/3L Hydrapak","r":"denniskirk","p":169.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/dk/290pix/dkp5003110_d47384ff62eda81cd6e0bd6e871a76e7c2df3c00.jpg"},{"t":"XKursion XW Porter Bag","r":"denniskirk","p":160.19,"b":"Xkursion By Kuryakyn","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep5002683_641cc091048aac8b2da7a3a80c5c484f70df04a8.jpg"},{"t":"Olive Tek Pak Backpack","r":"denniskirk","p":121.49,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep5002560_f5b85670d0ef3b29b2797841c38a811facfc043e.jpg"}]},{"key":"equipo","label":"Equipo de protección","href":"motos.html?t=ropa_equipo","count":31,"img":"https://www.revzilla.com/product_images/1470/2254/leatt_moto45_enduro_boots_480x480.jpg","cards":[{"t":"Leatt Moto 4.5 Enduro Boots","r":"revzilla","p":307,"b":"Leatt","s":30,"o":438.7,"i":"https://www.revzilla.com/product_images/1470/2254/leatt_moto45_enduro_boots_480x480.jpg"},{"t":"Spool Gloves","r":"denniskirk","p":103.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_59d1ec1bb8e70107933779ee1d37d10acd117165.jpg"},{"t":"Highway 21 7V Radiant Heated Gloves","r":"revzilla","p":167.97,"b":"Highway 21","s":30,"o":239.95,"i":"https://www.revzilla.com/product_images/0352/2048/highway217_v_radiant_heated_gloves_black_480x480.jpg"},{"t":"Youth F-16 Gloves","r":"denniskirk","p":25.16,"b":"Fly Racing","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_2c6ceed48cb80a69d994f75a3d683ee21d36e980.jpg"},{"t":"Dainese Blackjack Gloves","r":"revzilla","p":69.97,"b":"Dainese","s":30,"o":99.95,"i":"https://www.revzilla.com/product_images/0217/2147/dainese_blackjack_gloves_480x480.jpg"},{"t":"Clear Tearoff's for Viper Goggles","r":"denniskirk","p":24.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_f134dfaf9e95591df0c07c76925b811217eef26e.jpg"},{"t":"EVS AB07 Ankle Brace (LG)","r":"revzilla","p":32.19,"b":"EVS","s":30,"o":45.99,"i":"https://www.revzilla.com/product_images/0349/2327/evs_ab07_ankle_brace_black_480x480.jpg"},{"t":"Youth Lite Outline Gloves","r":"denniskirk","p":22.36,"b":"Fly Racing","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_53f8a39086eba70cd363dc3c7c61ba27d6b5d36c.jpg"},{"t":"Fasthouse Elrod Storm Gloves","r":"revzilla","p":29,"b":"Fasthouse","s":30,"o":41.6,"i":"https://www.revzilla.com/product_images/2512/1702/fasthouse_elrod_storm_gloves_fog_black_480x480.jpg"},{"t":"Women's Pink/Turquoise Lite Gloves","r":"denniskirk","p":22.36,"b":"Fly Racing","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_3d25b6889c382f5e44455fe30f2bdd3e5b8b327a.jpg"},{"t":"Leatt Youth Moto 1.5 Gloves","r":"revzilla","p":23.09,"b":"Leatt","s":30,"o":32.99,"i":"https://www.revzilla.com/product_images/2143/7510/leatt_youth_moto15_gloves_stealth_black_480x480.jpg"},{"t":"Youth Black/Red/Gold Lite Americana Gloves","r":"denniskirk","p":22.36,"b":"Fly Racing","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_2888a5fd3f7de26ffe9e92ff2d3c460cc6e3b406.jpg"}]},{"key":"ropa","label":"Ropa","href":"motos.html?t=ropa_equipo","count":59,"img":"https://www.revzilla.com/product_images/2076/2285/klim_badlands_pro_jacket_grey_blue_480x480.jpg","cards":[{"t":"Klim Badlands Pro Jacket","r":"revzilla","p":749.99,"b":"Klim","s":38,"o":1211.24,"i":"https://www.revzilla.com/product_images/2076/2285/klim_badlands_pro_jacket_grey_blue_480x480.jpg"},{"t":"Black/Orange Float E2 MtnPro Vest","r":"denniskirk","p":1599.95,"b":"Backcountry Access","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep5006858_c8e8b7931a83690959681327349b397fdf21aaca.jpg"},{"t":"Klim Badlands Pro A3 Jacket","r":"revzilla","p":999.99,"b":"Klim","s":35,"o":1529.99,"i":"https://www.revzilla.com/product_images/2080/4125/klim_badlands_pro_a3_jacket_monument_grey_petrol_480x480.jpg"},{"t":"ADV MultiTour 7.5 Pants","r":"denniskirk","p":345,"b":"Leatt","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_9875bececa480cb0017f9b66d069537ffeaa4fcd.jpg"},{"t":"FXR Podium Jersey","r":"revzilla","p":45.49,"b":"FXR","s":35,"o":69.99,"i":"https://www.revzilla.com/product_images/2157/4535/fxr_podium_jersey_480x480.jpg"},{"t":"Cool Gray Arsenal Vest","r":"denniskirk","p":249.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep3451458_d99db1bc27cd38207ce74e28075c8a9d2c37be23.jpg"},{"t":"FXR Podium Gladiator MX Jersey (LG)","r":"revzilla","p":41.99,"b":"FXR","s":30,"o":59.99,"i":"https://www.revzilla.com/product_images/1633/2255/fxr_podium_gladiator_mx_jersey_480x480.jpg"},{"t":"Stealth Black Arsenal Vest","r":"denniskirk","p":249.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep3443162_6e6ca5533a76c20bb64f37661db1b0608bb497b0.jpg"},{"t":"Sage/Hi-Vis Arsenal Vest","r":"denniskirk","p":249.99,"b":"Klim","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oep3443161_2a7ffa2b9ee6716c3dba7e45802e24479f9a4147.jpg"},{"t":"Klim Carlsbad Pants","r":"revzilla","p":424.99,"b":"Klim","s":29,"o":599.99,"i":"https://www.revzilla.com/product_images/1384/5345/klim_carlsbad_pants_480x480.jpg"},{"t":"Evolution DST Pants","r":"denniskirk","p":183.96,"b":"Fly Racing","i":"https://www.denniskirk.com/dk/product_images/oe/290pix/oe_a6dc871238b288ea919460e584b24e0cd1f40e93.jpg"},{"t":"Dainese Racing 5 Perforated Leather Jacket","r":"revzilla","p":519,"b":"Dainese","s":20,"o":648.8,"i":"https://www.revzilla.com/product_images/2656/4291/dainese_racing5_perforated_leather_jacket_black_black_black_480x480.jpg"}]}]}</script><!--/ARIA-AUTO-DATA-->
+<script>
+(function(){
+  'use strict';
+  var fxRate;          // undefined: asking; null: unavailable; number: S/ per US$
+  var FRONT = null;
+  try { FRONT = JSON.parse(document.getElementById('ariaAutoData').textContent); } catch(e){ FRONT = null; }
+
+  /* ---------- pricing: tiered marginal margin (LOCKED 2026-10-02) ---------- */
+  function tieredMarginUsd(raw){
+    var r = Number(raw);
+    if (!(r > 0)) return 0;
+    return Math.min(r,500)*0.24
+      + Math.min(Math.max(r-500,0),1500)*0.18
+      + Math.min(Math.max(r-2000,0),3000)*0.12
+      + Math.max(r-5000,0)*0.08;
+  }
+  /* PER-RETAILER MIAMI SALES TAX (2026-10-09). Mirrors the 'exempt' rows of
+     TAX_EXEMPT_STATUS in index.html (a test pins the two): every price on
+     the site is (raw + tieredMarginUsd(raw)) x taxRate -- see weight-data.js.
+     This page used to stop at the margin, 7% under the SPA's price. */
+  var TAX_EXEMPT = {"walmart": 1};
+  /* PRE-PRICED STORES (#443 item 32): the catalogue price is already Aria's
+     price -- no margin, no Miami tax on top; the value is the factor that
+     takes it back to the goods' true value (the import-tax base). One list,
+     mirrored from weight-data.js PRE_PRICED (scripts/test/price-parity-tests.mjs). */
+  var PRE_PRICED = {"ariaperfumes": 1.18};
+  function salesTaxRate(retailer){ return TAX_EXEMPT[String(retailer || "").toLowerCase()] ? 1 : 1.07; }
+  function finalUsd(raw, retailer){ if (PRE_PRICED[String(retailer || "").toLowerCase()]) return Math.round(Number(raw) * 100) / 100;
+    var r = Number(raw);
+    if (!(r > 0)) return NaN;
+    return Math.round((r + tieredMarginUsd(r)) * salesTaxRate(retailer) * 100) / 100;
+  }
+  function fmtUSD(n){
+    if (!isFinite(n)) return 'Precio no disponible';
+    return 'US$ ' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  /* ---------- escaping (never break markup on weird data) ---------- */
+  /* SCRAPED TEXT IS TEXT (2026-10-19, #417 night order 4): titles arrive
+     as "Lizzie &#38; Oliver"; escaping that printed "&#38;" to shoppers.
+     Entities are decoded first, then everything is escaped as before. */
+  var ENTITY_NAMED = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", reg:"\u00ae", trade:"\u2122", copy:"\u00a9", deg:"\u00b0", eacute:"\u00e9", ntilde:"\u00f1", rsquo:"\u2019", lsquo:"\u2018", rdquo:"\u201d", ldquo:"\u201c", ndash:"\u2013", mdash:"\u2014", hellip:"\u2026" };
+  function decodeEntitiesText(s){
+    if (typeof s !== "string" || s.indexOf("&") < 0) return s;
+    for (var pass = 0; pass < 2 && s.indexOf("&") >= 0; pass++){
+      s = s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function(m, e){
+        if (e.charAt(0) === "#"){
+          var cp = (e.charAt(1) === "x" || e.charAt(1) === "X") ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+          return (cp > 0 && cp <= 0x10ffff) ? String.fromCodePoint(cp) : m;
+        }
+        var v = ENTITY_NAMED[e.toLowerCase()];
+        return v === undefined ? m : v;
+      });
+    }
+    return s;
+  }
+  function esc(s){ return escRaw(decodeEntitiesText(s)); }
+  function escRaw(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  /* ---------- moto subtype: the build applies it (netlify/functions/_motos-core.js) ---------- */
+  var RET_LABEL = {revzilla:'RevZilla', denniskirk:'Dennis Kirk', advanceauto:'Advance Auto Parts'};
+
+/* Sized retailer derivatives (2026-10-16) -- the same rules the app
+   bundle's sizedImageUrl applies: card slots are small, retailer
+   originals are 1600-2000px, and decoding them by the hundred is
+   what kills phone tabs. A derivative that fails swaps back to the
+   original URL (data-img-orig) before the page's own error handling
+   runs, so a card never breaks because of the resize. Hosts with no
+   verified resize parameter return the URL unchanged. */
+  var CARD_IMG_WIDTHS = [360, 560, 800];
+  var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
+  /* The width a URL already declares, when it declares one. Feeds are
+   inconsistent about this: the same retailer's catalog can carry the
+   bare original for one product and a small pre-sized variant for
+   the next. */
+function declaredImageWidth(u){
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+    || u.match(/\/upload\/[^/]*\bw_(\d+)/)
+    || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function sizedImageUrl(url, w){
+  var u = typeof url === "string" ? url : "";
+  if (!u || !/^https?:\/\//i.test(u) || !w) return u;
+  /* NEVER UPSCALE. When the URL already declares a width at or
+     below the step asked for (Kohl's feeds store wid=180/342, some
+     Walmart and Sam's Club URLs declare 180), that variant is the
+     card image the shopper sees today; asking the CDN for more
+     pixels would ADD decoded weight -- the opposite of this job. */
+  const declared = declaredImageWidth(u);
+  if (declared && w >= declared) return u;
+  function setQ(base, key, val){
+    var re = new RegExp("([?&]" + key + "=)(\\d+)", "i");
+    if (re.test(base)) return base.replace(re, function(m, p){ return p + val; });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
+  }
+  var out = null;
+  if (/cdn\.shopify\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/res\.cloudinary\.com/i.test(u)){
+    if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
+  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+    out = setQ(u, "odnWidth", w);
+    out = /[?&]odnHeight=\d+/i.test(out)
+      ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
+      : out + "&odnHeight=" + w;
+    if (!/odnBg=/i.test(out)) out += "&odnBg=FFFFFF";
+  } else if (/(target|dks|nb)\.scene7\.com|media\.kohlsimg\.com/i.test(u)){
+    /* Scene7 sizing only ever REDUCES a declared width; the bare
+       default is already card-sized on these hosts. */
+    if (/[?&]wid=\d+/i.test(u)){
+      out = setQ(u, "wid", w);
+      if (/[?&]hei=\d+/i.test(out)) out = out.replace(/([?&]hei=)(\d+)/i, function(m, p){ return p + w; });
+    }
+  } else if (/macysassets\.com/i.test(u)){
+    if (/[?&]wid=\d+/i.test(u)) out = setQ(u, "wid", w);
+  } else if (/sephora\.com/i.test(u)){
+    out = setQ(u, "imwidth", w);
+  } else if (/content\.gapinc\.com/i.test(u)){
+    out = setQ(u, "width", w);
+  } else if (/media\.ultainc\.com/i.test(u)){
+    out = setQ(u, "w", w);
+    if (/[?&]h=\d+/i.test(out)) out = out.replace(/([?&]h=)(\d+)/i, function(m, p){ return p + w; });
+  } else if (/static\.bhphoto\.com/i.test(u)){
+    if (/\/images\/fb\//i.test(u)){
+      if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
+      else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
+    }
+  } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
+    if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
+  }
+  return out || u;
+}
+  function imageSrcset(url){
+  var u = typeof url === "string" ? url : "";
+  if (!u) return "";
+  if (/cdn-images\.farfetch-contents\.com/i.test(u) && /_1000\.jpg$/i.test(u)){
+    return u.replace(/_1000\.jpg$/i, "_500.jpg") + " 500w, " + u + " 1000w";
+  }
+  var seen = {}, parts = [];
+  for (var i = 0; i < CARD_IMG_WIDTHS.length; i++){
+    var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
+    if (s === u || seen[s]) continue;
+    seen[s] = 1;
+    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
+  }
+  return parts.length ? parts.join(", ") : "";
+}
+  function imgOrigRetry(el){
+  if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
+    el.src = el.dataset.imgOrig;
+    el.removeAttribute("data-img-orig");
+    el.removeAttribute("srcset");
+    return true;
+  }
+  return false;
+}
+  function cardImgAttrs(url, sizes){
+  var ss = imageSrcset(url);
+  return 'src="' + esc(sizedImageUrl(url, 560)) + '"' +
+    (ss ? ' srcset="' + esc(ss) + '" sizes="' + (sizes || CARD_IMG_SIZES) + '"' : '') +
+    ' data-img-orig="' + esc(url || "") + '"';
+}
+
+  /* ---------- soles, always (#416) ----------
+     The site's own rate: the same endpoint and 24-hour cache key the
+     home page, search and checkout use. Until it is known the price row
+     holds its place; if it cannot be had at all, dollars, plainly
+     labelled, rather than nothing. */
+  var FX_CACHE_KEY = 'aria_fx_rate_v1', FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+  function loadFx(){
+    try{
+      var c = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+      if (c && typeof c.venta === 'number' && Date.now() - c.fetchedAt < FX_CACHE_TTL_MS){ fxRate = c.venta; return; }
+    }catch(e){}
+    var done = false;
+    function fin(rate){
+      if (done) return; done = true;
+      fxRate = rate > 0 ? rate : null;
+      paintPrices(document);
+    }
+    var to = setTimeout(function(){ fin(0); }, 8000);
+    try {
+      fetch('/.netlify/functions/exchange-rate')
+        .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+        .then(function(x){
+          clearTimeout(to);
+          var v = x.ok && x.d && typeof x.d.venta === 'number' && x.d.venta > 0 ? x.d.venta : 0;
+          if (v){ try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(Object.assign({}, x.d, { fetchedAt: Date.now() }))); } catch(e){} }
+          fin(v);
+        })
+        .catch(function(){ clearTimeout(to); fin(0); });
+    } catch(e){ clearTimeout(to); fin(0); }
+  }
+  function fmtPENn(n){
+    try { return new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(n); }
+    catch(e){ return 'S/ ' + Number(n).toFixed(2); }
+  }
+  function priceInner(usd, wasUsd){
+    if (fxRate === undefined) return '<div class="pen"><i></i></div><div class="usd">&nbsp;</div>';
+    if (!fxRate) return '<div class="pen">' + esc(fmtUSD(usd)) + '</div><div class="usd">&nbsp;</div>';
+    var pen = Math.round(usd * fxRate * 100) / 100;
+    var was = wasUsd > usd ? Math.round(wasUsd * fxRate * 100) / 100 : 0;
+    return '<div class="pen">' + esc(fmtPENn(pen)) + (was ? '<span class="was">' + esc(fmtPENn(was)) + '</span>' : '') + '</div>'
+      + '<div class="usd">' + esc(fmtUSD(usd)) + '</div>';
+  }
+  /* Prices are painted in place: a rate that lands late never redraws the grid. */
+  function paintPrices(root){
+    var els = (root || document).querySelectorAll('.price[data-usd]');
+    for (var i = 0; i < els.length; i++){
+      var e = els[i];
+      e.innerHTML = priceInner(Number(e.getAttribute('data-usd')), Number(e.getAttribute('data-was')) || 0);
+    }
+  }
+
+  /* ---------- photos load when about to be seen ----------
+     search.html's watchPhotos (#409): native lazy-loading started the
+     grid's photos about 2,500px ahead on a slow link. */
+  var PHOTO_IO = null;
+  function railPhoto(img){
+    if (!img || !img.dataset.src) return;
+    if (img.dataset.srcset){ img.srcset = img.dataset.srcset; img.sizes = img.dataset.sizes || ''; }
+    img.src = img.dataset.src;
+    img.removeAttribute('data-src');
+    img.removeAttribute('data-srcset');
+  }
+  function watchPhotos(root){
+    var imgs = (root || document).querySelectorAll('img[data-src]');
+    if (!imgs.length) return;
+    if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < imgs.length; i++) railPhoto(imgs[i]); return; }
+    if (!PHOTO_IO) PHOTO_IO = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (!e.isIntersecting) return;
+        PHOTO_IO.unobserve(e.target);
+        railPhoto(e.target);
+      });
+    }, { rootMargin: '200px 0px' });
+    for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
+  }
+  window.imgOrigRetry = imgOrigRetry;
+
+
+  /* ---------- card (motos.html's, minus its placeholder path: no image, no card) ---------- */
+  function salePct(c){
+    var s = Number(c.s) || 0;
+    var min = window.AriaSale ? window.AriaSale.MIN_PCT : 5;
+    return s >= min ? s : 0;
+  }
+  function productHref(c){
+    return 'producto.html?producto=' + encodeURIComponent(decodeEntitiesText(c.t) || '') + (c.r ? '&tienda=' + encodeURIComponent(c.r) : '');
+  }
+  function cardHTML(c){
+    if (!c || !c.i) return '';
+    var price = finalUsd(c.p, c.r);
+    var was = c.o ? finalUsd(c.o, c.r) : 0;
+    var pct = salePct(c);
+    var badge = pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '';
+    var img = '<img ' + cardImgAttrs(c.i).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=')
+      + ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){var a=this.closest(\'.card\');if(a)a.remove();}">';
+    return '<a class="card" href="' + escRaw(productHref(c)) + '">'
+      + '<div class="card-img">' + badge + img + '</div>'
+      + '<div class="card-body">'
+      + '<div class="card-retailer">' + esc(RET_LABEL[c.r] || c.r) + '</div>'
+      + '<div class="card-brand">' + (c.b ? esc(c.b) : '&nbsp;') + '</div>'
+      + '<h3 class="card-title">' + esc(c.t) + '</h3>'
+      + '<div class="price" data-usd="' + (isFinite(price) ? price : '') + '"' + (was > price ? ' data-was="' + was + '"' : '') + '>' + priceInner(price, was) + '</div>'
+      + '</div></a>';
+  }
+  function fmtCount(n){ try { return new Intl.NumberFormat('es-PE').format(n); } catch(e){ return String(n); } }
+  /* A first-screen photo: eager, and a dead one takes its tile with it. */
+  function eagerImg(url, alt){
+    return '<img src="' + escRaw(sizedImageUrl(url, 320)) + '" alt="' + esc(alt || '') + '" decoding="async" onerror="var t=this.closest(\'a\');if(t)t.remove();">';
+  }
+
+  function render(){
+    if (!FRONT || !FRONT.rails) return;
+    var rails = FRONT.rails, c = FRONT.census || {};
+    var mc = document.getElementById('aaMotoCount'), ac = document.getElementById('aaAutoCount');
+    if (c.motos) mc.textContent = fmtCount(c.motos) + ' productos';
+    if (c.autoParts) ac.textContent = fmtCount(c.autoParts) + ' repuestos';
+    document.getElementById('aaProof').innerHTML =
+      '<span><strong>' + fmtCount(c.revzilla || 0) + '</strong>RevZilla</span>'
+      + '<span><strong>' + fmtCount(c.denniskirk || 0) + '</strong>Dennis Kirk</span>'
+      + '<span><strong>' + fmtCount(c.autoParts || 0) + '</strong>Advance Auto Parts</span>';
+    var pick = { cascos: 'Cascos', llantas: 'Llantas', autopartes: 'Autos' }, mos = '';
+    rails.forEach(function(r){ if (pick[r.key] && r.img) mos += '<a href="' + escRaw(r.href) + '">' + eagerImg(r.img, r.label) + '<span>' + esc(pick[r.key]) + '</span></a>'; });
+    document.getElementById('aaMosaic').innerHTML = mos;
+    var tiles = '';
+    rails.forEach(function(r){
+      if (!r.img) return;
+      tiles += '<a class="aa-tile" href="' + escRaw(r.href) + '"><div class="ph">' + eagerImg(r.img, r.label) + '</div><b>' + esc(r.label) + '</b><small>' + fmtCount(r.count) + ' productos</small></a>';
+    });
+    document.getElementById('aaTiles').innerHTML = tiles;
+    var html = '';
+    rails.forEach(function(r){
+      var cards = r.cards.map(cardHTML).join('');
+      if (!cards) return;
+      html += '<section class="aa-sec" id="' + escRaw(r.key) + '" aria-label="' + esc(r.label) + '"><h2>' + esc(r.label)
+        + ' <a href="' + escRaw(r.href) + '">Ver todo</a></h2><div class="rail">' + cards + '</div></section>';
+    });
+    var box = document.getElementById('aaRails');
+    box.innerHTML = html;
+    watchPhotos(box);
+  }
+
+  try { loadFx(); } catch(e){ fxRate = null; }
+  render();
+})();
+</script>
+</body>
+</html>
