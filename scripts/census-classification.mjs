@@ -23,20 +23,21 @@
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { liftDeclarations, pageHtml } from "./lib/page-lift.mjs";
+import { ITEM_FAMILY_DECLARATIONS } from "./build-product-type.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
 export const CLASSIFIER_NAMES = ["FOOTWEAR_TYPE", "FOOTWEAR_TITLE", "CLEAT_HIKER_RX", "NOT_FOOTWEAR", "FOOTWEAR_RETAILERS",
   "OXFORD_CLOTH_RX", "FOOTWEAR_NOUN_NOT_OXFORD", "isFootwearType", "isFootwearTitle", "isFootwear",
   "SHOE_MODEL_RX", "NB_MODEL_RX", "SHOE_MODEL_APPAREL_VETO", "isShoeModel", "CATCHALL_TYPE_RX", "isCatchallType", "BUCKET_TYPE_RX", "isFootwearLoose",
-  "LATINO_PRODUCT_TYPES", "latinoProductTypeOfItem", "FOOTWEAR_RX", "NOT_FOOTWEAR_RX", "isShoeItem", "isShoeForFashionRooms",
+  ...ITEM_FAMILY_DECLARATIONS, "LATINO_PRODUCT_TYPES", "latinoProductTypeOfItem", "FOOTWEAR_RX", "NOT_FOOTWEAR_RX", "isShoeItem", "isShoeForFashionRooms",
   "isKidsItem", "KIDS_APPAREL_RX", "isKidsFashionItem", "FRAGRANCE_RX", "WOMEN_FASHION_RX", "WOMEN_NON_APPAREL_RX",
   "isWomenFashionItem", "MEN_MARKER", "WOMEN_MARKER", "KID_MARKER", "isMenFashionItem", "genderFromTitle",
   "isMensShoeItem", "isWomensShoeItem", "isKidsShoeItem",
   "repairNativeTypes", "nativeTypeGroupsFor", "retailerItemsFor", "notQuarantined", "rawTitleOf",
   "aliasEnvelopeTitles", "normalizeCatalogueEnvelope", "DEPT_CACHE_PARTS", "CATALOGUE_FILES"];
 const NEW_IN_BRANCH = ["OXFORD_CLOTH_RX", "FOOTWEAR_NOUN_NOT_OXFORD", "SHOE_MODEL_RX", "NB_MODEL_RX", "SHOE_MODEL_APPAREL_VETO", "isShoeModel", "CATCHALL_TYPE_RX",
-  "isCatchallType", "BUCKET_TYPE_RX", "isFootwearLoose", "isShoeForFashionRooms", "repairNativeTypes"];
+  "isCatchallType", "BUCKET_TYPE_RX", "isFootwearLoose", "isShoeForFashionRooms", "repairNativeTypes", ...ITEM_FAMILY_DECLARATIONS];
 
 export function loadClassifiers(html) {
   return liftDeclarations(html, CLASSIFIER_NAMES, { optional: NEW_IN_BRANCH });
@@ -67,7 +68,20 @@ export function loadCatalogue(P) {
 export function census(P, truth) {
   const { retailers, missing } = loadCatalogue(P);
   const T = truth || P; /* the ground-truth classifiers (the branch's) */
-  const isShoe = (it, rk) => T.isFootwearLoose ? T.isFootwearLoose(it, rk, retailers[rk] && retailers[rk].label) : T.isFootwear(it, rk);
+  const loose = (it, rk) => T.isFootwearLoose ? T.isFootwearLoose(it, rk, retailers[rk] && retailers[rk].label) : T.isFootwear(it, rk);
+  /* The head noun of the product's own name says what it is (#443 re-route
+     audit): a duffel bag "with Shoe Compartment" is a bag, "Slingback
+     Pumps" typed APPAREL are shoes. Shoe models keep their rule. */
+  const isShoe = (it, rk) => {
+    const name = it.title || it.name || "";
+    const fam = T.itemFamilyOfName ? T.itemFamilyOfName(name) : "";
+    if (fam === "perfumes") return false;
+    if (T.itemFamilyOfType && T.itemFamilyOfType(it.type) === "libros") return false;
+    if (T.isShoeModel && T.isShoeModel(it, rk)) return true;
+    if (fam === "zapatos") return !T.NOT_FOOTWEAR.test(name);
+    if (fam) return false;
+    return loose(it, rk);
+  };
   const out = { missing, stores: Object.keys(retailers).length };
   /* Every item once, per retailer (the page's own dedupe). */
   const all = [];
@@ -75,7 +89,9 @@ export function census(P, truth) {
   out.items = all.length;
 
   /* M1: latinoProductTypeOfItem. */
-  const JEWELRY = /\b(jewelry|jewellery|joyer[ií]a|earrings?|necklaces?|bracelets?|rings?|anillos?|pendants?|charms?|anklets?|brooch(?:es)?|bangles?|chokers?)\b/i;
+  /* Jewellery words, the #443 re-route audit's included: studs, hoops,
+     chains, pins, ear cuffs, lockets, tiaras. */
+  const JEWELRY = /\b(jewelry|jewellery|joyer[ií]a|earrings?|necklaces?|bracelets?|rings?|anillos?|pendants?|charms?|anklets?|brooch(?:es)?|bangles?|chokers?|studs?|hoops?|huggies?|drops|chains?|pins?|cuffs?|lockets?|tiaras?|collar|bands?)\b/i;
   const NOT_JEWELRY = /\b(candle|napkin|curtain|shower|key|teething|onion|boxing|binder|o)[-\s]+rings?\b|\bring\s+(?:lights?|doorbells?)\b/i;
   const m1 = {};
   for (const [rk, it] of all) {
@@ -126,7 +142,9 @@ export function census(P, truth) {
     out.rooms[rk] = {};
     for (const [room, fn] of Object.entries(ROOMS)) {
       const inRoom = items.filter(it => P[fn](it));
-      const wrong = room.startsWith("ropa") ? inRoom.filter(it => isShoe(it, rk)) : inRoom.filter(it => !isShoe(it, rk));
+      /* The rooms run the app's own room classifiers (isShoeForFashionRooms
+         = the footwear rules), not the type rails: judged by those rules. */
+      const wrong = room.startsWith("ropa") ? inRoom.filter(it => loose(it, rk)) : inRoom.filter(it => !loose(it, rk));
       out.rooms[rk][room] = { n: inRoom.length, wrong: wrong.length, examples: wrong.slice(0, 4).map(it => it.title || it.name) };
     }
   }

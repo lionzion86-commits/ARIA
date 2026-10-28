@@ -37,6 +37,7 @@
    ============================================================ */
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
@@ -130,18 +131,67 @@ function hasAny(hay, words) {
   for (const w of words) if (hay.indexOf(w) !== -1) return true;
   return false;
 }
+/* WHAT THE PRODUCT IS (#443 re-route audit, c.6460976249). The kind
+   departments matched raw substrings of title + brand + type: "heel" in
+   Hot Wheels filled Zapatos, CCS's "Birthday" skateboards filled Aria
+   Party, every Toy Machine sock was a toy, "collar" (a polo's) and
+   "pendant" (a Christmas ornament's) were Joyas, an RC car's "battery"
+   was Repuestos. They now ask product-type.js -- the store rails' own
+   classifier, by the head noun of the product's own name -- what the
+   product IS, and match their words as whole words only. */
+export function loadProductType(root = ROOT) {
+  const win = {};
+  vm.runInNewContext(readFileSync(join(root, "product-type.js"), "utf8"), { window: win });
+  return win.AriaProductType;
+}
+const PT = loadProductType();
+const itemOf = (p) => ({ name: (p && p.title) || "", type: (p && p.type) || "", retailer: (p && p.retailer) || "", brand: (p && p.brand) || "" });
+/* The product's family: its name, then its type, then its brand. */
+export const productClass = (p) => PT.classify(itemOf(p));
+/* What its own name says, "" when the name names nothing. */
+export const nameFamily = (p) => PT.familyOfName((p && p.title) || "");
+const wordsRx = (words) => new RegExp("(?:^|[^a-z0-9ñáéíóú])(?:" + words.join("|") + ")(?![a-z0-9ñáéíóú])", "i");
+/* Accessories a shopper would not look for among jewellery: stickers,
+   phone cases, insoles. */
+const NOT_JOYAS_RX = wordsRx(["stickers?", "decals?", "patch(?:es)?", "phone cases?", "cases? for", "screen protectors?", "iphone", "ipad", "galaxy", "airpods", "apple watch", "pc case", "insoles?", "shoe ?laces?", "laces"]);
+const JOYAS_TYPE_RX = /jewel|joy|bisuter|earring|arete|necklace|collar|bracelet|pulsera|\brings?\b|anillo|pendant|charm|anklet|brooch|watch|reloj|belt|cintur|scarf|scarves|bufanda|wallet|billeter|card\s*holder|glove|guante|keychain|llavero|cufflink|hair\s*(?:acc|clip)|headband/i;
+const SUNGLASS_RX = wordsRx(["sunglass(?:es)?", "sun glasses", "lentes de sol", "gafas de sol"]);
+const PARTY_RX = wordsRx(["party", "parties", "fiesta", "fiestas", "balloons?", "globos?", "birthday", "cumplea[ñn]os", "decorations?", "decoraci[oó]n(?:es)?", "confetti", "pi[ñn]atas?"]);
+/* A party word on a garment, a board, a jewel or a gadget is a theme. */
+const PARTY_FORMS = new Set(["", "hogar", "juguetes", "dulces", "sombreros"]);
+const SPEAR_RX = wordsRx(["spear ?guns?", "freediv\\w*", "apnea", "wetsuits?", "neoprene", "fins", "snorkels?", "weight belts?", "dive knife"]);
+const SPEAR_VETO = new Set(["belleza", "perfumes", "juguetes", "carteras", "hogar", "electronica", "dulces"]);
+const SOCCER_RX = wordsRx(["soccer", "f[uú]tbol", "football boots?", "cleats?"]);
+/* A soccer charm is jewellery, soccer plates are party ware. */
+const SOCCER_VETO = new Set(["joyas", "hogar", "juguetes", "belleza", "dulces", "perfumes"]);
+const AUTO_RX = wordsRx(["brakes?", "frenos?", "oil filters?", "filtros? de aceite", "spark plugs?", "buj[ií]as?", "air filters?", "filtros? de aire", "alternators?", "alternador(?:es)?", "radiators?", "radiador(?:es)?", "shock absorbers?", "amortiguador(?:es)?", "embragues?", "timing belts?", "correas? de distribuci[oó]n"]);
+/* Aria Auto's stores: what they sell is a part unless its name says otherwise. */
+const AUTO_RETAILERS = new Set(["advanceauto", "autozone"]);
+const NOT_A_PART = new Set(["juguetes", "ropa", "zapatos", "carteras", "joyas", "sombreros", "trajes_bano", "belleza", "perfumes", "libros", "dulces", "bebe"]);
 export const KIND_MATCH = {
-  perfumes: (t, p) => Boolean(p && p.retailer === "ariaperfumes"),
+  /* Aria Perfumes' stock, and every true fragrance any store sells. */
+  perfumes: (t, p) => Boolean(p && (p.retailer === "ariaperfumes" || productClass(p) === "perfumes")),
   refurb: (t, p) => Boolean(conditionOfTitle(p && p.title)),
   surfskate: (t) => hasAny(t, ["surfboard", "surf board", "skateboard", "skate board", "longboard", "wakeboard", "bodyboard", "paddleboard", "sup board"]),
-  spearfishing: (t) => hasAny(t, ["speargun", "spear gun", "freediv", "apnea", "wetsuit", "neoprene", "fins", "snorkel", "weight belt", "dive knife"]),
-  soccer: (t) => hasAny(t, ["soccer", "futbol", "football boot", "cleat"]) && t.indexOf("american football") === -1,
+  spearfishing: (t, p) => SPEAR_RX.test(t) && !SPEAR_VETO.has(nameFamily(p)),
+  soccer: (t, p) => SOCCER_RX.test(t) && t.indexOf("american football") === -1 && !SOCCER_VETO.has(nameFamily(p)),
   tennis: (t) => hasAny(t, ["tennis racket", "tennis racquet", "tennis ball", "tennis shoe", "tennis skirt"]),
-  sunglasses: (t) => hasAny(t, ["sunglasses", "lentes de sol", "gafas de sol", "sun glasses"]),
-  /* A perfume called "Miss Charming" is not a charm (#443 item 40). */
-  joyas: (t, p) => (!p || p.retailer !== "ariaperfumes") && hasAny(t, ["earring", "necklace", "bracelet", "pendant", "charm", "anillo", "collar", "pulsera", "arete"]),
-  party: (t) => hasAny(t, ["party", "fiesta", "balloon", "globo", "birthday", "cumplea", "decoration", "decoraci", "confetti", "piñata", "pinata"]),
-  toys: (t) => hasAny(t, ["toy", "juguete", "lego", "doll", "muñeca", "action figure", "plush", "peluche", "board game", "puzzle"]),
+  sunglasses: (t, p) => SUNGLASS_RX.test(t) && (nameFamily(p) === "" || nameFamily(p) === "accesorios"),
+  /* Jewellery and accessories -- watches, belts, scarves, wallets too --
+     by what the product is. A perfume called "Miss Charming" is not a
+     charm (#443 item 40); sunglasses have their own department. */
+  joyas: (t, p) => {
+    if (!p || p.retailer === "ariaperfumes" || SUNGLASS_RX.test(t) || NOT_JOYAS_RX.test(p.title || "")) return false;
+    const f = nameFamily(p);
+    if (f) return f === "joyas" || f === "accesorios";
+    /* A name that names nothing: only a type that does ("EARRINGS",
+       "BELTS"); surf shops type everything "Accesorios". */
+    return JOYAS_TYPE_RX.test(p.type || "") && !/^accesor|^accessor/i.test(String(p.type || "").trim());
+  },
+  party: (t, p) => PARTY_RX.test(t) && PARTY_FORMS.has(nameFamily(p)),
+  /* Toys, and only toys: a toy-themed tee is Moda Niños, a Toy Machine
+     deck is a skateboard. */
+  toys: (t, p) => productClass(p) === "juguetes",
   /* DSW (#443) is a shoe warehouse: everything it files outside its
      bags bucket is footwear, whatever the title calls it ("Kassy Pump",
      "Rina Mule"). Only DSW rows take this branch. */
@@ -153,7 +203,16 @@ export const KIND_MATCH = {
      with New Balance Women's 796v4 (#443 c.6405702652). */
   shoes_women: (t, p) => KIND_MATCH.shoes(t, p) && (/\b(women|womens|women's|woman|mujer|mujeres|ladies|dama|damas|female)\b/.test(t) || (p && p.retailer === "dsw" && p.bucket === "women")),
   shoes_men: (t, p) => KIND_MATCH.shoes(t, p) && (/\b(men|mens|men's|man|hombre|hombres|caballero|male)\b/.test(t) || (p && p.retailer === "dsw" && p.bucket === "men")),
-  autoparts: (t) => hasAny(t, ["brake", "freno", "oil filter", "filtro de aceite", "spark plug", "bujía", "bujias", "air filter", "filtro de aire", "alternator", "alternador", "battery", "batería", "radiator", "radiador", "shock absorber", "amortiguador", "clutch", "embrague", "timing belt", "correa"]),
+  /* A part by what it is (struts, control arms, pumps, sensors...), an
+     auto store's stock, or a part word on a name that names nothing
+     else ("battery" is not one: RC cars include theirs). */
+  autoparts: (t, p) => {
+    const c = productClass(p);
+    if (c === "repuestos") return true;
+    if (p && AUTO_RETAILERS.has(p.retailer)) return !NOT_A_PART.has(c);
+    const f = nameFamily(p);
+    return AUTO_RX.test(t) && (f === "" || f === "repuestos");
+  },
   luxury: (t, p) => ["ssense", "miumiu", "farfetch"].indexOf(p.retailer) !== -1 ||
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino"]),
 };

@@ -57,6 +57,14 @@ export const SLICES_DIR = "assets/tienda";
 export { FN_DIR };
 export const PAGE_SIZE = 48;
 export const RAIL_HEAD = 16;
+/* The first screen carries the first EAGER_RAILS rails' cards. A store
+   whose products now fill their own aisles (#443 re-route audit: Walmart's
+   toys, home, beauty...) has more rails than the first screen's 30KB holds,
+   so the rest arrive as their page 1 when the shopper scrolls near them. */
+export const EAGER_RAILS = 10;
+function headOrLazy(rail, i, head) {
+  return i < EAGER_RAILS ? { ...rail, head: head() } : { ...rail, head: [], lazy: true };
+}
 /* A product at or above this Best Buy price is "premium": it may appear
    in a rail, never in its first PREMIUM_LEAD_FREE cards, and at most
    once in every PREMIUM_EVERY. */
@@ -360,8 +368,8 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
     v: 1, store: key, label: meta.label, count: items.length, pageSize: PAGE_SIZE, railPages: "fn",
     onSale: rows.filter((r) => r[4] > 0).length,
     chips,
-    rails: rails.map((r) => ({ key: r.key, title: r.title, total: r.items.length,
-      pages: Math.ceil(r.items.length / PAGE_SIZE), head: r.items.slice(0, RAIL_HEAD).map(card) })),
+    rails: rails.map((r, i) => headOrLazy({ key: r.key, title: r.title, total: r.items.length,
+      pages: Math.ceil(r.items.length / PAGE_SIZE) }, i, () => r.items.slice(0, RAIL_HEAD).map(card))),
   };
   return { files: { "index.json": index }, fn, products: items, rails };
 }
