@@ -23,11 +23,20 @@ import { extractDeclarations, pageHtml } from "./lib/page-lift.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
+/* What is this product (#443 re-route audit): the head-noun families
+   latinoProductTypeOfItem reads first. scripts/census-classification.mjs
+   lifts the same list. */
+export const ITEM_FAMILY_DECLARATIONS = [
+  "ITEM_FAMILY_LABELS", "ITEM_FAMILY_DEPT", "ITEM_NAME_MASKS", "itemNounMinLength", "ITEM_FAMILY_NOUNS", "ITEM_WEAK_NOUNS", "TOY_BRAND_RX",
+  "STRONG_TOY_RX", "STRONG_FRAGRANCE_RX", "STRONG_DOLL_RX", "TOY_OVER", "ITEM_FAMILY_TYPES", "SEGMENT_CUT_RX",
+  "itemHeadFamily", "itemFamilyOfName", "itemFamilyOfType", "ITEM_FAMILY_RETAILERS", "ITEM_FAMILY_GENERIC",
+];
 export const PRODUCT_TYPE_DECLARATIONS = [
   "FOOTWEAR_TYPE", "FOOTWEAR_TITLE", "CLEAT_HIKER_RX", "NOT_FOOTWEAR", "FOOTWEAR_RETAILERS",
   "OXFORD_CLOTH_RX", "FOOTWEAR_NOUN_NOT_OXFORD", "isFootwearType", "isFootwearTitle", "isFootwear",
   "SHOE_MODEL_RX", "NB_MODEL_RX", "SHOE_MODEL_APPAREL_VETO", "isShoeModel",
   "CATCHALL_TYPE_RX", "isCatchallType", "BUCKET_TYPE_RX", "NOT_FOOTWEAR_RX", "isFootwearLoose",
+  ...ITEM_FAMILY_DECLARATIONS,
   "LATINO_PRODUCT_TYPES", "latinoProductTypeOfItem",
 ];
 
@@ -42,6 +51,9 @@ root.AriaProductType = {
   classify: latinoProductTypeOfItem,
   isFootwear: isFootwear,
   isFootwearLoose: isFootwearLoose,
+  familyOfName: itemFamilyOfName,
+  familyOfType: itemFamilyOfType,
+  FAMILY_DEPT: ITEM_FAMILY_DEPT,
   TYPES: LATINO_PRODUCT_TYPES.map(function (t) { return { key: t.key, label: t.label }; })
 };
 })(typeof window !== 'undefined' ? window : globalThis);

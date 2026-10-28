@@ -44,7 +44,11 @@ check("M1: the brief's traps land where they belong", () => {
     ["FuelCell Rebel v5", "zapatos", { type: "Ropa", retailer: "newbalance" }], ["Gold Hoop Earrings", "joyas"],
     ["Women's Leather Tote Bag", "carteras"], ["Wool Fedora Hat", "sombreros"], ["Triangle Bikini Top", "trajes_bano"],
     ["Leather Belt", "accesorios"], ["Linen Midi Dress", "ropa"], ["Numeric Cotton T-Shirt", "ropa", { type: "Ropa", retailer: "newbalance" }],
-    ["Black Ankle Boots", "zapatos"], ["Gold Necklace", "zapatos", { type: "SHOES" }]])
+    ["Black Ankle Boots", "zapatos"],
+    /* The product's own name outranks the puller's type now (#443 re-route
+       audit, c.6460976249: "stop letting a bare retailer type word outrank
+       the product's own name"); a shoe model still outranks the name. */
+    ["Gold Necklace", "joyas", { type: "SHOES" }], ["Jordan 6 Rings", "zapatos", { type: "Accesorios" }]])
     assert.equal(m1(name, extra || {}), want, `"${name}" is ${m1(name, extra || {})}, not ${want}`);
 });
 

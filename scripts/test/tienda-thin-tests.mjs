@@ -361,6 +361,20 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       const bad = reqs.filter((u) => /-catalog\.json|department-cache|catalog-index\.json|ofertas-feed|find\.json|\/_fn\//.test(u));
       assert.deepEqual(bad, [], `${store} fetched ${bad.join(", ")}`);
       assert.deepEqual(errs, [], `${store}: ${errs.join("; ")}`);
+      /* Walmart's aisles (#443 re-route audit) outgrow the first screen:
+         the rails past it fill from their page 1 as they scroll near. */
+      if (idx(store).rails.some((r) => r.lazy)) {
+        await pg.goto(`${base}/tienda.html?tienda=${store}`, { waitUntil: "load" });
+        await pg.waitForFunction(() => document.querySelectorAll(".rail-sec .card:not(.sk)").length >= 8, null, { timeout: 30000 });
+        for (let i = 0; i < 30; i++) { await pg.mouse.wheel(0, 1200); await pg.waitForTimeout(60); }
+        await pg.waitForFunction(() => !document.querySelector("[data-lazy-rail]"), null, { timeout: 30000 });
+        const lazy = idx(store).rails.filter((r) => r.lazy).map((r) => r.title);
+        const drawn = await pg.evaluate((titles) => titles.map((t) => {
+          const sec = [...document.querySelectorAll(".rail-sec")].find((x) => x.getAttribute("aria-label") === t);
+          return sec ? sec.querySelectorAll(".card:not(.sk)").length : -1;
+        }), lazy);
+        assert.ok(drawn.every((n) => n > 0), `${store}: a rail past the first screen stayed empty (${lazy.map((t, i) => t + " " + drawn[i]).join(", ")})`);
+      }
       await ctx.close();
     }
   } finally {

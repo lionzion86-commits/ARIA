@@ -504,7 +504,19 @@ var PRODUCT_TYPES = [
   { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
   { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
   { key:'accesorios',  label:'Accesorios',     keywords:['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
-  { key:'ropa',        label:'Ropa',           keywords:[] }
+  { key:'ropa',        label:'Ropa',           keywords:[] },
+  /* Not fashion (#443 re-route audit): product-type.js names the family;
+     no keyword fallback, so they never leave the Ropa loop by accident. */
+  { key:'juguetes', label:'Juguetes', keywords:[] },
+  { key:'deportes', label:'Deportes', keywords:[] },
+  { key:'electronica', label:'Electrónica', keywords:[] },
+  { key:'hogar', label:'Hogar', keywords:[] },
+  { key:'belleza', label:'Belleza', keywords:[] },
+  { key:'perfumes', label:'Perfumes', keywords:[] },
+  { key:'bebe', label:'Bebé y mamá', keywords:[] },
+  { key:'repuestos', label:'Repuestos', keywords:[] },
+  { key:'libros', label:'Libros', keywords:[] },
+  { key:'dulces', label:'Dulces', keywords:[] }
 ];
 var TYPE_RES = PRODUCT_TYPES.map(function(t){
   return t.keywords.map(function(kw){
@@ -893,9 +905,12 @@ function slRailHTML(r){
   slRailsByKey[r.key] = r;
   var cards = '';
   for (var i = 0; i < r.head.length; i++){ try { cards += slCardHTML(r.head[i]); } catch (e) {} }
+  /* A rail past the first screen's (build-store-slices.mjs EAGER_RAILS):
+     its cards are its page 1, fetched when it scrolls near. */
+  if (r.lazy && !r.head.length) cards = SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD;
   var door = r.total > r.head.length
     ? '<button type="button" class="rail-ver" data-rail="' + esc(r.key) + '">Ver todo &#8594;</button>' : '';
-  return '<section class="rail-sec" aria-label="' + esc(r.title) + '"><div class="rail-head"><h2 class="rail-title">' + esc(r.title) + '</h2>' +
+  return '<section class="rail-sec"' + (r.lazy && !r.head.length ? ' data-lazy-rail="' + esc(r.key) + '"' : '') + ' aria-label="' + esc(r.title) + '"><div class="rail-head"><h2 class="rail-title">' + esc(r.title) + '</h2>' +
     '<span class="rail-count">' + Number(r.total).toLocaleString('es-PE') + '</span>' + door + '</div>' +
     '<div class="rail">' + cards + '</div></section>';
 }
@@ -925,6 +940,33 @@ function slRenderHome(){
   }
   slCountLine();
   watchPhotos(host);
+  slWatchLazyRails(host);
+}
+var LAZY_RAIL_IO = null;
+function slFillLazyRail(sec){
+  var key = sec.getAttribute('data-lazy-rail');
+  var r = slRailsByKey[key];
+  if (!r || r.filling) return;
+  r.filling = true;
+  slFetchPage(key, 1).then(function(pg){
+    r.head = ((pg && pg.items) || []).slice(0, 16);
+    r.lazy = false;
+    var rail = sec.querySelector('.rail');
+    var cards = '';
+    for (var i = 0; i < r.head.length; i++){ try { cards += slCardHTML(r.head[i]); } catch (e) {} }
+    if (rail) rail.innerHTML = cards;
+    sec.removeAttribute('data-lazy-rail');
+    watchPhotos(sec);
+  }).catch(function(){ r.filling = false; });
+}
+function slWatchLazyRails(host){
+  var secs = host.querySelectorAll('[data-lazy-rail]');
+  if (!secs.length) return;
+  if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < secs.length; i++) slFillLazyRail(secs[i]); return; }
+  if (!LAZY_RAIL_IO) LAZY_RAIL_IO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if (e.isIntersecting){ LAZY_RAIL_IO.unobserve(e.target); slFillLazyRail(e.target); } });
+  }, { rootMargin: '600px 0px' });
+  for (var j = 0; j < secs.length; j++) LAZY_RAIL_IO.observe(secs[j]);
 }
 /* CHIPS. Best Buy's departments open their rail in the overlay (#413).
    Every other store keeps its old chips: its departments in shopper words

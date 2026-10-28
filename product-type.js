@@ -78,6 +78,131 @@ function isFootwearLoose(item, retailer, retailerLabel){
   if (/\boxford\b/i.test(title) && !strongShoe) return false;
   return isFootwearTitle(title) || isShoeModel(item, retailer);
 }
+const ITEM_FAMILY_LABELS = {
+  juguetes: 'Juguetes', deportes: 'Deportes', electronica: 'Electrónica', hogar: 'Hogar',
+  belleza: 'Belleza', perfumes: 'Perfumes', bebe: 'Bebé y mamá', repuestos: 'Repuestos',
+  libros: 'Libros', dulces: 'Dulces',
+};
+const ITEM_FAMILY_DEPT = {
+  juguetes: 'toys', deportes: 'sporting_goods', electronica: 'electronics', hogar: 'home_goods',
+  belleza: 'beauty', perfumes: 'perfumes', bebe: 'moms', repuestos: 'auto_parts',
+  libros: 'books', dulces: 'candy_chocolate',
+};
+const ITEM_NAME_MASKS = /\b(toy\s+machine|tar\s+heels|cap[-\s]sleeves?|cap[-\s]toe|(?:bottle|lens|hub|knee|toe|valve|end|gas)\s+caps?|(?:seat|garter|tool|lifting)\s+belts?|(?:candle|napkin|curtain|shower|onion|binder|o)[-\s]rings?|(?:tea|bean|trash|garbage|gift|storage|vacuum|freezer|sandwich|laundry|zip(?:lock)?|ice|dust|bulk|resealable|party\s+favor)\s+bags?|\d[\d.,]*\s*(?:oz|lb|lbs|pounds?|ct|count)\s+bags?|hot\s+wheels|toy\s+story|cookies\s+sf|ball\s+gown|baby\s*doll\s+(?:dress|top|chemise|set|lingerie)|candy\s+stripe|eye\s+candy|cotton\s+candy|fragrance[-\s]free|unscented|non[-\s]?slip|anti[-\s]?slip|top[-\s]grain|pin[-\s]tail|air\s+cushion(?:ed)?|(?:high|low|mid)[-\s]tops?(?=\s|$|[^\w-])|skate\s+(?:tee|shirt|hoodie)|(?:sb|zoom|court)\s+blazers?|blazers?\s+(?:mid|low|high|court|pro|vntg|vintage)|game\s+day)\b/gi;
+function itemNounMinLength(frag){
+  return frag
+    .replace(/\((?:\?:)?[^()]*\)\?/g, '')
+    .replace(/\(\?:([^|()]*)[^()]*\)/g, '$1')
+    .replace(/\\[sbdw][*?]/g, '')
+    .replace(/\\[sbdw]\+?/g, '_')
+    .replace(/\[[^\]]*\][+*?]?/g, '_')
+    .replace(/.\?/g, '')
+    .replace(/[\\()|]/g, '').length;
+}
+const ITEM_FAMILY_NOUNS = [
+  ['repuestos', ['brake\\s+(?:pads?|rotors?|calipers?|kits?|shoes?|fluid|drums?|lines?)', 'rotors?', 'calipers?', 'struts?', 'strut\\s+assembl(?:y|ies)', 'shock\\s+absorbers?', 'control\\s+arms?', 'tie\\s+rods?', 'ball\\s+joints?', 'sway\\s+bar(?:\\s+links?)?', 'stabilizer\\s+(?:bars?|links?)', 'cv\\s+axles?', 'axle\\s+(?:shafts?|assembl(?:y|ies))', 'axles?', 'drive\\s*shafts?', 'input\\s+shafts?', 'wheel\\s+bearings?', 'hub\\s+(?:and\\s+bearing\\s+)?assembl(?:y|ies)', 'release\\s+bearings?', 'water\\s+pumps?', 'fuel\\s+pumps?', 'oil\\s+pumps?', '(?:oxygen|o2|abs|camshaft|crankshaft|knock|map|maf)\\s+sensors?', 'serpentine\\s+belts?', 'timing\\s+(?:belts?|kits?|chains?)', 'drive\\s+belts?', 'v-?belts?', 'wiper\\s+blades?', 'headlights?', 'headlamp\\s+assembl(?:y|ies)', 'tail\\s*lights?', 'spark\\s+plugs?', 'ignition\\s+coils?', 'alternators?', 'radiators?', 'thermostats?', 'motor\\s+oil', 'engine\\s+oil', 'transmission\\s+fluid', 'atf', 'coolant', 'antifreeze', '(?:oil|air|cabin(?:\\s+air)?|fuel)\\s+filters?', 'clutch\\s+(?:kits?|plates?|discs?|sets?)', 'flywheels?', 'mufflers?', 'catalytic\\s+converters?', 'car\\s+batter(?:y|ies)', '(?:agm|lead[-\\s]acid)\\s+batter(?:y|ies)', 'mud\\s*flaps?', 'repset', 'fenders?', 'fender\\s+chaps?', '(?:passenger|rider|foot|highway)\\s+pegs?', 'peg\\s+adapters?', 'saddlebags?', '(?:motorcycle|moto)\\s+seats?', '(?:grip\\s+)?seat\\s+covers?', 'tie-?down\\s+brackets?', 'handlebars?', 'speedometers?', 'tachometers?', '(?:car|truck|auto|vehicle)\\s+floor\\s+mats?', 'vacuum\\s+pumps?', 'frenos?', 'pastillas\\s+de\\s+freno', 'amortiguadores?', 'buj[ií]as?', 'alternadores?', 'radiadores?', 'filtros?\\s+de\\s+(?:aceite|aire)', 'correas?\\s+de\\s+distribuci[oó]n']],
+  ['electronica', ['cameras?', 'camcorders?', '(?:camera|zoom|prime|mirrorless|telephoto|macro)\\s+lens(?:es)?', 'lens(?:es)?(?=[^,]*\\b\\d+(?:-\\d+)?mm\\b)', 'tripods?', 'monopods?', 'gimbals?', 'drones?', 'memory\\s+cards?', '(?:micro\\s*)?sd(?:hc|xc)?\\s+cards?', 'cfexpress(?:\\s+cards?)?', 'card\\s+readers?', 'speedlights?', 'flash\\s+(?:units?|triggers?)', 'monolights?', 'strobes?', 'light\\s+stands?', 'softbox(?:es)?', 'laptops?', 'macbooks?', 'ipads?', 'tablets?', 'monitors?', 'headphones?', 'earbuds?', 'airpods', 'speakers?', 'soundbars?', 'chargers?', 'charging\\s+(?:cables?|stations?|docks?|pads?)', '(?:hdmi|usb(?:-c)?|lightning|ethernet)\\s+(?:cables?|cords?|adapters?|hubs?)', 'power\\s+banks?', 'batter(?:y|ies)', 'smartphones?', 'iphones?', 'smartwatch(?:es)?', 'smart\\s+watch(?:es)?', 'fitness\\s+trackers?', 'keyboards?', '(?:computer|gaming|wireless)\\s+mouse', 'consoles?', '(?:game|gaming|wireless)\\s+controllers?', 'televisions?', 'tvs?', 'projectors?', 'microphones?', 'webcams?', 'routers?', 'hard\\s+drives?', 'ssds?', 'printers?', 'led\\s+(?:panels?|video\\s+lights?)', 'ring\\s+lights?', 'c[aá]maras?', 'aud[ií]fonos', 'auriculares', 'cargadores?', 'parlantes?', 'bocinas?']],
+  ['bebe', ['strollers?', 'travel\\s+systems?', '(?:infant|baby|convertible|booster|toddler)\\s+(?:car\\s+)?seats?', 'car\\s+seats?', 'cribs?', 'bassinets?', 'high\\s*chairs?', 'diapers?', 'diaper\\s+bags?', 'baby\\s+wipes', 'baby\\s+bottles?', '(?:feeding\\s+)?bottle\\s+nipples?', 'pacifiers?', 'teethers?', 'sippy\\s+cups?', 'bibs?', 'breast\\s+pumps?', 'pumping\\s+bras?', 'nursing\\s+(?:pads?|pillows?|covers?)', 'baby\\s+carriers?', 'swaddles?', 'playards?', 'pack\\s*n\\s*play', 'baby\\s+monitors?', 'bouncers?', 'baby\\s+gates?', 'potty(?:\\s+seats?)?', 'bottle\\s+warmers?', '(?:infant|baby)\\s+wash(?:es)?', '(?:infant|baby|toddler)\\s+formula', 'baby\\s+food', 'baby\\s+(?:wash|shampoo|lotion|oil)', 'bottle\\s+brush(?:es)?', 'diaper\\s+(?:backpacks?|totes?|bags?|caddies|caddy)', '(?:breast\\s+)?pump\\s+(?:backpacks?|totes?|bags?)', 'wearable\\s+pumps?', 'breast\\s*milk\\s+(?:bags?|storage)', 'teething\\s+rings?', 'changing\\s+pads?', 'cochecitos?', 'carriolas?', 'biberones?', 'biber[oó]n', 'pa[ñn]ales?', 'chupones?', 'cunas?']],
+  ['perfumes', ['perfumes?', 'parfums?', 'eau\\s+de\\s+(?:parfum|toilette|cologne)', 'edp', 'edt', 'colognes?', 'body\\s+mists?', 'fragrance\\s+mists?', 'hair\\s+mists?', 'fragrances?', 'body\\s+splash', 'perfume\\s+oils?', 'colonias?', 'fragancias?']],
+  ['belleza', ['serums?', 's[eé]rum', 'sunscreens?', 'spf\\s*\\d*', 'moisturi[sz]ers?', 'cleansers?', 'toners?', 'foundations?', 'concealers?', 'bronzers?', 'highlighters?', 'mascaras?', 'eyeliners?', 'eye\\s+liners?', 'eyeshadows?', 'eye\\s+shadows?', '(?:eyeshadow|makeup|blush|contour)\\s+palettes?', 'palettes?', 'lipsticks?', 'lip\\s+(?:gloss|balm|liner|oil|stain|tint|kit|mask|treatment)s?', 'lip\\s+glosses', 'balms?', 'primers?', 'setting\\s+(?:spray|powder)s?', 'makeup', 'make-up', 'cosmetics?', 'nail\\s+(?:polish(?:es)?|kits?|art|lacquers?)', 'lotions?', '(?:body|belly)\\s+(?:wash|butter|scrub|oil)s?', 'shampoos?', 'conditioners?', 'dry\\s+shampoo', 'hair\\s+(?:oil|mask|serum|gel|dryer|straightener|curler|brush|tool|treatment)s?', 'flat\\s+irons?', 'curling\\s+irons?', 'deodorants?', '(?:face|sheet|clay|hair)\\s+masks?', 'skin\\s*care', 'retinol', 'exfoliators?', 'face\\s+wash', 'makeup\\s+brush(?:es)?', 'razors?', 'trimmers?', 'shavers?', 'beard\\s+(?:oil|balm)s?', 'self[-\\s]tanners?', 'tanning\\s+(?:lotion|oil)s?', 'hair\\s+(?:wax|pomade|spray)s?', 'pomades?', 'bath\\s+bombs?', 'soaps?', 'maquillaje', 'labiales?', 'cremas?', 'protector\\s+solar', 'champ[uú]']],
+  ['libros', ['books?', 'novels?', 'magazines?', 'hardcovers?', 'paperbacks?', 'cookbooks?', 'comic\\s+books?', 'graphic\\s+novels?', 'manga', 'libros?', 'revistas?']],
+  ['dulces', ['cand(?:y|ies)', 'candy\\s+canes?', 'chocolate\\s+bars?', 'gumm(?:y|ies)(?:\\s+(?:bears?|worms?))?', 'gummi\\s+\\w+', 'lollipops?', 'chews', 'jelly\\s+beans', 'marshmallows?', 'chewing\\s+gum', 'peanut\\s+butter\\s+cups?', 'dulces', 'caramelos', 'gomitas']],
+  ['hogar', ['candles?', 'planters?', 'flower\\s*pots?', 'yarns?', 'knitting\\s+(?:kits?|needles?)', 'floor\\s+mats?', 'spoons?', 'forks?', 'dish\\s+soaps?', 'bobbleheads?', 'balloons?', 'globos?', 'banners?', 'party\\s+decorations?', 'candlesticks?', 'candle\\s+holders?', 'vases?', '(?:throw\\s+|bed\\s+|decorative\\s+|lumbar\\s+)?pillows?', 'pillow\\s*cases?', 'pillow\\s+covers?', 'cushions?', 'comforters?(?:\\s+sets?)?', 'duvets?(?:\\s+covers?)?', 'quilts?', '(?:throw\\s+)?blankets?', 'throws', 'sheet\\s+sets?', 'sheets', 'towels?', 'bath\\s+mats?', 'rugs?', 'curtains?', 'shower\\s+curtains?', 'wall\\s+(?:art|decals?|stickers?|decor|signs?|clocks?|mirrors?|shelf|shelves)', 'decals?', 'canvas\\s+prints?', 'posters?', '(?:picture|photo)\\s+frames?', '(?:floor|vanity|wall)\\s+mirrors?', 'lamps?', '(?:string|fairy|night|led\\s+strip)\\s+lights?', 'ornaments?', 'figurines?', 'statues?', 'sculptures?', 'centerpieces?', 'wreaths?', 'garlands?', 'tablecloths?', 'table\\s+runners?', 'napkins?', 'placemats?', 'bowls?', 'serving\\s+bowls?', 'mugs?', 'tumblers?', '(?:wine|drinking|shot|pint)\\s+glass(?:es)?', 'bookcases?', 'bookshelf', 'bookshelves', 'signs?', 'water\\s+bottles?', 'cookware', '(?:frying\\s+|sauce\\s*)?pans?', 'utensils?', 'cutlery', 'storage\\s+(?:bins?|box(?:es)?|containers?|baskets?)', 'baskets?', 'organizers?', 'hangers?', 'shelves', 'shelf', '(?:side|coffee|end|dining)\\s+tables?', 'chairs?', 'sofas?', 'stools?', 'desks?', 'cabinets?', 'trays?', 'coasters?', 'clocks?', 'diffusers?', 'air\\s+fresheners?', 'artificial\\s+(?:plants?|flowers?)', 'plants?', 'bedding', 'bed\\s+sets?', 'mattress(?:es)?', 'soap\\s+dispensers?', 'lunch\\s+box(?:es)?', 'food\\s+containers?', 'blenders?', 'toasters?', 'coffee\\s+makers?', 'air\\s+fryers?', 'vacuums?', 'humidifiers?', 'heaters?', '(?:ceiling|desk|tower|box)\\s+fans?', 'hand\\s+dryers?', '(?:shoe|hat|wine|towel|coat)\\s+racks?', 'racks?', 'curtain\\s+rods?', '(?:oven|garden|gardening|work|cleaning)\\s+gloves?', '(?:dog|pet)\\s+(?:leash(?:es)?|collars?|beds?|toys?|bowls?)', 'doorbells?', 'mannequin(?:\\s+heads?)?', 'wig\\s+(?:heads?|stands?)', 'display\\s+(?:stands?|cases?)', 'velas?', 'cojines', 'coj[ií]n', 'almohadas?', 'cobijas?', 'mantas?', 'toallas?', 's[aá]banas?', 'alfombras?', 'cortinas?', 'l[aá]mparas?', 'adornos?', 'decoraci[oó]n', 'tazas?', 'platos?']],
+  ['deportes', ['(?:skate|skateboard)\\s+hardware', 'skateboards?', 'skate\\s*decks?', 'decks?', 'completes?(?=\\s*(?:\\d|$|skateboard))', 'longboards?', 'cruiser\\s+boards?', 'penny\\s+boards?', 'surf\\s*boards?', 'softboards?', 'soft\\s*top\\s+surfboards?', 'body\\s*boards?', 'boogie\\s+boards?', 'wakeboards?', 'kiteboards?', 'snowboards?', 'skis', 'paddle\\s*boards?', 'sup\\s+boards?', '(?:tri|twin|quad|thruster|single|keel|surf|side)\\s+fins?(?:\\s+sets?)?', 'fin\\s+sets?', 'fins', '(?:surf|board|ankle|calf)\\s+leash(?:es)?', 'traction\\s+pads?', 'tail\\s+pads?', 'deck\\s+grips?', 'grip\\s*tape', '(?:surf|skate|board)\\s+wax', 'wheels', 'trucks', 'bearings', 'risers?', 'bushings', 'skate\\s+tools?', '(?:soccer|foot|basket|volley|tennis|golf|pickle|base|soft|kick|dodge|bowling|lacrosse|beach)\\s*balls?', 'pelotas?', 'bal[oó]n(?:es)?', 'rackets?', 'racquets?', '(?:pickleball|padel|ping\\s*pong)\\s+paddles?', 'golf\\s+clubs?', 'shin\\s*guards?', 'goalkeeper\\s+gloves?', 'boxing\\s+gloves?', '(?:mma|bag|sparring|grappling|muay\\s+thai)\\s+gloves?', 'hand\\s+wraps?', 'mouth\\s*guards?', 'headgear', 'punching\\s+bags?', 'heavy\\s+bags?', 'dumbbells?', 'kettlebells?', 'barbells?', 'weight\\s+plates?', 'resistance\\s+bands?', '(?:yoga|exercise|workout|gym|golf|hitting|practice|pilates)\\s+mats?', 'foam\\s+rollers?', 'jump\\s+ropes?', 'helmets?', '(?:knee|elbow|shin)\\s+pads?', 'wrist\\s+guards?', 'protective\\s+(?:gear|pads?)', 'snorkels?', '(?:dive|snorkel|swim)\\s+masks?', 'spear\\s*guns?', 'weight\\s+belts?', '(?:dive|diving|safety|spearfishing)\\s+kni(?:fe|ves)', 'slip\\s+tips?', 'pole\\s*spears?', '(?:dive|diving)\\s+(?:flashlights?|lights?|torch(?:es)?)', 'wetsuits?', 'spring\\s*suits?', 'fishing\\s+(?:rods?|reels?|lures?)', 'rods?', 'reels?', 'lures?', 'tents?', 'sleeping\\s+(?:bags?|pads?)', 'camping\\s+chairs?', '(?:bike|cycling|golf|batting|baseball|softball|lifting|weight\\s*lifting|weightlifting|workout|exercise|fitness|training|gym|half[-\\s]finger)\\s+gloves?', '(?:exercise|loop|resistance|fitness|workout)\\s+bands?', 'swim\\s+caps?', 'scooters?', '(?:roller|inline|ice)\\s+skates', 'bicycles?', 'bikes?', 'patinetas?', 'tablas?\\s+de\\s+(?:surf|skate)', 'aletas', 'raquetas?', 'guantes\\s+de\\s+box']],
+  ['juguetes', ['toys?', 'juguetes?', 'dolls?', 'mu[ñn]ec[ao]s?', 'doll\\s*houses?', 'action\\s+figures?', 'figuras?\\s+de\\s+acci[oó]n', '(?:vinyl\\s+)?figures?', 'figuras?', 'playsets?', 'play\\s+sets?', 'play\\s+packs?', 'sets?\\s+de\\s+juego', 'juegos?\\s+de\\s+mesa', 'plush(?:ies)?', 'peluches?', 'stuffed\\s+animals?', 'squishmallows?', 'puzzles?', 'rompecabezas', '(?:board|card|party)\\s+games?', 'games?', 'building\\s+(?:sets?|kits?|blocks?|toys?)', 'bricks', 'blocks', 'funko\\s+pops?', 'pop!', 'die[-\\s]?cast(?:\\s+\\w+)?', '(?:toy|rc|remote[-\\s]control|die[-\\s]?cast|monster|race)\\s+(?:cars?|trucks?|vehicles?|helicopters?|boats?)', 'blasters?', 'water\\s+guns?', 'play[-\\s]?doh', 'trading\\s+cards?', 'booster\\s+(?:packs?|box(?:es)?)', 'tcg', 'yo-?yos?', 'kites?', 'teddy\\s+bears?', 'dollhouses?', 'playing\\s+cards', 'teething\\s+toys?']],
+  ['zapatos', ['shoes?', 'sneakers?', 'trainers', 'boots?', 'booties', 'bootie', 'sandals?', 'slides?', 'flip[-\\s]?flops?', 'cleats?', 'loafers?', 'moccasins?', 'espadrilles?', 'heels?', 'pumps', 'clogs?', 'slippers?', 'mules?', 'oxfords', 'flats', 'slingbacks?', 'slip[-\\s]?ons?', 'mocs?', 'derbys?', 'derbies', 'brogues?', 'monk\\s*straps?', 'zapatillas?', 'zapatos?', 'botas?', 'botines?', 'sandalias?', 'tacones?', 'pantuflas?', 'mocasines?', 'zuecos?', 'chimpunes?']],
+  ['trajes_bano', ['bikinis?', 'bikini\\s+(?:tops?|bottoms?)', '(?:tie[-\\s]side|cheeky|hipster|scrunch|banded|high[-\\s]waist(?:ed)?|swim|surf)\\s+bottoms?', 'swimsuits?', 'swimwear', 'one[-\\s]piece', 'swim\\s+(?:trunks?|shorts?|tops?|bottoms?|briefs?|dress(?:es)?)', 'boardshorts?', 'board\\s+shorts?', 'one[-\\s]piece\\s+swim\\w*', 'bathing\\s+suits?', 'rash\\s*guards?', 'tankinis?', 'monokinis?', 'trikinis?', 'ba[ñn]adores?', 'trajes?\\s+de\\s+ba[ñn]o']],
+  ['carteras', ['bags?', 'handbags?', 'purses?', 'totes?', 'tote\\s+bags?', 'clutch(?:es)?', 'backpacks?', 'crossbody(?:\\s+bags?)?', 'satchels?', 'duff(?:el|le)s?', 'duff(?:el|le)\\s+bags?', 'pouch(?:es)?', 'fanny\\s+packs?', 'belt\\s+bags?', 'hip\\s+packs?', 'sling\\s+bags?', 'carteras?', 'bolsos?', 'mochilas?', 'ri[ñn]oneras?']],
+  ['joyas', ['jewelry', 'jewellery', 'joyer[ií]a', 'bisuter[ií]a', 'earrings?', 'aretes?', 'necklaces?', 'collares', 'collar(?=\\s+de\\b)', 'bracelets?', 'pulseras?', 'rings?', 'anillos?', 'pendants?', 'colgantes?', 'charms?', 'dijes?', 'anklets?', 'tobilleras?', 'brooch(?:es)?', 'broches?', 'bangles?', 'chokers?', '(?:belly|body|waist|ankle)\\s+chains?', 'chains?', '(?:diamond|wedding|eternity|pav[eé]|gold|silver|channel[-\\s]set|anniversary)\\s+bands?', 'ear\\s+cuffs?', 'studs?', 'hoops?', 'cuff\\s+bracelets?', 'tiaras?', 'lockets?', '(?:enamel|lapel|costume|character|3d|collectible|flower|rose|brooch)\\s+pins?', 'pins']],
+  ['sombreros', ['hats?', 'caps?', 'beanies?', 'bonnets?', 'fedoras?', 'visors?', 'snapbacks?', 'strapbacks?', 'bucket\\s+hats?', 'trucker\\s+hats?', 'sombreros?', 'gorras?', 'gorros?', 'boinas?', 'berets?', 'headwear', 'balaclavas?']],
+  ['accesorios', ['scarf', 'scarves', 'bufandas?', 'belts?', 'cinturones?', 'sunglasses', 'sunglass', 'lentes\\s+de\\s+sol', 'gafas\\s+de\\s+sol', 'eyewear', 'wallets?', 'card\\s+holders?', 'billeteras?', 'gloves?', 'guantes?', 'mittens?', 'shawls?', 'chales?', 'pareos?', 'sarongs?', 'hair\\s+(?:clips?|ties?|bows?|pins?|accessories)', 'scrunchies?', '(?:claw\\s+)?clips?', 'headbands?', 'vinchas?', 'watch(?:es)?', 'relojes?', 'keychains?', 'keyrings?', 'key\\s*chains?', 'key\\s+rings?', 'stickers?', 'phone\\s+cases?', 'cases?', 'neckties?', 'bow\\s+ties?', 'ties', 'tie', '(?:eye|sleep)\\s+masks?', 'bobby\\s+pins?', 'shoe\\s*laces?', 'laces', 'insoles?', 'shoe\\s+(?:care|cleaners?|clips?|charms?)', 'cufflinks?', 'umbrellas?', 'bandanas?', 'lanyards?', 'patches', 'suspenders', 'earmuffs?', 'ear\\s+muffs?']],
+  ['ropa', ['shirts?', 't-?shirts?', 'tees?', 'tops?', 'tank\\s+tops?', 'tanks?', 'camis?', 'camisoles?', 'blouses?', 'sweaters?', 'cardigans?', 'hoodies?', 'turtlenecks?', 'mock\\s*necks?', 'shortalls?', 'sweatshorts?', 'baby\\s+one[-\\s]piece', 'sweatshirts?', 'crew\\s*necks?', 'pullovers?', 'jackets?', 'coats?', 'parkas?', 'anoraks?', 'windbreakers?', 'vests?', 'blazers?', 'suits?', 'dress(?:es)?', 'gowns?', 'skirts?', 'skorts?', 'pants?', 'trousers?', 'jeans', 'leggings?', 'joggers?', 'sweatpants?', 'shorts?', 'rompers?', 'jumpsuits?', 'overalls?', 'bodysuits?', 'onesies?', 'one-?piece\\s+pajamas?', 'pajamas?', 'pyjamas?', 'pj\\s+sets?', 'sleepwear', 'loungewear', 'robes?', 'lingerie', 'bras?', 'bralettes?', 'panties', 'underwear', 'boxers?', 'briefs?', 'trunks?', 'thongs?', 'socks?', 'tights', 'hosiery', 'uniforms?', 'jerseys?', 'kimonos?', 'ponchos?', 'chemises?', 'slips?', 'polos?', 'henleys?', 'tunics?', 'kaftans?', 'caftans?', 'layettes?', 'outfits?', '(?:two|2|three|3)[-\\s]piece\\s+sets?', 'camisas?', 'camisetas?', 'pantal[oó]n(?:es)?', 'vestidos?', 'faldas?', 'chaquetas?', 'casacas?', 'chompas?', 'poleras?', 'polerones?', 'buzos?', 'pijamas?', 'conjuntos?', 'blusas?', 'enterizos?', 'mamelucos?']],
+].map(function (r) {
+  const alts = r[1].slice().sort(function (a, b) { return itemNounMinLength(b) - itemNounMinLength(a) || b.length - a.length; });
+  return [r[0], new RegExp('\\b(' + alts.join('|') + ')\\b', 'gi')];
+});
+const ITEM_WEAK_NOUNS = [
+  ['belleza', ['blush(?:es)?', 'creams?', 'powders?', 'glosses']],
+  ['dulces', ['chocolates?', 'caramels?', 'mints']],
+  ['electronica', ['cables?', 'adapters?']],
+  ['repuestos', ['starters?', 'gaskets?']],
+  ['juguetes', ['slime']],
+  ['deportes', ['balls?', 'wax', 'leash(?:es)?', 'grips?', 'fin']],
+  ['hogar', ['cups?', 'plates?', 'wipes']],
+].map(function (r) { return [r[0], new RegExp('\\b(' + r[1].join('|') + ')\\b', 'gi')]; });
+const TOY_BRAND_RX = /\b(lego|funko|hot\s+wheels|barbie|nerf|pok[eé]mon|fisher[-\s]price|little\s+people|playmobil|mega\s+bloks|melissa\s*&\s*doug|squishmallows?|polly\s+pocket|my\s+little\s+pony|l\.?o\.?l\.?\s+surprise|bluey|peppa\s+pig|transformers|power\s+rangers|beyblade|magna-?tiles|play-?doh|kinetic\s+sand|schleich|jada\s+toys|maisto|matchbox|tonka|monster\s+high|rainbow\s+high|cocomelon|gabby'?s\s+dollhouse|paw\s+patrol|hatchimals|bratz|vtech|leapfrog)\b/i;
+const STRONG_TOY_RX = /\b(funko\s+pop!?|bobbleheads?|technic|compatible\s+with\s+lego|lego\s+compatible|fashion\s+dolls?|action\s+figures?|playsets?|play\s+sets?|building\s+(?:sets?|kits?|toys?)|(?:\d+[-\s]?(?:piece|pc)\s+)?(?:jigsaw\s+)?puzzles?|die[-\s]?cast|toy\s+(?:cars?|trucks?))\b/i;
+const STRONG_FRAGRANCE_RX = /\b(eau\s+de\s+(?:parfum|toilette|cologne)|parfum|edp|edt|body\s+mist|fragrance\s+mist|cologne\s+spray|perfume\s+spray)\b/i;
+const STRONG_DOLL_RX = /\b(dolls?|mu[ñn]ec[ao]s?)\b/i;
+const TOY_OVER = { '': 1, ropa: 1, accesorios: 1, sombreros: 1, zapatos: 1, hogar: 1, deportes: 1, repuestos: 1, electronica: 1 };
+const ITEM_FAMILY_TYPES = [
+  ['joyas', /\bpins?\b|brooch/i],
+  ['juguetes', /toy|juguete|puzzle|plush|peluche|doll|mu[ñn]ec|action figure|building set|board game|juegos? de mesa/i],
+  ['repuestos', /auto\s*parts?|car parts?|brakes?|repuesto|suspension|drivetrain|engine|ignition|filters?|motor oil|motorcycle parts?/i],
+  ['electronica', /electr[oó]nic|cameras?|c[aá]maras?|laptops?|computers?|audio|headphones?|phones?|celulares?|gaming|videojuegos?|drones?|lighting|tripods?|memory|lens(?:es)?|tablets?|monitors?|tv|wearables/i],
+  ['perfumes', /fragrance|perfume|fragancia|cologne|colonia|body mist/i],
+  ['belleza', /beauty|belleza|makeup|maquillaje|skin\s*care|cuidado (?:de la piel|personal|del cabello)|hair\s*care|nails?|u[ñn]as|cosm[eé]tic|bath\s*&\s*body|grooming|cuidado facial/i],
+  ['bebe', /\bbaby\b|beb[eé]|strollers?|coches? de beb|nursery|feeding|lactancia|car seats?|diapers?|pa[ñn]ales/i],
+  ['libros', /\bbooks?\b|libros?|magazines?|revistas?/i],
+  ['dulces', /candy|dulces|chocolates?|golosinas|snacks?|grocery/i],
+  ['hogar', /\bhome\b|hogar|decor|kitchen|cocina|bath\b|ba[ñn]o\b|bedding|furniture|muebles?|housewares|tableware|candles?|velas/i],
+  ['deportes', /skate|surf|sports? equipment|deporte|fitness|outdoor|camping|fishing|pesca|hardware|wheels|trucks|bearings|decks?\b|tablas|completes?|fins|aletas|wetsuits?|traction|boards?|bodyboard|snorkel|spearfishing|\bballs?\b|pelotas?|protecci[oó]n|helmets?|cascos?/i],
+];
+const SEGMENT_CUT_RX = /\s[-–—|]\s|,(?=\s|[A-Za-z])|\s\(|\s(?:with|w\/|for|in|featuring|includes?|including|con|para|incluye)\s/i;
+function itemHeadFamily(text, nouns){
+  const t = String(text || '').replace(ITEM_NAME_MASKS, function (m) { return ' '.repeat(m.length); });
+  const list = nouns || ITEM_FAMILY_NOUNS;
+  let best = null;
+  for (let i = 0; i < list.length; i++){
+    const rx = list[i][1];
+    rx.lastIndex = 0;
+    let m;
+    while ((m = rx.exec(t))){
+      const end = m.index + m[0].length;
+      if (!best || end > best.end || (end === best.end && m[0].length > best.len)) best = { family: list[i][0], end: end, len: m[0].length, word: m[0] };
+      if (m[0].length === 0) rx.lastIndex++;
+    }
+  }
+  return best;
+}
+function itemFamilyOfName(name){
+  const n = String(name || '');
+  /* The main phrase ends at the first cut ("-", ",", "with", "for",
+     "in"...); when it names nothing ("Just For Fun Cluster Charm"), the
+     next cut is tried, then the whole name. */
+  const cutRx = new RegExp(SEGMENT_CUT_RX.source, 'gi');
+  const cuts = [];
+  let m;
+  while ((m = cutRx.exec(n))) { if (m.index > 0) cuts.push(m.index); if (!m[0].length) cutRx.lastIndex++; }
+  cuts.push(n.length);
+  let head = null;
+  for (let i = 0; i < cuts.length && !head; i++){
+    const seg = n.slice(0, cuts[i]);
+    head = itemHeadFamily(seg);
+    if (!head && TOY_BRAND_RX.test(seg)) return 'juguetes';
+  }
+  if (!head) head = itemHeadFamily(n.slice(0, cuts[0]), ITEM_WEAK_NOUNS);
+  const fam = head ? head.family : '';
+  /* A fragrance is a fragrance, whatever it is called ("Moschino Toy 2"). */
+  if (STRONG_FRAGRANCE_RX.test(n)) return 'perfumes';
+  /* A doll in a dress is a doll, wherever the name puts it. */
+  if (fam !== 'juguetes' && STRONG_TOY_RX.test(n) && TOY_OVER[fam]) return 'juguetes';
+  if (fam !== 'juguetes' && fam !== 'ropa' && STRONG_DOLL_RX.test(n) && TOY_OVER[fam]) return 'juguetes';
+  return fam;
+}
+function itemFamilyOfType(type){
+  const t = String(type || '').replace(/_/g, ' ');
+  if (!t) return '';
+  for (let i = 0; i < ITEM_FAMILY_TYPES.length; i++) if (ITEM_FAMILY_TYPES[i][1].test(t)) return ITEM_FAMILY_TYPES[i][0];
+  return '';
+}
+const ITEM_FAMILY_RETAILERS = {
+  bhphoto: 'electronica', advanceauto: 'repuestos', autozone: 'repuestos', ariaperfumes: 'perfumes',
+  assouline: 'libros', chronicle: 'libros',
+  walmartbaby: 'bebe', momcozy: 'bebe', munchkin: 'bebe', babybrezza: 'bebe', nanit: 'bebe', owlet: 'bebe',
+  lillebaby: 'bebe', mushie: 'bebe', ezpz: 'bebe', drbrowns: 'bebe', elvie: 'bebe',
+};
+const ITEM_FAMILY_GENERIC = { '': 1, electronica: 1, repuestos: 1, hogar: 1, deportes: 1, belleza: 1, dulces: 1, bebe: 1 };
 const LATINO_PRODUCT_TYPES = [
   { key: 'trajes_bano', label: 'Trajes de Baño',
     rx: /\b(bikinis?|swimsuits?|swimwear|swim\s+(?:trunks?|shorts?|tops?|bottoms?|briefs?)|one[-\s]piece\s+swim\w*|two[-\s]piece\s+swim\w*|rash\s*guards?|tankinis?|monokinis?|trikinis?|beachwear|ba[ñn]adores?|trajes?\s+de\s+ba[ñn]o)\b/i,
@@ -102,26 +227,43 @@ const LATINO_PRODUCT_TYPES = [
     not: /\b(seat|timing|serpentine|garter|tool|weight|lifting)\s+belts?\b|\bbelt\s+(?:sanders?|drives?|loops?\s+tool)\b|\b(oven|garden|work|boxing|bike|golf|gardening)\s+gloves?\b/i,
     type: /accessor|accesorio|scarf|\bbelts?\b|sunglass|wallet|gloves?/i },
   { key: 'ropa',        label: 'Ropa', type: null, rx: null },
-];
+  /* Not fashion: the departments that sell them (ITEM_FAMILY_LABELS). */
+].concat(Object.keys(ITEM_FAMILY_LABELS).map(function (k) { return { key: k, label: ITEM_FAMILY_LABELS[k], type: null, rx: null }; }));
 function latinoProductTypeOfItem(item){
   const name = String(item?.name || item?.title || '');
   const retailer = item?.retailer ? String(item.retailer).toLowerCase() : '';
   const type = String(item?.type || '').trim();
-  /* 2. Footwear first: a published footwear type, a shoe title, or a
-     shoe model under a catch-all type. Its vetoes (socks, shoelaces,
-     bootcut, dolls) apply. */
-  if (isFootwearLoose(item, retailer)) return 'zapatos';
-  /* 1. A type that names a kind settles it. */
+  if (retailer === 'ariaperfumes') return 'perfumes';
+  /* A book's title is not its noun ("Football: The Impossible Collection"). */
+  if (itemFamilyOfType(type) === 'libros') return 'libros';
+  /* A shoe model ("Jordan 6 Rings", "Air Force 1 '07") is a shoe whatever
+     its words say; isShoeModel carries the garment vetoes. */
+  if (isShoeModel(item, retailer)) return 'zapatos';
+  /* 1. The product's own name: the head noun of its main phrase (the
+     re-route audit, #443 c.6460976249). A shoe still passes the vetted
+     footwear vetoes; a shoe model that carries no noun is read below. */
+  const fam = itemFamilyOfName(name);
+  if (fam === 'zapatos' && !NOT_FOOTWEAR.test(name)) return 'zapatos';
+  if (!fam && isFootwearLoose(item, retailer)) return 'zapatos';
+  const storeFam = ITEM_FAMILY_RETAILERS[retailer];
+  if (storeFam && storeFam !== 'perfumes' && ITEM_FAMILY_GENERIC[fam] && !(fam === '' && isFootwearLoose(item, retailer))) return storeFam;
+  /* A swim store's "Bryn Top": the garment noun is generic, the type says swim. */
+  if (fam === 'ropa' && type && LATINO_PRODUCT_TYPES[0].type.test(type) && !/\b(?:underwear|panties|briefs?|bras?)\b/i.test(name)) return 'trajes_bano';
+  if (fam && fam !== 'zapatos') return fam;
+  /* 2. A name that names nothing: the retailer's type (fashion first),
+     never the other way round -- pullers' types lie ("Accesorios"
+     hoodies, "Ropa" serving bowls). */
   if (type && !isCatchallType(type)){
+    const tt = type.replace(/_/g, ' ');
     for (const t of LATINO_PRODUCT_TYPES){
-      if (t.type && t.type.test(type)) return t.key;
+      if (t.type && t.type.test(tt)) return t.key;
     }
+    const tf = itemFamilyOfType(type);
+    if (tf) return tf;
   }
-  /* 3. Whole words, with each kind's vetoes. */
-  for (const t of LATINO_PRODUCT_TYPES){
-    if (!t.rx) continue;
-    if (t.rx.test(name) && !(t.not && t.not.test(name))) return t.key;
-  }
+  /* 3. A toy line's brand; a store that sells one family. */
+  if (TOY_BRAND_RX.test(name + ' ' + String(item?.brand || ''))) return 'juguetes';
+  if (ITEM_FAMILY_RETAILERS[retailer]) return ITEM_FAMILY_RETAILERS[retailer];
   /* 4. What is left. */
   return 'ropa';
 }
@@ -129,6 +271,9 @@ root.AriaProductType = {
   classify: latinoProductTypeOfItem,
   isFootwear: isFootwear,
   isFootwearLoose: isFootwearLoose,
+  familyOfName: itemFamilyOfName,
+  familyOfType: itemFamilyOfType,
+  FAMILY_DEPT: ITEM_FAMILY_DEPT,
   TYPES: LATINO_PRODUCT_TYPES.map(function (t) { return { key: t.key, label: t.label }; })
 };
 })(typeof window !== 'undefined' ? window : globalThis);
