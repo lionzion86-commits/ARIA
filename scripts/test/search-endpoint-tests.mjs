@@ -223,7 +223,25 @@ await check("the function ships with its files, and only it does", () => {
   }
 });
 
-const MIN_CHECKS = 19;
+/* P0 2026-10-28 (c.6469467334): an outside call that never answers must
+   not hold the search. A fresh copy of the function (its rate cache is
+   module state) gets a SUNAT that ignores its abort and never settles;
+   the answer still leaves, inside the rate budget, without soles. */
+await check("a rate source that never answers does not hold the search (no bare 502)", async () => {
+  const fresh = await import("../../netlify/functions/search.js?hang=" + Date.now());
+  const never = () => new Promise(() => {});
+  const t0 = Date.now();
+  const r = await fresh.handler({ httpMethod: "GET", queryStringParameters: { q: "nike", page: "1" } }, { fetchImpl: never });
+  const ms = Date.now() - t0;
+  assert.equal(r.statusCode, 200, String(r.body).slice(0, 200));
+  const body = JSON.parse(r.body);
+  assert.ok(body.items.length > 0, "no cards");
+  assert.ok(!body.fx, "a rate appeared from nowhere");
+  assert.ok(ms < 6000, `took ${ms}ms`);
+  assert.match(r.headers["Netlify-CDN-Cache-Control"] || "", /max-age=60\b/, "an answer without soles is cached only briefly");
+});
+
+const MIN_CHECKS = 20;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);
