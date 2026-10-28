@@ -57,8 +57,9 @@ const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORE
 const PULL_ONLY = new Set(["snipes", "carolinaherrera"]);
 const LIVE_DEALS = LIVE_SLICED.filter((k) => !PULL_ONLY.has(k));
 /* Stores whose pull carries no demand signal (no reviews, no best-sellers
-   rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria). */
-const NO_DEMAND = new Set(["pier1"]);
+   rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria),
+   BrandsMart USA (Build Order B: its Shopify feed has neither). */
+const NO_DEMAND = new Set(["pier1", "brandsmart"]);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;

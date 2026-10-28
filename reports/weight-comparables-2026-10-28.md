@@ -4,18 +4,17 @@
 
 | | Products |
 |---|---:|
-| Comparables pool (a published weight, the store's figure, or a per-class rule) | 123,230 |
-| Products the rules could only cover with a constant | 12,572 |
-| ...now estimated from similar products (median x 1.15) | 5,599 |
-| ...with no similar product, weighed by the web pass (found weight x 1.1, source in hidden-docs/weight-tail-full-2026-10-26.csv) | 1,272 |
-| ...with neither: weight "por confirmar" | 5,701 |
+| Comparables pool (a published weight, the store's figure, or a per-class rule) | 123,910 |
+| Products the rules could only cover with a constant | 12,811 |
+| ...now estimated from similar products (median x 1.15) | 5,649 |
+| ...with no similar product, weighed by the web pass (found weight x 1.1, source in hidden-docs/weight-tail-full-2026-10-26.csv) | 1,274 |
+| ...with neither: weight "por confirmar" | 5,888 |
 
 ## Sample estimates (product -> kg; comparables with their kg and match score)
 
 - **3-pc. cashmere mist purse spray set** (macys, US$90.00): 0.35 kg (0.3 x 1.15); Cashmere Mist — Eau de Parfum en spray 50 ml (1.7  US$61.24 0.25 kg [0.59]; Cashmere Mist — Eau de Parfum en spray 100 ml (3.4 US$73.23 0.35 kg [0.59]; Cashmere Mist — Eau de Toilette en spray 100 ml (3 US$51.44 0.35 kg [0.57]; 2-Pc. Cashmere Mist Eau de Parfum Discovery Set US$71 0.25 kg [0.45]
-- **smart oven pro** (macys, US$269.95): 9.32 kg (8.1 x 1.15); Smart Oven Air Fryer US$349.95 8.1 kg [0.54]; Double Oven Pro Smart XL Countertop Oven Air Fryer US$299.99 8.1 kg [0.42]
 - **professional plus auto-iq kitchen system blender and food processor set** (macys, US$169.97): 6.48 kg (5.63 x 1.15); Ninja - TotalCrush Professional Kitchen System (Bl US$219.99 7.593 kg [0.58]; Ninja - Professional Plus Blender with Auto-iQ - G US$89.99 3.674 kg [0.49]
-- **bov900bss 13-in-1 smart oven air** (macys, US$319.95): 9.32 kg (8.1 x 1.15); Smart Oven Air Fryer US$349.95 8.1 kg [0.65]; The Smart Oven 10-Function Air Fryer Compact US$249.95 8.1 kg [0.47]; Double Oven Pro Smart XL Countertop Oven Air Fryer US$299.99 8.1 kg [0.44]
+- **bov900bss 13-in-1 smart oven air** (macys, US$319.95): 9.32 kg (8.1 x 1.15); Smart Oven Air Fryer US$349.95 8.1 kg [0.65]; The Smart Oven 10-Function Air Fryer Compact US$249.95 8.1 kg [0.47]; Double Oven Pro Smart XL Countertop Oven Air Fryer US$299.99 8.1 kg [0.43]
 - **men's glen plaid relaxed-fit overshirt** (macys, US$77.70): 0.38 kg (0.33 x 1.15); Relaxed-Fit Italian Printed Denim Overshirt US$140 0.33 kg [0.51]; Relaxed-Fit Plaid Seersucker Shirt US$69.99 0.33 kg [0.49]; Relaxed-Fit Plaid Cotton Twill Shirt US$120 0.33 kg [0.49]; Gray Relaxed-Fit Glen-Check Cotton Twill Shirt US$140 0.4 kg [0.48]
 - **14k gold round cut stud screw back earrings** (macys, US$185.00): 0.03 kg (0.03 x 1.15); Heidi 18K Gold Earring Set - Heidi 18K Gold Earrin US$158 0.03 kg [0]; Claire 14K Pavé Huggie Earrings - Gold/Pavé US$148 0.03 kg [0]; Verbena 18K Gold Earring Set - 18K Gold US$130 0.03 kg [0]; Luna 14K Gold Earring Set - Luna 18K Gold Earring  US$128 0.03 kg [0]; Lexi 14K Gold Earring Set - Lexi 14K Gold Earring  US$128 0.03 kg [0]
 - **diamond bezel necklace (1/10 ct. t.w.) in sterling silver, 14k gold-plated sterl** (macys, US$122.50): 0.08 kg (0.07 x 1.15); Florence 18K Gold Plated Sterling Silver Birthston US$98 0.07 kg [0.64]; Esther 18K Gold Plated Sterling Silver Birthstone  US$138 0.07 kg [0.62]; Billie 18K Gold Tennis Necklace - 18K Gold Plated  US$152 0.07 kg [0.5]; Sydney 18K Gold Plated Sterling Silver Birthstone  US$88 0.03 kg [0.49]; Florence 18K Gold Plated Sterling Silver Birthston US$98 0.07 kg [0.48]
@@ -26,7 +25,7 @@
 - **diamond stud earrings (1/10 ct. t.w.) in 10k gold, white gold or rose gold** (macys, US$140.00): 0.03 kg (0.03 x 1.15); Daria 14K Gold Stud Earring Set US$128 0.03 kg [0.5]; Solid Gold & Diamond Initial Earring - Gold US$175 0.03 kg [0.5]
 - **elena oval moissanite solitaire vermeil ring** (macys, US$408.00): 0.02 kg (0.02 x 1.15); Gina 14K Gold Ring Set - Gold/Silver US$198 0.02 kg [0]; 14K Gold Fineline Custom Nameplate Ring - Gold US$188 0.02 kg [0]; Sterling Silver Fineline Custom Nameplate Ring - S US$188 0.02 kg [0]; Pavé Script Custom Ring - Silver US$178 0.02 kg [0]; Retro 14K Gold Custom Ring - 14K Gold US$178 0.02 kg [0]
 - **women's wilix pointed toe mule pumps** (macys, US$76.30): 0.57 kg (0.5 x 1.15); Noemi Pointed-Toe Mule Heels - Black US$129 0.5 kg [0.55]; Noemi Pointed-Toe Mule Heels - White US$129 0.5 kg [0.55]; Noemi Pointed-Toe Mule Heels - Khaki US$129 0.5 kg [0.53]; Noemi Pointed-Toe Mule Heels - Burgundy US$129 0.5 kg [0.52]; Noemi Pointed-Toe Mesh Mule Heels - Black US$129 0.5 kg [0.52]
-- **women's hooded puffer anorak** (macys, US$180.00): 2.02 kg (1.76 x 1.15); Hooded Puffer Jacket US$120 1.76 kg [0.62]; Women's Hooded Anorak Quilted Coat, Created for Ma US$122.5 1.76 kg [0.53]; Women's Packable Hooded Puffer Coat US$200 1.76 kg [0.48]; Women's Puffer Packable Hooded Coat US$90 1.76 kg [0.48]; Women's Hooded Packable Puffer Coat US$120 1.76 kg [0.48]
+- **women's hooded puffer anorak** (macys, US$180.00): 2.02 kg (1.76 x 1.15); Hooded Puffer Jacket US$120 1.76 kg [0.62]; Women's Hooded Anorak Quilted Coat, Created for Ma US$122.5 1.76 kg [0.53]; Women's Puffer Packable Hooded Coat US$90 1.76 kg [0.48]; Women's Packable Hooded Puffer Coat US$200 1.76 kg [0.48]; Women's Hooded Packable Puffer Coat US$120 1.76 kg [0.48]
 - **women's single-breasted peacoat, created for macy's** (macys, US$142.50): 2.02 kg (1.76 x 1.15); Women's Single-Breasted Maxi Coat US$200 1.76 kg [0.55]; Women's Single-Breasted Walker Coat, Created for M US$182.5 1.76 kg [0.49]
 - **michael kors jet set charm north south nylon crossbody** (macys, US$129.50): 0.93 kg (0.81 x 1.15); Michael Kors Jet Set Charm Leather Small North Sou US$159.5 0.81 kg [0.77]; Jet Set Small North South Crossbody Handbag US$129.5 0.81 kg [0.52]; Michael Kors Jet Set Medium Convertible Pouchette  US$199.5 0.81 kg [0.51]
 - **michael kors laila medium signature logo satchel** (macys, US$279.50): 0.93 kg (0.81 x 1.15); Michael Kors Laila Small Leather Satchel Bag US$229.5 0.81 kg [0.79]; Michael Kors Laila Medium Tote Handbag US$259.5 0.81 kg [0.67]; Michael Kors Laila Medium Color-Block Leather Satc US$279.5 0.81 kg [0.58]
@@ -37,6 +36,7 @@
 - **round-cut diamond stud earrings in 10k yellow or white gold (1/10 ct. t.w.)** (macys, US$87.50): 0.03 kg (0.03 x 1.15); Heidi 18K Gold Earring Set - Heidi 18K Gold Earrin US$158 0.03 kg [0]; Claire 14K Pavé Huggie Earrings - Gold/Pavé US$148 0.03 kg [0]; Verbena 18K Gold Earring Set - 18K Gold US$130 0.03 kg [0]; Luna 14K Gold Earring Set - Luna 18K Gold Earring  US$128 0.03 kg [0]; Lexi 14K Gold Earring Set - Lexi 14K Gold Earring  US$128 0.03 kg [0]
 - **3-pc. set small endless hoop earrings in 10k gold** (macys, US$166.25): 0.68 kg (0.59 x 1.15); Crystal Hoop Single Earring US$175 1.15 kg [0.51]; Lila 18K Gold Hoop Earrings - Gold/Pavé US$88 0.03 kg [0.47]
 - **diamond bracelet (1/2 ct. t.w.) in sterling silver or gold-plated sterling silve** (macys, US$109.00): 0.07 kg (0.06 x 1.15); Billie 18K Gold Tennis Bracelet  - 18K Gold Plated US$92 0.06 kg [0.58]; STAR WARS™ R2-D2™ 14K Gold Plated Sterling Silver  US$68 0.03 kg [0.47]; Sterling Silver Custom Nameplate Bracelet - Sterli US$108 0.06 kg [0.47]; Billie Sterling Silver Tennis Bracelet  - Sterling US$92 0.06 kg [0.47]; 14K Gold & Diamond Initial Bracelet - Gold/Pavé US$158 0.06 kg [0.45]
+- **14k gold polished hinge bangle bracelet** (macys, US$899.00): 1.32 kg (1.15 x 1.15); Ariana Grande x Swarovski® Crystal Cultivated Pear US$350 1.15 kg [0]; Beaded Logo Bracelet US$325 1.15 kg [0]; DG logo crystal rhinestones-embellished bracelet  US$678 1.15 kg [0]; 'No Time' Watch Bracelet US$1070 0.16 kg [0]; Cable 'le 7g' Bracelet US$455 0.067 kg [0]
 
 ## Sample web-pass estimates (found weight x pad; the source URL is in the CSV)
 
@@ -5761,3 +5761,191 @@
 | carolinaherrera | Satin Kitten Heel Mule | 750.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | carolinaherrera | Strappy Pumps in Metallic Patent Leather | 820.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | carolinaherrera | Cylinder-Heel Patent Leather Pumps | 820.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
+| brandsmart | Rad 480i - Long-Range Detector with Shared Alerts | 149.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 10" 300W Enclosed Subwoofer with Low Profile Grille | 499.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 300-Watt Wireless Subwoofer - Black | 699.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Sound Suite W7 8" Subwoofer | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 6" Short POD Weather Resistant Tower Enclosure (Pair) | 129.77 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 200-Watt Wireless Subwoofer - Black | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Compact Bluetooth 4 Channel Digital Amplifier | 420.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 8" Full-Range Marine Speakers with LED Lighting | 259.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | eXcelon Series 6X8-inch Car Stereo Speakers (Pair) | 150.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 6.5-inch 2-Way 200W Marine Full Range Speakers - White | 79.77 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Bass Module 700 Wireless Compact Subwoofer - Black | 899.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 10" Wireless Subwoofer - Black | 349.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 2.1 Sound Bar & Subwoofer | 89.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Sub 4 Wireless Subwoofer - White | 899.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Sub 4 Wireless Subwoofer - Black | 899.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 4K AI DriveCam | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Smart Care Essential Care Kit | 199.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Battery Doorbell Plus 2K 2nd Gen - Nickel Silver | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Tracker Tag - 5 Pack | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 8" Show 8 Smart Display with Alexa+ - White | 199.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 8" Show 8 Smart Display with Alexa+ - Graphite | 199.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Outdoor Cam Plus, Battery with 2K Video and Ring Vision, Low-Light Sight, and Mount-Anywhe | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Outdoor Cam Plus, Plug-In with 2K Video and Ring Vision, Low-Light Sight, and Mount-Anywhe | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Video Doorbell Pro | 89.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | AirTag (4 Pack) | 84.49 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 100ft Smart Permanent Outdoor Lights | 169.99 | 4 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Spot - White | 109.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 11" Show 11 Smart Display with Alexa+ - White | 249.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Spot - Black | 109.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | S7 Pro Streaming Box | 305.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Wired Doorbell Pro Smart Wi-Fi Video Doorbell - Satin Nickel | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | S7 Ultra Streaming Box | 381.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 11" Show 11 Smart Display with Alexa+ - Graphite | 249.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Outdoor Cam Plus, Plug-In with 2K Video and Ring Vision, Low-Light Sight, and Mount-Anywhe | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Spotlight Cam Pro | 169.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Echo Show 5 (3rd Gen) Smart Display and Alarm Clock in Charcoal | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | SolarCam D1 Lite | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Echo Show 5 (3rd Generation) - White | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Floodlight Cam Pro (2nd Gen) Retinal 4K for Ultra-Clear Video, 10x Zoom, Ultra-Bright Moti | 259.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Fitbit Charge 6 Fitness Tracker Obsidian Band Black Aluminum Case | 159.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Fitbit Inspire 3 Health and Fitness Tracker Midnight Zen/Black | 99.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Forerunner® 570 Slate Gray Aluminum with Translucent Black/Black Band | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Fitbit Charge 6 Fitness Tracker Coral Band Champagne Gold Aluminum Case | 159.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | vívoactive® 6 Slate Stainless Steel Bezel Lunar Gold with Bone Band | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Venu® X1 Black with Slate Titanium Case Back and Black ComfortFit Nylon Band | 799.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Fitbit Inspire 3 Health and Fitness Tracker Morning Glow | 99.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Forerunner® 265 Black Bezel and Case with Black/Powder Gray Silicone Band | 449.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Forerunner® 965 Titanium Bezel with Whitestone Case and Whitestone/Powder Gray Silicone Ba | 599.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | vívoactive® 5 Slate Aluminum Bezel with Black Case and Silicone Band | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Venu® 3S Soft Gold Stainless Steel Bezel with Dust Rose Case and Silicone Band | 449.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Forerunner® 570 Amp Yellow Aluminum with Translucent Whitestone/Turquoise Band | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Venu® 4 Slate Lunar Gold with Bone Silicone Band | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Forerunner® 170 Music Whitestone with Whitestone/Cloud Blue Band | 349.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Venu® 3 Slate Stainless Steel Bezel with Black Case and Silicone Band | 449.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Venu® 4 Slate with Black Silicone Band | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | vívoactive® 6 Slate Stainless Steel Bezel Slate with Black Band | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Forerunner® 265 Black Bezel with Whitestone Case and Whitestone/Tidal Blue Silicone Band | 449.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Auto Dimming Rear View Mirror W/3.3" Back Up Camera Display | 129.77 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Dash Cam™ Mini 3 | 149.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Dash Cam™ Tandem | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Osmo Pocket 3 Creator Combo | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Dash Cam™ X210 | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 8-Channel 4K+ 12MP Poe NVR System with 4 Bullet Security Cameras & 2TB HDD - White | 929.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 8-Channel 4K 8MP PoE NVR System with 4 Dome Security Cameras & 2TB HDD - White | 699.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 4K 8MP Outdoor Wired PoE Security IP Camera with 5X Optical Zoom - White | 149.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 15.6” Smart Family Calendar | 169.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 48MP Autofocus 5K UHD Waterproof Camera - Black | 149.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 44MP Quad HD Digital Camera - Black | 129.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Add-on Wired 4K Deterrence Camera With 2-Way Audio - White | 149.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | F25 Foldable Drone with 1080p FHD Camera, Faa-Exempt, FPV Screen, and GPS | 129.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Osmo Mobile 8 | 149.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | GPS Drone with 4K 3-Axis Gimbal Camera | 269.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Wi-Fi IP Plug In 4K HD Deterrence Camera with 2-Way Audio and Audio Alerts and Siren - Whi | 89.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Wire Free 2K HD Spotlight Camera with 2-Way Audio, Preset Voice Alerts
+and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Solar Powered Wire Free 2K Camera with Spotlight and 2-Way Audio | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Powered Wi-Fi Floodlight Deterrence HD+ Camera with 2-Way Audio - White | 119.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Avata 360 with RC 2 | 719.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Osmo Nano Standard Combo (128GB) | 409.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Mic Mini Wireless Omnidirectional Microphone System | 99.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 7" IPS Touch Screen Dashcam with Wireless Carplay | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | PowerShot V10 - Black | 399.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Fluid Pro AI Multi-Device Gimbal Stabilizer with AI Tracking | 229.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Point & Shoot Dual Lens Digital Camera - Brown | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 44MP Quad HD Digital Camera - Silver | 129.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 64MP Auto Focus 10X Optical Zoom Wi-Fi Bridge Camera - Black | 249.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 64MP Auto Focus 10X Optical Zoom Wi-Fi Bridge Camera - Blue | 249.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 3-Way 2.0 Grip / Arm / Tripod | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Night Vision Digital Camera Binocular | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | HERO13 Black and Accessories Bundle | 649.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | MAX 360 Action Camera (Waterproof + Stabilization) | 369.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | HERO12 Black | 369.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 10 Channel Bluetooth 3 Battery 1080p HD Wire-Free Security Camera | 249.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 1080p Wired Plus HD Floodlight Outdoor Security Camera with Built-In Siren - Black | 159.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 2-Way Audio 12 Channel DVR Security System with 1TB Hard Drive and 4 Wired 2K Deterrence C | 319.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 6-Camera 12-Channel 4K 2TB HDD DVR Security System | 629.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 1080p Wired Plus HD Floodlight Outdoor Security Camera with Built-In Siren - White | 159.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 10-Camera 20-Channel 1080p HD 1TB HDD DVR Security System | 679.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 8-Channel 4K 4-Camera Indoor/Outdoor Wired 1TB Security System | 349.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | G29 Racing Wheel for Playstation and PC | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | G920 Driving Force Racing Wheel for Xbox One and PC | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | G502 X Wired Gaming Mouse | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Tony Hawk's™ Pro Skater™ 3 + 4 – Collector's Edition | 129.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Pro Mobile Gaming Controller | 169.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Basilisk V3 Pro Customizable Wireless Gaming Mouse | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | DualSense Wireless First Light Limited Edition Controller | 84.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | DualSense Wireless Marathon LE Controller | 84.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | PRO X SUPERLIGHT 2 - Black | 159.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Yeti GX Dynamic RGB Gaming Microphone with Lightsync | 169.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Huntsman V3 Pro 8KHz Esports Gaming Keyboard | 249.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | ROG Xbox Ally – 7” 1080p 120Hz Touchscreen Gaming Handheld | 599.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | PRO KEYBOARD - Black | 219.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | DualSense Wireless Chroma Indigo Controller | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Signature Elite ES10 Surround Speakers | 249.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Signature Elite ES35 Slim Center Channel Loudspeaker | 399.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Music Frame | 399.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 100-Watts Wireless Rear Speakers - Black | 249.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | DENONHOME150BK | 199.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | BRAVIA Theater Quad with 16 Speakers | 2699.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Port Access Point In Black | 449.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Professional Premium Wireless Dual Microphone System with Extended Range | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Series II Universal Floor Stands - White | 119.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Roam 2 - Black | 179.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Roam 2 - White | 179.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | EasySing Wireless Microphone Mini | 179.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Era 100 SL - Black | 189.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | V Series Banana Adapters 2-Pair \\ Pure Gold Shield to Prevent Copper Wire Oxidation, High | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | OmniJewel Table Stands - White | 79.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Triple Wireless Charger - Dark Grey | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Era 100 SL - White | 189.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Surround Set with Arc Ultra - Black | 1457.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Surround Set with Arc Ultra - White | 1457.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Premium Entertainment Set with Arc Ultra - Black | 1898.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Play:1 - White | 299.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Premium Entertainment Set with Arc Ultra - White | 1898.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Premium Immersive Set with Arc Ultra - White | 2311.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Play:1 - Black | 299.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Entertainment Set with Beam - White | 948.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Premium Immersive Set with Arc Ultra - Black | 2311.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Premium Immersive Set with Beam - White | 1741.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Premium Surround Set with Arc Ultra - Black | 1952.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Ultimate Immersive Set with Arc Ultra - Black | 2806.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 5.1 Channel High-Performance Compact Surround Sound System | 999.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 4" White In-Ceiling Speakers | 179.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 8 Channel On/Off Disco Light Control | 89.77 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Premium Entertainment Set with Beam - White | 1328.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | EON ONE Compact All-In-One Rechargeable Personal PA | 699.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Surround Speakers - Black | 399.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Sub Mini - White | 499.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Era 100 - White | 219.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | EasySing Wireless AI-Powered Microphones | 199.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Era 300 - White | 479.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Architectural 6.5" Passive 2-Way Outdoor Speakers Pair - White | 999.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Era 100 - Black | 219.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Enchant Sub | 449.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Era 300 - Black | 479.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Outdoor 2-Way Speakers (Pair) - Black | 999.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | In-Ceiling 2-Way Speakers (Pair) - White | 729.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | PartyBox Wireless Microphones | 129.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Pixel Buds Pro - Charcoal | 179.77 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Acer Aspire Lite 14 AI AL14-11M-X8EN Copilot+ PC, 14" WUXGA (1920 x 1200) Display, Snapdra | 749.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Acer Aspire Lite 15 AL15-35P-C3NH 15.6" Full HD IPS Matte Display, Intel Celeron N4500, In | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | MR HH150 FLT - 3 Watt Handheld Floating VHF Marine Radio with NOAA Weather | 99.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | USB3.1 B113 512GB | 89.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | RX380 - Easy-to-Use Weather-Resistant Walkie Talkies (2-Pack) | 79.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | MR HH350 FLT - 6 Watt Handheld Floating VHF Marine Radio with NOAA Weather | 139.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Logitech MX Keys S Wireless Keyboard in Black | 119.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | MX Master 3S Performance Wireless Mouse | 119.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Brio 500 Full HD Webcam | 129.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Logitech MX Master 3S for Mac Performance Wireless Mouse in Space Gray | 119.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | StreamCam Plus Webcam | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 10.2" 32GB eReader with Wi-Fi - Tungsten (Gray) | 419.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Emtec SSD X210 1TB | 119.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 802 DURABrite Ultra Color Combo Pack Standard Capacity Cartridge Ink | 92.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Logitech Mobi Fold Ultra-portable Wireless Mouse in Graphite | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Logitech Mobi Fold Ultra-portable Wireless Mouse in Off-white | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Pencil Pro | 124.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Logitech Mobi Fold Ultra-portable Wireless Mouse in Lilac | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | BE3200 Dual-Band Wi-Fi 7 Range Extender | 109.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | RX680 - Easy-to-Use Splashproof Walkie Talkies (2-Pack) | 99.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Pencil (2nd generation) | 124.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 512 GB External Ultra Speed SSD | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 14 Sheet Micro Cut Paper Shredder | 109.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Home Security Premium 1-Year Subscription (5 Devices) | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Home Security Essential 2025 - 1 Device/2 Year Download | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Galaxy A16 4G 128GB 4GB RAM in Black / 6.7” AMOLED 90Hz Display / GSM unlocked Dual SIM In | 219.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | 2000A Jump Starter with Air Compressor Tire Inflator | 279.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | BOLD K22 5G 6.7” HD Infinity Dot Display 128GB Storage 4GB RAM +(8GB Xtra RAM) Titanium | 159.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |

@@ -52,6 +52,7 @@ import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
+import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
@@ -130,6 +131,15 @@ export const SLICED_STORES = {
      compare-at price, so there is no Ofertas rail until one is captured
      (none is made up). "The rest" are the next brands with at least
      BRAND_MIN products, biggest first. */
+  /* BRANDSMART USA (Build Order B, #443, pulled 2026-10-28): Ofertas
+     first (real compare-at prices), then the aisles in electronics order.
+     The 220 V gate and the holds are scripts/lib/brandsmart.js. */
+  brandsmart: {
+    file: "brandsmart-catalog.json",
+    label: "BrandsMart USA",
+    DEPT_ORDER: AISLE_ORDER,
+    DEPT_LABELS: AISLE_LABELS,
+  },
   snipes: {
     file: "snipes-catalog.json",
     label: "SNIPES",

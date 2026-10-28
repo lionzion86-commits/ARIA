@@ -117,6 +117,24 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* BRANDSMART USA (Build Order B, #443, Danny 2026-10-28: «We need a
+     major electronic store»): the electronics anchor, the second wide
+     Tiendas card. brandsmart-catalog.json, written by
+     scripts/build-brandsmart-catalog.mjs from the 2026-10-28 pull; the
+     220 V gate and every hold are scripts/lib/brandsmart.js. Lane: the
+     store's published forwarder policy, kill-switch armed (the lane fails
+     or BrandsMart objects: the storefront comes down the same day). No
+     logo file: the wordmark fallback until the real mark is committed. */
+  brandsmart: {
+    key: "brandsmart",
+    label: "BrandsMart USA",
+    color: "#C8102E",
+    logo: null,
+    tagline: "Celulares, laptops, audio y gaming",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SNIPES (#443 c.6450358688, catalogue pulled 2026-10-27 c.6457579787):
      sneakers and streetwear, the general catalogue (hyped release SKUs
      cut by design). snipes-catalog.json, written by
