@@ -4,11 +4,11 @@
 
 | | Products |
 |---|---:|
-| Comparables pool (a published weight, the store's figure, or a per-class rule) | 123,910 |
+| Comparables pool (a published weight, the store's figure, or a per-class rule) | 124,603 |
 | Products the rules could only cover with a constant | 12,811 |
-| ...now estimated from similar products (median x 1.15) | 5,649 |
+| ...now estimated from similar products (median x 1.15) | 5,650 |
 | ...with no similar product, weighed by the web pass (found weight x 1.1, source in hidden-docs/weight-tail-full-2026-10-26.csv) | 1,274 |
-| ...with neither: weight "por confirmar" | 5,888 |
+| ...with neither: weight "por confirmar" | 5,887 |
 
 ## Sample estimates (product -> kg; comparables with their kg and match score)
 
@@ -25,7 +25,7 @@
 - **diamond stud earrings (1/10 ct. t.w.) in 10k gold, white gold or rose gold** (macys, US$140.00): 0.03 kg (0.03 x 1.15); Daria 14K Gold Stud Earring Set US$128 0.03 kg [0.5]; Solid Gold & Diamond Initial Earring - Gold US$175 0.03 kg [0.5]
 - **elena oval moissanite solitaire vermeil ring** (macys, US$408.00): 0.02 kg (0.02 x 1.15); Gina 14K Gold Ring Set - Gold/Silver US$198 0.02 kg [0]; 14K Gold Fineline Custom Nameplate Ring - Gold US$188 0.02 kg [0]; Sterling Silver Fineline Custom Nameplate Ring - S US$188 0.02 kg [0]; Pavé Script Custom Ring - Silver US$178 0.02 kg [0]; Retro 14K Gold Custom Ring - 14K Gold US$178 0.02 kg [0]
 - **women's wilix pointed toe mule pumps** (macys, US$76.30): 0.57 kg (0.5 x 1.15); Noemi Pointed-Toe Mule Heels - Black US$129 0.5 kg [0.55]; Noemi Pointed-Toe Mule Heels - White US$129 0.5 kg [0.55]; Noemi Pointed-Toe Mule Heels - Khaki US$129 0.5 kg [0.53]; Noemi Pointed-Toe Mule Heels - Burgundy US$129 0.5 kg [0.52]; Noemi Pointed-Toe Mesh Mule Heels - Black US$129 0.5 kg [0.52]
-- **women's hooded puffer anorak** (macys, US$180.00): 2.02 kg (1.76 x 1.15); Hooded Puffer Jacket US$120 1.76 kg [0.62]; Women's Hooded Anorak Quilted Coat, Created for Ma US$122.5 1.76 kg [0.53]; Women's Puffer Packable Hooded Coat US$90 1.76 kg [0.48]; Women's Packable Hooded Puffer Coat US$200 1.76 kg [0.48]; Women's Hooded Packable Puffer Coat US$120 1.76 kg [0.48]
+- **women's hooded puffer anorak** (macys, US$180.00): 2.02 kg (1.76 x 1.15); Hooded Puffer Jacket US$120 1.76 kg [0.62]; Women's Hooded Anorak Quilted Coat, Created for Ma US$122.5 1.76 kg [0.53]; Women's Packable Hooded Puffer Coat US$200 1.76 kg [0.48]; Women's Hooded Packable Puffer Coat US$120 1.76 kg [0.48]; Women's Puffer Packable Hooded Coat US$90 1.76 kg [0.48]
 - **women's single-breasted peacoat, created for macy's** (macys, US$142.50): 2.02 kg (1.76 x 1.15); Women's Single-Breasted Maxi Coat US$200 1.76 kg [0.55]; Women's Single-Breasted Walker Coat, Created for M US$182.5 1.76 kg [0.49]
 - **michael kors jet set charm north south nylon crossbody** (macys, US$129.50): 0.93 kg (0.81 x 1.15); Michael Kors Jet Set Charm Leather Small North Sou US$159.5 0.81 kg [0.77]; Jet Set Small North South Crossbody Handbag US$129.5 0.81 kg [0.52]; Michael Kors Jet Set Medium Convertible Pouchette  US$199.5 0.81 kg [0.51]
 - **michael kors laila medium signature logo satchel** (macys, US$279.50): 0.93 kg (0.81 x 1.15); Michael Kors Laila Small Leather Satchel Bag US$229.5 0.81 kg [0.79]; Michael Kors Laila Medium Tote Handbag US$259.5 0.81 kg [0.67]; Michael Kors Laila Medium Color-Block Leather Satc US$279.5 0.81 kg [0.58]
@@ -35,7 +35,7 @@
 - **naturalizer women's carla-stud ballet flats** (macys, US$148.00): 1.1 kg (0.96 x 1.15); Women's Devitt Slip-On Loafer Flats US$47.4 0.96 kg [0]; Women's Ruthie Slip-On Ballet Flats US$130 0.96 kg [0]; Women's Flexy Slip On Ballet Flats US$62.3 0.96 kg [0]; Women's Alie Ballerina Slip-On Ballet Flats US$120 0.96 kg [0]; Women's Jayna Slip-On Flats US$125 0.96 kg [0]
 - **round-cut diamond stud earrings in 10k yellow or white gold (1/10 ct. t.w.)** (macys, US$87.50): 0.03 kg (0.03 x 1.15); Heidi 18K Gold Earring Set - Heidi 18K Gold Earrin US$158 0.03 kg [0]; Claire 14K Pavé Huggie Earrings - Gold/Pavé US$148 0.03 kg [0]; Verbena 18K Gold Earring Set - 18K Gold US$130 0.03 kg [0]; Luna 14K Gold Earring Set - Luna 18K Gold Earring  US$128 0.03 kg [0]; Lexi 14K Gold Earring Set - Lexi 14K Gold Earring  US$128 0.03 kg [0]
 - **3-pc. set small endless hoop earrings in 10k gold** (macys, US$166.25): 0.68 kg (0.59 x 1.15); Crystal Hoop Single Earring US$175 1.15 kg [0.51]; Lila 18K Gold Hoop Earrings - Gold/Pavé US$88 0.03 kg [0.47]
-- **diamond bracelet (1/2 ct. t.w.) in sterling silver or gold-plated sterling silve** (macys, US$109.00): 0.07 kg (0.06 x 1.15); Billie 18K Gold Tennis Bracelet  - 18K Gold Plated US$92 0.06 kg [0.58]; STAR WARS™ R2-D2™ 14K Gold Plated Sterling Silver  US$68 0.03 kg [0.47]; Sterling Silver Custom Nameplate Bracelet - Sterli US$108 0.06 kg [0.47]; Billie Sterling Silver Tennis Bracelet  - Sterling US$92 0.06 kg [0.47]; 14K Gold & Diamond Initial Bracelet - Gold/Pavé US$158 0.06 kg [0.45]
+- **diamond bracelet (1/2 ct. t.w.) in sterling silver or gold-plated sterling silve** (macys, US$109.00): 0.07 kg (0.06 x 1.15); Billie 18K Gold Tennis Bracelet  - 18K Gold Plated US$92 0.06 kg [0.58]; STAR WARS™ R2-D2™ 14K Gold Plated Sterling Silver  US$68 0.03 kg [0.47]; Sterling Silver Custom Nameplate Bracelet - Sterli US$108 0.06 kg [0.47]; Billie Sterling Silver Tennis Bracelet  - Sterling US$92 0.06 kg [0.47]; Disney Mickey Mouse 18K Gold Plated Sterling Silve US$78 0.06 kg [0.45]
 - **14k gold polished hinge bangle bracelet** (macys, US$899.00): 1.32 kg (1.15 x 1.15); Ariana Grande x Swarovski® Crystal Cultivated Pear US$350 1.15 kg [0]; Beaded Logo Bracelet US$325 1.15 kg [0]; DG logo crystal rhinestones-embellished bracelet  US$678 1.15 kg [0]; 'No Time' Watch Bracelet US$1070 0.16 kg [0]; Cable 'le 7g' Bracelet US$455 0.067 kg [0]
 
 ## Sample web-pass estimates (found weight x pad; the source URL is in the CSV)
@@ -1186,7 +1186,6 @@
 | yesstyle | Perfumed Body Wash - 3 Flavors 10pcs Bundle Set | 151.36 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | No.2 Ginger Nourishing and Repairing Conditioner Mini 10pcs Bundle Set | 81.66 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | No.1 Anti Hair Loss Scalp Care Shampoo Mini 10pcs Bundle Set | 81.66 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
-| yesstyle | Men Energizing Collection Travel Kit 2pcs Bundle Set | 75.75 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | Men Energizing Treatment  2pcs Bundle Set | 132.53 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | Birch Skin Balance Clarifying Essence (28pcs) 2pcs Bundle Set | 228.46 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | Birch Revitalizing Repair Essence (7pcs) 2pcs Bundle Set | 80.54 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |

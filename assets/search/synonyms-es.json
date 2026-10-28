@@ -61,7 +61,7 @@
     "rubor": "blush", "base de maquillaje": "foundation", "bases": "foundation", "corrector": "concealer", "polvos": "powder",
     "sombras": "eyeshadow", "brochas": "brushes", "esmalte": "nail polish", "unas": "nails",
     "cremas": "cream", "crema": "cream", "bloqueador": "sunscreen", "protector solar": "sunscreen",
-    "champu": "shampoo", "keratina": "keratin", "plancha": ["flat iron", "straightener"], "planchas": ["flat iron", "straightener"], "acondicionador": "conditioner", "desodorante": "deodorant", "serum": "serum", "jabon": "soap", "mascarilla": ["hair mask", "face mask", "sheet mask"], "mascarillas": ["hair mask", "face mask", "sheet mask"]
+    "champu": "shampoo", "alisado": ["straightening", "smoothing treatment", "smoothing system", "brazilian blowout"], "alisados": ["straightening", "smoothing treatment", "smoothing system", "brazilian blowout"], "keratina": "keratin", "plancha": ["flat iron", "hair straightener"], "planchas": ["flat iron", "hair straightener"], "acondicionador": "conditioner", "desodorante": "deodorant", "serum": "serum", "jabon": "soap", "mascarilla": ["hair mask", "face mask", "sheet mask"], "mascarillas": ["hair mask", "face mask", "sheet mask"]
   },
 
   "toys": {

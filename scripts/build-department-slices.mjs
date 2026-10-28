@@ -36,6 +36,7 @@
    longer match what the rules compute from the committed catalogues.
    ============================================================ */
 import { TECH_BUCKETS } from "./lib/brandsmart.js";
+import { CAB_BUCKETS } from "./lib/sleekshop.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import vm from "node:vm";
@@ -83,6 +84,8 @@ export const CATALOG_FILES = [
   "/snipes-catalog.json",
   /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
   "/brandsmart-catalog.json",
+  /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
+  "/sleekshop-catalog.json",
   "/carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32): the Perfumes department's own stock. */
   "/perfumes-catalog.json",
@@ -128,7 +131,8 @@ export const DEPT_RULES = {
   purses: { buckets: ["purses"] },
   party: { kind: "party" },
   toys: { kind: "toys" },
-  beauty: { buckets: ["beauty", "fragrance", "grooming_women", "belleza"] },
+  /* SleekShop's hair-treatment aisles (cab_*, scripts/lib/sleekshop.js) are Belleza's. */
+  beauty: { buckets: ["beauty", "fragrance", "grooming_women", "belleza", ...CAB_BUCKETS] },
   books: { buckets: ["books"] },
   moms: { buckets: ["moms", "baby"] },
   shoes: { kind: "shoes" },

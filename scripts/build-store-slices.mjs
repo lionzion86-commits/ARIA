@@ -53,6 +53,7 @@ import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
+import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
@@ -156,6 +157,15 @@ export const SLICED_STORES = {
   /* BRANDSMART USA (Build Order B, #443, pulled 2026-10-28): Ofertas
      first (real compare-at prices), then the aisles in electronics order.
      The 220 V gate and the holds are scripts/lib/brandsmart.js. */
+  /* SLEEKSHOP (#443 c.6475799491, pulled 2026-10-28): the professional
+     hair-treatment shelf -- Ofertas first, then Keratina y alisados and
+     the treatment aisles. Rules: scripts/lib/sleekshop.js. */
+  sleekshop: {
+    file: "sleekshop-catalog.json",
+    label: "SleekShop",
+    DEPT_ORDER: SLEEK_ORDER,
+    DEPT_LABELS: SLEEK_LABELS,
+  },
   brandsmart: {
     file: "brandsmart-catalog.json",
     label: "BrandsMart USA",

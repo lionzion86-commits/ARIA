@@ -11,7 +11,7 @@
 
    Each term's first page (12) must hold its own kind of product and
    nothing else; a term with nothing true in stock answers honestly
-   (alisado: 0 until the SleekShop shelf is wired, then re-run).
+   (alisado was 0 until the SleekShop shelf was wired; now it is the shelf).
 
      node scripts/test/search-battery-tests.mjs
    ================================================================== */
@@ -31,6 +31,8 @@ const BATTERY = [
   ["vajilla", /dinnerware|vajilla/i],
   ["sabanas", /sheet|s[aá]bana/i],
   ["mascarilla", /mask|mascarilla/i],
+  /* SleekShop wired (#443 c.6475799491): the alisado shelf exists now. */
+  ["alisado", /straighten|smooth|blowout|alisad/i],
 ];
 for (const [q, rx] of BATTERY) {
   const r = searchPage(ctx, q, 1, { pageSize: 12 });
@@ -40,7 +42,7 @@ for (const [q, rx] of BATTERY) {
   console.log(`    ${ok ? "ok  " : "FAIL"} «${q}» page 1 is all its own kind (${r.total} found)`);
 }
 /* Honest states: nothing true wired, nothing shown. */
-for (const [q, bad] of [["alisado", /palisade|alisa|blouse|sunglass|skirt/i], ["pesas", /kosas|foundation|mascara|peptide/i]]) {
+for (const [q, bad] of [["alisado", /palisade|alisa\b|blouse|sunglass|skirt/i], ["pesas", /kosas|foundation|mascara|peptide/i]]) {
   const r = searchPage(ctx, q, 1, { pageSize: 12 });
   const junk = r.items.filter((it) => bad.test(String(it.title || it.name || "")));
   const ok = junk.length === 0;
