@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-28T08:49:34.364Z",
+ "generatedAt": "2026-10-28T16:18:59.664Z",
  "stores": {
   "crateandbarrel": {
    "kept": 1761,
@@ -21,7 +21,8 @@
     "casa_decoracion": 328
    },
    "onSale": 178,
-   "withEnglishCopy": 1761
+   "withEnglishCopy": 1761,
+   "withSpanish": 1761
   },
   "pier1": {
    "kept": 2766,
@@ -44,7 +45,8 @@
     "casa_decoracion": 781
    },
    "onSale": 1040,
-   "withEnglishCopy": 2436
+   "withEnglishCopy": 2436,
+   "withSpanish": 2394
   }
  }
 }
