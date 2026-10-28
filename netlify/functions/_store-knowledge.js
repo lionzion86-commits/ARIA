@@ -436,6 +436,19 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "calzado formal o deportivo de rendimiento",
     peru_note: null,
   },
+  /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). Only what
+     passes the 220 V gate is listed (scripts/lib/brandsmart.js). */
+  brandsmart: {
+    name: "BrandsMart USA",
+    vibe: "la gran tienda de electrónica de Florida",
+    specialties: ["celulares", "laptops", "audífonos", "parlantes", "gaming", "cámaras"],
+    price_range: "medio", median_usd: 59.99, product_count: 1361,
+    catalog_depth: "1361 productos",
+    top_categories: ["computadoras y tablets", "audio y parlantes", "celulares", "audífonos"],
+    best_for: "Apple, Samsung, JBL, Bose, Sonos y Logitech: celulares, laptops, audífonos, parlantes y accesorios de gaming",
+    not_for: "televisores y electrodomésticos grandes (no se traen)",
+    peru_note: "Solo se ofrecen los equipos que funcionan a 220 V o que se cargan por USB o batería; los electrodomésticos sin voltaje confirmado no se muestran.",
+  },
   /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). Footwear and
      apparel are shown but not sold until their sizes are confirmed
      (scripts/lib/sizes-pending.js); caps, accessories and fragrance sell. */

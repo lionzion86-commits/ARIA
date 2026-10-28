@@ -35,6 +35,7 @@
    scripts/test/departamento-thin-tests.mjs fails when the slices no
    longer match what the rules compute from the committed catalogues.
    ============================================================ */
+import { TECH_BUCKETS } from "./lib/brandsmart.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import vm from "node:vm";
@@ -80,6 +81,8 @@ export const CATALOG_FILES = [
   /* SNIPES (sneakers and streetwear) + Carolina Herrera (luxury), #443,
      pulled 2026-10-27. */
   "/snipes-catalog.json",
+  /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
+  "/brandsmart-catalog.json",
   "/carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32): the Perfumes department's own stock. */
   "/perfumes-catalog.json",
@@ -96,7 +99,9 @@ const CASA_BUCKETS = ["casa_navidad", "casa_velas", "casa_textiles", "casa_cama_
 /* The Libros de mesa halo: the coffee-table book houses. */
 const CASA_BOOK_STORES = new Set(["assouline", "chronicle"]);
 export const DEPT_RULES = {
-  electronics: { buckets: ["electronics", "electronica", ...BESTBUY_TECH] },
+  /* BrandsMart USA's aisles (tech_*, scripts/lib/brandsmart.js) are
+     Electrónica's: the store anchors the department (Build Order B). */
+  electronics: { buckets: ["electronics", "electronica", ...BESTBUY_TECH, ...TECH_BUCKETS] },
   clothing: { buckets: ["clothing"] },
   men: { buckets: ["men", "apparel_men"] },
   women: { buckets: ["women", "apparel_women"] },
@@ -238,6 +243,10 @@ export function belongsToDept(rule, p) {
       }
       return true;
     }
+    /* An electronics store's aisles (BrandsMart, tech_*) are Electrónica's
+       and, when refurbished, Reacondicionados': a laptop case is not
+       jewellery, a neoprene sleeve is not spearfishing gear. */
+    if (rule.kind && rule.kind !== "refurb" && TECH_BUCKETS.includes(p.bucket)) return false;
     if (rule.kind && KIND_MATCH[rule.kind]) {
       const hay = ((p.title || "") + " " + (p.brand || "") + " " + (p.type || "")).toLowerCase();
       return KIND_MATCH[rule.kind](hay, p);

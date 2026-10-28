@@ -95,15 +95,16 @@ for (const [key, label] of Object.entries(SHELVED)) {
   });
 }
 
-check("the homepage's US-stores band is one wide Walmart tile, phone and desktop", () => {
+check("the homepage's US-stores band: the wide Walmart tile, then BrandsMart (Order B), phone and desktop", () => {
   const html = readFileSync(ROOT + "index.html", "utf8");
   const bands = html.match(/<section aria-label="Walmart" class="relative overflow-hidden"[\s\S]*?<\/section>/g) || [];
   assert.equal(bands.length, 2, "the phone and desktop bands");
   for (const b of bands) {
     const tiles = b.match(/<button onclick="tiendaJump\('([a-z]+)'\)"[^>]*>/g) || [];
-    assert.equal(tiles.length, 1, "one tile");
-    assert.match(tiles[0], /tiendaJump\('walmart'\)/);
-    assert.match(tiles[0], /class="col-span-2 /, "the tile spans both slots");
+    /* The two anchor cards (Build Order B): Walmart, then BrandsMart USA
+       right next to it, each across both slots. */
+    assert.deepEqual(tiles.map((t) => /tiendaJump\('([a-z]+)'\)/.exec(t)[1]), ["walmart", "brandsmart"]);
+    for (const t of tiles) assert.match(t, /class="col-span-2 /, "each anchor spans both slots");
   }
 });
 
