@@ -174,10 +174,14 @@ export function isShoeForDept(item, retailer) {
   const title = item.title || item.name || "";
   if (NOT_FOOTWEAR.test(title) || DEPT_VETO.test(title)) return false;
   const type = String(item.type || "");
-  if (type && !GENERIC_TYPE.test(type) && !CATCHALL_TYPE.test(type)) return isFootwearType(type);
+  if (type && !GENERIC_TYPE.test(type) && !CATCHALL_TYPE.test(type) && !MODEL_CODE_TYPE.test(type.trim())) return isFootwearType(type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
 }
+/* A style code in the type field is not a type (JW PEI files "Alessia
+   High Heel Pumps" as type "4PS98"): the title decides (#443 re-route
+   audit, its shoes re-filed out of Carteras). */
+const MODEL_CODE_TYPE = /^(?=[A-Z0-9-]*\d)[A-Z0-9][A-Z0-9-]{2,}$/i;
 
 /* The aisles: one Aria class per shoe, whatever words the store used
    (SSENSE alone had Sandalias / HEELED SANDALS / SANDALS / FLAT SANDALS /

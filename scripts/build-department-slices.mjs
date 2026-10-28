@@ -264,8 +264,16 @@ export function normalizeItem(raw, retailer, bucket, AriaSale) {
 
 /* Every normalised item across the 60 sources, de-duplicated exactly as
    the page did (retailer + title, first source wins). */
+/* THE BUCKET RE-FILES (#443 re-route audit, layer B): items a puller
+   filed under the wrong bucket, by retailer + name + the bucket they came
+   in -- scripts/build-reroute-refiles.mjs, kept out of the catalogues so a
+   re-pull does not undo them. */
+export function loadRefiles(root = ROOT) {
+  try { return JSON.parse(readFileSync(join(root, "scripts/data/reroute-refiles.json"), "utf8")); } catch { return {}; }
+}
 export function loadAllItems(root = ROOT) {
   const AriaSale = loadSaleRule(root);
+  const REFILES = loadRefiles(root);
   const out = [], seen = new Set();
   for (const f of CATALOG_FILES) {
     let data;
@@ -280,6 +288,8 @@ export function loadAllItems(root = ROOT) {
           let p;
           try { p = normalizeItem(it, rk, bk, AriaSale); } catch { p = null; }
           if (!p) continue;
+          const rf = REFILES[rk] && REFILES[rk][p.title];
+          if (rf && rf[0] === bk) p.bucket = rf[1];
           const key = rk + "::" + p.title;
           if (seen.has(key)) continue;
           seen.add(key);
