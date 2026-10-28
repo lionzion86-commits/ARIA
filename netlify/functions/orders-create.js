@@ -48,6 +48,7 @@ import {
   totalsAgree, refFromCookie, normalizeRef, stripeKeyUsable, stripeSessionForm, missingSizeLines,
 } from "./_checkout-model.js";
 import { offSaleLines, offSaleOrderError } from "../../scripts/lib/off-sale.js";
+import { sizesPendingLines, sizesPendingOrderError } from "../../scripts/lib/sizes-pending.js";
 import { capState as perfumeCapState, capOrderError as perfumeCapOrderError } from "../../scripts/lib/fragrance.js";
 
 /* The production hosts. Anything else (deploy previews, branch deploys,
@@ -157,6 +158,16 @@ async function createOrderHandler(event) {
     return { statusCode: 400, headers, body: JSON.stringify({
       error: offSaleOrderError(offSale[0].title || offSale[0].name),
       offSale: offSale.map((it) => String(it.title || it.name || "")),
+    }) };
+  }
+
+  /* SHOWN, NOT SOLD (scripts/lib/sizes-pending.js): an item whose sizes
+     the store has not confirmed to us is never sold sizeless. */
+  const sizesPending = sizesPendingLines(sentItems);
+  if (sizesPending.length) {
+    return { statusCode: 400, headers, body: JSON.stringify({
+      error: sizesPendingOrderError(sizesPending[0].title || sizesPending[0].name),
+      sizesPending: sizesPending.map((it) => String(it.title || it.name || "")),
     }) };
   }
 

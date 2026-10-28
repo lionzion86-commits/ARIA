@@ -1,0 +1,50 @@
+{
+ "generatedAt": "2026-10-28T08:49:34.364Z",
+ "stores": {
+  "crateandbarrel": {
+   "kept": 1761,
+   "skipped": {
+    "over 5 kg": 104,
+    "no aisle": 41,
+    "duplicate": 91,
+    "no defensible weight": 4,
+    "not light home": 23
+   },
+   "byAisle": {
+    "casa_navidad": 61,
+    "casa_velas": 108,
+    "casa_textiles": 178,
+    "casa_cama_bano": 258,
+    "casa_mesa": 558,
+    "casa_cocina": 179,
+    "casa_iluminacion": 91,
+    "casa_decoracion": 328
+   },
+   "onSale": 178,
+   "withEnglishCopy": 1761
+  },
+  "pier1": {
+   "kept": 2766,
+   "skipped": {
+    "junk": 1,
+    "out of stock": 1032,
+    "not light home": 1173,
+    "no defensible weight": 8,
+    "no aisle": 12,
+    "over 5 kg": 8
+   },
+   "byAisle": {
+    "casa_navidad": 279,
+    "casa_velas": 212,
+    "casa_textiles": 342,
+    "casa_cama_bano": 81,
+    "casa_mesa": 973,
+    "casa_cocina": 34,
+    "casa_iluminacion": 64,
+    "casa_decoracion": 781
+   },
+   "onSale": 1040,
+   "withEnglishCopy": 2436
+  }
+ }
+}

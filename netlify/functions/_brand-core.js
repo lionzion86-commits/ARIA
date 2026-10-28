@@ -32,6 +32,17 @@ export const PRODUCT_TYPES = [
   { key: "sombreros", label: "Sombreros" },
   { key: "accesorios", label: "Accesorios" },
   { key: "ropa", label: "Ropa" },
+  /* Not fashion (#443 re-route audit, product-type.js). */
+  { key: "juguetes", label: "Juguetes" },
+  { key: "deportes", label: "Deportes" },
+  { key: "electronica", label: "Electrónica" },
+  { key: "hogar", label: "Hogar" },
+  { key: "belleza", label: "Belleza" },
+  { key: "perfumes", label: "Perfumes" },
+  { key: "bebe", label: "Bebé y mamá" },
+  { key: "repuestos", label: "Repuestos" },
+  { key: "libros", label: "Libros" },
+  { key: "dulces", label: "Dulces" },
 ];
 
 export function brandKeyOf(label) {

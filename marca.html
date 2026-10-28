@@ -419,7 +419,19 @@ var PRODUCT_TYPES = [
   { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
   { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
   { key:'accesorios',  label:'Accesorios',     keywords:['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
-  { key:'ropa',        label:'Ropa',           keywords:[] }
+  { key:'ropa',        label:'Ropa',           keywords:[] },
+  /* Not fashion (#443 re-route audit): product-type.js names the family;
+     no keyword fallback, so they never leave the Ropa loop by accident. */
+  { key:'juguetes', label:'Juguetes', keywords:[] },
+  { key:'deportes', label:'Deportes', keywords:[] },
+  { key:'electronica', label:'Electrónica', keywords:[] },
+  { key:'hogar', label:'Hogar', keywords:[] },
+  { key:'belleza', label:'Belleza', keywords:[] },
+  { key:'perfumes', label:'Perfumes', keywords:[] },
+  { key:'bebe', label:'Bebé y mamá', keywords:[] },
+  { key:'repuestos', label:'Repuestos', keywords:[] },
+  { key:'libros', label:'Libros', keywords:[] },
+  { key:'dulces', label:'Dulces', keywords:[] }
 ];
 var TYPE_RES = PRODUCT_TYPES.map(function(t){
   return t.keywords.map(function(kw){

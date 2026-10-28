@@ -981,8 +981,8 @@ check("index.html's registry mirror matches the module", () => {
    (department store), B&H after Dick's (gear). No reordering of Danny's
    existing sequence, only insertions. */
 const EXPECTED_EVERYDAY_ORDER = [
-  "revolve", "target", "footlocker", "newbalance", "walmart", "sephora",
-  "macys", "kohls", "dicks", "bhphoto",
+  "revolve", "target", "footlocker", "snipes", "newbalance", "walmart", "sephora",
+  "macys", "kohls", "crateandbarrel", "pier1", "dicks", "bhphoto",
   "costco", "victoriassecret", "ulta", "pacsun",
   /* SURF & SKATE BATCH (2026-09-26, Danny): nine surf/skate/spearfishing
      shops, registry order after PacSun. */
