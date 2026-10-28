@@ -48,7 +48,7 @@ export const CATALOG_FILES = [
   "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json",
   "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json",
   "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json",
-  "/kohls-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json",
+  "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json",
   "/advanceauto-catalog.json", "/nautilus-catalog.json",
   "/islandwatersports-catalog.json", "/quietstorm-catalog.json",
   "/surfstation-catalog.json",

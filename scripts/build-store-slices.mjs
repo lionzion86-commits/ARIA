@@ -93,6 +93,27 @@ export const SLICED_STORES = {
      (bestSellerRank) when the pull captured it, then review counts.
      While dsw-catalog.json is the empty envelope this writes a count-0
      index, and tienda.html never opens it (STORES.dsw.pendingCatalog). */
+  /* CASA ARIA (#443 c.6458486219): Crate & Barrel and Pier 1, light home
+     only (scripts/lib/home-pull-normalize.js); Ofertas from the stores' own
+     was-prices, then Casa Aria's aisles. */
+  crateandbarrel: {
+    file: "crateandbarrel-catalog.json",
+    label: "Crate & Barrel",
+    DEPT_ORDER: ["casa_mesa", "casa_velas", "casa_textiles", "casa_cama_bano", "casa_cocina", "casa_decoracion", "casa_iluminacion", "casa_navidad"],
+    DEPT_LABELS: {
+      casa_mesa: "Mesa y vajilla", casa_velas: "Velas y aromas", casa_textiles: "Cojines y mantas", casa_cama_bano: "Cama y baño",
+      casa_cocina: "Cocina", casa_decoracion: "Decoración", casa_iluminacion: "Lámparas", casa_navidad: "Navidad",
+    },
+  },
+  pier1: {
+    file: "pier1-catalog.json",
+    label: "Pier 1",
+    DEPT_ORDER: ["casa_mesa", "casa_velas", "casa_textiles", "casa_cama_bano", "casa_cocina", "casa_decoracion", "casa_iluminacion", "casa_navidad"],
+    DEPT_LABELS: {
+      casa_mesa: "Mesa y vajilla", casa_velas: "Velas y aromas", casa_textiles: "Cojines y mantas", casa_cama_bano: "Cama y baño",
+      casa_cocina: "Cocina", casa_decoracion: "Decoración", casa_iluminacion: "Lámparas", casa_navidad: "Navidad",
+    },
+  },
   dsw: {
     file: "dsw-catalog.json",
     label: "DSW",

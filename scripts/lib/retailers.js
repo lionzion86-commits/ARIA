@@ -251,6 +251,31 @@ export const RETAILERS = {
   /* KOHL'S (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
      plain <script> and cannot import. */
+  /* CRATE & BARREL + PIER 1 (#443 c.6458486219, pulled 2026-10-27
+     c.6457579787): the Casa Aria wing's home stores, light home only --
+     furniture, rugs and anything over the 5 kg cap (estimate included)
+     are cut (scripts/lib/home-pull-normalize.js). No logo files: the
+     wordmark fallback. Buy activation waits on a Miami test order. */
+  crateandbarrel: {
+    key: "crateandbarrel",
+    label: "Crate & Barrel",
+    color: "#1F2937",
+    logo: null,
+    tagline: "Vajilla, textiles y decoración para la casa",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  pier1: {
+    key: "pier1",
+    label: "Pier 1",
+    color: "#1F2937",
+    logo: null,
+    tagline: "Decoración, velas y mesa para la casa",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   kohls: {
     key: "kohls",
     label: "Kohl's",

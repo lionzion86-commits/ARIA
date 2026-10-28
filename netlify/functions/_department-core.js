@@ -131,7 +131,46 @@ export function buildPerfumeSections(list) {
    cheap class cannot take it (the Shoes rail's first 24 cards were all
    sandals). */
 export const SHOE_DEPTS = new Set(["shoes", "shoes_women", "shoes_men"]);
-export function sectionOpts(key) { return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {}; }
+export function sectionOpts(key) {
+  if (key === CASA_DEPT) return { casa: true };
+  return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
+}
+
+/* ---------- CASA ARIA (#443 c.6458486219) ----------
+   Hogar is Aria's home wing. It opens with Libros de mesa (Assouline and
+   Chronicle, the halo), then the two home stores -- they stay named, the
+   store a piece comes from is the point -- then Navidad while it is the
+   season (October to December), then Ofertas under the standing rule,
+   then the aisles of a home store, then everything else by type. A row's
+   `a` is its place: "libros" or a Casa Aria aisle. */
+export const CASA_DEPT = "home_goods";
+export const CASA_STORES = [["crateandbarrel", "Crate & Barrel"], ["pier1", "Pier 1"]];
+export const CASA_AISLES = [["casa_velas", "Velas y aromas"], ["casa_textiles", "Cojines y mantas"], ["casa_cama_bano", "Cama y baño"],
+  ["casa_mesa", "Mesa y vajilla"], ["casa_cocina", "Cocina"], ["casa_iluminacion", "Lámparas"], ["casa_decoracion", "Decoración"]];
+export const isNavidadSeason = (d = new Date()) => d.getUTCMonth() >= 9;
+function buildCasaSections(list) {
+  const sections = [];
+  const libros = list.filter((p) => p.a === "libros");
+  const home = list.filter((p) => p.a !== "libros");
+  if (libros.length) sections.push({ key: "casa:libros", title: "Libros de mesa", items: libros });
+  for (const [r, title] of CASA_STORES) {
+    const l = home.filter((p) => p.retailer === r && p.a !== "casa_navidad");
+    if (l.length) sections.push({ key: "tienda:" + r, title, items: l });
+  }
+  const navidad = home.filter((p) => p.a === "casa_navidad");
+  if (navidad.length && isNavidadSeason()) sections.push({ key: "casa:navidad", title: "Navidad", items: navidad });
+  const sales = home.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  for (const [k, title] of CASA_AISLES) {
+    const l = home.filter((p) => p.a === k);
+    if (l.length) sections.push({ key: "casa:" + k, title, items: l });
+  }
+  if (navidad.length && !isNavidadSeason()) sections.push({ key: "casa:navidad", title: "Navidad", items: navidad });
+  const rest = home.filter((p) => !p.a);
+  for (const s of buildSectionsRaw(rest, {})) if (s.key !== "ofertas" && s.key !== "destacados") sections.push({ ...s, title: s.key === "tipo:otros" ? "Más para tu casa" : s.title });
+  return sections;
+}
 export const FRONT = 24, FRONT_CAP = 6;
 
 /* The first FRONT cards of a mixed rail hold at most FRONT_CAP of any one
@@ -196,6 +235,7 @@ export function buildSections(list, opts = {}) {
   return secs;
 }
 function buildSectionsRaw(list, opts = {}) {
+  if (opts.casa) return buildCasaSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
      join its brand rails -- the room keeps its layout. */
@@ -303,12 +343,14 @@ export function allInRailOrder(sections, list) {
    and its gender where the department has a gender axis (Zapatos). */
 export function fnRow(p) {
   const r = [p.title, p.brand || "", p.retailer, p.rawPrice, p.wasPrice || 0, p.salePct || 0, p.image || "", p.type || ""];
-  if (p.g) r.push(p.g);
+  if (p.g || p.a) r.push(p.g || "");
+  if (p.a) r.push(p.a);
   return r;
 }
 export function rowItem(r) {
   const p = { title: r[0], brand: r[1], retailer: r[2], rawPrice: r[3], wasPrice: r[4], salePct: r[5], image: r[6], type: r[7] };
   if (r[8]) p.g = r[8];
+  if (r[9]) p.a = r[9];
   return p;
 }
 

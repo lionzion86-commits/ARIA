@@ -60,7 +60,7 @@ export const CATALOG_FILES = [
   "/farfetch-catalog.json", "/fightclub-catalog.json", "/finishline-catalog.json",
   "/fuji-catalog.json", "/gymrat-catalog.json", "/hottopic-catalog.json",
   "/islandwatersports-catalog.json", "/juguetes-catalog.json", "/jwpei-catalog.json",
-  "/kohls-catalog.json", "/lanebryant-catalog.json", "/macys-catalog.json",
+  "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/lanebryant-catalog.json", "/macys-catalog.json",
   "/mainland-catalog.json", "/meliebianco-catalog.json", "/miumiu-catalog.json",
   "/mmawarehouse-catalog.json", "/moms-catalog.json", "/mushie-catalog.json",
   "/nautilus-catalog.json", "/newbalance-catalog.json", "/pacsun-catalog.json",
@@ -87,6 +87,10 @@ const BESTBUY_TECH = ["laptops", "gaming", "audio", "phones", "cameras", "access
 /* Membership rules per department (names and hero copy stay in the page,
    which needs them before any data arrives). A department with its own
    page (ropa_interior*) is a redirect there and has no rule here. */
+/* Crate & Barrel's and Pier 1's departments are Casa Aria's aisles. */
+const CASA_BUCKETS = ["casa_navidad", "casa_velas", "casa_textiles", "casa_cama_bano", "casa_mesa", "casa_cocina", "casa_iluminacion", "casa_decoracion"];
+/* The Libros de mesa halo: the coffee-table book houses. */
+const CASA_BOOK_STORES = new Set(["assouline", "chronicle"]);
 export const DEPT_RULES = {
   electronics: { buckets: ["electronics", "electronica", ...BESTBUY_TECH] },
   clothing: { buckets: ["clothing"] },
@@ -95,8 +99,11 @@ export const DEPT_RULES = {
   kids: { buckets: ["kids", "apparel_kids"] },
   candy_chocolate: { buckets: ["candy_chocolate"] },
   sporting_goods: { buckets: ["sporting_goods"] },
-  home_goods: { buckets: ["home_goods", "home", "hogar", "small_appliances"] },
-  home_decor: { buckets: ["home_decor"] },
+  /* Casa Aria (#443 c.6458486219): the home wing, with Crate & Barrel's and
+     Pier 1's aisles (scripts/lib/home-pull-normalize.js) and the Libros de
+     mesa halo (deptItems). */
+  home_goods: { buckets: ["home_goods", "home", "hogar", "small_appliances", ...CASA_BUCKETS] },
+  home_decor: { buckets: ["home_decor", "casa_decoracion", "casa_velas", "casa_navidad"] },
   curvy: { buckets: ["clothing", "men", "women", "apparel_men", "apparel_women", "apparel_kids"], extendedSizes: true },
   gym_rat: { buckets: ["gym_rat"] },
   surf_skate: { kind: "surfskate" },
@@ -304,6 +311,10 @@ export function loadAllItems(root = ROOT) {
 export function deptItems(all, key) {
   const rule = DEPT_RULES[key];
   let list = all.filter((p) => belongsToDept(rule, p));
+  if (key === "home_goods") {
+    list = list.map((p) => (CASA_BUCKETS.includes(p.bucket) ? { ...p, a: p.bucket } : p));
+    list = all.filter((p) => CASA_BOOK_STORES.has(p.retailer)).map((p) => ({ ...p, a: "libros" })).concat(list);
+  }
   /* THE SHOE AISLES (#443 c.6405702652): the rails are Aria's classes
      (Zapatillas, Sandalias, Botas y botines...), not each store's own
      words -- sandals no longer split five ways or land in Zapatillas. */
