@@ -56,6 +56,9 @@ const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORE
    order is pinned in store-pulls-tests.mjs. */
 const PULL_ONLY = new Set(["snipes", "carolinaherrera"]);
 const LIVE_DEALS = LIVE_SLICED.filter((k) => !PULL_ONLY.has(k));
+/* Stores whose pull carries no demand signal (no reviews, no best-sellers
+   rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria). */
+const NO_DEMAND = new Set(["pier1"]);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;
@@ -137,7 +140,7 @@ await check("Ofertas de <store> leads whenever the store has a sale, and holds s
 await check("Más vendidos follows Ofertas where the store publishes demand; type rails after", () => {
   /* Sephora was the beauty sample here; it has no storefront since #443
      (DO NOT BUILD), so Hollister (Destacados, then Más vendidos) stands in. */
-  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_DEALS]) {
+  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED.filter((x) => !NO_DEMAND.has(x) && !PULL_ONLY.has(x))]) {
     const ks = idx(k).rails.map((r) => r.key);
     assert.equal(ks[1], "masvendidos", `${k}: ${ks.join(",")}`);
   }
@@ -341,8 +344,8 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       assert.ok(r.cards <= ix.rails.length * RAIL_HEAD, `${store}: ${r.cards} cards drawn`);
       /* A chip (Best Buy: its department in the overlay), then the search box. */
       await pg.click(".chips .chip:nth-child(2)");
-      /* A store sliced by department (Best Buy, SNIPES, Carolina Herrera)
-         opens the chip's department rail in the Ver todo overlay. */
+      /* A store sliced by department (Best Buy, SNIPES, Carolina Herrera, the Casa Aria stores) opens
+         the chip's department rail in the Ver todo overlay. */
       if (ix.depts) {
         await pg.waitForFunction(() => document.querySelectorAll("#reGrid .card:not(.sk)").length > 0, null, { timeout: 30000 });
         /* The overlay is a fixed-height scroller: its cards must keep their
@@ -356,6 +359,15 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
         await pg.click("#reBack");
         assert.equal(await pg.evaluate(() => document.getElementById("railExpand").hidden), true, "the back arrow does not close Ver todo");
       } else {
+        /* A pill that is mostly one splittable family opens into its
+           labelled aisles first; the whole department is the grid under them. */
+        const pill = ((ix.chips || {}).depts || [])[0];
+        if (pill && pill.subs) {
+          await pg.waitForFunction(() => document.querySelectorAll("#content .sub-wrap .rail-sec").length >= 2, null, { timeout: 30000 });
+          const titles = await pg.evaluate(() => [...document.querySelectorAll("#content .sub-wrap .rail-title")].map((h) => h.textContent));
+          assert.deepEqual(titles, pill.subs.map((x) => x.t), `${store}: the pill's aisles`);
+          await pg.click("#slPillAll");
+        }
         await pg.waitForFunction(() => document.querySelectorAll("#slGrid .card").length > 0, null, { timeout: 30000 });
         const n = await pg.evaluate(() => document.querySelectorAll("#slGrid .card").length);
         assert.ok(n > 0 && n <= 48, `${store}: chip drew ${n}`);
@@ -368,6 +380,20 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       const bad = reqs.filter((u) => /-catalog\.json|department-cache|catalog-index\.json|ofertas-feed|find\.json|\/_fn\//.test(u));
       assert.deepEqual(bad, [], `${store} fetched ${bad.join(", ")}`);
       assert.deepEqual(errs, [], `${store}: ${errs.join("; ")}`);
+      /* Walmart's aisles (#443 re-route audit) outgrow the first screen:
+         the rails past it fill from their page 1 as they scroll near. */
+      if (idx(store).rails.some((r) => r.lazy)) {
+        await pg.goto(`${base}/tienda.html?tienda=${store}`, { waitUntil: "load" });
+        await pg.waitForFunction(() => document.querySelectorAll(".rail-sec .card:not(.sk)").length >= 8, null, { timeout: 30000 });
+        for (let i = 0; i < 30; i++) { await pg.mouse.wheel(0, 1200); await pg.waitForTimeout(60); }
+        await pg.waitForFunction(() => !document.querySelector("[data-lazy-rail]"), null, { timeout: 30000 });
+        const lazy = idx(store).rails.filter((r) => r.lazy).map((r) => r.title);
+        const drawn = await pg.evaluate((titles) => titles.map((t) => {
+          const sec = [...document.querySelectorAll(".rail-sec")].find((x) => x.getAttribute("aria-label") === t);
+          return sec ? sec.querySelectorAll(".card:not(.sk)").length : -1;
+        }), lazy);
+        assert.ok(drawn.every((n) => n > 0), `${store}: a rail past the first screen stayed empty (${lazy.map((t, i) => t + " " + drawn[i]).join(", ")})`);
+      }
       await ctx.close();
     }
   } finally {
