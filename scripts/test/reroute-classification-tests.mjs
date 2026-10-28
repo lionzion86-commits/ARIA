@@ -153,6 +153,12 @@ check("the coverage gaps are open: watches, belts, scarves, toys that never say 
   assert.equal(KIND_MATCH.perfumes("x", item("Anything", "", "ariaperfumes")), true, "Aria Perfumes' own stock left Perfumes");
 });
 
+check("Perfumes keeps its room when other stores' fragrances join it", () => {
+  const head = JSON.parse(read("assets/sections/departamento/perfumes/head.json"));
+  const keys = JSON.stringify(head);
+  assert.ok(keys.includes("grandes-casas") || keys.includes("Las grandes casas"), "the Perfumes room lost Las grandes casas");
+});
+
 check("Juguetes and Moda Niños stay apart: a toy-themed garment is a garment, a dress-up doll is a toy", () => {
   assert.equal(inDept("toys", item("Paw Patrol Boys Graphic T-Shirt")), false);
   assert.equal(inDept("toys", item("Marvel Spider-Man Boys Fleece Bomber Jacket")), false);
