@@ -93,7 +93,15 @@ await check("the committed catalogues: real photos, prices, estimated weights, S
       assert.ok(it.price > 0, it.name);
       assert.ok(it.weightKg > 0 && it.weightEstimated === true, it.name + " weight");
       assert.ok(!it.description || it.description_en, it.name + " shows English");
-      assert.ok(!it.sizes && !it.availableSizes, it.name + " carries a size list nobody pulled");
+      /* Sizes only from the SNIPES PDP pass (2026-10-28): the page's
+         in-stock buttons, with the page as their source. */
+      if (it.sizes) {
+        assert.equal(k, "snipes", it.name + " carries a size list nobody pulled");
+        assert.ok(Array.isArray(it.sizes) && it.sizes.length && it.sizesTier === "scrape" && /^https:\/\/www\.snipesusa\.com\//.test(it.sizesSource), it.name + " sizes without the page");
+        assert.ok(!it.sizesPending, it.name + " is sized and still pending");
+      }
+      assert.ok(!it.availableSizes, it.name);
+      if (it.onSale) assert.ok(it.originalPrice > it.price, it.name + " on sale without a higher was-price");
       assert.equal(it.retailer, k);
     }
   }
@@ -108,6 +116,8 @@ await check("shown, not sold: the order endpoint refuses an item whose sizes are
   assert.ok(isSizesPending("SNIPES", "  " + shoe.name.toUpperCase() + " "), "the key is case- and space-blind");
   assert.ok(!isSizesPending("snipes", cap.name));
   assert.equal(sizesPendingLines([{ retailer: "snipes", title: shoe.name }, { retailer: "snipes", title: cap.name }]).length, 1);
+  /* One name can be two colourways: a line with a chosen size is not sold sizeless. */
+  assert.equal(sizesPendingLines([{ retailer: "snipes", title: shoe.name, selectedSize: "10" }]).length, 0);
   const pending = cat("snipes").concat(cat("carolinaherrera")).filter((i) => i.sizesPending).map((i) => sizesPendingKey(i.retailer, i.name));
   assert.deepEqual(JSON.parse(read("assets/data/sizes-pending.json")).sort(), [...new Set(pending)].sort(), "the page's list and the catalogues disagree");
   const oc = read("netlify/functions/orders-create.js");
@@ -131,11 +141,12 @@ await check("wiring: registry rows, the app's mirror and catalogue lists, the st
   for (const k of ["snipes", "carolinaherrera"]) assert.equal(K.STORE_KNOWLEDGE[k].product_count, cat(k).length, k + ": Aria quotes the wrong catalogue size");
 });
 
-await check("the storefronts: SNIPES opens on Nike, Jordan, adidas, New Balance, then its aisles; no Ofertas rail made up; Carolina Herrera opens on Zapatos", () => {
+await check("the storefronts: SNIPES opens on its real Ofertas, then Nike, Jordan, adidas, New Balance, then its aisles; Carolina Herrera opens on Zapatos", () => {
   const s = JSON.parse(read("assets/tienda/snipes/index.json"));
   const keys = s.rails.map((r) => r.key);
-  assert.deepEqual(keys.slice(0, 4), ["b-nike", "b-jordan", "b-adidas", "b-new-balance"]);
-  assert.ok(!keys.includes("ofertas"), "an Ofertas rail with no sale data");
+  /* Danny's order: Ofertas first (the PDP pass's verified was-prices), then the brands. */
+  assert.deepEqual(keys.slice(0, 5), ["ofertas", "b-nike", "b-jordan", "b-adidas", "b-new-balance"]);
+  assert.ok(s.rails[0].head.every((c) => c.was > c.price), "an Ofertas card without a was-price");
   for (const d of ["d-calzado", "d-calzado_ninos", "d-ropa", "d-gorras"]) assert.ok(keys.includes(d), d);
   assert.ok(s.rails[0].head.slice(0, 6).every((c) => c.image && c.price > 0));
   const c = JSON.parse(read("assets/tienda/carolinaherrera/index.json"));

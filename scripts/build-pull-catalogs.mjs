@@ -11,6 +11,10 @@
      python3 apply-weight-estimates.py weight-estimates.json snipes-catalog.json --in-place
      python3 apply-weight-estimates.py weight-estimates.json carolinaherrera-catalog.json --in-place
      node scripts/apply-description-memory.mjs
+     node scripts/apply-snipes-pass.mjs --pass <snipes-pass-2026-10-28/dataset.json>
+
+   The last step is the SNIPES PDP pass (2026-10-28): sizes and verified
+   compare-at prices; see applySnipesPass in store-pull-normalize.js.
 
    The rules are scripts/lib/store-pull-normalize.js. It writes the two
    catalogues and reports/store-pulls-2026-10-27.json, the counts the

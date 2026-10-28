@@ -209,3 +209,55 @@ export function normalizeCarolinaHerrera(rows) {
   for (const k of Object.keys(depts)) if (!depts[k].items.length) delete depts[k];
   return { departments: depts, skipped };
 }
+
+/* ============================================================
+   THE SNIPES PDP PASS (2026-10-28, drop snipes-pass-2026-10-28 @ f7139425):
+   size runs and compare-at prices read off each product page. Joined by
+   SKU; what the page says replaces what the Oct 27 pull guessed at:
+
+     - the selling price is the page's (5 drifted up since the pull);
+     - a was-price only where the page strikes one through, higher than
+       the price -- the Ofertas rail is real now;
+     - sizes are the page's in-stock buttons; the run is sold, so
+       `sizesPending` comes off. A run with every size out of stock cannot
+       be bought and is left out;
+     - "See Bag For Price" (the store hides the price on the page) and a
+       page that is gone (410) are left out: neither price is verified;
+     - a product the pass found no run for keeps `sizesPending` if its
+       kind is sized: a size is never guessed.
+   Counts come back by reason for the ingest report.
+   ============================================================ */
+export function applySnipesPass(departments, passRows) {
+  const bySku = new Map(passRows.filter((r) => r && r.sku).map((r) => [String(r.sku), r]));
+  const report = { sized: 0, onSale: 0, priceChanged: 0, stillPending: 0, notInPass: 0, left: {} };
+  const leave = (why) => { report.left[why] = (report.left[why] || 0) + 1; };
+  for (const d of Object.values(departments)) {
+    d.items = d.items.filter((it) => {
+      const p = bySku.get(String(it.sku || ""));
+      if (!p) { report.notInPass++; if (it.sizesPending) report.stillPending++; return true; }
+      if (p.fetchError) { leave("page gone (410)"); return false; }
+      if (p.priceNote === "see_bag_for_price") { leave("price hidden by the store (See Bag For Price)"); return false; }
+      const price = Number(p.salesPrice);
+      if (!(price > 0)) { leave("no price on the page"); return false; }
+      const sizes = Array.isArray(p.sizes) ? p.sizes.filter((s) => typeof s === "string" && s.trim()) : [];
+      const inStock = Array.isArray(p.availableSizes) ? p.availableSizes.filter((s) => typeof s === "string" && s.trim()) : [];
+      if (sizes.length && !inStock.length) { leave("every size out of stock"); return false; }
+      if (Math.round(price * 100) !== Math.round(it.price * 100)) report.priceChanged++;
+      it.price = Math.round(price * 100) / 100;
+      const was = Number(p.listPrice);
+      delete it.originalPrice;
+      it.onSale = false;
+      if (was > it.price) { it.originalPrice = Math.round(was * 100) / 100; it.onSale = true; report.onSale++; }
+      if (inStock.length) {
+        it.sizes = inStock.map((s) => s.trim());
+        it.sizesTier = "scrape";
+        it.sizesSource = p.redirectedTo || p.url || it.url;
+        delete it.sizesPending;
+        report.sized++;
+      } else if (it.sizesPending) report.stillPending++;
+      return true;
+    });
+  }
+  for (const k of Object.keys(departments)) if (!departments[k].items.length) delete departments[k];
+  return report;
+}

@@ -33,7 +33,11 @@ export function isSizesPending(retailer, title) {
 
 /** The order lines that may not be sold yet. */
 export function sizesPendingLines(items) {
-  return (Array.isArray(items) ? items : []).filter((it) => it && isSizesPending(it.retailer, it.title || it.name));
+  /* The list is keyed by name, and one name can be two colourways (one
+     sized by the PDP pass, one not): a line that carries a chosen size
+     is not being sold sizeless. */
+  return (Array.isArray(items) ? items : []).filter((it) => it && isSizesPending(it.retailer, it.title || it.name)
+    && !String(it.selectedSize ?? it.size ?? "").trim());
 }
 
 export function sizesPendingOrderError(title) {

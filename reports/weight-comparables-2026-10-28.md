@@ -4,9 +4,9 @@
 
 | | Products |
 |---|---:|
-| Comparables pool (a published weight, the store's figure, or a per-class rule) | 123,230 |
-| Products the rules could only cover with a constant | 12,572 |
-| ...now estimated from similar products (median x 1.15) | 5,599 |
+| Comparables pool (a published weight, the store's figure, or a per-class rule) | 123,165 |
+| Products the rules could only cover with a constant | 12,570 |
+| ...now estimated from similar products (median x 1.15) | 5,597 |
 | ...with no similar product, weighed by the web pass (found weight x 1.1, source in hidden-docs/weight-tail-full-2026-10-26.csv) | 1,272 |
 | ...with neither: weight "por confirmar" | 5,701 |
 
@@ -5686,12 +5686,10 @@
 | snipes | Harden Volume 10 | 99.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | ReactX Rejuven8 | 75.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | A’Two "AKA" | 145.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
-| snipes | Shox BB4 | 149.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | KD 6 | 119.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Air Foamposite Pro Premium | 250.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Sue Bird Air Zoom Huarache 2K4 | 200.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Air Zoom Huarache 2K4 "Penny Hardaway" | 200.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
-| snipes | Zoom Hyperflight | 139.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Air Diamond Turf II | 119.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | SkyJet | 100.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Wallabee 2604 | 170.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
@@ -5699,6 +5697,7 @@
 | snipes | Shai 001 "Camo" | 99.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | HB-LO | 100.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Apparition Tech | 130.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
+| snipes | Zoom Hyperflight | 139.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | LeBron XXIII "Motor King" | 169.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | KD19 "Black" | 155.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | KD19 | 155.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
@@ -5713,6 +5712,7 @@
 | snipes | Air More Uptempo SE | 160.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Red Redemption Carry On | 225.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | Air Foamposite Pro | 159.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
+| snipes | Shox BB4 | 149.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | GEL-JOG 100S | 89.99 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | GT-2160 | 130.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
 | snipes | GEL-K1011 | 140.00 | 2 kg (tope conservador de calzado (sin regla de peso)) |
