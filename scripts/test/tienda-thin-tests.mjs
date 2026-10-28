@@ -354,6 +354,15 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
         await pg.click("#reBack");
         assert.equal(await pg.evaluate(() => document.getElementById("railExpand").hidden), true, "the back arrow does not close Ver todo");
       } else {
+        /* A pill that is mostly one splittable family opens into its
+           labelled aisles first; the whole department is the grid under them. */
+        const pill = ((ix.chips || {}).depts || [])[0];
+        if (pill && pill.subs) {
+          await pg.waitForFunction(() => document.querySelectorAll("#content .sub-wrap .rail-sec").length >= 2, null, { timeout: 30000 });
+          const titles = await pg.evaluate(() => [...document.querySelectorAll("#content .sub-wrap .rail-title")].map((h) => h.textContent));
+          assert.deepEqual(titles, pill.subs.map((x) => x.t), `${store}: the pill's aisles`);
+          await pg.click("#slPillAll");
+        }
         await pg.waitForFunction(() => document.querySelectorAll("#slGrid .card").length > 0, null, { timeout: 30000 });
         const n = await pg.evaluate(() => document.querySelectorAll("#slGrid .card").length);
         assert.ok(n > 0 && n <= 48, `${store}: chip drew ${n}`);

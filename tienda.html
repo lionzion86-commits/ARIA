@@ -175,6 +175,10 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .sl .chips::-webkit-scrollbar{display:none}
 .sl .chip{flex:0 0 auto;white-space:nowrap}
 .sl-more{text-align:center;margin:18px 0 6px}
+/* Sub-carousels (#443 c.6458236993): audience heading, then a rail per type. */
+.sub-wrap{grid-column:1/-1;min-width:0}
+.sub-aud{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin:6px 0 10px}
+.sub-wrap .rail-title{font-size:17px}
 .sl-more .btn{background:var(--store)}
 .hero.themed{background:linear-gradient(135deg,var(--store) 0%,var(--store-end,#002B7A) 100%)}
 .hero.themed .hero-scrim{background:linear-gradient(135deg,rgba(0,40,120,.78) 0%,rgba(0,20,70,.88) 100%)}
@@ -901,14 +905,36 @@ function watchPhotos(root){
    promises to the shopper stay Aria's own. */
 var TRUST = {};  /* the only entry was Best Buy's; Best Buy is off sale (#457) */
 var slRailsByKey = {};
-function slRailHTML(r){
-  slRailsByKey[r.key] = r;
+/* A sub-carousel is a rail like any other: its pages come from the
+   endpoint under its own key (scripts/lib/store-subrails.js). */
+function slRegisterSubs(subs, parent){
+  var size = (slIndex && slIndex.pageSize) || 48;
+  for (var i = 0; i < subs.length; i++){
+    var s = subs[i];
+    if (!slRailsByKey[s.k]) slRailsByKey[s.k] = { key: s.k, title: s.t + (s.a ? ' ' + s.a : ''), total: s.n,
+      pages: Math.ceil(s.n / size), head: [], lazy: true, parent: parent };
+  }
+}
+/* Labelled sub-carousels: Mujer, then Zapatillas, Sandalias...; each
+   fills when it scrolls near, and "Ver todo" opens its own grid. */
+function slSubsHTML(subs){
+  var html = '', aud = null;
+  for (var i = 0; i < subs.length; i++){
+    var s = subs[i], r = slRailsByKey[s.k];
+    if (s.a && s.a !== aud){ aud = s.a; html += '<h3 class="sub-aud">' + esc(aud) + '</h3>'; }
+    html += slRailHTML({ key: r.key, title: s.t, total: r.total, pages: r.pages, head: r.head || [], lazy: !(r.head && r.head.length) }, true);
+  }
+  return html;
+}
+function slRailHTML(r, keep){
+  if (!keep) slRailsByKey[r.key] = r;
+  if (r.subs) slRegisterSubs(r.subs, r.key);
   var cards = '';
   for (var i = 0; i < r.head.length; i++){ try { cards += slCardHTML(r.head[i]); } catch (e) {} }
   /* A rail past the first screen's (build-store-slices.mjs EAGER_RAILS):
      its cards are its page 1, fetched when it scrolls near. */
   if (r.lazy && !r.head.length) cards = SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD;
-  var door = r.total > r.head.length
+  var door = r.total > r.head.length || r.subs
     ? '<button type="button" class="rail-ver" data-rail="' + esc(r.key) + '">Ver todo &#8594;</button>' : '';
   return '<section class="rail-sec"' + (r.lazy && !r.head.length ? ' data-lazy-rail="' + esc(r.key) + '"' : '') + ' aria-label="' + esc(r.title) + '"><div class="rail-head"><h2 class="rail-title">' + esc(r.title) + '</h2>' +
     '<span class="rail-count">' + Number(r.total).toLocaleString('es-PE') + '</span>' + door + '</div>' +
@@ -934,13 +960,16 @@ function slRenderHome(){
     if (i === 1 && storeMeta.trust && TRUST[storeMeta.trust]) html += TRUST[storeMeta.trust];
   }
   host.innerHTML = html;
+  slBindVer(host);
+  slCountLine();
+  watchPhotos(host);
+  slWatchLazyRails(host);
+}
+function slBindVer(host){
   var btns = host.querySelectorAll('.rail-ver');
   for (var k = 0; k < btns.length; k++){
     btns[k].addEventListener('click', function(){ slOpenRail(this.getAttribute('data-rail')); });
   }
-  slCountLine();
-  watchPhotos(host);
-  slWatchLazyRails(host);
 }
 var LAZY_RAIL_IO = null;
 function slFillLazyRail(sec){
@@ -950,6 +979,7 @@ function slFillLazyRail(sec){
   r.filling = true;
   slFetchPage(key, 1).then(function(pg){
     r.head = ((pg && pg.items) || []).slice(0, 16);
+    r.filling = false;
     r.lazy = false;
     var rail = sec.querySelector('.rail');
     var cards = '';
@@ -1008,6 +1038,7 @@ function slChips(){
   var btns = host.querySelectorAll('.chip');
   for (var k = 0; k < btns.length; k++){
     btns[k].addEventListener('click', function(){
+      slFilter.flat = false;
       if (this.hasAttribute('data-all')) slFilter = { d: '', g: '', c: '' };
       else if (this.hasAttribute('data-d')) slFilter.d = this.getAttribute('data-d');
       /* tapping an active pill clears it */
@@ -1026,11 +1057,32 @@ function slFetchPage(key, n){
     return fetchJson(BASE + sliceDir() + 'rails/' + encodeURIComponent(key) + '-' + n + '.json');
   return fetchJson(TIENDA_FN + '?store=' + encodeURIComponent(storeKey) + '&rail=' + encodeURIComponent(key) + '&page=' + n);
 }
-function slOpenRail(key){
+/* "Ver todo" on a multi-family rail (Zapatos, Ropa, Hogar...) opens
+   its labelled sub-carousels, never one undifferentiated grid; under
+   them, the whole rail as one grid, so nothing is out of reach. A
+   sub-carousel's own "Ver todo" opens its grid, and the back arrow
+   returns to the carousels. */
+function slOpenSubs(r, ov, grid){
+  slOverlay = { key: r.key, page: 0, pages: 0, busy: false, subs: true };
+  $('reTitle').textContent = r.title;
+  $('reCount').textContent = Number(r.total).toLocaleString('es-PE') + (r.total === 1 ? ' producto' : ' productos');
+  grid.classList.add('sl');
+  grid.innerHTML = '<div class="sub-wrap">' + slSubsHTML(r.subs) +
+    '<div class="sl-more"><button class="btn" type="button" id="slAllBtn">Ver los ' + Number(r.total).toLocaleString('es-PE') + ' juntos</button></div></div>';
+  $('slAllBtn').addEventListener('click', function(){ slOpenRail(r.key, true, r.key); });
+  ov.hidden = false;
+  document.body.style.overflow = 'hidden';
+  grid.scrollTop = 0;
+  slBindVer(grid);
+  watchPhotos(grid);
+  slWatchLazyRails(grid);
+}
+function slOpenRail(key, flat, parent){
   var r = slRailsByKey[key];
   var ov = $('railExpand'), grid = $('reGrid');
   if (!r || !ov || !grid) return;
-  slOverlay = { key: key, page: 0, pages: r.pages || 1, busy: false };
+  if (r.subs && !flat){ slOpenSubs(r, ov, grid); return; }
+  slOverlay = { key: key, page: 0, pages: r.pages || 1, busy: false, parent: parent || r.parent || '' };
   $('reTitle').textContent = r.title;
   $('reCount').textContent = Number(r.total).toLocaleString('es-PE') + (r.total === 1 ? ' producto' : ' productos');
   var sk = '';
@@ -1041,6 +1093,13 @@ function slOpenRail(key){
   document.body.style.overflow = 'hidden';
   grid.scrollTop = 0;
   slMore(true);
+}
+/* Back from a sub-carousel's grid goes to the carousels it came from;
+   from anywhere else it closes the overlay. */
+function slBack(){
+  var p = slOverlay && slOverlay.parent, r = p && slRailsByKey[p];
+  if (r && r.subs){ slOpenRail(p); return; }
+  closeRailExpand();
 }
 function slMore(first){
   if (slOverlay.busy || slOverlay.page >= slOverlay.pages) return;
@@ -1090,6 +1149,8 @@ function slApply(){
   if (!host || !slIndex) return;
   var q = (($('q') || {}).value || '').trim();
   if (!q && !slFilter.d && !slFilter.g && !slFilter.c){ slRenderHome(); return; }
+  var pill = !q && slFilter.d && !slFilter.flat ? slPill(slFilter.d) : null;
+  if (pill && pill.subs){ slRenderPill(pill); return; }
   var s = $('sort');
   if (s) s.style.display = isThemed() ? 'none' : '';
   var sk = '<div class="grid">';
@@ -1097,6 +1158,29 @@ function slApply(){
   host.innerHTML = sk + '</div>';
   slGrid = { key: slQuery(), page: 0, pages: 1, busy: false };
   slGridMore();
+}
+/* A department pill that is mostly one splittable family (Walmart's
+   Hogar: Ropa de cama, Toallas, Baño, Cocina...) opens into its aisles;
+   under them, the whole department as the grid it used to be. */
+function slPill(d){
+  var list = ((slIndex && slIndex.chips) || {}).depts || [];
+  for (var i = 0; i < list.length; i++) if (list[i].key === d) return list[i];
+  return null;
+}
+function slRenderPill(pill){
+  var host = $('content');
+  slGrid.key = '';
+  var s = $('sort');
+  if (s) s.style.display = 'none';
+  slRegisterSubs(pill.subs, '');
+  host.innerHTML = '<div class="sub-wrap">' + slSubsHTML(pill.subs) +
+    '<div class="sl-more"><button class="btn" type="button" id="slPillAll">Ver los ' + Number(pill.count).toLocaleString('es-PE') + ' de ' + esc(pill.label) + ' juntos</button></div></div>';
+  $('slPillAll').addEventListener('click', function(){ slFilter.flat = true; slApply(); });
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = Number(pill.count).toLocaleString('es-PE') + (pill.count === 1 ? ' producto' : ' productos') + ' en ' + storeMeta.label;
+  slBindVer(host);
+  watchPhotos(host);
+  slWatchLazyRails(host);
 }
 function slGridMore(){
   if (slGrid.busy || slGrid.page >= slGrid.pages) return;
@@ -1266,10 +1350,10 @@ function bindUI(){
      One delegated listener answers it whenever it is there. */
   document.addEventListener('click', function(ev){
     var t = ev && ev.target;
-    if (t && t.closest && t.closest('#reBack')){ try { closeRailExpand(); } catch (e) {} }
+    if (t && t.closest && t.closest('#reBack')){ try { slBack(); } catch (e) {} }
   });
   document.addEventListener('keydown', function(ev){
-    if (ev && ev.key === 'Escape'){ try { closeRailExpand(); } catch (e) {} }
+    if (ev && ev.key === 'Escape'){ try { slBack(); } catch (e) {} }
   });
 }
 
