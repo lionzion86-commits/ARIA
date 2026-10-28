@@ -117,6 +117,24 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* SNIPES (#443 c.6450358688, catalogue pulled 2026-10-27 c.6457579787):
+     sneakers and streetwear, the general catalogue (hyped release SKUs
+     cut by design). snipes-catalog.json, written by
+     scripts/build-pull-catalogs.mjs. No size runs came with the pull, so
+     footwear and apparel carry `sizesPending` and are not sold until a
+     size pass lands; caps and accessories sell. No logo file: SNIPES' mark
+     could not be fetched from the build environment, so the store renders
+     as its name (the registry's wordmark fallback), never a drawn logo. */
+  snipes: {
+    key: "snipes",
+    label: "SNIPES",
+    color: "#000000",
+    logo: null,
+    tagline: "Sneakers y streetwear, cultura de la calle",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* DSW (Issue #443, 2026-10-21) — BUILT, NOT LAUNCHED. Designer Shoe
      Warehouse: the store, its storefront, its home rail and its Tiendas
      tile are wired, and every one of them stays invisible while
@@ -251,6 +269,31 @@ export const RETAILERS = {
   /* KOHL'S (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
      plain <script> and cannot import. */
+  /* CRATE & BARREL + PIER 1 (#443 c.6458486219, pulled 2026-10-27
+     c.6457579787): the Casa Aria wing's home stores, light home only --
+     furniture, rugs and anything over the 5 kg cap (estimate included)
+     are cut (scripts/lib/home-pull-normalize.js). No logo files: the
+     wordmark fallback. Buy activation waits on a Miami test order. */
+  crateandbarrel: {
+    key: "crateandbarrel",
+    label: "Crate & Barrel",
+    color: "#1F2937",
+    logo: null,
+    tagline: "Vajilla, textiles y decoración para la casa",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  pier1: {
+    key: "pier1",
+    label: "Pier 1",
+    color: "#1F2937",
+    logo: null,
+    tagline: "Decoración, velas y mesa para la casa",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   kohls: {
     key: "kohls",
     label: "Kohl's",
@@ -1031,6 +1074,25 @@ export const RETAILERS = {
     color: "#000000",
     logo: "logos/miumiu.png",
     tagline: "Bolsos, calzado y moda italiana",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    browse: true,
+  },
+  /* CAROLINA HERRERA (#443 c.6450670024, catalogue pulled 2026-10-27
+     c.6457579787): the US storefront -- ready-to-wear, jewellery and
+     bags, fragrance. carolinaherrera-catalog.json, written by
+     scripts/build-pull-catalogs.mjs. Ready-to-wear carries
+     `sizesPending` (no size runs in the pull) and is not sold until a
+     size pass lands. Untested lane, kill-switch armed (Danny): the first
+     unjustified cancellation or a written objection from the house takes
+     the catalogue off the same day. No logo file: the wordmark fallback. */
+  carolinaherrera: {
+    key: "carolinaherrera",
+    label: "Carolina Herrera",
+    color: "#000000",
+    logo: null,
+    tagline: "Moda, joyería y fragancias de la casa",
     kind: "general",
     tier: "luxury",
     search: false,

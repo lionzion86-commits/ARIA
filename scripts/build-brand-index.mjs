@@ -48,7 +48,7 @@ export const CATALOG_FILES = [
   "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json",
   "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json",
   "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json",
-  "/kohls-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json",
+  "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json",
   "/advanceauto-catalog.json", "/nautilus-catalog.json",
   "/islandwatersports-catalog.json", "/quietstorm-catalog.json",
   "/surfstation-catalog.json",
@@ -69,6 +69,9 @@ export const CATALOG_FILES = [
   "/bestbuy-catalog.json",
   /* DSW (#443): the committed empty envelope until the pull lands. */
   "/dsw-catalog.json",
+  /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
+  "/snipes-catalog.json",
+  "/carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "/perfumes-catalog.json",
 ];
@@ -119,7 +122,7 @@ export function loadAllItems(root = ROOT) {
             const p = {
               name: String(name), brand: String(it.brand || ""), brandKey: brandKeyOf(it.brand || ""),
               price, orig, image: String(img || ""), url: String(it.url || it.link || ""), retailer,
-              ptype: AriaProductType.classify({ name, type: it.type, retailer: it.retailer || rkey, brand: it.brand }),
+              ptype: AriaProductType.classify({ name, type: it.type, retailer: it.retailer || rkey, brand: it.brand, bucket: section === "departments" ? skey : "" }),
             };
             /* The page measured the percent on its normalized item. */
             p.pct = AriaSale.discountPct({ name: p.name, price: p.price, originalPrice: onSale ? orig : null, onSale });

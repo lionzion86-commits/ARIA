@@ -136,6 +136,30 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "ropa de hombre o niños: el catálogo es casi todo mujer",
     peru_note: "Es la tienda departamental que suena a Estados Unidos sin sonar a lujo inalcanzable.",
   },
+  /* Casa Aria's home stores (#443, pulled 2026-10-27): light home only,
+     each piece within the 5 kg cap. Buying waits on a Miami test order. */
+  crateandbarrel: {
+    name: "Crate & Barrel",
+    vibe: "hogar moderno y cálido, vajilla y textiles de calidad",
+    specialties: ["vajilla", "copas y vasos", "velas", "cojines y mantas", "sábanas y toallas", "lámparas de mesa"],
+    price_range: "premium", median_usd: 59.99, product_count: 1761,
+    catalog_depth: "1,761 productos",
+    top_categories: ["mesa y vajilla", "decoración", "cama y baño", "cocina"],
+    best_for: "poner una mesa bonita y vestir la casa con piezas que duran",
+    not_for: "muebles, alfombras o piezas de más de 5 kg (no se traen)",
+    peru_note: "Solo hogar liviano: cada pieza pesa menos de 5 kg con su embalaje.",
+  },
+  pier1: {
+    name: "Pier 1",
+    vibe: "decoración ecléctica, velas y mesa con color",
+    specialties: ["velas", "cojines", "caminos de mesa e individuales", "arte de pared", "Navidad"],
+    price_range: "medio", median_usd: 64.95, product_count: 2766,
+    catalog_depth: "2,766 productos",
+    top_categories: ["mesa y vajilla", "decoración", "cojines y mantas", "Navidad"],
+    best_for: "decorar por temporada: velas, cojines, adornos de Navidad",
+    not_for: "muebles y alfombras (no se traen)",
+    peru_note: "Solo hogar liviano: cada pieza pesa menos de 5 kg con su embalaje.",
+  },
   kohls: {
     name: "Kohl's",
     vibe: "descuentos agresivos, familiar, sin pretensiones",
@@ -422,6 +446,31 @@ const STORE_KNOWLEDGE_ALL = {
     best_for: "Crocs de toda talla, incluidos niños, con los Jibbitz",
     not_for: "calzado formal o deportivo de rendimiento",
     peru_note: null,
+  },
+  /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). Footwear and
+     apparel are shown but not sold until their sizes are confirmed
+     (scripts/lib/sizes-pending.js); caps, accessories and fragrance sell. */
+  snipes: {
+    name: "SNIPES",
+    vibe: "sneakers y streetwear con cultura de la calle",
+    specialties: ["zapatillas", "jordan", "nike", "streetwear", "gorras new era"],
+    price_range: "medio", median_usd: 49.99, product_count: 4907,
+    catalog_depth: "4907 productos",
+    top_categories: ["calzado", "ropa", "gorras"],
+    best_for: "zapatillas Nike, Jordan, adidas y New Balance, streetwear y gorras 59FIFTY",
+    not_for: "lanzamientos limitados (no se traen)",
+    peru_note: "Las zapatillas y la ropa se muestran, pero se podrán comprar cuando la tienda confirme las tallas; las gorras y accesorios ya se pueden pedir.",
+  },
+  carolinaherrera: {
+    name: "Carolina Herrera",
+    vibe: "lujo clásico de la casa venezolana",
+    specialties: ["vestidos", "joyería", "fragancias good girl", "bad boy"],
+    price_range: "lujo", median_usd: 490.0, product_count: 234,
+    catalog_depth: "234 productos",
+    top_categories: ["ropa", "zapatos", "joyas y accesorios", "fragancias"],
+    best_for: "fragancias y ediciones de colección, joyería y bolsos de la casa",
+    not_for: "ropa con talla inmediata (las tallas se están confirmando)",
+    peru_note: "La ropa y los zapatos se muestran, pero se podrán comprar cuando la tienda confirme las tallas; joyas, bolsos y fragancias ya se pueden pedir.",
   },
 
   /* ---------- DEPORTES ---------- */

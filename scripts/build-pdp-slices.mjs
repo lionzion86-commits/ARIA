@@ -102,7 +102,7 @@ export function packImages(images, image) {
 
 /* What the page renders, and nothing else (no retailer url: the page
    never links out). Empty fields are left out. */
-const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "dept", "retailer", "weightKg", "weightPub", "specWeightKg"];
+const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg"];
 function recordOf(it) {
   const out = {};
   for (const k of RECORD_FIELDS) {

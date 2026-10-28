@@ -1,0 +1,285 @@
+{
+ "generatedAt": "2026-10-28T04:36:10.784Z",
+ "stores": {
+  "snipes": {
+   "rawProducts": 5000,
+   "kept": 4907,
+   "byDepartment": {
+    "calzado": 938,
+    "calzado_ninos": 661,
+    "ropa": 2611,
+    "ropa_ninos": 417,
+    "gorras": 250,
+    "accesorios": 30
+   },
+   "skipped": {
+    "no price": 34,
+    "out of stock": 19
+   },
+   "released": [
+    {
+     "name": "Big Kids' Air Jordan 1 Retro Low OG",
+     "brand": "Jordan",
+     "price": 39.99,
+     "sku": "1000119038"
+    },
+    {
+     "name": "Zoom Vomero 5 SE SP",
+     "brand": "Nike",
+     "price": 99.99,
+     "sku": "1000121828"
+    },
+    {
+     "name": "Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 99.99,
+     "sku": "1000123653"
+    },
+    {
+     "name": "Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 109.99,
+     "sku": "1000125855"
+    },
+    {
+     "name": "Little Kids' Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 59.99,
+     "sku": "1000127895"
+    },
+    {
+     "name": "Big Kids' Air Jordan 1 Retro Low OG",
+     "brand": "Jordan",
+     "price": 79.99,
+     "sku": "1000127913"
+    },
+    {
+     "name": "Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 185,
+     "sku": "1000129469"
+    },
+    {
+     "name": "Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 129.99,
+     "sku": "1000129987"
+    },
+    {
+     "name": "Air Jordan 1 Retro Low OG",
+     "brand": "Jordan",
+     "price": 165,
+     "sku": "1000129990"
+    },
+    {
+     "name": "Big Kids' Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 79.99,
+     "sku": "1000130019"
+    },
+    {
+     "name": "Little Kids' Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 59.99,
+     "sku": "1000130109"
+    },
+    {
+     "name": "Little Kids' Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 69.99,
+     "sku": "1000130110"
+    },
+    {
+     "name": "Toddler Air Jordan 1 Retro High OG",
+     "brand": "Jordan",
+     "price": 39.99,
+     "sku": "1000130140"
+    },
+    {
+     "name": "Big Kids' Air Jordan 5 Retro OG \"White Metallic\"",
+     "brand": "Jordan",
+     "price": 165,
+     "sku": "1000132155"
+    },
+    {
+     "name": "Little Kids' Air Jordan 5 Retro OG \"White Metallic\"",
+     "brand": "Jordan",
+     "price": 105,
+     "sku": "1000132156"
+    },
+    {
+     "name": "Toddler Air Jordan 5 Retro OG \"White Metallic\"",
+     "brand": "Jordan",
+     "price": 90,
+     "sku": "1000132157"
+    },
+    {
+     "name": "Big Kids' Air Jordan 1 Retro High OG \"Flight Club\"",
+     "brand": "Jordan",
+     "price": 99.99,
+     "sku": "1000132161"
+    },
+    {
+     "name": "Little Kids' Air Jordan 1 Retro High OG \"Flight Club\"",
+     "brand": "Jordan",
+     "price": 59.99,
+     "sku": "1000132162"
+    },
+    {
+     "name": "Toddler Air Jordan 1 Retro High OG \"Flight Club\"",
+     "brand": "Jordan",
+     "price": 49.99,
+     "sku": "1000132163"
+    },
+    {
+     "name": "Toddler Air Jordan 1 Retro Low OG \"Banned\"",
+     "brand": "Jordan",
+     "price": 49.99,
+     "sku": "1000132164"
+    },
+    {
+     "name": "Big Kids' Air Jordan 1 Retro Low OG \"Banned\"",
+     "brand": "Jordan",
+     "price": 79.99,
+     "sku": "1000132166"
+    },
+    {
+     "name": "Little Kids' Air Jordan 1 Retro Low OG \"Banned\"",
+     "brand": "Jordan",
+     "price": 59.99,
+     "sku": "1000132165"
+    },
+    {
+     "name": "Air Jordan 1 Retro High OG \"Flight Club\"",
+     "brand": "Jordan",
+     "price": 139.99,
+     "sku": "1000132228"
+    },
+    {
+     "name": "Air Jordan 5 Retro OG \"White Metallic\"",
+     "brand": "Jordan",
+     "price": 215,
+     "sku": "1000132496"
+    },
+    {
+     "name": "Air Jordan 1 Retro Low OG \"Banned\"",
+     "brand": "Jordan",
+     "price": 109.99,
+     "sku": "1000132567"
+    },
+    {
+     "name": "Air Jordan 1 Retro High OG \"Love Letter\"",
+     "brand": "Jordan",
+     "price": 185,
+     "sku": "1000133750"
+    },
+    {
+     "name": "Air Jordan 1 Retro Low OG \"Garden\"",
+     "brand": "Jordan",
+     "price": 155,
+     "sku": "1000133752"
+    },
+    {
+     "name": "Jordan 1 Retro High OG \"Nails and Grails\"",
+     "brand": "Jordan",
+     "price": 185,
+     "sku": "1000133857"
+    },
+    {
+     "name": "Air Baltoro SP",
+     "brand": "Nike",
+     "price": 145,
+     "sku": "1000134112"
+    },
+    {
+     "name": "Air Baltoro SP",
+     "brand": "Nike",
+     "price": 145,
+     "sku": "1000134113"
+    },
+    {
+     "name": "Little Kids' Jordan 1 Retro High OG \"Nails and Grails\"",
+     "brand": "Jordan",
+     "price": 85,
+     "sku": "1000134381"
+    },
+    {
+     "name": "Toddler Jordan 1 Retro High OG \"Nails and Grails\"",
+     "brand": "Jordan",
+     "price": 70,
+     "sku": "1000134382"
+    },
+    {
+     "name": "Little Kids' Air Jordan 1 Retro High OG \"Love Letter\"",
+     "brand": "Jordan",
+     "price": 85,
+     "sku": "1000134384"
+    },
+    {
+     "name": "Toddler Air Jordan 1 Retro High OG \"Love Letter\"",
+     "brand": "Jordan",
+     "price": 70,
+     "sku": "1000134383"
+    },
+    {
+     "name": "Big Kids' Air Jordan 1 Retro High OG \"Love Letter\"",
+     "brand": "Jordan",
+     "price": 140,
+     "sku": "1000134385"
+    },
+    {
+     "name": "Air Max Goadome Low SP",
+     "brand": "Nike",
+     "price": 175,
+     "sku": "1000136010"
+    },
+    {
+     "name": "Air Max Goadome Low SP",
+     "brand": "Nike",
+     "price": 185,
+     "sku": "1000136011"
+    },
+    {
+     "name": "Big Kids' Air Jordan 1 Retro Low OG \"Phantom and Pine Green\"",
+     "brand": "Jordan",
+     "price": 120,
+     "sku": "1000136073"
+    },
+    {
+     "name": "Air Jordan 1 Retro Low OG \"Phantom and Pine Green\"",
+     "brand": "Jordan",
+     "price": 119.99,
+     "sku": "1000136074"
+    },
+    {
+     "name": "Air Jordan 1 Retro Low OG \"Howard\"",
+     "brand": "Jordan",
+     "price": 155,
+     "sku": "1000136266"
+    }
+   ],
+   "sizesPending": 4627,
+   "withDescription": 4906
+  },
+  "carolinaherrera": {
+   "rawProducts": 479,
+   "kept": 234,
+   "byDepartment": {
+    "zapatos": 11,
+    "ropa": 65,
+    "accesorios": 68,
+    "fragancias": 87,
+    "maquillaje": 3
+   },
+   "skipped": {
+    "out of stock": 225,
+    "no price": 6,
+    "no category": 3,
+    "no photo": 1
+   },
+   "released": [],
+   "sizesPending": 76,
+   "withDescription": 94
+  }
+ }
+}

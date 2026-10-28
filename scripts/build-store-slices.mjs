@@ -51,12 +51,21 @@ import vm from "node:vm";
 import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
+import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
 export { FN_DIR };
 export const PAGE_SIZE = 48;
 export const RAIL_HEAD = 16;
+/* The first screen carries the first EAGER_RAILS rails' cards. A store
+   whose products now fill their own aisles (#443 re-route audit: Walmart's
+   toys, home, beauty...) has more rails than the first screen's 30KB holds,
+   so the rest arrive as their page 1 when the shopper scrolls near them. */
+export const EAGER_RAILS = 10;
+function headOrLazy(rail, i, head) {
+  return i < EAGER_RAILS ? { ...rail, head: head() } : { ...rail, head: [], lazy: true };
+}
 /* A product at or above this Best Buy price is "premium": it may appear
    in a rail, never in its first PREMIUM_LEAD_FREE cards, and at most
    once in every PREMIUM_EVERY. */
@@ -85,6 +94,27 @@ export const SLICED_STORES = {
      (bestSellerRank) when the pull captured it, then review counts.
      While dsw-catalog.json is the empty envelope this writes a count-0
      index, and tienda.html never opens it (STORES.dsw.pendingCatalog). */
+  /* CASA ARIA (#443 c.6458486219): Crate & Barrel and Pier 1, light home
+     only (scripts/lib/home-pull-normalize.js); Ofertas from the stores' own
+     was-prices, then Casa Aria's aisles. */
+  crateandbarrel: {
+    file: "crateandbarrel-catalog.json",
+    label: "Crate & Barrel",
+    DEPT_ORDER: ["casa_mesa", "casa_velas", "casa_textiles", "casa_cama_bano", "casa_cocina", "casa_decoracion", "casa_iluminacion", "casa_navidad"],
+    DEPT_LABELS: {
+      casa_mesa: "Mesa y vajilla", casa_velas: "Velas y aromas", casa_textiles: "Cojines y mantas", casa_cama_bano: "Cama y baño",
+      casa_cocina: "Cocina", casa_decoracion: "Decoración", casa_iluminacion: "Lámparas", casa_navidad: "Navidad",
+    },
+  },
+  pier1: {
+    file: "pier1-catalog.json",
+    label: "Pier 1",
+    DEPT_ORDER: ["casa_mesa", "casa_velas", "casa_textiles", "casa_cama_bano", "casa_cocina", "casa_decoracion", "casa_iluminacion", "casa_navidad"],
+    DEPT_LABELS: {
+      casa_mesa: "Mesa y vajilla", casa_velas: "Velas y aromas", casa_textiles: "Cojines y mantas", casa_cama_bano: "Cama y baño",
+      casa_cocina: "Cocina", casa_decoracion: "Decoración", casa_iluminacion: "Lámparas", casa_navidad: "Navidad",
+    },
+  },
   dsw: {
     file: "dsw-catalog.json",
     label: "DSW",
@@ -92,6 +122,34 @@ export const SLICED_STORES = {
     DEPT_LABELS: {
       women: "Zapatos de mujer", men: "Zapatos de hombre", kids: "Zapatos de niños",
       footwear: "Más zapatos", purses: "Carteras y bolsos",
+    },
+  },
+  /* SNIPES (#443 c.6450358688, pulled 2026-10-27). Danny's order: Ofertas
+     first, then the brand carousels (Nike, Jordan, Adidas, New Balance,
+     then the rest), then the category carousels. The pull carries no
+     compare-at price, so there is no Ofertas rail until one is captured
+     (none is made up). "The rest" are the next brands with at least
+     BRAND_MIN products, biggest first. */
+  snipes: {
+    file: "snipes-catalog.json",
+    label: "SNIPES",
+    BRAND_RAILS: ["Nike", "Jordan", "adidas", "New Balance"],
+    BRAND_MORE: 6,
+    BRAND_MIN: 40,
+    DEPT_ORDER: ["calzado", "calzado_ninos", "ropa", "ropa_ninos", "gorras", "accesorios"],
+    DEPT_LABELS: {
+      calzado: "Calzado", calzado_ninos: "Calzado de niños", ropa: "Ropa streetwear",
+      ropa_ninos: "Ropa de niños", gorras: "Gorras", accesorios: "Accesorios",
+    },
+  },
+  /* CAROLINA HERRERA (#443 c.6450670024, pulled 2026-10-27): the house's
+     own categories. No sale prices were captured (no Ofertas rail). */
+  carolinaherrera: {
+    file: "carolinaherrera-catalog.json",
+    label: "Carolina Herrera",
+    DEPT_ORDER: ["zapatos", "ropa", "accesorios", "fragancias", "maquillaje"],
+    DEPT_LABELS: {
+      zapatos: "Zapatos", ropa: "Ropa", accesorios: "Joyas y accesorios", fragancias: "Fragancias", maquillaje: "Maquillaje",
     },
   },
 };
@@ -282,6 +340,24 @@ export function storeRails(key, products) {
   const best = products.filter((p) => p.reviews > 0 || p.rank > 0)
     .sort((a, b) => byRank(a, b) || (b.reviews - a.reviews) || (b.rating - a.rating));
   if (best.length) rails.push({ key: "masvendidos", title: "Más vendidos", items: sprinklePremium(best) });
+  /* Brand carousels (SNIPES): the named brands, then the next biggest. */
+  if (cfg.BRAND_RAILS) {
+    const norm = (b) => String(b || "").toLowerCase().trim();
+    const count = new Map();
+    for (const p of products) count.set(norm(p.brand), (count.get(norm(p.brand)) || 0) + 1);
+    const named = cfg.BRAND_RAILS.map(norm);
+    const more = [...count].filter(([b, n]) => b && !named.includes(b) && n >= (cfg.BRAND_MIN || 1))
+      .sort((a, b) => b[1] - a[1]).slice(0, cfg.BRAND_MORE || 0).map(([b]) => b);
+    for (const b of named.concat(more)) {
+      const list = products.filter((p) => norm(p.brand) === b);
+      if (!list.length) continue;
+      const label = list[0].brand;
+      /* A sneaker store's brand shelf leads with its shoes. */
+      const lead = (p) => (p.dept === "calzado" ? 0 : p.dept === "calzado_ninos" ? 1 : 2);
+      rails.push({ key: "b-" + b.replace(/[^a-z0-9]+/g, "-"), title: label,
+        items: sprinklePremium(list.slice().sort((x, y) => (lead(x) - lead(y)) || ((y.pct || 0) - (x.pct || 0)) || (y.price - x.price))) });
+    }
+  }
   /* A department window is not a copy of the two lead rails: what their
      first cards already show yields its place to what they do not
      (it stays in the rail, further along). */
@@ -343,9 +419,29 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
     return [p.name, p.brand || "", p.price, pct > 0 && p.originalPrice ? p.originalPrice : 0, pct > 0 ? pct : 0, p.image, p.dept || "",
       facetMode ? (p.gender || "") : "", facetMode ? (p.cat || "") : ""];
   });
-  const fn = fnFile(key, rows, items, rails);
+  /* A multi-family rail or department pill opens into labelled
+     sub-carousels (scripts/lib/store-subrails.js); their pages are
+     endpoint rails like any other. */
+  const familyOf = (p) => { try { return R.productTypeOf(p); } catch { return "ropa"; } };
+  const withStore = (list) => list.map((p) => ({ p, v: { ...p, retailer: key } }));
+  const subsOf = (railKey, list, family) => {
+    const wrapped = withStore(list);
+    const back = new Map(wrapped.map((w) => [w.v, w.p]));
+    const subs = subRails(wrapped.map((w) => w.v), family);
+    if (!subs) return null;
+    return subs.map((s) => ({ key: subKey(railKey, s), aud: s.audLabel, title: s.title, items: s.items.map((v) => back.get(v)) }));
+  };
+  const subRailList = [];
+  const railSubs = {};
+  for (const r of rails) {
+    const fam = r.key.startsWith("t-") ? r.key.slice(2) : null;
+    const subs = fam && subsOf(r.key, r.items, fam);
+    if (subs) { railSubs[r.key] = subs; subRailList.push(...subs); }
+  }
+  const fn = fnFile(key, rows, items, rails.concat(subRailList));
   const at = new Map(items.map((p, i) => [p, i]));
   const card = (p) => cardOfRow(rows[at.get(p)]);
+  const subsMeta = (subs) => subs.map((s) => ({ k: s.key, a: s.aud || "", t: s.title, n: s.items.length }));
   const count = (pred) => { let n = 0; for (const p of items) if (pred(p)) n++; return n; };
   let chips;
   if (facetMode) {
@@ -355,13 +451,24 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
   } else {
     const keys = Object.keys(depts).sort((a, b) => String(depts[a]).localeCompare(String(depts[b]), "es"));
     chips = { mode: "dept", depts: keys.map((k) => ({ key: k, label: depts[k], count: count((p) => p.dept === k) })).filter((d) => d.count > 0) };
+    /* A pill that is mostly one splittable family (Walmart's Hogar)
+       opens into its aisles, in the grid's own order (sale depth). */
+    for (const d of chips.depts) {
+      const list = items.filter((p) => p.dept === d.key).sort(R.saleSort);
+      const fam = dominantFamily(list, familyOf);
+      const subs = fam && subsOf("c-" + d.key, list, fam);
+      if (!subs) continue;
+      d.subs = subsMeta(subs);
+      for (const s of subs) fn.rails[s.key] = s.items.map((p) => at.get(p));
+    }
   }
   const index = {
     v: 1, store: key, label: meta.label, count: items.length, pageSize: PAGE_SIZE, railPages: "fn",
     onSale: rows.filter((r) => r[4] > 0).length,
     chips,
-    rails: rails.map((r) => ({ key: r.key, title: r.title, total: r.items.length,
-      pages: Math.ceil(r.items.length / PAGE_SIZE), head: r.items.slice(0, RAIL_HEAD).map(card) })),
+    rails: rails.map((r, i) => headOrLazy({ key: r.key, title: r.title, total: r.items.length,
+      pages: Math.ceil(r.items.length / PAGE_SIZE), ...(railSubs[r.key] ? { subs: subsMeta(railSubs[r.key]) } : {}) },
+      i, () => r.items.slice(0, RAIL_HEAD).map(card))),
   };
   return { files: { "index.json": index }, fn, products: items, rails };
 }

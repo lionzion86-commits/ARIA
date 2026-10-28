@@ -69,7 +69,7 @@ export const CATALOG_FILES = [
   "skims-catalog.json", "revolve-catalog.json", "ulta-catalog.json",
   "yesstyle-catalog.json", "miumiu-catalog.json", "partycity-catalog.json",
   "samsclub-catalog.json", "costco-catalog.json", "gymrat-catalog.json",
-  "kohls-catalog.json", "newbalance-catalog.json", "bhphoto-catalog.json",
+  "kohls-catalog.json", "crateandbarrel-catalog.json", "pier1-catalog.json", "newbalance-catalog.json", "bhphoto-catalog.json",
   "advanceauto-catalog.json", "nautilus-catalog.json",
   "islandwatersports-catalog.json", "quietstorm-catalog.json",
   "surfstation-catalog.json",
@@ -91,6 +91,9 @@ export const CATALOG_FILES = [
   "bestbuy-catalog.json",
   /* DSW (#443): the committed empty envelope until the pull lands. */
   "dsw-catalog.json",
+  /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
+  "snipes-catalog.json",
+  "carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "perfumes-catalog.json",
 ];
