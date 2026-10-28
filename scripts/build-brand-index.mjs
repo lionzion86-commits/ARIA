@@ -122,7 +122,7 @@ export function loadAllItems(root = ROOT) {
             const p = {
               name: String(name), brand: String(it.brand || ""), brandKey: brandKeyOf(it.brand || ""),
               price, orig, image: String(img || ""), url: String(it.url || it.link || ""), retailer,
-              ptype: AriaProductType.classify({ name, type: it.type, retailer: it.retailer || rkey, brand: it.brand }),
+              ptype: AriaProductType.classify({ name, type: it.type, retailer: it.retailer || rkey, brand: it.brand, bucket: section === "departments" ? skey : "" }),
             };
             /* The page measured the percent on its normalized item. */
             p.pct = AriaSale.discountPct({ name: p.name, price: p.price, originalPrice: onSale ? orig : null, onSale });
