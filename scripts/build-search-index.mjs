@@ -93,6 +93,8 @@ export const CATALOG_FILES = [
   "dsw-catalog.json",
   /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
   "snipes-catalog.json",
+  /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
+  "brandsmart-catalog.json",
   "carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "perfumes-catalog.json",

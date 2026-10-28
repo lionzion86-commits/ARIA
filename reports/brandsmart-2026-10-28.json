@@ -1,0 +1,29 @@
+{
+ "generatedAt": "2026-10-28T17:00:25.034Z",
+ "rawProducts": 2504,
+ "kept": 1360,
+ "held": {
+  "held-voltage-unstated": 712,
+  "site-unshippable (bulk / weight)": 32,
+  "lithium cargo (courier ruling)": 13,
+  "excluded-110v": 10,
+  "out-of-scope (TV / large appliance)": 58,
+  "out of stock": 2,
+  "kitchen food-prep (not the electronics core)": 317
+ },
+ "byAisle": {
+  "tech_celulares": 192,
+  "tech_computadoras": 304,
+  "tech_audifonos": 172,
+  "tech_audio": 251,
+  "tech_gaming": 87,
+  "tech_camaras": 121,
+  "tech_relojes": 58,
+  "tech_casa_inteligente": 81,
+  "tech_auto": 45,
+  "tech_accesorios": 49
+ },
+ "onSale": 336,
+ "withWeight": 1337,
+ "withSpanish": 1353
+}
