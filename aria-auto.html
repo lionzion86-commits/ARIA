@@ -462,7 +462,7 @@ function sizedImageUrl(url, w){
   if (!u || !/^https?:\/\//i.test(u) || !w) return u;
   /* NEVER UPSCALE. When the URL already declares a width at or
      below the step asked for (Kohl's feeds store wid=180/342, some
-     Walmart and Sam's Club URLs declare 180), that variant is the
+     Walmart URLs declare 180), that variant is the
      card image the shopper sees today; asking the CDN for more
      pixels would ADD decoded weight -- the opposite of this job. */
   const declared = declaredImageWidth(u);
@@ -477,7 +477,7 @@ function sizedImageUrl(url, w){
     out = setQ(u, "width", w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
-  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+  } else if (/i5\.walmartimages\.com/i.test(u)){
     out = setQ(u, "odnWidth", w);
     out = /[?&]odnHeight=\d+/i.test(out)
       ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })

@@ -114,17 +114,6 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "una sola cosa pequeña — el formato es grande por diseño",
     peru_note: null,
   },
-  samsclub: {
-    name: "Sam's Club",
-    vibe: "mayorista de fiesta y desechables",
-    specialties: ["platos", "servilletas", "desechables", "fiesta"],
-    price_range: "economico", median_usd: 19.73, product_count: 120,
-    catalog_depth: "120 productos",
-    top_categories: ["platos de papel", "servilletas", "decoración"],
-    best_for: "cantidades grandes de desechables para un evento",
-    not_for: "casi todo lo demás — el catálogo es solo de fiesta y desechables",
-    peru_note: null,
-  },
   macys: {
     name: "Macy's",
     vibe: "departamental clásico, marcas conocidas de vestir",
@@ -1157,13 +1146,17 @@ const OFF_SALE_NAMES = {
   fendi: "Fendi", goldengoose: "Golden Goose", costco: "Costco",
   /* Surf World closed (#443 item 40): named, she says so and names a live door. */
   surfworld: "Surf World",
+  /* Sam's Club off the site (#443 c.6468346931): 120 disposables from one
+     aisle cannot be a real store. Named, she says so and names Walmart. */
+  samsclub: "Sam's Club",
 };
 const OFF_SALE_ALTERNATIVES = {
   surfworld: ["surfstation", "islandwatersports"],
+  samsclub: ["walmart"],
   victoriassecret: ["skims", "eberjey"],
-  target: ["walmart", "samsclub"],
+  target: ["walmart"],
   bestbuy: ["bhphoto", "walmart"],
-  costco: ["samsclub", "walmart"],
+  costco: ["walmart"],
   nike: ["finishline", "dicks"],
   footlocker: ["finishline", "dicks"],
   newbalance: ["finishline", "dicks"],

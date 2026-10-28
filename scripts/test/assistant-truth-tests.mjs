@@ -57,6 +57,7 @@ const SPOKEN = {
   newbalance: ["New Balance"], gymshark: ["Gymshark", "gym shark"], alphalete: ["Alphalete"],
   miumiu: ["Miu Miu"], fendi: ["Fendi"], goldengoose: ["Golden Goose"], pacsun: ["PacSun", "Pac Sun"],
   surfworld: ["Surf World"],
+  samsclub: ["Sam's Club", "sams club"],
 };
 
 /* ------------------------------------------------------------------ */

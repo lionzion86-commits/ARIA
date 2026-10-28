@@ -350,13 +350,12 @@ export const RETAILERS = {
     browse: true,
   },
   /* ============================================================
-     COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the
-     Macy's pattern: browse: true, search: false. costco-catalog.json
-     (1,569 products) and samsclub-catalog.json (120 products) are
-     committed at repo root. No logo files yet -- the wordmark pill on
-     brand colour is the documented fallback. Colours are the brands'
-     official red/blue; sample from the artwork when the logo files
-     land. Party City is deliberately NOT a store row: its catalogue
+     COSTCO (2026-09-25) -- catalogue but no actor, the Macy's
+     pattern: browse: true, search: false. costco-catalog.json (1,569
+     products) is committed at repo root. No logo file yet -- the
+     wordmark pill on brand colour is the documented fallback. The
+     colour is the brand's official red; sample from the artwork when
+     the logo file lands. Party City is deliberately NOT a store row: its catalogue
      surfaces only through the Fiestas y Eventos vertical. Mirrors
      index.html; a parity test pins the two.
      ============================================================ */
@@ -541,16 +540,6 @@ export const RETAILERS = {
     tagline: "Ropa casual para toda la familia",
     kind: "general",
     search: true,
-  },
-  samsclub: {
-    key: "samsclub",
-    label: "Sam's Club",
-    color: "#0B6CFF",
-    logo: "logos/samsclub.svg",
-    tagline: "Mayoreo y esenciales para el hogar",
-    kind: "general",
-    search: false,
-    browse: true,
   },
   /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
