@@ -175,6 +175,16 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .sl .chips::-webkit-scrollbar{display:none}
 .sl .chip{flex:0 0 auto;white-space:nowrap}
 .sl-more{text-align:center;margin:18px 0 6px}
+/* Deals-first hero (#443 c.6470118615): one card above the aisles. */
+.deals-hero{background:var(--store);border-radius:22px;padding:18px 16px 16px;margin:0 0 26px;color:#fff}
+.deals-hero h2{font-size:30px;line-height:1.05;font-weight:900;letter-spacing:-.02em;margin:0}
+.deals-hero p{font-size:13.5px;font-weight:600;opacity:.88;margin:6px 0 14px}
+.deals-hero .dh-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.deals-hero .dh-grid{grid-template-columns:repeat(4,1fr)}.deals-hero h2{font-size:36px}}
+.deals-hero .dh-item{position:relative;display:block;background:#fff;border-radius:14px;aspect-ratio:1/1;overflow:hidden}
+.deals-hero .dh-item img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px}
+.deals-hero .dh-badge{position:absolute;top:8px;left:8px;z-index:1;background:var(--tag,#FFC72C);color:#111;font-weight:900;font-size:15px;border-radius:8px;padding:3px 7px}
+.deals-hero .dh-go{display:block;width:100%;margin-top:14px;background:#fff;color:var(--store);border:none;border-radius:999px;padding:13px 16px;font-weight:800;font-size:15px;cursor:pointer}
 /* Sub-carousels (#443 c.6458236993): audience heading, then a rail per type. */
 .sub-wrap{grid-column:1/-1;min-width:0}
 .sub-aud{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin:6px 0 10px}
@@ -945,13 +955,33 @@ function slCountLine(){
   if (cnt) cnt.textContent = Number(slIndex.count).toLocaleString('es-PE') + ' productos en ' + storeMeta.label +
     (slIndex.onSale ? ' · ' + Number(slIndex.onSale).toLocaleString('es-PE') + ' en oferta' : '');
 }
+/* THE DEALS-FIRST HERO (#443 c.6470118615): the deepest real markdowns,
+   the discount loud, each photo opens its product page; the button opens
+   the store's whole Ofertas rail. Built by build-store-slices.mjs
+   (dealsHero): only items with a true was-price, «Hasta X%» from the
+   items shown. */
+function slHeroHTML(h){
+  if (!h || !h.items || !h.items.length) return '';
+  var cells = '';
+  for (var i = 0; i < h.items.length; i++){
+    var p = h.items[i];
+    var href = 'producto.html?producto=' + encodeURIComponent(p.name || '') + '&tienda=' + encodeURIComponent(storeKey);
+    cells += '<a class="dh-item" href="' + esc(href) + '" aria-label="' + esc(p.name) + '"><span class="dh-badge">-' + Number(p.pct) + '%</span>' +
+      '<img ' + cardImgAttrs(p.image).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') + ' alt="" decoding="async"></a>';
+  }
+  return '<section class="deals-hero" aria-label="Ofertas de ' + esc(storeMeta.label) + '">' +
+    '<h2>Hasta ' + Number(h.pct) + '% de descuento</h2>' +
+    '<p>Ofertas reales de ' + esc(storeMeta.label) + ', con su precio anterior.</p>' +
+    '<div class="dh-grid">' + cells + '</div>' +
+    '<button type="button" class="dh-go" data-rail="ofertas">Ver todas las ofertas &#8594;</button></section>';
+}
 function slRenderHome(){
   var host = $('content');
   if (!host || !slIndex) return;
   slGrid.key = '';
   var s = $('sort');
   if (s) s.style.display = 'none';
-  var html = '';
+  var html = slHeroHTML(slIndex.hero);
   var rails = slIndex.rails || [];
   for (var i = 0; i < rails.length; i++){
     html += slRailHTML(rails[i]);
@@ -961,6 +991,8 @@ function slRenderHome(){
   }
   host.innerHTML = html;
   slBindVer(host);
+  var go = host.querySelector('.dh-go');
+  if (go) go.addEventListener('click', function(){ slOpenRail('ofertas'); });
   slCountLine();
   watchPhotos(host);
   slWatchLazyRails(host);

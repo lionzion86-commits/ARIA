@@ -63,6 +63,28 @@ export const RAIL_HEAD = 16;
    toys, home, beauty...) has more rails than the first screen's 30KB holds,
    so the rest arrive as their page 1 when the shopper scrolls near them. */
 export const EAGER_RAILS = 10;
+/* THE DEALS-FIRST HERO (#443 c.6470118615, Danny): on these storefronts,
+   one big card above the aisles -- the deepest real markdowns, the
+   discount loud, the store's own photos. Only an item with a true
+   compare-at price (the sale rule's was-price) is a deal; «Hasta X%» is
+   the largest discount among the items the card shows. One hero, not an
+   ad wall. */
+export const DEALS_HERO_STORES = new Set(["walmart"]);
+export const DEALS_HERO_ITEMS = 4;
+export function dealsHero(rows, saleIdx) {
+  const seen = new Set(), picks = [];
+  for (const i of saleIdx) {
+    const r = rows[i];
+    if (!r || !(r[4] > 0) || !(r[3] > r[2]) || !r[5]) continue;
+    const k = String(r[0]).toLowerCase().slice(0, 40);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    picks.push(i);
+    if (picks.length === DEALS_HERO_ITEMS) break;
+  }
+  if (picks.length < DEALS_HERO_ITEMS) return null;
+  return { pct: Math.max(...picks.map((i) => rows[i][4])), items: picks.map((i) => ({ ...cardOfRow(rows[i]), pct: rows[i][4] })) };
+}
 function headOrLazy(rail, i, head) {
   return i < EAGER_RAILS ? { ...rail, head: head() } : { ...rail, head: [], lazy: true };
 }
@@ -470,6 +492,12 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
       pages: Math.ceil(r.items.length / PAGE_SIZE), ...(railSubs[r.key] ? { subs: subsMeta(railSubs[r.key]) } : {}) },
       i, () => r.items.slice(0, RAIL_HEAD).map(card))),
   };
+  if (DEALS_HERO_STORES.has(key) && fn.rails.ofertas) {
+    /* Deepest first: the Ofertas rail is in sale-tier order, the hero in discount order. */
+    const deepest = fn.rails.ofertas.slice().sort((a, b) => (rows[b][4] - rows[a][4]) || (rows[b][2] - rows[a][2]));
+    const hero = dealsHero(rows, deepest);
+    if (hero) index.hero = hero;
+  }
   return { files: { "index.json": index }, fn, products: items, rails };
 }
 
