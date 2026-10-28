@@ -18,6 +18,8 @@
    ============================================================ */
 
 /* Casa Aria's aisles, in the wing's order (Navidad is the seasonal wedge). */
+import { spanishFor } from "./description-es.js";
+
 export const CASA_AISLES = {
   casa_navidad: "Navidad",
   casa_velas: "Velas y aromas",
@@ -119,6 +121,8 @@ export function normalizeCrateAndBarrel(rows) {
     const regular = reg ? num(reg[1].replace(/,/g, "")) : 0;
     const it = { name, brand: "", price, currency: "USD", image: images[0], images, url: r.url || "", sku,
       description: "", description_en: String(r.description || "").trim(), rating: num(r.rating), reviewCount: num(r.review_count) };
+    /* Spanish only (#443 c.6402691998): the stored translation, else nothing. */
+    it.description = spanishFor("crateandbarrel", it.description_en) || "";
     if (regular > price) { it.originalPrice = regular; it.onSale = true; }
     const done = finish(it, r.category_name, skipped);
     if (done) items.push({ ...done, retailer: "crateandbarrel" });
@@ -150,6 +154,7 @@ export function normalizePier1(rows) {
     const desc = String(r.description || "").trim();
     const it = { name, brand: "", price, currency: "USD", image: images[0], images, url: r.canonicalUrl || r.url || "", sku: String(r.sku || r.productId || ""),
       description: "", description_en: /^buy .* at pier 1!?$/i.test(desc) ? "" : desc };
+    it.description = spanishFor("pier1", it.description_en) || "";
     const list = num(r.listPrice);
     if (r.onSale === true && list > price) { it.originalPrice = list; it.onSale = true; }
     const done = finish(it, r.category, skipped);

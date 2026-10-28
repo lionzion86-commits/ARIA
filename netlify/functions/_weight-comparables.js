@@ -15,7 +15,10 @@
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { comparableKey } from "../../scripts/lib/weight-comparables.mjs";
+/* comparable-key.js, not weight-comparables.mjs: a function may not
+   import a .mjs (the default bundler leaves it ESM and require() of it
+   crashes the function at load). */
+import { comparableKey } from "../../scripts/lib/comparable-key.js";
 
 export const COMPARABLES_FILE = "assets/data/weight-comparables.json";
 
