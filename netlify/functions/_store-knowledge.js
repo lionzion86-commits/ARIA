@@ -447,6 +447,31 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "calzado formal o deportivo de rendimiento",
     peru_note: null,
   },
+  /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). Footwear and
+     apparel are shown but not sold until their sizes are confirmed
+     (scripts/lib/sizes-pending.js); caps, accessories and fragrance sell. */
+  snipes: {
+    name: "SNIPES",
+    vibe: "sneakers y streetwear con cultura de la calle",
+    specialties: ["zapatillas", "jordan", "nike", "streetwear", "gorras new era"],
+    price_range: "medio", median_usd: 49.99, product_count: 4907,
+    catalog_depth: "4907 productos",
+    top_categories: ["calzado", "ropa", "gorras"],
+    best_for: "zapatillas Nike, Jordan, adidas y New Balance, streetwear y gorras 59FIFTY",
+    not_for: "lanzamientos limitados (no se traen)",
+    peru_note: "Las zapatillas y la ropa se muestran, pero se podrán comprar cuando la tienda confirme las tallas; las gorras y accesorios ya se pueden pedir.",
+  },
+  carolinaherrera: {
+    name: "Carolina Herrera",
+    vibe: "lujo clásico de la casa venezolana",
+    specialties: ["vestidos", "joyería", "fragancias good girl", "bad boy"],
+    price_range: "lujo", median_usd: 490.0, product_count: 234,
+    catalog_depth: "234 productos",
+    top_categories: ["ropa", "zapatos", "joyas y accesorios", "fragancias"],
+    best_for: "fragancias y ediciones de colección, joyería y bolsos de la casa",
+    not_for: "ropa con talla inmediata (las tallas se están confirmando)",
+    peru_note: "La ropa y los zapatos se muestran, pero se podrán comprar cuando la tienda confirme las tallas; joyas, bolsos y fragancias ya se pueden pedir.",
+  },
 
   /* ---------- DEPORTES ---------- */
   dicks: {

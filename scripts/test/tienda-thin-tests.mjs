@@ -51,6 +51,11 @@ const keys = Object.keys(STORES);
    Buy's themed slices are checked while a themed store is live. */
 /* A store whose catalogue is still pending (DSW, #443) is not live. */
 const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORES[k].pendingCatalog);
+/* The 2026-10-27 pulls (SNIPES, Carolina Herrera) carry no was-price and
+   no demand signal: no Ofertas or Más vendidos rail to page. Their rail
+   order is pinned in store-pulls-tests.mjs. */
+const PULL_ONLY = new Set(["snipes", "carolinaherrera"]);
+const LIVE_DEALS = LIVE_SLICED.filter((k) => !PULL_ONLY.has(k));
 /* Stores whose pull carries no demand signal (no reviews, no best-sellers
    rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria). */
 const NO_DEMAND = new Set(["pier1"]);
@@ -135,7 +140,7 @@ await check("Ofertas de <store> leads whenever the store has a sale, and holds s
 await check("Más vendidos follows Ofertas where the store publishes demand; type rails after", () => {
   /* Sephora was the beauty sample here; it has no storefront since #443
      (DO NOT BUILD), so Hollister (Destacados, then Más vendidos) stands in. */
-  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED.filter((x) => !NO_DEMAND.has(x))]) {
+  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED.filter((x) => !NO_DEMAND.has(x) && !PULL_ONLY.has(x))]) {
     const ks = idx(k).rails.map((r) => r.key);
     assert.equal(ks[1], "masvendidos", `${k}: ${ks.join(",")}`);
   }
@@ -194,7 +199,7 @@ await check("the endpoint pages a rail in the build's order, 48 at a time", () =
   const head = idx("ccs").rails.find((r) => r.key === "t-zapatos").head.map((c) => c.name);
   assert.deepEqual(answer({ store: "ccs", rail: "t-zapatos", page: "1" }, roots).body.items.slice(0, head.length).map((c) => c.name), head);
   /* A themed store's static pages and the endpoint agree. */
-  for (const k of LIVE_SLICED) {
+  for (const k of LIVE_DEALS) {
     const bb = JSON.parse(read(`${SLICES_DIR}/${k}/rails/ofertas-2.json`));
     assert.deepEqual(answer({ store: k, rail: "ofertas", page: "2" }, roots).body.items, bb.items);
   }
@@ -339,7 +344,7 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       assert.ok(r.cards <= ix.rails.length * RAIL_HEAD, `${store}: ${r.cards} cards drawn`);
       /* A chip (Best Buy: its department in the overlay), then the search box. */
       await pg.click(".chips .chip:nth-child(2)");
-      /* A store sliced by department (Best Buy, the Casa Aria stores) opens
+      /* A store sliced by department (Best Buy, SNIPES, Carolina Herrera, the Casa Aria stores) opens
          the chip's department rail in the Ver todo overlay. */
       if (ix.depts) {
         await pg.waitForFunction(() => document.querySelectorAll("#reGrid .card:not(.sk)").length > 0, null, { timeout: 30000 });
@@ -349,8 +354,8 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
           minH: Math.min(...[...document.querySelectorAll("#reGrid .card")].map((c) => c.getBoundingClientRect().height)),
           photos: [...document.querySelectorAll("#reGrid img")].filter((i) => !i.dataset.src).length,
         }));
-        assert.ok(ov.minH > 200, `Ver todo cards collapsed to ${ov.minH}px`);
-        assert.ok(ov.photos <= 8, `Ver todo fetched ${ov.photos} photos at once`);
+        assert.ok(ov.minH > 200, `${store}: Ver todo cards collapsed to ${ov.minH}px`);
+        assert.ok(ov.photos <= 8, `${store}: Ver todo fetched ${ov.photos} photos at once`);
         await pg.click("#reBack");
         assert.equal(await pg.evaluate(() => document.getElementById("railExpand").hidden), true, "the back arrow does not close Ver todo");
       } else {

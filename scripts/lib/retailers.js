@@ -117,6 +117,24 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* SNIPES (#443 c.6450358688, catalogue pulled 2026-10-27 c.6457579787):
+     sneakers and streetwear, the general catalogue (hyped release SKUs
+     cut by design). snipes-catalog.json, written by
+     scripts/build-pull-catalogs.mjs. No size runs came with the pull, so
+     footwear and apparel carry `sizesPending` and are not sold until a
+     size pass lands; caps and accessories sell. No logo file: SNIPES' mark
+     could not be fetched from the build environment, so the store renders
+     as its name (the registry's wordmark fallback), never a drawn logo. */
+  snipes: {
+    key: "snipes",
+    label: "SNIPES",
+    color: "#000000",
+    logo: null,
+    tagline: "Sneakers y streetwear, cultura de la calle",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* DSW (Issue #443, 2026-10-21) — BUILT, NOT LAUNCHED. Designer Shoe
      Warehouse: the store, its storefront, its home rail and its Tiendas
      tile are wired, and every one of them stays invisible while
@@ -1056,6 +1074,25 @@ export const RETAILERS = {
     color: "#000000",
     logo: "logos/miumiu.png",
     tagline: "Bolsos, calzado y moda italiana",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    browse: true,
+  },
+  /* CAROLINA HERRERA (#443 c.6450670024, catalogue pulled 2026-10-27
+     c.6457579787): the US storefront -- ready-to-wear, jewellery and
+     bags, fragrance. carolinaherrera-catalog.json, written by
+     scripts/build-pull-catalogs.mjs. Ready-to-wear carries
+     `sizesPending` (no size runs in the pull) and is not sold until a
+     size pass lands. Untested lane, kill-switch armed (Danny): the first
+     unjustified cancellation or a written objection from the house takes
+     the catalogue off the same day. No logo file: the wordmark fallback. */
+  carolinaherrera: {
+    key: "carolinaherrera",
+    label: "Carolina Herrera",
+    color: "#000000",
+    logo: null,
+    tagline: "Moda, joyería y fragancias de la casa",
     kind: "general",
     tier: "luxury",
     search: false,

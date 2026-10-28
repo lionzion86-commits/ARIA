@@ -124,6 +124,34 @@ export const SLICED_STORES = {
       footwear: "Más zapatos", purses: "Carteras y bolsos",
     },
   },
+  /* SNIPES (#443 c.6450358688, pulled 2026-10-27). Danny's order: Ofertas
+     first, then the brand carousels (Nike, Jordan, Adidas, New Balance,
+     then the rest), then the category carousels. The pull carries no
+     compare-at price, so there is no Ofertas rail until one is captured
+     (none is made up). "The rest" are the next brands with at least
+     BRAND_MIN products, biggest first. */
+  snipes: {
+    file: "snipes-catalog.json",
+    label: "SNIPES",
+    BRAND_RAILS: ["Nike", "Jordan", "adidas", "New Balance"],
+    BRAND_MORE: 6,
+    BRAND_MIN: 40,
+    DEPT_ORDER: ["calzado", "calzado_ninos", "ropa", "ropa_ninos", "gorras", "accesorios"],
+    DEPT_LABELS: {
+      calzado: "Calzado", calzado_ninos: "Calzado de niños", ropa: "Ropa streetwear",
+      ropa_ninos: "Ropa de niños", gorras: "Gorras", accesorios: "Accesorios",
+    },
+  },
+  /* CAROLINA HERRERA (#443 c.6450670024, pulled 2026-10-27): the house's
+     own categories. No sale prices were captured (no Ofertas rail). */
+  carolinaherrera: {
+    file: "carolinaherrera-catalog.json",
+    label: "Carolina Herrera",
+    DEPT_ORDER: ["zapatos", "ropa", "accesorios", "fragancias", "maquillaje"],
+    DEPT_LABELS: {
+      zapatos: "Zapatos", ropa: "Ropa", accesorios: "Joyas y accesorios", fragancias: "Fragancias", maquillaje: "Maquillaje",
+    },
+  },
 };
 
 export function loadSaleRule(root = ROOT) {
@@ -312,6 +340,24 @@ export function storeRails(key, products) {
   const best = products.filter((p) => p.reviews > 0 || p.rank > 0)
     .sort((a, b) => byRank(a, b) || (b.reviews - a.reviews) || (b.rating - a.rating));
   if (best.length) rails.push({ key: "masvendidos", title: "Más vendidos", items: sprinklePremium(best) });
+  /* Brand carousels (SNIPES): the named brands, then the next biggest. */
+  if (cfg.BRAND_RAILS) {
+    const norm = (b) => String(b || "").toLowerCase().trim();
+    const count = new Map();
+    for (const p of products) count.set(norm(p.brand), (count.get(norm(p.brand)) || 0) + 1);
+    const named = cfg.BRAND_RAILS.map(norm);
+    const more = [...count].filter(([b, n]) => b && !named.includes(b) && n >= (cfg.BRAND_MIN || 1))
+      .sort((a, b) => b[1] - a[1]).slice(0, cfg.BRAND_MORE || 0).map(([b]) => b);
+    for (const b of named.concat(more)) {
+      const list = products.filter((p) => norm(p.brand) === b);
+      if (!list.length) continue;
+      const label = list[0].brand;
+      /* A sneaker store's brand shelf leads with its shoes. */
+      const lead = (p) => (p.dept === "calzado" ? 0 : p.dept === "calzado_ninos" ? 1 : 2);
+      rails.push({ key: "b-" + b.replace(/[^a-z0-9]+/g, "-"), title: label,
+        items: sprinklePremium(list.slice().sort((x, y) => (lead(x) - lead(y)) || ((y.pct || 0) - (x.pct || 0)) || (y.price - x.price))) });
+    }
+  }
   /* A department window is not a copy of the two lead rails: what their
      first cards already show yields its place to what they do not
      (it stays in the rail, further along). */

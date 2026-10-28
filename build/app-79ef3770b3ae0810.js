@@ -678,12 +678,12 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-o
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/crateandbarrel-catalog.json', '/pier1-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json', '/perfumes-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/crateandbarrel-catalog.json', '/pier1-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json', '/perfumes-catalog.json', '/snipes-catalog.json', '/carolinaherrera-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/crateandbarrel-catalog.json":["crateandbarrel"],"/pier1-catalog.json":["pier1"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"],"/perfumes-catalog.json":["ariaperfumes"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/crateandbarrel-catalog.json":["crateandbarrel"],"/pier1-catalog.json":["pier1"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"],"/perfumes-catalog.json":["ariaperfumes"],"/snipes-catalog.json":["snipes"],"/carolinaherrera-catalog.json":["carolinaherrera"]};
 /* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
    page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
    a dozen cards per rail, and Safari reloaded the tab under the memory.
@@ -11592,8 +11592,8 @@ const BRAND_STRIP_MAX = 40;
    gucci 22, balenciaga 22, prada 16, armanibeauty 13, chanel 12,
    versace 7, hermes 7, goldengoose 4). Fendi / Tiffany / Cartier are
    true zeros -- never pinned, never faked. */
-const BRAND_STRIP_LUXURY = ['miumiu','goldengoose','dolcegabbana','brunellocucinelli','gucci','poloralphlauren','givenchy','yvessaintlaurent','burberry','dior','valentino','balenciaga','prada','armanibeauty','chanel','versace','hermes'];
-const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', goldengoose:'Golden Goose', dolcegabbana:'Dolce & Gabbana', brunellocucinelli:'Brunello Cucinelli', gucci:'Gucci', poloralphlauren:'Ralph Lauren', givenchy:'Givenchy', yvessaintlaurent:'Saint Laurent', burberry:'Burberry', dior:'Dior', valentino:'Valentino', balenciaga:'Balenciaga', prada:'Prada', armanibeauty:'Armani', chanel:'Chanel', versace:'Versace', hermes:'Herm\u00e8s' };
+const BRAND_STRIP_LUXURY = ['miumiu','carolinaherrera','goldengoose','dolcegabbana','brunellocucinelli','gucci','poloralphlauren','givenchy','yvessaintlaurent','burberry','dior','valentino','balenciaga','prada','armanibeauty','chanel','versace','hermes'];
+const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', carolinaherrera:'Carolina Herrera', goldengoose:'Golden Goose', dolcegabbana:'Dolce & Gabbana', brunellocucinelli:'Brunello Cucinelli', gucci:'Gucci', poloralphlauren:'Ralph Lauren', givenchy:'Givenchy', yvessaintlaurent:'Saint Laurent', burberry:'Burberry', dior:'Dior', valentino:'Valentino', balenciaga:'Balenciaga', prada:'Prada', armanibeauty:'Armani', chanel:'Chanel', versace:'Versace', hermes:'Herm\u00e8s' };
 /* LATINO DESIGNERS (2026-09-29, Danny): the five Disenadores Latinos
    marques get dual placement -- their own section AND the brand strip,
    right after the luxury block, so shoppers can find and support them. */
@@ -20050,6 +20050,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
       + productTaxLineHTML(totalUsd, pendingProduct.dutiableUsd, weightKg)
     : 'Precio no disponible';
   setProductBuyable(hasPrice);
+  gateSizesPending(pendingProduct);
 
   // Gallery = whatever the retailer really gave us, with the card's own
   // image guaranteed first. Callers that pass no list still work.
@@ -20267,6 +20268,37 @@ function recordImageList(retailer, title){
    Greyed AND disabled AND relabelled: a button that merely looks dead
    is still tappable by a keyboard, and one that is merely disabled
    still reads as "Agregar al carrito", which is a promise. */
+/* SHOWN, NOT SOLD (#443, scripts/lib/sizes-pending.js): an item from the
+   2026-10-27 pulls whose sizes the store has not confirmed to us is not
+   sold sizeless. The list is fetched once, and only for those stores;
+   the order endpoint refuses the same items. */
+const SIZES_PENDING_STORES = ['snipes', 'carolinaherrera'];
+let sizesPendingSet = null;
+function sizesPendingKey(retailer, title){
+  return String(retailer || '').toLowerCase().trim() + '::' + String(title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+function loadSizesPending(){
+  if (!sizesPendingSet) sizesPendingSet = fetch('/assets/data/sizes-pending.json').then(r => r.ok ? r.json() : []).then(a => new Set(Array.isArray(a) ? a : [])).catch(() => new Set());
+  return sizesPendingSet;
+}
+async function isSizesPendingItem(retailer, title){
+  if (SIZES_PENDING_STORES.indexOf(String(retailer || '').toLowerCase()) < 0) return false;
+  return (await loadSizesPending()).has(sizesPendingKey(retailer, title));
+}
+async function gateSizesPending(p){
+  if (!p || !(await isSizesPendingItem(p.retailer, p.name))) return;
+  if (pendingProduct !== p || (Array.isArray(p.sizes) && p.sizes.length)) return;
+  p.sizesPending = true;
+  const btn = document.getElementById('addToCartBtn');
+  const note = document.getElementById('productNoPriceNote');
+  if (btn){
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.textContent = 'Tallas por confirmar';
+    btn.style.background = '#C8CDD8'; btn.style.color = '#5B6478'; btn.style.cursor = 'not-allowed';
+  }
+  if (note){ note.hidden = false; note.textContent = 'Estamos confirmando las tallas de este producto con la tienda. Muy pronto podrás comprarlo aquí.'; }
+}
 function setProductBuyable(hasPrice){
   const btn = document.getElementById('addToCartBtn');
   const note = document.getElementById('productNoPriceNote');
@@ -20298,6 +20330,11 @@ async function addToCartFromProduct(){
   if (p.sizeLookup){
     await p.sizeLookup;
     if (pendingProduct !== p) return;
+  }
+  /* Sizes not confirmed by the store: shown, not sold. */
+  if ((!Array.isArray(p.sizes) || !p.sizes.length) && (p.sizesPending || await isSizesPendingItem(p.retailer, p.name))){
+    showToast('Estamos confirmando las tallas de este producto con la tienda. Muy pronto podrás comprarlo aquí.');
+    return;
   }
   /* The disabled button is the courtesy; this is the rule. */
   if (!(Number.isFinite(p.totalUsd) && p.totalUsd > 0)){
@@ -20399,6 +20436,10 @@ const RETAILERS = {
   bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: 'logos/bestbuy.svg',    tagline: 'Laptops, gaming, audio y celulares',            kind: 'general', search: false, browse: true },
   revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
+  /* SNIPES (#443, pulled 2026-10-27): sneakers and streetwear. Footwear and
+     apparel are shown, not sold, until a size pass lands (sizesPending).
+     No logo file: the name is the badge. Mirrors scripts/lib/retailers.js. */
+  snipes:          { key: 'snipes',          label: 'SNIPES',            color: '#000000', logo: null,                   tagline: 'Sneakers y streetwear, cultura de la calle',    kind: 'general', search: false, browse: true },
   /* DSW (#443) -- built, not launched: `pendingCatalog` keeps it out of
      activeRetailers() (no tile, rail, door or count) until dsw-catalog.json
      has products. Black/white are DSW's wordmark colours; no logo file yet
@@ -20675,6 +20716,10 @@ const RETAILERS = {
      only ever promise a label the store is actually carrying. */
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png', darkLogo: true,     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
   miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, browse: true },
+  /* CAROLINA HERRERA (#443, pulled 2026-10-27): the US storefront, luxury
+     tier. Ready-to-wear is shown, not sold, until a size pass lands. No
+     logo file: the name is the badge. Mirrors scripts/lib/retailers.js. */
+  carolinaherrera: { key: 'carolinaherrera', label: 'Carolina Herrera',  color: '#000000', logo: null,                   tagline: 'Moda, joyería y fragancias de la casa',         kind: 'general', tier: 'luxury', search: false, browse: true },
   yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png', darkLogo: true,   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
   /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
      store in this tier with a catalogue behind it, and renderStoresGrid

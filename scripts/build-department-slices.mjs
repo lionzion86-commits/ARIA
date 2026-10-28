@@ -77,6 +77,10 @@ export const CATALOG_FILES = [
   /* DSW (#443): Zapatos' shoe warehouse. The committed empty envelope
      until the pull lands. */
   "/dsw-catalog.json",
+  /* SNIPES (sneakers and streetwear) + Carolina Herrera (luxury), #443,
+     pulled 2026-10-27. */
+  "/snipes-catalog.json",
+  "/carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32): the Perfumes department's own stock. */
   "/perfumes-catalog.json",
 ];
@@ -220,8 +224,8 @@ export const KIND_MATCH = {
     const f = nameFamily(p);
     return AUTO_RX.test(t) && (f === "" || f === "repuestos");
   },
-  luxury: (t, p) => ["ssense", "miumiu", "farfetch"].indexOf(p.retailer) !== -1 ||
-    hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino"]),
+  luxury: (t, p) => ["ssense", "miumiu", "farfetch", "carolinaherrera"].indexOf(p.retailer) !== -1 ||
+    hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino", "carolina herrera"]),
 };
 
 export function belongsToDept(rule, p) {
