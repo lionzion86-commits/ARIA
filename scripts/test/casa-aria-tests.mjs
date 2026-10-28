@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeCrateAndBarrel, normalizePier1, isLightHomeCategory, estimateWeight, WEIGHT_CAP_KG } from "../lib/home-pull-normalize.js";
 import { RETAILERS } from "../lib/retailers.js";
+import { loadMemory, descKey, normDesc } from "../lib/description-es.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const read = (f) => readFileSync(join(ROOT, f), "utf8");
@@ -69,11 +70,26 @@ check("the catalogues: the stores' photos and prices, every piece under 5 kg wit
       assert.match(it.image, /^https:\/\//, it.name);
       assert.ok(it.price > 0, it.name);
       assert.ok(it.weightKg > 0 && it.weightKg <= WEIGHT_CAP_KG && it.weightEstimated === true && it.weightBasis, `${it.name}: ${it.weightKg}`);
-      assert.ok(!it.description, `${it.name} shows English`);
+      assert.ok(!it.description || it.description !== it.description_en, `${it.name} shows English`);
       assert.ok(!it.originalPrice || it.originalPrice > it.price, `${it.name}: a was-price at or under the price`);
       assert.ok(isLightHomeCategory(it.type), `${it.name} (${it.type}) is not light home`);
       assert.equal(it.retailer, k);
     }
+  }
+});
+
+check("Spanish copy: every product the store described carries its stored Spanish (#443 c.6402691998)", () => {
+  for (const k of ["crateandbarrel", "pier1"]) {
+    const withCopy = cat(k).filter((it) => it.description_en);
+    const es = withCopy.filter((it) => it.description);
+    /* The only English left untranslated is the store's pure promotion
+       ("Buy X for only $Y at Pier 1!"), stored deliberately empty. */
+    const mem = loadMemory(k);
+    const missing = withCopy.filter((it) => !it.description && mem[descKey(normDesc(it.description_en))] !== "");
+    assert.deepEqual(missing.map((it) => it.name).slice(0, 5), [], `${k}: ${missing.length} described products with no stored Spanish`);
+    assert.ok(es.length >= withCopy.length * 0.97, `${k}: ${es.length} of ${withCopy.length} in Spanish`);
+    const english = es.filter((it) => /\b(the|with|and|your|this)\b.*\b(the|with|and|your|this)\b/i.test(it.description) && !/\b(el|la|los|las|con|para|de)\b/i.test(it.description));
+    assert.deepEqual(english.map((it) => it.name).slice(0, 5), [], `${k}: English left in description`);
   }
 });
 

@@ -35,7 +35,8 @@ for (const s of STORES) {
     declaredProductCount: items.length, retailers: { [s.key]: { label: s.label, departments } } }));
   report.stores[s.key] = { kept: items.length, skipped,
     byAisle: Object.fromEntries(Object.entries(departments).map(([k, d]) => [k, d.items.length])),
-    onSale: items.filter((i) => i.onSale).length, withEnglishCopy: items.filter((i) => i.description_en).length };
+    onSale: items.filter((i) => i.onSale).length, withEnglishCopy: items.filter((i) => i.description_en).length,
+    withSpanish: items.filter((i) => i.description).length };
   console.log(s.key, items.length, JSON.stringify(skipped), JSON.stringify(report.stores[s.key].byAisle));
 }
 mkdirSync(join(ROOT, "reports"), { recursive: true });
