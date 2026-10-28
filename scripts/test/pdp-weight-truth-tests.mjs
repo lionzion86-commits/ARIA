@@ -154,8 +154,10 @@ async function weightRow(name, store) {
   return out;
 }
 
-await check("product page: the Keter says 'Por confirmar', no weight, no freight math", async () => {
-  const o = await weightRow("Keter Extendable Resin Outdoor Party Table Bar Cart, Pine", "samsclub");
+/* The Keter's own page went with Sam's Club (#443 c.6468346931); a live
+   product the resolver holds the same way stands in for it. */
+await check("product page: a held product says 'Por confirmar', no weight, no freight math", async () => {
+  const o = await weightRow("Sterilite 80-Qt Clear Plastic Stackable Storage Bin w/ Gasket Latch Lid, 12 Pack", "walmart");
   assert.match(o.weight, /^Por confirmar/);
   assert.doesNotMatch(o.weight, /\d\s*kg/);
   assert.doesNotMatch(o.tax, /S\/|US\$/, "a tax built on a weight nobody knows");

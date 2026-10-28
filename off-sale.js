@@ -10,7 +10,7 @@
     'bestbuy', 'costco', 'nike', 'kohls', 'macys',
     'gap', 'oldnavy', 'bananarepublic', 'athleta',
     'ulta', 'yesstyle', 'newbalance', 'gymshark', 'alphalete',
-    'miumiu', 'fendi', 'goldengoose', 'pacsun', 'surfworld',
+    'miumiu', 'fendi', 'goldengoose', 'pacsun', 'surfworld', 'samsclub',
   ];
   var SET = {};
   for (var i = 0; i < OFF_SALE_RETAILERS.length; i++) SET[OFF_SALE_RETAILERS[i]] = true;

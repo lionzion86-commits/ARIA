@@ -65,7 +65,7 @@ export const CATALOG_FILES = [
   "/mmawarehouse-catalog.json", "/moms-catalog.json", "/mushie-catalog.json",
   "/nautilus-catalog.json", "/newbalance-catalog.json", "/pacsun-catalog.json",
   "/parrot-catalog.json", "/partycity-catalog.json", "/quietstorm-catalog.json",
-  "/revolve-catalog.json", "/samsclub-catalog.json", "/skims-catalog.json",
+  "/revolve-catalog.json", "/skims-catalog.json",
   "/soccer-catalog.json", "/ssense-catalog.json", "/statebags-catalog.json",
   "/sunglasses-catalog.json", "/surfstation-catalog.json", 
   "/tatami-catalog.json", "/tennis-catalog.json",
