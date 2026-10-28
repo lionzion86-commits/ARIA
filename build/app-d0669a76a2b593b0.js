@@ -4889,8 +4889,12 @@ function fuzzyFormsForToken(tok, buckets, windex){
   /* The budget follows the SQUASHED length (2026-10-07): "qqqzxv" is
      four letters once its doubles go, and two edits on four letters
      matched "LXXXV" and "AZXY" -- junk instead of an honest empty page
-     with a "¿Quisiste decir?". */
-  const maxDist = squashed.length >= 5 ? 2 : 1;
+     with a "¿Quisiste decir?".
+     TWO EDITS ONLY FROM EIGHT LETTERS (#443 c.6477677381, Danny's live
+     find): on a 5-7 letter word two edits make a different word, not a
+     typo -- «alisado» became Palisade blouses, Alisa and Alisah, a
+     page of fashion for a hair treatment. */
+  const maxDist = squashed.length >= 8 ? 2 : 1;
   const hits = new Set();
   const consider = (w) => {
     if (hits.has(w)) return;
@@ -4903,15 +4907,29 @@ function fuzzyFormsForToken(tok, buckets, windex){
      "sweethearts"). */
   const alike = soundAlikeWords(tok, windex);
   if (alike){ for (const w of alike) consider(w); return hits; }
+  /* ...and among spellings, the nearest tier only (c.6477677381):
+     «keratina» is one letter from "keratin" and two from "serafina" --
+     the Serafina dish cloths and pillow rode in beside the hair
+     products. A two-edit word must also keep the first letter (a typo
+     almost never changes it): "aerating" is not keratina. */
+  const byDist = new Map();
   for (let l = Math.max(3, tok.length - maxDist); l <= tok.length + maxDist; l++){
     const arr = buckets.get(l);
     if (!arr) continue;
     for (const pair of arr){
       const w = pair[0];
-      if (w.length > tok.length && w.length - tok.length <= 2 && w.startsWith(tok)){ consider(w); continue; }
-      if (fuzzyEditDistRaw(squashed, pair[1], maxDist) <= maxDist) consider(w);
+      let d;
+      if (w.length > tok.length && w.length - tok.length <= 2 && w.startsWith(tok)) d = w.length - tok.length;
+      else {
+        d = fuzzyEditDistRaw(squashed, pair[1], maxDist);
+        if (d > maxDist) continue;
+        if (d >= 2 && w[0] !== tok[0]) continue;
+      }
+      if (!byDist.has(d)) byDist.set(d, []);
+      byDist.get(d).push(w);
     }
   }
+  if (byDist.size) for (const w of byDist.get(Math.min(...byDist.keys()))) consider(w);
   return hits;
 }
 
@@ -5224,11 +5242,17 @@ function detectBrandIntent(rawToks, pool, opts){
            already had its turn in the single-word pass, where
            brandOwnsItsName turned it down. */
         const ownWords = w.idx.length > 1 ? new Set(w.idx.map(i => searchBrandKey(rawToks[i]))) : null;
+        /* ONE WORD, TWO EDITS, ONLY FROM EIGHT LETTERS (#443 c.6478195227):
+           «pesas» (weights) is two edits from the makeup brand Kosas and
+           the page showed foundation. The same budget as the product
+           fuzzy layer; a two-edit brand must also keep the first letter. */
+        if (w.idx.length === 1 && maxDist >= 2 && k.length < 8) maxDist = 1;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
           if (ownWords && ownWords.has(bk)) continue;
           const d = fuzzyEditDistRaw(sk, sqKeys[bki], maxDist);
+          if (d >= 2 && w.idx.length === 1 && bk[0] !== k[0]) continue;
           if (d <= maxDist && (!best || d < best.d)){
             best = { d, key: bk, label: vocab.get(bk).label, consumed: w.idx };
             if (d === 0) break;
