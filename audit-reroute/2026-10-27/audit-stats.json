@@ -1,0 +1,1724 @@
+{
+ "files": {
+  "department-cache-walmart.json": 4322,
+  "department-cache-oldnavy.json": 168,
+  "department-cache-footlocker.json": 296,
+  "macys-catalog.json": 2565,
+  "ssense-catalog.json": 18000,
+  "beauty-catalog.json": 3652,
+  "lanebryant-catalog.json": 169,
+  "dicks-catalog.json": 572,
+  "pacsun-catalog.json": 18,
+  "skims-catalog.json": 2162,
+  "revolve-catalog.json": 1755,
+  "ulta-catalog.json": 690,
+  "yesstyle-catalog.json": 1225,
+  "miumiu-catalog.json": 2468,
+  "partycity-catalog.json": 518,
+  "samsclub-catalog.json": 120,
+  "costco-catalog.json": 1396,
+  "gymrat-catalog.json": 2660,
+  "kohls-catalog.json": 4401,
+  "newbalance-catalog.json": 1269,
+  "bhphoto-catalog.json": 1706,
+  "advanceauto-catalog.json": 1365,
+  "nautilus-catalog.json": 501,
+  "islandwatersports-catalog.json": 8891,
+  "quietstorm-catalog.json": 456,
+  "surfstation-catalog.json": 6173,
+  "mainland-catalog.json": 2238,
+  "parrot-catalog.json": 4019,
+  "ccs-catalog.json": 13736,
+  "valsurf-catalog.json": 3207,
+  "venum-catalog.json": 558,
+  "tatami-catalog.json": 168,
+  "everlast-catalog.json": 113,
+  "mmawarehouse-catalog.json": 49,
+  "combatcorner-catalog.json": 21,
+  "fuji-catalog.json": 4,
+  "fightclub-catalog.json": 195,
+  "crocs-catalog.json": 564,
+  "baublebar-catalog.json": 3533,
+  "jwpei-catalog.json": 2351,
+  "meliebianco-catalog.json": 310,
+  "bentgo-catalog.json": 156,
+  "mushie-catalog.json": 33,
+  "ezpz-catalog.json": 107,
+  "statebags-catalog.json": 61,
+  "books-catalog.json": 481,
+  "moms-catalog.json": 3026,
+  "ae-catalog.json": 243,
+  "farfetch-catalog.json": 3696,
+  "soccer-catalog.json": 2560,
+  "tennis-catalog.json": 814,
+  "latino-designers-dtc-catalog.json": 10053,
+  "jewelry-catalog.json": 3479,
+  "moto-catalog.json": 2495,
+  "juguetes-catalog.json": 6613,
+  "sunglasses-catalog.json": 545,
+  "finishline-catalog.json": 1099,
+  "zumiez-catalog.json": 2494,
+  "hottopic-catalog.json": 2544,
+  "boxlunch-catalog.json": 2519,
+  "bananarepublic-catalog.json": 827,
+  "gap-catalog.json": 635,
+  "abercrombie-catalog.json": 416,
+  "hollister-catalog.json": 376,
+  "bestbuy-catalog.json": 2889,
+  "dsw-catalog.json": 0,
+  "perfumes-catalog.json": 10534
+ },
+ "audited": 157279,
+ "displayable": 156561,
+ "unmappedBuckets": {},
+ "deptMemberships": {
+  "electronics": 4451,
+  "candy_chocolate": 24,
+  "party": 1990,
+  "clothing": 21810,
+  "shoes": 10647,
+  "shoes_men": 2988,
+  "curvy": 7858,
+  "sporting_goods": 17921,
+  "soccer": 1229,
+  "tennis": 358,
+  "shoes_women": 1752,
+  "home_goods": 1548,
+  "home_decor": 911,
+  "toys": 5146,
+  "joyas_accesorios": 5655,
+  "auto_parts": 934,
+  "beauty": 5514,
+  "reacondicionados": 51,
+  "sunglasses": 2105,
+  "luxury": 24979,
+  "spearfishing": 1291,
+  "men": 13360,
+  "women": 21496,
+  "kids": 2428,
+  "surf_skate": 10883,
+  "gym_rat": 3463,
+  "combat_sports": 1108,
+  "purses": 2715,
+  "books": 481,
+  "moms": 3026,
+  "perfumes": 10534
+ },
+ "flagsByLayer": {
+  "product-type": 39047,
+  "department": 10524,
+  "kind-rule": 3653
+ },
+ "flagsByPair": {
+  "product-type:ropa->electronics": 1903,
+  "department:candy_chocolate->purses": 4,
+  "product-type:ropa->purses": 47,
+  "kind-rule:party->purses": 19,
+  "product-type:ropa->candy_chocolate": 90,
+  "department:candy_chocolate->home_goods": 1,
+  "product-type:ropa->home_goods": 1654,
+  "kind-rule:shoes->clothing": 402,
+  "kind-rule:shoes_men->clothing": 96,
+  "department:clothing->shoes": 1323,
+  "product-type:ropa->sporting_goods": 11119,
+  "product-type:accesorios->home_goods": 82,
+  "department:home_decor->toys": 19,
+  "product-type:ropa->toys": 7182,
+  "department:home_decor->electronics": 35,
+  "kind-rule:toys->home_goods": 9,
+  "kind-rule:soccer->home_goods": 2,
+  "department:home_decor->sporting_goods": 4,
+  "kind-rule:party->sporting_goods": 300,
+  "department:home_decor->joyas_accesorios": 1,
+  "kind-rule:party->joyas_accesorios": 268,
+  "department:home_decor->shoes": 1,
+  "product-type:ropa->shoes": 2977,
+  "kind-rule:shoes->home_goods": 29,
+  "product-type:sombreros->home_goods": 7,
+  "kind-rule:party->electronics": 28,
+  "department:home_decor->perfumes": 3,
+  "product-type:joyas->perfumes": 3,
+  "department:home_decor->clothing": 1,
+  "kind-rule:party->clothing": 136,
+  "product-type:joyas->clothing": 84,
+  "product-type:ropa->beauty": 1630,
+  "department:beauty->electronics": 13,
+  "kind-rule:shoes->beauty": 19,
+  "department:beauty->candy_chocolate": 7,
+  "department:beauty->home_goods": 15,
+  "department:beauty->joyas_accesorios": 15,
+  "kind-rule:shoes->joyas_accesorios": 126,
+  "product-type:zapatos->joyas_accesorios": 154,
+  "product-type:sombreros->beauty": 3,
+  "product-type:zapatos->clothing": 38,
+  "kind-rule:shoes_women->clothing": 54,
+  "kind-rule:shoes->sporting_goods": 807,
+  "kind-rule:shoes_men->sporting_goods": 37,
+  "product-type:zapatos->sporting_goods": 48,
+  "kind-rule:shoes_women->sporting_goods": 5,
+  "kind-rule:shoes->kids": 13,
+  "kind-rule:shoes_men->kids": 2,
+  "product-type:zapatos->kids": 6,
+  "kind-rule:shoes_women->kids": 1,
+  "kind-rule:shoes_women->home_goods": 2,
+  "kind-rule:shoes_men->home_goods": 2,
+  "product-type:zapatos->home_goods": 2,
+  "product-type:accesorios->clothing": 2377,
+  "product-type:accesorios->kids": 135,
+  "product-type:ropa->moms": 1517,
+  "kind-rule:party->shoes": 14,
+  "kind-rule:shoes->toys": 598,
+  "kind-rule:sunglasses->toys": 7,
+  "product-type:accesorios->toys": 88,
+  "product-type:ropa->perfumes": 386,
+  "product-type:ropa->joyas_accesorios": 1326,
+  "product-type:carteras->beauty": 26,
+  "product-type:sombreros->joyas_accesorios": 40,
+  "product-type:carteras->home_goods": 42,
+  "kind-rule:toys->joyas_accesorios": 30,
+  "product-type:joyas->home_goods": 27,
+  "product-type:joyas->shoes": 23,
+  "product-type:carteras->clothing": 24,
+  "product-type:carteras->auto_parts": 93,
+  "kind-rule:sunglasses->sporting_goods": 48,
+  "product-type:accesorios->sporting_goods": 1708,
+  "product-type:ropa->sunglasses": 75,
+  "kind-rule:party->sunglasses": 5,
+  "product-type:joyas->joyas_accesorios": 47,
+  "product-type:joyas->moms": 6,
+  "product-type:joyas->sporting_goods": 19,
+  "kind-rule:shoes_women->joyas_accesorios": 2,
+  "kind-rule:shoes_men->joyas_accesorios": 3,
+  "product-type:carteras->sporting_goods": 105,
+  "product-type:carteras->toys": 114,
+  "product-type:accesorios->purses": 143,
+  "kind-rule:toys->purses": 8,
+  "kind-rule:shoes_women->toys": 4,
+  "kind-rule:shoes_men->toys": 31,
+  "kind-rule:spearfishing->toys": 4,
+  "kind-rule:soccer->toys": 8,
+  "product-type:sombreros->sporting_goods": 25,
+  "kind-rule:toys->sporting_goods": 138,
+  "kind-rule:shoes->purses": 13,
+  "kind-rule:shoes_women->purses": 1,
+  "kind-rule:shoes_men->purses": 1,
+  "product-type:zapatos->purses": 2,
+  "department:clothing->kids": 172,
+  "department:kids->shoes": 132,
+  "department:women->home_goods": 19,
+  "kind-rule:toys->clothing": 105,
+  "department:women->kids": 180,
+  "product-type:carteras->shoes": 8,
+  "product-type:sombreros->kids": 3,
+  "department:home_goods->perfumes": 1,
+  "department:home_goods->clothing": 24,
+  "department:home_goods->joyas_accesorios": 3,
+  "product-type:carteras->perfumes": 1,
+  "department:beauty->purses": 6,
+  "department:men->kids": 35,
+  "product-type:joyas->purses": 1,
+  "department:men->electronics": 3,
+  "product-type:carteras->joyas_accesorios": 598,
+  "department:men->auto_parts": 2,
+  "department:curvy->kids": 56,
+  "department:men->sporting_goods": 82,
+  "department:men->home_goods": 4,
+  "department:men->toys": 6,
+  "product-type:sombreros->shoes": 3,
+  "department:women->toys": 15,
+  "product-type:sombreros->clothing": 39,
+  "department:women->sporting_goods": 42,
+  "department:women->auto_parts": 2,
+  "product-type:accesorios->joyas_accesorios": 357,
+  "department:women->candy_chocolate": 2,
+  "product-type:joyas->candy_chocolate": 23,
+  "product-type:accesorios->shoes": 53,
+  "department:curvy->toys": 12,
+  "kind-rule:toys->perfumes": 41,
+  "kind-rule:shoes->perfumes": 14,
+  "department:beauty->clothing": 8,
+  "department:sporting_goods->auto_parts": 3,
+  "product-type:ropa->auto_parts": 1159,
+  "department:sporting_goods->toys": 29,
+  "kind-rule:spearfishing->kids": 10,
+  "product-type:accesorios->beauty": 228,
+  "department:curvy->sporting_goods": 19,
+  "department:women->moms": 8,
+  "department:curvy->moms": 13,
+  "department:women->electronics": 3,
+  "department:beauty->sporting_goods": 2,
+  "product-type:trajes_bano->perfumes": 5,
+  "product-type:trajes_bano->beauty": 44,
+  "product-type:trajes_bano->home_goods": 2,
+  "product-type:trajes_bano->joyas_accesorios": 31,
+  "department:beauty->shoes": 14,
+  "department:beauty->toys": 1,
+  "kind-rule:toys->beauty": 4,
+  "product-type:accesorios->perfumes": 18,
+  "product-type:accesorios->electronics": 44,
+  "kind-rule:party->beauty": 6,
+  "kind-rule:party->moms": 26,
+  "product-type:carteras->candy_chocolate": 3,
+  "kind-rule:toys->kids": 5,
+  "kind-rule:shoes_men->beauty": 7,
+  "department:electronics->toys": 32,
+  "department:gym_rat->home_goods": 37,
+  "product-type:ropa->clothing": 3,
+  "department:gym_rat->purses": 25,
+  "department:gym_rat->joyas_accesorios": 3,
+  "department:gym_rat->electronics": 1,
+  "department:gym_rat->beauty": 1,
+  "department:clothing->moms": 13,
+  "department:clothing->toys": 31,
+  "department:curvy->electronics": 1,
+  "department:home_goods->shoes": 3,
+  "department:home_goods->toys": 3,
+  "department:home_goods->sporting_goods": 14,
+  "department:home_goods->auto_parts": 1,
+  "department:home_goods->purses": 29,
+  "department:home_goods->kids": 5,
+  "department:kids->clothing": 82,
+  "department:kids->home_goods": 41,
+  "department:kids->toys": 27,
+  "department:kids->sporting_goods": 52,
+  "department:kids->purses": 69,
+  "department:clothing->purses": 440,
+  "department:electronics->clothing": 6,
+  "department:electronics->candy_chocolate": 1,
+  "department:electronics->home_goods": 12,
+  "department:electronics->purses": 37,
+  "department:electronics->moms": 2,
+  "product-type:joyas->electronics": 11,
+  "kind-rule:shoes->electronics": 10,
+  "product-type:carteras->electronics": 10,
+  "department:electronics->shoes": 3,
+  "department:electronics->joyas_accesorios": 3,
+  "kind-rule:toys->electronics": 13,
+  "kind-rule:toys->shoes": 10,
+  "department:sporting_goods->purses": 57,
+  "kind-rule:spearfishing->purses": 6,
+  "department:sporting_goods->electronics": 19,
+  "kind-rule:spearfishing->electronics": 3,
+  "department:sporting_goods->joyas_accesorios": 22,
+  "product-type:trajes_bano->sporting_goods": 100,
+  "department:clothing->joyas_accesorios": 3690,
+  "department:clothing->electronics": 32,
+  "product-type:carteras->kids": 3,
+  "department:sporting_goods->home_goods": 23,
+  "department:clothing->sporting_goods": 532,
+  "department:clothing->beauty": 223,
+  "product-type:trajes_bano->purses": 1,
+  "department:clothing->sunglasses": 811,
+  "department:clothing->auto_parts": 2,
+  "product-type:accesorios->auto_parts": 96,
+  "product-type:sombreros->sunglasses": 4,
+  "product-type:sombreros->toys": 42,
+  "department:clothing->books": 29,
+  "product-type:accesorios->books": 26,
+  "product-type:trajes_bano->clothing": 1,
+  "department:clothing->home_goods": 67,
+  "department:clothing->candy_chocolate": 2,
+  "product-type:accesorios->candy_chocolate": 4,
+  "department:curvy->home_goods": 2,
+  "product-type:accesorios->moms": 31,
+  "product-type:ropa->books": 498,
+  "department:kids->joyas_accesorios": 226,
+  "department:kids->sunglasses": 17,
+  "department:kids->beauty": 13,
+  "kind-rule:party->kids": 7,
+  "department:clothing->perfumes": 3,
+  "kind-rule:spearfishing->clothing": 1,
+  "department:sporting_goods->beauty": 21,
+  "kind-rule:spearfishing->beauty": 14,
+  "department:men->moms": 5,
+  "kind-rule:sunglasses->moms": 5,
+  "kind-rule:shoes_women->beauty": 4,
+  "product-type:zapatos->beauty": 9,
+  "product-type:carteras->books": 5,
+  "product-type:sombreros->purses": 8,
+  "department:sporting_goods->books": 4,
+  "kind-rule:shoes->sunglasses": 2,
+  "department:curvy->books": 1,
+  "product-type:joyas->sunglasses": 2,
+  "product-type:trajes_bano->sunglasses": 3,
+  "kind-rule:sunglasses->electronics": 1,
+  "kind-rule:shoes->books": 3,
+  "kind-rule:spearfishing->shoes": 1,
+  "department:sporting_goods->moms": 8,
+  "department:combat_sports->purses": 9,
+  "department:combat_sports->home_goods": 3,
+  "product-type:zapatos->toys": 5,
+  "product-type:joyas->toys": 51,
+  "kind-rule:soccer->joyas_accesorios": 8,
+  "product-type:joyas->beauty": 5,
+  "department:purses->joyas_accesorios": 217,
+  "department:purses->sporting_goods": 3,
+  "department:purses->clothing": 504,
+  "department:purses->home_goods": 11,
+  "department:purses->beauty": 12,
+  "department:purses->sunglasses": 6,
+  "department:purses->shoes": 302,
+  "department:purses->auto_parts": 9,
+  "department:purses->books": 1,
+  "department:purses->kids": 4,
+  "department:kids->moms": 9,
+  "department:kids->electronics": 2,
+  "kind-rule:party->books": 2,
+  "department:books->toys": 1,
+  "department:books->home_goods": 2,
+  "kind-rule:toys->books": 2,
+  "department:moms->electronics": 86,
+  "department:moms->home_goods": 35,
+  "department:moms->purses": 43,
+  "product-type:carteras->moms": 108,
+  "product-type:sombreros->moms": 5,
+  "department:moms->toys": 49,
+  "department:moms->shoes": 2,
+  "department:moms->joyas_accesorios": 9,
+  "kind-rule:shoes->moms": 26,
+  "department:moms->clothing": 19,
+  "department:moms->candy_chocolate": 5,
+  "department:moms->sporting_goods": 5,
+  "kind-rule:toys->moms": 4,
+  "department:moms->auto_parts": 3,
+  "department:moms->books": 2,
+  "kind-rule:soccer->clothing": 4,
+  "kind-rule:soccer->electronics": 1,
+  "kind-rule:soccer->beauty": 1,
+  "kind-rule:tennis->beauty": 2,
+  "product-type:trajes_bano->toys": 13,
+  "kind-rule:tennis->toys": 1,
+  "kind-rule:sunglasses->perfumes": 1,
+  "kind-rule:tennis->home_goods": 1,
+  "product-type:joyas->kids": 4,
+  "kind-rule:sunglasses->home_goods": 1,
+  "product-type:sombreros->electronics": 1,
+  "product-type:joyas->books": 1,
+  "department:electronics->sporting_goods": 32,
+  "department:electronics->auto_parts": 1,
+  "kind-rule:shoes->auto_parts": 1,
+  "department:electronics->beauty": 3,
+  "department:perfumes->clothing": 7,
+  "kind-rule:perfumes->clothing": 7,
+  "kind-rule:shoes_men->perfumes": 2,
+  "department:perfumes->sporting_goods": 3,
+  "kind-rule:perfumes->sporting_goods": 3,
+  "department:perfumes->candy_chocolate": 1,
+  "kind-rule:perfumes->candy_chocolate": 1,
+  "department:perfumes->moms": 1,
+  "kind-rule:perfumes->moms": 1,
+  "kind-rule:party->perfumes": 11,
+  "kind-rule:shoes_women->perfumes": 3
+ },
+ "truthKinds": {
+  "electronics": 4439,
+  "bag": 5837,
+  "grocery": 124,
+  "home": 1874,
+  "apparel": 53838,
+  "footwear": 10288,
+  "sports": 13276,
+  "toy": 7762,
+  "jewelry": 9003,
+  "fragrance": 10660,
+  "beauty": 4226,
+  "accessory": 7996,
+  "apparel_kids": 2818,
+  "moms": 1668,
+  "hat": 2922,
+  "display": 6,
+  "auto": 1370,
+  "sunglasses": 2028,
+  "book": 530
+ },
+ "missedMembership": {
+  "toys:toy": 3038,
+  "joyas:jewelry": 5544,
+  "shoes:footwear": 1863,
+  "perfumes:fragrance": 642,
+  "joyas:accessory": 6908,
+  "autoparts:auto": 1233,
+  "sunglasses:sunglasses": 2
+ },
+ "kindTrapWords": {
+  "party:party": 226,
+  "shoes:boot": 283,
+  "shoes:heel": 1447,
+  "toys:toy": 230,
+  "soccer:soccer": 23,
+  "party:decoration": 13,
+  "shoes:bota": 65,
+  "toys:plush": 10,
+  "toys:puzzle": 3,
+  "shoes:shoe": 115,
+  "party:birthday": 286,
+  "shoes:loafer": 1,
+  "shoes:sneaker": 9,
+  "shoes:sandal": 100,
+  "party:confetti": 12,
+  "party:balloon": 66,
+  "sunglasses:sunglasses": 58,
+  "toys:doll": 93,
+  "toys:lego": 28,
+  "shoes:taco": 12,
+  "spearfishing:fins": 4,
+  "shoes:slipper": 9,
+  "spearfishing:wetsuit": 11,
+  "party:fiesta": 4,
+  "spearfishing:freediv": 4,
+  "spearfishing:snorkel": 18,
+  "spearfishing:speargun": 1,
+  "party:decoraci": 214,
+  "sunglasses:lentes de sol": 5,
+  "shoes:cleat": 21,
+  "spearfishing:neoprene": 1,
+  "soccer:futbol": 1,
+  "tennis:tennis shoe": 2,
+  "shoes:zapato": 1,
+  "party:cumplea": 1,
+  "tennis:tennis ball": 1,
+  "toys:board game": 5,
+  "tennis:tennis racket": 1
+ },
+ "seeds": {
+  "pooh-onesie": [
+   {
+    "file": "department-cache-walmart.json",
+    "rk": "walmart",
+    "bk": "home_decor",
+    "name": "RoomMates Winnie the Pooh Peel and Stick Wall Decal 10\" x 18\" RMK1630SCS",
+    "truth": "home",
+    "depts": [
+     "home_decor"
+    ]
+   },
+   {
+    "file": "partycity-catalog.json",
+    "rk": "partycity",
+    "bk": "balloons",
+    "name": "Winnie the Pooh Balloon, 29in",
+    "truth": null,
+    "depts": [
+     "party"
+    ]
+   },
+   {
+    "file": "partycity-catalog.json",
+    "rk": "partycity",
+    "bk": "banners-signs",
+    "name": "Winnie the Pooh Letter Banner",
+    "truth": null,
+    "depts": [
+     "party"
+    ]
+   },
+   {
+    "file": "partycity-catalog.json",
+    "rk": "partycity",
+    "bk": "banners-signs",
+    "name": "Winnie the Pooh 1st Birthday High Chair Banner with Tassels",
+    "truth": "moms",
+    "depts": [
+     "party"
+    ]
+   },
+   {
+    "file": "partycity-catalog.json",
+    "rk": "partycity",
+    "bk": "napkins",
+    "name": "Winnie the Pooh Lunch Napkins, 16ct",
+    "truth": null,
+    "depts": [
+     "party"
+    ]
+   },
+   {
+    "file": "partycity-catalog.json",
+    "rk": "partycity",
+    "bk": "favors",
+    "name": "Winnie the Pooh Bubble Wands, 4ct",
+    "truth": null,
+    "depts": [
+     "party"
+    ]
+   },
+   {
+    "file": "kohls-catalog.json",
+    "rk": "kohls",
+    "bk": "women",
+    "name": "Women's Disney's Winnie the Pooh & Piglet Halloween Pumpkins & Costumes Graphic Tee",
+    "truth": "apparel",
+    "depts": [
+     "women"
+    ]
+   },
+   {
+    "file": "kohls-catalog.json",
+    "rk": "kohls",
+    "bk": "women",
+    "name": "Disney's Winnie the Pooh Juniors' Varsity Graphic Tee",
+    "truth": "apparel",
+    "depts": [
+     "women"
+    ]
+   },
+   {
+    "file": "kohls-catalog.json",
+    "rk": "kohls",
+    "bk": "women",
+    "name": "Juniors' Disney's Winnie the Pooh, Piglet & Tigger Group Hug Graphic Tee",
+    "truth": "apparel",
+    "depts": [
+     "women"
+    ]
+   },
+   {
+    "file": "kohls-catalog.json",
+    "rk": "kohls",
+    "bk": "women",
+    "name": "Disney's Winnie the Pooh Women's Short Sleeve Tee",
+    "truth": "apparel",
+    "depts": [
+     "women"
+    ]
+   },
+   {
+    "file": "kohls-catalog.json",
+    "rk": "kohls",
+    "bk": "kids",
+    "name": "Disney's Winnie the Pooh Fleece 2 pc Sweatshirt and Pants Set",
+    "truth": "apparel",
+    "depts": [
+     "kids"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie The Pooh Repeating Bracelet - Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie The Pooh St. Patrick’s Day Earrings - Winnie The Pooh",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Hunny Statement Earrings - Gold",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Kids' BFF Bracelet Set - Winnie the Pooh & Piglet",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Collectible Photo Booth Pin - Winnie the Pooh Photo Booth Pin",
+    "truth": "jewelry",
+    "depts": [
+     "shoes"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh 3D Pin - Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Dynamic Duo Bag Charm - Disney Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Balloon Drop Earrings - Gold/Red",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios",
+     "party"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Charm Bracelet - Gold",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Dynamic Duo Earring Set - Disney Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie The Pooh Friends Forever Charm Bracelet - Disney Winnie the Pooh Charm Brace",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Dynamic Duo Charm Necklace - Disney Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh & Pals Halloween Earring Set",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie The Pooh Friends Forever Bag Charm - Disney Winnie the Pooh Bag Charm",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "baublebar-catalog.json",
+    "rk": "baublebar",
+    "bk": "jewelry",
+    "name": "Disney Winnie the Pooh Ring Set - Gold",
+    "truth": null,
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie The Pooh Repeating Bracelet - Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie The Pooh St. Patrick’s Day Earrings - Winnie The Pooh",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh Hunny Statement Earrings - Gold",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Collectible Photo Booth Pin - Winnie the Pooh Photo Booth Pin",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh 3D Pin - Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh Dynamic Duo Bag Charm - Disney Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh Balloon Drop Earrings - Gold/Red",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh Charm Bracelet - Gold",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh Dynamic Duo Earring Set - Disney Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie The Pooh Friends Forever Charm Bracelet - Disney Winnie the Pooh Charm Brace",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh Dynamic Duo Charm Necklace - Disney Winnie the Pooh",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh & Pals Halloween Earring Set",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie The Pooh Friends Forever Bag Charm - Disney Winnie the Pooh Bag Charm",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "personajes",
+    "name": "Disney Winnie the Pooh Ring Set - Gold",
+    "truth": null,
+    "depts": []
+   },
+   {
+    "file": "jewelry-catalog.json",
+    "rk": "baublebar",
+    "bk": "ninos",
+    "name": "Disney Winnie the Pooh Kids' BFF Bracelet Set - Winnie the Pooh & Piglet",
+    "truth": "jewelry",
+    "depts": []
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Disney Winnie the Pooh, set de peluches coleccionable del 100.º aniversario, exclusivo de ",
+    "truth": null,
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Ty Beanie Babies - Disney Winnie the Pooh Plush Toy",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Disney Winnie The Pooh Pumpkin Patch T-Shirt",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Eeyore Floral Mini Wallet",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Disney Winnie The Pooh Tigger Moon Necklace",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Florals Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Halloween Stamp Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Hunny Satchel Bag",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Holiday Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Letters Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Tigger Butterfly Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Daisies Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Plants Blind Box Enamel Pin",
+    "truth": "toy",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Disney Winnie The Pooh Welcome Fall Doormat",
+    "truth": null,
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Marching Band Scenes Blind Box Enamel Pin",
+    "truth": "toy",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Character Sketch Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Disney Winnie The Pooh Halloween Mug",
+    "truth": null,
+    "depts": []
+   },
+   {
+    "file": "hottopic-catalog.json",
+    "rk": "hottopic",
+    "bk": "general",
+    "name": "Disney Winnie The Pooh Group Charm Shoulder Bag",
+    "truth": "bag",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Rainy Umbrella Scene Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Piglet & Pooh Bear Reading Mini Backpack - BoxLunch Exclu",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Figural Mini Backpack — BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Eeyore Floral Allover Print Dress — BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Patch Overall Dress — BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Eeyore Floral Allover Print Plus Size Dress — BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Bees Allover Print Micro Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Pooh Bear Reading Small Zip Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Classic Characters Long Sleeve Dress - BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Classic Characters Long Sleeve Plus Size Dress - BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Veggie Garden Allover Print Long Sleeve Dress - BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Allover Print Button-Up Tank Dress — BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Allover Print Button-Up Plus Size Tank Dress — BoxLunch Exclusive",
+    "truth": "apparel",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Treehouse Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Treehouse Crossbody Bag - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Embossed Character Handbag - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Gingham Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Cherry Blossom Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh & Friends Gardening Corduroy Mini Backpack - BoxLunch Exc",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Gingham Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Embroidered Chenille Flower Mini Backpack - BoxLunch Excl",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh & Friends Gardening Corduroy Crossbody Bag - BoxLunch Exc",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Eeyore Corduroy Figural Mini Backpack - BoxLunch Exclusiv",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Cross Stitch Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Heart Balloon Pooh Bear Mini Backpack - BoxLunch Exclusiv",
+    "truth": "bag",
+    "depts": [
+     "party"
+    ]
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Gingham Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Honeybees & Flowers Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh and Friends Treehouse Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Cross Stitch Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Cross Stitch Crossbody Bag - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh and Friends Watercolor Tote Crossbody Bag - BoxLunch Excl",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Merry Foliage Satchel Crossbody Bag - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh My Weekend Is Booked Corduroy Tote Bag - BoxLunch Exclusi",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Honey Pot Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Zip Wallet — BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Honeybees & Flowers Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh & Friends Chenille Embroidered Mini Backpack - BoxLunch E",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Honey Pot Mini Backpack- BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh & Friends Gardening Corduroy Accordion Wallet - BoxLunch ",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Eeyore Floral Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Rainy Umbrella Scene Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Cherry Blossom Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Floral Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh and Friends Watercolor Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Corduroy Tote Bag - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Minimalist Purse — BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Merry Foliage Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Puffer Pooh Bear Figural Mini Backpack - BoxLunch Exclusi",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Merry Foliage Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie The Pooh Floral Pooh Bear & Friends Mini Backpack - BoxLunch Exclu",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh and Friends Watercolor Wallet - BoxLunch Exclusive",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Pin Display Pooh Bear Mini Backpack With Pin - BoxLunch E",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Tigger Figural Mini Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Eeyore Floral Mini Backpack - BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Loungefly Disney Winnie the Pooh Embroidered Characters Canvas Mini Backpack - BoxLunch Ex",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Cooler Backpack",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Lion Pooh Bear Pumpkin Mini Backpack — BoxLunch Exclusive",
+    "truth": "moms",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Autumn Harvest Patchwork Corduroy Mini Backpack - BoxLunch Exclusiv",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Multi-Pocket Backpack — BoxLunch Exclusive",
+    "truth": "bag",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Floral Earring Set - BoxLunch Exclusive",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Little Words Project Disney Winnie the Pooh Oh Bother Bracelet",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Floral Ring Set - BoxLunch Exclusive",
+    "truth": null,
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Bows Bracelet Set - BoxLunch Exclusive",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Bow Locket Necklace - BoxLunch Exclusive",
+    "truth": "jewelry",
+    "depts": [
+     "joyas_accesorios"
+    ]
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie the Pooh Eeyore Cufflinks",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie The Pooh & Piglet Cufflinks",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "boxlunch-catalog.json",
+    "rk": "boxlunch",
+    "bk": "general",
+    "name": "Disney Winnie The Pooh Cufflinks",
+    "truth": "accessory",
+    "depts": []
+   },
+   {
+    "file": "gap-catalog.json",
+    "rk": "gap",
+    "bk": "kids",
+    "name": "Baby Winnie The Pooh Denim Overalls",
+    "truth": "apparel",
+    "depts": []
+   }
+  ],
+  "wig-head": [
+   {
+    "file": "department-cache-walmart.json",
+    "rk": "walmart",
+    "bk": "clearance",
+    "name": "Bemona 11\" Styrofoam Wig Head - Tall Female Foam Mannequin Wig Stand and Holder - Style, M",
+    "truth": "display",
+    "depts": []
+   }
+  ],
+  "ornaments-in-joyas": [
+   {
+    "file": "department-cache-walmart.json",
+    "rk": "walmart",
+    "bk": "clearance",
+    "name": "Kbndieu Horse Ornaments for Xmas Christmas Tree Decorations Christmas Gifts Pendant for Ho",
+    "truth": "home",
+    "depts": [
+     "joyas_accesorios",
+     "party"
+    ]
+   }
+  ],
+  "barbie-in-sombreros": [
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Barbie 2026 Día de Muertos muñeca con vestido de sirena de satén y máscara de calavera rem",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Barbie Signature 2022 Dia de Muertos Collectible Doll in Embroidered Dress & Flower Crown",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Barbie Signature Graduation Wishes Fashion Doll with Burgundy Robe & Tassel Cap, Collectib",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Barbie Signature 2022 Dia De Muertos Collectible Doll with Ruffled Dress and Flower Crown",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   }
+  ],
+  "toys-in-ropa": [
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Fisher-Price Little People Fire Truck Musical Toddler Toy with Lights Sounds & 2 Figures",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Fisher-Price Little People Ice Cream Truck, Push-Along Toy Vehicle & Figure for Toddlers &",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Fisher-Price Little People Dino Wobble Truck, 6-Piece Dinosaur Toy Set for Toddlers",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Fisher-Price Little People Recycling Truck Musical Toddler Garbage Toy Set, 5 Pieces",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Fisher-Price Little People Work Together Dump Truck Toddler Construction Toy with Music",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Fisher-Price Little People Disney & Pixar Toy Story Pizza Planet Truck & Buzz Lightyear To",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Little People Ice Cream Truck Playset & Book",
+    "truth": "toy",
+    "depts": []
+   },
+   {
+    "file": "juguetes-catalog.json",
+    "rk": "walmart",
+    "bk": "toys",
+    "name": "Disney and Pixar Toy Story 5 Character Plush Toys, 8 Inch Soft Dolls, Favorite Characters",
+    "truth": "toy",
+    "depts": [
+     "toys"
+    ]
+   }
+  ]
+ },
+ "layerTSkipped": 14561
+}

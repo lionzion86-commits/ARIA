@@ -1,0 +1,112 @@
+1. [product-type] ropa -> sporting_goods (truth=sports, ev=sports-noun) | parrot/sporting_goods | 10.32in Roskopp Screaming Five Santa Cruz Premium Skate Cruiser | type=Cruisers brand=NHS
+2. [product-type] ropa -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | Heroin Merged Tall Boy Skateboard Complete - 10.25" | type=Skateboards completos brand=Heroin Skateboards
+3. [product-type] ropa -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | Heroin Hills Have Eggs Skateboard Complete - 9.50" | type=Skateboards completos brand=Heroin Skateboards
+4. [product-type] ropa -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | CCS Social Camouflage Embossed Skateboard Complete - Realtree Meteorite - 8.375" | type=Skateboards completos brand=CCS
+5. [product-type] ropa -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | Sub Zero Sergei Trudnowski Tribute EX7 Skateboard Complete - 8.25" | type=Skateboards completos brand=Heritage
+6. [product-type] ropa -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | Anti-Hero Shaped Eagle Caster Skateboard Complete - Purple - 10.125" | type=Skateboards completos brand=Anti-Hero Skateboards
+7. [product-type] ropa -> toys (truth=toy, ev=toy-brand) | boxlunch/general | Funko Pop! Games Pokémon Armarouge Vinyl Figure | type=Figura coleccionable brand=FUNKO
+8. [product-type] ropa -> toys (truth=toy, ev=toy-noun) | walmart/toys | LED Light for Lego-31162 Creator 3-in-1 Cute Bunny Building Blocks Model (Building Set NOT Included) | type= brand=
+9. [product-type] ropa -> toys (truth=toy, ev=toy-noun) | walmart/toys | Marvel Legends Marvel's Mystique Action Figure | type= brand=
+10. [product-type] ropa -> toys (truth=toy, ev=toy-noun) | walmart/toys | Train Set Toys- Electric Train Toy for Boys W/ Lights & Sound, Railway, Locomotive Engine, Cargo Cars, 3 Cars &1 | type= brand=
+11. [product-type] ropa -> toys (truth=toy, ev=toy-noun) | costco/bebe | Star Wars: The Mandalorian 30-inch Big Figs Action Figure | type= brand=Star
+12. [product-type] ropa -> toys (truth=toy, ev=toy-noun) | walmart/toys | PAW Patrol, Everests Snow Plow Play Vehicle, Collectible Toy Car with Action Figure | type= brand=
+13. [department] clothing -> joyas_accesorios (truth=accessory, ev=type:accessory-noun) | ccs/clothing | Metalwood Moto Long Sleeve Crewneck Jersey - Purple | type=Accesorios brand=Metalwood
+14. [department] clothing -> joyas_accesorios (truth=accessory, ev=type:accessory-noun) | ccs/clothing | DGK F.T.R.O Pillow - Camo | type=Accesorios brand=DGK Skateboards
+15. [department] clothing -> joyas_accesorios (truth=accessory, ev=type:accessory-noun) | parrot/clothing | Sydney | type=Accesorios brand=Blenders
+16. [department] clothing -> joyas_accesorios (truth=accessory, ev=type:accessory-noun) | parrot/clothing | FCS 2 PG Performer Keel Twin | type=Accesorios brand=FCS Fin Company
+17. [department] clothing -> joyas_accesorios (truth=accessory, ev=accessory-noun) | ccs/clothing | CCS Black Kickflip Buckle Belt - Checkerboard | type=Accesorios brand=CCS
+18. [department] clothing -> joyas_accesorios (truth=accessory, ev=type:accessory-noun) | parrot/clothing | 4211 Epic 3/2 | type=Accesorios brand=O'neill
+19. [product-type] ropa -> zapatos (truth=footwear, ev=footwear-noun) | kohls/shoes | Jumping Beans® Yufuss Toddler Boys' Dress Shoes | type=Calzado brand=
+20. [product-type] ropa -> zapatos (truth=footwear, ev=footwear-noun) | kohls/shoes | Under Armour Assert 11 Big Kids Charged+ Lace-Up Running Shoes | type=Calzado brand=Under Armour
+21. [product-type] ropa -> zapatos (truth=footwear, ev=footwear-noun) | johannaortiz/latino_designers | Fortune Rider Boot | type=WOMEN brand=Johanna Ortiz
+22. [product-type] ropa -> zapatos (truth=footwear, ev=footwear-noun) | dicks/sporting_goods | Nike Tiempo Reactgato Indoor Soccer Shoes | type=Chimpunes brand=Nike
+23. [product-type] ropa -> electronics (truth=electronics, ev=type:electronics-noun) | bhphoto/electronics | ARTCISE MS30FH6 Compact Ultralightweight Video Tripod with Fluid Head | type=Trípode brand=ARTCISE
+24. [product-type] ropa -> electronics (truth=electronics, ev=electronics-noun) | bhphoto/electronics | DJI Neo 2 Drone Motion Fly More Combo | type=Dron brand=DJI
+25. [product-type] ropa -> electronics (truth=electronics, ev=electronics-noun) | gymshark/gym_rat | Whitney Mid-Rise Mini Flare Regular — Espresso Brown | type=Womens>Apparel>Leggings>full_length brand=Gymshark
+26. [product-type] ropa -> electronics (truth=electronics, ev=electronics-noun) | bhphoto/electronics | OWC 512GB Atlas Pro CFexpress 4.0 Type B Memory Card | type=Tarjeta de memoria brand=OWC
+27. [product-type] accesorios -> ropa (truth=apparel, ev=garment-noun) | farfetch/latino_designers | Cudi Sellos Pattern Belt-Loops Shorts | type=WOMEN brand=Agua Bendita
+28. [product-type] accesorios -> ropa (truth=apparel, ev=garment-noun) | zumiez/accesorios | Ed Hardy Panther Black & White 2 Pack Crew Socks | type=ACCESSORIES brand=Ed Hardy
+29. [product-type] accesorios -> ropa (truth=apparel, ev=garment-noun) | zumiez/accesorios | Independent Baseline Orange & White 2 Pack Crew Socks | type=ACCESSORIES brand=Independent
+30. [product-type] accesorios -> ropa (truth=apparel, ev=garment-noun) | macys/women | Women's Belted Faux-Fur-Trim Shawl Collar Puffer Jacket | type=COAT brand=Avec Les Filles
+31. [product-type] accesorios -> sporting_goods (truth=sports, ev=sports-noun) | tennisexpress/sporting_goods | Pro Shield Pickleball Paddle | type=Accesorios de tenis brand=Nox
+32. [product-type] accesorios -> sporting_goods (truth=sports, ev=type:sports-noun) | ccs/sporting_goods | Santa Cruz Slimline HSR Rails - Black | type=Repuestos y accesorios de pesca submarina brand=Santa Cruz Skateboards
+33. [product-type] accesorios -> sporting_goods (truth=sports, ev=type:sports-noun) | ccs/sporting_goods | HUF Sideline Soccer Jersey - White | type=Repuestos y accesorios de pesca submarina brand=HUF
+34. [product-type] accesorios -> sporting_goods (truth=sports, ev=sports-noun) | quietstorm/clothing | Surf Jacquard Tie Side Bottom | type=Accesorios brand=QSSS/NALUKAI
+35. [product-type] ropa -> beauty (truth=beauty, ev=beauty-noun) | ulta/beauty | Firming Peptide Eye Cream | type=Belleza brand=Good Molecules
+36. [product-type] ropa -> beauty (truth=beauty, ev=beauty-noun) | yesstyle/beauty | Vitamin Illuminating Serum 2pcs Bundle Set | type=Sérums brand=EQQUALBERRY
+37. [product-type] ropa -> beauty (truth=beauty, ev=beauty-noun) | victoriassecret/beauty | Classic Highlighting Body Oil | type=Belleza brand=PINK
+38. [product-type] ropa -> beauty (truth=beauty, ev=beauty-noun) | walmart/beauty | Neutrogena Collagen Bank Laser Perfecting Face Serum, 5-in-1 Benefits, Daily Anti-Aging 1.0 fl. oz | type= brand=
+39. [product-type] ropa -> moms (truth=moms, ev=moms-noun) | walmartbaby/moms | ELLEGNT 2 in 1 Baby Stroller Foldable High Landscape Reversible Pram with Canopy, Coffee | type=COCHE brand=Chichans
+40. [product-type] ropa -> moms (truth=moms, ev=moms-noun) | walmartbaby/moms | Baby Trend Passport Seasons Travel System (with EZ-Lift™ Infant Car Seat) | type=COCHE brand=Baby Trend
+41. [product-type] ropa -> moms (truth=moms, ev=moms-noun) | hatch/moms | The Relaxed Wide Leg Maternity Jean | type=MATERNIDAD brand=Hatch
+42. [product-type] ropa -> moms (truth=moms, ev=moms-noun) | kindredbravely/moms | Bamboo Maternity & Postpartum Hipster | Beige | type=MATERNIDAD brand=Kindred Bravely
+43. [product-type] ropa -> home_goods (truth=home, ev=home-accent) | partycity/yard-decorations-signs | Multicolor Congrats Grad Corrugated Plastic Yard Sign Set, 4pc | type=Yard Decorations & Signs brand=Party City
+44. [product-type] ropa -> home_goods (truth=home, ev=home-noun) | walmart/home_decor | Yankee Candle Pink Sands Original Large Jar Scented Candles, 22 oz | type= brand=
+45. [product-type] ropa -> home_goods (truth=home, ev=home-noun) | macys/home | Egyptian Cotton 10-Pc. Towel Set | type=APPAREL brand=Superior
+46. [product-type] ropa -> home_goods (truth=home, ev=home-noun) | costco/hogar | Jennifer Adams Marshmallow Blanket | type= brand=Jennifer
+47. [department] clothing -> shoes (truth=footwear, ev=type:footwear-noun) | newbalance/clothing | Ellipse | type=Zapatillas brand=New Balance
+48. [department] clothing -> shoes (truth=footwear, ev=footwear-noun) | ccs/clothing | New Balance 508 Westgate Shoes - Tan/Red | type=Zapatillas brand=New Balance
+49. [department] clothing -> shoes (truth=footwear, ev=type:footwear-noun) | valsurf/clothing | Nike SB PS8 - Black/Black | type=Zapatillas brand=Nike SB
+50. [department] clothing -> shoes (truth=footwear, ev=footwear-noun) | ccs/clothing | Adidas Superstar 80 ADV Shoes - Core Black/Cream White/Gold Metallic | type=Zapatillas brand=Adidas
+51. [product-type] ropa -> accesorios (truth=accessory, ev=accessory-noun) | boxlunch/general | Disney Mickey Mouse Silhouette Pink Cufflinks | type=General brand=
+52. [product-type] ropa -> accesorios (truth=accessory, ev=accessory-noun) | boxlunch/general | NCAA University of Arizona Wildcats Cufflinks | type=General brand=
+53. [product-type] ropa -> accesorios (truth=accessory, ev=accessory-noun) | ssense/women | Silver & Pink Piggy Sweatheart Keychain | type=KEYCHAINS brand=Chopova Lowena
+54. [product-type] ropa -> accesorios (truth=accessory, ev=accessory-noun) | boxlunch/general | NCAA Washington State Cougars Cufflinks | type=General brand=
+55. [product-type] ropa -> auto_parts (truth=auto, ev=type:auto-noun) | advanceauto/auto_parts | Suspension Stabilizer Bar Link (K80823) | type=Repuestos brand=MOOG
+56. [product-type] ropa -> auto_parts (truth=auto, ev=type:auto-noun) | advanceauto/auto_parts | New CV Axle Shaft Assembly (NCV36576) | type=Repuestos brand=Carquest Premium
+57. [product-type] ropa -> auto_parts (truth=auto, ev=type:auto-noun) | advanceauto/auto_parts | Suspension Stabilizer Bar Link (K750960) | type=Repuestos brand=MOOG
+58. [product-type] ropa -> auto_parts (truth=auto, ev=auto-noun) | advanceauto/auto_parts | Painted Brake Rotor: Meets or Exceeds OE Specs, Features RotorShield (YH655655P) | type=Repuestos brand=Carquest Premium
+59. [department] clothing -> sunglasses (truth=sunglasses, ev=sunglasses-noun) | islandwatersports/clothing | Von Zipper Booker sunglasses | type=Lentes de sol brand=VonZipper
+60. [department] clothing -> sunglasses (truth=sunglasses, ev=sunglasses-noun) | islandwatersports/clothing | Sito Candi Polarized Sunglasses | type=Lentes de sol brand=sito
+61. [department] clothing -> sunglasses (truth=sunglasses, ev=sunglasses-noun) | islandwatersports/clothing | I-SEA BLAIR UNISEX POLARIZED SUNGLASSES | type=Lentes de sol brand=I-SEA
+62. [kind-rule] shoes -> sporting_goods (truth=sports, ev=type:sports-noun) | nautilus/sporting_goods | MVD Inverted Roller Wheels | type=Repuestos y accesorios de pesca submarina brand=MVD
+63. [kind-rule] shoes -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | Powell-Peralta Dragon Formula 93a RB2 Skateboard Wheels - Off White - 58mm | type=Trucks, ruedas y partes brand=Powell-Peralta
+64. [kind-rule] shoes -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | Bones X-Formula Standards 99a V1 Skateboard Wheels - 54mm | type=Trucks, ruedas y partes brand=Bones
+65. [kind-rule] shoes -> toys (truth=toy, ev=toy-noun) | walmart/toys | Melissa & Doug Deluxe Wood Lacing Sneaker - Learn to Tie a Shoe Educational Toy | type= brand=
+66. [kind-rule] shoes -> toys (truth=toy, ev=toy-noun) | walmart/toys | JBeeCtrl Remote Control Car RC Cars Toys for Boys Cool Rechargeable Stunt RC Car with 360 Flips 4WD Wheel Lights | type= brand=
+67. [kind-rule] shoes -> toys (truth=toy, ev=toy-brand) | walmart/toys | Hot Wheels Character Cars Marvel Studios - Iron Man Mark L | type= brand=
+68. [department] clothing -> sporting_goods (truth=sports, ev=fin-brand) | islandwatersports/clothing | FCS 2 Mason Ho AirCore Thruster Fins | type=Accesorios brand=FCS
+69. [department] clothing -> sporting_goods (truth=sports, ev=sports-noun) | surfstation/clothing | Surf Station Coffee Mug - 14oz/Navy/Stoked Camper | type=Accesorios brand=Surf Station
+70. [department] clothing -> sporting_goods (truth=sports, ev=fin-brand) | islandwatersports/clothing | Future Fins Sharp Eye Honeycomb Thruster Set White-Black L | type=Accesorios brand=Future Fins
+71. [department] purses -> clothing (truth=apparel, ev=garment-noun) | jwpei/purses | Printed Corn Poppy Tiered Tulle Strapless Maxi Dress - Black | type=CP2CDS008 brand=JW PEI
+72. [department] purses -> clothing (truth=apparel, ev=garment-noun) | jwpei/purses | Autumn Metallic Conch PU Jacket - Black | type=TS077 brand=JW PEI
+73. [department] purses -> clothing (truth=apparel, ev=garment-noun) | jwpei/purses | Fringe One Shoulder Maxi Dress - Misty Blue | type=LDS396X002 brand=JW PEI
+74. [product-type] ropa -> books (truth=book, ev=books-bucket) | chronicle/books | Creature | type=COFFEE_TABLE_BOOK brand=Levine Querido
+75. [product-type] ropa -> books (truth=book, ev=books-bucket) | assouline/books | Marrakech Flair | type=COFFEE_TABLE_BOOK brand=ASSOULINE
+76. [product-type] ropa -> books (truth=book, ev=books-bucket) | chronicle/books | Birds & Words | type=COFFEE_TABLE_BOOK brand=Chronicle Chroma
+77. [product-type] carteras -> joyas (truth=jewelry, ev=depiction-form) | jwpei/purses | World Cup Dachshund Soccer Jersey Bag Charm - Red | type=7W104 brand=JW PEI
+78. [product-type] carteras -> joyas (truth=jewelry, ev=depiction-form) | baublebar/personalizado | Gold Initial Enamel Bag Charm - Z | type=BAG_CHARMS brand=BaubleBar
+79. [product-type] carteras -> joyas (truth=jewelry, ev=depiction-form) | baublebar/jewelry | STAR WARS™ Darth Vader™ Bag Charm - Darth Vader | type=BAG_CHARMS brand=BaubleBar
+80. [department] clothing -> purses (truth=bag, ev=bag-noun) | surfstation/clothing | Sand Cloud Polka Dot Beach Tote - Coral | type=Mochilas y bolsos brand=Sand Cloud
+81. [department] clothing -> purses (truth=bag, ev=bag-noun) | islandwatersports/clothing | SUN N SAND PAPER CROCHET SHOULD TOTE NATURAL | type=Mochilas y bolsos brand=Sun N' Sand
+82. [department] clothing -> purses (truth=bag, ev=type:bag-noun) | islandwatersports/clothing | Havaianas Mini Bag Logo | type=Mochilas y bolsos brand=Havaianas
+83. [product-type] ropa -> perfumes (truth=fragrance, ev=fragrance-noun) | victoriassecret/beauty | Heavenly Eau de Parfum 3.4 oz | type=Fragancia brand=Victoria's Secret
+84. [product-type] ropa -> perfumes (truth=fragrance, ev=fragrance-noun) | macys/beauty | 2-Piece J'adore Eau de Parfum Gift Set | type=APPAREL brand=DIOR
+85. [product-type] ropa -> perfumes (truth=fragrance, ev=fragrance-noun) | ulta/beauty | Black Opium Pink Glaze Eau de Parfum | type=Fragancia brand=Yves Saint Laurent
+86. [product-type] accesorios -> sombreros (truth=hat, ev=hat-noun) | zumiez/accesorios | DC Big Star Black Visor Beanie | type=ACCESSORIES brand=DC
+87. [product-type] accesorios -> sombreros (truth=hat, ev=hat-noun) | miumiu/women | Drill baseball cap | type=ACCESSORY brand=Miu Miu
+88. [product-type] accesorios -> sombreros (truth=hat, ev=hat-noun) | revolve/women | Chino Cap | type=ACCESSORIES brand=Polo Ralph Lauren
+89. [kind-rule] shoes -> clothing (truth=apparel, ev=garment-noun) | ccs/clothing | CCS Western Bootcut Denim Jeans - Overdyed Navy | type=Pantalones brand=CCS
+90. [kind-rule] shoes -> clothing (truth=apparel, ev=garment-noun) | ccs/clothing | Spitfire Gas Mask Long Sleeve T-Shirt - Military Green/Multi Color Prints | type=Polos y camisetas brand=Spitfire Skateboard Wheels
+91. [kind-rule] shoes -> clothing (truth=apparel, ev=garment-noun) | ssense/women | SSENSE Exclusive Pink Long Sandal Socks | type=SOCKS brand=Swedish Stockings
+92. [product-type] accesorios -> joyas (truth=jewelry, ev=jewelry-noun) | zumiez/accesorios | Broken Promises Purgatory Cross 22" Silver Necklace | type=ACCESSORIES brand=Broken Promises
+93. [product-type] accesorios -> joyas (truth=jewelry, ev=jewelry-noun) | islandwatersports/clothing | Puravida Enamel Wave Bracelet | type=Accesorios brand=Pura Vida
+94. [product-type] accesorios -> joyas (truth=jewelry, ev=depiction-form) | miumiu/women | Enameled metal dice charm | type=ACCESSORY brand=Miu Miu
+95. [department] purses -> shoes (truth=footwear, ev=footwear-noun) | jwpei/purses | Helena Pierced Floral Mesh Mules - Ivory | type=J3120505 brand=JW PEI
+96. [department] purses -> shoes (truth=footwear, ev=footwear-noun) | jwpei/purses | Micah Chunky Loafer - Black | type=10LS01 brand=JW PEI
+97. [department] purses -> shoes (truth=footwear, ev=footwear-noun) | jwpei/purses | Sofia Sphere Heel Mules - Rose Red | type=2MS83 brand=JW PEI
+98. [kind-rule] party -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | CCS Customs Birthday Skateboard Deck - Cradle 2 Grave - 7.75" | type=Decks (tablas de skate) brand=CCS
+99. [kind-rule] party -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | CCS Customs Birthday Skateboard Complete - Cradle 2 Grave | type=Skateboards completos brand=CCS
+100. [kind-rule] party -> sporting_goods (truth=sports, ev=sports-noun) | ccs/sporting_goods | CCS Customs Birthday Skateboard Deck - School Photo Girl - 8.00" | type=Decks (tablas de skate) brand=CCS
+101. [department] clothing -> joyas_accesorios (truth=jewelry, ev=jewelry-noun) | surfstation/clothing | Pura Vida Opal Sea Turtle Earrings - Silver | type=Accesorios brand=Pura Vida Bracelets
+102. [department] clothing -> joyas_accesorios (truth=jewelry, ev=jewelry-noun) | islandwatersports/clothing | Puravida Orginal Anklet | type=Accesorios brand=Pura Vida
+103. [department] clothing -> joyas_accesorios (truth=jewelry, ev=jewelry-noun) | islandwatersports/clothing | Puravida Silver Wave Bracelet | type=Accesorios brand=Pura Vida
+104. [kind-rule] party -> joyas_accesorios (truth=accessory, ev=sticker) | ccs/clothing | DGK My Spot Is Muni Sticker | type=Stickers y decoración brand=DGK Skateboards
+105. [kind-rule] party -> joyas_accesorios (truth=accessory, ev=sticker) | ccs/clothing | Foundation Star & Moon 5" Sticker | type=Stickers y decoración brand=Foundation
+106. [kind-rule] party -> joyas_accesorios (truth=accessory, ev=sticker) | ccs/clothing | CCS New Logo Decal Sticker - Black - 6" | type=Stickers y decoración brand=CCS
+107. [product-type] accesorios -> beauty (truth=beauty, ev=beauty-noun) | surfstation/clothing | Sun Bum SPF 50 6oz Continuous Spray Sunscreen | type=Accesorios brand=Sun Bum
+108. [product-type] accesorios -> beauty (truth=beauty, ev=beauty-noun) | valsurf/clothing | Classic Spray SPF 30 | type=Accesorios brand=Vacation
+109. [product-type] accesorios -> beauty (truth=beauty, ev=beauty-noun) | surfstation/clothing | Zinka Colored Nosecoat Sunscreen - Turquoise | type=Accesorios brand=Zinka
+110. [department] clothing -> beauty (truth=beauty, ev=beauty-noun) | surfstation/clothing | Sun Bum SPF30 Moisturizing .5oz Tinted Lip Balm Sunscreen - Heatwave | type=Accesorios brand=Sun Bum
+111. [department] clothing -> beauty (truth=beauty, ev=beauty-noun) | surfstation/clothing | Sun Bum Original SPF 45 3oz Face Mist Sunscreen | type=Accesorios brand=Sun Bum
+112. [department] clothing -> beauty (truth=beauty, ev=beauty-noun) | islandwatersports/clothing | Vacation Chardonnay Oil SPF 30 | type=Accesorios brand=Vacation Sunscreen
