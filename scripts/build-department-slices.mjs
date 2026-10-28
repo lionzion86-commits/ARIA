@@ -40,7 +40,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
+import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -144,10 +145,14 @@ export const KIND_MATCH = {
   /* DSW (#443) is a shoe warehouse: everything it files outside its
      bags bucket is footwear, whatever the title calls it ("Kassy Pump",
      "Rina Mule"). Only DSW rows take this branch. */
-  shoes: (t, p) => (p && p.retailer === "dsw" && p.bucket !== "purses") ||
-    hasAny(t, ["shoe", "zapato", "sneaker", "boot", "bota", "sandal", "sandalia", "loafer", "mocasin", "heel", "tacon", "tacón", "slipper", "pantufla", "cleat", "taco"]),
-  shoes_women: (t, p) => KIND_MATCH.shoes(t, p) && (hasAny(t, ["women", "woman", "mujer", "ladies", "dama", "female"]) || (p && p.retailer === "dsw" && p.bucket === "women")),
-  shoes_men: (t, p) => KIND_MATCH.shoes(t, p) && (hasAny(t, ["men", "man", "hombre", "mens", "caballero", "male"]) || (p && p.retailer === "dsw" && p.bucket === "men")),
+  /* ONE CLASSIFIER (#443 c.6405702652): the vetted footwear rules
+     (scripts/lib/footwear.js), not a substring list -- "heel" inside
+     "wheels" filled Zapatos with skate trucks. */
+  shoes: (t, p) => (p && p.retailer === "dsw" && p.bucket !== "purses") || isShoeForDept(p, p && p.retailer),
+  /* Whole words: "men" is inside "women", and the men's department led
+     with New Balance Women's 796v4 (#443 c.6405702652). */
+  shoes_women: (t, p) => KIND_MATCH.shoes(t, p) && (/\b(women|womens|women's|woman|mujer|mujeres|ladies|dama|damas|female)\b/.test(t) || (p && p.retailer === "dsw" && p.bucket === "women")),
+  shoes_men: (t, p) => KIND_MATCH.shoes(t, p) && (/\b(men|mens|men's|man|hombre|hombres|caballero|male)\b/.test(t) || (p && p.retailer === "dsw" && p.bucket === "men")),
   autoparts: (t) => hasAny(t, ["brake", "freno", "oil filter", "filtro de aceite", "spark plug", "bujía", "bujias", "air filter", "filtro de aire", "alternator", "alternador", "battery", "batería", "radiator", "radiador", "shock absorber", "amortiguador", "clutch", "embrague", "timing belt", "correa"]),
   luxury: (t, p) => ["ssense", "miumiu", "farfetch"].indexOf(p.retailer) !== -1 ||
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino"]),
@@ -229,7 +234,14 @@ export function loadAllItems(root = ROOT) {
 
 export function deptItems(all, key) {
   const rule = DEPT_RULES[key];
-  const list = all.filter((p) => belongsToDept(rule, p));
+  let list = all.filter((p) => belongsToDept(rule, p));
+  /* THE SHOE AISLES (#443 c.6405702652): the rails are Aria's classes
+     (Zapatillas, Sandalias, Botas y botines...), not each store's own
+     words -- sandals no longer split five ways or land in Zapatillas. */
+  /* ...and in Zapatos each class is a Mujer and a Hombre aisle (#443
+     c.6412658814): the gender is read before the class replaces the
+     store's own type, which is where Farfetch says WOMEN or MEN. */
+  if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer), ...(key === "shoes" ? { g: shoeGender(p, p.bucket) } : {}) }));
   /* Stable sort: on sale first, then cheapest (the page's order). */
   return list
     .map((p, i) => ({ p, i }))
@@ -259,7 +271,7 @@ export function build(root = ROOT) {
     if (existsSync(dir)) rmSync(dir, { recursive: true });
     mkdirSync(dir, { recursive: true });
     const list = deptItems(all, key);
-    const sections = buildSections(list);
+    const sections = buildSections(list, sectionOpts(key));
     writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS)));
     let files = 1;
     for (let b = 0; b < batchCount(sections); b++) { writeFileSync(join(dir, `rails-${b}.json`), JSON.stringify(batchOf(sections, b))); files++; }

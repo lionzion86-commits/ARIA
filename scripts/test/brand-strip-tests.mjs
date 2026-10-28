@@ -66,19 +66,27 @@ await check("phone width: every luxury tile is the same box, Golden Goose's wide
     await pg.goto(base + "/", { waitUntil: "load" });
     await pg.waitForFunction(() => typeof brandStripTileHTML === "function", null, { timeout: 60000 });
     /* the luxury brands as the strip draws them; Golden Goose's file is a 132mm-wide wordmark */
+    /* drawn into a strip of the test's own at the top of the page, with the
+       live strip's classes: the page's strip sits far below the fold with
+       lazy logos, and its own render can land on top of the test's tiles */
     const tiles = await pg.evaluate(() => {
-      const el = document.getElementById("mBrandStrip");
+      const live = document.getElementById("mBrandStrip");
+      const el = document.createElement("div");
+      el.className = live.className;
+      el.id = "bstStrip";
+      document.body.prepend(el);
       el.innerHTML = [["miumiu", "Miu Miu", 8], ["goldengoose", "Golden Goose", 726], ["dolcegabbana", "Dolce & Gabbana", 983], ["gucci", "Gucci", 88], ["venum", "Venum", 1240]]
-        .map(([key, label, count]) => brandStripTileHTML({ key, label, count })).join("");
+        .map(([key, label, count]) => brandStripTileHTML({ key, label, count })).join("").replace(/loading="lazy"/g, 'loading="eager"');
       return [...el.children].map((t) => ({ cls: t.className, k: t.dataset.brandStripItem }));
     });
     assert.ok(tiles.every((t) => t.cls.split(/\s+/).includes("brandTile")), "a tile lost its brandTile class: " + tiles.map((t) => t.cls.split(" ")[0]).join(", "));
     assert.ok(tiles.find((t) => t.k === "venum").cls.includes("brandTile--navy"), "Venum lost its navy plaque");
-    await pg.waitForFunction(() => [...document.querySelectorAll("#mBrandStrip img")].every((i) => i.complete), null, { timeout: 10000 });
-    const m = await pg.$$eval("#mBrandStrip .brandTile", (els) => els.map((e) => {
+    await pg.waitForFunction(() => [...document.querySelectorAll("#bstStrip img")].every((i) => i.complete), null, { timeout: 10000 });
+    const m = await pg.$$eval("#bstStrip .brandTile", (els) => els.map((e) => {
       const r = e.getBoundingClientRect(), img = e.querySelector("img"), c = e.querySelector(".brandTile-count");
       const ir = img && img.getBoundingClientRect();
-      return { k: e.dataset.brandStripItem, w: Math.round(r.width), h: Math.round(r.height), countLines: Math.round(c.getBoundingClientRect().height / parseFloat(getComputedStyle(c).lineHeight || "17")), img: ir && { w: ir.width, h: ir.height, inside: ir.left >= r.left - 0.5 && ir.right <= r.right + 0.5 && ir.top >= r.top - 0.5 && ir.bottom <= r.bottom + 0.5 } };
+      /* the layout box: the centred tile may be grown by card-grow (a transform) */
+      return { k: e.dataset.brandStripItem, w: e.offsetWidth, h: e.offsetHeight, countLines: Math.round(c.getBoundingClientRect().height / parseFloat(getComputedStyle(c).lineHeight || "17")), img: ir && { w: ir.width, h: ir.height, inside: ir.left >= r.left - 0.5 && ir.right <= r.right + 0.5 && ir.top >= r.top - 0.5 && ir.bottom <= r.bottom + 0.5 } };
     }));
     for (const t of m) {
       assert.deepEqual([t.w, t.h], [152, 108], t.k + " is " + t.w + "x" + t.h);

@@ -2,7 +2,7 @@
    Regenerate: node scripts/build-product-type.mjs */
 (function (root) {
 'use strict';
-const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?)\b/;
+const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?|CHIMPUNES?|CLEATS?|FOOTWEAR|CALZADO)\b/;
 const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|flats|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
 const CLEAT_HIKER_RX = /\b(tekela|furon|tacos|hikers?)\b|\b[FM]G\s*V\d|firm[-\s]?ground|multi[-\s]?ground/i;
 const NOT_FOOTWEAR = /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric|style)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector)|tar\s+heels|heels?\s+down|(?:brake|drum|kickstand)\s+shoes?|'?47\s+(?:clean\s+up|mvp|trucker|hitch)|dollhouses?|play\s*houses?|pretend\s+play|building\s+toys?|(?:infant|toddler|baby)\s+(?:and\s+toddler\s+)?toys?|mu[ñn]ec[ao]s?|dolls?|action\s+figures?|juguetes?|barbie|playsets?|climber|building\s+sets?|set\s+de\s+construcci[óo]n)\b/i;
@@ -10,7 +10,8 @@ const FOOTWEAR_RETAILERS = new Set(['footlocker']);
 const OXFORD_CLOTH_RX = /\boxford\b/i;
 const FOOTWEAR_NOUN_NOT_OXFORD = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords|flats|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
 function isFootwearType(type){
-  const t = String(type ?? '').toUpperCase();
+  /* "BOXING_SHOES": an underscore reads as a space (mirror of scripts/lib/footwear.js) */
+  const t = String(type ?? '').toUpperCase().replace(/_/g, ' ');
   return t ? FOOTWEAR_TYPE.test(t) : false;
 }
 function isFootwearTitle(title){
