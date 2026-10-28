@@ -677,7 +677,7 @@ export const RETAILER_DEPARTMENT = {
   crocs: "calzado",
   sephora: "belleza", ulta: "belleza", yesstyle: "belleza",
   bestbuy: "electrónica", bhphoto: "electrónica",
-  partycity: "fiesta", samsclub: "fiesta",
+  partycity: "fiesta",
 };
 
 /* A title that is plainly a toy, for a line with no department. */
