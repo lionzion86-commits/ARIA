@@ -22,7 +22,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
-import { KIND_MATCH, DEPT_RULES, belongsToDept } from "../build-department-slices.mjs";
+import { KIND_MATCH, DEPT_RULES, belongsToDept, loadAllItems, loadRefiles } from "../build-department-slices.mjs";
 import { PRODUCT_TYPES as BRAND_TYPES } from "../../netlify/functions/_brand-core.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -172,6 +172,28 @@ check("the built storefronts: CCS's skateboards, Walmart's toys and B&H's camera
   }
   const ccsSport = rail("ccs", "t-deportes");
   assert.ok(ccsSport && ccsSport.total > 1000, "CCS has no Deportes rail for its boards");
+});
+
+check("layer B: every bucket re-file lands in a department that admits it -- re-route, never remove", () => {
+  const refiles = loadRefiles(ROOT);
+  const n = Object.values(refiles).reduce((t, r) => t + Object.keys(r).length, 0);
+  assert.ok(n > 5000, `only ${n} re-files`);
+  const all = loadAllItems(ROOT);
+  let seen = 0;
+  const lost = [];
+  for (const p of all) {
+    const rf = refiles[p.retailer] && refiles[p.retailer][p.title];
+    if (!rf || p.bucket !== rf[1]) continue;
+    seen++;
+    if (!belongsToDept(DEPT_RULES[rf[1]], p)) lost.push(`${p.retailer} | ${p.title} -> ${rf[1]}`);
+  }
+  assert.ok(seen > 4000, `only ${seen} re-files applied to the live catalogue`);
+  assert.deepEqual(lost.slice(0, 10), [], `${lost.length} re-filed items reach no department`);
+  /* JW PEI's dresses are clothes, not Carteras. The map names all but a
+     handful ("Orchid ... Dress - Blush Pink": not flagged), which stay. */
+  const jw = all.filter((p) => p.retailer === "jwpei" && /\bdress\b/i.test(p.title));
+  const still = jw.filter((p) => p.bucket === "purses");
+  assert.ok(jw.length > 100 && still.length <= 10, `${still.length} of ${jw.length} JW PEI dresses still filed under purses`);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
