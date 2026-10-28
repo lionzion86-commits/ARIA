@@ -196,7 +196,10 @@ export function buildSections(list, opts = {}) {
   return secs;
 }
 function buildSectionsRaw(list, opts = {}) {
-  if (list.length && list.every((p) => p.retailer === PERFUME_STORE)) return buildPerfumeSections(list);
+  /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
+     audit it also admits the true fragrances other stores sell, which
+     join its brand rails -- the room keeps its layout. */
+  if (list.length && list.filter((p) => p.retailer === PERFUME_STORE).length >= list.length * 0.9) return buildPerfumeSections(list);
   const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
     .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
   const sections = [];
