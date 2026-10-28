@@ -51,6 +51,7 @@ import vm from "node:vm";
 import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
+import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
@@ -372,9 +373,29 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
     return [p.name, p.brand || "", p.price, pct > 0 && p.originalPrice ? p.originalPrice : 0, pct > 0 ? pct : 0, p.image, p.dept || "",
       facetMode ? (p.gender || "") : "", facetMode ? (p.cat || "") : ""];
   });
-  const fn = fnFile(key, rows, items, rails);
+  /* A multi-family rail or department pill opens into labelled
+     sub-carousels (scripts/lib/store-subrails.js); their pages are
+     endpoint rails like any other. */
+  const familyOf = (p) => { try { return R.productTypeOf(p); } catch { return "ropa"; } };
+  const withStore = (list) => list.map((p) => ({ p, v: { ...p, retailer: key } }));
+  const subsOf = (railKey, list, family) => {
+    const wrapped = withStore(list);
+    const back = new Map(wrapped.map((w) => [w.v, w.p]));
+    const subs = subRails(wrapped.map((w) => w.v), family);
+    if (!subs) return null;
+    return subs.map((s) => ({ key: subKey(railKey, s), aud: s.audLabel, title: s.title, items: s.items.map((v) => back.get(v)) }));
+  };
+  const subRailList = [];
+  const railSubs = {};
+  for (const r of rails) {
+    const fam = r.key.startsWith("t-") ? r.key.slice(2) : null;
+    const subs = fam && subsOf(r.key, r.items, fam);
+    if (subs) { railSubs[r.key] = subs; subRailList.push(...subs); }
+  }
+  const fn = fnFile(key, rows, items, rails.concat(subRailList));
   const at = new Map(items.map((p, i) => [p, i]));
   const card = (p) => cardOfRow(rows[at.get(p)]);
+  const subsMeta = (subs) => subs.map((s) => ({ k: s.key, a: s.aud || "", t: s.title, n: s.items.length }));
   const count = (pred) => { let n = 0; for (const p of items) if (pred(p)) n++; return n; };
   let chips;
   if (facetMode) {
@@ -384,13 +405,24 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
   } else {
     const keys = Object.keys(depts).sort((a, b) => String(depts[a]).localeCompare(String(depts[b]), "es"));
     chips = { mode: "dept", depts: keys.map((k) => ({ key: k, label: depts[k], count: count((p) => p.dept === k) })).filter((d) => d.count > 0) };
+    /* A pill that is mostly one splittable family (Walmart's Hogar)
+       opens into its aisles, in the grid's own order (sale depth). */
+    for (const d of chips.depts) {
+      const list = items.filter((p) => p.dept === d.key).sort(R.saleSort);
+      const fam = dominantFamily(list, familyOf);
+      const subs = fam && subsOf("c-" + d.key, list, fam);
+      if (!subs) continue;
+      d.subs = subsMeta(subs);
+      for (const s of subs) fn.rails[s.key] = s.items.map((p) => at.get(p));
+    }
   }
   const index = {
     v: 1, store: key, label: meta.label, count: items.length, pageSize: PAGE_SIZE, railPages: "fn",
     onSale: rows.filter((r) => r[4] > 0).length,
     chips,
     rails: rails.map((r, i) => headOrLazy({ key: r.key, title: r.title, total: r.items.length,
-      pages: Math.ceil(r.items.length / PAGE_SIZE) }, i, () => r.items.slice(0, RAIL_HEAD).map(card))),
+      pages: Math.ceil(r.items.length / PAGE_SIZE), ...(railSubs[r.key] ? { subs: subsMeta(railSubs[r.key]) } : {}) },
+      i, () => r.items.slice(0, RAIL_HEAD).map(card))),
   };
   return { files: { "index.json": index }, fn, products: items, rails };
 }
