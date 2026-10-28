@@ -139,6 +139,19 @@ await check("wiring: registry rows, the app's mirror and catalogue lists, the st
   assert.ok(bundle.includes("'carolinaherrera','goldengoose'"), "Carolina Herrera is not in the Aria Luxury strip");
   const K = await import("../../netlify/functions/_store-knowledge.js");
   for (const k of ["snipes", "carolinaherrera"]) assert.equal(K.STORE_KNOWLEDGE[k].product_count, cat(k).length, k + ": Aria quotes the wrong catalogue size");
+  /* SNIPES has its own homepage carousel (Danny's #522 review): phone,
+     desktop and tablet bands, after Finish Line, its saved shelf leading
+     with its sales. */
+  const home = read("index.html");
+  assert.equal((home.match(/data-store-rail="snipes"/g) || []).length, 3, "the SNIPES rail in all three bands");
+  for (const m of home.matchAll(/data-store-rail="finishline"[\s\S]*?<\/section>\s*(?:<!--[\s\S]*?-->\s*)?<section aria-label="([^"]+)"/g)) assert.equal(m[1], "SNIPES", "SNIPES follows Finish Line");
+  assert.match(bundle, /'finishline', 'snipes', 'dsw'/, "not in STORE_RAIL_STORES");
+  const shelves = JSON.parse(read("assets/home/shelves/index.json"));
+  assert.ok(shelves.stores.includes("snipes"), "no saved SNIPES shelf");
+  const shelf = JSON.parse(read("assets/home/shelves/store-snipes.json"));
+  const picks = shelf.picks || shelf.items || shelf;
+  assert.ok(Array.isArray(picks) && picks.length >= 8, "a thin SNIPES shelf");
+  assert.ok(picks.slice(0, 6).every((p) => p.onSale && p.originalPrice > p.price), "the SNIPES rail does not lead with its sales");
 });
 
 await check("the storefronts: SNIPES opens on its real Ofertas, then Nike, Jordan, adidas, New Balance, then its aisles; Carolina Herrera opens on Zapatos", () => {

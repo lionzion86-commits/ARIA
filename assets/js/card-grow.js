@@ -8,16 +8,19 @@
    brand rooms, Perfumes included -- and the product page's related shelves.
 
    Pointer (desktop): hovering a card lifts it and grows it to 1.12 with
-   a deeper shadow. Phone (no hover): the card nearest the middle of its
-   carousel grows to 1.10 as the row scrolls, and a tap presses it to
-   .97. The grow settles over 500ms ease-out, the press is quick.
-   Only the transform animates (the shadow changes once, with the
-   focus); nothing under reduced motion.
+   a deeper shadow; the grow settles over 500ms ease-out. Phone (no
+   hover): a tap presses the card to .97, quickly. Nothing under reduced
+   motion.
 
-   Every page with a carousel loads this file (defer). One capturing
-   scroll listener for the whole page, one rAF per frame, class toggles
-   only: a card row added later (department rails, Ver mas pages) is
-   picked up without wiring of its own.
+   CARDS AT REST ARE FLAT (Danny's #522 review, #443 c.6476447519): the
+   phone used to grow the card nearest the middle of each row to 1.10,
+   so on an iPhone one card always sat magnified with no hover -- every
+   carousel, not only SNIPES. Magnification is hover-only now; at rest
+   every card is the same size. The press on tap stays (it is feedback
+   to a touch, not a resting state).
+
+   Every page with a carousel loads this file (defer); it adds one style
+   sheet and nothing else.
    ============================================================ */
 (function () {
   "use strict";
@@ -52,7 +55,6 @@
       CARD + ":hover{z-index:2;transform:translateY(-4px) scale(1.12);box-shadow:0 22px 44px rgba(10,20,40,.34),0 6px 14px rgba(10,20,40,.18)}" +
     "}" +
     "@media (hover:none){" +
-      CARD + ".is-focus{z-index:2;transform:scale(1.10);box-shadow:0 18px 36px rgba(10,20,40,.30),0 5px 12px rgba(10,20,40,.16)}" +
       CARD + ":active{transform:scale(.97);transition-duration:120ms}" +
     "}" +
     "@media (prefers-reduced-motion:reduce){" + CARD + "{transition:none !important;transform:none !important}}";
@@ -66,60 +68,4 @@
   }
   addStyle();
 
-  /* PHONE FOCUS: with no hover, the card nearest the middle of the row
-     takes the focus as it scrolls in. Pointer devices hover instead. */
-  if (!window.matchMedia || !matchMedia("(hover: none)").matches) return;
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-  function isCard(el) {
-    var t = el.tagName;
-    return (t === "A" || t === "BUTTON") && !el.classList.contains("sk");
-  }
-
-  function focusRow(row) {
-    var r = row.getBoundingClientRect();
-    if (r.bottom < 0 || r.top > innerHeight || !r.width) return;
-    var mid = r.left + r.width / 2, best = null, bestD = Infinity;
-    for (var c = row.firstElementChild; c; c = c.nextElementSibling) {
-      if (!isCard(c)) continue;
-      var b = c.getBoundingClientRect(), d = Math.abs(b.left + b.width / 2 - mid);
-      if (d < bestD) { bestD = d; best = c; }
-    }
-    var last = row.querySelector(":scope > .is-focus");
-    if (best === last) return;
-    if (last) last.classList.remove("is-focus");
-    if (best) best.classList.add("is-focus");
-  }
-
-  var dirty = [], all = false, queued = false;
-  function run() {
-    queued = false;
-    var rows = all ? document.querySelectorAll(ROW) : dirty;
-    for (var i = 0; i < rows.length; i++) focusRow(rows[i]);
-    dirty = []; all = false;
-  }
-  function queue(row) {
-    if (row) { if (dirty.indexOf(row) < 0) dirty.push(row); } else all = true;
-    if (!queued) { queued = true; requestAnimationFrame(run); }
-  }
-
-  /* A row scrolling sideways refocuses that row; the page scrolling
-     brings new rows into view, so it refocuses those on screen. */
-  document.addEventListener("scroll", function (e) {
-    var t = e.target;
-    if (t && t.nodeType === 1 && t.matches(ROW)) queue(t); else queue(null);
-  }, { capture: true, passive: true });
-  addEventListener("resize", function () { queue(null); }, { passive: true });
-
-  function arm() {
-    queue(null);
-    /* Rows that fill in (or appear) after load. */
-    var pending = false;
-    new MutationObserver(function () {
-      if (pending) return;
-      pending = true;
-      setTimeout(function () { pending = false; queue(null); }, 150);
-    }).observe(document.body, { childList: true, subtree: true });
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arm); else arm();
 })();
