@@ -550,7 +550,7 @@ function typeKeywordBlocked(n, kw){
 function productTypeOf(item){
   var n = String((item && (item.name || item.title)) || '');
   if (window.AriaProductType){
-    try { return window.AriaProductType.classify({ name: n, type: item && item.type, retailer: (item && item.retailer) || storeKey, brand: item && item.brand }); } catch (e) {}
+    try { return window.AriaProductType.classify({ name: n, type: item && item.type, retailer: (item && item.retailer) || storeKey, brand: item && item.brand, bucket: item && item.dept }); } catch (e) {}
   }
   for (var i = 0; i < PRODUCT_TYPES.length; i++){
     if (!PRODUCT_TYPES[i].keywords.length) continue;

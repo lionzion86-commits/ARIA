@@ -156,7 +156,7 @@ export function loadProductType(root = ROOT) {
   return win.AriaProductType;
 }
 const PT = loadProductType();
-const itemOf = (p) => ({ name: (p && p.title) || "", type: (p && p.type) || "", retailer: (p && p.retailer) || "", brand: (p && p.brand) || "" });
+const itemOf = (p) => ({ name: (p && p.title) || "", type: (p && p.type) || "", retailer: (p && p.retailer) || "", brand: (p && p.brand) || "", bucket: (p && p.bucket) || "" });
 /* The product's family: its name, then its type, then its brand. */
 export const productClass = (p) => PT.classify(itemOf(p));
 /* What its own name says, "" when the name names nothing. */
