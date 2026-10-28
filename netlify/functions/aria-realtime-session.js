@@ -121,6 +121,9 @@ export async function handler(event) {
 
        Order matters: the first variant is the one we want, and we
        stop at the first that is accepted.
+
+       Every layer TRANSCRIBES (#443, one deterministic transcribing
+       config, fail closed): only audio tuning is ever shed.
        ------------------------------------------------------------ */
     const variants = [
       ["completa", (x) => x],
@@ -130,22 +133,11 @@ export async function handler(event) {
         if (v.audio.output) delete v.audio.output.speed;
         return v;
       }],
-      ["sin transcripción", (x) => {
-        const v = structuredClone(x);
-        delete v.audio.input.noise_reduction;
-        if (v.audio.output) delete v.audio.output.speed;
-        delete v.audio.input.transcription;
-        return v;
-      }],
-      ["mínima", (x) => ({
-        type: x.type,
-        model: x.model,
-        instructions: x.instructions,
-        audio: { input: { turn_detection: x.audio.input.turn_detection },
-                 output: { voice: x.audio.output.voice } },
-        tools: x.tools,
-        tool_choice: x.tool_choice,
-      })],
+      /* NO LAYER WITHOUT TRANSCRIPTION (#443 c.6416056033 item 1,
+         c.6431664255). "sin transcripción" and "mínima" used to follow:
+         a session the server answered by itself, which answered her own
+         echo in a loop and never reset the silence clock. Transcription
+         is not tuning; a mint that cannot have it fails, by name. */
     ];
 
     for (const [name, shape] of variants) {
@@ -197,6 +189,8 @@ export async function handler(event) {
     const { text, name, endpoint } = out;
     /* The session the API actually accepted, not the one asked for. */
     const accepted = variants.find(([n]) => n === name)[1](session);
+    /* The served variant, logged per mint (#443 c.6416056033 item 2). */
+    console.log(`[aria-realtime] minted variant="${name}" endpoint=/${endpoint} transcribes=${!!(accepted.audio && accepted.audio.input && accepted.audio.input.transcription)}`);
     if (name !== "completa") {
       console.warn(`[aria-realtime] accepted only the "${name}" session on /${endpoint}:`, JSON.stringify(attempts));
     }
