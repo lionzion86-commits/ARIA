@@ -51,6 +51,12 @@
                       retailer `farfetch` / `revolve` and stays.
      surfworld        Surf World (#443 item 40): the store closed, Sept 2026.
                       Gone from every served file as well (closed-store-purge).
+     samsclub         Sam's Club (#443 c.6468346931, Danny, 2026-10-28): one
+                      2026-09-26 scrape of a disposables aisle (120 products)
+                      cannot be a real store. Gone from every shopper surface
+                      and registry; samsclub-catalog.json is shelved, not
+                      deleted (the Sephora/SSENSE pattern), for a club that
+                      can return real.
    BACK ON SALE AS UNTESTED LANES (#443, Danny, 2026-10-24; Item 35: real
    orders or a test order decide the verdict):
      ssense           22:50 -- Neiman Marcus is not secured; premium depth.

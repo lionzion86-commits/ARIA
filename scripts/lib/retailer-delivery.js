@@ -70,7 +70,6 @@ export const RETAILER_DELIVERY = {
   gap:            { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   oldnavy:        { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   partycity:      { miamiMin: 5, miamiMax: 7, tier: "yellow" },
-  samsclub:       { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   kohls:          { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   /* RED — honest-warning banner on the storefront. */
   yesstyle:   { miamiMin: 14, miamiMax: 28, tier: "red", noteEs: "Se envía desde Hong Kong." },

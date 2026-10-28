@@ -113,7 +113,7 @@ export function deptOf(it, raw, dept) {
   if (/^books$/.test(d)) return "Books";
   if (/toys/.test(d)) return "Toys";
   if (/^(jewelry|jewelry_accessories|elegante|boho_hippie|personalizado|otaku|edgy|punk_rocker|fan_shop|personajes|ninos|novedad|otros|sunglasses)$/.test(dept || "")) return RX.bags.test(t) ? "Bags" : "Jewelry & accessories";
-  if (/^(home_goods|home_decor|small_home|candy_chocolate)$/.test(dept || "") || it.retailer === "partycity" || it.retailer === "samsclub") return "Home, party & grocery";
+  if (/^(home_goods|home_decor|small_home|candy_chocolate)$/.test(dept || "") || it.retailer === "partycity") return "Home, party & grocery";
   const fashionStore = WOMEN_STORES.has(it.retailer) || /^(farfetch|skims|hatch|islandwatersports|surfstation|valsurf|parrot|ccs|mainland|quietstorm|zumiez|walmart|abercrombie|hollister|americaneagle|dicks)$/.test(it.retailer);
   const anime = /\b(luffy|zoro|sanji|chopper|anime|funko|pacifier|seat|race suit|bracket|edition)\b/i;
   const swim = RX.swim.test(text.replace(/\bone[- ]piece\b/gi, "")) || /\btrunks\b/i.test(t) && !/boxer/i.test(t)

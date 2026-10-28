@@ -67,6 +67,46 @@ for (const [key, label] of Object.entries(CLOSED)) {
   });
 }
 
+/* SHELVED, NOT DELETED (#443 c.6468346931, Danny, 2026-10-28): Sam's Club
+   was one scrape of a disposables aisle, which cannot be a real store. It
+   leaves every shopper surface and registry, but its catalogue stays in
+   the repo untouched (the Sephora/SSENSE pattern) for a club that can
+   return real. off-sale.js keeps the key (it blocks a stale cart line). */
+const SHELVED = { samsclub: "Sam's Club" };
+const SHELVED_FILE = (key) => `${key}-catalog.json`;
+const NAME_RX = /sams\s*club|sam['’]s\s*club|sam&#39;s\s*club|samsclub|member['’]?s\s+mark/i;
+for (const [key, label] of Object.entries(SHELVED)) {
+  check(`${label}: shelved -- the catalogue is kept, and no file list, registry or served file names the store`, () => {
+    assert.ok(existsSync(ROOT + SHELVED_FILE(key)), "the shelved catalogue was deleted");
+    const rowRx = new RegExp(`"(?:retailer|store)"\\s*:\\s*"${key}"`);
+    const rows = tracked.filter((f) => served(f) && f.endsWith(".json") && f !== SHELVED_FILE(key) && rowRx.test(readFileSync(ROOT + f, "utf8")));
+    assert.deepEqual(rows, [], "product rows outside the shelved catalogue");
+    /* Every served text file, the app bundle included: only the off-sale
+       gate and the shelved catalogue itself may carry the name. */
+    const named = tracked.filter((f) => served(f) && /\.(html|js|mjs|css|json|xml|txt)$/.test(f)
+      && f !== SHELVED_FILE(key) && f !== "off-sale.js" && NAME_RX.test(readFileSync(ROOT + f, "utf8")));
+    assert.deepEqual(named, [], "served files still name the store");
+    const server = ["scripts/lib/retailers.js", "netlify/functions/_aria-prompt.js", "scripts/lib/retailer-delivery.js", "scripts/lib/item-weight.js",
+      "scripts/build-search-index.mjs", "scripts/build-department-slices.mjs", "scripts/build-brand-index.mjs"];
+    assert.deepEqual(server.filter((f) => NAME_RX.test(readFileSync(ROOT + f, "utf8"))), [], "a builder or registry still names it");
+    const K = readFileSync(ROOT + "netlify/functions/_store-knowledge.js", "utf8");
+    assert.doesNotMatch(K, new RegExp(`\\n  ${key}: \\{\\n\\s+name:`), "the assistant still describes it as a store");
+    assert.match(readFileSync(ROOT + "off-sale.js", "utf8"), new RegExp(`'${key}'`), "a stale cart line would pass the door");
+  });
+}
+
+check("the homepage's US-stores band is one wide Walmart tile, phone and desktop", () => {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const bands = html.match(/<section aria-label="Walmart" class="relative overflow-hidden"[\s\S]*?<\/section>/g) || [];
+  assert.equal(bands.length, 2, "the phone and desktop bands");
+  for (const b of bands) {
+    const tiles = b.match(/<button onclick="tiendaJump\('([a-z]+)'\)"[^>]*>/g) || [];
+    assert.equal(tiles.length, 1, "one tile");
+    assert.match(tiles[0], /tiendaJump\('walmart'\)/);
+    assert.match(tiles[0], /class="col-span-2 /, "the tile spans both slots");
+  }
+});
+
 check("the Toys aisle and the store photo backdrop are Walmart only", () => {
   const src = readFileSync(ROOT + `build/${bundle}`, "utf8");
   assert.match(src, /const STORE_CATEGORY_STORES = \['walmart'\];/);
