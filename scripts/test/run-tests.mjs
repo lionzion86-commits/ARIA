@@ -982,7 +982,7 @@ check("index.html's registry mirror matches the module", () => {
    existing sequence, only insertions. */
 const EXPECTED_EVERYDAY_ORDER = [
   "revolve", "target", "footlocker", "newbalance", "walmart", "sephora",
-  "macys", "kohls", "dicks", "bhphoto",
+  "macys", "kohls", "crateandbarrel", "pier1", "dicks", "bhphoto",
   "costco", "victoriassecret", "ulta", "pacsun",
   /* SURF & SKATE BATCH (2026-09-26, Danny): nine surf/skate/spearfishing
      shops, registry order after PacSun. */

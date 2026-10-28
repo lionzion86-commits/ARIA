@@ -51,6 +51,9 @@ const keys = Object.keys(STORES);
    Buy's themed slices are checked while a themed store is live. */
 /* A store whose catalogue is still pending (DSW, #443) is not live. */
 const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORES[k].pendingCatalog);
+/* Stores whose pull carries no demand signal (no reviews, no best-sellers
+   rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria). */
+const NO_DEMAND = new Set(["pier1"]);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;
@@ -132,7 +135,7 @@ await check("Ofertas de <store> leads whenever the store has a sale, and holds s
 await check("Más vendidos follows Ofertas where the store publishes demand; type rails after", () => {
   /* Sephora was the beauty sample here; it has no storefront since #443
      (DO NOT BUILD), so Hollister (Destacados, then Más vendidos) stands in. */
-  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED]) {
+  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED.filter((x) => !NO_DEMAND.has(x))]) {
     const ks = idx(k).rails.map((r) => r.key);
     assert.equal(ks[1], "masvendidos", `${k}: ${ks.join(",")}`);
   }
@@ -336,7 +339,9 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       assert.ok(r.cards <= ix.rails.length * RAIL_HEAD, `${store}: ${r.cards} cards drawn`);
       /* A chip (Best Buy: its department in the overlay), then the search box. */
       await pg.click(".chips .chip:nth-child(2)");
-      if (store === "bestbuy") {
+      /* A store sliced by department (Best Buy, the Casa Aria stores) opens
+         the chip's department rail in the Ver todo overlay. */
+      if (ix.depts) {
         await pg.waitForFunction(() => document.querySelectorAll("#reGrid .card:not(.sk)").length > 0, null, { timeout: 30000 });
         /* The overlay is a fixed-height scroller: its cards must keep their
            height (they were 16px lines) and only on-screen photos load. */
