@@ -69,6 +69,9 @@ export const CATALOG_FILES = [
   "/bestbuy-catalog.json",
   /* DSW (#443): the committed empty envelope until the pull lands. */
   "/dsw-catalog.json",
+  /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
+  "/snipes-catalog.json",
+  "/carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "/perfumes-catalog.json",
 ];
