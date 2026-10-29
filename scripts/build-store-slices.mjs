@@ -156,6 +156,15 @@ export const SLICED_STORES = {
   /* BRANDSMART USA (Build Order B, #443, pulled 2026-10-28): Ofertas
      first (real compare-at prices), then the aisles in electronics order.
      The 220 V gate and the holds are scripts/lib/brandsmart.js. */
+  /* MICRO CENTER (#443 electronics wave, pulled 2026-10-28): ship-to-home
+     stock only; laptops, PC components, SSDs, keyboards, headphones.
+     Rules: scripts/lib/electronics-drops.js. */
+  microcenter: {
+    file: "microcenter-catalog.json",
+    label: "Micro Center",
+    DEPT_ORDER: AISLE_ORDER,
+    DEPT_LABELS: AISLE_LABELS,
+  },
   brandsmart: {
     file: "brandsmart-catalog.json",
     label: "BrandsMart USA",

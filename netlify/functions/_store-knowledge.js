@@ -436,6 +436,18 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "calzado formal o deportivo de rendimiento",
     peru_note: null,
   },
+  /* Micro Center (#443 electronics wave, pulled 2026-10-28). */
+  microcenter: {
+    name: "Micro Center",
+    vibe: "la tienda de computación y componentes para armar tu PC",
+    specialties: ["laptops", "placas madre", "ssd", "teclados mecánicos", "audífonos gamer"],
+    price_range: "medio", median_usd: 199.99, product_count: 612,
+    catalog_depth: "612 productos",
+    top_categories: ["componentes de pc", "audífonos", "computadoras", "gaming"],
+    best_for: "armar o mejorar una PC: placas madre, SSD NVMe, teclados y laptops",
+    not_for: "monitores y fuentes de poder sin voltaje confirmado (no se muestran)",
+    peru_note: "Solo productos que Micro Center envía a domicilio; los equipos que van al tomacorriente se venden solo con 220 V confirmado.",
+  },
   /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). Only what
      passes the 220 V gate is listed (scripts/lib/brandsmart.js). */
   brandsmart: {

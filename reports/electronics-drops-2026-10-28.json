@@ -1,0 +1,70 @@
+{
+ "generatedAt": "2026-10-29T00:24:45.993Z",
+ "stores": {
+  "walmart": {
+   "raw": 5407,
+   "kept": 2303,
+   "held": {
+    "out of stock": 1953,
+    "site-unshippable (bulk / weight)": 14,
+    "held-voltage-unstated": 971,
+    "not electronics (re-route)": 72,
+    "carrier-locked phone": 84,
+    "excluded-110v": 9,
+    "no price": 1
+   },
+   "byAisle": {
+    "tech_celulares": 112,
+    "tech_computadoras": 382,
+    "tech_audifonos": 256,
+    "tech_audio": 119,
+    "tech_gaming": 342,
+    "tech_camaras": 211,
+    "tech_relojes": 164,
+    "tech_casa_inteligente": 114,
+    "tech_auto": 23,
+    "tech_componentes": 5,
+    "tech_accesorios": 575
+   },
+   "onSale": 512
+  },
+  "costco": {
+   "raw": 454,
+   "kept": 282,
+   "held": {
+    "out of stock": 36,
+    "held-voltage-unstated": 122,
+    "not electronics (re-route)": 14
+   },
+   "byAisle": {
+    "tech_celulares": 1,
+    "tech_computadoras": 112,
+    "tech_audifonos": 14,
+    "tech_audio": 18,
+    "tech_gaming": 25,
+    "tech_camaras": 21,
+    "tech_relojes": 5,
+    "tech_casa_inteligente": 39,
+    "tech_auto": 5,
+    "tech_componentes": 10,
+    "tech_accesorios": 32
+   },
+   "onSale": 30
+  },
+  "microcenter": {
+   "raw": 696,
+   "kept": 612,
+   "held": {
+    "held-voltage-unstated": 84
+   },
+   "byAisle": {
+    "tech_computadoras": 107,
+    "tech_audifonos": 132,
+    "tech_gaming": 29,
+    "tech_componentes": 187,
+    "tech_accesorios": 157
+   },
+   "onSale": 278
+  }
+ }
+}
