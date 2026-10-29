@@ -104,7 +104,8 @@
     var it = D.carried.values();
     for (var r = it.next(); !r.done; r = it.next()) {
       var c = r.value;
-      if (c.indexOf(k) === 0 && c.length - k.length <= 3) return true;
+      /* A long enough first word is the brand ("abercrombie" for Abercrombie & Fitch). */
+      if (c.indexOf(k) === 0 && (c.length - k.length <= 3 || k.length >= 6)) return true;
       if (Math.abs(c.length - k.length) <= 1 && D.S.fuzzyEditDist(c, k, 1) <= 1) return true;
     }
     return false;
@@ -257,11 +258,20 @@
     return function (it) {
       if (!it) return false;
       var t = String(it.title || it.name || '');
-      if (s.drop && s.drop.test(t)) return false;
+      /* The drop words judge what the product IS -- the title before
+         "with", "+" or a comma -- not what ships with it: "Gaming Monitor
+         with Height Adjustable Stand" is a monitor, "Monitor Stand" is
+         not (#443 search audit, F6). */
+      var lead = t.split(/\s+(?:with|w\/|incl\.?|including)\s+|\s*[+,|]\s*/i)[0];
+      if (s.drop && s.drop.test(lead)) return false;
       if (s.brand && squash(it.brand) === s.brand) return true;
       if (s.noun) {
         var head = Array.from(S.catalogHeadWords(it)).pop();
-        if (!head || !s.noun.test(head)) return false;
+        /* ...or the title's last word, when the specs sit in brackets
+           mid-title ("Nitro 27" 2K QHD (2560 x 1440) 320Hz Gaming
+           Monitor" reads its head as "qhd"). */
+        var tail = norm(t.replace(/\s+[-\u2013|]\s+[^-\u2013|]*$/, '')).split(' ').pop();
+        if (!(head && s.noun.test(head)) && !(tail && s.noun.test(tail))) return false;
       }
       return !s.keep || s.keep.test(t);
     };

@@ -65,6 +65,9 @@ export const CATALOG_FILES = [
   "department-cache-walmart.json",
   "department-cache-oldnavy.json", "department-cache-footlocker.json",
   "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json",
+  /* Served on their store pages but missing from search (#443 audit F3,
+     caught by scripts/test/search-coverage-tests.mjs). */
+  "abercrombie-catalog.json", "hollister-catalog.json",
   "lanebryant-catalog.json", "dicks-catalog.json", "pacsun-catalog.json",
   "skims-catalog.json", "revolve-catalog.json", "ulta-catalog.json",
   "yesstyle-catalog.json", "miumiu-catalog.json", "partycity-catalog.json",

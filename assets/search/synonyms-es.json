@@ -37,7 +37,7 @@
     "pijamas": "pajamas", "pijama": "pajamas", "ropa de bano": "swimsuit", "bikinis": "bikini", "mallas": "swimsuit",
     "medias": "socks", "calcetines": "socks", "trusas": "underwear", "calzoncillos": "boxer briefs", "brasieres": "bra", "sostenes": "bra",
     "bragas": "panties", "braga": "panties", "calzones": "panties", "calzon": "panties", "tangas": "thong", "tanga": "thong",
-    "lenceria": "lingerie", "calzoncillo": "boxer briefs", "boxers": "boxer briefs", "calcetin": "socks",
+    "lenceria": ["lingerie", "bra", "bralette", "panty", "thong", "bodysuit", "slip"], "brasier": "bra", "sosten": "bra", "calzoncillo": "boxer briefs", "boxers": "boxer briefs", "calcetin": "socks",
     "ternos": "suit", "terno": "suit", "corbatas": "tie", "corbata": "tie", "chalecos": "vest", "chaleco": "vest",
     "enterizos": "jumpsuit", "enterizo": "jumpsuit", "bodies": "bodysuit", "uniformes": "uniform"
   },
@@ -51,7 +51,7 @@
     "aretes": "earrings", "arete": "earrings", "collares": "necklace", "collar": "necklace", "pulseras": "bracelet", "pulsera": "bracelet",
     "anillos": "ring", "anillo": "ring", "joyas": "jewelry", "bufandas": "scarf", "bufanda": "scarf", "guantes": "gloves",
     "maletas": "suitcase", "maleta": "suitcase", "paraguas": "umbrella", "llaveros": "keychain", "llavero": "keychain",
-    "celular": "phone", "audifonos": "headphones", "parlante": "speaker", "cargador": "charger", "tableta": "tablet",
+    "celular": ["phone", "smartphone"], "audifonos": "headphones", "parlante": "speaker", "cargador": "charger", "tableta": "tablet",
     "laptop": "laptop", "computadora": "laptop", "pantalla": "monitor", "raton": "mouse", "teclado": "keyboard", "camara": "camera", "camaras": "camera", "vajilla": "dinnerware", "vajillas": "dinnerware", "pesas": ["dumbbell", "kettlebell"], "mancuernas": "dumbbell", "sabanas": ["sheet set", "sheets"]
   },
 
@@ -69,7 +69,7 @@
     "peluches": "plush", "peluche": "plush", "bicicletas": ["bicycle", "bike"], "bicicleta": ["bicycle", "bike"],
     "patines": "skates", "patineta": "skateboard", "patinetas": "skateboard", "scooter": "scooter",
     "rompecabezas": "puzzle", "legos": "lego", "carritos": "toy car", "carrito": "toy car", "pelotas": "ball", "pelota": "ball",
-    "juegos de mesa": "board game", "videojuegos": "video game", "consola": "game console", "triciclo": "tricycle",
+    "juegos de mesa": "board game", "videojuegos": "video game", "consola": "console", "consolas": "console", "triciclo": "tricycle",
     "coche de bebe": "stroller", "cochecito": "stroller", "biberones": "baby bottle", "biberon": "baby bottle",
     "panales": "diapers", "chupones": "pacifier"
   },
@@ -115,7 +115,7 @@
     "baby monitor": "baby monitor", "monitor de bebe": "baby monitor", "mickey mouse": "mickey mouse"
   },
 
-  "brands": [
+  "brands": ["alphalete", "ulta", "ulta beauty", "kohl's", "kohls", "macy's", "macys", "banana republic", "athleta", "best buy", "costco", "yesstyle", "sam's club", "surf world", "golden goose", 
     "nike", "adidas", "puma", "reebok", "new balance", "converse", "vans", "skechers", "crocs", "asics", "jordan", "under armour",
     "the north face", "columbia", "levis", "tommy hilfiger", "calvin klein", "ralph lauren", "polo ralph lauren", "lacoste", "guess",
     "michael kors", "kate spade", "coach", "steve madden", "dr martens", "ugg", "timberland", "birkenstock", "hoka", "on running",
