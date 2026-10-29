@@ -5,10 +5,9 @@
    Serves the repo with the department function answering in-process and
    opens each page that has carousels:
 
-     phone (390px, touch)  scroll a row: exactly one card -- the one
-                           nearest the middle -- holds the focus, grown to
-                           1.10, and the row has room for it (not clipped
-                           top or bottom);
+     phone (390px, touch)  scroll a row: every card stays flat at rest
+                           (Danny's #522 review: magnification is
+                           hover-only, never a resting state);
      desktop (pointer)     hovering a card grows it to 1.12 and lifts it;
                            no phone focus on a pointer;
      reduced motion        nothing grows;
@@ -95,16 +94,10 @@ for (const path of PAGES) {
       const r = await pg.evaluate(() => {
         const row = document.querySelector("[data-grow-probe]");
         const cards = [...row.children].filter((c) => /^(A|BUTTON)$/.test(c.tagName) && !c.classList.contains("sk"));
-        const focused = cards.filter((c) => c.classList.contains("is-focus"));
-        const rr = row.getBoundingClientRect(), mid = rr.left + rr.width / 2;
-        const nearest = cards.reduce((a, c) => { const b = c.getBoundingClientRect(); const d = Math.abs(b.left + b.width / 2 - mid); return d < a.d ? { c, d } : a; }, { c: null, d: Infinity }).c;
-        const f = focused[0], fb = f && f.getBoundingClientRect();
-        return { n: focused.length, nearest: f === nearest, transform: f ? getComputedStyle(f).transform : "",
-          room: f ? fb.top >= rr.top - 0.5 && fb.bottom <= rr.bottom + 0.5 : false, top: f ? Math.round(fb.top - rr.top) : null, bottom: f ? Math.round(rr.bottom - fb.bottom) : null };
+        const grown = cards.filter((c) => { const t = getComputedStyle(c).transform; return t !== "none" && t !== "matrix(1, 0, 0, 1, 0, 0)"; });
+        return { n: cards.length, grown: grown.length, focus: document.querySelectorAll(".is-focus").length };
       });
-      check(path, "phone: one focused card, the one nearest the middle", r.n === 1 && r.nearest, `focused ${r.n}`);
-      check(path, "phone: focus scale 1.10", Math.abs(scaleOf(r.transform) - 1.10) < 0.005, r.transform);
-      check(path, "phone: the row has room for the grown card", r.room, `top ${r.top}px, bottom ${r.bottom}px`);
+      check(path, "phone: every card flat at rest after a scroll (no magnified card)", r.n > 0 && r.grown === 0 && r.focus === 0, `${r.grown} of ${r.n} transformed, is-focus ${r.focus}`);
       /* a grown card, or the row's room around it, never covers a link or
          button outside the row ("Ver todo" in the heading above) */
       const covered = await pg.evaluate(async (ROW) => {

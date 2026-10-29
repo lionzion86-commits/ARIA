@@ -6421,7 +6421,7 @@ function renderMobileDealsRail(){
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE and Farfetch anchor the luxury end: browsable and honest,
    but slow. (Farfetch added 2026-09-29, Danny.) */
-const STORE_RAIL_STORES = ['bestbuy', 'newbalance', 'victoriassecret', 'gymshark', 'macys', 'kohls', 'footlocker', 'dicks', 'finishline', 'dsw', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'nautilus', 'islandwatersports', 'quietstorm', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['bestbuy', 'newbalance', 'victoriassecret', 'gymshark', 'macys', 'kohls', 'footlocker', 'dicks', 'finishline', 'snipes', 'dsw', 'zumiez', 'hottopic', 'boxlunch', 'abercrombie', 'hollister', 'bananarepublic', 'gap', 'costco', 'ssense', 'farfetch', 'nautilus', 'islandwatersports', 'quietstorm', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 /* HOMEPAGE_HIDDEN_STORES (2026-09-26, Danny): front-page real estate is
    for things people buy consistently. Rare big-ticket destinations --
    B&H's $3,000 cameras -- stay findable (Tiendas directory, category

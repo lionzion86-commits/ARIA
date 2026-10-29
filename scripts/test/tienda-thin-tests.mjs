@@ -54,12 +54,15 @@ const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORE
 /* The 2026-10-27 pulls (SNIPES, Carolina Herrera) carry no was-price and
    no demand signal: no Ofertas or Más vendidos rail to page. Their rail
    order is pinned in store-pulls-tests.mjs. */
-const PULL_ONLY = new Set(["snipes", "carolinaherrera"]);
+/* SNIPES has its real Ofertas since the 2026-10-28 PDP pass; it still
+   publishes no demand signal (NO_DEMAND). */
+const PULL_ONLY = new Set(["carolinaherrera"]);
 const LIVE_DEALS = LIVE_SLICED.filter((k) => !PULL_ONLY.has(k));
 /* Stores whose pull carries no demand signal (no reviews, no best-sellers
    rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria),
-   BrandsMart USA (Build Order B: its Shopify feed has neither). */
-const NO_DEMAND = new Set(["pier1", "brandsmart", "sleekshop"]);
+   BrandsMart USA (Build Order B: its Shopify feed has neither), SNIPES
+   (the PDP pass brought sizes and prices, not demand), SleekShop. */
+const NO_DEMAND = new Set(["pier1", "brandsmart", "sleekshop", "snipes"]);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;
