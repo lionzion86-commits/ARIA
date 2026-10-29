@@ -168,10 +168,27 @@ export function interleaveStoreCap(items, maxRun) {
   }
   return out;
 }
+/* THE LEAD OPENS ON VICTORIA'S SECRET (#443, Danny c.6483501901,
+   c.6495111883), as the homepage rail does (ofertasOpenBlock in the
+   bundle): its deepest markdowns, up to OPEN_N and one per product
+   name, come first; the spread and the run cap order the rest. */
+export const OPEN_STORE = "victoriassecret", OPEN_N = 6;
+const titleKey = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+export function openBlock(sorted) {
+  const open = [], rest = [], seen = new Set();
+  for (const c of sorted) {
+    const k = c.store === OPEN_STORE ? titleKey(c.title) : "";
+    if (c.store === OPEN_STORE && open.length < OPEN_N && !seen.has(k)) { seen.add(k); open.push(c); }
+    else rest.push(c);
+  }
+  return { open, rest };
+}
 export function leadRail(cards) {
   const mix = selectDeals(cards, { sort: "discount" });
   const sorted = [...mix].sort((a, b) => (leadRank(a) - leadRank(b)) || (b.pct - a.pct));
-  return interleaveStoreCap(spreadByStore(sorted, LEAD_SPREAD), MAX_RUN).slice(0, LEAD_N).map(({ _text, ...c }) => c);
+  const { open, rest } = openBlock(sorted);
+  const tail = interleaveStoreCap(spreadByStore(rest.filter((c) => c.store !== OPEN_STORE), LEAD_SPREAD), MAX_RUN);
+  return open.concat(tail, rest.filter((c) => c.store === OPEN_STORE)).slice(0, LEAD_N).map(({ _text, ...c }) => c);
 }
 export function railsIndex(cards, stores, generatedAt) {
   const stat = {};

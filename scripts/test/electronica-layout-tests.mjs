@@ -157,10 +157,25 @@ check("Celulares, the Peru-presence order: Pixel, OnePlus, iPhone, then the rest
   for (const c of cards) assert.doesNotMatch(c.t, /\b(marine|gimbal|grip)\b/i, c.t);
 });
 
-check("the homepage shelves: Electrónica, then Mujer, Hombre, Niños; pills above each carousel; a lens that hides nothing", () => {
+check("the homepage order (Danny, c.6495088261): Ofertas, Compra por categoría, Mujer, Hombre, Niños, the store rails led by Victoria's Secret, then Electrónica", () => {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  const ofertas = html.indexOf('<section aria-label="Ofertas"');
+  for (const id of ["mobileShopfront", "desktopShopfront"]) {
+    const from = html.indexOf(`<div id="${id}"`);
+    const at = (label) => html.indexOf(`<section aria-label="${label}"`, from);
+    const seq = ["Compra por categoría", "Mujer", "Hombre", "Niños", "Victoria's Secret", "Walmart", "Electrónica"].map(at);
+    assert.ok(ofertas > 0 && ofertas < from, `${id}: Ofertas opens the page`);
+    for (let i = 1; i < seq.length; i++) assert.ok(seq[i - 1] > from && seq[i - 1] < seq[i], `${id}: out of order at #${i}`);
+    assert.match(html.slice(seq[4], seq[5]), /data-store-rail="victoriassecret"/, `${id}: VS is the first store rail`);
+    assert.ok(html.indexOf('data-store-rail="', from) === html.indexOf('data-store-rail="victoriassecret"', from), `${id}: a store rail ahead of VS`);
+  }
+  assert.ok(html.indexOf('aria-label="Aria Key Club"') > html.indexOf('<div id="desktopShopfront"'), "nothing sits between Ofertas and Compra por categoría");
+});
+
+check("the homepage shelves: Mujer, Hombre, Niños, and Electrónica down with the stores (c.6495088261); pills above each carousel; a lens that hides nothing", () => {
   const html = readFileSync(ROOT + "index.html", "utf8");
   const shelves = [...html.matchAll(/<section aria-label="([^"]+)" data-pill-shelf="([a-z]+)"[^>]*>([\s\S]*?)<\/section>/g)];
-  assert.deepEqual(shelves.map((m) => m[2]), ["tech", "mujer", "hombre", "ninos", "tech", "mujer", "hombre", "ninos"], "phone and desktop");
+  assert.deepEqual(shelves.map((m) => m[2]), ["mujer", "hombre", "ninos", "tech", "mujer", "hombre", "ninos", "tech"], "phone and desktop");
   for (const m of shelves) {
     assert.ok(m[3].indexOf("data-pill-row") > 0 && m[3].indexOf("data-pill-row") < m[3].indexOf("data-pill-rail"), `${m[2]}: the pill row sits above the carousel`);
     assert.match(m[0], / hidden /, `${m[2]}: hidden until it fills`);

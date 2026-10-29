@@ -55,14 +55,15 @@ const LIVE_KEY = "walmart";
 console.log("off sale: " + KEYS.join(", "));
 
 /* ---------------- the list ---------------- */
-await check("one list: /off-sale.js as a plain script and its ES module agree, and Victoria's Secret is on it", async () => {
+await check("one list: /off-sale.js as a plain script and its ES module agree; Target is on it, Victoria's Secret is back (c.6472207775)", async () => {
   const ctx = {};
   vm.runInNewContext(read("off-sale.js"), { globalThis: ctx, window: ctx });
   assert(ctx.AriaOffSale, "off-sale.js did not set AriaOffSale as a plain script");
   assert(JSON.stringify([...ctx.AriaOffSale.OFF_SALE_RETAILERS]) === JSON.stringify(KEYS), "the script and the module disagree");
-  assert(KEYS.includes("victoriassecret"), "victoriassecret is not off sale");
+  assert(KEYS.includes("target"), "target is not off sale");
+  assert(!isOff("victoriassecret"), "victoriassecret is off sale again: Danny put it back (#443 c.6472207775)");
   assert(!isOff(LIVE_KEY), LIVE_KEY + " is off sale");
-  assert(isOff("VictoriasSecret") && isOff(" victoriassecret "), "the key match is not forgiving");
+  assert(isOff("Target") && isOff(" target "), "the key match is not forgiving");
   assert(!/\bimport\b|\bexport\b/.test(read("off-sale.js").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")), "off-sale.js must stay a plain script");
   return KEYS.length + " store(s)";
 });
@@ -216,8 +217,8 @@ await check("assistant: no off-sale store in the store knowledge, recommendation
     const info = K.getStoreInfo(label);
     assert(!info.product_count && !info.best_for, `getStoreInfo("${label}") describes the store: ${JSON.stringify(info).slice(0, 120)}`);
   }
-  const vs = K.getStoreInfo("victorias secret");
-  assert(vs.off_sale === true && /Ya no vendemos/.test(vs.note), "victorias secret: " + JSON.stringify(vs).slice(0, 160));
+  const tg = K.getStoreInfo("target");
+  assert(tg.off_sale === true && /Ya no vendemos/.test(tg.note), "target: " + JSON.stringify(tg).slice(0, 160));
   /* Every interest the knowledge answers, and every ambiguous branch. */
   const terms = new Set();
   for (const s of Object.values(K.STORE_KNOWLEDGE)) for (const t of s.specialties || []) terms.add(t);
@@ -267,7 +268,7 @@ await check("orders-create refuses an off-sale line with a Spanish 400, before a
     assert(Array.isArray(b.offSale) && b.offSale[0] === "Producto de prueba", k + " offSale: " + JSON.stringify(b.offSale));
   }
   const { offSaleLines } = OFF;
-  assert(offSaleLines([{ retailer: "victoriassecret", title: "x" }, { lineType: "bundle-discount", retailer: "victoriassecret" }, { retailer: LIVE_KEY, title: "y" }]).length === 1, "offSaleLines");
+  assert(offSaleLines([{ retailer: "target", title: "x" }, { lineType: "bundle-discount", retailer: "target" }, { retailer: LIVE_KEY, title: "y" }]).length === 1, "offSaleLines");
   return KEYS.length + " store(s) refused";
 });
 await check("orders-create does not refuse a live store's line for being off sale", async () => {

@@ -6368,6 +6368,23 @@ function gymRatLeadRank(p){ return gymRatIsAccessory(p) ? 1 : 0; }
    Sorted here rather than trusting the feed's own order, because the
    feed defaults to cheapest door-to-door and this rail is answering a
    different question. */
+/* THE RAIL OPENS ON VICTORIA'S SECRET (#443, Danny c.6483501901,
+   c.6483513104, c.6495111883): its deepest verified markdowns, up to
+   OFERTAS_OPEN_N of them and never the same product twice, come first;
+   then the five-shop spread and the run cap take over for the rest.
+   No VS deal today, no block: the rail starts on the spread as before. */
+const OFERTAS_OPEN_RETAILER = 'victoriassecret';
+const OFERTAS_OPEN_N = 6;
+function ofertasOpenBlock(sorted){
+  const open = [], rest = [], seen = new Set();
+  for (const p of sorted){
+    const vs = String(p.retailer || '').toLowerCase() === OFERTAS_OPEN_RETAILER;
+    const k = vs ? ofertasTitleKey(p.title) : '';
+    if (vs && open.length < OFERTAS_OPEN_N && !(k && seen.has(k))){ if (k) seen.add(k); open.push(p); }
+    else rest.push(p);
+  }
+  return { open, rest };
+}
 function renderMobileDealsRail(){
   /* DANNY 2026-10-07: use carouselDiscountPct (handles regularPrice/wasPrice),
        not raw originalPrice -- VS sale items were invisible in Ofertas. */
@@ -6378,7 +6395,9 @@ function renderMobileDealsRail(){
   /* The spread opens on five different shops; the interleave keeps it
      that way down the whole rail -- at most OFERTAS_MAX_RUN in a row
      from one retailer. */
-  const deals = interleaveRetailerCap(spreadDealsByStore(priced, MOBILE_RAIL_LEAD), OFERTAS_MAX_RUN).items.slice(0, MOBILE_RAIL_DEALS);
+  const { open, rest } = ofertasOpenBlock(priced);
+  const deals = open.concat(interleaveRetailerCap(spreadDealsByStore(rest, MOBILE_RAIL_LEAD), OFERTAS_MAX_RUN,
+    open.length ? { retailer: OFERTAS_OPEN_RETAILER, count: OFERTAS_MAX_RUN } : null).items).slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
   /* TWO ROWS, ONE LIST (2026-09-25). The phone's rail and the desktop
      shopfront's rail show the same deals in the same order, so a tap
