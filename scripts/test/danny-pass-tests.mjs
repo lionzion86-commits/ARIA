@@ -43,6 +43,19 @@ check("Mujer -> Zapatos: no soccer cleats, court or golf shoes", () => {
   const cards = pillCards("mujer", z.k);
   assert.ok(cards.length >= 8, `${cards.length} cards`);
   for (const c of cards) assert.doesNotMatch(c.t, SPORT_SHOE_RX, c.t);
+  /* ...and it opens on marketable sneakers and running shoes (c.6507161516). */
+  for (const c of cards.slice(0, 4)) assert.match(c.t, /\b(sneakers?|running|trainers?|shoes?|air max|550|spezial|samba|gazelle)\b/i, "Zapatos opens on: " + c.t);
+  for (const c of cards.slice(0, 4)) assert.doesNotMatch(c.t, /\b(sandals?|slides?|flip-?flops?|heels?|boots?)\b/i, "Zapatos opens on: " + c.t);
+});
+
+check("a phone that saw an earlier build gets this build's homepage data", () => {
+  const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]{16}\.js$/.test(f)), "utf8");
+  assert.match(bundle, /function dataUrl\(u\)/);
+  assert.match(bundle, /fetchWithTimeout\(dataUrl\(HOME_SHELVES_DIR \+ name \+ '\.json'\)/, "home shelves carry the build version");
+  assert.match(bundle, /pillFileLoads\[url\] = fetch\(dataUrl\(url\)\)/, "pill heads and lenses carry the build version");
+  assert.match(bundle, /fetchWithTimeout\(dataUrl\('\/ofertas-feed-lite\.json'\)/, "the Ofertas feed carries the build version");
+  const headers = readFileSync(ROOT + "_headers", "utf8");
+  for (const path of ["/assets/home/*", "/assets/ofertas/*", "/ofertas-feed-lite.json"]) assert.match(headers, new RegExp(path.replace(/[.*]/g, (c) => "\\" + c) + "\\s+Cache-Control: no-cache"), path);
 });
 
 check("Diseñadores Latinos opens on bikinis and swim", () => {
