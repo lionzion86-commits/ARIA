@@ -793,7 +793,7 @@
      off sale is shown as unavailable with Quitar and Pagar stays closed
      (orders-create.js refuses it too). */
   import { isOffSaleItem, OFF_SALE_LINE_NOTE } from './scripts/lib/off-sale.js';
-  import { conditionOfTitle } from './scripts/lib/condition.js';
+  import { conditionOfTitle, SOLD_OUT_NOTE } from './scripts/lib/condition.js';
   /* DELIVERY TRANSPARENCY (2026-09-26): the researched Miami-transit dataset. */
   import { deliveryFor, miamiRangeEs, slowestDeliveryKey,
            MIAMI_TO_DOOR_MIN, MIAMI_TO_DOOR_MAX } from './scripts/lib/retailer-delivery.js';
@@ -2332,6 +2332,7 @@ function cardImgAttrs(url, sizes){
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
           <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && conditionOfTitle(it.title) ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+          ${it.lineType !== 'bundle-discount' && conditionOfTitle(it.title) ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
           ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
             <label for="lineSize${i}" class="block text-[12px] font-bold leading-snug" style="color:#B03A2E">Falta elegir la talla de este producto. Elígela para poder pagar.</label>

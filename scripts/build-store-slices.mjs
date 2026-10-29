@@ -166,6 +166,15 @@ export const SLICED_STORES = {
     DEPT_ORDER: SLEEK_ORDER,
     DEPT_LABELS: SLEEK_LABELS,
   },
+  /* MICRO CENTER (#443 electronics wave, pulled 2026-10-28): ship-to-home
+     stock only; laptops, PC components, SSDs, keyboards, headphones.
+     Rules: scripts/lib/electronics-drops.js. */
+  microcenter: {
+    file: "microcenter-catalog.json",
+    label: "Micro Center",
+    DEPT_ORDER: AISLE_ORDER,
+    DEPT_LABELS: AISLE_LABELS,
+  },
   brandsmart: {
     file: "brandsmart-catalog.json",
     label: "BrandsMart USA",

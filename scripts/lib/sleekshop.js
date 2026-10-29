@@ -42,6 +42,31 @@ export const AISLE_ORDER = ["cab_keratina", "cab_mascarillas", "cab_reparacion",
   "cab_sin_enjuague", "cab_champu", "cab_tratamientos"];
 export const CAB_BUCKETS = AISLE_ORDER;
 
+/* THE CABELLO AISLE (Danny, #443 c.6473257128): a hair product from any
+   store, filed into SleekShop's treatment aisles by its own name. */
+const HAIR_AISLE_RULES = [
+  ["cab_keratina", /\b(keratin|queratina|alisad\w*|straighten\w*|smoothing|brazilian blowout)\b/i],
+  ["cab_mascarillas", /\b(masks?|masque|mascarillas?|deep condition\w*)\b/i],
+  ["cab_reparacion", /\b(bond|repair|reparaci[oó]n|olaplex|k18)\b/i],
+  ["cab_aceites", /\b(oils?|aceites?|serums?|s[eé]rum|argan|arg[aá]n)\b/i],
+  ["cab_cuero", /\b(scalp|cuero cabelludo|dandruff|caspa|anti-?hair ?loss|thinning)\b/i],
+  ["cab_sin_enjuague", /\b(leave-?in|sin enjuague|detangl\w*)\b/i],
+  ["cab_champu", /\b(shampoo|champ[uú]|conditioner|acondicionador|co-?wash)\b/i],
+];
+const HAIR_RX = /\b(hair|cabello|pelo|shampoo|champ[uú]|conditioner|acondicionador|scalp|keratin|queratina|leave-?in|argan|curl\w*)\b/i;
+/** The Cabello aisle for any store's hair product, or "" when it is not hair care. */
+export function hairAisle(title) {
+  const t = String(title || "");
+  if (!HAIR_RX.test(t) || /\b(dryers?|straighteners? \(?iron|flat irons?|curling (iron|wand)|brush(es)?|combs?|clips?|ties|scrunchies|wigs?|extensions?|color|dye|tinte)\b/i.test(t)) return "";
+  for (const [k, rx] of HAIR_AISLE_RULES) if (rx.test(t)) return k;
+  return "cab_tratamientos";
+}
+/* THE PERU-PRESENCE RULE (Danny, c.6473257128): a brand Peru's pharmacies
+   and supermarkets sell cheaply enters the aisle only on sale and never
+   leads; everything else -- the salon, professional and K-beauty lines
+   Peru does not carry -- leads at full range. */
+export const PERU_SOLD_HAIR_RX = /\b(pantene|head ?& ?shoulders|dove|garnier|fructis|sedal|tresemm[eé]|herbal essences|l'or[eé]al paris|elvive|elseve|savital|konzil|johnson'?s|nivea|suave|aussie|clear|h&s|vo5|organix|ogx)\b/i;
+
 const AEROSOL_RX = /\baerosol\b|\bdry shampoo\b|\bhair ?spray\b/i;
 const RELAXER_RX = /\brelaxers?\b|\bno[- ]lye\b|\blye\b|\bperm(anent wave)?\b/i;
 const SIZE_RX = /(\d+(?:\.\d+)?)\s*(fl\.?\s*oz|oz|ml|liters?|litres?|l\b|g\b|grams?)/gi;

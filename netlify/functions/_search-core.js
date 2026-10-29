@@ -32,6 +32,7 @@ import { join, resolve } from "node:path";
 import vm from "node:vm";
 import { cartLineFor, doorPrice, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN } from "./_door-price.js";
 import { deliveryFor, miamiRangeEs } from "../../scripts/lib/retailer-delivery.js";
+import { isConsole } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;
 /* How many ranked results a search keeps. The pipeline's own default
@@ -209,7 +210,9 @@ export function runQuery(ctx, q) {
 const DEVICE_QUERIES = [
   [/^(celular(es)?|telefonos?( celular(es)?)?|smartphones?|moviles?|phones?|cell ?phones?)$/, /\b(iphone \d+\w*|iphone se|galaxy [sza]\d+|galaxy z|pixel \d+\w*|moto ?(g|edge|razr)|razr|smartphone|cell ?phone|unlocked)\b/i],
   [/^(laptops?|computadoras?( portatil(es)?)?|notebooks?|portatil(es)?|chromebooks?)$/, /\b(laptops?|notebooks?|chromebooks?|macbook|vivobook|zenbook|ideapad|thinkpad)\b/i],
-  [/^(consolas?( de videojuegos?)?|videoconsolas?|consoles?)$/, /\b(consoles?|steam deck|playstation (5|portal)|xbox series|nintendo switch( 2| oled| lite)?|rog ally|legion go|meta quest \d)\b/i],
+  /* A console query leads with the console itself, by the Electrónica
+     Consolas rule: a game names its console too. */
+  [/^(consolas?( de videojuegos?)?|videoconsolas?|consoles?)$/, /\b(consoles?|steam deck|playstation (5|portal)|xbox series|nintendo switch( 2| oled| lite)?|rog ally|legion go|meta quest \d)\b/i, (p) => isConsole(p)],
   [/^(camaras?( de fotos?)?|camaras? fotograficas?|cameras?)$/, /\b(cameras?|mirrorless|dslr|gopro|instax|camcorders?|osmo)\b/i],
   [/^(tablets?|tabletas?|ipads?)$/, /\b(tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle)\b/i],
   [/^(audifonos|auriculares|headphones|earbuds)$/, /\b(headphones?|earbuds?|airpods|headsets?|earphones?)\b/i],
@@ -230,15 +233,37 @@ function isAccessoryName(name) {
 const NOT_A_DEVICE_RX = /\b(repair|kits?|tools?|skins?|stands?|replacement|covers?|decals?|stickers?|parts?)\b/i;
 const deaccent = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 export function isDeviceQuery(q) { const k = deaccent(q); return DEVICE_QUERIES.some(([qx]) => qx.test(k)); }
+/* Asking for the accessory ("funda celular", "cargador iphone"): what fits
+   the device leads, the device itself follows. */
+const ACCESSORY_QUERY_RX = /\b(fundas?|forros?|estuches?|cases?|covers?|cargador(es)?|chargers?|micas?|protector(es)?|cables?|soportes?|holders?)\b/;
+/* The device the shopper named, and how a title names it. */
+const ACCESSORY_DEVICES = [
+  [/\b(celular(es)?|telefonos?|movil(es)?|iphone|samsung|galaxy|pixel|motorola|smartphones?|phones?)\b/, /\b(phones?|iphone|galaxy|pixel|smartphones?|magsafe|motorola|moto g)\b/i],
+  [/\b(laptops?|computadoras?|portatil(es)?|macbook|notebooks?|chromebooks?)\b/, /\b(laptops?|macbook|notebooks?|chromebooks?)\b/i],
+  [/\b(tablets?|tabletas?|ipads?)\b/, /\b(tablets?|ipad|galaxy tab)\b/i],
+  [/\b(consolas?|switch|ps5|playstation|xbox)\b/, /\b(switch|ps5|playstation|xbox|quest)\b/i],
+  [/\b(audifonos|auriculares|airpods|earbuds)\b/, /\b(airpods|earbuds|headphones)\b/i],
+];
+export function accessoryLead(q, hits) {
+  const k = deaccent(q);
+  const dev = ACCESSORY_QUERY_RX.test(k) && ACCESSORY_DEVICES.find(([qx]) => qx.test(k));
+  if (!dev || !Array.isArray(hits) || hits.length < 2) return hits;
+  const acc = [], fits = [], rest = [];
+  for (const p of hits) {
+    const t = p.title || "";
+    (dev[1].test(t) ? (isAccessoryName(t) ? acc : fits) : rest).push(p);
+  }
+  return acc.concat(fits, rest);
+}
 export function deviceLead(q, hits) {
   const k = deaccent(q);
   const hit = DEVICE_QUERIES.find(([qx]) => qx.test(k));
-  if (!hit || !Array.isArray(hits) || hits.length < 2) return hits;
+  if (!hit || !Array.isArray(hits) || hits.length < 2) return accessoryLead(q, hits);
   const dev = [], rest = [], last = [];
   for (const p of hits) {
     const t = p.title || "";
     if (NOT_A_DEVICE_RX.test(t)) last.push(p);
-    else (hit[1].test(t) && !isAccessoryName(t) ? dev : rest).push(p);
+    else ((hit[2] ? hit[2](p) : hit[1].test(t) && !isAccessoryName(t)) ? dev : rest).push(p);
   }
   return dev.concat(rest, last);
 }

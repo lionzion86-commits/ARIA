@@ -133,6 +133,20 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* MICRO CENTER (#443 electronics wave, Order C; pulled 2026-10-28,
+     drop microcenter-2026-10-28): ship-cleared by the sourcing audit,
+     ship-to-home pool only. microcenter-catalog.json, written by
+     scripts/build-electronics-drops.mjs. No logo file: the wordmark. */
+  microcenter: {
+    key: "microcenter",
+    label: "Micro Center",
+    color: "#C8102E",
+    logo: null,
+    tagline: "Laptops, componentes de PC y periféricos",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* BRANDSMART USA (Build Order B, #443, Danny 2026-10-28: «We need a
      major electronic store»): the electronics anchor, the second wide
      Tiendas card. brandsmart-catalog.json, written by

@@ -15,6 +15,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { CATALOG_FILES } from "../build-search-index.mjs";
 import { isOffSaleRetailer } from "../lib/off-sale.js";
 import { deviceLead } from "../../netlify/functions/_search-core.js";
+import { isConsole } from "../lib/tech-aisle.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -59,7 +60,7 @@ async function ask(q) {
   return JSON.parse(r.body);
 }
 const results = {};
-for (const q of ["celular", "consola", "laptop", "monitor", "monitor de bebe", "alphalete", "gymshark", "abercrombie", "hollister", "lenceria", "brasier", "funda celular"]) results[q] = await ask(q);
+for (const q of ["celular", "consola", "laptop", "monitor", "monitor de bebe", "alphalete", "gymshark", "abercrombie", "hollister", "lenceria", "brasier", "funda celular", "cargador iphone"]) results[q] = await ask(q);
 const top = (q, n = 6) => results[q].items.slice(0, n).map((i) => i.title);
 
 /* What the index holds decides what a search can show: before the
@@ -70,6 +71,7 @@ const ixRows = JSON.parse(readFileSync(ROOT + "assets/search/catalog-index.json"
 const stocked = (rx) => ixRows.filter((r) => rx.test(r[1])).length;
 const PHONES = stocked(/\b(galaxy [sza]\d+|iphone \d+\w*|pixel \d+\w*)\b(?![^|]*\b(case|cover|protector|charger)\b)/i);
 const MONITORS = stocked(/\b\d{2}(\.\d)?\s?("|”|-?inch)[^|]*\bgaming monitor\b/i);
+const CONSOLES = stocked(/\b(nintendo switch\S*\s*2 system|meta quest 3s? \d+gb|playstation portal)\b/i);
 
 check("F6: a device search opens on the device, not what fits it", () => {
   const rows = ["Death Lens Impact Phone Case - iPhone 16", "Samsung Galaxy A15 5G 64GB Unlocked", "Car Charger for Phone", "Game Console Repair Kit Tools", "PlayStation 5 Slim Console"]
@@ -77,11 +79,18 @@ check("F6: a device search opens on the device, not what fits it", () => {
   assert.deepEqual(deviceLead("celular", rows).map((p) => p.title)[0], "Samsung Galaxy A15 5G 64GB Unlocked");
   assert.deepEqual(deviceLead("consola", rows).map((p) => p.title)[0], "PlayStation 5 Slim Console");
   assert.equal(deviceLead("consola", rows).map((p) => p.title).pop(), "Game Console Repair Kit Tools", "a repair kit goes last");
-  assert.deepEqual(deviceLead("funda celular", rows), rows, "asking for the accessory keeps the engine's order");
+  assert.deepEqual(deviceLead("funda celular", rows).map((p) => p.title).slice(0, 3),
+    ["Death Lens Impact Phone Case - iPhone 16", "Car Charger for Phone", "Samsung Galaxy A15 5G 64GB Unlocked"], "asking for the accessory: what fits the phone leads, then the phone");
   if (PHONES >= 6) for (const t of top("celular")) assert.doesNotMatch(t, /\b(case|cover|charger|holder|mount|screen protector)\b/i, "celular: " + t);
   for (const t of top("consola", 3)) assert.doesNotMatch(t, /\b(repair|kit|tools?)\b/i, "consola: " + t);
   for (const t of top("laptop")) assert.match(t, /laptop|notebook|chromebook|macbook/i, "laptop: " + t);
   assert.ok(top("funda celular").some((t) => /\bcase\b/i.test(t)), "funda celular");
+  /* Asking for the accessory: what fits the named device leads -- not a
+     charger plate, not the phone itself. */
+  for (const t of top("funda celular", 4)) assert.match(t, /\bcase\b/i, "funda celular: " + t);
+  for (const t of top("cargador iphone", 4)) { assert.match(t, /charger/i, "cargador iphone: " + t); assert.match(t, /phone|iphone|magsafe/i, "cargador iphone: " + t); }
+  /* «consola» opens on the consoles themselves, by the Electrónica Consolas rule. */
+  if (CONSOLES >= 4) for (const t of top("consola", 4)) assert.ok(isConsole({ title: t }), "consola: " + t);
 });
 
 check("monitors: a monitor sold with a stand is a monitor; a baby monitor is asked for by name", () => {

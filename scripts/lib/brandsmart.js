@@ -26,33 +26,14 @@
    Nothing is deleted: every held row is counted in the report by reason.
    ============================================================ */
 import { voltageVerdict, conditionOf, lockedPhone } from "./walmart-write.js";
+import { techAisle, isTechProduct, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from "./tech-aisle.js";
 
-/* The aisles' bucket keys are tech_*: unique to this store, so no other
-   store's "audio" or "accesorios" rides into Electrónica with them
-   (scripts/build-department-slices.mjs reads TECH_BUCKETS). */
-export const AISLES = {
-  phones: "tech_celulares",
-  "computers-tablets": "tech_computadoras",
-  "audio-speakers": "tech_audio",
-  headphones: "tech_audifonos",
-  cameras: "tech_camaras",
-  gaming: "tech_gaming",
-  wearables: "tech_relojes",
-  "smart-home-security": "tech_casa_inteligente",
-  "car-audio": "tech_auto",
-  "accessories-power": "tech_accesorios",
-  "other-electronics": "tech_accesorios",
-  "small-appliances": "tech_electro",
-};
-export const AISLE_LABELS = {
-  tech_celulares: "Celulares", tech_computadoras: "Computadoras y tablets", tech_audifonos: "Audífonos",
-  tech_audio: "Audio y parlantes", tech_gaming: "Gaming", tech_camaras: "Cámaras", tech_relojes: "Relojes inteligentes",
-  tech_casa_inteligente: "Casa inteligente y seguridad", tech_auto: "Audio para auto", tech_accesorios: "Accesorios y energía",
-  tech_electro: "Electrodomésticos pequeños",
-};
-export const AISLE_ORDER = ["tech_celulares", "tech_computadoras", "tech_audifonos", "tech_audio", "tech_gaming", "tech_camaras", "tech_relojes",
-  "tech_casa_inteligente", "tech_auto", "tech_accesorios", "tech_electro"];
-
+/* The aisles are scripts/lib/tech-aisle.js's, by product TYPE (the
+   aisle-truth audit, c.6476569113): one rule for every electronics store.
+   Bucket keys are tech_*: unique to Electrónica, so no other store's
+   "audio" or "accesorios" rides in with them. */
+export const AISLE_LABELS = TECH_AISLE_LABELS;
+export const AISLE_ORDER = TECH_AISLE_ORDER;
 export const TECH_BUCKETS = AISLE_ORDER;
 
 /* Wall-powered device classes the Walmart verdict reads as not-mains. */
@@ -68,8 +49,16 @@ const BATTERY_DEVICE_RX = /\b(laptops?|notebooks?|chromebooks?|macbook|omnibook|
 const DANGEROUS_LITHIUM_RX = /\bportable power station\b|\bpower station\b|\blithium\b.*\bbatter(y|ies)\b|\bbatter(y|ies)\b.*\blithium\b/i;
 
 /** "sell" or the hold reason, for one in-scope row. */
+/* A video game names its console ("Call of Duty - Xbox Series X", "Diablo
+   IV: Cross-Gen Bundle - Xbox Series X") without being one: a disc or a
+   download draws no current, whatever WALL_DEVICE_RX reads in its name. */
+const GAME_SOFTWARE_RX = /\b(cross-gen|game of the year|deluxe edition|standard edition|digital edition code|\[digital\]|u\.?s\.? version|region free|- (nintendo switch( 2)?|playstation [45]|ps[45]|xbox (one|series [xs]))\s*$|(for|para) (nintendo switch|playstation|ps[45]|xbox))/i;
+const CONSOLE_DEVICE_RX = /\b(console|system|hardware|controller|headset|power|charger|adapter|dock|cable|stand)\b/i;
+const HOME_CONSOLE_RX = /\b(playstation\s*5|ps5|xbox series [xs]|xbox one)\b[^|]*\b(console|system)\b|\b(console|system)\b[^|]*\b(playstation\s*5|ps5|xbox series [xs])\b/i;
+export function isGameSoftware(name) { const n = String(name || ""); return GAME_SOFTWARE_RX.test(n) && !CONSOLE_DEVICE_RX.test(n); }
 export function voltageGate(r) {
   if (r.flag110vOnly) return "excluded-110v";
+  if (isGameSoftware(r.name)) return "sell";
   if (r.voltageClass === "covers-220v") return "sell";
   if (r.subcategory === "car-audio" && !/\b(soundbar|home theater)\b/i.test(r.name)) return "sell";
   const text = `${r.descriptionEn || ""} ${r.voltageSpec || ""}`;
@@ -77,6 +66,11 @@ export function voltageGate(r) {
   if (v === "verified") return "sell";
   if (v === "excluded-110v") return "excluded-110v";
   const wall = WALL_DEVICE_RX.test(r.name);
+  /* A home console sold "with a DualSense controller" is the console: the
+     controller in its name is not the accessory exemption below. It sells
+     on a stated rating like every other mains device. */
+  const consoleItself = HOME_CONSOLE_RX.test(r.name) && !/\b(for|compatible|fits)\b/i.test(r.name);
+  if (consoleItself && v !== "verified") return "held-voltage-unstated";
   if (BATTERY_DEVICE_RX.test(r.name) && !wall && r.subcategory !== "small-appliances") return "sell";
   if (v !== "not-mains" && !(ACCESSORY_RX.test(r.name) && r.subcategory !== "small-appliances")) return "held-voltage-unstated";
   /* A small appliance is mains even when "cordless" (a kettle on its
@@ -98,8 +92,8 @@ export function normalizeBrandsmart(rows, { isShippableItem } = {}) {
     if (!r || r.type !== "product") continue;
     if (r.outOfScope) { hold("out-of-scope (TV / large appliance)"); continue; }
     if (r.subcategory === "kitchen-food-prep") { hold("kitchen food-prep (not the electronics core)"); continue; }
-    const aisle = AISLES[r.subcategory];
-    if (!aisle) { hold("no aisle"); continue; }
+    if (r.subcategory !== "small-appliances" && !isTechProduct(r.name, r.subcategory)) { hold("not electronics (re-route)"); continue; }
+    const aisle = r.subcategory === "small-appliances" ? "tech_electro" : techAisle(r.name, r.subcategory);
     if (r.inStock === false || r.availability !== "in_stock") { hold("out of stock"); continue; }
     if (seen.has(r.productId)) { hold("duplicate"); continue; }
     seen.add(r.productId);

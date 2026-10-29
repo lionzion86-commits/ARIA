@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
-import { build, railsIndex, leadRail, RAILS_FILE, LEAD_N, LEAD_SPREAD, MAX_RUN, MIN_RAIL } from "../build-ofertas-slices.mjs";
+import { build, railsIndex, leadRail, RAILS_FILE, LEAD_N, LEAD_SPREAD, MAX_RUN, MIN_RAIL, OPEN_N, OPEN_STORE } from "../build-ofertas-slices.mjs";
 import { PAGE_SIZE, SORTS, FIELDS, unpackCard, selectDeals, pageOf, loadDeals } from "../../netlify/functions/_ofertas-core.js";
 import { handler } from "../../netlify/functions/ofertas.js";
 
@@ -209,19 +209,29 @@ await check("rails.json is current and small: the lead rail, the store rails, th
   assert.equal(j.more.length, j.moreStores.reduce((a, s) => a + s.n, 0), "Más tiendas lost a card");
 });
 
-await check("the lead rail is the homepage's Ofertas rail: mix only, spread over stores, no store runs past the cap", () => {
+await check("the lead rail is the homepage's Ofertas rail: it opens on Victoria's Secret, then spreads over stores, no other store runs past the cap", () => {
   const lead = leadRail(fresh.cards);
   assert.ok(lead.every((c) => c.m === 1), "a card over the mix cap in the lead");
-  const first = lead.slice(0, LEAD_SPREAD).map((c) => c.store);
-  assert.equal(new Set(first).size, LEAD_SPREAD, "the first cards repeat a store: " + first.join(","));
+  /* #443 c.6483501901 / c.6495111883: the rail OPENS with VS. */
+  const open = lead.slice(0, OPEN_N);
+  assert.ok(open.every((c) => c.store === OPEN_STORE), "the lead does not open on Victoria's Secret: " + open.map((c) => c.store).join(","));
+  assert.equal(new Set(open.map((c) => c.title)).size, OPEN_N, "the same VS product twice in the opening");
+  for (let i = 1; i < open.length; i++) assert.ok(open[i].pct <= open[i - 1].pct, "the opening is deepest first");
+  const after = lead.slice(OPEN_N);
+  const first = after.slice(0, LEAD_SPREAD).map((c) => c.store);
+  assert.equal(new Set(first).size, LEAD_SPREAD, "after the opening, the first cards repeat a store: " + first.join(","));
+  assert.ok(!first.includes(OPEN_STORE), "VS runs on past its opening block");
   let run = 0, prev = null, worst = 0;
-  for (const c of lead) { run = c.store === prev ? run + 1 : 1; prev = c.store; worst = Math.max(worst, run); }
+  for (const c of after) { run = c.store === prev ? run + 1 : 1; prev = c.store; worst = Math.max(worst, run); }
   assert.ok(worst <= MAX_RUN, `a ${worst}-card run from one store`);
   /* The interleave and spread are the bundle's own (renderMobileDealsRail). */
   const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]+\.js$/.test(f)), "utf8");
   assert.match(bundle, /const OFERTAS_LEAD_BRANDS = \['victoriassecret', 'sephora', 'macys', 'gymshark', 'youngla'\];/, "the homepage's pull brands moved: update LEAD_BRANDS");
   assert.match(bundle, /const OFERTAS_MAX_RUN = 3;/);
   assert.match(bundle, /const MOBILE_RAIL_LEAD = 5;/);
+  assert.match(bundle, /const OFERTAS_OPEN_RETAILER = 'victoriassecret';/);
+  assert.match(bundle, new RegExp(`const OFERTAS_OPEN_N = ${OPEN_N};`), "the homepage's opening block and the lead's differ");
+  assert.match(bundle, /const \{ open, rest \} = ofertasOpenBlock\(priced\);/, "renderMobileDealsRail opens on the VS block");
   assert.match(bundle, /const MOBILE_RAIL_DEALS = 20;/);
 });
 

@@ -98,6 +98,10 @@ export const CATALOG_FILES = [
   "snipes-catalog.json",
   /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
   "brandsmart-catalog.json",
+  /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
+  "walmart-electronics-catalog.json",
+  "costco-electronics-catalog.json",
+  "microcenter-catalog.json",
   /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
   "sleekshop-catalog.json",
   "carolinaherrera-catalog.json",

@@ -64,7 +64,8 @@ async function check_async(name, fn) {
 }
 
 check(`the off-sale list is the one #457 set (${OFF.length} stores)`, () => {
-  for (const k of ["bestbuy", "target", "costco", "victoriassecret", "pacsun"]) assert.ok(OFF.includes(k), `${k} is not on off-sale.js`);
+  for (const k of ["bestbuy", "target", "costco", "pacsun"]) assert.ok(OFF.includes(k), `${k} is not on off-sale.js`);
+  assert.ok(!OFF.includes("victoriassecret"), "Victoria's Secret is back on sale (#443 c.6472207775)");
 });
 
 for (const page of PAGES) {

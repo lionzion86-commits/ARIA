@@ -6,7 +6,7 @@
   'use strict';
   /* Retailer keys. Why each store is here: scripts/lib/off-sale.js. */
   var OFF_SALE_RETAILERS = [
-    'victoriassecret', 'target',
+    'target',
     'bestbuy', 'costco', 'nike', 'kohls', 'macys',
     'gap', 'oldnavy', 'bananarepublic', 'athleta',
     'ulta', 'yesstyle', 'newbalance', 'gymshark', 'alphalete',

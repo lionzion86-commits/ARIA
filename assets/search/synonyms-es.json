@@ -51,7 +51,7 @@
     "aretes": "earrings", "arete": "earrings", "collares": "necklace", "collar": "necklace", "pulseras": "bracelet", "pulsera": "bracelet",
     "anillos": "ring", "anillo": "ring", "joyas": "jewelry", "bufandas": "scarf", "bufanda": "scarf", "guantes": "gloves",
     "maletas": "suitcase", "maleta": "suitcase", "paraguas": "umbrella", "llaveros": "keychain", "llavero": "keychain",
-    "celular": ["phone", "smartphone"], "audifonos": "headphones", "parlante": "speaker", "cargador": "charger", "tableta": "tablet",
+    "celular": ["phone", "smartphone"], "audifonos": "headphones", "parlante": "speaker", "cargador": "charger", "funda": "case", "fundas": "case", "forro": "case", "estuche": "case", "mica": "screen protector", "micas": "screen protector", "tableta": "tablet",
     "laptop": "laptop", "computadora": "laptop", "pantalla": "monitor", "raton": "mouse", "teclado": "keyboard", "camara": "camera", "camaras": "camera", "vajilla": "dinnerware", "vajillas": "dinnerware", "pesas": ["dumbbell", "kettlebell"], "mancuernas": "dumbbell", "sabanas": ["sheet set", "sheets"]
   },
 
@@ -69,7 +69,7 @@
     "peluches": "plush", "peluche": "plush", "bicicletas": ["bicycle", "bike"], "bicicleta": ["bicycle", "bike"],
     "patines": "skates", "patineta": "skateboard", "patinetas": "skateboard", "scooter": "scooter",
     "rompecabezas": "puzzle", "legos": "lego", "carritos": "toy car", "carrito": "toy car", "pelotas": "ball", "pelota": "ball",
-    "juegos de mesa": "board game", "videojuegos": "video game", "consola": "console", "consolas": "console", "triciclo": "tricycle",
+    "juegos de mesa": "board game", "videojuegos": "video game", "consola": ["nintendo", "playstation portal", "playstation 5", "xbox series", "meta quest", "steam deck"], "consolas": ["nintendo", "playstation portal", "playstation 5", "xbox series", "meta quest", "steam deck"], "triciclo": "tricycle",
     "coche de bebe": "stroller", "cochecito": "stroller", "biberones": "baby bottle", "biberon": "baby bottle",
     "panales": "diapers", "chupones": "pacifier"
   },

@@ -290,7 +290,7 @@ export function conditionOf(name, dept = "") {
 /* Refurbished phones sell unlocked only (the refurb spec, c.6373874319). */
 export function lockedPhone(name) {
   const n = String(name || "");
-  return /\b(iphone|galaxy|pixel|smartphone|cell ?phone)\b/i.test(n)
-    && /\b(locked|straight talk|tracfone|total wireless|cricket|metro ?pcs|boost mobile|visible|verizon|at&t|t-mobile|carrier)\b/i.test(n)
+  return /\b(iphone|galaxy|pixel|smartphone|cell ?phone|flip phone|rugged phone|razr|moto g|tcl \d+|tcl flip|kyocera)\b/i.test(n)
+    && /\b(locked|straight talk|tracfone|total wireless|cricket|metro ?pcs|boost mobile|visible|verizon|at&t|t-mobile|spectrum mobile|xfinity mobile|us cellular|carrier)\b/i.test(n)
     && !/\bunlocked\b/i.test(n);
 }

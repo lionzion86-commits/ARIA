@@ -14,6 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle } from "../../scripts/lib/condition.js";
+import { techAisle, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;    // cards drawn in one carousel
@@ -133,6 +134,8 @@ export function buildPerfumeSections(list) {
 export const SHOE_DEPTS = new Set(["shoes", "shoes_women", "shoes_men"]);
 export function sectionOpts(key) {
   if (key === CASA_DEPT) return { casa: true };
+  if (key === TECH_DEPT) return { tech: true };
+  if (key === CABELLO_DEPT) return { cabello: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
 
@@ -171,6 +174,485 @@ function buildCasaSections(list) {
   for (const s of buildSectionsRaw(rest, {})) if (s.key !== "ofertas" && s.key !== "destacados") sections.push({ ...s, title: s.key === "tipo:otros" ? "Más para tu casa" : s.title });
   return sections;
 }
+/* ---------- ELECTRÓNICA (Order C, #443) ----------
+   The cross-store Ofertas, then B&H's destacados (the camera house leads
+   the stores), then Reacondicionados with its disclosure, then «Laptops
+   para estudiar», then each electronics store on its own rail, then the
+   named aisles of scripts/lib/tech-aisle.js -- one rule for every store,
+   so the store's own English categories ("Laptop Computers", "Laptop",
+   "Laptops/Notebooks") never split one aisle three ways. A row whose
+   type is already an aisle (tech_*) keeps it; any other is filed by its
+   own name, the store's type only a hint. */
+export const TECH_DEPT = "electronics";
+export const TECH_LEAD_STORE = ["bhphoto", "B&H Photo"];
+export const TECH_STORES = [["brandsmart", "BrandsMart USA"], ["microcenter", "Micro Center"], ["walmart", "Walmart"], ["costco", "Costco"]];
+export const REFURB_NOTE = "No son productos nuevos: cada tarjeta dice si es reacondicionado, de caja abierta o usado, tal como lo declara la tienda.";
+/* THE STUDY-LAPTOP LINE (c.6470946695): a laptop or Chromebook whose
+   PRODUCT price is under the $200 import line pays no import tax. The
+   test is the store's own price, nothing added; a tablet is not one. */
+export const STUDY_LAPTOP_MAX = 200;
+export const STUDY_NOTE = "Laptops para la escuela y la universidad, sin impuesto de importación.";
+const LAPTOP_RX = /\b(laptops?|notebooks?|chromebooks?|macbook)\b/i;
+/* ...and the computer itself, by a spec only a computer states: a laptop
+   tray, a toy "laptop" or a laptop bag names none. */
+const LAPTOP_SPEC_RX = /\b(\d+\s?gb|ssd|emmc|celeron|pentium|intel|amd|ryzen|athlon|mediatek|core i\d|chrome ?os|windows \d+)\b/i;
+const NOT_LAPTOP_RX = /\b(tablets?|ipad|cases?|sleeves?|bags?|backpacks?|stands?|trays?|desks?|drones?|toys?|kids|learning|cooler|cooling pad|skins?|chargers?|adapters?|keyboards?|mouse|docks?|docking|locks?|screen protectors?|batter(y|ies)|replacement|lcd screen|hinges?|fans?)\b/i;
+export const techAisleOf = (p) => (/^tech_/.test(String(p.type || "")) ? String(p.type) : techAisle(p.title, p.type));
+export function isStudyLaptop(p) {
+  const t = String(p.title || "");
+  return p.rawPrice > 0 && p.rawPrice < STUDY_LAPTOP_MAX && techAisleOf(p) === "tech_computadoras" &&
+    LAPTOP_RX.test(t) && LAPTOP_SPEC_RX.test(t) && !NOT_LAPTOP_RX.test(t);
+}
+const STORE_RAIL_MIN = 6;
+/* THE SEPARATION RULING (Danny, #443 c.6488544902): every Electrónica
+   shelf -- Ofertas, the stores, the aisles, Laptops para estudiar,
+   Chromebooks, Consolas -- shows NEW units only; refurbished, used and
+   open-box stock lives only in Reacondicionados (its disclosure above it,
+   the refurbished Chromebooks first, c.6488281596). Computadoras,
+   Chromebooks and Laptops para estudiar carry a door to it, never mixed
+   stock. Ofertas leads with a good Walmart camera, small accessories last
+   (c.6487219343). */
+export const REFURB_DOOR_TEXT = "¿Buscas una opción más barata? Ver Reacondicionados";
+export function techOfertasOrder(sales) {
+  const small = (p) => isAccessoryName(p.title) || p.rawPrice < 25;
+  const heroes = sales.filter((p) => !small(p)).map((p, i) => ({ p, i, s: homeStrength(p, "") }))
+    .sort((a, b) => (b.s - a.s) || (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  const cams = heroes.filter((p) => p.retailer === "walmart" && techAisleOf(p) === "tech_camaras" && OFERTAS_LEAD_CAMERA_RX.test(p.title) && p.salePct >= 30
+    && !/\b(security|surveillance|dash|doorbell|webcam|baby|kids?|children|toy|trail|spy|hidden|nanny|cctv|ip cam|body|drones?|quadcopter|thumb|wearable)\b/i.test(p.title) && !isAccessoryName(p.title) && p.rawPrice >= 50)
+    .sort((a, b) => (b.rawPrice - a.rawPrice) || (b.salePct - a.salePct));
+  const lead = cams[0] ? [cams[0]] : [];
+  return lead.concat(heroes.filter((p) => p !== cams[0]), sales.filter(small).sort((a, b) => b.salePct - a.salePct));
+}
+export function refurbOrder(refurb) {
+  const books = refurb.filter((p) => isChromebook(p)).sort((a, b) => a.rawPrice - b.rawPrice);
+  return books.concat(refurb.filter((p) => !books.includes(p)));
+}
+function buildTechSections(all) {
+  const sections = [];
+  const refurb = all.filter((p) => conditionOfTitle(p.title));
+  const list = all.filter((p) => !conditionOfTitle(p.title));
+  const door = refurb.length >= 3 ? REFURB_DOOR_TEXT : "";
+  const sales = list.filter((p) => p.salePct > 0);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: techOfertasOrder(sales) });
+  const stores = new Set(all.map((p) => p.retailer));
+  /* One store chosen (the store chip): its own rail would be the whole list. */
+  const many = stores.size > 1;
+  const lead = list.filter((p) => p.retailer === TECH_LEAD_STORE[0]);
+  if (many && lead.length >= STORE_RAIL_MIN) sections.push({ key: "tienda:" + TECH_LEAD_STORE[0], title: "Destacados de " + TECH_LEAD_STORE[1], items: lead });
+  if (refurb.length >= 3) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurbOrder(refurb) });
+  /* Renders only when the under-$200 set fills a rail (the Aisle Test). */
+  const study = list.filter(isStudyLaptop).sort((a, b) => a.rawPrice - b.rawPrice);
+  if (study.length >= STORE_RAIL_MIN) sections.push({ key: "estudio", title: "Laptops para estudiar", note: STUDY_NOTE, door, items: study });
+  const books = list.filter(isChromebook);
+  if (books.length >= STORE_RAIL_MIN) sections.push({ key: "chromebooks", title: "Chromebooks", door, items: books.sort((a, b) => ((b.salePct > 0) - (a.salePct > 0)) || (a.rawPrice - b.rawPrice)) });
+  const consoles = list.filter(isConsole);
+  if (consoles.length >= STORE_RAIL_MIN) sections.push({ key: "consolas", title: "Consolas", items: consoles });
+  if (many) for (const [r, title] of TECH_STORES) {
+    const l = list.filter((p) => p.retailer === r);
+    if (l.length >= STORE_RAIL_MIN) sections.push({ key: "tienda:" + r, title, items: l });
+  }
+  const byAisle = {};
+  for (const p of list) (byAisle[techAisleOf(p)] ||= []).push(p);
+  for (const k of TECH_AISLE_ORDER) {
+    const l = byAisle[k];
+    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: k === "tech_celulares" ? celularesOrder(l) : l, ...(k === "tech_computadoras" ? { door } : {}) });
+  }
+  return sections;
+}
+
+/* THE HOMEPAGE ELECTRÓNICA CAROUSEL (Danny, #443 c.6485409220): one
+   carousel, one pill row above it, the pills in-place lenses. «Ofertas»
+   is the default (the strongest sales across the department, devices
+   first), then the types Danny named -- Celulares, Computadoras,
+   Videojuegos, Audífonos -- then every other aisle the data fills. A
+   pill renders only with HOME_PILL_MIN real cards (the Aisle Test);
+   inside each, devices lead what fits them. */
+export const HOME_PILL_MIN = 8, HOME_PILL_CARDS = 24;
+export const HOME_TECH_PILLS = [["tech_celulares", "Celulares"], ["tech_computadoras", "Computadoras"], ["tech_gaming", "Videojuegos"],
+  ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
+  ["tech_casa_inteligente", "Casa inteligente"], ["tech_componentes", "Componentes"], ["tech_auto", "Auto"], ["tech_accesorios", "Accesorios"]];
+const HOME_DEVICE_RX = {
+  tech_celulares: /\b(iphone|galaxy|pixel|moto|razr|smartphone|unlocked)\b/i,
+  tech_computadoras: /\b(laptops?|notebooks?|chromebooks?|macbook|ipad|tablets?|desktop|all-in-one|vivobook|zenbook|ideapad|thinkpad|copilot\+ pc)\b/i,
+  tech_gaming: /\b(consoles?|steam deck|meta quest \d|rog ally|legion go|dualsense|(xbox|ps5|playstation 5)[^,]*controller|nintendo switch (2|oled|lite)(?![^,]*-))\b/i,
+  tech_audifonos: /\b(airpods|earbuds|headphones|headset)\b/i,
+  tech_camaras: /\b(mirrorless|dslr|gopro|insta360|dji|instax|camera body|digital camera|action camera|vlog)\b/i,
+  tech_relojes: /\b(apple watch|galaxy watch|smart ?watch|garmin|fitbit|amazfit)\b/i,
+  tech_audio: /\b(speakers?|soundbars?|sound bars?|turntables?|subwoofers?)\b/i,
+  tech_casa_inteligente: /\b(doorbells?|security cam(era)?s?|echo|nest|smart (plugs?|displays?|locks?))\b/i,
+  tech_componentes: /\b(ssd|nvme|ddr[45]|motherboards?|graphics cards?|rtx|radeon|processors?)\b/i,
+  tech_auto: /\b(dash ?cams?|car stereo|carplay|android auto|car speakers?)\b/i,
+  tech_accesorios: /\b(chargers?|power banks?|keyboards?|mouse|monitors?)\b/i,
+};
+/* ---------- CELULARES: THE PERU-PRESENCE ORDER ----------
+   (#443 c.6487219343, Danny's Celulares lead rule; the three open
+   questions answered in c.6490718675.)
+
+   Peru buys Samsung and the carrier brands at home, at prices Aria
+   cannot beat: a Galaxy S25 FE is S/ 2,399 at Falabella against our
+   ~$1,108 all-in. So a phone Peru already sells never leads the lens.
+   Aria wins on the phone that has a following and no local store, so
+   Celulares leads with those -- Google Pixel first, OnePlus second.
+   iPhone takes the third slot although Peru does sell it, on the
+   Garantía Aria story alone: ours lands ~S/ 2,900 against Entel's
+   ~S/ 5,190 new, insured trip and returns included. That is ranking
+   rationale only -- no card, no copy and no phone changes. Then the
+   rest of the can't-get-it-here class, then the brands nobody placed,
+   and the saturated brands last: still listed, still sellable, never
+   the lead.
+
+   These are brand lists, not logic. A brand moves tier by moving a
+   row, and BrandsMart drops the maker from its titles ("6.1\" 7a 5G"),
+   so each lead brand reads the title OR the brand field. */
+export const PHONE_LEAD_BRANDS = [
+  ["Google Pixel", /\bpixel\b/i, /^google$/i],
+  ["OnePlus", /\bone ?plus\b/i, /^one ?plus$/i],
+  ["iPhone", /\biphone\b/i, /^apple$/i],
+];
+/* Not sold officially in Peru: Danny named Sony Xperia's class here. */
+const PHONE_ABSENT_RX = /\b(xperia|nothing phone|zenfone|rog phone|fairphone|hmd\b)\b/i;
+/* Sold officially in Peru at local prices we do not beat: the back. */
+const PHONE_SOLD_IN_PERU_RX = /\b(samsung|galaxy|motorola|moto ?[gez]\b|razr|xiaomi|redmi|poco\b|huawei|honor|oppo|vivo|realme|infinix|tecno|zte|tcl|alcatel|nokia)\b/i;
+export const PHONE_RANKS = PHONE_LEAD_BRANDS.length + 3;   // 0..5
+
+/** Where one handset sits in the Celulares lens: 0 Pixel, 1 OnePlus,
+    2 iPhone, 3 the can't-get-it-here class, 4 unplaced, 5 saturated. */
+export function phoneBrandRank(p) {
+  const title = String((p && p.title) || ""), brand = String((p && p.brand) || "").trim();
+  for (let i = 0; i < PHONE_LEAD_BRANDS.length; i++) {
+    const [, titleRx, brandRx] = PHONE_LEAD_BRANDS[i];
+    if (titleRx.test(title) || brandRx.test(brand)) return i;
+  }
+  const t = title + " " + brand;
+  if (PHONE_ABSENT_RX.test(t)) return PHONE_LEAD_BRANDS.length;
+  if (PHONE_SOLD_IN_PERU_RX.test(t)) return PHONE_RANKS - 1;
+  return PHONE_LEAD_BRANDS.length + 1;
+}
+/* Inside a brand's tier the sealed phone goes first: the lens is the
+   trust anchor, and a tier led by a "- Reacondicionado" title reads as
+   a used-phone shop. The refurbished units stay where they are -- their
+   own pill is the separation ruling (c.6488544902), not this sort. */
+const phoneIsRefurb = (p) => (conditionOfTitle(String((p && p.title) || "")) ? 1 : 0);
+
+/** The Celulares rail of a department page: the same brand order, with
+    the department's own sort (on sale first, then cheapest) kept inside
+    each tier, so the pill and the aisle never disagree. */
+export const celularesOrder = (l) => l.map((p, i) => ({ p, i, b: phoneBrandRank(p), n: phoneIsRefurb(p) }))
+  .sort((x, y) => (x.b - y.b) || (x.n - y.n) || (x.i - y.i)).map((x) => x.p);
+
+const HOME_BRAND_RX = /\b(apple|samsung|google|sony|bose|jbl|beats|microsoft|nintendo|playstation|xbox|meta|dji|gopro|canon|nikon|fujifilm|garmin|fitbit|lenovo|hp|dell|asus|acer|msi|logitech|anker|sonos|marshall|ring|blink|arlo|skullcandy|sennheiser|razer|corsair|hyperx|kingston|crucial|western digital|sandisk|motorola|tcl|lg)\b/i;
+const HOME_SPEC_RX = /\b(\d+\s?gb|\d+\s?tb|intel|amd|ryzen|celeron|core (i|ultra)|m\d chip|snapdragon)\b/i;
+export function homeStrength(p, k) {
+  const t = String(p.title || "") + " " + String(p.brand || "");
+  const rx = HOME_DEVICE_RX[k || techAisleOf(p)];
+  let s = 0;
+  if (!isAccessoryName(p.title)) s += 1;
+  if (rx && rx.test(p.title || "")) s += 2;
+  if (k === "tech_computadoras" && !HOME_SPEC_RX.test(p.title || "")) s -= 2;
+  if (HOME_BRAND_RX.test(t)) s += 1;
+  if (p.salePct > 0) s += 1;
+  /* A few-dollar trinket never fronts the department. */
+  if (p.rawPrice < 15) s -= 2;
+  return s;
+}
+/* THE PILL ROW (Danny, #443 c.6487219343, c.6488256694, c.6488281596,
+   c.6488481308, c.6488544902, c.6488547834):
+     Ofertas -- the lead: heroes first (a good Walmart camera on sale opens
+       it), small accessories close it, never lead it;
+     Reacondicionados -- pill #2: ALL refurbished, used and open-box stock,
+       and only there; the refurbished Chromebooks (under the $200 line,
+       zero import tax) at the front, each card badged with its own
+       condition;
+     then the types, NEW units only (the separation ruling): Celulares in
+     the Peru-presence order, Computadoras, Chromebooks, Consolas (the
+     console itself: Switch, PlayStation, Xbox, Meta Quest -- not "gaming"),
+     Videojuegos, and every other aisle the data fills. Computadoras and
+     Chromebooks end on a door to Reacondicionados, never mixed stock. */
+/* CONSOLE_RX and isConsole live in scripts/lib/tech-aisle.js: search
+   ranks «consola» by the same rule. */
+export { CONSOLE_RX, isConsole };
+const CHROMEBOOK_RX = /\bchromebooks?\b/i;
+export const isChromebook = (p) => CHROMEBOOK_RX.test(p.title || "") && !isAccessoryName(p.title) && !/\b(for|compatible|fits|charger|adapter|case|sleeve|mouse|keyboard)\b/i.test(p.title || "");
+const HOME_TECH_ORDER = [["tech_celulares", "Celulares"], ["tech_computadoras", "Computadoras"], ["chromebooks", "Chromebooks"], ["consolas", "Consolas"],
+  ["tech_gaming", "Videojuegos"], ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
+  ["tech_casa_inteligente", "Casa inteligente"], ["tech_componentes", "Componentes"], ["tech_auto", "Auto"], ["tech_accesorios", "Accesorios"]];
+const REFURB_DOOR = ["tech_computadoras", "chromebooks"];
+export const OFERTAS_LEAD_CAMERA_RX = /\b(digital cameras?|mirrorless|dslr|camcorders?|vlog\w* cameras?|compact cameras?|optical zoom)\b/i;
+export function homeTechPills(list) {
+  /* One card per title: a colour run of the same speaker is one product here. */
+  const seen = new Set();
+  const all = list.filter((p) => { const t = String(p.title || "").replace(/\s+-\s+[^-]+$/, "").toLowerCase(); if (!p.image || seen.has(t)) return false; seen.add(t); return true; });
+  const used = (p) => Boolean(conditionOfTitle(p.title));
+  const shown = all.filter((p) => !used(p));
+  /* The front page shows a type's strongest products first: what the
+     type IS (a handset, a console, a laptop with a spec) before what fits
+     it, a brand people search for, then the deeper sale. Celulares leads
+     by brand tier before strength (the Peru-presence order above). */
+  const devicesFirst = (l, k) => l.map((p, i) => ({ p, i, s: homeStrength(p, k), b: 0, n: 0 }))
+    .map((x) => (k === "tech_celulares" ? { ...x, b: phoneBrandRank(x.p), n: phoneIsRefurb(x.p) } : x))
+    .sort((x, y) => (x.b - y.b) || (x.n - y.n) || (y.s - x.s) || ((y.p.salePct || 0) - (x.p.salePct || 0)) || (x.i - y.i)).map((x) => x.p);
+  const pills = [];
+  /* OFERTAS: a good Walmart camera on sale opens it; the heroes follow;
+     a small accessory (a cable, a car charger, a case) closes it. */
+  const sales = shown.filter((p) => p.salePct > 0);
+  if (sales.length >= HOME_PILL_MIN) {
+    const small = (p) => isAccessoryName(p.title) || p.rawPrice < 25;
+    const heroes = devicesFirst(sales.filter((p) => !small(p)), "");
+    /* A photo camera: the Cámaras aisle, never a security, dash or web cam. */
+    /* A photo camera -- digital, mirrorless, DSLR, camcorder -- at a real
+       discount (30%+), the better camera first: never a body cam, a kids'
+       camera, a drone or a security cam. */
+    const cams = heroes.filter((p) => p.retailer === "walmart" && techAisleOf(p) === "tech_camaras" && OFERTAS_LEAD_CAMERA_RX.test(p.title) && p.salePct >= 30
+      && !/\b(security|surveillance|dash|doorbell|webcam|baby|kids?|children|toy|trail|spy|hidden|nanny|cctv|ip cam|body|drones?|quadcopter|thumb|wearable)\b/i.test(p.title) && !isAccessoryName(p.title) && p.rawPrice >= 50)
+      .sort((a, b) => (b.rawPrice - a.rawPrice) || (b.salePct - a.salePct));
+    const lead = cams[0] ? [cams[0]] : [];
+    const ordered = lead.concat(heroes.filter((p) => p !== cams[0]), devicesFirst(sales.filter(small), ""));
+    pills.push({ k: "ofertas", label: "Ofertas", cards: ordered.slice(0, HOME_PILL_CARDS).map(cardOf) });
+  }
+  /* REACONDICIONADOS: pill #2; refurbished Chromebooks first, cheapest
+     first (all under the $200 line), then the rest of the refurbished
+     stock by strength. Only a known condition enters (conditionOfTitle). */
+  const refurb = all.filter(used);
+  if (refurb.length >= HOME_PILL_MIN) {
+    const books = refurb.filter((p) => isChromebook(p)).sort((a, b) => a.rawPrice - b.rawPrice);
+    const rest = devicesFirst(refurb.filter((p) => !books.includes(p) && !isAccessoryName(p.title)), "");
+    const tail = refurb.filter((p) => !books.includes(p) && isAccessoryName(p.title));
+    pills.push({ k: "reacondicionados", label: "Reacondicionados", note: REFURB_NOTE, cards: books.concat(rest, tail).slice(0, HOME_PILL_CARDS).map(cardOf) });
+  }
+  for (const [k, label] of HOME_TECH_ORDER) {
+    const l = k === "chromebooks" ? shown.filter(isChromebook)
+      : k === "consolas" ? shown.filter(isConsole)
+      : k === "tech_gaming" ? shown.filter((p) => techAisleOf(p) === k && !isConsole(p))
+      : shown.filter((p) => techAisleOf(p) === k);
+    if (l.length < HOME_PILL_MIN) continue;
+    const ordered = k === "chromebooks" ? l.slice().sort((a, b) => ((b.salePct || 0) - (a.salePct || 0)) || (a.rawPrice - b.rawPrice)) : devicesFirst(l, k);
+    pills.push({ k, label, cards: ordered.slice(0, HOME_PILL_CARDS).map(cardOf), ...(REFURB_DOOR.includes(k) && refurb.length ? { door: "reacondicionados" } : {}) });
+  }
+  return { v: 1, pills };
+}
+
+/* ---------- SECTION PILL HUBS (Build Order D, #443 c.6471948104) ----------
+   A hub department opens with a pill row: «Todas», then the stores or
+   brands inside it, strongest first. A pill is a LENS, not a filter
+   (c.6477721206): it opens that store's or brand's own carousels at the
+   top -- its ofertas first, then its aisles -- and every carousel of the
+   department stays below, in its place. Each lens is one pre-built file
+   (<dept>/lens-<slug>.json), so the swap is instant and light (the
+   Mountain Test). A pill whose slice cannot fill a real carousel does not
+   render (the Aisle Test).
+     by "brand": one pill per brand (Lujo's designer houses)
+     by "store": one pill per store (Electrónica)
+     pills:      a fixed list, "r:<store>" or "a:<aisle>" (Casa Aria) */
+export const PILL_HUBS = {
+  luxury: { by: "brand", max: 14 },
+  /* Moda: the type pills, then the four strongest stores. */
+  women: { moda: "women", by: "store", max: 4 },
+  men: { moda: "men", by: "store", max: 4 },
+  kids: { moda: "kids", by: "store", max: 4 },
+  home_goods: { pills: [["r:crateandbarrel", "Crate & Barrel"], ["r:pier1", "Pier 1"], ["a:libros", "Libros de mesa"]] },
+  electronics: { by: "store", max: 8 },
+  /* Danny's treatment pills (c.6473412574), at least 8 real products each;
+     «Keratina y alisados» lit by the SleekShop drop (c.6475799491). */
+  cabello: { min: 8, pills: [["t:Champú y acondicionador", "Champú y acondicionador"], ["t:Mascarillas", "Mascarillas"],
+    ["t:Aceites y sérums", "Aceites y argán"], ["t:Cuero cabelludo", "Cuero cabelludo"], ["t:Sin enjuague", "Sin enjuague"],
+    ["t:Reparación", "Reparación"], ["t:Keratina y alisados", "Keratina y alisados"]] },
+  /* Belleza: the Cabello aisle is its first pill; its lens opens the aisle. */
+  beauty: { pills: [["d:cabello", "Cabello"]], by: "store", max: 2 },
+};
+export const LENS_MIN = 12, LENS_RAIL_MIN = 4, LENS_RAILS = 5;
+/* MODA PILLS (Danny, c.6476025440): Moda Mujer, Hombre and Niños open with
+   the shopper's next question -- the clothing TYPE -- then the strongest
+   stores. The type is read from the product's own name and the store's
+   type, in this order (a boardshort is swimwear before it is a short, a
+   t-shirt is a top before it is a shirt). */
+const MODA_RULES = [
+  ["lenceria", /\b(bras?|bralettes?|panty|panties|thongs?|briefs?|boxers?|lingerie|lencer\w*|underwear|ropa interior|bodysuits?|shapewear)\b/],
+  ["bano", /\b(bikinis?|swim\w*|trajes? de ba[ñn]o|boardshorts?|rash ?guards?|one[- ]pieces?)\b/],
+  ["zapatillas", /\b(sneakers?|zapatillas|trainers?|running shoes?)\b/],
+  ["zapatos", /\b(sandals?|sandalias|heels?|boots?|botas?|botines|loafers?|slippers?|oxfords?|lace ups|mules?|pumps|flats|slides?|clogs?|espadrilles|shoes?|zapatos?)\b/],
+  ["carteras", /\b(bags?|totes?|carteras?|backpacks?|mochilas?|clutch(es)?|wallets?|purses?|satchels?|card holders?|pouch(es)?)\b/],
+  ["joyas", /\b(earrings?|necklaces?|bracelets?|rings?|aretes|collares?|pulseras?|anillos?|pendants?|jewel\w*|joyas?)\b/],
+  ["lentes", /\b(sunglasses|lentes de sol|gafas|eyewear)\b/],
+  ["gorras", /\b(caps?|hats?|beanies?|gorras?|gorros?|buckets? hats?)\b/],
+  ["vestidos", /\b(dress(es)?|vestidos?|gowns?|jumpsuits?|rompers?|monos?)\b/],
+  ["faldas", /\b(skirts?|faldas?)\b/],
+  ["chaquetas", /\b(jackets?|coats?|blazers?|parkas?|vests?|casacas?|abrigos?|puffers?|windbreakers?|chalecos?)\b/],
+  ["polerones", /\b(hoodies?|zip-?ups?|sweatshirts?|crewnecks?|sweaters?|cardigans?|knit\w*|polerones?|chompas?|pullovers?)\b/],
+  ["shorts", /\b(shorts?)\b/],
+  ["pantalones", /\b(jeans|trousers|pants|pantalones?|sweatpants|leggings|joggers?|chinos?)\b/],
+  ["tops", /\b(t-?shirts?|tees?|polos?|camisetas?|tank( tops?)?|tops?|blouses?|blusas?|camisoles?|bodies)\b/],
+  ["camisas", /\b(shirts?|camisas?|button-?downs?|overshirts?)\b/],
+];
+export function modaType(p) {
+  const t = (String((p && p.type) || "") + " | " + String((p && p.title) || "")).toLowerCase();
+  for (const [k, rx] of MODA_RULES) if (rx.test(t)) return k;
+  return "";
+}
+const MODA_LABELS = {
+  women: [["vestidos", "Vestidos"], ["tops", "Blusas y tops"], ["pantalones", "Pantalones y jeans"], ["faldas", "Faldas"], ["shorts", "Shorts"],
+    ["chaquetas", "Casacas y abrigos"], ["polerones", "Chompas y polerones"], ["lenceria", "Lencería"], ["bano", "Ropa de baño"],
+    ["zapatos", "Zapatos"], ["zapatillas", "Zapatillas"], ["carteras", "Carteras"], ["joyas", "Joyas"], ["lentes", "Lentes de sol"]],
+  men: [["tops", "Polos"], ["camisas", "Camisas"], ["pantalones", "Pantalones y jeans"], ["shorts", "Shorts"], ["polerones", "Polerones"],
+    ["chaquetas", "Casacas"], ["bano", "Ropa de baño"], ["zapatillas", "Zapatillas"], ["zapatos", "Zapatos"], ["carteras", "Mochilas y bolsos"],
+    ["gorras", "Gorras"], ["lentes", "Lentes de sol"], ["joyas", "Joyas"], ["lenceria", "Ropa interior"]],
+  kids: [["tops", "Polos"], ["chaquetas", "Casacas y chompas"], ["polerones", "Polerones"], ["pantalones", "Pantalones"], ["shorts", "Shorts"],
+    ["vestidos", "Vestidos"], ["faldas", "Faldas"], ["bano", "Ropa de baño"], ["zapatillas", "Zapatillas"], ["zapatos", "Zapatos"], ["gorras", "Gorras"]],
+};
+export const lensSlug = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+/* The pills of one hub: [{ k, label, items, link }], strongest first. */
+export function hubPills(key, list, labels = {}, listOf = null) {
+  const hub = PILL_HUBS[key];
+  if (!hub) return [];
+  let pills = [];
+  if (hub.moda) {
+    const by = new Map();
+    for (const p of list) { const m = modaType(p); if (m) { if (!by.has(m)) by.set(m, []); by.get(m).push(p); } }
+    pills = MODA_LABELS[hub.moda].map(([m, label]) => ({ k: "tipo-" + m, label, items: by.get(m) || [], link: "", byStore: labels }))
+      .filter((p) => p.items.length >= LENS_MIN);
+  }
+  if (hub.pills) {
+    pills = hub.pills.map(([sel, label]) => {
+      const i = sel.indexOf(":"), kind = sel.slice(0, i), v = sel.slice(i + 1);
+      const items = list.filter((p) => (kind === "r" ? p.retailer === v && p.a !== "libros"
+        : kind === "t" ? p.type === v
+        : p.a === v));
+      if (kind === "d") return { k: lensSlug(label), label, items: listOf ? listOf(v) : [], opts: sectionOpts(v), link: "departamento.html?dept=" + v };
+      return { k: lensSlug(label), label, items,
+        link: kind === "r" ? "tienda.html?tienda=" + v : kind === "d" ? "departamento.html?dept=" + v : "" };
+    });
+  }
+  if (hub.by) {
+    const groups = new Map();
+    for (const p of list) {
+      const g = hub.by === "brand" ? String(p.brand || "").trim() : p.retailer;
+      if (!g) continue;
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(p);
+    }
+    pills = pills.concat([...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([g, items]) => ({
+      k: lensSlug(g), label: hub.by === "brand" ? g : (labels[g] || g), items,
+      link: hub.by === "store" ? "tienda.html?tienda=" + g : "departamento.html?dept=" + key + "&q=" + encodeURIComponent(g),
+      ...(hub.moda ? { byType: MODA_LABELS[hub.moda] } : {}),
+    })));
+  }
+  const fixed = pills.filter((p) => p.items.length >= (hub.min || LENS_MIN));
+  const lead = hub.pills ? hub.pills.length : hub.moda ? fixed.filter((p) => /^tipo-/.test(p.k)).length : 0;
+  return fixed.slice(0, lead + (hub.max || 99));
+}
+/* The hub's lenses and the head.json fields that announce them. */
+export function hubLenses(key, list, labels = {}, listOf = null) {
+  const lenses = hubPills(key, list, labels, listOf).map((p) => lensOf(key, p)).filter((l) => l.rails.length);
+  return { lenses, extra: lenses.length ? { pills: lenses.map((l) => ({ k: l.k, label: l.label, n: l.count })) } : {} };
+}
+/* One lens: the pill's own carousels, ofertas first, then its aisles. */
+/* A type pill's lens (Moda): its sales, then each store's own carousel of
+   that type, biggest first -- never a store's English sub-type. */
+/* A store pill's lens in Moda: its sales, then its clothing by Aria's own
+   Spanish types (the same rule as the type pills). */
+function typeSections(items, typeLabels) {
+  const secs = [];
+  const sales = items.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) secs.push({ key: "ofertas", title: "Ofertas", items: sales });
+  for (const [m, label] of typeLabels) {
+    const l = items.filter((p) => modaType(p) === m);
+    if (l.length) secs.push({ key: "tipo:" + m, title: label, items: l });
+  }
+  return secs.sort((a, b) => (a.key === "ofertas" ? -1 : b.key === "ofertas" ? 1 : b.items.length - a.items.length))
+    .map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+function storeSections(items, labels, title) {
+  const secs = [];
+  const sales = items.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) secs.push({ key: "ofertas", title: "Ofertas", items: sales });
+  const by = new Map();
+  for (const p of items) { if (!by.has(p.retailer)) by.set(p.retailer, []); by.get(p.retailer).push(p); }
+  for (const [r, l] of [...by.entries()].sort((a, b) => b[1].length - a[1].length)) secs.push({ key: "tienda:" + r, title: title + " de " + (labels[r] || r), items: l });
+  return secs.map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+export function lensOf(key, pill) {
+  const secs = (pill.byStore ? storeSections(pill.items, pill.byStore, pill.label)
+    : pill.byType ? typeSections(pill.items, pill.byType)
+    : buildSections(pill.items, pill.opts || sectionOpts(key)))
+    .filter((s) => !(/^tienda:/.test(s.key) && !pill.byStore) && s.key !== "estudio" && s.items.length >= LENS_RAIL_MIN)
+    .slice(0, LENS_RAILS);
+  return { v: 1, k: pill.k, label: pill.label, link: pill.link, count: pill.items.length,
+    rails: secs.map((s) => ({ title: s.title, count: s.items.length, cards: s.items.slice(0, RAIL_CARDS).map(cardOf) })) };
+}
+
+/* ---------- CABELLO (#443 c.6473257128, pills c.6473412574) ----------
+   Ofertas, then the treatment aisles in SleekShop's order; a product's
+   aisle is its type (build-department-slices writes it), so the static
+   slices and the endpoint agree. */
+export const CABELLO_DEPT = "cabello";
+export const CABELLO_AISLES = ["Keratina y alisados", "Mascarillas", "Reparación", "Aceites y sérums", "Cuero cabelludo", "Sin enjuague", "Champú y acondicionador", "Más tratamientos"];
+function buildCabelloSections(list) {
+  const sections = [];
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  for (const t of CABELLO_AISLES) {
+    const l = list.filter((p) => p.type === t);
+    if (l.length) sections.push({ key: "tipo:" + t.toLowerCase(), title: t, items: l });
+  }
+  return sections;
+}
+
+/* ---------- THE HOMEPAGE AUDIENCE CAROUSELS (Danny, c.6483623203) ----------
+   Three carousels stacked on the homepage -- Mujer, Hombre, Niños -- each
+   with its OWN type pills above it, scoped to that audience. Fashion and
+   beauty only: Electrónica has its own carousel. Each pill is a slice of
+   a department the site already has, so a pill and its department agree.
+     [pill key, label, department, filter]  (filter: null = the whole list,
+     a moda type, or a test on the product) */
+const WOMEN_RX = /\b(women'?s?|womens|woman|mujer|mujeres|ladies|lady|femme|female|for her|girls?)\b/i;
+const MEN_RX = /\b(men'?s?|mens|man|hombre|hombres|homme|male|for him|boys?)\b/i;
+const KIDS_RX = /\b(kids?|youth|boys?|girls?|ni[ñn]os?|ni[ñn]as?|junior|jr\.?|toddlers?|infant|baby)\b/i;
+const MAKEUP_RX = /\b(lipsticks?|lip ?gloss|lip (liner|stain|oil|balm)|mascaras?|foundations?|concealers?|eye ?shadows?|blush(er)?|bronzers?|eye ?liners?|primers?|highlighters?|makeup|make-up|maquillaje|brows?|setting (spray|powder)|palettes?|cushion)\b/i;
+const WATCH_RX = /\b(watch(es)?|relojes?|chronograph)\b/i;
+/* A tee or a hoodie filed with the toys is clothing, not a toy. */
+const NOT_A_TOY_RX = /\b(t-?shirts?|tees?|shirts?|hoodies?|sweatshirts?|sweaters?|pants|joggers|shorts|dress(es)?|skirts?|jackets?|pajamas?|socks?)\b/i;
+/* Sport-specific shoes are not the face of women's Zapatos (Danny,
+   c.6497530895): cleats, court and golf shoes live in Deportes. */
+const SPORT_SHOE_RX = /\b(cleats?|soccer|f[uú]tbol|chimpun\w*|guayos?|fg\/ag|firm ground|turf|indoor soccer|futsal|pickleball|tennis shoes?|court shoes?|golf|bowling|spikes?|track|baseball|softball|football|lacrosse|volleyball|wrestling|cycling|f50|predator|mercurial|phantom|tiempo|morelia|copa (pure|mundial|gloro)|future (ultimate|match|play|pro)|ultra (ultimate|match|play|pro)|(fg|tf|ag|mg)(\/(fg|tf|ag|mg))?)\b/i;
+export const AUDIENCE_SHELVES = {
+  mujer: [["zapatos", "Zapatos", "shoes_women", (p) => !SPORT_SHOE_RX.test(p.title)], ["gym", "Ropa de gimnasio", "gym_rat", (p) => WOMEN_RX.test(p.title) && !MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
+    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (WOMEN_RX.test(p.title) || /\b(pour femme|for her)\b/i.test(p.title))], ["maquillaje", "Maquillaje", "beauty", (p) => MAKEUP_RX.test(p.title)],
+    ["cabello", "Cabello", "cabello", null], ["vestidos", "Vestidos", "women", "vestidos"], ["tops", "Blusas y tops", "women", "tops"],
+    ["lenceria", "Lencería", "women", "lenceria"], ["bano", "Ropa de baño", "women", "bano"], ["carteras", "Carteras", "women", "carteras"],
+    ["joyas", "Joyas", "women", "joyas"], ["lentes", "Lentes de sol", "women", "lentes"]],
+  hombre: [["ropa", "Ropa", "men", (p) => ["tops", "camisas", "pantalones", "shorts", "polerones", "chaquetas"].includes(modaType(p))],
+    ["zapatos", "Zapatos", "shoes_men", (p) => modaType(p) !== "zapatillas"], ["zapatillas", "Zapatillas", "shoes_men", (p) => modaType(p) === "zapatillas"],
+    ["relojes", "Relojes", "men", (p) => WATCH_RX.test(p.title) && !/\b(bands?|straps?|bracelets?|smart ?watch|t-?shirts?|tees?|shirts?|hoodies?|hats?|caps?|bags?|cases?|boxes?)\b/i.test(p.title)],
+    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, "")) || /\b(pour homme|for him)\b/i.test(p.title))],
+    ["gym", "Ropa de gimnasio", "gym_rat", (p) => MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
+    ["bano", "Ropa de baño", "men", "bano"], ["gorras", "Gorras", "men", "gorras"], ["lentes", "Lentes de sol", "men", "lentes"],
+    ["mochilas", "Mochilas y bolsos", "men", "carteras"]],
+  /* Niños opens on Juguetes, always (Danny, c.6497530895). */
+  ninos: [["juguetes", "Juguetes", "toys", (p) => !NOT_A_TOY_RX.test(p.title)], ["deportes", "Deportes", "sporting_goods", (p) => KIDS_RX.test(p.title)],
+    ["ropa", "Ropa", "kids", (p) => ["tops", "camisas", "pantalones", "shorts", "polerones", "chaquetas", "vestidos", "faldas"].includes(modaType(p))],
+    ["zapatos", "Zapatos", "shoes", (p) => KIDS_RX.test(p.title)], ["bano", "Ropa de baño", "kids", "bano"], ["gorras", "Gorras", "kids", "gorras"]],
+};
+export const AUDIENCE_MIN = 8, AUDIENCE_CARDS = 24;
+/* One audience's pills: { v, pills:[{k,label,dept,cards}] }, each pill's
+   strongest cards first (the deeper sale, then the department's order),
+   one card per title, photographed only. A pill under AUDIENCE_MIN does
+   not render (the Aisle Test). */
+export function audiencePills(aud, listOf) {
+  const pills = [];
+  for (const [k, label, dept, f] of AUDIENCE_SHELVES[aud]) {
+    const seen = new Set();
+    const l = listOf(dept).filter((p) => p.image && (!f || (typeof f === "string" ? modaType(p) === f : f(p))))
+      .filter((p) => { const t = p.retailer + "::" + String(p.title).toLowerCase(); if (seen.has(t)) return false; seen.add(t); return true; });
+    let ranked = l.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct || 0) - (a.p.salePct || 0)) || (a.i - b.i)).map((x) => x.p);
+    /* A mixed pill (Ropa, Zapatos) opens on a mix: at most 2 of one kind in front. */
+    ranked = interleaveFront(ranked.map((p) => ({ ...p, type: modaType(p) || p.type })), AUDIENCE_CARDS, 2);
+    if (ranked.length >= AUDIENCE_MIN) pills.push({ k, label, dept, cards: ranked.slice(0, AUDIENCE_CARDS).map(cardOf) });
+  }
+  return { v: 1, pills };
+}
+
 export const FRONT = 24, FRONT_CAP = 6;
 
 /* The first FRONT cards of a mixed rail hold at most FRONT_CAP of any one
@@ -236,6 +718,8 @@ export function buildSections(list, opts = {}) {
 }
 function buildSectionsRaw(list, opts = {}) {
   if (opts.casa) return buildCasaSections(list);
+  if (opts.tech) return buildTechSections(list);
+  if (opts.cabello) return buildCabelloSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
      join its brand rails -- the room keeps its layout. */
@@ -248,7 +732,7 @@ function buildSectionsRaw(list, opts = {}) {
   /* Reacondicionados: second in every department with 3+ such products
      (not in the department made of nothing else). */
   const refurb = list.filter((p) => conditionOfTitle(p.title));
-  if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", items: refurb });
+  if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurb });
   if (opts.genderAisles) return sections.concat(genderAisles(list));
   const byType = {}, order = [];
   for (const p of list) {
@@ -309,6 +793,10 @@ export function headOf(key, list, sections, allLabels, extra = {}) {
     railBatch: RAIL_BATCH,
     rails: sections.map((s, i) => {
       const r = { i, title: s.title, count: s.items.length, pages: Math.ceil(s.items.length / PAGE_SIZE) };
+      /* d: the line under the rail title (the Reacondicionados disclosure). */
+      if (s.note) r.d = s.note;
+      /* door: the link to Reacondicionados under a new-only shelf. */
+      if (s.door) r.door = s.door;
       if (i < HEAD_RAILS) r.cards = s.items.slice(0, RAIL_CARDS).map(cardOf);
       return r;
     }),

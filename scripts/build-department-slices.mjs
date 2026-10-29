@@ -36,14 +36,14 @@
    longer match what the rules compute from the committed catalogues.
    ============================================================ */
 import { TECH_BUCKETS } from "./lib/brandsmart.js";
-import { CAB_BUCKETS } from "./lib/sleekshop.js";
+import { CAB_BUCKETS, AISLE_LABELS as CAB_LABELS, hairAisle, PERU_SOLD_HAIR_RX } from "./lib/sleekshop.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
@@ -84,6 +84,10 @@ export const CATALOG_FILES = [
   "/snipes-catalog.json",
   /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
   "/brandsmart-catalog.json",
+  /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
+  "/walmart-electronics-catalog.json",
+  "/costco-electronics-catalog.json",
+  "/microcenter-catalog.json",
   /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
   "/sleekshop-catalog.json",
   "/carolinaherrera-catalog.json",
@@ -145,6 +149,9 @@ export const DEPT_RULES = {
   reacondicionados: { kind: "refurb" },
   /* Perfumes (#443 item 32): the Aria Perfumes stock, its own department. */
   perfumes: { kind: "perfumes" },
+  /* Cabello (#443 c.6473257128): SleekShop's treatment aisles and every
+     beauty store's hair care, under the Peru-presence rule (deptItems). */
+  cabello: { kind: "cabello" },
 };
 
 function hasAny(hay, words) {
@@ -188,7 +195,9 @@ const AUTO_RX = wordsRx(["brakes?", "frenos?", "oil filters?", "filtros? de acei
 /* Aria Auto's stores: what they sell is a part unless its name says otherwise. */
 const AUTO_RETAILERS = new Set(["advanceauto", "autozone"]);
 const NOT_A_PART = new Set(["juguetes", "ropa", "zapatos", "carteras", "joyas", "sombreros", "trajes_bano", "belleza", "perfumes", "libros", "dulces", "bebe"]);
+const BEAUTY_BUCKETS = new Set(["beauty", "belleza", "grooming_women", "grooming_men", "fragrance", "hair", "haircare", "hair_care"]);
 export const KIND_MATCH = {
+  cabello: (t, p) => Boolean(p) && (CAB_BUCKETS.includes(p.bucket) || (BEAUTY_BUCKETS.has(p.bucket) && Boolean(hairAisle(p.title)))),
   /* Aria Perfumes' stock, and every true fragrance any store sells. */
   perfumes: (t, p) => Boolean(p && (p.retailer === "ariaperfumes" || productClass(p) === "perfumes")),
   refurb: (t, p) => Boolean(conditionOfTitle(p && p.title)),
@@ -325,6 +334,7 @@ export function loadAllItems(root = ROOT) {
   return out;
 }
 
+export const MEDIA_RX = /\b(dvd|blu-?ray|audio cd|music cd|the very best of|greatest hits|soundtrack|original motion picture)\b(?!\s*(players?|drives?|burners?|writers?|recorders?))|\[(dvd|blu-?ray|cd)\]/i;
 export function deptItems(all, key) {
   const rule = DEPT_RULES[key];
   let list = all.filter((p) => belongsToDept(rule, p));
@@ -338,6 +348,19 @@ export function deptItems(all, key) {
   /* ...and in Zapatos each class is a Mujer and a Hombre aisle (#443
      c.6412658814): the gender is read before the class replaces the
      store's own type, which is where Farfetch says WOMEN or MEN. */
+  /* Music and films are not electronics (a pre-owned John Denver CD led
+     Electrónica's Reacondicionados): they stay in their store, out of the
+     department. A Blu-ray PLAYER is electronics. */
+  if (key === "electronics") list = list.filter((p) => !MEDIA_RX.test(p.title || ""));
+  /* Cabello: each product's treatment aisle is its type (the rails and the
+     pills read it); a brand Peru sells cheaply enters only on sale, and
+     the lines Peru does not carry lead (the stable sort below keeps it). */
+  if (key === "cabello") {
+    list = list.map((p) => ({ ...p, type: CAB_LABELS[CAB_BUCKETS.includes(p.bucket) ? p.bucket : hairAisle(p.title)] }))
+      .filter((p) => p.type && (!PERU_SOLD_HAIR_RX.test(p.title + " " + (p.brand || "")) || p.salePct > 0));
+    const peru = (p) => (PERU_SOLD_HAIR_RX.test(p.title + " " + (p.brand || "")) ? 1 : 0);
+    return list.map((p, i) => ({ p, i })).sort((a, b) => (peru(a.p) - peru(b.p)) || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+  }
   if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer), ...(key === "shoes" ? { g: shoeGender(p, p.bucket) } : {}) }));
   /* Stable sort: on sale first, then cheapest (the page's order). */
   return list
@@ -363,21 +386,48 @@ export function build(root = ROOT) {
   const all = loadAllItems(root);
   const outRoot = join(root, OUT_DIR);
   const summary = {};
+  /* A hub pill can open another department's lens (Belleza > Cabello). */
+  const lists = new Map();
+  const listOf = (k) => { if (!lists.has(k)) lists.set(k, deptItems(all, k)); return lists.get(k); };
   for (const key of Object.keys(DEPT_RULES)) {
     const dir = join(outRoot, key);
     if (existsSync(dir)) rmSync(dir, { recursive: true });
     mkdirSync(dir, { recursive: true });
-    const list = deptItems(all, key);
+    const list = listOf(key);
     const sections = buildSections(list, sectionOpts(key));
-    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS)));
+    /* Order D: the hub's pill row rides in head.json; each lens is its own file. */
+    const { lenses, extra } = hubLenses(key, list, ALL_LABELS, listOf);
+    for (const l of lenses) writeFileSync(join(dir, `lens-${l.k}.json`), JSON.stringify(l));
+    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, extra)));
+    /* The homepage Electrónica carousel's pills (c.6485409220). */
+    /* home.json is the pill row and the first pill's cards (the first
+       screen, under the 32KB budget); each other pill is its own
+       home-<pill>.json, fetched after the section paints. */
+    if (key === TECH_DEPT) {
+      const { pills } = homeTechPills(list);
+      writeFileSync(join(dir, "home.json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, n: p.cards.length, ...(p.note ? { note: p.note } : {}), ...(p.door ? { door: p.door } : {}) })), cards: pills.length ? pills[0].cards : [] }));
+      for (const p of pills.slice(1)) { writeFileSync(join(dir, `home-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards })); }
+    }
     let files = 1;
     for (let b = 0; b < batchCount(sections); b++) { writeFileSync(join(dir, `rails-${b}.json`), JSON.stringify(batchOf(sections, b))); files++; }
     mkdirSync(join(root, FN_DIR), { recursive: true });
     writeFileSync(join(root, FN_DIR, key + ".json"), JSON.stringify({ v: 1, dept: key, labels: labelsOf(list, ALL_LABELS), rows: list.map(fnRow) }));
     summary[key] = { items: list.length, rails: sections.length, files };
   }
+  /* The homepage audience carousels (c.6483623203): <aud>.json is the pill
+     row and the first pill's cards; each other pill is <aud>-<pill>.json. */
+  const audDir = join(root, AUDIENCE_DIR);
+  if (existsSync(audDir)) rmSync(audDir, { recursive: true });
+  mkdirSync(audDir, { recursive: true });
+  for (const aud of Object.keys(AUDIENCE_SHELVES)) {
+    const { pills } = audiencePills(aud, listOf);
+    writeFileSync(join(audDir, aud + ".json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, dept: p.dept, n: p.cards.length })), cards: pills.length ? pills[0].cards : [] }));
+    for (const p of pills.slice(1)) writeFileSync(join(audDir, `${aud}-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards }));
+    summary["home:" + aud] = { items: pills.length, rails: 1, files: pills.length };
+  }
   return summary;
 }
+export const AUDIENCE_DIR = "assets/home/pills";
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const t = Date.now();
