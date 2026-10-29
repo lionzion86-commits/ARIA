@@ -229,7 +229,7 @@ function buildTechSections(list) {
   for (const p of list) (byAisle[techAisleOf(p)] ||= []).push(p);
   for (const k of TECH_AISLE_ORDER) {
     const l = byAisle[k];
-    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: l });
+    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: k === "tech_celulares" ? celularesOrder(l) : l });
   }
   return sections;
 }
@@ -258,6 +258,62 @@ const HOME_DEVICE_RX = {
   tech_auto: /\b(dash ?cams?|car stereo|carplay|android auto|car speakers?)\b/i,
   tech_accesorios: /\b(chargers?|power banks?|keyboards?|mouse|monitors?)\b/i,
 };
+/* ---------- CELULARES: THE PERU-PRESENCE ORDER ----------
+   (#443 c.6487219343, Danny's Celulares lead rule; the three open
+   questions answered in c.6490718675.)
+
+   Peru buys Samsung and the carrier brands at home, at prices Aria
+   cannot beat: a Galaxy S25 FE is S/ 2,399 at Falabella against our
+   ~$1,108 all-in. So a phone Peru already sells never leads the lens.
+   Aria wins on the phone that has a following and no local store, so
+   Celulares leads with those -- Google Pixel first, OnePlus second.
+   iPhone takes the third slot although Peru does sell it, on the
+   Garantía Aria story alone: ours lands ~S/ 2,900 against Entel's
+   ~S/ 5,190 new, insured trip and returns included. That is ranking
+   rationale only -- no card, no copy and no phone changes. Then the
+   rest of the can't-get-it-here class, then the brands nobody placed,
+   and the saturated brands last: still listed, still sellable, never
+   the lead.
+
+   These are brand lists, not logic. A brand moves tier by moving a
+   row, and BrandsMart drops the maker from its titles ("6.1\" 7a 5G"),
+   so each lead brand reads the title OR the brand field. */
+export const PHONE_LEAD_BRANDS = [
+  ["Google Pixel", /\bpixel\b/i, /^google$/i],
+  ["OnePlus", /\bone ?plus\b/i, /^one ?plus$/i],
+  ["iPhone", /\biphone\b/i, /^apple$/i],
+];
+/* Not sold officially in Peru: Danny named Sony Xperia's class here. */
+const PHONE_ABSENT_RX = /\b(xperia|nothing phone|zenfone|rog phone|fairphone|hmd\b)\b/i;
+/* Sold officially in Peru at local prices we do not beat: the back. */
+const PHONE_SOLD_IN_PERU_RX = /\b(samsung|galaxy|motorola|moto ?[gez]\b|razr|xiaomi|redmi|poco\b|huawei|honor|oppo|vivo|realme|infinix|tecno|zte|tcl|alcatel|nokia)\b/i;
+export const PHONE_RANKS = PHONE_LEAD_BRANDS.length + 3;   // 0..5
+
+/** Where one handset sits in the Celulares lens: 0 Pixel, 1 OnePlus,
+    2 iPhone, 3 the can't-get-it-here class, 4 unplaced, 5 saturated. */
+export function phoneBrandRank(p) {
+  const title = String((p && p.title) || ""), brand = String((p && p.brand) || "").trim();
+  for (let i = 0; i < PHONE_LEAD_BRANDS.length; i++) {
+    const [, titleRx, brandRx] = PHONE_LEAD_BRANDS[i];
+    if (titleRx.test(title) || brandRx.test(brand)) return i;
+  }
+  const t = title + " " + brand;
+  if (PHONE_ABSENT_RX.test(t)) return PHONE_LEAD_BRANDS.length;
+  if (PHONE_SOLD_IN_PERU_RX.test(t)) return PHONE_RANKS - 1;
+  return PHONE_LEAD_BRANDS.length + 1;
+}
+/* Inside a brand's tier the sealed phone goes first: the lens is the
+   trust anchor, and a tier led by a "- Reacondicionado" title reads as
+   a used-phone shop. The refurbished units stay where they are -- their
+   own pill is the separation ruling (c.6488544902), not this sort. */
+const phoneIsRefurb = (p) => (conditionOfTitle(String((p && p.title) || "")) ? 1 : 0);
+
+/** The Celulares rail of a department page: the same brand order, with
+    the department's own sort (on sale first, then cheapest) kept inside
+    each tier, so the pill and the aisle never disagree. */
+export const celularesOrder = (l) => l.map((p, i) => ({ p, i, b: phoneBrandRank(p), n: phoneIsRefurb(p) }))
+  .sort((x, y) => (x.b - y.b) || (x.n - y.n) || (x.i - y.i)).map((x) => x.p);
+
 const HOME_BRAND_RX = /\b(apple|samsung|google|sony|bose|jbl|beats|microsoft|nintendo|playstation|xbox|meta|dji|gopro|canon|nikon|fujifilm|garmin|fitbit|lenovo|hp|dell|asus|acer|msi|logitech|anker|sonos|marshall|ring|blink|arlo|skullcandy|sennheiser|razer|corsair|hyperx|kingston|crucial|western digital|sandisk|motorola|tcl|lg)\b/i;
 const HOME_SPEC_RX = /\b(\d+\s?gb|\d+\s?tb|intel|amd|ryzen|celeron|core (i|ultra)|m\d chip|snapdragon)\b/i;
 export function homeStrength(p, k) {
@@ -280,8 +336,11 @@ export function homeTechPills(list) {
   /* The front page shows a type's strongest products first: what the
      type IS (a handset, a console, a laptop with a spec) before what fits
      it, a brand people search for, then the deeper sale. */
-  const devicesFirst = (l, k) => l.map((p, i) => ({ p, i, s: homeStrength(p, k) }))
-    .sort((x, y) => (y.s - x.s) || ((y.p.salePct || 0) - (x.p.salePct || 0)) || (x.i - y.i)).map((x) => x.p);
+  /* Celulares leads by brand tier before strength (the Peru-presence
+     order above); every other pill sorts as it always did. */
+  const devicesFirst = (l, k) => l.map((p, i) => ({ p, i, s: homeStrength(p, k), b: 0, n: 0 }))
+    .map((x) => (k === "tech_celulares" ? { ...x, b: phoneBrandRank(x.p), n: phoneIsRefurb(x.p) } : x))
+    .sort((x, y) => (x.b - y.b) || (x.n - y.n) || (y.s - x.s) || ((y.p.salePct || 0) - (x.p.salePct || 0)) || (x.i - y.i)).map((x) => x.p);
   const pills = [];
   const sales = shown.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
     .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
