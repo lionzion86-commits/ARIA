@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-29T01:23:47.160Z",
+ "generatedAt": "2026-10-29T01:37:50.975Z",
  "rawProducts": 2504,
  "kept": 1287,
  "held": {
@@ -14,7 +14,7 @@
  },
  "byAisle": {
   "tech_celulares": 45,
-  "tech_computadoras": 102,
+  "tech_computadoras": 100,
   "tech_audifonos": 165,
   "tech_audio": 223,
   "tech_gaming": 40,
@@ -23,7 +23,7 @@
   "tech_casa_inteligente": 97,
   "tech_auto": 14,
   "tech_componentes": 12,
-  "tech_accesorios": 492
+  "tech_accesorios": 494
  },
  "onSale": 312,
  "withWeight": 1264,

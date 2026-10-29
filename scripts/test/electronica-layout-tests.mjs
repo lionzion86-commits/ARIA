@@ -15,7 +15,9 @@ import { readFileSync } from "node:fs";
 import { conditionOfTitle } from "../lib/condition.js";
 import { TECH_AISLE_LABELS } from "../lib/tech-aisle.js";
 import { MEDIA_RX } from "../build-department-slices.mjs";
-import { loadDept, buildSections, sectionOpts, isStudyLaptop, answer, REFURB_NOTE, STUDY_NOTE, STUDY_LAPTOP_MAX } from "../../netlify/functions/_department-core.js";
+import { loadDept, buildSections, sectionOpts, isStudyLaptop, answer, REFURB_NOTE, STUDY_NOTE, STUDY_LAPTOP_MAX, homeTechPills, HOME_PILL_MIN } from "../../netlify/functions/_department-core.js";
+import { isAccessoryName } from "../lib/tech-aisle.js";
+import { readdirSync } from "node:fs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -88,6 +90,38 @@ check("music and films are not electronics; a Blu-ray player is", () => {
   for (const p of dept.list) assert.doesNotMatch(p.title, /\b(the very best of|greatest hits|soundtrack)\b|\[(dvd|blu-?ray|cd)\]/i, p.title);
   assert.ok(!MEDIA_RX.test("Sony 4K Blu-ray Player"));
   assert.ok(MEDIA_RX.test("Pre-Owned Country Roads: The Very Best Of John Denver"));
+});
+
+check("the homepage Electrónica carousel: Ofertas, then Danny's four types, every pill filled, devices first", () => {
+  const DIR = ROOT + "assets/sections/departamento/electronics/";
+  const head = JSON.parse(readFileSync(DIR + "home.json", "utf8"));
+  const home = { v: 1, pills: head.pills.map((p, i) => ({ k: p.k, label: p.label, cards: i ? JSON.parse(readFileSync(DIR + `home-${p.k}.json`, "utf8")).cards : head.cards })) };
+  head.pills.forEach((p, i) => assert.equal(p.n, home.pills[i].cards.length, p.label));
+  const keys = home.pills.map((p) => p.k);
+  assert.deepEqual(keys.slice(0, 5), ["ofertas", "tech_celulares", "tech_computadoras", "tech_gaming", "tech_audifonos"]);
+  assert.deepEqual(home.pills.map((p) => p.label).slice(0, 5), ["Ofertas", "Celulares", "Computadoras", "Videojuegos", "Audífonos"]);
+  for (const p of home.pills) {
+    assert.ok(p.cards.length >= HOME_PILL_MIN, `${p.label}: ${p.cards.length}`);
+    for (const c of p.cards) assert.ok(c.i && c.p > 0, `${p.label}: ${c.t}`);
+    if (p.k === "ofertas") for (const c of p.cards) assert.ok(c.s > 0, `Ofertas: ${c.t} is not on sale`);
+    if (p.k !== "tech_accesorios") for (const c of p.cards.slice(0, 3)) assert.ok(!isAccessoryName(c.t), `${p.label} leads with an accessory: ${c.t}`);
+    assert.equal(new Set(p.cards.map((c) => c.r + c.t)).size, p.cards.length, `${p.label}: a card twice`);
+  }
+  assert.deepEqual(home, JSON.parse(JSON.stringify(homeTechPills(dept.list.map((p) => ({ ...p, image: p.image })))) ), "home.json is stale: run build-department-slices");
+});
+
+check("the homepage section: pills above the carousel, both layouts, a lens that hides nothing", () => {
+  const html = readFileSync(ROOT + "index.html", "utf8");
+  for (const pfx of ["m", "d"]) {
+    const a = html.indexOf(`id="${pfx}TechPills"`), b = html.indexOf(`id="${pfx}TechRail"`);
+    assert.ok(a > 0 && b > a, `${pfx}: the pill row sits above the carousel`);
+  }
+  assert.equal((html.match(/data-tech-home hidden/g) || []).length, 2);
+  const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]{16}\.js$/.test(f)), "utf8");
+  const fn = bundle.slice(bundle.indexOf("function setTechHomePill"), bundle.indexOf("function openTechHomeProduct"));
+  assert.ok(fn.length > 0 && !/hidden|display|remove\(/.test(fn.replace(/\/\*[\s\S]*?\*\//g, "")), "a pill changes only its own carousel");
+  assert.match(bundle, /const TECH_HOME_MIN = 8;/);
+  assert.match(bundle, /'home-' \+ key \+ '\.json'/);
 });
 
 check("the page draws the disclosure under the rail title", () => {

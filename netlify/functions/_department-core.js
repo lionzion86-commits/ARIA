@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle } from "../../scripts/lib/condition.js";
-import { techAisle, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from "../../scripts/lib/tech-aisle.js";
+import { techAisle, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;    // cards drawn in one carousel
@@ -231,6 +231,66 @@ function buildTechSections(list) {
     if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: l });
   }
   return sections;
+}
+
+/* THE HOMEPAGE ELECTRÓNICA CAROUSEL (Danny, #443 c.6485409220): one
+   carousel, one pill row above it, the pills in-place lenses. «Ofertas»
+   is the default (the strongest sales across the department, devices
+   first), then the types Danny named -- Celulares, Computadoras,
+   Videojuegos, Audífonos -- then every other aisle the data fills. A
+   pill renders only with HOME_PILL_MIN real cards (the Aisle Test);
+   inside each, devices lead what fits them. */
+export const HOME_PILL_MIN = 8, HOME_PILL_CARDS = 24;
+export const HOME_TECH_PILLS = [["tech_celulares", "Celulares"], ["tech_computadoras", "Computadoras"], ["tech_gaming", "Videojuegos"],
+  ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
+  ["tech_casa_inteligente", "Casa inteligente"], ["tech_componentes", "Componentes"], ["tech_auto", "Auto"], ["tech_accesorios", "Accesorios"]];
+const HOME_DEVICE_RX = {
+  tech_celulares: /\b(iphone|galaxy|pixel|moto|razr|smartphone|unlocked)\b/i,
+  tech_computadoras: /\b(laptops?|notebooks?|chromebooks?|macbook|ipad|tablets?|desktop|all-in-one|vivobook|zenbook|ideapad|thinkpad|copilot\+ pc)\b/i,
+  tech_gaming: /\b(consoles?|steam deck|meta quest \d|rog ally|legion go|dualsense|(xbox|ps5|playstation 5)[^,]*controller|nintendo switch (2|oled|lite)(?![^,]*-))\b/i,
+  tech_audifonos: /\b(airpods|earbuds|headphones|headset)\b/i,
+  tech_camaras: /\b(mirrorless|dslr|gopro|insta360|dji|instax|camera body|digital camera|action camera|vlog)\b/i,
+  tech_relojes: /\b(apple watch|galaxy watch|smart ?watch|garmin|fitbit|amazfit)\b/i,
+  tech_audio: /\b(speakers?|soundbars?|sound bars?|turntables?|subwoofers?)\b/i,
+  tech_casa_inteligente: /\b(doorbells?|security cam(era)?s?|echo|nest|smart (plugs?|displays?|locks?))\b/i,
+  tech_componentes: /\b(ssd|nvme|ddr[45]|motherboards?|graphics cards?|rtx|radeon|processors?)\b/i,
+  tech_auto: /\b(dash ?cams?|car stereo|carplay|android auto|car speakers?)\b/i,
+  tech_accesorios: /\b(chargers?|power banks?|keyboards?|mouse|monitors?)\b/i,
+};
+const HOME_BRAND_RX = /\b(apple|samsung|google|sony|bose|jbl|beats|microsoft|nintendo|playstation|xbox|meta|dji|gopro|canon|nikon|fujifilm|garmin|fitbit|lenovo|hp|dell|asus|acer|msi|logitech|anker|sonos|marshall|ring|blink|arlo|skullcandy|sennheiser|razer|corsair|hyperx|kingston|crucial|western digital|sandisk|motorola|tcl|lg)\b/i;
+const HOME_SPEC_RX = /\b(\d+\s?gb|\d+\s?tb|intel|amd|ryzen|celeron|core (i|ultra)|m\d chip|snapdragon)\b/i;
+export function homeStrength(p, k) {
+  const t = String(p.title || "") + " " + String(p.brand || "");
+  const rx = HOME_DEVICE_RX[k || techAisleOf(p)];
+  let s = 0;
+  if (!isAccessoryName(p.title)) s += 1;
+  if (rx && rx.test(p.title || "")) s += 2;
+  if (k === "tech_computadoras" && !HOME_SPEC_RX.test(p.title || "")) s -= 2;
+  if (HOME_BRAND_RX.test(t)) s += 1;
+  if (p.salePct > 0) s += 1;
+  /* A few-dollar trinket never fronts the department. */
+  if (p.rawPrice < 15) s -= 2;
+  return s;
+}
+export function homeTechPills(list) {
+  /* One card per title: a colour run of the same speaker is one product here. */
+  const seen = new Set();
+  const shown = list.filter((p) => { const t = String(p.title || "").replace(/\s+-\s+[^-]+$/, "").toLowerCase(); if (!p.image || seen.has(t)) return false; seen.add(t); return true; });
+  /* The front page shows a type's strongest products first: what the
+     type IS (a handset, a console, a laptop with a spec) before what fits
+     it, a brand people search for, then the deeper sale. */
+  const devicesFirst = (l, k) => l.map((p, i) => ({ p, i, s: homeStrength(p, k) }))
+    .sort((x, y) => (y.s - x.s) || ((y.p.salePct || 0) - (x.p.salePct || 0)) || (x.i - y.i)).map((x) => x.p);
+  const pills = [];
+  const sales = shown.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length >= HOME_PILL_MIN) pills.push({ k: "ofertas", label: "Ofertas", cards: devicesFirst(sales, "").slice(0, HOME_PILL_CARDS).map(cardOf) });
+  for (const [k, label] of HOME_TECH_PILLS) {
+    /* The department's order: on sale first, then cheapest. */
+    const l = shown.filter((p) => techAisleOf(p) === k);
+    if (l.length >= HOME_PILL_MIN) pills.push({ k, label, cards: devicesFirst(l, k).slice(0, HOME_PILL_CARDS).map(cardOf) });
+  }
+  return { v: 1, pills };
 }
 
 export const FRONT = 24, FRONT_CAP = 6;

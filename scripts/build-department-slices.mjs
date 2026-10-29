@@ -43,7 +43,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
@@ -379,6 +379,15 @@ export function build(root = ROOT) {
     const list = deptItems(all, key);
     const sections = buildSections(list, sectionOpts(key));
     writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS)));
+    /* The homepage Electrónica carousel's pills (c.6485409220). */
+    /* home.json is the pill row and the first pill's cards (the first
+       screen, under the 32KB budget); each other pill is its own
+       home-<pill>.json, fetched after the section paints. */
+    if (key === TECH_DEPT) {
+      const { pills } = homeTechPills(list);
+      writeFileSync(join(dir, "home.json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, n: p.cards.length })), cards: pills.length ? pills[0].cards : [] }));
+      for (const p of pills.slice(1)) { writeFileSync(join(dir, `home-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards })); }
+    }
     let files = 1;
     for (let b = 0; b < batchCount(sections); b++) { writeFileSync(join(dir, `rails-${b}.json`), JSON.stringify(batchOf(sections, b))); files++; }
     mkdirSync(join(root, FN_DIR), { recursive: true });

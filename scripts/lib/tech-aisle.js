@@ -32,9 +32,9 @@ export const TECH_AISLE_LABELS = {
 export const TECH_AISLE_ORDER = ["tech_celulares", "tech_computadoras", "tech_audifonos", "tech_audio", "tech_gaming", "tech_camaras",
   "tech_relojes", "tech_casa_inteligente", "tech_auto", "tech_componentes", "tech_accesorios", "tech_electro"];
 
-const ACCESSORY_RX = /\b(cases?|covers?|folio|screen protectors?|tempered glass|chargers?|charging (cable|cord|pad|stand|dock)|cables?|cords?|adapters?|adapter|power banks?|batter(y|ies)|mounts?|stands?|holders?|straps?|bands? for|replacement (band|strap|tips|pads|ear)|ear ?tips|skins?|sleeves?|bags?|backpacks?|stylus|hubs?|docking station|docks?|keyboards?|mouse|mice|mouse ?pads?|webcams?|memory cards?|sd cards?|micro ?sd|flash drives?|usb drives?|external (hard|solid)|hard drives?|portable ssd|surge|power strips?|extension cords?|wall plates?|brackets?|tripods?|selfie sticks?|lens (caps?|cloths?)|cleaning kit|car chargers?|dongles?)\b/i;
+const ACCESSORY_RX = /\b(cases?|covers?|folio|screen protectors?|tempered glass|chargers?|charging (cable|cord|pad|stand|dock)|cables?|cords?|adapters?|adapter|power banks?|batter(y|ies)|mounts?|stands?|holders?|straps?|bands? for|replacement (band|strap|tips|pads|ear)|ear ?tips|skins?|sleeves?|bags?|backpacks?|stylus|hubs?|docking station|docks?|keyboards?|mouse|mice|mouse ?pads?|webcams?|memory cards?|sd cards?|micro ?sd|flash drives?|usb drives?|external (hard|solid)|hard drives?|portable ssd|surge|power strips?|extension cords?|wall plates?|brackets?|tripods?|selfie sticks?|lens (caps?|cloths?)|cleaning kit|car chargers?|dongles?|trays?|lap ?desks?|desks?)\b/i;
 const PHONE_RX = /\b(iphone \d+[a-z]?|iphone se|galaxy (s|z|a)\d+|galaxy z (flip|fold)|pixel \d+|moto(rola)? (g|edge|razr)|razr|smartphone|cell ?phone|unlocked phone|phone (unlocked|\d+gb)|\d+gb .*\b(unlocked|smartphone)\b|flip phone|tcl flip|(alcatel|nokia|kyocera|orbic) [\w ]*flip|rugged (smart)?phone|android phone|kyocera dura\w+|jitterbug|lively flip|tcl \d+|blu [a-z]+ \d)\b/i;
-const COMPUTER_RX = /\b(laptops?|notebooks?|chromebooks?|macbook( air| pro)?|ultrabook|2-in-1|desktop (pc|computer)|all-in-one|aio\b|mini pc|imac|mac mini|tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle|e-?readers?|surface (pro|laptop|go)|vivobook|zenbook|ideapad|thinkpad|copilot\+ pc)\b/i;
+const COMPUTER_RX = /\b(laptops?|notebooks?|chromebooks?|macbook( air| pro)?|ultrabook|desktop (pc|computer)|all-in-one|aio\b|mini pc|imac|mac mini|tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle|e-?readers?|surface (pro|laptop|go)|vivobook|zenbook|ideapad|thinkpad|copilot\+ pc)\b/i;
 const HEADPHONE_RX = /\b(headphones?|earbuds?|earphones?|airpods|headsets?|in-ear|over-ear|on-ear|ear buds)\b/i;
 const AUDIO_RX = /\b(speakers?|soundbars?|sound bars?|subwoofers?|receivers?|turntables?|record players?|home theater|amplifiers?|amps?\b|stereo systems?|boombox|radios?|party ?box|jukebox)\b/i;
 const GAMING_RX = /\b(playstation|ps5|ps4|xbox|nintendo|switch (oled|lite|2)|steam deck|consoles?|controllers?|gamepads?|joy-?cons?|racing wheels?|vr headsets?|meta quest|quest \d|gaming)\b/i;
@@ -44,6 +44,14 @@ const WATCH_RX = /\b(smart ?watch(es)?|apple watch|galaxy watch|fitbit|garmin (f
 const CAR_RX = /\b(car (stereo|audio|speakers?|amplifier|subwoofer)|dash ?cams?|head units?|marine (speakers?|stereo)|carplay receiver|double din|single din)\b/i;
 const COMPONENT_RX = /\b(motherboards?|processors?|cpus?|graphics cards?|gpus?|geforce rtx|radeon rx|video cards?|ram|ddr[45]|memory (kit|module)|ssds?|nvme|solid state drives?|m\.2|power supply|psu|cpu coolers?|aio cooler|pc case|computer case)\b/i;
 const MONITOR_RX = /\b(monitors?)\b/i;
+
+/** True when the name leads with an accessory ("Case for iPhone 16"):
+    the homepage pills show devices before what fits them. */
+export function isAccessoryName(name) {
+  const n = String(name || "");
+  const head = n.split(/\s+(?:with|for|compatible|fits)\s+|\s+[-–|,(]\s*/i)[0];
+  return ACCESSORY_RX.test(head) || /\b(controllers?|gamepads?|lens(es)?|tripods?|bands?|straps?)\b/i.test(head);
+}
 
 /** The aisle for one product, by its name (and the store's own category as a last hint). */
 export function techAisle(name, hint = "") {

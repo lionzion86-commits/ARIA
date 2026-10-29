@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-29T01:23:46.525Z",
+ "generatedAt": "2026-10-29T01:37:50.346Z",
  "stores": {
   "walmart": {
    "raw": 5407,
@@ -16,11 +16,11 @@
    },
    "byAisle": {
     "tech_celulares": 110,
-    "tech_computadoras": 382,
+    "tech_computadoras": 381,
     "tech_audifonos": 256,
     "tech_audio": 119,
     "tech_gaming": 342,
-    "tech_camaras": 211,
+    "tech_camaras": 212,
     "tech_relojes": 163,
     "tech_casa_inteligente": 114,
     "tech_auto": 23,
