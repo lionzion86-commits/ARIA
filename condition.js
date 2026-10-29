@@ -24,16 +24,21 @@
   var REFURB_RX = /\b(refurbished|renewed|remanufactured|reconditioned|certified pre-?owned|reacondicionad[oa]s?)\b/i;
   var OPEN_BOX_RX = /\bopen[- ]box\b|\bcaja abierta\b/i;
   var USED_RX = /\bpre-?owned\b|\bsegunda mano\b/i;
+  /* Walmart's refurbished programme leads the title with "Restored"
+     ("Restored Dell 3100 Chromebook"); a seller's suffix shouts "USED".
+     Both are the store's own words, so both disclose. */
+  var RESTORED_RX = /^\s*restored\b(?!\s+(?:i{1,3}|iv|v|vi{1,3})\b)|\(restored\)/i;
+  var SHOUTED_USED_RX = /(?:^|[\s(\[,\-\u2013])USED\b|\((?:used|usado)\)/;
   var NO_USED_SALE_RX = /\b(shirts?|t-shirts?|tees?|pants|jeans|dress(es)?|skirts?|jackets?|coats?|hoodies?|sweaters?|leggings|shorts|socks|underwear|bras?|pajamas?|shoes?|sneakers?|boots?|sandals?|slippers?|heels|loafers?|cleats|brakes?|rotors?|alternators?|radiators?|transmissions?|bumpers?|fenders?)\b/i;
-  var PHONE_RX = /\b(iphone|galaxy s\d+|galaxy z|pixel \d+|smartphone|cell ?phone)\b/i;
-  var CARRIER_RX = /\b(locked|straight talk|tracfone|total wireless|cricket|metro ?pcs|boost mobile|verizon|at&t|t-mobile)\b/i;
+  var PHONE_RX = /\b(iphone|galaxy [sza]\d+|galaxy z|pixel \d+|smartphone|cell ?phone|flip phone|razr|moto g|tcl \d+|tcl flip)\b/i;
+  var CARRIER_RX = /\b(locked|straight talk|tracfone|total wireless|cricket|metro ?pcs|boost mobile|visible|verizon|at&t|t-mobile|spectrum mobile|xfinity mobile|us cellular)\b/i;
 
   var LABELS = { refurbished: 'Reacondicionado', used: 'Usado', 'open-box': 'Caja abierta' };
 
   /** { condition, label } for a sellable refurbished / used / open-box title, else null. */
   function conditionOfTitle(title) {
     var t = String(title || '');
-    var c = REFURB_RX.test(t) ? 'refurbished' : USED_RX.test(t) ? 'used' : OPEN_BOX_RX.test(t) ? 'open-box' : '';
+    var c = REFURB_RX.test(t) || RESTORED_RX.test(t) ? 'refurbished' : USED_RX.test(t) || SHOUTED_USED_RX.test(t) ? 'used' : OPEN_BOX_RX.test(t) ? 'open-box' : '';
     if (!c) return null;
     if (NO_USED_SALE_RX.test(t)) return null;
     if (PHONE_RX.test(t) && CARRIER_RX.test(t) && !/\bunlocked\b/i.test(t)) return null;

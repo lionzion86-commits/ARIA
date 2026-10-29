@@ -108,6 +108,7 @@
   .perfumes-lead .pl-sub{margin:2px 20px 0;font-size:12px;font-weight:600;color:#6B7487}
   .rail-head{display:flex;align-items:center;gap:8px;padding:0 20px;margin-bottom:2px}
   .rail-head h2{font-size:19px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
+  .rail-note{margin:2px 20px 6px;padding:8px 12px;border-radius:10px;background:#FFF4E0;border:1px solid #F2C46D;color:#5A3B00;font-size:13px;font-weight:700;line-height:1.35}
   .rail-count{font-size:11px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px}
   /* END-OF-CAROUSEL CARD (#443 c.6405624575): the Perfumes lead rail ends
      in a card that opens the whole department in the overlay. */
@@ -757,6 +758,7 @@ function sizedImageUrl(url, w){
     return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '">'
       + '<div class="rail-head"><h2>' + esc(r.title) + '</h2>'
       + '<span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span>' + door + '</div>'
+      + (r.d ? '<p class="rail-note">' + esc(r.d) + '</p>' : '')
       + '<div class="rail">' + cards + '</div></section>';
   }
   var MORE_IO = null;

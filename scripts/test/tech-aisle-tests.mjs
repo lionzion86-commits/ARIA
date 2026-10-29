@@ -32,10 +32,13 @@ check("the type rule: a device, not what fits it", () => {
     "Gaming Headset for PC PS4 PS5 Laptop": "tech_audifonos", "Samsung 990 PRO 2TB NVMe SSD": "tech_componentes",
     "SanDisk Extreme Portable SSD 1TB": "tech_accesorios", "Samsung Galaxy A56 5G 256GB+8GB RAM Unlocked": "tech_celulares",
     "Energizer MAX AA Batteries 24 Pack": "tech_accesorios", "GoPro HERO13 Black": "tech_camaras",
+    "Metro By T-Mobile TCL Flip 4 5G": "tech_celulares", "Kyocera DuraForce PRO 2 E6910 Verizon Locked 64GB Rugged Phone": "tech_celulares",
   };
   for (const [n, a] of Object.entries(want)) assert.equal(techAisle(n), a, n);
   assert.equal(isTechProduct("Fishing Tackle Bag"), false);
   assert.equal(isTechProduct("Office Depot Stapler"), false);
+  /* A book about a phone is a book. */
+  assert.equal(isTechProduct("The Garmin Venu X1 Smartwatch Experience, (Paperback)"), false);
 });
 
 const STORES = [["brandsmart-catalog.json", "brandsmart"], ["walmart-electronics-catalog.json", "walmart"],

@@ -4,7 +4,7 @@
 
 | | Products |
 |---|---:|
-| Comparables pool (a published weight, the store's figure, or a per-class rule) | 126,460 |
+| Comparables pool (a published weight, the store's figure, or a per-class rule) | 126,455 |
 | Products the rules could only cover with a constant | 13,496 |
 | ...now estimated from similar products (median x 1.15) | 5,805 |
 | ...with no similar product, weighed by the web pass (found weight x 1.1, source in hidden-docs/weight-tail-full-2026-10-26.csv) | 1,270 |
@@ -5769,7 +5769,6 @@
 | brandsmart | V Series Banana Adapters 2-Pair \\ Pure Gold Shield to Prevent Copper Wire Oxidation, High | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | OmniJewel Table Stands - White | 79.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Triple Wireless Charger - Dark Grey | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
-| brandsmart | Acer Aspire Lite 14 AI AL14-11M-X8EN Copilot+ PC, 14" WUXGA (1920 x 1200) Display, Snapdra | 749.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Acer Aspire Lite 15 AL15-35P-C3NH 15.6" Full HD IPS Matte Display, Intel Celeron N4500, In | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | USB3.1 B113 512GB | 89.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | 2000A Jump Starter with Air Compressor Tire Inflator | 279.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
@@ -5946,6 +5945,7 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | brandsmart | MR HH350 FLT - 6 Watt Handheld Floating VHF Marine Radio with NOAA Weather | 139.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Forerunner® 570 Amp Yellow Aluminum with Translucent Whitestone/Turquoise Band | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | EON ONE Compact All-In-One Rechargeable Personal PA | 699.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Acer Aspire Lite 14 AI AL14-11M-X8EN Copilot+ PC, 14" WUXGA (1920 x 1200) Display, Snapdra | 749.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | 10.2" 32GB eReader with Wi-Fi - Tungsten (Gray) | 419.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Galaxy A16 4G 128GB 4GB RAM in Black / 6.7” AMOLED 90Hz Display / GSM unlocked Dual SIM In | 219.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | walmart | Dell UltraSharp U2520D 25 Inch, Black | 519.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |

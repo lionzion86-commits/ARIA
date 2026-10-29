@@ -329,6 +329,7 @@ export function loadAllItems(root = ROOT) {
   return out;
 }
 
+export const MEDIA_RX = /\b(dvd|blu-?ray|audio cd|music cd|the very best of|greatest hits|soundtrack|original motion picture)\b(?!\s*(players?|drives?|burners?|writers?|recorders?))|\[(dvd|blu-?ray|cd)\]/i;
 export function deptItems(all, key) {
   const rule = DEPT_RULES[key];
   let list = all.filter((p) => belongsToDept(rule, p));
@@ -342,6 +343,10 @@ export function deptItems(all, key) {
   /* ...and in Zapatos each class is a Mujer and a Hombre aisle (#443
      c.6412658814): the gender is read before the class replaces the
      store's own type, which is where Farfetch says WOMEN or MEN. */
+  /* Music and films are not electronics (a pre-owned John Denver CD led
+     Electrónica's Reacondicionados): they stay in their store, out of the
+     department. A Blu-ray PLAYER is electronics. */
+  if (key === "electronics") list = list.filter((p) => !MEDIA_RX.test(p.title || ""));
   if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer), ...(key === "shoes" ? { g: shoeGender(p, p.bucket) } : {}) }));
   /* Stable sort: on sale first, then cheapest (the page's order). */
   return list

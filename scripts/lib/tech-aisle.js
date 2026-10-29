@@ -33,8 +33,8 @@ export const TECH_AISLE_ORDER = ["tech_celulares", "tech_computadoras", "tech_au
   "tech_relojes", "tech_casa_inteligente", "tech_auto", "tech_componentes", "tech_accesorios", "tech_electro"];
 
 const ACCESSORY_RX = /\b(cases?|covers?|folio|screen protectors?|tempered glass|chargers?|charging (cable|cord|pad|stand|dock)|cables?|cords?|adapters?|adapter|power banks?|batter(y|ies)|mounts?|stands?|holders?|straps?|bands? for|replacement (band|strap|tips|pads|ear)|ear ?tips|skins?|sleeves?|bags?|backpacks?|stylus|hubs?|docking station|docks?|keyboards?|mouse|mice|mouse ?pads?|webcams?|memory cards?|sd cards?|micro ?sd|flash drives?|usb drives?|external (hard|solid)|hard drives?|portable ssd|surge|power strips?|extension cords?|wall plates?|brackets?|tripods?|selfie sticks?|lens (caps?|cloths?)|cleaning kit|car chargers?|dongles?)\b/i;
-const PHONE_RX = /\b(iphone \d+[a-z]?|iphone se|galaxy (s|z|a)\d+|galaxy z (flip|fold)|pixel \d+|moto(rola)? (g|edge|razr)|razr|smartphone|cell ?phone|unlocked phone|phone (unlocked|\d+gb)|\d+gb .*\b(unlocked|smartphone)\b|flip phone|tcl \d+|blu [a-z]+ \d)\b/i;
-const COMPUTER_RX = /\b(laptops?|notebooks?|chromebooks?|macbook( air| pro)?|ultrabook|2-in-1|desktop (pc|computer)|all-in-one|aio\b|mini pc|imac|mac mini|tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle|e-?readers?|surface (pro|laptop|go))\b/i;
+const PHONE_RX = /\b(iphone \d+[a-z]?|iphone se|galaxy (s|z|a)\d+|galaxy z (flip|fold)|pixel \d+|moto(rola)? (g|edge|razr)|razr|smartphone|cell ?phone|unlocked phone|phone (unlocked|\d+gb)|\d+gb .*\b(unlocked|smartphone)\b|flip phone|tcl flip|(alcatel|nokia|kyocera|orbic) [\w ]*flip|rugged (smart)?phone|android phone|kyocera dura\w+|jitterbug|lively flip|tcl \d+|blu [a-z]+ \d)\b/i;
+const COMPUTER_RX = /\b(laptops?|notebooks?|chromebooks?|macbook( air| pro)?|ultrabook|2-in-1|desktop (pc|computer)|all-in-one|aio\b|mini pc|imac|mac mini|tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle|e-?readers?|surface (pro|laptop|go)|vivobook|zenbook|ideapad|thinkpad|copilot\+ pc)\b/i;
 const HEADPHONE_RX = /\b(headphones?|earbuds?|earphones?|airpods|headsets?|in-ear|over-ear|on-ear|ear buds)\b/i;
 const AUDIO_RX = /\b(speakers?|soundbars?|sound bars?|subwoofers?|receivers?|turntables?|record players?|home theater|amplifiers?|amps?\b|stereo systems?|boombox|radios?|party ?box|jukebox)\b/i;
 const GAMING_RX = /\b(playstation|ps5|ps4|xbox|nintendo|switch (oled|lite|2)|steam deck|consoles?|controllers?|gamepads?|joy-?cons?|racing wheels?|vr headsets?|meta quest|quest \d|gaming)\b/i;
@@ -108,7 +108,7 @@ const DEVICE_NAME_RX = /\b(iphone|ipad|ipod|galaxy|pixel|airpods|airtag|macbook|
    gear, kitchen fittings, movies and music. Re-routed, never shown in
    Electrónica. The store's own collection is only believed for a name
    that is none of these. */
-const NOT_TECH_RX = /\b(backpacks?|bags?|sleeves?|slipcase|totes?|pencils?|pens?\b|markers?|paper|index cards?|glue|staplers?|binders?|folders?|notebooks? \(paper\)|sticky notes|organizers?|shredders?|helmets?|elbow|knee pads|scooter|faucets?|fishing|tackle|dvd|blu-?ray|cd\b|vinyl record|greatest hits|season \d|volume \d|the movie|ink cartridges?|toner)\b/i;
+const NOT_TECH_RX = /\b(backpacks?|bags?|sleeves?|slipcase|totes?|pencils?|pens?\b|markers?|paper|index cards?|glue|staplers?|binders?|folders?|notebooks? \(paper\)|sticky notes|organizers?|shredders?|helmets?|elbow|knee pads|scooter|faucets?|fishing|tackle|dvd|blu-?ray|cd\b|vinyl record|greatest hits|season \d|volume \d|the movie|ink cartridges?|toner|paperback|hardcover|audiobook)\b/i;
 const TECH_HINT_RX = /\b(phones?|headphones?|cameras?|computers?|laptops?|gaming|audio|speakers?|watches|wearables|tablets?|monitors?|networking|motherboards?|ssd|keyboards?|smart-home|security|electronics|accessories-power|car-audio)\b/i;
 export function isTechProduct(name, hint = "") {
   const n = String(name || "");

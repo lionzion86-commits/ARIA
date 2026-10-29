@@ -30,6 +30,7 @@ import { techAisle, isTechProduct, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from ".
 const realPhoto = (u) => typeof u === "string" && /^https:\/\//.test(u);
 const LOCKED_RX = /\b(prepaid|straight talk|tracfone|total wireless|total by verizon|cricket|metro ?(by t-?mobile|pcs)|boost mobile|visible|verizon|at&t|t-?mobile|carrier[- ]locked|locked to|simple mobile|walmart family mobile|consumer cellular|lte prepaid)\b/i;
 const UNLOCKED_RX = /\bunlocked\b/i;
+const DAMAGED_RX = /\b(fractured|cracked|broken (screen|glass)|for parts|not working)\b/i;
 const CONDITION_LABEL = { restored: "Reacondicionado", "pre-owned": "Usado", "open box": "Caja abierta" };
 
 /** "sell" or the hold reason, after the type and the voltage gate. */
@@ -78,6 +79,8 @@ export function normalizeWalmartElectronics(rows, { isShippableItem } = {}) {
     const c = conditionOf(name, "electronics");
     if (c && c.excluded) { hold(c.excluded); continue; }
     if (c && lockedPhone(name)) { hold("carrier-locked phone"); continue; }
+    /* A damaged unit ("92% Fractured Glass") is not a refurbished one. */
+    if (c && DAMAGED_RX.test(name)) { hold("damaged unit"); continue; }
     const aisle = gate({ name, description: r.description, hint: r.subcategory, flag110: r.voltageFlag110Only === true });
     if (!aisle.startsWith("tech_")) { hold(aisle); continue; }
     const it = { name, brand: String(r.brand || "").trim(), price, currency: "USD", image: imgs[0], images: imgs,

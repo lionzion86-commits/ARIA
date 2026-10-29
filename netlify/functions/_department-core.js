@@ -14,6 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle } from "../../scripts/lib/condition.js";
+import { techAisle, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;    // cards drawn in one carousel
@@ -133,6 +134,7 @@ export function buildPerfumeSections(list) {
 export const SHOE_DEPTS = new Set(["shoes", "shoes_women", "shoes_men"]);
 export function sectionOpts(key) {
   if (key === CASA_DEPT) return { casa: true };
+  if (key === TECH_DEPT) return { tech: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
 
@@ -171,6 +173,66 @@ function buildCasaSections(list) {
   for (const s of buildSectionsRaw(rest, {})) if (s.key !== "ofertas" && s.key !== "destacados") sections.push({ ...s, title: s.key === "tipo:otros" ? "Más para tu casa" : s.title });
   return sections;
 }
+/* ---------- ELECTRÓNICA (Order C, #443) ----------
+   The cross-store Ofertas, then B&H's destacados (the camera house leads
+   the stores), then Reacondicionados with its disclosure, then «Laptops
+   para estudiar», then each electronics store on its own rail, then the
+   named aisles of scripts/lib/tech-aisle.js -- one rule for every store,
+   so the store's own English categories ("Laptop Computers", "Laptop",
+   "Laptops/Notebooks") never split one aisle three ways. A row whose
+   type is already an aisle (tech_*) keeps it; any other is filed by its
+   own name, the store's type only a hint. */
+export const TECH_DEPT = "electronics";
+export const TECH_LEAD_STORE = ["bhphoto", "B&H Photo"];
+export const TECH_STORES = [["brandsmart", "BrandsMart USA"], ["microcenter", "Micro Center"], ["walmart", "Walmart"], ["costco", "Costco"]];
+export const REFURB_NOTE = "No son productos nuevos: cada tarjeta dice si es reacondicionado, de caja abierta o usado, tal como lo declara la tienda.";
+/* THE STUDY-LAPTOP LINE (c.6470946695): a laptop or Chromebook whose
+   PRODUCT price is under the $200 import line pays no import tax. The
+   test is the store's own price, nothing added; a tablet is not one. */
+export const STUDY_LAPTOP_MAX = 200;
+export const STUDY_NOTE = "Laptops para la escuela y la universidad, sin impuesto de importación.";
+const LAPTOP_RX = /\b(laptops?|notebooks?|chromebooks?|macbook)\b/i;
+/* ...and the computer itself, by a spec only a computer states: a laptop
+   tray, a toy "laptop" or a laptop bag names none. */
+const LAPTOP_SPEC_RX = /\b(\d+\s?gb|ssd|emmc|celeron|pentium|intel|amd|ryzen|athlon|mediatek|core i\d|chrome ?os|windows \d+)\b/i;
+const NOT_LAPTOP_RX = /\b(tablets?|ipad|cases?|sleeves?|bags?|backpacks?|stands?|trays?|desks?|drones?|toys?|kids|learning|cooler|cooling pad|skins?|chargers?|adapters?|keyboards?|mouse|docks?|docking|locks?|screen protectors?|batter(y|ies)|replacement|lcd screen|hinges?|fans?)\b/i;
+export const techAisleOf = (p) => (/^tech_/.test(String(p.type || "")) ? String(p.type) : techAisle(p.title, p.type));
+export function isStudyLaptop(p) {
+  const t = String(p.title || "");
+  return p.rawPrice > 0 && p.rawPrice < STUDY_LAPTOP_MAX && techAisleOf(p) === "tech_computadoras" &&
+    LAPTOP_RX.test(t) && LAPTOP_SPEC_RX.test(t) && !NOT_LAPTOP_RX.test(t);
+}
+const STORE_RAIL_MIN = 6;
+function buildTechSections(list) {
+  const sections = [];
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  const stores = new Set(list.map((p) => p.retailer));
+  /* One store chosen (the store chip): its own rail would be the whole list. */
+  const many = stores.size > 1;
+  const lead = list.filter((p) => p.retailer === TECH_LEAD_STORE[0]);
+  if (many && lead.length >= STORE_RAIL_MIN) sections.push({ key: "tienda:" + TECH_LEAD_STORE[0], title: "Destacados de " + TECH_LEAD_STORE[1], items: lead });
+  const refurb = list.filter((p) => conditionOfTitle(p.title));
+  if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurb });
+  /* Renders only when the under-$200 set fills a rail (the Aisle Test). */
+  /* New machines first, then refurbished, each cheapest first. */
+  const isNew = (p) => (conditionOfTitle(p.title) ? 1 : 0);
+  const study = list.filter(isStudyLaptop).sort((a, b) => (isNew(a) - isNew(b)) || (a.rawPrice - b.rawPrice));
+  if (study.length >= STORE_RAIL_MIN) sections.push({ key: "estudio", title: "Laptops para estudiar", note: STUDY_NOTE, items: study });
+  if (many) for (const [r, title] of TECH_STORES) {
+    const l = list.filter((p) => p.retailer === r);
+    if (l.length >= STORE_RAIL_MIN) sections.push({ key: "tienda:" + r, title, items: l });
+  }
+  const byAisle = {};
+  for (const p of list) (byAisle[techAisleOf(p)] ||= []).push(p);
+  for (const k of TECH_AISLE_ORDER) {
+    const l = byAisle[k];
+    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: l });
+  }
+  return sections;
+}
+
 export const FRONT = 24, FRONT_CAP = 6;
 
 /* The first FRONT cards of a mixed rail hold at most FRONT_CAP of any one
@@ -236,6 +298,7 @@ export function buildSections(list, opts = {}) {
 }
 function buildSectionsRaw(list, opts = {}) {
   if (opts.casa) return buildCasaSections(list);
+  if (opts.tech) return buildTechSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
      join its brand rails -- the room keeps its layout. */
@@ -248,7 +311,7 @@ function buildSectionsRaw(list, opts = {}) {
   /* Reacondicionados: second in every department with 3+ such products
      (not in the department made of nothing else). */
   const refurb = list.filter((p) => conditionOfTitle(p.title));
-  if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", items: refurb });
+  if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurb });
   if (opts.genderAisles) return sections.concat(genderAisles(list));
   const byType = {}, order = [];
   for (const p of list) {
@@ -309,6 +372,8 @@ export function headOf(key, list, sections, allLabels, extra = {}) {
     railBatch: RAIL_BATCH,
     rails: sections.map((s, i) => {
       const r = { i, title: s.title, count: s.items.length, pages: Math.ceil(s.items.length / PAGE_SIZE) };
+      /* d: the line under the rail title (the Reacondicionados disclosure). */
+      if (s.note) r.d = s.note;
       if (i < HEAD_RAILS) r.cards = s.items.slice(0, RAIL_CARDS).map(cardOf);
       return r;
     }),
