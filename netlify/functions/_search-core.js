@@ -27,6 +27,7 @@
    repo), like _price-index.js. No import.meta: Netlify's bundler
    compiles functions to CommonJS.
    ============================================================ */
+import { isAccessoryName } from "../../scripts/lib/tech-aisle.js";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import vm from "node:vm";
@@ -189,13 +190,43 @@ export function runQuery(ctx, q) {
   let r;
   try {
     r = ctx.P.run({ S: ctx.S, products: ctx.products, retailers: ctx.retailers, dict: ctx.dict, resultLimit: ctx.resultLimit }, q);
-    if (r && r.state === "results") r.hits = toysLead(r.hits);
+    if (r && r.state === "results") r.hits = deviceLead(q, toysLead(r.hits));
   } catch (e) {
     r = { state: "error", hits: [], error: String(e && e.message || e) };
   }
   ctx.cache.set(key, r);
   if (ctx.cache.size > CACHE_MAX) ctx.cache.delete(ctx.cache.keys().next().value);
   return r;
+}
+
+/* THE DEVICE LEADS A DEVICE SEARCH (#443 search audit F6). «celular»
+   opened on twelve phone cases: a case names the phone it fits, so it
+   ranked with the phone. For a device word the device itself -- its name
+   says what it is and it is not what fits one -- comes first; the cases,
+   chargers and mounts follow, each part in the engine's order. */
+const DEVICE_QUERIES = [
+  [/^(celular(es)?|telefonos?( celular(es)?)?|smartphones?|moviles?|phones?|cell ?phones?)$/, /\b(iphone \d+\w*|iphone se|galaxy [sza]\d+|galaxy z|pixel \d+\w*|moto ?(g|edge|razr)|razr|smartphone|cell ?phone|unlocked)\b/i],
+  [/^(laptops?|computadoras?( portatil(es)?)?|notebooks?|portatil(es)?|chromebooks?)$/, /\b(laptops?|notebooks?|chromebooks?|macbook|vivobook|zenbook|ideapad|thinkpad)\b/i],
+  [/^(consolas?( de videojuegos?)?|videoconsolas?|consoles?)$/, /\b(consoles?|steam deck|playstation (5|portal)|xbox series|nintendo switch( 2| oled| lite)?|rog ally|legion go|meta quest \d)\b/i],
+  [/^(camaras?( de fotos?)?|camaras? fotograficas?|cameras?)$/, /\b(cameras?|mirrorless|dslr|gopro|instax|camcorders?|osmo)\b/i],
+  [/^(tablets?|tabletas?|ipads?)$/, /\b(tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle)\b/i],
+  [/^(audifonos|auriculares|headphones|earbuds)$/, /\b(headphones?|earbuds?|airpods|headsets?|earphones?)\b/i],
+  [/^(relojes? inteligentes?|smart ?watch(es)?|smartwatch(es)?)$/, /\b(smart ?watch(es)?|apple watch|galaxy watch|pixel watch|fitbit|garmin)\b/i],
+];
+/* What names a device without being one: a console's repair kit, a skin. */
+const NOT_A_DEVICE_RX = /\b(repair|kits?|tools?|skins?|stands?|replacement|covers?|decals?|stickers?|parts?)\b/i;
+const deaccent = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+export function deviceLead(q, hits) {
+  const k = deaccent(q);
+  const hit = DEVICE_QUERIES.find(([qx]) => qx.test(k));
+  if (!hit || !Array.isArray(hits) || hits.length < 2) return hits;
+  const dev = [], rest = [], last = [];
+  for (const p of hits) {
+    const t = p.title || "";
+    if (NOT_A_DEVICE_RX.test(t)) last.push(p);
+    else (hit[1].test(t) && !isAccessoryName(t) ? dev : rest).push(p);
+  }
+  return dev.concat(rest, last);
 }
 
 /* TOYS LEAD A TOY SEARCH (2026-10-19, #416 battery). "barbie" and

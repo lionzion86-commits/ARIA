@@ -254,7 +254,13 @@ check('"tie" is neckties, "hair tie" is hair', () => {
 });
 check('"monitor" is a computer monitor, "baby monitor" is a baby monitor', () => {
   const r = search("monitor");
-  for (const h of r.hits) assert.doesNotMatch(h.title, /\bbaby\b|mount|light bar|lamp/i, h.title);
+  /* Judged on what the product IS, before "with" or a comma (#443 audit
+     F6): "Gaming Monitor ..., VESA Mount" is a monitor; a "Monitor
+     Mount" is not. */
+  for (const h of r.hits) {
+    assert.match(h.title, /\bmonitors?\b/i, h.title);
+    assert.doesNotMatch(h.title.split(/\s+(?:with|w\/|incl\.?|including)\s+|\s*[+,|]\s*/i)[0], /\bbaby\b|mount|light bar|lamp/i, h.title);
+  }
   if (!r.hits.length) assert.ok(r.sense, "an empty monitor search must say it has no monitors");
   const b = search("baby monitor");
   assert.ok(b.hits.length && head(b).every(h => /baby monitor/i.test(h.title)), show(b));
