@@ -1793,6 +1793,71 @@ window.doSearch = function(which){
     </section>
 
 
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
+      <div class="px-5 pt-4 pb-1 flex items-baseline justify-between gap-3">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
+        <span class="text-[12px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
+      </div>
+      <div id="mTiendasStripRow" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden hidden lg:block" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-5 pb-1 flex items-baseline justify-between gap-3">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
+        <span class="text-[13px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
+      </div>
+      <div id="dTiendasStripRow" class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+    </section>
+
+
+  <!-- ============================================================
+       ARIA KEY CLUB — Founding 1000 campaign module (2026-10-01).
+       COPY (2026-10-21, Danny's order on #443): no selection framing.
+       Nobody has to be chosen to buy: anyone in the club arms a cart
+       and buys when they want. The first 1000 members are registered
+       as Fundadores -- a status, never a buying gate. Headline and body
+       are Danny's words, verbatim; the perks are unchanged.
+       ============================================================ -->
+  <section aria-label="Aria Key Club" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+    <!-- KEY CLUB VAULT BACKDROP (2026-10-05, Danny): bank-vault atmosphere behind the hero. Image stays dim under a navy overlay so the white/gold headline stays fully readable. -->
+    <!-- COMPACT BANNER (2026-10-07, Danny): same info at ~half the height — the full section buried the products on scroll. -->
+    <img src="assets/keyclub/vault-hero-bg.jpg" srcset="assets/keyclub/vault-hero-bg-1200.jpg 1200w, assets/keyclub/vault-hero-bg.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:.5">
+    <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(10,31,68,.88) 0%, rgba(10,31,68,.62) 45%, rgba(10,31,68,.90) 100%)"></div>
+    <div class="ariaGoldHair"></div>
+    <div class="relative max-w-[1020px] mx-auto px-5 py-7 sm:py-8 text-center">
+      <div class="ariaKicker mb-2" style="justify-content:center">Aria Key Club · Lanzamiento</div>
+      <h2 class="text-[22px] sm:text-[28px] font-extrabold tracking-[-0.02em] leading-[1.1] mb-2" style="color:#fff">Aria Key Club</h2>
+      <p class="text-[12.5px] sm:text-[13.5px] leading-relaxed max-w-[62ch] mx-auto mb-4" style="color:#B9C6E8">
+        Únete gratis al Aria Key Club: arma tu carrito, compra cuando quieras y recibe $5 de vuelta por cada $100 en crédito Aria. Los primeros 1000 miembros quedan registrados como Fundadores. Gratis por tiempo limitado — después, la membresía tiene un costo.
+      </p>
+      <div id="foundersMemberBadge" class="mb-4" hidden></div>
+      <div class="flex items-center justify-center mb-5">
+        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[46px] px-7 rounded-2xl text-[14px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme al Aria Key Club</button>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-left">
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Gratis al lanzamiento</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Unirse no cuesta nada. Sin tarjeta, sin compromiso: tu cuenta Aria es tu membresía.</p>
+        </div>
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <span class="inline-block mb-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-[0.06em]" style="background:#F4C463;color:#0A1F44">PROMO DE LANZAMIENTO</span>
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">$5 de vuelta por cada $100</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">5% de cashback en cada compra, directo a tu saldo Aria. Dinero de verdad, no puntos raros.</p>
+        </div>
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Entra primero a las ofertas</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros del Key Club entran primero.</p>
+        </div>
+        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Exprés a precio de miembro</h4>
+          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============================================================
        THE MOBILE SHOPFRONT (2026-09-23)
 
@@ -1840,10 +1905,66 @@ window.doSearch = function(which){
      zero catalogue items are excluded -- no dead storefronts. Painted by
      paintTiendasStrip() from TIENDAS_STRIP. -->
 
-  <!-- HOME ORDER (#443 c.6495088261, Danny 2026-10-29): Ofertas (Victoria's
-       Secret first) -> Compra por categoría -> Mujer -> Hombre -> Niños ->
-       the store rails (Victoria's Secret first) -> Electrónica -> the rest. -->
+  <!-- HOME ORDER (#443 c.6507225989, Danny's live pass 2026-10-29): the top
+       stays as he approved it live -- hero, search, Ofertas (Victoria's Secret
+       leads), Tiendas, Key Club, Aria Auto + Motos, Walmart + BrandsMart --
+       then Compra por categoría, Mujer, Hombre, Niños (each with its own
+       pills), the store rails (Victoria's Secret first), Electrónica, the rest. -->
 
+<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative px-5 py-8" style="z-index:1">
+        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone y Advanced Auto Parts</p>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring mt-5">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
+
+<!-- ARIA MOTOS HOUSE BANNER (2026-10-01, Danny): its own department,
+     its own banner — never the same area as Aria Auto. Dark asphalt,
+     chrome ghost type, racing-red accents: a premium bike shop, not a
+     car parts counter. Opens the Motos department. -->
+<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden">
+      <div class="ariaMotosBannerHair" aria-hidden="true"></div>
+      <div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>
+      <div class="relative px-5 py-8" style="z-index:1">
+        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Motos</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Cascos, llantas, repuestos y accesorios para tu moto &mdash; Honda, Yamaha, Suzuki y Kawasaki, directo de Estados Unidos.</p>
+        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#E63946">Cascos certificados DOT y ECE</p>
+        <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring mt-5">Equipa tu moto &#8594;</button>
+      </div>
+    </section>
+
+<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
+     #443 c.6468346931): Walmart across both slots, full band height,
+     right under Aria Auto. Brand colour, real logo. -->
+<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
+    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
+    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
+  </div>
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
+    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
+      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
+        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
+        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
+      </span>
+    </button>
+    <!-- BRANDSMART USA (Build Order B, #443): the electronics anchor, the
+         second wide card. No logo file yet: the name is the wordmark. -->
+    <button onclick="tiendaJump('brandsmart')" aria-label="Ir a BrandsMart USA" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#C8102E;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3 text-center"><span class="font-extrabold text-[30px] leading-[46px] tracking-[-0.02em]" style="color:#C8102E">BrandsMart<span style="color:#0A1F44"> USA</span></span></span>
+      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
+        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La gran tienda de electrónica</span>
+        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Celulares, laptops, audio y gaming</span>
+      </span>
+    </button>
+  </div>
+</section>
 <section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -2077,14 +2198,6 @@ window.doSearch = function(which){
       <div id="mStoreRail-hollister" data-store-rail-row="hollister" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
-    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
-      <div class="px-5 pt-4 pb-1 flex items-baseline justify-between gap-3">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
-        <span class="text-[12px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
-      </div>
-      <div id="mTiendasStripRow" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-    </section>
-
 <!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
      row ABOVE it. The pills are in-place lenses (Ofertas, Celulares,
      Computadoras, Videojuegos, Audífonos and every type the data fills);
@@ -2097,60 +2210,6 @@ window.doSearch = function(which){
   </div>
   <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo de electrónica"></div>
   <div data-pill-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-</section>
-<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
-      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
-      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
-      <div class="relative px-5 py-8" style="z-index:1">
-        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
-        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
-        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone y Advanced Auto Parts</p>
-        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring mt-5">Encuentra tu repuesto &#8594;</button>
-      </div>
-    </section>
-
-<!-- ARIA MOTOS HOUSE BANNER (2026-10-01, Danny): its own department,
-     its own banner — never the same area as Aria Auto. Dark asphalt,
-     chrome ghost type, racing-red accents: a premium bike shop, not a
-     car parts counter. Opens the Motos department. -->
-<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden">
-      <div class="ariaMotosBannerHair" aria-hidden="true"></div>
-      <div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>
-      <div class="relative px-5 py-8" style="z-index:1">
-        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Motos</h2>
-        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Cascos, llantas, repuestos y accesorios para tu moto &mdash; Honda, Yamaha, Suzuki y Kawasaki, directo de Estados Unidos.</p>
-        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#E63946">Cascos certificados DOT y ECE</p>
-        <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring mt-5">Equipa tu moto &#8594;</button>
-      </div>
-    </section>
-
-<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
-     #443 c.6468346931): Walmart across both slots, full band height,
-     right under Aria Auto. Brand colour, real logo. -->
-<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
-  </div>
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
-    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
-      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
-        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
-        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
-      </span>
-    </button>
-    <!-- BRANDSMART USA (Build Order B, #443): the electronics anchor, the
-         second wide card. No logo file yet: the name is the wordmark. -->
-    <button onclick="tiendaJump('brandsmart')" aria-label="Ir a BrandsMart USA" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#C8102E;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3 text-center"><span class="font-extrabold text-[30px] leading-[46px] tracking-[-0.02em]" style="color:#C8102E">BrandsMart<span style="color:#0A1F44"> USA</span></span></span>
-      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
-        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La gran tienda de electrónica</span>
-        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Celulares, laptops, audio y gaming</span>
-      </span>
-    </button>
-  </div>
 </section>
     <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
          entry point the section was missing -- a full-width fashion-week
@@ -2447,11 +2506,67 @@ window.doSearch = function(which){
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
 <!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's; moved above the Key Club block 2026-10-21 (#443). -->
 
-  <!-- HOME ORDER (#443 c.6495088261, Danny 2026-10-29): Ofertas (Victoria's
-       Secret first) -> Compra por categoría -> Mujer -> Hombre -> Niños ->
-       the store rails (Victoria's Secret first) -> Electrónica -> the rest. -->
-    <!-- CATEGORIAS -->
+  <!-- HOME ORDER (#443 c.6507225989, Danny's live pass 2026-10-29): the top
+       stays as he approved it live -- hero, search, Ofertas (Victoria's Secret
+       leads), Tiendas, Key Club, Aria Auto + Motos, Walmart + BrandsMart --
+       then Compra por categoría, Mujer, Hombre, Niños (each with its own
+       pills), the store rails (Victoria's Secret first), Electrónica, the rest. -->
 
+<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
+        <div class="min-w-0">
+          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone y Advanced Auto Parts</p>
+        </div>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
+
+<!-- ARIA MOTOS HOUSE BANNER (desktop, 2026-10-01, Danny): its own
+     department, its own banner — never the same area as Aria Auto. -->
+<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden">
+      <div class="ariaMotosBannerHair" aria-hidden="true"></div>
+      <div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>
+      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
+        <div class="min-w-0">
+          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Motos</h2>
+          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Cascos, llantas, repuestos y accesorios para tu moto &mdash; Honda, Yamaha, Suzuki y Kawasaki, directo de Estados Unidos.</p>
+          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#E63946">Cascos certificados DOT y ECE</p>
+        </div>
+        <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring flex-shrink-0">Equipa tu moto &#8594;</button>
+      </div>
+    </section>
+<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
+     #443 c.6468346931): Walmart across both slots, full band height,
+     right under Aria Auto. Brand colour, real logo. -->
+<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
+    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
+    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
+  </div>
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
+    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
+      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
+        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
+        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
+      </span>
+    </button>
+    <!-- BRANDSMART USA (Build Order B, #443): the electronics anchor, the
+         second wide card. No logo file yet: the name is the wordmark. -->
+    <button onclick="tiendaJump('brandsmart')" aria-label="Ir a BrandsMart USA" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#C8102E;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3 text-center"><span class="font-extrabold text-[30px] leading-[46px] tracking-[-0.02em]" style="color:#C8102E">BrandsMart<span style="color:#0A1F44"> USA</span></span></span>
+      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
+        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La gran tienda de electrónica</span>
+        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Celulares, laptops, audio y gaming</span>
+      </span>
+    </button>
+  </div>
+</section>
 <section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -2714,16 +2829,6 @@ window.doSearch = function(which){
     </section>
 
 
-    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden hidden lg:block" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
-      <div class="max-w-[1240px] mx-auto">
-      <div class="px-8 pt-5 pb-1 flex items-baseline justify-between gap-3">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
-        <span class="text-[13px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
-      </div>
-      <div id="dTiendasStripRow" class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
-      </div>
-    </section>
-
 <!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
      row ABOVE it. The pills are in-place lenses (Ofertas, Celulares,
      Computadoras, Videojuegos, Audífonos and every type the data fills);
@@ -2736,61 +2841,6 @@ window.doSearch = function(which){
   </div>
   <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo de electrónica"></div>
   <div data-pill-rail class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
-</section>
-<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
-      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
-      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
-      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
-        <div class="min-w-0">
-          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
-          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
-          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone y Advanced Auto Parts</p>
-        </div>
-        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
-      </div>
-    </section>
-
-<!-- ARIA MOTOS HOUSE BANNER (desktop, 2026-10-01, Danny): its own
-     department, its own banner — never the same area as Aria Auto. -->
-<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden">
-      <div class="ariaMotosBannerHair" aria-hidden="true"></div>
-      <div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>
-      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
-        <div class="min-w-0">
-          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Motos</h2>
-          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Cascos, llantas, repuestos y accesorios para tu moto &mdash; Honda, Yamaha, Suzuki y Kawasaki, directo de Estados Unidos.</p>
-          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#E63946">Cascos certificados DOT y ECE</p>
-        </div>
-        <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring flex-shrink-0">Equipa tu moto &#8594;</button>
-      </div>
-    </section>
-<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
-     #443 c.6468346931): Walmart across both slots, full band height,
-     right under Aria Auto. Brand colour, real logo. -->
-<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
-  </div>
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
-    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
-      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
-        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
-        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
-      </span>
-    </button>
-    <!-- BRANDSMART USA (Build Order B, #443): the electronics anchor, the
-         second wide card. No logo file yet: the name is the wordmark. -->
-    <button onclick="tiendaJump('brandsmart')" aria-label="Ir a BrandsMart USA" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#C8102E;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3 text-center"><span class="font-extrabold text-[30px] leading-[46px] tracking-[-0.02em]" style="color:#C8102E">BrandsMart<span style="color:#0A1F44"> USA</span></span></span>
-      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
-        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La gran tienda de electrónica</span>
-        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Celulares, laptops, audio y gaming</span>
-      </span>
-    </button>
-  </div>
 </section>
     <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
          entry point the section was missing -- a full-width fashion-week
@@ -3046,51 +3096,6 @@ window.doSearch = function(which){
 
   </div>
 
-  <!-- ============================================================
-       ARIA KEY CLUB — Founding 1000 campaign module (2026-10-01).
-       COPY (2026-10-21, Danny's order on #443): no selection framing.
-       Nobody has to be chosen to buy: anyone in the club arms a cart
-       and buys when they want. The first 1000 members are registered
-       as Fundadores -- a status, never a buying gate. Headline and body
-       are Danny's words, verbatim; the perks are unchanged.
-       ============================================================ -->
-  <section aria-label="Aria Key Club" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
-    <!-- KEY CLUB VAULT BACKDROP (2026-10-05, Danny): bank-vault atmosphere behind the hero. Image stays dim under a navy overlay so the white/gold headline stays fully readable. -->
-    <!-- COMPACT BANNER (2026-10-07, Danny): same info at ~half the height — the full section buried the products on scroll. -->
-    <img src="assets/keyclub/vault-hero-bg.jpg" srcset="assets/keyclub/vault-hero-bg-1200.jpg 1200w, assets/keyclub/vault-hero-bg.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:.5">
-    <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(10,31,68,.88) 0%, rgba(10,31,68,.62) 45%, rgba(10,31,68,.90) 100%)"></div>
-    <div class="ariaGoldHair"></div>
-    <div class="relative max-w-[1020px] mx-auto px-5 py-7 sm:py-8 text-center">
-      <div class="ariaKicker mb-2" style="justify-content:center">Aria Key Club · Lanzamiento</div>
-      <h2 class="text-[22px] sm:text-[28px] font-extrabold tracking-[-0.02em] leading-[1.1] mb-2" style="color:#fff">Aria Key Club</h2>
-      <p class="text-[12.5px] sm:text-[13.5px] leading-relaxed max-w-[62ch] mx-auto mb-4" style="color:#B9C6E8">
-        Únete gratis al Aria Key Club: arma tu carrito, compra cuando quieras y recibe $5 de vuelta por cada $100 en crédito Aria. Los primeros 1000 miembros quedan registrados como Fundadores. Gratis por tiempo limitado — después, la membresía tiene un costo.
-      </p>
-      <div id="foundersMemberBadge" class="mb-4" hidden></div>
-      <div class="flex items-center justify-center mb-5">
-        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[46px] px-7 rounded-2xl text-[14px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme al Aria Key Club</button>
-      </div>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-left">
-        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Gratis al lanzamiento</h4>
-          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Unirse no cuesta nada. Sin tarjeta, sin compromiso: tu cuenta Aria es tu membresía.</p>
-        </div>
-        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-          <span class="inline-block mb-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-[0.06em]" style="background:#F4C463;color:#0A1F44">PROMO DE LANZAMIENTO</span>
-          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">$5 de vuelta por cada $100</h4>
-          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">5% de cashback en cada compra, directo a tu saldo Aria. Dinero de verdad, no puntos raros.</p>
-        </div>
-        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Entra primero a las ofertas</h4>
-          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros del Key Club entran primero.</p>
-        </div>
-        <div class="rounded-xl p-3.5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
-          <h4 class="text-[12.5px] font-extrabold mb-1" style="color:#F4C463">Exprés a precio de miembro</h4>
-          <p class="text-[11.5px] leading-snug" style="color:#C6D2E8">¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
 <!-- ============================================================
        ORDER ON THE HOME PAGE (2026-09-26, Danny)
@@ -6446,7 +6451,7 @@ window.doSearch = function(which){
 <script src="/off-sale.js"></script>
 <script src="/condition.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-f48b650399c41b72.js"></script>
+<script src="/build/app-42a28f31cb69067b.js"></script>
 
 
 
