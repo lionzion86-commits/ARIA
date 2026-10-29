@@ -44,9 +44,19 @@ check("acceptance: Celulares handsets only, Computadoras computers only, no fish
   for (const [f, k] of STORES) {
     const d = cat(f, k);
     const names = (a) => (d[a] ? d[a].items.map((i) => i.name) : []);
-    for (const n of names("tech_celulares")) assert.doesNotMatch(n, /\b(case|cover|charger|cable|screen protector|holder|mount)\b/i, `${k} Celulares: ${n}`);
-    /* "Tablet with Detachable Keyboard" is a tablet sold with one. */
-    for (const n of names("tech_computadoras")) assert.doesNotMatch(n.replace(/\bwith\b.*$/i, ""), /\b(keyboard|mouse|backpack|sleeve|stand)\b/i, `${k} Computadoras: ${n}`);
+    /* Positive, not a word list: every Celulares item names a handset and
+       every Computadoras item a computer ("Backlit Keyboard" is a laptop's
+       spec, "+ Free Car Charger" a phone's bundle). A name that LEADS with
+       an accessory word is never there. */
+    const LEADS_ACC = /^\W*(\S+\s){0,4}?(case|cover|charger|cable|screen protector|holder|mount|keyboard|mouse|backpack|sleeve|stand)\b/i;
+    for (const n of names("tech_celulares")) {
+      assert.match(n, /\b(phone|smartphone|iphone|galaxy|pixel|moto|razr|unlocked|5g|4g|lte|gsm|dual sim)\b/i, `${k} Celulares: ${n}`);
+      assert.doesNotMatch(n.replace(/\s(\+|with|includes?)\s.*$/i, ""), /\b(case|cover|screen protector|holder|mount)$/i, `${k} Celulares: ${n}`);
+    }
+    for (const n of names("tech_computadoras")) {
+      assert.match(n, /\b(laptops?|notebooks?|chromebooks?|macbook|ultrabook|2-in-1|desktop|all-in-one|aio|pc|computer|imac|mac mini|tablets?|ipad|galaxy tab|fire (hd|max)|kindle|e-?reader|surface)\b/i, `${k} Computadoras: ${n}`);
+      assert.doesNotMatch(n.replace(/\s(with|for|\+)\s.*$/i, ""), LEADS_ACC, `${k} Computadoras: ${n}`);
+    }
     for (const n of Object.values(d).flatMap((x) => x.items.map((i) => i.name))) assert.doesNotMatch(n, /\bfishing\b|\btackle\b/i, `${k}: ${n}`);
     for (const n of names("tech_camaras")) assert.doesNotMatch(n, /\bring (video|doorbell|spotlight|floodlight|stick|indoor|outdoor|cam)\b|\b(wyze|blink|arlo|security camera|doorbell)\b/i, `${k} Cámaras: ${n}`);
     for (const n of names("tech_auto")) assert.doesNotMatch(n, /\bsoundbar\b|\bhome theater\b/i, `${k} Audio para auto: ${n}`);
