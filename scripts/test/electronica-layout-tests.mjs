@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import { conditionOfTitle } from "../lib/condition.js";
 import { TECH_AISLE_LABELS } from "../lib/tech-aisle.js";
 import { MEDIA_RX } from "../build-department-slices.mjs";
-import { loadDept, buildSections, sectionOpts, isStudyLaptop, answer, REFURB_NOTE, STUDY_NOTE, STUDY_LAPTOP_MAX, homeTechPills, HOME_PILL_MIN } from "../../netlify/functions/_department-core.js";
+import { loadDept, buildSections, sectionOpts, isStudyLaptop, answer, REFURB_NOTE, STUDY_NOTE, STUDY_LAPTOP_MAX, homeTechPills, HOME_PILL_MIN, phoneBrandRank, PHONE_LEAD_BRANDS, PHONE_RANKS, celularesOrder } from "../../netlify/functions/_department-core.js";
 import { isAccessoryName } from "../lib/tech-aisle.js";
 import { readdirSync } from "node:fs";
 
@@ -108,6 +108,45 @@ check("the homepage Electrónica carousel: Ofertas, then Danny's four types, eve
     assert.equal(new Set(p.cards.map((c) => c.r + c.t)).size, p.cards.length, `${p.label}: a card twice`);
   }
   assert.deepEqual(home, JSON.parse(JSON.stringify(homeTechPills(dept.list.map((p) => ({ ...p, image: p.image })))) ), "home.json is stale: run build-department-slices");
+});
+
+check("Celulares, the Peru-presence order: Pixel, OnePlus, iPhone, then the rest; Peru's own brands at the back", () => {
+  /* Danny's lead rule (#443 c.6487219343), his three answers
+     (c.6490718675): Aria leads with the phone Peru cannot buy at home. */
+  const rank = (t, b = "") => phoneBrandRank({ title: t, brand: b });
+  assert.deepEqual(PHONE_LEAD_BRANDS.map((x) => x[0]), ["Google Pixel", "OnePlus", "iPhone"]);
+  assert.equal(rank('6.3" Pixel 9a 256GB 5G Android Obsidian Unlocked Smartphone'), 0);
+  /* BrandsMart drops the maker from the title: the brand field carries it. */
+  assert.equal(rank('6.1" 7a 5G 128GB Charcoal Smartphone', "Google"), 0);
+  assert.equal(rank("No Plan-Unlocked Device OnePlus 9 Cell Phone 128GB", "OnePlus"), 1);
+  assert.equal(rank('6.1" iPhone 14 128GB Sim-Free Midnight Smartphone'), 2);
+  assert.equal(rank("Pre-Owned Apple iPhone 6s 16GB", "Apple"), 2);
+  assert.equal(rank("Sony Xperia 1 VI 5G 256GB Unlocked", "Sony"), 3, "the rest of the can't-get-it-here class");
+  assert.equal(rank("OUKITEL C1 128GB ANDROID CELL PHONE"), PHONE_RANKS - 2, "unplaced brands");
+  /* Sold officially in Peru at prices we do not beat: the very back. */
+  for (const n of ['SAMSUNG Galaxy A54 5G (128GB, 6GB) 6.4" Fully Unlocked', "Moto G 5G 2023 Fully Unlocked", "Open Box TCL 30 XL 64GB+6GB (Unlocked)"]) {
+    assert.equal(rank(n), PHONE_RANKS - 1, n);
+  }
+  /* iPhone is sold in Peru too and still outranks them: Garantía Aria. */
+  assert.ok(rank("iPhone 15 PRO MAX 256GB") < rank("Samsung Galaxy S23 Ultra 5G", "Samsung"));
+
+  const cards = JSON.parse(readFileSync(ROOT + "assets/sections/departamento/electronics/home-tech_celulares.json", "utf8")).cards;
+  const ranks = cards.map((c) => phoneBrandRank({ title: c.t, brand: c.b }));
+  assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b), "the lens never steps back a tier: " + cards.map((c) => c.t.slice(0, 28)).join(" | "));
+  assert.equal(ranks[0], 0, "a Pixel leads Celulares, not an iPhone or a Galaxy: " + cards[0].t);
+  assert.ok(!ranks.includes(PHONE_RANKS - 1), "no saturated brand reaches the 24 cards the pill draws");
+  /* Inside a tier the sealed phone leads: a tier that opens on
+     "- Reacondicionado" reads as a used-phone shop. */
+  const tier0 = cards.filter((c) => phoneBrandRank({ title: c.t, brand: c.b }) === 0);
+  assert.ok(!conditionOfTitle(tier0[0].t), "the lead Pixel is new: " + tier0[0].t);
+  /* The aisle rail of departamento.html carries the same order. */
+  const aisle = sections.find((x) => x.key === "pasillo:tech_celulares");
+  assert.ok(aisle && aisle.items.length > 8, "the Celulares aisle");
+  const ar = aisle.items.map(phoneBrandRank);
+  assert.deepEqual(ar, [...ar].sort((a, b) => a - b), "the aisle agrees with the pill");
+  assert.equal(celularesOrder(aisle.items).map((p) => p.title).join("|"), aisle.items.map((p) => p.title).join("|"), "already ordered");
+  /* What merely pairs with a phone never reaches the lens. */
+  for (const c of cards) assert.doesNotMatch(c.t, /\b(marine|gimbal|grip)\b/i, c.t);
 });
 
 check("the homepage shelves: Electrónica, then Mujer, Hombre, Niños; pills above each carousel; a lens that hides nothing", () => {

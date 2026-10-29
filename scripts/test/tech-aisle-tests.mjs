@@ -24,6 +24,12 @@ const cat = (f, k) => JSON.parse(readFileSync(ROOT + f, "utf8")).retailers[k].de
 check("the type rule: a device, not what fits it", () => {
   const want = {
     "iPhone 16 Pro 256GB Unlocked": "tech_celulares", "OtterBox Defender Case for iPhone 16": "tech_accesorios",
+    /* Danny's Celulares pass (#443 c.6487219343): what merely PAIRS with a
+       phone is not a phone. A marine player is car audio like the marine
+       stereo beside it; a gimbal and a grip are what hold the phone. */
+    "Marine AM/FM Player with Wireless Smartphone Connection": "tech_auto",
+    "Marine AM/FM Player with Wireless Smartphone Connection & HD Screen": "tech_auto",
+    "Osmo Mobile 7P Smartphone Gimbal": "tech_accesorios", "Platypod Smartphone Grip": "tech_accesorios",
     "Anker 20W USB-C Wall Charger": "tech_accesorios", "HP 14 inch Laptop Intel N150": "tech_computadoras",
     "Restored Apple iPad 8th Gen 32GB Wi-Fi + Cellular (Unlocked)": "tech_computadoras",
     "Sport Band for Apple Watch": "tech_accesorios", "Apple Watch Series 10 GPS 46mm": "tech_relojes",
