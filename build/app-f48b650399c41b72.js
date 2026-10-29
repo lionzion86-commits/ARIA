@@ -6868,6 +6868,13 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      ascending beats discount depth on this rail. */
   const cheapFirst = Boolean(opts && opts.cheapFirst);
   const priceNum = (p) => Number(p.price);
+  /* DISEÑADORES LATINOS SWIM-FIRST (Danny, Oct 28; #443 c.6497530895):
+     the carousel opens on bikinis and swim -- what the Latin designers
+     are known for -- cheapest first; the rest of the rail follows in its
+     own order. Opt-in per rail via swimFirst. */
+  const swimFirst = Boolean(opts && opts.swimFirst);
+  const SWIM_RX = /\b(bikinis?|biquinis?|trikinis?|tankinis?|swim\w*|bathing suits?|one[- ]piece|monokinis?|ropa de ba[ñn]o)\b/i;
+  const swimRank = (p) => (swimFirst && !(SWIM_RX.test(String((p && (p.title || p.name)) || '')) || /ba[ñn]o|swim/i.test(String((p && p.type) || '')))) ? 1 : 0;
   const toyRank = (p) => toyRankFn ? toyRankFn(p) : 0;
   /* SURF & SKATE (2026-09-26, Danny): sales lead -- unless the sale is
      socks. Foot socks and fin socks are minor accessories; a markdown on
@@ -6936,6 +6943,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
          the store rails, so the front page never reads as a copy. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
+      const sw = swimRank(a) - swimRank(b);
+      if (sw) return sw;
       if (cheapFirst){
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
@@ -7215,7 +7224,8 @@ const CATEGORY_RAILS = [
      Silvia Tcherassi. Brand pills filter the feed; Todo is the default. */
   { key: 'latino_designers', label: 'Diseñadores Latinos', icon: '', stores: null, poolOnly: true,
     cheapFirst: true, premiumMix: 2, /* DANNY 2026-10-07: $13-20 accessible leads, 2 premium for feel */
-    blurb: 'El talento latino, sin salir de casa. Disenadores de Brasil y Colombia, comprados en Estados Unidos y entregados en Peru.',
+    swimFirst: true, /* DANNY 2026-10-28: bikinis and swim lead the carousel */
+    blurb: 'El talento latino, sin salir de casa. Diseñadores de Brasil y Colombia, comprados en Estados Unidos y entregados en Perú.',
     test: (p) => latinoDesignerOfItem(p) !== null,
     open: "openCatalog('department','latino_designers')" },
   /* JOYAS Y ACCESORIOS (2026-09-30, Danny): standalone affordable-jewelry
@@ -11608,7 +11618,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
@@ -29081,7 +29091,7 @@ async function renderCategoriesGrid(){
     const picks = categoryRailPicks(stores,
       saleSrc.filter(test), poolArr.filter(test),
       ofertasKeys, CATEGORY_RAIL_TOTAL,
-      { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst });
+      { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst });
     if (!picks.length) continue;
     categoriesViewRendered[cat.key] = picks;
     sections.push({ cat, picks });
