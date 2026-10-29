@@ -7,3 +7,4 @@ export const conditionOfTitle = api.conditionOfTitle;
 export const gradeOfTitle = api.gradeOfTitle;
 export const CONDITION_LABELS = api.LABELS;
 export const NO_GRADE_NOTE = api.NO_GRADE_NOTE;
+export const SOLD_OUT_NOTE = api.SOLD_OUT_NOTE;

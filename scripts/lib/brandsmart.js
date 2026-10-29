@@ -49,8 +49,16 @@ const BATTERY_DEVICE_RX = /\b(laptops?|notebooks?|chromebooks?|macbook|omnibook|
 const DANGEROUS_LITHIUM_RX = /\bportable power station\b|\bpower station\b|\blithium\b.*\bbatter(y|ies)\b|\bbatter(y|ies)\b.*\blithium\b/i;
 
 /** "sell" or the hold reason, for one in-scope row. */
+/* A video game names its console ("Call of Duty - Xbox Series X", "Diablo
+   IV: Cross-Gen Bundle - Xbox Series X") without being one: a disc or a
+   download draws no current, whatever WALL_DEVICE_RX reads in its name. */
+const GAME_SOFTWARE_RX = /\b(cross-gen|game of the year|deluxe edition|standard edition|digital edition code|\[digital\]|u\.?s\.? version|region free|- (nintendo switch( 2)?|playstation [45]|ps[45]|xbox (one|series [xs]))\s*$|(for|para) (nintendo switch|playstation|ps[45]|xbox))/i;
+const CONSOLE_DEVICE_RX = /\b(console|system|hardware|controller|headset|power|charger|adapter|dock|cable|stand)\b/i;
+const HOME_CONSOLE_RX = /\b(playstation\s*5|ps5|xbox series [xs]|xbox one)\b[^|]*\b(console|system)\b|\b(console|system)\b[^|]*\b(playstation\s*5|ps5|xbox series [xs])\b/i;
+export function isGameSoftware(name) { const n = String(name || ""); return GAME_SOFTWARE_RX.test(n) && !CONSOLE_DEVICE_RX.test(n); }
 export function voltageGate(r) {
   if (r.flag110vOnly) return "excluded-110v";
+  if (isGameSoftware(r.name)) return "sell";
   if (r.voltageClass === "covers-220v") return "sell";
   if (r.subcategory === "car-audio" && !/\b(soundbar|home theater)\b/i.test(r.name)) return "sell";
   const text = `${r.descriptionEn || ""} ${r.voltageSpec || ""}`;
@@ -58,6 +66,11 @@ export function voltageGate(r) {
   if (v === "verified") return "sell";
   if (v === "excluded-110v") return "excluded-110v";
   const wall = WALL_DEVICE_RX.test(r.name);
+  /* A home console sold "with a DualSense controller" is the console: the
+     controller in its name is not the accessory exemption below. It sells
+     on a stated rating like every other mains device. */
+  const consoleItself = HOME_CONSOLE_RX.test(r.name) && !/\b(for|compatible|fits)\b/i.test(r.name);
+  if (consoleItself && v !== "verified") return "held-voltage-unstated";
   if (BATTERY_DEVICE_RX.test(r.name) && !wall && r.subcategory !== "small-appliances") return "sell";
   if (v !== "not-mains" && !(ACCESSORY_RX.test(r.name) && r.subcategory !== "small-appliances")) return "held-voltage-unstated";
   /* A small appliance is mains even when "cordless" (a kettle on its

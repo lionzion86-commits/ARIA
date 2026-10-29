@@ -204,23 +204,49 @@ export function isStudyLaptop(p) {
     LAPTOP_RX.test(t) && LAPTOP_SPEC_RX.test(t) && !NOT_LAPTOP_RX.test(t);
 }
 const STORE_RAIL_MIN = 6;
-function buildTechSections(list) {
+/* THE SEPARATION RULING (Danny, #443 c.6488544902): every Electrónica
+   shelf -- Ofertas, the stores, the aisles, Laptops para estudiar,
+   Chromebooks, Consolas -- shows NEW units only; refurbished, used and
+   open-box stock lives only in Reacondicionados (its disclosure above it,
+   the refurbished Chromebooks first, c.6488281596). Computadoras,
+   Chromebooks and Laptops para estudiar carry a door to it, never mixed
+   stock. Ofertas leads with a good Walmart camera, small accessories last
+   (c.6487219343). */
+export const REFURB_DOOR_TEXT = "¿Buscas una opción más barata? Ver Reacondicionados";
+export function techOfertasOrder(sales) {
+  const small = (p) => isAccessoryName(p.title) || p.rawPrice < 25;
+  const heroes = sales.filter((p) => !small(p)).map((p, i) => ({ p, i, s: homeStrength(p, "") }))
+    .sort((a, b) => (b.s - a.s) || (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  const cams = heroes.filter((p) => p.retailer === "walmart" && techAisleOf(p) === "tech_camaras" && OFERTAS_LEAD_CAMERA_RX.test(p.title) && p.salePct >= 30
+    && !/\b(security|surveillance|dash|doorbell|webcam|baby|kids?|children|toy|trail|spy|hidden|nanny|cctv|ip cam|body|drones?|quadcopter|thumb|wearable)\b/i.test(p.title) && !isAccessoryName(p.title) && p.rawPrice >= 50)
+    .sort((a, b) => (b.rawPrice - a.rawPrice) || (b.salePct - a.salePct));
+  const lead = cams[0] ? [cams[0]] : [];
+  return lead.concat(heroes.filter((p) => p !== cams[0]), sales.filter(small).sort((a, b) => b.salePct - a.salePct));
+}
+export function refurbOrder(refurb) {
+  const books = refurb.filter((p) => isChromebook(p)).sort((a, b) => a.rawPrice - b.rawPrice);
+  return books.concat(refurb.filter((p) => !books.includes(p)));
+}
+function buildTechSections(all) {
   const sections = [];
-  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
-    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
-  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
-  const stores = new Set(list.map((p) => p.retailer));
+  const refurb = all.filter((p) => conditionOfTitle(p.title));
+  const list = all.filter((p) => !conditionOfTitle(p.title));
+  const door = refurb.length >= 3 ? REFURB_DOOR_TEXT : "";
+  const sales = list.filter((p) => p.salePct > 0);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: techOfertasOrder(sales) });
+  const stores = new Set(all.map((p) => p.retailer));
   /* One store chosen (the store chip): its own rail would be the whole list. */
   const many = stores.size > 1;
   const lead = list.filter((p) => p.retailer === TECH_LEAD_STORE[0]);
   if (many && lead.length >= STORE_RAIL_MIN) sections.push({ key: "tienda:" + TECH_LEAD_STORE[0], title: "Destacados de " + TECH_LEAD_STORE[1], items: lead });
-  const refurb = list.filter((p) => conditionOfTitle(p.title));
-  if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurb });
+  if (refurb.length >= 3) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurbOrder(refurb) });
   /* Renders only when the under-$200 set fills a rail (the Aisle Test). */
-  /* New machines first, then refurbished, each cheapest first. */
-  const isNew = (p) => (conditionOfTitle(p.title) ? 1 : 0);
-  const study = list.filter(isStudyLaptop).sort((a, b) => (isNew(a) - isNew(b)) || (a.rawPrice - b.rawPrice));
-  if (study.length >= STORE_RAIL_MIN) sections.push({ key: "estudio", title: "Laptops para estudiar", note: STUDY_NOTE, items: study });
+  const study = list.filter(isStudyLaptop).sort((a, b) => a.rawPrice - b.rawPrice);
+  if (study.length >= STORE_RAIL_MIN) sections.push({ key: "estudio", title: "Laptops para estudiar", note: STUDY_NOTE, door, items: study });
+  const books = list.filter(isChromebook);
+  if (books.length >= STORE_RAIL_MIN) sections.push({ key: "chromebooks", title: "Chromebooks", door, items: books.sort((a, b) => ((b.salePct > 0) - (a.salePct > 0)) || (a.rawPrice - b.rawPrice)) });
+  const consoles = list.filter(isConsole);
+  if (consoles.length >= STORE_RAIL_MIN) sections.push({ key: "consolas", title: "Consolas", items: consoles });
   if (many) for (const [r, title] of TECH_STORES) {
     const l = list.filter((p) => p.retailer === r);
     if (l.length >= STORE_RAIL_MIN) sections.push({ key: "tienda:" + r, title, items: l });
@@ -229,7 +255,7 @@ function buildTechSections(list) {
   for (const p of list) (byAisle[techAisleOf(p)] ||= []).push(p);
   for (const k of TECH_AISLE_ORDER) {
     const l = byAisle[k];
-    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: k === "tech_celulares" ? celularesOrder(l) : l });
+    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: k === "tech_celulares" ? celularesOrder(l) : l, ...(k === "tech_computadoras" ? { door } : {}) });
   }
   return sections;
 }
@@ -329,26 +355,83 @@ export function homeStrength(p, k) {
   if (p.rawPrice < 15) s -= 2;
   return s;
 }
+/* THE PILL ROW (Danny, #443 c.6487219343, c.6488256694, c.6488281596,
+   c.6488481308, c.6488544902, c.6488547834):
+     Ofertas -- the lead: heroes first (a good Walmart camera on sale opens
+       it), small accessories close it, never lead it;
+     Reacondicionados -- pill #2: ALL refurbished, used and open-box stock,
+       and only there; the refurbished Chromebooks (under the $200 line,
+       zero import tax) at the front, each card badged with its own
+       condition;
+     then the types, NEW units only (the separation ruling): Celulares in
+     the Peru-presence order, Computadoras, Chromebooks, Consolas (the
+     console itself: Switch, PlayStation, Xbox, Meta Quest -- not "gaming"),
+     Videojuegos, and every other aisle the data fills. Computadoras and
+     Chromebooks end on a door to Reacondicionados, never mixed stock. */
+export const CONSOLE_RX = /\b(nintendo switch\s*(™)?\s*(2|oled|lite)?|switch 2|playstation\s*5|ps5|playstation portal|xbox series [xs]|xbox one|meta quest \d\w*|quest 3s?|steam deck|rog ally|legion go)\b/i;
+/* The console itself, by what its listing says it is: a system, a
+   console, the remote player, the VR headset, or a "Switch 2 + <game>"
+   box. A game names its console too ("Hyrule Warriors - Nintendo Switch",
+   "DLC Bundle - Nintendo Switch [Digital]") and stays in Videojuegos. */
+const CONSOLE_DEVICE_RX = /\b(console|system|remote player|vr headset|mixed reality|all-in-one vr)\b|\bswitch\s*(™)?\s*2\s*\+|\bquest 3s?\s+\d+\s?gb\b/i;
+const NOT_CONSOLE_RX = /\b(for|compatible|fits|controllers?|case|charger|stand|skin|cover|grip|cable|dock|bag|strap|protector|wheel|card|ssd|drive|facial|interface|game|edition|cross-gen|elite strap|dlc|expansion|digital|repair|kit)\b|\[/i;
+export const isConsole = (p) => CONSOLE_RX.test(p.title || "") && CONSOLE_DEVICE_RX.test(p.title || "") && !NOT_CONSOLE_RX.test(p.title || "");
+const CHROMEBOOK_RX = /\bchromebooks?\b/i;
+export const isChromebook = (p) => CHROMEBOOK_RX.test(p.title || "") && !isAccessoryName(p.title) && !/\b(for|compatible|fits|charger|adapter|case|sleeve|mouse|keyboard)\b/i.test(p.title || "");
+const HOME_TECH_ORDER = [["tech_celulares", "Celulares"], ["tech_computadoras", "Computadoras"], ["chromebooks", "Chromebooks"], ["consolas", "Consolas"],
+  ["tech_gaming", "Videojuegos"], ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
+  ["tech_casa_inteligente", "Casa inteligente"], ["tech_componentes", "Componentes"], ["tech_auto", "Auto"], ["tech_accesorios", "Accesorios"]];
+const REFURB_DOOR = ["tech_computadoras", "chromebooks"];
+export const OFERTAS_LEAD_CAMERA_RX = /\b(digital cameras?|mirrorless|dslr|camcorders?|vlog\w* cameras?|compact cameras?|optical zoom)\b/i;
 export function homeTechPills(list) {
   /* One card per title: a colour run of the same speaker is one product here. */
   const seen = new Set();
-  const shown = list.filter((p) => { const t = String(p.title || "").replace(/\s+-\s+[^-]+$/, "").toLowerCase(); if (!p.image || seen.has(t)) return false; seen.add(t); return true; });
+  const all = list.filter((p) => { const t = String(p.title || "").replace(/\s+-\s+[^-]+$/, "").toLowerCase(); if (!p.image || seen.has(t)) return false; seen.add(t); return true; });
+  const used = (p) => Boolean(conditionOfTitle(p.title));
+  const shown = all.filter((p) => !used(p));
   /* The front page shows a type's strongest products first: what the
      type IS (a handset, a console, a laptop with a spec) before what fits
-     it, a brand people search for, then the deeper sale. */
-  /* Celulares leads by brand tier before strength (the Peru-presence
-     order above); every other pill sorts as it always did. */
+     it, a brand people search for, then the deeper sale. Celulares leads
+     by brand tier before strength (the Peru-presence order above). */
   const devicesFirst = (l, k) => l.map((p, i) => ({ p, i, s: homeStrength(p, k), b: 0, n: 0 }))
     .map((x) => (k === "tech_celulares" ? { ...x, b: phoneBrandRank(x.p), n: phoneIsRefurb(x.p) } : x))
     .sort((x, y) => (x.b - y.b) || (x.n - y.n) || (y.s - x.s) || ((y.p.salePct || 0) - (x.p.salePct || 0)) || (x.i - y.i)).map((x) => x.p);
   const pills = [];
-  const sales = shown.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
-    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
-  if (sales.length >= HOME_PILL_MIN) pills.push({ k: "ofertas", label: "Ofertas", cards: devicesFirst(sales, "").slice(0, HOME_PILL_CARDS).map(cardOf) });
-  for (const [k, label] of HOME_TECH_PILLS) {
-    /* The department's order: on sale first, then cheapest. */
-    const l = shown.filter((p) => techAisleOf(p) === k);
-    if (l.length >= HOME_PILL_MIN) pills.push({ k, label, cards: devicesFirst(l, k).slice(0, HOME_PILL_CARDS).map(cardOf) });
+  /* OFERTAS: a good Walmart camera on sale opens it; the heroes follow;
+     a small accessory (a cable, a car charger, a case) closes it. */
+  const sales = shown.filter((p) => p.salePct > 0);
+  if (sales.length >= HOME_PILL_MIN) {
+    const small = (p) => isAccessoryName(p.title) || p.rawPrice < 25;
+    const heroes = devicesFirst(sales.filter((p) => !small(p)), "");
+    /* A photo camera: the Cámaras aisle, never a security, dash or web cam. */
+    /* A photo camera -- digital, mirrorless, DSLR, camcorder -- at a real
+       discount (30%+), the better camera first: never a body cam, a kids'
+       camera, a drone or a security cam. */
+    const cams = heroes.filter((p) => p.retailer === "walmart" && techAisleOf(p) === "tech_camaras" && OFERTAS_LEAD_CAMERA_RX.test(p.title) && p.salePct >= 30
+      && !/\b(security|surveillance|dash|doorbell|webcam|baby|kids?|children|toy|trail|spy|hidden|nanny|cctv|ip cam|body|drones?|quadcopter|thumb|wearable)\b/i.test(p.title) && !isAccessoryName(p.title) && p.rawPrice >= 50)
+      .sort((a, b) => (b.rawPrice - a.rawPrice) || (b.salePct - a.salePct));
+    const lead = cams[0] ? [cams[0]] : [];
+    const ordered = lead.concat(heroes.filter((p) => p !== cams[0]), devicesFirst(sales.filter(small), ""));
+    pills.push({ k: "ofertas", label: "Ofertas", cards: ordered.slice(0, HOME_PILL_CARDS).map(cardOf) });
+  }
+  /* REACONDICIONADOS: pill #2; refurbished Chromebooks first, cheapest
+     first (all under the $200 line), then the rest of the refurbished
+     stock by strength. Only a known condition enters (conditionOfTitle). */
+  const refurb = all.filter(used);
+  if (refurb.length >= HOME_PILL_MIN) {
+    const books = refurb.filter((p) => isChromebook(p)).sort((a, b) => a.rawPrice - b.rawPrice);
+    const rest = devicesFirst(refurb.filter((p) => !books.includes(p) && !isAccessoryName(p.title)), "");
+    const tail = refurb.filter((p) => !books.includes(p) && isAccessoryName(p.title));
+    pills.push({ k: "reacondicionados", label: "Reacondicionados", note: REFURB_NOTE, cards: books.concat(rest, tail).slice(0, HOME_PILL_CARDS).map(cardOf) });
+  }
+  for (const [k, label] of HOME_TECH_ORDER) {
+    const l = k === "chromebooks" ? shown.filter(isChromebook)
+      : k === "consolas" ? shown.filter(isConsole)
+      : k === "tech_gaming" ? shown.filter((p) => techAisleOf(p) === k && !isConsole(p))
+      : shown.filter((p) => techAisleOf(p) === k);
+    if (l.length < HOME_PILL_MIN) continue;
+    const ordered = k === "chromebooks" ? l.slice().sort((a, b) => ((b.salePct || 0) - (a.salePct || 0)) || (a.rawPrice - b.rawPrice)) : devicesFirst(l, k);
+    pills.push({ k, label, cards: ordered.slice(0, HOME_PILL_CARDS).map(cardOf), ...(REFURB_DOOR.includes(k) && refurb.length ? { door: "reacondicionados" } : {}) });
   }
   return { v: 1, pills };
 }
@@ -711,6 +794,8 @@ export function headOf(key, list, sections, allLabels, extra = {}) {
       const r = { i, title: s.title, count: s.items.length, pages: Math.ceil(s.items.length / PAGE_SIZE) };
       /* d: the line under the rail title (the Reacondicionados disclosure). */
       if (s.note) r.d = s.note;
+      /* door: the link to Reacondicionados under a new-only shelf. */
+      if (s.door) r.door = s.door;
       if (i < HEAD_RAILS) r.cards = s.items.slice(0, RAIL_CARDS).map(cardOf);
       return r;
     }),

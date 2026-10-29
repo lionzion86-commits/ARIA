@@ -785,7 +785,8 @@ function conditionHtml(p){
   var grade = window.AriaCondition.gradeOfTitle(p.name);
   return '<div class="p-cond" id="p-cond" role="note"><b>Estado: ' + esc(c.label) + '.</b> '
     + (grade ? 'Grado según la tienda: ' + esc(grade) + '.' : esc(window.AriaCondition.NO_GRADE_NOTE))
-    + ' No es un producto nuevo.</div>';
+    + ' No es un producto nuevo.</div>'
+    + '<div class="p-cond p-soldout" id="p-soldout" role="note">' + esc(window.AriaCondition.SOLD_OUT_NOTE) + '</div>';
 }
 function render(p){
   el("p-loading").style.display = "none";

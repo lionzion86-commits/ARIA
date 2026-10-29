@@ -41,32 +41,37 @@ check("the condition rule: Walmart's Restored and a shouted USED disclose; art a
   assert.equal(conditionOfTitle("Open Box Metro By T-Mobile TCL Flip 4 5G"), null);
 });
 
-check("the order: Ofertas, B&H's destacados, Reacondicionados, Laptops para estudiar, then the stores", () => {
+/* The separation ruling (c.6488544902) puts every refurbished unit in
+   Reacondicionados only, so «Laptops para estudiar» holds new machines
+   and renders only when they fill a rail (the Aisle Test). */
+check("the order: Ofertas, B&H's destacados, Reacondicionados, [Laptops para estudiar], Chromebooks, Consolas, then the stores", () => {
   const t = head.rails.map((r) => r.title);
-  assert.deepEqual(t.slice(0, 4), ["Ofertas", "Destacados de B&H Photo", "Reacondicionados", "Laptops para estudiar"]);
+  const study = sections.some((x) => x.key === "estudio");
+  assert.deepEqual(t.slice(0, study ? 6 : 5), ["Ofertas", "Destacados de B&H Photo", "Reacondicionados", ...(study ? ["Laptops para estudiar"] : []), "Chromebooks", "Consolas"]);
   for (const s of ["BrandsMart USA", "Micro Center", "Walmart"]) assert.ok(t.includes(s), s);
   assert.equal(head.rails[2].d, REFURB_NOTE);
-  assert.equal(head.rails[3].d, STUDY_NOTE);
+  if (study) assert.equal(head.rails[3].d, STUDY_NOTE);
 });
 
 check("the aisles are Aria's named aisles: no store's English category is a rail", () => {
   const aisles = new Set(Object.values(TECH_AISLE_LABELS));
-  const stores = new Set(["Ofertas", "Destacados de B&H Photo", "Reacondicionados", "Laptops para estudiar", "BrandsMart USA", "Micro Center", "Walmart", "Costco"]);
+  const stores = new Set(["Ofertas", "Destacados de B&H Photo", "Reacondicionados", "Laptops para estudiar", "Chromebooks", "Consolas", "BrandsMart USA", "Micro Center", "Walmart", "Costco"]);
   for (const r of head.rails) assert.ok(aisles.has(r.title) || stores.has(r.title), `rail "${r.title}"`);
-  assert.equal(head.rails.reduce((n, r) => n + (aisles.has(r.title) ? r.count : 0), 0), head.count, "every product sits in exactly one aisle");
+  /* Every NEW product sits in exactly one aisle; the refurbished ones in Reacondicionados. */
+  const refurb = head.rails.find((r) => r.title === "Reacondicionados").count;
+  assert.equal(head.rails.reduce((n, r) => n + (aisles.has(r.title) ? r.count : 0), 0) + refurb, head.count, "every product sits in exactly one aisle");
 });
 
-check("Laptops para estudiar: laptops only, product price under $200, new machines first", () => {
+check("Laptops para estudiar: new laptops only, product price under $200; absent when too few", () => {
   const s = sections.find((x) => x.key === "estudio");
-  assert.ok(s && s.items.length >= 6);
-  let seenUsed = false;
-  for (const p of s.items) {
+  const newStudy = dept.list.filter((p) => isStudyLaptop(p) && !conditionOfTitle(p.title));
+  if (newStudy.length < 6) assert.ok(!s, "fewer than 6 new: no rail");
+  else assert.equal(s.items.length, newStudy.length);
+  for (const p of (s ? s.items : newStudy)) {
     assert.ok(p.rawPrice < STUDY_LAPTOP_MAX, `${p.title}: $${p.rawPrice}`);
     assert.match(p.title, /\b(laptops?|notebooks?|chromebooks?|macbook)\b/i);
     assert.doesNotMatch(p.title, /\b(tablets?|ipad|trays?|desks?|drones?|bags?|cases?|sleeves?|toys?)\b/i, p.title);
-    const used = Boolean(conditionOfTitle(p.title));
-    assert.ok(!(seenUsed && !used), `${p.title}: a new laptop after a used one`);
-    seenUsed = seenUsed || used;
+    assert.ok(!conditionOfTitle(p.title), `${p.title}: a refurbished unit outside Reacondicionados`);
   }
   assert.equal(isStudyLaptop({ title: "Fordable Laptop Desk Tray w/ USB Ports", rawPrice: 14.99, type: "tech_computadoras" }), false);
   assert.equal(isStudyLaptop({ title: "Acer Chromebook 315 15.6\" Intel N50 8GB RAM 128GB", rawPrice: 200, type: "tech_computadoras" }), false, "$200 is not under $200");
@@ -98,8 +103,10 @@ check("the homepage Electrónica carousel: Ofertas, then Danny's four types, eve
   const home = { v: 1, pills: head.pills.map((p, i) => ({ k: p.k, label: p.label, cards: i ? JSON.parse(readFileSync(DIR + `home-${p.k}.json`, "utf8")).cards : head.cards })) };
   head.pills.forEach((p, i) => assert.equal(p.n, home.pills[i].cards.length, p.label));
   const keys = home.pills.map((p) => p.k);
-  assert.deepEqual(keys.slice(0, 5), ["ofertas", "tech_celulares", "tech_computadoras", "tech_gaming", "tech_audifonos"]);
-  assert.deepEqual(home.pills.map((p) => p.label).slice(0, 5), ["Ofertas", "Celulares", "Computadoras", "Videojuegos", "Audífonos"]);
+  /* Danny's row: Ofertas, Reacondicionados second (c.6488547834), then
+     the types, Chromebooks and Consolas among them (c.6488256694, c.6487219343). */
+  assert.deepEqual(keys.slice(0, 8), ["ofertas", "reacondicionados", "tech_celulares", "tech_computadoras", "chromebooks", "consolas", "tech_gaming", "tech_audifonos"]);
+  assert.deepEqual(home.pills.map((p) => p.label).slice(0, 8), ["Ofertas", "Reacondicionados", "Celulares", "Computadoras", "Chromebooks", "Consolas", "Videojuegos", "Audífonos"]);
   for (const p of home.pills) {
     assert.ok(p.cards.length >= HOME_PILL_MIN, `${p.label}: ${p.cards.length}`);
     for (const c of p.cards) assert.ok(c.i && c.p > 0, `${p.label}: ${c.t}`);
@@ -107,7 +114,8 @@ check("the homepage Electrónica carousel: Ofertas, then Danny's four types, eve
     if (p.k !== "tech_accesorios") for (const c of p.cards.slice(0, 3)) assert.ok(!isAccessoryName(c.t), `${p.label} leads with an accessory: ${c.t}`);
     assert.equal(new Set(p.cards.map((c) => c.r + c.t)).size, p.cards.length, `${p.label}: a card twice`);
   }
-  assert.deepEqual(home, JSON.parse(JSON.stringify(homeTechPills(dept.list.map((p) => ({ ...p, image: p.image })))) ), "home.json is stale: run build-department-slices");
+  const fresh = homeTechPills(dept.list.map((p) => ({ ...p, image: p.image })));
+  assert.deepEqual(home, JSON.parse(JSON.stringify({ v: 1, pills: fresh.pills.map((p) => ({ k: p.k, label: p.label, cards: p.cards })) })), "home.json is stale: run build-department-slices");
 });
 
 check("Celulares, the Peru-presence order: Pixel, OnePlus, iPhone, then the rest; Peru's own brands at the back", () => {

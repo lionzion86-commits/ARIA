@@ -1,10 +1,10 @@
 {
- "generatedAt": "2026-10-29T01:37:50.975Z",
+ "generatedAt": "2026-10-29T11:19:35.039Z",
  "rawProducts": 2504,
- "kept": 1287,
+ "kept": 1290,
  "held": {
   "not electronics (re-route)": 73,
-  "held-voltage-unstated": 712,
+  "held-voltage-unstated": 709,
   "site-unshippable (bulk / weight)": 32,
   "lithium cargo (courier ruling)": 13,
   "excluded-110v": 10,
@@ -13,19 +13,19 @@
   "kitchen food-prep (not the electronics core)": 317
  },
  "byAisle": {
-  "tech_celulares": 45,
+  "tech_celulares": 42,
   "tech_computadoras": 100,
   "tech_audifonos": 165,
-  "tech_audio": 223,
-  "tech_gaming": 40,
+  "tech_audio": 221,
+  "tech_gaming": 43,
   "tech_camaras": 59,
   "tech_relojes": 38,
   "tech_casa_inteligente": 97,
-  "tech_auto": 14,
+  "tech_auto": 18,
   "tech_componentes": 12,
-  "tech_accesorios": 494
+  "tech_accesorios": 495
  },
  "onSale": 312,
- "withWeight": 1264,
- "withSpanish": 1281
+ "withWeight": 1267,
+ "withSpanish": 1284
 }

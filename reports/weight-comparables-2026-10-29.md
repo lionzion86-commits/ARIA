@@ -4,11 +4,11 @@
 
 | | Products |
 |---|---:|
-| Comparables pool (a published weight, the store's figure, or a per-class rule) | 126,455 |
-| Products the rules could only cover with a constant | 13,496 |
-| ...now estimated from similar products (median x 1.15) | 5,805 |
+| Comparables pool (a published weight, the store's figure, or a per-class rule) | 126,461 |
+| Products the rules could only cover with a constant | 13,500 |
+| ...now estimated from similar products (median x 1.15) | 5,808 |
 | ...with no similar product, weighed by the web pass (found weight x 1.1, source in hidden-docs/weight-tail-full-2026-10-26.csv) | 1,270 |
-| ...with neither: weight "por confirmar" | 6,421 |
+| ...with neither: weight "por confirmar" | 6,422 |
 
 ## Sample estimates (product -> kg; comparables with their kg and match score)
 
@@ -5802,6 +5802,8 @@
 | brandsmart | Dash Cam™ Tandem | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | eXcelon Series 6X8-inch Car Stereo Speakers (Pair) | 150.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Dash Cam™ X210 | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | MR HH150 FLT - 3 Watt Handheld Floating VHF Marine Radio with NOAA Weather | 99.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | MR HH350 FLT - 6 Watt Handheld Floating VHF Marine Radio with NOAA Weather | 139.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | 7" IPS Touch Screen Dashcam with Wireless Carplay | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Smart Care Essential Care Kit | 199.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Battery Doorbell Plus 2K 2nd Gen - Nickel Silver | 99.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
@@ -5879,12 +5881,14 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | brandsmart | HERO12 Black | 369.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | G29 Racing Wheel for Playstation and PC | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | G920 Driving Force Racing Wheel for Xbox One and PC | 299.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Racing Wheel Apex for Playstation 5, PlayStation 4 and PC | 119.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Tony Hawk's™ Pro Skater™ 3 + 4 – Collector's Edition | 129.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Pro Mobile Gaming Controller | 169.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | DualSense Wireless First Light Limited Edition Controller | 84.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | DualSense Wireless Marathon LE Controller | 84.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | PRO X SUPERLIGHT 2 - Black | 159.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Yeti GX Dynamic RGB Gaming Microphone with Lightsync | 169.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
+| brandsmart | Racing Wheel Overdrive for Xbox Series X / S | 119.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | DualSense Wireless Chroma Indigo Controller | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Rad 480i - Long-Range Detector with Shared Alerts | 149.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | 10" 300W Enclosed Subwoofer with Low Profile Grille | 499.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
@@ -5940,9 +5944,7 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | brandsmart | Sub 4 Wireless Subwoofer - White | 899.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Sub 4 Wireless Subwoofer - Black | 899.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | PartyBox Wireless Microphones | 129.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
-| brandsmart | MR HH150 FLT - 3 Watt Handheld Floating VHF Marine Radio with NOAA Weather | 99.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | 4K AI DriveCam | 79.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
-| brandsmart | MR HH350 FLT - 6 Watt Handheld Floating VHF Marine Radio with NOAA Weather | 139.95 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Forerunner® 570 Amp Yellow Aluminum with Translucent Whitestone/Turquoise Band | 549.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | EON ONE Compact All-In-One Rechargeable Personal PA | 699.00 | 2.5 kg (tope conservador de general (sin regla de peso)) |
 | brandsmart | Acer Aspire Lite 14 AI AL14-11M-X8EN Copilot+ PC, 14" WUXGA (1920 x 1200) Display, Snapdra | 749.99 | 2.5 kg (tope conservador de general (sin regla de peso)) |
@@ -6172,6 +6174,7 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | walmart | Meta Quest 3 128GB — The Most Powerful Quest — Ultimate Mixed Reality Experiences | 628.00 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Quest 3 512GB — Dive into Mixed Reality — Get a 3-Month Trial of Meta Horizon+ Included | 595.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Cult of the Lamb - Definitive Edition - Nintendo Switch Game | 79.87 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
+| walmart | Street Fighter 6 Years 1-2 Fighters Edition for XBOX Series X | 84.94 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | SNAPTAIN E20 FPV Drone with 2.7k QHD Camera, Brushless Motor with Controller for Adult - G | 99.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | GPS Drone with 4K Camera,RC Drones with 4.5 inch HD Screen on Controller,Auto Return,2 Bat | 139.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Contixo F26 Volant Drone with 4.3” Screen Controller, Brushless FPV Drone with Optical Flo | 99.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
@@ -6180,12 +6183,12 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | walmart | Valve Steam Deck 512GB with Exclusive Carrying Case, Black | 929.90 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Restored Mortal Kombat Armageddon - Xbox | 89.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Nintendo Switch 2 Console, 256GB, 7.9 Inch 1080p HDR Screen, Joy-Con 2 Controllers, 4K TV  | 669.00 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
+| walmart | Fatal Fury: City Of The Wolves Deluxe Edition - Playstation 5 | 89.74 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Restored Dragon Ball Z: Budokai Tenkaichi 3 Nintendo Wii | 78.46 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Mario Kart Live Home Circuit Luigi Set (Nintendo Switch) | 219.98 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Microsoft Xbox Wireless Controller - Daystrike Camo | 77.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Soft Red Switch Pro Wireless Custom Controller Soft Touch Finish Unique Design | 109.95 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Arcade1UP Mortal Kombat / Midway Head-to-Head (H2H) Gaming Table with Lit Deck | 999.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
-| walmart | Sony PlayStation 5 Digital Console with Extra Purple Dualsense Controller and Accessories  | 749.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Nintendo Switch™ 2: Choose Your Game Bundle | 591.90 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Arcade1Up Mortal Kombat II Countercade 7" Countertop Arcade Machine with 3 Built-In Games | 154.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Open Box Pac-Man Countercade (7") Arcade Machine | 146.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
@@ -6197,6 +6200,7 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | walmart | ASUS TUF Gaming BE9400 Tri-band WiFi 7, Gaming Acceleration, Durable & Stable Design | 247.00 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Vivitar SkyHawk GPS Foldable Aerial Drone for Adults with 2.7K HD Camera, 16-Minute Flight | 149.00 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Vivitar SkyTrek GPS Foldable Aerial Drone with 1080p Camera, 2.8 in Live Video Controller  | 99.00 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
+| walmart | Madden NFL 27: Deluxe Edition - XBOX Series X/S [Digital] | 99.88 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | onn MicroSDXC Express Card, 512GB | 84.77 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | PlayStation Sony PS5 DualSense Edge Wireless Controller - Midnight Black | 199.00 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | walmart | Nex Playground Interactive Game System, 64 GB, Multi Color | 299.00 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
@@ -6289,8 +6293,6 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | costco | Nintendo eShop - Four $50 eGift Cards | 179.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | costco | Nintendo eShop - Four $25 eGift Cards | 89.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | costco | Nintendo Switch 2 with NSO and Mario Kart World Digital Code | 569.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
-| costco | Sony Playstation 5 Slim Disc Console and DualSense Controller Bundle | 699.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
-| costco | Sony Playstation 5 Digital Slim Console & DualSense Controller Bundle | 649.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | costco | Nintendo Switch 2 Accessories Bundle: Pro Controller, Camera, Storage | 179.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | costco | Klipsch Reference Dolby Atmos 5.0.2 Surround System | 899.97 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | costco | Singing Machine Karaoke WIFI Vocal Hero | 199.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
@@ -6475,7 +6477,6 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | microcenter | NEO N410+ 512GB SSD 3D TLC NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 99.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | 870 EVO 1TB SSD 3-bit MLC V-NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 349.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | Blue 4TB SSD 3D NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 599.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
-| microcenter | Blue SA510 2TB SSD TLC NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 299.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | QN450 500GB SSD 3D QLC NAND PCIe Gen 4 x4 NVMe M.2 2280 Internal Solid State Drive | 109.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | 870 EVO 2TB SSD 3-bit MLC V-NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 499.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | P310 1TB SSD 232L Micron QLC NANDAND PCIe Gen 4 x4 NVMe M.2 2280 Internal Solid State Driv | 199.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |

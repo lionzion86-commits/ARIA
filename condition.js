@@ -70,6 +70,11 @@
     conditionOfTitle: conditionOfTitle,
     gradeOfTitle: gradeOfTitle,
     LABELS: Object.freeze(LABELS),
-    NO_GRADE_NOTE: 'La tienda no indica un grado.'
+    NO_GRADE_NOTE: 'La tienda no indica un grado.',
+    /* THE SOLD-OUT PROMISE (Danny, #443 c.6488288883): a refurbished,
+       used or open-box listing is snapshot data, possibly a single unit,
+       until the buy confirms it. Shown on its product page and in
+       checkout, and the same promise backs the order message. */
+    SOLD_OUT_NOTE: 'Si este producto se agota en la tienda, te avisamos de inmediato y te devolvemos el total: a tu tarjeta o en crédito Aria, tú eliges.'
   });
 })(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this));

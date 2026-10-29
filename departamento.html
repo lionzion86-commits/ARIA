@@ -118,6 +118,8 @@
   .lens-head{display:flex;align-items:baseline;gap:10px;padding:0 20px}
   .lens-head h2{font-size:24px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
   .lens-head a{margin-left:auto;font-size:13px;font-weight:800;color:var(--blue);text-decoration:none;white-space:nowrap}
+  .rail-door{margin:0 20px 4px;font-size:13px;font-weight:700}
+  .rail-door a{color:var(--blue);text-decoration:none}
   .rail-note{margin:2px 20px 6px;padding:8px 12px;border-radius:10px;background:#FFF4E0;border:1px solid #F2C46D;color:#5A3B00;font-size:13px;font-weight:700;line-height:1.35}
   .rail-count{font-size:11px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px}
   /* END-OF-CAROUSEL CARD (#443 c.6405624575): the Perfumes lead rail ends
@@ -768,10 +770,12 @@ function sizedImageUrl(url, w){
     if (deptKey === 'perfumes' && r.i === 0 && r.cards && HEAD.count > r.count)
       cards += '<button type="button" class="ver-todo rail-more" data-rk="all" data-title="Todos los perfumes">'
         + '<b>Ver todos los perfumes &#8594;</b><span>' + Number(HEAD.count).toLocaleString('es-PE') + ' productos</span></button>';
-    return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '">'
+    return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '"' + (r.title === 'Reacondicionados' ? ' id="rail-reacondicionados"' : '') + '>'
       + '<div class="rail-head"><h2>' + esc(r.title) + '</h2>'
       + '<span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span>' + door + '</div>'
       + (r.d ? '<p class="rail-note">' + esc(r.d) + '</p>' : '')
+      /* The door from a new-only shelf to Reacondicionados (c.6488544902). */
+      + (r.door ? '<p class="rail-door"><a href="#" data-to-refurb>' + esc(r.door) + ' &#8594;</a></p>' : '')
       + '<div class="rail">' + cards + '</div></section>';
   }
   var MORE_IO = null;
@@ -1053,6 +1057,8 @@ function sizedImageUrl(url, w){
     fRet = b.dataset.r; syncChips(); loadAll();
   });
   railsEl.addEventListener('click', function(e){
+    var door = e.target.closest('[data-to-refurb]');
+    if (door){ e.preventDefault(); var t = document.getElementById('rail-reacondicionados'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     var m = e.target.closest('#moreRetry');
     if (m){ document.getElementById('railsMore').innerHTML = ''; appendBatch(); return; }
     var b = e.target.closest('.ver-todo'); if(!b) return;

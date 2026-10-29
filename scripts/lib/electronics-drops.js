@@ -46,14 +46,40 @@ const DAMAGED_RX = /\b(fractured|cracked|broken (screen|glass)|for parts|not wor
 const CONDITION_LABEL = { restored: "Reacondicionado", "pre-owned": "Usado", "open box": "Caja abierta" };
 
 /** "sell" or the hold reason, after the type and the voltage gate. */
-function gate({ name, description = "", hint = "", flag110 = false }) {
+function gate({ name, description = "", hint = "", flag110 = false, rated = null }) {
   if (!isTechProduct(name, hint)) return "not electronics (re-route)";
   const aisle = techAisle(name, hint);
   /* A prepaid handset (or cellular tablet) is a carrier's, whatever
      else its title says ("[unlocked works Straight Talk]"). */
   if ((aisle === "tech_celulares" || aisle === "tech_computadoras") && (/\bprepaid\b/i.test(name) || (LOCKED_RX.test(name) && !UNLOCKED_RX.test(name)))) return "carrier-locked phone";
   const v = voltageGate({ name, descriptionEn: description, subcategory: aisle === "tech_auto" ? "car-audio" : "", flag110vOnly: flag110 });
+  /* A console BUNDLE is the console plus a game in one box: when the same
+     console's own listing in this drop states a rating that covers 220 V,
+     the bundle carries the same adapter (Danny's Consolas pill, #443
+     c.6487219343). Nothing is inferred across models: a line with no
+     rated listing of its own stays held. */
+  if (v === "held-voltage-unstated" && rated && /\bbundle\b/i.test(name)) {
+    const line = consoleLine(name);
+    if (line && rated.has(line)) return aisle;
+  }
   return v === "sell" ? aisle : v;
+}
+/* The console lines a bundle can inherit a rating from. */
+const CONSOLE_LINES = [["switch2", /\bnintendo switch\s*(™)?\s*2\b|\bswitch 2\b/i], ["switcholed", /\bswitch\s*(™)?\s*oled\b/i],
+  ["ps5", /\b(playstation\s*5|ps5)\b/i], ["xboxx", /\bxbox series x\b/i], ["xboxs", /\bxbox series s\b/i], ["quest3", /\bmeta quest 3\b|\bquest 3\b/i]];
+export function consoleLine(name) { const n = String(name || ""); const hit = CONSOLE_LINES.find(([, rx]) => rx.test(n)); return hit ? hit[0] : ""; }
+/* The lines whose own console listing (not a bundle) passes the gate in this drop. */
+function ratedConsoleLines(rows, describe) {
+  const out = new Set();
+  for (const r of rows) {
+    const name = decodeTitle(r && (r.name || r.title));
+    const line = consoleLine(name);
+    /* The console itself: not a bundle, not a drive or case "for" it. */
+    if (!line || /\bbundle\b/i.test(name) || !/\b(system|console)\b/i.test(name) || /\b(for|compatible|fits|drives?|ssd|cases?)\b/i.test(name)) continue;
+    const a = gate({ ...describe(r), name });
+    if (/^tech_/.test(a)) out.add(line);
+  }
+  return out;
 }
 
 function images(list, first) {
@@ -74,6 +100,8 @@ function ordered(departments) {
 
 export function normalizeWalmartElectronics(rows, { isShippableItem } = {}) {
   const held = {}, departments = {}, seen = new Set();
+  const rated = ratedConsoleLines(rows.filter((r) => r && r.inStock === true),
+    (r) => ({ description: r.description, hint: r.subcategory, flag110: r.voltageFlag110Only === true }));
   const hold = (w) => { held[w] = (held[w] || 0) + 1; };
   for (const r of rows) {
     if (!r || r.inStock !== true) { hold("out of stock"); continue; }
@@ -93,7 +121,7 @@ export function normalizeWalmartElectronics(rows, { isShippableItem } = {}) {
     if (c && lockedPhone(name)) { hold("carrier-locked phone"); continue; }
     /* A damaged unit ("92% Fractured Glass") is not a refurbished one. */
     if (c && DAMAGED_RX.test(name)) { hold("damaged unit"); continue; }
-    const aisle = gate({ name, description: r.description, hint: r.subcategory, flag110: r.voltageFlag110Only === true });
+    const aisle = gate({ name, description: r.description, hint: r.subcategory, flag110: r.voltageFlag110Only === true, rated });
     if (!aisle.startsWith("tech_")) { hold(aisle); continue; }
     const it = { name, brand: String(r.brand || "").trim(), price, currency: "USD", image: imgs[0], images: imgs,
       url: r.url || "", sku: String(r.usItemId || r.sku || ""), description: "", description_en: String(r.description || "").trim(),

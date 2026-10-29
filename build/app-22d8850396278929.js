@@ -3923,6 +3923,27 @@ function railRefPriceHTML(usd, cls, color){
   if (!Number.isFinite(usd) || !fxRate) return '';
   return `<span class="ariaPricePen ${cls}" style="color:${color}">${escapeHtml(fmtUSD(usd).replace('$', 'US$ '))} · ${escapeHtml(fxRateLabel())}</span>`;
 }
+/* THE IMPORT TAX ON THE CARD (Danny, #443 c.6487219343). An iPhone card
+   read S/ 2,400 and checkout added S/ 493 the shopper never saw. Over the
+   $200 franchise the card now carries "+ S/ <amount> IMP" under its price:
+   the product view's own estimate (productTaxLineHTML -- dutiable goods
+   plus freight, at TAX_ZONE_RATE), so card, product page and checkout
+   tell one story. The weight is the card's own, else the estimate its
+   weight line shows. Under the franchise nothing is owed and nothing
+   prints. */
+function cardImpTaxUsd(p){
+  const d = dutiableBaseUsd(p && p.price, p && p.dutiableUsd);
+  if (!(Number.isFinite(d) && d > IMPORT_TAX_THRESHOLD_USD)) return 0;
+  const kg = Number(p.weightKg) > 0 ? Number(p.weightKg) : estimateRetailWeightKg(p.title);
+  return Math.round((d + freightUsd(kg)) * TAX_ZONE_RATE * 100) / 100;
+}
+function cardImpLineHTML(p, cls, color){
+  const tax = cardImpTaxUsd(p);
+  if (!(tax > 0)) return '';
+  /* fmtPEN converts from dollars, and falls back to US$ without a rate. */
+  const money = fmtPEN(tax);
+  return `<span data-card-imp class="${cls}" style="color:${color}">+ ${escapeHtml(money)} IMP</span>`;
+}
 function railCardHTML(p, onclick, attr, opts){
   /* NEVER AN EMPTY CARD (#443 c.6398961263): no name or no price, no card. */
   if (!p || !String(p.title || '').trim() || !(Number(p.price) > 0)){
@@ -3957,6 +3978,7 @@ function railCardHTML(p, onclick, attr, opts){
           ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:${dark ? '#AFBBD6' : '#9AA3B5'}">${railLeadPrice(displayPriceUsd(original))}</span>` : ''}
         </span>
         ${railRefPriceHTML(displayPriceUsd(p.price, p.dutiableUsd), 'text-[11px] tabular mt-0.5', dim)}
+        ${cardImpLineHTML(p, 'block text-[11px] font-bold tabular mt-0.5', dark ? '#F4C463' : '#8A6D1F')}
         ${impuestosBadgeHTML(p.price, p.dutiableUsd)}
         ${weightLabelHTML(p.title, 'text-[10.5px] tabular mt-0.5', dark ? '#8A94AD' : '#7A8296')}
       </span>
@@ -7487,7 +7509,9 @@ function pillShelfItems(cards, dept){
         { retailer: c.r, department: dept || 'general' });
     } catch (e) { continue; }
     if (!it || !it.title || !hasRealImage(it)) continue;
-    out.push({ ...it, retailer: c.r, departments: [dept || 'general'] });
+    /* k: the condition the store's title states (Reacondicionado, Usado,
+       Caja abierta) -- the card wears it as its badge. */
+    out.push({ ...it, retailer: c.r, departments: [dept || 'general'], ...(c.k ? { conditionLabel: c.k } : {}) });
   }
   return out;
 }
@@ -7516,8 +7540,19 @@ function renderPillShelf(id){
     if (!pills || !rail) continue;
     pills.innerHTML = sh.pills.map(p => pillShelfPillHTML(id, p, p.k === sh.active)).join('');
     const more = s.getAttribute('data-pill-more') || '';
+    /* The pill's own line above its cards (the Reacondicionados
+       disclosure), and its door card at the end (a new-only shelf's way
+       to Reacondicionados, c.6488544902). */
+    let note = s.querySelector('[data-pill-note]');
+    if (!note){ note = document.createElement('p'); note.setAttribute('data-pill-note', ''); note.className = 'text-[12.5px] font-bold leading-snug rounded-xl mx-5 mb-3 px-3 py-2'; note.style.cssText = 'background:#FFF4E0;color:#5A3B00;border:1px solid #F2C46D'; rail.parentNode.insertBefore(note, rail); }
+    note.textContent = pill.note || '';
+    note.hidden = !pill.note;
+    const doorPill = pill.door && sh.pills.find(x => x.k === pill.door);
     rail.innerHTML = pill.items.map((p, i) =>
-      railCardHTML(p, `openPillShelfProduct('${jsAttr(id)}',${i})`, `data-shelf-card="${escapeHtml(id)}" data-idx="${i}"`, { dark: true })).join('')
+      railCardHTML(p, `openPillShelfProduct('${jsAttr(id)}',${i})`, `data-shelf-card="${escapeHtml(id)}" data-idx="${i}"`, { dark: true, styleLabel: p.conditionLabel || '' })).join('')
+      + (doorPill ? `<button type="button" data-shelf-door onclick="setPillShelf('${jsAttr(id)}','${jsAttr(doorPill.k)}')" class="flex-shrink-0 w-[150px] rounded-2xl focus-ring grid place-items-center text-center px-3" style="background:#1a2744; border:1px solid rgba(244,196,99,0.55)">`
+        + `<span class="block"><span class="block text-[12px]" style="color:#F4C463">¿Buscas una opción más barata?</span>`
+        + `<span class="block text-[13px] font-extrabold mt-1 leading-snug" style="color:#fff">Ver Reacondicionados &#8594;</span></span></button>` : '')
       + (more ? `<a href="${escapeHtml(more)}" data-shelf-more class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3" style="background:#1a2744; border:1px solid rgba(255,255,255,0.14)">`
         + `<span class="block"><span class="block text-[11.5px]" style="color:#AFBBD6">Ver todo en</span>`
         + `<span class="block text-[13px] font-extrabold mt-0.5 leading-snug" style="color:#fff">${escapeHtml(s.getAttribute('aria-label') || '')} &#8594;</span></span></a>` : '');
@@ -7557,7 +7592,7 @@ function initPillShelves(){
       file: first.getAttribute('data-pill-file') || '' };
     const start = () => pillShelfFetch(first.getAttribute('data-pill-head'), h => (h && Array.isArray(h.pills)) ? h : null).then(head => {
       if (!head || !head.pills.length) return;
-      sh.pills = head.pills.map(p => ({ k: p.k, label: p.label, dept: p.dept || '', items: null }));
+      sh.pills = head.pills.map(p => ({ k: p.k, label: p.label, dept: p.dept || '', note: p.note || '', door: p.door || '', items: null }));
       sh.pills[0].items = pillShelfItems(head.cards, sh.pills[0].dept || sh.dept);
       if (sh.pills[0].items.length < PILL_SHELF_MIN) return;
       sh.active = sh.pills[0].k;
@@ -20156,6 +20191,20 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     brandEl.hidden = !brand;
   }
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
+  /* THE CONDITION, BEFORE THE PRICE (#443, /condition.js): what the
+     store's own title states, its grade or that it gives none, and the
+     sold-out promise (c.6488288883). Never upgraded; nothing for a new
+     product. */
+  const condEl = document.getElementById('productViewCondition');
+  if (condEl){
+    const C = window.AriaCondition, c = C && C.conditionOfTitle(name);
+    if (c){
+      const grade = C.gradeOfTitle(name);
+      condEl.innerHTML = `<b>Estado: ${escapeHtml(c.label)}.</b> ${escapeHtml(grade ? 'Grado según la tienda: ' + grade + '.' : C.NO_GRADE_NOTE)} No es un producto nuevo.`
+        + `<span class="block mt-1.5">${escapeHtml(C.SOLD_OUT_NOTE)}</span>`;
+    }
+    condEl.hidden = !c;
+  }
   /* Set by openAutoPart() immediately before this call, and consumed
      here so it cannot leak onto the next product a shopper opens. */
   const partNumberEl = document.getElementById('productViewPartNumber');

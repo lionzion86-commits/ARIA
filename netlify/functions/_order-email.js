@@ -176,6 +176,49 @@ export function orderConfirmationEmail(order) {
   return { to, subject, text, html };
 }
 
+/* THE SOLD-OUT MESSAGE (Danny, #443 c.6488288883). A refurbished, used
+   or open-box listing can be a single unit; under confirm-first checkout
+   the store buy is the stock check. When it fails because the item is
+   gone, Aria tells the customer at once, in Aria's voice, and refunds the
+   whole line: to the card or as saldo Aria, the customer's choice. The
+   only thing asked of them is that choice. Pure, like the confirmation:
+   the admin flow that sends it passes the order and the line. */
+export function soldOutEmail(order, line) {
+  const to = confirmationRecipient(order);
+  const id = String(order?.orderId || "");
+  const name = String(order?.customer?.name || "").trim().split(/\s+/)[0] || "";
+  const title = String(line?.title || "").trim();
+  const qty = Math.max(1, Math.floor(Number(line?.qty) || 1));
+  const fx = Number(order?.fxRateUsed), usd = Number(line?.priceUsd);
+  const pen = Number.isFinite(usd) && usd > 0 && Number.isFinite(fx) && fx > 0 ? Math.round(usd * qty * fx * 100) / 100 : null;
+  const subject = `Tu producto se agotó en la tienda: te devolvemos el total (${id})`;
+  const ask = "Responde a este correo con «tarjeta» o «saldo Aria» y lo hacemos de inmediato.";
+  const text = [
+    `Hola${name ? " " + name : ""},`,
+    "",
+    `Lo sentimos: ${title} se agotó en la tienda antes de que pudiéramos comprarlo para tu pedido ${id}.`,
+    "",
+    `Te devolvemos el total${pen != null ? " (" + soles(pen) + ")" : ""}: a tu tarjeta o en saldo Aria, tú eliges.`,
+    ask,
+    "",
+    `¿Preguntas? Escríbenos a ${REPLY_TO} con tu número de pedido.`,
+    "",
+    "Aria",
+  ].join("\n");
+  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#F4F6FB;font-family:Arial,Helvetica,sans-serif;color:#0A1F44">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px">
+  <div style="background:#fff;border-radius:16px;padding:24px;border:1px solid #E3E8F2">
+    <p style="font-size:15px;margin:0 0 12px">Hola${name ? " " + esc(name) : ""},</p>
+    <p style="font-size:15px;margin:0 0 12px">Lo sentimos: <b>${esc(title)}</b> se agotó en la tienda antes de que pudiéramos comprarlo para tu pedido <b>${esc(id)}</b>.</p>
+    <p style="font-size:15px;margin:0 0 12px">Te devolvemos el total${pen != null ? ` (<b>${esc(soles(pen))}</b>)` : ""}: a tu tarjeta o en saldo Aria, tú eliges.</p>
+    <p style="font-size:14px;margin:0 0 16px">${esc(ask)}</p>
+    <p style="font-size:13px;margin:0;color:#5B6478">¿Preguntas? Escríbenos a <a href="mailto:${REPLY_TO}" style="color:#1F5BD8">${REPLY_TO}</a> con tu número de pedido.</p>
+  </div>
+  <p style="font-size:12px;color:#8A93A8;text-align:center;margin:16px 0 0">Aria · ariashop.pe</p>
+</div></body></html>`;
+  return { to, subject, text, html };
+}
+
 /* NODEMAILER STAYS ON 9.x, PLAIN COMMONJS (2026-10-18, round 4).
    10.x ships an ES-module build; Netlify's function bundler converted it
    into "import_smtp_transport.default is not a constructor" before any

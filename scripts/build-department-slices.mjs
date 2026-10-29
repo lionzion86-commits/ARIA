@@ -405,7 +405,7 @@ export function build(root = ROOT) {
        home-<pill>.json, fetched after the section paints. */
     if (key === TECH_DEPT) {
       const { pills } = homeTechPills(list);
-      writeFileSync(join(dir, "home.json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, n: p.cards.length })), cards: pills.length ? pills[0].cards : [] }));
+      writeFileSync(join(dir, "home.json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, n: p.cards.length, ...(p.note ? { note: p.note } : {}), ...(p.door ? { door: p.door } : {}) })), cards: pills.length ? pills[0].cards : [] }));
       for (const p of pills.slice(1)) { writeFileSync(join(dir, `home-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards })); }
     }
     let files = 1;
