@@ -6868,6 +6868,12 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      ascending beats discount depth on this rail. */
   const cheapFirst = Boolean(opts && opts.cheapFirst);
   const priceNum = (p) => Number(p.price);
+  /* ARIA FIGHT CLUB GEAR-FIRST (Danny, #443 c.6504037778 §7): the rail
+     leads with fight equipment -- gloves, gis, shin guards, pads, gear on
+     sale; workout apparel follows, never leads. Opt-in via gearFirst. */
+  const gearFirst = Boolean(opts && opts.gearFirst);
+  const FIGHT_GEAR_RX = /\b(gloves?|gis?|kimonos?|shin ?(guards?|pads?)|head ?gear|headguards?|mouth ?guards?|hand ?wraps?|wraps?|focus mitts?|mitts?|kick ?pads?|thai pads?|pads?|punching bags?|heavy bags?|groin|protectors?|rash ?guards?|spats)\b/i;
+  const gearRank = (p) => (gearFirst && !FIGHT_GEAR_RX.test(String((p && (p.title || p.name)) || ''))) ? 1 : 0;
   /* DISEÑADORES LATINOS SWIM-FIRST (Danny, Oct 28; #443 c.6497530895):
      the carousel opens on bikinis and swim -- what the Latin designers
      are known for -- cheapest first; the rest of the rail follows in its
@@ -6945,6 +6951,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
       const sw = swimRank(a) - swimRank(b);
       if (sw) return sw;
+      const gr = gearRank(a) - gearRank(b);
+      if (gr) return gr;
       if (cheapFirst){
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
@@ -7160,6 +7168,7 @@ const CATEGORY_RAILS = [
   /* ARIA FIGHT CLUB (2026-09-27, Danny): the fight-sports pill. Danny's
      name, verbatim — jiu-jitsu, boxeo, kickboxing, Muay Thai, MMA. */
   { key: 'combat_sports', label: 'Aria Fight Club', icon: '', stores: null, poolOnly: true,
+    gearFirst: true, /* DANNY 2026-10-29 (§7): fight equipment leads */
     blurb: 'Jiu-jitsu, boxeo, kickboxing, Muay Thai y MMA.',
     test: (p) => railBucketCategoryIs(p, 'combat'),
     open: "openCatalog('department','combat_sports')" },
@@ -11618,7 +11627,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst, gearFirst: cat.gearFirst });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
@@ -29091,7 +29100,7 @@ async function renderCategoriesGrid(){
     const picks = categoryRailPicks(stores,
       saleSrc.filter(test), poolArr.filter(test),
       ofertasKeys, CATEGORY_RAIL_TOTAL,
-      { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst });
+      { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst, gearFirst: cat.gearFirst });
     if (!picks.length) continue;
     categoriesViewRendered[cat.key] = picks;
     sections.push({ cat, picks });
