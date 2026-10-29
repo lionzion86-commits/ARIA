@@ -308,6 +308,10 @@ export function homeTechPills(list) {
      pills:      a fixed list, "r:<store>" or "a:<aisle>" (Casa Aria) */
 export const PILL_HUBS = {
   luxury: { by: "brand", max: 14 },
+  /* Moda: the type pills, then the four strongest stores. */
+  women: { moda: "women", by: "store", max: 4 },
+  men: { moda: "men", by: "store", max: 4 },
+  kids: { moda: "kids", by: "store", max: 4 },
   home_goods: { pills: [["r:crateandbarrel", "Crate & Barrel"], ["r:pier1", "Pier 1"], ["a:libros", "Libros de mesa"]] },
   electronics: { by: "store", max: 8 },
   /* Danny's treatment pills (c.6473412574), at least 8 real products each;
@@ -319,12 +323,56 @@ export const PILL_HUBS = {
   beauty: { pills: [["d:cabello", "Cabello"]], by: "store", max: 2 },
 };
 export const LENS_MIN = 12, LENS_RAIL_MIN = 4, LENS_RAILS = 5;
+/* MODA PILLS (Danny, c.6476025440): Moda Mujer, Hombre and Niños open with
+   the shopper's next question -- the clothing TYPE -- then the strongest
+   stores. The type is read from the product's own name and the store's
+   type, in this order (a boardshort is swimwear before it is a short, a
+   t-shirt is a top before it is a shirt). */
+const MODA_RULES = [
+  ["lenceria", /\b(bras?|bralettes?|panty|panties|thongs?|briefs?|boxers?|lingerie|lencer\w*|underwear|ropa interior|bodysuits?|shapewear)\b/],
+  ["bano", /\b(bikinis?|swim\w*|trajes? de ba[ñn]o|boardshorts?|rash ?guards?|one[- ]pieces?)\b/],
+  ["zapatillas", /\b(sneakers?|zapatillas|trainers?|running shoes?)\b/],
+  ["zapatos", /\b(sandals?|sandalias|heels?|boots?|botas?|botines|loafers?|slippers?|oxfords?|lace ups|mules?|pumps|flats|slides?|clogs?|espadrilles|shoes?|zapatos?)\b/],
+  ["carteras", /\b(bags?|totes?|carteras?|backpacks?|mochilas?|clutch(es)?|wallets?|purses?|satchels?|card holders?|pouch(es)?)\b/],
+  ["joyas", /\b(earrings?|necklaces?|bracelets?|rings?|aretes|collares?|pulseras?|anillos?|pendants?|jewel\w*|joyas?)\b/],
+  ["lentes", /\b(sunglasses|lentes de sol|gafas|eyewear)\b/],
+  ["gorras", /\b(caps?|hats?|beanies?|gorras?|gorros?|buckets? hats?)\b/],
+  ["vestidos", /\b(dress(es)?|vestidos?|gowns?|jumpsuits?|rompers?|monos?)\b/],
+  ["faldas", /\b(skirts?|faldas?)\b/],
+  ["chaquetas", /\b(jackets?|coats?|blazers?|parkas?|vests?|casacas?|abrigos?|puffers?|windbreakers?|chalecos?)\b/],
+  ["polerones", /\b(hoodies?|zip-?ups?|sweatshirts?|crewnecks?|sweaters?|cardigans?|knit\w*|polerones?|chompas?|pullovers?)\b/],
+  ["shorts", /\b(shorts?)\b/],
+  ["pantalones", /\b(jeans|trousers|pants|pantalones?|sweatpants|leggings|joggers?|chinos?)\b/],
+  ["tops", /\b(t-?shirts?|tees?|polos?|camisetas?|tank( tops?)?|tops?|blouses?|blusas?|camisoles?|bodies)\b/],
+  ["camisas", /\b(shirts?|camisas?|button-?downs?|overshirts?)\b/],
+];
+export function modaType(p) {
+  const t = (String((p && p.type) || "") + " | " + String((p && p.title) || "")).toLowerCase();
+  for (const [k, rx] of MODA_RULES) if (rx.test(t)) return k;
+  return "";
+}
+const MODA_LABELS = {
+  women: [["vestidos", "Vestidos"], ["tops", "Blusas y tops"], ["pantalones", "Pantalones y jeans"], ["faldas", "Faldas"], ["shorts", "Shorts"],
+    ["chaquetas", "Casacas y abrigos"], ["polerones", "Chompas y polerones"], ["lenceria", "Lencería"], ["bano", "Ropa de baño"],
+    ["zapatos", "Zapatos"], ["zapatillas", "Zapatillas"], ["carteras", "Carteras"], ["joyas", "Joyas"], ["lentes", "Lentes de sol"]],
+  men: [["tops", "Polos"], ["camisas", "Camisas"], ["pantalones", "Pantalones y jeans"], ["shorts", "Shorts"], ["polerones", "Polerones"],
+    ["chaquetas", "Casacas"], ["bano", "Ropa de baño"], ["zapatillas", "Zapatillas"], ["zapatos", "Zapatos"], ["carteras", "Mochilas y bolsos"],
+    ["gorras", "Gorras"], ["lentes", "Lentes de sol"], ["joyas", "Joyas"], ["lenceria", "Ropa interior"]],
+  kids: [["tops", "Polos"], ["chaquetas", "Casacas y chompas"], ["polerones", "Polerones"], ["pantalones", "Pantalones"], ["shorts", "Shorts"],
+    ["vestidos", "Vestidos"], ["faldas", "Faldas"], ["bano", "Ropa de baño"], ["zapatillas", "Zapatillas"], ["zapatos", "Zapatos"], ["gorras", "Gorras"]],
+};
 export const lensSlug = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 /* The pills of one hub: [{ k, label, items, link }], strongest first. */
 export function hubPills(key, list, labels = {}, listOf = null) {
   const hub = PILL_HUBS[key];
   if (!hub) return [];
   let pills = [];
+  if (hub.moda) {
+    const by = new Map();
+    for (const p of list) { const m = modaType(p); if (m) { if (!by.has(m)) by.set(m, []); by.get(m).push(p); } }
+    pills = MODA_LABELS[hub.moda].map(([m, label]) => ({ k: "tipo-" + m, label, items: by.get(m) || [], link: "", byStore: labels }))
+      .filter((p) => p.items.length >= LENS_MIN);
+  }
   if (hub.pills) {
     pills = hub.pills.map(([sel, label]) => {
       const i = sel.indexOf(":"), kind = sel.slice(0, i), v = sel.slice(i + 1);
@@ -347,9 +395,12 @@ export function hubPills(key, list, labels = {}, listOf = null) {
     pills = pills.concat([...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([g, items]) => ({
       k: lensSlug(g), label: hub.by === "brand" ? g : (labels[g] || g), items,
       link: hub.by === "store" ? "tienda.html?tienda=" + g : "departamento.html?dept=" + key + "&q=" + encodeURIComponent(g),
+      ...(hub.moda ? { byType: MODA_LABELS[hub.moda] } : {}),
     })));
   }
-  return pills.filter((p) => p.items.length >= (hub.min || LENS_MIN)).slice(0, (hub.pills ? hub.pills.length : 0) + (hub.max || 99));
+  const fixed = pills.filter((p) => p.items.length >= (hub.min || LENS_MIN));
+  const lead = hub.pills ? hub.pills.length : hub.moda ? fixed.filter((p) => /^tipo-/.test(p.k)).length : 0;
+  return fixed.slice(0, lead + (hub.max || 99));
 }
 /* The hub's lenses and the head.json fields that announce them. */
 export function hubLenses(key, list, labels = {}, listOf = null) {
@@ -357,9 +408,37 @@ export function hubLenses(key, list, labels = {}, listOf = null) {
   return { lenses, extra: lenses.length ? { pills: lenses.map((l) => ({ k: l.k, label: l.label, n: l.count })) } : {} };
 }
 /* One lens: the pill's own carousels, ofertas first, then its aisles. */
+/* A type pill's lens (Moda): its sales, then each store's own carousel of
+   that type, biggest first -- never a store's English sub-type. */
+/* A store pill's lens in Moda: its sales, then its clothing by Aria's own
+   Spanish types (the same rule as the type pills). */
+function typeSections(items, typeLabels) {
+  const secs = [];
+  const sales = items.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) secs.push({ key: "ofertas", title: "Ofertas", items: sales });
+  for (const [m, label] of typeLabels) {
+    const l = items.filter((p) => modaType(p) === m);
+    if (l.length) secs.push({ key: "tipo:" + m, title: label, items: l });
+  }
+  return secs.sort((a, b) => (a.key === "ofertas" ? -1 : b.key === "ofertas" ? 1 : b.items.length - a.items.length))
+    .map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+function storeSections(items, labels, title) {
+  const secs = [];
+  const sales = items.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) secs.push({ key: "ofertas", title: "Ofertas", items: sales });
+  const by = new Map();
+  for (const p of items) { if (!by.has(p.retailer)) by.set(p.retailer, []); by.get(p.retailer).push(p); }
+  for (const [r, l] of [...by.entries()].sort((a, b) => b[1].length - a[1].length)) secs.push({ key: "tienda:" + r, title: title + " de " + (labels[r] || r), items: l });
+  return secs.map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
 export function lensOf(key, pill) {
-  const secs = buildSections(pill.items, pill.opts || sectionOpts(key))
-    .filter((s) => !/^tienda:/.test(s.key) && s.key !== "estudio" && s.items.length >= LENS_RAIL_MIN)
+  const secs = (pill.byStore ? storeSections(pill.items, pill.byStore, pill.label)
+    : pill.byType ? typeSections(pill.items, pill.byType)
+    : buildSections(pill.items, pill.opts || sectionOpts(key)))
+    .filter((s) => !(/^tienda:/.test(s.key) && !pill.byStore) && s.key !== "estudio" && s.items.length >= LENS_RAIL_MIN)
     .slice(0, LENS_RAILS);
   return { v: 1, k: pill.k, label: pill.label, link: pill.link, count: pill.items.length,
     rails: secs.map((s) => ({ title: s.title, count: s.items.length, cards: s.items.slice(0, RAIL_CARDS).map(cardOf) })) };

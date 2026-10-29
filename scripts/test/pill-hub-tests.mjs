@@ -35,7 +35,8 @@ check("every hub's head carries its pill row; every pill has its lens file", () 
       assert.ok(existsSync(DIR + `${key}/lens-${p.k}.json`), `${key}/${p.k}: no lens`);
     }
     const ns = head.pills.map((p) => p.n);
-    if (!PILL_HUBS[key].pills) assert.deepEqual(ns, [...ns].sort((a, b) => b - a), `${key}: strongest first`);
+    if (PILL_HUBS[key].moda) { const st = head.pills.filter((p) => !/^tipo-/.test(p.k)).map((p) => p.n); assert.deepEqual(st, [...st].sort((a, b) => b - a), `${key}: stores strongest first`); }
+    else if (!PILL_HUBS[key].pills) assert.deepEqual(ns, [...ns].sort((a, b) => b - a), `${key}: strongest first`);
     else if (PILL_HUBS[key].by) { const rest = ns.slice(PILL_HUBS[key].pills.length); assert.deepEqual(rest, [...rest].sort((a, b) => b - a), `${key}: stores strongest first`); }
   }
   assert.deepEqual(json(DIR + "home_goods/head.json").pills.map((p) => p.label), ["Crate & Barrel", "Pier 1", "Libros de mesa"]);
@@ -95,6 +96,23 @@ check("Cabello: Danny's treatment pills, «Keratina y alisados» lit, Belleza op
   assert.equal(hairAisle("Revlon One-Step Hair Dryer"), "", "a dryer is not hair care");
   assert.ok(PERU_SOLD_HAIR_RX.test("Pantene Pro-V Daily Moisture Shampoo"));
   assert.ok(!PERU_SOLD_HAIR_RX.test("Kerastase Nutritive Bain Satin Shampoo"));
+});
+
+check("Moda: the clothing type first, then the strongest stores; every lens speaks Spanish", () => {
+  const firsts = { women: "Vestidos", men: "Polos", kids: "Polos" };
+  for (const key of ["women", "men", "kids"]) {
+    const head = json(DIR + key + "/head.json");
+    assert.equal(head.pills[0].label, firsts[key], key);
+    const kinds = head.pills.map((p) => (/^tipo-/.test(p.k) ? "t" : "s")).join("");
+    assert.match(kinds, /^t+s{1,4}$/, `${key}: types first, then at most four stores (${kinds})`);
+    for (const p of head.pills) {
+      const l = json(DIR + `${key}/lens-${p.k}.json`);
+      for (const r of l.rails) {
+        if (/^tipo-/.test(p.k)) assert.ok(r.title === "Ofertas" || r.title.startsWith(p.label + " de "), `${key}/${p.label}: ${r.title}`);
+        else assert.doesNotMatch(r.title, /\b(T Shirts?|Hoodies?|Dresses|Sweatpants|Shirts|Jeans)\b/, `${key}/${p.label}: ${r.title}`);
+      }
+    }
+  }
 });
 
 check("Casa Aria is a first-class pill on the homepage, under its own name", () => {
