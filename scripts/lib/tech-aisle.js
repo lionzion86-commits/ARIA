@@ -123,3 +123,15 @@ export function isTechProduct(name, hint = "") {
   if (NOT_TECH_RX.test(n)) return false;
   return TECH_WORD_RX.test(n) || DEVICE_NAME_RX.test(n) || TECH_HINT_RX.test(String(hint || ""));
 }
+
+/* THE CONSOLE ITSELF (Danny, c.6487219343): Switch, PlayStation, Xbox,
+   Meta Quest -- shared by the Electrónica Consolas pill and the
+   «consola» search. */
+export const CONSOLE_RX = /\b(nintendo switch\s*(™)?\s*(2|oled|lite)?|switch 2|playstation\s*5|ps5|playstation portal|xbox series [xs]|xbox one|meta quest \d\w*|quest 3s?|steam deck|rog ally|legion go)\b/i;
+/* The console itself, by what its listing says it is: a system, a
+   console, the remote player, the VR headset, or a "Switch 2 + <game>"
+   box. A game names its console too ("Hyrule Warriors - Nintendo Switch",
+   "DLC Bundle - Nintendo Switch [Digital]") and stays in Videojuegos. */
+const CONSOLE_DEVICE_RX = /\b(console|system|remote player|vr headset|mixed reality|all-in-one vr)\b|\bswitch\s*(™)?\s*2\s*\+|\bquest 3s?\s+\d+\s?gb\b/i;
+const NOT_CONSOLE_RX = /\b(for|compatible|fits|controllers?|case|charger|stand|skin|cover|grip|cable|dock|bag|strap|protector|wheel|card|ssd|drive|facial|interface|game|edition|cross-gen|elite strap|dlc|expansion|digital|repair|kit)\b|\[/i;
+export const isConsole = (p) => CONSOLE_RX.test(p.title || "") && CONSOLE_DEVICE_RX.test(p.title || "") && !NOT_CONSOLE_RX.test(p.title || "");

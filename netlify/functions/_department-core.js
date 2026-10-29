@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle } from "../../scripts/lib/condition.js";
-import { techAisle, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from "../../scripts/lib/tech-aisle.js";
+import { techAisle, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;    // cards drawn in one carousel
@@ -368,14 +368,9 @@ export function homeStrength(p, k) {
      console itself: Switch, PlayStation, Xbox, Meta Quest -- not "gaming"),
      Videojuegos, and every other aisle the data fills. Computadoras and
      Chromebooks end on a door to Reacondicionados, never mixed stock. */
-export const CONSOLE_RX = /\b(nintendo switch\s*(™)?\s*(2|oled|lite)?|switch 2|playstation\s*5|ps5|playstation portal|xbox series [xs]|xbox one|meta quest \d\w*|quest 3s?|steam deck|rog ally|legion go)\b/i;
-/* The console itself, by what its listing says it is: a system, a
-   console, the remote player, the VR headset, or a "Switch 2 + <game>"
-   box. A game names its console too ("Hyrule Warriors - Nintendo Switch",
-   "DLC Bundle - Nintendo Switch [Digital]") and stays in Videojuegos. */
-const CONSOLE_DEVICE_RX = /\b(console|system|remote player|vr headset|mixed reality|all-in-one vr)\b|\bswitch\s*(™)?\s*2\s*\+|\bquest 3s?\s+\d+\s?gb\b/i;
-const NOT_CONSOLE_RX = /\b(for|compatible|fits|controllers?|case|charger|stand|skin|cover|grip|cable|dock|bag|strap|protector|wheel|card|ssd|drive|facial|interface|game|edition|cross-gen|elite strap|dlc|expansion|digital|repair|kit)\b|\[/i;
-export const isConsole = (p) => CONSOLE_RX.test(p.title || "") && CONSOLE_DEVICE_RX.test(p.title || "") && !NOT_CONSOLE_RX.test(p.title || "");
+/* CONSOLE_RX and isConsole live in scripts/lib/tech-aisle.js: search
+   ranks «consola» by the same rule. */
+export { CONSOLE_RX, isConsole };
 const CHROMEBOOK_RX = /\bchromebooks?\b/i;
 export const isChromebook = (p) => CHROMEBOOK_RX.test(p.title || "") && !isAccessoryName(p.title) && !/\b(for|compatible|fits|charger|adapter|case|sleeve|mouse|keyboard)\b/i.test(p.title || "");
 const HOME_TECH_ORDER = [["tech_celulares", "Celulares"], ["tech_computadoras", "Computadoras"], ["chromebooks", "Chromebooks"], ["consolas", "Consolas"],
