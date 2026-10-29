@@ -678,12 +678,12 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-o
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/crateandbarrel-catalog.json', '/pier1-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json', '/perfumes-catalog.json', '/snipes-catalog.json', '/carolinaherrera-catalog.json', '/brandsmart-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/crateandbarrel-catalog.json', '/pier1-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json', '/finishline-catalog.json', '/zumiez-catalog.json', '/hottopic-catalog.json', '/boxlunch-catalog.json', '/bananarepublic-catalog.json', '/gap-catalog.json', '/abercrombie-catalog.json', '/hollister-catalog.json', '/bestbuy-catalog.json', '/dsw-catalog.json', '/perfumes-catalog.json', '/snipes-catalog.json', '/carolinaherrera-catalog.json', '/brandsmart-catalog.json', '/sleekshop-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/crateandbarrel-catalog.json":["crateandbarrel"],"/pier1-catalog.json":["pier1"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"],"/perfumes-catalog.json":["ariaperfumes"],"/snipes-catalog.json":["snipes"],"/carolinaherrera-catalog.json":["carolinaherrera"],"/brandsmart-catalog.json":["brandsmart"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/crateandbarrel-catalog.json":["crateandbarrel"],"/pier1-catalog.json":["pier1"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"],"/perfumes-catalog.json":["ariaperfumes"],"/snipes-catalog.json":["snipes"],"/carolinaherrera-catalog.json":["carolinaherrera"],"/brandsmart-catalog.json":["brandsmart"],"/sleekshop-catalog.json":["sleekshop"]};
 /* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
    page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
    a dozen cards per rail, and Safari reloaded the tab under the memory.
@@ -4889,8 +4889,12 @@ function fuzzyFormsForToken(tok, buckets, windex){
   /* The budget follows the SQUASHED length (2026-10-07): "qqqzxv" is
      four letters once its doubles go, and two edits on four letters
      matched "LXXXV" and "AZXY" -- junk instead of an honest empty page
-     with a "¿Quisiste decir?". */
-  const maxDist = squashed.length >= 5 ? 2 : 1;
+     with a "¿Quisiste decir?".
+     TWO EDITS ONLY FROM EIGHT LETTERS (#443 c.6477677381, Danny's live
+     find): on a 5-7 letter word two edits make a different word, not a
+     typo -- «alisado» became Palisade blouses, Alisa and Alisah, a
+     page of fashion for a hair treatment. */
+  const maxDist = squashed.length >= 8 ? 2 : 1;
   const hits = new Set();
   const consider = (w) => {
     if (hits.has(w)) return;
@@ -4903,15 +4907,29 @@ function fuzzyFormsForToken(tok, buckets, windex){
      "sweethearts"). */
   const alike = soundAlikeWords(tok, windex);
   if (alike){ for (const w of alike) consider(w); return hits; }
+  /* ...and among spellings, the nearest tier only (c.6477677381):
+     «keratina» is one letter from "keratin" and two from "serafina" --
+     the Serafina dish cloths and pillow rode in beside the hair
+     products. A two-edit word must also keep the first letter (a typo
+     almost never changes it): "aerating" is not keratina. */
+  const byDist = new Map();
   for (let l = Math.max(3, tok.length - maxDist); l <= tok.length + maxDist; l++){
     const arr = buckets.get(l);
     if (!arr) continue;
     for (const pair of arr){
       const w = pair[0];
-      if (w.length > tok.length && w.length - tok.length <= 2 && w.startsWith(tok)){ consider(w); continue; }
-      if (fuzzyEditDistRaw(squashed, pair[1], maxDist) <= maxDist) consider(w);
+      let d;
+      if (w.length > tok.length && w.length - tok.length <= 2 && w.startsWith(tok)) d = w.length - tok.length;
+      else {
+        d = fuzzyEditDistRaw(squashed, pair[1], maxDist);
+        if (d > maxDist) continue;
+        if (d >= 2 && w[0] !== tok[0]) continue;
+      }
+      if (!byDist.has(d)) byDist.set(d, []);
+      byDist.get(d).push(w);
     }
   }
+  if (byDist.size) for (const w of byDist.get(Math.min(...byDist.keys()))) consider(w);
   return hits;
 }
 
@@ -5224,11 +5242,17 @@ function detectBrandIntent(rawToks, pool, opts){
            already had its turn in the single-word pass, where
            brandOwnsItsName turned it down. */
         const ownWords = w.idx.length > 1 ? new Set(w.idx.map(i => searchBrandKey(rawToks[i]))) : null;
+        /* ONE WORD, TWO EDITS, ONLY FROM EIGHT LETTERS (#443 c.6478195227):
+           «pesas» (weights) is two edits from the makeup brand Kosas and
+           the page showed foundation. The same budget as the product
+           fuzzy layer; a two-edit brand must also keep the first letter. */
+        if (w.idx.length === 1 && maxDist >= 2 && k.length < 8) maxDist = 1;
         const sk = fuzzySquashDoubles(k);
         for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
           if (Math.abs(bk.length - k.length) > maxDist) continue;
           if (ownWords && ownWords.has(bk)) continue;
           const d = fuzzyEditDistRaw(sk, sqKeys[bki], maxDist);
+          if (d >= 2 && w.idx.length === 1 && bk[0] !== k[0]) continue;
           if (d <= maxDist && (!best || d < best.d)){
             best = { d, key: bk, label: vocab.get(bk).label, consumed: w.idx };
             if (d === 0) break;
@@ -20434,7 +20458,11 @@ const RETAILERS = {
      Mirrors scripts/lib/retailers.js. */
   bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: 'logos/bestbuy.svg',    tagline: 'Laptops, gaming, audio y celulares',            kind: 'general', search: false, browse: true },
   revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
-  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
+  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
+  /* SLEEKSHOP (#443, pulled 2026-10-28): the professional hair-treatment
+     shelf -- keratin, alisado, masks. In stock only; courier holds in
+     scripts/lib/sleekshop.js. No logo file: the name is the badge. */
+  sleekshop:       { key: 'sleekshop',       label: 'SleekShop',         color: '#111111', logo: null,                   tagline: 'Keratina, alisados y tratamientos para el cabello', kind: 'general', search: false, browse: true },
   /* BRANDSMART USA (Build Order B, #443, pulled 2026-10-28): the electronics
      anchor. Only what passes the 220 V gate is listed. No logo file yet:
      the name is the badge. Mirrors scripts/lib/retailers.js. */
