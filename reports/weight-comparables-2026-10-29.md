@@ -4,7 +4,7 @@
 
 | | Products |
 |---|---:|
-| Comparables pool (a published weight, the store's figure, or a per-class rule) | 125,767 |
+| Comparables pool (a published weight, the store's figure, or a per-class rule) | 126,460 |
 | Products the rules could only cover with a constant | 13,496 |
 | ...now estimated from similar products (median x 1.15) | 5,805 |
 | ...with no similar product, weighed by the web pass (found weight x 1.1, source in hidden-docs/weight-tail-full-2026-10-26.csv) | 1,270 |
@@ -13,7 +13,7 @@
 ## Sample estimates (product -> kg; comparables with their kg and match score)
 
 - **3-pc. cashmere mist purse spray set** (macys, US$90.00): 0.35 kg (0.3 x 1.15); Cashmere Mist — Eau de Parfum en spray 50 ml (1.7  US$61.24 0.25 kg [0.59]; Cashmere Mist — Eau de Parfum en spray 100 ml (3.4 US$73.23 0.35 kg [0.59]; Cashmere Mist — Eau de Toilette en spray 100 ml (3 US$51.44 0.35 kg [0.57]; 2-Pc. Cashmere Mist Eau de Parfum Discovery Set US$71 0.25 kg [0.45]
-- **professional plus auto-iq kitchen system blender and food processor set** (macys, US$169.97): 6.48 kg (5.63 x 1.15); Ninja - TotalCrush Professional Kitchen System (Bl US$219.99 7.593 kg [0.58]; Ninja - Professional Plus Blender with Auto-iQ - G US$89.99 3.674 kg [0.5]
+- **professional plus auto-iq kitchen system blender and food processor set** (macys, US$169.97): 6.48 kg (5.63 x 1.15); Ninja - TotalCrush Professional Kitchen System (Bl US$219.99 7.593 kg [0.57]; Ninja - Professional Plus Blender with Auto-iQ - G US$89.99 3.674 kg [0.5]
 - **bov900bss 13-in-1 smart oven air** (macys, US$319.95): 9.32 kg (8.1 x 1.15); Smart Oven Air Fryer US$349.95 8.1 kg [0.64]; The Smart Oven 10-Function Air Fryer Compact US$249.95 8.1 kg [0.47]; Double Oven Pro Smart XL Countertop Oven Air Fryer US$299.99 8.1 kg [0.43]
 - **men's glen plaid relaxed-fit overshirt** (macys, US$77.70): 0.38 kg (0.33 x 1.15); Relaxed-Fit Italian Printed Denim Overshirt US$140 0.33 kg [0.51]; Relaxed-Fit Plaid Seersucker Shirt US$69.99 0.33 kg [0.49]; Relaxed-Fit Plaid Cotton Twill Shirt US$120 0.33 kg [0.49]; Gray Relaxed-Fit Glen-Check Cotton Twill Shirt US$140 0.4 kg [0.48]
 - **14k gold round cut stud screw back earrings** (macys, US$185.00): 0.03 kg (0.03 x 1.15); Heidi 18K Gold Earring Set - Heidi 18K Gold Earrin US$158 0.03 kg [0]; Claire 14K Pavé Huggie Earrings - Gold/Pavé US$148 0.03 kg [0]; Verbena 18K Gold Earring Set - 18K Gold US$130 0.03 kg [0]; Luna 14K Gold Earring Set - Luna 18K Gold Earring  US$128 0.03 kg [0]; Lexi 14K Gold Earring Set - Lexi 14K Gold Earring  US$128 0.03 kg [0]
@@ -25,7 +25,7 @@
 - **diamond stud earrings (1/10 ct. t.w.) in 10k gold, white gold or rose gold** (macys, US$140.00): 0.03 kg (0.03 x 1.15); Daria 14K Gold Stud Earring Set US$128 0.03 kg [0.5]; Solid Gold & Diamond Initial Earring - Gold US$175 0.03 kg [0.5]
 - **elena oval moissanite solitaire vermeil ring** (macys, US$408.00): 0.02 kg (0.02 x 1.15); Gina 14K Gold Ring Set - Gold/Silver US$198 0.02 kg [0]; 14K Gold Fineline Custom Nameplate Ring - Gold US$188 0.02 kg [0]; Sterling Silver Fineline Custom Nameplate Ring - S US$188 0.02 kg [0]; Pavé Script Custom Ring - Silver US$178 0.02 kg [0]; Retro 14K Gold Custom Ring - 14K Gold US$178 0.02 kg [0]
 - **women's wilix pointed toe mule pumps** (macys, US$76.30): 0.57 kg (0.5 x 1.15); Noemi Pointed-Toe Mule Heels - Black US$129 0.5 kg [0.55]; Noemi Pointed-Toe Mule Heels - White US$129 0.5 kg [0.55]; Noemi Pointed-Toe Mule Heels - Khaki US$129 0.5 kg [0.53]; Noemi Pointed-Toe Mule Heels - Burgundy US$129 0.5 kg [0.52]; Noemi Pointed-Toe Mesh Mule Heels - Black US$129 0.5 kg [0.52]
-- **women's hooded puffer anorak** (macys, US$180.00): 2.02 kg (1.76 x 1.15); Hooded Puffer Jacket US$120 1.76 kg [0.62]; Women's Hooded Anorak Quilted Coat, Created for Ma US$122.5 1.76 kg [0.53]; Women's Packable Hooded Puffer Coat US$200 1.76 kg [0.48]; Women's Puffer Packable Hooded Coat US$90 1.76 kg [0.48]; Women's Hooded Packable Puffer Coat US$120 1.76 kg [0.48]
+- **women's hooded puffer anorak** (macys, US$180.00): 2.02 kg (1.76 x 1.15); Hooded Puffer Jacket US$120 1.76 kg [0.62]; Women's Hooded Anorak Quilted Coat, Created for Ma US$122.5 1.76 kg [0.53]; Women's Puffer Packable Hooded Coat US$90 1.76 kg [0.48]; Women's Packable Hooded Puffer Coat US$200 1.76 kg [0.48]; Women's Hooded Packable Puffer Coat US$120 1.76 kg [0.48]
 - **women's single-breasted peacoat, created for macy's** (macys, US$142.50): 2.02 kg (1.76 x 1.15); Women's Single-Breasted Maxi Coat US$200 1.76 kg [0.55]; Women's Single-Breasted Walker Coat, Created for M US$182.5 1.76 kg [0.49]
 - **michael kors jet set charm north south nylon crossbody** (macys, US$129.50): 0.93 kg (0.81 x 1.15); Michael Kors Jet Set Charm Leather Small North Sou US$159.5 0.81 kg [0.77]; Jet Set Small North South Crossbody Handbag US$129.5 0.81 kg [0.52]; Michael Kors Jet Set Medium Convertible Pouchette  US$199.5 0.81 kg [0.51]
 - **michael kors laila medium signature logo satchel** (macys, US$279.50): 0.93 kg (0.81 x 1.15); Michael Kors Laila Small Leather Satchel Bag US$229.5 0.81 kg [0.79]; Michael Kors Laila Medium Tote Handbag US$259.5 0.81 kg [0.67]; Michael Kors Laila Medium Color-Block Leather Satc US$279.5 0.81 kg [0.58]
@@ -1186,7 +1186,6 @@
 | yesstyle | Perfumed Body Wash - 3 Flavors 10pcs Bundle Set | 151.36 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | No.2 Ginger Nourishing and Repairing Conditioner Mini 10pcs Bundle Set | 81.66 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | No.1 Anti Hair Loss Scalp Care Shampoo Mini 10pcs Bundle Set | 81.66 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
-| yesstyle | Men Energizing Collection Travel Kit 2pcs Bundle Set | 75.75 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | Men Energizing Treatment  2pcs Bundle Set | 132.53 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | Birch Skin Balance Clarifying Essence (28pcs) 2pcs Bundle Set | 228.46 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
 | yesstyle | Birch Revitalizing Repair Essence (7pcs) 2pcs Bundle Set | 80.54 | 0.8 kg (tope conservador de belleza (sin regla de peso)) |
@@ -6476,6 +6475,7 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | microcenter | NEO N410+ 512GB SSD 3D TLC NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 99.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | 870 EVO 1TB SSD 3-bit MLC V-NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 349.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | Blue 4TB SSD 3D NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 599.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
+| microcenter | Blue SA510 2TB SSD TLC NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 299.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | QN450 500GB SSD 3D QLC NAND PCIe Gen 4 x4 NVMe M.2 2280 Internal Solid State Drive | 109.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | 870 EVO 2TB SSD 3-bit MLC V-NAND SATA III 6Gb/s 2.5" Internal Solid State Drive | 499.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | P310 1TB SSD 232L Micron QLC NANDAND PCIe Gen 4 x4 NVMe M.2 2280 Internal Solid State Driv | 199.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |

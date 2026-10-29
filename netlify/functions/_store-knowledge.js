@@ -436,6 +436,18 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "calzado formal o deportivo de rendimiento",
     peru_note: null,
   },
+  /* SleekShop (#443, pulled 2026-10-28): professional hair treatments. */
+  sleekshop: {
+    name: "SleekShop",
+    vibe: "la tienda de tratamientos profesionales para el cabello",
+    specialties: ["keratina", "alisado", "mascarillas", "reparación de enlaces", "aceites de argán", "cuero cabelludo"],
+    price_range: "medio", median_usd: 24.0, product_count: 702,
+    catalog_depth: "702 productos",
+    top_categories: ["keratina y alisados", "cuero cabelludo", "reparación", "mascarillas"],
+    best_for: "tratamientos de keratina y alisados, Kérastase, Goldwell, Matrix, Redken y marcas de salón que no se venden en Perú",
+    not_for: "laca en aerosol y alisados químicos con soda (no viajan por courier)",
+    peru_note: "Solo se ofrecen productos en stock en la página de SleekShop; el peso se estima por el tamaño del envase.",
+  },
   /* Micro Center (#443 electronics wave, pulled 2026-10-28). */
   microcenter: {
     name: "Micro Center",

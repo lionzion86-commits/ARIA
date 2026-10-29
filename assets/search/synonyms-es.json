@@ -25,7 +25,7 @@
   },
 
   "clothing": {
-    "polos": "t-shirt", "polo": "t-shirt", "camisetas": "t-shirt", "camiseta": "t-shirt", "polera": "t-shirt", "poleras": "t-shirt",
+    "polos": "t-shirt", "polo": "t-shirt", "camisetas": "t-shirt", "camiseta": "t-shirt", "polera": ["sweatshirt", "hoodie"], "poleras": ["sweatshirt", "hoodie"],
     "camisas": "shirt", "camisa": "shirt", "blusas": "blouse", "blusa": "blouse", "tops": "top",
     "shorts": "shorts", "short": "shorts", "shor": "shorts", "bermudas": "shorts", "bermuda": "shorts",
     "pantalones": "pants", "pantalon": "pants", "jeans": "jeans", "jean": "jeans", "vaqueros": "jeans",
@@ -52,7 +52,7 @@
     "anillos": "ring", "anillo": "ring", "joyas": "jewelry", "bufandas": "scarf", "bufanda": "scarf", "guantes": "gloves",
     "maletas": "suitcase", "maleta": "suitcase", "paraguas": "umbrella", "llaveros": "keychain", "llavero": "keychain",
     "celular": "phone", "audifonos": "headphones", "parlante": "speaker", "cargador": "charger", "tableta": "tablet",
-    "laptop": "laptop", "computadora": "laptop", "pantalla": "monitor", "raton": "mouse", "teclado": "keyboard"
+    "laptop": "laptop", "computadora": "laptop", "pantalla": "monitor", "raton": "mouse", "teclado": "keyboard", "camara": "camera", "camaras": "camera", "vajilla": "dinnerware", "vajillas": "dinnerware", "pesas": ["dumbbell", "kettlebell"], "mancuernas": "dumbbell", "sabanas": ["sheet set", "sheets"]
   },
 
   "beauty": {
@@ -61,7 +61,7 @@
     "rubor": "blush", "base de maquillaje": "foundation", "bases": "foundation", "corrector": "concealer", "polvos": "powder",
     "sombras": "eyeshadow", "brochas": "brushes", "esmalte": "nail polish", "unas": "nails",
     "cremas": "cream", "crema": "cream", "bloqueador": "sunscreen", "protector solar": "sunscreen",
-    "champu": "shampoo", "acondicionador": "conditioner", "desodorante": "deodorant", "serum": "serum", "jabon": "soap"
+    "champu": "shampoo", "alisado": ["straightening", "smoothing treatment", "smoothing system", "brazilian blowout"], "alisados": ["straightening", "smoothing treatment", "smoothing system", "brazilian blowout"], "keratina": "keratin", "plancha": ["flat iron", "hair straightener"], "planchas": ["flat iron", "hair straightener"], "acondicionador": "conditioner", "desodorante": "deodorant", "serum": "serum", "jabon": "soap", "mascarilla": ["hair mask", "face mask", "sheet mask"], "mascarillas": ["hair mask", "face mask", "sheet mask"]
   },
 
   "toys": {
