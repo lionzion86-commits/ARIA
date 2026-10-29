@@ -610,6 +610,8 @@ const WOMEN_RX = /\b(women'?s?|womens|woman|mujer|mujeres|ladies|lady|femme|fema
 const MEN_RX = /\b(men'?s?|mens|man|hombre|hombres|homme|male|for him|boys?)\b/i;
 const KIDS_RX = /\b(kids?|youth|boys?|girls?|ni[ñn]os?|ni[ñn]as?|junior|jr\.?|toddlers?|infant|baby)\b/i;
 const MAKEUP_RX = /\b(lipsticks?|lip ?gloss|lip (liner|stain|oil|balm)|mascaras?|foundations?|concealers?|eye ?shadows?|blush(er)?|bronzers?|eye ?liners?|primers?|highlighters?|makeup|make-up|maquillaje|brows?|setting (spray|powder)|palettes?|cushion)\b/i;
+const WALLET_RX = /\b(wallets?|billfolds?|blllfold|card ?holders?|card ?cases?|money clips?|coin (pouch|purse)|bi-?fold|tri-?fold)\b/i;
+const HAT_RX = /\b(hats?|caps?|beanies?|snapbacks?|visors?|bucket)\b/i;
 const WATCH_RX = /\b(watch(es)?|relojes?|chronograph)\b/i;
 /* A tee or a hoodie filed with the toys is clothing, not a toy. */
 const NOT_A_TOY_RX = /\b(t-?shirts?|tees?|shirts?|hoodies?|sweatshirts?|sweaters?|pants|joggers|shorts|dress(es)?|skirts?|jackets?|pajamas?|socks?)\b/i;
@@ -625,10 +627,14 @@ export const AUDIENCE_SHELVES = {
   hombre: [["ropa", "Ropa", "men", (p) => ["tops", "camisas", "pantalones", "shorts", "polerones", "chaquetas"].includes(modaType(p))],
     ["zapatos", "Zapatos", "shoes_men", (p) => modaType(p) !== "zapatillas"], ["zapatillas", "Zapatillas", "shoes_men", (p) => modaType(p) === "zapatillas"],
     ["relojes", "Relojes", "men", (p) => WATCH_RX.test(p.title) && !/\b(bands?|straps?|bracelets?|smart ?watch|t-?shirts?|tees?|shirts?|hoodies?|hats?|caps?|bags?|cases?|boxes?)\b/i.test(p.title)],
-    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, "")) || /\b(pour homme|for him)\b/i.test(p.title))],
+    /* Men's fragrance is «Colonias»; «Perfumes» is women's (Danny, c.6504037778 §4). */
+    ["perfumes", "Colonias", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, "")) || /\b(pour homme|for him)\b/i.test(p.title))],
     ["gym", "Ropa de gimnasio", "gym_rat", (p) => MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
     ["bano", "Ropa de baño", "men", "bano"], ["gorras", "Gorras", "men", "gorras"], ["lentes", "Lentes de sol", "men", "lentes"],
-    ["mochilas", "Mochilas y bolsos", "men", "carteras"]],
+    /* Billeteras: wallets only, split out of Mochilas y bolsos, which keeps
+       the backpacks, fanny packs and bags -- and never a hat (c.6504037778 §5). */
+    ["mochilas", "Mochilas y bolsos", "men", (p) => modaType(p) === "carteras" && !WALLET_RX.test(p.title) && !HAT_RX.test(p.title)],
+    ["billeteras", "Billeteras", "men", (p) => WALLET_RX.test(p.title) && !HAT_RX.test(p.title)]],
   /* Niños opens on Juguetes, always (Danny, c.6497530895). */
   ninos: [["juguetes", "Juguetes", "toys", (p) => !NOT_A_TOY_RX.test(p.title)], ["deportes", "Deportes", "sporting_goods", (p) => KIDS_RX.test(p.title)],
     ["ropa", "Ropa", "kids", (p) => ["tops", "camisas", "pantalones", "shorts", "polerones", "chaquetas", "vestidos", "faldas"].includes(modaType(p))],
