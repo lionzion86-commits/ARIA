@@ -128,11 +128,19 @@
       }
     }
     if (t.length <= 4 || /\d/.test(t) || catalogueKnows(windex, t)) return null;
-    var best = null, bestD = 3;
+    /* TWO EDITS ONLY FROM EIGHT LETTERS, AND ON THE FIRST LETTER NEVER
+       (#443 c.6477677381): «plancha» is two edits from «blanca» and the
+       page answered a flat-iron search with white T-shirts. On a word
+       under eight letters two edits make another word, not a typo; and
+       a typo almost never changes the first letter. The engine's fuzzy
+       layer holds the same rule. */
+    var maxD = t.length >= 8 ? 2 : 1;
+    var best = null, bestD = maxD + 1;
     for (var i = 0; i < D.fuzzyTargets.length; i++) {
       var c = D.fuzzyTargets[i];
-      if (Math.abs(c.key.length - t.length) > 2) continue;
-      var d = D.S.fuzzyEditDist(c.key, t, 2);
+      if (Math.abs(c.key.length - t.length) > maxD) continue;
+      var d = D.S.fuzzyEditDist(c.key, t, maxD);
+      if (d > maxD || (d >= 2 && c.key.charAt(0) !== t.charAt(0))) continue;
       if (d < bestD || (d === bestD && best && !best.brand && c.brand)) { best = c; bestD = d; }
     }
     /* THE CATALOGUE'S OWN WORD WINS WHEN IT IS NEARER (2026-10-19,
@@ -149,7 +157,7 @@
       });
       if (nearer) return null;
     }
-    return bestD <= 2 ? best : null;
+    return bestD <= maxD ? best : null;
   }
 
   /* ---------- what the shopper asked for ---------- */

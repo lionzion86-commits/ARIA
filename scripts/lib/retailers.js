@@ -117,6 +117,22 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* SLEEKSHOP (#443 c.6475799491, pulled 2026-10-28): the professional
+     hair-treatment shelf the Cabello aisle was missing (keratin, alisado,
+     masks, bond repair). sleekshop-catalog.json, written by
+     scripts/build-sleekshop-catalog.mjs; in stock only, courier holds in
+     scripts/lib/sleekshop.js. Untested lane: verdict by first order,
+     kill-switch armed. No logo file: the wordmark fallback. */
+  sleekshop: {
+    key: "sleekshop",
+    label: "SleekShop",
+    color: "#111111",
+    logo: null,
+    tagline: "Keratina, alisados y tratamientos para el cabello",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* BRANDSMART USA (Build Order B, #443, Danny 2026-10-28: «We need a
      major electronic store»): the electronics anchor, the second wide
      Tiendas card. brandsmart-catalog.json, written by
