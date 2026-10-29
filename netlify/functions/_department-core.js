@@ -611,13 +611,16 @@ const MEN_RX = /\b(men'?s?|mens|man|hombre|hombres|homme|male|for him|boys?)\b/i
 const KIDS_RX = /\b(kids?|youth|boys?|girls?|ni[ñn]os?|ni[ñn]as?|junior|jr\.?|toddlers?|infant|baby)\b/i;
 const MAKEUP_RX = /\b(lipsticks?|lip ?gloss|lip (liner|stain|oil|balm)|mascaras?|foundations?|concealers?|eye ?shadows?|blush(er)?|bronzers?|eye ?liners?|primers?|highlighters?|makeup|make-up|maquillaje|brows?|setting (spray|powder)|palettes?|cushion)\b/i;
 const WATCH_RX = /\b(watch(es)?|relojes?|chronograph)\b/i;
+const SNEAKER_RX = /\b(sneakers?|running|runners?|trainers?|zapatillas?|air max|air force|ultraboost|gel-|samba|gazelle|campus|550|574|9060|990|new balance|chuck taylor|old skool|platform sneakers?)\b/i;
 /* A tee or a hoodie filed with the toys is clothing, not a toy. */
 const NOT_A_TOY_RX = /\b(t-?shirts?|tees?|shirts?|hoodies?|sweatshirts?|sweaters?|pants|joggers|shorts|dress(es)?|skirts?|jackets?|pajamas?|socks?)\b/i;
 /* Sport-specific shoes are not the face of women's Zapatos (Danny,
    c.6497530895): cleats, court and golf shoes live in Deportes. */
 const SPORT_SHOE_RX = /\b(cleats?|soccer|f[uú]tbol|chimpun\w*|guayos?|fg\/ag|firm ground|turf|indoor soccer|futsal|pickleball|tennis shoes?|court shoes?|golf|bowling|spikes?|track|baseball|softball|football|lacrosse|volleyball|wrestling|cycling|f50|predator|mercurial|phantom|tiempo|morelia|copa (pure|mundial|gloro)|future (ultimate|match|play|pro)|ultra (ultimate|match|play|pro)|(fg|tf|ag|mg)(\/(fg|tf|ag|mg))?)\b/i;
 export const AUDIENCE_SHELVES = {
-  mujer: [["zapatos", "Zapatos", "shoes_women", (p) => !SPORT_SHOE_RX.test(p.title)], ["gym", "Ropa de gimnasio", "gym_rat", (p) => WOMEN_RX.test(p.title) && !MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
+  /* Women's Zapatos leads with marketable sneakers and running shoes
+     (Danny, c.6507161516); the rest follows in the usual mix. */
+  mujer: [["zapatos", "Zapatos", "shoes_women", (p) => !SPORT_SHOE_RX.test(p.title), (p) => SNEAKER_RX.test(p.title) || modaType(p) === "zapatillas"], ["gym", "Ropa de gimnasio", "gym_rat", (p) => WOMEN_RX.test(p.title) && !MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
     ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (WOMEN_RX.test(p.title) || /\b(pour femme|for her)\b/i.test(p.title))], ["maquillaje", "Maquillaje", "beauty", (p) => MAKEUP_RX.test(p.title)],
     ["cabello", "Cabello", "cabello", null], ["vestidos", "Vestidos", "women", "vestidos"], ["tops", "Blusas y tops", "women", "tops"],
     ["lenceria", "Lencería", "women", "lenceria"], ["bano", "Ropa de baño", "women", "bano"], ["carteras", "Carteras", "women", "carteras"],
@@ -641,13 +644,15 @@ export const AUDIENCE_MIN = 8, AUDIENCE_CARDS = 24;
    not render (the Aisle Test). */
 export function audiencePills(aud, listOf) {
   const pills = [];
-  for (const [k, label, dept, f] of AUDIENCE_SHELVES[aud]) {
+  for (const [k, label, dept, f, lead] of AUDIENCE_SHELVES[aud]) {
     const seen = new Set();
     const l = listOf(dept).filter((p) => p.image && (!f || (typeof f === "string" ? modaType(p) === f : f(p))))
       .filter((p) => { const t = p.retailer + "::" + String(p.title).toLowerCase(); if (seen.has(t)) return false; seen.add(t); return true; });
     let ranked = l.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct || 0) - (a.p.salePct || 0)) || (a.i - b.i)).map((x) => x.p);
     /* A mixed pill (Ropa, Zapatos) opens on a mix: at most 2 of one kind in front. */
     ranked = interleaveFront(ranked.map((p) => ({ ...p, type: modaType(p) || p.type })), AUDIENCE_CARDS, 2);
+    /* A pill with a lead rule opens on it: those cards first, each group in the order above. */
+    if (lead) ranked = [...ranked.filter(lead), ...ranked.filter((p) => !lead(p))];
     if (ranked.length >= AUDIENCE_MIN) pills.push({ k, label, dept, cards: ranked.slice(0, AUDIENCE_CARDS).map(cardOf) });
   }
   return { v: 1, pills };

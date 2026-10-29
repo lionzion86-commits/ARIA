@@ -692,11 +692,26 @@ const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/departm
    fetches its own slice (about 1-3KB gzipped) instead of catalogues.
    A missing slice answers null and the rail takes its old path, so a
    stale or absent build can never leave a shelf empty. */
+/* THE HOMEPAGE'S DATA IS THIS BUILD'S DATA (#443, 2026-10-29). The
+   JSONs are cached for an hour and served stale for a day (_headers), so
+   a phone that had opened an earlier build painted that build's pills
+   and shelves -- Danny's iPhone showed Niños on Deportes and cleats in
+   Zapatos while the build's own files had the fix. Every homepage data
+   fetch carries this bundle's content hash, so a new build is fetched
+   fresh; _headers also makes these files revalidate. */
+const DATA_V = (() => {
+  try {
+    const el = document.currentScript || document.querySelector('script[src*="/build/app-"]');
+    const m = /app-([0-9a-f]{16})\.js/.exec((el && el.src) || '');
+    return m ? m[1] : '';
+  } catch { return ''; }
+})();
+function dataUrl(u){ return DATA_V && u ? u + (u.indexOf('?') === -1 ? '?' : '&') + 'v=' + DATA_V : u; }
 const HOME_SHELVES_DIR = '/assets/home/shelves/';
 const homeShelfCache = new Map();
 function homeShelf(name){
   if (!homeShelfCache.has(name)){
-    homeShelfCache.set(name, fetchWithTimeout(HOME_SHELVES_DIR + name + '.json', FETCH_DEADLINE_MS)
+    homeShelfCache.set(name, fetchWithTimeout(dataUrl(HOME_SHELVES_DIR + name + '.json'), FETCH_DEADLINE_MS)
       .then(r => (r.ok ? r.json() : null))
       .catch(() => null));
   }
@@ -7547,7 +7562,7 @@ function pillShelfItems(cards, dept){
 const pillFileLoads = {};
 function pillShelfFetch(url, pick){
   if (!pillFileLoads[url]){
-    pillFileLoads[url] = fetch(url).then(r => r.ok ? r.json() : null).then(pick)
+    pillFileLoads[url] = fetch(dataUrl(url)).then(r => r.ok ? r.json() : null).then(pick)
       .catch(() => { delete pillFileLoads[url]; return null; });
   }
   return pillFileLoads[url];
@@ -7651,7 +7666,7 @@ window.addEventListener('DOMContentLoaded', initPillShelves);
 let reacondicionadosHeadPromise = null;
 async function reacondicionadosRailPicks(){
   if (!reacondicionadosHeadPromise){
-    reacondicionadosHeadPromise = fetch('/assets/sections/departamento/reacondicionados/head.json')
+    reacondicionadosHeadPromise = fetch(dataUrl('/assets/sections/departamento/reacondicionados/head.json'))
       .then(r => r.ok ? r.json() : null)
       .then(h => (h && Array.isArray(h.rails)) ? h.rails : [])
       .catch(() => { reacondicionadosHeadPromise = null; return []; });
@@ -20459,7 +20474,7 @@ function recordSizeList(retailer, title){
   if (!key) return Promise.resolve([]);
   const shard = sizeShardOf(key);
   if (!SIZE_SHARD_CACHE[shard]){
-    SIZE_SHARD_CACHE[shard] = fetch('/assets/pdp/p/' + shard + '.json')
+    SIZE_SHARD_CACHE[shard] = fetch(dataUrl('/assets/pdp/p/' + shard + '.json'))
       .then(r => r.ok ? r.json() : null).catch(() => null);
   }
   const rk = String(retailer || '').toLowerCase();
@@ -20478,7 +20493,7 @@ function recordImageList(retailer, title){
   if (!key) return Promise.resolve([]);
   const shard = sizeShardOf(key);
   if (!SIZE_SHARD_CACHE[shard]){
-    SIZE_SHARD_CACHE[shard] = fetch('/assets/pdp/p/' + shard + '.json')
+    SIZE_SHARD_CACHE[shard] = fetch(dataUrl('/assets/pdp/p/' + shard + '.json'))
       .then(r => r.ok ? r.json() : null).catch(() => null);
   }
   const rk = String(retailer || '').toLowerCase();
@@ -20506,7 +20521,7 @@ function sizesPendingKey(retailer, title){
   return String(retailer || '').toLowerCase().trim() + '::' + String(title || '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 function loadSizesPending(){
-  if (!sizesPendingSet) sizesPendingSet = fetch('/assets/data/sizes-pending.json').then(r => r.ok ? r.json() : []).then(a => new Set(Array.isArray(a) ? a : [])).catch(() => new Set());
+  if (!sizesPendingSet) sizesPendingSet = fetch(dataUrl('/assets/data/sizes-pending.json')).then(r => r.ok ? r.json() : []).then(a => new Set(Array.isArray(a) ? a : [])).catch(() => new Set());
   return sizesPendingSet;
 }
 async function isSizesPendingItem(retailer, title){
@@ -29389,7 +29404,7 @@ async function runSalesScan(){
   let feedIsLite = false;
   let scraped = [];
   try {
-    const res = await fetchWithTimeout('/ofertas-feed-lite.json', FETCH_DEADLINE_MS);
+    const res = await fetchWithTimeout(dataUrl('/ofertas-feed-lite.json'), FETCH_DEADLINE_MS);
     if (res.ok){
       const feed = await res.json();
       if (Array.isArray(feed.items)){
@@ -29404,7 +29419,7 @@ async function runSalesScan(){
     /* The lite file is missing or unreadable: read the full feed
        directly so the page never renders empty for a build slip. */
     try {
-      const res = await fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS);
+      const res = await fetchWithTimeout(dataUrl('/ofertas-feed.json'), FETCH_DEADLINE_MS);
       if (res.ok){
         const feed = await res.json();
         if (Array.isArray(feed.items)){
@@ -29452,7 +29467,7 @@ async function runSalesScan(){
     if (!feedIsLite || fullFeedMergedGlobal) return;
     fullFeedMergedGlobal = true;
     try {
-      const res = await fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS);
+      const res = await fetchWithTimeout(dataUrl('/ofertas-feed.json'), FETCH_DEADLINE_MS);
       if (!res.ok) return;
       const feed = await res.json();
       if (!Array.isArray(feed.items)) return;
@@ -29482,7 +29497,7 @@ async function runSalesScan(){
     if (vsDealsMerged) return;
     vsDealsMerged = true;
     try {
-      const res = await fetchWithTimeout('/vs-deals.json', FETCH_DEADLINE_MS);
+      const res = await fetchWithTimeout(dataUrl('/vs-deals.json'), FETCH_DEADLINE_MS);
       if (!res.ok) return;
       const feed = await res.json();
       if (!Array.isArray(feed.items)) return;
