@@ -70,7 +70,8 @@ await check("no row the rule would brand is left blank (rebuild: node scripts/bu
   assert.equal(blank.length, 0, blank.length + " rows, e.g. " + blank.slice(0, 3).map((r) => r[TI].slice(0, 50)).join(" | "));
 });
 await check("the Walmart LEGO sets carry brand LEGO", () => {
-  const lego = index.rows.filter((r) => r[RI] === "walmart" && /^LEGO\b/i.test(r[TI]));
+  /* LEGO SETS: a LEGO video game is its publisher's (Warner Bros, 2K). */
+  const lego = index.rows.filter((r) => r[RI] === "walmart" && /^LEGO\b/i.test(r[TI]) && !/\b(nintendo switch|xbox|playstation|ps[45])\b/i.test(r[TI]));
   assert.ok(lego.length >= 500, lego.length + " Walmart LEGO rows");
   assert.ok(lego.every((r) => r[BI] === "LEGO"), "a Walmart LEGO row is not branded LEGO");
 });

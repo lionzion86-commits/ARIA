@@ -44,8 +44,8 @@ const GRID_KEYS = PAGE_KEYS.filter((k) => !DOORS.includes(k));
 
 const ALL = loadAllItems(ROOT);
 
-await check("the page and the build agree on the 32 departments (plus the doors: ropa-interior.html, and Joyería into Joyas y Accesorios)", () => {
-  assert.equal(GRID_KEYS.length, 32, `page lists ${GRID_KEYS.length} grid departments`);
+await check("the page and the build agree on the 33 departments (plus the doors: ropa-interior.html, and Joyería into Joyas y Accesorios)", () => {
+  assert.equal(GRID_KEYS.length, 33, `page lists ${GRID_KEYS.length} grid departments`);
   assert.deepEqual([...GRID_KEYS].sort(), Object.keys(DEPT_RULES).sort());
   assert.deepEqual(DOORS.sort(), ["jewelry", "ropa_interior", "ropa_interior_mujer"]);
 });
@@ -55,7 +55,7 @@ await check("every committed head.json and rails-<b>.json is what the rules comp
     const list = deptItems(ALL, key);
     const sections = buildSections(list, sectionOpts(key));
     const head = readJSON(`${OUT_DIR}/${key}/head.json`);
-    assert.deepEqual(head, JSON.parse(JSON.stringify(headOf(key, list, sections, ALL_LABELS, hubLenses(key, list, ALL_LABELS).extra))), `${key}/head.json is stale — run: node scripts/build-department-slices.mjs`);
+    assert.deepEqual(head, JSON.parse(JSON.stringify(headOf(key, list, sections, ALL_LABELS, hubLenses(key, list, ALL_LABELS, (k) => deptItems(ALL, k)).extra))), `${key}/head.json is stale — run: node scripts/build-department-slices.mjs`);
     const n = batchCount(sections);
     for (let b = 0; b < n; b++) {
       assert.deepEqual(readJSON(`${OUT_DIR}/${key}/rails-${b}.json`), JSON.parse(JSON.stringify(batchOf(sections, b))), `${key}/rails-${b}.json is stale`);

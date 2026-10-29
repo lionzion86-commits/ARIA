@@ -36,7 +36,7 @@
    longer match what the rules compute from the committed catalogues.
    ============================================================ */
 import { TECH_BUCKETS } from "./lib/brandsmart.js";
-import { CAB_BUCKETS } from "./lib/sleekshop.js";
+import { CAB_BUCKETS, AISLE_LABELS as CAB_LABELS, hairAisle, PERU_SOLD_HAIR_RX } from "./lib/sleekshop.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import vm from "node:vm";
@@ -149,6 +149,9 @@ export const DEPT_RULES = {
   reacondicionados: { kind: "refurb" },
   /* Perfumes (#443 item 32): the Aria Perfumes stock, its own department. */
   perfumes: { kind: "perfumes" },
+  /* Cabello (#443 c.6473257128): SleekShop's treatment aisles and every
+     beauty store's hair care, under the Peru-presence rule (deptItems). */
+  cabello: { kind: "cabello" },
 };
 
 function hasAny(hay, words) {
@@ -192,7 +195,9 @@ const AUTO_RX = wordsRx(["brakes?", "frenos?", "oil filters?", "filtros? de acei
 /* Aria Auto's stores: what they sell is a part unless its name says otherwise. */
 const AUTO_RETAILERS = new Set(["advanceauto", "autozone"]);
 const NOT_A_PART = new Set(["juguetes", "ropa", "zapatos", "carteras", "joyas", "sombreros", "trajes_bano", "belleza", "perfumes", "libros", "dulces", "bebe"]);
+const BEAUTY_BUCKETS = new Set(["beauty", "belleza", "grooming_women", "grooming_men", "fragrance", "hair", "haircare", "hair_care"]);
 export const KIND_MATCH = {
+  cabello: (t, p) => Boolean(p) && (CAB_BUCKETS.includes(p.bucket) || (BEAUTY_BUCKETS.has(p.bucket) && Boolean(hairAisle(p.title)))),
   /* Aria Perfumes' stock, and every true fragrance any store sells. */
   perfumes: (t, p) => Boolean(p && (p.retailer === "ariaperfumes" || productClass(p) === "perfumes")),
   refurb: (t, p) => Boolean(conditionOfTitle(p && p.title)),
@@ -347,6 +352,15 @@ export function deptItems(all, key) {
      Electrónica's Reacondicionados): they stay in their store, out of the
      department. A Blu-ray PLAYER is electronics. */
   if (key === "electronics") list = list.filter((p) => !MEDIA_RX.test(p.title || ""));
+  /* Cabello: each product's treatment aisle is its type (the rails and the
+     pills read it); a brand Peru sells cheaply enters only on sale, and
+     the lines Peru does not carry lead (the stable sort below keeps it). */
+  if (key === "cabello") {
+    list = list.map((p) => ({ ...p, type: CAB_LABELS[CAB_BUCKETS.includes(p.bucket) ? p.bucket : hairAisle(p.title)] }))
+      .filter((p) => p.type && (!PERU_SOLD_HAIR_RX.test(p.title + " " + (p.brand || "")) || p.salePct > 0));
+    const peru = (p) => (PERU_SOLD_HAIR_RX.test(p.title + " " + (p.brand || "")) ? 1 : 0);
+    return list.map((p, i) => ({ p, i })).sort((a, b) => (peru(a.p) - peru(b.p)) || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+  }
   if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer), ...(key === "shoes" ? { g: shoeGender(p, p.bucket) } : {}) }));
   /* Stable sort: on sale first, then cheapest (the page's order). */
   return list
@@ -372,14 +386,17 @@ export function build(root = ROOT) {
   const all = loadAllItems(root);
   const outRoot = join(root, OUT_DIR);
   const summary = {};
+  /* A hub pill can open another department's lens (Belleza > Cabello). */
+  const lists = new Map();
+  const listOf = (k) => { if (!lists.has(k)) lists.set(k, deptItems(all, k)); return lists.get(k); };
   for (const key of Object.keys(DEPT_RULES)) {
     const dir = join(outRoot, key);
     if (existsSync(dir)) rmSync(dir, { recursive: true });
     mkdirSync(dir, { recursive: true });
-    const list = deptItems(all, key);
+    const list = listOf(key);
     const sections = buildSections(list, sectionOpts(key));
     /* Order D: the hub's pill row rides in head.json; each lens is its own file. */
-    const { lenses, extra } = hubLenses(key, list, ALL_LABELS);
+    const { lenses, extra } = hubLenses(key, list, ALL_LABELS, listOf);
     for (const l of lenses) writeFileSync(join(dir, `lens-${l.k}.json`), JSON.stringify(l));
     writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, extra)));
     /* The homepage Electrónica carousel's pills (c.6485409220). */

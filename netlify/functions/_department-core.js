@@ -135,6 +135,7 @@ export const SHOE_DEPTS = new Set(["shoes", "shoes_women", "shoes_men"]);
 export function sectionOpts(key) {
   if (key === CASA_DEPT) return { casa: true };
   if (key === TECH_DEPT) return { tech: true };
+  if (key === CABELLO_DEPT) return { cabello: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
 
@@ -309,21 +310,33 @@ export const PILL_HUBS = {
   luxury: { by: "brand", max: 14 },
   home_goods: { pills: [["r:crateandbarrel", "Crate & Barrel"], ["r:pier1", "Pier 1"], ["a:libros", "Libros de mesa"]] },
   electronics: { by: "store", max: 8 },
+  /* Danny's treatment pills (c.6473412574), at least 8 real products each;
+     «Keratina y alisados» lit by the SleekShop drop (c.6475799491). */
+  cabello: { min: 8, pills: [["t:Champú y acondicionador", "Champú y acondicionador"], ["t:Mascarillas", "Mascarillas"],
+    ["t:Aceites y sérums", "Aceites y argán"], ["t:Cuero cabelludo", "Cuero cabelludo"], ["t:Sin enjuague", "Sin enjuague"],
+    ["t:Reparación", "Reparación"], ["t:Keratina y alisados", "Keratina y alisados"]] },
+  /* Belleza: the Cabello aisle is its first pill; its lens opens the aisle. */
+  beauty: { pills: [["d:cabello", "Cabello"]], by: "store", max: 2 },
 };
 export const LENS_MIN = 12, LENS_RAIL_MIN = 4, LENS_RAILS = 5;
 export const lensSlug = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 /* The pills of one hub: [{ k, label, items, link }], strongest first. */
-export function hubPills(key, list, labels = {}) {
+export function hubPills(key, list, labels = {}, listOf = null) {
   const hub = PILL_HUBS[key];
   if (!hub) return [];
   let pills = [];
   if (hub.pills) {
     pills = hub.pills.map(([sel, label]) => {
-      const [kind, v] = sel.split(":");
-      const items = list.filter((p) => (kind === "r" ? p.retailer === v && p.a !== "libros" : p.a === v));
-      return { k: lensSlug(label), label, items, link: kind === "r" ? "tienda.html?tienda=" + v : "" };
+      const i = sel.indexOf(":"), kind = sel.slice(0, i), v = sel.slice(i + 1);
+      const items = list.filter((p) => (kind === "r" ? p.retailer === v && p.a !== "libros"
+        : kind === "t" ? p.type === v
+        : p.a === v));
+      if (kind === "d") return { k: lensSlug(label), label, items: listOf ? listOf(v) : [], opts: sectionOpts(v), link: "departamento.html?dept=" + v };
+      return { k: lensSlug(label), label, items,
+        link: kind === "r" ? "tienda.html?tienda=" + v : kind === "d" ? "departamento.html?dept=" + v : "" };
     });
-  } else {
+  }
+  if (hub.by) {
     const groups = new Map();
     for (const p of list) {
       const g = hub.by === "brand" ? String(p.brand || "").trim() : p.retailer;
@@ -331,25 +344,43 @@ export function hubPills(key, list, labels = {}) {
       if (!groups.has(g)) groups.set(g, []);
       groups.get(g).push(p);
     }
-    pills = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([g, items]) => ({
+    pills = pills.concat([...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([g, items]) => ({
       k: lensSlug(g), label: hub.by === "brand" ? g : (labels[g] || g), items,
       link: hub.by === "store" ? "tienda.html?tienda=" + g : "departamento.html?dept=" + key + "&q=" + encodeURIComponent(g),
-    }));
+    })));
   }
-  return pills.filter((p) => p.items.length >= LENS_MIN).slice(0, hub.max || 99);
+  return pills.filter((p) => p.items.length >= (hub.min || LENS_MIN)).slice(0, (hub.pills ? hub.pills.length : 0) + (hub.max || 99));
 }
 /* The hub's lenses and the head.json fields that announce them. */
-export function hubLenses(key, list, labels = {}) {
-  const lenses = hubPills(key, list, labels).map((p) => lensOf(key, p)).filter((l) => l.rails.length);
+export function hubLenses(key, list, labels = {}, listOf = null) {
+  const lenses = hubPills(key, list, labels, listOf).map((p) => lensOf(key, p)).filter((l) => l.rails.length);
   return { lenses, extra: lenses.length ? { pills: lenses.map((l) => ({ k: l.k, label: l.label, n: l.count })) } : {} };
 }
 /* One lens: the pill's own carousels, ofertas first, then its aisles. */
 export function lensOf(key, pill) {
-  const secs = buildSections(pill.items, sectionOpts(key))
+  const secs = buildSections(pill.items, pill.opts || sectionOpts(key))
     .filter((s) => !/^tienda:/.test(s.key) && s.key !== "estudio" && s.items.length >= LENS_RAIL_MIN)
     .slice(0, LENS_RAILS);
   return { v: 1, k: pill.k, label: pill.label, link: pill.link, count: pill.items.length,
     rails: secs.map((s) => ({ title: s.title, count: s.items.length, cards: s.items.slice(0, RAIL_CARDS).map(cardOf) })) };
+}
+
+/* ---------- CABELLO (#443 c.6473257128, pills c.6473412574) ----------
+   Ofertas, then the treatment aisles in SleekShop's order; a product's
+   aisle is its type (build-department-slices writes it), so the static
+   slices and the endpoint agree. */
+export const CABELLO_DEPT = "cabello";
+export const CABELLO_AISLES = ["Keratina y alisados", "Mascarillas", "Reparación", "Aceites y sérums", "Cuero cabelludo", "Sin enjuague", "Champú y acondicionador", "Más tratamientos"];
+function buildCabelloSections(list) {
+  const sections = [];
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  for (const t of CABELLO_AISLES) {
+    const l = list.filter((p) => p.type === t);
+    if (l.length) sections.push({ key: "tipo:" + t.toLowerCase(), title: t, items: l });
+  }
+  return sections;
 }
 
 export const FRONT = 24, FRONT_CAP = 6;
@@ -418,6 +449,7 @@ export function buildSections(list, opts = {}) {
 function buildSectionsRaw(list, opts = {}) {
   if (opts.casa) return buildCasaSections(list);
   if (opts.tech) return buildTechSections(list);
+  if (opts.cabello) return buildCabelloSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
      join its brand rails -- the room keeps its layout. */

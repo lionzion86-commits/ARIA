@@ -6350,7 +6350,7 @@ and Camera Siren -  | 89.99 | 2.5 kg (tope conservador de general (sin regla de 
 | microcenter | C75 Cake Meow Wireless Mechanical Keyboard - Pink | 91.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | Vanguard 96 Mechanical Gaming Keyboard | 149.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | OK-M-98% Tri-mode Wireless Mechanical Gaming Keyboard | 89.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
-| microcenter | BlackWidow V4 Wired Mechanical Gaming Keyboard  - Black | 149.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
+| microcenter | BlackWidow V4 Wired Mechanical Gaming Keyboard - Black | 149.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | B75 PRO Wireless Mechanical Gaming Keyboard - Pink | 79.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | Pro Type Ultra Wireless Mechanical Keyboard - White | 159.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |
 | microcenter | Zero 6108 Classic Black Hot Swap Wireless Bluetooth RGB Mechanical Keyboard - Cherry MX2A  | 99.99 | 3 kg (tope conservador de electrónica (sin regla de peso)) |

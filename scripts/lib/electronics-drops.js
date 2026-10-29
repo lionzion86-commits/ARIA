@@ -30,6 +30,18 @@ import { techAisle, isTechProduct, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from ".
 const realPhoto = (u) => typeof u === "string" && /^https:\/\//.test(u);
 const LOCKED_RX = /\b(prepaid|straight talk|tracfone|total wireless|total by verizon|cricket|metro ?(by t-?mobile|pcs)|boost mobile|visible|verizon|at&t|t-?mobile|carrier[- ]locked|locked to|simple mobile|walmart family mobile|consumer cellular|lte prepaid)\b/i;
 const UNLOCKED_RX = /\bunlocked\b/i;
+/* Scraped titles carry HTML entities ("X2&nbsp;1.1GHz", "360&deg;", "DE &lt;"),
+   some cut short ("ChromeOS,&nbsp"): a page would print them raw. */
+const NAMED_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", reg: "®", trade: "™", copy: "©", deg: "°",
+  eacute: "é", ntilde: "ñ", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", ndash: "–", mdash: "—", hellip: "…" };
+export function decodeTitle(s) {
+  return String(s || "")
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);?/gi, (m, e) => {
+      if (e[0] === "#") { const cp = /^#x/i.test(e) ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10); return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m; }
+      return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, e.toLowerCase()) ? NAMED_ENTITIES[e.toLowerCase()] : m;
+    })
+    .replace(/\s+/g, " ").trim();
+}
 const DAMAGED_RX = /\b(fractured|cracked|broken (screen|glass)|for parts|not working)\b/i;
 const CONDITION_LABEL = { restored: "Reacondicionado", "pre-owned": "Usado", "open box": "Caja abierta" };
 
@@ -72,7 +84,7 @@ export function normalizeWalmartElectronics(rows, { isShippableItem } = {}) {
     if (!(price > 0)) { hold("no price"); continue; }
     const imgs = images(r.images, r.image);
     if (!imgs.length) { hold("no photo"); continue; }
-    let name = String(r.name || "").trim();
+    let name = decodeTitle(r.name);
     const cond = String(r.condition || "New").toLowerCase();
     const condKey = Object.keys(CONDITION_LABEL).find((k) => cond.startsWith(k));
     if (condKey && !conditionOf(name)) name = `${name} - ${CONDITION_LABEL[condKey]}`;
@@ -112,7 +124,7 @@ export function normalizeCostcoElectronics(rows, { isShippableItem } = {}) {
     if (!(price > 0)) { hold("no price"); continue; }
     const imgs = images(r.images, r.image);
     if (!imgs.length) { hold("no photo"); continue; }
-    const name = String(r.name || "").trim();
+    const name = decodeTitle(r.name);
     const aisle = gate({ name, description: r.description_en, hint: r.subcategory, flag110: r.voltage110OnlySuspect === true });
     if (!aisle.startsWith("tech_")) { hold(aisle); continue; }
     const brand = Array.isArray(r.brand) ? String(r.brand[0] || "") : String(r.brand || "");
@@ -138,7 +150,7 @@ export function normalizeMicroCenter(rows, { isShippableItem } = {}) {
     const price = Number(r.price);
     if (!(price > 0)) { hold("no price"); continue; }
     if (!realPhoto(r.image)) { hold("no photo"); continue; }
-    const name = String(r.title || "").trim();
+    const name = decodeTitle(r.title);
     const aisle = gate({ name, description: typeof r.specs === "string" ? r.specs : JSON.stringify(r.specs || {}), hint: r.category, flag110: r.voltage_110v_only_flag === true });
     if (!aisle.startsWith("tech_")) { hold(aisle); continue; }
     const it = { name, brand: String(r.brand || "").trim(), price, currency: "USD", image: r.image, images: [r.image], url: r.url || "",
