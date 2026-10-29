@@ -108,6 +108,16 @@
   .perfumes-lead .pl-sub{margin:2px 20px 0;font-size:12px;font-weight:600;color:#6B7487}
   .rail-head{display:flex;align-items:center;gap:8px;padding:0 20px;margin-bottom:2px}
   .rail-head h2{font-size:19px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
+  /* ORDER D: the pill hub and its lens (#443 c.6471948104, c.6477721206). */
+  .hub{max-width:1240px;margin:0 auto;padding:14px 0 0}
+  .hub-in{display:flex;gap:8px;overflow-x:auto;padding:0 20px 4px;scrollbar-width:none}
+  .hub-in::-webkit-scrollbar{display:none}
+  .hub-pill{flex:0 0 auto;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:800;color:var(--navy);cursor:pointer;font-family:inherit;white-space:nowrap}
+  .hub-pill[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .lens{max-width:1240px;margin:8px auto 0;padding:6px 0 10px;border-bottom:1px solid var(--line)}
+  .lens-head{display:flex;align-items:baseline;gap:10px;padding:0 20px}
+  .lens-head h2{font-size:24px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
+  .lens-head a{margin-left:auto;font-size:13px;font-weight:800;color:var(--blue);text-decoration:none;white-space:nowrap}
   .rail-note{margin:2px 20px 6px;padding:8px 12px;border-radius:10px;background:#FFF4E0;border:1px solid #F2C46D;color:#5A3B00;font-size:13px;font-weight:700;line-height:1.35}
   .rail-count{font-size:11px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px}
   /* END-OF-CAROUSEL CARD (#443 c.6405624575): the Perfumes lead rail ends
@@ -186,6 +196,7 @@
   <div class="houses-in"><button type="button" class="house" data-q="Christian Dior" aria-label="Perfumes Dior"><img src="logos/brands/dior.svg" alt="Dior" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Versace" aria-label="Perfumes Versace"><img src="logos/brands/versace.svg" alt="Versace" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Yves Saint Laurent" aria-label="Perfumes Yves Saint Laurent"><img src="logos/brands/saintlaurent.svg" alt="Yves Saint Laurent" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Gucci" aria-label="Perfumes Gucci"><img src="logos/brands/gucci.svg" alt="Gucci" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Prada" aria-label="Perfumes Prada"><img src="logos/brands/prada.svg" alt="Prada" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Burberry" aria-label="Perfumes Burberry"><img src="logos/brands/burberry.svg" alt="Burberry" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Calvin Klein" aria-label="Perfumes Calvin Klein"><img src="logos/brands/calvinklein.svg" alt="Calvin Klein" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Tom Ford" aria-label="Perfumes Tom Ford"><img src="logos/brands/tomford.svg" alt="Tom Ford" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Valentino" aria-label="Perfumes Valentino"><img src="logos/brands/valentino.svg" alt="Valentino" width="88" height="28" decoding="async"></button></div>
 </nav>
 
+<nav class="hub" id="hubPills" aria-label="Tiendas y marcas" hidden><div class="hub-in" role="tablist"></div></nav>
 <div class="toolbar" role="search" id="toolbar" hidden>
   <div class="search">
     <input id="q" type="search" placeholder="Buscar en este departamento…" aria-label="Buscar productos">
@@ -230,6 +241,7 @@
 <!-- ARIA BEAUTY > FRAGANCIAS (#443): the Perfumes rail leads the beauty
      department, painted from assets/home/shelves/perfumes.json (the same
      small shelf as the home page's Perfumes rail). Hidden elsewhere. -->
+<section id="lens" class="lens" aria-live="polite" hidden></section>
 <section id="perfumesLead" class="rail-sec perfumes-lead" aria-label="Fragancias: Perfumes" hidden>
   <div class="rail-head"><div><div class="pl-kicker">Fragancias</div><h2>Perfumes</h2></div><span class="rail-count" id="perfumesLeadCount"></span></div>
   <p class="pl-sub">Las grandes casas: ofertas y cl&#x00E1;sicos. M&#x00E1;ximo 4 perfumes por pedido.</p>
@@ -816,6 +828,9 @@ function sizedImageUrl(url, w){
   }
   function renderChips(){
     var chipsEl = document.getElementById('retChips');
+    /* One pill row per view (c.6476025440): a hub department's pill row
+       replaces the store filter chips; the search box stays. */
+    if (HUB && HUB.length){ chipsEl.innerHTML = ''; chipsEl.hidden = true; return; }
     var ch = '<button class="chip" data-r="all" aria-pressed="' + (fRet === 'all') + '">Todas</button>';
     (HEAD.stores || []).forEach(function(s){
       ch += '<button class="chip" data-r="' + esc(s.k) + '" aria-pressed="' + (fRet === s.k) + '">' + esc(storeLabel(s.k)) + '</button>';
@@ -842,6 +857,7 @@ function sizedImageUrl(url, w){
       }
       /* The chips always list the whole department's stores. */
       if (!filtered()) STORES = data.stores;
+      if (!filtered() && Array.isArray(data.pills) && !HUB){ HUB = data.pills; renderHub(); }
       HEAD = data;
       HEAD.stores = STORES || data.stores;
       if (!STORES){
@@ -981,6 +997,49 @@ function sizedImageUrl(url, w){
       if (qInput.value.trim() === fQ.trim()) return;
       fQ = qInput.value; loadAll();
     }, 400);
+  });
+  /* ---------- ORDER D: THE PILL HUB (#443 c.6471948104) ----------
+     «Todas», then the stores or brands inside the department, strongest
+     first (head.json's pills). A pill is a LENS (c.6477721206): it opens
+     that store's or brand's own carousels here, above the department's,
+     and the department's carousels below stay exactly where they are.
+     One small pre-built file per lens (lens-<slug>.json). */
+  var hubEl = document.getElementById('hubPills'), lensEl = document.getElementById('lens');
+  var HUB = null, hubActive = '', lensSeq = 0;
+  function renderHub(){
+    if (!HUB || !HUB.length){ hide(hubEl); return; }
+    var h = '<button type="button" class="hub-pill" role="tab" data-k="" aria-selected="' + (!hubActive) + '">Todas</button>';
+    HUB.forEach(function(p){
+      h += '<button type="button" class="hub-pill" role="tab" data-k="' + esc(p.k) + '" aria-selected="' + (hubActive === p.k) + '">' + esc(p.label) + '</button>';
+    });
+    hubEl.querySelector('.hub-in').innerHTML = h;
+    show(hubEl);
+  }
+  function openLens(k){
+    hubActive = k; renderHub();
+    var seq = ++lensSeq;
+    if (!k){ lensEl.innerHTML = ''; hide(lensEl); return; }
+    lensEl.innerHTML = '<section class="rail-sec" aria-hidden="true"><div class="rail-head"><h2 class="sk-h"><i></i></h2></div><div class="rail">' + skeletons(4) + '</div></section>';
+    show(lensEl);
+    getJSON(SLICES + 'lens-' + encodeURIComponent(k) + '.json').then(function(l){
+      if (seq !== lensSeq) return;
+      if (!l || !Array.isArray(l.rails) || !l.rails.length){ openLens(''); return; }
+      var door = l.link ? '<a href="' + esc(l.link) + '">' + (l.link.indexOf('tienda.html') === 0 ? 'Ver la tienda' : 'Ver todo') + ' &#8594;</a>' : '';
+      lensEl.innerHTML = '<div class="lens-head"><h2>' + esc(l.label) + '</h2>' + door + '</div>'
+        + l.rails.map(function(r){
+          return '<section class="rail-sec" aria-label="' + esc(l.label + ': ' + r.title) + '">'
+            + '<div class="rail-head"><h2>' + esc(r.title) + '</h2><span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span></div>'
+            + (r.title === 'Reacondicionados' ? '<p class="rail-note">No son productos nuevos: cada tarjeta dice si es reacondicionado, de caja abierta o usado, tal como lo declara la tienda.</p>' : '')
+            + '<div class="rail">' + r.cards.map(cardHTML).join('') + '</div></section>';
+        }).join('');
+      watchPhotos(lensEl);
+    }).catch(function(){ if (seq === lensSeq) openLens(''); });
+  }
+  hubEl.addEventListener('click', function(e){
+    var b = e.target.closest('.hub-pill'); if (!b) return;
+    var k = b.getAttribute('data-k') || '';
+    if (k === hubActive) return;
+    openLens(k);
   });
   function syncChips(){
     document.querySelectorAll('#retChips .chip').forEach(function(c){

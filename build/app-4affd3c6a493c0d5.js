@@ -905,7 +905,7 @@ const DEPARTMENT_META = {
   soccer: { label: 'Fútbol', icon: '' },
   tennis: { label: 'Tenis', icon: '' },
   sunglasses: { label: 'Lentes de Sol', icon: '' },
-  home_goods: { label: 'Hogar', icon: '' },
+  home_goods: { label: 'Casa Aria', icon: '' },
   home_decor: { label: 'Decoración', icon: '' },
 
   /* "Curvy" is Danny's pick and it stays in English, alone. The
@@ -7214,8 +7214,10 @@ const CATEGORY_RAILS = [
     test: (p) => isFootwear(p, p.retailer) && genderOfItem(p) === 'men',
     cheapFirst: true,
     open: "openCatalog('department','shoes_men')" },
-  { key: 'home_goods', label: 'Hogar', icon: '', stores: null, poolOnly: true,
-    blurb: 'Todo para tu casa, de todas las tiendas.',
+  /* CASA ARIA (Order D, c.6471948104): the home wing is a first-class
+     pill under its own name, the department page's. */
+  { key: 'home_goods', label: 'Casa Aria', icon: '', stores: null, poolOnly: true,
+    blurb: 'Libros de mesa, Crate & Barrel y Pier 1.',
     test: (p) => railBucketCategoryIs(p, 'home'),
     open: "openCatalog('department','home_goods')" },
   { key: 'home_decor', label: 'Decoración', icon: '', stores: null, poolOnly: true,

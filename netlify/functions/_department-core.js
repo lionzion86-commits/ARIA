@@ -293,6 +293,65 @@ export function homeTechPills(list) {
   return { v: 1, pills };
 }
 
+/* ---------- SECTION PILL HUBS (Build Order D, #443 c.6471948104) ----------
+   A hub department opens with a pill row: «Todas», then the stores or
+   brands inside it, strongest first. A pill is a LENS, not a filter
+   (c.6477721206): it opens that store's or brand's own carousels at the
+   top -- its ofertas first, then its aisles -- and every carousel of the
+   department stays below, in its place. Each lens is one pre-built file
+   (<dept>/lens-<slug>.json), so the swap is instant and light (the
+   Mountain Test). A pill whose slice cannot fill a real carousel does not
+   render (the Aisle Test).
+     by "brand": one pill per brand (Lujo's designer houses)
+     by "store": one pill per store (Electrónica)
+     pills:      a fixed list, "r:<store>" or "a:<aisle>" (Casa Aria) */
+export const PILL_HUBS = {
+  luxury: { by: "brand", max: 14 },
+  home_goods: { pills: [["r:crateandbarrel", "Crate & Barrel"], ["r:pier1", "Pier 1"], ["a:libros", "Libros de mesa"]] },
+  electronics: { by: "store", max: 8 },
+};
+export const LENS_MIN = 12, LENS_RAIL_MIN = 4, LENS_RAILS = 5;
+export const lensSlug = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+/* The pills of one hub: [{ k, label, items, link }], strongest first. */
+export function hubPills(key, list, labels = {}) {
+  const hub = PILL_HUBS[key];
+  if (!hub) return [];
+  let pills = [];
+  if (hub.pills) {
+    pills = hub.pills.map(([sel, label]) => {
+      const [kind, v] = sel.split(":");
+      const items = list.filter((p) => (kind === "r" ? p.retailer === v && p.a !== "libros" : p.a === v));
+      return { k: lensSlug(label), label, items, link: kind === "r" ? "tienda.html?tienda=" + v : "" };
+    });
+  } else {
+    const groups = new Map();
+    for (const p of list) {
+      const g = hub.by === "brand" ? String(p.brand || "").trim() : p.retailer;
+      if (!g) continue;
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(p);
+    }
+    pills = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([g, items]) => ({
+      k: lensSlug(g), label: hub.by === "brand" ? g : (labels[g] || g), items,
+      link: hub.by === "store" ? "tienda.html?tienda=" + g : "departamento.html?dept=" + key + "&q=" + encodeURIComponent(g),
+    }));
+  }
+  return pills.filter((p) => p.items.length >= LENS_MIN).slice(0, hub.max || 99);
+}
+/* The hub's lenses and the head.json fields that announce them. */
+export function hubLenses(key, list, labels = {}) {
+  const lenses = hubPills(key, list, labels).map((p) => lensOf(key, p)).filter((l) => l.rails.length);
+  return { lenses, extra: lenses.length ? { pills: lenses.map((l) => ({ k: l.k, label: l.label, n: l.count })) } : {} };
+}
+/* One lens: the pill's own carousels, ofertas first, then its aisles. */
+export function lensOf(key, pill) {
+  const secs = buildSections(pill.items, sectionOpts(key))
+    .filter((s) => !/^tienda:/.test(s.key) && s.key !== "estudio" && s.items.length >= LENS_RAIL_MIN)
+    .slice(0, LENS_RAILS);
+  return { v: 1, k: pill.k, label: pill.label, link: pill.link, count: pill.items.length,
+    rails: secs.map((s) => ({ title: s.title, count: s.items.length, cards: s.items.slice(0, RAIL_CARDS).map(cardOf) })) };
+}
+
 export const FRONT = 24, FRONT_CAP = 6;
 
 /* The first FRONT cards of a mixed rail hold at most FRONT_CAP of any one
