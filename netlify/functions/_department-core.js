@@ -462,6 +462,54 @@ function buildCabelloSections(list) {
   return sections;
 }
 
+/* ---------- THE HOMEPAGE AUDIENCE CAROUSELS (Danny, c.6483623203) ----------
+   Three carousels stacked on the homepage -- Mujer, Hombre, Niños -- each
+   with its OWN type pills above it, scoped to that audience. Fashion and
+   beauty only: Electrónica has its own carousel. Each pill is a slice of
+   a department the site already has, so a pill and its department agree.
+     [pill key, label, department, filter]  (filter: null = the whole list,
+     a moda type, or a test on the product) */
+const WOMEN_RX = /\b(women'?s?|womens|woman|mujer|mujeres|ladies|lady|femme|female|for her|girls?)\b/i;
+const MEN_RX = /\b(men'?s?|mens|man|hombre|hombres|homme|male|for him|boys?)\b/i;
+const KIDS_RX = /\b(kids?|youth|boys?|girls?|ni[ñn]os?|ni[ñn]as?|junior|jr\.?|toddlers?|infant|baby)\b/i;
+const MAKEUP_RX = /\b(lipsticks?|lip ?gloss|lip (liner|stain|oil|balm)|mascaras?|foundations?|concealers?|eye ?shadows?|blush(er)?|bronzers?|eye ?liners?|primers?|highlighters?|makeup|make-up|maquillaje|brows?|setting (spray|powder)|palettes?|cushion)\b/i;
+const WATCH_RX = /\b(watch(es)?|relojes?|chronograph)\b/i;
+export const AUDIENCE_SHELVES = {
+  mujer: [["zapatos", "Zapatos", "shoes_women", null], ["gym", "Ropa de gimnasio", "gym_rat", (p) => WOMEN_RX.test(p.title) && !MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
+    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (WOMEN_RX.test(p.title) || /\b(pour femme|for her)\b/i.test(p.title))], ["maquillaje", "Maquillaje", "beauty", (p) => MAKEUP_RX.test(p.title)],
+    ["cabello", "Cabello", "cabello", null], ["vestidos", "Vestidos", "women", "vestidos"], ["tops", "Blusas y tops", "women", "tops"],
+    ["lenceria", "Lencería", "women", "lenceria"], ["bano", "Ropa de baño", "women", "bano"], ["carteras", "Carteras", "women", "carteras"],
+    ["joyas", "Joyas", "women", "joyas"], ["lentes", "Lentes de sol", "women", "lentes"]],
+  hombre: [["ropa", "Ropa", "men", (p) => ["tops", "camisas", "pantalones", "shorts", "polerones", "chaquetas"].includes(modaType(p))],
+    ["zapatos", "Zapatos", "shoes_men", (p) => modaType(p) !== "zapatillas"], ["zapatillas", "Zapatillas", "shoes_men", (p) => modaType(p) === "zapatillas"],
+    ["relojes", "Relojes", "men", (p) => WATCH_RX.test(p.title) && !/\b(bands?|straps?|bracelets?|smart ?watch|t-?shirts?|tees?|shirts?|hoodies?|hats?|caps?|bags?|cases?|boxes?)\b/i.test(p.title)],
+    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, "")) || /\b(pour homme|for him)\b/i.test(p.title))],
+    ["gym", "Ropa de gimnasio", "gym_rat", (p) => MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
+    ["bano", "Ropa de baño", "men", "bano"], ["gorras", "Gorras", "men", "gorras"], ["lentes", "Lentes de sol", "men", "lentes"],
+    ["mochilas", "Mochilas y bolsos", "men", "carteras"]],
+  ninos: [["deportes", "Deportes", "sporting_goods", (p) => KIDS_RX.test(p.title)], ["juguetes", "Juguetes", "toys", null],
+    ["ropa", "Ropa", "kids", (p) => ["tops", "camisas", "pantalones", "shorts", "polerones", "chaquetas", "vestidos", "faldas"].includes(modaType(p))],
+    ["zapatos", "Zapatos", "shoes", (p) => KIDS_RX.test(p.title)], ["bano", "Ropa de baño", "kids", "bano"], ["gorras", "Gorras", "kids", "gorras"]],
+};
+export const AUDIENCE_MIN = 8, AUDIENCE_CARDS = 24;
+/* One audience's pills: { v, pills:[{k,label,dept,cards}] }, each pill's
+   strongest cards first (the deeper sale, then the department's order),
+   one card per title, photographed only. A pill under AUDIENCE_MIN does
+   not render (the Aisle Test). */
+export function audiencePills(aud, listOf) {
+  const pills = [];
+  for (const [k, label, dept, f] of AUDIENCE_SHELVES[aud]) {
+    const seen = new Set();
+    const l = listOf(dept).filter((p) => p.image && (!f || (typeof f === "string" ? modaType(p) === f : f(p))))
+      .filter((p) => { const t = p.retailer + "::" + String(p.title).toLowerCase(); if (seen.has(t)) return false; seen.add(t); return true; });
+    let ranked = l.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct || 0) - (a.p.salePct || 0)) || (a.i - b.i)).map((x) => x.p);
+    /* A mixed pill (Ropa, Zapatos) opens on a mix: at most 2 of one kind in front. */
+    ranked = interleaveFront(ranked.map((p) => ({ ...p, type: modaType(p) || p.type })), AUDIENCE_CARDS, 2);
+    if (ranked.length >= AUDIENCE_MIN) pills.push({ k, label, dept, cards: ranked.slice(0, AUDIENCE_CARDS).map(cardOf) });
+  }
+  return { v: 1, pills };
+}
+
 export const FRONT = 24, FRONT_CAP = 6;
 
 /* The first FRONT cards of a mixed rail hold at most FRONT_CAP of any one

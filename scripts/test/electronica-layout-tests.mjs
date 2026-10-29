@@ -110,18 +110,33 @@ check("the homepage Electrónica carousel: Ofertas, then Danny's four types, eve
   assert.deepEqual(home, JSON.parse(JSON.stringify(homeTechPills(dept.list.map((p) => ({ ...p, image: p.image })))) ), "home.json is stale: run build-department-slices");
 });
 
-check("the homepage section: pills above the carousel, both layouts, a lens that hides nothing", () => {
+check("the homepage shelves: Electrónica, then Mujer, Hombre, Niños; pills above each carousel; a lens that hides nothing", () => {
   const html = readFileSync(ROOT + "index.html", "utf8");
-  for (const pfx of ["m", "d"]) {
-    const a = html.indexOf(`id="${pfx}TechPills"`), b = html.indexOf(`id="${pfx}TechRail"`);
-    assert.ok(a > 0 && b > a, `${pfx}: the pill row sits above the carousel`);
+  const shelves = [...html.matchAll(/<section aria-label="([^"]+)" data-pill-shelf="([a-z]+)"[^>]*>([\s\S]*?)<\/section>/g)];
+  assert.deepEqual(shelves.map((m) => m[2]), ["tech", "mujer", "hombre", "ninos", "tech", "mujer", "hombre", "ninos"], "phone and desktop");
+  for (const m of shelves) {
+    assert.ok(m[3].indexOf("data-pill-row") > 0 && m[3].indexOf("data-pill-row") < m[3].indexOf("data-pill-rail"), `${m[2]}: the pill row sits above the carousel`);
+    assert.match(m[0], / hidden /, `${m[2]}: hidden until it fills`);
   }
-  assert.equal((html.match(/data-tech-home hidden/g) || []).length, 2);
   const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]{16}\.js$/.test(f)), "utf8");
-  const fn = bundle.slice(bundle.indexOf("function setTechHomePill"), bundle.indexOf("function openTechHomeProduct"));
-  assert.ok(fn.length > 0 && !/hidden|display|remove\(/.test(fn.replace(/\/\*[\s\S]*?\*\//g, "")), "a pill changes only its own carousel");
-  assert.match(bundle, /const TECH_HOME_MIN = 8;/);
-  assert.match(bundle, /'home-' \+ key \+ '\.json'/);
+  const fn = bundle.slice(bundle.indexOf("function setPillShelf"), bundle.indexOf("function openPillShelfProduct"));
+  assert.ok(fn.length > 0 && !/\.hidden|display|remove\(/.test(fn.replace(/\/\*[\s\S]*?\*\//g, "")), "a pill changes only its own carousel");
+  assert.match(bundle, /const PILL_SHELF_MIN = 8;/);
+  for (const aud of ["mujer", "hombre", "ninos"]) {
+    const head = JSON.parse(readFileSync(ROOT + `assets/home/pills/${aud}.json`, "utf8"));
+    assert.ok(head.pills.length >= 3, aud);
+    head.pills.forEach((p, i) => {
+      const cards = i ? JSON.parse(readFileSync(ROOT + `assets/home/pills/${aud}-${p.k}.json`, "utf8")).cards : head.cards;
+      assert.ok(cards.length >= 8 && cards.length === p.n, `${aud}/${p.label}`);
+      for (const c of cards) assert.ok(c.i && c.p > 0, `${aud}/${p.label}: ${c.t}`);
+    });
+  }
+  /* Danny's scoped types (c.6483623203); Electrónica is never an audience pill. */
+  const labels = (a) => JSON.parse(readFileSync(ROOT + `assets/home/pills/${a}.json`, "utf8")).pills.map((p) => p.label);
+  for (const l of ["Zapatos", "Perfumes", "Maquillaje", "Cabello"]) assert.ok(labels("mujer").includes(l), "Mujer: " + l);
+  for (const l of ["Ropa", "Zapatos", "Zapatillas", "Relojes"]) assert.ok(labels("hombre").includes(l), "Hombre: " + l);
+  for (const l of ["Deportes", "Juguetes", "Ropa"]) assert.ok(labels("ninos").includes(l), "Niños: " + l);
+  for (const a of ["mujer", "hombre", "ninos"]) assert.ok(!labels(a).some((l) => /electr|celular|computadora/i.test(l)), a);
 });
 
 check("the page draws the disclosure under the rail title", () => {

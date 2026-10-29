@@ -43,7 +43,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
@@ -414,8 +414,20 @@ export function build(root = ROOT) {
     writeFileSync(join(root, FN_DIR, key + ".json"), JSON.stringify({ v: 1, dept: key, labels: labelsOf(list, ALL_LABELS), rows: list.map(fnRow) }));
     summary[key] = { items: list.length, rails: sections.length, files };
   }
+  /* The homepage audience carousels (c.6483623203): <aud>.json is the pill
+     row and the first pill's cards; each other pill is <aud>-<pill>.json. */
+  const audDir = join(root, AUDIENCE_DIR);
+  if (existsSync(audDir)) rmSync(audDir, { recursive: true });
+  mkdirSync(audDir, { recursive: true });
+  for (const aud of Object.keys(AUDIENCE_SHELVES)) {
+    const { pills } = audiencePills(aud, listOf);
+    writeFileSync(join(audDir, aud + ".json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, dept: p.dept, n: p.cards.length })), cards: pills.length ? pills[0].cards : [] }));
+    for (const p of pills.slice(1)) writeFileSync(join(audDir, `${aud}-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards }));
+    summary["home:" + aud] = { items: pills.length, rails: 1, files: pills.length };
+  }
   return summary;
 }
+export const AUDIENCE_DIR = "assets/home/pills";
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const t = Date.now();

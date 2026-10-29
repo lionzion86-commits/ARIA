@@ -7459,131 +7459,130 @@ const ROPA_INTERIOR_RAIL_TOTAL = 20;
 
 /* The Reacondicionados pill's shelf: the department head's first cards,
    each rail in order, one card per title. */
-/* ELECTRÓNICA ON THE HOMEPAGE (Danny, #443 c.6485409220). One carousel,
-   its pill row above it, every pill an in-place lens: tapping one swaps
-   the cards right there -- the shopper never leaves the homepage, and
+/* PILL SHELVES ON THE HOMEPAGE (Danny, #443): one carousel, its pill row
+   above it, every pill an in-place lens -- tapping one swaps that
+   carousel's cards right there; the shopper never leaves the homepage,
    every card carries the full Precio Honesto price and opens the buy
-   sheet. The slice is the department's own (scripts/build-department-
-   slices.mjs writes electronics/home.json), so the pills and the
-   Electrónica page can never disagree. A pill needs TECH_HOME_MIN real,
-   priced cards (the Aisle Test) or it does not render; with none, the
-   section stays hidden. */
-const TECH_HOME_DIR = '/assets/sections/departamento/electronics/';
-const TECH_HOME_MIN = 8;
-let techHomePromise = null, techHomePills = [], techHomeActive = '';
-/* home.json: the pill row and the first pill's cards. Every other pill
-   is its own small home-<pill>.json, fetched once the section paints, so
-   a tap swaps the carousel without a wait. */
-function techHomeLoad(){
-  if (!techHomePromise){
-    techHomePromise = fetch(TECH_HOME_DIR + 'home.json')
-      .then(r => r.ok ? r.json() : null)
-      .then(h => (h && Array.isArray(h.pills)) ? h : null)
-      .catch(() => { techHomePromise = null; return null; });
-  }
-  return techHomePromise;
-}
-const techHomePillLoads = {};
-function techHomePillLoad(key){
-  if (!techHomePillLoads[key]){
-    techHomePillLoads[key] = fetch(TECH_HOME_DIR + 'home-' + key + '.json')
-      .then(r => r.ok ? r.json() : null)
-      .then(h => (h && Array.isArray(h.cards)) ? h.cards : [])
-      .catch(() => { delete techHomePillLoads[key]; return []; });
-  }
-  return techHomePillLoads[key];
-}
-function techHomeItems(cards){
+   sheet, and no other section changes (the non-consumption rule,
+   c.6477721206).
+     Electrónica (c.6485409220): its type pills
+     Mujer, Hombre, Niños (c.6483623203): three stacked carousels, each
+       with its own audience-scoped type pills
+   A shelf is a <section data-pill-shelf="<id>">: data-pill-head is its
+   first file (the pill row and the first pill's cards), data-pill-file
+   the prefix of every other pill's small file. Both are built by
+   scripts/build-department-slices.mjs from the departments themselves,
+   so a pill and its department can never disagree. A pill needs
+   PILL_SHELF_MIN real, priced cards (the Aisle Test); with none, the
+   shelf stays hidden. Nothing loads until the shopper scrolls near it. */
+const PILL_SHELF_MIN = 8;
+const pillShelves = {};
+function pillShelfItems(cards, dept){
   const out = [];
   for (const c of (cards || [])){
     if (!c || !c.t) continue;
     let it = null;
     try {
       it = normalizeLiveItem({ title: c.t, brand: c.b, price: c.p, originalPrice: c.o, onSale: Number(c.s) > 0, image: c.i },
-        { retailer: c.r, department: 'electronics' });
+        { retailer: c.r, department: dept || 'general' });
     } catch (e) { continue; }
     if (!it || !it.title || !hasRealImage(it)) continue;
-    out.push({ ...it, retailer: c.r, departments: ['electronics'] });
+    out.push({ ...it, retailer: c.r, departments: [dept || 'general'] });
   }
   return out;
 }
-function techHomePillHTML(pill, on){
-  return `<button role="tab" aria-selected="${on ? 'true' : 'false'}" data-tech-pill="${escapeHtml(pill.k)}"`
-    + ` onclick="setTechHomePill('${jsAttr(pill.k)}')"`
+const pillFileLoads = {};
+function pillShelfFetch(url, pick){
+  if (!pillFileLoads[url]){
+    pillFileLoads[url] = fetch(url).then(r => r.ok ? r.json() : null).then(pick)
+      .catch(() => { delete pillFileLoads[url]; return null; });
+  }
+  return pillFileLoads[url];
+}
+function pillShelfPillHTML(id, pill, on){
+  return `<button role="tab" aria-selected="${on ? 'true' : 'false'}" data-shelf-pill="${escapeHtml(pill.k)}"`
+    + ` onclick="setPillShelf('${jsAttr(id)}','${jsAttr(pill.k)}')"`
     + ` class="flex-shrink-0 px-4 py-2 rounded-full focus-ring text-[12.5px] font-extrabold whitespace-nowrap"`
     + ` style="${on ? 'background:#C9A227;color:#0B2233;' : 'background:rgba(255,255,255,.10);color:#fff;'}">${escapeHtml(pill.label)}</button>`;
 }
-function renderTechHome(){
-  const pill = techHomePills.find(p => p.k === techHomeActive && p.items) || techHomePills.find(p => p.items);
+function renderPillShelf(id){
+  const sh = pillShelves[id];
+  if (!sh) return;
+  const pill = sh.pills.find(p => p.k === sh.active && p.items) || sh.pills.find(p => p.items);
   if (!pill) return;
-  techHomeActive = pill.k;
-  for (const pfx of ['m', 'd']){
-    const pills = document.getElementById(pfx + 'TechPills');
-    const rail = document.getElementById(pfx + 'TechRail');
+  sh.active = pill.k;
+  for (const s of sh.sections){
+    const pills = s.querySelector('[data-pill-row]'), rail = s.querySelector('[data-pill-rail]');
     if (!pills || !rail) continue;
-    pills.innerHTML = techHomePills.map(p => techHomePillHTML(p, p.k === techHomeActive)).join('');
+    pills.innerHTML = sh.pills.map(p => pillShelfPillHTML(id, p, p.k === sh.active)).join('');
+    const more = s.getAttribute('data-pill-more') || '';
     rail.innerHTML = pill.items.map((p, i) =>
-      railCardHTML(p, `openTechHomeProduct(${i})`, `data-tech-card="${escapeHtml(pill.k)}" data-idx="${i}"`, { dark: true })).join('')
-      + `<a href="/departamento.html?dept=electronics" data-tech-more class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3" style="background:#1a2744; border:1px solid rgba(255,255,255,0.14)">`
-      + `<span class="block"><span class="block text-[11.5px]" style="color:#AFBBD6">Ver todo en</span>`
-      + `<span class="block text-[13px] font-extrabold mt-0.5 leading-snug" style="color:#fff">Electrónica &#8594;</span></span></a>`;
+      railCardHTML(p, `openPillShelfProduct('${jsAttr(id)}',${i})`, `data-shelf-card="${escapeHtml(id)}" data-idx="${i}"`, { dark: true })).join('')
+      + (more ? `<a href="${escapeHtml(more)}" data-shelf-more class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3" style="background:#1a2744; border:1px solid rgba(255,255,255,0.14)">`
+        + `<span class="block"><span class="block text-[11.5px]" style="color:#AFBBD6">Ver todo en</span>`
+        + `<span class="block text-[13px] font-extrabold mt-0.5 leading-snug" style="color:#fff">${escapeHtml(s.getAttribute('aria-label') || '')} &#8594;</span></span></a>` : '');
     rail.scrollLeft = 0;
   }
 }
-/* The lens: only this carousel changes. No other section is hidden,
-   moved or emptied (the non-consumption rule, c.6477721206). */
-function setTechHomePill(key){
-  const pill = techHomePills.find(p => p.k === key);
+/* The lens: only this carousel changes. */
+function setPillShelf(id, key){
+  const sh = pillShelves[id];
+  const pill = sh && sh.pills.find(p => p.k === key);
   if (!pill) return;
-  techHomeActive = key;
-  if (pill.items){ renderTechHome(); return; }
-  techHomePillLoad(key).then(cards => {
-    pill.items = techHomeItems(cards);
+  sh.active = key;
+  if (pill.items){ renderPillShelf(id); return; }
+  pillShelfFetch(sh.file + key + '.json', h => (h && Array.isArray(h.cards)) ? h.cards : []).then(cards => {
+    pill.items = pillShelfItems(cards || [], pill.dept || sh.dept);
     /* The Aisle Test, on what actually loaded. */
-    if (pill.items.length < TECH_HOME_MIN) techHomePills = techHomePills.filter(p => p !== pill);
-    if (techHomeActive === key || !techHomePills.includes(pill)) renderTechHome();
+    if (pill.items.length < PILL_SHELF_MIN) sh.pills = sh.pills.filter(p => p !== pill);
+    renderPillShelf(id);
   });
 }
-function openTechHomeProduct(idx){
-  const pill = techHomePills.find(p => p.k === techHomeActive);
-  const p = pill && pill.items[idx];
+function openPillShelfProduct(id, idx){
+  const sh = pillShelves[id];
+  const pill = sh && sh.pills.find(p => p.k === sh.active);
+  const p = pill && pill.items && pill.items[idx];
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
     { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
 }
-function initTechHome(){
-  const sections = Array.from(document.querySelectorAll('[data-tech-home]'));
-  if (!sections.length) return;
-  const start = () => techHomeLoad().then(head => {
-    if (!head || !head.pills.length) return;
-    techHomePills = head.pills.map(p => ({ k: p.k, label: p.label, items: null }));
-    techHomePills[0].items = techHomeItems(head.cards);
-    if (techHomePills[0].items.length < TECH_HOME_MIN) return;
-    techHomeActive = techHomePills[0].k;
-    renderTechHome();
-    for (const s of sections) s.hidden = false;
-    /* Warm the other pills in the background, one small file each. */
-    for (const p of techHomePills.slice(1)) techHomePillLoad(p.k).then(cards => {
-      p.items = techHomeItems(cards);
-      if (p.items.length < TECH_HOME_MIN){ techHomePills = techHomePills.filter(x => x !== p); renderTechHome(); }
+function initPillShelves(){
+  const groups = {};
+  for (const s of document.querySelectorAll('[data-pill-shelf]')) (groups[s.getAttribute('data-pill-shelf')] ||= []).push(s);
+  for (const [id, sections] of Object.entries(groups)){
+    const first = sections[0];
+    const sh = pillShelves[id] = { sections, pills: [], active: '', dept: first.getAttribute('data-pill-dept') || '',
+      file: first.getAttribute('data-pill-file') || '' };
+    const start = () => pillShelfFetch(first.getAttribute('data-pill-head'), h => (h && Array.isArray(h.pills)) ? h : null).then(head => {
+      if (!head || !head.pills.length) return;
+      sh.pills = head.pills.map(p => ({ k: p.k, label: p.label, dept: p.dept || '', items: null }));
+      sh.pills[0].items = pillShelfItems(head.cards, sh.pills[0].dept || sh.dept);
+      if (sh.pills[0].items.length < PILL_SHELF_MIN) return;
+      sh.active = sh.pills[0].k;
+      renderPillShelf(id);
+      for (const s of sections) s.hidden = false;
+      /* Warm the other pills in the background, one small file each. */
+      for (const p of sh.pills.slice(1)) pillShelfFetch(sh.file + p.k + '.json', h => (h && Array.isArray(h.cards)) ? h.cards : []).then(cards => {
+        p.items = pillShelfItems(cards || [], p.dept || sh.dept);
+        if (p.items.length < PILL_SHELF_MIN){ sh.pills = sh.pills.filter(x => x !== p); renderPillShelf(id); }
+      });
     });
-  });
-  /* Mountain Test: nothing loads until the shopper scrolls near it. The
-     section is hidden (display:none) until then, so the observer watches
-     the element just before it. */
-  const marks = sections.map(s => s.previousElementSibling || s.parentElement).filter(Boolean);
-  if ('IntersectionObserver' in window && marks.length){
-    let started = false;
-    const io = new IntersectionObserver(es => {
-      if (started || !es.some(e => e.isIntersecting)) return;
-      started = true; io.disconnect(); start();
-    }, { rootMargin: '1200px 0px' });
-    marks.forEach(m => io.observe(m));
-  } else start();
+    /* Hidden (display:none) until it fills, so the observer watches the
+       element just before each section. */
+    const marks = sections.map(s => s.previousElementSibling || s.parentElement).filter(Boolean);
+    if ('IntersectionObserver' in window && marks.length){
+      let started = false;
+      const io = new IntersectionObserver(es => {
+        if (started || !es.some(e => e.isIntersecting)) return;
+        started = true; io.disconnect(); start();
+      }, { rootMargin: '1200px 0px' });
+      marks.forEach(m => io.observe(m));
+    } else start();
+  }
 }
-window.addEventListener('DOMContentLoaded', initTechHome);
+window.addEventListener('DOMContentLoaded', initPillShelves);
 
 let reacondicionadosHeadPromise = null;
 async function reacondicionadosRailPicks(){
