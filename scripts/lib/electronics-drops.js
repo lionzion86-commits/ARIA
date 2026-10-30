@@ -43,6 +43,7 @@ export function decodeTitle(s) {
     .replace(/\s+/g, " ").trim();
 }
 const DAMAGED_RX = /\b(fractured|cracked|broken (screen|glass)|for parts|not working)\b/i;
+/* "pre-owned" names a plain used listing: walmart-write conditionOf holds it (c.6526570723). */
 const CONDITION_LABEL = { restored: "Reacondicionado", "pre-owned": "Usado", "open box": "Caja abierta" };
 
 /** "sell" or the hold reason, after the type and the voltage gate. */
