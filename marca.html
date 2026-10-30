@@ -49,6 +49,16 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 
 /* ---------- carousels (DANNY 2026-10-07: sales first, category rails, all expandable) ---------- */
 .rail-section{margin:26px 0 8px;}
+/* THE SECTION PATTERN (Danny, Oct 30): sales on top, the search bar, the
+   category pills, the rails. */
+#salesTop .rail-section{margin-top:4px}
+.brand-search{display:flex;gap:8px;margin:18px 0 10px}
+.brand-search input{flex:1;min-width:0;padding:12px 14px;font-size:14px;border:1px solid #DCE3EF;border-radius:14px;background:#fff;color:var(--navy);font-family:inherit}
+.brand-search button{border:0;border-radius:14px;padding:0 16px;background:var(--navy);color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+.brand-pills{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.brand-pills::-webkit-scrollbar{display:none}
+.brand-pills button{flex:0 0 auto;height:36px;padding:0 15px;border-radius:999px;border:1px solid #DCE3EF;background:#fff;color:var(--navy);font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.brand-pills button[aria-selected="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
 .rail-head{display:flex; align-items:center; gap:10px; padding:0 4px; margin-bottom:10px;}
 .rail-head h2{font-size:19px; font-weight:800; color:var(--navy); margin:0; letter-spacing:-.01em;}
 .rail-count{font-size:11px; font-weight:700; color:#fff; background:var(--blue); border-radius:999px; padding:2px 8px; flex-shrink:0;}
@@ -144,6 +154,16 @@ footer a{color:#fff;}
       <p id="brandSub">Buscando productos en tiendas de EE.&nbsp;UU.</p>
     </div>
   </div>
+
+  <!-- THE SECTION PATTERN (Danny, Oct 30): the brand's sales, the search
+       bar (the site's search, scoped to the brand), its category pills,
+       then the rails. -->
+  <section id="salesTop" data-pat="sales" hidden></section>
+  <form class="brand-search" id="brandSearch" role="search" data-pat="search" hidden>
+    <input type="search" id="bq" aria-label="Buscar en esta marca" autocomplete="off">
+    <button type="submit">Buscar</button>
+  </form>
+  <nav class="brand-pills" id="brandPills" data-pat="pills" role="tablist" aria-label="Categorías de la marca" hidden></nav>
 
   <div id="status" role="status">Cargando productos…</div>
 
@@ -590,14 +610,57 @@ function renderRails(){
       container.innerHTML = '<div class="empty"><strong>Sin productos de “' + esc(BRAND_LABEL) + '”</strong><span>Es posible que la marca no esté en nuestro catálogo actual, o que el nombre en la URL no coincida. Prueba con el <a href="/search.html">buscador</a>.</span></div>';
       return;
     }
-    container.innerHTML = HEAD.rails.map(railHTML).join("");
+    /* Sales on top: the brand's Ofertas rail, above the search bar. */
+    var sales = null;
+    for (var si = 0; si < HEAD.rails.length; si++) if (/^Ofertas\b/.test(HEAD.rails[si].title)){ sales = HEAD.rails[si]; break; }
+    var top = el("salesTop");
+    if (top && sales){ top.innerHTML = railHTML(sales); top.hidden = false; drawPending(top.querySelector(".rail-section")); watchPhotos(top); }
+    container.innerHTML = HEAD.rails.filter(function(r){ return r !== sales; }).map(railHTML).join("");
     watchPhotos(container);
     watchRails(container);
+    renderBrandTools(sales);
     setStatus('<span class="ok">' + HEAD.count.toLocaleString("es-PE") + " productos de " + esc(BRAND_LABEL) + ".</span>");
   }catch(e){
     setStatus('<span class="err">No pudimos mostrar los productos.</span> ' +
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   }
+}
+
+/* THE SECTION PATTERN: the search bar (the site's search, scoped to the
+   brand -- nothing is filtered on the phone) and one pill row, the brand's
+   categories with real depth; a pill shows that category's carousel in
+   place, «Todo» brings every carousel back. */
+var PILL_MIN = 8;
+function renderBrandTools(sales){
+  var form = el("brandSearch"), q = el("bq"), nav = el("brandPills");
+  if (form && q){
+    q.placeholder = "Buscar en " + BRAND_LABEL + "…";
+    form.hidden = false;
+    form.onsubmit = function(e){
+      e.preventDefault();
+      var term = (q.value || "").trim();
+      location.href = "/search.html?q=" + encodeURIComponent((BRAND_LABEL + " " + term).trim());
+    };
+  }
+  if (!nav) return;
+  var cats = HEAD.rails.filter(function(r){ return r !== sales && r.count >= PILL_MIN; });
+  if (cats.length < 2){ nav.hidden = true; return; }
+  var h = '<button type="button" role="tab" data-ri="" aria-selected="true">Todo</button>';
+  cats.forEach(function(r){ h += '<button type="button" role="tab" data-ri="' + r.i + '" aria-selected="false">' + esc(r.title) + '</button>'; });
+  nav.innerHTML = h;
+  nav.hidden = false;
+  nav.onclick = function(e){
+    var b = e.target.closest("button[data-ri]"); if (!b) return;
+    var ri = b.getAttribute("data-ri");
+    if (b.getAttribute("aria-selected") === "true" && ri) ri = "";
+    nav.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", x.getAttribute("data-ri") === ri ? "true" : "false"); });
+    el("rails").querySelectorAll(".rail-section[data-ri]").forEach(function(sec){
+      var show = !ri || sec.getAttribute("data-ri") === ri;
+      sec.hidden = !show;
+      if (show) drawPending(sec);
+    });
+    if (ri){ var s = el("rails").querySelector('.rail-section[data-ri="' + ri + '"]'); if (s) watchPhotos(s); }
+  };
 }
 
 /* ---------- data ---------- */

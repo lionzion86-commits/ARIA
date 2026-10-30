@@ -255,7 +255,10 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   </div>
 
   <div id="storeWrap" hidden>
-    <div class="toolbar">
+    <!-- THE SECTION PATTERN (Danny, Oct 30): the store's sales lead, above
+         the search bar; the pills and the rails follow. -->
+    <div id="salesTop" data-pat="sales" hidden></div>
+    <div class="toolbar" data-pat="search">
       <input type="search" id="q" placeholder="Busca en esta tienda…" aria-label="Buscar en esta tienda" autocomplete="off">
       <select id="sort" aria-label="Ordenar">
         <option value="relevance">Destacados</option>
@@ -264,9 +267,9 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
         <option value="priceDesc">Mayor precio</option>
       </select>
     </div>
-    <div class="chips" id="deptChips"></div>
+    <div class="chips" id="deptChips" data-pat="pills"></div>
     <p class="count-line" id="countLine"></p>
-    <div id="content">
+    <div id="content" data-pat="rails">
       <div class="skel-grid" aria-hidden="true">
         <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
         <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
@@ -976,24 +979,47 @@ function slHeroHTML(h){
     '<div class="dh-grid">' + cells + '</div>' +
     '<button type="button" class="dh-go" data-rail="ofertas">Ver todas las ofertas &#8594;</button></section>';
 }
+/* The sales lead the store only on its home view: a search, a pill or a
+   «Ver todo» grid replaces #content, and the sales step aside with it. */
+var slSalesWatch = null;
+function slWatchSalesTop(){
+  var top = $('salesTop'), host = $('content');
+  if (!top || !host) return;
+  var sync = function(){ top.hidden = !top.innerHTML || !document.getElementById('slHomeMark'); };
+  sync();
+  if (!slSalesWatch && 'MutationObserver' in window){ slSalesWatch = new MutationObserver(sync); slSalesWatch.observe(host, { childList: true }); }
+}
 function slRenderHome(){
   var host = $('content');
   if (!host || !slIndex) return;
   slGrid.key = '';
   var s = $('sort');
   if (s) s.style.display = 'none';
-  var html = slHeroHTML(slIndex.hero);
+  /* THE SECTION PATTERN (Danny, Oct 30): the sales hero and the Ofertas
+     rail go above the search bar (#salesTop); the rails stay here, with a
+     mark the pattern reads to show the sales only on this home view. */
+  var sales = slHeroHTML(slIndex.hero), html = '<i id="slHomeMark" hidden></i>';
   var rails = slIndex.rails || [];
   for (var i = 0; i < rails.length; i++){
+    if (i === 0 && rails[i].key === 'ofertas' && /^Ofertas\b/.test(rails[i].title)){ sales += slRailHTML(rails[i]); continue; }
     html += slRailHTML(rails[i]);
     /* The trust strip sits under the two lead rails: sales and demand
        first, then why the store is worth it. */
     if (i === 1 && storeMeta.trust && TRUST[storeMeta.trust]) html += TRUST[storeMeta.trust];
   }
+  var top = $('salesTop');
+  if (top){
+    top.innerHTML = sales;
+    slBindVer(top);
+    var tgo = top.querySelector('.dh-go');
+    if (tgo) tgo.addEventListener('click', function(){ slOpenRail('ofertas'); });
+    watchPhotos(top);
+  }
   host.innerHTML = html;
   slBindVer(host);
   var go = host.querySelector('.dh-go');
   if (go) go.addEventListener('click', function(){ slOpenRail('ofertas'); });
+  slWatchSalesTop();
   slCountLine();
   watchPhotos(host);
   slWatchLazyRails(host);
