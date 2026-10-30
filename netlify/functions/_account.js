@@ -230,7 +230,7 @@ function itemView(it) {
     title: str(it && (it.title || it.name), 160),
     brand: it && it.brand ? str(it.brand, 60) : null,
     size: it && (it.selectedSize || it.size) ? str(it.selectedSize || it.size, 30) : null,
-    /* Reacondicionado / Usado / Caja abierta, as orders-create stored it. */
+    /* Caja abierta / Reacondicionado / Usado certificado, as orders-create stored it. */
     condition: it && it.condition ? str(it.condition, 30) : null,
     qty,
     image,

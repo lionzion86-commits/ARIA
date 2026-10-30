@@ -32,7 +32,8 @@ const sections = buildSections(dept.list, sectionOpts("electronics"));
 
 check("the condition rule: Walmart's Restored and a shouted USED disclose; art and prose do not", () => {
   assert.equal(conditionOfTitle("Restored Dell 3100 11.6 inch HD Chromebook").label, "Reacondicionado");
-  assert.equal(conditionOfTitle("Acer Chromebook 311 C722 4GB 32GB eMMC - Jun 2030 - USED").label, "Usado");
+  /* A plain used title is held off sale, never labelled (c.6526570723). */
+  assert.equal(conditionOfTitle("Acer Chromebook 311 C722 4GB 32GB eMMC - Jun 2030 - USED").held, true);
   assert.equal(conditionOfTitle("Restored II by Brittney Schulz Framed Wall Art Print"), null);
   assert.equal(conditionOfTitle("Headphones used by pros"), null);
   assert.equal(conditionOfTitle("USB-C Hub"), null);

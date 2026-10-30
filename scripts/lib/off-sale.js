@@ -65,6 +65,8 @@
 
 /* This module re-exports /off-sale.js for the builders, checkout.html and
    the Netlify functions; the list itself lives there, once. */
+/* The held-used rule (isOffSaleItem) reads /condition.js. */
+import "../../condition.js";
 import "../../off-sale.js";
 
 const api = globalThis.AriaOffSale;

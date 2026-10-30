@@ -19,9 +19,13 @@
     return SET[String(key == null ? '' : key).trim().toLowerCase()] === true;
   }
   /* A record or a cart line: its store is `retailer` (`store` on the
-     Ofertas cards). */
+     Ofertas cards). A plain used listing is off sale too, whatever its
+     store (/condition.js isHeldUsed, Danny c.6526570723): no honest label. */
   function isOffSaleItem(it) {
-    return !!it && typeof it === 'object' && isOffSaleRetailer(it.retailer || it.store);
+    if (!it || typeof it !== 'object') return false;
+    if (isOffSaleRetailer(it.retailer || it.store)) return true;
+    var C = root.AriaCondition;
+    return !!(C && C.isHeldUsed && C.isHeldUsed(it.title || it.name));
   }
   /* The cart lines that cannot be sold. A combo-discount line has no
      store of its own. */

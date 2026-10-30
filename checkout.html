@@ -267,6 +267,11 @@
                  dutiable value stays internal (currentValor() and its
                  threshold/quote/tax/paperwork uses are untouched). -->
             <div class="flex justify-between"><span>Flete</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+            <!-- STORE SHIPPING (#443 c.6511807569): what the US stores charge
+                 to ship to the Miami warehouse, store by store; the panel
+                 below the summary shows each store's meter. -->
+            <div id="sumShipRow" class="flex justify-between" hidden><span id="sumShipLabel">Envío de las tiendas en EE.UU.</span><span id="sumShip" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+            <div id="storeShipPanel" class="flex flex-col gap-2 mt-1" hidden></div>
             <!-- PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province
                  leg, rendered only when the destination is outside Lima.
                  Soles-denominated, like the small-order fee. -->
@@ -794,6 +799,9 @@
      (orders-create.js refuses it too). */
   import { isOffSaleItem, OFF_SALE_LINE_NOTE } from './scripts/lib/off-sale.js';
   import { conditionOfTitle, SOLD_OUT_NOTE } from './scripts/lib/condition.js';
+  /* STORE SHIPPING (#443 c.6511807569, c.6511908498): each store's own fee
+     to Miami, store by store, with its meter -- /store-shipping.js. */
+  import { cartShipping, shippingRuleText, shippingMeterText, shippingStandingText, SHIPPING_LINE_LABEL } from './scripts/lib/store-shipping.js';
   /* DELIVERY TRANSPARENCY (2026-09-26): the researched Miami-transit dataset. */
   import { deliveryFor, miamiRangeEs, slowestDeliveryKey,
            MIAMI_TO_DOOR_MIN, MIAMI_TO_DOOR_MAX } from './scripts/lib/retailer-delivery.js';
@@ -1578,8 +1586,9 @@ function cardImgAttrs(url, sizes){
     const v = fxRates.venta;
     const products = round2(totals.goods * v);
     const tax = round2(totals.tax * v);
+    const shipping = round2((totals.shipping || 0) * v);
     const total = round2(totals.totalUsd * v + feesPen);
-    return { products, tax, total, freight: round2(total - feesPen - products - tax) };
+    return { products, tax, shipping, total, freight: round2(total - feesPen - products - tax - shipping) };
   }
   function escapeSuffix(s){
     return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
@@ -1679,7 +1688,40 @@ function cardImgAttrs(url, sizes){
     const fob = currentValor();
     const freight = currentFreightUsd();
     const tax = importTaxEstimateUsd(fob, freight);
-    return { goods, fob, freight, tax, totalUsd: round2(goods + freight + tax) };
+    /* Each store's own shipping to Miami, under its free-shipping line
+       (orders-create.js charges the same figure). */
+    const shipping = cartShipping(cart).totalUsd;
+    return { goods, fob, freight, tax, shipping, totalUsd: round2(goods + freight + tax + shipping) };
+  }
+
+  /* ONE GROUP PER STORE (#443 c.6511908498): its rule, its meter on THIS
+     store's subtotal only, and where the shopper stands -- the same
+     numbers as the store's product pages. Every store in the cart gets
+     its row (Danny, #443 c.6524139671): one whose terms are still being
+     sourced, or that sets the fee at its own checkout, says so and is
+     charged nothing here -- never GRATIS, never an invented number. */
+  function renderStoreShipping(totals, pens){
+    const row = document.getElementById('sumShipRow');
+    const panel = document.getElementById('storeShipPanel');
+    const ship = cartShipping(cart);
+    const ruled = ship.stores;
+    row.hidden = !ruled.length;
+    panel.hidden = !ruled.length;
+    if (!ruled.length){ panel.innerHTML = ''; return; }
+    setMoney(document.getElementById('sumShip'), totals.shipping, '', pens ? pens.shipping : NaN);
+    panel.innerHTML = ruled.map((st) => {
+      const label = RETAILER_LABELS[st.store] || st.store;
+      const open = !st.rule || st.pending;
+      const fee = !st.rule ? 'POR CONFIRMAR' : st.pending ? 'POR CALCULAR' : st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS';
+      const meter = st.rule && st.rule.freeOverUsd > 0 && st.progress != null
+        ? `<div class="h-2 rounded-full overflow-hidden mt-1.5" style="background:#E3E7F0" role="progressbar" aria-valuemin="0" aria-valuemax="${st.rule.freeOverUsd}" aria-valuenow="${st.subtotalUsd}"><div class="h-full rounded-full" style="width:${Math.round(st.progress * 100)}%; background:${st.met ? '#1F8A4C' : 'var(--navy)'}"></div></div>
+           <div class="text-[11.5px] mt-1" style="color:#5B6478">${escapeHtmlLocal(shippingMeterText(st))} · ${escapeHtmlLocal(shippingStandingText(st, label))}</div>`
+        : '';
+      return `<div class="rounded-xl px-3 py-2" style="background:#F7F8FB; border:1px solid var(--line)" data-store-ship="${escapeHtmlLocal(st.store)}">
+        <div class="flex justify-between gap-2 text-[12.5px]"><span class="font-bold" style="color:var(--navy)">Envío de ${escapeHtmlLocal(label)}</span><span class="tabular font-extrabold" style="color:${open || st.feeUsd > 0 ? 'var(--navy)' : '#1F8A4C'}">${fee}</span></div>
+        <div class="text-[11px]" style="color:#8A93A8">${escapeHtmlLocal(st.rule ? shippingRuleText(st.store) : 'Estamos confirmando lo que cobra ' + label + ' por enviar a Miami; te lo confirmamos antes de cobrar.')}</div>${meter}
+      </div>`;
+    }).join('');
   }
 
   /* One renderer for the tax row, called from both summary branches so
@@ -2007,6 +2049,7 @@ function cardImgAttrs(url, sizes){
     const pens = breakdownPens(totals, smallOrderFee + provFee + expressFee);
     setMoney(sumProducts, totals.goods, '', pens ? pens.products : NaN);
     renderTaxRow(totals.tax, pens ? pens.tax : NaN);
+    renderStoreShipping(totals, pens);
 
     if (loading || !latestQuote){
       const q = latestQuote || provisional;
@@ -2331,8 +2374,8 @@ function cardImgAttrs(url, sizes){
         <div class="min-w-0 flex-1">
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
-          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && conditionOfTitle(it.title) ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
-          ${it.lineType !== 'bundle-discount' && conditionOfTitle(it.title) ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
+          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+          ${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
           ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
             <label for="lineSize${i}" class="block text-[12px] font-bold leading-snug" style="color:#B03A2E">Falta elegir la talla de este producto. Elígela para poder pagar.</label>
@@ -2624,6 +2667,7 @@ function cardImgAttrs(url, sizes){
              NOT trusted: orders-create.js recomputes the tax from the
              same shared helper and charges its own answer. */
           importTaxUsd: orderTotalsUsd().tax,
+          storeShippingUsd: orderTotalsUsd().shipping,
           // A request, not an instruction: orders-create.js re-reads the
           // balance and caps this against it and against the order total.
           applyWalletPen: walletAppliedPen(orderTotalPenNow()),

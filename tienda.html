@@ -74,6 +74,7 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   font-size:12px;font-weight:800;padding:4px 9px;border-radius:999px;z-index:2}
 .card-body{padding:10px 12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
 .card-brand{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}
+.card-cond{display:inline-block;margin-right:6px;font-size:10px;font-weight:800;letter-spacing:0;text-transform:none;padding:1px 7px;border-radius:999px;background:var(--navy);color:#fff;vertical-align:1px}
 .card-title{font-size:13.5px;font-weight:600;line-height:1.35;margin:0;color:var(--navy);
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-prices{margin-top:auto;padding-top:8px}
@@ -880,7 +881,7 @@ function slCardHTML(p){
     ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">';
   return '<a class="card" href="' + esc(href) + '">' +
     '<div class="card-img">' + (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img + '</div>' +
-    '<div class="card-body"><div class="card-brand">' + (p.brand ? esc(p.brand) : '&nbsp;') + '</div>' +
+    '<div class="card-body"><div class="card-brand">' + (p.k ? '<span class="card-cond">' + esc(p.k) + '</span>' : '') + (p.brand ? esc(p.brand) : (p.k ? '' : '&nbsp;')) + '</div>' +
       '<h3 class="card-title">' + esc(p.name) + '</h3>' + slPriceHTML(p) + '</div></a>';
 }
 /* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN -- search.html's

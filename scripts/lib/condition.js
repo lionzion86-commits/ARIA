@@ -4,6 +4,7 @@ import "../../condition.js";
 
 const api = globalThis.AriaCondition;
 export const conditionOfTitle = api.conditionOfTitle;
+export const isHeldUsed = api.isHeldUsed;
 export const gradeOfTitle = api.gradeOfTitle;
 export const CONDITION_LABELS = api.LABELS;
 export const NO_GRADE_NOTE = api.NO_GRADE_NOTE;

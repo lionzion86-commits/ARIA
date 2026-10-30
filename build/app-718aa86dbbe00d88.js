@@ -7368,7 +7368,7 @@ const CATEGORY_RAILS = [
     feed: () => perfumesShelfPicks(),
     open: "location.href='/departamento.html?dept=perfumes'" },
   { key: 'reacondicionados', label: 'Reacondicionados', icon: '', stores: null, poolOnly: true,
-    blurb: 'Reacondicionados, de caja abierta y usados, con el estado que indica la tienda.',
+    blurb: 'De caja abierta, reacondicionados y usados certificados, con el estado que indica la tienda.',
     feed: () => reacondicionadosRailPicks(),
     open: "location.href='/departamento.html?dept=reacondicionados'" },
 ];
@@ -7553,8 +7553,8 @@ function pillShelfItems(cards, dept){
         { retailer: c.r, department: dept || 'general' });
     } catch (e) { continue; }
     if (!it || !it.title || !hasRealImage(it)) continue;
-    /* k: the condition the store's title states (Reacondicionado, Usado,
-       Caja abierta) -- the card wears it as its badge. */
+    /* k: the condition the store's title states (Caja abierta,
+       Reacondicionado, Usado certificado) -- the card wears it as its badge. */
     out.push({ ...it, retailer: c.r, departments: [dept || 'general'], ...(c.k ? { conditionLabel: c.k } : {}) });
   }
   return out;
@@ -20241,13 +20241,23 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      product. */
   const condEl = document.getElementById('productViewCondition');
   if (condEl){
-    const C = window.AriaCondition, c = C && C.conditionOfTitle(name);
+    const C = window.AriaCondition, c0 = C && C.conditionOfTitle(name), c = c0 && c0.label ? c0 : null;
     if (c){
       const grade = C.gradeOfTitle(name);
       condEl.innerHTML = `<b>Estado: ${escapeHtml(c.label)}.</b> ${escapeHtml(grade ? 'Grado según la tienda: ' + grade + '.' : C.NO_GRADE_NOTE)} No es un producto nuevo.`
         + `<span class="block mt-1.5">${escapeHtml(C.SOLD_OUT_NOTE)}</span>`;
     }
     condEl.hidden = !c;
+  }
+  /* THE STORE'S OWN SHIPPING (#443 c.6511829027): both numbers, from the
+     first product a shopper opens at that store -- «Envío gratis desde
+     $35 · $7.99 debajo de ese monto» (/store-shipping.js). Nothing for a
+     store without sourced terms. */
+  const shipEl = document.getElementById('productViewShipping');
+  if (shipEl){
+    const S = window.AriaStoreShipping, line = S && S.ruleText(retailer);
+    shipEl.innerHTML = line ? `<b>Costo de envío de la tienda:</b> ${escapeHtml(line)}` : '';
+    shipEl.hidden = !line;
   }
   /* Set by openAutoPart() immediately before this call, and consumed
      here so it cannot leak onto the next product a shopper opens. */
