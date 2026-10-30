@@ -66,7 +66,6 @@ export function perfumeClassOf(p) {
   if (String((p && p.type) || "") === "Cuidado corporal" || /— (Body mist|Body spray|After shave|Perfume para el cabello|Desodorante|Gel de ducha|Loción corporal|Jabón|Crema|Talco|Aroma para el hogar|Labial|Afeitado|Baño|Gel de baño|Aceite corporal|Manteca corporal|Vela)\b/.test(t)) return "cuidado";
   return "frasco";
 }
-const PERFUME_RAILS = { testers: "Testers", minis: "Minis y de viaje", sets: "Sets de regalo", cuidado: "Cuerpo y cuidado" };
 /* The houses a shopper in Peru knows by name (the catalogue's own brand
    strings). They lead: their rail comes first and their house rails
    come before the long tail (#443 item 39 D -- recognition stops the
@@ -79,57 +78,99 @@ export const PERFUME_DESIGNER_HOUSES = new Set([
   "issey miyake", "kenzo", "jimmy choo", "michael kors", "coach", "estee lauder", "narciso rodriguez", "kilian",
   "maison francis kurkdjian", "xerjoff", "parfums de marly",
 ]);
+/* The names a shopper in Peru recognizes on a sale (Danny: "the brands that
+   are mainstream"): the designer houses plus the household names. */
+export const PERFUME_MAINSTREAM = new Set([...PERFUME_DESIGNER_HOUSES, "guess", "davidoff", "elizabeth arden", "clinique", "moschino",
+  "salvatore ferragamo", "ferragamo", "cartier", "chloe", "dkny", "donna karan", "juicy couture", "victoria's secret", "nautica",
+  "antonio banderas", "perry ellis", "kenneth cole", "police", "jo malone", "lalique", "nina ricci", "paris hilton", "ariana grande",
+  "britney spears", "abercrombie & fitch", "hollister", "adidas", "nike", "tous", "karl lagerfeld", "john varvatos", "bath & body works"]);
 export function isDesignerHouse(p) { return PERFUME_DESIGNER_HOUSES.has(String((p && p.brand) || "").trim().toLowerCase()); }
 const perfumeName = (p) => String((p && p.title) || "").split(" — ")[0].toLowerCase();
+/* ---------- THE PERFUMES ROOM, THE UNIVERSAL FORMAT (Danny, #443
+   c.6532584474 / c.6532666653, Oct 30) ----------
+   Ofertas first, then one rail per KNOWN brand, biggest first by the true
+   count, then one shared rail for the long tail ("Más marcas"). Inside one
+   brand (a brand pill), the same format one level down: its Ofertas, then
+   a rail per type (Mujer, Hombre, Unisex, Testers, Minis, Sets...).
+   A brand is known when it carries PERFUME_KNOWN_MIN products, or is a
+   designer house with PERFUME_HOUSE_MIN. The doors (Mujer / Hombre /
+   Unisex / Minis / Sets / Testers) are the catalogue's own departments,
+   carried on each row as `a`. */
+export const PERFUME_KNOWN_MIN = 20, PERFUME_HOUSE_MIN = 5;
+export const PERFUME_DOORS = [["mujer", "Mujer"], ["hombre", "Hombre"], ["unisex", "Unisex"], ["minis", "Minis"], ["sets", "Sets de regalo"], ["testers", "Testers"]];
+const PERFUME_TYPE_RAILS = [["mujer", "Para mujer"], ["hombre", "Para hombre"], ["unisex", "Unisex"], ["mas", "Más perfumes"], ["testers", "Testers"], ["minis", "Minis y de viaje"], ["sets", "Sets de regalo"], ["cuidado", "Cuerpo y cuidado"], ["repuestos", "Repuestos"]];
+const brandKey = (p) => String((p && p.brand) || "").trim().toLowerCase();
+/* The brand groups of a list: [{ key, label, items }], biggest first; the
+   label is the spelling most of its products carry ("Juliette Has A Gun"). */
+export function perfumeBrands(list) {
+  const by = new Map();
+  for (const p of list) {
+    const k = brandKey(p);
+    if (!k) continue;
+    if (!by.has(k)) by.set(k, { key: k, items: [], spell: new Map() });
+    const g = by.get(k);
+    g.items.push(p);
+    const b = String(p.brand).trim();
+    g.spell.set(b, (g.spell.get(b) || 0) + 1);
+  }
+  return [...by.values()].map((g) => ({ key: g.key, label: [...g.spell.entries()].sort((a, b) => b[1] - a[1])[0][0], items: g.items }))
+    .sort((a, b) => (b.items.length - a.items.length) || a.label.localeCompare(b.label));
+}
+export const isKnownPerfumeBrand = (g) => g.items.length >= PERFUME_KNOWN_MIN || (g.items.length >= PERFUME_HOUSE_MIN && PERFUME_DESIGNER_HOUSES.has(g.key));
+/* Danny: the mainstream houses' sales lead; a lesser name leads only when
+   it is really cheap (under US$30); then everything else on sale. */
+const PERFUME_CHEAP = 30;
+function perfumeSalesOrder(sales, mainstream) {
+  /* The designer houses lead, then the household names, then a really
+     cheap lesser name (cheapest first), then the rest -- each part by its
+     discount; the boxed bottle before its tester or mini. */
+  const rank = (p) => (PERFUME_DESIGNER_HOUSES.has(brandKey(p)) ? 0 : mainstream.has(brandKey(p)) ? 1 : p.rawPrice < PERFUME_CHEAP ? 2 : 3);
+  const bottle = (p) => (perfumeClassOf(p) === "frasco" ? 0 : 1);
+  return sales.map((p, i) => ({ p, i, r: rank(p) }))
+    .sort((a, b) => (a.r - b.r) || (bottle(a.p) - bottle(b.p)) || (a.r === 2 ? a.p.rawPrice - b.p.rawPrice : 0) || (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+}
+/* Inside a rail: the boxed bottle before its variants, on sale first, then cheapest first. */
+function perfumeRailOrder(items) {
+  return items.map((p, i) => ({ p, i })).sort((a, b) => ((perfumeClassOf(a.p) === "frasco" ? 0 : 1) - (perfumeClassOf(b.p) === "frasco" ? 0 : 1))
+    || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+}
+/* A product's type rail: its class, else its door (the catalogue department). */
+function perfumeTypeOf(p) {
+  const c = perfumeClassOf(p);
+  if (c !== "frasco") return c;
+  if (["mujer", "hombre", "unisex"].includes(p.a)) return p.a;
+  const t = String(p.title || "");
+  /* A bottle from another store says who it is for in its own words, or is "más". */
+  return /\bpara hombre$|\b(for men|men's|pour homme|homme)\b/i.test(t) ? "hombre" : /\bpara mujer$|\b(for women|women's|pour femme|femme)\b/i.test(t) ? "mujer" : /\bunisex\b/i.test(t) ? "unisex" : "mas";
+}
 export function buildPerfumeSections(list) {
   const sections = [];
-  const sales = list.filter((p) => p.salePct > 0 && perfumeClassOf(p) === "frasco").map((p, i) => ({ p, i }))
-    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
-  /* LAS GRANDES CASAS: each classic once (its cheapest boxed bottle),
-     with a designer-house sale between them -- sale-led picks
-     interleaved, not all of them. */
-  const classics = [];
-  PERFUME_CLASSICS.forEach(([brand, name, side], rank) => {
-    for (const p of list) {
-      if (perfumeClassOf(p) !== "frasco" || String(p.brand || "") !== brand) continue;
-      /* The bottle people picture: no refill, no unboxed variant. */
-      if (/\((?:[^)]*\b)?(?:Repuesto|Sin caja)\b/.test(String(p.title || ""))) continue;
-      if (side && !String(p.title || "").endsWith(" " + side)) continue;
-      if (String(p.title || "").indexOf(name + " — ") === 0) classics.push({ p, rank });
+  const brands = perfumeBrands(list);
+  const mainstream = PERFUME_MAINSTREAM;
+  const sales = list.filter((p) => p.salePct > 0);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: perfumeSalesOrder(sales, mainstream) });
+  /* One brand (a brand pill): its rails are its types. */
+  if (brands.length === 1) {
+    for (const [k, title] of PERFUME_TYPE_RAILS) {
+      const l = list.filter((p) => perfumeTypeOf(p) === k);
+      if (l.length) sections.push({ key: "tipo:" + k, title, items: perfumeRailOrder(l) });
     }
-  });
-  classics.sort((a, b) => (a.rank - b.rank) || (a.p.rawPrice - b.p.rawPrice));
-  const heroes = [], seenRank = new Set();
-  for (const c of classics) if (!seenRank.has(c.rank)) { seenRank.add(c.rank); heroes.push(c.p); }
-  const seenName = new Set(heroes.map(perfumeName));
-  const houseSales = sales.filter((p) => isDesignerHouse(p) && !seenName.has(perfumeName(p)) && (seenName.add(perfumeName(p)), true)).slice(0, heroes.length);
-  const lead = [];
-  heroes.forEach((h, i) => { lead.push(h); if (houseSales[i]) lead.push(houseSales[i]); });
-  if (lead.length) sections.push({ key: "grandes-casas", title: "Las grandes casas", items: lead });
-  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
-  for (const k of ["testers", "minis", "sets"]) {
-    const l = list.filter((p) => perfumeClassOf(p) === k);
-    if (l.length) sections.push({ key: "clase:" + k, title: PERFUME_RAILS[k], items: l });
+    return sections;
   }
-  const byBrand = {}, order = [];
-  for (const p of list) {
-    if (perfumeClassOf(p) !== "frasco") continue;
-    const b = String(p.brand || "").trim() || "__otros__";
-    if (!byBrand[b]) { byBrand[b] = []; order.push(b); }
-    byBrand[b].push(p);
-  }
-  const groups = []; let small = [];
-  order.forEach((b, idx) => { const l = byBrand[b]; if (b !== "__otros__" && l.length >= 3) groups.push({ b, l, idx }); else small = small.concat(l); });
-  /* The designer houses first, then the rest; inside each, by how much
-     of the house we carry. */
-  const classicRank = (g) => { const i = PERFUME_CLASSICS.findIndex((c) => c[0] === g.b); return i === -1 ? PERFUME_CLASSICS.length : i; };
-  const known = (g) => (PERFUME_DESIGNER_HOUSES.has(g.b.toLowerCase()) ? 0 : 1);
-  groups.sort((a, b) => (classicRank(a) - classicRank(b)) || (known(a) - known(b)) || (b.l.length - a.l.length) || (a.idx - b.idx));
-  for (const g of groups) sections.push({ key: "marca:" + g.b.toLowerCase(), title: g.b, items: g.l });
-  if (small.length) sections.push({ key: "marca:otras", title: "Más perfumes", items: small });
-  const care = list.filter((p) => perfumeClassOf(p) === "cuidado");
-  if (care.length) sections.push({ key: "clase:cuidado", title: PERFUME_RAILS.cuidado, items: care });
+  const known = brands.filter(isKnownPerfumeBrand);
+  for (const g of known) sections.push({ key: "marca:" + g.key, title: g.label, items: perfumeRailOrder(g.items) });
+  const knownKeys = new Set(known.map((g) => g.key));
+  const tail = list.filter((p) => !knownKeys.has(brandKey(p)));
+  if (tail.length) sections.push({ key: "marca:mas", title: "Más marcas", items: perfumeRailOrder(tail) });
   return sections;
+}
+/* The pills above the room: the doors with their counts, and one pill per
+   known brand, biggest first (the head carries them; a pill re-scopes the
+   page through the endpoint's a= / b= filters). */
+export function perfumePills(list) {
+  const doors = PERFUME_DOORS.map(([k, label]) => ({ k, label, n: list.filter((p) => p.a === k).length })).filter((d) => d.n > 0);
+  const brands = perfumeBrands(list).filter(isKnownPerfumeBrand).map((g) => ({ k: g.label, label: g.label, n: g.items.length }));
+  return { doors, brands };
 }
 
 /* The shoe departments (#443 c.6405702652): their types are Aria's own
@@ -141,6 +182,7 @@ export function sectionOpts(key) {
   if (key === CASA_DEPT) return { casa: true };
   if (key === TECH_DEPT) return { tech: true };
   if (key === CABELLO_DEPT) return { cabello: true };
+  if (key === "perfumes") return { perfume: true };
   if (key === REFURB_DEPT) return { refurb: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
@@ -813,6 +855,8 @@ function buildSectionsRaw(list, opts = {}) {
   if (opts.casa) return buildCasaSections(list);
   if (opts.tech) return buildTechSections(list);
   if (opts.cabello) return buildCabelloSections(list);
+  /* The Perfumes room is always the room, whatever store a bottle comes from. */
+  if (opts.perfume) return buildPerfumeSections(list);
   if (opts.refurb) return buildRefurbSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
@@ -938,10 +982,14 @@ export function rowItem(r) {
 
 /* The page's filters, unchanged: one store, and every word of the
    department search box in the title or brand. */
-export function filterList(list, { r = "", q = "" } = {}) {
+export function filterList(list, { r = "", q = "", b = "", a = "" } = {}) {
   const words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  /* b: one brand (a brand pill), a: one door (Perfumes' Mujer / Hombre ...). */
+  const bk = String(b || "").trim().toLowerCase();
   return list.filter((p) => {
     if (r && r !== "all" && p.retailer !== r) return false;
+    if (bk && String(p.brand || "").trim().toLowerCase() !== bk) return false;
+    if (a && p.a !== a) return false;
     if (words.length) {
       const hay = (p.title + " " + (p.brand || "")).toLowerCase();
       for (const w of words) if (hay.indexOf(w) === -1) return false;
@@ -981,7 +1029,8 @@ export function answer(qs, roots) {
   const d = loadDept(String(qs.dept || ""), roots);
   if (!d) return { status: 404, body: { error: "Departamento no encontrado." } };
   const r = String(qs.r || "").slice(0, 40), q = String(qs.q || "").slice(0, 80);
-  const list = (r && r !== "all") || q.trim() ? filterList(d.list, { r, q }) : d.list;
+  const b = String(qs.b || "").slice(0, 80), a = String(qs.a || "").slice(0, 40);
+  const list = (r && r !== "all") || q.trim() || b || a ? filterList(d.list, { r, q, b, a }) : d.list;
   const sections = buildSections(list, sectionOpts(d.key));
   if (qs.rail !== undefined && qs.rail !== "") {
     /* rail=all: the whole department, page by page, in its carousels'
@@ -996,5 +1045,7 @@ export function answer(qs, roots) {
     const out = batchOf(sections, Number(qs.batch));
     return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más carruseles." } };
   }
-  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q }) };
+  /* Perfumes: a door's view keeps its brand pills (the brands inside that door). */
+  const extra = d.key === "perfumes" ? { ...perfumePills(list), b, a } : {};
+  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra }) };
 }

@@ -43,7 +43,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
@@ -338,6 +338,9 @@ export const MEDIA_RX = /\b(dvd|blu-?ray|audio cd|music cd|the very best of|grea
 export function deptItems(all, key) {
   const rule = DEPT_RULES[key];
   let list = all.filter((p) => belongsToDept(rule, p));
+  /* Perfumes: each bottle's door is the catalogue's own department
+     (mujer / hombre / unisex / minis / sets / testers ...), carried as `a`. */
+  if (key === "perfumes") list = list.map((p) => (p.retailer === "ariaperfumes" && p.bucket ? { ...p, a: p.bucket } : p));
   if (key === "home_goods") {
     list = list.map((p) => (CASA_BUCKETS.includes(p.bucket) ? { ...p, a: p.bucket } : p));
     list = all.filter((p) => CASA_BOOK_STORES.has(p.retailer)).map((p) => ({ ...p, a: "libros" })).concat(list);
@@ -398,7 +401,9 @@ export function build(root = ROOT) {
     /* Order D: the hub's pill row rides in head.json; each lens is its own file. */
     const { lenses, extra } = hubLenses(key, list, ALL_LABELS, listOf);
     for (const l of lenses) writeFileSync(join(dir, `lens-${l.k}.json`), JSON.stringify(l));
-    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, extra)));
+    /* Perfumes' doors and brand pills ride in its head (the universal format). */
+    const pills = key === "perfumes" ? perfumePills(list) : {};
+    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...extra, ...pills })));
     /* The homepage Electrónica carousel's pills (c.6485409220). */
     /* home.json is the pill row and the first pill's cards (the first
        screen, under the 32KB budget); each other pill is its own

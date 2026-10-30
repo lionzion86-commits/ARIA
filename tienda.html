@@ -255,9 +255,6 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   </div>
 
   <div id="storeWrap" hidden>
-    <!-- THE SECTION PATTERN (Danny, Oct 30): the store's sales lead, above
-         the search bar; the pills and the rails follow. -->
-    <div id="salesTop" data-pat="sales" hidden></div>
     <div class="toolbar" data-pat="search">
       <input type="search" id="q" placeholder="Busca en esta tienda…" aria-label="Buscar en esta tienda" autocomplete="off">
       <select id="sort" aria-label="Ordenar">
@@ -268,6 +265,9 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
       </select>
     </div>
     <div class="chips" id="deptChips" data-pat="pills"></div>
+    <!-- THE UNIVERSAL FORMAT (#443 c.6532666653): the search bar, the pills,
+         then the store's Ofertas before any other rail. -->
+    <div id="salesTop" data-pat="sales" hidden></div>
     <p class="count-line" id="countLine"></p>
     <div id="content" data-pat="rails">
       <div class="skel-grid" aria-hidden="true">
