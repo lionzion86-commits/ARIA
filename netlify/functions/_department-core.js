@@ -26,8 +26,74 @@ export const DEPT_KEY_RX = /^[a-z_]{2,40}$/;
 /* Aria's own footwear classes (scripts/lib/footwear.js SHOE_CLASSES) are
    titles already: "Botas y botines", not "Botas Y Botines". */
 const SHOE_CLASS_LABELS = new Map(["Zapatillas", "Sandalias", "Botas y botines", "Tacones", "Chimpunes", "Mocasines y pantuflas", "Zapatos"].map((l) => [l.toLowerCase(), l]));
+/* A rail title is Spanish (#443: English is never shown as Spanish copy).
+   The store's own type is read through the garment and gear vocabularies,
+   then this dictionary; a store's SKU code is no title at all. */
+const TYPE_ES = new Map(Object.entries({
+  "apparel": "Ropa", "clothing": "Ropa", "sportswear": "Ropa deportiva", "intimates": "Ropa interior", "underwear": "Ropa interior",
+  "mens underwear": "Ropa interior", "briefs": "Ropa interior", "boxers": "Ropa interior", "thongs": "Lencería", "panties": "Lencería",
+  "panty": "Lencería", "panty pack": "Lencería", "panty packs": "Lencería", "bras": "Lencería", "bra": "Lencería", "bralette": "Lencería",
+  "bralettes": "Lencería", "bralette pack": "Lencería", "shapewear top": "Fajas y shapewear", "shapewear slips": "Fajas y shapewear",
+  "shapewear bottoms": "Fajas y shapewear", "shapewear bottom": "Fajas y shapewear", "shapewear bodysuits": "Fajas y shapewear",
+  "shapewear bodysuit": "Fajas y shapewear", "bodysuits": "Bodies", "bodysuit": "Bodies", "corsets & bodysuits": "Bodies",
+  "sleepwear": "Pijamas", "pyjamas & loungewear": "Pijamas", "robes": "Batas", "lounge pants": "Pijamas", "socks": "Medias",
+  "mens socks": "Medias", "leggings": "Leggings", "jumpsuits": "Enterizos", "rompers": "Enterizos", "one piece": "Enterizos",
+  "suits": "Ternos", "blazers": "Blazers", "neck ties": "Corbatas", "scarves": "Bufandas", "belts & suspenders": "Correas",
+  "beanies": "Gorros", "caps": "Gorras", "structured hats": "Gorras", "beach hats": "Sombreros", "sets": "Conjuntos", "set": "Conjuntos",
+  "bundle": "Conjuntos", "wallets": "Billeteras", "wallet": "Billeteras", "card holders": "Billeteras", "coin pouches": "Billeteras",
+  "passport holders": "Billeteras", "pouches": "Neceseres", "pouches & document holders": "Neceseres", "keychains": "Llaveros",
+  "watches": "Relojes", "eyewear": "Lentes", "glasses": "Lentes", "sunglasses": "Lentes de sol", "jewelry": "Joyas",
+  "home": "Hogar", "decor": "Decoración", "decorations": "Decoración", "decorative objects": "Decoración", "led decor": "Decoración",
+  "decorative sculptures & figurines": "Decoración", "tabletop decorations": "Decoración", "wall decor": "Cuadros y decoración de pared",
+  "framed wall art": "Cuadros y decoración de pared", "canvas wall art": "Cuadros y decoración de pared", "picture frames": "Portarretratos",
+  "frames": "Portarretratos", "mirrors": "Espejos", "wall mirrors": "Espejos", "vases": "Floreros", "planters & pots": "Maceteros",
+  "potted plants": "Plantas y flores", "stems & sprays": "Plantas y flores", "floral stems & branches": "Plantas y flores",
+  "floral arrangements": "Plantas y flores", "floral & botanical arrangements": "Plantas y flores", "throws": "Mantas",
+  "square pillows": "Cojines", "lumbar pillows": "Cojines", "door mats": "Tapetes", "baskets": "Canastas y organizadores",
+  "baskets & storage bins": "Canastas y organizadores", "decorative storage": "Canastas y organizadores", "storage container": "Canastas y organizadores",
+  "wastebaskets": "Canastas y organizadores", "candle holders": "Velas y candelabros", "candlesticks": "Velas y candelabros",
+  "pillar candles": "Velas y candelabros", "pillar stands": "Velas y candelabros", "taper & pillar candles": "Velas y candelabros",
+  "led pillar candles": "Velas y candelabros", "monochrome candles": "Velas y candelabros", "jar & filled candles": "Velas y candelabros",
+  "votive & tealight holders": "Velas y candelabros", "hurricanes": "Velas y candelabros", "lanterns": "Faroles",
+  "scented candles & diffusers": "Velas y aromas", "reed diffusers": "Velas y aromas", "reed diffuser refill oil": "Velas y aromas",
+  "room sprays": "Velas y aromas", "fragrance oil": "Velas y aromas", "soaps, lotion & scents": "Jabones y cremas",
+  "dinnerware": "Vajilla", "plates": "Vajilla", "silicone tableware": "Vajilla", "drinkware": "Vasos y tazas", "wine glasses": "Vasos y tazas",
+  "mugs & tea cups": "Vasos y tazas", "coffee mugs & tea cups": "Vasos y tazas", "tablecloths": "Manteles y servilletas",
+  "table runners": "Manteles y servilletas", "placemats": "Manteles y servilletas", "napkins": "Manteles y servilletas",
+  "napkin rings": "Manteles y servilletas", "tablecovers": "Manteles y servilletas", "christmas ornaments": "Navidad",
+  "specialty ornaments": "Navidad", "neutral ornaments": "Navidad", "christmas decor": "Navidad", "tree accessories": "Navidad",
+  "wreaths": "Navidad", "wreaths & garland": "Navidad", "garlands": "Navidad", "yard decorations & signs": "Decoración de jardín",
+  "keepsakes & gifts": "Regalos", "coffee table book": "Libros de mesa", "balloons": "Globos", "favors": "Recuerdos de fiesta",
+  "favor bags & containers": "Recuerdos de fiesta", "confetti & streamers": "Decoración de fiesta", "banners & signs": "Decoración de fiesta",
+  "decorating kits": "Decoración de fiesta", "costume accessories": "Disfraces", "games": "Juegos", "hair care": "Cuidado del cabello",
+  "beauty": "Belleza", "fragrance bundles": "Perfumes", "lunch boxes totes": "Loncheras", "gear": "Equipo", "gear bag": "Maletines deportivos",
+  "exercisemats": "Colchonetas", "bikehelmets": "Cascos", "snorkelinggearequipment": "Snorkel", "skateboardslongboards": "Skateboards",
+  "skateboards completos": "Skateboards", "cruisers": "Skateboards", "longboards": "Skateboards", "wetsuits": "Trajes de neopreno",
+  "swim": "Ropa de baño", "womensswimsuits": "Ropa de baño", "mensswimsuits": "Ropa de baño", "boysswimsuits": "Ropa de baño",
+  "boxingmmakickboxinggloves": "Guantes", "accessories": "Accesorios", "art prints": "Cuadros y decoración de pared",
+  "backdrops & scene setters": "Decoración de fiesta", "bags kids lunch boxes": "Loncheras", "belt bag": "Carteras", "handbags": "Carteras",
+  "crossbody": "Carteras", "shoulder": "Carteras", "shoulder bag": "Carteras", "shoulder bags": "Carteras", "top handle": "Carteras",
+  "briefcases": "Mochilas y bolsos", "duffle bags": "Mochilas y bolsos", "outerwear": "Casacas y abrigos", "bombers": "Casacas y abrigos",
+  "peacoats": "Casacas y abrigos", "down": "Casacas y abrigos", "fur & shearling": "Casacas y abrigos", "denim": "Pantalones y jeans",
+  "bottoms": "Pantalones y faldas", "bottom": "Pantalones y faldas", "henleys": "Polos", "v necks": "Chompas y polerones",
+  "turtlenecks": "Chompas y polerones", "sweaters knits": "Chompas y polerones", "silks & cashmeres": "Chompas y polerones",
+  "monkstraps": "Zapatos", "panty packs": "Lencería", "workoutgloveswraps": "Guantes", "handwraps": "Vendas", "shoes": "Zapatos",
+}));
+const SKU_TYPE = /^(?=[a-z]{0,6}\d)[a-z0-9]+$|^(?:general|retail|sample|wholesale|accessory|for (?:him|her))$/i;
 export function typeLabel(t) {
-  if (SHOE_CLASS_LABELS.has(String(t).toLowerCase())) return SHOE_CLASS_LABELS.get(String(t).toLowerCase());
+  /* Store types arrive as "shapewear-bottoms", "Mens_Tops", "T Shirts". */
+  const low = String(t).toLowerCase().replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim();
+  if (SHOE_CLASS_LABELS.has(low)) return SHOE_CLASS_LABELS.get(low);
+  if (TYPE_ES.has(low)) return TYPE_ES.get(low);
+  if (SKU_TYPE.test(low)) return "Más productos";
+  if (/^(?:mens|men's|men) (?:tops?|shirts?|t ?shirts?)$/.test(low)) return "Polos";
+  if (/^(?:mens|men's|men) bottoms?$/.test(low)) return "Pantalones";
+  if (/^kids tops?$/.test(low)) return "Polos";
+  const kind = gearType({ title: low }) || modaType({ type: low });
+  if (kind) {
+    const g = GEAR_TYPES.find((x) => x[0] === kind) || brandTypeLabels().find((x) => x[0] === kind);
+    if (g) return g[1];
+  }
   return String(t).split(/[\s_\-]+/).map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
 }
 
@@ -972,9 +1038,12 @@ function buildSectionsRaw(list, opts = {}) {
   if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurb });
   if (opts.genderAisles) return sections.concat(genderAisles(list));
   const byType = {}, order = [];
+  /* One rail per Spanish title: "Dresses" and "Vestidos" are one rail. */
   for (const p of list) {
-    const t = (String(p.type || "").trim().toLowerCase()) || "__otros__";
-    if (!byType[t]) { byType[t] = []; order.push(t); }
+    const raw = String(p.type || "").trim().toLowerCase();
+    const lab = raw ? typeLabel(raw) : "";
+    const t = raw && lab !== "Más productos" ? lensSlug(lab) : "__otros__";
+    if (!byType[t]) { byType[t] = []; order.push(t); byType[t].label = lab; }
     byType[t].push(p);
   }
   const groups = []; let small = [];
@@ -984,7 +1053,7 @@ function buildSectionsRaw(list, opts = {}) {
     else small = small.concat(l);
   });
   groups.sort((a, b) => (b.l.length - a.l.length) || (a.idx - b.idx));
-  for (const g of groups) sections.push({ key: "tipo:" + g.t, title: typeLabel(g.t), items: g.l });
+  for (const g of groups) sections.push({ key: "tipo:" + g.t, title: byType[g.t].label, items: g.l });
   if (small.length) sections.push({ key: "tipo:otros", title: "Más productos", items: small });
   return sections;
 }
@@ -1093,7 +1162,7 @@ export function filterList(list, { r = "", q = "", b = "", a = "", t = "" } = {}
     if (bk && String(p.brand || "").trim().toLowerCase() !== bk) return false;
     if (a && p.a !== a) return false;
     /* t: the rail's type key -- the feed's own type, or the gear/garment kind a brand room rails by. */
-    if (t && String(p.type || "").trim().toLowerCase() !== t && (gearType(p) || modaType(p)) !== t) return false;
+    if (t && String(p.type || "").trim().toLowerCase() !== t && (gearType(p) || modaType(p)) !== t && lensSlug(typeLabel(String(p.type || "").trim().toLowerCase())) !== t) return false;
     if (words.length) {
       const hay = (p.title + " " + (p.brand || "")).toLowerCase();
       for (const w of words) if (hay.indexOf(w) === -1) return false;
