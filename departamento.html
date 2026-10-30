@@ -325,7 +325,7 @@
     auto_parts:      {name:'Repuestos', desc:'Repuestos y autopartes.'},
     luxury:          {name:'Diseñador y Lujo', desc:'Lujo y diseñador — piezas exclusivas.'},
     perfumes:        {name:'Perfumes', desc:'Perfumes originales de diseñador y de nicho, con el precio final en soles.'},
-    reacondicionados: {name:'Reacondicionados', desc:'Reacondicionados, de caja abierta y usados, con el estado que indica la tienda.'},
+    reacondicionados: {name:'Reacondicionados', desc:'De caja abierta, reacondicionados y usados certificados, con el estado que indica la tienda.'},
     /* Its own themed page (carousels first): ropa-interior.html. */
     ropa_interior:   {name:'Ropa Interior y Medias', desc:'Lo esencial, de las mejores marcas de USA.', href:'ropa-interior.html#hombre'},
     ropa_interior_mujer: {name:'Ropa Interior Mujer', desc:'Sostenes, panties y lencería de las mejores marcas de USA.', href:'ropa-interior.html#mujer'}
@@ -862,7 +862,7 @@ function sizedImageUrl(url, w){
       }
       /* The chips always list the whole department's stores. */
       if (!filtered()) STORES = data.stores;
-      if (!filtered() && Array.isArray(data.pills) && !HUB){ HUB = data.pills; renderHub(); }
+      if (!filtered() && Array.isArray(data.pills) && !HUB){ HUB = data.pills; if (data.pillAll) HUB_ALL = data.pillAll; renderHub(); }
       HEAD = data;
       HEAD.stores = STORES || data.stores;
       if (!STORES){
@@ -1010,10 +1010,10 @@ function sizedImageUrl(url, w){
      and the department's carousels below stay exactly where they are.
      One small pre-built file per lens (lens-<slug>.json). */
   var hubEl = document.getElementById('hubPills'), lensEl = document.getElementById('lens');
-  var HUB = null, hubActive = '', lensSeq = 0;
+  var HUB = null, HUB_ALL = 'Todas', hubActive = '', lensSeq = 0;
   function renderHub(){
     if (!HUB || !HUB.length){ hide(hubEl); return; }
-    var h = '<button type="button" class="hub-pill" role="tab" data-k="" aria-selected="' + (!hubActive) + '">Todas</button>';
+    var h = '<button type="button" class="hub-pill" role="tab" data-k="" aria-selected="' + (!hubActive) + '">' + esc(HUB_ALL) + '</button>';
     HUB.forEach(function(p){
       h += '<button type="button" class="hub-pill" role="tab" data-k="' + esc(p.k) + '" aria-selected="' + (hubActive === p.k) + '">' + esc(p.label) + '</button>';
     });
@@ -1034,7 +1034,7 @@ function sizedImageUrl(url, w){
         + l.rails.map(function(r){
           return '<section class="rail-sec" aria-label="' + esc(l.label + ': ' + r.title) + '">'
             + '<div class="rail-head"><h2>' + esc(r.title) + '</h2><span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span></div>'
-            + (r.title === 'Reacondicionados' ? '<p class="rail-note">No son productos nuevos: cada tarjeta dice si es reacondicionado, de caja abierta o usado, tal como lo declara la tienda.</p>' : '')
+            + (r.title === 'Reacondicionados' ? '<p class="rail-note">No son productos nuevos: cada tarjeta dice si es de caja abierta, reacondicionado o usado certificado, tal como lo declara la tienda.</p>' : '')
             + '<div class="rail">' + r.cards.map(cardHTML).join('') + '</div></section>';
         }).join('');
       watchPhotos(lensEl);
