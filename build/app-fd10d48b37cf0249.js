@@ -20258,6 +20258,16 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     }
     condEl.hidden = !c;
   }
+  /* THE STORE'S OWN SHIPPING (#443 c.6511829027): both numbers, from the
+     first product a shopper opens at that store -- «Envío gratis desde
+     $35 · $7.99 debajo de ese monto» (/store-shipping.js). Nothing for a
+     store without sourced terms. */
+  const shipEl = document.getElementById('productViewShipping');
+  if (shipEl){
+    const S = window.AriaStoreShipping, line = S && S.ruleText(retailer);
+    shipEl.innerHTML = line ? `<b>Costo de envío de la tienda:</b> ${escapeHtml(line)}` : '';
+    shipEl.hidden = !line;
+  }
   /* Set by openAutoPart() immediately before this call, and consumed
      here so it cannot leak onto the next product a shopper opens. */
   const partNumberEl = document.getElementById('productViewPartNumber');
