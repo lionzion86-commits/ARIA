@@ -156,6 +156,21 @@ await check("Más vendidos follows Ofertas where the store publishes demand; typ
   assert.ok(idx("ccs").rails[1].key.startsWith("b-"), "CCS, a skate shop of many brands, opens its brand rows after Ofertas");
 });
 
+await check("a brand row is a brand: no vendor code, no marketplace seller, not the store itself", () => {
+  for (const k of keys) {
+    const { label, rails } = idx(k);
+    const house = String(label || "").toLowerCase().replace(/\s+(beb[eé]|baby|kids|niños|home|hogar)$/, "");
+    for (const r of rails.filter((x) => x.key.startsWith("b-"))) {
+      assert.doesNotMatch(r.title, /^[a-z0-9]{2,6}\/\S+$/i, `${k}: ${r.title}`);
+      assert.doesNotMatch(r.title, /^(spreetail)$|\S+direct$/i, `${k}: ${r.title}`);
+      if (label && label.toLowerCase() !== house) assert.notEqual(r.title.toLowerCase(), house, `${k}: ${r.title}`);
+    }
+  }
+  /* Lucifer's two (#443 c.6512244834). */
+  assert.ok(!idx("quietstorm").rails.some((r) => r.key.startsWith("b-")), "Quiet Storm has no real brand rows");
+  assert.ok(!idx("walmartbaby").rails.some((r) => /^(walmart|spreetail|wisairtdirect)$/i.test(r.title)), "Walmart Bebé");
+});
+
 await check("caps: 16 cards per rail on the first screen, 48 per page, first screen under 30KB gzipped", () => {
   for (const k of keys) {
     const text = read(`${SLICES_DIR}/${k}/index.json`), ix = JSON.parse(text);

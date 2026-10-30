@@ -310,12 +310,18 @@ export function genericItems(key, meta, rules, root = ROOT) {
    (Victoria's Secret, YoungLA) has no brand rows: its types tell it. */
 export const STORE_BRAND_RAILS = 10, STORE_BRAND_MIN = 6;
 const NOT_A_BRAND_RX = /^(|unbranded|generic|n\/a|none|varios|various|other)$/i;
+/* Not a brand a shopper reads (Lucifer, #443 c.6512244834): a vendor code
+   ("QSSS/PP", "QSSS/NALUKAI" -- Quiet Storm's buying codes) or a
+   marketplace seller ("Spreetail", "WisairtDirect"). */
+const VENDOR_CODE_RX = /^[a-z0-9]{2,6}\/\S+$/i;
+const SELLER_RX = /^(spreetail)$|\S+direct$/i;
 export function brandRails(label, items, sort) {
   const norm = (b) => String(b || "").toLowerCase().trim();
   const groups = new Map();
   for (const p of items) {
     const b = norm(p.brand);
-    if (NOT_A_BRAND_RX.test(b) || b === norm(label)) continue;
+    /* ...nor the store itself ("Walmart" inside Walmart Baby). */
+    if (NOT_A_BRAND_RX.test(b) || VENDOR_CODE_RX.test(b) || SELLER_RX.test(b) || b === norm(label) || b === norm(label).replace(/\s+(beb[eé]|baby|kids|niños|home|hogar)$/, "")) continue;
     if (!groups.has(b)) groups.set(b, []);
     groups.get(b).push(p);
   }
