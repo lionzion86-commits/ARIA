@@ -32,6 +32,7 @@
    scripts/test/comparison-tests.mjs pins this to the same helpers.
    ============================================================ */
 import { resolveCartWeights } from "./_weight-resolve.js";
+import { cartShipping } from "../../scripts/lib/store-shipping.js";
 import { freightFloorUsd } from "./_checkout-model.js";
 import {
   CHARGE_PER_KG, importTaxEstimateUsd, dutiableBaseUsd, smallOrderFeePen,
@@ -80,14 +81,17 @@ export function doorPrice(line, fx) {
   const freightUsd = freightFloorUsd(undefined, w.totalKg, CHARGE_PER_KG);
   const dutiable = dutiableBaseUsd(line.priceUsd, line.dutiableUsd);
   const taxUsd = importTaxEstimateUsd(Number.isFinite(dutiable) ? dutiable : 0, freightUsd);
-  const usd = r2(goodsUsd + freightUsd + taxUsd);
+  /* The store's own shipping to Miami, bought alone (#443 c.6511807569):
+     checkout charges it, so the door price carries it. */
+  const shippingUsd = cartShipping([line]).totalUsd;
+  const usd = r2(goodsUsd + freightUsd + taxUsd + shippingUsd);
   /* The small-order fee is decided on goods + freight in soles. */
   const baseUsd = r2(goodsUsd + freightUsd);
   const rate = Number(fx) > 0 ? Number(fx) : null;
   const feePen = rate ? smallOrderFeePen(r2(baseUsd * rate)) : null;
   return {
     quotable: true,
-    goodsUsd, freightUsd, taxUsd, usd, baseUsd,
+    goodsUsd, freightUsd, taxUsd, shippingUsd, usd, baseUsd,
     kg: w.totalKg,
     weightSource: it.source || null,
     feePen,
