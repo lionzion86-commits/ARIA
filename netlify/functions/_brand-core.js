@@ -17,6 +17,7 @@
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { conditionOfTitle } from "../../scripts/lib/condition.js";
 
 export const PAGE_SIZE = 48;   // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;  // cards drawn in one carousel
@@ -97,6 +98,9 @@ export function cardOf(p) {
   if (p.brand) c.b = p.brand;
   if (p.pct > 0) { c.s = p.pct; if (p.orig > p.price) c.o = p.orig; }
   if (p.image) c.i = p.image;
+  /* k: the condition label (/condition.js) the store's title states. */
+  const cond = conditionOfTitle(p.name);
+  if (cond && cond.label) c.k = cond.label;
   return c;
 }
 
