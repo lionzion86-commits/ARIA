@@ -45,6 +45,7 @@ import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
+import { hasExtendedSizes, extendedSizesOf } from "./lib/sizes.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -246,14 +247,35 @@ export const KIND_MATCH = {
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino", "carolina herrera"]),
 };
 
+/* TALLAS PLUS (Danny, #443 c.6526833313). A product belongs only when it
+   is apparel the store OFFERS in extended sizes -- women's XL / 1X+ or
+   14+, men's XL+ or waist 40+ (scripts/lib/sizes.js) -- read from the
+   store's own size list. "Curvy" or "Plus" in a title or a fit name never
+   qualifies (a REVOLVE cream got in through a "Womens Plus" label), and
+   a child's or a non-apparel product never belongs. */
+const PLUS_KIDS_RX = /\b(kids?|youth|boys?|girls?|toddlers?|infants?|baby|babies|juniors?|ni[ñn][oa]s?)\b/i;
+const PLUS_WOMEN_RX = /\b(women'?s?|womens|woman|ladies|mujer(es)?)\b/i;
+const PLUS_MEN_RX = /\b(men'?s?|mens|man|hombres?)\b/i;
+export function plusGender(p) {
+  const t = String((p && p.title) || ""), b = String((p && p.bucket) || "");
+  if (PLUS_KIDS_RX.test(t) || /kids/.test(b)) return null;
+  if (PLUS_WOMEN_RX.test(t)) return "women";
+  if (PLUS_MEN_RX.test(t)) return "men";
+  return /women/.test(b) ? "women" : /men/.test(b) ? "men" : null;
+}
+export function isTallasPlus(p) {
+  const g = plusGender(p);
+  if (!g) return false;
+  const fam = productClass(p);
+  if (fam !== "ropa" && fam !== "trajes_bano") return false;
+  return hasExtendedSizes({ availableSizes: p.sizes }, g);
+}
+
 export function belongsToDept(rule, p) {
   try {
     if (rule.buckets) {
       if (rule.buckets.indexOf(p.bucket) === -1) return false;
-      if (rule.extendedSizes) {
-        const sz = ((p.sizes || "") + " " + (p.title || "")).toLowerCase();
-        if (!/(\b[2-9]x\b|xxl|3xl|4xl|plus|curvy|talla grande)/.test(sz)) return false;
-      }
+      if (rule.extendedSizes) return isTallasPlus(p);
       return true;
     }
     /* An electronics store's aisles (BrandsMart, tech_*) are Electrónica's
@@ -291,7 +313,8 @@ export function normalizeItem(raw, retailer, bucket, AriaSale) {
     image: raw.image || (raw.images && raw.images[0]) || "",
     retailer,
     bucket,
-    sizes: (raw.availableSizes || []).join(" "),
+    /* The store's own size run (Tallas Plus reads it, never the title). */
+    sizes: Array.isArray(raw.sizes) && raw.sizes.length ? raw.sizes.filter((s) => typeof s === "string") : (raw.availableSizes || []),
   };
 }
 
@@ -362,6 +385,13 @@ export function deptItems(all, key) {
     return list.map((p, i) => ({ p, i })).sort((a, b) => (peru(a.p) - peru(b.p)) || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
   }
   if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer), ...(key === "shoes" ? { g: shoeGender(p, p.bucket) } : {}) }));
+  /* Tallas Plus leads with her (Danny's 2026-09-24 rule) and with the
+     true plus run -- 1X+, XXL+, 16+ -- before a run that only reaches XL. */
+  if (key === "curvy") {
+    const depth = (p) => { const g = plusGender(p); return extendedSizesOf({ availableSizes: p.sizes }, g).some((s) => !/^(xl|14)\b/i.test(String(s).trim())) ? 1 : 0; };
+    return list.map((p, i) => ({ p: { ...p, g: plusGender(p) }, i, d: depth(p) }))
+      .sort((a, b) => ((b.p.g === "women") - (a.p.g === "women")) || (b.d - a.d) || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+  }
   /* Stable sort: on sale first, then cheapest (the page's order). */
   return list
     .map((p, i) => ({ p, i }))
