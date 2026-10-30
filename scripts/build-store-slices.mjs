@@ -303,6 +303,7 @@ export function genericItems(key, meta, rules, root = ROOT) {
   return { items: out, depts, facetMode: !!ctx.facetMode, facetGenders: Array.from(ctx.facetGenders || []), facetCats: Array.from(ctx.facetCats || []) };
 }
 
+const SLIPPER_RX = /\b(slippers?|pantuflas?)\b/i;
 export function genericRails(key, label, items, rules) {
   const { R, ctx } = rules;
   ctx.storeKey = key;
@@ -320,7 +321,10 @@ export function genericRails(key, label, items, rules) {
   for (const p of items) { const t = R.productTypeOf(p); (byType[t] = byType[t] || []).push(p); }
   for (const t of R.PRODUCT_TYPES) {
     const list = (byType[t.key] || []).slice().sort(R.saleSort);
-    if (list.length) rails.push({ key: "t-" + t.key, title: t.label, items: list });
+    /* Label-true (#443 c.6522560722): a Zapatos aisle that is all
+       slippers (Victoria's Secret's five) says so. */
+    const title = t.key === "zapatos" && list.length && list.every((p) => SLIPPER_RX.test(p.name)) ? "Pantuflas" : t.label;
+    if (list.length) rails.push({ key: "t-" + t.key, title, items: list });
   }
   return rails;
 }
