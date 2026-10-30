@@ -31,6 +31,7 @@ import { readWallet, postTransaction, applicableCreditPen } from "./_wallet.js";
 import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
 import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE, dutiableBaseUsd } from "../../weight-data.js";
+import { cartShipping } from "../../scripts/lib/store-shipping.js";
 /* PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province leg. The
    browser sends what it showed, but the charge is decided here from
    destCity — a tampered request must not be able to zero it. */
@@ -339,7 +340,11 @@ async function createOrderHandler(event) {
        credited back as saldo. taxActual and sunatDocRef are where that
        reconciliation lands. */
     const taxEstimatedUsd = importTaxEstimateUsd(dutiableUsdTotal, freightUsdQuoted);
-    const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd) * 100) / 100;
+    /* EACH STORE'S OWN SHIPPING TO MIAMI (#443 c.6511807569): the same rule
+       and the same figure checkout shows, from the verified lines. */
+    const storeShipping = cartShipping(items);
+    const storeShippingUsd = storeShipping.totalUsd;
+    const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd + storeShippingUsd) * 100) / 100;
     const taxEstimatedPen = fxRateVenta ? Math.round(taxEstimatedUsd * fxRateVenta * 100) / 100 : null;
     const totalPen = fxRateVenta
       ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged + expressFeePenCharged) * 100) / 100
@@ -472,6 +477,8 @@ async function createOrderHandler(event) {
       buyerEmail: buyerEmail || null,
       fxRateUsed: fxRateVenta,
       freteChargedUsd: freightUsdQuoted,
+      storeShippingUsd,
+      storeShipping: storeShipping.stores.filter((st) => st.rule).map((st) => ({ store: st.store, subtotalUsd: st.subtotalUsd, feeUsd: st.feeUsd })),
       freteQuotedUsd: typeof quote.flete_usd === "number" ? quote.flete_usd : null,
       /* "Recibir todo junto" (free) or "Recibir cada paquete ni bien
          llegue" ($8, in soles at today's rate). */
