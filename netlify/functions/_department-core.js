@@ -157,7 +157,7 @@ export const TYPE_ES = new Map([
   ["decor", "Decoración"],
   ["tree accessories", "Adornos para el árbol"],
   ["favor bags & containers", "Bolsitas de sorpresa"],
-  ["rash guard", "Rash guards"],
+  ["rash guard", "Polos de licra"],
   ["boxing gloves", "Guantes de box"],
   ["mma shorts", "Shorts de MMA"],
   ["compression t shirts", "Polos de compresión"],
@@ -407,11 +407,11 @@ export const TYPE_ES = new Map([
   ["shin guards", "Canilleras"],
   ["footwear", "Calzado"],
   ["focus mitts", "Manoplas"],
-  ["spats", "Spats"],
+  ["spats", "Mallas de compresión"],
   ["boxing training", "Entrenamiento de box"],
   ["fitness training", "Fitness"],
-  ["rashguards", "Rash guards"],
-  ["rash guards", "Rash guards"],
+  ["rashguards", "Polos de licra"],
+  ["rash guards", "Polos de licra"],
   ["kimonos", "Gis de jiu-jitsu"],
   ["gi", "Gis de jiu-jitsu"],
   ["headgear", "Cabezales"],
@@ -422,7 +422,7 @@ export const TYPE_ES = new Map([
   ["bjj gi", "Gis de jiu-jitsu"]
 ]);
 const FIGHT_GEAR_RX = /\b(gloves?|guantes?|gis?|kimonos?|shin ?(guards?|pads?)|canilleras?|head ?gear|headguards?|mouth ?guards?|hand ?wraps?|wraps?|focus mitts?|mitts?|kick ?pads?|thai pads?|pads?|punching bags?|heavy bags?|groin|protectors?|rash ?guards?|spats)\b/i;
-const FIGHT_GEAR_AISLE_RX = /\b(guantes|gis|canilleras|paos|protecciones|rodilleras|manoplas|vendas|cabezales|protectores|rash guards|spats|equipo|entrenamiento de (mma|box))\b/i;
+const FIGHT_GEAR_AISLE_RX = /\b(guantes|gis|canilleras|paos|protecciones|rodilleras|manoplas|vendas|cabezales|protectores|polos de licra|mallas de compresi[oó]n|equipo|entrenamiento de (mma|box))\b/i;
 const SCENT_RX = /\b(mists?|body sprays?|fragrances?|eau de|perfumes?|parfums?|colognes?|body splash|brumas?)\b/i;
 /* A store's internal code or placeholder ("2T68", "JH306A03", "SAMPLE",
    "WHOLESALE", "GENERAL") is not a type a shopper reads: its products

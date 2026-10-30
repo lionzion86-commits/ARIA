@@ -33,7 +33,7 @@ check("§7 Fight Club: the department's Ofertas and the homepage rail open on fi
   const [ofertas, ...rails] = head.rails;
   assert.equal(ofertas.title, "Ofertas");
   for (const c of ofertas.cards.slice(0, 8)) assert.match(c.t, GEAR_RX, "Ofertas opens on: " + c.t);
-  assert.match(rails[0].title, /guantes|gis|rash guards|canilleras|spats|equipo|protecciones|paos/i, "the first aisle: " + rails[0].title);
+  assert.match(rails[0].title, /guantes|gis|polos de licra|canilleras|mallas de compresi[oó]n|equipo|protecciones|paos/i, "the first aisle: " + rails[0].title);
   const home = json(ROOT + "assets/home/shelves/category.json").rails.combat_sports;
   for (const p of home.slice(0, 6)) assert.match(p.title, GEAR_RX, "homepage Fight Club opens on: " + p.title);
   assert.match(bundle, /gearFirst: true, \/\* DANNY 2026-10-29/);
@@ -50,7 +50,7 @@ check("§8 Aria Beauty: Ofertas, then perfumes and body sprays led by Victoria's
 });
 
 check("every department rail speaks Spanish: no English type name, no store code", () => {
-  const ENGLISH = /\b(t ?shirts?|shirts?|pants|jackets?|dress(es)?|sweatshirts?|hoodies?|sneakers|sandals|boots|heels|bags?|wallets?|belts?|gloves|socks|caps|hats|necklaces?|bracelets?|earrings|rings|jewelry|accessor(y|ies)|hair care|for (him|her)|women|men|kids|panties|bras|underwear|skirts?|coats?|trousers|cardigans?|crewnecks?|sweaters?|swimsuits?|decor|candles?|pillows?|mirrors?|vases|frames|ornaments?|computers?|monitors?|keyboards?)\b/i;
+  const ENGLISH = /\b(t ?shirts?|shirts?|pants|jackets?|dress(es)?|sweatshirts?|hoodies?|sneakers|sandals|boots|heels|bags?|wallets?|belts?|gloves|socks|caps|hats|necklaces?|bracelets?|earrings|rings|jewelry|accessor(y|ies)|hair care|for (him|her)|women|men|kids|panties|bras|underwear|skirts?|coats?|trousers|cardigans?|crewnecks?|sweaters?|swimsuits?|decor|candles?|pillows?|mirrors?|vases|frames|ornaments?|computers?|monitors?|keyboards?|rash ?guards?|spats)\b/i;
   const CODE = /^(?=.*\d)[A-Za-z0-9]+$/;
   const bad = [];
   for (const d of readdirSync(DIR)) {
