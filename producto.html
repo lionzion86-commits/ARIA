@@ -128,12 +128,17 @@ footer a{color:#fff}
 .p-tax-row b{white-space:nowrap;text-align:right}
 .p-tax-row small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
 .p-tax-note{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+.p-ship-rule{font-size:14px;font-weight:800;color:var(--navy);margin-top:2px;line-height:1.35}
+.p-ship-meter{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:8px}
+.p-ship-meter i{display:block;height:100%;background:var(--navy);border-radius:999px}
+.p-ship-meter.met i{background:#1F8A4C}
 </style>
 <script src="/ref.js"></script>
 <script src="sale-rule.js"></script>
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
 <script src="/condition.js"></script>
+<script src="/store-shipping.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
 <script src="/assets/js/pixels.js" async></script>
@@ -482,6 +487,38 @@ function taxLineHtml(p){
   return '<div class="p-tax-row"><span>Impuestos de importación (estimado)</span><b id="p-tax-amt">calculando…</b></div>'
     + '<div class="p-tax-note">Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.</div>';
 }
+/* THE STORE'S OWN SHIPPING (#443 c.6511807569 / c.6511908498, Danny): the
+   first box under the price -- above Impuestos and Peso -- states the
+   store's rule, both numbers, and a meter of THIS store's subtotal in the
+   shopper's cart against its free-shipping line (/store-shipping.js). A
+   store without sourced terms gets no box: nothing is guessed. */
+function shipBoxHtml(p){
+  var S = window.AriaStoreShipping;
+  if (!S) return '';
+  var label = STORE_LABELS[p.retailer] || p.retailer || '';
+  /* EVERY STORE GETS A BOX (Danny, #443 c.6524139671): a store whose terms
+     are still being sourced says so -- never a missing box, never a number. */
+  if (!S.ruleOf(p.retailer)) return '<div id="p-ship" class="p-tax"><div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'
+    + '<div class="p-tax-note">Estamos confirmando lo que cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; lo verás antes de pagar.</div></div>';
+  var s = S.cartShipping(readCartLocal()).stores.filter(function(x){ return x.store === String(p.retailer || '').toLowerCase(); })[0]
+    || S.standingOf(p.retailer, 0);
+  var html = '<div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'
+    + '<div class="p-ship-rule">' + esc(S.ruleText(p.retailer)) + '</div>';
+  if (s.rule.note) html += '<div class="p-tax-note">' + esc(s.rule.note.charAt(0).toUpperCase() + s.rule.note.slice(1)) + '.</div>';
+  if (s.rule.freeOverUsd > 0){
+    html += '<div class="p-ship-meter' + (s.met ? ' met' : '') + '" role="progressbar" aria-valuemin="0" aria-valuemax="' + s.rule.freeOverUsd + '" aria-valuenow="' + s.subtotalUsd + '"><i style="width:' + Math.round(s.progress * 100) + '%"></i></div>'
+      + '<div class="p-tax-note">' + esc(S.meterText(s)) + ' en ' + esc(label) + '. ' + esc(S.standingText(s, label)) + '.</div>';
+  }
+  html += '<div class="p-tax-note">Lo cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; se calcula por tienda, aparte de los impuestos.</div>';
+  return '<div id="p-ship" class="p-tax">' + html + '</div>';
+}
+function refreshShipBox(p){
+  var el = document.getElementById('p-ship');
+  if (!el) return;
+  var tmp = document.createElement('div');
+  tmp.innerHTML = shipBoxHtml(p);
+  if (tmp.firstChild) el.replaceWith(tmp.firstChild);
+}
 /* THE WEIGHT ON THE PAGE (#443 competitor study: "the weight is the
    honesty proof"). One resolve-weight call feeds both the weight row and,
    over the threshold, the tax estimate -- the same resolver, the same
@@ -805,7 +842,8 @@ function render(p){
     : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
   if (LAUNCH_PRICED[String(p.retailer || "").toLowerCase()]) priceHtml = '<div class="p-launch">Precio de lanzamiento</div>' + priceHtml;
-  /* #439: the import-tax estimate sits directly under the product price. */
+  /* The store's shipping first, then the import-tax estimate (#439), then the weight. */
+  priceHtml += shipBoxHtml(p);
   priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
   priceHtml += '<div id="p-weight" class="p-tax">' + weightRowHtml() + '</div>';
   /* OFF SALE (#443, /off-sale.js): the record stays, the sale does not --
@@ -1296,7 +1334,7 @@ function mergeCartLine(line){
 }
 
 function isOffSaleProduct(p){
-  return !!(window.AriaOffSale && p && window.AriaOffSale.isOffSaleRetailer(p.retailer));
+  return !!(window.AriaOffSale && p && window.AriaOffSale.isOffSaleItem({ retailer: p.retailer, title: p.name }));
 }
 function buildBuyBox(p){
   var box = el('buy-box');
@@ -1381,6 +1419,7 @@ function addCurrentToCart(p, sizes){
     qty: 1
   });
   toast('Agregado al carrito.');
+  refreshShipBox(p);
   /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
   if (window.ariaTrack) ariaTrack('AddToCart', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: FX_RATE ? Math.round(priceUsd * FX_RATE * 100) / 100 : undefined, currency: 'PEN' });
   var c = el('cart-confirm');

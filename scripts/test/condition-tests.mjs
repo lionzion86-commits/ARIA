@@ -2,6 +2,9 @@
    REACONDICIONADOS -- the one condition rule (/condition.js) and where
    it lands: the department, the rail in every other department, the
    card label, the order line and the email (#443, 2026-10-23).
+   Danny's three labels (c.6526570723): Caja abierta, Reacondicionado,
+   Usado certificado; a plain used listing is held off sale, never
+   labelled; the Reacondicionados page filters by condition.
 
    Every title here is a real catalogue title or a TEST FIXTURE.
 
@@ -9,7 +12,9 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { conditionOfTitle, gradeOfTitle, NO_GRADE_NOTE } from "../lib/condition.js";
+import { conditionOfTitle, gradeOfTitle, isHeldUsed, NO_GRADE_NOTE, CONDITION_LABELS } from "../lib/condition.js";
+import { isOffSaleItem } from "../lib/off-sale.js";
+import { hubPills, PILL_HUBS } from "../../netlify/functions/_department-core.js";
 import { buildSections, cardOf } from "../../netlify/functions/_department-core.js";
 import { DEPT_RULES, belongsToDept } from "../build-department-slices.mjs";
 
@@ -21,10 +26,47 @@ async function check(name, fn) {
 }
 const item = (title, extra = {}) => ({ title, brand: "", type: "", rawPrice: 10, wasPrice: 0, salePct: 0, image: "https://x/i.jpg", retailer: "walmart", bucket: "toys", ...extra });
 
+await check("the three labels, in Danny's order; no plain «Usado»", () => {
+  assert.deepEqual(Object.values(CONDITION_LABELS), ["Caja abierta", "Reacondicionado", "Usado certificado"]);
+  assert.equal(conditionOfTitle("Apple iPhone 14 128GB Unlocked - Certified Pre-Owned").label, "Usado certificado");
+  assert.equal(conditionOfTitle("Samsung Galaxy S23 Usado certificado").label, "Usado certificado");
+  for (const t of ["Pre-Owned LEGO Star Wars The Force Awakens C-3PO Set #5002948", "6.1\" iPhone 13 128GB SIM-Free Smartphone - Midnight (Preowned)",
+    "Acer Chromebook 311 C722 4GB 32GB eMMC - Jun 2030 - USED", "Moto G 5G 2023 (64GB, 4GB) Fully Unlocked - Usado", "Libro usado: Tickle Me, Elmo! A Lift-and-Peek-a-Board Book"]) {
+    assert.deepEqual(conditionOfTitle(t), { condition: "used", label: "", held: true }, t);
+    assert.equal(isHeldUsed(t), true, t);
+  }
+});
+
+await check("a plain used listing is off sale wherever it turns up: product page, cart, order", () => {
+  assert.equal(isOffSaleItem({ retailer: "walmart", title: "Pre-Owned Apple iPhone 12, 64 GB Black" }), true);
+  assert.equal(isOffSaleItem({ retailer: "walmart", title: "Restored Apple iPhone 12 Unlocked (Refurbished)" }), false);
+  const read = (f) => readFileSync(new URL("../../" + f, import.meta.url), "utf8");
+  assert.match(read("producto.html"), /isOffSaleItem\(\{ retailer: p\.retailer, title: p\.name \}\)/);
+  /* The catalogues and the Ofertas feed hold none; held-used.json keeps every one. */
+  const held = JSON.parse(read("held-used.json"));
+  assert.ok(held.count >= 200 && held.items.every((h) => isHeldUsed(h.item.name || h.item.title)), "held-used.json");
+  for (const f of ["walmart-electronics-catalog.json", "brandsmart-catalog.json", "juguetes-catalog.json", "ofertas-feed.json"]) {
+    const titles = [...read(f).matchAll(/"(?:name|title)": ?"((?:[^"\\]|\\.)*)"/g)].map((m) => JSON.parse('"' + m[1] + '"'));
+    assert.deepEqual(titles.filter(isHeldUsed).slice(0, 3), [], f);
+  }
+});
+
+await check("the Reacondicionados page: «Todos», then one pill per condition the data fills", () => {
+  assert.equal(PILL_HUBS.reacondicionados.all, "Todos");
+  const list = [];
+  for (let i = 0; i < 14; i++) list.push(item("Open Box LEGO Technic Set " + i), item("Restored Dell Chromebook " + i));
+  list.push(item("Apple iPhone 14 Unlocked - Certified Pre-Owned"));
+  const pills = hubPills("reacondicionados", list);
+  assert.deepEqual(pills.map((p) => p.label), ["Caja abierta", "Reacondicionado"], "a condition with 1 product does not render");
+  assert.ok(pills.every((p) => p.items.every((x) => conditionOfTitle(x.title).label === p.label)));
+  const h = JSON.parse(readFileSync(new URL("../../assets/sections/departamento/reacondicionados/head.json", import.meta.url), "utf8"));
+  assert.equal(h.pillAll, "Todos");
+  assert.ok(h.pills.length >= 2 && h.pills.every((p) => Object.values(CONDITION_LABELS).includes(p.label)), JSON.stringify(h.pills));
+});
+
 await check("refurbished, used and open-box titles get their label", () => {
   assert.deepEqual(conditionOfTitle("Refurbished JBL Xtreme 4 Portable Bluetooth Speaker - Target Certified Refurbished"), { condition: "refurbished", label: "Reacondicionado" });
   assert.equal(conditionOfTitle("Restored Apple iPad 9th Gen (Renewed)").label, "Reacondicionado");
-  assert.equal(conditionOfTitle("Pre-Owned LEGO Star Wars The Force Awakens C-3PO Set #5002948").label, "Usado");
   assert.equal(conditionOfTitle("(Caja abierta) Mini Brands Create Masterchef Series 2").label, "Caja abierta");
   assert.equal(conditionOfTitle("Open Box LEGO Technic BASH! 42073").label, "Caja abierta");
 });
@@ -61,7 +103,7 @@ await check("the grade is the store's words, or nothing", () => {
 
 await check("every department with 3+ such products gets the rail second", () => {
   const list = [item("LEGO City Police Station", { salePct: 20, wasPrice: 12 }), item("Open Box LEGO Technic BASH! 42073"),
-    item("Pre-Owned Barbie Collectible Doll"), item("(Open Box) PAW Patrol Chase Plush Toy"), item("Hot Wheels 5-Pack")];
+    item("Refurbished Barbie Collectible Doll"), item("(Open Box) PAW Patrol Chase Plush Toy"), item("Hot Wheels 5-Pack")];
   const s = buildSections(list);
   assert.equal(s[0].key, "ofertas");
   assert.equal(s[1].key, "reacondicionados");
@@ -70,9 +112,9 @@ await check("every department with 3+ such products gets the rail second", () =>
 });
 
 await check("no rail under 3, and none inside the department made of nothing else", () => {
-  const two = [item("Hot Wheels 5-Pack"), item("Open Box LEGO Technic BASH! 42073"), item("Pre-Owned Barbie Collectible Doll")];
+  const two = [item("Hot Wheels 5-Pack"), item("Open Box LEGO Technic BASH! 42073"), item("Refurbished Barbie Collectible Doll")];
   assert.ok(!buildSections(two).some((x) => x.key === "reacondicionados"));
-  const all = [item("Open Box LEGO Technic BASH! 42073"), item("Pre-Owned Barbie Collectible Doll"), item("(Open Box) PAW Patrol Chase Plush Toy")];
+  const all = [item("Open Box LEGO Technic BASH! 42073"), item("Refurbished Barbie Collectible Doll"), item("(Open Box) PAW Patrol Chase Plush Toy")];
   assert.ok(!buildSections(all).some((x) => x.key === "reacondicionados"));
 });
 
