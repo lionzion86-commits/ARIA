@@ -877,7 +877,7 @@ function slCardHTML(p){
   var pct = discountPct({ price: p.price, originalPrice: p.was });
   var href = 'producto.html?producto=' + encodeURIComponent(p.name || '') + '&tienda=' + encodeURIComponent(storeKey);
   /* src parked in data- until the card is about to be seen (watchPhotos). */
-  var img = '<img ' + cardImgAttrs(p.image).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
+  var img = '<img ' + (p.ph > 1 ? 'data-g="' + (p.ph | 0) + '" ' : '') + cardImgAttrs(p.image).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
     ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">';
   return '<a class="card" href="' + esc(href) + '">' +
     '<div class="card-img">' + (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img + '</div>' +

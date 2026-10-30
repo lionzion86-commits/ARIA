@@ -5,12 +5,18 @@
    The galleries are already built: each product's PDP shard
    (assets/pdp/p/<FNV-1a of the title>.json, scripts/build-pdp-slices.mjs)
    carries its images[]. A card on any carousel gets two small arrows;
-   the FIRST tap fetches that one shard (a few KB, once per shard) and
-   shows the next photo. Nothing else loads: the page still opens on the
-   cover photo alone (the Mountain Test), each extra photo is fetched
-   only when the shopper asks for it, and the one after it is warmed
-   while they look. A product with a single photo loses its arrows on
-   that first tap -- never a dead button.
+   the FIRST tap or swipe fetches that one shard (a few KB, once per
+   shard) and shows the next photo. Nothing else loads: the page still
+   opens on the cover photo alone (the Mountain Test), each extra photo
+   is fetched only when the shopper asks for it, and the one after it is
+   warmed while they look.
+
+   NEVER A DEAD BUTTON (#443 c.6522824310): only a card the build knows
+   holds two or more photos gets arrows and dots -- the count rides on
+   the card as `ph` and reaches the photo as data-g
+   (scripts/lib/photo-counts.js). A swipe across such a card's photo
+   steps it (the photo keeps the gesture instead of scrolling the rail);
+   a swipe is never a tap that opens the product.
 
    Same rows as card-grow.js; loaded beside it (defer) on every page
    with a carousel. Search cards have their own swipe (search.html).
@@ -19,6 +25,7 @@
   "use strict";
   var ROW = ".ariaRail:not(#liveRefineChips), div.rail, .track, .rel-row";
   var SHARDS = 4096, BASE = "/assets/pdp/p/";
+  var CARD = ":is(" + ROW + ") > :is(a, button, div.card, article)";
 
   var css =
     ".cp-nav{position:absolute;top:38%;z-index:3;width:30px;height:30px;border-radius:50%;border:0;" +
@@ -26,7 +33,8 @@
     "padding:0;box-shadow:0 2px 8px rgba(10,20,40,.18);cursor:pointer;-webkit-tap-highlight-color:transparent}" +
     ".cp-nav.cp-prev{left:6px}.cp-nav.cp-next{right:6px}.cp-nav[hidden]{display:none}" +
     ".cp-dots{position:absolute;left:0;right:0;z-index:3;display:flex;justify-content:center;gap:4px;pointer-events:none}" +
-    ".cp-dots i{width:5px;height:5px;border-radius:50%;background:rgba(11,30,61,.25)}.cp-dots i.on{background:#0B1E3D}";
+    ".cp-dots i{width:5px;height:5px;border-radius:50%;background:rgba(11,30,61,.25)}.cp-dots i.on{background:#0B1E3D}" +
+    "img[data-g]{touch-action:pan-y}";
   var st = document.createElement("style");
   st.id = "ariaCardPhotos";
   st.textContent = css;
@@ -94,31 +102,35 @@
     var img = card.querySelector("img");
     if (!img) return;
     galleryOf(card, img).then(function (g) {
-      if (g.length < 2) { card.querySelectorAll(".cp-nav").forEach(function (b) { b.hidden = true; }); return; }
+      if (g.length < 2) { card.querySelectorAll(".cp-nav,.cp-dots").forEach(function (b) { b.hidden = true; }); return; }
       var i = ((card._cpIdx || 0) + dir + g.length) % g.length;
       card._cpIdx = i;
       img.removeAttribute("srcset");
       img.src = g[i];
       /* Warm only the next one. */
       var nx = new Image(); nx.decoding = "async"; nx.src = g[(i + 1) % g.length];
-      var dots = card.querySelector(".cp-dots");
-      if (!dots) {
-        dots = document.createElement("span");
-        dots.className = "cp-dots";
-        dots.style.top = (img.offsetTop + img.offsetHeight - 12) + "px";
-        card.appendChild(dots);
-      }
-      var h = "";
-      for (var k = 0; k < g.length; k++) h += "<i" + (k === i ? ' class="on"' : "") + "></i>";
-      dots.innerHTML = h;
+      paintDots(card, img, g.length, i);
     });
+  }
+
+  function paintDots(card, img, n, on) {
+    var dots = card.querySelector(".cp-dots");
+    if (!dots) {
+      dots = document.createElement("span");
+      dots.className = "cp-dots";
+      card.appendChild(dots);
+    }
+    dots.style.top = (img.offsetTop + img.offsetHeight - 12) + "px";
+    var h = "";
+    for (var k = 0; k < n; k++) h += "<i" + (k === on ? ' class="on"' : "") + "></i>";
+    dots.innerHTML = h;
   }
 
   function arm(card) {
     if (card._cpArmed || card.classList.contains("sk") || card.querySelector(".swipe")) return;
     card._cpArmed = true;
-    var img = card.querySelector("img");
-    if (!img || !productOf(card)) return;
+    var img = card.querySelector("img[data-g]");
+    if (!img || (+img.getAttribute("data-g") || 0) < 2 || !productOf(card)) return;
     if (getComputedStyle(card).position === "static") card.style.position = "relative";
     var top = img.offsetTop + img.offsetHeight * 0.38 - 15;
     ["prev", "next"].forEach(function (k) {
@@ -130,7 +142,27 @@
       if (top > 0) b.style.top = top + "px";
       card.appendChild(b);
     });
+    paintDots(card, img, Math.min(+img.getAttribute("data-g"), 8), 0);
   }
+
+  /* SWIPE on a counted card's photo: a mostly-sideways drag of 30px+
+     steps the photo, and the click that follows is swallowed. */
+  var sx = 0, sy = 0, sCard = null, swallow = 0;
+  document.addEventListener("touchstart", function (e) {
+    var img = e.target && e.target.closest && e.target.closest("img[data-g]");
+    sCard = img ? img.closest(CARD) : null;
+    if (!sCard || !sCard._cpArmed || !sCard.querySelector(".cp-nav")) { sCard = null; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true, capture: true });
+  document.addEventListener("touchend", function (e) {
+    if (!sCard) return;
+    var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) { step(sCard, dx < 0 ? 1 : -1); swallow = Date.now(); }
+    sCard = null;
+  }, { passive: true, capture: true });
+  document.addEventListener("click", function (e) {
+    if (swallow && Date.now() - swallow < 400 && e.target.closest && e.target.closest(CARD)) { e.preventDefault(); e.stopPropagation(); swallow = 0; }
+  }, true);
 
   /* A tap on an arrow steps the photo; it never opens the product. */
   document.addEventListener("click", function (e) {
@@ -143,7 +175,6 @@
 
   /* Arm the cards on screen as rows appear and scroll: buttons only,
      no request until a tap. */
-  var CARD = ":is(" + ROW + ") > :is(a, button, div.card, article)";
   var pending = false;
   function scan() {
     pending = false;
@@ -151,7 +182,8 @@
     var vh = window.innerHeight || 800;
     for (var i = 0; i < cards.length; i++) {
       var c = cards[i];
-      if (c._cpArmed) continue;
+      /* A photo that failed to load and was taken off the card takes its arrows with it. */
+      if (c._cpArmed) { if (!c.querySelector("img") && c.querySelector(".cp-nav")) c.querySelectorAll(".cp-nav,.cp-dots").forEach(function (x) { x.remove(); }); continue; }
       var r = c.getBoundingClientRect();
       if (r.bottom > -200 && r.top < vh + 400 && r.right > -50 && r.left < (window.innerWidth || 400) + 400) arm(c);
     }

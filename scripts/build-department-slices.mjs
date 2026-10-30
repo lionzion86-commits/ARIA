@@ -36,6 +36,7 @@
    longer match what the rules compute from the committed catalogues.
    ============================================================ */
 import { TECH_BUCKETS } from "./lib/brandsmart.js";
+import { photoCount } from "./lib/photo-counts.js";
 import { CAB_BUCKETS, AISLE_LABELS as CAB_LABELS, hairAisle, PERU_SOLD_HAIR_RX } from "./lib/sleekshop.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -326,6 +327,9 @@ export function loadAllItems(root = ROOT) {
           const key = rk + "::" + p.title;
           if (seen.has(key)) continue;
           seen.add(key);
+          /* ph: the photo count when 2+ (scripts/lib/photo-counts.js), so the card's arrows are never dead. */
+          const ph = photoCount(root, p.title, rk);
+          if (ph) p.ph = ph;
           out.push(p);
         }
       }

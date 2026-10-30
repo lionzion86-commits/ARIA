@@ -638,7 +638,7 @@ function cardHTML(c){
     var was = c.o ? ariaPrice(c.o) : 0;
     var pct = salePct(c);
     var img = c.i
-      ? '<img ' + cardImgAttrs(c.i).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=')
+      ? '<img ' + (c.ph > 1 ? 'data-g="' + (c.ph | 0) + '" ' : '') + cardImgAttrs(c.i).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=')
         + ' alt="" width="560" height="747" decoding="async" onerror="if(!imgOrigRetry(this)){var w=this.closest(\'.card-img\');if(w)w.classList.add(\'noimg\');this.remove();}">'
       : '';
     /* DANNY 2026-10-07: cards stay in Aria, never link to the designer site. */

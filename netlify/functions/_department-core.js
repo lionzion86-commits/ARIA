@@ -766,6 +766,8 @@ export function cardOf(p) {
   if (p.brand) c.b = p.brand;
   if (p.salePct > 0) { c.s = p.salePct; if (p.wasPrice > p.rawPrice) c.o = p.wasPrice; }
   if (p.image) c.i = p.image;
+  /* ph: 2+ photos behind this card (scripts/lib/photo-counts.js). */
+  if (p.ph > 1) c.ph = p.ph;
   /* k: the condition label (/condition.js) when the store's title says
      refurbished, used or open-box. */
   const cond = conditionOfTitle(p.title);
@@ -836,14 +838,16 @@ export function allInRailOrder(sections, list) {
    and its gender where the department has a gender axis (Zapatos). */
 export function fnRow(p) {
   const r = [p.title, p.brand || "", p.retailer, p.rawPrice, p.wasPrice || 0, p.salePct || 0, p.image || "", p.type || ""];
-  if (p.g || p.a) r.push(p.g || "");
-  if (p.a) r.push(p.a);
+  if (p.g || p.a || p.ph) r.push(p.g || "");
+  if (p.a || p.ph) r.push(p.a || "");
+  if (p.ph) r.push(p.ph);
   return r;
 }
 export function rowItem(r) {
   const p = { title: r[0], brand: r[1], retailer: r[2], rawPrice: r[3], wasPrice: r[4], salePct: r[5], image: r[6], type: r[7] };
   if (r[8]) p.g = r[8];
   if (r[9]) p.a = r[9];
+  if (r[10]) p.ph = r[10];
   return p;
 }
 

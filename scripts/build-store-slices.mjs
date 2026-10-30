@@ -50,6 +50,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { photoCount } from "./lib/photo-counts.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
@@ -349,16 +350,20 @@ export function storeProducts(key, root = ROOT) {
         name, brand: p.brand || "", price, was: pct > 0 ? sale.originalPrice(p) : 0, pct, image, dept,
         reviews: Number(p.reviewCount) || 0, rating: Number(p.rating) || 0,
         rank: Number(p.bestSellerRank) || 0,
+        ...(photoCount(root, name, key) ? { ph: photoCount(root, name, key) } : {}),
       });
     }
   }
   return out;
 }
 
+/* A row carries its photo count (ROW.ph) only when 2+. */
+const withPhotos = (row, ph) => (ph > 1 ? row.concat(ph) : row);
 const cardOf = (p) => {
   const c = { name: p.name, price: p.price, image: p.image };
   if (p.brand) c.brand = p.brand;
   if (p.was) c.was = p.was;
+  if (p.ph > 1) c.ph = p.ph;
   return c;
 };
 const demand = (p) => Math.log10(1 + p.reviews);
@@ -455,7 +460,7 @@ export function buildStore(key, root = ROOT) {
   }
   /* The search box ranks in this order: sale depth + demand. */
   const ranked = products.slice().sort((a, b) => (saleScore(b) - saleScore(a)) || (b.reviews - a.reviews));
-  const rows = ranked.map((p) => [p.name, p.brand, p.price, p.was || 0, p.pct || 0, p.image, p.dept, "", ""]);
+  const rows = ranked.map((p) => withPhotos([p.name, p.brand, p.price, p.was || 0, p.pct || 0, p.image, p.dept, "", ""], p.ph));
   const fn = fnFile(key, rows, ranked, rails);
   return { files, fn, products, rails };
 }
@@ -467,8 +472,8 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
   const rails = genericRails(key, meta.label, items, rules);
   const rows = items.map((p) => {
     const pct = R.discountPct(p);
-    return [p.name, p.brand || "", p.price, pct > 0 && p.originalPrice ? p.originalPrice : 0, pct > 0 ? pct : 0, p.image, p.dept || "",
-      facetMode ? (p.gender || "") : "", facetMode ? (p.cat || "") : ""];
+    return withPhotos([p.name, p.brand || "", p.price, pct > 0 && p.originalPrice ? p.originalPrice : 0, pct > 0 ? pct : 0, p.image, p.dept || "",
+      facetMode ? (p.gender || "") : "", facetMode ? (p.cat || "") : ""], photoCount(root, p.name, key));
   });
   /* A multi-family rail or department pill opens into labelled
      sub-carousels (scripts/lib/store-subrails.js); their pages are

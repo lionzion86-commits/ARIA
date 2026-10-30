@@ -28,8 +28,9 @@ export const SORTS = ["relevance", "discount", "priceAsc", "priceDesc"];
 
 /* One row per product, in the store's own order:
    [name, brand, price (store's USD), was (sales only, else 0),
-    pct off (the one sale rule, else 0), image, dept, gender, cat] */
-export const ROW = { name: 0, brand: 1, price: 2, was: 3, pct: 4, image: 5, dept: 6, gender: 7, cat: 8 };
+    pct off (the one sale rule, else 0), image, dept, gender, cat,
+    photos (2+ only, scripts/lib/photo-counts.js; else absent)] */
+export const ROW = { name: 0, brand: 1, price: 2, was: 3, pct: 4, image: 5, dept: 6, gender: 7, cat: 8, ph: 9 };
 
 /* A card: what the tile and the tap need. The page prices it (tiered
    margin + tax, soles first) with its own finalUsd. */
@@ -37,6 +38,7 @@ export function cardOfRow(r) {
   const c = { name: r[0], price: r[2], image: r[5] };
   if (r[1]) c.brand = r[1];
   if (r[3]) c.was = r[3];
+  if (r[9] > 1) c.ph = r[9];
   return c;
 }
 
