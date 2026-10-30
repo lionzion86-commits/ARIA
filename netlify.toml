@@ -48,7 +48,7 @@
 # them. search.html fetches 48 cards at a time. The auto-parts glossary
 # (#416) gives the dictionary its car-part phrases ("pastillas de freno").
 [functions."search"]
-  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/photos/*.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
 
 # ARIA AUTO, ITS OWN ADDRESS (#443 c.6427505203 + c.6428323317): the
 # front door auto-industry reviewers are sent to. The root of each

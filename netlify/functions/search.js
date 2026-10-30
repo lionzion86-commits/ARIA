@@ -85,9 +85,11 @@ const json = (statusCode, body, cache) => ({
       ? {
           "Cache-Control": "public, max-age=300",
           "Netlify-CDN-Cache-Control": cache,
-          /* Only q and page decide the answer; anything else in the URL
-             must not split the cache. */
-          "Netlify-Vary": "query=q|page",
+          /* q, page and the scope (aud, tienda, grid) decide the answer;
+             anything else in the URL must not split the cache. Without
+             the scope keys the CDN served the unscoped page to every
+             pill tap (Lucifer, #443 c.6513049594). */
+          "Netlify-Vary": "query=q|page|aud|tienda|grid",
         }
       : { "Cache-Control": "no-store" }),
   },
@@ -116,7 +118,9 @@ export async function handler(event, { fetchImpl } = {}) {
     const fxP = sellRate(fetchImpl);
     const ctx = loadSearch({ labels: LABELS });
     const fx = await within(fxP, FX_BUDGET_MS);
-    const out = searchPage(ctx, q, page, { fx });
+    const store = String(qs.tienda || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40);
+    const aud = String(qs.aud || "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 10);
+    const out = searchPage(ctx, q, page, { fx, store, aud, grid: qs.grid === "1" });
     if (out.state === "error") return json(500, { ...out, items: [] }, null);
     /* Soles are part of the answer: an answer without them is kept
        briefly, so the next request can pick the rate up. */

@@ -34,8 +34,8 @@ async function check(name, fn) {
   catch (e) { failures.push(`${name}\n         ${e.message}`); }
 }
 const fetchImpl = async () => ({ ok: true, json: async () => ({ venta: 3.75 }) });
-async function ask(q, page = 1) {
-  const r = await handler({ httpMethod: "GET", queryStringParameters: { q, page: String(page) } }, { fetchImpl });
+async function ask(q, page = 1, extra = {}) {
+  const r = await handler({ httpMethod: "GET", queryStringParameters: { q, page: String(page), ...extra } }, { fetchImpl });
   return { status: r.statusCode, headers: r.headers, bytes: Buffer.byteLength(r.body), body: JSON.parse(r.body || "{}") };
 }
 
@@ -50,7 +50,9 @@ const BATTERY = {
 };
 for (const [q, right] of Object.entries(BATTERY)) {
   await check(`"${q}": 48 cards at most, small JSON, the right products first`, async () => {
-    const r = await ask(q);
+    /* The grid «Ver todos los resultados» opens (a browse query's page 1
+       answers with its store rows). */
+    const r = await ask(q, 1, { grid: "1" });
     assert.equal(r.status, 200);
     assert.equal(r.body.state, "results");
     assert.ok(r.body.items.length > 0 && r.body.items.length <= PAGE_SIZE, `${r.body.items.length} cards`);
@@ -80,7 +82,7 @@ await check("Foot Locker's products are searchable (its feed names them productN
 });
 
 await check('"dolls" pages: the next 48, no repeats, an honest total', async () => {
-  const p1 = await ask("dolls", 1), p2 = await ask("dolls", 2);
+  const p1 = await ask("dolls", 1, { grid: "1" }), p2 = await ask("dolls", 2);
   assert.equal(p1.body.items.length, PAGE_SIZE);
   assert.equal(p2.body.page, 2);
   const ids = new Set(p1.body.items.map((i) => i.id));
@@ -114,7 +116,8 @@ await check('near-misses get a chip; real words and brands do not', async () => 
   for (const [q, want] of [["shor", "shorts"], ["shore", "shorts"], ["nkie", "nike"], ["sneakrs", "sneakers"], ["hoddie", "hoodie"]]) {
     const r = await ask(q);
     assert.equal(r.body.didYouMean, want, `"${q}" offered ${r.body.didYouMean}`);
-    assert.ok(r.body.items.length > 0, `"${q}" dropped its results`);
+    /* A browse answer's grid waits behind «Ver todos» (gridDeferred); its rows carry the results. */
+    assert.ok(r.body.items.length > 0 || (r.body.gridDeferred && r.body.lanes.some((l) => l.items.length)), `"${q}" dropped its results`);
   }
   for (const q of ["gazelle", "samba", "levis 501", "lizzie", "dolls", "shorts", "nike air force 1"]) {
     assert.equal((await ask(q)).body.didYouMean, null, `"${q}" got a chip it should not`);
@@ -155,10 +158,10 @@ await check("empty, short, gibberish and a brand we do not sell answer cleanly",
   assert.equal((await ask("H&M")).body.missingBrand, "h&m");
 });
 
-await check("answers are edge-cached per (q, page); the warm ping is not", async () => {
+await check("answers are edge-cached per (q, page, scope); the warm ping is not", async () => {
   const r = await ask("dolls");
   assert.match(r.headers["Netlify-CDN-Cache-Control"], /durable/);
-  assert.equal(r.headers["Netlify-Vary"], "query=q|page");
+  assert.equal(r.headers["Netlify-Vary"], "query=q|page|aud|tienda|grid");
   const w = await handler({ httpMethod: "GET", queryStringParameters: { warm: "1" } }, { fetchImpl });
   assert.equal(w.statusCode, 204);
   assert.equal(w.headers["Cache-Control"], "no-store");

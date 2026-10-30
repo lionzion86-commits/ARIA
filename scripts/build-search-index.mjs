@@ -57,6 +57,33 @@ import { isOffSaleRetailer } from "./lib/off-sale.js";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
 export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating"];
+/* THE CARD'S OTHER PHOTOS (Danny's #534 QA, #443 c.6512408305): a search
+   card swipes through the product's photos like every other card on the
+   site. Up to PHOTOS_MAX more, distinct from the card photo (the same file
+   at another size or ?v= is one photo). They live beside the index, in
+   PHOTO_SHARDS small files by product id, so the ranker's index stays
+   its size and a page reads only the shards its cards need. */
+export const PHOTOS_DIR = "assets/search/photos/";
+export const PHOTO_SHARDS = 256;
+export function photoShardOf(id) {
+  let h = 0;
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h % PHOTO_SHARDS;
+}
+const PHOTOS_MAX = 4;
+const photoKey = (u) => String(u || "").split(/[?#]/)[0].toLowerCase()
+  .replace(/[_-](\d+x\d*|x\d+)(?=\.\w+$)/, "").replace(/\.(jpe?g|png|webp|avif)$/, "");
+function otherPhotos(it, image) {
+  const seen = new Set([photoKey(image)]), out = [];
+  for (const u of Array.isArray(it.images) ? it.images : []) {
+    if (typeof u !== "string" || !/^https?:\/\//.test(u) || /\.svg(\?|$)/i.test(u)) continue;
+    const k = photoKey(u);
+    if (!k || seen.has(k)) continue;
+    seen.add(k); out.push(u);
+    if (out.length >= PHOTOS_MAX) break;
+  }
+  return out;
+}
 
 /* Everything search covers: the catalogues below, then the sale feed
    for deals no catalogue carries. (This list lived in search.html while
@@ -171,6 +198,7 @@ function normalize(it, retailer, department, finalPrice) {
     originalPrice: orig > price ? orig : 0, onSale: it.onSale === true,
     department: department ? String(department) : "", retailer: String(it.retailer || retailer || ""),
     finalPrice: !!finalPrice, image: typeof image === "string" ? image : "", url: String(it.url || it.link || it.productUrl || ""),
+    photos: otherPhotos(it, image),
     reviews: firstNumber(it.reviewCount, it.reviews), rating: Math.round(firstNumber(it.rating, it.averageRating, it.reviewScore) * 10) / 10,
   };
 }
@@ -295,23 +323,32 @@ export function buildIndex() {
     products.push(n);
   }
   inferBrands(products, knownBrands());
-  const rows = [];
+  const rows = [], photos = {};
   for (const p of products) {
     if (!p.image) continue;
     const cat = S.catalogItemCategory({ title: p.title, name: p.title, brand: p.brand, retailer: p.retailer,
       departments: p.department ? [p.department] : [] }) || "";
-    rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
+    const id = productId(p.retailer, p.url, p.title);
+    rows.push([id, p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
       p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
+    if (p.photos && p.photos.length) photos[id] = p.photos;
   }
   const stores = storeTable(new Set(rows.map((r) => r[7]).filter(Boolean)));
-  return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, stores, rows };
+  return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, stores, rows, photos };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const index = buildIndex();
   index.generatedAt = new Date().toISOString();
   mkdirSync(ROOT + "assets/search", { recursive: true });
+  const { photos } = index;
+  delete index.photos;
   const out = JSON.stringify(index);
   writeFileSync(ROOT + INDEX_PATH, out);
-  console.log(`${INDEX_PATH}: ${index.count} products, ${(out.length / 1e6).toFixed(1)}MB`);
+  const shards = Array.from({ length: PHOTO_SHARDS }, () => ({}));
+  for (const [id, list] of Object.entries(photos)) shards[photoShardOf(id)][id] = list;
+  mkdirSync(ROOT + PHOTOS_DIR, { recursive: true });
+  let bytes = 0;
+  shards.forEach((sh, i) => { const t = JSON.stringify(sh); bytes += t.length; writeFileSync(ROOT + PHOTOS_DIR + i + ".json", t); });
+  console.log(`${INDEX_PATH}: ${index.count} products, ${(out.length / 1e6).toFixed(1)}MB; photos for ${Object.keys(photos).length} in ${PHOTO_SHARDS} shards, ${(bytes / 1e6).toFixed(1)}MB`);
 }

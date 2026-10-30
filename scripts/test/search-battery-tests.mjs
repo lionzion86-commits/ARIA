@@ -35,7 +35,7 @@ const BATTERY = [
   ["alisado", /straighten|smooth|blowout|alisad/i],
 ];
 for (const [q, rx] of BATTERY) {
-  const r = searchPage(ctx, q, 1, { pageSize: 12 });
+  const r = searchPage(ctx, q, 1, { pageSize: 12, grid: true });
   const foreign = r.items.filter((it) => !rx.test(String(it.title || it.name || "")));
   const ok = r.items.length > 0 && foreign.length === 0;
   if (ok) passed++; else failures.push(`«${q}»: ${r.items.length} shown, foreign: ${foreign.map((i) => i.title || i.name).slice(0, 3).join(" | ")}`);
@@ -43,7 +43,7 @@ for (const [q, rx] of BATTERY) {
 }
 /* Honest states: nothing true wired, nothing shown. */
 for (const [q, bad] of [["alisado", /palisade|alisa\b|blouse|sunglass|skirt/i], ["pesas", /kosas|foundation|mascara|peptide/i]]) {
-  const r = searchPage(ctx, q, 1, { pageSize: 12 });
+  const r = searchPage(ctx, q, 1, { pageSize: 12, grid: true });
   const junk = r.items.filter((it) => bad.test(String(it.title || it.name || "")));
   const ok = junk.length === 0;
   if (ok) passed++; else failures.push(`«${q}»: lookalikes ${junk.map((i) => i.title || i.name).slice(0, 3).join(" | ")}`);

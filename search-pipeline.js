@@ -64,6 +64,20 @@
       Object.keys(m).forEach(function (k) { words.set(norm(k), asList(m[k]).map(String)); });
     });
     Object.keys((dict && dict.phrases) || {}).forEach(function (k) { words.set(norm(k), asList(dict.phrases[k]).map(String)); });
+    /* ES/EN PARITY (Danny, #443 c.6504037778 §1): "lingerie" and «lencería»
+       return the same set. A Spanish word that reads several English ones
+       lends its list to the first of them, so the English query expands
+       the same way (shopping words only; a brand or a console line is
+       never widened). */
+    ['clothing', 'accessories', 'footwear', 'beauty'].forEach(function (sec) {
+      var m = dict && dict[sec];
+      if (!m || typeof m !== 'object' || Array.isArray(m)) return;
+      Object.keys(m).forEach(function (k) {
+        var v = asList(m[k]).map(String);
+        var en = norm(v[0]);
+        if (v.length > 1 && en && !words.has(en)) words.set(en, v);
+      });
+    });
     var brands = new Set(((dict && dict.brands) || []).map(norm));
     var stop = new Set(((dict && dict.stopwords) || []).map(norm));
     var intents = new Map();
