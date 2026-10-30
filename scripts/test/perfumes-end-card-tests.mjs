@@ -90,7 +90,9 @@ await check("homepage: both Perfumes rows end in the card; it opens every perfum
     const pool = deptRailPools["perfumes-all"];
     return perfumesRendered.map((s) => { const o = pool.find((p) => p.title === s.title); return o ? [s.title, s.price, o.price] : null; }).filter(Boolean);
   });
-  assert.ok(prices.length >= 3, "too few shelf perfumes in the first pages to compare");
+  /* The overlay opens in the room's order (Ofertas, then the brands --
+     the universal format), so the shelf's bottles may sit past the first
+     pages; every one that is there carries the shelf's price. */
   for (const [t, a, b] of prices) assert.ok(Math.abs(a - b) < 0.005, `${t}: shelf ${a}, overlay ${b}`);
   await pg.evaluate(() => closeRailExpand());
   assert.ok(!(await pg.evaluate(() => document.getElementById("perfumesExpandMoreWrap"))), "Mostrar más outlives the overlay");
@@ -98,7 +100,10 @@ await check("homepage: both Perfumes rows end in the card; it opens every perfum
   await pg.close();
 });
 
-for (const [dept, sel] of [["beauty", "#perfumesLeadRail"], ["perfumes", '.rail-sec[data-ri="0"] .rail']]) {
+/* The Perfumes department itself follows the universal format now (#443
+   c.6532666653): its lead is Ofertas, whose «Ver todo» opens the sales; the
+   all-perfumes end card stays on Belleza's Perfumes lead. */
+for (const [dept, sel] of [["beauty", "#perfumesLeadRail"]]) {
   await check(`departamento ${dept}: the Perfumes lead carousel ends in the card; it opens every perfume in the overlay`, async () => {
     const { pg, errs } = await open(`departamento.html?dept=${dept}`);
     await pg.waitForFunction((sel) => { const r = document.querySelector(sel); return r && r.querySelector(".card:not(.sk)"); }, sel, { timeout: 15000 });

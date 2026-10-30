@@ -15,6 +15,7 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import * as require_fs from "node:fs";
 import { photoCount } from "../lib/photo-counts.js";
 import { cardOfRow } from "../../netlify/functions/_tienda-core.js";
 import { rowItem, cardOf } from "../../netlify/functions/_department-core.js";
@@ -79,6 +80,35 @@ check("the pages hand the count to the card; card-photos.js arms only counted ca
   assert.match(js, /getAttribute\("data-g"\) \|\| 0\) < 2/);
   /* The only request is the shard, inside galleryOf (a tap or a swipe). */
   assert.equal((js.match(/fetch\(/g) || []).length, 1);
+});
+
+check("the homepage carousels: every shelf card with 2+ photos carries ph, and the bundle hands it to the card", () => {
+  const { readdirSync } = require_fs;
+  let multi = 0;
+  for (const d of ["assets/home/shelves", "assets/home/pills", "assets/home/store-pills"]) {
+    for (const f of readdirSync(ROOT + d)) {
+      if (!f.endsWith(".json")) continue;
+      const walk = (v) => {
+        if (Array.isArray(v)) return v.forEach(walk);
+        if (!v || typeof v !== "object") return;
+        const title = v.title || v.name || v.t, image = v.image || v.i, store = v.retailer || v.store || v.r;
+        if (typeof title === "string" && typeof image === "string" && typeof store === "string") {
+          const n = photoCount(ROOT, title, store);
+          assert.equal(v.ph || 0, n >= 2 ? n : 0, `${d}/${f}: ${title} -- node scripts/stamp-home-photos.mjs`);
+          if (n >= 2) multi++;
+          return;
+        }
+        Object.values(v).forEach(walk);
+      };
+      walk(JSON.parse(read(d + "/" + f)));
+    }
+  }
+  assert.ok(multi > 500, "only " + multi + " homepage cards with a gallery");
+  const bundle = read("build/" + read("index.html").match(/build\/(app-[0-9a-f]{16}\.js)/)[1]);
+  assert.match(bundle, /data-cp-t="\$\{escapeHtml\(p\.title\)\}"/, "railCardHTML hands the product to card-photos.js");
+  assert.match(bundle, /photo\.replace\('<img ', `<img data-g="\$\{ph\}" `\)/, "railCardHTML puts the count on the photo");
+  assert.match(bundle, /\.\.\.\(c\.ph \? \{ ph: c\.ph \} : \{\}\)/, "the audience pill shelves keep the count");
+  assert.match(read("assets/js/card-photos.js"), /getAttribute\("data-cp-t"\)/, "card-photos.js reads a homepage card's product");
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

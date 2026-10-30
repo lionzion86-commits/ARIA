@@ -69,6 +69,9 @@
   }
   /* The card's product: its link to producto.html. */
   function productOf(card) {
+    /* A homepage card is a button: its product rides on it (railCardHTML). */
+    var ct = card.getAttribute && card.getAttribute("data-cp-t");
+    if (ct) return { title: ct, store: (card.getAttribute("data-cp-r") || "").toLowerCase() };
     var a = card.tagName === "A" ? card : card.querySelector("a[href*='producto']");
     if (!a) return null;
     var u;
@@ -90,9 +93,14 @@
       if (!rec) return [];
       var cover = img.currentSrc || img.src;
       var list = unpack(rec.images, rec.image);
-      /* The card's own cover first, then the rest, one copy each. */
+      /* The card's own cover first, then the rest, one copy each. The card
+         may show a resized copy of the cover (another URL, the same photo):
+         the record's own cover is that photo, never a second step. */
       var seen = {}, out = [];
-      [cover].concat(list).forEach(function (u) { if (u && !seen[u]) { seen[u] = 1; out.push(u); } });
+      seen[img.src] = seen[cover] = seen[img.getAttribute("data-img-fallback") || ""] = 1;
+      if (rec.image) seen[String(rec.image)] = 1;
+      out.push(cover);
+      list.forEach(function (u) { if (u && !seen[u]) { seen[u] = 1; out.push(u); } });
       return out.slice(0, 8);
     });
     return card._cpGallery;

@@ -68,3 +68,24 @@ export function photoCount(root, title, retailer) {
   const hit = (r && c.find((x) => x.retailer === r)) || (!r && c[0]);
   return hit ? hit.n : 0;
 }
+
+/* Stamp `ph` on every card in a homepage shelf body (#443 c.6535: arrows
+   on the homepage carousels too). A card is any object with a title, a
+   photo and its store; the count is the same photoCount the department
+   and store slices carry. Returns how many cards were stamped. */
+export function stampPhotoCounts(root, body) {
+  let n = 0;
+  const walk = (v) => {
+    if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+    if (!v || typeof v !== "object") return;
+    const title = v.title || v.name || v.t, image = v.image || v.i, store = v.retailer || v.store || v.r;
+    if (typeof title === "string" && typeof image === "string" && typeof store === "string") {
+      const c = photoCount(root, title, store);
+      if (c >= 2) { v.ph = c; n++; } else delete v.ph;
+      return;
+    }
+    for (const k of Object.keys(v)) walk(v[k]);
+  };
+  walk(body);
+  return n;
+}

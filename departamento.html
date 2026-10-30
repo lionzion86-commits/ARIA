@@ -37,6 +37,7 @@
   .houses-in::-webkit-scrollbar{display:none}
   .houses .house{flex-shrink:0;display:grid;place-items:center;height:44px;min-width:104px;padding:0 14px;border-radius:12px;background:#fff;border:0;cursor:pointer;box-shadow:0 0 0 1px rgba(231,200,115,.35)}
   .houses .house[aria-pressed="true"]{box-shadow:0 0 0 3px #E7C873}
+  .houses .house-all{font:800 13px/1 inherit;color:#1A1408;min-width:84px}
   .houses .house img{max-height:22px;max-width:84px;width:auto;height:auto;object-fit:contain}
   .hero .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;}
   .hero .hero-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,20,40,.45) 0%,rgba(10,20,40,.78) 100%);}
@@ -101,6 +102,11 @@
   footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;font-size:12.5px;color:#8A93A8}
   /* ---------- carousels (2026-10-07): sales first, then category rails ---------- */
   #rails{max-width:1240px;margin:0 auto;padding:8px 0 44px}
+  /* THE SECTION PATTERN (Danny, Oct 30): sales on top, then the search
+     bar, then the pills, then the rails. */
+  .sales-top{max-width:1240px;margin:0 auto;padding:6px 0 2px}
+  .p-pills{padding-top:10px}
+  .p-pills .hub-pill .n{font-weight:600;opacity:.6;margin-left:5px}
   .rail-sec{margin:20px 0 4px}
   .perfumes-lead{scroll-margin-top:76px}
   .perfumes-lead .rail-head h2{font-size:22px;text-transform:uppercase}
@@ -129,6 +135,9 @@
   .rail .rail-more b{font-size:14px;font-weight:800;color:var(--blue)}
   .rail .rail-more span{font-size:12px;color:#6B7487}
   @media(min-width:640px){.rail .rail-more{flex-basis:200px}}
+.scope-bar{display:flex;align-items:center;gap:10px;padding:10px 16px 0;font-size:14px}
+  .scope-bar .scope-back{background:none;border:1px solid var(--line,#d9dde3);border-radius:999px;padding:6px 12px;font:inherit;font-weight:800;color:var(--blue);cursor:pointer}
+  .scope-bar .scope-here{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rail-head .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px;font-family:inherit}
   .rail{display:flex;gap:12px;overflow-x:auto;padding:10px 20px 16px;scroll-snap-type:x mandatory;scrollbar-width:thin}
   .rail::-webkit-scrollbar{height:6px}
@@ -193,18 +202,28 @@
   </div>
 </section>
 
+<!-- THE UNIVERSAL FORMAT (#443 c.6532666653): the search bar, the pills,
+     the department's Ofertas, then the rails (moved into place at boot). -->
+<section class="sales-top" id="salesTop" data-pat="sales" aria-label="Ofertas" hidden></section>
+
 <!-- ARIA PERFUMES: THE HOUSES (#443 item 39 E). Real logos only; each
      narrows the room to that house. Shown on the Perfumes department. -->
-<nav class="houses" id="perfumeHouses" aria-label="Las casas" hidden>
+<nav class="houses" id="perfumeHouses" data-pat="pills" aria-label="Las casas" hidden>
   <div class="houses-in"><button type="button" class="house" data-q="Christian Dior" aria-label="Perfumes Dior"><img src="logos/brands/dior.svg" alt="Dior" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Versace" aria-label="Perfumes Versace"><img src="logos/brands/versace.svg" alt="Versace" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Yves Saint Laurent" aria-label="Perfumes Yves Saint Laurent"><img src="logos/brands/saintlaurent.svg" alt="Yves Saint Laurent" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Gucci" aria-label="Perfumes Gucci"><img src="logos/brands/gucci.svg" alt="Gucci" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Prada" aria-label="Perfumes Prada"><img src="logos/brands/prada.svg" alt="Prada" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Burberry" aria-label="Perfumes Burberry"><img src="logos/brands/burberry.svg" alt="Burberry" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Calvin Klein" aria-label="Perfumes Calvin Klein"><img src="logos/brands/calvinklein.svg" alt="Calvin Klein" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Tom Ford" aria-label="Perfumes Tom Ford"><img src="logos/brands/tomford.svg" alt="Tom Ford" width="88" height="28" decoding="async"></button><button type="button" class="house" data-q="Valentino" aria-label="Perfumes Valentino"><img src="logos/brands/valentino.svg" alt="Valentino" width="88" height="28" decoding="async"></button></div>
 </nav>
 
-<nav class="hub" id="hubPills" aria-label="Tiendas y marcas" hidden><div class="hub-in" role="tablist"></div></nav>
-<div class="toolbar" role="search" id="toolbar" hidden>
+<!-- THE PERFUMES ROOM'S PILLS (#443 c.6532666653): the doors (Mujer,
+     Hombre, Unisex, Minis, Sets, Testers), then one pill per known brand,
+     biggest first. Each re-scopes the whole room in place. -->
+<nav class="scope-bar" id="scopeBar" aria-label="Estás en" hidden></nav>
+<nav class="hub p-pills" id="pDoors" data-pat="pills" aria-label="Para quién" hidden><div class="hub-in" role="tablist"></div></nav>
+<nav class="hub p-pills" id="pBrands" data-pat="pills" aria-label="Marcas" hidden><div class="hub-in" role="tablist"></div></nav>
+<nav class="hub" id="hubPills" data-pat="pills" aria-label="Tiendas y marcas" hidden><div class="hub-in" role="tablist"></div></nav>
+<div class="toolbar" role="search" id="toolbar" data-pat="search" hidden>
   <div class="search">
     <input id="q" type="search" placeholder="Buscar en este departamento…" aria-label="Buscar productos">
   </div>
-  <div class="chips" id="retChips" role="group" aria-label="Filtrar por tienda"></div>
+  <div class="chips" id="retChips" data-pat="pills" role="group" aria-label="Filtrar por tienda"></div>
   <span class="count" id="count"></span>
 </div>
 
@@ -344,6 +363,12 @@
   }
 
   var deptKey = getDeptKey();
+  /* THE SECTION PATTERN (Danny, Oct 30): every section reads the same --
+     sales on top, the search bar, the brand or category pills, then the
+     rails. Perfumes was the pilot; every department follows it. The one
+     pill row is the department's hub pills, its houses (Perfumes) or its
+     store chips -- whichever it has. */
+  var patterned = true;
   var dept = Object.prototype.hasOwnProperty.call(DEPTS, deptKey) ? DEPTS[deptKey] : null;
   /* A department with its own page is a door, not a grid. */
   if (dept && dept.href){ window.location.replace(dept.href); return; }
@@ -398,7 +423,15 @@
   var SLICES = 'assets/sections/departamento/' + encodeURIComponent(deptKey) + '/';
   var ENDPOINT = '/.netlify/functions/department';
   var HEAD = null;           // the answer on screen (static or filtered)
-  var fQ = '', fRet = 'all';
+  var fQ = '', fRet = 'all', fB = '', fA = '', fT = '', fTitle = '';
+  /* Perfumes' brand and door pills: departamento.html?dept=perfumes&b=<brand>&a=<door>. */
+  try {
+    var _bm = /[?&]b=([^&]*)/.exec(window.location.search || ''), _am = /[?&]a=([a-z]{2,20})(?:&|$)/.exec(window.location.search || '');
+    if (_bm) fB = decodeURIComponent(_bm[1].replace(/\+/g, ' ')).slice(0, 80);
+    if (_am) fA = _am[1];
+    var _tm = /[?&]t=([^&]*)/.exec(window.location.search || '');
+    if (_tm) fT = decodeURIComponent(_tm[1].replace(/\+/g, ' ')).slice(0, 80).toLowerCase();
+  } catch(e){}
   /* A house logo (home page or this page) opens the room already
      narrowed: departamento.html?dept=perfumes&q=<house>. */
   try {
@@ -744,11 +777,14 @@ function sizedImageUrl(url, w){
       return r.json();
     }, function(e){ if (timer) clearTimeout(timer); throw e; });
   }
-  function filtered(){ return fRet !== 'all' || !!fQ.trim(); }
+  function filtered(){ return fRet !== 'all' || !!fQ.trim() || !!fB || !!fA || !!fT; }
   function endpoint(extra){
     var u = ENDPOINT + '?dept=' + encodeURIComponent(deptKey);
     if (fRet !== 'all') u += '&r=' + encodeURIComponent(fRet);
     if (fQ.trim()) u += '&q=' + encodeURIComponent(fQ.trim());
+    if (fB) u += '&b=' + encodeURIComponent(fB);
+    if (fA) u += '&a=' + encodeURIComponent(fA);
+    if (fT) u += '&t=' + encodeURIComponent(fT);
     return u + (extra || '');
   }
   function headUrl(){ return filtered() ? endpoint('') : SLICES + 'head.json'; }
@@ -763,14 +799,9 @@ function sizedImageUrl(url, w){
   function railSecHTML(r){
     var n = HEAD.railCards || 12;
     var door = r.count > n
-      ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '">Ver todo &#8594;</button>'
+      ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '"' + (r.k ? ' data-k="' + esc(r.k) + '" data-n="' + r.count + '"' : '') + '>Ver todo &#8594;</button>'
       : '';
     var cards = r.cards ? r.cards.map(cardHTML).join('') : skeletons(Math.min(r.count, 4));
-    /* The Perfumes lead rail is short (the great houses) and used to just
-       end: its last card opens every perfume, page by page. */
-    if (deptKey === 'perfumes' && r.i === 0 && r.cards && HEAD.count > r.count)
-      cards += '<button type="button" class="ver-todo rail-more" data-rk="all" data-title="Todos los perfumes">'
-        + '<b>Ver todos los perfumes &#8594;</b><span>' + Number(HEAD.count).toLocaleString('es-PE') + ' productos</span></button>';
     return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '"' + (r.title === 'Reacondicionados' ? ' id="rail-reacondicionados"' : '') + '>'
       + '<div class="rail-head"><h2>' + esc(r.title) + '</h2>'
       + '<span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span>' + door + '</div>'
@@ -796,7 +827,7 @@ function sizedImageUrl(url, w){
     batchBusy = true;
     var seq = SEQ, b = nextBatch;
     var from = HEAD.headRails + b * HEAD.railBatch;
-    var rails = HEAD.rails.slice(from, from + HEAD.railBatch);
+    var rails = HEAD.rails.slice(from, from + HEAD.railBatch).filter(function(x){ return x.i !== liftedRi; });
     var holder = document.createElement('div');
     holder.innerHTML = rails.map(railSecHTML).join('');
     var sentinel = document.getElementById('railsMore');
@@ -821,10 +852,38 @@ function sizedImageUrl(url, w){
       if (s) s.innerHTML = '<button type="button" class="btn" id="moreRetry">Cargar más categorías</button>';
     });
   }
+  /* The pattern's sales rail: the department's Ofertas, when its cards
+     ride in the head, painted above the search bar instead of among the
+     rails. */
+  var salesTop = document.getElementById('salesTop'), liftedRi = -1;
+  function liftSales(first){
+    liftedRi = -1;
+    if (!patterned || !salesTop) return first;
+    var r = null;
+    for (var i = 0; i < HEAD.rails.length; i++) if (/^Ofertas\b/.test(HEAD.rails[i].title)){ r = HEAD.rails[i]; break; }
+    if (!r){ salesTop.innerHTML = ''; hide(salesTop); return first; }
+    liftedRi = r.i;
+    salesTop.innerHTML = railSecHTML(r);
+    show(salesTop); watchPhotos(salesTop);
+    /* An Ofertas rail further down (Casa Aria) has no cards in the head:
+       they come from its batch file, the same one the scroll would read. */
+    var at = HEAD.rails.indexOf(r);
+    if (!r.cards && at >= HEAD.headRails){
+      var seq = SEQ, b = Math.floor((at - HEAD.headRails) / HEAD.railBatch);
+      getJSON(batchUrl(b)).then(function(data){
+        if (seq !== SEQ) return;
+        var got = (data.rails || []).filter(function(x){ return x.i === r.i; })[0];
+        var rail = salesTop.querySelector('.rail');
+        if (got && rail){ rail.innerHTML = (got.cards || []).map(cardHTML).join(''); watchPhotos(salesTop); }
+        else { salesTop.innerHTML = ''; hide(salesTop); }
+      }).catch(function(){ if (seq === SEQ){ salesTop.innerHTML = ''; hide(salesTop); } });
+    }
+    return first.filter(function(x){ return x !== r; });
+  }
   function renderHead(){
     hide(emptyState); hide(loadingState);
     nextBatch = 0; batchBusy = false;
-    var first = HEAD.rails.slice(0, HEAD.headRails);
+    var first = liftSales(HEAD.rails.slice(0, HEAD.headRails));
     railsEl.innerHTML = first.map(railSecHTML).join('')
       + (HEAD.rails.length > HEAD.headRails ? '<div id="railsMore" class="rails-more"></div>' : '');
     countEl.textContent = HEAD.count ? HEAD.count.toLocaleString('es-PE') + ' productos' : '';
@@ -837,6 +896,8 @@ function sizedImageUrl(url, w){
     /* One pill row per view (c.6476025440): a hub department's pill row
        replaces the store filter chips; the search box stays. */
     if (HUB && HUB.length){ chipsEl.innerHTML = ''; chipsEl.hidden = true; return; }
+    /* The pattern's one pill row: on Perfumes it is the houses (brands). */
+    if (deptKey === 'perfumes' || P_BRANDS_ALL || (P_BRANDS && P_BRANDS.length)){ chipsEl.innerHTML = ''; chipsEl.hidden = true; return; }
     var ch = '<button class="chip" data-r="all" aria-pressed="' + (fRet === 'all') + '">Todas</button>';
     (HEAD.stores || []).forEach(function(s){
       ch += '<button class="chip" data-r="' + esc(s.k) + '" aria-pressed="' + (fRet === s.k) + '">' + esc(storeLabel(s.k)) + '</button>';
@@ -853,6 +914,8 @@ function sizedImageUrl(url, w){
     var pl = document.getElementById('perfumesLead');
     if (pl && pl.getAttribute('data-ready')) pl.hidden = filtered();
     var seq = ++SEQ;
+    /* A new view's sales replace the old ones; none show while it loads. */
+    if (patterned && salesTop){ salesTop.innerHTML = ''; hide(salesTop); }
     if (!railsEl.querySelector('.sk')) railsEl.innerHTML = skeletonRails();
     getJSON(headUrl()).then(function(data){
       if (seq !== SEQ) return;
@@ -863,6 +926,13 @@ function sizedImageUrl(url, w){
       }
       /* The chips always list the whole department's stores. */
       if (!filtered()) STORES = data.stores;
+      if (deptKey === 'perfumes' || (data.brands && data.brands.length) || P_BRANDS_ALL || fB){
+        if (!filtered() && (data.doors || data.brands)){ P_DOORS = data.doors || null; P_BRANDS_ALL = data.brands || null; }
+        /* A door's view: the brand pills are the brands inside that door. */
+        if ((fA || fT) && !fB && data.brands) P_BRANDS = data.brands;
+        if (!P_BRANDS_ALL) getJSON(SLICES + 'head.json').then(function(full){ P_DOORS = full.doors || null; P_BRANDS_ALL = full.brands || null; renderPerfumePills(); renderChips(); }).catch(function(){});
+        renderPerfumePills();
+      }
       if (!filtered() && Array.isArray(data.pills) && !HUB){ HUB = data.pills; if (data.pillAll) HUB_ALL = data.pillAll; renderHub(); }
       HEAD = data;
       HEAD.stores = STORES || data.stores;
@@ -982,7 +1052,14 @@ function sizedImageUrl(url, w){
     document.body.classList.add('lux-perfumes');
     var houses = document.getElementById('perfumeHouses');
     if (houses){
-      show(houses);
+      /* The pattern's brand pills start with «Todas» (the whole room). */
+      if (patterned && !houses.querySelector('.house-all')){
+        var all = document.createElement('button');
+        all.type = 'button'; all.className = 'house house-all'; all.setAttribute('data-q', ''); all.textContent = 'Todas';
+        houses.querySelector('.houses-in').insertBefore(all, houses.querySelector('.houses-in').firstChild);
+      }
+      /* The brand pills (every known brand, biggest first) replace the nine house logos. */
+      hide(houses);
       var syncHouses = function(){
         houses.querySelectorAll('.house').forEach(function(h){ h.setAttribute('aria-pressed', fQ.trim().toLowerCase() === h.getAttribute('data-q').toLowerCase() ? 'true' : 'false'); });
       };
@@ -990,7 +1067,7 @@ function sizedImageUrl(url, w){
       houses.addEventListener('click', function(e){
         var h = e.target.closest('.house'); if (!h) return;
         var q = h.getAttribute('data-q');
-        fQ = (fQ.trim().toLowerCase() === q.toLowerCase()) ? '' : q;
+        fQ = (!q || fQ.trim().toLowerCase() === q.toLowerCase()) ? '' : q;
         qInput.value = fQ; syncHouses(); loadAll();
         try { history.replaceState(null, '', 'departamento.html?dept=perfumes' + (fQ ? '&q=' + encodeURIComponent(fQ) : '')); } catch(_e){}
       });
@@ -1057,13 +1134,107 @@ function sizedImageUrl(url, w){
     if (b.dataset.r === fRet) return;
     fRet = b.dataset.r; syncChips(); loadAll();
   });
-  railsEl.addEventListener('click', function(e){
+  function railsClick(e){
     var door = e.target.closest('[data-to-refurb]');
     if (door){ e.preventDefault(); var t = document.getElementById('rail-reacondicionados'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     var m = e.target.closest('#moreRetry');
     if (m){ document.getElementById('railsMore').innerHTML = ''; appendBatch(); return; }
     var b = e.target.closest('.ver-todo'); if(!b) return;
+    if (reRail(b.getAttribute('data-k') || '', +b.getAttribute('data-n') || 0, b.getAttribute('data-title') || '')) return;
     openRailExpand(b.getAttribute('data-rk'), b.getAttribute('data-title'));
+  }
+  railsEl.addEventListener('click', railsClick);
+  if (salesTop) salesTop.addEventListener('click', railsClick);
+  /* The format's order (#443 c.6532584474): the search bar, the pills,
+     the Ofertas rail, then the rails. */
+  if (patterned && salesTop){
+    var hero = document.getElementById('deptHero'), after = hero;
+    ['scopeBar', 'toolbar', 'pDoors', 'pBrands', 'hubPills', 'salesTop'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el && after){ after.parentNode.insertBefore(el, after.nextSibling); after = el; }
+    });
+  }
+  /* ---------- «VER TODO» IS RECURSIVE (#443 c.6532666653) ----------
+     A group too big for one grid opens as its own railed view: a brand
+     by its product types (Venum: shorts, guantes, gis...), a type by its
+     brands (Vestidos: one rail per brand). A modest group, and anything
+     inside a brand, opens the grid. The back button returns. */
+  var RERAIL_BRAND = 60, RERAIL_TYPE = 200;
+  function reRail(k, n, title){
+    if (!patterned || fB) return false;
+    var m = /^(marca|tipo):(.+)$/.exec(k);
+    if (!m || m[2] === 'otros' || m[2] === 'mas' || n < (m[1] === 'marca' ? RERAIL_BRAND : RERAIL_TYPE)) return false;
+    if (m[1] === 'tipo' && fT) return false;
+    if (m[1] === 'marca') fB = title; else { fT = m[2]; fTitle = title; }
+    P_BRANDS = null;
+    try { history.pushState({ b: fB, t: fT, a: fA, tt: fTitle }, '', perfumeUrl()); } catch(_e){}
+    renderScope(); renderPerfumePills(); loadAll();
+    window.scrollTo(0, 0);
+    return true;
+  }
+  window.addEventListener('popstate', function(e){
+    var st = e.state || {};
+    fB = st.b || ''; fT = st.t || ''; fA = st.a || ''; fTitle = st.tt || '';
+    P_BRANDS = null;
+    renderScope(); renderPerfumePills(); loadAll();
+  });
+  try { history.replaceState({ b: fB, t: fT, a: fA, tt: fTitle }, '', location.href); } catch(_e){}
+  /* Where the shopper is: «‹ Fight Club · Venum», one tap back to the room. */
+  function renderScope(){
+    var bar = document.getElementById('scopeBar');
+    if (!bar) return;
+    var here = [fTitle || (fT ? fT : ''), fB].filter(Boolean).join(' · ');
+    if (!here){ bar.hidden = true; bar.innerHTML = ''; return; }
+    bar.innerHTML = '<button type="button" class="scope-back">&#8249; ' + esc(dept.name) + '</button><span class="scope-here">' + esc(here) + '</span>';
+    bar.hidden = false;
+  }
+  var scopeBar = document.getElementById('scopeBar');
+  renderScope();
+  if (scopeBar) scopeBar.addEventListener('click', function(e){
+    if (!e.target.closest('.scope-back')) return;
+    fB = ''; fT = ''; fTitle = ''; fA = ''; P_BRANDS = null;
+    try { history.pushState({}, '', perfumeUrl()); } catch(_e){}
+    renderScope(); renderPerfumePills(); loadAll(); window.scrollTo(0, 0);
+  });
+  /* ---------- THE PERFUMES ROOM'S PILLS ---------- */
+  var P_DOORS = null, P_BRANDS = null, P_BRANDS_ALL = null;
+  function pillsHTML(list, active, allLabel, attr){
+    var h = '<button type="button" class="hub-pill" role="tab" ' + attr + '="" aria-selected="' + (!active) + '">' + esc(allLabel) + '</button>';
+    list.forEach(function(p){
+      h += '<button type="button" class="hub-pill" role="tab" ' + attr + '="' + esc(p.k || p.label) + '" aria-selected="' + (active === (p.k || p.label)) + '">' + esc(p.label) + '<span class="n">' + Number(p.n).toLocaleString('es-PE') + '</span></button>';
+    });
+    return h;
+  }
+  /* Any room whose head names its brands (Perfumes, Fight Club, sunglasses,
+     jewelry...) gets the brand pill row; only Perfumes has the doors. */
+  function renderPerfumePills(){
+    var d = document.getElementById('pDoors'), b = document.getElementById('pBrands');
+    if (d && P_DOORS && P_DOORS.length){ d.querySelector('.hub-in').innerHTML = pillsHTML(P_DOORS, fA, 'Todos', 'data-door'); show(d); }
+    var brands = P_BRANDS || P_BRANDS_ALL;
+    if (b && brands && brands.length){ b.querySelector('.hub-in').innerHTML = pillsHTML(brands, fB, 'Todas las marcas', 'data-brand'); show(b); }
+    else if (b && !fB) hide(b);
+    var on = b && b.querySelector('[aria-selected="true"]');
+    if (on && on.scrollIntoView) try { on.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch(_e){}
+  }
+  function perfumeUrl(){
+    return 'departamento.html?dept=' + encodeURIComponent(deptKey) + (fA ? '&a=' + encodeURIComponent(fA) : '') + (fB ? '&b=' + encodeURIComponent(fB) : '') + (fT ? '&t=' + encodeURIComponent(fT) : '') + (fQ ? '&q=' + encodeURIComponent(fQ) : '');
+  }
+  ['pDoors', 'pBrands'].forEach(function(id){
+    var nav = document.getElementById(id);
+    if (!nav) return;
+    nav.addEventListener('click', function(e){
+      var btn = e.target.closest('.hub-pill'); if (!btn) return;
+      if (id === 'pDoors'){
+        var k = btn.getAttribute('data-door') || '';
+        fA = (k === fA) ? '' : k; fB = ''; P_BRANDS = null;
+      } else {
+        var bk = btn.getAttribute('data-brand') || '';
+        fB = (bk === fB) ? '' : bk;
+      }
+      renderScope(); renderPerfumePills(); loadAll();
+      try { history.replaceState({ b: fB, t: fT, a: fA, tt: fTitle }, '', perfumeUrl()); } catch(_e){}
+      var top = document.getElementById('toolbar'); if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start' });
+    });
   });
   /* The overlay's markup comes after this script: listen on the document. */
   document.addEventListener('click', function(e){

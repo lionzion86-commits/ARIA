@@ -34,6 +34,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { stampHomePhotos } from "./stamp-home-photos.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PILLS_DIR = "assets/home/store-pills";
@@ -110,5 +111,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   }
   /* The manifest: the stores that have a row (the page asks for no other). */
   writeFileSync(join(ROOT, PILLS_DIR, "index.json"), JSON.stringify({ v: 1, stores: Object.keys(report).filter((s) => report[s].pills.length) }));
+  stampHomePhotos(ROOT, [PILLS_DIR]);
   for (const [s, r] of Object.entries(report)) console.log(s.padEnd(18), r.pills.length ? r.pills.join(" | ") : "(no row)", r.thin.length ? "   thin: " + r.thin.join(", ") : "");
 }

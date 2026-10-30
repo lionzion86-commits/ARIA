@@ -54,7 +54,9 @@ function annOf(r, A, card) {
 }
 
 const GENERIC = ["dolls", "muñecas", "vestidos", "juguetes", "zapatillas", "maquillaje", "dresses"];
-const SPECIFIC = ["adidas samba", "nike air force 1", "barbie", "levi's 501", "airpods", "lego"];
+const SPECIFIC = ["adidas samba", "nike air force 1", "levi's 501", "airpods"];
+/* A query that IS a brand follows the universal format (#443 c.6532666653). */
+const BRANDS = ["barbie", "lego", "oakley", "carolina herrera"];
 
 for (const q of GENERIC) {
   await check(`"${q}" is a browse query: lanes lead, sales first`, () => {
@@ -133,6 +135,23 @@ for (const q of SPECIFIC) {
     const { out } = page(q);
     assert.equal(out.mode, "specific");
     assert.ok(!out.lanes.some((l) => l.key === "marcas"), "a brand-mix lane would only repeat the results");
+  });
+}
+for (const q of BRANDS) {
+  await check(`"${q}" is a brand: its Ofertas first, then one rail per store, true totals, biggest first`, () => {
+    const { out } = page(q);
+    assert.equal(out.mode, "brand");
+    const stores = out.lanes.filter((l) => l.key.startsWith("tienda:"));
+    assert.ok(stores.length >= 1, "no store rails");
+    if (out.lanes.some((l) => l.key === "ofertas")) assert.equal(out.lanes[0].key, "ofertas", "Ofertas leads");
+    const ns = stores.map((l) => l.n);
+    assert.deepEqual(ns, [...ns].sort((a, b) => b - a), "stores biggest first");
+    for (const l of stores) {
+      assert.ok(l.n >= l.items.length && l.items.length, `${l.key}: ${l.n} / ${l.items.length}`);
+      for (const c of l.items) assert.equal(c.store, l.store, `${l.key}: a card from ${c.store}`);
+    }
+    const sale = out.lanes.find((l) => l.key === "ofertas");
+    if (sale) for (const c of sale.items) assert.ok(c.wasUsd > c.usd || c.wasPen > c.pen, `${q} Ofertas: ${c.title} is not on sale`);
   });
 }
 await check('"adidas samba" and "nike air force 1" still lead with the model', () => {

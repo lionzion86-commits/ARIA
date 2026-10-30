@@ -206,7 +206,10 @@ if (chromium) {
           imgs: JSON.parse(f.getAttribute("data-card-imgs")),
           arrows: f.querySelectorAll('[aria-label="Foto anterior"], [aria-label="Foto siguiente"]').length,
         })),
-        arrowsOutside: [...document.querySelectorAll('[aria-label="Foto anterior"]')].filter((a) => !a.closest("[data-card-imgs]")).length,
+        /* card-photos.js (#538): its arrows ride only on a card whose photo
+           carries a build-counted data-g of 2+; any other arrow is a stray. */
+        arrowsOutside: [...document.querySelectorAll('[aria-label="Foto anterior"]')].filter((a) => !a.closest("[data-card-imgs]") && !(a.classList.contains("cp-nav") && +((a.parentElement.querySelector("img[data-g]") || { getAttribute: () => 0 }).getAttribute("data-g")) >= 2)).length,
+        cpCards: document.querySelectorAll(".cp-nav.cp-next").length,
       };
     }, CONTROLS);
     assert.ok(r.zCards >= 3, `the Zumiez rail shows ${r.zCards} cards`);
@@ -215,7 +218,8 @@ if (chromium) {
     const bad = r.withArrows.filter((x) => keyCount(x.imgs) < 2 || x.arrows !== 2);
     assert.deepEqual(bad.slice(0, 3), [], `${bad.length} cards with arrows but fewer than 2 distinct photos`);
     assert.ok(r.withArrows.length >= 10, `only ${r.withArrows.length} multi-photo cards keep their arrows`);
-    console.log(`         (Zumiez rail: ${r.zCards} cards, 0 controls; ${r.withArrows.length} multi-photo cards with arrows, all 2+ distinct)`);
+    assert.ok(r.cpCards >= 10, `only ${r.cpCards} homepage cards with counted galleries got arrows`);
+    console.log(`         (Zumiez rail: ${r.zCards} cards, 0 controls; ${r.withArrows.length} + ${r.cpCards} multi-photo cards with arrows, all 2+)`);
     await c.close();
   });
 
@@ -228,10 +232,13 @@ if (chromium) {
       await pg.waitForFunction((s) => document.querySelectorAll(s).length >= 3, cardSel, { timeout: 30000 });
       await pg.evaluate(() => window.scrollTo(0, 1200));
       await pg.waitForTimeout(600);
-      const r = await pg.evaluate(([s, sel]) => ({ cards: document.querySelectorAll(s).length, controls: document.querySelectorAll(sel).length }), [cardSel, CONTROLS]);
+      /* Only card-photos.js's arrows, and only on a card counted 2+ (#538). */
+      const r = await pg.evaluate(([s, sel]) => ({ cards: document.querySelectorAll(s).length,
+        controls: [...document.querySelectorAll(sel)].filter((x) => !(x.classList.contains("cp-nav") && +((x.parentElement.querySelector("img[data-g]") || { getAttribute: () => 0 }).getAttribute("data-g")) >= 2)).length,
+        counted: document.querySelectorAll(".cp-nav.cp-next").length }), [cardSel, CONTROLS]);
       assert.ok(r.cards >= 3, `${r.cards} cards`);
-      assert.equal(r.controls, 0, `${r.controls} gallery controls`);
-      console.log(`         (${r.cards} cards, 0 controls)`);
+      assert.equal(r.controls, 0, `${r.controls} gallery controls on a card without a counted gallery`);
+      console.log(`         (${r.cards} cards, 0 stray controls, ${r.counted} counted galleries with arrows)`);
       await c.close();
     });
   }
