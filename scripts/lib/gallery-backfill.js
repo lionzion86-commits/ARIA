@@ -83,6 +83,14 @@ export function* recordsOf(catalog, retailerKey = null) {
   }
 }
 
+/** A title as a match key: entities decoded, case, accents and spacing folded. */
+export function titleMatchKey(t) {
+  const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+  return String(t || "").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) =>
+    e[0] === "#" ? String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ENT[e.toLowerCase()] ?? m))
+    .trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+}
+
 /** The page's URL, as a match key: no query, no hash, no trailing slash, lower case. */
 export function bareUrl(u) {
   return String(u || "").trim().split(/[?#]/)[0].replace(/\/+$/, "").toLowerCase();
@@ -211,31 +219,54 @@ export function rowImages(row) {
  * Returns { matchedRows, unmatchedRows, updated, photosAdded, before, after }.
  */
 export function mergeGalleries(catalog, rows, { retailerKey = null, photoKey, isChart, stamp, cap = GALLERY_CAP }) {
-  const byUrl = new Map();
-  let unmatchedRows = 0;
-  const known = new Set();
-  for (const rec of recordsOf(catalog, retailerKey)) if (rec.url) known.add(bareUrl(rec.url));
-  for (const row of rows || []) {
-    const k = bareUrl(rowUrl(row));
-    if (!k || !known.has(k)) { unmatchedRows++; continue; }
-    if (!byUrl.has(k)) byUrl.set(k, []);
-    byUrl.get(k).push(...rowImages(row));
+  /* A row finds its record by the product URL; a row without one (the
+     2026-10-30 re-pull: Victoria's Secret, BoxLunch, AE, most baby
+     stores) by its exact title -- and only when that title names ONE
+     record of the store, so a gallery is never lent to a lookalike. */
+  const byUrlRecs = new Map(), byTitle = new Map();
+  for (const rec of recordsOf(catalog, retailerKey)) {
+    if (rec.url) { const k = bareUrl(rec.url); if (!byUrlRecs.has(k)) byUrlRecs.set(k, []); byUrlRecs.get(k).push(rec); }
+    const t = titleMatchKey(rec.name || rec.title);
+    if (t) { if (!byTitle.has(t)) byTitle.set(t, []); byTitle.get(t).push(rec); }
   }
+  const scrapedOf = new Map();
+  let unmatchedRows = 0;
+  for (const row of rows || []) {
+    let recs = byUrlRecs.get(bareUrl(rowUrl(row)));
+    if (!recs || !rowUrl(row)) {
+      const hit = byTitle.get(titleMatchKey(row && (row.title || row.name)));
+      /* One product: one record, or the same product listed under its
+         department and its brand (same title, same card photo). */
+      const one = hit && new Set(hit.map((r) => bareUrl(r.url) + "|" + String(r.thumbnail || r.image || ""))).size === 1;
+      recs = one ? hit : null;
+    }
+    if (!recs) { unmatchedRows++; continue; }
+    for (const rec of recs) { if (!scrapedOf.has(rec)) scrapedOf.set(rec, []); scrapedOf.get(rec).push(...rowImages(row)); }
+  }
+  const byUrl = scrapedOf;
   let updated = 0, photosAdded = 0;
   const before = { single: 0, multi: 0 }, after = { single: 0, multi: 0 };
   for (const rec of recordsOf(catalog, retailerKey)) {
     const card = rec.thumbnail || rec.image || "";
     const had = tidyPhotos([card].concat(Array.isArray(rec.images) ? rec.images : []), { photoKey, isChart, cap });
     (had.length > 1 ? before.multi++ : before.single++);
-    const scraped = byUrl.get(bareUrl(rec.url));
+    const scraped = scrapedOf.get(rec);
     let now = had;
     if (scraped && scraped.length) {
       now = tidyPhotos(had.concat(scraped), { photoKey, isChart, cap });
       if (now.length > had.length) {
-        const frozen = JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined });
+        const frozen = JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined, image: undefined, photoHeld: undefined, photoRestored: undefined });
         rec.images = now;
         if (stamp) rec.imagesBackfill = stamp;
-        if (JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined }) !== frozen) throw new Error("the merge touched a field other than images");
+        /* A product held for a dead photo (photoHeld, its constructed URL in
+           heldImage) that the store's own page now gives real photos:
+           the first becomes its card photo and the hold lifts. */
+        if (rec.photoHeld && !rec.image && now.length) {
+          rec.image = now[0];
+          rec.photoRestored = (stamp || "re-pull") + " (was held: " + rec.photoHeld + ")";
+          delete rec.photoHeld;
+        }
+        if (JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined, image: undefined, photoHeld: undefined, photoRestored: undefined }) !== frozen) throw new Error("the merge touched a field other than the photos");
         updated++;
         photosAdded += now.length - had.length;
       } else now = had;

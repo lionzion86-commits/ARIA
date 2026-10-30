@@ -4,7 +4,8 @@
 
      - a card carries `ph` (2..8) exactly when its product's PDP shard
        holds that many distinct photos; a one-photo product carries
-       nothing (Victoria's Secret today: no gallery in its pull);
+       nothing (Foot Locker today: no gallery in its pull; Victoria's
+       Secret has one since the 2026-10-30 re-pull);
      - the endpoint rows carry the same count, so a "Ver todo" page and
        the static first screen agree;
      - the pages hand the count to the card as data-g, and card-photos.js
@@ -37,7 +38,10 @@ check("a store card carries its photo count when 2+, and nothing when it has one
   const counted = skims.filter((c) => c.ph);
   assert.ok(counted.length > skims.length * 0.8, `skims: ${counted.length} of ${skims.length}`);
   for (const c of counted.slice(0, 40)) assert.equal(c.ph, photoCount(ROOT, c.name, "skims"), c.name);
-  for (const c of storeCards("victoriassecret")) assert.equal(c.ph, undefined, "VS has no gallery in its pull: " + c.name);
+  for (const c of storeCards("footlocker")) assert.equal(c.ph, undefined, "Foot Locker has no gallery in its pull: " + c.name);
+  /* The 2026-10-30 re-pull (data/gallery-repull-2026-10-30/): VS cards carry their count. */
+  const vs = storeCards("victoriassecret");
+  assert.ok(vs.filter((c) => c.ph >= 2).length > vs.length * 0.8, "VS: " + vs.filter((c) => c.ph >= 2).length + " of " + vs.length + " cards counted");
 });
 
 check("a department card carries the same count", () => {
@@ -46,7 +50,7 @@ check("a department card carries the same count", () => {
   const counted = cards.filter((c) => c.ph);
   assert.ok(counted.length >= 10, `${counted.length} counted cards in Mujer`);
   for (const c of counted.slice(0, 40)) assert.equal(c.ph, photoCount(ROOT, c.t, c.r), c.t);
-  for (const c of cards) if (c.r === "victoriassecret") assert.equal(c.ph, undefined, c.t);
+  for (const c of cards) if (c.r === "footlocker") assert.equal(c.ph, undefined, c.t);
 });
 
 check("the endpoint rows carry the count (Ver todo agrees with the first screen)", () => {
@@ -66,7 +70,7 @@ check("the Ofertas cards carry the same count (packed deals and the page slices)
   const counted = d.items.filter((r) => r[at] > 1);
   assert.ok(counted.length > d.items.length * 0.3, `${counted.length} of ${d.items.length}`);
   for (const r of counted.slice(0, 40)) assert.equal(r[at], photoCount(ROOT, r[FIELDS.indexOf("title")], r[FIELDS.indexOf("store")]), r[1]);
-  for (const r of d.items) if (r[FIELDS.indexOf("store")] === "victoriassecret") assert.ok(!(r[at] > 1), "VS has no gallery: " + r[1]);
+  for (const r of d.items) if (r[FIELDS.indexOf("store")] === "footlocker") assert.ok(!(r[at] > 1), "Foot Locker has no gallery: " + r[1]);
   assert.match(read("ofertas.html"), /c\.ph > 1 \? 'data-g="' \+ \(c\.ph \| 0\) \+ '" ' : ''/);
 });
 
