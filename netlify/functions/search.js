@@ -116,7 +116,8 @@ export async function handler(event, { fetchImpl } = {}) {
     const fxP = sellRate(fetchImpl);
     const ctx = loadSearch({ labels: LABELS });
     const fx = await within(fxP, FX_BUDGET_MS);
-    const out = searchPage(ctx, q, page, { fx });
+    const store = String(qs.tienda || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40);
+    const out = searchPage(ctx, q, page, { fx, store });
     if (out.state === "error") return json(500, { ...out, items: [] }, null);
     /* Soles are part of the answer: an answer without them is kept
        briefly, so the next request can pick the rate up. */

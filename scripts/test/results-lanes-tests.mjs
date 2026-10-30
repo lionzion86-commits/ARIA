@@ -62,7 +62,8 @@ for (const q of GENERIC) {
     assert.equal(out.mode, "generic");
     assert.ok(out.lanes.length >= 2, `${out.lanes.length} lanes`);
     assert.equal(out.lanes[0].key, "ofertas");
-    assert.ok(["vendidos", "marcas"].includes(out.lanes[1].key), out.lanes[1].key);
+    /* Then one row per store (Danny, #443 c.6504037778 §1). */
+    assert.ok(/^tienda:|^tiendas:otras$/.test(out.lanes[1].key), out.lanes[1].key);
     for (const l of out.lanes) assert.ok(l.items.length >= 4 && l.items.length <= LANE_SIZE, `${l.key}: ${l.items.length}`);
   });
   await check(`"${q}": every lane's lead and the grid's first row are lead-eligible, never premium`, () => {

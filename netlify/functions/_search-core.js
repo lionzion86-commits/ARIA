@@ -590,6 +590,63 @@ function distinct(list, max) {
   return out;
 }
 
+/* Small enough that page 1 stays under 60KB on a phone. */
+const STORE_LANES = 6, STORE_LANE_SIZE = 12;
+/* Stores the shared registry does not label yet (tienda.html does). */
+const STORE_LABEL_FALLBACK = { tns: "TNS", americaneagle: "American Eagle" };
+function storeLabelOf(ctx, k) { return (ctx.labels && ctx.labels[k] && ctx.labels[k] !== k ? ctx.labels[k] : STORE_LABEL_FALLBACK[k]) || k; }
+/* The shelf: the query's aisle only, as the Ofertas lane reads it (no
+   "Former Doll" T-shirt under dolls). Each row opens on what may lead
+   (leadFirst); a store with nothing accessible to lead with -- every
+   match premium -- has no row of its own. */
+function storeLanes(ctx, q, hits, A) {
+  const byStore = new Map();
+  for (const p of hits) {
+    const k = p.retailer || "";
+    if (!k) continue;
+    if (!byStore.has(k)) byStore.set(k, []);
+    byStore.get(k).push(p);
+  }
+  /* The store whose best match ranks highest comes first (a Map keeps the
+     ranking's order of first appearance). */
+  /* A store with a handful of matches gets its own row; the stores with
+     one to three share the last one, «Otras tiendas». */
+  /* A row needs products that may lead (a recognized brand, a sale or an
+     accessible price): with fewer than LEAD_SLOTS of them, the row is
+     just those. */
+  const rowItems = (l) => {
+    const ok = l.filter((p) => A.of(p).lead);
+    if (distinct(ok, LEAD_SLOTS).length < LEAD_SLOTS) return ok;
+    return ok.concat(l.filter((p) => !A.of(p).lead && !A.of(p).premium));
+  };
+  const rows = [...byStore.entries()].filter(([, l]) => rowItems(l).length >= LANE_MIN);
+  const few = [...byStore.entries()].filter(([, l]) => rowItems(l).length < LANE_MIN).flatMap(([, l]) => l);
+  const lanes = rows.slice(0, STORE_LANES)
+    .map(([k, l]) => ({ key: "tienda:" + k, kind: "store", store: k, title: storeLabelOf(ctx, k), n: l.length,
+      more: "search.html?q=" + encodeURIComponent(q) + "&tienda=" + encodeURIComponent(k), items: distinct(rowItems(l), STORE_LANE_SIZE) }));
+  const rest = few.concat(rows.slice(STORE_LANES).flatMap(([, l]) => l.slice(0, 3))).filter((p) => A.of(p).lead);
+  if (rest.length >= LANE_MIN) lanes.push({ key: "tiendas:otras", kind: "stores", title: "Otras tiendas", n: rest.length, items: distinct(rest, STORE_LANE_SIZE) });
+  return lanes;
+}
+/* A STORE'S OWN RESULTS, BY BRAND (§1 step 3): Walmart's jeans as Chaps,
+   U.S. Polo Assn., Galaxy by Harvic... A single-brand store (Victoria's
+   Secret) is told by kind instead, when its products honestly fill two
+   kinds; otherwise one bounded row. Never a 2,000-card wall. */
+const BRAND_LANES = 14, BRAND_LANE_MIN = 2;
+function brandLanes(hits) {
+  const group = (keyOf) => {
+    const m = new Map();
+    for (const p of hits) { const k = String(keyOf(p) || "").trim(); if (!k) continue; if (!m.has(k)) m.set(k, []); m.get(k).push(p); }
+    /* In ranking order: the brand with the best match first. */
+    return [...m.entries()].filter(([, l]) => l.length >= BRAND_LANE_MIN);
+  };
+  let groups = group((p) => p.brand);
+  let kind = "brand";
+  if (groups.length < 2) { groups = group((p) => p.cat); kind = "kind"; }
+  if (groups.length < 2) return [{ key: "todo", kind: "all", title: "Lo más buscado", items: distinct(hits, STORE_LANE_SIZE) }];
+  return groups.slice(0, BRAND_LANES).map(([k, l]) => ({ key: kind + ":" + k.toLowerCase(), kind, title: k, n: l.length, items: distinct(l, STORE_LANE_SIZE) }));
+}
+
 /** The lanes of one answer (page 1 only). */
 export function lanesFor(ctx, q, r, fx) {
   if (!r || r.state !== "results" || !r.hits.length) return { mode: "specific", lanes: [] };
@@ -622,33 +679,14 @@ export function lanesFor(ctx, q, r, fx) {
     lanes.push({ key: "ofertas", title: "En oferta", items });
   }
 
-  /* 2. Best-sellers: the stores' own demand. Without enough reviewed
-     products the lane says what it is -- the brands everybody knows --
-     rather than claiming sales numbers it does not have. */
-  const reviewed = shelf.filter((p) => p.reviews > 0 && !used.has(p))
-    .map((p) => ({ p, s: demandOf(p) + (A.of(p).marquee ? 0.6 : 0) + acc(p) * 2 - rank.get(p) })).sort((a, b) => b.s - a.s).map((x) => x.p);
-  if (reviewed.length >= BESTSELLER_MIN) {
-    const items = distinct(leadFirst(reviewed, A), LANE_SIZE);
-    items.forEach((p) => used.add(p));
-    lanes.push({ key: "vendidos", title: "Más vendidos", items });
-  } else if (generic) {
-    /* (A specific query's results are already one brand or model; a
-       brand-mix lane would only repeat them.) */
-    const fav = shelf.filter((p) => !used.has(p) && A.of(p).brand && !A.of(p).premium);
-    /* One brand must not fill the lane: round-robin across brands, in
-       relevance order within each. */
-    const byBrand = new Map();
-    for (const p of fav) { const b = A.of(p).brand; if (!byBrand.has(b)) byBrand.set(b, []); byBrand.get(b).push(p); }
-    const queues = [...byBrand.values()], mixed = [];
-    for (let i = 0; mixed.length < LANE_SIZE * 2 && queues.some((qq) => qq.length); i = (i + 1) % queues.length) {
-      if (queues[i].length) mixed.push(queues[i].shift());
-    }
-    if (mixed.length >= LANE_MIN) {
-      const items = distinct(leadFirst(mixed, A), LANE_SIZE);
-      items.forEach((p) => used.add(p));
-      lanes.push({ key: "marcas", title: "Marcas favoritas", items });
-    }
-  }
+  /* 2. ONE CAROUSEL PER STORE (Danny, #443 c.6504037778 §1): after the
+     cross-store Ofertas, every store that carries the term gets its own
+     row, the store with the most matches first, the store's best matches
+     in front. Its last card opens the store's own results, by brand
+     (searchPage, store). This replaces the flat wall as the way to
+     compare: the same jeans at Walmart, Hollister and Abercrombie side by
+     side, each store in its own row. */
+  for (const l of storeLanes(ctx, q, shelf, A)) lanes.push(l);
   r._mode = generic ? "generic" : "specific";
   r._lanes = lanes;
   return lanesFor(ctx, q, r, fx);
@@ -854,9 +892,15 @@ export function cardOf(p, fx, labels = {}) {
  * Page `page` (1-based) of the answer to `q`.
  * state: "results" | "none" | "short" | "empty" | "error"
  */
-export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE } = {}) {
+export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE, store = "" } = {}) {
   const query = String(q == null ? "" : q).trim().slice(0, 120);
-  const r = runQuery(ctx, query);
+  const all = runQuery(ctx, query);
+  /* One store's results (the «Ver más» of its row): a copy -- the cached
+     answer for the whole mall stays as it is. */
+  const scoped = store && all.state === "results"
+    ? (() => { const hits = all.hits.filter((p) => p.retailer === store); return { ...all, hits, _lanes: undefined, _mode: undefined, _grid: undefined, _cmp: undefined, _ann: undefined, state: hits.length ? "results" : "none" }; })()
+    : null;
+  const r = scoped || all;
   const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
   /* The total counts every product found: the grid's and the
      comparison block's. Pages are the grid's. */
@@ -865,10 +909,15 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   const pages = Math.max(1, Math.ceil(hits.length / pageSize));
   const n = Math.min(Math.max(1, Math.floor(Number(page)) || 1), pages);
   const slice = hits.slice((n - 1) * pageSize, n * pageSize);
-  const lanes = n === 1 ? lanesFor(ctx, query, r, fx) : null;
+  const lanes = n === 1
+    ? (scoped ? { mode: "generic", lanes: scoped.hits.length ? brandLanes(scoped.hits).map((l) => ({ ...l, items: l.items.map((p) => cardOf(p, fx, ctx.labels)) })) : [] }
+      : lanesFor(ctx, query, r, fx))
+    : null;
   const compare = n === 1 && grouped ? compareFor(ctx, r, fx) : null;
   return {
     q: query,
+    store: scoped ? store : null,
+    storeLabel: scoped ? storeLabelOf(ctx, store) : null,
     state: r.state,
     page: n,
     pageSize,

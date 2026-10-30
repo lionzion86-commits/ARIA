@@ -104,6 +104,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .grid-head{grid-column:1/-1; margin-top:12px;}
 .rail{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; -webkit-overflow-scrolling:touch;}
 .rail .card{flex:0 0 42%; max-width:200px; scroll-snap-align:start;}
+.lane-more{flex:0 0 128px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; border:1px solid var(--line); border-radius:16px; font-weight:800; color:var(--navy); text-decoration:none; scroll-snap-align:start;}
+.lane-more span{display:block; font-weight:600; font-size:12px; margin-top:4px; color:#6B7487;}
+.store-back{grid-column:1/-1; margin:-6px 0 8px; font-size:13px;}
 @media(min-width:640px){ .rail .card{flex-basis:200px;} }
 /* Placeholder cards: the same boxes, grey bars where the words go. */
 .card.sk i{display:block; height:10px; border-radius:5px; background:var(--line); margin:3px 0;}
@@ -221,6 +224,7 @@ footer a{color:#fff;}
    own function, not production's. */
 var BASE = /^https?:$/.test(location.protocol) ? "" : "https://ariashop.pe";
 var SEARCH_API = "/.netlify/functions/search";
+var STORE_SCOPE = (function(){ try { return (new URLSearchParams(location.search).get("tienda") || "").toLowerCase().replace(/[^a-z0-9]/g, ""); } catch (e) { return ""; } })();
 var PAGE_SIZE = 48;
 /* The empty state's examples. scripts/test/search-brief-tests.mjs
    runs each one: an example that finds nothing fails the build. */
@@ -380,7 +384,8 @@ async function fetchPage(q, page){
   if (INFLIGHT) { try { INFLIGHT.abort(); } catch(e){} }
   var ctl = typeof AbortController === "function" ? new AbortController() : null;
   INFLIGHT = ctl;
-  var url = BASE + SEARCH_API + "?q=" + encodeURIComponent(q) + "&page=" + page;
+  /* A store's own results (the «Ver más» of its row, ?tienda=): by brand. */
+  var url = BASE + SEARCH_API + "?q=" + encodeURIComponent(q) + "&page=" + page + (STORE_SCOPE ? "&tienda=" + encodeURIComponent(STORE_SCOPE) : "");
   var res = await fetch(url, ctl ? { signal: ctl.signal } : {});
   if (!res.ok) throw new Error("HTTP " + res.status);
   var data = await res.json();
@@ -476,9 +481,14 @@ function watchPhotos(root){
   }, { rootMargin: "200px 0px" });
   imgs.forEach(function(i){ PHOTO_IO.observe(i); });
 }
+/* ONE ROW PER STORE (Danny, #443 c.6504037778 §1): the row ends on a door
+   to that store's own results, organized by brand. */
 function laneHTML(l){
+  var more = l.more && l.n > l.items.length
+    ? '<a class="lane-more" href="' + esc(l.more) + '">Ver más<span>' + esc(String(l.n)) + " en " + esc(l.title) + "</span></a>"
+    : "";
   return '<section class="lane" aria-label="' + esc(l.title) + '"><h2>' + esc(l.title) + "</h2>" +
-    '<div class="rail">' + l.items.map(cardHTML).join("") + "</div></section>";
+    '<div class="rail">' + l.items.map(cardHTML).join("") + more + "</div></section>";
 }
 /* A browse query: the lanes, then "Todos los resultados". A specific
    query: its first rows of results, then the lanes, then the rest. */
@@ -486,7 +496,8 @@ var SPECIFIC_LEAD = 8;
 function answerHTML(data){
   var lanes = (data.lanes || []).filter(function(l){ return l.items && l.items.length; });
   var cards = data.items.map(cardHTML);
-  var head = compareHTML(data.compare);
+  var head = compareHTML(data.compare) +
+    (data.store ? '<h2 class="grid-head store-head">' + esc(data.q) + " en " + esc(data.storeLabel || data.store) + '</h2><p class="store-back"><a href="search.html?q=' + encodeURIComponent(data.q) + '">Ver en todas las tiendas</a></p>' : "");
   if (!lanes.length) return head + cards.join("");
   if (data.mode === "generic"){
     return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
