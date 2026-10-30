@@ -121,7 +121,10 @@ export const DEPT_RULES = {
   home_goods: { buckets: ["home_goods", "home", "hogar", "small_appliances", ...CASA_BUCKETS] },
   home_decor: { buckets: ["home_decor", "casa_decoracion", "casa_velas", "casa_navidad"] },
   curvy: { buckets: ["clothing", "men", "women", "apparel_men", "apparel_women", "apparel_kids"], extendedSizes: true },
-  gym_rat: { buckets: ["gym_rat"] },
+  /* Gym Rat (Danny, #443 c.6504037778 §9): Alphalete and Gymshark are off
+     sale and off the section; it is YoungLA plus the training apparel of
+     brands Aria can sell (GYM_TRAINING), from any store. */
+  gym_rat: { buckets: ["gym_rat"], also: (p) => isGymTraining(p) },
   surf_skate: { kind: "surfskate" },
   spearfishing: { kind: "spearfishing" },
   soccer: { kind: "soccer" },
@@ -246,8 +249,24 @@ export const KIND_MATCH = {
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino", "carolina herrera"]),
 };
 
+const GYM_BRAND_RX = /\b(youngla|young la|venum|everlast|under armour|nike|adidas|reebok|puma|new balance|champion)\b/i;
+const GYM_WORD_RX = /\b(training|train|workout|gym|compression|dri-?fit|heatgear|coldgear|aeroready|techfit|lifting|athletic|performance|sports? bras?)\b/i;
+const GYM_GARMENT_RX = /\b(t-?shirts?|tees?|shirts?|tanks?|tops?|shorts|leggings?|tights|joggers?|pants|hoodies?|sweatshirts?|jackets?|bras?|bodysuits?)\b/i;
+const GYM_NOT_RX = /\b(shoes?|sneakers?|cleats?|gloves?|socks?|bags?|backpacks?|bottles?|hats?|caps?|kids?|boys?|girls?|toddler|youth|infant|jersey|golf|swim)\b/i;
+function gymAisle(p) {
+  const t = String(p.title || "") + " " + String(p.type || "");
+  if (/\b(women'?s?|womens|her|ladies|mujer)\b/i.test(t) || /\bsports? bras?\b|\bleggings?\b/i.test(t)) return "Mujer";
+  if (/\b(men'?s?|mens|him|hombre)\b/i.test(t)) return "Hombre";
+  return "Unisex";
+}
+export function isGymTraining(p) {
+  const t = String(p.title || ""), b = String(p.brand || "");
+  return GYM_BRAND_RX.test(b + " " + t) && GYM_WORD_RX.test(t) && GYM_GARMENT_RX.test(t) && !GYM_NOT_RX.test(t);
+}
+
 export function belongsToDept(rule, p) {
   try {
+    if (rule.also && rule.also(p)) return true;
     if (rule.buckets) {
       if (rule.buckets.indexOf(p.bucket) === -1) return false;
       if (rule.extendedSizes) {
@@ -352,6 +371,8 @@ export function deptItems(all, key) {
      Electrónica's Reacondicionados): they stay in their store, out of the
      department. A Blu-ray PLAYER is electronics. */
   if (key === "electronics") list = list.filter((p) => !MEDIA_RX.test(p.title || ""));
+  /* Gym Rat's aisles speak Spanish: «Hombre», «Mujer» (the catalogue said "For Him"). */
+  if (key === "gym_rat") list = list.map((p) => ({ ...p, type: gymAisle(p) }));
   /* Cabello: each product's treatment aisle is its type (the rails and the
      pills read it); a brand Peru sells cheaply enters only on sale, and
      the lines Peru does not carry lead (the stable sort below keeps it). */
