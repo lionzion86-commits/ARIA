@@ -25,31 +25,45 @@ function check(name, fn) {
 const read = (f) => readFileSync(ROOT + f, "utf8");
 const bundle = read("build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]{16}\.js$/.test(f)));
 
-check("the table: Danny's figures, each with its source; nothing guessed", () => {
-  assert.deepEqual({ ...STORE_SHIPPING.victoriassecret, source: undefined, verified: undefined }, { feeUsd: 7.99, freeOverUsd: 35, source: undefined, verified: undefined });
-  for (const k of ["calzedonia", "intimissimi"]) assert.equal(STORE_SHIPPING[k].freeOverUsd, 75);
-  assert.equal(STORE_SHIPPING.macys.feeUsd, 10.95);
-  for (const [k, r] of Object.entries(STORE_SHIPPING)) assert.ok(r.source && typeof r.verified === "boolean", k);
-  assert.equal(shippingRuleText("walmart"), null, "no sourced terms: no line");
+check("the table: Lucifer's sourced figures (Oct 30), each with its source; nothing guessed", () => {
+  const r = (k) => [STORE_SHIPPING[k].feeUsd, STORE_SHIPPING[k].freeOverUsd];
+  /* Danny's member doctrine: VS & PINK Rewards, $8 under $50 (c.6524139671). */
+  assert.deepEqual(r("victoriassecret"), [8, 50]);
+  assert.deepEqual(r("macys"), [10.95, 49]);
+  for (const k of ["calzedonia", "intimissimi"]) assert.deepEqual(r(k), [9, 75]);
+  assert.deepEqual(r("boxlunch"), [7.99, 75], "the observed 7.99, not the stale 6.99 (c.6524803125)");
+  assert.deepEqual(r("walmart"), [6.99, 35]);
+  assert.deepEqual(r("revolve"), [0, 0], "always free");
+  assert.deepEqual(r("zumiez"), [null, 64.94], "calculated at the store's checkout; the corrected threshold");
+  assert.deepEqual(r("parrot"), [null, null]);
+  assert.ok(!STORE_SHIPPING.fuji, "FUJI waits for its threshold to be settled");
+  for (const [k, x] of Object.entries(STORE_SHIPPING)) assert.match(x.source, /#443 c\.\d+/, k);
+  assert.equal(shippingRuleText("fuji"), null, "no sourced terms: no rule (the box says it is being confirmed)");
 });
 
-check("the card line carries both numbers", () => {
-  assert.equal(shippingRuleText("victoriassecret"), "Envío gratis desde $35 · $7.99 debajo de ese monto");
-  assert.equal(shippingRuleText("macys"), "Envío de la tienda en EE.UU.: $10.95");
+check("the card line carries the store's own rule, in every shape", () => {
+  assert.equal(shippingRuleText("victoriassecret"), "Envío gratis desde $50 · $8 debajo de ese monto");
+  assert.equal(shippingRuleText("everlast"), "Envío de la tienda en EE.UU.: $9.99");
+  assert.equal(shippingRuleText("revolve"), "Envío gratis en EE.UU.");
+  assert.equal(shippingRuleText("zumiez"), "Envío gratis desde $64.94 · debajo de ese monto lo calcula la tienda al pagar");
+  assert.equal(shippingRuleText("parrot"), "Envío en EE.UU.: lo calcula la tienda al pagar");
 });
 
-check("the meter is per store, on the store's own prices: «Estás en $10.99 de $35»", () => {
+check("the meter is per store, on the store's own prices; a store that calculates its fee is never charged a guess", () => {
   /* A $10.99 VS item: the cart line's dutiable base is the price plus the 7% sales tax. */
-  const cart = [{ retailer: "victoriassecret", dutiableUsd: 11.76, qty: 1 }, { retailer: "walmart", dutiableUsd: 60, qty: 1 }];
+  const cart = [{ retailer: "victoriassecret", dutiableUsd: 11.76, qty: 1 }, { retailer: "zumiez", dutiableUsd: 21.4, qty: 1 }, { retailer: "fuji", dutiableUsd: 30, qty: 1 }];
   const ship = cartShipping(cart);
   const vs = ship.stores.find((s) => s.store === "victoriassecret");
-  assert.equal(shippingMeterText(vs), "Estás en $10.99 de $35");
-  assert.equal(shippingStandingText(vs, "Victoria's Secret"), "Te faltan $24.01 para envío gratis en Victoria's Secret");
-  assert.equal(vs.feeUsd, 7.99);
-  assert.equal(ship.totalUsd, 7.99, "Walmart's $60 does not count toward VS, and Walmart (no terms) is charged nothing");
-  const met = cartShipping([{ retailer: "victoriassecret", dutiableUsd: 21.4, qty: 2 }]).stores[0];
+  assert.equal(shippingMeterText(vs), "Estás en $10.99 de $50");
+  assert.equal(shippingStandingText(vs, "Victoria's Secret"), "Te faltan $39.01 para envío gratis en Victoria's Secret");
+  assert.equal(vs.feeUsd, 8);
+  assert.equal(ship.totalUsd, 8, "Zumiez (calculated) and FUJI (no terms) are charged nothing");
+  assert.deepEqual(ship.pending, ["zumiez"]);
+  const met = cartShipping([{ retailer: "victoriassecret", dutiableUsd: 26.75, qty: 2 }]).stores[0];
   assert.ok(met.met && met.feeUsd === 0 && met.progress === 1);
   assert.equal(shippingStandingText(met, "Victoria's Secret"), "Envío gratis en Victoria's Secret: ya lo tienes");
+  const free = cartShipping([{ retailer: "revolve", dutiableUsd: 10.7, qty: 1 }]).stores[0];
+  assert.ok(free.met && free.feeUsd === 0 && !free.pending);
   assert.equal(cartShipping([{ retailer: "victoriassecret", lineType: "bundle-discount", dutiableUsd: 0, priceUsd: -5 }]).totalUsd, 0);
 });
 

@@ -1696,27 +1696,30 @@ function cardImgAttrs(url, sizes){
 
   /* ONE GROUP PER STORE (#443 c.6511908498): its rule, its meter on THIS
      store's subtotal only, and where the shopper stands -- the same
-     numbers as the store's product pages. A store Aria has no sourced
-     terms for shows nothing and is charged nothing. */
+     numbers as the store's product pages. Every store in the cart gets
+     its row (Danny, #443 c.6524139671): one whose terms are still being
+     sourced, or that sets the fee at its own checkout, says so and is
+     charged nothing here -- never GRATIS, never an invented number. */
   function renderStoreShipping(totals, pens){
     const row = document.getElementById('sumShipRow');
     const panel = document.getElementById('storeShipPanel');
     const ship = cartShipping(cart);
-    const ruled = ship.stores.filter((st) => st.rule);
+    const ruled = ship.stores;
     row.hidden = !ruled.length;
     panel.hidden = !ruled.length;
     if (!ruled.length){ panel.innerHTML = ''; return; }
     setMoney(document.getElementById('sumShip'), totals.shipping, '', pens ? pens.shipping : NaN);
     panel.innerHTML = ruled.map((st) => {
       const label = RETAILER_LABELS[st.store] || st.store;
-      const fee = st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS';
-      const meter = st.progress != null
+      const open = !st.rule || st.pending;
+      const fee = !st.rule ? 'POR CONFIRMAR' : st.pending ? 'POR CALCULAR' : st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS';
+      const meter = st.rule && st.rule.freeOverUsd > 0 && st.progress != null
         ? `<div class="h-2 rounded-full overflow-hidden mt-1.5" style="background:#E3E7F0" role="progressbar" aria-valuemin="0" aria-valuemax="${st.rule.freeOverUsd}" aria-valuenow="${st.subtotalUsd}"><div class="h-full rounded-full" style="width:${Math.round(st.progress * 100)}%; background:${st.met ? '#1F8A4C' : 'var(--navy)'}"></div></div>
            <div class="text-[11.5px] mt-1" style="color:#5B6478">${escapeHtmlLocal(shippingMeterText(st))} · ${escapeHtmlLocal(shippingStandingText(st, label))}</div>`
         : '';
       return `<div class="rounded-xl px-3 py-2" style="background:#F7F8FB; border:1px solid var(--line)" data-store-ship="${escapeHtmlLocal(st.store)}">
-        <div class="flex justify-between gap-2 text-[12.5px]"><span class="font-bold" style="color:var(--navy)">Envío de ${escapeHtmlLocal(label)}</span><span class="tabular font-extrabold" style="color:${st.feeUsd > 0 ? 'var(--navy)' : '#1F8A4C'}">${fee}</span></div>
-        <div class="text-[11px]" style="color:#8A93A8">${escapeHtmlLocal(shippingRuleText(st.store))}</div>${meter}
+        <div class="flex justify-between gap-2 text-[12.5px]"><span class="font-bold" style="color:var(--navy)">Envío de ${escapeHtmlLocal(label)}</span><span class="tabular font-extrabold" style="color:${open || st.feeUsd > 0 ? 'var(--navy)' : '#1F8A4C'}">${fee}</span></div>
+        <div class="text-[11px]" style="color:#8A93A8">${escapeHtmlLocal(st.rule ? shippingRuleText(st.store) : 'Estamos confirmando lo que cobra ' + label + ' por enviar a Miami; te lo confirmamos antes de cobrar.')}</div>${meter}
       </div>`;
     }).join('');
   }

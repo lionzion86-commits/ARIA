@@ -494,13 +494,18 @@ function taxLineHtml(p){
    store without sourced terms gets no box: nothing is guessed. */
 function shipBoxHtml(p){
   var S = window.AriaStoreShipping;
-  if (!S || !S.ruleOf(p.retailer)) return '';
+  if (!S) return '';
   var label = STORE_LABELS[p.retailer] || p.retailer || '';
+  /* EVERY STORE GETS A BOX (Danny, #443 c.6524139671): a store whose terms
+     are still being sourced says so -- never a missing box, never a number. */
+  if (!S.ruleOf(p.retailer)) return '<div id="p-ship" class="p-tax"><div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'
+    + '<div class="p-tax-note">Estamos confirmando lo que cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; lo verás antes de pagar.</div></div>';
   var s = S.cartShipping(readCartLocal()).stores.filter(function(x){ return x.store === String(p.retailer || '').toLowerCase(); })[0]
     || S.standingOf(p.retailer, 0);
   var html = '<div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'
     + '<div class="p-ship-rule">' + esc(S.ruleText(p.retailer)) + '</div>';
-  if (s.rule.freeOverUsd != null){
+  if (s.rule.note) html += '<div class="p-tax-note">' + esc(s.rule.note.charAt(0).toUpperCase() + s.rule.note.slice(1)) + '.</div>';
+  if (s.rule.freeOverUsd > 0){
     html += '<div class="p-ship-meter' + (s.met ? ' met' : '') + '" role="progressbar" aria-valuemin="0" aria-valuemax="' + s.rule.freeOverUsd + '" aria-valuenow="' + s.subtotalUsd + '"><i style="width:' + Math.round(s.progress * 100) + '%"></i></div>'
       + '<div class="p-tax-note">' + esc(S.meterText(s)) + ' en ' + esc(label) + '. ' + esc(S.standingText(s, label)) + '.</div>';
   }
