@@ -101,6 +101,10 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
    after the first rows. Each lane spans the whole grid row. */
 .lane{grid-column:1/-1; min-width:0; margin:6px 0 4px;}
 .lane h2, .grid-head{font-size:17px; font-weight:800; color:var(--navy); margin:0 0 10px;}
+.lane-head{display:flex; align-items:baseline; gap:8px; margin:0 0 10px;}
+.lane-head h2{margin:0;}
+.lane-n{font-size:13px; font-weight:700; color:var(--muted,#667085);}
+.lane-more{margin-left:auto; font-size:13px; font-weight:800; color:var(--blue,#1f5fd1); text-decoration:none; white-space:nowrap;}
 .grid-head{grid-column:1/-1; margin-top:12px;}
 .rail{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; -webkit-overflow-scrolling:touch;}
 .rail .card{flex:0 0 42%; max-width:200px; scroll-snap-align:start;}
@@ -477,7 +481,22 @@ function watchPhotos(root){
   }, { rootMargin: "200px 0px" });
   imgs.forEach(function(i){ PHOTO_IO.observe(i); });
 }
+/* The stores with their own page (assets/tienda/, tienda.html's registry);
+   Aria Perfumes is the Perfumes room. Another store's rail is the whole
+   answer there already. */
+var STORE_PAGES = " abercrombie academy advanceauto aguabendita americaneagle ancora assouline babybrezza bathandbodyworks baublebar bellybandit bentgo bhphoto boxlunch brandsmart capittana carolinaherrera ccs chronicle combatcorner crateandbarrel crocs dagnedover denniskirk dicks drbrowns eberjey elite elvie everlast ezpz farfetch farmrio finishline footlocker freshlypicked fuji gameness hatch hollister hottopic islandwatersports johannaortiz jujube jwpei kindredbravely lanebryant lillebaby mainland meliebianco microcenter mmawarehouse mockingbird momcozy montce munchkin mushie nanit nautilus owlet parrot partycity patbo pier1 prosoccer quietstorm revolve revzilla silviatcherassi skims sleekshop smartbuyglasses snipes spectra ssense statebags surfstation tatami tennisexpress tenniswarehouse tns valsurf venum victoriassecret vix walmart walmartbaby xtremesoccer youngla zumiez ";
+function storeDoor(store, q){
+  if (store === "ariaperfumes") return "departamento.html?dept=perfumes&b=" + encodeURIComponent(q);
+  return STORE_PAGES.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(q) : "";
+}
 function laneHTML(l){
+  /* A brand's store rail (the format): its true total, and «Ver todo»
+     opens that store searched for the brand. */
+  var more = l.store && l.n > l.items.length ? storeDoor(l.store, (STATE && STATE.q) || "") : "";
+  more = more ? '<a class="lane-more" href="' + esc(more) + '">Ver todo &#8594;</a>' : "";
+  var n = l.n ? '<span class="lane-n">' + Number(l.n).toLocaleString("es-PE") + "</span>" : "";
+  if (n || more) return '<section class="lane" aria-label="' + esc(l.title) + '"><div class="lane-head"><h2>' + esc(l.title) + "</h2>" + n + more + "</div>" +
+    '<div class="rail">' + l.items.map(cardHTML).join("") + "</div></section>";
   return '<section class="lane" aria-label="' + esc(l.title) + '"><h2>' + esc(l.title) + "</h2>" +
     '<div class="rail">' + l.items.map(cardHTML).join("") + "</div></section>";
 }
@@ -489,7 +508,7 @@ function answerHTML(data){
   var cards = data.items.map(cardHTML);
   var head = compareHTML(data.compare);
   if (!lanes.length) return head + cards.join("");
-  if (data.mode === "generic"){
+  if (data.mode === "generic" || data.mode === "brand"){
     return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
       '<h2 class="grid-head">Todos los resultados</h2>' + cards.join("");
   }

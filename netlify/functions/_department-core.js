@@ -26,8 +26,74 @@ export const DEPT_KEY_RX = /^[a-z_]{2,40}$/;
 /* Aria's own footwear classes (scripts/lib/footwear.js SHOE_CLASSES) are
    titles already: "Botas y botines", not "Botas Y Botines". */
 const SHOE_CLASS_LABELS = new Map(["Zapatillas", "Sandalias", "Botas y botines", "Tacones", "Chimpunes", "Mocasines y pantuflas", "Zapatos"].map((l) => [l.toLowerCase(), l]));
+/* A rail title is Spanish (#443: English is never shown as Spanish copy).
+   The store's own type is read through the garment and gear vocabularies,
+   then this dictionary; a store's SKU code is no title at all. */
+const TYPE_ES = new Map(Object.entries({
+  "apparel": "Ropa", "clothing": "Ropa", "sportswear": "Ropa deportiva", "intimates": "Ropa interior", "underwear": "Ropa interior",
+  "mens underwear": "Ropa interior", "briefs": "Ropa interior", "boxers": "Ropa interior", "thongs": "Lencería", "panties": "Lencería",
+  "panty": "Lencería", "panty pack": "Lencería", "panty packs": "Lencería", "bras": "Lencería", "bra": "Lencería", "bralette": "Lencería",
+  "bralettes": "Lencería", "bralette pack": "Lencería", "shapewear top": "Fajas y shapewear", "shapewear slips": "Fajas y shapewear",
+  "shapewear bottoms": "Fajas y shapewear", "shapewear bottom": "Fajas y shapewear", "shapewear bodysuits": "Fajas y shapewear",
+  "shapewear bodysuit": "Fajas y shapewear", "bodysuits": "Bodies", "bodysuit": "Bodies", "corsets & bodysuits": "Bodies",
+  "sleepwear": "Pijamas", "pyjamas & loungewear": "Pijamas", "robes": "Batas", "lounge pants": "Pijamas", "socks": "Medias",
+  "mens socks": "Medias", "leggings": "Leggings", "jumpsuits": "Enterizos", "rompers": "Enterizos", "one piece": "Enterizos",
+  "suits": "Ternos", "blazers": "Blazers", "neck ties": "Corbatas", "scarves": "Bufandas", "belts & suspenders": "Correas",
+  "beanies": "Gorros", "caps": "Gorras", "structured hats": "Gorras", "beach hats": "Sombreros", "sets": "Conjuntos", "set": "Conjuntos",
+  "bundle": "Conjuntos", "wallets": "Billeteras", "wallet": "Billeteras", "card holders": "Billeteras", "coin pouches": "Billeteras",
+  "passport holders": "Billeteras", "pouches": "Neceseres", "pouches & document holders": "Neceseres", "keychains": "Llaveros",
+  "watches": "Relojes", "eyewear": "Lentes", "glasses": "Lentes", "sunglasses": "Lentes de sol", "jewelry": "Joyas",
+  "home": "Hogar", "decor": "Decoración", "decorations": "Decoración", "decorative objects": "Decoración", "led decor": "Decoración",
+  "decorative sculptures & figurines": "Decoración", "tabletop decorations": "Decoración", "wall decor": "Cuadros y decoración de pared",
+  "framed wall art": "Cuadros y decoración de pared", "canvas wall art": "Cuadros y decoración de pared", "picture frames": "Portarretratos",
+  "frames": "Portarretratos", "mirrors": "Espejos", "wall mirrors": "Espejos", "vases": "Floreros", "planters & pots": "Maceteros",
+  "potted plants": "Plantas y flores", "stems & sprays": "Plantas y flores", "floral stems & branches": "Plantas y flores",
+  "floral arrangements": "Plantas y flores", "floral & botanical arrangements": "Plantas y flores", "throws": "Mantas",
+  "square pillows": "Cojines", "lumbar pillows": "Cojines", "door mats": "Tapetes", "baskets": "Canastas y organizadores",
+  "baskets & storage bins": "Canastas y organizadores", "decorative storage": "Canastas y organizadores", "storage container": "Canastas y organizadores",
+  "wastebaskets": "Canastas y organizadores", "candle holders": "Velas y candelabros", "candlesticks": "Velas y candelabros",
+  "pillar candles": "Velas y candelabros", "pillar stands": "Velas y candelabros", "taper & pillar candles": "Velas y candelabros",
+  "led pillar candles": "Velas y candelabros", "monochrome candles": "Velas y candelabros", "jar & filled candles": "Velas y candelabros",
+  "votive & tealight holders": "Velas y candelabros", "hurricanes": "Velas y candelabros", "lanterns": "Faroles",
+  "scented candles & diffusers": "Velas y aromas", "reed diffusers": "Velas y aromas", "reed diffuser refill oil": "Velas y aromas",
+  "room sprays": "Velas y aromas", "fragrance oil": "Velas y aromas", "soaps, lotion & scents": "Jabones y cremas",
+  "dinnerware": "Vajilla", "plates": "Vajilla", "silicone tableware": "Vajilla", "drinkware": "Vasos y tazas", "wine glasses": "Vasos y tazas",
+  "mugs & tea cups": "Vasos y tazas", "coffee mugs & tea cups": "Vasos y tazas", "tablecloths": "Manteles y servilletas",
+  "table runners": "Manteles y servilletas", "placemats": "Manteles y servilletas", "napkins": "Manteles y servilletas",
+  "napkin rings": "Manteles y servilletas", "tablecovers": "Manteles y servilletas", "christmas ornaments": "Navidad",
+  "specialty ornaments": "Navidad", "neutral ornaments": "Navidad", "christmas decor": "Navidad", "tree accessories": "Navidad",
+  "wreaths": "Navidad", "wreaths & garland": "Navidad", "garlands": "Navidad", "yard decorations & signs": "Decoración de jardín",
+  "keepsakes & gifts": "Regalos", "coffee table book": "Libros de mesa", "balloons": "Globos", "favors": "Recuerdos de fiesta",
+  "favor bags & containers": "Recuerdos de fiesta", "confetti & streamers": "Decoración de fiesta", "banners & signs": "Decoración de fiesta",
+  "decorating kits": "Decoración de fiesta", "costume accessories": "Disfraces", "games": "Juegos", "hair care": "Cuidado del cabello",
+  "beauty": "Belleza", "fragrance bundles": "Perfumes", "lunch boxes totes": "Loncheras", "gear": "Equipo", "gear bag": "Maletines deportivos",
+  "exercisemats": "Colchonetas", "bikehelmets": "Cascos", "snorkelinggearequipment": "Snorkel", "skateboardslongboards": "Skateboards",
+  "skateboards completos": "Skateboards", "cruisers": "Skateboards", "longboards": "Skateboards", "wetsuits": "Trajes de neopreno",
+  "swim": "Ropa de baño", "womensswimsuits": "Ropa de baño", "mensswimsuits": "Ropa de baño", "boysswimsuits": "Ropa de baño",
+  "boxingmmakickboxinggloves": "Guantes", "accessories": "Accesorios", "art prints": "Cuadros y decoración de pared",
+  "backdrops & scene setters": "Decoración de fiesta", "bags kids lunch boxes": "Loncheras", "belt bag": "Carteras", "handbags": "Carteras",
+  "crossbody": "Carteras", "shoulder": "Carteras", "shoulder bag": "Carteras", "shoulder bags": "Carteras", "top handle": "Carteras",
+  "briefcases": "Mochilas y bolsos", "duffle bags": "Mochilas y bolsos", "outerwear": "Casacas y abrigos", "bombers": "Casacas y abrigos",
+  "peacoats": "Casacas y abrigos", "down": "Casacas y abrigos", "fur & shearling": "Casacas y abrigos", "denim": "Pantalones y jeans",
+  "bottoms": "Pantalones y faldas", "bottom": "Pantalones y faldas", "henleys": "Polos", "v necks": "Chompas y polerones",
+  "turtlenecks": "Chompas y polerones", "sweaters knits": "Chompas y polerones", "silks & cashmeres": "Chompas y polerones",
+  "monkstraps": "Zapatos", "panty packs": "Lencería", "workoutgloveswraps": "Guantes", "handwraps": "Vendas", "shoes": "Zapatos",
+}));
+const SKU_TYPE = /^(?=[a-z]{0,6}\d)[a-z0-9]+$|^(?:general|retail|sample|wholesale|accessory|for (?:him|her))$/i;
 export function typeLabel(t) {
-  if (SHOE_CLASS_LABELS.has(String(t).toLowerCase())) return SHOE_CLASS_LABELS.get(String(t).toLowerCase());
+  /* Store types arrive as "shapewear-bottoms", "Mens_Tops", "T Shirts". */
+  const low = String(t).toLowerCase().replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim();
+  if (SHOE_CLASS_LABELS.has(low)) return SHOE_CLASS_LABELS.get(low);
+  if (TYPE_ES.has(low)) return TYPE_ES.get(low);
+  if (SKU_TYPE.test(low)) return "Más productos";
+  if (/^(?:mens|men's|men) (?:tops?|shirts?|t ?shirts?)$/.test(low)) return "Polos";
+  if (/^(?:mens|men's|men) bottoms?$/.test(low)) return "Pantalones";
+  if (/^kids tops?$/.test(low)) return "Polos";
+  const kind = gearType({ title: low }) || modaType({ type: low });
+  if (kind) {
+    const g = GEAR_TYPES.find((x) => x[0] === kind) || brandTypeLabels().find((x) => x[0] === kind);
+    if (g) return g[1];
+  }
   return String(t).split(/[\s_\-]+/).map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(" ");
 }
 
@@ -66,7 +132,6 @@ export function perfumeClassOf(p) {
   if (String((p && p.type) || "") === "Cuidado corporal" || /— (Body mist|Body spray|After shave|Perfume para el cabello|Desodorante|Gel de ducha|Loción corporal|Jabón|Crema|Talco|Aroma para el hogar|Labial|Afeitado|Baño|Gel de baño|Aceite corporal|Manteca corporal|Vela)\b/.test(t)) return "cuidado";
   return "frasco";
 }
-const PERFUME_RAILS = { testers: "Testers", minis: "Minis y de viaje", sets: "Sets de regalo", cuidado: "Cuerpo y cuidado" };
 /* The houses a shopper in Peru knows by name (the catalogue's own brand
    strings). They lead: their rail comes first and their house rails
    come before the long tail (#443 item 39 D -- recognition stops the
@@ -79,57 +144,196 @@ export const PERFUME_DESIGNER_HOUSES = new Set([
   "issey miyake", "kenzo", "jimmy choo", "michael kors", "coach", "estee lauder", "narciso rodriguez", "kilian",
   "maison francis kurkdjian", "xerjoff", "parfums de marly",
 ]);
+/* The names a shopper in Peru recognizes on a sale (Danny: "the brands that
+   are mainstream"): the designer houses plus the household names. */
+export const PERFUME_MAINSTREAM = new Set([...PERFUME_DESIGNER_HOUSES, "guess", "davidoff", "elizabeth arden", "clinique", "moschino",
+  "salvatore ferragamo", "ferragamo", "cartier", "chloe", "dkny", "donna karan", "juicy couture", "victoria's secret", "nautica",
+  "antonio banderas", "perry ellis", "kenneth cole", "police", "jo malone", "lalique", "nina ricci", "paris hilton", "ariana grande",
+  "britney spears", "abercrombie & fitch", "hollister", "adidas", "nike", "tous", "karl lagerfeld", "john varvatos", "bath & body works"]);
 export function isDesignerHouse(p) { return PERFUME_DESIGNER_HOUSES.has(String((p && p.brand) || "").trim().toLowerCase()); }
 const perfumeName = (p) => String((p && p.title) || "").split(" — ")[0].toLowerCase();
+/* ---------- THE PERFUMES ROOM, THE UNIVERSAL FORMAT (Danny, #443
+   c.6532584474 / c.6532666653, Oct 30) ----------
+   Ofertas first, then one rail per KNOWN brand, biggest first by the true
+   count, then one shared rail for the long tail ("Más marcas"). Inside one
+   brand (a brand pill), the same format one level down: its Ofertas, then
+   a rail per type (Mujer, Hombre, Unisex, Testers, Minis, Sets...).
+   A brand is known when it carries PERFUME_KNOWN_MIN products, or is a
+   designer house with PERFUME_HOUSE_MIN. The doors (Mujer / Hombre /
+   Unisex / Minis / Sets / Testers) are the catalogue's own departments,
+   carried on each row as `a`. */
+export const PERFUME_KNOWN_MIN = 20, PERFUME_HOUSE_MIN = 5;
+export const PERFUME_DOORS = [["mujer", "Mujer"], ["hombre", "Hombre"], ["unisex", "Unisex"], ["minis", "Minis"], ["sets", "Sets de regalo"], ["testers", "Testers"]];
+const PERFUME_TYPE_RAILS = [["mujer", "Para mujer"], ["hombre", "Para hombre"], ["unisex", "Unisex"], ["mas", "Más perfumes"], ["testers", "Testers"], ["minis", "Minis y de viaje"], ["sets", "Sets de regalo"], ["cuidado", "Cuerpo y cuidado"], ["repuestos", "Repuestos"]];
+const brandKey = (p) => String((p && p.brand) || "").trim().toLowerCase();
+/* The brand groups of a list: [{ key, label, items }], biggest first; the
+   label is the spelling most of its products carry ("Juliette Has A Gun"). */
+export function perfumeBrands(list) {
+  const by = new Map();
+  for (const p of list) {
+    const k = brandKey(p);
+    if (!k) continue;
+    if (!by.has(k)) by.set(k, { key: k, items: [], spell: new Map() });
+    const g = by.get(k);
+    g.items.push(p);
+    const b = String(p.brand).trim();
+    g.spell.set(b, (g.spell.get(b) || 0) + 1);
+  }
+  return [...by.values()].map((g) => ({ key: g.key, label: [...g.spell.entries()].sort((a, b) => b[1] - a[1])[0][0], items: g.items }))
+    .sort((a, b) => (b.items.length - a.items.length) || a.label.localeCompare(b.label));
+}
+export const isKnownPerfumeBrand = (g) => g.items.length >= PERFUME_KNOWN_MIN || (g.items.length >= PERFUME_HOUSE_MIN && PERFUME_DESIGNER_HOUSES.has(g.key));
+/* Danny: the mainstream houses' sales lead; a lesser name leads only when
+   it is really cheap (under US$30); then everything else on sale. */
+const PERFUME_CHEAP = 30;
+function perfumeSalesOrder(sales, mainstream) {
+  /* The designer houses lead, then the household names, then a really
+     cheap lesser name (cheapest first), then the rest -- each part by its
+     discount; the boxed bottle before its tester or mini. */
+  const rank = (p) => (PERFUME_DESIGNER_HOUSES.has(brandKey(p)) ? 0 : mainstream.has(brandKey(p)) ? 1 : p.rawPrice < PERFUME_CHEAP ? 2 : 3);
+  const bottle = (p) => (perfumeClassOf(p) === "frasco" ? 0 : 1);
+  return sales.map((p, i) => ({ p, i, r: rank(p) }))
+    .sort((a, b) => (a.r - b.r) || (bottle(a.p) - bottle(b.p)) || (a.r === 2 ? a.p.rawPrice - b.p.rawPrice : 0) || (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+}
+/* Inside a rail: the boxed bottle before its variants, on sale first, then cheapest first. */
+function perfumeRailOrder(items) {
+  return items.map((p, i) => ({ p, i })).sort((a, b) => ((perfumeClassOf(a.p) === "frasco" ? 0 : 1) - (perfumeClassOf(b.p) === "frasco" ? 0 : 1))
+    || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+}
+/* A product's type rail: its class, else its door (the catalogue department). */
+function perfumeTypeOf(p) {
+  const c = perfumeClassOf(p);
+  if (c !== "frasco") return c;
+  if (["mujer", "hombre", "unisex"].includes(p.a)) return p.a;
+  const t = String(p.title || "");
+  /* A bottle from another store says who it is for in its own words, or is "más". */
+  return /\bpara hombre$|\b(for men|men's|pour homme|homme)\b/i.test(t) ? "hombre" : /\bpara mujer$|\b(for women|women's|pour femme|femme)\b/i.test(t) ? "mujer" : /\bunisex\b/i.test(t) ? "unisex" : "mas";
+}
 export function buildPerfumeSections(list) {
   const sections = [];
-  const sales = list.filter((p) => p.salePct > 0 && perfumeClassOf(p) === "frasco").map((p, i) => ({ p, i }))
-    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
-  /* LAS GRANDES CASAS: each classic once (its cheapest boxed bottle),
-     with a designer-house sale between them -- sale-led picks
-     interleaved, not all of them. */
-  const classics = [];
-  PERFUME_CLASSICS.forEach(([brand, name, side], rank) => {
-    for (const p of list) {
-      if (perfumeClassOf(p) !== "frasco" || String(p.brand || "") !== brand) continue;
-      /* The bottle people picture: no refill, no unboxed variant. */
-      if (/\((?:[^)]*\b)?(?:Repuesto|Sin caja)\b/.test(String(p.title || ""))) continue;
-      if (side && !String(p.title || "").endsWith(" " + side)) continue;
-      if (String(p.title || "").indexOf(name + " — ") === 0) classics.push({ p, rank });
+  const brands = perfumeBrands(list);
+  const mainstream = PERFUME_MAINSTREAM;
+  const sales = list.filter((p) => p.salePct > 0);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: perfumeSalesOrder(sales, mainstream) });
+  /* One brand (a brand pill): its rails are its types. */
+  if (brands.length === 1) {
+    for (const [k, title] of PERFUME_TYPE_RAILS) {
+      const l = list.filter((p) => perfumeTypeOf(p) === k);
+      if (l.length) sections.push({ key: "tipo:" + k, title, items: perfumeRailOrder(l) });
     }
-  });
-  classics.sort((a, b) => (a.rank - b.rank) || (a.p.rawPrice - b.p.rawPrice));
-  const heroes = [], seenRank = new Set();
-  for (const c of classics) if (!seenRank.has(c.rank)) { seenRank.add(c.rank); heroes.push(c.p); }
-  const seenName = new Set(heroes.map(perfumeName));
-  const houseSales = sales.filter((p) => isDesignerHouse(p) && !seenName.has(perfumeName(p)) && (seenName.add(perfumeName(p)), true)).slice(0, heroes.length);
-  const lead = [];
-  heroes.forEach((h, i) => { lead.push(h); if (houseSales[i]) lead.push(houseSales[i]); });
-  if (lead.length) sections.push({ key: "grandes-casas", title: "Las grandes casas", items: lead });
-  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
-  for (const k of ["testers", "minis", "sets"]) {
-    const l = list.filter((p) => perfumeClassOf(p) === k);
-    if (l.length) sections.push({ key: "clase:" + k, title: PERFUME_RAILS[k], items: l });
+    return sections;
   }
-  const byBrand = {}, order = [];
-  for (const p of list) {
-    if (perfumeClassOf(p) !== "frasco") continue;
-    const b = String(p.brand || "").trim() || "__otros__";
-    if (!byBrand[b]) { byBrand[b] = []; order.push(b); }
-    byBrand[b].push(p);
-  }
-  const groups = []; let small = [];
-  order.forEach((b, idx) => { const l = byBrand[b]; if (b !== "__otros__" && l.length >= 3) groups.push({ b, l, idx }); else small = small.concat(l); });
-  /* The designer houses first, then the rest; inside each, by how much
-     of the house we carry. */
-  const classicRank = (g) => { const i = PERFUME_CLASSICS.findIndex((c) => c[0] === g.b); return i === -1 ? PERFUME_CLASSICS.length : i; };
-  const known = (g) => (PERFUME_DESIGNER_HOUSES.has(g.b.toLowerCase()) ? 0 : 1);
-  groups.sort((a, b) => (classicRank(a) - classicRank(b)) || (known(a) - known(b)) || (b.l.length - a.l.length) || (a.idx - b.idx));
-  for (const g of groups) sections.push({ key: "marca:" + g.b.toLowerCase(), title: g.b, items: g.l });
-  if (small.length) sections.push({ key: "marca:otras", title: "Más perfumes", items: small });
-  const care = list.filter((p) => perfumeClassOf(p) === "cuidado");
-  if (care.length) sections.push({ key: "clase:cuidado", title: PERFUME_RAILS.cuidado, items: care });
+  const known = brands.filter(isKnownPerfumeBrand);
+  for (const g of known) sections.push({ key: "marca:" + g.key, title: g.label, items: perfumeRailOrder(g.items) });
+  const knownKeys = new Set(known.map((g) => g.key));
+  const tail = list.filter((p) => !knownKeys.has(brandKey(p)));
+  if (tail.length) sections.push({ key: "marca:mas", title: "Más marcas", items: perfumeRailOrder(tail) });
   return sections;
+}
+/* ---------- CATEGORY ROOMS: RAILS BY BRAND (the universal format, #443
+   c.6532666653: "a CATEGORY page rails by BRAND; a brand inside a category
+   by TYPE") ----------
+   Fight Club, Gym Rat, Surf & Skate, Fútbol, Tenis, Pesca submarina, Lentes
+   de sol, Joyas, Lujo: Ofertas first, one rail per brand with
+   BRAND_ROOM_MIN products (biggest first, true counts), the rest on one
+   «Más marcas» rail. A brand pill opens that brand alone, its rails by type
+   (Venum: shorts, gloves, gis, headgear...). */
+export const BRAND_ROOMS = new Set(["combat_sports", "gym_rat", "surf_skate", "spearfishing", "soccer", "tennis", "sunglasses", "joyas_accesorios", "luxury"]);
+export const BRAND_ROOM_MIN = 8;
+/* A mall floor, not an endless scroll: at most this many brand rails (and
+   pills); the brands after them share «Más marcas». */
+export const BRAND_ROOM_MAX = 60;
+/* A store's own vendor code or an empty string is not a brand a shopper knows. */
+const NOT_A_BRAND_RX = /^(?:[A-Z]{2,6}\/|\d+$|n\/?a$|unknown$|generic$|unbranded$|for (?:him|her)$|men$|women$|kids$)/i;
+function buildBrandRoomSections(list) {
+  const groups = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim())));
+  /* One brand: the format one level down -- its Ofertas, then its types. */
+  if (groups.length === 1 && groups[0].items.length === list.length) return brandTypeSections(list);
+  const sections = [];
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i })).sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  const known = groups.filter((g) => g.items.length >= BRAND_ROOM_MIN).slice(0, BRAND_ROOM_MAX);
+  const order = (l) => l.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.i - b.i)).map((x) => x.p);
+  for (const g of known) sections.push({ key: "marca:" + g.key, title: g.label, items: order(g.items) });
+  const knownKeys = new Set(known.map((g) => g.key));
+  const tail = list.filter((p) => !knownKeys.has(String(p.brand || "").trim().toLowerCase()));
+  if (tail.length) sections.push({ key: "marca:mas", title: "Más marcas", items: order(tail) });
+  return sections;
+}
+/* A brand's rails by type: Moda's Spanish clothing types when the brand is
+   mostly clothing and shoes (Venum: shorts, polos, casacas...), else the
+   store's own types; Ofertas first either way. */
+let BRAND_TYPE_LABELS = null;
+function brandTypeLabels() {
+  if (BRAND_TYPE_LABELS) return BRAND_TYPE_LABELS;
+  const seen = new Set(), out = [];
+  for (const l of [...MODA_LABELS.women, ...MODA_LABELS.men]) if (!seen.has(l[0])) { seen.add(l[0]); out.push(l); }
+  return (BRAND_TYPE_LABELS = out);
+}
+/* Sports gear, read before the clothing type (a rash guard in Fight Club
+   is a «polo de licra», not swimwear; Danny's Venum example: shorts,
+   shirts, gis, headgear, gloves, shin guards). */
+const GEAR_TYPES = [
+  /* Jewelry first: a «ball stud» earring is an earring. */
+  ["aretes", "Aretes", /\bearrings?\b|\baretes?\b|\bstuds?\b|\bhoops?\b|\bhuggies?\b|\bear (?:cuffs?|climbers?|crawlers?)\b/i],
+  ["collares", "Collares y dijes", /\bnecklaces?\b|\bcollares?\b|\bpendants?\b|\bchokers?\b|\blockets?\b/i],
+  ["pulseras", "Pulseras y tobilleras", /\bbracelets?\b|\bbangles?\b|\bcuffs?\b|\banklets?\b|\bpulseras?\b/i],
+  ["anillos", "Anillos", /\brings?\b|\banillos?\b/i],
+  ["charms", "Charms", /\bcharms?\b/i],
+  ["broches", "Broches y pines", /\bbrooch(?:es)?\b|\bpins?\b|\bbroches?\b/i],
+  ["pelo", "Accesorios para el pelo", /\bhair ?(?:clips?|claws?|pins?|ties?|bows?)\b|\bclaw clips?\b|\bheadbands?\b|\bscrunchies?\b|\bbarrettes?\b/i],
+  ["licras", "Polos de licra", /\brash ?guards?\b|\blicras?\b/i],
+  ["mallas", "Mallas de compresión", /\bspats\b|\bcompression (?:tights|pants|leggings)\b/i],
+  ["gis", "Gis y kimonos", /\b(?:bjj|jiu.?jitsu|judo|karate)?\s*gis?\b(?!\w)|\bkimonos?\b/i],
+  ["guantes", "Guantes", /\bgloves?\b|\bguantes?\b|\bmitts?\b/i],
+  ["canilleras", "Canilleras", /\bshin ?(?:guards?|pads?|instep)\b|\bcanilleras?\b/i],
+  ["cabezales", "Cabezales y protectores", /\bhead ?(?:gear|guards?)\b|\bcabezal(?:es)?\b|\bcups?\b.*\bprotect|\bgroin\b|\bchest (?:guard|protector)\b/i],
+  ["vendas", "Vendas", /\bhand ?wraps?\b|\bvendas?\b/i],
+  ["bucales", "Bucales", /\bmouth ?guards?\b|\bbucal(?:es)?\b/i],
+  ["sacos", "Sacos y equipo de gimnasio", /\b(?:punching|heavy|speed|double.?end|muay thai) bags?\b|\bfocus mitts?\b|\bthai pads?\b|\bkick shields?\b/i],
+  ["chimpunes", "Chimpunes", /\bcleats?\b|\bfirm ground\b|\b(?:fg|ag|tf|mg)(?:\/(?:fg|ag|tf|mg))?\b|\bturf\b|\bchimpun\w*/i],
+  ["camisetas", "Camisetas de equipo", /\bjerseys?\b|\b(?:home|away|third) (?:kit|shirt)\b|\bcamisetas? de (?:equipo|f[uú]tbol)\b/i],
+  ["balones", "Balones y pelotas", /\b(?:soccer|foot|basket|volley|tennis|pickle|golf|base|soft|training|match|futsal) ?balls?\b|\bbal[oó]n(?:es)?\b|\bpelotas?\b/i],
+];
+const gearType = (p) => { const t = String((p && p.title) || "") + " " + String((p && p.type) || ""); for (const [k, , rx] of GEAR_TYPES) if (rx.test(t)) return k; return ""; };
+function brandTypeSections(list) {
+  const kind = (p) => gearType(p) || modaType(p);
+  if (list.filter(kind).length < list.length * 0.6) return buildSectionsRaw(list, {});
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i })).sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  const secs = [];
+  const labels = [...GEAR_TYPES.map(([k, label]) => [k, label]), ...brandTypeLabels()];
+  for (const [k, label] of labels) {
+    const l = list.filter((p) => kind(p) === k);
+    if (l.length) secs.push({ key: "tipo:" + k, title: label, items: l });
+  }
+  secs.sort((a, b) => b.items.length - a.items.length);
+  const rest = list.filter((p) => !kind(p));
+  if (rest.length) secs.push({ key: "tipo:otros", title: "Más productos", items: rest });
+  return (sales.length ? [{ key: "ofertas", title: "Ofertas", items: sales }] : []).concat(secs).map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+export function typeViewSections(list) {
+  const known = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim()))).filter((g) => g.items.length >= BRAND_ROOM_MIN);
+  if (known.length >= 2) return buildBrandRoomSections(list).map((x) => ({ ...x, items: photosFirst(x.items) }));
+  const sales = list.filter((p) => p.salePct > 0);
+  const by = new Map();
+  for (const p of list) { if (!by.has(p.retailer)) by.set(p.retailer, []); by.get(p.retailer).push(p); }
+  const secs = sales.length ? [{ key: "ofertas", title: "Ofertas", items: sales }] : [];
+  for (const [r, l] of [...by.entries()].sort((a, b) => b[1].length - a[1].length)) secs.push({ key: "tienda:" + r, title: r, items: l });
+  return secs.map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+export function brandRoomPills(list) {
+  const groups = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim()))).filter((g) => g.items.length >= BRAND_ROOM_MIN).slice(0, BRAND_ROOM_MAX);
+  /* The pill's key is its label (the page sends it back as b=). */
+  return groups.length >= 2 ? { brands: groups.map((g) => ({ label: g.label, n: g.items.length })) } : {};
+}
+
+/* The pills above the room: the doors with their counts, and one pill per
+   known brand, biggest first (the head carries them; a pill re-scopes the
+   page through the endpoint's a= / b= filters). */
+export function perfumePills(list) {
+  const doors = PERFUME_DOORS.map(([k, label]) => ({ k, label, n: list.filter((p) => p.a === k).length })).filter((d) => d.n > 0);
+  const brands = perfumeBrands(list).filter(isKnownPerfumeBrand).map((g) => ({ k: g.label, label: g.label, n: g.items.length }));
+  return { doors, brands };
 }
 
 /* The shoe departments (#443 c.6405702652): their types are Aria's own
@@ -141,6 +345,8 @@ export function sectionOpts(key) {
   if (key === CASA_DEPT) return { casa: true };
   if (key === TECH_DEPT) return { tech: true };
   if (key === CABELLO_DEPT) return { cabello: true };
+  if (key === "perfumes") return { perfume: true };
+  if (BRAND_ROOMS.has(key)) return { brandRoom: true };
   if (key === REFURB_DEPT) return { refurb: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
@@ -454,7 +660,7 @@ export function homeTechPills(list) {
                  "c:<condition>" (Reacondicionados)
      all:        the first pill's word when it is not «Todas» */
 export const PILL_HUBS = {
-  luxury: { by: "brand", max: 14 },
+  /* Lujo is a brand room now (BRAND_ROOMS): its brand pills re-scope the room. */
   /* Moda: the type pills, then the four strongest stores. */
   women: { moda: "women", by: "store", max: 4 },
   men: { moda: "men", by: "store", max: 4 },
@@ -813,6 +1019,9 @@ function buildSectionsRaw(list, opts = {}) {
   if (opts.casa) return buildCasaSections(list);
   if (opts.tech) return buildTechSections(list);
   if (opts.cabello) return buildCabelloSections(list);
+  /* The Perfumes room is always the room, whatever store a bottle comes from. */
+  if (opts.perfume) return buildPerfumeSections(list);
+  if (opts.brandRoom) return buildBrandRoomSections(list);
   if (opts.refurb) return buildRefurbSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
@@ -829,9 +1038,12 @@ function buildSectionsRaw(list, opts = {}) {
   if (refurb.length >= 3 && refurb.length < list.length) sections.push({ key: "reacondicionados", title: "Reacondicionados", note: REFURB_NOTE, items: refurb });
   if (opts.genderAisles) return sections.concat(genderAisles(list));
   const byType = {}, order = [];
+  /* One rail per Spanish title: "Dresses" and "Vestidos" are one rail. */
   for (const p of list) {
-    const t = (String(p.type || "").trim().toLowerCase()) || "__otros__";
-    if (!byType[t]) { byType[t] = []; order.push(t); }
+    const raw = String(p.type || "").trim().toLowerCase();
+    const lab = raw ? typeLabel(raw) : "";
+    const t = raw && lab !== "Más productos" ? lensSlug(lab) : "__otros__";
+    if (!byType[t]) { byType[t] = []; order.push(t); byType[t].label = lab; }
     byType[t].push(p);
   }
   const groups = []; let small = [];
@@ -841,7 +1053,7 @@ function buildSectionsRaw(list, opts = {}) {
     else small = small.concat(l);
   });
   groups.sort((a, b) => (b.l.length - a.l.length) || (a.idx - b.idx));
-  for (const g of groups) sections.push({ key: "tipo:" + g.t, title: typeLabel(g.t), items: g.l });
+  for (const g of groups) sections.push({ key: "tipo:" + g.t, title: byType[g.t].label, items: g.l });
   if (small.length) sections.push({ key: "tipo:otros", title: "Más productos", items: small });
   return sections;
 }
@@ -887,6 +1099,9 @@ export function headOf(key, list, sections, allLabels, extra = {}) {
     railBatch: RAIL_BATCH,
     rails: sections.map((s, i) => {
       const r = { i, title: s.title, count: s.items.length, pages: Math.ceil(s.items.length / PAGE_SIZE) };
+      /* k: the rail's group (marca:<brand>, tipo:<type>, tienda:<store>) --
+         a rail too big for one grid opens as its own railed view. */
+      if (s.key) r.k = s.key;
       /* d: the line under the rail title (the Reacondicionados disclosure). */
       if (s.note) r.d = s.note;
       /* door: the link to Reacondicionados under a new-only shelf. */
@@ -938,10 +1153,16 @@ export function rowItem(r) {
 
 /* The page's filters, unchanged: one store, and every word of the
    department search box in the title or brand. */
-export function filterList(list, { r = "", q = "" } = {}) {
+export function filterList(list, { r = "", q = "", b = "", a = "", t = "" } = {}) {
   const words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  /* b: one brand (a brand pill), a: one door (Perfumes' Mujer / Hombre ...). */
+  const bk = String(b || "").trim().toLowerCase();
   return list.filter((p) => {
     if (r && r !== "all" && p.retailer !== r) return false;
+    if (bk && String(p.brand || "").trim().toLowerCase() !== bk) return false;
+    if (a && p.a !== a) return false;
+    /* t: the rail's type key -- the feed's own type, or the gear/garment kind a brand room rails by. */
+    if (t && String(p.type || "").trim().toLowerCase() !== t && (gearType(p) || modaType(p)) !== t && lensSlug(typeLabel(String(p.type || "").trim().toLowerCase())) !== t) return false;
     if (words.length) {
       const hay = (p.title + " " + (p.brand || "")).toLowerCase();
       for (const w of words) if (hay.indexOf(w) === -1) return false;
@@ -981,8 +1202,11 @@ export function answer(qs, roots) {
   const d = loadDept(String(qs.dept || ""), roots);
   if (!d) return { status: 404, body: { error: "Departamento no encontrado." } };
   const r = String(qs.r || "").slice(0, 40), q = String(qs.q || "").slice(0, 80);
-  const list = (r && r !== "all") || q.trim() ? filterList(d.list, { r, q }) : d.list;
-  const sections = buildSections(list, sectionOpts(d.key));
+  const b = String(qs.b || "").slice(0, 80), a = String(qs.a || "").slice(0, 40), t = String(qs.t || "").trim().toLowerCase().slice(0, 80);
+  const list = (r && r !== "all") || q.trim() || b || a || t ? filterList(d.list, { r, q, b, a, t }) : d.list;
+  /* One type opened from its rail (the recursive «Ver todo»): the next
+     grouping is the brand -- or the store, where brands are thin. */
+  const sections = t && !b ? typeViewSections(list) : buildSections(list, sectionOpts(d.key));
   if (qs.rail !== undefined && qs.rail !== "") {
     /* rail=all: the whole department, page by page, in its carousels'
        order (the lead rail first, each product once) -- the Perfumes
@@ -996,5 +1220,7 @@ export function answer(qs, roots) {
     const out = batchOf(sections, Number(qs.batch));
     return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más carruseles." } };
   }
-  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q }) };
+  /* Perfumes: a door's view keeps its brand pills (the brands inside that door). */
+  const extra = d.key === "perfumes" ? { ...perfumePills(list), b, a } : BRAND_ROOMS.has(d.key) || t ? { ...brandRoomPills(list), b } : {};
+  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t ? { t } : {}) }) };
 }

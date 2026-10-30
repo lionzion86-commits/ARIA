@@ -591,6 +591,21 @@ function distinct(list, max) {
   return out;
 }
 
+/* The query names one brand when it IS that brand's name and the brand
+   holds most of the answer ("venum", "carolina herrera"); then the
+   answer's products of that brand, grouped by store, biggest first. */
+const BRAND_SHARE = 0.6;
+function brandStoreLanes(ctx, q, r) {
+  const bk = brandKey(q);
+  if (!bk || r.hits.length < LANE_MIN) return null;
+  const all = r.hits.filter((p) => brandKey(p.brand) === bk);
+  if (all.length < LANE_MIN || all.length < r.hits.length * BRAND_SHARE) return null;
+  const m = new Map();
+  for (const p of all) { if (!m.has(p.retailer)) m.set(p.retailer, []); m.get(p.retailer).push(p); }
+  const stores = [...m.entries()].filter(([, l]) => l.length >= 1).sort((a, b) => b[1].length - a[1].length);
+  return { all, stores };
+}
+
 /** The lanes of one answer (page 1 only). */
 export function lanesFor(ctx, q, r, fx) {
   if (!r || r.state !== "results" || !r.hits.length) return { mode: "specific", lanes: [] };
@@ -599,6 +614,18 @@ export function lanesFor(ctx, q, r, fx) {
   const generic = isGenericQuery(ctx, r);
   const lanes = [];
   const used = new Set();
+  /* A BRAND QUERY FOLLOWS THE FORMAT (#443 c.6532666653): its Ofertas
+     first, then one rail per store carrying it, true totals, biggest
+     first; a store's rail opens everything of that brand there. */
+  const byStore = brandStoreLanes(ctx, q, r);
+  if (byStore) {
+    const sales = byStore.all.filter(onSaleOf).map((p, i) => ({ p, i, d: discountOf(p) })).sort((a, b) => (b.d - a.d) || (a.i - b.i)).map((x) => x.p);
+    if (sales.length >= LANE_MIN) lanes.push({ key: "ofertas", title: "Ofertas", n: sales.length, items: distinct(sales, LANE_SIZE) });
+    for (const [store, l] of byStore.stores) lanes.push({ key: "tienda:" + store, store, title: ctx.labels[store] || store, n: l.length, items: distinct(l, LANE_SIZE) });
+    r._mode = "brand";
+    r._lanes = lanes;
+    return lanesFor(ctx, q, r, fx);
+  }
 
   /* Relevance still counts in a lane: a sale far down the ranking
      ("Former Doll" T-shirts under "dolls") is a weaker match than a
