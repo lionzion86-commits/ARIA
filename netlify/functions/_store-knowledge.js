@@ -473,6 +473,29 @@ const STORE_KNOWLEDGE_ALL = {
     not_for: "televisores y electrodomésticos grandes (no se traen)",
     peru_note: "Solo se ofrecen los equipos que funcionan a 220 V o que se cargan por USB o batería; los electrodomésticos sin voltaje confirmado no se muestran.",
   },
+  /* Calzedonia + Intimissimi (#443 c.6512405832, pulled 2026-10-29). */
+  intimissimi: {
+    name: "Intimissimi",
+    vibe: "la lencería italiana de encaje y algodón",
+    specialties: ["brasieres", "calzones", "bodies", "babydolls", "encaje"],
+    price_range: "medio", median_usd: 55, product_count: 829,
+    catalog_depth: "829 productos",
+    top_categories: ["brasieres", "calzones", "bodies", "babydolls y camisones"],
+    best_for: "brasieres y calzones de encaje italiano, bodies y babydolls",
+    not_for: "pijamas y ropa de hombre (no vinieron en esta carga)",
+    peru_note: "Solo se ofrecen productos en stock en la página de Intimissimi; el peso es estimado.",
+  },
+  calzedonia: {
+    name: "Calzedonia",
+    vibe: "las medias italianas de moda",
+    specialties: ["medias panty", "medias altas", "leggings", "medias con diseño"],
+    price_range: "medio", median_usd: 27, product_count: 343,
+    catalog_depth: "343 productos",
+    top_categories: ["medias panty", "medias altas", "leggings"],
+    best_for: "medias panty con diseño, transparentes y opacas, y leggings",
+    not_for: "ropa de baño (no vino en esta carga)",
+    peru_note: "Las medias se muestran, pero se podrán comprar cuando la tienda confirme las tallas.",
+  },
   /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). Footwear and
      apparel are shown but not sold until their sizes are confirmed
      (scripts/lib/sizes-pending.js); caps, accessories and fragrance sell. */
