@@ -20,6 +20,7 @@
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { conditionOfTitle } from "../../scripts/lib/condition.js";
 
 export const PAGE_SIZE = 48;
 export const FN_DIR = "assets/tienda/_fn";
@@ -39,6 +40,9 @@ export function cardOfRow(r) {
   if (r[1]) c.brand = r[1];
   if (r[3]) c.was = r[3];
   if (r[9] > 1) c.ph = r[9];
+  /* k: the condition label (/condition.js, c.6526570723) the store's title states. */
+  const cond = conditionOfTitle(r[0]);
+  if (cond && cond.label) c.k = cond.label;
   return c;
 }
 

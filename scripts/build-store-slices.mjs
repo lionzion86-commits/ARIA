@@ -52,6 +52,7 @@ import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { photoCount } from "./lib/photo-counts.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
+import { conditionOfTitle } from "./lib/condition.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
 import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
@@ -364,6 +365,9 @@ const cardOf = (p) => {
   if (p.brand) c.brand = p.brand;
   if (p.was) c.was = p.was;
   if (p.ph > 1) c.ph = p.ph;
+  /* The same condition label the endpoint rows carry (cardOfRow). */
+  const cond = conditionOfTitle(p.name);
+  if (cond && cond.label) c.k = cond.label;
   return c;
 };
 const demand = (p) => Math.log10(1 + p.reviews);

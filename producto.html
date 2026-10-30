@@ -1335,7 +1335,7 @@ function mergeCartLine(line){
 }
 
 function isOffSaleProduct(p){
-  return !!(window.AriaOffSale && p && window.AriaOffSale.isOffSaleRetailer(p.retailer));
+  return !!(window.AriaOffSale && p && window.AriaOffSale.isOffSaleItem({ retailer: p.retailer, title: p.name }));
 }
 function buildBuyBox(p){
   var box = el('buy-box');
