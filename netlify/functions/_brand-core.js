@@ -35,6 +35,8 @@ export const PRODUCT_TYPES = [
   { key: "ropa", label: "Ropa" },
   /* Not fashion (#443 re-route audit, product-type.js). */
   { key: "juguetes", label: "Juguetes" },
+  { key: "tablas_skate", label: "Tablas de skate" },
+  { key: "tablas_surf", label: "Tablas de surf" },
   { key: "deportes", label: "Deportes" },
   { key: "electronica", label: "Electrónica" },
   { key: "hogar", label: "Hogar" },

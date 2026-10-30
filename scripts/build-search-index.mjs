@@ -56,7 +56,7 @@ import { isOffSaleRetailer } from "./lib/off-sale.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
-export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating"];
+export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating", "kw"];
 
 /* Everything search covers: the catalogues below, then the sale feed
    for deals no catalogue carries. (This list lived in search.html while
@@ -144,6 +144,24 @@ export function productId(retailer, url, title) {
 /* index.html's one sale rule reads these, in this order. */
 const SALE_ORIGINAL_FIELDS = ["regularPrice", "wasPrice", "was_price", "originalPrice", "compareAt"];
 
+/* WHAT A PRODUCT IS, IN THE SHOPPER'S WORDS (#443 c.6522560722).
+   A surfboard's title is its model ("CJ Nelson 9.6 Parallax Plus"), a
+   deck's its graphic ("Anti Hero Roached Out II"): no word a shopper
+   types. The product's type family (product-type.js) adds the words
+   that name it, so "tabla de surf" (-> surfboard) and "skate" find them.
+   Only families whose titles routinely omit their noun are listed. */
+export const KIND_WORDS = {
+  tablas_skate: "skateboard skate deck patineta",
+  tablas_surf: "surfboard surf",
+};
+function loadProductTypes() {
+  const sandbox = { window: {} };
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(readFileSync(ROOT + "product-type.js", "utf8"), sandbox, { filename: "product-type.js" });
+  return sandbox.window.AriaProductType || sandbox.AriaProductType;
+}
+
 function loadEngine() {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -171,6 +189,7 @@ function normalize(it, retailer, department, finalPrice) {
     originalPrice: orig > price ? orig : 0, onSale: it.onSale === true,
     department: department ? String(department) : "", retailer: String(it.retailer || retailer || ""),
     finalPrice: !!finalPrice, image: typeof image === "string" ? image : "", url: String(it.url || it.link || it.productUrl || ""),
+    type: String(it.type || ""),
     reviews: firstNumber(it.reviewCount, it.reviews), rating: Math.round(firstNumber(it.rating, it.averageRating, it.reviewScore) * 10) / 10,
   };
 }
@@ -295,13 +314,18 @@ export function buildIndex() {
     products.push(n);
   }
   inferBrands(products, knownBrands());
+  const PT = loadProductTypes();
   const rows = [];
   for (const p of products) {
     if (!p.image) continue;
     const cat = S.catalogItemCategory({ title: p.title, name: p.title, brand: p.brand, retailer: p.retailer,
       departments: p.department ? [p.department] : [] }) || "";
-    rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
-      p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
+    const row = [productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
+      p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating];
+    /* kw is the last field and most rows have none: it is written only when there is one. */
+    const kw = KIND_WORDS[PT.classify({ title: p.title, type: p.type, retailer: p.retailer })];
+    if (kw) row.push(kw);
+    rows.push(row);
   }
   const stores = storeTable(new Set(rows.map((r) => r[7]).filter(Boolean)));
   return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, stores, rows };

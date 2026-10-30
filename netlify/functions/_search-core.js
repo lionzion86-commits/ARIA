@@ -110,7 +110,7 @@ export function productsFromIndex(index) {
       onSale: r[at.onSale] === 1, departments: r[at.department] ? [r[at.department]] : [],
       finalPrice: r[at.finalPrice] === 1, image: r[at.image], url: "",
       retailer: r[at.retailer] || "", _cat: r[at.cat] || null,
-      reviews: r[at.reviews] || 0, rating: r[at.rating] || 0,
+      reviews: r[at.reviews] || 0, rating: r[at.rating] || 0, kw: r[at.kw] || "",
     };
   }
   return out;
@@ -192,8 +192,8 @@ export function runQuery(ctx, q) {
   try {
     r = ctx.P.run({ S: ctx.S, products: ctx.products, retailers: ctx.retailers, dict: ctx.dict, resultLimit: ctx.resultLimit }, q);
     if (r && r.state === "results") {
-      r.hits = deviceLead(q, toysLead(r.hits));
-      r._device = isDeviceQuery(q);
+      r.hits = boardLead(q, deviceLead(q, toysLead(r.hits)));
+      r._device = isDeviceQuery(q) || isBoardQuery(q);
     }
   } catch (e) {
     r = { state: "error", hits: [], error: String(e && e.message || e) };
@@ -267,6 +267,38 @@ export function deviceLead(q, hits) {
     else ((hit[2] ? hit[2](p) : hit[1].test(t) && !isAccessoryName(t)) ? dev : rest).push(p);
   }
   return dev.concat(rest, last);
+}
+
+/* THE BOARDS LEAD A BOARD SEARCH (#443 c.6522560722). "skate" opened
+   with skate tools and face masks, "patineta" with children's books and
+   trucks, and an Antihero deck sat at #685: a deck's title is its
+   graphic, so the engine ranked it on "skate" in the store name or
+   nowhere. The product's type says what it is (the index's kw,
+   build-search-index.mjs KIND_WORDS): for a board search, the boards
+   lead and everything else follows, each part in the engine's order. */
+const BOARD_QUERIES = [
+  [/^(skate|skateboards?|skate ?decks?|decks?|patinetas?|tablas? de skate(board)?)$/, /\bpatineta\b/],
+  [/^(surf ?boards?|tablas? de surf(ear|ing)?)$/, /\bsurfboard\b/],
+];
+export function isBoardQuery(q) { const k = deaccent(q); return BOARD_QUERIES.some(([qx]) => qx.test(k)); }
+export function boardLead(q, hits) {
+  const k = deaccent(q);
+  const hit = BOARD_QUERIES.find(([qx]) => qx.test(k));
+  if (!hit || !Array.isArray(hits) || hits.length < 2) return hits;
+  const by = new Map(), rest = [];
+  for (const p of hits) {
+    if (!hit[1].test(p.kw || "")) { rest.push(p); continue; }
+    const k = (p.brand || p.retailer || "").toLowerCase();
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(p);
+  }
+  /* One board per brand in turn, so a store's long run of one series
+     (twenty sizes of the same deck) does not fill the first screen; the
+     brands with the most boards first (the deck makers, not a toy
+     brand's one board). */
+  const lead = [], lists = [...by.values()].sort((a, b) => b.length - a.length);
+  for (let i = 0; lead.length < hits.length - rest.length; i++) for (const l of lists) if (l[i]) lead.push(l[i]);
+  return lead.concat(rest);
 }
 
 /* TOYS LEAD A TOY SEARCH (2026-10-19, #416 battery). "barbie" and

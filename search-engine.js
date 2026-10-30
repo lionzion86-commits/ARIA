@@ -789,7 +789,8 @@ function searchTokens(raw){
    catalogues do not carry one for every store, and a field that exists
    for some products would silently rank those above the rest. */
 function catalogWordsOf(item){
-  return new Set(searchTokens((item?.title || '') + ' ' + (item?.brand || '')));
+  /* kw: what the product is, when its title never says (build-search-index.mjs KIND_WORDS). */
+  return new Set(searchTokens((item?.title || '') + ' ' + (item?.brand || '') + ' ' + (item?.kw || '')));
 }
 
 /* PREFIXES IN BOTH DIRECTIONS, AND WHY THE SECOND ONE IS NEEDED.

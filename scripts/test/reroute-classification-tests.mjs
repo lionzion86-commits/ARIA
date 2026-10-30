@@ -68,8 +68,8 @@ check("the head noun decides: a charm hoodie is a hoodie, a sneaker charm is a c
 ]));
 
 check("what the Ropa rail used to swallow goes to its department", () => expectAll([
-  ["Powell-Peralta Ripper Complete 8.0", "deportes", "", "ccs"],
-  ["Toy Machine Death Fight Deck", "deportes", "Decks (tablas de skate)", "islandwatersports"],
+  ["Powell-Peralta Ripper Complete 8.0", "tablas_skate", "", "ccs"],
+  ["Toy Machine Death Fight Deck", "tablas_skate", "Decks (tablas de skate)", "islandwatersports"],
   ["Spitfire Formula Four 54mm Wheels", "deportes", "", "ccs"],
   ["FCS II Performer Tri Fins", "deportes", "", "surfstation"],
   ["Monster 8K HDMI Cable 4ft, Ultra High Speed HDMI 2.1 Cord", "electronica"],
