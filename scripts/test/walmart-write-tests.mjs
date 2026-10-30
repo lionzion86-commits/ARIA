@@ -156,6 +156,10 @@ await check("refurbished electronics enter labeled; used clothing, footwear, aut
   assert.equal(drop("Refurbished Brake Caliper Front", "hardware").drop, "excluded-used-auto-part");
   assert.equal(drop("Apple iPhone 11 Straight Talk Locked Refurbished", "electronics").drop, "excluded-locked-phone");
   assert.equal(drop("Mixing Bowl Set Used for Baking", "home").item.condition, undefined, "'used for' read as a used product");
+  /* Danny's three labels (c.6526570723): plain used is held; certified pre-owned is labelled. */
+  assert.equal(drop("Pre-Owned Apple Watch Series 7 45mm GPS", "electronics").drop, "held-plain-used");
+  assert.equal(drop("Samsung Galaxy A10e Cell Phone 32GB Black - Usado", "electronics").drop, "held-plain-used");
+  assert.equal(drop("Apple iPhone 14 128GB Unlocked Certified Pre-Owned", "electronics").item.conditionLabel, "Usado certificado");
 });
 
 await check("item 29: fresh produce, meat, seafood, eggs and milk never publish; look-alikes stay", () => {

@@ -104,6 +104,7 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 /* Footer */
 footer{background:var(--navy); color:#B9C6E4; font-size:13px; padding:28px 20px; text-align:center; margin-top:auto;}
 footer a{color:#fff;}
+.card-cond{display:inline-block;margin-right:6px;font-size:10px;font-weight:800;letter-spacing:0;text-transform:none;padding:1px 7px;border-radius:999px;background:var(--navy);color:#fff;vertical-align:1px}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -540,7 +541,7 @@ function cardHTML(c){
   return '<a class="card" href="' + escRaw(_href) + '">' +
     '<div class="img">' + saleBadge + img + "</div>" +
     '<div class="body">' +
-      '<div class="brand">' + esc(c.b || BRAND_LABEL) + "</div>" +
+      '<div class="brand">' + (c.k ? '<span class="card-cond">' + esc(c.k) + '</span>' : '') + esc(c.b || BRAND_LABEL) + "</div>" +
       '<div class="name">' + esc(c.t) + "</div>" +
       '<div class="retailer">' + (c.r ? 'Vendido por ' + esc(storeLabel(c.r)) : "&nbsp;") + "</div>" +
       '<div class="price" data-usd="' + f + '"' + (was > f ? ' data-was="' + was + '"' : '') + '>' + priceInner(f, was) + "</div>" +
