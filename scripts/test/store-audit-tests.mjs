@@ -96,6 +96,12 @@ check("search: a board search leads with the boards, by the Spanish name too", (
   assert.ok(!surf.slice(0, 8).some((p) => /\b(leash|fins?|wax)\b/i.test(p.title)), "an accessory leads tabla de surf");
 });
 
+check("a board sock or cover is surf gear, never clothing (Veia, Channel Islands, FCS)", () => {
+  for (const t of ["Veia Surfboard Sock", "Veia Explorer Fish Board Sock", "Channel Islands Snuggie 2.0 Hybrid Surfboard Sock - Grey/Black", "FCS Stretch Cover Longboard Sock - Monogram Coal/Lime"])
+    assert.equal(PT.familyOfName(t), "deportes", t);
+  assert.equal(PT.familyOfName("VEIA Classic Logo Men's S/S T-Shirt - Cool Grey"), "ropa");
+});
+
 check("a board word before an accessory noun never makes it a board", () => {
   for (const t of ["FCS 2 Christenson PG Longboard Fin", "FCS All Round Essential 6' Surfboard Leash - Black", "Venture All Polished V-Hollow Skateboard Truck - 5.0 Hi", "Santa Cruz Skateboards Classic Dot Skate Wax"])
     assert.ok(!/^tablas_/.test(PT.familyOfName(t)), t + " -> " + PT.familyOfName(t));
