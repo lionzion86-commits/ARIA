@@ -66,9 +66,9 @@ for (const q of GENERIC) {
     assert.ok(/^tienda:|^tiendas:otras$/.test(out.lanes[1].key), out.lanes[1].key);
     for (const l of out.lanes) assert.ok(l.items.length >= 4 && l.items.length <= LANE_SIZE, `${l.key}: ${l.items.length}`);
   });
-  await check(`"${q}": every lane's lead and the grid's first row are lead-eligible, never premium`, () => {
+  await check(`"${q}": the Ofertas lane's lead and the grid's first row are lead-eligible, never premium`, () => {
     const { out, r, A } = page(q);
-    const areas = out.lanes.map((l) => [l.key, l.items.slice(0, LEAD_SLOTS)]).concat([["grid", out.items.slice(0, LEAD_SLOTS)]]);
+    const areas = out.lanes.filter((l) => l.key === "ofertas").map((l) => [l.key, l.items.slice(0, LEAD_SLOTS)]).concat([["grid", out.items.slice(0, LEAD_SLOTS)]]);
     for (const [name, cards] of areas) {
       for (const c of cards) {
         const a = annOf(r, A, c);
@@ -83,17 +83,32 @@ for (const q of GENERIC) {
       }
     }
   });
-  await check(`"${q}": no obscure premium product in the first 8 of any area`, () => {
+  await check(`"${q}": no obscure premium product in the first 8 of the Ofertas lane or the grid`, () => {
     const { out, r, A } = page(q);
-    for (const cards of out.lanes.map((l) => l.items).concat([out.items])) {
+    for (const cards of out.lanes.filter((l) => l.key === "ofertas").map((l) => l.items).concat([out.items])) {
       for (const c of cards.slice(0, 8)) assert.ok(!annOf(r, A, c).obscurePremium, `"${c.title}" US$ ${c.usd}`);
+    }
+  });
+  /* A STORE ROW (Danny's true-totals ruling, #443 c.6512540192): every
+     store with a real total has one, premium stores too; inside it, what
+     may lead leads whenever the store has any. */
+  await check(`"${q}": a store row opens on a lead-eligible product whenever the store has one`, () => {
+    const { out } = page(q);
+    const full = core.fullHits(ctx, q), A2 = core.annotateHits(ctx, full), byId = new Map(full.map((p) => [p.id, p]));
+    for (const l of out.lanes.filter((x) => x.kind === "store")) {
+      const mine = full.filter((p) => p.retailer === l.store);
+      const anyLead = mine.some((p) => A2.of(p).lead);
+      if (anyLead) assert.ok(A2.of(byId.get(l.items[0].id)).lead, `${l.title}: opens on "${l.items[0].title}" US$ ${l.items[0].usd}`);
     }
   });
 }
 
 await check('"dolls": the US$ 82 Our Generation sets and every premium doll stay out of the first screen', () => {
   const { out } = page("dolls");
-  const first = out.lanes.flatMap((l) => l.items.slice(0, LEAD_SLOTS)).concat(out.items.slice(0, LEAD_SLOTS));
+  /* A store whose every doll is premium keeps its row (true totals, c.6512540192). */
+  const full = core.fullHits(ctx, "dolls");
+  const hasCheap = (st) => full.some((p) => p.retailer === st && Number(p.price) <= 40);
+  const first = out.lanes.filter((l) => l.kind !== "store" || hasCheap(l.store)).flatMap((l) => l.items.slice(0, LEAD_SLOTS)).concat(out.items.slice(0, LEAD_SLOTS));
   const bad = first.filter((c) => c.usd > 60 || /our generation|cabbage patch/i.test(c.brand + " " + c.title));
   assert.deepEqual(bad.map((c) => `${c.title} US$ ${c.usd}`), []);
 });
@@ -149,10 +164,32 @@ await check("lanes ride on page 1 only, and the grid's pages never overlap", () 
   assert.equal(p2.items.filter((c) => ids.has(c.id)).length, 0);
 });
 
-await check("page 1 with its lanes stays small (< 60KB of JSON)", async () => {
+await check("Hombre / Mujer / Niños: a pill's grid is its true total, and pills only where the audience exists", () => {
+  const all = core.searchPage(ctx, "zapatillas", 1, { fx: FX });
+  const ninos = all.audiences.find((a) => a.k === "ninos");
+  assert.ok(ninos && ninos.n > 100, JSON.stringify(all.audiences));
+  /* The grid behind the pill pages through every one, not the few that
+     fell inside the ranker's first 2,000. */
+  const g = core.searchPage(ctx, "zapatillas", 1, { fx: FX, aud: "ninos", grid: true });
+  assert.equal(g.total, ninos.n);
+  for (const q of ["vestidos", "lencería"]) {
+    const ks = core.searchPage(ctx, q, 1, { fx: FX }).audiences.map((a) => a.k);
+    if (q === "vestidos") assert.ok(!ks.includes("hombre"), q + ": " + ks);
+    else assert.ok(!ks.includes("ninos"), q + ": " + ks);
+  }
+  /* A colour, a print or an artist is not a child. */
+  for (const title of ["STRETCH LACE UNLINED DEMI BRA | BABY PINK", "PSD Cow Girl Sports Bra", "PSD x SAD BOYZ by Junior H Sports Bra"])
+    assert.notEqual(core.audienceOf({ title }), "ninos", title);
+  assert.equal(core.audienceOf({ title: "Toddler Little and Big Boys Sneakers" }), "ninos");
+});
+
+await check("page 1 with its lanes stays small (< 30KB gzipped)", async () => {
   for (const q of ["dolls", "vestidos", "zapatillas"]) {
     const r = await handler({ httpMethod: "GET", queryStringParameters: { q, page: "1" } }, { fetchImpl: async () => ({ ok: true, json: async () => ({ venta: FX }) }) });
-    assert.ok(Buffer.byteLength(r.body) < 60 * 1024, `${q}: ${Buffer.byteLength(r.body)} bytes`);
+    /* On the wire (gzip): the store rows of every store and the cards'
+       photos (Danny's #534 rulings) cost raw JSON, not transfer. */
+    const gz = (await import("node:zlib")).gzipSync(r.body).length;
+    assert.ok(gz < 30 * 1024, `${q}: ${gz} bytes gzipped (${Buffer.byteLength(r.body)} raw)`);
   }
 });
 

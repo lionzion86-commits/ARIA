@@ -82,6 +82,8 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .card .img{position:relative; width:100%; aspect-ratio:1/1; background:var(--sky); overflow:hidden;}
 @supports not (aspect-ratio:1/1){ .card .img{height:0; padding-top:100%;} }
 .card .img img{position:absolute; inset:0; top:0; left:0; width:100%; height:100%; object-fit:contain;}
+.card .img .swipe{position:absolute; top:50%; transform:translateY(-50%); z-index:5; width:30px; height:30px; border-radius:999px; display:grid; place-items:center; color:var(--navy); background:rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(10,31,68,.25); font-size:20px; font-weight:800; line-height:1; cursor:pointer;}
+.card .img .swipe.prev{left:6px;} .card .img .swipe.next{right:6px;}
 .card .body{padding:12px; display:flex; flex-direction:column; gap:6px; flex:1;}
 .card .launch{display:inline-block;align-self:flex-start;font-size:9px;font-weight:800;letter-spacing:.02em;white-space:nowrap;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3;margin:2px 0}
 .card .brand{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--blue); min-height:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -107,6 +109,10 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .lane-more{flex:0 0 128px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; border:1px solid var(--line); border-radius:16px; font-weight:800; color:var(--navy); text-decoration:none; scroll-snap-align:start;}
 .lane-more span{display:block; font-weight:600; font-size:12px; margin-top:4px; color:#6B7487;}
 .store-back{grid-column:1/-1; margin:-6px 0 8px; font-size:13px;}
+.aud-pills{grid-column:1/-1; display:flex; gap:8px; overflow-x:auto; margin:0 0 10px; padding-bottom:2px;}
+.aud-pill{flex:0 0 auto; border:1px solid var(--line); background:#fff; color:var(--navy); font-weight:800; font-size:13px; border-radius:999px; padding:8px 16px;}
+.aud-pill.on{background:var(--navy); color:#fff; border-color:var(--navy);}
+.grid-open{grid-column:1/-1; margin:14px 0 6px; padding:12px 16px; border-radius:14px; border:1px solid var(--line); background:#fff; color:var(--navy); font-weight:800; font-size:14px;}
 @media(min-width:640px){ .rail .card{flex-basis:200px;} }
 /* Placeholder cards: the same boxes, grey bars where the words go. */
 .card.sk i{display:block; height:10px; border-radius:5px; background:var(--line); margin:3px 0;}
@@ -224,6 +230,11 @@ footer a{color:#fff;}
    own function, not production's. */
 var BASE = /^https?:$/.test(location.protocol) ? "" : "https://ariashop.pe";
 var SEARCH_API = "/.netlify/functions/search";
+/* HOMBRE / MUJER / NIÑOS (Danny's standing rule, #443 c.6512582765): the
+   audience the shopper picked; one tap re-fills Ofertas and every store
+   row in place. GRID_MODE: the flat grid, asked for by «Ver todos». */
+var AUD = (function(){ try { return (new URLSearchParams(location.search).get("aud") || "").toLowerCase().replace(/[^a-z]/g, ""); } catch (e) { return ""; } })();
+var GRID_MODE = false;
 var STORE_SCOPE = (function(){ try { return (new URLSearchParams(location.search).get("tienda") || "").toLowerCase().replace(/[^a-z0-9]/g, ""); } catch (e) { return ""; } })();
 var PAGE_SIZE = 48;
 /* The empty state's examples. scripts/test/search-brief-tests.mjs
@@ -385,7 +396,8 @@ async function fetchPage(q, page){
   var ctl = typeof AbortController === "function" ? new AbortController() : null;
   INFLIGHT = ctl;
   /* A store's own results (the «Ver más» of its row, ?tienda=): by brand. */
-  var url = BASE + SEARCH_API + "?q=" + encodeURIComponent(q) + "&page=" + page + (STORE_SCOPE ? "&tienda=" + encodeURIComponent(STORE_SCOPE) : "");
+  var url = BASE + SEARCH_API + "?q=" + encodeURIComponent(q) + "&page=" + page + (STORE_SCOPE ? "&tienda=" + encodeURIComponent(STORE_SCOPE) : "")
+    + (AUD ? "&aud=" + encodeURIComponent(AUD) : "") + (GRID_MODE ? "&grid=1" : "");
   var res = await fetch(url, ctl ? { signal: ctl.signal } : {});
   if (!res.ok) throw new Error("HTTP " + res.status);
   var data = await res.json();
@@ -493,13 +505,31 @@ function laneHTML(l){
 /* A browse query: the lanes, then "Todos los resultados". A specific
    query: its first rows of results, then the lanes, then the rest. */
 var SPECIFIC_LEAD = 8;
+/* The audience pills, above everything: «Todos» and each audience the
+   term honestly runs in (the server only offers those). */
+function audPillsHTML(data){
+  var pills = data.audiences || [];
+  if (!pills.length) return "";
+  var all = [{ k: "", label: "Todos" }].concat(pills);
+  return '<div class="aud-pills" role="tablist" aria-label="Para quién">' + all.map(function(p){
+    var on = ((typeof AUD !== "undefined" && AUD) || "") === p.k;
+    return '<button type="button" role="tab" aria-selected="' + (on ? "true" : "false") + '" class="aud-pill' + (on ? " on" : "") + '" data-aud="' + esc(p.k) + '">' + esc(p.label) + "</button>";
+  }).join("") + "</div>";
+}
 function answerHTML(data){
   var lanes = (data.lanes || []).filter(function(l){ return l.items && l.items.length; });
   var cards = data.items.map(cardHTML);
   var head = compareHTML(data.compare) +
     (data.store ? '<h2 class="grid-head store-head">' + esc(data.q) + " en " + esc(data.storeLabel || data.store) + '</h2><p class="store-back"><a href="search.html?q=' + encodeURIComponent(data.q) + '">Ver en todas las tiendas</a></p>' : "");
+  head = audPillsHTML(data) + head;
   if (!lanes.length) return head + cards.join("");
   if (data.mode === "generic"){
+    /* THE STORES, NOT A WALL (c.6512540192): the rows lead; the flat grid
+       waits behind «Ver todos». */
+    if (data.gridDeferred){
+      return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
+        '<button type="button" class="grid-open">Ver todos los resultados (' + (data.capped ? "más de " : "") + fmtCount(data.total) + ")</button>";
+    }
     return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
       '<h2 class="grid-head">Todos los resultados</h2>' + cards.join("");
   }
@@ -566,6 +596,46 @@ function compareHTML(c){
 }
 
 /* ---------- search ---------- */
+function setAudience(k){
+  if ((AUD || "") === (k || "")) return;
+  AUD = k || "";
+  GRID_MODE = false;
+  try {
+    var u = new URL(location.href);
+    if (AUD) u.searchParams.set("aud", AUD); else u.searchParams.delete("aud");
+    history.replaceState(null, "", u.pathname + u.search);
+  } catch (e) {}
+  if (STATE && STATE.q) doSearch();
+}
+document.addEventListener("click", function(e){
+  var b = e.target && e.target.closest && e.target.closest(".aud-pill");
+  if (b) setAudience(b.getAttribute("data-aud"));
+  var g = e.target && e.target.closest && e.target.closest(".grid-open");
+  if (g) openGrid();
+});
+/* «Ver todos los resultados»: the flat grid, only when asked for. */
+async function openGrid(){
+  if (!STATE || !STATE.q || STATE.busy) return;
+  var btn = document.querySelector(".grid-open"), grid = el("results");
+  if (btn){ btn.disabled = true; btn.textContent = "Cargando…"; }
+  GRID_MODE = true;
+  var seq = SEQ;
+  STATE.busy = true;
+  try{
+    var data = await withSoles(await fetchPage(STATE.q, 1));
+    if (seq !== SEQ) return;
+    STATE.busy = false;
+    if (btn) btn.remove();
+    grid.insertAdjacentHTML("beforeend", '<h2 class="grid-head">Todos los resultados</h2>' + (data.items || []).map(cardHTML).join(""));
+    watchPhotos(grid);
+    STATE.page = data.page; STATE.pages = data.pages; STATE.shown = (data.items || []).length;
+    showingStatus();
+  }catch(e){
+    STATE.busy = false;
+    if (btn){ btn.disabled = false; btn.textContent = "Ver todos los resultados"; }
+  }
+}
+
 function searchFor(q){
   var input = el("q");
   if (input) input.value = q;
@@ -590,6 +660,7 @@ async function doSearch(){
   document.body.classList.add("searching");
   var seq = ++SEQ;
   STATE = { q: query, page: 0, pages: 0, total: 0, capped: false, shown: 0, busy: true };
+  GRID_MODE = false;
   setStatus("Buscando…");
   var meta = el("meta-line"); if (meta) meta.textContent = "";
   renderSkeleton();
@@ -617,7 +688,8 @@ function renderAnswer(query, data){
     renderEmpty("Escribe un poco más", "Con 2 letras o más te mostramos resultados. Por ejemplo:" + examplesHTML());
     return;
   }
-  if (data.state !== "results" || !data.items || !data.items.length){ renderNone(query, data || {}); return; }
+  var hasLanes = (data.lanes || []).some(function(l){ return l.items && l.items.length; });
+  if (data.state !== "results" || !data.items || (!data.items.length && !hasLanes)){ renderNone(query, data || {}); return; }
   var grid = el("results");
   if (!grid) return;
   STATE.page = data.page; STATE.pages = data.pages; STATE.total = data.total; STATE.capped = !!data.capped;
@@ -626,9 +698,12 @@ function renderAnswer(query, data){
   /* The comparison block's products count as shown (they are part of
      the total, and not repeated in the grid). */
   STATE.shown = data.items.length + (data.compare && data.compare.stores ? data.compare.stores.length : 0);
+  STATE.deferred = !!data.gridDeferred;
   var meta = el("meta-line");
   if (meta){
-    meta.textContent = (STATE.capped ? "Más de " : "") + fmtCount(data.total) + " resultado" + (data.total === 1 ? "" : "s") +
+    /* Store by store, the count is the mall's true total (fullTotal). */
+    var count = STATE.deferred && data.fullTotal ? data.fullTotal : data.total;
+    meta.textContent = (STATE.capped && count === data.total ? "Más de " : "") + fmtCount(count) + " resultado" + (count === 1 ? "" : "s") +
       ' para "' + query + '"';
     /* Said the way Google says it, when a word was corrected. */
     if (data.shown){
@@ -659,6 +734,11 @@ function renderAnswer(query, data){
 
 function showingStatus(){
   var n = STATE.total;
+  if (STATE.deferred && !GRID_MODE){
+    setStatus("Tienda por tienda.");
+    var w = el("more-wrap"); if (w) w.hidden = true;
+    return;
+  }
   var more = STATE.page < STATE.pages;
   setStatus(more
     ? "Mostrando " + fmtCount(STATE.shown) + " de " + (STATE.capped ? "más de " : "") + fmtCount(n) + " resultados."
@@ -731,8 +811,16 @@ function cardHTML(p){
   /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   var href = "producto.html?producto=" + encodeURIComponent(title || "") +
     (p.store ? "&tienda=" + encodeURIComponent(p.store) : "");
+  /* THE CARD SWIPES ITS PHOTOS (Danny's #534 QA, c.6512408305), as every
+     card on the site does (the SPA's cardSwipeImg): arrows on the photo,
+     only for 2+ photos. */
+  var imgs = Array.isArray(p.images) && p.images.length > 1 ? p.images : null;
+  var nav = imgs
+    ? '<span class="swipe prev" role="button" tabindex="0" aria-label="Foto anterior" onclick="cardSwipe(event,this,-1)">&#8249;</span>' +
+      '<span class="swipe next" role="button" tabindex="0" aria-label="Foto siguiente" onclick="cardSwipe(event,this,1)">&#8250;</span>'
+    : "";
   return '<a class="card" href="' + esc(href) + '" data-id="' + esc(p.id || "") + '">' +
-    '<div class="img">' + offBadge(p) + img + "</div>" +
+    '<div class="img"' + (imgs ? ' data-card-imgs="' + esc(JSON.stringify(imgs)) + '"' : "") + '>' + offBadge(p) + img + nav + "</div>" +
     '<div class="body">' +
       '<div class="brand">' + (brand ? esc(brand) : "&nbsp;") + "</div>" +
       '<div class="name">' + esc(title) + "</div>" +
@@ -740,6 +828,24 @@ function cardHTML(p){
       (LAUNCH_PRICED[String(p.store || "").toLowerCase()] ? '<div class="launch">Precio de lanzamiento</div>' : "") +
       '<div class="price">' + priceHTML(p) + "</div>" +
     "</div></a>";
+}
+
+/* One tap: the next photo, in place; the tap never opens the product. A
+   photo that fails to load is skipped back, never left broken. */
+function cardSwipe(ev, el, dir){
+  if (ev){ ev.preventDefault(); ev.stopPropagation(); }
+  var frame = el && el.closest ? el.closest("[data-card-imgs]") : null;
+  if (!frame) return;
+  var imgs; try { imgs = JSON.parse(frame.getAttribute("data-card-imgs")); } catch (e) { return; }
+  var img = frame.querySelector("img");
+  if (!img || !imgs || imgs.length < 2) return;
+  var prev = Number(frame.getAttribute("data-swipe-idx") || 0);
+  var idx = (((prev + dir) % imgs.length) + imgs.length) % imgs.length;
+  frame.setAttribute("data-swipe-idx", idx);
+  var pre = new Image();
+  pre.onload = function(){ img.removeAttribute("srcset"); img.removeAttribute("data-src"); img.src = pre.src; };
+  pre.onerror = function(){ frame.setAttribute("data-swipe-idx", prev); };
+  pre.src = sizedImageUrl(imgs[idx], 560);
 }
 
 /* Card-shaped placeholders while the first answer is on its way: the

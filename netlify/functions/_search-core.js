@@ -96,6 +96,27 @@ export function loadEngine(read = readRepoFile) {
   return { S, P };
 }
 
+/* A CARD'S OTHER PHOTOS (#443 c.6512408305): read from the photo shards
+   beside the index (scripts/build-search-index.mjs), only the shards a
+   page's cards need, each read once per instance. */
+const PHOTO_SHARDS = 256, CARD_PHOTOS = 3;   /* the card photo and two more: page 1 stays light */
+const photoShards = new Map();
+function photoShardOf(id) {
+  let h = 0;
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h % PHOTO_SHARDS;
+}
+export function photosOf(id) {
+  if (!id) return null;
+  const k = photoShardOf(id);
+  if (!photoShards.has(k)) {
+    let sh = {};
+    try { sh = JSON.parse(readRepoFile("assets/search/photos/" + k + ".json")); } catch { sh = {}; }
+    photoShards.set(k, sh);
+  }
+  return photoShards.get(k)[id] || null;
+}
+
 /* Index rows -> the product objects the engine ranks. */
 export function productsFromIndex(index) {
   const at = {};
@@ -524,6 +545,8 @@ function bandsOf(hits, ctx) {
 }
 
 /* Annotated once per query (cached with the answer). */
+/** The lead annotation of a set of hits (the store rows' own, for the tests). */
+export function annotateHits(ctx, hits) { return annotate(ctx, { hits }); }
 function annotate(ctx, r) {
   if (r._ann) return r._ann;
   const inAisle = aisleOf(r.hits);
@@ -590,16 +613,28 @@ function distinct(list, max) {
   return out;
 }
 
-/* Small enough that page 1 stays under 60KB on a phone. */
-const STORE_LANES = 6, STORE_LANE_SIZE = 12;
+/* Every store with a real total gets a row (up to STORE_LANES, then
+   «Otras tiendas»); 10 cards a row keeps page 1 light on a phone -- the
+   browse answer carries no flat grid (grid=1 asks for it). */
+const STORE_LANES = 14, STORE_LANE_SIZE = 10;
 /* Stores the shared registry does not label yet (tienda.html does). */
-const STORE_LABEL_FALLBACK = { tns: "TNS", americaneagle: "American Eagle" };
+const STORE_LABEL_FALLBACK = { tns: "TNS", americaneagle: "American Eagle", tennisexpress: "Tennis Express", tenniswarehouse: "Tennis Warehouse",
+  prosoccer: "ProSoccer", xtremesoccer: "Xtreme Soccer", academy: "Academy Sports" };
 function storeLabelOf(ctx, k) { return (ctx.labels && ctx.labels[k] && ctx.labels[k] !== k ? ctx.labels[k] : STORE_LABEL_FALLBACK[k]) || k; }
 /* The shelf: the query's aisle only, as the Ofertas lane reads it (no
    "Former Doll" T-shirt under dolls). Each row opens on what may lead
    (leadFirst); a store with nothing accessible to lead with -- every
    match premium -- has no row of its own. */
-function storeLanes(ctx, q, hits, A) {
+function storeLanes(ctx, q, hits, extraQs = "") {
+  /* Inside a row, what may lead leads (a recognized brand, a sale, an
+     accessible price), the store's own ranking after it: a store whose
+     every match is premium (SSENSE) still gets its row. */
+  const A0 = annotate(ctx, { hits });
+  /* The query's aisle only, as the Ofertas lane reads it (no "Former Doll"
+     T-shirt under dolls) -- when the aisle holds anything at all. */
+  const inAisle = hits.filter((p) => A0.of(p).aisle);
+  if (inAisle.length) hits = inAisle;
+  const A = A0;
   const byStore = new Map();
   for (const p of hits) {
     const k = p.retailer || "";
@@ -607,27 +642,79 @@ function storeLanes(ctx, q, hits, A) {
     if (!byStore.has(k)) byStore.set(k, []);
     byStore.get(k).push(p);
   }
-  /* The store whose best match ranks highest comes first (a Map keeps the
-     ranking's order of first appearance). */
-  /* A store with a handful of matches gets its own row; the stores with
-     one to three share the last one, «Otras tiendas». */
-  /* A row needs products that may lead (a recognized brand, a sale or an
-     accessible price): with fewer than LEAD_SLOTS of them, the row is
-     just those. */
-  const rowItems = (l) => {
-    const ok = l.filter((p) => A.of(p).lead);
-    if (distinct(ok, LEAD_SLOTS).length < LEAD_SLOTS) return ok;
-    return ok.concat(l.filter((p) => !A.of(p).lead && !A.of(p).premium));
-  };
-  const rows = [...byStore.entries()].filter(([, l]) => rowItems(l).length >= LANE_MIN);
-  const few = [...byStore.entries()].filter(([, l]) => rowItems(l).length < LANE_MIN).flatMap(([, l]) => l);
+  /* TRUE TOTALS (Danny, #443 c.6512451192, c.6512540192): every store with
+     a real total for the term gets its own row, the biggest first -- built
+     from the whole answer (fullHits), never from the first page's sample,
+     so Walmart's 144 lencería and the sneaker stores under «zapatillas»
+     are rows, not cards lost in a wall. Inside a row the ranking decides.
+     Only a genuinely tiny store (fewer than LANE_MIN) shares «Otras tiendas». */
+  const rows = [...byStore.entries()].filter(([, l]) => l.length >= LANE_MIN).sort((a, b) => b[1].length - a[1].length);
+  const few = [...byStore.entries()].filter(([, l]) => l.length < LANE_MIN).flatMap(([, l]) => l);
   const lanes = rows.slice(0, STORE_LANES)
     .map(([k, l]) => ({ key: "tienda:" + k, kind: "store", store: k, title: storeLabelOf(ctx, k), n: l.length,
-      more: "search.html?q=" + encodeURIComponent(q) + "&tienda=" + encodeURIComponent(k), items: distinct(rowItems(l), STORE_LANE_SIZE) }));
-  const rest = few.concat(rows.slice(STORE_LANES).flatMap(([, l]) => l.slice(0, 3))).filter((p) => A.of(p).lead);
-  if (rest.length >= LANE_MIN) lanes.push({ key: "tiendas:otras", kind: "stores", title: "Otras tiendas", n: rest.length, items: distinct(rest, STORE_LANE_SIZE) });
+      more: "search.html?q=" + encodeURIComponent(q) + "&tienda=" + encodeURIComponent(k) + extraQs, items: distinct(leadFirst(l, A), STORE_LANE_SIZE) }));
+  const rest = few.concat(rows.slice(STORE_LANES).flatMap(([, l]) => l.slice(0, 2)));
+  if (rest.length >= LANE_MIN) lanes.push({ key: "tiendas:otras", kind: "stores", title: "Otras tiendas", n: rest.length, items: distinct(leadFirst(rest, A), STORE_LANE_SIZE) });
   return lanes;
 }
+
+/* THE WHOLE ANSWER, for the store rows' true totals: the same query with
+   the ranker's 2,000 cap lifted (SSENSE alone filled 1,300 of the 2,000
+   under «zapatillas», so CCS, Foot Locker and Zumiez fell off the end).
+   About 300 ms, cached like the page answer. */
+const FULL_LIMIT = 20000;
+export function fullHits(ctx, q) {
+  const key = "full:" + cacheKey(q);
+  const hit = ctx.cache.get(key);
+  if (hit) return hit;
+  let hits = [];
+  try {
+    const r = ctx.P.run({ S: ctx.S, products: ctx.products, retailers: ctx.retailers, dict: ctx.dict, resultLimit: FULL_LIMIT }, q);
+    if (r && r.state === "results") hits = deviceLead(q, toysLead(r.hits));
+  } catch { hits = []; }
+  ctx.cache.set(key, hits);
+  if (ctx.cache.size > CACHE_MAX) ctx.cache.delete(ctx.cache.keys().next().value);
+  return hits;
+}
+
+/* HOMBRE / MUJER / NIÑOS INSIDE SEARCH (Danny's standing rule, #443
+   c.6512582765): a term that runs in more than one audience carries the
+   pills; one tap re-fills Ofertas and every store row for that audience.
+   A product's audience is its own title's, then its store department's. */
+const AUD_KIDS_RX = /\b(kids?|kid's|boys?|boys'|girls?|girls'|youth|toddlers?|infants?|baby|babies|juniors?|jr\.?|grade school|pre-?school|little kids?|big kids?|niñ[oa]s?)\b/i;
+const AUD_WOMEN_RX = /\b(women'?s?|womens|woman|ladies|lady|her|mujer(es)?|maternity|bras?|bralettes?|panties|bikinis?)\b/i;
+const AUD_MEN_RX = /\b(men'?s?|mens|man|him|hombre(s)?|boxer briefs?)\b/i;
+export const AUDIENCES = [["mujer", "Mujer"], ["hombre", "Hombre"], ["ninos", "Niños"]];
+/* Not a child: a colour ("Baby Pink"), a print ("Cow Girl"), an artist
+   ("Junior H"). */
+const AUD_KIDS_NOT_RX = /\bbaby[- ](pink|blue|yellow|green|lilac|lavender|purple|peach|mint|teal)\b|\bcow ?girls?\b|\bjunior h\b/gi;
+export function audienceOf(p) {
+  const t = String(p.title || "");
+  if (AUD_KIDS_RX.test(t.replace(AUD_KIDS_NOT_RX, ""))) return "ninos";
+  const w = AUD_WOMEN_RX.test(t), m = AUD_MEN_RX.test(t.replace(/\bwomen'?s?\b/gi, ""));
+  if (w && !m) return "mujer";
+  if (m && !w) return "hombre";
+  const d = (Array.isArray(p.departments) ? p.departments : [p.department]).map((x) => String(x || "").toLowerCase());
+  if (d.includes("kids")) return "ninos";
+  if (d.includes("women") && !d.includes("men")) return "mujer";
+  if (d.includes("men") && !d.includes("women")) return "hombre";
+  return "";
+}
+const AUD_MIN = 8;
+/* A term only one audience wears has no pill for the other ("vestidos" is
+   Mujer and Niñas; a dress shirt is not a vestido). */
+const WOMEN_ONLY_Q_RX = /^(vestidos?|faldas?|dress(es)?|skirts?|brasier(es)?|sost[eé]n(es)?|bralettes?|tacones|heels)$/;
+/* ...and lingerie has no Niños pill, whatever a title says. */
+const NO_KIDS_Q_RX = /^(lenceria|lingerie|tangas?|thongs?|babydolls?|corsets?|cors[eé]s|ligueros?|encaje)$/;
+function audiencePills(hits, q) {
+  const n = { mujer: 0, hombre: 0, ninos: 0 };
+  for (const p of hits) { const a = audienceOf(p); if (a) n[a]++; }
+  if (WOMEN_ONLY_Q_RX.test(deaccent(q || ""))) n.hombre = 0;
+  if (NO_KIDS_Q_RX.test(deaccent(q || ""))) n.ninos = 0;
+  const pills = AUDIENCES.filter(([k]) => n[k] >= AUD_MIN).map(([k, label]) => ({ k, label, n: n[k] }));
+  return pills.length >= 2 ? pills : [];
+}
+
 /* A STORE'S OWN RESULTS, BY BRAND (§1 step 3): Walmart's jeans as Chaps,
    U.S. Polo Assn., Galaxy by Harvic... A single-brand store (Victoria's
    Secret) is told by kind instead, when its products honestly fill two
@@ -679,14 +766,6 @@ export function lanesFor(ctx, q, r, fx) {
     lanes.push({ key: "ofertas", title: "En oferta", items });
   }
 
-  /* 2. ONE CAROUSEL PER STORE (Danny, #443 c.6504037778 §1): after the
-     cross-store Ofertas, every store that carries the term gets its own
-     row, the store with the most matches first, the store's best matches
-     in front. Its last card opens the store's own results, by brand
-     (searchPage, store). This replaces the flat wall as the way to
-     compare: the same jeans at Walmart, Hollister and Abercrombie side by
-     side, each store in its own row. */
-  for (const l of storeLanes(ctx, q, shelf, A)) lanes.push(l);
   r._mode = generic ? "generic" : "specific";
   r._lanes = lanes;
   return lanesFor(ctx, q, r, fx);
@@ -879,6 +958,8 @@ export function cardOf(p, fx, labels = {}) {
     brand: p.brand || "",
     store: p.retailer || "",
     storeLabel: labels[p.retailer] || p.retailer || "",
+    /* The card's swipe list: the card photo, then its others (2+ only). */
+    images: (() => { const more = photosOf(p.id); return more && more.length ? [p.image].concat(more.slice(0, CARD_PHOTOS - 1)) : undefined; })(),
     usd,
     pen: fx ? Math.round(usd * fx * 100) / 100 : null,
     wasPen: fx && was ? Math.round(was * fx * 100) / 100 : null,
@@ -892,15 +973,25 @@ export function cardOf(p, fx, labels = {}) {
  * Page `page` (1-based) of the answer to `q`.
  * state: "results" | "none" | "short" | "empty" | "error"
  */
-export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE, store = "" } = {}) {
+export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE, store = "", aud = "", grid = false } = {}) {
   const query = String(q == null ? "" : q).trim().slice(0, 120);
   const all = runQuery(ctx, query);
-  /* One store's results (the «Ver más» of its row): a copy -- the cached
-     answer for the whole mall stays as it is. */
-  const scoped = store && all.state === "results"
-    ? (() => { const hits = all.hits.filter((p) => p.retailer === store); return { ...all, hits, _lanes: undefined, _mode: undefined, _grid: undefined, _cmp: undefined, _ann: undefined, state: hits.length ? "results" : "none" }; })()
+  if (!AUDIENCES.some(([k]) => k === aud)) aud = "";
+  /* One store's results (the «Ver más» of its row) and/or one audience (the
+     Hombre / Mujer / Niños pills): a copy -- the cached answer for the
+     whole mall stays as it is. */
+  const keep = (p) => (!store || p.retailer === store) && (!aud || audienceOf(p) === aud);
+  /* The whole answer behind the store rows and the pills: true totals. */
+  const full = all.state === "results" ? fullHits(ctx, query) : [];
+  /* ...and behind a scoped grid: Niños under «zapatillas» is its 644, not
+     the 67 that fell inside the ranker's first 2,000. */
+  const scoped = (store || aud) && all.state === "results"
+    ? (() => { const hits = full.filter(keep).slice(0, ctx.resultLimit); return { ...all, hits, _lanes: undefined, _mode: undefined, _grid: undefined, _cmp: undefined, _ann: undefined, state: hits.length ? "results" : "none" }; })()
     : null;
   const r = scoped || all;
+  const fullStore = store ? full.filter((p) => p.retailer === store) : full;
+  const fullKept = fullStore.filter(keep);
+  const audiences = page <= 1 ? audiencePills(fullStore, query) : [];
   const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
   /* The total counts every product found: the grid's and the
      comparison block's. Pages are the grid's. */
@@ -909,15 +1000,32 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE, 
   const pages = Math.max(1, Math.ceil(hits.length / pageSize));
   const n = Math.min(Math.max(1, Math.floor(Number(page)) || 1), pages);
   const slice = hits.slice((n - 1) * pageSize, n * pageSize);
-  const lanes = n === 1
-    ? (scoped ? { mode: "generic", lanes: scoped.hits.length ? brandLanes(scoped.hits).map((l) => ({ ...l, items: l.items.map((p) => cardOf(p, fx, ctx.labels)) })) : [] }
-      : lanesFor(ctx, query, r, fx))
+  /* ONE CAROUSEL PER STORE (Danny, #443 c.6504037778 §1): the cross-store
+     Ofertas, then every store with a real total for the term in its own
+     row, biggest first; a row's last card opens that store's own
+     results, by brand (store=). Inside one store: its brands. */
+  const toCards = (ls) => ls.map((l) => ({ ...l, items: l.items.map((p) => cardOf(p, fx, ctx.labels)) }));
+  const audQs = aud ? "&aud=" + encodeURIComponent(aud) : "";
+  const lanes = n === 1 && !grid
+    ? (store
+      ? { mode: "generic", lanes: fullKept.length ? toCards(brandLanes(fullKept)) : [] }
+      : (() => {
+        const base = r.state === "results" ? lanesFor(ctx, query, r, fx) : { mode: "specific", lanes: [] };
+        const ofertas = base.lanes.filter((l) => l.key === "ofertas");
+        const rows = fullKept.length ? toCards(storeLanes(ctx, query, fullKept, audQs)) : [];
+        /* A specific query ("adidas samba") keeps its results first; the rows follow. */
+        return { mode: base.mode === "specific" ? "specific" : (rows.length >= 2 ? "generic" : base.mode), lanes: ofertas.concat(rows.length ? rows : base.lanes.filter((l) => l.key !== "ofertas")) };
+      })())
     : null;
   const compare = n === 1 && grouped ? compareFor(ctx, r, fx) : null;
   return {
     q: query,
-    store: scoped ? store : null,
-    storeLabel: scoped ? storeLabelOf(ctx, store) : null,
+    store: store || null,
+    storeLabel: store ? storeLabelOf(ctx, store) : null,
+    aud: aud || null,
+    audiences,
+    /* The store rows' true totals: how many the mall holds for the term. */
+    fullTotal: fullKept.length || null,
     state: r.state,
     page: n,
     pageSize,
@@ -938,6 +1046,10 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE, 
        Page 1 only; its products are not repeated in the grid. */
     compare,
     fx: fx || null,
-    items: slice.map((p) => cardOf(p, fx, ctx.labels)),
+    /* THE FLAT WALL IS NOT THE ANSWER (Danny, c.6512540192): a browse query
+       answers with Ofertas and the store rows; «Ver todos los resultados»
+       asks for the grid (grid=1). */
+    gridDeferred: !!(lanes && lanes.mode === "generic" && n === 1 && !grid && lanes.lanes.length >= 3),
+    items: (lanes && lanes.mode === "generic" && n === 1 && !grid && lanes.lanes.length >= 3) ? [] : slice.map((p) => cardOf(p, fx, ctx.labels)),
   };
 }

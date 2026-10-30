@@ -114,7 +114,8 @@ await check('near-misses get a chip; real words and brands do not', async () => 
   for (const [q, want] of [["shor", "shorts"], ["shore", "shorts"], ["nkie", "nike"], ["sneakrs", "sneakers"], ["hoddie", "hoodie"]]) {
     const r = await ask(q);
     assert.equal(r.body.didYouMean, want, `"${q}" offered ${r.body.didYouMean}`);
-    assert.ok(r.body.items.length > 0, `"${q}" dropped its results`);
+    /* A browse answer's grid waits behind «Ver todos» (gridDeferred); its rows carry the results. */
+    assert.ok(r.body.items.length > 0 || (r.body.gridDeferred && r.body.lanes.some((l) => l.items.length)), `"${q}" dropped its results`);
   }
   for (const q of ["gazelle", "samba", "levis 501", "lizzie", "dolls", "shorts", "nike air force 1"]) {
     assert.equal((await ask(q)).body.didYouMean, null, `"${q}" got a chip it should not`);

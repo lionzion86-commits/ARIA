@@ -135,7 +135,7 @@
     "economica": "cheap", "economicas": "cheap", "cheap": "cheap"
   },
 
-  "senses": [
+  "senses": [{"word": ["thong", "slip", "lingerie", "bodysuit"], "label": "lencería", "drop": "\\b(?:sandals?|flip[- ]?flops?|slides?|shoes?|sneakers?|slip[- ]?ons?|loafers?|boots?|clogs?|dress|speakers?|bluetooth|brass)\\b"}, 
     { "word": "toy", "label": "juguetes",
       "drop": "\\b(?:toy machine|decks?|skateboards?|wheels|trucks|griptape|grip tape|tee|t-shirt|hoodie|socks|shirt|beanie|sticker)\\b" },
     { "word": "plush", "label": "peluches",
