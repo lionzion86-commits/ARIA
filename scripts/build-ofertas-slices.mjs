@@ -45,6 +45,7 @@ import { createHash } from "node:crypto";
 import vm from "node:vm";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { photoCount } from "./lib/photo-counts.js";
 import { PAGE_SIZE, DEALS_FILE, SLICES_DIR, SORTS, packCard, selectDeals, pageOf } from "../netlify/functions/_ofertas-core.js";
 
 export const RAILS_FILE = "assets/ofertas/rails.json";
@@ -92,6 +93,11 @@ export function dealId(store, title) {
 }
 
 /* Feed items -> cards, the page's filter and dedupe. */
+/* The photo count the PDP shard holds for this product (#538), 2+ or 0. */
+function photosOf(p) {
+  const n = photoCount(ROOT, p.title || "", p.retailer || "");
+  return n > 1 ? n : 0;
+}
 export function buildCards(items, sale) {
   const seen = new Set(), cards = [];
   for (const p of items || []) {
@@ -114,6 +120,7 @@ export function buildCards(items, sale) {
       pct: sale.discountPct(p),
       image,
       m: sale.isMixDeal(p) ? 1 : 0,
+      ph: photosOf(p),
     });
   }
   return cards;

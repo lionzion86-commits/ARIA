@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { photoCount } from "../lib/photo-counts.js";
 import { cardOfRow } from "../../netlify/functions/_tienda-core.js";
 import { rowItem, cardOf } from "../../netlify/functions/_department-core.js";
+import { FIELDS } from "../../netlify/functions/_ofertas-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -55,6 +56,17 @@ check("the endpoint rows carry the count (Ver todo agrees with the first screen)
   const drow = json("assets/sections/departamento/_fn/women.json").rows.find((r) => r[10] > 1);
   assert.ok(drow, "no Mujer row carries a count");
   assert.equal(cardOf(rowItem(drow)).ph, drow[10]);
+});
+
+check("the Ofertas cards carry the same count (packed deals and the page slices)", () => {
+  const d = json("assets/ofertas/deals.json");
+  const at = FIELDS.indexOf("ph");
+  assert.ok(at >= 0, "ph is not an Ofertas field");
+  const counted = d.items.filter((r) => r[at] > 1);
+  assert.ok(counted.length > d.items.length * 0.3, `${counted.length} of ${d.items.length}`);
+  for (const r of counted.slice(0, 40)) assert.equal(r[at], photoCount(ROOT, r[FIELDS.indexOf("title")], r[FIELDS.indexOf("store")]), r[1]);
+  for (const r of d.items) if (r[FIELDS.indexOf("store")] === "victoriassecret") assert.ok(!(r[at] > 1), "VS has no gallery: " + r[1]);
+  assert.match(read("ofertas.html"), /c\.ph > 1 \? 'data-g="' \+ \(c\.ph \| 0\) \+ '" ' : ''/);
 });
 
 check("the pages hand the count to the card; card-photos.js arms only counted cards and fetches nothing at load", () => {
