@@ -33,6 +33,7 @@ import vm from "node:vm";
 import { cartLineFor, doorPrice, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN } from "./_door-price.js";
 import { deliveryFor, miamiRangeEs } from "../../scripts/lib/retailer-delivery.js";
 import { isConsole } from "../../scripts/lib/tech-aisle.js";
+import { conditionOfTitle } from "../../scripts/lib/condition.js";
 
 export const PAGE_SIZE = 48;
 /* How many ranked results a search keeps. The pipeline's own default
@@ -980,6 +981,8 @@ export function cardOf(p, fx, labels = {}) {
     wasUsd: was,
     image: p.image,
     category: p._cat || "",
+    /* The condition label (/condition.js, c.6526570723), when the title states one. */
+    ...(((c) => (c && c.label ? { condition: c.label } : {}))(conditionOfTitle(p.title))),
   };
 }
 
