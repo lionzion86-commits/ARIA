@@ -85,9 +85,11 @@ const json = (statusCode, body, cache) => ({
       ? {
           "Cache-Control": "public, max-age=300",
           "Netlify-CDN-Cache-Control": cache,
-          /* Only q and page decide the answer; anything else in the URL
-             must not split the cache. */
-          "Netlify-Vary": "query=q|page",
+          /* q, page and the scope (aud, tienda, grid) decide the answer;
+             anything else in the URL must not split the cache. Without
+             the scope keys the CDN served the unscoped page to every
+             pill tap (Lucifer, #443 c.6513049594). */
+          "Netlify-Vary": "query=q|page|aud|tienda|grid",
         }
       : { "Cache-Control": "no-store" }),
   },

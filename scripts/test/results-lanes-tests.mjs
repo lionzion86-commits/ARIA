@@ -183,6 +183,14 @@ await check("Hombre / Mujer / Niños: a pill's grid is its true total, and pills
   assert.equal(core.audienceOf({ title: "Toddler Little and Big Boys Sneakers" }), "ninos");
 });
 
+await check("store rows are true per-store totals: Walmart's underwear is a «lencería» row (Lucifer, c.6513049594)", () => {
+  for (const q of ["lencería", "lingerie"]) {
+    const r = core.searchPage(ctx, q, 1, { fx: FX });
+    const w = r.lanes.find((l) => l.key === "tienda:walmart");
+    assert.ok(w && w.n >= 100, q + ": " + r.lanes.map((l) => l.key + ":" + (l.n || "")).join(" "));
+  }
+});
+
 await check("page 1 with its lanes stays small (< 30KB gzipped)", async () => {
   for (const q of ["dolls", "vestidos", "zapatillas"]) {
     const r = await handler({ httpMethod: "GET", queryStringParameters: { q, page: "1" } }, { fetchImpl: async () => ({ ok: true, json: async () => ({ venta: FX }) }) });

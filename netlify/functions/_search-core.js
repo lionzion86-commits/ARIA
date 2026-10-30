@@ -514,6 +514,19 @@ function aisleOf(hits) {
   }
   return (p) => keep.has((p.departments && p.departments[0]) || "");
 }
+/* The store rows' aisle is wider: every department with 1% of the whole
+   answer. A row is a store's TRUE total for the term (Danny,
+   c.6512540192), and a coarse store files by gender -- Walmart's 158
+   «lencería» matches sit in "mens", a department the top 100 never
+   reaches (Lucifer, #443 c.6513049594). The stray match ("Former Doll"
+   tees under dolls) is still well under 1%. */
+const ROW_AISLE_SHARE = 0.01;
+function rowAisleOf(hits) {
+  const all = new Map(), keep = new Set(NEUTRAL_DEPTS);
+  for (const p of hits) { const d = (p.departments && p.departments[0]) || ""; all.set(d, (all.get(d) || 0) + 1); }
+  for (const [d, c] of all) if (c / hits.length >= ROW_AISLE_SHARE) keep.add(d);
+  return (p) => keep.has((p.departments && p.departments[0]) || "");
+}
 
 /* Quantiles of the aisle's mass-market prices, weighted by demand
    (see bandsOf). Measured on the battery: at the median, "vestidos"
@@ -630,9 +643,10 @@ function storeLanes(ctx, q, hits, extraQs = "") {
      accessible price), the store's own ranking after it: a store whose
      every match is premium (SSENSE) still gets its row. */
   const A0 = annotate(ctx, { hits });
-  /* The query's aisle only, as the Ofertas lane reads it (no "Former Doll"
-     T-shirt under dolls) -- when the aisle holds anything at all. */
-  const inAisle = hits.filter((p) => A0.of(p).aisle);
+  /* The rows' aisle (rowAisleOf: no "Former Doll" T-shirt under dolls)
+     -- when the aisle holds anything at all. */
+  const rowAisle = rowAisleOf(hits);
+  const inAisle = hits.filter(rowAisle);
   if (inAisle.length) hits = inAisle;
   const A = A0;
   const byStore = new Map();
