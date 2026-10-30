@@ -417,7 +417,8 @@ check("search speaks the department's words", () => {
   assert.match(T("calcetines"), /socks/, "calcetines");
   const dict = JSON.parse(readFileSync(ROOT + "assets/search/synonyms-es.json", "utf8"));
   for (const [w, en] of [["bragas", "panties"], ["calzoncillos", "boxer briefs"], ["lenceria", "lingerie"], ["sostenes", "bra"], ["medias", "socks"], ["calcetines", "socks"], ["boxers", "boxer briefs"]])
-    assert.equal(dict.clothing[w], en, `search.html's dictionary: ${w}`);
+    /* «lencería» reads several English words since #528 (F2): the first is still "lingerie". */
+    assert.ok(dict.clothing[w] === en || (Array.isArray(dict.clothing[w]) && dict.clothing[w][0] === en), `search.html's dictionary: ${w} -> ${JSON.stringify(dict.clothing[w])}`);
   assert.equal(dict.phrases["ropa interior"], "underwear");
   assert.equal(dict.modifiers.mujer, "womens");
 });

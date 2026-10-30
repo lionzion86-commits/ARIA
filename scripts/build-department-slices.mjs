@@ -246,6 +246,10 @@ export const KIND_MATCH = {
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino", "carolina herrera"]),
 };
 
+const BEAUTY_NOT_RX = /\b(snorkel\w*|wetsuits?|neoprene|dive|diving|goggles|fins?|spring ?suits?|face masks?|gaiters?|balaclavas?)\b/i;
+const BEAUTY_NOT_TYPES = new Set(["máscaras y snorkels", "trajes de neopreno", "accesorios de fútbol"]);
+const JEWELRY_RX = /\b(bracelets?|necklaces?|earrings?|rings?|anklets?|charms?|pendants?|chains?|pulseras?|collares?|aretes?|anillos?)\b/i;
+
 export function belongsToDept(rule, p) {
   try {
     if (rule.buckets) {
@@ -314,9 +318,16 @@ export function loadAllItems(root = ROOT) {
     if (!data || !data.retailers) continue;
     for (const rk of Object.keys(data.retailers)) {
       if (isOffSaleRetailer(rk)) continue;   /* /off-sale.js */
+      /* Sephora is DO NOT BUILD (no storefront; its terms prohibit resale):
+         its rows were never in a department, and do not join one by the
+         array-shape fix below -- that is Danny's call, not a side effect. */
+      if (rk === "sephora") continue;
       const buckets = (data.retailers[rk] || {}).departments || {};
       for (const bk of Object.keys(buckets)) {
-        const items = (buckets[bk] || {}).items || [];
+        /* A department is { items: [...] } or the bare array (Victoria's
+           Secret in beauty-catalog.json, Walmart's "mens"): both are read --
+           the bare arrays had been skipped, so VS was in no department. */
+        const items = Array.isArray(buckets[bk]) ? buckets[bk] : (buckets[bk] || {}).items || [];
         for (const it of items) {
           let p;
           try { p = normalizeItem(it, rk, bk, AriaSale); } catch { p = null; }
@@ -352,6 +363,12 @@ export function deptItems(all, key) {
      Electrónica's Reacondicionados): they stay in their store, out of the
      department. A Blu-ray PLAYER is electronics. */
   if (key === "electronics") list = list.filter((p) => !MEDIA_RX.test(p.title || ""));
+  /* ARIA BEAUTY (Danny, #443 c.6504037778 §8): snorkels, dive masks,
+     wetsuits and cloth face masks are sports gear, not beauty -- in Beauty
+     «máscaras» means facial masks. «Accesorios» is jewelry only; a lip
+     balm or a shampoo the store filed there rides with the rest. */
+  if (key === "beauty") list = list.filter((p) => !BEAUTY_NOT_RX.test(p.title || "") && !BEAUTY_NOT_TYPES.has(String(p.type || "").toLowerCase()))
+    .map((p) => (String(p.type || "").toLowerCase() === "accesorios" && !JEWELRY_RX.test(p.title || "") ? { ...p, type: "" } : p));
   /* Cabello: each product's treatment aisle is its type (the rails and the
      pills read it); a brand Peru sells cheaply enters only on sale, and
      the lines Peru does not carry lead (the stable sort below keeps it). */
