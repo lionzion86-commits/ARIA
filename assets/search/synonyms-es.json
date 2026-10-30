@@ -105,6 +105,8 @@
   },
 
   "phrases": {
+    "tabla de skate": "skateboard", "tablas de skate": "skateboard", "tabla de skateboard": "skateboard",
+    "tabla de surf": "surfboard", "tablas de surf": "surfboard", "tabla de surfear": "surfboard", "tabla de surfing": "surfboard",
     "lentes de sol": "sunglasses", "gafas de sol": "sunglasses", "anteojos de sol": "sunglasses",
     "zapatos para bebes": ["baby shoes", "toddler shoes"], "zapatos de bebe": ["baby shoes", "toddler shoes"],
     "zapatillas para bebes": ["baby sneakers", "toddler sneakers"],

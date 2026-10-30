@@ -6,6 +6,9 @@
        rail holding a deck;
      - Victoria's Secret: no Accesorios rail of panties and mists; a
        slipper-only Zapatos rail reads "Pantuflas";
+     - search finds the boards by what they are: "skate" and "tabla de
+       skate" lead with decks and completes (Antihero on the first
+       screen), "tabla de surf" with surfboards (Thunderbolt, Firewire);
      - the stamp repair re-stamps model-only titles and never one that
        names something else (a leash, a wheel, a tee).
 
@@ -15,6 +18,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { repairedType } from "../repair-type-stamps.mjs";
+import { loadSearch, runQuery } from "../../netlify/functions/_search-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -74,6 +78,27 @@ check("the stamp repair: model-only titles re-stamped, named products left to th
   assert.equal(repairedType(it("5.2 Machado Cado FUT", "FIREWIRE", "Accesorios")), "Tablas de surf");
   assert.equal(repairedType(it("Antihero Eagle Tee", "Antihero", "Polos y camisetas")), null);
   assert.equal(repairedType(it("Nike SB Logo Tee", "Nike SB", "Polos y camisetas")), null);
+});
+
+const SEARCH = loadSearch();
+const top = (q, n = 48) => (runQuery(SEARCH, q).hits || []).slice(0, n);
+check("search: a board search leads with the boards, by the Spanish name too", () => {
+  const BOARD = /\b(deck|complete|cruiser|skateboard|longboard)\b|\d\.\d|anti ?hero|baker|krooked|santa cruz|real\b/i;
+  for (const q of ["skate", "tabla de skate", "tablas de skate", "patineta"]) {
+    const t = top(q, 8);
+    assert.ok(t.every((p) => p.kw && /patineta/.test(p.kw)), `${q}: ${t.map((p) => p.title).join(" / ")}`);
+    assert.ok(t.every((p) => BOARD.test(p.title)), `${q}: ${t.map((p) => p.title).join(" / ")}`);
+  }
+  assert.ok(top("skate").some((p) => /anti[- ]?hero/i.test(p.title)), "no Antihero deck on the first screen of skate");
+  const surf = top("tabla de surf");
+  assert.ok(surf.slice(0, 8).every((p) => /surfboard/.test(p.kw || "")), surf.slice(0, 8).map((p) => p.title).join(" / "));
+  for (const b of [/thunderbolt/i, /firewire/i]) assert.ok(surf.some((p) => b.test(p.title + " " + p.brand)), "tabla de surf: no " + b);
+  assert.ok(!surf.slice(0, 8).some((p) => /\b(leash|fins?|wax)\b/i.test(p.title)), "an accessory leads tabla de surf");
+});
+
+check("a board word before an accessory noun never makes it a board", () => {
+  for (const t of ["FCS 2 Christenson PG Longboard Fin", "FCS All Round Essential 6' Surfboard Leash - Black", "Venture All Polished V-Hollow Skateboard Truck - 5.0 Hi", "Santa Cruz Skateboards Classic Dot Skate Wax"])
+    assert.ok(!/^tablas_/.test(PT.familyOfName(t)), t + " -> " + PT.familyOfName(t));
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
