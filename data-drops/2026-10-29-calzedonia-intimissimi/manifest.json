@@ -1,0 +1,79 @@
+{
+ "pull": "calzedonia-intimissimi-2026-10-29",
+ "pulledAt": "2026-10-29",
+ "route": "direct-http (SleekShop precedent): SFCC category grids + PDP JSON-LD; Apify runs: 0",
+ "apifySpendUsd": 0.0,
+ "authorizedBy": "Danny 2026-10-29 — bring both in as individual stores; no test orders (MEMORY lane decision)",
+ "totalProducts": 1208,
+ "stores": {
+  "intimissimi": {
+   "file": "intimissimi.json",
+   "displayName": "Intimissimi",
+   "shipping": {
+    "standardUsd": 9,
+    "freeThresholdUsd": 75,
+    "expressUsd": 25,
+    "windowBusinessDays": "3-8"
+   },
+   "products": 844,
+   "bySubcategory": {
+    "bras": 353,
+    "panties": 369,
+    "bodysuits": 76,
+    "slips_babydolls": 46
+   },
+   "priceAvgUsd": 50.18,
+   "priceMinUsd": 10.0,
+   "priceMaxUsd": 219.0,
+   "imageCoveragePct": 100.0,
+   "primaryImageSuffix": {
+    "F": 841,
+    "M": 3
+   },
+   "realWeightCount": 0,
+   "weightEstimateCount": 844,
+   "spanishDescFromPdp": 844,
+   "onSale": 0,
+   "inStock": 829,
+   "stockKnown": 829
+  },
+  "calzedonia": {
+   "file": "calzedonia.json",
+   "displayName": "Calzedonia",
+   "shipping": {
+    "standardUsd": 9,
+    "freeThresholdUsd": 75,
+    "expressUsd": 25,
+    "windowBusinessDays": "3-8"
+   },
+   "products": 364,
+   "bySubcategory": {
+    "tights": 276,
+    "stockings": 66,
+    "leggings": 22
+   },
+   "priceAvgUsd": 27.65,
+   "priceMinUsd": 12.0,
+   "priceMaxUsd": 129.0,
+   "imageCoveragePct": 100.0,
+   "primaryImageSuffix": {
+    "FI": 310,
+    "F": 54
+   },
+   "realWeightCount": 0,
+   "weightEstimateCount": 364,
+   "spanishDescFromPdp": 364,
+   "onSale": 0,
+   "inStock": 343,
+   "stockKnown": 364
+  }
+ },
+ "notes": [
+  "Schema follows prior pulls (walmart-electronics/sleekshop): USD price + currency=USD; PEN conversion applied downstream at site build, as in all prior pulls (no prior dataset stores PEN).",
+  "Dedupe: one row per style+color (SFCC data-pid / dwvar color), sizes kept as variant list (intimissimi).",
+  "Weights: neither storefront publishes product weight (0 real). Every record carries weightEstimateKg from category-comparable classes, weightFlag='estimado', with basis text; Miami weigh-in reconciliation applies per doctrine.",
+  "Compare-at: neither PDP format exposed a strikethrough/list price during this pass; onSale=0 across both datasets (multi-buy promos like 3-for-$45 are not per-item compare-at prices).",
+  "Store shipping (for per-store shipping transparency build): both banners $9 standard / free $75+ / $25 express, 3-8 business days.",
+  "Peru-presence rule still applies at listing: Calzedonia Group has LatAm retail presence — sale/clearance positioning check at build time, per vetting report."
+ ]
+}
