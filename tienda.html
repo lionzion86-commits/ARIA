@@ -1322,7 +1322,11 @@ function bootSliced(){
     slIndex = j;
     if (!j || !j.count){ renderNoCatalog(); loadHeroPhoto(); return; }
     slChips();
-    slRenderHome();
+    /* A search's store rail opens the store already searched
+       (tienda.html?tienda=<store>&q=<brand>, the format's «Ver todo»). */
+    var q0 = (qs('q') || '').slice(0, 80);
+    if (q0 && $('q')){ $('q').value = q0; slApply(); }
+    else slRenderHome();
     slHeroLater();
   }, function(){
     renderError('No pudimos cargar ' + storeMeta.label + '. Revisa tu conexión e inténtalo de nuevo.', true);

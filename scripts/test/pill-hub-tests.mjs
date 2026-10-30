@@ -40,7 +40,8 @@ check("every hub's head carries its pill row; every pill has its lens file", () 
     else if (PILL_HUBS[key].by) { const rest = ns.slice(PILL_HUBS[key].pills.length); assert.deepEqual(rest, [...rest].sort((a, b) => b - a), `${key}: stores strongest first`); }
   }
   assert.deepEqual(json(DIR + "home_goods/head.json").pills.map((p) => p.label), ["Crate & Barrel", "Pier 1", "Libros de mesa"]);
-  assert.equal(json(DIR + "luxury/head.json").pills[0].label, "Dolce & Gabbana");
+  /* Lujo follows the universal format (#443 c.6532666653): brand pills, biggest first. */
+  assert.equal(json(DIR + "luxury/head.json").brands[0].label, "Dolce & Gabbana");
   assert.deepEqual(json(DIR + "electronics/head.json").pills.map((p) => p.label).sort(), ["B&H Photo", "BrandsMart USA", "Micro Center", "Walmart"]);
 });
 

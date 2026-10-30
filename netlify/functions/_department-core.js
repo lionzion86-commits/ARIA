@@ -164,6 +164,103 @@ export function buildPerfumeSections(list) {
   if (tail.length) sections.push({ key: "marca:mas", title: "Más marcas", items: perfumeRailOrder(tail) });
   return sections;
 }
+/* ---------- CATEGORY ROOMS: RAILS BY BRAND (the universal format, #443
+   c.6532666653: "a CATEGORY page rails by BRAND; a brand inside a category
+   by TYPE") ----------
+   Fight Club, Gym Rat, Surf & Skate, Fútbol, Tenis, Pesca submarina, Lentes
+   de sol, Joyas, Lujo: Ofertas first, one rail per brand with
+   BRAND_ROOM_MIN products (biggest first, true counts), the rest on one
+   «Más marcas» rail. A brand pill opens that brand alone, its rails by type
+   (Venum: shorts, gloves, gis, headgear...). */
+export const BRAND_ROOMS = new Set(["combat_sports", "gym_rat", "surf_skate", "spearfishing", "soccer", "tennis", "sunglasses", "joyas_accesorios", "luxury"]);
+export const BRAND_ROOM_MIN = 8;
+/* A mall floor, not an endless scroll: at most this many brand rails (and
+   pills); the brands after them share «Más marcas». */
+export const BRAND_ROOM_MAX = 60;
+/* A store's own vendor code or an empty string is not a brand a shopper knows. */
+const NOT_A_BRAND_RX = /^(?:[A-Z]{2,6}\/|\d+$|n\/?a$|unknown$|generic$|unbranded$|for (?:him|her)$|men$|women$|kids$)/i;
+function buildBrandRoomSections(list) {
+  const groups = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim())));
+  /* One brand: the format one level down -- its Ofertas, then its types. */
+  if (groups.length === 1 && groups[0].items.length === list.length) return brandTypeSections(list);
+  const sections = [];
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i })).sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  const known = groups.filter((g) => g.items.length >= BRAND_ROOM_MIN).slice(0, BRAND_ROOM_MAX);
+  const order = (l) => l.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.i - b.i)).map((x) => x.p);
+  for (const g of known) sections.push({ key: "marca:" + g.key, title: g.label, items: order(g.items) });
+  const knownKeys = new Set(known.map((g) => g.key));
+  const tail = list.filter((p) => !knownKeys.has(String(p.brand || "").trim().toLowerCase()));
+  if (tail.length) sections.push({ key: "marca:mas", title: "Más marcas", items: order(tail) });
+  return sections;
+}
+/* A brand's rails by type: Moda's Spanish clothing types when the brand is
+   mostly clothing and shoes (Venum: shorts, polos, casacas...), else the
+   store's own types; Ofertas first either way. */
+let BRAND_TYPE_LABELS = null;
+function brandTypeLabels() {
+  if (BRAND_TYPE_LABELS) return BRAND_TYPE_LABELS;
+  const seen = new Set(), out = [];
+  for (const l of [...MODA_LABELS.women, ...MODA_LABELS.men]) if (!seen.has(l[0])) { seen.add(l[0]); out.push(l); }
+  return (BRAND_TYPE_LABELS = out);
+}
+/* Sports gear, read before the clothing type (a rash guard in Fight Club
+   is a «polo de licra», not swimwear; Danny's Venum example: shorts,
+   shirts, gis, headgear, gloves, shin guards). */
+const GEAR_TYPES = [
+  /* Jewelry first: a «ball stud» earring is an earring. */
+  ["aretes", "Aretes", /\bearrings?\b|\baretes?\b|\bstuds?\b|\bhoops?\b|\bhuggies?\b|\bear (?:cuffs?|climbers?|crawlers?)\b/i],
+  ["collares", "Collares y dijes", /\bnecklaces?\b|\bcollares?\b|\bpendants?\b|\bchokers?\b|\blockets?\b/i],
+  ["pulseras", "Pulseras y tobilleras", /\bbracelets?\b|\bbangles?\b|\bcuffs?\b|\banklets?\b|\bpulseras?\b/i],
+  ["anillos", "Anillos", /\brings?\b|\banillos?\b/i],
+  ["charms", "Charms", /\bcharms?\b/i],
+  ["broches", "Broches y pines", /\bbrooch(?:es)?\b|\bpins?\b|\bbroches?\b/i],
+  ["pelo", "Accesorios para el pelo", /\bhair ?(?:clips?|claws?|pins?|ties?|bows?)\b|\bclaw clips?\b|\bheadbands?\b|\bscrunchies?\b|\bbarrettes?\b/i],
+  ["licras", "Polos de licra", /\brash ?guards?\b|\blicras?\b/i],
+  ["mallas", "Mallas de compresión", /\bspats\b|\bcompression (?:tights|pants|leggings)\b/i],
+  ["gis", "Gis y kimonos", /\b(?:bjj|jiu.?jitsu|judo|karate)?\s*gis?\b(?!\w)|\bkimonos?\b/i],
+  ["guantes", "Guantes", /\bgloves?\b|\bguantes?\b|\bmitts?\b/i],
+  ["canilleras", "Canilleras", /\bshin ?(?:guards?|pads?|instep)\b|\bcanilleras?\b/i],
+  ["cabezales", "Cabezales y protectores", /\bhead ?(?:gear|guards?)\b|\bcabezal(?:es)?\b|\bcups?\b.*\bprotect|\bgroin\b|\bchest (?:guard|protector)\b/i],
+  ["vendas", "Vendas", /\bhand ?wraps?\b|\bvendas?\b/i],
+  ["bucales", "Bucales", /\bmouth ?guards?\b|\bbucal(?:es)?\b/i],
+  ["sacos", "Sacos y equipo de gimnasio", /\b(?:punching|heavy|speed|double.?end|muay thai) bags?\b|\bfocus mitts?\b|\bthai pads?\b|\bkick shields?\b/i],
+  ["chimpunes", "Chimpunes", /\bcleats?\b|\bfirm ground\b|\b(?:fg|ag|tf|mg)(?:\/(?:fg|ag|tf|mg))?\b|\bturf\b|\bchimpun\w*/i],
+  ["camisetas", "Camisetas de equipo", /\bjerseys?\b|\b(?:home|away|third) (?:kit|shirt)\b|\bcamisetas? de (?:equipo|f[uú]tbol)\b/i],
+  ["balones", "Balones y pelotas", /\b(?:soccer|foot|basket|volley|tennis|pickle|golf|base|soft|training|match|futsal) ?balls?\b|\bbal[oó]n(?:es)?\b|\bpelotas?\b/i],
+];
+const gearType = (p) => { const t = String((p && p.title) || "") + " " + String((p && p.type) || ""); for (const [k, , rx] of GEAR_TYPES) if (rx.test(t)) return k; return ""; };
+function brandTypeSections(list) {
+  const kind = (p) => gearType(p) || modaType(p);
+  if (list.filter(kind).length < list.length * 0.6) return buildSectionsRaw(list, {});
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i })).sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  const secs = [];
+  const labels = [...GEAR_TYPES.map(([k, label]) => [k, label]), ...brandTypeLabels()];
+  for (const [k, label] of labels) {
+    const l = list.filter((p) => kind(p) === k);
+    if (l.length) secs.push({ key: "tipo:" + k, title: label, items: l });
+  }
+  secs.sort((a, b) => b.items.length - a.items.length);
+  const rest = list.filter((p) => !kind(p));
+  if (rest.length) secs.push({ key: "tipo:otros", title: "Más productos", items: rest });
+  return (sales.length ? [{ key: "ofertas", title: "Ofertas", items: sales }] : []).concat(secs).map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+export function typeViewSections(list) {
+  const known = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim()))).filter((g) => g.items.length >= BRAND_ROOM_MIN);
+  if (known.length >= 2) return buildBrandRoomSections(list).map((x) => ({ ...x, items: photosFirst(x.items) }));
+  const sales = list.filter((p) => p.salePct > 0);
+  const by = new Map();
+  for (const p of list) { if (!by.has(p.retailer)) by.set(p.retailer, []); by.get(p.retailer).push(p); }
+  const secs = sales.length ? [{ key: "ofertas", title: "Ofertas", items: sales }] : [];
+  for (const [r, l] of [...by.entries()].sort((a, b) => b[1].length - a[1].length)) secs.push({ key: "tienda:" + r, title: r, items: l });
+  return secs.map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+export function brandRoomPills(list) {
+  const groups = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim()))).filter((g) => g.items.length >= BRAND_ROOM_MIN).slice(0, BRAND_ROOM_MAX);
+  /* The pill's key is its label (the page sends it back as b=). */
+  return groups.length >= 2 ? { brands: groups.map((g) => ({ label: g.label, n: g.items.length })) } : {};
+}
+
 /* The pills above the room: the doors with their counts, and one pill per
    known brand, biggest first (the head carries them; a pill re-scopes the
    page through the endpoint's a= / b= filters). */
@@ -183,6 +280,7 @@ export function sectionOpts(key) {
   if (key === TECH_DEPT) return { tech: true };
   if (key === CABELLO_DEPT) return { cabello: true };
   if (key === "perfumes") return { perfume: true };
+  if (BRAND_ROOMS.has(key)) return { brandRoom: true };
   if (key === REFURB_DEPT) return { refurb: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
@@ -496,7 +594,7 @@ export function homeTechPills(list) {
                  "c:<condition>" (Reacondicionados)
      all:        the first pill's word when it is not «Todas» */
 export const PILL_HUBS = {
-  luxury: { by: "brand", max: 14 },
+  /* Lujo is a brand room now (BRAND_ROOMS): its brand pills re-scope the room. */
   /* Moda: the type pills, then the four strongest stores. */
   women: { moda: "women", by: "store", max: 4 },
   men: { moda: "men", by: "store", max: 4 },
@@ -857,6 +955,7 @@ function buildSectionsRaw(list, opts = {}) {
   if (opts.cabello) return buildCabelloSections(list);
   /* The Perfumes room is always the room, whatever store a bottle comes from. */
   if (opts.perfume) return buildPerfumeSections(list);
+  if (opts.brandRoom) return buildBrandRoomSections(list);
   if (opts.refurb) return buildRefurbSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
@@ -931,6 +1030,9 @@ export function headOf(key, list, sections, allLabels, extra = {}) {
     railBatch: RAIL_BATCH,
     rails: sections.map((s, i) => {
       const r = { i, title: s.title, count: s.items.length, pages: Math.ceil(s.items.length / PAGE_SIZE) };
+      /* k: the rail's group (marca:<brand>, tipo:<type>, tienda:<store>) --
+         a rail too big for one grid opens as its own railed view. */
+      if (s.key) r.k = s.key;
       /* d: the line under the rail title (the Reacondicionados disclosure). */
       if (s.note) r.d = s.note;
       /* door: the link to Reacondicionados under a new-only shelf. */
@@ -982,7 +1084,7 @@ export function rowItem(r) {
 
 /* The page's filters, unchanged: one store, and every word of the
    department search box in the title or brand. */
-export function filterList(list, { r = "", q = "", b = "", a = "" } = {}) {
+export function filterList(list, { r = "", q = "", b = "", a = "", t = "" } = {}) {
   const words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
   /* b: one brand (a brand pill), a: one door (Perfumes' Mujer / Hombre ...). */
   const bk = String(b || "").trim().toLowerCase();
@@ -990,6 +1092,8 @@ export function filterList(list, { r = "", q = "", b = "", a = "" } = {}) {
     if (r && r !== "all" && p.retailer !== r) return false;
     if (bk && String(p.brand || "").trim().toLowerCase() !== bk) return false;
     if (a && p.a !== a) return false;
+    /* t: the rail's type key -- the feed's own type, or the gear/garment kind a brand room rails by. */
+    if (t && String(p.type || "").trim().toLowerCase() !== t && (gearType(p) || modaType(p)) !== t) return false;
     if (words.length) {
       const hay = (p.title + " " + (p.brand || "")).toLowerCase();
       for (const w of words) if (hay.indexOf(w) === -1) return false;
@@ -1029,9 +1133,11 @@ export function answer(qs, roots) {
   const d = loadDept(String(qs.dept || ""), roots);
   if (!d) return { status: 404, body: { error: "Departamento no encontrado." } };
   const r = String(qs.r || "").slice(0, 40), q = String(qs.q || "").slice(0, 80);
-  const b = String(qs.b || "").slice(0, 80), a = String(qs.a || "").slice(0, 40);
-  const list = (r && r !== "all") || q.trim() || b || a ? filterList(d.list, { r, q, b, a }) : d.list;
-  const sections = buildSections(list, sectionOpts(d.key));
+  const b = String(qs.b || "").slice(0, 80), a = String(qs.a || "").slice(0, 40), t = String(qs.t || "").trim().toLowerCase().slice(0, 80);
+  const list = (r && r !== "all") || q.trim() || b || a || t ? filterList(d.list, { r, q, b, a, t }) : d.list;
+  /* One type opened from its rail (the recursive «Ver todo»): the next
+     grouping is the brand -- or the store, where brands are thin. */
+  const sections = t && !b ? typeViewSections(list) : buildSections(list, sectionOpts(d.key));
   if (qs.rail !== undefined && qs.rail !== "") {
     /* rail=all: the whole department, page by page, in its carousels'
        order (the lead rail first, each product once) -- the Perfumes
@@ -1046,6 +1152,6 @@ export function answer(qs, roots) {
     return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más carruseles." } };
   }
   /* Perfumes: a door's view keeps its brand pills (the brands inside that door). */
-  const extra = d.key === "perfumes" ? { ...perfumePills(list), b, a } : {};
-  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra }) };
+  const extra = d.key === "perfumes" ? { ...perfumePills(list), b, a } : BRAND_ROOMS.has(d.key) || t ? { ...brandRoomPills(list), b } : {};
+  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t ? { t } : {}) }) };
 }

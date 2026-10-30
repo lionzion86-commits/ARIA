@@ -156,7 +156,9 @@ check("the coverage gaps are open: watches, belts, scarves, toys that never say 
 check("Perfumes keeps its room when other stores' fragrances join it", () => {
   const head = JSON.parse(read("assets/sections/departamento/perfumes/head.json"));
   const keys = JSON.stringify(head);
-  assert.ok(keys.includes("grandes-casas") || keys.includes("Las grandes casas"), "the Perfumes room lost Las grandes casas");
+  /* The room is the universal format (#443 c.6532666653): Ofertas, then one rail per known house. */
+  assert.equal(head.rails[0].title, "Ofertas", "the Perfumes room lost its Ofertas lead");
+  for (const house of ["Lattafa", "Carolina Herrera", "Versace"]) assert.ok(head.rails.some((r) => r.title === house && r.k === "marca:" + house.toLowerCase()), "the Perfumes room lost its " + house + " rail");
 });
 
 check("Juguetes and Moda Niños stay apart: a toy-themed garment is a garment, a dress-up doll is a toy", () => {

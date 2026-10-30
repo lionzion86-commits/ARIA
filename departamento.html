@@ -135,6 +135,9 @@
   .rail .rail-more b{font-size:14px;font-weight:800;color:var(--blue)}
   .rail .rail-more span{font-size:12px;color:#6B7487}
   @media(min-width:640px){.rail .rail-more{flex-basis:200px}}
+.scope-bar{display:flex;align-items:center;gap:10px;padding:10px 16px 0;font-size:14px}
+  .scope-bar .scope-back{background:none;border:1px solid var(--line,#d9dde3);border-radius:999px;padding:6px 12px;font:inherit;font-weight:800;color:var(--blue);cursor:pointer}
+  .scope-bar .scope-here{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rail-head .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px;font-family:inherit}
   .rail{display:flex;gap:12px;overflow-x:auto;padding:10px 20px 16px;scroll-snap-type:x mandatory;scrollbar-width:thin}
   .rail::-webkit-scrollbar{height:6px}
@@ -211,6 +214,7 @@
 <!-- THE PERFUMES ROOM'S PILLS (#443 c.6532666653): the doors (Mujer,
      Hombre, Unisex, Minis, Sets, Testers), then one pill per known brand,
      biggest first. Each re-scopes the whole room in place. -->
+<nav class="scope-bar" id="scopeBar" aria-label="Estás en" hidden></nav>
 <nav class="hub p-pills" id="pDoors" data-pat="pills" aria-label="Para quién" hidden><div class="hub-in" role="tablist"></div></nav>
 <nav class="hub p-pills" id="pBrands" data-pat="pills" aria-label="Marcas" hidden><div class="hub-in" role="tablist"></div></nav>
 <nav class="hub" id="hubPills" data-pat="pills" aria-label="Tiendas y marcas" hidden><div class="hub-in" role="tablist"></div></nav>
@@ -418,12 +422,14 @@
   var SLICES = 'assets/sections/departamento/' + encodeURIComponent(deptKey) + '/';
   var ENDPOINT = '/.netlify/functions/department';
   var HEAD = null;           // the answer on screen (static or filtered)
-  var fQ = '', fRet = 'all', fB = '', fA = '';
+  var fQ = '', fRet = 'all', fB = '', fA = '', fT = '', fTitle = '';
   /* Perfumes' brand and door pills: departamento.html?dept=perfumes&b=<brand>&a=<door>. */
   try {
     var _bm = /[?&]b=([^&]*)/.exec(window.location.search || ''), _am = /[?&]a=([a-z]{2,20})(?:&|$)/.exec(window.location.search || '');
     if (_bm) fB = decodeURIComponent(_bm[1].replace(/\+/g, ' ')).slice(0, 80);
     if (_am) fA = _am[1];
+    var _tm = /[?&]t=([^&]*)/.exec(window.location.search || '');
+    if (_tm) fT = decodeURIComponent(_tm[1].replace(/\+/g, ' ')).slice(0, 80).toLowerCase();
   } catch(e){}
   /* A house logo (home page or this page) opens the room already
      narrowed: departamento.html?dept=perfumes&q=<house>. */
@@ -770,13 +776,14 @@ function sizedImageUrl(url, w){
       return r.json();
     }, function(e){ if (timer) clearTimeout(timer); throw e; });
   }
-  function filtered(){ return fRet !== 'all' || !!fQ.trim() || !!fB || !!fA; }
+  function filtered(){ return fRet !== 'all' || !!fQ.trim() || !!fB || !!fA || !!fT; }
   function endpoint(extra){
     var u = ENDPOINT + '?dept=' + encodeURIComponent(deptKey);
     if (fRet !== 'all') u += '&r=' + encodeURIComponent(fRet);
     if (fQ.trim()) u += '&q=' + encodeURIComponent(fQ.trim());
     if (fB) u += '&b=' + encodeURIComponent(fB);
     if (fA) u += '&a=' + encodeURIComponent(fA);
+    if (fT) u += '&t=' + encodeURIComponent(fT);
     return u + (extra || '');
   }
   function headUrl(){ return filtered() ? endpoint('') : SLICES + 'head.json'; }
@@ -791,7 +798,7 @@ function sizedImageUrl(url, w){
   function railSecHTML(r){
     var n = HEAD.railCards || 12;
     var door = r.count > n
-      ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '">Ver todo &#8594;</button>'
+      ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '"' + (r.k ? ' data-k="' + esc(r.k) + '" data-n="' + r.count + '"' : '') + '>Ver todo &#8594;</button>'
       : '';
     var cards = r.cards ? r.cards.map(cardHTML).join('') : skeletons(Math.min(r.count, 4));
     return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '"' + (r.title === 'Reacondicionados' ? ' id="rail-reacondicionados"' : '') + '>'
@@ -889,7 +896,7 @@ function sizedImageUrl(url, w){
        replaces the store filter chips; the search box stays. */
     if (HUB && HUB.length){ chipsEl.innerHTML = ''; chipsEl.hidden = true; return; }
     /* The pattern's one pill row: on Perfumes it is the houses (brands). */
-    if (deptKey === 'perfumes'){ chipsEl.innerHTML = ''; chipsEl.hidden = true; return; }
+    if (deptKey === 'perfumes' || P_BRANDS_ALL || (P_BRANDS && P_BRANDS.length)){ chipsEl.innerHTML = ''; chipsEl.hidden = true; return; }
     var ch = '<button class="chip" data-r="all" aria-pressed="' + (fRet === 'all') + '">Todas</button>';
     (HEAD.stores || []).forEach(function(s){
       ch += '<button class="chip" data-r="' + esc(s.k) + '" aria-pressed="' + (fRet === s.k) + '">' + esc(storeLabel(s.k)) + '</button>';
@@ -918,11 +925,11 @@ function sizedImageUrl(url, w){
       }
       /* The chips always list the whole department's stores. */
       if (!filtered()) STORES = data.stores;
-      if (deptKey === 'perfumes'){
-        if (!filtered() && data.doors){ P_DOORS = data.doors; P_BRANDS_ALL = data.brands; }
+      if (deptKey === 'perfumes' || (data.brands && data.brands.length) || P_BRANDS_ALL || fB){
+        if (!filtered() && (data.doors || data.brands)){ P_DOORS = data.doors || null; P_BRANDS_ALL = data.brands || null; }
         /* A door's view: the brand pills are the brands inside that door. */
-        if (fA && !fB && data.brands) P_BRANDS = data.brands;
-        if (!P_DOORS) getJSON(SLICES + 'head.json').then(function(full){ P_DOORS = full.doors; P_BRANDS_ALL = full.brands; renderPerfumePills(); }).catch(function(){});
+        if ((fA || fT) && !fB && data.brands) P_BRANDS = data.brands;
+        if (!P_BRANDS_ALL) getJSON(SLICES + 'head.json').then(function(full){ P_DOORS = full.doors || null; P_BRANDS_ALL = full.brands || null; renderPerfumePills(); renderChips(); }).catch(function(){});
         renderPerfumePills();
       }
       if (!filtered() && Array.isArray(data.pills) && !HUB){ HUB = data.pills; if (data.pillAll) HUB_ALL = data.pillAll; renderHub(); }
@@ -1132,6 +1139,7 @@ function sizedImageUrl(url, w){
     var m = e.target.closest('#moreRetry');
     if (m){ document.getElementById('railsMore').innerHTML = ''; appendBatch(); return; }
     var b = e.target.closest('.ver-todo'); if(!b) return;
+    if (reRail(b.getAttribute('data-k') || '', +b.getAttribute('data-n') || 0, b.getAttribute('data-title') || '')) return;
     openRailExpand(b.getAttribute('data-rk'), b.getAttribute('data-title'));
   }
   railsEl.addEventListener('click', railsClick);
@@ -1140,31 +1148,75 @@ function sizedImageUrl(url, w){
      the Ofertas rail, then the rails. */
   if (patterned && salesTop){
     var hero = document.getElementById('deptHero'), after = hero;
-    ['toolbar', 'pDoors', 'pBrands', 'hubPills', 'salesTop'].forEach(function(id){
+    ['scopeBar', 'toolbar', 'pDoors', 'pBrands', 'hubPills', 'salesTop'].forEach(function(id){
       var el = document.getElementById(id);
       if (el && after){ after.parentNode.insertBefore(el, after.nextSibling); after = el; }
     });
   }
+  /* ---------- «VER TODO» IS RECURSIVE (#443 c.6532666653) ----------
+     A group too big for one grid opens as its own railed view: a brand
+     by its product types (Venum: shorts, guantes, gis...), a type by its
+     brands (Vestidos: one rail per brand). A modest group, and anything
+     inside a brand, opens the grid. The back button returns. */
+  var RERAIL_BRAND = 60, RERAIL_TYPE = 200;
+  function reRail(k, n, title){
+    if (!patterned || fB) return false;
+    var m = /^(marca|tipo):(.+)$/.exec(k);
+    if (!m || m[2] === 'otros' || m[2] === 'mas' || n < (m[1] === 'marca' ? RERAIL_BRAND : RERAIL_TYPE)) return false;
+    if (m[1] === 'tipo' && fT) return false;
+    if (m[1] === 'marca') fB = title; else { fT = m[2]; fTitle = title; }
+    P_BRANDS = null;
+    try { history.pushState({ b: fB, t: fT, a: fA, tt: fTitle }, '', perfumeUrl()); } catch(_e){}
+    renderScope(); renderPerfumePills(); loadAll();
+    window.scrollTo(0, 0);
+    return true;
+  }
+  window.addEventListener('popstate', function(e){
+    var st = e.state || {};
+    fB = st.b || ''; fT = st.t || ''; fA = st.a || ''; fTitle = st.tt || '';
+    P_BRANDS = null;
+    renderScope(); renderPerfumePills(); loadAll();
+  });
+  try { history.replaceState({ b: fB, t: fT, a: fA, tt: fTitle }, '', location.href); } catch(_e){}
+  /* Where the shopper is: «‹ Fight Club · Venum», one tap back to the room. */
+  function renderScope(){
+    var bar = document.getElementById('scopeBar');
+    if (!bar) return;
+    var here = [fTitle || (fT ? fT : ''), fB].filter(Boolean).join(' · ');
+    if (!here){ bar.hidden = true; bar.innerHTML = ''; return; }
+    bar.innerHTML = '<button type="button" class="scope-back">&#8249; ' + esc(dept.name) + '</button><span class="scope-here">' + esc(here) + '</span>';
+    bar.hidden = false;
+  }
+  var scopeBar = document.getElementById('scopeBar');
+  renderScope();
+  if (scopeBar) scopeBar.addEventListener('click', function(e){
+    if (!e.target.closest('.scope-back')) return;
+    fB = ''; fT = ''; fTitle = ''; fA = ''; P_BRANDS = null;
+    try { history.pushState({}, '', perfumeUrl()); } catch(_e){}
+    renderScope(); renderPerfumePills(); loadAll(); window.scrollTo(0, 0);
+  });
   /* ---------- THE PERFUMES ROOM'S PILLS ---------- */
   var P_DOORS = null, P_BRANDS = null, P_BRANDS_ALL = null;
   function pillsHTML(list, active, allLabel, attr){
     var h = '<button type="button" class="hub-pill" role="tab" ' + attr + '="" aria-selected="' + (!active) + '">' + esc(allLabel) + '</button>';
     list.forEach(function(p){
-      h += '<button type="button" class="hub-pill" role="tab" ' + attr + '="' + esc(p.k) + '" aria-selected="' + (active === p.k) + '">' + esc(p.label) + '<span class="n">' + Number(p.n).toLocaleString('es-PE') + '</span></button>';
+      h += '<button type="button" class="hub-pill" role="tab" ' + attr + '="' + esc(p.k || p.label) + '" aria-selected="' + (active === (p.k || p.label)) + '">' + esc(p.label) + '<span class="n">' + Number(p.n).toLocaleString('es-PE') + '</span></button>';
     });
     return h;
   }
+  /* Any room whose head names its brands (Perfumes, Fight Club, sunglasses,
+     jewelry...) gets the brand pill row; only Perfumes has the doors. */
   function renderPerfumePills(){
-    if (deptKey !== 'perfumes') return;
     var d = document.getElementById('pDoors'), b = document.getElementById('pBrands');
     if (d && P_DOORS && P_DOORS.length){ d.querySelector('.hub-in').innerHTML = pillsHTML(P_DOORS, fA, 'Todos', 'data-door'); show(d); }
     var brands = P_BRANDS || P_BRANDS_ALL;
     if (b && brands && brands.length){ b.querySelector('.hub-in').innerHTML = pillsHTML(brands, fB, 'Todas las marcas', 'data-brand'); show(b); }
+    else if (b && !fB) hide(b);
     var on = b && b.querySelector('[aria-selected="true"]');
     if (on && on.scrollIntoView) try { on.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch(_e){}
   }
   function perfumeUrl(){
-    return 'departamento.html?dept=perfumes' + (fA ? '&a=' + encodeURIComponent(fA) : '') + (fB ? '&b=' + encodeURIComponent(fB) : '') + (fQ ? '&q=' + encodeURIComponent(fQ) : '');
+    return 'departamento.html?dept=' + encodeURIComponent(deptKey) + (fA ? '&a=' + encodeURIComponent(fA) : '') + (fB ? '&b=' + encodeURIComponent(fB) : '') + (fT ? '&t=' + encodeURIComponent(fT) : '') + (fQ ? '&q=' + encodeURIComponent(fQ) : '');
   }
   ['pDoors', 'pBrands'].forEach(function(id){
     var nav = document.getElementById(id);
@@ -1178,8 +1230,8 @@ function sizedImageUrl(url, w){
         var bk = btn.getAttribute('data-brand') || '';
         fB = (bk === fB) ? '' : bk;
       }
-      renderPerfumePills(); loadAll();
-      try { history.replaceState(null, '', perfumeUrl()); } catch(_e){}
+      renderScope(); renderPerfumePills(); loadAll();
+      try { history.replaceState({ b: fB, t: fT, a: fA, tt: fTitle }, '', perfumeUrl()); } catch(_e){}
       var top = document.getElementById('toolbar'); if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start' });
     });
   });

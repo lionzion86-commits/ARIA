@@ -14186,6 +14186,7 @@ function catalogGoBack(){
   else goHome();
 }
 
+const THIN_DEPARTMENTS = new Set(['auto_parts', 'beauty', 'books', 'cabello', 'candy_chocolate', 'clothing', 'combat_sports', 'curvy', 'electronics', 'gym_rat', 'home_decor', 'home_goods', 'joyas_accesorios', 'kids', 'luxury', 'men', 'moms', 'party', 'perfumes', 'purses', 'reacondicionados', 'shoes', 'shoes_men', 'shoes_women', 'soccer', 'spearfishing', 'sporting_goods', 'sunglasses', 'surf_skate', 'tennis', 'toys', 'women']);
 async function openCatalog(kind, key, opts = {}){
   catalogSortTouched = false; // a fresh section opens on the default sort
   const retailerFilter = opts.retailerFilter || null;
@@ -14201,6 +14202,13 @@ async function openCatalog(kind, key, opts = {}){
      at each tile so every caller — homepage tiles, Categorias, any future
      one — lands in the same place. */
   if (kind === 'department' && key === 'sale'){ goSales(retailerFilter); return; }
+  /* THE UNIVERSAL FORMAT (#443 c.6532666653): a department built into
+     assets/sections/departamento/ opens on departamento.html -- search bar,
+     pills, Ofertas first, rails by brand or type. */
+  if (kind === 'department' && THIN_DEPARTMENTS.has(key)){
+    location.href = 'departamento.html?dept=' + encodeURIComponent(key) + (retailerFilter ? '&tienda=' + encodeURIComponent(String(retailerFilter).toLowerCase()) : '');
+    return;
+  }
   showPage('catalogView');
   applyStoreTheme('catalogView', retailerFilter);
   showPage('catalogView');
@@ -16809,7 +16817,10 @@ function armStorePhotoBackdrop(retailer){
    whole catalogue. Every door into it (rail "Ver tienda", badges, the
    Tiendas grid) lands on tienda.html, which answers from
    assets/tienda/<key>/ slices. */
-const THIN_STOREFRONTS = new Set(['bestbuy', 'dsw']);
+/* THE UNIVERSAL FORMAT (#443 c.6532666653): every store with slices opens
+   on tienda.html -- search bar, its Ofertas first, then one rail per
+   section. The list is the stores built into assets/tienda/. */
+const THIN_STOREFRONTS = new Set(['bestbuy', 'dsw', 'abercrombie', 'academy', 'advanceauto', 'aguabendita', 'americaneagle', 'ancora', 'assouline', 'babybrezza', 'bathandbodyworks', 'baublebar', 'bellybandit', 'bentgo', 'bhphoto', 'boxlunch', 'brandsmart', 'capittana', 'carolinaherrera', 'ccs', 'chronicle', 'combatcorner', 'crateandbarrel', 'crocs', 'dagnedover', 'denniskirk', 'dicks', 'drbrowns', 'eberjey', 'elite', 'elvie', 'everlast', 'ezpz', 'farfetch', 'farmrio', 'finishline', 'footlocker', 'freshlypicked', 'fuji', 'gameness', 'hatch', 'hollister', 'hottopic', 'islandwatersports', 'johannaortiz', 'jujube', 'jwpei', 'kindredbravely', 'lanebryant', 'lillebaby', 'mainland', 'meliebianco', 'microcenter', 'mmawarehouse', 'mockingbird', 'momcozy', 'montce', 'munchkin', 'mushie', 'nanit', 'nautilus', 'owlet', 'parrot', 'partycity', 'patbo', 'pier1', 'prosoccer', 'quietstorm', 'revolve', 'revzilla', 'silviatcherassi', 'skims', 'sleekshop', 'smartbuyglasses', 'snipes', 'spectra', 'ssense', 'statebags', 'surfstation', 'tatami', 'tennisexpress', 'tenniswarehouse', 'tns', 'valsurf', 'venum', 'victoriassecret', 'vix', 'walmart', 'walmartbaby', 'xtremesoccer', 'youngla', 'zumiez']);
 async function openStore(retailer){
   if (isOffSaleRetailer(retailer)){ showToast('Esta tienda ya no está disponible en Aria.'); return; }
   if (!hasStorefront(retailer)){ showToast('Esta tienda no tiene vitrina en Aria.'); return; }

@@ -43,7 +43,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
@@ -402,7 +402,7 @@ export function build(root = ROOT) {
     const { lenses, extra } = hubLenses(key, list, ALL_LABELS, listOf);
     for (const l of lenses) writeFileSync(join(dir, `lens-${l.k}.json`), JSON.stringify(l));
     /* Perfumes' doors and brand pills ride in its head (the universal format). */
-    const pills = key === "perfumes" ? perfumePills(list) : {};
+    const pills = key === "perfumes" ? perfumePills(list) : BRAND_ROOMS.has(key) ? brandRoomPills(list) : {};
     writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...extra, ...pills })));
     /* The homepage Electrónica carousel's pills (c.6485409220). */
     /* home.json is the pill row and the first pill's cards (the first
