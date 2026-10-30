@@ -481,9 +481,17 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
 
   /* CAROUSELS ARE SALES ONLY (Danny 2026-10-10). Within the sale items:
      the biggest sales first, then the premium pieces, then best sellers.
-     A rail that cannot fill RAIL_MIN photographed sale items is not shown. */
-  function curate(list, isHalo){
+     A rail that cannot fill RAIL_MIN photographed sale items is not shown.
+     A store rail Danny ordered by name (all: Intimissimi, Calzedonia,
+     #443 c.6512451192) carries the store's own stock: its sales first,
+     then the rest in the store's order. */
+  function curate(list, isHalo, all){
     var seen = {}, pool = [];
+    if (all){
+      list.filter(hasPic).sort(function(a,b){ return pct(b) - pct(a); })
+        .forEach(function(p){ var k = baseName(p); if (!seen[k]){ seen[k] = 1; pool.push(p); } });
+      return pool.slice(0, RAIL_MAX);
+    }
     list.filter(function(p){ return hasPic(p) && onSale(p); })
       .sort(function(a,b){ return pct(b) - pct(a); })
       .forEach(function(p){ var k = baseName(p); if (!seen[k]){ seen[k] = 1; pool.push(p); } });
@@ -527,11 +535,11 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
     S.cardHTML = cardHTML;
 
     function railHTML(r, items){
-      var picks = curate(items, cfg.isHalo);
+      var picks = curate(items, cfg.isHalo, r.all);
       if (picks.length < RAIL_MIN) return '';
       RAIL_FILL[P + ':' + r.key] = { html: function(){ return picks.map(cardHTML).join(''); } };
       var nSale = items.filter(function(p){ return hasPic(p) && onSale(p); }).length;
-      var sub = r.sub || (nSale + ' en oferta');
+      var sub = r.sub || (r.all ? items.filter(hasPic).length + ' productos' : nSale + ' en oferta');
       return '<section class="rail" data-rail="' + esc(P + ':' + r.key) + '">'
         + '<div class="rail-head"><div><h4>' + esc(r.title) + '</h4><div class="sub">' + esc(sub) + '</div></div>'
         + (r.filter ? '<button class="rail-more" type="button" data-section="' + P + '" data-more="' + esc(r.filter) + '">Ver todo</button>' : '')
@@ -550,7 +558,7 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
           ALL.filter(function(p){ return brandKey(p.b) === r.key; }));
       }).join('');
       var byStore = cfg.STORE_RAILS.map(function(r){
-        return railHTML({ key:r.key, title:r.title, sub:r.sub, filter:'store:' + r.key },
+        return railHTML({ key:r.key, title:r.title, sub:r.sub, all:r.all, filter:'store:' + r.key },
           ALL.filter(function(p){ return r.stores.indexOf(p.r) !== -1; }));
       }).join('');
       el('axisType').innerHTML = byType;
@@ -697,6 +705,9 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
       { key:'calvinklein',        title:'Calvin Klein' }
     ],
     STORE_RAILS: [
+      /* Danny, #443 c.6512451192: a carousel each, not pooled in the mix. */
+      { key:'intimissimi',     title:'Intimissimi',      stores:['intimissimi'], all:true, sub:'Lencería italiana' },
+      { key:'calzedonia',      title:'Calzedonia',       stores:['calzedonia'], all:true, sub:'Medias italianas' },
       { key:'skims',           title:'SKIMS',            stores:['skims'] },
       { key:'kindredbravely',  title:'Kindred Bravely',  stores:['kindredbravely'], sub:'Maternidad y lactancia' },
       { key:'zumiez',          title:'Zumiez',           stores:['zumiez'] },
