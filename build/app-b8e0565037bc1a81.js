@@ -7377,7 +7377,7 @@ const CATEGORY_RAILS = [
     feed: () => perfumesShelfPicks(),
     open: "location.href='/departamento.html?dept=perfumes'" },
   { key: 'reacondicionados', label: 'Reacondicionados', icon: '', stores: null, poolOnly: true,
-    blurb: 'Reacondicionados, de caja abierta y usados, con el estado que indica la tienda.',
+    blurb: 'De caja abierta, reacondicionados y usados certificados, con el estado que indica la tienda.',
     feed: () => reacondicionadosRailPicks(),
     open: "location.href='/departamento.html?dept=reacondicionados'" },
 ];
@@ -7562,8 +7562,8 @@ function pillShelfItems(cards, dept){
         { retailer: c.r, department: dept || 'general' });
     } catch (e) { continue; }
     if (!it || !it.title || !hasRealImage(it)) continue;
-    /* k: the condition the store's title states (Reacondicionado, Usado,
-       Caja abierta) -- the card wears it as its badge. */
+    /* k: the condition the store's title states (Caja abierta,
+       Reacondicionado, Usado certificado) -- the card wears it as its badge. */
     out.push({ ...it, retailer: c.r, departments: [dept || 'general'], ...(c.k ? { conditionLabel: c.k } : {}) });
   }
   return out;
@@ -20250,7 +20250,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      product. */
   const condEl = document.getElementById('productViewCondition');
   if (condEl){
-    const C = window.AriaCondition, c = C && C.conditionOfTitle(name);
+    const C = window.AriaCondition, c0 = C && C.conditionOfTitle(name), c = c0 && c0.label ? c0 : null;
     if (c){
       const grade = C.gradeOfTitle(name);
       condEl.innerHTML = `<b>Estado: ${escapeHtml(c.label)}.</b> ${escapeHtml(grade ? 'Grado según la tienda: ' + grade + '.' : C.NO_GRADE_NOTE)} No es un producto nuevo.`

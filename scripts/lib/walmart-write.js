@@ -262,28 +262,33 @@ export function voltageVerdict(name, description = "") {
 
 /* ---------- item 28 + Danny's ruling: condition ---------- */
 
-const REFURB_RX = /\b(refurbished|renewed|remanufactured|reconditioned|restored|certified pre-?owned|reacondicionad[oa])\b/i;
-const USED_RX = /\b(pre-?owned|used|second[- ]hand|segunda mano)\b/i;
+const REFURB_RX = /\b(refurbished|renewed|remanufactured|reconditioned|restored|reacondicionad[oa])\b/i;
+const CERTIFIED_USED_RX = /\bcertified pre-?owned\b|\busad[oa]s? certificad[oa]s?\b/i;
+const USED_RX = /\b(pre-?owned|used|usad[oa]|second[- ]hand|segunda mano)\b/i;
 const OPEN_BOX_RX = /\bopen[- ]box\b|\bcaja abierta\b/i;
 const CLOTHING_FOOTWEAR_RX = /\b(shirts?|t-shirts?|tees?|pants|jeans|dress(es)?|skirts?|jackets?|coats?|hoodies?|sweaters?|leggings|shorts|socks|underwear|bras?|pajamas?|shoes?|sneakers?|boots?|sandals?|slippers?|heels|loafers?|cleats)\b/i;
 const AUTO_PART_RX = /\b(brake|rotor|alternator|starter motor|radiator|transmission|engine|headlight assembly|bumper|fender|auto part)s?\b/i;
 const CLOTHING_DEPTS = new Set(["apparel", "basics", "shoes"]);
 
-/** { condition, label } for a stated condition, { excluded } for a prohibited one, or null. */
+/** { condition, label } for a stated condition, { excluded } for a prohibited
+    or held one, or null. The labels are Danny's three (c.6526570723); a plain
+    used listing carries none it may honestly use, so it is held. */
 export function conditionOf(name, dept = "") {
   const n = String(name || "");
-  const refurb = REFURB_RX.test(n);
-  const used = !refurb && USED_RX.test(n) && !/\bused (for|to|in|with|by|as)\b/i.test(n);
+  const certified = CERTIFIED_USED_RX.test(n);
+  const refurb = !certified && REFURB_RX.test(n);
+  const used = !certified && !refurb && USED_RX.test(n) && !/\bused (for|to|in|with|by|as)\b/i.test(n);
   const open = OPEN_BOX_RX.test(n);
-  if (!refurb && !used && !open) return null;
+  if (!certified && !refurb && !used && !open) return null;
   /* Ley 28514: used clothing and footwear may not be imported; SUNAT's
      list bars used auto parts. Open-box apparel counts with them. */
   const clothing = CLOTHING_DEPTS.has(dept) || CLOTHING_FOOTWEAR_RX.test(n);
   if (clothing) return { excluded: "excluded-used-clothing-footwear" };
-  if ((refurb || used) && AUTO_PART_RX.test(n)) return { excluded: "excluded-used-auto-part" };
+  if ((certified || refurb || used) && AUTO_PART_RX.test(n)) return { excluded: "excluded-used-auto-part" };
+  if (used) return { excluded: "held-plain-used" };
   /* INDECOPI (Ley 29571 art. 11): disclosed on the product and the receipt. */
+  if (certified) return { condition: "certified-used", label: "Usado certificado" };
   if (refurb) return { condition: "refurbished", label: "Reacondicionado" };
-  if (used) return { condition: "used", label: "Usado" };
   return { condition: "open-box", label: "Caja abierta" };
 }
 
