@@ -51,6 +51,7 @@ import vm from "node:vm";
 import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
+import { conditionOfTitle } from "./lib/condition.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
 import { STORES as CI } from "./lib/calzedonia-intimissimi.js";
@@ -365,6 +366,9 @@ const cardOf = (p) => {
   const c = { name: p.name, price: p.price, image: p.image };
   if (p.brand) c.brand = p.brand;
   if (p.was) c.was = p.was;
+  /* The same condition label the endpoint rows carry (cardOfRow). */
+  const cond = conditionOfTitle(p.name);
+  if (cond && cond.label) c.k = cond.label;
   return c;
 };
 const demand = (p) => Math.log10(1 + p.reviews);
