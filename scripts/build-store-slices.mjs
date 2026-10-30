@@ -304,6 +304,34 @@ export function genericItems(key, meta, rules, root = ROOT) {
   return { items: out, depts, facetMode: !!ctx.facetMode, facetGenders: Array.from(ctx.facetGenders || []), facetCats: Array.from(ctx.facetCats || []) };
 }
 
+/* BRAND CAROUSELS INSIDE A STORE (Danny, #443 c.6504037778 §2): a store
+   that sells many brands opens, after its Ofertas and Más vendidos, on one
+   carousel per brand -- its biggest brands first, each brand's own
+   markdowns leading -- before the type rails. A single-house store
+   (Victoria's Secret, YoungLA) has no brand rows: its types tell it. */
+export const STORE_BRAND_RAILS = 10, STORE_BRAND_MIN = 6;
+const NOT_A_BRAND_RX = /^(|unbranded|generic|n\/a|none|varios|various|other)$/i;
+/* Not a brand a shopper reads (Lucifer, #443 c.6512244834): a vendor code
+   ("QSSS/PP", "QSSS/NALUKAI" -- Quiet Storm's buying codes) or a
+   marketplace seller ("Spreetail", "WisairtDirect"). */
+const VENDOR_CODE_RX = /^[a-z0-9]{2,6}\/\S+$/i;
+const SELLER_RX = /^(spreetail)$|\S+direct$/i;
+export function brandRails(label, items, sort) {
+  const norm = (b) => String(b || "").toLowerCase().trim();
+  const groups = new Map();
+  for (const p of items) {
+    const b = norm(p.brand);
+    /* ...nor the store itself ("Walmart" inside Walmart Baby). */
+    if (NOT_A_BRAND_RX.test(b) || VENDOR_CODE_RX.test(b) || SELLER_RX.test(b) || b === norm(label) || b === norm(label).replace(/\s+(beb[eé]|baby|kids|niños|home|hogar)$/, "")) continue;
+    if (!groups.has(b)) groups.set(b, []);
+    groups.get(b).push(p);
+  }
+  const big = [...groups.values()].filter((l) => l.length >= STORE_BRAND_MIN);
+  if (big.length < 2) return [];
+  return big.sort((a, b) => b.length - a.length).slice(0, STORE_BRAND_RAILS)
+    .map((l) => ({ key: "b-" + norm(l[0].brand).replace(/[^a-z0-9]+/g, "-"), title: String(l[0].brand).trim(), items: l.slice().sort(sort) }));
+}
+
 export function genericRails(key, label, items, rules) {
   const { R, ctx } = rules;
   ctx.storeKey = key;
@@ -315,6 +343,7 @@ export function genericRails(key, label, items, rules) {
   if (reviewed.length >= RAIL_HEAD) {
     rails.push({ key: "masvendidos", title: "Más vendidos", items: reviewed.slice().sort((a, b) => (b.reviews - a.reviews) || (b.rating - a.rating)) });
   }
+  for (const r of brandRails(label, items, R.saleSort)) rails.push(r);
   /* One carousel per PRODUCT TYPE, never per Aria department (Danny,
      2026-10-07: a Gymshark page shows Leggings/Tops/Shorts). */
   const byType = {};
@@ -425,6 +454,9 @@ export function storeRails(key, products) {
     const rest = list.filter((p) => !(p.pct > 0)).sort((a, b) => (b.reviews - a.reviews) || (b.price - a.price));
     rails.push({ key: "d-" + dept, dept, title: cfg.DEPT_LABELS[dept] || dept, items: sprinklePremium(s.concat(rest)) });
   }
+  /* A store with its own department order (SleekShop's treatments,
+     DSW's classes) keeps it: its brand rows follow the departments. */
+  if (!cfg.BRAND_RAILS) for (const r of brandRails(cfg.label, products, bySale)) rails.push({ ...r, items: sprinklePremium(r.items) });
   return rails;
 }
 

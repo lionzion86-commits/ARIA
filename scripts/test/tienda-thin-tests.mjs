@@ -147,9 +147,28 @@ await check("Más vendidos follows Ofertas where the store publishes demand; typ
   }
   for (const k of keys.filter((x) => !SLICED_STORES[x])) {
     const ks = idx(k).rails.map((r) => r.key);
-    assert.ok(ks.slice(ks[1] === "masvendidos" ? 2 : 1).every((x) => x.startsWith("t-")), `${k}: ${ks.join(",")}`);
+    /* Then the brand carousels of a multi-brand store (Danny, #443 c.6504037778 §2), then the types. */
+    const rest = ks.slice(ks[1] === "masvendidos" ? 2 : 1), firstType = rest.findIndex((x) => x.startsWith("t-"));
+    const brands = firstType === -1 ? rest : rest.slice(0, firstType), types = firstType === -1 ? [] : rest.slice(firstType);
+    assert.ok(brands.every((x) => x.startsWith("b-")) && types.every((x) => x.startsWith("t-")), `${k}: ${ks.join(",")}`);
   }
-  assert.equal(idx("ccs").rails[1].key, "t-trajes_bano", "CCS publishes no demand: no Más vendidos");
+  assert.ok(!idx("ccs").rails.some((r) => r.key === "masvendidos"), "CCS publishes no demand: no Más vendidos");
+  assert.ok(idx("ccs").rails[1].key.startsWith("b-"), "CCS, a skate shop of many brands, opens its brand rows after Ofertas");
+});
+
+await check("a brand row is a brand: no vendor code, no marketplace seller, not the store itself", () => {
+  for (const k of keys) {
+    const { label, rails } = idx(k);
+    const house = String(label || "").toLowerCase().replace(/\s+(beb[eé]|baby|kids|niños|home|hogar)$/, "");
+    for (const r of rails.filter((x) => x.key.startsWith("b-"))) {
+      assert.doesNotMatch(r.title, /^[a-z0-9]{2,6}\/\S+$/i, `${k}: ${r.title}`);
+      assert.doesNotMatch(r.title, /^(spreetail)$|\S+direct$/i, `${k}: ${r.title}`);
+      if (label && label.toLowerCase() !== house) assert.notEqual(r.title.toLowerCase(), house, `${k}: ${r.title}`);
+    }
+  }
+  /* Lucifer's two (#443 c.6512244834). */
+  assert.ok(!idx("quietstorm").rails.some((r) => r.key.startsWith("b-")), "Quiet Storm has no real brand rows");
+  assert.ok(!idx("walmartbaby").rails.some((r) => /^(walmart|spreetail|wisairtdirect)$/i.test(r.title)), "Walmart Bebé");
 });
 
 await check("caps: 16 cards per rail on the first screen, 48 per page, first screen under 30KB gzipped", () => {
