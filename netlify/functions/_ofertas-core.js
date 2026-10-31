@@ -25,7 +25,9 @@ export const SORTS = ["discount", "priceAsc", "priceDesc"];
 export const MAX_Q = 80;
 
 /* deals.json keeps each card as an array, in this order. */
-export const FIELDS = ["id", "title", "brand", "store", "usd", "wasUsd", "pct", "image", "m"];
+/* ph: the product's photo count when 2+ (scripts/lib/photo-counts.js),
+   0 otherwise -- the card arms its photo arrows only then (#538). */
+export const FIELDS = ["id", "title", "brand", "store", "usd", "wasUsd", "pct", "image", "m", "ph"];
 export function packCard(c) { return FIELDS.map((f) => (c[f] == null ? "" : c[f])); }
 export function unpackCard(a) {
   const c = {};

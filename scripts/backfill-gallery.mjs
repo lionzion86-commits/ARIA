@@ -153,7 +153,8 @@ function merge(args, rule, rows, label) {
   const text = readFileSync(path, "utf8");
   const write = serializerFor(text);
   if (!write && !args.dryRun) throw new Error(`${args.catalog}: cannot reproduce its JSON style; refusing to rewrite it`);
-  const catalog = JSON.parse(text);
+  /* The writer's own parse: numbers written as 1.0 stay 1.0. */
+  const catalog = write && write.parse ? write.parse(text) : JSON.parse(text);
   const res = mergeGalleries(catalog, rows, { retailerKey: args.store, ...rule, stamp: label });
   const pct = (x, n) => (n ? (100 * x / n).toFixed(1) + "%" : "-");
   const n = res.before.single + res.before.multi;

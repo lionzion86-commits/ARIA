@@ -81,7 +81,18 @@ for (const [key, file] of Object.entries(HOLD_STORES)) {
 }
 
 check("the held photos: every non-garment constructed URL is held, the garments keep theirs", () => {
-  assert.ok(held.size > 3000, `${held.size} held`);
+  /* BoxLunch's holds lift with the 2026-10-30 re-pull (its real photos,
+     data/gallery-repull-2026-10-30/boxlunch.json); Hot Topic's stay
+     until its re-pull is final. */
+  assert.ok(held.size > 1000, `${held.size} held`);
+  let restored = 0;
+  for (const dept of Object.values(json(HOLD_STORES.boxlunch).retailers.boxlunch.departments))
+    for (const it of Array.isArray(dept) ? dept : dept.items) if (it.photoRestored) {
+      restored++;
+      assert.ok(it.image && it.images.includes(it.image) && !it.photoHeld, `boxlunch: ${it.name} restored without its own photo`);
+      /* (A held URL the store's own page returned is real after all.) */
+    }
+  assert.ok(restored > 2000, `${restored} BoxLunch photos restored`);
   assert.ok(kept > 1000, `${kept} kept`);
   assert.ok(holdsPhoto({ image: "https://cdn.media.amplience.net/s/hottopic/34555692_hi", type: "Pantalón",
     name: "Funko Pop! Movies The SpongeBob Movie: Search for SquarePants Vinyl Figure" }), "a Funko typed Pantalón keeps a dead photo");
@@ -90,7 +101,9 @@ check("the held photos: every non-garment constructed URL is held, the garments 
   for (const [key, file] of Object.entries(HOLD_STORES))
     for (const dept of Object.values(json(file).retailers[key].departments))
       for (const it of Array.isArray(dept) ? dept : dept.items) {
-        assert.ok(!holdsPhoto(it), `${key}: ${it.name} still carries a constructed photo`);
+        /* A restored photo came from the store's own page (photoRestored),
+           whatever its URL looks like. */
+        if (!it.photoRestored) assert.ok(!holdsPhoto(it), `${key}: ${it.name} still carries a constructed photo`);
         if (it.photoHeld) assert.match(it.heldImage, CONSTRUCTED_RX, "the held URL is kept for the repair");
       }
 });

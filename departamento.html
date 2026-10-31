@@ -176,6 +176,7 @@
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/card-photos.js" defer></script>
 </head>
 <body>
 
@@ -743,7 +744,7 @@ function sizedImageUrl(url, w){
     var pct = salePct(c);
     var badge = pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '';
     var img = c.i
-      ? '<img ' + cardImgAttrs(c.i).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=')
+      ? '<img ' + (c.ph > 1 ? 'data-g="' + (c.ph | 0) + '" ' : '') + cardImgAttrs(c.i).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=')
         + ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.parentNode.innerHTML=\'<span class=&quot;noimg&quot;>Sin imagen</span>\'}">'
       : '<span class="noimg">Sin imagen</span>';
     /* THE CARD IS A LINK TO OUR PRODUCT PAGE -- never to the retailer. */
