@@ -195,6 +195,16 @@ button{font:inherit;cursor:pointer}
 .site-footer .wrap{padding-top:28px;padding-bottom:28px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
 .site-footer .fw{font-weight:800;letter-spacing:.12em;color:#fff;text-transform:uppercase}
 .site-footer a{color:var(--gold2);text-decoration:none;font-weight:700}
+/* THE BIG CARD, EVERYWHERE (#443 c.6545712892, c.6546035414): the
+   Ropa Interior card is the one card standard -- near-full-width in
+   rails, a 4:5 photo, the title readable at a glance, photo arrows on
+   every product with 2+ photos (card-photos.js). */
+.rail .card{flex:0 0 clamp(232px,68vw,300px)}
+@media(min-width:640px){.rail .card{flex-basis:clamp(232px,68vw,300px)}}
+.card .card-img{aspect-ratio:4/5}
+@supports not (aspect-ratio:4/5){.card .card-img{padding-top:125%}}
+.card .card-name{font-size:14.5px;min-height:39px}
+.card .card-body{padding:14px 16px 16px}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->

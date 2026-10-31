@@ -189,6 +189,7 @@
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
+<script src="/assets/js/dept-header.js" defer></script>
 </head>
 <body>
 
@@ -438,6 +439,10 @@
   var ENDPOINT = '/.netlify/functions/department';
   var HEAD = null;           // the answer on screen (static or filtered)
   var fQ = '', fRet = 'all', fB = '', fA = '', fT = '', fTitle = '';
+  /* fU: the header's audience switch (#443 c.6545712892): women, men or
+     kids; '' is Todo. ?para=<k> opens the page on one audience. */
+  var fU = '';
+  try { var _um = /[?&]para=(women|men|kids)(?:&|$)/.exec(window.location.search || ''); if (_um) fU = _um[1]; } catch(e){}
   /* Perfumes' brand and door pills: departamento.html?dept=perfumes&b=<brand>&a=<door>. */
   try {
     var _bm = /[?&]b=([^&]*)/.exec(window.location.search || ''), _am = /[?&]a=([a-z]{2,20})(?:&|$)/.exec(window.location.search || '');
@@ -791,7 +796,7 @@ function sizedImageUrl(url, w){
       return r.json();
     }, function(e){ if (timer) clearTimeout(timer); throw e; });
   }
-  function filtered(){ return fRet !== 'all' || !!fQ.trim() || !!fB || !!fA || !!fT; }
+  function filtered(){ return fRet !== 'all' || !!fQ.trim() || !!fB || !!fA || !!fT || !!fU; }
   function endpoint(extra){
     var u = ENDPOINT + '?dept=' + encodeURIComponent(deptKey);
     if (fRet !== 'all') u += '&r=' + encodeURIComponent(fRet);
@@ -799,6 +804,7 @@ function sizedImageUrl(url, w){
     if (fB) u += '&b=' + encodeURIComponent(fB);
     if (fA) u += '&a=' + encodeURIComponent(fA);
     if (fT) u += '&t=' + encodeURIComponent(fT);
+    if (fU) u += '&u=' + encodeURIComponent(fU);
     return u + (extra || '');
   }
   function headUrl(){ return filtered() ? endpoint('') : SLICES + 'head.json'; }
@@ -974,6 +980,8 @@ function sizedImageUrl(url, w){
       show(toolbar);
       renderChips();
       renderHead();
+      /* The header (assets/js/dept-header.js): stats, switch, axes, Explorar todo. */
+      try { HEAD_HOOKS.forEach(function(fn){ fn(HEAD, filtered()); }); } catch(e){}
       afterFirstPhotos(heroImage);
     }).catch(function(){
       if (seq !== SEQ) return;
@@ -1295,6 +1303,26 @@ function sizedImageUrl(url, w){
       if (/[?&]pasillo=fragancias\b/.test(location.search)) sec.scrollIntoView({ block: 'start' });
     }).catch(function(){});
   }
+
+  /* ---------- the header's hooks (#443 c.6545712892) ----------
+     assets/js/dept-header.js draws the Ropa Interior header around the
+     rails; it reads the department through these. */
+  var HEAD_HOOKS = [];
+  window.AriaDept = {
+    key: deptKey, endpoint: ENDPOINT, slices: SLICES,
+    onHead: function(fn){ HEAD_HOOKS.push(fn); if (HEAD) { try { fn(HEAD, filtered()); } catch(e){} } },
+    audience: function(){ return fU; },
+    setAudience: function(u){
+      fU = u || '';
+      try { var url = new URL(location.href); if (fU) url.searchParams.set('para', fU); else url.searchParams.delete('para'); history.replaceState(null, '', url); } catch(e){}
+      loadAll();
+    },
+    cardHTML: function(c){ return cardHTML(c); },
+    watchPhotos: function(root){ watchPhotos(root); },
+    paintPrices: function(root){ paintPrices(root); },
+    getJSON: function(u){ return getJSON(u); },
+    esc: function(x){ return esc(x); }
+  };
 
   /* ---------- go ---------- */
   try { paintPerfumesLead(); } catch(e){}
