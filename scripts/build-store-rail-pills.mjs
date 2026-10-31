@@ -70,6 +70,7 @@ export function storePills(store, root = ROOT) {
   const pills = [], thin = [];
   for (const rail of idx.rails || []) {
     if (!/^t-/.test(rail.key)) continue;            /* Ofertas / Más vendidos are the rail's own default */
+    if (rail.key === "t-mas") continue;             /* the store page's shared tail rail is not an aisle */
     const rows = (fn.rails[rail.key] || []).map((i) => fn.rows[i]).filter((r) => r && r[R.image]);
     if (rows.length < PILL_MIN) { if (rows.length) thin.push(`${rail.title} (${rows.length})`); continue; }
     const whole = { k: rail.key.slice(2), label: rail.title, rows };
