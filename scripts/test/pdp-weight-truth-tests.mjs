@@ -184,7 +184,7 @@ await check("product page: a web-pass weight says so", async () => {
 await check("the cart line from the product page carries the catalogue's weight, not a flat 0.2 kg", () => {
   const page = readFileSync(ROOT + "producto.html", "utf8");
   assert.doesNotMatch(page, /\n\s*weightKg: 0\.2,\r?\n/, "the flat 0.2 kg cart weight is back");
-  assert.match(page, /weightKg: weightLineOf\(p, priceUsd\)\.weightKg/);
+  assert.match(page, /weightKg: weightLineOf\(p, priceUsd(?:, size)?\)\.weightKg/);
   const toml = readFileSync(ROOT + "netlify.toml", "utf8");
   for (const fn of ["resolve-weight", "orders-create", "search"]) {
     const block = toml.split(`[functions."${fn}"]`)[1] || "";

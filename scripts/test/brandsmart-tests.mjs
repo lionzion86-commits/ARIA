@@ -100,7 +100,9 @@ check("wired everywhere a store is: registry, app mirror, storefront, Tiendas, t
   assert.match(readFileSync(ROOT + "tienda.html", "utf8"), /"brandsmart": \{"label": "BrandsMart USA"/);
   assert.match(readFileSync(ROOT + "tiendas.html", "utf8"), /tienda\.html\?tienda=brandsmart/);
   const html = readFileSync(ROOT + "index.html", "utf8");
-  assert.equal((html.match(/tiendaJump\('brandsmart'\)/g) || []).length, 2, "the anchor card in the phone and desktop bands");
+  /* Off the homepage (Danny, #443 c.6539449309): a single South Florida
+     store; its products live in Electrónica. */
+  assert.equal((html.match(/tiendaJump\('brandsmart'\)/g) || []).length, 0, "no BrandsMart card on the homepage");
   const ix = JSON.parse(readFileSync(ROOT + "assets/tienda/brandsmart/index.json", "utf8"));
   assert.equal(ix.rails[0].key, "ofertas", "Ofertas first where real sale prices exist");
   const head = JSON.parse(readFileSync(ROOT + "assets/sections/departamento/electronics/head.json", "utf8"));
