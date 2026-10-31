@@ -19,7 +19,8 @@ import { readFileSync } from "node:fs";
 import { gymKind, isGymApparel } from "../lib/gym-apparel.js";
 import { GYM_BRANDS } from "../build-gym-pulls.mjs";
 import { isOffSaleRetailer } from "../lib/off-sale.js";
-import { DEPT_RULES, belongsToDept, loadAllItems } from "../build-department-slices.mjs";
+import { SMALL_PIECE_RX, clothesFirst, HERO_LEAD } from "../../netlify/functions/_department-core.js";
+import { DEPT_RULES, belongsToDept, loadAllItems, resolveRule } from "../build-department-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const read = (f) => readFileSync(ROOT + f, "utf8");
@@ -73,7 +74,11 @@ check("the catalogue: 12 brands; only clothing in gym_rat, only gear in combat_s
 
 check("the Gym Rat department is clothing only, from the gym brands and the fight brands' clothing; no Gymshark, no Alphalete", () => {
   const all = loadAllItems(ROOT);
-  const inGym = all.filter((p) => belongsToDept(DEPT_RULES.gym_rat, p));
+  const rule = resolveRule(DEPT_RULES.gym_rat, all);
+  const inGym = all.filter((p) => belongsToDept(rule, p));
+  /* The fight stores that join are read from the data, not typed. */
+  assert.ok(!("stores" in DEPT_RULES.gym_rat.apparelFrom), "a typed store list is back in the rule");
+  for (const k of ["venum", "everlast", "tatami"]) assert.ok(rule.apparelFrom.stores.includes(k), k);
   const gear = inGym.filter((p) => !isGymApparel(p));
   assert.deepEqual(gear.map((p) => p.title).slice(0, 5), []);
   const stores = new Set(inGym.map((p) => p.retailer));
@@ -107,6 +112,23 @@ check("every brand is a store: the registry, the product page, search", () => {
     const idx = JSON.parse(read(`assets/tienda/${key}/index.json`));
     assert.ok(idx.count > 0, key);
   }
+});
+
+check("every Gym Rat rail leads with clothing: no sock, cap or band in its first 12 (#443 c.6544911957)", () => {
+  const head = JSON.parse(read("assets/sections/departamento/gym_rat/head.json"));
+  const rails = [...head.rails];
+  for (let i = 0; ; i++) { let d; try { d = JSON.parse(read(`assets/sections/departamento/gym_rat/rails-${i}.json`)); } catch { break; } rails.push(...d.rails); }
+  assert.ok(rails.length >= 10);
+  for (const r of rails) {
+    const lead = (r.cards || []).slice(0, 12).map((c) => c.t);
+    assert.deepEqual(lead.filter((t) => SMALL_PIECE_RX.test(t)), [], `rail ${r.i}`);
+  }
+  /* The small pieces stay: sprinkled after the lead, one in four. */
+  const items = [...Array(20)].map((_, i) => ({ title: "Socks " + i })).concat([...Array(20)].map((_, i) => ({ title: "Seamless Tank " + i })));
+  const out = clothesFirst(items);
+  assert.equal(out.length, 40);
+  assert.ok(out.slice(0, HERO_LEAD).every((p) => /Tank/.test(p.title)));
+  assert.ok(out.slice(HERO_LEAD, HERO_LEAD + 8).filter((p) => /Socks/.test(p.title)).length === 2);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
