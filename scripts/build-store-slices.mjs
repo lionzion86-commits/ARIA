@@ -267,6 +267,82 @@ const reviewsOf = (raw) => {
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
 
+/* ONE PRODUCT, ONE CARD (#443 c.6534989244 item 4). A store drawn from
+   several files carries the same product more than once: Walmart's
+   department cache (English `name`) and the toy catalogue (Spanish
+   `title`) hold the LEGO Creator 31377 twice, same link, same photo, same
+   price. Two records are one product when, at the same price, they share
+   the product link (its path, query dropped) AND either the title
+   (accents, case and punctuation aside) or the photo. The Spanish title
+   wins: the twin with the Spanish name takes the first one's place. */
+export const titleKey = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+export function urlKey(u) {
+  const m = /^https?:\/\/([^/?#]+)(\/[^?#]*)/i.exec(String(u || ""));
+  if (!m) return "";
+  const path = m[2].toLowerCase().replace(/\/+$/, "");
+  return path.length > 8 ? m[1].toLowerCase().replace(/^www\./, "") + path : "";
+}
+const ES_WORDS = /\b(de|del|para|con|y|en|los|las|el|la|niñas?|niños?|años|juguete|regalo)\b/gi;
+const EN_WORDS = /\b(of|for|with|and|in|the|girls?|boys?|kids|ages|toy|gift)\b/gi;
+export const spanishScore = (s) => (String(s || "").match(ES_WORDS) || []).length - (String(s || "").match(EN_WORDS) || []).length;
+export function dedupeMerged(items) {
+  const at = new Map(), out = [];
+  const keysOf = (it) => {
+    const price = Number(it.price) || 0, ks = [it.name + "||" + it.image];
+    const t = titleKey(it.name), u = urlKey(it.url);
+    /* The audit's key (title, price, link) -- and the bilingual twin: the
+       same link, the same photo, the same price under another title.
+       A colourway (its own photo or link) is never merged. */
+    if (t && u) ks.push("t|" + t + "|" + price + "|" + u);
+    if (u && it.image) ks.push("u|" + u + "|" + it.image + "|" + price);
+    return ks;
+  };
+  for (const it of items) {
+    const ks = keysOf(it);
+    const hit = ks.map((k) => at.get(k)).find((i) => i !== undefined);
+    if (hit === undefined) {
+      for (const k of ks) at.set(k, out.length);
+      out.push(it);
+      continue;
+    }
+    /* The Spanish twin takes the card. */
+    if (spanishScore(it.name) > 0 && spanishScore(it.name) > spanishScore(out[hit].name)) out[hit] = it;
+    for (const k of ks) if (!at.has(k)) at.set(k, hit);
+  }
+  return out;
+}
+
+/* ONE SCHEMA AT THE MERGE (#443 c.6534989244 item 7). A store drawn from
+   several files whose schemas differ (Walmart: the toy catalogue carries
+   no brand at all) gets its brand from its OWN records, never a guess:
+   a record with no brand takes the brand its title (or its English title)
+   opens with, when that brand is one the store's other records name at
+   least BRAND_FILL_MIN times. Longest brand first ("Fisher-Price" before
+   "Fisher"). */
+export const BRAND_FILL_MIN = 2;
+export function fillBrandsFromStore(items) {
+  const count = new Map(), label = new Map();
+  for (const p of items) {
+    const b = String(p.brand || "").trim();
+    if (b.length < 2) continue;
+    const k = b.toLowerCase();
+    count.set(k, (count.get(k) || 0) + 1);
+    if (!label.has(k)) label.set(k, b);
+  }
+  const brands = [...count].filter(([, n]) => n >= BRAND_FILL_MIN).map(([k]) => k).sort((a, b) => b.length - a.length);
+  const opens = (title) => {
+    const t = String(title || "").toLowerCase();
+    return brands.find((b) => t.startsWith(b) && /[\s,:\-\u2013®™]/.test(t.charAt(b.length) || "")) || null;
+  };
+  let filled = 0;
+  for (const p of items) {
+    if (String(p.brand || "").trim()) continue;
+    const k = opens(p.name) || opens(p.nameEn);
+    if (k) { p.brand = label.get(k); filled++; }
+  }
+  return filled;
+}
+
 /* What the page's loadStore() built in the phone: every department of
    the store in every file it names, normItem, deduped by name + photo. */
 export function genericItems(key, meta, rules, root = ROOT) {
@@ -287,43 +363,71 @@ export function genericItems(key, meta, rules, root = ROOT) {
         try { n = R.normItem(raw, dk); } catch { n = null; }
         if (!n) continue;
         n.reviews = reviewsOf(raw);
+        if (!n.url) n.url = String(raw.url || raw.productUrl || raw.link || "");
+        if (raw.title_en) n.nameEn = String(raw.title_en);
         n.rating = Number(raw.rating) || 0;
         items.push(n);
       }
     }
   }
-  const seen = new Set(), out = [];
-  for (const it of items) {
-    const k = it.name + "||" + it.image;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push(it);
-  }
+  const out = dedupeMerged(items);
+  if ((meta.files || []).length > 1) fillBrandsFromStore(out);
   ctx.allItems = out;
   ctx.deptLabels = depts;
   try { R.buildFacets(); } catch { ctx.facetMode = false; }
   return { items: out, depts, facetMode: !!ctx.facetMode, facetGenders: Array.from(ctx.facetGenders || []), facetCats: Array.from(ctx.facetCats || []) };
 }
 
+/* THE STORE TEMPLATE (#443 c.6534989244, Lucifer's audit; Walmart is the
+   acceptance test). Every generic storefront:
+     1. Ofertas (sale items only), then Más vendidos (a credible set:
+        the BEST_SELLERS_MAX most-reviewed, never a third of the store);
+     2. one rail per product type, ordered by its TRUE total in this
+        store, biggest first -- never a fixed category order (Walmart's
+        toys, half the store, were 8th behind 88 swimsuits);
+     3. a type under RAIL_MIN products gets no rail of its own: they share
+        one tail rail, "Más de <tienda>" (t-mas), last;
+     4. inside every rail, SELLABLE FIRST: on-sale accessible pieces
+        (<= ACCESSIBLE_USD) lead, then the rest under it, then the
+        expensive; within a tier by reviews, then rating; the discount is
+        only the tiebreak;
+     5. a type rail's first cards are not a copy of what Ofertas and Más
+        vendidos already show up front (those pieces stay in the rail,
+        further along). */
+export const RAIL_MIN = 25;
+export const ACCESSIBLE_USD = 200;
+export const BEST_SELLERS_MAX = 50;
+export const TAIL_RAIL_KEY = "t-mas";
+export function sellableSort(R) {
+  const tier = (p) => (p.price <= ACCESSIBLE_USD ? (R.saleTier(p) > 0 ? 0 : 1) : 2);
+  return (a, b) => (tier(a) - tier(b)) || ((b.reviews || 0) - (a.reviews || 0)) || ((b.rating || 0) - (a.rating || 0)) ||
+    (R.discountPct(b) - R.discountPct(a)) || (a.price - b.price);
+}
 export function genericRails(key, label, items, rules) {
   const { R, ctx } = rules;
   ctx.storeKey = key;
+  const sellable = sellableSort(R);
   const rails = [];
-  const sales = items.filter((p) => R.saleTier(p) > 0).sort(R.saleSort);
+  const sales = items.filter((p) => R.saleTier(p) > 0).sort(sellable);
   if (sales.length) rails.push({ key: "ofertas", title: "Ofertas de " + label, items: sales });
   else if (items.length) rails.push({ key: "destacados", title: "Destacados de " + label, items: items.slice().sort((a, b) => b.price - a.price) });
   const reviewed = items.filter((p) => p.reviews > 0);
   if (reviewed.length >= RAIL_HEAD) {
-    rails.push({ key: "masvendidos", title: "Más vendidos", items: reviewed.slice().sort((a, b) => (b.reviews - a.reviews) || (b.rating - a.rating)) });
+    rails.push({ key: "masvendidos", title: "Más vendidos",
+      items: reviewed.slice().sort((a, b) => (b.reviews - a.reviews) || (b.rating - a.rating)).slice(0, BEST_SELLERS_MAX) });
   }
+  const shown = new Set(rails.flatMap((r) => r.items.slice(0, RAIL_HEAD)));
+  const fresh = (arr) => arr.filter((p) => !shown.has(p)).concat(arr.filter((p) => shown.has(p)));
   /* One carousel per PRODUCT TYPE, never per Aria department (Danny,
      2026-10-07: a Gymshark page shows Leggings/Tops/Shorts). */
   const byType = {};
   for (const p of items) { const t = R.productTypeOf(p); (byType[t] = byType[t] || []).push(p); }
-  for (const t of R.PRODUCT_TYPES) {
-    const list = (byType[t.key] || []).slice().sort(R.saleSort);
-    if (list.length) rails.push({ key: "t-" + t.key, title: t.label, items: list });
-  }
+  const types = R.PRODUCT_TYPES.filter((t) => (byType[t.key] || []).length);
+  const big = types.filter((t) => byType[t.key].length >= RAIL_MIN)
+    .sort((a, b) => byType[b.key].length - byType[a.key].length);
+  for (const t of big) rails.push({ key: "t-" + t.key, title: t.label, items: fresh(byType[t.key].slice().sort(sellable)) });
+  const tail = types.filter((t) => byType[t.key].length < RAIL_MIN).flatMap((t) => byType[t.key]);
+  if (tail.length) rails.push({ key: TAIL_RAIL_KEY, title: "Más de " + label, items: fresh(tail.sort(sellable)) });
   return rails;
 }
 
