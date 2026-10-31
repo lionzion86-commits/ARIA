@@ -65,7 +65,9 @@ async function open(path) {
   const pg = await ctx.newPage();
   const errs = [];
   pg.on("pageerror", (e) => errs.push(e.message));
-  await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+  await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.request().resourceType() === "image"
+    ? r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : r.abort());
   await pg.goto(`${BASE}/${path}`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(3000);
   return { pg, errs };

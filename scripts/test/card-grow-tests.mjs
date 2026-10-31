@@ -19,7 +19,7 @@
      node scripts/test/card-grow-tests.mjs
      PAGES="ofertas.html" node scripts/test/card-grow-tests.mjs
 
-   Off-site requests (photos) are aborted.
+   Off-site requests are aborted; off-site photos answer with a 1x1 PNG.
    ================================================================== */
 import http from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -58,7 +58,9 @@ async function open(ctx, path, { blockGrow = false } = {}) {
   const pg = await ctx.newPage();
   const errs = [];
   pg.on("pageerror", (e) => errs.push(e.message));
-  await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+  await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.request().resourceType() === "image"
+    ? r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : r.abort());
   if (blockGrow) await pg.route(/card-grow\.js/, (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
   await pg.goto(`${BASE}/${path}`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);

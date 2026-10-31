@@ -1,0 +1,23 @@
+{
+  "note": "Photo URLs verified dead at source (HTTP 404). scripts/sweep-dead-images.mjs strips them from every catalogue: a record whose lead photo is listed falls back to its next photo; a record left with none is held (no image, no card). Add a URL here only with the check that found it dead.",
+  "dead": [
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0570/4512/3262/files/M164-FRONT.webp?v=1747244849",
+      "status": 404,
+      "verified": "2026-10-31",
+      "source": "#443 c.6547325227 (Ancora Swimwear, Swimming Up Trunk)"
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0570/4512/3262/files/M164.gif?v=1747244849",
+      "status": 404,
+      "verified": "2026-10-31",
+      "source": "#443 c.6547325227 (Ancora Swimwear, Swimming Up Trunk)"
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0570/4512/3262/files/M164-BACK.webp?v=1747244849",
+      "status": 404,
+      "verified": "2026-10-31",
+      "source": "#443 c.6547325227 (Ancora Swimwear, Swimming Up Trunk)"
+    }
+  ]
+}
