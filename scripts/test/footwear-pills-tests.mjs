@@ -10,7 +10,8 @@
    never lead one -- even a cleat whose title was stripped to the model
    ("PUMA Jr. TACTO II"), known by its photo or its soccer store; no bag
    that says "gym"; women's Zapatos opens on marketable sneakers and
-   carries boots.
+   carries boots. In the three Mujer pills Farfetch rides at the end,
+   never the lead (Danny, #443 c.6547326285).
 
      node scripts/test/footwear-pills-tests.mjs
    ================================================================== */
@@ -77,6 +78,19 @@ check("women's Zapatos carries boots, one card in three after the sneaker lead",
 
 check("women's Zapatos opens on marketable sneakers", () => {
   for (const c of cardsOf("mujer", "Zapatos").slice(0, 4)) assert.match(c.t, /(sneakers?|550|spezial|samba|air max|air force|chuck taylor|old skool)/i, c.t);
+});
+
+check("Mujer Zapatos, Zapatillas and Sandalias: Farfetch never leads, pinned to the end, still in the pill (Danny, #443 c.6547326285)", () => {
+  let farfetch = 0;
+  for (const label of ["Zapatos", "Zapatillas", "Sandalias"]) {
+    const cards = cardsOf("mujer", label);
+    assert.notEqual(cards[0].r, "farfetch", `Mujer/${label} opens on Farfetch: ${cards[0].t}`);
+    const first = cards.findIndex((c) => c.r === "farfetch");
+    if (first === -1) continue;
+    farfetch += cards.length - first;
+    for (const c of cards.slice(first)) assert.equal(c.r, "farfetch", `Mujer/${label}: ${c.t} (${c.r}) behind a Farfetch card`);
+  }
+  assert.ok(farfetch > 0, "Farfetch is demoted, not removed: no Farfetch card left in the Mujer shoe pills");
 });
 
 check("the rule: boots and Vans are Zapatos, runners and cleats Zapatillas, slides Sandalias, a Slide sneaker a shoe", () => {

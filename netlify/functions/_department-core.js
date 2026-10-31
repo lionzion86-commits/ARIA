@@ -1090,6 +1090,7 @@ export function footClass(p) {
   return "zapatos";
 }
 const sportLast = (p) => !isSportShoe(p) && !SOCCER_STORES.has(p.retailer);
+const farfetchLast = (p) => p.retailer === "farfetch";
 const BOOT_RX = /\b(boots?|booties|bootie|botas?|botines?|chelsea)\b/i;
 const SNEAKER_RX = /\b(sneakers?|running|runners?|trainers?|zapatillas?|air max|air force|ultraboost|gel-|samba|gazelle|campus|550|574|9060|990|new balance|chuck taylor|old skool|platform sneakers?)\b/i;
 /* A tee or a hoodie filed with the toys is clothing, not a toy. */
@@ -1106,9 +1107,13 @@ export const AUDIENCE_SHELVES = {
      women's footwear. */
   /* ...and boots ride in it, one card in three after the sneaker lead
      (Lucifer, c.6512244834: Mujer Zapatos had no botas). */
-  mujer: [["zapatos", "Zapatos", "shoes_women", (p) => footClass(p) === "zapatos", (p) => SNEAKER_RX.test(p.title), (p) => BOOT_RX.test(p.title)],
-    ["zapatillas", "Zapatillas", "shoes_women", (p) => footClass(p) === "zapatillas", sportLast],
-    ["sandalias", "Sandalias", "shoes_women", (p) => footClass(p) === "sandalias"], ["gym", "Ropa de gimnasio", "gym_rat", (p) => WOMEN_RX.test(p.title) && !MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
+  /* ...and Farfetch rides at the END of the three Mujer shoe pills, never
+     the lead (Danny, #443 c.6547326285): the front goes to the good sales
+     of the regular stores (CCS and peers); the Farfetch cards stay in the
+     pill for variety, demoted, not removed. */
+  mujer: [["zapatos", "Zapatos", "shoes_women", (p) => footClass(p) === "zapatos", (p) => SNEAKER_RX.test(p.title), (p) => BOOT_RX.test(p.title), farfetchLast],
+    ["zapatillas", "Zapatillas", "shoes_women", (p) => footClass(p) === "zapatillas", sportLast, null, farfetchLast],
+    ["sandalias", "Sandalias", "shoes_women", (p) => footClass(p) === "sandalias", null, null, farfetchLast], ["gym", "Ropa de gimnasio", "gym_rat", (p) => WOMEN_RX.test(p.title) && !MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
     ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (WOMEN_RX.test(p.title) || /\b(pour femme|for her)\b/i.test(p.title))], ["maquillaje", "Maquillaje", "beauty", (p) => MAKEUP_RX.test(p.title)],
     ["cabello", "Cabello", "cabello", null], ["vestidos", "Vestidos", "women", "vestidos"], ["tops", "Blusas y tops", "women", "tops"],
     ["lenceria", "Lencería", "women", "lenceria"], ["bano", "Ropa de baño", "women", "bano"], ["carteras", "Carteras", "women", "carteras"],
@@ -1135,7 +1140,7 @@ export const AUDIENCE_MIN = 8, AUDIENCE_CARDS = 24;
    not render (the Aisle Test). */
 export function audiencePills(aud, listOf) {
   const pills = [];
-  for (const [k, label, dept, f, lead, mix] of AUDIENCE_SHELVES[aud]) {
+  for (const [k, label, dept, f, lead, mix, tail] of AUDIENCE_SHELVES[aud]) {
     const seen = new Set();
     const l = listOf(dept).filter((p) => p.image && (!f || (typeof f === "string" ? modaType(p) === f : f(p))))
       .filter((p) => { const t = p.retailer + "::" + String(p.title).toLowerCase(); if (seen.has(t)) return false; seen.add(t); return true; });
@@ -1146,8 +1151,19 @@ export function audiencePills(aud, listOf) {
     if (lead) ranked = [...ranked.filter(lead), ...ranked.filter((p) => !lead(p))];
     /* A pill with a mix rule keeps that kind on screen: after the first
        MIX_LEAD cards, one card in MIX_EVERY is of it. */
+    const led = ranked;
     if (mix) ranked = mixIn(ranked, mix);
-    if (ranked.length >= AUDIENCE_MIN) pills.push({ k, label, dept, cards: ranked.slice(0, AUDIENCE_CARDS).map(cardOf) });
+    let cards = ranked.slice(0, AUDIENCE_CARDS);
+    /* A pill with a tail rule keeps the same cards but pins those to the
+       end (Farfetch in the Mujer shoe pills); the others open the pill
+       under its lead and mix rules, as above. */
+    if (tail) {
+      const kept = new Set(cards);
+      let front = led.filter((p) => kept.has(p) && !tail(p));
+      if (mix) front = mixIn(front, mix);
+      cards = front.concat(cards.filter(tail));
+    }
+    if (ranked.length >= AUDIENCE_MIN) pills.push({ k, label, dept, cards: cards.map(cardOf) });
   }
   return { v: 1, pills };
 }
