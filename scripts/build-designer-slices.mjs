@@ -34,6 +34,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { photoCount } from "./lib/photo-counts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const OUT_DIR = "assets/sections/disenadores";
@@ -104,6 +105,7 @@ export function loadItems(root = ROOT) {
         price, originalPrice: sale ? oFinal : null, onSale,
         image: typeof it.image === "string" && /^https?:\/\//i.test(it.image) ? it.image : "",
         ptype: productTypeOf(it),
+        ph: photoCount(root, it.name || "", rk),
       });
     }
   }
@@ -137,6 +139,9 @@ export function cardOf(it) {
     c.o = it.rawWas;
   }
   if (it.image) c.i = it.image;
+  /* ph: the photo count when 2+ (#443 c.6546035414): the card's photo
+     arrows, as every department card has them. */
+  if (it.ph > 1) c.ph = it.ph;
   return c;
 }
 

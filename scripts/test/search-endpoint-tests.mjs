@@ -174,8 +174,9 @@ await check("answers are edge-cached per (q, page); the warm ping is not", async
 const page = readFileSync(ROOT + "search.html", "utf8");
 await check("search.html downloads no catalogue, index or engine", () => {
   const fetched = [...page.matchAll(/["'](\/?[\w./-]+\.(?:json|js))["']/g)].map((m) => m[1]);
-  /* ref.js and Aria's orb launcher (#386, deferred, no data) are the only scripts. */
-  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/(aria-launcher|pixels))\.js$/.test(u));
+  /* ref.js, Aria's orb launcher (#386) and the card UI scripts (card-grow,
+     card-photos: no data) are the only scripts. */
+  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/(aria-launcher|pixels|card-grow|card-photos))\.js$/.test(u));
   assert.deepEqual(heavy, [], "the page still references " + heavy.join(", "));
   assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/);
   assert.match(page, /var PAGE_SIZE = 48;/);
@@ -183,7 +184,9 @@ await check("search.html downloads no catalogue, index or engine", () => {
 });
 
 await check("a card holds its shape before its photo or words arrive", () => {
-  assert.match(page, /\.card \.img\{[^}]*aspect-ratio:1\/1/, "the photo box is not square");
+  assert.match(page, /\.card \.img\{[^}]*aspect-ratio:1\/1/, "the photo box is not reserved");
+  assert.match(page, /\.card \.img\{aspect-ratio:4\/5;\}/, "the photo box is not the big card's 4:5 (#443)");
+  assert.match(page, /@supports not \(aspect-ratio:4\/5\)\{ \.card \.img\{padding-top:125%;\} \}/, "no 4:5 box for Safari before 15");
   assert.match(page, /@supports not \(aspect-ratio:1\/1\)\{ \.card \.img\{height:0; padding-top:100%;\} \}/, "no square for Safari before 15");
   assert.match(page, /\.card \.img img\{position:absolute;/, "the photo is not laid over the reserved box");
   assert.match(page, /\.card \.name\{[^}]*min-height:35px/, "the title lines are not reserved");

@@ -32,6 +32,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
+import { photoCount } from "./lib/photo-counts.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_FILE, brandKeyOf, titleWords, filterByBrand, headOf, fnRow } from "../netlify/functions/_brand-core.js";
 
@@ -137,6 +138,9 @@ export function loadAllItems(root = ROOT) {
             const k = (p.retailer + "|" + (p.url || p.name)).toLowerCase();
             if (seen.has(k)) continue;
             seen.add(k);
+            /* ph: the photo count when 2+ (#443 c.6546035414): photo arrows on brand cards. */
+            const ph = photoCount(root, p.name, (rkey || retailer).toLowerCase());
+            if (ph > 1) p.ph = ph;
             out.push(p);
           }
         }
