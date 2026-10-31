@@ -320,7 +320,9 @@
     home_goods:      {name:'Casa Aria', desc:'La casa de Aria: libros de mesa, Crate & Barrel y Pier 1, con el total en soles.'},
     home_decor:      {name:'Decoración', desc:'Dale vida a tus espacios.'},
     curvy:           {name:'Curvy', desc:'Moda en tallas grandes — todas las mujeres, todos los estilos.'},
-    gym_rat:         {name:'Gym Rat', desc:'Ropa de gym — Gymshark, Young LA, Alphalete.'},
+    /* The brands named are the ones the section stocks (#443 c.6542477414):
+       read from head.json's stores, never typed here. */
+    gym_rat:         {name:'Gym Rat', desc:'Ropa para entrenar.', descBrands:'Ropa para entrenar'},
     surf_skate:      {name:'Surf & Skate', desc:'Tablas, skates y todo para la ola y la pista.'},
     spearfishing:    {name:'Pesca Submarina', desc:'Equipo de pesca submarina y apnea.'},
     soccer:          {name:'Fútbol', desc:'Todo para el deporte rey.'},
@@ -905,6 +907,19 @@ function sizedImageUrl(url, w){
     chipsEl.innerHTML = ch;
   }
 
+  /* A HEADER NAMES ONLY WHAT IS ON THE SHELF (#443 c.6542477414): a
+     department whose blurb names brands takes them from its own stock --
+     the stores in head.json, biggest first, at most six -- so a brand
+     taken off sale can never be advertised again. */
+  var DESC_BRANDS_MAX = 6;
+  function renderDescBrands(stores){
+    if (!dept || !dept.descBrands || !Array.isArray(stores)) return;
+    var names = stores.filter(function(s){ return s && s.n > 0; })
+      .sort(function(a, b){ return b.n - a.n; }).slice(0, DESC_BRANDS_MAX)
+      .map(function(s){ return storeLabel(s.k); });
+    document.getElementById('heroDesc').textContent = dept.descBrands + (names.length ? ' — ' + names.join(', ') + '.' : '.');
+  }
+
   /* The first screen: the department's head.json. */
   var STORES = null;          // the unfiltered store chips stay put while filtering
   function loadAll(){
@@ -936,6 +951,7 @@ function sizedImageUrl(url, w){
       if (!filtered() && Array.isArray(data.pills) && !HUB){ HUB = data.pills; if (data.pillAll) HUB_ALL = data.pillAll; renderHub(); }
       HEAD = data;
       HEAD.stores = STORES || data.stores;
+      if (!filtered()) renderDescBrands(data.stores);
       if (!STORES){
         /* Opened already filtered: the full chip row comes from the static head. */
         getJSON(SLICES + 'head.json').then(function(full){

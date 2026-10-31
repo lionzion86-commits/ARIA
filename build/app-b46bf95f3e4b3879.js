@@ -32359,7 +32359,7 @@ const CHAT_DOMAIN_FALLBACKS = [
     keys: ['arpon', 'arpones', 'speargun', 'spearfishing', 'spearfish', 'scuba', 'buceo', 'diving', 'apnea', 'freedive', 'freediving', 'aleta', 'aletas', 'fins', 'neopreno', 'neoprene', 'wetsuit', 'traje de neopreno', 'traje de buceo', 'traje humedo', 'snorkel', 'esnorquel', 'tubo de snorkel', 'visor de buceo', 'careta de buceo', 'mascara de buceo', 'chapaletas', 'rashguard', 'rash guard', 'cuchillo de buceo', 'boya de buceo', 'boya', 'flotador de pesca', 'cinturon de pesas', 'cinturon de plomos', 'plomos', 'pesca submarina', 'submarinismo', 'cazasubmarina', 'museo', 'boya para buzo', 'boya para buceo', 'arpon de liga', 'ligas de arpon', 'arpon neumatico', 'fusil hawaiano', 'botines de buceo', 'escarpines', 'guantes de buceo', 'guantes de neopreno', 'carrete de arpon', 'reel', 'monofilamento', 'cabo de arpon', 'linterna de buceo'] },
   { label: 'Surf & Skate', sub: 'Tablas, skates, ropa y accesorios', action: 'department', key: 'surf_skate',
     keys: ['surf', 'surfing', 'surfeo', 'surfboard', 'tabla', 'tabla de surf', 'tabla de skate', 'correr tabla', 'correr olas', 'tablista', 'bodyboard', 'body board', 'skimboard', 'paddle surf', 'paddleboard', 'sup', 'stand up paddle', 'skate', 'skateboard', 'longboard', 'patineta', 'patin', 'skater', 'quilla', 'quillas', 'pita', 'pita de tabla', 'leash', 'cera para tabla', 'parafina', 'parafina para tabla', 'tracks', 'track de skate', 'trucks de skate', 'ruedas de skate', 'ruedas para skateboard', 'ruedas para mi skateboard', 'rodajes', 'rodaje', 'bearings de skate', 'papel lija', 'grip tape', 'casco de skate', 'casco para skate', 'rodilleras de skate', 'coderas de skate', 'coderas', 'track para tabla', 'track de surf', 'pad de traccion', 'traction pad'] },
-  { label: 'Gym Rat', sub: 'Ropa y equipo para entrenar', action: 'department', key: 'gym_rat',
+  { label: 'Gym Rat', sub: 'Ropa para entrenar', action: 'department', key: 'gym_rat',
     keys: ['gym', 'gimnasio', 'pesa', 'pesas', 'fierros', 'hacer fierros', 'mancuerna', 'mancuernas', 'dumbbell', 'kettlebell', 'pesa rusa', 'barra de pesas', 'banco de pesas', 'banca', 'press de banca', 'sentadilla', 'peso muerto', 'disco', 'discos', 'rack de pesas', 'gymrat', 'entrenamiento con pesas', 'entrenamiento funcional', 'funcional', 'crossfit', 'caminadora', 'trotadora', 'eliptica', 'bicicleta estatica', 'soga para saltar', 'cuerda para saltar', 'guantes de gym', 'guantes de entrenamiento', 'cinturon de levantamiento', 'rodilleras', 'shaker', 'tomatodo', 'leggings', 'licras', 'top deportivo', 'ropa de gym', 'ropa deportiva'] },
   /* FUTBOL + TENIS (2026-09-29, Danny): soccer is huge in Peru; tennis
      is big in Lima. Danny's terms: futbol, tenis, chimpunes, canilleras.
@@ -32431,7 +32431,7 @@ const CHAT_DOMAIN_OVERRIDES = [
 const CHAT_POLICY_EXCLUSIONS = [
   { keys: ['vitamina', 'vitaminas', 'vitamin', 'suplemento', 'suplementos', 'supplement', 'proteina en polvo', 'protein powder', 'creatina', 'creatine', 'pre workout', 'preworkout', 'multivitaminico', 'omega 3', 'colageno'],
     line: 'No manejamos vitaminas ni suplementos, la aduana de Peru no los deja pasar. Pero dime que mas buscas y te ayudo.',
-    label: 'Gym Rat', sub: 'Ropa y equipo para entrenar', action: 'department', key: 'gym_rat' },
+    label: 'Gym Rat', sub: 'Ropa para entrenar', action: 'department', key: 'gym_rat' },
 ];
 function normChatDomain(t){
   return ' ' + String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
