@@ -67,7 +67,9 @@ async function open(ctxOpts, url) {
   const page = await ctx.newPage();
   page.__errors = [];
   page.on("pageerror", (e) => page.__errors.push(e.message));
-  await page.route((u) => u.host !== `127.0.0.1:${PORT}`, (r) => r.abort());
+  /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+  await page.route((u) => u.host !== `127.0.0.1:${PORT}`, (r) => r.request().resourceType() === "image"
+    ? r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : r.abort());
   await page.goto(BASE + url, { waitUntil: "domcontentloaded" });
   return { ctx, page };
 }

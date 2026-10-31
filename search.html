@@ -104,6 +104,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .lane-head{display:flex; align-items:baseline; gap:8px; margin:0 0 10px;}
 .lane-head h2{margin:0;}
 .lane-n{font-size:13px; font-weight:700; color:var(--muted,#667085);}
+.lane-more-card{flex:0 0 140px; align-self:stretch; border:1px dashed var(--line); border-radius:16px; background:#fff; color:var(--navy); font:800 15px/1.2 inherit; font-family:inherit; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; scroll-snap-align:start;}
+.lane-more-card span{font-size:12px; font-weight:600; color:var(--muted);}
+.lane-more-card[disabled]{opacity:.6;}
 .lane-more{margin-left:auto; font-size:13px; font-weight:800; color:var(--blue,#1f5fd1); text-decoration:none; white-space:nowrap;}
 .grid-head{grid-column:1/-1; margin-top:12px;}
 .rail{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; -webkit-overflow-scrolling:touch;}
@@ -118,6 +121,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
    The same product at 2+ stores is one block at the top, each store's
    TOTAL door price in soles first and bold. Badges are not yellow:
    yellow is for sale badges only. */
+.cmp-sec{grid-column:1/-1; min-width:0; margin:0 0 6px;}
+.cmp-sec-title{font-size:18px; font-weight:800; color:var(--navy); margin:2px 0 2px;}
+.cmp-sec-sub{font-size:14px; color:var(--muted); margin:0 0 12px;}
 .cmp{grid-column:1/-1; min-width:0; border:1px solid var(--line); border-radius:16px; padding:14px; margin:0 0 6px; background:#fff;}
 .cmp-head{display:flex; gap:12px; align-items:center; margin-bottom:10px;}
 .cmp-photo{position:relative; flex:0 0 72px; width:72px; height:72px; border-radius:12px; background:var(--sky); overflow:hidden;}
@@ -511,17 +517,41 @@ function storeDoor(store, q){
   if (store === "ariaperfumes") return "departamento.html?dept=perfumes&b=" + encodeURIComponent(q);
   return STORE_PAGES.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(q) : "";
 }
+/* THE SEARCH DOCTRINE (#443 c.6547231776, c.6547453746, c.6547518074):
+   every rail shows its true total and, when it holds more than it shows,
+   a "Ver más" card at its end that brings the next cards INTO the rail
+   (?lane=<key>&off=<n>) -- never a capped carousel, never a grid. */
 function laneHTML(l){
-  /* A brand's store rail (the format): its true total, and «Ver todo»
-     opens that store searched for the brand. */
-  var more = l.store && l.n > l.items.length ? storeDoor(l.store, (STATE && STATE.q) || "") : "";
-  more = more ? '<a class="lane-more" href="' + esc(more) + '">Ver todo &#8594;</a>' : "";
   var n = l.n ? '<span class="lane-n">' + Number(l.n).toLocaleString("es-PE") + "</span>" : "";
-  if (n || more) return '<section class="lane" aria-label="' + esc(l.title) + '"><div class="lane-head"><h2>' + esc(l.title) + "</h2>" + n + more + "</div>" +
-    '<div class="rail">' + l.items.map(cardHTML).join("") + "</div></section>";
-  return '<section class="lane" aria-label="' + esc(l.title) + '"><h2>' + esc(l.title) + "</h2>" +
-    '<div class="rail">' + l.items.map(cardHTML).join("") + "</div></section>";
+  var more = l.n > l.items.length
+    ? '<button type="button" class="lane-more-card" data-lane="' + esc(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' +
+      Number(l.n - l.items.length).toLocaleString("es-PE") + " más</span></button>"
+    : "";
+  return '<section class="lane" aria-label="' + esc(l.title) + '"><div class="lane-head"><h2>' + esc(l.title) + "</h2>" + n + "</div>" +
+    '<div class="rail">' + l.items.map(cardHTML).join("") + more + "</div></section>";
 }
+async function laneMore(btn){
+  if (btn.disabled) return;
+  btn.disabled = true;
+  var key = btn.getAttribute("data-lane"), off = Number(btn.getAttribute("data-off")) || 0, n = Number(btn.getAttribute("data-n")) || 0;
+  try{
+    var res = await fetch(BASE + SEARCH_API + "?q=" + encodeURIComponent(STATE.q) + "&lane=" + encodeURIComponent(key) + "&off=" + off);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var data = await withSoles(await res.json());
+    var holder = document.createElement("div");
+    holder.innerHTML = (data.items || []).map(cardHTML).join("");
+    var rail = btn.parentNode;
+    while (holder.firstChild) rail.insertBefore(holder.firstChild, btn);
+    watchPhotos(rail);
+    off += (data.items || []).length;
+    if (!(data.items || []).length || off >= n) btn.remove();
+    else { btn.setAttribute("data-off", off); btn.querySelector("span").textContent = Number(n - off).toLocaleString("es-PE") + " más"; btn.disabled = false; }
+  }catch(e){ btn.disabled = false; }
+}
+document.addEventListener("click", function(e){
+  var b = e.target && e.target.closest ? e.target.closest(".lane-more-card") : null;
+  if (b) laneMore(b);
+});
 /* A browse query: the lanes, then "Todos los resultados". A specific
    query: its first rows of results, then the lanes, then the rest. */
 var SPECIFIC_LEAD = 8;
@@ -530,13 +560,16 @@ function answerHTML(data){
   var cards = data.items.map(cardHTML);
   /* One chart per model, strongest first (#443 c.6544967818). */
   var head = (data.compares || (data.compare ? [data.compare] : [])).map(compareHTML).join("");
-  if (!lanes.length) return head + cards.join("");
-  if (data.mode === "generic" || data.mode === "brand"){
-    return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
-      '<h2 class="grid-head">Todos los resultados</h2>' + cards.join("");
-  }
-  return head + cards.slice(0, SPECIFIC_LEAD).join("") + lanes.map(function(l){ return laneHTML(l); }).join("") +
-    cards.slice(SPECIFIC_LEAD).join("");
+  /* THE COMPARATOR INTRODUCES ITSELF (#443 c.6546638454, final scope
+     c.6546641302): the charts sit in one labelled section, right under
+     the results line and above the first chart. No background change. */
+  if (head) head = '<section class="cmp-sec" aria-labelledby="cmpSecTitle">' +
+    '<h2 class="cmp-sec-title" id="cmpSecTitle">Comparador de Precios</h2>' +
+    '<p class="cmp-sec-sub">Compara el mismo producto en diferentes tiendas.</p>' + head + "</section>";
+  /* The doctrine: the charts, then Ofertas, then one rail per store --
+     never the side-by-side grid. An answer with no lanes is one rail. */
+  if (!lanes.length) lanes = cards.length ? [{ key: "todo", title: "Resultados", n: data.items.length, items: data.items }] : [];
+  return head + lanes.map(function(l){ return laneHTML(l); }).join("");
 }
 
 /* ---------- one product, every store (#416) ----------
@@ -572,7 +605,10 @@ function shipHTML(sh){
   if (sh.state === "free") return '<span class="free">GRATIS</span>';
   if (sh.state === "fee") return amountHTML(sh.usd, penOf(sh.usd)) + (line ? "<br>" + line : "");
   if (sh.state === "calc") return '<span class="calc">lo calcula la tienda al pagar</span>' + (line ? "<br>" + line : "");
-  return '<span class="calc">por confirmar</span>';
+  /* Never "por confirmar" (Danny, #443 c.6547441472): a store without a
+     published fee on the table is paid at its own checkout, like a store
+     that calculates it -- said the same way, and charged nothing here. */
+  return '<span class="calc">lo calcula la tienda al pagar</span>';
 }
 function compareRowHTML(s){
   var title = decodeEntities(s.title);
@@ -673,7 +709,13 @@ function renderAnswer(query, data){
     renderEmpty("Escribe un poco más", "Con 2 letras o más te mostramos resultados. Por ejemplo:" + examplesHTML());
     return;
   }
-  if (data.state !== "results" || !data.items || !data.items.length){ renderNone(query, data || {}); return; }
+  /* A store's name opens that store's page (the doctrine, item 1).
+     ?resultados=1 keeps the search, for a shopper who wants it. */
+  if (data.store && data.page === 1 && STORE_PAGES.indexOf(" " + data.store + " ") >= 0 && !/[?&]resultados=1/.test(location.search)){
+    location.replace("tienda.html?tienda=" + encodeURIComponent(data.store));
+    return;
+  }
+  if (data.state !== "results" || !((data.items && data.items.length) || (data.lanes && data.lanes.length))){ renderNone(query, data || {}); return; }
   var grid = el("results");
   if (!grid) return;
   STATE.page = data.page; STATE.pages = data.pages; STATE.total = data.total; STATE.capped = !!data.capped;
@@ -681,7 +723,7 @@ function renderAnswer(query, data){
   watchPhotos(grid);
   /* The comparison block's products count as shown (they are part of
      the total, and not repeated in the grid). */
-  STATE.shown = data.items.length + (data.compares || (data.compare ? [data.compare] : [])).reduce(function(n, c){ return n + ((c && c.stores) ? c.stores.length : 0); }, 0);
+  STATE.shown = data.total || data.items.length + (data.compares || (data.compare ? [data.compare] : [])).reduce(function(n, c){ return n + ((c && c.stores) ? c.stores.length : 0); }, 0);
   var meta = el("meta-line");
   if (meta){
     meta.textContent = (STATE.capped ? "Más de " : "") + fmtCount(data.total) + " resultado" + (data.total === 1 ? "" : "s") +
@@ -715,7 +757,8 @@ function renderAnswer(query, data){
 
 function showingStatus(){
   var n = STATE.total;
-  var more = STATE.page < STATE.pages;
+  /* The rails page themselves ("Ver más" in each): no page-wide pager. */
+  var more = false;
   setStatus(more
     ? "Mostrando " + fmtCount(STATE.shown) + " de " + (STATE.capped ? "más de " : "") + fmtCount(n) + " resultados."
     : "Mostrando " + fmtCount(STATE.shown) + " resultado" + (STATE.shown === 1 ? "" : "s") + ".");
