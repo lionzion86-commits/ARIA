@@ -35,6 +35,9 @@ await check("store shipping per row: a fee, GRATIS, calculated at the store's ch
   assert.deepEqual(ship("zumiez", 40), { state: "calc", usd: null, freeOverUsd: 64.94 });
   assert.equal(ship("bhphoto", 40).state, "free");
   assert.equal(ship("a-store-with-no-terms", 40).state, "unknown");
+  /* Foot Locker's public rule (#443 c.6547441472): $7.99 under $99, free from $99. */
+  assert.deepEqual(ship("footlocker", 60), { state: "fee", usd: 7.99, freeOverUsd: 99 });
+  assert.equal(ship("footlocker", 120).state, "free");
 });
 
 await check("Danny's example: CCS holds Mejor precio and Mejor costo hasta Miami; the chart carries no freight and no door total", () => {
