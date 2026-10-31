@@ -1,5 +1,5 @@
 /* ============================================================
-   GET /.netlify/functions/ofertas?store=&sort=&q=&page=   (#409)
+   GET /.netlify/functions/ofertas?store=&cat=&sort=&q=&page=   (#409)
 
    One page (48 cards) of ofertas.html's deals. The first page of every
    store/sort pair is a static file (assets/ofertas/slices/); this
@@ -11,7 +11,7 @@
    Prices are the feed's (final, in dollars); ofertas.html converts to
    soles with the site's rate, as it always has.
    ============================================================ */
-import { loadDeals, selectDeals, pageOf, normSort, normStore, normQ } from "./_ofertas-core.js";
+import { loadDeals, selectDeals, pageOf, normSort, normStore, normCat, normQ } from "./_ofertas-core.js";
 
 const json = (statusCode, body, cache) => ({
   statusCode,
@@ -22,7 +22,7 @@ const json = (statusCode, body, cache) => ({
       ? {
           "Cache-Control": "public, max-age=300",
           "Netlify-CDN-Cache-Control": cache,
-          "Netlify-Vary": "query=store|sort|q|page",
+          "Netlify-Vary": "query=store|cat|sort|q|page",
         }
       : { "Cache-Control": "no-store" }),
   },
@@ -38,8 +38,10 @@ export async function handler(event) {
     const store = normStore(qs.store, deals.stores);
     const sort = normSort(qs.sort);
     const q = normQ(qs.q);
-    const out = pageOf(selectDeals(deals.cards, { store, sort, q }), qs.page);
-    return json(200, { generatedAt: deals.generatedAt, store, sort, q, ...out },
+    /* Por categoría (#443 c.6544455377): one category's deals, every store. */
+    const cat = normCat(qs.cat, deals.cats);
+    const out = pageOf(selectDeals(deals.cards, { store, sort, q, cat }), qs.page);
+    return json(200, { generatedAt: deals.generatedAt, store, cat, sort, q, ...out },
       "public, durable, max-age=3600, stale-while-revalidate=86400");
   } catch (e) {
     console.error("[ofertas]", e);
