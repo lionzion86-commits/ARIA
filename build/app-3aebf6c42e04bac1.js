@@ -6825,7 +6825,10 @@ function costcoCuratedItems(items){
    there is still no sales-rank feed, so the fill is "featured", never
    labelled as most-sold. (Keep it that way: no calls to page functions.) */
 const CATEGORY_RAIL_SALE = 8;   // sale cards lead the rail, at most this many
-const CATEGORY_RAIL_TOTAL = 12; // shelf length; fewer without apology
+/* 25 CARDS PER RAIL (Danny, #443 c.6539643881): every Compra por categoría
+   rail carries at least 25; a rail whose true pool is smaller shows what it
+   has, never padded with off-scope items. */
+const CATEGORY_RAIL_TOTAL = 25; // shelf length; fewer without apology
 /* SALES-FILL GRACEFUL DEGRADATION (2026-10-03, Danny): sales lead every
    rail, always -- but a rail must never render near-empty. When the sale
    slice holds fewer than RAIL_SALE_FILL_MIN items, the remainder of the
@@ -6895,7 +6898,18 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      own order. Opt-in per rail via swimFirst. */
   const swimFirst = Boolean(opts && opts.swimFirst);
   const SWIM_RX = /\b(bikinis?|biquinis?|trikinis?|tankinis?|swim\w*|bathing suits?|one[- ]piece|monokinis?|ropa de ba[ñn]o)\b/i;
-  const swimRank = (p) => (swimFirst && !(SWIM_RX.test(String((p && (p.title || p.name)) || '')) || /ba[ñn]o|swim/i.test(String((p && p.type) || '')))) ? 1 : 0;
+  /* Women's swim leads; men's swim follows it; the rest after (Danny, c.6539469042). */
+  const MENS_RX = /\b(men'?s|mens|hombres?|swim\s+trunks?|boardshorts?|board\s+shorts?)\b/i;
+  const swimRank = (p) => {
+    if (!swimFirst) return 0;
+    const t = String((p && (p.title || p.name)) || '');
+    if (!(SWIM_RX.test(t) || /ba[ñn]o|swim/i.test(String((p && p.type) || '')))) return 2;
+    return (MENS_RX.test(t) || railBucketGenderIs(p, 'men')) ? 1 : 0;
+  };
+  /* KIDS' SWIM LAST (Danny, #443 c.6539469042): women's bikinis open the
+     Diseñadores Latinos rail; a kids' piece stays in the rail, at its back. */
+  const KIDS_RX = /\b(kids?|girls?|boys?|toddlers?|babys?|baby|infants?|little|mini|ni[ñn][oa]s?|beb[eé]s?)\b/i;
+  const kidsRank = (p) => (swimFirst && (railBucketGenderIs(p, 'kids') || KIDS_RX.test(String((p && (p.title || p.name)) || '')))) ? 1 : 0;
   const toyRank = (p) => toyRankFn ? toyRankFn(p) : 0;
   /* SURF & SKATE (2026-09-26, Danny): sales lead -- unless the sale is
      socks. Foot socks and fin socks are minor accessories; a markdown on
@@ -6964,6 +6978,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
          the store rails, so the front page never reads as a copy. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
+      const kd = kidsRank(a) - kidsRank(b);
+      if (kd) return kd;
       const sw = swimRank(a) - swimRank(b);
       if (sw) return sw;
       if (cheapFirst){
@@ -6993,7 +7009,29 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      filled to the shelf length. The old "featured fill" of full-price
      items is gone -- full price surfaces through explicit search, not
      browse. fancyLead (Miu Miu) stays: Danny's explicit per-rail call. */
-  const picks = [...leadPicks, ...sale.slice(0, Math.max(0, max - leadPicks.length))];
+  /* DESIGNERS INTERLEAVED (Danny, #443 c.6539637596): while 8+ brands hold
+     sale stock, no brand takes more than brandCap of the rail; the order
+     above still decides within the cap, the overflow waits behind. Opt-in
+     via brandOf + brandCap. */
+  const brandOf = (opts && typeof opts.brandOf === 'function') ? opts.brandOf : null;
+  const brandCap = (opts && Number(opts.brandCap) > 0) ? Number(opts.brandCap) : 0;
+  let ordered = sale;
+  if (brandOf && brandCap && new Set(sale.map((p) => brandOf(p) || '')).size >= 8){
+    /* Round-robin: each designer's next piece in turn (in the order above),
+       up to its cap; what is left waits behind. */
+    const cap = Math.max(1, Math.floor(max * brandCap)), queues = new Map();
+    for (const p of sale){ const b = brandOf(p) || ''; if (!queues.has(b)) queues.set(b, []); queues.get(b).push(p); }
+    const lanes = [...queues.values()], held = [];
+    ordered = [];
+    for (let round = 0; lanes.some((q) => q.length); round++){
+      for (const q of lanes){
+        if (!q.length) continue;
+        if (round < cap) ordered.push(q.shift()); else held.push(...q.splice(0));
+      }
+    }
+    ordered = ordered.concat(held);
+  }
+  const picks = [...leadPicks, ...ordered.slice(0, Math.max(0, max - leadPicks.length))];
   /* LATINO DESIGNERS PRICE MIX (2026-10-07, Danny): accessible prices lead --
      Peruvians can't afford $1000 Farfetch leading the rail. Cheap sale items
      sort first (via cheapFirst); then a couple premium pieces sprinkle in at
@@ -7246,6 +7284,8 @@ const CATEGORY_RAILS = [
   { key: 'latino_designers', label: 'Diseñadores Latinos', icon: '', stores: null, poolOnly: true,
     cheapFirst: true, premiumMix: 2, /* DANNY 2026-10-07: $13-20 accessible leads, 2 premium for feel */
     swimFirst: true, /* DANNY 2026-10-28: bikinis and swim lead the carousel */
+    /* DANNY 2026-10-31: designers interleaved, none over a quarter of the rail */
+    brandCap: 0.25, brandOf: (p) => latinoDesignerOfItem(p),
     blurb: 'El talento latino, sin salir de casa. Diseñadores de Brasil y Colombia, comprados en Estados Unidos y entregados en Perú.',
     test: (p) => latinoDesignerOfItem(p) !== null,
     open: "openCatalog('department','latino_designers')" },
@@ -7527,7 +7567,8 @@ async function ropaInteriorRailPicks(feedUrl = '/ropa-interior-feed.json'){
   out.sort((a, b) => (b._pct - a._pct) || (Number(a.price) - Number(b.price)));
   return out.slice(0, ROPA_INTERIOR_RAIL_TOTAL);
 }
-const ROPA_INTERIOR_RAIL_TOTAL = 20;
+/* 25 per Compra por categoría rail (Danny, #443 c.6539643881). */
+const ROPA_INTERIOR_RAIL_TOTAL = 25;
 
 /* The Reacondicionados pill's shelf: the department head's first cards,
    each rail in order, one card per title. */
@@ -11639,7 +11680,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst, swimFirst: cat.swimFirst, brandOf: cat.brandOf, brandCap: cat.brandCap });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
