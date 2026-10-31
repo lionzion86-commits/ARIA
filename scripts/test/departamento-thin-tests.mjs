@@ -18,7 +18,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import {
-  DEPT_RULES, CATALOG_FILES, ALL_LABELS, OUT_DIR, loadAllItems, deptItems,
+  DEPT_RULES, CATALOG_FILES, ALL_LABELS, OUT_DIR, loadAllItems, deptItems, audienceTagger, headerExtra,
 } from "../build-department-slices.mjs";
 import {
   PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, buildSections, sectionOpts, headOf, batchOf, batchCount, answer, filterList, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS,
@@ -51,12 +51,13 @@ await check("the page and the build agree on the 33 departments (plus the doors:
 });
 
 await check("every committed head.json and rails-<b>.json is what the rules compute from today's catalogues", () => {
+  const u = audienceTagger(ALL);
   for (const key of Object.keys(DEPT_RULES)) {
-    const list = deptItems(ALL, key);
+    const list = deptItems(ALL, key).map((p) => ({ ...p, u: u(p) }));
     const sections = buildSections(list, sectionOpts(key));
     const head = readJSON(`${OUT_DIR}/${key}/head.json`);
     const pills = key === "perfumes" ? perfumePills(list) : BRAND_ROOMS.has(key) ? brandRoomPills(list) : {};
-    assert.deepEqual(head, JSON.parse(JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...hubLenses(key, list, ALL_LABELS, (k) => deptItems(ALL, k)).extra, ...pills }))), `${key}/head.json is stale — run: node scripts/build-department-slices.mjs`);
+    assert.deepEqual(head, JSON.parse(JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...hubLenses(key, list, ALL_LABELS, (k) => deptItems(ALL, k).map((p) => ({ ...p, u: u(p) }))).extra, ...pills, ...headerExtra(key, list) }))), `${key}/head.json is stale — run: node scripts/build-department-slices.mjs`);
     const n = batchCount(sections);
     for (let b = 0; b < n; b++) {
       assert.deepEqual(readJSON(`${OUT_DIR}/${key}/rails-${b}.json`), JSON.parse(JSON.stringify(batchOf(sections, b))), `${key}/rails-${b}.json is stale`);
