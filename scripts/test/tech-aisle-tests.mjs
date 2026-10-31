@@ -59,7 +59,9 @@ check("acceptance: Celulares handsets only, Computadoras computers only, no fish
        an accessory word is never there. */
     const LEADS_ACC = /^\W*(\S+\s){0,4}?(case|cover|charger|cable|screen protector|holder|mount|keyboard|mouse|backpack|sleeve|stand)\b/i;
     for (const n of names("tech_celulares")) {
-      assert.match(n, /\b(phone|smartphone|iphone|galaxy|pixel|moto|razr|unlocked|5g|4g|lte|gsm|dual sim)\b/i, `${k} Celulares: ${n}`);
+      /* BLU's BOLD line names its phones by the screen ("BOLD K12 6,8" HD
+         Infinity Display 128GB Storage"), filed as phones by the store. */
+      assert.match(n, /\b(phone|smartphone|iphone|galaxy|pixel|moto|razr|unlocked|5g|4g|lte|gsm|dual sim|infinity (dot )?display)\b/i, `${k} Celulares: ${n}`);
       assert.doesNotMatch(n.replace(/\s(\+|with|includes?)\s.*$/i, ""), /\b(case|cover|screen protector|holder|mount)$/i, `${k} Celulares: ${n}`);
     }
     for (const n of names("tech_computadoras")) {
