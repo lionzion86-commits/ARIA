@@ -48,6 +48,14 @@ export function expressFeePen(mode, fxVenta) {
 export function productIdFor(retailer, title) {
   return createHash("sha1").update(`${retailer}::${title}`).digest("base64url").slice(0, 16);
 }
+/* THE LISTING'S OWN PRICE (#443 variants). Colourways a store titles
+   alike (eleven Snipes "Samba OG", $49.99 to $130) share one title key;
+   scripts/build-price-index.mjs also writes each such listing under its
+   own id, so a line naming its listing (variantId) is charged that
+   colourway's price, not the first one's. */
+export function variantProductIdFor(retailer, title, variantId) {
+  return productIdFor(retailer, `${title}::v:${variantId}`);
+}
 const MAX_QTY = 20;
 const PRICE_EPSILON = 0.011;
 
@@ -86,7 +94,7 @@ export function repriceCart(items, prices, { atCost = false } = {}) {
       lines.push(line);
       continue;
     }
-    const known = prices && prices[productIdFor(retailer, title)];
+    const known = prices && ((raw.variantId && prices[variantProductIdFor(retailer, title, String(raw.variantId))]) || prices[productIdFor(retailer, title)]);
     if (!known) {
       line.priceVerified = false;
       unverified.push({ title, retailer, reason: "precio no verificable en el catálogo" });
