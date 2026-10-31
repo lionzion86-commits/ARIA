@@ -46,6 +46,9 @@ for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
     const latino = at(tree, "Diseñadores Latinos");
     assert.ok(tile > lastCat && latino > lastCat, "the Walmart tile or Diseñadores Latinos above a category");
     assert.ok(at(tree, "Mujer") < tile, "a store above the audiences");
+    /* Ropa Interior heads the category block, right under Perfumes (c.6545712892). */
+    const ri = at(tree, "Ropa Interior Mujer");
+    assert.ok(ri > perf && ri < at(tree, "Electrónica") && at(tree, "Ropa Interior Hombre") < at(tree, "Electrónica"), "Ropa Interior is not in the top group");
   });
 }
 

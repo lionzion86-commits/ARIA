@@ -2011,6 +2011,34 @@ window.doSearch = function(which){
      Skate, Juguetes, Zapatos, Lentes, Ropa interior, Lujo, Joyas) -> the
      stores, where a shopper who wants to browse stores scrolls on. Compra
      por categoría stays where it was. -->
+    <!-- ROPA INTERIOR IN THE TOP GROUP (#443 c.6545712892, Danny): right under Perfumes, at the head of the category block. -->
+    <!-- PERMANENT ROPA INTERIOR Y MEDIAS RAIL (2026-10-07, Danny): men's
+         underwear and socks, BLAST SALES ONLY, deepest discount first,
+         built from the department feed (ropaInteriorRailPicks). Same
+         shared painter and stand-down rule as Gym Rat; the header and
+         its link open the department page. Starts hidden; JS reveals it. -->
+    <!-- ROPA INTERIOR MUJER (2026-10-10, Danny): the department's women's
+         half. Same shared painter, same blast-sales-only rule, its own
+         feed (ropa-interior-women-feed.json); opens the page's Mujer
+         section. Starts hidden; JS reveals it. -->
+    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <a href="/ropa-interior.html#mujer" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
+        <a href="/ropa-interior.html#mujer" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
+      <div data-category-rail-row="ropa_interior_mujer" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <a href="/ropa-interior.html#hombre" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
+        <a href="/ropa-interior.html#hombre" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
+      <div data-category-rail-row="ropa_interior" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 <!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
      row ABOVE it. The pills are in-place lenses (Ofertas, Celulares,
      Computadoras, Videojuegos, Audífonos and every type the data fills);
@@ -2140,33 +2168,6 @@ window.doSearch = function(which){
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
       <div data-category-rail-row="sunglasses" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- PERMANENT ROPA INTERIOR Y MEDIAS RAIL (2026-10-07, Danny): men's
-         underwear and socks, BLAST SALES ONLY, deepest discount first,
-         built from the department feed (ropaInteriorRailPicks). Same
-         shared painter and stand-down rule as Gym Rat; the header and
-         its link open the department page. Starts hidden; JS reveals it. -->
-    <!-- ROPA INTERIOR MUJER (2026-10-10, Danny): the department's women's
-         half. Same shared painter, same blast-sales-only rule, its own
-         feed (ropa-interior-women-feed.json); opens the page's Mujer
-         section. Starts hidden; JS reveals it. -->
-    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <a href="/ropa-interior.html#mujer" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
-        <a href="/ropa-interior.html#mujer" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
-      <div data-category-rail-row="ropa_interior_mujer" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <a href="/ropa-interior.html#hombre" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
-        <a href="/ropa-interior.html#hombre" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
-      <div data-category-rail-row="ropa_interior" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
 <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
@@ -2620,6 +2621,30 @@ window.doSearch = function(which){
      Skate, Juguetes, Zapatos, Lentes, Ropa interior, Lujo, Joyas) -> the
      stores, where a shopper who wants to browse stores scrolls on. Compra
      por categoría stays where it was. -->
+    <!-- ROPA INTERIOR IN THE TOP GROUP (#443 c.6545712892, Danny): right under Perfumes, at the head of the category block. -->
+    <!-- PERMANENT ROPA INTERIOR RAILS (2026-10-07 / 2026-10-10, Danny): desktop. Same shelves as mobile, Mujer then Hombre. -->
+    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <a href="/ropa-interior.html#mujer" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
+          <a href="/ropa-interior.html#mujer" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
+        <div data-category-rail-row="ropa_interior_mujer" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <a href="/ropa-interior.html#hombre" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
+          <a href="/ropa-interior.html#hombre" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
+        <div data-category-rail-row="ropa_interior" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
      row ABOVE it. The pills are in-place lenses (Ofertas, Celulares,
      Computadoras, Videojuegos, Audífonos and every type the data fills);
@@ -2746,29 +2771,6 @@ window.doSearch = function(which){
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
         <div data-category-rail-row="sunglasses" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <!-- PERMANENT ROPA INTERIOR RAILS (2026-10-07 / 2026-10-10, Danny): desktop. Same shelves as mobile, Mujer then Hombre. -->
-    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <a href="/ropa-interior.html#mujer" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
-          <a href="/ropa-interior.html#mujer" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
-        <div data-category-rail-row="ropa_interior_mujer" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <a href="/ropa-interior.html#hombre" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
-          <a href="/ropa-interior.html#hombre" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
-        <div data-category-rail-row="ropa_interior" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny.
