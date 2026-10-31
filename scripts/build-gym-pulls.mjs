@@ -9,7 +9,8 @@
 
      node scripts/build-gym-pulls.mjs --src <dir with ryderwear.json, aybl.json, ...>
 
-   Each brand becomes a store in gymrat-catalog.json (next to YoungLA):
+   Each brand becomes a store in gym-brands-catalog.json (Gym Rat, next to
+   YoungLA's gymrat-catalog.json):
      - its CLOTHING in the gym_rat bucket (Gym Rat);
      - its fight / training gear in combat_sports (Aria Fight Club), never
        in Gym Rat;
@@ -19,8 +20,8 @@
 
    Descriptions: `description` holds Spanish only. A pull whose
    description is the English (9 of the 12 brands) keeps it as
-   description_en and ships `description` empty until the Spanish lands
-   (scripts/data/descriptions-es/<brand>.json, apply-description-memory).
+   description_en; `description` is its stored translation
+   (scripts/data/descriptions-es/<brand>.json), or empty until one lands.
    Nothing is invented: no size, price or photo the pull does not carry.
    Writes reports/gym-pulls-2026-10-30.json.
    ============================================================ */
@@ -28,11 +29,13 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gymKind } from "./lib/gym-apparel.js";
+import { spanishFor } from "./lib/description-es.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 
 /* Biggest first (the pull's own counts). */
+export const GYM_CATALOG = "gym-brands-catalog.json";
 export const GYM_BRANDS = [
   { key: "ryderwear", label: "Ryderwear" },
   { key: "aybl", label: "AYBL" },
@@ -68,7 +71,9 @@ export function gymItem(r, brand) {
   const desc = String(r.description || "").trim();
   const it = { name, brand: brand.label, price, currency: "USD", image: images[0], images, url: String(r.url || ""),
     sku: String(r.sku || ""), type: String(r.subcategory || ""), retailer: brand.key,
-    description: desc && desc !== en && looksSpanish(desc) ? desc : "",
+    /* The pull's own Spanish, else the stored translation of its English
+       (scripts/data/descriptions-es/<brand>.json), else nothing. */
+    description: desc && desc !== en && looksSpanish(desc) ? desc : (spanishFor(brand.key, en || desc) || ""),
     description_en: en || (desc && !looksSpanish(desc) ? desc : "") };
   if (sizes.length) it.availableSizes = sizes;
   const was = Number(r.compareAtPrice);
@@ -115,10 +120,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const src = arg("--src");
   if (!src) { console.error("usage: node scripts/build-gym-pulls.mjs --src <data/gym-pulls-2026-10-30>"); process.exit(2); }
   const { retailers, report } = buildGym(src);
-  const file = join(ROOT, "gymrat-catalog.json");
-  const cat = JSON.parse(readFileSync(file, "utf8"));
-  for (const [k, r] of Object.entries(retailers)) cat.retailers[k] = r;
-  cat.declaredProductCount = Object.values(cat.retailers).reduce((n, r) => n + Object.values(r.departments || {}).reduce((m, d) => m + (d.items || []).length, 0), 0);
+  /* Their own catalogue, not gymrat-catalog.json: the MCP connector ships
+     every *-catalog.json and sits at its function-size ceiling
+     (netlify.toml), so this file is left out of it, by name. */
+  const file = join(ROOT, GYM_CATALOG);
+  const cat = { generatedAt: report.generatedAt, source: report.source, retailers };
+  cat.declaredProductCount = Object.values(retailers).reduce((n, r) => n + Object.values(r.departments || {}).reduce((m, d) => m + (d.items || []).length, 0), 0);
   writeFileSync(file, JSON.stringify(cat));
   mkdirSync(join(ROOT, "reports"), { recursive: true });
   writeFileSync(join(ROOT, "reports/gym-pulls-2026-10-30.json"), JSON.stringify(report, null, 1));

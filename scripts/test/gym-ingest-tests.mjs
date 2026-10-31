@@ -48,7 +48,7 @@ check("the rule: clothing in, gear to Fight Club, objects out -- by the product,
     assert.equal(k(n, c), "other", n);
 });
 
-const cat = JSON.parse(read("gymrat-catalog.json"));
+const cat = JSON.parse(read("gym-brands-catalog.json"));
 check("the catalogue: 12 brands; only clothing in gym_rat, only gear in combat_sports", () => {
   for (const key of ALL_KEYS) {
     const r = cat.retailers[key];
@@ -95,8 +95,8 @@ check("every brand is a store: the registry, the product page, search", () => {
   const pages = /var STORE_PAGES = "([^"]*)"/.exec(read("search.html"))[1].split(" ");
   const retailers = read("scripts/lib/retailers.js");
   for (const key of KEYS) {
-    assert.deepEqual(stores[key] && stores[key].files, ["/gymrat-catalog.json"], key);
-    assert.deepEqual(files[key], ["/gymrat-catalog.json"], key);
+    assert.deepEqual(stores[key] && stores[key].files, ["/gym-brands-catalog.json"], key);
+    assert.deepEqual(files[key], ["/gym-brands-catalog.json"], key);
     assert.ok(pages.includes(key), key);
     assert.match(retailers, new RegExp(`\\b${key}: \\{ key: "${key}"`));
     const idx = JSON.parse(read(`assets/tienda/${key}/index.json`));

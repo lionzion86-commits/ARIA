@@ -63,7 +63,7 @@ export const CATALOG_FILES = [
   "/combatcorner-catalog.json", "/costco-catalog.json", "/crocs-catalog.json",
   "/dicks-catalog.json", "/everlast-catalog.json", "/ezpz-catalog.json",
   "/farfetch-catalog.json", "/fightclub-catalog.json", "/finishline-catalog.json",
-  "/fuji-catalog.json", "/gymrat-catalog.json", "/hottopic-catalog.json",
+  "/fuji-catalog.json", "/gymrat-catalog.json", "/gym-brands-catalog.json", "/hottopic-catalog.json",
   "/islandwatersports-catalog.json", "/juguetes-catalog.json", "/jwpei-catalog.json",
   "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/lanebryant-catalog.json", "/macys-catalog.json",
   "/mainland-catalog.json", "/meliebianco-catalog.json", "/miumiu-catalog.json",
