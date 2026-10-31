@@ -14,9 +14,17 @@
    NEVER A DEAD BUTTON (#443 c.6522824310): only a card the build knows
    holds two or more photos gets arrows and dots -- the count rides on
    the card as `ph` and reaches the photo as data-g
-   (scripts/lib/photo-counts.js). A swipe across such a card's photo
-   steps it (the photo keeps the gesture instead of scrolling the rail);
-   a swipe is never a tap that opens the product.
+   (scripts/lib/photo-counts.js).
+
+   THE RAIL OWNS THE SWIPE (#443 c.6544144050, c.6544165764, Danny's
+   iPhone QA): a sideways drag that starts anywhere on a card -- its
+   photo included -- scrolls the rail. The photo changes ONLY by its
+   arrows (and shows where it is by its dots); a tap on the card opens
+   the product; page scroll is the browser's. The photo used to keep the
+   drag for itself (touch-action:pan-y + a swipe-to-step handler), so
+   every rail whose cards carry a gallery stopped scrolling under the
+   shopper's thumb while single-photo rails (Ofertas, Perfumes) still
+   did. Nothing here listens to touch any more.
 
    Same rows as card-grow.js; loaded beside it (defer) on every page
    with a carousel. Search cards have their own swipe (search.html).
@@ -33,8 +41,7 @@
     "padding:0;box-shadow:0 2px 8px rgba(10,20,40,.18);cursor:pointer;-webkit-tap-highlight-color:transparent}" +
     ".cp-nav.cp-prev{left:6px}.cp-nav.cp-next{right:6px}.cp-nav[hidden]{display:none}" +
     ".cp-dots{position:absolute;left:0;right:0;z-index:3;display:flex;justify-content:center;gap:4px;pointer-events:none}" +
-    ".cp-dots i{width:5px;height:5px;border-radius:50%;background:rgba(11,30,61,.25)}.cp-dots i.on{background:#0B1E3D}" +
-    "img[data-g]{touch-action:pan-y}";
+    ".cp-dots i{width:5px;height:5px;border-radius:50%;background:rgba(11,30,61,.25)}.cp-dots i.on{background:#0B1E3D}";
   var st = document.createElement("style");
   st.id = "ariaCardPhotos";
   st.textContent = css;
@@ -152,25 +159,6 @@
     });
     paintDots(card, img, Math.min(+img.getAttribute("data-g"), 8), 0);
   }
-
-  /* SWIPE on a counted card's photo: a mostly-sideways drag of 30px+
-     steps the photo, and the click that follows is swallowed. */
-  var sx = 0, sy = 0, sCard = null, swallow = 0;
-  document.addEventListener("touchstart", function (e) {
-    var img = e.target && e.target.closest && e.target.closest("img[data-g]");
-    sCard = img ? img.closest(CARD) : null;
-    if (!sCard || !sCard._cpArmed || !sCard.querySelector(".cp-nav")) { sCard = null; return; }
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-  }, { passive: true, capture: true });
-  document.addEventListener("touchend", function (e) {
-    if (!sCard) return;
-    var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) { step(sCard, dx < 0 ? 1 : -1); swallow = Date.now(); }
-    sCard = null;
-  }, { passive: true, capture: true });
-  document.addEventListener("click", function (e) {
-    if (swallow && Date.now() - swallow < 400 && e.target.closest && e.target.closest(CARD)) { e.preventDefault(); e.stopPropagation(); swallow = 0; }
-  }, true);
 
   /* A tap on an arrow steps the photo; it never opens the product. */
   document.addEventListener("click", function (e) {
