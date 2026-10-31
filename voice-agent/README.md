@@ -6,7 +6,7 @@ The owned cascade from #443 (start order c.6416074857, kickoff c.6399639486, sca
 shopper's mic -> LiveKit -> Deepgram nova-3 (es) -> Aria's brain -> ElevenLabs (Grecia) -> LiveKit -> speaker
 ```
 
-It sits **behind a flag**. The Realtime voice stays the shop's voice until this one passes its gates. A tap that the owned voice cannot take goes to the Realtime voice, so there is never a tap with no voice at all.
+It sits **behind a flag**. The Realtime voice stays the shop's voice until this one passes its gates. **One session, one voice** (#443 c.6549932007). A tap the owned voice cannot take is reported on the call bar ("Aria no pudo conectarse"); toca para intentar de nuevo; it is never handed to the Realtime voice or any other voice. The worker announces its engine as the participant attribute `aria.voice` (`elevenlabs/<model>`) before the shopper joins; the page takes only an agent that announces ElevenLabs, waits up to 15 s for a cold worker, never plays any other participant's audio, and refuses RPCs from any other agent. `ariaVoiceDiag()` and the failure detail name any agent it ignored (for example a stale deployment).
 
 ## What runs where
 

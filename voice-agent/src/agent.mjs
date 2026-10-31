@@ -36,7 +36,7 @@ import * as elevenlabs from "@livekit/agents-plugin-elevenlabs";
 import * as openai from "@livekit/agents-plugin-openai";
 import * as silero from "@livekit/agents-plugin-silero";
 import * as brain from "./brain.generated.mjs";
-import { planFromEnv, planSummary, STT_KEYTERMS } from "./config.mjs";
+import { planFromEnv, planSummary, STT_KEYTERMS, VOICE_ATTR, voiceTag } from "./config.mjs";
 import { emptyUsage, usageFrom, ratesFromEnv, priceUsage } from "./cost.mjs";
 import { RPC, readContext, sendTurn, pageTools, stripCardMarkers, runPageTool, notifyPage, showIdsFrom, TOOL_FAILED } from "./page-bridge.mjs";
 import { threadFromMetadata, threadStore } from "./thread-store.mjs";
@@ -237,6 +237,11 @@ export default defineAgent({
     const mark = (k) => { if (spin[k] == null) spin[k] = Date.now() - t0; };
     await ctx.connect();
     mark("connected");
+    /* The voice this worker speaks with, announced before the shopper
+       joins: the page takes only an agent that says it is Grecia's
+       engine (VOICE_ATTR). */
+    try { await ctx.room.localParticipant.setAttributes({ [VOICE_ATTR]: voiceTag(plan) }); }
+    catch (e) { log("voice-attr-failed", { error: String(e && e.message || e) }); }
     const shopper = await ctx.waitForParticipant();
     mark("joined");
     const room = ctx.room;
@@ -286,6 +291,13 @@ export default defineAgent({
     /* His voice, as our VAD hears it, goes to the page: its silence
        clock holds while he talks (#443 ear test 1: she thanked him and
        hung up while he was mid-sentence). */
+    /* A voice that fails is reported, never swapped: there is no second
+       TTS in this worker, so a failed line is logged with its cause and
+       the page shows the failure rather than another accent. */
+    session.on(voice.AgentSessionEventTypes.Error, (ev) => {
+      const err = ev && ev.error;
+      log("session-error", { room: room.name, source: (ev && ev.source && ev.source.constructor && ev.source.constructor.name) || null, type: err && err.type || null, recoverable: !!(err && err.recoverable), error: String(err && (err.error && err.error.message || err.message) || err || "") .slice(0, 300) });
+    });
     session.on(voice.AgentSessionEventTypes.UserStateChanged, (ev) => {
       notifyPage(rpc, RPC.USER, { state: ev.newState });
     });
