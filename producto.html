@@ -27,6 +27,11 @@ main{flex:1;width:100%;max-width:900px;margin:0 auto;padding:32px 20px 48px}
 .hero h1 .gold{color:var(--gold)}
 .hero p.lead{font-size:16px;color:var(--muted);max-width:60ch;margin:0 auto;line-height:1.6}
 section.block{margin:28px 0}
+.p-desc{margin:0 0 16px}
+.p-desc-h{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--navy);margin:0 0 6px}
+.p-desc-t{font-size:15px;line-height:1.6;color:var(--ink);margin:0;white-space:pre-line;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;line-clamp:5}
+.p-desc-t.open{display:block;-webkit-line-clamp:unset;line-clamp:unset}
+.p-desc-more{background:none;border:0;padding:6px 0 0;font:inherit;font-size:14px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer}
 section.block h2{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 14px;letter-spacing:-.01em}
 section.block h3{font-size:17px;font-weight:700;color:var(--navy);margin:18px 0 8px}
 section.block p{font-size:15px;line-height:1.7;color:var(--ink);margin:0 0 12px}
@@ -562,6 +567,17 @@ function weightLineOf(p, priceUsd, size){
   if (p.specWeightKg > 0) line.specWeightKg = p.specWeightKg;
   return line;
 }
+/* "Leer más" only when the text is longer than its first lines. */
+function wireDescMore(){
+  var t = el("p-desc-t"), b = el("p-desc-more");
+  if (!t || !b) return;
+  if (t.scrollHeight - t.clientHeight > 4) b.hidden = false;
+  b.addEventListener("click", function(){
+    var open = t.classList.toggle("open");
+    b.textContent = open ? "Leer menos" : "Leer más";
+    b.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+}
 function fmtKg(kg){
   var n = Math.round(kg * 100) / 100;
   return String(n) + ' kg';
@@ -863,8 +879,14 @@ function render(p){
   var offSale = isOffSaleProduct(p);
   if (offSale) priceHtml = '<p class="p-offsale" role="status" style="font-size:15px;font-weight:700;color:#B03A2E;margin:0">' + esc(window.AriaOffSale.OFF_SALE_PRODUCT_NOTE) + '</p>';
   var img = galleryHTML(p);
+  /* PRODUCT-PAGE LAW (Danny, #443 c.6534945667): TÍTULO, then DESCRIPCIÓN
+     directly under it, then PRECIO directly under the description --
+     readable at first glance, never buried below the fold. A long text
+     opens on its first lines with "Leer más"; the price stays on the
+     first screen. The text is the catalogue's Spanish description. */
   var desc = p.description
-    ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
+    ? '<div class="p-desc" id="p-desc"><h2 class="p-desc-h">Descripción</h2><p class="p-desc-t" id="p-desc-t">' + esc(p.description) + '</p>'
+      + '<button type="button" class="p-desc-more" id="p-desc-more" hidden aria-expanded="false">Leer más</button></div>' : '';
   el("p-body").innerHTML =
     '<div class="grid2" style="align-items:start">'
     + '<div>' + img + '</div>'
@@ -872,6 +894,7 @@ function render(p){
       + (p.brand ? '<div class="kicker">' + esc(p.brand) + '</div>' : '')
       + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(p.name) + '</h1>'
       + (store && !offSale ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
+      + desc
       + conditionHtml(p)
       + (p.partNumber ? '<p style="font-size:14px;color:var(--muted);margin:0 0 10px">N.° de parte: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' + esc(p.partNumber) + '</span></p>' : '')
       + priceHtml
@@ -890,10 +913,11 @@ function render(p){
           return '';
         })()
       + '<div id="buy-box" class="buy-box"></div>'
-    + '</div></div>' + desc
+    + '</div></div>'
     + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
   document.title = p.name + " — Aria Shop";
   wireGallery(el("p-body").querySelector(".p-gallery"));
+  wireDescMore();
   buildBuyBox(p);
   if (!offSale) fillWeightAndTax(p);
   /* A size with its own weight (a surfboard) re-weighs the line when chosen. */
