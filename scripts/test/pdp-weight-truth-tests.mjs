@@ -154,8 +154,10 @@ async function weightRow(name, store) {
   return out;
 }
 
-await check("product page: the Keter says 'Por confirmar', no weight, no freight math", async () => {
-  const o = await weightRow("Keter Extendable Resin Outdoor Party Table Bar Cart, Pine", "samsclub");
+/* The Keter's own page went with Sam's Club (#443 c.6468346931); a live
+   product the resolver holds the same way stands in for it. */
+await check("product page: a held product says 'Por confirmar', no weight, no freight math", async () => {
+  const o = await weightRow("Sterilite 80-Qt Clear Plastic Stackable Storage Bin w/ Gasket Latch Lid, 12 Pack", "walmart");
   assert.match(o.weight, /^Por confirmar/);
   assert.doesNotMatch(o.weight, /\d\s*kg/);
   assert.doesNotMatch(o.tax, /S\/|US\$/, "a tax built on a weight nobody knows");
@@ -182,7 +184,7 @@ await check("product page: a web-pass weight says so", async () => {
 await check("the cart line from the product page carries the catalogue's weight, not a flat 0.2 kg", () => {
   const page = readFileSync(ROOT + "producto.html", "utf8");
   assert.doesNotMatch(page, /\n\s*weightKg: 0\.2,\r?\n/, "the flat 0.2 kg cart weight is back");
-  assert.match(page, /weightKg: weightLineOf\(p, priceUsd\)\.weightKg/);
+  assert.match(page, /weightKg: weightLineOf\(p, priceUsd(?:, size)?\)\.weightKg/);
   const toml = readFileSync(ROOT + "netlify.toml", "utf8");
   for (const fn of ["resolve-weight", "orders-create", "search"]) {
     const block = toml.split(`[functions."${fn}"]`)[1] || "";

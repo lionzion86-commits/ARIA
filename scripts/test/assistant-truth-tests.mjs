@@ -53,10 +53,10 @@ const SPOKEN = {
   nike: ["Nike", "nike.com"], footlocker: ["Foot Locker", "footlocker"], kohls: ["Kohls", "Kohl's"],
   macys: ["Macy's", "Macys"], gap: ["Gap"], oldnavy: ["Old Navy"], bananarepublic: ["Banana Republic"],
   athleta: ["Athleta"], ulta: ["Ulta", "Ulta Beauty"], ssense: ["SSENSE"], yesstyle: ["YesStyle", "Yes Style"],
-  victoriassecret: ["Victoria's Secret", "Victorias Secret", "Victoria Secret", "VS"],
   newbalance: ["New Balance"], gymshark: ["Gymshark", "gym shark"], alphalete: ["Alphalete"],
   miumiu: ["Miu Miu"], fendi: ["Fendi"], goldengoose: ["Golden Goose"], pacsun: ["PacSun", "Pac Sun"],
   surfworld: ["Surf World"],
+  samsclub: ["Sam's Club", "sams club"],
 };
 
 /* ------------------------------------------------------------------ */
@@ -92,7 +92,7 @@ console.log("\n  2. prompts and canned content");
    prompt may say "unas Nike"; their store-only forms are checked below. */
 const STORE_ONLY = ["Target", "Best Buy", "Costco", "Foot Locker", "Kohl's", "Kohls", "Macy's", "Macys",
   "Old Navy", "Gap", "Banana Republic", "Athleta", "Ulta", "SSENSE", "YesStyle", "Yes Style",
-  "Victoria's Secret", "Victorias Secret", "Victoria Secret", "Gymshark", "Alphalete", "PacSun", "Pac Sun",
+  "Gymshark", "Alphalete", "PacSun", "Pac Sun",
   "Nike.com", "Nike direct", "tienda de Nike", "tienda Nike", "tienda de New Balance"];
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 /* A sentence that only prohibits a store is fine. */
@@ -233,7 +233,7 @@ for (const q of ["target juguetes", "victoria's secret brasier", "nike air max",
     assert.equal(dead.length, 0, dead.map((d) => d.store).join(","));
   });
 }
-for (const [query, store] of [["juguetes", "target"], ["brasier", "victoriassecret"], ["zapatillas", "Nike"], ["jeans", "old navy"]]) {
+for (const [query, store] of [["juguetes", "target"], ["zapatillas", "Nike"], ["jeans", "old navy"]]) {
   await check(`MCP search_products store="${store}": empty, with the off-sale note`, () => {
     const out = searchProducts({ query, store, limit: 20 }, mctx);
     assert.equal(out.count, 0);

@@ -225,7 +225,9 @@ await check("orderRail: each hero once, the premium hero keeps its slot on a ful
     card("Euphoria \u2014 Eau de Toilette 100 ml", 20, { brand: "Calvin Klein" }),
     ...many,
   ]);
-  assert(rail.length === 16, "rail length " + rail.length);
+  /* RAIL_MAX is 25 (#443 c.6539643881); this pool fills 23 of it under the
+     two-sale-slots-per-house rule. */
+  assert(rail.length === 23, "rail length " + rail.length);
   assert(rail.filter((p) => p.heroAnchor === "carolina-herrera-212").length === 1, "212 shows twice");
   assert(rail.find((p) => p.heroAnchor === "carolina-herrera-212").price === 50, "the hero is not its cheapest bottle");
   assert(rail.some((p) => p.heroAnchor === "creed-aventus"), "the premium hero was crowded out");
@@ -289,7 +291,9 @@ if (!process.env.PERFUME_STATIC) {
   const IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
   async function newPage() {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: IPHONE_UA });
-    await context.route("**/*", (route) => (new URL(route.request().url()).host === OWN ? route.continue() : route.abort()));
+    /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+    await context.route("**/*", (route) => (new URL(route.request().url()).host === OWN ? route.continue()
+      : route.request().resourceType() === "image" ? route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : route.abort()));
     const page = await context.newPage();
     const requests = [];
     page.on("request", (r) => requests.push(new URL(r.url()).pathname));
@@ -371,7 +375,8 @@ if (!process.env.PERFUME_STATIC) {
         });
         assert(r.cards === PICKS.length && r.title === "Perfumes" && r.kicker === "Fragancias", JSON.stringify(r));
         assert(r.before, "the Perfumes rail does not lead the department's rails");
-        assert(r.hrefs.every((h) => h.startsWith("producto.html?")), "a card links out: " + r.hrefs.join(" "));
+        /* Cards open Aria's product page; the end card opens the Perfumes department. */
+        assert(r.hrefs.every((h) => h.startsWith("producto.html?") || h === "departamento.html?dept=perfumes"), "a card links out: " + r.hrefs.join(" "));
         assert(/^S\//.test(r.pen.trim()) && /US\$/.test(r.usd), "price: " + r.pen + " / " + r.usd);
         assert(!requests.some((u) => /-catalog\.json$/.test(u)), "a catalogue was fetched");
         if (SHOTS) {

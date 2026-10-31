@@ -7,9 +7,9 @@
 
      phone (390px, touch)  scroll a row: exactly one card -- the one
                            nearest the middle -- holds the focus, grown to
-                           1.10, and the row has room for it (not clipped
+                           1.07, and the row has room for it (not clipped
                            top or bottom);
-     desktop (pointer)     hovering a card grows it to 1.12 and lifts it;
+     desktop (pointer)     hovering a card grows it to 1.09 and lifts it (#443 c.6545843738);
                            no phone focus on a pointer;
      reduced motion        nothing grows;
      mountain              on a 4x-throttled phone, a row swiped back and
@@ -19,7 +19,7 @@
      node scripts/test/card-grow-tests.mjs
      PAGES="ofertas.html" node scripts/test/card-grow-tests.mjs
 
-   Off-site requests (photos) are aborted.
+   Off-site requests are aborted; off-site photos answer with a 1x1 PNG.
    ================================================================== */
 import http from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -58,7 +58,9 @@ async function open(ctx, path, { blockGrow = false } = {}) {
   const pg = await ctx.newPage();
   const errs = [];
   pg.on("pageerror", (e) => errs.push(e.message));
-  await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+  await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.request().resourceType() === "image"
+    ? r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : r.abort());
   if (blockGrow) await pg.route(/card-grow\.js/, (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
   await pg.goto(`${BASE}/${path}`, { waitUntil: "domcontentloaded" });
   await pg.waitForTimeout(2500);
@@ -103,7 +105,7 @@ for (const path of PAGES) {
           room: f ? fb.top >= rr.top - 0.5 && fb.bottom <= rr.bottom + 0.5 : false, top: f ? Math.round(fb.top - rr.top) : null, bottom: f ? Math.round(rr.bottom - fb.bottom) : null };
       });
       check(path, "phone: one focused card, the one nearest the middle", r.n === 1 && r.nearest, `focused ${r.n}`);
-      check(path, "phone: focus scale 1.10", Math.abs(scaleOf(r.transform) - 1.10) < 0.005, r.transform);
+      check(path, "phone: focus scale 1.07", Math.abs(scaleOf(r.transform) - 1.07) < 0.005, r.transform);
       check(path, "phone: the row has room for the grown card", r.room, `top ${r.top}px, bottom ${r.bottom}px`);
       /* a grown card, or the row's room around it, never covers a link or
          button outside the row ("Ver todo" in the heading above) */
@@ -135,7 +137,7 @@ for (const path of PAGES) {
       await card.hover();
       await pg.waitForTimeout(800);
       const r = await card.evaluate((c) => ({ t: getComputedStyle(c).transform, sh: getComputedStyle(c).boxShadow, focus: document.querySelectorAll(".is-focus").length }));
-      check(path, "desktop: hover scale 1.12 with a shadow", Math.abs(scaleOf(r.t) - 1.12) < 0.005 && r.sh !== "none", r.t);
+      check(path, "desktop: hover scale 1.09 with a shadow", Math.abs(scaleOf(r.t) - 1.09) < 0.005 && r.sh !== "none", r.t);
       check(path, "desktop: no phone focus on a pointer", r.focus === 0, `is-focus ${r.focus}`);
     } else check(path, "desktop: a carousel with cards", false);
     await pg.close();

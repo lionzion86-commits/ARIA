@@ -15,8 +15,24 @@
 
 # The MCP connector (netlify/functions/mcp.js) reads index.html, the JS
 # bundle and the catalogue JSONs off disk at boot (scripts/lib/mcp/paths.mjs).
+#
+# OFF-SALE CATALOGUES STAY OUT (#443, 2026-10-29): with the Oct 28 drops the
+# function reached ~243MB of repo files plus its own code, against
+# Lambda's 250MB ceiling, and the #525 preview failed to deploy. The
+# connector skips every off-sale store's records anyway (catalog.mjs,
+# isOffSaleRetailer), so the catalogues that hold ONLY off-sale stores
+# (/off-sale.js) are not shipped to it: ~20MB. A store coming back on
+# sale comes off this list.
+# THE GYM PULLS (#443 c.6542443890, 2026-10-31): the twelve gym brands are
+# gym-brands-catalog.json (~23MB), more than the room left under the
+# ceiling; the connector does not ship it (the site's own pages read it).
 [functions."mcp"]
-  included_files = ["index.html", "build/*.js", "*-catalog.json", "department-cache*.json"]
+  included_files = ["index.html", "build/*.js", "*-catalog.json", "department-cache*.json",
+    "!bestbuy-catalog.json", "!costco-catalog.json", "!costco-electronics-catalog.json", "!kohls-catalog.json",
+    "!macys-catalog.json", "!gap-catalog.json", "!bananarepublic-catalog.json", "!ulta-catalog.json",
+    "!yesstyle-catalog.json", "!newbalance-catalog.json", "!miumiu-catalog.json", "!pacsun-catalog.json",
+    "!samsclub-catalog.json",
+    "!gym-brands-catalog.json"]
 
 # price-index.json (~5MB): what checkout charges per product, built by
 # scripts/build-price-index.mjs (orders-create.js reprices every line).

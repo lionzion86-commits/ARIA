@@ -17,6 +17,7 @@
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { conditionOfTitle } from "../../scripts/lib/condition.js";
 
 export const PAGE_SIZE = 48;   // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;  // cards drawn in one carousel
@@ -97,6 +98,10 @@ export function cardOf(p) {
   if (p.brand) c.b = p.brand;
   if (p.pct > 0) { c.s = p.pct; if (p.orig > p.price) c.o = p.orig; }
   if (p.image) c.i = p.image;
+  if (p.ph > 1) c.ph = p.ph;
+  /* k: the condition label (/condition.js) the store's title states. */
+  const cond = conditionOfTitle(p.name);
+  if (cond && cond.label) c.k = cond.label;
   return c;
 }
 
@@ -118,9 +123,9 @@ export function pageOf(key, items, rail, page) {
 }
 
 /* The endpoint's copy: one row per product. */
-export function fnRow(p) { return [p.name, p.brand, p.retailer, p.price, p.orig || 0, p.pct || 0, p.image, p.ptype]; }
+export function fnRow(p) { const r = [p.name, p.brand, p.retailer, p.price, p.orig || 0, p.pct || 0, p.image, p.ptype]; if (p.ph > 1) r.push(p.ph); return r; }
 export function rowItem(r) {
-  return { name: r[0], brand: r[1], brandKey: brandKeyOf(r[1]), retailer: r[2], price: r[3], orig: r[4], pct: r[5], image: r[6], ptype: r[7] };
+  return { name: r[0], brand: r[1], brandKey: brandKeyOf(r[1]), retailer: r[2], price: r[3], orig: r[4], pct: r[5], image: r[6], ptype: r[7], ph: r[8] || 0 };
 }
 
 const CANDIDATES = [

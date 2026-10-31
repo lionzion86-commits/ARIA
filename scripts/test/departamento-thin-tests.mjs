@@ -18,10 +18,10 @@
 import assert from "node:assert/strict";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import {
-  DEPT_RULES, CATALOG_FILES, ALL_LABELS, OUT_DIR, loadAllItems, deptItems,
+  DEPT_RULES, CATALOG_FILES, ALL_LABELS, OUT_DIR, loadAllItems, deptItems, audienceTagger, headerExtra,
 } from "../build-department-slices.mjs";
 import {
-  PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, buildSections, sectionOpts, headOf, batchOf, batchCount, answer, filterList,
+  PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, buildSections, sectionOpts, headOf, batchOf, batchCount, answer, filterList, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS,
 } from "../../netlify/functions/_department-core.js";
 import { handler } from "../../netlify/functions/department.js";
 
@@ -44,18 +44,20 @@ const GRID_KEYS = PAGE_KEYS.filter((k) => !DOORS.includes(k));
 
 const ALL = loadAllItems(ROOT);
 
-await check("the page and the build agree on the 32 departments (plus the doors: ropa-interior.html, and Joyería into Joyas y Accesorios)", () => {
-  assert.equal(GRID_KEYS.length, 32, `page lists ${GRID_KEYS.length} grid departments`);
+await check("the page and the build agree on the 33 departments (plus the doors: ropa-interior.html, and Joyería into Joyas y Accesorios)", () => {
+  assert.equal(GRID_KEYS.length, 33, `page lists ${GRID_KEYS.length} grid departments`);
   assert.deepEqual([...GRID_KEYS].sort(), Object.keys(DEPT_RULES).sort());
   assert.deepEqual(DOORS.sort(), ["jewelry", "ropa_interior", "ropa_interior_mujer"]);
 });
 
 await check("every committed head.json and rails-<b>.json is what the rules compute from today's catalogues", () => {
+  const u = audienceTagger(ALL);
   for (const key of Object.keys(DEPT_RULES)) {
-    const list = deptItems(ALL, key);
+    const list = deptItems(ALL, key).map((p) => ({ ...p, u: u(p) }));
     const sections = buildSections(list, sectionOpts(key));
     const head = readJSON(`${OUT_DIR}/${key}/head.json`);
-    assert.deepEqual(head, JSON.parse(JSON.stringify(headOf(key, list, sections, ALL_LABELS))), `${key}/head.json is stale — run: node scripts/build-department-slices.mjs`);
+    const pills = key === "perfumes" ? perfumePills(list) : BRAND_ROOMS.has(key) ? brandRoomPills(list) : {};
+    assert.deepEqual(head, JSON.parse(JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...hubLenses(key, list, ALL_LABELS, (k) => deptItems(ALL, k).map((p) => ({ ...p, u: u(p) }))).extra, ...pills, ...headerExtra(key, list) }))), `${key}/head.json is stale — run: node scripts/build-department-slices.mjs`);
     const n = batchCount(sections);
     for (let b = 0; b < n; b++) {
       assert.deepEqual(readJSON(`${OUT_DIR}/${key}/rails-${b}.json`), JSON.parse(JSON.stringify(batchOf(sections, b))), `${key}/rails-${b}.json is stale`);
@@ -95,7 +97,7 @@ await check("the first screen is small: every head.json under 32KB raw, every ba
 await check("cards carry only what a tile and a tap need (no sizes, no retailer URL, no description)", () => {
   const head = readJSON(`${OUT_DIR}/women/head.json`);
   for (const r of head.rails) for (const c of r.cards || []) {
-    for (const k of Object.keys(c)) assert.ok(["t", "b", "r", "p", "o", "s", "i"].includes(k), `card field ${k}`);
+    for (const k of Object.keys(c)) assert.ok(["t", "b", "r", "p", "o", "s", "i", "ph"].includes(k), `card field ${k}`);
     assert.ok(c.t && c.r && c.p > 0, "card without title, store or price");
     if (c.o) assert.ok(c.o > c.p && c.s > 0, "a was-price on a card that is not on sale");
   }

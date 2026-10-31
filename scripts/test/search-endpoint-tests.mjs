@@ -105,7 +105,9 @@ await check("brand + model queries answer with that model", async () => {
   };
   for (const [q, rx] of Object.entries(want)) {
     const r = await ask(q);
-    const top = r.body.items.slice(0, 4);
+    /* What the page opens on, in order: the model charts (#443
+       c.6544967818), then the grid. */
+    const top = (r.body.compares || []).flatMap((c) => c.stores).concat(r.body.items).slice(0, 4);
     assert.ok(top.length && top.every((i) => rx.test(i.title)), `"${q}": ${top.map((i) => i.title).join(" | ")}`);
   }
 });
@@ -155,10 +157,10 @@ await check("empty, short, gibberish and a brand we do not sell answer cleanly",
   assert.equal((await ask("H&M")).body.missingBrand, "h&m");
 });
 
-await check("answers are edge-cached per (q, page); the warm ping is not", async () => {
+await check("answers are edge-cached per (q, page, lane, off); the warm ping is not", async () => {
   const r = await ask("dolls");
   assert.match(r.headers["Netlify-CDN-Cache-Control"], /durable/);
-  assert.equal(r.headers["Netlify-Vary"], "query=q|page");
+  assert.equal(r.headers["Netlify-Vary"], "query=q|page|lane|off");
   const w = await handler({ httpMethod: "GET", queryStringParameters: { warm: "1" } }, { fetchImpl });
   assert.equal(w.statusCode, 204);
   assert.equal(w.headers["Cache-Control"], "no-store");
@@ -172,8 +174,9 @@ await check("answers are edge-cached per (q, page); the warm ping is not", async
 const page = readFileSync(ROOT + "search.html", "utf8");
 await check("search.html downloads no catalogue, index or engine", () => {
   const fetched = [...page.matchAll(/["'](\/?[\w./-]+\.(?:json|js))["']/g)].map((m) => m[1]);
-  /* ref.js and Aria's orb launcher (#386, deferred, no data) are the only scripts. */
-  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/(aria-launcher|pixels))\.js$/.test(u));
+  /* ref.js, Aria's orb launcher (#386) and the card UI scripts (card-grow,
+     card-photos: no data) are the only scripts. */
+  const heavy = fetched.filter((u) => !/^\/?(ref|assets\/js\/(aria-launcher|pixels|card-grow|card-photos))\.js$/.test(u));
   assert.deepEqual(heavy, [], "the page still references " + heavy.join(", "));
   assert.match(page, /var SEARCH_API = "\/\.netlify\/functions\/search";/);
   assert.match(page, /var PAGE_SIZE = 48;/);
@@ -181,7 +184,9 @@ await check("search.html downloads no catalogue, index or engine", () => {
 });
 
 await check("a card holds its shape before its photo or words arrive", () => {
-  assert.match(page, /\.card \.img\{[^}]*aspect-ratio:1\/1/, "the photo box is not square");
+  assert.match(page, /\.card \.img\{[^}]*aspect-ratio:1\/1/, "the photo box is not reserved");
+  assert.match(page, /\.card \.img\{aspect-ratio:4\/5;\}/, "the photo box is not the big card's 4:5 (#443)");
+  assert.match(page, /@supports not \(aspect-ratio:4\/5\)\{ \.card \.img\{padding-top:125%;\} \}/, "no 4:5 box for Safari before 15");
   assert.match(page, /@supports not \(aspect-ratio:1\/1\)\{ \.card \.img\{height:0; padding-top:100%;\} \}/, "no square for Safari before 15");
   assert.match(page, /\.card \.img img\{position:absolute;/, "the photo is not laid over the reserved box");
   assert.match(page, /\.card \.name\{[^}]*min-height:35px/, "the title lines are not reserved");
@@ -223,7 +228,25 @@ await check("the function ships with its files, and only it does", () => {
   }
 });
 
-const MIN_CHECKS = 19;
+/* P0 2026-10-28 (c.6469467334): an outside call that never answers must
+   not hold the search. A fresh copy of the function (its rate cache is
+   module state) gets a SUNAT that ignores its abort and never settles;
+   the answer still leaves, inside the rate budget, without soles. */
+await check("a rate source that never answers does not hold the search (no bare 502)", async () => {
+  const fresh = await import("../../netlify/functions/search.js?hang=" + Date.now());
+  const never = () => new Promise(() => {});
+  const t0 = Date.now();
+  const r = await fresh.handler({ httpMethod: "GET", queryStringParameters: { q: "nike", page: "1" } }, { fetchImpl: never });
+  const ms = Date.now() - t0;
+  assert.equal(r.statusCode, 200, String(r.body).slice(0, 200));
+  const body = JSON.parse(r.body);
+  assert.ok(body.items.length > 0, "no cards");
+  assert.ok(!body.fx, "a rate appeared from nowhere");
+  assert.ok(ms < 6000, `took ${ms}ms`);
+  assert.match(r.headers["Netlify-CDN-Cache-Control"] || "", /max-age=60\b/, "an answer without soles is cached only briefly");
+});
+
+const MIN_CHECKS = 20;
 if (passed + failures.length < MIN_CHECKS) {
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} ran, expected ${MIN_CHECKS}.`);
   process.exit(1);

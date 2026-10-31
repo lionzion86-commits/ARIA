@@ -104,7 +104,8 @@
     var it = D.carried.values();
     for (var r = it.next(); !r.done; r = it.next()) {
       var c = r.value;
-      if (c.indexOf(k) === 0 && c.length - k.length <= 3) return true;
+      /* A long enough first word is the brand ("abercrombie" for Abercrombie & Fitch). */
+      if (c.indexOf(k) === 0 && (c.length - k.length <= 3 || k.length >= 6)) return true;
       if (Math.abs(c.length - k.length) <= 1 && D.S.fuzzyEditDist(c, k, 1) <= 1) return true;
     }
     return false;
@@ -128,11 +129,19 @@
       }
     }
     if (t.length <= 4 || /\d/.test(t) || catalogueKnows(windex, t)) return null;
-    var best = null, bestD = 3;
+    /* TWO EDITS ONLY FROM EIGHT LETTERS, AND ON THE FIRST LETTER NEVER
+       (#443 c.6477677381): «plancha» is two edits from «blanca» and the
+       page answered a flat-iron search with white T-shirts. On a word
+       under eight letters two edits make another word, not a typo; and
+       a typo almost never changes the first letter. The engine's fuzzy
+       layer holds the same rule. */
+    var maxD = t.length >= 8 ? 2 : 1;
+    var best = null, bestD = maxD + 1;
     for (var i = 0; i < D.fuzzyTargets.length; i++) {
       var c = D.fuzzyTargets[i];
-      if (Math.abs(c.key.length - t.length) > 2) continue;
-      var d = D.S.fuzzyEditDist(c.key, t, 2);
+      if (Math.abs(c.key.length - t.length) > maxD) continue;
+      var d = D.S.fuzzyEditDist(c.key, t, maxD);
+      if (d > maxD || (d >= 2 && c.key.charAt(0) !== t.charAt(0))) continue;
       if (d < bestD || (d === bestD && best && !best.brand && c.brand)) { best = c; bestD = d; }
     }
     /* THE CATALOGUE'S OWN WORD WINS WHEN IT IS NEARER (2026-10-19,
@@ -149,7 +158,7 @@
       });
       if (nearer) return null;
     }
-    return bestD <= 2 ? best : null;
+    return bestD <= maxD ? best : null;
   }
 
   /* ---------- what the shopper asked for ---------- */
@@ -249,11 +258,20 @@
     return function (it) {
       if (!it) return false;
       var t = String(it.title || it.name || '');
-      if (s.drop && s.drop.test(t)) return false;
+      /* The drop words judge what the product IS -- the title before
+         "with", "+" or a comma -- not what ships with it: "Gaming Monitor
+         with Height Adjustable Stand" is a monitor, "Monitor Stand" is
+         not (#443 search audit, F6). */
+      var lead = t.split(/\s+(?:with|w\/|incl\.?|including)\s+|\s*[+,|]\s*/i)[0];
+      if (s.drop && s.drop.test(lead)) return false;
       if (s.brand && squash(it.brand) === s.brand) return true;
       if (s.noun) {
         var head = Array.from(S.catalogHeadWords(it)).pop();
-        if (!head || !s.noun.test(head)) return false;
+        /* ...or the title's last word, when the specs sit in brackets
+           mid-title ("Nitro 27" 2K QHD (2560 x 1440) 320Hz Gaming
+           Monitor" reads its head as "qhd"). */
+        var tail = norm(t.replace(/\s+[-\u2013|]\s+[^-\u2013|]*$/, '')).split(' ').pop();
+        if (!(head && s.noun.test(head)) && !(tail && s.noun.test(tail))) return false;
       }
       return !s.keep || s.keep.test(t);
     };

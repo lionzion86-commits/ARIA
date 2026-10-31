@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import * as B from "../build-perfumes-catalog.mjs";
 import { PRE_PRICED, LAUNCH_PRICED, LAUNCH_LABEL, tieredMarginUsd } from "../../weight-data.js";
-import { buildPerfumeSections, perfumeClassOf } from "../../netlify/functions/_department-core.js";
+import { buildPerfumeSections, perfumeClassOf, isDesignerHouse } from "../../netlify/functions/_department-core.js";
 import { isFragranceItem } from "../lib/fragrance.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -157,30 +157,30 @@ await check("checkout charges Aria's price and taxes the goods' true value, neve
   assert.ok(vals.some(([p, d]) => p === 468.46 && d === 397), "Aventus 100 ml: US$468.46, dutiable US$397 (over the US$200 line)");
 });
 
-await check("the department: the great houses first, then the sales, each class, the houses (classics first), body care last", () => {
+await check("the department, the universal format (#443 c.6532666653): Ofertas first, a rail per known brand biggest first, «Más marcas» last; inside a brand, its types", () => {
   const head = JSON.parse(readFileSync(ROOT + "assets/sections/departamento/perfumes/head.json", "utf8"));
-  const titles = head.rails.map((r) => r.title);
-  assert.deepEqual(titles.slice(0, 5), ["Las grandes casas", "Ofertas", "Testers", "Minis y de viaje", "Sets de regalo"]);
-  assert.equal(titles[5], "Christian Dior", "the house rails open on the classics' houses");
-  assert.equal(titles[titles.length - 1], "Cuerpo y cuidado");
-  assert.deepEqual(head.labels, { ariaperfumes: "Aria Perfumes" });
-  const lead = head.rails[0].cards;
-  for (const c of lead) {
-    assert.ok(!/\((?:[^)]*\b)?(?:Tester|Mini|Repuesto|Sin caja)\b/.test(c.t), "a great-house card is the boxed bottle: " + c.t);
-  }
-  assert.match(lead[0].t, /^Sauvage — /, "Sauvage leads");
-  assert.ok(lead.some((c) => /^Aventus — .* para hombre$/.test(c.t)), "the men's Aventus is the classic");
-  const names = lead.map((c) => c.t.split(" — ")[0]);
-  assert.equal(new Set(names).size, names.length, "a fragrance shows twice on the lead rail");
-  assert.ok(lead.some((c) => c.s > 0) && lead.some((c) => !(c.s > 0)), "classics and sales interleave");
-  assert.ok(head.rails[2].cards.every((c) => /\bTester\b/.test(c.t)), "the Testers rail is testers");
-  /* A tester never sits on a house rail. */
-  const sections = buildPerfumeSections([
-    { title: "A — Eau de Parfum en spray 100 ml (3.4 oz) (Tester) para mujer", brand: "Lattafa", retailer: "ariaperfumes", rawPrice: 10, salePct: 0, type: "Fragancia" },
-    ...["A", "B", "C"].map((n) => ({ title: `${n} — Eau de Parfum en spray 100 ml (3.4 oz) para mujer`, brand: "Lattafa", retailer: "ariaperfumes", rawPrice: 20, salePct: 0, type: "Fragancia" })),
+  const rails = head.rails;
+  assert.equal(rails[0].title, "Ofertas");
+  assert.ok(rails[0].count > 4000, "Ofertas " + rails[0].count);
+  assert.deepEqual(rails.slice(1, 5).map((r) => r.title), ["Lattafa", "Demeter", "Armaf", "Al Haramain"]);
+  const brandRails = rails.slice(1, -1);
+  for (let i = 1; i < brandRails.length; i++) assert.ok(brandRails[i].count <= brandRails[i - 1].count, "biggest first: " + brandRails[i].title);
+  for (const t of ["Versace", "Gucci", "Prada", "Carolina Herrera", "Paco Rabanne"]) assert.ok(rails.some((r) => r.title === t), t + " has no rail");
+  assert.equal(rails[rails.length - 1].title, "Más marcas");
+  /* Every product is on a rail: the brand rails and Más marcas hold the room. */
+  assert.equal(rails.slice(1).reduce((n, r) => n + r.count, 0), head.count);
+  /* The pills: the doors and every known brand. */
+  assert.deepEqual(head.doors.map((d) => d.label), ["Mujer", "Hombre", "Unisex", "Minis", "Sets de regalo", "Testers"]);
+  assert.deepEqual(head.brands.map((b) => b.label), brandRails.map((r) => r.title));
+  /* The sales lead on the designer houses. */
+  assert.ok(rails[0].cards.slice(0, 6).every((c) => isDesignerHouse({ brand: c.b })), rails[0].cards.slice(0, 6).map((c) => c.b).join(","));
+  /* One brand: its Ofertas, then its types. */
+  const one = buildPerfumeSections([
+    { title: "A — Eau de Parfum en spray 100 ml (3.4 oz) (Tester) para mujer", brand: "Lattafa", retailer: "ariaperfumes", rawPrice: 10, salePct: 0, type: "Fragancia", a: "testers" },
+    ...["A", "B", "C"].map((n) => ({ title: `${n} — Eau de Parfum en spray 100 ml (3.4 oz) para mujer`, brand: "Lattafa", retailer: "ariaperfumes", rawPrice: 20, salePct: 10, type: "Fragancia", a: "mujer" })),
+    { title: "D — Eau de Toilette en spray 100 ml (3.4 oz) para hombre", brand: "Lattafa", retailer: "ariaperfumes", rawPrice: 25, salePct: 0, type: "Fragancia", a: "hombre" },
   ]);
-  const house = sections.find((s) => s.key === "marca:lattafa");
-  assert.equal(house.items.length, 3);
+  assert.deepEqual(one.map((x) => x.title), ["Ofertas", "Para mujer", "Para hombre", "Testers"]);
   assert.equal(perfumeClassOf({ title: "X — Loción corporal 200 ml para mujer", type: "Cuidado corporal" }), "cuidado");
 });
 

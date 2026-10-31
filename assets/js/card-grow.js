@@ -29,9 +29,13 @@
   var ROW = ".ariaRail:not(#liveRefineChips), div.rail, .track, .rel-row";
   var CARD = ":is(" + ROW + ") > :is(a, button):not(.sk)";
   var SETTLE = "500ms cubic-bezier(.22,1,.36,1)";
-  /* below-row room: a grown card is 10-12% taller; Ropa Interior's cards
-     are the tallest on the site */
-  var ROOM = 40, TALL_ROOM = 60;
+  /* THE GROW, A FEW POINTS LESS (#443 c.6545843738, Danny): the base card
+     keeps its size; the focus grows it just past the frame -- phone 1.07,
+     desktop hover 1.09 with its 4px lift. Every row carries the big card
+     (#443 c.6545104608): a grown one is 7-9% taller, ~45px on the tallest
+     cards, so every row keeps 48px below it. */
+  var GROW_PHONE = 1.07, GROW_DESK = 1.09;
+  var ROOM = 48, TALL_ROOM = 48;
 
   var css =
     /* Room for a grown card: a carousel scrolls sideways, so it clips
@@ -49,10 +53,10 @@
     CARD + ":first-child{transform-origin:left top}" +
     CARD + ":last-child{transform-origin:right top}" +
     "@media (hover:hover) and (pointer:fine){" +
-      CARD + ":hover{z-index:2;transform:translateY(-4px) scale(1.12);box-shadow:0 22px 44px rgba(10,20,40,.34),0 6px 14px rgba(10,20,40,.18)}" +
+      CARD + ":hover{z-index:2;transform:translateY(-4px) scale(" + GROW_DESK + ");box-shadow:0 22px 44px rgba(10,20,40,.34),0 6px 14px rgba(10,20,40,.18)}" +
     "}" +
     "@media (hover:none){" +
-      CARD + ".is-focus{z-index:2;transform:scale(1.10);box-shadow:0 18px 36px rgba(10,20,40,.30),0 5px 12px rgba(10,20,40,.16)}" +
+      CARD + ".is-focus{z-index:2;transform:scale(" + GROW_PHONE + ");box-shadow:0 18px 36px rgba(10,20,40,.30),0 5px 12px rgba(10,20,40,.16)}" +
       CARD + ":active{transform:scale(.97);transition-duration:120ms}" +
     "}" +
     "@media (prefers-reduced-motion:reduce){" + CARD + "{transition:none !important;transform:none !important}}";

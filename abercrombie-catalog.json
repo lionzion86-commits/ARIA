@@ -44,7 +44,9 @@
        "onSale": false,
        "image": "https://img.abercrombie.com/is/image/anf/KIC_122-6294-01378-212_prod1?policy=product-medium",
        "images": [
-        "https://img.abercrombie.com/is/image/anf/KIC_122-6294-01378-212_prod1?policy=product-medium"
+        "https://img.abercrombie.com/is/image/anf/KIC_122-6294-01378-212_prod1?policy=product-medium",
+        "https://img.abercrombie.com/is/image/anf/KIC_122-6175-01339-802_prod1?policy=product-medium",
+        "https://img.abercrombie.com/is/image/anf/KIC_122-6175-01339-802_life1?policy=product-medium"
        ],
        "rating": 4.9,
        "reviewCount": 11466,
@@ -55,7 +57,8 @@
        "sizes": [],
        "availableSizes": [],
        "specWeightKg": 0.66,
-       "weightEstimated": true
+       "weightEstimated": true,
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Baggy Jean",

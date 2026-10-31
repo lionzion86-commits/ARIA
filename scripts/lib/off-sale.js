@@ -29,11 +29,6 @@
 
 /* THE STORES ON THE LIST, AND WHY (keys as the catalogues spell them;
    the list itself is in /off-sale.js, kept short for the phone):
-     victoriassecret  Victoria's Secret direct (2026-10-20, #443
-                      c.6304525284, Danny): personal-use-only terms, no
-                      warehouse channel. A VS carousel may return sourced
-                      from Amazon's VS listings (retailer of record =
-                      Amazon), never from victoriassecret.com.
      target           Target (2026-10-20, c.6301033619, Danny): residential-
                       only shipping, no resale exemption, reseller account
                       flagged.
@@ -51,14 +46,27 @@
                       retailer `farfetch` / `revolve` and stays.
      surfworld        Surf World (#443 item 40): the store closed, Sept 2026.
                       Gone from every served file as well (closed-store-purge).
+     samsclub         Sam's Club (#443 c.6468346931, Danny, 2026-10-28): one
+                      2026-09-26 scrape of a disposables aisle (120 products)
+                      cannot be a real store. Gone from every shopper surface
+                      and registry; samsclub-catalog.json is shelved, not
+                      deleted (the Sephora/SSENSE pattern), for a club that
+                      can return real.
    BACK ON SALE AS UNTESTED LANES (#443, Danny, 2026-10-24; Item 35: real
    orders or a test order decide the verdict):
      ssense           22:50 -- Neiman Marcus is not secured; premium depth.
      footlocker       23:34 -- no forwarder ban on its shipping page; its
-                      carousel returns with the lead store rails. */
+                      carousel returns with the lead store rails.
+     victoriassecret  2026-10-29 -- Victoria's Secret direct (off
+                      2026-10-20, c.6304525284) is BACK (Danny, c.6472207775,
+                      c.6472266366, c.6495111883): the test order shipped
+                      Oct 28. Its sale rail leads the homepage store band
+                      and its markdowns open the Ofertas carousel. */
 
 /* This module re-exports /off-sale.js for the builders, checkout.html and
    the Netlify functions; the list itself lives there, once. */
+/* The held-used rule (isOffSaleItem) reads /condition.js. */
+import "../../condition.js";
 import "../../off-sale.js";
 
 const api = globalThis.AriaOffSale;

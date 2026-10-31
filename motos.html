@@ -82,6 +82,12 @@
   .more-wrap{text-align:center;padding:0 20px 48px}
   footer{border-top:1px solid var(--line);padding:28px 20px;text-align:center;font-size:12.5px;color:#8A93A8}
   footer a{color:var(--blue);text-decoration:none;font-weight:700}
+/* THE BIG CARD, EVERYWHERE (#443 c.6545712892, c.6546035414): the
+   Ropa Interior card is the one card standard -- near-full-width in
+   rails, a 4:5 photo, the title readable at a glance, photo arrows on
+   every product with 2+ photos (card-photos.js). */
+  .card .card-img{aspect-ratio:4/5}
+  @supports not (aspect-ratio:4/5){ .card .card-img{padding-top:125%} }
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -274,7 +280,7 @@ function sizedImageUrl(url, w){
   if (!u || !/^https?:\/\//i.test(u) || !w) return u;
   /* NEVER UPSCALE. When the URL already declares a width at or
      below the step asked for (Kohl's feeds store wid=180/342, some
-     Walmart and Sam's Club URLs declare 180), that variant is the
+     Walmart URLs declare 180), that variant is the
      card image the shopper sees today; asking the CDN for more
      pixels would ADD decoded weight -- the opposite of this job. */
   const declared = declaredImageWidth(u);
@@ -289,7 +295,7 @@ function sizedImageUrl(url, w){
     out = setQ(u, "width", w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
-  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+  } else if (/i5\.walmartimages\.com/i.test(u)){
     out = setQ(u, "odnWidth", w);
     out = /[?&]odnHeight=\d+/i.test(out)
       ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })

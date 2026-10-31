@@ -187,7 +187,5 @@ export function classComparablesFor(index, byTail, title, { exclude = null, pric
   };
 }
 
-/** The key a product's estimate is stored under. */
-export function comparableKey(retailer, title) {
-  return String(retailer || "").toLowerCase() + "::" + String(title || "").toLowerCase().replace(/\s+/g, " ").trim();
-}
+/** The key a product's estimate is stored under (one definition, shared with the functions). */
+export { comparableKey } from "./comparable-key.js";

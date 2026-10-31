@@ -1164,6 +1164,25 @@ window.doSearch = function(which){
   @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+  /* THE ARROW IS A STRIP on the homepage cards too (#443 c.6545843738):
+     the bundle's in-card gallery arrows (cardSwipeNavHTML) become
+     full-height strips down each side of the photo -- a sloppy tap flips
+     the photo (cardSwipeImg stops the card from opening), a drag that
+     starts on one still scrolls the rail; the small round chevron stays. */
+  [data-card-imgs] > span[role="button"]{ top:0 !important; bottom:0 !important; height:auto !important; width:30% !important;
+    transform:none !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important;
+    display:flex !important; align-items:center; -webkit-tap-highlight-color:transparent; touch-action:pan-x pan-y; }
+  [data-card-imgs] > span[aria-label="Foto anterior"]{ left:0 !important; justify-content:flex-start; padding-left:6px !important; }
+  [data-card-imgs] > span[aria-label="Foto siguiente"]{ right:0 !important; left:auto !important; justify-content:flex-end; padding-right:6px !important; }
+  [data-card-imgs] > span[role="button"] > svg{ width:30px; height:30px; padding:8px; box-sizing:border-box; border-radius:999px;
+    background:rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(10,31,68,.25); pointer-events:none; }
+  /* THE BIG CARD (#443 c.6545104608, c.6545136763; Danny: "a thousand
+     times better"): the Ropa Interior card is the whole store's card --
+     near-full-width in rails, a 4:5 photo, the title readable at a glance.
+     Its photo arrows come from card-photos.js on every product with 2+
+     photos; a swipe still scrolls the rail (#556). */
+  .ariaRail > button.w-\[172px\], .ariaRail > button.w-\[224px\]{ width:clamp(232px,68vw,300px) !important; }
+  .ariaRail > button.w-\[172px\] > span:first-child, .ariaRail > button.w-\[224px\] > span:first-child{ height:auto !important; aspect-ratio:4/5; }
   /* RAIL EXPAND (2026-10-07): full-screen "Ver todo" grid. Cards render
      via railCardHTML (fixed-width buttons); the grid overrides to fluid. */
   #railExpandGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
@@ -1515,6 +1534,7 @@ window.doSearch = function(which){
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/card-photos.js" defer></script>
 <!-- TAILWIND, PREBUILT (2026-10-19, #417 iPhone QA): scripts/build-tailwind.mjs.
      It was the cdn.tailwindcss.com runtime, compiling every class on the
      shopper's phone while the page sat white. Last in the head, where the
@@ -1761,7 +1781,7 @@ window.doSearch = function(which){
 
 
 
-  <!-- OFERTAS FIRST (2026-10-07, Danny): the Ofertas carousel sits directly above the Key Club section. Deals are the first thing shoppers see. One copy per breakpoint, moved out of #mobileShopfront / #desktopShopfront so each section carries its own visibility class. VIVID AZURE VARIANT: background sampled from hero headline; header white for readability. -->
+  <!-- OFERTAS FIRST (2026-10-07, Danny): the Ofertas carousel opens the page, Compra por categoría right under it (#443 c.6495088261; the Tiendas strip now follows the store rails and the Key Club block sits after the shopfronts). Deals are the first thing shoppers see. One copy per breakpoint, moved out of #mobileShopfront / #desktopShopfront so each section carries its own visibility class. VIVID AZURE VARIANT: background sampled from hero headline; header white for readability. -->
 <section aria-label="Ofertas" class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
       <div class="ariaGoldHair"></div>
       <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
@@ -1792,6 +1812,7 @@ window.doSearch = function(which){
       </div>
     </section>
 
+
     <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden lg:hidden" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
       <div class="px-5 pt-4 pb-1 flex items-baseline justify-between gap-3">
         <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#FFFFFF">Tiendas</h2>
@@ -1799,6 +1820,7 @@ window.doSearch = function(which){
       </div>
       <div id="mTiendasStripRow" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
     </section>
+
     <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden hidden lg:block" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-5 pb-1 flex items-baseline justify-between gap-3">
@@ -1808,6 +1830,7 @@ window.doSearch = function(which){
       <div id="dTiendasStripRow" class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
       </div>
     </section>
+
 
   <!-- ============================================================
        ARIA KEY CLUB — Founding 1000 campaign module (2026-10-01).
@@ -1854,6 +1877,7 @@ window.doSearch = function(which){
       </div>
     </div>
   </section>
+
   <!-- ============================================================
        THE MOBILE SHOPFRONT (2026-09-23)
 
@@ -1901,6 +1925,12 @@ window.doSearch = function(which){
      zero catalogue items are excluded -- no dead storefronts. Painted by
      paintTiendasStrip() from TIENDAS_STRIP. -->
 
+  <!-- HOME ORDER (#443 c.6507225989, Danny's live pass 2026-10-29): the top
+       stays as he approved it live -- hero, search, Ofertas (Victoria's Secret
+       leads), Tiendas, Key Club, Aria Auto + Motos, Walmart --
+       then Compra por categoría, Mujer, Hombre, Niños (each with its own
+       pills), the store rails (Victoria's Secret first), Electrónica, the rest. -->
+
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
       <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
@@ -1927,25 +1957,6 @@ window.doSearch = function(which){
       </div>
     </section>
 
-<!-- BIG STORE CARDS (2026-09-30, Danny): Walmart + Sam's Club side by side,
-     full band height, right under Aria Auto. Brand colors, real logos. -->
-<section aria-label="Walmart y Sam's Club" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
-  </div>
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
-    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Walmart</span>
-    </button>
-    <button onclick="tiendaJump('samsclub')" aria-label="Ir a Sam's Club" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0B6CFF;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/samsclub.svg" alt="Sam's Club" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Sam's Club</span>
-    </button>
-  </div>
-</section>
-
 <section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -1956,22 +1967,34 @@ window.doSearch = function(which){
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="mCategoryTabBlurb"></span></div>
       <div id="mCategoryTabRail" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
-    <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
-         entry point the section was missing -- a full-width fashion-week
-         moment between Compra por categoría and the store rails, the way
-         the Aria Auto banner breaks the scroll. Opens the designer
-         department. -->
-    <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
-      <img src="assets/latino/runway-hero.jpg" srcset="assets/latino/runway-hero-1200.jpg 1200w, assets/latino/runway-hero.jpg 1920w" sizes="100vw" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="${eager ? 'eager' : 'lazy'}" decoding="async" onerror="this.remove()">
-      <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
-      <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
-      <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
-        <div class="ariaKicker mb-2">La pasarela latinoamericana</div>
-        <h2 class="text-[27px] sm:text-[34px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Diseñadores Latinos</h2>
-        <p class="text-[14px] mt-2 leading-snug max-w-[38ch]" style="color:rgba(255,255,255,.78)">La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y m&#225;s &mdash; comprados en Estados Unidos, entregados en Per&#250;.</p>
-        <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
-      </div>
-    </section>
+<!-- MUJER, HOMBRE, NIÑOS (Danny, #443 c.6483623203): three carousels,
+     always stacked, each with its OWN type pills above it (scoped to
+     that audience); a pill re-lenses its own carousel only. -->
+<section aria-label="Mujer" data-pill-shelf="mujer" data-pill-head="/assets/home/pills/mujer.json" data-pill-file="/assets/home/pills/mujer-" data-pill-more="/departamento.html?dept=women" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Mujer</span>
+    <a href="/departamento.html?dept=women" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section>
+<section aria-label="Hombre" data-pill-shelf="hombre" data-pill-head="/assets/home/pills/hombre.json" data-pill-file="/assets/home/pills/hombre-" data-pill-more="/departamento.html?dept=men" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Hombre</span>
+    <a href="/departamento.html?dept=men" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section>
+<section aria-label="Niños" data-pill-shelf="ninos" data-pill-head="/assets/home/pills/ninos.json" data-pill-file="/assets/home/pills/ninos-" data-pill-more="/departamento.html?dept=kids" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Niños</span>
+    <a href="/departamento.html?dept=kids" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section>
+
     <!-- ARIA PERFUMES, THE FLAGSHIP (phone) (#443 items 32 + 39, Danny): its own band in the
          premium stretch, right after Diseñadores Latinos -- the launch price up top,
          the houses as real logos (each opens its perfumes), then the big carousel
@@ -1991,6 +2014,120 @@ window.doSearch = function(which){
       <div class="ariaPerfumesHouses flex gap-2 overflow-x-auto px-5 pt-4 pb-1 ariaRail" data-perfumes-houses style="position:relative;z-index:1"><a href="/departamento.html?dept=perfumes&amp;q=Christian+Dior" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Dior"><img src="logos/brands/dior.svg" alt="Dior" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Versace" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Versace"><img src="logos/brands/versace.svg" alt="Versace" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Yves+Saint+Laurent" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Yves Saint Laurent"><img src="logos/brands/saintlaurent.svg" alt="Yves Saint Laurent" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Gucci" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Gucci"><img src="logos/brands/gucci.svg" alt="Gucci" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Prada" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Prada"><img src="logos/brands/prada.svg" alt="Prada" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Burberry" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Burberry"><img src="logos/brands/burberry.svg" alt="Burberry" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Calvin+Klein" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Calvin Klein"><img src="logos/brands/calvinklein.svg" alt="Calvin Klein" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Tom+Ford" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Tom Ford"><img src="logos/brands/tomford.svg" alt="Tom Ford" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Valentino" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Valentino"><img src="logos/brands/valentino.svg" alt="Valentino" loading="lazy" decoding="async" width="88" height="28"></a></div>
       <div id="mPerfumesRail" data-perfumes-rail class="flex gap-3 overflow-x-auto px-5 pt-4 pb-7 ariaRail" style="position:relative;z-index:1"></div>
     </section>
+
+    <!-- ARIA LUXURY MOVES UP (Danny, #443 c.6526833313): right after Aria Perfumes, ahead of the category run. -->
+<!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
+         the name-drop sits before the store rails -- the catalogue's top clothing brands
+         as one swipeable row. Painted by initBrandStrip(). -->
+    <!-- ARIA LUXURY (2026-09-30, Danny): the luxury department. Distinctly premium backdrop
+         (runway/boutique), gold accents. Inclusive luxury: the $27 purse belongs here
+         just as much as the $782 one. -->
+    <div data-luxury-wrap class="relative overflow-hidden" style="background:#FFFFFF">
+      <img src="assets/luxury/aria-luxury-backdrop.jpg" srcset="assets/luxury/aria-luxury-backdrop-1200.jpg 1200w, assets/luxury/aria-luxury-backdrop.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
+    <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Aria Luxury</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Las marcas m&#x00E1;s exclusivas del mall, directo a tu puerta.</p>
+      </div>
+      <div id="mBrandStrip" data-brand-strip class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+        <!-- JOYAS DE LUJO (2026-09-30, Danny): high-end jewelry INSIDE Aria Luxury. -->
+    <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas de lujo</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
+      </div>
+      <div id="mJoyasLujoRail" data-joyas-lujo-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+    <!-- BOLSOS (2026-09-30, Danny): handbags INSIDE Aria Luxury. -->
+    <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
+      </div>
+      <div id="mBolsosRail" data-bolsos-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+    <!-- MODA DE DISEÑADOR (2026-09-30, Danny): high-end fashion INSIDE Aria Luxury. -->
+    <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Moda de diseñador</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
+      </div>
+      <div id="mModaRail" data-moda-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+</section>
+    
+    <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
+         homepage -- every style interleaved on a single shelf, each card
+         carrying its style label. The expanded department gives every
+         jewelry brand its own carousel. Painted by initJoyasRails(). -->
+    
+</div>
+
+<!-- HOME ORDER: CATEGORIES ABOVE STORES (#443 c.6544923338, c.6544925153,
+     c.6544934705, c.6544970295; Danny 2026-10-31). Aria's shoppers are in
+     Peru: they connect with WHAT a thing is before WHERE it is sold. The
+     page runs Ofertas -> Mujer / Hombre / Niños -> Perfumes -> the category
+     carousels (Electrónica, Gym Rat, Fútbol, Fight Club, Beauty, Surf &
+     Skate, Juguetes, Zapatos, Lentes, Ropa interior, Lujo, Joyas) -> the
+     stores, where a shopper who wants to browse stores scrolls on. Compra
+     por categoría stays where it was. -->
+    <!-- ROPA INTERIOR IN THE TOP GROUP (#443 c.6545712892, Danny): right under Perfumes, at the head of the category block. -->
+    <!-- PERMANENT ROPA INTERIOR Y MEDIAS RAIL (2026-10-07, Danny): men's
+         underwear and socks, BLAST SALES ONLY, deepest discount first,
+         built from the department feed (ropaInteriorRailPicks). Same
+         shared painter and stand-down rule as Gym Rat; the header and
+         its link open the department page. Starts hidden; JS reveals it. -->
+    <!-- ROPA INTERIOR MUJER (2026-10-10, Danny): the department's women's
+         half. Same shared painter, same blast-sales-only rule, its own
+         feed (ropa-interior-women-feed.json); opens the page's Mujer
+         section. Starts hidden; JS reveals it. -->
+    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <a href="/ropa-interior.html#mujer" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
+        <a href="/ropa-interior.html#mujer" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
+      <div data-category-rail-row="ropa_interior_mujer" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <a href="/ropa-interior.html#hombre" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
+        <a href="/ropa-interior.html#hombre" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
+      <div data-category-rail-row="ropa_interior" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- TALLAS PLUS (Danny, #443 c.6526833313): back on the homepage in the category run, after Ropa Interior.
+         Same shared painter as the rails above, the department's own rule: her or his clothing
+         offered in XL and up in the store's own sizes. Starts hidden; JS reveals it. -->
+    <section aria-label="Tallas Plus" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <a href="/departamento.html?dept=curvy" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Tallas Plus</a>
+        <a href="/departamento.html?dept=curvy" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">De XL en adelante, en las tallas que la tienda realmente vende.</span></div>
+      <div data-category-rail-row="curvy" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
+     row ABOVE it. The pills are in-place lenses (Ofertas, Celulares,
+     Computadoras, Videojuegos, Audífonos and every type the data fills);
+     the cards are priced and bought right here. Hidden until its slice
+     (assets/sections/departamento/electronics/home.json) answers. -->
+<section aria-label="Electrónica" data-pill-shelf="tech" data-pill-dept="electronics" data-pill-head="/assets/sections/departamento/electronics/home.json" data-pill-file="/assets/sections/departamento/electronics/home-" data-pill-more="/departamento.html?dept=electronics" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Electrónica</span>
+    <a href="/departamento.html?dept=electronics" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo de electrónica"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section>
 
     <!-- PERMANENT GYM RAT RAIL (2026-09-27, Danny): the category is that
          good, so it keeps an always-visible rail right under the tab
@@ -2108,84 +2245,7 @@ window.doSearch = function(which){
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
       <div data-category-rail-row="sunglasses" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
-    <!-- PERMANENT ROPA INTERIOR Y MEDIAS RAIL (2026-10-07, Danny): men's
-         underwear and socks, BLAST SALES ONLY, deepest discount first,
-         built from the department feed (ropaInteriorRailPicks). Same
-         shared painter and stand-down rule as Gym Rat; the header and
-         its link open the department page. Starts hidden; JS reveals it. -->
-    <!-- ROPA INTERIOR MUJER (2026-10-10, Danny): the department's women's
-         half. Same shared painter, same blast-sales-only rule, its own
-         feed (ropa-interior-women-feed.json); opens the page's Mujer
-         section. Starts hidden; JS reveals it. -->
-    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <a href="/ropa-interior.html#mujer" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
-        <a href="/ropa-interior.html#mujer" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
-      <div data-category-rail-row="ropa_interior_mujer" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <a href="/ropa-interior.html#hombre" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
-        <a href="/ropa-interior.html#hombre" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
-      <div data-category-rail-row="ropa_interior" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
 
-<!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
-         the name-drop sits before the store rails -- the catalogue's top clothing brands
-         as one swipeable row. Painted by initBrandStrip(). -->
-    <!-- ARIA LUXURY (2026-09-30, Danny): the luxury department. Distinctly premium backdrop
-         (runway/boutique), gold accents. Inclusive luxury: the $27 purse belongs here
-         just as much as the $782 one. -->
-    <div data-luxury-wrap class="relative overflow-hidden" style="background:#FFFFFF">
-      <img src="assets/luxury/aria-luxury-backdrop.jpg" srcset="assets/luxury/aria-luxury-backdrop-1200.jpg 1200w, assets/luxury/aria-luxury-backdrop.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
-    <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
-      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Aria Luxury</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Las marcas m&#x00E1;s exclusivas del mall, directo a tu puerta.</p>
-      </div>
-      <div id="mBrandStrip" data-brand-strip class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-        <!-- JOYAS DE LUJO (2026-09-30, Danny): high-end jewelry INSIDE Aria Luxury. -->
-    <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
-      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
-      <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas de lujo</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
-      </div>
-      <div id="mJoyasLujoRail" data-joyas-lujo-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-    </section>
-    <!-- BOLSOS (2026-09-30, Danny): handbags INSIDE Aria Luxury. -->
-    <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
-      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
-      <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
-      </div>
-      <div id="mBolsosRail" data-bolsos-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-    </section>
-    <!-- MODA DE DISEÑADOR (2026-09-30, Danny): high-end fashion INSIDE Aria Luxury. -->
-    <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
-      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
-      <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Moda de diseñador</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
-      </div>
-      <div id="mModaRail" data-moda-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-    </section>
-</section>
-    
-    <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
-         homepage -- every style interleaved on a single shelf, each card
-         carrying its style label. The expanded department gives every
-         jewelry brand its own carousel. Painted by initJoyasRails(). -->
-    
-</div>
     <section aria-label="Joyas y accesorios" data-joyas-section class="relative overflow-hidden" style="background:#FFFFFF">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1 flex items-end justify-between gap-3">
@@ -2199,16 +2259,61 @@ window.doSearch = function(which){
         <div data-joyas-rail="mixed" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
       </div>
     </section>
-    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
-         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
-         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
-         Sits after the store rails and before "Todas las otras tiendas".
-         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
-    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
-         that is not one of the six featured rails, as one swipeable logo strip.
-         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
-         newly registered store appears here with no markup change. -->
-
+<!-- TIENDAS: every store below the categories (#443 c.6544925153). -->
+<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
+     #443 c.6468346931): Walmart across both slots, full band height,
+     right under Aria Auto. Brand colour, real logo. -->
+<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
+    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
+    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
+  </div>
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
+    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
+      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
+        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
+        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
+      </span>
+    </button>
+    <!-- BrandsMart USA left the homepage (Danny, #443 c.6539449309): a single
+         South Florida store; its products live in Electrónica. -->
+  </div>
+</section>
+    <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
+         entry point the section was missing -- a full-width fashion-week
+         moment between Compra por categoría and the store rails, the way
+         the Aria Auto banner breaks the scroll. Opens the designer
+         department. -->
+    <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
+      <img src="assets/latino/runway-hero.jpg" srcset="assets/latino/runway-hero-1200.jpg 1200w, assets/latino/runway-hero.jpg 1920w" sizes="100vw" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="${eager ? 'eager' : 'lazy'}" decoding="async" onerror="this.remove()">
+      <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
+      <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
+      <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
+        <div class="ariaKicker mb-2">La pasarela latinoamericana</div>
+        <h2 class="text-[27px] sm:text-[34px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Diseñadores Latinos</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[38ch]" style="color:rgba(255,255,255,.78)">La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y m&#225;s &mdash; comprados en Estados Unidos, entregados en Per&#250;.</p>
+        <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
+      </div>
+    </section>
+<!-- VICTORIA'S SECRET, BACK AS THE FIRST STORE RAIL (#443, Danny c.6472207775,
+     c.6472266366, 2026-10-29): its sale cards lead it, deepest verified
+     markdowns first (storeRailPicks); no image, no card. -->
+<section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
+        </span>
+        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 <!-- STORE RAIL: WALMART (2026-10-24, #443 item 33, Danny) -- the anchor tenant
      leads the store rails: its sales across departments, toys first
      (walmartRailPicks in the bundle). No arrival-days line: none is
@@ -2385,7 +2490,17 @@ window.doSearch = function(which){
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 4–9 días.</span></div>
       <div id="mStoreRail-hollister" data-store-rail-row="hollister" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
+         that is not one of the six featured rails, as one swipeable logo strip.
+         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
+         newly registered store appears here with no markup change. -->
 
 <section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
@@ -2429,6 +2544,12 @@ window.doSearch = function(which){
 <!-- ENTRY TILES REMOVED (2026-09-29, Danny): dead/redundant -- the carousels below already cover Categorias, Tiendas, Marcas. -->
 <!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's; moved above the Key Club block 2026-10-21 (#443). -->
 
+  <!-- HOME ORDER (#443 c.6507225989, Danny's live pass 2026-10-29): the top
+       stays as he approved it live -- hero, search, Ofertas (Victoria's Secret
+       leads), Tiendas, Key Club, Aria Auto + Motos, Walmart --
+       then Compra por categoría, Mujer, Hombre, Niños (each with its own
+       pills), the store rails (Victoria's Secret first), Electrónica, the rest. -->
+
 <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
       <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
@@ -2456,26 +2577,6 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring flex-shrink-0">Equipa tu moto &#8594;</button>
       </div>
     </section>
-<!-- BIG STORE CARDS (2026-09-30, Danny): Walmart + Sam's Club side by side,
-     full band height, right under Aria Auto. Brand colors, real logos. -->
-<section aria-label="Walmart y Sam's Club" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
-  </div>
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
-    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Walmart</span>
-    </button>
-    <button onclick="tiendaJump('samsclub')" aria-label="Ir a Sam's Club" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0B6CFF;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/samsclub.svg" alt="Sam's Club" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Sam's Club</span>
-    </button>
-  </div>
-</section>
-    <!-- CATEGORIAS -->
-
 <section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #2159E8 0%, #1A4BD2 55%, #2159E8 100%)">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -2488,22 +2589,34 @@ window.doSearch = function(which){
       <div id="dCategoryTabRail" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
-    <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
-         entry point the section was missing -- a full-width fashion-week
-         moment between Compra por categoría and the store rails, the way
-         the Aria Auto banner breaks the scroll. Opens the designer
-         department. -->
-    <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
-      <img src="assets/latino/runway-hero.jpg" srcset="assets/latino/runway-hero-1200.jpg 1200w, assets/latino/runway-hero.jpg 1920w" sizes="100vw" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="lazy" decoding="async" onerror="this.remove()">
-      <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
-      <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
-      <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
-        <div class="ariaKicker mb-2">La pasarela latinoamericana</div>
-        <h2 class="text-[27px] sm:text-[34px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Diseñadores Latinos</h2>
-        <p class="text-[14px] mt-2 leading-snug max-w-[38ch]" style="color:rgba(255,255,255,.78)">La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y m&#225;s &mdash; comprados en Estados Unidos, entregados en Per&#250;.</p>
-        <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
-      </div>
-    </section>
+<!-- MUJER, HOMBRE, NIÑOS (Danny, #443 c.6483623203): three carousels,
+     always stacked, each with its OWN type pills above it (scoped to
+     that audience); a pill re-lenses its own carousel only. -->
+<section aria-label="Mujer" data-pill-shelf="mujer" data-pill-head="/assets/home/pills/mujer.json" data-pill-file="/assets/home/pills/mujer-" data-pill-more="/departamento.html?dept=women" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-8 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Mujer</span>
+    <a href="/departamento.html?dept=women" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
+</section>
+<section aria-label="Hombre" data-pill-shelf="hombre" data-pill-head="/assets/home/pills/hombre.json" data-pill-file="/assets/home/pills/hombre-" data-pill-more="/departamento.html?dept=men" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-8 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Hombre</span>
+    <a href="/departamento.html?dept=men" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
+</section>
+<section aria-label="Niños" data-pill-shelf="ninos" data-pill-head="/assets/home/pills/ninos.json" data-pill-file="/assets/home/pills/ninos-" data-pill-more="/departamento.html?dept=kids" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-8 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Niños</span>
+    <a href="/departamento.html?dept=kids" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
+</section>
+
     <!-- ARIA PERFUMES, THE FLAGSHIP (desktop) (#443 items 32 + 39, Danny): its own band in the
          premium stretch, right after Diseñadores Latinos -- the launch price up top,
          the houses as real logos (each opens its perfumes), then the big carousel
@@ -2525,6 +2638,113 @@ window.doSearch = function(which){
       <div class="ariaPerfumesHouses flex gap-2 overflow-x-auto px-8 pt-5 pb-1 ariaRail" data-perfumes-houses style="position:relative;z-index:1"><a href="/departamento.html?dept=perfumes&amp;q=Christian+Dior" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Dior"><img src="logos/brands/dior.svg" alt="Dior" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Versace" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Versace"><img src="logos/brands/versace.svg" alt="Versace" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Yves+Saint+Laurent" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Yves Saint Laurent"><img src="logos/brands/saintlaurent.svg" alt="Yves Saint Laurent" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Gucci" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Gucci"><img src="logos/brands/gucci.svg" alt="Gucci" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Prada" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Prada"><img src="logos/brands/prada.svg" alt="Prada" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Burberry" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Burberry"><img src="logos/brands/burberry.svg" alt="Burberry" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Calvin+Klein" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Calvin Klein"><img src="logos/brands/calvinklein.svg" alt="Calvin Klein" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Tom+Ford" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Tom Ford"><img src="logos/brands/tomford.svg" alt="Tom Ford" loading="lazy" decoding="async" width="88" height="28"></a><a href="/departamento.html?dept=perfumes&amp;q=Valentino" class="ariaPerfumesHouse focus-ring" aria-label="Perfumes Valentino"><img src="logos/brands/valentino.svg" alt="Valentino" loading="lazy" decoding="async" width="88" height="28"></a></div>
       <div id="dPerfumesRail" data-perfumes-rail class="flex gap-4 overflow-x-auto px-8 pt-4 pb-7 ariaRail" style="position:relative;z-index:1"></div></div>
     </section>
+
+    <!-- ARIA LUXURY MOVES UP (Danny, #443 c.6526833313): right after Aria Perfumes, ahead of the category run. -->
+<!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny.
+         ARIA LUXURY (2026-09-30, Danny): renamed, premium backdrop. -->
+    <div data-luxury-wrap-desktop class="relative overflow-hidden" style="background:#FFFFFF">
+      <img src="assets/luxury/aria-luxury-backdrop.jpg" srcset="assets/luxury/aria-luxury-backdrop-1200.jpg 1200w, assets/luxury/aria-luxury-backdrop.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
+    <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="relative max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[21px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Aria Luxury</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">Las marcas m&#x00E1;s exclusivas del mall, directo a tu puerta.</p>
+      </div>
+      <div id="dBrandStrip" data-brand-strip class="relative flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+          <!-- JOYAS DE LUJO (desktop, 2026-09-30, Danny): high-end jewelry INSIDE Aria Luxury. -->
+      <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Joyas de lujo</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
+      </div>
+      <div id="dJoyasLujoRail" data-joyas-lujo-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+      </section>
+      <!-- BOLSOS (desktop, 2026-09-30, Danny): handbags INSIDE Aria Luxury. -->
+      <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
+      </div>
+      <div id="dBolsosRail" data-bolsos-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+      </section>
+      <!-- MODA DE DISEÑADOR (desktop, 2026-09-30, Danny): high-end fashion INSIDE Aria Luxury. -->
+      <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Moda de diseñador</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
+      </div>
+      <div id="dModaRail" data-moda-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+      </section>
+</section>
+
+    
+</div>
+
+<!-- HOME ORDER: CATEGORIES ABOVE STORES (#443 c.6544923338, c.6544925153,
+     c.6544934705, c.6544970295; Danny 2026-10-31). Aria's shoppers are in
+     Peru: they connect with WHAT a thing is before WHERE it is sold. The
+     page runs Ofertas -> Mujer / Hombre / Niños -> Perfumes -> the category
+     carousels (Electrónica, Gym Rat, Fútbol, Fight Club, Beauty, Surf &
+     Skate, Juguetes, Zapatos, Lentes, Ropa interior, Lujo, Joyas) -> the
+     stores, where a shopper who wants to browse stores scrolls on. Compra
+     por categoría stays where it was. -->
+    <!-- ROPA INTERIOR IN THE TOP GROUP (#443 c.6545712892, Danny): right under Perfumes, at the head of the category block. -->
+    <!-- PERMANENT ROPA INTERIOR RAILS (2026-10-07 / 2026-10-10, Danny): desktop. Same shelves as mobile, Mujer then Hombre. -->
+    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <a href="/ropa-interior.html#mujer" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
+          <a href="/ropa-interior.html#mujer" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
+        <div data-category-rail-row="ropa_interior_mujer" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <a href="/ropa-interior.html#hombre" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
+          <a href="/ropa-interior.html#hombre" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
+        <div data-category-rail-row="ropa_interior" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- TALLAS PLUS (desktop, Danny, #443 c.6526833313): same shelf as the phone's, after Ropa Interior. -->
+    <section aria-label="Tallas Plus" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <a href="/departamento.html?dept=curvy" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Tallas Plus</a>
+          <a href="/departamento.html?dept=curvy" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">De XL en adelante, en las tallas que la tienda realmente vende.</span></div>
+        <div data-category-rail-row="curvy" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
+     row ABOVE it. The pills are in-place lenses (Ofertas, Celulares,
+     Computadoras, Videojuegos, Audífonos and every type the data fills);
+     the cards are priced and bought right here. Hidden until its slice
+     (assets/sections/departamento/electronics/home.json) answers. -->
+<section aria-label="Electrónica" data-pill-shelf="tech" data-pill-dept="electronics" data-pill-head="/assets/sections/departamento/electronics/home.json" data-pill-file="/assets/sections/departamento/electronics/home-" data-pill-more="/departamento.html?dept=electronics" hidden class="relative overflow-hidden storeRailCompact" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+  <div class="flex items-center justify-between gap-3 px-8 pt-5 pb-3">
+    <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Electrónica</span>
+    <a href="/departamento.html?dept=electronics" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
+  </div>
+  <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo de electrónica"></div>
+  <div data-pill-rail class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
+</section>
 
     <!-- PERMANENT GYM RAT RAIL (desktop, 2026-09-27, Danny). Same shelf as
          the phone's: always visible under the tab browser, stands down
@@ -2640,86 +2860,64 @@ window.doSearch = function(which){
         <div data-category-rail-row="sunglasses" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
-    <!-- PERMANENT ROPA INTERIOR RAILS (2026-10-07 / 2026-10-10, Danny): desktop. Same shelves as mobile, Mujer then Hombre. -->
-    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <a href="/ropa-interior.html#mujer" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
-          <a href="/ropa-interior.html#mujer" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
-        <div data-category-rail-row="ropa_interior_mujer" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
-      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <a href="/ropa-interior.html#hombre" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Hombre</a>
-          <a href="/ropa-interior.html#hombre" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
-        <div data-category-rail-row="ropa_interior" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-<!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny.
-         ARIA LUXURY (2026-09-30, Danny): renamed, premium backdrop. -->
-    <div data-luxury-wrap-desktop class="relative overflow-hidden" style="background:#FFFFFF">
-      <img src="assets/luxury/aria-luxury-backdrop.jpg" srcset="assets/luxury/aria-luxury-backdrop-1200.jpg 1200w, assets/luxury/aria-luxury-backdrop.jpg 2352w" sizes="100vw" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 pointer-events-none" style="width:100%;height:100%;object-fit:cover;object-position:center top;opacity:0.35">
-    <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
-      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="relative max-w-[1240px] mx-auto">
-      <div class="px-8 pt-7 pb-1">
-        <h2 class="text-[21px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Aria Luxury</h2>
-        <p class="text-[13px] mt-0.5" style="color:#6B7487">Las marcas m&#x00E1;s exclusivas del mall, directo a tu puerta.</p>
-      </div>
-      <div id="dBrandStrip" data-brand-strip class="relative flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
-      </div>
-          <!-- JOYAS DE LUJO (desktop, 2026-09-30, Danny): high-end jewelry INSIDE Aria Luxury. -->
-      <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
-      <div class="max-w-[1240px] mx-auto">
-      <div class="px-8 pt-7 pb-1">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Joyas de lujo</h2>
-        <p class="text-[13px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
-      </div>
-      <div id="dJoyasLujoRail" data-joyas-lujo-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
-      </div>
-      </section>
-      <!-- BOLSOS (desktop, 2026-09-30, Danny): handbags INSIDE Aria Luxury. -->
-      <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
-      <div class="max-w-[1240px] mx-auto">
-      <div class="px-8 pt-7 pb-1">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
-        <p class="text-[13px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
-      </div>
-      <div id="dBolsosRail" data-bolsos-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
-      </div>
-      </section>
-      <!-- MODA DE DISEÑADOR (desktop, 2026-09-30, Danny): high-end fashion INSIDE Aria Luxury. -->
-      <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
-      <div class="max-w-[1240px] mx-auto">
-      <div class="px-8 pt-7 pb-1">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Moda de diseñador</h2>
-        <p class="text-[13px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
-      </div>
-      <div id="dModaRail" data-moda-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
-      </div>
-      </section>
+
+<!-- TIENDAS: every store below the categories (#443 c.6544925153). -->
+<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
+     #443 c.6468346931): Walmart across both slots, full band height,
+     right under Aria Auto. Brand colour, real logo. -->
+<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
+    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
+    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
+  </div>
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
+    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
+      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
+        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
+        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
+      </span>
+    </button>
+    <!-- BrandsMart USA left the homepage (Danny, #443 c.6539449309): a single
+         South Florida store; its products live in Electrónica. -->
+  </div>
 </section>
-
-    
-</div>
-
-    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
-         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
-         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
-         Sits after the store rails and before "Todas las otras tiendas".
-         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
-
-    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
-         mall directory between the six featured rails and Categorías. -->
-
+    <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
+         entry point the section was missing -- a full-width fashion-week
+         moment between Compra por categoría and the store rails, the way
+         the Aria Auto banner breaks the scroll. Opens the designer
+         department. -->
+    <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
+      <img src="assets/latino/runway-hero.jpg" srcset="assets/latino/runway-hero-1200.jpg 1200w, assets/latino/runway-hero.jpg 1920w" sizes="100vw" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="lazy" decoding="async" onerror="this.remove()">
+      <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
+      <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
+      <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
+        <div class="ariaKicker mb-2">La pasarela latinoamericana</div>
+        <h2 class="text-[27px] sm:text-[34px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Diseñadores Latinos</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[38ch]" style="color:rgba(255,255,255,.78)">La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y m&#225;s &mdash; comprados en Estados Unidos, entregados en Per&#250;.</p>
+        <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
+      </div>
+    </section>
+<!-- VICTORIA'S SECRET, BACK AS THE FIRST STORE RAIL (#443, Danny c.6472207775,
+     c.6472266366, 2026-10-29): its sale cards lead it, deepest verified
+     markdowns first (storeRailPicks); no image, no card. -->
+<section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
+        </span>
+          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+      <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <!-- STORE RAIL: WALMART (2026-10-24, #443 item 33, Danny) -- the anchor tenant
      leads the store rails: its sales across departments, toys first
      (walmartRailPicks in the bundle). No arrival-days line: none is
@@ -2923,6 +3121,15 @@ window.doSearch = function(which){
     </section>
 
 
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+
+    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
+         mall directory between the six featured rails and Categorías. -->
+
 <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
@@ -2944,6 +3151,7 @@ window.doSearch = function(which){
     </section>
 
   </div>
+
 
 <!-- ============================================================
        ORDER ON THE HOME PAGE (2026-09-26, Danny)
@@ -3172,7 +3380,7 @@ window.doSearch = function(which){
           <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-4" style="background:var(--blue)">2</div>
           <div class="rounded-2xl border p-4 h-[110px] mb-4 space-y-1.5" style="border-color:var(--line); background:var(--paper)">
             <div class="h-6 rounded bg-white border flex items-center justify-between px-2 text-[10.5px] text-zinc-500" style="border-color:var(--line)"><span>Walmart</span><span>S/ 3,850</span></div>
-            <div class="h-6 rounded-md flex items-center justify-between px-2 text-[10.5px] font-bold" style="background:var(--green-bg); border:1px solid #BFE6CC; color:#1C8A4B"><span>Sam's Club · mejor precio</span><span>S/ 3,705</span></div>
+            <div class="h-6 rounded-md flex items-center justify-between px-2 text-[10.5px] font-bold" style="background:var(--green-bg); border:1px solid #BFE6CC; color:#1C8A4B"><span>B&amp;H Photo · mejor precio</span><span>S/ 3,705</span></div>
           </div>
           <h3 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Compara precios</h3>
           <p class="text-[13.5px] mt-1.5 leading-relaxed" style="color:#4A5568">Te mostramos el mejor precio total, con todo lo que cuesta llegar a Perú incluido.</p>
@@ -3767,6 +3975,8 @@ window.doSearch = function(which){
           <div id="productViewBrand" class="text-[12px] font-bold uppercase leading-tight mb-1"
             style="color:var(--navy); letter-spacing:0.09em"></div>
           <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-2"></h1>
+          <div id="productViewCondition" role="note" hidden class="rounded-xl px-3 py-2.5 mb-2 text-[13px] leading-snug" style="background:#FFF4E0;border:1px solid #F2C46D;color:#5A3B00"></div>
+          <div id="productViewShipping" role="note" hidden class="rounded-xl px-3 py-2.5 mb-2 text-[13px] leading-snug" style="background:#F7F8FB;border:1px solid #E3E7F0;color:#0A1F44"></div>
           <!-- Auto parts only: the manufacturer part number, kept visible
                after the click-through so a buyer can cross-check fit from
                the page they are actually buying on. Empty and hidden for
@@ -4075,7 +4285,7 @@ window.doSearch = function(which){
                store badge on the site, filled by renderHowCompareRows(). -->
           <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--line); background:var(--green-bg)">
             <div class="flex items-center gap-2.5">
-              <span class="howStoreLogo" data-retailer="samsclub"></span>
+              <span class="howStoreLogo" data-retailer="bhphoto"></span>
               <span class="text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full" style="background:var(--green)">Mejor precio</span>
             </div>
             <span class="text-[13px] font-bold tabular" style="color:var(--navy)">S/ 4,553</span>
@@ -4995,7 +5205,7 @@ window.doSearch = function(which){
           </div>
           <!-- COMO-FUNCIONA COPY (2026-10-03, Danny): the shopper buys — never "we buy for you". -->
           <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:var(--navy)">T&uacute; compras directamente</h3>
-          <p class="text-[14.5px] leading-relaxed" style="color:#4A5568">Busca tus productos favoritos y compra en tus tiendas favoritas de Estados Unidos — Walmart, Sam's Club, Zumiez, CCS y muchas m&aacute;s — directamente de nuestra plataforma.</p>
+          <p class="text-[14.5px] leading-relaxed" style="color:#4A5568">Busca tus productos favoritos y compra en tus tiendas favoritas de Estados Unidos — Walmart, Zumiez, CCS y muchas m&aacute;s — directamente de nuestra plataforma.</p>
         </article>
         <article class="ariaCard ariaCard--light">
           <div class="ariaCardIcon">
@@ -6296,8 +6506,11 @@ window.doSearch = function(which){
 </div>
 
 <script src="/off-sale.js"></script>
+<script src="/condition.js"></script>
+<script src="/store-shipping.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-abfdb9ee62c837fd.js"></script>
+<script src="/build/app-855e428142bea2c4.js"></script>
+<script src="/assets/js/store-rail-pills.js" defer></script>
 
 
 

@@ -35,14 +35,21 @@
    scripts/test/departamento-thin-tests.mjs fails when the slices no
    longer match what the rules compute from the committed catalogues.
    ============================================================ */
+import { TECH_BUCKETS } from "./lib/brandsmart.js";
+import { photoCount } from "./lib/photo-counts.js";
+import { CAB_BUCKETS, AISLE_LABELS as CAB_LABELS, hairAisle, PERU_SOLD_HAIR_RX } from "./lib/sleekshop.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
+import { isGymApparel } from "./lib/gym-apparel.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
-import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle, audienceSwitch, deptStats } from "../netlify/functions/_department-core.js";
+import { garmentAudience, storeAudiences } from "./lib/offer-category.js";
+import { isShoeForDept, footwearClass, shoeGender, isFootwear } from "./lib/footwear.js";
+import { stampHomePhotos } from "./stamp-home-photos.mjs";
+import { hasExtendedSizes, extendedSizesOf } from "./lib/sizes.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -58,14 +65,14 @@ export const CATALOG_FILES = [
   "/combatcorner-catalog.json", "/costco-catalog.json", "/crocs-catalog.json",
   "/dicks-catalog.json", "/everlast-catalog.json", "/ezpz-catalog.json",
   "/farfetch-catalog.json", "/fightclub-catalog.json", "/finishline-catalog.json",
-  "/fuji-catalog.json", "/gymrat-catalog.json", "/hottopic-catalog.json",
+  "/fuji-catalog.json", "/gymrat-catalog.json", "/gym-brands-catalog.json", "/hottopic-catalog.json",
   "/islandwatersports-catalog.json", "/juguetes-catalog.json", "/jwpei-catalog.json",
   "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/lanebryant-catalog.json", "/macys-catalog.json",
   "/mainland-catalog.json", "/meliebianco-catalog.json", "/miumiu-catalog.json",
   "/mmawarehouse-catalog.json", "/moms-catalog.json", "/mushie-catalog.json",
   "/nautilus-catalog.json", "/newbalance-catalog.json", "/pacsun-catalog.json",
   "/parrot-catalog.json", "/partycity-catalog.json", "/quietstorm-catalog.json",
-  "/revolve-catalog.json", "/samsclub-catalog.json", "/skims-catalog.json",
+  "/revolve-catalog.json", "/skims-catalog.json",
   "/soccer-catalog.json", "/ssense-catalog.json", "/statebags-catalog.json",
   "/sunglasses-catalog.json", "/surfstation-catalog.json", 
   "/tatami-catalog.json", "/tennis-catalog.json",
@@ -80,6 +87,14 @@ export const CATALOG_FILES = [
   /* SNIPES (sneakers and streetwear) + Carolina Herrera (luxury), #443,
      pulled 2026-10-27. */
   "/snipes-catalog.json",
+  /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
+  "/brandsmart-catalog.json",
+  /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
+  "/walmart-electronics-catalog.json",
+  "/costco-electronics-catalog.json",
+  "/microcenter-catalog.json",
+  /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
+  "/sleekshop-catalog.json",
   "/carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32): the Perfumes department's own stock. */
   "/perfumes-catalog.json",
@@ -96,7 +111,9 @@ const CASA_BUCKETS = ["casa_navidad", "casa_velas", "casa_textiles", "casa_cama_
 /* The Libros de mesa halo: the coffee-table book houses. */
 const CASA_BOOK_STORES = new Set(["assouline", "chronicle"]);
 export const DEPT_RULES = {
-  electronics: { buckets: ["electronics", "electronica", ...BESTBUY_TECH] },
+  /* BrandsMart USA's aisles (tech_*, scripts/lib/brandsmart.js) are
+     Electrónica's: the store anchors the department (Build Order B). */
+  electronics: { buckets: ["electronics", "electronica", ...BESTBUY_TECH, ...TECH_BUCKETS] },
   clothing: { buckets: ["clothing"] },
   men: { buckets: ["men", "apparel_men"] },
   women: { buckets: ["women", "apparel_women"] },
@@ -109,7 +126,15 @@ export const DEPT_RULES = {
   home_goods: { buckets: ["home_goods", "home", "hogar", "small_appliances", ...CASA_BUCKETS] },
   home_decor: { buckets: ["home_decor", "casa_decoracion", "casa_velas", "casa_navidad"] },
   curvy: { buckets: ["clothing", "men", "women", "apparel_men", "apparel_women", "apparel_kids"], extendedSizes: true },
-  gym_rat: { buckets: ["gym_rat"] },
+  /* GYM RAT = APPAREL ONLY (#443 c.6542490625): clothing from the gym
+     brands, and the clothing (never the gloves, wraps or gis) of the fight
+     brands that stay in the lineup -- Venum, Everlast, Tatami. The rule is
+     scripts/lib/gym-apparel.js, read here so no pull can leak gear in. */
+  /* Gym Rat is the gym brands' clothing (bucket gym_rat) plus the
+     training clothing of every fight store that carries a real range of
+     it -- read from the data (apparelStores), never a typed list, so the
+     next ingest lands here by itself (#443 c.6544412516). */
+  gym_rat: { buckets: ["gym_rat"], apparelOnly: true, apparelFrom: { buckets: ["combat_sports"], minClothing: 25 } },
   surf_skate: { kind: "surfskate" },
   spearfishing: { kind: "spearfishing" },
   soccer: { kind: "soccer" },
@@ -123,7 +148,8 @@ export const DEPT_RULES = {
   purses: { buckets: ["purses"] },
   party: { kind: "party" },
   toys: { kind: "toys" },
-  beauty: { buckets: ["beauty", "fragrance", "grooming_women", "belleza"] },
+  /* SleekShop's hair-treatment aisles (cab_*, scripts/lib/sleekshop.js) are Belleza's. */
+  beauty: { buckets: ["beauty", "fragrance", "grooming_women", "belleza", ...CAB_BUCKETS] },
   books: { buckets: ["books"] },
   moms: { buckets: ["moms", "baby"] },
   shoes: { kind: "shoes" },
@@ -136,6 +162,9 @@ export const DEPT_RULES = {
   reacondicionados: { kind: "refurb" },
   /* Perfumes (#443 item 32): the Aria Perfumes stock, its own department. */
   perfumes: { kind: "perfumes" },
+  /* Cabello (#443 c.6473257128): SleekShop's treatment aisles and every
+     beauty store's hair care, under the Peru-presence rule (deptItems). */
+  cabello: { kind: "cabello" },
 };
 
 function hasAny(hay, words) {
@@ -179,7 +208,9 @@ const AUTO_RX = wordsRx(["brakes?", "frenos?", "oil filters?", "filtros? de acei
 /* Aria Auto's stores: what they sell is a part unless its name says otherwise. */
 const AUTO_RETAILERS = new Set(["advanceauto", "autozone"]);
 const NOT_A_PART = new Set(["juguetes", "ropa", "zapatos", "carteras", "joyas", "sombreros", "trajes_bano", "belleza", "perfumes", "libros", "dulces", "bebe"]);
+const BEAUTY_BUCKETS = new Set(["beauty", "belleza", "grooming_women", "grooming_men", "fragrance", "hair", "haircare", "hair_care"]);
 export const KIND_MATCH = {
+  cabello: (t, p) => Boolean(p) && (CAB_BUCKETS.includes(p.bucket) || (BEAUTY_BUCKETS.has(p.bucket) && Boolean(hairAisle(p.title)))),
   /* Aria Perfumes' stock, and every true fragrance any store sells. */
   perfumes: (t, p) => Boolean(p && (p.retailer === "ariaperfumes" || productClass(p) === "perfumes")),
   refurb: (t, p) => Boolean(conditionOfTitle(p && p.title)),
@@ -228,16 +259,65 @@ export const KIND_MATCH = {
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino", "carolina herrera"]),
 };
 
+/* The stores whose clothing joins an apparel-only department from the
+   rule's other buckets: those carrying at least `minClothing` pieces of
+   training clothing there (a lone tee in a glove shop is not a range). */
+export function apparelStores(from, all) {
+  const n = new Map();
+  for (const p of all) {
+    if (from.buckets.indexOf(p.bucket) === -1 || !isGymApparel(p)) continue;
+    const k = String(p.retailer || "").toLowerCase();
+    n.set(k, (n.get(k) || 0) + 1);
+  }
+  return [...n].filter(([, c]) => c >= (from.minClothing || 1)).map(([k]) => k).sort();
+}
+/* A rule with its data-derived parts filled in from the items. */
+export function resolveRule(rule, all) {
+  if (!rule || !rule.apparelFrom || rule.apparelFrom.stores) return rule;
+  return { ...rule, apparelFrom: { ...rule.apparelFrom, stores: apparelStores(rule.apparelFrom, all) } };
+}
+
+/* TALLAS PLUS (Danny, #443 c.6526833313). A product belongs only when it
+   is apparel the store OFFERS in extended sizes -- women's XL / 1X+ or
+   14+, men's XL+ or waist 40+ (scripts/lib/sizes.js) -- read from the
+   store's own size list. "Curvy" or "Plus" in a title or a fit name never
+   qualifies (a REVOLVE cream got in through a "Womens Plus" label), and
+   a child's or a non-apparel product never belongs. */
+const PLUS_KIDS_RX = /\b(kids?|youth|boys?|girls?|toddlers?|infants?|baby|babies|juniors?|ni[ñn][oa]s?)\b/i;
+const PLUS_WOMEN_RX = /\b(women'?s?|womens|woman|ladies|mujer(es)?)\b/i;
+const PLUS_MEN_RX = /\b(men'?s?|mens|man|hombres?)\b/i;
+export function plusGender(p) {
+  const t = String((p && p.title) || ""), b = String((p && p.bucket) || "");
+  if (PLUS_KIDS_RX.test(t) || /kids/.test(b)) return null;
+  if (PLUS_WOMEN_RX.test(t)) return "women";
+  if (PLUS_MEN_RX.test(t)) return "men";
+  return /women/.test(b) ? "women" : /men/.test(b) ? "men" : null;
+}
+export function isTallasPlus(p) {
+  const g = plusGender(p);
+  if (!g) return false;
+  const fam = productClass(p);
+  if (fam !== "ropa" && fam !== "trajes_bano") return false;
+  return hasExtendedSizes({ availableSizes: p.sizes }, g);
+}
+
 export function belongsToDept(rule, p) {
   try {
+    if (rule.apparelOnly) {
+      const from = rule.apparelFrom;
+      const inBucket = rule.buckets.indexOf(p.bucket) !== -1 ||
+        (from && from.stores && from.buckets.indexOf(p.bucket) !== -1 && from.stores.indexOf(String(p.retailer || "").toLowerCase()) !== -1);
+      return inBucket && isGymApparel(p);
+    }
     if (rule.buckets) {
       if (rule.buckets.indexOf(p.bucket) === -1) return false;
-      if (rule.extendedSizes) {
-        const sz = ((p.sizes || "") + " " + (p.title || "")).toLowerCase();
-        if (!/(\b[2-9]x\b|xxl|3xl|4xl|plus|curvy|talla grande)/.test(sz)) return false;
-      }
+      if (rule.extendedSizes) return isTallasPlus(p);
       return true;
     }
+    /* An electronics store's aisles (BrandsMart, tech_*) are Electrónica's
+       and, when refurbished, Reacondicionados': a laptop case is not
+       jewellery, a neoprene sleeve is not spearfishing gear. */
+    if (rule.kind && rule.kind !== "refurb" && TECH_BUCKETS.includes(p.bucket)) return false;
     if (rule.kind && KIND_MATCH[rule.kind]) {
       const hay = ((p.title || "") + " " + (p.brand || "") + " " + (p.type || "")).toLowerCase();
       return KIND_MATCH[rule.kind](hay, p);
@@ -269,7 +349,8 @@ export function normalizeItem(raw, retailer, bucket, AriaSale) {
     image: raw.image || (raw.images && raw.images[0]) || "",
     retailer,
     bucket,
-    sizes: (raw.availableSizes || []).join(" "),
+    /* The store's own size run (Tallas Plus reads it, never the title). */
+    sizes: Array.isArray(raw.sizes) && raw.sizes.length ? raw.sizes.filter((s) => typeof s === "string") : (raw.availableSizes || []),
   };
 }
 
@@ -304,6 +385,9 @@ export function loadAllItems(root = ROOT) {
           const key = rk + "::" + p.title;
           if (seen.has(key)) continue;
           seen.add(key);
+          /* ph: the photo count when 2+ (scripts/lib/photo-counts.js), so the card's arrows are never dead. */
+          const ph = photoCount(root, p.title, rk);
+          if (ph) p.ph = ph;
           out.push(p);
         }
       }
@@ -312,9 +396,13 @@ export function loadAllItems(root = ROOT) {
   return out;
 }
 
+export const MEDIA_RX = /\b(dvd|blu-?ray|audio cd|music cd|the very best of|greatest hits|soundtrack|original motion picture)\b(?!\s*(players?|drives?|burners?|writers?|recorders?))|\[(dvd|blu-?ray|cd)\]/i;
 export function deptItems(all, key) {
-  const rule = DEPT_RULES[key];
+  const rule = resolveRule(DEPT_RULES[key], all);
   let list = all.filter((p) => belongsToDept(rule, p));
+  /* Perfumes: each bottle's door is the catalogue's own department
+     (mujer / hombre / unisex / minis / sets / testers ...), carried as `a`. */
+  if (key === "perfumes") list = list.map((p) => (p.retailer === "ariaperfumes" && p.bucket ? { ...p, a: p.bucket } : p));
   if (key === "home_goods") {
     list = list.map((p) => (CASA_BUCKETS.includes(p.bucket) ? { ...p, a: p.bucket } : p));
     list = all.filter((p) => CASA_BOOK_STORES.has(p.retailer)).map((p) => ({ ...p, a: "libros" })).concat(list);
@@ -325,7 +413,27 @@ export function deptItems(all, key) {
   /* ...and in Zapatos each class is a Mujer and a Hombre aisle (#443
      c.6412658814): the gender is read before the class replaces the
      store's own type, which is where Farfetch says WOMEN or MEN. */
+  /* Music and films are not electronics (a pre-owned John Denver CD led
+     Electrónica's Reacondicionados): they stay in their store, out of the
+     department. A Blu-ray PLAYER is electronics. */
+  if (key === "electronics") list = list.filter((p) => !MEDIA_RX.test(p.title || ""));
+  /* Cabello: each product's treatment aisle is its type (the rails and the
+     pills read it); a brand Peru sells cheaply enters only on sale, and
+     the lines Peru does not carry lead (the stable sort below keeps it). */
+  if (key === "cabello") {
+    list = list.map((p) => ({ ...p, type: CAB_LABELS[CAB_BUCKETS.includes(p.bucket) ? p.bucket : hairAisle(p.title)] }))
+      .filter((p) => p.type && (!PERU_SOLD_HAIR_RX.test(p.title + " " + (p.brand || "")) || p.salePct > 0));
+    const peru = (p) => (PERU_SOLD_HAIR_RX.test(p.title + " " + (p.brand || "")) ? 1 : 0);
+    return list.map((p, i) => ({ p, i })).sort((a, b) => (peru(a.p) - peru(b.p)) || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+  }
   if (SHOE_DEPTS.has(key)) list = list.map((p) => ({ ...p, type: footwearClass(p, p.retailer), ...(key === "shoes" ? { g: shoeGender(p, p.bucket) } : {}) }));
+  /* Tallas Plus leads with her (Danny's 2026-09-24 rule) and with the
+     true plus run -- 1X+, XXL+, 16+ -- before a run that only reaches XL. */
+  if (key === "curvy") {
+    const depth = (p) => { const g = plusGender(p); return extendedSizesOf({ availableSizes: p.sizes }, g).some((s) => !/^(xl|14)\b/i.test(String(s).trim())) ? 1 : 0; };
+    return list.map((p, i) => ({ p: { ...p, g: plusGender(p) }, i, d: depth(p) }))
+      .sort((a, b) => ((b.p.g === "women") - (a.p.g === "women")) || (b.d - a.d) || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+  }
   /* Stable sort: on sale first, then cheapest (the page's order). */
   return list
     .map((p, i) => ({ p, i }))
@@ -346,25 +454,75 @@ const EXTRA_LABELS = {
 };
 export const ALL_LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k])) };
 
+/* u: who each product is for (#443 header): a shoe by footwear.js's
+   rule, anything else by its own words, then its store when that store
+   sells to one adult audience (offer-category.js). Never guessed. */
+export function audienceTagger(all) {
+  const storeAud = storeAudiences(all, (p) => { try { return productClass(p); } catch { return ""; } });
+  return (p) => isFootwear({ title: p.title, name: p.title, type: p.type }, p.retailer) ? shoeGender(p, p.bucket) : (garmentAudience(p, storeAud) || "");
+}
+/* The header's part of head.json: the hero's stats chips, and the
+   audience switch where the data says who the department is for
+   (Perfumes keeps its own doors). */
+export function headerExtra(key, list) {
+  const aud = key === "perfumes" ? null : audienceSwitch(list);
+  return { stats: deptStats(list), ...(aud ? { aud } : {}) };
+}
+
 export function build(root = ROOT) {
   const all = loadAllItems(root);
   const outRoot = join(root, OUT_DIR);
   const summary = {};
+  /* A hub pill can open another department's lens (Belleza > Cabello). */
+  const lists = new Map();
+  const audienceFor = audienceTagger(all);
+  const listOf = (k) => { if (!lists.has(k)) lists.set(k, deptItems(all, k).map((p) => ({ ...p, u: audienceFor(p) }))); return lists.get(k); };
   for (const key of Object.keys(DEPT_RULES)) {
     const dir = join(outRoot, key);
     if (existsSync(dir)) rmSync(dir, { recursive: true });
     mkdirSync(dir, { recursive: true });
-    const list = deptItems(all, key);
+    const list = listOf(key);
     const sections = buildSections(list, sectionOpts(key));
-    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS)));
+    /* Order D: the hub's pill row rides in head.json; each lens is its own file. */
+    const { lenses, extra } = hubLenses(key, list, ALL_LABELS, listOf);
+    for (const l of lenses) writeFileSync(join(dir, `lens-${l.k}.json`), JSON.stringify(l));
+    /* Perfumes' doors and brand pills ride in its head (the universal format). */
+    const pills = key === "perfumes" ? perfumePills(list) : BRAND_ROOMS.has(key) ? brandRoomPills(list) : {};
+    /* The header (#443 c.6545712892): the hero's stats chips, and the
+       audience switch where the data says who the department is for
+       (Perfumes keeps its own doors). */
+    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...extra, ...pills, ...headerExtra(key, list) })));
+    /* The homepage Electrónica carousel's pills (c.6485409220). */
+    /* home.json is the pill row and the first pill's cards (the first
+       screen, under the 32KB budget); each other pill is its own
+       home-<pill>.json, fetched after the section paints. */
+    if (key === TECH_DEPT) {
+      const { pills } = homeTechPills(list);
+      writeFileSync(join(dir, "home.json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, n: p.cards.length, ...(p.note ? { note: p.note } : {}), ...(p.door ? { door: p.door } : {}) })), cards: pills.length ? pills[0].cards : [] }));
+      for (const p of pills.slice(1)) { writeFileSync(join(dir, `home-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards })); }
+    }
     let files = 1;
     for (let b = 0; b < batchCount(sections); b++) { writeFileSync(join(dir, `rails-${b}.json`), JSON.stringify(batchOf(sections, b))); files++; }
     mkdirSync(join(root, FN_DIR), { recursive: true });
     writeFileSync(join(root, FN_DIR, key + ".json"), JSON.stringify({ v: 1, dept: key, labels: labelsOf(list, ALL_LABELS), rows: list.map(fnRow) }));
     summary[key] = { items: list.length, rails: sections.length, files };
   }
+  /* The homepage audience carousels (c.6483623203): <aud>.json is the pill
+     row and the first pill's cards; each other pill is <aud>-<pill>.json. */
+  const audDir = join(root, AUDIENCE_DIR);
+  if (existsSync(audDir)) rmSync(audDir, { recursive: true });
+  mkdirSync(audDir, { recursive: true });
+  for (const aud of Object.keys(AUDIENCE_SHELVES)) {
+    const { pills } = audiencePills(aud, listOf);
+    writeFileSync(join(audDir, aud + ".json"), JSON.stringify({ v: 1, pills: pills.map((p) => ({ k: p.k, label: p.label, dept: p.dept, n: p.cards.length })), cards: pills.length ? pills[0].cards : [] }));
+    for (const p of pills.slice(1)) writeFileSync(join(audDir, `${aud}-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards }));
+    summary["home:" + aud] = { items: pills.length, rails: 1, files: pills.length };
+  }
+  /* The audience pill cards with 2+ photos carry their count (#443). */
+  stampHomePhotos(root, [AUDIENCE_DIR]);
   return summary;
 }
+export const AUDIENCE_DIR = "assets/home/pills";
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const t = Date.now();

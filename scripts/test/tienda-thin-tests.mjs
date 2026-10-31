@@ -57,8 +57,9 @@ const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORE
 const PULL_ONLY = new Set(["snipes", "carolinaherrera"]);
 const LIVE_DEALS = LIVE_SLICED.filter((k) => !PULL_ONLY.has(k));
 /* Stores whose pull carries no demand signal (no reviews, no best-sellers
-   rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria). */
-const NO_DEMAND = new Set(["pier1"]);
+   rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria),
+   BrandsMart USA (Build Order B: its Shopify feed has neither). */
+const NO_DEMAND = new Set(["pier1", "brandsmart", "sleekshop", "microcenter"]);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
 vm.runInNewContext(read("sale-rule.js"), saleCtx);
 const Sale = saleCtx.AriaSale;
@@ -148,7 +149,8 @@ await check("Más vendidos follows Ofertas where the store publishes demand; typ
     const ks = idx(k).rails.map((r) => r.key);
     assert.ok(ks.slice(ks[1] === "masvendidos" ? 2 : 1).every((x) => x.startsWith("t-")), `${k}: ${ks.join(",")}`);
   }
-  assert.equal(idx("ccs").rails[1].key, "t-trajes_bano", "CCS publishes no demand: no Más vendidos");
+  /* CCS publishes no demand: no Más vendidos; its biggest aisle follows Ofertas (#443 c.6534989244). */
+  assert.ok(idx("ccs").rails[1].key.startsWith("t-") && idx("ccs").rails[1].key !== "t-mas", "CCS publishes no demand: no Más vendidos");
 });
 
 await check("caps: 16 cards per rail on the first screen, 48 per page, first screen under 30KB gzipped", () => {
@@ -168,7 +170,8 @@ await check("caps: 16 cards per rail on the first screen, 48 per page, first scr
 await check("cards: no sizes, no retailer link, nothing but what a tile draws", () => {
   for (const k of keys) {
     for (const r of idx(k).rails) for (const c of r.head) {
-      assert.deepEqual(Object.keys(c).filter((x) => !["name", "brand", "price", "was", "image"].includes(x)), [], `${k}: card fields`);
+      /* k: the condition label (/condition.js) the tile wears; ph its photo count (#538). */
+      assert.deepEqual(Object.keys(c).filter((x) => !["name", "brand", "price", "was", "image", "k", "ph"].includes(x)), [], `${k}: card fields`);
     }
   }
   for (const k of ["ccs", "walmart", "zumiez"]) {
@@ -320,7 +323,8 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
       const pg = await ctx.newPage();
       await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
-      await pg.route(/\.(png|jpe?g|webp|gif|svg)(\?|$)/i, (r) => r.fulfill({ status: 204, body: "" }));
+      /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+      await pg.route(/\.(png|jpe?g|webp|gif|svg)(\?|$)/i, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
       const reqs = [];
       pg.on("request", (r) => reqs.push(r.url()));
       const errs = [];

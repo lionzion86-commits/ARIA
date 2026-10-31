@@ -117,6 +117,54 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* SLEEKSHOP (#443 c.6475799491, pulled 2026-10-28): the professional
+     hair-treatment shelf the Cabello aisle was missing (keratin, alisado,
+     masks, bond repair). sleekshop-catalog.json, written by
+     scripts/build-sleekshop-catalog.mjs; in stock only, courier holds in
+     scripts/lib/sleekshop.js. Untested lane: verdict by first order,
+     kill-switch armed. No logo file: the wordmark fallback. */
+  sleekshop: {
+    key: "sleekshop",
+    label: "SleekShop",
+    color: "#111111",
+    logo: null,
+    tagline: "Keratina, alisados y tratamientos para el cabello",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  /* MICRO CENTER (#443 electronics wave, Order C; pulled 2026-10-28,
+     drop microcenter-2026-10-28): ship-cleared by the sourcing audit,
+     ship-to-home pool only. microcenter-catalog.json, written by
+     scripts/build-electronics-drops.mjs. No logo file: the wordmark. */
+  microcenter: {
+    key: "microcenter",
+    label: "Micro Center",
+    color: "#C8102E",
+    logo: null,
+    tagline: "Laptops, componentes de PC y periféricos",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  /* BRANDSMART USA (Build Order B, #443, Danny 2026-10-28: «We need a
+     major electronic store»): the electronics anchor, the second wide
+     Tiendas card. brandsmart-catalog.json, written by
+     scripts/build-brandsmart-catalog.mjs from the 2026-10-28 pull; the
+     220 V gate and every hold are scripts/lib/brandsmart.js. Lane: the
+     store's published forwarder policy, kill-switch armed (the lane fails
+     or BrandsMart objects: the storefront comes down the same day). No
+     logo file: the wordmark fallback until the real mark is committed. */
+  brandsmart: {
+    key: "brandsmart",
+    label: "BrandsMart USA",
+    color: "#C8102E",
+    logo: null,
+    tagline: "Celulares, laptops, audio y gaming",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SNIPES (#443 c.6450358688, catalogue pulled 2026-10-27 c.6457579787):
      sneakers and streetwear, the general catalogue (hyped release SKUs
      cut by design). snipes-catalog.json, written by
@@ -350,13 +398,12 @@ export const RETAILERS = {
     browse: true,
   },
   /* ============================================================
-     COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the
-     Macy's pattern: browse: true, search: false. costco-catalog.json
-     (1,569 products) and samsclub-catalog.json (120 products) are
-     committed at repo root. No logo files yet -- the wordmark pill on
-     brand colour is the documented fallback. Colours are the brands'
-     official red/blue; sample from the artwork when the logo files
-     land. Party City is deliberately NOT a store row: its catalogue
+     COSTCO (2026-09-25) -- catalogue but no actor, the Macy's
+     pattern: browse: true, search: false. costco-catalog.json (1,569
+     products) is committed at repo root. No logo file yet -- the
+     wordmark pill on brand colour is the documented fallback. The
+     colour is the brand's official red; sample from the artwork when
+     the logo file lands. Party City is deliberately NOT a store row: its catalogue
      surfaces only through the Fiestas y Eventos vertical. Mirrors
      index.html; a parity test pins the two.
      ============================================================ */
@@ -542,16 +589,6 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
-  samsclub: {
-    key: "samsclub",
-    label: "Sam's Club",
-    color: "#0B6CFF",
-    logo: "logos/samsclub.svg",
-    tagline: "Mayoreo y esenciales para el hogar",
-    kind: "general",
-    search: false,
-    browse: true,
-  },
   /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
      plain <script> and cannot import. */
@@ -597,6 +634,20 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* THE GYM PULLS (#443 c.6542443890, 2026-10-30): twelve gym clothing brands in
+     gymrat-catalog.json, the YoungLA pattern (browse, no actor). */
+  ryderwear: { key: "ryderwear", label: "Ryderwear", color: "#000000", tagline: "Ropa de gym — leggings, tops y shorts", kind: "general", search: false, browse: true },
+  aybl: { key: "aybl", label: "AYBL", color: "#000000", tagline: "Ropa de gym — conjuntos, leggings y básicos", kind: "general", search: false, browse: true },
+  bornprimitive: { key: "bornprimitive", label: "Born Primitive", color: "#000000", tagline: "Ropa de entrenamiento — polos, shorts y leggings", kind: "general", search: false, browse: true },
+  buffbunny: { key: "buffbunny", label: "Buffbunny", color: "#000000", tagline: "Ropa de gym — leggings, tops y sostenes deportivos", kind: "general", search: false, browse: true },
+  paragonfitwear: { key: "paragonfitwear", label: "Paragon Fitwear", color: "#000000", tagline: "Ropa de gym — leggings y sostenes deportivos", kind: "general", search: false, browse: true },
+  killcrew: { key: "killcrew", label: "Kill Crew", color: "#000000", tagline: "Ropa de gym — polos, hoodies y shorts", kind: "general", search: false, browse: true },
+  oneractive: { key: "oneractive", label: "Oner Active", color: "#000000", tagline: "Ropa de entrenamiento — leggings, tops y casacas", kind: "general", search: false, browse: true },
+  gorillawear: { key: "gorillawear", label: "Gorilla Wear", color: "#000000", tagline: "Ropa de gym — tanks, shorts y joggers", kind: "general", search: false, browse: true },
+  fleo: { key: "fleo", label: "FLEO", color: "#000000", tagline: "Ropa de entrenamiento — shorts y leggings", kind: "general", search: false, browse: true },
+  tlfapparel: { key: "tlfapparel", label: "TLF Apparel", color: "#000000", tagline: "Ropa de gym — polos, shorts y leggings", kind: "general", search: false, browse: true },
+  ironrebel: { key: "ironrebel", label: "Iron Rebel", color: "#000000", tagline: "Ropa de gym — polos, tanks y shorts", kind: "general", search: false, browse: true },
+  athleta: { key: "athleta", label: "Athleta", color: "#000000", tagline: "Ropa de entrenamiento — leggings y tops", kind: "general", search: false, browse: true },
   /* ARIA FIGHT CLUB RETAILERS (2026-09-27, Danny) — catalogue but no actor,
      the Macy's pattern: browse: true, search: false. Mirrors index.html. */
   venum: { key: "venum", label: "Venum", color: "#000000", tagline: "MMA y boxeo — guantes, shorts y equipo", kind: "general", search: false, browse: true },

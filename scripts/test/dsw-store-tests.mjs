@@ -699,7 +699,9 @@ async function withBrowser(fn) {
 async function phonePage(browser) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
   const page = await ctx.newPage();
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.request().resourceType() === "image"
+    ? r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : r.abort());
   return page;
 }
 
@@ -791,10 +793,11 @@ await check("fixture catalogue, headless: Tiendas tile -> storefront (Ofertas de
     await tile.scrollIntoViewIfNeeded();
     await Promise.all([page.waitForURL(/tienda\.html\?tienda=dsw/), tile.click()]);
 
-    await page.waitForSelector("#content .rail-sec", { timeout: 30000 });
+    /* The section pattern (Oct 30): the Ofertas rail leads above the search bar (#salesTop). */
+    await page.waitForSelector("#storeWrap .rail-sec", { timeout: 30000 });
     const store = await page.evaluate(() => ({
-      first: document.querySelector("#content .rail-sec .rail-title").textContent,
-      titles: [...document.querySelectorAll("#content .rail-title")].map((e) => e.textContent),
+      first: document.querySelector("#storeWrap .rail-sec .rail-title").textContent,
+      titles: [...document.querySelectorAll("#storeWrap .rail-title")].map((e) => e.textContent),
       hero: document.getElementById("hero").className,
       dead: /Catálogo en preparación/.test(document.body.innerText),
     }));
@@ -803,7 +806,7 @@ await check("fixture catalogue, headless: Tiendas tile -> storefront (Ofertas de
     assert.match(store.hero, /themed/); assert.match(store.hero, /mono/);
     assert.equal(store.dead, false);
 
-    const card = page.locator("#content .rail-sec a.card").filter({ hasText: "FIXTURE Test Sneaker Alpha" }).first();
+    const card = page.locator("#storeWrap .rail-sec a.card").filter({ hasText: "FIXTURE Test Sneaker Alpha" }).first();
     await Promise.all([page.waitForURL(/producto\.html/), card.click()]);
     await page.waitForSelector("#add-cart-btn", { timeout: 30000 });
     const sel = page.locator("#size-select");

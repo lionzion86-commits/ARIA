@@ -15,14 +15,24 @@
        "price": 52.0,
        "image": "https://media.ultainc.com/i/ulta/2651970",
        "images": [
-        "https://media.ultainc.com/i/ulta/2651970"
+        "https://media.ultainc.com/i/ulta/2651970",
+        "https://media.ulta.com/i/ulta/2651970",
+        "https://media.ulta.com/i/ulta/2651970_sm",
+        "https://media.ulta.com/i/ulta/2651970_alt01",
+        "https://media.ulta.com/i/ulta/2651970cm_alt01",
+        "https://media.ulta.com/i/ulta/2651970cm_alt02",
+        "https://media.ulta.com/i/ulta/2651970cm_alt03",
+        "https://media.ulta.com/i/ulta/2651970cm_alt04",
+        "https://media.ulta.com/i/ulta/2651970cm_alt05",
+        "https://media.ulta.com/i/ulta/2651970cm_alt06"
        ],
        "url": "https://www.ulta.com/p/double-wear-stay-in-place-longwear-matte-foundation-pimprod2057355?sku=2651970",
        "availableSizes": [],
        "weightKg": 0.1,
        "weightEstimated": true,
        "type": "Rostro",
-       "retailer": "ulta"
+       "retailer": "ulta",
+       "imagesBackfill": "merge 2026-10-31"
       },
       {
        "name": "Almost Lipstick",

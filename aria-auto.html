@@ -221,6 +221,16 @@
   .aa-foot nav{display:flex;gap:16px;flex-wrap:wrap}
   .aa-foot a{color:#fff;text-decoration:none;font-weight:700}
   .aa-foot .aa-legal{font-size:11.5px;color:var(--chrome);opacity:.8}
+/* THE BIG CARD, EVERYWHERE (#443 c.6545712892, c.6546035414): the
+   Ropa Interior card is the one card standard -- near-full-width in
+   rails, a 4:5 photo, the title readable at a glance, photo arrows on
+   every product with 2+ photos (card-photos.js). */
+  .rail{grid-auto-columns:clamp(232px,68vw,300px)}
+  @media(min-width:640px){ .rail{grid-auto-columns:clamp(232px,68vw,300px)} }
+  @media(min-width:1024px){ .rail{grid-auto-columns:clamp(232px,68vw,300px)} }
+  .card .card-img{aspect-ratio:4/5}
+  @supports not (aspect-ratio:4/5){ .card .card-img{padding-top:125%} }
+  .card .card-title{font-size:14.5px}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -462,7 +472,7 @@ function sizedImageUrl(url, w){
   if (!u || !/^https?:\/\//i.test(u) || !w) return u;
   /* NEVER UPSCALE. When the URL already declares a width at or
      below the step asked for (Kohl's feeds store wid=180/342, some
-     Walmart and Sam's Club URLs declare 180), that variant is the
+     Walmart URLs declare 180), that variant is the
      card image the shopper sees today; asking the CDN for more
      pixels would ADD decoded weight -- the opposite of this job. */
   const declared = declaredImageWidth(u);
@@ -477,7 +487,7 @@ function sizedImageUrl(url, w){
     out = setQ(u, "width", w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
-  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+  } else if (/i5\.walmartimages\.com/i.test(u)){
     out = setQ(u, "odnWidth", w);
     out = /[?&]odnHeight=\d+/i.test(out)
       ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })

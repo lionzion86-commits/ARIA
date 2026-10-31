@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
-import { build, railsIndex, leadRail, RAILS_FILE, LEAD_N, LEAD_SPREAD, MAX_RUN, MIN_RAIL } from "../build-ofertas-slices.mjs";
+import { build, railsIndex, leadRail, RAILS_FILE, LEAD_N, LEAD_SPREAD, MAX_RUN, MIN_RAIL, OPEN_N, OPEN_STORE, STORE_LEAD, OUT_OF_FRONT, STORE_LAST, FRONT_N } from "../build-ofertas-slices.mjs";
 import { PAGE_SIZE, SORTS, FIELDS, unpackCard, selectDeals, pageOf, loadDeals } from "../../netlify/functions/_ofertas-core.js";
 import { handler } from "../../netlify/functions/ofertas.js";
 
@@ -77,7 +77,9 @@ await check("the deals are the page's own: the one sale rule, the $150 cap for t
 await check("a slice for every store and sort, each one page 1 of 48 card-only items, under 12KB gzipped", () => {
   const files = readdirSync(SLICES);
   const scopes = ["all", ...fresh.stores.map((s) => s.key)];
-  assert.equal(files.length, scopes.length * SORTS.length, "slice count");
+  /* ...plus page 1 of each Por categoría category (#443 c.6544455377). */
+  assert.equal(files.length, scopes.length * SORTS.length + fresh.cats.length, "slice count");
+  for (const c of fresh.cats) assert.ok(files.includes(`cat-${c.key}.discount.json`), c.key);
   const allowed = new Set(FIELDS);
   for (const scope of scopes) for (const sort of SORTS) {
     const f = `${scope}.${sort}.json`;
@@ -137,7 +139,7 @@ await check("the function answers 48 at most, clamps pages, ignores unknown stor
   assert.ok(odd.body.items.length === PAGE_SIZE);
   assert.ok(JSON.stringify(odd.body).length < 40 * 1024, "a page is over 40KB");
   assert.equal((await call({}, "POST")).status, 405);
-  assert.match(big.headers["Netlify-Vary"], /store\|sort\|q\|page/);
+  assert.match(big.headers["Netlify-Vary"], /store\|cat\|sort\|q\|page/);
   assert.ok(loadDeals().cards.length === committed.items.length);
 });
 
@@ -209,28 +211,48 @@ await check("rails.json is current and small: the lead rail, the store rails, th
   assert.equal(j.more.length, j.moreStores.reduce((a, s) => a + s.n, 0), "Más tiendas lost a card");
 });
 
-await check("the lead rail is the homepage's Ofertas rail: mix only, spread over stores, no store runs past the cap", () => {
+await check("the lead rail is the homepage's Ofertas rail: it opens on Victoria's Secret, then spreads over stores, no other store runs past the cap", () => {
   const lead = leadRail(fresh.cards);
   assert.ok(lead.every((c) => c.m === 1), "a card over the mix cap in the lead");
-  const first = lead.slice(0, LEAD_SPREAD).map((c) => c.store);
-  assert.equal(new Set(first).size, LEAD_SPREAD, "the first cards repeat a store: " + first.join(","));
+  /* #443 c.6483501901 / c.6495111883: the rail OPENS with VS. */
+  const open = lead.slice(0, OPEN_N);
+  assert.ok(open.every((c) => c.store === OPEN_STORE), "the lead does not open on Victoria's Secret: " + open.map((c) => c.store).join(","));
+  assert.equal(new Set(open.map((c) => c.title)).size, OPEN_N, "the same VS product twice in the opening");
+  for (let i = 1; i < open.length; i++) assert.ok(open[i].pct <= open[i - 1].pct, "the opening is deepest first");
+  const after = lead.slice(OPEN_N);
+  const first = after.slice(0, LEAD_SPREAD).map((c) => c.store);
+  assert.equal(new Set(first).size, LEAD_SPREAD, "after the opening, the first cards repeat a store: " + first.join(","));
+  assert.ok(!first.includes(OPEN_STORE), "VS runs on past its opening block");
   let run = 0, prev = null, worst = 0;
-  for (const c of lead) { run = c.store === prev ? run + 1 : 1; prev = c.store; worst = Math.max(worst, run); }
+  for (const c of after) { run = c.store === prev ? run + 1 : 1; prev = c.store; worst = Math.max(worst, run); }
   assert.ok(worst <= MAX_RUN, `a ${worst}-card run from one store`);
   /* The interleave and spread are the bundle's own (renderMobileDealsRail). */
   const bundle = readFileSync(ROOT + "build/" + readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]+\.js$/.test(f)), "utf8");
   assert.match(bundle, /const OFERTAS_LEAD_BRANDS = \['victoriassecret', 'sephora', 'macys', 'gymshark', 'youngla'\];/, "the homepage's pull brands moved: update LEAD_BRANDS");
   assert.match(bundle, /const OFERTAS_MAX_RUN = 3;/);
   assert.match(bundle, /const MOBILE_RAIL_LEAD = 5;/);
+  assert.match(bundle, /const OFERTAS_OPEN_RETAILER = 'victoriassecret';/);
+  assert.match(bundle, new RegExp(`const OFERTAS_OPEN_N = ${OPEN_N};`), "the homepage's opening block and the lead's differ");
+  assert.match(bundle, /const \{ open, rest \} = ofertasOpenBlock\(priced\);/, "renderMobileDealsRail opens on the VS block");
   assert.match(bundle, /const MOBILE_RAIL_DEALS = 20;/);
 });
 
-await check("store rails are sales-led: most deep markdowns first, then the deepest, then the most deals", () => {
+await check("store rails: Danny's curated lead (VS, Zumiez, Walmart, Born Primitive, SKIMS), Venum and surf/skate out of the front, CCS last, the rest sales-led (c.6546035414)", () => {
   const j = JSON.parse(readFileSync(ROOT + RAILS_FILE, "utf8"));
-  for (let i = 1; i < j.stores.length; i++) {
-    const a = j.stores[i - 1], b = j.stores[i];
-    assert.ok(a.deep > b.deep || (a.deep === b.deep && (a.top > b.top || (a.top === b.top && a.n >= b.n))), `${a.key} before ${b.key}`);
+  const keys = j.stores.map((s) => s.key);
+  const lead = STORE_LEAD.filter((k) => keys.includes(k));
+  assert.deepEqual(keys.slice(0, lead.length), lead, "the lead block");
+  assert.deepEqual(keys.slice(0, 3), ["victoriassecret", "zumiez", "walmart"], "Danny's first three");
+  for (const k of STORE_LAST) if (keys.includes(k)) assert.equal(keys[keys.length - 1], k, k + " is not at the bottom");
+  for (const k of OUT_OF_FRONT) if (keys.includes(k)) {
+    assert.ok(keys.indexOf(k) >= FRONT_N, k + " is in the front of the store order");
+    assert.ok(keys.indexOf(k) < keys.length - 1, k + " sank to the bottom");
   }
+  const salesLed = (a, b) => a.deep > b.deep || (a.deep === b.deep && (a.top > b.top || (a.top === b.top && a.n >= b.n)));
+  const plain = j.stores.filter((s) => !STORE_LEAD.includes(s.key) && !STORE_LAST.includes(s.key) && !OUT_OF_FRONT.includes(s.key));
+  for (let i = 1; i < plain.length; i++) assert.ok(salesLed(plain[i - 1], plain[i]), `${plain[i - 1].key} before ${plain[i].key}`);
+  const held = j.stores.filter((s) => OUT_OF_FRONT.includes(s.key));
+  for (let i = 1; i < held.length; i++) assert.ok(salesLed(held[i - 1], held[i]), `${held[i - 1].key} before ${held[i].key}`);
 });
 
 await check("the page is carousels: rails of homepage-size cards, one rail per store, no grid", () => {

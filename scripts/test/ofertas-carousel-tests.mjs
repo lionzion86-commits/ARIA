@@ -67,7 +67,9 @@ async function open(ctxOpts, url) {
   const page = await ctx.newPage();
   page.__errors = [];
   page.on("pageerror", (e) => page.__errors.push(e.message));
-  await page.route((u) => u.host !== `127.0.0.1:${PORT}`, (r) => r.abort());
+  /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+  await page.route((u) => u.host !== `127.0.0.1:${PORT}`, (r) => r.request().resourceType() === "image"
+    ? r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : r.abort());
   await page.goto(BASE + url, { waitUntil: "domcontentloaded" });
   return { ctx, page };
 }
@@ -138,7 +140,7 @@ await check("horizontal rails, not a grid: the lead rail first, a rail per store
   assert.ok(!r.pageScrollX, "the page itself scrolls sideways");
 });
 
-await check("the homepage's large card: 172px navy tile, white photo square, gold badge, soles first", async () => {
+await check("the big card (#443 c.6545712892): near-full-width navy tile, 4:5 photo, gold badge, soles first", async () => {
   const c = await page.evaluate(() => {
     const card = document.querySelector("#content .rail .card:not(.sk)");
     /* layout sizes: the card nearest the middle is grown by the focus
@@ -150,12 +152,13 @@ await check("the homepage's large card: 172px navy tile, white photo square, gol
       usd: card.querySelector(".price-usd").textContent, href: card.getAttribute("href"),
       onScreen: [...document.querySelectorAll("#content .rail-sec")[0].querySelectorAll(".card")].filter((x) => x.getBoundingClientRect().right <= innerWidth).length };
   });
-  assert.equal(c.w, 172);
-  assert.equal(Math.round(c.imgW), 172);
-  assert.equal(Math.round(c.imgH), 172, "the photo box is not square");
+  const big = Math.round(Math.min(300, Math.max(232, 0.68 * 390)));
+  assert.equal(c.w, big, "the card is not the big card, clamp(232px,68vw,300px)");
+  assert.equal(Math.round(c.imgW), big);
+  assert.equal(Math.round(c.imgH), Math.round(big * 1.25), "the photo box is not 4:5");
   assert.equal(c.bg, "rgb(26, 39, 68)");
   assert.equal(c.badgeBg, "rgb(244, 196, 99)");
-  assert.equal(c.onScreen, 2, "a phone shows two whole cards and the edge of the third");
+  assert.equal(c.onScreen, 1, "a phone shows one whole big card and the edge of the next");
   const first = rails.lead[0];
   assert.equal(c.price, pen(first.usd * RATE), "the soles price is not usd x rate");
   assert.equal(c.old, pen(first.wasUsd * RATE));

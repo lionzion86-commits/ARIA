@@ -1,0 +1,25 @@
+{
+ "generatedAt": "2026-10-28T23:43:02.043Z",
+ "rawProducts": 1437,
+ "kept": 702,
+ "held": {
+  "out of stock on its page": 723,
+  "chemical relaxer (courier ruling)": 7,
+  "aerosol (courier ruling)": 5
+ },
+ "byAisle": {
+  "cab_keratina": 147,
+  "cab_mascarillas": 84,
+  "cab_reparacion": 94,
+  "cab_aceites": 81,
+  "cab_cuero": 117,
+  "cab_sin_enjuague": 68,
+  "cab_champu": 82,
+  "cab_tratamientos": 29
+ },
+ "keratin": 116,
+ "alisado": 46,
+ "onSale": 159,
+ "weighedFromSize": 466,
+ "withSpanish": 496
+}

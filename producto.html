@@ -27,6 +27,11 @@ main{flex:1;width:100%;max-width:900px;margin:0 auto;padding:32px 20px 48px}
 .hero h1 .gold{color:var(--gold)}
 .hero p.lead{font-size:16px;color:var(--muted);max-width:60ch;margin:0 auto;line-height:1.6}
 section.block{margin:28px 0}
+.p-desc{margin:0 0 16px}
+.p-desc-h{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--navy);margin:0 0 6px}
+.p-desc-t{font-size:15px;line-height:1.6;color:var(--ink);margin:0;white-space:pre-line;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;line-clamp:5}
+.p-desc-t.open{display:block;-webkit-line-clamp:unset;line-clamp:unset}
+.p-desc-more{background:none;border:0;padding:6px 0 0;font:inherit;font-size:14px;font-weight:700;color:var(--navy);text-decoration:underline;cursor:pointer}
 section.block h2{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 14px;letter-spacing:-.01em}
 section.block h3{font-size:17px;font-weight:700;color:var(--navy);margin:18px 0 8px}
 section.block p{font-size:15px;line-height:1.7;color:var(--ink);margin:0 0 12px}
@@ -128,17 +133,23 @@ footer a{color:#fff}
 .p-tax-row b{white-space:nowrap;text-align:right}
 .p-tax-row small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
 .p-tax-note{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+.p-ship-rule{font-size:14px;font-weight:800;color:var(--navy);margin-top:2px;line-height:1.35}
+.p-ship-meter{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:8px}
+.p-ship-meter i{display:block;height:100%;background:var(--navy);border-radius:999px}
+.p-ship-meter.met i{background:#1F8A4C}
 </style>
 <script src="/ref.js"></script>
 <script src="sale-rule.js"></script>
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
 <script src="/condition.js"></script>
+<script src="/store-shipping.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/card-photos.js" defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -205,9 +216,9 @@ footer a{color:#fff}
    record the old scan chose: the ?tienda= files first, in order, then
    CATALOG_FILES order. The tables below stay as the build's source.
    ===================================================================== */
-var CATALOG_FILES = ["/department-cache-walmart.json", "/department-cache-oldnavy.json", "/department-cache-footlocker.json", "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json", "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json", "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json", "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json", "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json", "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json", "/advanceauto-catalog.json", "/nautilus-catalog.json", "/islandwatersports-catalog.json", "/quietstorm-catalog.json", "/surfstation-catalog.json", "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json", "/everlast-catalog.json", "/mmawarehouse-catalog.json", "/combatcorner-catalog.json", "/fuji-catalog.json", "/fightclub-catalog.json", "/crocs-catalog.json", "/baublebar-catalog.json", "/jwpei-catalog.json", "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json", "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json", "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json", "/soccer-catalog.json", "/tennis-catalog.json", "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json", "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json", "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json", "/boxlunch-catalog.json", "/hollister-catalog.json", "/abercrombie-catalog.json", "/gap-catalog.json", "/bananarepublic-catalog.json", "/bestbuy-catalog.json", "/dsw-catalog.json", "/perfumes-catalog.json", "/snipes-catalog.json", "/carolinaherrera-catalog.json"];
-var STORE_FILES   = {"revolve": ["/revolve-catalog.json"], "footlocker": ["/department-cache-footlocker.json"], "newbalance": ["/newbalance-catalog.json"], "walmart": ["/department-cache-walmart.json", "/juguetes-catalog.json"], "advanceauto": ["/advanceauto-catalog.json"], "macys": ["/macys-catalog.json"], "kohls": ["/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json"], "dicks": ["/dicks-catalog.json"], "finishline": ["/finishline-catalog.json"], "bhphoto": ["/bhphoto-catalog.json"], "costco": ["/costco-catalog.json", "/juguetes-catalog.json"], "victoriassecret": ["/beauty-catalog.json"], "ulta": ["/ulta-catalog.json"], "pacsun": ["/pacsun-catalog.json"], "zumiez": ["/zumiez-catalog.json"], "nautilus": ["/nautilus-catalog.json"], "prosoccer": ["/soccer-catalog.json"], "xtremesoccer": ["/soccer-catalog.json"], "tennisexpress": ["/tennis-catalog.json"], "tenniswarehouse": ["/tennis-catalog.json"], "academy": ["/soccer-catalog.json"], "islandwatersports": ["/islandwatersports-catalog.json"], "quietstorm": ["/quietstorm-catalog.json"], "surfstation": ["/surfstation-catalog.json"], "mainland": ["/mainland-catalog.json"], "parrot": ["/parrot-catalog.json"], "ccs": ["/ccs-catalog.json"], "valsurf": ["/valsurf-catalog.json"], "oldnavy": ["/department-cache-oldnavy.json"], "samsclub": ["/samsclub-catalog.json"], "lanebryant": ["/lanebryant-catalog.json"], "alphalete": ["/gymrat-catalog.json"], "youngla": ["/gymrat-catalog.json"], "gymshark": ["/gymrat-catalog.json"], "venum": ["/venum-catalog.json"], "tatami": ["/tatami-catalog.json"], "everlast": ["/everlast-catalog.json"], "mmawarehouse": ["/mmawarehouse-catalog.json"], "combatcorner": ["/combatcorner-catalog.json"], "fuji": ["/fuji-catalog.json"], "crocs": ["/crocs-catalog.json"], "baublebar": ["/baublebar-catalog.json", "/jewelry-catalog.json"], "jwpei": ["/jwpei-catalog.json"], "meliebianco": ["/meliebianco-catalog.json"], "bentgo": ["/bentgo-catalog.json"], "mushie": ["/mushie-catalog.json"], "ezpz": ["/ezpz-catalog.json"], "statebags": ["/statebags-catalog.json"], "assouline": ["/books-catalog.json"], "chronicle": ["/books-catalog.json"], "walmartbaby": ["/moms-catalog.json"], "momcozy": ["/moms-catalog.json"], "elvie": ["/moms-catalog.json"], "spectra": ["/moms-catalog.json"], "munchkin": ["/moms-catalog.json"], "babybrezza": ["/moms-catalog.json"], "drbrowns": ["/moms-catalog.json"], "mockingbird": ["/moms-catalog.json"], "nanit": ["/nanit-catalog.json", "/moms-catalog.json"], "owlet": ["/owlet-catalog.json", "/moms-catalog.json"], "kindredbravely": ["/moms-catalog.json"], "hatch": ["/moms-catalog.json"], "bellybandit": ["/moms-catalog.json"], "freshlypicked": ["/moms-catalog.json"], "jujube": ["/moms-catalog.json"], "dagnedover": ["/moms-catalog.json"], "lillebaby": ["/moms-catalog.json"], "skims": ["/skims-catalog.json"], "ssense": ["/ssense-catalog.json"], "miumiu": ["/miumiu-catalog.json"], "yesstyle": ["/yesstyle-catalog.json"], "farfetch": ["/farfetch-catalog.json"], "hottopic": ["/hottopic-catalog.json"], "boxlunch": ["/boxlunch-catalog.json"], "sephora": ["/beauty-catalog.json"], "partycity": ["/partycity-catalog.json"], "elite": ["/fightclub-catalog.json"], "gameness": ["/fightclub-catalog.json"], "americaneagle": ["/ae-catalog.json"], "farmrio": ["/latino-designers-dtc-catalog.json"], "aguabendita": ["/latino-designers-dtc-catalog.json"], "patbo": ["/latino-designers-dtc-catalog.json"], "johannaortiz": ["/latino-designers-dtc-catalog.json"], "silviatcherassi": ["/latino-designers-dtc-catalog.json"], "capittana": ["/latino-designers-dtc-catalog.json"], "ancora": ["/latino-designers-dtc-catalog.json"], "vix": ["/latino-designers-dtc-catalog.json"], "montce": ["/latino-designers-dtc-catalog.json"], "eberjey": ["/latino-designers-dtc-catalog.json"], "tns": ["/latino-designers-dtc-catalog.json"], "revzilla": ["/moto-catalog.json"], "denniskirk": ["/moto-catalog.json"], "smartbuyglasses": ["/sunglasses-catalog.json"], "hollister": ["/hollister-catalog.json"], "abercrombie": ["/abercrombie-catalog.json"], "gap": ["/gap-catalog.json"], "bananarepublic": ["/bananarepublic-catalog.json"], "bestbuy": ["/bestbuy-catalog.json"], "dsw": ["/dsw-catalog.json"], "ariaperfumes": ["/perfumes-catalog.json"], "crateandbarrel": ["/crateandbarrel-catalog.json"], "pier1": ["/pier1-catalog.json"], "snipes": ["/snipes-catalog.json"], "carolinaherrera": ["/carolinaherrera-catalog.json"]};
-var STORE_LABELS  = {"revolve": "Revolve", "footlocker": "Foot Locker", "newbalance": "New Balance", "walmart": "Walmart", "advanceauto": "Advance Auto Parts", "macys": "Macy's", "kohls": "Kohl's", "crateandbarrel": "Crate & Barrel", "pier1": "Pier 1", "dicks": "Dick's Sporting Goods", "finishline": "Finish Line", "bhphoto": "B&H Photo", "costco": "Costco", "victoriassecret": "Victoria's Secret", "ulta": "Ulta Beauty", "pacsun": "PacSun", "zumiez": "Zumiez", "nautilus": "Nautilus Spearfishing", "prosoccer": "ProSoccer", "xtremesoccer": "Xtreme Soccer", "tennisexpress": "Tennis Express", "tenniswarehouse": "Tennis Warehouse", "academy": "Academy Sports", "islandwatersports": "Island Water Sports", "quietstorm": "Quiet Storm Surf Shop", "surfstation": "Surf Station", "mainland": "Mainland Skate & Surf", "parrot": "Parrot Surf & Skate", "ccs": "CCS", "valsurf": "Val Surf", "oldnavy": "Old Navy", "samsclub": "Sam's Club", "lanebryant": "Lane Bryant", "alphalete": "Alphalete", "youngla": "YoungLA", "gymshark": "Gymshark", "venum": "Venum", "tatami": "Tatami Fightwear", "everlast": "Everlast", "mmawarehouse": "MMAWarehouse", "combatcorner": "Combat Corner", "fuji": "FUJI Sports", "crocs": "Crocs", "baublebar": "BaubleBar", "jwpei": "JW PEI", "meliebianco": "Melie Bianco", "bentgo": "Bentgo", "mushie": "Mushie", "ezpz": "ezpz", "statebags": "State Bags", "assouline": "Assouline", "chronicle": "Chronicle Books", "walmartbaby": "Walmart Bebé", "momcozy": "Momcozy", "elvie": "Elvie", "spectra": "Spectra", "munchkin": "Munchkin", "babybrezza": "Baby Brezza", "drbrowns": "Dr. Brown's", "mockingbird": "Mockingbird", "nanit": "Nanit", "owlet": "Owlet", "kindredbravely": "Kindred Bravely", "hatch": "Hatch", "bellybandit": "Belly Bandit", "freshlypicked": "Freshly Picked", "jujube": "JuJuBe", "dagnedover": "Dagne Dover", "lillebaby": "LÍLLÉbaby", "skims": "Skims", "ssense": "SSENSE", "miumiu": "Miu Miu", "yesstyle": "YesStyle", "bathandbodyworks": "Bath & Body Works", "farfetch": "Farfetch", "hottopic": "Hot Topic", "boxlunch": "BoxLunch", "sephora": "Sephora", "partycity": "Party City", "elite": "Elite Sports", "gameness": "Gameness", "americaneagle": "American Eagle", "farmrio": "FARM Rio", "aguabendita": "Agua Bendita", "patbo": "PatBO", "johannaortiz": "Johanna Ortiz", "silviatcherassi": "Silvia Tcherassi", "capittana": "Capittana", "ancora": "Ancora", "vix": "ViX", "montce": "Montce", "eberjey": "Eberjey", "tns": "TNS", "revzilla": "RevZilla", "denniskirk": "Dennis Kirk", "smartbuyglasses": "SmartBuyGlasses", "autozone": "AutoZone", "hollister": "Hollister", "abercrombie": "Abercrombie & Fitch", "gap": "Gap", "bananarepublic": "Banana Republic", "bestbuy": "Best Buy", "dsw": "DSW", "ariaperfumes": "Aria Perfumes", "snipes": "SNIPES", "carolinaherrera": "Carolina Herrera"};
+var CATALOG_FILES = ["/department-cache-walmart.json", "/department-cache-oldnavy.json", "/department-cache-footlocker.json", "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json", "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json", "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json", "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json", "/gym-brands-catalog.json", "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json", "/advanceauto-catalog.json", "/nautilus-catalog.json", "/islandwatersports-catalog.json", "/quietstorm-catalog.json", "/surfstation-catalog.json", "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json", "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json", "/everlast-catalog.json", "/mmawarehouse-catalog.json", "/combatcorner-catalog.json", "/fuji-catalog.json", "/fightclub-catalog.json", "/crocs-catalog.json", "/baublebar-catalog.json", "/jwpei-catalog.json", "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json", "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json", "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json", "/soccer-catalog.json", "/tennis-catalog.json", "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json", "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json", "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json", "/boxlunch-catalog.json", "/hollister-catalog.json", "/abercrombie-catalog.json", "/gap-catalog.json", "/bananarepublic-catalog.json", "/bestbuy-catalog.json", "/dsw-catalog.json", "/perfumes-catalog.json", "/snipes-catalog.json", "/carolinaherrera-catalog.json", "/brandsmart-catalog.json", "/sleekshop-catalog.json", "/walmart-electronics-catalog.json", "/costco-electronics-catalog.json", "/microcenter-catalog.json"];
+var STORE_FILES   = {"revolve": ["/revolve-catalog.json"], "footlocker": ["/department-cache-footlocker.json"], "newbalance": ["/newbalance-catalog.json"], "walmart": ["/department-cache-walmart.json", "/juguetes-catalog.json", "/walmart-electronics-catalog.json"], "advanceauto": ["/advanceauto-catalog.json"], "macys": ["/macys-catalog.json"], "kohls": ["/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json"], "dicks": ["/dicks-catalog.json"], "finishline": ["/finishline-catalog.json"], "bhphoto": ["/bhphoto-catalog.json"], "costco": ["/costco-catalog.json", "/juguetes-catalog.json", "/costco-electronics-catalog.json"], "victoriassecret": ["/beauty-catalog.json"], "ulta": ["/ulta-catalog.json"], "pacsun": ["/pacsun-catalog.json"], "zumiez": ["/zumiez-catalog.json"], "nautilus": ["/nautilus-catalog.json"], "prosoccer": ["/soccer-catalog.json"], "xtremesoccer": ["/soccer-catalog.json"], "tennisexpress": ["/tennis-catalog.json"], "tenniswarehouse": ["/tennis-catalog.json"], "academy": ["/soccer-catalog.json"], "islandwatersports": ["/islandwatersports-catalog.json"], "quietstorm": ["/quietstorm-catalog.json"], "surfstation": ["/surfstation-catalog.json"], "mainland": ["/mainland-catalog.json"], "parrot": ["/parrot-catalog.json"], "ccs": ["/ccs-catalog.json"], "valsurf": ["/valsurf-catalog.json"], "oldnavy": ["/department-cache-oldnavy.json"], "lanebryant": ["/lanebryant-catalog.json"], "alphalete": ["/gymrat-catalog.json"], "youngla": ["/gymrat-catalog.json"], "ryderwear": ["/gym-brands-catalog.json"], "aybl": ["/gym-brands-catalog.json"], "bornprimitive": ["/gym-brands-catalog.json"], "buffbunny": ["/gym-brands-catalog.json"], "paragonfitwear": ["/gym-brands-catalog.json"], "killcrew": ["/gym-brands-catalog.json"], "oneractive": ["/gym-brands-catalog.json"], "gorillawear": ["/gym-brands-catalog.json"], "fleo": ["/gym-brands-catalog.json"], "tlfapparel": ["/gym-brands-catalog.json"], "ironrebel": ["/gym-brands-catalog.json"], "athleta": ["/gym-brands-catalog.json"], "gymshark": ["/gymrat-catalog.json"], "venum": ["/venum-catalog.json"], "tatami": ["/tatami-catalog.json"], "everlast": ["/everlast-catalog.json"], "mmawarehouse": ["/mmawarehouse-catalog.json"], "combatcorner": ["/combatcorner-catalog.json"], "fuji": ["/fuji-catalog.json"], "crocs": ["/crocs-catalog.json"], "baublebar": ["/baublebar-catalog.json", "/jewelry-catalog.json"], "jwpei": ["/jwpei-catalog.json"], "meliebianco": ["/meliebianco-catalog.json"], "bentgo": ["/bentgo-catalog.json"], "mushie": ["/mushie-catalog.json"], "ezpz": ["/ezpz-catalog.json"], "statebags": ["/statebags-catalog.json"], "assouline": ["/books-catalog.json"], "chronicle": ["/books-catalog.json"], "walmartbaby": ["/moms-catalog.json"], "momcozy": ["/moms-catalog.json"], "elvie": ["/moms-catalog.json"], "spectra": ["/moms-catalog.json"], "munchkin": ["/moms-catalog.json"], "babybrezza": ["/moms-catalog.json"], "drbrowns": ["/moms-catalog.json"], "mockingbird": ["/moms-catalog.json"], "nanit": ["/nanit-catalog.json", "/moms-catalog.json"], "owlet": ["/owlet-catalog.json", "/moms-catalog.json"], "kindredbravely": ["/moms-catalog.json"], "hatch": ["/moms-catalog.json"], "bellybandit": ["/moms-catalog.json"], "freshlypicked": ["/moms-catalog.json"], "jujube": ["/moms-catalog.json"], "dagnedover": ["/moms-catalog.json"], "lillebaby": ["/moms-catalog.json"], "skims": ["/skims-catalog.json"], "ssense": ["/ssense-catalog.json"], "miumiu": ["/miumiu-catalog.json"], "yesstyle": ["/yesstyle-catalog.json"], "farfetch": ["/farfetch-catalog.json"], "hottopic": ["/hottopic-catalog.json"], "boxlunch": ["/boxlunch-catalog.json"], "sephora": ["/beauty-catalog.json"], "partycity": ["/partycity-catalog.json"], "elite": ["/fightclub-catalog.json"], "gameness": ["/fightclub-catalog.json"], "americaneagle": ["/ae-catalog.json"], "farmrio": ["/latino-designers-dtc-catalog.json"], "aguabendita": ["/latino-designers-dtc-catalog.json"], "patbo": ["/latino-designers-dtc-catalog.json"], "johannaortiz": ["/latino-designers-dtc-catalog.json"], "silviatcherassi": ["/latino-designers-dtc-catalog.json"], "capittana": ["/latino-designers-dtc-catalog.json"], "ancora": ["/latino-designers-dtc-catalog.json"], "vix": ["/latino-designers-dtc-catalog.json"], "montce": ["/latino-designers-dtc-catalog.json"], "eberjey": ["/latino-designers-dtc-catalog.json"], "tns": ["/latino-designers-dtc-catalog.json"], "revzilla": ["/moto-catalog.json"], "denniskirk": ["/moto-catalog.json"], "smartbuyglasses": ["/sunglasses-catalog.json"], "hollister": ["/hollister-catalog.json"], "abercrombie": ["/abercrombie-catalog.json"], "gap": ["/gap-catalog.json"], "bananarepublic": ["/bananarepublic-catalog.json"], "bestbuy": ["/bestbuy-catalog.json"], "dsw": ["/dsw-catalog.json"], "ariaperfumes": ["/perfumes-catalog.json"], "crateandbarrel": ["/crateandbarrel-catalog.json"], "pier1": ["/pier1-catalog.json"], "snipes": ["/snipes-catalog.json"], "brandsmart": ["/brandsmart-catalog.json"], "microcenter": ["/microcenter-catalog.json"], "sleekshop": ["/sleekshop-catalog.json"], "carolinaherrera": ["/carolinaherrera-catalog.json"]};
+var STORE_LABELS  = {"revolve": "Revolve", "footlocker": "Foot Locker", "newbalance": "New Balance", "walmart": "Walmart", "advanceauto": "Advance Auto Parts", "macys": "Macy's", "kohls": "Kohl's", "crateandbarrel": "Crate & Barrel", "pier1": "Pier 1", "dicks": "Dick's Sporting Goods", "finishline": "Finish Line", "bhphoto": "B&H Photo", "costco": "Costco", "victoriassecret": "Victoria's Secret", "ulta": "Ulta Beauty", "pacsun": "PacSun", "zumiez": "Zumiez", "nautilus": "Nautilus Spearfishing", "prosoccer": "ProSoccer", "xtremesoccer": "Xtreme Soccer", "tennisexpress": "Tennis Express", "tenniswarehouse": "Tennis Warehouse", "academy": "Academy Sports", "islandwatersports": "Island Water Sports", "quietstorm": "Quiet Storm Surf Shop", "surfstation": "Surf Station", "mainland": "Mainland Skate & Surf", "parrot": "Parrot Surf & Skate", "ccs": "CCS", "valsurf": "Val Surf", "oldnavy": "Old Navy", "lanebryant": "Lane Bryant", "alphalete": "Alphalete", "youngla": "YoungLA", "ryderwear": "Ryderwear", "aybl": "AYBL", "bornprimitive": "Born Primitive", "buffbunny": "Buffbunny", "paragonfitwear": "Paragon Fitwear", "killcrew": "Kill Crew", "oneractive": "Oner Active", "gorillawear": "Gorilla Wear", "fleo": "FLEO", "tlfapparel": "TLF Apparel", "ironrebel": "Iron Rebel", "athleta": "Athleta", "gymshark": "Gymshark", "venum": "Venum", "tatami": "Tatami Fightwear", "everlast": "Everlast", "mmawarehouse": "MMAWarehouse", "combatcorner": "Combat Corner", "fuji": "FUJI Sports", "crocs": "Crocs", "baublebar": "BaubleBar", "jwpei": "JW PEI", "meliebianco": "Melie Bianco", "bentgo": "Bentgo", "mushie": "Mushie", "ezpz": "ezpz", "statebags": "State Bags", "assouline": "Assouline", "chronicle": "Chronicle Books", "walmartbaby": "Walmart Bebé", "momcozy": "Momcozy", "elvie": "Elvie", "spectra": "Spectra", "munchkin": "Munchkin", "babybrezza": "Baby Brezza", "drbrowns": "Dr. Brown's", "mockingbird": "Mockingbird", "nanit": "Nanit", "owlet": "Owlet", "kindredbravely": "Kindred Bravely", "hatch": "Hatch", "bellybandit": "Belly Bandit", "freshlypicked": "Freshly Picked", "jujube": "JuJuBe", "dagnedover": "Dagne Dover", "lillebaby": "LÍLLÉbaby", "skims": "Skims", "ssense": "SSENSE", "miumiu": "Miu Miu", "yesstyle": "YesStyle", "bathandbodyworks": "Bath & Body Works", "farfetch": "Farfetch", "hottopic": "Hot Topic", "boxlunch": "BoxLunch", "sephora": "Sephora", "partycity": "Party City", "elite": "Elite Sports", "gameness": "Gameness", "americaneagle": "American Eagle", "farmrio": "FARM Rio", "aguabendita": "Agua Bendita", "patbo": "PatBO", "johannaortiz": "Johanna Ortiz", "silviatcherassi": "Silvia Tcherassi", "capittana": "Capittana", "ancora": "Ancora", "vix": "ViX", "montce": "Montce", "eberjey": "Eberjey", "tns": "TNS", "revzilla": "RevZilla", "denniskirk": "Dennis Kirk", "smartbuyglasses": "SmartBuyGlasses", "autozone": "AutoZone", "hollister": "Hollister", "abercrombie": "Abercrombie & Fitch", "gap": "Gap", "bananarepublic": "Banana Republic", "bestbuy": "Best Buy", "dsw": "DSW", "ariaperfumes": "Aria Perfumes", "snipes": "SNIPES", "brandsmart": "BrandsMart USA", "microcenter": "Micro Center", "sleekshop": "SleekShop", "carolinaherrera": "Carolina Herrera"};
 
 /* THE SHARDS (2026-10-19, #409 T1). FNV-1a over the normalised title
    (or part number), the same function at build time and here. The
@@ -266,7 +277,8 @@ function recordToItem(r){
     sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "", sizesPending: r.sizesPending === true,
     originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
     wasPrice: Number(r.wasPrice) || 0, dept: r.dept || "",
-    weightKg: Number(r.weightKg) || 0, weightPub: r.weightPub === true, specWeightKg: Number(r.specWeightKg) || 0
+    weightKg: Number(r.weightKg) || 0, weightPub: r.weightPub === true, specWeightKg: Number(r.specWeightKg) || 0,
+    weightBySize: r.weightBySize && typeof r.weightBySize === "object" ? r.weightBySize : null
   };
 }
 function fetchJson(url, ms){
@@ -341,7 +353,7 @@ function sizedImageUrl(url, w){
   if (!u || !/^https?:\/\//i.test(u) || !w) return u;
   /* NEVER UPSCALE. When the URL already declares a width at or
      below the step asked for (Kohl's feeds store wid=180/342, some
-     Walmart and Sam's Club URLs declare 180), that variant is the
+     Walmart URLs declare 180), that variant is the
      card image the shopper sees today; asking the CDN for more
      pixels would ADD decoded weight -- the opposite of this job. */
   const declared = declaredImageWidth(u);
@@ -356,7 +368,7 @@ function sizedImageUrl(url, w){
     out = setQ(u, "width", w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
-  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+  } else if (/i5\.walmartimages\.com/i.test(u)){
     out = setQ(u, "odnWidth", w);
     out = /[?&]odnHeight=\d+/i.test(out)
       ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
@@ -403,6 +415,11 @@ function imageSrcset(url){
   }
   return parts.length ? parts.join(", ") : "";
 }
+/* NO IMAGE, NO CARD (#443 c.6547325227): a card whose photo will not load
+   never shows a placeholder. photoGone hides the dead photo and hands it to
+   card-photos.js (ariaPhotoRescue), which tries the product's next photos
+   and, if none loads, takes the whole card off the rail. */
+window.photoGone = function(el){ try { el.style.visibility = 'hidden'; if (window.ariaPhotoRescue) return window.ariaPhotoRescue(el); (window.__ariaDeadPhotos = window.__ariaDeadPhotos || []).push(el); } catch (e) {} };
 function imgOrigRetry(el){
   if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
     el.src = el.dataset.imgOrig;
@@ -482,6 +499,40 @@ function taxLineHtml(p){
   return '<div class="p-tax-row"><span>Impuestos de importación (estimado)</span><b id="p-tax-amt">calculando…</b></div>'
     + '<div class="p-tax-note">Para este producto solo; el checkout lo calcula para tu pedido completo. Si el monto real es menor, te devolvemos la diferencia como saldo Aria.</div>';
 }
+/* THE STORE'S OWN SHIPPING (#443 c.6511807569 / c.6511908498, Danny): the
+   first box under the price -- above Impuestos and Peso -- states the
+   store's rule, both numbers, and a meter of THIS store's subtotal in the
+   shopper's cart against its free-shipping line (/store-shipping.js). A
+   store without sourced terms gets no box: nothing is guessed. */
+function shipBoxHtml(p){
+  var S = window.AriaStoreShipping;
+  if (!S) return '';
+  var label = STORE_LABELS[p.retailer] || p.retailer || '';
+  /* EVERY STORE GETS A BOX (Danny, #443 c.6524139671), and never "por
+     confirmar" (#443 c.6547441472): a store with no published fee on the
+     table is paid at its own checkout -- said plainly, never a number. */
+  if (!S.ruleOf(p.retailer)) return '<div id="p-ship" class="p-tax"><div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'
+    + '<div class="p-ship-rule">Envío en EE.UU.: lo calcula la tienda al pagar</div>'
+    + '<div class="p-tax-note">Lo cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; se calcula por tienda, aparte de los impuestos.</div></div>';
+  var s = S.cartShipping(readCartLocal()).stores.filter(function(x){ return x.store === String(p.retailer || '').toLowerCase(); })[0]
+    || S.standingOf(p.retailer, 0);
+  var html = '<div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'
+    + '<div class="p-ship-rule">' + esc(S.ruleText(p.retailer)) + '</div>';
+  if (s.rule.note) html += '<div class="p-tax-note">' + esc(s.rule.note.charAt(0).toUpperCase() + s.rule.note.slice(1)) + '.</div>';
+  if (s.rule.freeOverUsd > 0){
+    html += '<div class="p-ship-meter' + (s.met ? ' met' : '') + '" role="progressbar" aria-valuemin="0" aria-valuemax="' + s.rule.freeOverUsd + '" aria-valuenow="' + s.subtotalUsd + '"><i style="width:' + Math.round(s.progress * 100) + '%"></i></div>'
+      + '<div class="p-tax-note">' + esc(S.meterText(s)) + ' en ' + esc(label) + '. ' + esc(S.standingText(s, label)) + '.</div>';
+  }
+  html += '<div class="p-tax-note">Lo cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; se calcula por tienda, aparte de los impuestos.</div>';
+  return '<div id="p-ship" class="p-tax">' + html + '</div>';
+}
+function refreshShipBox(p){
+  var el = document.getElementById('p-ship');
+  if (!el) return;
+  var tmp = document.createElement('div');
+  tmp.innerHTML = shipBoxHtml(p);
+  if (tmp.firstChild) el.replaceWith(tmp.firstChild);
+}
 /* THE WEIGHT ON THE PAGE (#443 competitor study: "the weight is the
    honesty proof"). One resolve-weight call feeds both the weight row and,
    over the threshold, the tax estimate -- the same resolver, the same
@@ -511,11 +562,28 @@ function weightLabel(it){
 }
 /* The line the resolver weighs, the same for the weight row and the
    cart: the catalogue's own figures ride along when it has them. */
-function weightLineOf(p, priceUsd){
+function weightLineOf(p, priceUsd, size){
   var line = { title: p.name, retailer: p.retailer, priceUsd: priceUsd, weightKg: PDP_LINE_KG, weightEstimated: true, qty: 1 };
   if (p.weightKg > 0) { line.weightKg = p.weightKg; line.weightEstimated = !p.weightPub; }
+  /* The chosen size's own weight when the board has one per size (always
+     an estimate); with no size chosen, the heaviest (never under-quoted). */
+  var bySize = p.weightBySize && size ? Number(p.weightBySize[size]) : 0;
+  if (bySize > 0) { line.weightKg = bySize; line.weightEstimated = true; }
+  /* The server weighs a board by its size (resolve-weight): the line names both. */
+  if (p.weightBySize) { line.kind = "surfboard"; if (size) line.selectedSize = size; line.sizeOptions = Object.keys(p.weightBySize); }
   if (p.specWeightKg > 0) line.specWeightKg = p.specWeightKg;
   return line;
+}
+/* "Leer más" only when the text is longer than its first lines. */
+function wireDescMore(){
+  var t = el("p-desc-t"), b = el("p-desc-more");
+  if (!t || !b) return;
+  if (t.scrollHeight - t.clientHeight > 4) b.hidden = false;
+  b.addEventListener("click", function(){
+    var open = t.classList.toggle("open");
+    b.textContent = open ? "Leer menos" : "Leer más";
+    b.setAttribute("aria-expanded", open ? "true" : "false");
+  });
 }
 function fmtKg(kg){
   var n = Math.round(kg * 100) / 100;
@@ -524,7 +592,8 @@ function fmtKg(kg){
 function fillWeightAndTax(p){
   var fob = dutiableUsd(p.price, p.retailer);
   var wantTax = fob > TAX_ESTIMATE_THRESHOLD_USD;
-  var line = weightLineOf(p, finalUsd(p.price, p.retailer));
+  var szEl = el("size-select");
+  var line = weightLineOf(p, finalUsd(p.price, p.retailer), szEl ? szEl.value : "");
   var done = function(d){
     var it = d && d.items && d.items[0];
     var kg = d && Number(d.totalKg);
@@ -697,6 +766,9 @@ function normalizeItem(it, retailerKey){
       weightKg: Number(it.weightKg) > 0 ? Number(it.weightKg) : 0,
       weightPub: Number(it.weightKg) > 0 && it.weightEstimated === false,
       specWeightKg: Number(it.specWeightKg) > 0 ? Number(it.specWeightKg) : 0,
+      /* A surfboard's weight per size (#443 c.6539551122): a 5'6" and a
+         6'0" ship at different weights. */
+      weightBySize: it.weightBySize && typeof it.weightBySize === "object" ? it.weightBySize : null,
       dept: ""
     };
   }catch(e){ return null; }
@@ -785,7 +857,8 @@ function conditionHtml(p){
   var grade = window.AriaCondition.gradeOfTitle(p.name);
   return '<div class="p-cond" id="p-cond" role="note"><b>Estado: ' + esc(c.label) + '.</b> '
     + (grade ? 'Grado según la tienda: ' + esc(grade) + '.' : esc(window.AriaCondition.NO_GRADE_NOTE))
-    + ' No es un producto nuevo.</div>';
+    + ' No es un producto nuevo.</div>'
+    + '<div class="p-cond p-soldout" id="p-soldout" role="note">' + esc(window.AriaCondition.SOLD_OUT_NOTE) + '</div>';
 }
 function render(p){
   el("p-loading").style.display = "none";
@@ -804,7 +877,8 @@ function render(p){
     : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
   if (LAUNCH_PRICED[String(p.retailer || "").toLowerCase()]) priceHtml = '<div class="p-launch">Precio de lanzamiento</div>' + priceHtml;
-  /* #439: the import-tax estimate sits directly under the product price. */
+  /* The store's shipping first, then the import-tax estimate (#439), then the weight. */
+  priceHtml += shipBoxHtml(p);
   priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
   priceHtml += '<div id="p-weight" class="p-tax">' + weightRowHtml() + '</div>';
   /* OFF SALE (#443, /off-sale.js): the record stays, the sale does not --
@@ -812,8 +886,14 @@ function render(p){
   var offSale = isOffSaleProduct(p);
   if (offSale) priceHtml = '<p class="p-offsale" role="status" style="font-size:15px;font-weight:700;color:#B03A2E;margin:0">' + esc(window.AriaOffSale.OFF_SALE_PRODUCT_NOTE) + '</p>';
   var img = galleryHTML(p);
+  /* PRODUCT-PAGE LAW (Danny, #443 c.6534945667): TÍTULO, then DESCRIPCIÓN
+     directly under it, then PRECIO directly under the description --
+     readable at first glance, never buried below the fold. A long text
+     opens on its first lines with "Leer más"; the price stays on the
+     first screen. The text is the catalogue's Spanish description. */
   var desc = p.description
-    ? '<section class="block"><h2>Descripción</h2><p>' + esc(p.description) + '</p></section>' : '';
+    ? '<div class="p-desc" id="p-desc"><h2 class="p-desc-h">Descripción</h2><p class="p-desc-t" id="p-desc-t">' + esc(p.description) + '</p>'
+      + '<button type="button" class="p-desc-more" id="p-desc-more" hidden aria-expanded="false">Leer más</button></div>' : '';
   el("p-body").innerHTML =
     '<div class="grid2" style="align-items:start">'
     + '<div>' + img + '</div>'
@@ -821,6 +901,7 @@ function render(p){
       + (p.brand ? '<div class="kicker">' + esc(p.brand) + '</div>' : '')
       + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(p.name) + '</h1>'
       + (store && !offSale ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
+      + desc
       + conditionHtml(p)
       + (p.partNumber ? '<p style="font-size:14px;color:var(--muted);margin:0 0 10px">N.° de parte: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' + esc(p.partNumber) + '</span></p>' : '')
       + priceHtml
@@ -839,12 +920,16 @@ function render(p){
           return '';
         })()
       + '<div id="buy-box" class="buy-box"></div>'
-    + '</div></div>' + desc
+    + '</div></div>'
     + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
   document.title = p.name + " — Aria Shop";
   wireGallery(el("p-body").querySelector(".p-gallery"));
+  wireDescMore();
   buildBuyBox(p);
   if (!offSale) fillWeightAndTax(p);
+  /* A size with its own weight (a surfboard) re-weighs the line when chosen. */
+  var szSel = el("size-select");
+  if (szSel && p.weightBySize && !offSale) szSel.addEventListener("change", function(){ fillWeightAndTax(p); });
 }
 
 /* =====================================================================
@@ -1035,7 +1120,7 @@ function relCardHTML(it){
   var href = "producto.html?producto=" + encodeURIComponent(it.name) + "&tienda=" + encodeURIComponent(it.retailer);
   /* The photo waits in data-src until its card is about to be seen. */
   return '<a class="rel-card" href="' + esc(href) + '">'
-    + '<div class="rel-img">' + (it.image ? '<img data-src="' + esc(sizedImageUrl(it.image, 360)) + '" data-img-orig="' + esc(it.image) + '" alt="" onerror="imgOrigRetry(this)">' : '') + '</div>'
+    + '<div class="rel-img">' + (it.image ? '<img data-src="' + esc(sizedImageUrl(it.image, 360)) + '" data-img-orig="' + esc(it.image) + '" alt="" onerror="if(!imgOrigRetry(this))photoGone(this)">' : '') + '</div>'
     + '<div class="rel-body">'
     +   '<span class="rel-store">' + esc(STORE_LABELS[it.retailer] || it.retailer) + '</span>'
     +   '<span class="rel-title">' + esc(it.name) + '</span>'
@@ -1295,7 +1380,7 @@ function mergeCartLine(line){
 }
 
 function isOffSaleProduct(p){
-  return !!(window.AriaOffSale && p && window.AriaOffSale.isOffSaleRetailer(p.retailer));
+  return !!(window.AriaOffSale && p && window.AriaOffSale.isOffSaleItem({ retailer: p.retailer, title: p.name }));
 }
 function buildBuyBox(p){
   var box = el('buy-box');
@@ -1364,8 +1449,8 @@ function addCurrentToCart(p, sizes){
     /* The catalogue's weight when it has one (a published figure is a
        spec checkout honours); otherwise an honest placeholder that
        checkout re-resolves server side. */
-    weightKg: weightLineOf(p, priceUsd).weightKg,
-    weightEstimated: weightLineOf(p, priceUsd).weightEstimated,
+    weightKg: weightLineOf(p, priceUsd, size).weightKg,
+    weightEstimated: weightLineOf(p, priceUsd, size).weightEstimated,
     specWeightKg: p.specWeightKg > 0 ? p.specWeightKg : undefined,
     /* The photo rides with the line (2026-10-17 rehearsal: every
        checkout thumbnail was a blank box for items added here). */
@@ -1380,6 +1465,7 @@ function addCurrentToCart(p, sizes){
     qty: 1
   });
   toast('Agregado al carrito.');
+  refreshShipBox(p);
   /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
   if (window.ariaTrack) ariaTrack('AddToCart', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: FX_RATE ? Math.round(priceUsd * FX_RATE * 100) / 100 : undefined, currency: 'PEN' });
   var c = el('cart-confirm');

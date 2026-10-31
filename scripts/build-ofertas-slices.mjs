@@ -45,7 +45,10 @@ import { createHash } from "node:crypto";
 import vm from "node:vm";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { photoCount } from "./lib/photo-counts.js";
 import { PAGE_SIZE, DEALS_FILE, SLICES_DIR, SORTS, packCard, selectDeals, pageOf } from "../netlify/functions/_ofertas-core.js";
+import { loadAllItems, productClass } from "./build-department-slices.mjs";
+import { OFFER_CATEGORIES, DANNY_ORDER, MIN_CAT, offerCategory, storeAudiences } from "./lib/offer-category.js";
 
 export const RAILS_FILE = "assets/ofertas/rails.json";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -92,6 +95,11 @@ export function dealId(store, title) {
 }
 
 /* Feed items -> cards, the page's filter and dedupe. */
+/* The photo count the PDP shard holds for this product (#538), 2+ or 0. */
+function photosOf(p) {
+  const n = photoCount(ROOT, p.title || "", p.retailer || "");
+  return n > 1 ? n : 0;
+}
 export function buildCards(items, sale) {
   const seen = new Set(), cards = [];
   for (const p of items || []) {
@@ -114,6 +122,7 @@ export function buildCards(items, sale) {
       pct: sale.discountPct(p),
       image,
       m: sale.isMixDeal(p) ? 1 : 0,
+      ph: photosOf(p),
     });
   }
   return cards;
@@ -168,12 +177,59 @@ export function interleaveStoreCap(items, maxRun) {
   }
   return out;
 }
+/* THE LEAD OPENS ON VICTORIA'S SECRET (#443, Danny c.6483501901,
+   c.6495111883), as the homepage rail does (ofertasOpenBlock in the
+   bundle): its deepest markdowns, up to OPEN_N and one per product
+   name, come first; the spread and the run cap order the rest. */
+export const OPEN_STORE = "victoriassecret", OPEN_N = 6;
+const titleKey = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+export function openBlock(sorted) {
+  const open = [], rest = [], seen = new Set();
+  for (const c of sorted) {
+    const k = c.store === OPEN_STORE ? titleKey(c.title) : "";
+    if (c.store === OPEN_STORE && open.length < OPEN_N && !seen.has(k)) { seen.add(k); open.push(c); }
+    else rest.push(c);
+  }
+  return { open, rest };
+}
 export function leadRail(cards) {
   const mix = selectDeals(cards, { sort: "discount" });
   const sorted = [...mix].sort((a, b) => (leadRank(a) - leadRank(b)) || (b.pct - a.pct));
-  return interleaveStoreCap(spreadByStore(sorted, LEAD_SPREAD), MAX_RUN).slice(0, LEAD_N).map(({ _text, ...c }) => c);
+  const { open, rest } = openBlock(sorted);
+  const tail = interleaveStoreCap(spreadByStore(rest.filter((c) => c.store !== OPEN_STORE), LEAD_SPREAD), MAX_RUN);
+  return open.concat(tail, rest.filter((c) => c.store === OPEN_STORE)).slice(0, LEAD_N).map(({ _text, ...c }) => c);
 }
-export function railsIndex(cards, stores, generatedAt) {
+/* THE STORE RAILS' CURATED ORDER (#443 c.6546035414, Danny's ruling):
+   the front of [Por tienda] sells the mall, not the skate shops.
+     - STORE_LEAD opens it, in this order (a store with no rail is
+       simply skipped): Victoria's Secret, Zumiez, Walmart, then the
+       gym and beauty names Danny named, Born Primitive and SKIMS;
+     - OUT_OF_FRONT stores (Venum, and the surf and skate shops) sit no
+       higher than position FRONT_N: out of the lead, not at the bottom;
+     - STORE_LAST (CCS) goes to the very bottom;
+     - every other store keeps its sales-led place below the lead.
+   Editorial order for the Ofertas store rails only: search lanes and
+   store pages are untouched. */
+export const STORE_LEAD = ["victoriassecret", "zumiez", "walmart", "bornprimitive", "skims"];
+export const OUT_OF_FRONT = ["venum", "surfstation", "islandwatersports", "quietstorm", "mainland", "parrot", "valsurf"];
+export const STORE_LAST = ["ccs"];
+export const FRONT_N = 12;
+export function curatedStoreOrder(ranked) {
+  const at = (k) => ranked.find((s) => s.key === k);
+  const lead = STORE_LEAD.map(at).filter(Boolean);
+  const last = STORE_LAST.map(at).filter(Boolean);
+  const placed = new Set([...STORE_LEAD, ...STORE_LAST]);
+  const rest = ranked.filter((s) => !placed.has(s.key));
+  const out = lead.slice();
+  const held = [];
+  for (const s of rest) {
+    if (OUT_OF_FRONT.includes(s.key) && out.length < FRONT_N) held.push(s);
+    else out.push(s);
+    while (held.length && out.length >= FRONT_N) out.push(held.shift());
+  }
+  return out.concat(held, last);
+}
+export function railsIndex(cards, stores, generatedAt, categories = cats(cards)) {
   const stat = {};
   for (const c of cards) {
     const s = stat[c.store] || (stat[c.store] = { top: 0, deep: 0 });
@@ -187,12 +243,48 @@ export function railsIndex(cards, stores, generatedAt) {
     generatedAt,
     total: cards.length,
     lead: leadRail(cards),
-    stores: ranked.filter((s) => !small.has(s.key)),
+    stores: curatedStoreOrder(ranked.filter((s) => !small.has(s.key))),
     more: cards.filter((c) => small.has(c.store))
       .sort((a, b) => (b.pct - a.pct) || (a.usd - b.usd) || (a.id < b.id ? -1 : 1))
       .map(({ _text, ...c }) => c),
     moreStores: ranked.filter((s) => small.has(s.key)),
+    /* [Por categoría]: the categories with real offer volume, each rail
+       filling from its own slice (cat-<key>.discount.json). */
+    cats: categories,
   };
+}
+
+/* ---------- Por categoría (#443 c.6544455377) ----------
+   Each card's category, read from its catalogue row (bucket, type) when
+   the catalogue has it, else from the feed row's own name; then the
+   categories with real offer volume, Danny's six first, the rest by
+   size. */
+export function categorize(cards, feedItems, all) {
+  const key = (r, t) => r + "::" + decodeEntities(String(t || "")).trim().toLowerCase();
+  const rows = new Map();
+  for (const p of all) { const k = key(p.retailer, p.title); if (!rows.has(k)) rows.set(k, p); }
+  const feedRow = new Map();
+  for (const p of feedItems || []) { const k = key(p.retailer, p.title); if (!feedRow.has(k)) feedRow.set(k, p); }
+  const audience = storeAudiences(all, productClass);
+  for (const c of cards) {
+    const k = key(c.store, c.title);
+    const row = rows.get(k) || { title: c.title, brand: c.brand, retailer: c.store, type: (feedRow.get(k) || {}).type || "", bucket: "" };
+    c.k = offerCategory(row, productClass(row), audience);
+  }
+  return cats(cards);
+}
+export function cats(cards) {
+  const stat = {};
+  for (const c of cards) {
+    if (!c.k) continue;
+    const s = stat[c.k] || (stat[c.k] = { n: 0, top: 0 });
+    s.n++;
+    if (c.pct > s.top) s.top = c.pct;
+  }
+  const list = OFFER_CATEGORIES.map(([key, label], i) => ({ key, label, i, ...(stat[key] || { n: 0, top: 0 }) }))
+    .filter((c) => c.n >= MIN_CAT);
+  const first = list.filter((c) => c.i < DANNY_ORDER), rest = list.filter((c) => c.i >= DANNY_ORDER).sort((a, b) => b.n - a.n);
+  return first.concat(rest).map(({ i, ...c }) => c);
 }
 
 export function build(root = ROOT) {
@@ -200,17 +292,18 @@ export function build(root = ROOT) {
   const feed = JSON.parse(readFileSync(join(root, "ofertas-feed.json"), "utf8"));
   const cards = buildCards(feed.items, sale);
   const stores = storeList(cards);
+  const categories = categorize(cards, feed.items, loadAllItems(root));
   const generatedAt = feed.generatedAt || null;
-  return { generatedAt, stores, cards };
+  return { generatedAt, stores, cats: categories, cards };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const { generatedAt, stores, cards } = build();
+  const { generatedAt, stores, cats: categories, cards } = build();
   const dir = join(ROOT, SLICES_DIR);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(ROOT, DEALS_FILE), JSON.stringify({ generatedAt, pageSize: PAGE_SIZE, stores, items: cards.map(packCard) }));
-  writeFileSync(join(ROOT, RAILS_FILE), JSON.stringify(railsIndex(cards, stores, generatedAt)));
+  writeFileSync(join(ROOT, DEALS_FILE), JSON.stringify({ generatedAt, pageSize: PAGE_SIZE, stores, cats: categories, items: cards.map(packCard) }));
+  writeFileSync(join(ROOT, RAILS_FILE), JSON.stringify(railsIndex(cards, stores, generatedAt, categories)));
   let files = 0, biggest = 0;
   for (const scope of ["all", ...stores.map((s) => s.key)]) {
     for (const sort of SORTS) {
@@ -221,6 +314,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       files++;
     }
   }
+  /* Page 1 of each category, every store, deepest first. */
+  for (const c of categories) {
+    const out = pageOf(selectDeals(cards, { cat: c.key, sort: "discount" }), 1);
+    const f = join(dir, `cat-${c.key}.discount.json`);
+    writeFileSync(f, JSON.stringify({ generatedAt, store: "", cat: c.key, sort: "discount", q: "", ...out }));
+    biggest = Math.max(biggest, statSync(f).size);
+    files++;
+  }
   const dealsKB = Math.round(statSync(join(ROOT, DEALS_FILE)).size / 1024);
-  console.log(`${cards.length} deals, ${stores.length} stores; ${DEALS_FILE} ${dealsKB}KB; ${files} slices in ${SLICES_DIR} (largest ${Math.round(biggest / 1024)}KB, ${readdirSync(dir).length} files)`);
+  console.log(`${cards.length} deals, ${stores.length} stores, ${categories.length} categories (${categories.map((c) => c.key + " " + c.n).join(", ")}); ${DEALS_FILE} ${dealsKB}KB; ${files} slices in ${SLICES_DIR} (largest ${Math.round(biggest / 1024)}KB, ${readdirSync(dir).length} files)`);
 }

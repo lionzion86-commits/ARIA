@@ -15,15 +15,23 @@
    "precios en USD (tipo de cambio no disponible)" with every card in
    bold dollars: SUNAT's proxy had not answered within 1.5 s on a cold
    container, and the page flipped to dollars. The rate now comes
-   from, in order: SUNAT (4 s); the last good rate, kept in Netlify
+   from, in order: SUNAT (2 s); the last good rate, kept in Netlify
    Blobs for up to a week; and, if an answer still leaves without one,
    search.html converts with the site's own exchange-rate endpoint.
    ============================================================ */
 import { getStore, connectLambda } from "@netlify/blobs";
-import { loadSearch, searchPage, runQuery } from "./_search-core.js";
+import { loadSearch, searchPage, runQuery, lanePage } from "./_search-core.js";
 import { RETAILERS } from "../../scripts/lib/retailers.js";
 
-const LABELS = Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k]));
+/* Sub-stores of a catalogue file the registry does not list (the same
+   names the department pages use): a rail title is never a raw key. */
+const EXTRA_LABELS = { americaneagle: "American Eagle", partycity: "Party City", elite: "Elite Sports", gameness: "Gameness",
+  tennisexpress: "Tennis Express", academy: "Academy Sports", prosoccer: "Pro Soccer", xtremesoccer: "Xtreme Soccer",
+  /* the store pages' own names (assets/tienda/<store>/index.json) */
+  farmrio: "FARM Rio", aguabendita: "Agua Bendita", patbo: "PatBO", johannaortiz: "Johanna Ortiz", silviatcherassi: "Silvia Tcherassi",
+  capittana: "Capittana", ancora: "Ancora", vix: "ViX", montce: "Montce", eberjey: "Eberjey", tns: "TNS", revzilla: "RevZilla",
+  denniskirk: "Dennis Kirk", smartbuyglasses: "SmartBuyGlasses" };
+const LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k])) };
 
 const FX_TTL_MS = 6 * 60 * 60 * 1000;
 /* A stored rate is used for at most a week, and asked about again
@@ -32,12 +40,26 @@ const FX_STORED_MAX_MS = 7 * 24 * 60 * 60 * 1000;
 const FX_RETRY_MS = 10 * 60 * 1000;
 const FX_KEY = "sunat-venta";
 let fxCache = { rate: null, at: 0, ttl: FX_TTL_MS };
+/* NO OUTSIDE CALL HOLDS THE ANSWER (#443 P0 c.6469467334, 2026-10-28).
+   The rate came from SUNAT (4 s) and then, on a miss, from Netlify Blobs
+   with no deadline at all: a stalled store held every search until the
+   platform killed the function, and the shopper got a bare 502. Each
+   step now has a deadline, and the whole rate lookup gets FX_BUDGET_MS
+   beside the index load: past it the answer leaves without soles and
+   search.html converts with the site's own exchange-rate endpoint, as it
+   already does whenever an answer carries no rate. */
+const FX_BUDGET_MS = 2500;
+const BLOB_TIMEOUT_MS = 1500;
+const within = (p, ms) => new Promise((done) => {
+  const t = setTimeout(() => done(null), ms);
+  Promise.resolve(p).then((v) => { clearTimeout(t); done(v); }, () => { clearTimeout(t); done(null); });
+});
 function fxStore() {
   try { return getStore("fx"); } catch { return null; }
 }
 async function storedRate() {
   try {
-    const v = await fxStore()?.get(FX_KEY, { type: "json" });
+    const v = await within(fxStore()?.get(FX_KEY, { type: "json" }), BLOB_TIMEOUT_MS);
     if (v && v.venta > 0 && Date.now() - v.at < FX_STORED_MAX_MS) return v.venta;
   } catch { /* no store here (tests, local) */ }
   return null;
@@ -46,13 +68,14 @@ async function sellRate(fetchImpl = fetch) {
   if (fxCache.rate && Date.now() - fxCache.at < fxCache.ttl) return fxCache.rate;
   try {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 4000);
+    const timer = setTimeout(() => ctl.abort(), 2000);
     const res = await fetchImpl("https://api.apis.net.pe/v1/tipo-cambio-sunat", { headers: { Accept: "application/json" }, signal: ctl.signal });
     clearTimeout(timer);
     const data = await res.json();
     if (res.ok && typeof data.venta === "number" && data.venta > 0) {
       fxCache = { rate: data.venta, at: Date.now(), ttl: FX_TTL_MS };
-      try { await fxStore()?.setJSON(FX_KEY, { venta: data.venta, at: Date.now() }); } catch { /* best effort */ }
+      /* Best effort, and never waited on past the deadline. */
+      within(fxStore()?.setJSON(FX_KEY, { venta: data.venta, at: Date.now() }), BLOB_TIMEOUT_MS);
       return fxCache.rate;
     }
   } catch { /* SUNAT's proxy is slow or down: the stored rate */ }
@@ -72,7 +95,7 @@ const json = (statusCode, body, cache) => ({
           "Netlify-CDN-Cache-Control": cache,
           /* Only q and page decide the answer; anything else in the URL
              must not split the cache. */
-          "Netlify-Vary": "query=q|page",
+          "Netlify-Vary": "query=q|page|lane|off",
         }
       : { "Cache-Control": "no-store" }),
   },
@@ -90,7 +113,7 @@ export async function handler(event, { fetchImpl } = {}) {
     try {
       const fxP = sellRate(fetchImpl);
       runQuery(loadSearch({ labels: LABELS }), "zapatillas");
-      await fxP;
+      await within(fxP, FX_BUDGET_MS);
     } catch (e) { console.error("[search] warm", e); }
     return { statusCode: 204, headers: { "Cache-Control": "no-store" }, body: "" };
   }
@@ -100,7 +123,12 @@ export async function handler(event, { fetchImpl } = {}) {
     /* The rate is fetched while the index loads, not after it. */
     const fxP = sellRate(fetchImpl);
     const ctx = loadSearch({ labels: LABELS });
-    const fx = await fxP;
+    const fx = await within(fxP, FX_BUDGET_MS);
+    /* One store's rail, its next cards (the doctrine: every rail expands). */
+    if (qs.lane) {
+      const lp = lanePage(ctx, q, String(qs.lane).slice(0, 60), qs.off, { fx });
+      return lp ? json(200, lp, fx ? "public, durable, max-age=3600, stale-while-revalidate=86400" : "public, max-age=60") : json(404, { error: "Sin más productos." }, null);
+    }
     const out = searchPage(ctx, q, page, { fx });
     if (out.state === "error") return json(500, { ...out, items: [] }, null);
     /* Soles are part of the answer: an answer without them is kept

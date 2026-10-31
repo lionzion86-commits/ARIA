@@ -49,6 +49,16 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 
 /* ---------- carousels (DANNY 2026-10-07: sales first, category rails, all expandable) ---------- */
 .rail-section{margin:26px 0 8px;}
+/* THE SECTION PATTERN (Danny, Oct 30): sales on top, the search bar, the
+   category pills, the rails. */
+#salesTop .rail-section{margin-top:4px}
+.brand-search{display:flex;gap:8px;margin:18px 0 10px}
+.brand-search input{flex:1;min-width:0;padding:12px 14px;font-size:14px;border:1px solid #DCE3EF;border-radius:14px;background:#fff;color:var(--navy);font-family:inherit}
+.brand-search button{border:0;border-radius:14px;padding:0 16px;background:var(--navy);color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+.brand-pills{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.brand-pills::-webkit-scrollbar{display:none}
+.brand-pills button{flex:0 0 auto;height:36px;padding:0 15px;border-radius:999px;border:1px solid #DCE3EF;background:#fff;color:var(--navy);font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.brand-pills button[aria-selected="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
 .rail-head{display:flex; align-items:center; gap:10px; padding:0 4px; margin-bottom:10px;}
 .rail-head h2{font-size:19px; font-weight:800; color:var(--navy); margin:0; letter-spacing:-.01em;}
 .rail-count{font-size:11px; font-weight:700; color:#fff; background:var(--blue); border-radius:999px; padding:2px 8px; flex-shrink:0;}
@@ -104,6 +114,17 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 /* Footer */
 footer{background:var(--navy); color:#B9C6E4; font-size:13px; padding:28px 20px; text-align:center; margin-top:auto;}
 footer a{color:#fff;}
+.card-cond{display:inline-block;margin-right:6px;font-size:10px;font-weight:800;letter-spacing:0;text-transform:none;padding:1px 7px;border-radius:999px;background:var(--navy);color:#fff;vertical-align:1px}
+/* THE BIG CARD, EVERYWHERE (#443 c.6545712892, c.6546035414): the
+   Ropa Interior card is the one card standard -- near-full-width in
+   rails, a 4:5 photo, the title readable at a glance, photo arrows on
+   every product with 2+ photos (card-photos.js). */
+.rail .card{flex:0 0 clamp(232px,68vw,300px);}
+@media(min-width:640px){ .rail .card{flex:0 0 clamp(232px,68vw,300px);} }
+.card .img{aspect-ratio:4/5;}
+@supports not (aspect-ratio:4/5){ .card .img{padding-top:125%;} }
+.card .name{font-size:14.5px; min-height:39px;}
+.card .body{padding:14px 16px 16px;}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -111,6 +132,7 @@ footer a{color:#fff;}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/card-photos.js" defer></script>
 </head>
 <body>
 
@@ -143,6 +165,16 @@ footer a{color:#fff;}
       <p id="brandSub">Buscando productos en tiendas de EE.&nbsp;UU.</p>
     </div>
   </div>
+
+  <!-- THE UNIVERSAL FORMAT (#443 c.6532666653): the search bar (the site's
+       search, scoped to the brand), its category pills, its Ofertas, then
+       the rails. -->
+  <form class="brand-search" id="brandSearch" role="search" data-pat="search" hidden>
+    <input type="search" id="bq" aria-label="Buscar en esta marca" autocomplete="off">
+    <button type="submit">Buscar</button>
+  </form>
+  <nav class="brand-pills" id="brandPills" data-pat="pills" role="tablist" aria-label="Categorías de la marca" hidden></nav>
+  <section id="salesTop" data-pat="sales" hidden></section>
 
   <div id="status" role="status">Cargando productos…</div>
 
@@ -229,7 +261,7 @@ function sizedImageUrl(url, w){
   if (!u || !/^https?:\/\//i.test(u) || !w) return u;
   /* NEVER UPSCALE. When the URL already declares a width at or
      below the step asked for (Kohl's feeds store wid=180/342, some
-     Walmart and Sam's Club URLs declare 180), that variant is the
+     Walmart URLs declare 180), that variant is the
      card image the shopper sees today; asking the CDN for more
      pixels would ADD decoded weight -- the opposite of this job. */
   const declared = declaredImageWidth(u);
@@ -244,7 +276,7 @@ function sizedImageUrl(url, w){
     out = setQ(u, "width", w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
-  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+  } else if (/i5\.walmartimages\.com/i.test(u)){
     out = setQ(u, "odnWidth", w);
     out = /[?&]odnHeight=\d+/i.test(out)
       ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
@@ -291,6 +323,11 @@ function imageSrcset(url){
   }
   return parts.length ? parts.join(", ") : "";
 }
+/* NO IMAGE, NO CARD (#443 c.6547325227): a card whose photo will not load
+   never shows a placeholder. photoGone hides the dead photo and hands it to
+   card-photos.js (ariaPhotoRescue), which tries the product's next photos
+   and, if none loads, takes the whole card off the rail. */
+window.photoGone = function(el){ try { el.style.visibility = 'hidden'; if (window.ariaPhotoRescue) return window.ariaPhotoRescue(el); (window.__ariaDeadPhotos = window.__ariaDeadPhotos || []).push(el); } catch (e) {} };
 function imgOrigRetry(el){
   if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
     el.src = el.dataset.imgOrig;
@@ -527,9 +564,11 @@ function cardHTML(c){
   var f = finalUsd(c.p, c.r);
   var was = c.o ? finalUsd(c.o, c.r) : 0;
   var img = c.i
-    ? '<img ' + cardImgAttrs(c.i).replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
-      ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
-    : '<span class="noimg">Sin imagen</span>';
+    ? '<img ' + (c.ph > 1 ? 'data-g="' + (c.ph | 0) + '" ' : '') + cardImgAttrs(c.i).replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
+      ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this))photoGone(this)">'
+    : '';
+  /* No image, no card (#443 c.6547325227). */
+  if (!img) return '';
   /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   var _href = 'producto.html?producto=' + encodeURIComponent(decodeEntitiesText(c.t) || '')
     + (c.r ? '&tienda=' + encodeURIComponent(c.r) : '');
@@ -538,7 +577,7 @@ function cardHTML(c){
   return '<a class="card" href="' + escRaw(_href) + '">' +
     '<div class="img">' + saleBadge + img + "</div>" +
     '<div class="body">' +
-      '<div class="brand">' + esc(c.b || BRAND_LABEL) + "</div>" +
+      '<div class="brand">' + (c.k ? '<span class="card-cond">' + esc(c.k) + '</span>' : '') + esc(c.b || BRAND_LABEL) + "</div>" +
       '<div class="name">' + esc(c.t) + "</div>" +
       '<div class="retailer">' + (c.r ? 'Vendido por ' + esc(storeLabel(c.r)) : "&nbsp;") + "</div>" +
       '<div class="price" data-usd="' + f + '"' + (was > f ? ' data-was="' + was + '"' : '') + '>' + priceInner(f, was) + "</div>" +
@@ -589,14 +628,57 @@ function renderRails(){
       container.innerHTML = '<div class="empty"><strong>Sin productos de “' + esc(BRAND_LABEL) + '”</strong><span>Es posible que la marca no esté en nuestro catálogo actual, o que el nombre en la URL no coincida. Prueba con el <a href="/search.html">buscador</a>.</span></div>';
       return;
     }
-    container.innerHTML = HEAD.rails.map(railHTML).join("");
+    /* Sales on top: the brand's Ofertas rail, above the search bar. */
+    var sales = null;
+    for (var si = 0; si < HEAD.rails.length; si++) if (/^Ofertas\b/.test(HEAD.rails[si].title)){ sales = HEAD.rails[si]; break; }
+    var top = el("salesTop");
+    if (top && sales){ top.innerHTML = railHTML(sales); top.hidden = false; drawPending(top.querySelector(".rail-section")); watchPhotos(top); }
+    container.innerHTML = HEAD.rails.filter(function(r){ return r !== sales; }).map(railHTML).join("");
     watchPhotos(container);
     watchRails(container);
+    renderBrandTools(sales);
     setStatus('<span class="ok">' + HEAD.count.toLocaleString("es-PE") + " productos de " + esc(BRAND_LABEL) + ".</span>");
   }catch(e){
     setStatus('<span class="err">No pudimos mostrar los productos.</span> ' +
       '<button class="retry" onclick="location.reload()">Recargar</button>');
   }
+}
+
+/* THE SECTION PATTERN: the search bar (the site's search, scoped to the
+   brand -- nothing is filtered on the phone) and one pill row, the brand's
+   categories with real depth; a pill shows that category's carousel in
+   place, «Todo» brings every carousel back. */
+var PILL_MIN = 8;
+function renderBrandTools(sales){
+  var form = el("brandSearch"), q = el("bq"), nav = el("brandPills");
+  if (form && q){
+    q.placeholder = "Buscar en " + BRAND_LABEL + "…";
+    form.hidden = false;
+    form.onsubmit = function(e){
+      e.preventDefault();
+      var term = (q.value || "").trim();
+      location.href = "/search.html?q=" + encodeURIComponent((BRAND_LABEL + " " + term).trim());
+    };
+  }
+  if (!nav) return;
+  var cats = HEAD.rails.filter(function(r){ return r !== sales && r.count >= PILL_MIN; });
+  if (cats.length < 2){ nav.hidden = true; return; }
+  var h = '<button type="button" role="tab" data-ri="" aria-selected="true">Todo</button>';
+  cats.forEach(function(r){ h += '<button type="button" role="tab" data-ri="' + r.i + '" aria-selected="false">' + esc(r.title) + '</button>'; });
+  nav.innerHTML = h;
+  nav.hidden = false;
+  nav.onclick = function(e){
+    var b = e.target.closest("button[data-ri]"); if (!b) return;
+    var ri = b.getAttribute("data-ri");
+    if (b.getAttribute("aria-selected") === "true" && ri) ri = "";
+    nav.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", x.getAttribute("data-ri") === ri ? "true" : "false"); });
+    el("rails").querySelectorAll(".rail-section[data-ri]").forEach(function(sec){
+      var show = !ri || sec.getAttribute("data-ri") === ri;
+      sec.hidden = !show;
+      if (show) drawPending(sec);
+    });
+    if (ri){ var s = el("rails").querySelector('.rail-section[data-ri="' + ri + '"]'); if (s) watchPhotos(s); }
+  };
 }
 
 /* ---------- data ---------- */

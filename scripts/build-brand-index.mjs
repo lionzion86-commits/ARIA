@@ -32,6 +32,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
+import { photoCount } from "./lib/photo-counts.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_FILE, brandKeyOf, titleWords, filterByBrand, headOf, fnRow } from "../netlify/functions/_brand-core.js";
 
@@ -47,7 +48,7 @@ export const CATALOG_FILES = [
   "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json",
   "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json",
   "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json",
-  "/samsclub-catalog.json", "/costco-catalog.json", "/gymrat-catalog.json",
+  "/costco-catalog.json", "/gymrat-catalog.json", "/gym-brands-catalog.json",
   "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json",
   "/advanceauto-catalog.json", "/nautilus-catalog.json",
   "/islandwatersports-catalog.json", "/quietstorm-catalog.json",
@@ -71,6 +72,14 @@ export const CATALOG_FILES = [
   "/dsw-catalog.json",
   /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
   "/snipes-catalog.json",
+  /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
+  "/brandsmart-catalog.json",
+  /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
+  "/walmart-electronics-catalog.json",
+  "/costco-electronics-catalog.json",
+  "/microcenter-catalog.json",
+  /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
+  "/sleekshop-catalog.json",
   "/carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "/perfumes-catalog.json",
@@ -129,6 +138,9 @@ export function loadAllItems(root = ROOT) {
             const k = (p.retailer + "|" + (p.url || p.name)).toLowerCase();
             if (seen.has(k)) continue;
             seen.add(k);
+            /* ph: the photo count when 2+ (#443 c.6546035414): photo arrows on brand cards. */
+            const ph = photoCount(root, p.name, (rkey || retailer).toLowerCase());
+            if (ph > 1) p.ph = ph;
             out.push(p);
           }
         }

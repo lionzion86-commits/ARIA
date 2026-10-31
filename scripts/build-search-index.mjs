@@ -53,10 +53,11 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { photoCount } from "./lib/photo-counts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
-export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating"];
+export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating", "ph"];
 
 /* Everything search covers: the catalogues below, then the sale feed
    for deals no catalogue carries. (This list lived in search.html while
@@ -65,10 +66,13 @@ export const CATALOG_FILES = [
   "department-cache-walmart.json",
   "department-cache-oldnavy.json", "department-cache-footlocker.json",
   "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json",
+  /* Served on their store pages but missing from search (#443 audit F3,
+     caught by scripts/test/search-coverage-tests.mjs). */
+  "abercrombie-catalog.json", "hollister-catalog.json",
   "lanebryant-catalog.json", "dicks-catalog.json", "pacsun-catalog.json",
   "skims-catalog.json", "revolve-catalog.json", "ulta-catalog.json",
   "yesstyle-catalog.json", "miumiu-catalog.json", "partycity-catalog.json",
-  "samsclub-catalog.json", "costco-catalog.json", "gymrat-catalog.json",
+  "costco-catalog.json", "gymrat-catalog.json", "gym-brands-catalog.json",
   "kohls-catalog.json", "crateandbarrel-catalog.json", "pier1-catalog.json", "newbalance-catalog.json", "bhphoto-catalog.json",
   "advanceauto-catalog.json", "nautilus-catalog.json",
   "islandwatersports-catalog.json", "quietstorm-catalog.json",
@@ -93,6 +97,14 @@ export const CATALOG_FILES = [
   "dsw-catalog.json",
   /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
   "snipes-catalog.json",
+  /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
+  "brandsmart-catalog.json",
+  /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
+  "walmart-electronics-catalog.json",
+  "costco-electronics-catalog.json",
+  "microcenter-catalog.json",
+  /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
+  "sleekshop-catalog.json",
   "carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "perfumes-catalog.json",
@@ -291,6 +303,11 @@ export function buildIndex() {
       departments: p.department ? [p.department] : [] }) || "";
     rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
       p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
+    /* ph: the photo count, only when 2+ (#443 c.6546035414): the search
+       card's photo arrows. A trailing optional field: one-photo rows
+       stay their old length. */
+    const ph = photoCount(ROOT, p.title, p.retailer);
+    if (ph > 1) rows[rows.length - 1].push(ph);
   }
   const stores = storeTable(new Set(rows.map((r) => r[7]).filter(Boolean)));
   return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, stores, rows };

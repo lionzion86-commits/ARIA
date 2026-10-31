@@ -970,8 +970,9 @@ check("index.html's registry mirror matches the module", () => {
 /* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised 2026-09-26).
    Bath & Body Works, Sunglass Hut and Dyson retired from the strip (no
    shoppable catalogs -- dead storefronts never show, per Danny's rule),
-   so they no longer appear here. Costco and Sam's Club join after Lane
-   Bryant: warehouse club, end of the aspirational run, before Macy's. */
+   so they no longer appear here. Costco joins after Lane Bryant:
+   warehouse club, end of the aspirational run, before Macy's. Sam's Club
+   left the site on 2026-10-28 (#443 c.6468346931). */
 /* Reliable-first (2026-09-26, Danny): Revolve, Target, Foot Locker and
    Walmart lead the directory, then the other researched reliable shippers,
    then YesStyle (red tier: honest 14-28 day timing, shown last).
@@ -988,7 +989,7 @@ const EXPECTED_EVERYDAY_ORDER = [
      shops, registry order after PacSun. */
   "nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation",
   "mainland", "parrot", "ccs", "valsurf",
-  "oldnavy", "samsclub",
+  "oldnavy",
 
   "lanebryant", "alphalete", "youngla", "gymshark",
   /* ARIA FIGHT CLUB BATCH (2026-09-27, Danny): six fight-sports shops,
@@ -5910,16 +5911,16 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
 /* ==================================================================
    FIESTAS Y EVENTOS (2026-09-26): THE PARTY VERTICAL.
 
-   Party City (518 products), Sam's Club (120) and Costco (1,569) arrive
-   as catalog files. Party City is deliberately NOT a registered store --
-   it only surfaces inside this vertical, badged "Party City" by name.
-   Costco is the eighth featured store rail; Sam's Club rides the
-   other-stores strip (browse-true, search-false).
+   Party City (518 products) and Costco (1,569) arrive as catalog files.
+   Party City is deliberately NOT a registered store -- it only surfaces
+   inside this vertical, badged "Party City" by name. Costco is the
+   eighth featured store rail. Sam's Club's file is shelved (#443
+   c.6468346931): out of CATALOGUE_FILES and every registry.
    ================================================================== */
 group("Fiestas y Eventos: the party vertical");
 
-const FIESTA_CATALOG_COUNTS = { "partycity-catalog.json": 518, "samsclub-catalog.json": 120, "costco-catalog.json": 1397 };
-const FIESTA_CATALOG_RETAILERS = { "partycity-catalog.json": "partycity", "samsclub-catalog.json": "samsclub", "costco-catalog.json": "costco" };
+const FIESTA_CATALOG_COUNTS = { "partycity-catalog.json": 518, "costco-catalog.json": 1397 };
+const FIESTA_CATALOG_RETAILERS = { "partycity-catalog.json": "partycity", "costco-catalog.json": "costco" };
 
 function fiestaEnvelopes(){
   /* The real envelope normalizer from the page, over the three real
@@ -5944,14 +5945,14 @@ function fiestaFileCounts(){
   return counts;
 }
 
-check("the three party catalogs parse with their expected product counts", () => {
+check("the party catalogs parse with their expected product counts", () => {
   const counts = fiestaFileCounts();
   for (const [file, want] of Object.entries(FIESTA_CATALOG_COUNTS)) {
     eq(counts[file], want, `${file} product count`);
   }
 });
 
-check("CATALOGUE_FILES lists the three catalogs and they resolve on disk", () => {
+check("CATALOGUE_FILES lists the party catalogs and they resolve on disk", () => {
   const html = pageHtml();
   const m = html.match(/const CATALOGUE_FILES = \[([\s\S]*?)\];/);
   if (!m) throw new Error("CATALOGUE_FILES is gone");
@@ -5961,8 +5962,9 @@ check("CATALOGUE_FILES lists the three catalogs and they resolve on disk", () =>
   }
 });
 
-check("Costco and Sam's Club are registered stores; Party City is not", () => {
-  for (const key of ["costco", "samsclub"]) {
+check("Costco is a registered store; Party City and Sam's Club are not", () => {
+  if ("samsclub" in RETAILERS) throw new Error("samsclub is registered as a store");
+  for (const key of ["costco"]) {
     const r = RETAILERS[key];
     if (!r) throw new Error(`the module lost its ${key} row`);
     if (r.search) throw new Error(`${key} is search:true -- catalog-first browse only`);
@@ -6055,7 +6057,7 @@ check("Costco's curation ranks cozy home first, boring tech last -- never candy"
     mk("Mountain Bouquet", ["hogar"]),                    // flowers, NOT a TV mount -- rank -2, never 6
     mk("Sin precio", ["electronica"], { price: 0 }),
     mk("Sin foto", ["electronica"], { image: "" }),
-    mk("Otra tienda", ["electronica"], { retailer: "samsclub" }),
+    mk("Otra tienda", ["electronica"], { retailer: "walmart" }),
     mk("Laptop 15 pulgadas", ["electronica"]), // duplicate collapses
   ];
   const out = costcoCuratedItems(items);
@@ -10614,7 +10616,8 @@ check("curvy took the slot pharmacy left, and kept its own cover", () => {
 check("the name is Danny's, and the supporting line carries the search words", () => {
   const src = stripComments(pageHtml());
   const meta = src.slice(src.indexOf("const DEPARTMENT_META = {"), src.indexOf("\n};", src.indexOf("const DEPARTMENT_META = {")));
-  if (!/curvy:\s*\{\s*label:\s*'Curvy'/.test(meta)) throw new Error("the department is no longer labelled Curvy");
+  /* Renamed «Tallas Plus» (Danny, #443 c.6526833313); the key stays curvy. */
+  if (!/curvy:\s*\{\s*label:\s*'Tallas Plus'/.test(meta)) throw new Error("the department is no longer labelled Tallas Plus");
   /* NEVER "Big & Tall", and never English beyond the one word Danny
      chose. The supporting copy is where the Spanish lives. */
   if (/big\s*&?\s*tall/i.test(src)) throw new Error('"Big & Tall" is on the page');
@@ -10630,10 +10633,11 @@ check("a product name can never put an item in Curvy", () => {
   eq(hasExtendedSizes({ name: "Plus Size Curvy Tunic 3X 4X", availableSizes: ["s", "m", "l"] }), false,
      "a title full of size words got in with no extended size published");
   eq(hasExtendedSizes({ name: "Plus Size Tunic" }), false, "an item with NO size list at all got in");
-  eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "m", "l", "xl"] }), false,
+  /* XL is the line since c.6526833313 (women's XL / 1X+ / 14+). */
+  eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "m", "l"] }), false,
      "a standard run counted as extended");
   eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "3x"] }), true, "a real 3X was rejected");
-  eq(extendedSizesOf({ availableSizes: ["xs", "s", "m", "l", "xl", "xxl", "3x"] }).join(","), "xxl,3x",
+  eq(extendedSizesOf({ availableSizes: ["xs", "s", "m", "l", "xl", "xxl", "3x"] }).join(","), "xl,xxl,3x",
      "the extended subset is wrong");
   /* A malformed list must not throw and must not qualify. */
   for (const bad of [undefined, null, "xxl", 3, {}, [1, 2], [null]]) {

@@ -25,7 +25,11 @@ export const SORTS = ["discount", "priceAsc", "priceDesc"];
 export const MAX_Q = 80;
 
 /* deals.json keeps each card as an array, in this order. */
-export const FIELDS = ["id", "title", "brand", "store", "usd", "wasUsd", "pct", "image", "m"];
+/* ph: the product's photo count when 2+ (scripts/lib/photo-counts.js),
+   0 otherwise -- the card arms its photo arrows only then (#538). */
+/* k: the deal's category for Ofertas' [Por categoría] view
+   (scripts/lib/offer-category.js), "" when it has none (#443 c.6544455377). */
+export const FIELDS = ["id", "title", "brand", "store", "usd", "wasUsd", "pct", "image", "m", "ph", "k"];
 export function packCard(c) { return FIELDS.map((f) => (c[f] == null ? "" : c[f])); }
 export function unpackCard(a) {
   const c = {};
@@ -50,12 +54,19 @@ export function normStore(s, stores) {
   const k = String(s || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
   return k && (!stores || stores.some((x) => x.key === k)) ? k : "";
 }
+/* A category is a key the deals carry (deals.json's cats list). */
+export function normCat(c, cats) {
+  const k = String(c || "").toLowerCase().replace(/[^a-z_]/g, "");
+  return k && (!cats || cats.some((x) => x.key === k)) ? k : "";
+}
 export function normQ(q) { return String(q || "").replace(/\s+/g, " ").trim().slice(0, MAX_Q); }
 
 /* Every word of the query must appear in the title or the brand --
    the old page's substring match, accent-blind and word by word. */
-export function selectDeals(cards, { store = "", sort = "discount", q = "" } = {}) {
-  let pool = store ? cards.filter((c) => c.store === store) : cards.filter((c) => c.m === 1);
+export function selectDeals(cards, { store = "", sort = "discount", q = "", cat = "" } = {}) {
+  /* A category, like a store, shows every one of its markdowns. */
+  let pool = store ? cards.filter((c) => c.store === store) : cat ? cards.filter((c) => c.k === cat) : cards.filter((c) => c.m === 1);
+  if (store && cat) pool = pool.filter((c) => c.k === cat);
   const words = fold(normQ(q)).split(" ").filter(Boolean);
   if (words.length) {
     pool = pool.filter((c) => {
@@ -91,7 +102,7 @@ export function loadDeals(rootDir) {
     try {
       if (!existsSync(p)) continue;
       const raw = JSON.parse(readFileSync(p, "utf8"));
-      const out = { generatedAt: raw.generatedAt || null, stores: raw.stores || [], cards: (raw.items || []).map(unpackCard) };
+      const out = { generatedAt: raw.generatedAt || null, stores: raw.stores || [], cats: raw.cats || [], cards: (raw.items || []).map(unpackCard) };
       if (!rootDir) loaded = out;
       return out;
     } catch { /* try the next */ }

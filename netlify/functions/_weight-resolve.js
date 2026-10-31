@@ -72,6 +72,7 @@ import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beaut
 // with anything a browser can reach, and this module answers checkout.
 import { CHARGE_PER_KG } from "../../weight-data.js";
 import { comparableWeight } from "./_weight-comparables.js";
+import { surfboardLineKg } from "./_surfboard-weight.js";
 
 /* THE PRODUCTS NO RULE AND NO COMPARABLE CAN WEIGH (#443 weight
    ruling, 2026-10-26: "no 1 kg defaults anywhere; a null weight triggers
@@ -255,6 +256,14 @@ export function resolveItemWeight(item) {
       maxKg: check.maxKg,
     };
   };
+
+  /* SURFBOARDS, PER SIZE (#443 c.6539551122): the estimator table by the
+     chosen size and the board's construction. The stores' figures are
+     placeholders (0.22 kg on a 6' softboard), and a board is its own
+     band: the table is the plausible range. */
+  const board = surfboardLineKg(item);
+  if (board) return { weightKg: board.kg, source: "surfboard", estimated: true,
+    basis: board.size ? `peso estimado de tabla de surf (${board.size})` : "peso estimado de tabla de surf (talla más larga)", needsReview: false };
 
   /* The catalogue's own per-product number, before every table below:
      a figure the store shipped with the item beats a figure we derived

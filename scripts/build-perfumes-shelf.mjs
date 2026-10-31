@@ -40,6 +40,7 @@ import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scanPerfumeRows, census, loadHeroAnchors, heroAnchorOf, designerOf, orderRail, RAIL_MIN } from "./lib/perfume-rail.js";
 import { cardOf, SHELVES_DIR } from "./build-home-shelves.mjs";
+import { stampHomePhotos } from "./stamp-home-photos.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PERFUMES_SHELF = "perfumes.json";
@@ -130,6 +131,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const body = { v: 1, min: RAIL_MIN, picks };
   const text = JSON.stringify(body);
   writeFileSync(join(dir, PERFUMES_SHELF), text);
+  stampHomePhotos(ROOT, [SHELVES_DIR]);
   console.log(`${SHELVES_DIR}/${PERFUMES_SHELF}: ${picks.length} cards, ${(text.length / 1024).toFixed(1)}KB raw`);
   console.log(`anchors found in live catalogues: ${anchorsFound.join(", ") || "(none)"}`);
   for (const p of picks) console.log(`  ${p.heroAnchor ? "ANCHOR " : "SALE   "} $${p.price}  ${p.brand || ""} | ${p.title} [${p.retailer}]`);

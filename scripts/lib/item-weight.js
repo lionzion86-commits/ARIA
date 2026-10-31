@@ -664,6 +664,18 @@ export const RETAILER_DEPARTMENT = {
   gymshark: "ropa", hollister: "ropa", johannaortiz: "ropa", lanebryant: "ropa", miumiu: "ropa", montce: "ropa",
   patbo: "ropa", revolve: "ropa", silviatcherassi: "ropa", skims: "ropa", ssense: "ropa", tns: "ropa", vix: "ropa",
   youngla: "ropa",
+  ryderwear: "ropa",
+  aybl: "ropa",
+  bornprimitive: "ropa",
+  buffbunny: "ropa",
+  paragonfitwear: "ropa",
+  killcrew: "ropa",
+  oneractive: "ropa",
+  gorillawear: "ropa",
+  fleo: "ropa",
+  tlfapparel: "ropa",
+  ironrebel: "ropa",
+  athleta: "ropa",
   assouline: "libros", chronicle: "libros",
   advanceauto: "autopartes", denniskirk: "autopartes", revzilla: "autopartes",
   baublebar: "accesorios", jwpei: "accesorios", meliebianco: "accesorios", smartbuyglasses: "accesorios",
@@ -677,7 +689,7 @@ export const RETAILER_DEPARTMENT = {
   crocs: "calzado",
   sephora: "belleza", ulta: "belleza", yesstyle: "belleza",
   bestbuy: "electrónica", bhphoto: "electrónica",
-  partycity: "fiesta", samsclub: "fiesta",
+  partycity: "fiesta",
 };
 
 /* A title that is plainly a toy, for a line with no department. */

@@ -101,6 +101,13 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
    after the first rows. Each lane spans the whole grid row. */
 .lane{grid-column:1/-1; min-width:0; margin:6px 0 4px;}
 .lane h2, .grid-head{font-size:17px; font-weight:800; color:var(--navy); margin:0 0 10px;}
+.lane-head{display:flex; align-items:baseline; gap:8px; margin:0 0 10px;}
+.lane-head h2{margin:0;}
+.lane-n{font-size:13px; font-weight:700; color:var(--muted,#667085);}
+.lane-more-card{flex:0 0 140px; align-self:stretch; border:1px dashed var(--line); border-radius:16px; background:#fff; color:var(--navy); font:800 15px/1.2 inherit; font-family:inherit; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; scroll-snap-align:start;}
+.lane-more-card span{font-size:12px; font-weight:600; color:var(--muted);}
+.lane-more-card[disabled]{opacity:.6;}
+.lane-more{margin-left:auto; font-size:13px; font-weight:800; color:var(--blue,#1f5fd1); text-decoration:none; white-space:nowrap;}
 .grid-head{grid-column:1/-1; margin-top:12px;}
 .rail{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; -webkit-overflow-scrolling:touch;}
 .rail .card{flex:0 0 42%; max-width:200px; scroll-snap-align:start;}
@@ -114,6 +121,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
    The same product at 2+ stores is one block at the top, each store's
    TOTAL door price in soles first and bold. Badges are not yellow:
    yellow is for sale badges only. */
+.cmp-sec{grid-column:1/-1; min-width:0; margin:0 0 6px;}
+.cmp-sec-title{font-size:18px; font-weight:800; color:var(--navy); margin:2px 0 2px;}
+.cmp-sec-sub{font-size:14px; color:var(--muted); margin:0 0 12px;}
 .cmp{grid-column:1/-1; min-width:0; border:1px solid var(--line); border-radius:16px; padding:14px; margin:0 0 6px; background:#fff;}
 .cmp-head{display:flex; gap:12px; align-items:center; margin-bottom:10px;}
 .cmp-photo{position:relative; flex:0 0 72px; width:72px; height:72px; border-radius:12px; background:var(--sky); overflow:hidden;}
@@ -137,12 +147,42 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .cmp-price .pen{font-size:18px; font-weight:800; color:var(--navy); white-space:nowrap;}
 .cmp-price .usd{font-size:12px; color:var(--muted); white-space:nowrap;}
 .cmp-price .tbd{font-size:13px; font-weight:700; color:var(--muted);}
+/* The breakdown (#443 c.6544802256): product, store shipping, freight,
+   then the total as their sum. */
+.cmp-row.bd{display:block; min-height:0;}
+.cmp-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+.cmp-lines{margin:8px 0 0; padding:0;}
+.cmp-ln{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:3px 0; font-size:13px; color:var(--ink);}
+.cmp-ln dt{color:var(--muted); min-width:0;}
+.cmp-ln dd{margin:0; text-align:right; white-space:nowrap;}
+.cmp-ln dd small{font-size:11.5px; color:var(--muted); margin-left:6px;}
+.cmp-ln.prod dt{color:var(--navy); font-weight:700;}
+.cmp-ln.prod dd b{font-size:17px; font-weight:800; color:var(--navy);}
+.cmp-ln .free{font-weight:800; color:#15803D;}
+.cmp-ln .calc{font-size:12px; color:var(--muted); white-space:normal; text-align:right;}
+.cmp-ln.tot{border-top:1px dashed var(--line); margin-top:4px; padding-top:7px;}
+.cmp-ln.tot dt{color:var(--navy); font-weight:800;}
+.cmp-ln.tot dd b{font-size:15px; font-weight:800; color:var(--navy);}
+.cmp-ln.tot .part{display:block; font-size:11.5px; color:var(--muted); font-weight:600; white-space:normal;}
+.cmp-badge.ship{background:#FFF4DB; color:#8A5A00;}
+.cmp-badge.total{background:var(--navy); color:#fff;}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
 /* Footer */
 footer{background:var(--navy); color:#B9C6E4; font-size:13px; padding:28px 20px; text-align:center; margin-top:auto;}
 footer a{color:#fff;}
+.card-cond{display:inline-block;margin-right:6px;font-size:10px;font-weight:800;letter-spacing:0;text-transform:none;padding:1px 7px;border-radius:999px;background:var(--navy);color:#fff;vertical-align:1px}
+/* THE BIG CARD, EVERYWHERE (#443 c.6545712892, c.6546035414): the
+   Ropa Interior card is the one card standard -- near-full-width in
+   rails, a 4:5 photo, the title readable at a glance, photo arrows on
+   every product with 2+ photos (card-photos.js). */
+.rail .card{flex:0 0 clamp(232px,68vw,300px); max-width:none;}
+@media(min-width:640px){ .rail .card{flex-basis:clamp(232px,68vw,300px);} }
+.card .img{aspect-ratio:4/5;}
+@supports not (aspect-ratio:4/5){ .card .img{padding-top:125%;} }
+.card .name{font-size:14.5px; min-height:39px;}
+.rail .card .body{padding:14px 16px 16px;}
 </style>
 <script src="/ref.js" defer></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -150,6 +190,7 @@ footer a{color:#fff;}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/card-photos.js" defer></script>
 </head>
 <body>
 
@@ -261,7 +302,7 @@ function sizedImageUrl(url, w){
   if (!u || !/^https?:\/\//i.test(u) || !w) return u;
   /* NEVER UPSCALE. When the URL already declares a width at or
      below the step asked for (Kohl's feeds store wid=180/342, some
-     Walmart and Sam's Club URLs declare 180), that variant is the
+     Walmart URLs declare 180), that variant is the
      card image the shopper sees today; asking the CDN for more
      pixels would ADD decoded weight -- the opposite of this job. */
   const declared = declaredImageWidth(u);
@@ -276,7 +317,7 @@ function sizedImageUrl(url, w){
     out = setQ(u, "width", w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
-  } else if (/i5\.(walmartimages|samsclubimages)\.com/i.test(u)){
+  } else if (/i5\.walmartimages\.com/i.test(u)){
     out = setQ(u, "odnWidth", w);
     out = /[?&]odnHeight=\d+/i.test(out)
       ? out.replace(/([?&]odnHeight=)(\d+)/i, function(m, p){ return p + w; })
@@ -425,19 +466,11 @@ async function withSoles(data){
   };
   (data.items || []).forEach(conv);
   (data.lanes || []).forEach(function(l){ (l.items || []).forEach(conv); });
-  /* The comparison block's door prices: the dollar total at the rate,
-     plus the small-order fee when goods + freight come under its line
-     (the checkout's rule, sent with the answer). */
-  if (data.compare){
-    var so = data.compare.smallOrder || {};
-    (data.compare.stores || []).forEach(function(s){
-      conv(s);
-      if (!s.door) return;
-      var base = Math.round(Number(s.door.baseUsd) * fx * 100) / 100;
-      var fee = so.thresholdPen && base < so.thresholdPen ? Number(so.feePen) || 0 : 0;
-      s.door.pen = Math.round((Number(s.door.usd) * fx + fee) * 100) / 100;
-    });
-  }
+  /* The comparison charts: each row's product price at the rate. */
+  (data.compares || (data.compare ? [data.compare] : [])).forEach(function(c){
+    c.fx = fx;
+    (c.stores || []).forEach(conv);
+  });
   data.fx = fx;
   return data;
 }
@@ -476,24 +509,67 @@ function watchPhotos(root){
   }, { rootMargin: "200px 0px" });
   imgs.forEach(function(i){ PHOTO_IO.observe(i); });
 }
-function laneHTML(l){
-  return '<section class="lane" aria-label="' + esc(l.title) + '"><h2>' + esc(l.title) + "</h2>" +
-    '<div class="rail">' + l.items.map(cardHTML).join("") + "</div></section>";
+/* The stores with their own page (assets/tienda/, tienda.html's registry);
+   Aria Perfumes is the Perfumes room. Another store's rail is the whole
+   answer there already. */
+var STORE_PAGES = " abercrombie academy advanceauto aguabendita americaneagle ancora assouline athleta aybl babybrezza bathandbodyworks baublebar bellybandit bentgo bhphoto bornprimitive boxlunch brandsmart buffbunny capittana carolinaherrera ccs chronicle combatcorner crateandbarrel crocs dagnedover denniskirk dicks drbrowns eberjey elite elvie everlast ezpz farfetch farmrio finishline fleo footlocker freshlypicked fuji gameness gorillawear hatch hollister hottopic ironrebel islandwatersports johannaortiz jujube jwpei killcrew kindredbravely lanebryant lillebaby mainland meliebianco microcenter mmawarehouse mockingbird momcozy montce munchkin mushie nanit nautilus oneractive owlet paragonfitwear parrot partycity patbo pier1 prosoccer quietstorm revolve revzilla ryderwear silviatcherassi skims sleekshop smartbuyglasses snipes spectra ssense statebags surfstation tatami tennisexpress tenniswarehouse tlfapparel tns valsurf venum victoriassecret vix walmart walmartbaby xtremesoccer youngla zumiez ";
+function storeDoor(store, q){
+  if (store === "ariaperfumes") return "departamento.html?dept=perfumes&b=" + encodeURIComponent(q);
+  return STORE_PAGES.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(q) : "";
 }
+/* THE SEARCH DOCTRINE (#443 c.6547231776, c.6547453746, c.6547518074):
+   every rail shows its true total and, when it holds more than it shows,
+   a "Ver más" card at its end that brings the next cards INTO the rail
+   (?lane=<key>&off=<n>) -- never a capped carousel, never a grid. */
+function laneHTML(l){
+  var n = l.n ? '<span class="lane-n">' + Number(l.n).toLocaleString("es-PE") + "</span>" : "";
+  var more = l.n > l.items.length
+    ? '<button type="button" class="lane-more-card" data-lane="' + esc(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' +
+      Number(l.n - l.items.length).toLocaleString("es-PE") + " más</span></button>"
+    : "";
+  return '<section class="lane" aria-label="' + esc(l.title) + '"><div class="lane-head"><h2>' + esc(l.title) + "</h2>" + n + "</div>" +
+    '<div class="rail">' + l.items.map(cardHTML).join("") + more + "</div></section>";
+}
+async function laneMore(btn){
+  if (btn.disabled) return;
+  btn.disabled = true;
+  var key = btn.getAttribute("data-lane"), off = Number(btn.getAttribute("data-off")) || 0, n = Number(btn.getAttribute("data-n")) || 0;
+  try{
+    var res = await fetch(BASE + SEARCH_API + "?q=" + encodeURIComponent(STATE.q) + "&lane=" + encodeURIComponent(key) + "&off=" + off);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var data = await withSoles(await res.json());
+    var holder = document.createElement("div");
+    holder.innerHTML = (data.items || []).map(cardHTML).join("");
+    var rail = btn.parentNode;
+    while (holder.firstChild) rail.insertBefore(holder.firstChild, btn);
+    watchPhotos(rail);
+    off += (data.items || []).length;
+    if (!(data.items || []).length || off >= n) btn.remove();
+    else { btn.setAttribute("data-off", off); btn.querySelector("span").textContent = Number(n - off).toLocaleString("es-PE") + " más"; btn.disabled = false; }
+  }catch(e){ btn.disabled = false; }
+}
+document.addEventListener("click", function(e){
+  var b = e.target && e.target.closest ? e.target.closest(".lane-more-card") : null;
+  if (b) laneMore(b);
+});
 /* A browse query: the lanes, then "Todos los resultados". A specific
    query: its first rows of results, then the lanes, then the rest. */
 var SPECIFIC_LEAD = 8;
 function answerHTML(data){
   var lanes = (data.lanes || []).filter(function(l){ return l.items && l.items.length; });
   var cards = data.items.map(cardHTML);
-  var head = compareHTML(data.compare);
-  if (!lanes.length) return head + cards.join("");
-  if (data.mode === "generic"){
-    return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
-      '<h2 class="grid-head">Todos los resultados</h2>' + cards.join("");
-  }
-  return head + cards.slice(0, SPECIFIC_LEAD).join("") + lanes.map(function(l){ return laneHTML(l); }).join("") +
-    cards.slice(SPECIFIC_LEAD).join("");
+  /* One chart per model, strongest first (#443 c.6544967818). */
+  var head = (data.compares || (data.compare ? [data.compare] : [])).map(compareHTML).join("");
+  /* THE COMPARATOR INTRODUCES ITSELF (#443 c.6546638454, final scope
+     c.6546641302): the charts sit in one labelled section, right under
+     the results line and above the first chart. No background change. */
+  if (head) head = '<section class="cmp-sec" aria-labelledby="cmpSecTitle">' +
+    '<h2 class="cmp-sec-title" id="cmpSecTitle">Comparador de Precios</h2>' +
+    '<p class="cmp-sec-sub">Compara el mismo producto en diferentes tiendas.</p>' + head + "</section>";
+  /* The doctrine: the charts, then Ofertas, then one rail per store --
+     never the side-by-side grid. An answer with no lanes is one rail. */
+  if (!lanes.length) lanes = cards.length ? [{ key: "todo", title: "Resultados", n: data.items.length, items: data.items }] : [];
+  return head + lanes.map(function(l){ return laneHTML(l); }).join("");
 }
 
 /* ---------- one product, every store (#416) ----------
@@ -505,6 +581,35 @@ function productHref(title, store){
   return "producto.html?producto=" + encodeURIComponent(title || "") +
     (store ? "&tienda=" + encodeURIComponent(store) : "");
 }
+/* WHAT THE CHART COMPARES (#443 c.6544862981, Amendment 2): only what
+   differs by store. Producto -- the headline, the product page's own
+   number -- and Envío de la tienda: the fee, GRATIS, or "lo calcula la
+   tienda al pagar" (never a silent $0), with the store's free-shipping
+   line. No freight line and no door total: nobody has an order yet.
+   Badges: Mejor precio, Envío más barato, Mejor costo hasta Miami. */
+var CMP_FX = null;
+function penOf(usd){ return CMP_FX ? Math.round(Number(usd) * CMP_FX * 100) / 100 : null; }
+function moneyUsd(n){ var v = Math.round(Number(n) * 100) / 100; return "$" + (v % 1 === 0 ? String(v) : v.toFixed(2)); }
+function amountHTML(usd, pen, strong){
+  var u = esc(fmtUsd(usd));
+  if (pen == null) return strong ? "<b>" + u + "</b>" : u;
+  var p = esc(fmtPen(pen));
+  return (strong ? "<b>" + p + "</b>" : p) + "<small>" + u + "</small>";
+}
+function lineHTML(cls, label, value){
+  return '<div class="cmp-ln' + (cls ? " " + cls : "") + '"><dt>' + label + "</dt><dd>" + value + "</dd></div>";
+}
+function shipHTML(sh){
+  sh = sh || { state: "unknown" };
+  var line = sh.freeOverUsd ? '<span class="calc">gratis desde ' + esc(moneyUsd(sh.freeOverUsd)) + "</span>" : "";
+  if (sh.state === "free") return '<span class="free">GRATIS</span>';
+  if (sh.state === "fee") return amountHTML(sh.usd, penOf(sh.usd)) + (line ? "<br>" + line : "");
+  if (sh.state === "calc") return '<span class="calc">lo calcula la tienda al pagar</span>' + (line ? "<br>" + line : "");
+  /* Never "por confirmar" (Danny, #443 c.6547441472): a store without a
+     published fee on the table is paid at its own checkout, like a store
+     that calculates it -- said the same way, and charged nothing here. */
+  return '<span class="calc">lo calcula la tienda al pagar</span>';
+}
 function compareRowHTML(s){
   var title = decodeEntities(s.title);
   var label = s.storeLabel || s.store || "";
@@ -513,44 +618,42 @@ function compareRowHTML(s){
   var logo = s.logo
     ? '<img src="' + esc(BASE + "/" + s.logo) + '" alt="" height="22" decoding="async" onerror="this.remove()">'
     : "";
-  var price;
-  if (s.door && (s.door.pen || s.door.usd)){
-    price = s.door.pen
-      ? '<div class="pen">' + esc(fmtPen(s.door.pen)) + '</div><div class="usd">' + esc(fmtUsd(s.door.usd)) + "</div>"
-      : '<div class="pen">' + esc(fmtUsd(s.door.usd)) + '</div><div class="usd">&nbsp;</div>';
-  } else {
-    /* Checkout cannot quote this weight yet: no total rather than a
-       shelf price passed off as one. */
-    price = '<div class="tbd">Total por confirmar</div><div class="usd">Envío por confirmar</div>';
-  }
   var badges = "";
   if (s.best) badges += '<span class="cmp-badge best">Mejor precio</span>';
+  if (s.cheapShip) badges += '<span class="cmp-badge ship">Envío más barato</span>';
+  if (s.bestCost) badges += '<span class="cmp-badge total">Mejor costo hasta Miami</span>';
   if (s.fastest) badges += '<span class="cmp-badge fast">Entrega más rápida</span>';
   var was = Number(s.wasUsd), now = Number(s.usd);
   if (was > now && now > 0){
     var pct = Math.round((1 - now / was) * 100);
     if (pct >= 5) badges += '<span class="cmp-badge off">-' + pct + "%</span>";
   }
-  var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "&nbsp;";
-  return '<a class="cmp-row" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
-    '<div class="cmp-store"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
-      '<div class="cmp-ship">' + ship + "</div>" +
-      (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") +
-    "</div>" +
-    '<div class="cmp-price">' + price + "</div></a>";
+  var prodPen = s.pen != null ? Number(s.pen) : penOf(s.usd);
+  var lines = lineHTML("prod", "Producto", amountHTML(s.usd, prodPen, true)) +
+    lineHTML("", "Envío de la tienda", shipHTML(s.ship));
+  var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "";
+  return '<a class="cmp-row bd" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
+    '<div class="cmp-top"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
+      (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") + "</div>" +
+    '<dl class="cmp-lines">' + lines + "</dl>" +
+    (ship ? '<div class="cmp-ship">' + ship + "</div>" : "") + "</a>";
 }
 function compareHTML(c){
-  if (!c || !c.stores || c.stores.length < 2) return "";
+  if (!c || !c.stores) return "";
+  /* A row without a price never renders (#443 c.6544992777). */
+  c = Object.assign({}, c, { stores: c.stores.filter(function(s){ return Number(s.usd) > 0; }) });
+  if (c.stores.length < 2) return "";
   var title = decodeEntities(c.title), brand = decodeEntities(c.brand);
   var img = c.image
     ? '<img ' + cardImgAttrs(c.image, "72px").replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
       ' alt="" width="72" height="72" decoding="async" onerror="if(!imgOrigRetry(this)){this.remove()}">'
     : "";
+  CMP_FX = Number(c.fx) > 0 ? Number(c.fx) : ((typeof PAGE_FX !== "undefined" && PAGE_FX) || null);
   return '<section class="cmp" aria-label="Este producto en ' + c.stores.length + ' tiendas">' +
     '<div class="cmp-head"><div class="cmp-photo">' + img + "</div><div style=\"min-width:0\">" +
       '<div class="cmp-kicker">' + (brand ? esc(brand) + " · " : "") + "En " + c.stores.length + " tiendas</div>" +
       '<div class="cmp-title">' + esc(title) + "</div></div></div>" +
-    '<p class="cmp-note">Precio total puesto en tu puerta: producto, envío e impuestos.</p>' +
+    '<p class="cmp-note">El mismo modelo en ' + c.stores.length + ' tiendas: precio del producto y envío de cada tienda.</p>' +
     c.stores.map(compareRowHTML).join("") + "</section>";
 }
 
@@ -606,7 +709,13 @@ function renderAnswer(query, data){
     renderEmpty("Escribe un poco más", "Con 2 letras o más te mostramos resultados. Por ejemplo:" + examplesHTML());
     return;
   }
-  if (data.state !== "results" || !data.items || !data.items.length){ renderNone(query, data || {}); return; }
+  /* A store's name opens that store's page (the doctrine, item 1).
+     ?resultados=1 keeps the search, for a shopper who wants it. */
+  if (data.store && data.page === 1 && STORE_PAGES.indexOf(" " + data.store + " ") >= 0 && !/[?&]resultados=1/.test(location.search)){
+    location.replace("tienda.html?tienda=" + encodeURIComponent(data.store));
+    return;
+  }
+  if (data.state !== "results" || !((data.items && data.items.length) || (data.lanes && data.lanes.length))){ renderNone(query, data || {}); return; }
   var grid = el("results");
   if (!grid) return;
   STATE.page = data.page; STATE.pages = data.pages; STATE.total = data.total; STATE.capped = !!data.capped;
@@ -614,7 +723,7 @@ function renderAnswer(query, data){
   watchPhotos(grid);
   /* The comparison block's products count as shown (they are part of
      the total, and not repeated in the grid). */
-  STATE.shown = data.items.length + (data.compare && data.compare.stores ? data.compare.stores.length : 0);
+  STATE.shown = data.total || data.items.length + (data.compares || (data.compare ? [data.compare] : [])).reduce(function(n, c){ return n + ((c && c.stores) ? c.stores.length : 0); }, 0);
   var meta = el("meta-line");
   if (meta){
     meta.textContent = (STATE.capped ? "Más de " : "") + fmtCount(data.total) + " resultado" + (data.total === 1 ? "" : "s") +
@@ -648,7 +757,8 @@ function renderAnswer(query, data){
 
 function showingStatus(){
   var n = STATE.total;
-  var more = STATE.page < STATE.pages;
+  /* The rails page themselves ("Ver más" in each): no page-wide pager. */
+  var more = false;
   setStatus(more
     ? "Mostrando " + fmtCount(STATE.shown) + " de " + (STATE.capped ? "más de " : "") + fmtCount(n) + " resultados."
     : "Mostrando " + fmtCount(STATE.shown) + " resultado" + (STATE.shown === 1 ? "" : "s") + ".");
@@ -714,7 +824,7 @@ function cardHTML(p){
      blank tile -- after the original URL has had its chance. */
   /* src/srcset parked in data- until the card is about to be seen
      (watchPhotos). */
-  var img = '<img ' + cardImgAttrs(p.image).replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
+  var img = '<img ' + (p.ph > 1 ? 'data-g="' + (p.ph | 0) + '" ' : '') + cardImgAttrs(p.image).replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
     ' alt="" width="560" height="560" decoding="async"' +
     ' onerror="if(!imgOrigRetry(this)){var c=this.closest(\'.card\'); if(c) c.remove();}">';
   /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
@@ -723,7 +833,7 @@ function cardHTML(p){
   return '<a class="card" href="' + esc(href) + '" data-id="' + esc(p.id || "") + '">' +
     '<div class="img">' + offBadge(p) + img + "</div>" +
     '<div class="body">' +
-      '<div class="brand">' + (brand ? esc(brand) : "&nbsp;") + "</div>" +
+      '<div class="brand">' + (p.condition ? '<span class="card-cond">' + esc(p.condition) + '</span>' : "") + (brand ? esc(brand) : (p.condition ? "" : "&nbsp;")) + "</div>" +
       '<div class="name">' + esc(title) + "</div>" +
       '<div class="retailer">' + (p.storeLabel || p.store ? "Vendido por " + esc(p.storeLabel || p.store) : "&nbsp;") + "</div>" +
       (LAUNCH_PRICED[String(p.store || "").toLowerCase()] ? '<div class="launch">Precio de lanzamiento</div>' : "") +
