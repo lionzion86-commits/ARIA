@@ -58,6 +58,19 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
 .toolbar input[type="search"]{flex:1 1 auto;min-width:0;padding:11px 14px;font-size:15px;
   border:1px solid rgba(255,255,255,.35);border-radius:12px;background:#fff;color:var(--navy)}
 .count-line{font-size:13px;color:var(--dim);margin:0;min-height:1.4em}
+/* ---- [Por tienda] [Por categoría] (#443 c.6544455377, c.6544469782):
+   two rectangles side by side under the search bar; the category pills
+   show only in Por categoría. ---- */
+.mode{display:flex;gap:10px;margin:0 0 10px}
+.mode button{flex:1 1 0;min-width:0;padding:11px 10px;font:inherit;font-size:14.5px;font-weight:800;cursor:pointer;
+  border-radius:12px;border:1.5px solid rgba(255,255,255,.55);background:transparent;color:#fff}
+.mode button[aria-pressed="true"]{background:#fff;color:var(--navy);border-color:#fff}
+.cats{display:flex;gap:8px;overflow-x:auto;margin:0 -20px 10px;padding:2px 20px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cats::-webkit-scrollbar{display:none}
+@media(min-width:1024px){.cats{margin:0 -32px 12px;padding:2px 32px 4px}}
+.cats button{flex:0 0 auto;padding:8px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:#fff}
+.cats button[aria-pressed="true"]{background:var(--sky);border-color:var(--sky);color:var(--navy)}
 /* ---- rails ---- */
 .rail-sec{position:relative;max-width:1240px;margin:0 auto;padding-top:14px}
 .hair{position:absolute;left:0;right:0;top:0;height:1px;
@@ -169,6 +182,11 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
     <div class="toolbar">
       <input type="search" id="q" placeholder="Busca en las ofertas…" aria-label="Buscar en las ofertas" autocomplete="off">
     </div>
+    <div class="mode" id="mode" role="group" aria-label="Ver las ofertas">
+      <button type="button" data-mode="tienda" aria-pressed="true">Por tienda</button>
+      <button type="button" data-mode="categoria" aria-pressed="false">Por categoría</button>
+    </div>
+    <div class="cats" id="cats" role="group" aria-label="Categorías" hidden></div>
     <p class="count-line" id="countLine"></p>
   </div>
 
@@ -565,21 +583,23 @@ var S = {
   lead: {},             // ids in the lead rail: store rails show them last
   generatedAt: null,
   view: 0,              // bumps on every search; late answers are dropped
-  search: null          // { page, pages, total, rails: {store: rail} }
+  search: null,         // { page, pages, total, rails: {store: rail} }
+  mode: 'tienda',       // 'tienda' | 'categoria' (#443 c.6544455377)
+  cat: ''               // the category pill, '' = Todas
 };
 
-function fnUrl(store, q, page){
-  return SRC.fn + '?store=' + encodeURIComponent(store || '') + '&sort=discount' +
+function fnUrl(store, q, page, cat){
+  return SRC.fn + '?store=' + encodeURIComponent(store || '') + (cat ? '&cat=' + encodeURIComponent(cat) : '') + '&sort=discount' +
     '&q=' + encodeURIComponent(q || '') + '&page=' + page;
 }
-function sliceUrl(store){
-  return SRC.slice + encodeURIComponent(store || 'all') + '.discount.json';
+function sliceUrl(store, cat){
+  return SRC.slice + (cat ? 'cat-' + encodeURIComponent(cat) : encodeURIComponent(store || 'all')) + '.discount.json';
 }
-/* Page 1 of a store is a static file; if it is missing the function
-   answers the same page. Later pages are always the function. */
-function fetchPage(store, page){
-  if (page === 1) return fetchJson(sliceUrl(store)).then(null, function(){ return fetchJson(fnUrl(store, '', 1)); });
-  return fetchJson(fnUrl(store, '', page));
+/* Page 1 of a store (or a category) is a static file; if it is missing
+   the function answers the same page. Later pages are always the function. */
+function fetchPage(store, page, cat){
+  if (page === 1) return fetchJson(sliceUrl(store, cat)).then(null, function(){ return fetchJson(fnUrl(store, '', 1, cat)); });
+  return fetchJson(fnUrl(store, '', page, cat));
 }
 
 /* ---------- photos load when their card is about to be seen ----------
@@ -680,7 +700,7 @@ function railSectionHTML(r){
     '<div class="rail">' + (r.filled ? '' : skeletons(3)) + '</div></section>';
 }
 function makeRail(o){
-  return { key: o.key, store: o.store || '', title: o.title, meta: o.meta || '', total: o.total || 0,
+  return { key: o.key, store: o.store || '', cat: o.cat || '', title: o.title, meta: o.meta || '', total: o.total || 0,
     buf: (o.items || []).slice(), drawn: {}, count: 0, page: o.page || 0, pages: o.pages == null ? 1 : o.pages,
     filled: !!o.items, paged: o.paged !== false, busy: false, el: null };
 }
@@ -704,7 +724,7 @@ function drawFromBuf(r){
   var sk = track.querySelectorAll('.card.sk, .more-tile');
   for (var i = 0; i < sk.length; i++) sk[i].parentNode.removeChild(sk[i]);
   track.insertAdjacentHTML('beforeend', html + (railHasMore(r) ? moreTileHTML(r) : ''));
-  if (!track.querySelector('.card') && r.store){
+  if (!track.querySelector('.card') && (r.store || r.cat)){
     /* Nothing left to show (every card filtered): the rail steps aside. */
     r.el.hidden = true;
   }
@@ -716,16 +736,16 @@ function fetchMore(r){
   if (r.busy || !r.paged || r.page >= r.pages) return Promise.resolve(false);
   r.busy = true;
   var next = r.page + 1;
-  return fetchPage(r.store, next).then(function(data){
+  return fetchPage(r.store, next, r.cat).then(function(data){
     r.busy = false;
     data = data || {};
     r.page = data.page || next;
     r.pages = data.pages || r.page;
-    if (data.total) r.total = r.store ? data.total : r.total;
+    if (data.total) r.total = (r.store || r.cat) ? data.total : r.total;
     var items = (data.items || []).filter(function(c){ return c && !(c.id && r.drawn[c.id]); });
-    /* A store rail never opens on the lead rail's cards: they ride last
-       on its first page (deprioritised, never dropped). */
-    if (r.store && next === 1){
+    /* A store or category rail never opens on the lead rail's cards:
+       they ride last on its first page (deprioritised, never dropped). */
+    if ((r.store || r.cat) && next === 1){
       var fresh = [], seenInLead = [];
       items.forEach(function(c){ (S.lead[c.id] ? seenInLead : fresh).push(c); });
       items = fresh.concat(seenInLead);
@@ -806,6 +826,15 @@ function railsFromIndex(ix){
     mix.lead = true;
     rails.push(mix);
   }
+  /* Por categoría: the category rails take the store rails' place. */
+  if (S.mode === 'categoria' && (ix.cats || []).length){
+    ix.cats.forEach(function(c){
+      if (!c || !c.key) return;
+      rails.push(makeRail({ key: 'cat-' + c.key, cat: c.key, title: c.label, total: c.n,
+        meta: num(c.n) + (c.n === 1 ? ' oferta' : ' ofertas') + (c.top ? ' · hasta -' + c.top + '%' : '') }));
+    });
+    return rails;
+  }
   (ix.stores || []).forEach(function(s){
     if (!s || !s.key || !onSale(s.key)) return;
     rails.push(makeRail({ key: s.key, store: s.key, title: s.label || storeLabel(s.key), total: s.n,
@@ -822,6 +851,7 @@ function renderRails(ix){
   S.index = ix;
   if (ix.generatedAt) S.generatedAt = ix.generatedAt;
   renderFresh();
+  renderCats(ix);
   S.rails = railsFromIndex(ix);
   if (!S.rails.length){
     host.innerHTML = '<div class="state"><h2>Estamos actualizando las ofertas</h2>' +
@@ -839,6 +869,61 @@ function renderRails(ix){
   S.rails.forEach(function(r){ if (r.filled) drawFromBuf(r); });
   watchRails();
 }
+/* ---------- [Por tienda] [Por categoría] ----------
+   Por tienda is the view shoppers already get, untouched. Por categoría
+   swaps the store rails for one rail per category in the same spot, and
+   shows the category pills: Todas, then each category with real offer
+   volume (rails.json cats, scripts/lib/offer-category.js). A pill shows
+   that category's offers in place, store by store, deepest first. */
+function catLabel(k){
+  var cs = (S.index && S.index.cats) || [];
+  for (var i = 0; i < cs.length; i++) if (cs[i].key === k) return cs[i].label;
+  return '';
+}
+function renderMode(){
+  var b = document.querySelectorAll('#mode [data-mode]');
+  for (var i = 0; i < b.length; i++) b[i].setAttribute('aria-pressed', b[i].getAttribute('data-mode') === S.mode ? 'true' : 'false');
+}
+function renderCats(ix){
+  var el = $('cats');
+  if (!el) return;
+  var cs = (ix && ix.cats) || [];
+  if (S.mode !== 'categoria' || !cs.length){ el.hidden = true; el.innerHTML = ''; return; }
+  var h = '<button type="button" data-cat="" aria-pressed="' + (S.cat ? 'false' : 'true') + '">Todas</button>';
+  cs.forEach(function(c){
+    h += '<button type="button" data-cat="' + esc(c.key) + '" aria-pressed="' + (S.cat === c.key ? 'true' : 'false') + '">' + esc(c.label) + '</button>';
+  });
+  el.innerHTML = h;
+  el.hidden = false;
+}
+function remember(){
+  try {
+    var u = new URL(window.location.href);
+    if (S.mode === 'categoria') u.searchParams.set('vista', 'categoria'); else u.searchParams.delete('vista');
+    if (S.mode === 'categoria' && S.cat) u.searchParams.set('cat', S.cat); else u.searchParams.delete('cat');
+    window.history.replaceState(null, '', u.pathname + u.search + u.hash);
+  } catch (e) {}
+}
+function setMode(m){
+  m = m === 'categoria' ? 'categoria' : 'tienda';
+  if (m === S.mode) return;
+  S.mode = m;
+  if (m === 'tienda') S.cat = '';
+  renderMode();
+  remember();
+  if (S.cat || S.q) openSearch();
+  else { $('results').hidden = true; $('content').hidden = false; S.search = null; if (S.index) renderRails(S.index); }
+}
+function setCat(k){
+  if (k === S.cat) return;
+  S.cat = k || '';
+  /* Pressed state only: rebuilding the row would scroll it back to Todas. */
+  var b = document.querySelectorAll('#cats [data-cat]');
+  for (var i = 0; i < b.length; i++) b[i].setAttribute('aria-pressed', b[i].getAttribute('data-cat') === S.cat ? 'true' : 'false');
+  remember();
+  openSearch();
+}
+
 /* rails.json missing: the all-stores slice still makes a lead rail,
    and its store list still makes the store rails (largest first). */
 function indexFromSlice(data){
@@ -863,7 +948,11 @@ function openRails(){
     fetchJson(SRC.rails).then(null, function(){ return fetchJson(sliceUrl('')).then(indexFromSlice); }),
     pageRate()
   ]).then(function(r){
-    try { renderRails(r[0] || {}); }
+    try {
+      renderRails(r[0] || {});
+      /* A shared link's category opens in place; an unknown one is Todas. */
+      if (S.cat){ if (catLabel(S.cat)){ renderCats(S.index); openSearch(); } else { S.cat = ''; renderCats(S.index); remember(); } }
+    }
     catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
   }, function(){
     renderError('No pudimos cargar las ofertas. Revisa tu conexión e inténtalo de nuevo.', true);
@@ -914,7 +1003,7 @@ function placeMore(){
 function openSearch(){
   var my = ++S.view;
   var content = $('content'), host = $('results');
-  if (!S.q){
+  if (!S.q && !S.cat){
     host.hidden = true; host.innerHTML = '';
     content.hidden = false;
     S.search = null;
@@ -926,16 +1015,17 @@ function openSearch(){
   host.innerHTML = '<section class="rail-sec" aria-hidden="true"><div class="hair"></div><div class="rail-head"><h2 class="rail-title">Buscando…</h2></div>' +
     '<div class="rail">' + skeletons(3) + '</div></section>';
   setCount('');
-  Promise.all([fetchJson(fnUrl('', S.q, 1)), pageRate()]).then(function(r){
+  Promise.all([fetchJson(S.q ? fnUrl('', S.q, 1, S.cat) : sliceUrl('', S.cat)).then(null, function(){ return fetchJson(fnUrl('', S.q, 1, S.cat)); }), pageRate()]).then(function(r){
     if (my !== S.view) return;
     var data = r[0] || {};
     S.search = { page: data.page || 1, pages: data.pages || 1, total: data.total || 0, rails: {} };
+    var inCat = S.cat ? catLabel(S.cat) : '';
     if (!S.search.total){
-      host.innerHTML = '<div class="state"><h2>Sin resultados</h2><p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>';
+      host.innerHTML = '<div class="state"><h2>Sin resultados</h2><p>Ninguna oferta' + (inCat ? ' de ' + esc(inCat) : '') + ' coincide con tu búsqueda. Prueba con otra palabra.</p></div>';
       setCount('');
       return;
     }
-    setCount(num(S.search.total) + (S.search.total === 1 ? ' oferta' : ' ofertas') + ' para «' + S.q + '»');
+    setCount(num(S.search.total) + (S.search.total === 1 ? ' oferta' : ' ofertas') + (inCat ? ' en ' + inCat : '') + (S.q ? ' para «' + S.q + '»' : ''));
     host.innerHTML = '<div id="qRails"></div>';
     drawSearch(data.items);
     placeMore();
@@ -966,7 +1056,7 @@ var NEXT = null;   // { key, promise }
 function nextPage(){
   var key = S.view + ':' + (S.search.page + 1);
   if (NEXT && NEXT.key === key) return NEXT.promise;
-  var p = fetchJson(fnUrl('', S.q, S.search.page + 1));
+  var p = fetchJson(fnUrl('', S.q, S.search.page + 1, S.cat));
   NEXT = { key: key, promise: p };
   p.then(null, function(){ if (NEXT && NEXT.key === key) NEXT = null; });
   return p;
@@ -1006,6 +1096,17 @@ function bindUI(){
       } catch (e) {}
     }, 400);
   });
+  /* The two view pills and the category pills. */
+  var mode = $('mode');
+  if (mode) mode.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('[data-mode]') : null;
+    if (b) setMode(b.getAttribute('data-mode'));
+  });
+  var cats = $('cats');
+  if (cats) cats.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('[data-cat]') : null;
+    if (b) setCat(b.getAttribute('data-cat'));
+  });
   /* One listener for every rail's tile and retry button. */
   document.addEventListener('click', function(e){
     var el = e.target && e.target.closest ? e.target.closest('[data-more], [data-retry-rail]') : null;
@@ -1019,6 +1120,11 @@ function bindUI(){
 
 try {
   bindUI();
+  /* ?vista=categoria(&cat=electronica): a shared link opens on that view. */
+  try {
+    var u0 = new URL(window.location.href);
+    if (u0.searchParams.get('vista') === 'categoria'){ S.mode = 'categoria'; S.cat = String(u0.searchParams.get('cat') || '').replace(/[^a-z_]/g, ''); renderMode(); }
+  } catch (e) {}
   openRails();
 } catch (e) {
   renderError('No pudimos iniciar la página de ofertas.', true);
