@@ -87,22 +87,25 @@ await check("\"adidas samba\" carries ONE comparison block of 2+ stores, each a 
   console.log("         stores: " + samba.compare.stores.map((s) => `${s.storeLabel} S/ ${s.door && s.door.pen}`).join(" | "));
 });
 
-await check("every row is the same shoe: one brand, one model, one colour", () => {
-  const keys = samba.compare.stores.map((s) => core.sameProductKey(ctx, ctx.products.find((p) => p.id === s.id)));
-  assert.ok(keys[0], "no key");
-  assert.equal(new Set(keys).size, 1, keys.join(" / "));
+await check("every row of a chart is the same model: one brand, one model, one wearer (#443 c.6544967818)", () => {
+  assert.ok(samba.compares.length >= 1);
+  for (const c of samba.compares) {
+    const keys = c.stores.map((s) => core.modelKey(ctx, ctx.products.find((p) => p.id === s.id)));
+    assert.ok(keys[0], "no key");
+    assert.equal(new Set(keys).size, 1, keys.join(" / "));
+  }
 });
 
-await check("each row leads with a soles door price; the grid does not repeat the block", () => {
-  for (const s of samba.compare.stores) {
-    assert.ok(s.door && s.door.pen > 0 && s.door.usd > 0, `${s.store}: no door price`);
-    assert.ok(s.door.usd >= s.usd, `${s.store}: the door price is under the shelf price`);
-    assert.ok(s.door.freightUsd > 0, `${s.store}: no freight in the door price`);
+await check("each row leads with its product price in soles; no door total on a browse surface; the grid does not repeat the charts", () => {
+  for (const c of samba.compares) for (const s of c.stores) {
+    assert.ok(s.pen > 0 && s.usd > 0, `${s.store}: no product price`);
+    assert.ok(!("door" in s), `${s.store}: a door total (c.6544862981)`);
+    assert.ok(s.ship && s.ship.state, `${s.store}: no store shipping`);
   }
-  const inBlock = new Set(samba.compare.stores.map((s) => s.id));
-  for (let n = 1; n <= samba.pages; n++) for (const it of page("adidas samba", n).items) assert.ok(!inBlock.has(it.id), `${it.title} is in the block and the grid`);
-  if (samba.pages > 1) assert.equal(page("adidas samba", 2).compare, null, "the block is page 1 only");
-  assert.equal(page("lego", 2).compare, null, "the block is page 1 only");
+  const inBlock = new Set(samba.compares.flatMap((c) => c.stores.map((s) => s.id)));
+  for (let n = 1; n <= samba.pages; n++) for (const it of page("adidas samba", n).items) assert.ok(!inBlock.has(it.id), `${it.title} is in a chart and the grid`);
+  if (samba.pages > 1) assert.equal(page("adidas samba", 2).compare, null, "the charts are page 1 only");
+  assert.equal(page("lego", 2).compare, null, "the charts are page 1 only");
   assert.ok(JSON.stringify(samba).length < 300e3, "page 1 over 300KB");
 });
 
@@ -128,14 +131,15 @@ await check("door price = what orders-create.js charges for that one line (every
   const rows = [];
   for (const q of ["adidas samba", "airpods", "funko", "nike dunk"]) {
     const o = page(q);
-    if (o.compare) rows.push(...o.compare.stores);
+    for (const c of o.compares) rows.push(...c.stores);
   }
   assert.ok(rows.length >= 4, "too few comparison rows to check");
   for (const s of rows) {
     const p = ctx.products.find((x) => x.id === s.id);
     const line = door.cartLineFor({ retailer: p.retailer, title: p.title, brand: p.brand, cardUsd: s.usd,
       rawUsd: p.finalPrice ? null : p.price, taxRate: core.salesTaxRate(p.retailer) });
-    assert.equal(s.door.pen, checkoutTotalPen(line, FX), `${s.store} ${s.title}`);
+    const d = door.doorPrice(line, FX);
+    if (d.quotable) assert.equal(d.pen, checkoutTotalPen(line, FX), `${s.store} ${s.title}`);
   }
 });
 
@@ -174,17 +178,17 @@ await check("the math's edges: import tax over the $200 line, the small-order fe
 /* ------------------------------------------------------------------
    THE BADGES.
    ------------------------------------------------------------------ */
-await check("\"Mejor precio\" sits on the one cheapest door price; rows run cheapest first", () => {
-  for (const q of ["adidas samba", "airpods", "funko", "nike dunk"]) {
-    const c = page(q).compare;
-    if (!c) continue;
-    const quoted = c.stores.filter((s) => s.door);
-    const min = Math.min(...quoted.map((s) => s.door.usd));
-    const best = c.stores.filter((s) => s.best);
-    const unique = quoted.filter((s) => s.door.usd === min).length === 1;
-    assert.equal(best.length, unique ? 1 : 0, q);
-    if (unique) assert.equal(best[0].door.usd, min, q);
-    for (let i = 1; i < quoted.length; i++) assert.ok(quoted[i - 1].door.usd <= quoted[i].door.usd, q + ": not cheapest first");
+await check("\"Mejor precio\" sits on the one cheapest product; rows run by cost to Miami (#443 c.6544862981)", () => {
+  for (const q of ["adidas samba", "airpods", "funko", "nike dunk", "nike air force 1"]) {
+    for (const c of page(q).compares) {
+      const min = Math.min(...c.stores.map((s) => s.usd));
+      const best = c.stores.filter((s) => s.best);
+      const unique = c.stores.filter((s) => s.usd === min).length === 1;
+      assert.equal(best.length, unique ? 1 : 0, q);
+      if (unique) assert.equal(best[0].usd, min, q);
+      const cost = (s) => core.costToMiami(s) ?? s.usd;
+      for (let i = 1; i < c.stores.length; i++) assert.ok(cost(c.stores[i - 1]) <= cost(c.stores[i]), q + ": not cheapest first");
+    }
   }
 });
 
@@ -221,18 +225,20 @@ await check("different products never share a key (colour, wearer, edition, bran
   assert.equal(k("Samba", "adidas"), null, "a one-word model is not a product");
 });
 
-await check("a store with two same-named listings stays out; no group spans list prices 2x apart", () => {
+await check("one row per store -- its cheapest listing of the model; no chart spans list prices 2x apart", () => {
   for (const q of ["adidas samba", "nike air force 1", "airpods", "funko", "nike dunk", "barbie", "lego", "levis 501", "crocs"]) {
-    const o = page(q);
-    if (!o.compare) continue;
     const r = core.runQuery(ctx, q);
-    for (const s of o.compare.stores) {
-      const p = ctx.products.find((x) => x.id === s.id);
-      const key = core.sameProductKey(ctx, p);
-      assert.equal(r.hits.filter((h) => h.retailer === p.retailer && core.sameProductKey(ctx, h) === key).length, 1, `${q}: ${s.store} lists it twice`);
+    for (const c of page(q).compares) {
+      assert.equal(new Set(c.stores.map((s) => s.store)).size, c.stores.length, `${q}: a store twice`);
+      for (const s of c.stores) {
+        const p = ctx.products.find((x) => x.id === s.id);
+        const key = core.modelKey(ctx, p);
+        const same = r.hits.filter((h) => h.retailer === p.retailer && core.modelKey(ctx, h) === key && Number(h.price) > 0);
+        assert.ok(same.every((h) => Number(h.price) >= Number(p.price)), `${q}: ${s.store} row is not its cheapest listing`);
+      }
+      const lists = c.stores.map((s) => { const p = ctx.products.find((x) => x.id === s.id); return Math.max(p.price, p.originalPrice || 0); });
+      assert.ok(Math.max(...lists) <= 2 * Math.min(...lists), q);
     }
-    const lists = o.compare.stores.map((s) => { const p = ctx.products.find((x) => x.id === s.id); return Math.max(p.price, p.originalPrice || 0); });
-    assert.ok(Math.max(...lists) <= 2 * Math.min(...lists), q);
   }
 });
 
@@ -313,15 +319,14 @@ await check("search.html draws the block: soles first, badges, each row to its o
     assert.ok(at > 0, s.store + " row missing");
     const rowEnd = h.indexOf("</a>", at);
     const row = h.slice(at, rowEnd);
-    /* THE BREAKDOWN (#443 c.6544802256): Producto first (the product
-       page's own headline), then the store's shipping, the freight, and
-       the total as their sum -- soles first on every line. */
-    const iProd = row.indexOf(">Producto<"), iShip = row.indexOf(">Envío de la tienda<"), iFr = row.indexOf(">Flete a tu puerta<"), iTot = row.search(/>Total (puesto en tu puerta|parcial)</);
-    assert.ok(iProd > 0 && iProd < iShip && iShip < iFr && iFr < iTot, s.store + ": the lines out of order");
-    assert.ok(row.indexOf("S/ " + Number(s.pen).toFixed(2), iProd) > iProd, s.store + ": the product line is not the card price in soles");
-    assert.ok(row.indexOf("S/ " + s.door.pen.toFixed(2), iTot) > iTot && row.indexOf("S/ ") < row.indexOf("US$ "), s.store + ": soles not first");
+    /* WHAT THE CHART COMPARES (#443 c.6544862981): Producto first (the
+       product page's own headline, soles first), then the store's
+       shipping -- no freight line, no door total. */
+    const iProd = row.indexOf(">Producto<"), iShip = row.indexOf(">Envío de la tienda<");
+    assert.ok(iProd > 0 && iProd < iShip, s.store + ": the lines out of order");
+    assert.ok(row.indexOf("S/ " + Number(s.pen).toFixed(2), iProd) > iProd && row.indexOf("S/ ") < row.indexOf("US$ "), s.store + ": soles not first");
+    assert.ok(!/Flete|Total/.test(row), s.store + ": a freight line or a door total on a browse surface");
     if (s.ship.state === "calc") assert.match(row, /lo calcula la tienda al pagar/);
-    if (s.door.partial) assert.match(row, /Total parcial/);
     if (s.logo) assert.ok(row.includes('src="/' + s.logo + '"'), s.store + ": no logo");
   }
   const hrefs = [...h.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
@@ -329,14 +334,13 @@ await check("search.html draws the block: soles first, badges, each row to its o
   for (const u of hrefs) assert.match(u, /^producto\.html\?producto=/, "a link out of Aria: " + u);
   if (samba.compare.stores.some((s) => s.best)) assert.match(h, /Mejor precio/);
   assert.ok(!/Entrega más rápida/.test(h) || samba.compare.stores.some((s) => s.fastest));
-  const tbd = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", usd: 10, door: null }, { store: "b", storeLabel: "B", title: "X", usd: 12, door: { usd: 20, pen: 68 } }] });
-  assert.match(tbd, /Total por confirmar/);
-  /* An unquotable row still shows its product price -- labelled Producto,
-     never as a total. */
-  const rowA = tbd.slice(tbd.indexOf("tienda=a"), tbd.indexOf("</a>", tbd.indexOf("tienda=a")));
-  assert.match(rowA, />Producto<\/dt><dd><b>US\$ 10\.00<\/b>/);
-  assert.ok(!/Total puesto en tu puerta<\/dt><dd><b>/.test(rowA), "an unquotable row passes a price off as its total");
-  assert.ok(!/NaN/.test(tbd), "a missing freight drew NaN");
+  /* A row without a price never renders (#443 c.6544992777). */
+  const one = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", usd: 0 }, { store: "b", storeLabel: "B", title: "X", usd: 12, ship: { state: "free", usd: 0 } }] });
+  assert.equal(one, "", "a chart drew a row with no price");
+  const two = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", usd: 10, ship: { state: "calc", usd: null, freeOverUsd: 64.94 } }, { store: "b", storeLabel: "B", title: "X", usd: 12, ship: { state: "fee", usd: 7.95, freeOverUsd: 75 } }] });
+  assert.match(two, /lo calcula la tienda al pagar/);
+  assert.match(two, /gratis desde \$75/);
+  assert.ok(!/NaN/.test(two));
 });
 
 await check("search.html: yellow only on the sale badge, no emoji, rows never link to a retailer", () => {

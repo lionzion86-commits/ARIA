@@ -2,15 +2,13 @@
    THE COMPARISON BREAKDOWN AND ITS COVERAGE (#443 c.6544784090,
    c.6544789562, c.6544792632, ruling c.6544802256).
 
-     - every row: Producto (the product page's headline), Envío de la
-       tienda (fee, GRATIS, "lo calcula la tienda al pagar" or "por
-       confirmar" -- never a silent $0), Flete, tax, and the total as the
-       SUM; partial while the store's shipping is unknown;
-     - badges: Mejor precio (product), Envío más barato, Mejor total --
-       a partial total is a floor, so it can block a Mejor total;
-     - the maker's style code groups listings whatever their titles say;
-       two codes never group; a short model name without its colour
-       never groups on the title alone.
+     - every row: Producto (the product page's headline) and Envío de
+       la tienda (fee, GRATIS, "lo calcula la tienda al pagar" or "por
+       confirmar", with the free-shipping line); no freight, no door
+       total (Amendment 2, c.6544862981);
+     - badges: Mejor precio, Envío más barato, Mejor costo hasta Miami;
+     - one chart per model (c.6544967818): brand + model + wearer, the
+       colourway set aside; the style family confirms.
 
      node scripts/test/comparison-breakdown-tests.mjs
    ================================================================== */
@@ -30,43 +28,54 @@ const ctx = core.buildSearchContext();
 const FX = 3.4;
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 
-await check("store shipping per row: a fee, GRATIS, calculated at the store's checkout, or unknown -- never a silent $0", () => {
+await check("store shipping per row: a fee, GRATIS, calculated at the store's checkout, or unknown -- with the free-shipping line", () => {
   const ship = (retailer, usd) => core.shippingOf(cartLineFor({ retailer, title: "x", cardUsd: usd, rawUsd: usd, taxRate: 1.07 }));
-  assert.deepEqual(ship("ccs", 38), { state: "fee", usd: 7.95 });
-  assert.deepEqual(ship("ccs", 90), { state: "free", usd: 0 }, "over the store's free-shipping line");
-  assert.equal(ship("zumiez", 40).state, "calc");
+  assert.deepEqual(ship("ccs", 38), { state: "fee", usd: 7.95, freeOverUsd: 75 });
+  assert.equal(ship("ccs", 90).state, "free", "over the store's free-shipping line");
+  assert.deepEqual(ship("zumiez", 40), { state: "calc", usd: null, freeOverUsd: 64.94 });
   assert.equal(ship("bhphoto", 40).state, "free");
   assert.equal(ship("a-store-with-no-terms", 40).state, "unknown");
 });
 
-await check("Danny's worked example: the Puig Samba rows add up, CCS holds Mejor precio and Mejor total, Zumiez is partial", () => {
-  const c = core.searchPage(ctx, "adidas puig samba", 1, { fx: FX }).compare;
-  assert.ok(c && c.stores.length >= 2);
+await check("Danny's example: CCS holds Mejor precio and Mejor costo hasta Miami; the chart carries no freight and no door total", () => {
+  const o = core.searchPage(ctx, "adidas puig samba", 1, { fx: FX });
+  const c = o.compares.find((x) => x.stores.some((s) => s.store === "ccs") && x.stores.some((s) => s.store === "zumiez"));
+  assert.ok(c);
   const ccs = c.stores.find((s) => s.store === "ccs"), zu = c.stores.find((s) => s.store === "zumiez");
-  assert.ok(ccs && zu);
-  for (const s of c.stores) {
-    if (!s.door) continue;
-    assert.equal(r2(s.door.goodsUsd), r2(s.usd), s.store + ": the product line is not the card price");
-    assert.equal(r2(s.door.goodsUsd + (s.ship.state === "fee" ? s.ship.usd : 0) + s.door.freightUsd + s.door.taxUsd), r2(s.door.usd), s.store + ": the total is not the sum of its lines");
-  }
   assert.equal(ccs.ship.state, "fee");
   assert.equal(zu.ship.state, "calc");
-  assert.ok(zu.door.partial && !ccs.door.partial);
-  assert.ok(ccs.best && ccs.bestTotal && !zu.best && !zu.bestTotal);
+  assert.ok(ccs.best && ccs.bestCost && !zu.best && !zu.bestCost);
+  for (const s of c.stores) assert.ok(!("door" in s), "a door total on a browse surface");
 });
 
-await check("badges follow the components: free shipping can flip the total; a partial total blocks a Mejor total it could undercut", () => {
-  const row = (store, usd, ship, total, partial = false) => ({ store, usd, ship, door: { usd: total, partial } });
-  /* Cheapest shoe, paid shipping -- the pricier shoe with free shipping wins at the door. */
-  let rows = core.badgeRows([row("a", 40, { state: "fee", usd: 12 }, 70), row("b", 45, { state: "free", usd: 0 }, 62)]);
-  assert.ok(rows[0].best && !rows[0].bestTotal && !rows[0].cheapShip);
-  assert.ok(rows[1].bestTotal && rows[1].cheapShip && !rows[1].best);
-  /* A partial total under the best complete one: nobody holds Mejor total. */
-  rows = core.badgeRows([row("a", 40, { state: "fee", usd: 8 }, 70), row("b", 30, { state: "calc", usd: null }, 50, true)]);
-  assert.ok(!rows.some((x) => x.bestTotal));
-  /* Ties hold no badge. */
-  rows = core.badgeRows([row("a", 40, { state: "free", usd: 0 }, 60), row("b", 40, { state: "free", usd: 0 }, 60)]);
-  assert.ok(!rows.some((x) => x.best || x.cheapShip || x.bestTotal));
+await check("badges follow the components: free shipping can flip the cost to Miami; an unknown shipping can block it", () => {
+  const row = (store, usd, ship) => ({ store, usd, ship });
+  let rows = core.badgeRows([row("a", 40, { state: "fee", usd: 12 }), row("b", 45, { state: "free", usd: 0 })]);
+  assert.ok(rows[0].best && !rows[0].bestCost && !rows[0].cheapShip);
+  assert.ok(rows[1].bestCost && rows[1].cheapShip && !rows[1].best);
+  /* A store whose shipping is unknown at a lower product price could still be cheaper. */
+  rows = core.badgeRows([row("a", 40, { state: "fee", usd: 8 }), row("b", 30, { state: "calc", usd: null })]);
+  assert.ok(!rows.some((x) => x.bestCost) && rows[1].best);
+  rows = core.badgeRows([row("a", 40, { state: "free", usd: 0 }), row("b", 40, { state: "free", usd: 0 })]);
+  assert.ok(!rows.some((x) => x.best || x.cheapShip || x.bestCost), "ties hold no badge");
+});
+
+await check("one chart per model: Air Force 1 '07 and Air Force 1 Low are two charts; sizes never meet; identical twins group", () => {
+  const o = core.searchPage(ctx, "nike air force 1", 1, { fx: FX });
+  assert.ok(o.compares.length >= 2, `${o.compares.length} charts`);
+  const keys = o.compares.map((c) => new Set(c.stores.map((s) => core.modelKey(ctx, { title: s.title, brand: "Nike" }))));
+  for (const k of keys) assert.equal(k.size, 1, "a chart mixes models: " + [...k].join(" / "));
+  assert.equal(new Set(keys.map((k) => [...k][0])).size, keys.length, "two charts of one model");
+  const K = (title, brand = "Vans") => core.modelKey(ctx, { title, brand });
+  assert.equal(K("Vans Authentic"), K("Authentic - Navy"), "Vans Authentic at two stores");
+  assert.notEqual(K("Vans Authentic"), K("Vans Skate Authentic"), "the Skate line is another model");
+  assert.notEqual(K("Vans Old Skool - Women's"), K("Old Skool"));
+  assert.notEqual(K("Vans Knu Skool - Girls' Preschool"), K("Toddler Knu Skool"), "preschool and toddler sizes");
+  assert.equal(K("Vans Old Skool - Men's"), K("Old Skool"), "men's and unlabelled are the adult shoe");
+  assert.equal(K("Nike Air Force 1 '07 - Men's", "Nike"), K("White Air Force 1 '07 Sneakers", "Nike"));
+  assert.notEqual(K("Nike Air Force 1 '07", "Nike"), K("Air Force 1 Low '07", "Nike"));
+  const twins = core.searchPage(ctx, "vans authentic", 1, { fx: FX }).compares;
+  assert.ok(twins.some((c) => c.stores.length >= 3 && c.stores.every((s) => K(s.title) === K("Vans Authentic"))), "the plain Vans Authentic does not group");
 });
 
 await check("the maker's style code: read from the store's photo file, per colourway", () => {
@@ -78,33 +87,22 @@ await check("the maker's style code: read from the store's photo file, per colou
   assert.equal(sc("Reef", "Cushion Breeze", "https://x/files/AB1234_1.jpg"), null, "no code read for a brand without a known code shape");
 });
 
-await check("a code match groups across titles; two codes never group; a short colourless model never groups on its title", () => {
+await check("the style family confirms: one family joins listings whatever their titles say; two families never join", () => {
   const P = (retailer, brand, title, image, price = 100) => ({ retailer, brand, title, image, price, originalPrice: price });
   const a = P("finishline", "Nike", "Men's Nike Tech Fleece Jogger Pants", "https://m/finishline/HV0959_010");
-  const b = P("snipes", "Nike", "Tech Fleece Joggers", "https://m/images/hi-res/nike_hv0959-010_01.jpg");
+  const b = P("snipes", "Nike", "Tech Fleece Joggers", "https://m/images/hi-res/nike_hv0959-063_01.jpg");
   const g = core.productGroups(ctx, [a, b]);
   assert.equal(g.length, 1);
   assert.equal(core.comparableMembers(g[0]).length, 2);
-  /* Same title, different colourway codes: not one product. */
   const c = P("ccs", "Nike", "Nike SB Dunk Low Pro - Black/White", "https://x/files/HF3704-001.jpg");
-  const d = P("zumiez", "Nike", "Nike SB Dunk Low Pro Black & White", "https://x/files/HF3704-100.jpg");
+  const d = P("zumiez", "Nike", "Nike SB Dunk Low Pro Black & White", "https://x/files/HQ1625-100.jpg");
   assert.equal(core.productGroups(ctx, [c, d]).length, 0);
-  /* "Old Skool" names a model, not a colourway. */
-  assert.equal(core.sameProductKey(ctx, P("mainland", "Vans", "Vans Skate Old Skool Shoes", "")), null);
-  assert.ok(core.sameProductKey(ctx, P("ccs", "Vans", "Vans Skate Half Cab Shoes - Saw Red/Black", "")));
-  /* A designer's three-word style names its print. */
-  assert.ok(core.sameProductKey(ctx, P("farfetch", "Agua Bendita", "Espinela Gema Maxi Dress", "")));
-  /* Store dressing: a season tag and roman numerals. */
-  assert.equal(core.sameProductKey(ctx, P("a", "Nike", "Nike Phantom GX II Academy IC - Black/Gold (SU25)", "")),
-    core.sameProductKey(ctx, P("b", "Nike", "Nike Phantom GX 2 Academy IC Black Gold", "")));
 });
 
-await check("coverage: the index groups more products than title matching alone, the codes doing the new work", () => {
+await check("coverage: the index groups far more models than exact titles did", () => {
   const groups = core.productGroups(ctx, ctx.products).map(core.comparableMembers).filter(Boolean);
-  const coded = groups.filter((g) => g.every((p) => core.styleCodeOf(p)) && new Set(g.map(core.styleCodeOf)).size === 1);
-  assert.ok(groups.length >= 780, `${groups.length} groups`);
-  assert.ok(coded.length >= 50, `${coded.length} code-backed groups`);
-  for (const g of coded) assert.equal(new Set(g.map((p) => p.retailer)).size, g.length, "one listing per store");
+  assert.ok(groups.length >= 1000, `${groups.length} groups`);
+  for (const g of groups.slice(0, 500)) assert.equal(new Set(g.map((p) => p.retailer)).size, g.length, "one listing per store");
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
