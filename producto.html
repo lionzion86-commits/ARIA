@@ -503,10 +503,12 @@ function shipBoxHtml(p){
   var S = window.AriaStoreShipping;
   if (!S) return '';
   var label = STORE_LABELS[p.retailer] || p.retailer || '';
-  /* EVERY STORE GETS A BOX (Danny, #443 c.6524139671): a store whose terms
-     are still being sourced says so -- never a missing box, never a number. */
+  /* EVERY STORE GETS A BOX (Danny, #443 c.6524139671), and never "por
+     confirmar" (#443 c.6547441472): a store with no published fee on the
+     table is paid at its own checkout -- said plainly, never a number. */
   if (!S.ruleOf(p.retailer)) return '<div id="p-ship" class="p-tax"><div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'
-    + '<div class="p-tax-note">Estamos confirmando lo que cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; lo verás antes de pagar.</div></div>';
+    + '<div class="p-ship-rule">Envío en EE.UU.: lo calcula la tienda al pagar</div>'
+    + '<div class="p-tax-note">Lo cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; se calcula por tienda, aparte de los impuestos.</div></div>';
   var s = S.cartShipping(readCartLocal()).stores.filter(function(x){ return x.store === String(p.retailer || '').toLowerCase(); })[0]
     || S.standingOf(p.retailer, 0);
   var html = '<div class="p-tax-row"><span>Costo de envío de la tienda</span></div>'

@@ -605,7 +605,10 @@ function shipHTML(sh){
   if (sh.state === "free") return '<span class="free">GRATIS</span>';
   if (sh.state === "fee") return amountHTML(sh.usd, penOf(sh.usd)) + (line ? "<br>" + line : "");
   if (sh.state === "calc") return '<span class="calc">lo calcula la tienda al pagar</span>' + (line ? "<br>" + line : "");
-  return '<span class="calc">por confirmar</span>';
+  /* Never "por confirmar" (Danny, #443 c.6547441472): a store without a
+     published fee on the table is paid at its own checkout, like a store
+     that calculates it -- said the same way, and charged nothing here. */
+  return '<span class="calc">lo calcula la tienda al pagar</span>';
 }
 function compareRowHTML(s){
   var title = decodeEntities(s.title);

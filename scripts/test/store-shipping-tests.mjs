@@ -38,7 +38,47 @@ check("the table: Lucifer's sourced figures (Oct 30), each with its source; noth
   assert.deepEqual(r("parrot"), [null, null]);
   assert.ok(!STORE_SHIPPING.fuji, "FUJI waits for its threshold to be settled");
   for (const [k, x] of Object.entries(STORE_SHIPPING)) assert.match(x.source, /#443 c\.\d+/, k);
-  assert.equal(shippingRuleText("fuji"), null, "no sourced terms: no rule (the box says it is being confirmed)");
+  assert.equal(shippingRuleText("fuji"), null, "no sourced terms: no rule (the box says the store calculates it)");
+});
+
+check("Foot Locker: the public rule, $7.99 under $99, free from $99 (#443 c.6547441472; FLX member rule on hold)", () => {
+  assert.deepEqual([STORE_SHIPPING.footlocker.feeUsd, STORE_SHIPPING.footlocker.freeOverUsd], [7.99, 99]);
+  assert.match(STORE_SHIPPING.footlocker.source, /#443 c\.6547441472/);
+  assert.equal(shippingRuleText("footlocker"), "Envío gratis desde $99 · $7.99 debajo de ese monto");
+  const under = cartShipping([{ retailer: "footlocker", dutiableUsd: 64.2, qty: 1 }]).stores[0];
+  assert.equal(under.feeUsd, 7.99);
+  assert.equal(shippingStandingText(under, "Foot Locker"), "Te faltan $39 para envío gratis en Foot Locker");
+  const over = cartShipping([{ retailer: "footlocker", dutiableUsd: 107, qty: 1 }]).stores[0];
+  assert.ok(over.met && over.feeUsd === 0);
+});
+
+check("never \"por confirmar\" on a store-shipping row: comparator, product page, checkout (#443 c.6547441472)", () => {
+  const slice = (s, a, b) => s.slice(s.indexOf(a), s.indexOf(b, s.indexOf(a) + a.length));
+  const rows = {
+    "search.html shipHTML": slice(read("search.html"), "function shipHTML(", "function compareRowHTML("),
+    "producto.html shipBoxHtml": slice(read("producto.html"), "function shipBoxHtml(", "function refreshShipBox("),
+    "checkout.html renderStoreShipping": slice(read("checkout.html"), "function renderStoreShipping(", "One renderer for the tax row"),
+    "store-shipping.js": read("store-shipping.js").replace(/\/\*[\s\S]*?\*\//g, ""),
+  };
+  for (const [k, src] of Object.entries(rows)) {
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "");
+    assert.ok(code.length > 50, k + " not found");
+    assert.doesNotMatch(code, /por confirmar|estamos confirmando/i, k);
+  }
+  assert.match(rows["search.html shipHTML"], /lo calcula la tienda al pagar<\/span>';\s*\}\s*$/);
+});
+
+/* THE FLAGGED STORES: live (in the search index) with no published fee on
+   the table -- not on it, or feeUsd null. They read "lo calcula la tienda
+   al pagar" and are charged nothing; listed here by name until their
+   published policy is sourced. Foot Locker is no longer one of them. */
+check("the stores still without a published fee are listed by name; Foot Locker is not one of them", () => {
+  const idx = JSON.parse(read("assets/search/catalog-index.json"));
+  const ri = idx.fields.indexOf("retailer");
+  const live = [...new Set(idx.rows.map((r) => r[ri]))].sort();
+  const flagged = live.filter((k) => !STORE_SHIPPING[k] || STORE_SHIPPING[k].feeUsd == null);
+  assert.ok(!flagged.includes("footlocker"));
+  console.log("         flagged (" + flagged.length + "): " + flagged.join(", "));
 });
 
 check("the card line carries the store's own rule, in every shape", () => {
