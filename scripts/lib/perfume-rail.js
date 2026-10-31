@@ -98,7 +98,8 @@ export const DESIGNER_BRANDS = Object.freeze([
 ]);
 
 /* Rail shape. */
-export const RAIL_MAX = 16;
+/* 25 cards (Danny, #443 c.6539643881: every Compra por categoría rail). */
+export const RAIL_MAX = 25;
 export const RAIL_MIN = 4;            /* fewer cards than this: the section stands down */
 export const ANCHOR_SLOTS = [0, 2, 4, 6, 8];
 export const PREMIUM_USD = 200;       /* card price; the LATINO DESIGNERS PRICE MIX line */
