@@ -199,6 +199,36 @@ export function leadRail(cards) {
   const tail = interleaveStoreCap(spreadByStore(rest.filter((c) => c.store !== OPEN_STORE), LEAD_SPREAD), MAX_RUN);
   return open.concat(tail, rest.filter((c) => c.store === OPEN_STORE)).slice(0, LEAD_N).map(({ _text, ...c }) => c);
 }
+/* THE STORE RAILS' CURATED ORDER (#443 c.6546035414, Danny's ruling):
+   the front of [Por tienda] sells the mall, not the skate shops.
+     - STORE_LEAD opens it, in this order (a store with no rail is
+       simply skipped): Victoria's Secret, Zumiez, Walmart, then the
+       gym and beauty names Danny named, Born Primitive and SKIMS;
+     - OUT_OF_FRONT stores (Venum, and the surf and skate shops) sit no
+       higher than position FRONT_N: out of the lead, not at the bottom;
+     - STORE_LAST (CCS) goes to the very bottom;
+     - every other store keeps its sales-led place below the lead.
+   Editorial order for the Ofertas store rails only: search lanes and
+   store pages are untouched. */
+export const STORE_LEAD = ["victoriassecret", "zumiez", "walmart", "bornprimitive", "skims"];
+export const OUT_OF_FRONT = ["venum", "surfstation", "islandwatersports", "quietstorm", "mainland", "parrot", "valsurf"];
+export const STORE_LAST = ["ccs"];
+export const FRONT_N = 12;
+export function curatedStoreOrder(ranked) {
+  const at = (k) => ranked.find((s) => s.key === k);
+  const lead = STORE_LEAD.map(at).filter(Boolean);
+  const last = STORE_LAST.map(at).filter(Boolean);
+  const placed = new Set([...STORE_LEAD, ...STORE_LAST]);
+  const rest = ranked.filter((s) => !placed.has(s.key));
+  const out = lead.slice();
+  const held = [];
+  for (const s of rest) {
+    if (OUT_OF_FRONT.includes(s.key) && out.length < FRONT_N) held.push(s);
+    else out.push(s);
+    while (held.length && out.length >= FRONT_N) out.push(held.shift());
+  }
+  return out.concat(held, last);
+}
 export function railsIndex(cards, stores, generatedAt, categories = cats(cards)) {
   const stat = {};
   for (const c of cards) {
@@ -213,7 +243,7 @@ export function railsIndex(cards, stores, generatedAt, categories = cats(cards))
     generatedAt,
     total: cards.length,
     lead: leadRail(cards),
-    stores: ranked.filter((s) => !small.has(s.key)),
+    stores: curatedStoreOrder(ranked.filter((s) => !small.has(s.key))),
     more: cards.filter((c) => small.has(c.store))
       .sort((a, b) => (b.pct - a.pct) || (a.usd - b.usd) || (a.id < b.id ? -1 : 1))
       .map(({ _text, ...c }) => c),
