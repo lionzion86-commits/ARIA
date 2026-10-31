@@ -237,8 +237,15 @@ export function mergeGalleries(catalog, rows, { retailerKey = null, photoKey, is
       const hit = byTitle.get(titleMatchKey(row && (row.title || row.name)));
       /* One product: one record, or the same product listed under its
          department and its brand (same title, same card photo). */
-      const one = hit && new Set(hit.map((r) => bareUrl(r.url) + "|" + String(r.thumbnail || r.image || ""))).size === 1;
-      recs = one ? hit : null;
+      const productKey = (r) => bareUrl(r.url) + "|" + String(r.thumbnail || r.image || "");
+      let pool = hit || [];
+      /* Several products under one title (colourways): the row belongs to
+         the one whose own card photo is among the row's photos. */
+      if (new Set(pool.map(productKey)).size > 1) {
+        const mine = new Set(rowImages(row).map((u) => bareUrl(typeof u === "string" ? u : urlOf(u))));
+        pool = pool.filter((r) => mine.has(bareUrl(r.thumbnail || r.image || "")));
+      }
+      recs = pool.length && new Set(pool.map(productKey)).size === 1 ? pool : null;
     }
     if (!recs) { unmatchedRows++; continue; }
     for (const rec of recs) { if (!scrapedOf.has(rec)) scrapedOf.set(rec, []); scrapedOf.get(rec).push(...rowImages(row)); }
@@ -284,11 +291,45 @@ export function pyDumps(v) {
   if (Array.isArray(v)) return "[" + v.map(pyDumps).join(", ") + "]";
   return "{" + Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => JSON.stringify(k) + ": " + pyDumps(x)).join(", ") + "}";
 }
-/** The serializer that reproduces `text` from its own parse, or null. */
+/* A number whose text JavaScript would rewrite (Python's 1.0, 2.50) keeps
+   its own text: the parse wraps it, the Python-style writer prints it as
+   it was. Only the photo fields change; every number stays byte for byte. */
+class RawNumber { constructor(text) { this.text = text; } toJSON() { return Number(this.text); } }
+export function parseKeepingNumbers(text) {
+  return JSON.parse(text, (k, v, ctx) => (typeof v === "number" && ctx && ctx.source && ctx.source !== String(v) ? new RawNumber(ctx.source) : v));
+}
+function pyDumpsRaw(v) {
+  if (v instanceof RawNumber) return v.text;
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(pyDumpsRaw).join(", ") + "]";
+  return "{" + Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => JSON.stringify(k) + ": " + pyDumpsRaw(x)).join(", ") + "}";
+}
+function pyStr(x, ascii) {
+  const j = JSON.stringify(x);
+  return ascii ? j.replace(/[\u007f-\uffff]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")) : j;
+}
+function pyIndentRaw(v, n, ascii, depth = 0) {
+  if (v instanceof RawNumber) return v.text;
+  if (typeof v === "string") return pyStr(v, ascii);
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  const pad = "\n" + " ".repeat(n * (depth + 1)), end = "\n" + " ".repeat(n * depth);
+  if (Array.isArray(v)) return v.length ? "[" + pad + v.map((x) => pyIndentRaw(x, n, ascii, depth + 1)).join("," + pad) + end + "]" : "[]";
+  const es = Object.entries(v).filter(([, x]) => x !== undefined);
+  return es.length ? "{" + pad + es.map(([k, x]) => pyStr(k, ascii) + ": " + pyIndentRaw(x, n, ascii, depth + 1)).join("," + pad) + end + "}" : "{}";
+}
+/** The serializer that reproduces `text` from its own parse, or null. Its
+    `parse` is the parse the writer expects (numbers kept as written). */
 export function serializerFor(text) {
   const parsed = JSON.parse(text);
   const trail = /\n$/.test(text) ? "\n" : "";
   const styles = [pyDumps, (o) => JSON.stringify(o), (o) => JSON.stringify(o, null, 2), (o) => JSON.stringify(o, null, 1)];
-  for (const f of styles) if (f(parsed) + trail === text) return (o) => f(o) + trail;
+  for (const f of styles) if (f(parsed) + trail === text) { const w = (o) => f(o) + trail; w.parse = JSON.parse; return w; }
+  const raw = parseKeepingNumbers(text);
+  if (pyDumpsRaw(raw) + trail === text) { const w = (o) => pyDumpsRaw(o) + trail; w.parse = parseKeepingNumbers; return w; }
+  /* Python json.dump(indent=n), with or without ensure_ascii. */
+  for (const n of [1, 2, 4]) for (const ascii of [true, false]) {
+    const f = (o) => pyIndentRaw(o, n, ascii);
+    if (f(raw) + trail === text) { const w = (o) => f(o) + trail; w.parse = parseKeepingNumbers; return w; }
+  }
   return null;
 }

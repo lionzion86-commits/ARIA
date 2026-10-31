@@ -115,5 +115,18 @@ check("the homepage carousels: every shelf card with 2+ photos carries ph, and t
   assert.match(read("assets/js/card-photos.js"), /getAttribute\("data-cp-t"\)/, "card-photos.js reads a homepage card's product");
 });
 
+check("the homepage Ofertas rail's feed carries the same count", () => {
+  for (const f of ["ofertas-feed-lite.json"]) {
+    const d = JSON.parse(read(f));
+    let multi = 0;
+    for (const it of d.items) {
+      const n = photoCount(ROOT, it.title, it.retailer);
+      assert.equal(it.ph || 0, n >= 2 ? n : 0, `${f}: ${it.title}`);
+      if (n >= 2) multi++;
+    }
+    assert.ok(multi > d.items.length / 2, `${f}: ${multi} of ${d.items.length} deals counted`);
+  }
+});
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL " + f + "\n"); process.exit(1); }
