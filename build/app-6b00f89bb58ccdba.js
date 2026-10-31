@@ -7800,9 +7800,6 @@ function openRailExpand(railId){
 }
 function closeRailExpand(){
   try{
-    /* a perfumes page still loading must not land in the next overlay */
-    perfumesExpand.seq++;
-    const w = document.getElementById('perfumesExpandMoreWrap'); if (w) w.remove();
     const bd = document.getElementById('railExpandBackdrop');
     if (bd) bd.classList.add('hidden');
     document.body.style.overflow = '';
@@ -12645,9 +12642,8 @@ async function paintPerfumeRows(rows, sections){
 }
 /* THE CAROUSEL'S LAST CARD OPENS EVERY PERFUME (#443 c.6405624575, Danny):
    the rail used to just end, the pill above it the only door. Like every
-   other carousel it now ends in a card; this one opens the whole Perfumes
-   department in the full-screen overlay, 48 at a time, without leaving
-   the page. */
+   other carousel it now ends in a card; this one opens the Perfumes
+   department page. */
 function perfumesMoreTileHTML(){
   return `<button type="button" onclick="openPerfumesExpand()" data-perfumes-more
     class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3"
@@ -12658,67 +12654,12 @@ function perfumesMoreTileHTML(){
     </span>
   </button>`;
 }
-const PERFUMES_ALL = 'perfumes-all';
-let perfumesExpand = { page: -1, pages: 1, busy: false, seq: 0 };
-function perfumesExpandCard(c){
-  try {
-    const it = normalizeLiveItem({ title: c.t, brand: c.b, price: c.p, originalPrice: c.o, onSale: Number(c.s) > 0, image: c.i },
-      { retailer: c.r, department: 'perfumes' });
-    return it && it.title ? { ...it, retailer: c.r } : null;
-  } catch (e) { return null; }
-}
+/* ONE DOOR, ONE DESTINATION (Danny, #443 c.6534461885): the carousel's
+   last card opens the Perfumes department page itself -- its search bar,
+   pills, Ofertas and house rails. The flat "Todos los perfumes" grid is
+   gone. */
 function openPerfumesExpand(){
-  const bd = document.getElementById('railExpandBackdrop');
-  const grid = document.getElementById('railExpandGrid');
-  if (!bd || !grid) return;
-  railExpandTitles[PERFUMES_ALL] = 'Todos los perfumes';
-  deptRailPools[PERFUMES_ALL] = [];
-  const titleEl = document.getElementById('railExpandTitle');
-  const countEl = document.getElementById('railExpandCount');
-  if (titleEl) titleEl.textContent = 'Todos los perfumes';
-  if (countEl) countEl.textContent = '';
-  grid.innerHTML = '';
-  bd.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  const sc = bd.querySelector('.railExpandScroll');
-  if (sc) sc.scrollTop = 0;
-  perfumesExpand = { page: -1, pages: 1, busy: false, seq: perfumesExpand.seq + 1 };
-  morePerfumesExpand();
-}
-function morePerfumesExpand(){
-  const st = perfumesExpand;
-  if (st.busy || st.page + 1 >= st.pages) return;
-  st.busy = true;
-  const seq = st.seq, grid = document.getElementById('railExpandGrid');
-  const btn = document.getElementById('perfumesExpandMore');
-  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
-  fetch('/.netlify/functions/department?dept=perfumes&rail=all&page=' + (st.page + 1))
-    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
-    .then(data => {
-      if (seq !== perfumesExpand.seq) return;
-      st.busy = false; st.page = data.page; st.pages = data.pages;
-      const pool = deptRailPools[PERFUMES_ALL];
-      const start = pool.length;
-      for (const c of (data.cards || [])){ const it = perfumesExpandCard(c); if (it) pool.push(it); }
-      const countEl = document.getElementById('railExpandCount');
-      if (countEl && data.count) countEl.textContent = Number(data.count).toLocaleString('es-PE') + ' productos';
-      const wrap = document.getElementById('perfumesExpandMoreWrap'); if (wrap) wrap.remove();
-      grid.insertAdjacentHTML('beforeend', pool.slice(start).map((p, k) => railCardHTML(p,
-        `openRailExpandProduct('${PERFUMES_ALL}',${start + k})`,
-        `data-rail-expand-card="${PERFUMES_ALL}" data-idx="${start + k}"`, {})).join(''));
-      if (st.page + 1 < st.pages){
-        grid.insertAdjacentHTML('afterend', `<div id="perfumesExpandMoreWrap" class="text-center py-5">
-          <button type="button" id="perfumesExpandMore" onclick="morePerfumesExpand()" class="h-11 px-6 rounded-2xl font-extrabold text-[14px] focus-ring" style="background:var(--navy);color:#fff">Mostrar más</button></div>`);
-      }
-    })
-    .catch(() => {
-      if (seq !== perfumesExpand.seq) return;
-      st.busy = false;
-      const wrap = document.getElementById('perfumesExpandMoreWrap'); if (wrap) wrap.remove();
-      grid.insertAdjacentHTML('afterend', `<div id="perfumesExpandMoreWrap" class="text-center py-5">
-        <p class="text-[13px] mb-2" style="color:#6B7487">No pudimos cargar los perfumes.</p>
-        <button type="button" id="perfumesExpandMore" onclick="morePerfumesExpand()" class="h-11 px-6 rounded-2xl font-extrabold text-[14px] focus-ring" style="background:var(--navy);color:#fff">Reintentar</button></div>`);
-    });
+  location.href = '/departamento.html?dept=perfumes';
 }
 function initPerfumesRail(){
   if (perfumesStarted) return;
@@ -13544,7 +13485,7 @@ const ITEM_FAMILY_NOUNS = [
   ['joyas', ['jewelry', 'jewellery', 'joyer[ií]a', 'bisuter[ií]a', 'earrings?', 'aretes?', 'necklaces?', 'collares', 'collar(?=\\s+de\\b)', 'bracelets?', 'pulseras?', 'rings?', 'anillos?', 'pendants?', 'colgantes?', 'charms?', 'dijes?', 'anklets?', 'tobilleras?', 'brooch(?:es)?', 'broches?', 'bangles?', 'chokers?', '(?:belly|body|waist|ankle)\\s+chains?', 'chains?', '(?:diamond|wedding|eternity|pav[eé]|gold|silver|channel[-\\s]set|anniversary)\\s+bands?', 'ear\\s+cuffs?', 'studs?', 'hoops?', 'cuff\\s+bracelets?', 'tiaras?', 'lockets?', '(?:enamel|lapel|costume|character|3d|collectible|flower|rose|brooch)\\s+pins?', 'pins']],
   ['sombreros', ['hats?', 'caps?', 'beanies?', 'bonnets?', 'fedoras?', 'visors?', 'snapbacks?', 'strapbacks?', 'bucket\\s+hats?', 'trucker\\s+hats?', 'sombreros?', 'gorras?', 'gorros?', 'boinas?', 'berets?', 'headwear', 'balaclavas?']],
   ['accesorios', ['scarf', 'scarves', 'bufandas?', 'belts?', 'cinturones?', 'sunglasses', 'sunglass', 'lentes\\s+de\\s+sol', 'gafas\\s+de\\s+sol', 'eyewear', 'wallets?', 'card\\s+holders?', 'billeteras?', 'gloves?', 'guantes?', 'mittens?', 'shawls?', 'chales?', 'pareos?', 'sarongs?', 'hair\\s+(?:clips?|ties?|bows?|pins?|accessories)', 'scrunchies?', '(?:claw\\s+)?clips?', 'headbands?', 'vinchas?', 'watch(?:es)?', 'relojes?', 'keychains?', 'keyrings?', 'key\\s*chains?', 'key\\s+rings?', 'stickers?', 'phone\\s+cases?', 'cases?', 'neckties?', 'bow\\s+ties?', 'ties', 'tie', '(?:eye|sleep)\\s+masks?', 'bobby\\s+pins?', 'shoe\\s*laces?', 'laces', 'insoles?', 'shoe\\s+(?:care|cleaners?|clips?|charms?)', 'cufflinks?', 'umbrellas?', 'bandanas?', 'lanyards?', 'patches', 'suspenders', 'earmuffs?', 'ear\\s+muffs?']],
-  ['ropa', ['shirts?', 't-?shirts?', 'tees?', 'tops?', 'tank\\s+tops?', 'tanks?', 'camis?', 'camisoles?', 'blouses?', 'sweaters?', 'cardigans?', 'hoodies?', 'turtlenecks?', 'mock\\s*necks?', 'shortalls?', 'sweatshorts?', 'baby\\s+one[-\\s]piece', 'sweatshirts?', 'crew\\s*necks?', 'pullovers?', 'jackets?', 'coats?', 'parkas?', 'anoraks?', 'windbreakers?', 'vests?', 'blazers?', 'suits?', 'dress(?:es)?', 'gowns?', 'skirts?', 'skorts?', 'pants?', 'trousers?', 'jeans', 'leggings?', 'joggers?', 'sweatpants?', 'shorts?', 'rompers?', 'jumpsuits?', 'overalls?', 'bodysuits?', 'onesies?', 'one-?piece\\s+pajamas?', 'pajamas?', 'pyjamas?', 'pj\\s+sets?', 'sleepwear', 'loungewear', 'robes?', 'lingerie', 'bras?', 'bralettes?', 'panties', 'underwear', 'boxers?', 'briefs?', 'trunks?', 'thongs?', 'socks?', 'tights', 'hosiery', 'uniforms?', 'jerseys?', 'kimonos?', 'ponchos?', 'chemises?', 'slips?', 'polos?', 'henleys?', 'tunics?', 'kaftans?', 'caftans?', 'layettes?', 'outfits?', '(?:two|2|three|3)[-\\s]piece\\s+sets?', 'camisas?', 'camisetas?', 'pantal[oó]n(?:es)?', 'vestidos?', 'faldas?', 'chaquetas?', 'casacas?', 'chompas?', 'poleras?', 'polerones?', 'buzos?', 'pijamas?', 'conjuntos?', 'blusas?', 'enterizos?', 'mamelucos?', 'tracksuits?', '(?:training|running|compression)\\s+tights?', 'tights', 'walkshorts?', 'sunshirts?', '(?:tennis|long[-\\s]sleeve|short[-\\s]sleeve|logo)\\s+crews?', '(?:match|stadium|authentic|replica)\\s+(?:home|away|third)(?:\\s+(?:jersey|shirt|kit))?', 'jerseys?']],
+  ['ropa', ['bikini\\s+(?:panty|panties|briefs?|underwear|thongs?)', 'string\\s+bikini\\s+panty', 'shirts?', 't-?shirts?', 'tees?', 'tops?', 'tank\\s+tops?', 'tanks?', 'camis?', 'camisoles?', 'blouses?', 'sweaters?', 'cardigans?', 'hoodies?', 'turtlenecks?', 'mock\\s*necks?', 'shortalls?', 'sweatshorts?', 'baby\\s+one[-\\s]piece', 'sweatshirts?', 'crew\\s*necks?', 'pullovers?', 'jackets?', 'coats?', 'parkas?', 'anoraks?', 'windbreakers?', 'vests?', 'blazers?', 'suits?', 'dress(?:es)?', 'gowns?', 'skirts?', 'skorts?', 'pants?', 'trousers?', 'jeans', 'leggings?', 'joggers?', 'sweatpants?', 'shorts?', 'rompers?', 'jumpsuits?', 'overalls?', 'bodysuits?', 'onesies?', 'one-?piece\\s+pajamas?', 'pajamas?', 'pyjamas?', 'pj\\s+sets?', 'sleepwear', 'loungewear', 'robes?', 'lingerie', 'bras?', 'bralettes?', 'panties', 'underwear', 'boxers?', 'briefs?', 'trunks?', 'thongs?', 'socks?', 'tights', 'hosiery', 'uniforms?', 'jerseys?', 'kimonos?', 'ponchos?', 'chemises?', 'slips?', 'polos?', 'henleys?', 'tunics?', 'kaftans?', 'caftans?', 'layettes?', 'outfits?', '(?:two|2|three|3)[-\\s]piece\\s+sets?', 'camisas?', 'camisetas?', 'pantal[oó]n(?:es)?', 'vestidos?', 'faldas?', 'chaquetas?', 'casacas?', 'chompas?', 'poleras?', 'polerones?', 'buzos?', 'pijamas?', 'conjuntos?', 'blusas?', 'enterizos?', 'mamelucos?', 'tracksuits?', '(?:training|running|compression)\\s+tights?', 'tights', 'walkshorts?', 'sunshirts?', '(?:tennis|long[-\\s]sleeve|short[-\\s]sleeve|logo)\\s+crews?', '(?:match|stadium|authentic|replica)\\s+(?:home|away|third)(?:\\s+(?:jersey|shirt|kit))?', 'jerseys?']],
 ].map(function (r) {
   const alts = r[1].slice().sort(function (a, b) { return itemNounMinLength(b) - itemNounMinLength(a) || b.length - a.length; });
   return [r[0], new RegExp('\\b(' + alts.join('|') + ')\\b', 'gi')];

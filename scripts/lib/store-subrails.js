@@ -105,7 +105,7 @@ function shoeAisle(item) {
    a shirt jacket a jacket, denim shorts jeans. */
 const GARMENT_AISLES = rules([
   ["dresses", "Vestidos y faldas"], ["tops", "Tops y blusas"], ["knitwear", "Chompas y polerones"],
-  ["jeans", "Jeans"], ["pants", "Pantalones y shorts"], ["outerwear", "Casacas y abrigos"],
+  ["jeans", "Denim"], ["pants", "Pantalones y shorts"], ["outerwear", "Casacas y abrigos"],
   ["sets", "Conjuntos y enterizos"], ["swim", "Ropa de baño"], ["lingerie", "Ropa interior y pijamas"],
 ]);
 const GARMENT_RULES = rules([
@@ -219,6 +219,9 @@ export function subRails(items, family) {
        What no aisle names is not an aisle ("Otros" would be a bin): it
        stays in the grid under the carousels. */
     if (!mine.length) { if (ak) out.push({ aud: ak, audLabel: alabel, aisle: "todo", title: tax.label, items: list }); continue; }
+    /* The universal format (#443 c.6532666653): biggest aisle first, by
+       its true total (VS's Ropa interior y pijamas, 847, leads). */
+    mine.sort((x, y) => y.items.length - x.items.length);
     out.push(...mine);
   }
   return out.length >= 2 ? out : null;

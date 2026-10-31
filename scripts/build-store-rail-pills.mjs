@@ -39,6 +39,8 @@ import { stampHomePhotos } from "./stamp-home-photos.mjs";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PILLS_DIR = "assets/home/store-pills";
 export const PILL_MIN = 24, MAX_PILLS = 8, PILL_CARDS = 16;
+/* A sub-aisle leads the row when it holds this share of its aisle. */
+export const LEAD_SHARE = 0.6;
 /* Aisles a store's wearer split is honest for (a toy or a lamp has no wearer). */
 const SPLIT_TYPES = new Set(["t-ropa", "t-zapatos", "t-trajes_bano"]);
 const AUD = [["women", "mujer"], ["men", "hombre"], ["kids", "niños"]];
@@ -71,6 +73,14 @@ export function storePills(store, root = ROOT) {
     const rows = (fn.rails[rail.key] || []).map((i) => fn.rows[i]).filter((r) => r && r[R.image]);
     if (rows.length < PILL_MIN) { if (rows.length) thin.push(`${rail.title} (${rows.length})`); continue; }
     const whole = { k: rail.key.slice(2), label: rail.title, rows };
+    /* LEAD AISLE (Danny, #443 c.6534461885): when one of the store page's
+       own sub-aisles is most of an aisle (VS's Ropa interior y pijamas,
+       881 of 1,368 Ropa), it is the store's first pill, by its own name. */
+    const lead = (rail.subs || []).filter((x) => !x.a && x.n >= PILL_MIN && x.n >= rows.length * LEAD_SHARE).sort((x, y) => y.n - x.n)[0];
+    if (lead && !pills.some((p) => p.lead)) {
+      const lrows = (fn.rails[lead.k] || []).map((i) => fn.rows[i]).filter((r) => r && r[R.image]);
+      if (lrows.length >= PILL_MIN) pills.unshift({ k: lead.k.slice(2).replace(/~all~/, "-"), label: lead.t, rows: lrows, lead: true });
+    }
     if (SPLIT_TYPES.has(rail.key)) {
       /* The wearer is the store page's own sub-aisles (t-ropa~women~tops…). */
       const halves = AUD.map(([g, word]) => {
@@ -91,7 +101,10 @@ export function storePills(store, root = ROOT) {
     if (!split) break;
     delete split.halves;
   }
-  const flat = pills.flatMap((p) => (p.halves ? p.halves : [p])).slice(0, MAX_PILLS);
+  /* The universal format: the lead aisle, then the rest biggest first by
+     true totals (a wearer split keeps its halves together). */
+  const ordered = pills.filter((p) => p.lead).concat(pills.filter((p) => !p.lead).sort((x, y) => y.rows.length - x.rows.length));
+  const flat = ordered.flatMap((p) => (p.halves ? p.halves : [p])).slice(0, MAX_PILLS);
   return {
     pills: flat.length >= 2 ? flat.map((p) => ({ k: p.k, label: p.label, n: p.rows.length, cards: p.rows.slice(0, PILL_CARDS).map((r) => cardOf(r, store)) })) : [],
     thin,

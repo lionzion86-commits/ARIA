@@ -373,7 +373,8 @@ if (!process.env.PERFUME_STATIC) {
         });
         assert(r.cards === PICKS.length && r.title === "Perfumes" && r.kicker === "Fragancias", JSON.stringify(r));
         assert(r.before, "the Perfumes rail does not lead the department's rails");
-        assert(r.hrefs.every((h) => h.startsWith("producto.html?")), "a card links out: " + r.hrefs.join(" "));
+        /* Cards open Aria's product page; the end card opens the Perfumes department. */
+        assert(r.hrefs.every((h) => h.startsWith("producto.html?") || h === "departamento.html?dept=perfumes"), "a card links out: " + r.hrefs.join(" "));
         assert(/^S\//.test(r.pen.trim()) && /US\$/.test(r.usd), "price: " + r.pen + " / " + r.usd);
         assert(!requests.some((u) => /-catalog\.json$/.test(u)), "a catalogue was fetched");
         if (SHOTS) {

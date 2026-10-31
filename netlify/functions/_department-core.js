@@ -546,11 +546,51 @@ export function phoneBrandRank(p) {
    own pill is the separation ruling (c.6488544902), not this sort. */
 const phoneIsRefurb = (p) => (conditionOfTitle(String((p && p.title) || "")) ? 1 : 0);
 
-/** The Celulares rail of a department page: the same brand order, with
-    the department's own sort (on sale first, then cheapest) kept inside
-    each tier, so the pill and the aisle never disagree. */
-export const celularesOrder = (l) => l.map((p, i) => ({ p, i, b: phoneBrandRank(p), n: phoneIsRefurb(p) }))
-  .sort((x, y) => (x.b - y.b) || (x.n - y.n) || (x.i - y.i)).map((x) => x.p);
+/* SELLABLE FIRST (Danny, #443 c.6531245142, c.6535121937 -- supersedes the
+   Peru-presence order above for display). What a Peruvian wallet buys
+   leads Celulares: phones at or under the US$200 import-tax line, cheapest
+   first (BLU, moto, Galaxy A...). Then THE iPhone Aria promotes, the
+   iPhone 18 line (its landed price beats Lima's). Then the mid range.
+   The other new Apple / Samsung flagships go last -- still listed, still
+   sellable, found by search. A refurbished phone is exempt from the
+   flagship tier: it keeps its price position. */
+export const PHONE_SELL_LINE_USD = 200;
+const PHONE_PROMOTED_RX = /\biphone\s*18\b/i;
+const PHONE_FLAGSHIP_RX = /\b(iphone|galaxy\s*(s\d+|z|note)|ultra|fold|flip|pixel\s*\d+\s*pro)\b/i;
+const phonePrice = (p) => Number((p && (p.rawPrice ?? p.price ?? p.p)) || 0);
+/** 0 at or under the line, 1 the iPhone 18 line, 2 the mid range, 3 the other new flagships. */
+export function phoneSellRank(p) {
+  const t = String((p && (p.title || p.t)) || "") + " " + String((p && (p.brand || p.b)) || "");
+  const refurb = phoneIsRefurb({ title: (p && (p.title || p.t)) || "" });
+  if (PHONE_PROMOTED_RX.test(t) && !refurb) return 1;
+  const price = phonePrice(p);
+  if (price > 0 && price <= PHONE_SELL_LINE_USD) return 0;
+  if (!refurb && PHONE_FLAGSHIP_RX.test(t)) return 3;
+  return 2;
+}
+
+/** The Celulares rail of a department page: sellable first (above),
+    cheapest first inside each tier, the sealed phone before the
+    refurbished one at the same tier. */
+export const celularesOrder = (l) => promoteIphone18(l.map((p, i) => ({ p, i, b: phoneSellRank(p), n: phoneIsRefurb(p), c: phonePrice(p) }))
+  .sort((x, y) => (x.b - y.b) || (x.c - y.c) || (x.n - y.n) || (x.i - y.i)).map((x) => x.p));
+/* "The 18 is the one we promote" (c.6535121937): one card per iPhone 18
+   model (Pro, Pro Max) is pinned right after the first accessible phones,
+   so the promotion shows on the first screen without leading the rail. */
+export const PHONE_PROMOTED_SLOT = 3;
+export function promoteIphone18(list) {
+  const seen = new Set(), pinned = [];
+  for (const p of list) {
+    const t = String((p && (p.title || p.t)) || "");
+    if (!PHONE_PROMOTED_RX.test(t) || phoneIsRefurb({ title: t })) continue;
+    const model = /pro\s*max/i.test(t) ? "pro max" : /\bpro\b/i.test(t) ? "pro" : /plus/i.test(t) ? "plus" : "base";
+    if (seen.has(model)) continue;
+    seen.add(model); pinned.push(p);
+  }
+  if (!pinned.length) return list;
+  const rest = list.filter((p) => !pinned.includes(p));
+  return rest.slice(0, PHONE_PROMOTED_SLOT).concat(pinned, rest.slice(PHONE_PROMOTED_SLOT));
+}
 
 const HOME_BRAND_RX = /\b(apple|samsung|google|sony|bose|jbl|beats|microsoft|nintendo|playstation|xbox|meta|dji|gopro|canon|nikon|fujifilm|garmin|fitbit|lenovo|hp|dell|asus|acer|msi|logitech|anker|sonos|marshall|ring|blink|arlo|skullcandy|sennheiser|razer|corsair|hyperx|kingston|crucial|western digital|sandisk|motorola|tcl|lg)\b/i;
 const HOME_SPEC_RX = /\b(\d+\s?gb|\d+\s?tb|intel|amd|ryzen|celeron|core (i|ultra)|m\d chip|snapdragon)\b/i;
@@ -601,8 +641,9 @@ export function homeTechPills(list) {
      it, a brand people search for, then the deeper sale. Celulares leads
      by brand tier before strength (the Peru-presence order above). */
   const devicesFirst = (l, k) => l.map((p, i) => ({ p, i, s: homeStrength(p, k), b: 0, n: 0 }))
-    .map((x) => (k === "tech_celulares" ? { ...x, b: phoneBrandRank(x.p), n: phoneIsRefurb(x.p) } : x))
-    .sort((x, y) => (x.b - y.b) || (x.n - y.n) || (y.s - x.s) || ((y.p.salePct || 0) - (x.p.salePct || 0)) || (x.i - y.i)).map((x) => x.p);
+    /* (a phone whose name also reads like an accessory -- "OTG", "TF" -- follows the clear handsets of its tier) */
+    .map((x) => (k === "tech_celulares" ? { ...x, b: phoneSellRank(x.p), n: phoneIsRefurb(x.p), c: phonePrice(x.p), a: isAccessoryName(x.p.title) ? 1 : 0 } : { ...x, c: 0, a: 0 }))
+    .sort((x, y) => (x.b - y.b) || (x.a - y.a) || (x.c - y.c) || (x.n - y.n) || (y.s - x.s) || ((y.p.salePct || 0) - (x.p.salePct || 0)) || (x.i - y.i)).map((x) => x.p);
   const pills = [];
   /* OFERTAS: a good Walmart camera on sale opens it; the heroes follow;
      a small accessory (a cable, a car charger, a case) closes it. */
@@ -639,7 +680,8 @@ export function homeTechPills(list) {
       : k === "tech_gaming" ? shown.filter((p) => techAisleOf(p) === k && !isConsole(p))
       : shown.filter((p) => techAisleOf(p) === k);
     if (l.length < HOME_PILL_MIN) continue;
-    const ordered = k === "chromebooks" ? l.slice().sort((a, b) => ((b.salePct || 0) - (a.salePct || 0)) || (a.rawPrice - b.rawPrice)) : devicesFirst(l, k);
+    const ordered = k === "chromebooks" ? l.slice().sort((a, b) => ((b.salePct || 0) - (a.salePct || 0)) || (a.rawPrice - b.rawPrice))
+      : k === "tech_celulares" ? promoteIphone18(devicesFirst(l, k)) : devicesFirst(l, k);
     pills.push({ k, label, cards: ordered.slice(0, HOME_PILL_CARDS).map(cardOf), ...(REFURB_DOOR.includes(k) && refurb.length ? { door: "reacondicionados" } : {}) });
   }
   return { v: 1, pills };
