@@ -19,7 +19,7 @@ import { readFileSync } from "node:fs";
 import { gymKind, isGymApparel } from "../lib/gym-apparel.js";
 import { GYM_BRANDS } from "../build-gym-pulls.mjs";
 import { isOffSaleRetailer } from "../lib/off-sale.js";
-import { DEPT_RULES, belongsToDept, loadAllItems } from "../build-department-slices.mjs";
+import { DEPT_RULES, belongsToDept, loadAllItems, resolveRule } from "../build-department-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const read = (f) => readFileSync(ROOT + f, "utf8");
@@ -73,7 +73,11 @@ check("the catalogue: 12 brands; only clothing in gym_rat, only gear in combat_s
 
 check("the Gym Rat department is clothing only, from the gym brands and the fight brands' clothing; no Gymshark, no Alphalete", () => {
   const all = loadAllItems(ROOT);
-  const inGym = all.filter((p) => belongsToDept(DEPT_RULES.gym_rat, p));
+  const rule = resolveRule(DEPT_RULES.gym_rat, all);
+  const inGym = all.filter((p) => belongsToDept(rule, p));
+  /* The fight stores that join are read from the data, not typed. */
+  assert.ok(!("stores" in DEPT_RULES.gym_rat.apparelFrom), "a typed store list is back in the rule");
+  for (const k of ["venum", "everlast", "tatami"]) assert.ok(rule.apparelFrom.stores.includes(k), k);
   const gear = inGym.filter((p) => !isGymApparel(p));
   assert.deepEqual(gear.map((p) => p.title).slice(0, 5), []);
   const stores = new Set(inGym.map((p) => p.retailer));
