@@ -47,6 +47,8 @@ import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { photoCount } from "./lib/photo-counts.js";
 import { PAGE_SIZE, DEALS_FILE, SLICES_DIR, SORTS, packCard, selectDeals, pageOf } from "../netlify/functions/_ofertas-core.js";
+import { loadAllItems, productClass } from "./build-department-slices.mjs";
+import { OFFER_CATEGORIES, DANNY_ORDER, MIN_CAT, offerCategory, storeAudiences } from "./lib/offer-category.js";
 
 export const RAILS_FILE = "assets/ofertas/rails.json";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -197,7 +199,7 @@ export function leadRail(cards) {
   const tail = interleaveStoreCap(spreadByStore(rest.filter((c) => c.store !== OPEN_STORE), LEAD_SPREAD), MAX_RUN);
   return open.concat(tail, rest.filter((c) => c.store === OPEN_STORE)).slice(0, LEAD_N).map(({ _text, ...c }) => c);
 }
-export function railsIndex(cards, stores, generatedAt) {
+export function railsIndex(cards, stores, generatedAt, categories = cats(cards)) {
   const stat = {};
   for (const c of cards) {
     const s = stat[c.store] || (stat[c.store] = { top: 0, deep: 0 });
@@ -216,7 +218,43 @@ export function railsIndex(cards, stores, generatedAt) {
       .sort((a, b) => (b.pct - a.pct) || (a.usd - b.usd) || (a.id < b.id ? -1 : 1))
       .map(({ _text, ...c }) => c),
     moreStores: ranked.filter((s) => small.has(s.key)),
+    /* [Por categoría]: the categories with real offer volume, each rail
+       filling from its own slice (cat-<key>.discount.json). */
+    cats: categories,
   };
+}
+
+/* ---------- Por categoría (#443 c.6544455377) ----------
+   Each card's category, read from its catalogue row (bucket, type) when
+   the catalogue has it, else from the feed row's own name; then the
+   categories with real offer volume, Danny's six first, the rest by
+   size. */
+export function categorize(cards, feedItems, all) {
+  const key = (r, t) => r + "::" + decodeEntities(String(t || "")).trim().toLowerCase();
+  const rows = new Map();
+  for (const p of all) { const k = key(p.retailer, p.title); if (!rows.has(k)) rows.set(k, p); }
+  const feedRow = new Map();
+  for (const p of feedItems || []) { const k = key(p.retailer, p.title); if (!feedRow.has(k)) feedRow.set(k, p); }
+  const audience = storeAudiences(all, productClass);
+  for (const c of cards) {
+    const k = key(c.store, c.title);
+    const row = rows.get(k) || { title: c.title, brand: c.brand, retailer: c.store, type: (feedRow.get(k) || {}).type || "", bucket: "" };
+    c.k = offerCategory(row, productClass(row), audience);
+  }
+  return cats(cards);
+}
+export function cats(cards) {
+  const stat = {};
+  for (const c of cards) {
+    if (!c.k) continue;
+    const s = stat[c.k] || (stat[c.k] = { n: 0, top: 0 });
+    s.n++;
+    if (c.pct > s.top) s.top = c.pct;
+  }
+  const list = OFFER_CATEGORIES.map(([key, label], i) => ({ key, label, i, ...(stat[key] || { n: 0, top: 0 }) }))
+    .filter((c) => c.n >= MIN_CAT);
+  const first = list.filter((c) => c.i < DANNY_ORDER), rest = list.filter((c) => c.i >= DANNY_ORDER).sort((a, b) => b.n - a.n);
+  return first.concat(rest).map(({ i, ...c }) => c);
 }
 
 export function build(root = ROOT) {
@@ -224,17 +262,18 @@ export function build(root = ROOT) {
   const feed = JSON.parse(readFileSync(join(root, "ofertas-feed.json"), "utf8"));
   const cards = buildCards(feed.items, sale);
   const stores = storeList(cards);
+  const categories = categorize(cards, feed.items, loadAllItems(root));
   const generatedAt = feed.generatedAt || null;
-  return { generatedAt, stores, cards };
+  return { generatedAt, stores, cats: categories, cards };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const { generatedAt, stores, cards } = build();
+  const { generatedAt, stores, cats: categories, cards } = build();
   const dir = join(ROOT, SLICES_DIR);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(ROOT, DEALS_FILE), JSON.stringify({ generatedAt, pageSize: PAGE_SIZE, stores, items: cards.map(packCard) }));
-  writeFileSync(join(ROOT, RAILS_FILE), JSON.stringify(railsIndex(cards, stores, generatedAt)));
+  writeFileSync(join(ROOT, DEALS_FILE), JSON.stringify({ generatedAt, pageSize: PAGE_SIZE, stores, cats: categories, items: cards.map(packCard) }));
+  writeFileSync(join(ROOT, RAILS_FILE), JSON.stringify(railsIndex(cards, stores, generatedAt, categories)));
   let files = 0, biggest = 0;
   for (const scope of ["all", ...stores.map((s) => s.key)]) {
     for (const sort of SORTS) {
@@ -245,6 +284,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       files++;
     }
   }
+  /* Page 1 of each category, every store, deepest first. */
+  for (const c of categories) {
+    const out = pageOf(selectDeals(cards, { cat: c.key, sort: "discount" }), 1);
+    const f = join(dir, `cat-${c.key}.discount.json`);
+    writeFileSync(f, JSON.stringify({ generatedAt, store: "", cat: c.key, sort: "discount", q: "", ...out }));
+    biggest = Math.max(biggest, statSync(f).size);
+    files++;
+  }
   const dealsKB = Math.round(statSync(join(ROOT, DEALS_FILE)).size / 1024);
-  console.log(`${cards.length} deals, ${stores.length} stores; ${DEALS_FILE} ${dealsKB}KB; ${files} slices in ${SLICES_DIR} (largest ${Math.round(biggest / 1024)}KB, ${readdirSync(dir).length} files)`);
+  console.log(`${cards.length} deals, ${stores.length} stores, ${categories.length} categories (${categories.map((c) => c.key + " " + c.n).join(", ")}); ${DEALS_FILE} ${dealsKB}KB; ${files} slices in ${SLICES_DIR} (largest ${Math.round(biggest / 1024)}KB, ${readdirSync(dir).length} files)`);
 }

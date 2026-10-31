@@ -21,6 +21,7 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { photoCount } from "./lib/photo-counts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
@@ -74,6 +75,10 @@ function buildWith(E, classifyFn, opts = {}) {
             };
             const d = shortDescription(it);
             if (d) row.d = d;
+            /* Its photo count when 2+ (scripts/lib/photo-counts.js): the big
+               card arms its on-card arrows only then (#443 c.6545136763). */
+            const ph = photoCount(ROOT, title, rk);
+            if (ph > 1) row.ph = ph;
             /* Men's feed: a sock's gender note. 'u' (nothing says men's)
                is the unisex sock the women's section may surface from
                this feed -- it is never listed in the women's feed. */

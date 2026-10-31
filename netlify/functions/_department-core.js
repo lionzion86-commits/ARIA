@@ -245,15 +245,40 @@ export const BRAND_ROOM_MIN = 8;
 export const BRAND_ROOM_MAX = 60;
 /* A store's own vendor code or an empty string is not a brand a shopper knows. */
 const NOT_A_BRAND_RX = /^(?:[A-Z]{2,6}\/|\d+$|n\/?a$|unknown$|generic$|unbranded$|for (?:him|her)$|men$|women$|kids$)/i;
-function buildBrandRoomSections(list) {
+/* RAILS LEAD WITH CLOTHES (#443 c.6544911957, Danny on AYBL's sock wall).
+   Socks and their kin -- headbands, wristbands, scrunchies, bottles,
+   towels, underwear -- never take a rail's lead and never dominate it:
+   the first HERO_LEAD cards are clothing, then one small piece in every
+   SPRINKLE_EVERY cards, each tier keeping the rail's own order (sales
+   first). A rail of nothing but small pieces keeps them. */
+export const SMALL_PIECE_RX = /\b(socks?|sock packs?|no[- ]show|caps?|snapbacks?|trucker hats?|5 panels?|five panels?|hats?|beanies?|visors?|bags?|backpacks?|duffels?|totes?|belts?|gloves?|headbands?|sweat ?bands?|wrist ?bands?|scrunchies?|hair ties?|shakers?|bottles?|towels?|keychains?|key ?rings?|stickers?|decals?|boxer briefs?|briefs?|boxers?|thongs?|underwear|trunks? 3 ?pack)\b/i;
+export const HERO_LEAD = 12, SPRINKLE_EVERY = 4;
+/* The rooms whose rails are clothing rails. Not Fight Club (gloves are
+   its hero), Fútbol (goalkeeper gloves, match socks), Joyas or Lujo (bags
+   and belts are the product). */
+export const APPAREL_ROOMS = new Set(["gym_rat"]);
+export function clothesFirst(items) {
+  const hero = [], small = [];
+  for (const p of items) (SMALL_PIECE_RX.test(String(p.title || p.name || "")) ? small : hero).push(p);
+  if (!hero.length || !small.length) return items;
+  const out = hero.splice(0, HERO_LEAD);
+  while (hero.length || small.length) {
+    for (let k = 0; k < SPRINKLE_EVERY - 1 && hero.length; k++) out.push(hero.shift());
+    if (small.length) out.push(small.shift());
+    if (!hero.length) { out.push(...small); small.length = 0; }
+  }
+  return out;
+}
+function buildBrandRoomSections(list, apparel = false) {
+  const lead = apparel ? clothesFirst : (l) => l;
   const groups = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim())));
   /* One brand: the format one level down -- its Ofertas, then its types. */
-  if (groups.length === 1 && groups[0].items.length === list.length) return brandTypeSections(list);
+  if (groups.length === 1 && groups[0].items.length === list.length) return brandTypeSections(list, apparel);
   const sections = [];
   const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i })).sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
-  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: sales });
+  if (sales.length) sections.push({ key: "ofertas", title: "Ofertas", items: lead(sales) });
   const known = groups.filter((g) => g.items.length >= BRAND_ROOM_MIN).slice(0, BRAND_ROOM_MAX);
-  const order = (l) => l.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.i - b.i)).map((x) => x.p);
+  const order = (l) => lead(l.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.i - b.i)).map((x) => x.p));
   for (const g of known) sections.push({ key: "marca:" + g.key, title: g.label, items: order(g.items) });
   const knownKeys = new Set(known.map((g) => g.key));
   const tail = list.filter((p) => !knownKeys.has(String(p.brand || "").trim().toLowerCase()));
@@ -296,7 +321,7 @@ const GEAR_TYPES = [
   ["balones", "Balones y pelotas", /\b(?:soccer|foot|basket|volley|tennis|pickle|golf|base|soft|training|match|futsal) ?balls?\b|\bbal[oó]n(?:es)?\b|\bpelotas?\b/i],
 ];
 const gearType = (p) => { const t = String((p && p.title) || "") + " " + String((p && p.type) || ""); for (const [k, , rx] of GEAR_TYPES) if (rx.test(t)) return k; return ""; };
-function brandTypeSections(list) {
+function brandTypeSections(list, apparel = false) {
   const kind = (p) => gearType(p) || modaType(p);
   if (list.filter(kind).length < list.length * 0.6) return buildSectionsRaw(list, {});
   const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i })).sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
@@ -309,7 +334,7 @@ function brandTypeSections(list) {
   secs.sort((a, b) => b.items.length - a.items.length);
   const rest = list.filter((p) => !kind(p));
   if (rest.length) secs.push({ key: "tipo:otros", title: "Más productos", items: rest });
-  return (sales.length ? [{ key: "ofertas", title: "Ofertas", items: sales }] : []).concat(secs).map((x) => ({ ...x, items: photosFirst(x.items) }));
+  return (sales.length ? [{ key: "ofertas", title: "Ofertas", items: apparel ? clothesFirst(sales) : sales }] : []).concat(secs).map((x) => ({ ...x, items: photosFirst(x.items) }));
 }
 export function typeViewSections(list) {
   const known = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim()))).filter((g) => g.items.length >= BRAND_ROOM_MIN);
@@ -346,7 +371,7 @@ export function sectionOpts(key) {
   if (key === TECH_DEPT) return { tech: true };
   if (key === CABELLO_DEPT) return { cabello: true };
   if (key === "perfumes") return { perfume: true };
-  if (BRAND_ROOMS.has(key)) return { brandRoom: true };
+  if (BRAND_ROOMS.has(key)) return { brandRoom: true, apparel: APPAREL_ROOMS.has(key) };
   if (key === REFURB_DEPT) return { refurb: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
@@ -1063,7 +1088,7 @@ function buildSectionsRaw(list, opts = {}) {
   if (opts.cabello) return buildCabelloSections(list);
   /* The Perfumes room is always the room, whatever store a bottle comes from. */
   if (opts.perfume) return buildPerfumeSections(list);
-  if (opts.brandRoom) return buildBrandRoomSections(list);
+  if (opts.brandRoom) return buildBrandRoomSections(list, opts.apparel);
   if (opts.refurb) return buildRefurbSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which

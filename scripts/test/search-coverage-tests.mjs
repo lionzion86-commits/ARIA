@@ -14,8 +14,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { CATALOG_FILES } from "../build-search-index.mjs";
 import { isOffSaleRetailer } from "../lib/off-sale.js";
-import { deviceLead } from "../../netlify/functions/_search-core.js";
-import { isConsole } from "../lib/tech-aisle.js";
+import { deviceLead, isConsoleTitle } from "../../netlify/functions/_search-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -89,8 +88,8 @@ check("F6: a device search opens on the device, not what fits it", () => {
      charger plate, not the phone itself. */
   for (const t of top("funda celular", 4)) assert.match(t, /\bcase\b/i, "funda celular: " + t);
   for (const t of top("cargador iphone", 4)) { assert.match(t, /charger/i, "cargador iphone: " + t); assert.match(t, /phone|iphone|magsafe/i, "cargador iphone: " + t); }
-  /* «consola» opens on the consoles themselves, by the Electrónica Consolas rule. */
-  if (CONSOLES >= 4) for (const t of top("consola", 4)) assert.ok(isConsole({ title: t }), "consola: " + t);
+  /* «consola» opens on the consoles themselves: the title opens on the console (#443 c.6544117193). */
+  if (CONSOLES >= 4) for (const t of top("consola", 4)) assert.ok(isConsoleTitle(t), "consola: " + t);
 });
 
 check("monitors: a monitor sold with a stand is a monitor; a baby monitor is asked for by name", () => {
