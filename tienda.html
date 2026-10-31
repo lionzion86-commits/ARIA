@@ -885,8 +885,29 @@ function slCardHTML(p){
     ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">';
   return '<a class="card" href="' + esc(href) + '">' +
     '<div class="card-img">' + (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img + '</div>' +
-    '<div class="card-body"><div class="card-brand">' + (p.k ? '<span class="card-cond">' + esc(p.k) + '</span>' : '') + (p.brand ? esc(p.brand) : (p.k ? '' : '&nbsp;')) + '</div>' +
-      '<h3 class="card-title">' + esc(p.name) + '</h3>' + slPriceHTML(p) + '</div></a>';
+    '<div class="card-body"><div class="card-brand">' + (p.k ? '<span class="card-cond">' + esc(p.k) + '</span> ' : '') + (p.brand ? esc(p.brand) : (p.k ? '' : '&nbsp;')) + '</div>' +
+      '<h3 class="card-title">' + esc(cardTitleText(p.name, p.k, p.brand)) + '</h3>' + slPriceHTML(p) + '</div></a>';
+}
+/* CARD TITLE HYGIENE (#443 c.6534989244 item 6), on screen only -- the
+   link keeps the store's own name. With a condition label on the card
+   (in Spanish, before the brand), the title drops the store's English
+   condition words ("(Open Box) Apple AirPods Pro 2"). The brand is said
+   once: when the card's brand line names it, the title does not open
+   with it again ("ASUS" over "ASUS ROG Strix G16" reads "ROG Strix
+   G16"), and a word doubled at the very start goes once ("VAIO VAIO"). */
+var COND_WORDS_RX = /\(\s*(?:open[- ]box|refurbished|renewed|restored|certified pre-?owned|pre-?owned|used)\s*\)|^\s*(?:open[- ]box|refurbished|renewed|restored|certified pre-?owned|pre-?owned)\b\s*[-:\u2013]?\s*/ig;
+function cardTitleText(name, cond, brand){
+  var t = String(name || '');
+  if (cond) t = t.replace(COND_WORDS_RX, ' ');
+  t = t.replace(/\s{2,}/g, ' ').replace(/^[\s\-:\u2013,]+/, '').trim();
+  var w = t.split(' ');
+  if (w.length > 2 && /^[A-Za-z][A-Za-z0-9&'.-]+$/.test(w[0]) && w[1].toLowerCase() === w[0].toLowerCase()) w.splice(0, 1);
+  t = w.join(' ');
+  var b = String(brand || '').trim();
+  if (b && t.length > b.length + 3 && t.slice(0, b.length).toLowerCase() === b.toLowerCase() && /[\s,:\-\u2013]/.test(t.charAt(b.length))) {
+    t = t.slice(b.length).replace(/^[\s,:\-\u2013]+/, '');
+  }
+  return t || String(name || '');
 }
 /* A PHOTO LOADS WHEN ITS CARD IS ABOUT TO BE SEEN -- search.html's
    watchPhotos: native lazy loading fetched a whole carousel's photos at

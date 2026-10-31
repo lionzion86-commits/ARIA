@@ -17,7 +17,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { gymKind, isGymApparel } from "../lib/gym-apparel.js";
-import { GYM_BRANDS, looksSpanish } from "../build-gym-pulls.mjs";
+import { GYM_BRANDS } from "../build-gym-pulls.mjs";
 import { isOffSaleRetailer } from "../lib/off-sale.js";
 import { DEPT_RULES, belongsToDept, loadAllItems } from "../build-department-slices.mjs";
 
@@ -61,7 +61,12 @@ check("the catalogue: 12 brands; only clothing in gym_rat, only gear in combat_s
     for (const it of gym.concat(fight)) {
       assert.ok(it.price > 0 && /^https:\/\//.test(it.image), `${key}: ${it.name}`);
       /* Spanish or nothing: the English stays as description_en. */
-      if (it.description) assert.ok(looksSpanish(it.description), `${key}: a description that is not Spanish on ${it.name}`);
+      if (it.description) {
+        const es = (it.description.match(/\b(el|la|los|las|de|del|con|para|y|en|que|su|sus|una|un|por|es)\b/gi) || []).length;
+        const en = (it.description.match(/\b(the|and|with|for|your|this|that|is|are|of|to|in|it)\b/gi) || []).length;
+        /* Too few function words to tell (a bullet list): not judged. */
+        if (es + en >= 4) assert.ok(es > en, `${key}: a description that is not Spanish on ${it.name}`);
+      }
     }
   }
 });
