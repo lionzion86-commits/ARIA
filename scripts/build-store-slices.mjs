@@ -56,6 +56,7 @@ import { conditionOfTitle } from "./lib/condition.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
 import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
+import { celularesOrder } from "../netlify/functions/_department-core.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
@@ -73,7 +74,7 @@ export const EAGER_RAILS = 10;
    compare-at price (the sale rule's was-price) is a deal; «Hasta X%» is
    the largest discount among the items the card shows. One hero, not an
    ad wall. */
-export const DEALS_HERO_STORES = new Set(["walmart"]);
+export const DEALS_HERO_STORES = new Set(["walmart", "brandsmart"]);
 export const DEALS_HERO_ITEMS = 4;
 export function dealsHero(rows, saleIdx) {
   const seen = new Set(), picks = [];
@@ -177,11 +178,17 @@ export const SLICED_STORES = {
     DEPT_ORDER: AISLE_ORDER,
     DEPT_LABELS: AISLE_LABELS,
   },
+  /* The store template (#443 c.6534989244 Part 3): hero, Ofertas first,
+     the count line, then the aisles biggest first with the small ones in
+     one shared rail; sellable first inside every rail, Celulares in the
+     Celulares order (accessible phones, the iPhone 18, the mid range,
+     the other flagships last). */
   brandsmart: {
     file: "brandsmart-catalog.json",
     label: "BrandsMart USA",
     DEPT_ORDER: AISLE_ORDER,
     DEPT_LABELS: AISLE_LABELS,
+    TEMPLATE: true,
   },
   snipes: {
     file: "snipes-catalog.json",
@@ -440,7 +447,7 @@ export function storeProducts(key, root = ROOT) {
   const data = JSON.parse(readFileSync(join(root, cfg.file), "utf8"));
   const r = data.retailers[key];
   const out = [];
-  const seen = new Set();
+  const seen = new Set(), byTitle = new Map();
   for (const [dept, bucket] of Object.entries(r.departments || {})) {
     for (const p of bucket.items || []) {
       const name = String(p.name || p.title || "").trim();
@@ -448,8 +455,17 @@ export function storeProducts(key, root = ROOT) {
       const image = realImage(p);
       if (!name || !(price > 0) || !image || !shippable(p)) continue;
       const k = name + "||" + image;
+      /* One product, one card (item 14): the same title at the same price
+         is one product, whatever photo each copy carries. */
+      /* ...and the same title twice is one card: the cheaper listing. */
+      const tk = cfg.TEMPLATE ? "t|" + tmplTitleKey(name) : "";
       if (seen.has(k)) continue;
+      if (tk && byTitle.has(tk)) {
+        const at = byTitle.get(tk);
+        if (price < out[at].price) out[at] = null; else continue;
+      }
       seen.add(k);
+      if (tk) byTitle.set(tk, out.length);
       const pct = sale.discountPct(p);
       out.push({
         name, brand: p.brand || "", price, was: pct > 0 ? sale.originalPrice(p) : 0, pct, image, dept,
@@ -459,7 +475,7 @@ export function storeProducts(key, root = ROOT) {
       });
     }
   }
-  return out;
+  return out.filter(Boolean);
 }
 
 /* A row carries its photo count (ROW.ph) only when 2+. */
@@ -493,8 +509,43 @@ export function sprinklePremium(list) {
   return out;
 }
 
+const tmplTitleKey = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+export const TEMPLATE_RAIL_MIN = 25;
+export const TEMPLATE_ACCESSIBLE_USD = 200;
+const templateTier = (p) => (p.price <= TEMPLATE_ACCESSIBLE_USD ? (p.pct > 0 ? 0 : 1) : 2);
+const sellableFirst = (a, b) => (templateTier(a) - templateTier(b)) || (b.reviews - a.reviews) || (b.rating - a.rating) || ((b.pct || 0) - (a.pct || 0)) || (a.price - b.price);
+/* The template's departments: by their true size, biggest first; a
+   department under TEMPLATE_RAIL_MIN shares one "Más de <tienda>" rail. */
+export function templateDepts(cfg, products) {
+  const count = (d) => products.filter((p) => p.dept === d).length;
+  const present = cfg.DEPT_ORDER.filter((d) => count(d) > 0).sort((a, b) => count(b) - count(a));
+  return { big: present.filter((d) => count(d) >= TEMPLATE_RAIL_MIN), small: present.filter((d) => count(d) < TEMPLATE_RAIL_MIN) };
+}
+function templateRails(cfg, products) {
+  const rails = [];
+  const sales = products.filter((p) => p.pct > 0).sort(sellableFirst);
+  if (sales.length) rails.push({ key: "ofertas", title: "Ofertas de " + cfg.label, items: sales });
+  const best = products.filter((p) => p.reviews > 0).sort((a, b) => (b.reviews - a.reviews) || (b.rating - a.rating)).slice(0, 50);
+  if (best.length >= RAIL_HEAD) rails.push({ key: "masvendidos", title: "Más vendidos", items: best });
+  const shown = new Set(rails.flatMap((r) => r.items.slice(0, RAIL_HEAD)));
+  const fresh = (arr) => arr.filter((p) => !shown.has(p)).concat(arr.filter((p) => shown.has(p)));
+  const { big, small } = templateDepts(cfg, products);
+  for (const dept of big) {
+    const list = products.filter((p) => p.dept === dept);
+    /* Celulares: the one phone order (netlify/functions/_department-core.js). */
+    const items = dept === "tech_celulares"
+      ? celularesOrder(list.map((p) => ({ title: p.name, brand: p.brand, price: p.price, p }))).map((x) => x.p)
+      : fresh(list.sort(sellableFirst));
+    rails.push({ key: "d-" + dept, dept, title: cfg.DEPT_LABELS[dept] || dept, items });
+  }
+  const tail = products.filter((p) => small.includes(p.dept)).sort(sellableFirst);
+  if (tail.length) rails.push({ key: "d-mas", title: "Más de " + cfg.label, items: fresh(tail) });
+  return rails;
+}
+
 export function storeRails(key, products) {
   const cfg = SLICED_STORES[key];
+  if (cfg.TEMPLATE) return templateRails(cfg, products);
   const bySale = (a, b) => (saleScore(b) - saleScore(a)) || (b.reviews - a.reviews) || (a.price - b.price);
   const rails = [];
   const sales = products.filter((p) => p.pct > 0).sort(bySale);
@@ -554,7 +605,7 @@ export function buildStore(key, root = ROOT) {
   const index = {
     v: 1, store: key, label: cfg.label, count: products.length, pageSize: PAGE_SIZE, railPages: "static",
     onSale: products.filter((p) => p.pct > 0).length,
-    depts: cfg.DEPT_ORDER.filter((d) => products.some((p) => p.dept === d))
+    depts: (cfg.TEMPLATE ? [...templateDepts(cfg, products).big, ...templateDepts(cfg, products).small] : cfg.DEPT_ORDER.filter((d) => products.some((p) => p.dept === d)))
       .map((d) => ({ key: d, label: cfg.DEPT_LABELS[d] || d, count: products.filter((p) => p.dept === d).length })),
     rails: rails.map((r) => ({ key: r.key, title: r.title, dept: r.dept || null, total: r.items.length,
       pages: Math.ceil(r.items.length / PAGE_SIZE), head: r.items.slice(0, RAIL_HEAD).map(cardOf) })),
@@ -570,6 +621,11 @@ export function buildStore(key, root = ROOT) {
   const ranked = products.slice().sort((a, b) => (saleScore(b) - saleScore(a)) || (b.reviews - a.reviews));
   const rows = ranked.map((p) => withPhotos([p.name, p.brand, p.price, p.was || 0, p.pct || 0, p.image, p.dept, "", ""], p.ph));
   const fn = fnFile(key, rows, ranked, rails);
+  if (DEALS_HERO_STORES.has(key)) {
+    const deepest = rows.map((r, i) => i).filter((i) => rows[i][4] > 0).sort((a, b) => (rows[b][4] - rows[a][4]) || (rows[b][2] - rows[a][2]));
+    const hero = dealsHero(rows, deepest);
+    if (hero) index.hero = hero;
+  }
   return { files, fn, products, rails };
 }
 
