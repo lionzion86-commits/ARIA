@@ -83,6 +83,12 @@ export function* recordsOf(catalog, retailerKey = null) {
   }
 }
 
+/** A product page's numeric id, when its URL ends in one (Walmart /ip/<slug>/<id>). */
+export function urlProductId(u) {
+  const m = /\/ip\/(?:[^/?#]+\/)?(\d{5,})(?:[/?#]|$)/i.exec(String(u || ""));
+  return m ? m[1] : "";
+}
+
 /** A title as a match key: entities decoded, case, accents and spacing folded. */
 export function titleMatchKey(t) {
   const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
@@ -223,9 +229,11 @@ export function mergeGalleries(catalog, rows, { retailerKey = null, photoKey, is
      2026-10-30 re-pull: Victoria's Secret, BoxLunch, AE, most baby
      stores) by its exact title -- and only when that title names ONE
      record of the store, so a gallery is never lent to a lookalike. */
-  const byUrlRecs = new Map(), byTitle = new Map();
+  const byUrlRecs = new Map(), byTitle = new Map(), byId = new Map();
   for (const rec of recordsOf(catalog, retailerKey)) {
     if (rec.url) { const k = bareUrl(rec.url); if (!byUrlRecs.has(k)) byUrlRecs.set(k, []); byUrlRecs.get(k).push(rec); }
+    const id = urlProductId(rec.url);
+    if (id) { if (!byId.has(id)) byId.set(id, []); byId.get(id).push(rec); }
     const t = titleMatchKey(rec.name || rec.title);
     if (t) { if (!byTitle.has(t)) byTitle.set(t, []); byTitle.get(t).push(rec); }
   }
@@ -233,6 +241,8 @@ export function mergeGalleries(catalog, rows, { retailerKey = null, photoKey, is
   let unmatchedRows = 0;
   for (const row of rows || []) {
     let recs = byUrlRecs.get(bareUrl(rowUrl(row)));
+    /* The same product under another slug (Walmart /ip/<slug>/<id>): its id. */
+    if (!recs && urlProductId(rowUrl(row))) recs = byId.get(urlProductId(rowUrl(row)));
     if (!recs || !rowUrl(row)) {
       const hit = byTitle.get(titleMatchKey(row && (row.title || row.name)));
       /* One product: one record, or the same product listed under its
