@@ -517,6 +517,7 @@ export function sectionOpts(key) {
   if (key === CABELLO_DEPT) return { cabello: true };
   if (key === "perfumes") return { perfume: true };
   if (BRAND_ROOMS.has(key)) return { brandRoom: true, apparel: APPAREL_ROOMS.has(key) };
+  if (key === PLUS_DEPT) return { plus: true };
   if (key === REFURB_DEPT) return { refurb: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
 }
@@ -1015,6 +1016,29 @@ export function lensOf(key, pill) {
     rails: secs.map((s) => ({ title: s.title, count: s.items.length, cards: s.items.slice(0, RAIL_CARDS).map(cardOf) })) };
 }
 
+/* ---------- TALLAS PLUS (#443 c.6526833313) ----------
+   Ofertas, then her clothing by Moda Mujer's Spanish types, then his
+   (Moda Hombre's), never a store's English type ("T Shirts", "Bralette").
+   The list arrives women first, each product's wearer in g
+   (build-department-slices plusGender), which the endpoint rows carry. */
+export const PLUS_DEPT = "curvy";
+const PLUS_NOT_CLOTHING = new Set(["zapatos", "zapatillas", "carteras", "joyas", "lentes", "gorras"]);
+function buildPlusSections(list) {
+  const sales = list.filter((p) => p.salePct > 0);
+  const sections = sales.length ? [{ key: "ofertas", title: "Ofertas", items: sales }] : [];
+  const men = list.filter((p) => p.g === "men");
+  const women = list.filter((p) => !men.includes(p));
+  for (const [who, l, labels] of [["mujer", women, MODA_LABELS.women], ["hombre", men, MODA_LABELS.men]]) {
+    const by = new Map();
+    /* Every product here is clothing (the membership rule); a word like
+       "ring" or "pouch" in its name does not make it a jewellery rail. */
+    for (const p of l) { let m = modaType(p) || "otros"; if (PLUS_NOT_CLOTHING.has(m)) m = "otros"; if (!by.has(m)) by.set(m, []); by.get(m).push(p); }
+    for (const [m, label] of labels) if (by.has(m)) sections.push({ key: "tipo:" + who + "-" + m, title: who === "hombre" ? label + " para hombre" : label, items: by.get(m) });
+    if (by.has("otros")) sections.push({ key: "tipo:" + who + "-otros", title: who === "hombre" ? "Más ropa para hombre" : "Más ropa", items: by.get("otros") });
+  }
+  return sections;
+}
+
 /* ---------- REACONDICIONADOS (#443, pills c.6526570723) ----------
    Ofertas, then the electronics by Electrónica's own Spanish aisles
    (the stores' English types -- "Tablet Computers", "Cell Phones" --
@@ -1234,6 +1258,7 @@ function buildSectionsRaw(list, opts = {}) {
   /* The Perfumes room is always the room, whatever store a bottle comes from. */
   if (opts.perfume) return buildPerfumeSections(list);
   if (opts.brandRoom) return buildBrandRoomSections(list, opts.apparel);
+  if (opts.plus) return buildPlusSections(list);
   if (opts.refurb) return buildRefurbSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
      audit it also admits the true fragrances other stores sell, which
