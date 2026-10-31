@@ -146,5 +146,17 @@
  "yesstyle": {
   "maxMissing": 1225,
   "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "ryderwear": {
+  "maxMissing": 6,
+  "reason": "no source text in Lucifer's gym pull (gym-pulls-2026-10-30): neither description nor description_en"
+ },
+ "gorillawear": {
+  "maxMissing": 8,
+  "reason": "no source text in Lucifer's gym pull (gym-pulls-2026-10-30): neither description nor description_en"
+ },
+ "athleta": {
+  "maxMissing": 53,
+  "reason": "no source text in Lucifer's gym pull (gym-pulls-2026-10-30): neither description nor description_en; off sale (off-sale.js), shows nowhere"
  }
 }
