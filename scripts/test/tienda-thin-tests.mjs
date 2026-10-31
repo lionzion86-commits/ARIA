@@ -149,7 +149,8 @@ await check("Más vendidos follows Ofertas where the store publishes demand; typ
     const ks = idx(k).rails.map((r) => r.key);
     assert.ok(ks.slice(ks[1] === "masvendidos" ? 2 : 1).every((x) => x.startsWith("t-")), `${k}: ${ks.join(",")}`);
   }
-  assert.equal(idx("ccs").rails[1].key, "t-trajes_bano", "CCS publishes no demand: no Más vendidos");
+  /* CCS publishes no demand: no Más vendidos; its biggest aisle follows Ofertas (#443 c.6534989244). */
+  assert.ok(idx("ccs").rails[1].key.startsWith("t-") && idx("ccs").rails[1].key !== "t-mas", "CCS publishes no demand: no Más vendidos");
 });
 
 await check("caps: 16 cards per rail on the first screen, 48 per page, first screen under 30KB gzipped", () => {
