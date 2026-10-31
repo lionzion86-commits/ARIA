@@ -345,6 +345,11 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
 (function(){
   'use strict';
 
+  /* NO IMAGE, NO CARD (#443 c.6547325227): a card whose photo will not load
+     never shows a placeholder. photoGone hides the dead photo and hands it to
+     card-photos.js (ariaPhotoRescue), which tries the product's next photos
+     and, if none loads, takes the whole card off the rail. */
+  window.photoGone = function(el){ try { el.style.visibility = 'hidden'; if (window.ariaPhotoRescue) return window.ariaPhotoRescue(el); (window.__ariaDeadPhotos = window.__ariaDeadPhotos || []).push(el); } catch (e) {} };
   /* ---------------- shared ---------------- */
   /* RAIL_MAX 12 (#409 mountain): at most 12 cards a carousel, drawn when
      the carousel is about to be seen (watchRails). */
@@ -514,8 +519,10 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
       var href = 'producto.html?producto=' + encodeURIComponent(p.t) + '&tienda=' + encodeURIComponent(p.r);
       /* Never a photo that was not cleared of its US price sticker. */
       var img = hasPic(p)
-        ? '<img data-src="' + esc(p.img) + '"' + (p.ph > 1 ? ' data-g="' + p.ph + '"' : '') + ' alt="" decoding="async" onerror="this.remove()">'
-        : '<span class="noimg">Sin imagen</span>';
+        ? '<img data-src="' + esc(p.img) + '"' + (p.ph > 1 ? ' data-g="' + p.ph + '"' : '') + ' alt="" decoding="async" onerror="photoGone(this)">'
+        : '';
+      /* No image, no card (#443 c.6547325227). */
+      if (!img) return '';
       /* The catalogue's own description when there is one; otherwise
          what the product is. Never invented copy. */
       var desc = p.d || SUB_LABEL[p.sub] || '';

@@ -173,6 +173,61 @@
     paintDots(card, img, Math.min(+img.getAttribute("data-g"), 8), 0);
   }
 
+  /* NO IMAGE, NO CARD (#443 c.6547325227, the Ancora "Swimming Up Trunk"
+     whose lead photo went 404 at the source). A card whose photo will
+     not load never shows a placeholder: the dead photo is hidden, the
+     product's own gallery (its PDP shard, the same one the arrows use)
+     is walked for the next photo that actually loads, and when none
+     does the whole card leaves the rail. The pages hand a dead photo
+     here through photoGone (queued in window.__ariaDeadPhotos when it
+     fails before this file has run); the app bundle's cardPhotoFallback
+     calls it after its own retries. */
+  function cardRootOf(img) {
+    if (!img || !img.closest) return null;
+    return img.closest("[data-card-root]") || img.closest(CARD) || img.closest("article.card, a.card, div.card, .ariaCarouselCard");
+  }
+  function dropCard(card, img) {
+    if (card && card.parentNode) { card.parentNode.removeChild(card); later(); return; }
+    if (img && img.parentNode) img.parentNode.removeChild(img);
+  }
+  function rescue(img) {
+    if (!img || img._cpRescue) return;
+    img._cpRescue = 1;
+    img.style.visibility = "hidden";
+    var card = cardRootOf(img);
+    var pc = (img.closest && img.closest("[data-cp-t]")) || card;
+    var p = pc && productOf(pc);
+    if (!p) { dropCard(card, img); return; }
+    var tried = {};
+    [img.getAttribute("src"), img.src, img.currentSrc, img.getAttribute("data-img-fallback"), img.getAttribute("data-img-orig"), img.getAttribute("data-src")]
+      .forEach(function (u) { if (u) tried[u] = 1; });
+    try { JSON.parse(img.getAttribute("data-img-tried") || "[]").forEach(function (u) { tried[u] = 1; }); } catch (e) {}
+    var key = norm(p.title);
+    shard(shardOf(key)).then(function (d) {
+      var cands = (d && d[key]) || [], rec = null;
+      for (var i = 0; i < cands.length; i++) if (String(cands[i].retailer || "").toLowerCase() === p.store) { rec = cands[i]; break; }
+      rec = rec || cands[0];
+      var list = rec ? unpack(rec.images, rec.image).filter(function (u) { return u && !tried[u] && /^https?:/i.test(u); }) : [];
+      (function next(k) {
+        if (k >= list.length) { dropCard(card, img); return; }
+        var probe = new Image();
+        probe.onload = function () {
+          img.onerror = function () { dropCard(card, img); };
+          img.removeAttribute("srcset");
+          img.removeAttribute("data-img-fallback");
+          img.src = list[k];
+          img.style.visibility = "";
+          if (pc) pc._cpGallery = null;
+          if (card) card._cpGallery = null;
+        };
+        probe.onerror = function () { next(k + 1); };
+        probe.src = list[k];
+      })(0);
+    }, function () { dropCard(card, img); });
+  }
+  window.ariaPhotoRescue = rescue;
+  (window.__ariaDeadPhotos || []).splice(0).forEach(rescue);
+
   /* A tap on an arrow steps the photo; it never opens the product. */
   document.addEventListener("click", function (e) {
     var b = e.target && e.target.closest && e.target.closest(".cp-nav");
