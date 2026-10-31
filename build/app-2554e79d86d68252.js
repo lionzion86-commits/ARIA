@@ -923,10 +923,11 @@ const DEPARTMENT_META = {
   home_goods: { label: 'Casa Aria', icon: '' },
   home_decor: { label: 'Decoración', icon: '' },
 
-  /* "Curvy" is Danny's pick and it stays in English, alone. The
-     supporting line carries the words people actually search --
-     see CURVY_BLURB. Never "Big & Tall". */
-  curvy: { label: 'Curvy', icon: '' },
+  /* TALLAS PLUS (Danny, #443 c.6526833313): "Curvy" is brandy, but
+     shoppers -- older shoppers above all -- do not read it; «Tallas
+     Plus» they enter directly. The key stays `curvy` (its links). Never
+     "Big & Tall". */
+  curvy: { label: 'Tallas Plus', icon: '' },
   /* GYM RAT (2026-09-26, Danny): the gym-culture identity destination.
      Danny's pick and it stays in English, alone — the way Curvy and
      Aria Beauty are. Never "Activewear" or "Ropa Deportiva". */
@@ -2594,9 +2595,13 @@ function rawItemOnSale(item){ return isOnSaleItem(item); }
    XXXL/XXXXL", the eligible set is the same 11 products. Every plain-XXL
    item in the data also carries a larger size.
    ============================================================ */
+/* TALLAS PLUS (Danny, #443 c.6526833313): "large and up", on the size
+   run the store actually offers -- women's XL / 1X+ or numeric 14+,
+   men's XL+ or waist 40+. Never a word in a title or a fit name.
+   MIRROR of scripts/lib/sizes.js isExtendedSize. */
 const EXTENDED_SIZES = new Set([
-  'xxl', '2xl', 'xxxl', '3xl', 'xxxxl', '4xl', 'xxxxxl', '5xl',
-  '1x', '2x', '3x', '4x', '5x', '6x',
+  'xl', 'xxl', '2xl', 'xxxl', '3xl', 'xxxxl', '4xl', 'xxxxxl', '5xl', '6xl',
+  '0x', '1x', '2x', '3x', '4x', '5x', '6x',
   /* KOHL'S (2026-09-26). The pull titles its range "Plus Size" but
      publishes no per-size list; the normalizer carries the retailer's
      own label in availableSizes (never an invented 1X/2X run), and
@@ -2612,11 +2617,27 @@ function retailerSizesOf(item){
   return raw.filter(s => typeof s === 'string' && s.trim());
 }
 
-function extendedSizesOf(item){
-  return retailerSizesOf(item).filter(s => EXTENDED_SIZES.has(s.trim().toLowerCase()));
+const SIZE_CUT_RX = /[\s-]*(tall|petite|plus|regular|short|long|big|t|p)$/;
+const NUMERIC_SIZE_RX = /^w?(\d{1,2})(?:\.5)?\s*(?:w|wp|wt|t|p|petite|plus|tall)?(?:\s*[x\/-]\s*l?\d{1,2}(?:\.\d)?)?$/;
+function isExtendedSize(size, gender = 'women', dressRun = true){
+  const t = String(size || '').trim().toLowerCase();
+  if (!t) return false;
+  if (EXTENDED_SIZES.has(t) || EXTENDED_SIZES.has(t.replace(SIZE_CUT_RX, ''))) return true;
+  const m = t.match(NUMERIC_SIZE_RX);
+  if (!m) return false;
+  const n = Number(m[1]);
+  return gender === 'men' ? n >= 40 && n <= 60 : n >= 14 && n <= 40 && (dressRun || /\d\s*(w|wp|plus)\b/.test(t));
+}
+function isDressRun(run){
+  return run.some(s => { const m = String(s).trim().toLowerCase().match(NUMERIC_SIZE_RX); return m && Number(m[1]) <= 12; });
 }
 
-function hasExtendedSizes(item){ return extendedSizesOf(item).length > 0; }
+function extendedSizesOf(item, gender = 'women'){
+  const run = retailerSizesOf(item), dress = isDressRun(run);
+  return run.filter(s => isExtendedSize(s, gender, dress));
+}
+
+function hasExtendedSizes(item, gender = 'women'){ return extendedSizesOf(item, gender).length > 0; }
 /* CURVY STORE CARDS (2026-09-25, Danny): the department opens with one wide
    card per store that carries extended sizes -- Lane Bryant first (the
    plus-size destination), then Old Navy, then Victoria's Secret, then the
@@ -2654,7 +2675,7 @@ function sizeRunLabels(item){
     .map(s => s.toUpperCase());
 }
 
-/* The supporting line. "Curvy" alone is the name Danny chose; these are
+/* The supporting line under «Tallas Plus» (c.6526833313); these are
    the words a shopper actually types, and they carry both halves of the
    department without the title reading like a size chart. */
 const CURVY_BLURB = 'Tallas grandes y extendidas';
@@ -2787,8 +2808,14 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
     /* CURVY IS HER SECTION (Danny 2026-10-04): essentially women-only.
        A man can still search -- extended sizes live in the regular sizes
        too -- but the Curvy pool itself carries no men's or kids' items. */
-    if (genderOfItem(item, bucketName) !== 'women') return false;
-    return hasExtendedSizes(item);
+    /* TALLAS PLUS (c.6526833313): women's and men's apparel offered in
+       extended sizes; never a child's, never a cream or an accessory
+       whatever its label says (the product-type classifier decides). */
+    const g = genderOfItem(item, bucketName);
+    if (g !== 'women' && g !== 'men') return false;
+    const fam = latinoProductTypeOfItem({ ...item, retailer });
+    if (fam !== 'ropa' && fam !== 'trajes_bano') return false;
+    return hasExtendedSizes(item, g);
   }
   if (!dept.gender) return true;
   return genderOfItem(item, bucketName) === dept.gender;
@@ -6895,7 +6922,11 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      stuff leading. Women lead inside each group; the sale/discount
      order still decides within each gender. */
   const womenFirst = Boolean(opts && opts.womenFirst);
-  const womanRank = (p) => (womenFirst && !railBucketGenderIs(p, 'women')) ? 1 : 0;
+  /* TALLAS PLUS (c.6526833313): inside each gender the true plus run --
+     1X+, XXXL+, 16+ -- leads a run that only reaches XL or XXL. */
+  const PLUS_DEEP_RX = /^(?:[1-6]x|xxxx*l|[3-6]xl|(?:1[6-9]|[2-3]\d)\s*(?:w|wp|plus)?)\b/i;
+  const plusShallow = (p) => { const l = Array.isArray(p && (p.sizes ?? p.availableSizes)) ? (p.sizes ?? p.availableSizes) : []; return l.some(s => PLUS_DEEP_RX.test(String(s).trim())) ? 0 : 1; };
+  const womanRank = (p) => womenFirst ? (railBucketGenderIs(p, 'women') ? 0 : 2) + plusShallow(p) : 0;
   /* JUGUETES REAL-TOYS-FIRST (2026-09-27, Danny): the tab rail promotes
      real toys for kids -- consoles and toy-grade skateboards stay on the
      shelf but sort after every real toy, the same rule the department
@@ -7209,9 +7240,16 @@ function isToy(item, retailer, bucketName){
 /* Pool-safe extended sizes: raw catalog items carry `availableSizes`, the
    normalized pool carries `sizes`. The rail keeps its own sizes-first check,
    independent of hasExtendedSizes. */
+/* TALLAS PLUS on the front page (c.6526833313): the department's own
+   rule -- her or his apparel offered in an extended size of the store's
+   run (extendedSizesOf), never a child's, never a cream or an accessory. */
 function railHasExtendedSizes(p){
+  const g = genderFromTitle(rawTitleOf(p)) || (railBucketGenderIs(p, 'women') ? 'women' : railBucketGenderIs(p, 'men') ? 'men' : null);
+  if (g !== 'women' && g !== 'men') return false;
+  const fam = latinoProductTypeOfItem(p);
+  if (fam !== 'ropa' && fam !== 'trajes_bano') return false;
   const list = Array.isArray(p && (p.sizes ?? p.availableSizes)) ? (p.sizes ?? p.availableSizes) : [];
-  return list.some(s => EXTENDED_SIZES.has(String(s).trim().toLowerCase()));
+  return extendedSizesOf({ sizes: list }, g).length > 0;
 }
 
 /* TABBED CATEGORY BROWSER (2026-09-26, Danny): twelve destinations, one
@@ -7351,8 +7389,8 @@ const CATEGORY_RAILS = [
     blurb: 'Decoración para tu hogar.',
     test: (p) => railBucketKeyIs(p, 'home_decor'),
     open: "openCatalog('department','home_decor')" },
-  { key: 'curvy', label: 'Curvy', icon: '', stores: null, poolOnly: true, womenFirst: true,
-    blurb: 'Tallas extendidas, de todas las tiendas.',
+  { key: 'curvy', label: 'Tallas Plus', icon: '', stores: null, poolOnly: true, womenFirst: true,
+    blurb: 'De XL en adelante, en las tallas que la tienda realmente vende.',
     test: (p) => railBucketCategoryIs(p, 'apparel') && !railBucketGenderIs(p, 'kids') && railHasExtendedSizes(p),
     open: "openCatalog('department','curvy')" },
   { key: 'gym_rat', label: 'Gym Rat', icon: '', stores: null, poolOnly: true, saleHeavy: true,
@@ -9029,13 +9067,13 @@ function curvyHeroHTML(){
     return '<button onclick="curvyStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
       + ' class="ariaCurvyPill focus-ring">' + curvyEsc(curvyStoreLabel(k)) + '</button>';
   }).join('');
-  return '<section aria-label="Curvy" class="ariaCurvyBanner mb-6"'
+  return '<section aria-label="Tallas Plus" class="ariaCurvyBanner mb-6"'
     + ' style="background-image:url(\'assets/theme/curvy-hero.jpg\')">'
     + '<div class="ariaCurvyBannerShade" aria-hidden="true"></div>'
     + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
     + '<div class="ariaCurvyKicker mb-3">La moda es para todas</div>'
     + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
-    + 'Curvy</h2>'
+    + 'Tallas Plus</h2>'
     + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
     + 'Tallas grandes con estilo — cada prenda XL o m&#225;s grande vive aqu&#237;, de tus tiendas favoritas.</p>'
     + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
@@ -9062,10 +9100,10 @@ function curvyTierFilter(tier){
   if (input) input.value = '';
   if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
   /* The hero buttons now jump straight to the carousels: "Ofertas" scrolls
-     to the Ofertas Curvy sales rail, "Todo" to the top of the feed. */
+     to the Ofertas Tallas Plus sales rail, "Todo" to the top of the feed. */
   setTimeout(function(){
     var target = (tier === 'ofertas')
-      ? document.querySelector('section[aria-label="Ofertas Curvy"]')
+      ? document.querySelector('section[aria-label="Ofertas Tallas Plus"]')
       : document.getElementById('catalogSections');
     if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 60);
@@ -9138,8 +9176,8 @@ function curvyDeptRailsHTML(items){
   /* 1. SALES CAROUSEL FIRST -- pure discount order. */
   var sales = valid.filter(function(p){ return curvyIsSale(p); });
   if (sales.length >= SALE_RAIL_MIN){
-    out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas Curvy',
-      deptMixedRailHeadHTML('Ofertas Curvy', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
+    out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas Tallas Plus',
+      deptMixedRailHeadHTML('Ofertas Tallas Plus', 'Los descuentos más grandes primero'), picks(sales, null), { fullList: merchSort(sales) }));
   }
 
   /* 2. ONE CAROUSEL PER STORE -- lead stores first, then biggest. */
