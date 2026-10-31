@@ -683,8 +683,194 @@ function brandStoreLanes(ctx, q, r) {
   return { all, stores };
 }
 
+/* ==================================================================
+   THE SEARCH DOCTRINE (#443 c.6547231776, c.6547453746, c.6547518074,
+   c.6547946175): ONE system for every search -- brand, model or
+   category term.
+     1. A query that names a store Aria carries goes to that store's
+        page (storeFor); no results grid. A store whose name is also a
+        brand other stores sell (Crocs) is searched as the brand.
+     2. Otherwise: the comparison charts for the exact product, then
+        Ofertas for the term, then ONE rail per store that carries the
+        term or its brand -- never the side-by-side grid.
+     3. Inside a store's rail: the exact item first (every model and
+        colourway it has), then the same brand from that store, then
+        similar items from that store (the answer's category). A store
+        with none of the exact item still gets its rail: brand items.
+     Every rail holding more than it shows pages on (lanePage).
+   ================================================================== */
+const STORE_ALIASES = {
+  vs: "victoriassecret", victoria: "victoriassecret", victorias: "victoriassecret", "victoria secret": "victoriassecret",
+  "victorias secret": "victoriassecret", "victoria s": "victoriassecret", dick: "dicks", dicks: "dicks", "dick s": "dicks",
+  "dicks sporting goods": "dicks", "dick s sporting": "dicks", bbw: "bathandbodyworks", "bath and body works": "bathandbodyworks",
+  "bath body works": "bathandbodyworks", "b h": "bhphoto", "b h photo": "bhphoto", bh: "bhphoto", "a f": "abercrombie", af: "abercrombie",
+  "abercrombie fitch": "abercrombie", "american eagle": "americaneagle", ae: "americaneagle", "foot locker": "footlocker",
+  "finish line": "finishline", "hot topic": "hottopic", "box lunch": "boxlunch", "crate barrel": "crateandbarrel",
+  "crate and barrel": "crateandbarrel", "pier 1": "pier1", "pier one": "pier1", "micro center": "microcenter",
+  "brands mart": "brandsmart", "brandsmart usa": "brandsmart", "lane bryant": "lanebryant",
+};
+function storeNames(ctx) {
+  if (ctx._storeNames) return ctx._storeNames;
+  const m = new Map();
+  const put = (name, key) => { const n = brandKey(name); if (n.length >= 2 && !m.has(n)) m.set(n, key); };
+  for (const [key, label] of Object.entries(ctx.labels || {})) {
+    put(label, key); put(key, key);
+    /* "Victoria's Secret" is typed "victorias secret" as often as "victoria s secret". */
+    put(brandKey(label).replace(/\b(\w+) s\b/g, "$1s"), key);
+  }
+  for (const [a, key] of Object.entries(STORE_ALIASES)) if (ctx.labels && ctx.labels[key]) m.set(brandKey(a), key);
+  return (ctx._storeNames = m);
+}
+/* Brand -> the stores selling it, over the whole index (once). */
+function brandStores(ctx) {
+  if (ctx._brandStores) return ctx._brandStores;
+  const m = new Map();
+  for (const p of ctx.products) {
+    const b = brandKey(p.brand);
+    if (!b) continue;
+    if (!m.has(b)) m.set(b, new Set());
+    m.get(b).add(p.retailer);
+  }
+  return (ctx._brandStores = m);
+}
+export function storeFor(ctx, q) {
+  const k = brandKey(q);
+  if (k.length < 2) return null;
+  const names = storeNames(ctx);
+  let key = names.get(k) || names.get(k.replace(/\b(\w+) s\b/g, "$1s")) || null;
+  if (!key && k.length >= 5) {
+    /* Most of a store's name, from its start ("brandsmart", "victoria s secr"). */
+    const cands = new Set();
+    for (const [n, kk] of names) if (n.startsWith(k) && k.length >= n.length * 0.6) cands.add(kk);
+    if (cands.size === 1) key = [...cands][0];
+  }
+  if (!key) return null;
+  /* A store whose own name is a brand that other stores sell (Crocs at
+     Zumiez, Dick's...) is searched as that brand, store by store. */
+  const sellers = brandStores(ctx).get(k) || brandStores(ctx).get(brandKey(ctx.labels[key] || key));
+  if (sellers && [...sellers].filter((s) => s !== key).length >= 2) return null;
+  return key;
+}
+
+/* Indexes the rails read: brand -> store -> products; store|category -> products. */
+function railIndex(ctx) {
+  if (ctx._railIndex) return ctx._railIndex;
+  const byBrand = new Map(), byCat = new Map(), byStore = new Map();
+  for (const p of ctx.products) {
+    if (!p.image) continue;
+    if (!byStore.has(p.retailer)) byStore.set(p.retailer, []);
+    byStore.get(p.retailer).push(p);
+    const b = brandKey(p.brand);
+    if (b) {
+      if (!byBrand.has(b)) byBrand.set(b, new Map());
+      const ms = byBrand.get(b);
+      if (!ms.has(p.retailer)) ms.set(p.retailer, []);
+      ms.get(p.retailer).push(p);
+    }
+    if (p._cat) {
+      const ck = p.retailer + "|" + p._cat;
+      if (!byCat.has(ck)) byCat.set(ck, []);
+      byCat.get(ck).push(p);
+    }
+  }
+  return (ctx._railIndex = { byBrand, byCat, byStore });
+}
+const saleFirst = (list) => list.map((p, i) => ({ p, i, d: onSaleOf(p) ? discountOf(p) : -1 })).sort((a, b) => (b.d - a.d) || (a.i - b.i)).map((x) => x.p);
+/* The one thing the answer is about: its brand, its category (each only
+   when it holds half the top of the answer, or the query names it). */
+function answerFocus(ctx, q, r) {
+  const top = r.hits.slice(0, 40);
+  const most = (keyOf) => {
+    const n = new Map();
+    for (const p of top) { const k = keyOf(p); if (k) n.set(k, (n.get(k) || 0) + 1); }
+    let best = null, bn = 0;
+    for (const [k, c] of n) if (c > bn) { best = k; bn = c; }
+    return bn >= top.length * 0.5 ? best : null;
+  };
+  const qb = brandKey(q), bs = brandStores(ctx);
+  let brand = most((p) => brandKey(p.brand));
+  if (!brand) { for (const [b] of bs) if (b.length >= 3 && (qb === b || qb.startsWith(b + " "))) { brand = b; break; } }
+  /* The query's own product words, the brand set aside ("levis jeans" ->
+     "jeans"): a store's similar items are the ones its titles name so. */
+  const brandWords = new Set(String(brand || "").split(" "));
+  const words = qb.split(" ").filter((w) => w.length >= 3 && !brandWords.has(w) && !/^levis?$/.test(w));
+  return { brand, cat: most((p) => p._cat), words };
+}
+const stemRx = (w) => new RegExp("\\b" + w.replace(/[^a-z0-9]/g, "").replace(/(es|s)$/, "") + "(?:s|es)?\\b", "i");
+export const SALE_FLOOR = 0.05;
+export const RAIL_CAP = 2000, SIMILAR_CAP = 96, STORE_LANES_MAX = 40;
+/* Every lane of the answer, each with its WHOLE ordered list (deduped,
+   capped): lanesFor shows the first LANE_SIZE, lanePage the rest. */
+function doctrineLanes(ctx, q, r) {
+  if (r._doctrine) return r._doctrine;
+  const inBlock = new Set(compareGroup(ctx, r) || []);
+  const { brand, cat, words } = answerFocus(ctx, q, r);
+  /* The rails show what the old lanes trusted: a product in the answer's
+     own aisle (annotate) and, for a category query, of that category
+     only (r._pure, #443 c.6544117193) -- or the brand the query names. */
+  const A = annotate(ctx, r);
+  const hits = r.hits.filter((p) => (!r._pure || r._pure(p)) && (A.of(p).aisle || (brand && brandKey(p.brand) === brand)));
+  const wordRx = words.map(stemRx);
+  const idx = railIndex(ctx);
+  const lanes = [];
+  /* A real markdown only: the site's sale floor (/sale-rule.js MIN_PCT, 5%). */
+  const sales = saleFirst(hits.filter((p) => discountOf(p) >= SALE_FLOOR && !inBlock.has(p)));
+  if (sales.length >= LANE_MIN) lanes.push({ key: "ofertas", title: "Ofertas", all: distinct(sales, RAIL_CAP) });
+  const exactBy = new Map();
+  for (const p of hits) { if (!exactBy.has(p.retailer)) exactBy.set(p.retailer, []); exactBy.get(p.retailer).push(p); }
+  const brandBy = brand ? (idx.byBrand.get(brand) || new Map()) : new Map();
+  const stores = new Set([...exactBy.keys(), ...brandBy.keys()]);
+  const storeLanes = [];
+  /* The exact item: a product naming every word of the query leads its
+     store's rail; looser matches follow. */
+  const allRx = brandKey(q).split(" ").filter((w) => w.length >= 2).map(stemRx);
+  const full = (p) => allRx.every((rx) => rx.test(brandKey(p.brand) + " " + brandKey(p.title)));
+  for (const store of stores) {
+    const ex0 = exactBy.get(store) || [];
+    const exact = ex0.filter(full).concat(ex0.filter((p) => !full(p)));
+    const seen = new Set(exact);
+    const more = saleFirst((brandBy.get(store) || []).filter((p) => !seen.has(p)));
+    more.forEach((p) => seen.add(p));
+    /* Similar: the store's items named by the query's product words (its
+       other jeans); without such words, the answer's category. */
+    /* Similar: the store's items named by the query's product words (its
+       other jeans) and of the answer's category; without such words, the
+       answer's category. A store with none of the exact item shows the
+       brand only (the doctrine, item 5). */
+    const pure = (p) => (!r._pure || r._pure(p)) && (!cat || p._cat === cat);
+    const similar = !exact.length && brand ? [] : (wordRx.length
+      ? saleFirst((idx.byStore.get(store) || []).filter((p) => !seen.has(p) && pure(p) && wordRx.every((rx) => rx.test(p.title))))
+      : cat ? saleFirst((idx.byCat.get(store + "|" + cat) || []).filter((p) => !seen.has(p) && (!r._pure || r._pure(p)))) : []).slice(0, SIMILAR_CAP);
+    const all = distinct(exact.concat(more, similar), RAIL_CAP);
+    if (!all.length) continue;
+    storeLanes.push({ key: "tienda:" + store, store, title: ctx.labels[store] || store, exact: exact.length, all });
+  }
+  storeLanes.sort((a, b) => (b.exact - a.exact) || (b.all.length - a.all.length) || (a.title < b.title ? -1 : 1));
+  for (const l of storeLanes.slice(0, STORE_LANES_MAX)) lanes.push(l);
+  return (r._doctrine = { brand, cat, lanes });
+}
+/* One more page of one lane ("Ver más" re-rails it). */
+export function lanePage(ctx, q, laneKey, offset = 0, { fx = null } = {}) {
+  const query = String(q == null ? "" : q).trim().slice(0, 120);
+  const r = runQuery(ctx, query);
+  if (r.state !== "results") return null;
+  const l = doctrineLanes(ctx, query, r).lanes.find((x) => x.key === laneKey);
+  if (!l) return null;
+  const off = Math.max(0, Math.floor(Number(offset)) || 0);
+  return { q: query, lane: laneKey, offset: off, n: l.all.length, items: l.all.slice(off, off + LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) };
+}
+
 /** The lanes of one answer (page 1 only). */
 export function lanesFor(ctx, q, r, fx) {
+  if (!r || r.state !== "results" || !r.hits.length) return { mode: "specific", lanes: [] };
+  /* The doctrine: Ofertas, then one rail per store (doctrineLanes). */
+  const d = doctrineLanes(ctx, q, r);
+  return { mode: "doctrine", lanes: d.lanes.map((l) => ({ key: l.key, title: l.title, ...(l.store ? { store: l.store } : {}), n: l.all.length,
+    ...(l.exact != null ? { exact: l.exact } : {}), items: l.all.slice(0, LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) })) };
+}
+/* (The earlier lane builder, kept for its callers' tests: generic /
+   brand / specific lanes. The page now reads lanesFor.) */
+export function legacyLanesFor(ctx, q, r, fx) {
   if (!r || r.state !== "results" || !r.hits.length) return { mode: "specific", lanes: [] };
   if (r._lanes) return { mode: r._mode, lanes: r._lanes.map((l) => ({ ...l, items: l.items.map((p) => cardOf(p, fx, ctx.labels)) })) };
   const A = annotate(ctx, r);
@@ -701,7 +887,7 @@ export function lanesFor(ctx, q, r, fx) {
     for (const [store, l] of byStore.stores) lanes.push({ key: "tienda:" + store, store, title: ctx.labels[store] || store, n: l.length, items: distinct(l, LANE_SIZE) });
     r._mode = "brand";
     r._lanes = lanes;
-    return lanesFor(ctx, q, r, fx);
+    return legacyLanesFor(ctx, q, r, fx);
   }
 
   /* Relevance still counts in a lane: a sale far down the ranking
@@ -759,7 +945,7 @@ export function lanesFor(ctx, q, r, fx) {
   }
   r._mode = generic ? "generic" : "specific";
   r._lanes = lanes;
-  return lanesFor(ctx, q, r, fx);
+  return legacyLanesFor(ctx, q, r, fx);
 }
 
 /* ============================================================
@@ -1157,9 +1343,12 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   const lanes = n === 1 ? lanesFor(ctx, query, r, fx) : null;
   const compares = n === 1 && grouped ? comparesFor(ctx, r, fx) : [];
   const compare = compares[0] || null;
+  /* A store's name: its page (the doctrine, item 1). */
+  const store = n === 1 ? storeFor(ctx, query) : null;
   return {
     q: query,
     state: r.state,
+    store: store || null,
     page: n,
     pageSize,
     pages,

@@ -291,7 +291,9 @@ if (!process.env.PERFUME_STATIC) {
   const IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
   async function newPage() {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: IPHONE_UA });
-    await context.route("**/*", (route) => (new URL(route.request().url()).host === OWN ? route.continue() : route.abort()));
+    /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+    await context.route("**/*", (route) => (new URL(route.request().url()).host === OWN ? route.continue()
+      : route.request().resourceType() === "image" ? route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }) : route.abort()));
     const page = await context.newPage();
     const requests = [];
     page.on("request", (r) => requests.push(new URL(r.url()).pathname));

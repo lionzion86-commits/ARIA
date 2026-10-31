@@ -41,7 +41,13 @@
      DOCTRINE (Danny, Oct 30): where a FREE loyalty program lowers the
      threshold, Aria enrolls its buying account and the rule here is the
      member rule; credit-card tiers never count. FUJI stays off until its
-     threshold conflict (125 vs 150) is settled. */
+     threshold conflict (125 vs 150) is settled.
+     NEVER "POR CONFIRMAR" (Danny, #443 c.6547441472): a store with no
+     published fee here -- not on the table, or feeUsd null -- reads
+     "lo calcula la tienda al pagar" on every row (comparator, product
+     page, checkout) and is charged nothing Aria cannot back; those
+     stores are listed by name by scripts/test/store-shipping-tests.mjs
+     until their published policy is sourced. */
   var STORE_SHIPPING = {
     victoriassecret: { feeUsd: 8, freeOverUsd: 50, source: 'Lucifer, #443 c.6524139671', basis: 'regla de miembro VS & PINK Rewards (Aria compra como miembro); público: gratis desde $100' },
     macys: { feeUsd: 10.95, freeOverUsd: 49, source: 'Lucifer, #443 c.6524139671' },
@@ -81,6 +87,10 @@
     dicks: { feeUsd: 9.99, freeOverUsd: 49, source: 'Lucifer, #443 c.6524139671', basis: 'regla de miembro ScoreCard' },
     bestbuy: { feeUsd: 0, freeOverUsd: 0, source: 'Lucifer, #443 c.6524139671', basis: 'regla de miembro My Best Buy' },
     snipes: { feeUsd: 9.95, freeOverUsd: 75, source: 'Lucifer, #443 c.6524803125' },
+    /* Foot Locker's public rule (Danny's ruling, #443 c.6547441472): $7.99
+       standard under $99, free at $99+. The FLX member rule is ON HOLD;
+       the public rule stands until Danny moves it. */
+    footlocker: { feeUsd: 7.99, freeOverUsd: 99, source: 'Lucifer, #443 c.6547441472', basis: 'regla pública de Foot Locker; la regla de miembro FLX queda en espera' },
     ccs: { feeUsd: 7.95, freeOverUsd: 75, source: 'Lucifer, #443 c.6524803125' },
     yesstyle: { feeUsd: 6, freeOverUsd: 35, source: 'Lucifer, #443 c.6524803125' },
     meliebianco: { feeUsd: 9.99, freeOverUsd: 100, source: 'Lucifer, #443 c.6524803125' },

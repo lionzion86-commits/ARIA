@@ -35,6 +35,9 @@ await check("store shipping per row: a fee, GRATIS, calculated at the store's ch
   assert.deepEqual(ship("zumiez", 40), { state: "calc", usd: null, freeOverUsd: 64.94 });
   assert.equal(ship("bhphoto", 40).state, "free");
   assert.equal(ship("a-store-with-no-terms", 40).state, "unknown");
+  /* Foot Locker's public rule (#443 c.6547441472): $7.99 under $99, free from $99. */
+  assert.deepEqual(ship("footlocker", 60), { state: "fee", usd: 7.99, freeOverUsd: 99 });
+  assert.equal(ship("footlocker", 120).state, "free");
 });
 
 await check("Danny's example: CCS holds Mejor precio and Mejor costo hasta Miami; the chart carries no freight and no door total", () => {
@@ -103,6 +106,17 @@ await check("coverage: the index groups far more models than exact titles did", 
   const groups = core.productGroups(ctx, ctx.products).map(core.comparableMembers).filter(Boolean);
   assert.ok(groups.length >= 1000, `${groups.length} groups`);
   for (const g of groups.slice(0, 500)) assert.equal(new Set(g.map((p) => p.retailer)).size, g.length, "one listing per store");
+});
+
+await check("the comparator introduces itself (c.6546638454 / c.6546641302): one labelled section above the first chart, no background", async () => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync(ROOT + "search.html", "utf8");
+  const fn = page.slice(page.indexOf("function answerHTML("), page.indexOf("/* ---------- one product, every store"));
+  assert.match(fn, /'<h2 class="cmp-sec-title" id="cmpSecTitle">Comparador de Precios<\/h2>'/);
+  assert.match(fn, /'<p class="cmp-sec-sub">Compara el mismo producto en diferentes tiendas\.<\/p>' \+ head \+ "<\/section>"/);
+  assert.match(fn, /if \(head\) head = /, "the header shows only when there is a chart");
+  const css = page.slice(page.indexOf(".cmp-sec{"), page.indexOf(".cmp{grid-column"));
+  assert.ok(css.length > 0 && !/background|box-shadow|border:/.test(css), "the comparator section changed the background");
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
