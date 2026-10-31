@@ -99,7 +99,7 @@ check("the front of a mixed rail holds at most a quarter of any one class; photo
 
 const rowsOf = (k) => JSON.parse(readFileSync(ROOT + `assets/sections/departamento/_fn/${k}.json`, "utf8")).rows.map((r) => ({ title: r[0], retailer: r[2], image: r[6], type: r[7], g: r[8] }));
 const headOf = (k) => JSON.parse(readFileSync(ROOT + `assets/sections/departamento/${k}/head.json`, "utf8"));
-const NOT_SHOE = /\b(wheels?|trucks?|decks?|bearings?|skateboards?|longboards?|surfskates?|jeans?|trousers?|shirts?|t-shirts?|tees?|hoodies?|polos?|bralettes?|bras?|jackets?|socks?|laces?|insoles?|sunglasses|beanies?|backpacks?|wax|leash|strollers?|gloves?|liners?|bracelets?|necklaces?|leggings?|boxers?|drink|toys?|dolls?|puzzles?)\b/i;
+const NOT_SHOE = /\b(wheels?|trucks?|decks?|bearings?|skateboards?|longboards?|surfskates?|jeans?|trousers?|shirts?|t-shirts?|tees?|hoodies?|polos?|bralettes?|bras?|jackets?|socks?|laces|shoe\s*lace|insoles?|sunglasses|beanies?|backpacks?|wax|leash|strollers?|gloves?|liners?|bracelets?|necklaces?|leggings?|boxers?|drink|toys?|dolls?|puzzles?)\b/i;
 const SHOE_WORD = /shoe|sneaker|boot|sandal|slide|flip|cleat|loafer|heel|slipper|mule|clog|zapat|bota|chimp|tac[oó]n|pantufla|moccasin|espadrille|derby|oxford|pump|trainer|runner|flats/i;
 
 check("acceptance: no non-footwear in Zapatos, no sandals in Zapatillas, one rail per class", () => {
