@@ -168,11 +168,16 @@ const CATCHALL_TYPE = /^\s*(apparel|accessories|accesorios(\s+de\s+[\wáéíóú
    a lunch set's "Food Jars, Boots", bridal "Shoe Clips" (the gender pass
    surfaced them). */
 const DEPT_VETO = /\b(enamel\s+pins?|blind\s+box|keychains?|key\s+chains?|stickers?|ornaments?|dolls?|muñecas?|barbie|lego|toys?|juguetes?|plush|peluches?|figures?|figurines?|pins?|skateboards?|surfskates?|longboards?|cruiser\s+boards?|wheels?|bearings?|griptape|grip\s+tape|gloves?|guantes?|liners?|hoods?|capuchas?|charms?|mittens?|laces|bracelets?|anklets?|necklaces?|slide\s+rings?|horseshoes?|jars?|shoe\s+clips?)\b/i;
+/* A garment a shoe store files with its shoes (SNIPES "Camo Trousers"):
+   out, unless the title also names a shoe ("Jogger Sneakers", "Hoodie
+   Slippers", "Trouser Boots"). */
+const GARMENT_VETO = /\b(trousers?|joggers?|sweatpants|hoodies?|t-?shirts?|jeans)\b/i;
 
 export function isShoeForDept(item, retailer) {
   if (!item || typeof item !== "object") return false;
   const title = item.title || item.name || "";
   if (NOT_FOOTWEAR.test(title) || DEPT_VETO.test(title)) return false;
+  if (GARMENT_VETO.test(title) && !FOOTWEAR_NOUN_NOT_OXFORD.test(title)) return false;
   const type = String(item.type || "");
   if (type && !GENERIC_TYPE.test(type) && !CATCHALL_TYPE.test(type) && !MODEL_CODE_TYPE.test(type.trim())) return isFootwearType(type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;

@@ -10616,7 +10616,8 @@ check("curvy took the slot pharmacy left, and kept its own cover", () => {
 check("the name is Danny's, and the supporting line carries the search words", () => {
   const src = stripComments(pageHtml());
   const meta = src.slice(src.indexOf("const DEPARTMENT_META = {"), src.indexOf("\n};", src.indexOf("const DEPARTMENT_META = {")));
-  if (!/curvy:\s*\{\s*label:\s*'Curvy'/.test(meta)) throw new Error("the department is no longer labelled Curvy");
+  /* Renamed «Tallas Plus» (Danny, #443 c.6526833313); the key stays curvy. */
+  if (!/curvy:\s*\{\s*label:\s*'Tallas Plus'/.test(meta)) throw new Error("the department is no longer labelled Tallas Plus");
   /* NEVER "Big & Tall", and never English beyond the one word Danny
      chose. The supporting copy is where the Spanish lives. */
   if (/big\s*&?\s*tall/i.test(src)) throw new Error('"Big & Tall" is on the page');
@@ -10632,10 +10633,11 @@ check("a product name can never put an item in Curvy", () => {
   eq(hasExtendedSizes({ name: "Plus Size Curvy Tunic 3X 4X", availableSizes: ["s", "m", "l"] }), false,
      "a title full of size words got in with no extended size published");
   eq(hasExtendedSizes({ name: "Plus Size Tunic" }), false, "an item with NO size list at all got in");
-  eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "m", "l", "xl"] }), false,
+  /* XL is the line since c.6526833313 (women's XL / 1X+ / 14+). */
+  eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "m", "l"] }), false,
      "a standard run counted as extended");
   eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "3x"] }), true, "a real 3X was rejected");
-  eq(extendedSizesOf({ availableSizes: ["xs", "s", "m", "l", "xl", "xxl", "3x"] }).join(","), "xxl,3x",
+  eq(extendedSizesOf({ availableSizes: ["xs", "s", "m", "l", "xl", "xxl", "3x"] }).join(","), "xl,xxl,3x",
      "the extended subset is wrong");
   /* A malformed list must not throw and must not qualify. */
   for (const bad of [undefined, null, "xxl", 3, {}, [1, 2], [null]]) {

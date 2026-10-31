@@ -20,6 +20,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { spanishFor } from "./lib/description-es.js";
+import { serializerFor } from "./lib/gallery-backfill.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
@@ -46,6 +47,14 @@ export function applyToCatalog(obj, store = null) {
         changed++;
       }
     }
+    /* A feed that keeps its English apart (description "" or missing, the
+       source in description_en -- Walmart electronics, SSENSE): the stored
+       Spanish fills `description` (#443 c.6535043159). */
+    const src = o.description_en || o.descriptionEn;
+    if (s && typeof src === "string" && src.trim() && !String(o.description || "").trim()) {
+      const es = spanishFor(s, src);
+      if (es) { o.description = es; changed++; }
+    }
     for (const [k, v] of Object.entries(o)) {
       if (!v || typeof v !== "object") continue;
       if (k === "retailers" && !Array.isArray(v)) for (const [rk, rv] of Object.entries(v)) walk(rv, rk);
@@ -60,9 +69,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   let total = 0;
   for (const f of files) {
     if (!existsSync(ROOT + f)) continue;
-    const data = JSON.parse(readFileSync(ROOT + f, "utf8"));
+    const text = readFileSync(ROOT + f, "utf8");
+    /* Written back in the file's own JSON style (indent, float format). */
+    const ser = serializerFor(text);
+    const data = ser && ser.parse ? ser.parse(text) : JSON.parse(text);
     const n = applyToCatalog(data);
-    if (n) { writeFileSync(ROOT + f, JSON.stringify(data)); console.log(`${f}: ${n} descriptions now Spanish`); }
+    if (n) { writeFileSync(ROOT + f, ser ? ser(data) : JSON.stringify(data)); console.log(`${f}: ${n} descriptions now Spanish`); }
     total += n;
   }
   console.log(`${total} descriptions written`);
