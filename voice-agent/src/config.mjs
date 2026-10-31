@@ -14,11 +14,13 @@
 
      LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
                           the LiveKit Cloud project ("Aria Shop")
-     ARIA_VOICE_ID        Cartesia voice id of the cast voice
-                          (Jacqueline, Mexican Spanish). Required.
-     CARTESIA_API_KEY     optional: Cartesia direct. Without it the
-                          TTS goes through LiveKit Inference (billed
-                          to the LiveKit project, same Cartesia model).
+     ARIA_VOICE_ID        ElevenLabs voice id of the cast voice
+                          (Grecia, Peruvian Spanish; #443
+                          c.6501133163). Required.
+     ELEVENLABS_API_KEY   ElevenLabs, direct. Required: Grecia is a
+                          voice in Aria's own ElevenLabs account, which
+                          LiveKit Inference cannot reach, so there is
+                          no keyless fallback for the voice.
      DEEPGRAM_API_KEY     optional: Deepgram direct. Without it the
                           STT goes through LiveKit Inference.
      OPENAI_API_KEY       the brain (primary), as for the chat assistant
@@ -37,10 +39,12 @@ export const READY_WAIT_MS_DEFAULT = 3000;
 
 /* The two lanes. Both Spanish, both nova-3 ears: prices are numbers
    and the first gate is number accuracy (#443 c.6399639486). The lane
-   changes only the voice model, the expensive half. */
+   changes only the voice model, the expensive half: ElevenLabs Turbo
+   v2.5 for quality, Flash v2.5 (lowest latency, lower price) for lean;
+   both speak Spanish and both stream. */
 export const LANES = Object.freeze({
-  quality: Object.freeze({ stt: "nova-3", tts: "sonic-3" }),
-  lean: Object.freeze({ stt: "nova-3", tts: "sonic-turbo" }),
+  quality: Object.freeze({ stt: "nova-3", tts: "eleven_turbo_v2_5" }),
+  lean: Object.freeze({ stt: "nova-3", tts: "eleven_flash_v2_5" }),
 });
 
 /* Words a Peruvian shopper says that a general model mishears; nova-3
@@ -63,7 +67,7 @@ const num = (v, d) => {
  */
 export function planFromEnv(env = process.env) {
   const missing = [];
-  for (const k of ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "ARIA_VOICE_ID"]) if (!env[k]) missing.push(k);
+  for (const k of ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "ARIA_VOICE_ID", "ELEVENLABS_API_KEY"]) if (!env[k]) missing.push(k);
   if (!env.OPENAI_API_KEY && !env.GROQ_API_KEY) missing.push("OPENAI_API_KEY");
   if (missing.length) return { ok: false, missing };
   const laneName = env.ARIA_VOICE_LANE === "lean" ? "lean" : "quality";
@@ -74,7 +78,7 @@ export function planFromEnv(env = process.env) {
       lane: laneName,
       agentName: env.ARIA_VOICE_AGENT_NAME || AGENT_NAME_DEFAULT,
       stt: { vendor: "deepgram", model: lane.stt, language: "es", direct: !!env.DEEPGRAM_API_KEY },
-      tts: { vendor: "cartesia", model: lane.tts, language: "es", voice: env.ARIA_VOICE_ID, direct: !!env.CARTESIA_API_KEY },
+      tts: { vendor: "elevenlabs", model: lane.tts, language: "es", voice: env.ARIA_VOICE_ID, direct: true },
       llm: { primary: env.OPENAI_API_KEY ? "openai" : null, fallback: env.GROQ_API_KEY ? "groq" : null },
       maxSeconds: num(env.ARIA_VOICE_MAX_SECONDS, MAX_SECONDS_DEFAULT),
       readyWaitMs: num(env.ARIA_VOICE_READY_WAIT_MS, READY_WAIT_MS_DEFAULT),

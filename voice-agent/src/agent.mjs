@@ -6,7 +6,7 @@
      shopper's mic -> LiveKit -> Deepgram (ears, Spanish)
                    -> Aria's brain (the chat assistant's model, prompt
                       and tools; her hands run in the page)
-                   -> Cartesia (voice: the cast voice, Jacqueline)
+                   -> ElevenLabs (voice: the cast voice, Grecia)
                    -> LiveKit -> shopper's speaker
 
    WHY THIS ENDS THE LOTTERY. On the Realtime session, whether a turn
@@ -32,7 +32,7 @@
    ============================================================ */
 import { defineAgent, llm, voice, inference } from "@livekit/agents";
 import * as deepgram from "@livekit/agents-plugin-deepgram";
-import * as cartesia from "@livekit/agents-plugin-cartesia";
+import * as elevenlabs from "@livekit/agents-plugin-elevenlabs";
 import * as openai from "@livekit/agents-plugin-openai";
 import * as silero from "@livekit/agents-plugin-silero";
 import * as brain from "./brain.generated.mjs";
@@ -149,12 +149,10 @@ export function buildEars(plan, env = process.env) {
   return new inference.STT({ model: `deepgram/${plan.stt.model}`, language: plan.stt.language });
 }
 
-/** The voice: Cartesia, the cast voice, Spanish. */
+/** The voice: ElevenLabs, the cast voice (Grecia), Spanish. Always
+ *  direct: Grecia lives in Aria's own ElevenLabs account. */
 export function buildVoice(plan, env = process.env) {
-  if (plan.tts.direct) {
-    return new cartesia.TTS({ apiKey: env.CARTESIA_API_KEY, model: plan.tts.model, voice: plan.tts.voice, language: plan.tts.language });
-  }
-  return new inference.TTS({ model: `cartesia/${plan.tts.model}`, voice: plan.tts.voice, language: plan.tts.language });
+  return new elevenlabs.TTS({ apiKey: env.ELEVENLABS_API_KEY, voiceId: plan.tts.voice, model: plan.tts.model, language: plan.tts.language });
 }
 
 /* A [[SHOW: ...]] marker can arrive split across stream chunks; text

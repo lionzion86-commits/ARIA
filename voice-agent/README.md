@@ -3,7 +3,7 @@
 The owned cascade from #443 (start order c.6416074857, kickoff c.6399639486, scale gate c.6399852356):
 
 ```
-shopper's mic -> LiveKit -> Deepgram nova-3 (es) -> Aria's brain -> Cartesia (Jacqueline) -> LiveKit -> speaker
+shopper's mic -> LiveKit -> Deepgram nova-3 (es) -> Aria's brain -> ElevenLabs (Grecia) -> LiveKit -> speaker
 ```
 
 It sits **behind a flag**. The Realtime voice stays the shop's voice until this one passes its gates. A tap that the owned voice cannot take goes to the Realtime voice, so there is never a tap with no voice at all.
@@ -71,11 +71,11 @@ Any worker can therefore serve any session, and scaling means adding workers.
 | Name | |
 |---|---|
 | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Project "Aria Shop" |
-| `ARIA_VOICE_ID` | Cartesia voice id for Jacqueline (Mexican Spanish). Required. |
+| `ARIA_VOICE_ID` | ElevenLabs voice id for Grecia (Peruvian Spanish): `hfJbwNp3iFDEGGEeAKPh` (#443 c.6501133163). Required. |
+| `ELEVENLABS_API_KEY` | Required. Grecia is a voice in Aria's own ElevenLabs account, so the voice always runs direct; with no key the worker refuses to start. |
 | `OPENAI_API_KEY`, `GROQ_API_KEY` | The brain, primary and fallback, as for the chat assistant |
-| `CARTESIA_API_KEY` | Optional. Without it, TTS goes through LiveKit Inference. |
 | `DEEPGRAM_API_KEY` | Optional. Without it, STT goes through LiveKit Inference. |
-| `ARIA_VOICE_LANE` | `quality` (default, sonic-3) or `lean` (sonic-turbo) |
+| `ARIA_VOICE_LANE` | `quality` (default, ElevenLabs `eleven_turbo_v2_5`) or `lean` (`eleven_flash_v2_5`) |
 | `ARIA_VOICE_MAX_SECONDS` | Default 300 |
 | `ARIA_VOICE_READY_WAIT_MS` | Default 3000 |
 | `ARIA_VOICE_RATE_*` | Optional per-unit prices (`src/cost.mjs`). With all five set, `session-end` prices each session. Without them it logs usage only. |

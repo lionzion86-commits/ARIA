@@ -2,8 +2,10 @@
   "name": "aria-voice-agent",
   "private": true,
   "type": "module",
-  "description": "Aria's owned voice: LiveKit transport, Deepgram ears, Aria's brain, Cartesia voice (#443).",
-  "engines": { "node": ">=20" },
+  "description": "Aria's owned voice: LiveKit transport, Deepgram ears, Aria's brain, ElevenLabs voice (#443).",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build:brain": "node scripts/build-brain.mjs",
     "start": "node src/worker.mjs start",
@@ -13,8 +15,8 @@
   },
   "dependencies": {
     "@livekit/agents": "1.9.2",
-    "@livekit/agents-plugin-cartesia": "1.9.2",
     "@livekit/agents-plugin-deepgram": "1.9.2",
+    "@livekit/agents-plugin-elevenlabs": "1.9.2",
     "@livekit/agents-plugin-openai": "1.9.2",
     "@livekit/agents-plugin-silero": "1.9.2",
     "@livekit/rtc-node": "1.1.0",

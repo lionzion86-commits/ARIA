@@ -1,7 +1,7 @@
 /* ==================================================================
    THE OWNED VOICE, BEHIND ITS FLAG (#443 c.6416074857).
 
-   LiveKit transport, Deepgram ears, Aria's brain, Cartesia voice --
+   LiveKit transport, Deepgram ears, Aria's brain, ElevenLabs voice (Grecia) --
    built beside the Realtime voice, which stays live until the owned
    one passes its gates. These hold the parts that can be held without
    the accounts' keys:
@@ -71,19 +71,25 @@ await check("the plan fails closed and names what is missing; the log line carri
   const { planFromEnv, planSummary } = await import(VA + "src/config.mjs");
   const none = planFromEnv({});
   assert.equal(none.ok, false);
-  assert.deepEqual(none.missing, ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "ARIA_VOICE_ID", "OPENAI_API_KEY"]);
-  const env = { LIVEKIT_URL: "wss://x", LIVEKIT_API_KEY: "APIkeyX", LIVEKIT_API_SECRET: "sekrit-value", ARIA_VOICE_ID: "voice-uuid", OPENAI_API_KEY: "sk-openai", GROQ_API_KEY: "gsk-groq" };
+  assert.deepEqual(none.missing, ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "ARIA_VOICE_ID", "ELEVENLABS_API_KEY", "OPENAI_API_KEY"]);
+  const env = { LIVEKIT_URL: "wss://x", LIVEKIT_API_KEY: "APIkeyX", LIVEKIT_API_SECRET: "sekrit-value", ARIA_VOICE_ID: "voice-uuid", ELEVENLABS_API_KEY: "xi-eleven", OPENAI_API_KEY: "sk-openai", GROQ_API_KEY: "gsk-groq" };
   const p = planFromEnv(env);
   assert.ok(p.ok);
   assert.equal(p.plan.lane, "quality");
   assert.equal(p.plan.stt.language, "es");
   assert.equal(p.plan.tts.voice, "voice-uuid");
+  assert.equal(p.plan.tts.vendor, "elevenlabs", "the voice is ElevenLabs (Grecia)");
+  assert.equal(p.plan.tts.model, "eleven_turbo_v2_5");
+  assert.equal(planFromEnv({ ...env, ARIA_VOICE_LANE: "lean" }).plan.tts.model, "eleven_flash_v2_5");
+  const { ELEVENLABS_API_KEY: _drop, ...noEleven } = env;
+  assert.deepEqual(planFromEnv(noEleven).missing, ["ELEVENLABS_API_KEY"], "no ElevenLabs key must refuse to start, never fall back to another voice");
   assert.equal(p.plan.stt.direct, false, "no Deepgram key: LiveKit Inference");
   assert.equal(planFromEnv({ ...env, ARIA_VOICE_LANE: "lean" }).plan.lane, "lean");
   const line = JSON.stringify(planSummary(p.plan));
-  for (const v of ["APIkeyX", "sekrit-value", "sk-openai", "gsk-groq", "voice-uuid"]) assert.ok(!line.includes(v), "the log line leaks " + v);
+  for (const v of ["APIkeyX", "sekrit-value", "xi-eleven", "sk-openai", "gsk-groq", "voice-uuid"]) assert.ok(!line.includes(v), "the log line leaks " + v);
   assert.match(line, /"transcribes":true/);
   assert.match(line, /deepgram\/nova-3:es/);
+  assert.match(line, /elevenlabs\/eleven_turbo_v2_5:es"/, "the voice runs direct, not through LiveKit Inference");
 });
 
 /* ---------------- the page bridge ---------------- */
@@ -420,7 +426,7 @@ await check("page, ?voz=propia: the call comes up owned; the agent's requests re
   const { pg, errs } = await open("?voz=propia");
   assert.equal(await pg.evaluate(() => startRealtimeVoice()), true, "the owned call did not come up");
   const st = await pg.evaluate(() => ({ owned: !!(ariaRT && ariaRT.owned), motor: ariaVoiceDiag().motor, bar: !document.getElementById("assistantCallBar").hidden, published: !!window.__lk.rooms[0].published }));
-  assert.deepEqual(st, { owned: true, motor: "propia (LiveKit + Deepgram + Cartesia)", bar: true, published: true });
+  assert.deepEqual(st, { owned: true, motor: "propia (LiveKit + Deepgram + ElevenLabs)", bar: true, published: true });
   assert.ok(!hits.includes("/api/realtime-token"), "the Realtime voice was minted for an owned call");
   const res = await pg.evaluate(async () => {
     const h = window.__lk.rooms[0].handlers;
