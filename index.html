@@ -1164,6 +1164,13 @@ window.doSearch = function(which){
   @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+  /* THE BIG CARD (#443 c.6545104608, c.6545136763; Danny: "a thousand
+     times better"): the Ropa Interior card is the whole store's card --
+     near-full-width in rails, a 4:5 photo, the title readable at a glance.
+     Its photo arrows come from card-photos.js on every product with 2+
+     photos; a swipe still scrolls the rail (#556). */
+  .ariaRail > button.w-\[172px\], .ariaRail > button.w-\[224px\]{ width:clamp(232px,68vw,300px) !important; }
+  .ariaRail > button.w-\[172px\] > span:first-child, .ariaRail > button.w-\[224px\] > span:first-child{ height:auto !important; aspect-ratio:4/5; }
   /* RAIL EXPAND (2026-10-07): full-screen "Ver todo" grid. Cards render
      via railCardHTML (fixed-width buttons); the grid overrides to fluid. */
   #railExpandGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
