@@ -97,6 +97,23 @@
   status = 200
   force = true
 
+# The owned voice's door (#443 c.6416074857): a LiveKit token for one
+# fresh room with Aria's agent in it. Off, unconfigured or broken, it
+# answers fallback "realtime" and the page uses the Realtime voice.
+[[redirects]]
+  from = "/api/voice-token"
+  to = "/.netlify/functions/voice-token"
+  status = 200
+  force = true
+
+# The owned voice's memory (#443 rider 3): the worker's door only;
+# every request carries a worker token (_voice-thread.js).
+[[redirects]]
+  from = "/api/voice-thread"
+  to = "/.netlify/functions/voice-thread"
+  status = 200
+  force = true
+
 # THE APP BUNDLE PHONES DOWNLOAD (2026-10-19, #417 night order 3).
 # index.html, the tests and the MCP connector name the bundle's source,
 # build/app-<hash>.js (596KB gzipped, comments and all). Browsers get the
@@ -170,6 +187,14 @@
 
 [[redirects]]
   from = "/hidden-docs/*"
+  to = "/404"
+  status = 404
+  force = true
+
+# voice-agent/ (#443 owned voice) is the worker LiveKit Cloud runs from
+# its own image; it is source for that build, not part of the site.
+[[redirects]]
+  from = "/voice-agent/*"
   to = "/404"
   status = 404
   force = true
