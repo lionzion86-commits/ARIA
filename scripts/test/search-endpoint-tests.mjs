@@ -157,10 +157,10 @@ await check("empty, short, gibberish and a brand we do not sell answer cleanly",
   assert.equal((await ask("H&M")).body.missingBrand, "h&m");
 });
 
-await check("answers are edge-cached per (q, page); the warm ping is not", async () => {
+await check("answers are edge-cached per (q, page, lane, off); the warm ping is not", async () => {
   const r = await ask("dolls");
   assert.match(r.headers["Netlify-CDN-Cache-Control"], /durable/);
-  assert.equal(r.headers["Netlify-Vary"], "query=q|page");
+  assert.equal(r.headers["Netlify-Vary"], "query=q|page|lane|off");
   const w = await handler({ httpMethod: "GET", queryStringParameters: { warm: "1" } }, { fetchImpl });
   assert.equal(w.statusCode, 204);
   assert.equal(w.headers["Cache-Control"], "no-store");

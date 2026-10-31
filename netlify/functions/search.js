@@ -20,10 +20,18 @@
    search.html converts with the site's own exchange-rate endpoint.
    ============================================================ */
 import { getStore, connectLambda } from "@netlify/blobs";
-import { loadSearch, searchPage, runQuery } from "./_search-core.js";
+import { loadSearch, searchPage, runQuery, lanePage } from "./_search-core.js";
 import { RETAILERS } from "../../scripts/lib/retailers.js";
 
-const LABELS = Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k]));
+/* Sub-stores of a catalogue file the registry does not list (the same
+   names the department pages use): a rail title is never a raw key. */
+const EXTRA_LABELS = { americaneagle: "American Eagle", partycity: "Party City", elite: "Elite Sports", gameness: "Gameness",
+  tennisexpress: "Tennis Express", academy: "Academy Sports", prosoccer: "Pro Soccer", xtremesoccer: "Xtreme Soccer",
+  /* the store pages' own names (assets/tienda/<store>/index.json) */
+  farmrio: "FARM Rio", aguabendita: "Agua Bendita", patbo: "PatBO", johannaortiz: "Johanna Ortiz", silviatcherassi: "Silvia Tcherassi",
+  capittana: "Capittana", ancora: "Ancora", vix: "ViX", montce: "Montce", eberjey: "Eberjey", tns: "TNS", revzilla: "RevZilla",
+  denniskirk: "Dennis Kirk", smartbuyglasses: "SmartBuyGlasses" };
+const LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k])) };
 
 const FX_TTL_MS = 6 * 60 * 60 * 1000;
 /* A stored rate is used for at most a week, and asked about again
@@ -87,7 +95,7 @@ const json = (statusCode, body, cache) => ({
           "Netlify-CDN-Cache-Control": cache,
           /* Only q and page decide the answer; anything else in the URL
              must not split the cache. */
-          "Netlify-Vary": "query=q|page",
+          "Netlify-Vary": "query=q|page|lane|off",
         }
       : { "Cache-Control": "no-store" }),
   },
@@ -116,6 +124,11 @@ export async function handler(event, { fetchImpl } = {}) {
     const fxP = sellRate(fetchImpl);
     const ctx = loadSearch({ labels: LABELS });
     const fx = await within(fxP, FX_BUDGET_MS);
+    /* One store's rail, its next cards (the doctrine: every rail expands). */
+    if (qs.lane) {
+      const lp = lanePage(ctx, q, String(qs.lane).slice(0, 60), qs.off, { fx });
+      return lp ? json(200, lp, fx ? "public, durable, max-age=3600, stale-while-revalidate=86400" : "public, max-age=60") : json(404, { error: "Sin más productos." }, null);
+    }
     const out = searchPage(ctx, q, page, { fx });
     if (out.state === "error") return json(500, { ...out, items: [] }, null);
     /* Soles are part of the answer: an answer without them is kept
