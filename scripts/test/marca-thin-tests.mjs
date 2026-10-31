@@ -66,7 +66,7 @@ await check("heads are small and capped: 12 cards per carousel, under 40KB raw",
     assert.ok(raw.length < 40 * 1024, `${f} is ${raw.length} bytes`);
     for (const r of JSON.parse(raw).rails) {
       assert.ok(r.cards.length <= RAIL_CARDS, `${f}: ${r.cards.length} cards`);
-      for (const c of r.cards) for (const k of Object.keys(c)) assert.ok(["t", "b", "r", "p", "o", "s", "i", "ph"].includes(k), `${f}: card field ${k}`);
+      for (const c of r.cards) for (const k of Object.keys(c)) assert.ok(["t", "b", "r", "p", "o", "s", "i", "ph", "k"].includes(k), `${f}: card field ${k}`);
     }
   }
 });
