@@ -1258,10 +1258,8 @@ function sizedImageUrl(url, w){
       }).join('');
       /* ...and it ends in a card that opens every perfume (#443 c.6405624575). */
       document.getElementById('perfumesLeadRail').insertAdjacentHTML('beforeend',
-        '<button type="button" class="rail-more" data-perfumes-all><b>Ver todos los perfumes &#8594;</b><span>Toda la tienda de perfumes</span></button>');
-      sec.addEventListener('click', function(e){
-        if (e.target.closest('[data-perfumes-all]')) openRailExpand('all', 'Todos los perfumes', 'perfumes');
-      });
+        '<a class="rail-more" href="departamento.html?dept=perfumes" data-perfumes-all><b>Ver todos los perfumes &#8594;</b><span>Toda la tienda de perfumes</span></a>');
+      /* One door, one destination (#443 c.6534461885): the Perfumes page, never a flat grid. */
       document.getElementById('perfumesLeadCount').textContent = String(picks.length);
       sec.setAttribute('data-ready', '1');
       if (!filtered()) show(sec);

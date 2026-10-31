@@ -39,7 +39,9 @@ check("label-true: each pill is a store-page aisle (or its wearer half) with rea
   for (const store of json(PILLS_DIR + "/index.json").stores) {
     const row = json(`${PILLS_DIR}/${store}.json`).pills;
     assert.ok(row.length >= 2 && row.length <= MAX_PILLS, `${store}: ${row.length} pills`);
-    const aisles = json(`assets/tienda/${store}/index.json`).rails.map((r) => r.title);
+    const idx = json(`assets/tienda/${store}/index.json`).rails;
+    /* An aisle, or one of its own sub-aisles leading the row (VS's Ropa interior y pijamas). */
+    const aisles = idx.map((r) => r.title).concat(idx.flatMap((r) => (r.subs || []).map((x) => x.t)));
     for (const p of row) {
       assert.ok(p.n >= PILL_MIN, `${store}: ${p.label} has ${p.n}`);
       assert.ok(aisles.some((a) => p.label === a || p.label === a + " mujer" || p.label === a + " hombre" || p.label === a + " niños"), `${store}: «${p.label}» is not one of its aisles`);

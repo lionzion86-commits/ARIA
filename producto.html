@@ -272,7 +272,8 @@ function recordToItem(r){
     sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "", sizesPending: r.sizesPending === true,
     originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
     wasPrice: Number(r.wasPrice) || 0, dept: r.dept || "",
-    weightKg: Number(r.weightKg) || 0, weightPub: r.weightPub === true, specWeightKg: Number(r.specWeightKg) || 0
+    weightKg: Number(r.weightKg) || 0, weightPub: r.weightPub === true, specWeightKg: Number(r.specWeightKg) || 0,
+    weightBySize: r.weightBySize && typeof r.weightBySize === "object" ? r.weightBySize : null
   };
 }
 function fetchJson(url, ms){
@@ -549,9 +550,15 @@ function weightLabel(it){
 }
 /* The line the resolver weighs, the same for the weight row and the
    cart: the catalogue's own figures ride along when it has them. */
-function weightLineOf(p, priceUsd){
+function weightLineOf(p, priceUsd, size){
   var line = { title: p.name, retailer: p.retailer, priceUsd: priceUsd, weightKg: PDP_LINE_KG, weightEstimated: true, qty: 1 };
   if (p.weightKg > 0) { line.weightKg = p.weightKg; line.weightEstimated = !p.weightPub; }
+  /* The chosen size's own weight when the board has one per size (always
+     an estimate); with no size chosen, the heaviest (never under-quoted). */
+  var bySize = p.weightBySize && size ? Number(p.weightBySize[size]) : 0;
+  if (bySize > 0) { line.weightKg = bySize; line.weightEstimated = true; }
+  /* The server weighs a board by its size (resolve-weight): the line names both. */
+  if (p.weightBySize) { line.kind = "surfboard"; if (size) line.selectedSize = size; line.sizeOptions = Object.keys(p.weightBySize); }
   if (p.specWeightKg > 0) line.specWeightKg = p.specWeightKg;
   return line;
 }
@@ -562,7 +569,8 @@ function fmtKg(kg){
 function fillWeightAndTax(p){
   var fob = dutiableUsd(p.price, p.retailer);
   var wantTax = fob > TAX_ESTIMATE_THRESHOLD_USD;
-  var line = weightLineOf(p, finalUsd(p.price, p.retailer));
+  var szEl = el("size-select");
+  var line = weightLineOf(p, finalUsd(p.price, p.retailer), szEl ? szEl.value : "");
   var done = function(d){
     var it = d && d.items && d.items[0];
     var kg = d && Number(d.totalKg);
@@ -735,6 +743,9 @@ function normalizeItem(it, retailerKey){
       weightKg: Number(it.weightKg) > 0 ? Number(it.weightKg) : 0,
       weightPub: Number(it.weightKg) > 0 && it.weightEstimated === false,
       specWeightKg: Number(it.specWeightKg) > 0 ? Number(it.specWeightKg) : 0,
+      /* A surfboard's weight per size (#443 c.6539551122): a 5'6" and a
+         6'0" ship at different weights. */
+      weightBySize: it.weightBySize && typeof it.weightBySize === "object" ? it.weightBySize : null,
       dept: ""
     };
   }catch(e){ return null; }
@@ -885,6 +896,9 @@ function render(p){
   wireGallery(el("p-body").querySelector(".p-gallery"));
   buildBuyBox(p);
   if (!offSale) fillWeightAndTax(p);
+  /* A size with its own weight (a surfboard) re-weighs the line when chosen. */
+  var szSel = el("size-select");
+  if (szSel && p.weightBySize && !offSale) szSel.addEventListener("change", function(){ fillWeightAndTax(p); });
 }
 
 /* =====================================================================
@@ -1404,8 +1418,8 @@ function addCurrentToCart(p, sizes){
     /* The catalogue's weight when it has one (a published figure is a
        spec checkout honours); otherwise an honest placeholder that
        checkout re-resolves server side. */
-    weightKg: weightLineOf(p, priceUsd).weightKg,
-    weightEstimated: weightLineOf(p, priceUsd).weightEstimated,
+    weightKg: weightLineOf(p, priceUsd, size).weightKg,
+    weightEstimated: weightLineOf(p, priceUsd, size).weightEstimated,
     specWeightKg: p.specWeightKg > 0 ? p.specWeightKg : undefined,
     /* The photo rides with the line (2026-10-17 rehearsal: every
        checkout thumbnail was a blank box for items added here). */
