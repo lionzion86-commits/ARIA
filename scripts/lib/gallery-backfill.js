@@ -83,6 +83,14 @@ export function* recordsOf(catalog, retailerKey = null) {
   }
 }
 
+/** A title as a match key: entities decoded, case, accents and spacing folded. */
+export function titleMatchKey(t) {
+  const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+  return String(t || "").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) =>
+    e[0] === "#" ? String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ENT[e.toLowerCase()] ?? m))
+    .trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+}
+
 /** The page's URL, as a match key: no query, no hash, no trailing slash, lower case. */
 export function bareUrl(u) {
   return String(u || "").trim().split(/[?#]/)[0].replace(/\/+$/, "").toLowerCase();
@@ -211,31 +219,61 @@ export function rowImages(row) {
  * Returns { matchedRows, unmatchedRows, updated, photosAdded, before, after }.
  */
 export function mergeGalleries(catalog, rows, { retailerKey = null, photoKey, isChart, stamp, cap = GALLERY_CAP }) {
-  const byUrl = new Map();
-  let unmatchedRows = 0;
-  const known = new Set();
-  for (const rec of recordsOf(catalog, retailerKey)) if (rec.url) known.add(bareUrl(rec.url));
-  for (const row of rows || []) {
-    const k = bareUrl(rowUrl(row));
-    if (!k || !known.has(k)) { unmatchedRows++; continue; }
-    if (!byUrl.has(k)) byUrl.set(k, []);
-    byUrl.get(k).push(...rowImages(row));
+  /* A row finds its record by the product URL; a row without one (the
+     2026-10-30 re-pull: Victoria's Secret, BoxLunch, AE, most baby
+     stores) by its exact title -- and only when that title names ONE
+     record of the store, so a gallery is never lent to a lookalike. */
+  const byUrlRecs = new Map(), byTitle = new Map();
+  for (const rec of recordsOf(catalog, retailerKey)) {
+    if (rec.url) { const k = bareUrl(rec.url); if (!byUrlRecs.has(k)) byUrlRecs.set(k, []); byUrlRecs.get(k).push(rec); }
+    const t = titleMatchKey(rec.name || rec.title);
+    if (t) { if (!byTitle.has(t)) byTitle.set(t, []); byTitle.get(t).push(rec); }
   }
+  const scrapedOf = new Map();
+  let unmatchedRows = 0;
+  for (const row of rows || []) {
+    let recs = byUrlRecs.get(bareUrl(rowUrl(row)));
+    if (!recs || !rowUrl(row)) {
+      const hit = byTitle.get(titleMatchKey(row && (row.title || row.name)));
+      /* One product: one record, or the same product listed under its
+         department and its brand (same title, same card photo). */
+      const productKey = (r) => bareUrl(r.url) + "|" + String(r.thumbnail || r.image || "");
+      let pool = hit || [];
+      /* Several products under one title (colourways): the row belongs to
+         the one whose own card photo is among the row's photos. */
+      if (new Set(pool.map(productKey)).size > 1) {
+        const mine = new Set(rowImages(row).map((u) => bareUrl(typeof u === "string" ? u : urlOf(u))));
+        pool = pool.filter((r) => mine.has(bareUrl(r.thumbnail || r.image || "")));
+      }
+      recs = pool.length && new Set(pool.map(productKey)).size === 1 ? pool : null;
+    }
+    if (!recs) { unmatchedRows++; continue; }
+    for (const rec of recs) { if (!scrapedOf.has(rec)) scrapedOf.set(rec, []); scrapedOf.get(rec).push(...rowImages(row)); }
+  }
+  const byUrl = scrapedOf;
   let updated = 0, photosAdded = 0;
   const before = { single: 0, multi: 0 }, after = { single: 0, multi: 0 };
   for (const rec of recordsOf(catalog, retailerKey)) {
     const card = rec.thumbnail || rec.image || "";
     const had = tidyPhotos([card].concat(Array.isArray(rec.images) ? rec.images : []), { photoKey, isChart, cap });
     (had.length > 1 ? before.multi++ : before.single++);
-    const scraped = byUrl.get(bareUrl(rec.url));
+    const scraped = scrapedOf.get(rec);
     let now = had;
     if (scraped && scraped.length) {
       now = tidyPhotos(had.concat(scraped), { photoKey, isChart, cap });
       if (now.length > had.length) {
-        const frozen = JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined });
+        const frozen = JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined, image: undefined, photoHeld: undefined, photoRestored: undefined });
         rec.images = now;
         if (stamp) rec.imagesBackfill = stamp;
-        if (JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined }) !== frozen) throw new Error("the merge touched a field other than images");
+        /* A product held for a dead photo (photoHeld, its constructed URL in
+           heldImage) that the store's own page now gives real photos:
+           the first becomes its card photo and the hold lifts. */
+        if (rec.photoHeld && !rec.image && now.length) {
+          rec.image = now[0];
+          rec.photoRestored = (stamp || "re-pull") + " (was held: " + rec.photoHeld + ")";
+          delete rec.photoHeld;
+        }
+        if (JSON.stringify({ ...rec, images: undefined, imagesBackfill: undefined, image: undefined, photoHeld: undefined, photoRestored: undefined }) !== frozen) throw new Error("the merge touched a field other than the photos");
         updated++;
         photosAdded += now.length - had.length;
       } else now = had;
@@ -253,11 +291,45 @@ export function pyDumps(v) {
   if (Array.isArray(v)) return "[" + v.map(pyDumps).join(", ") + "]";
   return "{" + Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => JSON.stringify(k) + ": " + pyDumps(x)).join(", ") + "}";
 }
-/** The serializer that reproduces `text` from its own parse, or null. */
+/* A number whose text JavaScript would rewrite (Python's 1.0, 2.50) keeps
+   its own text: the parse wraps it, the Python-style writer prints it as
+   it was. Only the photo fields change; every number stays byte for byte. */
+class RawNumber { constructor(text) { this.text = text; } toJSON() { return Number(this.text); } }
+export function parseKeepingNumbers(text) {
+  return JSON.parse(text, (k, v, ctx) => (typeof v === "number" && ctx && ctx.source && ctx.source !== String(v) ? new RawNumber(ctx.source) : v));
+}
+function pyDumpsRaw(v) {
+  if (v instanceof RawNumber) return v.text;
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(pyDumpsRaw).join(", ") + "]";
+  return "{" + Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => JSON.stringify(k) + ": " + pyDumpsRaw(x)).join(", ") + "}";
+}
+function pyStr(x, ascii) {
+  const j = JSON.stringify(x);
+  return ascii ? j.replace(/[\u007f-\uffff]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")) : j;
+}
+function pyIndentRaw(v, n, ascii, depth = 0) {
+  if (v instanceof RawNumber) return v.text;
+  if (typeof v === "string") return pyStr(v, ascii);
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  const pad = "\n" + " ".repeat(n * (depth + 1)), end = "\n" + " ".repeat(n * depth);
+  if (Array.isArray(v)) return v.length ? "[" + pad + v.map((x) => pyIndentRaw(x, n, ascii, depth + 1)).join("," + pad) + end + "]" : "[]";
+  const es = Object.entries(v).filter(([, x]) => x !== undefined);
+  return es.length ? "{" + pad + es.map(([k, x]) => pyStr(k, ascii) + ": " + pyIndentRaw(x, n, ascii, depth + 1)).join("," + pad) + end + "}" : "{}";
+}
+/** The serializer that reproduces `text` from its own parse, or null. Its
+    `parse` is the parse the writer expects (numbers kept as written). */
 export function serializerFor(text) {
   const parsed = JSON.parse(text);
   const trail = /\n$/.test(text) ? "\n" : "";
   const styles = [pyDumps, (o) => JSON.stringify(o), (o) => JSON.stringify(o, null, 2), (o) => JSON.stringify(o, null, 1)];
-  for (const f of styles) if (f(parsed) + trail === text) return (o) => f(o) + trail;
+  for (const f of styles) if (f(parsed) + trail === text) { const w = (o) => f(o) + trail; w.parse = JSON.parse; return w; }
+  const raw = parseKeepingNumbers(text);
+  if (pyDumpsRaw(raw) + trail === text) { const w = (o) => pyDumpsRaw(o) + trail; w.parse = parseKeepingNumbers; return w; }
+  /* Python json.dump(indent=n), with or without ensure_ascii. */
+  for (const n of [1, 2, 4]) for (const ascii of [true, false]) {
+    const f = (o) => pyIndentRaw(o, n, ascii);
+    if (f(raw) + trail === text) { const w = (o) => f(o) + trail; w.parse = parseKeepingNumbers; return w; }
+  }
   return null;
 }

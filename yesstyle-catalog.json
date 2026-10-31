@@ -15,14 +15,20 @@
        "price": 4.8,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/07/812/M_p0056481207.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/07/812/M_p0056481207.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/07/812/M_p0056481207.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/82/180/g0224418082_000.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/82/180/g0224418082_001.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/82/180/g0224418082_002.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/82/180/g0224418082_003.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/82/180/g0224418082_004.png"
        ],
        "url": "https://www.yesstyle.com/en/cosrx-acne-pimple-master-patch-24-patches/info.html/pid.1052684647",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Cuidado de la Piel",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Madagascar Centella Hyalu-Cica Water-Fit Sun Serum",
@@ -30,14 +36,25 @@
        "price": 10.0,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/59/332/M_p0175333259.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/59/332/M_p0175333259.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/59/332/M_p0175333259.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/562/g0216456218_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-hyalu-cica-water-fit-sun-serum-50ml/info.html/pid.1113888108",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Sérums",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "345 Relief Cream",
@@ -45,14 +62,23 @@
        "price": 21.6,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/31/614/M_p0105361431.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/31/614/M_p0105361431.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/31/614/M_p0105361431.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/03/921/g0222292103.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/04/921/g0222292104.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/921/g0222292106.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/07/921/g0222292107.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/08/921/g0222292108.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/09/921/g0222292109.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/10/921/g0222292110.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/11/921/g0222292111.jpg"
        ],
        "url": "https://www.yesstyle.com/en/dr-althea-345-relief-cream-renewed-50ml/info.html/pid.1124698946",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Hidratantes",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Madagascar Centella Hyalu-Cica Water-Fit Sun Serum Twin Pack",
@@ -60,14 +86,25 @@
        "price": 18.79,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/29/273/M_p0193127329.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/29/273/M_p0193127329.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/29/273/M_p0193127329.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/562/g0216456254_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-hyalu-cica-water-fit-sun-serum-twin-pack/info.html/pid.1121503383",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Sérums",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Advanced Snail 96 Mucin Power Essence",
@@ -75,14 +112,22 @@
        "price": 20.0,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/96/819/M_p0056481996.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/96/819/M_p0056481996.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/96/819/M_p0056481996.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/182/g0224418232_000.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/182/g0224418232_001.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/182/g0224418232_002.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/182/g0224418232_003.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/182/g0224418232_004.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/182/g0224418232_005.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/182/g0224418232_006.png"
        ],
        "url": "https://www.yesstyle.com/en/cosrx-advanced-snail-96-mucin-power-essence-100ml/info.html/pid.1052684695",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Tónicos",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Low pH Good Morning Gel Cleanser",
@@ -90,14 +135,20 @@
        "price": 11.2,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/821/M_p0056482180.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/821/M_p0056482180.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/821/M_p0056482180.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/67/529/g0224452967_000.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/67/529/g0224452967_001.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/67/529/g0224452967_002.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/67/529/g0224452967_003.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/67/529/g0224452967_004.png"
        ],
        "url": "https://www.yesstyle.com/en/cosrx-low-ph-good-morning-gel-cleanser-150ml/info.html/pid.1052684732",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Limpieza",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Madagascar Centella Light Cleansing Oil",
@@ -105,14 +156,25 @@
        "price": 13.0,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/49/215/M_p0114021549.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/49/215/M_p0114021549.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/49/215/M_p0114021549.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/683/g0216468339_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-light-cleansing-oil-200ml/info.html/pid.1077182361",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Limpieza",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Madagascar Centella Poremizing Quick Clay Stick Mask",
@@ -120,14 +182,25 @@
        "price": 11.52,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/680/M_p0197268080.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/680/M_p0197268080.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/680/M_p0197268080.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/84/543/g0216454384_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-poremizing-quick-clay-stick-mask-27g/info.html/pid.1123474314",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Mascarillas",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Mighty Bamboo Panthenol Cream",
@@ -135,14 +208,21 @@
        "price": 16.1,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/86/049/M_p0211004986.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/86/049/M_p0211004986.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/86/049/M_p0211004986.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/68/374/g0225137468.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/69/374/g0225137469.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/70/374/g0225137470.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/71/374/g0225137471.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/72/374/g0225137472.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/73/374/g0225137473.jpg"
        ],
        "url": "https://www.yesstyle.com/en/purito-seoul-mighty-bamboo-panthenol-cream-100ml/info.html/pid.1129733663",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Hidratantes",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Cover Perfection Tip Concealer - 14 Colors",
@@ -150,14 +230,25 @@
        "price": 5.59,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/90/205/M_p0159920590.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/90/205/M_p0159920590.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/90/205/M_p0159920590.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/62/099/g0211909962.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/63/099/g0211909963.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/64/099/g0211909964.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/65/099/g0211909965.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/66/099/g0211909966.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/67/099/g0211909967.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/68/099/g0211909968.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/69/099/g0211909969.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/70/099/g0211909970.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/71/099/g0211909971.jpg"
        ],
        "url": "https://www.yesstyle.com/en/the-saem-cover-perfection-tip-concealer-14-colors-03-tan/info.html/pid.1057117741",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Maquillaje",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Madagascar Centella Asiatica 100 Ampoule",
@@ -165,14 +256,25 @@
        "price": 15.0,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/67/333/M_p0089333367.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/67/333/M_p0089333367.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/67/333/M_p0089333367.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/678/g0221467806_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-asiatica-100-ampoule-100ml/info.html/pid.1067114916",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Sérums",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "My Lash Serum",
@@ -180,14 +282,25 @@
        "price": 4.8,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/533/M_p0153053380.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/533/M_p0153053380.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/80/533/M_p0153053380.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/04/948/g0209594804_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/04/948/g0209594804_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/04/948/g0209594804_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/04/948/g0209594804_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/04/948/g0209594804_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/04/948/g0209594804_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/05/948/g0209594805.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/948/g0209594806_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/948/g0209594806_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/948/g0209594806_002.jpg"
        ],
        "url": "https://www.yesstyle.com/en/etude-my-lash-serum-2024-version-9g/info.html/pid.1129377100",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Sérums",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Madagascar Centella Tone Brightening Capsule Ampoule Jumbo",
@@ -195,14 +308,25 @@
        "price": 14.0,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/55/808/M_p0161880855.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/55/808/M_p0161880855.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/55/808/M_p0161880855.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/49/481/g0216448149_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-tone-brightening-capsule-ampoule-jumbo/info.html/pid.1107199865",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Sérums",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Lip Sleeping Mask EX Mini",
@@ -210,14 +334,16 @@
        "price": 4.0,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/47/238/M_p0099423847.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/47/238/M_p0099423847.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/47/238/M_p0099423847.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/29/238/g0099423829.jpg"
        ],
        "url": "https://www.yesstyle.com/en/laneige-lip-sleeping-mask-ex-mini-berry-3g/info.html/pid.1103240430",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Mascarillas",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "The Vita-A Retinal Shot Tightening Booster",
@@ -1515,14 +1641,25 @@
        "price": 8.4,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/12/565/M_p0142756512.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/12/565/M_p0142756512.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/12/565/M_p0142756512.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/L_g0211915390_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/L_g0211915390_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/L_g0211915390_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/L_g0211915390_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/L_g0211915390_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/L_g0211915390_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/g0211915390_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/g0211915390_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/g0211915390_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/90/153/g0211915390_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/b-lab-matcha-hydrating-foam-cleanser-120ml/info.html/pid.1130720384",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Limpieza",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Real Nature Face Mask - 20 Types",
@@ -7515,14 +7652,25 @@
        "price": 14.78,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/75/697/M_p0135569775.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/75/697/M_p0135569775.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/75/697/M_p0135569775.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/44/250/g0223525044_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/goodal-green-tangerine-vita-c-dark-spot-care-eye-patch-alpha-60-sheets/info.html/pid.1136802801",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Ojos",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "BHA 2 Gentle Exfoliating Toner",
@@ -7530,14 +7678,23 @@
        "price": 20.81,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/70/471/M_p0202447170.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/70/471/M_p0202447170.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/70/471/M_p0202447170.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/863/L_g0223386332.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/34/863/L_g0223386334.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/33/863/L_g0223386333.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/35/863/L_g0223386335.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/36/863/g0223386336.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/37/863/g0223386337.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/39/863/g0223386339.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/38/863/g0223386338.jpg"
        ],
        "url": "https://www.yesstyle.com/en/anua-bha-2-gentle-exfoliating-toner-150ml/info.html/pid.1136584850",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Tónicos",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Soy Milk Wrinkle Care Eye Cream N",
@@ -7545,14 +7702,16 @@
        "price": 8.64,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/42/597/M_p0112959742.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/42/597/M_p0112959742.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/42/597/M_p0112959742.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/41/822/L_g0190382241.jpg"
        ],
        "url": "https://www.yesstyle.com/en/sana-soy-milk-wrinkle-care-eye-cream-n-20g/info.html/pid.1076772093",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Hidratantes",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Madagascar Centella Watergel Sheet Ampoule Mask Set",
@@ -7560,14 +7719,25 @@
        "price": 7.3,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/91/807/M_p0161880791.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/91/807/M_p0161880791.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/91/807/M_p0161880791.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_006.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_007.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_008.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/24/626/g0216462624_009.jpg"
        ],
        "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-watergel-sheet-ampoule-mask-set-1-set/info.html/pid.1107199855",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Mascarillas",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Shea Butter Sleeping Heel Patch 10 pcs",
@@ -7575,14 +7745,22 @@
        "price": 9.1,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/82/849/M_p0206684982.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/82/849/M_p0206684982.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/82/849/M_p0206684982.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/52/861/L_g0225286152.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/55/861/L_g0225286155.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/54/861/L_g0225286154.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/53/861/L_g0225286153.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/56/861/g0225286156.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/51/861/g0225286151.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/57/861/g0225286157.jpg"
        ],
        "url": "https://www.yesstyle.com/en/baren-shea-butter-sleeping-heel-patch-10-pcs-0-5g-x-10-patches/info.html/pid.1128017032",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Cuidado de la Piel",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Multi PDRN Collagen EGF Serum",
@@ -7590,14 +7768,20 @@
        "price": 18.75,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/42/146/M_p0224714642.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/42/146/M_p0224714642.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/42/146/M_p0224714642.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/81/374/g0225137481_000.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/81/374/g0225137481_001.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/81/374/g0225137481_002.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/81/374/g0225137481_003.png",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/81/374/g0225137481_004.png"
        ],
        "url": "https://www.yesstyle.com/en/purito-seoul-multi-pdrn-collagen-egf-serum-30ml/info.html/pid.1137684943",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Sérums",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "TXA Body Clarifying Pad",
@@ -7605,14 +7789,25 @@
        "price": 20.0,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/78/874/M_p0224787478.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/78/874/M_p0224787478.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/78/874/M_p0224787478.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/15/813/g0224881315_000.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/15/813/g0224881315_001.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/15/813/g0224881315_002.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/16/813/g0224881316.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/17/813/g0224881317_000.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/17/813/g0224881317_001.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/813/g0224881318_000.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/18/813/g0224881318_001.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/19/813/g0224881319_000.jpeg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/19/813/g0224881319_001.jpeg"
        ],
        "url": "https://www.yesstyle.com/en/celimax-txa-body-clarifying-pad-50-pads/info.html/pid.1137733401",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Cuerpo",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "New Skin Toner Snow Mushroom & PHA",
@@ -7620,14 +7815,19 @@
        "price": 18.62,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/04/077/M_p0223607704.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/04/077/M_p0223607704.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/04/077/M_p0223607704.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/94/386/L_g0223738694_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/94/386/L_g0223738694_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/94/386/L_g0223738694_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/94/386/g0223738694_000.jpg"
        ],
        "url": "https://www.yesstyle.com/en/epii-new-skin-toner-snow-mushroom-pha-145ml/info.html/pid.1137152616",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Tónicos",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Start-To-Finish Essential Kit",
@@ -7635,14 +7835,22 @@
        "price": 1.99,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/61/988/M_p0221098861.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/61/988/M_p0221098861.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/61/988/M_p0221098861.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/916/L_g0224491606_000.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/916/L_g0224491606_001.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/916/L_g0224491606_002.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/916/L_g0224491606_003.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/916/g0224491606_004.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/916/g0224491606_005.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/06/916/g0224491606_006.jpg"
        ],
        "url": "https://www.yesstyle.com/en/isntree-start-to-finish-essential-kit-11-pcs/info.html/pid.1135902253",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Sets",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Advanced PDRN Rejuvenating Cream",
@@ -7650,14 +7858,23 @@
        "price": 29.9,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/30/919/M_p0223691930.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/30/919/M_p0223691930.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/30/919/M_p0223691930.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/31/919/L_g0223691931.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/34/919/L_g0223691934.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/33/919/L_g0223691933.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/32/919/L_g0223691932.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/36/919/g0223691936.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/35/919/g0223691935.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/37/919/g0223691937.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/38/919/g0223691938.jpg"
        ],
        "url": "https://www.yesstyle.com/en/dr-reju-all-advanced-pdrn-rejuvenating-cream-20ml/info.html/pid.1137172064",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Hidratantes",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "Plum Peptide Booster 2000s Stick Pouch Set",
@@ -12015,14 +12232,16 @@
        "price": 35.34,
        "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/28/974/M_p0224797428.jpg",
        "images": [
-        "https://d1flfk77wl2xk4.cloudfront.net/Assets/28/974/M_p0224797428.jpg"
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/28/974/M_p0224797428.jpg",
+        "https://d1flfk77wl2xk4.cloudfront.net/Assets/GalleryImage/50/774/g0225177450.jpg"
        ],
        "url": "https://www.yesstyle.com/en/rohto-mentholatum-sunplay-skin-aqua-stem-cell-uv-essence-spf-50-pa/info.html/pid.1137739116",
        "availableSizes": [],
        "weightKg": 0.15,
        "weightEstimated": true,
        "type": "Tónicos",
-       "retailer": "yesstyle"
+       "retailer": "yesstyle",
+       "imagesBackfill": "merge 2026-10-30"
       },
       {
        "name": "No.8 Ginger Scalp Soothing Massage Cream (1pc)",

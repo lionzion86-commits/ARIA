@@ -3973,11 +3973,17 @@ function railCardHTML(p, onclick, attr, opts){
   const hasOriginal = Number.isFinite(original) && original > Number(p.price);
   const ink = dark ? '#fff' : 'var(--navy)';
   const dim = dark ? '#AFBBD6' : '#6B7487';
-  return `<button onclick="${onclick}" ${attr}
+  /* EVERY PHOTO ON THE HOMEPAGE CARD (#443): a card the build knows holds
+     2+ photos (p.ph, scripts/stamp-home-photos.mjs) carries the count on
+     its photo and its product on the card; card-photos.js adds the arrows
+     and fetches the gallery on the first tap. */
+  const ph = !swipeImgs && Number(p.ph) >= 2 ? Math.min(8, Number(p.ph)) : 0;
+  const photo = cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image), eager: true });
+  return `<button onclick="${onclick}" ${attr}${ph ? ` data-cp-t="${escapeHtml(p.title)}" data-cp-r="${escapeHtml(String(p.retailer || '').toLowerCase())}"` : ''}
     class="flex-shrink-0 ${xl ? 'w-[224px]' : 'w-[172px]'} text-left rounded-2xl overflow-hidden focus-ring"
     style="background:${dark ? '#1a2744' : '#fff'}">
     <span class="relative block w-full ${xl ? 'h-[224px]' : 'h-[172px]'} overflow-hidden" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(p) : ''}>
-      ${cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image), eager: true })}
+      ${ph ? photo.replace('<img ', `<img data-g="${ph}" `) : photo}
       ${hasOriginal ? `<span class="absolute top-2 left-2 text-[13px] font-extrabold px-2 py-1 rounded-full"
         style="background:#F4C463; color:var(--navy)">-${pct}%</span>` : ''}
       ${swipeImgs ? cardSwipeNavHTML() : ''}
@@ -7555,7 +7561,7 @@ function pillShelfItems(cards, dept){
     if (!it || !it.title || !hasRealImage(it)) continue;
     /* k: the condition the store's title states (Caja abierta,
        Reacondicionado, Usado certificado) -- the card wears it as its badge. */
-    out.push({ ...it, retailer: c.r, departments: [dept || 'general'], ...(c.k ? { conditionLabel: c.k } : {}) });
+    out.push({ ...it, retailer: c.r, departments: [dept || 'general'], ...(c.k ? { conditionLabel: c.k } : {}), ...(c.ph ? { ph: c.ph } : {}) });
   }
   return out;
 }

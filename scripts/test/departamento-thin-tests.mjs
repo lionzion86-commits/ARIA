@@ -96,7 +96,7 @@ await check("the first screen is small: every head.json under 32KB raw, every ba
 await check("cards carry only what a tile and a tap need (no sizes, no retailer URL, no description)", () => {
   const head = readJSON(`${OUT_DIR}/women/head.json`);
   for (const r of head.rails) for (const c of r.cards || []) {
-    for (const k of Object.keys(c)) assert.ok(["t", "b", "r", "p", "o", "s", "i"].includes(k), `card field ${k}`);
+    for (const k of Object.keys(c)) assert.ok(["t", "b", "r", "p", "o", "s", "i", "ph"].includes(k), `card field ${k}`);
     assert.ok(c.t && c.r && c.p > 0, "card without title, store or price");
     if (c.o) assert.ok(c.o > c.p && c.s > 0, "a was-price on a card that is not on sale");
   }

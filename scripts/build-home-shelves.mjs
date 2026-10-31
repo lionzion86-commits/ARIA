@@ -36,6 +36,7 @@ import http from "node:http";
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stampHomePhotos } from "./stamp-home-photos.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SHELVES_DIR = "assets/home/shelves";
@@ -191,4 +192,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     writeFileSync(join(dir, name), text);
   }
   console.log(`${SHELVES_DIR}: ${Object.keys(files).length} files, ${(total / 1024).toFixed(0)}KB raw`);
+  /* The cards with 2+ photos carry their count (#443: arrows on the homepage cards). */
+  stampHomePhotos(ROOT, [SHELVES_DIR]);
 }

@@ -169,8 +169,8 @@ await check("caps: 16 cards per rail on the first screen, 48 per page, first scr
 await check("cards: no sizes, no retailer link, nothing but what a tile draws", () => {
   for (const k of keys) {
     for (const r of idx(k).rails) for (const c of r.head) {
-      /* k: the condition label (/condition.js) the tile wears. */
-      assert.deepEqual(Object.keys(c).filter((x) => !["name", "brand", "price", "was", "image", "k"].includes(x)), [], `${k}: card fields`);
+      /* k: the condition label (/condition.js) the tile wears; ph its photo count (#538). */
+      assert.deepEqual(Object.keys(c).filter((x) => !["name", "brand", "price", "was", "image", "k", "ph"].includes(x)), [], `${k}: card fields`);
     }
   }
   for (const k of ["ccs", "walmart", "zumiez"]) {

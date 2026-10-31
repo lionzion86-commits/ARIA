@@ -143,6 +143,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/card-photos.js" defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -626,7 +627,7 @@ function cardHTML(c){
     (c.store ? '&tienda=' + encodeURIComponent(c.store) : '');
   /* src/srcset parked in data- until the card is about to be seen. */
   var img = c.image
-    ? '<img ' + cardImgAttrs(c.image, '172px').replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
+    ? '<img ' + (c.ph > 1 ? 'data-g="' + (c.ph | 0) + '" ' : '') + cardImgAttrs(c.image, '172px').replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
       ' alt="' + esc(title) + '" width="560" height="560" decoding="async" draggable="false" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
     : '';
   return '<a class="card" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '" data-store="' + esc(c.store || '') + '">' +

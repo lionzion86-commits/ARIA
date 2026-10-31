@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, statSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { isOffSaleRetailer } from './lib/off-sale.js';
+import { stampPhotoCounts } from "./lib/photo-counts.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LITE_N = 800;
@@ -40,6 +41,7 @@ const lite = {
   lite: true,
   items: head,
 };
+stampPhotoCounts(root.endsWith('/') ? root : root + '/', head);
 writeFileSync(join(root, 'ofertas-feed-lite.json'), JSON.stringify(lite));
 const fullMB = (statSync(join(root, 'ofertas-feed.json')).size / 1048576).toFixed(2);
 const liteKB = Math.round(statSync(join(root, 'ofertas-feed-lite.json')).size / 1024);

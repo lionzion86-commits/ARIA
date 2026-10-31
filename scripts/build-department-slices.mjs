@@ -36,6 +36,7 @@
    longer match what the rules compute from the committed catalogues.
    ============================================================ */
 import { TECH_BUCKETS } from "./lib/brandsmart.js";
+import { photoCount } from "./lib/photo-counts.js";
 import { CAB_BUCKETS, AISLE_LABELS as CAB_LABELS, hairAisle, PERU_SOLD_HAIR_RX } from "./lib/sleekshop.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -45,6 +46,7 @@ import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
+import { stampHomePhotos } from "./stamp-home-photos.mjs";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -326,6 +328,9 @@ export function loadAllItems(root = ROOT) {
           const key = rk + "::" + p.title;
           if (seen.has(key)) continue;
           seen.add(key);
+          /* ph: the photo count when 2+ (scripts/lib/photo-counts.js), so the card's arrows are never dead. */
+          const ph = photoCount(root, p.title, rk);
+          if (ph) p.ph = ph;
           out.push(p);
         }
       }
@@ -430,6 +435,8 @@ export function build(root = ROOT) {
     for (const p of pills.slice(1)) writeFileSync(join(audDir, `${aud}-${p.k}.json`), JSON.stringify({ k: p.k, cards: p.cards }));
     summary["home:" + aud] = { items: pills.length, rails: 1, files: pills.length };
   }
+  /* The audience pill cards with 2+ photos carry their count (#443). */
+  stampHomePhotos(root, [AUDIENCE_DIR]);
   return summary;
 }
 export const AUDIENCE_DIR = "assets/home/pills";

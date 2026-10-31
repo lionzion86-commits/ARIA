@@ -30,6 +30,7 @@ import { extname, join, normalize } from "node:path";
 import { liftDeclarations } from "./lib/page-lift.mjs";
 import { ofertasDeptTotal } from "./lib/ofertas-dept-total.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { stampPhotoCounts } from "./lib/photo-counts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const LITE_N = 800;
@@ -133,6 +134,8 @@ for (const it of items) counts[it.retailer] = (counts[it.retailer] || 0) + 1;
 /* The department page's own all-stores count, for the homepage's "Ver
    todo N ofertas" (see scripts/lib/ofertas-dept-total.mjs). */
 const deptTotal = ofertasDeptTotal(items, ROOT.endsWith("/") ? ROOT : ROOT + "/");
+/* The homepage Ofertas rail shows a deal's arrows from its photo count (#443). */
+stampPhotoCounts(ROOT, items);
 await writeFile(join(ROOT, "ofertas-feed.json"), JSON.stringify({ generatedAt, count: items.length, deptTotal, counts, items }));
 /* Round-robin by store, each store's biggest markdowns first. */
 const byStore = new Map();
