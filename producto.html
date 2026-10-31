@@ -415,6 +415,11 @@ function imageSrcset(url){
   }
   return parts.length ? parts.join(", ") : "";
 }
+/* NO IMAGE, NO CARD (#443 c.6547325227): a card whose photo will not load
+   never shows a placeholder. photoGone hides the dead photo and hands it to
+   card-photos.js (ariaPhotoRescue), which tries the product's next photos
+   and, if none loads, takes the whole card off the rail. */
+window.photoGone = function(el){ try { el.style.visibility = 'hidden'; if (window.ariaPhotoRescue) return window.ariaPhotoRescue(el); (window.__ariaDeadPhotos = window.__ariaDeadPhotos || []).push(el); } catch (e) {} };
 function imgOrigRetry(el){
   if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
     el.src = el.dataset.imgOrig;
@@ -1113,7 +1118,7 @@ function relCardHTML(it){
   var href = "producto.html?producto=" + encodeURIComponent(it.name) + "&tienda=" + encodeURIComponent(it.retailer);
   /* The photo waits in data-src until its card is about to be seen. */
   return '<a class="rel-card" href="' + esc(href) + '">'
-    + '<div class="rel-img">' + (it.image ? '<img data-src="' + esc(sizedImageUrl(it.image, 360)) + '" data-img-orig="' + esc(it.image) + '" alt="" onerror="imgOrigRetry(this)">' : '') + '</div>'
+    + '<div class="rel-img">' + (it.image ? '<img data-src="' + esc(sizedImageUrl(it.image, 360)) + '" data-img-orig="' + esc(it.image) + '" alt="" onerror="if(!imgOrigRetry(this))photoGone(this)">' : '') + '</div>'
     + '<div class="rel-body">'
     +   '<span class="rel-store">' + esc(STORE_LABELS[it.retailer] || it.retailer) + '</span>'
     +   '<span class="rel-title">' + esc(it.name) + '</span>'

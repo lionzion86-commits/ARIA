@@ -323,7 +323,8 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
       const pg = await ctx.newPage();
       await pg.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
-      await pg.route(/\.(png|jpe?g|webp|gif|svg)(\?|$)/i, (r) => r.fulfill({ status: 204, body: "" }));
+      /* Off-site photos answer with a 1x1 PNG: a photo that fails takes its card off the rail (#443 c.6547325227, no image, no card). */
+      await pg.route(/\.(png|jpe?g|webp|gif|svg)(\?|$)/i, (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") }));
       const reqs = [];
       pg.on("request", (r) => reqs.push(r.url()));
       const errs = [];

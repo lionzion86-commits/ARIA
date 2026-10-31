@@ -323,6 +323,11 @@ function imageSrcset(url){
   }
   return parts.length ? parts.join(", ") : "";
 }
+/* NO IMAGE, NO CARD (#443 c.6547325227): a card whose photo will not load
+   never shows a placeholder. photoGone hides the dead photo and hands it to
+   card-photos.js (ariaPhotoRescue), which tries the product's next photos
+   and, if none loads, takes the whole card off the rail. */
+window.photoGone = function(el){ try { el.style.visibility = 'hidden'; if (window.ariaPhotoRescue) return window.ariaPhotoRescue(el); (window.__ariaDeadPhotos = window.__ariaDeadPhotos || []).push(el); } catch (e) {} };
 function imgOrigRetry(el){
   if (el && el.dataset && el.dataset.imgOrig && el.src !== el.dataset.imgOrig){
     el.src = el.dataset.imgOrig;
@@ -560,8 +565,10 @@ function cardHTML(c){
   var was = c.o ? finalUsd(c.o, c.r) : 0;
   var img = c.i
     ? '<img ' + (c.ph > 1 ? 'data-g="' + (c.ph | 0) + '" ' : '') + cardImgAttrs(c.i).replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
-      ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
-    : '<span class="noimg">Sin imagen</span>';
+      ' alt="" width="560" height="560" decoding="async" onerror="if(!imgOrigRetry(this))photoGone(this)">'
+    : '';
+  /* No image, no card (#443 c.6547325227). */
+  if (!img) return '';
   /* DANNY 2026-10-07: no external "Ver en tienda" -- cards stay in Aria. */
   var _href = 'producto.html?producto=' + encodeURIComponent(decodeEntitiesText(c.t) || '')
     + (c.r ? '&tienda=' + encodeURIComponent(c.r) : '');
