@@ -71,7 +71,7 @@ export const CATALOG_FILES = [
   "lanebryant-catalog.json", "dicks-catalog.json", "pacsun-catalog.json",
   "skims-catalog.json", "revolve-catalog.json", "ulta-catalog.json",
   "yesstyle-catalog.json", "miumiu-catalog.json", "partycity-catalog.json",
-  "costco-catalog.json", "gymrat-catalog.json",
+  "costco-catalog.json", "gymrat-catalog.json", "gym-brands-catalog.json",
   "kohls-catalog.json", "crateandbarrel-catalog.json", "pier1-catalog.json", "newbalance-catalog.json", "bhphoto-catalog.json",
   "advanceauto-catalog.json", "nautilus-catalog.json",
   "islandwatersports-catalog.json", "quietstorm-catalog.json",

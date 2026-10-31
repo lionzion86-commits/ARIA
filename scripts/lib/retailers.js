@@ -634,6 +634,20 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* THE GYM PULLS (#443 c.6542443890, 2026-10-30): twelve gym clothing brands in
+     gymrat-catalog.json, the YoungLA pattern (browse, no actor). */
+  ryderwear: { key: "ryderwear", label: "Ryderwear", color: "#000000", tagline: "Ropa de gym — leggings, tops y shorts", kind: "general", search: false, browse: true },
+  aybl: { key: "aybl", label: "AYBL", color: "#000000", tagline: "Ropa de gym — conjuntos, leggings y básicos", kind: "general", search: false, browse: true },
+  bornprimitive: { key: "bornprimitive", label: "Born Primitive", color: "#000000", tagline: "Ropa de entrenamiento — polos, shorts y leggings", kind: "general", search: false, browse: true },
+  buffbunny: { key: "buffbunny", label: "Buffbunny", color: "#000000", tagline: "Ropa de gym — leggings, tops y sostenes deportivos", kind: "general", search: false, browse: true },
+  paragonfitwear: { key: "paragonfitwear", label: "Paragon Fitwear", color: "#000000", tagline: "Ropa de gym — leggings y sostenes deportivos", kind: "general", search: false, browse: true },
+  killcrew: { key: "killcrew", label: "Kill Crew", color: "#000000", tagline: "Ropa de gym — polos, hoodies y shorts", kind: "general", search: false, browse: true },
+  oneractive: { key: "oneractive", label: "Oner Active", color: "#000000", tagline: "Ropa de entrenamiento — leggings, tops y casacas", kind: "general", search: false, browse: true },
+  gorillawear: { key: "gorillawear", label: "Gorilla Wear", color: "#000000", tagline: "Ropa de gym — tanks, shorts y joggers", kind: "general", search: false, browse: true },
+  fleo: { key: "fleo", label: "FLEO", color: "#000000", tagline: "Ropa de entrenamiento — shorts y leggings", kind: "general", search: false, browse: true },
+  tlfapparel: { key: "tlfapparel", label: "TLF Apparel", color: "#000000", tagline: "Ropa de gym — polos, shorts y leggings", kind: "general", search: false, browse: true },
+  ironrebel: { key: "ironrebel", label: "Iron Rebel", color: "#000000", tagline: "Ropa de gym — polos, tanks y shorts", kind: "general", search: false, browse: true },
+  athleta: { key: "athleta", label: "Athleta", color: "#000000", tagline: "Ropa de entrenamiento — leggings y tops", kind: "general", search: false, browse: true },
   /* ARIA FIGHT CLUB RETAILERS (2026-09-27, Danny) — catalogue but no actor,
      the Macy's pattern: browse: true, search: false. Mirrors index.html. */
   venum: { key: "venum", label: "Venum", color: "#000000", tagline: "MMA y boxeo — guantes, shorts y equipo", kind: "general", search: false, browse: true },
