@@ -56,6 +56,15 @@
   Cache-Control: no-cache
 /vs-deals.json
   Cache-Control: no-cache
+# THE DEPARTMENT AND STORE SLICES REVALIDATE TOO (#443 c.6544412516).
+# Danny's phone showed Gym Rat as it was before #555 (YoungLA only, 786)
+# after the 12 brands were live: head.json existed before the merge, so
+# /*.json's day of stale-while-revalidate kept serving the old one, while
+# the brand-new store pages were fresh. These change with every build.
+/assets/sections/*
+  Cache-Control: no-cache
+/assets/tienda/*
+  Cache-Control: no-cache
 
 # PERF (2026-10-14, Issue #388): fingerprinted app bundle. This rule
 # is LAST on purpose: in _headers the last matching rule wins, and
