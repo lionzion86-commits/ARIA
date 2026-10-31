@@ -71,54 +71,35 @@ async function open(path) {
   return { pg, errs };
 }
 
-await check("homepage: both Perfumes rows end in the card; it opens every perfume, 48 at a time, at the shelf's prices", async () => {
+/* ONE DOOR, ONE DESTINATION (Danny, #443 c.6534461885): every Perfumes
+   end card opens the Perfumes department page; the flat "Todos los
+   perfumes" grid is gone. */
+await check("homepage: both Perfumes rows end in the card; it opens the Perfumes department page", async () => {
   const { pg, errs } = await open("index.html");
   await pg.evaluate(() => document.querySelector("[data-perfumes-section]").scrollIntoView());
   await pg.waitForFunction(() => document.querySelectorAll("[data-perfumes-rail] [data-perfume-card]").length > 0, null, { timeout: 15000 });
   const ends = await pg.evaluate(() => [...document.querySelectorAll("[data-perfumes-rail]")].map((r) => r.lastElementChild && r.lastElementChild.hasAttribute("data-perfumes-more")));
   assert.deepEqual(ends, [true, true], "a Perfumes row does not end in the card");
-  await pg.evaluate(() => [...document.querySelectorAll("[data-perfumes-rail]")].find((r) => r.offsetParent).lastElementChild.click());
-  await pg.waitForFunction(() => document.querySelectorAll("#railExpandGrid [data-rail-expand-card]").length >= 48, null, { timeout: 15000 });
-  const o = await pg.evaluate(() => ({ title: railExpandTitle.textContent, count: railExpandCount.textContent, hidden: railExpandBackdrop.classList.contains("hidden"), url: location.pathname }));
-  assert.equal(o.title, "Todos los perfumes");
-  assert.match(o.count, /^10,\d{3} productos$/);
-  assert.equal(o.hidden, false);
-  assert.equal(o.url, "/index.html", "the card changed the page");
-  await pg.evaluate(() => { const b = document.getElementById("perfumesExpandMore"); b.scrollIntoView({ block: "center" }); b.click(); });
-  await pg.waitForFunction(() => document.querySelectorAll("#railExpandGrid [data-rail-expand-card]").length >= 96, null, { timeout: 15000 });
-  const prices = await pg.evaluate(() => {
-    const pool = deptRailPools["perfumes-all"];
-    return perfumesRendered.map((s) => { const o = pool.find((p) => p.title === s.title); return o ? [s.title, s.price, o.price] : null; }).filter(Boolean);
-  });
-  /* The overlay opens in the room's order (Ofertas, then the brands --
-     the universal format), so the shelf's bottles may sit past the first
-     pages; every one that is there carries the shelf's price. */
-  for (const [t, a, b] of prices) assert.ok(Math.abs(a - b) < 0.005, `${t}: shelf ${a}, overlay ${b}`);
-  await pg.evaluate(() => closeRailExpand());
-  assert.ok(!(await pg.evaluate(() => document.getElementById("perfumesExpandMoreWrap"))), "Mostrar más outlives the overlay");
+  await Promise.all([
+    pg.waitForURL(/departamento\.html\?dept=perfumes$/, { timeout: 15000 }),
+    pg.evaluate(() => [...document.querySelectorAll("[data-perfumes-rail]")].find((r) => r.offsetParent).lastElementChild.click()),
+  ]);
   assert.deepEqual(errs, []);
   await pg.close();
 });
 
-/* The Perfumes department itself follows the universal format now (#443
-   c.6532666653): its lead is Ofertas, whose «Ver todo» opens the sales; the
-   all-perfumes end card stays on Belleza's Perfumes lead. */
 for (const [dept, sel] of [["beauty", "#perfumesLeadRail"]]) {
-  await check(`departamento ${dept}: the Perfumes lead carousel ends in the card; it opens every perfume in the overlay`, async () => {
+  await check(`departamento ${dept}: the Perfumes lead carousel ends in the card; it opens the Perfumes department page`, async () => {
     const { pg, errs } = await open(`departamento.html?dept=${dept}`);
     await pg.waitForFunction((sel) => { const r = document.querySelector(sel); return r && r.querySelector(".card:not(.sk)"); }, sel, { timeout: 15000 });
-    const last = await pg.evaluate((sel) => document.querySelector(sel).lastElementChild.className, sel);
-    assert.match(last, /\brail-more\b/);
-    await pg.evaluate((sel) => document.querySelector(sel).lastElementChild.click(), sel);
-    await pg.waitForFunction(() => document.querySelectorAll("#reGrid .card:not(.sk)").length >= 48, null, { timeout: 15000 });
-    const o = await pg.evaluate(() => ({ title: reTitle.textContent, count: reCount.textContent, more: !!document.getElementById("reMore"), hidden: railExpand.hidden }));
-    assert.equal(o.title, "Todos los perfumes");
-    assert.match(o.count, /^10,\d{3} productos$/);
-    assert.ok(o.more && !o.hidden);
+    const last = await pg.evaluate((sel) => { const e = document.querySelector(sel).lastElementChild; return [e.className, e.getAttribute("href")]; }, sel);
+    assert.match(last[0], /\brail-more\b/);
+    assert.equal(last[1], "departamento.html?dept=perfumes");
     assert.deepEqual(errs, []);
     await pg.close();
   });
 }
+for (const f of ["index.html", "departamento.html"]) assert.doesNotMatch(readFileSync(ROOT + f, "utf8"), /Todos los perfumes/, f);
 
 await browser.close();
 server.close();
