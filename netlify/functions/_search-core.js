@@ -195,6 +195,12 @@ export function runQuery(ctx, q) {
     if (r && r.state === "results") {
       r.hits = deviceLead(q, toysLead(r.hits));
       r._device = isDeviceQuery(q);
+      /* The category the query names (#443 c.6544117193): the lanes show
+         only it, as the grid's lead does. A strict category with none of
+         its kind in stock says so rather than showing lookalikes. */
+      const cat = categoryOf(q);
+      if (cat) r._pure = cat.test;
+      if (!r.hits.length) r = { ...r, state: "none", hits: [] };
     }
   } catch (e) {
     r = { state: "error", hits: [], error: String(e && e.message || e) };
@@ -210,15 +216,30 @@ export function runQuery(ctx, q) {
    says what it is and it is not what fits one -- comes first; the cases,
    chargers and mounts follow, each part in the engine's order. */
 const DEVICE_QUERIES = [
-  [/^(celular(es)?|telefonos?( celular(es)?)?|smartphones?|moviles?|phones?|cell ?phones?)$/, /\b(iphone \d+\w*|iphone se|galaxy [sza]\d+|galaxy z|pixel \d+\w*|moto ?(g|edge|razr)|razr|smartphone|cell ?phone|unlocked)\b/i],
-  [/^(laptops?|computadoras?( portatil(es)?)?|notebooks?|portatil(es)?|chromebooks?)$/, /\b(laptops?|notebooks?|chromebooks?|macbook|vivobook|zenbook|ideapad|thinkpad)\b/i],
-  /* A console query leads with the console itself, by the Electrónica
-     Consolas rule: a game names its console too. */
-  [/^(consolas?( de videojuegos?)?|videoconsolas?|consoles?)$/, /\b(consoles?|steam deck|playstation (5|portal)|xbox series|nintendo switch( 2| oled| lite)?|rog ally|legion go|meta quest \d)\b/i, (p) => isConsole(p)],
-  [/^(camaras?( de fotos?)?|camaras? fotograficas?|cameras?)$/, /\b(cameras?|mirrorless|dslr|gopro|instax|camcorders?|osmo)\b/i],
+  /* Phones and laptops are named in the title's head: a gaming headset
+     "for PC, PS5, Smartphone", a "Smartphone VR Headset", a "Learning
+     Phone" toy, a "Laptop Desk Tray" only mention one. */
+  [/^(celular(es)?|telefonos?( celular(es)?)?|smartphones?|moviles?|phones?|cell ?phones?)$/, /\b(iphone \d+\w*|iphone se|galaxy [sza]\d+|galaxy z|pixel \d+\w*|moto ?(g|edge|razr)|razr|smartphone|cell ?phone|unlocked)\b/i, (p) => headDevice(p, /\b(iphone \d+\w*|iphone se|galaxy [sza]\d+|galaxy z|pixel \d+\w*|moto ?(g|edge|razr)|razr|smartphones?|(cell ?|smart ?|android |rugged |flip )phones?|unlocked)\b/i)],
+  [/^(laptops?|computadoras?( portatil(es)?)?|notebooks?|portatil(es)?|chromebooks?)$/, /\b(laptops?|notebooks?|chromebooks?|macbook|vivobook|zenbook|ideapad|thinkpad)\b/i, (p) => headDevice(p, /\b(laptops?|notebooks?|chromebooks?|macbook|vivobook|zenbook|ideapad|thinkpad)\b/i)],
+  /* A console query leads with the console itself: the title OPENS on
+     the console ("Nintendo Switch 2 System", "Meta Quest 3 512GB"); a
+     game or a headset only names the console it plays on (#443
+     c.6544117193: "Riders Republic Xbox Series X|S" and an Xbox headset
+     sat among the consoles). */
+  [/^(consolas?( de videojuegos?)?|videoconsolas?|consoles?)$/, null, (p) => isConsoleTitle(p.title)],
+  /* A camera search is cameras: a camera drone flies, it is not one. */
+  [/^(camaras?( de fotos?)?|camaras? fotograficas?|cameras?)$/, /\b(cameras?|mirrorless|dslr|gopro|instax|camcorders?|osmo)\b/i, (p) => /\b(cameras?|mirrorless|dslr|gopro|instax|camcorders?|osmo)\b/i.test(p.title || "") && !isAccessoryName(p.title) && !DRONE_RX.test(p.title || "")],
   [/^(tablets?|tabletas?|ipads?)$/, /\b(tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle)\b/i],
   [/^(audifonos|auriculares|headphones|earbuds)$/, /\b(headphones?|earbuds?|airpods|headsets?|earphones?)\b/i],
   [/^(relojes? inteligentes?|smart ?watch(es)?|smartwatch(es)?)$/, /\b(smart ?watch(es)?|apple watch|galaxy watch|pixel watch|fitbit|garmin)\b/i],
+  /* CATEGORY PURITY (#443 c.6544117193). A query that names a kind of
+     product is that kind only: these three keep nothing else -- no
+     lookalike that merely mentions the word ("Pajama Pants - Dumbbell
+     Print", a "Dumbbell" baby rattle, a body keratin spray, a snorkel
+     mask). Fourth field: strict. */
+  [/^(pesas?|pesas rusas|mancuernas?|dumbbells?|kettlebells?|barbells?|discos de pesas?)$/, null, (p) => isWeight(p), true],
+  [/^(keratinas?|keratin|tratamientos? de keratina|keratina (capilar|brasilena))$/, null, (p) => isHairKeratin(p), true],
+  [/^(mascarillas?( (capilar(es)?|facial(es)?|para (el )?(cabello|pelo|cara|rostro)))?|hair masks?|face masks?|sheet masks?)$/, null, (p) => isBeautyMask(p), true],
 ];
 /* What fits a device, by the title's head noun -- the words before "with",
    "for" or a dash ("Death Lens Impact Phone Case - iPhone 16" is a case). */
@@ -226,10 +247,54 @@ const ACCESSORY_HEAD_RX = /\b(cases?|covers?|folio|screen protectors?|tempered g
 /* ...or an accessory noun the title closes on, or that names what it
    fits ("... Clear Phone Case For iPhone 17", "... Smartphone Pouch"). */
 const ACCESSORY_TAIL_RX = /\b(cases?|covers?|folio|screen protectors?|chargers?|holders?|mounts?|grips?|gimbals?|pouch(es)?|skins?|sleeves?|stands?|cables?)\b(?=\s+(?:for|compatible|fits|with)\b|\s*[-\u2013|,(]|\s*$)/i;
+const titleHead = (t) => String(t || "").split(/\s+(?:with|for|compatible|fits)\s+|\s+[-\u2013|,(]\s*/i)[0];
 function isAccessoryName(name) {
   const t = String(name || "");
-  const head = t.split(/\s+(?:with|for|compatible|fits)\s+|\s+[-\u2013|,(]\s*/i)[0];
-  return ACCESSORY_HEAD_RX.test(head) || ACCESSORY_TAIL_RX.test(t);
+  return ACCESSORY_HEAD_RX.test(titleHead(t)) || ACCESSORY_TAIL_RX.test(t);
+}
+/* Not the device, though its head names it. */
+const NOT_THE_DEVICE_RX = /\b(wallets?|purses?|no cell phones|headsets?|headphones?|earbuds?|vr|glasses|speakers?|learning|pretend|toys?|trays?|desks?|tables?|bags?|backpacks?)\b/i;
+function headDevice(p, rx) {
+  const t = String(p.title || "");
+  return rx.test(titleHead(t)) && !isAccessoryName(t) && !NOT_THE_DEVICE_RX.test(t) && !NOT_A_DEVICE_RX.test(t) && !isToyDept(p);
+}
+const DRONE_RX = /\b(drones?|quadcopters?|fpv)\b/i;
+/* The console names itself first; a "Choose Your Game Bundle" is still
+   the console, a "Game" otherwise is software. */
+const CONSOLE_START_RX = /^(?:(?:new|sony|microsoft|valve|meta|nintendo|asus|lenovo|msi)\s+)*(?:playstation\s*(?:5|portal|vr\s*2)|ps5|xbox series [xs]|nintendo switch|switch 2|steam deck|rog ally|legion go|(?:meta\s+)?quest\s*\d)/i;
+const NOT_CONSOLE_RX = /\b(games?|edition|controllers?|joy-?cons?|amiibo|cases?|screen protectors?|protectors?|chargers?|charging|docks?|grips?|skins?|stands?|cards?|wheels?|subscription|membership|gift|headsets? for)\b|\((?:nintendo|xbox|ps5|playstation)[^)]*\)/i;
+export function isConsoleTitle(title) {
+  const t = String(title || "").replace(/[\u2122\u00ae]/g, "").replace(/\bchoose your game bundle\b/i, "bundle");
+  /* "Nintendo Switch Sports - Nintendo Switch [Physical]": the platform
+     after the dash, or a [Physical] / [Digital] tag, is a game's. */
+  if (/\s[-\u2013]\s*(nintendo|switch|xbox|ps5|playstation)\b|\[(physical|digital)\]/i.test(t)) return false;
+  return CONSOLE_START_RX.test(t) && !NOT_CONSOLE_RX.test(titleHead(t)) && !NOT_A_DEVICE_RX.test(t);
+}
+/* Pesas: the weight itself, by the thing the title names (its head). */
+const WEIGHT_RX = /\b(dumbbells?|kettle ?bells?|barbells?|weight plates?|bumper plates?|ankle weights?|wrist weights?|hand weights?|free weights?|weight sets?|weighted vests?)\b/i;
+const NOT_WEIGHT_RX = /\b(rattles?|baby|toys?|prints?|pajamas?|tees?|t-?shirts?|shirts?|hoodies?|gloves?|racks?|stands?|holders?|socks?|keychains?|necklaces?|pendants?|charms?|decals?|stickers?|mugs?)\b/i;
+export function isWeight(p) {
+  const t = String(p.title || "");
+  return WEIGHT_RX.test(titleHead(t)) && !NOT_WEIGHT_RX.test(t) && !isToyDept(p);
+}
+/* Keratina: the hair product -- not a body or skin spray, not the comb
+   or the apron a keratin brand also sells. */
+const NOT_HAIR_KERATIN_RX = /\b(body|skin|nails?|lash(es)?|brows?|aprons?|combs?|brush(es)?|capes?|gloves?|clips?|bowls?|applicators?|flat irons?|irons?|dryers?|towels?|bags?)\b/i;
+export function isHairKeratin(p) {
+  const t = String(p.title || "");
+  return /\bkeratin\b/i.test(t) && !NOT_HAIR_KERATIN_RX.test(t);
+}
+/* Mascarilla: a hair or face treatment mask. Not a sleep or cooling eye
+   mask, a cloth or neoprene face cover, a snorkel, goggle or helmet
+   mask, a costume, or a garment printed with one. */
+const MASK_RX = /\b(masks?|masques?|mascarillas?)\b/i;
+const NOT_BEAUTY_MASK_RX = /\b(eye masks?|sleep(ing)? masks? for|snorkel(ing)?|scuba|diving|dive|goggles?|helmet|neoprene|ski|balaclava|costume|halloween|ghost ?face|funko|cardstock|printed face masks|pajamas?|hoodies?|tees?|shirts?|pants|respirator|n95|kn95|disposable|surgical|cloth|gaiter|welding|paintball|hockey|catcher)\b/i;
+const BEAUTY_DEPT_RX = /^(beauty|cab_|belleza|skincare|haircare)/i;
+export function isBeautyMask(p) {
+  const t = String(p.title || "");
+  if (!MASK_RX.test(t) || NOT_BEAUTY_MASK_RX.test(t)) return false;
+  const d = (p.departments && p.departments[0]) || "";
+  return BEAUTY_DEPT_RX.test(d) || /\b(hair|sheet|facial|skin|hydrat\w*|serum|clay|peel|treatment|overnight|hyaluronic|collagen|retinol)\b/i.test(t);
 }
 /* What names a device without being one: a console's repair kit, a skin. */
 const NOT_A_DEVICE_RX = /\b(repair|kits?|tools?|skins?|stands?|replacement|covers?|decals?|stickers?|parts?)\b/i;
@@ -257,15 +322,25 @@ export function accessoryLead(q, hits) {
   }
   return acc.concat(fits, rest);
 }
-export function deviceLead(q, hits) {
+/** The category a query names, if it names one: { test(p), strict }. */
+export function categoryOf(q) {
   const k = deaccent(q);
   const hit = DEVICE_QUERIES.find(([qx]) => qx.test(k));
-  if (!hit || !Array.isArray(hits) || hits.length < 2) return accessoryLead(q, hits);
+  if (!hit) return null;
+  const [, rx, pred, strict] = hit;
+  return { test: pred || ((p) => rx.test(p.title || "") && !isAccessoryName(p.title)), strict: !!strict };
+}
+export function deviceLead(q, hits) {
+  const cat = categoryOf(q);
+  if (!cat || !Array.isArray(hits) || !hits.length) return accessoryLead(q, hits);
+  /* A strict category keeps only its own kind. */
+  if (cat.strict) return hits.filter(cat.test);
+  if (hits.length < 2) return hits;
   const dev = [], rest = [], last = [];
   for (const p of hits) {
     const t = p.title || "";
     if (NOT_A_DEVICE_RX.test(t)) last.push(p);
-    else ((hit[2] ? hit[2](p) : hit[1].test(t) && !isAccessoryName(t)) ? dev : rest).push(p);
+    else (cat.test(p) ? dev : rest).push(p);
   }
   return dev.concat(rest, last);
 }
@@ -641,7 +716,10 @@ export function lanesFor(ctx, q, r, fx) {
   /* 1. Sales: deep discounts on relevant, recognized products first. */
   /* (Products the comparison block shows are not repeated here.) */
   const inBlock = new Set(compareGroup(ctx, r) || []);
-  const shelf = r.hits.filter((p) => A.of(p).aisle && !inBlock.has(p));
+  /* A category query's lanes are that category only (#443 c.6544117193:
+     a hub under «laptop», a toy phone under «celular», hoodies under
+     «mascarilla» in the En oferta row). */
+  const shelf = r.hits.filter((p) => A.of(p).aisle && !inBlock.has(p) && (!r._pure || r._pure(p)));
   const sales = shelf.filter(onSaleOf)
     .map((p) => ({ p, s: Math.min(discountOf(p), 0.6) * 2 + demandOf(p) * 0.4 + (A.of(p).marquee ? 1 : A.of(p).brand ? 0.4 : 0) + acc(p) * 2 - rank.get(p) * 1.5 }))
     .sort((a, b) => b.s - a.s).map((x) => x.p);
