@@ -43,6 +43,7 @@ import { join } from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
+import { isGymApparel } from "./lib/gym-apparel.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
 import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
@@ -123,7 +124,11 @@ export const DEPT_RULES = {
   home_goods: { buckets: ["home_goods", "home", "hogar", "small_appliances", ...CASA_BUCKETS] },
   home_decor: { buckets: ["home_decor", "casa_decoracion", "casa_velas", "casa_navidad"] },
   curvy: { buckets: ["clothing", "men", "women", "apparel_men", "apparel_women", "apparel_kids"], extendedSizes: true },
-  gym_rat: { buckets: ["gym_rat"] },
+  /* GYM RAT = APPAREL ONLY (#443 c.6542490625): clothing from the gym
+     brands, and the clothing (never the gloves, wraps or gis) of the fight
+     brands that stay in the lineup -- Venum, Everlast, Tatami. The rule is
+     scripts/lib/gym-apparel.js, read here so no pull can leak gear in. */
+  gym_rat: { buckets: ["gym_rat"], apparelOnly: true, apparelFrom: { buckets: ["combat_sports"], stores: ["venum", "everlast", "tatami"] } },
   surf_skate: { kind: "surfskate" },
   spearfishing: { kind: "spearfishing" },
   soccer: { kind: "soccer" },
@@ -250,6 +255,12 @@ export const KIND_MATCH = {
 
 export function belongsToDept(rule, p) {
   try {
+    if (rule.apparelOnly) {
+      const from = rule.apparelFrom;
+      const inBucket = rule.buckets.indexOf(p.bucket) !== -1 ||
+        (from && from.buckets.indexOf(p.bucket) !== -1 && from.stores.indexOf(String(p.retailer || "").toLowerCase()) !== -1);
+      return inBucket && isGymApparel(p);
+    }
     if (rule.buckets) {
       if (rule.buckets.indexOf(p.bucket) === -1) return false;
       if (rule.extendedSizes) {

@@ -1,0 +1,203 @@
+{
+ "generatedAt": "2026-10-31T12:04:33.857Z",
+ "source": "lucifer/gallery-repull-2026-10-30:data/gym-pulls-2026-10-30",
+ "brands": {
+  "ryderwear": {
+   "label": "Ryderwear",
+   "pulled": 2367,
+   "gymRat": 2266,
+   "fightClub": 18,
+   "gearExcludedFromGymRat": 90,
+   "gearToFightClubByType": {
+    "accessories": 18
+   },
+   "held": {
+    "not clothing, not fight gear: accessories": 38,
+    "out of stock": 11,
+    "not clothing, not fight gear: shopwill": 1,
+    "not clothing, not fight gear: insurance": 1,
+    "not clothing, not fight gear: shoes": 32
+   },
+   "spanishDescriptions": 0
+  },
+  "aybl": {
+   "label": "AYBL",
+   "pulled": 1463,
+   "gymRat": 1353,
+   "fightClub": 0,
+   "gearExcludedFromGymRat": 7,
+   "gearToFightClubByType": {},
+   "held": {
+    "not clothing, not fight gear: accessories": 2,
+    "out of stock": 103,
+    "not clothing, not fight gear: bags": 4,
+    "not clothing, not fight gear: bottles": 1
+   },
+   "spanishDescriptions": 0
+  },
+  "bornprimitive": {
+   "label": "Born Primitive",
+   "pulled": 1333,
+   "gymRat": 1222,
+   "fightClub": 0,
+   "gearExcludedFromGymRat": 97,
+   "gearToFightClubByType": {},
+   "held": {
+    "not clothing, not fight gear: Boots": 3,
+    "out of stock": 14,
+    "not clothing, not fight gear: Shoes": 58,
+    "not clothing, not fight gear: Bag and Packs": 3,
+    "not clothing, not fight gear: Decal": 12,
+    "not clothing, not fight gear: Flag": 7,
+    "not clothing, not fight gear: Knee Pad Insert": 1,
+    "not clothing, not fight gear: Patch": 13
+   },
+   "spanishDescriptions": 0
+  },
+  "buffbunny": {
+   "label": "Buffbunny",
+   "pulled": 1164,
+   "gymRat": 1090,
+   "fightClub": 0,
+   "gearExcludedFromGymRat": 63,
+   "gearToFightClubByType": {},
+   "held": {
+    "not clothing, not fight gear: accessories": 62,
+    "out of stock": 11,
+    "not clothing, not fight gear: apparel": 1
+   },
+   "spanishDescriptions": 0
+  },
+  "paragonfitwear": {
+   "label": "Paragon Fitwear",
+   "pulled": 952,
+   "gymRat": 723,
+   "fightClub": 1,
+   "gearExcludedFromGymRat": 1,
+   "gearToFightClubByType": {
+    "accessories": 1
+   },
+   "held": {
+    "out of stock": 228
+   },
+   "spanishDescriptions": 724
+  },
+  "killcrew": {
+   "label": "Kill Crew",
+   "pulled": 822,
+   "gymRat": 594,
+   "fightClub": 199,
+   "gearExcludedFromGymRat": 199,
+   "gearToFightClubByType": {
+    "hand_wraps": 5,
+    "lifting_accessories": 9,
+    "boxing_gloves": 8,
+    "fight_shorts": 177
+   },
+   "held": {
+    "out of stock": 29
+   },
+   "spanishDescriptions": 793
+  },
+  "oneractive": {
+   "label": "Oner Active",
+   "pulled": 750,
+   "gymRat": 649,
+   "fightClub": 0,
+   "gearExcludedFromGymRat": 2,
+   "gearToFightClubByType": {},
+   "held": {
+    "out of stock": 99,
+    "not clothing, not fight gear: accessories": 2
+   },
+   "spanishDescriptions": 0
+  },
+  "gorillawear": {
+   "label": "Gorilla Wear",
+   "pulled": 710,
+   "gymRat": 595,
+   "fightClub": 75,
+   "gearExcludedFromGymRat": 112,
+   "gearToFightClubByType": {
+    "workout_gloves": 9,
+    "gloves": 10,
+    "wrist_wraps": 4,
+    "accessories": 13,
+    "apparel_accessories": 13,
+    "lifting_straps_and_grips": 3,
+    "weight_lifting_belts": 12,
+    "?": 4,
+    "clothing": 2,
+    "knee_wraps": 5
+   },
+   "held": {
+    "not clothing, not fight gear: towels_and_toiletry_bags": 1,
+    "not clothing, not fight gear: accessories": 9,
+    "not clothing, not fight gear: sport_bags": 2,
+    "not clothing, not fight gear: shaker_bottles": 7,
+    "out of stock": 3,
+    "not clothing, not fight gear: shoes": 14,
+    "not clothing, not fight gear: apparel_accessories": 3,
+    "not clothing, not fight gear: ?": 1
+   },
+   "spanishDescriptions": 0
+  },
+  "fleo": {
+   "label": "FLEO",
+   "pulled": 667,
+   "gymRat": 665,
+   "fightClub": 0,
+   "gearExcludedFromGymRat": 1,
+   "gearToFightClubByType": {},
+   "held": {
+    "out of stock": 1,
+    "not clothing, not fight gear: accessories": 1
+   },
+   "spanishDescriptions": 665
+  },
+  "tlfapparel": {
+   "label": "TLF Apparel",
+   "pulled": 562,
+   "gymRat": 550,
+   "fightClub": 0,
+   "gearExcludedFromGymRat": 3,
+   "gearToFightClubByType": {},
+   "held": {
+    "duplicate": 9,
+    "not clothing, not fight gear: bags": 3
+   },
+   "spanishDescriptions": 0
+  },
+  "ironrebel": {
+   "label": "Iron Rebel",
+   "pulled": 139,
+   "gymRat": 113,
+   "fightClub": 19,
+   "gearExcludedFromGymRat": 22,
+   "gearToFightClubByType": {
+    "elbow_sleeves": 6,
+    "lifting_straps": 2,
+    "knee_sleeves": 4,
+    "wrist_wraps": 5,
+    "knee_wraps": 1,
+    "grips": 1
+   },
+   "held": {
+    "out of stock": 4,
+    "not clothing, not fight gear: water_bottles": 2,
+    "not clothing, not fight gear: keychain": 1
+   },
+   "spanishDescriptions": 0
+  },
+  "athleta": {
+   "label": "Athleta",
+   "pulled": 53,
+   "gymRat": 53,
+   "fightClub": 0,
+   "gearExcludedFromGymRat": 0,
+   "gearToFightClubByType": {},
+   "held": {},
+   "spanishDescriptions": 0
+  }
+ }
+}

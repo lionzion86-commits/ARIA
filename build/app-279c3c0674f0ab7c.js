@@ -683,7 +683,7 @@ const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/crateandbarrel-catalog.json":["crateandbarrel"],"/pier1-catalog.json":["pier1"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"],"/perfumes-catalog.json":["ariaperfumes"],"/snipes-catalog.json":["snipes"],"/carolinaherrera-catalog.json":["carolinaherrera"],"/brandsmart-catalog.json":["brandsmart"],"/sleekshop-catalog.json":["sleekshop"],"/walmart-electronics-catalog.json":["walmart"],"/costco-electronics-catalog.json":["costco"],"/microcenter-catalog.json":["microcenter"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete","ryderwear","aybl","bornprimitive","buffbunny","paragonfitwear","killcrew","oneractive","gorillawear","fleo","tlfapparel","ironrebel","athleta"],"/kohls-catalog.json":["kohls"],"/crateandbarrel-catalog.json":["crateandbarrel"],"/pier1-catalog.json":["pier1"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/finishline-catalog.json":["finishline"],"/zumiez-catalog.json":["zumiez"],"/hottopic-catalog.json":["hottopic"],"/boxlunch-catalog.json":["boxlunch"],"/abercrombie-catalog.json":["abercrombie"],"/hollister-catalog.json":["hollister"],"/bananarepublic-catalog.json":["bananarepublic"],"/gap-catalog.json":["gap"],"/jewelry-catalog.json":["baublebar"],"/latino-designers-dtc-catalog.json":["aguabendita","ancora","capittana","eberjey","farmrio","johannaortiz","montce","patbo","silviatcherassi","tns","vix"],"/bestbuy-catalog.json":["bestbuy"],"/dsw-catalog.json":["dsw"],"/perfumes-catalog.json":["ariaperfumes"],"/snipes-catalog.json":["snipes"],"/carolinaherrera-catalog.json":["carolinaherrera"],"/brandsmart-catalog.json":["brandsmart"],"/sleekshop-catalog.json":["sleekshop"],"/walmart-electronics-catalog.json":["walmart"],"/costco-electronics-catalog.json":["costco"],"/microcenter-catalog.json":["microcenter"]};
 /* HOME SHELVES (2026-10-19, #417 night order 3). Scrolling the home
    page on a phone downloaded 26.7MB of catalogue JSON (gzipped) to show
    a dozen cards per rail, and Safari reloaded the tab under the memory.
@@ -13485,7 +13485,7 @@ const ITEM_FAMILY_NOUNS = [
   ['joyas', ['jewelry', 'jewellery', 'joyer[ií]a', 'bisuter[ií]a', 'earrings?', 'aretes?', 'necklaces?', 'collares', 'collar(?=\\s+de\\b)', 'bracelets?', 'pulseras?', 'rings?', 'anillos?', 'pendants?', 'colgantes?', 'charms?', 'dijes?', 'anklets?', 'tobilleras?', 'brooch(?:es)?', 'broches?', 'bangles?', 'chokers?', '(?:belly|body|waist|ankle)\\s+chains?', 'chains?', '(?:diamond|wedding|eternity|pav[eé]|gold|silver|channel[-\\s]set|anniversary)\\s+bands?', 'ear\\s+cuffs?', 'studs?', 'hoops?', 'cuff\\s+bracelets?', 'tiaras?', 'lockets?', '(?:enamel|lapel|costume|character|3d|collectible|flower|rose|brooch)\\s+pins?', 'pins']],
   ['sombreros', ['hats?', 'caps?', 'beanies?', 'bonnets?', 'fedoras?', 'visors?', 'snapbacks?', 'strapbacks?', 'bucket\\s+hats?', 'trucker\\s+hats?', 'sombreros?', 'gorras?', 'gorros?', 'boinas?', 'berets?', 'headwear', 'balaclavas?']],
   ['accesorios', ['scarf', 'scarves', 'bufandas?', 'belts?', 'cinturones?', 'sunglasses', 'sunglass', 'lentes\\s+de\\s+sol', 'gafas\\s+de\\s+sol', 'eyewear', 'wallets?', 'card\\s+holders?', 'billeteras?', 'gloves?', 'guantes?', 'mittens?', 'shawls?', 'chales?', 'pareos?', 'sarongs?', 'hair\\s+(?:clips?|ties?|bows?|pins?|accessories)', 'scrunchies?', '(?:claw\\s+)?clips?', 'headbands?', 'vinchas?', 'watch(?:es)?', 'relojes?', 'keychains?', 'keyrings?', 'key\\s*chains?', 'key\\s+rings?', 'stickers?', 'phone\\s+cases?', 'cases?', 'neckties?', 'bow\\s+ties?', 'ties', 'tie', '(?:eye|sleep)\\s+masks?', 'bobby\\s+pins?', 'shoe\\s*laces?', 'laces', 'insoles?', 'shoe\\s+(?:care|cleaners?|clips?|charms?)', 'cufflinks?', 'umbrellas?', 'bandanas?', 'lanyards?', 'patches', 'suspenders', 'earmuffs?', 'ear\\s+muffs?']],
-  ['ropa', ['bikini\\s+(?:panty|panties|briefs?|underwear|thongs?)', 'string\\s+bikini\\s+panty', 'shirts?', 't-?shirts?', 'tees?', 'tops?', 'tank\\s+tops?', 'tanks?', 'camis?', 'camisoles?', 'blouses?', 'sweaters?', 'cardigans?', 'hoodies?', 'turtlenecks?', 'mock\\s*necks?', 'shortalls?', 'sweatshorts?', 'baby\\s+one[-\\s]piece', 'sweatshirts?', 'crew\\s*necks?', 'pullovers?', 'jackets?', 'coats?', 'parkas?', 'anoraks?', 'windbreakers?', 'vests?', 'blazers?', 'suits?', 'dress(?:es)?', 'gowns?', 'skirts?', 'skorts?', 'pants?', 'trousers?', 'jeans', 'leggings?', 'joggers?', 'sweatpants?', 'shorts?', 'rompers?', 'jumpsuits?', 'overalls?', 'bodysuits?', 'onesies?', 'one-?piece\\s+pajamas?', 'pajamas?', 'pyjamas?', 'pj\\s+sets?', 'sleepwear', 'loungewear', 'robes?', 'lingerie', 'bras?', 'bralettes?', 'panties', 'underwear', 'boxers?', 'briefs?', 'trunks?', 'thongs?', 'socks?', 'tights', 'hosiery', 'uniforms?', 'jerseys?', 'kimonos?', 'ponchos?', 'chemises?', 'slips?', 'polos?', 'henleys?', 'tunics?', 'kaftans?', 'caftans?', 'layettes?', 'outfits?', '(?:two|2|three|3)[-\\s]piece\\s+sets?', 'camisas?', 'camisetas?', 'pantal[oó]n(?:es)?', 'vestidos?', 'faldas?', 'chaquetas?', 'casacas?', 'chompas?', 'poleras?', 'polerones?', 'buzos?', 'pijamas?', 'conjuntos?', 'blusas?', 'enterizos?', 'mamelucos?', 'tracksuits?', '(?:training|running|compression)\\s+tights?', 'tights', 'walkshorts?', 'sunshirts?', '(?:tennis|long[-\\s]sleeve|short[-\\s]sleeve|logo)\\s+crews?', '(?:match|stadium|authentic|replica)\\s+(?:home|away|third)(?:\\s+(?:jersey|shirt|kit))?', 'jerseys?']],
+  ['ropa', ['bikini\\s+(?:panty|panties|briefs?|underwear|thongs?)', 'string\\s+bikini\\s+panty', 'track\\s*pants?', 'trackpants?', 'shirts?', 't-?shirts?', 'tees?', 'tops?', 'tank\\s+tops?', 'tanks?', 'camis?', 'camisoles?', 'blouses?', 'sweaters?', 'cardigans?', 'hoodies?', 'turtlenecks?', 'mock\\s*necks?', 'shortalls?', 'sweatshorts?', 'baby\\s+one[-\\s]piece', 'sweatshirts?', 'crew\\s*necks?', 'pullovers?', 'jackets?', 'coats?', 'parkas?', 'anoraks?', 'windbreakers?', 'vests?', 'blazers?', 'suits?', 'dress(?:es)?', 'gowns?', 'skirts?', 'skorts?', 'pants?', 'trousers?', 'jeans', 'leggings?', 'joggers?', 'sweatpants?', 'shorts?', 'rompers?', 'jumpsuits?', 'overalls?', 'bodysuits?', 'onesies?', 'one-?piece\\s+pajamas?', 'pajamas?', 'pyjamas?', 'pj\\s+sets?', 'sleepwear', 'loungewear', 'robes?', 'lingerie', 'bras?', 'bralettes?', 'panties', 'underwear', 'boxers?', 'briefs?', 'trunks?', 'thongs?', 'socks?', 'tights', 'hosiery', 'uniforms?', 'jerseys?', 'kimonos?', 'ponchos?', 'chemises?', 'slips?', 'polos?', 'henleys?', 'tunics?', 'kaftans?', 'caftans?', 'layettes?', 'outfits?', '(?:two|2|three|3)[-\\s]piece\\s+sets?', 'camisas?', 'camisetas?', 'pantal[oó]n(?:es)?', 'vestidos?', 'faldas?', 'chaquetas?', 'casacas?', 'chompas?', 'poleras?', 'polerones?', 'buzos?', 'pijamas?', 'conjuntos?', 'blusas?', 'enterizos?', 'mamelucos?', 'tracksuits?', '(?:training|running|compression)\\s+tights?', 'tights', 'walkshorts?', 'sunshirts?', '(?:tennis|long[-\\s]sleeve|short[-\\s]sleeve|logo)\\s+crews?', '(?:match|stadium|authentic|replica)\\s+(?:home|away|third)(?:\\s+(?:jersey|shirt|kit))?', 'jerseys?']],
 ].map(function (r) {
   const alts = r[1].slice().sort(function (a, b) { return itemNounMinLength(b) - itemNounMinLength(a) || b.length - a.length; });
   return [r[0], new RegExp('\\b(' + alts.join('|') + ')\\b', 'gi')];
@@ -13891,6 +13891,18 @@ const GYMRAT_BRANDS_SPEC = [
   { key: 'venum',     label: 'Venum',            logo: 'assets/logos/brands/venum.png', heroImage: 'assets/brands/venum-hero.jpg' },
   { key: 'tatami',    label: 'Tatami Fightwear', logo: 'assets/logos/brands/tatamifightwear.svg', heroImage: 'assets/brands/tatami-hero.jpg' },
   { key: 'everlast',  label: 'Everlast',         logo: 'assets/logos/brands/everlast.svg', heroImage: 'assets/brands/everlast-hero.jpg' },
+  { key: 'ryderwear', label: 'Ryderwear', logo: '', heroImage: '' },
+  { key: 'aybl', label: 'AYBL', logo: '', heroImage: '' },
+  { key: 'bornprimitive', label: 'Born Primitive', logo: '', heroImage: '' },
+  { key: 'buffbunny', label: 'Buffbunny', logo: '', heroImage: '' },
+  { key: 'paragonfitwear', label: 'Paragon Fitwear', logo: '', heroImage: '' },
+  { key: 'killcrew', label: 'Kill Crew', logo: '', heroImage: '' },
+  { key: 'oneractive', label: 'Oner Active', logo: '', heroImage: '' },
+  { key: 'gorillawear', label: 'Gorilla Wear', logo: '', heroImage: '' },
+  { key: 'fleo', label: 'FLEO', logo: '', heroImage: '' },
+  { key: 'tlfapparel', label: 'TLF Apparel', logo: '', heroImage: '' },
+  { key: 'ironrebel', label: 'Iron Rebel', logo: '', heroImage: '' },
+  { key: 'athleta', label: 'Athleta', logo: '', heroImage: '' },
 ];
 
 /* ============================================================
@@ -13988,6 +14000,8 @@ function brandRoomStorefrontsHTML(items, brandSpecs, opts){
   const specs = (brandSpecs || [])
     .map(spec => ({ spec, items: byBrand[spec.key] || [] }))
     .filter(x => x.items.length > 0);
+  /* Biggest first where the room asks (Gym Rat, #443 c.6542443890). */
+  if (opts.bySize) specs.sort((a, b) => b.items.length - a.items.length);
   if (!specs.length) return '';
   const saleItems = (items || []).filter(isSaleItem);
   const ofertasId = opts.ofertasId || 'brandOfertas';
@@ -14008,7 +14022,7 @@ function gymRatBrandHero(brandItems){ return brandRoomHero(null, brandItems); }
 function gymRatBrandBannerHTML(spec, brandItems){ return brandRoomBannerHTML(spec, brandItems, { kicker: 'Gym Rat' }); }
 function gymRatBrandRailHTML(spec, brandItems){ return brandRoomRailHTML(spec, brandItems); }
 function gymRatBrandStorefrontsHTML(items){
-  return brandRoomStorefrontsHTML(items, GYMRAT_BRANDS_SPEC, { kicker: 'Gym Rat', heading: 'Nuestras marcas', ofertasId: 'gymratOfertas' });
+  return brandRoomStorefrontsHTML(items, GYMRAT_BRANDS_SPEC, { kicker: 'Gym Rat', heading: 'Nuestras marcas', ofertasId: 'gymratOfertas', bySize: true });
 }
 
 /* ============================================================
@@ -16808,7 +16822,7 @@ function armStorePhotoBackdrop(retailer){
 /* THE UNIVERSAL FORMAT (#443 c.6532666653): every store with slices opens
    on tienda.html -- search bar, its Ofertas first, then one rail per
    section. The list is the stores built into assets/tienda/. */
-const THIN_STOREFRONTS = new Set(['bestbuy', 'dsw', 'abercrombie', 'academy', 'advanceauto', 'aguabendita', 'americaneagle', 'ancora', 'assouline', 'babybrezza', 'bathandbodyworks', 'baublebar', 'bellybandit', 'bentgo', 'bhphoto', 'boxlunch', 'brandsmart', 'capittana', 'carolinaherrera', 'ccs', 'chronicle', 'combatcorner', 'crateandbarrel', 'crocs', 'dagnedover', 'denniskirk', 'dicks', 'drbrowns', 'eberjey', 'elite', 'elvie', 'everlast', 'ezpz', 'farfetch', 'farmrio', 'finishline', 'footlocker', 'freshlypicked', 'fuji', 'gameness', 'hatch', 'hollister', 'hottopic', 'islandwatersports', 'johannaortiz', 'jujube', 'jwpei', 'kindredbravely', 'lanebryant', 'lillebaby', 'mainland', 'meliebianco', 'microcenter', 'mmawarehouse', 'mockingbird', 'momcozy', 'montce', 'munchkin', 'mushie', 'nanit', 'nautilus', 'owlet', 'parrot', 'partycity', 'patbo', 'pier1', 'prosoccer', 'quietstorm', 'revolve', 'revzilla', 'silviatcherassi', 'skims', 'sleekshop', 'smartbuyglasses', 'snipes', 'spectra', 'ssense', 'statebags', 'surfstation', 'tatami', 'tennisexpress', 'tenniswarehouse', 'tns', 'valsurf', 'venum', 'victoriassecret', 'vix', 'walmart', 'walmartbaby', 'xtremesoccer', 'youngla', 'zumiez']);
+const THIN_STOREFRONTS = new Set(['bestbuy', 'dsw', 'abercrombie', 'academy', 'advanceauto', 'aguabendita', 'americaneagle', 'ancora', 'assouline', 'babybrezza', 'bathandbodyworks', 'baublebar', 'bellybandit', 'bentgo', 'bhphoto', 'boxlunch', 'brandsmart', 'capittana', 'carolinaherrera', 'ccs', 'chronicle', 'combatcorner', 'crateandbarrel', 'crocs', 'dagnedover', 'denniskirk', 'dicks', 'drbrowns', 'eberjey', 'elite', 'elvie', 'everlast', 'ezpz', 'farfetch', 'farmrio', 'finishline', 'footlocker', 'freshlypicked', 'fuji', 'gameness', 'hatch', 'hollister', 'hottopic', 'islandwatersports', 'johannaortiz', 'jujube', 'jwpei', 'kindredbravely', 'lanebryant', 'lillebaby', 'mainland', 'meliebianco', 'microcenter', 'mmawarehouse', 'mockingbird', 'momcozy', 'montce', 'munchkin', 'mushie', 'nanit', 'nautilus', 'owlet', 'parrot', 'partycity', 'patbo', 'pier1', 'prosoccer', 'quietstorm', 'revolve', 'revzilla', 'silviatcherassi', 'skims', 'sleekshop', 'smartbuyglasses', 'snipes', 'spectra', 'ssense', 'statebags', 'surfstation', 'tatami', 'tennisexpress', 'tenniswarehouse', 'tns', 'valsurf', 'venum', 'victoriassecret', 'vix', 'walmart', 'walmartbaby', 'xtremesoccer', 'youngla', 'zumiez', 'ryderwear', 'aybl', 'bornprimitive', 'buffbunny', 'paragonfitwear', 'killcrew', 'oneractive', 'gorillawear', 'fleo', 'tlfapparel', 'ironrebel', 'athleta']);
 async function openStore(retailer){
   if (isOffSaleRetailer(retailer)){ showToast('Esta tienda ya no está disponible en Aria.'); return; }
   if (!hasStorefront(retailer)){ showToast('Esta tienda no tiene vitrina en Aria.'); return; }
@@ -20852,6 +20866,18 @@ const RETAILERS = {
      committed files; they power the Gym Rat department, its brand pills, the
      Gymshark home rail, and Ofertas via fileBackedDeals. Apparel cluster, after Old Navy. Mirrors scripts/lib/retailers.js. */
   youngla:         { key: 'youngla',         label: 'YoungLA',          color: '#000000', logo: 'logos/youngla.png',     tagline: 'Ropa de gym — oversize y streetwear',                 kind: 'general', search: false, browse: true },
+  ryderwear: { key: 'ryderwear', label: 'Ryderwear', color: '#000000', logo: '', tagline: 'Ropa de gym — leggings, tops y shorts', kind: 'general', search: false, browse: true },
+  aybl: { key: 'aybl', label: 'AYBL', color: '#000000', logo: '', tagline: 'Ropa de gym — conjuntos, leggings y básicos', kind: 'general', search: false, browse: true },
+  bornprimitive: { key: 'bornprimitive', label: 'Born Primitive', color: '#000000', logo: '', tagline: 'Ropa de entrenamiento — polos, shorts y leggings', kind: 'general', search: false, browse: true },
+  buffbunny: { key: 'buffbunny', label: 'Buffbunny', color: '#000000', logo: '', tagline: 'Ropa de gym — leggings, tops y sostenes deportivos', kind: 'general', search: false, browse: true },
+  paragonfitwear: { key: 'paragonfitwear', label: 'Paragon Fitwear', color: '#000000', logo: '', tagline: 'Ropa de gym — leggings y sostenes deportivos', kind: 'general', search: false, browse: true },
+  killcrew: { key: 'killcrew', label: 'Kill Crew', color: '#000000', logo: '', tagline: 'Ropa de gym — polos, hoodies y shorts', kind: 'general', search: false, browse: true },
+  oneractive: { key: 'oneractive', label: 'Oner Active', color: '#000000', logo: '', tagline: 'Ropa de entrenamiento — leggings, tops y casacas', kind: 'general', search: false, browse: true },
+  gorillawear: { key: 'gorillawear', label: 'Gorilla Wear', color: '#000000', logo: '', tagline: 'Ropa de gym — tanks, shorts y joggers', kind: 'general', search: false, browse: true },
+  fleo: { key: 'fleo', label: 'FLEO', color: '#000000', logo: '', tagline: 'Ropa de entrenamiento — shorts y leggings', kind: 'general', search: false, browse: true },
+  tlfapparel: { key: 'tlfapparel', label: 'TLF Apparel', color: '#000000', logo: '', tagline: 'Ropa de gym — polos, shorts y leggings', kind: 'general', search: false, browse: true },
+  ironrebel: { key: 'ironrebel', label: 'Iron Rebel', color: '#000000', logo: '', tagline: 'Ropa de gym — polos, tanks y shorts', kind: 'general', search: false, browse: true },
+  athleta: { key: 'athleta', label: 'Athleta', color: '#000000', logo: '', tagline: 'Ropa de entrenamiento — leggings y tops', kind: 'general', search: false, browse: true },
   gymshark:        { key: 'gymshark',        label: 'Gymshark',         color: '#000000', logo: 'logos/gymshark.png',    tagline: 'Ropa de gym — leggings, tops y conjuntos',            kind: 'general', search: false, browse: true },
   /* ============================================================
      THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
@@ -21987,6 +22013,18 @@ const TAX_EXEMPT_STATUS = {
   pacsun: 'unknown',
   gymshark: 'unknown',
   youngla: 'unknown',
+  ryderwear: 'unknown',
+  aybl: 'unknown',
+  bornprimitive: 'unknown',
+  buffbunny: 'unknown',
+  paragonfitwear: 'unknown',
+  killcrew: 'unknown',
+  oneractive: 'unknown',
+  gorillawear: 'unknown',
+  fleo: 'unknown',
+  tlfapparel: 'unknown',
+  ironrebel: 'unknown',
+  athleta: 'unknown',
   alphalete: 'unknown',
   skims: 'unknown',
   sunglasshut: 'unknown',
@@ -23738,6 +23776,18 @@ const RETAILER_DEPARTMENT = {
   gymshark: "ropa", hollister: "ropa", johannaortiz: "ropa", lanebryant: "ropa", miumiu: "ropa", montce: "ropa",
   patbo: "ropa", revolve: "ropa", silviatcherassi: "ropa", skims: "ropa", ssense: "ropa", tns: "ropa", vix: "ropa",
   youngla: "ropa",
+  ryderwear: "ropa",
+  aybl: "ropa",
+  bornprimitive: "ropa",
+  buffbunny: "ropa",
+  paragonfitwear: "ropa",
+  killcrew: "ropa",
+  oneractive: "ropa",
+  gorillawear: "ropa",
+  fleo: "ropa",
+  tlfapparel: "ropa",
+  ironrebel: "ropa",
+  athleta: "ropa",
   assouline: "libros", chronicle: "libros",
   advanceauto: "autopartes", denniskirk: "autopartes", revzilla: "autopartes",
   baublebar: "accesorios", jwpei: "accesorios", meliebianco: "accesorios", smartbuyglasses: "accesorios",
@@ -32264,6 +32314,15 @@ const CHAT_STORE_ALIASES = {
   nautilus: ['tienda de buceo'],
   victoriassecret: ['victoria secret', 'victorias secret'],
   youngla: ['young la'],
+  ryderwear: ['ryder wear'],
+  bornprimitive: ['born primitive'],
+  buffbunny: ['buff bunny'],
+  paragonfitwear: ['paragon fitwear', 'paragon'],
+  killcrew: ['kill crew'],
+  oneractive: ['oner active', 'oner'],
+  gorillawear: ['gorilla wear'],
+  tlfapparel: ['tlf apparel', 'tlf'],
+  ironrebel: ['iron rebel'],
 };
 let chatStoreIndexCache = null;
 function chatStoreIndex(){
