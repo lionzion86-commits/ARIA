@@ -153,14 +153,19 @@ check("Celulares, sellable first: phones under the US$200 line lead, the iPhone 
   for (const c of cards) assert.doesNotMatch(c.t, /\b(marine|gimbal|grip)\b/i, c.t);
 });
 
-check("the homepage order (Danny's live pass, c.6507225989): Ofertas, Tiendas, Key Club, Auto, Motos, Walmart (BrandsMart off the homepage, c.6539449309), Compra por categoría, Mujer, Hombre, Niños, the store rails led by Victoria's Secret, then Electrónica", () => {
+/* The order since #557 / #561 (#443): the category block (Mujer, Hombre,
+   Niños, Perfumes, Ropa Interior, Electrónica, ...) comes before the
+   stores; Walmart's wide tile opens the store group, Victoria's Secret
+   leads its rails. home-order-tests and home-category-order-tests pin
+   the rest of the order. */
+check("the homepage order (#557, #561): Ofertas, Tiendas, Key Club, Auto, Motos, Compra por categoría, Mujer, Hombre, Niños, Electrónica, then Walmart and the store rails led by Victoria's Secret (BrandsMart off the homepage, c.6539449309)", () => {
   const html = readFileSync(ROOT + "index.html", "utf8");
   const top = ['<section aria-label="Ofertas"', '<section aria-label="Tiendas"', '<section aria-label="Aria Key Club"', '<div id="mobileShopfront"'].map((s) => html.indexOf(s));
   for (let i = 1; i < top.length; i++) assert.ok(top[i - 1] > 0 && top[i - 1] < top[i], `the top of the page is out of order at #${i}`);
   for (const id of ["mobileShopfront", "desktopShopfront"]) {
     const from = html.indexOf(`<div id="${id}"`);
     const at = (label) => html.indexOf(`<section aria-label="${label}"`, from);
-    const seq = ["Aria Auto", "Aria Motos", "Walmart", "Compra por categoría", "Mujer", "Hombre", "Niños", "Victoria's Secret", "Electrónica"].map(at);
+    const seq = ["Aria Auto", "Aria Motos", "Compra por categoría", "Mujer", "Hombre", "Niños", "Electrónica", "Walmart", "Victoria's Secret"].map(at);
     for (let i = 1; i < seq.length; i++) assert.ok(seq[i - 1] > from && seq[i - 1] < seq[i], `${id}: out of order at #${i}`);
     assert.ok(html.indexOf('data-store-rail="', from) === html.indexOf('data-store-rail="victoriassecret"', from), `${id}: a store rail ahead of VS`);
   }

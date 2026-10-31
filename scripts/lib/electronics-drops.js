@@ -26,6 +26,10 @@
 import { voltageGate } from "./brandsmart.js";
 import { conditionOf, lockedPhone } from "./walmart-write.js";
 import { techAisle, isTechProduct, TECH_AISLE_LABELS, TECH_AISLE_ORDER } from "./tech-aisle.js";
+/* The stored Spanish (#443 c.6535043159): `description` is the Spanish from
+   scripts/data/descriptions-es/<store>.json; the feed's English stays in
+   description_en, the source, never shown. */
+import { spanishFor } from "./description-es.js";
 
 const realPhoto = (u) => typeof u === "string" && /^https:\/\//.test(u);
 const LOCKED_RX = /\b(prepaid|straight talk|tracfone|total wireless|total by verizon|cricket|metro ?(by t-?mobile|pcs)|boost mobile|visible|verizon|at&t|t-?mobile|carrier[- ]locked|locked to|simple mobile|walmart family mobile|consumer cellular|lte prepaid)\b/i;
@@ -125,7 +129,7 @@ export function normalizeWalmartElectronics(rows, { isShippableItem } = {}) {
     const aisle = gate({ name, description: r.description, hint: r.subcategory, flag110: r.voltageFlag110Only === true, rated });
     if (!aisle.startsWith("tech_")) { hold(aisle); continue; }
     const it = { name, brand: String(r.brand || "").trim(), price, currency: "USD", image: imgs[0], images: imgs,
-      url: r.url || "", sku: String(r.usItemId || r.sku || ""), description: "", description_en: String(r.description || "").trim(),
+      url: r.url || "", sku: String(r.usItemId || r.sku || ""), description: spanishFor("walmart", r.description) || "", description_en: String(r.description || "").trim(),
       retailer: "walmart", type: (r.type || r.subcategory || "").toString(), department: "electronics",
       sellerType: r.sellerType || null, rating: Number(r.rating) || undefined, reviews: Number(r.reviewCount) || undefined };
     if (r.upc || r.gtin) it.upc = String(r.upc || r.gtin);
@@ -158,7 +162,7 @@ export function normalizeCostcoElectronics(rows, { isShippableItem } = {}) {
     if (!aisle.startsWith("tech_")) { hold(aisle); continue; }
     const brand = Array.isArray(r.brand) ? String(r.brand[0] || "") : String(r.brand || "");
     const it = { name, brand: brand.trim(), price, currency: "USD", image: imgs[0], images: imgs, url: r.url || "",
-      sku: String(r.itemNumber), description: "", description_en: String(r.description_en || "").trim(),
+      sku: String(r.itemNumber), description: spanishFor("costco", r.description_en) || "", description_en: String(r.description_en || "").trim(),
       retailer: "costco", type: String(r.subcategory || ""), department: "electronics" };
     if (r.gtin) it.upc = String(r.gtin);
     const was = Number(r.compareAtPrice);
