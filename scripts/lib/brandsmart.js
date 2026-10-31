@@ -83,6 +83,18 @@ export function voltageGate(r) {
 const realPhoto = (u) => typeof u === "string" && /^https:\/\/cdn\.shopify\.com\//.test(u);
 
 /** { departments, held } from the drop's rows. `isShippableItem` is the site's rule. */
+/* THE BRAND IS THE BRAND (#443 c.6534989244 item 13). The feed carries a
+   model number in `brand` for some phones ("G1110UUGRY" on the BLU G35,
+   "K0250WWTIT" on the BOLD K22): a code like that is not a brand. The
+   brand is then the word the store's own title opens with ("BLU",
+   "BOLD"); with no such word, no brand rather than a code. */
+export const SKU_BRAND_RX = /^(?=[A-Z0-9-]*\d)[A-Z0-9-]{6,}$/;
+export function brandOfRow(r) {
+  const b = String((r && r.brand) || "").trim();
+  if (!SKU_BRAND_RX.test(b)) return b;
+  const w = /^([A-Za-z][A-Za-z&'.-]+)(?=\s)/.exec(String((r && r.name) || "").trim());
+  return w ? w[1] : "";
+}
 export function normalizeBrandsmart(rows, { isShippableItem } = {}) {
   const held = {};
   const hold = (why) => { held[why] = (held[why] || 0) + 1; };
@@ -112,7 +124,7 @@ export function normalizeBrandsmart(rows, { isShippableItem } = {}) {
     /* English is never shown: a "translation" that came back as the
        English (a bare product name) is a deliberate empty. */
     const es = String(r.description || "").trim(), en = String(r.descriptionEn || "").trim();
-    const it = { name: String(r.name).trim(), brand: String(r.brand || "").trim(), price, currency: "USD",
+    const it = { name: String(r.name).trim(), brand: brandOfRow(r), price, currency: "USD",
       image: images[0], images, url: r.canonicalUrl || r.url || "", sku: String(r.sku || ""),
       description: es && es !== en ? es : "", description_en: en,
       retailer: "brandsmart", type: aisle };

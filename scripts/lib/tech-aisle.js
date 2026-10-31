@@ -36,7 +36,8 @@ const ACCESSORY_RX = /\b(cases?|covers?|folio|screen protectors?|tempered glass|
 const PHONE_RX = /\b(iphone \d+[a-z]?|iphone se|galaxy (s|z|a)\d+|galaxy z (flip|fold)|pixel \d+|moto(rola)? (g|edge|razr)|razr|smartphone|cell ?phone|unlocked phone|phone (unlocked|\d+gb)|\d+gb .*\b(unlocked|smartphone)\b|flip phone|tcl flip|(alcatel|nokia|kyocera|orbic) [\w ]*flip|rugged (smart)?phone|android phone|kyocera dura\w+|jitterbug|lively flip|tcl \d+|blu [a-z]+ \d)\b/i;
 const COMPUTER_RX = /\b(laptops?|notebooks?|chromebooks?|macbook( air| pro)?|ultrabook|desktop (pc|computer)|all-in-one|aio\b|mini pc|imac|mac mini|tablets?|ipad( air| pro| mini)?|galaxy tab|fire (hd|max)|kindle|e-?readers?|surface (pro|laptop|go)|vivobook|zenbook|ideapad|thinkpad|copilot\+ pc)\b/i;
 const HEADPHONE_RX = /\b(headphones?|earbuds?|earphones?|airpods|headsets?|in-ear|over-ear|on-ear|ear buds)\b/i;
-const AUDIO_RX = /\b(speakers?|soundbars?|sound bars?|subwoofers?|receivers?|turntables?|record players?|home theater|amplifiers?|amps?\b|stereo systems?|boombox|radios?|party ?box|jukebox)\b/i;
+const PA_RX = /\b(personal pa|portable pa|pa (systems?|speakers?))\b/i;
+const AUDIO_RX = /\b(pa systems?|personal pa|portable pa|speakers?|soundbars?|sound bars?|subwoofers?|receivers?|turntables?|record players?|home theater|amplifiers?|amps?\b|stereo systems?|boombox|radios?|party ?box|jukebox)\b/i;
 const GAMING_RX = /\b(playstation|ps5|ps4|xbox|nintendo|switch (oled|lite|2)|steam deck|consoles?|controllers?|gamepads?|joy-?cons?|racing wheels?|vr headsets?|meta quest|quest \d|gaming)\b/i;
 const CAMERA_RX = /\b(cameras?|camcorders?|dslr|mirrorless|lens(es)?\b|gopro|action cam|instant camera|instax|drones?|dji)\b/i;
 const SECURITY_RX = /\b(security (camera|system|cam)|doorbells?|ring (video|stick|spotlight|floodlight|indoor|outdoor)|wyze|blink|arlo|eufy ?cam|nvr|dvr|surveillance|baby monitors?|smart (plugs?|bulbs?|locks?|lights?|displays?|speakers?)|echo (dot|show|pop)|nest (hub|cam|doorbell)|google home|alexa|smart home|floodlight cam|spotlight cam|ip cam(era)?|wi-?fi (ip |security |indoor |outdoor )?cam(era)?|spotlight|night vision|pan[- ]tilt|pet cam(era)?|indoor cam(era)?|outdoor cam(era)?)\b/i;
@@ -70,7 +71,11 @@ export function techAisle(name, hint = "") {
      ("Tablet Keyboard Case with Soccer Design" is a case). */
   const head = n.split(/\s+(?:with|for|compatible|fits)\s+|\s+[-–|,(]\s*/i)[0].trim().split(/\s+/).slice(-2).join(" ");
   const headIsAccessory = ACCESSORY_RX.test(head) && !(dev && new RegExp(dev[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i").test(head));
-  const accessoryFirst = acc && (headIsAccessory || (!soldWith && (!dev || acc.index < dev.index || /\b(for|compatible with|fits)\b/i.test(n.slice(0, acc.index + 40)) || ACCESSORY_RX.test(tail))));
+  /* A speaker named as one is a speaker, whatever it docks or carries
+     ("Shell Dock Portable Bluetooth Speaker"); a speaker STAND or CABLE
+     still ends on the accessory (#443 c.6534989244 item 12). */
+  const headIsSpeaker = /\b(speakers?|soundbars?|sound bars?|subwoofers?|personal pa|pa systems?)\b/i.test(head) && !ACCESSORY_RX.test(head);
+  const accessoryFirst = acc && !headIsSpeaker && (headIsAccessory || (!soldWith && (!dev || acc.index < dev.index || /\b(for|compatible with|fits)\b/i.test(n.slice(0, acc.index + 40)) || ACCESSORY_RX.test(tail))));
   if (accessoryFirst && !HEADPHONE_RX.test(n.slice(0, (acc && acc.index) || 0))) return "tech_accesorios";
   if (WATCH_RX.test(n)) return "tech_relojes";
   /* A device named after "for" is what the product fits, not what it is
@@ -80,12 +85,21 @@ export function techAisle(name, hint = "") {
   if (before(HEADPHONE_RX.exec(n))) return "tech_audifonos";
   /* A tablet says "Cellular" and "Unlocked" too: the computer is read
      before the phone. */
-  if (before(COMPUTER_RX.exec(n))) return "tech_computadoras";
+  /* "All-in-One" is a computer only when nothing else names the thing:
+     "EON ONE Compact All-In-One Rechargeable Personal PA" is a PA speaker
+     (#443 c.6534989244 item 12). */
+  const comp = COMPUTER_RX.exec(n);
+  const aioOnly = comp && /^(all-in-one|aio)$/i.test(comp[0]) && (AUDIO_RX.test(n) || PA_RX.test(n));
+  if (before(comp) && !aioOnly) return "tech_computadoras";
   if (forAt >= 0 && (PHONE_RX.test(n.slice(forAt)) || COMPUTER_RX.test(n.slice(forAt))) && !PHONE_RX.test(n.slice(0, forAt))) return "tech_accesorios";
   if (PHONE_RX.test(n)) return "tech_celulares";
   /* "8GB RAM" in a phone's name is a spec, not a part: components only
      once no device matched; an external or portable drive is storage. */
-  if (COMPONENT_RX.test(n)) return /(external|portable|thumb)/i.test(n) ? "tech_accesorios" : "tech_componentes";
+  /* A phone the store files as a phone, named by its screen and memory
+     but not the word "phone" ("BOLD K22 5G 6.7\" HD Infinity Dot Display
+     128GB Storage 4GB RAM"), is a phone, not a part (#443 c.6534989244). */
+  if (/\b(phones?|cell|cellular|celular)\b/i.test(String(hint || "")) && /\bdisplay\b/i.test(n) && /\bstorage\b/i.test(n)) return "tech_celulares";
+  if (COMPONENT_RX.test(n)) return /\b(external|portable|thumb)\b/i.test(n) ? "tech_accesorios" : "tech_componentes";
   if (HEADPHONE_RX.test(n)) return "tech_audifonos";
   if (GAMING_RX.test(n)) return "tech_gaming";
   if (CAMERA_RX.test(n)) return "tech_camaras";
