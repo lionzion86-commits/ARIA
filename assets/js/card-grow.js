@@ -29,9 +29,10 @@
   var ROW = ".ariaRail:not(#liveRefineChips), div.rail, .track, .rel-row";
   var CARD = ":is(" + ROW + ") > :is(a, button):not(.sk)";
   var SETTLE = "500ms cubic-bezier(.22,1,.36,1)";
-  /* below-row room: a grown card is 10-12% taller; Ropa Interior's cards
-     are the tallest on the site */
-  var ROOM = 40, TALL_ROOM = 60;
+  /* below-row room: a grown card is 10-12% taller. Every row carries the
+     big card now (#443 c.6545104608), as tall as Ropa Interior's, so
+     every row gets the room Ropa Interior's had. */
+  var ROOM = 60, TALL_ROOM = 60;
 
   var css =
     /* Room for a grown card: a carousel scrolls sideways, so it clips
