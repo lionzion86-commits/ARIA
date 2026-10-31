@@ -192,7 +192,7 @@ await (async () => {
   /* The picks function itself, lifted and run against a stub feed. */
   const home = pageHtml();
   const at = home.indexOf("const ropaInteriorFeedPromises = {};");
-  const end = home.indexOf("const ROPA_INTERIOR_RAIL_TOTAL = 20;");
+  const end = home.indexOf("const ROPA_INTERIOR_RAIL_TOTAL = ");
   const src = home.slice(at, end);
   const stub = [
     { t: "Full price boxer", b: "Kohl's", r: "kohls", p: 20, o: 0, img: "https://x/a.jpg", ty: "underwear" },

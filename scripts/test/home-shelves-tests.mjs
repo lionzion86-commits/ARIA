@@ -83,7 +83,9 @@ check("the slices stay small (the whole set under 100KB gzipped)", () => {
   for (const f of readdirSync(DIR)) {
     const size = gzipSync(readFileSync(DIR + f)).length;
     gz += size;
-    assert.ok(size < 40 * 1024, `${f} is ${size} bytes gzipped`);
+    /* category.json holds every Compra por categoría rail at 25 cards
+       (Danny, #443 c.6539643881); it loads when those rails near the screen. */
+    assert.ok(size < (f === "category.json" ? 56 : 40) * 1024, `${f} is ${size} bytes gzipped`);
   }
   assert.ok(gz < 100 * 1024, `the shelves total ${gz} bytes gzipped`);
 });
