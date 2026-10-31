@@ -34,6 +34,7 @@ import { cartLineFor, doorPrice, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN 
 import { deliveryFor, miamiRangeEs } from "../../scripts/lib/retailer-delivery.js";
 import { isConsole } from "../../scripts/lib/tech-aisle.js";
 import { conditionOfTitle } from "../../scripts/lib/condition.js";
+import { cartShipping } from "../../scripts/lib/store-shipping.js";
 
 export const PAGE_SIZE = 48;
 /* How many ranked results a search keeps. The pipeline's own default
@@ -716,6 +717,38 @@ export function lanesFor(ctx, q, r, fx) {
    ============================================================ */
 const normWords = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
   .replace(/[®™©]/g, " ").replace(/['’`´]/g, "").replace(/[^a-z0-9.]+/g, " ").replace(/(^|\s)\.+|\.+(?=\s|$)/g, " ").trim();
+/* Store title dressing that never names a different product (#443
+   c.6544792632): a season tag "(SU25)", roman numerals ("GX II" is
+   "GX 2"), grey/gray. */
+const SEASON_TAG = /\((?:sp|su|fa|ho)\d{2}\)/gi;
+const ROMAN = { ii: "2", iii: "3", iv: "4", vi: "6", vii: "7", viii: "8" };
+const dressing = (t) => t.replace(/\b(ii|iii|iv|vi|vii|viii)\b/g, (m) => ROMAN[m]).replace(/\bgrey\b/g, "gray");
+
+/* THE MAKER'S STYLE CODE (#443 c.6544792632). Where a store's data
+   carries the manufacturer's code -- most often in its photo's file name
+   (Finish Line "FN3787_497", Xtreme Soccer "...-hj2147-400.jpg", Tennis
+   Express "JY1882_1", Parrot "VN0A5FJ8_1M7") -- the code IS the product:
+   a match groups whatever the titles say, a conflict never groups.
+   Codes are per colourway (Nike style-colour, adidas article, Vans
+   style + colour), so a colourway never joins another. */
+const CODE_RULES = [
+  [/\b(nike|jordan)\b/, /(?:^|[^a-z0-9])([a-z]{2}\d{4})[-_](\d{3})(?=[^0-9]|$)/i, (m) => m[1] + "-" + m[2]],
+  [/\badidas\b/, /(?:^|[^a-z0-9])([a-z]{2}\d{4})(?=[^a-z0-9]|$)/i, (m) => m[1]],
+  [/\bvans\b/, /(?:^|[^a-z0-9])(vn0a[0-9a-z]{4})[-_]([0-9a-z]{3})(?=[^a-z0-9]|$)/i, (m) => m[1] + "-" + m[2]],
+];
+export function styleCodeOf(p) {
+  if (p._sc !== undefined) return p._sc;
+  const brand = String(p.brand || "").toLowerCase() + " " + String(p.title || "").toLowerCase().slice(0, 24);
+  const file = String(p.image || "").split("?")[0].split("/").pop() || "";
+  let sc = null;
+  for (const [brx, crx, fmt] of CODE_RULES) {
+    if (!brx.test(brand)) continue;
+    const m = crx.exec(file) || crx.exec(String(p.title || ""));
+    if (m) { sc = (brx.source.includes("adidas") ? "adidas" : brx.source.includes("vans") ? "vans" : "nike") + ":" + fmt(m).toUpperCase(); break; }
+  }
+  try { Object.defineProperty(p, "_sc", { value: sc, enumerable: false, writable: true }); } catch { /* frozen */ }
+  return sc;
+}
 const WEARER = [
   ["t", /\b(?:toddlers?|infants?|baby|babies|preschool|little kids?|td|ps)\b/],
   ["k", /\b(?:boys?|girls?|kids?|youth|grade school|gs|big kids?|juniors?)\b/],
@@ -724,29 +757,87 @@ const WEARER = [
 ];
 const WEARER_WORDS = /\b(?:toddlers?|infants?|baby|babies|preschool|little|big|kids?|boys?|girls?|youth|grade|school|gs|td|ps|juniors?|womens?|ladies|mujer|mens?|hombre|unisex)\b/g;
 const KIND_PHRASES = /\b(?:skate shoes?|wireless earbuds|wireless headphones|basketball shoes?|running shoes?)\b/g;
-const KIND_WORDS = new Set("shoes shoe sneakers sneaker the and with for of in originals earbuds headphones jeans fit".split(" "));
+const KIND_WORDS = new Set("shoes shoe sneakers sneaker the and with for of in originals earbuds headphones jeans fit lifestyle casual athletic trainers trainer adult skate".split(" "));
 const MAKER_COLOURS = /\b(?:core|ftwr|footwear|cloud)\s+(black|white)\b/g;
 const BEAUTY_WORDS = /\b(?:mascara|serum|moisturi[sz]er|cream|cleanser|lotion|perfume|parfum|eau de|cologne|fragrance|lipstick|lip gloss|foundation|concealer|shampoo|conditioner|sunscreen|spf|toner|balm|primer|powder|blush|bronzer|palette|body mist|body spray)\b/;
 const SIZE_WORDS = /\b\d+(?:\.\d+)?\s?(?:oz|ml|fl|g|ct|count|pack|pk)\b/;
 const MAX_LIST_RATIO = 2;
 export const COMPARE_MAX_STORES = 6;
+/* Shoes and clothing come in colourways that a title may not name:
+   without a style code, a short model name must state the colour, or no
+   group -- a false "Mejor precio" is worse than a missing card. */
+const WEARABLE_RX = /\b(shoes?|sneakers?|boots?|sandals?|slides?|cleats?|slip-?ons?|mules?|clogs?|loafers?|t-?shirts?|tees?|shirts?|hoodies?|sweatshirts?|jackets?|pants|shorts|jerseys?|dress(es)?|leggings|tops?|tanks?|crew ?necks?|joggers?|sweaters?)\b/;
+const COLOUR_RX = /\b(black|white|red|blue|green|gray|pink|purple|yellow|orange|brown|beige|tan|navy|cream|gold|silver|gum|khaki|olive|maroon|burgundy|teal|sail|bone|ivory|sand|multi|multicolor|camo|charcoal|smoke|slate|mint|lilac|lavender|coral|rose|onix|aurora|wonder|chalk|natural|indigo|denim|wine|plum|rust|copper|bronze|metallic|neon|volt|cardinal|royal|sky|aqua|turquoise|lime|leopard|checker(board)?|checkered|heather|oatmeal|stone|olive|sage|mocha|espresso|peach|blush|fuchsia|magenta|scarlet|crimson|ash|cement|sesame|wheat|desert|dune|sequoia|saffron|army|forest|hunter)\b/;
 
 /** The product's identity key, or null when the title cannot carry one. */
 export function sameProductKey(ctx, p) {
   const brand = normWords(recognizedBrand(ctx, p) || p.brand);
   if (!brand) return null;
-  let t = normWords(p.title);
+  let t = dressing(normWords(String(p.title || "").replace(SEASON_TAG, " ")));
   if (BEAUTY_WORDS.test(t) && !SIZE_WORDS.test(t)) return null;
+  const colourless = WEARABLE_RX.test(t) && !COLOUR_RX.test(t);
   let wearer = "";
   for (const [k, re] of WEARER) if (re.test(t)) { wearer = k; break; }
   t = t.replace(MAKER_COLOURS, "$1").replace(KIND_PHRASES, " ").replace(WEARER_WORDS, " ");
   const bw = new Set(brand.split(" "));
   const words = [...new Set(t.split(" ").filter((w) => w && !bw.has(w) && !KIND_WORDS.has(w)))];
   if (words.length < 2) return null;
+  /* A short model name ("Old Skool", "Samba OG") comes in many
+     colourways: without the colour, no key. A designer's three-word
+     style ("Espinela Gema Maxi") names its print already. */
+  if (colourless && words.length < 3) return null;
   return brand + "|" + wearer + "|" + words.sort().join(" ");
 }
 
 const listUsd = (p) => Math.max(Number(p.price) || 0, Number(p.originalPrice) || 0);
+
+/* One product's listings, from a list of products: union of the same
+   style code (strong) and the same title key where the two codes do not
+   conflict; a set left holding two different codes keeps only the
+   larger code's listings (the titles cannot say which is which). */
+export function productGroups(ctx, list) {
+  const parent = list.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const join = (a, b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent[rb] = ra; };
+  const byKey = new Map(), byCode = new Map();
+  list.forEach((p, i) => {
+    const sc = styleCodeOf(p);
+    if (sc) { if (byCode.has(sc)) join(byCode.get(sc), i); else byCode.set(sc, i); }
+    const k = sameProductKey(ctx, p);
+    if (!k) return;
+    const at = byKey.get(k) || [];
+    for (const j of at) { const o = styleCodeOf(list[j]); if (!(sc && o && o !== sc)) join(j, i); }
+    at.push(i);
+    byKey.set(k, at);
+  });
+  const comps = new Map();
+  list.forEach((p, i) => { const r = find(i); if (!comps.has(r)) comps.set(r, []); comps.get(r).push(i); });
+  const out = [];
+  for (const idx of comps.values()) {
+    if (idx.length < 2) continue;
+    const codes = new Map();
+    for (const i of idx) { const c = styleCodeOf(list[i]); if (c) codes.set(c, (codes.get(c) || 0) + 1); }
+    let keep = idx;
+    if (codes.size > 1) {
+      const top = [...codes].sort((a, b) => b[1] - a[1])[0][0];
+      keep = idx.filter((i) => styleCodeOf(list[i]) === top);
+    }
+    out.push(keep.map((i) => list[i]));
+  }
+  return out;
+}
+/* A group's comparable members: one listing per store (a store with two
+   listings of it -- colourways its titles do not name -- takes no part),
+   list prices within MAX_LIST_RATIO. */
+export function comparableMembers(group) {
+  const byStore = new Map();
+  for (const p of group) byStore.set(p.retailer, (byStore.get(p.retailer) || []).concat([p]));
+  const members = [...byStore.values()].filter((l) => l.length === 1).map((l) => l[0]);
+  if (members.length < 2) return null;
+  const lists = members.map(listUsd).filter((x) => x > 0);
+  if (lists.length && Math.max(...lists) > MAX_LIST_RATIO * Math.min(...lists)) return null;
+  return members;
+}
 
 /* The best group of this answer (cached): the one whose best-ranked
    product ranks highest, among products on the first page. */
@@ -754,28 +845,17 @@ function compareGroup(ctx, r) {
   if (r._cmp !== undefined) return r._cmp;
   r._cmp = null;
   if (!r || r.state !== "results" || isGenericQuery(ctx, r)) return null;
-  const groups = new Map();
-  r.hits.forEach((p, i) => {
-    const k = sameProductKey(ctx, p);
-    if (!k) return;
-    let g = groups.get(k);
-    if (!g) groups.set(k, g = { first: i, byStore: new Map() });
-    const l = g.byStore.get(p.retailer) || [];
-    l.push(p);
-    g.byStore.set(p.retailer, l);
-  });
+  const rank = new Map(r.hits.map((p, i) => [p, i]));
   let best = null;
-  for (const g of groups.values()) {
-    const members = [...g.byStore.values()].filter((l) => l.length === 1).map((l) => l[0]);
-    if (members.length < 2 || g.first >= PAGE_SIZE) continue;
-    const lists = members.map(listUsd).filter((x) => x > 0);
-    if (Math.max(...lists) > MAX_LIST_RATIO * Math.min(...lists)) continue;
-    const first = Math.min(...members.map((p) => r.hits.indexOf(p)));
+  for (const g of productGroups(ctx, r.hits)) {
+    const members = comparableMembers(g);
+    if (!members) continue;
+    const first = Math.min(...members.map((p) => rank.get(p)));
     if (first >= PAGE_SIZE) continue;
     if (!best || first < best.first || (first === best.first && members.length > best.members.length)) best = { first, members };
   }
   if (best) {
-    best.members.sort((a, b) => r.hits.indexOf(a) - r.hits.indexOf(b));
+    best.members.sort((a, b) => rank.get(a) - rank.get(b));
     best.members = best.members.slice(0, COMPARE_MAX_STORES);
   }
   return (r._cmp = best ? best.members : null);
@@ -797,6 +877,50 @@ export function fastestStore(stores) {
   return win.s;
 }
 
+/* THE BREAKDOWN IS THE POINT (#443 c.6544802256, Danny). Every row
+   shows, per store: Producto (the headline -- the same number as the
+   product page and every card), Envío de la tienda (a fee, GRATIS, or
+   "lo calcula la tienda al pagar" -- never a silent $0), Flete a tu
+   puerta, the import tax and the small-order fee when they apply, and
+   the Total puesto en tu puerta as the visible SUM of those lines --
+   partial while the store's own shipping is unknown. A store can win
+   on the shoe and lose on shipping; the badges say which:
+     Mejor precio     the cheapest product;
+     Envío más barato the cheapest known store shipping (GRATIS ties);
+     Mejor total      the cheapest door total, only when no partial
+                      total could still undercut it.
+   One store can hold several. */
+export function shippingOf(line) {
+  const st = (cartShipping([line]).stores || [])[0] || null;
+  if (!st || !st.rule) return { state: "unknown", usd: null };
+  if (st.pending) return { state: "calc", usd: null };
+  if (st.feeUsd > 0) return { state: "fee", usd: st.feeUsd };
+  return { state: "free", usd: 0 };
+}
+/* The rows at the minimum of `val` (rows without a value never win);
+   nobody when every candidate ties. */
+function winners(rows, val) {
+  const c = rows.filter((x) => val(x) != null);
+  if (c.length < 2) return [];
+  const m = Math.min(...c.map(val));
+  const w = c.filter((x) => val(x) === m);
+  return w.length === c.length ? [] : w;
+}
+export function badgeRows(rows) {
+  for (const x of rows) { x.best = false; x.cheapShip = false; x.bestTotal = false; }
+  for (const x of winners(rows, (r) => (r.usd > 0 ? r.usd : null))) x.best = true;
+  for (const x of winners(rows, (r) => (r.ship && (r.ship.state === "fee" || r.ship.state === "free") ? r.ship.usd : null))) x.cheapShip = true;
+  /* A partial total is a floor: it can still end up lower. */
+  const complete = rows.filter((x) => x.door && !x.door.partial);
+  if (complete.length) {
+    const m = Math.min(...complete.map((x) => x.door.usd));
+    const atMin = complete.filter((x) => x.door.usd === m);
+    const others = rows.filter((x) => !atMin.includes(x));
+    if (atMin.length === 1 && others.length && others.every((x) => x.door && x.door.usd > m)) atMin[0].bestTotal = true;
+  }
+  return rows;
+}
+
 /** The comparison block of one answer (page 1), or null. */
 export function compareFor(ctx, r, fx) {
   const members = compareGroup(ctx, r);
@@ -804,28 +928,34 @@ export function compareFor(ctx, r, fx) {
   const info = ctx.storeInfo || {};
   const rows = members.map((p) => {
     const card = cardOf(p, fx, ctx.labels);
-    const door = doorPrice(cartLineFor({
+    const line = cartLineFor({
       retailer: p.retailer, title: p.title, brand: p.brand, cardUsd: card.usd,
       rawUsd: p.finalPrice ? null : p.price, taxRate: salesTaxRate(p.retailer),
-    }), fx);
+    });
+    const door = doorPrice(line, fx);
+    const ship = shippingOf(line);
     const d = deliveryFor(p.retailer);
     return {
       id: card.id, store: card.store,
       storeLabel: (info[p.retailer] && info[p.retailer].label) || card.storeLabel,
       logo: (info[p.retailer] && info[p.retailer].logo) || "",
       title: card.title, image: card.image,
+      /* Producto: the headline, the product page's own number. */
       usd: card.usd, pen: card.pen, wasUsd: card.wasUsd, wasPen: card.wasPen,
+      ship,
       door: door.quotable
-        ? { usd: door.usd, pen: door.pen, baseUsd: door.baseUsd, freightUsd: door.freightUsd, taxUsd: door.taxUsd, feePen: door.feePen, kg: door.kg }
+        ? { usd: door.usd, pen: door.pen, goodsUsd: door.goodsUsd, shippingUsd: door.shippingUsd, baseUsd: door.baseUsd,
+            freightUsd: door.freightUsd, taxUsd: door.taxUsd, feePen: door.feePen, kg: door.kg,
+            partial: ship.state === "calc" || ship.state === "unknown" }
         : null,
       delivery: d ? { min: d.miamiMin, max: d.miamiMax, plus: !!d.plus, text: miamiRangeEs(d) } : null,
-      best: false, fastest: false,
+      best: false, cheapShip: false, bestTotal: false, fastest: false,
     };
   });
-  /* Cheapest door price first; a store checkout cannot quote goes last. */
+  /* Cheapest door total first (a partial total by its floor); a store
+     checkout cannot quote goes last. */
   rows.sort((a, b) => (a.door ? a.door.usd : Infinity) - (b.door ? b.door.usd : Infinity));
-  const quoted = rows.filter((x) => x.door);
-  if (quoted.length >= 2 && quoted[0].door.usd < quoted[1].door.usd) quoted[0].best = true;
+  badgeRows(rows);
   const fast = fastestStore(rows.map((x) => x.store));
   if (fast) rows.find((x) => x.store === fast).fastest = true;
   const lead = members[0];
@@ -834,6 +964,7 @@ export function compareFor(ctx, r, fx) {
     brand: lead.brand || "",
     image: lead.image,
     stores: rows,
+    fx: Number(fx) > 0 ? Number(fx) : null,
     /* How the page turns a dollar door price into soles when the
        answer came without a rate (search.html's withSoles). */
     smallOrder: { thresholdPen: SMALL_ORDER_THRESHOLD_PEN, feePen: SMALL_ORDER_FEE_PEN },

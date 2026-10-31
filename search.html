@@ -141,6 +141,25 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .cmp-price .pen{font-size:18px; font-weight:800; color:var(--navy); white-space:nowrap;}
 .cmp-price .usd{font-size:12px; color:var(--muted); white-space:nowrap;}
 .cmp-price .tbd{font-size:13px; font-weight:700; color:var(--muted);}
+/* The breakdown (#443 c.6544802256): product, store shipping, freight,
+   then the total as their sum. */
+.cmp-row.bd{display:block; min-height:0;}
+.cmp-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+.cmp-lines{margin:8px 0 0; padding:0;}
+.cmp-ln{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:3px 0; font-size:13px; color:var(--ink);}
+.cmp-ln dt{color:var(--muted); min-width:0;}
+.cmp-ln dd{margin:0; text-align:right; white-space:nowrap;}
+.cmp-ln dd small{font-size:11.5px; color:var(--muted); margin-left:6px;}
+.cmp-ln.prod dt{color:var(--navy); font-weight:700;}
+.cmp-ln.prod dd b{font-size:17px; font-weight:800; color:var(--navy);}
+.cmp-ln .free{font-weight:800; color:#15803D;}
+.cmp-ln .calc{font-size:12px; color:var(--muted); white-space:normal; text-align:right;}
+.cmp-ln.tot{border-top:1px dashed var(--line); margin-top:4px; padding-top:7px;}
+.cmp-ln.tot dt{color:var(--navy); font-weight:800;}
+.cmp-ln.tot dd b{font-size:15px; font-weight:800; color:var(--navy);}
+.cmp-ln.tot .part{display:block; font-size:11.5px; color:var(--muted); font-weight:600; white-space:normal;}
+.cmp-badge.ship{background:#FFF4DB; color:#8A5A00;}
+.cmp-badge.total{background:var(--navy); color:#fff;}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
@@ -435,6 +454,7 @@ async function withSoles(data){
      plus the small-order fee when goods + freight come under its line
      (the checkout's rule, sent with the answer). */
   if (data.compare){
+    data.compare.fx = fx;
     var so = data.compare.smallOrder || {};
     (data.compare.stores || []).forEach(function(s){
       conv(s);
@@ -526,6 +546,25 @@ function productHref(title, store){
   return "producto.html?producto=" + encodeURIComponent(title || "") +
     (store ? "&tienda=" + encodeURIComponent(store) : "");
 }
+/* THE BREAKDOWN IS THE POINT (#443 c.6544802256). Per store:
+   Producto -- the headline, the same number the product page shows --
+   then Envío de la tienda (a fee, GRATIS, or "lo calcula la tienda al
+   pagar"; never a silent $0), Flete a tu puerta, the import tax and the
+   small-order fee when they apply, and the Total puesto en tu puerta as
+   the sum of those lines; partial while the store's shipping is
+   unknown. Badges: Mejor precio (product), Envío más barato, Mejor
+   total; one store can hold several. */
+var CMP_FX = null;
+function penOf(usd){ return CMP_FX ? Math.round(Number(usd) * CMP_FX * 100) / 100 : null; }
+function amountHTML(usd, pen, strong){
+  var u = esc(fmtUsd(usd));
+  if (pen == null) return strong ? "<b>" + u + "</b>" : u;
+  var p = esc(fmtPen(pen));
+  return (strong ? "<b>" + p + "</b>" : p) + "<small>" + u + "</small>";
+}
+function lineHTML(cls, label, value){
+  return '<div class="cmp-ln' + (cls ? " " + cls : "") + '"><dt>' + label + "</dt><dd>" + value + "</dd></div>";
+}
 function compareRowHTML(s){
   var title = decodeEntities(s.title);
   var label = s.storeLabel || s.store || "";
@@ -534,31 +573,57 @@ function compareRowHTML(s){
   var logo = s.logo
     ? '<img src="' + esc(BASE + "/" + s.logo) + '" alt="" height="22" decoding="async" onerror="this.remove()">'
     : "";
-  var price;
-  if (s.door && (s.door.pen || s.door.usd)){
-    price = s.door.pen
-      ? '<div class="pen">' + esc(fmtPen(s.door.pen)) + '</div><div class="usd">' + esc(fmtUsd(s.door.usd)) + "</div>"
-      : '<div class="pen">' + esc(fmtUsd(s.door.usd)) + '</div><div class="usd">&nbsp;</div>';
-  } else {
-    /* Checkout cannot quote this weight yet: no total rather than a
-       shelf price passed off as one. */
-    price = '<div class="tbd">Total por confirmar</div><div class="usd">Envío por confirmar</div>';
-  }
   var badges = "";
   if (s.best) badges += '<span class="cmp-badge best">Mejor precio</span>';
+  if (s.cheapShip) badges += '<span class="cmp-badge ship">Envío más barato</span>';
+  if (s.bestTotal) badges += '<span class="cmp-badge total">Mejor total</span>';
   if (s.fastest) badges += '<span class="cmp-badge fast">Entrega más rápida</span>';
   var was = Number(s.wasUsd), now = Number(s.usd);
   if (was > now && now > 0){
     var pct = Math.round((1 - now / was) * 100);
     if (pct >= 5) badges += '<span class="cmp-badge off">-' + pct + "%</span>";
   }
-  var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "&nbsp;";
-  return '<a class="cmp-row" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
-    '<div class="cmp-store"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
-      '<div class="cmp-ship">' + ship + "</div>" +
-      (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") +
-    "</div>" +
-    '<div class="cmp-price">' + price + "</div></a>";
+  var prodPen = s.pen != null ? Number(s.pen) : penOf(s.usd);
+  var lines = lineHTML("prod", "Producto", amountHTML(s.usd, prodPen, true));
+  var sh = s.ship || { state: "unknown" };
+  var d = s.door;
+  /* A store with no sourced shipping terms says so; it is never $0. */
+  var shipVal = sh.state === "free" ? '<span class="free">GRATIS</span>'
+    : sh.state === "fee" ? amountHTML(sh.usd, penOf(sh.usd))
+    : sh.state === "calc" ? '<span class="calc">lo calcula la tienda al pagar</span>'
+    : '<span class="calc">por confirmar</span>';
+  lines += lineHTML("", "Envío de la tienda", shipVal);
+  if (d){
+    var shipUsd = sh.state === "fee" ? Number(sh.usd) : 0;
+    var taxUsd = Number(d.taxUsd) || 0, fee = Number(d.feePen) || 0;
+    var totPen = d.pen != null ? Number(d.pen) : null;
+    /* Soles: checkout converts the sum, not each line, so the cent the
+       rounding leaves rides on the freight -- the lines add up to the
+       total exactly. */
+    var frPen = null;
+    if (totPen != null && prodPen != null){
+      frPen = Math.round((totPen - prodPen - (penOf(shipUsd) || 0) - (penOf(taxUsd) || 0) - fee) * 100) / 100;
+    }
+    lines += Number(d.freightUsd) >= 0 && d.freightUsd != null
+      ? lineHTML("", "Flete a tu puerta", amountHTML(d.freightUsd, frPen))
+      : lineHTML("", "Flete a tu puerta", '<span class="calc">por confirmar</span>');
+    if (taxUsd > 0) lines += lineHTML("", "Impuestos de importación", amountHTML(taxUsd, penOf(taxUsd)));
+    if (fee > 0) lines += lineHTML("", "Cargo por pedido pequeño", esc(fmtPen(fee)));
+    lines += (d.partial || sh.state === "unknown")
+      ? lineHTML("tot", "Total parcial", amountHTML(d.usd, totPen, true) + '<span class="part">+ envío de la tienda por calcular</span>')
+      : lineHTML("tot", "Total puesto en tu puerta", amountHTML(d.usd, totPen, true));
+  } else {
+    /* Checkout cannot quote this weight yet: no total rather than a
+       shelf price passed off as one. */
+    lines += lineHTML("", "Flete a tu puerta", '<span class="calc">por confirmar</span>');
+    lines += lineHTML("tot", "Total puesto en tu puerta", '<span class="calc">Total por confirmar</span>');
+  }
+  var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "";
+  return '<a class="cmp-row bd" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
+    '<div class="cmp-top"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
+      (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") + "</div>" +
+    '<dl class="cmp-lines">' + lines + "</dl>" +
+    (ship ? '<div class="cmp-ship">' + ship + "</div>" : "") + "</a>";
 }
 function compareHTML(c){
   if (!c || !c.stores || c.stores.length < 2) return "";
@@ -567,11 +632,12 @@ function compareHTML(c){
     ? '<img ' + cardImgAttrs(c.image, "72px").replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
       ' alt="" width="72" height="72" decoding="async" onerror="if(!imgOrigRetry(this)){this.remove()}">'
     : "";
+  CMP_FX = Number(c.fx) > 0 ? Number(c.fx) : ((typeof PAGE_FX !== "undefined" && PAGE_FX) || null);
   return '<section class="cmp" aria-label="Este producto en ' + c.stores.length + ' tiendas">' +
     '<div class="cmp-head"><div class="cmp-photo">' + img + "</div><div style=\"min-width:0\">" +
       '<div class="cmp-kicker">' + (brand ? esc(brand) + " · " : "") + "En " + c.stores.length + " tiendas</div>" +
       '<div class="cmp-title">' + esc(title) + "</div></div></div>" +
-    '<p class="cmp-note">Precio total puesto en tu puerta: producto, envío e impuestos.</p>' +
+    '<p class="cmp-note">Producto, envío de la tienda y flete, tienda por tienda: el total es la suma.</p>' +
     c.stores.map(compareRowHTML).join("") + "</section>";
 }
 

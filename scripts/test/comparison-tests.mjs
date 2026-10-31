@@ -313,7 +313,15 @@ await check("search.html draws the block: soles first, badges, each row to its o
     assert.ok(at > 0, s.store + " row missing");
     const rowEnd = h.indexOf("</a>", at);
     const row = h.slice(at, rowEnd);
-    assert.ok(row.indexOf("S/ " + s.door.pen.toFixed(2)) >= 0 && row.indexOf("S/ ") < row.indexOf("US$ "), s.store + ": soles not first");
+    /* THE BREAKDOWN (#443 c.6544802256): Producto first (the product
+       page's own headline), then the store's shipping, the freight, and
+       the total as their sum -- soles first on every line. */
+    const iProd = row.indexOf(">Producto<"), iShip = row.indexOf(">Envío de la tienda<"), iFr = row.indexOf(">Flete a tu puerta<"), iTot = row.search(/>Total (puesto en tu puerta|parcial)</);
+    assert.ok(iProd > 0 && iProd < iShip && iShip < iFr && iFr < iTot, s.store + ": the lines out of order");
+    assert.ok(row.indexOf("S/ " + Number(s.pen).toFixed(2), iProd) > iProd, s.store + ": the product line is not the card price in soles");
+    assert.ok(row.indexOf("S/ " + s.door.pen.toFixed(2), iTot) > iTot && row.indexOf("S/ ") < row.indexOf("US$ "), s.store + ": soles not first");
+    if (s.ship.state === "calc") assert.match(row, /lo calcula la tienda al pagar/);
+    if (s.door.partial) assert.match(row, /Total parcial/);
     if (s.logo) assert.ok(row.includes('src="/' + s.logo + '"'), s.store + ": no logo");
   }
   const hrefs = [...h.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
@@ -323,7 +331,12 @@ await check("search.html draws the block: soles first, badges, each row to its o
   assert.ok(!/Entrega más rápida/.test(h) || samba.compare.stores.some((s) => s.fastest));
   const tbd = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", usd: 10, door: null }, { store: "b", storeLabel: "B", title: "X", usd: 12, door: { usd: 20, pen: 68 } }] });
   assert.match(tbd, /Total por confirmar/);
-  assert.ok(!/US\$ 10\.00/.test(tbd), "an unquotable row shows its shelf price as if it were a total");
+  /* An unquotable row still shows its product price -- labelled Producto,
+     never as a total. */
+  const rowA = tbd.slice(tbd.indexOf("tienda=a"), tbd.indexOf("</a>", tbd.indexOf("tienda=a")));
+  assert.match(rowA, />Producto<\/dt><dd><b>US\$ 10\.00<\/b>/);
+  assert.ok(!/Total puesto en tu puerta<\/dt><dd><b>/.test(rowA), "an unquotable row passes a price off as its total");
+  assert.ok(!/NaN/.test(tbd), "a missing freight drew NaN");
 });
 
 await check("search.html: yellow only on the sale badge, no emoji, rows never link to a retailer", () => {
