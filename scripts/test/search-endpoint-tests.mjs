@@ -105,7 +105,9 @@ await check("brand + model queries answer with that model", async () => {
   };
   for (const [q, rx] of Object.entries(want)) {
     const r = await ask(q);
-    const top = r.body.items.slice(0, 4);
+    /* What the page opens on, in order: the model charts (#443
+       c.6544967818), then the grid. */
+    const top = (r.body.compares || []).flatMap((c) => c.stores).concat(r.body.items).slice(0, 4);
     assert.ok(top.length && top.every((i) => rx.test(i.title)), `"${q}": ${top.map((i) => i.title).join(" | ")}`);
   }
 });

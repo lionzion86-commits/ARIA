@@ -141,6 +141,25 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .cmp-price .pen{font-size:18px; font-weight:800; color:var(--navy); white-space:nowrap;}
 .cmp-price .usd{font-size:12px; color:var(--muted); white-space:nowrap;}
 .cmp-price .tbd{font-size:13px; font-weight:700; color:var(--muted);}
+/* The breakdown (#443 c.6544802256): product, store shipping, freight,
+   then the total as their sum. */
+.cmp-row.bd{display:block; min-height:0;}
+.cmp-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+.cmp-lines{margin:8px 0 0; padding:0;}
+.cmp-ln{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:3px 0; font-size:13px; color:var(--ink);}
+.cmp-ln dt{color:var(--muted); min-width:0;}
+.cmp-ln dd{margin:0; text-align:right; white-space:nowrap;}
+.cmp-ln dd small{font-size:11.5px; color:var(--muted); margin-left:6px;}
+.cmp-ln.prod dt{color:var(--navy); font-weight:700;}
+.cmp-ln.prod dd b{font-size:17px; font-weight:800; color:var(--navy);}
+.cmp-ln .free{font-weight:800; color:#15803D;}
+.cmp-ln .calc{font-size:12px; color:var(--muted); white-space:normal; text-align:right;}
+.cmp-ln.tot{border-top:1px dashed var(--line); margin-top:4px; padding-top:7px;}
+.cmp-ln.tot dt{color:var(--navy); font-weight:800;}
+.cmp-ln.tot dd b{font-size:15px; font-weight:800; color:var(--navy);}
+.cmp-ln.tot .part{display:block; font-size:11.5px; color:var(--muted); font-weight:600; white-space:normal;}
+.cmp-badge.ship{background:#FFF4DB; color:#8A5A00;}
+.cmp-badge.total{background:var(--navy); color:#fff;}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
@@ -431,19 +450,11 @@ async function withSoles(data){
   };
   (data.items || []).forEach(conv);
   (data.lanes || []).forEach(function(l){ (l.items || []).forEach(conv); });
-  /* The comparison block's door prices: the dollar total at the rate,
-     plus the small-order fee when goods + freight come under its line
-     (the checkout's rule, sent with the answer). */
-  if (data.compare){
-    var so = data.compare.smallOrder || {};
-    (data.compare.stores || []).forEach(function(s){
-      conv(s);
-      if (!s.door) return;
-      var base = Math.round(Number(s.door.baseUsd) * fx * 100) / 100;
-      var fee = so.thresholdPen && base < so.thresholdPen ? Number(so.feePen) || 0 : 0;
-      s.door.pen = Math.round((Number(s.door.usd) * fx + fee) * 100) / 100;
-    });
-  }
+  /* The comparison charts: each row's product price at the rate. */
+  (data.compares || (data.compare ? [data.compare] : [])).forEach(function(c){
+    c.fx = fx;
+    (c.stores || []).forEach(conv);
+  });
   data.fx = fx;
   return data;
 }
@@ -507,7 +518,8 @@ var SPECIFIC_LEAD = 8;
 function answerHTML(data){
   var lanes = (data.lanes || []).filter(function(l){ return l.items && l.items.length; });
   var cards = data.items.map(cardHTML);
-  var head = compareHTML(data.compare);
+  /* One chart per model, strongest first (#443 c.6544967818). */
+  var head = (data.compares || (data.compare ? [data.compare] : [])).map(compareHTML).join("");
   if (!lanes.length) return head + cards.join("");
   if (data.mode === "generic" || data.mode === "brand"){
     return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
@@ -526,6 +538,32 @@ function productHref(title, store){
   return "producto.html?producto=" + encodeURIComponent(title || "") +
     (store ? "&tienda=" + encodeURIComponent(store) : "");
 }
+/* WHAT THE CHART COMPARES (#443 c.6544862981, Amendment 2): only what
+   differs by store. Producto -- the headline, the product page's own
+   number -- and Envío de la tienda: the fee, GRATIS, or "lo calcula la
+   tienda al pagar" (never a silent $0), with the store's free-shipping
+   line. No freight line and no door total: nobody has an order yet.
+   Badges: Mejor precio, Envío más barato, Mejor costo hasta Miami. */
+var CMP_FX = null;
+function penOf(usd){ return CMP_FX ? Math.round(Number(usd) * CMP_FX * 100) / 100 : null; }
+function moneyUsd(n){ var v = Math.round(Number(n) * 100) / 100; return "$" + (v % 1 === 0 ? String(v) : v.toFixed(2)); }
+function amountHTML(usd, pen, strong){
+  var u = esc(fmtUsd(usd));
+  if (pen == null) return strong ? "<b>" + u + "</b>" : u;
+  var p = esc(fmtPen(pen));
+  return (strong ? "<b>" + p + "</b>" : p) + "<small>" + u + "</small>";
+}
+function lineHTML(cls, label, value){
+  return '<div class="cmp-ln' + (cls ? " " + cls : "") + '"><dt>' + label + "</dt><dd>" + value + "</dd></div>";
+}
+function shipHTML(sh){
+  sh = sh || { state: "unknown" };
+  var line = sh.freeOverUsd ? '<span class="calc">gratis desde ' + esc(moneyUsd(sh.freeOverUsd)) + "</span>" : "";
+  if (sh.state === "free") return '<span class="free">GRATIS</span>';
+  if (sh.state === "fee") return amountHTML(sh.usd, penOf(sh.usd)) + (line ? "<br>" + line : "");
+  if (sh.state === "calc") return '<span class="calc">lo calcula la tienda al pagar</span>' + (line ? "<br>" + line : "");
+  return '<span class="calc">por confirmar</span>';
+}
 function compareRowHTML(s){
   var title = decodeEntities(s.title);
   var label = s.storeLabel || s.store || "";
@@ -534,44 +572,42 @@ function compareRowHTML(s){
   var logo = s.logo
     ? '<img src="' + esc(BASE + "/" + s.logo) + '" alt="" height="22" decoding="async" onerror="this.remove()">'
     : "";
-  var price;
-  if (s.door && (s.door.pen || s.door.usd)){
-    price = s.door.pen
-      ? '<div class="pen">' + esc(fmtPen(s.door.pen)) + '</div><div class="usd">' + esc(fmtUsd(s.door.usd)) + "</div>"
-      : '<div class="pen">' + esc(fmtUsd(s.door.usd)) + '</div><div class="usd">&nbsp;</div>';
-  } else {
-    /* Checkout cannot quote this weight yet: no total rather than a
-       shelf price passed off as one. */
-    price = '<div class="tbd">Total por confirmar</div><div class="usd">Envío por confirmar</div>';
-  }
   var badges = "";
   if (s.best) badges += '<span class="cmp-badge best">Mejor precio</span>';
+  if (s.cheapShip) badges += '<span class="cmp-badge ship">Envío más barato</span>';
+  if (s.bestCost) badges += '<span class="cmp-badge total">Mejor costo hasta Miami</span>';
   if (s.fastest) badges += '<span class="cmp-badge fast">Entrega más rápida</span>';
   var was = Number(s.wasUsd), now = Number(s.usd);
   if (was > now && now > 0){
     var pct = Math.round((1 - now / was) * 100);
     if (pct >= 5) badges += '<span class="cmp-badge off">-' + pct + "%</span>";
   }
-  var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "&nbsp;";
-  return '<a class="cmp-row" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
-    '<div class="cmp-store"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
-      '<div class="cmp-ship">' + ship + "</div>" +
-      (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") +
-    "</div>" +
-    '<div class="cmp-price">' + price + "</div></a>";
+  var prodPen = s.pen != null ? Number(s.pen) : penOf(s.usd);
+  var lines = lineHTML("prod", "Producto", amountHTML(s.usd, prodPen, true)) +
+    lineHTML("", "Envío de la tienda", shipHTML(s.ship));
+  var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "";
+  return '<a class="cmp-row bd" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
+    '<div class="cmp-top"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
+      (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") + "</div>" +
+    '<dl class="cmp-lines">' + lines + "</dl>" +
+    (ship ? '<div class="cmp-ship">' + ship + "</div>" : "") + "</a>";
 }
 function compareHTML(c){
-  if (!c || !c.stores || c.stores.length < 2) return "";
+  if (!c || !c.stores) return "";
+  /* A row without a price never renders (#443 c.6544992777). */
+  c = Object.assign({}, c, { stores: c.stores.filter(function(s){ return Number(s.usd) > 0; }) });
+  if (c.stores.length < 2) return "";
   var title = decodeEntities(c.title), brand = decodeEntities(c.brand);
   var img = c.image
     ? '<img ' + cardImgAttrs(c.image, "72px").replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
       ' alt="" width="72" height="72" decoding="async" onerror="if(!imgOrigRetry(this)){this.remove()}">'
     : "";
+  CMP_FX = Number(c.fx) > 0 ? Number(c.fx) : ((typeof PAGE_FX !== "undefined" && PAGE_FX) || null);
   return '<section class="cmp" aria-label="Este producto en ' + c.stores.length + ' tiendas">' +
     '<div class="cmp-head"><div class="cmp-photo">' + img + "</div><div style=\"min-width:0\">" +
       '<div class="cmp-kicker">' + (brand ? esc(brand) + " · " : "") + "En " + c.stores.length + " tiendas</div>" +
       '<div class="cmp-title">' + esc(title) + "</div></div></div>" +
-    '<p class="cmp-note">Precio total puesto en tu puerta: producto, envío e impuestos.</p>' +
+    '<p class="cmp-note">El mismo modelo en ' + c.stores.length + ' tiendas: precio del producto y envío de cada tienda.</p>' +
     c.stores.map(compareRowHTML).join("") + "</section>";
 }
 
@@ -635,7 +671,7 @@ function renderAnswer(query, data){
   watchPhotos(grid);
   /* The comparison block's products count as shown (they are part of
      the total, and not repeated in the grid). */
-  STATE.shown = data.items.length + (data.compare && data.compare.stores ? data.compare.stores.length : 0);
+  STATE.shown = data.items.length + (data.compares || (data.compare ? [data.compare] : [])).reduce(function(n, c){ return n + ((c && c.stores) ? c.stores.length : 0); }, 0);
   var meta = el("meta-line");
   if (meta){
     meta.textContent = (STATE.capped ? "Más de " : "") + fmtCount(data.total) + " resultado" + (data.total === 1 ? "" : "s") +
