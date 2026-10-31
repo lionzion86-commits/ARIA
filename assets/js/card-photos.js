@@ -35,12 +35,20 @@
   var SHARDS = 4096, BASE = "/assets/pdp/p/";
   var CARD = ":is(" + ROW + ") > :is(a, button, div.card, article)";
 
+  /* THE ARROW IS A STRIP (#443 c.6545843738, Danny's live tap test): the
+     tap target is a full-height strip down each side of the photo -- left
+     = previous, right = next -- with the small round chevron drawn inside
+     it. A sloppy tap anywhere on the strip flips the photo and never opens
+     the product; a sideways drag that starts on a strip scrolls the rail
+     (the browser sends no click once a touch has moved: the #556 rule). */
   var css =
-    ".cp-nav{position:absolute;top:38%;z-index:3;width:30px;height:30px;border-radius:50%;border:0;" +
-    "background:rgba(255,255,255,.88);color:#0B1E3D;font:700 18px/30px system-ui,sans-serif;text-align:center;" +
-    "padding:0;box-shadow:0 2px 8px rgba(10,20,40,.18);cursor:pointer;-webkit-tap-highlight-color:transparent}" +
-    ".cp-nav.cp-prev{left:6px}.cp-nav.cp-next{right:6px}.cp-nav[hidden]{display:none}" +
-    ".cp-dots{position:absolute;left:0;right:0;z-index:3;display:flex;justify-content:center;gap:4px;pointer-events:none}" +
+    ".cp-nav{position:absolute;top:0;bottom:0;z-index:3;width:30%;margin:0;border:0;padding:0;background:transparent;" +
+    "display:flex;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:pan-x pan-y}" +
+    ".cp-nav.cp-prev{left:0;justify-content:flex-start;padding-left:6px}.cp-nav.cp-next{right:0;justify-content:flex-end;padding-right:6px}" +
+    ".cp-nav i{display:block;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.88);color:#0B1E3D;" +
+    "font:700 18px/30px system-ui,sans-serif;font-style:normal;text-align:center;box-shadow:0 2px 8px rgba(10,20,40,.18);pointer-events:none}" +
+    ".cp-nav[hidden]{display:none}" +
+    ".cp-dots{position:absolute;left:0;right:0;bottom:8px;z-index:3;display:flex;justify-content:center;gap:4px;pointer-events:none}" +
     ".cp-dots i{width:5px;height:5px;border-radius:50%;background:rgba(11,30,61,.25)}.cp-dots i.on{background:#0B1E3D}";
   var st = document.createElement("style");
   st.id = "ariaCardPhotos";
@@ -128,14 +136,20 @@
     });
   }
 
+  /* The strips and dots live in the photo's own box, so they cover the
+     photo exactly whatever loads when. */
+  function photoBox(img) {
+    var box = img.parentElement;
+    if (box && getComputedStyle(box).position === "static") box.style.position = "relative";
+    return box;
+  }
   function paintDots(card, img, n, on) {
     var dots = card.querySelector(".cp-dots");
     if (!dots) {
       dots = document.createElement("span");
       dots.className = "cp-dots";
-      card.appendChild(dots);
+      photoBox(img).appendChild(dots);
     }
-    dots.style.top = (img.offsetTop + img.offsetHeight - 12) + "px";
     var h = "";
     for (var k = 0; k < n; k++) h += "<i" + (k === on ? ' class="on"' : "") + "></i>";
     dots.innerHTML = h;
@@ -146,16 +160,15 @@
     card._cpArmed = true;
     var img = card.querySelector("img[data-g]");
     if (!img || (+img.getAttribute("data-g") || 0) < 2 || !productOf(card)) return;
-    if (getComputedStyle(card).position === "static") card.style.position = "relative";
-    var top = img.offsetTop + img.offsetHeight * 0.38 - 15;
+    var box = photoBox(img);
     ["prev", "next"].forEach(function (k) {
-      var b = document.createElement("button");
-      b.type = "button";
+      var b = document.createElement("span");
+      b.setAttribute("role", "button");
       b.className = "cp-nav cp-" + k;
       b.setAttribute("aria-label", k === "next" ? "Foto siguiente" : "Foto anterior");
-      b.textContent = k === "next" ? "›" : "‹";
-      if (top > 0) b.style.top = top + "px";
-      card.appendChild(b);
+      b.innerHTML = "<i>" + (k === "next" ? "›" : "‹") + "</i>";
+      b._cpCard = card;
+      box.appendChild(b);
     });
     paintDots(card, img, Math.min(+img.getAttribute("data-g"), 8), 0);
   }
@@ -166,7 +179,7 @@
     if (!b) return;
     e.preventDefault();
     e.stopPropagation();
-    step(b.parentElement, b.classList.contains("cp-next") ? 1 : -1);
+    step(b._cpCard || b.closest(CARD) || b.parentElement, b.classList.contains("cp-next") ? 1 : -1);
   }, true);
 
   /* Arm the cards on screen as rows appear and scroll: buttons only,

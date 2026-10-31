@@ -1164,6 +1164,18 @@ window.doSearch = function(which){
   @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+  /* THE ARROW IS A STRIP on the homepage cards too (#443 c.6545843738):
+     the bundle's in-card gallery arrows (cardSwipeNavHTML) become
+     full-height strips down each side of the photo -- a sloppy tap flips
+     the photo (cardSwipeImg stops the card from opening), a drag that
+     starts on one still scrolls the rail; the small round chevron stays. */
+  [data-card-imgs] > span[role="button"]{ top:0 !important; bottom:0 !important; height:auto !important; width:30% !important;
+    transform:none !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important;
+    display:flex !important; align-items:center; -webkit-tap-highlight-color:transparent; touch-action:pan-x pan-y; }
+  [data-card-imgs] > span[aria-label="Foto anterior"]{ left:0 !important; justify-content:flex-start; padding-left:6px !important; }
+  [data-card-imgs] > span[aria-label="Foto siguiente"]{ right:0 !important; left:auto !important; justify-content:flex-end; padding-right:6px !important; }
+  [data-card-imgs] > span[role="button"] > svg{ width:30px; height:30px; padding:8px; box-sizing:border-box; border-radius:999px;
+    background:rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(10,31,68,.25); pointer-events:none; }
   /* THE BIG CARD (#443 c.6545104608, c.6545136763; Danny: "a thousand
      times better"): the Ropa Interior card is the whole store's card --
      near-full-width in rails, a 4:5 photo, the title readable at a glance.
