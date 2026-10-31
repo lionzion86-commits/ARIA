@@ -43,6 +43,12 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 /* ---- page: the homepage's azure band ---- */
 .page{background:linear-gradient(160deg,var(--azure) 0%,var(--azure-deep) 55%,var(--azure) 100%);
   color:#fff;padding:0 0 40px;min-height:70vh}
+/* TWO-TONE (Danny, #443 c.6547422021): everything above LAS MEJORES
+   OFERTAS -- title, sub, freshness chip, search, Por tienda / Por
+   categoría, the count line -- sits on the deal cards' own navy
+   (--tile); from the first rail down the azure band stays. Ofertas
+   only: departamento.html and its shared header are not touched. */
+.top-band{background:var(--tile);padding-bottom:6px}
 .intro{max-width:1240px;margin:0 auto;padding:18px 20px 6px}
 @media(min-width:1024px){.intro{padding:26px 32px 8px}}
 h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;letter-spacing:-.02em;
@@ -184,6 +190,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
 </header>
 
 <main class="page">
+  <div class="top-band">
   <div class="intro">
     <h1 class="page-title">Ofertas</h1>
     <p class="page-sub">Descuentos verificados de tiendas de Estados Unidos, con el precio honesto que pagas puesto en Perú.</p>
@@ -197,6 +204,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
     </div>
     <div class="cats" id="cats" role="group" aria-label="Categorías" hidden></div>
     <p class="count-line" id="countLine"></p>
+  </div>
   </div>
 
   <div id="content">
