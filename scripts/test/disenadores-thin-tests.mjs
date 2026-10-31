@@ -62,7 +62,7 @@ check("small files only, cards capped and lean", () => {
     assert.ok(raw.length < 32 * 1024, `${f} is ${raw.length} bytes`);
     const j = JSON.parse(raw);
     for (const c of (j.cards || []).concat(...(j.rails || []).map((r) => r.cards || []))) {
-      for (const k of Object.keys(c)) assert.ok(["t", "b", "p", "o", "s", "i"].includes(k), `${f}: card field ${k}`);
+      for (const k of Object.keys(c)) assert.ok(["t", "b", "p", "o", "s", "i", "ph"].includes(k), `${f}: card field ${k}`);
     }
     if (j.cards) assert.ok(j.cards.length <= PAGE_SIZE);
     for (const r of j.rails || []) if (r.cards) assert.ok(r.cards.length <= RAIL_CARDS);

@@ -53,10 +53,11 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { photoCount } from "./lib/photo-counts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
-export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating"];
+export const INDEX_FIELDS = ["id", "title", "brand", "price", "originalPrice", "onSale", "department", "retailer", "finalPrice", "image", "cat", "reviews", "rating", "ph"];
 
 /* Everything search covers: the catalogues below, then the sale feed
    for deals no catalogue carries. (This list lived in search.html while
@@ -302,6 +303,11 @@ export function buildIndex() {
       departments: p.department ? [p.department] : [] }) || "";
     rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
       p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
+    /* ph: the photo count, only when 2+ (#443 c.6546035414): the search
+       card's photo arrows. A trailing optional field: one-photo rows
+       stay their old length. */
+    const ph = photoCount(ROOT, p.title, p.retailer);
+    if (ph > 1) rows[rows.length - 1].push(ph);
   }
   const stores = storeTable(new Set(rows.map((r) => r[7]).filter(Boolean)));
   return { v: 1, generatedAt: null, fields: INDEX_FIELDS, count: rows.length, stores, rows };
