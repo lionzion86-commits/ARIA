@@ -1,5 +1,8 @@
 /checkout /checkout.html 200
 /admin /admin.html 200
+# Compradores (#443 agent dashboard): staff only, noindex.
+/agente /agente.html 200
+/admin/agentes /admin-agentes.html 200
 /terminos /terminos.html 200
 /privacidad /privacidad.html 200
 # "Por qué Aria" (2026-10-08): the nav link pointed at a page that never

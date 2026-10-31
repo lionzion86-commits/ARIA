@@ -5,5 +5,7 @@ Allow: /
 # Panel interno: fuera del indice.
 Disallow: /admin
 Disallow: /admin.html
+Disallow: /agente
+Disallow: /admin-agentes
 
 Sitemap: https://ariashop.pe/sitemap.xml

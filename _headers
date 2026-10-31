@@ -74,3 +74,11 @@
 # above -- it is the only door to the current bundle name.
 /build/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Compradores (#443 agent dashboard): staff pages, never indexed, never cached stale.
+/agente.html
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-cache
+/admin-agentes.html
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-cache
