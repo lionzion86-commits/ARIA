@@ -118,6 +118,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
    The same product at 2+ stores is one block at the top, each store's
    TOTAL door price in soles first and bold. Badges are not yellow:
    yellow is for sale badges only. */
+.cmp-sec{grid-column:1/-1; min-width:0; margin:0 0 6px;}
+.cmp-sec-title{font-size:18px; font-weight:800; color:var(--navy); margin:2px 0 2px;}
+.cmp-sec-sub{font-size:14px; color:var(--muted); margin:0 0 12px;}
 .cmp{grid-column:1/-1; min-width:0; border:1px solid var(--line); border-radius:16px; padding:14px; margin:0 0 6px; background:#fff;}
 .cmp-head{display:flex; gap:12px; align-items:center; margin-bottom:10px;}
 .cmp-photo{position:relative; flex:0 0 72px; width:72px; height:72px; border-radius:12px; background:var(--sky); overflow:hidden;}
@@ -530,6 +533,12 @@ function answerHTML(data){
   var cards = data.items.map(cardHTML);
   /* One chart per model, strongest first (#443 c.6544967818). */
   var head = (data.compares || (data.compare ? [data.compare] : [])).map(compareHTML).join("");
+  /* THE COMPARATOR INTRODUCES ITSELF (#443 c.6546638454, final scope
+     c.6546641302): the charts sit in one labelled section, right under
+     the results line and above the first chart. No background change. */
+  if (head) head = '<section class="cmp-sec" aria-labelledby="cmpSecTitle">' +
+    '<h2 class="cmp-sec-title" id="cmpSecTitle">Comparador de Precios</h2>' +
+    '<p class="cmp-sec-sub">Compara el mismo producto en diferentes tiendas.</p>' + head + "</section>";
   if (!lanes.length) return head + cards.join("");
   if (data.mode === "generic" || data.mode === "brand"){
     return head + lanes.map(function(l){ return laneHTML(l); }).join("") +
