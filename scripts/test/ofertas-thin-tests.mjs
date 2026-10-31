@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
-import { build, railsIndex, leadRail, RAILS_FILE, LEAD_N, LEAD_SPREAD, MAX_RUN, MIN_RAIL, OPEN_N, OPEN_STORE } from "../build-ofertas-slices.mjs";
+import { build, railsIndex, leadRail, RAILS_FILE, LEAD_N, LEAD_SPREAD, MAX_RUN, MIN_RAIL, OPEN_N, OPEN_STORE, STORE_LEAD, OUT_OF_FRONT, STORE_LAST, FRONT_N } from "../build-ofertas-slices.mjs";
 import { PAGE_SIZE, SORTS, FIELDS, unpackCard, selectDeals, pageOf, loadDeals } from "../../netlify/functions/_ofertas-core.js";
 import { handler } from "../../netlify/functions/ofertas.js";
 
@@ -237,12 +237,22 @@ await check("the lead rail is the homepage's Ofertas rail: it opens on Victoria'
   assert.match(bundle, /const MOBILE_RAIL_DEALS = 20;/);
 });
 
-await check("store rails are sales-led: most deep markdowns first, then the deepest, then the most deals", () => {
+await check("store rails: Danny's curated lead (VS, Zumiez, Walmart, Born Primitive, SKIMS), Venum and surf/skate out of the front, CCS last, the rest sales-led (c.6546035414)", () => {
   const j = JSON.parse(readFileSync(ROOT + RAILS_FILE, "utf8"));
-  for (let i = 1; i < j.stores.length; i++) {
-    const a = j.stores[i - 1], b = j.stores[i];
-    assert.ok(a.deep > b.deep || (a.deep === b.deep && (a.top > b.top || (a.top === b.top && a.n >= b.n))), `${a.key} before ${b.key}`);
+  const keys = j.stores.map((s) => s.key);
+  const lead = STORE_LEAD.filter((k) => keys.includes(k));
+  assert.deepEqual(keys.slice(0, lead.length), lead, "the lead block");
+  assert.deepEqual(keys.slice(0, 3), ["victoriassecret", "zumiez", "walmart"], "Danny's first three");
+  for (const k of STORE_LAST) if (keys.includes(k)) assert.equal(keys[keys.length - 1], k, k + " is not at the bottom");
+  for (const k of OUT_OF_FRONT) if (keys.includes(k)) {
+    assert.ok(keys.indexOf(k) >= FRONT_N, k + " is in the front of the store order");
+    assert.ok(keys.indexOf(k) < keys.length - 1, k + " sank to the bottom");
   }
+  const salesLed = (a, b) => a.deep > b.deep || (a.deep === b.deep && (a.top > b.top || (a.top === b.top && a.n >= b.n)));
+  const plain = j.stores.filter((s) => !STORE_LEAD.includes(s.key) && !STORE_LAST.includes(s.key) && !OUT_OF_FRONT.includes(s.key));
+  for (let i = 1; i < plain.length; i++) assert.ok(salesLed(plain[i - 1], plain[i]), `${plain[i - 1].key} before ${plain[i].key}`);
+  const held = j.stores.filter((s) => OUT_OF_FRONT.includes(s.key));
+  for (let i = 1; i < held.length; i++) assert.ok(salesLed(held[i - 1], held[i]), `${held[i - 1].key} before ${held[i].key}`);
 });
 
 await check("the page is carousels: rails of homepage-size cards, one rail per store, no grid", () => {

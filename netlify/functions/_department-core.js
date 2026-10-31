@@ -78,7 +78,152 @@ const TYPE_ES = new Map(Object.entries({
   "bottoms": "Pantalones y faldas", "bottom": "Pantalones y faldas", "henleys": "Polos", "v necks": "Chompas y polerones",
   "turtlenecks": "Chompas y polerones", "sweaters knits": "Chompas y polerones", "silks & cashmeres": "Chompas y polerones",
   "monkstraps": "Zapatos", "panty packs": "Lencería", "workoutgloveswraps": "Guantes", "handwraps": "Vendas", "shoes": "Zapatos",
+
+  /* The department header's Tipo filter (#443 c.6545712892) lists every
+     type a department holds: every English store type with 10+ products
+     has its Spanish name here. */
+  "tech accesorios": "Accesorios tecnológicos",
+  "video games": "Videojuegos",
+  "laptop computers": "Laptops",
+  "laptop": "Laptops",
+  "laptops/notebooks": "Laptops",
+  "tablet computers": "Tablets",
+  "apparel accessories": "Accesorios",
+  "smart watches": "Relojes inteligentes",
+  "fragrance": "Fragancia",
+  "tech audifonos": "Audífonos",
+  "headphones & earbuds": "Audífonos",
+  "headphones": "Audífonos",
+  "headsets": "Audífonos con micrófono",
+  "gaming headsets": "Audífonos con micrófono",
+  "table lamps": "Lámparas de mesa",
+  "hair accessories": "Accesorios para el pelo",
+  "motherboards": "Placas madre",
+  "cell phones": "Celulares",
+  "tech celulares": "Celulares",
+  "throw pillows": "Cojines",
+  "novelty pillows": "Cojines",
+  "decorative bed pillows": "Cojines",
+  "outdoor square pillows": "Cojines de exterior",
+  "outdoor lumbar pillows": "Cojines de exterior",
+  "tech computadoras": "Computadoras",
+  "desktop computers": "Computadoras",
+  "tech casa inteligente": "Casa inteligente",
+  "vr headsets": "Lentes de realidad virtual",
+  "ssd (solid state drives)": "Discos SSD",
+  "hard drives": "Discos duros",
+  "sheet sets": "Juegos de sábanas",
+  "computer monitors": "Monitores",
+  "flatware sets": "Cubiertos",
+  "open stock flatware": "Cubiertos",
+  "gaming keyboards": "Teclados",
+  "computer keyboards": "Teclados",
+  "keyboards": "Teclados",
+  "mac keyboards": "Teclados",
+  "cropped tanks": "Tops sin mangas",
+  "tanks": "Tops sin mangas",
+  "drop arm tanks": "Tops sin mangas",
+  "full length tanks": "Tops sin mangas",
+  "crop tanks": "Tops sin mangas",
+  "instant cameras": "Cámaras instantáneas",
+  "surveillance cameras": "Cámaras de seguridad",
+  "digital cameras": "Cámaras digitales",
+  "video cameras": "Videocámaras",
+  "tech camaras": "Cámaras",
+  "car dash cameras": "Cámaras para auto",
+  "underwater cameras": "Cámaras acuáticas",
+  "drinking glasses": "Vasos",
+  "outdoor drinking glasses": "Vasos",
+  "cocktail & bar glasses": "Vasos de cóctel",
+  "outdoor cocktail & bar glasses": "Vasos de cóctel",
+  "cocktail & whiskey glasses": "Vasos de cóctel",
+  "outdoor wine glasses": "Copas",
+  "champagne glasses": "Copas",
+  "outdoor champagne glasses": "Copas",
+  "champagne flutes": "Copas",
+  "portable speakers": "Parlantes portátiles",
+  "sound bars": "Barras de sonido",
+  "aerial drones": "Drones",
+  "throw blankets": "Mantas",
+  "blankets": "Mantas",
+  "network cables": "Cables de red",
+  "belt": "Correas",
+  "computer mice": "Mouse",
+  "wide leg bottoms": "Pantalones",
+  "straight leg pant": "Pantalones",
+  "slim leg pant": "Pantalones",
+  "outdoor bottoms": "Pantalones",
+  "tactical bottoms": "Pantalones",
+  "pant": "Pantalones",
+  "bath towels": "Toallas",
+  "bath towel bundles": "Toallas",
+  "dinner plates": "Platos",
+  "outdoor dinner plates": "Platos",
+  "salad plates": "Platos",
+  "outdoor salad plates": "Platos",
+  "bakeware sets": "Moldes para hornear",
+  "baking dishes": "Fuentes para hornear",
+  "baking sheets": "Bandejas para hornear",
+  "serving platters & trays": "Fuentes y bandejas",
+  "outdoor serving platters & trays": "Fuentes y bandejas",
+  "long sleeves": "Polos manga larga",
+  "tech gaming": "Gaming",
+  "kitchen dish towels": "Secadores de cocina",
+  "bath accessories": "Accesorios de baño",
+  "chargers": "Cargadores",
+  "video game controllers": "Mandos de videojuego",
+  "video game accessories": "Accesorios de videojuegos",
+  "video game consoles": "Consolas",
+  "network routers": "Routers",
+  "comforter sets": "Edredones",
+  "duvet cover sets": "Fundas de edredón",
+  "pillow shams": "Fundas de almohada",
+  "quilt sets": "Cubrecamas",
+  "cooking utensils": "Utensilios de cocina",
+  "serving utensils": "Utensilios para servir",
+  "pasta & cereal bowls": "Tazones",
+  "outdoor bowls": "Tazones",
+  "bowls": "Tazones",
+  "serving bowls & baskets": "Fuentes para servir",
+  "serving bowls": "Fuentes para servir",
+  "keychain": "Llaveros",
+  "weight lifting belts": "Cinturones de levantamiento",
+  "appetizer serveware": "Piqueos",
+  "usb hubs": "Hubs USB",
+  "unitards": "Enterizos",
+  "jumpers": "Enterizos",
+  "cheese boards & cutting boards": "Tablas de quesos y de picar",
+  "tech auto": "Auto",
+  "cleaning supplies & soaps": "Limpieza",
+  "network switches": "Switches de red",
+  "frying pans & skillets": "Sartenes",
+  "lifting accessories": "Accesorios de levantamiento",
+  "karaoke machines": "Karaoke",
+  "mma training": "Entrenamiento MMA",
+  "portable radios": "Radios",
+  "usb wi fi adapters": "Adaptadores wifi",
+  "wireless access points": "Puntos de acceso wifi",
+  "network adapters": "Adaptadores de red",
+  "tech componentes": "Componentes",
+  "outdoor pitchers": "Jarras",
+  "panales": "Pañales", "alimentacion": "Alimentación", "habitacion bebe": "Habitación del bebé",
+  "pitchers": "Jarras",
+  "tech relojes": "Relojes",
 }));
+/* Store types that arrive in Spanish, or as the loanword Peru's shops use
+   (Skateboards, Bodyboards): shown as the store wrote them. Any other
+   unmapped type joins "Más productos" in the header's axes and filter. */
+const SPANISH_RAW_TYPES = new Set(["skateboards", "decks (tablas de skate)", "tablas de surf", "trucks, ruedas y partes", "accesorios de fútbol",
+  "charms", "figura coleccionable", "accesorios de skate", "accesorios de surf", "repuestos y accesorios de pesca submarina", "stickers y decoración",
+  "cascos y protecciones", "coche", "trajes de neopreno", "trípode", "cuidado corporal", "flash de estudio", "tarjeta de memoria", "máscaras y snorkels",
+  "bodyboards", "skimboards", "bolso", "habitacion bebe", "dron", "arpones", "arpones de vara", "panales", "toallas y ponchos", "keratina y alisados",
+  "pesas y cinturones", "quillas de surf", "pastillas de freno", "cuero cabelludo", "accesorios de tenis", "reparación", "champú y acondicionador",
+  "autoasiento", "aceites y sérums", "sin enjuague", "silla de comer", "aletas de buceo", "equipo", "accesorio", "peluche", "raquetas",
+  "cámara sin espejo", "portabebe", "más tratamientos", "snorkel", "boyas y flotadores", "cuchillos de buceo", "billetera", "sup / paddle surf",
+  "hogar", "colchonetas", "faroles", "canilleras", "vendas", "pantalón", "objetivo", "ternos", "cascos", "manta", "disfraces", "alimentacion",
+  "linternas de buceo", "accesorios de pesca submarina", "lactancia", "maternidad", "repuestos", "mallas de compresión", "gis y kimonos",
+  "polos de licra", "camisetas de equipo", "balones y pelotas", "arcos y porterías", "reguladores", "cuerdas", "juegos", "calzado", "bolsos",
+  "audífonos", "joyería", "cámaras", "mascarillas", "belleza", "perfumes", "regalos", "chaqueta", "pijama", "disfraz", "sombreros"]);
 const SKU_TYPE = /^(?=[a-z]{0,6}\d)[a-z0-9]+$|^(?:general|retail|sample|wholesale|accessory|for (?:him|her))$/i;
 export function typeLabel(t) {
   /* Store types arrive as "shapewear-bottoms", "Mens_Tops", "T Shirts". */
@@ -1209,22 +1354,135 @@ export function allInRailOrder(sections, list) {
    and its gender where the department has a gender axis (Zapatos). */
 export function fnRow(p) {
   const r = [p.title, p.brand || "", p.retailer, p.rawPrice, p.wasPrice || 0, p.salePct || 0, p.image || "", p.type || ""];
-  if (p.g || p.a || p.ph) r.push(p.g || "");
-  if (p.a || p.ph) r.push(p.a || "");
-  if (p.ph) r.push(p.ph);
-  return r;
+  /* Optional trailing fields, in order: g (shoe gender), a (door), ph
+     (photo count), u (who it is for: women/men/kids/unisex, #443 header). */
+  const extra = [p.g || "", p.a || "", p.ph || 0, p.u || ""];
+  while (extra.length && !extra[extra.length - 1]) extra.pop();
+  return r.concat(extra);
 }
 export function rowItem(r) {
   const p = { title: r[0], brand: r[1], retailer: r[2], rawPrice: r[3], wasPrice: r[4], salePct: r[5], image: r[6], type: r[7] };
   if (r[8]) p.g = r[8];
   if (r[9]) p.a = r[9];
   if (r[10]) p.ph = r[10];
+  if (r[11]) p.u = r[11];
   return p;
+}
+
+/* ---------- THE ROPA INTERIOR HEADER ON EVERY DEPARTMENT (#443 c.6545712892) ----------
+   Who a product is for (u) comes from its own words, then its store when
+   that store sells to one adult audience (scripts/lib/offer-category.js,
+   the rule Ofertas' Ropa Mujer / Hombre / Niños uses). Nothing is
+   guessed: a department gets the audience switch only when the data
+   says who most of it is for. */
+export const AUD = [["women", "Mujer"], ["men", "Hombre"], ["kids", "Niños"]];
+export const AUD_KNOWN_SHARE = 0.6, AUD_MIN = 48;
+export function inAudience(p, u) {
+  if (!u) return true;
+  if (u === "kids") return p.u === "kids";
+  return p.u === u || p.u === "unisex";
+}
+/* The switch: [{k,label,n}] for a department whose audience is known for
+   60%+ of its products and where 2+ audiences hold AUD_MIN+ each; else null. */
+export function audienceSwitch(list) {
+  if (!list.length) return null;
+  const known = list.filter((p) => p.u).length;
+  if (known / list.length < AUD_KNOWN_SHARE) return null;
+  const opts = AUD.map(([k, label]) => ({ k, label, n: list.filter((p) => inAudience(p, k)).length })).filter((o) => o.n >= AUD_MIN);
+  return opts.length >= 2 ? opts : null;
+}
+/* The hero's chips: products, stores, on sale. */
+export function deptStats(list) {
+  const stores = new Set();
+  let sale = 0;
+  for (const p of list) { stores.add(p.retailer); if (p.salePct > 0) sale++; }
+  return { n: list.length, stores: stores.size, sale };
+}
+/* A product's type key and label, one per Spanish title ("Dresses" and
+   "Vestidos" are one); "otros" for a product whose type names nothing. */
+let SPANISH_LABELS = null;
+/* Every Spanish name the site gives a type: the dictionary, the shoe
+   classes, the gear and garment vocabularies. */
+function spanishLabels() {
+  if (!SPANISH_LABELS) SPANISH_LABELS = new Set([...TYPE_ES.values(), ...SHOE_CLASS_LABELS.values(), ...GEAR_TYPES.map((x) => x[1]), ...brandTypeLabels().map((x) => x[1])]);
+  return SPANISH_LABELS;
+}
+export function typeKeyOf(p) {
+  const raw = String(p.type || "").trim().toLowerCase();
+  const lab = raw ? typeLabel(raw) : "";
+  /* A label is shown only when it is Spanish: a mapped name (it differs
+     from the store's own words) or a store type vetted as Spanish. */
+  const vetted = lab && lab !== "Más productos" && (spanishLabels().has(lab) || SPANISH_RAW_TYPES.has(raw.replace(/[_\-]+/g, " ").replace(/\s+/g, " ")));
+  return vetted ? { k: lensSlug(lab), label: lab } : { k: "otros", label: "Más productos" };
+}
+/* Sales first (the deeper first), then photographed, then the list's order. */
+function axisOrder(items) {
+  return photosFirst(items.map((p, i) => ({ p, i })).sort((a, b) => ((b.p.salePct || 0) - (a.p.salePct || 0)) || (a.i - b.i)).map((x) => x.p));
+}
+export const AXIS_RAILS = 12, AXIS_MIN = 3;
+/* Por tipo / Por marca / Por tienda: one rail per type, brand or store
+   with AXIS_MIN+ products, biggest first, at most AXIS_RAILS rails. Each
+   rail's f is the Explorar todo filter that opens all of it. */
+export function axisRails(list, axis, labels = {}) {
+  const groups = new Map();
+  for (const p of list) {
+    let k, title;
+    if (axis === "tipo") { const t = typeKeyOf(p); if (t.k === "otros") continue; k = t.k; title = t.label; }
+    else if (axis === "marca") { k = brandKey(p); title = String(p.brand || "").trim(); if (!k) continue; }
+    else if (axis === "tienda") { k = p.retailer; title = labels[p.retailer] || p.retailer; }
+    else return [];
+    if (!groups.has(k)) groups.set(k, { k, title, items: [] });
+    groups.get(k).items.push(p);
+  }
+  const f = axis === "tipo" ? "t" : axis === "marca" ? "b" : "r";
+  return [...groups.values()].filter((g) => g.items.length >= AXIS_MIN)
+    .sort((a, b) => (b.items.length - a.items.length) || (a.title < b.title ? -1 : 1))
+    .slice(0, AXIS_RAILS)
+    .map((g) => ({ k: g.k, f, title: g.title, count: g.items.length, cards: axisOrder(g.items).slice(0, RAIL_CARDS).map(cardOf) }));
+}
+/* Explorar todo: one page of the department under every filter at once,
+   and each filter's options under all the OTHER filters (cross-
+   dependent: a brand narrows the types and stores to its own). */
+export const EXPLORE_SORTS = ["deal", "low", "high"];
+export function exploreMatch(p, { u = "", t = "", b = "", r = "", q = "" } = {}, skip = "") {
+  if (u && !inAudience(p, u)) return false;
+  if (skip !== "t" && t && typeKeyOf(p).k !== t) return false;
+  if (skip !== "b" && b && brandKey(p) !== b) return false;
+  if (skip !== "r" && r && p.retailer !== r) return false;
+  if (q) {
+    const hay = (p.title + " " + (p.brand || "")).toLowerCase();
+    for (const w of q.toLowerCase().split(/\s+/).filter(Boolean)) if (hay.indexOf(w) === -1) return false;
+  }
+  return true;
+}
+export function explore(list, f, sort = "deal", page = 0, labels = {}) {
+  const facet = (skip, keyOf) => {
+    const n = new Map();
+    for (const p of list) {
+      if (!exploreMatch(p, f, skip)) continue;
+      const [k, label] = keyOf(p);
+      if (!k) continue;
+      const o = n.get(k) || { k, label, n: 0 };
+      o.n++; n.set(k, o);
+    }
+    return [...n.values()].sort((a, b) => (b.n - a.n) || (a.label < b.label ? -1 : 1)).map((o) => [o.k, o.label, o.n]);
+  };
+  const facets = {
+    t: facet("t", (p) => { const t = typeKeyOf(p); return [t.k, t.label]; }),
+    b: facet("b", (p) => [brandKey(p), String(p.brand || "").trim()]),
+    r: facet("r", (p) => [p.retailer, labels[p.retailer] || p.retailer]),
+  };
+  let hits = list.filter((p) => exploreMatch(p, f));
+  if (sort === "low") hits = hits.map((p, i) => ({ p, i })).sort((a, b) => (a.p.rawPrice - b.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+  else if (sort === "high") hits = hits.map((p, i) => ({ p, i })).sort((a, b) => (b.p.rawPrice - a.p.rawPrice) || (a.i - b.i)).map((x) => x.p);
+  else hits = axisOrder(hits);
+  const pages = Math.ceil(hits.length / PAGE_SIZE);
+  return { count: hits.length, page, pages, cards: hits.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(cardOf), facets, stats: deptStats(hits) };
 }
 
 /* The page's filters, unchanged: one store, and every word of the
    department search box in the title or brand. */
-export function filterList(list, { r = "", q = "", b = "", a = "", t = "" } = {}) {
+export function filterList(list, { r = "", q = "", b = "", a = "", t = "", u = "" } = {}) {
   const words = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
   /* b: one brand (a brand pill), a: one door (Perfumes' Mujer / Hombre ...). */
   const bk = String(b || "").trim().toLowerCase();
@@ -1232,6 +1490,8 @@ export function filterList(list, { r = "", q = "", b = "", a = "", t = "" } = {}
     if (r && r !== "all" && p.retailer !== r) return false;
     if (bk && String(p.brand || "").trim().toLowerCase() !== bk) return false;
     if (a && p.a !== a) return false;
+    /* u: one audience (the header's switch). */
+    if (u && !inAudience(p, u)) return false;
     /* t: the rail's type key -- the feed's own type, or the gear/garment kind a brand room rails by. */
     if (t && String(p.type || "").trim().toLowerCase() !== t && (gearType(p) || modaType(p)) !== t && lensSlug(typeLabel(String(p.type || "").trim().toLowerCase())) !== t) return false;
     if (words.length) {
@@ -1274,10 +1534,25 @@ export function answer(qs, roots) {
   if (!d) return { status: 404, body: { error: "Departamento no encontrado." } };
   const r = String(qs.r || "").slice(0, 40), q = String(qs.q || "").slice(0, 80);
   const b = String(qs.b || "").slice(0, 80), a = String(qs.a || "").slice(0, 40), t = String(qs.t || "").trim().toLowerCase().slice(0, 80);
-  const list = (r && r !== "all") || q.trim() || b || a || t ? filterList(d.list, { r, q, b, a, t }) : d.list;
+  const u = AUD.some(([k]) => k === qs.u) ? qs.u : "";
+  /* Explorar todo and the Por tipo / marca / tienda axes (#443 header). */
+  if (qs.explore !== undefined && qs.explore !== "") {
+    const f = { u, t, b: b.trim().toLowerCase(), r: r && r !== "all" ? r : "", q: q.trim() };
+    const sort = EXPLORE_SORTS.includes(qs.sort) ? qs.sort : "deal";
+    return { status: 200, body: { dept: d.key, ...f, sort, ...explore(d.list, f, sort, Math.max(0, Number(qs.page) || 0), d.labels) } };
+  }
+  if (qs.axis !== undefined && qs.axis !== "") {
+    if (!["tipo", "marca", "tienda"].includes(qs.axis)) return { status: 404, body: { error: "Sin ese eje." } };
+    const base = u ? d.list.filter((p) => inAudience(p, u)) : d.list;
+    return { status: 200, body: { dept: d.key, axis: qs.axis, u, rails: axisRails(base, qs.axis, d.labels) } };
+  }
+  const list = (r && r !== "all") || q.trim() || b || a || t || u ? filterList(d.list, { r, q, b, a, t, u }) : d.list;
   /* One type opened from its rail (the recursive «Ver todo»): the next
      grouping is the brand -- or the store, where brands are thin. */
-  const sections = t && !b ? typeViewSections(list) : buildSections(list, sectionOpts(d.key));
+  let sections = t && !b ? typeViewSections(list) : buildSections(list, sectionOpts(d.key));
+  /* One audience's view keeps only its own gender aisles (Zapatos: a
+     unisex shoe sits in both, so "Zapatillas Hombre" would follow Mujer). */
+  if (u) sections = sections.filter((s) => { const m = /^tipo:[^:]+:(women|men|kids)$/.exec(s.key || ""); return !m || m[1] === u; });
   if (qs.rail !== undefined && qs.rail !== "") {
     /* rail=all: the whole department, page by page, in its carousels'
        order (the lead rail first, each product once) -- the Perfumes
@@ -1293,5 +1568,5 @@ export function answer(qs, roots) {
   }
   /* Perfumes: a door's view keeps its brand pills (the brands inside that door). */
   const extra = d.key === "perfumes" ? { ...perfumePills(list), b, a } : BRAND_ROOMS.has(d.key) || t ? { ...brandRoomPills(list), b } : {};
-  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t ? { t } : {}) }) };
+  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t ? { t } : {}), ...(u ? { u } : {}), stats: deptStats(list) }) };
 }

@@ -112,6 +112,7 @@ export function productsFromIndex(index) {
       finalPrice: r[at.finalPrice] === 1, image: r[at.image], url: "",
       retailer: r[at.retailer] || "", _cat: r[at.cat] || null,
       reviews: r[at.reviews] || 0, rating: r[at.rating] || 0,
+      ph: at.ph != null ? (r[at.ph] || 0) : 0,
     };
   }
   return out;
@@ -1130,6 +1131,8 @@ export function cardOf(p, fx, labels = {}) {
     wasPen: fx && was ? Math.round(was * fx * 100) / 100 : null,
     wasUsd: was,
     image: p.image,
+    /* ph: the photo count when 2+: the card's photo arrows (#443). */
+    ...(p.ph > 1 ? { ph: p.ph } : {}),
     category: p._cat || "",
     /* The condition label (/condition.js, c.6526570723), when the title states one. */
     ...(((c) => (c && c.label ? { condition: c.label } : {}))(conditionOfTitle(p.title))),
