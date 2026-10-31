@@ -225,7 +225,9 @@ await check("orderRail: each hero once, the premium hero keeps its slot on a ful
     card("Euphoria \u2014 Eau de Toilette 100 ml", 20, { brand: "Calvin Klein" }),
     ...many,
   ]);
-  assert(rail.length === 16, "rail length " + rail.length);
+  /* RAIL_MAX is 25 (#443 c.6539643881); this pool fills 23 of it under the
+     two-sale-slots-per-house rule. */
+  assert(rail.length === 23, "rail length " + rail.length);
   assert(rail.filter((p) => p.heroAnchor === "carolina-herrera-212").length === 1, "212 shows twice");
   assert(rail.find((p) => p.heroAnchor === "carolina-herrera-212").price === 50, "the hero is not its cheapest bottle");
   assert(rail.some((p) => p.heroAnchor === "creed-aventus"), "the premium hero was crowded out");
