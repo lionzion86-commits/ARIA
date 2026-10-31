@@ -128,7 +128,11 @@ export const DEPT_RULES = {
      brands, and the clothing (never the gloves, wraps or gis) of the fight
      brands that stay in the lineup -- Venum, Everlast, Tatami. The rule is
      scripts/lib/gym-apparel.js, read here so no pull can leak gear in. */
-  gym_rat: { buckets: ["gym_rat"], apparelOnly: true, apparelFrom: { buckets: ["combat_sports"], stores: ["venum", "everlast", "tatami"] } },
+  /* Gym Rat is the gym brands' clothing (bucket gym_rat) plus the
+     training clothing of every fight store that carries a real range of
+     it -- read from the data (apparelStores), never a typed list, so the
+     next ingest lands here by itself (#443 c.6544412516). */
+  gym_rat: { buckets: ["gym_rat"], apparelOnly: true, apparelFrom: { buckets: ["combat_sports"], minClothing: 25 } },
   surf_skate: { kind: "surfskate" },
   spearfishing: { kind: "spearfishing" },
   soccer: { kind: "soccer" },
@@ -253,12 +257,30 @@ export const KIND_MATCH = {
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino", "carolina herrera"]),
 };
 
+/* The stores whose clothing joins an apparel-only department from the
+   rule's other buckets: those carrying at least `minClothing` pieces of
+   training clothing there (a lone tee in a glove shop is not a range). */
+export function apparelStores(from, all) {
+  const n = new Map();
+  for (const p of all) {
+    if (from.buckets.indexOf(p.bucket) === -1 || !isGymApparel(p)) continue;
+    const k = String(p.retailer || "").toLowerCase();
+    n.set(k, (n.get(k) || 0) + 1);
+  }
+  return [...n].filter(([, c]) => c >= (from.minClothing || 1)).map(([k]) => k).sort();
+}
+/* A rule with its data-derived parts filled in from the items. */
+export function resolveRule(rule, all) {
+  if (!rule || !rule.apparelFrom || rule.apparelFrom.stores) return rule;
+  return { ...rule, apparelFrom: { ...rule.apparelFrom, stores: apparelStores(rule.apparelFrom, all) } };
+}
+
 export function belongsToDept(rule, p) {
   try {
     if (rule.apparelOnly) {
       const from = rule.apparelFrom;
       const inBucket = rule.buckets.indexOf(p.bucket) !== -1 ||
-        (from && from.buckets.indexOf(p.bucket) !== -1 && from.stores.indexOf(String(p.retailer || "").toLowerCase()) !== -1);
+        (from && from.stores && from.buckets.indexOf(p.bucket) !== -1 && from.stores.indexOf(String(p.retailer || "").toLowerCase()) !== -1);
       return inBucket && isGymApparel(p);
     }
     if (rule.buckets) {
@@ -352,7 +374,7 @@ export function loadAllItems(root = ROOT) {
 
 export const MEDIA_RX = /\b(dvd|blu-?ray|audio cd|music cd|the very best of|greatest hits|soundtrack|original motion picture)\b(?!\s*(players?|drives?|burners?|writers?|recorders?))|\[(dvd|blu-?ray|cd)\]/i;
 export function deptItems(all, key) {
-  const rule = DEPT_RULES[key];
+  const rule = resolveRule(DEPT_RULES[key], all);
   let list = all.filter((p) => belongsToDept(rule, p));
   /* Perfumes: each bottle's door is the catalogue's own department
      (mujer / hombre / unisex / minis / sets / testers ...), carried as `a`. */

@@ -144,6 +144,18 @@
   .rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
   .rail .card{flex:0 0 164px;scroll-snap-align:start}
   @media(min-width:640px){.rail .card{flex-basis:200px}}
+  /* THE BIG CARD (#443 c.6545104608, c.6545136763; Danny: "a thousand
+     times better"): the Ropa Interior card is the whole store's card --
+     near-full-width in rails, a 4:5 photo, the title readable at a glance.
+     Its photo arrows come from card-photos.js on every product with 2+
+     photos; a swipe still scrolls the rail (#556). */
+  .rail .card{flex:0 0 clamp(232px,68vw,300px)}
+  @media(min-width:640px){.rail .card{flex-basis:clamp(232px,68vw,300px)}}
+  .card-img{aspect-ratio:4/5}
+  @supports not (aspect-ratio:1/1){ .card-img{padding-top:125%} }
+  .card-title{font-size:14.5px;color:#1F2937;-webkit-line-clamp:2;min-height:39px}
+  .card-brand{font-size:12px}
+  .card-body{padding:14px 16px 16px}
   /* expand overlay: full-screen "Ver todo".
      ONE SCROLLER, A PLAIN GRID (#443 c.6398961263 / c.6398974665: on
      Danny's iPhone the expanded Ofertas drew label-only pills and, for

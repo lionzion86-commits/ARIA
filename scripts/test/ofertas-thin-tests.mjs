@@ -77,7 +77,9 @@ await check("the deals are the page's own: the one sale rule, the $150 cap for t
 await check("a slice for every store and sort, each one page 1 of 48 card-only items, under 12KB gzipped", () => {
   const files = readdirSync(SLICES);
   const scopes = ["all", ...fresh.stores.map((s) => s.key)];
-  assert.equal(files.length, scopes.length * SORTS.length, "slice count");
+  /* ...plus page 1 of each Por categoría category (#443 c.6544455377). */
+  assert.equal(files.length, scopes.length * SORTS.length + fresh.cats.length, "slice count");
+  for (const c of fresh.cats) assert.ok(files.includes(`cat-${c.key}.discount.json`), c.key);
   const allowed = new Set(FIELDS);
   for (const scope of scopes) for (const sort of SORTS) {
     const f = `${scope}.${sort}.json`;
@@ -137,7 +139,7 @@ await check("the function answers 48 at most, clamps pages, ignores unknown stor
   assert.ok(odd.body.items.length === PAGE_SIZE);
   assert.ok(JSON.stringify(odd.body).length < 40 * 1024, "a page is over 40KB");
   assert.equal((await call({}, "POST")).status, 405);
-  assert.match(big.headers["Netlify-Vary"], /store\|sort\|q\|page/);
+  assert.match(big.headers["Netlify-Vary"], /store\|cat\|sort\|q\|page/);
   assert.ok(loadDeals().cards.length === committed.items.length);
 });
 
