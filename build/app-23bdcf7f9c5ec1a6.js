@@ -3336,7 +3336,10 @@ function photoPlaceholderHTML(note = 'Foto en camino'){
 
 function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '', eager = false } = {}){
   const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
-  if (!src) return photoPlaceholderHTML();
+  /* NO IMAGE, NO CARD (#443 c.6547325227): no photo URL is a photo that
+     failed -- an empty image fails on arrival and takes the card with it
+     (cardPhotoFallback), never a placeholder. */
+  if (!src) return `<img src="data:," alt="" data-photo-none="1" class="w-full h-full" onerror="${fallback}">`;
   /* Render the card-sized derivative, never the retailer's original
      (see sizedImageUrl). The untouched URL rides along as the
      data-img-fallback whenever the rewrite changed anything, so the
@@ -3393,10 +3396,22 @@ function cardPhotoFallback(img){
     img.src = alt;
     return;
   }
-  const holder = document.createElement('div');
-  holder.className = 'w-full h-full';
-  holder.innerHTML = photoPlaceholderHTML();
-  img.replaceWith(holder.firstElementChild);
+  /* NO IMAGE, NO CARD (#443 c.6547325227, the Ancora "Swimming Up Trunk"
+     whose lead photo went 404 at the source and rendered as "Foto en
+     camino"). Every photo this card carries has failed: the product's
+     own gallery gets one more look (card-photos.js, ariaPhotoRescue: the
+     PDP shard's photos, each probed before it is shown), and when none
+     loads the whole card leaves the rail. The placeholder is never drawn
+     on a product card. */
+  dropDeadPhotoCard(img);
+}
+function dropDeadPhotoCard(img){
+  try {
+    img.style.visibility = 'hidden';
+    if (window.ariaPhotoRescue) { window.ariaPhotoRescue(img); return; }
+    const card = img.closest && img.closest('[data-card-root]');
+    if (card) card.remove(); else img.remove();
+  } catch(e){}
 }
 
 /* CARD PHOTO SWIPE (2026-10-01, Danny). Carousel cards used to show
@@ -3979,7 +3994,7 @@ function railCardHTML(p, onclick, attr, opts){
      and fetches the gallery on the first tap. */
   const ph = !swipeImgs && Number(p.ph) >= 2 ? Math.min(8, Number(p.ph)) : 0;
   const photo = cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image), eager: true });
-  return `<button onclick="${onclick}" ${attr}${ph ? ` data-cp-t="${escapeHtml(p.title)}" data-cp-r="${escapeHtml(String(p.retailer || '').toLowerCase())}"` : ''}
+  return `<button onclick="${onclick}" ${attr} data-card-root data-cp-t="${escapeHtml(p.title)}" data-cp-r="${escapeHtml(String(p.retailer || '').toLowerCase())}"
     class="flex-shrink-0 ${xl ? 'w-[224px]' : 'w-[172px]'} text-left rounded-2xl overflow-hidden focus-ring"
     style="background:${dark ? '#1a2744' : '#fff'}">
     <span class="relative block w-full ${xl ? 'h-[224px]' : 'h-[172px]'} overflow-hidden" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(p) : ''}>
@@ -14922,7 +14937,7 @@ function carouselCardHTML(item, retailer){
     : '';
   const src = upgradeImageUrl(safeUrl(it.image || it.imageUrl || it.thumbnail) || '');
   const swipeImgs = cardSwipeList(it);
-  return `<div class="ariaCarouselCard" role="listitem">
+  return `<div class="ariaCarouselCard" role="listitem" data-card-root data-cp-t="${escapeHtml(title)}" data-cp-r="${escapeHtml(String(it.retailer || '').toLowerCase())}">
     <div class="rounded-2xl border overflow-hidden cursor-pointer focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)]" style="border-color:var(--line); background:#fff"
       onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(title || 'Ver producto')}"
       onkeydown="if(event.key==='Enter'){${open}}">
@@ -29727,7 +29742,7 @@ function productCardHTML(p, opts){
       ? `<span class="absolute top-3 left-3 text-[13px] font-extrabold px-2.5 py-1 rounded-full" style="background:#F4C463; color:var(--navy)">-${discountPct(p)}%</span>`
       : '';
   return `
-  <div class="${CARD_SHELL_CLASS}">
+  <div class="${CARD_SHELL_CLASS}" data-card-root data-cp-t="${escapeHtml(String(p.title || p.name || ''))}" data-cp-r="${escapeHtml(String(p.retailer || '').toLowerCase())}">
     ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) }), open, overlay: badgeHTML + (swipeImgs ? cardSwipeNavHTML() : ''), attrs: swipeImgs ? cardSwipeDataAttr(p) : '' })}
     <!-- INFORMATION WHISPERS, PHOTOGRAPHY SHOUTS. The text under the
          photo was a 20px store mark over a 15px bold navy title over a

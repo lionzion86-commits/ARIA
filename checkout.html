@@ -1715,14 +1715,16 @@ function cardImgAttrs(url, sizes){
     panel.innerHTML = ruled.map((st) => {
       const label = RETAILER_LABELS[st.store] || st.store;
       const open = !st.rule || st.pending;
-      const fee = !st.rule ? 'POR CONFIRMAR' : st.pending ? 'POR CALCULAR' : st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS';
+      /* Never "por confirmar" (Danny, #443 c.6547441472): a store with no
+         published fee is calculated at its own checkout, like a pending one. */
+      const fee = !st.rule || st.pending ? 'POR CALCULAR' : st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS';
       const meter = st.rule && st.rule.freeOverUsd > 0 && st.progress != null
         ? `<div class="h-2 rounded-full overflow-hidden mt-1.5" style="background:#E3E7F0" role="progressbar" aria-valuemin="0" aria-valuemax="${st.rule.freeOverUsd}" aria-valuenow="${st.subtotalUsd}"><div class="h-full rounded-full" style="width:${Math.round(st.progress * 100)}%; background:${st.met ? '#1F8A4C' : 'var(--navy)'}"></div></div>
            <div class="text-[11.5px] mt-1" style="color:#5B6478">${escapeHtmlLocal(shippingMeterText(st))} · ${escapeHtmlLocal(shippingStandingText(st, label))}</div>`
         : '';
       return `<div class="rounded-xl px-3 py-2" style="background:#F7F8FB; border:1px solid var(--line)" data-store-ship="${escapeHtmlLocal(st.store)}">
         <div class="flex justify-between gap-2 text-[12.5px]"><span class="font-bold" style="color:var(--navy)">Envío de ${escapeHtmlLocal(label)}</span><span class="tabular font-extrabold" style="color:${open || st.feeUsd > 0 ? 'var(--navy)' : '#1F8A4C'}">${fee}</span></div>
-        <div class="text-[11px]" style="color:#8A93A8">${escapeHtmlLocal(st.rule ? shippingRuleText(st.store) : 'Estamos confirmando lo que cobra ' + label + ' por enviar a Miami; te lo confirmamos antes de cobrar.')}</div>${meter}
+        <div class="text-[11px]" style="color:#8A93A8">${escapeHtmlLocal(st.rule ? shippingRuleText(st.store) : 'Envío en EE.UU.: lo calcula la tienda al pagar')}</div>${meter}
       </div>`;
     }).join('');
   }
