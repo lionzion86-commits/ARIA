@@ -45,8 +45,9 @@ import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isGymApparel } from "./lib/gym-apparel.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle } from "../netlify/functions/_department-core.js";
-import { isShoeForDept, footwearClass, shoeGender } from "./lib/footwear.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle, audienceSwitch, deptStats } from "../netlify/functions/_department-core.js";
+import { garmentAudience, storeAudiences } from "./lib/offer-category.js";
+import { isShoeForDept, footwearClass, shoeGender, isFootwear } from "./lib/footwear.js";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
 
@@ -423,13 +424,29 @@ const EXTRA_LABELS = {
 };
 export const ALL_LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k])) };
 
+/* u: who each product is for (#443 header): a shoe by footwear.js's
+   rule, anything else by its own words, then its store when that store
+   sells to one adult audience (offer-category.js). Never guessed. */
+export function audienceTagger(all) {
+  const storeAud = storeAudiences(all, (p) => { try { return productClass(p); } catch { return ""; } });
+  return (p) => isFootwear({ title: p.title, name: p.title, type: p.type }, p.retailer) ? shoeGender(p, p.bucket) : (garmentAudience(p, storeAud) || "");
+}
+/* The header's part of head.json: the hero's stats chips, and the
+   audience switch where the data says who the department is for
+   (Perfumes keeps its own doors). */
+export function headerExtra(key, list) {
+  const aud = key === "perfumes" ? null : audienceSwitch(list);
+  return { stats: deptStats(list), ...(aud ? { aud } : {}) };
+}
+
 export function build(root = ROOT) {
   const all = loadAllItems(root);
   const outRoot = join(root, OUT_DIR);
   const summary = {};
   /* A hub pill can open another department's lens (Belleza > Cabello). */
   const lists = new Map();
-  const listOf = (k) => { if (!lists.has(k)) lists.set(k, deptItems(all, k)); return lists.get(k); };
+  const audienceFor = audienceTagger(all);
+  const listOf = (k) => { if (!lists.has(k)) lists.set(k, deptItems(all, k).map((p) => ({ ...p, u: audienceFor(p) }))); return lists.get(k); };
   for (const key of Object.keys(DEPT_RULES)) {
     const dir = join(outRoot, key);
     if (existsSync(dir)) rmSync(dir, { recursive: true });
@@ -441,7 +458,10 @@ export function build(root = ROOT) {
     for (const l of lenses) writeFileSync(join(dir, `lens-${l.k}.json`), JSON.stringify(l));
     /* Perfumes' doors and brand pills ride in its head (the universal format). */
     const pills = key === "perfumes" ? perfumePills(list) : BRAND_ROOMS.has(key) ? brandRoomPills(list) : {};
-    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...extra, ...pills })));
+    /* The header (#443 c.6545712892): the hero's stats chips, and the
+       audience switch where the data says who the department is for
+       (Perfumes keeps its own doors). */
+    writeFileSync(join(dir, "head.json"), JSON.stringify(headOf(key, list, sections, ALL_LABELS, { ...extra, ...pills, ...headerExtra(key, list) })));
     /* The homepage Electrónica carousel's pills (c.6485409220). */
     /* home.json is the pill row and the first pill's cards (the first
        screen, under the 32KB budget); each other pill is its own
