@@ -1,0 +1,162 @@
+{
+ "aguabendita": {
+  "maxMissing": 1,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "americaneagle": {
+  "maxMissing": 59,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "baublebar": {
+  "maxMissing": 52,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "bestbuy": {
+  "maxMissing": 59,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "brandsmart": {
+  "maxMissing": 6,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "capittana": {
+  "maxMissing": 1,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "carolinaherrera": {
+  "maxMissing": 140,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "crocs": {
+  "maxMissing": 2,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "denniskirk": {
+  "maxMissing": 10,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "dicks": {
+  "maxMissing": 272,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "eberjey": {
+  "maxMissing": 1,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "farfetch": {
+  "maxMissing": 1,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "farmrio": {
+  "maxMissing": 20,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "finishline": {
+  "maxMissing": 1099,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "footlocker": {
+  "maxMissing": 726,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "kohls": {
+  "maxMissing": 2503,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "lanebryant": {
+  "maxMissing": 169,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "macys": {
+  "maxMissing": 1811,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "microcenter": {
+  "maxMissing": 612,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "montce": {
+  "maxMissing": 44,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "pacsun": {
+  "maxMissing": 18,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "pier1": {
+  "maxMissing": 372,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "prosoccer": {
+  "maxMissing": 1,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "revolve": {
+  "maxMissing": 30,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "revzilla": {
+  "maxMissing": 270,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "silviatcherassi": {
+  "maxMissing": 9,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "sleekshop": {
+  "maxMissing": 206,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "smartbuyglasses": {
+  "maxMissing": 4,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "snipes": {
+  "maxMissing": 1,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "ssense": {
+  "maxMissing": 31610,
+  "reason": "31,610 SSENSE records carry no source text in the file; needs a source pull (item 2)"
+ },
+ "ulta": {
+  "maxMissing": 690,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "venum": {
+  "maxMissing": 20,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "victoriassecret": {
+  "maxMissing": 542,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "vix": {
+  "maxMissing": 8,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "walmart": {
+  "maxMissing": 4584,
+  "reason": "department-cache-walmart.json (lite schema) carries no source text; needs the Walmart description pull (c.6535043159 item 1)"
+ },
+ "xtremesoccer": {
+  "maxMissing": 1,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "yesstyle": {
+  "maxMissing": 1225,
+  "reason": "no source text in the committed catalogue; backfill per c.6535043159 order"
+ },
+ "ryderwear": {
+  "maxMissing": 6,
+  "reason": "no source text in Lucifer's gym pull (gym-pulls-2026-10-30): neither description nor description_en"
+ },
+ "gorillawear": {
+  "maxMissing": 8,
+  "reason": "no source text in Lucifer's gym pull (gym-pulls-2026-10-30): neither description nor description_en"
+ },
+ "athleta": {
+  "maxMissing": 53,
+  "reason": "no source text in Lucifer's gym pull (gym-pulls-2026-10-30): neither description nor description_en; off sale (off-sale.js), shows nowhere"
+ }
+}
