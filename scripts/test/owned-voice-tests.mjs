@@ -90,6 +90,14 @@ await check("the plan fails closed and names what is missing; the log line carri
   assert.match(line, /"transcribes":true/);
   assert.match(line, /deepgram\/nova-3:es/);
   assert.match(line, /elevenlabs\/eleven_turbo_v2_5:es"/, "the voice runs direct, not through LiveKit Inference");
+  const { VOICE_ATTR, voiceTag } = await import(VA + "src/config.mjs");
+  assert.equal(VOICE_ATTR, "aria.voice");
+  assert.equal(voiceTag(p.plan), "elevenlabs/eleven_turbo_v2_5", "the worker announces Grecia's engine");
+  const agentSrc = readFileSync(VA + "src/agent.mjs", "utf8");
+  assert.match(agentSrc, /localParticipant\.setAttributes\(\{ \[VOICE_ATTR\]: voiceTag\(plan\) \}\)/, "the worker does not announce its voice");
+  assert.ok(agentSrc.indexOf("setAttributes") < agentSrc.indexOf("waitForParticipant"), "the voice must be announced before the shopper joins");
+  assert.match(agentSrc, /AgentSessionEventTypes\.Error/, "voice failures are not logged");
+  assert.ok(!/cartesia|inference\.TTS/i.test(agentSrc.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")), "a second TTS path exists in the worker");
 });
 
 /* ---------------- the page bridge ---------------- */
@@ -350,12 +358,14 @@ await check("gate scoring: the load ladder's step summary", async () => {
 /* ---------------- the page ---------------- */
 const BUNDLE = readdirSync(ROOT + "build").find((f) => /^app-[0-9a-f]{16}\.js$/.test(f));
 const SRC = readFileSync(ROOT + "build/" + BUNDLE, "utf8");
-await check("the bundle: ?voz=propia routes the tap to the owned voice first; the Realtime voice takes any tap it cannot", async () => {
+await check("the bundle: ?voz=propia routes the tap to the owned voice first, and a failed owned tap is reported, never re-voiced", async () => {
   assert.match(SRC, /function ariaOwnedVoiceWanted\(\)/);
   assert.match(SRC, /if \(q === 'propia'\)\{ localStorage\.setItem\('ariaVoiceOwned', '1'\); return true; \}/);
   const start = SRC.slice(SRC.indexOf("async function startRealtimeVoiceOnce(){"));
   const owned = start.indexOf("if (ariaOwnedVoiceWanted()){"), token = start.indexOf("await ariaWarmRealtimeToken()");
   assert.ok(owned > 0 && owned < token, "the owned voice is not tried before the Realtime token");
+  const branch = start.slice(owned, token);
+  assert.match(branch, /return noteRealtimeFailure\('Aria no pudo conectarse/, "a failed owned tap falls through to the Realtime voice");
   assert.match(SRC, /if \(ariaRT\.owned\) return ariaRT\.owned\.cue\(cue\);/);
   assert.match(SRC, /if \(ariaRT\.owned\)\{ ariaRT\.owned\.text\(text\); return; \}/);
   /* the owned call resets exactly what the Realtime call resets */
@@ -383,7 +393,8 @@ const FAKE_LK = `(function(){
   Room.prototype.on = function(ev, fn){ (this.listeners[ev] = this.listeners[ev] || []).push(fn); return this; };
   Room.prototype.emit = function(ev){ var a = [].slice.call(arguments, 1); (this.listeners[ev] || []).forEach(function(f){ f.apply(null, a); }); };
   Room.prototype.connect = async function(url, token){ var self = this; this.url = url; this.token = token; this.state = 'connected';
-    if (!window.__lkNoAgent) setTimeout(function(){ var a = { identity: 'agent-1', isAgent: true }; self.remoteParticipants.set('agent-1', a); self.emit('participantConnected', a); }, 30); };
+    var agents = window.__lkAgents || (window.__lkNoAgent ? [] : [{ identity: 'agent-1', isAgent: true, attributes: { 'aria.voice': 'elevenlabs/eleven_turbo_v2_5' } }]);
+    agents.forEach(function(a, i){ setTimeout(function(){ self.remoteParticipants.set(a.identity, a); self.emit('participantConnected', a); }, 30 + 20 * i); }); };
   Room.prototype.startAudio = async function(){};
   Room.prototype.disconnect = function(){ this.state = 'disconnected'; window.__lk.disconnected++; this.emit('disconnected', 'CLIENT_INITIATED'); };
   window.LivekitClient = { Room: Room, RoomEvent: { ParticipantConnected: 'participantConnected', TrackSubscribed: 'trackSubscribed', ParticipantAttributesChanged: 'participantAttributesChanged', ParticipantDisconnected: 'participantDisconnected', Disconnected: 'disconnected' }, Track: { Source: { Microphone: 'microphone' } } };
@@ -468,7 +479,7 @@ await check("page, ?voz=propia: the call comes up owned; the agent's requests re
   await pg.close();
 });
 
-await check("page, ?voz=propia with the owned voice unavailable: the same tap goes to the Realtime voice", async () => {
+await check("page, ?voz=propia with the owned voice unavailable: the tap reports it and is NEVER handed to another voice (one session, one voice)", async () => {
   tokenMode = "off"; hits.length = 0;
   const { pg, errs } = await open("?voz=propia");
   await pg.waitForTimeout(500);
@@ -476,8 +487,9 @@ await check("page, ?voz=propia with the owned voice unavailable: the same tap go
   hits.length = 0;
   await pg.evaluate(() => startRealtimeVoice());
   assert.deepEqual(before, [], "a token was minted before any tap or open");
-  assert.deepEqual(hits.filter((h) => /token/.test(h)), ["/api/voice-token", "/api/realtime-token"], "no fallback to the Realtime voice");
-  assert.ok(await pg.evaluate(() => ariaRTTape.some((t) => /voz propia no disponible/.test(t))));
+  assert.deepEqual(hits.filter((h) => /token/.test(h)), ["/api/voice-token"], "the tap was handed to the Realtime voice: a second accent");
+  assert.ok(await pg.evaluate(() => ariaRTTape.some((t) => /voz propia no disponible: sin cambiar de voz/.test(t))));
+  assert.match(await pg.evaluate(() => ariaRTFailure && ariaRTFailure.reason), /Aria no pudo conectarse/);
   /* the microphone the owned try opened is released */
   assert.equal(await pg.evaluate(() => !!ariaRT), false);
   assert.deepEqual(errs, []);
@@ -490,14 +502,61 @@ await check("page, ?voz=propia with the owned voice unavailable: the same tap go
   await pg.close();
 });
 
-await check("page: an agent that never joins hands the call to the Realtime voice", async () => {
+await check("page: an agent that never joins is reported after the cold-start wait, never answered by the Realtime voice", async () => {
   tokenMode = "ok"; hits.length = 0;
   const { pg } = await open("?voz=propia");
   const t0 = Date.now();
-  await pg.evaluate(() => { window.__lkNoAgent = true; return startRealtimeVoice(); });
-  assert.ok(Date.now() - t0 >= 7500, "gave up on the agent too early");
-  assert.ok(hits.includes("/api/realtime-token"), "no fallback after the agent never joined");
+  const ok = await pg.evaluate(() => { window.__lkNoAgent = true; return startRealtimeVoice(); });
+  assert.equal(ok, false);
+  assert.ok(Date.now() - t0 >= 14500, "gave up on a cold worker too early");
+  assert.ok(!hits.includes("/api/realtime-token"), "the Realtime voice took the tap");
   assert.equal(await pg.evaluate(() => window.__lk.disconnected), 1, "the empty room was not left");
+  await pg.close();
+});
+
+await check("page: ONE VOICE -- a stale worker (no Grecia engine announced) is never heard, never answered, and never makes a call", async () => {
+  tokenMode = "ok"; hits.length = 0;
+  const { pg } = await open("?voz=propia");
+  const ok = await pg.evaluate(() => { window.__lkAgents = [{ identity: 'old-worker', isAgent: true, attributes: {} }]; return startRealtimeVoice(); });
+  assert.equal(ok, false, "a call came up on a worker that did not announce Grecia");
+  assert.ok(!hits.includes("/api/realtime-token"));
+  assert.ok(await pg.evaluate(() => ariaRTTape.some((t) => /ignored: old-worker \(sin voz anunciada\)/.test(t))), "the stale worker was not named in the report");
+  await pg.close();
+});
+
+await check("page: ONE VOICE -- with Grecia and a second agent in the room, only Grecia's audio plays and only Grecia reaches the page", async () => {
+  tokenMode = "ok"; hits.length = 0;
+  const { pg, errs } = await open("?voz=propia");
+  const ok = await pg.evaluate(() => {
+    window.__lkAgents = [
+      { identity: 'old-worker', isAgent: true, attributes: { 'aria.voice': 'cartesia/sonic-3' } },
+      { identity: 'grecia', isAgent: true, attributes: { 'aria.voice': 'elevenlabs/eleven_turbo_v2_5' } },
+    ];
+    return startRealtimeVoice();
+  });
+  assert.equal(ok, true);
+  const st = await pg.evaluate(() => ariaRT.owned.state());
+  assert.equal(st.agent, "grecia");
+  assert.equal(st.voice, "elevenlabs/eleven_turbo_v2_5");
+  assert.deepEqual(st.ignored, [{ identity: "old-worker", voice: "cartesia/sonic-3" }]);
+  const r = await pg.evaluate(async () => {
+    const room = window.__lk.rooms.at(-1);
+    let attachedOld = 0;
+    const orig = room.listeners.trackSubscribed;
+    const d = new AudioContext().createMediaStreamDestination();
+    const tr = d.stream.getAudioTracks()[0];
+    const before = document.querySelectorAll('audio').length;
+    room.emit("trackSubscribed", { kind: "audio", mediaStreamTrack: tr }, {}, room.remoteParticipants.get('old-worker'));
+    let refused = false;
+    try { await room.handlers["aria.turn"]({ payload: JSON.stringify({ role: "assistant", text: "otra voz" }), callerIdentity: "old-worker" }); } catch (e) { refused = true; }
+    const hers = await room.handlers["aria.turn"]({ payload: JSON.stringify({ role: "assistant", text: "Hola, soy Aria." }), callerIdentity: "grecia" });
+    return { refused, hers, lines: (ariaChatHistory || []).filter(m => m.role === 'assistant').map(m => m.content) };
+  });
+  assert.ok(r.refused, "the second agent's transcript line reached the page");
+  assert.ok(!r.lines.includes("otra voz"));
+  assert.ok(r.lines.includes("Hola, soy Aria."));
+  assert.deepEqual(errs, []);
+  try { await pg.evaluate(() => stopRealtimeVoice({ silent: true })); } catch (e) {}
   await pg.close();
 });
 

@@ -39,12 +39,13 @@ async function ask(qs) {
 const stores = (b) => (b.lanes || []).filter((l) => l.store).map((l) => l.store);
 const disc = (c) => (c.wasUsd && c.wasUsd > c.usd ? 1 - c.usd / c.wasUsd : 0);
 
-await check("a store's name opens its store: VS (every spelling), Dick's, Walmart, BrandsMart; a brand sold elsewhere does not", async () => {
+await check("a store's name opens its store: VS (every spelling), Dick's, Walmart, BrandsMart, Crocs (Danny 2026-11-01: a store name always wins); a plain brand or product does not", async () => {
   for (const [q, key] of [["Victoria's Secret", "victoriassecret"], ["victorias secret", "victoriassecret"], ["vs", "victoriassecret"], ["dicks", "dicks"],
     ["Dick's", "dicks"], ["walmart", "walmart"], ["brandsmart", "brandsmart"], ["foot locker", "footlocker"]]) {
     assert.equal((await ask({ q })).body.store, key, q);
   }
-  for (const q of ["crocs", "nike", "adidas", "adidas samba", "zapatillas", "surf"]) assert.equal((await ask({ q })).body.store, null, q);
+  assert.equal((await ask({ q: "crocs" })).body.store, "crocs", "crocs");
+  for (const q of ["nike", "adidas", "adidas samba", "zapatillas", "surf"]) assert.equal((await ask({ q })).body.store, null, q);
 });
 
 await check("the page follows the store answer to tienda.html, unless ?resultados=1", () => {

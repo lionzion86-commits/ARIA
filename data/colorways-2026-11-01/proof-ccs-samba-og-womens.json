@@ -1,0 +1,901 @@
+[
+ {
+  "id": 8492337234103,
+  "title": "Adidas Womens Samba OG Shoes - Ftwr White/Frozen Purple/Night Indigo",
+  "handle": "adidas-womens-samba-og-shoes-ftwr-white-frozen-purple-night-indigo",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "tags": [
+   "Adidas",
+   "Category:Shoes",
+   "Color:Blue",
+   "Color:Purple",
+   "Color:White",
+   "feed-agegroup-adult",
+   "feed-color-Ftwr White/Frozen Purple/Night Indigo",
+   "feed-gender-women",
+   "feed-gpc-187",
+   "Gender:Womens",
+   "Has Inventory",
+   "New Arrivals",
+   "Price:$75 - $100",
+   "PromoCode",
+   "rtly-shipping-rate:0",
+   "Shoe Fit:Low",
+   "Shoe Material:Leather",
+   "Shoe Sole:Cupsole",
+   "Shoe Style:Sneaker",
+   "Shoes",
+   "Size:5.0",
+   "Size:6.0",
+   "Size:6.5",
+   "Size:7.0",
+   "Size:7.5",
+   "Size:8.0",
+   "Size:8.5",
+   "Size:9.0",
+   "Under 100",
+   "Vendor:Adidas"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "position": 1,
+    "values": [
+     "9.0",
+     "8.5",
+     "8.0",
+     "7.5",
+     "7.0",
+     "6.5",
+     "6.0",
+     "5.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 47126936748215,
+    "title": "9.0",
+    "option1": "9.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D96",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126936780983,
+    "title": "8.5",
+    "option1": "8.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D95",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126936813751,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D94",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126936846519,
+    "title": "7.5",
+    "option1": "7.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D93",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126936879287,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D92",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126936912055,
+    "title": "6.5",
+    "option1": "6.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D91",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126936944823,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D90",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126936977591,
+    "title": "5.0",
+    "option1": "5.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D8F",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   }
+  ],
+  "images": [
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328593714-1.jpg?v=1793291197",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328593714-2.jpg?v=1793291199",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328593714-3.jpg?v=1793291201",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328593714-4.jpg?v=1793291203",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/swatch_cf7c59df-a257-4606-b3f0-b188db5b519d.jpg?v=1793292169"
+  ]
+ },
+ {
+  "id": 8492337037495,
+  "title": "Adidas Womens Samba OG Shoes - Ftwr White/Wonder Quartz/Brown",
+  "handle": "adidas-womens-samba-og-shoes-ftwr-white-wonder-quartz-brown",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "tags": [
+   "Adidas",
+   "Category:Shoes",
+   "Color:Brown",
+   "Color:White",
+   "feed-agegroup-adult",
+   "feed-color-Ftwr White/Wonder Quartz/Brown",
+   "feed-gender-women",
+   "feed-gpc-187",
+   "Gender:Womens",
+   "Has Inventory",
+   "New Arrivals",
+   "Price:$75 - $100",
+   "PromoCode",
+   "rtly-shipping-rate:0",
+   "Shoe Fit:Low",
+   "Shoe Material:Leather",
+   "Shoe Sole:Cupsole",
+   "Shoe Style:Sneaker",
+   "Shoes",
+   "Size:6.0",
+   "Size:7.0",
+   "Under 100",
+   "Vendor:Adidas"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "position": 1,
+    "values": [
+     "9.0",
+     "8.5",
+     "8.0",
+     "7.5",
+     "7.0",
+     "6.5",
+     "6.0",
+     "5.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 47126933635255,
+    "title": "9.0",
+    "option1": "9.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99DA6",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 47126933668023,
+    "title": "8.5",
+    "option1": "8.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99DA5",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 47126933700791,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99DA4",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 47126933733559,
+    "title": "7.5",
+    "option1": "7.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99DA3",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 47126933766327,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99DA2",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126933799095,
+    "title": "6.5",
+    "option1": "6.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99DA1",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 47126933831863,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99DA0",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 47126933864631,
+    "title": "5.0",
+    "option1": "5.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99D9F",
+    "price": "99.95",
+    "compare_at_price": "100.00",
+    "available": false
+   }
+  ],
+  "images": [
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328663004-1.jpg?v=1793291254",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328663004-2.jpg?v=1793291256",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328663004-3.jpg?v=1793291258",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328663004-4.jpg?v=1793291261",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/swatch_78b47b82-5776-4203-a94d-73218847c2f7.jpg?v=1793292164"
+  ]
+ },
+ {
+  "id": 8492337692855,
+  "title": "Adidas Womens Samba OG Shoes - Supercolor/Wonder Beige/Tent Green",
+  "handle": "adidas-womens-samba-og-shoes-supercolor-wonder-beige-tent-green",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "tags": [
+   "Adidas",
+   "Category:Shoes",
+   "Color:Brown",
+   "Color:Green",
+   "feed-agegroup-adult",
+   "feed-color-Supercolor/Wonder Beige/Tent Green",
+   "feed-gender-women",
+   "feed-gpc-187",
+   "Has Inventory",
+   "New Arrivals",
+   "Price:$100 - $150",
+   "PromoCode",
+   "rtly-shipping-rate:0",
+   "Shoe Fit:Low",
+   "Shoe Material:Suede",
+   "Shoe Sole:Cupsole",
+   "Shoe Style:Sneaker",
+   "Shoes",
+   "Size:5.0",
+   "Size:6.0",
+   "Size:6.5",
+   "Size:7.0",
+   "Size:7.5",
+   "Size:8.0",
+   "Size:8.5",
+   "Size:9.0",
+   "Vendor:Adidas"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "position": 1,
+    "values": [
+     "9.0",
+     "8.5",
+     "8.0",
+     "7.5",
+     "7.0",
+     "6.5",
+     "6.0",
+     "5.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 47126939140279,
+    "title": "9.0",
+    "option1": "9.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EEA",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126939173047,
+    "title": "8.5",
+    "option1": "8.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EE9",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126939205815,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EE8",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126939238583,
+    "title": "7.5",
+    "option1": "7.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EE7",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126939271351,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EE6",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126939304119,
+    "title": "6.5",
+    "option1": "6.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EE5",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126939336887,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EE4",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126939369655,
+    "title": "5.0",
+    "option1": "5.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EE3",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   }
+  ],
+  "images": [
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328452509-1.jpg?v=1793286930",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328452509-2.jpg?v=1793286932",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328452509-3.jpg?v=1793286934",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328452509-4.jpg?v=1793286935",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/swatch_1bef3416-263a-4e34-a472-dad8f25ff2ea.jpg?v=1793293322"
+  ]
+ },
+ {
+  "id": 8492337889463,
+  "title": "Adidas Womens Samba OG Shoes - Supercolor/Off White/Bliss Pink",
+  "handle": "adidas-womens-samba-og-shoes-supercolor-off-white-bliss-pink",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "tags": [
+   "Adidas",
+   "Category:Shoes",
+   "Color:Pink",
+   "Color:White",
+   "feed-agegroup-adult",
+   "feed-color-Supercolor/Off White/Bliss Pink",
+   "feed-gender-women",
+   "feed-gpc-187",
+   "Has Inventory",
+   "New Arrivals",
+   "Price:$100 - $150",
+   "PromoCode",
+   "rtly-shipping-rate:0",
+   "Shoe Fit:Low",
+   "Shoe Material:Suede",
+   "Shoe Sole:Cupsole",
+   "Shoe Style:Sneaker",
+   "Shoes",
+   "Size:5.0",
+   "Size:5.5",
+   "Size:6.0",
+   "Size:6.5",
+   "Size:7.0",
+   "Size:7.5",
+   "Size:8.0",
+   "Size:8.5",
+   "Size:9.0",
+   "Size:9.5",
+   "Vendor:Adidas"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "position": 1,
+    "values": [
+     "9.5",
+     "9.0",
+     "8.5",
+     "8.0",
+     "7.5",
+     "7.0",
+     "6.5",
+     "6.0",
+     "5.5",
+     "5.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 47126942089399,
+    "title": "9.5",
+    "option1": "9.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EF4",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942122167,
+    "title": "9.0",
+    "option1": "9.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EF3",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942154935,
+    "title": "8.5",
+    "option1": "8.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EF2",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942187703,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EF1",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942220471,
+    "title": "7.5",
+    "option1": "7.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EF0",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942253239,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EEF",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942286007,
+    "title": "6.5",
+    "option1": "6.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EEE",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942318775,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EED",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942351543,
+    "title": "5.5",
+    "option1": "5.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EEC",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   },
+   {
+    "id": 47126942384311,
+    "title": "5.0",
+    "option1": "5.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ99EEB",
+    "price": "109.95",
+    "compare_at_price": "110.00",
+    "available": true
+   }
+  ],
+  "images": [
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328490303-1.jpg?v=1792776866",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328490303-2.jpg?v=1792776869",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328490303-3.jpg?v=1792776871",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/198328490303-4.jpg?v=1792776873",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/swatch_b07d2da9-452e-4c56-98d4-9f252844ab17.jpg?v=1792779049"
+  ]
+ },
+ {
+  "id": 8353578877111,
+  "title": "Adidas Womens Samba OG Shoes - Core Black/Wonder White/Silver Metallic",
+  "handle": "adidas-womens-samba-og-shoes-core-black-wonder-white-silver-metallic",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "tags": [
+   "Adidas",
+   "Category:Shoes",
+   "Color:Black",
+   "Color:Grey",
+   "Color:White",
+   "feed-agegroup-adult",
+   "feed-cl4-Sale",
+   "feed-color-Core Black/Wonder White/Silver Metallic",
+   "feed-gender-women",
+   "feed-gpc-187",
+   "feed-promoid-bts26_3",
+   "Has Inventory",
+   "No Returns",
+   "Price:$25 - $50",
+   "rtly-shipping-rate:0",
+   "Sale",
+   "Shoe Fit:Low",
+   "Shoe Material:Suede",
+   "Shoe Sole:Vulcanized",
+   "Shoe Style:Skate",
+   "Shoe Style:Sneaker",
+   "Shoes",
+   "Size:5",
+   "Size:5.5",
+   "Size:6",
+   "Size:7",
+   "Size:8",
+   "Under 100",
+   "Vendor:Adidas"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "position": 1,
+    "values": [
+     "6.5",
+     "7.0",
+     "7.5",
+     "8.0",
+     "5.0",
+     "5.5",
+     "6.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 45711764193463,
+    "title": "6.5",
+    "option1": "6.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A7B",
+    "price": "49.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711764226231,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A7A",
+    "price": "49.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711764258999,
+    "title": "7.5",
+    "option1": "7.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A79",
+    "price": "49.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711764291767,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A78",
+    "price": "49.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711764324535,
+    "title": "5.0",
+    "option1": "5.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A77",
+    "price": "49.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711764357303,
+    "title": "5.5",
+    "option1": "5.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A76",
+    "price": "49.00",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 45711764390071,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A75",
+    "price": "49.00",
+    "compare_at_price": "100.00",
+    "available": false
+   }
+  ],
+  "images": [
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/196472719264-1.jpg?v=1780589045",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/196472719264-2.jpg?v=1780589035",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/196472719264-3.jpg?v=1780589036",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/196472719264-4.jpg?v=1780589104",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/swatch_eb829346-e105-471e-ae90-cde317228fb4.jpg?v=1780590105"
+  ]
+ },
+ {
+  "id": 8353579303095,
+  "title": "Adidas Womens Samba OG Shoes - Ftwr White/Silver Metallic/Grey",
+  "handle": "adidas-womens-samba-og-shoes-ftwr-white-silver-metallic-grey",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "tags": [
+   "Adidas",
+   "Category:Shoes",
+   "Color:Grey",
+   "Color:White",
+   "feed-agegroup-adult",
+   "feed-cl4-Sale",
+   "feed-color-Ftwr White/Silver Metallic/Grey",
+   "feed-gender-women",
+   "feed-gpc-187",
+   "feed-promoid-bts26_3",
+   "Has Inventory",
+   "No Returns",
+   "Price:$50 - $75",
+   "rtly-shipping-rate:0",
+   "Sale",
+   "Shoe Fit:Low",
+   "Shoe Material:Suede",
+   "Shoe Sole:Cupsole",
+   "Shoe Style:Skate",
+   "Shoe Style:Sneaker",
+   "Shoes",
+   "Size:5",
+   "Size:5.0",
+   "Size:6",
+   "Size:6.5",
+   "Size:7",
+   "Size:8",
+   "Under 100",
+   "Vendor:Adidas"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "position": 1,
+    "values": [
+     "6.5",
+     "7.0",
+     "7.5",
+     "8.0",
+     "5.0",
+     "5.5",
+     "6.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 45711768354999,
+    "title": "6.5",
+    "option1": "6.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A43",
+    "price": "70.00",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 45711768387767,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A42",
+    "price": "70.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711768420535,
+    "title": "7.5",
+    "option1": "7.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A41",
+    "price": "70.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711768453303,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A40",
+    "price": "70.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711768486071,
+    "title": "5.0",
+    "option1": "5.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A3F",
+    "price": "70.00",
+    "compare_at_price": "100.00",
+    "available": true
+   },
+   {
+    "id": 45711768518839,
+    "title": "5.5",
+    "option1": "5.5",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A3E",
+    "price": "70.00",
+    "compare_at_price": "100.00",
+    "available": false
+   },
+   {
+    "id": 45711768551607,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "sku": "BQ95A3D",
+    "price": "70.00",
+    "compare_at_price": "100.00",
+    "available": true
+   }
+  ],
+  "images": [
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/197615388491-1.jpg?v=1780589045",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/197615388491-2.jpg?v=1780589035",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/197615388491-3.jpg?v=1780589103",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/197615388491-4.jpg?v=1780589111",
+   "https://cdn.shopify.com/s/files/1/0519/1388/3831/files/swatch_1ecac342-cbba-48b1-969a-81dc56a60b19.jpg?v=1780590005"
+  ]
+ }
+]

@@ -86,6 +86,15 @@ export function planFromEnv(env = process.env) {
   };
 }
 
+/* ONE SESSION, ONE VOICE (#443 c.6549932007: Danny heard her flip
+   between Grecia and another accent). The worker announces the voice it
+   speaks with as a participant attribute before the shopper hears
+   anything; the page takes only an agent that announces Grecia's
+   engine, and never plays any other participant's audio. A stale
+   worker from an older build announces nothing and is never heard. */
+export const VOICE_ATTR = "aria.voice";
+export const voiceTag = (plan) => `${plan.tts.vendor}/${plan.tts.model}`;
+
 /** The one line a session logs about what it ran on: no keys, no ids. */
 export function planSummary(plan) {
   return {

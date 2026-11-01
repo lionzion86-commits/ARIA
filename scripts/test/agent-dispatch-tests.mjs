@@ -22,7 +22,7 @@ let passed = 0;
 const failures = [];
 async function check(name, fn) {
   try { await fn(); passed++; console.log("    ok   " + name); }
-  catch (e) { failures.push(`${name}\n         ${String(e && e.stack).split("\n").slice(0, 3).join(" | ")}`); console.log("    FAIL " + name); }
+  catch (e) { failures.push(`${name}\n         ${String(e && e.stack).split("\n").slice(0, process.env.DISPATCH_DEBUG ? 12 : 3).join(" | ")}`); console.log("    FAIL " + name); }
 }
 
 /* ---------------- @netlify/blobs, in memory, with etags ---------------- */
@@ -66,7 +66,7 @@ const resetStores = () => STORES.clear();
 
 /* ---------------- environment: names only, test values ---------------- */
 const SECRET = "whsec_dispatch_test_fixture";
-const ADMIN = "jefe@correo.test", AG1 = "compra1@correo.test", AG2 = "compra2@correo.test", SHOPPER = "clienta@correo.test";
+const ADMIN = "jefe@correo.test", AG1 = "compra1@correo.test", AG2 = "compra2@correo.test", AG3 = "compra3@correo.test", SHOPPER = "clienta@correo.test";
 process.env.STRIPE_WEBHOOK_SECRET = SECRET;
 process.env.ADMIN_EMAILS = ADMIN;
 delete process.env.LITHIC_API_KEY; delete process.env.RESEND_API_KEY; delete process.env.SMTP_HOST;
@@ -114,6 +114,10 @@ const paidEvent = (orderId, { id = "evt_test_" + (++evtSeq), type = "checkout.se
 );
 const online = { clockedIn: true, online: true, onBreak: null, focus: false };
 const engine = (opts = {}) => dispatchEngine({ getStore, host: "localhost", ...opts });
+/* Since the board (#443 c.6559624585) an order placed while NOBODY is
+   online skips the ring and goes straight to the board. Tests about the
+   ring itself keep one more buyer online and free, so the order rings. */
+const standby = (E) => E.poll(AG3, online);
 function fakeClock(start = "2026-11-01T15:00:00.000Z") {
   let t = Date.parse(start);
   const f = () => new Date(t).toISOString();
@@ -241,6 +245,7 @@ await check("rung 1: webhook -> PAID + packet -> claimable and pinged -> claim +
   const E = engine();
   await E.setAccounts(ACCOUNTS_ALL);
   const order = seedOrder({ stores: 1, name: "María Torres" });
+  await standby(E);
   const res = await webhook(signedEvent(paidEvent(order.orderId)));
   assert.equal(res.statusCode, 200, res.body);
   const body = JSON.parse(res.body);
@@ -366,6 +371,7 @@ await check("float gate: outstanding released budgets count -- a second order wa
   const o1 = seedOrder({ stores: 1 }), o2 = seedOrder({ stores: 1 });
   const need = D.buildPacket(o1).budgetUsd;
   await E.program.setFloat(need + 1); // room for one, not two
+  await standby(E);
   await E.intake({ ...o1, paymentStatus: "paid", paidAt: "2026-11-01T10:00:00.000Z" });
   await E.intake({ ...o2, paymentStatus: "paid", paidAt: "2026-11-01T10:01:00.000Z" });
   assert.equal((await E.orderRecord(o1.orderId)).state, "CLAIMABLE");
@@ -383,6 +389,7 @@ await check("no answer inside the ring (fake clock, 30 s) -> the sin-asignar poo
   const E = engine({ clock });
   await E.setAccounts(ACCOUNTS_ALL);
   const o = seedOrder({ stores: 1 });
+  await E.poll(AG1, online);
   await E.intake({ ...o, paymentStatus: "paid" });
   await E.poll(AG1, online); // she sees it and does nothing
   clock.advance(29); await E.poll(AG1, online); // still online, still not taking it
@@ -437,6 +444,7 @@ await check("a buyer on a break (Baño / Almuerzo) or in focus mode mid-checkout
   const E = engine();
   await E.setAccounts(ACCOUNTS_ALL);
   const o = seedOrder();
+  await standby(E);
   await E.intake({ ...o, paymentStatus: "paid" });
   assert.equal((await E.poll(AG1, { clockedIn: true, onBreak: "bano" })).ping, null);
   assert.equal((await E.poll(AG1, { clockedIn: true, onBreak: "almuerzo" })).ping, null);
@@ -458,6 +466,7 @@ await check("go online: offline -> no ping; online -> ping; offline while clocke
   const E = engine();
   await E.setAccounts(ACCOUNTS_ALL);
   const o = seedOrder();
+  await standby(E);
   await E.intake({ ...o, paymentStatus: "paid" });
   assert.equal((await E.poll(AG1, { clockedIn: true, online: false })).ping, null, "pinged while offline");
   assert.equal((await E.poll(AG1, { clockedIn: true })).ping, null, "no online flag must mean offline");
@@ -479,6 +488,7 @@ await check("Pasar is always allowed, recorded on the order and in her history, 
   const E = engine();
   await E.setAccounts(ACCOUNTS_ALL);
   const o = seedOrder();
+  await standby(E);
   await E.intake({ ...o, paymentStatus: "paid" });
   await E.passOrder(AG1, o.orderId);
   await E.passOrder(AG1, o.orderId);
@@ -503,6 +513,7 @@ await check("store-account caps: a 3-store bundle goes only to a buyer with cap 
     { id: "a2-2", store: PRODUCTS[2].store, label: "x", dailyCap: 0, agentId: AG2 },
   ]);
   const o = seedOrder({ stores: 3 });
+  await E.poll(AG1, online); await E.poll(AG2, online);
   await E.intake({ ...o, paymentStatus: "paid" });
   assert.equal((await E.poll(AG1, online)).ping, null, "offered without cap in every store");
   assert.equal((await E.poll(AG2, online)).ping, null, "offered with one store's cap used up");
@@ -647,6 +658,357 @@ await check("weekly sweep: what was not cashed out goes to CCI on the configured
   assert.equal((await E.sweep()).already, true);
 });
 
+console.log("\n  Dispatch -- the board: compras que todavía hay que hacer (#443 c.6559624585)");
+
+/* Ring an order out with nobody taking it: online buyers see it ring, the clock passes the ring. */
+async function ringOut(E, clock, o, { paidAt, who = [AG1, AG2] } = {}) {
+  for (const a of who) await E.poll(a, online);
+  await E.intake({ ...o, paymentStatus: "paid", ...(paidAt ? { paidAt } : {}) });
+  clock.advance(31);
+  for (const a of who) await E.poll(a, online); // still online, nobody taps ACEPTAR
+}
+
+await check("board: an order nobody claims in the ring lands on the board for EVERY online buyer, unassigned, oldest first; offline sees no board", async () => {
+  resetStores();
+  const clock = fakeClock();
+  const E = engine({ clock });
+  await E.setAccounts(ACCOUNTS_ALL);
+  const first = seedOrder({ stores: 1, name: "Ana Prueba" }), second = seedOrder({ stores: 2, name: "Bruno Prueba" });
+  await ringOut(E, clock, second, { paidAt: "2026-11-01T14:58:00.000Z" });
+  await ringOut(E, clock, first, { paidAt: "2026-11-01T14:50:00.000Z" });
+  for (const id of [first.orderId, second.orderId]) {
+    const r = await E.orderRecord(id);
+    assert.equal(r.state, "SIN_ASIGNAR");
+    assert.equal(r.claimedBy, null, "a board order was assigned to someone");
+    assert.equal(r.unassignedReason, "Nadie lo tomó en 30 s");
+  }
+  for (const a of [AG1, AG2]) {
+    const p = await E.poll(a, online);
+    assert.equal(p.ping, null, "a board order came back as a live ping");
+    assert.equal(p.board.count, 2);
+    assert.equal(p.board.headline, "Hay 2 compras esperando");
+    assert.deepEqual(p.board.orders.map((o) => o.header), ["Pedido de Ana Prueba", "Pedido de Bruno Prueba"], "not oldest first");
+    assert.ok(p.board.orders.every((o) => o.eligible.ok));
+  }
+  assert.equal((await E.poll(AG3, { clockedIn: true, online: false })).board, null, "an offline buyer sees the board");
+  assert.equal((await E.poll(AG3, { clockedIn: false })).board, null);
+});
+
+await check("board: an order placed while zero buyers are online goes STRAIGHT to the board (no empty ring); a buyer on a break does not count as online", async () => {
+  resetStores();
+  const clock = fakeClock();
+  const E = engine({ clock });
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o = seedOrder({ stores: 2, name: "Carla Prueba" });
+  await E.intake({ ...o, paymentStatus: "paid" });
+  let r = await E.orderRecord(o.orderId);
+  assert.equal(r.state, "SIN_ASIGNAR", "it rang to an empty room");
+  assert.equal(r.unassignedReason, D.NOBODY_ONLINE_REASON);
+  assert.deepEqual(r.pinged, []);
+  assert.deepEqual(r.history.map((h) => h.to), ["PAID", "CLAIMABLE", "SIN_ASIGNAR"]);
+  assert.ok(r.packet.checkouts.every((c) => typeof c.payPen === "number"), "the pay was not stamped when it was offered");
+  const p = await E.poll(AG1, online);
+  assert.equal(p.ping, null);
+  assert.equal(p.board.count, 1);
+  assert.equal(p.board.orders[0].header, "Pedido de Carla Prueba");
+  /* only someone on a break: still nobody to ring */
+  await E.poll(AG1, { ...online, onBreak: "bano" });
+  const o2 = seedOrder({ stores: 1 });
+  await E.intake({ ...o2, paymentStatus: "paid" });
+  assert.equal((await E.orderRecord(o2.orderId)).state, "SIN_ASIGNAR");
+  /* someone online and free: it rings as before */
+  await E.poll(AG2, online);
+  const o3 = seedOrder({ stores: 1 });
+  await E.intake({ ...o3, paymentStatus: "paid" });
+  assert.equal((await E.orderRecord(o3.orderId)).state, "CLAIMABLE");
+});
+
+await check("board grab: two buyers tap «Tomar» at once, twenty times over -- exactly one winner, the other gets 409 «Otra compradora lo tomó»; same through the HTTP door", async () => {
+  for (let round = 0; round < 20; round++) {
+    resetStores();
+    const E = engine();
+    await E.setAccounts(ACCOUNTS_ALL);
+    const o = seedOrder({ stores: 2 });
+    await E.intake({ ...o, paymentStatus: "paid" }); // nobody online: straight to the board
+    await E.poll(AG1, online); await E.poll(AG2, online);
+    const results = await Promise.allSettled([E.grabOrder(AG1, o.orderId), E.grabOrder(AG2, o.orderId)]);
+    const won = results.filter((x) => x.status === "fulfilled"), lost = results.filter((x) => x.status === "rejected");
+    assert.equal(won.length, 1, `round ${round}: ${won.length} winners`);
+    assert.equal(lost[0].reason.code, 409);
+    assert.equal(lost[0].reason.taken, true);
+    assert.equal(lost[0].reason.message, "Otra compradora lo tomó");
+    const rec = await E.orderRecord(o.orderId);
+    assert.equal(rec.history.filter((h) => h.to === "CLAIMED").length, 1);
+    const loser = rec.claimedBy === AG1 ? AG2 : AG1;
+    assert.equal((await E.poll(loser, online)).board.count, 0, "the grabbed order stayed on the board");
+  }
+  resetStores();
+  const E = engine();
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o = seedOrder();
+  await E.intake({ ...o, paymentStatus: "paid" });
+  await E.poll(AG1, online); await E.poll(AG2, online);
+  const ctx = (email) => ({ email, role: "agent", user: { name: email } });
+  const [a, b] = await Promise.all([AGD.dispatchAgentResponse(ctx(AG1), { action: "grab", orderId: o.orderId }, E), AGD.dispatchAgentResponse(ctx(AG2), { action: "grab", orderId: o.orderId }, E)]);
+  assert.deepEqual([a.status, b.status].sort(), [200, 409]);
+  const l = [a, b].find((x) => x.status === 409);
+  assert.equal(l.body.taken, true);
+  assert.equal(l.body.error, "Otra compradora lo tomó");
+});
+
+await check("board grab issues the cards AT the claim, never before: none while it waits, one per store checkout after, sized to its ceiling", async () => {
+  resetStores();
+  const calls = [];
+  const base = CP.cardProgram({ env: {}, meta: getStore("dispatch-sandbox-meta") });
+  const spy = { ...base, mode: base.mode, issueCard: async (x) => { calls.push(x); return base.issueCard(x); } };
+  const E = engine({ card: spy });
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o = seedOrder({ counts: [4, 2, 1] });
+  await E.intake({ ...o, paymentStatus: "paid" });
+  await E.poll(AG1, online);
+  let rec = await E.orderRecord(o.orderId);
+  assert.equal(rec.state, "SIN_ASIGNAR");
+  assert.ok(rec.packet.checkouts.every((c) => c.card == null && c.accountId == null), "a card or account existed while it waited on the board");
+  assert.equal(calls.length, 0, "a card was issued before the grab");
+  const p = await E.poll(AG1, online);
+  assert.ok(!/"card"|token|last4/.test(JSON.stringify(p.board)), "card data on the board");
+  const mine = await E.grabOrder(AG1, o.orderId);
+  assert.equal(calls.length, 3, "not one card per store checkout");
+  assert.equal(mine.packet.checkouts.length, 3, "the packet lost its per-store structure");
+  assert.deepEqual(mine.packet.checkouts.map((c) => c.items.length), [4, 2, 1]);
+  for (const c of mine.packet.checkouts) {
+    assert.ok(c.card && c.card.token, "no card after the grab");
+    assert.equal(c.card.spendLimitUsd, c.budgetUsd, "the card is not the checkout's ceiling");
+    assert.equal(c.budgetUsd, D.round2(c.items.reduce((t, x) => t + x.ceilingUsd, 0)));
+    assert.ok(c.accountId, "no store account reserved at the grab");
+  }
+  rec = await E.orderRecord(o.orderId);
+  assert.ok(Date.parse(rec.packet.checkouts[0].card.issuedAt) >= Date.parse(rec.claimedAt), "card issued before the claim");
+  assert.ok(mine.packet.private && mine.packet.private.dni, "the winner's focus screen lacks the customer data");
+});
+
+await check("board first: the poll after going online carries the board count and state («Hay 3 compras esperando»), separate from the live ping", async () => {
+  resetStores();
+  const E = engine();
+  await E.setAccounts(ACCOUNTS_ALL);
+  for (const n of [1, 2, 3]) { const o = seedOrder({ stores: n }); await E.intake({ ...o, paymentStatus: "paid" }); }
+  const off = await E.poll(AG1, { clockedIn: true, online: false });
+  assert.equal(off.board, null);
+  const on = await E.poll(AG1, online);
+  assert.equal(on.board.count, 3);
+  assert.equal(on.board.headline, "Hay 3 compras esperando");
+  assert.equal(on.ping, null, "the board was sent as a ping");
+  assert.equal(D.boardHeadline(1), "Hay 1 compra esperando");
+  assert.equal(D.boardHeadline(0), "No hay compras esperando");
+  /* a live order rings while the board is full: it arrives as the ping, not on the board */
+  const live = seedOrder({ stores: 1, name: "Pedido en vivo" });
+  await E.intake({ ...live, paymentStatus: "paid" });
+  const again = await E.poll(AG1, online);
+  assert.equal(again.ping && again.ping.header, "Pedido de Pedido en vivo");
+  assert.equal(again.board.count, 3);
+});
+
+await check("board card = the pop-up's decision layer + how long it waited; no DNI, address or phone anywhere in it", async () => {
+  resetStores();
+  const clock = fakeClock();
+  const E = engine({ clock });
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o = seedOrder({ counts: [4, 2, 1], name: "María Torres" });
+  await E.intake({ ...o, paymentStatus: "paid", paidAt: clock() });
+  clock.advance(12 * 60);
+  const p = await E.poll(AG1, online);
+  const card = p.board.orders[0];
+  assert.equal(card.header, "Pedido de María Torres");
+  assert.equal(`${card.headline} · ${card.sub}`, "S/ 4.50 · 3 compras · 3 tiendas");
+  assert.deepEqual(card.stores, D.buildPacket(o).checkouts.map((c) => c.storeLabel));
+  assert.equal(card.photos.length, 7);
+  assert.equal(card.totalUsd, D.buildPacket(o).totalUsd);
+  assert.equal(card.waitingMin, 12);
+  assert.equal(card.waitingText, "Esperando hace 12 min");
+  const json = JSON.stringify(p.board);
+  for (const s of ["00000000", "900000000", "Calle Prueba", "Miraflores", "dni", "phone", "address", "private"]) assert.ok(!json.includes(s), "the board carries " + s);
+  const rec = await E.orderRecord(o.orderId);
+  const pop = D.popupModel(rec, D.dispatchConfig());
+  for (const k of ["header", "headline", "sub", "stores", "photos", "totalUsd", "itemText", "payPen"]) assert.deepEqual(card[k], pop[k], "the board differs from the pop-up in " + k);
+});
+
+await check("board eligibility = ping eligibility: no cap in a store, on a break, mid-checkout -> greyed with the reason and the grab refused; free -> allowed", async () => {
+  resetStores();
+  const E = engine();
+  /* AG2 has no account for the third store: Danny's own default, cap for EVERY store in the bundle. */
+  await E.setAccounts([
+    { id: "s0", store: PRODUCTS[0].store, label: "x", dailyCap: 5 },
+    { id: "s1", store: PRODUCTS[1].store, label: "x", dailyCap: 5 },
+    { id: "a1-2", store: PRODUCTS[2].store, label: "x", dailyCap: 5, agentId: AG1 },
+  ]);
+  const o = seedOrder({ stores: 3 });
+  await E.intake({ ...o, paymentStatus: "paid" });
+  const p2 = await E.poll(AG2, online);
+  const card = p2.board.orders[0];
+  assert.equal(card.eligible.ok, false);
+  assert.equal(card.eligible.reason, "tope");
+  assert.equal(card.eligible.label, `Sin cupo en ${PRODUCTS[2].storeLabel} hoy`);
+  await assert.rejects(E.grabOrder(AG2, o.orderId), (e) => e.code === 409 && e.message === `Sin cupo en ${PRODUCTS[2].storeLabel} hoy` && !e.taken);
+  const brk = await E.poll(AG1, { ...online, onBreak: "almuerzo" });
+  assert.equal(brk.board.orders[0].eligible.label, "Estás en pausa");
+  await assert.rejects(E.grabOrder(AG1, o.orderId), /Estás en pausa/);
+  const foc = await E.poll(AG1, { ...online, focus: true });
+  assert.equal(foc.board.orders[0].eligible.reason, "enfocada");
+  await assert.rejects(E.grabOrder(AG1, o.orderId), /Termina la compra que tienes abierta/);
+  assert.equal((await E.orderRecord(o.orderId)).state, "SIN_ASIGNAR", "a refused grab changed the order");
+  /* a «Pasar» on the ping does not hide it from her board */
+  await E.passOrder(AG1, o.orderId);
+  const free = await E.poll(AG1, online);
+  assert.equal(free.board.orders[0].eligible.ok, true);
+  const mine = await E.grabOrder(AG1, o.orderId);
+  assert.deepEqual(mine.packet.checkouts.map((c) => c.accountId), ["s0", "s1", "a1-2"]);
+  /* two store names: «Sin cupo en A y B hoy» */
+  const two = D.boardEligibility({ state: "SIN_ASIGNAR", packet: D.buildPacket(seedOrder({ stores: 3 })) }, AG3, { presence: { clockedIn: true, online: true, seenAt: "2026-11-01T15:00:00.000Z" }, accounts: [{ id: "s0", store: PRODUCTS[0].store, dailyCap: 5 }], usage: {}, now: "2026-11-01T15:00:01.000Z", cfg: D.dispatchConfig() });
+  assert.equal(two.label, `Sin cupo en ${PRODUCTS[1].storeLabel} y ${PRODUCTS[2].storeLabel} hoy`);
+});
+
+await check("board pay is identical to a pinged order: the same 4 / 2 / 1 cart pays S/ 4.50 either way, per checkout, at BOUGHT", async () => {
+  resetStores();
+  const clock = fakeClock();
+  const E = engine({ clock });
+  await E.setAccounts(ACCOUNTS_ALL);
+  const pinged = seedOrder({ counts: [4, 2, 1], name: "Por timbre" }), boarded = seedOrder({ counts: [4, 2, 1], name: "Por tablero" });
+  await E.intake({ ...boarded, paymentStatus: "paid" }); // nobody online: the board
+  await E.poll(AG1, online);
+  await E.intake({ ...pinged, paymentStatus: "paid" }); // she is online: it rings
+  const p = await E.poll(AG1, online);
+  assert.equal(p.ping.header, "Pedido de Por timbre");
+  assert.equal(p.board.orders[0].header, "Pedido de Por tablero");
+  assert.equal(p.board.orders[0].headline, p.ping.headline);
+  assert.equal(p.board.orders[0].payPen, p.ping.payPen);
+  const a = await E.claimOrder(AG1, pinged.orderId);
+  const b = await E.grabOrder(AG1, boarded.orderId);
+  assert.deepEqual(b.packet.checkouts.map((c) => c.payPen), a.packet.checkouts.map((c) => c.payPen));
+  for (const m of [a, b]) {
+    await E.applyEvents(AG1, m.packet.checkouts.map((c, i) => bought(m.orderId, c.id, "N-" + i, D.round2(c.items.reduce((t, x) => t + x.lineUsd, 0)), "ev-" + c.id)));
+  }
+  const L = await E.ledger(AG1);
+  const per = (id) => D.round2(L.earnings.filter((e) => e.orderId === id).reduce((t, e) => t + e.amountPen, 0));
+  assert.equal(per(pinged.orderId), 4.5);
+  assert.equal(per(boarded.orderId), 4.5, "a board order paid differently");
+  assert.equal(D.balancePen(L), 9);
+});
+
+await check("watchdog: a board order never ages out silently -- escalates at its window, again each time the wait doubles, is never archived, and stays on both boards", async () => {
+  resetStores();
+  const clock = fakeClock();
+  const E = engine({ clock });
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o = seedOrder({ stores: 1, name: "Olvido Prueba" });
+  await E.intake({ ...o, paymentStatus: "paid", paidAt: clock() });
+  clock.advance(9 * 60); assert.equal((await E.watchdog()).escalations.length, 0);
+  clock.advance(2 * 60);
+  const w = await E.watchdog();
+  assert.equal(w.escalations.length, 1);
+  assert.equal(w.escalations[0].text, "Pedido de Olvido Prueba: lleva 11 min en el tablero sin que nadie lo tome (límite 10 min).");
+  await E.watchdog();
+  assert.equal((await E.orderRecord(o.orderId)).escalations.length, 1, "re-escalated inside the same window");
+  clock.advance(10 * 60); await E.watchdog(); // 21 min: the wait doubled
+  assert.equal((await E.orderRecord(o.orderId)).escalations.length, 2);
+  clock.advance(3 * 24 * 3600); await E.watchdog(); // three days later
+  const rec = await E.orderRecord(o.orderId);
+  assert.ok(rec, "the board order was archived or dropped");
+  assert.equal(rec.state, "SIN_ASIGNAR");
+  assert.equal(rec.escalations.length, 3);
+  assert.ok(rec.escalations.length < 20, "one escalation per five minutes");
+  const p = await E.poll(AG1, online);
+  assert.equal(p.board.count, 1);
+  assert.match(p.board.orders[0].waitingText, /^Esperando hace 72 h/);
+  const b = await E.board();
+  assert.equal(b.counts.SIN_ASIGNAR, 1);
+  assert.equal(b.board.count, 1);
+  assert.ok(b.board.oldestMin >= 3 * 24 * 60);
+  assert.ok(b.escalations.some((e) => e.orderId === o.orderId));
+});
+
+await check("Danny's view of the same pool: count, oldest wait, who can see it; «Volver a ofrecer» rings it again and, untaken, it returns to the board", async () => {
+  resetStores();
+  const clock = fakeClock();
+  const E = engine({ clock });
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o1 = seedOrder({ stores: 1 }), o2 = seedOrder({ stores: 2 });
+  await E.intake({ ...o1, paymentStatus: "paid", paidAt: clock() });
+  clock.advance(5 * 60);
+  await E.intake({ ...o2, paymentStatus: "paid", paidAt: clock() });
+  clock.advance(60);
+  await E.poll(AG1, online); await E.poll(AG2, { clockedIn: true, online: false });
+  let b = await E.board();
+  assert.deepEqual(b.board, { count: 2, oldestMin: 6, visibleTo: 1 });
+  assert.equal(b.orders.find((x) => x.orderId === o1.orderId).waitingMin, 6);
+  await E.reRingOrder(o1.orderId);
+  assert.equal((await E.poll(AG1, online)).ping.orderId, o1.orderId, "«Volver a ofrecer» did not ring it");
+  clock.advance(31); await E.poll(AG1, online);
+  assert.equal((await E.orderRecord(o1.orderId)).state, "SIN_ASIGNAR");
+  b = await E.board();
+  assert.equal(b.board.count, 2);
+});
+
+console.log("\n  Dispatch -- what agents see: human words, truthful presence (#443 c.6560497090, c.6560568865)");
+
+const ENV_NAMES = /LITHIC_|DISPATCH_|STRIPE_|_KEY\b|_SECRET\b|_KEY[^a-z]|_SECRET[^a-z]/;
+await check("agent-facing responses never carry env-var or config names (LITHIC_, DISPATCH_, STRIPE_, _KEY, _SECRET): every action, production off in each way, and the preview", async () => {
+  const saved = { k: process.env.LITHIC_API_KEY, e: process.env.LITHIC_ENV, l: process.env.DISPATCH_LIVE };
+  const ctx = { email: AG1, role: "agent", user: { name: "Rosa" } };
+  const envs = [{}, { DISPATCH_LIVE: "on" }, { LITHIC_API_KEY: "test_fixture_key", LITHIC_ENV: "sandbox", DISPATCH_LIVE: "on" }, { LITHIC_API_KEY: "test_fixture_key" }];
+  try {
+    for (const [i, env] of envs.entries()) {
+      resetStores();
+      for (const k of ["LITHIC_API_KEY", "LITHIC_ENV", "DISPATCH_LIVE"]) { if (env[k] == null) delete process.env[k]; else process.env[k] = env[k]; }
+      const P = dispatchEngine({ getStore, host: "ariashop.pe", fetchImpl: async () => { throw new Error("no network in tests"); } });
+      assert.equal(P.gate.on, false, "case " + i);
+      const o = seedOrder();
+      for (const body of [{ action: "poll", ...online }, { action: "claim", orderId: o.orderId }, { action: "grab", orderId: o.orderId }, { action: "pass", orderId: o.orderId }, { action: "events", events: [bought(o.orderId, "x", "N", 1)] }, { action: "register", yape: "1", cci: "2" }, { action: "cashout", amountPen: 10 }, { action: "leave" }, { action: "nope" }]) {
+        const r = await AGD.dispatchAgentResponse(ctx, body, P);
+        assert.ok(!ENV_NAMES.test(JSON.stringify(r.body)), `case ${i} ${body.action}: ${JSON.stringify(r.body).slice(0, 160)}`);
+      }
+      /* Danny's board keeps the technical reason */
+      const b = await ADD.dispatchAdminResponse({ email: ADMIN, role: "admin" }, "GET", {}, P);
+      assert.ok(ENV_NAMES.test(JSON.stringify(b.body.gate)), "Danny lost the technical detail");
+    }
+    for (const k of ["LITHIC_API_KEY", "LITHIC_ENV", "DISPATCH_LIVE"]) delete process.env[k];
+    resetStores();
+    const E = engine();
+    await E.setAccounts(ACCOUNTS_ALL);
+    const o = seedOrder();
+    await E.intake({ ...o, paymentStatus: "paid" });
+    for (const body of [{ action: "poll", ...online }, { action: "grab", orderId: o.orderId }, { action: "grab", orderId: o.orderId }, { action: "claim", orderId: "nada" }, { action: "events", events: [{ id: "e", type: "checkout_comprado", orderId: o.orderId, checkoutId: "x" }] }, { action: "cashout", amountPen: 1 }]) {
+      const r = await AGD.dispatchAgentResponse(ctx, body, E);
+      assert.ok(!ENV_NAMES.test(JSON.stringify(r.body)), `preview ${body.action}: ${JSON.stringify(r.body).slice(0, 160)}`);
+    }
+    /* and the scrubber itself */
+    assert.equal(AGD.agentSafeError(Object.assign(new Error("Despacho apagado: falta DISPATCH_LIVE=on"), { code: 503 })), AGD.AGENT_OFF_TEXT);
+    assert.ok(!ENV_NAMES.test(AGD.agentSafeError(new Error("LITHIC_API_KEY rechazada"))));
+  } finally {
+    for (const [k, v] of [["LITHIC_API_KEY", saved.k], ["LITHIC_ENV", saved.e], ["DISPATCH_LIVE", saved.l]]) { if (v == null) delete process.env[k]; else process.env[k] = v; }
+  }
+});
+
+await check("presence is a heartbeat: a buyer whose tab died is offline server-side after the window (no pings, not counted online); «leave» makes it immediate", async () => {
+  resetStores();
+  const clock = fakeClock();
+  const E = engine({ clock });
+  await E.setAccounts(ACCOUNTS_ALL);
+  await E.poll(AG1, online);
+  clock.advance(D.dispatchConfig().presenceTtlSeconds + 1); // her phone stopped polling
+  const o = seedOrder();
+  await E.intake({ ...o, paymentStatus: "paid" });
+  const r = await E.orderRecord(o.orderId);
+  assert.equal(r.state, "SIN_ASIGNAR", "a dead session was counted online");
+  assert.deepEqual(r.pinged, []);
+  assert.equal((await E.board()).presence.find((p) => p.agentId === AG1).availability.reason, "sin_senal");
+  await E.poll(AG2, online);
+  await E.leave(AG2);
+  assert.equal((await E.board()).presence.find((p) => p.agentId === AG2).availability.reason, "fuera_de_linea");
+  const o2 = seedOrder();
+  await E.intake({ ...o2, paymentStatus: "paid" });
+  assert.equal((await E.orderRecord(o2.orderId)).state, "SIN_ASIGNAR");
+});
+
 console.log("\n  Dispatch -- auth, quarantine, the Lithic adapter");
 
 await check("auth: agent-dispatch 401 signed out / 403 shopper; admin-dispatch only for Danny; the sandbox simulator refuses production", async () => {
@@ -744,9 +1106,10 @@ await check("production switched off: the fake can never run, buyers get 503 and
     const o = seedOrder();
     assert.equal((await P.intake({ ...o, paymentStatus: "paid" })).off, true);
     const ctx = { email: AG1, role: "agent", user: {} };
-    for (const action of ["poll", "claim", "events", "cashout"]) {
+    for (const action of ["poll", "claim", "grab", "events", "cashout"]) {
       const r = await AGD.dispatchAgentResponse(ctx, { action, orderId: o.orderId, events: [bought(o.orderId, o.orderId + "~x", "N", 1)], amountPen: 10 }, P);
-      assert.equal(r.status, 503, action); assert.match(r.body.error, /^Despacho apagado/);
+      /* Off, in human words: agents never see the switch's variable names (c.6560497090). */
+      assert.equal(r.status, 503, action); assert.equal(r.body.off, true, action); assert.equal(r.body.error, AGD.AGENT_OFF_TEXT, action);
     }
     assert.equal((await P.ledger(AG1)).earnings.length, 0);
     const b = await ADD.dispatchAdminResponse({ email: ADMIN, role: "admin" }, "GET", {}, P);
@@ -825,7 +1188,7 @@ if (pw) {
   const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".json": "application/json" };
   const FX = 3.75;
   const handlers = {};
-  for (const n of ["agent-queue", "agent-dispatch", "admin-dispatch", "admin-agents", "stripe-webhook", "auth-logout"]) {
+  for (const n of ["agent-queue", "agent-dispatch", "admin-dispatch", "admin-agents", "stripe-webhook", "auth-logout", "auth-login"]) {
     if (existsSync(ROOT + `netlify/functions/${n}.js`)) handlers[n] = (await import(ROOT + `netlify/functions/${n}.js`)).handler;
   }
   /* Sessions the real getSessionEmail reads. TEST FIXTURES. */
@@ -1045,6 +1408,7 @@ if (pw) {
     await shot(a.page, "7-fuera-de-linea-ponerse-en-linea");
     /* an order rings while she is offline (not clocked in): nothing */
     const o1 = seedOrder({ stores: 1 });
+    await standby(E());
     await sendWebhook(o1.orderId);
     await a.page.waitForTimeout(300);
     assert.equal(await a.page.$("#ringPop"), null);
@@ -1067,6 +1431,7 @@ if (pw) {
     const sh = await a.page.evaluate(() => window.__compradores.S.day.shifts[window.__compradores.S.agentId]);
     assert.ok(sh.clockIn && !sh.clockOut, "going offline ended the shift");
     const o2 = seedOrder({ stores: 1 });
+    await standby(E());
     await sendWebhook(o2.orderId);
     await poke(a.page); await a.page.waitForTimeout(300);
     assert.equal(await a.page.$("#ringPop"), null, "pinged while offline and clocked in");
@@ -1097,6 +1462,7 @@ if (pw) {
     await a.page.click('[data-break="bano"]');
     await a.page.waitForSelector("#endBreak");
     const o = seedOrder({ stores: 1 });
+    await standby(E());
     await sendWebhook(o.orderId);
     await poke(a.page); await a.page.waitForTimeout(300);
     assert.equal(await a.page.$("#ringPop"), null, "pinged on a break");
@@ -1125,6 +1491,355 @@ if (pw) {
     await page.waitForSelector("#dispatchOff");
     assert.equal(await page.textContent("#dispatchOff"), "Despacho apagado: falta la tarjeta real (LITHIC_API_KEY) y falta DISPATCH_LIVE=on.");
     await shot(page, "6-produccion-despacho-apagado");
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+
+  /* The board's own screenshots go to BOARD_SHOTS (else DISPATCH_SHOTS). */
+  const BSHOTS = process.env.BOARD_SHOTS || SHOTS;
+  if (BSHOTS) mkdirSync(BSHOTS, { recursive: true });
+  const bshot = async (target, name) => {
+    if (!BSHOTS) return;
+    const page = target.page ? target.page() : target;
+    await page.waitForTimeout(500);
+    await page.evaluate(() => document.querySelectorAll(".toast").forEach((t) => t.classList.remove("on")));
+    await page.waitForTimeout(300);
+    await target.screenshot({ path: `${BSHOTS}/${name}.png` });
+  };
+
+  await check("browser board: going online, the board is the FIRST thing («Hay 3 compras esperando»), each card with the pop-up's facts and its wait; ineligible greyed with why; two «Tomar» at once -> one wins, the other sees «Otra compradora lo tomó»; Danny sees the same pool", async () => {
+    resetStores(); seedPeople();
+    /* Rosa (AG1) owns the only account for the third store: Carlos (AG2) has no cap there. */
+    await E().setAccounts([
+      { id: "s0", store: PRODUCTS[0].store, label: PRODUCTS[0].storeLabel + " · cuenta 1", dailyCap: 5 },
+      { id: "s1", store: PRODUCTS[1].store, label: PRODUCTS[1].storeLabel + " · cuenta 1", dailyCap: 5 },
+      { id: "r2", store: PRODUCTS[2].store, label: PRODUCTS[2].storeLabel + " · Rosa", dailyCap: 5, agentId: AG1 },
+    ]);
+    await E().setConfig({ pollSeconds: 2 });
+    /* Three orders came in overnight with nobody online: straight to the board. */
+    const t0 = Date.now();
+    const oA = seedOrder({ stores: 1, name: "Ana Prueba Soto" }), oB = seedOrder({ counts: [4, 2, 1], name: "María Torres" }), oC = seedOrder({ stores: 2, name: "Bruno Prueba Díaz" });
+    await E().intake({ ...oA, paymentStatus: "paid", paidAt: new Date(t0 - 47 * 60000).toISOString() });
+    await E().intake({ ...oB, paymentStatus: "paid", paidAt: new Date(t0 - 21 * 60000).toISOString() });
+    await E().intake({ ...oC, paymentStatus: "paid", paidAt: new Date(t0 - 6 * 60000).toISOString() });
+    for (const o of [oA, oB, oC]) assert.equal((await E().orderRecord(o.orderId)).state, "SIN_ASIGNAR");
+
+    const a = await open(AG1), b = await open(AG2), adm = await open(ADMIN, { phone: false });
+    await clockIn(a.page); await clockIn(b.page);
+    for (const x of [a, b]) {
+      await x.page.waitForSelector("#boardHead[data-count='3']");
+      assert.equal(await x.page.textContent("#boardLine"), "Hay 3 compras esperando");
+      /* FIRST: the board heads the screen, above the live-ping waiting state */
+      assert.equal(await x.page.evaluate(() => document.getElementById("dxSection").firstElementChild.id), "boardHead");
+      const order = await x.page.evaluate(() => [...document.querySelectorAll("#dxSection > *, #boardList > *")].map((e) => e.id || e.dataset.board || e.className));
+      assert.ok(order.indexOf("boardHead") < order.indexOf("waitHero"), "the board is not above the waiting state");
+      assert.deepEqual(await x.page.$$eval("[data-board] [data-head]", (h) => h.map((e) => e.textContent)), ["Pedido de Ana Prueba Soto", "Pedido de María Torres", "Pedido de Bruno Prueba Díaz"], "not oldest first");
+      assert.equal(await x.page.$("#ringPop"), null, "a board order rang as a live ping");
+    }
+    const cardB = `[data-board="${oB.orderId}"]`;
+    await a.page.waitForFunction((s) => /S\/ \d/.test(document.querySelector(s + " [data-total]").textContent), cardB);
+    assert.equal(await a.page.textContent(`${cardB} [data-pay]`), "S/ 4.50");
+    assert.equal(await a.page.textContent(`${cardB} [data-sub]`), "3 compras · 3 tiendas");
+    assert.equal(await a.page.locator(`${cardB} .strip-photos img`).count(), 7);
+    assert.equal(await a.page.locator(`${cardB} .chips .pill`).count(), 3);
+    const usdTotal = D.buildPacket(oB).totalUsd;
+    assert.equal(await a.page.textContent(`${cardB} [data-total]`), `$${usdTotal.toFixed(2)} · S/ ${(Math.round(usdTotal * FX * 100) / 100).toFixed(2)}`);
+    assert.match(await a.page.textContent(`${cardB} [data-wait]`), /^Esperando hace 2[01] min$/);
+    const boardText = await a.page.textContent("#boardList");
+    for (const s of ["00000000", "900000000", "Calle Prueba", "Miraflores"]) assert.ok(!boardText.includes(s), "the board shows " + s);
+    /* Carlos has no cap in the third store: greyed, with why, no Tomar */
+    assert.equal(await b.page.getAttribute(cardB, "class"), "card bcard off");
+    assert.equal(await b.page.textContent(`${cardB} [data-why]`), `Sin cupo en ${PRODUCTS[2].storeLabel} hoy`);
+    assert.equal(await b.page.$(`${cardB} [data-grab]`), null);
+    await a.page.evaluate(() => window.scrollTo(0, 0));
+    await bshot(a.page, "1-tablero-al-ponerse-en-linea-3-esperando");
+    await bshot(a.page.locator(cardB), "2-tarjeta-de-pedido-en-el-tablero");
+    await b.page.locator(cardB).scrollIntoViewIfNeeded();
+    await bshot(b.page.locator(cardB), "2b-tarjeta-sin-cupo-gris");
+    /* Danny: the same pool, count, age, «Volver a ofrecer» */
+    await adm.page.goto(BASE + "/admin-agentes.html");
+    await adm.page.waitForSelector("#kSin");
+    await adm.page.waitForFunction(() => /la ven 2 en línea/.test(document.getElementById("kSinAge").textContent), null, { timeout: 8000 });
+    assert.equal(await adm.page.textContent("#kSin b"), "3");
+    assert.match(await adm.page.textContent("#kSinAge"), /la más antigua espera 4[78] min/);
+    assert.equal(await adm.page.locator(".dxo.SIN_ASIGNAR [data-rering]").count(), 3);
+    assert.deepEqual(await adm.page.$$eval(".dxo.SIN_ASIGNAR .h strong", (h) => h.map((e) => e.textContent)), ["Pedido de Ana Prueba Soto", "Pedido de María Torres", "Pedido de Bruno Prueba Díaz"]);
+    assert.match(await adm.page.textContent(`.dxo.SIN_ASIGNAR[data-order="${oA.orderId}"] [data-age]`), /En el tablero · esperando 4[78] min/);
+    await adm.page.evaluate(() => window.scrollTo(0, 0));
+    await bshot(adm.page, "4-admin-tablero-sin-asignar");
+    /* Both tap «Tomar» on Ana's order at the same moment */
+    const cardA = `[data-board="${oA.orderId}"]`;
+    await Promise.all([a.page.click(`${cardA} [data-grab]`), b.page.click(`${cardA} [data-grab]`)]);
+    let rec = null;
+    for (let i = 0; i < 80 && !(rec && rec.state === "CLAIMED"); i++) { await new Promise((r) => setTimeout(r, 100)); rec = await E().orderRecord(oA.orderId); }
+    assert.equal(rec.state, "CLAIMED");
+    const [win, lose] = rec.claimedBy === AG1 ? [a, b] : [b, a];
+    await lose.page.waitForSelector(`${cardA} [data-taken]`);
+    assert.equal(await lose.page.textContent(`${cardA} [data-taken]`), "Otra compradora lo tomó");
+    await bshot(lose.page.locator(cardA), "3-otra-compradora-lo-tomo");
+    await win.page.waitForSelector(`[data-bundle="${oA.orderId}"]`);
+    assert.ok((await E().orderRecord(oA.orderId)).packet.checkouts.every((c) => c.card && c.card.token), "no card at the grab");
+    await lose.page.waitForFunction((s) => !document.querySelector(s), cardA, { timeout: 8000 });
+    await lose.page.waitForSelector("#boardHead[data-count='2']");
+    assert.equal(await lose.page.textContent("#boardLine"), "Hay 2 compras esperando");
+    for (const x of [a, b, adm]) assert.deepEqual(x.errors, []);
+    for (const x of [a, b, adm]) await x.ctx.close();
+  });
+
+  await check("browser training story, preview sandbox: «Pedido de prueba» with nobody online -> clock in -> the board -> grab the leftover -> a live ping arrives for the second order", async () => {
+    await new Promise((r) => setTimeout(r, 600)); // let polls in flight from closed phones land first
+    resetStores(); seedPeople();
+    await E().setAccounts(ACCOUNTS_ALL);
+    await E().setConfig({ pollSeconds: 2 });
+    const adm = await open(ADMIN, { phone: false });
+    await adm.page.goto(BASE + "/admin-agentes.html");
+    await adm.page.waitForSelector("[data-sim='3']");
+    /* 1. Danny places a «Pedido de prueba» while no buyer is online: it goes straight to the board */
+    await adm.page.click("[data-sim='3']");
+    await adm.page.waitForFunction(() => document.querySelector("#kSin b") && document.querySelector("#kSin b").textContent === "1", null, { timeout: 8000 });
+    const first = (await E().records())[0];
+    assert.equal(first.state, "SIN_ASIGNAR");
+    assert.equal(first.unassignedReason, D.NOBODY_ONLINE_REASON);
+    assert.ok(first.sandbox && first.orderId.startsWith("SBX-"));
+    /* 2. She clocks in: the board first */
+    const a = await open(AG1);
+    await clockIn(a.page);
+    await a.page.waitForSelector("#boardHead[data-count='1']");
+    assert.equal(await a.page.textContent("#boardLine"), "Hay 1 compra esperando");
+    assert.equal(await a.page.evaluate(() => document.getElementById("dxSection").firstElementChild.id), "boardHead");
+    assert.match(await a.page.textContent(`[data-board="${first.orderId}"] .bc-top`), /SANDBOX/);
+    /* 3. She grabs the leftover: hers, with its per-store packet and its cards */
+    await a.page.click(`[data-board="${first.orderId}"] [data-grab]`);
+    await a.page.waitForSelector(`[data-bundle="${first.orderId}"]`);
+    await a.page.waitForSelector("#boardHead[data-count='0']");
+    assert.equal(await a.page.textContent("#boardLine"), "No hay compras esperando");
+    const mine = await E().orderRecord(first.orderId);
+    assert.equal(mine.claimedBy, AG1);
+    assert.deepEqual(mine.packet.checkouts.map((c) => c.items.length), [4, 2, 1]);
+    assert.ok(mine.packet.checkouts.every((c) => c.card && c.card.fake && c.card.spendLimitUsd === c.budgetUsd));
+    /* 4. A second «Pedido de prueba» comes in while she is online: the live ping, as built */
+    await poke(a.page);
+    await adm.page.click("[data-sim='1']");
+    await poke(a.page);
+    await a.page.waitForSelector("#ringPop", { timeout: 8000 });
+    const second = (await E().records()).find((r) => r.orderId !== first.orderId);
+    assert.equal(second.state, "CLAIMABLE");
+    assert.equal(await a.page.getAttribute("#ringPop .ring", "data-order"), second.orderId);
+    assert.equal(await a.page.textContent("#ringPay"), "S/ 1");
+    await a.page.click("#ringAccept");
+    await a.page.waitForSelector(".cktabs");
+    const both = await E().records();
+    assert.deepEqual(both.map((r) => r.claimedBy), [AG1, AG1]);
+    assert.ok(both.every((r) => r.packet.checkouts.every((c) => c.card && c.card.token)));
+    await adm.page.waitForFunction(() => document.querySelectorAll('.dxo [data-state="CLAIMED"]').length === 2, null, { timeout: 8000 });
+    assert.equal(await adm.page.textContent("#kSin b"), "0");
+    for (const x of [a, adm]) assert.deepEqual(x.errors, []);
+    for (const x of [a, adm]) await x.ctx.close();
+  });
+
+  const runningIn = (page, sel) => page.evaluate((s) => {
+    const root = document.querySelector(s);
+    return root ? document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && root.contains(a.effect.target)).map((a) => a.animationName || "") : null;
+  }, sel);
+
+  await check("browser: EN LÍNEA waiting view MOVES (pulsing radar, «Esperando pedidos…»); FUERA DE LÍNEA is still; reduced motion keeps a gentle pulse", async () => {
+    await new Promise((r) => setTimeout(r, 600));
+    resetStores(); seedPeople();
+    await E().setAccounts(ACCOUNTS_ALL);
+    const a = await open(AG1);
+    await a.page.goto(BASE + "/agente.html");
+    await a.page.waitForSelector("#offlineHero");
+    assert.deepEqual(await runningIn(a.page, "#app"), [], "the offline view animates");
+    await a.page.click("#goOnline");
+    await a.page.waitForSelector("#waitHero .radar");
+    assert.equal(await a.page.textContent("#waitHero h2"), "Esperando pedidos…");
+    const names = await runningIn(a.page, "#waitHero");
+    assert.ok(names.length >= 2 && names.every((n) => n === "ping"), "the radar is not pulsing: " + names);
+    assert.ok(await a.page.evaluate(() => { const r = document.querySelector("#waitHero .radar").getBoundingClientRect(); return r.width >= 100 && r.top < innerHeight; }), "the radar is not on screen");
+    /* Two frames of the moving radar (the poll may repaint the section: clip by position, not by node) */
+    if (BSHOTS) {
+      await a.page.evaluate(() => document.getElementById("waitHero").scrollIntoView({ block: "center" }));
+      await a.page.waitForTimeout(400);
+      const box = await a.page.evaluate(() => { const r = document.getElementById("waitHero").getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+      await a.page.screenshot({ path: `${BSHOTS}/5a-en-linea-radar-cuadro-1.png`, clip: box });
+      await a.page.waitForTimeout(700);
+      await a.page.screenshot({ path: `${BSHOTS}/5b-en-linea-radar-cuadro-2.png`, clip: box });
+    }
+    await a.page.click("#goOffline");
+    await a.page.waitForSelector("#offlineHero");
+    assert.deepEqual(await runningIn(a.page, "#app"), [], "the offline view animates");
+    await a.ctx.close();
+    /* reduced motion: still alive, gently */
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
+    await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+    await ctx.addCookies([{ name: "aria_session", value: SESS[AG2], url: BASE }]);
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/agente.html");
+    await p.click("#goOnline");
+    await p.waitForSelector("#waitHero .radar");
+    const soft = await runningIn(p, "#waitHero");
+    assert.ok(soft.length >= 1 && soft.every((n) => n === "breathe"), "reduced motion stopped the pulse: " + soft);
+    await ctx.close();
+  });
+
+  await check("browser: a dead session heals -- online, tab killed, heartbeat lapses: no pings while dead; reopened, she is FUERA DE LÍNEA with a working «Ponerse en línea»", async () => {
+    await new Promise((r) => setTimeout(r, 600));
+    resetStores(); seedPeople();
+    await E().setAccounts(ACCOUNTS_ALL);
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+    await ctx.addCookies([{ name: "aria_session", value: SESS[AG1], url: BASE }]);
+    let page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await clockIn(page);
+    await poke(page);
+    assert.equal(await page.textContent("#lineTag"), "EN LÍNEA");
+    /* the tab dies with no goodbye (crash, battery): no beacon reaches the server */
+    await ctx.route("**/agent-dispatch", (r) => r.abort());
+    await page.close({ runBeforeUnload: false });
+    await new Promise((r) => setTimeout(r, 300));
+    await ctx.unroute("**/agent-dispatch");
+    /* two minutes pass: the server's presence and the phone's heartbeat are that old */
+    const ago = new Date(Date.now() - 120000).toISOString();
+    const pres = STORES.get("dispatch-sandbox-agents");
+    const pk = "presence/" + AG1;
+    pres.set(pk, { v: JSON.stringify({ ...JSON.parse(pres.get(pk).v), online: true, seenAt: ago }), etag: '"aged"' });
+    assert.equal((await E().board()).presence.find((x) => x.agentId === AG1).availability.reason, "sin_senal", "the server still thinks she is online");
+    const o = seedOrder({ stores: 1, name: "Mientras dormía" });
+    await sendWebhook(o.orderId);
+    const rec = await E().orderRecord(o.orderId);
+    assert.equal(rec.state, "SIN_ASIGNAR", "a dead session was pinged / counted online");
+    assert.deepEqual(rec.pinged, []);
+    const fix = await ctx.newPage();
+    await fix.goto(BASE + "/no-existe");
+    await fix.evaluate((t) => { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("aria-compradores-live-")) { const d = JSON.parse(localStorage.getItem(k)); d.lastBeatAt = t; localStorage.setItem(k, JSON.stringify(d)); } } }, ago);
+    await fix.close();
+    /* she opens the app again (her session cookie is still good) */
+    page = await ctx.newPage();
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(BASE + "/agente.html");
+    await page.waitForSelector("#offlineHero");
+    assert.equal(await page.textContent("#lineTag"), "FUERA DE LÍNEA");
+    assert.match(await page.textContent("#offlineHero"), /Tu sesión anterior se cerró sola/);
+    assert.equal(await page.isEnabled("#goOnline"), true);
+    const st = await page.evaluate(() => { const { S } = window.__compradores; return { online: S.day.dispatchOnline, shift: S.day.shifts[S.agentId] || null, past: (S.day.pastShifts || []).length }; });
+    assert.equal(st.online, false); assert.equal(st.shift, null, "the dead shift is still open"); assert.equal(st.past, 1);
+    await page.click("#goOnline");
+    await page.waitForSelector("#waitHero");
+    assert.equal(await page.textContent("#lineTag"), "EN LÍNEA");
+    await poke(page);
+    await page.waitForSelector("#boardHead[data-count='1']");
+    assert.equal((await E().board()).presence.find((x) => x.agentId === AG1).availability.ok, true, "header and server disagree");
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+
+  await check("browser: Cerrar sesión is real -- turno, Terminar turno, Cerrar sesión: login screen, server session gone, phone state cleared, back button does not restore it", async () => {
+    await new Promise((r) => setTimeout(r, 600));
+    resetStores(); seedPeople();
+    await E().setAccounts(ACCOUNTS_ALL);
+    const a = await open(AG1);
+    await clockIn(a.page);
+    await poke(a.page);
+    /* Terminar turno from the header menu: still signed in, on Fin de turno */
+    await a.page.click("#menuBtn");
+    await a.page.waitForSelector(".sheet [data-signout]");
+    await a.page.click(".sheet [data-end]");
+    await a.page.click(".sheet [data-out]");
+    await a.page.waitForSelector(".summary-h");
+    assert.equal(await a.page.textContent(".summary-h h1"), "Fin de turno");
+    assert.ok(STORES.get("sessions").has(SESS[AG1]), "Terminar turno ended the session");
+    await a.page.evaluate(() => window.__compradores.sync());
+    await a.page.waitForFunction(() => /Sincronizado/.test(document.getElementById("syncTag").textContent), null, { timeout: 8000 });
+    await bshot(a.page, "6a-fin-de-turno-con-cerrar-sesion");
+    await a.page.click("#signOut");
+    await a.page.waitForSelector("#login", { timeout: 8000 });
+    await a.page.evaluate(() => document.getElementById("login").scrollIntoView({ block: "center" }));
+    await bshot(a.page, "6b-login-tras-cerrar-sesion");
+    assert.equal(STORES.get("sessions").has(SESS[AG1]), false, "the server session survived");
+    assert.equal((await a.ctx.cookies()).filter((c) => c.name === "aria_session" && c.value).length, 0, "the session cookie survived");
+    const keys = await a.page.evaluate(() => Object.keys(localStorage));
+    assert.deepEqual(keys.filter((k) => k.startsWith("aria-compradores-live-") || k === "aria-compradores-last-v1"), [], "agent state left on the phone");
+    /* Her photos (the worker's image cache) are gone; the shell cache is the public page's own code, refilled by any visit. */
+    assert.deepEqual(await a.page.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith("aria-agente-img"))), [], "the worker cache kept her photos");
+    assert.equal(await a.page.isVisible("#menuBtn"), false);
+    assert.equal((await E().board()).presence.find((x) => x.agentId === AG1).availability.ok, false);
+    /* the back button: nothing comes back */
+    await a.page.goBack().catch(() => null);
+    await a.page.goForward().catch(() => null);
+    await a.page.goto(BASE + "/agente.html");
+    await a.page.waitForSelector("#login");
+    assert.equal(await a.page.$("#lineTag:not([hidden])"), null);
+    assert.equal(await a.page.textContent("#whoTop"), "");
+    assert.deepEqual(a.errors, []);
+    await a.ctx.close();
+  });
+
+  await check("browser: Cerrar sesión with items not synced warns, can sync first, and if they still cannot go keeps them on the phone under her name, sent at her next sign-in", async () => {
+    await new Promise((r) => setTimeout(r, 600));
+    resetStores(); seedPeople();
+    await E().setAccounts(ACCOUNTS_ALL);
+    const a = await open(AG1);
+    await clockIn(a.page);
+    await a.page.route("**/.netlify/functions/agent-queue", (r) => r.request().method() === "POST" ? r.fulfill({ status: 503, body: "{}" }) : r.continue());
+    const agentId = await a.page.evaluate(() => window.__compradores.S.agentId);
+    await a.page.click("#menuBtn"); await a.page.click(".sheet [data-end]"); await a.page.click(".sheet [data-out]");
+    await a.page.waitForSelector("#signOut");
+    await a.page.click("#signOut");
+    await a.page.waitForSelector(".sheet [data-sync]");
+    assert.match(await a.page.textContent("#soPending"), /Tienes 1 por sincronizar/);
+    await a.page.click(".sheet [data-sync]");
+    await a.page.waitForFunction(() => /Todavía quedan 1/.test(document.getElementById("soPending").textContent));
+    await a.page.click(".sheet [data-anyway]");
+    await a.page.waitForSelector("#login");
+    const stash = await a.page.evaluate((id) => JSON.parse(localStorage.getItem("aria-compradores-pending-" + id) || "null"), agentId);
+    assert.equal(stash.length, 1); assert.equal(stash[0].type, "salida");
+    assert.equal(STORES.get("sessions").has(SESS[AG1]), false);
+    /* next sign-in: the queued item goes */
+    await a.page.unroute("**/.netlify/functions/agent-queue");
+    seedPeople();
+    await a.ctx.addCookies([{ name: "aria_session", value: SESS[AG1], url: BASE }]);
+    await a.page.goto(BASE + "/agente.html");
+    await a.page.waitForSelector("#goOnline");
+    await a.page.waitForFunction(() => /Sincronizado/.test(document.getElementById("syncTag").textContent), null, { timeout: 8000 });
+    assert.equal(await a.page.evaluate((id) => localStorage.getItem("aria-compradores-pending-" + id), agentId), null);
+    assert.deepEqual(a.errors, []);
+    await a.ctx.close();
+  });
+
+  await check("browser: production with dispatch off, the AGENT sees human words («aún no está activado»), never a variable name; Danny's board keeps the detail", async () => {
+    await new Promise((r) => setTimeout(r, 600));
+    resetStores(); seedPeople();
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await ctx.addCookies([{ name: "aria_session", value: SESS[AG1], url: "https://ariashop.pe" }]);
+    await ctx.route(/^https?:\/\/(?!ariashop\.pe)/, (r) => r.abort());
+    await ctx.route("https://ariashop.pe/**", async (r) => {
+      const u = new URL(r.request().url());
+      const fn = u.pathname.startsWith("/.netlify/functions/") ? u.pathname.split("/").pop() : null;
+      if (fn === "exchange-rate") return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ compra: 3.7, venta: FX, fecha: "fixture", origen: "SUNAT" }) });
+      if (fn) {
+        if (!handlers[fn]) return r.fulfill({ status: 404, body: "{}" });
+        const h = await r.request().allHeaders();
+        const out = await handlers[fn]({ httpMethod: r.request().method(), headers: { ...h, host: "ariashop.pe" }, body: r.request().postData() || "", queryStringParameters: Object.fromEntries(u.searchParams) });
+        return r.fulfill({ status: out.statusCode, headers: out.headers || { "Content-Type": "application/json" }, body: out.body || "" });
+      }
+      const f = join(ROOT, u.pathname);
+      return existsSync(f) && !f.endsWith("/") ? r.fulfill({ status: 200, contentType: MIME[extname(f)] || "text/plain", body: readFileSync(f) }) : r.fulfill({ status: 404, body: "" });
+    });
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    const bodies = [];
+    page.on("response", async (res) => { if (res.url().includes("/.netlify/functions/agent-")) bodies.push(await res.text().catch(() => "")); });
+    await page.goto("https://ariashop.pe/agente.html");
+    await page.waitForSelector("#goOnline");
+    await page.click("#goOnline");
+    await page.waitForSelector("#dxOff");
+    assert.equal(await page.textContent("#dxOff"), "El despacho en vivo aún no está activado. Tu turno está abierto; los pedidos en vivo llegan cuando se active.");
+    const text = await page.evaluate(() => document.body.innerText);
+    assert.ok(!ENV_NAMES.test(text), "the agent's screen shows a variable name");
+    assert.ok(!/Despacho apagado|LITHIC|Lithic/i.test(text));
+    assert.ok(bodies.length >= 2 && bodies.every((b) => !ENV_NAMES.test(b)), "an agent response carried a variable name");
+    await bshot(page, "7-despacho-no-activado-agente");
     assert.deepEqual(errors, []);
     await ctx.close();
   });

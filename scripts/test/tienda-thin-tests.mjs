@@ -141,7 +141,9 @@ await check("Ofertas de <store> leads whenever the store has a sale, and holds s
 await check("Más vendidos follows Ofertas where the store publishes demand; type rails after", () => {
   /* Sephora was the beauty sample here; it has no storefront since #443
      (DO NOT BUILD), so Hollister (Destacados, then Más vendidos) stands in. */
-  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED.filter((x) => !NO_DEMAND.has(x) && !PULL_ONLY.has(x))]) {
+  /* A store in Danny's 2026-11-01 order (SLICED_STORES[k].LOCKED: Best
+     Buy) has no Más vendidos: Ofertas, then its departments. */
+  for (const k of ["walmart", "hollister", "abercrombie", "finishline", "crocs", ...LIVE_SLICED.filter((x) => !NO_DEMAND.has(x) && !PULL_ONLY.has(x) && !SLICED_STORES[x].LOCKED)]) {
     const ks = idx(k).rails.map((r) => r.key);
     assert.equal(ks[1], "masvendidos", `${k}: ${ks.join(",")}`);
   }
@@ -207,8 +209,10 @@ await check("the endpoint pages a rail in the build's order, 48 at a time", () =
     assert.deepEqual(answer({ store: k, rail: "ofertas", page: "2" }, roots).body.items, bb.items);
   }
   /* An off-sale store has no endpoint. */
-  /* (SSENSE is back as an untested lane, #443 2026-10-24; Kohl's is still off sale.) */
-  assert.equal(answer({ store: "kohls", rail: "ofertas" }, roots).status, 404);
+  /* (SSENSE is back as an untested lane, #443 2026-10-24; Kohl's since
+     2026-11-01, with its storefront. Target and Sam's Club stay off.) */
+  assert.equal(answer({ store: "target", rail: "ofertas" }, roots).status, 404);
+  assert.equal(answer({ store: "samsclub", rail: "ofertas" }, roots).status, 404);
   assert.equal(answer({ store: "nope", rail: "x" }, roots).status, 404);
   assert.equal(answer({ store: "../etc" }, roots).status, 404);
   assert.equal(answer({ store: "ccs", rail: "x" }, roots).status, 404);

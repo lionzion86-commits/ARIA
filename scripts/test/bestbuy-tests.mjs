@@ -267,13 +267,14 @@ await check("tienda.html registers a themed, sliced Best Buy storefront", () => 
   assert.match(bundle, /const THIN_STOREFRONTS = new Set\(\['bestbuy'(, '[a-z]+')*\]\);/);
 });
 
-await launchOnly("storefront rails: Ofertas first (sale only), Más vendidos second, departments after", () => {
+/* Danny's storefront order (#443, 2026-11-01, locked): Ofertas, then the
+   departments -- Más vendidos no longer sits between them. */
+await launchOnly("storefront rails: Ofertas first (sale only), departments after", () => {
   const keys = sIndex.rails.map((r) => r.key);
   assert.equal(keys[0], "ofertas");
   assert.equal(sIndex.rails[0].title, "Ofertas de Best Buy");
-  assert.equal(keys[1], "masvendidos");
-  assert.equal(sIndex.rails[1].title, "Más vendidos");
-  assert.ok(keys.slice(2).every((k) => k.startsWith("d-")), "a non-department rail after the lead two");
+  assert.ok(!keys.includes("masvendidos"), "Más vendidos is back between Ofertas and the departments");
+  assert.ok(keys.slice(1).every((k) => k.startsWith("d-")), "a non-department rail after Ofertas");
   assert.ok(keys.length >= 10, "too few department rails");
   const r = sIndex.rails[0];
   for (let n = 1; n <= r.pages; n++) {
@@ -402,7 +403,7 @@ await launchOnly("the storefront and homepage fetch no catalogue (headless)", as
       } else {
         await page.waitForFunction(() => document.querySelectorAll(".rail-sec .card:not(.sk)").length >= 16, null, { timeout: 30000 });
         const order = await page.evaluate(() => [...document.querySelectorAll(".rail-title")].slice(0, 2).map((e) => e.textContent));
-        assert.deepEqual(order, ["Ofertas de Best Buy", "Más vendidos"]);
+        assert.deepEqual(order, ["Ofertas de Best Buy", "Computación"]);
         const minH = await page.evaluate(() => Math.min(...[...document.querySelectorAll(".rail .card")].slice(0, 6).map((c) => c.getBoundingClientRect().height)));
         assert.ok(minH > 200, `a storefront card collapsed to ${minH}px`);
       }

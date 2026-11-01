@@ -109,7 +109,7 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .lane-more-card[disabled]{opacity:.6;}
 .lane-more{margin-left:auto; font-size:13px; font-weight:800; color:var(--blue,#1f5fd1); text-decoration:none; white-space:nowrap;}
 .grid-head{grid-column:1/-1; margin-top:12px;}
-.rail{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; -webkit-overflow-scrolling:touch;}
+.rail{display:flex; gap:12px; overflow-x:auto; overflow-anchor:none; scroll-snap-type:x mandatory; padding-bottom:8px; -webkit-overflow-scrolling:touch;}
 .rail .card{flex:0 0 42%; max-width:200px; scroll-snap-align:start;}
 @media(min-width:640px){ .rail .card{flex-basis:200px;} }
 /* Placeholder cards: the same boxes, grey bars where the words go. */
@@ -510,11 +510,10 @@ function watchPhotos(root){
   imgs.forEach(function(i){ PHOTO_IO.observe(i); });
 }
 /* The stores with their own page (assets/tienda/, tienda.html's registry);
-   Aria Perfumes is the Perfumes room. Another store's rail is the whole
-   answer there already. */
-var STORE_PAGES = " abercrombie academy advanceauto aguabendita americaneagle ancora assouline athleta aybl babybrezza bathandbodyworks baublebar bellybandit bentgo bhphoto bornprimitive boxlunch brandsmart buffbunny capittana carolinaherrera ccs chronicle combatcorner crateandbarrel crocs dagnedover denniskirk dicks drbrowns eberjey elite elvie everlast ezpz farfetch farmrio finishline fleo footlocker freshlypicked fuji gameness gorillawear hatch hollister hottopic ironrebel islandwatersports johannaortiz jujube jwpei killcrew kindredbravely lanebryant lillebaby mainland meliebianco microcenter mmawarehouse mockingbird momcozy montce munchkin mushie nanit nautilus oneractive owlet paragonfitwear parrot partycity patbo pier1 prosoccer quietstorm revolve revzilla ryderwear silviatcherassi skims sleekshop smartbuyglasses snipes spectra ssense statebags surfstation tatami tennisexpress tenniswarehouse tlfapparel tns valsurf venum victoriassecret vix walmart walmartbaby xtremesoccer youngla zumiez ";
+   Aria Perfumes has its own storefront since #443 (2026-11-01). Another
+   store's rail is the whole answer there already. */
+var STORE_PAGES = " abercrombie academy advanceauto aguabendita alphalete americaneagle ancora ariaperfumes assouline athleta aybl babybrezza bananarepublic bathandbodyworks baublebar bellybandit bentgo bestbuy bhphoto bornprimitive boxlunch brandsmart buffbunny capittana carolinaherrera ccs chronicle combatcorner costco crateandbarrel crocs dagnedover denniskirk dicks drbrowns eberjey elite elvie everlast ezpz farfetch farmrio finishline fleo footlocker freshlypicked fuji gameness gap gorillawear gymshark hatch hollister hottopic ironrebel islandwatersports johannaortiz jujube jwpei killcrew kindredbravely kohls lanebryant lillebaby macys mainland meliebianco microcenter miumiu mmawarehouse mockingbird momcozy montce munchkin mushie nanit nautilus newbalance oldnavy oneractive owlet pacsun paragonfitwear parrot partycity patbo pier1 prosoccer quietstorm revolve revzilla ryderwear sephora silviatcherassi skims sleekshop smartbuyglasses snipes spectra ssense statebags surfstation tatami tennisexpress tenniswarehouse tlfapparel tns ulta valsurf venum victoriassecret vix walmart walmartbaby xtremesoccer yesstyle youngla zumiez ";
 function storeDoor(store, q){
-  if (store === "ariaperfumes") return "departamento.html?dept=perfumes&b=" + encodeURIComponent(q);
   return STORE_PAGES.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(q) : "";
 }
 /* THE SEARCH DOCTRINE (#443 c.6547231776, c.6547453746, c.6547518074):
@@ -541,7 +540,12 @@ async function laneMore(btn){
     var holder = document.createElement("div");
     holder.innerHTML = (data.items || []).map(cardHTML).join("");
     var rail = btn.parentNode;
+    /* FORWARD ONLY (#443 c.6563771363): the rail moves on to the first
+       new card. Without this the browser keeps the button in view and
+       jumps past every card it just added. */
+    var firstNew = holder.firstChild;
     while (holder.firstChild) rail.insertBefore(holder.firstChild, btn);
+    if (firstNew) rail.scrollTo({ left: Math.max(0, firstNew.offsetLeft - rail.offsetLeft - 8), behavior: "smooth" });
     watchPhotos(rail);
     off += (data.items || []).length;
     if (!(data.items || []).length || off >= n) btn.remove();
@@ -664,6 +668,49 @@ function searchFor(q){
   doSearch();
 }
 
+/* EVERY STORE OR BRAND NAME OPENS ITS OWN PAGE (Danny, 2026-11-01:
+   "every single lookup in the search bar that has a store or a brand
+   needs to go to that store or said brand"). Checked here, before the
+   search runs, so the shopper never sees a results layout first:
+   a store with its own page -> tienda.html; otherwise a brand with its
+   own section -> marca.html. ?resultados=1 keeps the plain search. */
+var STORE_ALIASES_FAST = { vs: "victoriassecret", victoriasecret: "victoriassecret", victoria: "victoriassecret", victorias: "victoriassecret",
+  bbw: "bathandbodyworks", bathbodyworks: "bathandbodyworks", ae: "americaneagle", af: "abercrombie", abercrombiefitch: "abercrombie",
+  abercrombieandfitch: "abercrombie", bh: "bhphoto", bandh: "bhphoto", bhphotovideo: "bhphoto", pierone: "pier1", dick: "dicks",
+  dickssportinggoods: "dicks", brandsmartusa: "brandsmart", cratebarrel: "crateandbarrel", walmartbebe: "walmartbaby",
+  perfumes: "", ariaperfume: "ariaperfumes", bestbuy: "bestbuy", oldnavy: "oldnavy", bananarepublic: "bananarepublic",
+  newbalance: "newbalance", miumiu: "miumiu", carolinaherrera: "carolinaherrera", tennisexpress: "tennisexpress" };
+function nameKey(q){
+  return String(q || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+}
+function storeKeyFor(q){
+  var k = nameKey(q);
+  if (k.length < 2) return "";
+  if (STORE_PAGES.indexOf(" " + k + " ") >= 0) return k;
+  var a = STORE_ALIASES_FAST[k];
+  if (a && STORE_PAGES.indexOf(" " + a + " ") >= 0) return a;
+  /* Each store's full name as shown ("Advance Auto Parts", "Ulta Beauty"). */
+  var f = STORE_FULL_NAMES[k] || STORE_FULL_NAMES[nameKey(String(q).replace(/&/g, " "))];
+  if (f && STORE_PAGES.indexOf(" " + f + " ") >= 0) return f;
+  /* "tienda sephora", "sephora peru", "sephora store" */
+  var k2 = nameKey(String(q).replace(/\b(tienda|tiendas|store|shop|peru|oficial|online)\b/gi, " "));
+  if (k2 !== k && k2.length >= 2 && STORE_PAGES.indexOf(" " + k2 + " ") >= 0) return k2;
+  return "";
+}
+/* Generated from scripts/lib/retailers.js labels for every STORE_PAGES store. */
+var STORE_FULL_NAMES = {"abercrombiefitch":"abercrombie","abercrombieandfitch":"abercrombie","advanceautoparts":"advanceauto","bathbodyworks":"bathandbodyworks","bandhphoto":"bhphoto","brandsmartusa":"brandsmart","chroniclebooks":"chronicle","cratebarrel":"crateandbarrel","dickssportinggoods":"dicks","fujisports":"fuji","mainlandskatesurf":"mainland","mainlandskateandsurf":"mainland","nautilusspearfishing":"nautilus","parrotsurfskate":"parrot","parrotsurfandskate":"parrot","quietstormsurfshop":"quietstorm","tatamifightwear":"tatami","ultabeauty":"ulta","walmartbebe":"walmartbaby"};
+var BRAND_SEEN = {};
+function brandPageFor(q){
+  var k = nameKey(q);
+  if (k.length < 2 || String(q).trim().split(/\s+/).length > 4) return Promise.resolve("");
+  if (k in BRAND_SEEN) return Promise.resolve(BRAND_SEEN[k]);
+  return fetch(BASE + "/assets/sections/marca/" + k + ".json", { method: "HEAD" })
+    .then(function(r){ return (BRAND_SEEN[k] = r.ok ? k : ""); })
+    .catch(function(){ return ""; });
+}
+function keepPlainSearch(){ return /[?&]resultados=1/.test(location.search); }
+
 async function doSearch(){
   var input = el("q");
   var query = input ? input.value.trim() : "";
@@ -678,6 +725,12 @@ async function doSearch(){
     setStatus("Escribe lo que buscas y presiona Buscar.");
     showStart();
     return;
+  }
+  if (!keepPlainSearch()){
+    var storeKey = storeKeyFor(query);
+    if (storeKey){ location.replace("tienda.html?tienda=" + encodeURIComponent(storeKey)); return; }
+    var brandKey = await brandPageFor(query);
+    if (brandKey){ location.replace("marca.html?marca=" + encodeURIComponent(brandKey)); return; }
   }
   document.body.classList.add("searching");
   var seq = ++SEQ;

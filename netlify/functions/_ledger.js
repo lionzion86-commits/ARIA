@@ -7,6 +7,8 @@
      Producto           the items' USD, at the order's own FX rate
      Flete cobrado      the freight the customer paid
      Cargo pedido pequeño   the Peru-side handling fee, as charged
+     Servicio de compra     Aria's own delivery fee: S/ 1 per store
+                            checkout (#443 c.6560848572), and the count
      Impuesto estimado  what was charged at checkout (25% of CIF)
      Impuesto real      what SUNAT actually assessed
      Diferencia         estimado - real, which is what is owed back
@@ -169,6 +171,9 @@ export function ledgerRow(order, payment, wallet) {
     productsPen: pen(productsUsd, fx),
     freightPen: pen(order.freteChargedUsd, fx),
     smallOrderFeePen: num(order.smallOrderFeePen),
+    /* Blank on an order placed before the fee existed, not a zero. */
+    buyerFeePen: num(order.aria?.buyerFeePen),
+    storeCheckouts: num(order.aria?.storeCheckouts),
 
     taxEstimatedPen: taxEstimated,
     taxActualPen: taxActual,
@@ -228,6 +233,8 @@ export const LEDGER_COLUMNS = [
   ["Producto (PEN)", "productsPen"],
   ["Flete cobrado (PEN)", "freightPen"],
   ["Cargo pedido pequeño (PEN)", "smallOrderFeePen"],
+  ["Servicio de compra por tienda (PEN)", "buyerFeePen"],
+  ["Compras en tiendas", "storeCheckouts"],
   ["Impuesto estimado (PEN)", "taxEstimatedPen"],
   ["Impuesto real SUNAT (PEN)", "taxActualPen"],
   ["Diferencia impuesto (PEN)", "taxDeltaPen"],
