@@ -13564,7 +13564,8 @@ const TOY_OVER = { '': 1, ropa: 1, accesorios: 1, sombreros: 1, zapatos: 1, hoga
 /* A retailer's type field, when the name is silent. */
 const ITEM_FAMILY_TYPES = [
   ['joyas', /\bpins?\b|brooch/i],
-  ['juguetes', /toy|juguete|puzzle|plush|peluche|doll|mu[ñn]ec|action figure|building set|board game|juegos? de mesa/i],
+  /* A babydoll is lingerie, not a doll (Intimissimi's aisle, #443 c.6559879470). */
+  ['juguetes', /toy|juguete|puzzle|plush|peluche|(?<!baby)doll|mu[ñn]ec|action figure|building set|board game|juegos? de mesa/i],
   ['repuestos', /auto\s*parts?|car parts?|brakes?|repuesto|suspension|drivetrain|engine|ignition|filters?|motor oil|motorcycle parts?/i],
   ['electronica', /electr[oó]nic|cameras?|c[aá]maras?|laptops?|computers?|audio|headphones?|phones?|celulares?|gaming|videojuegos?|drones?|lighting|tripods?|memory|lens(?:es)?|tablets?|monitors?|tv|wearables/i],
   ['perfumes', /fragrance|perfume|fragancia|cologne|colonia|body mist/i],
@@ -16875,7 +16876,7 @@ function armStorePhotoBackdrop(retailer){
 /* THE UNIVERSAL FORMAT (#443 c.6532666653): every store with slices opens
    on tienda.html -- search bar, its Ofertas first, then one rail per
    section. The list is the stores built into assets/tienda/. */
-const THIN_STOREFRONTS = new Set(['bestbuy', 'dsw', 'abercrombie', 'academy', 'advanceauto', 'aguabendita', 'americaneagle', 'ancora', 'assouline', 'babybrezza', 'bathandbodyworks', 'baublebar', 'bellybandit', 'bentgo', 'bhphoto', 'boxlunch', 'brandsmart', 'capittana', 'carolinaherrera', 'ccs', 'chronicle', 'combatcorner', 'crateandbarrel', 'crocs', 'dagnedover', 'denniskirk', 'dicks', 'drbrowns', 'eberjey', 'elite', 'elvie', 'everlast', 'ezpz', 'farfetch', 'farmrio', 'finishline', 'footlocker', 'freshlypicked', 'fuji', 'gameness', 'hatch', 'hollister', 'hottopic', 'islandwatersports', 'johannaortiz', 'jujube', 'jwpei', 'kindredbravely', 'lanebryant', 'lillebaby', 'mainland', 'meliebianco', 'microcenter', 'mmawarehouse', 'mockingbird', 'momcozy', 'montce', 'munchkin', 'mushie', 'nanit', 'nautilus', 'owlet', 'parrot', 'partycity', 'patbo', 'pier1', 'prosoccer', 'quietstorm', 'revolve', 'revzilla', 'silviatcherassi', 'skims', 'sleekshop', 'smartbuyglasses', 'snipes', 'spectra', 'ssense', 'statebags', 'surfstation', 'tatami', 'tennisexpress', 'tenniswarehouse', 'tns', 'valsurf', 'venum', 'victoriassecret', 'vix', 'walmart', 'walmartbaby', 'xtremesoccer', 'youngla', 'zumiez', 'ryderwear', 'aybl', 'bornprimitive', 'buffbunny', 'paragonfitwear', 'killcrew', 'oneractive', 'gorillawear', 'fleo', 'tlfapparel', 'ironrebel', 'athleta']);
+const THIN_STOREFRONTS = new Set(['bestbuy', 'dsw', 'abercrombie', 'academy', 'advanceauto', 'aguabendita', 'americaneagle', 'ancora', 'assouline', 'babybrezza', 'bathandbodyworks', 'baublebar', 'bellybandit', 'bentgo', 'bhphoto', 'boxlunch', 'brandsmart', 'capittana', 'carolinaherrera', 'ccs', 'chronicle', 'combatcorner', 'crateandbarrel', 'crocs', 'dagnedover', 'denniskirk', 'dicks', 'drbrowns', 'eberjey', 'elite', 'elvie', 'everlast', 'ezpz', 'farfetch', 'farmrio', 'finishline', 'footlocker', 'freshlypicked', 'fuji', 'gameness', 'hatch', 'hollister', 'hottopic', 'islandwatersports', 'johannaortiz', 'jujube', 'jwpei', 'kindredbravely', 'lanebryant', 'lillebaby', 'mainland', 'meliebianco', 'microcenter', 'mmawarehouse', 'mockingbird', 'momcozy', 'montce', 'munchkin', 'mushie', 'nanit', 'nautilus', 'owlet', 'parrot', 'partycity', 'patbo', 'pier1', 'prosoccer', 'quietstorm', 'revolve', 'revzilla', 'silviatcherassi', 'skims', 'sleekshop', 'smartbuyglasses', 'snipes', 'spectra', 'ssense', 'statebags', 'surfstation', 'tatami', 'tennisexpress', 'tenniswarehouse', 'tns', 'valsurf', 'venum', 'victoriassecret', 'vix', 'walmart', 'walmartbaby', 'xtremesoccer', 'youngla', 'zumiez', 'ryderwear', 'aybl', 'bornprimitive', 'buffbunny', 'paragonfitwear', 'killcrew', 'oneractive', 'gorillawear', 'fleo', 'tlfapparel', 'ironrebel', 'athleta', 'intimissimi', 'calzedonia']);
 async function openStore(retailer){
   if (isOffSaleRetailer(retailer)){ showToast('Esta tienda ya no está disponible en Aria.'); return; }
   if (!hasStorefront(retailer)){ showToast('Esta tienda no tiene vitrina en Aria.'); return; }
@@ -20755,6 +20756,10 @@ const RETAILERS = {
   bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: 'logos/bestbuy.svg',    tagline: 'Laptops, gaming, audio y celulares',            kind: 'general', search: false, browse: true },
   revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
+  /* CALZEDONIA + INTIMISSIMI (#443): their storefronts (tienda.html), mirrors scripts/lib/retailers.js.
+     No logo files: the name is the badge. */
+  intimissimi:     { key: 'intimissimi',     label: 'Intimissimi',       color: '#000000', logo: null,                   tagline: 'Lencería italiana: brasieres, calzones y bodies', kind: 'general', search: false, browse: true },
+  calzedonia:      { key: 'calzedonia',      label: 'Calzedonia',        color: '#000000', logo: null,                   tagline: 'Medias panty, medias altas y leggings',         kind: 'general', search: false, browse: true },
   /* SLEEKSHOP (#443, pulled 2026-10-28): the professional hair-treatment
      shelf -- keratin, alisado, masks. In stock only; courier holds in
      scripts/lib/sleekshop.js. No logo file: the name is the badge. */

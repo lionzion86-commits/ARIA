@@ -137,7 +137,8 @@ const STRONG_DOLL_RX = /\b(dolls?|mu[ñn]ec[ao]s?)\b/i;
 const TOY_OVER = { '': 1, ropa: 1, accesorios: 1, sombreros: 1, zapatos: 1, hogar: 1, deportes: 1, repuestos: 1, electronica: 1 };
 const ITEM_FAMILY_TYPES = [
   ['joyas', /\bpins?\b|brooch/i],
-  ['juguetes', /toy|juguete|puzzle|plush|peluche|doll|mu[ñn]ec|action figure|building set|board game|juegos? de mesa/i],
+  /* A babydoll is lingerie, not a doll (Intimissimi's aisle, #443 c.6559879470). */
+  ['juguetes', /toy|juguete|puzzle|plush|peluche|(?<!baby)doll|mu[ñn]ec|action figure|building set|board game|juegos? de mesa/i],
   ['repuestos', /auto\s*parts?|car parts?|brakes?|repuesto|suspension|drivetrain|engine|ignition|filters?|motor oil|motorcycle parts?/i],
   ['electronica', /electr[oó]nic|cameras?|c[aá]maras?|laptops?|computers?|audio|headphones?|phones?|celulares?|gaming|videojuegos?|drones?|lighting|tripods?|memory|lens(?:es)?|tablets?|monitors?|tv|wearables/i],
   ['perfumes', /fragrance|perfume|fragancia|cologne|colonia|body mist/i],

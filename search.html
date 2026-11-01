@@ -512,7 +512,7 @@ function watchPhotos(root){
 /* The stores with their own page (assets/tienda/, tienda.html's registry);
    Aria Perfumes has its own storefront since #443 (2026-11-01). Another
    store's rail is the whole answer there already. */
-var STORE_PAGES = " abercrombie academy advanceauto aguabendita alphalete americaneagle ancora ariaperfumes assouline athleta aybl babybrezza bananarepublic bathandbodyworks baublebar bellybandit bentgo bestbuy bhphoto bornprimitive boxlunch brandsmart buffbunny capittana carolinaherrera ccs chronicle combatcorner costco crateandbarrel crocs dagnedover denniskirk dicks drbrowns eberjey elite elvie everlast ezpz farfetch farmrio finishline fleo footlocker freshlypicked fuji gameness gap gorillawear gymshark hatch hollister hottopic ironrebel islandwatersports johannaortiz jujube jwpei killcrew kindredbravely kohls lanebryant lillebaby macys mainland meliebianco microcenter miumiu mmawarehouse mockingbird momcozy montce munchkin mushie nanit nautilus newbalance oldnavy oneractive owlet pacsun paragonfitwear parrot partycity patbo pier1 prosoccer quietstorm revolve revzilla ryderwear sephora silviatcherassi skims sleekshop smartbuyglasses snipes spectra ssense statebags surfstation tatami tennisexpress tenniswarehouse tlfapparel tns ulta valsurf venum victoriassecret vix walmart walmartbaby xtremesoccer yesstyle youngla zumiez ";
+var STORE_PAGES = " abercrombie academy advanceauto aguabendita alphalete americaneagle ancora ariaperfumes assouline athleta aybl babybrezza bananarepublic baublebar bellybandit bentgo bestbuy bhphoto bornprimitive boxlunch brandsmart buffbunny calzedonia capittana carolinaherrera ccs chronicle combatcorner costco crateandbarrel crocs dagnedover denniskirk dicks drbrowns eberjey elite elvie everlast ezpz farfetch farmrio finishline fleo footlocker freshlypicked fuji gameness gap gorillawear gymshark hatch hollister hottopic intimissimi ironrebel islandwatersports johannaortiz jujube jwpei killcrew kindredbravely kohls lanebryant lillebaby macys mainland meliebianco microcenter miumiu mmawarehouse mockingbird momcozy montce munchkin mushie nanit nautilus newbalance oldnavy oneractive owlet pacsun paragonfitwear parrot partycity patbo pier1 prosoccer quietstorm revolve revzilla ryderwear sephora silviatcherassi skims sleekshop smartbuyglasses snipes spectra ssense statebags surfstation tatami tennisexpress tlfapparel tns ulta valsurf venum victoriassecret vix walmart walmartbaby xtremesoccer yesstyle youngla zumiez ";
 function storeDoor(store, q){
   return STORE_PAGES.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(q) : "";
 }
@@ -696,10 +696,21 @@ function storeKeyFor(q){
   /* "tienda sephora", "sephora peru", "sephora store" */
   var k2 = nameKey(String(q).replace(/\b(tienda|tiendas|store|shop|peru|oficial|online)\b/gi, " "));
   if (k2 !== k && k2.length >= 2 && STORE_PAGES.indexOf(" " + k2 + " ") >= 0) return k2;
+  /* The start of one store's name ("sepho", "calzed", "intimi"). */
+  if (k.length >= 5){
+    var hit = "", many = false;
+    STORE_PAGES.trim().split(" ").concat(Object.keys(STORE_FULL_NAMES)).forEach(function(n){
+      if (n.indexOf(k) !== 0 || k.length < n.length * 0.5) return;
+      var s = STORE_FULL_NAMES[n] || n;
+      if (hit && hit !== s) many = true;
+      hit = s;
+    });
+    if (hit && !many && STORE_PAGES.indexOf(" " + hit + " ") >= 0) return hit;
+  }
   return "";
 }
 /* Generated from scripts/lib/retailers.js labels for every STORE_PAGES store. */
-var STORE_FULL_NAMES = {"abercrombiefitch":"abercrombie","abercrombieandfitch":"abercrombie","advanceautoparts":"advanceauto","bathbodyworks":"bathandbodyworks","bandhphoto":"bhphoto","brandsmartusa":"brandsmart","chroniclebooks":"chronicle","cratebarrel":"crateandbarrel","dickssportinggoods":"dicks","fujisports":"fuji","mainlandskatesurf":"mainland","mainlandskateandsurf":"mainland","nautilusspearfishing":"nautilus","parrotsurfskate":"parrot","parrotsurfandskate":"parrot","quietstormsurfshop":"quietstorm","tatamifightwear":"tatami","ultabeauty":"ulta","walmartbebe":"walmartbaby"};
+var STORE_FULL_NAMES = {"abercrombieandfitch":"abercrombie","abercrombiefitch":"abercrombie","academysports":"academy","advanceautoparts":"advanceauto","bandhphoto":"bhphoto","brandsmartusa":"brandsmart","chroniclebooks":"chronicle","cratebarrel":"crateandbarrel","dickssportinggoods":"dicks","elitesports":"elite","fujisports":"fuji","mainlandskateandsurf":"mainland","mainlandskatesurf":"mainland","nautilusspearfishing":"nautilus","parrotsurfandskate":"parrot","parrotsurfskate":"parrot","quietstormsurfshop":"quietstorm","tatamifightwear":"tatami","ultabeauty":"ulta","walmartbebe":"walmartbaby"};
 var BRAND_SEEN = {};
 function brandPageFor(q){
   var k = nameKey(q);

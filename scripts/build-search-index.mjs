@@ -97,6 +97,9 @@ export const CATALOG_FILES = [
   "dsw-catalog.json",
   /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
   "snipes-catalog.json",
+  /* Calzedonia + Intimissimi (#443 c.6512405832, pulled 2026-10-29). */
+  "intimissimi-catalog.json",
+  "calzedonia-catalog.json",
   /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
   "brandsmart-catalog.json",
   /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
