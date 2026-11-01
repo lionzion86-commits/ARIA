@@ -109,16 +109,20 @@ export function packImages(images, image) {
   return out;
 }
 
-/* What the page renders, and nothing else (no retailer url: the page
-   never links out). Empty fields are left out. */
+/* What the page renders, and nothing else. Empty fields are left out.
+   `url` is the one exception: the retailer's product page rides to the
+   cart line as data for the buyer's dispatch packet, absolute http(s)
+   only (a relative path is no URL). The page never renders it and never
+   links out. */
 /* v / g / c (#443 variants): the listing's own id, its colourway group and
    the store's colour for it. v rides only where it tells two listings
    apart (a title more than one listing carries) or names a colourway. */
-const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "v", "g", "c"];
+const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "url", "v", "g", "c"];
+const absoluteUrl = (u) => (typeof u === "string" && /^https?:\/\/[^\s\/?#]+/i.test(u.trim()) ? u.trim() : "");
 function recordOf(it) {
   const out = {};
   for (const k of RECORD_FIELDS) {
-    const v = k === "images" ? packImages(it.images, it.image) : it[k];
+    const v = k === "images" ? packImages(it.images, it.image) : k === "url" ? absoluteUrl(it.url || it.link) : it[k];
     if (v === undefined || v === null || v === "" || v === 0 || v === false || (Array.isArray(v) && !v.length)) continue;
     out[k] = Array.isArray(v) ? Array.from(v) : v;
   }

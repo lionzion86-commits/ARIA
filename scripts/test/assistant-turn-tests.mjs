@@ -435,7 +435,7 @@ await check("producto.html carries the orb; it brings the conversation back, qui
 });
 
 await check("every page but the home page and admin loads the orb launcher", () => {
-  for (const f of readdirSync(ROOT).filter((f) => f.endsWith(".html") && !["index.html", "admin.html"].includes(f))) {
+  for (const f of readdirSync(ROOT).filter((f) => f.endsWith(".html") && !["index.html", "admin.html", "agente.html", "admin-agentes.html"].includes(f))) {
     assert.ok(readFileSync(ROOT + f, "utf8").includes('<script src="/assets/js/aria-launcher.js" defer></script>'), f + " has no orb");
   }
 });

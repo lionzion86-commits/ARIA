@@ -24669,6 +24669,7 @@ function normalizeLiveItem(item, hints){
      to call the field, and normalising both here is cheaper than every
      caller guessing. */
   const brand = String(item.brand || item.designer || '').trim();
+  rememberProductUrl(__rkey, title, item);   // data only, never rendered (see addToCart)
 
   return { title, brand, price, dutiableUsd, image, images, rating, weightKg,
     weightEstimated: weightDetail.estimated, weightSource: weightDetail.source,
@@ -27456,6 +27457,29 @@ function showContinueToCart(){
   refreshContinueToCart();
 }
 
+/* THE PRODUCT'S OWN PAGE, AS DATA (buyer dispatch packets). Each cart
+   line keeps `url`: the retailer page of the catalogue record its card
+   was built from, so a paid order line can deep-link the buyer. Only an
+   absolute http(s) URL counts -- a relative path (some Victoria's Secret
+   beauty records) is no URL, never a guessed domain -- and one retailer +
+   title carrying two different URLs keeps none. Stored, never rendered:
+   the storefront never links out. */
+function absoluteProductUrl(v){
+  const s = typeof v === 'string' ? v.trim() : '';
+  return s.length <= 2048 && /^https?:\/\/[^\s\/?#]+/i.test(s) ? s : '';
+}
+function rememberProductUrl(retailer, title, rec){
+  const url = rec ? (absoluteProductUrl(rec.url) || absoluteProductUrl(rec.link) || absoluteProductUrl(rec.productUrl) || absoluteProductUrl(rec.u)) : '';
+  if (!url || !retailer) return;
+  const seen = rememberProductUrl.seen || (rememberProductUrl.seen = new Map());
+  const k = String(retailer).toLowerCase() + '::' + title;
+  seen.set(k, seen.has(k) && seen.get(k) !== url ? null : url);
+}
+function productUrlFor(retailer, title){
+  const seen = rememberProductUrl.seen;
+  return (seen && seen.get(String(retailer || '').toLowerCase() + '::' + title)) || '';
+}
+
 function addToCart(item){
   // Every entry point funnels through here (product page, cross-sell,
   // Aria Auto, chat), so this is where a missing weight is caught once
@@ -27497,6 +27521,12 @@ function addToCart(item){
     }
     const { sizes: _recordSizes, ...line } = item;
     item = { ...line, sizeOptions: sizeList.length ? sizeList : undefined };
+  }
+  /* The record's product page (see absoluteProductUrl): data only. */
+  if (item.lineType !== 'bundle-discount'){
+    const { url: sentUrl, ...rest } = item;
+    const url = absoluteProductUrl(sentUrl) || productUrlFor(item.retailer, item.title);
+    item = url ? { ...rest, url } : rest;
   }
   /* THE DUTIABLE BASE IS STAMPED AT THE FUNNEL (2026-09-27).
 

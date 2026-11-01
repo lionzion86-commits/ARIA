@@ -162,7 +162,8 @@ check("every call site sends soles, never dollars (#443 item 34)", () => {
 });
 
 check("every customer page carries the stub and the async loader, and still parses", () => {
-  const pages = readdirSync(ROOT).filter((f) => f.endsWith(".html") && f !== "admin.html");
+  /* Staff pages (admin, the compradores dashboard) carry no pixels. */
+  const pages = readdirSync(ROOT).filter((f) => f.endsWith(".html") && !["admin.html", "agente.html", "admin-agentes.html"].includes(f));
   assert.ok(pages.length >= 20, `only ${pages.length} pages`);
   for (const f of pages) {
     const src = readFileSync(ROOT + f, "utf8");

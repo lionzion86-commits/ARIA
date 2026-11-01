@@ -78,6 +78,20 @@ const GATEWAY_FEE_FIXED_PEN_ESTIMATE = 0.5;
 
 const clean = (v, max) => String(v ?? "").trim().slice(0, max);
 
+/** The retailer's product page a cart line carries (buyer dispatch
+ * packets read `line.url`). Absolute http(s) only: a relative path is no
+ * URL and is never completed with a guessed domain. Data on the order,
+ * never rendered to the shopper (email, Mi cuenta and checkout don't). */
+export function productPageUrl(raw) {
+  if (typeof raw !== "string") return null;
+  const u = raw.trim();
+  if (!u || u.length > 2048 || /[\s"'<>`\\\u0000-\u001f\u007f]/.test(u) || !/^https?:\/\//i.test(u)) return null;
+  let url;
+  try { url = new URL(u); } catch { return null; }
+  if (!url.hostname || url.username || url.password) return null;
+  return url.href;
+}
+
 /**
  * The person who will actually take the parcel, or null for the buyer.
  *
@@ -465,6 +479,12 @@ async function createOrderHandler(event) {
         if ("image" in line) {
           const img = emailImageUrl(line.image);
           if (img) line.image = img; else delete line.image;
+        }
+        /* The product page the line was added from, kept for the buyer's
+           dispatch packet; anything but an absolute http(s) URL is dropped. */
+        if ("url" in line) {
+          const url = line.lineType === "bundle-discount" ? null : productPageUrl(line.url);
+          if (url) line.url = url; else delete line.url;
         }
         return line;
       }),
