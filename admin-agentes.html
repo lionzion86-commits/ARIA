@@ -305,7 +305,7 @@ function despacho() {
   const order = (o) => {
     const extra = o.state === "FUNDS_HOLD" && o.fundsHold
       ? `<div class="shortfall">Faltan ${C.usd(o.fundsHold.shortfallUsd)}: fondo disponible ${o.fundsHold.availableUsd == null ? "—" : C.usd(o.fundsHold.availableUsd)}, comprometido ${C.usd(o.fundsHold.outstandingUsd)}, este pedido ${C.usd(o.fundsHold.budgetUsd)}</div>`
-      : o.state === "SIN_ASIGNAR" ? `<div class="inrow"><span class="pill bad">${esc(o.unassignedReason || "Sin asignar")}</span><button class="btn small primary" data-rering="${esc(o.orderId)}">Volver a ofrecer</button></div>`
+      : o.state === "SIN_ASIGNAR" ? `<div class="inrow"><span class="pill warn" data-age>En el tablero · esperando ${mins(o.waitingMin ?? o.minutesInState)}</span><span class="pill bad">${esc(o.unassignedReason || "Sin asignar")}</span><button class="btn small primary" data-rering="${esc(o.orderId)}">Volver a ofrecer</button></div>`
       : o.state === "CLAIMABLE" ? `<div class="tiny">Suena hasta las ${new Date(o.ringEndsAt).toLocaleTimeString("es-PE", { hourCycle: "h23" })} · avisado a ${o.pinged.length} ${o.pinged.length === 1 ? "comprador" : "compradores"}</div>`
       : o.claimedBy ? `<div class="tiny">Tomado por ${esc(who(o.claimedBy))} a las ${hhmm(o.claimedAt)}</div>` : "";
     return `<div class="card dxo ${o.state}" data-order="${esc(o.orderId)}">
@@ -321,16 +321,19 @@ function despacho() {
     </div>`;
   };
   const lanes = LANES.map((st) => {
-    const list = X.orders.filter((o) => o.state === st);
+    let list = X.orders.filter((o) => o.state === st);
     if (!list.length) return "";
-    return `<h2 class="lane-h">${esc(D.STATE_LABELS[st])} <span class="pill">${list.length}</span></h2>${list.map(order).join("")}`;
+    /* The board: the same pool, in the order the buyers see it (oldest first). */
+    if (st === "SIN_ASIGNAR") list = [...list].sort((a, b) => String(a.paidAt).localeCompare(String(b.paidAt)));
+    const note = st === "SIN_ASIGNAR" ? `<p class="tiny" style="margin:0 0 6px" id="boardNote">Tablero de compradoras: «Compras que todavía hay que hacer». Sin dueña; lo ve cada compradora en línea y la primera que toca «Tomar» se lo lleva.</p>` : "";
+    return `<h2 class="lane-h">${st === "SIN_ASIGNAR" ? "Sin asignar · tablero" : esc(D.STATE_LABELS[st])} <span class="pill">${list.length}</span></h2>${note}${list.map(order).join("")}`;
   }).join("");
   if (X.off) return `<h1>Despacho</h1><div class="card alert" id="dispatchOff">Despacho apagado: ${esc(X.gate.reasons.join(" y "))}.</div>
     <p class="muted">Los pedidos pagados siguen entrando al libro de pedidos como siempre; no se ofrecen a compradores, no se emiten tarjetas y no se acumulan pagos. Para encenderlo (después del pase de Danny, peldaño 3): en Netlify, LITHIC_API_KEY de producción, LITHIC_ENV distinto de «sandbox» y DISPATCH_LIVE=on.</p>`;
   return `<div class="h" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h1>Despacho en vivo</h1>${X.sandbox ? '<span class="sbtag">SANDBOX</span>' : ""}<span class="tiny" style="margin-left:auto">Se actualiza solo cada 3 s</span></div>
     <p class="muted" style="margin:0">Pagado en Stripe, compuerta de fondos, timbre de ${X.config.ringSeconds} s, tomado, comprado. Cada pedido con el nombre del cliente.</p>
     <div class="kpis">
-      <div class="card kpi ${k.SIN_ASIGNAR ? "hot" : ""}" id="kSin"><span>Sin asignar</span><b>${k.SIN_ASIGNAR}</b></div>
+      <div class="card kpi ${k.SIN_ASIGNAR ? "hot" : ""}" id="kSin"><span>Sin asignar · tablero</span><b>${k.SIN_ASIGNAR}</b><span class="tiny" style="color:inherit" id="kSinAge">${X.board && X.board.count ? "la más antigua espera " + mins(X.board.oldestMin) + " · la ven " + X.board.visibleTo + " en línea" : "nada esperando"}</span></div>
       <div class="card kpi ${k.FUNDS_HOLD ? "warm" : ""}" id="kFunds"><span>Fondos en espera</span><b>${k.FUNDS_HOLD}</b><span class="tiny" style="color:inherit">${k.FUNDS_HOLD ? "faltan " + C.usd(X.fundsHoldShortfallUsd) : "nada retenido"}</span></div>
       <div class="card kpi"><span>Sonando</span><b>${k.CLAIMABLE}</b></div>
       <div class="card kpi"><span>Tomados</span><b>${k.CLAIMED}</b></div>

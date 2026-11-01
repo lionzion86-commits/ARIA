@@ -1,0 +1,2132 @@
+[
+ {
+  "name": "Chuck Taylor All Star",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000000063",
+  "url": "https://www.snipesusa.com/chuck-taylor-all-star-converse-white-m7652-1000000063.html",
+  "price": 60,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max Uptempo '95",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000074808",
+  "url": "https://www.snipesusa.com/air-max-uptempo--95-nike-university-red---white---black-ck0892-600-1000074808.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "574",
+  "brand": "New Balance",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000098253",
+  "url": "https://www.snipesusa.com/574-new-balance-grey---white-ml574evg-1000098253.html",
+  "price": 100,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max Dn",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000118228",
+  "url": "https://www.snipesusa.com/air-max-dn-nike-jade-horizon---seafoam---light-amy-hj9636-001-1000118228.html",
+  "price": 79.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "AdiFOM Superstar Boot",
+  "brand": "Adidas",
+  "evidence": "known multi ('superstar')",
+  "cls": "shoe",
+  "pid": "1000119774",
+  "url": "https://www.snipesusa.com/adifom-superstar-boot-adidas-pink-ig4503-1000119774.html",
+  "price": 49.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Dunk Low SE",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000120588",
+  "url": "https://www.snipesusa.com/dunk-low-se-nike-white---black---red-hq3502-100-1000120588.html",
+  "price": 49.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Messi Samba OG",
+  "brand": "adidas",
+  "evidence": "known multi ('samba')",
+  "cls": "shoe",
+  "pid": "1000121078",
+  "url": "https://www.snipesusa.com/messi-samba-og-adidas-white---beige-jq0266-1000121078.html",
+  "price": 49.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Samba Mexico OG",
+  "brand": "adidas",
+  "evidence": "known multi ('samba')",
+  "cls": "shoe",
+  "pid": "1000121079",
+  "url": "https://www.snipesusa.com/samba-mexico-og-adidas-black---gold-jh5656-1000121079.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 4 Rm",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000121277",
+  "url": "https://www.snipesusa.com/air-jordan-4-rm-jordan-black---fire-red---wolf-grey---white-hv5184-010-1000121277.html",
+  "price": 79.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Pegasus 2K5",
+  "brand": "Nike",
+  "evidence": "known multi ('pegasus')",
+  "cls": "shoe",
+  "pid": "1000121293",
+  "url": "https://www.snipesusa.com/air-pegasus-2k5-nike-light-khaki---metallic-silver---medium-olive-hv5748-234-1000121293.html",
+  "price": 79.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 1 High Method of Make",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000121571",
+  "url": "https://www.snipesusa.com/air-jordan-1-high-method-of-make-jordan-blue-tint---dark-powder-blue---university-blue-fb9891-404-1000121571.html",
+  "price": 69.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max DN8",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000121870",
+  "url": "https://www.snipesusa.com/air-max-dn8-nike-wolf-grey---metallic-silver---off-white-hf5509-001-1000121870.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "2-Tone Old Skool",
+  "brand": "Vans",
+  "evidence": "known multi ('old skool')",
+  "cls": "shoe",
+  "pid": "1000123477",
+  "url": "https://www.snipesusa.com/2-tone-old-skool-vans-marshmallow---white-vn000d7zqjm1-1000123477.html",
+  "price": 29.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "The Simpsons Krusty Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000123982",
+  "url": "https://www.snipesusa.com/the-simpsons-krusty-classic-clog-crocs-purple---multi-211107-90h-1000123982.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Samba LT",
+  "brand": "adidas",
+  "evidence": "known multi ('samba')",
+  "cls": "shoe",
+  "pid": "1000124951",
+  "url": "https://www.snipesusa.com/samba-lt-adidas-white---black-ig4279-1000124951.html",
+  "price": 120,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 5 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000125849",
+  "url": "https://www.snipesusa.com/air-jordan-5-retro-jordan-sail---luminous-green---anthracite--im7592-130-1000125849.html",
+  "price": 119.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Dunk Low Next Nature",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000125919",
+  "url": "https://www.snipesusa.com/dunk-low-next-nature-nike-white---university-red-dd1873-116-1000125919.html",
+  "price": 69.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 '07 Mini Jewel",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000125915",
+  "url": "https://www.snipesusa.com/air-force-1--07-mini-jewel-nike-white---gorge-green---metallic-gold-ib6543-102-1000125915.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max Sunder",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000125923",
+  "url": "https://www.snipesusa.com/air-max-sunder-nike-white---metallic-silver---black-hj4130-100-1000125923.html",
+  "price": 119.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Chuck Taylor All Star Lift Platform Archive Stars",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000126114",
+  "url": "https://www.snipesusa.com/chuck-taylor-all-star-lift-platform-archive-stars-converse--black---natural-ivory---white-a15537c-1000126114.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Chuck Taylor All Star Lift Double Stack Platform",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000126113",
+  "url": "https://www.snipesusa.com/chuck-taylor-all-star-lift-double-stack-platform-converse-black---white-a15490c-1000126113.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Chuck Taylor All Star Celestial",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000126115",
+  "url": "https://www.snipesusa.com/chuck-taylor-all-star-celestial-converse-vintage-white---cliffside-rose-a15504f-1000126115.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Chuck Taylor All Star Elements Boot",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000126116",
+  "url": "https://www.snipesusa.com/chuck-taylor-all-star-elements-boot-converse-black-a12941c-1000126116.html",
+  "price": 49.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Old Skool 36+ Atiba",
+  "brand": "Vans",
+  "evidence": "known multi ('old skool')",
+  "cls": "shoe",
+  "pid": "1000127756",
+  "url": "https://www.snipesusa.com/old-skool-36--atiba-vans-black---green-vn000d5rnlx1-1000127756.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 3 Retro \"Sail and Pale Ivory\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000127987",
+  "url": "https://www.snipesusa.com/air-jordan-3-retro--sail-and-pale-ivory--jordan-sail---team-gold---pale-ivory---metallic-gold--ib2255-100-1000127987.html",
+  "price": 129.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max Sunder RealTree",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000128003",
+  "url": "https://www.snipesusa.com/air-max-sunder-realtree-nike-light-orewood-brown---hyper-crimson--ib2476-100-1000128003.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Dunk Low Retro Limited",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000128149",
+  "url": "https://www.snipesusa.com/dunk-low-retro-limited-nike-black---artisan-teal---grand-purple--ib2267-001-1000128149.html",
+  "price": 89.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 '07 PRM",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000128148",
+  "url": "https://www.snipesusa.com/air-force-1--07-prm-nike-black---summit-white---metallic-dark-grey--im6643-010-1000128148.html",
+  "price": 89.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "P-6000 Suede",
+  "brand": "Nike",
+  "evidence": "known multi ('p 6000')",
+  "cls": "shoe",
+  "pid": "1000128283",
+  "url": "https://www.snipesusa.com/p-6000-suede-nike-velvet-brown---iron-stone-hf0015-204-1000128283.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Norfolk State University Air Max 95",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000128297",
+  "url": "https://www.snipesusa.com/norfolk-state-university-air-max-95--nike-black---white---court-green---midwest-gold--io8310-001-1000128297.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Florida AandM University Air Max 95",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000128298",
+  "url": "https://www.snipesusa.com/florida-a-m-university-air-max-95-nike-black---white---orange-horizon--ii7272-001-1000128298.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Morehouse University Air Max 95",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000128300",
+  "url": "https://www.snipesusa.com/morehouse-university-air-max-95-nike-black---white---dark-team-red---varsity-red-ii7276-001-1000128300.html",
+  "price": 119.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 GORE-TEX",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000128328",
+  "url": "https://www.snipesusa.com/air-force-1-gore-tex-nike-summit-white---off-white-hv5953-100-1000128328.html",
+  "price": 109.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "SpongeBob SquarePants X Crocs Classic Clog \"Squidward\"",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000128403",
+  "url": "https://www.snipesusa.com/spongebob-squarepants-x-crocs-classic-clog--squidward--crocs-green---white-212350-90h-1000128403.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "PSG x Air Jordan 4 RM",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000128740",
+  "url": "https://www.snipesusa.com/psg-x-air-jordan-4-rm-jordan-off-noir---particle-rose---anthracite---sail--ih7453-001-1000128740.html",
+  "price": 89.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Chuck Taylor All Star Bows And Studs",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000128764",
+  "url": "https://www.snipesusa.com/chuck-taylor-all-star-bows-and-studs-converse-black---pink-frosting---white-a16447f-1000128764.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Chuck Taylor All Star Lift Platform Bows And Studs",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000128765",
+  "url": "https://www.snipesusa.com/chuck-taylor-all-star-lift-platform-bows-and-studs-converse-pink-frosting---black---white-a14532c-1000128765.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Old Skool Platform Pearls",
+  "brand": "Vans",
+  "evidence": "known multi ('old skool')",
+  "cls": "shoe",
+  "pid": "1000128771",
+  "url": "https://www.snipesusa.com/old-skool-platform-pearls-vans-marshmallow--vn000e87ccz1-1000128771.html",
+  "price": 49.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Gazelle Jamaica x Bob Marley",
+  "brand": "adidas",
+  "evidence": "known multi ('gazelle')",
+  "cls": "shoe",
+  "pid": "1000129145",
+  "url": "https://www.snipesusa.com/gazelle-jamaica-x-bob-marley-adidas-bold-gold---pure-ruby-kj3532-1000129145.html",
+  "price": 110,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Samba OG \"Coastal Calm\"",
+  "brand": "adidas",
+  "evidence": "known multi ('samba')",
+  "cls": "shoe",
+  "pid": "1000129205",
+  "url": "https://www.snipesusa.com/samba-og--coastal-calm--adidas-preloved-blue---cream---white---gum-ki6847-1000129205.html",
+  "price": 69.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 10 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000129468",
+  "url": "https://www.snipesusa.com/air-jordan-10-retro-jordan-chalk---hydrangeas---wild-grape-iq0388-101-1000129468.html",
+  "price": 149.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Dunk Low LX",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000129544",
+  "url": "https://www.snipesusa.com/dunk-low-lx-nike-photon-dust---metallic-silver---pink-foam-hm3698-006-1000129544.html",
+  "price": 79.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 95 Big Bubble \"I-95\"",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000130246",
+  "url": "https://www.snipesusa.com/air-max-95-big-bubble--i-95--nike-black---off-noir---metallic-silver-iq1662-045-1000130246.html",
+  "price": 119.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Echo Icy RO Clog",
+  "brand": "Crocs",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000130286",
+  "url": "https://www.snipesusa.com/echo-icy-ro-clog-crocs-black-211458-001-1000130286.html",
+  "price": 75,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Mario Classic Clog",
+  "brand": "Crocs",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000130287",
+  "url": "https://www.snipesusa.com/mario-classic-clog-crocs-multi-212134-90h-1000130287.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Bowser Classic Clog",
+  "brand": "Crocs",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000130288",
+  "url": "https://www.snipesusa.com/bowser-classic-clog-crocs-multi-212135-90h-1000130288.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Yoshi Classic Clog",
+  "brand": "Crocs",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000130289",
+  "url": "https://www.snipesusa.com/yoshi-classic-clog-crocs-multi-212136-90h-1000130289.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "LEGO Creativity Clog",
+  "brand": "Crocs",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000130290",
+  "url": "https://www.snipesusa.com/lego-creativity-clog-crocs-white---multi-211873-100-1000130290.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 Retro",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000132405",
+  "url": "https://www.snipesusa.com/air-force-1-retro-nike-summit-white---black-im3081-100-1000132405.html",
+  "price": 89.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 3 Retro \"World's Best\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132498",
+  "url": "https://www.snipesusa.com/air-jordan-3-retro--world-s-best--jordan-sail---black---pale-ivory---university-red---palomino--if4396-103-1000132498.html",
+  "price": 169.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 95 SE",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000132582",
+  "url": "https://www.snipesusa.com/air-max-95-se-nike-white---speed-red---metallic-silver---obsidian--iq0176-100-1000132582.html",
+  "price": 149.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 95 Big Bubble \"OG\"",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000132583",
+  "url": "https://www.snipesusa.com/air-max-95-big-bubble--og--nike-photon-dust---bright-violet---dark-grey--hm4740-012-1000132583.html",
+  "price": 149.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 95 Big Bubble SE",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000132585",
+  "url": "https://www.snipesusa.com/air-max-95-big-bubble-se-nike-phantom---team-red---fir---alabaster--ir5900-030-1000132585.html",
+  "price": 149.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 '07 NY vs NY",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000132601",
+  "url": "https://www.snipesusa.com/air-force-1--07-ny-vs-ny--nike-white---volt---black-ir1982-100-1000132601.html",
+  "price": 130,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 90 \"Hypervenom\"",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000132607",
+  "url": "https://www.snipesusa.com/air-max-90--hypervenom--nike-bright-citrus---black---total-orange-ir1978-844-1000132607.html",
+  "price": 109.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max Terrascape 90",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000132608",
+  "url": "https://www.snipesusa.com/air-max-terrascape-90-nike-white---chrome---blue-tint---pure-platinum-iu3638-100-1000132608.html",
+  "price": 150,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Speedcat Ballet Mixed Feel",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000132782",
+  "url": "https://www.snipesusa.com/speedcat-ballet-mixed-feel-puma-puma-black---cashew-brown---light-lavender-40785101-1000132782.html",
+  "price": 100,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 Low x LeBron",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000133211",
+  "url": "https://www.snipesusa.com/air-force-1-low-x-lebron-nike-black---metallic-gold-io6129-001-1000133211.html",
+  "price": 200,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Classic Clog Festivals",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133715",
+  "url": "https://www.snipesusa.com/classic-clog-festivals--crocs-royal---multi--213128-935-1000133715.html",
+  "price": 70,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "One Piece Chopper Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133726",
+  "url": "https://www.snipesusa.com/one-piece-chopper-classic-clog-crocs-multi-212794-90h-1000133726.html",
+  "price": 70,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 7 Retro \"Tennis Day\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000133747",
+  "url": "https://www.snipesusa.com/air-jordan-7-retro--tennis-day--jordan-phantom---anthracite---lime-blast---pink-blast-iv6508-030-1000133747.html",
+  "price": 215,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 1 Low OG \"Laser\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000133751",
+  "url": "https://www.snipesusa.com/air-jordan-1-low-og--laser--jordan-black---varsity-red---summit-white-iv6750-001-1000133751.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 90 \"Denim\"",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000133847",
+  "url": "https://www.snipesusa.com/air-max-90--denim--nike-pink-foam---pinksicle---pearl-pink---white--ir1975-663-1000133847.html",
+  "price": 145,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 4 Retro \"Birds of Paradise\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000133854",
+  "url": "https://www.snipesusa.com/air-jordan-4-retro--birds-of-paradise--jordan-coconut-milk---muslin---bright-mango--hv0823-101-1000133854.html",
+  "price": 179.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 LX",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000133901",
+  "url": "https://www.snipesusa.com/air-force-1-lx-nike-black---metallic-silver---anthracite--ja3822-010-1000133901.html",
+  "price": 140,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 '07 LX Vibram",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000133911",
+  "url": "https://www.snipesusa.com/air-force-1--07-lx-vibram-nike-volt---black---speed-yellow---black-ih1943-700-1000133911.html",
+  "price": 140,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 90 Premium",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000133980",
+  "url": "https://www.snipesusa.com/air-max-90-premium-nike-black---metallic-dark-grey---anthracite--iv6309-010-1000133980.html",
+  "price": 145,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max Joga Bonito R9",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000133981",
+  "url": "https://www.snipesusa.com/air-max-joga-bonito-r9-nike-metallic-silver---varsity-maize--ix8646-001-1000133981.html",
+  "price": 139.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 90 (Detroit Lions)",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000134269",
+  "url": "https://www.snipesusa.com/air-max-90--detroit-lions--nike-field-silver---blue-spark---black-iw1133-001-1000134269.html",
+  "price": 140,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 90 (Indianapolis Colts)",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000134271",
+  "url": "https://www.snipesusa.com/air-max-90--indianapolis-colts--nike-anthracite---gym-blue--iw1137-001-1000134271.html",
+  "price": 140,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Speedcat Ballet Croc-Texture",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134771",
+  "url": "https://www.snipesusa.com/speedcat-ballet-croc-texture-puma-inky-depths---black-407680-01-1000134771.html",
+  "price": 100,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Speedcat Ballet Silky",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134772",
+  "url": "https://www.snipesusa.com/speedcat-ballet-silky-puma-red-408425-02-1000134772.html",
+  "price": 100,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Speedcat Ballet Nova Metallic",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134776",
+  "url": "https://www.snipesusa.com/speedcat-ballet-nova-metallic--puma-puma-white---puma-black-408342-01-1000134776.html",
+  "price": 90,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Speedcat Wedge Lustre",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134784",
+  "url": "https://www.snipesusa.com/speedcat-wedge-lustre-puma-puma-silver---feather-grey-408366-01-1000134784.html",
+  "price": 130,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max Dn8 x Doernbecher Freestyle \"Reagan\"",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000134788",
+  "url": "https://www.snipesusa.com/air-max-dn8-x-doernbecher-freestyle--reagan--nike-multi-color-xio7689-921x-1000134788.html",
+  "price": 149.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Speedcat Wedge OG Tonal",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134839",
+  "url": "https://www.snipesusa.com/speedcat-wedge-og-tonal-puma-sand-dune---alpine-snow--40811801-1000134839.html",
+  "price": 120,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 6 Retro Low \"Metamorphosis\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134854",
+  "url": "https://www.snipesusa.com/air-jordan-6-retro-low--metamorphosis--jordan-black---desert-berry-ix5195-001-1000134854.html",
+  "price": 205,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Sk8-Hi",
+  "brand": "Vans",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000134877",
+  "url": "https://www.snipesusa.com/sk8-hi--vans-black---white-vn000y18bmx-1000134877.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Yugi Yami Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000134911",
+  "url": "https://www.snipesusa.com/yugi-yami-classic-clog-crocs-multi-213589-90h-1000134911.html",
+  "price": 70,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Classic Slip-On",
+  "brand": "Vans",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000135175",
+  "url": "https://www.snipesusa.com/classic-slip-on--vans-turtledove-white-vn000ed2djr-1000135175.html",
+  "price": 75,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 '07 SE",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000135490",
+  "url": "https://www.snipesusa.com/air-force-1--07-se-nike-black---metallic-summit-white--iq0133-001-1000135490.html",
+  "price": 125,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Max 95 Big Bubble PRM",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000135602",
+  "url": "https://www.snipesusa.com/air-max-95-big-bubble-prm-nike-hyper-turquoise---volt---solar-red-iu2636-300-1000135602.html",
+  "price": 190,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 '07 Premium",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000135816",
+  "url": "https://www.snipesusa.com/air-force-1--07-premium-nike-gym-red---bright-ceramic---team-red-ix8058-687-1000135816.html",
+  "price": 125,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 14 Retro \"Forest Green\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000135900",
+  "url": "https://www.snipesusa.com/air-jordan-14-retro--forest-green--jordan-gorge-green---light-graphite---white-487471-300-1000135900.html",
+  "price": 215,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 12 Retro \"Fireside\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000135901",
+  "url": "https://www.snipesusa.com/air-jordan-12-retro--fireside--jordan-light-orewood-brown---cacao-wow-ct8013-105-1000135901.html",
+  "price": 215,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Force 1 '07 SE Premium",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000135934",
+  "url": "https://www.snipesusa.com/air-force-1--07-se-premium-nike-white---tough-red---enigma-stone--iq0132-102-1000135934.html",
+  "price": 125,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pegasus 42",
+  "brand": "Nike",
+  "evidence": "known multi ('pegasus')",
+  "cls": "shoe",
+  "pid": "1000136748",
+  "url": "https://www.snipesusa.com/pegasus-42-nike-volt-tint---sapphire---lime-blast---black-ib1873-702-1000136748.html",
+  "price": 145,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "LX Old Skool 36",
+  "brand": "Vans",
+  "evidence": "known multi ('old skool')",
+  "cls": "shoe",
+  "pid": "1000137399",
+  "url": "https://www.snipesusa.com/lx-old-skool-36-vans-oatmeal--vn000e8v2n11-1000137399.html",
+  "price": 125,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Air Jordan 3 Retro \"Laser\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000137767",
+  "url": "https://www.snipesusa.com/air-jordan-3-retro--laser--jordan-phantom---university-red---palomino---sail-ja1369-001-1000137767.html",
+  "price": 230,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Chuck Taylor All Star Hi",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000000009",
+  "url": "https://www.snipesusa.com/pre-school-chuck-taylor-all-star-hi-converse-black-7j231-1000000009.html",
+  "price": 35,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Preschool Chuck Taylor All Star Oxford",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000000020",
+  "url": "https://www.snipesusa.com/preschool-chuck-taylor-all-star-oxford-converse-navy---white-3j237-1000000020.html",
+  "price": 35,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Preschool Chuck Taylor All Star Low",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000000205",
+  "url": "https://www.snipesusa.com/preschool-chuck-taylor-all-star-low-converse-red-3j236-1000000205.html",
+  "price": 35,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Chuck Taylor All Star Low",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000016814",
+  "url": "https://www.snipesusa.com/pre-school-chuck-taylor-all-star-low-converse-white-3j256-1000016814.html",
+  "price": 35,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Crib Chuck Taylor All Star Low",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000016815",
+  "url": "https://www.snipesusa.com/crib-chuck-taylor-all-star-low-converse-white-7j256-1000016815.html",
+  "price": 30,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Old Skool Black",
+  "brand": "Vans",
+  "evidence": "known multi ('old skool')",
+  "cls": "shoe",
+  "pid": "1000037813",
+  "url": "https://www.snipesusa.com/pre-school-old-skool-black-vans-true-white-vn000w9t6bt-1000037813.html",
+  "price": 45,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 1 Mid Se",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000050678",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-1-mid-se-jordan-black---white---metallic-gold-bq6931-007-1000050678.html",
+  "price": 89.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Jordan 6 Rings",
+  "brand": "Jordan",
+  "evidence": "known multi ('jordan')",
+  "cls": "shoe",
+  "pid": "1000050736",
+  "url": "https://www.snipesusa.com/toddler-jordan-6-rings-jordan-black---white-323420-011-1000050736.html",
+  "price": 60,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Air Jordan 1 Mid SE",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000087692",
+  "url": "https://www.snipesusa.com/grade-school-air-jordan-1-mid-se--jordan-metallic-gold---white---black-dc1420-700-1000087692.html",
+  "price": 100,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Max Goaterra 2.0",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000095069",
+  "url": "https://www.snipesusa.com/toddler-air-max-goaterra-2-0-nike-black-dc9514-001-1000095069.html",
+  "price": 29.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Force 1 Low LV8",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000106423",
+  "url": "https://www.snipesusa.com/big-kids--air-force-1-low-lv8-nike-picante-red---pink-spell---white-fd1031-600-1000106423.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School 990v6",
+  "brand": "New Balance",
+  "evidence": "known multi ('990v6')",
+  "cls": "shoe",
+  "pid": "1000106797",
+  "url": "https://www.snipesusa.com/grade-school-990v6--new-balance-grey-gc990gl6-1000106797.html",
+  "price": 130,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School 990v6",
+  "brand": "New Balance",
+  "evidence": "known multi ('990v6')",
+  "cls": "shoe",
+  "pid": "1000106799",
+  "url": "https://www.snipesusa.com/pre-school-990v6-new-balance-grey-pc990gl6-1000106799.html",
+  "price": 110,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Frozen x Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000119199",
+  "url": "https://www.snipesusa.com/toddler-frozen-x-classic-clog-crocs-white-210236-90h-1000119199.html",
+  "price": 29.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Frozen x Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000119187",
+  "url": "https://www.snipesusa.com/pre-school-frozen-x-classic-clog-crocs-white-210234-90h-1000119187.html",
+  "price": 29.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School 1906",
+  "brand": "New Balance",
+  "evidence": "known multi ('1906')",
+  "cls": "shoe",
+  "pid": "1000120068",
+  "url": "https://www.snipesusa.com/pre-school-1906-new-balance-phantom---metallic-silver-pc1906ex-1000120068.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 1 Low Alt SE",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000120552",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-1-low-alt-se-jordan-light-brown---pink-foam---pink-oxford-fz3927-200-1000120552.html",
+  "price": 29.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Handball Spezial",
+  "brand": "adidas",
+  "evidence": "known multi ('spezial')",
+  "cls": "shoe",
+  "pid": "1000123011",
+  "url": "https://www.snipesusa.com/grade-school-handball-spezial-adidas-grey---white-ji0452-1000123011.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Zoom Vomero 5",
+  "brand": "Nike",
+  "evidence": "known multi ('vomero')",
+  "cls": "shoe",
+  "pid": "1000123773",
+  "url": "https://www.snipesusa.com/big-kids--zoom-vomero-5-nike-black-hf6998-007-1000123773.html",
+  "price": 112,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Chuck Taylor All Star Celestial Hi",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000126098",
+  "url": "https://www.snipesusa.com/grade-school-chuck-taylor-all-star-celestial-hi-converse-navy---white---red-a15503fj-1000126098.html",
+  "price": 29.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Real Tree Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000127093",
+  "url": "https://www.snipesusa.com/grade-school-real-tree-classic-clog-crocs-camo-210111-90hj-1000127093.html",
+  "price": 19.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Real Tree Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000127097",
+  "url": "https://www.snipesusa.com/pre-school-real-tree-classic-clog-crocs-camo-210111-90h-1000127097.html",
+  "price": 19.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Dinosaur Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000127098",
+  "url": "https://www.snipesusa.com/toddler-dinosaur-classic-clog-crocs-green---black---gold-211372-001-1000127098.html",
+  "price": 19.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Converse x Bluey Chuck Taylor All Star Easy On",
+  "brand": "Converse",
+  "evidence": "known multi ('chuck taylor')",
+  "cls": "shoe",
+  "pid": "1000127202",
+  "url": "https://www.snipesusa.com/pre-school-converse-x-bluey-chuck-taylor-all-star-easy-on-converse-blue---multi---white-a16715f-1000127202.html",
+  "price": 29.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School 530",
+  "brand": "New Balance",
+  "evidence": "known multi ('530')",
+  "cls": "shoe",
+  "pid": "1000127397",
+  "url": "https://www.snipesusa.com/pre-school-530-new-balance-white---silver---pink-pz530rk-1000127397.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 8 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000127872",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-8-retro-jordan-white---black---true-red-305360-100-1000127872.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Max Goadome",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000127902",
+  "url": "https://www.snipesusa.com/big-kids--air-max-goadome-nike-black-865031-009j-1000127902.html",
+  "price": 190,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 8 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000127906",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-8-retro-jordan-white---black---true-red-305368-100-1000127906.html",
+  "price": 109.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Dunk Low Essential+",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000129665",
+  "url": "https://www.snipesusa.com/big-kids--dunk-low-essential--nike-white---black---rust-factor-iq2755-102-1000129665.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Max 95 Recraft",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000129671",
+  "url": "https://www.snipesusa.com/little-kids--air-max-95-recraft-nike-photon-dust---sapphire---dark-raisin--hq6364-017-1000129671.html",
+  "price": 89.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Max 95 Recraft",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000129674",
+  "url": "https://www.snipesusa.com/toddler-air-max-95-recraft-nike-photon-dust---sapphire---dark-raisin-hq6365-017-1000129674.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 4 Retro \"Flight Club\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130013",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-4-retro--flight-club--jordan-sail---black---university-red-im4026-100-1000130013.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 6 Retro \"Infrared Salesman\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130016",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-6-retro--infrared-salesman--jordan-black---light-crimson-iq1275-001-1000130016.html",
+  "price": 119.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 9 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130017",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-9-retro-jordan-white---french-blue---flint-grey-hv4574-100-1000130017.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 13 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130018",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-13-retro-jordan-white---black---true-red-dj3003-102-1000130018.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 1 Retro Low",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130026",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-1-retro-low-jordan-medium-olive---black---summit-white---sail-hq6999-200-1000130026.html",
+  "price": 79.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 4 Retro \"Flight Club\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130039",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-4-retro--flight-club--jordan-sail---black---university-red-im4028-100-1000130039.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 13 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130108",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-13-retro-jordan-white---black---true-red-dj3005-102-1000130108.html",
+  "price": 69.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan MVP 92",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130115",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-mvp-92-jordan-black---infrared-23-hq4426-003-1000130115.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Jordan Spizike Low",
+  "brand": "Jordan",
+  "evidence": "known multi ('jordan')",
+  "cls": "shoe",
+  "pid": "1000130116",
+  "url": "https://www.snipesusa.com/little-kids--jordan-spizike-low-jordan-black---gym-red---wolf-grey---white-fq3951-009-1000130116.html",
+  "price": 85,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 1 Retro Low",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130120",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-1-retro-low-jordan-medium-olive---black---summit-white---sail-hq6996-200-1000130120.html",
+  "price": 49.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 4 Retro \"Flight Club\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130131",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-4-retro--flight-club--jordan-sail---black---university-red-im4027-100-1000130131.html",
+  "price": 90,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 13 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130138",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-13-retro-jordan-white---black---true-red-dj3004-102-1000130138.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 14 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130164",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-14-retro-jordan-black---white---university-blue-487524-007-1000130164.html",
+  "price": 99.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Super Mario Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000130227",
+  "url": "https://www.snipesusa.com/grade-school-super-mario-classic-clog-crocs-multi-212139-90hj-1000130227.html",
+  "price": 55,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Super Mario Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000130232",
+  "url": "https://www.snipesusa.com/pre-school-super-mario-classic-clog-crocs-multi-212139-90h-1000130232.html",
+  "price": 55,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Super Mario Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000130235",
+  "url": "https://www.snipesusa.com/toddler-super-mario-classic-clog-crocs-multi-212140-90h-1000130235.html",
+  "price": 50,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Bluey Best Buddies Classic Clog",
+  "brand": "Crocs",
+  "evidence": "fleet 2 colorways",
+  "cls": "shoe",
+  "pid": "1000130236",
+  "url": "https://www.snipesusa.com/toddler-bluey-best-buddies-classic-clog-crocs-multi--212369-90h-1000130236.html",
+  "price": 50,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Dunk Low Essential+",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000130299",
+  "url": "https://www.snipesusa.com/little-kids--dunk-low-essential--nike-white---black---rust-factor-iq2752-102-1000130299.html",
+  "price": 49.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 1 Mid SE BG",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000130311",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-1-mid-se-bg-jordan-true-red---black---white---court-purple-iq9700-611-1000130311.html",
+  "price": 120,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Samba Jane",
+  "brand": "adidas",
+  "evidence": "known multi ('samba')",
+  "cls": "shoe",
+  "pid": "1000130802",
+  "url": "https://www.snipesusa.com/grade-school-samba-jane-adidas-light-pink-jp9544-1000130802.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Samba Jane",
+  "brand": "adidas",
+  "evidence": "known multi ('samba')",
+  "cls": "shoe",
+  "pid": "1000130861",
+  "url": "https://www.snipesusa.com/pre-school-samba-jane-adidas-light-pink-jp9541-1000130861.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Force 1 '07 LV8",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000131006",
+  "url": "https://www.snipesusa.com/little-kids--air-force-1--07-lv8-nike-summit-white---black---metallic-silver---white-iq2740-100-1000131006.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Max 95 Big Bubble \"I-95\"",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000131024",
+  "url": "https://www.snipesusa.com/big-kids--air-max-95-big-bubble--i-95--nike-black---off-noir---metallic-silver-iq1662-045j-1000131024.html",
+  "price": 119.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Force 1 Tech",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000132006",
+  "url": "https://www.snipesusa.com/toddler-air-force-1-tech-nike-black---white-ir3994-001-1000132006.html",
+  "price": 39.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Force 1 Tech",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000132007",
+  "url": "https://www.snipesusa.com/little-kids--air-force-1-tech-nike-black---white-ir3995-001-1000132007.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Force 1 Tech",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000132008",
+  "url": "https://www.snipesusa.com/big-kids--air-force-1-tech-nike-black---white-ir3992-001-1000132008.html",
+  "price": 79.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 12 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132129",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-12-retro-jordan-black---varsity-red-153265-003-1000132129.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 12 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132132",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-12-retro-jordan-black---varsity-red-850000-003-1000132132.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 4 \"Toro Bravo\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132148",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-4--toro-bravo--jordan-fire-red---white---black---cement-grey--fq8213-600-1000132148.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 4 \"Toro Bravo\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132149",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-4--toro-bravo--jordan-fire-red---white---black---cement-grey--hv4381-600-1000132149.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 11 Retro Low",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132153",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-11-retro-low-jordan-white---university-blue---black-fv5121-100-1000132153.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 11 Retro Low",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132152",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-11-retro-low-jordan-white---university-blue---black-fv5116-100-1000132152.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 3 \"World's Best\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132158",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-3--world-s-best--jordan-sail---black---university-red---pale-ivory-dm0968-103-1000132158.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 3 \"World's Best\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132159",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-3--world-s-best--jordan-sail---black---university-red---pale-ivory-dm0966-103-1000132159.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 3 \"World's Best\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132160",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-3--world-s-best--jordan-sail---black---university-red---pale-ivory-dm0967-103-1000132160.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 4 Retro \"Pearl Pink and Iced Carmine\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132193",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-4-retro--pearl-pink-and-iced-carmine--jordan-pearl-pink---coconut-milk---muslin---iced-carmine-ib6715-600-1000132193.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 11 Retro",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132196",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-11-retro-jordan-white---metallic-gold---team-gold-580522-102-1000132196.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Force 1 '07 Patent Leather",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000132543",
+  "url": "https://www.snipesusa.com/big-kids--air-force-1--07-patent-leather-nike-white-iv2448-100-1000132543.html",
+  "price": 100,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Lego Dunk Low",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000132546",
+  "url": "https://www.snipesusa.com/big-kids--lego-dunk-low-nike-white---bright-concord---rush-red-if2117-102-1000132546.html",
+  "price": 79.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Lego Dunk Low",
+  "brand": "Nike",
+  "evidence": "known multi ('dunk')",
+  "cls": "shoe",
+  "pid": "1000132547",
+  "url": "https://www.snipesusa.com/little-kids--lego-dunk-low-nike-white---bright-concord---rush-red-ii7288-102-1000132547.html",
+  "price": 69.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Max 95 OG",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000132554",
+  "url": "https://www.snipesusa.com/big-kids--air-max-95-og-nike-white---emerald-green---lake-blue-iu7899-100-1000132554.html",
+  "price": 109.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 1 High OG \"Khaki\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132565",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-1-high-og--khaki--jordan-khaki---multi---sail---cargo-khaki-fd2597-201-1000132565.html",
+  "price": 85,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 13 Retro \"Flint\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132684",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-13-retro--flint--jordan-navy---university-blue---flint-grey---white-dj3003-400-1000132684.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 13 Retro \"Flint\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000132685",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-13-retro--flint--jordan-navy---university-blue---flint-grey---white-dj3005-400-1000132685.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Speedcat Ballet",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000132761",
+  "url": "https://www.snipesusa.com/pre-school-speedcat-ballet-puma-chocolate---warm-white-40894301-1000132761.html",
+  "price": 65,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Speedcat Ballet",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000132762",
+  "url": "https://www.snipesusa.com/grade-school-speedcat-ballet-puma-chocolate---warm-white-40894201-1000132762.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Hello Kitty Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133714",
+  "url": "https://www.snipesusa.com/grade-school-hello-kitty-classic-clog-crocs-pastel-212685-90hj-1000133714.html",
+  "price": 55,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Toy Story Alien Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133717",
+  "url": "https://www.snipesusa.com/grade-school-toy-story-alien-classic-clog-crocs-multi--213826-90hj-1000133717.html",
+  "price": 55,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Hello Kitty Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133724",
+  "url": "https://www.snipesusa.com/pre-school-hello-kitty-classic-clog-crocs-pastel-212685-90h-1000133724.html",
+  "price": 55,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Toy Story Alien Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133727",
+  "url": "https://www.snipesusa.com/pre-school-toy-story-alien-classic-clog-crocs-multi-213826-90h-1000133727.html",
+  "price": 55,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Hello Kitty Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133737",
+  "url": "https://www.snipesusa.com/toddler-hello-kitty-classic-clog-crocs-pastel--212686-90h-1000133737.html",
+  "price": 50,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Toy Story Alien Classic Clog",
+  "brand": "Crocs",
+  "evidence": "known multi ('classic clog')",
+  "cls": "shoe",
+  "pid": "1000133738",
+  "url": "https://www.snipesusa.com/toddler-toy-story-alien-classic-clog-crocs-multi-213827-90h-1000133738.html",
+  "price": 50,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Force 1 '07",
+  "brand": "Nike",
+  "evidence": "known multi ('air force 1')",
+  "cls": "shoe",
+  "pid": "1000134100",
+  "url": "https://www.snipesusa.com/little-kids--air-force-1--07-nike-pink-rise---pink-foam-io7959-600-1000134100.html",
+  "price": 75,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 3 Retro \"Play Your Way\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134116",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-3-retro--play-your-way--jordan-chalk---track-red---true-blue---kinetic-green-io2076-100-1000134116.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 3 Retro \"Play Your Way\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134117",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-3-retro--play-your-way--jordan-chalk---track-red---true-blue---kinetic-green-io2074-100-1000134117.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 3 Retro \"Play Your Way\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134118",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-3-retro--play-your-way--jordan-chalk---track-red---true-blue---kinetic-green-io2075-100-1000134118.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 4 Retro \"She's A Star\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134119",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-4-retro--she-s-a-star--jordan-sweet-beet---desert-pink---off-noir---chalk-io2829-600-1000134119.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 4 Retro \"She's A Star\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134120",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-4-retro--she-s-a-star--jordan-sweet-beet---desert-pink---off-noir---chalk-io2831-600-1000134120.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 4 Retro \"She's A Star\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134121",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-4-retro--she-s-a-star--jordan-sweet-beet---desert-pink---off-noir---chalk-io2830-600-1000134121.html",
+  "price": 90,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 3 Retro \"True Blue\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134122",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-3-retro--true-blue--jordan-white---fire-red---true-blue-dm0967-104-1000134122.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 3 Retro \"True Blue\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134123",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-3-retro--true-blue--jordan-white---fire-red---true-blue-dm0966-104-1000134123.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 4 Retro \"Tour Yellow\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134126",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-4-retro--tour-yellow--jordan-white---tour-yellow---dark-blue-grey---black-bq7669-102-1000134126.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 4 Retro \"Tour Yellow\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134125",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-4-retro--tour-yellow--jordan-white---tour-yellow---dark-blue-grey---black-408452-102-1000134125.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 5 \"Black Carolina\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134133",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-5--black-carolina--jordan-black---university-blue---white-440890-008-1000134133.html",
+  "price": 80,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 12 Retro \"Idols Become Rivals\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134137",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-12-retro--idols-become-rivals--jordan-summit-white---gorge-green---fierce-purple-153265-103-1000134137.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 12 Retro \"Idols Become Rivals\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134138",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-12-retro--idols-become-rivals--jordan-summit-white---gorge-green---fierce-purple-151186-103-1000134138.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 6 Retro \"Oreo\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134140",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-6-retro--oreo--jordan-white---black-384665-108-1000134140.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 6 Retro \"Oreo\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134141",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-6-retro--oreo--jordan-white---black-dv3605-108-1000134141.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 8 Retro \"Chrome\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134143",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-8-retro--chrome--jordan-black---white---light-graphite--305368-007-1000134143.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 8 Retro \"Chrome\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134144",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-8-retro--chrome--jordan-black---white---light-graphite--305369-007-1000134144.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 1 Low OG \"Laser\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134145",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-1-low-og--laser--jordan-black---varsity-red---summit-white-iv7010-001-1000134145.html",
+  "price": 120,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School School GEL-1130",
+  "brand": "Asics",
+  "evidence": "known multi ('gel 1130')",
+  "cls": "shoe",
+  "pid": "1000134260",
+  "url": "https://www.snipesusa.com/pre-school-school-gel-1130-asics-white---azul-brown--1204a194-101-1000134260.html",
+  "price": 100,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 1 Low SE",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134373",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-1-low-se-jordan-lime-blast---anthracite-iv6507-337-1000134373.html",
+  "price": 110,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 3 Retro \"Sport Renaissance\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134380",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-3-retro--sport-renaissance--jordan-obsidian---chalk---track-red-hq0783-400-1000134380.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 7 Retro \"Tennis Day\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134420",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-7-retro--tennis-day--jordan-phantom---anthracite---lime-blast---pink-blast-iv6509-030-1000134420.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Max 95 Big Bubble",
+  "brand": "Nike",
+  "evidence": "known multi ('air max')",
+  "cls": "shoe",
+  "pid": "1000134431",
+  "url": "https://www.snipesusa.com/little-kids--air-max-95-big-bubble-nike-medium-ash---light-crimson---dark-pewter---dust-ix3915-060-1000134431.html",
+  "price": 112,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Zoom Vomero 5",
+  "brand": "Nike",
+  "evidence": "known multi ('vomero')",
+  "cls": "shoe",
+  "pid": "1000134433",
+  "url": "https://www.snipesusa.com/little-kids--zoom-vomero-5-nike-black-ir4587-007-1000134433.html",
+  "price": 92,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 9 Retro \"Space Jam\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134502",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-9-retro--space-jam--jordan-white---true-red---black-ix6180-100-1000134502.html",
+  "price": 165,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 9 Retro \"Space Jam\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134503",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-9-retro--space-jam--jordan-white---true-red---black-ix6181-100-1000134503.html",
+  "price": 105,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 9 Retro \"Space Jam\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134504",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-9-retro--space-jam--jordan-white---true-red---black-ix6182-100-1000134504.html",
+  "price": 90,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Speedcat Ballet Leogirl",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134749",
+  "url": "https://www.snipesusa.com/grade-school-speedcat-ballet-leogirl-puma-matte-bronze---puma-gold-40904501-1000134749.html",
+  "price": 70,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Pre-School Speedcat Ballet Leogirl",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134758",
+  "url": "https://www.snipesusa.com/pre-school-speedcat-ballet-leogirl-puma-matte-bronze---puma-gold-40904601-1000134758.html",
+  "price": 60,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Speedcat Ballet Leogirl",
+  "brand": "Puma",
+  "evidence": "known multi ('speedcat')",
+  "cls": "shoe",
+  "pid": "1000134759",
+  "url": "https://www.snipesusa.com/toddler-speedcat-ballet-leogirl-puma-matte-bronze---puma-gold-40904701-1000134759.html",
+  "price": 50,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Old Skool Pinned",
+  "brand": "Vans",
+  "evidence": "known multi ('old skool')",
+  "cls": "shoe",
+  "pid": "1000134812",
+  "url": "https://www.snipesusa.com/grade-school-old-skool-pinned--vans-black---marshmallow--vn000ecubpq-1000134812.html",
+  "price": 55,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Sk8-Hi Pinned",
+  "brand": "Vans",
+  "evidence": "known multi ('sk8 hi')",
+  "cls": "shoe",
+  "pid": "1000134813",
+  "url": "https://www.snipesusa.com/grade-school-sk8-hi-pinned-vans-black---marshmallow--vn000v68bpq-1000134813.html",
+  "price": 60,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Toddler Air Jordan 4 Retro \"Imperial Purple\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000134898",
+  "url": "https://www.snipesusa.com/toddler-air-jordan-4-retro--imperial-purple--jordan-imperial-purple---multi-color-ib4387-500-1000134898.html",
+  "price": 59.99,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Pokemon Samba OG",
+  "brand": "adidas",
+  "evidence": "known multi ('samba')",
+  "cls": "shoe",
+  "pid": "1000135030",
+  "url": "https://www.snipesusa.com/grade-school-pokemon-samba-og-adidas-ice-lavender---violet-fusion-ki8221-1000135030.html",
+  "price": 90,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Grade School Pok\u00e9mon Superstar II",
+  "brand": "adidas",
+  "evidence": "known multi ('superstar')",
+  "cls": "shoe",
+  "pid": "1000135028",
+  "url": "https://www.snipesusa.com/grade-school-pok-mon-superstar-ii-adidas-cloud-white---core-black---gold-metallic-kj5613-1000135028.html",
+  "price": 90,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 1 High OG \"Royal\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000135903",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-1-high-og--royal--jordan-black---game-royal---white-fd1437-005-1000135903.html",
+  "price": 140,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Big Kids' Air Jordan 5 Retro \"Halloween\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000135906",
+  "url": "https://www.snipesusa.com/big-kids--air-jordan-5-retro--halloween--jordan-black---picante-red---glow-n-the-dark-hq7980-001-1000135906.html",
+  "price": 155,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 5 Retro \"Halloween\"",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000135907",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-5-retro--halloween--jordan-black---picante-red---glow-n-the-dark-hq7979-001-1000135907.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Little Kids' Air Jordan 6 Retro Low",
+  "brand": "Jordan",
+  "evidence": "known multi ('air jordan')",
+  "cls": "shoe",
+  "pid": "1000135918",
+  "url": "https://www.snipesusa.com/little-kids--air-jordan-6-retro-low-jordan-black---laser-fuchsia---pink-foam-iq5506-001-1000135918.html",
+  "price": 95,
+  "dept_item_type": "SNEAKERS"
+ },
+ {
+  "name": "Polo Bear Fleece Sweatshirt",
+  "brand": "Polo Ralph Lauren",
+  "evidence": "fleet 2 colorways",
+  "cls": "clothing",
+  "pid": "1000135564",
+  "url": "https://www.snipesusa.com/polo-bear-fleece-sweatshirt-polo-ralph-lauren-sportswear-cruise-olive-710b28795001-olv-1000135564.html",
+  "price": 175,
+  "dept_item_type": "POLO"
+ }
+]

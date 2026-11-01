@@ -58,6 +58,7 @@ import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
 import { STORES as CI } from "./lib/calzedonia-intimissimi.js";
 import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
 import { celularesOrder } from "../netlify/functions/_department-core.js";
+import { STOREFRONTS, storefrontRails, perfumeRails, PERFUME_CHIP_ORDER } from "./lib/storefronts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SLICES_DIR = "assets/tienda";
@@ -105,6 +106,9 @@ export const SLICED_STORES = {
   bestbuy: {
     file: "bestbuy-catalog.json",
     label: "Best Buy",
+    /* Danny's storefront order (2026-11-01, #443): Ofertas, then the
+       departments -- no Más vendidos between them. */
+    LOCKED: true,
     /* Danny's order: computación, celulares, gaming, audio... (no TVs in
        the pull: the shippable doctrine dropped them). */
     DEPT_ORDER: ["laptops", "phones", "gaming", "audio", "tablets", "wearables", "cameras", "monitors", "accessories", "small_appliances", "electronics"],
@@ -371,7 +375,12 @@ export function genericItems(key, meta, rules, root = ROOT) {
       else if (Array.isArray(entry)) arr = entry;
       if (!Array.isArray(arr)) continue;
       depts[dk] = R.deptChipLabel(dk, label);
-      for (const raw of arr) {
+      for (const raw0 of arr) {
+        /* A storefront of Danny's 2026-11-01 list reads the selling price
+           its scrape spelled otherwise (Old Navy: effectivePrice), as
+           scripts/lib/department-map.js does. */
+        const raw = STOREFRONTS[key] && raw0 && raw0.price == null && Number(raw0.effectivePrice ?? raw0.currentPrice ?? raw0.salePrice) > 0
+          ? { ...raw0, price: Number(raw0.effectivePrice ?? raw0.currentPrice ?? raw0.salePrice) } : raw0;
         let n = null;
         try { n = R.normItem(raw, dk); } catch { n = null; }
         if (!n) continue;
@@ -379,6 +388,7 @@ export function genericItems(key, meta, rules, root = ROOT) {
         if (!n.url) n.url = String(raw.url || raw.productUrl || raw.link || "");
         if (raw.title_en) n.nameEn = String(raw.title_en);
         n.rating = Number(raw.rating) || 0;
+        if (STOREFRONTS[key] && raw.concentration) n.conc = String(raw.concentration);
         items.push(n);
       }
     }
@@ -560,7 +570,7 @@ export function storeRails(key, products) {
   const byRank = (a, b) => (a.rank && b.rank ? a.rank - b.rank : (b.rank ? 1 : 0) - (a.rank ? 1 : 0));
   const best = products.filter((p) => p.reviews > 0 || p.rank > 0)
     .sort((a, b) => byRank(a, b) || (b.reviews - a.reviews) || (b.rating - a.rating));
-  if (best.length) rails.push({ key: "masvendidos", title: "Más vendidos", items: sprinklePremium(best) });
+  if (best.length && !cfg.LOCKED) rails.push({ key: "masvendidos", title: "Más vendidos", items: sprinklePremium(best) });
   /* Brand carousels (SNIPES): the named brands, then the next biggest. */
   if (cfg.BRAND_RAILS) {
     const norm = (b) => String(b || "").toLowerCase().trim();
@@ -637,12 +647,24 @@ export function buildStore(key, root = ROOT) {
 
 /* ---------------- every other store ---------------- */
 export function buildGenericStore(key, meta, rules, root = ROOT) {
-  const { items, depts, facetMode, facetGenders, facetCats } = genericItems(key, meta, rules, root);
+  const got = genericItems(key, meta, rules, root);
+  const { items, depts } = got;
   const { R } = rules;
-  const rails = genericRails(key, meta.label, items, rules);
+  /* Danny's 2026-11-01 storefronts (scripts/lib/storefronts.js): Ofertas,
+     then the category rails; their chips are those categories (Aria
+     Perfumes: its catalogue's doors), never the stores' own type field. */
+  const sf = STOREFRONTS[key] || null;
+  const facetMode = sf ? false : got.facetMode, facetGenders = got.facetGenders, facetCats = got.facetCats;
+  let houses = null, rails;
+  if (sf && sf.flagship) ({ rails, houses } = perfumeRails(meta.label, items, R, root));
+  else if (sf) rails = storefrontRails(key, meta.label, items, R, sellableSort(R), sf);
+  else rails = genericRails(key, meta.label, items, rules);
+  const catOf = new Map();
+  if (sf && !sf.flagship) for (const r of rails) if (r.cat) for (const p of r.items) if (!catOf.has(p)) catOf.set(p, r.key);
   const rows = items.map((p) => {
     const pct = R.discountPct(p);
-    return withPhotos([p.name, p.brand || "", p.price, pct > 0 && p.originalPrice ? p.originalPrice : 0, pct > 0 ? pct : 0, p.image, p.dept || "",
+    return withPhotos([p.name, p.brand || "", p.price, pct > 0 && p.originalPrice ? p.originalPrice : 0, pct > 0 ? pct : 0, p.image,
+      (sf && !sf.flagship ? catOf.get(p) : p.dept) || "",
       facetMode ? (p.gender || "") : "", facetMode ? (p.cat || "") : ""], photoCount(root, p.name, key));
   });
   /* A multi-family rail or department pill opens into labelled
@@ -670,7 +692,12 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
   const subsMeta = (subs) => subs.map((s) => ({ k: s.key, a: s.aud || "", t: s.title, n: s.items.length }));
   const count = (pred) => { let n = 0; for (const p of items) if (pred(p)) n++; return n; };
   let chips;
-  if (facetMode) {
+  if (sf) {
+    const list = sf.flagship
+      ? PERFUME_CHIP_ORDER.filter((d) => depts[d]).map((d) => ({ key: d, label: depts[d] }))
+      : rails.filter((r) => r.cat).map((r) => ({ key: r.key, label: r.title }));
+    chips = { mode: "dept", depts: list.map((d) => ({ ...d, count: rows.filter((r) => r[6] === d.key).length })).filter((d) => d.count > 0) };
+  } else if (facetMode) {
     chips = { mode: "facet",
       genders: facetGenders.map((g) => ({ key: g, label: g, count: count((p) => p.gender === g) })),
       cats: facetCats.map((c) => ({ key: c, label: R.facetLabel(c), count: count((p) => p.cat === c) })) };
@@ -696,6 +723,7 @@ export function buildGenericStore(key, meta, rules, root = ROOT) {
       pages: Math.ceil(r.items.length / PAGE_SIZE), ...(railSubs[r.key] ? { subs: subsMeta(railSubs[r.key]) } : {}) },
       i, () => r.items.slice(0, RAIL_HEAD).map(card))),
   };
+  if (houses && houses.length) index.houses = houses;
   if (DEALS_HERO_STORES.has(key) && fn.rails.ofertas) {
     /* Deepest first: the Ofertas rail is in sale-tier order, the hero in discount order. */
     const deepest = fn.rails.ofertas.slice().sort((a, b) => (rows[b][4] - rows[a][4]) || (rows[b][2] - rows[a][2]));
@@ -721,12 +749,16 @@ export function buildAll(root = ROOT, only = null) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const t0 = Date.now();
-  const built = buildAll(ROOT);
+  /* --only a,b,c rebuilds those stores and leaves every other folder and
+     endpoint file as it is. */
+  const oi = process.argv.indexOf("--only");
+  const only = oi > 0 ? String(process.argv[oi + 1] || "").split(",").filter(Boolean) : null;
+  const built = buildAll(ROOT, only);
   const fnDir = join(ROOT, FN_DIR);
-  if (existsSync(fnDir)) rmSync(fnDir, { recursive: true });
+  if (!only && existsSync(fnDir)) rmSync(fnDir, { recursive: true });
   mkdirSync(fnDir, { recursive: true });
   /* A store dropped from the registry loses its folder. */
-  for (const d of existsSync(join(ROOT, SLICES_DIR)) ? readdirSync(join(ROOT, SLICES_DIR)) : []) {
+  for (const d of !only && existsSync(join(ROOT, SLICES_DIR)) ? readdirSync(join(ROOT, SLICES_DIR)) : []) {
     if (d !== "_fn" && d !== "hero" && !built[d]) rmSync(join(ROOT, SLICES_DIR, d), { recursive: true });
   }
   let total = 0, fnBytes = 0;

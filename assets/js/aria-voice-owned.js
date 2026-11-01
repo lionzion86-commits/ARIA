@@ -18,8 +18,14 @@
        functions, the same ones the Realtime voice uses.
 
    Any failure before the agent is in the room returns { ok:false } and
-   the page starts the Realtime voice instead: there is never a tap
-   with no voice at all.
+   the page says so. It never hands the tap to another voice: one
+   session, one voice (#443 c.6549932007).
+
+   ONE VOICE. Only an agent that announces Grecia's engine (attribute
+   aria.voice = "elevenlabs/...") is taken; the first one is the call's
+   voice, and no other participant's audio is ever played. A stale
+   worker from an older build, or any second agent in the room, is
+   recorded (call.state().ignored) and never heard.
    ============================================================ */
 (function () {
   'use strict';
@@ -27,8 +33,19 @@
   var TOKEN_URL = '/api/voice-token';
   var CLIENT_SRC = '/assets/vendor/livekit-client-2.22.4.umd.js';
   /* A worker that is not deployed, or is full, never joins; past this
-     the page gives the call to the Realtime voice. */
-  var AGENT_JOIN_MS = 8000;
+     the page reports that the voice did not connect. Long enough for a
+     cold LiveKit Cloud worker. */
+  var AGENT_JOIN_MS = 15000;
+  var VOICE_ATTR = 'aria.voice';
+  var VOICE_ENGINE = /^elevenlabs\//;
+  function voiceOf(p) {
+    var a = p && p.attributes;
+    return (a && typeof a[VOICE_ATTR] === 'string') ? a[VOICE_ATTR] : '';
+  }
+  /** Grecia's worker: an agent that says it speaks with ElevenLabs. */
+  function isGreciaAgent(p) {
+    return !!(p && p.isAgent && VOICE_ENGINE.test(voiceOf(p)));
+  }
   var CLIENT_LOAD_MS = 10000;
 
   var RPC = { READY: 'aria.ready', CUE: 'aria.cue', TEXT: 'aria.text', CONTEXT: 'aria.context', TOOL: 'aria.tool', TURN: 'aria.turn', USER: 'aria.user', SHOW: 'aria.show' };
@@ -175,24 +192,55 @@
     var stopping = false;
     var agent = null;
     var handlers = rpcHandlers(hooks);
+    /* Only her worker reaches the page: a stale or second agent's
+       requests (a transcript line, a tool) are refused. */
+    function fromHer(data) {
+      var who = data && data.callerIdentity;
+      if (!who) return true;
+      if (agent) return who === agent.identity;
+      return isGreciaAgent(room.remoteParticipants && room.remoteParticipants.get(who));
+    }
     Object.keys(handlers).forEach(function (m) {
-      room.registerRpcMethod(m, function (data) { return handlers[m](data && data.payload); });
+      room.registerRpcMethod(m, function (data) {
+        if (!fromHer(data)) return Promise.reject(new Error('not this call\'s voice'));
+        return handlers[m](data && data.payload);
+      });
     });
 
     var joined;
     var agentJoined = new Promise(function (r) { joined = r; });
+    var ignored = {};
+    var pendingAudio = {};
+    var attached = false;
+    function attach(track) {
+      if (attached || !track) return;
+      attached = true;
+      try { hooks.attachRemote(new MediaStream([track.mediaStreamTrack])); } catch (e) { console.warn('[aria] owned voice: could not attach her audio', e); }
+    }
+    function isHer(p) { return !!(agent && p && p.identity === agent.identity); }
     function noteAgent(p) {
-      if (!agent && p && p.isAgent) { agent = p; joined(p); }
+      if (!p || !p.isAgent || isHer(p)) return;
+      if (!agent && isGreciaAgent(p)) {
+        agent = p;
+        delete ignored[p.identity];
+        joined(p);
+        if (pendingAudio[p.identity]) attach(pendingAudio[p.identity]);
+        pendingAudio = {};
+        return;
+      }
+      ignored[p.identity] = voiceOf(p) || 'sin voz anunciada';
     }
     room.on(LK.RoomEvent.ParticipantConnected, noteAgent);
     room.on(LK.RoomEvent.TrackSubscribed, function (track, _pub, p) {
       noteAgent(p);
-      if (track && track.kind === 'audio' && p && p.isAgent) {
-        try { hooks.attachRemote(new MediaStream([track.mediaStreamTrack])); } catch (e) { console.warn('[aria] owned voice: could not attach her audio', e); }
-      }
+      if (!track || track.kind !== 'audio' || !p || !p.isAgent) return;
+      if (isHer(p)) attach(track);
+      else if (!agent) pendingAudio[p.identity] = track; /* heard only if this agent turns out to be her */
     });
     room.on(LK.RoomEvent.ParticipantAttributesChanged, function (changed, p) {
-      if (p && p.isAgent && changed && changed['lk.agent.state']) {
+      if (!p || !p.isAgent) return;
+      if (changed && changed[VOICE_ATTR] != null) noteAgent(p);
+      if (isHer(p) && changed && changed['lk.agent.state']) {
         try { hooks.state(changed['lk.agent.state']); } catch (e) {}
       }
     });
@@ -215,7 +263,11 @@
       await room.localParticipant.publishTrack(hooks.micTrack, { source: LK.Track.Source.Microphone, dtx: true });
       room.remoteParticipants.forEach(noteAgent);
       var who = await Promise.race([agentJoined, new Promise(function (r) { setTimeout(function () { r(null); }, AGENT_JOIN_MS); })]);
-      if (!who) { stop(); return { ok: false, said: 'Aria no entró a la llamada', detail: 'no agent in ' + got.mint.room + ' after ' + AGENT_JOIN_MS + 'ms' }; }
+      if (!who) {
+        stop();
+        var stale = Object.keys(ignored).map(function (k) { return k + ' (' + ignored[k] + ')'; }).join(', ');
+        return { ok: false, said: 'Aria no entró a la llamada', detail: 'no Grecia agent in ' + got.mint.room + ' after ' + AGENT_JOIN_MS + 'ms' + (stale ? '; ignored: ' + stale : '') };
+      }
     } catch (e) {
       stop();
       return { ok: false, said: 'la conexión de voz no se estableció', detail: e && e.message };
@@ -234,10 +286,10 @@
       /* A line he typed during the call: she answers it out loud. */
       text: function (text) { rpc(RPC.TEXT, JSON.stringify({ text: String(text || '') })).catch(function () {}); return true; },
       stop: stop,
-      state: function () { return { room: got.mint.room, connection: room.state, agent: agent ? agent.identity : null }; },
+      state: function () { return { room: got.mint.room, connection: room.state, agent: agent ? agent.identity : null, voice: agent ? voiceOf(agent) : null, ignored: Object.keys(ignored).map(function (k) { return { identity: k, voice: ignored[k] }; }) }; },
     };
     return { ok: true, call: call };
   }
 
-  window.AriaOwnedVoice = { start: start, warm: warm, rpcHandlers: rpcHandlers, RPC: RPC, TOKEN_URL: TOKEN_URL, CLIENT_SRC: CLIENT_SRC };
+  window.AriaOwnedVoice = { isGreciaAgent: isGreciaAgent, VOICE_ATTR: VOICE_ATTR, AGENT_JOIN_MS: AGENT_JOIN_MS, start: start, warm: warm, rpcHandlers: rpcHandlers, RPC: RPC, TOKEN_URL: TOKEN_URL, CLIENT_SRC: CLIENT_SRC };
 })();

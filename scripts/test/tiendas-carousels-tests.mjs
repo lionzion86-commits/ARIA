@@ -171,7 +171,7 @@ await check("the Mountain Test: lazy photos, labels-only index, small rails, not
   assert.match(photo, /loading="lazy"/, "the bundle's card photo is not lazy");
   assert.match(js, /IntersectionObserver/);
   assert.ok(statSync(ROOT + TIENDAS_DIR + "/index.json").size < 16000, "index.json is not small");
-  for (const f of readdirSync(ROOT + TIENDAS_DIR)) assert.ok(statSync(`${ROOT}${TIENDAS_DIR}/${f}`).size < 12000, `${f} is not small`);
+  for (const f of readdirSync(ROOT + TIENDAS_DIR)) if (f !== "index.json") assert.ok(statSync(`${ROOT}${TIENDAS_DIR}/${f}`).size < 12000, `${f} is not small`);
   assert.doesNotMatch(js, /-catalog\.json|_fn\//, "a catalogue on the path");
 });
 

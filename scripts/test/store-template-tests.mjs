@@ -18,12 +18,15 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { RAIL_MIN, BEST_SELLERS_MAX, ACCESSIBLE_USD, TAIL_RAIL_KEY, dedupeMerged, fillBrandsFromStore, SLICED_STORES } from "../build-store-slices.mjs";
+import { STOREFRONTS } from "../lib/storefronts.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const read = (f) => readFileSync(ROOT + f, "utf8");
 const idx = (k) => JSON.parse(read(`assets/tienda/${k}/index.json`));
 const fnOf = (k) => JSON.parse(read(`assets/tienda/_fn/${k}.json`));
-const generic = readdirSync(ROOT + "assets/tienda").filter((d) => !d.startsWith("_") && d !== "hero" && !SLICED_STORES[d])
+/* Danny's 2026-11-01 storefronts follow his locked order instead (Ofertas,
+   then the category rails, thin stores included): storefronts-18-tests.mjs. */
+const generic = readdirSync(ROOT + "assets/tienda").filter((d) => !d.startsWith("_") && d !== "hero" && !SLICED_STORES[d] && !STOREFRONTS[d])
   .filter((d) => { try { return idx(d).railPages === "fn"; } catch { return false; } });
 let passed = 0;
 const failures = [];
