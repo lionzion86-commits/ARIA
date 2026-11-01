@@ -7447,7 +7447,9 @@ const CATEGORY_RAILS = [
   /* ROPA INTERIOR MUJER (2026-10-10, Danny): the women's half, from its
      own feed (ropa-interior-women-feed.json, classifyWomen in the same
      engine). Same rule as the men's shelf: blast sales only. */
-  { key: 'ropa_interior_mujer', label: 'Ropa Interior Mujer', icon: '', stores: null, poolOnly: true, saleHeavy: true,
+  /* LENCERÍA (Danny, #443, 2026-11-01): the women's carousel is renamed --
+     same feed, same rail, new name ("We just change the name"). */
+  { key: 'ropa_interior_mujer', label: 'Lencería', icon: '', stores: null, poolOnly: true, saleHeavy: true,
     blurb: 'Sostenes, panties y lencería de las mejores marcas. Solo ofertas.',
     feed: () => ropaInteriorRailPicks('/ropa-interior-women-feed.json'),
     open: "location.href='/ropa-interior.html#mujer'" },

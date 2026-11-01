@@ -23,7 +23,7 @@ function check(name, fn) {
 }
 const mobile = html.slice(html.indexOf('<div id="mobileShopfront"'), html.indexOf('<div id="desktopShopfront"'));
 const desktop = html.slice(html.indexOf('<div id="desktopShopfront"'));
-const CATEGORIES = ["Electrónica", "Gym Rat", "Fútbol", "Aria Fight Club", "Aria Beauty", "Surf &amp; Skate", "Juguetes", "Zapatos", "Lentes de Sol", "Ropa Interior Mujer", "Ropa Interior Hombre", "Aria Luxury", "Joyas y accesorios"];
+const CATEGORIES = ["Electrónica", "Gym Rat", "Fútbol", "Aria Fight Club", "Aria Beauty", "Surf &amp; Skate", "Juguetes", "Zapatos", "Lentes de Sol", "Lencería", "Ropa Interior Hombre", "Aria Luxury", "Joyas y accesorios"];
 const at = (tree, label) => tree.indexOf(`aria-label="${label}"`);
 
 for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
@@ -46,8 +46,9 @@ for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
     const latino = at(tree, "Diseñadores Latinos");
     assert.ok(tile > lastCat && latino > lastCat, "the Walmart tile or Diseñadores Latinos above a category");
     assert.ok(at(tree, "Mujer") < tile, "a store above the audiences");
-    /* Ropa Interior heads the category block, right under Perfumes (c.6545712892). */
-    const ri = at(tree, "Ropa Interior Mujer");
+    /* Ropa Interior heads the category block, right under Perfumes (c.6545712892);
+       the women's carousel is Lencería since #443 2026-11-01 (a rename). */
+    const ri = at(tree, "Lencería");
     assert.ok(ri > perf && ri < at(tree, "Electrónica") && at(tree, "Ropa Interior Hombre") < at(tree, "Electrónica"), "Ropa Interior is not in the top group");
   });
 }
