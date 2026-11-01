@@ -35863,9 +35863,8 @@ async function startRealtimeVoiceOnce(){
   if (ariaOwnedVoiceWanted()){
     if (await startOwnedVoice()) return true;
     if (ariaRTAbort) return abortRealtimeOpening(null, null, 'colgó mientras conectaba (voz propia)');
-    /* No owned voice for this tap: the Realtime voice takes it, so a
-       tap never ends in no voice at all. */
-    tape('!!', 'voz propia no disponible: sigue la voz en vivo');
+    tape('!!', 'voz propia no disponible: sin cambiar de voz');
+    return noteRealtimeFailure('Aria no pudo conectarse', 'voz propia');
   }
 
   /* Usually already in hand: the launcher warmed it on pointerdown,
