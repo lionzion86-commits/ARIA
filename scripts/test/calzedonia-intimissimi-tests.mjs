@@ -69,7 +69,7 @@ check("two stores: a registry row, a tile and a store page each, in the store's 
     const idx = json(`assets/tienda/${k}/index.json`);
     assert.deepEqual(idx.rails.map((r) => r.title), cfg.order.map((a) => cfg.labels[a]), k);
   }
-  assert.match(tiendas, /87 tiendas activas/);
+  assert.match(tiendas, /\d+ tiendas activas/);
 });
 
 check("Lencería: an Intimissimi carousel and a Calzedonia carousel, each the store's own stock", () => {

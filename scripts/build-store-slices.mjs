@@ -55,6 +55,7 @@ import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 import { conditionOfTitle } from "./lib/condition.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
 import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
+import { STORES as CI } from "./lib/calzedonia-intimissimi.js";
 import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
 import { celularesOrder } from "../netlify/functions/_department-core.js";
 import { STOREFRONTS, storefrontRails, perfumeRails, PERFUME_CHIP_ORDER } from "./lib/storefronts.js";
@@ -194,6 +195,11 @@ export const SLICED_STORES = {
     DEPT_LABELS: AISLE_LABELS,
     TEMPLATE: true,
   },
+  /* CALZEDONIA + INTIMISSIMI (#443 c.6512405832, Danny c.6512451192): two
+     stores, each its own page; aisles from scripts/lib/calzedonia-intimissimi.js.
+     No compare-at prices came with the drop (Destacados, no Ofertas). */
+  intimissimi: { file: "intimissimi-catalog.json", label: CI.intimissimi.label, DEPT_ORDER: CI.intimissimi.order, DEPT_LABELS: CI.intimissimi.labels },
+  calzedonia: { file: "calzedonia-catalog.json", label: CI.calzedonia.label, DEPT_ORDER: CI.calzedonia.order, DEPT_LABELS: CI.calzedonia.labels },
   snipes: {
     file: "snipes-catalog.json",
     label: "SNIPES",

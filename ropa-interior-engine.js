@@ -175,7 +175,7 @@
      not this department; their socks still count. */
   var ACTIVE_SHOPS = { alphalete: 1, youngla: 1, gymshark: 1, everlast: 1, venum: 1, tatami: 1, mmawarehouse: 1, combatcorner: 1, fuji: 1, elite: 1, gameness: 1 };
   /* Stores whose catalogue IS women's intimates and maternity. */
-  var W_SHOPS = { victoriassecret: 1, skims: 1, kindredbravely: 1, lanebryant: 1 };
+  var W_SHOPS = { victoriassecret: 1, skims: 1, kindredbravely: 1, lanebryant: 1, intimissimi: 1, calzedonia: 1 };
 
   var BRA_RE = /\b(?:bras?|bralettes?|brassieres?|sostenes|sost[eé]n|sujetador(?:es)?|bandeau|balconette|bustier)\b/i;
   var PANTY_RE = /\b(?:panty|panties|pantys|thongs?|tangas?|cheeky|cheekies|hipsters?|boy\s*shorts?|boyshorts?|g-?strings?|bragas?|calzones|underwear|briefs?|bikini(?=\s+(?:panty|panties|briefs?|underwear)))\b/i;
@@ -200,7 +200,7 @@
   }
   /* Store type fields that name an intimates garment outright
      (Skims, Victoria's Secret, Kohl's). */
-  var W_TYPE_GARMENT = /^(?:panty|panties|panty pack|bra|bras|bralette|bralettes|shapewear.*|shapewear_.*|socks?|ropa interior|sostenes|lencer[ií]a|underwear|intimates|lingerie)$/i;
+  var W_TYPE_GARMENT = /^(?:panty|panties|panty pack|bra|bras|bralette|bralettes|shapewear.*|shapewear_.*|socks?|medias|ropa interior|sostenes|lencer[ií]a|underwear|intimates|lingerie)$/i;
 
   function classifyWomen(it, retailer, bucket) {
     if (!it) return null;
@@ -228,7 +228,7 @@
     var typed = W_TYPE_GARMENT.test(typeField);
     if (!typed && W_NOT_UNTYPED_RE.test(title.replace(/\bbra(?:lette)?\s+tops?\b/ig, 'bra'))) return null;
     var sub = null;
-    if (/^socks?$/i.test(typeField) || SOCKS_RE.test(title) || HOSIERY_RE.test(title)) sub = 'socks';
+    if (/^(?:socks?|medias)$/i.test(typeField) || SOCKS_RE.test(title) || HOSIERY_RE.test(title)) sub = 'socks';
     if (/^(?:sostenes|bras?|bralettes?)$/i.test(typeField) || BRA_RE.test(title)) sub = 'bra';
     /* A title with both a bra and a panty word is a set (lingerie). */
     if (/^(?:panty|panties|panty pack|ropa interior|underwear)$/i.test(typeField) || PANTY_RE.test(title)) {
