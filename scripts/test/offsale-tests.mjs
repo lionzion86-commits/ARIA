@@ -356,6 +356,12 @@ if (!process.env.OFFSALE_STATIC) {
     }
     return null;
   }
+  /* Sam's Club is purged from every served file (#443 c.6468346931): its
+     records have no product page to refuse. Since 2026-11-01 (every store
+     with products has its storefront) it is the only off-sale store with a
+     catalogue: the cart and checkout still refuse its line, but there is no
+     product page left to open. */
+  const PURGED = new Set(["samsclub", "surfworld"]);
   const OFF_REC = firstRecord((k, it) => isOff(k) && !(Array.isArray(it.sizes) && it.sizes.length > 1));
   const LIVE_REC = firstRecord((k, it, t) => k === LIVE_KEY && t === "Unisex SuperBreak One Backpack");
 
@@ -376,6 +382,7 @@ if (!process.env.OFFSALE_STATIC) {
 
   await check("product page: an off-sale record says it is unavailable, with no price, store door or cart button", async () => {
     assert(OFF_REC, "no off-sale record found");
+    if (PURGED.has(OFF_REC.store)) return "no off-sale store with a product page left (Sam's Club is purged)";
     const { context, page } = await newPage();
     try {
       await page.goto(pdpUrl(OFF_REC), { waitUntil: "domcontentloaded" });
