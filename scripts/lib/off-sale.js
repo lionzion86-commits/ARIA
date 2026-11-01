@@ -38,7 +38,8 @@
                       nike, footlocker, kohls, macys, gap, oldnavy,
                       bananarepublic, athleta, ulta, ssense, yesstyle,
                       newbalance, gymshark, alphalete, miumiu, fendi,
-                      goldengoose, pacsun. Listings off sale, data retained;
+                      goldengoose, pacsun (most back since 2026-11-01,
+                      below). Listings off sale, data retained;
                       porting to the fallback lanes is a later step. Nike
                       direct, Athleta, Fendi and Golden Goose direct have no
                       listings today and are listed so none is added by
@@ -52,6 +53,15 @@
                       and registry; samsclub-catalog.json is shelved, not
                       deleted (the Sephora/SSENSE pattern), for a club that
                       can return real.
+   BACK ON SALE: EVERY STORE WITH PRODUCTS GETS ITS STOREFRONT (#443,
+   Danny's rulings 2026-11-01: "every retailer with products loaded gets
+   its own storefront; no catalog-only retailers"). Off the list again,
+   as untested lanes like SSENSE and Foot Locker (Item 35: real orders or
+   a test order decide the verdict): bestbuy, costco, kohls, macys, gap,
+   oldnavy, bananarepublic, athleta, ulta, yesstyle, newbalance, gymshark,
+   alphalete, miumiu, pacsun (storefronts: scripts/lib/storefronts.js).
+   Sam's Club stays OFF: it is on that list, but Danny removed it by his
+   own order (c.6468346931); it waits for his confirmation.
    BACK ON SALE AS UNTESTED LANES (#443, Danny, 2026-10-24; Item 35: real
    orders or a test order decide the verdict):
      ssense           22:50 -- Neiman Marcus is not secured; premium depth.
