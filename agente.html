@@ -28,6 +28,17 @@
        - Weak signal: the day is kept on the phone, /agente-sw.js keeps
          the page and photos, completions and exceptions wait in an
          outbox and sync when signal returns (the top-bar indicator).
+       - PHASE 2, LIVE DISPATCH (signed in): while she is clocked in the
+         page polls /.netlify/functions/agent-dispatch every few seconds.
+         That poll is her presence (on a break or in focus mode she is
+         not pinged) and brings the pop-up: "Pedido de [cliente]", S/ N,
+         N compras · N tiendas, store chips, photos, the total in USD and
+         soles, a 30-second countdown, ACEPTAR and Pasar. First claim
+         wins on the server; everyone else sees "taken". A claimed order
+         opens as one store checkout after another (the only place the
+         customer's DNI, address and phone appear), and Pagos holds her
+         balance, cash-out (fee and net shown first) and history. The
+         rules: /assets/agent/dispatch-core.js.
      ============================================================ -->
 <style>
   body { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
@@ -198,6 +209,63 @@
   nav.tabs button[aria-selected="true"] { color: var(--blue); }
   .search { width: 100%; min-height: 56px; border-radius: 16px; border: 2px solid var(--line); background: var(--card); padding: 0 16px; }
   @media (min-width: 900px) { main { max-width: 760px; } }
+
+  /* ---- Phase 2: live dispatch ---- */
+  nav.tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
+  .dx-status { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin: 0 0 12px; font-weight: 800; }
+  .dx-status i { width: 12px; height: 12px; border-radius: 999px; background: var(--ink-3); flex: 0 0 auto; }
+  .dx-status.on i { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-bg); }
+  .dx-status.off i { background: var(--warn); }
+  .dx-status .sb, .ring .sb, .bundle-h .sb { margin-left: auto; background: var(--gold); color: var(--navy); font-weight: 900; letter-spacing: .12em; font-size: 11px; padding: 3px 9px; border-radius: 999px; }
+  .bundle-card { padding: 14px; margin: 0 0 10px; }
+  .bundle-card h3 { margin: 0 0 4px; font-size: 19px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .ring-back { position: fixed; inset: 0; z-index: 96; background: rgba(6,15,34,.72); display: flex; align-items: flex-end; justify-content: center; }
+  .ring { background: var(--card); width: 100%; max-width: 560px; border-radius: 26px 26px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); animation: up .22s ease-out; max-height: 96vh; overflow-y: auto; }
+  @media (min-width: 700px) { .ring-back { align-items: center; } .ring { border-radius: 26px; } }
+  .ring-top { display: flex; align-items: center; gap: 10px; }
+  .ring-live { display: inline-flex; align-items: center; gap: 8px; font-weight: 900; color: var(--blue); font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+  .ring-live i { width: 10px; height: 10px; border-radius: 999px; background: var(--blue); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .ring-count { margin-left: auto; font: 900 30px/1 ui-monospace, Menlo, monospace; color: var(--navy); min-width: 2ch; text-align: right; }
+  .ring .sb + .ring-count { margin-left: 8px; }
+  .ring h2 { font-size: 24px; line-height: 1.15; margin: 10px 0 6px; letter-spacing: -.01em; }
+  .ring-pay { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .ring-pay b { font-size: 46px; font-weight: 900; letter-spacing: -.03em; color: var(--ok); line-height: 1; }
+  .ring-pay span { font-size: 19px; font-weight: 800; color: var(--ink-2); }
+  .strip-photos { display: flex; gap: 8px; overflow-x: auto; margin: 10px 0; padding-bottom: 2px; }
+  .strip-photos img { width: 76px; height: 76px; border-radius: 14px; object-fit: cover; background: var(--sky); flex: 0 0 auto; border: 1px solid var(--line); }
+  .ring-total { background: var(--sky); color: var(--navy); border-radius: 16px; padding: 12px 14px; margin: 8px 0; }
+  .ring-total b { display: block; font-size: 22px; }
+  .ring-bar { height: 8px; background: var(--sky); border-radius: 999px; overflow: hidden; margin: 12px 0; }
+  .ring-bar i { display: block; height: 100%; background: var(--blue); border-radius: 999px; transition: width .25s linear; }
+  .ring-acts { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+  .ring-acts .btn { min-height: 68px; font-size: 20px; }
+  .taken-msg { background: var(--bad-bg); color: var(--bad); border-radius: 16px; padding: 18px; text-align: center; font-size: 22px; font-weight: 900; }
+  .ring.taken .ring-pay b { color: var(--ink-3); text-decoration: line-through; }
+  .bundle-h { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .cktabs { display: flex; gap: 6px; overflow-x: auto; margin: 8px 0 12px; }
+  .cktabs button { flex: 0 0 auto; min-height: 48px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); font-weight: 800; padding: 0 12px; }
+  .cktabs button[aria-selected="true"] { border-color: var(--navy); background: var(--navy); color: #fff; }
+  .cktabs button.ok { border-color: var(--ok); }
+  .cktabs button.bad { border-color: var(--bad); }
+  .item { display: grid; grid-template-columns: 76px 1fr; gap: 12px; padding: 12px; margin: 0 0 10px; }
+  .item img { width: 76px; height: 76px; border-radius: 12px; object-fit: cover; background: var(--sky); }
+  .item .t { font-weight: 800; line-height: 1.25; }
+  .item .btn { grid-column: 1 / -1; }
+  .private { padding: 14px; margin: 12px 0; border-left: 6px solid var(--blue); }
+  .private h2 { margin: 0 0 8px; font-size: 14px; letter-spacing: .1em; color: var(--ink-3); }
+  .private dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+  .private dt { font-weight: 800; color: var(--ink-2); }
+  .private dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+  .money { text-align: center; padding: 22px 16px; margin: 6px 0 12px; }
+  .money b { display: block; font-size: 48px; letter-spacing: -.03em; line-height: 1.05; }
+  .quote { border-radius: 16px; padding: 12px 14px; margin: 10px 0; background: var(--sky); color: var(--navy); }
+  .quote .ln { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; padding: 3px 0; }
+  .quote .ln.net { font-size: 20px; font-weight: 900; border-top: 1px solid rgba(10,31,68,.15); margin-top: 4px; padding-top: 8px; }
+  .quote.err { background: var(--bad-bg); color: var(--bad); }
+  .hist { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 14px; margin: 0 0 8px; }
+  .hist b { display: block; }
 </style>
 </head>
 <body>
@@ -213,6 +281,7 @@
   <button data-tab="midia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9h-9z" fill="currentColor" stroke="none"/></svg>Mi día</button>
   <button data-tab="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>Equipo</button>
   <button data-tab="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>Buscar</button>
+  <button data-tab="pagos" id="tabPagos" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10.5h19M7 15h4"/></svg>Pagos</button>
 </nav>
 
 <div id="toast" class="toast" role="status"></div>
@@ -220,6 +289,7 @@
 
 <script type="module">
 import * as C from "/assets/agent/agent-core.js";
+import * as D from "/assets/agent/dispatch-core.js";
 import { loadDemoDay, resetDemoDay, saveDay, loadDay, onDayChange, DEMO_KEY, loadFx, rememberSession, lastSession } from "/assets/agent/agent-store.js";
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -253,6 +323,11 @@ async function boot() {
     res = { status: r.status, body: await r.json().catch(() => ({})) };
   } catch { res = null; } // no signal (or no functions on a bare static server)
   const last = lastSession();
+  const wantDemo = DEMO_OK && new URLSearchParams(location.search).has("demo");
+  /* Danny (admin) is on the launch roster: on this page he is a buyer too. */
+  if (res && res.status === 200 && res.body.role === "admin" && res.body.agentId && !wantDemo) {
+    res.body = { ...res.body, role: "agent", orders: [], history: [], accounts: [], chat: [] };
+  }
   if (res && res.status === 200 && res.body.role === "agent") {
     const live = res.body;
     S.mode = "live"; S.agentId = live.agentId; S.key = "aria-compradores-live-" + live.agentId + "-" + live.date;
@@ -283,6 +358,11 @@ async function boot() {
   render();
   loadFx().then((fx) => { S.fx = fx; render(); });
   registerWorker();
+  if (S.mode === "live") {
+    $("#tabPagos").hidden = false;
+    DX.mine = S.day.dispatchMine || []; DX.ledger = S.day.dispatchLedger || null; DX.cfg = S.day.dispatchCfg || null;
+    if (sh && sh.clockIn && !sh.clockOut) startDispatch();
+  }
   window.addEventListener("online", sync);
   window.addEventListener("offline", paintSync);
   setInterval(sync, 15000);
@@ -324,8 +404,21 @@ async function sync() {
   try {
     let ids = [];
     if (S.mode === "live") {
-      const r = await fetch("/.netlify/functions/agent-queue", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ events: pending }) });
-      if (r.ok) ids = (await r.json()).accepted || [];
+      /* Dispatch events (a store checkout bought / an exception) go to the
+         dispatch endpoint; Phase 1's go where they always went. */
+      const dx = pending.filter((e) => DISPATCH_TYPES.has(e.type)), q = pending.filter((e) => !DISPATCH_TYPES.has(e.type));
+      if (q.length) {
+        const r = await fetch("/.netlify/functions/agent-queue", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ events: q }) });
+        if (r.ok) ids = (await r.json()).accepted || [];
+      }
+      if (dx.length) {
+        const r = await dxPost({ action: "events", events: dx });
+        if (r.status === 200) {
+          ids = ids.concat(r.body.accepted || []);
+          /* Refused for good (not a dropped signal): stop resending, and say why. */
+          for (const x of r.body.rejected || []) if ([400, 403, 404, 409].includes(x.code)) { ids.push(x.id); toast("No se registró: " + x.error); }
+        }
+      }
     } else {
       /* Demo: there is no server record; a round trip to this site stands in for one. */
       const r = await fetch("/assets/agent/agent-core.js?sync=" + Date.now(), { method: "HEAD", cache: "no-store" });
@@ -339,18 +432,20 @@ async function sync() {
 /* ---------------- render ---------------- */
 function render() {
   const app = $("#app");
-  $("#tabs").hidden = S.mode === "gate" || S.view === "in" || S.view === "focus" || S.view === "summary";
+  $("#tabs").hidden = S.mode === "gate" || S.view === "in" || S.view === "focus" || S.view === "summary" || S.view === "bundle";
   $("#whoTop").textContent = S.agentId && S.day && me() ? me().name : "";
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
   if (S.mode === "gate") app.innerHTML = viewGate();
   else if (S.view === "in") app.innerHTML = viewIn();
   else if (S.view === "focus") app.innerHTML = viewFocus();
   else if (S.view === "summary") app.innerHTML = viewSummary();
+  else if (S.view === "bundle") app.innerHTML = viewBundle();
+  else if (S.tab === "pagos") app.innerHTML = viewPagos();
   else if (S.tab === "midia") app.innerHTML = viewMiDia();
   else if (S.tab === "chat") app.innerHTML = viewChat();
   else if (S.tab === "buscar") app.innerHTML = viewSearch();
   else app.innerHTML = viewHome();
-  if (S.view !== "focus" || S.mode === "gate") $("#layer .dock")?.remove();
+  if ((S.view !== "focus" && S.view !== "bundle") || S.mode === "gate") $("#layer .dock")?.remove();
   paintSync();
   wire();
 }
@@ -417,7 +512,15 @@ const isPending = (orderId) => C.pendingEvents(S.day).some((e) => e.orderId === 
 
 function viewHome() {
   const s = S.day.shifts[S.agentId];
-  if (s && s.onBreak) return shiftBar() + pausedCard();
+  if (s && s.onBreak) return shiftBar() + pausedCard() + (S.mode === "live" ? dxSection() : "");
+  if (S.mode === "live" && !S.day.orders.some((o) => o.assignedTo === S.agentId)) {
+    return shiftBar() + dxSection() + `<button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>`;
+  }
+  if (S.mode === "live") return shiftBar() + dxSection() + viewHomePhase1();
+  return viewHomePhase1();
+}
+function viewHomePhase1() {
+  const s = S.day.shifts[S.agentId];
   const groups = C.porComprarByStore(S.day, S.agentId);
   const bought = C.compradas(S.day, S.agentId);
   const pend = groups.reduce((n, g) => n + g.orders.length, 0);
@@ -439,7 +542,7 @@ function viewHome() {
       <div><div class="t">${esc(o.title)}</div><div class="s">${esc(o.storeLabel)} · pedido ${esc(o.retailerOrderNumber)}</div><div class="tiny">${esc(C.dual(o.chargedTotalUsd, venta()))} · comprada a las ${hhmm(o.boughtAt)}</div>${isPending(o.orderId) ? '<div class="pend">Por sincronizar</div>' : ""}</div>
       <span class="tick">${ICON.check}</span></div>`).join("")
     : `<div class="empty card"><strong>Aquí van tus compras</strong>Cada pedido que compres pasa de Por comprar a esta lista.</div>`;
-  return shiftBar() + strip() + `
+  return (S.mode === "live" ? "" : shiftBar()) + strip() + `
     <div class="seg" role="tablist">
       <button role="tab" data-list="por" aria-selected="${S.list === "por"}">Por comprar<span class="n">${pend}</span></button>
       <button role="tab" data-list="comp" aria-selected="${S.list === "comp"}">Compradas<span class="n">${bought.length}</span></button>
@@ -706,7 +809,7 @@ function endShiftSheet() {
     <button class="btn big primary" data-out style="margin-top:14px">Marcar salida</button>
     <button class="btn big ghost" data-x style="margin-top:8px">Seguir trabajando</button>`, (el, close) => {
     el.querySelector("[data-x]").onclick = close;
-    el.querySelector("[data-out]").onclick = () => { C.clockOut(S.day, S.agentId, nowIso()); save(); close(); sync(); S.view = "summary"; render(); window.scrollTo(0, 0); };
+    el.querySelector("[data-out]").onclick = () => { C.clockOut(S.day, S.agentId, nowIso()); save(); close(); sync(); dxPoll(); S.view = "summary"; render(); window.scrollTo(0, 0); };
   });
 }
 
@@ -738,6 +841,388 @@ function goNext(next) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+
+/* ================= PHASE 2: LIVE DISPATCH =================
+   Short polling (there is no websocket): every few seconds while she is
+   clocked in. The poll carries her presence; the server decides whether
+   she is pinged (online, not on a break, not in focus mode, store
+   accounts with cap left). No signal: polls are skipped, her claimed
+   orders stay on the phone, completions wait in the same outbox. */
+const DX = { data: null, mine: [], ledger: null, cfg: null, me: null, popup: null, popTimer: null, timer: null, inflight: false, bundleId: null, ck: 0, sandbox: false, cardMode: null, cardTick: null };
+const DISPATCH_TYPES = new Set(["checkout_comprado", "checkout_excepcion"]);
+const PENDING = D.CHECKOUT.PENDING;
+function dxPresence() {
+  const s = (S.day && S.day.shifts[S.agentId]) || {};
+  return { clockedIn: Boolean(s.clockIn), clockedOut: Boolean(s.clockOut), onBreak: s.onBreak ? s.onBreak.kind : null, focus: S.view === "bundle" || S.view === "focus" };
+}
+async function dxPost(payload) {
+  const r = await fetch("/.netlify/functions/agent-dispatch", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  return { status: r.status, body: await r.json().catch(() => ({})) };
+}
+function startDispatch() {
+  if (S.mode !== "live" || DX.timer) return;
+  dxPoll();
+  DX.timer = setInterval(dxPoll, ((DX.cfg && DX.cfg.pollSeconds) || 4) * 1000);
+}
+async function dxPoll() {
+  if (S.mode !== "live" || DX.inflight || navigator.onLine === false || !S.day) return;
+  DX.inflight = true;
+  try {
+    const r = await dxPost({ action: "poll", ...dxPresence(), watching: DX.popup ? DX.popup.orderId : null });
+    if (r.status === 200) dxApply(r.body);
+  } catch { /* weak signal: next poll */ } finally { DX.inflight = false; }
+}
+/* Local moves not yet synced win over the server's older picture: the
+   outbox's dispatch events are replayed onto what the server sent, with
+   the same rules the server will apply when they arrive. */
+function replayPending(bundle) {
+  const pend = C.pendingEvents(S.day).filter((e) => DISPATCH_TYPES.has(e.type) && e.orderId === bundle.orderId);
+  if (!pend.length) return bundle;
+  const me = DX.me || S.agentId, cfg = DX.cfg || D.dispatchConfig();
+  const probe = { state: "CLAIMED", claimedBy: me, packet: structuredClone(bundle.packet), history: [], stateAt: {} };
+  for (const e of pend) {
+    const c = probe.packet.checkouts.find((x) => x.id === e.checkoutId);
+    if (!c || c.state !== PENDING) continue;
+    try {
+      if (e.type === "checkout_comprado") D.checkoutBought(probe, e.checkoutId, me, e.data || {}, e.at, cfg);
+      else D.checkoutException(probe, e.checkoutId, me, (e.data || {}).reason, e.at, (e.data || {}).note);
+    } catch { /* the server will say why */ }
+  }
+  return { ...bundle, packet: probe.packet };
+}
+function mergeMine(server) {
+  return (server || []).map(replayPending);
+}
+const bundleById = (id) => DX.mine.find((x) => x.orderId === id);
+function dxApply(b) {
+  DX.data = b; DX.cfg = b.config; DX.sandbox = b.sandbox; DX.cardMode = b.cardMode; DX.ledger = b.ledger; DX.me = b.me || DX.me;
+  DX.mine = mergeMine(b.mine);
+  Object.assign(S.day, { dispatchMine: DX.mine, dispatchLedger: b.ledger, dispatchCfg: b.config });
+  saveDay(S.day, S.key);
+  if (DX.popup) {
+    const w = b.watch;
+    if (w && w.orderId === DX.popup.orderId && (w.takenByOther || (w.state && w.state !== "CLAIMABLE" && !w.mine))) popupTaken();
+  } else if (b.ping && !$(".sheet-back")) showPopup(b.ping);
+  softRender();
+}
+/* Re-paint what the poll changed without wiping what she is typing. */
+function softRender() {
+  if (S.view !== "home" || $(".sheet-back")) return;
+  if (S.tab === "lista") { const el = $("#dxSection"); if (el) { const tmp = document.createElement("div"); tmp.innerHTML = dxSection(); if (tmp.firstElementChild.outerHTML !== el.outerHTML) { el.replaceWith(tmp.firstElementChild); wireDispatch(); } } }
+  else if (S.tab === "pagos" && !(document.activeElement && document.activeElement.matches("input"))) render();
+}
+
+function dxSection() {
+  const av = DX.data && DX.data.availability;
+  const s = S.day.shifts[S.agentId] || {};
+  const status = s.onBreak ? `En pausa (${esc(s.onBreak.label)}): no te llegan pedidos`
+    : !DX.data ? (navigator.onLine === false ? "Sin señal: los pedidos nuevos llegan cuando vuelva" : "Conectando...")
+    : av && av.ok ? "Recibiendo pedidos" : av && av.reason === "enfocada" ? "Comprando: no te llegan pedidos nuevos" : "No estás recibiendo pedidos";
+  const on = Boolean(av && av.ok && !s.onBreak);
+  const open = DX.mine.filter((b) => b.packet.checkouts.some((c) => c.state === PENDING));
+  const done = DX.mine.filter((b) => !b.packet.checkouts.some((c) => c.state === PENDING));
+  const card = (b) => {
+    const cs = b.packet.checkouts, n = cs.filter((c) => c.state !== PENDING).length;
+    return `<div class="card bundle-card"><h3>Pedido de ${esc(b.customerName)}</h3>
+      <div class="tiny">${n} de ${cs.length} ${cs.length === 1 ? "compra" : "compras"} hechas · ${esc(D.payText(cs.length * ((DX.cfg && DX.cfg.payPerCheckoutPen) ?? 1)))}</div>
+      <div class="chips">${cs.map((c) => `<span class="pill ${c.state === "BOUGHT" ? "ok" : c.state === "EXCEPTION" ? "bad" : ""}">${esc(c.storeLabel)}</span>`).join("")}</div>
+      ${cs.some((c) => c.state === PENDING) ? `<button class="btn big primary" data-bundle="${esc(b.orderId)}">Abrir el pedido ${ICON.arrow}</button>` : ""}</div>`;
+  };
+  return `<section id="dxSection">
+    <div class="card dx-status ${on ? "on" : "off"}"><i></i><span>${status}</span>${DX.sandbox ? '<span class="sb">SANDBOX</span>' : ""}</div>
+    ${open.length ? `<h2 style="font-size:18px;margin:6px 0 8px">Tus pedidos tomados</h2>${open.map(card).join("")}` : `<div class="empty card" style="margin-bottom:12px"><strong>Esperando pedidos</strong>Cuando entre uno, aparece aquí con su tiempo para aceptarlo.</div>`}
+    ${done.length ? `<h2 style="font-size:16px;margin:12px 0 8px;color:var(--ink-2)">Terminados hoy</h2>${done.map(card).join("")}` : ""}
+  </section>`;
+}
+
+/* ---------- the pop-up ---------- */
+function showPopup(p) {
+  closePopup();
+  if (navigator.vibrate) try { navigator.vibrate([180, 80, 180]); } catch { /* not allowed */ }
+  DX.popup = { ...p, endsAt: Date.now() + p.secondsLeft * 1000, total: Math.max(1, p.secondsLeft) };
+  const el = document.createElement("div");
+  el.className = "ring-back"; el.id = "ringPop";
+  el.innerHTML = `<div class="ring" role="alertdialog" aria-modal="true" aria-labelledby="ringH" data-order="${esc(p.orderId)}">
+    <div class="ring-top"><span class="ring-live"><i></i>Pedido nuevo</span>${p.sandbox || DX.sandbox ? '<span class="sb">SANDBOX</span>' : ""}<span class="ring-count" id="ringCount" aria-label="segundos">${p.secondsLeft}</span></div>
+    <h2 id="ringH">${esc(p.header)}</h2>
+    <div class="ring-pay"><b id="ringPay">${esc(p.headline)}</b><span id="ringSub">${esc(p.sub)}</span></div>
+    <div class="chips">${p.stores.map((s) => `<span class="pill">${esc(s)}</span>`).join("")}</div>
+    <div class="strip-photos">${p.photos.map((u) => `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer">`).join("")}</div>
+    <div class="ring-total"><span class="tiny">${esc(p.itemText)} · total a comprar</span><b id="ringTotal">${esc(C.dual(p.totalUsd, venta()))}</b></div>
+    <div class="ring-bar"><i id="ringBar" style="width:100%"></i></div>
+    <div class="ring-acts" id="ringActs"><button class="btn big ghost" id="ringPass">Pasar</button><button class="btn big ok" id="ringAccept">ACEPTAR</button></div>
+  </div>`;
+  document.body.appendChild(el);
+  el.querySelector("#ringAccept").onclick = acceptPopup;
+  el.querySelector("#ringPass").onclick = passPopup;
+  const tick = () => {
+    if (!DX.popup) return;
+    const left = Math.max(0, Math.ceil((DX.popup.endsAt - Date.now()) / 1000));
+    const c = $("#ringCount"), bar = $("#ringBar");
+    if (c) c.textContent = left;
+    if (bar) bar.style.width = Math.max(0, Math.min(100, (left / DX.popup.total) * 100)) + "%";
+    if (left <= 0 && !DX.popup.taken) { closePopup(); toast("Se acabó el tiempo de ese pedido"); }
+  };
+  DX.popTimer = setInterval(tick, 250);
+}
+function closePopup() {
+  if (DX.popTimer) { clearInterval(DX.popTimer); DX.popTimer = null; }
+  DX.popup = null;
+  document.querySelectorAll("#ringPop").forEach((x) => x.remove());
+}
+function popupTaken() {
+  if (!DX.popup || DX.popup.taken) return;
+  DX.popup.taken = true;
+  if (DX.popTimer) { clearInterval(DX.popTimer); DX.popTimer = null; }
+  const r = $("#ringPop .ring");
+  if (r) { r.classList.add("taken"); $("#ringActs").outerHTML = `<div class="taken-msg" id="ringTaken">Otra compradora lo tomó</div>`; $("#ringCount").textContent = ""; }
+  setTimeout(closePopup, 2600);
+}
+async function acceptPopup() {
+  const p = DX.popup; if (!p) return;
+  document.querySelectorAll("#ringActs button").forEach((b) => b.disabled = true);
+  try {
+    const r = await dxPost({ action: "claim", orderId: p.orderId });
+    if (r.status === 200) {
+      closePopup();
+      DX.mine = [r.body.order, ...DX.mine.filter((b) => b.orderId !== p.orderId)];
+      S.day.dispatchMine = DX.mine; save();
+      toast("Es tuyo: " + p.header);
+      openBundle(p.orderId);
+    } else if (r.body.taken) popupTaken();
+    else { toast(r.body.error || "No se pudo aceptar"); closePopup(); }
+  } catch { toast("Sin señal: no se pudo aceptar"); closePopup(); }
+}
+async function passPopup() {
+  const p = DX.popup; if (!p) return;
+  closePopup();
+  toast("Pasaste este pedido. Queda en tu historial.");
+  try { await dxPost({ action: "pass", orderId: p.orderId }); } catch { /* the ring ends anyway */ }
+}
+
+/* ---------- a claimed order: one store checkout after another ---------- */
+function openBundle(orderId) {
+  const b = DX.mine.find((x) => x.orderId === orderId);
+  if (!b) return;
+  DX.bundleId = orderId;
+  const i = b.packet.checkouts.findIndex((c) => c.state === PENDING);
+  DX.ck = i < 0 ? 0 : i;
+  S.view = "bundle"; render(); window.scrollTo(0, 0);
+  dxPoll(); // focus mode: she stops being pinged at once
+}
+function viewBundle() {
+  const b = DX.mine.find((x) => x.orderId === DX.bundleId);
+  if (!b) { S.view = "home"; return viewHome(); }
+  const cs = b.packet.checkouts;
+  const c = cs[Math.min(DX.ck, cs.length - 1)];
+  const pv = b.packet.private || {};
+  const items = c.items.map((it) => `<div class="card item">
+      <img src="${esc(it.image || "")}" alt="" referrerpolicy="no-referrer">
+      <div><div class="t">${esc(it.title)}</div>
+        <div class="tiny">Talla ${esc(it.selectedSize || "no aplica")} · ${it.color ? "Color " + esc(it.color) : "Color: el de la foto"} · Cantidad ${it.qty}</div>
+        <div class="tiny">Hasta ${esc(C.dual(it.ceilingUsd, venta()))}</div></div>
+      ${c.state === PENDING ? (it.url ? `<a class="btn gold" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-buy="${esc(c.id)}">COMPRAR ${ICON.ext}</a>` : `<div class="ojo" style="grid-column:1/-1;margin:0">Sin link guardado (${esc(it.linkProblem || "falta")}). Danny lo agrega desde su tablero, o usa Problema: «Link caído».</div>`) : ""}
+    </div>`).join("");
+  const doneCard = c.state === "BOUGHT"
+    ? `<div class="card" style="padding:14px;background:var(--ok-bg);color:var(--ok);font-weight:800">Comprada: pedido ${esc(c.retailerOrderNumber)} · ${esc(C.dual(c.chargedTotalUsd, venta()))}</div>`
+    : c.state === "EXCEPTION" ? `<div class="card" style="padding:14px;background:var(--bad-bg);color:var(--bad);font-weight:800">Enviada a Danny: ${esc(c.reasonLabel)}</div>` : "";
+  setTimeout(() => dxDock(b, c), 0);
+  return `<div class="focus slide-in">
+    <div class="bundle-h"><button class="btn small ghost" id="back">${ICON.back} Lista</button>${b.sandbox || DX.sandbox ? '<span class="sb">SANDBOX</span>' : ""}</div>
+    <h1 style="margin:4px 0 2px">Pedido de ${esc(b.customerName)}</h1>
+    <div class="tiny">${cs.length} ${cs.length === 1 ? "compra" : "compras"} · ${b.packet.itemCount} ${b.packet.itemCount === 1 ? "artículo" : "artículos"} · ${esc(b.orderId)}</div>
+    <div class="cktabs" role="tablist">${cs.map((x, i) => `<button role="tab" data-ck="${i}" aria-selected="${x.id === c.id}" class="${x.state === "BOUGHT" ? "ok" : x.state === "EXCEPTION" ? "bad" : ""}">${i + 1}. ${esc(x.storeLabel)}${x.state === "BOUGHT" ? " · lista" : x.state === "EXCEPTION" ? " · problema" : ""}</button>`).join("")}</div>
+    <h2 style="font-size:21px;margin:4px 0 8px">Compra ${c.n} de ${cs.length}: ${esc(c.storeLabel)}</h2>
+    ${doneCard}
+    ${items}
+    ${c.state === PENDING ? `<div class="rule"><strong>SIN SUSTITUTOS</strong>Si no está exacto (modelo, color, talla), no compres otro parecido. Usa Problema.</div>
+    <div class="ceiling" id="ceiling">${esc(C.ceilingSentence(c.budgetUsd, venta()))}</div>
+    <p class="fxnote">${S.fx ? `Soles al tipo de cambio ${esc(S.fx.origen || "SUNAT")} venta ${Number(S.fx.venta).toFixed(3)}${S.fx.fecha ? " del " + esc(S.fx.fecha) : ""}.` : "Tipo de cambio no disponible ahora: los soles no se muestran."}</p>` : ""}
+    <section class="card almacen" aria-label="Almacén"><h2>ALMACEN · ENVIAR A</h2><pre id="almacenText">${esc(b.packet.almacen.join("\n"))}</pre>
+      <button class="btn big ghost" id="copyAlmacen">${ICON.copy} Copiar dirección</button></section>
+    <section class="card private" aria-label="Datos del cliente"><h2>DATOS DEL CLIENTE · SOLO EN ESTA PANTALLA</h2>
+      <dl><dt>Nombre</dt><dd>${esc(b.customerName)}</dd><dt>DNI</dt><dd>${esc(pv.dni || "No registrado")}</dd><dt>Dirección</dt><dd>${esc(pv.address || "No registrada")}</dd><dt>Teléfono</dt><dd>${esc(pv.phone || "No registrado")}</dd></dl></section>
+    ${c.state === PENDING ? dxCard(c) : ""}
+  </div>`;
+}
+const cardKey = (c) => "dx:" + c.id;
+function dxCard(c) {
+  if (c.cardError) return `<div class="errors"><p>La tarjeta de esta compra no se emitió: ${esc(c.cardError)}. Avísale a Danny.</p></div>`;
+  if (!c.card) return `<div class="hidden-card" style="margin:12px 0"><strong>Emitiendo la tarjeta de esta compra...</strong></div>`;
+  const shown = S.day.cards[cardKey(c)];
+  const now = nowIso();
+  const head = `<h2 style="font-size:18px;margin:16px 0 8px">Tarjeta Aria de esta compra</h2>`;
+  if (!shown) return head + `<button class="btn big primary" data-reveal="${esc(c.id)}">${ICON.card} Mostrar tarjeta</button><p class="tiny">Se muestra una sola vez, por 10 minutos. Monto fijo ${esc(C.dual(c.card.spendLimitUsd, venta()))}, solo en ${esc(c.card.merchant)}.</p>`;
+  if (!C.cardVisible(shown, now)) return head + `<div class="hidden-card"><strong style="font-size:19px;display:block;margin-bottom:6px">Tarjeta oculta</strong><span class="muted">Se mostró una sola vez. Si no alcanzaste a pagar, usa Problema: «La tarjeta no pasó».</span></div>`;
+  const sec = C.cardSecondsLeft(shown, now);
+  return head + `<div class="vcard"><span class="sb">${esc(c.card.mode || DX.cardMode || "SANDBOX")}</span>
+      <div style="font-weight:900;letter-spacing:.06em">ARIA <span style="color:var(--gold)">·</span> una compra</div>
+      <div class="pan">•••• •••• •••• ${esc(c.card.last4 || "0000")}</div>
+      <div class="row2"><div>Vence<b>${esc(c.card.expMonth || "00")}/${esc(String(c.card.expYear || "00").slice(-2))}</b></div><div>Tienda<b>${esc(c.card.merchant)}</b></div></div></div>
+    <p class="tiny" style="margin:8px 0 0">${c.card.fake ? "Tarjeta de prueba (sandbox): no es un número real y no cobra." : "El número completo se ve solo en la tarjeta del programa, nunca en esta página."}</p>
+    <div class="locks"><div><b>Monto fijo</b><span>${C.usd(c.card.spendLimitUsd)}</span><small>${C.penOf(c.card.spendLimitUsd, venta()) == null ? C.PEN_UNAVAILABLE : C.pen(C.penOf(c.card.spendLimitUsd, venta()))}</small></div><div><b>Solo en</b><span>${esc(c.card.merchant)}</span></div></div>
+    <div class="timer"><div><div class="mm" data-hides="${esc(shown.hidesAt)}">${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}</div><div class="tiny">Se oculta sola. Se muestra una sola vez.</div></div></div>`;
+}
+function dxDock(b, c) {
+  let d = $("#layer .dock");
+  if (S.view !== "bundle") return;
+  if (!d) { d = document.createElement("div"); d.className = "dock"; $("#layer").appendChild(d); }
+  if (c.state !== PENDING) {
+    const next = b.packet.checkouts.findIndex((x) => x.state === PENDING);
+    d.innerHTML = `<button class="btn ghost" id="dxHome">${ICON.back} Lista</button>${next >= 0 ? `<button class="btn primary primary-act" id="dxNext">Siguiente compra ${ICON.arrow}</button>` : `<button class="btn ok primary-act" id="dxHome2">${ICON.done} Pedido terminado</button>`}`;
+    const n = $("#dxNext"); if (n) n.onclick = () => { DX.ck = next; render(); window.scrollTo(0, 0); };
+    ["#dxHome", "#dxHome2"].forEach((id) => { const x = $(id); if (x) x.onclick = () => { S.view = "home"; S.tab = "lista"; render(); dxPoll(); }; });
+    return;
+  }
+  d.innerHTML = `<button class="btn second-bad" id="problem">${ICON.alert} Problema</button><button class="btn ok primary-act" id="done">${ICON.done} Ya pagué</button>`;
+  $("#problem").onclick = () => dxProblemSheet(b, c);
+  $("#done").onclick = () => dxCompleteSheet(b, c);
+}
+function dxAfter(b) {
+  if (!b) { S.view = "home"; render(); return; }
+  const next = b.packet.checkouts.findIndex((x) => x.state === PENDING);
+  if (next >= 0) { DX.ck = next; render(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  S.view = "home"; S.tab = "lista"; render(); window.scrollTo(0, 0); dxPoll();
+}
+function dxCompleteSheet(b, c) {
+  sheet(`<h2>Registrar compra</h2><p class="muted" style="margin:0">${esc(c.storeLabel)} · Pedido de ${esc(b.customerName)}</p>
+    <p class="tiny" style="margin:4px 0 0">Tope de esta compra: ${esc(C.dual(c.budgetUsd, venta()))}</p>
+    <form id="cf" novalidate>
+      <label class="field"><span>Número de pedido de la tienda</span><input name="num" autocomplete="off"></label>
+      <label class="field"><span>Total cobrado (USD)</span><input name="total" inputmode="decimal" placeholder="Ej. ${c.totalUsd.toFixed(2)}"></label>
+      <div class="field"><span>Captura de la confirmación</span>
+        <label class="btn big ghost shotpick"><input name="shot" type="file" accept="image/*" class="sr"><span id="shotName">Subir captura</span></label></div>
+      <div id="cfErr"></div>
+      <button class="btn big ok" type="submit">Marcar como comprada</button>
+    </form>`, (el, close) => {
+    const shotIn = el.querySelector('[name="shot"]');
+    shotIn.onchange = () => { const f = shotIn.files && shotIn.files[0]; el.querySelector("#shotName").textContent = f ? "Captura: " + f.name : "Subir captura"; };
+    el.querySelector("#cf").onsubmit = (e) => {
+      e.preventDefault();
+      const f = e.target, file = f.shot.files && f.shot.files[0], now = nowIso();
+      const input = { retailerOrderNumber: f.num.value, chargedTotalUsd: f.total.value, screenshot: file ? { name: file.name, size: file.size } : null };
+      /* The server's rule, run here first, so the phone never queues what the server would refuse. */
+      const me = DX.me || S.agentId;
+      const probe = { state: "CLAIMED", claimedBy: me, packet: structuredClone((bundleById(b.orderId) || b).packet), history: [], stateAt: {} };
+      try { D.checkoutBought(probe, c.id, me, input, now, DX.cfg || D.dispatchConfig()); }
+      catch (err) { el.querySelector("#cfErr").innerHTML = `<div class="errors">${(err.errors || [err.message]).map((x) => `<p>${esc(x)}</p>`).join("")}</div>`; return; }
+      C.queueEvent(S.day, { type: "checkout_comprado", orderId: b.orderId, checkoutId: c.id, agentId: S.agentId, at: now, data: input });
+      DX.mine = DX.mine.map((x) => (x.orderId === b.orderId ? replayPending(x) : x));
+      S.day.dispatchMine = DX.mine; save(); close(); sync();
+      toast(`Comprada: ${c.storeLabel}. Ganaste ${D.payText((DX.cfg && DX.cfg.payPerCheckoutPen) ?? 1)}.`);
+      dxAfter(bundleById(b.orderId));
+    };
+  });
+}
+function dxProblemSheet(b, c) {
+  sheet(`<h2>¿Qué pasó en ${esc(c.storeLabel)}?</h2><p class="muted" style="margin:0">Esta compra se va a Danny con el motivo. Tú sigues con las otras tiendas del pedido.</p>
+    <div class="presets">${C.PROBLEM_PRESETS.concat([C.LINK_DOWN]).map((p) => `<button class="btn" data-p="${p.id}">${ICON.alert} ${esc(p.label)}</button>`).join("")}</div>
+    <button class="btn big ghost" data-x>Cancelar</button>`, (el, close) => {
+    el.querySelector("[data-x]").onclick = close;
+    el.querySelectorAll("[data-p]").forEach((btn) => btn.onclick = () => {
+      const now = nowIso(), me = DX.me || S.agentId;
+      const probe = { state: "CLAIMED", claimedBy: me, packet: structuredClone((bundleById(b.orderId) || b).packet), history: [], stateAt: {} };
+      try { D.checkoutException(probe, c.id, me, btn.dataset.p, now); } catch (err) { toast(err.message); return; }
+      C.queueEvent(S.day, { type: "checkout_excepcion", orderId: b.orderId, checkoutId: c.id, agentId: S.agentId, at: now, data: { reason: btn.dataset.p } });
+      DX.mine = DX.mine.map((x) => (x.orderId === b.orderId ? replayPending(x) : x));
+      S.day.dispatchMine = DX.mine; save(); close(); sync();
+      toast(`Enviado a Danny: ${c.storeLabel}`);
+      dxAfter(bundleById(b.orderId));
+    });
+  });
+}
+
+/* ---------- Pagos: balance, cash-out (fee and net first), history ---------- */
+const mask = (s, keep = 3) => { const t = String(s || ""); return t ? "•••• " + t.slice(-keep) : ""; };
+function quoteHtml(q) {
+  if (!q) return "";
+  if (!q.ok) return `<div class="quote err" id="dxQuote">${q.errors.map((e) => `<div>${esc(e)}</div>`).join("")}</div>`;
+  return `<div class="quote" id="dxQuote">
+    <div class="ln"><span>Retiras</span><span>${C.pen(q.grossPen)}</span></div>
+    <div class="ln"><span>Comisión</span><span>- ${C.pen(q.feePen)}</span></div>
+    <div class="ln net"><span>Recibes</span><span id="dxNet">${C.pen(q.netPen)}</span></div>
+    <div class="tiny" style="color:inherit">${q.channel === "cci" ? "A tu cuenta CCI" : "A tu Yape o Plin"}${q.channelReason ? ". " + esc(q.channelReason) : ""}</div></div>`;
+}
+function viewPagos() {
+  const L = DX.ledger || S.day.dispatchLedger, cfg = DX.cfg || S.day.dispatchCfg;
+  if (!L || !cfg) return `<h1 style="margin:4px 0 10px;font-size:26px">Pagos</h1><div class="empty card"><strong>Cargando tu saldo</strong>Necesita señal la primera vez.</div>`;
+  const reg = L.registration;
+  const amt = DX.amount != null ? DX.amount : L.balancePen;
+  const q = reg ? D.cashoutQuote(L.ledger, amt, cfg, nowIso()) : null;
+  const statusPill = (p) => `<span class="pill ${p.status === "confirmado" ? "ok" : p.status === "solicitado" ? "warn" : ""}">${esc(D.PAYOUT_STATUS_LABELS[p.status] || p.status)}</span>`;
+  return `<h1 style="margin:4px 0 10px;font-size:26px">Pagos</h1>
+    <div class="card money"><span class="muted">Tu saldo</span><b id="dxBalance">${C.pen(L.balancePen)}</b>
+      <span class="tiny">${esc(D.payText(cfg.payPerCheckoutPen))} por compra confirmada · ${L.ledger.earnings.length} ${L.ledger.earnings.length === 1 ? "compra" : "compras"} · comisiones pagadas ${C.pen(L.feesPen)}</span></div>
+    ${reg ? `<form class="card" id="cashForm" style="padding:14px">
+        <label class="field" style="margin-top:0"><span>Monto a retirar (S/)</span><input name="amt" id="dxAmt" inputmode="decimal" value="${esc(String(amt))}"></label>
+        ${quoteHtml(q)}
+        <button class="btn big ok" type="submit" id="dxCash" ${q && q.ok ? "" : "disabled"}>Retirar</button>
+        <p class="tiny" style="margin:8px 0 0">Mínimo ${esc(D.payText(cfg.cashoutMinPen))}. Comisión ${esc(D.payText(cfg.cashoutFeePen))} por retiro, se descuenta del monto. Puedes retirar cualquier día, varias veces. Lo que no retires se va cada semana a tu cuenta CCI.</p>
+        <p class="tiny" style="margin:6px 0 0">Yape o Plin: ${esc(mask(reg.yape))} · CCI: ${esc(mask(reg.cci, 4))}</p>
+      </form>`
+    : `<form class="card" id="regForm" style="padding:14px"><h2 style="margin:0 0 4px;font-size:19px">Registra dónde te pagamos</h2>
+        <label class="field"><span>Número de Yape o Plin</span><input name="yape" inputmode="tel" autocomplete="tel" placeholder="9 dígitos"></label>
+        <label class="field"><span>Cuenta CCI (20 dígitos)</span><input name="cci" inputmode="numeric" autocomplete="off"></label>
+        <div id="regErr"></div><button class="btn big primary" type="submit">Guardar</button></form>`}
+    <h2 style="font-size:18px;margin:18px 0 8px">Tus retiros</h2>
+    ${L.payouts.length ? L.payouts.map((p) => `<div class="card hist"><div><b>${C.pen(p.netPen)} ${p.channel === "cci" ? "a CCI" : "a Yape"}</b><span class="tiny">${esc(String(p.requestedAt).slice(0, 10))} ${hhmm(p.requestedAt)} · retiro ${C.pen(p.grossPen)} · comisión ${C.pen(p.feePen)}${p.kind === "barrido" ? " · semanal" : ""}</span></div>${statusPill(p)}</div>`).join("") : '<p class="tiny">Todavía no retiraste.</p>'}
+    <h2 style="font-size:18px;margin:18px 0 8px">Lo que ganaste</h2>
+    ${L.earnings.length ? L.earnings.map((e) => `<div class="card hist"><div><b>Pedido de ${esc(e.customerName)}</b><span class="tiny">${esc(e.store)} · ${esc(String(e.at).slice(0, 10))} ${hhmm(e.at)}</span></div><b>+ ${esc(D.payText(e.amountPen))}</b></div>`).join("") : '<p class="tiny">Cada compra confirmada suma aquí.</p>'}`;
+}
+
+function wireDispatch() {
+  document.querySelectorAll("[data-bundle]").forEach((b) => b.onclick = () => openBundle(b.dataset.bundle));
+  document.querySelectorAll("[data-ck]").forEach((b) => b.onclick = () => { DX.ck = Number(b.dataset.ck); render(); });
+  document.querySelectorAll("[data-reveal]").forEach((b) => b.onclick = () => {
+    const now = nowIso();
+    S.day.cards["dx:" + b.dataset.reveal] = { revealedAt: now, hidesAt: new Date(Date.parse(now) + C.CARD_REVEAL_MS).toISOString(), closedAt: null };
+    save(); render();
+  });
+  const amt = $("#dxAmt");
+  if (amt) amt.oninput = () => {
+    const L = DX.ledger || S.day.dispatchLedger, cfg = DX.cfg || S.day.dispatchCfg;
+    DX.amount = Number(String(amt.value).replace(",", "."));
+    const q = D.cashoutQuote(L.ledger, DX.amount, cfg, nowIso());
+    $("#dxQuote").outerHTML = quoteHtml(q);
+    $("#dxCash").disabled = !q.ok;
+  };
+  const cf = $("#cashForm");
+  if (cf) cf.onsubmit = (e) => {
+    e.preventDefault();
+    const L = DX.ledger || S.day.dispatchLedger, cfg = DX.cfg || S.day.dispatchCfg;
+    const q = D.cashoutQuote(L.ledger, Number(String(cf.amt.value).replace(",", ".")), cfg, nowIso());
+    if (!q.ok) return;
+    sheet(`<h2>Confirmar retiro</h2>${quoteHtml(q)}<button class="btn big ok" data-go>Confirmar: recibes ${C.pen(q.netPen)}</button><button class="btn big ghost" data-x style="margin-top:8px">Cancelar</button>`, (el, close) => {
+      el.querySelector("[data-x]").onclick = close;
+      el.querySelector("[data-go]").onclick = async () => {
+        el.querySelector("[data-go]").disabled = true;
+        try {
+          const r = await dxPost({ action: "cashout", amountPen: q.grossPen });
+          if (r.status !== 200) { toast(r.body.error || "No se pudo"); close(); return; }
+          DX.ledger = r.body.ledger; S.day.dispatchLedger = DX.ledger; DX.amount = null; save(); close();
+          toast(`Retiro solicitado: recibes ${C.pen(q.netPen)}`); render();
+        } catch { toast("Sin señal: intenta de nuevo"); close(); }
+      };
+    });
+  };
+  const rf = $("#regForm");
+  if (rf) rf.onsubmit = async (e) => {
+    e.preventDefault();
+    const v = D.validateRegistration({ yape: rf.yape.value, cci: rf.cci.value });
+    if (!v.ok) { $("#regErr").innerHTML = `<div class="errors">${v.errors.map((x) => `<p>${esc(x)}</p>`).join("")}</div>`; return; }
+    const r = await dxPost({ action: "register", yape: v.yape, cci: v.cci }).catch(() => null);
+    if (!r || r.status !== 200) { toast((r && r.body.error) || "Sin señal"); return; }
+    DX.ledger = r.body.ledger; S.day.dispatchLedger = DX.ledger; save(); toast("Guardado"); render();
+  };
+}
+/* The card's ten-minute clock, without re-painting the page every second. */
+setInterval(() => {
+  document.querySelectorAll("[data-hides]").forEach((el) => {
+    const sec = Math.max(0, Math.ceil((Date.parse(el.dataset.hides) - Date.now()) / 1000));
+    if (sec <= 0) render(); else el.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  });
+}, 1000);
+
 /* ---------------- wiring ---------------- */
 function wire() {
   document.querySelectorAll("[data-pick]").forEach((b) => b.onclick = () => { S.agentId = b.dataset.pick; render(); });
@@ -747,6 +1232,7 @@ function wire() {
     rememberSession({ mode: S.mode, key: S.key, agentId: S.agentId });
     warmPhotos();
     S.view = "home"; toast(`Entrada marcada: ${hhmm(S.day.shifts[S.agentId].clockIn)}`); render();
+    startDispatch();
   };
   const lf = $("#login");
   if (lf) lf.onsubmit = async (e) => {
@@ -760,8 +1246,9 @@ function wire() {
     } catch { msg.textContent = "Sin conexión con el servidor."; }
   };
   const lo = $("#logout"); if (lo) lo.onclick = async () => { try { await fetch("/.netlify/functions/auth-logout", { method: "POST", credentials: "same-origin" }); } catch {} location.reload(); };
-  document.querySelectorAll("[data-break]").forEach((b) => b.onclick = () => { C.startBreak(S.day, S.agentId, b.dataset.break, nowIso()); save(); render(); });
-  const eb = $("#endBreak"); if (eb) eb.onclick = () => { C.endBreak(S.day, S.agentId, nowIso()); save(); toast("De vuelta. Seguimos."); render(); };
+  document.querySelectorAll("[data-break]").forEach((b) => b.onclick = () => { C.startBreak(S.day, S.agentId, b.dataset.break, nowIso()); save(); render(); dxPoll(); });
+  const eb = $("#endBreak"); if (eb) eb.onclick = () => { C.endBreak(S.day, S.agentId, nowIso()); save(); toast("De vuelta. Seguimos."); render(); dxPoll(); };
+  wireDispatch();
   document.querySelectorAll("[data-list]").forEach((b) => b.onclick = () => { S.list = b.dataset.list; render(); });
   document.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => { S.focusId = b.dataset.open; S.view = "focus"; render(); window.scrollTo(0, 0); });
   const sn = $("#startNext"); if (sn) sn.onclick = () => { const n = C.nextOrder(S.day, S.agentId); if (n) { S.focusId = n.orderId; S.view = "focus"; render(); window.scrollTo(0, 0); } };
@@ -785,7 +1272,7 @@ function wire() {
 document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => { S.tab = b.dataset.tab; S.view = "home"; render(); window.scrollTo(0, 0); });
 setInterval(() => { if (S.view === "home" && S.tab === "lista" && !$(".sheet-back") && $(".shift .clock")) render(); }, 60000);
 /* A test/preview handle -- only where demo mode may run, never on production. */
-if (DEMO_OK) window.__compradores = { S, C, render, sync, resetDemoDay: () => { S.day = resetDemoDay(); S.agentId = null; S.view = "in"; render(); } };
+if (DEMO_OK) window.__compradores = { S, C, D, DX, render, sync, dxPoll, resetDemoDay: () => { S.day = resetDemoDay(); S.agentId = null; S.view = "in"; render(); } };
 boot();
 </script>
 </body>
