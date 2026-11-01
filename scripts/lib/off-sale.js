@@ -53,11 +53,17 @@
                       and registry; samsclub-catalog.json is shelved, not
                       deleted (the Sephora/SSENSE pattern), for a club that
                       can return real.
+     bestbuy          Best Buy (Danny, 2026-10-21, confirmed twice; #443
+                      c.6564970704): FULLY OUT. Its terms ban resale and it
+                      cancels forwarder orders; no reseller door in writing.
+                      The 2026-11-01 storefront wave below put it back by
+                      mistake. Catalogue retained (salvage rule: products may
+                      port to B&H / Walmart Business, never as Best Buy).
    BACK ON SALE: EVERY STORE WITH PRODUCTS GETS ITS STOREFRONT (#443,
    Danny's rulings 2026-11-01: "every retailer with products loaded gets
    its own storefront; no catalog-only retailers"). Off the list again,
    as untested lanes like SSENSE and Foot Locker (Item 35: real orders or
-   a test order decide the verdict): bestbuy, costco, kohls, macys, gap,
+   a test order decide the verdict): costco, kohls, macys, gap,
    oldnavy, bananarepublic, athleta, ulta, yesstyle, newbalance, gymshark,
    alphalete, miumiu, pacsun (storefronts: scripts/lib/storefronts.js).
    Sam's Club stays OFF: it is on that list, but Danny removed it by his

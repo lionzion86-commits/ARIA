@@ -246,7 +246,7 @@ const STORES = JSON.parse(/var STORES = (\{.*\});/.exec(tienda)[1]);
 const sliceDir = `${SLICES_DIR}/bestbuy/`;
 const sIndex = existsSync(ROOT + sliceDir + "index.json") ? JSON.parse(read(sliceDir + "index.json")) : null;
 
-await check("tienda.html registers a themed, sliced Best Buy storefront", () => {
+await launchOnly("tienda.html registers a themed, sliced Best Buy storefront", () => {
   const s = STORES.bestbuy;
   assert.ok(s, "no STORES.bestbuy");
   assert.equal(s.color, "#0046BE");
