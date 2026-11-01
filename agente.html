@@ -210,6 +210,31 @@
   .search { width: 100%; min-height: 56px; border-radius: 16px; border: 2px solid var(--line); background: var(--card); padding: 0 16px; }
   @media (min-width: 900px) { main { max-width: 760px; } }
 
+  /* ---- Phase 2: go online (Uber-style, #443 c.6554384221) ---- */
+  .line-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 900; letter-spacing: .08em; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+  .line-tag i { width: 8px; height: 8px; border-radius: 999px; background: currentColor; }
+  .line-tag.on { background: #12A150; color: #fff; }
+  .line-tag.on i { animation: blink 1.4s infinite; }
+  .line-tag.pause { background: var(--gold); color: var(--navy); }
+  .line-tag.off { background: rgba(255,255,255,.14); color: #C5D0E8; }
+  .golive { min-height: 84px !important; font-size: 24px !important; letter-spacing: .01em; background: #12A150; color: #fff; border-radius: 22px; box-shadow: 0 10px 24px rgba(18,161,80,.28); }
+  .offline-hero { text-align: center; padding: 26px 8px 10px; }
+  .offline-hero .dot { width: 96px; height: 96px; border-radius: 999px; margin: 0 auto 14px; display: grid; place-items: center; background: var(--line); }
+  .offline-hero .dot i { width: 30px; height: 30px; border-radius: 999px; background: var(--ink-3); }
+  .offline-hero h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -.02em; }
+  .offline-hero p { margin: 0 auto 20px; max-width: 32ch; color: var(--ink-2); }
+  .wait-hero { text-align: center; padding: 34px 12px 26px; margin: 0 0 14px; }
+  .radar { position: relative; width: 140px; height: 140px; margin: 0 auto 18px; }
+  .radar i { position: absolute; inset: 0; border-radius: 999px; background: #12A150; opacity: .18; animation: ping 2s ease-out infinite; }
+  .radar i:nth-child(2) { animation-delay: .7s; }
+  .radar b { position: absolute; inset: 42px; border-radius: 999px; background: #12A150; box-shadow: 0 0 0 8px rgba(18,161,80,.18); }
+  @keyframes ping { from { transform: scale(.45); opacity: .5; } to { transform: scale(1.15); opacity: 0; } }
+  .wait-hero h2 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.02em; }
+  .wait-hero .on-word { color: #12A150; font-weight: 900; letter-spacing: .08em; font-size: 14px; display: block; margin-bottom: 4px; }
+  .wait-hero p { margin: 0 auto; color: var(--ink-2); max-width: 30ch; }
+  .demo-banner { background: var(--gold); color: var(--navy); border-radius: 16px; padding: 12px 14px; margin: 0 0 12px; font-weight: 800; }
+  .demo-banner b { letter-spacing: .1em; }
+
   /* ---- Phase 2: live dispatch ---- */
   nav.tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
   .dx-status { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin: 0 0 12px; font-weight: 800; }
@@ -272,7 +297,7 @@
 <body>
 <header class="top">
   <div class="brand">ARIA <b>·</b> <small>Compradores</small></div>
-  <div class="right"><span id="syncTag" class="sync" hidden></span><span id="demoTag" class="demo-tag" hidden>DEMO</span><span id="whoTop"></span></div>
+  <div class="right"><span id="lineTag" class="line-tag" hidden></span><span id="syncTag" class="sync" hidden></span><span id="demoTag" class="demo-tag" hidden>DEMO</span><span id="whoTop"></span></div>
 </header>
 
 <main id="app" aria-live="polite"></main>
@@ -344,6 +369,7 @@ async function boot() {
        only; showing it to a live buyer on a preview is what made packets
        look per item. It stays in demo mode (?demo=1). */
     S.day.orders = []; S.day.history = [];
+    $("#demoTag").hidden = true;
     rememberSession({ mode: "live", key: S.key, agentId: S.agentId });
   } else if (!res && last && last.mode === "live" && loadDay(last.key)) {
     /* No signal: reopen the day this phone was already working on. */
@@ -453,7 +479,9 @@ function render() {
   else if (S.tab === "buscar") app.innerHTML = viewSearch();
   else app.innerHTML = viewHome();
   if ((S.view !== "focus" && S.view !== "bundle") || S.mode === "gate") $("#layer .dock")?.remove();
+  if (S.mode === "demo") app.insertAdjacentHTML("afterbegin", `<div class="demo-banner" id="demoBanner"><b>MODO DEMO</b> · pedidos de muestra. No estás en línea y nada de esto es real.</div>`);
   paintSync();
+  paintLine();
   wire();
 }
 
@@ -476,6 +504,7 @@ function viewGate() {
 }
 
 function viewIn() {
+  if (S.mode === "live") return viewOffline();
   const pick = S.mode === "demo";
   const agents = S.day.agents.filter((a) => a.active !== false);
   const shift = S.agentId && S.day.shifts[S.agentId];
@@ -520,7 +549,10 @@ const isPending = (orderId) => C.pendingEvents(S.day).some((e) => e.orderId === 
 function viewHome() {
   const s = S.day.shifts[S.agentId];
   if (s && s.onBreak) return shiftBar() + pausedCard() + (S.mode === "live" ? dxSection() : "");
-  if (S.mode === "live") return shiftBar() + dxSection() + `<button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>`;
+  if (S.mode === "live") {
+    if (!isOnline() && !dxOpen().length) return viewOffline();
+    return (isOnline() ? shiftBar() : "") + dxSection() + `<button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>`;
+  }
   return viewHomePhase1();
 }
 function viewHomePhase1() {
@@ -813,7 +845,7 @@ function endShiftSheet() {
     <button class="btn big primary" data-out style="margin-top:14px">Marcar salida</button>
     <button class="btn big ghost" data-x style="margin-top:8px">Seguir trabajando</button>`, (el, close) => {
     el.querySelector("[data-x]").onclick = close;
-    el.querySelector("[data-out]").onclick = () => { C.clockOut(S.day, S.agentId, nowIso()); save(); close(); sync(); dxPoll(); S.view = "summary"; render(); window.scrollTo(0, 0); };
+    el.querySelector("[data-out]").onclick = () => { C.clockOut(S.day, S.agentId, nowIso()); S.day.dispatchOnline = false; save(); close(); sync(); dxPoll(); S.view = "summary"; render(); window.scrollTo(0, 0); };
   });
 }
 
@@ -857,7 +889,7 @@ const DISPATCH_TYPES = new Set(["checkout_comprado", "checkout_excepcion"]);
 const PENDING = D.CHECKOUT.PENDING;
 function dxPresence() {
   const s = (S.day && S.day.shifts[S.agentId]) || {};
-  return { clockedIn: Boolean(s.clockIn), clockedOut: Boolean(s.clockOut), onBreak: s.onBreak ? s.onBreak.kind : null, focus: S.view === "bundle" || S.view === "focus" };
+  return { clockedIn: Boolean(s.clockIn), clockedOut: Boolean(s.clockOut), online: isOnline(), onBreak: s.onBreak ? s.onBreak.kind : null, focus: S.view === "bundle" || S.view === "focus" };
 }
 async function dxPost(payload) {
   const r = await fetch("/.netlify/functions/agent-dispatch", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -907,7 +939,7 @@ function dxApply(b) {
   if (DX.popup) {
     const w = b.watch;
     if (w && w.orderId === DX.popup.orderId && (w.takenByOther || (w.state && w.state !== "CLAIMABLE" && !w.mine))) popupTaken();
-  } else if (b.ping && !$(".sheet-back")) showPopup(b.ping);
+  } else if (b.ping && isOnline() && !$(".sheet-back")) showPopup(b.ping);
   softRender();
 }
 /* Re-paint what the poll changed without wiping what she is typing. */
@@ -917,27 +949,70 @@ function softRender() {
   else if (S.tab === "pagos" && !(document.activeElement && document.activeElement.matches("input"))) render();
 }
 
+/* ---------- online / offline (the Uber-style control) ---------- */
+function isOnline() {
+  const s = (S.day && S.day.shifts[S.agentId]) || {};
+  return S.mode === "live" && Boolean(S.day.dispatchOnline) && Boolean(s.clockIn) && !s.clockOut;
+}
+const dxOpen = () => DX.mine.filter((b) => b.packet.checkouts.some((c) => c.state === PENDING));
+/* The header says, at all times, whether pedidos can reach her. */
+function paintLine() {
+  const tag = $("#lineTag");
+  if (S.mode !== "live" || S.view === "summary") { tag.hidden = true; return; }
+  const s = S.day.shifts[S.agentId] || {};
+  const [cls, text] = !isOnline() ? ["off", "FUERA DE LÍNEA"] : s.onBreak ? ["pause", "EN PAUSA"] : ["on", "EN LÍNEA"];
+  tag.hidden = false; tag.className = "line-tag " + cls; tag.dataset.state = cls;
+  tag.innerHTML = `<i></i>${text}`;
+}
+function viewOffline() {
+  const s = S.day.shifts[S.agentId] || {};
+  const open = dxOpen();
+  return `<section class="offline-hero" id="offlineHero">
+      <div class="dot"><i></i></div>
+      <h1>Estás fuera de línea</h1>
+      <p>${s.clockIn ? `Tu turno sigue abierto desde las ${hhmm(s.clockIn)}. ` : ""}Ponte en línea para recibir pedidos.</p>
+    </section>
+    <button class="btn big golive" id="goOnline">Ponerse en línea</button>
+    ${open.length ? `<h2 style="font-size:18px;margin:18px 0 8px">Tus pedidos tomados</h2>${open.map(bundleCard).join("")}` : ""}
+    ${s.clockIn ? `<button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>` : ""}`;
+}
+async function goOnline() {
+  const s = S.day.shifts[S.agentId];
+  if (!s || !s.clockIn) { C.clockIn(S.day, S.agentId, nowIso()); rememberSession({ mode: S.mode, key: S.key, agentId: S.agentId }); warmPhotos(); }
+  S.day.dispatchOnline = true; save();
+  S.view = "home"; S.tab = "lista"; render(); window.scrollTo(0, 0);
+  toast("Estás en línea");
+  startDispatch(); dxPoll();
+}
+function goOffline() {
+  S.day.dispatchOnline = false; save();
+  closePopup(); render(); dxPoll();
+  toast("Fuera de línea. Tu turno sigue abierto.");
+}
+function bundleCard(b) {
+  const cs = b.packet.checkouts, n = cs.filter((c) => c.state !== PENDING).length;
+  return `<div class="card bundle-card"><h3>Pedido de ${esc(b.customerName)}</h3>
+    <div class="tiny">${n} de ${cs.length} ${cs.length === 1 ? "compra" : "compras"} hechas · ${esc(D.payText(cs.reduce((t, c) => t + D.checkoutPay(c, DX.cfg || D.dispatchConfig()), 0)))}</div>
+    <div class="chips">${cs.map((c) => `<span class="pill ${c.state === "BOUGHT" ? "ok" : c.state === "EXCEPTION" ? "bad" : ""}">${esc(c.storeLabel)}</span>`).join("")}</div>
+    ${cs.some((c) => c.state === PENDING) ? `<button class="btn big primary" data-bundle="${esc(b.orderId)}">Abrir el pedido ${ICON.arrow}</button>` : ""}</div>`;
+}
+/* Home while live: an order in progress takes over; otherwise the
+   waiting state IS the screen. No sample list, ever, for a real agent. */
 function dxSection() {
-  const av = DX.data && DX.data.availability;
   const s = S.day.shifts[S.agentId] || {};
   if (DX.off) return `<section id="dxSection"><div class="card dx-status off"><i></i><span>${esc(DX.off)}. Todavía no llegan pedidos.</span></div></section>`;
-  const status = s.onBreak ? `En pausa (${esc(s.onBreak.label)}): no te llegan pedidos`
-    : !DX.data ? (navigator.onLine === false ? "Sin señal: los pedidos nuevos llegan cuando vuelva" : "Conectando...")
-    : av && av.ok ? "Recibiendo pedidos" : av && av.reason === "enfocada" ? "Comprando: no te llegan pedidos nuevos" : "No estás recibiendo pedidos";
-  const on = Boolean(av && av.ok && !s.onBreak);
-  const open = DX.mine.filter((b) => b.packet.checkouts.some((c) => c.state === PENDING));
+  const open = dxOpen();
   const done = DX.mine.filter((b) => !b.packet.checkouts.some((c) => c.state === PENDING));
-  const card = (b) => {
-    const cs = b.packet.checkouts, n = cs.filter((c) => c.state !== PENDING).length;
-    return `<div class="card bundle-card"><h3>Pedido de ${esc(b.customerName)}</h3>
-      <div class="tiny">${n} de ${cs.length} ${cs.length === 1 ? "compra" : "compras"} hechas · ${esc(D.payText(cs.reduce((t, c) => t + D.checkoutPay(c, DX.cfg || D.dispatchConfig()), 0)))}</div>
-      <div class="chips">${cs.map((c) => `<span class="pill ${c.state === "BOUGHT" ? "ok" : c.state === "EXCEPTION" ? "bad" : ""}">${esc(c.storeLabel)}</span>`).join("")}</div>
-      ${cs.some((c) => c.state === PENDING) ? `<button class="btn big primary" data-bundle="${esc(b.orderId)}">Abrir el pedido ${ICON.arrow}</button>` : ""}</div>`;
-  };
+  const av = DX.data && DX.data.availability;
+  const line = !DX.data ? (navigator.onLine === false ? "Sin señal: los pedidos llegan cuando vuelva" : "Conectando...")
+    : av && av.ok ? "Recibiendo pedidos" : av && av.reason === "enfocada" ? "Comprando: no te llegan pedidos nuevos" : "No estás recibiendo pedidos";
+  const waiting = s.onBreak ? "" : `<div class="card wait-hero" id="waitHero"><div class="radar" aria-hidden="true"><i></i><i></i><b></b></div>
+      <span class="on-word">EN LÍNEA</span><h2>Esperando pedidos</h2><p id="waitLine">${esc(line)}. Cuando entre uno, aparece aquí con su tiempo para aceptarlo.</p>
+      ${DX.sandbox ? '<p class="tiny" style="margin-top:10px">Vista previa: tarjetas y pedidos de prueba (SANDBOX).</p>' : ""}</div>`;
   return `<section id="dxSection">
-    <div class="card dx-status ${on ? "on" : "off"}"><i></i><span>${status}</span>${DX.sandbox ? '<span class="sb">SANDBOX</span>' : ""}</div>
-    ${open.length ? `<h2 style="font-size:18px;margin:6px 0 8px">Tus pedidos tomados</h2>${open.map(card).join("")}` : `<div class="empty card" style="margin-bottom:12px"><strong>Esperando pedidos</strong>Cuando entre uno, aparece aquí con su tiempo para aceptarlo.</div>`}
-    ${done.length ? `<h2 style="font-size:16px;margin:12px 0 8px;color:var(--ink-2)">Terminados hoy</h2>${done.map(card).join("")}` : ""}
+    ${open.length ? `<h2 style="font-size:20px;margin:6px 0 8px">Tu pedido en curso</h2>${open.map(bundleCard).join("")}` : isOnline() ? waiting : ""}
+    ${isOnline() ? `<button class="btn big ghost" id="goOffline">Ponerse fuera de línea</button>` : `<button class="btn big golive" id="goOnline">Ponerse en línea</button>`}
+    ${done.length ? `<h2 style="font-size:16px;margin:16px 0 8px;color:var(--ink-2)">Terminados hoy</h2>${done.map(bundleCard).join("")}` : ""}
   </section>`;
 }
 
@@ -1184,6 +1259,8 @@ function viewPagos() {
 }
 
 function wireDispatch() {
+  const gon = $("#goOnline"); if (gon) gon.onclick = goOnline;
+  const goff = $("#goOffline"); if (goff) goff.onclick = goOffline;
   document.querySelectorAll("[data-rowcheck]").forEach((cb) => cb.onchange = () => {
     (S.checks[cb.dataset.rowcheck] ||= {})[cb.dataset.k] = cb.checked;
     if (cb.checked && cb.dataset.k === "carrito") S.checks[cb.dataset.rowcheck].exacto = true;

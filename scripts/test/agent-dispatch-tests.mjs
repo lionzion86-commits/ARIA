@@ -112,7 +112,7 @@ const paidEvent = (orderId, { id = "evt_test_" + (++evtSeq), type = "checkout.se
     ? { id, type, created: Math.floor(Date.now() / 1000), data: { object: { id: "cs_" + orderId, payment_intent: "pi_" + orderId, currency: "pen", amount_total: amount, payment_status: "paid", metadata: { orderId } } } }
     : { id, type, created: Math.floor(Date.now() / 1000), data: { object: { id: "pi_" + orderId, currency: "pen", amount_received: amount, metadata: { orderId } } } }
 );
-const online = { clockedIn: true, onBreak: null, focus: false };
+const online = { clockedIn: true, online: true, onBreak: null, focus: false };
 const engine = (opts = {}) => dispatchEngine({ getStore, host: "localhost", ...opts });
 function fakeClock(start = "2026-11-01T15:00:00.000Z") {
   let t = Date.parse(start);
@@ -451,6 +451,27 @@ await check("a buyer on a break (Baño / Almuerzo) or in focus mode mid-checkout
   const o2 = seedOrder();
   await E2.intake({ ...o2, paymentStatus: "paid" });
   assert.deepEqual((await E2.orderRecord(o2.orderId)).pinged, [AG1]);
+});
+
+await check("go online: offline -> no ping; online -> ping; offline while clocked in keeps the shift and gets no ping; a break gets none; the board shows each state", async () => {
+  resetStores();
+  const E = engine();
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o = seedOrder();
+  await E.intake({ ...o, paymentStatus: "paid" });
+  assert.equal((await E.poll(AG1, { clockedIn: true, online: false })).ping, null, "pinged while offline");
+  assert.equal((await E.poll(AG1, { clockedIn: true })).ping, null, "no online flag must mean offline");
+  const off = await E.poll(AG1, { clockedIn: true, online: false });
+  assert.equal(off.availability.reason, "fuera_de_linea");
+  assert.ok((await E.poll(AG1, online)).ping, "no ping while online");
+  assert.equal((await E.poll(AG1, { ...online, onBreak: "almuerzo" })).ping, null);
+  await E.poll(AG2, { clockedIn: true, online: false });
+  const b = await E.board();
+  const by = Object.fromEntries(b.presence.map((p) => [p.agentId, p.availability.reason]));
+  assert.deepEqual([by[AG1], by[AG2]], ["pausa", "fuera_de_linea"]);
+  await E.poll(AG1, online);
+  assert.equal((await E.board()).presence.find((p) => p.agentId === AG1).availability.ok, true);
+  assert.equal(D.AVAILABILITY_LABELS.fuera_de_linea, "Fuera de línea");
 });
 
 await check("Pasar is always allowed, recorded on the order and in her history, and she is not pinged with it again", async () => {
@@ -849,9 +870,9 @@ if (pw) {
   };
   const clockIn = async (page) => {
     await page.goto(BASE + "/agente.html");
-    await page.waitForSelector("#clockIn");
-    await page.click("#clockIn");
-    try { await page.waitForSelector("#dxSection", { timeout: 8000 }); }
+    await page.waitForSelector("#goOnline");
+    await page.click("#goOnline");
+    try { await page.waitForSelector("#waitHero", { timeout: 8000 }); }
     catch (e) { if (process.env.DISPATCH_DEBUG) console.log("MAIN:", (await page.textContent("main")).slice(0, 600)); throw e; }
   };
   const poke = (page) => page.evaluate(() => window.__compradores.dxPoll());
@@ -1002,6 +1023,70 @@ if (pw) {
     await shot(adm.page, "3-admin-fondos-en-espera-y-sin-asignar", true);
     assert.deepEqual(adm.errors, []);
     await adm.ctx.close();
+  });
+
+  await check("browser: «Ponerse en línea» -- offline, online (green EN LÍNEA, waiting state), offline again with the shift open, paused; no DEMO and no sample list for a real agent", async () => {
+    resetStores(); seedPeople();
+    await E().setAccounts(ACCOUNTS_ALL);
+    const a = await open(AG1);
+    await a.page.goto(BASE + "/agente.html");
+    await a.page.waitForSelector("#goOnline");
+    const noDemo = async () => {
+      assert.equal(await a.page.isVisible("#demoTag"), false, "DEMO badge for a signed-in agent");
+      assert.equal(await a.page.$("#demoBanner"), null);
+      assert.equal(await a.page.$("[data-pick]"), null);
+      assert.equal(await a.page.$(".row"), null, "a sample list for a signed-in agent");
+      assert.equal(await a.page.$("#clockIn"), null, "«Marcar entrada» is still the visible action");
+    };
+    await noDemo();
+    assert.equal(await a.page.textContent("#goOnline"), "Ponerse en línea");
+    assert.equal(await a.page.textContent("#lineTag"), "FUERA DE LÍNEA");
+    assert.ok(await a.page.evaluate(() => document.getElementById("goOnline").getBoundingClientRect().height >= 76));
+    await shot(a.page, "7-fuera-de-linea-ponerse-en-linea");
+    /* an order rings while she is offline (not clocked in): nothing */
+    const o1 = seedOrder({ stores: 1 });
+    await sendWebhook(o1.orderId);
+    await a.page.waitForTimeout(300);
+    assert.equal(await a.page.$("#ringPop"), null);
+    await a.page.click("#goOnline");
+    await a.page.waitForSelector("#waitHero");
+    assert.equal(await a.page.textContent("#lineTag"), "EN LÍNEA");
+    assert.equal(await a.page.getAttribute("#lineTag", "data-state"), "on");
+    assert.ok(await a.page.evaluate(() => window.__compradores.S.day.shifts[window.__compradores.S.agentId].clockIn), "going online did not open the shift");
+    await noDemo();
+    await poke(a.page);
+    await a.page.waitForSelector("#ringPop");
+    await a.page.click("#ringPass");
+    await a.page.waitForFunction(() => /Recibiendo pedidos/.test(document.getElementById("waitLine").textContent));
+    await shot(a.page, "8-en-linea-esperando-pedidos");
+    /* offline while clocked in: the shift stays open, no ping */
+    await a.page.click("#goOffline");
+    await a.page.waitForSelector("#offlineHero");
+    assert.equal(await a.page.textContent("#lineTag"), "FUERA DE LÍNEA");
+    assert.match(await a.page.textContent("#offlineHero"), /Tu turno sigue abierto/);
+    const sh = await a.page.evaluate(() => window.__compradores.S.day.shifts[window.__compradores.S.agentId]);
+    assert.ok(sh.clockIn && !sh.clockOut, "going offline ended the shift");
+    const o2 = seedOrder({ stores: 1 });
+    await sendWebhook(o2.orderId);
+    await poke(a.page); await a.page.waitForTimeout(300);
+    assert.equal(await a.page.$("#ringPop"), null, "pinged while offline and clocked in");
+    /* paused */
+    await a.page.click("#goOnline");
+    await a.page.waitForSelector("#waitHero");
+    await poke(a.page);
+    await a.page.waitForSelector("#ringPop"); // the order that rang while she was offline reaches her now
+    await a.page.click("#ringPass");
+    await a.page.click('[data-break="almuerzo"]');
+    await a.page.waitForSelector("#endBreak");
+    assert.equal(await a.page.textContent("#lineTag"), "EN PAUSA");
+    await poke(a.page); await a.page.waitForTimeout(300);
+    assert.equal(await a.page.$("#ringPop"), null, "pinged on a break");
+    await shot(a.page, "9-en-pausa");
+    /* Danny's board: online / offline / paused per buyer */
+    const b = await E().board();
+    assert.equal(b.presence.find((p) => p.agentId === AG1).availability.reason, "pausa");
+    assert.deepEqual(a.errors, []);
+    await a.ctx.close();
   });
 
   await check("browser: a buyer on a break gets no pop-up while an order rings", async () => {

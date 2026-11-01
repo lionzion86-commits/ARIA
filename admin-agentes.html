@@ -297,7 +297,7 @@ async function dxAdmin(payload) {
 const mins = (m) => D.durationText(m);
 const who = (email) => { const l = (A.logins || []).find((x) => x.email === email); return l ? (l.name || l.email) : email; };
 const LANES = ["FUNDS_HOLD", "SIN_ASIGNAR", "CLAIMABLE", "CLAIMED", "PAID", "PARTIAL", "EXCEPTION", "BOUGHT"];
-const AVAIL = { null: "Disponible", fuera: "Fuera de turno", sin_senal: "Sin señal", pausa: "En pausa", enfocada: "Comprando" };
+const AVAIL = { null: "En línea", ...D.AVAILABILITY_LABELS };
 
 function despacho() {
   const X = A.dx, k = X.counts;
@@ -345,7 +345,7 @@ function despacho() {
     </div>
     ${X.escalations.length ? `<h2>Escalados</h2>${X.escalations.map((e) => `<div class="card esc">${esc(e.text)}</div>`).join("")}` : ""}
     <h2>Compradores ahora</h2>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${X.presence.length ? X.presence.map((p) => `<span class="pill ${p.availability.ok ? "ok" : p.availability.reason === "pausa" ? "warn" : ""}">${esc(p.name || who(p.agentId))} · ${esc(AVAIL[p.availability.reason])} · pasó ${(X.passesByAgent[p.agentId] || []).length}</span>`).join("") : '<span class="tiny">Nadie conectado todavía.</span>'}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${X.presence.length ? X.presence.map((p) => `<span class="pill ${p.availability.ok ? "ok" : p.availability.reason === "pausa" ? "warn" : ""}" data-presence="${esc(p.availability.reason || "en_linea")}">${esc(p.name || who(p.agentId))} · ${esc(AVAIL[p.availability.reason])} · pasó ${(X.passesByAgent[p.agentId] || []).length}</span>`).join("") : '<span class="tiny">Nadie conectado todavía.</span>'}</div>
     ${lanes || '<p class="tiny" style="margin-top:16px">Sin pedidos pagados todavía.</p>'}
     <h2>Cuentas de tienda y topes (despacho)</h2>
     <p class="tiny" style="margin:0 0 8px">Un pedido se ofrece solo a quien tiene cupo hoy en TODAS sus tiendas. Sin dueño = cuenta compartida.</p>

@@ -227,7 +227,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
     const now = clock();
     const presence = {
       agentId, name: String(input.name || "").slice(0, 80) || null,
-      clockedIn: Boolean(input.clockedIn), clockedOut: Boolean(input.clockedOut),
+      clockedIn: Boolean(input.clockedIn), clockedOut: Boolean(input.clockedOut), online: input.online === true,
       onBreak: input.onBreak ? String(input.onBreak).slice(0, 20) : null, focus: Boolean(input.focus), seenAt: now,
     };
     await agents.setJSON("presence/" + agentId, presence);

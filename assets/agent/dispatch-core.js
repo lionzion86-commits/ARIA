@@ -336,11 +336,15 @@ export function reRing(rec, now, cfg) {
 /* ---------------- who gets pinged ------------------------------------- */
 
 /**
- * ONLINE and available: clocked in, heard from inside presenceTtl, not on
- * a break (Baño / Almuerzo), not in focus mode mid-checkout.
+ * ONLINE and available: clocked in, switched ONLINE (the «Ponerse en
+ * línea» control, #443 c.6554384221 -- clocked in but offline gets no
+ * ping), heard from inside presenceTtl, not on a break (Baño / Almuerzo),
+ * not in focus mode mid-checkout.
  */
+export const AVAILABILITY_LABELS = Object.freeze({ fuera: "Fuera de turno", fuera_de_linea: "Fuera de línea", sin_senal: "Sin señal", pausa: "En pausa", enfocada: "Comprando" });
 export function availability(presence, now, cfg) {
   if (!presence || !presence.clockedIn || presence.clockedOut) return { ok: false, reason: "fuera" };
+  if (presence.online !== true) return { ok: false, reason: "fuera_de_linea" };
   if (!(Date.parse(now) - Date.parse(presence.seenAt) <= cfg.presenceTtlSeconds * 1000)) return { ok: false, reason: "sin_senal" };
   if (presence.onBreak) return { ok: false, reason: "pausa" };
   if (presence.focus) return { ok: false, reason: "enfocada" };
