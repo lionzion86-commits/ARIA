@@ -22,6 +22,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeSnipes, normalizeCarolinaHerrera } from "./lib/store-pull-normalize.js";
 import { sizesPendingKey } from "./lib/sizes-pending.js";
+import { SIZES_PENDING } from "./lib/sizes-pending-data.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
@@ -36,7 +37,9 @@ const STORES = [
 ];
 
 const report = { generatedAt: new Date().toISOString(), stores: {} };
-const pending = new Set();
+/* Other builders' entries (Calzedonia: scripts/build-calzedonia-
+   intimissimi-catalogs.mjs) stay on the list; only these stores' are rebuilt. */
+const pending = new Set(SIZES_PENDING.filter((k) => !STORES.some((s) => k.startsWith(s.key + "::"))));
 for (const s of STORES) {
   const rows = JSON.parse(readFileSync(join(SRC, s.raw), "utf8"));
   const { departments, skipped, released } = s.norm(rows);
