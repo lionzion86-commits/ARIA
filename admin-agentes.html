@@ -171,7 +171,7 @@ function render() {
   const openEx = A.day.exceptions.filter((e) => e.status === "abierta").length;
   const newFlags = A.day.storeFlags.filter((f) => f.status === "nueva").length;
   const tabs = [["tablero", "Tablero"], ["asignacion", "Asignación"], ["excepciones", "Excepciones", openEx], ["cuentas", "Cuentas y topes"], ["tiendas", "Tiendas", newFlags], ["equipo", "Chat"], ["accesos", "Accesos"], ["conciliacion", "Conciliación"]];
-  if (A.dx) tabs.unshift(["despacho", "Despacho", A.dx.escalations.length + A.dx.counts.SIN_ASIGNAR], ["pagos", "Pagos", A.dx.payoutQueue.length]);
+  if (A.dx) tabs.unshift(["despacho", "Despacho", A.dx.off ? 0 : A.dx.escalations.length + A.dx.counts.SIN_ASIGNAR], ["pagos", "Pagos", A.dx.payoutQueue.length]);
   const body = { tablero, asignacion, excepciones, cuentas, tiendas, equipo, accesos, conciliacion, despacho, pagos }[A.tab]();
   $("#app").innerHTML = `<nav class="tabsbar" role="tablist">${tabs.map(([k, l, n]) => `<button role="tab" data-tab="${k}" aria-selected="${A.tab === k}">${l}${n ? `<span class="n">${n}</span>` : ""}</button>`).join("")}</nav>${body}`;
   wire();
@@ -269,7 +269,7 @@ function accesos() {
 }
 
 function conciliacion() {
-  if (A.dx) return conciliacion3();
+  if (A.dx && !A.dx.off) return conciliacion3();
   const rows = C.reconciliation(A.day);
   return `<h1>Conciliación</h1><p class="muted" style="margin:0 0 12px">Cobro de la tarjeta de un pedido, pedido de la tienda y pedido del cliente, en una fila.</p>
     ${rows.length ? `<div class="tablewrap"><table><tr><th>Pedido cliente</th><th>Tarjeta (tope / cobrado)</th><th>Pedido tienda</th><th>Total reportado</th><th>Precio de la línea</th><th>Estado</th></tr>
@@ -325,6 +325,8 @@ function despacho() {
     if (!list.length) return "";
     return `<h2 class="lane-h">${esc(D.STATE_LABELS[st])} <span class="pill">${list.length}</span></h2>${list.map(order).join("")}`;
   }).join("");
+  if (X.off) return `<h1>Despacho</h1><div class="card alert" id="dispatchOff">Despacho apagado: ${esc(X.gate.reasons.join(" y "))}.</div>
+    <p class="muted">Los pedidos pagados siguen entrando al libro de pedidos como siempre; no se ofrecen a compradores, no se emiten tarjetas y no se acumulan pagos. Para encenderlo (después del pase de Danny, peldaño 3): en Netlify, LITHIC_API_KEY de producción, LITHIC_ENV distinto de «sandbox» y DISPATCH_LIVE=on.</p>`;
   return `<div class="h" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h1>Despacho en vivo</h1>${X.sandbox ? '<span class="sbtag">SANDBOX</span>' : ""}<span class="tiny" style="margin-left:auto">Se actualiza solo cada 3 s</span></div>
     <p class="muted" style="margin:0">Pagado en Stripe, compuerta de fondos, timbre de ${X.config.ringSeconds} s, tomado, comprado. Cada pedido con el nombre del cliente.</p>
     <div class="kpis">
@@ -354,6 +356,7 @@ function despacho() {
 
 function pagos() {
   const X = A.dx, cfg = X.config, pot = X.pot;
+  if (X.off) return `<h1>Pagos a compradores</h1><div class="card alert">Despacho apagado: ${esc(X.gate.reasons.join(" y "))}. Sin despacho no hay ganancias ni retiros.</div>`;
   return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h1>Pagos a compradores</h1>${X.sandbox ? '<span class="sbtag">SANDBOX</span>' : ""}</div>
     ${pot.low ? `<div class="card alert" id="potAlert">Bolsa baja: ${C.pen(pot.balancePen)}, por debajo de ${C.pen(pot.lowAlertPen)}. Recárgala.</div>` : ""}
     <div class="card" style="padding:14px">

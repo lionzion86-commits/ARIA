@@ -6,7 +6,7 @@
 // ledger per agent (earnings, fees, cash-outs) rides in the same report.
 // 05:10 UTC = 00:10 in Lima.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { dispatchEngine } from "./_dispatch.js";
+import { dispatchEngine, dispatchGate } from "./_dispatch.js";
 
 export const config = { schedule: "10 5 * * *" };
 
@@ -15,6 +15,8 @@ export async function handler(event) {
   try {
     const out = {};
     for (const host of ["ariashop.pe", "localhost"]) {
+      const gate = dispatchGate(host);
+      if (!gate.on) { out.dispatch = { off: gate.reason }; continue; } // production stays inert until switched on
       const engine = dispatchEngine({ getStore: (name) => getStore({ name, consistency: "strong" }), host });
       const r = await engine.reconcile();
       out[engine.ns] = { rows: r.rows.length, ok: r.ok, issues: r.issues };

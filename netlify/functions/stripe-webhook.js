@@ -62,7 +62,7 @@ import {
 import {
   HANDLED_EVENTS, normalizeStripeEvent, rawBodyOf, verifyStripeSignature,
 } from "./_stripe-verify.js";
-import { dispatchEngine } from "./_dispatch.js";
+import { dispatchEngine, dispatchGate } from "./_dispatch.js";
 
 /* Re-exported: stripe-webhook.js is the name an operator looks for, so
    the constants they may need to reason about resolve from here too. */
@@ -232,12 +232,19 @@ export async function handler(event) {
        dispatch error is logged and visible (the order is missing from
        Danny's board, and the watchdog has nothing to escalate) rather
        than sending Stripe into a retry loop. */
-    let dispatch = null;
-    if (payment.orderId && !matchError) {
+    /* PRODUCTION SWITCH: on the production domain dispatch runs only with
+       DISPATCH_LIVE=on and a real Lithic program (dispatchGate). Off, this
+       webhook does exactly what it did before dispatch existed. */
+    let dispatch;
+    const host = String(event.headers?.host || event.headers?.Host || "").toLowerCase();
+    const gate = dispatchGate(host);
+    if (payment.orderId && !matchError && !gate.on) {
+      const latest = await getStore("orders").get(payment.orderId, { type: "json" }).catch(() => null);
+      if (latest && latest.paymentStatus === "paid") console.log(`[dispatch] off on production: ${gate.reason}`);
+    } else if (payment.orderId && !matchError) {
       try {
         const latest = await getStore("orders").get(payment.orderId, { type: "json" });
         if (latest && latest.paymentStatus === "paid") {
-          const host = String(event.headers?.host || event.headers?.Host || "").toLowerCase();
           dispatch = await dispatchEngine({ getStore: (name) => getStore({ name, consistency: "strong" }), host })
             .intake(latest, { eventId: stripeEvent.id });
         }

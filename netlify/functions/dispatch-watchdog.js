@@ -6,13 +6,15 @@
 // on the configured weekday sweeps balances not cashed out to CCI.
 // Both namespaces: production ("dispatch") and the preview sandbox.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { dispatchEngine } from "./_dispatch.js";
+import { dispatchEngine, dispatchGate } from "./_dispatch.js";
 
 export const config = { schedule: "*/5 * * * *" };
 
 export async function runWatchdog(getStoreFn) {
   const out = {};
   for (const host of ["ariashop.pe", "localhost"]) {
+    const gate = dispatchGate(host);
+    if (!gate.on) { out.dispatch = { off: gate.reason }; continue; } // production stays inert until switched on
     const engine = dispatchEngine({ getStore: getStoreFn, host });
     const w = await engine.watchdog();
     const s = await engine.sweep();

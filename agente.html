@@ -869,7 +869,8 @@ async function dxPoll() {
   DX.inflight = true;
   try {
     const r = await dxPost({ action: "poll", ...dxPresence(), watching: DX.popup ? DX.popup.orderId : null });
-    if (r.status === 200) dxApply(r.body);
+    if (r.status === 200) { DX.off = null; dxApply(r.body); }
+    else if (r.status === 503 && /^Despacho apagado/.test(r.body.error || "")) { DX.off = r.body.error; softRender(); }
   } catch { /* weak signal: next poll */ } finally { DX.inflight = false; }
 }
 /* Local moves not yet synced win over the server's older picture: the
@@ -915,6 +916,7 @@ function softRender() {
 function dxSection() {
   const av = DX.data && DX.data.availability;
   const s = S.day.shifts[S.agentId] || {};
+  if (DX.off) return `<section id="dxSection"><div class="card dx-status off"><i></i><span>${esc(DX.off)}. Todavía no llegan pedidos.</span></div></section>`;
   const status = s.onBreak ? `En pausa (${esc(s.onBreak.label)}): no te llegan pedidos`
     : !DX.data ? (navigator.onLine === false ? "Sin señal: los pedidos nuevos llegan cuando vuelva" : "Conectando...")
     : av && av.ok ? "Recibiendo pedidos" : av && av.reason === "enfocada" ? "Comprando: no te llegan pedidos nuevos" : "No estás recibiendo pedidos";

@@ -576,16 +576,95 @@ await check("auth: agent-dispatch 401 signed out / 403 shopper; admin-dispatch o
   assert.ok(!STORES.get("orders") || ![...STORES.get("orders").keys()].includes(sim.body.orderId), "the simulator wrote to the real orders store");
 });
 
-await check("quarantine: previews and localhost dispatch in «dispatch-sandbox», the production domain in «dispatch» -- never the same board", async () => {
+await check("quarantine: previews and localhost use «dispatch-sandbox», the production domain «dispatch» -- never the same board", async () => {
   assert.equal(namespaceFor("deploy-preview-600--ariashopperu.netlify.app"), "dispatch-sandbox");
   assert.equal(namespaceFor("localhost:8888"), "dispatch-sandbox");
   assert.equal(namespaceFor("ariashop.pe"), "dispatch");
   assert.equal(namespaceFor("www.ariashop.pe"), "dispatch");
+});
+
+console.log("\n  Dispatch -- the production switch (rung 3 only after Danny's pass)");
+
+/* Runs the real webhook for one paid order on a host, with these env values, and reports what happened. */
+async function prodRun(host, env) {
   resetStores();
-  const o = seedOrder();
-  await webhook(signedEvent(paidEvent(o.orderId), { host: "ariashop.pe" }));
-  assert.equal(STORES.get("dispatch-orders").size, 1);
-  assert.ok(!STORES.get("dispatch-sandbox-orders") || STORES.get("dispatch-sandbox-orders").size === 0);
+  const keys = ["LITHIC_API_KEY", "LITHIC_ENV", "DISPATCH_LIVE"];
+  const prev = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  for (const k of keys) { if (env[k] == null) delete process.env[k]; else process.env[k] = env[k]; }
+  const realFetch = globalThis.fetch, lithic = [], logs = [], realLog = console.log;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url);
+    if (!/lithic\.com$/.test(u.hostname)) throw new Error("unexpected fetch " + url);
+    lithic.push({ url: String(url), method: init.method || "GET" });
+    const body = u.pathname === "/v1/balances" ? { data: [{ financial_account_type: "ISSUING", available_amount: 500000 }] } : { token: "tok_live_fixture", last_four: "1111", state: "OPEN", type: "MERCHANT_LOCKED", spend_limit: 100 };
+    return { ok: true, status: 200, json: async () => body };
+  };
+  console.log = (...a) => { logs.push(a.join(" ")); };
+  try {
+    const o = seedOrder();
+    const res = await webhook(signedEvent(paidEvent(o.orderId), { host }));
+    const body = JSON.parse(res.body);
+    const prodRecs = STORES.get("dispatch-orders"), sbxRecs = STORES.get("dispatch-sandbox-orders");
+    return { status: res.statusCode, body, paid: JSON.parse(STORES.get("orders").get(o.orderId).v).paymentStatus, prod: prodRecs ? prodRecs.size : 0, sandbox: sbxRecs ? sbxRecs.size : 0, lithic, logs, orderId: o.orderId };
+  } finally {
+    globalThis.fetch = realFetch; console.log = realLog;
+    for (const k of keys) { if (prev[k] == null) delete process.env[k]; else process.env[k] = prev[k]; }
+  }
+}
+
+await check("production + no Lithic key: no dispatch, no fake card, the webhook still marks the order paid, one log line", async () => {
+  const r = await prodRun("ariashop.pe", { DISPATCH_LIVE: "on" });
+  assert.equal(r.status, 200); assert.equal(r.paid, "paid");
+  assert.equal(r.prod, 0); assert.equal(r.sandbox, 0);
+  assert.ok(!("dispatch" in r.body), "the webhook response changed while dispatch is off");
+  assert.deepEqual(r.logs.filter((l) => l.startsWith("[dispatch]")), ["[dispatch] off on production: falta la tarjeta real (LITHIC_API_KEY)"]);
+});
+
+await check("production + live key but DISPATCH_LIVE unset: no dispatch", async () => {
+  const r = await prodRun("ariashop.pe", { LITHIC_API_KEY: "test-key-fixture" });
+  assert.equal(r.paid, "paid"); assert.equal(r.prod, 0); assert.equal(r.lithic.length, 0);
+  assert.ok(r.logs.includes("[dispatch] off on production: falta DISPATCH_LIVE=on"));
+});
+
+await check("production + LITHIC_ENV=sandbox: no dispatch, even with DISPATCH_LIVE=on", async () => {
+  const r = await prodRun("www.ariashop.pe", { LITHIC_API_KEY: "test-key-fixture", LITHIC_ENV: "sandbox", DISPATCH_LIVE: "on" });
+  assert.equal(r.paid, "paid"); assert.equal(r.prod, 0); assert.equal(r.lithic.length, 0);
+  assert.ok(r.logs.includes("[dispatch] off on production: la tarjeta es de prueba (LITHIC_ENV=sandbox)"));
+});
+
+await check("production + live key + DISPATCH_LIVE=on: dispatch runs, in the production store, against Lithic", async () => {
+  const r = await prodRun("ariashop.pe", { LITHIC_API_KEY: "test-key-fixture", LITHIC_ENV: "production", DISPATCH_LIVE: "on" });
+  assert.equal(r.body.dispatch.created, true);
+  assert.equal(r.prod, 1); assert.equal(r.sandbox, 0);
+  assert.ok(r.lithic.some((c) => c.url === "https://api.lithic.com/v1/balances"), "the float did not come from Lithic");
+});
+
+await check("preview: dispatch with the fake, in the sandbox store", async () => {
+  const r = await prodRun("deploy-preview-578--ariashopperu.netlify.app", {});
+  assert.equal(r.body.dispatch.created, true);
+  assert.equal(r.sandbox, 1); assert.equal(r.prod, 0); assert.equal(r.lithic.length, 0);
+});
+
+await check("production switched off: the fake can never run, buyers get 503 and accrue nothing, Danny's board says why", async () => {
+  resetStores();
+  const prev = process.env.DISPATCH_LIVE; process.env.DISPATCH_LIVE = "on";
+  try {
+    const P = dispatchEngine({ getStore, host: "ariashop.pe", card: CP.fakeProgram({ meta: getStore("m") }) });
+    assert.equal(P.gate.on, false);
+    assert.equal(P.program.mode.source, "off", "a fake card program ran on production");
+    await assert.rejects(P.program.issueCard({ checkoutId: "x", amountUsd: 1, merchant: "m" }), /Despacho apagado/);
+    const o = seedOrder();
+    assert.equal((await P.intake({ ...o, paymentStatus: "paid" })).off, true);
+    const ctx = { email: AG1, role: "agent", user: {} };
+    for (const action of ["poll", "claim", "events", "cashout"]) {
+      const r = await AGD.dispatchAgentResponse(ctx, { action, orderId: o.orderId, events: [bought(o.orderId, o.orderId + "~x", "N", 1)], amountPen: 10 }, P);
+      assert.equal(r.status, 503, action); assert.match(r.body.error, /^Despacho apagado/);
+    }
+    assert.equal((await P.ledger(AG1)).earnings.length, 0);
+    const b = await ADD.dispatchAdminResponse({ email: ADMIN, role: "admin" }, "GET", {}, P);
+    assert.equal(b.body.off, true);
+    assert.deepEqual(b.body.gate.reasons, ["falta la tarjeta real (LITHIC_API_KEY)"]);
+  } finally { if (prev == null) delete process.env.DISPATCH_LIVE; else process.env.DISPATCH_LIVE = prev; }
 });
 
 await check("compare-and-set: forty concurrent increments on one key all land", async () => {
@@ -856,6 +935,28 @@ if (pw) {
     await a.page.waitForSelector("#ringPop");
     assert.deepEqual(a.errors, []);
     await a.ctx.close();
+  });
+
+  await check("browser: on the production domain with dispatch off, Danny's board shows «Despacho apagado» and why", async () => {
+    resetStores();
+    const P = dispatchEngine({ getStore, host: "ariashop.pe" });
+    const boardBody = (await ADD.dispatchAdminResponse({ email: ADMIN, role: "admin" }, "GET", {}, P)).body;
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    await ctx.route("https://ariashop.pe/**", async (r) => {
+      const u = new URL(r.request().url());
+      if (u.pathname === "/.netlify/functions/admin-agents") return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ sample: false, payPerPurchasePen: null, logins: [], board: [], accounts: [], exceptions: [] }) });
+      if (u.pathname === "/.netlify/functions/admin-dispatch") return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(boardBody) });
+      let p = u.pathname; const f = join(ROOT, p);
+      return existsSync(f) && !f.endsWith("/") ? r.fulfill({ status: 200, contentType: MIME[extname(f)] || "text/plain", body: readFileSync(f) }) : r.fulfill({ status: 404, body: "" });
+    });
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("https://ariashop.pe/admin-agentes.html");
+    await page.waitForSelector("#dispatchOff");
+    assert.equal(await page.textContent("#dispatchOff"), "Despacho apagado: falta la tarjeta real (LITHIC_API_KEY) y falta DISPATCH_LIVE=on.");
+    await shot(page, "6-produccion-despacho-apagado");
+    assert.deepEqual(errors, []);
+    await ctx.close();
   });
 
   await browser.close();

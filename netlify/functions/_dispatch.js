@@ -49,6 +49,31 @@ export function namespaceFor(host) {
 }
 
 /**
+ * THE PRODUCTION SWITCH (rung 3 comes only after Danny's pass).
+ * Previews and localhost: always on, with the fake card program.
+ * Any other host: on ONLY when DISPATCH_LIVE=on AND the card program is
+ * real (LITHIC_API_KEY set, LITHIC_ENV not "sandbox"). Off means the
+ * webhook does what it did before dispatch existed -- marks the order
+ * paid, nothing else -- and no buyer accrues pay.
+ *   returns { on, sandbox, reasons: [Spanish], reason }
+ */
+export function dispatchGate(host, env = process.env) {
+  if (demoAllowed(host)) return { on: true, sandbox: true, reasons: [], reason: null };
+  const reasons = [];
+  if (!env.LITHIC_API_KEY) reasons.push("falta la tarjeta real (LITHIC_API_KEY)");
+  else if (String(env.LITHIC_ENV || "").toLowerCase() === "sandbox") reasons.push("la tarjeta es de prueba (LITHIC_ENV=sandbox)");
+  if (String(env.DISPATCH_LIVE || "").trim().toLowerCase() !== "on") reasons.push("falta DISPATCH_LIVE=on");
+  return { on: reasons.length === 0, sandbox: false, reasons, reason: reasons.join("; ") || null };
+}
+
+/* What stands in for the card program on a production host that is not
+   live: every call refuses. The fake can never run there. */
+function disabledProgram(reason) {
+  const no = async () => { throw D.dispatchError(503, "Despacho apagado: " + reason); };
+  return { mode: { live: false, sandbox: false, label: "APAGADO", source: "off" }, availableFloatUsd: no, issueCard: no, setState: no, charges: async () => [], recordCapture: async () => null, setFloat: no };
+}
+
+/**
  * Compare-and-set. `mutate(current)` returns the next value, or null for
  * "no change"; it may throw to refuse. Retries on a lost race.
  *   returns { value, written }
@@ -88,7 +113,11 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
   const agents = getStore(`${ns}-agents`);
   const meta = getStore(`${ns}-meta`);
   const archive = getStore(`${ns}-archive`);
-  const program = card || cardProgram({ env, meta, fetchImpl });
+  const gate = dispatchGate(host, env);
+  /* On production the fake is impossible: only a live Lithic program, and only with the switch on. */
+  let program = card || cardProgram({ env, meta, fetchImpl });
+  if (!sandbox && (!gate.on || !program.mode.live || program.mode.sandbox)) program = disabledProgram(gate.reason || "la tarjeta no es real");
+  const requireOn = () => { if (!gate.on) throw D.dispatchError(503, "Despacho apagado: " + gate.reason, { off: true }); };
 
   const config = async () => D.dispatchConfig((await meta.get("config", { type: "json" })) || {});
   const accounts = async () => ((await meta.get("accounts", { type: "json" })) || {}).list || [];
@@ -166,6 +195,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
 
   /** Stripe said paid: the dispatch record, once per order, then the gate. */
   async function intake(order, { eventId = null } = {}) {
+    if (!gate.on) return { off: true, reason: gate.reason };
     if (!order || !order.orderId) return { skipped: "sin pedido" };
     if (order.paymentStatus !== "paid") return { skipped: "no pagado" };
     const now = clock();
@@ -193,6 +223,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
 
   /** The phone's short poll: presence in, ping / taken / her orders / her money out. */
   async function poll(agentId, input = {}) {
+    requireOn();
     const now = clock();
     const presence = {
       agentId, name: String(input.name || "").slice(0, 80) || null,
@@ -260,6 +291,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
 
   /** ACEPTAR. First conditional write wins; the loser gets 409 taken. Cards are issued at claim. */
   async function claimOrder(agentId, orderId) {
+    requireOn();
     const now = clock();
     const [recs, accs] = await Promise.all([records(), accounts()]);
     const usage = D.accountUsageToday(recs.filter((r) => r.orderId !== orderId), D.limaDay(now));
@@ -273,6 +305,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
 
   /** Pasar: on the order and in her history, so Danny sees cherry-picking. */
   async function passOrder(agentId, orderId) {
+    requireOn();
     const now = clock();
     const { value } = await casUpdate(orders, orderId, (cur) => {
       if (!cur) throw D.dispatchError(404, "Ese pedido no existe");
@@ -318,6 +351,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
    * dropped signal is accepted again and changes nothing.
    */
   async function applyEvents(agentId, events) {
+    requireOn(); // no accrual on production unless dispatch is live
     const cfg = await config();
     const accepted = [], rejected = [];
     for (const e of (Array.isArray(events) ? events : []).slice(0, 100)) {
@@ -363,6 +397,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
   }
 
   async function cashout(agentId, amountPen) {
+    requireOn();
     const cfg = await config();
     const now = clock();
     let payout = null;
@@ -374,6 +409,12 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
 
   async function board() {
     const now = clock();
+    if (!gate.on) {
+      /* Production, switched off: the banner and nothing else. Paid orders keep flowing through the existing ledger. */
+      return { now, sandbox, off: true, gate, cardMode: program.mode.label, config: await config(), accounts: [], float: { availableUsd: null, outstandingUsd: 0, error: null, source: "off" },
+        counts: Object.fromEntries(Object.keys(D.STATES).map((k) => [k, 0])), fundsHoldShortfallUsd: 0, orders: [], escalations: [], presence: [], payoutLedger: [], passesByAgent: {},
+        payoutQueue: [], payoutsInFlight: [], batches: [], pot: { balancePen: null, lowAlertPen: null, low: false, pendingNetPen: 0 }, reconciliation: null };
+    }
     const cfg = await config();
     const [recs, accs, pres, leds, batchRows, recon] = await Promise.all([records(), accounts(), presences(), ledgers(), listJson(meta, "batch:"), meta.get("recon:last", { type: "json" })]);
     let floatAvail = null, floatError = null;
@@ -383,7 +424,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
     const holds = recs.filter((r) => r.state === D.STATES.FUNDS_HOLD);
     const payouts = leds.flatMap((L) => L.payouts.map((p) => ({ ...p, agentId: L.agentId, registration: L.registration })));
     return {
-      now, sandbox, cardMode: program.mode.label, config: cfg, accounts: accs,
+      now, sandbox, off: false, gate, cardMode: program.mode.label, config: cfg, accounts: accs,
       float: { availableUsd: floatAvail, outstandingUsd: D.outstandingUsd(recs), error: floatError, source: program.mode.source },
       counts,
       fundsHoldShortfallUsd: D.round2(holds.reduce((s, r) => s + ((r.fundsHold && r.fundsHold.shortfallUsd) || 0), 0)),
@@ -568,7 +609,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
   }
 
   return {
-    ns, sandbox, program, config, accounts, records, tick, intake, poll, claimOrder, passOrder, applyEvents, register, cashout,
+    ns, sandbox, gate, program, config, accounts, records, tick, intake, poll, claimOrder, passOrder, applyEvents, register, cashout,
     board, setConfig, setAccounts, setFakeFloat, reRingOrder, setItemLink, generateBatch, batchFile, markBatch, reconcile, watchdog, sweep,
     ledger: async (id) => (await agents.get(ledgerKey(id), { type: "json" })) || D.emptyLedger(id),
     updateLedger, orderRecord: (id) => orders.get(id, { type: "json" }),
