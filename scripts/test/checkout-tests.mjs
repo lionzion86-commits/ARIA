@@ -129,7 +129,7 @@ await check("?ref= attribution: 30-day cookie, most recent wins, codes validated
   const js = readFileSync(ROOT + "ref.js", "utf8");
   assert.match(js, /\/\^\[a-z0-9\]\[a-z0-9_-\]\{0,39\}\$\//, "ref.js validates differently from the server");
   assert.match(js, /30 \* 24 \* 60 \* 60/);
-  for (const f of readdirSync(ROOT).filter((f) => f.endsWith(".html") && f !== "admin.html")) {
+  for (const f of readdirSync(ROOT).filter((f) => f.endsWith(".html") && !["admin.html", "agente.html", "admin-agentes.html"].includes(f))) {
     /* defer is fine (search.html, #409): it still runs before anyone can check out. */
     assert.match(readFileSync(ROOT + f, "utf8"), /<script src="\/ref\.js"( defer)?><\/script>/, `${f} does not capture ?ref=`);
   }

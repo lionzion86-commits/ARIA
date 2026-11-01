@@ -62,6 +62,7 @@ import {
 import {
   HANDLED_EVENTS, normalizeStripeEvent, rawBodyOf, verifyStripeSignature,
 } from "./_stripe-verify.js";
+import { dispatchEngine, dispatchGate } from "./_dispatch.js";
 
 /* Re-exported: stripe-webhook.js is the name an operator looks for, so
    the constants they may need to reason about resolve from here too. */
@@ -222,8 +223,40 @@ export async function handler(event) {
       }
     }
 
+    /* LIVE DISPATCH (#443 c.6551091244, steps 2-4). A paid order becomes
+       a dispatch record -- the buy packet, then the float gate, then the
+       ring. The order id is the idempotency key (a create-only write), so
+       checkout.session.completed and payment_intent.succeeded for the
+       same order, or a retried delivery, dispatch it once. Nothing here
+       may fail the webhook: the money is already recorded above, and a
+       dispatch error is logged and visible (the order is missing from
+       Danny's board, and the watchdog has nothing to escalate) rather
+       than sending Stripe into a retry loop. */
+    /* PRODUCTION SWITCH: on the production domain dispatch runs only with
+       DISPATCH_LIVE=on and a real Lithic program (dispatchGate). Off, this
+       webhook does exactly what it did before dispatch existed. */
+    let dispatch;
+    const host = String(event.headers?.host || event.headers?.Host || "").toLowerCase();
+    const gate = dispatchGate(host);
+    if (payment.orderId && !matchError && !gate.on) {
+      const latest = await getStore("orders").get(payment.orderId, { type: "json" }).catch(() => null);
+      if (latest && latest.paymentStatus === "paid") console.log(`[dispatch] off on production: ${gate.reason}`);
+    } else if (payment.orderId && !matchError) {
+      try {
+        const latest = await getStore("orders").get(payment.orderId, { type: "json" });
+        if (latest && latest.paymentStatus === "paid") {
+          dispatch = await dispatchEngine({ getStore: (name) => getStore({ name, consistency: "strong" }), host })
+            .intake(latest, { eventId: stripeEvent.id });
+        }
+      } catch (error) {
+        console.error(`[dispatch] ${payment.orderId}: intake failed: ${error.message}`);
+        dispatch = { error: error.message };
+      }
+    }
+
     await markEventApplied(stripeEvent.id, payment.paymentId);
     return json(200, {
+      dispatch,
       ok: true,
       handled: HANDLED_EVENTS.has(normalized.type),
       paymentId: payment.paymentId,
