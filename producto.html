@@ -271,7 +271,7 @@ function unpackImages(list, image){
 function recordToItem(r){
   return {
     name: r.name || "", brand: r.brand || "", price: Number(r.price) || 0,
-    image: r.image || "", url: "", retailer: r.retailer || "",
+    image: r.image || "", url: /^https?:\/\/[^\s\/?#]+/i.test(String(r.url || "").trim()) ? String(r.url).trim() : "", retailer: r.retailer || "",
     description: r.description || "", sizes: Array.isArray(r.sizes) ? r.sizes : [],
     images: unpackImages(r.images, r.image),
     sizesTier: r.sizesTier || "", sizesSource: r.sizesSource || "", sizesPending: r.sizesPending === true,
@@ -734,7 +734,7 @@ function normalizeItem(it, retailerKey){
     images = tidyGallery(images, 12);
     return {
       name: decodeEntities(name), brand: decodeEntities(it.brand || ""), price: price,
-      image: String(img || ""), url: String(it.url || it.link || ""),
+      image: String(img || ""), url: String(it.url || it.link || it.productUrl || ""),   /* productUrl: the Foot Locker feed */
       retailer: String(it.retailer || retailerKey || ""),
       /* Spanish only (#443 c.6402691998): an untranslated English copy
          (description_en) is never shown; the stores keep Spanish in
@@ -1462,6 +1462,10 @@ function addCurrentToCart(p, sizes){
     sizeOptions: sizes && sizes.length ? sizes.slice() : undefined,
     /* The disclosure rides with the line to checkout and the order. */
     condition: (conditionOfProduct(p) || {}).label || undefined,
+    /* The record's own product page, for the buyer's dispatch packet:
+       an absolute http(s) URL or nothing (a relative path is no URL).
+       Stored on the line only -- this page never links out. */
+    url: /^https?:\/\/[^\s\/?#]+/i.test(String(p.url || "").trim()) ? String(p.url).trim() : undefined,
     qty: 1
   });
   toast('Agregado al carrito.');
