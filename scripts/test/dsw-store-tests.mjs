@@ -154,7 +154,10 @@ await check("the registry keeps a pending store out of every listing, door and c
 await check("every home DSW rail ships [hidden] and is revealed only by the live registry row", () => {
   const html = read("index.html");
   const secs = [...html.matchAll(/<section[^>]*data-store-rail="dsw"[^>]*>/g)].map((m) => m[0]);
-  assert.equal(secs.length, 3, "phone, desktop and tablet rails");
+  /* The homepage's phone and desktop DSW rails left with every store rail
+     (Todas las Tiendas, Danny 2026-11-01: DSW pills there once its storefront
+     has products); the Tiendas directory view keeps its hidden rail. */
+  assert.equal(secs.length, 1, "the directory view's rail");
   for (const s of secs) {
     assert.match(s, /\shidden[\s>]/, "a DSW rail is not hidden");
     assert.match(s, /data-pending-catalog="dsw"/);
@@ -719,7 +722,7 @@ await check("zero catalogue, headless: no DSW tile, rail, directory card or stor
       fetchedCatalogue: performance.getEntriesByType("resource").some((e) => /dsw-catalog\.json/.test(e.name)),
     }));
     assert.equal(home.tile, 0, "a visible DSW tile or door on the home page");
-    assert.deepEqual(home.rails, [true, true, true], "a DSW rail is showing");
+    assert.ok(home.rails.every(Boolean), "a DSW rail is showing");
     assert.equal(home.cards, 0);
     assert.equal(home.fetchedCatalogue, false, "the home page fetched dsw-catalog.json for a hidden rail");
 

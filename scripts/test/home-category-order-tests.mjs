@@ -7,7 +7,9 @@
      Hombre -> Niños -> Perfumes -> every category carousel (Electrónica,
      Gym Rat, Fútbol, Fight Club, Beauty, Surf & Skate, Juguetes,
      Zapatos, Lentes, Ropa interior, Lujo, Joyas) -> every store (the
-     Walmart tile, Diseñadores Latinos, the store rails).
+     Walmart tile, Diseñadores Latinos, the Todas las Tiendas block --
+     category carousels of stores, which replaced the store rails on
+     Danny's 2026-11-01 ruling).
 
      node scripts/test/home-category-order-tests.mjs
    ================================================================== */
@@ -39,9 +41,9 @@ for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
     const cats = CATEGORIES.map((l) => [l, at(tree, l)]).filter(([, i]) => i >= 0);
     for (const [l, i] of cats) assert.ok(i > perf, `${l} above Perfumes`);
     const lastCat = Math.max(...cats.map(([, i]) => i));
-    const stores = [...tree.matchAll(/data-store-rail="([a-z]+)"/g)].map((m) => [m[1], m.index]);
-    assert.ok(stores.length >= 10);
-    for (const [k, i] of stores) assert.ok(i > lastCat, `the ${k} rail sits above a category`);
+    const block = tree.indexOf("data-tiendas-block");
+    assert.ok(block > 0, "no Todas las Tiendas block");
+    assert.ok(block > lastCat, "the Tiendas block sits above a category");
     const tile = tree.indexOf('<section aria-label="Walmart" class="relative');
     const latino = at(tree, "Diseñadores Latinos");
     assert.ok(tile > lastCat && latino > lastCat, "the Walmart tile or Diseñadores Latinos above a category");
