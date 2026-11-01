@@ -119,9 +119,126 @@ function axesOf(e) {
   return { color: color || [], pack: pack || [] };
 }
 
+/* THE SHAPE THE PULL REALLY RETURNED (Data Drop 1, data/shades-walmart-
+   2026-11-01/dataset.json, e-commerce/walmart-product-detail-scraper):
+   each page carries variantList: [{ productId, usItemId, url, imageUrl,
+   allImages, priceInfo: { price: "$10.97", wasPrice }, availabilityStatus,
+   variants: ["actual_color-07warmup", "multipack_quantity-1", "size-..."] }]
+   -- every child with its own URL, price and photo. */
+const isVariantListShape = (products) => (products || []).some((e) => e && Array.isArray(e.variantList) && e.variantList.some((v) => v && v.usItemId && Array.isArray(v.variants)));
+const tokenOf = (v, axis) => {
+  const t = (v.variants || []).find((x) => String(x).startsWith(axis + "-"));
+  return t ? String(t).slice(axis.length + 1) : "";
+};
+const squash = (s) => low(s).replace(/[^a-z0-9]/g, "");
+/* The shade's words as the store writes them in the child's own URL: the
+   token "07warmup" is the run "Warm-Up" of ".../Lip-Lingerie-XXL-Liquid-
+   Lipstick-Warm-Up-0-13-fl-oz/161629972"; a leading shade number in the
+   token is kept ("07 Warm Up"). No run: the page's own name when it is
+   in the pull, else the token's words as they are. */
+export function walmartShadeLabel(token, url, pageName) {
+  const num = (/^(\d{1,4})(?=-?[a-z])/i.exec(token) || [])[1] || "";
+  const core = squash(token).replace(/^\d+/, "");
+  const slug = (/\/ip\/([^\/?#]+)\//.exec(String(url || "")) || [])[1] || "";
+  const words = slug.split("-").filter(Boolean);
+  /* Exact first; then without vowels ("undressd" is the URL's "Undressed"). */
+  const bare = (x) => x.replace(/[aeiou]/g, "");
+  for (const same of [(a, b) => a === b, (a, b) => bare(a) === bare(b) && bare(b).length >= 4]) {
+    if (!core) break;
+    for (let i = 0; i < words.length; i++) {
+      let acc = "";
+      for (let j = i; j < words.length && acc.length < core.length + 3; j++) {
+        acc += squash(words[j]);
+        if (same(acc, core)) {
+          const run = words.slice(i, j + 1).join(" ");
+          const text = /[a-z]/.test(run) ? run : titleCase(run);
+          return (num && !new RegExp("^" + num + "\\b", "i").test(text) ? num + " " : "") + text;
+        }
+      }
+    }
+  }
+  if (pageName) {
+    const parts = String(pageName).split(",").map((x) => x.trim());
+    const hit = parts.find((x) => squash(x).replace(/^\d+/, "") === core);
+    if (hit) return shadeLabel(hit);
+  }
+  return shadeLabel(String(token).replace(/[-_,]+/g, " ").trim());
+}
+export function parseWalmartVariantLists(products, opts = {}) {
+  const retailer = opts.retailer || "walmart";
+  const stats = { pages: 0, families: 0, emptyVariantList: 0, single: 0, members: 0, withDetail: 0, awaitingDetail: 0, multipackSkipped: 0, outOfStock: 0, superseded: 0 };
+  const parent = new Map();
+  const find = (x) => { while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
+  const add = (x) => { if (!parent.has(x)) parent.set(x, x); };
+  const union = (a, b) => { add(a); add(b); const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra < rb ? rb : ra, ra < rb ? ra : rb); };
+  const child = new Map(), pageName = new Map(), brandOf = new Map();
+  for (const e of products || []) {
+    if (!e || typeof e !== "object") continue;
+    stats.pages++;
+    const own = String(e.usItemId || "");
+    if (own) { add(own); pageName.set(own, String(e.name || "")); }
+    const list = Array.isArray(e.variantList) ? e.variantList : [];
+    if (!list.length) { stats.emptyVariantList++; continue; }
+    for (const v of list) {
+      const id = String(v && v.usItemId || "");
+      if (!id) continue;
+      if (own) union(own, id);
+      if (!child.has(id)) child.set(id, v);
+      if (e.brand) brandOf.set(id, String(e.brand));
+    }
+  }
+  const byRoot = new Map();
+  for (const id of child.keys()) { const r = find(id); if (!byRoot.has(r)) byRoot.set(r, []); byRoot.get(r).push(id); }
+  const families = [];
+  for (const [root, ids] of [...byRoot].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+    const kids = ids.map((id) => child.get(id)).filter((v) => tokenOf(v, "actual_color"));
+    const singles = kids.filter((v) => { const q = tokenOf(v, "multipack_quantity"); return !q || Number(q) <= 1; });
+    /* A multipack is a shade's pack, never a shade; it stays only when
+       the family sells nothing singly. */
+    const use = singles.length ? singles : kids;
+    stats.multipackSkipped += kids.length - use.length;
+    const byShade = new Map();
+    for (const v of use) {
+      const k = squash(tokenOf(v, "actual_color")).replace(/^\d+/, "") || squash(tokenOf(v, "actual_color"));
+      if (!byShade.has(k)) byShade.set(k, []);
+      byShade.get(k).push(v);
+    }
+    if (byShade.size < 2) { stats.single++; continue; }
+    const members = [];
+    for (const group of byShade.values()) {
+      const score = (v) => (pageName.has(String(v.usItemId)) ? 8 : 0) + (num(v.priceInfo && v.priceInfo.price) > 0 && (v.imageUrl || (v.allImages || []).length) ? 4 : 0)
+        + (v.availabilityStatus === "IN_STOCK" ? 2 : 0) + (/^\d/.test(tokenOf(v, "actual_color")) ? 1 : 0);
+      group.sort((a, b) => score(b) - score(a));
+      stats.superseded += group.length - 1;
+      const v = group[0];
+      const id = String(v.usItemId);
+      const url = httpUrl(v.url) || "https://www.walmart.com/ip/" + id;
+      const m = { id, itemId: id, label: walmartShadeLabel(tokenOf(v, "actual_color"), url, pageName.get(id)), url };
+      if (pageName.get(id)) m.name = pageName.get(id);
+      if (brandOf.get(id)) m.brand = brandOf.get(id);
+      const price = num(v.priceInfo && v.priceInfo.price);
+      const was = num(v.priceInfo && v.priceInfo.wasPrice);
+      if (price > 0) m.price = price;
+      if (was > price && price > 0) m.wasPrice = was;
+      const imgs = imagesOf({ image: v.imageUrl, images: v.allImages });
+      if (imgs.length) { m.image = imgs[0]; m.images = imgs; }
+      const pack = tokenOf(v, "multipack_quantity");
+      if (pack && Number(pack) > 1) m.pack = pack + " pack";
+      if (v.availabilityStatus) m.available = v.availabilityStatus === "IN_STOCK";
+      if (m.available === false) stats.outOfStock++;
+      if (m.price > 0 && m.image) stats.withDetail++; else stats.awaitingDetail++;
+      members.push(m);
+    }
+    families.push({ key: "walmart:" + root, retailer, axis: opts.axis || "Tono", members, pending: [], nameFromUrl: true });
+    stats.families++; stats.members += members.length;
+  }
+  return { families, stats };
+}
+
 /* products: every productDetails entry from every pull file (first pass
    and any sibling detail pass). Returns { families, stats }. */
 export function parseWalmartFamilies(products, opts = {}) {
+  if (isVariantListShape(products)) return parseWalmartVariantLists(products, opts);
   const retailer = opts.retailer || "walmart";
   const stats = { entries: 0, families: 0, single: 0, members: 0, withDetail: 0, awaitingDetail: 0, superseded: 0, multipackSkipped: 0 };
   /* 1. Every entry's own child id and its detail. */
@@ -234,9 +351,13 @@ export function parseWalmartFamilies(products, opts = {}) {
    later detail pass), arrays or { items | products | data }. */
 export function readWalmartPulls(dir) {
   const out = [], files = [];
+  if (Array.isArray(dir)) {
+    for (const d of dir) { const r = readWalmartPulls(d); if (r.files.length) return r; }
+    return { products: out, files };
+  }
   if (!existsSync(dir)) return { products: out, files };
   for (const sub of readdirSync(dir).sort()) {
-    if (!/^walmart-beauty-/.test(sub)) continue;
+    if (!/^(walmart-beauty-|shades-walmart-)/.test(sub)) continue;
     const d = join(dir, sub);
     let names = [];
     try { names = readdirSync(d).filter((f) => /\.json$/i.test(f) && !/^families\.json$/i.test(f)); } catch { continue; }
@@ -245,7 +366,10 @@ export function readWalmartPulls(dir) {
       const j = JSON.parse(readFileSync(join(d, f), "utf8"));
       const list = Array.isArray(j) ? j : (j && (j.items || j.products || j.data)) || [];
       if (!Array.isArray(list)) continue;
-      out.push(...list);
+      /* Only product pages (classification.json, urls.json sit beside them). */
+      const pages = list.filter((e) => e && typeof e === "object" && (Array.isArray(e.variantList) || Array.isArray(e.variants)));
+      if (!pages.length) continue;
+      out.push(...pages);
       files.push(join(sub, f));
     }
   }
@@ -294,10 +418,19 @@ export function parseMacysFamilies(products) {
       else pending.push({ id: m.id, label, reason: images.length ? "precio por color no publicado" : "sin foto del color" });
     }
     if (members.length < 2) { stats.single++; continue; }
-    families.push({ key: "macys:" + id, retailer: "macys", axis: "Color", anchorId: id, members, pending });
+    families.push({ key: "macys:" + id, retailer: "macys", axis: "Color", anchorId: id, sameTitle: true, members, pending });
     stats.families++; stats.members += members.length; stats.pending += pending.length;
   }
   return { families, stats };
+}
+
+/* A child the pull has no page for: its title is the store's own words
+   from its product URL ("...-Lipstick-Peach-Flirt-0-13-fl-oz" ->
+   "... Lipstick Peach Flirt 0.13 fl oz"). */
+export function nameFromUrl(url) {
+  const slug = (/\/ip\/([^\/?#]+)\//.exec(String(url || "")) || [])[1] || "";
+  if (!slug) return "";
+  return decodeURIComponent(slug).replace(/(\d)-(\d)/g, "$1.$2").replace(/-+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 /* ---------------- loading and applying ---------------- */
@@ -381,9 +514,14 @@ export function applyFamilies(listings, families) {
         labels.add(low(m.label)); vs.add(l.v);
         return;
       }
-      const price = m.price > 0 ? m.price : (m.priceFromAnchor && anchor.price > 0 ? anchor.price : 0);
-      const image = httpUrl(m.image);
-      const name = m.name || (fam.retailer === "macys" ? anchor.name : "");
+      const price = m.priceFromAnchor && anchor.price > 0 ? anchor.price : m.price > 0 ? m.price : 0;
+      let image = httpUrl(m.image), gallery = null;
+      if (!image && m.photoKey) {
+        const key = String(m.photoKey).toLowerCase();
+        gallery = (Array.isArray(anchor.images) ? anchor.images : []).filter((u) => (String(u).replace(/[?#].*$/, "").split("/").pop() || "").toLowerCase() === key);
+        image = httpUrl(gallery[0]);
+      }
+      const name = fam.sameTitle ? anchor.name : (m.name || (fam.nameFromUrl ? nameFromUrl(m.url) : ""));
       if (!(price > 0) || !image || !name || photos.has(normUrl(image))) { waiting.push(m.label); return; }
       /* A feed row without a URL: the store's own /products/<handle>
          on the host its catalogue listing lives on. */
@@ -392,11 +530,13 @@ export function applyFamilies(listings, families) {
       const v = variantIdOf(m.vkey || url, fam.key + "|" + m.id);
       if (vs.has(v)) return;
       const x = { v, retailer: anchor.retailer, name, brand: m.brand || anchor.brand || "", url, price, image,
-        images: Array.isArray(m.images) && m.images.length ? m.images.slice(0, 12) : [image], dept: anchor.dept || "",
+        images: Array.isArray(m.images) && m.images.length ? m.images.slice(0, 12) : gallery && gallery.length ? gallery : [image], dept: anchor.dept || "",
         __family: fam.source || fam.key };
       if (m.wasPrice > price) x.wasPrice = m.wasPrice;
       if (Array.isArray(m.sizes) && m.sizes.length) x.sizes = m.sizes.slice();
-      else if (m.sizesPending) x.sizesPending = true;
+      /* A product sold by size never sells without one: no size list of
+         its own, sizes por confirmar. */
+      else if (m.sizesPending || (Array.isArray(anchor.sizes) && anchor.sizes.length) || anchor.sizesPending) x.sizesPending = true;
       else if (fam.retailer === "macys" && Array.isArray(anchor.sizes)) x.sizes = anchor.sizes;
       out.push({ l: x, m, own: false });
       labels.add(low(m.label)); vs.add(v); photos.add(normUrl(image));
@@ -416,7 +556,9 @@ export function applyFamilies(listings, families) {
         }
       }
       for (const { l, colour } of byModel.get(String(fam.retailer).toLowerCase() + "|" + fam.model) || []) {
-        if (vs.has(l.v) || assign.has(l.v) || labels.has(low(colour))) continue;
+        /* "White/Black" and "Black/White" are one colourway: the live one stands. */
+        const words = (x) => low(x).split(/[^a-z0-9]+/).filter(Boolean).sort().join(" ");
+        if (vs.has(l.v) || assign.has(l.v) || labels.has(low(colour)) || [...labels].some((x) => words(x) === words(colour))) continue;
         out.push({ l, m: { label: colour, available: false }, own: true });
         labels.add(low(colour)); vs.add(l.v);
         stats.retired = (stats.retired || 0) + 1;
@@ -424,6 +566,12 @@ export function applyFamilies(listings, families) {
     }
     if (out.length < 2) { stats.single++; continue; }
     stats.families++;
+    const by = (stats.byRetailer = stats.byRetailer || {});
+    const R = (by[fam.retailer] = by[fam.retailer] || { pickers: 0, added: 0, pending: 0, agotado: 0 });
+    R.pickers++;
+    R.added += out.filter((o) => !o.own).length;
+    R.agotado += out.filter((o) => o.m.available === false).length;
+    R.pending += new Set(waiting.filter((x) => x && !labels.has(low(x)))).size;
     for (const { l, m, own } of out) {
       const a = { g, c: m.label };
       if (ax) a.ax = ax;
@@ -476,6 +624,7 @@ export function parseShopifyFamilies(products, opts = {}) {
     const brand = String(p.vendor || p.brand || "").trim();
     const optOf = (v, i) => (i < 0 ? "" : String(v["option" + (i + 1)] ?? (Array.isArray(v.options) ? v.options[i] : "") ?? "").trim());
     const colours = [...new Set(variants.map((v) => optOf(v, ci)).filter(Boolean))];
+    let m0images = null;
     if (ci >= 0 && colours.length > 1) {
       const members = [];
       colours.forEach((c, k) => {
@@ -485,6 +634,15 @@ export function parseShopifyFamilies(products, opts = {}) {
         const ids = new Set(vs.map((v) => v.id).filter(Boolean));
         let image = vs.map((v) => shopifyImage(v.featured_image)).find(Boolean) || "";
         if (!image) image = images.filter((im) => im && Array.isArray(im.variant_ids) && im.variant_ids.some((id) => ids.has(id))).map(shopifyImage).find(Boolean) || "";
+        /* The stores' feeds (Data Drop 2) carry plain image URLs: a photo
+           the store files under one of this colour's own SKUs is its photo
+           ("210000266634.jpg", "210000266634-1.jpg"). */
+        if (!image) {
+          const skus = vs.map((v) => String(v.sku || "").trim().toLowerCase()).filter((x) => x.length >= 5);
+          const fileOf = (u) => decodeURIComponent(String(u).replace(/[?#].*$/, "").split("/").pop() || "").toLowerCase();
+          const own = images.map(shopifyImage).filter((u) => u && skus.some((k) => { const f = fileOf(u); return f.startsWith(k + ".") || f.startsWith(k + "-") || f.startsWith(k + "_"); }));
+          if (own.length) { image = own[0]; m0images = own; }
+        }
         const m = { id: (p.id || p.handle || name) + ":" + c, label: c, url: url ? url + (vs[0] && vs[0].id ? "?variant=" + vs[0].id : "") : "", productUrl: url, name, brand };
         if (p.handle) m.handle = String(p.handle);
         if (vs[0] && vs[0].id) m.variantId = String(vs[0].id);
@@ -492,7 +650,8 @@ export function parseShopifyFamilies(products, opts = {}) {
         if (prices.length) m.price = Math.min(...prices);
         const was = vs.map((v) => num(v.compare_at_price ?? v.compareAtPrice)).filter((n) => n > 0);
         if (was.length && m.price && Math.max(...was) > m.price) m.wasPrice = Math.max(...was);
-        if (image) { m.image = image; m.images = [image]; }
+        if (image) { m.image = image; m.images = m0images && m0images.length ? m0images.slice(0, 12) : [image]; }
+        m0images = null;
         m.available = live.length > 0;
         if (si >= 0) m.sizes = [...new Set(live.map((v) => optOf(v, si)).filter(Boolean))];
         if (!(m.price > 0 && m.image)) stats.awaitingDetail++;
@@ -550,24 +709,31 @@ export function parseKohlsFamilies(products) {
     const names = [...new Set((Array.isArray(p.colors) ? p.colors : []).map((c) => String(c && (c.name || c.color) || c || "").trim()).filter(Boolean))];
     if (names.length < 2) { stats.single++; continue; }
     const url = httpUrl(p.url || p.product_url || "");
-    const price = num(p.price ?? p.sale_price ?? p.salePrice ?? p.regular_price);
+    const price = num(p.final_price ?? p.price ?? p.sale_price ?? p.salePrice ?? p.regular_price);
     const shown = String(p.display_color || p.displayColor || "").trim();
     const sw = Array.isArray(p.swatches) ? p.swatches : [];
     const name = String(p.title || p.name || "").trim();
     const members = names.map((c) => {
       const s = sw.find((x) => x && low(x.color || x.name || x.colorName) === low(c)) || {};
-      const photo = httpUrl(s.image || s.product_image || s.productImage || s.large_image || s.img || "");
-      const m = { id: String(p.id || p.product_id || url) + ":" + c, label: c, url, productUrl: url, name, brand: String(p.brand || "").trim() };
+      /* A swatch chip ("..._sw") is not a product photo. */
+      const raw = s.product_image || s.productImage || s.large_image || s.image || s.img || "";
+      const photo = /_sw(?:[?#]|$)/i.test(String(raw)) ? "" : httpUrl(raw);
+      const m = { id: String(p.web_id || p.id || p.product_id || url) + ":" + c, label: c, url, productUrl: url, name, brand: String(p.brand || "").trim() };
       if (low(c) === low(shown)) { m.anchor = true; m.selected = true; }
       if (photo) { m.image = photo; m.images = [photo]; }
-      if (price > 0) m.price = price;
-      if (!m.selected) { m.vkey = "kohls:" + (p.id || p.product_id || url) + ":color:" + c; m.sizesPending = true; }
+      /* Kohl's files each colour's photo as <web id>_<Colour_Name>: the
+         catalogue listing's own gallery holds them (applyFamilies). */
+      if (p.web_id) m.photoKey = String(p.web_id) + "_" + c.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "");
+      /* One price per product in this pull: every colour at the listing's. */
+      if (!m.selected) m.priceFromAnchor = true;
+      else if (price > 0) m.price = price;
+      if (!m.selected) { m.vkey = "kohls:" + (p.web_id || p.id || p.product_id || url) + ":color:" + c; m.sizesPending = true; }
       if (typeof s.available === "boolean") m.available = s.available;
-      if (!(m.price > 0 && m.image)) stats.awaitingDetail++;
+      if (!m.image && !m.photoKey) stats.awaitingDetail++;
       return m;
     });
     if (!members.some((m) => m.anchor)) members[0].anchor = true;
-    families.push({ key: "kohls:" + (p.id || p.product_id || url), retailer: "kohls", axis: "Color", members, pending: [] });
+    families.push({ key: "kohls:" + (p.web_id || p.id || p.product_id || url), retailer: "kohls", axis: "Color", sameTitle: true, members, pending: [] });
     stats.families++; stats.members += members.length;
   }
   return { families, stats };
@@ -586,14 +752,17 @@ export function parseZumiezFamilies(products) {
     stats.products++;
     const name = String(p.title || p.name || "").trim();
     const mid = midColourOf(name);
-    const url = httpUrl(p.url || "");
+    const url = httpUrl(p.url || "") || (p.url_key ? "https://www.zumiez.com/" + p.url_key + ".html" : "");
     if (!mid || !url) { stats.single++; continue; }
-    const key = low(p.brand) + "|" + low(mid.model) + "|" + low(mid.tail);
-    const imgs = imagesOf(p);
-    const m = { id: url, label: mid.colour, url, productUrl: url, anchor: true, name, brand: String(p.brand || "").trim() };
-    const price = num(p.price);
+    const key = low(p.brand || name.split(/\s+/)[0]) + "|" + low(mid.model) + "|" + low(mid.tail);
+    const imgs = imagesOf({ ...p, image: p.image || (p.small_image && p.small_image.url) });
+    const brand = String(p.brand || "").trim() || (name.split(/\s+/)[0] || "");
+    const m = { id: url, label: mid.colour, url, productUrl: url, anchor: true, name, brand };
+    const pr = p.price_range && p.price_range.minimum_price;
+    const price = num(p.special_price ?? (pr && pr.final_price && pr.final_price.value) ?? p.price);
     if (price > 0) m.price = price;
-    const was = num(p.originalPrice ?? p.was_price);
+    if (p.stock_status) m.available = p.stock_status === "IN_STOCK";
+    const was = num((pr && pr.regular_price && pr.regular_price.value) ?? p.originalPrice ?? p.was_price);
     if (was > price) m.wasPrice = was;
     if (imgs.length) { m.image = imgs[0]; m.images = imgs; }
     if (Array.isArray(p.sizes) && p.sizes.length) m.sizes = p.sizes.map(String);
@@ -622,6 +791,10 @@ export function parseStoreDataset(store, rows) {
   return parseShopifyFamilies(list, { retailer: s });
 }
 export function readStorePulls(dir) {
+  if (Array.isArray(dir)) {
+    for (const d of dir) { const r = readStorePulls(d); if (r.size) return r; }
+    return new Map();
+  }
   const byStore = new Map();
   if (!existsSync(dir)) return byStore;
   for (const sub of readdirSync(dir).sort()) {
@@ -637,4 +810,31 @@ export function readStorePulls(dir) {
     }
   }
   return byStore;
+}
+
+/* THE DERIVED FILE STAYS SMALL. Only a family with at least one member
+   our catalogue lists can ever reach a product page, so only those are
+   kept (re-run the ingest after a catalogue refresh); each member keeps
+   at most 6 photos and no field the page and checkout do not use. */
+export function anchoredFamilies(families, listings) {
+  const index = new Set();
+  for (const l of listings) for (const k of listingKeys(l)) index.add(k);
+  const out = [];
+  for (const fam of families) {
+    if (!fam.members.some((m) => memberKeys(fam, m).some((k) => index.has(k)))) continue;
+    out.push({ ...fam, members: fam.members.map((m) => compactMember(m, fam)) });
+  }
+  return out;
+}
+function compactMember(m, fam) {
+  const x = { ...m };
+  /* A colour of the same listing (Macy's, Kohl's): its title, brand and
+     product page are the listing's own. */
+  if (fam && fam.sameTitle && !x.anchor && !x.selected) { delete x.name; delete x.brand; delete x.url; delete x.productUrl; }
+  if (!x.url) delete x.url;
+  if (!x.brand) delete x.brand;
+  if (x.productUrl && x.productUrl === x.url) delete x.productUrl;
+  if (Array.isArray(x.images)) { x.images = x.images.slice(0, 6); if (x.images.length === 1 && x.images[0] === x.image) delete x.images; }
+  if (Array.isArray(x.sizes) && !x.sizes.length) delete x.sizes;
+  return x;
 }

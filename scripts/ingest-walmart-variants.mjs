@@ -49,11 +49,13 @@ export function ingest(srcDir) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const src = arg("--src") || join(ROOT, "scripts/data/variant-pulls");
+  /* Where #585 commits the drops (data/shades-walmart-2026-11-01/,
+     data/colorways-2026-11-01/), then the older scripts/data/variant-pulls/. */
+  const src = arg("--src") || [join(ROOT, "data"), join(ROOT, "scripts/data/variant-pulls")];
   const out = arg("--out") || join(ROOT, FAMILIES_DIR, "walmart-beauty.json");
   const { files, families, stats } = ingest(src);
   if (!files.length) {
-    console.log(`no walmart-beauty-*/dataset.json under ${relative(ROOT, src) || src}: nothing to ingest (the pull is not committed yet)`);
+    console.log(`no walmart-beauty-*/dataset.json under ${[].concat(src).map((x) => relative(ROOT, x) || x).join(", ")}: nothing to ingest (the pull is not committed yet)`);
     process.exit(0);
   }
   console.log(JSON.stringify({ files, ...stats }, null, 2));

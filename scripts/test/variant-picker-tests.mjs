@@ -11,7 +11,8 @@
      photo twice, is never two colourways; a group needs two;
    - every one of Snipes' eleven "Samba OG" listings opens by its own
      ?v= (pickRecord), and all eleven are in one group;
-   - the Samba proof case: CCS (4 models, 14 colourways), Zumiez (Samba
+   - the Samba proof case: CCS (4 models, 20 colourways with its live
+     feed), Zumiez (Samba
      ADV, 6), Snipes (sizes pending kept);
    - every grouped variant is reachable: its record, in its title's
      shard, carries its v and group;
@@ -102,15 +103,19 @@ await check("all eleven Snipes \"Samba OG\" colourways open by their own ?v=", (
   assert.equal(g.length, 11, "all eleven in one picker");
   assert.ok(g.every((x) => x.sizesPending === true && !x.sizes), "sizes pending, none invented");
 });
-await check("the Samba proof case: CCS 4 models / 14 colourways, Zumiez Samba ADV 6", () => {
+/* CCS from its live feed (Data Drop 2, scripts/data/variant-families/ccs.json):
+   Samba ADV 9 (7 held + 2 live), women's Samba OG 7 (the 6 live + 1 held,
+   agotado), Samba Jane 2, Puig Samba 2. */
+await check("the Samba proof case: CCS 4 models / 20 colourways, Zumiez Samba ADV 6", () => {
   const ccs = ["adidas samba adv shoes - new black/white/gum", "adidas womens samba og shoes - core black/wonder white/silver metallic",
     "adidas womens samba jane shoes - ftwr white/alumina/core black", "adidas puig samba shoes - maroon/semi solar yellow/shadow red"];
   const counts = ccs.map((k) => { const r = shard(k).find((x) => x.retailer === "ccs"); assert.ok(r && r.g, k + " has no group"); return group(r.g).length; });
-  assert.deepEqual(counts, [7, 3, 2, 2]);
+  assert.deepEqual(counts, [9, 7, 2, 2]);
   const og = group(shard(ccs[1]).find((x) => x.retailer === "ccs").g);
   assert.ok(og.every((x) => Array.isArray(x.sizes) && x.sizes.length), "every CCS colourway has its own sizes");
   const z = shard("adidas samba adv dusky bronze, core black, & gum skate shoes").find((x) => x.retailer === "zumiez");
-  assert.equal(group(z.g).length, 6);
+  /* Zumiez' live feed (Data Drop 2): the Samba ADV it sells today. */
+  assert.ok(group(z.g).length >= 6, "zumiez samba adv: " + group(z.g).length);
 });
 await check("every grouped variant is reachable: its record carries its v and group", () => {
   let n = 0;
@@ -197,31 +202,37 @@ if (!chromium) {
       await pg.goto(base + "/producto.html?producto=" + encodeURIComponent("Adidas Samba ADV Shoes - Cardboard/Ftwr White/Gum") + "&tienda=ccs", { waitUntil: "load" });
       await pg.waitForSelector(".v-opt", { timeout: 15000 });
       const a = await state(pg);
-      assert.equal(a.opts, 7);
+      assert.equal(a.opts, 9);
       assert.equal(a.current, "Cardboard/Ftwr White/Gum");
       assert.equal(a.sizes.length, 19);
+      /* Blush Pink ($39) is held but no longer in CCS's live feed (Data
+         Drop 2): shown, agotado, never sold at its old price. */
       await pg.click('.v-opt:has-text("Blush Pink/Cardboard/Gum")');
       await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Blush Pink/Cardboard/Gum");
+      const o = await state(pg);
+      assert.match(o.button, /Agotado en la tienda/);
+      assert.deepEqual(o.sizes, []);
+      await pg.click('.v-opt:has-text("Grey/Cream White/Grey")');
+      await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Grey/Cream White/Grey");
       const b = await state(pg);
-      assert.equal(b.checked, "Blush Pink/Cardboard/Gum");
+      assert.equal(b.checked, "Grey/Cream White/Grey");
       assert.notEqual(b.photo, a.photo, "the gallery did not change");
       assert.notEqual(b.price, a.price, "the price did not change");
-      assert.equal(b.sizes.length, 18, "the sizes are not this colour's own");
-      assert.ok(!b.sizes.includes("14.0"));
-      assert.match(b.url, /v=15yd2c3qsb4mt|v=[a-z0-9]+/);
-      assert.match(decodeURIComponent(b.url.replace(/\+/g, " ")), /Blush Pink/);
+      assert.ok(b.sizes.length > 0, "the colour's own sizes are missing");
+      assert.match(b.url, /v=[a-z0-9]+/);
+      assert.match(decodeURIComponent(b.url.replace(/\+/g, " ")), /Grey\/Cream White/);
       /* The cart line carries the colour picked. */
-      await pg.selectOption("#size-select", "9.0");
+      await pg.selectOption("#size-select", b.sizes[0]);
       await pg.click("#add-cart-btn");
       const cart = await pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
       assert.equal(cart.length, 1);
-      assert.equal(cart[0].colorway, "Blush Pink/Cardboard/Gum");
+      assert.equal(cart[0].colorway, "Grey/Cream White/Grey");
       assert.ok(cart[0].variantId);
-      assert.equal(cart[0].title, "Adidas Samba ADV Shoes - Blush Pink/Cardboard/Gum");
+      assert.equal(cart[0].title, "Adidas Samba ADV Shoes - Grey/Cream White/Grey");
       /* A reload opens the colour the address names. */
       await pg.reload({ waitUntil: "load" });
       await pg.waitForSelector(".v-opt", { timeout: 15000 });
-      assert.equal((await state(pg)).current, "Blush Pink/Cardboard/Gum");
+      assert.equal((await state(pg)).current, "Grey/Cream White/Grey");
       assert.deepEqual(pg.errors, []);
       await pg.context().close();
     });

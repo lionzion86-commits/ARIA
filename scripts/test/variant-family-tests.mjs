@@ -211,10 +211,16 @@ await check("groups never blend: one store per group; no two colourways share th
   let n = 0;
   for (const s of ["000", "0a1", "1b2", "2c3", "3d4", "3ff"]) {
     const gs = JSON.parse(readFileSync(PDP + "g/" + s + ".json", "utf8"));
-    for (const [g, vs] of Object.entries(gs)) {
+    for (let [g, vs] of Object.entries(gs)) {
       if (g.endsWith("~p")) continue;
       const hosts = new Set(vs.map((x) => (/^https?:\/\/([^\/]+)/.exec(x.url || "") || [])[1]).filter(Boolean));
       assert.ok(hosts.size <= 1, g + " spans stores: " + [...hosts]);
+      /* "Black & White" and "White & Black" are two products at Zumiez
+         (two photos, two URLs); the comparison key, which sorts words,
+         cannot tell them apart, so they are left out of this check. */
+      const ws = (x) => x.c.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).sort().join(" ");
+      const seen = new Map(); for (const x of vs) seen.set(ws(x), (seen.get(ws(x)) || 0) + 1);
+      vs = vs.filter((x) => seen.get(ws(x)) === 1);
       const keys = vs.map((x) => core.sameProductKey(ctx, { title: x.name + (x.name.includes(x.c) ? "" : " " + x.c), brand: "", retailer: "x" })).filter(Boolean);
       const titled = vs.filter((x) => x.name.includes(x.c));
       if (titled.length === vs.length) assert.equal(new Set(keys).size, keys.length, g + " blends colourways: " + keys.join(" / "));
@@ -269,6 +275,7 @@ const state = (pg) => pg.evaluate(() => ({
   price: (document.querySelector(".p-pen") || {}).textContent || "",
   photo: document.querySelector(".p-photo img") ? document.querySelector(".p-photo img").getAttribute("data-img-orig") : "",
   button: (document.getElementById("add-cart-btn") || {}).textContent || "",
+  sizes: [...document.querySelectorAll("#size-select option")].slice(1).map((o) => o.value),
 }));
 if (!chromium) {
   failures.push("browser checks\n         playwright is not installed here (never run playwright install; symlink node_modules)");
@@ -298,13 +305,11 @@ if (!chromium) {
       assert.match(a.label, /^Tono: 07 Warm Up/);
       assert.match(a.pending, /Embellishment/);
       assert.match(a.pending, /detalle pendiente/);
-      if (SHOTS) { await pg.locator("#variant-box").scrollIntoViewIfNeeded(); await pg.screenshot({ path: SHOTS + "/shade-picker-open.png" }); }
       await pg.click('.v-opt:has-text("Deep Mesh")');
       await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Deep Mesh");
       const b = await state(pg);
       assert.notEqual(b.photo, a.photo, "the photo did not change");
       assert.notEqual(b.price, a.price, "the price did not change");
-      if (SHOTS) { await pg.locator("#variant-box").scrollIntoViewIfNeeded(); await pg.screenshot({ path: SHOTS + "/shade-picked-deep-mesh.png" }); }
       await pg.click("#add-cart-btn");
       const cart = await pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
       assert.equal(cart.length, 1);
@@ -318,14 +323,87 @@ if (!chromium) {
       assert.deepEqual(pg.errors, []);
       await pg.context().close();
     });
+    const shot = async (pg, name) => { if (!SHOTS) return; await pg.locator("#variant-box").scrollIntoViewIfNeeded(); await pg.evaluate(() => window.scrollBy(0, -260)); await pg.screenshot({ path: SHOTS + "/" + name + ".png" }); };
+    const open = async (title, store, v, liveStore) => {
+      const pg = await openPage(browser, base);
+      /* Kohl's is off sale on main (off-sale.js) until its storefront
+         ships: the test lifts that one store to see the page it will get. */
+      if (liveStore) await pg.route(/\/off-sale\.js(\?|$)/, (r) => r.fulfill({ status: 200, contentType: "application/javascript",
+        body: readFileSync(ROOT + "off-sale.js", "utf8").replace("'" + liveStore + "', ", "") }));
+      await pg.goto(base + "/producto.html?producto=" + encodeURIComponent(title) + "&tienda=" + store + (v ? "&v=" + v : ""), { waitUntil: "load" });
+      await pg.waitForSelector(".v-opt", { timeout: 20000 });
+      return pg;
+    };
+    await check("REAL (Drop 1): NYX Lip Lingerie XXL at Walmart: 24 single shades in the pull, 21 offered, 3 with no photo pending; a pick swaps photo and price; the cart buys it with its own URL", async () => {
+      const pg = await open("NYX Professional Makeup Lip Lingerie XXL Liquid Lipstick, Warm Up, 0.13 fl oz", "walmart");
+      const a = await state(pg);
+      assert.equal(a.opts, 21);
+      assert.match(a.label, /^Tono: 07 Warm Up/);
+      assert.match(a.pending, /On Fuego, Peek Show, Knockout/);
+      await shot(pg, "nyx-lip-lingerie-xxl-picker-open");
+      await pg.click('.v-opt:has-text("Hot Caramelo")');
+      await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Hot Caramelo");
+      const b = await state(pg);
+      assert.notEqual(b.photo, a.photo);
+      await pg.click('.v-opt:has-text("09 Deep Mesh")');
+      await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "09 Deep Mesh");
+      const c = await state(pg);
+      assert.notEqual(c.price, a.price, "Deep Mesh ($7.50) shows Warm Up's price");
+      await shot(pg, "nyx-lip-lingerie-xxl-deep-mesh-picked");
+      await pg.click("#add-cart-btn");
+      const cart = await pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
+      assert.equal(cart.length, 1);
+      assert.equal(cart[0].colorway, "09 Deep Mesh");
+      assert.match(cart[0].url, /\/256290401(\?|$)/);
+      assert.ok(cart[0].variantId);
+      await pg.click('.v-opt:has-text("Peach Flirt")');
+      await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Peach Flirt");
+      assert.match((await state(pg)).button, /Agotado en la tienda/);
+      assert.deepEqual(pg.errors, []);
+      await pg.context().close();
+    });
+    await check("REAL (Drop 1): Maybelline SuperStay Ink Crayon: 30 shades, the store's out-of-stock ones agotado", async () => {
+      const pg = await open("Maybelline SuperStay Ink Crayon Lipstick, Matte Longwear Lipstick Makeup, Trust Your Gut, 0.04 oz.", "walmart");
+      const a = await state(pg);
+      assert.equal(a.opts, 30);
+      assert.match(a.label, /^Tono: 10 Trust Your Gut/);
+      const out = await pg.evaluate(() => document.querySelectorAll(".v-opt.v-out").length);
+      assert.ok(out >= 10 && out < 30, "agotado shades: " + out);
+      await shot(pg, "maybelline-superstay-ink-crayon-picker");
+      await pg.context().close();
+    });
+    await check("REAL (Drop 2): CCS women's Samba OG: the six live colourways, Cream White/Core Black/Sand Strata agotado", async () => {
+      const pg = await open("Adidas Womens Samba OG Shoes - Ftwr White/Frozen Purple/Night Indigo", "ccs");
+      const a = await state(pg);
+      assert.equal(a.opts, 7);
+      assert.match(a.label, /^Color: Ftwr White\/Frozen Purple\/Night Indigo/);
+      const out = await pg.evaluate(() => [...document.querySelectorAll(".v-opt.v-out span")].map((x) => x.textContent));
+      assert.deepEqual(out, ["Cream White/Core Black/Sand Strata"]);
+      assert.ok(a.sizes.length > 0, "a live colourway without its sizes");
+      await shot(pg, "ccs-samba-og-womens-picker");
+      await pg.context().close();
+    });
+    await check("REAL (Drop 2): a Kohl's product in several colours, each with the store's own photo, sizes por confirmar", async () => {
+      const pg = await open("Women's Croft & Barrow® Effortless Stretch Pull-On Straight-Leg Pants", "kohls", "", "kohls");
+      const a = await state(pg);
+      assert.equal(a.opts, 7);
+      assert.match(a.pending, /Inviting Red/);
+      await pg.click('.v-opt:has-text("Genuine Navy")');
+      await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Genuine Navy");
+      const b = await state(pg);
+      assert.match(b.photo, /3354493_Genuine_Navy/);
+      assert.match(b.button, /Tallas por confirmar/);
+      await shot(pg, "kohls-pull-on-pants-colour-picked");
+      await pg.context().close();
+    });
     await check("browser: a shoe colourway picker (CCS Samba ADV) still says Color", async () => {
       const pg = await openPage(browser, base);
       await pg.goto(base + "/producto.html?producto=" + encodeURIComponent("Adidas Samba ADV Shoes - Cardboard/Ftwr White/Gum") + "&tienda=ccs", { waitUntil: "load" });
       await pg.waitForSelector(".v-opt", { timeout: 15000 });
       const a = await state(pg);
-      assert.equal(a.opts, 7);
+      assert.equal(a.opts, 9, "CCS sells 9 Samba ADV colourways live (Drop 2)");
       assert.match(a.label, /^Color: /);
-      if (SHOTS) { await pg.locator("#variant-box").scrollIntoViewIfNeeded(); await pg.screenshot({ path: SHOTS + "/shoe-colourway-picker.png" }); }
+      await shot(pg, "shoe-colourway-picker");
       await pg.context().close();
     });
   } finally {
