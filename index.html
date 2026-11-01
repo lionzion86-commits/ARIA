@@ -3554,6 +3554,35 @@ window.doSearch = function(which){
     </div>
   </div>
 
+  <!-- ============ DANOS TU FEEDBACK (#443 c.6447438497) ============
+       The improvement inbox, last on the home page above the footer:
+       recommendations, advice, opinions and the US stores shoppers want
+       (demand data for the catalogue). Not the Libro de Reclamaciones.
+       The form (/feedback-form.js) loads only when this section comes
+       near the screen, so the first screen pays nothing for it; the full
+       page is /opinion.html. -->
+  <section id="feedbackSection" aria-labelledby="feedbackTitle" style="background:#fff;border-top:1px solid var(--line)">
+    <div class="max-w-[720px] mx-auto px-5 py-12 sm:py-16">
+      <h2 id="feedbackTitle" class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.02em] leading-[1.15] mb-2" style="color:var(--navy)">Danos tu feedback</h2>
+      <p class="text-[15px] leading-relaxed text-zinc-600 mb-6">Recomendaciones, consejos y opiniones: cuéntanos cómo hacer Aria mejor para ti.</p>
+      <div data-feedback-form data-compact="1"></div>
+      <noscript><p class="text-[14px]">Escríbenos a <a href="mailto:contacto@ariashop.pe">contacto@ariashop.pe</a>.</p></noscript>
+    </div>
+  </section>
+  <script>
+  (function () {
+    var box = document.getElementById('feedbackSection');
+    if (!box) return;
+    var load = function () {
+      if (window.ariaFeedbackMount || document.getElementById('afbScript')) return;
+      var s = document.createElement('script'); s.id = 'afbScript'; s.src = '/feedback-form.js'; s.defer = true; document.body.appendChild(s);
+    };
+    if (!('IntersectionObserver' in window)) return load();
+    var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); load(); } }, { rootMargin: '600px 0px' });
+    io.observe(box);
+  })();
+  </script>
+
 </div>
 
 <!-- ============ RESULTS VIEW ============ -->
@@ -5948,6 +5977,7 @@ window.doSearch = function(which){
     </div>
   </section>
 
+
 </div>
 
 <!-- ============ SITE FOOTER ============ -->
@@ -5980,6 +6010,7 @@ window.doSearch = function(which){
         <a href="#" onclick="showPage('keyclubView');return false;" class="hover:text-[color:var(--navy)] transition">Aria Key Club</a>
         <a href="/terminos" class="hover:text-[color:var(--navy)] transition">Términos</a>
         <a href="/privacidad" class="hover:text-[color:var(--navy)] transition">Privacidad</a>
+        <a href="/opinion.html" class="hover:text-[color:var(--navy)] transition">Danos tu feedback</a>
         <a data-support="general" href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
         <button onclick="toggleAssistant()" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Chatea con nosotros</button>
       </div>
