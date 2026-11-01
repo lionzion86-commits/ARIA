@@ -272,6 +272,18 @@
                  below the summary shows each store's meter. -->
             <div id="sumShipRow" class="flex justify-between" hidden><span id="sumShipLabel">Envío de las tiendas en EE.UU.</span><span id="sumShip" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
             <div id="storeShipPanel" class="flex flex-col gap-2 mt-1" hidden></div>
+            <!-- ENVÍO ARIA (#443 c.6560848572): Aria's own delivery fee, the
+                 only line the buyer's S/ 1 per store checkout may sit in.
+                 Soles-denominated, like the small-order fee; set by
+                 renderAriaDeliveryRow from scripts/lib/buyer-fee.js, the
+                 module orders-create.js charges it from. -->
+            <div id="sumAriaDeliveryRow" class="flex items-start justify-between gap-2" hidden>
+              <span class="flex flex-col">
+                <span id="sumAriaDeliveryLabel">Envío Aria</span>
+                <span id="sumAriaDeliveryNote" class="text-[11px]" style="color:#8A93A8"></span>
+              </span>
+              <span id="sumAriaDelivery" class="tabular font-semibold whitespace-nowrap flex-shrink-0" style="color:var(--navy)">—</span>
+            </div>
             <!-- PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province
                  leg, rendered only when the destination is outside Lima.
                  Soles-denominated, like the small-order fee. -->
@@ -814,6 +826,9 @@
      the flat Lima → province fee. The server imports the same module so
      the charged fee can never disagree with the displayed one. */
   import { couriersFor, isLimaDest, provinciaFeePen, lastMileEtaEs } from './couriers.js';
+  /* ENVÍO ARIA (#443 c.6560848572): the buyer's S/ 1 per store checkout,
+     inside Aria's own delivery fee line only. Same module as the server. */
+  import { buyerFeePen, storeCheckoutCount, ariaDeliveryNote, ARIA_DELIVERY_LABEL } from './scripts/lib/buyer-fee.js';
 
   /* Support addresses come from one constant, here as on index.html. The
      href authored in the footer markup is the no-JS fallback; this keeps
@@ -1342,7 +1357,7 @@ function cardImgAttrs(url, sizes){
   function orderTotalPenNow(){
     if (!fxRates || !latestQuote) return 0;
     return round2(orderTotalsUsd().totalUsd * fxRates.venta + currentSmallOrderFeePen()
-      + currentProvinciaFeePen() + currentExpressFeePen());
+      + currentProvinciaFeePen() + currentExpressFeePen() + currentAriaDeliveryFeePen());
   }
 
   /* The dollar figure on screen for the same order. The soles fees
@@ -1640,6 +1655,21 @@ function cardImgAttrs(url, sizes){
     lbl.textContent = fxRates ? fmtWalletPen(round2(EXPRESS_FEE_USD * fxRates.venta)) : `$${EXPRESS_FEE_USD}`;
   }
   document.querySelectorAll('input[name="shippingMode"]').forEach((r) => r.addEventListener('change', () => renderSummary()));
+
+  /* ENVÍO ARIA. S/ 1 per store checkout in the cart, in soles as it is (no
+     exchange rate touches it), whether or not the store ships free. It is
+     never folded into a store's shipping, the freight or the provincia
+     leg: those stay exact pass-through. orders-create.js charges the same
+     figure from the same module. */
+  function currentAriaDeliveryFeePen(){
+    return Array.isArray(cart) ? buyerFeePen(cart) : 0;
+  }
+  function renderAriaDeliveryRow(fee){
+    document.getElementById('sumAriaDeliveryLabel').textContent = ARIA_DELIVERY_LABEL;
+    document.getElementById('sumAriaDeliveryNote').textContent = ariaDeliveryNote(Array.isArray(cart) ? storeCheckoutCount(cart) : 0);
+    document.getElementById('sumAriaDelivery').textContent = fmtWalletPen(fee);
+    document.getElementById('sumAriaDeliveryRow').hidden = !(fee > 0);
+  }
 
   /* DE-MINIMIS TRACKER: the dutiable value (never freight) against $200. */
   function renderTaxTracker(){
@@ -2034,9 +2064,11 @@ function cardImgAttrs(url, sizes){
     const smallOrderFee = currentSmallOrderFeePen();
     const provFee = currentProvinciaFeePen();
     const expressFee = currentExpressFeePen();
+    const ariaFee = currentAriaDeliveryFeePen();
     renderSmallOrderRow(smallOrderFee);
     renderProvinciaRow(provFee);
     renderExpressRow(expressFee);
+    renderAriaDeliveryRow(ariaFee);
     renderTaxTracker();
     sumWeight.textContent = kg.toFixed(2) + ' kg';
 
@@ -2048,7 +2080,7 @@ function cardImgAttrs(url, sizes){
        quote; only the numbers on screen are filled in. */
     const provisional = kg > 0 && valor > 0 ? fallbackQuote(kg, valor) : null;
     const totals = orderTotalsUsd();
-    const pens = breakdownPens(totals, smallOrderFee + provFee + expressFee);
+    const pens = breakdownPens(totals, smallOrderFee + provFee + expressFee + ariaFee);
     setMoney(sumProducts, totals.goods, '', pens ? pens.products : NaN);
     renderTaxRow(totals.tax, pens ? pens.tax : NaN);
     renderStoreShipping(totals, pens);
@@ -2057,8 +2089,8 @@ function cardImgAttrs(url, sizes){
       const q = latestQuote || provisional;
       if (q){
         setMoney(sumFlete, q.flete_usd, ' (estimado)', pens ? pens.freight : NaN);
-        sumTotal.innerHTML = penLead(fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee) : NaN,
-          orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee), ' (estimado)');
+        sumTotal.innerHTML = penLead(fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee + ariaFee) : NaN,
+          orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee + ariaFee), ' (estimado)');
       } else {
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
@@ -2080,8 +2112,8 @@ function cardImgAttrs(url, sizes){
     // The small-order fee is part of the order total, so saldo applies
     // against it too and it is inside every figure below. The provincia
     // leg is treated the same way.
-    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee) : 0;
-    const shownUsd = orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee);
+    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee + expressFee + ariaFee) : 0;
+    const shownUsd = orderTotalUsdShown(totals.totalUsd, smallOrderFee + provFee + expressFee + ariaFee);
 
     /* A weight we do not believe must not become a price. Everything on
        the line is still shown — the customer can see what is in the
@@ -2683,6 +2715,9 @@ function cardImgAttrs(url, sizes){
           provinciaFeePen: currentProvinciaFeePen(),
           // "Recibir todo junto" (free) or "cada paquete ni bien llegue" ($8).
           shippingMode: currentShippingMode(),
+          // Envío Aria as shown (S/ 1 per store checkout). Not trusted: the
+          // server recounts the stores and charges its own figure.
+          buyerFeePen: currentAriaDeliveryFeePen(),
           // The soles total on screen. The server charges its own figure
           // and refuses (409) when the two disagree, so the customer never
           // pays a number they did not see.
@@ -2747,7 +2782,7 @@ function cardImgAttrs(url, sizes){
       document.getElementById('orderTotal').textContent = data.chargedPen != null
         ? fmtWalletPen(data.chargedPen) + (data.walletAppliedPen > 0 ? ` (saldo Aria aplicado: ${fmtWalletPen(data.walletAppliedPen)})` : '')
         : fmtPrimary(orderTotalUsdShown(orderTotalsUsd().totalUsd,
-            currentSmallOrderFeePen() + currentProvinciaFeePen() + currentExpressFeePen()));   /* the summary's figure, never the courier quote's (Lucifer, #367) */
+            currentSmallOrderFeePen() + currentProvinciaFeePen() + currentExpressFeePen() + currentAriaDeliveryFeePen()));   /* the summary's figure, never the courier quote's (Lucifer, #367) */
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;
