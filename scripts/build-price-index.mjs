@@ -34,14 +34,36 @@ import { fileURLToPath } from "node:url";
 import { buildCatalog, productIdFor } from "./lib/mcp/catalog.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { variantIdOf } from "./lib/variants.mjs";
+import { loadFamilies, applyFamilies } from "./lib/variant-families.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PRICE_INDEX_FILE = "price-index.json";
 
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 
+/* VARIANT FAMILIES (#443 universal variant truth): a shade or colour the
+   store's own variant data lists, with its own real price, that no
+   catalogue file carries (scripts/lib/variant-families.mjs; the product
+   page offers it from assets/pdp/). Checkout must vouch for its price
+   too, so it is priced here like a catalogue listing. */
+export function familyEnvelope(listings, families) {
+  const { extra } = applyFamilies(listings.map((l) => ({ v: variantIdOf(l.url), retailer: l.retailer, name: l.title, url: l.url, price: l.price })), families);
+  const retailers = {};
+  for (const x of extra) {
+    const r = (retailers[x.retailer] = retailers[x.retailer] || { departments: {} });
+    const d = (r.departments[x.dept || "variantes"] = r.departments[x.dept || "variantes"] || { items: [] });
+    const it = { name: x.name, brand: x.brand, price: x.price, image: x.image, url: x.url };
+    if (x.wasPrice) it.wasPrice = x.wasPrice;
+    d.items.push(it);
+  }
+  return { retailers };
+}
+
 export function buildPriceIndex() {
-  const { items, listings } = buildCatalog({ listings: true });
+  const base = buildCatalog({ listings: true });
+  const families = loadFamilies(ROOT);
+  const env = families.length ? familyEnvelope(base.listings, families) : null;
+  const { items, listings } = env && Object.keys(env.retailers).length ? buildCatalog({ listings: true, extraEnvelopes: [env] }) : base;
   const prices = {};
   for (const it of items) prices[productIdFor(it.retailer, it.title)] = [r2(it.price), r2(it.dutiableUsd)];
   const urlsByTitle = new Map();

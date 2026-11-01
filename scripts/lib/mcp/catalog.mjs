@@ -82,12 +82,18 @@ export function buildCatalog(opts = {}) {
   const stats = { files: 0, missing: [], scanned: 0, restricted: 0, unshippable: 0, quarantined: 0, threw: 0, unpriced: 0, duplicate: 0, kept: 0 };
   const errors = new Map();
 
-  for (const rel of files) {
-    const path = repoFile(rel);
-    if (!existsSync(path)) { stats.missing.push(rel); continue; }
+  /* opts.extraEnvelopes (#443 variant families): catalogue-shaped
+     envelopes built in memory (a shade the store sells that no catalogue
+     file lists yet, with its own real price), priced the same way. */
+  for (const rel of [...files, ...(opts.extraEnvelopes || [])]) {
     let env;
-    try { env = JSON.parse(readFileSync(path, "utf8")); }
-    catch (e) { stats.missing.push(`${rel} (unparseable: ${e.message})`); continue; }
+    if (rel && typeof rel === "object") env = rel;
+    else {
+      const path = repoFile(rel);
+      if (!existsSync(path)) { stats.missing.push(rel); continue; }
+      try { env = JSON.parse(readFileSync(path, "utf8")); }
+      catch (e) { stats.missing.push(`${rel} (unparseable: ${e.message})`); continue; }
+    }
     stats.files++;
 
     for (const [retailer, bucket] of Object.entries(env?.retailers || {})) {

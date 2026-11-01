@@ -68,6 +68,10 @@ footer a{color:#fff}
 .v-opt span{font-size:11px;line-height:1.25;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .v-opt[aria-checked="true"]{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy)}
 .v-opt:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.v-opt.v-out img{opacity:.45}
+.v-opt em{font-style:normal;font-size:10px;font-weight:700;color:#B03A2E}
+.v-out-note{font-weight:600;color:#B03A2E}
+.v-pending{font-size:12px;color:var(--muted);line-height:1.45;margin:8px 0 0}
 .size-note{font-size:12.5px;color:var(--muted);line-height:1.5}
 .btn-add{width:100%;text-align:center;border:none;cursor:pointer;background:var(--gold);color:var(--navy)}
 .btn-add:hover{background:#EAB54E;text-decoration:none}
@@ -303,8 +307,10 @@ function recordToItem(r){
     wasPrice: Number(r.wasPrice) || 0, dept: r.dept || "",
     weightKg: Number(r.weightKg) || 0, weightPub: r.weightPub === true, specWeightKg: Number(r.specWeightKg) || 0,
     weightBySize: r.weightBySize && typeof r.weightBySize === "object" ? r.weightBySize : null,
-    /* The listing's id, its colourway group and the store's colour. */
-    v: r.v || "", g: r.g || "", c: r.c || ""
+    /* The listing's id, its colourway group and the store's colour; the
+       picker's word ("Tono" for a shade family) and whether the store
+       lists this variant as out of stock. */
+    v: r.v || "", g: r.g || "", c: r.c || "", ax: r.ax || "", so: r.so === 1
   };
 }
 function fetchJson(url, ms){
@@ -327,7 +333,16 @@ function fetchGroup(g){
   if (!g) return Promise.resolve(null);
   var s = groupShard(g);
   if (!GROUP_CACHE[s]) GROUP_CACHE[s] = fetchJson(PDP_BASE + "g/" + s + ".json", 12000);
-  return GROUP_CACHE[s].then(function(d){ var l = d && d[g]; return Array.isArray(l) && l.length > 1 ? l : null; });
+  return GROUP_CACHE[s].then(function(d){
+    var l = d && d[g];
+    if (!Array.isArray(l) || l.length < 2) return null;
+    /* Shades the store lists that we hold no real price or photo for:
+       named beside the picker, never offered (#443 universal variant truth). */
+    var wait = d[g + "~p"];
+    l = l.slice();
+    l.pending = Array.isArray(wait) ? wait.slice() : [];
+    return l;
+  });
 }
 /* One store's rail slice for one kind of product: the anchor's lane and
    department name the file (relPick ranks by those, its gender and the
@@ -919,23 +934,31 @@ function variantProduct(base, x){
   q.sizesSource = x.sizesSource || "";
   q.v = x.v || "";
   q.c = x.c || "";
+  /* The listing bought is the one on screen: its own store URL rides to
+     the cart line (data only, never a link). */
+  q.url = x.url || (x.v && x.v === base.v ? base.url : "") || "";
+  q.so = x.so === 1;
   return q;
 }
 function hasVariants(p){
   return !!(p && Array.isArray(p.variants) && p.variants.length > 1 && p.v
     && p.variants.some(function(x){ return x.v === p.v; }));
 }
+function variantWord(p){ return p && p.ax === "Tono" ? "Tono" : "Color"; }
 function variantBoxHtml(p){
   if (!hasVariants(p)) return '';
   var opts = p.variants.map(function(x){
     var on = x.v === p.v;
     var img = x.image ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
-    return '<button type="button" class="v-opt" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + '">'
-      + img + '<span>' + esc(x.c || '') + '</span></button>';
+    return '<button type="button" class="v-opt' + (x.so === 1 ? ' v-out' : '') + '" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + (x.so === 1 ? ' (agotado)' : '') + '">'
+      + img + '<span>' + esc(x.c || '') + '</span>' + (x.so === 1 ? '<em>Agotado</em>' : '') + '</button>';
   }).join('');
+  var wait = Array.isArray(p.variants.pending) ? p.variants.pending : [];
   return '<div class="v-box" id="variant-box">'
-    + '<p class="v-label" id="v-label">Color: <b id="v-current">' + esc(p.c || '') + '</b></p>'
-    + '<div class="v-opts" role="radiogroup" aria-labelledby="v-label">' + opts + '</div></div>';
+    + '<p class="v-label" id="v-label">' + variantWord(p) + ': <b id="v-current">' + esc(p.c || '') + '</b>' + (p.so ? ' <span class="v-out-note">(agotado)</span>' : '') + '</p>'
+    + '<div class="v-opts" role="radiogroup" aria-labelledby="v-label">' + opts + '</div>'
+    + (wait.length ? '<p class="v-pending" id="v-pending">' + (variantWord(p) === "Tono" ? 'Otros tonos' : 'Otros colores') + ' de la tienda, con detalle pendiente: ' + esc(wait.join(', ')) + '.</p>' : '')
+    + '</div>';
 }
 function wireVariants(p){
   var box = el("variant-box");
@@ -1502,6 +1525,14 @@ function buildBuyBox(p){
   var box = el('buy-box');
   if (!box) return;
   if (isOffSaleProduct(p)){ box.innerHTML = ''; return; }
+  /* OUT OF STOCK AT THE STORE (#443 variant families): the store's own
+     variant data says this shade or colour is not sold now. Shown, never
+     offered -- pick another. */
+  if (p.so){
+    box.innerHTML = '<button id="add-cart-btn" class="btn btn-add" type="button" disabled aria-disabled="true" style="background:#C8CDD8;color:#5B6478;cursor:not-allowed">Agotado en la tienda</button>'
+      + '<p class="sizes-pending-note" role="status" style="font-size:13.5px;color:#5B6478;margin:8px 0 0">' + esc(soldOutVariantNote(p)) + '</p>';
+    return;
+  }
   /* SIZES PENDING (scripts/lib/sizes-pending.js): the store's sizes are
      not confirmed to us yet -- the product is shown, the cart is not
      offered, and no size is ever guessed. The order endpoint refuses it
@@ -1533,8 +1564,10 @@ function buildBuyBox(p){
 }
 
 var SIZES_PENDING_NOTE = "Estamos confirmando las tallas de este producto con la tienda. Muy pronto podrás comprarlo aquí.";
+function soldOutVariantNote(p){ return (variantWord(p) === "Tono" ? "Este tono" : "Este color") + " está agotado en la tienda. Elige otro."; }
 function addCurrentToCart(p, sizes){
   if (isOffSaleProduct(p)){ toast(window.AriaOffSale.OFF_SALE_PRODUCT_NOTE); return; }
+  if (p.so){ toast(soldOutVariantNote(p)); return; }
   if (p.sizesPending && !(sizes && sizes.length)){ toast(SIZES_PENDING_NOTE); return; }
   /* The price guard: never a priceless or $0 line. */
   var priceUsd = finalUsd(p.price, p.retailer);

@@ -153,14 +153,26 @@ export function midColour(title) {
    colours, makeup shades). Stores whose " - <option>" is a fragrance
    form, a furniture configuration, a flavour, a gadget or a jewellery
    letter / zodiac sign are left to a later phase. */
-export const NOT_FASHION = new Set(["ariaperfumes", "costco", "pier1", "crateandbarrel", "sleekshop", "walmart", "walmartbaby",
+export const NOT_FASHION = new Set(["ariaperfumes", "costco", "pier1", "crateandbarrel", "sleekshop", "walmartbaby",
   "bestbuy", "brandsmart", "microcenter", "bhphoto", "revzilla", "denniskirk", "advanceauto", "partycity", "samsclub",
   "assouline", "chronicle", "drbrowns", "spectra", "momcozy", "elvie", "babybrezza", "owlet", "nanit", "munchkin",
   "baublebar", "autozone"]);
 
+/* WALMART BY DEPARTMENT (#443 universal variant truth). Walmart was
+   excluded whole; its makeup, clothing and shoes now group like every
+   other store's. Its home, electronics, toys, candy, fitness and jewellery aisles
+   (a " - <option>" there is a set size or a flavour) stay out. */
+export const WALMART_VARIANT_DEPTS = new Set(["beauty", "clothing", "shoes", "fashion", "mens"]);
+export function variantExcluded(l) {
+  const r = String(l && l.retailer || "").toLowerCase();
+  if (NOT_FASHION.has(r)) return true;
+  if (r === "walmart") return !WALMART_VARIANT_DEPTS.has(String(l.dept || "").toLowerCase());
+  return false;
+}
+
 const low = (s) => String(s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
 
-/* listings: [{ v, retailer, name, brand, url, image }] (one per v). Returns
+/* listings: [{ v, retailer, name, brand, url, image, dept }] (one per v). Returns
    Map v -> { g, c } for every listing that belongs to a group of 2+. */
 export function groupColourways(listings) {
   const buckets = new Map();
@@ -180,7 +192,7 @@ export function groupColourways(listings) {
     dicks: (l) => dicksColour(l.image), footlocker: (l) => footlockerSku(l.url) };
   for (const l of listings) {
     const r = String(l.retailer || "").toLowerCase();
-    if (NOT_FASHION.has(r)) continue;
+    if (variantExcluded(l)) continue;
     const suf = colourSuffix(l.name);
     if (suf) { add("suffix|" + r + "|" + low(l.brand) + "|" + low(suf.model), l, suf.colour); continue; }
     if (SAME_TITLE[r]) {

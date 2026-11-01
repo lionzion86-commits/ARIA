@@ -1,0 +1,21 @@
+[
+  {
+    "_fixture": "TEST FIXTURE, NOT STORE DATA. A second detail pass for one sibling (the shape the first pass already has): the shade with no detail turns from pending to offered with no code change.",
+    "product_id": "8EMBLSH0PND1",
+    "url": "https://www.walmart.com/ip/Fixture-Lip-Lingerie-XXL-Liquid-Lipstick-Embellishment/900000007",
+    "name": "Fixture Lip Lingerie XXL Liquid Lipstick, Embellishment, 0.13 fl oz",
+    "brand": "NYX Professional Makeup",
+    "price": 7.47,
+    "images": ["https://i5.walmartimages.com/asr/fixture-embellishment-1.jpeg"],
+    "available": true,
+    "variants": [
+      {
+        "name": "Actual Color",
+        "values": [
+          { "name": "07 Warm Up", "product_id": "6HML2AWK518H", "available": true, "selected": false },
+          { "name": "Embellishment", "product_id": "8EMBLSH0PND1", "available": true, "selected": true }
+        ]
+      }
+    ]
+  }
+]
