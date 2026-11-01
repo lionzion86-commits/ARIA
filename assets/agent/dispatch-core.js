@@ -15,7 +15,9 @@
                    balance does not cover it yet (the shortfall is shown)
      CLAIMABLE     released: the pop-up rings for every online, available
                    buyer for ringSeconds
-     SIN_ASIGNAR   nobody took it inside the ring
+     SIN_ASIGNAR   nobody took it inside the ring, or nobody was online when
+                   it was released: it waits on THE BOARD, unassigned, for
+                   every online buyer to grab (first grab wins)
      CLAIMED       one buyer won the conditional write; her cards exist
      BOUGHT        every store checkout BOUGHT
      PARTIAL       done, some store checkouts became exceptions
@@ -322,6 +324,10 @@ export function toPool(rec, now, reason) {
   rec.unassignedReason = reason || `Nadie lo tomó en el timbre`;
   return rec;
 }
+/* Nobody could be pinged at the instant it was released: ringing to an
+   empty room only delays it, so it goes straight to the board. */
+export const NOBODY_ONLINE_REASON = "Nadie en línea cuando entró";
+
 /** Danny: ring it again. */
 export function reRing(rec, now, cfg) {
   transition(rec, STATES.CLAIMABLE, now, "admin");
@@ -428,6 +434,70 @@ export function popupModel(rec, cfg) {
     ringEndsAt: rec.ringEndsAt,
     sandbox: Boolean(rec.sandbox),
   };
+}
+
+/* ---------------- the board (#443 c.6559624585) -------------------------
+   «Compras que todavía hay que hacer». An order nobody claimed inside the
+   ring, or one placed while nobody was online, is NOT handed to anyone:
+   it waits in SIN_ASIGNAR, which every online buyer sees as the board,
+   with no assignee. A grab is the same atomic first claim as ACEPTAR
+   (claim() below, inside the conditional write); cards are issued at the
+   grab, never before; the pay is the per-checkout ladder total stamped
+   when it was first offered, so a board order pays what a ping pays. */
+
+export const BOARD_TAKEN_TEXT = "Otra compradora lo tomó";
+
+/** Waiting orders on the board, oldest first (by when the customer paid). */
+export function boardOrders(records) {
+  return records.filter((r) => r.state === STATES.SIN_ASIGNAR)
+    .sort((a, b) => String(a.paidAt || a.createdAt).localeCompare(String(b.paidAt || b.createdAt)) || String(a.orderId).localeCompare(String(b.orderId)));
+}
+
+/** «Hay 3 compras esperando» -- the first line after going online. */
+export function boardHeadline(n) {
+  if (!n) return "No hay compras esperando";
+  return n === 1 ? "Hay 1 compra esperando" : `Hay ${n} compras esperando`;
+}
+
+const listEs = (xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`);
+
+/**
+ * May this buyer grab this board order now? The same test as a ping --
+ * online, heard from, not on a break, not mid-checkout, store-account cap
+ * left in EVERY store of the bundle -- minus the ring and «Pasar» (a pass
+ * on the ping does not hide the order from her board).
+ *   returns { ok, reason, label, missing? }  label: the Spanish line shown on the greyed card
+ */
+export function boardEligibility(rec, agentId, { presence, accounts, usage, now, cfg }) {
+  if (rec.state !== STATES.SIN_ASIGNAR) return { ok: false, reason: "tomado", label: BOARD_TAKEN_TEXT };
+  const av = availability(presence, now, cfg);
+  if (!av.ok) {
+    const label = av.reason === "pausa" ? "Estás en pausa"
+      : av.reason === "enfocada" ? "Termina la compra que tienes abierta"
+        : av.reason === "sin_senal" ? "Sin señal"
+          : "Ponte en línea para tomarlo";
+    return { ok: false, reason: av.reason, label };
+  }
+  const caps = capsFor(rec.packet, agentId, accounts, usage);
+  if (!caps.ok) return { ok: false, reason: "tope", missing: caps.missing, label: `Sin cupo en ${listEs(caps.missing)} hoy` };
+  return { ok: true, reason: null, label: null };
+}
+
+/** Minutes since the customer paid: how long the order has waited. */
+export function waitingMinutes(rec, now) {
+  return Math.max(0, Math.floor((Date.parse(now) - Date.parse(rec.paidAt || rec.createdAt || rec.stateSince)) / 60000));
+}
+
+/**
+ * One board card: exactly the pop-up's decision layer (pedido, pay with
+ * the ladder total, compras · tiendas, store chips, photos, USD total)
+ * plus how long it has waited. No DNI, no address, no phone.
+ */
+export function boardModel(rec, cfg, now) {
+  const m = popupModel(rec, cfg);
+  delete m.ringEndsAt;
+  const mins = waitingMinutes(rec, now);
+  return { ...m, onBoardSince: (rec.stateAt && rec.stateAt.SIN_ASIGNAR) || rec.stateSince, paidAt: rec.paidAt, waitingMin: mins, waitingText: `Esperando hace ${durationText(mins)}` };
 }
 
 /* ---------------- claim, pass ----------------------------------------- */
@@ -539,10 +609,16 @@ export function stuck(rec, now, cfg) {
     ? `tomado${who} y sin compra`
     : rec.state === STATES.FUNDS_HOLD
       ? `en fondos en espera, faltan $${(rec.fundsHold && rec.fundsHold.shortfallUsd != null ? rec.fundsHold.shortfallUsd : 0).toFixed(2)}`
-      : `en «${STATE_LABELS[rec.state]}»`;
+      : rec.state === STATES.SIN_ASIGNAR
+        ? `en el tablero sin que nadie lo tome`
+        : `en «${STATE_LABELS[rec.state]}»`;
+  /* A board order never ages out quietly: it re-escalates each time its
+     wait doubles past the window (1x, 2x, 4x, 8x ...), so Danny keeps
+     hearing about it without one line every five minutes. */
+  const tier = rec.state === STATES.SIN_ASIGNAR ? Math.floor(Math.log2(mins / limit)) : 0;
   return {
     orderId: rec.orderId, customerName: rec.customerName, state: rec.state, stateLabel: STATE_LABELS[rec.state],
-    since: rec.stateSince, minutes: mins, limitMin: limit,
+    since: rec.stateSince, minutes: mins, limitMin: limit, tier,
     text: `Pedido de ${rec.customerName}: lleva ${durationText(mins)} ${what} (límite ${durationText(limit)}).`,
   };
 }

@@ -4,6 +4,8 @@
 // Also runs the clock (rings that ran out go to sin asignar, the float
 // gate re-checks FUNDS-HOLD), archives finished records after 48 h, and
 // on the configured weekday sweeps balances not cashed out to CCI.
+// A board order (sin asignar) is never archived and never goes quiet: it
+// re-escalates each time its wait doubles past the window.
 // Both namespaces: production ("dispatch") and the preview sandbox.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { dispatchEngine, dispatchGate } from "./_dispatch.js";
