@@ -8,6 +8,7 @@
   var OFF_SALE_RETAILERS = [
     'target',
     'nike', 'fendi', 'goldengoose', 'surfworld', 'samsclub',
+    'bestbuy',
   ];
   var SET = {};
   for (var i = 0; i < OFF_SALE_RETAILERS.length; i++) SET[OFF_SALE_RETAILERS[i]] = true;

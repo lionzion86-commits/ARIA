@@ -38,8 +38,9 @@ async function check(name, fn) {
   } catch (e) { failures.push(`${name}\n         ${e.message}`); console.log("    FAIL " + name); }
 }
 
-/* Danny's list (2026-11-01), minus Sam's Club. Best Buy keeps its own #413 builder. */
-const NEW = [...Object.keys(STOREFRONTS), "bestbuy"];
+/* Danny's list (2026-11-01), minus Sam's Club. Best Buy keeps its own #413 builder;
+   it is off sale again (Danny, 2026-10-21; #443 c.6564970704), so it drops out here. */
+const NEW = [...Object.keys(STOREFRONTS), "bestbuy"].filter((k) => !isOffSaleRetailer(k));
 const STORES = tiendaStores(ROOT);
 const idx = (k) => json(`assets/tienda/${k}/index.json`);
 const saleCtx = {}; saleCtx.globalThis = saleCtx;
@@ -48,8 +49,8 @@ const Sale = saleCtx.AriaSale;
 const rules = loadStoreRules(ROOT);
 const built = buildAll(ROOT, NEW);
 
-await check("17 storefronts: each has its first screen with products, its endpoint file and a registry row, and is on sale", () => {
-  assert.equal(NEW.length, 17);
+await check("16 storefronts (Best Buy off sale again): each has its first screen with products, its endpoint file and a registry row, and is on sale", () => {
+  assert.equal(NEW.length, 16);
   for (const k of NEW) {
     assert.ok(STORES[k], `${k}: not in tienda.html's registry`);
     assert.ok(!isOffSaleRetailer(k), `${k}: still off sale`);
