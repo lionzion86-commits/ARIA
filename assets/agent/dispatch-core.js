@@ -23,8 +23,9 @@
    Every state has a timer (DISPATCH_DEFAULTS.stateTimersMin): an order
    that sits past it escalates to Danny with what is stuck and how long.
 
-   NOTHING HERE IS A PRICE, A RATE OR A FEE TYPED FROM THIN AIR. Pay per
-   checkout (S/ 1), cash-out minimum (S/ 10), cash-out fee (S/ 2) and the
+   NOTHING HERE IS A PRICE, A RATE OR A FEE TYPED FROM THIN AIR. The pay
+   ladder per store checkout (Danny, c.6552741348 + c.6553050668: S/ 1.00
+   for one product, +S/ 0.50 per two more), cash-out minimum (S/ 10), cash-out fee (S/ 2) and the
    Yape monthly cap (S/ 27,500) are Danny's numbers, as CONFIG defaults
    he can change. The exchange rate is never here: the page uses Phase
    1's SUNAT source (agent-store.js loadFx).
@@ -35,7 +36,13 @@ export { round2 };
 /* ---------------- config: Danny's numbers, overridable ---------------- */
 
 export const DISPATCH_DEFAULTS = Object.freeze({
-  payPerCheckoutPen: 1,          // c.6551173008: S/ 1 per STORE CHECKOUT
+  /* THE PAY LADDER (final, replaces S/ 1 per checkout). Per STORE
+     CHECKOUT, from its number of products (quantities counted):
+       pay(n) = payBasePen + payStepPen * floor(n / payStepEvery)
+     1 -> 1.00, 2-3 -> 1.50, 4-5 -> 2.00, 6-7 -> 2.50, 8-9 -> 3.00, ... */
+  payBasePen: 1,
+  payStepPen: 0.5,
+  payStepEvery: 2,
   ringSeconds: 30,               // c.6551091244: about a 30-second ring
   pollSeconds: 4,                // agente.html short polling while clocked in
   presenceTtlSeconds: 20,        // a buyer not heard from in this long is not ONLINE
@@ -62,7 +69,9 @@ export function dispatchConfig(overrides = {}) {
   const timers = { ...DISPATCH_DEFAULTS.stateTimersMin };
   for (const [k, v] of Object.entries(o.stateTimersMin || {})) if (k in timers && typeof v === "number" && v > 0 && v < 10000) timers[k] = v;
   return {
-    payPerCheckoutPen: num("payPerCheckoutPen", 0, 1000),
+    payBasePen: num("payBasePen", 0, 1000),
+    payStepPen: num("payStepPen", 0, 1000),
+    payStepEvery: Number.isInteger(o.payStepEvery) && o.payStepEvery >= 1 && o.payStepEvery <= 100 ? o.payStepEvery : DISPATCH_DEFAULTS.payStepEvery,
     ringSeconds: num("ringSeconds", 5, 600),
     pollSeconds: num("pollSeconds", 2, 30),
     presenceTtlSeconds: num("presenceTtlSeconds", 5, 600),
@@ -78,6 +87,21 @@ export function dispatchConfig(overrides = {}) {
     floatCacheSeconds: num("floatCacheSeconds", 0, 300),
     stateTimersMin: timers,
   };
+}
+
+/** Pay for one store checkout of `n` products: the ladder. */
+export function payForProducts(n, cfg = DISPATCH_DEFAULTS) {
+  const k = Math.max(1, Math.floor(Number(n) || 0));
+  return round2(cfg.payBasePen + cfg.payStepPen * Math.floor(k / cfg.payStepEvery));
+}
+/* A checkout's pay is stamped when it is offered, so what the pop-up
+   promised is what she earns, even if Danny edits the ladder meanwhile. */
+export function checkoutPay(c, cfg) {
+  return typeof c.payPen === "number" ? c.payPen : payForProducts(c.itemCount, cfg);
+}
+export function stampPay(rec, cfg) {
+  for (const c of rec.packet.checkouts) if (typeof c.payPen !== "number") c.payPen = payForProducts(c.itemCount, cfg);
+  return rec;
 }
 
 /* ---------------- states ---------------------------------------------- */
@@ -133,7 +157,10 @@ function storeLabelOf(raw) {
 const cleanUrl = (u) => (typeof u === "string" && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);
 
 /**
- * The buy packet: one customer order, split into per-store sub-checkouts.
+ * The buy packet: one customer order, split into ONE sub-checkout PER
+ * STORE (never per item). A store's checkout holds all of that store's
+ * items as rows, one card sized to their summed ceilings, and is
+ * registered once (number, total, screenshot).
  * Each line keeps the exact product link it was sold from (when the cart
  * line carried one), its size and colour, and a ceiling; each checkout's
  * budget is the sum of its ceilings, and is the card's spend limit.
@@ -154,7 +181,10 @@ export function buildPacket(order, { ceilingMargin = CEILING_MARGIN } = {}) {
     const raw = it.retailer || it.store || it.storeLabel || "";
     const key = storeKey(raw) || "tienda";
     if (!groups.has(key)) groups.set(key, { store: key, storeLabel: storeLabelOf(raw), items: [] });
-    const url = cleanUrl(it.url || it.productUrl || it.link);
+    /* line.url: the exact retailer product page, copied from the catalogue
+       record onto the cart and order line. Never invented: a line without
+       one shows «Sin link guardado» and Danny pastes it («Poner link»). */
+    const url = cleanUrl(it.url);
     const link = classifyProductUrl(url);
     groups.get(key).items.push({
       title: String(it.title || it.name || "").slice(0, 200),
@@ -270,6 +300,7 @@ export function floatGate(records, availableUsd) {
 
 export function release(rec, now, cfg) {
   transition(rec, STATES.CLAIMABLE, now, "compuerta");
+  stampPay(rec, cfg);
   rec.ringStartedAt = now;
   rec.ringEndsAt = new Date(Date.parse(now) + cfg.ringSeconds * 1000).toISOString();
   rec.fundsHold = null;
@@ -294,6 +325,7 @@ export function toPool(rec, now, reason) {
 /** Danny: ring it again. */
 export function reRing(rec, now, cfg) {
   transition(rec, STATES.CLAIMABLE, now, "admin");
+  stampPay(rec, cfg);
   rec.ringStartedAt = now;
   rec.ringEndsAt = new Date(Date.parse(now) + cfg.ringSeconds * 1000).toISOString();
   rec.unassignedReason = null;
@@ -376,7 +408,8 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 export function popupModel(rec, cfg) {
   const p = rec.packet;
   const n = p.checkouts.length;
-  const pay = round2(n * cfg.payPerCheckoutPen);
+  /* ONE total for the bundle; the ladder itself is never shown (Danny's fare rule). */
+  const pay = round2(p.checkouts.reduce((s, c) => s + checkoutPay(c, cfg), 0));
   return {
     orderId: rec.orderId,
     header: `Pedido de ${p.customerName}`,
@@ -407,6 +440,7 @@ export function claim(rec, agentId, now, { accounts, usage }) {
   const caps = capsFor(rec.packet, agentId, accounts, usage);
   if (!caps.ok) throw dispatchError(409, `Tus cuentas no tienen cupo hoy en: ${caps.missing.join(", ")}`, { caps: caps.missing });
   transition(rec, STATES.CLAIMED, now, agentId);
+  stampPay(rec, dispatchConfig());
   rec.claimedBy = agentId;
   rec.claimedAt = now;
   for (const c of rec.packet.checkouts) if (caps.accounts[c.id]) c.accountId = caps.accounts[c.id];
@@ -460,7 +494,7 @@ export function checkoutBought(rec, checkoutId, agentId, input, now, cfg) {
   rec.updatedAt = now;
   settle(rec, now, agentId);
   /* Earnings accrue the moment a checkout is BOUGHT -- and only then. */
-  const earning = { id: c.id, orderId: rec.orderId, store: c.storeLabel, customerName: rec.customerName, amountPen: cfg.payPerCheckoutPen, at: now };
+  const earning = { id: c.id, orderId: rec.orderId, store: c.storeLabel, customerName: rec.customerName, amountPen: checkoutPay(c, cfg), items: c.itemCount, at: now };
   return { rec, earning, duplicate: false };
 }
 

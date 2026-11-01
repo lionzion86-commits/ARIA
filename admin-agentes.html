@@ -311,9 +311,9 @@ function despacho() {
     return `<div class="card dxo ${o.state}" data-order="${esc(o.orderId)}">
       <div class="h"><strong>Pedido de ${esc(o.customerName)}</strong><span class="pill ${o.state === "BOUGHT" ? "ok" : o.state === "SIN_ASIGNAR" || o.state === "EXCEPTION" ? "bad" : o.state === "FUNDS_HOLD" || o.state === "PARTIAL" ? "warn" : ""}" data-state="${o.state}">${esc(o.stateLabel)}</span>
         <span class="tiny">desde las ${hhmm(o.stateSince)} · ${mins(o.minutesInState)}</span>${o.sandbox ? '<span class="sbtag">SANDBOX</span>' : ""}
-        <span class="tiny" style="margin-left:auto">${esc(o.orderId)} · ${o.checkouts.length} ${o.checkouts.length === 1 ? "compra" : "compras"} · tope ${C.usd(o.budgetUsd)}</span></div>
+        <span class="tiny" style="margin-left:auto">${esc(o.orderId)} · ${o.checkouts.length} ${o.checkouts.length === 1 ? "compra" : "compras"} · ${o.itemCount} ${o.itemCount === 1 ? "producto" : "productos"} · tope ${C.usd(o.budgetUsd)} · pago ${C.pen(o.payPen)}</span></div>
       ${extra}
-      <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap">${o.checkouts.map((c) => `<span class="pill ${c.state === "BOUGHT" ? "ok" : c.state === "EXCEPTION" ? "bad" : ""}">${esc(c.storeLabel)}${c.state === "BOUGHT" ? " · " + esc(c.retailerOrderNumber) + " · " + C.usd(c.chargedTotalUsd) : c.state === "EXCEPTION" ? " · " + esc(c.reasonLabel) : ""}${c.cardLast4 ? " · tarjeta " + esc(c.cardLast4) + " " + esc(c.cardState === "CLOSED" ? "cerrada" : c.cardState === "PAUSED" ? "pausada" : "abierta") : ""}${c.cardError ? " · tarjeta con error" : ""}</span>`).join("")}</div>
+      <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap">${o.checkouts.map((c) => `<span class="pill ${c.state === "BOUGHT" ? "ok" : c.state === "EXCEPTION" ? "bad" : ""}">${esc(c.storeLabel)} (${c.itemCount})${c.state === "BOUGHT" ? " · " + esc(c.retailerOrderNumber) + " · " + C.usd(c.chargedTotalUsd) : c.state === "EXCEPTION" ? " · " + esc(c.reasonLabel) : ""}${c.cardLast4 ? " · tarjeta " + esc(c.cardLast4) + " " + esc(c.cardState === "CLOSED" ? "cerrada" : c.cardState === "PAUSED" ? "pausada" : "abierta") : ""}${c.cardError ? " · tarjeta con error" : ""}</span>`).join("")}</div>
       ${o.checkouts.flatMap((c) => c.items.map((it, i) => it.url ? "" : `<form class="inrow" data-link="${esc(o.orderId)}" data-ck="${esc(c.id)}" data-i="${i}"><span class="tiny">${esc(c.storeLabel)}: «${esc(it.title)}» sin link</span><input name="url" placeholder="https://... el producto exacto" style="flex:1;min-width:220px"><button class="btn small ghost">Poner link</button></form>`)).join("")}
       ${o.passes.length ? `<div class="tiny">Pasaron: ${o.passes.map((p) => esc(who(p.agentId)) + " " + hhmm(p.at)).join(", ")}</div>` : ""}
       ${o.escalations.length ? `<div class="tiny" style="color:var(--bad)">Escalado: ${esc(o.escalations.at(-1).text)}</div>` : ""}
@@ -367,7 +367,8 @@ function pagos() {
     </div>
     <div class="card" style="padding:14px;margin-top:10px"><strong>Tarifas (configuración)</strong>
       <form class="inrow" id="cfgForm" style="margin-top:8px">
-        <label>Pago por compra (S/)<input name="pay" inputmode="decimal" value="${cfg.payPerCheckoutPen}"></label>
+        <label>Pago base por compra, 1 producto (S/)<input name="pay" inputmode="decimal" value="${cfg.payBasePen}"></label>
+        <label>Aumento cada ${cfg.payStepEvery} productos (S/)<input name="step" inputmode="decimal" value="${cfg.payStepPen}"></label>
         <label>Comisión por retiro (S/)<input name="fee" inputmode="decimal" value="${cfg.cashoutFeePen}"></label>
         <label>Retiro mínimo (S/)<input name="min" inputmode="decimal" value="${cfg.cashoutMinPen}"></label>
         <label>Tope mensual Yape (S/)<input name="cap" inputmode="decimal" value="${cfg.yapeMonthlyCapPen}"></label>
@@ -406,7 +407,7 @@ function wireDispatch() {
   const ff = $("#floatForm"); if (ff) ff.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "float", availableUsd: Number(String(ff.usd.value).replace(",", ".")) }).then((j) => j && toast("Fondo de prueba cambiado")); };
   const num = (v) => { const t = String(v).trim().replace(",", "."); return t === "" ? null : Number(t); };
   const pf = $("#potForm"); if (pf) pf.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "config", potBalancePen: num(pf.bal.value), potLowAlertPen: num(pf.low.value) }).then((j) => j && toast("Bolsa guardada")); };
-  const cf = $("#cfgForm"); if (cf) cf.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "config", payPerCheckoutPen: num(cf.pay.value), cashoutFeePen: num(cf.fee.value), cashoutMinPen: num(cf.min.value), yapeMonthlyCapPen: num(cf.cap.value), ringSeconds: num(cf.ring.value) }).then((j) => j && toast("Tarifas guardadas")); };
+  const cf = $("#cfgForm"); if (cf) cf.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "config", payBasePen: num(cf.pay.value), payStepPen: num(cf.step.value), cashoutFeePen: num(cf.fee.value), cashoutMinPen: num(cf.min.value), yapeMonthlyCapPen: num(cf.cap.value), ringSeconds: num(cf.ring.value) }).then((j) => j && toast("Tarifas guardadas")); };
   const gb = $("#genBatch"); if (gb) gb.onclick = () => dxAdmin({ action: "batch" }).then((j) => j && toast(`Lote ${j.batch.id}: ${j.batch.rows.length} pagos (BORRADOR)`));
   const rn = $("#reconNow"); if (rn) rn.onclick = () => dxAdmin({ action: "reconcile" }).then((j) => j && toast(`Conciliación: ${j.ok} cuadran, ${j.issues} con problema`));
   const af = $("#accForm"); if (af) af.onsubmit = (e) => {

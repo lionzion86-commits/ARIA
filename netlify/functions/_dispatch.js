@@ -247,7 +247,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
     const L = ledger || D.emptyLedger(agentId);
     return {
       now, me: agentId, sandbox, cardMode: program.mode.label,
-      config: { payPerCheckoutPen: cfg.payPerCheckoutPen, ringSeconds: cfg.ringSeconds, pollSeconds: cfg.pollSeconds, cashoutMinPen: cfg.cashoutMinPen, cashoutFeePen: cfg.cashoutFeePen, yapeMonthlyCapPen: cfg.yapeMonthlyCapPen, yapeNearRatio: cfg.yapeNearRatio },
+      config: { payBasePen: cfg.payBasePen, payStepPen: cfg.payStepPen, payStepEvery: cfg.payStepEvery, ringSeconds: cfg.ringSeconds, pollSeconds: cfg.pollSeconds, cashoutMinPen: cfg.cashoutMinPen, cashoutFeePen: cfg.cashoutFeePen, yapeMonthlyCapPen: cfg.yapeMonthlyCapPen, yapeNearRatio: cfg.yapeNearRatio },
       availability: D.availability(presence, now, cfg),
       ping: pingRec ? { ...D.popupModel(pingRec, cfg), secondsLeft: Math.max(0, Math.ceil((Date.parse(pingRec.ringEndsAt) - Date.parse(now)) / 1000)) } : null,
       watch, mine, ledger: ledgerView(L),
@@ -368,7 +368,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
           if (c && c.state === D.CHECKOUT.BOUGHT && c.boughtBy === agentId) {
             /* Earnings accrue now, once per checkout id. */
             await updateLedger(agentId, (L) => (L.earnings.some((x) => x.id === c.id) ? null
-              : { ...L, earnings: [...L.earnings, { id: c.id, orderId: value.orderId, store: c.storeLabel, customerName: value.customerName, amountPen: cfg.payPerCheckoutPen, at: c.boughtAt }] }));
+              : { ...L, earnings: [...L.earnings, { id: c.id, orderId: value.orderId, store: c.storeLabel, customerName: value.customerName, amountPen: D.checkoutPay(c, cfg), items: c.itemCount, at: c.boughtAt }] }));
             await closeCard(e.orderId, e.checkoutId, c.chargedTotalUsd);
             await writeActualsToOrder(await orders.get(e.orderId, { type: "json" }));
           }
@@ -433,7 +433,8 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
         minutesInState: D.minutesIn(r, now), paidAt: r.paidAt, ringEndsAt: r.ringEndsAt, claimedBy: r.claimedBy, claimedAt: r.claimedAt,
         fundsHold: r.fundsHold, unassignedReason: r.unassignedReason, passes: r.passes, pinged: r.pinged, sandbox: r.sandbox,
         budgetUsd: r.packet.budgetUsd, totalUsd: r.packet.totalUsd, itemCount: r.packet.itemCount,
-        checkouts: r.packet.checkouts.map((c) => ({ id: c.id, storeLabel: c.storeLabel, state: c.state, budgetUsd: c.budgetUsd, retailerOrderNumber: c.retailerOrderNumber || null,
+        payPen: D.round2(r.packet.checkouts.reduce((t, c) => t + D.checkoutPay(c, cfg), 0)),
+        checkouts: r.packet.checkouts.map((c) => ({ id: c.id, storeLabel: c.storeLabel, state: c.state, itemCount: c.itemCount, payPen: D.checkoutPay(c, cfg), budgetUsd: c.budgetUsd, retailerOrderNumber: c.retailerOrderNumber || null,
           chargedTotalUsd: c.chargedTotalUsd ?? null, reasonLabel: c.reasonLabel || null, accountId: c.accountId, cardLast4: c.card ? c.card.last4 : null, cardState: c.card ? c.card.state : null, cardError: c.cardError || null,
           items: c.items.map((i) => ({ title: i.title, image: i.image, url: i.url, linkProblem: i.linkProblem })) })),
         history: r.history, escalations: r.escalations,

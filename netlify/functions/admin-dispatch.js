@@ -28,20 +28,27 @@ import { SAMPLE_BATCH } from "../../assets/agent/sample-batch.js";
 
 /**
  * A SANDBOX test order: real catalogue products from the sample batch
- * (one per store), a fictional "Prueba" customer, paid "now". Only ever
- * fed to a sandbox-namespace engine.
+ * (several per store), a fictional "Prueba" customer, paid "now". Only
+ * ever fed to a sandbox-namespace engine.
  */
+export const SANDBOX_PLAN = Object.freeze({ 1: [1], 2: [2, 1], 3: [4, 2, 1] });
 export function sandboxOrder(stores = 3, seq = Date.now()) {
   const byStore = new Map();
-  for (const o of SAMPLE_BATCH.orders) if (!byStore.has(o.store)) byStore.set(o.store, o);
-  const picks = [...byStore.values()].slice(0, Math.max(1, Math.min(byStore.size, Number(stores) || 1)));
+  for (const o of SAMPLE_BATCH.orders) (byStore.get(o.store) || byStore.set(o.store, []).get(o.store)).push(o);
+  /* Multi-item per store, like a real cart: 3 stores -> 4 / 2 / 1 products. */
+  const plan = SANDBOX_PLAN[Math.max(1, Math.min(3, Number(stores) || 1))];
+  const groups = [...byStore.values()].filter((g) => g.length >= 1).sort((a, b) => b.length - a.length);
   const names = [...new Set(SAMPLE_BATCH.orders.map((o) => o.customerName))];
   const id = "SBX-" + String(seq).slice(-8);
+  const items = plan.flatMap((n, i) => groups[i].slice(0, n).map((o) => ({
+    retailer: o.storeLabel, title: o.title, priceUsd: o.priceUsd, dutiableUsd: o.priceUsd, qty: 1,
+    image: o.image, url: o.url, selectedSize: o.selectedSize, color: o.color,
+  })));
   return {
     orderId: id, paymentStatus: "paid", paidAt: new Date().toISOString(), paymentId: null, sandbox: true,
     customer: { name: names[Number(String(seq).slice(-3)) % names.length] },
     shipping: {},
-    items: picks.map((o) => ({ retailer: o.storeLabel, title: o.title, priceUsd: o.priceUsd, dutiableUsd: o.priceUsd, qty: o.qty || 1, image: o.image, url: o.url, selectedSize: o.selectedSize, color: o.color })),
+    items,
   };
 }
 

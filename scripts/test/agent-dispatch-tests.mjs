@@ -82,17 +82,19 @@ const { SAMPLE_BATCH } = await import(ROOT + "assets/agent/sample-batch.js");
 
 /* ---------------- fixtures ---------------- */
 const byStore = new Map();
-for (const o of SAMPLE_BATCH.orders) if (!byStore.has(o.store)) byStore.set(o.store, o);
-const PRODUCTS = [...byStore.values()]; // real catalogue products, one per store
+for (const o of SAMPLE_BATCH.orders) (byStore.get(o.store) || byStore.set(o.store, []).get(o.store)).push(o);
+const PRODUCTS = [...byStore.values()].map((g) => g[0]); // real catalogue products, one per store
+const STORE_PRODUCTS = [...byStore.values()];               // ...and every product of each store
 const line = (o) => ({ retailer: o.storeLabel, title: o.title, priceUsd: o.priceUsd, dutiableUsd: o.priceUsd, qty: 1, image: o.image, url: o.url, selectedSize: o.selectedSize, color: o.color });
 let orderSeq = 0;
-function seedOrder({ stores = 1, name = "María Torres", orderId } = {}) {
+/* counts: products per store, e.g. [4, 2, 1] -- a real cart with several items per store. */
+function seedOrder({ stores = 1, name = "María Torres", orderId, counts = null } = {}) {
   const id = orderId || `ARIA-20261101-T${String(++orderSeq).padStart(4, "0")}`;
   const order = {
     orderId: id, createdAt: new Date().toISOString(), status: "pending_payment", paymentStatus: "unpaid", pricePenCharged: 412.3, fxRateUsed: 3.4,
     customer: { name, email: "cliente@correo.test", idNumber: "00000000", phone: "900000000" },
     shipping: { address: "Calle Prueba 123", district: "Miraflores", destCity: "Lima" },
-    items: PRODUCTS.slice(0, stores).map(line),
+    items: counts ? counts.flatMap((n, i) => STORE_PRODUCTS[i].slice(0, n).map(line)) : PRODUCTS.slice(0, stores).map(line),
   };
   const st = STORES.get("orders") || (getStore("orders"), STORES.get("orders"));
   st.set(id, { v: JSON.stringify(order), etag: `"e${++etagSeq}"` });
@@ -126,11 +128,51 @@ console.log("\n  Dispatch -- the rules (dispatch-core.js)");
 
 await check("config defaults are Danny's numbers: S/ 1 per checkout, 30 s ring, S/ 10 minimum, S/ 2 fee, S/ 27,500 Yape cap, draft file on", () => {
   const c = D.dispatchConfig();
-  assert.equal(c.payPerCheckoutPen, 1); assert.equal(c.ringSeconds, 30); assert.equal(c.cashoutMinPen, 10);
+  assert.equal(c.payBasePen, 1); assert.equal(c.payStepPen, 0.5); assert.equal(c.payStepEvery, 2); assert.equal(c.ringSeconds, 30); assert.equal(c.cashoutMinPen, 10);
   assert.equal(c.cashoutFeePen, 2); assert.equal(c.yapeMonthlyCapPen, 27500); assert.equal(c.payoutFileDraft, true);
   assert.equal(c.potLowAlertPen, null, "no refill threshold was stated, so none is invented");
   assert.equal(D.dispatchConfig({ cashoutFeePen: 3, ringSeconds: "x" }).cashoutFeePen, 3);
   assert.equal(D.dispatchConfig({ ringSeconds: "x" }).ringSeconds, 30);
+});
+
+await check("pay ladder: 1, 2, 3, 4, 5, 9, 10, 11 products -> S/ 1, 1.50, 1.50, 2, 2, 3, 3.50, 3.50 (pay(n) = 1 + 0.5 x floor(n/2))", () => {
+  const cfg = D.dispatchConfig();
+  assert.deepEqual([1, 2, 3, 4, 5, 9, 10, 11].map((n) => D.payForProducts(n, cfg)), [1, 1.5, 1.5, 2, 2, 3, 3.5, 3.5]);
+  assert.deepEqual([6, 7, 8].map((n) => D.payForProducts(n, cfg)), [2.5, 2.5, 3]);
+  assert.equal(D.payForProducts(3, D.dispatchConfig({ payBasePen: 2, payStepPen: 1 })), 3, "the ladder is not config");
+});
+
+await check("ONE packet per store: a 3-store order with 4 / 2 / 1 items is three store checkouts with item rows, one card budget and one ALMACEN each", () => {
+  const o = seedOrder({ counts: [4, 2, 1], name: "María Torres" });
+  const p = D.buildPacket(o);
+  assert.equal(p.checkouts.length, 3, "packets were split per item");
+  assert.deepEqual(p.checkouts.map((c) => c.items.length), [4, 2, 1]);
+  assert.deepEqual(p.checkouts.map((c) => c.itemCount), [4, 2, 1]);
+  for (const [i, c] of p.checkouts.entries()) {
+    assert.deepEqual(c.items.map((x) => x.url), STORE_PRODUCTS[i].slice(0, c.items.length).map((x) => x.url), "each row keeps its own line.url");
+    assert.equal(c.budgetUsd, D.round2(c.items.reduce((t, x) => t + x.ceilingUsd, 0)), "the card is not sized to the store total");
+  }
+  assert.equal(new Set(p.checkouts.map((c) => c.id)).size, 3);
+  assert.deepEqual(p.almacen, ["ARIASHOP María Torres", "AMEX", "8010 NW 66th Street, Miami, FL 33166", "+1 828 458 8578"]);
+  /* quantity counts as products */
+  const q = D.buildPacket({ orderId: "Q", customer: { name: "A" }, items: [{ retailer: "Crocs", title: "t", priceUsd: 10, qty: 3, url: "https://www.crocs.com/p/x/1.html" }] });
+  assert.equal(q.checkouts[0].itemCount, 3);
+  assert.equal(D.payForProducts(q.checkouts[0].itemCount), 1.5);
+  /* the sandbox «Pedido de prueba» is per store too */
+  const sim = D.buildPacket(ADD.sandboxOrder(3, 123456));
+  assert.deepEqual(sim.checkouts.map((c) => c.items.length), [4, 2, 1]);
+});
+
+await check("pop-up shows ONE ladder total for the bundle, never the formula: 4 / 2 / 1 -> «S/ 4.50 · 3 compras · 3 tiendas»", () => {
+  const cfg = D.dispatchConfig();
+  const r = D.newDispatch(seedOrder({ counts: [4, 2, 1] }), { now: "2026-11-01T15:00:00.000Z" });
+  D.release(r, "2026-11-01T15:00:01.000Z", cfg);
+  assert.deepEqual(r.packet.checkouts.map((c) => c.payPen), [2, 1.5, 1]);
+  const m = D.popupModel(r, cfg);
+  assert.equal(`${m.headline} · ${m.sub}`, "S/ 4.50 · 3 compras · 3 tiendas");
+  assert.ok(!/0[.,]5|por cada|floor|\+/.test(JSON.stringify({ h: m.headline, s: m.sub })), "the pop-up shows the formula");
+  /* what was offered is what is paid, even if the ladder changes afterwards */
+  assert.equal(D.popupModel(r, D.dispatchConfig({ payBasePen: 5 })).headline, "S/ 4.50");
 });
 
 await check("buy packet: per-store sub-checkouts, exact links, ceilings, budget, the ALMACEN block with the customer's full name", () => {
@@ -491,6 +533,31 @@ await check("a partial bundle pays only its BOUGHT checkouts; the failed store i
   assert.equal((await E2.ledger(AG1)).earnings.length, 0);
 });
 
+await check("ladder partial: a 4 / 2 / 1 bundle with the 2-item store failed pays S/ 2.00 + S/ 1.00 only, at BOUGHT", async () => {
+  resetStores();
+  const E = engine();
+  await E.setAccounts(ACCOUNTS_ALL);
+  const o = seedOrder({ counts: [4, 2, 1] });
+  await E.intake({ ...o, paymentStatus: "paid" });
+  const mine = await E.claimOrder(AG1, o.orderId);
+  const [c1, c2, c3] = mine.packet.checkouts;
+  const sum = (c) => D.round2(c.items.reduce((t, x) => t + x.lineUsd, 0));
+  await E.applyEvents(AG1, [bought(o.orderId, c1.id, "L-1", sum(c1))]);
+  assert.equal(D.balancePen(await E.ledger(AG1)), 2, "the 4-product store did not pay S/ 2.00");
+  /* the screenshot stays mandatory: no receipt, no BOUGHT, no pay */
+  const noShot = await E.applyEvents(AG1, [{ ...bought(o.orderId, c3.id, "L-3", sum(c3), "ev-noshot"), data: { retailerOrderNumber: "L-3", chargedTotalUsd: sum(c3) } }]);
+  assert.equal(noShot.rejected[0].error, "Falta la captura de la confirmación");
+  await E.applyEvents(AG1, [
+    { id: "ex-l2", type: "checkout_excepcion", orderId: o.orderId, checkoutId: c2.id, at: new Date().toISOString(), data: { reason: "precio_subio" } },
+    bought(o.orderId, c3.id, "L-3", sum(c3)),
+  ]);
+  const rec = await E.orderRecord(o.orderId);
+  assert.equal(rec.state, "PARTIAL");
+  const L = await E.ledger(AG1);
+  assert.deepEqual(L.earnings.map((e) => [e.amountPen, e.items]), [[2, 4], [1, 1]]);
+  assert.equal(D.balancePen(L), 3);
+});
+
 await check("cash-out: under the minimum refused; S/ 2 fee and the net correct; the request lands in Danny's queue; «generar lote» makes a DRAFT file and nothing is sent", async () => {
   resetStores();
   const E = engine();
@@ -804,12 +871,12 @@ if (pw) {
     await clockIn(a.page); await clockIn(b.page);
     await adm.page.goto(BASE + "/admin-agentes.html");
     await adm.page.waitForSelector("#kSin");
-    const order = seedOrder({ stores: 3, name: "María Torres" });
+    const order = seedOrder({ counts: [4, 2, 1], name: "María Torres" });
     await sendWebhook(order.orderId);
     await Promise.all([poke(a.page), poke(b.page)]);
     await a.page.waitForSelector("#ringPop"); await b.page.waitForSelector("#ringPop");
     assert.equal(await a.page.textContent("#ringH"), "Pedido de María Torres");
-    assert.equal(await a.page.textContent("#ringPay"), "S/ 3");
+    assert.equal(await a.page.textContent("#ringPay"), "S/ 4.50");
     assert.equal(await a.page.textContent("#ringSub"), "3 compras · 3 tiendas");
     await a.page.waitForFunction(() => /S\/ \d/.test(document.getElementById("ringTotal").textContent));
     const total = await a.page.textContent("#ringTotal");
@@ -817,9 +884,10 @@ if (pw) {
     assert.equal(total, `$${usdTotal.toFixed(2)} · S/ ${(Math.round(usdTotal * FX * 100) / 100).toFixed(2)}`);
     const popText = await a.page.textContent("#ringPop");
     for (const s of ["00000000", "900000000", "Calle Prueba"]) assert.ok(!popText.includes(s), "the pop-up shows " + s);
-    assert.equal(await a.page.locator("#ringPop .strip-photos img").count(), 3);
+    assert.equal(await a.page.locator("#ringPop .strip-photos img").count(), 7);
+    assert.match(await a.page.textContent("#ringPop"), /7 artículos/);
     assert.ok(Number(await a.page.textContent("#ringCount")) <= 30);
-    await shot(a.page, "1-popup-pedido-S3-3-compras-3-tiendas");
+    await shot(a.page, "1-popup-pedido-S4.50-3-compras-3-tiendas");
     await adm.page.evaluate(async () => { const r = await fetch("/.netlify/functions/admin-dispatch"); return r.ok; });
     await adm.page.waitForFunction(() => document.querySelector('.dxo [data-state="CLAIMABLE"]'), null, { timeout: 8000 });
     await a.page.click("#ringAccept");
@@ -832,7 +900,21 @@ if (pw) {
     /* The focus screen: the only place the private fields appear */
     const focus = await a.page.textContent("main");
     assert.ok(focus.includes("00000000") && focus.includes("Calle Prueba"), "the claimed order's focus screen lacks the customer data");
+    const counts = [4, 2, 1];
     for (let i = 0; i < 3; i++) {
+      /* One packet per store: one row per item, each with its own link and checks; one card for the store */
+      await a.page.waitForSelector(".item[data-row]");
+      assert.equal(await a.page.locator(".item[data-row]").count(), counts[i], "not one row per item in the store packet");
+      const hrefs = await a.page.$$eval(".item[data-row] a.btn", (as) => as.map((x) => x.getAttribute("href")));
+      assert.deepEqual(hrefs, STORE_PRODUCTS[i].slice(0, counts[i]).map((x) => x.url));
+      assert.equal(await a.page.locator("[data-reveal]").count(), 1, "more than one card for one store checkout");
+      assert.equal(await a.page.locator("#almacenText").count(), 1);
+      for (let r = 0; r < counts[i]; r++) {
+        await a.page.check(`[data-rowcheck$="#${r}"][data-k="exacto"]`);
+        await a.page.check(`[data-rowcheck$="#${r}"][data-k="carrito"]`);
+      }
+      assert.match(await a.page.textContent("#ckSummary"), new RegExp(`${counts[i]} de ${counts[i]} en el carrito`));
+      if (i === 0) await shot(a.page, "1b-paquete-por-tienda-4-productos", true);
       await a.page.waitForSelector("[data-reveal]");
       await a.page.click("[data-reveal]");
       await a.page.waitForSelector(".vcard");
@@ -840,7 +922,7 @@ if (pw) {
       await a.page.click("#done");
       await a.page.waitForSelector("#cf");
       await a.page.fill("#cf [name=num]", "R-" + (i + 1));
-      await a.page.fill("#cf [name=total]", String(PRODUCTS[i].priceUsd));
+      await a.page.fill("#cf [name=total]", String(D.round2(STORE_PRODUCTS[i].slice(0, counts[i]).reduce((t, x) => t + x.priceUsd, 0))));
       await a.page.setInputFiles("#cf [name=shot]", { name: "c.png", mimeType: "image/png", buffer: Buffer.from("89504e47", "hex") });
       await a.page.click("#cf button[type=submit]");
       await a.page.waitForTimeout(150);
@@ -851,14 +933,17 @@ if (pw) {
     await a.page.waitForFunction(() => /Sincronizado/.test(document.getElementById("syncTag").textContent), null, { timeout: 8000 });
     const rec = await E().orderRecord(order.orderId);
     assert.equal(rec.state, "BOUGHT");
-    assert.equal(D.balancePen(await E().ledger(AG1)), 3);
+    assert.equal(D.balancePen(await E().ledger(AG1)), 4.5);
     await adm.page.waitForFunction(() => document.querySelector('.dxo [data-state="BOUGHT"]'), null, { timeout: 8000 });
     const hist = await adm.page.evaluate(() => [...document.querySelectorAll(".dxo.BOUGHT .tl li")].map((l) => l.textContent));
     for (const s of ["Pagado", "Sonando", "Tomado", "Comprado"]) assert.ok(hist.some((h) => h.includes(s)), "the board's timeline lacks " + s);
     await poke(a.page);
     await a.page.click('#tabs [data-tab="pagos"]');
     await a.page.waitForSelector("#dxBalance");
-    assert.equal(await a.page.textContent("#dxBalance"), "S/ 3.00");
+    assert.equal(await a.page.textContent("#dxBalance"), "S/ 4.50");
+    assert.match(await a.page.textContent("main"), /4 productos[\s\S]*\+ S\/ 2\.00/);
+    await a.page.evaluate(() => [...document.querySelectorAll("h2")].find((h) => /Lo que ganaste/.test(h.textContent)).scrollIntoView({ block: "center" }));
+    await shot(a.page, "4b-ganancias-por-compra");
     for (const x of [a, b, adm]) assert.deepEqual(x.errors, []);
     shared = { a, b, adm };
   });
@@ -867,7 +952,7 @@ if (pw) {
     const { a, adm } = shared;
     await E().updateLedger(AG1, (L) => ({ ...L, earnings: L.earnings.concat(Array.from({ length: 17 }, (_, i) => ({ id: "earlier-" + i, orderId: "ARIA-EARLIER", store: "Crocs", customerName: "Cliente anterior", amountPen: 1, at: new Date().toISOString() }))) }));
     await poke(a.page);
-    await a.page.waitForFunction(() => document.getElementById("dxBalance") && document.getElementById("dxBalance").textContent === "S/ 20.00");
+    await a.page.waitForFunction(() => document.getElementById("dxBalance") && document.getElementById("dxBalance").textContent === "S/ 21.50");
     await a.page.fill("#regForm [name=yape]", "900000001");
     await a.page.fill("#regForm [name=cci]", "00000000000000000001");
     await a.page.click("#regForm button[type=submit]");
@@ -883,7 +968,7 @@ if (pw) {
     await a.page.waitForSelector(".sheet [data-go]");
     assert.match(await a.page.textContent(".sheet"), /Recibes\s*S\/ 13\.00/);
     await a.page.click(".sheet [data-go]");
-    await a.page.waitForFunction(() => document.getElementById("dxBalance").textContent === "S/ 5.00");
+    await a.page.waitForFunction(() => document.getElementById("dxBalance").textContent === "S/ 6.50");
     await adm.page.click('[data-tab="pagos"]');
     await adm.page.waitForSelector("#payQueue");
     const q = await adm.page.textContent("#payQueue");

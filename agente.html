@@ -266,6 +266,7 @@
   .quote.err { background: var(--bad-bg); color: var(--bad); }
   .hist { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 14px; margin: 0 0 8px; }
   .hist b { display: block; }
+  .hist > b { white-space: nowrap; flex: 0 0 auto; }
 </style>
 </head>
 <body>
@@ -337,6 +338,12 @@ async function boot() {
       settings: live.settings || { payPerPurchasePen: null }, seq: 0,
     };
     S.day.settings = live.settings || S.day.settings; // Danny may have set the rate since
+    /* PHASE 2: a signed-in buyer's queue IS live dispatch -- one packet per
+       customer order per store. Phase 1's sample list (one item per
+       "order", each with its own customer and card) is the demo's model
+       only; showing it to a live buyer on a preview is what made packets
+       look per item. It stays in demo mode (?demo=1). */
+    S.day.orders = []; S.day.history = [];
     rememberSession({ mode: "live", key: S.key, agentId: S.agentId });
   } else if (!res && last && last.mode === "live" && loadDay(last.key)) {
     /* No signal: reopen the day this phone was already working on. */
@@ -513,10 +520,7 @@ const isPending = (orderId) => C.pendingEvents(S.day).some((e) => e.orderId === 
 function viewHome() {
   const s = S.day.shifts[S.agentId];
   if (s && s.onBreak) return shiftBar() + pausedCard() + (S.mode === "live" ? dxSection() : "");
-  if (S.mode === "live" && !S.day.orders.some((o) => o.assignedTo === S.agentId)) {
-    return shiftBar() + dxSection() + `<button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>`;
-  }
-  if (S.mode === "live") return shiftBar() + dxSection() + viewHomePhase1();
+  if (S.mode === "live") return shiftBar() + dxSection() + `<button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>`;
   return viewHomePhase1();
 }
 function viewHomePhase1() {
@@ -926,7 +930,7 @@ function dxSection() {
   const card = (b) => {
     const cs = b.packet.checkouts, n = cs.filter((c) => c.state !== PENDING).length;
     return `<div class="card bundle-card"><h3>Pedido de ${esc(b.customerName)}</h3>
-      <div class="tiny">${n} de ${cs.length} ${cs.length === 1 ? "compra" : "compras"} hechas · ${esc(D.payText(cs.length * ((DX.cfg && DX.cfg.payPerCheckoutPen) ?? 1)))}</div>
+      <div class="tiny">${n} de ${cs.length} ${cs.length === 1 ? "compra" : "compras"} hechas · ${esc(D.payText(cs.reduce((t, c) => t + D.checkoutPay(c, DX.cfg || D.dispatchConfig()), 0)))}</div>
       <div class="chips">${cs.map((c) => `<span class="pill ${c.state === "BOUGHT" ? "ok" : c.state === "EXCEPTION" ? "bad" : ""}">${esc(c.storeLabel)}</span>`).join("")}</div>
       ${cs.some((c) => c.state === PENDING) ? `<button class="btn big primary" data-bundle="${esc(b.orderId)}">Abrir el pedido ${ICON.arrow}</button>` : ""}</div>`;
   };
@@ -1018,12 +1022,18 @@ function viewBundle() {
   const cs = b.packet.checkouts;
   const c = cs[Math.min(DX.ck, cs.length - 1)];
   const pv = b.packet.private || {};
-  const items = c.items.map((it) => `<div class="card item">
+  /* ONE packet per store: one row per item, each with its own link, the
+     verify step and add-to-cart. One card, one ALMACEN block and one
+     registration (with its screenshot) for the whole store checkout. */
+  const rowChecks = (i) => S.checks[c.id + "#" + i] || {};
+  const inCart = c.items.filter((_, i) => rowChecks(i).carrito).length;
+  const items = c.items.map((it, i) => `<div class="card item" data-row="${i}">
       <img src="${esc(it.image || "")}" alt="" referrerpolicy="no-referrer">
-      <div><div class="t">${esc(it.title)}</div>
+      <div><div class="tiny" style="font-weight:900;color:var(--ink-2)">Producto ${i + 1} de ${c.items.length}</div><div class="t">${esc(it.title)}</div>
         <div class="tiny">Talla ${esc(it.selectedSize || "no aplica")} · ${it.color ? "Color " + esc(it.color) : "Color: el de la foto"} · Cantidad ${it.qty}</div>
         <div class="tiny">Hasta ${esc(C.dual(it.ceilingUsd, venta()))}</div></div>
-      ${c.state === PENDING ? (it.url ? `<a class="btn gold" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-buy="${esc(c.id)}">COMPRAR ${ICON.ext}</a>` : `<div class="ojo" style="grid-column:1/-1;margin:0">Sin link guardado (${esc(it.linkProblem || "falta")}). Danny lo agrega desde su tablero, o usa Problema: «Link caído».</div>`) : ""}
+      ${c.state === PENDING ? (it.url ? `<a class="btn gold" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-buy="${esc(c.id)}">Abrir producto ${ICON.ext}</a>` : `<div class="ojo" style="grid-column:1/-1;margin:0">Sin link guardado (${esc(it.linkProblem || "falta")}). Danny lo agrega desde su tablero, o usa Problema: «Link caído».</div>`)
+        + `<ul class="checklist" style="grid-column:1/-1;margin:4px 0 0">${[["exacto", "Es el producto exacto (foto, modelo, color, talla)"], ["carrito", "Agregado al carrito"]].map(([k, l]) => `<li><label class="${rowChecks(i)[k] ? "done" : ""}"><input type="checkbox" data-rowcheck="${esc(c.id)}#${i}" data-k="${k}" ${rowChecks(i)[k] ? "checked" : ""}> ${l}</label></li>`).join("")}</ul>` : ""}
     </div>`).join("");
   const doneCard = c.state === "BOUGHT"
     ? `<div class="card" style="padding:14px;background:var(--ok-bg);color:var(--ok);font-weight:800">Comprada: pedido ${esc(c.retailerOrderNumber)} · ${esc(C.dual(c.chargedTotalUsd, venta()))}</div>`
@@ -1034,7 +1044,8 @@ function viewBundle() {
     <h1 style="margin:4px 0 2px">Pedido de ${esc(b.customerName)}</h1>
     <div class="tiny">${cs.length} ${cs.length === 1 ? "compra" : "compras"} · ${b.packet.itemCount} ${b.packet.itemCount === 1 ? "artículo" : "artículos"} · ${esc(b.orderId)}</div>
     <div class="cktabs" role="tablist">${cs.map((x, i) => `<button role="tab" data-ck="${i}" aria-selected="${x.id === c.id}" class="${x.state === "BOUGHT" ? "ok" : x.state === "EXCEPTION" ? "bad" : ""}">${i + 1}. ${esc(x.storeLabel)}${x.state === "BOUGHT" ? " · lista" : x.state === "EXCEPTION" ? " · problema" : ""}</button>`).join("")}</div>
-    <h2 style="font-size:21px;margin:4px 0 8px">Compra ${c.n} de ${cs.length}: ${esc(c.storeLabel)}</h2>
+    <h2 style="font-size:21px;margin:4px 0 2px">Compra ${c.n} de ${cs.length}: ${esc(c.storeLabel)}</h2>
+    <p class="tiny" style="margin:0 0 10px" id="ckSummary">${c.items.length} ${c.items.length === 1 ? "producto" : "productos"} en un solo pedido de la tienda · ${c.state === PENDING ? `${inCart} de ${c.items.length} en el carrito · ` : ""}un solo pago con la tarjeta de esta compra</p>
     ${doneCard}
     ${items}
     ${c.state === PENDING ? `<div class="rule"><strong>SIN SUSTITUTOS</strong>Si no está exacto (modelo, color, talla), no compres otro parecido. Usa Problema.</div>
@@ -1111,7 +1122,7 @@ function dxCompleteSheet(b, c) {
       C.queueEvent(S.day, { type: "checkout_comprado", orderId: b.orderId, checkoutId: c.id, agentId: S.agentId, at: now, data: input });
       DX.mine = DX.mine.map((x) => (x.orderId === b.orderId ? replayPending(x) : x));
       S.day.dispatchMine = DX.mine; save(); close(); sync();
-      toast(`Comprada: ${c.storeLabel}. Ganaste ${D.payText((DX.cfg && DX.cfg.payPerCheckoutPen) ?? 1)}.`);
+      toast(`Comprada: ${c.storeLabel}. Ganaste ${D.payText(D.checkoutPay(c, DX.cfg || D.dispatchConfig()))}.`);
       dxAfter(bundleById(b.orderId));
     };
   });
@@ -1154,7 +1165,7 @@ function viewPagos() {
   const statusPill = (p) => `<span class="pill ${p.status === "confirmado" ? "ok" : p.status === "solicitado" ? "warn" : ""}">${esc(D.PAYOUT_STATUS_LABELS[p.status] || p.status)}</span>`;
   return `<h1 style="margin:4px 0 10px;font-size:26px">Pagos</h1>
     <div class="card money"><span class="muted">Tu saldo</span><b id="dxBalance">${C.pen(L.balancePen)}</b>
-      <span class="tiny">${esc(D.payText(cfg.payPerCheckoutPen))} por compra confirmada · ${L.ledger.earnings.length} ${L.ledger.earnings.length === 1 ? "compra" : "compras"} · comisiones pagadas ${C.pen(L.feesPen)}</span></div>
+      <span class="tiny">Ganas por cada compra confirmada, según sus productos · ${L.ledger.earnings.length} ${L.ledger.earnings.length === 1 ? "compra" : "compras"} · comisiones pagadas ${C.pen(L.feesPen)}</span></div>
     ${reg ? `<form class="card" id="cashForm" style="padding:14px">
         <label class="field" style="margin-top:0"><span>Monto a retirar (S/)</span><input name="amt" id="dxAmt" inputmode="decimal" value="${esc(String(amt))}"></label>
         ${quoteHtml(q)}
@@ -1169,10 +1180,15 @@ function viewPagos() {
     <h2 style="font-size:18px;margin:18px 0 8px">Tus retiros</h2>
     ${L.payouts.length ? L.payouts.map((p) => `<div class="card hist"><div><b>${C.pen(p.netPen)} ${p.channel === "cci" ? "a CCI" : "a Yape"}</b><span class="tiny">${esc(String(p.requestedAt).slice(0, 10))} ${hhmm(p.requestedAt)} · retiro ${C.pen(p.grossPen)} · comisión ${C.pen(p.feePen)}${p.kind === "barrido" ? " · semanal" : ""}</span></div>${statusPill(p)}</div>`).join("") : '<p class="tiny">Todavía no retiraste.</p>'}
     <h2 style="font-size:18px;margin:18px 0 8px">Lo que ganaste</h2>
-    ${L.earnings.length ? L.earnings.map((e) => `<div class="card hist"><div><b>Pedido de ${esc(e.customerName)}</b><span class="tiny">${esc(e.store)} · ${esc(String(e.at).slice(0, 10))} ${hhmm(e.at)}</span></div><b>+ ${esc(D.payText(e.amountPen))}</b></div>`).join("") : '<p class="tiny">Cada compra confirmada suma aquí.</p>'}`;
+    ${L.earnings.length ? L.earnings.map((e) => `<div class="card hist"><div><b>Pedido de ${esc(e.customerName)}</b><span class="tiny">${esc(e.store)}${e.items ? ` · ${e.items} ${e.items === 1 ? "producto" : "productos"}` : ""} · ${esc(String(e.at).slice(0, 10))} ${hhmm(e.at)}</span></div><b>+ ${esc(C.pen(e.amountPen))}</b></div>`).join("") : '<p class="tiny">Cada compra confirmada suma aquí.</p>'}`;
 }
 
 function wireDispatch() {
+  document.querySelectorAll("[data-rowcheck]").forEach((cb) => cb.onchange = () => {
+    (S.checks[cb.dataset.rowcheck] ||= {})[cb.dataset.k] = cb.checked;
+    if (cb.checked && cb.dataset.k === "carrito") S.checks[cb.dataset.rowcheck].exacto = true;
+    render();
+  });
   document.querySelectorAll("[data-bundle]").forEach((b) => b.onclick = () => openBundle(b.dataset.bundle));
   document.querySelectorAll("[data-ck]").forEach((b) => b.onclick = () => { DX.ck = Number(b.dataset.ck); render(); });
   document.querySelectorAll("[data-reveal]").forEach((b) => b.onclick = () => {
