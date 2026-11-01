@@ -744,12 +744,9 @@ export function storeFor(ctx, q) {
     for (const [n, kk] of names) if (n.startsWith(k) && k.length >= n.length * 0.6) cands.add(kk);
     if (cands.size === 1) key = [...cands][0];
   }
-  if (!key) return null;
-  /* A store whose own name is a brand that other stores sell (Crocs at
-     Zumiez, Dick's...) is searched as that brand, store by store. */
-  const sellers = brandStores(ctx).get(k) || brandStores(ctx).get(brandKey(ctx.labels[key] || key));
-  if (sellers && [...sellers].filter((s) => s !== key).length >= 2) return null;
-  return key;
+  /* A store's name always opens that store (Danny, 2026-11-01), even
+     when other stores also sell its brand (Crocs, New Balance, Miu Miu). */
+  return key || null;
 }
 
 /* Indexes the rails read: brand -> store -> products; store|category -> products. */

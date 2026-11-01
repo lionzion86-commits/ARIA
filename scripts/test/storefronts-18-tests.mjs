@@ -190,9 +190,9 @@ await check("searching a store's name opens its storefront (storeFor + search.ht
   const labels = Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k]));
   const ctx = loadSearch({ labels });
   const pages = /var STORE_PAGES = "([^"]*)"/.exec(read("search.html"))[1];
-  /* The doctrine (#443): a store whose own name is a brand other stores
-     sell is searched as that brand, store by store (Crocs). */
-  const asBrand = new Set(["newbalance", "miumiu"]);
+  /* Danny, 2026-11-01: every store's name opens that store, even when
+     other stores sell its brand too (New Balance, Miu Miu, Crocs). */
+  const asBrand = new Set();
   const wrong = [];
   for (const k of NEW) {
     assert.ok(pages.includes(" " + k + " "), `${k}: search.html has no door to it`);
