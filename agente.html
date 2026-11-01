@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A1F44">
+<title>Aria Compradores</title>
+<link rel="icon" href="/aria-icon-512.png">
+<link rel="stylesheet" href="/assets/agent/agent.css">
+<!-- ============================================================
+     COMPRADORES -- the purchasing agent's view (#443, Phase 1).
+     STAFF ONLY, not linked from any public page, noindex. Phone first.
+
+     The storefront never links out to a retailer. THIS PAGE DOES, by
+     spec: COMPRAR is a direct anchor to the exact product page the
+     order was placed from (deep-link spec c.6548858279).
+
+     WHERE THINGS LIVE (so a grep of this file finds the way):
+       - The rules AND the copy that is the same everywhere live in
+         /assets/agent/agent-core.js: the ALMACEN ship-to block
+         (ALMACEN_FIXED_LINES / almacenBlock, rendered below into
+         #almacenText from the order's customerName), the celebration
+         texts (MILESTONES), the problem presets, the ceiling sentence.
+       - Who may use it: the agent's own Aria login with the role Danny
+         grants (agent-queue.js). The demo picker and sample orders run
+         ONLY on deploy previews and localhost (demoAllowed).
+       - Weak signal: the day is kept on the phone, /agente-sw.js keeps
+         the page and photos, completions and exceptions wait in an
+         outbox and sync when signal returns (the top-bar indicator).
+     ============================================================ -->
+<style>
+  body { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+  /* The fixed dock / tab bar never hides what a jump or a focus scrolls to. */
+  html { scroll-padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); scroll-padding-top: 70px; }
+  main { max-width: 640px; margin: 0 auto; padding: 14px 16px 24px; }
+
+  /* sync indicator */
+  .sync { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 900; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .top .right { min-width: 0; }
+  #whoTop { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 430px) { .brand small { display: none; } }
+  .sync.off { background: var(--bad); color: #fff; }
+  .sync.wait { background: var(--gold); color: var(--navy); }
+  .sync.ok { background: rgba(255,255,255,.14); color: #C5D0E8; }
+  .sync i { width: 8px; height: 8px; border-radius: 999px; background: currentColor; display: inline-block; }
+
+  /* clock-in */
+  .hero { text-align: center; padding: 28px 8px 8px; }
+  .hero .mark { width: 76px; height: 76px; border-radius: 22px; background: var(--navy); display: grid; place-items: center; margin: 0 auto 16px; }
+  .hero h1 { font-size: 30px; line-height: 1.1; margin: 0 0 8px; letter-spacing: -.02em; }
+  .hero p { margin: 0 auto 22px; max-width: 30ch; color: var(--ink-2); }
+  .who-pick { display: grid; gap: 10px; margin: 18px 0; }
+  .who-pick button { text-align: left; justify-content: flex-start; }
+  .who-pick button[aria-pressed="true"] { outline: 3px solid var(--blue); background: var(--card); }
+  .initial { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 999px; background: var(--navy); color: var(--gold); display: grid; place-items: center; font-weight: 900; }
+  .divider { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font-size: 13px; margin: 22px 0 6px; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .stamp { margin: 18px auto 0; display: inline-block; padding: 10px 16px; border-radius: 12px; background: var(--ok-bg); color: var(--ok); font-weight: 800; }
+
+  /* shift bar */
+  .shift { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .shift .clock { font-weight: 800; }
+  .shift .clock small { display: block; font-weight: 600; color: var(--ink-3); font-size: 12px; }
+  .shift .breaks { margin-left: auto; display: flex; gap: 8px; }
+  .paused { background: var(--warn-bg); color: var(--warn); border-radius: var(--radius); padding: 22px 16px; text-align: center; margin-bottom: 14px; }
+  .paused h2 { margin: 0 0 4px; font-size: 26px; }
+
+  /* Mi día strip */
+  .strip { padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .strip .num { font-size: 28px; font-weight: 900; letter-spacing: -.02em; }
+  .bar { height: 12px; background: var(--sky); border-radius: 999px; overflow: hidden; flex: 1; }
+  .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--blue), var(--gold)); border-radius: 999px; transition: width .5s; }
+
+  /* tabs */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 5px; margin: 12px 0; }
+  .seg button { border: 0; background: none; min-height: 52px; border-radius: 12px; font-weight: 800; color: var(--ink-2); font-size: 16px; }
+  .seg button[aria-selected="true"] { background: var(--navy); color: #fff; }
+  .seg .n { display: inline-grid; place-items: center; min-width: 26px; height: 26px; border-radius: 999px; background: var(--gold); color: var(--navy); font-size: 13px; margin-left: 6px; padding: 0 6px; }
+
+  .store { margin: 16px 0 8px; }
+  .store-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .store-h h3 { margin: 0; font-size: 19px; }
+  .store-h .acts { margin-left: auto; display: flex; gap: 8px; }
+  .row { display: flex; gap: 12px; padding: 10px; align-items: center; margin-bottom: 8px; width: 100%; min-height: 84px; text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 16px; }
+  .row img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: var(--sky); flex: 0 0 auto; }
+  .row .t { font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .row .s { font-size: 14px; color: var(--ink-2); margin-top: 2px; }
+  .row .go { margin-left: auto; color: var(--blue); flex: 0 0 auto; }
+  .row.bought { border-color: var(--ok-bg); }
+  .row.bought .tick { margin-left: auto; width: 34px; height: 34px; border-radius: 999px; background: var(--ok); display: grid; place-items: center; flex: 0 0 auto; }
+  .row .pend { font-size: 12px; font-weight: 900; color: var(--warn); }
+  .empty { text-align: center; padding: 30px 12px; color: var(--ink-2); }
+  .empty strong { display: block; color: var(--ink); font-size: 19px; margin-bottom: 4px; }
+  @keyframes inright { from { transform: translateX(60px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .slide-in { animation: inright .35s ease-out; }
+  .flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { 0% { background: var(--ok-bg); } 100% { background: var(--card); } }
+
+  /* focus */
+  .focus .photo { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; background: #fff; border-radius: var(--radius); border: 1px solid var(--line); display: block; }
+  .focus h1 { font-size: 22px; line-height: 1.2; margin: 14px 0 6px; letter-spacing: -.01em; }
+  .focus .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 12px; }
+  .steps span { text-align: center; font-size: 12px; font-weight: 900; padding: 8px 4px; border-radius: 10px; background: var(--sky); color: var(--ink-3); }
+  .steps span.now { background: var(--navy); color: #fff; }
+  .steps span.done { background: var(--ok-bg); color: var(--ok); }
+  .variant { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  .variant div { border: 3px solid var(--gold); background: var(--gold-2); border-radius: 16px; padding: 10px 12px; }
+  .variant b { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); }
+  .variant span { font-size: 24px; font-weight: 900; line-height: 1.15; }
+  .variant .nocolor span { font-size: 16px; }
+  .rule { background: var(--bad-bg); color: var(--bad); border-left: 6px solid var(--bad); border-radius: 16px; padding: 12px 14px; margin: 12px 0; }
+  .rule strong { display: block; font-size: 19px; letter-spacing: .06em; }
+  .ojo { background: var(--warn-bg); color: var(--warn); border-radius: 14px; padding: 10px 14px; font-weight: 700; margin: 10px 0; }
+  .ceiling { font-size: 19px; font-weight: 800; background: var(--sky); color: var(--navy); border-radius: 16px; padding: 14px; margin: 12px 0 4px; }
+  .fxnote { font-size: 12px; color: var(--ink-3); margin: 0 0 12px; }
+  .almacen { padding: 14px; margin: 12px 0; }
+  .almacen h2 { margin: 0 0 8px; font-size: 14px; letter-spacing: .12em; color: var(--ink-3); }
+  .almacen pre { margin: 0 0 12px; font: 700 17px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .checklist { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 8px; }
+  .checklist label { display: flex; gap: 12px; align-items: center; min-height: 58px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); font-weight: 800; }
+  .checklist input { width: 28px; height: 28px; accent-color: var(--ok); flex: 0 0 auto; }
+  .checklist label.done { border-color: var(--ok); background: var(--ok-bg); }
+  .comments { padding: 14px; margin: 14px 0; }
+  .comments h2 { margin: 0 0 8px; font-size: 17px; }
+  .msg { padding: 8px 12px; border-radius: 12px; background: var(--bg); margin: 6px 0; }
+  .msg b { font-size: 13px; }
+  .inline { display: flex; gap: 8px; }
+  .inline input { flex: 1; min-width: 0; min-height: 52px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); padding: 0 12px; }
+
+  /* THE DOCK: one primary action, always under the thumb. */
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--card); border-top: 1px solid var(--line);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 10px;
+    box-shadow: 0 -6px 20px rgba(10,31,68,.08);
+  }
+  .dock .btn { min-height: 64px; font-size: 18px; padding: 0 12px; gap: 8px; }
+  .dock .second-bad { font-size: 17px; }
+  .dock .primary-act { font-size: 20px; letter-spacing: .02em; }
+  .btn.second-bad { background: transparent; border: 2px solid var(--bad); color: var(--bad); }
+
+  /* card reveal */
+  .vcard { border-radius: 20px; padding: 20px; color: #fff; background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 55%, #2443A0 100%); position: relative; overflow: hidden; }
+  .vcard .sb { position: absolute; top: 14px; right: 14px; background: var(--gold); color: var(--navy); font-weight: 900; letter-spacing: .14em; font-size: 12px; padding: 4px 10px; border-radius: 999px; }
+  .vcard .pan { font: 800 22px/1.2 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; margin: 34px 0 14px; }
+  .vcard .row2 { display: flex; gap: 24px; font-size: 13px; color: #C5D0E8; }
+  .vcard .row2 b { display: block; color: #fff; font-size: 17px; }
+  .locks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .locks div { min-width: 0; overflow-wrap: anywhere; background: var(--bg); border-radius: 14px; padding: 10px 12px; }
+  .locks b { display: block; font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em; }
+  .locks span { font-weight: 900; font-size: 18px; }
+  .locks small { display: block; color: var(--ink-2); font-weight: 700; }
+  .timer { display: flex; align-items: center; gap: 14px; margin: 10px 0; }
+  .timer .mm { font: 900 34px/1 ui-monospace, Menlo, monospace; }
+  .hidden-card { text-align: center; padding: 26px 12px; background: var(--bg); border-radius: 18px; }
+
+  /* sheets */
+  .presets { display: grid; gap: 10px; margin: 14px 0; }
+  .presets .btn { justify-content: flex-start; min-height: 64px; font-size: 18px; background: var(--bad-bg); color: var(--bad); }
+  .shotpick { cursor: pointer; overflow: hidden; }
+  .shotpick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shotpick:focus-within { outline: 3px solid var(--blue); }
+
+  /* Mi día + summary */
+  .ring-wrap { display: grid; place-items: center; padding: 18px 0 6px; position: relative; }
+  .ring-wrap .c { position: absolute; text-align: center; }
+  .ring-wrap .c b { display: block; font-size: 44px; letter-spacing: -.03em; line-height: 1; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .stats div { padding: 14px; min-width: 0; }
+  .stats b { display: block; font-size: 26px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+  .stats .wide { grid-column: 1 / -1; }
+  .earn b { font-size: 22px; }
+  .badges { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
+  .badge { text-align: center; font-size: 11px; font-weight: 800; color: var(--ink-3); }
+  .badge svg { width: 100%; height: auto; max-width: 56px; display: block; margin: 0 auto 4px; }
+  .badge.got { color: var(--navy); }
+  .summary-h { background: var(--navy); color: #fff; border-radius: var(--radius); padding: 20px 18px; margin: 4px 0 12px; }
+  .summary-h h1 { margin: 0 0 4px; font-size: 26px; }
+  .summary-h p { margin: 0; color: #C5D0E8; }
+
+  /* celebration: never blocks the next tap */
+  .party { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; background: rgba(10,31,68,.86); overflow: hidden; pointer-events: none; animation: partyout .4s ease-in 2.8s forwards; }
+  @keyframes partyout { to { opacity: 0; } }
+  .party .msg2 { text-align: center; color: #fff; position: relative; z-index: 2; padding: 0 24px; }
+  .party h2 { font-size: 40px; line-height: 1.05; margin: 14px 0 10px; letter-spacing: -.02em; }
+  .party .count { font-size: 88px; font-weight: 900; color: var(--gold); line-height: 1; letter-spacing: -.04em; }
+  .party p { font-size: 19px; color: #DDE5F7; margin: 0; font-weight: 700; }
+  .confetti { position: absolute; top: -20px; width: 12px; height: 18px; border-radius: 3px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+  .burst { animation: pop .6s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* bottom nav */
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; background: var(--card); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  nav.tabs button { background: none; border: 0; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; font-weight: 800; color: var(--ink-3); }
+  nav.tabs button svg { width: 24px; height: 24px; }
+  nav.tabs button[aria-selected="true"] { color: var(--blue); }
+  .search { width: 100%; min-height: 56px; border-radius: 16px; border: 2px solid var(--line); background: var(--card); padding: 0 16px; }
+  @media (min-width: 900px) { main { max-width: 760px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">ARIA <b>·</b> <small>Compradores</small></div>
+  <div class="right"><span id="syncTag" class="sync" hidden></span><span id="demoTag" class="demo-tag" hidden>DEMO</span><span id="whoTop"></span></div>
+</header>
+
+<main id="app" aria-live="polite"></main>
+
+<nav class="tabs" id="tabs" hidden>
+  <button data-tab="lista" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="12" r="1.2"/><circle cx="3.5" cy="18" r="1.2"/></svg>Lista</button>
+  <button data-tab="midia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9h-9z" fill="currentColor" stroke="none"/></svg>Mi día</button>
+  <button data-tab="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>Equipo</button>
+  <button data-tab="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>Buscar</button>
+</nav>
+
+<div id="toast" class="toast" role="status"></div>
+<div id="layer"></div>
+
+<script type="module">
+import * as C from "/assets/agent/agent-core.js";
+import { loadDemoDay, resetDemoDay, saveDay, loadDay, onDayChange, DEMO_KEY, loadFx, rememberSession, lastSession } from "/assets/agent/agent-store.js";
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nowIso = () => new Date().toISOString();
+const hhmm = (iso) => iso ? new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : "";
+const dayLabel = (iso) => new Date(iso).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" });
+const hm = (mins) => `${Math.floor(mins / 60)} h ${String(mins % 60).padStart(2, "0")} min`;
+const ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  ext: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+  alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3l10 18H2z" stroke-linejoin="round"/><path d="M12 10v5M12 18v.5"/></svg>',
+  card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+  note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5z"/><path d="M9 11h6M9 15h6"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
+  done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+};
+
+/* ---------------- session ---------------- */
+const DEMO_OK = C.demoAllowed(location.hostname);
+const S = { mode: null, gate: null, day: null, key: DEMO_KEY, agentId: null, view: "in", tab: "lista", list: "por", focusId: null, checks: {}, timer: null, query: "", fx: null, syncing: false };
+
+async function boot() {
+  let res = null;
+  try {
+    const r = await fetch("/.netlify/functions/agent-queue", { credentials: "same-origin" });
+    res = { status: r.status, body: await r.json().catch(() => ({})) };
+  } catch { res = null; } // no signal (or no functions on a bare static server)
+  const last = lastSession();
+  if (res && res.status === 200 && res.body.role === "agent") {
+    const live = res.body;
+    S.mode = "live"; S.agentId = live.agentId; S.key = "aria-compradores-live-" + live.agentId + "-" + live.date;
+    S.day = loadDay(S.key) || {
+      date: live.date, agents: [live.agent], accounts: live.accounts || [], orders: live.orders, history: live.history || [],
+      shifts: {}, exceptions: [], chat: live.chat || [], storeNotes: [], storeFlags: [], cards: {}, ledger: [], log: [], outbox: [],
+      settings: live.settings || { payPerPurchasePen: null }, seq: 0,
+    };
+    S.day.settings = live.settings || S.day.settings; // Danny may have set the rate since
+    rememberSession({ mode: "live", key: S.key, agentId: S.agentId });
+  } else if (!res && last && last.mode === "live" && loadDay(last.key)) {
+    /* No signal: reopen the day this phone was already working on. */
+    S.mode = "live"; S.key = last.key; S.agentId = last.agentId; S.day = loadDay(last.key);
+  } else if (DEMO_OK && (!res || res.status === 401 || res.status === 404 || res.status === 403 || (res.status === 200 && res.body.role === "admin"))) {
+    S.mode = "demo"; S.day = loadDemoDay();
+    if (last && last.mode === "demo") S.agentId = last.agentId || null;
+    $("#demoTag").hidden = false;
+    onDayChange((d) => { S.day = d; render(); });
+  } else {
+    /* Production: the agent's own Aria login, with the role Danny grants. */
+    S.mode = "gate";
+    S.gate = !res ? "offline" : res.status === 401 ? "login" : "denied";
+    render();
+    return;
+  }
+  const sh = S.agentId && S.day.shifts[S.agentId];
+  S.view = sh && sh.clockOut ? "summary" : sh && sh.clockIn ? "home" : "in";
+  render();
+  loadFx().then((fx) => { S.fx = fx; render(); });
+  registerWorker();
+  window.addEventListener("online", sync);
+  window.addEventListener("offline", paintSync);
+  setInterval(sync, 15000);
+  sync();
+}
+const save = () => { saveDay(S.day, S.key); paintSync(); };
+const me = () => S.day.agents.find((a) => a.id === S.agentId);
+const venta = () => (S.fx ? S.fx.venta : null);
+
+function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 2400); }
+
+/* ---------------- weak signal: worker + outbox ---------------- */
+function registerWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("/agente-sw.js", { scope: "/agente" }).catch(() => null);
+}
+function warmPhotos() {
+  try {
+    const urls = S.day.orders.filter((o) => o.assignedTo === S.agentId).map((o) => o.image).filter(Boolean);
+    navigator.serviceWorker && navigator.serviceWorker.ready.then((r) => r.active && r.active.postMessage({ type: "warm", urls }));
+  } catch { /* no worker: photos load as usual */ }
+}
+function paintSync() {
+  const tag = $("#syncTag");
+  if (!S.day || S.mode === "gate") { tag.hidden = true; return; }
+  const n = C.pendingEvents(S.day).length;
+  const off = navigator.onLine === false;
+  tag.hidden = false;
+  tag.className = "sync " + (off ? "off" : n ? "wait" : "ok");
+  tag.innerHTML = `<i></i>${off ? (n ? `Sin señal · ${n} por sincronizar` : "Sin señal") : n ? (S.syncing ? `Sincronizando ${n}` : `${n} por sincronizar`) : "Sincronizado"}`;
+  tag.title = tag.textContent;
+}
+async function sync() {
+  paintSync();
+  if (!S.day || S.syncing || navigator.onLine === false) return;
+  const pending = C.pendingEvents(S.day);
+  if (!pending.length) return;
+  S.syncing = true; paintSync();
+  try {
+    let ids = [];
+    if (S.mode === "live") {
+      const r = await fetch("/.netlify/functions/agent-queue", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ events: pending }) });
+      if (r.ok) ids = (await r.json()).accepted || [];
+    } else {
+      /* Demo: there is no server record; a round trip to this site stands in for one. */
+      const r = await fetch("/assets/agent/agent-core.js?sync=" + Date.now(), { method: "HEAD", cache: "no-store" });
+      if (r.ok) ids = pending.map((e) => e.id);
+    }
+    if (ids.length) { C.markSynced(S.day, ids, nowIso()); saveDay(S.day, S.key); }
+  } catch { /* still no signal: they wait */ }
+  S.syncing = false; paintSync();
+}
+
+/* ---------------- render ---------------- */
+function render() {
+  const app = $("#app");
+  $("#tabs").hidden = S.mode === "gate" || S.view === "in" || S.view === "focus" || S.view === "summary";
+  $("#whoTop").textContent = S.agentId && S.day && me() ? me().name : "";
+  document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+  if (S.mode === "gate") app.innerHTML = viewGate();
+  else if (S.view === "in") app.innerHTML = viewIn();
+  else if (S.view === "focus") app.innerHTML = viewFocus();
+  else if (S.view === "summary") app.innerHTML = viewSummary();
+  else if (S.tab === "midia") app.innerHTML = viewMiDia();
+  else if (S.tab === "chat") app.innerHTML = viewChat();
+  else if (S.tab === "buscar") app.innerHTML = viewSearch();
+  else app.innerHTML = viewHome();
+  if (S.view !== "focus" || S.mode === "gate") $("#layer .dock")?.remove();
+  paintSync();
+  wire();
+}
+
+function loginForm() {
+  return `<form id="login" class="card" style="padding:14px">
+    <label class="field"><span>Correo</span><input name="email" type="email" autocomplete="username" required></label>
+    <label class="field"><span>Contraseña</span><input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn big primary" type="submit">Entrar</button>
+    <p class="tiny" id="loginMsg" style="margin:10px 0 0">Tu cuenta de Aria, la misma de la tienda. Danny te da el acceso de compradora.</p>
+  </form>`;
+}
+function viewGate() {
+  const mark = `<div class="mark"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M20 4 L35 36 H28 L20 17 L12 36 H5 Z" fill="#F4C463"/></svg></div>`;
+  if (S.gate === "denied") return `<section class="hero">${mark}<h1>Sin acceso de compradora</h1>
+    <p>Tu cuenta entró, pero todavía no tiene el acceso de compradora (o fue desactivado). Pídele a Danny que te invite.</p></section>
+    <button class="btn big ghost" id="logout">Salir de esta cuenta</button>`;
+  if (S.gate === "offline") return `<section class="hero">${mark}<h1>Sin señal</h1><p>Para empezar tu primer turno en este teléfono necesitas conexión una vez.</p></section>
+    <button class="btn big primary" onclick="location.reload()">Reintentar</button>`;
+  return `<section class="hero">${mark}<h1>Compradores Aria</h1><p>Entra con tu cuenta de Aria para ver tu lista de hoy.</p></section>${loginForm()}`;
+}
+
+function viewIn() {
+  const pick = S.mode === "demo";
+  const agents = S.day.agents.filter((a) => a.active !== false);
+  const shift = S.agentId && S.day.shifts[S.agentId];
+  return `<section class="hero">
+    <div class="mark"><svg width="40" height="40" viewBox="0 0 40 40"><path d="M20 4 L35 36 H28 L20 17 L12 36 H5 Z" fill="#F4C463"/></svg></div>
+    <h1>Buenos días${S.agentId && me() ? ", " + esc(me().name) : ""}</h1>
+    <p>${esc(dayLabel(S.day.date + "T12:00:00"))}. Tu lista de compras de hoy ya está lista.</p>
+  </section>
+  ${pick ? `<div class="who-pick" role="group" aria-label="Quién eres">
+      ${agents.map((a) => `<button class="btn ghost" data-pick="${a.id}" aria-pressed="${S.agentId === a.id}"><span class="initial">${esc(a.name[0])}</span>${esc(a.name)} <span class="tiny" style="margin-left:auto">${C.porComprar(S.day, a.id).length} por comprar</span></button>`).join("")}
+    </div>` : ""}
+  <button class="btn big primary" id="clockIn" ${S.agentId ? "" : "disabled"}>Marcar entrada y empezar</button>
+  ${shift && shift.clockIn ? `<div style="text-align:center"><span class="stamp">Entrada marcada a las ${hhmm(shift.clockIn)}</span></div>` : ""}
+  ${pick ? `<p class="tiny" style="text-align:center;margin-top:18px">Modo demo (solo en vista previa): pedidos de muestra con productos reales del catálogo y clientes ficticios. Nada se compra de verdad.</p>
+  <div class="divider">¿Eres compradora invitada?</div>${loginForm()}` : ""}`;
+}
+
+function shiftBar() {
+  const s = S.day.shifts[S.agentId] || {};
+  const mins = C.workedMinutes(S.day, S.agentId, nowIso());
+  return `<div class="shift">
+    <div class="clock">${hm(mins)}<small>Entrada ${hhmm(s.clockIn)}</small></div>
+    <div class="breaks">
+      <button class="btn small ghost" data-break="bano">${ICON.pause} Baño</button>
+      <button class="btn small ghost" data-break="almuerzo">${ICON.pause} Almuerzo</button>
+    </div>
+  </div>`;
+}
+function pausedCard() {
+  const s = S.day.shifts[S.agentId];
+  if (!s || !s.onBreak) return "";
+  return `<div class="paused"><h2>En pausa: ${esc(s.onBreak.label)}</h2><p style="margin:0 0 14px">Desde las ${hhmm(s.onBreak.start)}. Tu reloj y tu lista están detenidos.</p>
+    <button class="btn big primary" id="endBreak">Volver al trabajo</button></div>`;
+}
+function strip() {
+  const d = C.miDia(S.day, S.agentId);
+  return `<div class="card strip"><div class="num">${d.done}<span class="muted" style="font-size:18px"> / ${d.total}</span></div>
+    <div style="flex:1"><div class="tiny" style="margin-bottom:6px">Mi día · ${d.pct}% comprado</div><div class="bar"><i style="width:${d.pct}%"></i></div></div></div>`;
+}
+const isPending = (orderId) => C.pendingEvents(S.day).some((e) => e.orderId === orderId);
+
+function viewHome() {
+  const s = S.day.shifts[S.agentId];
+  if (s && s.onBreak) return shiftBar() + pausedCard();
+  const groups = C.porComprarByStore(S.day, S.agentId);
+  const bought = C.compradas(S.day, S.agentId);
+  const pend = groups.reduce((n, g) => n + g.orders.length, 0);
+  const acc = (id) => (S.day.accounts.find((a) => a.id === id) || {}).label || "";
+  const por = pend ? `<button class="btn big primary" id="startNext" style="margin:6px 0 4px">Empezar el siguiente pedido ${ICON.arrow}</button>` + groups.map((g) => `
+    <section class="store">
+      <div class="store-h"><h3>${esc(g.storeLabel)}</h3><span class="pill">${g.orders.length}</span>
+        <div class="acts"><button class="btn small ghost" data-notes="${esc(g.store)}" aria-label="Notas de la tienda">${ICON.note}</button>
+        <button class="btn small ghost" data-flag="${esc(g.store)}" aria-label="Reportar tienda">${ICON.flag}</button></div></div>
+      ${g.orders.map((o) => `<button class="row" data-open="${esc(o.orderId)}">
+        <img src="${esc(o.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">
+        <div><div class="t">${esc(o.title)}</div><div class="s">Talla ${esc(o.selectedSize || "no aplica")}${o.color ? " · " + esc(o.color) : ""}</div><div class="s">Hasta ${esc(C.dual(o.ceilingUsd, venta()))}</div><div class="tiny">${esc(acc(o.accountId))}</div></div>
+        <span class="go">${ICON.arrow}</span></button>`).join("")}
+    </section>`).join("")
+    : `<div class="empty card"><strong>No te queda nada por comprar</strong>Todo lo de hoy ya está en Compradas.</div>
+       <button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>`;
+  const comp = bought.length ? bought.map((o) => `<div class="row bought${o.orderId === S.justBought ? " flash" : ""}">
+      <img src="${esc(o.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <div><div class="t">${esc(o.title)}</div><div class="s">${esc(o.storeLabel)} · pedido ${esc(o.retailerOrderNumber)}</div><div class="tiny">${esc(C.dual(o.chargedTotalUsd, venta()))} · comprada a las ${hhmm(o.boughtAt)}</div>${isPending(o.orderId) ? '<div class="pend">Por sincronizar</div>' : ""}</div>
+      <span class="tick">${ICON.check}</span></div>`).join("")
+    : `<div class="empty card"><strong>Aquí van tus compras</strong>Cada pedido que compres pasa de Por comprar a esta lista.</div>`;
+  return shiftBar() + strip() + `
+    <div class="seg" role="tablist">
+      <button role="tab" data-list="por" aria-selected="${S.list === "por"}">Por comprar<span class="n">${pend}</span></button>
+      <button role="tab" data-list="comp" aria-selected="${S.list === "comp"}">Compradas<span class="n">${bought.length}</span></button>
+    </div>
+    <div>${S.list === "por" ? por : comp}</div>`;
+}
+
+/* The order card's state decides its ONE primary action (in the dock):
+   comprar -> tarjeta -> registrar. Everything else on the card is secondary. */
+function stageOf(o) {
+  if (!(S.checks[o.orderId] || {}).abri) return "comprar";
+  if (!S.day.cards[o.orderId]) return "tarjeta";
+  return "registrar";
+}
+
+function viewFocus() {
+  const o = S.day.orders.find((x) => x.orderId === S.focusId);
+  if (!o || o.status !== "por_comprar" || o.assignedTo !== S.agentId) { S.view = "home"; return viewHome(); }
+  const link = C.buyLink(o);
+  const steps = C.checklistFor(o);
+  const checks = S.checks[o.orderId] || {};
+  const left = C.porComprar(S.day, S.agentId).length;
+  const stage = stageOf(o);
+  const order = ["comprar", "tarjeta", "registrar"], si = order.indexOf(stage);
+  const html = `<div class="focus slide-in">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <button class="btn small ghost" id="back">${ICON.back} Lista</button>
+      <span class="tiny" style="margin-left:auto">Quedan ${left} · ${esc(o.orderId)}</span>
+    </div>
+    <div class="steps" aria-label="Paso">${["1 Comprar", "2 Tarjeta", "3 Registrar"].map((t, i) => `<span class="${i < si ? "done" : i === si ? "now" : ""}">${t}</span>`).join("")}</div>
+    <img class="photo" src="${esc(o.image)}" alt="${esc(o.title)}" referrerpolicy="no-referrer">
+    <h1>${esc(o.title)}</h1>
+    <div class="meta"><span class="pill">${esc(o.storeLabel)}</span>${o.brand && o.brand !== o.storeLabel ? `<span class="pill">${esc(o.brand)}</span>` : ""}<span class="pill">Cantidad ${o.qty}</span></div>
+    <div class="variant">
+      <div><b>Talla</b><span>${esc(o.selectedSize || "No aplica")}</span></div>
+      <div class="${o.color ? "" : "nocolor"}"><b>Color</b><span>${o.color ? esc(o.color) : "El de la foto, exacto"}</span></div>
+    </div>
+    <div class="rule"><strong>SIN SUSTITUTOS</strong>Si no está exacto (modelo, color, talla), no compres otro parecido. Usa Problema.</div>
+    ${link.pinned ? "" : `<div class="ojo">Ojo con este modelo: la tienda no fija color ni talla desde el link. Compara la foto, el nombre, el color y la talla antes de agregar al carrito.</div>`}
+    <div class="ceiling" id="ceiling">${esc(C.ceilingSentence(o.ceilingUsd, venta()))}</div>
+    <p class="fxnote">${S.fx ? `Soles al tipo de cambio ${esc(S.fx.origen || "SUNAT")} venta ${Number(S.fx.venta).toFixed(3)}${S.fx.fecha ? " del " + esc(S.fx.fecha) : ""}.` : "Tipo de cambio no disponible ahora: los soles no se muestran."}</p>
+    <section class="card almacen" aria-label="Almacén">
+      <h2>ALMACEN · ENVIAR A</h2>
+      <pre id="almacenText">${esc(C.almacenBlock(o.customerName))}</pre>
+      <button class="btn big ghost" id="copyAlmacen">${ICON.copy} Copiar dirección</button>
+    </section>
+    ${stage !== "comprar" && link.href ? `<a class="btn big ghost" href="${esc(link.href)}" target="_blank" rel="noopener noreferrer">${ICON.ext} Abrir la tienda otra vez</a>` : ""}
+    <ol class="checklist">
+      ${steps.map((st, i) => `<li><label class="${checks[st.id] ? "done" : ""}"><input type="checkbox" data-step="${st.id}" ${checks[st.id] ? "checked" : ""}> ${i + 1}. ${esc(st.label)}</label></li>`).join("")}
+    </ol>
+    ${stage === "registrar" ? `<button class="btn big ghost" id="showCard">${ICON.card} Tarjeta Aria</button>` : ""}
+    <section class="card comments">
+      <h2>Notas de este pedido</h2>
+      ${(o.comments || []).map((m) => `<div class="msg"><b>${esc(nameOf(m.by))} · ${hhmm(m.at)}</b><div>${esc(m.text)}</div></div>`).join("") || `<p class="tiny" style="margin:0 0 8px">Nada todavía. Lo que escribas queda guardado con el pedido.</p>`}
+      <form class="inline" id="commentForm"><input name="t" placeholder="Escribe una nota" maxlength="500" aria-label="Nota del pedido"><button class="btn small ghost">Guardar</button></form>
+    </section>
+  </div>`;
+  setTimeout(() => dock(o, stage, link), 0);
+  return html;
+}
+function nameOf(id) { if (id === "admin") return "Danny"; const a = S.day.agents.find((x) => x.id === id); return a ? a.name : "Equipo"; }
+
+function dock(o, stage, link) {
+  let d = $("#layer .dock");
+  if (!d) { d = document.createElement("div"); d.className = "dock"; $("#layer").appendChild(d); }
+  const primary = stage === "comprar"
+    ? `<a class="btn gold primary-act" id="comprar" href="${esc(link.href)}" target="_blank" rel="noopener noreferrer">COMPRAR ${ICON.ext}</a>`
+    : stage === "tarjeta"
+      ? `<button class="btn primary primary-act" id="primaryCard">${ICON.card} Mostrar tarjeta</button>`
+      : `<button class="btn ok primary-act" id="done">${ICON.done} Ya pagué</button>`;
+  d.innerHTML = `<button class="btn second-bad" id="problem">${ICON.alert} Problema</button>${link.href || stage !== "comprar" ? primary : `<button class="btn ok primary-act" id="done">${ICON.done} Ya pagué</button>`}`;
+  $("#problem").onclick = () => problemSheet(o);
+  const cp = $("#comprar"); if (cp) cp.addEventListener("click", () => { (S.checks[o.orderId] ||= {}).abri = true; setTimeout(render, 60); });
+  const pc = $("#primaryCard"); if (pc) pc.onclick = () => cardSheet(o);
+  const dn = $("#done"); if (dn) dn.onclick = () => completeSheet(o);
+}
+
+function earningsCard(e) {
+  return `<div class="card wide earn"><span class="muted">Ganancia de hoy</span><b>${e.totalPen == null ? "Por definir" : C.pen(e.totalPen)}</b><span class="tiny">${esc(e.rateText)}${e.totalPen == null ? "" : ` × ${e.bought} compras`}</span></div>`;
+}
+
+function viewMiDia() {
+  const d = C.miDia(S.day, S.agentId);
+  const e = C.earnings(S.day, S.agentId);
+  const mins = C.workedMinutes(S.day, S.agentId, nowIso());
+  const s = S.day.shifts[S.agentId] || { breaks: [] };
+  const r = 84, circ = 2 * Math.PI * r, off = circ * (1 - d.pct / 100);
+  const earned = new Set((S.day.log || []).filter((l) => l.by === S.agentId && l.what.startsWith("hito:")).map((l) => l.what.slice(5)));
+  const shapes = [
+    (c) => `<circle cx="32" cy="32" r="26" fill="${c}"/>`,
+    (c) => `<path d="M32 6l7.6 15.4 17 2.5-12.3 12 2.9 16.9L32 44.8l-15.2 8 2.9-16.9-12.3-12 17-2.5z" fill="${c}"/>`,
+    (c) => `<path d="M32 6a26 26 0 1 0 0 52V6z" fill="${c}"/><circle cx="32" cy="32" r="26" fill="none" stroke="${c}" stroke-width="4"/>`,
+    (c) => `<path d="M32 4l28 28-28 28L4 32z" fill="${c}"/>`,
+    (c) => `<path d="M10 52V12h44v40z" fill="${c}"/><path d="M20 32l8 8 16-16" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  ];
+  const palette = ["#2F5FEE", "#F4C463", "#0E7A4D", "#0A1F44", "#B3261E"];
+  return `<h1 style="margin:4px 0 0;font-size:26px">Mi día</h1>
+    <div class="ring-wrap"><svg width="210" height="210" viewBox="0 0 210 210" aria-hidden="true">
+      <circle cx="105" cy="105" r="${r}" fill="none" stroke="var(--sky)" stroke-width="20"/>
+      <circle cx="105" cy="105" r="${r}" fill="none" stroke="url(#g)" stroke-width="20" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}" transform="rotate(-90 105 105)"/>
+      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#2F5FEE"/><stop offset="1" stop-color="#F4C463"/></linearGradient></defs></svg>
+      <div class="c"><b>${d.done}</b><span class="muted">de ${d.total} compradas</span></div></div>
+    <p style="text-align:center;font-weight:800;font-size:18px;margin:4px 0 0">${d.left === 0 && d.total ? "Lista completa. Gran trabajo." : d.pct >= 50 ? "Ya pasaste la mitad." : d.done ? "Vas avanzando muy bien." : "Tu primera compra te espera."}</p>
+    <div class="stats">
+      <div class="card"><b>${d.done}</b><span class="muted">compradas</span></div>
+      <div class="card"><b>${d.sentToLead}</b><span class="muted">excepciones enviadas</span></div>
+      ${earningsCard(e)}
+      <div class="card"><b>${d.left}</b><span class="muted">por comprar</span></div>
+      <div class="card"><b>${hm(mins).replace(" min", "")}</b><span class="muted">trabajadas</span></div>
+    </div>
+    <h2 style="font-size:18px;margin:18px 0 6px">Tus hitos de hoy</h2>
+    <div class="badges">${C.MILESTONES.map((m, i) => `<div class="badge${earned.has(m.id) ? " got" : ""}"><svg viewBox="0 0 64 64">${shapes[i % 5](earned.has(m.id) ? palette[i % 5] : "var(--line)")}</svg>${esc(m.title.replace(/[¡!]/g, ""))}</div>`).join("")}</div>
+    <p class="tiny">Pausas hoy: ${(s.breaks || []).length}. Tu historial cuenta para comisiones y bonos.</p>
+    <button class="btn big ghost" id="endShift" style="margin-top:8px">Terminar turno</button>`;
+}
+
+function viewSummary() {
+  const sm = C.shiftSummary(S.day, S.agentId, nowIso());
+  return `<div class="summary-h"><h1>Fin de turno</h1><p>${esc(me() ? me().name : "")} · entrada ${hhmm(sm.clockIn)} · salida ${hhmm(sm.clockOut)}</p></div>
+    <div class="stats">
+      <div class="card"><b>${sm.bought}</b><span class="muted">compradas</span></div>
+      <div class="card"><b>${sm.exceptions}</b><span class="muted">excepciones enviadas</span></div>
+      ${earningsCard(sm.earnings)}
+      <div class="card"><b>${hm(sm.workedMin).replace(" min", "")}</b><span class="muted">trabajadas</span></div>
+      <div class="card"><b>${C.usd(sm.spentUsd)}</b><span class="tiny">${esc(C.dual(sm.spentUsd, venta()).split(" · ")[1])}</span><br><span class="muted">pagado en tiendas</span></div>
+      ${sm.pendingSync ? `<div class="card wide" style="background:var(--warn-bg);color:var(--warn)"><b>${sm.pendingSync}</b>por sincronizar. Deja la app abierta con señal hasta que diga «Sincronizado».</div>` : ""}
+    </div>
+    <button class="btn big primary" id="toHistory">Ver mis compras de hoy</button>
+    <p class="tiny" style="text-align:center">Quedan en tu historial: búscalas por tienda, número de pedido o fecha.</p>
+    ${sm.left ? `<p class="tiny" style="text-align:center">Te quedaron ${sm.left} por comprar: Danny las reasigna.</p>` : ""}`;
+}
+
+function viewChat() {
+  return `<h1 style="margin:4px 0 10px;font-size:26px">Equipo</h1>
+    <div class="card" style="padding:12px;min-height:240px">${S.day.chat.map((m) => `<div class="msg"><b>${esc(nameOf(m.by))} · ${hhmm(m.at)}</b><div>${esc(m.text)}</div></div>`).join("") || `<p class="muted" style="margin:6px">El canal del equipo. Avisa aquí lo que todos deben saber.</p>`}</div>
+    <form class="inline" id="chatForm" style="margin-top:10px"><input name="t" placeholder="Escribe al equipo" maxlength="500" aria-label="Mensaje al equipo"><button class="btn small primary">Enviar</button></form>`;
+}
+
+function viewSearch() {
+  const res = C.searchOrders(S.day, S.agentId, S.query);
+  const e = C.earnings(S.day, S.agentId);
+  return `<h1 style="margin:4px 0 10px;font-size:26px">Buscar mis pedidos</h1>
+    <input class="search" id="q" type="search" value="${esc(S.query)}" placeholder="Tienda, número de pedido o fecha (30/10)" aria-label="Buscar">
+    <p class="tiny">${res.length} pedido${res.length === 1 ? "" : "s"} · ${esc(e.rateText)}</p>
+    ${res.map((o) => `<div class="row bought"><img src="${esc(o.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <div><div class="t">${esc(o.title)}</div><div class="s">${esc(o.storeLabel)} · ${esc(o.retailerOrderNumber || "")}</div><div class="tiny">${esc(o.orderId)} · ${esc(String(o.boughtAt).slice(0, 10))} ${hhmm(o.boughtAt)} · ${esc(C.dual(o.chargedTotalUsd, venta()))}</div></div></div>`).join("")}`;
+}
+
+/* ---------------- sheets ---------------- */
+function sheet(html, onMount) {
+  const back = document.createElement("div");
+  back.className = "sheet-back";
+  back.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  back.addEventListener("click", (e) => { if (e.target === back) close(); });
+  const close = () => { back.remove(); if (S.timer) { clearInterval(S.timer); S.timer = null; } };
+  $("#layer").appendChild(back);
+  onMount && onMount(back.firstElementChild, close);
+  return close;
+}
+
+function problemSheet(o) {
+  sheet(`<h2>¿Qué pasó?</h2><p class="muted" style="margin:0">Elige uno. El pedido se va a la cola de Danny con el motivo y tú sigues con el siguiente.</p>
+    <div class="presets">${C.PROBLEM_PRESETS.map((p) => `<button class="btn" data-p="${p.id}">${ICON.alert} ${esc(p.label)}</button>`).join("")}</div>
+    <button class="btn big ghost" data-x>Cancelar</button>`, (el, close) => {
+    el.querySelector("[data-x]").onclick = close;
+    el.querySelectorAll("[data-p]").forEach((b) => b.onclick = () => {
+      const r = C.reportProblem(S.day, o.orderId, S.agentId, b.dataset.p, nowIso());
+      if (!r.ok) { toast(r.errors[0]); return; }
+      save(); close(); sync();
+      toast(`Enviado a Danny: ${r.exception.reasonLabel}`);
+      goNext(r.next);
+    });
+  });
+}
+
+function completeSheet(o) {
+  sheet(`<h2>Registrar compra</h2><p class="muted" style="margin:0">${esc(o.storeLabel)} · ${esc(o.title)}</p>
+    <p class="tiny" style="margin:4px 0 0">Tope: ${esc(C.dual(o.ceilingUsd, venta()))}</p>
+    <form id="cf" novalidate>
+      <label class="field"><span>Número de pedido de la tienda</span><input name="num" autocomplete="off"></label>
+      <label class="field"><span>Total cobrado (USD)</span><input name="total" inputmode="decimal" placeholder="Ej. ${o.ceilingUsd.toFixed(2)}"></label>
+      <div class="field"><span>Captura de la confirmación</span>
+        <label class="btn big ghost shotpick"><input name="shot" type="file" accept="image/*" class="sr"><span id="shotName">Subir captura</span></label></div>
+      <div id="cfErr"></div>
+      <button class="btn big ok" type="submit">Marcar como comprada</button>
+    </form>`, (el, close) => {
+    const shotIn = el.querySelector('[name="shot"]');
+    shotIn.onchange = () => { const f = shotIn.files && shotIn.files[0]; el.querySelector("#shotName").textContent = f ? "Captura: " + f.name : "Subir captura"; };
+    el.querySelector("#cf").onsubmit = (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const file = f.shot.files && f.shot.files[0];
+      const r = C.completeOrder(S.day, o.orderId, S.agentId, { retailerOrderNumber: f.num.value, chargedTotalUsd: f.total.value, screenshot: file ? { name: file.name, size: file.size } : null }, nowIso());
+      if (!r.ok) { el.querySelector("#cfErr").innerHTML = `<div class="errors">${r.errors.map((x) => `<p>${esc(x)}</p>`).join("")}</div>`; return; }
+      if (r.milestone) (S.day.log ||= []).push({ at: nowIso(), by: S.agentId, what: "hito:" + r.milestone.id });
+      save(); close(); sync();
+      S.justBought = o.orderId;
+      if (r.milestone) celebrate(r.milestone, C.miDia(S.day, S.agentId).done);
+      else toast(`Comprada a las ${hhmm(r.order.boughtAt)}. Pasó a Compradas.`);
+      goNext(r.next);
+    };
+  });
+}
+
+function cardSheet(o) {
+  let card = S.day.cards[o.orderId];
+  if (!card) {
+    const r = C.revealCard(S.day, o.orderId, S.agentId, nowIso());
+    if (!r.ok) { toast(r.errors[0]); return; }
+    card = r.card; save();
+  }
+  sheet(`<h2>Tarjeta Aria de este pedido</h2><div id="cardBody"></div>
+    <button class="btn big ok" data-paid style="margin-top:12px">${ICON.done} Ya pagué: registrar</button>
+    <button class="btn big ghost" data-x style="margin-top:8px">Cerrar</button>`, (el, close) => {
+    el.querySelector("[data-x]").onclick = () => { close(); render(); };
+    el.querySelector("[data-paid]").onclick = () => { close(); render(); completeSheet(o); };
+    const paint = () => {
+      const now = nowIso();
+      const body = el.querySelector("#cardBody");
+      if (!C.cardVisible(card, now)) {
+        body.innerHTML = `<div class="hidden-card"><strong style="font-size:19px;display:block;margin-bottom:6px">Tarjeta oculta</strong>
+          <span class="muted">Se muestra una sola vez, por 10 minutos. Si no alcanzaste a pagar, usa Problema: «La tarjeta no pasó».</span></div>`;
+        if (S.timer) { clearInterval(S.timer); S.timer = null; }
+        return;
+      }
+      const sec = C.cardSecondsLeft(card, now);
+      const frac = sec / (C.CARD_REVEAL_MS / 1000), rr = 22, circ = 2 * Math.PI * rr;
+      const p = C.penOf(card.amountLockedUsd, venta());
+      body.innerHTML = `<div class="vcard"><span class="sb">${esc(card.label)}</span>
+          <div style="font-weight:900;letter-spacing:.06em">ARIA <span style="color:var(--gold)">·</span> un pedido</div>
+          <div class="pan">${esc(card.numberMasked)}</div>
+          <div class="row2"><div>Vence<b>${esc(card.exp)}</b></div><div>CVC<b>${esc(card.cvc)}</b></div><div>Pedido<b>${esc(o.orderId.slice(-3))}</b></div></div></div>
+        <p class="tiny" style="margin:8px 0 0">Tarjeta de prueba (sandbox). No es un número real y no cobra.</p>
+        <div class="locks"><div><b>Monto fijo</b><span>${C.usd(card.amountLockedUsd)}</span><small>${p == null ? C.PEN_UNAVAILABLE : C.pen(p)}</small></div><div><b>Solo en</b><span>${esc(card.merchantLocked)}</span></div></div>
+        <div class="timer"><svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="${rr}" fill="none" stroke="var(--sky)" stroke-width="6"/><circle cx="28" cy="28" r="${rr}" fill="none" stroke="var(--blue)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - frac)}" transform="rotate(-90 28 28)"/></svg>
+          <div><div class="mm">${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}</div><div class="tiny">Se oculta sola. Se muestra una sola vez.</div></div></div>`;
+    };
+    paint();
+    S.timer = setInterval(paint, 1000);
+  });
+}
+
+function storeNotesSheet(store) {
+  const label = (S.day.orders.find((o) => o.store === store) || {}).storeLabel || store;
+  const notes = S.day.storeNotes.filter((n) => n.store === store);
+  sheet(`<h2>Notas: ${esc(label)}</h2><p class="muted" style="margin:0">Cómo se portó esta tienda hoy.</p>
+    ${notes.map((n) => `<div class="msg"><b>${esc(nameOf(n.by))} · ${hhmm(n.at)}</b><div>${esc(n.text)}</div></div>`).join("")}
+    <form id="nf"><label class="field"><span>Tu nota</span><textarea name="t" maxlength="500" placeholder="Ej. el pago tardó, pidió verificación"></textarea></label>
+    <button class="btn big primary">Guardar nota</button></form>`, (el, close) => {
+    el.querySelector("#nf").onsubmit = (e) => { e.preventDefault(); if (C.addStoreNote(S.day, store, S.agentId, e.target.t.value, nowIso())) { save(); close(); toast("Nota guardada"); } };
+  });
+}
+function flagSheet(store) {
+  const label = (S.day.orders.find((o) => o.store === store) || {}).storeLabel || store;
+  sheet(`<h2>Reportar tienda: ${esc(label)}</h2><p class="muted" style="margin:0">Para la tienda entera (no un pedido). Le llega a Danny.</p>
+    <form id="ff"><label class="field"><span>Qué está pasando</span><textarea name="t" maxlength="500" placeholder="Ej. la página no carga el carrito"></textarea></label>
+    <button class="btn big bad">${ICON.flag} Reportar tienda</button></form>`, (el, close) => {
+    el.querySelector("#ff").onsubmit = (e) => { e.preventDefault(); C.flagStore(S.day, store, S.agentId, e.target.t.value, nowIso()); save(); close(); toast("Tienda reportada a Danny"); };
+  });
+}
+function endShiftSheet() {
+  const d = C.miDia(S.day, S.agentId);
+  sheet(`<h2>¿Terminar tu turno?</h2><p class="muted" style="margin:0">${d.done} compradas${d.left ? `, ${d.left} quedan por comprar (Danny las reasigna)` : ""}. Se marca tu hora de salida.</p>
+    <button class="btn big primary" data-out style="margin-top:14px">Marcar salida</button>
+    <button class="btn big ghost" data-x style="margin-top:8px">Seguir trabajando</button>`, (el, close) => {
+    el.querySelector("[data-x]").onclick = close;
+    el.querySelector("[data-out]").onclick = () => { C.clockOut(S.day, S.agentId, nowIso()); save(); close(); sync(); S.view = "summary"; render(); window.scrollTo(0, 0); };
+  });
+}
+
+/* Celebration: big, short, and it never takes a tap -- the next order is
+   already underneath when it fades. Copy: MILESTONES in agent-core.js. */
+function celebrate(m, count) {
+  document.querySelectorAll(".party").forEach((p) => p.remove());
+  const p = document.createElement("div");
+  p.className = "party";
+  p.dataset.milestone = m.id;
+  const colors = ["#F4C463", "#2F5FEE", "#FFFFFF", "#5FD19A", "#FBE7B5"];
+  let bits = "";
+  for (let i = 0; i < 70; i++) {
+    const round = i % 3 === 0;
+    bits += `<i class="confetti" style="left:${(i * 37) % 100}%;background:${colors[i % colors.length]};animation-duration:${2.2 + (i % 7) * 0.35}s;animation-delay:${(i % 10) * 0.08}s;${round ? "border-radius:999px;width:12px;height:12px" : ""}"></i>`;
+  }
+  p.innerHTML = bits + `<div class="msg2 burst">
+    ${m.at ? `<div class="count">${count}</div>` : `<svg width="110" height="110" viewBox="0 0 110 110" aria-hidden="true"><circle cx="55" cy="55" r="50" fill="#F4C463"/><path d="M33 57l15 15 30-32" stroke="#0A1F44" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+    <h2>${esc(m.title)}</h2><p>${esc(m.line)}</p></div>`;
+  document.body.appendChild(p);
+  setTimeout(() => p.isConnected && p.remove(), 3400);
+}
+
+/* After a purchase or a problem: straight to the NEXT order, no trip to the list. */
+function goNext(next) {
+  if (next) { S.focusId = next.orderId; S.view = "focus"; }
+  else { S.view = "home"; S.list = "comp"; S.tab = "lista"; }
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ---------------- wiring ---------------- */
+function wire() {
+  document.querySelectorAll("[data-pick]").forEach((b) => b.onclick = () => { S.agentId = b.dataset.pick; render(); });
+  const ci = $("#clockIn");
+  if (ci) ci.onclick = () => {
+    C.clockIn(S.day, S.agentId, nowIso()); save();
+    rememberSession({ mode: S.mode, key: S.key, agentId: S.agentId });
+    warmPhotos();
+    S.view = "home"; toast(`Entrada marcada: ${hhmm(S.day.shifts[S.agentId].clockIn)}`); render();
+  };
+  const lf = $("#login");
+  if (lf) lf.onsubmit = async (e) => {
+    e.preventDefault();
+    const msg = $("#loginMsg"); msg.textContent = "Entrando...";
+    try {
+      const r = await fetch("/.netlify/functions/auth-login", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ email: lf.email.value, password: lf.password.value }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { msg.textContent = j.error || "No se pudo entrar"; return; }
+      location.reload();
+    } catch { msg.textContent = "Sin conexión con el servidor."; }
+  };
+  const lo = $("#logout"); if (lo) lo.onclick = async () => { try { await fetch("/.netlify/functions/auth-logout", { method: "POST", credentials: "same-origin" }); } catch {} location.reload(); };
+  document.querySelectorAll("[data-break]").forEach((b) => b.onclick = () => { C.startBreak(S.day, S.agentId, b.dataset.break, nowIso()); save(); render(); });
+  const eb = $("#endBreak"); if (eb) eb.onclick = () => { C.endBreak(S.day, S.agentId, nowIso()); save(); toast("De vuelta. Seguimos."); render(); };
+  document.querySelectorAll("[data-list]").forEach((b) => b.onclick = () => { S.list = b.dataset.list; render(); });
+  document.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => { S.focusId = b.dataset.open; S.view = "focus"; render(); window.scrollTo(0, 0); });
+  const sn = $("#startNext"); if (sn) sn.onclick = () => { const n = C.nextOrder(S.day, S.agentId); if (n) { S.focusId = n.orderId; S.view = "focus"; render(); window.scrollTo(0, 0); } };
+  document.querySelectorAll("[data-notes]").forEach((b) => b.onclick = () => storeNotesSheet(b.dataset.notes));
+  document.querySelectorAll("[data-flag]").forEach((b) => b.onclick = () => flagSheet(b.dataset.flag));
+  const bk = $("#back"); if (bk) bk.onclick = () => { S.view = "home"; render(); };
+  const ca = $("#copyAlmacen");
+  if (ca) ca.onclick = async () => {
+    const text = $("#almacenText").textContent;
+    try { await navigator.clipboard.writeText(text); toast("Dirección copiada"); }
+    catch { const r = document.createRange(); r.selectNodeContents($("#almacenText")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Selecciona y copia"); }
+  };
+  document.querySelectorAll("[data-step]").forEach((c) => c.onchange = () => { (S.checks[S.focusId] ||= {})[c.dataset.step] = c.checked; c.closest("label").classList.toggle("done", c.checked); if (c.dataset.step === "abri") render(); });
+  const sc = $("#showCard"); if (sc) sc.onclick = () => cardSheet(S.day.orders.find((x) => x.orderId === S.focusId));
+  const cf = $("#commentForm"); if (cf) cf.onsubmit = (e) => { e.preventDefault(); if (C.addOrderComment(S.day, S.focusId, S.agentId, e.target.t.value, nowIso())) { save(); render(); } };
+  const ch = $("#chatForm"); if (ch) ch.onsubmit = (e) => { e.preventDefault(); if (C.postChat(S.day, S.agentId, e.target.t.value, nowIso())) { save(); render(); } };
+  const q = $("#q"); if (q) q.oninput = () => { S.query = q.value; const pos = q.selectionStart; render(); const n = $("#q"); n.focus(); n.setSelectionRange(pos, pos); };
+  document.querySelectorAll("#endShift").forEach((b) => b.onclick = endShiftSheet);
+  const th = $("#toHistory"); if (th) th.onclick = () => { S.query = C.shiftSummary(S.day, S.agentId, nowIso()).searchQuery; S.view = "home"; S.tab = "buscar"; render(); };
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => { S.tab = b.dataset.tab; S.view = "home"; render(); window.scrollTo(0, 0); });
+setInterval(() => { if (S.view === "home" && S.tab === "lista" && !$(".sheet-back") && $(".shift .clock")) render(); }, 60000);
+/* A test/preview handle -- only where demo mode may run, never on production. */
+if (DEMO_OK) window.__compradores = { S, C, render, sync, resetDemoDay: () => { S.day = resetDemoDay(); S.agentId = null; S.view = "in"; render(); } };
+boot();
+</script>
+</body>
+</html>

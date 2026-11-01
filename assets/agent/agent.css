@@ -1,0 +1,84 @@
+/* COMPRADORES -- shared look for agente.html and admin-agentes.html.
+   Aria's colours (the same tokens as admin.html). Plain CSS, no CDN:
+   an ops tool must load on bad mobile data. No emoji anywhere: every
+   mark is SVG, type or colour. */
+:root {
+  --navy: #0A1F44; --navy-2: #0D2A5C; --blue: #2F5FEE; --sky: #EAF0FF; --gold: #F4C463; --gold-2: #FBE7B5;
+  --bg: #F4F6FA; --card: #FFFFFF; --line: #E2E6EE; --ink: #10172A; --ink-2: #4D576C; --ink-3: #7F8AA0;
+  --ok: #0E7A4D; --ok-bg: #E3F4EA; --warn: #8A6B1F; --warn-bg: #FDF3E3; --bad: #B3261E; --bad-bg: #FCECEA;
+  --radius: 18px; --shadow: 0 1px 2px rgba(10,31,68,.06), 0 6px 20px rgba(10,31,68,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1017; --card: #151B24; --line: #262E3A; --ink: #EDF0F5; --ink-2: #A3ACBD; --ink-3: #78829A;
+    --sky: #17233D; --ok-bg: #11291E; --warn-bg: #2A2313; --bad-bg: #2C1614; --ok: #5FD19A; --warn: #E0BE6A; --bad: #F2867C; --gold-2: #3A3018;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { font-size: 16px; }
+button { cursor: pointer; touch-action: manipulation; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.top {
+  position: sticky; top: 0; z-index: 40; background: var(--navy); color: #fff;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px; display: flex; align-items: center; gap: 10px;
+}
+.brand { font-weight: 900; letter-spacing: .06em; font-size: 15px; display: flex; align-items: baseline; gap: 8px; }
+.brand b { color: var(--gold); }
+.brand small { font-weight: 700; letter-spacing: 0; color: #C5D0E8; font-size: 13px; }
+.top .right { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #C5D0E8; }
+.demo-tag { background: var(--gold); color: var(--navy); font-weight: 900; font-size: 11px; letter-spacing: .08em; padding: 3px 8px; border-radius: 999px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 16px;
+  min-height: 56px; padding: 0 22px; font-weight: 800; font-size: 17px; text-decoration: none; background: var(--sky); color: var(--navy);
+}
+.btn.big { min-height: 64px; font-size: 19px; width: 100%; }
+.btn.primary { background: var(--blue); color: #fff; }
+.btn.navy { background: var(--navy); color: #fff; }
+.btn.gold { background: var(--gold); color: var(--navy); }
+.btn.ok { background: var(--ok); color: #fff; }
+.btn.bad { background: var(--bad); color: #fff; }
+.btn.ghost { background: transparent; border: 2px solid var(--line); color: var(--ink); }
+/* 48px is the floor for any tap target here (one hand, gloves); primaries are 56px+. */
+.btn.small { min-height: 48px; font-size: 15px; padding: 0 14px; border-radius: 12px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn svg { width: 22px; height: 22px; flex: 0 0 auto; }
+
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--line); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 800; background: var(--sky); color: var(--navy); }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.muted { color: var(--ink-2); }
+.tiny { font-size: 13px; color: var(--ink-3); }
+.toast {
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(20px);
+  background: var(--navy); color: #fff; padding: 14px 20px; border-radius: 14px; font-weight: 800; opacity: 0; transition: .25s; z-index: 90;
+  max-width: calc(100% - 32px); text-align: center; pointer-events: none;
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+.sheet-back { position: fixed; inset: 0; background: rgba(6,15,34,.55); z-index: 70; display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  background: var(--card); width: 100%; max-width: 560px; border-radius: 24px 24px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  max-height: 92vh; overflow-y: auto; overflow-x: hidden; animation: up .22s ease-out;
+}
+@media (min-width: 700px) { .sheet-back { align-items: center; } .sheet { border-radius: 24px; } }
+.sheet h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -.01em; }
+@keyframes up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+.field { display: block; margin: 14px 0; }
+.field span { display: block; font-weight: 800; font-size: 15px; margin-bottom: 6px; }
+.field input, .field textarea, .field select {
+  width: 100%; min-height: 54px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); padding: 12px 14px;
+}
+.field textarea { min-height: 90px; resize: vertical; }
+.errors { background: var(--bad-bg); color: var(--bad); border-radius: 14px; padding: 12px 14px; font-weight: 700; margin: 10px 0; }
+.errors p { margin: 2px 0; }
