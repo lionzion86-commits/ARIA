@@ -108,8 +108,7 @@ await check("shown, not sold: the order endpoint refuses an item whose sizes are
   assert.ok(isSizesPending("SNIPES", "  " + shoe.name.toUpperCase() + " "), "the key is case- and space-blind");
   assert.ok(!isSizesPending("snipes", cap.name));
   assert.equal(sizesPendingLines([{ retailer: "snipes", title: shoe.name }, { retailer: "snipes", title: cap.name }]).length, 1);
-  /* Every builder's pending items share the one list (Calzedonia: scripts/build-calzedonia-intimissimi-catalogs.mjs). */
-  const pending = cat("snipes").concat(cat("carolinaherrera"), cat("calzedonia"), cat("intimissimi")).filter((i) => i.sizesPending).map((i) => sizesPendingKey(i.retailer, i.name));
+  const pending = cat("snipes").concat(cat("carolinaherrera")).filter((i) => i.sizesPending).map((i) => sizesPendingKey(i.retailer, i.name));
   assert.deepEqual(JSON.parse(read("assets/data/sizes-pending.json")).sort(), [...new Set(pending)].sort(), "the page's list and the catalogues disagree");
   const oc = read("netlify/functions/orders-create.js");
   assert.ok(oc.includes("sizesPendingLines(sentItems)") && oc.indexOf("sizesPendingLines(sentItems)") < oc.indexOf("perfumeCapState(sentItems)"), "orders-create does not refuse before it charges");

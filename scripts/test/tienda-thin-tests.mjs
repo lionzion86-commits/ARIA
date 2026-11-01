@@ -51,11 +51,10 @@ const keys = Object.keys(STORES);
    Buy's themed slices are checked while a themed store is live. */
 /* A store whose catalogue is still pending (DSW, #443) is not live. */
 const LIVE_SLICED = Object.keys(SLICED_STORES).filter((k) => STORES[k] && !STORES[k].pendingCatalog);
-/* The 2026-10-27 pulls (SNIPES, Carolina Herrera) and the 2026-10-29 drop
-   (Intimissimi, Calzedonia) carry no was-price and no demand signal: no
-   Ofertas or Más vendidos rail to page. Their rail order is pinned in
-   store-pulls-tests.mjs and calzedonia-intimissimi-tests.mjs. */
-const PULL_ONLY = new Set(["snipes", "carolinaherrera", "intimissimi", "calzedonia"]);
+/* The 2026-10-27 pulls (SNIPES, Carolina Herrera) carry no was-price and
+   no demand signal: no Ofertas or Más vendidos rail to page. Their rail
+   order is pinned in store-pulls-tests.mjs. */
+const PULL_ONLY = new Set(["snipes", "carolinaherrera"]);
 const LIVE_DEALS = LIVE_SLICED.filter((k) => !PULL_ONLY.has(k));
 /* Stores whose pull carries no demand signal (no reviews, no best-sellers
    rank): no Más vendidos rail to expect. Pier 1 (#443 Casa Aria),

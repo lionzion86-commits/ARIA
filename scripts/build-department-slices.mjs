@@ -37,7 +37,6 @@
    ============================================================ */
 import { TECH_BUCKETS } from "./lib/brandsmart.js";
 import { photoCount } from "./lib/photo-counts.js";
-import { CI_BUCKETS } from "./lib/calzedonia-intimissimi.js";
 import { CAB_BUCKETS, AISLE_LABELS as CAB_LABELS, hairAisle, PERU_SOLD_HAIR_RX } from "./lib/sleekshop.js";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -88,9 +87,6 @@ export const CATALOG_FILES = [
   /* SNIPES (sneakers and streetwear) + Carolina Herrera (luxury), #443,
      pulled 2026-10-27. */
   "/snipes-catalog.json",
-  /* Calzedonia + Intimissimi (#443 c.6512405832, pulled 2026-10-29). */
-  "/intimissimi-catalog.json",
-  "/calzedonia-catalog.json",
   /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
   "/brandsmart-catalog.json",
   /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
@@ -120,8 +116,7 @@ export const DEPT_RULES = {
   electronics: { buckets: ["electronics", "electronica", ...BESTBUY_TECH, ...TECH_BUCKETS] },
   clothing: { buckets: ["clothing"] },
   men: { buckets: ["men", "apparel_men"] },
-  /* Intimissimi's and Calzedonia's aisles (scripts/lib/calzedonia-intimissimi.js) are Mujer's. */
-  women: { buckets: ["women", "apparel_women", ...CI_BUCKETS] },
+  women: { buckets: ["women", "apparel_women"] },
   kids: { buckets: ["kids", "apparel_kids"] },
   candy_chocolate: { buckets: ["candy_chocolate"] },
   sporting_goods: { buckets: ["sporting_goods"] },

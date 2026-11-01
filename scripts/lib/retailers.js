@@ -165,33 +165,6 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
-  /* CALZEDONIA + INTIMISSIMI (#443 c.6512405832, Danny c.6512451192):
-     two separate stores from the 2026-10-29 drop, each with its own tile
-     and store page. calzedonia-catalog.json / intimissimi-catalog.json,
-     written by scripts/build-calzedonia-intimissimi-catalogs.mjs; in
-     stock only. Calzedonia's pull carries no size runs, so its tights are
-     shown, not sold (sizesPending) until a size pass lands. Weights are
-     the drop's estimates, flagged. No logo files: the wordmark fallback. */
-  intimissimi: {
-    key: "intimissimi",
-    label: "Intimissimi",
-    color: "#000000",
-    logo: null,
-    tagline: "Lencería italiana: brasieres, calzones y bodies",
-    kind: "general",
-    search: false,
-    browse: true,
-  },
-  calzedonia: {
-    key: "calzedonia",
-    label: "Calzedonia",
-    color: "#000000",
-    logo: null,
-    tagline: "Medias panty, medias altas y leggings",
-    kind: "general",
-    search: false,
-    browse: true,
-  },
   /* SNIPES (#443 c.6450358688, catalogue pulled 2026-10-27 c.6457579787):
      sneakers and streetwear, the general catalogue (hyped release SKUs
      cut by design). snipes-catalog.json, written by

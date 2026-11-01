@@ -5,8 +5,7 @@
    Every card file the homepage paints from -- the store and category
    shelves (assets/home/shelves/), the audience pill shelves
    (assets/home/pills/) and the store rail pills
-   (assets/home/store-pills/) and the Tiendas carousels' rails
-   (assets/home/tiendas/) -- gets `ph` on each card with two or more
+   (assets/home/store-pills/) -- gets `ph` on each card with two or more
    photos (scripts/lib/photo-counts.js), so the card shows its arrows
    without a request and never a dead button. Idempotent; the shelf
    builders call it after writing.
@@ -20,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { stampPhotoCounts } from "./lib/photo-counts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
-export const HOME_CARD_DIRS = ["assets/home/shelves", "assets/home/pills", "assets/home/store-pills", "assets/home/tiendas"];
+export const HOME_CARD_DIRS = ["assets/home/shelves", "assets/home/pills", "assets/home/store-pills"];
 
 export function stampHomePhotos(root = ROOT, dirs = HOME_CARD_DIRS) {
   const out = {};
