@@ -20,6 +20,11 @@
    product at a second, lower price; both are prices the site really
    showed, each with its own dutiable base.
 
+   COLOURWAYS (#443 variants): a title several listings carry (Snipes'
+   eleven "Samba OG", $49.99 to $130) also gets one entry per listing
+   whose price differs, keyed productIdFor(retailer, title + "::v:" + v)
+   with v the listing's id (scripts/lib/variants.mjs variantIdOf, the
+   id the product page links with and the cart line carries).
    REGENERATE after a catalogue or feed change:
      node scripts/build-price-index.mjs
    scripts/test/checkout-tests.mjs fails when it has fallen behind.
@@ -28,6 +33,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildCatalog, productIdFor } from "./lib/mcp/catalog.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { variantIdOf } from "./lib/variants.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PRICE_INDEX_FILE = "price-index.json";
@@ -35,9 +41,25 @@ export const PRICE_INDEX_FILE = "price-index.json";
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 
 export function buildPriceIndex() {
-  const { items } = buildCatalog();
+  const { items, listings } = buildCatalog({ listings: true });
   const prices = {};
   for (const it of items) prices[productIdFor(it.retailer, it.title)] = [r2(it.price), r2(it.dutiableUsd)];
+  const urlsByTitle = new Map();
+  for (const l of listings) {
+    if (!l.url) continue;
+    const k = productIdFor(l.retailer, l.title);
+    if (!urlsByTitle.has(k)) urlsByTitle.set(k, new Set());
+    urlsByTitle.get(k).add(l.url);
+  }
+  let variantPrices = 0;
+  for (const l of listings) {
+    const k = productIdFor(l.retailer, l.title);
+    if (!l.url || !(urlsByTitle.get(k).size > 1) || isOffSaleRetailer(l.retailer)) continue;
+    const vk = productIdFor(l.retailer, `${l.title}::v:${variantIdOf(l.url)}`);
+    if (prices[vk] || Math.abs(prices[k][0] - r2(l.price)) < 0.005) continue;
+    prices[vk] = [r2(l.price), r2(l.dutiableUsd)];
+    variantPrices++;
+  }
   let sale = 0;
   for (const it of JSON.parse(readFileSync(ROOT + "ofertas-feed.json", "utf8")).items || []) {
     const title = it && (it.title || it.name);
@@ -50,7 +72,7 @@ export function buildPriceIndex() {
     else if (Math.abs(had[0] - price) > 0.005) { had[2] = r2(price); had[3] = r2(it.dutiableUsd ?? price); }
     sale++;
   }
-  return { v: 1, generatedAt: null, count: Object.keys(prices).length, saleFeedItems: sale, prices };
+  return { v: 1, generatedAt: null, count: Object.keys(prices).length, saleFeedItems: sale, variantPrices, prices };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

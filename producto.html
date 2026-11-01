@@ -58,6 +58,16 @@ footer a{color:#fff}
 .size-label{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:-6px}
 .size-select{width:100%;padding:13px 12px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;background:#fff;color:var(--ink)}
 .size-select:focus{outline:none;border-color:var(--blue)}
+/* The colour picker (#443 variants): the store's colourways of this model. */
+.v-box{margin-top:20px}
+.v-label{font-size:13px;font-weight:700;color:var(--navy);margin:0 0 8px}
+.v-label b{font-weight:600;color:var(--ink)}
+.v-opts{display:flex;flex-wrap:wrap;gap:8px}
+.v-opt{display:flex;flex-direction:column;align-items:center;gap:4px;width:76px;padding:4px;border:1.5px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font:inherit;color:var(--ink)}
+.v-opt img{width:64px;height:64px;object-fit:contain;border-radius:8px;background:var(--sky)}
+.v-opt span{font-size:11px;line-height:1.25;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.v-opt[aria-checked="true"]{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy)}
+.v-opt:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .size-note{font-size:12.5px;color:var(--muted);line-height:1.5}
 .btn-add{width:100%;text-align:center;border:none;cursor:pointer;background:var(--gold);color:var(--navy)}
 .btn-add:hover{background:#EAB54E;text-decoration:none}
@@ -233,10 +243,24 @@ function pdpHash(key){
 }
 function pdpShard(key){ return ("00" + (pdpHash(key) % PDP_SHARDS).toString(16)).slice(-3); }
 function autoShard(key){ return ("0" + (pdpHash(key) % AUTO_SHARDS).toString(16)).slice(-2); }
+/* COLOURWAYS (#443 variant order, Phase 1). A model's colourways at one
+   store live in assets/pdp/g/<hhh>.json under the group id its records
+   carry as `g` (scripts/build-pdp-slices.mjs, scripts/lib/variants.mjs). */
+var G_SHARDS = 1024;
+function groupShard(g){ return ("00" + (pdpHash(String(g)) % G_SHARDS).toString(16)).slice(-3); }
 /* The record the old download-and-scan returned: the first file of
-   `files` (in order) that carries the title, at its earliest position. */
-function pickRecord(cands, files){
+   `files` (in order) that carries the title, at its earliest position.
+   THE LISTING ITSELF (#443 variants): a link that names its listing
+   (?v=, the listing's own id) opens THAT listing -- eleven Snipes
+   colourways all called "Samba OG" are eleven products, not one. A v
+   no record carries (an older shard) falls back to the title's pick. */
+function pickRecord(cands, files, v){
   if (!Array.isArray(cands) || !Array.isArray(files)) return null;
+  if (v){
+    var own = cands.filter(function(c){ return c && c.v === v; });
+    if (own.length === 1) return own[0];
+    if (own.length > 1){ var p = pickRecord(own, files); if (p) return p; return own[0]; }
+  }
   /* A title only one record carries is the answer from any store (the
      build leaves its positions out). */
   if (cands.length === 1 && !cands[0].src) return cands[0];
@@ -278,7 +302,9 @@ function recordToItem(r){
     originalPrice: Number(r.originalPrice) || 0, salePct: Number(r.salePct) || 0,
     wasPrice: Number(r.wasPrice) || 0, dept: r.dept || "",
     weightKg: Number(r.weightKg) || 0, weightPub: r.weightPub === true, specWeightKg: Number(r.specWeightKg) || 0,
-    weightBySize: r.weightBySize && typeof r.weightBySize === "object" ? r.weightBySize : null
+    weightBySize: r.weightBySize && typeof r.weightBySize === "object" ? r.weightBySize : null,
+    /* The listing's id, its colourway group and the store's colour. */
+    v: r.v || "", g: r.g || "", c: r.c || ""
   };
 }
 function fetchJson(url, ms){
@@ -294,6 +320,14 @@ function fetchShard(key){
   var s = pdpShard(key);
   if (!SHARD_CACHE[s]) SHARD_CACHE[s] = fetchJson(PDP_BASE + "p/" + s + ".json");
   return SHARD_CACHE[s].then(function(d){ return (d && d[key]) || null; });
+}
+/* A colourway group: the variants the picker offers, or null. */
+var GROUP_CACHE = {};
+function fetchGroup(g){
+  if (!g) return Promise.resolve(null);
+  var s = groupShard(g);
+  if (!GROUP_CACHE[s]) GROUP_CACHE[s] = fetchJson(PDP_BASE + "g/" + s + ".json", 12000);
+  return GROUP_CACHE[s].then(function(d){ var l = d && d[g]; return Array.isArray(l) && l.length > 1 ? l : null; });
 }
 /* One store's rail slice for one kind of product: the anchor's lane and
    department name the file (relPick ranks by those, its gender and the
@@ -860,12 +894,90 @@ function conditionHtml(p){
     + ' No es un producto nuevo.</div>'
     + '<div class="p-cond p-soldout" id="p-soldout" role="note">' + esc(window.AriaCondition.SOLD_OUT_NOTE) + '</div>';
 }
-function render(p){
+/* =====================================================================
+   THE COLOUR PICKER (#443, the owner's variant order; Phase 1). A model
+   the store sells in several colourways (scripts/lib/variants.mjs found
+   them in the store's own titles, URLs and photo names) shows them all
+   beside the size: each is the store's listing, with its own photos,
+   price and sizes -- picking one swaps all three, the sizes being that
+   colour's own (a colour can be sold out in a size the next one has).
+   The label is the store's text; nothing is invented. A product with
+   one colour shows no picker and the page is as it was.
+   ===================================================================== */
+function variantProduct(base, x){
+  var q = {};
+  for (var k in base) q[k] = base[k];
+  q.name = x.name || base.name;
+  q.price = Number(x.price) || 0;
+  q.wasPrice = Number(x.wasPrice) || 0;
+  q.salePct = Number(x.salePct) || 0;
+  q.image = x.image || "";
+  q.images = unpackImages(x.images, x.image);
+  q.sizes = Array.isArray(x.sizes) ? x.sizes : [];
+  q.sizesPending = x.sizesPending === true;
+  q.sizesTier = x.sizesTier || "";
+  q.sizesSource = x.sizesSource || "";
+  q.v = x.v || "";
+  q.c = x.c || "";
+  return q;
+}
+function hasVariants(p){
+  return !!(p && Array.isArray(p.variants) && p.variants.length > 1 && p.v
+    && p.variants.some(function(x){ return x.v === p.v; }));
+}
+function variantBoxHtml(p){
+  if (!hasVariants(p)) return '';
+  var opts = p.variants.map(function(x){
+    var on = x.v === p.v;
+    var img = x.image ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
+    return '<button type="button" class="v-opt" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + '">'
+      + img + '<span>' + esc(x.c || '') + '</span></button>';
+  }).join('');
+  return '<div class="v-box" id="variant-box">'
+    + '<p class="v-label" id="v-label">Color: <b id="v-current">' + esc(p.c || '') + '</b></p>'
+    + '<div class="v-opts" role="radiogroup" aria-labelledby="v-label">' + opts + '</div></div>';
+}
+function wireVariants(p){
+  var box = el("variant-box");
+  if (!box) return;
+  Array.prototype.forEach.call(box.querySelectorAll(".v-opt"), function(b){
+    b.addEventListener("click", function(){ selectVariant(p, b.getAttribute("data-v")); });
+  });
+}
+var CURRENT_PRODUCT = null;
+function selectVariant(cur, v){
+  if (!cur || !v || v === cur.v || !hasVariants(cur)) return;
+  var x = null;
+  for (var i = 0; i < cur.variants.length; i++) if (cur.variants[i].v === v) x = cur.variants[i];
+  if (!x) return;
+  var q = variantProduct(cur, x);
+  q.variants = cur.variants;
+  /* The related rails are the model's, not the colour's: kept as they are. */
+  var rails = el("rel-rails"), y = window.scrollY || 0;
+  render(q, true);
+  var fresh = el("rel-rails");
+  if (rails && fresh && fresh.parentNode) fresh.parentNode.replaceChild(rails, fresh);
+  window.scrollTo(0, y);
+  CURRENT_PRODUCT = q;
+  /* The address names the colour now on screen: a reload or a shared
+     link opens this colourway. */
+  try{
+    var u = new URL(location.href);
+    u.searchParams.set("producto", q.name);
+    u.searchParams.set("v", q.v);
+    u.searchParams.delete("id"); u.searchParams.delete("nombre");
+    history.replaceState(null, "", u.pathname + "?" + u.searchParams.toString() + u.hash);
+  }catch(e){}
+  var sel = el("variant-box") && el("variant-box").querySelector('.v-opt[data-v="' + v + '"]');
+  if (sel) sel.focus();
+}
+function render(p, swapping){
   el("p-loading").style.display = "none";
   var usd = finalUsd(p.price, p.retailer);
   /* #415: the ad pixels (dormant until an ID is set in assets/js/pixels.js). */
-  /* In soles, as shown (#443 item 34); no rate, no value -- never dollars. */
-  if (window.ariaTrack) ariaTrack('ViewContent', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: usd > 0 && FX_RATE ? Math.round(usd * FX_RATE * 100) / 100 : undefined, currency: 'PEN' });
+  /* In soles, as shown (#443 item 34); no rate, no value -- never dollars.
+     A colour change is the same product view, not a new one. */
+  if (window.ariaTrack && !swapping) ariaTrack('ViewContent', { contentId: p.retailer + '|' + p.name, contentName: p.name, value: usd > 0 && FX_RATE ? Math.round(usd * FX_RATE * 100) / 100 : undefined, currency: 'PEN' });
 
   /* The was-price the card showed, by the site's one sale rule. */
   var wasUsd = p.salePct > 0 && p.wasPrice > p.price ? finalUsd(p.wasPrice, p.retailer) : 0;
@@ -919,12 +1031,14 @@ function render(p){
           if (tk) return '<a class="btn btn-secondary" href="tienda.html?tienda=' + encodeURIComponent(tk) + '">Ver más en ' + label + '</a>';
           return '';
         })()
+      + (offSale ? '' : variantBoxHtml(p))
       + '<div id="buy-box" class="buy-box"></div>'
     + '</div></div>'
     + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
   document.title = p.name + " — Aria Shop";
   wireGallery(el("p-body").querySelector(".p-gallery"));
   wireDescMore();
+  wireVariants(p);
   buildBuyBox(p);
   if (!offSale) fillWeightAndTax(p);
   /* A size with its own weight (a surfboard) re-weighs the line when chosen. */
@@ -1359,8 +1473,10 @@ function saveCartLocal(c){
   try{ localStorage.setItem(CART_KEY, JSON.stringify(c)); }catch(e){}
 }
 function cartLineKey(it){
-  /* Same uniqueness key as index.html's cartItemKey: retailer+title+size. */
-  return [it.retailer || '', it.title || '', it.selectedSize || ''].join('::');
+  /* Same uniqueness key as index.html's cartItemKey: retailer+title+size,
+     and the listing when the line names one (#443 variants): two
+     colourways the store titles alike, in one size, are two lines. */
+  return [it.retailer || '', it.title || '', it.selectedSize || ''].join('::') + (it.variantId ? '::v:' + it.variantId : '');
 }
 function mergeCartLine(line){
   var c = readCartLocal().filter(function(it){ return it && typeof it === 'object'; });
@@ -1457,6 +1573,11 @@ function addCurrentToCart(p, sizes){
     image: p.image || (Array.isArray(p.images) && p.images[0]) || '',
     brand: p.brand || '',
     selectedSize: size,
+    /* THE COLOUR PICKED (#443 variants): the store's colour and the
+       listing's id ride with the line to checkout and the order, so the
+       exact colourway on screen is the one bought. */
+    colorway: p.c || undefined,
+    variantId: p.v || undefined,
     /* The store's list rides with a sized line, so the cart and checkout
        can tell a sized line from a plain one without a title guess. */
     sizeOptions: sizes && sizes.length ? sizes.slice() : undefined,
@@ -1489,6 +1610,8 @@ function addCurrentToCart(p, sizes){
     var tienda = (params.get("tienda") || params.get("store") || "").toLowerCase();
     var list = (tienda && STORE_FILES[tienda]) ? STORE_FILES[tienda] : null;
     var w = norm(want);
+    /* The listing the link names (#443 variants), when it names one. */
+    var vWant = String(params.get("v") || "").trim();
 
     /* Everything the first screen needs leaves at once: the rate (from
        the phone's cache when it has one), the product's shard and the
@@ -1502,7 +1625,7 @@ function addCurrentToCart(p, sizes){
        download-and-scan used. */
     async function hunt(fileList){
       var cands = await fetchShard(w);
-      var rec = pickRecord(cands, fileList);
+      var rec = pickRecord(cands, fileList, vWant);
       return rec ? recordToItem(rec) : null;
     }
     /* NAMED, NOT EXACT (the old scan's prefix and substring passes): a
@@ -1591,12 +1714,18 @@ function addCurrentToCart(p, sizes){
       fail("No encontramos “" + want + "” en el catálogo. Puede que ya no esté disponible.", { store: tienda, query: want, pool: lastPool });
       return;
     }
+    /* Its colourways, when the store sells it in several (#443). */
+    if (found.g){
+      var variants = await fetchGroup(found.g);
+      if (variants) found.variants = variants;
+    }
+    CURRENT_PRODUCT = found;
     render(found);
     /* FAMILIA (#443 c.6364959264): only a flagged account's page changes,
        and only after it has already painted -- nobody else waits on this. */
     fetch("/.netlify/functions/auth-me", { credentials: "same-origin" })
       .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(me){ if (me && me.familia === true) { window.ARIA_FAMILIA = true; render(found); } })
+      .then(function(me){ if (me && me.familia === true) { window.ARIA_FAMILIA = true; render(CURRENT_PRODUCT || found); } })
       .catch(function(){});
     lastPool = await fetchStoreRail(found.retailer, found);
     buildRelatedRails(found, lastPool.filter(function(it){ return it.retailer === found.retailer; }));

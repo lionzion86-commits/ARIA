@@ -38,6 +38,14 @@
                                     whole catalogue.
      assets/pdp/rails/lane-<k>.json   the Ofertas head's sale rows in one
                                     lane (the cross rail's other pool).
+     assets/pdp/g/<hhh>.json        COLOURWAYS (#443 variant order, Phase 1):
+                                    one model's colourways at one store
+                                    (scripts/lib/variants.mjs), keyed by
+                                    the group id each member record
+                                    carries as `g`. Each variant: its id
+                                    `v`, the store's colour `c`, its own
+                                    title, photos, price and sizes -- what
+                                    the picker swaps in.
      assets/pdp/index.json          counts and sizes, for the tests.
 
    REGENERATE after any catalogue, auto-cache or Ofertas refresh:
@@ -51,6 +59,7 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { liftDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { variantIdOf, groupColourways } from "./lib/variants.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PDP_DIR = "assets/pdp";
@@ -60,7 +69,7 @@ export const MAX_SHARD_GZ = 30 * 1024;
 export const LIFTED = ["PDP_SHARDS", "AUTO_SHARDS", "pdpHash", "pdpShard", "autoShard", "STORE_FILES", "CATALOG_FILES",
   "NAMED_ENTITIES", "decodeEntities", "galleryPhotoKey", "galleryIsChart", "tidyGallery", "normalizeItem", "extractItems", "norm", "SIZE_ALPHA_ORDER", "SIZE_NUMERIC",
   "SIZE_ALPHA_ALIAS", "alphaRank", "sizeKey", "sortSizes", "truthfulSizes", "REL_MAX", "REL_LANES", "relLane",
-  "relGender", "relKey", "pickRecord", "deptSlug", "railPath"];
+  "relGender", "relKey", "pickRecord", "deptSlug", "railPath", "G_SHARDS", "groupShard"];
 
 /* The page's own code, with the sale rule and the classifier it loads. */
 export function liftPage(root = ROOT) {
@@ -105,7 +114,10 @@ export function packImages(images, image) {
    cart line as data for the buyer's dispatch packet, absolute http(s)
    only (a relative path is no URL). The page never renders it and never
    links out. */
-const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "url"];
+/* v / g / c (#443 variants): the listing's own id, its colourway group and
+   the store's colour for it. v rides only where it tells two listings
+   apart (a title more than one listing carries) or names a colourway. */
+const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "url", "v", "g", "c"];
 const absoluteUrl = (u) => (typeof u === "string" && /^https?:\/\/[^\s\/?#]+/i.test(u.trim()) ? u.trim() : "");
 function recordOf(it) {
   const out = {};
@@ -128,30 +140,70 @@ function stableJson(obj) {
 }
 
 /* ---------- product records ---------- */
+/* What the colour picker swaps: one variant of a group. */
+const VARIANT_FIELDS = ["v", "c", "name", "price", "wasPrice", "salePct", "image", "images", "sizes", "sizesTier", "sizesSource", "sizesPending"];
+export function variantOf(it) {
+  const out = {};
+  for (const k of VARIANT_FIELDS) {
+    const v = k === "images" ? packImages(it.images, it.image) : it[k];
+    if (v === undefined || v === null || v === "" || v === 0 || v === false || (Array.isArray(v) && !v.length)) continue;
+    out[k] = Array.isArray(v) ? Array.from(v) : v;
+  }
+  return out;
+}
 export function buildRecords(P, root = ROOT) {
   const byKey = new Map();          // norm(title) -> [{ rec, json, src: [[file, pos]] }]
   const byRetailer = new Map();     // retailer -> [normalised items], file order
   const files = sourceFiles(P);
   let items = 0;
+  /* Pass 1: every listing, with its own id. */
+  const all = [];
   for (const f of files) {
     const p = root + f.slice(1);
     if (!existsSync(p)) continue;
     const list = P.extractItems(JSON.parse(readFileSync(p, "utf8")));
     list.forEach((it, pos) => {
-      items++;
-      const key = P.norm(it.name);
-      const rec = recordOf(it);
-      const json = stableJson(rec);
-      let cands = byKey.get(key);
-      if (!cands) byKey.set(key, (cands = []));
-      let c = cands.find((x) => x.json === json);
-      if (!c) cands.push((c = { rec, json, src: [] }));
-      c.src.push([f, pos]);
-      if (!byRetailer.has(it.retailer)) byRetailer.set(it.retailer, []);
-      byRetailer.get(it.retailer).push(it);
+      it.__v = variantIdOf(it.url, it.retailer + "|" + it.name + "|" + it.image);
+      all.push({ f, pos, it });
     });
   }
-  return { byKey, byRetailer, items, files };
+  /* Colourway groups, one listing per id (the same listing can sit in two
+     files), in file order. */
+  const firstByV = new Map();
+  for (const { it } of all) if (!firstByV.has(it.__v)) firstByV.set(it.__v, it);
+  const grouping = groupColourways([...firstByV.values()].map((it) => ({ v: it.__v, retailer: it.retailer, name: it.name, brand: it.brand, url: it.url, image: it.image })));
+  const vsByTitle = new Map();
+  for (const { it } of all) {
+    const key = P.norm(it.name);
+    if (!vsByTitle.has(key)) vsByTitle.set(key, new Set());
+    vsByTitle.get(key).add(it.__v);
+  }
+  const groups = new Map();         // g -> [variant], file order
+  for (const [v, it] of firstByV) {
+    const m = grouping.get(v);
+    if (!m) continue;
+    if (!groups.has(m.g)) groups.set(m.g, []);
+    groups.get(m.g).push(variantOf({ ...it, v, c: m.c }));
+  }
+  /* Pass 2: the records, as before, now naming their listing. */
+  for (const { f, pos, it } of all) {
+    items++;
+    const key = P.norm(it.name);
+    const m = grouping.get(it.__v);
+    if (m || vsByTitle.get(key).size > 1) it.v = it.__v;
+    if (m) { it.g = m.g; it.c = m.c; }
+    delete it.__v;
+    const rec = recordOf(it);
+    const json = stableJson(rec);
+    let cands = byKey.get(key);
+    if (!cands) byKey.set(key, (cands = []));
+    let c = cands.find((x) => x.json === json);
+    if (!c) cands.push((c = { rec, json, src: [] }));
+    c.src.push([f, pos]);
+    if (!byRetailer.has(it.retailer)) byRetailer.set(it.retailer, []);
+    byRetailer.get(it.retailer).push(it);
+  }
+  return { byKey, byRetailer, items, files, groups };
 }
 
 function writeJson(rel, obj) {
@@ -311,7 +363,7 @@ export function ofertasRows(P, root = ROOT) {
 function main() {
   const t0 = Date.now();
   const P = liftPage();
-  const { byKey, byRetailer, items, files } = buildRecords(P);
+  const { byKey, byRetailer, items, files, groups } = buildRecords(P);
   const stats = { items, titles: byKey.size, files: files.length, shards: P.PDP_SHARDS, autoShards: P.AUTO_SHARDS };
 
   resetDir(PDP_DIR + "/p");
@@ -332,6 +384,26 @@ function main() {
   }
   Object.assign(stats, { productShardsWritten: shards.size, productBytes: sumBytes, productGz: sumGz, maxShardGz: maxGz, maxShard: maxName });
   if (maxGz > MAX_SHARD_GZ) throw new Error(`shard ${maxName} is ${maxGz} bytes gzipped (> ${MAX_SHARD_GZ}): raise PDP_SHARDS in producto.html`);
+
+  /* Colourway groups (#443 variants). */
+  resetDir(PDP_DIR + "/g");
+  const gShards = new Map();
+  let variantsN = 0;
+  for (const [g, variants] of groups) {
+    const s = P.groupShard(g);
+    if (!gShards.has(s)) gShards.set(s, {});
+    gShards.get(s)[g] = variants;
+    variantsN += variants.length;
+  }
+  let gMaxGz = 0, gSumGz = 0, gSumBytes = 0, gMaxName = "";
+  for (const s of [...gShards.keys()].sort()) {
+    const obj = gShards.get(s);
+    const w = writeJson(`${PDP_DIR}/g/${s}.json`, Object.fromEntries(Object.keys(obj).sort().map((k) => [k, obj[k]])));
+    gSumGz += w.gz; gSumBytes += w.bytes;
+    if (w.gz > gMaxGz) { gMaxGz = w.gz; gMaxName = s; }
+  }
+  Object.assign(stats, { groups: groups.size, groupedVariants: variantsN, groupShardsWritten: gShards.size, groupBytes: gSumBytes, groupGz: gSumGz, maxGroupShardGz: gMaxGz, maxGroupShard: gMaxName });
+  if (gMaxGz > MAX_SHARD_GZ) throw new Error(`group shard ${gMaxName} is ${gMaxGz} bytes gzipped (> ${MAX_SHARD_GZ}): raise G_SHARDS in producto.html`);
 
   /* AutoZone parts. */
   resetDir(PDP_DIR + "/auto-pn");
