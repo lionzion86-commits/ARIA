@@ -32,6 +32,9 @@ import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-tim
 import { randomBytes } from "node:crypto";
 import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE, dutiableBaseUsd } from "../../weight-data.js";
 import { cartShipping } from "../../scripts/lib/store-shipping.js";
+/* ARIA'S OWN DELIVERY FEE (#443 c.6560848572): S/ 1 per store checkout,
+   the same module checkout.html shows it from. */
+import { buyerFeePen, storeCheckoutCount, BUYER_FEE_PEN_PER_STORE } from "../../scripts/lib/buyer-fee.js";
 /* PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province leg. The
    browser sends what it showed, but the charge is decided here from
    destCity — a tampered request must not be able to zero it. */
@@ -359,9 +362,17 @@ async function createOrderHandler(event) {
     const storeShipping = cartShipping(items);
     const storeShippingUsd = storeShipping.totalUsd;
     const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd + storeShippingUsd) * 100) / 100;
+    /* ARIA'S OWN DELIVERY FEE (#443 c.6560848572, Danny): S/ 1 per store
+       checkout in the order, free-shipping store or not, funding the
+       buying agent's pay. Soles, like the small-order fee: no rate is
+       applied to it. Recomputed here from the verified lines, never read
+       from the request. It sits in Aria's own line only -- the store
+       shipping above, the freight and the provincia leg are untouched. */
+    const storeCheckouts = storeCheckoutCount(items);
+    const buyerFeePenCharged = buyerFeePen(items);
     const taxEstimatedPen = fxRateVenta ? Math.round(taxEstimatedUsd * fxRateVenta * 100) / 100 : null;
     const totalPen = fxRateVenta
-      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged + expressFeePenCharged) * 100) / 100
+      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged + expressFeePenCharged + buyerFeePenCharged) * 100) / 100
       : null;
 
     /* THE PRICE YOU SEE IS THE PRICE YOU PAY. The page sends the soles
@@ -374,7 +385,7 @@ async function createOrderHandler(event) {
         totalChanged: true, totalPen, fxVenta: fxRateVenta, priceAdjustments,
         /* What the page needs to redraw the summary on the server's
            figures, so the next tap charges exactly what is shown. */
-        freightUsd: freightUsdQuoted, expressFeePen: expressFeePenCharged,
+        freightUsd: freightUsdQuoted, expressFeePen: expressFeePenCharged, buyerFeePen: buyerFeePenCharged,
       }) };
     }
     /* SALDO ARIA. The browser asks for an amount; the server decides it.
@@ -523,6 +534,16 @@ async function createOrderHandler(event) {
       smallOrderFeePen: smallOrderFeePenCharged,
       // The Lima → province courier leg, itemised the same way.
       provinciaFeePen: provinciaFeePenCharged,
+      /* ARIA'S OWN DELIVERY FEE ("Envío Aria"), itemised for
+         reconciliation and the ledger: the buyer's sol per store checkout
+         (#443 c.6560848572). Buyer pay is the dispatch side's ladder, not
+         this figure; Aria absorbs the difference. */
+      aria: {
+        deliveryFeePen: buyerFeePenCharged,
+        buyerFeePen: buyerFeePenCharged,
+        buyerFeePenPerStore: BUYER_FEE_PEN_PER_STORE,
+        storeCheckouts,
+      },
       totalUsd: customerTotalUsd,          // what the customer is charged, in USD
       courierTotalUsd: quote.total_usd,    // what AVI quoted, duty and all — margin view only
       gatewayFeeEstimatePen,
@@ -631,7 +652,7 @@ async function createOrderHandler(event) {
       body: JSON.stringify({
         ok: true, orderId, totalUsd: quote.total_usd, totalPen,
         walletAppliedPen, chargedPen, walletBalancePen: walletBalanceAfterPen,
-        checkoutUrl, expressFeePen: expressFeePenCharged, priceAdjustments,
+        checkoutUrl, expressFeePen: expressFeePenCharged, buyerFeePen: buyerFeePenCharged, priceAdjustments,
       }),
     };
   } catch (error) {
