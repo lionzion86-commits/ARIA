@@ -1,0 +1,38 @@
+{
+ "generatedAt": "2026-10-30T02:42:37.824Z",
+ "stores": {
+  "intimissimi": {
+   "rawProducts": 844,
+   "kept": 829,
+   "held": {
+    "out of stock on its page": 15
+   },
+   "byAisle": {
+    "brasieres": 341,
+    "calzones": 368,
+    "bodies": 74,
+    "babydolls": 46
+   },
+   "sizesPending": 0,
+   "withSpanish": 829,
+   "weightEstimated": 829,
+   "onSale": 0
+  },
+  "calzedonia": {
+   "rawProducts": 364,
+   "kept": 343,
+   "held": {
+    "out of stock on its page": 21
+   },
+   "byAisle": {
+    "medias_panty": 258,
+    "medias_altas": 64,
+    "leggings": 21
+   },
+   "sizesPending": 343,
+   "withSpanish": 343,
+   "weightEstimated": 343,
+   "onSale": 0
+  }
+ }
+}
