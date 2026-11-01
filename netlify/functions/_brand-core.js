@@ -78,15 +78,22 @@ export function deriveBrandLabel(items) {
 
 /* Ofertas de <marca> (biggest discount first) or, with no sales,
    Destacados de <marca> (dearest first); then one per product type. */
-export function buildRails(items, label) {
+/* THE BRAND PAGE PATTERN (Danny, 2026-11-01): the brand's sales on top,
+   then ONE RAIL PER STORE that sells the brand (most products first),
+   each store's own sales leading its rail. */
+export function buildRails(items, label, labels = {}) {
   const stable = (arr, cmp) => arr.map((p, i) => ({ p, i })).sort((a, b) => cmp(a.p, b.p) || (a.i - b.i)).map((x) => x.p);
   const rails = [];
   const sales = items.filter((p) => p.pct > 0);
   if (sales.length) rails.push({ title: "Ofertas de " + label, items: stable(sales, (a, b) => b.pct - a.pct) });
-  else rails.push({ title: "Destacados de " + label, items: stable(items, (a, b) => b.price - a.price) });
-  const byType = {};
-  for (const p of items) (byType[p.ptype || "ropa"] = byType[p.ptype || "ropa"] || []).push(p);
-  for (const t of PRODUCT_TYPES) if ((byType[t.key] || []).length) rails.push({ title: t.label, items: byType[t.key] });
+  const byStore = new Map();
+  for (const p of items) { const r = p.retailer || ""; if (!byStore.has(r)) byStore.set(r, []); byStore.get(r).push(p); }
+  const stores = [...byStore.entries()].filter(([r]) => r).sort((a, b) => (b[1].length - a[1].length) || a[0].localeCompare(b[0]));
+  for (const [r, list] of stores) {
+    const name = labels[r] || (r.charAt(0).toUpperCase() + r.slice(1));
+    rails.push({ title: label + " en " + name, store: r, items: stable(list, (a, b) => (b.pct > 0) - (a.pct > 0) || (b.pct - a.pct)) });
+  }
+  if (!rails.length) rails.push({ title: "Destacados de " + label, items: stable(items, (a, b) => b.price - a.price) });
   return rails;
 }
 
@@ -105,19 +112,22 @@ export function cardOf(p) {
   return c;
 }
 
+/* Store rails carry fewer cards in the head (the rest page in), so a brand
+   sold in many stores stays under the Mountain Test's 40KB first screen. */
+const STORE_RAIL_CARDS = 8;
 export function headOf(key, items, allLabels) {
   const label = deriveBrandLabel(items) || (key.charAt(0).toUpperCase() + key.slice(1));
-  const rails = items.length ? buildRails(items, label) : [];
+  const rails = items.length ? buildRails(items, label, allLabels || {}) : [];
   const labels = {};
   for (const p of items) if (allLabels[p.retailer]) labels[p.retailer] = allLabels[p.retailer];
   return {
     v: 1, key, label, count: items.length, labels, pageSize: PAGE_SIZE, railCards: RAIL_CARDS,
-    rails: rails.map((r, i) => ({ i, title: r.title, count: r.items.length, pages: Math.ceil(r.items.length / PAGE_SIZE), cards: r.items.slice(0, RAIL_CARDS).map(cardOf) })),
+    rails: rails.map((r, i) => ({ i, title: r.title, ...(r.store ? { store: r.store } : {}), count: r.items.length, pages: Math.ceil(r.items.length / PAGE_SIZE), cards: r.items.slice(0, r.store ? STORE_RAIL_CARDS : RAIL_CARDS).map(cardOf) })),
   };
 }
-export function pageOf(key, items, rail, page) {
+export function pageOf(key, items, rail, page, labels = {}) {
   const label = deriveBrandLabel(items) || (key.charAt(0).toUpperCase() + key.slice(1));
-  const r = buildRails(items, label)[rail];
+  const r = buildRails(items, label, labels)[rail];
   if (!r || !(page >= 0)) return null;
   return { key, rail, title: r.title, page, pages: Math.ceil(r.items.length / PAGE_SIZE), count: r.items.length, cards: r.items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(cardOf) };
 }
@@ -157,7 +167,7 @@ export function answer(qs, roots) {
   const { items, labels } = loadItems(roots);
   const mine = filterByBrand(items, key);
   if (qs.rail !== undefined && qs.rail !== "") {
-    const out = pageOf(key, mine, Number(qs.rail), Number(qs.page) || 0);
+    const out = pageOf(key, mine, Number(qs.rail), Number(qs.page) || 0, labels);
     return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más productos." } };
   }
   return { status: 200, body: headOf(key, mine, labels) };
