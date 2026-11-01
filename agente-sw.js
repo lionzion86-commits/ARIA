@@ -9,12 +9,15 @@
      - product photos come from the cache;
      - /.netlify/functions/* is never cached: the page itself queues
        completions and exceptions and syncs them when signal returns.
+       That includes Phase 2's dispatch poll: with no signal there is no
+       ping, and a claimed order's packet is already on the phone.
    ================================================================== */
-const SHELL = "aria-agente-shell-v3";
+const SHELL = "aria-agente-shell-v4";
 const IMG = "aria-agente-img-v1";
 const SHELL_URLS = [
   "/agente.html",
   "/assets/agent/agent-core.js",
+  "/assets/agent/dispatch-core.js",
   "/assets/agent/agent-store.js",
   "/assets/agent/agent.css",
   "/assets/agent/sample-batch.js",

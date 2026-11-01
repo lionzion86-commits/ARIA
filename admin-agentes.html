@@ -24,6 +24,17 @@
      REASIGNAR / Retener, per-account daily caps, store-flag inbox,
      invite-only logins, reconciliation. Phase 1 runs on the SAMPLE day
      shared with agente.html through this browser's storage.
+
+     PHASE 2, LIVE DISPATCH (Danny's session only): "Despacho" is every
+     paid order by state, labelled by customer name -- FUNDS-HOLD with
+     its shortfall, the sin-asignar pool counted live, escalations that
+     say what is stuck and for how long, the card program's float, who
+     is online / on a break / buying, and passes per buyer. "Pagos" is
+     the pot and its refill alert, the cash-out queue with "Generar lote"
+     (a DRAFT file, never sent), and the payout ledger per buyer.
+     Server: admin-dispatch.js; rules: /assets/agent/dispatch-core.js.
+     On a deploy preview it runs in the SANDBOX namespace, never on the
+     real board.
      ============================================================ -->
 <style>
   main { max-width: 1240px; margin: 0 auto; padding: 16px; }
@@ -60,6 +71,31 @@
   .fallback { font: 600 13px ui-monospace, Menlo, monospace; background: var(--bg); padding: 6px 8px; border-radius: 8px; overflow-wrap: anywhere; }
   .gate { max-width: 460px; margin: 40px auto; padding: 24px; text-align: center; }
   .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0 14px; }
+  /* ---- Phase 2: live dispatch ---- */
+  .kpis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 12px 0; }
+  .kpi { padding: 14px; }
+  .kpi b { display: block; font-size: 36px; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; }
+  .kpi.hot { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+  .kpi.warm { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+  .sbtag { background: var(--gold); color: var(--navy); font-weight: 900; letter-spacing: .12em; font-size: 12px; padding: 4px 10px; border-radius: 999px; }
+  .esc { padding: 12px 14px; margin: 8px 0; background: var(--bad-bg); color: var(--bad); border-color: var(--bad); font-weight: 800; }
+  .dxo { padding: 14px; margin: 8px 0; display: grid; gap: 8px; }
+  .dxo .h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .dxo .h strong { font-size: 18px; }
+  .dxo.FUNDS_HOLD { border-left: 6px solid var(--warn); }
+  .dxo.SIN_ASIGNAR { border-left: 6px solid var(--bad); }
+  .dxo.CLAIMABLE { border-left: 6px solid var(--blue); }
+  .dxo.CLAIMED { border-left: 6px solid var(--navy); }
+  .dxo.BOUGHT { border-left: 6px solid var(--ok); }
+  .lane-h { display: flex; align-items: center; gap: 8px; margin: 18px 0 4px; font-size: 17px; }
+  .shortfall { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 10px 12px; font-weight: 800; }
+  .tl { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; }
+  .tl li { padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .inrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+  .inrow input, .inrow select { min-height: 48px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); padding: 0 10px; }
+  .inrow label { display: grid; gap: 4px; font-size: 13px; font-weight: 800; color: var(--ink-2); }
+  #accForm input { width: 100%; min-height: 48px; border-radius: 10px; border: 2px solid var(--line); background: var(--bg); padding: 0 10px; }
+  .alert { padding: 14px; margin: 10px 0; background: var(--bad-bg); color: var(--bad); border-color: var(--bad); font-weight: 900; font-size: 17px; }
 </style>
 </head>
 <body>
@@ -72,13 +108,14 @@
 
 <script type="module">
 import * as C from "/assets/agent/agent-core.js";
+import * as D from "/assets/agent/dispatch-core.js";
 import { loadDemoDay, resetDemoDay, saveDay, onDayChange } from "/assets/agent/agent-store.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nowIso = () => new Date().toISOString();
 const hhmm = (iso) => iso ? new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : "";
-const A = { day: null, tab: "tablero", live: null, logins: null };
+const A = { day: null, tab: "tablero", live: null, logins: null, dx: null, dxTimer: null };
 const toast = (t) => { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 2400); };
 const save = () => { if (!A.day.real) saveDay(A.day); }; // production holds no sample day
 const agentName = (id) => (A.day.agents.find((a) => a.id === id) || {}).name || "—";
@@ -90,6 +127,8 @@ async function boot() {
   const demo = DEMO_OK && new URLSearchParams(location.search).has("demo");
   if (res && res.status === 200) {
     A.live = true; A.logins = res.body.logins; $("#who").textContent = "Danny";
+    await loadDispatch();
+    if (A.dx) { A.tab = "despacho"; A.dxTimer = setInterval(async () => { if ((A.tab === "despacho" || A.tab === "pagos" || A.tab === "conciliacion") && !document.activeElement.matches("input, select, textarea")) { await loadDispatch(); render(); } }, 3000); }
     if (!res.body.sample) {
       /* Production: no sample. The board is the real day, empty until Phase 2. */
       A.day = { date: new Date().toISOString().slice(0, 10), agents: A.logins.filter((l) => l.active).map((l) => ({ id: l.email, name: l.name || l.email })), accounts: [], orders: [], history: [],
@@ -132,7 +171,8 @@ function render() {
   const openEx = A.day.exceptions.filter((e) => e.status === "abierta").length;
   const newFlags = A.day.storeFlags.filter((f) => f.status === "nueva").length;
   const tabs = [["tablero", "Tablero"], ["asignacion", "Asignación"], ["excepciones", "Excepciones", openEx], ["cuentas", "Cuentas y topes"], ["tiendas", "Tiendas", newFlags], ["equipo", "Chat"], ["accesos", "Accesos"], ["conciliacion", "Conciliación"]];
-  const body = { tablero, asignacion, excepciones, cuentas, tiendas, equipo, accesos, conciliacion }[A.tab]();
+  if (A.dx) tabs.unshift(["despacho", "Despacho", A.dx.off ? 0 : A.dx.escalations.length + A.dx.counts.SIN_ASIGNAR], ["pagos", "Pagos", A.dx.payoutQueue.length]);
+  const body = { tablero, asignacion, excepciones, cuentas, tiendas, equipo, accesos, conciliacion, despacho, pagos }[A.tab]();
   $("#app").innerHTML = `<nav class="tabsbar" role="tablist">${tabs.map(([k, l, n]) => `<button role="tab" data-tab="${k}" aria-selected="${A.tab === k}">${l}${n ? `<span class="n">${n}</span>` : ""}</button>`).join("")}</nav>${body}`;
   wire();
 }
@@ -220,13 +260,16 @@ function accesos() {
       <label class="field" style="margin:0;flex:1;min-width:200px"><span>Tarifa por compra (S/)</span><input name="pay" inputmode="decimal" placeholder="Por definir" value="${C.payRate(A.day) == null ? "" : C.payRate(A.day)}"></label>
       <button class="btn small primary">Guardar tarifa</button>
       <p class="tiny" style="flex-basis:100%;margin:0">Vacía = «Tarifa por compra: por definir». Los compradores ven su ganancia del día con esta tarifa.</p></form>
-    ${live ? `<form id="invite" class="card" style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><input name="email" type="email" required placeholder="correo de la cuenta" style="flex:1;min-width:220px;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:0 12px"><button class="btn small primary">Invitar como comprador</button></form>` : '<p class="tiny">Demo: compradores de muestra. Con tu sesión de admin aquí aparecen las cuentas reales invitadas.</p>'}
+    ${live ? `<form id="invite" class="card" style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><input name="email" type="email" required placeholder="correo de la cuenta" style="flex:1;min-width:220px;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:0 12px">
+      <input name="yape" inputmode="tel" placeholder="Yape o Plin (opcional)" style="flex:1;min-width:160px;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:0 12px"><input name="cci" inputmode="numeric" placeholder="CCI, 20 dígitos (opcional)" style="flex:1;min-width:200px;min-height:48px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:0 12px">
+      <button class="btn small primary">Invitar como comprador</button><p class="tiny" style="flex-basis:100%;margin:0">Yape o Plin y CCI: dónde se le paga. Si los dejas vacíos, ella los registra en su pantalla de Pagos.</p></form>` : '<p class="tiny">Demo: compradores de muestra. Con tu sesión de admin aquí aparecen las cuentas reales invitadas.</p>'}
     <div class="tablewrap"><table><tr><th>Comprador</th><th>Estado</th><th></th></tr>
     ${rows.map((r) => `<tr><td><strong>${esc(r.name || r.email)}</strong>${r.email ? `<div class="tiny">${esc(r.email)}</div>` : ""}</td><td>${r.active ? '<span class="pill ok">Activo</span>' : '<span class="pill bad">Desactivado</span>'}</td>
       <td><button class="btn small ${r.active ? "bad" : "ok"}" data-active="${esc(r.email || r.id)}" data-val="${r.active ? "0" : "1"}">${r.active ? "Desactivar ya" : "Reactivar"}</button></td></tr>`).join("")}</table></div>`;
 }
 
 function conciliacion() {
+  if (A.dx && !A.dx.off) return conciliacion3();
   const rows = C.reconciliation(A.day);
   return `<h1>Conciliación</h1><p class="muted" style="margin:0 0 12px">Cobro de la tarjeta de un pedido, pedido de la tienda y pedido del cliente, en una fila.</p>
     ${rows.length ? `<div class="tablewrap"><table><tr><th>Pedido cliente</th><th>Tarjeta (tope / cobrado)</th><th>Pedido tienda</th><th>Total reportado</th><th>Precio de la línea</th><th>Estado</th></tr>
@@ -234,6 +277,144 @@ function conciliacion() {
       <td>${r.cardLockedUsd != null ? C.usd(r.cardLockedUsd) : "—"} / ${r.cardCapturedUsd != null ? C.usd(r.cardCapturedUsd) : "—"}</td>
       <td>${esc(r.store)}<div class="tiny">${esc(r.retailerOrderNumber)}</div></td><td>${C.usd(r.chargedTotalUsd)}</td><td>${C.usd(r.lineUsd)}</td>
       <td>${r.ok ? '<span class="pill ok">Cuadra</span>' : r.issues.map((i) => `<span class="pill bad">${esc(i)}</span>`).join(" ")}</td></tr>`).join("")}</table></div>` : '<p class="tiny">Todavía no hay compras hoy.</p>'}`;
+}
+
+
+/* ================= PHASE 2: LIVE DISPATCH ================= */
+async function loadDispatch() {
+  try {
+    const r = await fetch("/.netlify/functions/admin-dispatch", { credentials: "same-origin" });
+    if (r.ok) A.dx = await r.json();
+  } catch { /* keep the last board */ }
+}
+async function dxAdmin(payload) {
+  const r = await fetch("/.netlify/functions/admin-dispatch", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { toast(j.error || "No se pudo"); return null; }
+  await loadDispatch(); render();
+  return j;
+}
+const mins = (m) => D.durationText(m);
+const who = (email) => { const l = (A.logins || []).find((x) => x.email === email); return l ? (l.name || l.email) : email; };
+const LANES = ["FUNDS_HOLD", "SIN_ASIGNAR", "CLAIMABLE", "CLAIMED", "PAID", "PARTIAL", "EXCEPTION", "BOUGHT"];
+const AVAIL = { null: "En línea", ...D.AVAILABILITY_LABELS };
+
+function despacho() {
+  const X = A.dx, k = X.counts;
+  const fl = X.float;
+  const order = (o) => {
+    const extra = o.state === "FUNDS_HOLD" && o.fundsHold
+      ? `<div class="shortfall">Faltan ${C.usd(o.fundsHold.shortfallUsd)}: fondo disponible ${o.fundsHold.availableUsd == null ? "—" : C.usd(o.fundsHold.availableUsd)}, comprometido ${C.usd(o.fundsHold.outstandingUsd)}, este pedido ${C.usd(o.fundsHold.budgetUsd)}</div>`
+      : o.state === "SIN_ASIGNAR" ? `<div class="inrow"><span class="pill bad">${esc(o.unassignedReason || "Sin asignar")}</span><button class="btn small primary" data-rering="${esc(o.orderId)}">Volver a ofrecer</button></div>`
+      : o.state === "CLAIMABLE" ? `<div class="tiny">Suena hasta las ${new Date(o.ringEndsAt).toLocaleTimeString("es-PE", { hourCycle: "h23" })} · avisado a ${o.pinged.length} ${o.pinged.length === 1 ? "comprador" : "compradores"}</div>`
+      : o.claimedBy ? `<div class="tiny">Tomado por ${esc(who(o.claimedBy))} a las ${hhmm(o.claimedAt)}</div>` : "";
+    return `<div class="card dxo ${o.state}" data-order="${esc(o.orderId)}">
+      <div class="h"><strong>Pedido de ${esc(o.customerName)}</strong><span class="pill ${o.state === "BOUGHT" ? "ok" : o.state === "SIN_ASIGNAR" || o.state === "EXCEPTION" ? "bad" : o.state === "FUNDS_HOLD" || o.state === "PARTIAL" ? "warn" : ""}" data-state="${o.state}">${esc(o.stateLabel)}</span>
+        <span class="tiny">desde las ${hhmm(o.stateSince)} · ${mins(o.minutesInState)}</span>${o.sandbox ? '<span class="sbtag">SANDBOX</span>' : ""}
+        <span class="tiny" style="margin-left:auto">${esc(o.orderId)} · ${o.checkouts.length} ${o.checkouts.length === 1 ? "compra" : "compras"} · ${o.itemCount} ${o.itemCount === 1 ? "producto" : "productos"} · tope ${C.usd(o.budgetUsd)} · pago ${C.pen(o.payPen)}</span></div>
+      ${extra}
+      <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap">${o.checkouts.map((c) => `<span class="pill ${c.state === "BOUGHT" ? "ok" : c.state === "EXCEPTION" ? "bad" : ""}">${esc(c.storeLabel)} (${c.itemCount})${c.state === "BOUGHT" ? " · " + esc(c.retailerOrderNumber) + " · " + C.usd(c.chargedTotalUsd) : c.state === "EXCEPTION" ? " · " + esc(c.reasonLabel) : ""}${c.cardLast4 ? " · tarjeta " + esc(c.cardLast4) + " " + esc(c.cardState === "CLOSED" ? "cerrada" : c.cardState === "PAUSED" ? "pausada" : "abierta") : ""}${c.cardError ? " · tarjeta con error" : ""}</span>`).join("")}</div>
+      ${o.checkouts.flatMap((c) => c.items.map((it, i) => it.url ? "" : `<form class="inrow" data-link="${esc(o.orderId)}" data-ck="${esc(c.id)}" data-i="${i}"><span class="tiny">${esc(c.storeLabel)}: «${esc(it.title)}» sin link</span><input name="url" placeholder="https://... el producto exacto" style="flex:1;min-width:220px"><button class="btn small ghost">Poner link</button></form>`)).join("")}
+      ${o.passes.length ? `<div class="tiny">Pasaron: ${o.passes.map((p) => esc(who(p.agentId)) + " " + hhmm(p.at)).join(", ")}</div>` : ""}
+      ${o.escalations.length ? `<div class="tiny" style="color:var(--bad)">Escalado: ${esc(o.escalations.at(-1).text)}</div>` : ""}
+      <details><summary class="tiny">Historial con hora</summary><ul class="tl">${o.history.map((h) => `<li>${new Date(h.at).toLocaleTimeString("es-PE", { hourCycle: "h23" })} · ${h.from ? esc(D.STATE_LABELS[h.from] || h.from) + " → " : ""}${esc(D.STATE_LABELS[h.to] || (h.to === "CHECKOUT_BOUGHT" ? "Compra hecha" : h.to === "CHECKOUT_EXCEPTION" ? "Compra con problema" : h.to))}${h.note ? " · " + esc(h.note) : ""} · ${esc(h.by === "stripe" ? "Stripe" : h.by === "compuerta" ? "compuerta de fondos" : h.by === "timbre" ? "timbre" : who(h.by))}</li>`).join("")}</ul></details>
+    </div>`;
+  };
+  const lanes = LANES.map((st) => {
+    const list = X.orders.filter((o) => o.state === st);
+    if (!list.length) return "";
+    return `<h2 class="lane-h">${esc(D.STATE_LABELS[st])} <span class="pill">${list.length}</span></h2>${list.map(order).join("")}`;
+  }).join("");
+  if (X.off) return `<h1>Despacho</h1><div class="card alert" id="dispatchOff">Despacho apagado: ${esc(X.gate.reasons.join(" y "))}.</div>
+    <p class="muted">Los pedidos pagados siguen entrando al libro de pedidos como siempre; no se ofrecen a compradores, no se emiten tarjetas y no se acumulan pagos. Para encenderlo (después del pase de Danny, peldaño 3): en Netlify, LITHIC_API_KEY de producción, LITHIC_ENV distinto de «sandbox» y DISPATCH_LIVE=on.</p>`;
+  return `<div class="h" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h1>Despacho en vivo</h1>${X.sandbox ? '<span class="sbtag">SANDBOX</span>' : ""}<span class="tiny" style="margin-left:auto">Se actualiza solo cada 3 s</span></div>
+    <p class="muted" style="margin:0">Pagado en Stripe, compuerta de fondos, timbre de ${X.config.ringSeconds} s, tomado, comprado. Cada pedido con el nombre del cliente.</p>
+    <div class="kpis">
+      <div class="card kpi ${k.SIN_ASIGNAR ? "hot" : ""}" id="kSin"><span>Sin asignar</span><b>${k.SIN_ASIGNAR}</b></div>
+      <div class="card kpi ${k.FUNDS_HOLD ? "warm" : ""}" id="kFunds"><span>Fondos en espera</span><b>${k.FUNDS_HOLD}</b><span class="tiny" style="color:inherit">${k.FUNDS_HOLD ? "faltan " + C.usd(X.fundsHoldShortfallUsd) : "nada retenido"}</span></div>
+      <div class="card kpi"><span>Sonando</span><b>${k.CLAIMABLE}</b></div>
+      <div class="card kpi"><span>Tomados</span><b>${k.CLAIMED}</b></div>
+      <div class="card kpi"><span>Comprados</span><b>${k.BOUGHT + k.PARTIAL}</b></div>
+      <div class="card kpi ${X.escalations.length ? "hot" : ""}"><span>Escalados</span><b>${X.escalations.length}</b></div>
+    </div>
+    <div class="card" style="padding:14px" id="floatCard"><strong>Fondo del programa de tarjetas (${esc(X.cardMode)})</strong>
+      <div>Disponible: <b>${fl.availableUsd == null ? "sin dato" : C.usd(fl.availableUsd)}</b> · comprometido en pedidos liberados: <b>${C.usd(fl.outstandingUsd)}</b>${fl.error ? ` · <span style="color:var(--bad)">${esc(fl.error)}</span>` : ""}</div>
+      <div class="tiny">Un pedido suena solo si comprometido + su tope cabe en el disponible. Fuente: ${fl.source === "lithic" ? "saldo disponible de Lithic (API)" : "fondo de prueba (sin llave de Lithic)"}.</div>
+      ${fl.source === "fake" ? `<form class="inrow" id="floatForm" style="margin-top:8px"><label>Fondo de prueba (USD)<input name="usd" inputmode="decimal" value="${fl.availableUsd ?? ""}"></label><button class="btn small ghost">Cambiar</button></form>` : ""}
+      ${X.sandbox ? `<div class="inrow" style="margin-top:8px"><button class="btn small navy" data-sim="1">Pedido de prueba: 1 tienda</button><button class="btn small navy" data-sim="3">Pedido de prueba: 3 tiendas</button></div>` : ""}
+    </div>
+    ${X.escalations.length ? `<h2>Escalados</h2>${X.escalations.map((e) => `<div class="card esc">${esc(e.text)}</div>`).join("")}` : ""}
+    <h2>Compradores ahora</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${X.presence.length ? X.presence.map((p) => `<span class="pill ${p.availability.ok ? "ok" : p.availability.reason === "pausa" ? "warn" : ""}" data-presence="${esc(p.availability.reason || "en_linea")}">${esc(p.name || who(p.agentId))} · ${esc(AVAIL[p.availability.reason])} · pasó ${(X.passesByAgent[p.agentId] || []).length}</span>`).join("") : '<span class="tiny">Nadie conectado todavía.</span>'}</div>
+    ${lanes || '<p class="tiny" style="margin-top:16px">Sin pedidos pagados todavía.</p>'}
+    <h2>Cuentas de tienda y topes (despacho)</h2>
+    <p class="tiny" style="margin:0 0 8px">Un pedido se ofrece solo a quien tiene cupo hoy en TODAS sus tiendas. Sin dueño = cuenta compartida.</p>
+    <form id="accForm"><div class="tablewrap"><table><tr><th>Tienda (clave)</th><th>Nombre</th><th>Tope diario</th><th>Dueño (correo, opcional)</th><th></th></tr>
+      ${X.accounts.concat([{ id: "", store: "", label: "", dailyCap: "", agentId: "" }]).map((a, i) => `<tr data-acc="${i}"><td><input name="store" value="${esc(a.store)}" placeholder="crocs"></td><td><input name="label" value="${esc(a.label)}" placeholder="Crocs · cuenta 1"></td><td><input name="cap" inputmode="numeric" value="${esc(a.dailyCap)}" style="width:80px"></td><td><input name="agent" value="${esc(a.agentId || "")}"></td><td><input type="hidden" name="id" value="${esc(a.id)}"></td></tr>`).join("")}
+    </table></div><button class="btn small primary" style="margin-top:8px">Guardar cuentas</button></form>`;
+}
+
+function pagos() {
+  const X = A.dx, cfg = X.config, pot = X.pot;
+  if (X.off) return `<h1>Pagos a compradores</h1><div class="card alert">Despacho apagado: ${esc(X.gate.reasons.join(" y "))}. Sin despacho no hay ganancias ni retiros.</div>`;
+  return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h1>Pagos a compradores</h1>${X.sandbox ? '<span class="sbtag">SANDBOX</span>' : ""}</div>
+    ${pot.low ? `<div class="card alert" id="potAlert">Bolsa baja: ${C.pen(pot.balancePen)}, por debajo de ${C.pen(pot.lowAlertPen)}. Recárgala.</div>` : ""}
+    <div class="card" style="padding:14px">
+      <strong>Bolsa de pagos</strong>
+      <div>Saldo: <b id="potBal">${pot.balancePen == null ? "sin registrar" : C.pen(pot.balancePen)}</b> · por pagar (neto, sin confirmar): <b>${C.pen(pot.pendingNetPen)}</b></div>
+      <form class="inrow" id="potForm" style="margin-top:8px"><label>Saldo de la bolsa (S/)<input name="bal" inputmode="decimal" value="${pot.balancePen ?? ""}"></label>
+        <label>Alerta de recarga bajo (S/)<input name="low" inputmode="decimal" value="${pot.lowAlertPen ?? ""}" placeholder="por definir"></label><button class="btn small ghost">Guardar</button></form>
+    </div>
+    <div class="card" style="padding:14px;margin-top:10px"><strong>Tarifas (configuración)</strong>
+      <form class="inrow" id="cfgForm" style="margin-top:8px">
+        <label>Pago base por compra, 1 producto (S/)<input name="pay" inputmode="decimal" value="${cfg.payBasePen}"></label>
+        <label>Aumento cada ${cfg.payStepEvery} productos (S/)<input name="step" inputmode="decimal" value="${cfg.payStepPen}"></label>
+        <label>Comisión por retiro (S/)<input name="fee" inputmode="decimal" value="${cfg.cashoutFeePen}"></label>
+        <label>Retiro mínimo (S/)<input name="min" inputmode="decimal" value="${cfg.cashoutMinPen}"></label>
+        <label>Tope mensual Yape (S/)<input name="cap" inputmode="decimal" value="${cfg.yapeMonthlyCapPen}"></label>
+        <label>Timbre (segundos)<input name="ring" inputmode="numeric" value="${cfg.ringSeconds}"></label>
+        <button class="btn small ghost">Guardar</button></form></div>
+    <h2>Retiros por pagar (${X.payoutQueue.length})</h2>
+    ${X.payoutQueue.length ? `<div class="tablewrap"><table id="payQueue"><tr><th>Comprador</th><th>Solicitado</th><th>Retiro</th><th>Comisión</th><th>Neto</th><th>Canal</th></tr>
+      ${X.payoutQueue.map((p) => `<tr><td>${esc(who(p.agentId))}</td><td class="tiny">${esc(String(p.requestedAt).slice(0, 10))} ${hhmm(p.requestedAt)}${p.kind === "barrido" ? " · semanal" : ""}</td><td>${C.pen(p.grossPen)}</td><td>${C.pen(p.feePen)}</td><td><b>${C.pen(p.netPen)}</b></td><td>${p.channel === "cci" ? "CCI" : "Yape"}</td></tr>`).join("")}</table></div>` : '<p class="tiny">Nada pendiente.</p>'}
+    <div class="toolbar"><button class="btn small primary" id="genBatch" ${X.payoutQueue.length && cfg.payoutFileDraft ? "" : "disabled"}>Generar lote (archivo BORRADOR)</button>
+      <span class="tiny">Un archivo por lote para BCP Telecrédito «Pagos Masivos Yape». BORRADOR: falta el formato oficial del BCP. Nada se envía desde aquí.</span></div>
+    <h2>Lotes</h2>
+    ${X.batches.length ? X.batches.map((b) => `<div class="card" style="padding:12px;margin:8px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap" data-batch="${esc(b.id)}"><strong>${esc(b.id)}</strong><span class="pill warn">BORRADOR</span><span>${b.rows.length} pagos · neto ${C.pen(b.totalNetPen)}</span><span class="pill">${esc(D.PAYOUT_STATUS_LABELS[b.status] || b.status)}</span>
+      <a class="btn small ghost" href="/.netlify/functions/admin-dispatch?batch=${encodeURIComponent(b.id)}">Descargar archivo</a>
+      ${b.status === "en_lote" ? `<button class="btn small ghost" data-mark="${esc(b.id)}" data-to="enviado">Marcar enviado</button>` : b.status === "enviado" ? `<button class="btn small ok" data-mark="${esc(b.id)}" data-to="confirmado">Marcar confirmado</button>` : ""}</div>`).join("") : '<p class="tiny">Ningún lote todavía.</p>'}
+    <h2>Libro de pagos por comprador</h2>
+    ${X.payoutLedger.length ? `<div class="tablewrap"><table><tr><th>Comprador</th><th>Compras</th><th>Ganado</th><th>Comisiones</th><th>Retirado</th><th>Pagado (confirmado)</th><th>Saldo</th><th>Pasó</th></tr>
+      ${X.payoutLedger.map((r) => `<tr><td>${esc(who(r.agentId))}</td><td>${r.checkouts}</td><td>${C.pen(r.earnedPen)}</td><td>${C.pen(r.feesPen)}</td><td>${C.pen(r.cashedOutPen)}</td><td>${C.pen(r.netPaidPen)}</td><td><b>${C.pen(r.balancePen)}</b></td><td>${r.passes}</td></tr>`).join("")}</table></div>` : '<p class="tiny">Sin movimientos.</p>'}`;
+}
+
+function conciliacion3() {
+  const R = A.dx.reconciliation;
+  return `<h1>Conciliación de 3 vías</h1><p class="muted" style="margin:0 0 12px">Cada noche: pago de Stripe, número de pedido de la tienda y cobro de la tarjeta de esa compra, en una fila.</p>
+    <div class="toolbar"><button class="btn small primary" id="reconNow">Conciliar ahora</button><span class="tiny">${R ? "Última: " + esc(String(R.at).slice(0, 16).replace("T", " ")) + " UTC · " + R.ok + " cuadran · " + R.issues + " con problema" : "Todavía no se corrió."}</span></div>
+    ${R && R.rows.length ? `<div class="tablewrap"><table><tr><th>Pedido</th><th>Stripe</th><th>Tienda / número</th><th>Tarjeta (cobro / tope)</th><th>Reportado</th><th>Estado</th></tr>
+      ${R.rows.map((r) => `<tr><td><strong>Pedido de ${esc(r.customerName)}</strong><div class="tiny">${esc(r.orderId)} · ${esc(who(r.agentId))}</div></td><td>${r.stripeStatus === "paid" ? "Pagado" : esc(r.stripeStatus || "sin pago")}</td><td>${esc(r.store)}<div class="tiny">${esc(r.retailerOrderNumber || "—")}</div></td>
+        <td>${r.cardLast4 ? esc(r.cardLast4) + ": " : ""}${r.cardCapturedUsd == null ? "—" : C.usd(r.cardCapturedUsd)} / ${C.usd(r.budgetUsd)}</td><td>${r.reportedUsd == null ? "—" : C.usd(r.reportedUsd)}</td>
+        <td>${r.ok ? '<span class="pill ok">Cuadra</span>' : r.issues.map((i) => `<span class="pill bad">${esc(i)}</span>`).join(" ")}</td></tr>`).join("")}</table></div>` : ""}`;
+}
+
+function wireDispatch() {
+  if (!A.dx) return;
+  document.querySelectorAll("[data-rering]").forEach((b) => b.onclick = () => dxAdmin({ action: "rering", orderId: b.dataset.rering }).then((j) => j && toast("Suena otra vez")));
+  document.querySelectorAll("[data-sim]").forEach((b) => b.onclick = () => dxAdmin({ action: "simulate", stores: Number(b.dataset.sim) }).then((j) => j && toast("Pedido de prueba creado")));
+  document.querySelectorAll("[data-link]").forEach((f) => f.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "link", orderId: f.dataset.link, checkoutId: f.dataset.ck, index: Number(f.dataset.i), url: f.url.value }).then((j) => j && toast("Link guardado")); });
+  document.querySelectorAll("[data-mark]").forEach((b) => b.onclick = () => dxAdmin({ action: "batchStatus", id: b.dataset.mark, to: b.dataset.to }));
+  const ff = $("#floatForm"); if (ff) ff.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "float", availableUsd: Number(String(ff.usd.value).replace(",", ".")) }).then((j) => j && toast("Fondo de prueba cambiado")); };
+  const num = (v) => { const t = String(v).trim().replace(",", "."); return t === "" ? null : Number(t); };
+  const pf = $("#potForm"); if (pf) pf.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "config", potBalancePen: num(pf.bal.value), potLowAlertPen: num(pf.low.value) }).then((j) => j && toast("Bolsa guardada")); };
+  const cf = $("#cfgForm"); if (cf) cf.onsubmit = (e) => { e.preventDefault(); dxAdmin({ action: "config", payBasePen: num(cf.pay.value), payStepPen: num(cf.step.value), cashoutFeePen: num(cf.fee.value), cashoutMinPen: num(cf.min.value), yapeMonthlyCapPen: num(cf.cap.value), ringSeconds: num(cf.ring.value) }).then((j) => j && toast("Tarifas guardadas")); };
+  const gb = $("#genBatch"); if (gb) gb.onclick = () => dxAdmin({ action: "batch" }).then((j) => j && toast(`Lote ${j.batch.id}: ${j.batch.rows.length} pagos (BORRADOR)`));
+  const rn = $("#reconNow"); if (rn) rn.onclick = () => dxAdmin({ action: "reconcile" }).then((j) => j && toast(`Conciliación: ${j.ok} cuadran, ${j.issues} con problema`));
+  const af = $("#accForm"); if (af) af.onsubmit = (e) => {
+    e.preventDefault();
+    const list = [...af.querySelectorAll("[data-acc]")].map((tr) => ({ id: tr.querySelector("[name=id]").value || undefined, store: tr.querySelector("[name=store]").value, label: tr.querySelector("[name=label]").value, dailyCap: Number(tr.querySelector("[name=cap]").value), agentId: tr.querySelector("[name=agent]").value || null })).filter((a) => a.store.trim());
+    dxAdmin({ action: "accounts", list }).then((j) => j && toast("Cuentas guardadas"));
+  };
 }
 
 function wire() {
@@ -264,7 +445,8 @@ function wire() {
     if (A.live) { const r = await fetch("/.netlify/functions/admin-agents", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payPerPurchasePen: v }) }); if (!r.ok) { toast("No se pudo guardar"); return; } }
     A.day.settings = { ...(A.day.settings || {}), payPerPurchasePen: v }; if (!A.day.real) save(); toast(v == null ? "Tarifa: por definir" : "Tarifa guardada"); render();
   };
-  const inv = $("#invite"); if (inv) inv.onsubmit = async (e) => { e.preventDefault(); await post({ email: inv.email.value, agent: true }); };
+  const inv = $("#invite"); if (inv) inv.onsubmit = async (e) => { e.preventDefault(); await post({ email: inv.email.value, agent: true, ...(inv.yape.value || inv.cci.value ? { yape: inv.yape.value, cci: inv.cci.value } : {}) }); };
+  wireDispatch();
   document.querySelectorAll("[data-active]").forEach((b) => b.onclick = async () => {
     const val = b.dataset.val === "1";
     if (Array.isArray(A.logins)) await post({ email: b.dataset.active, active: val });

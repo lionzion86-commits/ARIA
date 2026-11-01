@@ -103,7 +103,11 @@ export async function queueResponse(ctx, { users, settings = null, host = "local
   if (!ctx.email) return { status: 401, body: { error: "Inicia sesión" } };
   const pay = await readPay(settings);
   const day = sampleDay(host, pay);
-  if (ctx.role === ROLES.ADMIN) return { status: 200, body: { role: ROLES.ADMIN, sample: day.sample, day } };
+  /* Phase 2: Danny is on the launch roster, so agente.html can run him as a buyer (agentId = his email). */
+  if (ctx.role === ROLES.ADMIN) {
+    const name = (ctx.user && ctx.user.name) || "Danny";
+    return { status: 200, body: { role: ROLES.ADMIN, sample: day.sample, day, agentId: ctx.email, date: day.date, agent: { id: ctx.email, name, demo: false }, settings: { payPerPurchasePen: pay } } };
+  }
   if (ctx.role !== ROLES.AGENT) return { status: 403, body: { error: "Esta cuenta no es de comprador" } };
   const me = { id: ctx.email, name: (ctx.user && ctx.user.name) || ctx.email.split("@")[0], demo: false };
   if (!day.sample) {
