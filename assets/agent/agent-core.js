@@ -62,6 +62,7 @@ export function scopeForRole(state, role, agentId) {
     orders,
     history: (state.history || []).filter(mine).map(agentView),
     chat: state.chat || [],
+    settings: { payPerPurchasePen: payRate(state) },
   };
 }
 
@@ -84,8 +85,52 @@ export function ceilingUsd(priceUsd, qty = 1, margin = CEILING_MARGIN) {
   return Math.ceil(base * (1 + margin) * 100) / 100;
 }
 export const usd = (n) => "$" + Number(n).toFixed(2);
-export function ceilingSentence(ceiling) {
-  return `Paga hasta ${usd(ceiling)} — si cuesta más, no compres, repórtalo`;
+
+/* ---------------- soles next to every dollar (improvement pass 3) ------
+   The rate is the site's own: SUNAT venta from
+   /.netlify/functions/exchange-rate, through the same 24-hour cache key
+   ("aria_fx_rate_v1") checkout and the storefront share -- loaded by
+   agent-store.js. It is NEVER a number typed here: without a valid rate
+   the soles side reads "S/ no disponible", never a guess. The bounds
+   are the ones orders-create.js applies to the same endpoint. */
+export const FX_CACHE_KEY = "aria_fx_rate_v1";
+export const FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+export const PEN_UNAVAILABLE = "S/ no disponible";
+export function validVenta(v) {
+  return typeof v === "number" && Number.isFinite(v) && v > 2 && v < 6 ? v : null;
+}
+/** The cached rate, if it is fresh and sane; else null. */
+export function fxFromCache(raw, now = Date.now()) {
+  try {
+    const c = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (c && validVenta(c.venta) && typeof c.fetchedAt === "number" && now - c.fetchedAt < FX_CACHE_TTL_MS) return c;
+  } catch { /* corrupt cache */ }
+  return null;
+}
+export function penOf(usdAmount, venta) {
+  const v = validVenta(venta);
+  const u = Number(usdAmount);
+  return v && Number.isFinite(u) ? round2(u * v) : null;
+}
+export const pen = (n) => "S/ " + Number(n).toFixed(2);
+/** "$7.69 · S/ 28.84", or "$7.69 · S/ no disponible" with no rate. */
+export function dual(usdAmount, venta) {
+  const p = penOf(usdAmount, venta);
+  return `${usd(usdAmount)} · ${p == null ? PEN_UNAVAILABLE : pen(p)}`;
+}
+export function ceilingSentence(ceiling, venta = null) {
+  const p = penOf(ceiling, venta);
+  return `Paga hasta ${usd(ceiling)} (${p == null ? PEN_UNAVAILABLE : pen(p)}) — si cuesta más, no compres, repórtalo`;
+}
+
+/* ---------------- where demo mode may run (auth rule c.6550830674) ----
+   Sample data and the demo pickers exist ONLY on deploy previews of this
+   site and on a developer's own machine. Deny by default: the production
+   domain, branch deploys and any other host get the real login only. */
+export function demoAllowed(host) {
+  const h = String(host || "").toLowerCase().replace(/:\d+$/, "");
+  if (h === "localhost" || h === "127.0.0.1" || h === "[::1]") return true;
+  return /^deploy-preview-\d+--ariashopperu\.netlify\.app$/.test(h);
 }
 
 /* ---------------- morning split (build order + design delta 5) ------- */
@@ -184,6 +229,8 @@ export function buildDay(batch, { usage = {} } = {}) {
     cards: {},
     ledger: [],
     log: [],
+    outbox: [],
+    settings: { payPerPurchasePen: null, ...(batch.settings || {}) },
     seq: 0,
   };
   linkGuard(day, batch.date + "T08:00:00.000Z");
@@ -213,10 +260,20 @@ export function endBreak(state, agentId, now) {
   s.onBreak = null;
   return s;
 }
-/** Minutes worked: clock-in to now, less breaks (the paused clock). */
+/** End of shift: any open break ends, the clock stops. */
+export function clockOut(state, agentId, now) {
+  const s = state.shifts[agentId];
+  if (!s || !s.clockIn) return null;
+  if (s.onBreak) endBreak(state, agentId, now);
+  if (!s.clockOut) s.clockOut = now;
+  queueEvent(state, { type: "salida", orderId: null, agentId, at: s.clockOut, data: {} });
+  return s;
+}
+/** Minutes worked: clock-in to now (or clock-out), less breaks (the paused clock). */
 export function workedMinutes(state, agentId, now) {
   const s = state.shifts[agentId];
   if (!s || !s.clockIn) return 0;
+  if (s.clockOut) now = s.clockOut;
   let ms = Date.parse(now) - Date.parse(s.clockIn);
   for (const b of s.breaks) ms -= Date.parse(b.end) - Date.parse(b.start);
   if (s.onBreak) ms -= Date.parse(now) - Date.parse(s.onBreak.start);
@@ -284,6 +341,7 @@ export function completeOrder(state, orderId, agentId, input, now) {
   if (card) { card.closedAt = now; card.capturedUsd = round2(total); }
   state.ledger.push({ orderId, status: "paid", amountUsd: round2(total), retailerOrderNumber: num, at: now, agentId });
   log(state, now, agentId, "comprada", orderId);
+  queueEvent(state, { type: "comprada", orderId, agentId, at: now, data: { retailerOrderNumber: num, chargedTotalUsd: round2(total), screenshot: o.screenshot.name } });
   return { ok: true, order: o, next: nextOrder(state, agentId), milestone: milestoneFor(state, agentId) };
 }
 
@@ -321,6 +379,7 @@ function openException(state, o, preset, agentId, now, note) {
   const card = state.cards[o.orderId];
   if (card && !card.closedAt) card.closedAt = now;
   log(state, now, agentId, "excepcion:" + preset.id, o.orderId);
+  if (agentId) queueEvent(state, { type: "excepcion", orderId: o.orderId, agentId, at: now, data: { reason: preset.id, note: ex.note } });
   return ex;
 }
 
@@ -599,17 +658,83 @@ export function miDia(state, agentId) {
   return { done, left, total, pct: total ? Math.round((done / total) * 100) : 0, sentToLead: sent, spentUsd: spent, touched: mine.length };
 }
 
+/* THE CELEBRATIONS (improvement pass 7). The copy lives here, and only
+   here: agente.html renders whatever milestoneFor returns. Counted
+   milestones fire on the purchase that reaches them; "mitad" on the one
+   that reaches half her list; "todo" when her list is empty. */
 export const MILESTONES = Object.freeze([
-  { id: "primera", test: (d) => d.done === 1, title: "Primera compra del día", line: "Ya arrancaste. Sigue así." },
-  { id: "cinco", test: (d) => d.done === 5, title: "Cinco compradas", line: "Vas con todo." },
-  { id: "mitad", test: (d) => d.total >= 4 && d.done === Math.ceil(d.total / 2), title: "Mitad del día", line: "La mitad de tu lista ya está comprada." },
-  { id: "diez", test: (d) => d.done === 10, title: "Diez compradas", line: "Diez pedidos que ya van camino a Miami." },
-  { id: "todo", test: (d) => d.total > 0 && d.left === 0, title: "Lista completa", line: "Compraste todo lo de hoy. Gracias." },
+  { id: "primera", at: 1, title: "¡Primera compra del día!", line: "¡Felicitaciones! Ya arrancaste. Sigue así." },
+  { id: "diez", at: 10, title: "¡Diez compradas!", line: "¡Felicitaciones! Diez pedidos que ya van camino a Miami." },
+  { id: "veinticinco", at: 25, title: "¡Veinticinco compradas!", line: "¡Felicitaciones! Vas a un ritmo buenísimo." },
+  { id: "cincuenta", at: 50, title: "¡Cincuenta compradas!", line: "¡Felicitaciones! Cincuenta clientes van a recibir su pedido gracias a ti." },
+  { id: "cien", at: 100, title: "¡Cien compradas!", line: "¡Felicitaciones! Cien pedidos en un día. Eres una máquina." },
+  { id: "cientocincuenta", at: 150, title: "¡Ciento cincuenta!", line: "¡Felicitaciones! Ya ves la meta de cerca." },
+  { id: "doscientos", at: 200, title: "¡Doscientas compradas!", line: "¡Felicitaciones! Doscientos pedidos. Día histórico." },
+  { id: "mitad", half: true, title: "¡Mitad del día!", line: "¡Felicitaciones! La mitad de tu lista ya está comprada." },
+  { id: "todo", all: true, title: "¡Lista completa!", line: "¡Felicitaciones! Compraste todo lo de hoy. Gracias de verdad." },
 ]);
+function milestoneHits(d) {
+  return MILESTONES.filter((m) => (m.at && d.done === m.at) || (m.half && d.total >= 4 && d.done === Math.ceil(d.total / 2)) || (m.all && d.total > 0 && d.left === 0));
+}
+/** The milestone this purchase reached, if any; "todo" beats a count, a count beats "mitad". */
 export function milestoneFor(state, agentId) {
+  const hits = milestoneHits(miDia(state, agentId));
+  return hits.find((m) => m.all) || hits.find((m) => m.at) || hits[0] || null;
+}
+
+/* ---------------- running earnings (improvement pass 6) --------------
+   The pay per purchase is NOT SET yet. It is an admin setting
+   (state.settings.payPerPurchasePen, admin-agents.js on the server)
+   that defaults to null; until Danny sets it, the agent reads
+   "Tarifa por compra: por definir" and no earnings figure. */
+export const RATE_UNSET_TEXT = "Tarifa por compra: por definir";
+export function payRate(state) {
+  const v = state && state.settings ? state.settings.payPerPurchasePen : null;
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+}
+export function earnings(state, agentId) {
   const d = miDia(state, agentId);
-  const hits = MILESTONES.filter((m) => m.test(d));
-  return hits.length ? hits[hits.length - 1] : null;
+  const rate = payRate(state);
+  return {
+    bought: d.done, exceptions: d.sentToLead, ratePen: rate,
+    totalPen: rate == null ? null : round2(rate * d.done),
+    rateText: rate == null ? RATE_UNSET_TEXT : `Tarifa por compra: ${pen(rate)}`,
+  };
+}
+
+/** The end-of-shift summary (shown at clock-out). */
+export function shiftSummary(state, agentId, now) {
+  const s = state.shifts[agentId] || {};
+  const d = miDia(state, agentId);
+  const day = String(s.clockIn || now).slice(0, 10);
+  return {
+    clockIn: s.clockIn || null, clockOut: s.clockOut || null,
+    workedMin: workedMinutes(state, agentId, now), breaks: (s.breaks || []).length,
+    bought: d.done, left: d.left, exceptions: d.sentToLead, spentUsd: d.spentUsd,
+    earnings: earnings(state, agentId), pendingSync: pendingEvents(state).length,
+    orders: compradas(state, agentId), searchQuery: day,
+  };
+}
+
+/* ---------------- the outbox (improvement pass 4) --------------------
+   Every completion, exception and clock-out is also written here, in
+   order, on the phone. The page sends the pending ones whenever there
+   is signal and marks them synced; nothing waits on the network to let
+   the agent move to her next order. */
+export function queueEvent(state, ev) {
+  const box = state.outbox || (state.outbox = []);
+  state.seq = (state.seq || 0) + 1;
+  const e = { id: `${ev.agentId}-${Date.parse(ev.at) || 0}-${state.seq}`, ...ev, synced: false };
+  box.push(e);
+  return e;
+}
+export function pendingEvents(state) {
+  return (state.outbox || []).filter((e) => !e.synced);
+}
+export function markSynced(state, ids, now) {
+  const set = new Set(ids);
+  for (const e of state.outbox || []) if (set.has(e.id)) { e.synced = true; e.syncedAt = now; }
+  return pendingEvents(state).length;
 }
 
 /* ---------------- admin board ----------------------------------------- */

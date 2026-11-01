@@ -210,7 +210,8 @@ await check("completion writes the existing ledger's ops entry (Costo producto)"
 
 await check("the ceiling sentence is plain words, from the order's own price", () => {
   assert.equal(C.ceilingUsd(29.99, 1), 32.99);
-  assert.equal(C.ceilingSentence(32.99), "Paga hasta $32.99 — si cuesta más, no compres, repórtalo");
+  assert.equal(C.ceilingSentence(32.99, 3.75), "Paga hasta $32.99 (S/ 123.71) — si cuesta más, no compres, repórtalo");
+  assert.equal(C.ceilingSentence(32.99, null), "Paga hasta $32.99 (S/ no disponible) — si cuesta más, no compres, repórtalo");
   for (const o of fresh().orders) assert.equal(o.ceilingUsd, C.ceilingUsd(o.priceUsd, o.qty));
 });
 
@@ -398,7 +399,7 @@ await check("ALMACEN block is exactly the four lines, with the customer's full n
 });
 
 await check("no emoji anywhere in the dashboard's pages, styles or scripts", () => {
-  for (const f of ["agente.html", "admin-agentes.html", "assets/agent/agent-core.js", "assets/agent/agent-store.js", "assets/agent/agent.css", "assets/agent/sample-batch.js"]) {
+  for (const f of ["agente.html", "admin-agentes.html", "agente-sw.js", "assets/agent/agent-core.js", "assets/agent/agent-store.js", "assets/agent/agent.css", "assets/agent/sample-batch.js"]) {
     const src = readFileSync(ROOT + f, "utf8");
     assert.equal(C.hasEmoji(src), false, `${f} holds an emoji: ${(src.match(/[\p{Extended_Pictographic}️]/u) || [])[0]}`);
   }
@@ -419,6 +420,392 @@ await check("staff pages are noindex, disallowed for crawlers, and linked from n
     assert.ok(!/agente\.html|admin-agentes/.test(readFileSync(ROOT + f, "utf8")), `${f} links to a staff page`);
   }
 });
+
+
+console.log("\n  Compradores -- improvement pass (c.6550822918) and auth rule (c.6550830674)");
+
+/* TEST FIXTURE rate: the value the other suites use for SUNAT venta. The pages
+   read the real one from /.netlify/functions/exchange-rate. */
+const FX = 3.75;
+
+await check("soles next to dollars from the site's own rate; no rate means «S/ no disponible», never a guess", () => {
+  assert.equal(C.penOf(7.69, FX), 28.84);
+  assert.equal(C.dual(7.69, FX), "$7.69 · S/ 28.84");
+  assert.equal(C.dual(7.69, null), "$7.69 · S/ no disponible");
+  assert.equal(C.dual(7.69, 0), "$7.69 · S/ no disponible", "a zero rate is not a rate");
+  assert.equal(C.dual(7.69, 38), "$7.69 · S/ no disponible", "an absurd rate is not a rate");
+  assert.equal(C.FX_CACHE_KEY, "aria_fx_rate_v1", "not the storefront's shared cache key");
+  const t = Date.now();
+  assert.equal(C.fxFromCache(JSON.stringify({ venta: FX, fetchedAt: t - 1000 }), t).venta, FX);
+  assert.equal(C.fxFromCache(JSON.stringify({ venta: FX, fetchedAt: t - 25 * 3600e3 }), t), null, "a stale rate was used");
+  assert.equal(C.fxFromCache("{oops", t), null);
+  const store = readFileSync(ROOT + "assets/agent/agent-store.js", "utf8");
+  assert.match(store, /\/\.netlify\/functions\/exchange-rate/);
+  for (const f of ["agente.html", "admin-agentes.html", "agente-sw.js", "assets/agent/agent-core.js", "assets/agent/agent-store.js"]) {
+    const src = readFileSync(ROOT + f, "utf8");
+    assert.ok(!/FX_FALLBACK|venta\s*[:=]\s*3\.\d|\b3\.(?:4|5|6|7|8)\d?\s*\*\s*/.test(src), `${f} hard-codes an exchange rate`);
+  }
+});
+
+await check("demo mode exists only on deploy previews and localhost, never on the production domain", () => {
+  for (const h of ["localhost", "127.0.0.1", "127.0.0.1:8765", "deploy-preview-576--ariashopperu.netlify.app"]) assert.equal(C.demoAllowed(h), true, h);
+  for (const h of ["ariashop.pe", "www.ariashop.pe", "auto.ariashop.pe", "ariashopperu.netlify.app", "main--ariashopperu.netlify.app",
+    "claude-agent-dashboard--ariashopperu.netlify.app", "deploy-preview-576--otrositio.netlify.app", "deploy-preview-576--ariashopperu.netlify.app.evil.test", ""]) assert.equal(C.demoAllowed(h), false, h);
+  const page = readFileSync(ROOT + "agente.html", "utf8"), admin = readFileSync(ROOT + "admin-agentes.html", "utf8");
+  assert.match(page, /const DEMO_OK = C\.demoAllowed\(location\.hostname\)/);
+  assert.match(admin, /const demo = DEMO_OK && new URLSearchParams\(location\.search\)\.has\("demo"\)/);
+  assert.match(page, /if \(DEMO_OK\) window\.__compradores/, "the test handle leaks to production");
+});
+
+await check("production server: no sample day; an agent's login works with an empty queue, admins see an empty board", async () => {
+  const U = users();
+  const prod = await G.queueResponse(await ctxFor(AG1, U), { users: U, host: "ariashop.pe" });
+  assert.equal(prod.status, 200); assert.equal(prod.body.sample, false); assert.deepEqual(prod.body.orders, []);
+  const prev = await G.queueResponse(await ctxFor(AG1, U), { users: U, host: "deploy-preview-576--ariashopperu.netlify.app" });
+  assert.equal(prev.body.sample, true); assert.ok(prev.body.orders.length > 0);
+  const board = await G.boardResponse(await ctxFor(ADMIN, U), { users: U, host: "www.ariashop.pe" });
+  assert.equal(board.status, 200); assert.equal(board.body.sample, false); assert.deepEqual(board.body.exceptions, []);
+  assert.equal(G.hostOf({ headers: { host: "AriaShop.pe" } }), "ariashop.pe");
+});
+
+await check("admin-agentes uses the SAME admin session as /admin.html: no password field, no second login", () => {
+  const admin = readFileSync(ROOT + "admin-agentes.html", "utf8");
+  assert.ok(!/type="password"|auth-login|auth-signup/.test(admin), "the admin page has its own login");
+  const fn = readFileSync(ROOT + "netlify/functions/admin-agents.js", "utf8"), auth = readFileSync(ROOT + "netlify/functions/_agent-auth.js", "utf8");
+  assert.match(auth, /import \{ getSessionEmail, isAdmin, normalizeEmail \} from "\.\/_auth-helpers\.js"/);
+  assert.match(auth, /roleOf\(\{ email, isAdmin: admin\(email\), user \}\)/);
+  assert.match(fn, /ctx\.role !== "admin"/);
+  const adminList = readFileSync(ROOT + "netlify/functions/admin-orders-list.js", "utf8");
+  assert.match(adminList, /getSessionEmail\(event\)/); assert.match(adminList, /isAdmin\(email\)/);
+});
+
+await check("earnings: the pay per purchase defaults to unset and reads «por definir»; set by admin, it multiplies", () => {
+  const d = clocked();
+  const a = d.agents[0].id;
+  assert.equal(C.payRate(d), null);
+  for (let i = 0; i < 2; i++) { const o = C.nextOrder(d, a); C.completeOrder(d, o.orderId, a, { retailerOrderNumber: "R" + i, chargedTotalUsd: o.priceUsd, screenshot: SHOT }, at(i + 1)); }
+  const e0 = C.earnings(d, a);
+  assert.equal(e0.rateText, "Tarifa por compra: por definir"); assert.equal(e0.totalPen, null); assert.equal(e0.bought, 2);
+  d.settings.payPerPurchasePen = 1.5;
+  assert.deepEqual([C.earnings(d, a).totalPen, C.earnings(d, a).rateText], [3, "Tarifa por compra: S/ 1.50"]);
+  const page = readFileSync(ROOT + "agente.html", "utf8");
+  assert.ok(!/payPerPurchasePen\s*[:=]\s*\d/.test(page + readFileSync(ROOT + "assets/agent/sample-batch.js", "utf8")), "a pay rate was invented");
+});
+
+await check("pay rate setting: admin-only store write, a number in soles or null", async () => {
+  const st = memStore();
+  assert.equal(await G.readPay(st), null);
+  assert.equal((await G.writePay(st, -1, ADMIN)).status, 400);
+  assert.equal((await G.writePay(st, "dos", ADMIN)).status, 400);
+  assert.equal((await G.writePay(st, 2.5, ADMIN)).status, 200);
+  assert.equal(await G.readPay(st), 2.5);
+  const U = users();
+  const q = await G.queueResponse(await ctxFor(AG1, U), { users: U, settings: st });
+  assert.equal(q.body.settings.payPerPurchasePen, 2.5);
+  assert.equal((await G.writePay(st, null, ADMIN)).status, 200);
+  assert.equal(await G.readPay(st), null);
+});
+
+await check("clock-out and the end-of-shift summary: bought, exceptions, earnings, tied to the history search", () => {
+  const d = clocked();
+  const a = d.agents[0].id;
+  let o = C.nextOrder(d, a);
+  C.completeOrder(d, o.orderId, a, { retailerOrderNumber: "R1", chargedTotalUsd: o.priceUsd, screenshot: SHOT }, at(30));
+  o = C.nextOrder(d, a); C.reportProblem(d, o.orderId, a, "sin_stock", at(40));
+  C.startBreak(d, a, "bano", at(50));
+  C.clockOut(d, a, at(60));
+  const sm = C.shiftSummary(d, a, at(500));
+  assert.equal(sm.bought, 1); assert.equal(sm.exceptions, 1); assert.equal(sm.clockOut, at(60));
+  assert.equal(sm.workedMin, 50, "the open break ended at clock-out and the clock stopped");
+  assert.equal(sm.earnings.rateText, "Tarifa por compra: por definir");
+  assert.equal(sm.searchQuery, T0.slice(0, 10));
+  assert.deepEqual(C.searchOrders(d, a, sm.searchQuery).map((x) => x.orderId).filter((id) => sm.orders.some((y) => y.orderId === id)), sm.orders.map((x) => x.orderId));
+});
+
+await check("outbox: every completion, exception and clock-out waits on the phone until synced", () => {
+  const d = clocked();
+  const a = d.agents[0].id;
+  let o = C.nextOrder(d, a);
+  C.completeOrder(d, o.orderId, a, { retailerOrderNumber: "R1", chargedTotalUsd: o.priceUsd, screenshot: SHOT }, at(1));
+  o = C.nextOrder(d, a); C.reportProblem(d, o.orderId, a, "precio_subio", at(2));
+  C.clockOut(d, a, at(3));
+  const p = C.pendingEvents(d);
+  assert.deepEqual(p.map((e) => e.type), ["comprada", "excepcion", "salida"]);
+  assert.equal(new Set(p.map((e) => e.id)).size, 3);
+  assert.equal(C.markSynced(d, [p[0].id, p[1].id], at(9)), 1);
+  assert.equal(C.pendingEvents(d)[0].type, "salida");
+  assert.equal(C.linkGuard(fresh(), T0).length, 0, "the link guard is not an agent's event");
+});
+
+await check("sync endpoint: agent only, own events, idempotent per event id, bad events refused", async () => {
+  const U = users(), ev = memStore();
+  const good = { id: "a1-1-1", type: "comprada", orderId: "DEMO-20261030-001", at: at(1), data: { retailerOrderNumber: "R1" } };
+  assert.equal((await G.acceptEvents(await ctxFor(null, U), { events: [good] }, { events: ev })).status, 401);
+  assert.equal((await G.acceptEvents(await ctxFor(SHOPPER, U), { events: [good] }, { events: ev })).status, 403);
+  assert.equal((await G.acceptEvents(await ctxFor(ADMIN, U), { events: [good] }, { events: ev })).status, 403);
+  const r = await G.acceptEvents(await ctxFor(AG1, U), { events: [good, { id: "x", type: "borrar_todo", at: at(1) }, { id: "y", type: "comprada", at: "ayer" }] }, { events: ev });
+  assert.deepEqual(r.body.accepted, ["a1-1-1"]); assert.deepEqual(r.body.rejected, ["x", "y"]);
+  await G.acceptEvents(await ctxFor(AG1, U), { events: [good] }, { events: ev });
+  assert.equal(ev.m.size, 1, "a resend duplicated the event");
+  assert.equal(JSON.parse([...ev.m.values()][0]).agentEmail, AG1, "the event is filed under someone else");
+});
+
+await check("celebrations: real Spanish copy, and the 50th completion fires «¡Cincuenta compradas!»", () => {
+  for (const m of C.MILESTONES) { assert.match(m.line, /^¡Felicitaciones! /, m.id); assert.equal(C.hasEmoji(m.title + m.line), false); }
+  assert.deepEqual(C.MILESTONES.filter((m) => m.at).map((m) => m.at), [1, 10, 25, 50, 100, 150, 200]);
+  /* A 210-order day for one agent: the sample's real records, repeated under new ids (fixture). */
+  const d = fresh();
+  const base = d.orders.filter((o) => o.status === "por_comprar");
+  d.agents = [d.agents[0]];
+  d.orders = Array.from({ length: 210 }, (_, i) => ({ ...base[i % base.length], orderId: `FX-${String(i).padStart(3, "0")}`, assignedTo: "a1", status: "por_comprar", accountId: "fx" }));
+  d.accounts = [{ id: "fx", store: "x", dailyCap: 999 }];
+  C.clockIn(d, "a1", T0);
+  const fired = {};
+  for (let i = 1; i <= 210; i++) {
+    const o = C.nextOrder(d, "a1");
+    const r = C.completeOrder(d, o.orderId, "a1", { retailerOrderNumber: "R" + i, chargedTotalUsd: o.priceUsd, screenshot: SHOT }, at(i));
+    assert.equal(r.ok, true);
+    if (r.milestone) fired[i] = r.milestone.id;
+  }
+  assert.equal(fired[50], "cincuenta");
+  assert.equal(C.MILESTONES.find((m) => m.id === "cincuenta").title, "¡Cincuenta compradas!");
+  assert.deepEqual(fired, { 1: "primera", 10: "diez", 25: "veinticinco", 50: "cincuenta", 100: "cien", 105: "mitad", 150: "cientocincuenta", 200: "doscientos", 210: "todo" });
+});
+
+/* ------------------------- in the browser ------------------------- */
+let pw = null;
+try { pw = await import("playwright"); } catch { /* reported below */ }
+await check("browser: playwright is available for the page checks", () => assert.ok(pw, "playwright is not installed"));
+if (pw) {
+  const { createServer } = await import("node:http");
+  const { join, extname } = await import("node:path");
+  const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".json": "application/json" };
+  const fileFor = (urlPath) => {
+    let p = decodeURIComponent(urlPath.split("?")[0]);
+    if (p === "/agente") p = "/agente.html";
+    const f = join(ROOT, p);
+    return f.startsWith(ROOT) && existsSync(f) && !f.endsWith("/") ? f : null;
+  };
+  let fxMode = "ok"; // what /.netlify/functions/exchange-rate answers (fixture)
+  const srv = createServer((req, res) => {
+    if (req.url.startsWith("/.netlify/functions/exchange-rate")) {
+      if (fxMode !== "ok") { res.writeHead(502, { "Content-Type": "application/json" }); return res.end("{}"); }
+      res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ compra: 3.74, venta: FX, fecha: "fixture", origen: "SUNAT" }));
+    }
+    const f = fileFor(req.url);
+    if (!f) { res.writeHead(404, { "Content-Type": "application/json" }); return res.end("{}"); }
+    res.writeHead(200, { "Content-Type": MIME[extname(f)] || "application/octet-stream" });
+    res.end(readFileSync(f));
+  });
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const BASE = `http://127.0.0.1:${srv.address().port}`;
+  const browser = await pw.chromium.launch();
+  const STUB = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>';
+  const phone = async () => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.request().resourceType() === "image" ? r.fulfill({ status: 200, contentType: "image/svg+xml", body: STUB }) : r.abort());
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    return { ctx, page, errors };
+  };
+  const clockInAs = async (page, id = "a1") => {
+    await page.goto(BASE + "/agente.html");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.click(`[data-pick="${id}"]`);
+    await page.click("#clockIn");
+    await page.waitForSelector("#startNext");
+  };
+  /* The real three taps: COMPRAR -> Mostrar tarjeta -> Ya pagué, then the form. */
+  const buyFocused = async (page, num) => {
+    await page.waitForSelector(".dock .primary-act");
+    const price = await page.evaluate(() => { const { S } = window.__compradores; return S.day.orders.find((o) => o.orderId === S.focusId).priceUsd; });
+    if (await page.$("#comprar")) { await page.click("#comprar"); await page.waitForSelector("#primaryCard"); }
+    if (await page.$("#primaryCard")) { await page.click("#primaryCard"); await page.waitForSelector(".sheet [data-paid]"); await page.click(".sheet [data-paid]"); }
+    else await page.click("#done");
+    await page.waitForSelector("#cf");
+    await page.fill("#cf [name=num]", num); await page.fill("#cf [name=total]", String(price));
+    await page.setInputFiles("#cf [name=shot]", { name: "c.png", mimeType: "image/png", buffer: Buffer.from("89504e47", "hex") });
+    await page.click("#cf button[type=submit]");
+  };
+
+  await check("browser: the ALMACEN block in the rendered focus card is exactly the four lines with the order's customer", async () => {
+    const { ctx, page, errors } = await phone();
+    await clockInAs(page);
+    await page.click("#startNext");
+    const { text, name } = await page.evaluate(() => { const { S } = window.__compradores; return { text: document.getElementById("almacenText").textContent, name: S.day.orders.find((o) => o.orderId === S.focusId).customerName }; });
+    assert.equal(text, `ARIASHOP ${name}\nAMEX\n8010 NW 66th Street, Miami, FL 33166\n+1 828 458 8578`);
+    assert.match(name, / Prueba /);
+    assert.ok(await page.$("#copyAlmacen"));
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+
+  await check("browser: one primary action per state, sticky at the bottom; completion goes straight to the next order", async () => {
+    const { ctx, page, errors } = await phone();
+    await clockInAs(page);
+    await page.click("#startNext");
+    await page.waitForSelector(".dock .primary-act");
+    const stateOf = () => page.evaluate(() => ({ n: document.querySelectorAll(".dock .primary-act").length, id: (document.querySelector(".dock .primary-act") || {}).id,
+      bottom: Math.round(document.querySelector(".dock").getBoundingClientRect().bottom), vh: innerHeight, focus: window.__compradores.S.focusId }));
+    let s1 = await stateOf();
+    assert.equal(s1.n, 1); assert.equal(s1.id, "comprar"); assert.equal(s1.bottom, s1.vh, "the primary is not at the bottom");
+    const href = await page.getAttribute("#comprar", "href");
+    assert.equal(await page.getAttribute("#comprar", "target"), "_blank");
+    assert.equal(await page.getAttribute("#comprar", "rel"), "noopener noreferrer");
+    assert.equal(href, await page.evaluate(() => { const { S } = window.__compradores; return S.day.orders.find((o) => o.orderId === S.focusId).url; }));
+    await page.evaluate(() => window.scrollTo(0, 99999));
+    assert.equal((await stateOf()).bottom, s1.vh, "the dock scrolled away");
+    await page.click("#comprar"); await page.waitForSelector("#primaryCard");
+    assert.equal((await stateOf()).id, "primaryCard");
+    await page.click("#primaryCard"); await page.waitForSelector(".vcard");
+    await page.click(".sheet [data-x]"); await page.waitForSelector("#done");
+    assert.equal((await stateOf()).id, "done");
+    /* Every tap target on the card is at least 48px; the primary at least 56px. */
+    const small = await page.evaluate(() => [...document.querySelectorAll("main .btn, .dock .btn, .checklist label")].filter((b) => b.offsetParent && b.getBoundingClientRect().height < 48).map((b) => b.textContent.trim()));
+    assert.deepEqual(small, []);
+    assert.ok(await page.evaluate(() => document.querySelector(".dock .primary-act").getBoundingClientRect().height >= 56));
+    const first = s1.focus;
+    await buyFocused(page, "R-1");
+    await page.waitForSelector("#comprar");
+    const s2 = await stateOf();
+    assert.notEqual(s2.focus, first, "the next order did not slide in");
+    assert.ok(await page.$(".focus"), "went back to the list");
+    assert.equal(s2.id, "comprar");
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+
+  await check("browser: order cards and the ceiling show soles from the rate endpoint; without it, «S/ no disponible»", async () => {
+    fxMode = "ok";
+    let { ctx, page } = await phone();
+    await clockInAs(page);
+    await page.waitForFunction(() => window.__compradores.S.fx);
+    const row = await page.evaluate(() => document.querySelectorAll(".row .s")[1].textContent);
+    assert.match(row, /^Hasta \$\d+\.\d{2} · S\/ \d+\.\d{2}$/);
+    await page.click("#startNext");
+    const ceil = await page.textContent("#ceiling");
+    const o = await page.evaluate(() => { const { S } = window.__compradores; return S.day.orders.find((x) => x.orderId === S.focusId).ceilingUsd; });
+    assert.equal(ceil, `Paga hasta $${o.toFixed(2)} (S/ ${(Math.round(o * FX * 100) / 100).toFixed(2)}) — si cuesta más, no compres, repórtalo`);
+    await ctx.close();
+    fxMode = "down";
+    ({ ctx, page } = await phone());
+    await clockInAs(page);
+    await page.waitForTimeout(300);
+    assert.match(await page.evaluate(() => document.querySelectorAll(".row .s")[1].textContent), /^Hasta \$\d+\.\d{2} · S\/ no disponible$/);
+    await ctx.close();
+    fxMode = "ok";
+  });
+
+  await check("browser (offline): a dropped signal keeps her working; completions queue with a visible indicator and sync on return", async () => {
+    const { ctx, page, errors } = await phone();
+    await clockInAs(page);
+    await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await page.reload(); // now under the worker
+    await page.waitForFunction(() => navigator.serviceWorker.controller);
+    await page.waitForSelector("#startNext");
+    await ctx.setOffline(true);
+    await page.click("#startNext");
+    await buyFocused(page, "R-OFF-1");
+    await page.waitForTimeout(200);
+    assert.match(await page.textContent("#syncTag"), /Sin señal · 1 por sincronizar/);
+    await page.click("#problem"); await page.click('[data-p="sin_stock"]');
+    await page.waitForTimeout(150);
+    assert.match(await page.textContent("#syncTag"), /Sin señal · 2 por sincronizar/);
+    /* Reload with no signal: the worker serves the page, the day is still there. */
+    await page.reload();
+    await page.waitForSelector(".shift");
+    assert.match(await page.textContent("#syncTag"), /Sin señal · 2 por sincronizar/);
+    assert.equal(await page.evaluate(() => window.__compradores.C.compradas(window.__compradores.S.day, "a1").length), 1);
+    await ctx.setOffline(false);
+    await page.evaluate(() => window.__compradores.sync());
+    await page.waitForFunction(() => /Sincronizado/.test(document.getElementById("syncTag").textContent));
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+
+  await check("browser: the 50th completion fires the celebration «¡Cincuenta compradas!» with ¡Felicitaciones!", async () => {
+    const { ctx, page, errors } = await phone();
+    await clockInAs(page);
+    await page.evaluate(() => {
+      const { S, C, render } = window.__compradores;
+      const base = S.day.orders.filter((o) => o.assignedTo === "a1" && o.status === "por_comprar");
+      for (let i = 0; i < 52; i++) S.day.orders.push({ ...base[i % base.length], orderId: "FX-" + i, accountId: "fx" });
+      S.day.accounts.push({ id: "fx", store: "x", label: "fixture", dailyCap: 999 });
+      for (let i = 0; i < 49; i++) { const o = C.nextOrder(S.day, "a1"); C.completeOrder(S.day, o.orderId, "a1", { retailerOrderNumber: "R" + i, chargedTotalUsd: o.priceUsd, screenshot: { name: "c.png" } }, new Date().toISOString()); }
+      render();
+    });
+    await page.click("#startNext");
+    await buyFocused(page, "R-50");
+    await page.waitForSelector('.party[data-milestone="cincuenta"]');
+    const t = await page.textContent(".party");
+    assert.match(t, /50/); assert.match(t, /¡Cincuenta compradas!/); assert.match(t, /¡Felicitaciones!/);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".party")).pointerEvents), "none", "the celebration blocks the next tap");
+    assert.ok(await page.$(".focus"), "the next order is not underneath");
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+
+  await check("browser: on the production domain there is no demo; the admin board is never shown signed out", async () => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await ctx.route("https://ariashop.pe/**", async (r) => {
+      const u = new URL(r.request().url());
+      if (u.pathname.startsWith("/.netlify/functions/")) return r.fulfill({ status: 401, contentType: "application/json", body: '{"error":"Inicia sesión"}' });
+      const f = fileFor(u.pathname);
+      return f ? r.fulfill({ status: 200, contentType: MIME[extname(f)] || "text/plain", body: readFileSync(f) }) : r.fulfill({ status: 404, body: "" });
+    });
+    await ctx.route("https://deploy-preview-576--ariashopperu.netlify.app/**", async (r) => {
+      const u = new URL(r.request().url());
+      if (u.pathname.startsWith("/.netlify/functions/")) return r.fulfill({ status: 401, contentType: "application/json", body: "{}" });
+      const f = fileFor(u.pathname);
+      return f ? r.fulfill({ status: 200, contentType: MIME[extname(f)] || "text/plain", body: readFileSync(f) }) : r.fulfill({ status: 404, body: "" });
+    });
+    const page = await ctx.newPage();
+    await page.goto("https://ariashop.pe/agente.html");
+    await page.waitForSelector("#login");
+    assert.equal(await page.$("[data-pick]"), null, "the demo picker is on production");
+    assert.equal(await page.evaluate(() => typeof window.__compradores), "undefined");
+    assert.equal(await page.isVisible("#demoTag"), false);
+    await page.goto("https://ariashop.pe/admin-agentes.html?demo=1");
+    await page.waitForSelector("#gate");
+    assert.equal(await page.$(".agent"), null, "the board showed without Danny's session");
+    assert.ok(!/pedidos de muestra/.test(await page.textContent("#gate")), "production offers the demo");
+    await page.goto("https://deploy-preview-576--ariashopperu.netlify.app/agente.html");
+    await page.waitForSelector("[data-pick]");
+    await page.goto("https://deploy-preview-576--ariashopperu.netlify.app/admin-agentes.html?demo=1");
+    await page.waitForSelector(".agent");
+    await ctx.close();
+  });
+
+  await check("browser: Danny's admin session sees the board with no second prompt; a non-admin is denied", async () => {
+    const run = async (status, body) => {
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      await ctx.route("https://ariashop.pe/**", async (r) => {
+        const u = new URL(r.request().url());
+        if (u.pathname === "/.netlify/functions/admin-agents") return r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+        const f = fileFor(u.pathname);
+        return f ? r.fulfill({ status: 200, contentType: MIME[extname(f)] || "text/plain", body: readFileSync(f) }) : r.fulfill({ status: 404, body: "" });
+      });
+      const page = await ctx.newPage();
+      await page.goto("https://ariashop.pe/admin-agentes.html");
+      await page.waitForSelector("#gate, .tabsbar");
+      const out = { gate: !!(await page.$("#gate")), board: !!(await page.$(".tabsbar")), password: !!(await page.$('input[type="password"]')), text: await page.textContent("main") };
+      await ctx.close();
+      return out;
+    };
+    const ok = await run(200, { sample: false, payPerPurchasePen: null, logins: [{ email: AG1, name: "Compradora Uno", active: true }], board: [], accounts: [], exceptions: [] });
+    assert.deepEqual([ok.gate, ok.board, ok.password], [false, true, false]);
+    assert.match(ok.text, /Compradora Uno/);
+    const denied = await run(403, { error: "No autorizado" });
+    assert.deepEqual([denied.gate, denied.board], [true, false]); assert.match(denied.text, /Acceso denegado/);
+    const out = await run(401, { error: "Inicia sesión" });
+    assert.deepEqual([out.gate, out.board, out.password], [true, false, false]); assert.match(out.text, /misma de \/admin\.html/);
+  });
+
+  await browser.close();
+  srv.close();
+}
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length) { for (const f of failures) console.log("  FAIL " + f + "\n"); process.exit(1); }

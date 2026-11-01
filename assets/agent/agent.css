@@ -48,7 +48,8 @@ button { cursor: pointer; touch-action: manipulation; }
 .btn.ok { background: var(--ok); color: #fff; }
 .btn.bad { background: var(--bad); color: #fff; }
 .btn.ghost { background: transparent; border: 2px solid var(--line); color: var(--ink); }
-.btn.small { min-height: 44px; font-size: 15px; padding: 0 14px; border-radius: 12px; }
+/* 48px is the floor for any tap target here (one hand, gloves); primaries are 56px+. */
+.btn.small { min-height: 48px; font-size: 15px; padding: 0 14px; border-radius: 12px; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .btn svg { width: 22px; height: 22px; flex: 0 0 auto; }
 

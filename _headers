@@ -82,3 +82,8 @@
 /admin-agentes.html
   X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache
+
+# Compradores offline shell: always revalidate so a fix reaches the phones.
+/agente-sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /agente
