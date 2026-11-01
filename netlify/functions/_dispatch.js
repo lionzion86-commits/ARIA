@@ -180,6 +180,9 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
             D.release(cur, now, cfg);
             /* The broadcast list at the instant it became claimable (audit and board). */
             cur.pinged = pres.filter((p) => D.eligibleFor(cur, p.agentId, { presence: p, accounts: accs, usage, now, cfg }).ok).map((p) => p.agentId);
+            /* Nobody online and free at this instant: no ring to an empty
+               room, straight to the board (#443 c.6559624585). */
+            if (!pres.some((p) => D.availability(p, now, cfg).ok)) D.toPool(cur, now, D.NOBODY_ONLINE_REASON);
             released++;
             return cur;
           }
@@ -242,15 +245,26 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
       const w = recs.find((r) => r.orderId === input.watching);
       watch = w ? { orderId: w.orderId, state: w.state, takenByOther: Boolean(w.claimedBy && w.claimedBy !== agentId), mine: w.claimedBy === agentId } : { orderId: input.watching, state: null, takenByOther: false };
     }
+    /* THE BOARD: every waiting order, oldest first, for every online buyer,
+       each with whether SHE may grab it now and, if not, why. Shown before
+       anything else when she goes online; live pings stay the pop-up. */
+    let board = null;
+    if (presence.clockedIn && !presence.clockedOut && presence.online) {
+      const list = D.boardOrders(recs);
+      board = {
+        count: list.length, headline: D.boardHeadline(list.length),
+        orders: list.map((r) => ({ ...D.boardModel(r, cfg, now), eligible: D.boardEligibility(r, agentId, { presence, accounts: accs, usage, now, cfg }) })),
+      };
+    }
     const today = D.limaDay(now);
     const mine = recs.filter((r) => r.claimedBy === agentId && (!D.TERMINAL.has(r.state) || D.limaDay(r.updatedAt) === today)).map(agentPacket);
     const L = ledger || D.emptyLedger(agentId);
     return {
       now, me: agentId, sandbox, cardMode: program.mode.label,
-      config: { payBasePen: cfg.payBasePen, payStepPen: cfg.payStepPen, payStepEvery: cfg.payStepEvery, ringSeconds: cfg.ringSeconds, pollSeconds: cfg.pollSeconds, cashoutMinPen: cfg.cashoutMinPen, cashoutFeePen: cfg.cashoutFeePen, yapeMonthlyCapPen: cfg.yapeMonthlyCapPen, yapeNearRatio: cfg.yapeNearRatio },
+      config: { presenceTtlSeconds: cfg.presenceTtlSeconds, payBasePen: cfg.payBasePen, payStepPen: cfg.payStepPen, payStepEvery: cfg.payStepEvery, ringSeconds: cfg.ringSeconds, pollSeconds: cfg.pollSeconds, cashoutMinPen: cfg.cashoutMinPen, cashoutFeePen: cfg.cashoutFeePen, yapeMonthlyCapPen: cfg.yapeMonthlyCapPen, yapeNearRatio: cfg.yapeNearRatio },
       availability: D.availability(presence, now, cfg),
       ping: pingRec ? { ...D.popupModel(pingRec, cfg), secondsLeft: Math.max(0, Math.ceil((Date.parse(pingRec.ringEndsAt) - Date.parse(now)) / 1000)) } : null,
-      watch, mine, ledger: ledgerView(L),
+      board, watch, mine, ledger: ledgerView(L),
     };
   }
 
@@ -301,6 +315,41 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
     });
     const withCards = await issueCards(orderId);
     return agentPacket(withCards || value);
+  }
+
+  /**
+   * «Tomar» on the board. The SAME conditional write as ACEPTAR: two buyers
+   * tapping at once both read SIN_ASIGNAR, one write lands, the other
+   * re-reads CLAIMED and gets 409 «Otra compradora lo tomó». Eligibility is
+   * the ping's (her presence from her last poll, her store caps), checked
+   * inside the write. Cards are issued after the claim lands, never before.
+   */
+  async function grabOrder(agentId, orderId) {
+    requireOn();
+    const now = clock();
+    const cfg = await config();
+    const [recs, accs, presence] = await Promise.all([records(), accounts(), agents.get("presence/" + agentId, { type: "json" })]);
+    const usage = D.accountUsageToday(recs.filter((r) => r.orderId !== orderId), D.limaDay(now));
+    const { value } = await casUpdate(orders, orderId, (cur) => {
+      if (!cur) throw D.dispatchError(404, "Ese pedido no existe");
+      if (cur.state !== D.STATES.SIN_ASIGNAR) {
+        if (cur.claimedBy === agentId) return null; // her own double tap
+        throw D.dispatchError(409, cur.claimedBy ? D.BOARD_TAKEN_TEXT : "Este pedido ya no está en el tablero", { taken: Boolean(cur.claimedBy), state: cur.state });
+      }
+      const el = D.boardEligibility(cur, agentId, { presence, accounts: accs, usage, now, cfg });
+      if (!el.ok) throw D.dispatchError(409, el.label, { ineligible: el.reason, ...(el.missing ? { caps: el.missing } : {}) });
+      return D.claim(cur, agentId, now, { accounts: accs, usage });
+    });
+    if (value.claimedBy !== agentId) throw D.dispatchError(409, D.BOARD_TAKEN_TEXT, { taken: true, state: value.state });
+    const withCards = await issueCards(orderId);
+    return agentPacket(withCards || value);
+  }
+
+  /** She signed out or closed the tab: offline now, not when the heartbeat lapses. */
+  async function leave(agentId) {
+    const now = clock();
+    await casUpdate(agents, "presence/" + agentId, (cur) => (cur && cur.online !== false ? { ...cur, online: false, leftAt: now } : null));
+    return { ok: true };
   }
 
   /** Pasar: on the order and in her history, so Danny sees cherry-picking. */
@@ -412,7 +461,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
     if (!gate.on) {
       /* Production, switched off: the banner and nothing else. Paid orders keep flowing through the existing ledger. */
       return { now, sandbox, off: true, gate, cardMode: program.mode.label, config: await config(), accounts: [], float: { availableUsd: null, outstandingUsd: 0, error: null, source: "off" },
-        counts: Object.fromEntries(Object.keys(D.STATES).map((k) => [k, 0])), fundsHoldShortfallUsd: 0, orders: [], escalations: [], presence: [], payoutLedger: [], passesByAgent: {},
+        counts: Object.fromEntries(Object.keys(D.STATES).map((k) => [k, 0])), board: { count: 0, oldestMin: null, visibleTo: 0 }, fundsHoldShortfallUsd: 0, orders: [], escalations: [], presence: [], payoutLedger: [], passesByAgent: {},
         payoutQueue: [], payoutsInFlight: [], batches: [], pot: { balancePen: null, lowAlertPen: null, low: false, pendingNetPen: 0 }, reconciliation: null };
     }
     const cfg = await config();
@@ -422,15 +471,18 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
     const counts = Object.fromEntries(Object.keys(D.STATES).map((k) => [k, 0]));
     for (const r of recs) counts[r.state]++;
     const holds = recs.filter((r) => r.state === D.STATES.FUNDS_HOLD);
+    /* The same pool the buyers see as the board: count, oldest wait, and how many buyers can see it right now. */
+    const pool = D.boardOrders(recs);
+    const boardSummary = { count: pool.length, oldestMin: pool.length ? D.waitingMinutes(pool[0], now) : null, visibleTo: pres.filter((p) => p.clockedIn && !p.clockedOut && p.online === true && D.availability(p, now, cfg).reason !== "sin_senal").length };
     const payouts = leds.flatMap((L) => L.payouts.map((p) => ({ ...p, agentId: L.agentId, registration: L.registration })));
     return {
       now, sandbox, off: false, gate, cardMode: program.mode.label, config: cfg, accounts: accs,
       float: { availableUsd: floatAvail, outstandingUsd: D.outstandingUsd(recs), error: floatError, source: program.mode.source },
-      counts,
+      counts, board: boardSummary,
       fundsHoldShortfallUsd: D.round2(holds.reduce((s, r) => s + ((r.fundsHold && r.fundsHold.shortfallUsd) || 0), 0)),
       orders: recs.sort((a, b) => String(b.paidAt).localeCompare(String(a.paidAt))).map((r) => ({
         orderId: r.orderId, customerName: r.customerName, state: r.state, stateLabel: D.STATE_LABELS[r.state], stateSince: r.stateSince,
-        minutesInState: D.minutesIn(r, now), paidAt: r.paidAt, ringEndsAt: r.ringEndsAt, claimedBy: r.claimedBy, claimedAt: r.claimedAt,
+        minutesInState: D.minutesIn(r, now), waitingMin: D.waitingMinutes(r, now), paidAt: r.paidAt, ringEndsAt: r.ringEndsAt, claimedBy: r.claimedBy, claimedAt: r.claimedAt,
         fundsHold: r.fundsHold, unassignedReason: r.unassignedReason, passes: r.passes, pinged: r.pinged, sandbox: r.sandbox,
         budgetUsd: r.packet.budgetUsd, totalUsd: r.packet.totalUsd, itemCount: r.packet.itemCount,
         payPen: D.round2(r.packet.checkouts.reduce((t, c) => t + D.checkoutPay(c, cfg), 0)),
@@ -579,8 +631,8 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
       if (s) {
         out.push(s);
         await casUpdate(orders, r.orderId, (cur) => {
-          if (!cur || cur.state !== s.state || (cur.escalations || []).some((x) => x.state === s.state && x.since === cur.stateSince)) return null;
-          cur.escalations = [...(cur.escalations || []), { state: s.state, since: cur.stateSince, at: now, minutes: s.minutes, text: s.text }];
+          if (!cur || cur.state !== s.state || (cur.escalations || []).some((x) => x.state === s.state && x.since === cur.stateSince && (x.tier || 0) === s.tier)) return null;
+          cur.escalations = [...(cur.escalations || []), { state: s.state, since: cur.stateSince, tier: s.tier, at: now, minutes: s.minutes, text: s.text }];
           return cur;
         });
       } else if (D.TERMINAL.has(r.state) && Date.parse(now) - Date.parse(r.updatedAt) > ARCHIVE_AFTER_MS) {
@@ -610,7 +662,7 @@ export function dispatchEngine({ getStore, host = "", env = process.env, clock =
   }
 
   return {
-    ns, sandbox, gate, program, config, accounts, records, tick, intake, poll, claimOrder, passOrder, applyEvents, register, cashout,
+    ns, sandbox, gate, program, config, accounts, records, tick, intake, poll, leave, claimOrder, grabOrder, passOrder, applyEvents, register, cashout,
     board, setConfig, setAccounts, setFakeFloat, reRingOrder, setItemLink, generateBatch, batchFile, markBatch, reconcile, watchdog, sweep,
     ledger: async (id) => (await agents.get(ledgerKey(id), { type: "json" })) || D.emptyLedger(id),
     updateLedger, orderRecord: (id) => orders.get(id, { type: "json" }),

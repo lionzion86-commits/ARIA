@@ -39,6 +39,14 @@
          customer's DNI, address and phone appear), and Pagos holds her
          balance, cash-out (fee and net shown first) and history. The
          rules: /assets/agent/dispatch-core.js.
+       - THE BOARD (#443 c.6559624585): what nobody took in the ring, or
+         what came in while nobody was online, waits unassigned on
+         «Compras que todavía hay que hacer». Going online, the count
+         («Hay 3 compras esperando») is the first thing on screen; each
+         card carries the pop-up's decision layer plus how long it has
+         waited, and «Tomar» is the same first claim as ACEPTAR (the
+         loser sees «Otra compradora lo tomó»; an ineligible buyer sees
+         the card greyed with why, e.g. «Sin cupo en Crocs hoy»).
      ============================================================ -->
 <style>
   body { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
@@ -229,6 +237,16 @@
   .radar i:nth-child(2) { animation-delay: .7s; }
   .radar b { position: absolute; inset: 42px; border-radius: 999px; background: #12A150; box-shadow: 0 0 0 8px rgba(18,161,80,.18); }
   @keyframes ping { from { transform: scale(.45); opacity: .5; } to { transform: scale(1.15); opacity: 0; } }
+  /* Online must visibly MOVE (Danny, c.6560383898); offline stays still.
+     Reduced motion keeps a gentle breathing pulse rather than nothing. */
+  @media (prefers-reduced-motion: reduce) {
+    .radar i { animation: breathe 3.2s ease-in-out infinite; }
+    .radar i:nth-child(2) { animation-delay: 1.6s; }
+    .line-tag.on i { animation: breathe 3.2s ease-in-out infinite; }
+  }
+  @keyframes breathe { 0%, 100% { opacity: .12; transform: scale(.9); } 50% { opacity: .3; transform: scale(1); } }
+  .menu-btn { background: rgba(255,255,255,.14); color: #fff; border: 0; border-radius: 12px; min-width: 44px; min-height: 40px; display: inline-grid; place-items: center; padding: 0 8px; }
+  .menu-btn svg { width: 22px; height: 22px; }
   .wait-hero h2 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.02em; }
   .wait-hero .on-word { color: #12A150; font-weight: 900; letter-spacing: .08em; font-size: 14px; display: block; margin-bottom: 4px; }
   .wait-hero p { margin: 0 auto; color: var(--ink-2); max-width: 30ch; }
@@ -241,7 +259,7 @@
   .dx-status i { width: 12px; height: 12px; border-radius: 999px; background: var(--ink-3); flex: 0 0 auto; }
   .dx-status.on i { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-bg); }
   .dx-status.off i { background: var(--warn); }
-  .dx-status .sb, .ring .sb, .bundle-h .sb { margin-left: auto; background: var(--gold); color: var(--navy); font-weight: 900; letter-spacing: .12em; font-size: 11px; padding: 3px 9px; border-radius: 999px; }
+  .dx-status .sb, .ring .sb, .bundle-h .sb, .bcard .sb { margin-left: auto; background: var(--gold); color: var(--navy); font-weight: 900; letter-spacing: .12em; font-size: 11px; padding: 3px 9px; border-radius: 999px; }
   .bundle-card { padding: 14px; margin: 0 0 10px; }
   .bundle-card h3 { margin: 0 0 4px; font-size: 19px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
@@ -292,12 +310,36 @@
   .hist { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 14px; margin: 0 0 8px; }
   .hist b { display: block; }
   .hist > b { white-space: nowrap; flex: 0 0 auto; }
+
+  /* ---- the board: compras que todavía hay que hacer (#443 c.6559624585) ---- */
+  .board-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: 0 0 10px; background: var(--navy); color: #fff; border-radius: var(--radius); }
+  .board-head .n { font: 900 32px/1 ui-monospace, Menlo, monospace; min-width: 1.6em; text-align: center; background: var(--gold); color: var(--navy); border-radius: 14px; padding: 8px 6px; flex: 0 0 auto; }
+  .board-head h2 { margin: 0; font-size: 21px; line-height: 1.15; letter-spacing: -.01em; }
+  .board-head p { margin: 3px 0 0; font-size: 14px; color: #C9D3EA; }
+  .board-head.empty { background: var(--card); color: var(--ink-2); border: 1px solid var(--line); box-shadow: none; }
+  .board-head.empty .n { background: var(--sky); color: var(--ink-3); }
+  .board-head.empty p { color: var(--ink-3); }
+  .bcard { padding: 14px; margin: 0 0 10px; border-left: 6px solid var(--gold); }
+  .bcard .bc-top { display: flex; align-items: center; gap: 8px; }
+  .bcard .bc-wait { font-weight: 800; font-size: 14px; color: var(--warn); background: var(--warn-bg); border-radius: 999px; padding: 3px 10px; }
+  .bcard .bc-top .sb { margin-left: auto; }
+  .bcard h3 { margin: 8px 0 4px; font-size: 20px; line-height: 1.2; }
+  .bcard .ring-pay b { font-size: 34px; }
+  .bcard .ring-pay span { font-size: 16px; }
+  .bcard .strip-photos img { width: 60px; height: 60px; border-radius: 12px; }
+  .bcard .ring-total b { font-size: 18px; }
+  .bcard .btn { width: 100%; min-height: 60px; font-size: 19px; }
+  .bcard.off { border-left-color: var(--line); }
+  .bcard.off .bc-body { filter: grayscale(1); opacity: .5; }
+  .bcard .bc-why { background: var(--sky); color: var(--navy); border-radius: 14px; padding: 12px 14px; font-weight: 900; text-align: center; margin: 4px 0 8px; }
+  .bcard.taken .bc-body { opacity: .5; }
+  .bcard.taken .ring-pay b { color: var(--ink-3); text-decoration: line-through; }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="brand">ARIA <b>·</b> <small>Compradores</small></div>
-  <div class="right"><span id="lineTag" class="line-tag" hidden></span><span id="syncTag" class="sync" hidden></span><span id="demoTag" class="demo-tag" hidden>DEMO</span><span id="whoTop"></span></div>
+  <div class="right"><span id="lineTag" class="line-tag" hidden></span><span id="syncTag" class="sync" hidden></span><span id="demoTag" class="demo-tag" hidden>DEMO</span><span id="whoTop"></span><button class="menu-btn" id="menuBtn" type="button" aria-label="Menú" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 </header>
 
 <main id="app" aria-live="polite"></main>
@@ -317,6 +359,10 @@
 import * as C from "/assets/agent/agent-core.js";
 import * as D from "/assets/agent/dispatch-core.js";
 import { loadDemoDay, resetDemoDay, saveDay, loadDay, onDayChange, DEMO_KEY, loadFx, rememberSession, lastSession } from "/assets/agent/agent-store.js";
+
+/* The back button must never resurrect a closed session: a page restored
+   from the back/forward cache boots again, against the server. */
+window.addEventListener("pageshow", (e) => { if (e.persisted) location.reload(); });
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -370,6 +416,8 @@ async function boot() {
        look per item. It stays in demo mode (?demo=1). */
     S.day.orders = []; S.day.history = [];
     $("#demoTag").hidden = true;
+    restoreStash();
+    healStaleSession();
     rememberSession({ mode: "live", key: S.key, agentId: S.agentId });
   } else if (!res && last && last.mode === "live" && loadDay(last.key)) {
     /* No signal: reopen the day this phone was already working on. */
@@ -402,6 +450,104 @@ async function boot() {
   sync();
 }
 const save = () => { saveDay(S.day, S.key); paintSync(); };
+
+/* ---------------- truthful presence (Danny, c.6560568865) ----------------
+   Presence is a heartbeat: every successful dispatch poll stamps
+   S.day.lastBeatAt (and, on the server, presence.seenAt, which decides
+   pings: presenceTtlSeconds). A page that opens on a day whose heartbeat
+   lapsed past HEARTBEAT_STALE_MS was a dead session (tab closed, phone
+   off): its open shift is closed at the last heartbeat, the online flag
+   is dropped, and she starts clean -- FUERA DE LÍNEA with a working
+   «Ponerse en línea». The header, the control and the server agree. */
+const HEARTBEAT_STALE_MS = 90 * 1000;
+function healStaleSession() {
+  if (!S.day || !S.agentId) return;
+  const s = S.day.shifts[S.agentId];
+  const beat = S.day.lastBeatAt ? Date.parse(S.day.lastBeatAt) : 0;
+  if (beat && Date.now() - beat <= HEARTBEAT_STALE_MS) return;
+  if (s && s.clockIn && !s.clockOut) {
+    const end = beat && beat > Date.parse(s.clockIn) ? S.day.lastBeatAt : s.clockIn;
+    C.clockOut(S.day, S.agentId, end);
+    S.healedAt = end;
+  }
+  if (s && s.clockOut) retireShift();
+  S.day.dispatchOnline = false;
+  saveDay(S.day, S.key);
+}
+/* A finished shift moves to pastShifts, so a new one can start the same day. */
+function retireShift() {
+  const s = S.day.shifts[S.agentId];
+  if (!s || !s.clockOut) return;
+  (S.day.pastShifts || (S.day.pastShifts = [])).push({ agentId: S.agentId, ...s });
+  delete S.day.shifts[S.agentId];
+}
+
+/* ---------------- Cerrar sesión (Danny, c.6560594013) ----------------
+   Three separate things: EN LÍNEA / FUERA DE LÍNEA is availability only;
+   «Terminar turno» ends the shift (Fin de turno), still signed in;
+   «Cerrar sesión» ends the session: server session deleted, this agent's
+   days and cached state removed from the phone, the worker's caches
+   cleared, and the login screen. Completions not yet synced are NEVER
+   dropped: she is warned and can sync first; if they still cannot go, they
+   stay on this phone under her name only (STASH_PREFIX + her id) and are
+   sent the next time she signs in here. */
+const STASH_PREFIX = "aria-compradores-pending-";
+const LAST_SESSION_KEY = "aria-compradores-last-v1";
+const lsKeys = () => { try { return Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)); } catch { return []; } };
+function restoreStash() {
+  let stash = null;
+  try { stash = JSON.parse(localStorage.getItem(STASH_PREFIX + S.agentId) || "null"); } catch { stash = null; }
+  if (!Array.isArray(stash) || !stash.length) return;
+  const have = new Set((S.day.outbox || []).map((e) => e.id));
+  (S.day.outbox || (S.day.outbox = [])).push(...stash.filter((e) => e && e.id && !have.has(e.id)));
+  saveDay(S.day, S.key);
+  try { localStorage.removeItem(STASH_PREFIX + S.agentId); } catch { /* storage off */ }
+}
+function signOutSheet() {
+  const n = S.day ? C.pendingEvents(S.day).length : 0;
+  if (!n) return signOut();
+  sheet(`<h2>Cerrar sesión</h2><p class="muted" style="margin:0" id="soPending">Tienes ${n} por sincronizar. Conviene sincronizar antes de salir.</p>
+    <button class="btn big primary" data-sync style="margin-top:14px">Sincronizar y cerrar sesión</button>
+    <button class="btn big ghost" data-anyway style="margin-top:8px">Cerrar sesión igual</button>
+    <p class="tiny" style="margin:8px 0 0">Si sales igual, quedan guardadas en este teléfono a tu nombre y se envían solas la próxima vez que entres. No se pierden.</p>
+    <button class="btn big ghost" data-x style="margin-top:8px">Cancelar</button>`, (el, close) => {
+    el.querySelector("[data-x]").onclick = close;
+    el.querySelector("[data-anyway]").onclick = () => { close(); signOut(); };
+    el.querySelector("[data-sync]").onclick = async () => {
+      await sync();
+      const left = C.pendingEvents(S.day).length;
+      if (!left) { close(); signOut(); return; }
+      el.querySelector("#soPending").textContent = `Todavía quedan ${left} por sincronizar (sin señal). Puedes esperar o cerrar sesión igual.`;
+    };
+  });
+}
+async function signOut() {
+  if (DX.timer) { clearInterval(DX.timer); DX.timer = null; }
+  closePopup();
+  const id = S.agentId;
+  try { await dxPost({ action: "leave" }); } catch { /* the heartbeat lapses anyway */ }
+  try {
+    const pend = S.day ? C.pendingEvents(S.day) : [];
+    if (id && pend.length) localStorage.setItem(STASH_PREFIX + id, JSON.stringify(pend));
+    for (const k of lsKeys()) if (k === LAST_SESSION_KEY || (id && k.startsWith("aria-compradores-live-" + id + "-"))) localStorage.removeItem(k);
+  } catch { /* storage off */ }
+  try { if (window.caches) for (const k of await caches.keys()) if (k.startsWith("aria-agente-")) await caches.delete(k); } catch { /* no caches */ }
+  try { await fetch("/.netlify/functions/auth-logout", { method: "POST", credentials: "same-origin" }); } catch { /* the cookie is cleared server-side when it can be */ }
+  S.day = null; S.agentId = null;
+  location.replace("/agente.html");
+}
+function menuSheet() {
+  const s = (S.day && S.day.shifts[S.agentId]) || {};
+  const open = s.clockIn && !s.clockOut;
+  sheet(`<h2>${esc(me() ? me().name : "Menú")}</h2>
+    ${open ? `<button class="btn big ghost" data-end style="margin-top:8px">Terminar turno</button>` : ""}
+    <button class="btn big bad" data-signout style="margin-top:8px">Cerrar sesión</button>
+    <button class="btn big ghost" data-x style="margin-top:8px">Volver</button>`, (el, close) => {
+    el.querySelector("[data-x]").onclick = close;
+    const e = el.querySelector("[data-end]"); if (e) e.onclick = () => { close(); endShiftSheet(); };
+    el.querySelector("[data-signout]").onclick = () => { close(); signOutSheet(); };
+  });
+}
 const me = () => S.day.agents.find((a) => a.id === S.agentId);
 const venta = () => (S.fx ? S.fx.venta : null);
 
@@ -467,6 +613,7 @@ function render() {
   const app = $("#app");
   $("#tabs").hidden = S.mode === "gate" || S.view === "in" || S.view === "focus" || S.view === "summary" || S.view === "bundle";
   $("#whoTop").textContent = S.agentId && S.day && me() ? me().name : "";
+  $("#menuBtn").hidden = S.mode !== "live";
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
   if (S.mode === "gate") app.innerHTML = viewGate();
   else if (S.view === "in") app.innerHTML = viewIn();
@@ -708,7 +855,8 @@ function viewSummary() {
     </div>
     <button class="btn big primary" id="toHistory">Ver mis compras de hoy</button>
     <p class="tiny" style="text-align:center">Quedan en tu historial: búscalas por tienda, número de pedido o fecha.</p>
-    ${sm.left ? `<p class="tiny" style="text-align:center">Te quedaron ${sm.left} por comprar: Danny las reasigna.</p>` : ""}`;
+    ${sm.left ? `<p class="tiny" style="text-align:center">Te quedaron ${sm.left} por comprar: Danny las reasigna.</p>` : ""}
+    ${S.mode === "live" ? `<button class="btn big ghost" id="signOut" style="margin-top:10px">Cerrar sesión</button>` : ""}`;
 }
 
 function viewChat() {
@@ -884,7 +1032,7 @@ function goNext(next) {
    she is pinged (online, not on a break, not in focus mode, store
    accounts with cap left). No signal: polls are skipped, her claimed
    orders stay on the phone, completions wait in the same outbox. */
-const DX = { data: null, mine: [], ledger: null, cfg: null, me: null, popup: null, popTimer: null, timer: null, inflight: false, bundleId: null, ck: 0, sandbox: false, cardMode: null, cardTick: null };
+const DX = { data: null, mine: [], ledger: null, cfg: null, me: null, popup: null, popTimer: null, timer: null, inflight: false, bundleId: null, ck: 0, sandbox: false, cardMode: null, cardTick: null, boardTaken: {} };
 const DISPATCH_TYPES = new Set(["checkout_comprado", "checkout_excepcion"]);
 const PENDING = D.CHECKOUT.PENDING;
 function dxPresence() {
@@ -905,9 +1053,9 @@ async function dxPoll() {
   DX.inflight = true;
   try {
     const r = await dxPost({ action: "poll", ...dxPresence(), watching: DX.popup ? DX.popup.orderId : null });
-    if (r.status === 200) { DX.off = null; dxApply(r.body); }
-    else if (r.status === 503 && /^Despacho apagado/.test(r.body.error || "")) { DX.off = r.body.error; softRender(); }
-  } catch { /* weak signal: next poll */ } finally { DX.inflight = false; }
+    if (r.status === 200) { DX.off = null; DX.lastOkAt = Date.now(); S.day.lastBeatAt = nowIso(); dxApply(r.body); }
+    else if (r.status === 503 && r.body.off) { DX.off = r.body.error; DX.lastOkAt = Date.now(); S.day.lastBeatAt = nowIso(); saveDay(S.day, S.key); softRender(); }
+  } catch { /* weak signal: next poll */ } finally { DX.inflight = false; paintLine(); }
 }
 /* Local moves not yet synced win over the server's older picture: the
    outbox's dispatch events are replayed onto what the server sent, with
@@ -960,7 +1108,10 @@ function paintLine() {
   const tag = $("#lineTag");
   if (S.mode !== "live" || S.view === "summary") { tag.hidden = true; return; }
   const s = S.day.shifts[S.agentId] || {};
-  const [cls, text] = !isOnline() ? ["off", "FUERA DE LÍNEA"] : s.onBreak ? ["pause", "EN PAUSA"] : ["on", "EN LÍNEA"];
+  /* No answer from the server for longer than it keeps her presence: it already
+     treats her as unreachable, so the header says so instead of EN LÍNEA. */
+  const lapsed = isOnline() && (navigator.onLine === false || (DX.lastOkAt && Date.now() - DX.lastOkAt > ((DX.cfg && DX.cfg.presenceTtlSeconds) || 20) * 1000));
+  const [cls, text] = !isOnline() ? ["off", "FUERA DE LÍNEA"] : lapsed ? ["off", "SIN SEÑAL"] : s.onBreak ? ["pause", "EN PAUSA"] : ["on", "EN LÍNEA"];
   tag.hidden = false; tag.className = "line-tag " + cls; tag.dataset.state = cls;
   tag.innerHTML = `<i></i>${text}`;
 }
@@ -970,13 +1121,14 @@ function viewOffline() {
   return `<section class="offline-hero" id="offlineHero">
       <div class="dot"><i></i></div>
       <h1>Estás fuera de línea</h1>
-      <p>${s.clockIn ? `Tu turno sigue abierto desde las ${hhmm(s.clockIn)}. ` : ""}Ponte en línea para recibir pedidos.</p>
+      <p>${s.clockIn ? `Tu turno sigue abierto desde las ${hhmm(s.clockIn)}. ` : S.healedAt ? `Tu sesión anterior se cerró sola a las ${hhmm(S.healedAt)} (la app estuvo cerrada). ` : ""}Ponte en línea para recibir pedidos.</p>
     </section>
     <button class="btn big golive" id="goOnline">Ponerse en línea</button>
     ${open.length ? `<h2 style="font-size:18px;margin:18px 0 8px">Tus pedidos tomados</h2>${open.map(bundleCard).join("")}` : ""}
     ${s.clockIn ? `<button class="btn big ghost" id="endShift" style="margin-top:12px">Terminar turno</button>` : ""}`;
 }
 async function goOnline() {
+  if (S.day.shifts[S.agentId] && S.day.shifts[S.agentId].clockOut) retireShift();
   const s = S.day.shifts[S.agentId];
   if (!s || !s.clockIn) { C.clockIn(S.day, S.agentId, nowIso()); rememberSession({ mode: S.mode, key: S.key, agentId: S.agentId }); warmPhotos(); }
   S.day.dispatchOnline = true; save();
@@ -1000,20 +1152,86 @@ function bundleCard(b) {
    waiting state IS the screen. No sample list, ever, for a real agent. */
 function dxSection() {
   const s = S.day.shifts[S.agentId] || {};
-  if (DX.off) return `<section id="dxSection"><div class="card dx-status off"><i></i><span>${esc(DX.off)}. Todavía no llegan pedidos.</span></div></section>`;
+  if (DX.off) return `<section id="dxSection"><div class="card dx-status off" id="dxOff"><i></i><span>${esc(DX.off)}</span></div></section>`;
   const open = dxOpen();
   const done = DX.mine.filter((b) => !b.packet.checkouts.some((c) => c.state === PENDING));
   const av = DX.data && DX.data.availability;
   const line = !DX.data ? (navigator.onLine === false ? "Sin señal: los pedidos llegan cuando vuelva" : "Conectando...")
     : av && av.ok ? "Recibiendo pedidos" : av && av.reason === "enfocada" ? "Comprando: no te llegan pedidos nuevos" : "No estás recibiendo pedidos";
   const waiting = s.onBreak ? "" : `<div class="card wait-hero" id="waitHero"><div class="radar" aria-hidden="true"><i></i><i></i><b></b></div>
-      <span class="on-word">EN LÍNEA</span><h2>Esperando pedidos</h2><p id="waitLine">${esc(line)}. Cuando entre uno, aparece aquí con su tiempo para aceptarlo.</p>
+      <span class="on-word">EN LÍNEA</span><h2>Esperando pedidos…</h2><p id="waitLine">${esc(line)}. Cuando entre uno, aparece aquí con su tiempo para aceptarlo.</p>
       ${DX.sandbox ? '<p class="tiny" style="margin-top:10px">Vista previa: tarjetas y pedidos de prueba (SANDBOX).</p>' : ""}</div>`;
+  const bd = isOnline() && DX.data && DX.data.board ? DX.data.board : null;
   return `<section id="dxSection">
-    ${open.length ? `<h2 style="font-size:20px;margin:6px 0 8px">Tu pedido en curso</h2>${open.map(bundleCard).join("")}` : isOnline() ? waiting : ""}
+    ${bd ? boardHead(bd) : ""}
+    ${open.length ? `<h2 style="font-size:20px;margin:6px 0 8px">Tu pedido en curso</h2>${open.map(bundleCard).join("")}` : ""}
+    ${bd ? boardList(bd) : ""}
+    ${!open.length && isOnline() ? waiting : ""}
     ${isOnline() ? `<button class="btn big ghost" id="goOffline">Ponerse fuera de línea</button>` : `<button class="btn big golive" id="goOnline">Ponerse en línea</button>`}
     ${done.length ? `<h2 style="font-size:16px;margin:16px 0 8px;color:var(--ink-2)">Terminados hoy</h2>${done.map(bundleCard).join("")}` : ""}
   </section>`;
+}
+
+/* ---------- the board: compras que todavía hay que hacer ----------
+   Orders nobody took in the ring, or that came in while nobody was online.
+   Nobody is assigned: every online buyer sees the same list, oldest first,
+   with the pop-up's decision layer and how long each has waited. «Tomar»
+   is the same first claim as ACEPTAR. It is the FIRST thing on screen when
+   she goes online; live pings still arrive as the pop-up. */
+function boardHead(bd) {
+  return `<div class="board-head${bd.count ? "" : " empty"}" id="boardHead" data-count="${bd.count}"><span class="n" id="boardCount">${bd.count}</span>
+    <div><h2 id="boardLine">${esc(bd.headline)}</h2><p>${bd.count ? "Compras que todavía hay que hacer. Sin asignar: la primera que toque «Tomar» se la lleva." : "Compras que todavía hay que hacer: ninguna ahora."}</p></div></div>`;
+}
+function boardList(bd) {
+  const now = Date.now();
+  for (const [id, t] of Object.entries(DX.boardTaken)) if (t.until <= now) delete DX.boardTaken[id];
+  const live = bd.orders.filter((o) => !DX.boardTaken[o.orderId]);
+  /* A card she lost keeps «Otra compradora lo tomó» for a moment, in its place in the list. */
+  const taken = Object.values(DX.boardTaken).map((t) => ({ ...t.model, _taken: t.text }));
+  const list = [...live, ...taken].sort((a, b) => String(a.paidAt).localeCompare(String(b.paidAt)));
+  if (!list.length) return "";
+  return `<div id="boardList">${list.map(boardCard).join("")}</div>`;
+}
+function boardCard(o) {
+  const el = o.eligible || {};
+  const cls = o._taken ? " taken" : el.ok ? "" : " off";
+  const foot = o._taken ? `<div class="taken-msg" data-taken>${esc(o._taken)}</div>`
+    : el.ok ? `<button class="btn big ok" data-grab="${esc(o.orderId)}">Tomar</button>`
+      : `<div class="bc-why" data-why>${esc(el.label)}</div><button class="btn big ghost" disabled>Tomar</button>`;
+  return `<div class="card bcard${cls}" data-board="${esc(o.orderId)}">
+    <div class="bc-top"><span class="bc-wait" data-wait>${esc(o.waitingText)}</span>${o.sandbox || DX.sandbox ? '<span class="sb">SANDBOX</span>' : ""}</div>
+    <div class="bc-body"><h3 data-head>${esc(o.header)}</h3>
+      <div class="ring-pay"><b data-pay>${esc(o.headline)}</b><span data-sub>${esc(o.sub)}</span></div>
+      <div class="chips">${o.stores.map((s) => `<span class="pill">${esc(s)}</span>`).join("")}</div>
+      ${o.photos.length ? `<div class="strip-photos">${o.photos.map((u) => `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer">`).join("")}</div>` : ""}
+      <div class="ring-total"><span class="tiny">${esc(o.itemText)} · total a comprar</span><b data-total>${esc(C.dual(o.totalUsd, venta()))}</b></div></div>
+    ${foot}
+  </div>`;
+}
+async function grabBoard(orderId) {
+  const bd = DX.data && DX.data.board;
+  const model = bd && bd.orders.find((o) => o.orderId === orderId);
+  if (!model) return;
+  document.querySelectorAll(`[data-grab="${CSS.escape(orderId)}"]`).forEach((b) => b.disabled = true);
+  const dropFromBoard = () => {
+    bd.orders = bd.orders.filter((o) => o.orderId !== orderId);
+    bd.count = bd.orders.length; bd.headline = D.boardHeadline(bd.count);
+  };
+  try {
+    const r = await dxPost({ action: "grab", orderId });
+    if (r.status === 200) {
+      dropFromBoard();
+      DX.mine = [r.body.order, ...DX.mine.filter((b) => b.orderId !== orderId)];
+      S.day.dispatchMine = DX.mine; save();
+      toast("Es tuyo: " + model.header);
+      render(); dxPoll();
+    } else if (r.body.taken) {
+      dropFromBoard();
+      DX.boardTaken[orderId] = { text: D.BOARD_TAKEN_TEXT, until: Date.now() + 4000, model };
+      render();
+      setTimeout(() => { if (S.view === "home") render(); }, 4100);
+    } else { toast(r.body.error || "No se pudo tomar"); dxPoll(); }
+  } catch { toast("Sin señal: no se pudo tomar"); render(); }
 }
 
 /* ---------- the pop-up ---------- */
@@ -1267,6 +1485,7 @@ function wireDispatch() {
     render();
   });
   document.querySelectorAll("[data-bundle]").forEach((b) => b.onclick = () => openBundle(b.dataset.bundle));
+  document.querySelectorAll("[data-grab]").forEach((b) => b.onclick = () => grabBoard(b.dataset.grab));
   document.querySelectorAll("[data-ck]").forEach((b) => b.onclick = () => { DX.ck = Number(b.dataset.ck); render(); });
   document.querySelectorAll("[data-reveal]").forEach((b) => b.onclick = () => {
     const now = nowIso();
@@ -1340,7 +1559,8 @@ function wire() {
       location.reload();
     } catch { msg.textContent = "Sin conexión con el servidor."; }
   };
-  const lo = $("#logout"); if (lo) lo.onclick = async () => { try { await fetch("/.netlify/functions/auth-logout", { method: "POST", credentials: "same-origin" }); } catch {} location.reload(); };
+  const lo = $("#logout"); if (lo) lo.onclick = async () => { try { await fetch("/.netlify/functions/auth-logout", { method: "POST", credentials: "same-origin" }); } catch {} location.replace("/agente.html"); };
+  const so = $("#signOut"); if (so) so.onclick = signOutSheet;
   document.querySelectorAll("[data-break]").forEach((b) => b.onclick = () => { C.startBreak(S.day, S.agentId, b.dataset.break, nowIso()); save(); render(); dxPoll(); });
   const eb = $("#endBreak"); if (eb) eb.onclick = () => { C.endBreak(S.day, S.agentId, nowIso()); save(); toast("De vuelta. Seguimos."); render(); dxPoll(); };
   wireDispatch();
@@ -1368,6 +1588,12 @@ document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => { S.t
 setInterval(() => { if (S.view === "home" && S.tab === "lista" && !$(".sheet-back") && $(".shift .clock")) render(); }, 60000);
 /* A test/preview handle -- only where demo mode may run, never on production. */
 if (DEMO_OK) window.__compradores = { S, C, D, DX, render, sync, dxPoll, resetDemoDay: () => { S.day = resetDemoDay(); S.agentId = null; S.view = "in"; render(); } };
+$("#menuBtn").onclick = () => { if (S.mode === "live") menuSheet(); };
+/* Closing the tab tells the server at once that she is gone (the heartbeat would lapse anyway). */
+window.addEventListener("pagehide", () => {
+  if (S.mode !== "live" || !S.agentId) return;
+  try { navigator.sendBeacon("/.netlify/functions/agent-dispatch", new Blob([JSON.stringify({ action: "leave" })], { type: "application/json" })); } catch { /* best effort */ }
+});
 boot();
 </script>
 </body>
