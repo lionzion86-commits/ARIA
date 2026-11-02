@@ -1064,14 +1064,18 @@ function cardImgAttrs(url, sizes){
     for (let i = 0; i < key.length; i++){ h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
     return ('00' + ((h >>> 0) % 4096).toString(16)).slice(-3);
   }
+  /* A store's placeholder ("No Size", "One Size") is no size (#443 c.6567135924). */
+  const SIZE_PLACEHOLDER_RX = /^(?:no\s*size|one\s*size|o\/?s|n\/?s|n\/a|default(?:\s+title)?|talla\s+[u\u00fa]nica|[u\u00fa]nica)$/i;
   function sizeGateList(v){
     if (!Array.isArray(v)) return [];
     const out = [];
     for (const x of v){
       const s = typeof x === 'string' || typeof x === 'number' ? String(x)
         : (x && x.available !== false && (typeof x.size === 'string' || typeof x.size === 'number')) ? String(x.size) : '';
-      if (s.trim() && !out.includes(s.trim())) out.push(s.trim());
+      if (s.trim() && !SIZE_PLACEHOLDER_RX.test(s.trim()) && !out.includes(s.trim())) out.push(s.trim());
     }
+    /* A lone volume or weight is the product, not a choice (producto.html's rule). */
+    if (out.length === 1 && /^\d+(?:[.,]\d+)?\s*(?:fl\.?\s*oz|oz|ml|cl|l|g|gr|kg|mg|lb|lbs|ct|count)\.?$/i.test(out[0])) return [];
     return out;
   }
   const sizeGateShards = {};

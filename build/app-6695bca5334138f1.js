@@ -19431,6 +19431,11 @@ function sortSizes(sizes){
     return (a.k[0] - b.k[0]) || (a.k[1] - b.k[1]) || (a.k[2] - b.k[2]) || (a.i - b.i);
   }).map(function(x){ return x.s; });
 }
+/* NOT A SIZE (#443 c.6567135924, Danny: makeup shows shades, never a size
+   box). A store's placeholder (Macy's "No Size", "One Size", "OS") is no
+   choice, and a lone volume or weight ("1 oz", "50 ml") is the product
+   itself: neither is ever a picker. Two or more volumes are a Tamaño. */
+function sizeIsMeasure(list){ return list.length > 0 && list.every(function(s){ return /^\d+(?:[.,]\d+)?\s*(?:fl\.?\s*oz|oz|ml|cl|l|g|gr|kg|mg|lb|lbs|ct|count)\.?$/i.test(String(s)); }); }
 function truthfulSizes(list){
   if (!Array.isArray(list)) return [];
   var out = [], seen = {};
@@ -19440,10 +19445,11 @@ function truthfulSizes(list){
     else if (typeof v === 'number' && isFinite(v)) s = String(v);
     else if (v && typeof v === 'object' && v.available !== false && (typeof v.size === 'string' || typeof v.size === 'number')) s = String(v.size);
     s = s.trim();
-    if (!s || seen[s.toUpperCase()]) continue;
+    if (!s || /^(?:no\s*size|one\s*size|o\/?s|n\/?s|n\/a|default(?:\s+title)?|talla\s+[uú]nica|[uú]nica)$/i.test(s) || seen[s.toUpperCase()]) continue;
     seen[s.toUpperCase()] = true;
     out.push(s);
   }
+  if (out.length === 1 && /^\d+(?:[.,]\d+)?\s*(?:fl\.?\s*oz|oz|ml|cl|l|g|gr|kg|mg|lb|lbs|ct|count)\.?$/i.test(out[0])) return [];
   return sortSizes(out);
 }
 /* A bag, wallet, charm or phone case is not sized, whatever garment word
@@ -20472,9 +20478,9 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     if (list.length){
       sizeWrap.hidden = false;
       sizeSelect.required = true;
-      sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
+      sizeSelect.innerHTML = '<option value="" disabled selected>' + (sizeIsMeasure(list) ? 'Selecciona un tamaño' : 'Selecciona una talla') + '</option>'
         + list.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
-      sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
+      sizeNote.textContent = sizeIsMeasure(list) ? 'Tamaños reales disponibles en la tienda.' : 'Tallas reales disponibles en la tienda.';
     } else {
       sizeWrap.hidden = true;
       sizeSelect.required = false;
@@ -20674,7 +20680,7 @@ async function addToCartFromProduct(){
   const sizeList = Array.isArray(p.sizeList) ? p.sizeList : truthfulSizes(p.sizes);
   const chosen = sizeList.length ? String(sizeSelect.value || '') : '';
   if (sizeList.length && (!chosen || !sizeList.includes(chosen))){
-    showToast('Selecciona una talla antes de agregar al carrito.');
+    showToast(sizeIsMeasure(sizeList) ? 'Selecciona un tamaño antes de agregar al carrito.' : 'Selecciona una talla antes de agregar al carrito.');
     try { sizeSelect.focus(); } catch {}
     return;
   }
