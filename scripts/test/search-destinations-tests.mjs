@@ -124,7 +124,9 @@ await check("«También puede ser…» rides on a resolved landing: other close 
     assert.ok(a.alternatives.length <= dst.ALT_MAX, q);
     for (const x of a.alternatives) {
       assert.match(x.url, dst.SURFACE_RX, `${q}: ${x.url}`);
-      assert.ok(!(x.kind === d.kind && x.key === d.key), `${q}: the landing offered as its own alternative`);
+      /* A type page's chips may name its own department (another page). */
+      if (d.type) assert.notEqual(x.url, d.url, `${q}: the landing offered as its own alternative`);
+      else assert.ok(!(x.kind === d.kind && x.key === d.key), `${q}: the landing offered as its own alternative`);
     }
     if (a.alternatives.length) {
       carried++;
@@ -169,6 +171,125 @@ await check(`the miss-words (${MISS_WORDS.join(", ")}): no store, no brand, no c
     const r = JSON.parse((await search.handler({ httpMethod: "GET", queryStringParameters: { q: w, page: "1" } }, { fetchImpl })).body);
     assert.equal(r.state, "none", `${w}: the engine finds ${r.total}`);
   }
+});
+
+/* ------------------------- THE PRODUCT WORD -> ITS TYPE PAGE -------------------------
+   (#443 c.6579541628, Danny's final ruling; c.6579064382; c.6579505156.)
+   A word that names a product type opens THAT type's page -- the full
+   type listing departamento.html draws for one rail (?ver=<rail key>,
+   the "Celulares 87" page) -- never the department home, never a
+   generic Ofertas rail; and its «También puede ser…» chips are sibling
+   types and the department, never a brand or store guess. */
+const CEL = ["electronics", "pasillo:tech_celulares"], PCS = ["electronics", "pasillo:tech_computadoras"], CON = ["electronics", "consolas"];
+const AUD = ["electronics", "pasillo:tech_audifonos"], CAM = ["electronics", "pasillo:tech_camaras"], MON = ["electronics", "pasillo:tech_accesorios", "monitor"];
+const CHAMPU = ["cabello", "tipo:champú y acondicionador"], KERA = ["cabello", "tipo:keratina y alisados"], MASK = ["cabello", "tipo:mascarillas"];
+const PESAS = ["sporting_goods", "tipo:pesas-y-cinturones"], VAJ = ["home_goods", "casa:casa_mesa"], LAB = ["beauty", "tipo:labios"];
+const POL = ["men", "tipo:chompas-y-polerones"], SHO = ["clothing", "tipo:shorts"];
+const WATCH = [
+  ["celular", CEL], ["celulares", CEL], ["teléfono", CEL], ["telefono", CEL], ["fono", CEL], ["cell", CEL], ["cell phone", CEL], ["smartphone", CEL],
+  ["un celular barato", CEL],
+  ["consola", CON], ["consolas", CON], ["playstation", CON], ["xbox", CON],
+  ["laptop", PCS], ["laptops", PCS], ["computadora", PCS], ["notebook", PCS],
+  ["audífonos", AUD], ["audifonos", AUD], ["headphones", AUD], ["cámara", CAM], ["monitor", MON],
+  ["champú", CHAMPU], ["shampoo", CHAMPU], ["keratina", KERA], ["alisado", KERA], ["plancha", KERA], ["mascarilla", MASK],
+  ["pesas", PESAS], ["mancuernas", PESAS], ["dumbbells", PESAS], ["vajilla", VAJ], ["labial", LAB],
+  ["polera", POL], ["poleras", POL], ["hoodie", POL], ["hudi", POL], ["hodie", POL], ["sudadera con capucha", POL], ["poleron", POL],
+  ["sweatshirt", POL], ["swetshert", POL],
+  ["short", SHO], ["shorts", SHO], ["chort", SHO], ["shor", SHO],
+];
+/* The type page as departamento.html draws it: the (narrowed) head, the
+   rail whose key is ver=, and that rail's first page from the endpoint. */
+function typePage(url) {
+  const qs = { dept: param(url, "dept") };
+  if (param(url, "q")) qs.q = param(url, "q");
+  const head = dept.answer(qs);
+  if (head.status !== 200) return { head: null };
+  const rail = head.body.rails.find((r) => r.k === param(url, "ver"));
+  if (!rail) return { head: head.body, rail: null };
+  const page = dept.answer({ ...qs, rail: String(rail.i), page: "0" });
+  return { head: head.body, rail, page: page.status === 200 ? page.body : null };
+}
+const WATCH_ANSWERS = new Map();
+await check(`the watch set (${WATCH.length} product words): each lands on its TYPE page -- a real rail with products, never the department home, never an Ofertas rail`, async () => {
+  const bad = [];
+  for (const [q, [dk, ver, nq]] of WATCH) {
+    const a = await route(q);
+    WATCH_ANSWERS.set(q, a);
+    const d = a.destination;
+    const got = `${d.kind}:${d.key} ver=${param(d.url || "", "ver")} q=${param(d.url || "", "q") || ""}`;
+    if (d.kind !== "category" || d.key !== dk || param(d.url, "ver") !== ver || (param(d.url, "q") || "") !== (nq || "")) { bad.push(`${q}: ${got} (want ${dk} ${ver} ${nq || ""})`); continue; }
+    assert.match(d.url, dst.SURFACE_RX, q);
+    assert.ok(DEST.types[dk] && DEST.types[dk][ver] && DEST.types[dk][ver][1] > 0, `${q}: ${dk} ${ver} is not a listed type`);
+    const { rail, page } = typePage(d.url);
+    if (!rail) { bad.push(`${q}: ${d.url} -- the page has no rail ${ver}`); continue; }
+    if (/^Ofertas\b/.test(rail.title) || rail.k === "ofertas") bad.push(`${q}: lands on an Ofertas rail`);
+    if (!page || !(page.count > 0) || !page.cards.length) bad.push(`${q}: ${d.url} -- the type page shows nothing`);
+    for (const x of a.alternatives) if (x.kind !== "category") bad.push(`${q}: a ${x.kind} chip (${x.label}) against the product word`);
+  }
+  assert.deepEqual(bad, []);
+  assert.ok(WATCH.length >= 26);
+});
+
+await check("every product-word mapping names a type that exists with products, and every type page's chips are real type pages or the department", () => {
+  for (const [id, t] of Object.entries(dst.PRODUCT_TYPES)) {
+    assert.ok(DEST.types[t.dept] && DEST.types[t.dept][t.ver], `${id}: ${t.dept} has no type ${t.ver}`);
+    const { rail, page } = typePage(dst.deptUrl(t.dept, { ver: t.ver, q: t.q || "" }));
+    assert.ok(rail && page && page.count > 0, `${id}: ${t.dept} ${t.ver} shows nothing`);
+    for (const [sd, sv, sq] of t.sib) {
+      assert.ok(DEST.types[sd] && DEST.types[sd][sv], `${id}: sibling ${sd} ${sv} is not a type`);
+      const s = typePage(dst.deptUrl(sd, { ver: sv, q: sq || "" }));
+      assert.ok(s.rail && s.page && s.page.count > 0, `${id}: sibling ${sd} ${sv} shows nothing`);
+    }
+    assert.ok(dst.PRODUCT_WORDS[id], `${id}: no words`);
+  }
+  for (const [q, a] of WATCH_ANSWERS) {
+    for (const x of a.alternatives) {
+      const ver = param(x.url, "ver");
+      assert.ok(ver, `${q}: chip ${x.url} has no ver`);
+      if (ver !== dst.VER_TYPES) assert.ok(DEST.types[x.key] && DEST.types[x.key][ver], `${q}: chip ${x.url}`);
+    }
+  }
+});
+
+await check("no search lands on a department page led by its generic Ofertas rail: every category landing, chip and chooser door says what leads (ver=)", () => {
+  const all = [...ANSWERS.values(), ...WATCH_ANSWERS.values()];
+  let n = 0;
+  for (const a of all) {
+    const urls = [a.destination, ...a.alternatives, ...((a.chooser && a.chooser.rails) || [])].filter((x) => x && x.kind === "category").map((x) => x.url);
+    for (const u of urls) {
+      n++;
+      const ver = param(u, "ver");
+      assert.ok(ver, `${a.q}: ${u} carries no ver`);
+      assert.notEqual(ver, "ofertas", `${a.q}: ${u}`);
+      if (ver !== dst.VER_TYPES) assert.ok(DEST.types[param(u, "dept")] && DEST.types[param(u, "dept")][ver], `${a.q}: ${u} names no type`);
+    }
+  }
+  assert.ok(n > 40, `only ${n} category urls`);
+  /* The page side: ?ver= never lifts or draws the Ofertas rail. */
+  const DP = readFileSync(join(ROOT, "departamento.html"), "utf8");
+  assert.match(DP, /function liftSales\(first\)\{\n    liftedRi = -1;\n    if \(VER\)\{/);
+  assert.match(DP, /if \(VER && isOfertasRail\(r\)/);
+});
+
+await check("an ambiguous or unknown word still gets the chooser; brand + model still the brand («celular samsung», «xbox series x»)", async () => {
+  for (const w of MISS_WORDS) assert.equal((ANSWERS.get(w) || await route(w)).destination.kind, "chooser", w);
+  assert.equal((await route("celular samsung")).destination.kind, "brand");
+  assert.equal((await route("xbox series x")).destination.key, "xbox");
+  assert.equal((await route("iphone 15 case")).destination.kind, "chooser");
+});
+
+await check("Celulares leads with the phones people ask for by name (iPhone, Galaxy, Pixel, Motorola) ahead of the no-name budget Androids", () => {
+  const { page, rail } = typePage(dst.deptUrl("electronics", { ver: "pasillo:tech_celulares" }));
+  /* The whole listing, page by page, as the type page's «Mostrar más» reads it. */
+  const all = page.cards.slice();
+  for (let n = 1; n < page.pages; n++) all.push(...dept.answer({ dept: "electronics", rail: String(rail.i), page: String(n) }).body.cards);
+  assert.equal(all.length, rail.count);
+  const ranks = all.map((c) => dept.phoneKnownRank({ title: c.t, brand: c.b }));
+  assert.ok(/iphone/i.test(page.cards[0].t), "the first card is not an iPhone: " + page.cards[0].t);
+  assert.deepEqual(ranks.slice(0, 4), [0, 1, 2, 3], "the first four: iPhone, Galaxy, Pixel, Motorola -- " + page.cards.slice(0, 4).map((c) => c.t.slice(0, 24)).join(" | "));
+  const firstNoName = ranks.indexOf(-1);
+  assert.ok(firstNoName > 0 && ranks.slice(firstNoName).every((r) => r === -1), "a no-name phone before a known brand");
+  for (const c of page.cards.slice(0, 8)) assert.doesNotMatch(c.t, /FYTPOV|MIRO|NANNEE|Oukitel/i, c.t);
 });
 
 await check("the surfaces list is current (node scripts/build-search-destinations.mjs) and ships with the search function", () => {
@@ -313,10 +434,51 @@ if (pw) {
       assert.deepEqual(errors, []);
       await c.close();
     });
+    /* Danny's screenshot: «celular» opens the Celulares type page, phones first. */
+    for (const [word, rx, title, shot] of [["celular", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_celulares/, "Celulares", "pw-celular.png"],
+      ["laptop", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_computadoras/, "Computadoras y tablets", "pw-laptop.png"],
+      ["champú", /departamento\.html\?dept=cabello&ver=tipo%3Achamp%C3%BA%20y%20acondicionador/, "Champú y acondicionador", "pw-champu.png"]]) {
+      await check(`browser 390px: «${word}» typed in the header search lands on the ${title} type page -- its listing leads, no Ofertas rail on top`, async () => {
+        const { c, page, errors } = await phone();
+        await page.goto(`${BASE}/departamento.html?dept=toys`, { waitUntil: "load" });
+        await page.tap(".hs-pill");
+        await page.fill(".hs-in", word);
+        await page.press(".hs-in", "Enter");
+        await page.waitForURL(rx, { timeout: 60000 });
+        await page.waitForSelector("#typeLead #tlGrid .card:not(.sk)", { timeout: 60000 });
+        assert.equal(await page.textContent("#typeLead .tl-head h2"), title);
+        assert.equal(await page.textContent("#heroTitle"), title);
+        assert.ok(await page.evaluate(() => document.getElementById("salesTop").hidden), "the Ofertas rail is lifted on top");
+        assert.equal(await page.$$eval("#rails .rail-sec h2", (hs) => hs.filter((h) => /^Ofertas\b/.test(h.textContent)).length), 0, "an Ofertas rail is drawn");
+        /* The type leads: nothing with products sits between the hero and it. */
+        const above = await page.evaluate(() => {
+          const lead = document.getElementById("typeLead"), out = [];
+          for (let el = document.getElementById("deptHero").nextElementSibling; el && el !== lead; el = el.nextElementSibling) if (!el.hidden && el.querySelector(".card")) out.push(el.id);
+          return out;
+        });
+        assert.deepEqual(above, []);
+        const cards = await page.$$eval("#tlGrid .card:not(.sk)", (cs) => cs.map((x) => x.textContent.replace(/\s+/g, " ").trim()));
+        assert.ok(cards.length >= 4);
+        if (word === "celular") {
+          assert.match(cards[0], /iphone/i, "no iPhone in the first card: " + cards[0]);
+          for (const t of cards.slice(0, 4)) assert.doesNotMatch(t, /FYTPOV|MIRO|NANNEE/i, t);
+        }
+        const chips = await page.$$eval("#tpRow a", (a) => a.map((x) => x.getAttribute("data-kind")));
+        assert.ok(chips.length >= 1 && chips.every((k) => k === "category"), "a brand or store chip against the product word: " + chips);
+        const noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+        assert.ok(noOverflow, "horizontal overflow");
+        if (SHOT) {
+          await page.waitForTimeout(600);
+          await page.screenshot({ path: join(SHOT, shot) });
+        }
+        assert.deepEqual(errors, []);
+        await c.close();
+      });
+    }
     await check("browser: «vestidos» lands on Moda Mujer · Vestidos (departamento.html, t=vestidos) with the chips under the hero; «sephora» on its store", async () => {
       const { c, page, errors } = await phone();
       await page.goto(`${BASE}/search.html?q=vestidos`);
-      await page.waitForURL(/departamento\.html\?dept=women&t=vestidos&tp=/, { timeout: 60000 });
+      await page.waitForURL(/departamento\.html\?dept=women&t=vestidos&ver=tipos&tp=/, { timeout: 60000 });
       await page.waitForSelector("#tpRow a", { timeout: 30000 });
       assert.ok(await page.evaluate(() => document.getElementById("deptHero").nextElementSibling.id === "tpRow"), "the chips are not under the hero");
       if (SHOT) await page.screenshot({ path: join(SHOT, "dest-tambien-dept.png") });
