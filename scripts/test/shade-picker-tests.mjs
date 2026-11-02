@@ -291,6 +291,37 @@ await check("orders-create refuses a shade product with no shade (400, nothing w
   return b.error.slice(0, 70) + "…";
 });
 
+await check("a shade pull in the worklist's shape (README) groups an Ulta product into a «Tono» family on its SKU", async () => {
+  const F = await import(join(ROOT, "scripts/lib/variant-families.mjs"));
+  const u = (sku) => "https://www.ulta.com/p/slim-lip-pencil-lip-liner-xlsImpprod1?sku=" + sku;
+  const rows = [{ usItemId: "1", name: "Slim Lip Pencil Lip Liner", url: u("1"), variantList: [
+    { usItemId: "1", url: u("1"), imageUrl: "https://media.ulta.com/i/ulta/1", priceInfo: { price: 5 }, availabilityStatus: "IN_STOCK", variants: ["actual_color-820 Espresso"] },
+    { usItemId: "2", url: u("2"), imageUrl: "https://media.ulta.com/i/ulta/2", priceInfo: { price: 5 }, availabilityStatus: "OUT_OF_STOCK", variants: ["actual_color-802 Brown"] }] }];
+  const { families } = F.parseStoreDataset("ulta", rows);
+  const listing = { v: "x1", retailer: "ulta", name: "Slim Lip Pencil Lip Liner", url: u("1"), image: "https://media.ulta.com/i/ulta/1", price: 5, dept: "beauty" };
+  assert(F.anchoredFamilies(families, [listing]).length === 1, "the family is not kept for our listing");
+  const r = F.applyFamilies([listing], families);
+  const labels = [...r.assign.values()].map((a) => a.c + (a.so ? " (agotado)" : "") + "/" + a.ax);
+  assert(labels.join(",") === "820 Espresso/Tono,802 Brown (agotado)/Tono", labels.join(","));
+  assert(r.extra.length === 1 && r.extra[0].name === "Slim Lip Pencil Lip Liner", "the second shade is not its own listing");
+  return labels.join(", ");
+});
+
+await check("the shade-pull worklist lists exactly the products the page gates", async () => {
+  const { buildWorklist } = await import(join(ROOT, "scripts/build-shade-worklist.mjs"));
+  const byStore = buildWorklist(ROOT);
+  const dir = join(ROOT, "data/shade-pull-worklist-2026-11-02");
+  const out = [];
+  for (const [store, list] of byStore) {
+    const file = JSON.parse(readFileSync(join(dir, store + ".json"), "utf8"));
+    assert(file.length === list.length, `${store}: committed ${file.length}, built ${list.length} (run node scripts/build-shade-worklist.mjs)`);
+    out.push(store + " " + list.length);
+  }
+  const ulta = byStore.get("ulta") || [];
+  assert(ulta.some((x) => x.title === "Slim Lip Pencil Lip Liner" && /^https:\/\/www\.ulta\.com\//.test(x.url) && x.category), "the Ulta lip liner is not on the list");
+  return out.join(", ");
+});
+
 await check("/shade-gate.js: the product's own type decides, conservatively", async () => {
   await import(join(ROOT, "shade-gate.js"));
   const G = globalThis.AriaShadeGate;
@@ -308,6 +339,13 @@ await check("/shade-gate.js: the product's own type decides, conservatively", as
   for (const [r, d, n] of yes) assert(G.isShadeDependent({ retailer: r, dept: d, name: n }), "not gated: " + n);
   for (const [r, d, n] of no) assert(!G.isShadeDependent({ retailer: r, dept: d, name: n }), "gated: " + n);
   assert(!G.lineNeedsShade({ retailer: "ulta", title: "Slim Lip Pencil Lip Liner", colorway: "Espresso" }), "a line with its shade");
+  /* The store's makeup aisle gates a shade product whose title has no shade noun. */
+  assert(G.isShadeDependent({ retailer: "sephora", type: "Rostro", name: "Hollywood Flawless Filter" }), "aisle Rostro, no noun: not gated");
+  assert(!G.isShadeDependent({ retailer: "ulta", type: "Rostro", name: "Airbrush Flawless Setting Spray" }), "a setting spray in Rostro is gated");
+  for (const n of ["Eyeshadow Singles", "Butter Gloss", "Epic Ink Liner", "Brow Wiz Precision Eyebrow Pencil", "Hoola Matte Powder Bronzer",
+    "Positive Light Silky Touch Highlighter", "Airbrush Flawless Finish Blurring & Setting Powder", "Skin Tint SPF 30", "Infallible Nail Polish"])
+    assert(G.isShadeDependent({ retailer: "ulta", name: n }), "not gated: " + n);
+  assert(!G.isShadeDependent({ retailer: "ulta", name: "Translucent Loose Setting Powder" }), "a translucent powder is gated");
   return `${yes.length} shade products, ${no.length} not`;
 });
 

@@ -216,7 +216,7 @@ export function parseWalmartVariantLists(products, opts = {}) {
       stats.superseded += group.length - 1;
       const v = group[0];
       const id = String(v.usItemId);
-      const url = httpUrl(v.url) || "https://www.walmart.com/ip/" + id;
+      const url = httpUrl(v.url) || (retailer === "walmart" ? "https://www.walmart.com/ip/" + id : "");
       const m = { id, itemId: id, label: walmartShadeLabel(tokenOf(v, "actual_color"), url, pageName.get(id)), url };
       if (pageName.get(id)) m.name = pageName.get(id);
       if (brandOf.get(id)) m.brand = brandOf.get(id);
@@ -233,7 +233,9 @@ export function parseWalmartVariantLists(products, opts = {}) {
       if (m.price > 0 && m.image) stats.withDetail++; else stats.awaitingDetail++;
       members.push(m);
     }
-    families.push({ key: "walmart:" + root, retailer, axis: opts.axis || "Tono", members, pending: [], nameFromUrl: true });
+    /* Walmart titles each shade; a beauty store's shades share the product's title. */
+    families.push({ key: (retailer === "walmart" ? "walmart" : retailer) + ":" + root, retailer, axis: opts.axis || "Tono", members, pending: [],
+      ...(retailer === "walmart" ? { nameFromUrl: true } : { sameTitle: true }) });
     stats.families++; stats.members += members.length;
   }
   return { families, stats };
@@ -454,6 +456,7 @@ const listingKeys = (l) => {
   const keys = [];
   if (r === "walmart") for (const id of walmartIds(l.url)) keys.push("walmart|id|" + id);
   if (r === "macys") { const id = macysId(l.url); if (id) keys.push("macys|id|" + id); }
+  if (SHADE_PULL_STORES.has(r)) { const sku = shadeSkuOf(l.url); if (sku) keys.push(r + "|sku|" + sku); }
   if (l.url) keys.push(r + "|url|" + normUrl(l.url));
   const h = /\/products\/([^\/?#]+)/.exec(String(l.url || ""));
   if (h) keys.push(r + "|handle|" + h[1].toLowerCase());
@@ -467,9 +470,26 @@ function modelKeyOf(l) {
   const m = colourSuffix(l.name);
   return m ? [low(l.brand) + "|" + low(m.model), m.colour] : null;
 }
+/* SHADE PULLS FOR THE GATED BEAUTY STORES (data/shade-pull-worklist-*):
+   each shade is its own SKU, and the store's URL names it -- Ulta
+   "?sku=2640692", Sephora "?skuId=2985836", YesStyle "pid.1113888108",
+   Costco ".product.100519419.html", Victoria's Secret "/5000011132". A
+   catalogue listing and a pulled shade meet on that id, never on the
+   product URL alone (every shade of a product shares it). */
+export const SHADE_PULL_STORES = new Set(["ulta", "sephora", "yesstyle", "costco", "victoriassecret"]);
+export function shadeSkuOf(url) {
+  const u = String(url || "");
+  const m = /[?&](?:sku|skuid|sku_id)=([A-Za-z0-9_-]+)/i.exec(u) || /\/pid\.(\d+)/i.exec(u) || /\.product\.(\d+)\.html/i.exec(u) || /\/(\d{6,})(?:[\/?#]|$)/.exec(u);
+  return m ? m[1].toUpperCase() : "";
+}
 const memberKeys = (fam, m) => {
   const r = String(fam.retailer || "").toLowerCase();
   const keys = [];
+  if (SHADE_PULL_STORES.has(r)) {
+    const own = shadeSkuOf(m.url);
+    if (own) keys.push(r + "|sku|" + own);
+    if (m.itemId) keys.push(r + "|sku|" + String(m.itemId).toUpperCase());
+  }
   if (r === "walmart") {
     for (const id of walmartIds(m.url)) keys.push("walmart|id|" + id);
     if (m.itemId) keys.push("walmart|id|" + String(m.itemId).toUpperCase());
@@ -792,6 +812,9 @@ export function parseStoreDataset(store, rows) {
   if (s === "kohls") return parseKohlsFamilies(list);
   if (s === "zumiez") return parseZumiezFamilies(list);
   if (s === "walmart" || s === "walmart-beauty") return parseWalmartFamilies(list);
+  /* A shade pull in the Walmart variantList shape (README in
+     data/shade-pull-worklist-2026-11-02/), for any gated beauty store. */
+  if (isVariantListShape(list)) return parseWalmartVariantLists(list, { retailer: s });
   return parseShopifyFamilies(list, { retailer: s });
 }
 export function readStorePulls(dir) {

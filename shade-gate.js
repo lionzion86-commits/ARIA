@@ -38,14 +38,14 @@
   var SHADE_NOUN = new RegExp('\\b(?:'
     + 'lipsticks?|lip ?sticks?|lip ?gloss(?:es)?|lip ?glaze|lip ?lacquers?|lip ?liners?|lip ?pencils?|lip ?stains?|lip ?tints?|lip ?colou?rs?|lip ?crayons?|lip ?oils?|lip ?creams?|liquid lip|lip ?paint|lip ?mousse|lip ?velvet|tinted (?:lip )?balm|lip ?butter balm'
     + '|labiales?|delineador(?:es)?|brillo labial|gloss(?:es)?'
-    + '|foundations?|concealers?|colou?r correct(?:or|ors|ing)|correctors?|tinted moisturi[sz]er|skin ?tint|bb ?cream|cc\\+? ?cream|tinted serum|tints?|(?:pencil|gel|liquid|kohl) liners?|cushion compact|cushion foundation|cushions?'
+    + '|foundations?|concealers?|colou?r correct(?:or|ors|ing)|correctors?|tinted moisturi[sz]er|skin ?tint|bb ?cream|cc\\+? ?cream|tinted serum|tints?|(?:pencil|gel|liquid|kohl|ink|felt|tattoo|wing(?:ed)?) liners?|illuminators?|cushion compact|cushion foundation|cushions?'
     + '|bases? de maquillaje|correctores?|corrector'
     + '|blush(?:es|er)?|bronzers?|highlighters?|contour(?: stick)?|rubor(?:es)?|iluminador(?:es)?'
     + '|eye ?liners?|eyeliners?|kohl|eye ?pencils?|kajal|eye ?shadows?|eyeshadows?|shadow sticks?|sombras?|mascaras?|m[aá]scaras? de pesta[nñ]as'
     + '|brow (?:pencil|pomade|gel|powder|wax|tint|definer|pen|marker)s?|eyebrow (?:pencil|pomade|gel|powder|wax|tint|pen)s?'
     + '|nail (?:polish|lacquer|colou?r|enamel|paint)|gel polish|esmaltes?'
     + '|hair colou?r|hair dye|permanent colou?r|semi-?permanent|demi-?permanent|root (?:touch[- ]?up|cover(?:up)?|concealer)|tinte(?:s)? (?:para el )?cabello|tinte'
-    + '|pressed powder|face powder|powder foundation|compact powder'
+    + '|pressed powder|face powder|powder foundation|compact powder|(?:setting|loose|finishing|blurring|baking|matte|mineral) powder|powder blush'
     + ')\\b', 'i');
   /* NEVER a shade product, whatever else the title says: the title is a
      set or palette (one product), a tool, a remover, nail care, hair
@@ -64,7 +64,7 @@
      names one outright (a "Serum Powered Foundation", a "Tinted
      Moisturizer ... SPF 30", a "Skin Tint SPF 50" are sold in shades). */
   var CARE = new RegExp('\\b(?:'
-    + 'primers?|prebase|setting (?:spray|mist|powder)|fixing spray'
+    + 'primers?|prebase|setting (?:spray|mist)|fixing spray'
     + '|serums?|s[eé]rum|moisturi[sz]ers?|creams?|cr[eè]me|toners?|t[oó]nicos?|essence|ampoules?|masks?|mascarillas?|sunscreen|sun ?stick|exfoliat\\w*|scrub|lotion|oil'
     + '|lip (?:balm|mask|scrub|treatment|serum|plump(?:er|ing)?|care|sleeping)|balms?|b[aá]lsamo'
     + '|eye ?(?:cream|serum|patch(?:es)?|gel|mask)|contorno de ojos'
@@ -74,6 +74,11 @@
      "- 5 Shades" (YesStyle) is sold in that many shades, by the store's
      own account -- unless it is a palette, whose colours are its contents. */
   var SHADE_CLAIM = /\b\d+\s+(?:[A-Za-z][\w-]*\s+){0,3}?(?:colou?rs|shades|tonos|colores)\b/i;
+  /* The store's makeup aisles (Ulta / Sephora / YesStyle / Victoria's
+     Secret "type"). */
+  var MAKEUP_TYPE = /^(?:labios|ojos|rostro|maquillaje|makeup|u[nñ]as|lips?|eyes?|face|nails?)$/i;
+  /* In a makeup aisle, still not a shade product: care, prep and finish. */
+  var CARE_AISLE = /\b(?:primers?|prebase|setting (?:spray|mist)|fixing spray|serums?|moisturi[sz]ers?|creams?|cr[eè]me|toners?|essence|masks?|sunscreen|spf|exfoliat\w*|scrub|balms?|oils?|treatments?|ointments?|rollers?|lifters?|drying|retinol|pdrn|peptides?|lash system|grandelash\w*|remover|cleans\w*|lash (?:serum|growth)|brow (?:serum|growth)|growth|conditioner|patch(?:es)?|refill|sharpener|spray|mist|wipes?|pads?|tools?)\b/i;
   /* "12 Eyeshadows, 1 Highlighter, 1 Blush": counted pieces are a set. */
   var SEVERAL_PIECES = /\b\d+\s+[A-Za-z][\w -]*,\s*\d+\s+(?:highlighters?|blush(?:es)?|bronzers?|eye ?shadows?|lip\w*|mascaras?|liners?|brush(?:es)?|concealers?)\b/i;
   /* "Smudge & Set", "Lock & Set": a claim, not a set. */
@@ -102,7 +107,25 @@
     if (NOT_SHADED.test(t) || SEVERAL_PIECES.test(t)) return '';
     if (SHADE_CLAIM.test(t)) return 'makeup';
     if (CARE.test(t) && !STRONG.test(t)) return '';
-    return SHADE_NOUN.test(t) ? 'makeup' : '';
+    if (SHADE_NOUN.test(t)) return 'makeup';
+    /* THE STORE'S OWN MAKEUP AISLE (Danny: "every single makeup has to have
+       a color dropdown"): a product the store files under lips, eyes, face
+       makeup or nails, whose title names no shade noun ("Almost Lipstick"
+       aside, "Hollywood Flawless Filter"), is sold in shades too -- gated
+       rather than sold without one. Its care, tool and set words above
+       still keep a primer, a brush or a palette out. */
+    if (MAKEUP_TYPE.test(String(item && item.type || '').trim()) && !CARE_AISLE.test(t)) return 'makeup';
+    return '';
+  }
+  /* What made it a shade product, for the shade-pull worklist: the noun
+     in its title, the store's "- N Colors", or the store's makeup aisle. */
+  function reasonOf(item) {
+    var kind = kindOf(item);
+    if (!kind) return '';
+    var t = String(item && (item.name || item.title) || '').replace(SET_CLAIM, ' ');
+    var m = kind === 'hair' ? HAIR_COLOUR.exec(t) : (SHADE_CLAIM.exec(t) || SHADE_NOUN.exec(t));
+    if (m) return m[0].toLowerCase();
+    return 'aisle: ' + String(item.type || '').trim();
   }
   /* Is this product sold in shades (by its own type)? */
   function isShadeDependent(item) { return !!kindOf(item); }
@@ -119,6 +142,8 @@
     if (!line || typeof line !== 'object' || line.lineType === 'bundle-discount') return false;
     var shade = String(line.colorway || line.shade || '').trim();
     if (shade) return false;
+    /* The product page marks a shade product on the line (shadeKind). */
+    if (line.shadeKind === 'makeup' || line.shadeKind === 'hair') return true;
     return isShadeDependent({ name: line.title || line.name, dept: line.dept, retailer: line.retailer, beauty: line.shadeKind === 'makeup' || line.shadeKind === 'hair' });
   }
 
@@ -130,6 +155,7 @@
     STRONG: STRONG,
     kindOf: kindOf,
     beautyContext: beautyContext,
+    reasonOf: reasonOf,
     isShadeDependent: isShadeDependent,
     lineNeedsShade: lineNeedsShade,
     shadeOrderError: shadeOrderError,

@@ -320,7 +320,9 @@ function recordToItem(r){
     /* The listing's id, its colourway group and the store's colour; the
        picker's word ("Tono" for a shade family) and whether the store
        lists this variant as out of stock. */
-    v: r.v || "", g: r.g || "", c: r.c || "", ax: r.ax || "", so: r.so === 1
+    v: r.v || "", g: r.g || "", c: r.c || "", ax: r.ax || "", so: r.so === 1,
+    /* Sold in shades (/shade-gate.js, decided at build with the store's aisle). */
+    sk: r.sk === "makeup" || r.sk === "hair" ? r.sk : ""
   };
 }
 function fetchJson(url, ms){
@@ -1640,6 +1642,7 @@ function buildBuyBox(p){
 /* A shade product with no shade on screen: no tono picked, none sold. */
 function shadeKindOfProduct(p){
   var G = window.AriaShadeGate;
+  if (p && p.sk) return p.sk;
   return G && p ? G.kindOf({ name: p.name, retailer: p.retailer, dept: p.dept }) : "";
 }
 function shadeGateApplies(p){ return !!p && !String(p.c || "").trim() && !!shadeKindOfProduct(p); }
