@@ -21,6 +21,7 @@
    ============================================================ */
 import { getStore, connectLambda } from "@netlify/blobs";
 import { loadSearch, searchPage, runQuery, lanePage } from "./_search-core.js";
+import { destinationFor } from "./_search-destinations.js";
 import { RETAILERS } from "../../scripts/lib/retailers.js";
 
 /* Sub-stores of a catalogue file the registry does not list (the same
@@ -95,7 +96,7 @@ const json = (statusCode, body, cache) => ({
           "Netlify-CDN-Cache-Control": cache,
           /* Only q and page decide the answer; anything else in the URL
              must not split the cache. */
-          "Netlify-Vary": "query=q|page|lane|off",
+          "Netlify-Vary": "query=q|page|lane|off|route",
         }
       : { "Cache-Control": "no-store" }),
   },
@@ -129,6 +130,9 @@ export async function handler(event, { fetchImpl } = {}) {
       const lp = lanePage(ctx, q, String(qs.lane).slice(0, 60), qs.off, { fx });
       return lp ? json(200, lp, fx ? "public, durable, max-age=3600, stale-while-revalidate=86400" : "public, max-age=60") : json(404, { error: "Sin más productos." }, null);
     }
+    /* WHERE THE SEARCH LANDS (#443 c.6569512697): a store, a brand or a
+       category page -- or search.html's chooser (_search-destinations.js). */
+    if (qs.route) return json(200, destinationFor(ctx, q, { fx }), fx ? "public, durable, max-age=3600, stale-while-revalidate=86400" : "public, max-age=60");
     const out = searchPage(ctx, q, page, { fx });
     if (out.state === "error") return json(500, { ...out, items: [] }, null);
     /* Soles are part of the answer: an answer without them is kept
