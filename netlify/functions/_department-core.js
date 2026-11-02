@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle as conditionOfAnyTitle, CONDITION_LABELS } from "../../scripts/lib/condition.js";
-import { techAisle, isTechProduct, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole } from "../../scripts/lib/tech-aisle.js";
+import { techAisle, isTechProduct, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole, isDrone, droneRank } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;    // cards drawn in one carousel
@@ -144,6 +144,9 @@ const TYPE_ES = new Map(Object.entries({
   "portable speakers": "Parlantes portátiles",
   "sound bars": "Barras de sonido",
   "aerial drones": "Drones",
+  /* Electrónica's own Drones type (#443 c.6579603095): B&H's "Dron",
+     Walmart's "Aerial Drones" and the drone aisle are one type. */
+  "tech drones": "Drones", "drones": "Drones", "dron": "Drones",
   "throw blankets": "Mantas",
   "blankets": "Mantas",
   "network cables": "Cables de red",
@@ -580,7 +583,14 @@ const LAPTOP_RX = /\b(laptops?|notebooks?|chromebooks?|macbook)\b/i;
    tray, a toy "laptop" or a laptop bag names none. */
 const LAPTOP_SPEC_RX = /\b(\d+\s?gb|ssd|emmc|celeron|pentium|intel|amd|ryzen|athlon|mediatek|core i\d|chrome ?os|windows \d+)\b/i;
 const NOT_LAPTOP_RX = /\b(tablets?|ipad|cases?|sleeves?|bags?|backpacks?|stands?|trays?|desks?|drones?|toys?|kids|learning|cooler|cooling pad|skins?|chargers?|adapters?|keyboards?|mouse|docks?|docking|locks?|screen protectors?|batter(y|ies)|replacement|lcd screen|hinges?|fans?)\b/i;
-export const techAisleOf = (p) => (/^tech_/.test(String(p.type || "")) ? String(p.type) : techAisle(p.title, p.type));
+/* A drone is a drone whatever aisle the store filed it in (BrandsMart's
+   and Costco's drones arrived as Cámaras). */
+export const techAisleOf = (p) => (isDrone(p.title) ? "tech_drones" : /^tech_/.test(String(p.type || "")) ? String(p.type) : techAisle(p.title, p.type));
+/* The Drones type in its lead order (scripts/lib/tech-aisle.js droneRank):
+   DJI's pro line, DJI's other aircraft, the pro makers -- each the
+   flagship first -- then the rest, parts and toys in the list's order. */
+export const dronesOrder = (l) => l.map((p, i) => ({ p, i, r: droneRank(p) }))
+  .sort((a, b) => (a.r - b.r) || (a.r <= 2 ? (b.p.rawPrice || 0) - (a.p.rawPrice || 0) : 0) || (a.i - b.i)).map((x) => x.p);
 export function isStudyLaptop(p) {
   const t = String(p.title || "");
   return p.rawPrice > 0 && p.rawPrice < STUDY_LAPTOP_MAX && techAisleOf(p) === "tech_computadoras" &&
@@ -638,7 +648,7 @@ function buildTechSections(all) {
   for (const p of list) (byAisle[techAisleOf(p)] ||= []).push(p);
   for (const k of TECH_AISLE_ORDER) {
     const l = byAisle[k];
-    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: k === "tech_celulares" ? celularesOrder(l) : l, ...(k === "tech_computadoras" ? { door } : {}) });
+    if (l && l.length) sections.push({ key: "pasillo:" + k, title: TECH_AISLE_LABELS[k], items: k === "tech_celulares" ? celularesOrder(l) : k === "tech_drones" ? dronesOrder(l) : l, ...(k === "tech_computadoras" ? { door } : {}) });
   }
   return sections;
 }
@@ -652,7 +662,7 @@ function buildTechSections(all) {
    inside each, devices lead what fits them. */
 export const HOME_PILL_MIN = 8, HOME_PILL_CARDS = 24;
 export const HOME_TECH_PILLS = [["tech_celulares", "Celulares"], ["tech_computadoras", "Computadoras"], ["tech_gaming", "Videojuegos"],
-  ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
+  ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_drones", "Drones"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
   ["tech_casa_inteligente", "Casa inteligente"], ["tech_componentes", "Componentes"], ["tech_auto", "Auto"], ["tech_accesorios", "Accesorios"]];
 const HOME_DEVICE_RX = {
   tech_celulares: /\b(iphone|galaxy|pixel|moto|razr|smartphone|unlocked)\b/i,
@@ -660,6 +670,7 @@ const HOME_DEVICE_RX = {
   tech_gaming: /\b(consoles?|steam deck|meta quest \d|rog ally|legion go|dualsense|(xbox|ps5|playstation 5)[^,]*controller|nintendo switch (2|oled|lite)(?![^,]*-))\b/i,
   tech_audifonos: /\b(airpods|earbuds|headphones|headset)\b/i,
   tech_camaras: /\b(mirrorless|dslr|gopro|insta360|dji|instax|camera body|digital camera|action camera|vlog)\b/i,
+  tech_drones: /\b(dji|mavic|avata|autel|skydio|anafi)\b/i,
   tech_relojes: /\b(apple watch|galaxy watch|smart ?watch|garmin|fitbit|amazfit)\b/i,
   tech_audio: /\b(speakers?|soundbars?|sound bars?|turntables?|subwoofers?)\b/i,
   tech_casa_inteligente: /\b(doorbells?|security cam(era)?s?|echo|nest|smart (plugs?|displays?|locks?))\b/i,
@@ -797,7 +808,7 @@ export { CONSOLE_RX, isConsole };
 const CHROMEBOOK_RX = /\bchromebooks?\b/i;
 export const isChromebook = (p) => CHROMEBOOK_RX.test(p.title || "") && !isAccessoryName(p.title) && !/\b(for|compatible|fits|charger|adapter|case|sleeve|mouse|keyboard)\b/i.test(p.title || "");
 const HOME_TECH_ORDER = [["tech_celulares", "Celulares"], ["tech_computadoras", "Computadoras"], ["chromebooks", "Chromebooks"], ["consolas", "Consolas"],
-  ["tech_gaming", "Videojuegos"], ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
+  ["tech_gaming", "Videojuegos"], ["tech_audifonos", "Audífonos"], ["tech_camaras", "Cámaras"], ["tech_drones", "Drones"], ["tech_relojes", "Relojes"], ["tech_audio", "Parlantes"],
   ["tech_casa_inteligente", "Casa inteligente"], ["tech_componentes", "Componentes"], ["tech_auto", "Auto"], ["tech_accesorios", "Accesorios"]];
 const REFURB_DOOR = ["tech_computadoras", "chromebooks"];
 export const OFERTAS_LEAD_CAMERA_RX = /\b(digital cameras?|mirrorless|dslr|camcorders?|vlog\w* cameras?|compact cameras?|optical zoom)\b/i;
@@ -852,7 +863,7 @@ export function homeTechPills(list) {
       : shown.filter((p) => techAisleOf(p) === k);
     if (l.length < HOME_PILL_MIN) continue;
     const ordered = k === "chromebooks" ? l.slice().sort((a, b) => ((b.salePct || 0) - (a.salePct || 0)) || (a.rawPrice - b.rawPrice))
-      : k === "tech_celulares" ? promoteIphone18(devicesFirst(l, k)) : devicesFirst(l, k);
+      : k === "tech_celulares" ? promoteIphone18(devicesFirst(l, k)) : k === "tech_drones" ? dronesOrder(devicesFirst(l, k)) : devicesFirst(l, k);
     pills.push({ k, label, cards: ordered.slice(0, HOME_PILL_CARDS).map(cardOf), ...(REFURB_DOOR.includes(k) && refurb.length ? { door: "reacondicionados" } : {}) });
   }
   return { v: 1, pills };
@@ -1530,7 +1541,7 @@ export function axisRails(list, axis, labels = {}) {
   return [...groups.values()].filter((g) => g.items.length >= AXIS_MIN)
     .sort((a, b) => (b.items.length - a.items.length) || (a.title < b.title ? -1 : 1))
     .slice(0, AXIS_RAILS)
-    .map((g) => ({ k: g.k, f, title: g.title, count: g.items.length, cards: axisOrder(g.items).slice(0, RAIL_CARDS).map(cardOf) }));
+    .map((g) => ({ k: g.k, f, title: g.title, count: g.items.length, cards: (g.k === "drones" ? dronesOrder(axisOrder(g.items)) : axisOrder(g.items)).slice(0, RAIL_CARDS).map(cardOf) }));
 }
 /* Explorar todo: one page of the department under every filter at once,
    and each filter's options under all the OTHER filters (cross-
@@ -1642,6 +1653,9 @@ export function answer(qs, roots) {
   /* One type opened from its rail (the recursive «Ver todo»): the next
      grouping is the brand -- or the store, where brands are thin. */
   let sections = t && !b ? typeViewSections(list) : buildSections(list, sectionOpts(d.key));
+  /* The Drones type page leads with DJI's aircraft and the pro makers (#443 c.6579603095). */
+  if (t === "drones" && !b && list.length) sections = [{ key: "drones:lead", title: "Drones", items: dronesOrder(list) }]
+    .concat(sections.map((s) => (s.key === "ofertas" ? { ...s, items: dronesOrder(s.items) } : s)));
   /* One audience's view keeps only its own gender aisles (Zapatos: a
      unisex shoe sits in both, so "Zapatillas Hombre" would follow Mujer). */
   if (u) sections = sections.filter((s) => { const m = /^tipo:[^:]+:(women|men|kids)$/.exec(s.key || ""); return !m || m[1] === u; });
@@ -1660,5 +1674,8 @@ export function answer(qs, roots) {
   }
   /* Perfumes: a door's view keeps its brand pills (the brands inside that door). */
   const extra = d.key === "perfumes" ? { ...perfumePills(list), b, a } : BRAND_ROOMS.has(d.key) || t ? { ...brandRoomPills(list), b } : {};
-  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t ? { t } : {}), ...(u ? { u } : {}), stats: deptStats(list) }) };
+  /* tl: the type's Spanish name, for a landing on ?t= (the search router's
+     type pages) -- the page shows it, never the slug. */
+  const tl = t ? ((list.map(typeKeyOf).find((x) => x.k === t) || {}).label || "") : "";
+  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(list) }) };
 }

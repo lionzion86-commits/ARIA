@@ -1013,6 +1013,8 @@ function cardHTML(c){
       }
       if (!filtered() && Array.isArray(data.pills) && !HUB){ HUB = data.pills; if (data.pillAll) HUB_ALL = data.pillAll; renderHub(); }
       HEAD = data;
+      /* A landing on ?t= names its type in Spanish (data.tl), not its slug. */
+      if (fT && !fTitle && data.tl){ fTitle = data.tl; renderScope(); }
       HEAD.stores = STORES || data.stores;
       if (!filtered()) renderDescBrands(data.stores);
       if (!STORES){

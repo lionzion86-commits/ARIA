@@ -26,6 +26,12 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { storeDoors } from "./build-store-doors.mjs";
+import { loadDept, typeKeyOf } from "../netlify/functions/_department-core.js";
+
+/* Type pages a department answers with t= (its Por tipo axis) that the
+   router may land on, beside the lens-tipo files: Electrónica's Drones
+   (#443 c.6579603095). Listed only while the department has them. */
+export const TYPE_PAGES = { electronics: ["drones"] };
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const OUT = "assets/search/destinations.json";
@@ -61,6 +67,11 @@ export function buildDestinations(root = ROOT) {
       for (const f of readdirSync(ddir).filter((n) => /^lens-tipo-.+\.json$/.test(n)).sort()) {
         try { lenses[f.slice(10, -5)] = JSON.parse(readFileSync(join(ddir, f), "utf8")).label; } catch { /* skip */ }
       }
+    }
+    for (const t of TYPE_PAGES[key] || []) {
+      const d = loadDept(key, [root]);
+      const hit = d && d.list.map(typeKeyOf).find((x) => x.k === t);
+      if (hit) lenses[t] = hit.label;
     }
     depts[key] = Object.keys(lenses).length ? [m[2], lenses] : [m[2]];
   }

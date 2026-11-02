@@ -70,7 +70,7 @@ const CONCEPTS = {
   phone: ["electronics"], smartphone: ["electronics"], laptop: ["electronics"], computer: ["electronics"], tablet: ["electronics"],
   headphones: ["electronics"], earbuds: ["electronics"], speaker: ["electronics"], tv: ["electronics"], television: ["electronics"],
   camera: ["electronics"], monitor: ["electronics"], keyboard: ["electronics"], charger: ["electronics"], smartwatch: ["electronics"],
-  console: ["electronics"], "video game": ["electronics"], electronics: ["electronics"], drone: ["electronics"], printer: ["electronics"],
+  console: ["electronics"], "video game": ["electronics"], electronics: ["electronics"], drone: ["electronics", "drones"], printer: ["electronics"],
   perfume: ["perfumes"], cologne: ["perfumes"], fragrance: ["perfumes"],
   makeup: ["beauty"], lipstick: ["beauty"], mascara: ["beauty"], eyeliner: ["beauty"], blush: ["beauty"], foundation: ["beauty"],
   concealer: ["beauty"], eyeshadow: ["beauty"], "nail polish": ["beauty"], skincare: ["beauty"], cream: ["beauty"], sunscreen: ["beauty"],
@@ -105,6 +105,8 @@ const SPANISH = {
   reacondicionado: "refurbished", lujo: "luxury", fiesta: "party", globos: "balloons", afeitadora: "razor", rasuradora: "razor",
   barba: "beard", maquinillas: "razor", bebes: "stroller", pesa: "weights", pesas: "weights", mancuernas: "dumbbell",
   medias: "socks", lenceria: "lingerie", sneakers: "sneakers", zapatillas: "sneakers",
+  /* Electrónica's Drones type page (#443 c.6579603095). */
+  dron: "drone", drones: "drone", dji: "drone",
 };
 /* Who it is for: switches a fashion department to that audience's. */
 const AUDIENCE = {
