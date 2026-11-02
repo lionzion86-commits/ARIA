@@ -214,6 +214,93 @@ await check("no hand-made alias list: the router's rules hold no product or mode
   for (const b of blocks) for (const name of ["air force", "jordan", "samba", "iphone", "playstation", "galaxy", "new balance", "nike", "adidas"]) assert.ok(!b.includes(name), name);
 });
 
+/* ---------- one idea, one word: English and Spanish (#443, Danny: "They should all land on alien") ----------
+   Every concept of assets/search/concepts.json is one family: its
+   canonical word, every English and Spanish word for it, and for each a
+   plural, an accent and (5+ letters) a typo. All of them land on ONE
+   identical destination, and search reads one canonical word for them. */
+const CONCEPTS = JSON.parse(readFileSync(join(ROOT, "assets/search/concepts.json"), "utf8")).concepts;
+function conceptForms(c) {
+  const out = new Map();
+  const add = (kind, v) => { if (v && !out.has(v)) out.set(v, kind); };
+  add("canónica", c.canonical);
+  for (const w of c.words) {
+    add("palabra", w);
+    const ws = w.split(" "), last = ws[ws.length - 1];
+    if (/^[a-z]{3,}$/.test(last) && !last.endsWith("s")) add("plural", [...ws.slice(0, -1), last + (/[aeiou]$/.test(last) ? "s" : "es")].join(" "));
+    const i = w.search(/[aeioun]/);
+    if (i >= 0) add("acentos", w.slice(0, i) + ACCENT[w[i]] + w.slice(i + 1));
+    add("mayúsculas", w.toUpperCase());
+  }
+  /* A typo in the family's longest one-word Spanish/English form of 6+ letters. */
+  const long = [...c.words].filter((w) => /^[a-z]{6,}$/.test(w)).sort((a, b) => b.length - a.length)[0];
+  if (long) { const k = Math.floor(long.length / 2); if (long[k] !== long[k + 1]) add("errata", long.slice(0, k) + long[k + 1] + long[k] + long.slice(k + 2)); }
+  return out;
+}
+let nConceptForms = 0;
+const CONCEPT_SPLITS = [];
+await check(`every concept (${CONCEPTS.length}) -- each English and Spanish word, plural, accent and typo -- lands on its canonical word's identical destination`, async () => {
+  for (const c of CONCEPTS) {
+    const want = await route(c.canonical);
+    for (const [v, kind] of conceptForms(c)) {
+      nConceptForms++;
+      const got = await route(v);
+      if (sig(got) !== sig(want)) CONCEPT_SPLITS.push(`${c.canonical} / ${JSON.stringify(v)} (${kind}): ${want.destination.url} -> ${got.destination.url}`);
+    }
+  }
+  for (const s of CONCEPT_SPLITS) console.log("      " + s);
+  assert.ok(nConceptForms >= 500, "concept forms: " + nConceptForms);
+  assert.deepEqual(CONCEPT_SPLITS, []);
+});
+await check("the concept file: every word belongs to one concept only, and no canonical word is another concept's word", () => {
+  const seen = new Map();
+  for (const c of CONCEPTS) for (const w of [c.canonical, ...c.words]) {
+    const k = words(w).join(" ");
+    assert.ok(!seen.has(k) || seen.get(k) === c.canonical, `${w}: ${seen.get(k)} and ${c.canonical}`);
+    seen.set(k, c.canonical);
+  }
+});
+const ALIEN = ["alien", "aliens", "Alien", "ALIENS", "extraterrestre", "extraterrestres", "Extraterrestre", "extraterrestrial", "extraterrestrials",
+  "extraterestre", "extraterrestial", "marciano", "marcianos", "Marciano", "marcianas", "ovni", "ovnis", "OVNI", "ufo", "ufos", "UFO", "martian", "martians"];
+await check("the alien family (Danny, #443): every English and Spanish word lands on the identical page «alien» lands on -- the Alien Workshop brand page", async () => {
+  const want = await route("alien");
+  assert.equal(want.destination.kind, "brand");
+  assert.equal(want.destination.url, "marca.html?marca=alienworkshop");
+  const bad = [];
+  for (const q of ALIEN) { const a = await route(q); if (sig(a) !== sig(want)) bad.push(q + " -> " + a.destination.url); }
+  assert.deepEqual(bad, []);
+});
+await check("search reads the alien family as one word: «extraterrestre», «marciano», «ovni» and «ufo» give «alien»'s results", () => {
+  const ids = (r) => r.items.map((c) => c.id || c.url || c.title).join("|");
+  const one = core.searchPage(ctx, "alien");
+  assert.ok(one.total >= 100, "alien: " + one.total);
+  for (const q of ["extraterrestre", "Extraterrestres", "extraterrestrial", "marciano", "ovni", "UFO"]) {
+    const r = core.searchPage(ctx, q);
+    assert.equal(r.total, one.total, q);
+    assert.equal(ids(r), ids(one), q);
+    assert.equal(r.q, q, "the page shows what was typed");
+  }
+});
+await check("a concept word never rewrites a name: «alien workshop», «polo ralph lauren», «guess marciano» keep their words", async () => {
+  const c = (q) => core.canonicalTokens(ctx, q).join(" ");
+  assert.equal(c("alien workshop"), "alien workshop");
+  assert.equal(c("polo ralph lauren"), "polo ralph lauren");
+  assert.equal(c("guess marciano"), "guess marciano");
+  assert.equal(c("extraterrestre"), "alien");
+  assert.equal(c("polo nike"), "t shirt nike");
+  assert.equal(c("lentes de sol"), "sunglasses");
+  assert.equal(c("lentes de contacto"), "lentes de contacto");
+  assert.equal((await route("alien workshop")).destination.url, "marca.html?marca=alienworkshop");
+  assert.equal((await route("polo ralph lauren")).destination.url, "marca.html?marca=poloralphlauren");
+  const g = (await route("guess marciano")).destination;
+  assert.equal(g.kind, "brand"); assert.equal(g.key, "guess");
+});
+await check("unknown words beside a concept word drop; nothing known is the chooser, never a dead end", async () => {
+  const a = (await route("extraterrestre blorptastic")).destination;
+  assert.equal(a.url, "marca.html?marca=alienworkshop");
+  for (const q of ["qwrtplk", "blorptastic zorbleflunk"]) assert.equal((await route(q)).destination.kind, "chooser", q);
+});
+
 /* ---------- every store's and brand's own name, exactly ----------
    (#616 regression: the route key folded words INSIDE names --
    «Arai Helmets» -> "arai helmet", «Island Water Sports» -> a brand
@@ -335,7 +422,7 @@ if (pw) {
   }
 }
 
-console.log(`\n  ${FAMILIES.length} families, ${nVariants} variants; ${SPLITS.length} split`);
+console.log(`\n  ${FAMILIES.length} families, ${nVariants} variants; ${SPLITS.length} split; ${CONCEPTS.length} concepts, ${nConceptForms} concept forms; ${CONCEPT_SPLITS.length} split`);
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log("  FAIL " + f + "\n");
 process.exit(failures.length ? 1 : 0);
