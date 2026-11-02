@@ -826,7 +826,7 @@ function withAlternatives(ctx, D, query, dest, hits, extra = []) {
   /* A model with unknown words beside known ones keeps the known ones. */
   if (dest.q && (dest.kind === "brand" || dest.kind === "store")) {
     const w = wordsOf(dest.q), known = w.filter((x) => isKnownWord(ctx, D, x));
-    if (known.length && known.length < w.length) dest = dest.kind === "brand" ? brandDest(D, dest.key, known.join(" ")) : storeDest(D, dest.key, known.join(" "));
+    if (known.length < w.length) dest = dest.kind === "brand" ? brandDest(D, dest.key, known.join(" ")) : storeDest(D, dest.key, known.join(" "));
   }
   /* An unambiguous product word: its sibling types and its department
      only -- no brand or store guess that contradicts the word. */
