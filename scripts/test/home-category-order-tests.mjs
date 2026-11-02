@@ -10,8 +10,9 @@
        ... Ropa Interior Hombre, Tallas Plus last) -> Aria Luxury (Joyas de
        lujo, Bolsos, Billeteras inside; the standalone navy Billeteras
        was removed 2026-11-02, Danny: one Billeteras, not two) -> Mujer -> Hombre ->
-       Niños -> every store (the Walmart tile, Diseñadores Latinos, the
-       store rails). Every category carousel sits under Perfumes.
+       Niños -> every store (Diseñadores Latinos, the store rails; the
+       wide Walmart tile left 2026-11-02, #443 c.6578980524: Walmart showed
+       twice). Every category carousel sits under Perfumes.
 
      node scripts/test/home-category-order-tests.mjs
    ================================================================== */
@@ -55,10 +56,9 @@ for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
     const stores = [...tree.matchAll(/data-store-rail="([a-z]+)"/g)].map((m) => [m[1], m.index]);
     assert.ok(stores.length >= 10);
     for (const [k, i] of stores) assert.ok(i > lastCat, `the ${k} rail sits above a category`);
-    const tile = tree.indexOf('<section aria-label="Walmart" class="relative');
     const latino = at(tree, "Diseñadores Latinos");
-    assert.ok(tile > lastCat && latino > lastCat, "the Walmart tile or Diseñadores Latinos above a category");
-    assert.ok(at(tree, "Mujer") < tile, "a store above the audiences");
+    assert.ok(latino > lastCat, "Diseñadores Latinos above a category");
+    assert.ok(at(tree, "Mujer") < latino && at(tree, "Mujer") < Math.min(...stores.map(([, i]) => i)), "a store above the audiences");
     /* Ropa Interior heads the category block, right under Perfumes (c.6545712892);
        the women's carousel is Lencería since #443 2026-11-01 (a rename). */
     const ri = at(tree, "Lencería");

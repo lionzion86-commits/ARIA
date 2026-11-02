@@ -2447,27 +2447,14 @@ html{scroll-padding-top:76px}
   <div data-pill-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
 </section>
 <!-- TIENDAS: every store below the categories (#443 c.6544925153). -->
-<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
-     #443 c.6468346931): Walmart across both slots, full band height,
-     right under Aria Auto. Brand colour, real logo. -->
-<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
-  </div>
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
-    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
-      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
-        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
-        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
-      </span>
-    </button>
-    <!-- BrandsMart USA left the homepage (Danny, #443 c.6539449309): a single
-         South Florida store; its products live in Electrónica. -->
-  </div>
-</section>
+<!-- ONE WALMART (#443 c.6578980524, Danny's live QA 2026-11-02: "Walmart,
+     Diseñadores Latinos, then Victoria's Secret, Walmart AGAIN"). The wide
+     Walmart tile was the Aria Auto band's big store card (2026-09-30); the
+     categories-above-stores move (2c68fc8, c.6544923338) carried it whole into
+     the stores block, two sections above the Walmart store rail, so Walmart
+     showed twice. The rail (its sales, its pills, Ver tienda) is Walmart's one
+     place on the homepage; scripts/test/home-store-rails-tests.mjs holds every
+     store to one. -->
     <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
          entry point the section was missing -- a full-width fashion-week
          moment between Compra por categoría and the store rails, the way
@@ -3101,27 +3088,14 @@ html{scroll-padding-top:76px}
   <div data-pill-rail class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
 </section>
 <!-- TIENDAS: every store below the categories (#443 c.6544925153). -->
-<!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
-     #443 c.6468346931): Walmart across both slots, full band height,
-     right under Aria Auto. Brand colour, real logo. -->
-<section aria-label="Walmart" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-6 pb-2 text-center">
-    <h2 class="font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff;font-size:20px;margin:0">Tiendas de Estados Unidos</h2>
-    <p class="text-[13.5px] mt-1 font-semibold" style="color:rgba(255,255,255,.72);margin:0">Precios bajos todos los d&iacute;as. Toca para entrar.</p>
-  </div>
-  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 pb-6 pt-2 grid grid-cols-2 gap-3 sm:gap-4">
-    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="col-span-2 focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
-      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
-      <!-- The tile's hero line (Danny, #443 c.6469975486). -->
-      <span class="flex-1 flex flex-col items-center justify-center text-center text-white px-4 py-4">
-        <span class="font-extrabold text-[22px] sm:text-[26px] leading-tight tracking-[-0.01em]">La favorita de Estados Unidos</span>
-        <span class="mt-1 font-semibold text-[14px]" style="color:rgba(255,255,255,.82)">Walmart</span>
-      </span>
-    </button>
-    <!-- BrandsMart USA left the homepage (Danny, #443 c.6539449309): a single
-         South Florida store; its products live in Electrónica. -->
-  </div>
-</section>
+<!-- ONE WALMART (#443 c.6578980524, Danny's live QA 2026-11-02: "Walmart,
+     Diseñadores Latinos, then Victoria's Secret, Walmart AGAIN"). The wide
+     Walmart tile was the Aria Auto band's big store card (2026-09-30); the
+     categories-above-stores move (2c68fc8, c.6544923338) carried it whole into
+     the stores block, two sections above the Walmart store rail, so Walmart
+     showed twice. The rail (its sales, its pills, Ver tienda) is Walmart's one
+     place on the homepage; scripts/test/home-store-rails-tests.mjs holds every
+     store to one. -->
     <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
          entry point the section was missing -- a full-width fashion-week
          moment between Compra por categoría and the store rails, the way
@@ -6581,7 +6555,7 @@ html{scroll-padding-top:76px}
 <script src="/condition.js"></script>
 <script src="/store-shipping.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-84c15fc677dcb328.js"></script>
+<script src="/build/app-68a93639df904458.js"></script>
 <script src="/assets/js/store-rail-pills.js" defer></script>
 <script src="/assets/js/home-category-pills.js" defer></script>
 

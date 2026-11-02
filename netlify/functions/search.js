@@ -32,7 +32,7 @@ const EXTRA_LABELS = { americaneagle: "American Eagle", partycity: "Party City",
   farmrio: "FARM Rio", aguabendita: "Agua Bendita", patbo: "PatBO", johannaortiz: "Johanna Ortiz", silviatcherassi: "Silvia Tcherassi",
   capittana: "Capittana", ancora: "Ancora", vix: "ViX", montce: "Montce", eberjey: "Eberjey", tns: "TNS", revzilla: "RevZilla",
   denniskirk: "Dennis Kirk", smartbuyglasses: "SmartBuyGlasses" };
-const LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k])) };
+export const LABELS = { ...EXTRA_LABELS, ...Object.fromEntries(Object.entries(RETAILERS).map(([k, r]) => [k, r.label || k])) };
 
 const FX_TTL_MS = 6 * 60 * 60 * 1000;
 /* A stored rate is used for at most a week, and asked about again
@@ -51,7 +51,7 @@ let fxCache = { rate: null, at: 0, ttl: FX_TTL_MS };
    already does whenever an answer carries no rate. */
 const FX_BUDGET_MS = 2500;
 const BLOB_TIMEOUT_MS = 1500;
-const within = (p, ms) => new Promise((done) => {
+export const within = (p, ms) => new Promise((done) => {
   const t = setTimeout(() => done(null), ms);
   Promise.resolve(p).then((v) => { clearTimeout(t); done(v); }, () => { clearTimeout(t); done(null); });
 });
@@ -65,7 +65,7 @@ async function storedRate() {
   } catch { /* no store here (tests, local) */ }
   return null;
 }
-async function sellRate(fetchImpl = fetch) {
+export async function sellRate(fetchImpl = fetch) {
   if (fxCache.rate && Date.now() - fxCache.at < fxCache.ttl) return fxCache.rate;
   try {
     const ctl = new AbortController();

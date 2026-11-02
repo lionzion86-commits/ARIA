@@ -10,6 +10,7 @@
     "test": "node scripts/test/run-tests.mjs",
     "test:browser": "node scripts/test/browser-tests.mjs",
     "test:mcp": "node scripts/test/mcp-tests.mjs",
+    "test:muse-mcp": "node scripts/test/muse-mcp-tests.mjs",
     "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
     "test:owned-voice": "node scripts/test/owned-voice-tests.mjs",
     "test:aria-auto-year": "node scripts/test/aria-auto-year-tests.mjs",

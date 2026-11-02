@@ -13,9 +13,14 @@
        from the fight department; Deportes is not one sport;
      - zero emoji; the Mountain Test (small files, nothing at load);
      - at 390px a pill switches its carousel, «Todas» puts it back;
+     - Danny's live QA (#443 c.6578377916): Zapatos is footwear only,
+       opens on Chuck Taylor, Air Force 1 and Samba (never a designer
+       piece in the first LEAD_SLOTS) and carries Hombre / Mujer / Niños
+       pills above its stores; models first: Bikinis and Lencería open on
+       a model shot (Lencería always on Victoria's Secret);
      - Danny's audit (#443 c.6567120876, c.6567135924, c.6567197812):
        the lead store of each carousel (Victoria's Secret, Lane Bryant,
-       Montce with its third photo, Venum gloves then Tatami gis), Gym
+       Montce, Venum gloves then Tatami gis), Gym
        Rat's Gymshark and Alphalete at the back, never a sock or an
        accessory in front, no socks in Lencería, no straps or cases in
        Lentes, no belts, toys or wallets in Joyas, every «Todas» a mix,
@@ -29,7 +34,8 @@ import http from "node:http";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 import { CAROUSELS, PILLS_DIR, MIN_CARDS, RAIL_CARDS, FIGHT_GEAR_TYPES, FIGHT_GEAR_CLASSES, OFERTAS_MIN, buildCategoryPills, pillFiles, defaultRails, liveStorefronts, storeSlice, sliceCategory, classifierOf, saleRuleOf,
-  isSock, isAccessory, isEyewearAccessory, isBelt, isToyPiece, isWallet, catalogueImages } from "../build-home-category-pills.mjs";
+  isSock, isAccessory, isEyewearAccessory, isBelt, isToyPiece, isWallet, notFootwear, isLuxuryShoe, ICON_MODELS, LEAD_SLOTS, MODEL_SLOTS } from "../build-home-category-pills.mjs";
+import { modelShot } from "../lib/model-shot.mjs";
 import { perfumeHouseRank, isMenBelt } from "../../netlify/functions/_department-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -248,12 +254,82 @@ await check("Aria Fight Club opens on Venum gloves, then Tatami gis, then the mi
   assert.ok(new Set(r.map((p) => p.retailer)).size >= 4, "the rail is not a mix");
 });
 
-await check("Bikinis y Ropas de Baño: the first card is Montce's lead product in its third catalogue photo", () => {
-  const first = cardsOf("bano-todas.json")[0];
-  const imgs = catalogueImages(ROOT, first.retailer, first.title);
-  assert.ok(imgs.length >= 3, "the lead product has no third photo");
-  assert.equal(first.image, imgs[2], "the first card is not images[2]");
-  assert.equal(first.title, cardsOf("bano-montce.json")[0].title, "the lead is not Montce's own lead product");
+/* MODELS FIRST (Danny, #443 c.6578377916 item 5): absolute for Bikinis and
+   Lencería -- the lead card is a photo the store's own naming calls a model
+   shot (lib/model-shot.mjs), never a flat or an unknown. */
+await check("models first: Bikinis and Lencería open on a model shot in every view; Lencería always on Victoria's Secret", () => {
+  const isModel = (c) => modelShot(c.retailer, c.image) === true;
+  const bano = cardsOf("bano-todas.json");
+  assert.equal(bano[0].retailer, "montce", "Bikinis' «Todas» does not open on Montce");
+  assert.equal(bano[0].title, cardsOf("bano-montce.json")[0].title, "the lead is not Montce's own lead product");
+  assert.ok(isModel(bano[0]), "Bikinis' «Todas» opens on a photo that is not a model shot: " + bano[0].image);
+  assert.ok(!/MontceSwim-5738/.test(bano[0].image), "Bikinis' «Todas» still wears the frame Danny called a flat top on white");
+  const lead = category.ropa_interior_mujer;
+  assert.ok(lead.slice(0, 3).every((p) => p.retailer === "victoriassecret"), "Lencería's rail does not open on Victoria's Secret");
+  assert.ok(lead.slice(0, 3).every(isModel), "Lencería's first three are not all model shots: " + lead.slice(0, 3).map((p) => p.image).join(" "));
+  assert.equal(cardsOf("lenceria-ofertas.json")[0].retailer, "victoriassecret", "Lencería's Ofertas does not open on Victoria's Secret");
+  assert.equal(index.c.lenceria.s[0][0], "victoriassecret", "Lencería's first pill");
+  /* every Bikinis / Lencería view whose store has model photography opens on one */
+  for (const f of railFiles.filter((f) => /^(bano|lenceria)-/.test(f))) {
+    const cards = cardsOf(f);
+    const any = cards.some(isModel);
+    if (any) assert.ok(isModel(cards[0]), `${f} opens on ${cards[0].retailer} ${cards[0].image}`);
+  }
+  /* the swap is the product's own gallery photo, never another product's */
+  const sk = category.ropa_interior_mujer.find((p) => p.retailer === "skims");
+  assert.ok(sk && isModel(sk), "the first SKIMS card in Lencería is not on its model photo");
+});
+
+await check("models first where the data allows: Gym Rat and Fight Club open on a model shot inside their own rules; Beauty and Tenis carry none", () => {
+  const isModel = (c) => modelShot(c.retailer, c.image) === true;
+  assert.ok(isModel(category.gym_rat[0]), "Gym Rat opens on " + category.gym_rat[0].image);
+  const fight = category.combat_sports;
+  const gi = fight.find((p) => p.retailer === "tatami");
+  assert.ok(gi && isModel(gi), "Fight Club's Tatami gi is not on a model shot");
+  /* no model photography in the data: nothing is promoted on a guess */
+  for (const k of ["beauty"]) assert.ok(!category[k].slice(0, MODEL_SLOTS).some(isModel), k + " claims a model shot");
+  assert.ok(!cardsOf("tenis-todas.json").slice(0, MODEL_SLOTS).some(isModel), "Tenis claims a model shot");
+});
+
+/* ZAPATOS (Danny, #443 c.6578377916 items 2-4). */
+await check("Zapatos is footwear only: no SNIPES graphic tee, no pants, bags or phone cases, in any view", () => {
+  const all = [...railFiles.filter((f) => /^zapatos-/.test(f)).flatMap((f) => cardsOf(f)), ...category.shoes];
+  assert.ok(!all.some((c) => /Sexyy Red Money Pose/.test(c.title)), "the SNIPES graphic tee is back");
+  const bad = all.filter((c) => notFootwear({ title: c.title, brand: c.brand, retailer: c.retailer, _type: "" }, ROOT));
+  assert.deepEqual(bad.map((c) => c.retailer + " | " + c.title), [], "not footwear");
+  assert.ok(notFootwear({ title: "Sexyy Red Money Pose", brand: "Graphic Tees", retailer: "snipes", _type: "Zapatillas" }, ROOT));
+  assert.ok(notFootwear({ title: "Women's The Wizard Of Oz Slippers Graphic Tee", brand: "", retailer: "kohls", _type: "Mocasines y pantuflas" }, ROOT));
+  for (const t of ["Stardan black leather star jacket with star and black leather heel sneakers", "Ultrarange VR3 - Dress Blues / Multi", "Converse Chuck Taylor All Star Hi Top Shoes", "Book 1"])
+    assert.ok(!notFootwear({ title: t, brand: "", retailer: "ssense", _type: "Zapatillas" }, ROOT), t + " left the rail");
+});
+await check("Zapatos opens on the shoes a shopper knows: Chuck Taylor, Air Force 1, Samba; no designer piece in the first LEAD_SLOTS of any view", () => {
+  const icon = (c) => ICON_MODELS.findIndex(([, rx]) => rx.test(c.title));
+  const lead = category.shoes;
+  assert.deepEqual(lead.slice(0, 3).map(icon), [0, 1, 2], "the rail opens on " + lead.slice(0, 3).map((c) => c.title).join(" / "));
+  for (const [name, cards] of [["saved rail", lead], ...railFiles.filter((f) => /^zapatos-(ofertas|a-[a-z]+-(todas|ofertas))\.json$/.test(f)).map((f) => [f, cardsOf(f)])]) {
+    const lux = cards.slice(0, LEAD_SLOTS).filter(isLuxuryShoe);
+    assert.deepEqual(lux.map((c) => c.retailer + " " + c.title + " $" + c.price), [], name + ": a designer piece in the lead");
+  }
+  assert.ok(lead.some(isLuxuryShoe), "the designer pieces left the rail (they stay, after the lead)");
+  for (const a of ["hombre", "mujer", "ninos"]) assert.equal(icon(cardsOf(`zapatos-a-${a}-todas.json`)[0]), 0, a + " does not open on a Chuck Taylor");
+});
+await check("Zapatos carries Hombre / Mujer / Niños above its stores; each audience is the department's own data", () => {
+  const e = index.c.zapatos;
+  assert.deepEqual((e.au || []).map((x) => x[1]), ["Hombre", "Mujer", "Niños"]);
+  const shoes = new Map((json("assets/sections/departamento/_fn/shoes.json").rows || []).map((r) => [r[2] + "::" + r[0], r]));
+  for (const [k, , n, stores] of e.au) {
+    assert.ok(n >= MIN_CARDS, k + " is thin");
+    const todas = json(`${PILLS_DIR}/zapatos-a-${k}-todas.json`);
+    assert.equal(todas.door, `/departamento.html?dept=shoes&para=${{ hombre: "men", mujer: "women", ninos: "kids" }[k]}`);
+    for (const [st] of stores) {
+      const f = json(`${PILLS_DIR}/zapatos-a-${k}-${st}.json`);
+      assert.ok(f.cards.length >= 8 && f.cards.every((c) => c.retailer === st), `zapatos-a-${k}-${st}`);
+    }
+    if (k === "ninos") for (const c of todas.cards) {
+      const r = shoes.get(c.retailer + "::" + c.title);
+      assert.ok(r && (r[8] === "kids" || r[11] === "kids"), "a Niños card that is not a kids' shoe: " + c.title);
+    }
+  }
 });
 
 const WORN = CAROUSELS.filter((c) => c.worn);
@@ -550,6 +626,35 @@ await check("390px: a store pill switches its carousel to that store, ending on 
     assert.equal(fend, "/tienda.html?tienda=venum");
     await pg.click(fbar + ' button[data-hcp=""]');
     await pg.waitForFunction(([s, n]) => document.querySelector(s).querySelectorAll("[data-category-rail-card]").length >= 8 && document.querySelector(s).children.length === n, [fsel, before], { timeout: 10000 });
+
+    /* Zapatos: the audience row sits on top of the store row; Mujer re-renders the
+       rail and the store row, ending on the department filtered to women; the
+       active audience tapped again puts the carousel back. */
+    const zsel = '#mobileShopfront [data-category-rail-row="shoes"]';
+    await pg.$eval(zsel, (el) => el.closest("section").scrollIntoView({ block: "center" }));
+    await pg.waitForFunction((s) => document.querySelector(s).querySelectorAll("[data-category-rail-card]").length >= 8, zsel, { timeout: 60000 });
+    const zaud = '#mobileShopfront [data-cat-pills-aud="zapatos"]', zbar = '#mobileShopfront [data-cat-pills-bar="zapatos"]';
+    await pg.waitForSelector(zaud + ' button[data-hcp-aud="mujer"]', { timeout: 15000 });
+    const zorder = await pg.$eval(zaud, (a) => ({ labels: [...a.children].map((b) => b.textContent), above: a.nextElementSibling && a.nextElementSibling.matches('[data-cat-pills-bar="zapatos"]') }));
+    assert.deepEqual(zorder.labels, ["Hombre", "Mujer", "Niños"]);
+    assert.ok(zorder.above, "the audience row is not directly above the store row");
+    await pg.click(zaud + ' button[data-hcp-aud="mujer"]');
+    await pg.waitForFunction((s) => { const r = document.querySelector(s); const l = r.lastElementChild; return r.querySelectorAll("[data-cat-pills-card]").length >= 8 && l && l.getAttribute("href") === "/departamento.html?dept=shoes&para=women"; }, zsel, { timeout: 20000 });
+    const zstores = await pg.$eval(zbar, (b) => [...b.querySelectorAll("button[data-hcp]")].map((x) => x.getAttribute("data-hcp")).filter(Boolean));
+    assert.deepEqual(zstores, index.c.zapatos.au.find((x) => x[0] === "mujer")[3].map((x) => x[0]), "the store row is not Mujer's");
+    const zst = zstores[0];
+    await pg.click(`${zbar} button[data-hcp="${zst}"]`);
+    await pg.waitForFunction(([s, st]) => { const c = [...document.querySelector(s).querySelectorAll("[data-cat-pills-card]")]; return c.length >= 8 && c.every((x) => x.getAttribute("data-cat-pills-card") === st); }, [zsel, zst], { timeout: 20000 });
+    const zfirst = await pg.$eval(zsel + " [data-cat-pills-card]", (c) => decodeURIComponent(c.getAttribute("data-pdp").split("producto=")[1].split("&")[0]));
+    assert.equal(zfirst, json(`${PILLS_DIR}/zapatos-a-mujer-${zst}.json`).cards[0].title, "the store pill under Mujer is not Mujer's rail");
+    /* Mujer tapped again: the store stays, for every audience (its own pill rail) */
+    await pg.click(zaud + ' button[data-hcp-aud="mujer"]');
+    const zall = json(`${PILLS_DIR}/zapatos-${zst}.json`).cards[0].title;
+    await pg.waitForFunction(([s, t]) => { const c = document.querySelector(s).querySelector("[data-cat-pills-card]"); return c && decodeURIComponent(c.getAttribute("data-pdp").split("producto=")[1].split("&")[0]) === t; }, [zsel, zall], { timeout: 20000 });
+    await pg.click(`${zbar} button[data-hcp=""]`);
+    await pg.waitForFunction((s) => document.querySelector(s).querySelectorAll("[data-category-rail-card]").length >= 8 && !document.querySelector(s).querySelector("[data-cat-pills-card]"), zsel, { timeout: 10000 })
+      .catch(async (e) => { throw new Error("Zapatos did not come back to «Todas»: " + JSON.stringify(await pg.$eval(zsel, (r) => ({ n: r.children.length, pills: r.querySelectorAll("[data-cat-pills-card]").length })))); });
+    assert.equal(await pg.$eval(zaud, (a) => a.querySelectorAll('[aria-selected="true"]').length), 0, "an audience stays selected");
     await ctx.close();
   } finally {
     await browser.close();
