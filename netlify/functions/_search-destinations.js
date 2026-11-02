@@ -576,8 +576,17 @@ export function routeKey(ctx, D, q) {
   }
   toks = ab;
   /* Spelling, then singular/plural. */
-  toks = toks.map((t, i) => respelled(ctx, L, D, t, toks[i - 1], toks[i + 1]) || t);
-  toks = toks.map((t) => singularPlural(L, D, t));
+  /* A store's or brand's own name inside the query ("arai helmets full
+     face") is never respelled or folded: every word of it stays. */
+  const named = new Set();
+  for (let i = 0; i < toks.length; i++) {
+    for (let j = Math.min(toks.length, i + 6); j > i + 1; j--) {
+      const k = toks.slice(i, j).join("");
+      if (D.storeNames.has(k) || D.brandNames.has(k)) { for (let m = i; m < j; m++) named.add(m); break; }
+    }
+  }
+  toks = toks.map((t, i) => (named.has(i) ? t : respelled(ctx, L, D, t, toks[i - 1], toks[i + 1]) || t));
+  toks = toks.map((t, i) => (named.has(i) ? t : singularPlural(L, D, t)));
   /* The store, or else the biggest brand, the query names leads. */
   if (toks.length >= 2 && toks.length <= 4) {
     const skip = (p) => D.vocab.has(p) || FILLER.has(p) || !!AUDIENCE[p];
@@ -609,12 +618,36 @@ export function destinationFor(ctx, q, { fx = null, read = readRepoFile } = {}) 
   const D = destinations(ctx, read);
   const typed = String(q == null ? "" : q).trim().replace(/\s+/g, " ").slice(0, 120);
   /* The router reads the route key: every variant of a name is one query. */
-  const query = routeKey(ctx, D, typed) || typed;
-  const out = routeOf(ctx, D, query, fx, read, 0);
+  /* A store's or brand's whole name, exactly (case, accents and
+     punctuation aside), is that page -- before any folding. */
+  const exact = exactName(D, typed);
+  const query = exact ? wordsOf(typed).join(" ") : routeKey(ctx, D, typed) || typed;
+  let out;
+  if (exact) {
+    const r = equivalentQuery(ctx, query);
+    out = withAlternatives(ctx, D, query, exact, r && r.state === "results" ? r.hits : []);
+  } else out = routeOf(ctx, D, query, fx, read, 0);
   out.q = typed;
   if (query !== typed) out.canonical = query;
   if (out.chooser) out.chooser.title = out.chooser.title.replace("“" + query + "”", "“" + typed + "”");
   return out;
+}
+/* The store or brand the whole query names, exactly -- every word of
+   its name, nothing else: a store first (the same name as a brand is
+   the store, as before), then a brand. Two rulings stand ahead of it: a
+   product word opens its type page (c.6579541628), and a category word
+   that is also a small brand's one-word name stays the category
+   («Chocolate»). */
+function exactName(D, typed) {
+  const k = nameKey(typed);
+  if (k.length < 2 || productTypeOf(D, typed)) return null;
+  if (D.storeNames.has(k)) return storeDest(D, D.storeNames.get(k));
+  if (D.brandNames.has(k)) {
+    const bk = D.brandNames.get(k), cat = categoryOfQuery(D, typed);
+    if (cat && !cat.rest.length && D.brands[bk][1] < 300 && wordsOf(typed).length === 1) return null;
+    return brandDest(D, bk);
+  }
+  return null;
 }
 /* Known words: the catalogue carries them, or Aria's vocabulary does. */
 function isKnownWord(ctx, D, w) {
