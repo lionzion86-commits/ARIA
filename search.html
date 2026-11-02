@@ -123,7 +123,7 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
    yellow is for sale badges only. */
 .cmp-sec{grid-column:1/-1; min-width:0; margin:0 0 6px;}
 .cmp-sec-title{font-size:18px; font-weight:800; color:var(--navy); margin:2px 0 2px;}
-.cmp-sec-sub{font-size:14px; color:var(--muted); margin:0 0 12px;}
+.cmp-sec-sub{font-size:16px; font-weight:800; color:var(--blue); margin:2px 0 12px; line-height:1.35;}
 .cmp{grid-column:1/-1; min-width:0; border:1px solid var(--line); border-radius:16px; padding:14px; margin:0 0 6px; background:#fff;}
 .cmp-head{display:flex; gap:12px; align-items:center; margin-bottom:10px;}
 .cmp-photo{position:relative; flex:0 0 72px; width:72px; height:72px; border-radius:12px; background:var(--sky); overflow:hidden;}
@@ -163,6 +163,12 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .cmp-ln.tot{border-top:1px dashed var(--line); margin-top:4px; padding-top:7px;}
 .cmp-ln.tot dt{color:var(--navy); font-weight:800;}
 .cmp-ln.tot dd b{font-size:15px; font-weight:800; color:var(--navy);}
+/* THE WINNER POPS (#443 c.6567313255): the store with the best cost to Miami
+   (product + store shipping, the ranking rule) is filled light blue, never
+   yellow (the pills are yellow); every other store keeps its full breakdown. */
+.cmp-row.win{background:#DCEBFF; border-top-color:#B9D4FA; border-radius:12px; padding-left:10px; padding-right:10px; box-shadow:inset 4px 0 0 var(--blue);}
+.cmp-row.win:hover{background:#D2E4FF;}
+.cmp-row.win + .cmp-row{border-top-color:transparent;}
 .cmp-ln.tot .part{display:block; font-size:11.5px; color:var(--muted); font-weight:600; white-space:normal;}
 .cmp-badge.ship{background:#FFF4DB; color:#8A5A00;}
 .cmp-badge.total{background:var(--navy); color:#fff;}
@@ -636,7 +642,7 @@ function compareRowHTML(s){
   var lines = lineHTML("prod", "Producto", amountHTML(s.usd, prodPen, true)) +
     lineHTML("", "Envío de la tienda", shipHTML(s.ship));
   var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "";
-  return '<a class="cmp-row bd" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
+  return '<a class="cmp-row bd' + (s.bestCost ? " win" : "") + '" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
     '<div class="cmp-top"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
       (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") + "</div>" +
     '<dl class="cmp-lines">' + lines + "</dl>" +
@@ -814,6 +820,24 @@ function renderAnswer(query, data){
       chip.appendChild(document.createTextNode("?"));
       wrap.appendChild(chip);
       meta.appendChild(wrap);
+    }
+    /* TAMBIÉN PRUEBA (#443 c.6567346916): another spelling of the same
+       name finds more of what Aria carries -- one tap re-runs it. */
+    if (data.alsoTry && data.alsoTry.length){
+      var tw = document.createElement("div");
+      var tc = document.createElement("span");
+      tc.className = "dymchip alsotry";
+      tc.appendChild(document.createTextNode("También prueba:"));
+      data.alsoTry.forEach(function(a){
+        var tb = document.createElement("button");
+        tb.type = "button";
+        tb.textContent = a.q;
+        tb.setAttribute("data-also-try", a.q);
+        tb.addEventListener("click", function(){ searchFor(a.q); });
+        tc.appendChild(tb);
+      });
+      tw.appendChild(tc);
+      meta.appendChild(tw);
     }
   }
   showingStatus();

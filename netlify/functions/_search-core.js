@@ -424,6 +424,51 @@ export function didYouMean(ctx, q, r) {
   return changed ? out.join(" ") : null;
 }
 
+/* TAMBIÉN PRUEBA (#443 c.6567346916, Danny's live search audit). The
+   same name written two ways -- "all star" / "allstar", "air force" /
+   "airforce" -- can find different stock, and a shopper who typed the
+   thinner form thinks that is all Aria has. Each other spelling of the
+   query the index itself knows (two of its words joined, or one word
+   split into two words the index carries) is run; a form that finds
+   materially more is offered, one tap away. Same set: no suggestion. */
+const ALSO_TRY_MIN_FREQ = 3;     // a word the index carries at least this often
+const ALSO_TRY_MIN_GAIN = 5;     // and the other form finds at least this many more
+const ALSO_TRY_RATIO = 1.2;      // ...and at least 20% more
+const ALSO_TRY_SPLIT_RARE = 20;  // only a word the index rarely carries is split
+const ALSO_TRY_PART = 3;         // and only into parts of 3+ letters
+export function alsoTry(ctx, q, total) {
+  const S = ctx.S, windex = ctx.products && ctx.products._windex;
+  if (!windex || typeof S.searchTokens !== "function") return [];
+  const toks = S.searchTokens(q);
+  if (!toks.length || toks.length > 4) return [];
+  const freq = (w) => { const l = windex.get(w); return l ? l.length : 0; };
+  const forms = new Set();
+  /* Two neighbouring words joined: "all star" -> "allstar". */
+  for (let i = 0; i + 1 < toks.length; i++) {
+    const j = toks[i] + toks[i + 1];
+    if (freq(j) >= ALSO_TRY_MIN_FREQ) forms.add([...toks.slice(0, i), j, ...toks.slice(i + 2)].join(" "));
+  }
+  /* One word split in two: "allstar" -> "all star" (the best-carried split). */
+  toks.forEach((t, i) => {
+    if (t.length < 2 * ALSO_TRY_PART || /\d/.test(t) || freq(t) >= ALSO_TRY_SPLIT_RARE) return;
+    let best = null;
+    for (let k = ALSO_TRY_PART; k <= t.length - ALSO_TRY_PART; k++) {
+      const a = t.slice(0, k), b = t.slice(k), m = Math.min(freq(a), freq(b));
+      if (m >= ALSO_TRY_MIN_FREQ && (!best || m > best.m)) best = { a, b, m };
+    }
+    if (best) forms.add([...toks.slice(0, i), best.a, best.b, ...toks.slice(i + 1)].join(" "));
+  });
+  const own = toks.join(" ");
+  const out = [];
+  for (const f of forms) {
+    if (f === own) continue;
+    const r = runQuery(ctx, f);
+    const n = r && r.state === "results" ? r.hits.length : 0;
+    if (n >= total + ALSO_TRY_MIN_GAIN && n >= total * ALSO_TRY_RATIO) out.push({ q: f, total: n });
+  }
+  return out.sort((a, b) => b.total - a.total).slice(0, 2);
+}
+
 /* ============================================================
    THE MALL, NOT A WALL (2026-10-19, #416: Danny on "dolls").
 
@@ -1357,6 +1402,8 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
     sense: r.sense || null,
     suggestion: r.suggestion || null,
     didYouMean: n === 1 ? didYouMean(ctx, query, r) : null,
+    /* Other spellings of the query that find more (page 1 only). */
+    alsoTry: n === 1 && r.state !== "error" ? alsoTry(ctx, query, r.state === "results" ? r.hits.length : 0) : [],
     /* "generic": the lanes lead; "specific": the results lead, the
        lanes follow (#416). Page 1 only. */
     mode: lanes ? lanes.mode : null,

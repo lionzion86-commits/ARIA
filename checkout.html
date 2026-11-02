@@ -1739,7 +1739,15 @@ function cardImgAttrs(url, sizes){
     panel.hidden = !ruled.length;
     if (!ruled.length){ panel.innerHTML = ''; return; }
     setMoney(document.getElementById('sumShip'), totals.shipping, '', pens ? pens.shipping : NaN);
-    panel.innerHTML = ruled.map((st) => {
+    /* ONE ORDER, SEVERAL STORES (#443 c.6568051694): a shopper with two
+       stores in the cart saw two shipping lines and did not know why. The
+       block says what it is before the numbers. */
+    const intro = `<p class="text-[12.5px] font-bold rounded-xl px-3 py-2" style="color:var(--navy); background:#EAF2FF" data-ship-explainer>`
+      + (ruled.length > 1
+        ? `Tu pedido junta productos de ${ruled.length} tiendas de EE.UU. Cada tienda envía a nuestro almacén en Miami con su propia regla, por eso ves un envío por tienda.`
+        : `Tu tienda envía a nuestro almacén en Miami con su propia regla de envío.`)
+      + `</p>`;
+    panel.innerHTML = intro + ruled.map((st) => {
       const label = RETAILER_LABELS[st.store] || st.store;
       const open = !st.rule || st.pending;
       /* Never "por confirmar" (Danny, #443 c.6547441472): a store with no
