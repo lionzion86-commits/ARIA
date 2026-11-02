@@ -256,7 +256,8 @@ export async function pillDefaults(page, root = ROOT) {
         const key = c.retailer + "::" + c.title;
         if (seen.has(key)) continue;
         let it = byKey.get(key) || null;
-        if (it) it = { ...it, retailer: c.retailer };
+        /* A models-first card wears its gallery's model shot (c.swap). */
+        if (it) it = { ...it, retailer: c.retailer, ...(c.swap ? { image: c.image } : {}) };
         else {
           try {
             it = normalizeLiveItem({ title: c.title, brand: c.brand, price: c.price, originalPrice: c.originalPrice, onSale: Number(c.originalPrice) > Number(c.price), image: c.image },

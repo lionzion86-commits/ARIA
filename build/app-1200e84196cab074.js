@@ -12989,10 +12989,25 @@ function isJoyasItem(p){
    four sub-rails consolidated into one genre. The tile used to scroll to
    the vertical's homepage section; it now opens the Aria Party
    department -- one door, one genre. */
+/* ARIA PARTY'S TILE ART (#443 c.6578980524, Danny 2026-11-02: "We need to
+   have an actual logo on there" -- the tile was a navy block with gold
+   "AP" initials beside photographed neighbours). Aria Party has no brand
+   mark in the repo, so the tile wears what every department tile wears:
+   the department's own curated cover (CATEGORY_COVERS.party,
+   assets/category/party.jpg -- the party table the Aria Party department
+   already shows), through the same coverImgSrc as its neighbours. No
+   initials, no invented logo. Without a cover it falls back to the
+   neighbours' own designed cover, never to letters. */
+function fiestasCatArtHTML(){
+  const cover = (typeof coverImgSrc === 'function') ? coverImgSrc('party') : null;
+  if (cover) return `<img src="${escapeHtml(cover)}" alt="" loading="lazy" decoding="async" data-party-cover
+         style="width:100%; height:100%; object-fit:cover; object-position:center">`;
+  return (typeof designedCoverHTML === 'function') ? designedCoverHTML({ key: 'party', label: 'Aria Party' }) : '';
+}
 function fiestasCatTileHTML(){
   return `<button onclick="openCatalog('department','party')" data-fiestas-cat="1"
     class="flex-shrink-0 w-[148px] text-left rounded-2xl overflow-hidden border focus-ring" style="border-color:var(--line); background:#fff">
-    <span class="block w-full h-[104px] overflow-hidden grid place-items-center" style="background:linear-gradient(160deg,#0A1F44,#0D2A5C)" aria-hidden="true"><span class="font-extrabold tracking-[0.08em] text-[22px]" style="color:#F4C463;font-family:'Rajdhani',sans-serif">AP</span></span>
+    <span class="block w-full h-[104px] overflow-hidden" style="background:var(--sky)">${fiestasCatArtHTML()}</span>
     <span class="block px-3 py-2.5">
       <span class="block text-[13px] font-extrabold leading-tight" style="color:var(--navy)">Aria Party</span>
       <span class="block text-[11px] mt-0.5 tabular" style="color:#6B7487">Todo para tu fiesta</span>

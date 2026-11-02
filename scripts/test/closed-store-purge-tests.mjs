@@ -95,17 +95,14 @@ for (const [key, label] of Object.entries(SHELVED)) {
   });
 }
 
-check("the homepage's US-stores band: the wide Walmart tile, then BrandsMart (Order B), phone and desktop", () => {
+check("the homepage's US-stores band: no wide store tile; Walmart's one band is its store rail (#443 c.6578980524), phone and desktop", () => {
   const html = readFileSync(ROOT + "index.html", "utf8");
-  const bands = html.match(/<section aria-label="Walmart" class="relative overflow-hidden"[\s\S]*?<\/section>/g) || [];
-  assert.equal(bands.length, 2, "the phone and desktop bands");
-  for (const b of bands) {
-    const tiles = b.match(/<button onclick="tiendaJump\('([a-z]+)'\)"[^>]*>/g) || [];
-    /* The two anchor cards (Build Order B): Walmart, then BrandsMart USA
-       right next to it, each across both slots. */
-    assert.deepEqual(tiles.map((t) => /tiendaJump\('([a-z]+)'\)/.exec(t)[1]), ["walmart", "brandsmart"]);
-    for (const t of tiles) assert.match(t, /class="col-span-2 /, "each anchor spans both slots");
-  }
+  /* BrandsMart left the homepage (c.6539449309); the wide Walmart tile left
+     when it sat two sections above Walmart's own rail (Danny: "Walmart AGAIN"). */
+  assert.equal((html.match(/<section aria-label="Walmart" class="relative overflow-hidden"/g) || []).length, 0, "the wide Walmart tile is back");
+  const shop = html.slice(html.indexOf('<div id="mobileShopfront"'), html.indexOf('<div id="resultsView"'));
+  assert.equal((shop.match(/data-store-rail="walmart"/g) || []).length, 2, "one Walmart rail on the phone, one on the desktop");
+  assert.ok(!/tiendaJump\('brandsmart'\)/.test(shop), "BrandsMart is back on the homepage");
 });
 
 check("the Toys aisle and the store photo backdrop are Walmart only", () => {

@@ -62,6 +62,7 @@ import { fileURLToPath } from "node:url";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
 import vm from "node:vm";
+import { modelShot, modelPhotoOf } from "./lib/model-shot.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PILLS_DIR = "assets/home/category-pills";
@@ -119,19 +120,27 @@ export const FIGHT_GEAR_TYPES = new Set(FIGHT_GEAR_CLASSES.flatMap(([, t]) => t)
      ofertas   false: the carousel already has its own Ofertas pill
                (Electrónica's type row). */
 export const CAROUSELS = [
-  { k: "lenceria", title: "Lencería", host: "row", row: "ropa_interior_mujer", src: { feed: "ropa-interior-women-feed.json", underwearOnly: true }, lead: ["victoriassecret", "skims"], leadCards: 3, leadPrefer: (cd) => cd._type === "bra", worn: true, exclude: (cd) => isSock(cd) },
+  { k: "lenceria", title: "Lencería", host: "row", row: "ropa_interior_mujer", src: { feed: "ropa-interior-women-feed.json", underwearOnly: true }, lead: ["victoriassecret", "skims"], leadCards: 3, leadPrefer: (cd) => cd._type === "bra", worn: true, models: "always", exclude: (cd) => isSock(cd) },
   { k: "interior-hombre", title: "Ropa Interior Hombre", host: "row", row: "ropa_interior", src: { feed: "ropa-interior-feed.json" }, worn: true },
   { k: "tallas-plus", title: "Tallas Plus", host: "row", row: "curvy", src: { depts: ["curvy"] }, lead: ["lanebryant"], leadCards: 3, leadPrefer: (cd) => !/^(panties|bras|lingerie|shapewear)$/i.test(String(cd._type || "")), worn: true },
-  { k: "bano", title: "Bikinis y Ropas de Baño", host: "new", src: { swim: true }, door: "", lead: ["montce"], leadCards: 1, leadPhoto: 2, worn: true },
+  /* Bikinis: Montce leads, on its own main photo (studio_front, a model:
+     Danny's reference, #443 c.6578377916 -- the images[2] shoot frame the
+     «Todas» card wore read as a flat top on white). */
+  { k: "bano", title: "Bikinis y Ropas de Baño", host: "new", src: { swim: true }, door: "", lead: ["montce"], leadCards: 1, worn: true, models: "always" },
   { k: "electronica", title: "Electrónica", host: "tech", src: { depts: ["electronics"] }, ofertas: false },
-  { k: "gym-rat", title: "Gym Rat", host: "row", row: "gym_rat", src: { depts: ["gym_rat"] }, tail: ["gymshark", "alphalete"], worn: true },
+  { k: "gym-rat", title: "Gym Rat", host: "row", row: "gym_rat", src: { depts: ["gym_rat"] }, tail: ["gymshark", "alphalete"], worn: true, models: "where" },
   { k: "futbol", title: "Fútbol", host: "row", row: "soccer", src: { depts: ["soccer"] }, worn: true },
-  { k: "tenis", title: "Tenis", host: "new", src: { depts: ["tennis"], notFamilies: ["juguetes", "hogar", "libros", "belleza", "perfumes", "electronica", "dulces"] }, door: "/departamento.html?dept=tennis", worn: true },
-  { k: "fight-club", title: "Aria Fight Club", host: "row", row: "combat_sports", src: { depts: ["combat_sports"], gearFirst: true }, lead: ["venum", "tatami"], fightLead: [["venum", "guantes", 2], ["tatami", "gi", 2]] },
-  { k: "beauty", title: "Aria Beauty", host: "row", row: "beauty", src: { depts: ["beauty"], families: ["belleza", "perfumes"] } },
+  { k: "tenis", title: "Tenis", host: "new", src: { depts: ["tennis"], notFamilies: ["juguetes", "hogar", "libros", "belleza", "perfumes", "electronica", "dulces"] }, door: "/departamento.html?dept=tennis", worn: true, models: "where" },
+  { k: "fight-club", title: "Aria Fight Club", host: "row", row: "combat_sports", src: { depts: ["combat_sports"], gearFirst: true }, lead: ["venum", "tatami"], fightLead: [["venum", "guantes", 2], ["tatami", "gi", 2]], models: "where" },
+  { k: "beauty", title: "Aria Beauty", host: "row", row: "beauty", src: { depts: ["beauty"], families: ["belleza", "perfumes"] }, models: "where" },
   { k: "surf-skate", title: "Surf & Skate", host: "row", row: "surf_skate", src: { depts: ["surf_skate"] }, worn: true },
   { k: "juguetes", title: "Juguetes", host: "row", row: "toys", src: { depts: ["toys"], families: ["juguetes"] }, exclude: (cd) => isPartyTableware(cd) },
-  { k: "zapatos", title: "Zapatos", host: "row", row: "shoes", src: { depts: ["shoes"] }, worn: true },
+  /* ZAPATOS (Danny, #443 c.6578377916 items 2-4): footwear only
+     (notFootwear), «Todas» and every audience rail open on the shoes a
+     shopper knows (ICON_MODELS, never a luxury piece in the first
+     LEAD_SLOTS), and Hombre / Mujer / Niños pills sit above the stores. */
+  { k: "zapatos", title: "Zapatos", host: "row", row: "shoes", src: { depts: ["shoes"] }, worn: true, exclude: (cd, root) => notFootwear(cd, root),
+    iconLead: true, audienceRow: [["hombre", "Hombre", "men"], ["mujer", "Mujer", "women"], ["ninos", "Niños", "kids"]] },
   { k: "lentes", title: "Lentes de Sol", host: "row", row: "sunglasses", src: { depts: ["sunglasses"], families: ["accesorios"] }, exclude: (cd) => isEyewearAccessory(cd) },
   { k: "joyas", title: "Joyas y accesorios", host: "joyas", src: { depts: ["joyas_accesorios"], families: ["joyas", "accesorios"] }, lead: ["baublebar"], leadCards: 1, exclude: (cd) => isBelt(cd) || isToyPiece(cd) || isWallet(cd) },
   { k: "hogar", title: "Hogar y Especialidades", host: "new", src: { depts: ["home_goods", "home_decor"], families: ["hogar", "libros"] }, door: "/departamento.html?dept=home_goods" },
@@ -233,6 +242,68 @@ export function isWallet(cd) {
 const TABLEWARE = /\b(cups?|plates?|napkins?|table ?(cloths?|covers?)|cutlery|forks?|spoons?|straws?|tumblers?|bowls?|platos?|vasos?|servilletas?)\b/i;
 export function isPartyTableware(cd) { return TABLEWARE.test(String(cd.title || "")); }
 
+/* FOOTWEAR ONLY (Danny, #443 c.6578377916 item 3: a SNIPES graphic tee
+   rode the Zapatos rail). The shoes department keeps a few things a
+   store filed with its shoes that are not shoes. What a product IS:
+     - the store files the line under a garment's name: SNIPES' "Graphic
+       Tees" / "Graphic Hoodie" lines (190 of its tees carry it) came
+       through typed SNEAKERS;
+     - the one classifier (/product-type.js) calls it a bag (duffels with
+       a shoe compartment, a crossbody, a pouch);
+     - the classifier calls it something else AND the product's own name
+       (before its colourway) ends on a garment or object noun ("Slippers
+       Graphic Tee", "Flat Front Pants", "Phone Case", "Diffuser"), never
+       on a shoe noun
+       ("... jacket with star and black leather heel sneakers" stays).
+   A shoe model that names no shoe noun ("Book 1", "6 Rings", "Cushion
+   Bounce") stays: the classifier and the department already call it a
+   shoe, and no garment noun says otherwise. */
+const GARMENT_LINE = /^(graphic\s+)?(tees?|t-?shirts?|hoodies?|hoody|sweatshirts?|shirts?|shorts|pants|jackets?|jerseys?)$/i;
+const NON_SHOE_NOUN = /\b(tees?|t-?shirts?|shirts?|pants?|shorts|jackets?|hoodies?|hoody|sweatshirts?|sweaters?|dress(es)?|tops?|jerseys?|bags?|duffels?|duffles?|pouch(es)?|phone cases?|diffusers?|cleaners?|conditioners?|blasters?)\b/gi;
+const SHOE_NOUN = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords|flats|trainers?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?|chimpunes?)\b/gi;
+const NOT_A_GARMENT = /\b(hi|high|low|mid)[- ]tops?\b|\bshoes? compartments?\b|\btop[- ]sider/gi;
+export function notFootwear(cd, root = ROOT) {
+  if (GARMENT_LINE.test(String(cd.brand || "").trim())) return true;
+  const C = classifierOf(root);
+  const fam = C.classify({ name: cd.title, type: cd._type, retailer: cd.retailer, brand: cd.brand });
+  if (fam === "zapatos") return false;
+  if (fam === "carteras") return true;
+  /* The name before its colourway ("Ultrarange VR3 - Dress Blues"). */
+  const t = String(cd.title || "").split(/\s[-–—]\s/)[0].replace(NOT_A_GARMENT, " ");
+  const last = (rx) => { let m, at = -1; rx.lastIndex = 0; while ((m = rx.exec(t))) at = m.index; return at; };
+  const g = last(NON_SHOE_NOUN), sh = last(SHOE_NOUN);
+  return g >= 0 && g > sh;
+}
+
+/* THE SHOES A SHOPPER KNOWS (Danny, #443 c.6578377916 item 2: "Lead with
+   some Chuck Taylors ... Nike Air Force Ones ... Adidas Sambas. Lead with
+   commercial shoes, not gladiator sandals that are $1000"). The opening
+   takes one of each, in this order, from the rail's own members (a
+   different store each time where one has it); a designer piece -- a
+   designer house's store or over LUXURY_USD -- stays in the rail but
+   never in the first LEAD_SLOTS. A model name, matched on the product's
+   own name inside the shoes department (the category is the
+   department's, never this list's). */
+export const ICON_MODELS = [
+  ["Chuck Taylor", /\bchuck\s*(taylor|70)\b/i],
+  ["Air Force 1", /\bair force 1\b|\baf-?1\b/i],
+  ["Samba", /\bsamba\b/i],
+  ["Gazelle", /\bgazelle\b/i],
+  ["Air Jordan 1", /\b(air )?jordan 1\b/i],
+  ["Dunk", /\bdunk (low|high)\b/i],
+  ["Old Skool", /\bold skool\b/i],
+  ["Stan Smith", /\bstan smith\b/i],
+  ["Superstar", /\bsuperstar\b/i],
+  ["New Balance 550 / 574 / 9060", /\bnew balance\b.*\b(550|574|9060|530)\b|\b(550|574|9060|530)\b.*\bnew balance\b/i],
+  ["Crocs Classic Clog", /\bclassic clog\b/i],
+];
+export const ICON_LEAD = 6;
+export const LEAD_SLOTS = 8;
+export const LUXURY_USD = 200;
+const DESIGNER_STORES = new Set(["ssense", "farfetch", "miumiu"]);
+export const isLuxuryShoe = (cd) => DESIGNER_STORES.has(cd.retailer) || Number(cd.price) > LUXURY_USD;
+export const iconOf = (cd) => ICON_MODELS.findIndex(([, rx]) => rx.test(String(cd.title || "")));
+
 const readJSON = (root, f) => JSON.parse(readFileSync(join(root, f), "utf8"));
 
 /* THE ONE CLASSIFIER (/product-type.js, the same file every page and
@@ -332,7 +403,7 @@ function candidates(c, stores, root) {
   const C = classifierOf(root);
   const push = (store, cd) => {
     if (!stores[store]) return;
-    if (c.exclude && c.exclude(cd)) return;
+    if (c.exclude && c.exclude(cd, root)) return;
     (by[store] = by[store] || []).push(cd);
   };
   if (c.src.feed) {
@@ -356,6 +427,8 @@ function candidates(c, stores, root) {
         if (c.src.notFamilies && c.src.notFamilies.includes(fam)) continue;
         const cd = card(r[D.name], r[D.brand], Number(r[D.price]), Number(r[D.was]) || 0, r[D.image], r[D.store]);
         cd._type = r[D.type] || "";
+        cd._g = r[8] || "";
+        cd._u = r[11] || "";
         if (c.src.gearFirst) cd._gear = FIGHT_GEAR_TYPES.has(r[D.type]) ? FIGHT_GEAR_CLASSES.findIndex(([, t]) => t.includes(r[D.type])) : 99;
         push(r[D.store], cd);
       }
@@ -451,16 +524,69 @@ function mixOf(c, members, max, pick = (m) => m.rail) {
     if (!e) return;
     for (let i = 0; i < e.l.length && n > 0; ) { if (test(e.l[i])) { out.push(e.l.splice(i, 1)[0]); n--; } else i++; }
   };
-  if (c.fightLead) for (const [k, cls, n] of c.fightLead) take(k, (cd) => FIGHT_GEAR_CLASSES[cd._gear] && FIGHT_GEAR_CLASSES[cd._gear][0] === cls, n);
+  /* Models first (c.models): within the opening's own rule, a card a
+     model wears goes before one that is a flat or unknown. */
+  const model = (cd) => !c.models || cd._model === true;
+  if (c.fightLead) for (const [k, cls, n] of c.fightLead) {
+    const gear = (cd) => FIGHT_GEAR_CLASSES[cd._gear] && FIGHT_GEAR_CLASSES[cd._gear][0] === cls;
+    const at = out.length;
+    if (c.models) take(k, (cd) => gear(cd) && model(cd), n);
+    take(k, gear, n - (out.length - at));
+  }
   else if (c.leadCards && c.lead) {
     const k = c.lead.find((s) => lists.some((x) => x.k === s));
-    if (c.leadPrefer) take(k, (cd) => !cd._low && c.leadPrefer(cd), c.leadCards);
+    if (c.models && c.leadPrefer) take(k, (cd) => !cd._low && c.leadPrefer(cd) && model(cd), c.leadCards);
+    if (c.models) take(k, (cd) => !cd._low && model(cd), c.leadCards - out.length);
+    if (c.leadPrefer) take(k, (cd) => !cd._low && c.leadPrefer(cd), c.leadCards - out.length);
     take(k, () => true, c.leadCards - out.length);
   }
+  else if (c.iconLead) iconOpening(lists, out, c.audG);
   while (out.length < max && lists.some((x) => x.l.length)) {
     for (const x of lists) if (x.l.length && out.length < max) out.push(x.l.shift());
   }
+  if (c.iconLead) return noLuxuryLead(out);
+  if (c.models && !c.fightLead && !(c.leadCards && c.lead)) return modelLead(out);
   return out;
+}
+
+/* The Zapatos opening: one shoe of each ICON_MODELS line, in order, up
+   to ICON_LEAD, a different store each time where one has it; a kids'
+   size only where no adult pair exists (the Niños rail is all kids). */
+function iconOpening(lists, out, g = "") {
+  const used = new Set();
+  const own = (cd) => !g || g === "kids" || cd._g === g || cd._u === g;
+  for (const [, rx] of ICON_MODELS) {
+    if (out.length >= ICON_LEAD) break;
+    const ok = (cd) => rx.test(String(cd.title || "")) && !isLuxuryShoe(cd);
+    let hit = null;
+    for (const pass of [(x, cd) => !used.has(x.k) && cd._g !== "kids" && own(cd), (x, cd) => !used.has(x.k) && cd._g !== "kids", (x, cd) => cd._g !== "kids", (x) => !used.has(x.k), () => true]) {
+      for (const x of lists) { const i = x.l.findIndex((cd) => ok(cd) && pass(x, cd)); if (i >= 0) { hit = [x, i]; break; } }
+      if (hit) break;
+    }
+    if (!hit) continue;
+    used.add(hit[0].k);
+    out.push(hit[0].l.splice(hit[1], 1)[0]);
+  }
+}
+/* A designer piece stays in the rail, after the first LEAD_SLOTS. */
+export function noLuxuryLead(list) {
+  const head = list.slice(0, LEAD_SLOTS), lux = head.filter(isLuxuryShoe);
+  if (!lux.length) return list;
+  const rest = list.slice(LEAD_SLOTS), fill = [];
+  while (fill.length < lux.length && rest.length) { const i = rest.findIndex((cd) => !isLuxuryShoe(cd)); if (i < 0) break; fill.push(rest.splice(i, 1)[0]); }
+  return [...head.filter((cd) => !isLuxuryShoe(cd)), ...fill, ...lux, ...rest];
+}
+/* MODELS FIRST (Danny, #443 c.6578377916 item 5): the first MODEL_SLOTS
+   cards are the known model shots found among the first MODEL_SCAN, in
+   their own order; the rest keep theirs. Nothing is promoted on a guess
+   (lib/model-shot.mjs: unknown is never a model). */
+export const MODEL_SLOTS = 4;
+export const MODEL_SCAN = 16;
+export function modelLead(list) {
+  const lead = list.slice(0, MODEL_SCAN).filter((cd) => cd._model === true).slice(0, MODEL_SLOTS);
+  if (!lead.length) return list;
+  const set = new Set(lead);
+  return [...lead, ...list.filter((cd) => !set.has(cd))];
 }
 /* Fight Club's «Todas» is fight gear only (the category truth). */
 const todasPool = (c) => (m) => (c.src.gearFirst ? m.rail.filter((cd) => cd._gear < 99) : m.rail);
@@ -487,6 +613,41 @@ export function catalogueImages(root, store, title) {
   return [];
 }
 
+/* Every product's catalogue gallery (images[]), for the keys asked
+   (store::title), read once from the committed catalogues. */
+export function galleryIndex(root, keys) {
+  const out = new Map();
+  if (!keys.size) return out;
+  for (const f of readdirSync(root).filter((f) => /-catalog\.json$/.test(f))) {
+    let j;
+    try { j = readJSON(root, f); } catch { continue; }
+    const walk = (v, store) => {
+      if (!v || typeof v !== "object") return;
+      if (Array.isArray(v)) { for (const x of v) walk(x, store); return; }
+      const s = String(v.retailer || v.store || store || "").toLowerCase();
+      const name = v.name || v.title;
+      if (name && Array.isArray(v.images)) { const k = s + "::" + name; if (keys.has(k) && !out.has(k)) out.set(k, v.images); return; }
+      for (const [k, x] of Object.entries(v)) walk(x, v === j.retailers ? k : store);
+    };
+    walk(j, "");
+  }
+  return out;
+}
+
+/* A models-first carousel's card: its own photo when the store's naming
+   says a model wears it; else the first model shot of its gallery (the
+   card wears that photo, _swap); else it stays as it is, _model false
+   (a flat) or null (the data cannot tell). */
+function modelCard(cd, gallery) {
+  let m = modelShot(cd.retailer, cd.image);
+  if (m !== true) {
+    const alt = modelPhotoOf(cd.retailer, gallery.get(cd.retailer + "::" + cd.title));
+    if (alt) { cd.image = alt; cd._swap = 1; m = true; }
+  }
+  cd._model = m;
+  return cd;
+}
+
 /* The carousels' default («Todas») rails as long candidate lists: the
    new carousels' file, and -- through scripts/build-home-shelves.mjs,
    which prices them with the page's own code -- the existing carousels'
@@ -499,12 +660,16 @@ export function buildCategoryPills(root = ROOT) {
   const sale = saleRuleOf(root);
   const isSale = (cd) => sale.isOnSale({ price: cd.price, originalPrice: cd.originalPrice });
   const thin = [];
-  const carousels = CAROUSELS.map((c) => {
-    const by = candidates(c, stores, root);
+  const pre = CAROUSELS.map((c) => [c, candidates(c, stores, root)]);
+  const want = new Set();
+  for (const [c, by] of pre) if (c.models) for (const list of Object.values(by)) for (const cd of list) want.add(cd.retailer + "::" + cd.title);
+  const gallery = galleryIndex(root, want);
+  const carousels = pre.map(([c, by]) => {
     if (c.audiences) return audienceCarousel(c, by, stores, isSale);
     let members = [];
     for (const [store, list] of Object.entries(by)) {
       let rail = railOf(list, c);
+      if (c.models) { rail.forEach((cd) => modelCard(cd, gallery)); rail = modelLead(rail); }
       if (rail.length < MIN_CARDS) { if (rail.length) thin.push(`${c.title}: ${stores[store]} (${rail.length})`); continue; }
       /* A carousel of clothes never opens a pill on socks or accessories:
          a store with fewer than WORN_LEAD worn pieces there gets no pill. */
@@ -522,7 +687,9 @@ export function buildCategoryPills(root = ROOT) {
     const defaults = c.host === "row" || c.host === "joyas" ? mixOf(c, members, DEFAULT_CANDIDATES, todasPool(c)) : null;
     const ofertas = c.ofertas === false ? [] : mixOf({ ...c, leadCards: 0, fightLead: null }, members, OFERTAS_CARDS, (m) => todasPool(c)({ rail: m.sale }));
     const ofertasN = members.reduce((n, m) => n + todasPool(c)({ rail: m.sale }).length, 0);
-    return { ...c, stores: members, todas, defaults, ofertas, ofertasN };
+    if (c.models) for (const m of members) m.sale = modelLead(m.sale);
+    const aud = c.audienceRow ? audienceRow(c, members, isSale) : null;
+    return { ...c, stores: members, todas, defaults, ofertas, ofertasN, aud };
   });
   return { carousels, thin, stores };
 }
@@ -545,6 +712,39 @@ function audienceCarousel(c, by, stores, isSale) {
   return { ...c, stores: members, storeMembers, todas, defaults: null, ofertas, ofertasN };
 }
 
+/* AUDIENCE PILLS ABOVE THE STORES (Zapatos; Danny, #443 c.6578377916
+   item 4, the Electrónica two-level pattern): Hombre / Mujer / Niños,
+   each one the carousel re-scoped to that audience, with its own store
+   row (a store pill only with MIN_CARDS of that audience) and its own
+   Ofertas. The audience is the department's own data: the shoe gender
+   (g) or who the product is for (u); a unisex adult pair (a Chuck Taylor,
+   a Samba) is for Hombre and for Mujer, never for Niños -- but only from
+   a store that tags both men's and women's pairs here (JW PEI tags none
+   as men's: its "unisex" is no tag at all, not a men's shoe). The
+   opening prefers a pair tagged for the audience itself. A pill only
+   where MIN_CARDS of that audience's footwear exist; its door is the
+   department filtered to it. */
+function audienceRow(c, members, isSale) {
+  const out = [];
+  const tags = (m, g) => m.rail.some((cd) => cd._g === g || cd._u === g);
+  const both = new Set(members.filter((m) => tags(m, "men") && tags(m, "women")).map((m) => m.k));
+  for (const [a, label, g] of c.audienceRow) {
+    const unisex = (cd) => g !== "kids" && both.has(cd.retailer) && (cd._g === "unisex" || cd._u === "unisex") && cd._g !== "kids" && cd._u !== "kids";
+    /* "Kids Love Gaite" is a designer label (SSENSE derbys at $2,835), not a child's shoe. */
+    const inA = (cd) => (g === "kids" && /\bkids love gaite\b/i.test(cd.title + " " + (cd.brand || "")) ? false : cd._g === g || cd._u === g || unisex(cd));
+    const am = members.map((m) => ({ ...m, rail: m.rail.filter(inA) })).filter((m) => m.rail.length);
+    const n = am.reduce((t, m) => t + m.rail.length, 0);
+    if (n < MIN_CARDS) continue;
+    const pills = am.filter((m) => m.rail.length >= MIN_CARDS).map((m) => ({ k: m.k, label: m.label, n: m.rail.length, rail: m.rail, sale: m.rail.filter(isSale) }));
+    const todas = mixOf({ ...c, audG: g }, am, TODAS_CARDS);
+    const sale = am.map((m) => ({ ...m, rail: m.rail.filter(isSale) }));
+    const ofertas = mixOf({ ...c, audG: g }, sale, OFERTAS_CARDS);
+    const ofertasN = sale.reduce((t, m) => t + m.rail.length, 0);
+    out.push({ k: a, label, n, stores: pills, todas, ofertas, ofertasN, door: `/departamento.html?dept=${c.src.depts[0]}&para=${g}`, title: `${c.title} de ${label.toLowerCase()}` });
+  }
+  return out;
+}
+
 /* The department bucket the page's pricer reads for a weight estimate. */
 const deptHint = (c) => (c.src.depts ? c.src.depts[0] : c.src.feed ? "underwear" : c.src.wallets ? "accessories" : "clothing");
 
@@ -554,7 +754,9 @@ export function defaultRails(built) {
   const out = {};
   for (const c of built.carousels) {
     if (!c.defaults || !c.defaults.length) continue;
-    out[c.host === "joyas" ? "joyas" : c.row] = { k: c.k, dept: deptHint(c), feed: Boolean(c.src.feed), pageTest: c.row === "curvy", cards: c.defaults.map(clean) };
+    /* A card that wears a gallery photo (a model shot) keeps it on the
+       page's own record too (swap). */
+    out[c.host === "joyas" ? "joyas" : c.row] = { k: c.k, dept: deptHint(c), feed: Boolean(c.src.feed), pageTest: c.row === "curvy", cards: c.defaults.map((cd) => (cd._swap ? { ...clean(cd), swap: 1 } : clean(cd))) };
   }
   return out;
 }
@@ -569,6 +771,21 @@ export function pillFiles(built) {
     if (c.host === "new") entry.door = c.door || "";
     if (c.audiences) entry.a = 1;
     if (c.ofertas.length >= OFERTAS_MIN) entry.o = c.ofertasN;
+    /* The audience row (Zapatos): [key, label, n, stores, ofertas n]. */
+    if (c.aud && c.aud.length) {
+      entry.au = c.aud.map((x) => [x.k, x.label, x.n, x.stores.map((s) => [s.k, s.n, s.sale.length >= OFERTAS_MIN ? s.sale.length : 0]), x.ofertas.length >= OFERTAS_MIN ? x.ofertasN : 0]);
+      for (const x of c.aud) {
+        const p = `${c.k}-a-${x.k}`, head = { v: 1, c: c.k, d: deptHint(c), aud: x.k };
+        files[`${p}-todas.json`] = { ...head, title: x.title, door: x.door, cards: x.todas.map(clean) };
+        if (x.ofertas.length >= OFERTAS_MIN) files[`${p}-ofertas.json`] = { ...head, title: x.title, door: x.door, sale: 1, cards: x.ofertas.map(clean) };
+        for (const s of x.stores) {
+          labels[s.k] = s.label;
+          const base = { ...head, store: s.k, label: s.label, n: s.n, door: `/tienda.html?tienda=${s.k}` };
+          files[`${p}-${s.k}.json`] = { ...base, cards: s.rail.slice(0, RAIL_CARDS).map(clean) };
+          if (s.sale.length >= OFERTAS_MIN) files[`${p}-${s.k}-ofertas.json`] = { ...base, sale: 1, cards: s.sale.slice(0, OFERTAS_CARDS).map(clean) };
+        }
+      }
+    }
     index.c[c.k] = entry;
     for (const s of c.stores) {
       labels[s.k] = s.label;
@@ -597,7 +814,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (c.storeMembers) console.log(`${"".padEnd(24)}    tiendas: ${c.storeMembers.map((s) => `${s.label} ${s.n}`).join(" | ")}`);
     console.log(`${c.title.padEnd(24)} ${String(c.stores.length).padStart(2)} tiendas: ${c.stores.map((s) => `${s.label} ${s.n}${s.sale.length >= OFERTAS_MIN ? "/" + s.sale.length : ""}`).join(" | ")}`);
     const first = (c.todas || c.defaults || [])[0];
-    if (first) console.log(`${"".padEnd(24)}    «Todas» abre con: ${first.retailer} | ${first.title}${first._photo != null ? ` (foto images[${first._photo}])` : ""}; ofertas ${c.ofertas.length >= OFERTAS_MIN ? c.ofertasN : "no"}`);
+    if (first) console.log(`${"".padEnd(24)}    «Todas» abre con: ${first.retailer} | ${first.title}${first._photo != null ? ` (foto images[${first._photo}])` : ""}${c.models ? ` [modelo: ${first._model === true ? "sí" : first._model === false ? "no (flat)" : "sin dato"}${first._swap ? ", foto de galería" : ""}]` : ""}; ofertas ${c.ofertas.length >= OFERTAS_MIN ? c.ofertasN : "no"}`);
+    if (c.models) {
+      const lead = (c.todas || c.defaults || []).slice(0, MODEL_SLOTS);
+      const known = c.stores.map((s) => [s.label, s.rail.filter((cd) => cd._model === true).length, s.rail.length]);
+      console.log(`${"".padEnd(24)}    primeras ${MODEL_SLOTS}: ${lead.map((cd) => (cd._model === true ? "M" : cd._model === false ? "F" : "?")).join("")}; fotos de modelo por tienda: ${known.map(([l, k, n]) => `${l} ${k}/${n}`).join(" | ")}`);
+    }
+    if (c.aud) for (const x of c.aud) console.log(`${"".padEnd(24)}    ${x.label} (${x.n}): abre con ${x.todas[0] ? x.todas[0].retailer + " | " + x.todas[0].title : "-"}; tiendas ${x.stores.map((s) => s.label + " " + s.n).join(" | ")}`);
   }
   if (built.thin.length) console.log("\nthin (no pill): " + built.thin.join(", "));
   const sizes = readdirSync(dir).map((f) => statSync(join(dir, f)).size);
