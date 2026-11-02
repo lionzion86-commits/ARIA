@@ -1,6 +1,7 @@
 /* ============================================================
    ARIA KEY CLUB -- the rules (#443, Danny 2026-11-01/02, comments
-   6569401037 .. 6569684988). SERVER ONLY, AND PURE.
+   6569401037 .. 6569684988; the FINAL credit rules, c.6569722842,
+   c.6569780599, c.6569814495, c.6569863826). SERVER ONLY, AND PURE.
 
    Every store arrives injected, as in _account.js and _dni-docs.js:
    @netlify/blobs exists only in the deployed runtime, and these rules
@@ -20,17 +21,27 @@
      referralCode      this member's invite code (?ref=CODE on the door).
      referredBy        the inviting member's email, resolved at signup.
      theme             "lounge" | "amanecer" (the dashboard's two moods).
-     keyClub           { spentUsd, firstHundredAt, ... } running tallies.
+     keyClub           { spentUsd, firstPaidOrderId } running tallies.
 
    CREDITS. 1 crédito = US$1. The wallet (_wallet.js) keeps soles, so a
    credit is posted as soles at the exchange rate of the moment, and the
    transaction carries the dollars it stands for. Exactly four ways to
-   earn (Danny killed the per-purchase percentage credit):
-     1. devolución por sobrepeso: kilos under the estimate x US$13;
-     2. US$5 when her purchases first reach US$100 (once);
-     3. 5 créditos when her invited friend becomes a member AND makes her
-        first purchase;
-     4. US$10 on her birthday, once a year.
+   earn, and nothing else is true (Danny killed the per-purchase
+   percentage credit and the one-time «first US$100» credit):
+     1. devolución por sobrepeso: the exact freight difference, kilos
+        under the estimate x US$13 (100 g = US$1.30). Computed in
+        admin-orders-update.js, issued by hand. Copy states the mechanism
+        only, never a fixed amount;
+     2. US$5 per order whose MERCHANDISE subtotal (never taxes, never
+        freight) is US$100 or more -- flat, a US$200 order is still US$5:
+          - her first 60 days as a member: every such order;
+          - after day 60: only the first such order of each calendar
+            month (Lima's date);
+     3. US$5 (5 créditos) to the member who invited a friend, when that
+        friend becomes a member AND makes her first purchase;
+     4. US$5 on her birthday, once a year.
+   MEMBERS ONLY: every grant posts only to a confirmed member's account
+   (grantCredit checks the recipient itself). A guest earns nothing.
    Every grant is keyed (claims store, create-only write) so a retried
    webhook or a second run of the daily job cannot pay twice.
    ============================================================ */
@@ -43,18 +54,19 @@ export const THEMES = ["lounge", "amanecer"];
 export const DEFAULT_THEME = "lounge";
 
 export const OVERWEIGHT_USD_PER_KG = 13;
-export const FIRST_HUNDRED_THRESHOLD_USD = 100;
-export const FIRST_HUNDRED_CREDIT_USD = 5;
+export const PERK_THRESHOLD_USD = 100;
+export const PERK_CREDIT_USD = 5;
+export const PERK_INTRO_DAYS = 60;
 export const REFERRAL_CREDIT_USD = 5;
-export const BIRTHDAY_CREDIT_USD = 10;
+export const BIRTHDAY_CREDIT_USD = 5;
 
 /* The four lines, word for word -- the door, the dashboard and the
    account's wallet all print these and nothing else under «Cómo se ganan». */
 export const EARN_WAYS = [
-  "Devolución por sobrepeso: si tu paquete pesa menos de lo estimado, la diferencia del flete vuelve como crédito Aria (US$13 por kg).",
-  "US$5 al llegar a tus primeros US$100 en compras (solo la primera vez).",
-  "5 créditos cuando tu amiga invitada se hace miembro y hace su primera compra.",
-  "US$10 en tu cumpleaños.",
+  "Devolución por sobrepeso: si tu paquete pesa menos de lo estimado, la diferencia exacta del flete vuelve en créditos, a $13 por kilo (100 g = $1.30).",
+  "$5 por compra de $100 o más: durante tus primeros 60 días, en todas las que hagas; después, en la primera de cada mes. Cuenta solo el valor de los productos, sin impuestos ni flete.",
+  "$5 (5 créditos) cuando tu amiga invitada se une al Key Club y hace su primera compra.",
+  "$5 en tu cumpleaños.",
 ];
 export const CREDIT_UNIT = "1 crédito = US$1";
 
@@ -77,6 +89,11 @@ export function isConfirmed(user) {
   if (!user) return false;
   if (user.confirmRequired !== true) return true;
   return Boolean(user.emailConfirmedAt);
+}
+
+/** An active Key Club member: an account that exists and is confirmed. The only accounts credits post to. */
+export function isMember(user) {
+  return Boolean(user && typeof user === "object" && isConfirmed(user));
 }
 
 /** Stores the hashed token on the side (keyed by hash, never the token). */
@@ -226,14 +243,38 @@ export function overweightCreditUsd(estimatedKg, realKg) {
 }
 
 /**
- * Pay one credit, once. `post` is _wallet.postTransaction (or a stub);
- * `claims` takes create-only writes. The soles amount is the dollars at
+ * What the admin is offered after recording the real weight
+ * (admin-orders-update.js): the overweight credit owed to a MEMBER, or
+ * null -- no real weight, no estimate, or a buyer who is not a confirmed
+ * Key Club member (a guest order earns no credit of any kind).
+ */
+export function weightCreditDueFor(order, buyer) {
+  const realKg = order && order.actuals && order.actuals.pesoRealKg;
+  if (realKg == null || !(Number(order.weightEstimatedKg) > 0)) return null;
+  if (!order.buyerEmail || !isMember(buyer)) return null;
+  const usd = overweightCreditUsd(order.weightEstimatedKg, realKg);
+  const fx = Number(order.fxRateUsed) || null;
+  return {
+    estimatedKg: Number(order.weightEstimatedKg), realKg: Number(realKg),
+    creditUsd: usd, creditPen: usd > 0 && fx ? round2(usd * fx) : 0,
+    buyerEmail: order.buyerEmail,
+  };
+}
+
+/**
+ * Pay one credit, once, to a MEMBER. `post` is _wallet.postTransaction
+ * (or a stub); `claims` takes create-only writes; `users` is the account
+ * store, read here so no caller can credit a guest or an unconfirmed
+ * account (no store, no credit). The soles amount is the dollars at
  * `fx`; without a rate nothing is paid (no invented exchange rate).
  */
-export async function grantCredit({ claims, post }, { email, usd, fx, reason, key, orderId = null }) {
+export async function grantCredit({ claims, post, users }, { email, usd, fx, reason, key, orderId = null }) {
   const amountUsd = round2(usd);
   const rate = Number(fx);
   if (!email || !(amountUsd > 0)) return { granted: false, why: "nada que acreditar" };
+  if (!users || typeof users.get !== "function") return { granted: false, why: "no es miembro" };
+  const recipient = await users.get(email, { type: "json" }).catch(() => null);
+  if (!isMember(recipient)) return { granted: false, why: "no es miembro" };
   if (!(rate > 0)) return { granted: false, why: "sin tipo de cambio" };
   const r = await claims.setJSON(`claim:${key}`, { email, usd: amountUsd, at: new Date().toISOString() }, { onlyIfNew: true });
   if (r && r.modified === false) return { granted: false, why: "ya acreditado" };
@@ -257,21 +298,47 @@ export function merchandiseUsd(items) {
   return round2(t);
 }
 
+/** When her membership began: the confirmation, else (an old account) its creation. */
+export function memberSinceMs(user) {
+  const t = Date.parse((user && (user.emailConfirmedAt || user.createdAt)) || "");
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * The spend perk for one paid order (pure; onOrderPaid pays it):
+ *   merchandise < US$100 -> nothing;
+ *   her first 60 days as a member -> US$5, keyed per order;
+ *   after day 60 -> US$5 keyed per Lima calendar month, so only the
+ *   first US$100+ order of the month earns it.
+ * Returns null or { phase, key, reason }.
+ */
+export function spendPerkFor(user, order, now = Date.now()) {
+  const email = user && user.email;
+  if (!email || !order || !order.orderId) return null;
+  if (merchandiseUsd(order.items) < PERK_THRESHOLD_USD) return null;
+  const since = memberSinceMs(user);
+  const intro = since != null && now - since < PERK_INTRO_DAYS * 86400000;
+  if (intro) return { phase: "intro", key: `perk:${email}:${order.orderId}`, reason: "Key Club: compra de $100+ — primeros 60 días" };
+  return { phase: "monthly", key: `perk:${email}:${limaDate(now).slice(0, 7)}`, reason: "Key Club: compra de $100+ — beneficio mensual" };
+}
+
 /**
  * The paid-order hook (stripe-webhook.js, the first time an order reads
  * paid). Two rules live here:
- *   - first US$100: her running merchandise total crosses US$100 -> US$5, once;
+ *   - spend perk: US$5 for a US$100+ order (merchandise only), every
+ *     such order in her first 60 days, then the first of each month;
  *   - referral: her FIRST paid order, when she is a confirmed member who
- *     came with a friend's code -> 5 créditos to that friend.
- * Only orders placed signed in (buyerEmail) count: a guest order was
- * typed by someone nobody verified. Returns what happened, for the log.
+ *     came with a friend's code -> 5 créditos to that friend (who must
+ *     be a confirmed member herself; grantCredit checks).
+ * Only orders placed signed in (buyerEmail) by a confirmed member count:
+ * a guest order earns nothing. Returns what happened, for the log.
  */
-export async function onOrderPaid({ users, claims, post }, order) {
-  const out = { firstHundred: null, referral: null };
+export async function onOrderPaid({ users, claims, post }, order, { now = Date.now() } = {}) {
+  const out = { perk: null, referral: null };
   const email = order && order.buyerEmail;
   if (!email || !order.orderId) return out;
   const user = await users.get(email, { type: "json" });
-  if (!user || !isConfirmed(user)) return out;
+  if (!isMember(user)) return out;
   const fx = Number(order.fxRateUsed);
 
   /* Count this order once into her tally. */
@@ -284,32 +351,26 @@ export async function onOrderPaid({ users, claims, post }, order) {
     await users.setJSON(email, { ...user, keyClub: kc });
   }
 
-  if (!kc.firstHundredAt && Number(kc.spentUsd) >= FIRST_HUNDRED_THRESHOLD_USD) {
-    out.firstHundred = await grantCredit({ claims, post }, {
-      email, usd: FIRST_HUNDRED_CREDIT_USD, fx, key: `first100:${email}`, orderId: order.orderId,
-      reason: "Llegaste a tus primeros US$100 en compras",
+  const perk = spendPerkFor({ ...user, email }, order, now);
+  if (perk) {
+    out.perk = await grantCredit({ claims, post, users }, {
+      email, usd: PERK_CREDIT_USD, fx, key: perk.key, orderId: order.orderId, reason: perk.reason,
     });
-    if (out.firstHundred.granted || out.firstHundred.why === "ya acreditado") {
-      const fresh = await users.get(email, { type: "json" });
-      await users.setJSON(email, { ...fresh, keyClub: { ...(fresh.keyClub || {}), firstHundredAt: new Date().toISOString() } });
-    }
+    out.perk.phase = perk.phase;
   }
 
   if (user.referredBy && kc.firstPaidOrderId === order.orderId) {
-    const friend = await users.get(user.referredBy, { type: "json" });
-    if (friend && isConfirmed(friend)) {
-      out.referral = await grantCredit({ claims, post }, {
-        email: user.referredBy, usd: REFERRAL_CREDIT_USD, fx, key: `referral:${email}`, orderId: null,
-        reason: "Tu amiga invitada se hizo miembro e hizo su primera compra",
-      });
-    }
+    out.referral = await grantCredit({ claims, post, users }, {
+      email: user.referredBy, usd: REFERRAL_CREDIT_USD, fx, key: `referral:${email}`, orderId: null,
+      reason: "Tu amiga invitada se unió al Key Club e hizo su primera compra",
+    });
   }
   return out;
 }
 
 /**
  * The daily birthday pass (keyclub-birthday.js). Every confirmed member
- * whose birthday is today in Lima gets US$10, once per year.
+ * whose birthday is today in Lima gets US$5, once per year.
  */
 export async function runBirthdayCredits({ users, claims, post }, { now = Date.now(), fx }) {
   const today = limaDate(now);
@@ -321,7 +382,7 @@ export async function runBirthdayCredits({ users, claims, post }, { now = Date.n
     if (!u || !u.birthday) continue;
     tally.checked++;
     if (!isConfirmed(u) || !isBirthdayOn(u.birthday, today)) { tally.skipped++; continue; }
-    const r = await grantCredit({ claims, post }, {
+    const r = await grantCredit({ claims, post, users }, {
       email: u.email || key, usd: BIRTHDAY_CREDIT_USD, fx, key: `birthday:${u.email || key}:${year}`,
       reason: "Feliz cumpleaños de parte de Aria",
     });
@@ -354,7 +415,7 @@ export function keyClubView(user) {
   };
 }
 
-/* ---------------- early access («Ventas anticipadas») ---------------- */
+/* ---------------- early access («Próximas ventas») ---------------- */
 
 /**
  * Config: { sales: [{ id, title, unlockAt, items: [{ id, title, brand,

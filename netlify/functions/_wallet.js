@@ -8,8 +8,9 @@
 
    Credit is ISSUED BY HAND today — an admin calls admin-wallet-credit.js.
    Since the Key Club door (#443, 2026-11-02) three rules also post here
-   on their own, each keyed so it pays once: first US$100, referral and
-   birthday (_keyclub.js grantCredit). The overweight refund stays manual.
+   on their own, each keyed so it pays once, and only to confirmed
+   members: the US$100+ order perk, referral and birthday (_keyclub.js
+   grantCredit). The overweight refund stays manual.
    Nothing reconciles quoted freight against actual freight on its own;
    that job is a post-launch build, and until it exists the homepage must
    not say "automáticamente" (see the Precio Honesto section comment).

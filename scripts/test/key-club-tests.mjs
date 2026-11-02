@@ -1,6 +1,7 @@
 /* ==================================================================
    ARIA KEY CLUB -- THE DOOR, THE CONFIRMATION, THE DASHBOARD (#443,
-   Danny 2026-11-01/02, c.6569401037 .. c.6569684988).
+   Danny 2026-11-01/02, c.6569401037 .. c.6569684988; the FINAL credit
+   rules, c.6569722842 .. c.6569863826).
 
    Plain node. Every person, email and order here is a TEST FIXTURE; no
    network, no real email (the mail provider is a stub, or absent).
@@ -21,7 +22,14 @@
      - wallet renders at 0; Fundador rule; member numbers unique;
      - early access hides an item publicly before unlockAt and shows it
        to members (server rule and the browser helper agree);
-     - first-US$100, referral and birthday credits, each paid once.
+     - the FINAL credit rules: birthday US$5; the spend perk per order
+       (US$5 flat for a US$100+ merchandise subtotal, every such order in
+       the first 60 days, then the first of each Lima month); referral
+       US$5; overweight offered to members only; a non-member gets no
+       credit of any kind (grantCredit refuses);
+     - banned credit copy is absent from every page and the bundle;
+     - the guest alert in checkout renders non-blocking for a guest and
+       not for a member.
    Browser (390 px, Playwright, real rules behind a local server):
      door, form, «Te enviamos un correo — confírmalo para entrar», the
      confirmation link landing in the dashboard, both themes with an
@@ -147,10 +155,11 @@ await check("exactly the four earning lines (word for word), 1 crédito = US$1, 
   const earn = [...door.matchAll(/<li data-earn>([\s\S]*?)<\/li>/g)].map((m) => m[1].trim());
   assert.deepEqual(earn, K.EARN_WAYS);
   assert.equal(K.EARN_WAYS.length, 4);
-  assert.match(K.EARN_WAYS[0], /sobrepeso[\s\S]*US\$13 por kg/);
-  assert.match(K.EARN_WAYS[1], /US\$5 al llegar a tus primeros US\$100 en compras \(solo la primera vez\)/);
-  assert.match(K.EARN_WAYS[2], /5 créditos cuando tu amiga invitada se hace miembro y hace su primera compra/);
-  assert.match(K.EARN_WAYS[3], /US\$10 en tu cumpleaños/);
+  assert.match(K.EARN_WAYS[0], /sobrepeso[\s\S]*diferencia exacta del flete[\s\S]*\$13 por kilo/);
+  assert.match(K.EARN_WAYS[1], /^\$5 por compra de \$100 o más: durante tus primeros 60 días[\s\S]*en la primera de cada mes[\s\S]*sin impuestos ni flete/);
+  assert.match(K.EARN_WAYS[2], /^\$5 \(5 créditos\) cuando tu amiga invitada se une al Key Club y hace su primera compra/);
+  assert.equal(K.EARN_WAYS[3], "$5 en tu cumpleaños.");
+  assert.match(textOf(door), /Con tu fecha te llegan \$5 en créditos cada cumpleaños/);
   const t = textOf(door);
   assert.match(t, /Cómo se ganan/);
   assert.match(t, /1 crédito = US\$1/);
@@ -159,7 +168,7 @@ await check("exactly the four earning lines (word for word), 1 crédito = US$1, 
   assert.match(t, /Los primeros 1,000 miembros entran gratis por un año y quedan como Fundadores para siempre\./);
   assert.match(t, /Gratis durante el lanzamiento/i);
   assert.match(t, /Aria es la llave/);
-  assert.ok(!/\b\d+\s*d[ií]as\b/i.test(t.replace(/48 horas/, "")), "a day count is printed on the door");
+  assert.ok(!/\b\d+\s*d[ií]as\b/i.test(t.replace(/48 horas/, "").replace(/primeros 60 días/g, "")), "a launch day count is printed on the door");
   assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(door), "emoji on the door");
   assert.ok(!/href="https?:\/\/(?!ariashop\.pe)/.test(door), "the door links off the site");
 });
@@ -177,8 +186,11 @@ await check("the form asks nombre, correo, WhatsApp, cumpleaños (optional), con
 
 console.log("\n  The killed 5% rule");
 
-const KILLED = [/5\s?%\s*(de\s+)?(cashback|de vuelta)/i, /cashback/i, /\$5 (de vuelta )?por cada \$100/i, /cr[eé]ditos? con cada compra/i, /cada compra te devuelv/i, /cada compra suma/i, /keyClubCreditPen|KEY_CLUB_RATE/];
-await check("no served file carries the killed copy: pages, bundle (source and min), scripts, emails, the account rules", () => {
+const KILLED = [/5\s?%\s*(de\s+)?(cashback|de vuelta)/i, /cashback/i, /\$5 (de vuelta )?por cada \$100/i, /por cada \$100/i, /cr[eé]ditos? con cada compra/i, /cada compra te devuelv/i, /cada compra suma/i, /keyClubCreditPen|KEY_CLUB_RATE/,
+  /* the FINAL rules (#443 c.6569722842 ..): the old numbers and the banned lines */
+  /US\$10 en tu cumplea/i, /\$10 en cr[eé]ditos cada cumplea/i, /primeros US\$100 en compras/i, /solo la primera vez\)/i,
+  /cr[eé]ditos? (dobles|al doble)|doble(s)? cr[eé]ditos?/i, /(cr[eé]ditos?|saldo)[^.<]{0,30}(no vencen|nunca vencen|no expiran|never expire)/i];
+await check("no served file carries the killed or banned copy (every html page, the bundle source and min, scripts, emails, the account rules)", () => {
   const files = [...SERVED_HTML, bundleName, bundleName.replace("build/", "build/min/"),
     ...readdirSync(join(ROOT, "assets/js")).map((f) => "assets/js/" + f),
     "netlify/functions/_order-email.js", "netlify/functions/_account.js", "netlify/functions/_keyclub.js"];
@@ -350,7 +362,7 @@ await check("Fundador: members 1..1000 are Fundadores for ever, 1001 is not; num
   assert.deepEqual([n1000, K.isFounder(n1000), n1001, K.isFounder(n1001)], [1000, true, 1001, false]);
 });
 
-console.log("\n  Ventas anticipadas");
+console.log("\n  Próximas ventas");
 
 const EA = { sales: [{ id: "venta-prueba", title: "Venta de prueba", unlockAt: "2026-11-10T05:00:00Z", items: [{ id: "abc123", title: "Fixture Bag", store: "fixture", usd: 10, image: "https://img.test/a.jpg" }] }] };
 const BEFORE = Date.parse("2026-11-05T00:00:00Z"), AFTER = Date.parse("2026-11-11T00:00:00Z");
@@ -374,9 +386,11 @@ await check("the browser helper (assets/js/early-access.js) applies the same rul
   assert.deepEqual(shipped.sales, [], "an early-access sale was invented");
 });
 
-console.log("\n  Credits");
+console.log("\n  Credits (the FINAL rules)");
 
-const BUYER = "compradora@correo.test", FRIEND = "amiga@correo.test";
+const BUYER = "compradora@correo.test", FRIEND = "amiga@correo.test", GUEST = "invitada@correo.test";
+const JOINED = Date.parse("2026-11-01T00:00:00Z");
+const DAY = 864e5;
 function creditFixture() {
   const users = memStore({
     [BUYER]: { email: BUYER, name: "Compradora", confirmRequired: true, emailConfirmedAt: "2026-11-01T00:00:00Z", referredBy: FRIEND, memberNumber: 2 },
@@ -384,23 +398,84 @@ function creditFixture() {
   });
   return { users, claims: memStore(), ...stubWallet() };
 }
-const order = (id, usd) => ({ orderId: id, buyerEmail: BUYER, paymentStatus: "paid", fxRateUsed: 3.75, items: [{ title: "x", priceUsd: usd, qty: 1 }] });
+/* `usd` is merchandise; tax and freight ride on the order (and on lines that are not products) and never count. */
+const order = (id, usd, extra = {}) => ({ orderId: id, buyerEmail: BUYER, paymentStatus: "paid", fxRateUsed: 3.75,
+  items: [{ title: "x", priceUsd: usd, qty: 1 }], taxUsd: 40, freightUsd: 30, totalUsd: usd + 70, ...extra });
+const perks = (F, email = BUYER) => ((F.w.get(email) || { txns: [] }).txns).filter((t) => /^Key Club: compra de \$100\+/.test(t.reason));
 
-await check("first US$100: US$5 once, when her purchases first reach US$100 (posted in soles at the order's rate), never again", async () => {
-  const F = creditFixture();
-  let r = await K.onOrderPaid(F, order("ARIA-1", 60));
-  assert.equal(r.firstHundred, null);
-  r = await K.onOrderPaid(F, order("ARIA-2", 45));
-  assert.equal(r.firstHundred.granted, true);
-  const tx = F.w.get(BUYER).txns.find((t) => /primeros US\$100/.test(t.reason));
-  assert.equal(tx.credits, 5); assert.equal(tx.amountPen, 18.75); assert.equal(tx.fxRate, 3.75);
-  await K.onOrderPaid(F, order("ARIA-2", 45)); // a retried webhook
-  await K.onOrderPaid(F, order("ARIA-3", 200));
-  assert.equal(F.w.get(BUYER).txns.filter((t) => /primeros US\$100/.test(t.reason)).length, 1);
-  assert.equal((await F.users.get(BUYER, { type: "json" })).keyClub.spentUsd, 305, "a retried order was counted twice");
+await check("birthday: US$5 once a year on her day in Lima (29 Feb counts on 28 Feb), only confirmed members, none without a rate", async () => {
+  assert.equal(K.BIRTHDAY_CREDIT_USD, 5);
+  const F = { users: memStore({
+    [BUYER]: { email: BUYER, birthday: "1994-11-02", confirmRequired: true, emailConfirmedAt: "2026-01-01T00:00:00Z" },
+    [FRIEND]: { email: FRIEND, birthday: "--11-02", confirmRequired: true, emailConfirmedAt: null },
+    "bisiesta@correo.test": { email: "bisiesta@correo.test", birthday: "2000-02-29" },
+  }), claims: memStore(), ...stubWallet() };
+  const nov2Lima = Date.parse("2026-11-02T20:00:00Z");
+  let t = await K.runBirthdayCredits(F, { now: nov2Lima, fx: 3.75 });
+  assert.equal(t.credited, 1);
+  assert.equal(F.w.get(BUYER).txns[0].credits, 5); assert.equal(F.w.get(BUYER).txns[0].amountPen, 18.75);
+  t = await K.runBirthdayCredits(F, { now: nov2Lima + 3600e3, fx: 3.75 });
+  assert.equal(t.credited, 0, "paid twice in a day");
+  assert.equal(F.w.get(FRIEND), undefined, "an unconfirmed account got a birthday credit");
+  assert.equal(K.limaDate(Date.parse("2026-11-03T03:00:00Z")), "2026-11-02", "Lima's date");
+  t = await K.runBirthdayCredits(F, { now: Date.parse("2027-02-28T15:00:00Z"), fx: 3.75 });
+  assert.equal(t.credited, 1, "29 February not honoured on 28 February");
+  const N = { users: memStore({ [BUYER]: { email: BUYER, birthday: "1994-11-02" } }), claims: memStore(), ...stubWallet() };
+  assert.equal((await K.runBirthdayCredits(N, { now: nov2Lima, fx: null })).credited, 0);
+  assert.equal(K.normalizeBirthday("2030-01-01", nov2Lima), null, "a future birthday was accepted");
+  assert.equal(K.normalizeBirthday("1990-02-30"), null);
 });
 
-await check("referral: 5 créditos to the friend on the invitee's FIRST paid purchase, once; not for a guest order or an unconfirmed invitee", async () => {
+await check("spend perk, first 60 days: EVERY paid order of US$100+ merchandise earns a flat US$5 (two orders -> two; US$200 -> US$5; US$99.99 -> nothing; tax and freight never count); a retried webhook pays nothing twice", async () => {
+  const F = creditFixture();
+  const at = (d) => ({ now: JOINED + d * DAY });
+  let r = await K.onOrderPaid(F, order("ARIA-1", 100), at(3));
+  assert.equal(r.perk.granted, true); assert.equal(r.perk.phase, "intro");
+  await K.onOrderPaid(F, order("ARIA-2", 120), at(4));
+  assert.equal(perks(F).length, 2, "two US$100+ orders in the first 60 days must earn two");
+  await K.onOrderPaid(F, order("ARIA-3", 200), at(5));
+  const p3 = perks(F).filter((t) => t.orderId === "ARIA-3");
+  assert.equal(p3.length, 1); assert.equal(p3[0].credits, 5, "a US$200 order is US$5, not US$10"); assert.equal(p3[0].amountPen, 18.75); assert.equal(p3[0].fxRate, 3.75);
+  assert.equal(p3[0].reason, "Key Club: compra de $100+ — primeros 60 días");
+  r = await K.onOrderPaid(F, order("ARIA-4", 99.99), at(6));
+  assert.equal(r.perk, null, "US$99.99 earned a perk");
+  r = await K.onOrderPaid(F, order("ARIA-5", 90, { taxUsd: 25, freightUsd: 40, totalUsd: 155 }), at(7));
+  assert.equal(r.perk, null, "tax and freight were counted toward US$100");
+  await K.onOrderPaid(F, order("ARIA-6", 60, { items: [{ title: "a", priceUsd: 30, qty: 2 }, { title: "b", priceUsd: 40, qty: 1 }] }), at(8));
+  assert.equal(perks(F).filter((t) => t.orderId === "ARIA-6").length, 1, "the subtotal is price x qty over every product line");
+  await K.onOrderPaid(F, order("ARIA-3", 200), at(5)); // retried webhook
+  assert.equal(perks(F).length, 4);
+  r = await K.onOrderPaid(F, order("ARIA-7", 150), at(59.9));
+  assert.equal(r.perk.phase, "intro", "day 59 is still the first 60 days");
+  assert.equal(perks(F).length, 5, "no frequency cap in the first 60 days");
+  assert.ok(!(await K.onOrderPaid(F, order("ARIA-8", 150), at(2))).firstHundred, "the one-time first-US$100 credit is gone");
+  assert.equal(K.FIRST_HUNDRED_CREDIT_USD, undefined);
+});
+
+await check("spend perk, after day 60: only the FIRST US$100+ order of each Lima calendar month earns US$5; a second one that month earns nothing; the next month earns again", async () => {
+  const F = creditFixture();
+  const day61 = JOINED + 61 * DAY; // 2027-01-01 (Lima's 31 Dec 2026)
+  const jan5 = Date.parse("2027-01-05T15:00:00Z"), jan20 = Date.parse("2027-01-20T15:00:00Z"), feb2 = Date.parse("2027-02-02T15:00:00Z");
+  let r = await K.onOrderPaid(F, order("ARIA-10", 80), { now: jan5 });
+  assert.equal(r.perk, null, "an order under US$100 used up the month");
+  r = await K.onOrderPaid(F, order("ARIA-11", 130), { now: jan5 });
+  assert.equal(r.perk.granted, true); assert.equal(r.perk.phase, "monthly");
+  assert.equal(perks(F)[0].reason, "Key Club: compra de $100+ — beneficio mensual");
+  r = await K.onOrderPaid(F, order("ARIA-12", 300), { now: jan20 });
+  assert.equal(r.perk.granted, false, "a second US$100+ order in the same month earned");
+  r = await K.onOrderPaid(F, order("ARIA-13", 100), { now: feb2 });
+  assert.equal(r.perk.granted, true, "the next month did not earn");
+  assert.equal(perks(F).length, 2);
+  /* The month is Lima's: 01:00 UTC on 1 Jan is still 31 Dec in Lima. */
+  const G = creditFixture();
+  await K.onOrderPaid(G, order("ARIA-20", 100), { now: Date.parse("2027-01-01T01:00:00Z") });
+  await K.onOrderPaid(G, order("ARIA-21", 100), { now: Date.parse("2027-01-01T06:00:00Z") });
+  assert.equal(perks(G).length, 2, "the calendar month is not Lima's");
+  assert.equal(K.spendPerkFor({ email: BUYER, emailConfirmedAt: "2026-11-01T00:00:00Z" }, order("X", 100), day61).key, `perk:${BUYER}:2026-12`);
+  assert.equal(K.spendPerkFor({ email: BUYER, emailConfirmedAt: "2026-11-01T00:00:00Z" }, order("X", 100), JOINED + DAY).key, `perk:${BUYER}:X`);
+});
+
+await check("referral: US$5 (5 créditos) to the friend on the invitee's FIRST paid purchase, once; not for a guest order, an unconfirmed invitee, or a friend who is not a member", async () => {
   const F = creditFixture();
   await K.onOrderPaid(F, order("ARIA-1", 20));
   const ref = F.w.get(FRIEND).txns.filter((t) => /amiga invitada/.test(t.reason));
@@ -415,36 +490,62 @@ await check("referral: 5 créditos to the friend on the invitee's FIRST paid pur
   await H.users.setJSON(BUYER, { ...(await H.users.get(BUYER, { type: "json" })), emailConfirmedAt: null });
   await K.onOrderPaid(H, order("ARIA-1", 20));
   assert.equal(H.w.get(FRIEND), undefined, "an unconfirmed invitee paid the referral");
+  const J = creditFixture();
+  await J.users.setJSON(FRIEND, { ...(await J.users.get(FRIEND, { type: "json" })), emailConfirmedAt: null });
+  const rj = await K.onOrderPaid(J, order("ARIA-1", 20));
+  assert.equal(J.w.get(FRIEND), undefined, "a referrer who is not a confirmed member was credited");
+  assert.equal(rj.referral.why, "no es miembro");
   assert.equal(await K.resolveReferrer(memStore({ "ref:ABCDEFG": { email: FRIEND } }), "abcdefg", FRIEND), null, "a member can invite herself");
 });
 
-await check("birthday: US$10 once a year on her day in Lima (29 Feb counts on 28 Feb), only confirmed members, none without a rate", async () => {
-  const F = { users: memStore({
-    [BUYER]: { email: BUYER, birthday: "1994-11-02", confirmRequired: true, emailConfirmedAt: "2026-01-01T00:00:00Z" },
-    [FRIEND]: { email: FRIEND, birthday: "--11-02", confirmRequired: true, emailConfirmedAt: null },
-    "bisiesta@correo.test": { email: "bisiesta@correo.test", birthday: "2000-02-29" },
-  }), claims: memStore(), ...stubWallet() };
-  const nov2Lima = Date.parse("2026-11-02T20:00:00Z");
-  let t = await K.runBirthdayCredits(F, { now: nov2Lima, fx: 3.75 });
-  assert.equal(t.credited, 1);
-  assert.equal(F.w.get(BUYER).txns[0].credits, 10); assert.equal(F.w.get(BUYER).txns[0].amountPen, 37.5);
-  t = await K.runBirthdayCredits(F, { now: nov2Lima + 3600e3, fx: 3.75 });
-  assert.equal(t.credited, 0, "paid twice in a day");
-  assert.equal(F.w.get(FRIEND), undefined, "an unconfirmed account got a birthday credit");
-  assert.equal(K.limaDate(Date.parse("2026-11-03T03:00:00Z")), "2026-11-02", "Lima's date");
-  t = await K.runBirthdayCredits(F, { now: Date.parse("2027-02-28T15:00:00Z"), fx: 3.75 });
-  assert.equal(t.credited, 1, "29 February not honoured on 28 February");
-  const N = { users: memStore({ [BUYER]: { email: BUYER, birthday: "1994-11-02" } }), claims: memStore(), ...stubWallet() };
-  assert.equal((await K.runBirthdayCredits(N, { now: nov2Lima, fx: null })).credited, 0);
-  assert.equal(K.normalizeBirthday("2030-01-01", nov2Lima), null, "a future birthday was accepted");
-  assert.equal(K.normalizeBirthday("1990-02-30"), null);
+await check("members only: a non-member gets NO credit of any kind -- grantCredit refuses guests, unconfirmed and unknown accounts, and a caller without the account store; guest orders and unconfirmed buyers earn no perk", async () => {
+  const F = creditFixture();
+  await F.users.setJSON(GUEST, { email: GUEST, confirmRequired: true, emailConfirmedAt: null, birthday: "1990-11-02" });
+  for (const email of [GUEST, "nadie@correo.test"]) {
+    const r = await K.grantCredit(F, { email, usd: 5, fx: 3.75, reason: "prueba", key: "t:" + email });
+    assert.deepEqual(r, { granted: false, why: "no es miembro" }, email);
+  }
+  assert.deepEqual(await K.grantCredit({ claims: F.claims, post: F.post }, { email: BUYER, usd: 5, fx: 3.75, reason: "prueba", key: "t:nousers" }), { granted: false, why: "no es miembro" });
+  assert.equal(F.claims.m.size, 0, "a refused grant left a claim behind");
+  /* a guest order (no session) of US$300 */
+  let r = await K.onOrderPaid(F, { ...order("ARIA-G1", 300), buyerEmail: null, customer: { email: GUEST } }, { now: JOINED + DAY });
+  assert.deepEqual(r, { perk: null, referral: null });
+  /* an unconfirmed account's order */
+  r = await K.onOrderPaid(F, { ...order("ARIA-G2", 300), buyerEmail: GUEST }, { now: JOINED + DAY });
+  assert.deepEqual(r, { perk: null, referral: null });
+  /* birthday for an unconfirmed account */
+  assert.equal((await K.runBirthdayCredits(F, { now: Date.parse("2026-11-02T20:00:00Z"), fx: 3.75 })).credited, 0);
+  assert.equal(F.w.get(GUEST), undefined, "a non-member got a credit");
+  /* overweight: offered for a member's order only */
+  const o = { orderId: "ARIA-W", buyerEmail: BUYER, weightEstimatedKg: 3.4, actuals: { pesoRealKg: 2 }, fxRateUsed: 3.75 };
+  const due = K.weightCreditDueFor(o, await F.users.get(BUYER, { type: "json" }));
+  assert.equal(due.creditUsd, 18.2); assert.equal(due.creditPen, 68.25); assert.equal(due.buyerEmail, BUYER);
+  assert.equal(K.weightCreditDueFor({ ...o, buyerEmail: null, customer: { email: GUEST } }, null), null, "a guest order was offered the overweight credit");
+  assert.equal(K.weightCreditDueFor({ ...o, buyerEmail: GUEST }, await F.users.get(GUEST, { type: "json" })), null, "an unconfirmed buyer was offered the overweight credit");
+  assert.match(readFileSync(join(ROOT, "netlify/functions/admin-orders-update.js"), "utf8"), /weightCreditDueFor\(order, buyer\)/);
 });
 
-await check("overweight: kilos under the estimate x US$13, never negative (recorded for the admin; issuing stays the named admin act)", async () => {
+await check("overweight: the exact difference, kilos under the estimate x US$13 (100 g = US$1.30, medio kilo = US$6.50), never negative; the copy states the mechanism, never a fixed amount", async () => {
   assert.equal(K.overweightCreditUsd(3.4, 2), 18.2);
+  assert.equal(K.overweightCreditUsd(2.1, 2), 1.3);
+  assert.equal(K.overweightCreditUsd(2.5, 2), 6.5);
   assert.equal(K.overweightCreditUsd(2, 2.5), 0);
   assert.equal(K.overweightCreditUsd(0, 1), 0);
-  assert.match(readFileSync(join(ROOT, "netlify/functions/admin-orders-update.js"), "utf8"), /weightCreditDue/);
+  const line = K.EARN_WAYS[0].replace(/\$13 por kilo/, "").replace(/100 g = \$1\.30/, "");
+  assert.ok(!/\$\s?\d/.test(line), "a flat amount on the overweight rule: " + K.EARN_WAYS[0]);
+});
+
+await check("copy: «$5 por compra de $100 o más», never «por cada $100»; 5 créditos and $5 agree; no page implies a guest earns credits", () => {
+  const all = [...SERVED_HTML.map((f) => textOf(readFileSync(join(ROOT, f), "utf8"))), K.EARN_WAYS.join(" "), stripComments(cuenta)].join(" ");
+  assert.ok(!/por cada \$\s?100/i.test(all));
+  assert.match(K.EARN_WAYS[1], /\$5 por compra de \$100 o más/);
+  assert.match(cuenta, /te llegan \$5 \(5 créditos\)/);
+  assert.ok(!/invitad[oa]s? (también )?(gana|suma|recibe)n? cr[eé]ditos/i.test(all), "copy implies guests earn credits");
+  const alert = /<div id="kcGuestAlert"[\s\S]*?<\/div>/.exec(checkout)[0];
+  assert.match(textOf(alert), /Podrías estar ganando créditos Aria/);
+  assert.match(textOf(alert), /El peso casi siempre se sobreestima al cotizar — y los miembros Aria Key Club reciben esa diferencia de vuelta en créditos\. Únete ahora y llévate eso, más \$5 en pedidos de \$100 o más durante tus primeros 60 días, y más beneficios\./);
+  assert.match(alert, /<a id="kcGuestAlertCta" href="\/keyclub\.html"[^>]*>Unirme al Key Club<\/a>/);
+  assert.ok(!/retroactiv|pedidos anteriores|este pedido también/i.test(textOf(alert)), "the alert promises retroactive credit");
 });
 
 /* ================== the browser at 390 px ================== */
@@ -487,6 +588,7 @@ if (!chromium) {
   const PORT = Number(process.env.KEY_CLUB_PORT || 8977);
   const BASE = `http://127.0.0.1:${PORT}`;
   let earlyConfig = null;
+  let TW_CSS = "";
   const server = http.createServer((req, res) => {
     let body = "";
     req.on("data", (c) => { body += c; });
@@ -499,6 +601,7 @@ if (!chromium) {
           res.writeHead(code, { "Content-Type": "application/json", ...(sid ? { "Set-Cookie": setCookie(sid) } : {}) });
           return res.end(JSON.stringify(json));
         }
+        if (u.pathname === "/__tw.css") { res.writeHead(200, { "Content-Type": "text/css" }); return res.end(TW_CSS); }
         if (u.pathname === "/assets/keyclub/early-access.json" && earlyConfig) { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify(earlyConfig)); }
         let p = join(ROOT, decodeURIComponent(u.pathname.replace(/^\/build\/(?!min\/)/, "/build/min/")));
         if (existsSync(p) && statSync(p).isDirectory()) p = join(p, "index.html");
@@ -514,12 +617,24 @@ if (!chromium) {
   /* Remote catalogue photos are stubbed: a flat warm tile, nothing fetched. */
   const tile = (() => { const d = Buffer.alloc(32 * 32 * 4); for (let i = 0; i < d.length; i += 4) { d[i] = 214; d[i + 1] = 200; d[i + 2] = 186; d[i + 3] = 255; } return jpegjs.encode({ data: d, width: 32, height: 32 }, 80).data; })();
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-  await context.route("**/*", (route) => {
+  /* checkout.html loads Tailwind from its CDN, unreachable here: the same
+     classes are compiled with the repo's own tailwindcss and served instead. */
+  const { spawnSync } = await import("node:child_process");
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const twDir = mkdtempSync(join(tmpdir(), "kc-tw-"));
+  writeFileSync(join(twDir, "in.css"), "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n");
+  writeFileSync(join(twDir, "tw.config.cjs"), `module.exports = { content: [${JSON.stringify(join(ROOT, "checkout.html"))}] };`);
+  const twRun = spawnSync(join(ROOT, "node_modules/.bin/tailwindcss"), ["-c", join(twDir, "tw.config.cjs"), "-i", join(twDir, "in.css"), "-o", join(twDir, "out.css")], { encoding: "utf8" });
+  TW_CSS = twRun.status === 0 ? readFileSync(join(twDir, "out.css"), "utf8") : "";
+  const routeAll = (route) => {
     const r = route.request(), url = new URL(r.url());
     if (url.host === `127.0.0.1:${PORT}`) return route.continue();
+    if (url.host === "cdn.tailwindcss.com") return route.fulfill({ status: 200, contentType: "application/javascript", body: `document.write('<link rel="stylesheet" href="${BASE}/__tw.css">');` });
     if (r.resourceType() === "image") return route.fulfill({ status: 200, contentType: "image/jpeg", body: tile });
     return route.abort();
-  });
+  };
+  await context.route("**/*", routeAll);
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e.message)));
@@ -598,16 +713,23 @@ if (!chromium) {
     assert.ok(u.emailConfirmedAt && u.memberNumber === 1, "not activated on the server");
   });
 
-  await check("«Selección de hoy para ti»: a quiet starter rail of real catalogue sale items linking to Aria's own product page; «Ventas anticipadas» says nothing is in early access", async () => {
+  await check("«Selección de hoy para ti»: a starter rail of real ON-SALE catalogue items (no history yet), each with «Ver más» into that product's store inside Aria (tienda.html?tienda=<key>); «Próximas ventas» lists nothing unconfirmed", async () => {
     await page.waitForSelector("#picksBox .pick");
-    const picks = await page.$$eval("#picksBox .pick", (els) => els.map((a) => a.getAttribute("href")));
+    const picks = await page.$$eval("#picksBox .pick", (els) => els.map((a) => ({ href: a.getAttribute("href"), id: a.dataset.id, more: (a.querySelector(".more") || {}).textContent })));
     assert.ok(picks.length >= 3 && picks.length <= 6, `${picks.length} picks`);
-    assert.ok(picks.every((h) => /^\/producto\.html\?producto=/.test(h)), "a pick links off the site: " + picks.join(" "));
     const rails = JSON.parse(readFileSync(join(ROOT, "assets/ofertas/rails.json"), "utf8"));
-    const ids = new Set([...rails.lead, ...(rails.more || [])].map((c) => c.id));
-    const shown = await page.$$eval("#picksBox .pick", (els) => els.map((a) => a.dataset.id));
-    assert.ok(shown.every((id) => ids.has(id)), "a pick is not from the catalogue");
-    await page.waitForFunction(() => /no hay ventas anticipadas/.test(document.getElementById("earlyBox").textContent));
+    const byId = new Map([...rails.lead, ...(rails.more || [])].map((c) => [c.id, c]));
+    for (const p of picks) {
+      const c = byId.get(p.id);
+      assert.ok(c, "a pick is not from the catalogue: " + p.id);
+      assert.ok(c.wasUsd > c.usd, "a pick is not on sale: " + p.id);
+      assert.equal(p.href, "/tienda.html?tienda=" + encodeURIComponent(c.store.toLowerCase()), "a pick does not open its store inside Aria");
+      assert.equal(p.more, "Ver más");
+    }
+    assert.match(await page.textContent("#picksBox .quiet"), /Para empezar, una pieza en oferta/);
+    assert.equal((await page.textContent("#anticipadas h2")).trim(), "Próximas ventas");
+    await page.waitForFunction(() => /no hay ventas confirmadas[\s\S]*24 horas antes/.test(document.getElementById("earlyBox").textContent));
+    assert.ok(!/anticipad/i.test(await page.textContent("#signedIn")), "«Ventas anticipadas» is still on the dashboard");
   });
 
   await check("both themes: «01 · El Lounge» and «02 · Amanecer» change only the palette (identical DOM), the choice persists on her account, 390 px clean in both", async () => {
@@ -642,7 +764,7 @@ if (!chromium) {
   });
 
   await check("early access, in the dashboard: a flagged item before its unlock time is live inside for members", async () => {
-    earlyConfig = { sales: [{ id: "prueba", title: "Venta anticipada de prueba", unlockAt: new Date(Date.now() + 5 * 864e5).toISOString(), items: [{ id: "ea-fixture-1", title: "Fixture Weekender Bag", brand: "Fixture", store: "fixture", usd: 30, wasUsd: 60, image: "https://img.test/x.jpg" }] }] };
+    earlyConfig = { sales: [{ id: "prueba", title: "Venta de prueba", unlockAt: new Date(Date.now() + 5 * 864e5).toISOString(), items: [{ id: "ea-fixture-1", title: "Fixture Weekender Bag", brand: "Fixture", store: "fixture", usd: 30, wasUsd: 60, image: "https://img.test/x.jpg" }] }] };
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector('#earlyBox .pick[data-id="ea-fixture-1"]');
     assert.match(await page.textContent("#earlyBox"), /Solo para miembros hasta el/);
@@ -656,6 +778,51 @@ if (!chromium) {
     assert.ok(await pub.$('[data-id="otro"]'), "an unflagged card was removed");
     await pub.close();
     earlyConfig = null;
+  });
+
+  await check("guest alert in checkout: a guest sees «Podrías estar ganando créditos Aria» as an informational card (no form, no overlay, Pagar untouched, the door opens in another tab); a signed-in member never sees it", async () => {
+    const CART = [{ retailer: "zumiez", title: "Fixture Graphic Tee", priceUsd: 24, dutiableUsd: 22.43, weightKg: 0.25, weightEstimated: true, qty: 1, image: "" }];
+    const open = async (ctx) => {
+      const pg = await ctx.newPage();
+      await pg.goto(BASE + "/terminos.html", { waitUntil: "domcontentloaded" });
+      await pg.evaluate((c) => localStorage.setItem("aria_cart_v1", JSON.stringify(c)), CART);
+      await pg.goto(BASE + "/checkout.html", { waitUntil: "domcontentloaded" });
+      await pg.waitForFunction(() => document.getElementById("payBtn"));
+      return pg;
+    };
+    /* A guest: a fresh phone, no session. */
+    const guestCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    await guestCtx.route("**/*", routeAll);
+    const g = await open(guestCtx);
+    const guestErrors = [];
+    g.on("pageerror", (e) => guestErrors.push(String(e.message)));
+    await g.waitForSelector("#kcGuestAlert:not([hidden])", { timeout: 10000 });
+    const a = await g.evaluate(() => {
+      const el = document.getElementById("kcGuestAlert"), cs = getComputedStyle(el);
+      const cta = document.getElementById("kcGuestAlertCta");
+      return { pos: cs.position, controls: el.querySelectorAll("input,button,select,textarea,form").length, inAside: Boolean(el.closest("aside.gridSummary")),
+        target: cta.getAttribute("target"), href: cta.getAttribute("href"), text: el.textContent.replace(/\s+/g, " ").trim(),
+        payVisible: Boolean(document.getElementById("payBtnEnd").offsetParent), formVisible: Boolean(document.getElementById("checkoutForm") && document.getElementById("checkoutForm").offsetParent),
+        dialogs: document.querySelectorAll('[role="dialog"]:not([hidden]),dialog[open]').length };
+    });
+    assert.equal(a.pos, "static", "the alert floats over the page");
+    assert.equal(a.controls, 0, "the alert asks for something");
+    assert.ok(a.inAside, "the alert is not in the order summary");
+    assert.equal(a.href, "/keyclub.html"); assert.equal(a.target, "_blank", "the CTA takes her out of her checkout");
+    assert.ok(a.payVisible && a.formVisible, "the alert hides the checkout: " + JSON.stringify(a));
+    assert.equal(a.dialogs, 0, "a dialog opened");
+    assert.match(a.text, /^Podrías estar ganando créditos Aria El peso casi siempre se sobreestima al cotizar/);
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(a.text), "emoji in the alert");
+    await g.locator("#kcGuestAlert").scrollIntoViewIfNeeded();
+    await g.waitForTimeout(200);
+    await g.screenshot({ path: join(SHOTS, "keyclub-checkout-guest-alert.png") });
+    await g.locator("aside.gridSummary").screenshot({ path: join(SHOTS, "keyclub-checkout-guest-alert-summary.png") });
+    await guestCtx.close();
+    /* A member: Ana is signed in on this phone. */
+    const m = await open(context);
+    await m.waitForTimeout(800);
+    assert.equal(await m.$eval("#kcGuestAlert", (el) => el.hidden), true, "a signed-in member sees the guest alert");
+    await m.close();
   });
 
   await check("no page errors on the way", () => { assert.deepEqual(errors, []); });

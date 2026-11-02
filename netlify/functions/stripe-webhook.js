@@ -222,14 +222,15 @@ export async function handler(event) {
           }
 
           /* KEY CLUB CREDITS ON A PAID ORDER (#443, Danny 2026-11-02):
-             US$5 when her purchases first reach US$100, and 5 créditos to
-             the friend who invited her on her first purchase. Keyed claims
+             US$5 for a US$100+ order (every one in her first 60 days, then
+             the first of each month), and 5 créditos to the friend who
+             invited her on her first purchase -- members only. Keyed claims
              (_keyclub.js) make a retried event pay nothing twice; nothing
              here may fail the webhook. */
           if (updated.paymentStatus === "paid" && updated.buyerEmail) {
             try {
               const kc = await onOrderPaid({ users: getStore("users"), claims: getStore(KEYCLUB_STORE), post: postTransaction }, updated);
-              console.log(`[keyclub] ${payment.orderId}: first100=${kc.firstHundred ? JSON.stringify(kc.firstHundred) : "-"} referral=${kc.referral ? JSON.stringify(kc.referral) : "-"}`);
+              console.log(`[keyclub] ${payment.orderId}: perk=${kc.perk ? JSON.stringify(kc.perk) : "-"} referral=${kc.referral ? JSON.stringify(kc.referral) : "-"}`);
             } catch (error) {
               console.error(`[keyclub] ${payment.orderId}: credit hook failed: ${error.message}`);
             }

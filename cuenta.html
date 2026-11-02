@@ -14,7 +14,7 @@
      Key Club», the greeting, her member card (number, Fundador when
      within the first 1,000, member since), the credit wallet (always,
      even at S/ 0.00) with the four ways to earn, two next steps, a quiet
-     «Selección de hoy para ti», «Ventas anticipadas», and then Mis
+     «Selección de hoy para ti», «Próximas ventas», and then Mis
      pedidos, Mi carrito, Mis documentos and Mis datos as before.
 
      TWO THEMES, ONE STRUCTURE: «01 · El Lounge» (dark and gold) and
@@ -92,6 +92,7 @@ section.block>h2{font-size:18px;font-weight:800;color:var(--head);margin:0 0 10p
 .pick .t{font-size:12.5px;line-height:1.3;height:2.6em;overflow:hidden;margin-top:2px}
 .pick .p{font-size:13px;font-weight:800;color:var(--head);margin-top:4px}
 .pick .w{font-size:11px;color:var(--muted);text-decoration:line-through;margin-left:4px;font-weight:500}
+.pick .more{display:block;margin-top:8px;font-size:12px;font-weight:800;color:var(--accent2)}
 .quiet{font-size:13px;color:var(--muted);margin:-4px 0 10px}
 .ref{display:flex;gap:8px;align-items:stretch;margin-top:10px}
 .ref input{flex:1;min-width:0}
@@ -212,7 +213,7 @@ footer a{color:var(--ink)}
 <section class="block" id="keyclub"><h2>Mi Key Club</h2><div id="walletBox"></div></section>
 <section class="block" id="siguiente" aria-label="Siguientes pasos"><div class="next"><a class="btn" href="/">Empezar a comprar</a><a class="btn alt" href="#pedidos">Ir a mi cuenta</a></div></section>
 <section class="block" id="seleccion"><h2>Selección de hoy para ti</h2><div id="picksBox"><div class="card empty">Preparando tu selección...</div></div></section>
-<section class="block" id="anticipadas"><h2>Ventas anticipadas</h2><div id="earlyBox"><div class="card empty">Revisando...</div></div></section>
+<section class="block" id="anticipadas"><h2>Próximas ventas</h2><div id="earlyBox"><div class="card empty">Revisando...</div></div></section>
 <section class="block" id="invita"><h2>Invita a una amiga</h2><div id="inviteBox"></div></section>
 <nav class="chips" aria-label="Secciones">
 <a href="#pedidos">Mis pedidos</a><a href="#carrito">Mi carrito</a><a href="#keyclub">Mi Key Club</a><a href="#documentos">Mis documentos</a><a href="#datos">Mis datos</a>
@@ -319,7 +320,7 @@ function renderCard(){
     '<div class="row between" style="align-items:flex-start"><div class="kicker">Aria Key Club</div>' +
       (club.founder ? '<span class="badge-f">Fundador</span>' : '') + '</div>' +
     '<div class="name serif">' + esc(p.name || p.email || '') + '</div>' +
-    '<div class="meta"><div><div class="lbl">Miembro Nº</div><div class="val">' + esc(club.memberNumberLabel || '----') + '</div></div>' +
+    '<div class="meta"><div><div class="lbl">Llave Nº</div><div class="val">' + esc(club.memberNumberLabel || '----') + '</div></div>' +
       '<div style="text-align:right"><div class="lbl">Miembro desde</div><div class="val">' + esc(club.memberSince ? fdate(club.memberSince) : '') + '</div></div></div></div>';
 }
 
@@ -328,7 +329,7 @@ function renderInvite(){
   var club = (data.profile && data.profile.club) || {};
   if (!club.referralCode) { $('inviteBox').innerHTML = '<div class="card empty">Tu enlace para invitar aparece aquí en un momento.</div>'; return; }
   var link = location.origin + '/keyclub.html?invita=' + encodeURIComponent(club.referralCode);
-  $('inviteBox').innerHTML = '<div class="card"><p class="small" style="line-height:1.5">Cuando tu amiga se hace miembro con tu enlace y hace su primera compra, te llegan 5 créditos.</p>' +
+  $('inviteBox').innerHTML = '<div class="card"><p class="small" style="line-height:1.5">Cuando tu amiga se une al Key Club con tu enlace y hace su primera compra, te llegan $5 (5 créditos).</p>' +
     '<div class="ref"><input type="text" readonly id="refLink" value="' + esc(link) + '" aria-label="Tu enlace para invitar"><button class="btn alt" type="button" id="refCopy">Copiar</button></div></div>';
   $('refCopy').addEventListener('click', function(){
     var inp = $('refLink'); inp.select();
@@ -339,18 +340,21 @@ function renderInvite(){
 }
 
 /* ---------------- Selección de hoy para ti ----------------
-   A few real catalogue picks from the small Ofertas index: first what
-   matches the brands she has bought, then, for a new member, one sale
-   item from each of the most popular categories. Every card opens Aria's
-   own product page, never a store's. */
+   A few real ON-SALE catalogue picks from the small Ofertas index
+   (each with a lower price than before): first what matches the brands
+   she has bought, then, for a new member with no history, a starter of
+   one sale item from each of the most popular categories. Every card's
+   «Ver más» opens that product's store inside Aria
+   (tienda.html?tienda=<key>), never a retailer's site. */
 function onSale(store){ try { return !(window.AriaOffSale && window.AriaOffSale.isOffSaleRetailer(store)); } catch (e) { return true; } }
 function cardPrice(usd){ return fx ? pen(usd * fx) : 'US$ ' + Number(usd).toFixed(2); }
 function pickHTML(c){
-  var href = '/producto.html?producto=' + encodeURIComponent(c.title || '') + (c.store ? '&tienda=' + encodeURIComponent(c.store) : '');
+  var href = '/tienda.html?tienda=' + encodeURIComponent(String(c.store || '').toLowerCase());
   return '<a class="pick" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '">' +
     '<img class="ph" loading="lazy" decoding="async" alt="' + esc(c.title || '') + '" src="' + esc(c.image) + '" onerror="this.style.visibility=\'hidden\'">' +
     '<div class="b"><div class="br">' + esc(c.brand || '') + '</div><div class="t">' + esc(c.title || '') + '</div>' +
-    '<div class="p">' + cardPrice(c.usd) + (c.wasUsd > c.usd ? '<span class="w">' + cardPrice(c.wasUsd) + '</span>' : '') + '</div></div></a>';
+    '<div class="p">' + cardPrice(c.usd) + (c.wasUsd > c.usd ? '<span class="w">' + cardPrice(c.wasUsd) + '</span>' : '') + '</div>' +
+    '<span class="more">Ver más</span></div></a>';
 }
 function choosePicks(pool, orders){
   var brands = {};
@@ -363,29 +367,31 @@ function choosePicks(pool, orders){
 }
 function loadPicks(){
   fetch('/assets/ofertas/rails.json').then(function(r){ return r.json(); }).then(function(ix){
-    var pool = (ix.lead || []).concat(ix.more || []).filter(function(c){ return c && c.id && c.image && c.title && Number(c.usd) > 0 && onSale(c.store); });
+    var pool = (ix.lead || []).concat(ix.more || []).filter(function(c){ return c && c.id && c.image && c.title && c.store && Number(c.usd) > 0 && Number(c.wasUsd) > Number(c.usd) && onSale(c.store); });
     var r = choosePicks(pool, data && data.orders);
     if (!r.picks.length) { $('picksBox').innerHTML = '<div class="card empty">Hoy no tenemos una selección para ti. Vuelve mañana.</div>'; return; }
-    $('picksBox').innerHTML = '<p class="quiet">' + (r.personal ? 'Por lo que sueles comprar, y algo más.' : 'Para empezar, una pieza en oferta de cada categoría que más se busca.') + '</p>' +
+    $('picksBox').innerHTML = '<p class="quiet">' + (r.personal ? 'En oferta, parecido a lo que sueles comprar.' : 'Para empezar, una pieza en oferta de cada categoría que más se busca.') + '</p>' +
       '<div class="rail">' + r.picks.map(pickHTML).join('') + '</div>';
   }).catch(function(){ $('picksBox').innerHTML = '<div class="card empty">No pudimos cargar tu selección. Vuelve en un momento.</div>'; });
 }
 
-/* ---------------- Ventas anticipadas ----------------
-   assets/keyclub/early-access.json: sale items members see here before
-   their public unlock time (public pages hide them until then). */
+/* ---------------- Próximas ventas ----------------
+   assets/keyclub/early-access.json: a sale is listed ONLY when it is
+   actually flagged there (confirmed); members see it here 24 hours
+   before it opens to everyone (public pages hide it until unlockAt).
+   Nothing flagged -> the honest empty state. Never invented. */
 function activeEarly(config, now){
   return ((config && config.sales) || []).filter(function(s){ var t = Date.parse(s && s.unlockAt); return t > now && s.items && s.items.length; });
 }
 function loadEarly(){
   fetch('/assets/keyclub/early-access.json', { cache: 'no-cache' }).then(function(r){ return r.ok ? r.json() : { sales: [] }; }).then(function(cfg){
     var live = activeEarly(cfg, Date.now());
-    if (!live.length) { $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas anticipadas. Cuando una venta se abra primero para miembros, la verás aquí antes de que llegue a la tienda.</div>'; return; }
+    if (!live.length) { $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas confirmadas. Cuando se confirme una, la verás aquí 24 horas antes que todos.</div>'; return; }
     $('earlyBox').innerHTML = live.map(function(s){
-      return '<div class="card"><div class="sub">' + esc(s.title || 'Venta anticipada') + '</div><p class="small muted" style="margin-bottom:10px">Solo para miembros hasta el ' + fdate(s.unlockAt) + '.</p>' +
+      return '<div class="card"><div class="sub">' + esc(s.title || 'Próxima venta') + '</div><p class="small muted" style="margin-bottom:10px">Solo para miembros hasta el ' + fdate(s.unlockAt) + '.</p>' +
         '<div class="rail">' + s.items.filter(function(c){ return c && c.image && c.title && Number(c.usd) > 0; }).map(pickHTML).join('') + '</div></div>';
     }).join('');
-  }).catch(function(){ $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas anticipadas.</div>'; });
+  }).catch(function(){ $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas confirmadas.</div>'; });
 }
 
 /* ---------------- Mis pedidos ---------------- */

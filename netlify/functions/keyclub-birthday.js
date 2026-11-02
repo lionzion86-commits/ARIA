@@ -1,4 +1,4 @@
-// THE DAILY BIRTHDAY CREDIT (#443, Danny 2026-11-02): «US$10 en tu
+// THE DAILY BIRTHDAY CREDIT (#443, Danny 2026-11-02): «$5 en tu
 // cumpleaños». Runs once a day (Netlify scheduled function, like
 // dni-purge.js) and credits every confirmed member whose birthday is
 // today in Lima, once per year (keyed claim, _keyclub.js grantCredit), so
