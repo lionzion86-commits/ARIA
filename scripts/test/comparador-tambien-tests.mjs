@@ -52,5 +52,17 @@ await check("search.html shows «También prueba:» as tappable chips that re-ru
   assert.match(page, /tb\.addEventListener\("click", function\(\)\{ searchFor\(a\.q\); \}\)/);
 });
 
+await check("Aria Perfumes ships on FragranceX's rule (free from $49, $6.95 under), measured on the shopper's price -- never POR CALCULAR, never a cost", async () => {
+  const S = await import("../lib/store-shipping.js");
+  assert.equal(S.shippingRuleText("ariaperfumes"), "Envío gratis desde $49 · $6.95 debajo de ese monto");
+  const line = (price) => ({ retailer: "ariaperfumes", title: "x", priceUsd: price, dutiableUsd: Math.round(price / 1.18 * 100) / 100, qty: 1 });
+  const under = S.cartShipping([line(39)]).stores[0], over = S.cartShipping([line(95)]).stores[0];
+  assert.equal(under.feeUsd, 6.95); assert.equal(under.subtotalUsd, 39);
+  assert.equal(over.feeUsd, 0); assert.equal(over.subtotalUsd, 95);
+  const co = readFileSync(join(ROOT, "checkout.html"), "utf8");
+  assert.match(co, /data-ship-explainer/);
+  assert.match(co, /por eso ves un envío por tienda/);
+});
+
 console.log(`\n  ${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
