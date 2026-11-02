@@ -11,8 +11,10 @@
      Audífonos        headphones, earbuds, headsets
      Audio            speakers, soundbars, receivers, turntables
      Gaming           consoles and their controllers, gaming gear
-     Cámaras          cameras, lenses, drones, action cams (a security
-                      camera is Casa inteligente)
+     Cámaras          cameras, lenses, action cams (a security camera is
+                      Casa inteligente)
+     Drones           drones, drone kits and what fits a drone
+                      (propellers, batteries, controllers): isDrone
      Relojes          smartwatches, fitness trackers
      Casa inteligente security cameras, doorbells, smart plugs/speakers
      Audio para auto  car stereos, car speakers, dash cams
@@ -25,11 +27,11 @@
 
 export const TECH_AISLE_LABELS = {
   tech_celulares: "Celulares", tech_computadoras: "Computadoras y tablets", tech_audifonos: "Audífonos",
-  tech_audio: "Audio y parlantes", tech_gaming: "Gaming", tech_camaras: "Cámaras", tech_relojes: "Relojes inteligentes",
+  tech_audio: "Audio y parlantes", tech_gaming: "Gaming", tech_camaras: "Cámaras", tech_drones: "Drones", tech_relojes: "Relojes inteligentes",
   tech_casa_inteligente: "Casa inteligente y seguridad", tech_auto: "Audio para auto", tech_componentes: "Componentes de PC",
   tech_accesorios: "Accesorios y energía", tech_electro: "Electrodomésticos pequeños",
 };
-export const TECH_AISLE_ORDER = ["tech_celulares", "tech_computadoras", "tech_audifonos", "tech_audio", "tech_gaming", "tech_camaras",
+export const TECH_AISLE_ORDER = ["tech_celulares", "tech_computadoras", "tech_audifonos", "tech_audio", "tech_gaming", "tech_camaras", "tech_drones",
   "tech_relojes", "tech_casa_inteligente", "tech_auto", "tech_componentes", "tech_accesorios", "tech_electro"];
 
 const ACCESSORY_RX = /\b(cases?|covers?|folio|screen protectors?|tempered glass|chargers?|charging (cable|cord|pad|stand|dock)|cables?|cords?|adapters?|adapter|power banks?|batter(y|ies)|mounts?|stands?|holders?|straps?|bands? for|replacement (band|strap|tips|pads|ear)|ear ?tips|skins?|sleeves?|bags?|backpacks?|stylus|hubs?|docking station|docks?|keyboards?|mouse|mice|mouse ?pads?|webcams?|memory cards?|sd cards?|micro ?sd|flash drives?|usb drives?|external (hard|solid)|hard drives?|portable ssd|surge|power strips?|extension cords?|wall plates?|brackets?|tripods?|selfie sticks?|lens (caps?|cloths?)|cleaning kit|car chargers?|dongles?|trays?|lap ?desks?|desks?|(?:smart ?phone|phone|cell ?phone) (?:grips?|gimbals?|stabilizers?|mounts?|holders?))\b/i;
@@ -39,7 +41,34 @@ const HEADPHONE_RX = /\b(headphones?|earbuds?|earphones?|airpods|headsets?|in-ea
 const PA_RX = /\b(personal pa|portable pa|pa (systems?|speakers?))\b/i;
 const AUDIO_RX = /\b(pa systems?|personal pa|portable pa|speakers?|soundbars?|sound bars?|subwoofers?|receivers?|turntables?|record players?|home theater|amplifiers?|amps?\b|stereo systems?|boombox|radios?|party ?box|jukebox)\b/i;
 const GAMING_RX = /\b(playstation|ps5|ps4|xbox|nintendo|switch (oled|lite|2)|steam deck|consoles?|controllers?|gamepads?|joy-?cons?|racing wheels?|vr headsets?|meta quest|quest \d|gaming)\b/i;
-const CAMERA_RX = /\b(cameras?|camcorders?|dslr|mirrorless|lens(es)?\b|gopro|action cam|instant camera|instax|drones?|dji)\b/i;
+const CAMERA_RX = /\b(cameras?|camcorders?|dslr|mirrorless|lens(es)?\b|gopro|action cam|instant camera|instax|dji)\b/i;
+
+/* DRONES (#443 c.6579603095, Danny): their own type, out of Cámaras. A
+   drone, a drone kit, or what is made for one (a DJI Mini's propellers,
+   an Avata's goggles) -- by its own name. A "Murder Drones" tee or plush
+   is merch, a motorcycle helmet called Drone is a helmet. */
+const DRONE_RX = /\b(drones?|quadcopters?|quadrocopters?|fpv (goggles|racing|drone|kit|combo)|dji[\s\-–]+(mini|mavic|air|avata|neo|flip|inspire|matrice|agras|phantom|spark|fpv|goggles|rc[- ]?n?\d?|rc pro|motion controller)|mavic|avata|autel (evo|robotics|alpha|nano|lite)|evo (lite|nano|max|ii)\b.*\bautel|skydio|parrot anafi|anafi)\b/i;
+const NOT_DRONE_RX = /\b(murder drones|helmets?|t-?shirts?|tees?|hoodies?|sweatshirts?|shirts?|plush\w*|figures?|figurines?|stickers?|posters?|enamel pins?|keychains?|socks?|hats?|beanies?|costumes?|books?|paperback|dvd|vinyl|cassette|anti-?drone|drone (bee|ant)s?)\b/i;
+export const isDrone = (name) => DRONE_RX.test(String(name || "")) && !NOT_DRONE_RX.test(String(name || ""));
+/* The Drones lead (commercial-leads): DJI's pro line first -- the Mavic,
+   Air, Avata and Mini Pro a shopper asks for by name -- then DJI's other
+   aircraft (Neo, Flip, Mini), then DJI's enterprise rigs (Inspire,
+   Matrice, Agras), then the other pro makers (Autel, Skydio, Parrot),
+   then every other drone, then what fits one, and the toy drones last. */
+const DJI_PRO_RX = /\b(mavic|air \d\w*|avata|mini \d\s*pro)\b/i;
+const DJI_ENTERPRISE_RX = /\b(inspire|matrice|agras|enterprise)\b/i;
+const DRONE_PRO_RX = /\b(autel|skydio|parrot|anafi)\b/i;
+const DRONE_TOY_RX = /\b(toys?|kids?|children|beginners?|ages? \d|mini drone for|for kids|foldable drone|rc drone)\b/i;
+const DRONE_PART_RX = /\b(propellers?|props?|batter(y|ies)|chargers?|charging hub|filters?|nd ?\d|cases?|bags?|backpacks?|guards?|landing (gear|pad)|lanyards?|straps?|cables?|mounts?|holders?|hoods?|skins?|stickers|replacement|spare|lens covers?|screen protectors?)\b/i;
+export function droneRank(p) {
+  const t = String((p && p.title) || "") + " " + String((p && p.brand) || "");
+  const part = DRONE_PART_RX.test(String((p && p.title) || "").split(/\s+(?:for|compatible with|fits)\s+/i)[0]) && !/\b(fly more|combo|kit|bundle)\b/i.test(t);
+  if (part) return 5;
+  if (/\bdji\b/i.test(t)) return DJI_ENTERPRISE_RX.test(t) ? 2 : DJI_PRO_RX.test(t) ? 0 : 1;
+  if (DRONE_PRO_RX.test(t)) return 3;
+  if (DRONE_TOY_RX.test(t)) return 6;
+  return 4;
+}
 const SECURITY_RX = /\b(security (camera|system|cam)|doorbells?|ring (video|stick|spotlight|floodlight|indoor|outdoor)|wyze|blink|arlo|eufy ?cam|nvr|dvr|surveillance|baby monitors?|smart (plugs?|bulbs?|locks?|lights?|displays?|speakers?)|echo (dot|show|pop)|nest (hub|cam|doorbell)|google home|alexa|smart home|floodlight cam|spotlight cam|ip cam(era)?|wi-?fi (ip |security |indoor |outdoor )?cam(era)?|spotlight|night vision|pan[- ]tilt|pet cam(era)?|indoor cam(era)?|outdoor cam(era)?)\b/i;
 const WATCH_RX = /\b(smart ?watch(es)?|apple watch|galaxy watch|fitbit|garmin (forerunner|venu|fenix|vivoactive|instinct)|fitness trackers?|activity trackers?|watch (series|se|ultra))\b/i;
 const CAR_RX = /\b(car (stereo|audio|speakers?|amplifier|subwoofer)|dash ?cams?|head units?|marine ?(am\/fm )?(speakers?|stereos?|radios?|receivers?|players?)|carplay receiver|double din|single din)\b/i;
@@ -57,6 +86,7 @@ export function isAccessoryName(name) {
 /** The aisle for one product, by its name (and the store's own category as a last hint). */
 export function techAisle(name, hint = "") {
   const n = String(name || "");
+  if (isDrone(n)) return "tech_drones";
   if (SECURITY_RX.test(n)) return "tech_casa_inteligente";
   if (CAR_RX.test(n)) return "tech_auto";
   /* "Case for iPhone 16", "Charger for Galaxy Watch": the accessory wins
@@ -110,7 +140,8 @@ export function techAisle(name, hint = "") {
   if (/headphone|earbud/.test(h)) return "tech_audifonos";
   if (/watch|wearable/.test(h)) return "tech_relojes";
   if (/game|gaming|console/.test(h)) return "tech_gaming";
-  if (/camera|drone/.test(h)) return "tech_camaras";
+  if (/drone/.test(h)) return "tech_drones";
+  if (/camera/.test(h)) return "tech_camaras";
   if (/audio|speaker/.test(h)) return "tech_audio";
   if (/laptop|computer|tablet/.test(h)) return "tech_accesorios";    /* a peripheral, not the computer */
   if (/smart.home|security/.test(h)) return "tech_casa_inteligente";
@@ -132,6 +163,14 @@ const DEVICE_NAME_RX = /\b(iphone|ipad|ipod|galaxy|pixel|airpods|airtag|macbook|
    that is none of these. */
 const NOT_TECH_RX = /\b(backpacks?|bags?|sleeves?|slipcase|totes?|pencils?|pens?\b|markers?|paper|index cards?|glue|staplers?|binders?|folders?|notebooks? \(paper\)|sticky notes|organizers?|shredders?|helmets?|elbow|knee pads|scooter|faucets?|fishing|tackle|dvd|blu-?ray|cd\b|vinyl record|greatest hits|season \d|volume \d|the movie|ink cartridges?|toner|paperback|hardcover|audiobook)\b/i;
 const TECH_HINT_RX = /\b(phones?|headphones?|cameras?|computers?|laptops?|gaming|audio|speakers?|watches|wearables|tablets?|monitors?|networking|motherboards?|ssd|keyboards?|smart-home|security|electronics|accessories-power|car-audio)\b/i;
+/* NOT ELECTRONICS, WHATEVER AISLE A STORE FILED IT IN (#443 c.6579542290):
+   Electrónica's membership is the product's type, never its store's
+   department -- Costco's "electronica" scrape carried TV consoles and
+   fireplaces (furniture), an autographed shield, gift cards and
+   protection plans, and pool chlorine sat in Computadoras. */
+const NOT_ELECTRONICS_RX = /\b((tv|accent|media|multi-use|entertainment|fireplace) consoles?|consoles? with [^,]*fireplace|electric fireplace|fireplaces?|entertainment cent(er|re)s?|bookcases?|bedroom collection|autographed|signed and inscribed|e-?gift cards?|gift cards?|prepaid card|protection plan|allstate|chlorine|bromine|test strips|house numbers?|door plate|scissors|crayons|erasers?|stick(y|-on) notes|spiral notebook|envelopes|waist pack|medical id|enamel (collector )?pins?|board games?|travel game)\b|^\s*applecare\+?\s+for\b/i;
+export const isNotElectronics = (name) => NOT_ELECTRONICS_RX.test(String(name || ""));
+
 export function isTechProduct(name, hint = "") {
   const n = String(name || "");
   if (NOT_TECH_RX.test(n)) return false;

@@ -18,12 +18,17 @@
   }
   /* A record or a cart line: its store is `retailer` (`store` on the
      Ofertas cards). A plain used listing is off sale too, whatever its
-     store (/condition.js isHeldUsed, Danny c.6526570723): no honest label. */
+     store (/condition.js isHeldUsed, Danny c.6526570723): no honest label.
+     So is a medicine, a supplement or a grocery item (/not-sold.js,
+     Danny c.6579517469): Aria sells no pills and no food. */
   function isOffSaleItem(it) {
     if (!it || typeof it !== 'object') return false;
     if (isOffSaleRetailer(it.retailer || it.store)) return true;
     var C = root.AriaCondition;
-    return !!(C && C.isHeldUsed && C.isHeldUsed(it.title || it.name));
+    if (C && C.isHeldUsed && C.isHeldUsed(it.title || it.name)) return true;
+    /* Pills and food: Aria sells neither, at any store (/not-sold.js). */
+    var N = root.AriaNotSold;
+    return !!(N && N.isNotSold && N.isNotSold(it));
   }
   /* The cart lines that cannot be sold. A combo-discount line has no
      store of its own. */

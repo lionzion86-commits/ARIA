@@ -129,6 +129,8 @@ export const PRODUCT_TYPES = {
   consolas: { dept: "electronics", ver: "consolas", sib: [["electronics", "pasillo:tech_gaming"]] },
   audifonos: { dept: "electronics", ver: "pasillo:tech_audifonos", sib: [["electronics", "pasillo:tech_audio"], ["reacondicionados", "aisle:tech_audifonos"]] },
   camaras: { dept: "electronics", ver: "pasillo:tech_camaras", sib: [["reacondicionados", "aisle:tech_camaras"]] },
+  /* Drones, their own type (#443 c.6579603095): DJI's pro line leads it. */
+  drones: { dept: "electronics", ver: "pasillo:tech_drones", sib: [["electronics", "pasillo:tech_camaras"]] },
   monitores: { dept: "electronics", ver: "pasillo:tech_accesorios", q: "monitor", sib: [["electronics", "pasillo:tech_gaming", "monitor"], ["electronics", "pasillo:tech_computadoras"]] },
   champu: { dept: "cabello", ver: "tipo:champú y acondicionador", sib: [["cabello", "tipo:mascarillas"], ["beauty", "tipo:cuidado-del-cabello"]] },
   keratina: { dept: "cabello", ver: "tipo:keratina y alisados", sib: [["cabello", "tipo:reparación"], ["cabello", "tipo:mascarillas"]] },
@@ -150,6 +152,7 @@ export const PRODUCT_WORDS = {
   chromebooks: "chromebook|chromebooks|chrome book|chrome books|chromebok",
   consolas: "consola|consolas|consola de videojuegos|consolas de videojuegos|console|consoles|game console|game consoles|video game console|playstation|play station|xbox|consola playstation|consola xbox",
   audifonos: "audifonos|audifono|audifonos inalambricos|audifonos bluetooth|auriculares|auricular|headphones|headphone|earbuds|earphones|headset|headsets",
+  drones: "dron|drones|drone|dji|drone dji|dron dji|drones dji|cuadricoptero|cuadricopteros|quadcopter|quadcopters|dron con camara|drone con camara|drone with camera|drones con camara|dorn|drom|drones fpv|fpv drone",
   camaras: "camara|camaras|camara fotografica|camaras fotograficas|camara digital|camaras digitales|camera|cameras|digital camera|digital cameras",
   monitores: "monitor|monitores|monitor de computadora|monitor gamer|monitores gamer|computer monitor|computer monitors|gaming monitor|gaming monitors",
   champu: "champu|champus|champoo|shampoo|shampoos|shampu|shampo|champu y acondicionador|acondicionador|acondicionadores|conditioner|conditioners",

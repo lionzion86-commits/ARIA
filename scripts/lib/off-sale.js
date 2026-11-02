@@ -83,6 +83,8 @@
    the Netlify functions; the list itself lives there, once. */
 /* The held-used rule (isOffSaleItem) reads /condition.js. */
 import "../../condition.js";
+/* ...and the pills-and-food rule reads /not-sold.js (#443 c.6579517469). */
+import "../../not-sold.js";
 import "../../off-sale.js";
 
 const api = globalThis.AriaOffSale;
