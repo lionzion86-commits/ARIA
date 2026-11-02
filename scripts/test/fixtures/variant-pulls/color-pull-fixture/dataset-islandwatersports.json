@@ -1,0 +1,94 @@
+[
+ {
+  "_fixture": "TEST FIXTURE, NOT STORE DATA. Modelled on the documented Data Drop 2 shapes (#443 c.6560098393); ids, photos and the made-up rows never reach the catalogue.",
+  "id": 2001,
+  "title": "Fixture Rash Guard",
+  "handle": "fixture-rash-guard",
+  "vendor": "Fixture Surf",
+  "product_type": "Rash Guards",
+  "options": [
+   {
+    "name": "Color",
+    "values": [
+     "Black",
+     "Ocean",
+     "Coral"
+    ]
+   },
+   {
+    "name": "Size",
+    "values": [
+     "S",
+     "M",
+     "L"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 20011,
+    "option1": "Black",
+    "option2": "S",
+    "price": "45.00",
+    "available": true,
+    "featured_image": {
+     "src": "https://cdn.shopify.com/s/files/fixture/rash-black.jpg"
+    }
+   },
+   {
+    "id": 20012,
+    "option1": "Black",
+    "option2": "M",
+    "price": "45.00",
+    "available": false,
+    "featured_image": {
+     "src": "https://cdn.shopify.com/s/files/fixture/rash-black.jpg"
+    }
+   },
+   {
+    "id": 20013,
+    "option1": "Ocean",
+    "option2": "M",
+    "price": "39.00",
+    "available": true,
+    "featured_image": {
+     "src": "https://cdn.shopify.com/s/files/fixture/rash-ocean.jpg"
+    }
+   },
+   {
+    "id": 20014,
+    "option1": "Ocean",
+    "option2": "L",
+    "price": "39.00",
+    "available": true,
+    "featured_image": {
+     "src": "https://cdn.shopify.com/s/files/fixture/rash-ocean.jpg"
+    }
+   },
+   {
+    "id": 20015,
+    "option1": "Coral",
+    "option2": "S",
+    "price": "45.00",
+    "available": true,
+    "featured_image": null
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/rash-black.jpg",
+    "variant_ids": [
+     20011,
+     20012
+    ]
+   },
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/rash-ocean.jpg",
+    "variant_ids": [
+     20013,
+     20014
+    ]
+   }
+  ]
+ }
+]

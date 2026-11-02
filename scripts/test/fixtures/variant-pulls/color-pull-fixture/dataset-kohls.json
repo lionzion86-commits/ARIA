@@ -1,0 +1,37 @@
+[
+ {
+  "_fixture": "TEST FIXTURE, NOT STORE DATA. Modelled on the documented Data Drop 2 shapes (#443 c.6560098393); ids, photos and the made-up rows never reach the catalogue.",
+  "id": "3000001",
+  "title": "Fixture Women's Pull-On Pants",
+  "brand": "Fixture Brand",
+  "url": "https://www.kohls.com/product/prd-3000001/fixture-pull-on-pants.jsp",
+  "price": 34.99,
+  "colors": [
+   "Black",
+   "Genuine Navy",
+   "Elite Wine"
+  ],
+  "display_color": "Black",
+  "sku_ids": [
+   "1",
+   "2",
+   "3"
+  ],
+  "swatches": [
+   {
+    "color": "Black",
+    "swatch": "https://media.kohlsimg.com/is/image/kohls/fixture_black_sw",
+    "image": "https://media.kohlsimg.com/is/image/kohls/fixture_Black"
+   },
+   {
+    "color": "Genuine Navy",
+    "swatch": "https://media.kohlsimg.com/is/image/kohls/fixture_navy_sw",
+    "image": "https://media.kohlsimg.com/is/image/kohls/fixture_Genuine_Navy"
+   },
+   {
+    "color": "Elite Wine",
+    "swatch": "https://media.kohlsimg.com/is/image/kohls/fixture_wine_sw"
+   }
+  ]
+ }
+]

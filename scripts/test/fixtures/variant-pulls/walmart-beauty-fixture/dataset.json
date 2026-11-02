@@ -1,0 +1,124 @@
+[
+  {
+    "_fixture": "TEST FIXTURE, NOT STORE DATA. Modelled on the documented productDetails shape (#443): one NYX-style family with a numbered reissue and its old unnumbered name, a Pack Size axis, an unavailable shade and a shade with no detail yet. Prices, ids and photos are made up for tests and never reach the catalogue.",
+    "product_id": "6HML2AWK518H",
+    "us_item_id": "900000001",
+    "url": "https://www.walmart.com/ip/Fixture-Lip-Lingerie-XXL-Liquid-Lipstick-07-Warm-Up/900000001",
+    "name": "Fixture Lip Lingerie XXL Liquid Lipstick, 07 Warm Up, 0.13 fl oz",
+    "brand": "NYX Professional Makeup",
+    "price": 7.97,
+    "images": [
+      "https://i5.walmartimages.com/asr/fixture-warm-up-1.jpeg",
+      "https://i5.walmartimages.com/asr/fixture-warm-up-2.jpeg"
+    ],
+    "available": true,
+    "variants": [
+      {
+        "name": "Actual Color",
+        "values": [
+          { "name": "WARM UP", "product_id": "7KTDGZUL2IAQ", "available": false, "swatch_url": "https://i5.walmartimages.com/asr/fixture-swatch-warm-up-old.jpeg", "selected": false },
+          { "name": "07 Warm Up", "product_id": "6HML2AWK518H", "available": true, "swatch_url": "https://i5.walmartimages.com/asr/fixture-swatch-warm-up.jpeg", "selected": true },
+          { "name": "Deep Mesh", "product_id": "4TQ3DMESH21K", "available": true, "swatch_url": "https://i5.walmartimages.com/asr/fixture-swatch-deep-mesh.jpeg", "selected": false },
+          { "name": "Lace Detail", "product_id": "2LACEDTL88QZ", "available": false, "swatch_url": "https://i5.walmartimages.com/asr/fixture-swatch-lace.jpeg", "selected": false },
+          { "name": "Embellishment", "product_id": "8EMBLSH0PND1", "available": true, "swatch_url": "https://i5.walmartimages.com/asr/fixture-swatch-embellishment.jpeg", "selected": false }
+        ]
+      },
+      {
+        "name": "Pack Size",
+        "values": [
+          { "name": "1 Count", "product_id": "6HML2AWK518H", "available": true, "selected": true },
+          { "name": "2 Pack", "product_id": "9PK2WARMUP01", "available": true, "selected": false }
+        ]
+      }
+    ]
+  },
+  {
+    "product_id": "4TQ3DMESH21K",
+    "us_item_id": "900000002",
+    "url": "https://www.walmart.com/ip/Fixture-Lip-Lingerie-XXL-Smooth-Matte-Liquid-Lipstick-Deep-Mesh/900000002",
+    "name": "Fixture Lip Lingerie XXL Smooth Matte Liquid Lipstick, Deep Mesh, 0.13 fl oz",
+    "brand": "NYX Professional Makeup",
+    "price": 6.48,
+    "was_price": 9.99,
+    "images": [
+      "https://i5.walmartimages.com/asr/fixture-deep-mesh-1.jpeg",
+      "https://i5.walmartimages.com/asr/fixture-deep-mesh-2.jpeg"
+    ],
+    "available": true,
+    "variants": [
+      {
+        "name": "Actual Color",
+        "values": [
+          { "name": "07 Warm Up", "product_id": "6HML2AWK518H", "available": true, "selected": false },
+          { "name": "Deep Mesh", "product_id": "4TQ3DMESH21K", "available": true, "selected": true },
+          { "name": "Lace Detail", "product_id": "2LACEDTL88QZ", "available": false, "selected": false }
+        ]
+      }
+    ]
+  },
+  {
+    "product_id": "2LACEDTL88QZ",
+    "url": "https://www.walmart.com/ip/Fixture-Lip-Lingerie-XXL-Liquid-Lipstick-Lace-Detail/900000003",
+    "name": "Fixture Lip Lingerie XXL Liquid Lipstick, Lace Detail, 0.13 fl oz",
+    "brand": "NYX Professional Makeup",
+    "price": 7.97,
+    "images": ["https://i5.walmartimages.com/asr/fixture-lace-detail-1.jpeg"],
+    "available": false,
+    "variants": [
+      {
+        "name": "Actual Color",
+        "values": [
+          { "name": "07 Warm Up", "product_id": "6HML2AWK518H", "available": true, "selected": false },
+          { "name": "Lace Detail", "product_id": "2LACEDTL88QZ", "available": false, "selected": true }
+        ]
+      }
+    ]
+  },
+  {
+    "product_id": "9PK2WARMUP01",
+    "url": "https://www.walmart.com/ip/Fixture-Lip-Lingerie-XXL-Liquid-Lipstick-Warm-Up-2-Pack/900000004",
+    "name": "Fixture Lip Lingerie XXL Liquid Lipstick, 07 Warm Up, 2 Pack",
+    "brand": "NYX Professional Makeup",
+    "price": 14.5,
+    "images": ["https://i5.walmartimages.com/asr/fixture-warm-up-2pack.jpeg"],
+    "available": true,
+    "variants": [
+      {
+        "name": "Actual Color",
+        "values": [
+          { "name": "07 Warm Up", "product_id": "9PK2WARMUP01", "available": true, "selected": true },
+          { "name": "Deep Mesh", "product_id": "4TQ3DMESH21K", "available": true, "selected": false }
+        ]
+      },
+      {
+        "name": "Pack Size",
+        "values": [
+          { "name": "1 Count", "product_id": "6HML2AWK518H", "available": true, "selected": false },
+          { "name": "2 Pack", "product_id": "9PK2WARMUP01", "available": true, "selected": true }
+        ]
+      }
+    ]
+  },
+  {
+    "product_id": "5RVLNEMPTY01",
+    "url": "https://www.walmart.com/ip/Fixture-Revlon-Super-Lustrous-Lipstick/900000005",
+    "name": "Fixture Revlon Super Lustrous Lipstick, Certainly Red",
+    "brand": "Revlon",
+    "price": 8.24,
+    "images": ["https://i5.walmartimages.com/asr/fixture-revlon.jpeg"],
+    "available": true,
+    "variants": []
+  },
+  {
+    "product_id": "3ONLYPACK001",
+    "url": "https://www.walmart.com/ip/Fixture-Lip-Pencil-3-Pack/900000006",
+    "name": "Fixture Lip Pencil Trio, 3 Pack",
+    "brand": "NYX Professional Makeup",
+    "price": 9.97,
+    "images": ["https://i5.walmartimages.com/asr/fixture-pencil-trio.jpeg"],
+    "available": true,
+    "variants": [
+      { "name": "Pack Size", "values": [ { "name": "3 Pack", "product_id": "3ONLYPACK001", "available": true, "selected": true } ] }
+    ]
+  }
+]

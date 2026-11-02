@@ -75,15 +75,25 @@ export function buildCatalog(opts = {}) {
 
   const items = [];
   const byId = new Map();
+  /* opts.listings (#443 variants): every priced listing with its own store
+     URL, duplicates of a title included -- the price index keys each
+     colourway the store titles alike by its own id. */
+  const listings = opts.listings ? [] : null;
   const stats = { files: 0, missing: [], scanned: 0, restricted: 0, unshippable: 0, quarantined: 0, threw: 0, unpriced: 0, duplicate: 0, kept: 0 };
   const errors = new Map();
 
-  for (const rel of files) {
-    const path = repoFile(rel);
-    if (!existsSync(path)) { stats.missing.push(rel); continue; }
+  /* opts.extraEnvelopes (#443 variant families): catalogue-shaped
+     envelopes built in memory (a shade the store sells that no catalogue
+     file lists yet, with its own real price), priced the same way. */
+  for (const rel of [...files, ...(opts.extraEnvelopes || [])]) {
     let env;
-    try { env = JSON.parse(readFileSync(path, "utf8")); }
-    catch (e) { stats.missing.push(`${rel} (unparseable: ${e.message})`); continue; }
+    if (rel && typeof rel === "object") env = rel;
+    else {
+      const path = repoFile(rel);
+      if (!existsSync(path)) { stats.missing.push(rel); continue; }
+      try { env = JSON.parse(readFileSync(path, "utf8")); }
+      catch (e) { stats.missing.push(`${rel} (unparseable: ${e.message})`); continue; }
+    }
     stats.files++;
 
     for (const [retailer, bucket] of Object.entries(env?.retailers || {})) {
@@ -111,6 +121,7 @@ export function buildCatalog(opts = {}) {
           if (!(n.price > 0)) { stats.unpriced++; continue; }
 
           const id = productIdFor(retailer, n.title);
+          if (listings) listings.push({ retailer, title: n.title, url: String(raw.url || raw.link || raw.productUrl || "").trim(), price: n.price, dutiableUsd: n.dutiableUsd });
           const had = byId.get(id);
           if (had) {
             if (!had.departments.includes(department)) had.departments.push(department);
@@ -169,5 +180,5 @@ export function buildCatalog(opts = {}) {
     );
   }
 
-  return { items, byId, windex, stats, errors, engine };
+  return { items, byId, windex, stats, errors, engine, listings };
 }

@@ -165,6 +165,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
   display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between}
 .site-footer a{color:var(--blue);text-decoration:none}
 </style>
+<script src="/display-name.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -672,6 +673,10 @@ function priceHTML(c){
     (was > usd ? '<span class="price-old">' + fmtUsd(was) + '</span>' : '') + '</div>' +
     '<div class="price-usd">&nbsp;</div>';
 }
+/* The title a shopper reads: /display-name.js (one rule, #443
+   c.6568696054) drops a "- N Colors" claim no picker backs. Links and
+   lookups keep the store's title. */
+function shownTitle(t){ return typeof window !== 'undefined' && window.AriaDisplayName ? window.AriaDisplayName.displayName(t) : String(t == null ? '' : t); }
 function cardHTML(c){
   var pct = Number(c.pct) || 0;
   var title = decodeEntitiesText(c.title || '') || 'Producto';
@@ -682,7 +687,7 @@ function cardHTML(c){
   /* src/srcset parked in data- until the card is about to be seen. */
   var img = c.image
     ? '<img ' + (c.ph > 1 ? 'data-g="' + (c.ph | 0) + '" ' : '') + cardImgAttrs(c.image, '172px').replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') +
-      ' alt="' + esc(title) + '" width="560" height="560" decoding="async" draggable="false" onerror="if(!imgOrigRetry(this))photoGone(this)">'
+      ' alt="' + esc(shownTitle(title)) + '" width="560" height="560" decoding="async" draggable="false" onerror="if(!imgOrigRetry(this))photoGone(this)">'
     : '';
   /* No image, no card (#443 c.6547325227). */
   if (!img) return '';
@@ -696,7 +701,7 @@ function cardHTML(c){
     '<div class="card-body">' +
       '<span class="store-tag">' + esc(storeName(c.store)) + '</span>' +
       '<div class="card-brand">' + (c.brand ? esc(c.brand) : '&nbsp;') + '</div>' +
-      '<h3 class="card-title">' + esc(title) + '</h3>' +
+      '<h3 class="card-title">' + esc(shownTitle(title)) + '</h3>' +
       '<div class="card-prices">' + priceHTML(c) + '</div>' +
     '</div></a>';
 }

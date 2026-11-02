@@ -6,6 +6,7 @@
 <title>Tienda — Aria Shop</title>
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
+<script src="/display-name.js"></script>
 <script src="/off-sale.js"></script>
 <meta name="description" content="Compra en tiendas de Estados Unidos con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
@@ -956,8 +957,12 @@ function slCardHTML(p){
    with it again ("ASUS" over "ASUS ROG Strix G16" reads "ROG Strix
    G16"), and a word doubled at the very start goes once ("VAIO VAIO"). */
 var COND_WORDS_RX = /\(\s*(?:open[- ]box|refurbished|renewed|restored|certified pre-?owned|pre-?owned|used)\s*\)|^\s*(?:open[- ]box|refurbished|renewed|restored|certified pre-?owned|pre-?owned)\b\s*[-:\u2013]?\s*/ig;
+/* The title a shopper reads: /display-name.js (one rule, #443
+   c.6568696054) drops a "- N Colors" claim no picker backs. Links and
+   lookups keep the store's title. */
+function shownTitle(t){ return typeof window !== 'undefined' && window.AriaDisplayName ? window.AriaDisplayName.displayName(t) : String(t == null ? '' : t); }
 function cardTitleText(name, cond, brand){
-  var t = String(name || '');
+  var t = shownTitle(name || '');
   if (cond) t = t.replace(COND_WORDS_RX, ' ');
   t = t.replace(/\s{2,}/g, ' ').replace(/^[\s\-:\u2013,]+/, '').trim();
   var w = t.split(' ');
@@ -1052,7 +1057,7 @@ function slHeroHTML(h){
   for (var i = 0; i < h.items.length; i++){
     var p = h.items[i];
     var href = 'producto.html?producto=' + encodeURIComponent(p.name || '') + '&tienda=' + encodeURIComponent(storeKey);
-    cells += '<a class="dh-item" href="' + esc(href) + '" aria-label="' + esc(p.name) + '"><span class="dh-badge">-' + Number(p.pct) + '%</span>' +
+    cells += '<a class="dh-item" href="' + esc(href) + '" aria-label="' + esc(shownTitle(p.name)) + '"><span class="dh-badge">-' + Number(p.pct) + '%</span>' +
       '<img ' + cardImgAttrs(p.image).replace(/^src=/, 'data-src=').replace(/ srcset=/, ' data-srcset=').replace(/ sizes=/, ' data-sizes=') + ' alt="" decoding="async"></a>';
   }
   return '<section class="deals-hero" aria-label="Ofertas de ' + esc(storeMeta.label) + '">' +

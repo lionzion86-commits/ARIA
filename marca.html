@@ -126,6 +126,7 @@ footer a{color:#fff;}
 .card .name{font-size:14.5px; min-height:39px;}
 .card .body{padding:14px 16px 16px;}
 </style>
+<script src="/display-name.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -563,6 +564,10 @@ function watchPhotos(root){
 }
 
 function storeLabel(r){ return (HEAD && HEAD.labels && HEAD.labels[r]) || r; }
+/* The title a shopper reads: /display-name.js (one rule, #443
+   c.6568696054) drops a "- N Colors" claim no picker backs. Links and
+   lookups keep the store's title. */
+function shownTitle(t){ return typeof window !== 'undefined' && window.AriaDisplayName ? window.AriaDisplayName.displayName(t) : String(t == null ? '' : t); }
 /* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409). */
 function cardHTML(c){
   var f = finalUsd(c.p, c.r);
@@ -582,7 +587,7 @@ function cardHTML(c){
     '<div class="img">' + saleBadge + img + "</div>" +
     '<div class="body">' +
       '<div class="brand">' + (c.k ? '<span class="card-cond">' + esc(c.k) + '</span>' : '') + esc(c.b || BRAND_LABEL) + "</div>" +
-      '<div class="name">' + esc(c.t) + "</div>" +
+      '<div class="name">' + esc(shownTitle(c.t)) + "</div>" +
       '<div class="retailer">' + (c.r ? 'Vendido por ' + esc(storeLabel(c.r)) : "&nbsp;") + "</div>" +
       '<div class="price" data-usd="' + f + '"' + (was > f ? ' data-was="' + was + '"' : '') + '>' + priceInner(f, was) + "</div>" +
     "</div></a>";

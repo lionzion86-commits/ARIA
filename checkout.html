@@ -74,6 +74,7 @@
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
   .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463; display:flex; align-items:center; gap:8px }
 </style>
+<script src="/display-name.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -818,6 +819,10 @@
      (orders-create.js refuses it too). */
   import { isOffSaleItem, OFF_SALE_LINE_NOTE } from './scripts/lib/off-sale.js';
   import { conditionOfTitle, SOLD_OUT_NOTE } from './scripts/lib/condition.js';
+  /* The title a shopper reads (/display-name.js, #443 c.6568696054): a
+     "- N Colors" claim no picker backs is not shown. The line's stored
+     title -- its key, its price lookup, the order -- is untouched. */
+  const shownTitle = (t) => (window.AriaDisplayName ? window.AriaDisplayName.displayName(t) : String(t == null ? '' : t));
   /* STORE SHIPPING (#443 c.6511807569, c.6511908498): each store's own fee
      to Miami, store by store, with its meter -- /store-shipping.js. */
   import { cartShipping, shippingRuleText, shippingMeterText, shippingStandingText, SHIPPING_LINE_LABEL } from './scripts/lib/store-shipping.js';
@@ -1098,7 +1103,9 @@ function cardImgAttrs(url, sizes){
     return sizeGateShards[shard].then((d) => {
       const cands = (d && Array.isArray(d[key])) ? d[key] : [];
       const own = cands.filter((c) => c && String(c.retailer || '').toLowerCase() === rk);
-      const rec = (own.length ? own : (cands.length === 1 ? cands : []))[0];
+      /* The line's own listing first (#443 variants: its colour's sizes and photo). */
+      const mine = it.variantId ? own.filter((c) => c.v === it.variantId) : [];
+      const rec = (mine.length ? mine : own.length ? own : (cands.length === 1 ? cands : []))[0];
       return rec ? sizeGateList(rec.sizes) : [];
     }).catch(() => []);
   }
@@ -1122,7 +1129,8 @@ function cardImgAttrs(url, sizes){
       const cands = (d && Array.isArray(d[key])) ? d[key] : [];
       const own = cands.filter((c) => c && String(c.retailer || '').toLowerCase() === rk);
       const pos = (c) => Math.min(Infinity, ...((c && c.src) || []).map((s) => Number(s[1])).filter(Number.isFinite));
-      const recs = (own.length ? own : (cands.length === 1 ? cands : [])).slice().sort((a, b) => (pos(a) - pos(b)) || 0);
+      const mine = it.variantId ? own.filter((c) => c.v === it.variantId) : [];
+      const recs = (mine.length ? mine : own.length ? own : (cands.length === 1 ? cands : [])).slice().sort((a, b) => (pos(a) - pos(b)) || 0);
       return recs.map((r) => (typeof r.image === 'string' && /^https?:\/\//i.test(r.image)) ? r.image : '').filter(Boolean);
     }).catch(() => []);
   }
@@ -1455,7 +1463,7 @@ function cardImgAttrs(url, sizes){
       <div>
         <div class="text-[13.5px] font-extrabold" style="color:#5C4813">Estamos confirmando el peso de ${weightReview.items.length === 1 ? 'un producto' : `${weightReview.items.length} productos`}</div>
         <div class="text-[12.5px] leading-snug mt-0.5" style="color:#8A6B1F">
-          ${weightReview.items.map(it => escapeHtmlLocal(String(it.title || '').slice(0, 60))).join(' · ')}
+          ${weightReview.items.map(it => escapeHtmlLocal(String(shownTitle(it.title)).slice(0, 60))).join(' · ')}
         </div>
         <div class="text-[12.5px] leading-snug mt-1.5" style="color:#8A6B1F">
           Preferimos no cobrarte un flete que no podemos sostener. Te confirmamos el costo real
@@ -1521,7 +1529,7 @@ function cardImgAttrs(url, sizes){
     const units = held.reduce((n, it) => n + Math.max(1, Math.round(Number(it.qty) || 1)), 0);
     return `<div data-next-order class="rounded-2xl px-4 py-3 mb-4" style="background:#EEF3FF; border:1px solid #C9D6F2">
       <div class="text-[13px] font-extrabold" style="color:#0A1F44">Siguiente pedido: ${units} perfume${units === 1 ? '' : 's'} guardado${units === 1 ? '' : 's'}</div>
-      <div class="text-[12.5px] leading-snug mt-0.5" style="color:#41506E">${held.map((it) => escapeHtmlLocal(String(it.title || '').slice(0, 60)) + (Number(it.qty) > 1 ? ' x' + it.qty : '')).join(' · ')}</div>
+      <div class="text-[12.5px] leading-snug mt-0.5" style="color:#41506E">${held.map((it) => escapeHtmlLocal(String(shownTitle(it.title)).slice(0, 60)) + (Number(it.qty) > 1 ? ' x' + it.qty : '')).join(' · ')}</div>
       <div class="text-[12.5px] leading-snug mt-1" style="color:#41506E">Cuando pagues este pedido, los ponemos en tu carrito para el segundo.</div>
     </div>`;
   }
@@ -2309,7 +2317,10 @@ function cardImgAttrs(url, sizes){
      (re-rendered from this array on every render, so the index is always
      fresh); the key is stamped on the button for debugging. */
   function cartLineKey(it){
-    return [String(it.retailer || '').toLowerCase(), String(it.title || ''), String(it.selectedSize || it.size || '')].join('::');
+    /* The listing too, when the line names one (#443 variants): two
+       colourways the store titles alike, in one size, are two lines. */
+    return [String(it.retailer || '').toLowerCase(), String(it.title || ''), String(it.selectedSize || it.size || '')].join('::')
+      + (it.variantId ? '::v:' + String(it.variantId) : '');
   }
   /* FAMILIA: the card price each line had before this page showed it at
      cost. The saved cart always keeps the card price (the account's
@@ -2382,8 +2393,8 @@ function cardImgAttrs(url, sizes){
         ${lineThumbHTML(it)}
         <div class="min-w-0 flex-1">
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
-          <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
-          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+          <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(shownTitle(it.title))}</div>
+          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.colorway ? `<span data-colorway="${i}">${it.variantAxis === 'Tono' ? 'Tono' : 'Color'}: ${escapeHtmlLocal(it.colorway)}</span> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
           ${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
           ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
@@ -2394,7 +2405,7 @@ function cardImgAttrs(url, sizes){
             </select>
           </div>` : ''}
         </div>
-        <button type="button" data-remove-line="${i}" data-line-key="${escapeHtmlLocal(cartLineKey(it))}" aria-label="Quitar ${escapeHtmlLocal(it.title)}" class="flex-shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">Quitar</button>
+        <button type="button" data-remove-line="${i}" data-line-key="${escapeHtmlLocal(cartLineKey(it))}" aria-label="Quitar ${escapeHtmlLocal(shownTitle(it.title))}" class="flex-shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">Quitar</button>
       </div>
     `).join('');
     healLineThumbs();
@@ -2411,7 +2422,10 @@ function cardImgAttrs(url, sizes){
       acc.kg += it.weightKg * it.qty;
       return acc;
     }, { valor: 0, kg: 0 });
-    const description = cart.map(it => it.selectedSize ? `${it.title} (Talla ${it.selectedSize}) x${it.qty}` : `${it.title} x${it.qty}`).join(', ');
+    const description = cart.map(it => {
+      const bits = [it.colorway ? `${it.variantAxis === 'Tono' ? 'Tono' : 'Color'} ${it.colorway}` : '', it.selectedSize ? `Talla ${it.selectedSize}` : ''].filter(Boolean).join(', ');
+      return bits ? `${it.title} (${bits}) x${it.qty}` : `${it.title} x${it.qty}`;
+    }).join(', ');
 
     /* The weight is resolved SERVER SIDE, per item — never taken from
        whatever the cart happens to carry. A cart written by an older build
