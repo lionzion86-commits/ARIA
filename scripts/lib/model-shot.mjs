@@ -10,9 +10,10 @@
 
      victoriassecret  ..._OM_F / _OM_B / _OM_S  on model
                       ..._OF_F / _OF_DET        off figure (flat, detail)
-     montce           ..._studio_... / _lifestyle_  on model (Danny's
-                      reference: the Montce pill's studio_front lead is
-                      "a model, right"); ...flat...  flat. Montce's
+     montce           ..._lifestyle_...  on model; ..._studio_... and
+                      ...flat...  the product on white (corrected
+                      2026-11-02: Danny saw the studio_front lead live and
+                      called it a garment, c.6585853439). Montce's
                       shoot frames (MontceSwim-5738) are UNKNOWN: Danny
                       called the «Todas» lead on that frame a flat top on
                       white, so they are never treated as a model.
@@ -29,7 +30,11 @@ const fileOf = (url) => String(url || "").split("?")[0].split("#")[0].split("/")
 
 const STORE_RULES = {
   victoriassecret: (f) => (/_OM_[A-Z]+\.\w+$/i.test(f) ? true : /_OF_[A-Z]+\.\w+$/i.test(f) ? false : null),
-  montce: (f) => (/flat/i.test(f) ? false : /(^|[_-])(studio|studiofront|lifestyle)([_.-]|$)/i.test(f) || /studio_?front|studio_?back/i.test(f) ? true : null),
+  /* Montce (corrected 2026-11-02, #443 c.6585853439): Danny, live on the
+     merged shelf, saw the «Todas» lead on a studio_front file and called it
+     a standalone garment. Montce's studio frames are the product on white;
+     its lifestyle frames are the model wearing it. */
+  montce: (f) => (/flat/i.test(f) || /studio_?(front|back)|(^|[_-])studio([_.-]|$)/i.test(f) ? false : /(^|[_-])lifestyle([_.-]|$)|lifestyle_?(front|back)/i.test(f) ? true : null),
   skims: (f) => (/-(FLT|FL)\.\w+$/i.test(f) ? false : /_\d{3,5}-(FR|SD|BK)\.\w+$/i.test(f) ? true : null),
   intimissimi: (f) => (/-(FI|BI)\.\w+$/i.test(f) ? true : /-(F|SW|D\d|DT\d\w*)\.\w+$/i.test(f) ? false : null),
 };
