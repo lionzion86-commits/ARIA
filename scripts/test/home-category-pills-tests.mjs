@@ -347,7 +347,7 @@ await check("Ofertas: one file per view with at least 8 sale items, sale items o
   assert.ok(index.c.lenceria.o >= OFERTAS_MIN && index.c.bano.o >= OFERTAS_MIN, "Lencería / Bikinis without Ofertas");
 });
 
-await check("Tenis and Billeteras: new carousels with store pills, phone and desktop; Tennis Warehouse only with a live catalogue", () => {
+await check("Tenis and Billeteras: new carousels with store pills, phone and desktop; Tennis Warehouse in now that its catalogue is live", () => {
   const { mobile, desktop } = shopfronts();
   for (const [name, part] of [["phone", mobile], ["desktop", desktop]]) {
     assert.equal(part.split('data-cat-pills="tenis" data-cat-pills-own').length - 1, 1, `${name}: Tenis`);
@@ -367,6 +367,8 @@ await check("Tenis and Billeteras: new carousels with store pills, phone and des
   assert.equal(index.c.tenis.door, "/departamento.html?dept=tennis");
   const tw = existsSync(ROOT + "assets/tienda/tenniswarehouse/index.json") ? json("assets/tienda/tenniswarehouse/index.json").count : 0;
   assert.equal(index.c.tenis.s.some((x) => x[0] === "tenniswarehouse"), tw >= MIN_CARDS, "Tennis Warehouse pill vs its catalogue (" + tw + ")");
+  /* Stocked 2026-11-02 (#443 c.6578887587): the pill is in. */
+  assert.ok(tw >= MIN_CARDS && index.c.tenis.s.some((x) => x[0] === "tenniswarehouse"), "Tennis Warehouse is live but has no Tenis pill (" + tw + ")");
   assert.equal(index.c.billeteras.door, "/departamento.html?dept=purses");
   for (const f of railFiles.filter((f) => f.startsWith("billeteras-"))) for (const p of cardsOf(f)) assert.ok(isWallet({ title: p.title }), `${f}: «${p.title}» is not a wallet`);
   for (const f of railFiles.filter((f) => f.startsWith("tenis-"))) for (const p of cardsOf(f)) assert.doesNotMatch(p.title, /barbie|doll|mahjong/i, f + ": " + p.title);

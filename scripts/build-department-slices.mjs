@@ -82,9 +82,10 @@ export const CATALOG_FILES = [
   /* Best Buy (2026-10-19, #413): Electrónica's specialist and Hogar's
      small appliances. */
   "/bestbuy-catalog.json",
-  /* DSW (#443): Zapatos' shoe warehouse. The committed empty envelope
-     until the pull lands. */
+  /* DSW (#443): Zapatos' shoe warehouse, stocked 2026-11-02. */
   "/dsw-catalog.json",
+  /* Tennis Warehouse (#443 c.6578887587): the Tenis department's store. */
+  "/tenniswarehouse-catalog.json",
   /* SNIPES (sneakers and streetwear) + Carolina Herrera (luxury), #443,
      pulled 2026-10-27. */
   "/snipes-catalog.json",
