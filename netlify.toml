@@ -26,13 +26,21 @@
 # THE GYM PULLS (#443 c.6542443890, 2026-10-31): the twelve gym brands are
 # gym-brands-catalog.json (~23MB), more than the room left under the
 # ceiling; the connector does not ship it (the site's own pages read it).
+# TENNIS WAREHOUSE (#611, 2026-11-02): tenniswarehouse-catalog.json
+# (~7.6MB) took this function to 257.6MB, over Netlify's 250MB ceiling,
+# and failed the deploy. The connector does not ship it either; the
+# store's own pages and /api/search serve it. ssense-catalog.json (~41MB)
+# is left out too, for headroom: this older connector already misses
+# Netlify's 10s cold-start limit and is replaced by #607, which ships no
+# catalogues at all.
 [functions."mcp"]
   included_files = ["index.html", "build/*.js", "*-catalog.json", "department-cache*.json",
     "!bestbuy-catalog.json", "!costco-catalog.json", "!costco-electronics-catalog.json", "!kohls-catalog.json",
     "!macys-catalog.json", "!gap-catalog.json", "!bananarepublic-catalog.json", "!ulta-catalog.json",
     "!yesstyle-catalog.json", "!newbalance-catalog.json", "!miumiu-catalog.json", "!pacsun-catalog.json",
     "!samsclub-catalog.json",
-    "!gym-brands-catalog.json"]
+    "!gym-brands-catalog.json",
+    "!tenniswarehouse-catalog.json", "!ssense-catalog.json"]
 
 # price-index.json (~5MB): what checkout charges per product, built by
 # scripts/build-price-index.mjs (orders-create.js reprices every line).
