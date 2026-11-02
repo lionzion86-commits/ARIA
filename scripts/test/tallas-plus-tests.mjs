@@ -70,7 +70,7 @@ check("the name is «Tallas Plus» wherever a shopper reads it", () => {
   for (const f of ["index.html", "departamento.html", "categorias.html"]) assert.doesNotMatch(read(f).replace(/<!--[\s\S]*?-->/g, ""), />\s*Curvy\s*</, f);
 });
 
-check("homepage: a Tallas Plus carousel after Ropa Interior (the block's last two); Aria Luxury moved up", () => {
+check("homepage: a Tallas Plus carousel after Ropa Interior (the block's last two); Aria Luxury right after it", () => {
   const html = read("index.html");
   const mobile = html.slice(html.indexOf('<div id="mobileShopfront"'), html.indexOf('<div id="desktopShopfront"'));
   const desktop = html.slice(html.indexOf('<div id="desktopShopfront"'));
@@ -82,7 +82,8 @@ check("homepage: a Tallas Plus carousel after Ropa Interior (the block's last tw
        Gym Rat and the rest; every store below. */
     /* Since #443 c.6567263570 Ropa Interior Hombre and Tallas Plus close the
        Todas las Tiendas block (Lencería opens it). */
-    const seq = ["Aria Perfumes", "Aria Luxury", "Lencería", "Electrónica", "Gym Rat", "Ropa Interior Hombre", "Tallas Plus"].map((l) => at(tree, l));
+    /* Since #443 c.6568626294 Aria Luxury follows the whole Todas las Tiendas block. */
+    const seq = ["Aria Perfumes", "Lencería", "Electrónica", "Gym Rat", "Ropa Interior Hombre", "Tallas Plus", "Aria Luxury"].map((l) => at(tree, l));
     assert.ok(seq.every((i) => i >= 0), name + ": " + seq.join(","));
     for (let i = 1; i < seq.length; i++) assert.ok(seq[i - 1] < seq[i], `${name}: out of order at ${i}`);
     assert.equal((tree.match(/aria-label="Aria Luxury"/g) || []).length, 1, name + ": one Aria Luxury");

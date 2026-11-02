@@ -14,7 +14,7 @@
    headless browser, against the committed catalogues, lets the page's
    own code compute every shelf exactly as it does for a shopper (store
    rails, category zone, brand strip, Fiestas, Bolsos, Joyas, Joyas de
-   lujo, Moda, department tiles and their brand lines), then reads the
+   lujo, department tiles and their brand lines), then reads the
    answers out of the page and writes them as small files:
 
      assets/home/shelves/index.json      families, tiles, brand strip
@@ -114,7 +114,6 @@ export async function snapshotShelves() {
       return keys.every((k) => Array.isArray(storeRailsRendered[k]))
         && Object.keys(categoryRailsRendered).length > 0
         && Array.isArray(bolsosRendered) && bolsosRendered.length > 0
-        && Array.isArray(modaRendered) && modaRendered.length > 0
         && Array.isArray(joyasLujoRendered) && joyasLujoRendered.length > 0
         && joyasRendered && Array.isArray(joyasRendered.mixed) && joyasRendered.mixed.length > 0
         /* Fiestas paints only where the page has its rows (none today). */
@@ -123,7 +122,7 @@ export async function snapshotShelves() {
       const state = await page.evaluate(() => {
         const keys = [...new Set([...document.querySelectorAll("[data-store-rail-row]")].filter((r) => { const v = r.closest(".view"); return !r.closest("[hidden]") && (!v || getComputedStyle(v).display !== "none"); }).map((r) => r.getAttribute("data-store-rail-row")))];
         return { storeMissing: keys.filter((k) => !Array.isArray(storeRailsRendered[k])), category: Object.keys(categoryRailsRendered).length,
-          bolsos: (bolsosRendered || []).length, moda: (modaRendered || []).length, joyasLujo: (joyasLujoRendered || []).length,
+          bolsos: (bolsosRendered || []).length, joyasLujo: (joyasLujoRendered || []).length,
           joyas: joyasRendered && joyasRendered.mixed ? joyasRendered.mixed.length : null, fiestas: Object.keys(fiestasRailsRendered).length };
       });
       throw new Error("the page did not compute every shelf: " + JSON.stringify(state));
@@ -153,7 +152,6 @@ export async function snapshotShelves() {
         bolsos: bolsosRendered,
         joyas: joyasRendered.mixed,
         joyasLujo: joyasLujoRendered,
-        moda: modaRendered,
         brandStrip: brandStripBrands(),
         tiles,
         brandLines,
@@ -296,11 +294,11 @@ export async function applyCategoryTruth(root = ROOT) {
     const pills = await pillDefaults(page, root);
     const file = join(root, SHELVES_DIR, "category.json");
     const body = JSON.parse(readFileSync(file, "utf8"));
-    for (const [k, list] of Object.entries(rails)) body.rails[k] = list.map(cardOf);
-    for (const [k, list] of Object.entries(pills)) if (k !== "joyas") body.rails[k] = list.map(cardOf);
+    for (const [k, list] of Object.entries(rails)) body.rails[k] = noPerfumeLeak(k, list).map(cardOf);
+    for (const [k, list] of Object.entries(pills)) if (k !== "joyas") body.rails[k] = noPerfumeLeak(k, list).map(cardOf);
     writeFileSync(file, JSON.stringify(body));
     if (pills.joyas) {
-      writeFileSync(join(root, SHELVES_DIR, "joyas.json"), JSON.stringify({ picks: pills.joyas.map(cardOf) }));
+      writeFileSync(join(root, SHELVES_DIR, "joyas.json"), JSON.stringify({ picks: noPerfumeLeak("joyas", pills.joyas).map(cardOf) }));
       rails.joyas = pills.joyas;
     }
     Object.assign(rails, Object.fromEntries(Object.entries(pills).filter(([k]) => k !== "joyas")));
@@ -312,14 +310,26 @@ export async function applyCategoryTruth(root = ROOT) {
   }
 }
 
-/* The snapshot as files: one per store rail, one per family, an index. */
+/* ARIA PERFUMES STAYS IN ITS OWN RAILS (Danny, #443 c.6568732461): an
+   ariaperfumes SKU (a body lotion, a deodorant) once rode the «Moda de
+   diseñador» shelf. Only a perfume rail (its key names perfume) or the
+   store's own rail may carry the store's items; every other shelf drops them. */
+export const PERFUME_RETAILER = "ariaperfumes";
+export const isPerfumeRail = (key) => /perfum/i.test(String(key)) || String(key) === PERFUME_RETAILER;
+export function noPerfumeLeak(key, list) {
+  if (!Array.isArray(list)) return [];
+  return isPerfumeRail(key) ? list : list.filter((p) => !p || String(p.retailer || "").toLowerCase() !== PERFUME_RETAILER);
+}
+
+/* The snapshot as files: one per store rail, one per family, an index.
+   «Moda de diseñador» left the homepage (Danny, #443 c.6568648466): no moda.json. */
 export function shelfFiles(snap) {
-  const cards = (list) => (Array.isArray(list) ? list.map(cardOf) : []);
+  const cards = (key, list) => noPerfumeLeak(key, list).map(cardOf);
   const files = {};
-  for (const [k, list] of Object.entries(snap.store)) files[`store-${k}.json`] = { picks: cards(list) };
-  files["category.json"] = { rails: Object.fromEntries(Object.entries(snap.category).map(([k, l]) => [k, cards(l)])) };
-  files["fiestas.json"] = { rails: Object.fromEntries(Object.entries(snap.fiestas).map(([k, l]) => [k, cards(l)])) };
-  for (const fam of ["bolsos", "joyas", "joyasLujo", "moda"]) files[`${fam}.json`] = { picks: cards(snap[fam]) };
+  for (const [k, list] of Object.entries(snap.store)) files[`store-${k}.json`] = { picks: cards(k, list) };
+  files["category.json"] = { rails: Object.fromEntries(Object.entries(snap.category).map(([k, l]) => [k, cards(k, l)])) };
+  files["fiestas.json"] = { rails: Object.fromEntries(Object.entries(snap.fiestas).map(([k, l]) => [k, cards(k, l)])) };
+  for (const fam of ["bolsos", "joyas", "joyasLujo"]) files[`${fam}.json`] = { picks: cards(fam, snap[fam]) };
   files["index.json"] = {
     v: 1,
     stores: Object.keys(snap.store),
