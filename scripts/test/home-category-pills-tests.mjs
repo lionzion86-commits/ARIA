@@ -352,9 +352,10 @@ await check("Tenis and Billeteras: new carousels with store pills, phone and des
   for (const [name, part] of [["phone", mobile], ["desktop", desktop]]) {
     assert.equal(part.split('data-cat-pills="tenis" data-cat-pills-own').length - 1, 1, `${name}: Tenis`);
     assert.match(part, /<section aria-label="Tenis" data-cat-pills-section/, `${name}: Tenis section`);
-    /* Billeteras: the same carousel twice (c.6567232584) -- with Bolsos inside Aria Luxury, and its own carousel next to it. */
-    assert.equal(part.split('data-cat-pills="billeteras" data-cat-pills-own').length - 1, 2, `${name}: two Billeteras carousels`);
-    assert.equal((part.match(/<section aria-label="Billeteras" data-cat-pills-section/g) || []).length, 2, `${name}: Billeteras sections`);
+    /* Billeteras: ONE carousel, inside Aria Luxury next to Bolsos. Danny 2026-11-02: "two of the same exact
+       carousels, one right above the other -- take the second one off" (the navy standalone of c.6567232584). */
+    assert.equal(part.split('data-cat-pills="billeteras" data-cat-pills-own').length - 1, 1, `${name}: one Billeteras carousel`);
+    assert.equal((part.match(/<section aria-label="Billeteras" data-cat-pills-section/g) || []).length, 1, `${name}: Billeteras sections`);
     assert.ok(part.indexOf('aria-label="Tenis"') > part.indexOf('aria-label="Fútbol"') && part.indexOf('aria-label="Tenis"') < part.indexOf('aria-label="Aria Fight Club"'), name + ": Tenis is not next to Fútbol");
     /* «Moda de diseñador» left the homepage (#443 c.6568648466): Billeteras closes Aria Luxury. */
     const lux = part.slice(part.indexOf('aria-label="Aria Luxury"'), part.indexOf('<section aria-label="Mujer"'));

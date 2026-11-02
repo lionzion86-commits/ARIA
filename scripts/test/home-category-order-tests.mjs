@@ -8,8 +8,8 @@
        under Key Club, right above Aria Auto);
      MALL ZONE: Compra por categoría -> Todas las Tiendas (Lencería first
        ... Ropa Interior Hombre, Tallas Plus last) -> Aria Luxury (Joyas de
-       lujo, Bolsos, Billeteras inside; the standalone Billeteras right
-       after; Danny, #443 c.6568626294) -> Mujer -> Hombre ->
+       lujo, Bolsos, Billeteras inside; the standalone navy Billeteras
+       was removed 2026-11-02, Danny: one Billeteras, not two) -> Mujer -> Hombre ->
        Niños -> every store (the Walmart tile, Diseñadores Latinos, the
        store rails). Every category carousel sits under Perfumes.
 
@@ -70,7 +70,7 @@ for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
     assert.equal(block[0], "Lencería", "the block opens on " + block[0]);
     assert.deepEqual(block.slice(-2), ["Ropa Interior Hombre", "Tallas Plus"], "the block closes on " + block.slice(-2));
   });
-  check(`${name}: Compra por categoría, then Todas las Tiendas, then Aria Luxury (Billeteras right after), then Mujer; no Moda de diseñador`, () => {
+  check(`${name}: Compra por categoría, then Todas las Tiendas, then Aria Luxury (Billeteras inside), then Mujer; no Moda de diseñador`, () => {
     /* Danny, #443 c.6568626294 / c.6568648466: the whole Todas las Tiendas block moves
        above Aria Luxury; «Moda de diseñador» leaves the homepage. */
     const lux = tree.indexOf("data-luxury-wrap");
@@ -79,7 +79,7 @@ for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
     for (let i = 1; i < seq.length; i++) assert.ok(seq[i - 1] < seq[i], `out of order at ${i}`);
     const between = (a, b) => [...tree.slice(a, b).matchAll(/<section aria-label="([^"]+)"/g)].map((m) => m[1]);
     assert.deepEqual(between(at(tree, "Tallas Plus") + 1, lux), [], "something sits between Tallas Plus and Aria Luxury");
-    assert.deepEqual(between(lux, at(tree, "Mujer")), ["Aria Luxury", "Joyas de lujo", "Bolsos", "Billeteras", "Billeteras"], "the Aria Luxury block");
+    assert.deepEqual(between(lux, at(tree, "Mujer")), ["Aria Luxury", "Joyas de lujo", "Bolsos", "Billeteras"], "the Aria Luxury block");
     assert.ok(!tree.includes('aria-label="Moda de diseñador"') && !tree.includes("ModaRail") && !tree.includes("data-moda-section") && !tree.includes("data-moda-rail"), "Moda de diseñador is still on the homepage");
   });
 }
