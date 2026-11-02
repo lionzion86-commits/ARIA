@@ -315,10 +315,10 @@ export function buildIndex() {
   const ids = new Set();
   for (const p of products) {
     if (!p.image) continue;
-    /* Colourways sharing a title and no link: the first keeps the
-       title's id, the next ones add their photo. */
+    /* Colourways sharing a link (or, with none, a title): the first keeps
+       its id, the next ones add their photo. */
     let id = productId(p.retailer, p.url, p.title);
-    if (ids.has(id)) id = productId(p.retailer, p.url, p.title + "|" + p.image);
+    if (ids.has(id)) id = productId(p.retailer, (p.url || p.title) + "|" + p.image, p.title);
     ids.add(id);
     const cat = S.catalogItemCategory({ title: p.title, name: p.title, brand: p.brand, retailer: p.retailer,
       departments: p.department ? [p.department] : [] }) || "";
