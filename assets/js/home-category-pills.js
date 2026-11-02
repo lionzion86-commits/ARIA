@@ -33,6 +33,14 @@
    AUDIENCE PILLS (Billeteras, Danny c.6567232584): an index entry with
    `a` carries Mujer / Hombre / Unisex pills instead of stores; each one
    is a mixed rail that ends on «Ver todo en» its department.
+
+   AUDIENCE ROW ABOVE THE STORES (Zapatos, Danny #443 c.6578377916,
+   the Electrónica two-level pattern): an index entry with `au` gets a
+   Hombre / Mujer / Niños row on top of its store row. One tap re-renders
+   the rail for that audience (<carousel>-a-<aud>-todas.json) and the
+   store row below becomes that audience's stores (<carousel>-a-<aud>-
+   <store>.json); the active audience tapped again puts the carousel
+   back. Each entry: [key, label, n, stores, ofertas n].
    ============================================================ */
 (function () {
   "use strict";
@@ -100,8 +108,19 @@
   }
 
   /* How many sale items the current view holds (0: no Ofertas pill). */
+  /* The audience's own row, or null. */
+  function audOf(s) {
+    var au = s.entry && s.entry.au, hit = null;
+    if (s.aud && au) au.forEach(function (x) { if (x[0] === s.aud) hit = x; });
+    return hit;
+  }
+  /* The store row and sale count of the current view (an audience's own). */
+  function viewEntry(s) {
+    var a = audOf(s);
+    return a ? { s: a[3] || [], o: a[4] || 0 } : s.entry;
+  }
   function saleCount(s) {
-    var e = s.entry, min = s.omin || 8, n = 0;
+    var e = viewEntry(s), min = s.omin || 8, n = 0;
     if (!e) return 0;
     if (s.active) { (e.s || []).forEach(function (x) { if (x[0] === s.active) n = Number(x[2]) || 0; }); }
     else n = Number(e.o) || 0;
@@ -123,11 +142,28 @@
       at.parentNode.insertBefore(bar, at);
       bar._row = row;
       s.bar = bar;
+      if (entry.au && entry.au.length) {
+        var ab = document.createElement("div");
+        ab.className = bar.className;
+        ab.setAttribute("role", "tablist");
+        ab.setAttribute("aria-label", "Para quién: " + entry.t);
+        ab.setAttribute("data-cat-pills-aud", row.getAttribute("data-cat-pills"));
+        bar.parentNode.insertBefore(ab, bar);
+        ab._row = row;
+        s.audBar = ab;
+      }
+    }
+    if (s.audBar) {
+      var ah = "";
+      entry.au.forEach(function (x) {
+        ah += '<button type="button" role="tab" data-hcp-aud="' + esc(x[0]) + '" aria-selected="' + (s.aud === x[0]) + '">' + esc(x[1]) + "</button>";
+      });
+      s.audBar.innerHTML = ah;
     }
     var a = s.active, labels = (s.labels || {});
     var h = '<button type="button" role="tab" data-hcp="" aria-selected="' + (!a && !s.sale) + '">Todas</button>';
     if (saleCount(s)) h += '<button type="button" data-hcp-sale aria-pressed="' + (!!s.sale) + '" aria-selected="' + (!!s.sale) + '">Ofertas</button>';
-    entry.s.forEach(function (x) {
+    (viewEntry(s).s || []).forEach(function (x) {
       h += '<button type="button" role="tab" data-hcp="' + esc(x[0]) + '" aria-selected="' + (a === x[0]) + '">' + esc(labels[x[0]] || x[0]) + "</button>";
     });
     bar.innerHTML = h;
@@ -142,7 +178,7 @@
   function paintTodas(row) {
     var k = row.getAttribute("data-cat-pills");
     return file(k + "-todas.json").then(function (d) {
-      if (row._hcp.active || row._hcp.sale) return;
+      if (row._hcp.active || row._hcp.sale || row._hcp.aud) return;
       var html = cardsHTML(row, d);
       var sec = row.closest("section");
       if (!html) { if (sec) sec.hidden = true; return; }
@@ -155,8 +191,10 @@
      sale rail, or null for «Todas» (the carousel as the page paints it). */
   function viewFile(row) {
     var s = row._hcp, k = row.getAttribute("data-cat-pills");
+    if (audOf(s)) k += "-a-" + s.aud;
     if (s.active) return k + "-" + s.active + (s.sale ? "-ofertas" : "") + ".json";
-    return s.sale ? k + "-ofertas.json" : null;
+    if (s.sale) return k + "-ofertas.json";
+    return audOf(s) ? k + "-todas.json" : null;
   }
   function render(row) {
     var s = row._hcp, name = viewFile(row);
@@ -179,10 +217,20 @@
   function swap(row, store) {
     var s = row._hcp;
     /* «Todas» puts the carousel back as it was (no store, no filter). */
-    if (!store) { if (!s.active && !s.sale) return; s.active = ""; s.sale = false; render(row); return; }
+    if (!store) { if (!s.active && !s.sale) return; s.active = ""; s.sale = false; render(row); return; }  /* (the audience stays) */
     if (store === s.active) store = "";
     s.active = store;
     /* Ofertas stays on while the new view has enough sale items. */
+    if (s.sale && !saleCount(s)) s.sale = false;
+    render(row);
+  }
+  /* An audience pill: the rail and the store row become that audience's;
+     the active one tapped again puts the carousel back. A store pill the
+     new audience has no row for goes back to «Todas». */
+  function swapAud(row, aud) {
+    var s = row._hcp;
+    s.aud = aud === s.aud ? "" : aud;
+    if (s.active && !(viewEntry(s).s || []).some(function (x) { return x[0] === s.active; })) s.active = "";
     if (s.sale && !saleCount(s)) s.sale = false;
     render(row);
   }
@@ -193,11 +241,12 @@
   }
 
   document.addEventListener("click", function (e) {
-    var b = e.target && e.target.closest && e.target.closest(".hcp button[data-hcp], .hcp button[data-hcp-sale]");
+    var b = e.target && e.target.closest && e.target.closest(".hcp button[data-hcp], .hcp button[data-hcp-sale], .hcp button[data-hcp-aud]");
     if (!b) return;
     var row = b.parentNode._row;
     if (!row || !row._hcp) return;
-    if (b.hasAttribute("data-hcp-sale")) toggleSale(row);
+    if (b.hasAttribute("data-hcp-aud")) swapAud(row, b.getAttribute("data-hcp-aud"));
+    else if (b.hasAttribute("data-hcp-sale")) toggleSale(row);
     else swap(row, b.getAttribute("data-hcp"));
   });
 
@@ -213,7 +262,7 @@
       s.labels = ix.labels || {};
       s.omin = Number(ix.omin) || 8;
       paintBar(row);
-      if (s.own && !s.active && !s.sale) paintTodas(row);
+      if (s.own && !s.active && !s.sale && !s.aud) paintTodas(row);
     });
   }
   var io = "IntersectionObserver" in window ? new IntersectionObserver(function (es) {
@@ -221,7 +270,7 @@
   }, { rootMargin: "400px 0px" }) : null;
   function watch(row) {
     if (row._hcp) return;
-    row._hcp = { active: "", sale: false, saved: null, own: row.hasAttribute("data-cat-pills-own"), self: false };
+    row._hcp = { active: "", sale: false, aud: "", saved: null, own: row.hasAttribute("data-cat-pills-own"), self: false };
     if (row._hcp.own && !row.children.length && typeof railSkeletonHTML === "function") {
       try { row._hcp.self = true; row.innerHTML = railSkeletonHTML(4, "flex-shrink-0 w-[172px]"); } catch (e) {}
     }
@@ -230,7 +279,7 @@
     new MutationObserver(function () {
       var s = row._hcp;
       if (s.self) { s.self = false; return; }
-      if ((s.active || s.sale) && !s.own) { s.active = ""; s.sale = false; s.saved = null; paintBar(row); }
+      if ((s.active || s.sale || s.aud) && !s.own) { s.active = ""; s.sale = false; s.aud = ""; s.saved = null; paintBar(row); }
     }).observe(row, { childList: true });
     if (io) io.observe(row); else load(row);
   }

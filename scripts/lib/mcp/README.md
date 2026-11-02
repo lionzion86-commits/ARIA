@@ -1,4 +1,12 @@
-# Aria Muse Connector (MCP) — Phase 1
+# Aria Muse Connector (MCP) — Phase 1, first build (superseded for hosting)
+
+> **The live connector is now `netlify/functions/mcp.js`** (`_mcp-protocol.js`,
+> `_muse-tools.js`; see `docs/muse-mcp.md`). It answers from the site's own search
+> function and product-page shards, cold-starts in seconds instead of ~11s, and
+> `mcp-server.js` runs that same handler. The modules in this folder stay because the
+> price-index builder (`scripts/build-price-index.mjs`) and several test suites read
+> `catalog.mjs` / `page-slices.mjs`; `app.mjs`, `server.mjs` and `tools.mjs` are kept
+> for `scripts/test/mcp-tests.mjs` and are no longer served.
 
 A hosted [Model Context Protocol](https://modelcontextprotocol.io) server that lets
 Meta's Muse agent search Aria's catalog on a shopper's behalf.
