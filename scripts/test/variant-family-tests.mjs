@@ -549,15 +549,19 @@ if (!chromium) {
       await pg.context().close();
     });
     for (const [title, name] of [["Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors", "pudaier-mirror-glare-gloss"], ["Salmon Darkcircle Concealer Cream - 3 Colors", "skinfood-salmon-concealer"], ["Waterproof Easy Eyeliner - 2 Colors", "pinkflash-waterproof-eyeliner"], ["Sharp So Simple Waterproof Pencil Liner - 13 Colors", "clio-pencil-liner"]]) {
-      await check("ACCEPT (Model C): YesStyle \"" + title + "\": no shade data, so no picker and no colour claim in the title", async () => {
+      await check("ACCEPT (Model C): YesStyle \"" + title + "\": no shade data, so no picker, no colour claim in the title, and not sold (Tonos en camino)", async () => {
         const pg = await openPlain(title, "yesstyle");
         const a = await state(pg), s = await shadeState(pg);
         assert.equal(a.opts, 0);
         assert.equal(s.h1, title.replace(/ - \d+ Colors$/, ""));
         assert.doesNotMatch(s.h1 + " " + s.doc, /\d+ Colors/);
         assert.equal(await pg.evaluate(() => !!document.getElementById("variant-box")), false, "a dead selector");
-        const cart = await buy(pg);
-        assert.equal(cart.length, 1, "the product still sells");
+        /* No shade list, no sale (the shade gate, /shade-gate.js; Danny after
+           #583: nobody buys makeup they can't pick a colour for). */
+        const gate = await pg.evaluate(() => ({ note: (document.getElementById("shade-gate-note") || {}).textContent || "",
+          off: !!document.getElementById("add-cart-btn") && document.getElementById("add-cart-btn").disabled }));
+        assert.match(gate.note, /^Tonos en camino/);
+        assert.equal(gate.off, true, "the cart button is on with no shade");
         await shadeShot(pg, name);
         assert.deepEqual(pg.errors, []);
         await pg.context().close();

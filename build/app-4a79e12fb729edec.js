@@ -20666,6 +20666,15 @@ async function addToCartFromProduct(){
     await p.sizeLookup;
     if (pendingProduct !== p) return;
   }
+  /* A PRODUCT SOLD IN SHADES IS BOUGHT IN ONE (/shade-gate.js; Danny
+     after #583). This view has no shade list: the product page has the
+     «Tono» picker, or says «Tonos en camino» when the store's list has
+     not reached us. It decides there, never here. */
+  if (window.AriaShadeGate && window.AriaShadeGate.kindOf({ name: p.name, retailer: p.retailer, beauty: true })){
+    showToast('Elige el tono en la página del producto.');
+    location.href = 'producto.html?producto=' + encodeURIComponent(p.name || '') + '&tienda=' + encodeURIComponent(String(p.retailer || '').toLowerCase());
+    return;
+  }
   /* Sizes not confirmed by the store: shown, not sold. */
   if ((!Array.isArray(p.sizes) || !p.sizes.length) && (p.sizesPending || await isSizesPendingItem(p.retailer, p.name))){
     showToast('Estamos confirmando las tallas de este producto con la tienda. Muy pronto podrás comprarlo aquí.');
@@ -27459,6 +27468,12 @@ function addToCart(item){
   /* OFF SALE (#443): a store Aria no longer sells from never reaches the cart. */
   if (item.lineType !== 'bundle-discount' && isOffSaleRetailer(item.retailer)){
     showToast('Este producto ya no está disponible en Aria.');
+    return false;
+  }
+  /* NO MAKEUP WITHOUT ITS SHADE (/shade-gate.js): checkout and the order
+     endpoint refuse the same line. */
+  if (window.AriaShadeGate && window.AriaShadeGate.lineNeedsShade(item)){
+    showToast(window.AriaShadeGate.SHADE_PENDING_NOTE);
     return false;
   }
   /* AND A SIZED PRODUCT WITH NO SIZE (2026-10-18, #411; the record

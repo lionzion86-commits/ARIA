@@ -67,7 +67,8 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { liftDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { variantIdOf, groupColourways, beautyShade, shadeListing, HAIR_COLOUR } from "./lib/variants.mjs";
+import { variantIdOf, groupColourways, beautyShade, shadeListing, listingShade, HAIR_COLOUR } from "./lib/variants.mjs";
+import { kindOf as shadeKindOf } from "./lib/shade-gate.js";
 import { loadFamilies, applyFamilies } from "./lib/variant-families.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -229,6 +230,17 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     else if (HAIR_COLOUR.test(it.name || "") && shadeListing(it)) {
       const sh = beautyShade(it.name);
       if (sh) { it.c = sh.shade; it.ax = "Tono"; }
+    }
+    /* ANY SHADE PRODUCT SOLD HERE IN ONE SHADE (Danny after #583: "nobody
+       buys makeup they can't pick a color for"): a Walmart lipstick, liner
+       or foundation no family holds still names its own shade in its
+       title (scripts/lib/variants.mjs listingShade). That is its tono:
+       the page shows it and the cart line carries it. No shade in the
+       title: the record stays as it is and the shade gate (/shade-gate.js)
+       keeps it out of the cart. */
+    if (!it.c && shadeListing(it) && shadeKindOf(it)) {
+      const shade = listingShade(it.name, it.retailer);
+      if (shade) { it.c = shade; it.ax = "Tono"; }
     }
     delete it.__v;
     const rec = recordOf(it);

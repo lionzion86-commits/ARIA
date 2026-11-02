@@ -152,7 +152,11 @@ export function walmartShadeLabel(token, url, pageName) {
         if (same(acc, core)) {
           const run = words.slice(i, j + 1).join(" ");
           const text = /[a-z]/.test(run) ? run : titleCase(run);
-          return (num && !new RegExp("^" + num + "\\b", "i").test(text) ? num + " " : "") + text;
+          /* THE NUMBER THE STORE PRINTS BEFORE THE NAME (Danny after #583:
+             "a dropdown with the numbers"): "...-Lip-Liner-857-Nude-Beige"
+             is "857 Nude Beige", not "Nude Beige". */
+          const lead = num || (i > 0 && /^\d{2,4}$/.test(words[i - 1]) && !/^(?:spf|up|to|pack|of|x|hr|hrs|\d+)$/i.test(words[i - 2] || "") ? words[i - 1] : "");
+          return (lead && !new RegExp("^" + lead + "\\b", "i").test(text) ? lead + " " : "") + text;
         }
       }
     }

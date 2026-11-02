@@ -819,6 +819,10 @@
      (orders-create.js refuses it too). */
   import { isOffSaleItem, OFF_SALE_LINE_NOTE } from './scripts/lib/off-sale.js';
   import { conditionOfTitle, SOLD_OUT_NOTE } from './scripts/lib/condition.js';
+  /* THE SHADE GATE (/shade-gate.js): a product sold in shades with no shade
+     on its line is shown with Quitar and Pagar stays closed
+     (orders-create.js refuses it too). A shade is never guessed. */
+  import { lineNeedsShade, SHADE_PENDING_NOTE } from './scripts/lib/shade-gate.js';
   /* The title a shopper reads (/display-name.js, #443 c.6568696054): a
      "- N Colors" claim no picker backs is not shown. The line's stored
      title -- its key, its price lookup, the order -- is untouched. */
@@ -1172,6 +1176,9 @@ function cardImgAttrs(url, sizes){
   }
   function offSaleCartLines(){
     return cart.filter((it) => it && it.lineType !== 'bundle-discount' && isOffSaleItem(it));
+  }
+  function shadeMissingCartLines(){
+    return cart.filter((it) => it && lineNeedsShade(it));
   }
   function sizeListOfLine(it){
     const own = sizeGateList(it && it.sizeOptions);
@@ -2119,6 +2126,15 @@ function cardImgAttrs(url, sizes){
       return;
     }
 
+    /* A shade product with no shade is not payable (/shade-gate.js). */
+    if (shadeMissingCartLines().length){
+      sumWalletRow.hidden = true;
+      sumTotal.innerHTML = penLead(fxRates ? orderTotalPen : NaN, shownUsd);
+      payBtn.disabled = true;
+      payBtn.textContent = 'Quita los productos sin tono';
+      return;
+    }
+
     /* A sized product with no size is not payable (#411 P0): the line
        itself says what is missing and offers the store's sizes. */
     if (sizeGate && (sizeGate.pending > 0 || sizeGate.missing.length)){
@@ -2397,6 +2413,7 @@ function cardImgAttrs(url, sizes){
           <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.colorway ? `<span data-colorway="${i}">${it.variantAxis === 'Tono' ? 'Tono' : 'Color'}: ${escapeHtmlLocal(it.colorway)}</span> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
           ${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
           ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
+          ${lineNeedsShade(it) ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-shade-missing="${i}" role="alert">${escapeHtmlLocal(SHADE_PENDING_NOTE)} Quítalo de tu carrito para poder pagar.</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
             <label for="lineSize${i}" class="block text-[12px] font-bold leading-snug" style="color:#B03A2E">Falta elegir la talla de este producto. Elígela para poder pagar.</label>
             <select id="lineSize${i}" data-line-size="${i}" class="mt-1.5 w-full h-[40px] bg-white border rounded-xl px-3 text-[13.5px] outline-none focus-ring" style="border-color:#B03A2E">
@@ -2621,6 +2638,12 @@ function cardImgAttrs(url, sizes){
     if (offSaleCartLines().length){
       showToast(OFF_SALE_LINE_NOTE);
       const box = document.querySelector('[data-off-sale]');
+      if (box) box.scrollIntoView({ block: 'center' });
+      return;
+    }
+    if (shadeMissingCartLines().length){
+      showToast(SHADE_PENDING_NOTE);
+      const box = document.querySelector('[data-shade-missing]');
       if (box) box.scrollIntoView({ block: 'center' });
       return;
     }
