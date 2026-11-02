@@ -1,4 +1,6 @@
-/* VENTAS ANTICIPADAS (Key Club, #443, Danny 2026-11-02).
+/* PRÓXIMAS OFERTAS DE TEMPORADA (Key Club early access, #443, Danny
+   2026-11-02, renamed c.6570984289). An offer is flagged only once a
+   store confirms it; members see it first.
    assets/keyclub/early-access.json flags sale items members-first until a
    public unlock time. Public pages load this helper: before unlockAt a
    flagged item is not shown (cards with its data-id are removed, and

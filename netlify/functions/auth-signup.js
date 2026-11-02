@@ -12,11 +12,17 @@
 //
 // With no mail provider configured (tests, a sandbox), emailSent is false
 // and the door says the email did not go out -- never that it did.
+//
+// THE CELL IS REQUIRED and the account is created with verifyRequired
+// (#443, Danny c.6570940933 .. c.6570984289): after the email link she
+// lands on the code step (keyclub.html?verificar=1, _keyclub-verify.js),
+// and only then is her membership active.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { hashPassword, normalizeEmail, corsHeaders } from "./_auth-helpers.js";
 import { sendMail, keyClubConfirmationEmail } from "./_order-email.js";
 import { KEYCLUB_STORE, issueConfirmation, normalizeBirthday, resolveReferrer, isConfirmed } from "./_keyclub.js";
 import { DNI_DOCS_STORE, isDocId, normalizeDocNumber } from "./_dni-docs.js";
+import { normalizePhone } from "./_keyclub-verify.js";
 
 /** Where the confirmation link points: this deploy's own origin. */
 export function siteOrigin(env = process.env) {
@@ -50,6 +56,8 @@ export async function signup(stores, body, { env = process.env, mailer = sendMai
 
   if (!name) return [400, { error: "Cuéntanos tu nombre" }];
   if (!email) return [400, { error: "Correo electrónico inválido" }];
+  if (!phone) return [400, { error: "Escribe tu número de WhatsApp" }];
+  if (!normalizePhone(phone)) return [400, { error: "Revisa tu número de WhatsApp (por ejemplo +51 987 654 321)" }];
   if (password.length < 8) return [400, { error: "La contraseña debe tener al menos 8 caracteres" }];
   if (birthdayRaw && !birthday) return [400, { error: "Revisa la fecha de tu cumpleaños" }];
 
@@ -85,6 +93,10 @@ export async function signup(stores, body, { env = process.env, mailer = sendMai
     founderStatus: "pending", // the founders review (founders-pick.js) is unchanged
     confirmRequired: true,
     emailConfirmedAt: null,
+    verifyRequired: true,
+    verifiedAt: null,
+    verifiedVia: null,
+    phoneVerified: false,
     referredBy,
     pendingDni,
     theme: null,

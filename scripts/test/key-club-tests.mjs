@@ -79,6 +79,7 @@ const CF = await import(ROOT + "netlify/functions/auth-confirm.js");
 const PR = await import(ROOT + "netlify/functions/keyclub-prefs.js");
 const E = await import(ROOT + "netlify/functions/_order-email.js");
 const D = await import(ROOT + "netlify/functions/_dni-docs.js");
+const V = await import(ROOT + "netlify/functions/_keyclub-verify.js");
 
 /* An in-memory store with the create-only write the real one has. */
 function memStore(init = {}) {
@@ -102,6 +103,15 @@ function stubMailer() {
   const fn = async (msg, opts) => { sent.push({ msg, opts }); return { sent: true, id: "stub-" + sent.length }; };
   fn.sent = sent;
   return fn;
+}
+/* The code step by email (the channel live today): send, read, check. */
+async function verifyByEmail(S, email) {
+  let code = null;
+  const [sc, so] = await V.sendCode(S, email, { channel: "email" }, { env: {}, senders: { email: async (u, c) => { code = c; return { sent: true }; } } });
+  assert.equal(sc, 200, JSON.stringify(so));
+  const [cc, co] = await V.checkCode(S, email, { code });
+  assert.equal(cc, 200, JSON.stringify(co));
+  return co;
 }
 const tokenFrom = (msg) => decodeURIComponent(/confirmar=([^\s"&<]+)/.exec(msg.text)[1]);
 /* A wallet poster, stubbed like _wallet.postTransaction. */
@@ -230,15 +240,20 @@ await check("signup stores an UNCONFIRMED account, requests the confirmation ema
   assert.equal(bad, 401, "a wrong password must not learn the account is unconfirmed");
 });
 
-await check("the link confirms: member active (number, invite code), session opened, lands in the dashboard; later logins land there too", async () => {
+await check("the link confirms (number, invite code, session) and lands on the CODE STEP, not the dashboard; after the code she is active and later logins land in the dashboard", async () => {
   const S = freshStores(); const mail = stubMailer();
-  await SU.signup(S, { name: "Ana Prueba", email: ANA, password: "clave-de-prueba" }, { mailer: mail });
+  await SU.signup(S, { name: "Ana Prueba", email: ANA, phone: "+51 900 000 000", password: "clave-de-prueba" }, { mailer: mail });
   const [code, out, sid] = await CF.confirm(S, tokenFrom(mail.sent[0].msg));
   assert.equal(code, 200);
-  assert.equal(out.redirect, "/cuenta.html?bienvenida=1");
+  assert.equal(out.redirect, "/keyclub.html?verificar=1");
+  assert.equal(out.needsVerification, true);
   assert.ok(sid && (await S.sessions.get(sid, { type: "json" })).email === ANA);
   const u = await S.users.get(ANA, { type: "json" });
   assert.ok(u.emailConfirmedAt && u.memberNumber === 1 && /^[A-Z0-9]{7}$/.test(u.referralCode));
+  assert.equal(u.verifyRequired, true); assert.equal(u.phoneVerified, false);
+  const pre = await A.accountOverview(S, ANA);
+  assert.deepEqual(pre, { signedIn: true, needsVerification: true, redirect: "/keyclub.html?verificar=1" }, "the dashboard opened before the code step");
+  await verifyByEmail(S, ANA);
   const ov = await A.accountOverview(S, ANA);
   assert.equal(ov.profile.club.active, true);
   assert.equal(ov.profile.club.memberNumberLabel, "0001");
@@ -251,7 +266,7 @@ await check("with no mail provider configured, the email is reported NOT sent (a
   const r = await E.sendMail({ to: ANA, subject: "s", text: "t", html: "h" }, { env: {} });
   assert.equal(r.sent, false); assert.match(r.error, /no hay proveedor/);
   const S = freshStores();
-  const [code, out] = await SU.signup(S, { name: "Ana", email: ANA, password: "clave-de-prueba" }, { env: {} });
+  const [code, out] = await SU.signup(S, { name: "Ana", email: ANA, phone: "+51 900 000 000", password: "clave-de-prueba" }, { env: {} });
   assert.equal(code, 200); assert.equal(out.emailSent, false);
   assert.match((await S.users.get(ANA, { type: "json" })).confirmEmailError, /no hay proveedor/);
 });
@@ -272,7 +287,7 @@ await check("«DNI ahora»: the door's two photo tokens become her pack when she
   const b64 = Buffer.alloc(10000, 7).toString("base64");
   const front = await D.saveUpload(S.docs, { side: "front", contentType: "image/jpeg", bytes: 10000, base64: b64 });
   const back = await D.saveUpload(S.docs, { side: "back", contentType: "image/jpeg", bytes: 10000, base64: b64 });
-  const [code] = await SU.signup(S, { name: "Ana Prueba", email: ANA, password: "clave-de-prueba", dni: { docNumber: "45678912", front, back } }, { mailer: mail });
+  const [code] = await SU.signup(S, { name: "Ana Prueba", email: ANA, phone: "+51 900 000 000", password: "clave-de-prueba", dni: { docNumber: "45678912", front, back } }, { mailer: mail });
   assert.equal(code, 200);
   await CF.confirm(S, tokenFrom(mail.sent[0].msg));
   const pack = await D.packFor(S.packs, ANA, "45678912");
@@ -284,7 +299,7 @@ console.log("\n  The token");
 
 await check("random, stored only as a hash, single use", async () => {
   const S = freshStores(); const mail = stubMailer();
-  await SU.signup(S, { name: "Ana", email: ANA, password: "clave-de-prueba" }, { mailer: mail });
+  await SU.signup(S, { name: "Ana", email: ANA, phone: "+51 900 000 000", password: "clave-de-prueba" }, { mailer: mail });
   const token = tokenFrom(mail.sent[0].msg);
   assert.ok(token.length >= 40, "token too short");
   const everything = JSON.stringify([...S.keyclub.m.entries(), ...S.users.m.entries()]);
@@ -298,7 +313,7 @@ await check("random, stored only as a hash, single use", async () => {
 await check("expires after 48 hours; a resend supersedes the older link; resend never reveals whether an account exists", async () => {
   const S = freshStores(); const mail = stubMailer();
   const t0 = Date.parse("2026-11-01T10:00:00Z");
-  await SU.signup(S, { name: "Ana", email: ANA, password: "clave-de-prueba" }, { mailer: mail, now: t0 });
+  await SU.signup(S, { name: "Ana", email: ANA, phone: "+51 900 000 000", password: "clave-de-prueba" }, { mailer: mail, now: t0 });
   const old = tokenFrom(mail.sent[0].msg);
   const r1 = await K.consumeConfirmation(S, old, t0 + 49 * 3600 * 1000);
   assert.equal(r1.code, "expired");
@@ -316,7 +331,7 @@ await check("expires after 48 hours; a resend supersedes the older link; resend 
   assert.equal(nc, 200); assert.equal(no.emailSent, undefined); assert.equal(mail.sent.length, 3);
   /* throttled: a second resend within a minute sends nothing */
   const S2 = freshStores(); const m2 = stubMailer();
-  await SU.signup(S2, { name: "Bea", email: "bea@correo.test", password: "clave-de-prueba" }, { mailer: m2 });
+  await SU.signup(S2, { name: "Bea", email: "bea@correo.test", phone: "+51 900 000 000", password: "clave-de-prueba" }, { mailer: m2 });
   await CF.resend(S2, "bea@correo.test", { mailer: m2 });
   assert.equal(m2.sent.length, 1, "resend inside a minute sent again");
 });
@@ -362,7 +377,245 @@ await check("Fundador: members 1..1000 are Fundadores for ever, 1001 is not; num
   assert.deepEqual([n1000, K.isFounder(n1000), n1001, K.isFounder(n1001)], [1000, true, 1001, false]);
 });
 
-console.log("\n  Próximas ventas");
+console.log("\n  The code step: email confirmed AND a 6-digit code (#443, Danny c.6570940933 .. c.6570984289)");
+
+/* An account through signup + the email link, still owing the code. */
+async function confirmedUnverified(email = ANA, phone = "+51 900 000 000") {
+  const S = freshStores(); const mail = stubMailer();
+  const [c] = await SU.signup(S, { name: "Ana Prueba", email, phone, password: "clave-de-prueba" }, { mailer: mail });
+  assert.equal(c, 200);
+  const [cc] = await CF.confirm(S, tokenFrom(mail.sent[0].msg));
+  assert.equal(cc, 200);
+  return S;
+}
+const capture = () => { const got = []; const fn = async (u, c) => { got.push(c); return { sent: true }; }; fn.got = got; return fn; };
+
+await check("signup: the WhatsApp number is required and must be a real cell; the door says why in one line", async () => {
+  const S = freshStores(); const mail = stubMailer();
+  const [c1, o1] = await SU.signup(S, { name: "Ana", email: ANA, password: "clave-de-prueba" }, { mailer: mail });
+  assert.equal(c1, 400); assert.match(o1.error, /WhatsApp/);
+  const [c2] = await SU.signup(S, { name: "Ana", email: ANA, phone: "12", password: "clave-de-prueba" }, { mailer: mail });
+  assert.equal(c2, 400);
+  assert.equal(mail.sent.length, 0, "an email went out for an invalid signup");
+  assert.equal(V.normalizePhone("987 654 321"), "+51987654321");
+  assert.equal(V.normalizePhone("+51 987-654-321"), "+51987654321");
+  assert.equal(V.normalizePhone("abc"), null);
+  assert.match(door, /<input type="tel" id="fPhone"[^>]* required>/);
+  assert.equal(/<p class="hint" id="phoneWhy">([^<]*)<\/p>/.exec(door)[1], "Tus alertas de ofertas te llegan por WhatsApp.");
+});
+
+await check("the code: 6 digits, stored only as a salted hash with a 10-minute expiry, never in plain text", async () => {
+  const S = await confirmedUnverified(); const send = capture();
+  const t0 = Date.parse("2026-11-02T15:00:00Z");
+  const [c, o] = await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email: send }, now: t0 });
+  assert.equal(c, 200); assert.equal(o.sent, true); assert.equal(o.channel, "email"); assert.equal(o.to, "an•••@correo.test");
+  const code = send.got[0];
+  assert.match(code, /^\d{6}$/);
+  const rec = await S.keyclub.get("verify:" + ANA, { type: "json" });
+  assert.ok(rec.salt && /^[0-9a-f]{64}$/.test(rec.codeHash));
+  assert.equal(rec.codeHash, V.hashCode(code, rec.salt));
+  assert.equal(Date.parse(rec.expiresAt) - t0, 10 * 60 * 1000);
+  for (const [k, v] of [...S.keyclub.m, ...S.users.m]) assert.ok(!v.includes(`"${code}"`) && !v.includes(`:${code}"`), "the plain code is stored at " + k);
+  assert.ok(!JSON.stringify(o).includes(code), "the code went back to the browser");
+  const codes = new Set(Array.from({ length: 200 }, () => V.newCode()));
+  assert.ok(codes.size > 150 && [...codes].every((x) => /^\d{6}$/.test(x)), "codes are not random 6-digit strings");
+});
+
+await check("the code expires after 10 minutes: refused and gone", async () => {
+  const S = await confirmedUnverified(); const send = capture();
+  const t0 = Date.parse("2026-11-02T15:00:00Z");
+  await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email: send }, now: t0 });
+  const [c, o] = await V.checkCode(S, ANA, { code: send.got[0] }, { now: t0 + 10 * 60 * 1000 + 1 });
+  assert.equal(c, 410); assert.equal(o.code, "expired");
+  assert.equal(await S.keyclub.get("verify:" + ANA, { type: "json" }), null);
+  assert.equal((await S.users.get(ANA, { type: "json" })).verifiedAt, null);
+});
+
+await check("5 wrong tries and the code is gone -- even the right one no longer works", async () => {
+  const S = await confirmedUnverified(); const send = capture();
+  await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email: send } });
+  const right = send.got[0], wrong = right === "000000" ? "111111" : "000000";
+  for (let i = 1; i <= 4; i++) {
+    const [c, o] = await V.checkCode(S, ANA, { code: wrong });
+    assert.equal(c, 400); assert.equal(o.code, "wrong"); assert.equal(o.attemptsLeft, 5 - i);
+  }
+  const [c5, o5] = await V.checkCode(S, ANA, { code: wrong });
+  assert.equal(c5, 429); assert.equal(o5.code, "locked");
+  const [c6, o6] = await V.checkCode(S, ANA, { code: right });
+  assert.equal(c6, 400); assert.equal(o6.code, "no_code");
+  assert.ok(!(await S.users.get(ANA, { type: "json" })).verifiedAt);
+});
+
+await check("single use: the right code works once; a second use finds nothing", async () => {
+  const S = await confirmedUnverified(); const send = capture();
+  await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email: send } });
+  const [c1, o1] = await V.checkCode(S, ANA, { code: send.got[0] });
+  assert.equal(c1, 200); assert.equal(o1.redirect, "/cuenta.html?bienvenida=1");
+  const [c2, o2] = await V.checkCode(S, ANA, { code: send.got[0] });
+  assert.equal(c2, 400); assert.equal(o2.code, "no_code");
+});
+
+await check("resends: one a minute, whatever the channel; a new code replaces the old one", async () => {
+  const S = await confirmedUnverified(); const send = capture();
+  const t0 = Date.parse("2026-11-02T15:00:00Z");
+  await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email: send }, now: t0 });
+  const [c2, o2] = await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email: send }, now: t0 + 30000 });
+  assert.equal(c2, 429); assert.equal(o2.code, "too_soon"); assert.equal(o2.retryIn, 30); assert.equal(o2.sent, false);
+  assert.equal(send.got.length, 1, "a second code went out inside the minute");
+  const [c3] = await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email: send }, now: t0 + 61000 });
+  assert.equal(c3, 200); assert.equal(send.got.length, 2);
+  if (send.got[0] !== send.got[1]) {
+    const [cOld] = await V.checkCode(S, ANA, { code: send.got[0] }, { now: t0 + 62000 });
+    assert.equal(cOld, 400, "the replaced code still works");
+  }
+  const [cNew] = await V.checkCode(S, ANA, { code: send.got[1] }, { now: t0 + 63000 });
+  assert.equal(cNew, 200);
+});
+
+await check("WhatsApp and SMS without their env: an honest Spanish message, the email offered, no code created, nothing sent, never «sent»", async () => {
+  const S = await confirmedUnverified();
+  let fetched = 0; const fetchImpl = async () => { fetched++; return { ok: true }; };
+  const email = capture();
+  for (const [ch, name] of [["whatsapp", "WhatsApp"], ["sms", "SMS"]]) {
+    const [c, o] = await V.sendCode(S, ANA, { channel: ch }, { env: {}, senders: { email, whatsapp: (to, x) => V.sendWhatsAppCode(to, x, { env: {}, fetchImpl }), sms: (to, x) => V.sendSmsCode(to, x, { env: {}, fetchImpl }) } });
+    assert.equal(c, 200); assert.equal(o.sent, false); assert.equal(o.code, "channel_unavailable"); assert.equal(o.offer, "email");
+    assert.equal(o.message, `Los códigos por ${name} todavía no están activos. Puedes recibir tu código por correo.`);
+    assert.equal(await S.keyclub.get("verify:" + ANA, { type: "json" }), null, "a code was stored for " + ch);
+  }
+  assert.equal(fetched, 0); assert.equal(email.got.length, 0, "the email went out without her choosing it");
+  /* Half-configured is not configured. */
+  assert.equal(V.channelLive("whatsapp", { WHATSAPP_TOKEN: "x" }), false);
+  assert.equal(V.channelLive("sms", { TWILIO_ACCOUNT_SID: "x", TWILIO_AUTH_TOKEN: "y" }), false);
+  /* She takes the email: it goes. */
+  const [ce, oe] = await V.sendCode(S, ANA, { channel: "email" }, { env: {}, senders: { email } });
+  assert.equal(ce, 200); assert.equal(oe.sent, true); assert.equal(email.got.length, 1);
+  /* No mail provider at all: «not sent», and no code kept. */
+  const S2 = await confirmedUnverified();
+  const [cn, on] = await V.sendCode(S2, ANA, { channel: "email" }, { env: {} });
+  assert.equal(cn, 502); assert.equal(on.sent, false); assert.equal(on.code, "send_failed");
+  assert.equal(await S2.keyclub.get("verify:" + ANA, { type: "json" }), null);
+});
+
+await check("a live WhatsApp or SMS that fails says so, drops the code, and offers the email", async () => {
+  const S = await confirmedUnverified();
+  const env = { WHATSAPP_TOKEN: "test-token", WHATSAPP_PHONE_ID: "123" };
+  const [c, o] = await V.sendCode(S, ANA, { channel: "whatsapp" }, { env, senders: { whatsapp: (to, x) => V.sendWhatsAppCode(to, x, { env, fetchImpl: async () => ({ ok: false, status: 500 }) }) } });
+  assert.equal(c, 502); assert.equal(o.sent, false); assert.equal(o.offer, "email"); assert.match(o.message, /no salió/);
+  assert.equal(await S.keyclub.get("verify:" + ANA, { type: "json" }), null);
+});
+
+await check("phoneVerified ONLY through the phone: WhatsApp (Cloud API) and SMS (Twilio) set it; email leaves it false", async () => {
+  /* WhatsApp, live through env, the request checked. */
+  const S1 = await confirmedUnverified();
+  const envW = { WHATSAPP_TOKEN: "test-token", WHATSAPP_PHONE_ID: "123" };
+  const calls = [];
+  const fetchW = async (url, init) => { calls.push({ url, init }); return { ok: true }; };
+  const [c1, o1] = await V.sendCode(S1, ANA, { channel: "whatsapp" }, { env: envW, senders: { whatsapp: (to, x) => V.sendWhatsAppCode(to, x, { env: envW, fetchImpl: fetchW }) } });
+  assert.equal(c1, 200); assert.equal(o1.sent, true); assert.equal(o1.to, "+51 ••• ••• 000");
+  assert.equal(calls[0].url, "https://graph.facebook.com/v21.0/123/messages");
+  assert.equal(calls[0].init.headers.Authorization, "Bearer test-token");
+  const wBody = JSON.parse(calls[0].init.body);
+  assert.equal(wBody.to, "51900000000");
+  const code1 = /(\d{6})/.exec(wBody.text.body)[1];
+  const [k1, r1] = await V.checkCode(S1, ANA, { code: code1 });
+  assert.equal(k1, 200); assert.equal(r1.phoneVerified, true); assert.equal(r1.verifiedVia, "whatsapp");
+  const u1 = await S1.users.get(ANA, { type: "json" });
+  assert.equal(u1.phoneVerified, true); assert.equal(u1.verifiedVia, "whatsapp"); assert.ok(u1.verifiedAt); assert.equal(u1.phoneVerifiedNumber, "+51900000000");
+  /* SMS, live through env. */
+  const S2 = await confirmedUnverified();
+  const envS = { TWILIO_ACCOUNT_SID: "ACtest", TWILIO_AUTH_TOKEN: "tok", TWILIO_FROM: "+15550000000" };
+  const sms = [];
+  const fetchS = async (url, init) => { sms.push({ url, init }); return { ok: true }; };
+  await V.sendCode(S2, ANA, { channel: "sms" }, { env: envS, senders: { sms: (to, x) => V.sendSmsCode(to, x, { env: envS, fetchImpl: fetchS }) } });
+  assert.equal(sms[0].url, "https://api.twilio.com/2010-04-01/Accounts/ACtest/Messages.json");
+  const form = new URLSearchParams(sms[0].init.body);
+  assert.equal(form.get("To"), "+51900000000"); assert.equal(form.get("From"), "+15550000000");
+  const [k2, r2] = await V.checkCode(S2, ANA, { code: /(\d{6})/.exec(form.get("Body"))[1] });
+  assert.equal(k2, 200); assert.equal(r2.phoneVerified, true); assert.equal(r2.verifiedVia, "sms");
+  /* Email: active, phone NOT verified. */
+  const S3 = await confirmedUnverified();
+  const r3 = await verifyByEmail(S3, ANA);
+  assert.equal(r3.phoneVerified, false); assert.equal(r3.verifiedVia, "email");
+  const u3 = await S3.users.get(ANA, { type: "json" });
+  assert.equal(u3.phoneVerified, false); assert.equal(u3.verifiedVia, "email"); assert.ok(u3.verifiedAt);
+  assert.equal(K.isMember(u3), true, "verified by email but not an active member");
+  const ov = await A.accountOverview(S3, ANA);
+  assert.equal(ov.profile.club.active, true); assert.equal(ov.profile.club.phoneVerified, false); assert.equal(ov.profile.club.verifiedVia, "email");
+  /* Later, «Verificar mi celular»: phone channels only; email is refused there. */
+  const [cE] = await V.sendCode(S3, ANA, { channel: "email", purpose: "phone" }, { env: {} });
+  assert.equal(cE, 400);
+  const [cU, oU] = await V.sendCode(S3, ANA, { channel: "whatsapp", purpose: "phone" }, { env: {} });
+  assert.equal(cU, 200); assert.equal(oU.sent, false); assert.equal(oU.offer, null, "the email was offered for a PHONE verification");
+  const calls3 = [];
+  await V.sendCode(S3, ANA, { channel: "whatsapp", purpose: "phone" }, { env: envW, senders: { whatsapp: (to, x) => V.sendWhatsAppCode(to, x, { env: envW, fetchImpl: async (url, init) => { calls3.push(init); return { ok: true }; } }) } });
+  const [k3, r3b] = await V.checkCode(S3, ANA, { code: /(\d{6})/.exec(JSON.parse(calls3[0].body).text.body)[1] });
+  assert.equal(k3, 200); assert.equal(r3b.phoneVerified, true); assert.equal(r3b.redirect, "/cuenta.html#datos");
+});
+
+await check("confirmed but unverified: login and the account route her to the code step; she is not a member yet (no credits); unconfirmed cannot even ask for a code", async () => {
+  const S = await confirmedUnverified();
+  const u = await S.users.get(ANA, { type: "json" });
+  assert.equal(K.needsVerification(u), true); assert.equal(K.isMember(u), false);
+  const [lc, lo, sid] = await LI.login(S, { email: ANA, password: "clave-de-prueba" });
+  assert.equal(lc, 200); assert.equal(lo.needsVerification, true); assert.equal(lo.redirect, "/keyclub.html?verificar=1"); assert.ok(sid);
+  assert.deepEqual(await A.accountOverview(S, ANA), { signedIn: true, needsVerification: true, redirect: "/keyclub.html?verificar=1" });
+  const { post } = stubWallet();
+  const g = await K.grantCredit({ claims: memStore(), post, users: S.users }, { email: ANA, usd: 5, fx: 3.75, key: "t:1", reason: "prueba" });
+  assert.equal(g.granted, false);
+  const st = V.verifyStatus(u);
+  assert.equal(st.needsVerification, true); assert.equal(st.phoneMasked, "+51 ••• ••• 000"); assert.ok(!JSON.stringify(st).includes("900000000"));
+  /* The pages honour it. */
+  assert.match(cuenta, /r\.body\.needsVerification\) \{ location\.replace\(r\.body\.redirect/);
+  assert.match(cuenta, /if \(body\.needsVerification\) \{ location\.href = body\.redirect/);
+  const me = readFileSync(join(ROOT, "netlify/functions/auth-me.js"), "utf8");
+  assert.match(me, /needsVerification: verify, phoneVerified/);
+  /* Not confirmed yet: no code. */
+  const S2 = freshStores(); const mail = stubMailer();
+  await SU.signup(S2, { name: "Bea", email: "bea@correo.test", phone: "+51 900 000 001", password: "clave-de-prueba" }, { mailer: mail });
+  const [cu] = await V.sendCode(S2, "bea@correo.test", { channel: "email" }, { env: {}, senders: { email: capture() } });
+  assert.equal(cu, 403);
+  /* After the code: login lands in the dashboard. */
+  await verifyByEmail(S, ANA);
+  const [, lo2] = await LI.login(S, { email: ANA, password: "clave-de-prueba" });
+  assert.equal(lo2.redirect, "/cuenta.html"); assert.ok(!lo2.needsVerification);
+  /* Accounts from before this step (no verifyRequired) are not asked for it. */
+  assert.equal(K.needsVerification({ confirmRequired: true, emailConfirmedAt: "2026-11-01T00:00:00Z" }), false);
+});
+
+await check("the greeting, word for word, on the door's arrival and the dashboard (both skins share it); no «Bienvenido al Key Club», no «su llave», no «Este es», no old headline", () => {
+  const H = "Bienvenido al área Key Club", G = "Esto es tu espacio. Sin tu llave, nadie más entra aquí.";
+  assert.match(cuenta, new RegExp(`<h1 class="serif" id="welcome">${H}</h1>`));
+  assert.match(cuenta, new RegExp(`<p class="greet" id="greet">${G.replace(/\./g, "\\.")}</p>`));
+  assert.ok(cuenta.includes(`$('welcome').textContent = '${H}';`) && cuenta.includes(`$('greet').textContent = '${G}';`), "the script does not set the exact greeting");
+  assert.match(door, new RegExp(`<h2 class="serif verified-h" id="arrivedTitle">${H}</h2>`));
+  assert.match(door, new RegExp(`<p id="arrivedGreet">${G.replace(/\./g, "\\.")}</p>`));
+  const served = [...SERVED_HTML.map((f) => readFileSync(join(ROOT, f), "utf8")), bundle,
+    ...readdirSync(join(ROOT, "netlify/functions")).filter((f) => f.endsWith(".js")).map((f) => readFileSync(join(ROOT, "netlify/functions", f), "utf8")),
+    ...readdirSync(join(ROOT, "assets/js")).filter((f) => f.endsWith(".js")).map((f) => readFileSync(join(ROOT, "assets/js", f), "utf8"))].join("\n");
+  const self = readFileSync(fileURLToPath(import.meta.url), "utf8");
+  for (const [bad, re] of [["Bienvenido al Key Club", /Bienvenid[oa] al Key Club/], ["su llave", /\bsu llave\b/i], ["Este es tu espacio", /Este es tu espacio/], ["Ya eres Key Club", /Ya eres Key Club/], ["Próximas " + "ventas", new RegExp("Pr[oó]ximas " + "ventas", "i")]]) {
+    assert.ok(!re.test(served), `«${bad}» is still served`);
+  }
+  /* The old section name is gone from the tests too. */
+  assert.ok(!new RegExp("Pr[oó]ximas " + "ventas", "i").test(self), "the old section name is still in the tests");
+});
+
+await check("«Próximas ofertas de temporada»: the heading, the honest empty state, no invented sale or date", () => {
+  assert.match(cuenta, /<section class="block" id="anticipadas"><h2>Próximas ofertas de temporada<\/h2>/);
+  assert.ok(cuenta.includes("Por ahora no hay ofertas de temporada confirmadas. Cuando una tienda confirme una, la verás aquí 24 horas antes que todos."));
+  const cfg = JSON.parse(readFileSync(join(ROOT, "assets/keyclub/early-access.json"), "utf8"));
+  assert.deepEqual(cfg.sales, []);
+  /* Danny's honesty rule: no WhatsApp alert is promised on the dashboard. */
+  assert.ok(!/alertas?[^<]{0,60}WhatsApp/i.test(textOf(cuenta)), "the dashboard promises WhatsApp alerts");
+});
+
+await check("the code email: the real template, the code, 10 minutes, Spanish, no emoji", () => {
+  const m = E.keyClubCodeEmail({ to: ANA, name: "Ana Prueba", code: "123456" });
+  assert.equal(m.to, ANA); assert.match(m.subject, /123456/); assert.match(m.text, /Hola Ana,/); assert.match(m.text, /123456/); assert.match(m.text, /10 minutos/);
+  assert.ok(!/\p{Extended_Pictographic}/u.test(m.text + m.html + m.subject));
+});
+
+console.log("\n  Próximas ofertas de temporada");
 
 const EA = { sales: [{ id: "venta-prueba", title: "Venta de prueba", unlockAt: "2026-11-10T05:00:00Z", items: [{ id: "abc123", title: "Fixture Bag", store: "fixture", usd: 10, image: "https://img.test/a.jpg" }] }] };
 const BEFORE = Date.parse("2026-11-05T00:00:00Z"), AFTER = Date.parse("2026-11-11T00:00:00Z");
@@ -560,7 +813,11 @@ if (!chromium) {
   mkdirSync(SHOTS, { recursive: true });
   const S = freshStores();
   const mail = stubMailer();
-  /* Real rules behind every endpoint; only the mail provider is a stub. */
+  /* The code by email, stubbed: the real template, captured here. */
+  const codes = [];
+  const codeMail = async (u, c) => { codes.push({ msg: E.keyClubCodeEmail({ to: u.email, name: u.name, code: c }), code: c }); return { sent: true }; };
+  /* Real rules behind every endpoint; only the mail provider is a stub.
+     WhatsApp and SMS have no env here: exactly as in production today. */
   const cookieOf = (req) => (/aria_session=([0-9a-f]+)/.exec(req.headers.cookie || "") || [])[1];
   async function emailOf(req) { const sid = cookieOf(req); const s = sid && await S.sessions.get(sid, { type: "json" }); return s ? s.email : null; }
   const setCookie = (sid) => `aria_session=${sid}; Path=/; HttpOnly; SameSite=Lax`;
@@ -573,6 +830,12 @@ if (!chromium) {
       const [c, o, sid] = await CF.confirm(S, b.token); return [c, o, sid];
     }
     if (name === "auth-login") { const [c, o, sid] = await LI.login(S, b); return [c, o, sid]; }
+    if (name === "auth-verify-send") {
+      const e = await emailOf(req);
+      if (req.method === "GET") { const u = e && await S.users.get(e, { type: "json" }); return [200, u ? V.verifyStatus(u) : { signedIn: false }]; }
+      return await V.sendCode(S, e, b, { env: {}, senders: { email: codeMail } });
+    }
+    if (name === "auth-verify-check") return await V.checkCode(S, await emailOf(req), b);
     if (name === "auth-logout") return [200, { ok: true }];
     if (name === "auth-me") { const e = await emailOf(req); return [200, { email: e }]; }
     if (name === "account") {
@@ -693,15 +956,80 @@ if (!chromium) {
   });
 
   let domLounge = null;
-  await check("the email link confirms her and lands her INTO the dashboard: «Ya eres Key Club», the greeting, her card (Fundador), the wallet at S/ 0.00 with the four lines, next steps, member since", async () => {
+  await check("390 px: the email link confirms her and lands on the CODE STEP: three channels the same size, WhatsApp highlighted, her phone and email masked", async () => {
     earlyConfig = null;
     const link = /https?:\/\/[^\s]+/.exec(mail.sent[0].msg.text)[0];
     await page.goto(link.replace(/^https?:\/\/[^/]+/, BASE), { waitUntil: "domcontentloaded" });
+    await page.waitForURL(/keyclub\.html\?verificar=1/, { timeout: 15000 });
+    await page.waitForSelector("#verify:not([hidden]) .ch[data-channel=whatsapp]:not([disabled])");
+    const chs = await page.$$eval("#vChannels .ch", (els) => els.map((b) => { const r = b.getBoundingClientRect(); return { ch: b.dataset.channel, label: b.querySelector("b").textContent, sub: b.querySelector("span").textContent, pref: b.classList.contains("pref"), w: Math.round(r.width), h: Math.round(r.height), visible: r.height > 0, border: getComputedStyle(b).borderTopColor }; }));
+    assert.deepEqual(chs.map((c) => [c.ch, c.label]), [["whatsapp", "WhatsApp"], ["sms", "SMS (texto)"], ["email", "Correo"]]);
+    assert.ok(chs.every((c) => c.visible), "a channel is hidden");
+    assert.deepEqual(chs.map((c) => c.pref), [true, false, false], "WhatsApp is not the highlighted default (or another is)");
+    assert.ok(new Set(chs.map((c) => c.w)).size === 1 && new Set(chs.map((c) => c.h)).size === 1, "the three choices are not the same size: " + JSON.stringify(chs));
+    assert.notEqual(chs[0].border, chs[1].border, "WhatsApp is not visibly highlighted");
+    assert.equal(chs[1].border, chs[2].border, "SMS and correo are not equal");
+    assert.equal(chs[0].sub, "+51 ••• ••• 000"); assert.equal(chs[2].sub, "an•••@correo.test");
+    const u = await S.users.get(ANA, { type: "json" });
+    assert.ok(u.emailConfirmedAt && u.memberNumber === 1 && !u.verifiedAt, "confirmed but not yet verified on the server");
+    await noOverflow("verify chooser");
+    await page.screenshot({ path: join(SHOTS, "kv-verify-chooser.png") });
+  });
+
+  await check("confirmed but unverified: the dashboard address sends her back to the code step, never the dashboard", async () => {
+    await page.goto(BASE + "/cuenta.html", { waitUntil: "domcontentloaded" });
+    await page.waitForURL(/keyclub\.html\?verificar=1/, { timeout: 15000 });
+    await page.waitForSelector("#verify:not([hidden]) .ch[data-channel=whatsapp]:not([disabled])");
+  });
+
+  await check("390 px: WhatsApp (not live) says so honestly and offers the email -- nothing sent, no code stored; SMS the same", async () => {
+    const before = codes.length;
+    await page.click(".ch[data-channel=whatsapp]");
+    await page.waitForSelector("#vMsg:not([hidden])");
+    assert.equal((await page.textContent("#vMsg")).trim(), "Los códigos por WhatsApp todavía no están activos. Puedes recibir tu código por correo.");
+    assert.ok(await page.isVisible("#vOfferEmail"), "the email is not offered");
+    assert.equal((await page.textContent("#vOfferEmail")).trim(), "Enviármelo por correo");
+    assert.ok(await page.isHidden("#vForm"), "the code form opened as if a code had been sent");
+    assert.ok(!/enviamos el código/i.test(await page.textContent("#verify")), "the page says a code was sent");
+    assert.equal(codes.length, before); assert.equal(await S.keyclub.get("verify:" + ANA, { type: "json" }), null, "a code was stored for a channel that is not live");
+    await noOverflow("verify fallback");
+    await page.screenshot({ path: join(SHOTS, "kv-verify-whatsapp-not-live.png") });
+    await page.click(".ch[data-channel=sms]");
+    await page.waitForFunction(() => /Los códigos por SMS todavía no están activos/.test(document.getElementById("vMsg").textContent));
+    assert.equal(codes.length, before);
+  });
+
+  await check("390 px: by email the code arrives, a wrong one is refused, the right one opens «Bienvenido al área Key Club» -- verified via email, phone NOT verified", async () => {
+    await page.click("#vOfferEmail");
+    await page.waitForSelector("#vForm:not([hidden])");
+    assert.equal(codes.length, 1);
+    assert.match(await page.textContent("#vMsg"), /Te enviamos el código a tu correo \(an•••@correo\.test\)\. Vence en 10 minutos\./);
+    assert.ok(await page.isDisabled("#vResend"), "resend is not held for 60 s");
+    await page.screenshot({ path: join(SHOTS, "kv-verify-code.png") });
+    const right = codes[0].code, wrong = right === "000000" ? "111111" : "000000";
+    await page.fill("#vCode", wrong); await page.click("#vBtn");
+    await page.waitForSelector("#vErr:not([hidden])");
+    assert.match(await page.textContent("#vErr"), /Ese código no es\. Te quedan 4 intentos\./);
+    await page.fill("#vCode", right); await page.click("#vBtn");
+    await page.waitForSelector("#arrived:not([hidden])");
+    assert.equal((await page.textContent("#arrivedTitle")).trim(), "Bienvenido al área Key Club");
+    assert.equal((await page.textContent("#arrivedGreet")).trim(), "Esto es tu espacio. Sin tu llave, nadie más entra aquí.");
+    const u = await S.users.get(ANA, { type: "json" });
+    assert.ok(u.verifiedAt); assert.equal(u.verifiedVia, "email"); assert.equal(u.phoneVerified, false);
+    await noOverflow("arrived");
+    await page.screenshot({ path: join(SHOTS, "kv-arrived.png") });
+  });
+
+  await check("the arrival opens her dashboard: «Bienvenido al área Key Club», the greeting, her card (Fundador), the wallet at S/ 0.00 with the four lines, next steps, member since", async () => {
+    await page.click("#arrivedGo");
     await page.waitForURL(/cuenta\.html/, { timeout: 15000 });
     await page.waitForSelector("#signedIn:not([hidden]) #cardBox .mcard");
     assert.equal(new URL(page.url()).search, "", "the bienvenida flag stayed in the address");
-    assert.match(await page.textContent("#welcome"), /^Ya eres Key Club, Ana$/);
-    assert.equal((await page.textContent("#greet")).trim(), "Este es tu espacio. Sin tu llave, nadie más entra aquí.");
+    assert.equal((await page.textContent("#welcome")).trim(), "Bienvenido al área Key Club");
+    assert.equal((await page.textContent("#greet")).trim(), "Esto es tu espacio. Sin tu llave, nadie más entra aquí.");
+    const datos = await page.textContent("#profileBox");
+    assert.match(datos, /sin verificar/); assert.match(datos, /Verificar mi celular/);
+    assert.equal(await page.getAttribute("#verifyCel a", "href"), "/keyclub.html?verificar=celular");
     const card = await page.textContent("#cardBox");
     assert.match(card, /Ana Prueba/); assert.match(card, /0001/); assert.match(card, /Fundador/); assert.match(card, /Miembro desde/);
     assert.equal((await page.textContent("#walletBox .bal")).trim(), "S/ 0.00");
@@ -713,7 +1041,7 @@ if (!chromium) {
     assert.ok(u.emailConfirmedAt && u.memberNumber === 1, "not activated on the server");
   });
 
-  await check("«Selección de hoy para ti»: a starter rail of real ON-SALE catalogue items (no history yet), each with «Ver más» into that product's store inside Aria (tienda.html?tienda=<key>); «Próximas ventas» lists nothing unconfirmed", async () => {
+  await check("«Selección de hoy para ti»: a starter rail of real ON-SALE catalogue items (no history yet), each with «Ver más» into that product's store inside Aria (tienda.html?tienda=<key>); «Próximas ofertas de temporada» lists nothing unconfirmed", async () => {
     await page.waitForSelector("#picksBox .pick");
     const picks = await page.$$eval("#picksBox .pick", (els) => els.map((a) => ({ href: a.getAttribute("href"), id: a.dataset.id, more: (a.querySelector(".more") || {}).textContent })));
     assert.ok(picks.length >= 3 && picks.length <= 6, `${picks.length} picks`);
@@ -727,8 +1055,8 @@ if (!chromium) {
       assert.equal(p.more, "Ver más");
     }
     assert.match(await page.textContent("#picksBox .quiet"), /Para empezar, una pieza en oferta/);
-    assert.equal((await page.textContent("#anticipadas h2")).trim(), "Próximas ventas");
-    await page.waitForFunction(() => /no hay ventas confirmadas[\s\S]*24 horas antes/.test(document.getElementById("earlyBox").textContent));
+    assert.equal((await page.textContent("#anticipadas h2")).trim(), "Próximas ofertas de temporada");
+    await page.waitForFunction(() => document.getElementById("earlyBox").textContent.trim() === "Por ahora no hay ofertas de temporada confirmadas. Cuando una tienda confirme una, la verás aquí 24 horas antes que todos.");
     assert.ok(!/anticipad/i.test(await page.textContent("#signedIn")), "«Ventas anticipadas» is still on the dashboard");
   });
 
@@ -742,6 +1070,9 @@ if (!chromium) {
     const bgLounge = await bg();
     await noOverflow("dashboard lounge");
     await page.screenshot({ path: join(SHOTS, "keyclub-dash-lounge.png"), fullPage: true });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    assert.equal((await page.textContent("#welcome")).trim(), "Bienvenido al área Key Club");
+    await page.screenshot({ path: join(SHOTS, "kv-dash-greeting-lounge.png") });
     await page.click('.themes [data-theme="amanecer"]');
     await page.waitForFunction(() => document.documentElement.className === "theme-amanecer");
     await page.waitForTimeout(450); // the background eases over .25s
@@ -755,6 +1086,10 @@ if (!chromium) {
     assert.notEqual(await bg(), bgLounge, "the palette did not change");
     await noOverflow("dashboard amanecer");
     await page.screenshot({ path: join(SHOTS, "keyclub-dash-amanecer.png"), fullPage: true });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    assert.equal((await page.textContent("#welcome")).trim(), "Bienvenido al área Key Club");
+    assert.equal((await page.textContent("#greet")).trim(), "Esto es tu espacio. Sin tu llave, nadie más entra aquí.");
+    await page.screenshot({ path: join(SHOTS, "kv-dash-greeting-amanecer.png") });
     /* A new phone: no cache, the account decides. */
     await page.evaluate(() => localStorage.clear());
     await page.reload({ waitUntil: "domcontentloaded" });

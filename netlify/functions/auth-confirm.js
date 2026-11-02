@@ -4,8 +4,11 @@
 //                                only the latest link), activates the
 //                                membership (member number, invite code,
 //                                the DNI pack she uploaded at the door),
-//                                signs her in and answers
-//                                { ok, redirect: "/cuenta.html?bienvenida=1" }.
+//                                signs her in and answers { ok, redirect }:
+//                                the code step (keyclub.html?verificar=1)
+//                                for an account that owes it (every new
+//                                one, #443 c.6570940933), else
+//                                "/cuenta.html?bienvenida=1".
 //   POST { resend, email }    -> a fresh link for an unconfirmed account.
 //                                Always the same answer, whether or not
 //                                the account exists (no address probing).
@@ -16,12 +19,13 @@
 import { getStore, connectLambda } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { normalizeEmail, sessionCookieHeader, corsHeaders } from "./_auth-helpers.js";
-import { KEYCLUB_STORE, consumeConfirmation, isConfirmed } from "./_keyclub.js";
+import { KEYCLUB_STORE, consumeConfirmation, isConfirmed, needsVerification, VERIFY_PATH } from "./_keyclub.js";
 import { DNI_DOCS_STORE, DNI_PACKS_STORE, registerPack } from "./_dni-docs.js";
 import { sendConfirmation } from "./auth-signup.js";
 import { sendMail } from "./_order-email.js";
 
 export const DASHBOARD = "/cuenta.html?bienvenida=1";
+export const VERIFY_STEP = VERIFY_PATH;
 
 /** Confirm + activate + open a session. Returns [status, body, sessionId|null]. */
 export async function confirm(stores, token, { now = Date.now() } = {}) {
@@ -38,7 +42,7 @@ export async function confirm(stores, token, { now = Date.now() } = {}) {
   }
   const sessionId = randomBytes(32).toString("hex");
   await stores.sessions.setJSON(sessionId, { email: r.email, createdAt: new Date(now).toISOString() });
-  return [200, { ok: true, email: r.email, name: user.name || null, memberNumber: user.memberNumber, redirect: DASHBOARD }, sessionId];
+  return [200, { ok: true, email: r.email, name: user.name || null, memberNumber: user.memberNumber, needsVerification: needsVerification(user), redirect: needsVerification(user) ? VERIFY_STEP : DASHBOARD }, sessionId];
 }
 
 export async function resend(stores, rawEmail, opts = {}) {

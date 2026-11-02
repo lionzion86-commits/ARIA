@@ -4,6 +4,7 @@
 // not a failure.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { parseCookies, SESSION_COOKIE_NAME, SESSION_TTL_SECONDS, clearSessionCookieHeader, corsHeaders, isAdmin } from "./_auth-helpers.js";
+import { needsVerification } from "./_keyclub.js";
 
 export async function handler(event) {
   connectLambda(event); // wires up the Blobs environment context for this classic-style function
@@ -45,6 +46,11 @@ export async function handler(event) {
     let name = null;
     let founderStatus = null;
     let familia = false;
+    // Key Club (#443 c.6570940933): email confirmed but the code step not
+    // done -> the pages send her to keyclub.html?verificar=1, not the
+    // dashboard. phoneVerified gates any WhatsApp-alert promise.
+    let verify = false;
+    let phoneVerified = false;
     try {
       const users = getStore("users");
       const u = await users.get(session.email, { type: "json" });
@@ -54,9 +60,11 @@ export async function handler(event) {
         // Familia (#443): the product and checkout pages show cost prices.
         // A display hint only; orders-create reads the flag itself.
         familia = u.familia === true;
+        verify = needsVerification(u);
+        phoneVerified = u.phoneVerified === true;
       }
     } catch { /* non-fatal — logged in, just without profile fields */ }
-    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email, isAdmin: isAdmin(session.email), name, founderStatus, familia }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email, isAdmin: isAdmin(session.email), name, founderStatus, familia, needsVerification: verify, phoneVerified }) };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }

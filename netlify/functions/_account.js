@@ -32,7 +32,7 @@
    ============================================================ */
 
 import { EARN_WAYS, CREDIT_UNIT, OVERWEIGHT_USD_PER_KG } from "./_keyclub.js";
-import { keyClubView } from "./_keyclub.js";
+import { keyClubView, needsVerification, VERIFY_PATH } from "./_keyclub.js";
 
 export const ORDER_SCAN_LIMIT = 600;
 
@@ -411,6 +411,9 @@ export async function accountOverview(stores, email) {
     stores.carts.get(email, { type: "json" }).catch(() => null),
     stores.packs ? stores.packs.get(email, { type: "json" }).catch(() => null) : null,
   ]);
+  /* Email confirmed, code step not done (#443 c.6570940933): no dashboard
+     yet -- the page sends her to the verification step. */
+  if (needsVerification(user)) return { signedIn: true, needsVerification: true, redirect: VERIFY_PATH };
   /* Each part fails on its own: an unreadable shipments store still shows
      the orders, an unreadable orders store still shows the wallet. */
   const problems = [];
