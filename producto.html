@@ -1306,6 +1306,11 @@ function sortSizes(sizes){
     return (a.k[0] - b.k[0]) || (a.k[1] - b.k[1]) || (a.k[2] - b.k[2]) || (a.i - b.i);
   }).map(function(x){ return x.s; });
 }
+/* NOT A SIZE (#443 c.6567135924, Danny: makeup shows shades, never a size
+   box). A store's placeholder (Macy's "No Size", "One Size", "OS") is no
+   choice, and a lone volume or weight ("1 oz", "50 ml") is the product
+   itself: neither is ever a picker. Two or more volumes are a Tamaño. */
+function sizeIsMeasure(list){ return list.length > 0 && list.every(function(s){ return /^\d+(?:[.,]\d+)?\s*(?:fl\.?\s*oz|oz|ml|cl|l|g|gr|kg|mg|lb|lbs|ct|count)\.?$/i.test(String(s)); }); }
 function truthfulSizes(list){
   if (!Array.isArray(list)) return [];
   var out = [], seen = {};
@@ -1315,10 +1320,11 @@ function truthfulSizes(list){
     else if (typeof v === 'number' && isFinite(v)) s = String(v);
     else if (v && typeof v === 'object' && v.available !== false && (typeof v.size === 'string' || typeof v.size === 'number')) s = String(v.size);
     s = s.trim();
-    if (!s || seen[s.toUpperCase()]) continue;
+    if (!s || /^(?:no\s*size|one\s*size|o\/?s|n\/?s|n\/a|default(?:\s+title)?|talla\s+[uú]nica|[uú]nica)$/i.test(s) || seen[s.toUpperCase()]) continue;
     seen[s.toUpperCase()] = true;
     out.push(s);
   }
+  if (out.length === 1 && /^\d+(?:[.,]\d+)?\s*(?:fl\.?\s*oz|oz|ml|cl|l|g|gr|kg|mg|lb|lbs|ct|count)\.?$/i.test(out[0])) return [];
   return sortSizes(out);
 }
 /* A bag, wallet, charm or phone case is not sized, whatever garment word
@@ -1402,9 +1408,10 @@ function buildBuyBox(p){
   var wantsSize = sizes.length > 0;
   var sizeHtml = '';
   if (wantsSize){
-    var optsHtml = '<option value="" disabled selected>Selecciona una talla</option>'
+    var measure = sizeIsMeasure(sizes);
+    var optsHtml = '<option value="" disabled selected>' + (measure ? 'Selecciona un tamaño' : 'Selecciona una talla') + '</option>'
       + sizes.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
-    sizeHtml = '<label class="size-label" for="size-select">Talla</label>'
+    sizeHtml = '<label class="size-label" for="size-select">' + (measure ? 'Tamaño' : 'Talla') + '</label>'
       + '<select id="size-select" class="size-select" required>' + optsHtml + '</select>';
   }
   box.innerHTML = sizeHtml
@@ -1433,7 +1440,7 @@ function addCurrentToCart(p, sizes){
     var sel = el('size-select');
     size = sel ? sel.value : '';
     if (!size || sizes.indexOf(size) < 0){
-      toast('Selecciona una talla antes de agregar al carrito.');
+      toast(sizeIsMeasure(sizes) ? 'Selecciona un tamaño antes de agregar al carrito.' : 'Selecciona una talla antes de agregar al carrito.');
       if (sel) sel.focus();
       return;
     }
