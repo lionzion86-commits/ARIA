@@ -1,0 +1,1 @@
+{"note":"Ventas anticipadas Key Club. Cada venta: {\"id\",\"title\",\"unlockAt\":ISO,\"items\":[{\"id\",\"title\",\"brand\",\"store\",\"usd\",\"wasUsd\",\"image\"}]}. Antes de unlockAt los items solo se ven en el espacio de miembros; en las páginas públicas no aparecen. Vacío: no hay ninguna venta anticipada definida.","sales":[]}

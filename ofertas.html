@@ -691,6 +691,9 @@ function cardHTML(c){
     : '';
   /* No image, no card (#443 c.6547325227). */
   if (!img) return '';
+  /* Próximas ventas Key Club: members-first until its unlock time
+     (assets/js/early-access.js); the members' dashboard shows it. */
+  if (window.ariaEarlyAccess && window.ariaEarlyAccess.isLocked(c.id)) return '';
   return '<a class="card" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '" data-store="' + esc(c.store || '') + '">' +
     '<div class="card-img">' +
       (pct > 0 ? '<span class="badge">-' + pct + '%</span>' : '') + img +
@@ -1161,6 +1164,7 @@ try {
 })();
 </script>
 <!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/assets/js/early-access.js" defer></script>
 <script src="/assets/js/aria-launcher.js" defer></script>
 </body>
 </html>

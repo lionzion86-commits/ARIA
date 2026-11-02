@@ -133,9 +133,9 @@
       var msg;
       if (!gs.email) {
         msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
-          + 'Únete gratis al Aria Key Club: tu carrito queda guardado y recibes $5 de vuelta por cada $100 en crédito Aria. '
-          + 'Los primeros 1000 miembros quedan registrados como Fundadores.</p>'
-          + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Ir a la tienda y unirme</a>';
+          + 'Únete gratis al Aria Key Club: tu carrito queda guardado, tu DNI se registra una sola vez y tus devoluciones vuelven como crédito al instante. '
+          + 'Los primeros 1,000 miembros quedan como Fundadores para siempre.</p>'
+          + '<a href="/keyclub.html" data-keyclub-door class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Unirme al Aria Key Club</a>';
       } else if (gs.founderStatus === 'rechazado') {
         msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
           + (firstName ? esc(firstName) + ', tu' : 'Tu') + ' carrito sigue guardado tal como lo dejaste. '
@@ -400,6 +400,17 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             Pago seguro · protegido por Aria
           </p>
+          <!-- GUEST ALERT (Danny, #443 FINAL Key Club spec): a guest -- no
+               session -- is told what members get back. INFORMATIONAL ONLY:
+               it never gates, never interrupts and never changes Pagar; the
+               link opens the door (/keyclub.html) in another tab so this
+               order stays exactly as it is. No retroactive-credit promise.
+               Hidden for a signed-in member (auth-me answers her email). -->
+          <div id="kcGuestAlert" class="rounded-2xl p-4" style="background:var(--sky)" role="note" hidden>
+            <p class="text-[14px] font-extrabold" style="color:var(--navy)">Podrías estar ganando créditos Aria</p>
+            <p class="text-[12.5px] leading-snug mt-1" style="color:#374151">El peso casi siempre se sobreestima al cotizar — y los miembros Aria Key Club reciben esa diferencia de vuelta en créditos. Únete ahora y llévate eso, más $5 en pedidos de $100 o más durante tus primeros 60 días, y más beneficios.</p>
+            <a id="kcGuestAlertCta" href="/keyclub.html" target="_blank" rel="noopener" data-keyclub-door class="mt-3 w-full h-[40px] rounded-xl text-[12.5px] font-bold inline-flex items-center justify-center" style="background:var(--navy);color:#fff">Unirme al Key Club</a>
+          </div>
         </aside>
 
         <div class="gridCustomer">
@@ -621,19 +632,15 @@
                after both photos are up, never blocking Pagar. -->
           <div id="kcInvite" class="rounded-2xl p-4 mt-3" style="background:var(--sky)" hidden>
             <p class="text-[14px] font-extrabold" style="color:var(--navy)">Sube tus documentos una sola vez</p>
-            <p class="text-[12.5px] leading-snug mt-1" style="color:#374151">Con Key Club, tus documentos quedan guardados en tu cuenta y no vuelves a subirlos en tus próximas compras. Ahora es gratis.</p>
+            <p class="text-[12.5px] leading-snug mt-1" style="color:#374151">Con Key Club, tu DNI queda registrado una sola vez en tu cuenta y no lo vuelves a subir en tus próximas compras. Ahora es gratis.</p>
+            <!-- THE DOOR (#443, Danny 2026-11-02): no signup inside checkout.
+               "Hacerme Key Club" opens the one entry flow (/keyclub.html)
+               in a new tab, so this checkout stays exactly as it is. -->
             <div id="kcInviteAsk" class="grid grid-cols-2 gap-2 mt-3">
-              <button type="button" id="kcInviteYes" class="h-[40px] rounded-xl text-[12.5px] font-bold" style="background:var(--navy);color:#fff">Guardar mis documentos</button>
+              <a id="kcInviteYes" href="/keyclub.html?desde=checkout#unirme" target="_blank" rel="noopener" data-keyclub-door class="h-[40px] rounded-xl text-[12.5px] font-bold inline-flex items-center justify-center" style="background:var(--navy);color:#fff">Hacerme Key Club</a>
               <button type="button" id="kcInviteNo" class="h-[40px] rounded-xl border text-[12.5px] font-bold" style="border-color:var(--line);color:var(--navy);background:#fff">Ahora no</button>
             </div>
-            <div id="kcInviteForm" class="mt-3" hidden>
-              <label for="kcPass" id="kcPassLabel" class="block text-[12.5px] font-bold mb-1" style="color:var(--navy)">Crea una contraseña para tu cuenta</label>
-              <input id="kcPass" type="password" autocomplete="new-password" minlength="8" class="w-full h-[44px] rounded-xl border px-3 text-[16px]" style="border-color:var(--line)" placeholder="Al menos 8 caracteres">
-              <p id="kcInviteErr" class="text-[12px] mt-1.5" style="color:#B42318" hidden></p>
-              <button type="button" id="kcInviteGo" class="w-full h-[42px] rounded-xl text-[13px] font-bold mt-2" style="background:var(--navy);color:#fff">Crear mi cuenta y guardar</button>
-              <p class="text-[11.5px] mt-1.5" style="color:#6B7280">Usamos el nombre, correo y teléfono que ya pusiste arriba. Tu pedido sigue igual.</p>
-            </div>
-            <p id="kcInviteDone" class="text-[13px] font-semibold mt-2" style="color:#0F7A3D" hidden></p>
+            <p class="text-[11.5px] mt-1.5" style="color:#6B7280">Se abre en otra pestaña; tu pedido sigue aquí igual. ¿Ya eres miembro? <a href="/cuenta.html" target="_blank" rel="noopener" style="color:var(--blue);font-weight:700">Entra a tu cuenta</a> y vuelve a esta pestaña.</p>
             <p class="text-[11.5px] mt-2" style="color:#6B7280">Tus documentos quedan en tu cuenta y puedes eliminarlos cuando quieras.</p>
           </div>
 </section>
@@ -2004,62 +2011,18 @@ function cardImgAttrs(url, sizes){
   function dniReady(){ return Boolean(dniUseSaved) || Boolean(dni.front.token && dni.back.token); }
   function dniPayload(){ return dniUseSaved ? null : { front: dni.front.token, back: dni.back.token }; }
 
-  /* KEY CLUB INVITE. A guest who just uploaded both sides is offered an
-     account at the moment the friction is felt. Creating it (or signing in
-     to the account that already has this email) before Pagar is all it
-     takes: the order is then placed by the account, and orders-create
-     registers these same photos to it (attachToOrder). "Ahora no" and a
-     failed sign-up leave the checkout exactly as it was. */
+  /* KEY CLUB INVITE. A guest who just uploaded both sides is offered the
+     Key Club at the moment the friction is felt -- as a link to the one
+     entry flow (/keyclub.html, new tab; #443, Danny 2026-11-02), never a
+     signup inside checkout: membership needs a confirmed email first.
+     "Ahora no" closes it; either way this checkout is untouched. */
   var kcInviteDismissed = false;
-  var kcInviteMode = 'signup';
   function syncKcInvite(){
     const el = document.getElementById('kcInvite');
     const show = !kcInviteDismissed && !dniSavedPacks.signedIn && !dniUseSaved && Boolean(dni.front.token && dni.back.token);
-    if (!show && !document.getElementById('kcInviteDone').textContent) el.hidden = true;
-    else if (show) el.hidden = false;
+    el.hidden = !show;
   }
-  function kcInviteError(msg){ const e = document.getElementById('kcInviteErr'); e.textContent = msg || ''; e.hidden = !msg; }
   document.getElementById('kcInviteNo').addEventListener('click', () => { kcInviteDismissed = true; document.getElementById('kcInvite').hidden = true; });
-  document.getElementById('kcInviteYes').addEventListener('click', () => {
-    document.getElementById('kcInviteAsk').hidden = true;
-    document.getElementById('kcInviteForm').hidden = false;
-    document.getElementById('kcPass').focus();
-  });
-  document.getElementById('kcInviteGo').addEventListener('click', async () => {
-    const name = document.getElementById('custName').value.trim();
-    const email = document.getElementById('custEmail').value.trim();
-    const phone = document.getElementById('custPhone').value.trim();
-    const password = document.getElementById('kcPass').value;
-    if (!name || !email) return kcInviteError('Completa tu nombre y tu correo arriba primero.');
-    if (password.length < 8) return kcInviteError('La contraseña debe tener al menos 8 caracteres.');
-    const btn = document.getElementById('kcInviteGo');
-    btn.disabled = true; kcInviteError('');
-    try {
-      const endpoint = kcInviteMode === 'signup' ? 'auth-signup' : 'auth-login';
-      const res = await fetch('/.netlify/functions/' + endpoint, {
-        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(kcInviteMode === 'signup' ? { email, password, name, phone } : { email, password }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (res.status === 409 && kcInviteMode === 'signup') {
-        kcInviteMode = 'login';
-        document.getElementById('kcPassLabel').textContent = 'Ya tienes una cuenta con este correo. Ingresa tu contraseña';
-        btn.textContent = 'Entrar y guardar';
-        document.getElementById('kcPass').value = '';
-        document.getElementById('kcPass').setAttribute('autocomplete', 'current-password');
-        return;
-      }
-      if (!res.ok) throw new Error(body.error || 'No pudimos crear tu cuenta. Tu pedido sigue igual.');
-      dniSavedPacks = { ...dniSavedPacks, signedIn: true };
-      document.getElementById('kcInviteForm').hidden = true;
-      const done = document.getElementById('kcInviteDone');
-      done.textContent = 'Listo. Al pagar, tus documentos quedan guardados en tu cuenta Key Club.';
-      done.hidden = false;
-      syncDniCopy();
-    } catch (err) {
-      kcInviteError(err.message);
-    } finally { btn.disabled = false; }
-  });
 
   /* PROVINCIA LAST-MILE. What goes on the order and onto the partner
      courier's manifest for the Lima → province leg. Routing info, not a
@@ -2549,6 +2512,9 @@ function cardImgAttrs(url, sizes){
   fetch('/.netlify/functions/auth-me', { credentials: 'same-origin' })
     .then((r) => (r.ok ? r.json() : null))
     .then((me) => {
+      /* GUEST ALERT: shown only when the server answered and there is no
+         session (a guest); a member never sees it. Purely informational. */
+      if (me && !me.email) document.getElementById('kcGuestAlert').hidden = false;
       if (!me || me.familia !== true || !cart.length) return;
       for (const it of cart){
         if (familiaCardPrice.has(it)) continue;

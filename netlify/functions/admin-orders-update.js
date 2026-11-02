@@ -6,6 +6,7 @@
 // (orders-create.js) — this never overwrites those fields.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { getSessionEmail, isAdmin, corsHeaders } from "./_auth-helpers.js";
+import { weightCreditDueFor } from "./_keyclub.js";
 
 export async function handler(event) {
   connectLambda(event);
@@ -148,7 +149,17 @@ export async function handler(event) {
     }
 
     await ordersStore.setJSON(orderId, order);
-    const response = { ok: true, taxOwed, express: order.express ?? null };
+    /* ---- DEVOLUCIÓN POR SOBREPESO (Key Club, #443 2026-11-02) ----
+       When the real weight comes in under the estimate, the freight
+       difference returns as Aria credit at US$13 per kg -- to a Key Club
+       MEMBER only (the order placed signed in by a confirmed account).
+       A guest order is never offered a credit. Like taxOwed above, this
+       RECORDS what is owed and to whom; issuing it stays the named act
+       through admin-wallet-credit.js. */
+    const buyer = order.buyerEmail ? await getStore("users").get(order.buyerEmail, { type: "json" }).catch(() => null) : null;
+    const weightCreditDue = weightCreditDueFor(order, buyer);
+
+    const response = { ok: true, taxOwed, weightCreditDue, express: order.express ?? null };
     if (feeDefaulted) response.feeDefaulted = true;
     return { statusCode: 200, headers, body: JSON.stringify(response) };
   } catch (error) {

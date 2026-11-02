@@ -229,7 +229,9 @@ await check("the wallet renders at S/ 0.00 with its rules; with a balance the le
   let { context, page } = await open();
   await page.waitForSelector("#walletBox .bal");
   assert((await page.textContent("#walletBox .bal")).trim() === "S/ 0.00", await page.textContent("#walletBox .bal"));
-  assert(/\$5 por cada \$100 en productos/.test(await page.textContent("#walletBox")), "rule missing");
+  const earn = await page.$$eval("#walletBox ol.earn li", (els) => els.map((e) => e.textContent));
+  assert(earn.length === 4 && /sobrepeso/.test(earn[0]) && /cumpleaños/.test(earn[3]), "the four ways are missing: " + earn.join(" | "));
+  assert(!/5 ?%|por cada \$100/.test(await page.textContent("#walletBox")), "a killed rule is on the wallet");
   await page.locator("#keyclub").screenshot({ path: join(SHOTS, "cuenta-wallet-zero.png") });
   await context.close();
   state.stores = fixtureStores({ balance: 38.2 });

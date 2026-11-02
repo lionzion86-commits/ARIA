@@ -166,6 +166,9 @@ footer a{color:#fff;}
       <p id="brandSub">Buscando productos en tiendas de EE.&nbsp;UU.</p>
     </div>
   </div>
+  <!-- A model search lands here (?q=): its Comparador, Ofertas and store
+       rails lead (assets/js/marca-focus.js, #443 destination guardrail). -->
+  <section id="brandFocus" class="fc" aria-live="polite" hidden></section>
 
   <!-- THE UNIVERSAL FORMAT (#443 c.6532666653): the search bar (the site's
        search, scoped to the brand), its category pills, its Ofertas, then
@@ -204,6 +207,7 @@ footer a{color:#fff;}
 
 <!-- The product-type classifier, generated from index.html (scripts/build-product-type.mjs). -->
 <script src="product-type.js"></script>
+<script src="/assets/js/marca-focus.js"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -662,7 +666,9 @@ function renderBrandTools(sales){
     form.onsubmit = function(e){
       e.preventDefault();
       var term = (q.value || "").trim();
-      location.href = "/search.html?q=" + encodeURIComponent((BRAND_LABEL + " " + term).trim());
+      /* A model inside the brand stays on the brand page, focused (?q=). */
+      location.href = term ? "marca.html?marca=" + encodeURIComponent(BRAND_KEY) + "&q=" + encodeURIComponent(term)
+        : "/search.html?q=" + encodeURIComponent(BRAND_LABEL);
     };
   }
   if (!nav) return;
@@ -785,6 +791,7 @@ function init(){
       if (heroSub) heroSub.textContent = head.count.toLocaleString("es-PE") + " productos en tiendas de EE. UU.";
       try{ document.title = BRAND_LABEL + " — Aria Shop"; }catch(e){}
       renderRails();
+      if (window.ariaBrandFocus) window.ariaBrandFocus(BRAND_LABEL);
       afterFirstPhotos(heroImage);
     }).catch(function(){
       setStatus('<span class="err">No pudimos cargar los productos.</span> ' +
@@ -831,5 +838,7 @@ init();
 </script>
 <!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
 <script src="/assets/js/aria-launcher.js" defer></script>
+<!-- A search's landing: «También puede ser…» chips (&tp=), the model focus (&q=). -->
+<script src="/assets/js/tambien.js" defer></script>
 </body>
 </html>

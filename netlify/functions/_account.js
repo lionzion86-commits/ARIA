@@ -31,6 +31,9 @@
    to the timeline here and to WhatsApp later.
    ============================================================ */
 
+import { EARN_WAYS, CREDIT_UNIT, OVERWEIGHT_USD_PER_KG } from "./_keyclub.js";
+import { keyClubView } from "./_keyclub.js";
+
 export const ORDER_SCAN_LIMIT = 600;
 
 export const STAGES = ["processing", "purchased", "in_transit", "in_customs", "out_for_delivery", "delivered"];
@@ -62,10 +65,14 @@ const round2 = (n) => Math.round(Number(n) * 100) / 100;
 const num = (v) => (v === null || v === undefined || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 const str = (v, max = 200) => (v == null ? "" : String(v).trim().slice(0, max));
 
-/* ---------------- the wallet rules (Danny, c.6354385327 / c.6355472638) ---------------- */
+/* ---------------- the wallet rules ----------------
+   «Cómo se ganan» is exactly four lines (Danny, #443 c.6569593692): the
+   per-purchase percentage credit rule is KILLED and appears
+   nowhere. The four live in _keyclub.js (EARN_WAYS); how saldo is USED
+   is a separate list. */
 
-export const KEY_CLUB_RATE = 0.05;
-export const FREIGHT_OVERAGE_USD_PER_KG = 13;
+
+export const FREIGHT_OVERAGE_USD_PER_KG = OVERWEIGHT_USD_PER_KG;
 
 /** Merchandise only: product prices x quantity. Never taxes, never freight. */
 export function merchandiseSubtotalUsd(items) {
@@ -79,24 +86,21 @@ export function merchandiseSubtotalUsd(items) {
   return round2(total);
 }
 
-/** Key Club credit: 5% of the merchandise subtotal, proportional, to the cent. S/ 37 earns S/ 1.85. */
-export function keyClubCreditPen(merchandisePen) {
-  const m = num(merchandisePen);
-  return m > 0 ? round2(m * KEY_CLUB_RATE) : 0;
-}
-
 /** Freight overage: the kilos we over-estimated, at the customer rate of $13/kg exact. 1.4 kg is $18.20. */
 export function freightOverageCreditUsd(kgOverEstimated) {
   const kg = num(kgOverEstimated);
   return kg > 0 ? round2(kg * FREIGHT_OVERAGE_USD_PER_KG) : 0;
 }
 
-export const WALLET_RULES = [
-  "$5 por cada $100 en productos con Key Club: el 5% exacto de lo que pagas en productos, sin contar impuestos ni flete.",
-  "Si tu paquete pesa menos de lo que estimamos, te devolvemos la diferencia a $13 por kilo, exacto.",
-  "Las devoluciones y cualquier error nuestro vuelven como saldo al instante.",
+export { EARN_WAYS };
+
+/* How saldo is used (not ways to earn). */
+export const WALLET_USE = [
+  "Las devoluciones vuelven como crédito Aria al instante.",
   "Tu saldo se descuenta solo en tu próxima compra, y puedes usar una parte.",
 ];
+
+export const WALLET_RULES = [...EARN_WAYS, ...WALLET_USE];
 
 /** One balance and the full ledger. Renders at S/ 0.00 too: the wallet never hides. */
 export function walletView(wallet) {
@@ -110,8 +114,12 @@ export function walletView(wallet) {
       reason: str(t.reason, 140),
       orderId: t.orderId ? str(t.orderId, 40) : null,
       balanceAfterPen: num(t.balanceAfterPen),
+      credits: num(t.credits),
     })),
     rules: WALLET_RULES,
+    earnWays: EARN_WAYS,
+    use: WALLET_USE,
+    creditUnit: CREDIT_UNIT,
   };
 }
 
@@ -387,6 +395,8 @@ export function profileView(user, email, { orders = [], recipients = [] } = {}) 
     phone: str(u.phone, 40) || null,
     memberSince: u.createdAt ? str(u.createdAt, 40) : null,
     keyClub: { member, status: member ? "fundador" : (u.founderStatus || "pending") },
+    /* The Key Club membership as the dashboard shows it (_keyclub.js). */
+    club: keyClubView(u),
     recipients: [...seen.values()].filter((r) => r.name || r.docEnd),
   };
 }

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadSearch, searchPage, alsoTry } from "../../netlify/functions/_search-core.js";
+import { loadSearch, searchPage, alsoTry, spellingForms } from "../../netlify/functions/_search-core.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const page = readFileSync(join(ROOT, "search.html"), "utf8");
@@ -31,19 +31,23 @@ await check("«Compara el mismo producto en diferentes tiendas» stands out (bol
   assert.match(css, /color:var\(--blue\)/);
 });
 
-await check("another spelling that finds more is offered: allstar <-> all star, airforce <-> air force", () => {
-  const cases = [["converse all star", "converse allstar"], ["allstar", "all star"], ["airforce 1", "air force 1"], ["sweat shirt", "sweatshirt"]];
-  for (const [q, want] of cases) {
-    const o = searchPage(ctx, q, 1, {});
-    assert.ok(o.alsoTry.some((a) => a.q === want && a.total > o.total), `${q}: ${JSON.stringify(o.alsoTry)}`);
+await check("ONE NAME, ONE SEARCH (#443 c.6568542763): joined, separated and hyphenated spellings give the same results and the same comparison charts", () => {
+  const sig = (q) => { const o = searchPage(ctx, q, 1, {}); return { total: o.total, charts: (o.compares || []).map((c) => c.title) }; };
+  for (const [a, b] of [["converse all star", "converse allstar"], ["all star", "all-star"], ["all star", "allstar"], ["sweat shirt", "sweatshirt"]]) {
+    assert.deepEqual(sig(a), sig(b), a + " vs " + b);
+  }
+  const cs = sig("converse all star");
+  assert.ok(cs.charts.length && cs.charts.some((t) => /AS-1 Pro/.test(t)), "Danny's case: «Converse All Star» separated shows the AS-1 Pro chart: " + JSON.stringify(cs.charts));
+  for (const [a, b] of [["air force 1", "airforce 1"], ["new balance 9060", "newbalance 9060"]]) {
+    const x = sig(a), y = sig(b);
+    assert.deepEqual(x.charts, y.charts, a + " vs " + b + ": charts");
+    assert.ok(Math.abs(x.total - y.total) <= Math.max(10, 0.3 * Math.max(x.total, y.total)), a + " vs " + b + ": " + x.total + " / " + y.total);
   }
 });
 
-await check("no noise: a full answer, or a form that finds no more, offers nothing; never a junk split", () => {
-  for (const q of ["nike", "vestido", "mochila", "air force 1", "converse allstar", "bluetooth"]) assert.deepEqual(searchPage(ctx, q, 1, {}).alsoTry, [], q);
-  for (const q of ["converse all star", "skate board", "sweat shirt"]) {
-    for (const a of searchPage(ctx, q, 1, {}).alsoTry) assert.ok(a.q.split(" ").every((w) => w.length >= 3 || /\d/.test(w)), q + ": " + a.q);
-  }
+await check("no noise: a full answer offers no other spelling; never a junk split", () => {
+  for (const q of ["nike", "vestido", "mochila", "air force 1", "converse allstar", "converse all star", "bluetooth"]) assert.deepEqual(searchPage(ctx, q, 1, {}).alsoTry, [], q);
+  for (const q of ["converse all star", "skate board", "sweat shirt", "allstar"]) for (const { q: f } of spellingForms(ctx, q)) assert.ok(f.split(" ").every((w) => w.length >= 3 || /\d/.test(w)), q + ": " + f);
   assert.deepEqual(alsoTry(ctx, "", 0), []);
 });
 

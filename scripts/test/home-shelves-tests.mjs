@@ -45,7 +45,8 @@ check("every home store rail and rail family has its slice", () => {
     assert.ok(existsSync(DIR + `store-${k}.json`), `store-${k}.json is missing`);
     assert.ok(read(`store-${k}.json`).picks.length > 0, `store-${k}.json is empty`);
   }
-  for (const f of ["category.json", "bolsos.json", "joyas.json", "joyasLujo.json", "moda.json"]) assert.ok(existsSync(DIR + f), `${f} is missing`);
+  /* moda.json left with «Moda de diseñador» (Danny, #443 c.6568648466). */
+  for (const f of ["category.json", "bolsos.json", "joyas.json", "joyasLujo.json"]) assert.ok(existsSync(DIR + f), `${f} is missing`);
   assert.ok(Object.keys(read("category.json").rails).length >= 10, "the category zone slice is thin");
   assert.ok(index.tiles.length > 0 && index.brandStrip.length > 0, "tiles or brand strip missing");
 });
@@ -76,6 +77,31 @@ check("every product on a shelf is still sold, with a photo and a price", () => 
   assert.ok(n > 300, `only ${n} shelf cards`);
   assert.deepEqual(broken, [], "cards without a price, photo or title");
   assert.equal(stale.length, 0, `${stale.length} shelf products are no longer in the catalogues, e.g. ${stale.slice(0, 3).join(" | ")} — run: node scripts/build-home-shelves.mjs`);
+});
+
+check("Aria Perfumes SKUs ride only perfume rails (shelves, pills, category and store pills)", () => {
+  /* Danny, #443 c.6568732461: a Euphoria body lotion rode «Moda de diseñador».
+     A rail may carry an ariaperfumes item only when its file or rail key names
+     perfume (or it is the store's own rail). */
+  const perfumeKey = (k) => /perfum/i.test(k) || k === "ariaperfumes";
+  const leaks = [];
+  const walk = (o, where) => {
+    if (!where) return;
+    if (Array.isArray(o)) { o.forEach((v) => walk(v, where)); return; }
+    if (!o || typeof o !== "object") return;
+    if (String(o.retailer || o.r || "").toLowerCase() === "ariaperfumes" && (o.title || o.t)) leaks.push(`${where}: ${o.title || o.t}`);
+    for (const [k, v] of Object.entries(o)) if (v && typeof v === "object") walk(v, perfumeKey(k) ? null : where);
+  };
+  for (const sub of ["shelves", "pills", "category-pills", "store-pills"]) {
+    const d = ROOT + "assets/home/" + sub + "/";
+    if (!existsSync(d)) continue;
+    for (const f of readdirSync(d).filter((f) => f.endsWith(".json") && f !== "index.json")) {
+      const body = JSON.parse(readFileSync(d + f, "utf8"));
+      const name = f.replace(/\.json$/, "").replace(/^store-/, "");
+      walk(body, perfumeKey(name) ? null : `${sub}/${f}`);
+    }
+  }
+  assert.deepEqual(leaks.slice(0, 10), [], `${leaks.length} ariaperfumes items outside perfume rails`);
 });
 
 check("the slices stay small (the whole set under 100KB gzipped)", () => {
