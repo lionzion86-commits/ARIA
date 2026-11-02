@@ -280,6 +280,14 @@ await check("models first: Bikinis and Lencería open on a model shot in every v
   assert.ok(sk && isModel(sk), "the first SKIMS card in Lencería is not on its model photo");
 });
 
+await check("Montce naming: lifestyle frames are on-model, studio frames are the product on white (Danny live, c.6585853439)", () => {
+  assert.equal(modelShot("montce", "https://x/LimeIcing_SimoneBikiniTop_lifestyle_front.jpg?v=1"), true);
+  assert.equal(modelShot("montce", "https://x/coral_lulubikinibottom_lifestylefront.jpg"), true);
+  assert.equal(modelShot("montce", "https://x/black_kimvariationbikinitop_studio_front.jpg?v=1"), false);
+  assert.equal(modelShot("montce", "https://x/shrimpgingham_elanybikinitop_studiofront.jpg"), false);
+  const todas = JSON.parse(readFileSync(join(ROOT, "assets/home/category-pills/bano-todas.json"), "utf8")).cards;
+  assert.ok(!/studio/i.test(todas[0].image), "the Bikinis lead is a studio (product-on-white) frame: " + todas[0].image);
+});
 await check("models first where the data allows: Gym Rat and Fight Club open on a model shot inside their own rules; Beauty and Tenis carry none", () => {
   const isModel = (c) => modelShot(c.retailer, c.image) === true;
   assert.ok(isModel(category.gym_rat[0]), "Gym Rat opens on " + category.gym_rat[0].image);
