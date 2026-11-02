@@ -31,7 +31,7 @@
    storefront, a brand with a static marca.html head, a department of
    departamento.html and its type lenses can be a destination.
    ================================================================== */
-import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor } from "./_search-core.js";
+import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor, canonicalTokens, pairCount, dictWords } from "./_search-core.js";
 
 export const DEST_FILE = "assets/search/destinations.json";
 export const CHOOSER_MAX = 3, ALT_MAX = 4, RAIL_ITEMS = 12;
@@ -457,6 +457,151 @@ export const isAccessoryQuery = (q) => ACCESSORY_RX.test(deaccent(q)) && DEVICE_
 const ACCESSORY_EN = [[/\b(cases?|fundas?|forros?|estuches?|covers?)\b/, "case"], [/\b(cargador(es)?|chargers?)\b/, "charger"],
   [/\b(micas?|protector(es)?)\b/, "screen protector"], [/\bcables?\b/, "cable"]];
 
+/* ---------- one query, one destination (#443 c.6585818498, c.6585840723) ----------
+   Every variant of a name routes as one query: the router reads the
+   ROUTE KEY, never the typed text. It starts from the engine's canonical
+   form (_search-core.js canonicalTokens: case, accents, punctuation,
+   numerals, joined/apart) and adds, by rule:
+     - brand initials: a brand whose name has two or more words or
+       capitalised parts answers to its initials and its numbers
+       ("New Balance" -> nb, "PlayStation 5" -> ps5), when those
+       initials are one brand's (or one brand's by far), are not a word
+       Aria's vocabulary or a store knows, and are rare in titles;
+     - spelling: a word nothing knows (5+ letters, under 3 titles) is
+       the closest known name -- a brand, a store, a product or
+       category word, a word 5+ titles carry -- within one edit (two
+       from ten letters); a tie goes to Aria's own names, then to the
+       word the catalogue writes next to its neighbours;
+     - singular and plural: a word is its -s/-es family's one member --
+       a brand's or store's name when one is (its name plus -s), else the form
+       titles carry most (Spanish, which titles do not carry: the plural);
+     - word order: the store the query names, or else its biggest brand
+       (50+ products), leads ("samba adidas" is "adidas samba"); a name
+       under three letters stays where it is (it reads as a word).
+   The router's answer depends only on the key, so every variant gets
+   the identical destination, alternatives and url. */
+const KEY_TYPO_MIN = 5, KEY_TYPO_RARE = 3, KEY_MODEL_WORD = 20, KEY_TYPO_TARGET = 5, ABBR_RARE = 200, ABBR_BRAND_MIN = 10;
+function lexicon(ctx, D) {
+  if (D._lex) return D._lex;
+  const W = (ctx.products && ctx.products._windex) || new Map();
+  const freq = (w) => { const l = W.get(w); return l ? l.length : 0; };
+  /* Aria's own names and words (tier 1) and the catalogue's (tier 2). */
+  const own = new Set();
+  const addWords = (s) => { for (const w of wordsOf(s)) if (w.length >= 2) own.add(w); };
+  for (const k of D.brandNames.keys()) own.add(k);
+  for (const k of D.storeNames.keys()) own.add(k);
+  for (const [, [label]] of Object.entries(D.brands)) addWords(label);
+  for (const label of Object.values(D.stores)) addWords(label);
+  for (const k of D.vocab.keys()) addWords(k);
+  for (const k of D.productWords.keys()) addWords(k);
+  for (const k of D.en.keys()) addWords(k);
+  for (const w of dictWords(ctx)) own.add(w);
+  for (const w of Object.keys(AUDIENCE)) own.add(w);
+  const typo = new Map();
+  const put = (w, tier) => { if (!/^[a-z]+$/.test(w) || w.length < 4) return; const was = typo.get(w); if (!was || tier < was.tier) typo.set(w, { tier, n: freq(w) }); };
+  for (const w of own) put(w, 1);
+  for (const [w, l] of W) if (l.length >= KEY_TYPO_TARGET) put(w, 2);
+  const byLen = new Map();
+  for (const [w, v] of typo) { let a = byLen.get(w.length); if (!a) byLen.set(w.length, a = []); a.push([w, v]); }
+  /* Brand initials -> the brand's words. */
+  const initials = new Map();
+  for (const [key, [label, n]] of Object.entries(D.brands)) {
+    if (n < ABBR_BRAND_MIN) continue;
+    const parts = String(label).normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^A-Za-z0-9]+/)
+      .flatMap((p) => p.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Za-z])(?=\d)|(?<=\d)(?=[A-Za-z])/)).filter(Boolean);
+    const alpha = parts.filter((p) => /^[A-Za-z]{2,}$/.test(p));
+    if (alpha.length < 2) continue;
+    const ab = parts.map((p) => (/^\d+$/.test(p) ? p : /^[A-Za-z]{2,}$/.test(p) ? p[0] : "")).join("").toLowerCase();
+    if (ab.length < 2) continue;
+    let a = initials.get(ab); if (!a) initials.set(ab, a = []); a.push([key, n]);
+  }
+  const abbr = new Map();
+  for (const [ab, list] of initials) {
+    list.sort((x, y) => y[1] - x[1]);
+    if (list.length > 1 && list[0][1] < 5 * list[1][1]) continue;
+    if (own.has(ab) || FILLER.has(ab) || STORE_FILLER.has(ab) || STORE_ALIASES[ab] || freq(ab) >= ABBR_RARE) continue;
+    abbr.set(ab, wordsOf(D.brands[list[0][0]][0]));
+  }
+  return (D._lex = { own, typo, byLen, abbr, freq });
+}
+const lexLess = (a, b) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] < b[i]; return false; };
+/* The closest known word to an unknown one, or "". */
+function respelled(ctx, L, D, w, prev, next) {
+  if (w.length < KEY_TYPO_MIN || !/^[a-z]+$/.test(w) || L.own.has(w) || L.freq(w) >= KEY_TYPO_RARE) return "";
+  /* The start of a store's or brand's name is that name (storeOf). */
+  for (const names of [D.storeNames, D.brandNames]) for (const n of names.keys()) if (n.startsWith(w) && w.length >= n.length * 0.5) return "";
+  const max = w.length >= 10 ? 2 : 1;
+  let best = null;
+  for (let len = w.length - max; len <= w.length + max; len++) {
+    for (const [c, v] of L.byLen.get(len) || []) {
+      const d = editDistance(w, c, max);
+      if (d > max) continue;
+      const side = (prev ? pairCount(ctx, prev, c) : 0) + (next ? pairCount(ctx, c, next) : 0);
+      const rank = [d, v.tier, -side, -v.n];
+      if (!best || lexLess(rank, best.rank)) best = { c, rank };
+    }
+  }
+  return best ? best.c : "";
+}
+/* The -s/-es family member Aria's vocabulary uses, or the word. */
+function singularPlural(L, D, w) {
+  if (w.length < 4 || !/^[a-z]+$/.test(w) || D.brandNames.has(w) || D.storeNames.has(w)) return w;
+  const bases = new Set([w]);
+  if (w.endsWith("s")) bases.add(w.slice(0, -1));
+  if (w.endsWith("es")) bases.add(w.slice(0, -2));
+  const fam = new Set();
+  for (const b of bases) if (b.length >= 3) { fam.add(b); fam.add(b + "s"); fam.add(b + "es"); }
+  /* Its members: the forms Aria's vocabulary or the catalogue
+     (KEY_MODEL_WORD titles) writes -- a brand's own name among them. */
+  const members = [...fam].filter((m) => L.own.has(m) || L.freq(m) >= KEY_MODEL_WORD);
+  if (!members.length) return w;
+  const named = members.find((m) => D.brandNames.has(m) || D.storeNames.has(m));
+  if (named) return named;
+  members.sort((a, b) => (L.freq(b) - L.freq(a)) || (Number(b.endsWith("s")) - Number(a.endsWith("s"))) || (a < b ? -1 : 1));
+  return members[0];
+}
+/** The route key of a query: the one text every variant of it routes as. */
+export function routeKey(ctx, D, q) {
+  const memo = D._keys || (D._keys = new Map());
+  const typed = String(q == null ? "" : q).trim().slice(0, 120);
+  const mk = typed.toLowerCase();
+  if (memo.has(mk)) return memo.get(mk);
+  const L = lexicon(ctx, D);
+  let toks = canonicalTokens(ctx, typed);
+  /* Brand initials ("nb 550", "ps5"). */
+  const ab = [];
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i], n = toks[i + 1];
+    if (L.abbr.has(t)) { ab.push(...L.abbr.get(t)); continue; }
+    if (n && /^\d+$/.test(n) && L.abbr.has(t + n)) { ab.push(...L.abbr.get(t + n)); i++; continue; }
+    ab.push(t);
+  }
+  toks = ab;
+  /* Spelling, then singular/plural. */
+  toks = toks.map((t, i) => respelled(ctx, L, D, t, toks[i - 1], toks[i + 1]) || t);
+  toks = toks.map((t) => singularPlural(L, D, t));
+  /* The store, or else the biggest brand, the query names leads. */
+  if (toks.length >= 2 && toks.length <= 4) {
+    const skip = (p) => D.vocab.has(p) || FILLER.has(p) || !!AUDIENCE[p];
+    let lead = null;
+    for (let i = 0; i < toks.length; i++) {
+      for (let j = Math.min(toks.length, i + 4); j > i; j--) {
+        const k = toks.slice(i, j).join("");
+        if (k.length < 3 || skip(toks.slice(i, j).join(" "))) continue;
+        const w = D.storeNames.has(k) ? 1e9 + (j - i) : D.brandNames.has(k) ? D.brands[D.brandNames.get(k)][1] : -1;
+        if (w < 0) continue;
+        if (!lead || w > lead.w) lead = { from: i, to: j, w };
+        break;
+      }
+    }
+    if (lead && lead.from > 0 && lead.w >= 50) toks = [...toks.slice(lead.from, lead.to), ...toks.slice(0, lead.from), ...toks.slice(lead.to)];
+  }
+  const key = toks.join(" ");
+  memo.set(mk, key);
+  if (memo.size > 5000) memo.delete(memo.keys().next().value);
+  return key;
+}
+
 /* ---------- the router ---------- */
 /**
  * Where `q` lands: { q, destination, alternatives, chooser? }.
@@ -464,7 +609,21 @@ const ACCESSORY_EN = [[/\b(cases?|fundas?|forros?|estuches?|covers?)\b/, "case"]
  */
 export function destinationFor(ctx, q, { fx = null, read = readRepoFile } = {}) {
   const D = destinations(ctx, read);
-  const query = String(q == null ? "" : q).trim().replace(/\s+/g, " ").slice(0, 120);
+  const typed = String(q == null ? "" : q).trim().replace(/\s+/g, " ").slice(0, 120);
+  /* The router reads the route key: every variant of a name is one query. */
+  const query = routeKey(ctx, D, typed) || typed;
+  const out = routeOf(ctx, D, query, fx, read, 0);
+  out.q = typed;
+  if (query !== typed) out.canonical = query;
+  if (out.chooser) out.chooser.title = out.chooser.title.replace("“" + query + "”", "“" + typed + "”");
+  return out;
+}
+/* Known words: the catalogue carries them, or Aria's vocabulary does. */
+function isKnownWord(ctx, D, w) {
+  const L = lexicon(ctx, D);
+  return L.own.has(w) || L.freq(w) >= KEY_TYPO_RARE;
+}
+function routeOf(ctx, D, query, fx, read, depth) {
   const words = wordsOf(query);
   const key = nameKey(query);
   if (key.length < 2) return chooserAnswer(ctx, D, query, [], fx, "short");
@@ -506,6 +665,16 @@ export function destinationFor(ctx, q, { fx = null, read = readRepoFile } = {}) 
       if (nq) return withAlternatives(ctx, D, query, deptDest(D, d[0], { q: nq }), hits);
     }
     return chooserAnswer(ctx, D, query, hits, fx, "low");
+  }
+  /* Unknown words beside known ones ("samba blorptastic", "nike air
+     zoomzoom9000"): the known words route -- the closest real match,
+     never a dead end. */
+  if (!depth && words.length >= 2) {
+    const known = words.filter((w) => isKnownWord(ctx, D, w));
+    if (known.length && known.length < words.length && known.some((w) => !/^\d+$/.test(w) && !FILLER.has(w))) {
+      const out = routeOf(ctx, D, known.join(" "), fx, read, 1);
+      if (out.destination.kind !== "chooser" || out.chooser.reason !== "doors") return out;
+    }
   }
   /* A miss: one close spelling of one kind lands there; otherwise the
      chooser of the closest store, brand and category. */
@@ -621,6 +790,11 @@ function alternativesFor(ctx, D, query, dest, hits, extra = []) {
   return out;
 }
 function withAlternatives(ctx, D, query, dest, hits, extra = []) {
+  /* A model with unknown words beside known ones keeps the known ones. */
+  if (dest.q && (dest.kind === "brand" || dest.kind === "store")) {
+    const w = wordsOf(dest.q), known = w.filter((x) => isKnownWord(ctx, D, x));
+    if (known.length && known.length < w.length) dest = dest.kind === "brand" ? brandDest(D, dest.key, known.join(" ")) : storeDest(D, dest.key, known.join(" "));
+  }
   /* An unambiguous product word: its sibling types and its department
      only -- no brand or store guess that contradicts the word. */
   const alternatives = dest.ptype ? typeAlternatives(D, dest.ptype) : alternativesFor(ctx, D, query, dest, hits, extra);

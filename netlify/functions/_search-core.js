@@ -545,6 +545,184 @@ export function equivalentQuery(ctx, q) {
   return out;
 }
 
+/* ONE QUERY, ONE FORM (#443 c.6585818498, c.6585840723 -- Danny: "There
+   are so many variations... a lot."). Every spelling of the same name is
+   one search, by rule and not by an alias list: «air force one»,
+   «airforce1», «Air-Force-1» and «AIR FORCE ONE» are all "air force 1".
+   The rules, applied to any query, in order:
+     1. case, accents, diacritics, punctuation, repeated spaces (the
+        engine's own tokenizer: «Ñike» is "nike", «café» "cafe");
+     2. letters and digits apart ("airforce1" -> "airforce 1",
+        "iphone15" -> "iphone 15"); a digit ordinal is its number
+        ("1st", "2do", "3ra" -> 1, 2, 3);
+     3. a number word after a model word is its numeral, English and
+        Spanish ("jordan one", "playstation five", "iphone quince"); a
+        number word that opens the query, follows a filler word or names
+        a construction ("one piece", "two tone") stays a word -- and a
+        quantity ("1 kg", "2 pack") is never touched: digits are already
+        the canonical form;
+     4. joined, separated or hyphenated: each word, and each pair of
+        neighbouring words, takes the form the catalogue itself writes
+        -- the joined word's product count against the number of titles
+        that carry the parts side by side, one beating the other by
+        FORM_MARGIN ("air force" 149 vs "airforce" 0: two words; "s 24"
+        0 vs "s24" 3: one word; a joined string parts into up to four
+        words, "classicslipon" -> "classic slip on"). Where the two are
+        close the catalogue writes both for different things ("max 90"
+        16, "max90" 33 -- a tee line), and the typed form stands.
+        A word of the search dictionary (Spanish) is never split.
+   The engine (searchPage, lanePage) runs the result; the destination
+   router (_search-destinations.js routeKey) starts from it and adds
+   what only a destination needs (brand initials, spelling against the
+   known names, singular/plural, word order). Cached per container. */
+const NUM_UNITS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11,
+  twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+  cero: 0, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12,
+  trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20,
+  veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29 };
+const NUM_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, treinta: 30, cuarenta: 40, cincuenta: 50 };
+/* After these a number word is a quantity or an article, not a model. */
+const NUM_AFTER = new Set("de del para el la los las con y en un una unos unas por al a an the for and of with to by in on at x pack set".split(" "));
+/* Before these a number word is part of a construction ("one piece"). */
+const NUM_BEFORE = new Set("piece pieces pieza piezas shoulder size sizes strap straps tone toned way button buttons line lines step steps tier layer layers".split(" "));
+const ORDINAL_RX = /^(\d{1,3})(st|nd|rd|th|ro|ra|er|era|do|da|to|ta|mo|ma|vo|va|no|na)$/;
+const SPLIT_MIN = 2;           // a split must be seen side by side in at least this many titles
+const ADJ_SCAN_MAX = 20000;    // titles read to count a pair side by side
+
+function windexOf(ctx) { return (ctx.products && ctx.products._windex) || new Map(); }
+const wfreq = (ctx, w) => { const l = windexOf(ctx).get(w); return l ? l.length : 0; };
+/* The search dictionary's own words (Spanish): never split. */
+export function dictWords(ctx) {
+  if (ctx._dictWords) return ctx._dictWords;
+  const out = new Set();
+  let raw = null;
+  try { raw = JSON.parse(readRepoFile(DICT_FILE)); } catch { raw = null; }
+  for (const sec of Object.values(raw || {})) {
+    if (!sec || typeof sec !== "object" || Array.isArray(sec)) continue;
+    for (const k of Object.keys(sec)) for (const w of ctx.S.searchTokens(k)) out.add(w);
+  }
+  return (ctx._dictWords = out);
+}
+/* Titles that carry the words `seq` side by side, in that order. */
+export function pairCount(ctx, ...seq) {
+  const key = seq.join(" ");
+  const memo = ctx._pairs || (ctx._pairs = new Map());
+  if (memo.has(key)) return memo.get(key);
+  const W = windexOf(ctx);
+  let small = null;
+  for (const w of seq) { const l = W.get(w); if (!l) { small = null; break; } if (!small || l.length < small.length) small = l; }
+  let n = 0;
+  if (small) {
+    const end = Math.min(small.length, ADJ_SCAN_MAX);
+    for (let i = 0; i < end; i++) {
+      const p = small[i], t = ctx.S.searchTokens(String(p.title || "") + " " + String(p.brand || ""));
+      for (let k = 0; k + seq.length <= t.length; k++) if (seq.every((w, m) => t[k + m] === w)) { n++; break; }
+    }
+  }
+  memo.set(key, n);
+  if (memo.size > 50000) memo.delete(memo.keys().next().value);
+  return n;
+}
+/* A string may part as `a` + `b`: each part letters or digits, and a
+   one-letter part only before a number ("s 24") or as "t shirt". */
+function canPart(a, b) {
+  const da = /^\d+$/.test(a), db = /^\d+$/.test(b);
+  if (!/^([a-z]+|\d+)$/.test(a)) return false;
+  if (a.length < 2 && !da && !/^\d/.test(b) && a !== "t") return false;
+  if (b.length < 2 && !da && !db) return false;
+  return true;
+}
+/* The best way to write one string of letters/digits as two to
+   FORM_PARTS words, by the titles that carry those words in that order:
+   { score, parts } or null. */
+const FORM_PARTS = 4, FORM_MARGIN = 3;
+function bestParts(ctx, j, depth = 1) {
+  const memo = ctx._forms || (ctx._forms = new Map());
+  const mk = depth + ":" + j;
+  if (memo.has(mk)) return memo.get(mk);
+  let best = null;
+  if (!dictWords(ctx).has(j) && depth < FORM_PARTS) {
+    const whole = wfreq(ctx, j);
+    for (let k = 1; k < j.length; k++) {
+      const a = j.slice(0, k), b = j.slice(k);
+      if (!canPart(a, b)) continue;
+      const fa = wfreq(ctx, a), floor = Math.max(SPLIT_MIN, best ? best.score + 1 : 0);
+      if (fa < floor) continue;
+      const sub = bestParts(ctx, b, depth + 1);
+      const rest = sub && sub.score > FORM_MARGIN * wfreq(ctx, b) ? sub.parts : [b];
+      const parts = [a, ...rest];
+      if (Math.min(...parts.map((w) => wfreq(ctx, w))) < floor) continue;
+      const sc = pairCount(ctx, ...parts);
+      if (sc >= floor && sc > FORM_MARGIN * whole) best = { score: sc, parts };
+    }
+  }
+  memo.set(mk, best);
+  if (memo.size > 20000) memo.delete(memo.keys().next().value);
+  return best;
+}
+/* One typed word: apart when the titles write it apart by far. */
+function formOf(ctx, t) {
+  const b = bestParts(ctx, t);
+  return b ? b.parts : [t];
+}
+/* Two typed words: one word when the titles write them joined by far. */
+function joins(ctx, a, b) {
+  if (!canPart(a, b) || (/^\d+$/.test(a) && /^\d+$/.test(b))) return false;
+  const j = a + b;
+  if (dictWords(ctx).has(j)) return true;
+  const whole = wfreq(ctx, j);
+  if (!whole) return false;
+  const bp = bestParts(ctx, j);
+  return whole > FORM_MARGIN * Math.max(pairCount(ctx, a, b), bp ? bp.score : 0);
+}
+const isNum = (t) => /^\d+$/.test(t);
+const isAlpha = (t) => /^[a-z]+$/.test(t);
+/** The tokens of a query in their one canonical form (see above). */
+export function canonicalTokens(ctx, q) {
+  let toks = ctx.S.searchTokens(String(q == null ? "" : q).slice(0, 120));
+  /* 2. letters and digits apart; digit ordinals are numbers. */
+  toks = toks.flatMap((t) => {
+    const o = ORDINAL_RX.exec(t);
+    if (o) return [o[1]];
+    return /\d/.test(t) && /[a-z]/.test(t) ? t.match(/\d+|[a-z]+/g) : [t];
+  });
+  /* 3. number words after a model word. */
+  const out = [];
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i], prev = out[out.length - 1], next = toks[i + 1];
+    const modelSide = prev && isAlpha(prev) && !NUM_AFTER.has(prev) && !(prev in NUM_UNITS) && !(prev in NUM_TENS) && !NUM_BEFORE.has(next);
+    if (modelSide && t in NUM_TENS) {
+      const u = next in NUM_UNITS && NUM_UNITS[next] < 10 && NUM_UNITS[next] > 0 ? NUM_UNITS[next] : 0;
+      out.push(String(NUM_TENS[t] + u)); if (u) i++;
+      continue;
+    }
+    if (modelSide && t in NUM_UNITS) { out.push(String(NUM_UNITS[t])); continue; }
+    out.push(t);
+  }
+  /* 4. joined or apart: the catalogue's form. */
+  const res = [];
+  for (let i = 0; i < out.length; i++) {
+    const a = out[i], b = out[i + 1];
+    if (b !== undefined && joins(ctx, a, b)) { res.push(a + b); i++; continue; }
+    res.push(...formOf(ctx, a));
+  }
+  return res;
+}
+/** The query in its canonical form: the typed text itself when it is
+    already canonical (the engine reads it exactly as before). */
+export function canonicalQuery(ctx, q) {
+  const typed = String(q == null ? "" : q).trim().slice(0, 120);
+  if (!ctx || !ctx.S || typeof ctx.S.searchTokens !== "function") return typed;
+  const memo = ctx._canon || (ctx._canon = new Map());
+  const key = cacheKey(typed);
+  if (memo.has(key)) return memo.get(key) === null ? typed : memo.get(key);
+  const c = canonicalTokens(ctx, typed).join(" ");
+  const same = c === ctx.S.searchTokens(typed).join(" ");
+  memo.set(key, same ? null : c);
+  if (memo.size > 5000) memo.delete(memo.keys().next().value);
+  return same ? typed : c;
+}
+
 /* ============================================================
    THE MALL, NOT A WALL (2026-10-19, #416: Danny on "dolls").
 
@@ -969,7 +1147,7 @@ function doctrineLanes(ctx, q, r) {
 }
 /* One more page of one lane ("Ver más" re-rails it). */
 export function lanePage(ctx, q, laneKey, offset = 0, { fx = null } = {}) {
-  const query = String(q == null ? "" : q).trim().slice(0, 120);
+  const query = canonicalQuery(ctx, String(q == null ? "" : q).trim().slice(0, 120));
   const r = equivalentQuery(ctx, query);
   if (r.state !== "results") return null;
   const l = doctrineLanes(ctx, query, r).lanes.find((x) => x.key === laneKey);
@@ -1452,7 +1630,9 @@ export function cardOf(p, fx, labels = {}) {
  * state: "results" | "none" | "short" | "empty" | "error"
  */
 export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE } = {}) {
-  const query = String(q == null ? "" : q).trim().slice(0, 120);
+  const typed = String(q == null ? "" : q).trim().slice(0, 120);
+  /* Every variant of a name is one search (canonicalQuery). */
+  const query = canonicalQuery(ctx, typed);
   const r = equivalentQuery(ctx, query);
   const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
   /* The total counts every product found: the grid's and the
@@ -1468,7 +1648,8 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   /* A store's name: its page (the doctrine, item 1). */
   const store = n === 1 ? storeFor(ctx, query) : null;
   return {
-    q: query,
+    q: typed,
+    ...(query !== typed ? { canonical: query } : {}),
     state: r.state,
     store: store || null,
     page: n,
