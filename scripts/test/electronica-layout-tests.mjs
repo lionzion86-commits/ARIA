@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import { conditionOfTitle } from "../lib/condition.js";
 import { TECH_AISLE_LABELS } from "../lib/tech-aisle.js";
 import { MEDIA_RX } from "../build-department-slices.mjs";
-import { loadDept, buildSections, sectionOpts, isStudyLaptop, answer, REFURB_NOTE, STUDY_NOTE, STUDY_LAPTOP_MAX, homeTechPills, HOME_PILL_MIN, phoneSellRank, PHONE_SELL_LINE_USD, PHONE_PROMOTED_SLOT, phoneBrandRank, PHONE_LEAD_BRANDS, PHONE_RANKS, celularesOrder } from "../../netlify/functions/_department-core.js";
+import { loadDept, buildSections, sectionOpts, isStudyLaptop, answer, REFURB_NOTE, STUDY_NOTE, STUDY_LAPTOP_MAX, homeTechPills, HOME_PILL_MIN, phoneSellRank, PHONE_SELL_LINE_USD, phoneKnownRank, phoneBrandRank, PHONE_LEAD_BRANDS, PHONE_RANKS, celularesOrder } from "../../netlify/functions/_department-core.js";
 import { isAccessoryName } from "../lib/tech-aisle.js";
 import { readdirSync } from "node:fs";
 
@@ -119,10 +119,11 @@ check("the homepage Electrónica carousel: Ofertas, then Danny's four types, eve
   assert.deepEqual(home, JSON.parse(JSON.stringify({ v: 1, pills: fresh.pills.map((p) => ({ k: p.k, label: p.label, cards: p.cards })) })), "home.json is stale: run build-department-slices");
 });
 
-check("Celulares, sellable first: phones under the US$200 line lead, the iPhone 18 promoted, the other flagships last", () => {
-  /* Danny's rulings (#443 c.6531245142, c.6535121937) supersede the
-     Peru-presence order for display: what a Peruvian wallet buys leads;
-     THE iPhone Aria promotes is the 18; other new flagships go last. */
+check("Celulares: the phones people ask for by name lead (iPhone, Galaxy, Pixel, Motorola), the no-name budget Androids after; sellable first inside a brand", () => {
+  /* Danny's commercial-leads rule (#443 c.6579505156) decides who OPENS
+     Celulares; his sellable-first rulings (c.6531245142, c.6535121937)
+     still order each brand: the iPhone 18 first among iPhones, the
+     cheaper Galaxy A before the S flagships. */
   const rank = (t, price, b = "") => phoneSellRank({ title: t, brand: b, rawPrice: price });
   assert.equal(PHONE_SELL_LINE_USD, 200);
   assert.equal(rank("BLU G35 6.5\u201d Infinity Display 32GB", 69.99, "BLU"), 0);
@@ -132,23 +133,30 @@ check("Celulares, sellable first: phones under the US$200 line lead, the iPhone 
   assert.equal(rank('6.3" Pixel 9a 256GB 5G Android Obsidian', 499.99), 2, "the mid range");
   assert.equal(rank('6.3" iPhone 17 Pro 256GB Sim-Free Silver', 1099), 3, "another new flagship: last");
   assert.equal(rank("Samsung Galaxy S25 Ultra 512GB", 1299, "Samsung"), 3);
-  /* A refurbished phone is exempt from the flagship tier. */
   assert.equal(rank("Apple iPhone 13 Pro Max 128GB - Reacondicionado", 549.99), 2);
+  const known = (t, b = "") => phoneKnownRank({ title: t, brand: b });
+  assert.equal(known("iPhone 18 Pro 256GB in Silver", "Apple"), 0);
+  assert.equal(known("Samsung Galaxy A14 5G"), 1);
+  assert.equal(known('6.1" 7a 5G 128GB Charcoal Smartphone', "Google"), 2, "BrandsMart's Pixel, by its brand field");
+  assert.equal(known('6.67" moto E15 64GB Storage', "Motorola"), 3);
+  for (const [t, b] of [["FYTPOV Android Phone, R35 Smartphone", "FYTPOV"], ["MIRO A1 Cellphone 6''", "MIRO"], ["NANNEE Green Unlocked 4G Android Smartphone", "NANNEE"]]) assert.equal(known(t, b), -1, t);
 
+  const check24 = (cards, where) => {
+    const names = cards.map((c) => c.t.slice(0, 28)).join(" | ");
+    const ranks = cards.map((c) => phoneKnownRank({ title: c.t, brand: c.b }));
+    assert.match(cards[0].t, /iphone/i, where + ": an iPhone opens Celulares: " + names);
+    assert.deepEqual(ranks.slice(0, 4), [0, 1, 2, 3], where + ": iPhone, Galaxy, Pixel, Motorola first: " + names);
+    const nn = ranks.indexOf(-1);
+    assert.ok(nn === -1 || ranks.slice(nn).every((r) => r === -1), where + ": a no-name phone before a known brand: " + names);
+    assert.ok(cards.slice(0, 2).some((c) => /iphone\s*18/i.test(c.t)), where + ": the iPhone 18 is the iPhone that leads: " + names);
+  };
   const cards = JSON.parse(readFileSync(ROOT + "assets/sections/departamento/electronics/home-tech_celulares.json", "utf8")).cards;
-  const names = cards.map((c) => c.t.slice(0, 28)).join(" | ");
-  /* The first screen: accessible phones open it, the iPhone 18 Pro and Pro Max right behind. */
-  for (const c of cards.slice(0, PHONE_PROMOTED_SLOT)) assert.ok(c.p <= PHONE_SELL_LINE_USD, "an accessible phone opens Celulares: " + names);
-  const promoted = cards.slice(PHONE_PROMOTED_SLOT, PHONE_PROMOTED_SLOT + 2).map((c) => c.t);
-  assert.ok(promoted.length === 2 && promoted.every((t) => /iphone\s*18/i.test(t)), "the iPhone 18 is promoted: " + names);
-  const rest = cards.filter((c) => !/iphone\s*18/i.test(c.t)).map((c) => phoneSellRank({ title: c.t, brand: c.b, rawPrice: c.p }));
-  assert.deepEqual(rest, [...rest].sort((a, b) => a - b), "the lens never steps back a tier: " + names);
-  assert.ok(!rest.includes(3), "no non-18 flagship reaches the 24 cards the pill draws");
+  check24(cards, "the home pill");
   /* The aisle rail of departamento.html carries the same order. */
   const aisle = sections.find((x) => x.key === "pasillo:tech_celulares");
   assert.ok(aisle && aisle.items.length > 8, "the Celulares aisle");
   assert.equal(celularesOrder(aisle.items).map((p) => p.title).join("|"), aisle.items.map((p) => p.title).join("|"), "already ordered");
-  assert.ok(aisle.items.slice(PHONE_PROMOTED_SLOT, PHONE_PROMOTED_SLOT + 2).every((p) => /iphone\s*18/i.test(p.title)), "the aisle promotes the 18 too");
+  check24(aisle.items.map((p) => ({ t: p.title, b: p.brand })), "the aisle");
   /* What merely pairs with a phone never reaches the lens. */
   for (const c of cards) assert.doesNotMatch(c.t, /\b(marine|gimbal|grip)\b/i, c.t);
 });

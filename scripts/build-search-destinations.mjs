@@ -15,7 +15,12 @@
              (assets/sections/marca/<key>.json): its label and count;
      depts   departamento.html's DEPTS (name; aliases left out), each with
              its type lenses (assets/sections/departamento/<k>/lens-tipo-*):
-             slug -> label, the t= values the department endpoint answers.
+             slug -> label, the t= values the department endpoint answers;
+     types   each department's TYPE rails (head.json: Celulares, Shorts,
+             Keratina y alisados...) -- rail key -> [title, count], the
+             ver= values departamento.html opens as a type page. Only a
+             rail with products is listed: a search can never land on an
+             empty type (#443 c.6579541628).
 
      node scripts/build-search-destinations.mjs           write it
      node scripts/build-search-destinations.mjs --check   exit 1 if stale
@@ -29,6 +34,8 @@ import { storeDoors } from "./build-store-doors.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const OUT = "assets/search/destinations.json";
+/* A department rail that is a product type (not Ofertas, a store or a brand). */
+export const TYPE_RAIL_RX = /^((tipo|pasillo|aisle|casa):.+|chromebooks|consolas|reacondicionados|estudio)$/;
 
 export function buildDestinations(root = ROOT) {
   const tienda = readFileSync(join(root, "tienda.html"), "utf8");
@@ -64,7 +71,23 @@ export function buildDestinations(root = ROOT) {
     }
     depts[key] = Object.keys(lenses).length ? [m[2], lenses] : [m[2]];
   }
-  return { v: 1, stores, brands, depts };
+  /* The type rails a search may open (departamento.html?dept=X&ver=<key>):
+     product types only -- never Ofertas, a store, a brand or «Más productos». */
+  const types = {};
+  for (const key of Object.keys(depts)) {
+    const hf = join(root, "assets/sections/departamento", key, "head.json");
+    if (!existsSync(hf)) continue;
+    let head;
+    try { head = JSON.parse(readFileSync(hf, "utf8")); } catch { continue; }
+    const out = {};
+    for (const r of head.rails || []) {
+      const k = String(r.k || "");
+      if (!TYPE_RAIL_RX.test(k) || /:(otros|mas)$/.test(k) || !(Number(r.count) > 0)) continue;
+      out[k] = [String(r.title), Number(r.count)];
+    }
+    if (Object.keys(out).length) types[key] = out;
+  }
+  return { v: 1, stores, brands, depts, types };
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
