@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 /* ============================================================
-   THE ARIA MUSE CONNECTOR, AS A LONG-LIVED PROCESS.
+   THE ARIA MUSE CONNECTOR, AS A PLAIN NODE PROCESS.
 
-   This is the recommended way to run it: Fly.io, Railway, or anything
-   that keeps a process alive. The catalogue is built once at boot
-   (~11s, ~300MB) and every request after that is served from memory in
-   tens of milliseconds. See netlify/functions/mcp.js for the same
-   server behind Netlify, and the PR body for why that host is a poor
-   fit for this particular workload.
+   The production endpoint is the Netlify function at
+   https://ariashop.pe/mcp (netlify/functions/mcp.js; docs/muse-mcp.md).
+   This runs the very same handler on a local port -- for trying the
+   connector with an MCP client, or hosting it on a long-lived box. It
+   reads the search index and the product pages' shards off disk.
 
-     PORT=8080 node mcp-server.js
+     PORT=8080 node mcp-server.js     (npm run mcp)
      POST /mcp      the MCP endpoint
-     GET  /healthz  liveness + catalogue size, for the platform
+     GET  /healthz  liveness, for a platform health check
    ============================================================ */
 import http from "node:http";
-import { getApp } from "./scripts/lib/mcp/app.mjs";
-import { corsHeaders } from "./scripts/lib/mcp/server.mjs";
+import { fileURLToPath } from "node:url";
+import { handler } from "./netlify/functions/mcp.js";
+import { loadSearch } from "./netlify/functions/_search-core.js";
+import { LABELS } from "./netlify/functions/search.js";
 
+/* The function's file reads are relative to the repo root. */
+process.chdir(fileURLToPath(new URL(".", import.meta.url)));
 const PORT = Number(process.env.PORT) || 8080;
 const MAX_BODY_BYTES = 1_000_000;
 
@@ -26,8 +29,6 @@ function readBody(req) {
     const chunks = [];
     req.on("data", (c) => {
       size += c.length;
-      /* A read-only search API has no reason to accept a megabyte, and
-         an unbounded read is how a public endpoint is knocked over. */
       if (size > MAX_BODY_BYTES) { reject(new Error("TOO_LARGE")); req.destroy(); return; }
       chunks.push(c);
     });
@@ -37,48 +38,29 @@ function readBody(req) {
 }
 
 const start = Date.now();
-console.log(JSON.stringify({ at: new Date().toISOString(), event: "boot_start" }));
-const app = await getApp();
-console.log(JSON.stringify({
-  at: new Date().toISOString(), event: "boot_ready",
-  ms: Date.now() - start, products: app.stats.kept, files: app.stats.files,
-  heap_mb: Math.round(process.memoryUsage().heapUsed / 1048576),
-}));
+const ctx = loadSearch({ labels: LABELS });
+console.log(JSON.stringify({ at: new Date().toISOString(), event: "boot_ready", ms: Date.now() - start, products: ctx.products.length }));
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
-  const send = (status, headers, body) => {
-    res.writeHead(status, headers || {});
-    res.end(body === null || body === undefined ? "" : (typeof body === "string" ? body : JSON.stringify(body)));
-  };
-
   if (url.pathname === "/healthz") {
-    return send(200, { "Content-Type": "application/json" }, {
-      ok: true, products: app.stats.kept, bootedAt: app.stats.bootedAt,
-    });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ ok: true, products: ctx.products.length }));
   }
-  if (url.pathname !== "/mcp" && url.pathname !== "/") {
-    return send(404, { "Content-Type": "application/json" }, { error: "Not found. The MCP endpoint is POST /mcp." });
+  if (url.pathname !== "/mcp") {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Not found. The MCP endpoint is POST /mcp." }));
   }
-  if (req.method === "OPTIONS") return send(204, corsHeaders(), null);
-
-  let parsed;
-  if (req.method === "POST") {
-    let raw;
-    try { raw = await readBody(req); }
-    catch (e) {
-      if (e.message === "TOO_LARGE") {
-        return send(413, { ...corsHeaders(), "Content-Type": "application/json" },
-          { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Request body too large (limit 1 MB)." } });
-      }
-      throw e;
-    }
-    try { parsed = raw ? JSON.parse(raw) : null; }
-    catch { parsed = "__PARSE_ERROR__"; }
+  let body = "";
+  try { body = req.method === "POST" ? await readBody(req) : ""; }
+  catch {
+    res.writeHead(413, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+    return res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Request body too large (limit 1 MB)." } }));
   }
-
-  const out = await app.handle({ method: req.method, headers: req.headers, body: parsed });
-  send(out.status, out.headers, out.body);
+  const headers = { ...req.headers, "x-nf-client-connection-ip": req.socket.remoteAddress || "unknown" };
+  const out = await handler({ httpMethod: req.method, headers, body });
+  res.writeHead(out.statusCode, out.headers);
+  res.end(out.body || "");
 });
 
 server.listen(PORT, () => {

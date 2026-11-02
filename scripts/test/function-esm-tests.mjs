@@ -12,14 +12,15 @@
      node scripts/test/function-esm-tests.mjs
    ================================================================== */
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve, relative } from "node:path";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const FN = join(ROOT, "netlify/functions");
-/* mcp.js imports its .mjs app on purpose and is tracked separately; it
-   is the one entry not held here. */
-const KNOWN = new Set(["mcp.js"]);
+/* Every entry is held here. (mcp.js used to import an .mjs app and was
+   exempt; the Muse connector, #443 c.6578981079, is plain .js now.) */
+const KNOWN = new Set([]);
 let passed = 0;
 const failures = [];
 function check(name, fn) {
@@ -61,7 +62,18 @@ check("search, orders-create and resolve-weight still resolve weights from the c
 });
 
 check("the walk sees a .mjs where one is imported (the check is not blind)", () => {
-  assert.ok(mjsReached(join(FN, "mcp.js")).length > 0);
+  const dir = mkdtempSync(join(tmpdir(), "fn-esm-"));
+  try {
+    writeFileSync(join(dir, "entry.js"), 'import { x } from "./helper.js";\nexport default x;\n');
+    writeFileSync(join(dir, "helper.js"), 'export { x } from "./lib.mjs";\n');
+    writeFileSync(join(dir, "lib.mjs"), "export const x = 1;\n");
+    assert.equal(mjsReached(join(dir, "entry.js")).length, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+check("the Muse connector (mcp.js) is held to the rule too", () => {
+  assert.ok(entries.includes("mcp.js"));
+  assert.deepEqual(mjsReached(join(FN, "mcp.js")), []);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
