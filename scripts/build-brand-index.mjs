@@ -34,59 +34,21 @@ import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { photoCount } from "./lib/photo-counts.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { FN_FILE, brandKeyOf, titleWords, filterByBrand, headOf, fnRow } from "../netlify/functions/_brand-core.js";
+import { FN_FILE, brandKeyOf, legacyKeyOf, plainKey, filterByBrand, headOf, fnRow } from "../netlify/functions/_brand-core.js";
+import { CATALOG_FILES as SEARCH_FILES, decodeEntities, inferBrands, knownBrands } from "./build-search-index.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const OUT_DIR = "assets/sections/marca";
 export const STATIC_MIN = 12;
 
-/* The page's 63 sources, in the page's order. */
-export const CATALOG_FILES = [
-  "/department-cache-walmart.json",
-  "/department-cache-oldnavy.json", "/department-cache-footlocker.json",
-  "/macys-catalog.json", "/ssense-catalog.json", "/beauty-catalog.json",
-  "/lanebryant-catalog.json", "/dicks-catalog.json", "/pacsun-catalog.json",
-  "/skims-catalog.json", "/revolve-catalog.json", "/ulta-catalog.json",
-  "/yesstyle-catalog.json", "/miumiu-catalog.json", "/partycity-catalog.json",
-  "/costco-catalog.json", "/gymrat-catalog.json", "/gym-brands-catalog.json",
-  "/kohls-catalog.json", "/crateandbarrel-catalog.json", "/pier1-catalog.json", "/newbalance-catalog.json", "/bhphoto-catalog.json",
-  "/advanceauto-catalog.json", "/nautilus-catalog.json",
-  "/islandwatersports-catalog.json", "/quietstorm-catalog.json",
-  "/surfstation-catalog.json",
-  "/mainland-catalog.json", "/parrot-catalog.json", "/ccs-catalog.json",
-  "/valsurf-catalog.json", "/venum-catalog.json", "/tatami-catalog.json",
-  "/everlast-catalog.json", "/mmawarehouse-catalog.json",
-  "/combatcorner-catalog.json", "/fuji-catalog.json", "/fightclub-catalog.json",
-  "/crocs-catalog.json", "/baublebar-catalog.json", "/jwpei-catalog.json",
-  "/meliebianco-catalog.json", "/bentgo-catalog.json", "/mushie-catalog.json",
-  "/ezpz-catalog.json", "/statebags-catalog.json", "/books-catalog.json",
-  "/moms-catalog.json", "/ae-catalog.json", "/farfetch-catalog.json",
-  "/soccer-catalog.json", "/tennis-catalog.json",
-  "/latino-designers-dtc-catalog.json", "/jewelry-catalog.json",
-  "/moto-catalog.json", "/juguetes-catalog.json", "/sunglasses-catalog.json",
-  "/finishline-catalog.json", "/zumiez-catalog.json", "/hottopic-catalog.json",
-  "/boxlunch-catalog.json",
-  /* Best Buy (2026-10-19, #413): Apple, Sony, Samsung, Nintendo... */
-  "/bestbuy-catalog.json",
-  /* DSW (#443): the committed empty envelope until the pull lands. */
-  "/dsw-catalog.json",
-  /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
-  "/snipes-catalog.json",
-  /* Calzedonia + Intimissimi (#443 c.6512405832, pulled 2026-10-29). */
-  "/intimissimi-catalog.json",
-  "/calzedonia-catalog.json",
-  /* BrandsMart USA (Build Order B, #443, pulled 2026-10-28). */
-  "/brandsmart-catalog.json",
-  /* The 2026-10-28 electronics drops (Order C, #443): scripts/build-electronics-drops.mjs. */
-  "/walmart-electronics-catalog.json",
-  "/costco-electronics-catalog.json",
-  "/microcenter-catalog.json",
-  /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
-  "/sleekshop-catalog.json",
-  "/carolinaherrera-catalog.json",
-  /* Aria Perfumes (#443 item 32). */
-  "/perfumes-catalog.json",
-];
+/* ONE CATALOGUE (#443 c.6585655315 P5): the brand pages read the very
+   files the search index reads (scripts/build-search-index.mjs
+   CATALOG_FILES), in its order -- Abercrombie and Hollister were in
+   search and missing here. */
+export const CATALOG_FILES = SEARCH_FILES.map((f) => "/" + f);
+/* A brand needs this many products for a static head; a brand with
+   BRAND_PAGE_MIN+ products must have one (scripts/test/brand-landing-tests.mjs). */
+export const BRAND_PAGE_MIN = 20;
 
 const EXTRA_LABELS = {
   americaneagle: "American Eagle", partycity: "Party City", elite: "Elite Sports", gameness: "Gameness",
@@ -100,7 +62,21 @@ function runBrowserScript(root, file) {
   return win;
 }
 
-/* Every product, normalized and de-duplicated exactly as the page did. */
+/* The selling price, as the store's scrape spells it (Old Navy:
+   effectivePrice) -- the same reading as the storefront builder. */
+export function priceOf(it) {
+  const p = Number(it.price);
+  if (p > 0) return p;
+  const alt = Number(it.effectivePrice ?? it.currentPrice ?? it.salePrice);
+  return alt > 0 ? alt : NaN;
+}
+/* One product, one row: the store's link, or (no link: Old Navy) its
+   title and photo -- two colourways of one title are two products. */
+export function rowKeyOf(retailer, url, name, image) {
+  return (String(retailer) + "|" + (url || String(name) + "|" + String(image || ""))).toLowerCase();
+}
+
+/* Every product, normalized and de-duplicated. No photo, no card. */
 export function loadAllItems(root = ROOT) {
   const { AriaSale } = runBrowserScript(root, "sale-rule.js");
   const { AriaProductType } = runBrowserScript(root, "product-type.js");
@@ -120,27 +96,29 @@ export function loadAllItems(root = ROOT) {
           const bucket = sec[skey];
           const arr = Array.isArray(bucket) ? bucket : (bucket && Array.isArray(bucket.items) ? bucket.items : null);
           if (!arr) continue;
-          for (const it of arr) {
-            if (!it || typeof it !== "object") continue;
-            const name = it.name || it.title || "";
-            const price = Number(it.price);
+          for (const it0 of arr) {
+            if (!it0 || typeof it0 !== "object") continue;
+            const name = decodeEntities(it0.name || it0.title || it0.productName || "").trim();
+            const price = priceOf(it0);
             if (!name || !(price > 0)) continue;
-            let img = it.thumbnail || it.image || "";
+            const it = it0.price === price ? it0 : { ...it0, price };
+            let img = it.thumbnail || it.image || it.imageUrl || "";
             if (!img && Array.isArray(it.images) && it.images[0]) img = it.images[0];
+            if (!img || typeof img !== "string") continue;
             const onSale = AriaSale.isOnSale(it);
             const orig = onSale ? Number(AriaSale.originalPrice(it)) : 0;
             const retailer = String(it.retailer || rkey || "");
             if (isOffSaleRetailer(retailer) || isOffSaleRetailer(rkey)) continue;   /* /off-sale.js */
-            const p = {
-              name: String(name), brand: String(it.brand || ""), brandKey: brandKeyOf(it.brand || ""),
-              price, orig, image: String(img || ""), url: String(it.url || it.link || ""), retailer,
-              ptype: AriaProductType.classify({ name, type: it.type, retailer: it.retailer || rkey, brand: it.brand, bucket: section === "departments" ? skey : "" }),
-            };
-            /* The page measured the percent on its normalized item. */
-            p.pct = AriaSale.discountPct({ name: p.name, price: p.price, originalPrice: onSale ? orig : null, onSale });
-            const k = (p.retailer + "|" + (p.url || p.name)).toLowerCase();
+            const url = String(it.url || it.link || it.productUrl || "");
+            const k = rowKeyOf(retailer, url, name, img);
             if (seen.has(k)) continue;
             seen.add(k);
+            const brand = decodeEntities(it.brand || "").trim();
+            const p = {
+              name, brand, price, orig, image: img, url, retailer,
+              ptype: AriaProductType.classify({ name, type: it.type, retailer: it.retailer || rkey, brand: it.brand, bucket: section === "departments" ? skey : "" }),
+            };
+            p.pct = AriaSale.discountPct({ name: p.name, price: p.price, originalPrice: onSale ? orig : null, onSale });
             /* ph: the photo count when 2+ (#443 c.6546035414): photo arrows on brand cards. */
             const ph = photoCount(root, p.name, (rkey || retailer).toLowerCase());
             if (ph > 1) p.ph = ph;
@@ -150,15 +128,41 @@ export function loadAllItems(root = ROOT) {
       }
     }
   }
+  fillBrands(out, root);
+  for (const p of out) p.brandKey = brandKeyOf(p.brand);
   return out;
 }
 
-/* Brand keys worth a static head: every brand field with STATIC_MIN+
-   products once the title-word rule is applied. */
+/* A BLANK BRAND takes the brand its title opens with -- the search
+   index's rule (build-search-index.mjs inferBrands, the same brand
+   list), so "lego" is one set of products on the brand page and in
+   search (Walmart's LEGO sets carry no brand field). */
+export function fillBrands(items, root = ROOT) {
+  const rows = items.map((p) => ({ p, title: p.name, brand: p.brand }));
+  inferBrands(rows, knownBrands(root.endsWith("/") ? root : root + "/"));
+  for (const r of rows) if (r.brand) r.p.brand = r.brand;
+}
+
+/* Brand keys worth a static head: every brand with STATIC_MIN+ products. */
 export function staticBrands(items) {
   const n = {};
   for (const p of items) if (p.brandKey) n[p.brandKey] = (n[p.brandKey] || 0) + 1;
   return Object.keys(n).filter((k) => n[k] >= STATIC_MIN).sort();
+}
+
+/* Old slugs -> the brand's key: the pre-2026-11-02 key of each spelling
+   ("maisonkitsun") and each spelling's plain key ("herschelsupply"),
+   where that is not itself a brand. */
+export function brandAliases(items) {
+  const keys = new Set(items.map((p) => p.brandKey).filter(Boolean));
+  const out = {};
+  for (const p of items) {
+    if (!p.brandKey) continue;
+    for (const a of [legacyKeyOf(p.brand), plainKey(p.brand)]) {
+      if (a && a !== p.brandKey && !keys.has(a) && !(a in out)) out[a] = p.brandKey;
+    }
+  }
+  return Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
 }
 
 export function build(root = ROOT) {
@@ -168,11 +172,11 @@ export function build(root = ROOT) {
   mkdirSync(join(root, OUT_DIR, "_fn"), { recursive: true });
   const labels = {};
   for (const p of items) if (ALL_LABELS[p.retailer]) labels[p.retailer] = ALL_LABELS[p.retailer];
-  writeFileSync(join(root, FN_FILE), JSON.stringify({ v: 1, labels, rows: items.map(fnRow) }));
-  /* Title words once, for the static heads (the endpoint does the same per query). */
-  for (const p of items) p.words = " " + titleWords(p.name).join(" ") + " ";
+  writeFileSync(join(root, FN_FILE), JSON.stringify({ v: 1, labels, aliases: brandAliases(items), rows: items.map(fnRow) }));
   const keys = staticBrands(items);
-  for (const key of keys) writeFileSync(join(out, key + ".json"), JSON.stringify(headOf(key, filterByBrand(items, key), labels)));
+  const byKey = new Map();
+  for (const p of items) { if (!byKey.has(p.brandKey)) byKey.set(p.brandKey, []); byKey.get(p.brandKey).push(p); }
+  for (const key of keys) writeFileSync(join(out, key + ".json"), JSON.stringify(headOf(key, byKey.get(key) || filterByBrand(items, key), labels)));
   return { items: items.length, heads: keys.length };
 }
 

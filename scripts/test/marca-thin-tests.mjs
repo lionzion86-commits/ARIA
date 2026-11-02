@@ -52,12 +52,14 @@ await check("every static head is what the rules compute today, and every brand 
     assert.deepEqual(readJSON(`${OUT_DIR}/${key}.json`), JSON.parse(JSON.stringify(headOf(key, filterByBrand(ITEMS, key), labels))), `${key}.json is stale`);
 });
 
-await check("the brand rule, unchanged: the brand field, or (4+ letters) a whole title word", () => {
-  const items = [{ name: "YoungLA Pump Cover", brand: "", brandKey: "" }, { name: "Nikeish Tee", brand: "Other", brandKey: "other" }, { name: "Tee", brand: "Nike", brandKey: "nike" }, { name: "Gap Logo Tee", brand: "", brandKey: "" }];
+await check("the brand rule (#443 c.6585655315): the brand field only -- a title word is not a brand", () => {
+  const items = [{ name: "YoungLA Pump Cover", brand: "YoungLA", brandKey: "youngla" }, { name: "BaubleBar x Disney Earrings", brand: "BaubleBar", brandKey: "baublebar" }, { name: "Tee", brand: "Nike", brandKey: "nike" }, { name: "Nike Studio Tee", brand: "Nike", brandKey: "nike" }];
   assert.equal(filterByBrand(items, "youngla").length, 1);
-  assert.equal(filterByBrand(items, "nike").length, 1, "a substring is not a brand");
-  assert.equal(filterByBrand(items, "gap").length, 0, "keys under 4 letters match the brand field only");
+  assert.equal(filterByBrand(items, "disney").length, 0, "a word of the title is not the brand");
+  assert.equal(filterByBrand(items, "studio").length, 0, "a word of the title is not the brand");
+  assert.equal(filterByBrand(items, "nike").length, 2);
   assert.equal(brandKeyOf("Young LA"), "youngla");
+  assert.equal(brandKeyOf("Maison Kitsuné"), "maisonkitsune");
 });
 
 await check("heads are small and capped: 12 cards per carousel, under 40KB raw", () => {
@@ -71,7 +73,7 @@ await check("heads are small and capped: 12 cards per carousel, under 40KB raw",
   }
 });
 
-await check("the endpoint: static brand, small brand, title-word brand, Ver todo pages, bad input", async () => {
+await check("the endpoint: static brand, small brand, Ver todo pages, bad input", async () => {
   const nike = await call({ marca: "Nike" });
   assert.equal(nike.s, 200);
   assert.deepEqual(nike.b, readJSON(`${OUT_DIR}/nike.json`), "the endpoint and the static head disagree");
