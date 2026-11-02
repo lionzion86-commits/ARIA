@@ -33,6 +33,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { photoCount } from "./lib/photo-counts.js";
+import { productKeys, firstSighting } from "./lib/product-identity.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_FILE, brandKeyOf, legacyKeyOf, plainKey, filterByBrand, headOf, fnRow } from "../netlify/functions/_brand-core.js";
 import { CATALOG_FILES as SEARCH_FILES, decodeEntities, inferBrands, knownBrands } from "./build-search-index.mjs";
@@ -70,11 +71,8 @@ export function priceOf(it) {
   const alt = Number(it.effectivePrice ?? it.currentPrice ?? it.salePrice);
   return alt > 0 ? alt : NaN;
 }
-/* One product, one row: the store's link, or (no link: Old Navy) its
-   title and photo -- two colourways of one title are two products. */
-export function rowKeyOf(retailer, url, name, image) {
-  return (String(retailer) + "|" + (url || String(name) + "|" + String(image || ""))).toLowerCase();
-}
+/* One product, one row (scripts/lib/product-identity.js), as in search. */
+export const rowKeysOf = (retailer, url, name, image, price) => productKeys(retailer, url, name, image, price);
 
 /* Every product, normalized and de-duplicated. No photo, no card. */
 export function loadAllItems(root = ROOT) {
@@ -110,9 +108,7 @@ export function loadAllItems(root = ROOT) {
             const retailer = String(it.retailer || rkey || "");
             if (isOffSaleRetailer(retailer) || isOffSaleRetailer(rkey)) continue;   /* /off-sale.js */
             const url = String(it.url || it.link || it.productUrl || "");
-            const k = rowKeyOf(retailer, url, name, img);
-            if (seen.has(k)) continue;
-            seen.add(k);
+            if (!firstSighting(seen, rowKeysOf(retailer, url, name, img, price))) continue;
             const brand = decodeEntities(it.brand || "").trim();
             const p = {
               name, brand, price, orig, image: img, url, retailer,
