@@ -156,6 +156,7 @@ footer a{color:#fff}
 <script src="sale-rule.js"></script>
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
+<script src="/display-name.js"></script>
 <script src="/condition.js"></script>
 <script src="/store-shipping.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -945,21 +946,13 @@ function hasVariants(p){
     && p.variants.some(function(x){ return x.v === p.v; }));
 }
 function variantWord(p){ return p && p.ax === "Tono" ? "Tono" : "Color"; }
-/* NO CLAIM WITHOUT A CHOICE (#443 c.6568696054, Danny's phone pass). A
-   store title that says "- 16 Colors" or "- 3 Colors" promises a choice;
-   when the record holds no shade data the page cannot offer it (YesStyle
-   sells one listing per product, its shades are not in the pull). The
-   title shown drops the claim; the record keeps the store's words (the
-   cart line and the order still name the listing exactly). A palette's
-   "12 Colors" is what is inside it, not a choice, and stays. When a
-   picker is shown it speaks for itself: the claim goes there too. */
-var CHOICE_CLAIM_RX = /\s*(?:[-\u2013\u2014|,(]\s*)?\b\d+\s+(?:[A-Za-z][\w-]*\s+){0,3}?(?:colou?rs|shades|tones|types|tonos|colores)\b(?!-)\)?/gi;
-var PALETTE_RX = /\b(?:palettes?|paleta|quad|octet|eyeshadows? kit)\b/i;
+/* NO CLAIM WITHOUT A CHOICE (#443 c.6568696054, Danny's phone pass): a
+   "- 16 Colors" title with no shade data behind it is shown without the
+   claim. ONE rule for every surface: /display-name.js. The record, the
+   cart line's stored title and every lookup keep the store's words. */
 function displayName(name){
-  var t = String(name || "");
-  if (PALETTE_RX.test(t)) return t;
-  var out = t.replace(CHOICE_CLAIM_RX, "").replace(/\s{2,}/g, " ").replace(/\s*[-\u2013\u2014|:,]\s*$/, "").trim();
-  return out || t;
+  var D = typeof window !== "undefined" && window.AriaDisplayName ? window.AriaDisplayName : (typeof globalThis !== "undefined" && globalThis.AriaDisplayName);
+  return D ? D.displayName(name) : String(name == null ? "" : name);
 }
 /* HAIR COLOUR NAMES ITS SHADE IN WORDS (#443 c.6568752464): the tono a
    dye is sold in is written in the description area, not only in a photo. */

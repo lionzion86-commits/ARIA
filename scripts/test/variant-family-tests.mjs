@@ -50,6 +50,7 @@ import { groupColourways, variantIdOf, NOT_FASHION, variantExcluded, beautyShade
 import { parseWalmartFamilies, readWalmartPulls, applyFamilies, shadeKey, packCount, loadFamilies, normUrl } from "../lib/variant-families.mjs";
 import { ingestAll } from "../ingest-variant-pulls.mjs";
 import { serve, openPage } from "./lib/variant-browser.mjs";
+import { loadDisplayName } from "./lib/display-name.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const FX = ROOT + "scripts/test/fixtures/";
@@ -289,7 +290,7 @@ await check("the committed pages: real Walmart dye and makeup siblings are one T
 /* ---------- the cart line ---------- */
 const page = readFileSync(ROOT + "producto.html", "utf8");
 await check("a \"- N Colors\" claim is never shown as the title; a palette's contents stay", () => {
-  const L = liftDeclarations(page, ["CHOICE_CLAIM_RX", "PALETTE_RX", "displayName"]);
+  const L = loadDisplayName(ROOT);
   assert.equal(L.displayName("Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors"), "Non-Stick Cup Mirror Glare Lip Gloss");
   assert.equal(L.displayName("Salmon Darkcircle Concealer Cream - 3 Colors"), "Salmon Darkcircle Concealer Cream");
   assert.equal(L.displayName("Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors 10pcs Bundle Set"), "Non-Stick Cup Mirror Glare Lip Gloss 10pcs Bundle Set");

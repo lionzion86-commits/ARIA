@@ -4001,6 +4001,11 @@ function cardImpLineHTML(p, cls, color){
   const money = fmtPEN(tax);
   return `<span data-card-imp class="${cls}" style="color:${color}">+ ${escapeHtml(money)} IMP</span>`;
 }
+/* THE TITLE A SHOPPER READS (#443 c.6568696054): /display-name.js, the one
+   rule every surface shares, drops a "- N Colors" claim no picker backs.
+   Display only: data-cp-t, the product link, the cart key and every
+   price lookup keep the store's own title. */
+function shownTitle(t){ return (typeof window !== 'undefined' && window.AriaDisplayName) ? window.AriaDisplayName.displayName(t) : String(t == null ? '' : t); }
 function railCardHTML(p, onclick, attr, opts){
   /* NEVER AN EMPTY CARD (#443 c.6398961263): no name or no price, no card. */
   if (!p || !String(p.title || '').trim() || !(Number(p.price) > 0)){
@@ -4034,7 +4039,7 @@ function railCardHTML(p, onclick, attr, opts){
       <span class="block mb-1.5">${retailerBadgeHTML(p.retailer, 16, { dark })}</span>
       ${brandEyebrowHTML(p.brand, { tag: 'span', cls: 'block text-[10px] mb-0.5', color: ink })}
       ${((opts && opts.styleLabel) || launchLabelOf(p)) ? `<span class="inline-block text-[9px] font-bold uppercase tracking-[0.03em] whitespace-nowrap px-2 py-0.5 rounded-full mb-1.5" style="background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3">${escapeHtml((opts && opts.styleLabel) || launchLabelOf(p))}</span>` : ''}
-      <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:${ink}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(p.title)}</span>
+      <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:${ink}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(shownTitle(p.title))}</span>
       <span class="block">
         <span class="flex items-baseline gap-1.5">
           <span class="text-[15px] font-extrabold tabular" style="color:${ink}">${railLeadPrice(displayPriceUsd(p.price, p.dutiableUsd))}</span>
@@ -14980,12 +14985,12 @@ function carouselCardHTML(item, retailer){
   const swipeImgs = cardSwipeList(it);
   return `<div class="ariaCarouselCard" role="listitem" data-card-root data-cp-t="${escapeHtml(title)}" data-cp-r="${escapeHtml(String(it.retailer || '').toLowerCase())}">
     <div class="rounded-2xl border overflow-hidden cursor-pointer focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)]" style="border-color:var(--line); background:#fff"
-      onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(title || 'Ver producto')}"
+      onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(shownTitle(title) || 'Ver producto')}"
       onkeydown="if(event.key==='Enter'){${open}}">
-      <div class="aspect-[4/5] relative" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(it) : ''}>${cardPhotoHTML(src, { alt: title, fallbackSrc: imageRetryUrl(src) })}${badgeHTML}${swipeImgs ? cardSwipeNavHTML() : ''}</div>
+      <div class="aspect-[4/5] relative" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(it) : ''}>${cardPhotoHTML(src, { alt: shownTitle(title), fallbackSrc: imageRetryUrl(src) })}${badgeHTML}${swipeImgs ? cardSwipeNavHTML() : ''}</div>
       <div class="p-4">
         ${brandEyebrowHTML(it.brand, { cls: 'text-[10px] mb-0.5' })}
-        <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(title)}</div>
+        <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(shownTitle(title))}</div>
         <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtPriceLabel(taxed) : 'Ver detalle'}${hasOriginal ? `<span class="text-[13px] tabular line-through font-normal ml-2" style="color:#9AA3B5">${fmtUSD(displayPriceUsd(original))}</span>` : ''}</div>
         ${hasPrice ? solesUnderHTML(taxed, 'text-[11px] tabular mt-0.5') : ''}
         ${hasPrice ? impuestosBadgeHTML(price, it.dutiableUsd) : ''}
@@ -20309,7 +20314,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     brandEl.textContent = brand;
     brandEl.hidden = !brand;
   }
-  document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
+  document.getElementById('productViewTitle').textContent = shownTitle(name) || 'Producto sin título';
   /* THE CONDITION, BEFORE THE PRICE (#443, /condition.js): what the
      store's own title states, its grade or that it gives none, and the
      sold-out promise (c.6488288883). Never upgraded; nothing for a new
@@ -27702,7 +27707,7 @@ function comboDealHTML(combo, resolved){
         ? `<img src="${escapeHtml(sizedImageUrl(l.image, 200))}" alt="" loading="lazy" class="w-12 h-12 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" data-img-orig="${escapeHtml(l.image)}" onerror="if(this.dataset.imgOrig){this.onerror=null;this.src=this.dataset.imgOrig}">`
         : `<div class="w-12 h-12 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
       <div class="min-w-0 flex-1">
-        <div class="text-[12.5px] font-semibold leading-snug truncate">${escapeHtml(l.title)}</div>
+        <div class="text-[12.5px] font-semibold leading-snug truncate">${escapeHtml(shownTitle(l.title))}</div>
         <div class="text-[12.5px] tabular font-bold" style="color:var(--navy)">${fmtPriceLabel(l.priceUsd)}</div>
       </div>
     </div>`).join(`
@@ -27866,11 +27871,11 @@ function cartLineItemHTML(it){
     </div>
     <div class="min-w-0 flex-1">
       <div class="mb-1"><span class="text-[10.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:#0F7A3D; color:#fff">Ahorro combo</span></div>
-      <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
+      <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(shownTitle(it.title))}</div>
       <div class="text-[14px] font-extrabold tabular mt-1" style="color:#0F7A3D">${fmtPriceLabel(Number(it.priceUsd))}</div>
     </div>
     <div class="flex-shrink-0">
-      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar descuento: ${escapeHtml(it.title)}" class="min-w-[44px] min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">
+      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar descuento: ${escapeHtml(shownTitle(it.title))}" class="min-w-[44px] min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>Quitar
       </button>
     </div>
@@ -27880,7 +27885,7 @@ function cartLineItemHTML(it){
     ${it.image ? `<img src="${escapeHtml(sizedImageUrl(it.image, 200))}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="" data-line-thumb="${escapeHtml(key)}" data-img-orig="${escapeHtml(it.image)}" onerror="cartThumbError(this)">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
-      <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
+      <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(shownTitle(it.title))}</div>
       ${isOffSaleRetailer(it.retailer) ? `<div class="text-[12px] font-bold leading-snug mt-1 rounded-lg px-2 py-1" style="color:#B03A2E;background:#FDECEA" data-off-sale-line role="alert">No disponible. Quítalo de tu carrito para continuar.</div>` : ''}
       ${it.colorway ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">Color: ${escapeHtml(it.colorway)}</div>` : ''}
       ${it.selectedSize ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">Talla: ${escapeHtml(it.selectedSize)}</div>` : ''}
@@ -27891,7 +27896,7 @@ function cartLineItemHTML(it){
       <button onclick="setCartQty('${jsAttr(key)}', ${Number(it.qty) - 1})" aria-label="Restar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">−</button>
       <span class="w-6 text-center text-[13px] font-bold tabular">${it.qty}</span>
       <button onclick="setCartQty('${jsAttr(key)}', ${Number(it.qty) + 1})" aria-label="Sumar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">+</button>
-      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar: ${escapeHtml(it.title)}" class="min-w-[44px] min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">
+      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar: ${escapeHtml(shownTitle(it.title))}" class="min-w-[44px] min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-full text-[12.5px] font-bold focus-ring transition" style="color:#B03A2E;background:#FDECEA">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>Quitar
       </button>
     </div>
@@ -28432,7 +28437,7 @@ async function renderCrossSellRail(){
             </div>
             <div class="px-2.5 pt-2.5">
               ${it.brand ? `<div class="text-[9px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(it.brand)}</div>` : ''}
-              <div class="text-[11px] font-bold leading-tight line-clamp-2" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(it.title)}</div>
+              <div class="text-[11px] font-bold leading-tight line-clamp-2" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(shownTitle(it.title))}</div>
               ${weightLabelHTML(it.title, 'text-[10px] mt-1 font-semibold')}
               <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtDisplayPrice(it.price, it.dutiableUsd)}</div>
               ${solesUnderHTML(displayPriceUsd(Number(it.price), it.dutiableUsd), 'text-[10px] tabular mt-0.5')}
@@ -29839,7 +29844,7 @@ function productCardHTML(p, opts){
       <div class="mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</div>
       ${brandEyebrowHTML(p.brand, { cls: 'text-[10.5px] mb-1' })}
       ${launchLabelOf(p) ? `<span class="inline-block text-[9px] font-bold uppercase tracking-[0.03em] whitespace-nowrap px-2 py-0.5 rounded-full mb-1.5" style="background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3">${launchLabelOf(p)}</span>` : ''}
-      <div class="text-[13px] leading-snug mb-2 cursor-pointer line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
+      <div class="text-[13px] leading-snug mb-2 cursor-pointer line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(shownTitle(p.title))}</div>
       <!-- THE RATING CAME OFF THE STORE MARK'S ROW. Side by side they
            needed more than a two-across card has: measured at 393px the
            pair ran 8px past a 169px card and pushed the whole PAGE
@@ -31665,7 +31670,7 @@ function addAssistantProductCard(item, retailer){
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
-      <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title || item.name || '')}</div>
+      <div class="text-[12.5px] font-bold truncate">${escapeHtml(shownTitle(item.title || item.name || ''))}</div>
       ${partNumber ? `<div class="text-[10.5px] text-zinc-500 truncate">N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(partNumber)}</span></div>` : ''}
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price, item.dutiableUsd) : ''}${item.price != null && priceIncludesImportTax(item.price, item.dutiableUsd) ? ' · incl. impuestos' : ''}</div>
       ${item.price != null && Number.isFinite(Number(item.price)) ? solesUnderHTML(displayPriceUsd(Number(item.price), item.dutiableUsd), 'text-[10.5px] text-zinc-400 truncate') : ''}

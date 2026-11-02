@@ -190,6 +190,7 @@ footer a{color:#fff;}
 .card .name{font-size:14.5px; min-height:39px;}
 .rail .card .body{padding:14px 16px 16px;}
 </style>
+<script src="/display-name.js"></script>
 <script src="/ref.js" defer></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -609,6 +610,10 @@ function amountHTML(usd, pen, strong){
 function lineHTML(cls, label, value){
   return '<div class="cmp-ln' + (cls ? " " + cls : "") + '"><dt>' + label + "</dt><dd>" + value + "</dd></div>";
 }
+/* The title a shopper reads: /display-name.js (one rule, #443
+   c.6568696054) drops a "- N Colors" claim no picker backs. Links and
+   lookups keep the store's title. */
+function shownTitle(t){ return typeof window !== 'undefined' && window.AriaDisplayName ? window.AriaDisplayName.displayName(t) : String(t == null ? '' : t); }
 function shipHTML(sh){
   sh = sh || { state: "unknown" };
   var line = sh.freeOverUsd ? '<span class="calc">gratis desde ' + esc(moneyUsd(sh.freeOverUsd)) + "</span>" : "";
@@ -662,7 +667,7 @@ function compareHTML(c){
   return '<section class="cmp" aria-label="Este producto en ' + c.stores.length + ' tiendas">' +
     '<div class="cmp-head"><div class="cmp-photo">' + img + "</div><div style=\"min-width:0\">" +
       '<div class="cmp-kicker">' + (brand ? esc(brand) + " · " : "") + "En " + c.stores.length + " tiendas</div>" +
-      '<div class="cmp-title">' + esc(title) + "</div></div></div>" +
+      '<div class="cmp-title">' + esc(shownTitle(title)) + "</div></div></div>" +
     '<p class="cmp-note">El mismo modelo en ' + c.stores.length + ' tiendas: precio del producto y envío de cada tienda.</p>' +
     c.stores.map(compareRowHTML).join("") + "</section>";
 }
@@ -922,7 +927,7 @@ function cardHTML(p){
     '<div class="img">' + offBadge(p) + img + "</div>" +
     '<div class="body">' +
       '<div class="brand">' + (p.condition ? '<span class="card-cond">' + esc(p.condition) + '</span>' : "") + (brand ? esc(brand) : (p.condition ? "" : "&nbsp;")) + "</div>" +
-      '<div class="name">' + esc(title) + "</div>" +
+      '<div class="name">' + esc(shownTitle(title)) + "</div>" +
       '<div class="retailer">' + (p.storeLabel || p.store ? "Vendido por " + esc(p.storeLabel || p.store) : "&nbsp;") + "</div>" +
       (LAUNCH_PRICED[String(p.store || "").toLowerCase()] ? '<div class="launch">Precio de lanzamiento</div>' : "") +
       '<div class="price">' + priceHTML(p) + "</div>" +

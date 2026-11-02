@@ -182,6 +182,7 @@
   @media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
   footer a{color:var(--blue);text-decoration:none;font-weight:700}
 </style>
+<script src="/display-name.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -753,7 +754,11 @@ function sizedImageUrl(url, w){
   }
   /* THE CARD HOLDS ITS SHAPE BEFORE ANYTHING ARRIVES (#409): a square
      photo box from the first paint and reserved rows for every line. */
-  function cardHTML(c){
+  /* The title a shopper reads: /display-name.js (one rule, #443
+   c.6568696054) drops a "- N Colors" claim no picker backs. Links and
+   lookups keep the store's title. */
+function shownTitle(t){ return typeof window !== 'undefined' && window.AriaDisplayName ? window.AriaDisplayName.displayName(t) : String(t == null ? '' : t); }
+function cardHTML(c){
     /* NEVER AN EMPTY CARD (#443 c.6398961263: the Ofertas expand showed pills
        with only the store name -- no photo, name or price). A card without
        a name or a price is not drawn at all, and the console says so. */
@@ -783,7 +788,7 @@ function sizedImageUrl(url, w){
       /* The condition (/condition.js) leads the brand row, outside the
          photo box: a photo that fails to load never takes it away. */
       + '<div class="card-brand">' + (c.k ? '<span class="card-cond">' + esc(c.k) + '</span>' : '') + (c.b ? esc(c.b) : (c.k ? '' : '&nbsp;')) + '</div>'
-      + '<h3 class="card-title">' + esc(c.t) + '</h3>'
+      + '<h3 class="card-title">' + esc(shownTitle(c.t)) + '</h3>'
       + (LAUNCH_PRICED[c.r] ? '<div class="card-launch">Precio de lanzamiento</div>' : '')
       + '<div class="price" data-usd="' + (isFinite(usd) ? usd : '') + '"' + (wasUsd > usd ? ' data-was="' + wasUsd + '"' : '') + '>' + priceInner(usd, wasUsd) + '</div>'
       + '</div></a>';
