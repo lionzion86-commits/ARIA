@@ -192,6 +192,20 @@ await check("search.html asks the router before anything else and draws no resul
 });
 
 /* ------------------------- in the browser ------------------------- */
+/* STANDING RULE (Danny 2026-11-02): every comparison chart has pictures,
+   always -- the chart's photo and each store row's own photo. */
+await check("standing rule: every comparison chart the search serves has the product photo and a photo on every store row", async () => {
+  let seen = 0;
+  for (const q of ["adidas samba", "nike air force 1", "converse all star", "nike dunk low", "crocs classic clog", "new balance 550", "airpods", "stanley quencher"]) {
+    const d = JSON.parse((await search.handler({ httpMethod: "GET", queryStringParameters: { q, page: "1" } }, { fetchImpl })).body);
+    for (const c of (d.compares || (d.compare ? [d.compare] : []))) {
+      seen++;
+      assert.ok(c.image, `${q}: «${c.title}» chart without a photo`);
+      for (const s of c.stores) assert.ok(s.image, `${q}: «${c.title}» row ${s.store} without a photo`);
+    }
+  }
+  assert.ok(seen > 0, "no comparison charts served at all");
+});
 let pw = null;
 try { pw = await import("playwright"); } catch { /* reported below */ }
 await check("browser: playwright is available for the page checks", () => assert.ok(pw, "playwright is not installed"));
@@ -269,6 +283,33 @@ if (pw) {
       assert.match(await page.textContent("#tpRow"), /También puede ser/);
       assert.ok(await page.$("#brandFocus .fc-chart"), "no Comparador for Air Force 1");
       if (SHOT) await page.screenshot({ path: join(SHOT, "dest-tambien.png") });
+      assert.deepEqual(errors, []);
+      await c.close();
+    });
+    /* Danny 2026-11-02: "no pictures come up on the comparison chart, just
+       numbers". Every chart carries the product photo, and every store row
+       its own photo and title (which model, which colourway). */
+    await check("browser: «adidas samba» Comparador shows the product photo and, on every store row, that store's photo and model title", async () => {
+      const { c, page, errors } = await phone();
+      await page.goto(`${BASE}/search.html?q=${encodeURIComponent("adidas samba")}`);
+      await page.waitForURL(/marca\.html\?marca=adidas&q=samba/, { timeout: 60000 });
+      await page.waitForSelector("#brandFocus .fc-chart", { timeout: 60000 });
+      const charts = await page.$$eval("#brandFocus .fc-chart", (cs) => cs.map((ch) => ({
+        head: !!ch.querySelector(".fc-photo img"),
+        rows: [...ch.querySelectorAll(".fc-row")].map((r) => ({ img: !!r.querySelector(".fc-thumb img"), model: (r.querySelector(".fc-model") || {}).textContent || "" })),
+      })));
+      assert.ok(charts.length >= 1, "no Comparador for Samba");
+      for (const ch of charts) {
+        assert.ok(ch.head, "a chart without the product photo");
+        for (const r of ch.rows) { assert.ok(r.img, "a store row without its photo"); assert.ok(r.model.trim(), "a store row without its model title"); }
+      }
+      await page.locator("#brandFocus .fc-chart").first().scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => { const ch = document.querySelector("#brandFocus .fc-chart"); return [...ch.querySelectorAll("img")].every((i) => i.getAttribute("src")); }, null, { timeout: 20000 });
+      if (SHOT) await page.screenshot({ path: join(SHOT, "cmp-samba-marca.png") });
+      await page.goto(`${BASE}/search.html?resultados=1&q=${encodeURIComponent("adidas samba")}`);
+      await page.waitForSelector(".cmp .cmp-row", { timeout: 60000 });
+      const rows = await page.$$eval(".cmp .cmp-row", (rs) => rs.map((r) => ({ img: !!r.querySelector(".cmp-mthumb img"), model: (r.querySelector(".cmp-mtitle") || {}).textContent || "" })));
+      for (const r of rows) { assert.ok(r.img, "a results-page store row without its photo"); assert.ok(r.model.trim()); }
       assert.deepEqual(errors, []);
       await c.close();
     });
