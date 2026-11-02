@@ -637,7 +637,8 @@ await check("the three beauty stores render their real logo, unfiltered", async 
   for (const [key, v] of Object.entries(r)) {
     if (!v.found) throw new Error(`${key} has no card on Tiendas`);
     eq(v.isImage, true, `${key} is still a text pill, not an image`);
-    if (!v.src.endsWith(`logos/${key}.png`)) throw new Error(`${key} src is ${v.src}`);
+    /* The mark drawn at its size: the master, or its lossless 240px twin (#443 c.6587429371). */
+    if (!v.src.endsWith(`logos/${key}.png`) && !v.src.endsWith(`logos/h240/${key}.webp`)) throw new Error(`${key} src is ${v.src}`);
     for (const [what, f] of [["plate", v.plateFilter], ["img", v.imgFilter]]) {
       if (f && f !== "none") throw new Error(`${key} ${what} carries a CSS filter (${f}) — a brand's mark is not ours to recolour`);
     }
