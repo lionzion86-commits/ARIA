@@ -436,19 +436,25 @@ const ALSO_TRY_MIN_GAIN = 5;     // and the other form finds at least this many 
 const ALSO_TRY_RATIO = 1.2;      // ...and at least 20% more
 const ALSO_TRY_SPLIT_RARE = 20;  // only a word the index rarely carries is split
 const ALSO_TRY_PART = 3;         // and only into parts of 3+ letters
-export function alsoTry(ctx, q, total) {
+/** The other spellings of a query that the index itself carries: two
+    neighbouring words joined ("all star" -> "allstar"), or one rarely
+    carried word split into two 3+ letter words it carries ("allstar" ->
+    "all star"). A hyphen is already a space to the tokenizer, so
+    "all-star" is "all star". */
+export function spellingForms(ctx, q) {
   const S = ctx.S, windex = ctx.products && ctx.products._windex;
   if (!windex || typeof S.searchTokens !== "function") return [];
   const toks = S.searchTokens(q);
   if (!toks.length || toks.length > 4) return [];
   const freq = (w) => { const l = windex.get(w); return l ? l.length : 0; };
-  const forms = new Set();
-  /* Two neighbouring words joined: "all star" -> "allstar". */
+  const forms = new Map();
   for (let i = 0; i + 1 < toks.length; i++) {
     const j = toks[i] + toks[i + 1];
-    if (freq(j) >= ALSO_TRY_MIN_FREQ) forms.add([...toks.slice(0, i), j, ...toks.slice(i + 2)].join(" "));
+    /* Any joined word the index carries: "new balance" must find what
+       "newbalance" finds, or the two spellings are not one search. */
+    if (toks[i].length < 2 || toks[i + 1].length < 2 || /\d/.test(toks[i] + toks[i + 1])) continue;
+    if (freq(j) >= 1) forms.set([...toks.slice(0, i), j, ...toks.slice(i + 2)].join(" "), { joined: j, pair: toks[i] + " " + toks[i + 1] });
   }
-  /* One word split in two: "allstar" -> "all star" (the best-carried split). */
   toks.forEach((t, i) => {
     if (t.length < 2 * ALSO_TRY_PART || /\d/.test(t) || freq(t) >= ALSO_TRY_SPLIT_RARE) return;
     let best = null;
@@ -456,17 +462,87 @@ export function alsoTry(ctx, q, total) {
       const a = t.slice(0, k), b = t.slice(k), m = Math.min(freq(a), freq(b));
       if (m >= ALSO_TRY_MIN_FREQ && (!best || m > best.m)) best = { a, b, m };
     }
-    if (best) forms.add([...toks.slice(0, i), best.a, best.b, ...toks.slice(i + 1)].join(" "));
+    if (best) forms.set([...toks.slice(0, i), best.a, best.b, ...toks.slice(i + 1)].join(" "), { joined: t, pair: best.a + " " + best.b });
   });
   const own = toks.join(" ");
+  return [...forms].filter(([f]) => f !== own).map(([q, m]) => ({ q, ...m }));
+}
+
+export function alsoTry(ctx, q, total) {
   const out = [];
-  for (const f of forms) {
-    if (f === own) continue;
+  for (const { q: f } of spellingForms(ctx, q)) {
     const r = runQuery(ctx, f);
     const n = r && r.state === "results" ? r.hits.length : 0;
     if (n >= total + ALSO_TRY_MIN_GAIN && n >= total * ALSO_TRY_RATIO) out.push({ q: f, total: n });
   }
   return out.sort((a, b) => b.total - a.total).slice(0, 2);
+}
+
+/* ONE NAME, ONE SEARCH (#443 c.6568521651, c.6568529141, c.6568542763;
+   Danny on «Converse All Star»): a name written joined, separated or
+   hyphenated is the same search. The query and each spelling the index
+   carries are run, and their results are one set -- the fullest form
+   leads, the others' products follow -- so every spelling gets the same
+   results and the same comparison charts. Cached per typed query. */
+const EQ_NAMED_SHARE = 0.3;
+export function equivalentQuery(ctx, q) {
+  const key = "~eq:" + cacheKey(q);
+  if (ctx.cache.has(key)) return ctx.cache.get(key);
+  const own = runQuery(ctx, q);
+  /* The same name, not a lookalike: a product carries the name when its
+     title holds the joined word ("allstar") or the two words side by side
+     ("all star"); "dumb ... bells" on a skate deck is not "dumbbells". */
+  const S = ctx.S;
+  const titleKey = (p) => " " + S.searchTokens(String(p.title || "") + " " + String(p.brand || "")).join(" ") + " ";
+  const forms = spellingForms(ctx, q);
+  const needles = [...new Set(forms.flatMap((f) => [" " + f.joined + " ", " " + f.pair + " "]))];
+  /* The rest of the query must be there too: "nike air max 90" is the
+     Air Max 90, not every Air Max. */
+  const nameWords = new Set(forms.flatMap((f) => [f.joined, ...f.pair.split(" ")]));
+  const rest = S.searchTokens(q).filter((t) => !nameWords.has(t));
+  const named = (p) => { const k = titleKey(p); return needles.some((n) => k.includes(n)) && rest.every((t) => k.includes(" " + t + " ")); };
+  /* A result set that is really about the name (a third of its first
+     hundred results carry it, in either spelling) joins whole and leads
+     -- its charts included; one the engine had to loosen (it fell back to
+     the brand alone) gives only the products that carry the name, after. */
+  const about = (hits) => { const top = hits.slice(0, 100); return top.filter(named).length / top.length >= EQ_NAMED_SHARE; };
+  const whole = [], partial = [];
+  let formShape = null;
+  const add = (r, isOwn) => {
+    if (!r || r.state !== "results" || !r.hits.length) return;
+    if (!forms.length || about(r.hits)) whole.push(r.hits);
+    else { const h = r.hits.filter(named); if (h.length) partial.push(h); else if (!isOwn) return; }
+    if (!isOwn) formShape = formShape || r;
+  };
+  add(own, true);
+  for (const f of forms) add(runQuery(ctx, f.q), false);
+  whole.sort((x, y) => y.length - x.length);
+  partial.sort((x, y) => y.length - x.length);
+  const runs = [...whole, ...partial];
+  const base = own && own.state === "results" ? own : null;
+  let out = own;
+  /* A brand we do not sell keeps its honest no. */
+  if (!base && own && own.missingBrand) runs.length = 0;
+  const ownOnly = base && runs.length === 1 && runs[0] === own.hits;
+  if (runs.length && !ownOnly) {
+    const seen = new Set(runs[0]), hits = runs[0].slice();
+    for (const r of runs.slice(1)) for (const p of r) if (!seen.has(p)) { seen.add(p); hits.push(p); }
+    /* A strict category ("kettlebell") stays strict: a «Kettle Bell» tee
+       found under the other spelling is not a weight. */
+    const cat = categoryOf(q);
+    const pure = (own && own._pure) || (cat && cat.test);
+    if (pure) for (let i = hits.length - 1; i >= 0; i--) if (!pure(hits[i])) hits.splice(i, 1);
+    if (hits.length) {
+      const shape = base || formShape;
+      out = { ...shape, state: "results", hits: hits.slice(0, ctx.resultLimit || hits.length) };
+      if (pure) out._pure = pure;
+      /* Its memos (grid, charts, lanes, bands) belong to the lead's own
+         hits; the merged set computes its own. The query flags stay. */
+      for (const k of Object.keys(out)) if (k.startsWith("_") && k !== "_device" && k !== "_pure") delete out[k];
+    }
+  }
+  ctx.cache.set(key, out);
+  return out;
 }
 
 /* ============================================================
@@ -894,7 +970,7 @@ function doctrineLanes(ctx, q, r) {
 /* One more page of one lane ("Ver más" re-rails it). */
 export function lanePage(ctx, q, laneKey, offset = 0, { fx = null } = {}) {
   const query = String(q == null ? "" : q).trim().slice(0, 120);
-  const r = runQuery(ctx, query);
+  const r = equivalentQuery(ctx, query);
   if (r.state !== "results") return null;
   const l = doctrineLanes(ctx, query, r).lanes.find((x) => x.key === laneKey);
   if (!l) return null;
@@ -1373,7 +1449,7 @@ export function cardOf(p, fx, labels = {}) {
  */
 export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE } = {}) {
   const query = String(q == null ? "" : q).trim().slice(0, 120);
-  const r = runQuery(ctx, query);
+  const r = equivalentQuery(ctx, query);
   const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
   /* The total counts every product found: the grid's and the
      comparison block's. Pages are the grid's. */
