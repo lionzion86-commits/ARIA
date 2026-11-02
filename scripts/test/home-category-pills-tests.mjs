@@ -6,7 +6,7 @@
        real depth (no padding); its rail holds only that category's
        products from that store and ends on «Ver más en <Tienda>»;
      - Lencería is the renamed Ropa Interior Mujer carousel (same feed);
-       Ropa de Baño, Hogar y Especialidades, Auto and Motos are new, and
+       Bikinis y Ropas de Baño and Hogar y Especialidades are new (no Auto or Motos carousel), and
        Auto and Motos stay two independent carousels (Danny reversed the
        merge, c.6564465814);
      - the category feed's Aria Fight Club rail is fight gear, mirrored
@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
-import { CAROUSELS, PILLS_DIR, MIN_CARDS, RAIL_CARDS, FIGHT_GEAR_TYPES, buildCategoryPills, pillFiles, liveStorefronts, storeSlice, sliceCategory } from "../build-home-category-pills.mjs";
+import { CAROUSELS, PILLS_DIR, MIN_CARDS, RAIL_CARDS, FIGHT_GEAR_TYPES, buildCategoryPills, pillFiles, liveStorefronts, storeSlice, sliceCategory, classifierOf } from "../build-home-category-pills.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -70,8 +70,8 @@ function membersOf(c) {
   const keys = new Set();
   if (c.src.feed) for (const f of json(c.src.feed).items) { if (!c.src.underwearOnly || f.ty === "underwear") keys.add(f.r + "::" + f.t); }
   if (c.src.depts) for (const d of c.src.depts) for (const r of json(`assets/sections/departamento/_fn/${d}.json`).rows) keys.add(r[2] + "::" + r[0]);
-  if (c.src.swim || c.src.motos) {
-    const want = c.src.swim ? "bano" : "motos";
+  if (c.src.swim) {
+    const want = "bano";
     for (const store of Object.keys(liveStorefronts(ROOT))) {
       const s = storeSlice(ROOT, store);
       if (s) s.rows.forEach((r, i) => { if (r && sliceCategory(s, i) === want) keys.add(store + "::" + r[0]); });
@@ -114,30 +114,43 @@ await check("Lencería is the renamed Ropa Interior Mujer carousel; Ropa Interio
   assert.match(b, /feed: \(\) => ropaInteriorRailPicks\('\/ropa-interior-women-feed\.json'\)/, "Lencería lost its feed");
 });
 
-await check("Todas las Tiendas header; Ropa de Baño, Hogar y Especialidades, Auto and Motos present, Auto and Motos independent", () => {
+await check("Todas las Tiendas header; Bikinis y Ropas de Baño and Hogar y Especialidades present; no Auto or Motos carousel (c.6565694526)", () => {
   const { mobile, desktop } = shopfronts();
   for (const [name, part] of [["phone", mobile], ["desktop", desktop]]) {
     const head = part.indexOf("data-todas-las-tiendas");
     assert.ok(head > 0 && />Todas las Tiendas</.test(part), name + ": no «Todas las Tiendas» header");
     assert.ok(head < part.indexOf('aria-label="Lencería"'), name + ": the header is not above the category block");
-    for (const [k, t] of [["bano", "Ropa de Baño"], ["hogar", "Hogar y Especialidades"], ["auto", "Auto"], ["motos", "Motos"]]) {
+    for (const [k, t] of [["bano", "Bikinis y Ropas de Baño"], ["hogar", "Hogar y Especialidades"]]) {
       const n = part.split(`data-cat-pills="${k}" data-cat-pills-own`).length - 1;
       assert.equal(n, 1, `${name}: ${n} ${t} carousels`);
       assert.match(part, new RegExp(`<section aria-label="${t}" data-cat-pills-section`), `${name}: ${t} has no carousel`);
     }
-    assert.doesNotMatch(part, /Auto y Motos/, name + ": a merged Auto y Motos carousel");
+    assert.doesNotMatch(part, /Ropa de Baño/, name + ": the old «Ropa de Baño» label");
+    /* Auto and Motos have their own pages (aria-auto.html, motos.html): no carousel in this row. */
+    assert.doesNotMatch(part, /data-cat-pills="(?:auto|motos)"/, name + ": an Auto or Motos carousel");
+    assert.doesNotMatch(part, /<section aria-label="(?:Auto|Motos|Auto y Motos)" data-cat-pills-section/, name + ": an Auto or Motos carousel");
     /* Pills on every existing category carousel. */
     for (const row of ["ropa_interior_mujer", "ropa_interior", "curvy", "gym_rat", "soccer", "combat_sports", "beauty", "surf_skate", "toys", "shoes", "sunglasses"])
       assert.match(part, new RegExp(`data-category-rail-row="${row}" data-cat-pills="[a-z-]+"`), `${name}: ${row} has no pill row`);
-    /* The four existing doors: a category carousel never opens a store. */
-    assert.match(part, /data-cat-pills="auto"[\s\S]*?<\/section>/);
   }
-  assert.equal(index.c.auto.door, "/departamento.html?dept=auto_parts");
-  assert.equal(index.c.motos.door, "/motos.html");
+  assert.ok(!index.c.auto && !index.c.motos, "Auto or Motos pill data");
   assert.equal(index.c.hogar.door, "/departamento.html?dept=home_goods");
-  assert.ok(index.c.motos.s.some((s) => s[0] === "revzilla") && index.c.motos.s.some((s) => s[0] === "denniskirk"), "Motos lost RevZilla / Dennis Kirk");
-  assert.ok(index.c.auto.s.some((s) => s[0] === "advanceauto"), "Auto lost Advance Auto Parts");
-  assert.ok(!index.c.auto.s.some((s) => ["revzilla", "denniskirk"].includes(s[0])), "a moto store in Auto");
+});
+
+await check("a non-apparel carousel holds only its own family (one classifier): no tortillas in Juguetes, Aria sells no food", () => {
+  const C = classifierOf(ROOT);
+  for (const c of CAROUSELS.filter((x) => x.src.families)) {
+    const typeOf = new Map();
+    for (const d of c.src.depts) for (const r of json(`assets/sections/departamento/_fn/${d}.json`).rows) typeOf.set(r[2] + "::" + r[0], r[7]);
+    for (const [store] of index.c[c.k].s) {
+      for (const cd of json(`${PILLS_DIR}/${c.k}-${store}.json`).cards) {
+        const fam = C.classify({ name: cd.title, type: typeOf.get(store + "::" + cd.title), retailer: store, brand: cd.brand });
+        assert.ok(c.src.families.includes(fam), `${c.k}/${store}: "${cd.title}" is ${fam}`);
+      }
+    }
+  }
+  const costco = index.c.juguetes.s.some((s) => s[0] === "costco") ? json(`${PILLS_DIR}/juguetes-costco.json`).cards.map((c) => c.title) : [];
+  for (const t of costco) assert.doesNotMatch(t, /tortilla|cocoa|cereal|mac & cheese|hot sauce|oats|juice|coca-cola|throw\b/i, "Juguetes/Costco: " + t);
 });
 
 await check("the category feed's Aria Fight Club rail is fight gear from the fight department; Deportes is not one sport", () => {
@@ -208,7 +221,7 @@ await check("390px: a store pill switches its carousel to that store, ending on 
     await pg.waitForTimeout(1500);
     assert.deepEqual(requested, [], "pill data fetched at load: " + requested.join(", "));
 
-    /* A new carousel (Ropa de Baño): «Todas» paints from its own file, then a store pill. */
+    /* A new carousel (Bikinis y Ropas de Baño): «Todas» paints from its own file, then a store pill. */
     const sel = '#mobileShopfront [data-cat-pills="bano"]';
     await pg.$eval(sel, (el) => el.closest("section").scrollIntoView({ block: "center" }));
     await pg.waitForFunction((s) => document.querySelector(s).querySelectorAll("[data-cat-pills-card]").length >= 8, sel, { timeout: 20000 });
@@ -216,7 +229,7 @@ await check("390px: a store pill switches its carousel to that store, ending on 
     await pg.waitForSelector(bar + " button[data-hcp]:not([data-hcp=''])", { timeout: 10000 });
     const first = await pg.$eval(bar, (b) => ({ sel: b.querySelector('[aria-selected="true"]').textContent, n: b.children.length }));
     assert.equal(first.sel, "Todas", "«Todas» is not the first, selected pill");
-    assert.ok(first.n >= 3, "Ropa de Baño has " + (first.n - 1) + " store pills");
+    assert.ok(first.n >= 3, "Bikinis y Ropas de Baño has " + (first.n - 1) + " store pills");
     /* the new carousel and its pill row stay inside the phone's width (the row scrolls within itself) */
     const wide = await pg.$$eval("#mobileShopfront [data-cat-pills-section], #mobileShopfront .hcp, #mobileShopfront [data-todas-las-tiendas]", (els) => els.filter((e) => e.getBoundingClientRect().right > 391).length);
     assert.equal(wide, 0, "a pill row or new carousel is wider than the phone");

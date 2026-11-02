@@ -9,10 +9,10 @@
    top: «Todas» (the carousel as it was) and one pill per store that
    truly sells that category. A pill re-scopes that carousel in place to
    the store's products of that category only; its rail ends on «Ver más
-   en <Tienda>» (tienda.html?tienda=<key>). Four carousels are new and
-   are painted from here too: Ropa de Baño, Hogar y Especialidades, Auto
-   and Motos (two independent carousels: Danny reversed the Auto y Motos
-   merge, #443 c.6564465814 / c.6564470991).
+   en <Tienda>» (tienda.html?tienda=<key>). Two carousels are new and
+   are painted from here too: Bikinis y Ropas de Baño and Hogar y
+   Especialidades. Auto and Motos are NOT in this row (Danny, #443
+   c.6565694526: they have their own pages, aria-auto.html and motos.html).
 
    CATEGORY TRUTH (the Nov 1 audit). A store's membership in a category
    is never read from a brand or a word in a title. It is the category
@@ -21,15 +21,16 @@
        <dept>.json, build-department-slices.mjs -- product type first),
        for every carousel that opens a department page (Gym Rat, Fútbol,
        Aria Fight Club, Beauty, Surf & Skate, Juguetes, Zapatos, Lentes,
-       Tallas Plus, Electrónica, Joyas, Hogar = home_goods + home_decor,
-       Auto = auto_parts);
+       Tallas Plus, Electrónica, Joyas, Hogar = home_goods + home_decor),
+       narrowed for the non-apparel ones by the one classifier
+       (/product-type.js) to the carousel's own family;
      - the Ropa Interior department's own feeds for Lencería (women's,
        underwear only) and Ropa Interior Hombre;
      - the STORE PAGE's own aisles (assets/tienda/_fn/<key>.json,
-       build-store-slices.mjs) for Ropa de Baño (t-trajes_bano and the
-       ~swim garment class) and Motos (the catalogue's motos bucket).
+       build-store-slices.mjs) for Bikinis y Ropas de Baño (t-trajes_bano
+       and the ~swim garment class).
    A training shop's product (its catalogue files it gym_rat or
-   combat_sports) is kit, never Lencería or Ropa de Baño: a sports bra
+   combat_sports) is kit, never Lencería or swimwear: a sports bra
    is not lingerie and a rash guard is not a bikini.
 
    A PILL IS A REAL STOREFRONT. tienda.html's STORES registry row, an
@@ -58,6 +59,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
+import vm from "node:vm";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PILLS_DIR = "assets/home/category-pills";
@@ -98,23 +100,37 @@ export const CAROUSELS = [
   { k: "lenceria", title: "Lencería", host: "row", row: "ropa_interior_mujer", src: { feed: "ropa-interior-women-feed.json", underwearOnly: true } },
   { k: "interior-hombre", title: "Ropa Interior Hombre", host: "row", row: "ropa_interior", src: { feed: "ropa-interior-feed.json" } },
   { k: "tallas-plus", title: "Tallas Plus", host: "row", row: "curvy", src: { depts: ["curvy"] } },
-  { k: "bano", title: "Ropa de Baño", host: "new", src: { swim: true }, door: "" },
+  { k: "bano", title: "Bikinis y Ropas de Baño", host: "new", src: { swim: true }, door: "" },
   { k: "electronica", title: "Electrónica", host: "tech", src: { depts: ["electronics"] } },
   { k: "gym-rat", title: "Gym Rat", host: "row", row: "gym_rat", src: { depts: ["gym_rat"] } },
   { k: "futbol", title: "Fútbol", host: "row", row: "soccer", src: { depts: ["soccer"] } },
   { k: "fight-club", title: "Aria Fight Club", host: "row", row: "combat_sports", src: { depts: ["combat_sports"], gearFirst: true } },
-  { k: "beauty", title: "Aria Beauty", host: "row", row: "beauty", src: { depts: ["beauty"] } },
+  { k: "beauty", title: "Aria Beauty", host: "row", row: "beauty", src: { depts: ["beauty"], families: ["belleza", "perfumes"] } },
   { k: "surf-skate", title: "Surf & Skate", host: "row", row: "surf_skate", src: { depts: ["surf_skate"] } },
-  { k: "juguetes", title: "Juguetes", host: "row", row: "toys", src: { depts: ["toys"] } },
+  { k: "juguetes", title: "Juguetes", host: "row", row: "toys", src: { depts: ["toys"], families: ["juguetes"] } },
   { k: "zapatos", title: "Zapatos", host: "row", row: "shoes", src: { depts: ["shoes"] } },
-  { k: "lentes", title: "Lentes de Sol", host: "row", row: "sunglasses", src: { depts: ["sunglasses"] } },
-  { k: "joyas", title: "Joyas y accesorios", host: "joyas", src: { depts: ["joyas_accesorios"] } },
-  { k: "hogar", title: "Hogar y Especialidades", host: "new", src: { depts: ["home_goods", "home_decor"] }, door: "/departamento.html?dept=home_goods" },
-  { k: "auto", title: "Auto", host: "new", src: { depts: ["auto_parts"] }, door: "/departamento.html?dept=auto_parts" },
-  { k: "motos", title: "Motos", host: "new", src: { motos: true }, door: "/motos.html" },
+  { k: "lentes", title: "Lentes de Sol", host: "row", row: "sunglasses", src: { depts: ["sunglasses"], families: ["accesorios"] } },
+  { k: "joyas", title: "Joyas y accesorios", host: "joyas", src: { depts: ["joyas_accesorios"], families: ["joyas", "accesorios"] } },
+  { k: "hogar", title: "Hogar y Especialidades", host: "new", src: { depts: ["home_goods", "home_decor"], families: ["hogar", "libros"] }, door: "/departamento.html?dept=home_goods" },
 ];
 
 const readJSON = (root, f) => JSON.parse(readFileSync(join(root, f), "utf8"));
+
+/* THE ONE CLASSIFIER (/product-type.js, the same file every page and
+   builder reads). A non-apparel carousel (Juguetes, Aria Beauty, Lentes,
+   Joyas, Hogar) keeps only what it files in that carousel's own family:
+   a department bucket can hold a store's catch-all (Costco's "toys" pull
+   carried tortillas, cocoa and hot tubs, #443 c.6565694526), and Aria
+   sells no food. */
+const classifiers = new Map();
+export function classifierOf(root = ROOT) {
+  if (!classifiers.has(root)) {
+    const win = {};
+    vm.runInNewContext(readFileSync(join(root, "product-type.js"), "utf8"), { window: win });
+    classifiers.set(root, win.AriaProductType);
+  }
+  return classifiers.get(root);
+}
 
 /** tienda.html's STORES registry (the storefronts). */
 export function storeRegistry(root = ROOT) {
@@ -206,14 +222,15 @@ function candidates(c, stores, root) {
   if (c.src.depts) {
     for (const d of c.src.depts) {
       for (const r of readJSON(root, `assets/sections/departamento/_fn/${d}.json`).rows || []) {
+        if (c.src.families && !c.src.families.includes(classifierOf(root).classify({ name: r[D.name], type: r[D.type], retailer: r[D.store], brand: r[D.brand] }))) continue;
         const cd = card(r[D.name], r[D.brand], Number(r[D.price]), Number(r[D.was]) || 0, r[D.image], r[D.store]);
         if (c.src.gearFirst) cd._gear = FIGHT_GEAR_TYPES.has(r[D.type]) ? FIGHT_GEAR_CLASSES.findIndex(([, t]) => t.includes(r[D.type])) : 99;
         push(r[D.store], cd);
       }
     }
   }
-  if (c.src.swim || c.src.motos) {
-    const want = c.src.swim ? "bano" : "motos";
+  if (c.src.swim) {
+    const want = "bano";
     for (const store of Object.keys(stores)) {
       const s = storeSlice(root, store);
       if (!s) continue;
@@ -270,7 +287,7 @@ export function buildCategoryPills(root = ROOT) {
 }
 
 /* The department bucket the page's pricer reads for a weight estimate. */
-const deptHint = (c) => (c.src.depts ? c.src.depts[0] : c.src.feed ? "underwear" : c.src.motos ? "motos" : "clothing");
+const deptHint = (c) => (c.src.depts ? c.src.depts[0] : c.src.feed ? "underwear" : "clothing");
 
 export function pillFiles(built) {
   const files = {};

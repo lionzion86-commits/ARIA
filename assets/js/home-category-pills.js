@@ -9,7 +9,7 @@
    swaps THAT carousel's cards in place for the store's products of that
    category only, ending on «Ver más en <Tienda>», the store's own page;
    «Todas», or the active pill tapped again, puts the carousel back. The
-   four new carousels (Ropa de Baño, Hogar y Especialidades, Auto, Motos)
+   two new carousels (Bikinis y Ropas de Baño, Hogar y Especialidades)
    are painted from here: their «Todas» rail is the build's own file.
 
    THE MOUNTAIN TEST. Nothing loads with the page. The labels index (a
