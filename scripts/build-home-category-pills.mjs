@@ -130,7 +130,7 @@ export const CAROUSELS = [
   { k: "fight-club", title: "Aria Fight Club", host: "row", row: "combat_sports", src: { depts: ["combat_sports"], gearFirst: true }, lead: ["venum", "tatami"], fightLead: [["venum", "guantes", 2], ["tatami", "gi", 2]] },
   { k: "beauty", title: "Aria Beauty", host: "row", row: "beauty", src: { depts: ["beauty"], families: ["belleza", "perfumes"] } },
   { k: "surf-skate", title: "Surf & Skate", host: "row", row: "surf_skate", src: { depts: ["surf_skate"] }, worn: true },
-  { k: "juguetes", title: "Juguetes", host: "row", row: "toys", src: { depts: ["toys"], families: ["juguetes"] } },
+  { k: "juguetes", title: "Juguetes", host: "row", row: "toys", src: { depts: ["toys"], families: ["juguetes"] }, exclude: (cd) => isPartyTableware(cd) },
   { k: "zapatos", title: "Zapatos", host: "row", row: "shoes", src: { depts: ["shoes"] }, worn: true },
   { k: "lentes", title: "Lentes de Sol", host: "row", row: "sunglasses", src: { depts: ["sunglasses"], families: ["accesorios"] }, exclude: (cd) => isEyewearAccessory(cd) },
   { k: "joyas", title: "Joyas y accesorios", host: "joyas", src: { depts: ["joyas_accesorios"], families: ["joyas", "accesorios"] }, lead: ["baublebar"], leadCards: 1, exclude: (cd) => isBelt(cd) || isToyPiece(cd) || isWallet(cd) },
@@ -225,6 +225,13 @@ export function isWallet(cd) {
   if (NOT_WALLET.test(t)) return false;
   return WALLET_TYPE.test(String(cd._type || "").replace(/_/g, " ")) || WALLET_TITLE.test(t);
 }
+
+/* PARTY TABLEWARE IS NOT A TOY. A licensed character (Barbie, Hot
+   Wheels, PAW Patrol) on a cup, plate or napkin makes the classifier
+   call it a toy by brand; Juguetes keeps toys, not the party table
+   (Party City's favor cups and dessert plates led its pill). */
+const TABLEWARE = /\b(cups?|plates?|napkins?|table ?(cloths?|covers?)|cutlery|forks?|spoons?|straws?|tumblers?|bowls?|platos?|vasos?|servilletas?)\b/i;
+export function isPartyTableware(cd) { return TABLEWARE.test(String(cd.title || "")); }
 
 const readJSON = (root, f) => JSON.parse(readFileSync(join(root, f), "utf8"));
 
