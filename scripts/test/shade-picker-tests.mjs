@@ -148,12 +148,12 @@ async function pickAddAndCheckout(pg, name, pick) {
   for (let i = 1; i < nums.length; i++) assert(nums[i] >= nums[i - 1], `${name}: shades not in number order (${nums.slice(0, 8).join(", ")})`);
   const y = await assertUpTop(pg, "#variant-box", name);
   await shot(pg, name + "-dropdown", "#variant-box");
-  const target = before.options.find((o) => !o.on && pick(o.t) && !/agotado/.test(o.t));
+  const target = before.options.find((o) => !o.on && pick(o.t) && !/vuelve pronto/.test(o.t));
   assert(target, `${name}: no shade to pick among ${before.options.map((o) => o.t).slice(0, 10).join(" | ")}`);
   await pg.selectOption("#shade-select", target.v);
   await pg.waitForFunction((v) => new URL(location.href).searchParams.get("v") === v, target.v, { timeout: 5000 });
   const after = await state(pg);
-  assert(after.current.trim() === target.t.replace(/ \(agotado\)$/, "").trim(), `${name}: label says "${after.current}" after picking "${target.t}"`);
+  assert(after.current.trim() === target.t.replace(/ \(vuelve pronto\)$/, "").trim(), `${name}: label says "${after.current}" after picking "${target.t}"`);
   assert(after.v === target.v && after.v !== before.v, `${name}: the listing did not change (v ${before.v} -> ${after.v})`);
   assert(after.options.find((o) => o.on).v === target.v, `${name}: the dropdown did not keep the pick`);
   await shot(pg, name + "-picked", "#variant-box");

@@ -75,6 +75,7 @@
   .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463; display:flex; align-items:center; gap:8px }
 </style>
 <script src="/display-name.js"></script>
+<script src="/vuelve-pronto.js" data-vp-manual></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -1210,6 +1211,14 @@ function cardImgAttrs(url, sizes){
   function offSaleCartLines(){
     return cart.filter((it) => it && it.lineType !== 'bundle-discount' && isOffSaleItem(it));
   }
+  /* VUELVE PRONTO (#443 c.6585537098, /vuelve-pronto.js): a line the store
+     has sold out is shown with «Vuelve pronto» and is not payable; the
+     order endpoint refuses it too. The list arrives once; the cart
+     redraws when it does. */
+  const VP = window.AriaVuelvePronto || null;
+  function soldOutCartLines(){
+    return VP ? cart.filter((it) => it && it.lineType !== 'bundle-discount' && !isOffSaleItem(it) && VP.isSoldOut(it)) : [];
+  }
   function shadeMissingCartLines(){
     return cart.filter((it) => it && lineNeedsShade(it));
   }
@@ -2159,6 +2168,15 @@ function cardImgAttrs(url, sizes){
       return;
     }
 
+    /* Sold out at the store: «Vuelve pronto», not payable. */
+    if (soldOutCartLines().length){
+      sumWalletRow.hidden = true;
+      sumTotal.innerHTML = penLead(fxRates ? orderTotalPen : NaN, shownUsd);
+      payBtn.disabled = true;
+      payBtn.textContent = 'Quita los productos que vuelven pronto';
+      return;
+    }
+
     /* A shade product with no shade is not payable (/shade-gate.js). */
     if (shadeMissingCartLines().length){
       sumWalletRow.hidden = true;
@@ -2446,6 +2464,7 @@ function cardImgAttrs(url, sizes){
           <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.colorway ? `<span data-colorway="${i}">${it.variantAxis === 'Tono' ? 'Tono' : 'Color'}: ${escapeHtmlLocal(it.colorway)}</span> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
           ${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
           ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
+          ${VP && it.lineType !== 'bundle-discount' && !isOffSaleItem(it) && VP.isSoldOut(it) ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#EEF1F7;color:#14213D" data-vuelve-pronto="${i}" role="alert">${escapeHtmlLocal(VP.LINE_NOTE)}</div>` : ''}
           ${lineNeedsShade(it) ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-shade-missing="${i}" role="alert">${escapeHtmlLocal(SHADE_PENDING_NOTE)} Quítalo de tu carrito para poder pagar.</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
             <label for="lineSize${i}" class="block text-[12px] font-bold leading-snug" style="color:#B03A2E">Falta elegir la talla de este producto. Elígela para poder pagar.</label>
@@ -2499,6 +2518,8 @@ function cardImgAttrs(url, sizes){
   }
   checkCartSizes();
   renderCartItems();
+  /* The «Vuelve pronto» list is in: redraw the lines it names. */
+  if (VP) VP.load().then(() => { if (soldOutCartLines().length){ renderCartItems(); renderSummary(); } });
 
   /* DELIVERY TRANSPARENCY (2026-09-26). One store: one delivery line.
      Several: one row per store, the slowest emphasised, then the
@@ -2671,6 +2692,12 @@ function cardImgAttrs(url, sizes){
     if (offSaleCartLines().length){
       showToast(OFF_SALE_LINE_NOTE);
       const box = document.querySelector('[data-off-sale]');
+      if (box) box.scrollIntoView({ block: 'center' });
+      return;
+    }
+    if (soldOutCartLines().length){
+      showToast(VP.LINE_NOTE);
+      const box = document.querySelector('[data-vuelve-pronto]');
       if (box) box.scrollIntoView({ block: 'center' });
       return;
     }

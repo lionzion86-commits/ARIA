@@ -210,7 +210,7 @@ if (!chromium) {
       await pg.click('.v-opt:has-text("Blush Pink/Cardboard/Gum")');
       await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Blush Pink/Cardboard/Gum");
       const o = await state(pg);
-      assert.match(o.button, /Agotado en la tienda/);
+      assert.match(o.button, /^Vuelve pronto$/);
       assert.deepEqual(o.sizes, []);
       await pg.click('.v-opt:has-text("Grey/Cream White/Grey")');
       await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Grey/Cream White/Grey");

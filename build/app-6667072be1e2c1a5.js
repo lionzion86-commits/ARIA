@@ -27485,6 +27485,13 @@ function addToCart(item){
     showToast('Este producto ya no está disponible en Aria.');
     return false;
   }
+  /* VUELVE PRONTO (#443 c.6585537098, /vuelve-pronto.js): sold out at the
+     store. Its page still opens; it is never added. Checkout and the
+     order endpoint refuse the same line. */
+  if (window.AriaVuelvePronto && window.AriaVuelvePronto.isSoldOut(item)){
+    showToast(window.AriaVuelvePronto.TOAST);
+    return false;
+  }
   /* NO MAKEUP WITHOUT ITS SHADE (/shade-gate.js): checkout and the order
      endpoint refuse the same line. */
   if (window.AriaShadeGate && window.AriaShadeGate.lineNeedsShade(item)){
@@ -27855,6 +27862,7 @@ function cartLineItemHTML(it){
       <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
       <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(shownTitle(it.title))}</div>
       ${isOffSaleRetailer(it.retailer) ? `<div class="text-[12px] font-bold leading-snug mt-1 rounded-lg px-2 py-1" style="color:#B03A2E;background:#FDECEA" data-off-sale-line role="alert">No disponible. Quítalo de tu carrito para continuar.</div>` : ''}
+      ${!isOffSaleRetailer(it.retailer) && window.AriaVuelvePronto && window.AriaVuelvePronto.isSoldOut(it) ? `<div class="text-[12px] font-bold leading-snug mt-1 rounded-lg px-2 py-1" style="color:#14213D;background:#EEF1F7" data-vuelve-pronto-line role="alert">${escapeHtml(window.AriaVuelvePronto.LINE_NOTE)}</div>` : ''}
       ${it.colorway ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">Color: ${escapeHtml(it.colorway)}</div>` : ''}
       ${it.selectedSize ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">Talla: ${escapeHtml(it.selectedSize)}</div>` : ''}
       <div class="text-[14px] font-extrabold tabular mt-1" style="color:var(--navy)">${fmtPriceLabel(it.priceUsd)}</div>
