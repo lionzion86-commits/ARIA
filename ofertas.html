@@ -686,7 +686,7 @@ function cardHTML(c){
     : '';
   /* No image, no card (#443 c.6547325227). */
   if (!img) return '';
-  /* Próximas ventas Key Club: members-first until its unlock time
+  /* Próximas ofertas de temporada Key Club: members-first until its unlock time
      (assets/js/early-access.js); the members' dashboard shows it. */
   if (window.ariaEarlyAccess && window.ariaEarlyAccess.isLocked(c.id)) return '';
   return '<a class="card" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '" data-store="' + esc(c.store || '') + '">' +

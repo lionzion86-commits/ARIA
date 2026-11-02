@@ -22,6 +22,17 @@
      referredBy        the inviting member's email, resolved at signup.
      theme             "lounge" | "amanecer" (the dashboard's two moods).
      keyClub           { spentUsd, firstPaidOrderId } running tallies.
+     verifyRequired    true for every account created after the
+                       verification step shipped (#443, Danny c.6570940933
+                       .. c.6570984289): activation needs BOTH the email
+                       link AND a 6-digit code (_keyclub-verify.js).
+                       Accounts without the flag are not asked for it.
+     verifiedAt        when the code step was completed (once).
+     verifiedVia       "whatsapp" | "sms" | "email": where that code went.
+     phoneVerified     true ONLY when a code sent to her phone (WhatsApp or
+                       SMS) came back right. A member verified by email is
+                       active with phoneVerified false, and is never
+                       promised WhatsApp alerts.
 
    CREDITS. 1 crédito = US$1. The wallet (_wallet.js) keeps soles, so a
    credit is posted as soles at the exchange rate of the moment, and the
@@ -91,9 +102,20 @@ export function isConfirmed(user) {
   return Boolean(user.emailConfirmedAt);
 }
 
-/** An active Key Club member: an account that exists and is confirmed. The only accounts credits post to. */
+/** Where an email-confirmed account that still owes the code step lands. */
+export const VERIFY_PATH = "/keyclub.html?verificar=1";
+
+/**
+ * Email confirmed, code step not done yet: she is signed in, but she lands
+ * on the verification step (keyclub.html?verificar=1), never the dashboard.
+ */
+export function needsVerification(user) {
+  return Boolean(user && user.verifyRequired === true && isConfirmed(user) && !user.verifiedAt);
+}
+
+/** An active Key Club member: an account that exists, is confirmed and (when asked) verified. The only accounts credits post to. */
 export function isMember(user) {
-  return Boolean(user && typeof user === "object" && isConfirmed(user));
+  return Boolean(user && typeof user === "object" && isConfirmed(user) && !needsVerification(user));
 }
 
 /** Stores the hashed token on the side (keyed by hash, never the token). */
@@ -381,7 +403,7 @@ export async function runBirthdayCredits({ users, claims, post }, { now = Date.n
     const u = await users.get(key, { type: "json" }).catch(() => null);
     if (!u || !u.birthday) continue;
     tally.checked++;
-    if (!isConfirmed(u) || !isBirthdayOn(u.birthday, today)) { tally.skipped++; continue; }
+    if (!isMember(u) || !isBirthdayOn(u.birthday, today)) { tally.skipped++; continue; }
     const r = await grantCredit({ claims, post, users }, {
       email: u.email || key, usd: BIRTHDAY_CREDIT_USD, fx, key: `birthday:${u.email || key}:${year}`,
       reason: "Feliz cumpleaños de parte de Aria",
@@ -402,7 +424,10 @@ export function keyClubView(user) {
   const u = user || {};
   const n = Number(u.memberNumber) || null;
   return {
-    active: isConfirmed(u),
+    active: isMember(u),
+    needsVerification: needsVerification(u),
+    phoneVerified: u.phoneVerified === true,
+    verifiedVia: u.verifiedVia || null,
     memberNumber: n,
     memberNumberLabel: formatMemberNumber(n),
     founder: isFounder(n),
@@ -415,7 +440,9 @@ export function keyClubView(user) {
   };
 }
 
-/* ---------------- early access («Próximas ventas») ---------------- */
+/* ---------------- early access («Próximas ofertas de temporada») ----------------
+   Honesty rule: an offer is listed only once a store confirms it; members
+   see it before everyone. */
 
 /**
  * Config: { sales: [{ id, title, unlockAt, items: [{ id, title, brand,

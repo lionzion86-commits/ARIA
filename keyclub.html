@@ -25,7 +25,15 @@
      Flow: form -> auth-signup.js (account stored UNCONFIRMED, email
      sent) -> «Te enviamos un correo — confírmalo para entrar» -> she
      taps the link (keyclub.html?confirmar=...) -> this page POSTs it to
-     auth-confirm.js -> signed in -> her dashboard (/cuenta.html).
+     auth-confirm.js -> signed in -> THE CODE STEP (keyclub.html?verificar=1;
+     #443, Danny c.6570940933 .. c.6570984289): she picks where a 6-digit
+     code goes, one tap -- WhatsApp (highlighted default), SMS (texto) or
+     correo, the three the same size -> auth-verify-send.js /
+     auth-verify-check.js -> «Bienvenido al área Key Club» -> her
+     dashboard (/cuenta.html). A channel that is not live yet says so and
+     offers the email; nothing pretends a code was sent.
+     ?verificar=celular: an active member verifying her cell later
+     (WhatsApp or SMS only).
 
      Mountain Test: one HTML file, inline CSS and JS, no images, no
      fonts, no framework. Zero emojis. Spanish only. No retailer links.
@@ -90,6 +98,19 @@ input:focus{outline:2px solid var(--gold);outline-offset:1px}
 .state p{color:#D9CFBD;font-size:15.5px;margin:0 auto 10px;max-width:34ch}
 .state .alt{background:none;border:1px solid var(--line);color:var(--ink);border-radius:14px;min-height:48px;padding:0 18px;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px}
 .state .note{font-size:13px;color:var(--muted)}
+/* The code step: three channels, one size; WhatsApp highlighted. */
+.channels{display:grid;gap:10px;max-width:380px;width:100%;margin:18px auto 4px;text-align:left}
+.ch{display:flex;flex-direction:column;justify-content:center;width:100%;min-height:62px;border:1px solid rgba(212,175,99,.3);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;padding:10px 16px;cursor:pointer;text-align:left}
+.ch b{font-size:16px;font-weight:700}
+.ch span{font-size:12.5px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.ch.pref{border:1px solid var(--gold);background:linear-gradient(160deg,rgba(212,175,99,.20),rgba(212,175,99,.07));box-shadow:0 0 0 1px var(--gold) inset}
+.ch[disabled]{opacity:.6;cursor:default}
+.vmsg{max-width:380px;margin:12px auto 0;font-size:14px;color:#D9CFBD}
+.vmsg.bad{color:var(--err)}
+.vform{max-width:380px;width:100%;margin:16px auto 0;text-align:left}
+.vform input{text-align:center;font-size:24px;letter-spacing:.32em}
+.vrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.state .verified-h{font-size:clamp(28px,8vw,38px)}
 footer{border-top:1px solid var(--line);padding:24px 0 36px;font-size:12.5px;color:var(--muted);text-align:center}
 footer nav{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin-bottom:10px}
 footer a{color:#CFC4AF;text-decoration:none}
@@ -159,7 +180,8 @@ footer a{color:#CFC4AF;text-decoration:none}
     <label for="fEmail">Correo</label>
     <input type="email" id="fEmail" autocomplete="email" required inputmode="email">
     <label for="fPhone">WhatsApp</label>
-    <input type="tel" id="fPhone" autocomplete="tel" inputmode="tel" placeholder="+51 9__ ___ ___" maxlength="25">
+    <input type="tel" id="fPhone" autocomplete="tel" inputmode="tel" placeholder="+51 9__ ___ ___" maxlength="25" required>
+    <p class="hint" id="phoneWhy">Tus alertas de ofertas te llegan por WhatsApp.</p>
     <label for="fBirthday">Cumpleaños <span class="opt">(opcional)</span></label>
     <input type="date" id="fBirthday" autocomplete="bday">
     <p class="hint">Con tu fecha te llegan $5 en créditos cada cumpleaños.</p>
@@ -183,7 +205,7 @@ footer a{color:#CFC4AF;text-decoration:none}
 
     <p class="err" id="joinErr" role="alert" hidden></p>
     <button class="cta form-cta" type="submit" id="joinBtn">Crear mi llave</button>
-    <p class="legal">Te enviaremos un correo para confirmar que es tuyo. Sin confirmarlo no se abre tu cuenta.</p>
+    <p class="legal">Te enviaremos un correo para confirmar que es tuyo y un código de 6 dígitos para verificarte. Sin los dos no se abre tu cuenta.</p>
   </form>
 </div></section>
 </main>
@@ -218,6 +240,37 @@ footer a{color:#CFC4AF;text-decoration:none}
   </form>
 </div></section>
 
+<!-- After the email link: the code step. -->
+<section id="verify" class="state" hidden><div class="wrap">
+  <svg class="key" style="color:var(--gold)" aria-hidden="true"><use href="#key"/></svg>
+  <div class="kicker">Aria Key Club</div>
+  <h2 class="serif" id="vTitle">Un paso más: tu código</h2>
+  <p id="vLead">Tu correo ya está confirmado. Para abrir tu llave te enviamos un código de 6 dígitos. ¿Dónde lo quieres recibir?</p>
+  <div class="channels" id="vChannels" role="group" aria-label="Dónde recibir tu código">
+    <button type="button" class="ch pref" data-channel="whatsapp"><b>WhatsApp</b><span data-to="phone"></span></button>
+    <button type="button" class="ch" data-channel="sms"><b>SMS (texto)</b><span data-to="phone"></span></button>
+    <button type="button" class="ch" data-channel="email"><b>Correo</b><span data-to="email"></span></button>
+  </div>
+  <p class="vmsg" id="vMsg" role="status" hidden></p>
+  <div class="vrow"><button class="alt" type="button" id="vOfferEmail" hidden>Enviármelo por correo</button></div>
+  <form class="vform" id="vForm" novalidate hidden>
+    <label for="vCode">Código de 6 dígitos</label>
+    <input type="text" id="vCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">
+    <p class="err" id="vErr" role="alert" hidden></p>
+    <button class="cta" type="submit" id="vBtn" style="margin-top:14px">Abrir mi llave</button>
+    <div class="vrow"><button class="alt" type="button" id="vResend">Reenviar el código</button><button class="alt" type="button" id="vOther">Elegir otro medio</button></div>
+  </form>
+</div></section>
+
+<!-- The code is right: the arrival. -->
+<section id="arrived" class="state" hidden><div class="wrap">
+  <svg class="key" style="color:var(--gold)" aria-hidden="true"><use href="#key"/></svg>
+  <div class="kicker">Aria Key Club</div>
+  <h2 class="serif verified-h" id="arrivedTitle">Bienvenido al área Key Club</h2>
+  <p id="arrivedGreet">Esto es tu espacio. Sin tu llave, nadie más entra aquí.</p>
+  <div style="margin-top:18px"><a class="cta" id="arrivedGo" href="/cuenta.html?bienvenida=1">Entrar a mi espacio</a></div>
+</div></section>
+
 <script>
 (function(){
 'use strict';
@@ -232,7 +285,7 @@ function postJson(url, body){
     .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(b){ return { ok: r.ok, status: r.status, body: b || {} }; }); });
 }
 function show(id){
-  ['door','sent','confirming'].forEach(function(s){ $(s).hidden = s !== id; });
+  ['door','sent','confirming','verify','arrived'].forEach(function(s){ $(s).hidden = s !== id; });
   window.scrollTo(0, 0);
 }
 
@@ -243,8 +296,8 @@ if (token) {
   history.replaceState(null, '', location.pathname);
   postJson('/.netlify/functions/auth-confirm', { token: token }).then(function(r){
     if (r.ok && r.body.ok) {
-      $('confTitle').textContent = 'Tu llave está lista';
-      $('confBody').textContent = 'Entrando a tu espacio...';
+      $('confTitle').textContent = r.body.needsVerification ? 'Tu correo está confirmado' : 'Tu llave está lista';
+      $('confBody').textContent = r.body.needsVerification ? 'Un paso más...' : 'Entrando a tu espacio...';
       location.replace(r.body.redirect || '/cuenta.html?bienvenida=1');
       return;
     }
@@ -320,6 +373,7 @@ $('joinForm').addEventListener('submit', function(e){
   };
   if (!body.name) return fail('Cuéntanos tu nombre.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) return fail('Revisa tu correo.');
+  if (body.phone.replace(/\D/g, '').length < 9) return fail('Escribe tu número de WhatsApp.');
   if (body.password.length < 8) return fail('La contraseña debe tener al menos 8 caracteres.');
   if (document.querySelector('input[name=dniWhen][value=now]').checked) {
     if (!dniTokens.front || !dniTokens.back) return fail('Sube las dos fotos de tu DNI, o elige subirlo después.');
@@ -352,7 +406,83 @@ $('resendBtn').addEventListener('click', function(){
     $('resendMsg').hidden = false;
   });
 });
-if (location.hash === '#unirme' && !token) setTimeout(function(){ $('unirme').scrollIntoView({ block: 'start' }); }, 50);
+/* ---------- the code step (?verificar=1, or =celular later) ---------- */
+var verifyMode = params.get('verificar');
+var purpose = verifyMode === 'celular' ? 'phone' : 'activate';
+var lastChannel = null, resendTimer = null;
+function vMsg(text, bad){ $('vMsg').textContent = text; $('vMsg').className = 'vmsg' + (bad ? ' bad' : ''); $('vMsg').hidden = !text; }
+function chButtons(){ return Array.prototype.slice.call(document.querySelectorAll('#vChannels .ch')); }
+function busy(on){ chButtons().forEach(function(b){ b.disabled = on; }); $('vOfferEmail').disabled = on; }
+function resendCountdown(sec){
+  clearInterval(resendTimer);
+  var left = sec, b = $('vResend');
+  var tick = function(){ if (left <= 0) { clearInterval(resendTimer); b.disabled = false; b.textContent = 'Reenviar el código'; return; } b.disabled = true; b.textContent = 'Reenviar en ' + left + ' s'; left--; };
+  tick(); resendTimer = setInterval(tick, 1000);
+}
+function sendTo(channel){
+  lastChannel = channel; busy(true); vMsg(''); $('vOfferEmail').hidden = true;
+  postJson('/.netlify/functions/auth-verify-send', { channel: channel, purpose: purpose }).then(function(r){
+    var b = r.body || {};
+    if (b.already && b.redirect) { location.replace(b.redirect); return; }
+    if (b.sent) {
+      var where = channel === 'email' ? 'tu correo' : (channel === 'whatsapp' ? 'tu WhatsApp' : 'tu celular por SMS');
+      vMsg('Te enviamos el código a ' + where + (b.to ? ' (' + b.to + ')' : '') + '. Vence en ' + (b.expiresInMin || 10) + ' minutos.');
+      $('vChannels').hidden = true; $('vForm').hidden = false; $('vErr').hidden = true; $('vCode').value = '';
+      resendCountdown(b.resendIn || 60);
+      setTimeout(function(){ try { $('vCode').focus(); } catch (e) {} }, 50);
+      return;
+    }
+    /* Not sent: say exactly why, offer the email when it can help. */
+    vMsg(b.message || b.error || 'No pudimos enviar tu código.', b.code !== 'channel_unavailable');
+    $('vOfferEmail').hidden = b.offer !== 'email';
+  }).catch(function(){ vMsg('No pudimos conectarnos. Revisa tu conexión y vuelve a intentarlo.', true); })
+    .then(function(){ busy(false); });
+}
+chButtons().forEach(function(b){ b.addEventListener('click', function(){ sendTo(b.dataset.channel); }); });
+$('vOfferEmail').addEventListener('click', function(){ sendTo('email'); });
+$('vResend').addEventListener('click', function(){ if (lastChannel) sendTo(lastChannel); });
+$('vOther').addEventListener('click', function(){ $('vForm').hidden = true; $('vChannels').hidden = false; vMsg(''); });
+$('vForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var code = $('vCode').value.replace(/\D/g, '');
+  if (code.length !== 6) { $('vErr').textContent = 'El código tiene 6 dígitos.'; $('vErr').hidden = false; return; }
+  $('vBtn').disabled = true; $('vErr').hidden = true;
+  postJson('/.netlify/functions/auth-verify-check', { code: code }).then(function(r){
+    var b = r.body || {};
+    if (b.ok) {
+      if (purpose === 'phone') { location.replace(b.redirect || '/cuenta.html#datos'); return; }
+      $('arrivedGo').href = b.redirect || '/cuenta.html?bienvenida=1';
+      show('arrived');
+      return;
+    }
+    $('vErr').textContent = b.error || 'Ese código no es.'; $('vErr').hidden = false;
+    if (b.code === 'locked' || b.code === 'expired' || b.code === 'no_code') { $('vResend').disabled = false; $('vResend').textContent = 'Pedir un código nuevo'; clearInterval(resendTimer); }
+  }).catch(function(){ $('vErr').textContent = 'No pudimos conectarnos. Vuelve a intentarlo.'; $('vErr').hidden = false; })
+    .then(function(){ $('vBtn').disabled = false; });
+});
+if (verifyMode && !token) {
+  show('verify');
+  history.replaceState(null, '', location.pathname + (purpose === 'phone' ? '?verificar=celular' : '?verificar=1'));
+  if (purpose === 'phone') {
+    $('vTitle').textContent = 'Verifica tu celular';
+    $('vLead').textContent = 'Te enviamos un código de 6 dígitos a tu celular. ¿Por dónde lo quieres recibir?';
+    document.querySelector('#vChannels [data-channel=email]').hidden = true;
+  }
+  chButtons().forEach(function(b){ b.disabled = true; });
+  fetch('/.netlify/functions/auth-verify-send', { credentials: 'same-origin', cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(st){
+    if (!st || !st.signedIn) {
+      vMsg('Entra con tu correo y contraseña para continuar.', true);
+      $('vChannels').innerHTML = '<a class="cta" href="/cuenta.html">Entrar</a>';
+      return;
+    }
+    if (purpose === 'activate' && !st.needsVerification) { location.replace('/cuenta.html'); return; }
+    if (purpose === 'phone' && st.phoneVerified) { location.replace('/cuenta.html#datos'); return; }
+    Array.prototype.forEach.call(document.querySelectorAll('#vChannels [data-to=phone]'), function(s){ s.textContent = st.phoneMasked || ''; });
+    var em = document.querySelector('#vChannels [data-to=email]'); if (em) em.textContent = st.emailMasked || '';
+    chButtons().forEach(function(b){ b.disabled = false; });
+  }).catch(function(){ vMsg('No pudimos conectarnos. Revisa tu conexión y vuelve a abrir esta página.', true); });
+}
+if (location.hash === '#unirme' && !token && !verifyMode) setTimeout(function(){ $('unirme').scrollIntoView({ block: 'start' }); }, 50);
 })();
 </script>
 </body>

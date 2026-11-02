@@ -6,11 +6,14 @@
 // needsConfirmation; #443, Danny 2026-11-02) -- see _keyclub.js
 // isConfirmed. Said only after the password matched, so it tells a
 // stranger nothing. A signed-in member lands in her dashboard
-// (redirect: /cuenta.html).
+// (redirect: /cuenta.html). An account whose email is confirmed but whose
+// code step is not done (#443 c.6570940933) is signed in and sent to the
+// step (redirect: keyclub.html?verificar=1, needsVerification), never
+// the dashboard.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { verifyPassword, normalizeEmail, sessionCookieHeader, corsHeaders, isAdmin } from "./_auth-helpers.js";
 import { randomBytes } from "node:crypto";
-import { isConfirmed } from "./_keyclub.js";
+import { isConfirmed, needsVerification, VERIFY_PATH } from "./_keyclub.js";
 
 const GENERIC = "Correo o contraseña incorrectos";
 
@@ -26,6 +29,7 @@ export async function login(stores, body, { now = Date.now() } = {}) {
   }
   const sessionId = randomBytes(32).toString("hex");
   await stores.sessions.setJSON(sessionId, { email, createdAt: new Date(now).toISOString() });
+  if (needsVerification(user)) return [200, { email, isAdmin: isAdmin(email), needsVerification: true, redirect: VERIFY_PATH }, sessionId];
   return [200, { email, isAdmin: isAdmin(email), redirect: "/cuenta.html" }, sessionId];
 }
 

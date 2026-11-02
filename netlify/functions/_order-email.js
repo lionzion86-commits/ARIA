@@ -338,3 +338,34 @@ export function keyClubConfirmationEmail({ to, name = "", link }) {
 </div></body></html>`;
   return { to, subject, text, html };
 }
+
+/* KEY CLUB VERIFICATION CODE (#443, Danny c.6570940933 .. c.6570984289).
+   The 6-digit code of the entry step, when she picks «correo» (or when
+   WhatsApp/SMS are not live yet and she takes the email instead). Pure. */
+export function keyClubCodeEmail({ to, name = "", code }) {
+  const first = String(name || "").trim().split(/\s+/)[0] || "";
+  const c = String(code || "");
+  const subject = `Tu código Aria Key Club: ${c}`;
+  const text = [
+    `Hola${first ? " " + first : ""},`,
+    "",
+    `Tu código para abrir tu llave del Aria Key Club es: ${c}`,
+    "",
+    "Vence en 10 minutos y sirve una sola vez. No lo compartas con nadie.",
+    "Si no lo pediste, ignora este correo.",
+    "",
+    "Aria",
+  ].join("\n");
+  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#0B0D12;font-family:Arial,Helvetica,sans-serif;color:#F3EBDD">
+<div style="max-width:520px;margin:0 auto;padding:28px 16px">
+  <div style="background:#141821;border-radius:18px;padding:28px 24px;border:1px solid #3A3222">
+    <p style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#D4AF63;margin:0 0 14px">Aria Key Club</p>
+    <p style="font-size:16px;margin:0 0 12px">Hola${first ? " " + esc(first) : ""},</p>
+    <p style="font-size:15px;line-height:1.55;margin:0 0 16px">Tu código para abrir tu llave:</p>
+    <p style="font-size:32px;letter-spacing:.3em;font-weight:bold;color:#F0D597;margin:0 0 18px">${esc(c)}</p>
+    <p style="font-size:12.5px;line-height:1.5;color:#A99F8C;margin:0">Vence en 10 minutos y sirve una sola vez. No lo compartas con nadie. Si no lo pediste, ignora este correo.</p>
+  </div>
+  <p style="font-size:12px;color:#6F6757;text-align:center;margin:16px 0 0">Aria · ariashop.pe</p>
+</div></body></html>`;
+  return { to, subject, text, html };
+}

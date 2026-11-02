@@ -10,12 +10,19 @@
      brief 2026-10-22; the arrival, Danny 2026-11-01/02).
 
      ONE account, ONE login. After confirming her email (keyclub.html ->
-     auth-confirm.js) she lands here, and on every later login: «Ya eres
-     Key Club», the greeting, her member card (number, Fundador when
-     within the first 1,000, member since), the credit wallet (always,
-     even at S/ 0.00) with the four ways to earn, two next steps, a quiet
-     «Selección de hoy para ti», «Próximas ventas», and then Mis
-     pedidos, Mi carrito, Mis documentos and Mis datos as before.
+     auth-confirm.js) and her 6-digit code (keyclub.html?verificar=1,
+     _keyclub-verify.js) she lands here, and on every later login: the
+     greeting, word for word (#443, Danny c.6570940933):
+       «Bienvenido al área Key Club»
+       «Esto es tu espacio. Sin tu llave, nadie más entra aquí.»
+     her member card (number, Fundador when within the first 1,000,
+     member since), the credit wallet (always, even at S/ 0.00) with the
+     four ways to earn, two next steps, a quiet «Selección de hoy para
+     ti», «Próximas ofertas de temporada», and then Mis pedidos, Mi
+     carrito, Mis documentos and Mis datos as before.
+     Email confirmed but the code step not done: account.js answers
+     needsVerification and this page sends her to the step, never the
+     dashboard.
 
      TWO THEMES, ONE STRUCTURE: «01 · El Lounge» (dark and gold) and
      «02 · Amanecer» (light and warm coral). Only CSS variables change,
@@ -206,14 +213,14 @@ footer a{color:var(--ink)}
 </div>
 </div>
 <section class="welcome" id="bienvenida">
-<h1 class="serif" id="welcome">Ya eres Key Club</h1>
-<p class="greet" id="greet">Este es tu espacio. Sin tu llave, nadie más entra aquí.</p>
+<h1 class="serif" id="welcome">Bienvenido al área Key Club</h1>
+<p class="greet" id="greet">Esto es tu espacio. Sin tu llave, nadie más entra aquí.</p>
 </section>
 <section class="block" id="tarjeta" aria-label="Tu tarjeta de miembro"><div id="cardBox"></div></section>
 <section class="block" id="keyclub"><h2>Mi Key Club</h2><div id="walletBox"></div></section>
 <section class="block" id="siguiente" aria-label="Siguientes pasos"><div class="next"><a class="btn" href="/">Empezar a comprar</a><a class="btn alt" href="#pedidos">Ir a mi cuenta</a></div></section>
 <section class="block" id="seleccion"><h2>Selección de hoy para ti</h2><div id="picksBox"><div class="card empty">Preparando tu selección...</div></div></section>
-<section class="block" id="anticipadas"><h2>Próximas ventas</h2><div id="earlyBox"><div class="card empty">Revisando...</div></div></section>
+<section class="block" id="anticipadas"><h2>Próximas ofertas de temporada</h2><div id="earlyBox"><div class="card empty">Revisando...</div></div></section>
 <section class="block" id="invita"><h2>Invita a una amiga</h2><div id="inviteBox"></div></section>
 <nav class="chips" aria-label="Secciones">
 <a href="#pedidos">Mis pedidos</a><a href="#carrito">Mi carrito</a><a href="#keyclub">Mi Key Club</a><a href="#documentos">Mis documentos</a><a href="#datos">Mis datos</a>
@@ -274,6 +281,8 @@ async function load(){
         if (again.ok && again.body) r = again;
       }
     }
+    /* Email confirmed, code step not done: the step, not the dashboard. */
+    if (r.body.signedIn && r.body.needsVerification) { location.replace(r.body.redirect || '/keyclub.html?verificar=1'); return; }
     data = r.body;
     render();
   } catch (e) {
@@ -288,8 +297,9 @@ function render(){
   if (!on) return;
   var p = data.profile || {};
   var club = p.club || {};
-  var first = p.name ? p.name.split(/\s+/)[0] : '';
-  $('welcome').innerHTML = 'Ya eres Key Club' + (first ? ', <em>' + esc(first) + '</em>' : '');
+  /* Danny's words, exactly; her name is on the member card. */
+  $('welcome').textContent = 'Bienvenido al área Key Club';
+  $('greet').textContent = 'Esto es tu espacio. Sin tu llave, nadie más entra aquí.';
   if (club.theme) applyTheme(club.theme, false);
   renderCard(); renderWallet(); renderInvite(); renderOrders(); renderCart(); renderDocs(); renderProfile();
   /* The rails read small static files, after the page has painted. */
@@ -375,23 +385,24 @@ function loadPicks(){
   }).catch(function(){ $('picksBox').innerHTML = '<div class="card empty">No pudimos cargar tu selección. Vuelve en un momento.</div>'; });
 }
 
-/* ---------------- Próximas ventas ----------------
-   assets/keyclub/early-access.json: a sale is listed ONLY when it is
-   actually flagged there (confirmed); members see it here 24 hours
-   before it opens to everyone (public pages hide it until unlockAt).
-   Nothing flagged -> the honest empty state. Never invented. */
+/* ---------------- Próximas ofertas de temporada ----------------
+   assets/keyclub/early-access.json: an offer (Black Friday, Navidad...)
+   is listed ONLY once a store confirms it and it is flagged there;
+   members see it here 24 hours before everyone (public pages hide it
+   until unlockAt). Nothing flagged -> the honest empty state. Never
+   invented: no dates, no sales. */
 function activeEarly(config, now){
   return ((config && config.sales) || []).filter(function(s){ var t = Date.parse(s && s.unlockAt); return t > now && s.items && s.items.length; });
 }
 function loadEarly(){
   fetch('/assets/keyclub/early-access.json', { cache: 'no-cache' }).then(function(r){ return r.ok ? r.json() : { sales: [] }; }).then(function(cfg){
     var live = activeEarly(cfg, Date.now());
-    if (!live.length) { $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas confirmadas. Cuando se confirme una, la verás aquí 24 horas antes que todos.</div>'; return; }
+    if (!live.length) { $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ofertas de temporada confirmadas. Cuando una tienda confirme una, la verás aquí 24 horas antes que todos.</div>'; return; }
     $('earlyBox').innerHTML = live.map(function(s){
-      return '<div class="card"><div class="sub">' + esc(s.title || 'Próxima venta') + '</div><p class="small muted" style="margin-bottom:10px">Solo para miembros hasta el ' + fdate(s.unlockAt) + '.</p>' +
+      return '<div class="card"><div class="sub">' + esc(s.title || 'Oferta de temporada') + '</div><p class="small muted" style="margin-bottom:10px">Solo para miembros hasta el ' + fdate(s.unlockAt) + '.</p>' +
         '<div class="rail">' + s.items.filter(function(c){ return c && c.image && c.title && Number(c.usd) > 0; }).map(pickHTML).join('') + '</div></div>';
     }).join('');
-  }).catch(function(){ $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas confirmadas.</div>'; });
+  }).catch(function(){ $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ofertas de temporada confirmadas.</div>'; });
 }
 
 /* ---------------- Mis pedidos ---------------- */
@@ -625,7 +636,7 @@ function renderProfile(){
   var p = data.profile || {};
   var club = p.club || {};
   var bday = club.birthday ? fdate((/^--/.test(club.birthday) ? '2000' + club.birthday.slice(1) : club.birthday) + 'T12:00:00Z').replace(/ \d{4}$/, '') : '';
-  var rows = [['Nombre', p.name], ['Correo', p.email], ['WhatsApp', p.phone], ['Cumpleaños', bday], ['Miembro Nº', club.memberNumberLabel], ['Cliente desde', p.memberSince ? fdate(p.memberSince) : '']]
+  var rows = [['Nombre', p.name], ['Correo', p.email], ['WhatsApp', p.phone ? p.phone + (club.phoneVerified ? ' · verificado' : ' · sin verificar') : ''], ['Cumpleaños', bday], ['Miembro Nº', club.memberNumberLabel], ['Cliente desde', p.memberSince ? fdate(p.memberSince) : '']]
     .filter(function(r){ return r[1]; })
     .map(function(r){ return '<div><span class="muted">' + r[0] + '</span><span style="font-weight:600;text-align:right">' + esc(r[1]) + '</span></div>'; }).join('');
   var rec = (p.recipients || []).length
@@ -635,7 +646,12 @@ function renderProfile(){
           (r.savedDocuments ? '<span class="small" style="color:var(--green);font-weight:700;white-space:nowrap">Documento guardado</span>' : '') + '</div>';
       }).join('') + '</div>'
     : '<div class="card empty">Cuando alguien más reciba uno de tus pedidos, sus datos quedan aquí para la próxima vez.</div>';
-  $('profileBox').innerHTML = '<div class="card ledger">' + rows + '</div><div class="sub" style="margin-top:14px">Quienes reciben tus pedidos</div>' + rec;
+  /* Verified by email: active, phone not verified. Optional, never pushed;
+     no WhatsApp alert is promised until it is. */
+  var cel = p.phone && !club.phoneVerified
+    ? '<div class="card" id="verifyCel"><p class="small" style="line-height:1.5">Tu celular aún no está verificado.</p><a class="btn alt" href="/keyclub.html?verificar=celular" style="margin-top:10px">Verificar mi celular</a></div>'
+    : '';
+  $('profileBox').innerHTML = '<div class="card ledger">' + rows + '</div>' + cel + '<div class="sub" style="margin-top:14px">Quienes reciben tus pedidos</div>' + rec;
 }
 
 /* ---------------- sign in / out ---------------- */
@@ -648,6 +664,7 @@ $('loginForm').addEventListener('submit', async function(e){
     var body = await res.json();
     $('resendConfirm').hidden = !body.needsConfirmation;
     if (!res.ok) throw new Error(body.error || 'No pudimos entrar.');
+    if (body.needsVerification) { location.href = body.redirect || '/keyclub.html?verificar=1'; return; }
     await load();
   } catch (e2) { err.textContent = (e2 && e2.message) || 'No pudimos entrar.'; err.hidden = false; }
 });
