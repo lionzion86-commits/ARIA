@@ -1122,6 +1122,55 @@ const NOT_A_TOY_RX = /\b(t-?shirts?|tees?|shirts?|hoodies?|sweatshirts?|sweaters
 /* Sport-specific shoes are not the face of women's Zapatos (Danny,
    c.6497530895): cleats, court and golf shoes live in Deportes. */
 const SPORT_SHOE_RX = /\b(cleats?|soccer|f[uú]tbol|chimpun\w*|guayos?|fg\/ag|firm ground|turf|indoor soccer|futsal|pickleball|tennis shoes?|court shoes?|golf|bowling|spikes?|track|baseball|softball|football|lacrosse|volleyball|wrestling|cycling|f50|predator|mercurial|phantom|tiempo|goletto|speedportal|crazyfast|monarcida|morelia|copa (pure|mundial|gloro)|future (ultimate|match|play|pro)|ultra (ultimate|match|play|pro)|(fg|tf|ag|mg)(\/(fg|tf|ag|mg))?)\b/i;
+/* PERFUMES LEAD WITH PRESTIGE (Danny's audit, #443 c.6567197812: the
+   Mujer Perfumes pill opened on Wild Musk and White Shoulders). A
+   curated, named house list -- never a price guess -- in recognition
+   order (Dior, Chanel, YSL, Prada, Tom Ford first). The prestige bottles
+   open the pill one house at a time, round after round (no single house
+   owns the front), each house's bottles in the pill's usual order
+   (deepest sale first, then the department's); every other bottle
+   follows as before. The house is the catalogue's brand, or the house
+   the title names when there is no brand. */
+export const PRESTIGE_PERFUME_HOUSES = ["Christian Dior", "Chanel", "Yves Saint Laurent", "Prada", "Tom Ford", "Creed", "Gucci", "Giorgio Armani",
+  "Givenchy", "Valentino", "Carolina Herrera", "Versace", "Dolce & Gabbana", "Burberry", "Paco Rabanne", "Lancome", "Guerlain", "Hermes",
+  "Jo Malone", "Maison Francis Kurkdjian", "Kilian", "Byredo", "Le Labo", "Parfums De Marly", "Xerjoff", "Maison Margiela", "Bvlgari",
+  "Cartier", "Viktor & Rolf", "Thierry Mugler", "Jean Paul Gaultier", "Narciso Rodriguez", "Marc Jacobs", "Chloe", "Jimmy Choo",
+  "Salvatore Ferragamo", "Boucheron", "Roja Parfums", "Amouage", "Initio"];
+const HOUSE_ALIASES = { "Christian Dior": ["dior"], "Yves Saint Laurent": ["ysl"], "Giorgio Armani": ["armani"], "Paco Rabanne": ["rabanne"],
+  "Lancome": ["lancôme"], "Hermes": ["hermès"], "Kilian": ["by kilian"], "Thierry Mugler": ["mugler"], "Chloe": ["chloé"] };
+const houseRx = (h) => new RegExp("(^|[^a-z])(" + [h, ...(HOUSE_ALIASES[h] || [])].map((x) => x.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")($|[^a-zà-ÿ])", "i");
+const HOUSE_RXS = PRESTIGE_PERFUME_HOUSES.map(houseRx);
+/** The bottle's prestige house rank (0 = Dior), or -1. */
+export function perfumeHouseRank(p) {
+  const brand = String((p && p.brand) || "").trim();
+  const hay = brand || String((p && p.title) || "");
+  return HOUSE_RXS.findIndex((rx) => rx.test(hay));
+}
+export function prestigeFirst(ranked) {
+  const byHouse = new Map(), rest = [];
+  for (const p of ranked) { const h = perfumeHouseRank(p); if (h < 0) rest.push(p); else { if (!byHouse.has(h)) byHouse.set(h, []); byHouse.get(h).push(p); } }
+  const lists = [...byHouse.keys()].sort((a, b) => a - b).map((h) => byHouse.get(h));
+  const out = [];
+  while (lists.some((l) => l.length)) for (const l of lists) if (l.length) out.push(l.shift());
+  return out.concat(rest);
+}
+prestigeFirst.arrange = true;
+/* MEN'S BELTS (Danny, #443 c.6567263570): out of Joyas, into Moda
+   Hombre's own «Cinturones» pill -- the Moda Hombre department's belts by
+   the store's type (BELTS & SUSPENDERS, Cinturón, Correa), or a product
+   named a belt under a catch-all type. A belt bag is a bag; a weight
+   belt is gym gear. */
+const BELT_TYPE_RX = /\bbelts?\b|cintur[oó]n|cinturones|\bcorreas?\b/i;
+const NOT_A_BELT_RX = /\bbelt[- ]?bags?\b|\bbelt chains?\b|\bbelted\b|\bbelly\b|\b(weight|lifting|dip|seat)\s*belts?\b|\bsuspenders?\b(?!.*\bbelt)/i;
+export function isMenBelt(p) {
+  const title = String((p && p.title) || "");
+  if (NOT_A_BELT_RX.test(title)) return false;
+  const type = String((p && p.type) || "");
+  /* "Belt Ring", "Double-Belt Trousers", "Belt Shoulder Bag" are not belts: the belt is the head noun. */
+  if (/\b(rings?|caps?|hats?|trousers|pants|jeans|shorts|jackets?|coats?|bags?|shirts?|jumpsuits?|keychains?)\b/i.test(title)) return false;
+  if (BELT_TYPE_RX.test(type) && !/lifting|weight/i.test(type)) return true;
+  return /\bbelts?\b\s*(?:[-|,(].*)?$/i.test(title);
+}
 export const AUDIENCE_SHELVES = {
   /* Women's Zapatos leads with marketable sneakers and running shoes
      (Danny, c.6507161516); the rest follows in the usual mix. */
@@ -1138,7 +1187,7 @@ export const AUDIENCE_SHELVES = {
   mujer: [["zapatos", "Zapatos", "shoes_women", (p) => footClass(p) === "zapatos", (p) => SNEAKER_RX.test(p.title), (p) => BOOT_RX.test(p.title), farfetchLast],
     ["zapatillas", "Zapatillas", "shoes_women", (p) => footClass(p) === "zapatillas", sportLast, null, farfetchLast],
     ["sandalias", "Sandalias", "shoes_women", (p) => footClass(p) === "sandalias", null, null, farfetchLast], ["gym", "Ropa de gimnasio", "gym_rat", (p) => WOMEN_RX.test(p.title) && !MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
-    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (WOMEN_RX.test(p.title) || /\b(pour femme|for her)\b/i.test(p.title))], ["maquillaje", "Maquillaje", "beauty", (p) => MAKEUP_RX.test(p.title)],
+    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (WOMEN_RX.test(p.title) || /\b(pour femme|for her)\b/i.test(p.title)), prestigeFirst], ["maquillaje", "Maquillaje", "beauty", (p) => MAKEUP_RX.test(p.title)],
     ["cabello", "Cabello", "cabello", null], ["vestidos", "Vestidos", "women", "vestidos"], ["tops", "Blusas y tops", "women", "tops"],
     ["lenceria", "Lencería", "women", "lenceria"], ["bano", "Ropa de baño", "women", "bano"], ["carteras", "Carteras", "women", "carteras"],
     ["joyas", "Joyas", "women", "joyas"], ["lentes", "Lentes de sol", "women", "lentes"]],
@@ -1146,9 +1195,9 @@ export const AUDIENCE_SHELVES = {
     ["zapatos", "Zapatos", "shoes_men", (p) => footClass(p) === "zapatos"], ["zapatillas", "Zapatillas", "shoes_men", (p) => footClass(p) === "zapatillas", sportLast],
     ["sandalias", "Sandalias", "shoes_men", (p) => footClass(p) === "sandalias"],
     ["relojes", "Relojes", "men", (p) => WATCH_RX.test(p.title) && !/\b(bands?|straps?|bracelets?|smart ?watch|t-?shirts?|tees?|shirts?|hoodies?|hats?|caps?|bags?|cases?|boxes?)\b/i.test(p.title)],
-    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, "")) || /\b(pour homme|for him)\b/i.test(p.title))],
+    ["perfumes", "Perfumes", "perfumes", (p) => perfumeClassOf(p) === "frasco" && (MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, "")) || /\b(pour homme|for him)\b/i.test(p.title)), prestigeFirst],
     ["gym", "Ropa de gimnasio", "gym_rat", (p) => MEN_RX.test(p.title.replace(/\bwomen'?s?\b/gi, ""))],
-    ["bano", "Ropa de baño", "men", "bano"], ["gorras", "Gorras", "men", "gorras"], ["lentes", "Lentes de sol", "men", "lentes"],
+    ["bano", "Ropa de baño", "men", "bano"], ["gorras", "Gorras", "men", "gorras"], ["cinturones", "Cinturones", "men", isMenBelt], ["lentes", "Lentes de sol", "men", "lentes"],
     ["mochilas", "Mochilas y bolsos", "men", "carteras"]],
   /* Niños opens on Juguetes, always (Danny, c.6497530895). */
   ninos: [["juguetes", "Juguetes", "toys", (p) => !NOT_A_TOY_RX.test(p.title)], ["deportes", "Deportes", "sporting_goods", (p) => KIDS_RX.test(p.title)],
@@ -1172,7 +1221,9 @@ export function audiencePills(aud, listOf) {
     /* A mixed pill (Ropa, Zapatos) opens on a mix: at most 2 of one kind in front. */
     ranked = interleaveFront(ranked.map((p) => ({ ...p, type: modaType(p) || p.type })), AUDIENCE_CARDS, 2);
     /* A pill with a lead rule opens on it: those cards first, each group in the order above. */
-    if (lead) ranked = [...ranked.filter(lead), ...ranked.filter((p) => !lead(p))];
+    /* A rule marked `arrange` reorders the whole pill itself (Perfumes: prestigeFirst). */
+    if (lead && lead.arrange) ranked = lead(ranked);
+    else if (lead) ranked = [...ranked.filter(lead), ...ranked.filter((p) => !lead(p))];
     /* A pill with a mix rule keeps that kind on screen: after the first
        MIX_LEAD cards, one card in MIX_EVERY is of it. */
     const led = ranked;

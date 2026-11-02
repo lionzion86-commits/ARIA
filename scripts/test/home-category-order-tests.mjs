@@ -49,7 +49,13 @@ for (const [name, tree] of [["phone", mobile], ["desktop", desktop]]) {
     /* Ropa Interior heads the category block, right under Perfumes (c.6545712892);
        the women's carousel is Lencería since #443 2026-11-01 (a rename). */
     const ri = at(tree, "Lencería");
-    assert.ok(ri > perf && ri < at(tree, "Electrónica") && at(tree, "Ropa Interior Hombre") < at(tree, "Electrónica"), "Ropa Interior is not in the top group");
+    assert.ok(ri > perf && ri < at(tree, "Electrónica"), "Lencería is not in the top group");
+    /* Inside Todas las Tiendas (Danny, #443 c.6567263570): Lencería opens the block,
+       Ropa Interior Hombre then Tallas Plus close it. */
+    const block = [...tree.matchAll(/<section aria-label="([^"]+)" data-(?:featured-rail|cat-pills-section|pill-shelf|joyas-section)/g)]
+      .filter((m) => m.index > tree.indexOf("data-todas-las-tiendas") && m.index < tree.indexOf("<!-- TIENDAS: every store below the categories")).map((m) => m[1]);
+    assert.equal(block[0], "Lencería", "the block opens on " + block[0]);
+    assert.deepEqual(block.slice(-2), ["Ropa Interior Hombre", "Tallas Plus"], "the block closes on " + block.slice(-2));
   });
 }
 
