@@ -401,7 +401,8 @@ await check("men's belts: out of Joyas, into Moda Hombre's «Cinturones» pill",
 await check("order inside Todas las Tiendas: Lencería first; Ropa Interior Hombre, then Tallas Plus, last (phone and desktop)", () => {
   const { mobile, desktop } = shopfronts();
   for (const [name, part] of [["phone", mobile], ["desktop", desktop]]) {
-    const head = part.indexOf("data-todas-las-tiendas"), end = part.indexOf("<!-- TIENDAS: every store below the categories");
+    /* The block ends where the Mujer / Hombre / Niños shelves start (Danny's final spec, #443 c.6567929232). */
+    const head = part.indexOf("data-todas-las-tiendas"), end = part.indexOf('<section aria-label="Mujer"');
     const block = [...part.matchAll(/<section aria-label="([^"]+)" data-(?:featured-rail|cat-pills-section|pill-shelf|joyas-section)/g)].filter((m) => m.index > head && m.index < end).map((m) => m[1]);
     assert.equal(block[0], "Lencería", name + ": " + block.join(", "));
     assert.deepEqual(block.slice(-2), ["Ropa Interior Hombre", "Tallas Plus"], name + ": " + block.join(", "));
