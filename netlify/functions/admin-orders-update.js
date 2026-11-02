@@ -6,6 +6,7 @@
 // (orders-create.js) — this never overwrites those fields.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { getSessionEmail, isAdmin, corsHeaders } from "./_auth-helpers.js";
+import { overweightCreditUsd } from "./_keyclub.js";
 
 export async function handler(event) {
   connectLambda(event);
@@ -148,7 +149,24 @@ export async function handler(event) {
     }
 
     await ordersStore.setJSON(orderId, order);
-    const response = { ok: true, taxOwed, express: order.express ?? null };
+    /* ---- DEVOLUCIÓN POR SOBREPESO (Key Club, #443 2026-11-02) ----
+       When the real weight comes in under the estimate, the freight
+       difference returns as Aria credit at US$13 per kg. Like taxOwed
+       above, this RECORDS what is owed and to whom; issuing it stays the
+       named act through admin-wallet-credit.js. */
+    let weightCreditDue = null;
+    const realKg = order.actuals && order.actuals.pesoRealKg;
+    if (realKg != null && Number(order.weightEstimatedKg) > 0) {
+      const usd = overweightCreditUsd(order.weightEstimatedKg, realKg);
+      const fx = Number(order.fxRateUsed) || null;
+      weightCreditDue = {
+        estimatedKg: Number(order.weightEstimatedKg), realKg: Number(realKg),
+        creditUsd: usd, creditPen: usd > 0 && fx ? Math.round(usd * fx * 100) / 100 : 0,
+        buyerEmail: order.buyerEmail || null,
+      };
+    }
+
+    const response = { ok: true, taxOwed, weightCreditDue, express: order.express ?? null };
     if (feeDefaulted) response.feeDefaulted = true;
     return { statusCode: 200, headers, body: JSON.stringify(response) };
   } catch (error) {

@@ -520,7 +520,7 @@ async function createOrderHandler(event) {
          the PRE-DISCOUNT figures -- preDiscountGoodsUsd and orderTotalPen
          (before saldo) -- always. */
       attribution,
-      /* Products at cost, margin 0 (the ledger and the Key Club 5% read this). */
+      /* Products at cost, margin 0 (the ledger reads this). */
       familia: familia || undefined,
       preDiscountGoodsUsd: goodsTotals(items).preDiscountGoodsUsd,
       /* What the server changed or could not vouch for. Unverified lines

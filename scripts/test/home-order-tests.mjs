@@ -55,7 +55,9 @@ const ROOT = new URL("../../", import.meta.url).pathname;
 const PORT = Number(process.env.HOME_ORDER_PORT || 8915);
 const BASE = `http://127.0.0.1:${PORT}`;
 
-export const KEY_CLUB_BODY = "Únete gratis al Aria Key Club: arma tu carrito, compra cuando quieras y recibe $5 de vuelta por cada $100 en crédito Aria. Los primeros 1000 miembros quedan registrados como Fundadores. Gratis por tiempo limitado — después, la membresía tiene un costo.";
+/* The door (#443, Danny 2026-11-01/02): settled facts only; the
+   "$5 de vuelta por cada $100" copy is dead. */
+export const KEY_CLUB_BODY = "Aria es la llave: tu DNI queda registrado una sola vez y tus devoluciones vuelven como crédito al instante. Los primeros 1,000 miembros entran gratis por un año y quedan como Fundadores para siempre. Gratis durante el lanzamiento.";
 
 /* The gatekeeping framing. Ordinary uses of the words stay legal:
    "Selecciona tu talla", "Seleccionar todas", "Selección premium". */

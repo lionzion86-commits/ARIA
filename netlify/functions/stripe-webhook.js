@@ -54,6 +54,7 @@
 
 import { getStore, connectLambda } from "@netlify/blobs";
 import { postTransaction } from "./_wallet.js";
+import { KEYCLUB_STORE, onOrderPaid } from "./_keyclub.js";
 import { emailProvider, sendOrderConfirmation } from "./_order-email.js";
 import {
   applyPaymentEvent, eventAlreadyApplied, markEventApplied,
@@ -217,6 +218,20 @@ export async function handler(event) {
             } catch (error) {
               console.error(`[order-email] ${payment.orderId}: failed outside the send: ${error.message}`);
               await ordersStore.setJSON(payment.orderId, { ...updated, confirmationEmailError: "error interno: " + error.message }).catch(() => {});
+            }
+          }
+
+          /* KEY CLUB CREDITS ON A PAID ORDER (#443, Danny 2026-11-02):
+             US$5 when her purchases first reach US$100, and 5 créditos to
+             the friend who invited her on her first purchase. Keyed claims
+             (_keyclub.js) make a retried event pay nothing twice; nothing
+             here may fail the webhook. */
+          if (updated.paymentStatus === "paid" && updated.buyerEmail) {
+            try {
+              const kc = await onOrderPaid({ users: getStore("users"), claims: getStore(KEYCLUB_STORE), post: postTransaction }, updated);
+              console.log(`[keyclub] ${payment.orderId}: first100=${kc.firstHundred ? JSON.stringify(kc.firstHundred) : "-"} referral=${kc.referral ? JSON.stringify(kc.referral) : "-"}`);
+            } catch (error) {
+              console.error(`[keyclub] ${payment.orderId}: credit hook failed: ${error.message}`);
             }
           }
         }

@@ -240,12 +240,14 @@ export function emailProvider(env = process.env) {
 }
 
 /**
- * Send it. Returns { sent: true, id } or { sent: false, error } -- never
- * throws, because the caller is the payment webhook.
+ * Send any message ({ to, subject, text, html }) through the configured
+ * provider. Returns { sent: true, id } or { sent: false, error } -- never
+ * throws. With no provider configured it says so ("not sent"), honestly:
+ * the Key Club confirmation (auth-signup.js) and the order confirmation
+ * share this one path, behind the same env config.
  */
-export async function sendOrderConfirmation(order, { env = process.env, fetchImpl = fetch, createTransport = null } = {}) {
-  const msg = orderConfirmationEmail(order);
-  if (!msg.to) return { sent: false, error: "el pedido no tiene un correo válido" };
+export async function sendMail(msg, { env = process.env, fetchImpl = fetch, createTransport = null, idempotencyKey = null } = {}) {
+  if (!msg || !msg.to) return { sent: false, error: "el mensaje no tiene un correo válido" };
   const provider = emailProvider(env);
   if (!provider) return { sent: false, error: "no hay proveedor de correo configurado (SMTP_HOST/SMTP_USER/SMTP_PASS o RESEND_API_KEY)" };
   if (provider === "smtp") {
@@ -271,13 +273,11 @@ export async function sendOrderConfirmation(order, { env = process.env, fetchImp
   }
   const key = env.RESEND_API_KEY;
   try {
+    const headers = { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
     const res = await fetchImpl("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": `order-confirmation/${order.orderId}`,
-      },
+      headers,
       body: JSON.stringify({
         from: env.ARIA_EMAIL_FROM || DEFAULT_FROM,
         to: [msg.to],
@@ -293,4 +293,48 @@ export async function sendOrderConfirmation(order, { env = process.env, fetchImp
   } catch (e) {
     return { sent: false, error: String(e && e.message || e) };
   }
+}
+
+/**
+ * Send it. Returns { sent: true, id } or { sent: false, error } -- never
+ * throws, because the caller is the payment webhook.
+ */
+export async function sendOrderConfirmation(order, { env = process.env, fetchImpl = fetch, createTransport = null } = {}) {
+  const msg = orderConfirmationEmail(order);
+  if (!msg.to) return { sent: false, error: "el pedido no tiene un correo válido" };
+  return sendMail(msg, { env, fetchImpl, createTransport, idempotencyKey: `order-confirmation/${order.orderId}` });
+}
+
+/* KEY CLUB EMAIL CONFIRMATION (#443, Danny 2026-11-02). Account creation
+   sends this; the member is not let in until she opens the link. The link
+   lands on the door page (keyclub.html?confirmar=...), which POSTs the
+   token: a mail scanner that pre-fetches links cannot spend it with a GET.
+   Pure, like the order confirmation. */
+export function keyClubConfirmationEmail({ to, name = "", link }) {
+  const first = String(name || "").trim().split(/\s+/)[0] || "";
+  const subject = "Confirma tu correo para entrar al Aria Key Club";
+  const text = [
+    `Hola${first ? " " + first : ""},`,
+    "",
+    "Tu llave del Aria Key Club está lista. Confirma tu correo para entrar:",
+    "",
+    link,
+    "",
+    "El enlace funciona una sola vez y vence en 48 horas.",
+    "Si no creaste esta cuenta, ignora este correo.",
+    "",
+    "Aria",
+  ].join("\n");
+  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#0B0D12;font-family:Arial,Helvetica,sans-serif;color:#F3EBDD">
+<div style="max-width:520px;margin:0 auto;padding:28px 16px">
+  <div style="background:#141821;border-radius:18px;padding:28px 24px;border:1px solid #3A3222">
+    <p style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#D4AF63;margin:0 0 14px">Aria Key Club</p>
+    <p style="font-size:16px;margin:0 0 12px">Hola${first ? " " + esc(first) : ""},</p>
+    <p style="font-size:15px;line-height:1.55;margin:0 0 20px">Tu llave está lista. Confirma tu correo para entrar.</p>
+    <p style="margin:0 0 22px"><a href="${esc(link)}" style="display:inline-block;background:#D4AF63;color:#0B0D12;font-weight:bold;text-decoration:none;padding:13px 22px;border-radius:12px">Confirmar mi correo</a></p>
+    <p style="font-size:12.5px;line-height:1.5;color:#A99F8C;margin:0">El enlace funciona una sola vez y vence en 48 horas. Si no creaste esta cuenta, ignora este correo.</p>
+  </div>
+  <p style="font-size:12px;color:#6F6757;text-align:center;margin:16px 0 0">Aria · ariashop.pe</p>
+</div></body></html>`;
+  return { to, subject, text, html };
 }

@@ -8,6 +8,7 @@ import { corsHeaders, getSessionEmail } from "./_auth-helpers.js";
 import { accountOverview } from "./_account.js";
 import { DNI_PACKS_STORE } from "./_dni-docs.js";
 import { WALLET_STORE } from "./_wallet.js";
+import { KEYCLUB_STORE, ensureMembership } from "./_keyclub.js";
 
 export async function handler(event) {
   connectLambda(event);
@@ -29,6 +30,10 @@ export async function handler(event) {
       packs: getStore(DNI_PACKS_STORE),
     };
     const t0 = Date.now();
+    /* An account from before the door (no confirmation step then) gets
+       its member number and invite code the first time it opens the
+       dashboard. Never fails the page. */
+    await ensureMembership({ users: stores.users, keyclub: getStore(KEYCLUB_STORE) }, email).catch((e) => console.error("[account] membership", e && e.message));
     const overview = await accountOverview(stores, email);
     // Counts and timings only: never the email or an order id.
     console.info("[account]", JSON.stringify({ ms: Date.now() - t0, orders: overview.orders.length, problems: overview.problems }));

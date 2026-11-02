@@ -2,52 +2,96 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aria Key Club — Aria Shop</title>
-<meta name="description" content="Tu llave para que cada compra te devuelva dinero. Gratis al lanzamiento.">
+<meta name="description" content="Aria es la llave. Tu DNI queda registrado una sola vez, tus devoluciones vuelven como crédito al instante. Gratis durante el lanzamiento.">
+<meta name="theme-color" content="#0B0D12">
+<!-- ============================================================
+     THE DOOR (#443, Danny 2026-11-01/02, c.6569401037 .. c.6569684988).
+
+     The ONE way into the Aria Key Club. Every entry point on the site
+     (the homepage block, the header and menu "Crear cuenta", the cart
+     banner, the checkout gate, the card after a guest uploads her DNI)
+     links here; there is no signup pop-up anywhere.
+
+     Copy is SETTLED facts only: the DNI registered once, returns as
+     credit at once, the four ways credits are earned (exactly four,
+     word for word from _keyclub.js EARN_WAYS), 1 crédito = US$1, and
+     the Founders line. No launch day count: «gratis durante el
+     lanzamiento». The per-purchase percentage credit rule is
+     dead and must not come back.
+
+     Flow: form -> auth-signup.js (account stored UNCONFIRMED, email
+     sent) -> «Te enviamos un correo — confírmalo para entrar» -> she
+     taps the link (keyclub.html?confirmar=...) -> this page POSTs it to
+     auth-confirm.js -> signed in -> her dashboard (/cuenta.html).
+
+     Mountain Test: one HTML file, inline CSS and JS, no images, no
+     fonts, no framework. Zero emojis. Spanish only. No retailer links.
+     ============================================================ -->
 <style>
-:root{--navy:#0A1F44;--blue:#2456A0;--gold:#F4C463;--sky:#F2F6FF;--line:#E4E9F2;--ink:#1A2333;--muted:#6B7280;--green:#16A34A;--red:#DC2626}
+:root{--bg:#0B0D12;--bg2:#12151D;--surface:#161A23;--ink:#F3EBDD;--muted:#A99F8C;--gold:#D4AF63;--gold2:#F0D597;--line:rgba(212,175,99,.22);--err:#FF9C8A}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff;min-height:100vh;display:flex;flex-direction:column}
-a{color:var(--blue);text-decoration:none}
-a:hover{text-decoration:underline}
-.site-header{background:var(--navy);color:#fff}
-.util-bar{background:#071633;font-size:12px;padding:7px 20px;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
-.util-bar a{color:#B9C6E4}
-.main-nav{display:flex;align-items:center;gap:22px;padding:14px 20px;max-width:1240px;margin:0 auto;width:100%}
-.logo{font-weight:800;font-size:20px;color:#fff;letter-spacing:-.02em;white-space:nowrap}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;overflow-x:hidden}
+a{color:var(--gold2)}
+.serif{font-family:Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.01em}
+.wrap{max-width:560px;margin:0 auto;padding:0 20px}
+.kicker{font-size:11.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+/* The hero: one full phone screen. */
+.hero{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:space-between;padding:22px 0 28px;background:radial-gradient(120% 70% at 50% 18%,rgba(212,175,99,.16),transparent 60%),linear-gradient(180deg,#0B0D12,#10131A 70%,#0B0D12)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.logo{font-weight:800;font-size:17px;letter-spacing:.02em;color:var(--ink);text-decoration:none}
 .logo span{color:var(--gold)}
-.nav-links{display:flex;gap:18px;font-size:14px;flex-wrap:wrap}
-.nav-links a{color:#DCE4F7}
-@media(max-width:760px){.nav-links{display:none}}
-main{flex:1;width:100%;max-width:900px;margin:0 auto;padding:32px 20px 48px}
-.hero{text-align:center;margin:0 0 32px}
-.kicker{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:12px}
-.hero h1{font-size:clamp(26px,4vw,36px);font-weight:800;letter-spacing:-.02em;color:var(--navy);margin-bottom:12px}
-.hero h1 .gold{color:var(--gold)}
-.hero p.lead{font-size:16px;color:var(--muted);max-width:60ch;margin:0 auto;line-height:1.6}
-section.block{margin:28px 0}
-section.block h2{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 14px;letter-spacing:-.01em}
-section.block h3{font-size:17px;font-weight:700;color:var(--navy);margin:18px 0 8px}
-section.block p{font-size:15px;line-height:1.7;color:var(--ink);margin:0 0 12px}
-.card{border:1px solid var(--line);border-radius:16px;padding:20px;margin:14px 0;background:#fff}
-.card h3{margin-top:0}
-.step{display:flex;gap:16px;margin:16px 0;align-items:flex-start}
-.step .num{flex:none;width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:16px}
-.step .body h3{margin:2px 0 6px}
-.grid2{display:grid;grid-template-columns:1fr;gap:14px;margin:16px 0}
-@media(min-width:640px){.grid2{grid-template-columns:1fr 1fr}}
-.store-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:20px 0}
-@media(min-width:640px){.store-grid{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:960px){.store-grid{grid-template-columns:repeat(4,1fr)}}
-.store-card{border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;font-weight:600;font-size:14px;color:var(--navy)}
-.store-card:hover{border-color:var(--blue);text-decoration:none;background:var(--sky)}
-.btn{display:inline-block;background:var(--navy);color:#fff;font-weight:700;padding:12px 28px;border-radius:12px;font-size:15px;margin:8px 0}
-.btn:hover{background:var(--blue);text-decoration:none}
-footer{background:var(--navy);color:#B9C6E4;font-size:13px;padding:28px 20px;text-align:center;margin-top:auto}
-footer a{color:#fff}
-.err-box{border:1px solid #FECACA;background:#FEF2F2;border-radius:16px;padding:32px 20px;text-align:center;margin:24px 0}
-.err-box strong{display:block;font-size:18px;color:var(--navy);margin-bottom:8px}
+.enter{font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:7px 14px;white-space:nowrap}
+.mid{text-align:center;padding:36px 0 18px}
+.key{width:76px;height:76px;margin:0 auto 22px;display:block}
+.hero h1{font-size:clamp(34px,10vw,52px);line-height:1.04;margin:12px 0 14px}
+.hero h1 em{font-style:normal;color:var(--gold2)}
+.lead{font-size:16px;color:#D9CFBD;max-width:30ch;margin:0 auto}
+.cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;border:0;border-radius:16px;background:linear-gradient(180deg,#E2C27A,#C99E4C);color:#14110A;font-size:16px;font-weight:800;letter-spacing:.01em;text-decoration:none;cursor:pointer;box-shadow:0 10px 30px rgba(212,175,99,.22)}
+.cta[disabled]{opacity:.6;cursor:default}
+.free{text-align:center;font-size:13px;color:var(--muted);margin-top:12px}
+section.blk{padding:40px 0;border-top:1px solid var(--line)}
+section.blk h2{font-size:26px;line-height:1.15;margin:10px 0 18px}
+.perks{list-style:none;display:grid;gap:12px}
+.perks li{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 16px 16px 48px;position:relative;font-size:15px}
+.perks li::before{content:"";position:absolute;left:18px;top:21px;width:12px;height:12px;border-radius:50%;border:2px solid var(--gold)}
+.earn{list-style:none;counter-reset:e;display:grid;gap:10px}
+.earn li{counter-increment:e;display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;font-size:14.5px}
+.earn li::before{content:counter(e);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:16px;color:var(--bg);background:var(--gold)}
+.unit{margin-top:14px;font-size:13.5px;color:var(--muted);text-align:center}
+.founders{background:linear-gradient(160deg,#1A1710,#12151D);border:1px solid rgba(212,175,99,.45);border-radius:20px;padding:22px 18px;text-align:center}
+.founders p.serif{font-size:21px;line-height:1.3;color:var(--gold2)}
+.founders .sub{font-size:13.5px;color:var(--muted);margin-top:10px}
+/* The form */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 16px}
+label{display:block;font-size:13px;font-weight:700;color:var(--ink);margin:14px 0 6px}
+label .opt{font-weight:500;color:var(--muted)}
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=password]{width:100%;min-height:48px;border:1px solid rgba(212,175,99,.3);border-radius:12px;background:#0F1218;color:var(--ink);font-size:16px;padding:12px;font-family:inherit;color-scheme:dark}
+input:focus{outline:2px solid var(--gold);outline-offset:1px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.choice label{margin:0;display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:1px solid rgba(212,175,99,.3);border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;text-align:center;padding:6px}
+.choice input{accent-color:#D4AF63}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.slot{border:1px dashed rgba(212,175,99,.4);border-radius:12px;padding:10px;font-size:13px;text-align:center;min-width:0}
+.slot b{display:block;margin-bottom:6px}
+.slot .pick{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:600}
+.slot .st{font-size:12px;color:var(--muted);margin-top:6px;overflow-wrap:anywhere}
+.err{color:var(--err);font-size:13.5px;margin-top:12px}
+.form-cta{margin-top:20px}
+.legal{font-size:12px;color:var(--muted);margin-top:12px;text-align:center}
+/* The after-states: one full screen each. */
+.state{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:32px 0}
+.state h2{font-size:clamp(26px,7.4vw,34px);line-height:1.15;margin:14px 0 14px}
+.state p{color:#D9CFBD;font-size:15.5px;margin:0 auto 10px;max-width:34ch}
+.state .alt{background:none;border:1px solid var(--line);color:var(--ink);border-radius:14px;min-height:48px;padding:0 18px;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px}
+.state .note{font-size:13px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding:24px 0 36px;font-size:12.5px;color:var(--muted);text-align:center}
+footer nav{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin-bottom:10px}
+footer a{color:#CFC4AF;text-decoration:none}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -55,74 +99,260 @@ footer a{color:#fff}
 <script src="/assets/js/pixels.js" async></script>
 </head>
 <body>
-<header class="site-header">
-<div class="util-bar">
-<a href="como-funciona.html">Cómo funciona</a>
-<a href="nosotros.html">Por qué Aria</a>
-<a href="keyclub.html">Aria Key Club</a>
-</div>
-<nav class="main-nav">
-<a class="logo" href="https://ariashop.pe/">ARIA<span>SHOP</span></a>
-<div class="nav-links">
-<a href="https://ariashop.pe/">Inicio</a>
-<a href="ofertas.html">Ofertas</a>
-<a href="motos.html">Aria Motos</a>
-<a href="aria-auto.html">Aria Auto</a>
-<a href="search.html">Buscar</a>
-<a href="tiendas.html">Tiendas</a>
-</div>
-</nav>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="key" viewBox="0 0 64 64"><circle cx="20" cy="32" r="12" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="20" cy="32" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M32 32h26M50 32v9M43 32v6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol></svg>
+
+<div id="door">
+<header class="hero">
+  <div class="wrap top">
+    <a class="logo" href="/">ARIA<span>SHOP</span></a>
+    <a class="enter" href="/cuenta.html">Ya soy miembro · Entrar</a>
+  </div>
+  <div class="wrap mid">
+    <svg class="key" style="color:var(--gold)" aria-hidden="true"><use href="#key"/></svg>
+    <div class="kicker">Aria Key Club</div>
+    <h1 class="serif">Aria es <em>la llave</em></h1>
+    <p class="lead">Tu membresía para comprar en Estados Unidos con Aria.</p>
+  </div>
+  <div class="wrap">
+    <a class="cta" href="#unirme" id="toForm">Hacerme miembro</a>
+    <p class="free">Gratis durante el lanzamiento.</p>
+  </div>
 </header>
+
 <main>
-<div class="hero">
-<div class="kicker">Membresía Aria · Promo de lanzamiento</div>
-<h1>Aria <span class="gold">Key Club</span></h1>
-<p class="lead">Tu llave para que cada compra te devuelva dinero. Gratis al lanzamiento: cashback en cada pedido, acceso anticipado a las ofertas y envío exprés a precio de miembro.</p>
-<div style="margin-top:16px"><a class="btn" href="https://ariashop.pe/">Únete gratis</a></div>
-<p style="font-size:13px;color:var(--muted);margin-top:8px">Sin tarjeta. Sin compromiso. Tu cuenta Aria es tu membresía.</p>
-</div>
+<section class="blk"><div class="wrap">
+  <div class="kicker">Lo que abre tu llave</div>
+  <h2 class="serif">Una vez, y listo.</h2>
+  <ul class="perks">
+    <li>Tu DNI queda registrado una sola vez y no lo vuelves a subir.</li>
+    <li>Tus devoluciones vuelven como crédito al instante.</li>
+  </ul>
+</div></section>
 
-<section class="block">
-<h2>Cinco razones para tener la llave.</h2>
-<div class="grid2">
-<div class="card"><h3>Gratis al lanzamiento</h3><p>Unirse no cuesta nada. Sin tarjeta, sin compromiso: tu cuenta Aria es tu membresía.</p></div>
-<div class="card"><h3>$5 de vuelta por cada $100</h3><p>5% de cashback en cada compra, directo a tu saldo Aria. Por tiempo limitado: hasta después de la Navidad. Dinero de verdad, no puntos raros.</p></div>
-<div class="card"><h3>Entra primero a las ofertas</h3><p>Black Friday, Cyber Monday y las ventas grandes del año: los miembros del Key Club entran primero.</p></div>
-<div class="card"><h3>Exprés a precio de miembro</h3><p>¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p></div>
-<div class="card"><h3>Tu DNI, una sola vez</h3><p>La aduana pide el documento de quien recibe. Lo subes una vez y queda guardado en tu cuenta para todos tus pedidos. Si renuevas tu DNI, subes las fotos nuevas y listo.</p></div>
-</div>
-</section>
+<section class="blk" id="creditos"><div class="wrap">
+  <div class="kicker">Créditos Aria</div>
+  <h2 class="serif">Cómo se ganan</h2>
+  <ol class="earn" id="earnList">
+    <li data-earn>Devolución por sobrepeso: si tu paquete pesa menos de lo estimado, la diferencia del flete vuelve como crédito Aria (US$13 por kg).</li>
+    <li data-earn>US$5 al llegar a tus primeros US$100 en compras (solo la primera vez).</li>
+    <li data-earn>5 créditos cuando tu amiga invitada se hace miembro y hace su primera compra.</li>
+    <li data-earn>US$10 en tu cumpleaños.</li>
+  </ol>
+  <p class="unit">1 crédito = US$1</p>
+</div></section>
 
-<section class="block">
-<h2>Tu cashback en tres pasos.</h2>
-<div class="step"><div class="num">1</div><div class="body"><h3>Compra como siempre</h3><p>Haz tu pedido normal en ariashop.pe. Cada compra suma.</p></div></div>
-<div class="step"><div class="num">2</div><div class="body"><h3>$5 vuelven a tu saldo</h3><p>Por cada $100 en compras, $5 regresan a tu saldo Aria.</p></div></div>
-<div class="step"><div class="num">3</div><div class="body"><h3>Úsalo en tu próxima compra</h3><p>Tu saldo se descuenta al pagar. Compras, ganas, repites.</p></div></div>
-<p style="font-size:13px;color:var(--muted)">Esta tasa del 5% es la de lanzamiento — aprovéchala mientras dure.</p>
-</section>
+<section class="blk"><div class="wrap">
+  <div class="founders">
+    <div class="kicker" style="margin-bottom:10px">Fundadores</div>
+    <p class="serif">Los primeros 1,000 miembros entran gratis por un año y quedan como Fundadores para siempre.</p>
+    <p class="sub">Gratis durante el lanzamiento.</p>
+  </div>
+</div></section>
 
-<section class="block">
-<h2>Lo que todos preguntan.</h2>
-<div class="card"><h3>¿Es gratis?</h3><p>Sí. Al lanzamiento, unirse al Key Club no cuesta nada.</p></div>
-<div class="card"><h3>¿Cómo recibo mi cashback?</h3><p>Como saldo Aria en tu cuenta: $5 por cada $100 en compras. Lo ves en tu cuenta y se descuenta solo cuando pagas tu próximo pedido.</p></div>
-<div class="card"><h3>¿El cashback es para siempre?</h3><p>El $5 por cada $100 es la promo de lanzamiento, válida hasta después de la Navidad. La membresía, esa sí, sigue siendo gratis.</p></div>
-<div class="card"><h3>¿Cuándo empieza?</h3><p>Muy pronto. Crea tu cuenta hoy y serás de los primeros en entrar.</p></div>
-</section>
+<section class="blk" id="unirme"><div class="wrap">
+  <div class="kicker">Tu llave</div>
+  <h2 class="serif">Hazte miembro</h2>
+  <form class="card" id="joinForm" novalidate>
+    <label for="fName">Nombre</label>
+    <input type="text" id="fName" autocomplete="name" required maxlength="80">
+    <label for="fEmail">Correo</label>
+    <input type="email" id="fEmail" autocomplete="email" required inputmode="email">
+    <label for="fPhone">WhatsApp</label>
+    <input type="tel" id="fPhone" autocomplete="tel" inputmode="tel" placeholder="+51 9__ ___ ___" maxlength="25">
+    <label for="fBirthday">Cumpleaños <span class="opt">(opcional)</span></label>
+    <input type="date" id="fBirthday" autocomplete="bday">
+    <p class="hint">Con tu fecha te llegan US$10 en créditos cada cumpleaños.</p>
+    <label for="fPass">Contraseña</label>
+    <input type="password" id="fPass" autocomplete="new-password" minlength="8" required placeholder="Al menos 8 caracteres">
 
-<div style="text-align:center;margin:24px 0"><a class="btn" href="https://ariashop.pe/">Pide tu llave gratis</a></div>
+    <label>Tu DNI</label>
+    <div class="choice" role="radiogroup" aria-label="Tu DNI">
+      <label><input type="radio" name="dniWhen" value="later" checked> Después</label>
+      <label><input type="radio" name="dniWhen" value="now"> Subirlo ahora</label>
+    </div>
+    <p class="hint">Queda registrado una sola vez. Si lo dejas para después, lo subes en tu primera compra.</p>
+    <div id="dniNow" hidden>
+      <label for="fDoc">Número de DNI</label>
+      <input type="text" id="fDoc" inputmode="numeric" maxlength="12" autocomplete="off">
+      <div class="slots">
+        <div class="slot" data-side="front"><b>Frente</b><label class="pick" style="margin:0">Elegir foto<input type="file" accept="image/*" hidden></label><div class="st"></div></div>
+        <div class="slot" data-side="back"><b>Reverso</b><label class="pick" style="margin:0">Elegir foto<input type="file" accept="image/*" hidden></label><div class="st"></div></div>
+      </div>
+    </div>
+
+    <p class="err" id="joinErr" role="alert" hidden></p>
+    <button class="cta form-cta" type="submit" id="joinBtn">Crear mi llave</button>
+    <p class="legal">Te enviaremos un correo para confirmar que es tuyo. Sin confirmarlo no se abre tu cuenta.</p>
+  </form>
+</div></section>
 </main>
-<footer>
-<a href="https://ariashop.pe/">Aria Shop</a> · 
-<a href="como-funciona.html">Cómo funciona</a> · 
-<a href="nosotros.html">Nosotros</a> · 
-<a href="devoluciones.html">Devoluciones</a> · 
-<a href="restricciones.html">Restricciones</a> · 
-<a href="keyclub.html">Key Club</a> · 
-<a href="https://ariashop.pe/terminos">Términos</a> · 
-<a href="https://ariashop.pe/privacidad">Privacidad</a>
-<br><br>© 2026 ARIA SHOP LLC. Todos los derechos reservados.
-</footer>
-<!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
-<script src="/assets/js/aria-launcher.js" defer></script>
+<footer><div class="wrap">
+  <nav><a href="/">Inicio</a><a href="ofertas.html">Ofertas</a><a href="aria-auto.html">Aria Auto</a><a href="como-funciona.html">Cómo funciona</a><a href="devoluciones.html">Devoluciones</a><a href="privacidad.html">Privacidad</a></nav>
+  Aria · ariashop.pe
+</div></footer>
+</div>
+
+<!-- After the form: the email went out. -->
+<section id="sent" class="state" hidden><div class="wrap">
+  <svg class="key" style="color:var(--gold)" aria-hidden="true"><use href="#key"/></svg>
+  <div class="kicker">Aria Key Club</div>
+  <h2 class="serif" id="sentTitle">Te enviamos un correo — confírmalo para entrar</h2>
+  <p id="sentBody">Lo enviamos a <b id="sentEmail"></b>. Abre el enlace en este teléfono; vence en 48 horas.</p>
+  <p class="note" id="sentNote">Si no lo ves, revisa tu carpeta de spam o promociones.</p>
+  <div><button class="alt" type="button" id="resendBtn">Reenviar el correo</button></div>
+  <p class="note" id="resendMsg" role="status" hidden></p>
+</div></section>
+
+<!-- From the email link: the token is being spent. -->
+<section id="confirming" class="state" hidden><div class="wrap">
+  <svg class="key" style="color:var(--gold)" aria-hidden="true"><use href="#key"/></svg>
+  <div class="kicker">Aria Key Club</div>
+  <h2 class="serif" id="confTitle">Abriendo tu llave...</h2>
+  <p id="confBody">Un momento.</p>
+  <form id="confResend" hidden style="max-width:360px;margin:12px auto 0;text-align:left">
+    <label for="confEmail">Tu correo</label>
+    <input type="email" id="confEmail" autocomplete="email" required>
+    <button class="cta" type="submit" style="margin-top:14px">Enviarme un enlace nuevo</button>
+    <p class="note" id="confMsg" role="status" style="text-align:center;margin-top:10px" hidden></p>
+  </form>
+</div></section>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var params = new URLSearchParams(location.search);
+/* A friend's invite: ?invita=CODE (or ?ref=CODE). */
+var invite = params.get('invita') || params.get('ref') || '';
+try { if (invite) sessionStorage.setItem('aria_kc_invite', invite); else invite = sessionStorage.getItem('aria_kc_invite') || ''; } catch (e) {}
+
+function postJson(url, body){
+  return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(b){ return { ok: r.ok, status: r.status, body: b || {} }; }); });
+}
+function show(id){
+  ['door','sent','confirming'].forEach(function(s){ $(s).hidden = s !== id; });
+  window.scrollTo(0, 0);
+}
+
+/* ---------- from the email link ---------- */
+var token = params.get('confirmar');
+if (token) {
+  show('confirming');
+  history.replaceState(null, '', location.pathname);
+  postJson('/.netlify/functions/auth-confirm', { token: token }).then(function(r){
+    if (r.ok && r.body.ok) {
+      $('confTitle').textContent = 'Tu llave está lista';
+      $('confBody').textContent = 'Entrando a tu espacio...';
+      location.replace(r.body.redirect || '/cuenta.html?bienvenida=1');
+      return;
+    }
+    $('confTitle').textContent = r.body.code === 'expired' ? 'Este enlace venció' : 'Este enlace ya no sirve';
+    $('confBody').textContent = (r.body.error || 'No pudimos confirmar tu correo.') + ' Si ya confirmaste, entra con tu correo y contraseña.';
+    $('confResend').hidden = false;
+  }).catch(function(){
+    $('confTitle').textContent = 'No pudimos conectarnos';
+    $('confBody').textContent = 'Revisa tu conexión y vuelve a abrir el enlace del correo.';
+  });
+}
+$('confResend').addEventListener('submit', function(e){
+  e.preventDefault();
+  postJson('/.netlify/functions/auth-confirm', { resend: true, email: $('confEmail').value.trim() }).then(function(r){
+    $('confMsg').textContent = r.body.message || 'Listo. Revisa tu correo.'; $('confMsg').hidden = false;
+  });
+});
+
+/* ---------- the form ---------- */
+$('toForm').addEventListener('click', function(e){
+  e.preventDefault();
+  $('unirme').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(function(){ $('fName').focus({ preventScroll: true }); }, 400);
+});
+var dniTokens = {};
+Array.prototype.forEach.call(document.querySelectorAll('input[name=dniWhen]'), function(r){
+  r.addEventListener('change', function(){ $('dniNow').hidden = !document.querySelector('input[name=dniWhen][value=now]').checked; });
+});
+Array.prototype.forEach.call(document.querySelectorAll('#dniNow .slot'), function(slot){
+  var side = slot.dataset.side, inp = slot.querySelector('input[type=file]'), st = slot.querySelector('.st');
+  inp.addEventListener('change', function(){
+    var f = inp.files && inp.files[0]; if (!f) return;
+    delete dniTokens[side]; st.textContent = 'Preparando...';
+    compressPhoto(f).then(function(blob){ st.textContent = 'Subiendo...'; return upload(side, blob); })
+      .then(function(tok){ dniTokens[side] = tok; st.textContent = 'Foto lista'; })
+      .catch(function(err){ st.textContent = (err && err.message) || 'No pudimos subir la foto.'; });
+  });
+});
+function compressPhoto(file){
+  return new Promise(function(resolve, reject){
+    var url = URL.createObjectURL(file), im = new Image();
+    im.onload = function(){
+      var s = Math.min(1, 1600 / Math.max(im.width, im.height));
+      var c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      var q = 0.82;
+      (function tryQ(){ c.toBlob(function(b){ if (!b) return reject(new Error('No pudimos leer la foto.')); if (b.size > 600000 && q > 0.5){ q -= 0.1; tryQ(); } else resolve(b); }, 'image/jpeg', q); })();
+    };
+    im.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('No pudimos leer la foto. Prueba con otra.')); };
+    im.src = url;
+  });
+}
+function upload(side, blob){
+  return new Promise(function(resolve, reject){
+    var r = new FileReader();
+    r.onload = function(){
+      postJson('/.netlify/functions/dni-upload', { side: side, data: String(r.result).split(',')[1] }).then(function(res){
+        if (res.ok && res.body.token) resolve(res.body.token); else reject(new Error(res.body.error || 'No pudimos subir la foto.'));
+      }, function(){ reject(new Error('Se cortó la conexión. Vuelve a intentarlo.')); });
+    };
+    r.onerror = function(){ reject(new Error('No pudimos leer la foto.')); };
+    r.readAsDataURL(blob);
+  });
+}
+function fail(msg){ $('joinErr').textContent = msg; $('joinErr').hidden = false; }
+var lastEmail = '';
+$('joinForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  $('joinErr').hidden = true;
+  var body = {
+    name: $('fName').value.trim(), email: $('fEmail').value.trim(), phone: $('fPhone').value.trim(),
+    birthday: $('fBirthday').value, password: $('fPass').value,
+  };
+  if (!body.name) return fail('Cuéntanos tu nombre.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) return fail('Revisa tu correo.');
+  if (body.password.length < 8) return fail('La contraseña debe tener al menos 8 caracteres.');
+  if (document.querySelector('input[name=dniWhen][value=now]').checked) {
+    if (!dniTokens.front || !dniTokens.back) return fail('Sube las dos fotos de tu DNI, o elige subirlo después.');
+    body.dni = { docNumber: $('fDoc').value.trim(), front: dniTokens.front, back: dniTokens.back };
+  }
+  if (invite) body.ref = invite;
+  var btn = $('joinBtn'); btn.disabled = true; btn.textContent = 'Creando tu llave...';
+  postJson('/.netlify/functions/auth-signup', body).then(function(r){
+    if (!r.ok) throw new Error(r.body.error || 'No pudimos crear tu cuenta. Intenta de nuevo.');
+    lastEmail = r.body.email || body.email;
+    try { sessionStorage.removeItem('aria_kc_invite'); } catch (e2) {}
+    sentState(r.body.emailSent !== false);
+  }).catch(function(err){ fail((err && err.message) || 'No pudimos crear tu cuenta.'); })
+    .then(function(){ btn.disabled = false; btn.textContent = 'Crear mi llave'; });
+});
+/* Honest about the email: if the provider did not send it, the screen
+   says so instead of pretending. */
+function sentState(sent){
+  $('sentEmail').textContent = lastEmail;
+  if (!sent) {
+    $('sentTitle').textContent = 'Tu cuenta está creada, pero el correo no salió';
+    $('sentBody').textContent = 'No pudimos enviar el correo de confirmación a ' + lastEmail + '. Toca «Reenviar el correo» en unos minutos.';
+    $('sentNote').textContent = 'Sin confirmar tu correo no se abre tu cuenta. Si sigue sin llegar, escríbenos a contacto@ariashop.pe.';
+  }
+  show('sent');
+}
+$('resendBtn').addEventListener('click', function(){
+  postJson('/.netlify/functions/auth-confirm', { resend: true, email: lastEmail }).then(function(r){
+    $('resendMsg').textContent = r.body.emailSent === false ? 'El correo no salió. Inténtalo de nuevo en unos minutos.' : (r.body.message || 'Listo. Revisa tu correo.');
+    $('resendMsg').hidden = false;
+  });
+});
+if (location.hash === '#unirme' && !token) setTimeout(function(){ $('unirme').scrollIntoView({ block: 'start' }); }, 50);
+})();
+</script>
 </body>
 </html>

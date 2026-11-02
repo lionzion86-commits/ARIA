@@ -3,111 +3,163 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mi cuenta — Aria Shop</title>
+<title>Mi cuenta — Aria Key Club</title>
 <meta name="robots" content="noindex">
 <!-- ============================================================
-     MI CUENTA (#443, member-account-area brief, 2026-10-22).
+     MI CUENTA = THE KEY CLUB MEMBERS' DASHBOARD (#443, member-account-area
+     brief 2026-10-22; the arrival, Danny 2026-11-01/02).
 
-     One read (account.js) paints everything: orders with Aria's own
-     status messages and a progress line, the tracking spot, the saved
-     cart, the Key Club documents, the wallet (always, even at S/ 0.00)
-     and the profile. Plain CSS and one small script, no framework and no
-     CDN: the Mountain Test is a slow phone line, and this page is where
-     a customer waits for her parcel.
+     ONE account, ONE login. After confirming her email (keyclub.html ->
+     auth-confirm.js) she lands here, and on every later login: «Ya eres
+     Key Club», the greeting, her member card (number, Fundador when
+     within the first 1,000, member since), the credit wallet (always,
+     even at S/ 0.00) with the four ways to earn, two next steps, a quiet
+     «Selección de hoy para ti», «Ventas anticipadas», and then Mis
+     pedidos, Mi carrito, Mis documentos and Mis datos as before.
+
+     TWO THEMES, ONE STRUCTURE: «01 · El Lounge» (dark and gold) and
+     «02 · Amanecer» (light and warm coral). Only CSS variables change,
+     on a class on <html>; the DOM is identical in both (tested). Her
+     choice is saved on her account (keyclub-prefs.js); localStorage is a
+     cache so the right mood paints before the account answers.
+
+     One read (account.js) paints everything. Plain CSS and one small
+     script, no framework and no CDN: the Mountain Test is a slow phone
+     line. The picks rail reads the small Ofertas index
+     (assets/ofertas/rails.json) only after the page has painted.
 
      Spanish, zero emojis. Statuses are Aria's words only; the courier's
      name and number never reach this page (the server never sends them).
      ============================================================ -->
+<script>try{var t=localStorage.getItem('aria_kc_theme');document.documentElement.className='theme-'+(t==='amanecer'?'amanecer':'lounge');}catch(e){document.documentElement.className='theme-lounge';}</script>
 <style>
-:root{--navy:#0A1F44;--blue:#2456A0;--gold:#F4C463;--sky:#F2F6FF;--line:#E4E9F2;--ink:#1A2333;--muted:#6B7280;--green:#16A34A;--red:#DC2626}
+.theme-lounge{--bg:#0B0D12;--bg2:#10131A;--surface:#161A23;--surface2:#0F1218;--ink:#F3EBDD;--muted:#A99F8C;--head:#F7EEDC;--accent:#D4AF63;--accent2:#F0D597;--accent-ink:#14110A;--line:rgba(212,175,99,.22);--soft:rgba(212,175,99,.10);--ok:#86D3A6;--bad:#FF9C8A;--hero:linear-gradient(150deg,#1D1A12 0%,#141821 55%,#0E1016 100%);--hero-ink:#F7EEDC;--hero-line:rgba(212,175,99,.5);color-scheme:dark}
+.theme-amanecer{--bg:#FFF8F3;--bg2:#FFF1E8;--surface:#FFFFFF;--surface2:#FFFAF6;--ink:#2A1E1A;--muted:#86685C;--head:#3A2420;--accent:#E0654B;--accent2:#C9502F;--accent-ink:#FFFFFF;--line:#F1DDD3;--soft:#FFEDE4;--ok:#2E7D4F;--bad:#C0392B;--hero:linear-gradient(150deg,#FFE3D6 0%,#FFF4EC 55%,#FFFFFF 100%);--hero-ink:#3A2420;--hero-line:rgba(224,101,75,.45);color-scheme:light}
+:root{--navy:var(--head);--blue:var(--accent);--gold:var(--accent);--sky:var(--soft);--green:var(--ok);--red:var(--bad)}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#F7F9FC;min-height:100vh;display:flex;flex-direction:column}
-a{color:var(--blue);text-decoration:none}
-.site-header{background:var(--navy);color:#fff}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;transition:background .25s}
+a{color:var(--accent2);text-decoration:none}
+.serif{font-family:Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.01em}
+.site-header{background:var(--bg2);border-bottom:1px solid var(--line)}
 .main-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;max-width:900px;margin:0 auto;width:100%}
-.logo{font-weight:800;font-size:20px;color:#fff;letter-spacing:-.02em}
-.logo span{color:var(--gold)}
-.nav-out{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.logo{font-weight:800;font-size:18px;color:var(--ink);letter-spacing:.02em}
+.logo span{color:var(--accent)}
+.nav-out{background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
 main{flex:1;width:100%;max-width:900px;margin:0 auto;padding:20px 16px 48px}
-h1{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+h1{font-size:24px;font-weight:800;color:var(--head);letter-spacing:-.02em}
 .hello{color:var(--muted);font-size:14px;margin:4px 0 14px}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
 .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin:0 -16px 6px;padding-left:16px;padding-right:16px;scrollbar-width:none}
-.chips a{flex:none;font-size:13px;font-weight:700;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;white-space:nowrap}
+.chips a{flex:none;font-size:13px;font-weight:700;color:var(--head);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 14px;white-space:nowrap}
 section.block{margin:22px 0}
-section.block>h2{font-size:18px;font-weight:800;color:var(--navy);margin:0 0 10px}
-.card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;margin:10px 0}
+section.block>h2{font-size:18px;font-weight:800;color:var(--head);margin:0 0 10px}
+.card{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--surface);margin:10px 0}
 .muted{color:var(--muted)}
 .small{font-size:12.5px}
 .empty{color:var(--muted);font-size:14px;line-height:1.6}
-.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--navy);color:#fff;font-weight:700;border:0;border-radius:12px;font-size:14.5px;padding:12px 18px;cursor:pointer;min-height:44px}
-.btn.alt{background:#fff;color:var(--navy);border:1px solid var(--line)}
-.btn.danger{background:#fff;color:var(--red);border:1px solid #FECACA}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);font-weight:700;border:0;border-radius:12px;font-size:14.5px;padding:12px 18px;cursor:pointer;min-height:44px;text-align:center}
+.btn.alt{background:var(--surface);color:var(--head);border:1px solid var(--line)}
+.btn.danger{background:var(--surface);color:var(--bad);border:1px solid var(--line)}
 .btn[disabled]{opacity:.55;cursor:default}
 .row{display:flex;gap:10px;align-items:center}
 .between{justify-content:space-between}
 .wrap{flex-wrap:wrap}
+/* ---- The dashboard head ---- */
+.dash-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.themes{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.themes button{all:unset;cursor:pointer;font-size:12px;font-weight:700;padding:7px 11px;border-radius:999px;color:var(--muted);white-space:nowrap}
+.theme-lounge .themes [data-theme=lounge],.theme-amanecer .themes [data-theme=amanecer]{background:var(--accent);color:var(--accent-ink)}
+.welcome h1{font-size:clamp(30px,8.6vw,40px);line-height:1.08;font-weight:400}
+.welcome h1 em{font-style:normal;color:var(--accent2)}
+.greet{font-size:15.5px;color:var(--ink);margin:10px 0 0;line-height:1.5;max-width:36ch}
+.mcard{position:relative;overflow:hidden;border-radius:20px;padding:20px 18px;background:var(--hero);border:1px solid var(--hero-line);color:var(--hero-ink);min-height:190px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 14px 36px rgba(0,0,0,.18)}
+.mcard .key{position:absolute;right:-8px;top:-6px;width:120px;height:120px;color:var(--accent);opacity:.18}
+.mcard .name{font-size:22px;line-height:1.2;margin-top:18px;overflow-wrap:anywhere}
+.mcard .meta{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+.mcard .lbl{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.mcard .val{font-size:15px;font-weight:700;letter-spacing:.06em;margin-top:2px}
+.badge-f{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:5px 10px}
+.next{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.next .btn{width:100%}
+/* ---- Picks + early access ---- */
+.rail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 8px;scrollbar-width:none}
+.pick{flex:none;width:138px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;color:var(--ink)}
+.pick .ph{display:block;width:100%;height:138px;object-fit:contain;background:#fff}
+.pick .b{padding:8px 10px 10px}
+.pick .br{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .t{font-size:12.5px;line-height:1.3;height:2.6em;overflow:hidden;margin-top:2px}
+.pick .p{font-size:13px;font-weight:800;color:var(--head);margin-top:4px}
+.pick .w{font-size:11px;color:var(--muted);text-decoration:line-through;margin-left:4px;font-weight:500}
+.quiet{font-size:13px;color:var(--muted);margin:-4px 0 10px}
+.ref{display:flex;gap:8px;align-items:stretch;margin-top:10px}
+.ref input{flex:1;min-width:0}
 /* Orders */
 .order{padding:0;overflow:hidden}
 .order>button{all:unset;display:block;width:100%;padding:14px 16px;cursor:pointer;box-sizing:border-box}
 .order .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.oid{font-weight:800;color:var(--navy);font-size:14px}
+.oid{font-weight:800;color:var(--head);font-size:14px}
 .odate{font-size:12.5px;color:var(--muted);margin-top:2px}
-.pill{flex:none;font-size:12px;font-weight:800;border-radius:999px;padding:5px 10px;background:var(--sky);color:var(--blue)}
-.pill.delivered{background:#E7F7EC;color:var(--green)}
-.pill.cancelled{background:#FEF2F2;color:var(--red)}
+.pill{flex:none;font-size:12px;font-weight:800;border-radius:999px;padding:5px 10px;background:var(--soft);color:var(--accent2)}
+.pill.delivered{color:var(--ok)}
+.pill.cancelled{color:var(--bad)}
 .thumbs{display:flex;gap:6px;margin-top:10px}
-.thumbs img,.thumbs span{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--sky);border:1px solid var(--line);flex:none}
+.thumbs img,.thumbs span{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--soft);border:1px solid var(--line);flex:none}
 .thumbs span{display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--muted)}
-.ototal{font-weight:800;color:var(--navy);margin-top:8px;font-size:15px}
+.ototal{font-weight:800;color:var(--head);margin-top:8px;font-size:15px}
 .detail{border-top:1px solid var(--line);padding:14px 16px 16px}
-.msg{background:var(--sky);border-radius:14px;padding:12px 14px;font-size:14.5px;line-height:1.55;color:var(--navy)}
-.msg b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:4px}
+.msg{background:var(--soft);border-radius:14px;padding:12px 14px;font-size:14.5px;line-height:1.55;color:var(--ink)}
+.msg b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);margin-bottom:4px}
 .tl{list-style:none;margin:16px 0 6px;position:relative}
 .tl li{position:relative;padding:0 0 16px 30px;font-size:14px;color:var(--muted)}
 .tl li:last-child{padding-bottom:0}
 .tl li::before{content:"";position:absolute;left:8px;top:16px;bottom:-2px;width:2px;background:var(--line)}
 .tl li:last-child::before{display:none}
-.tl li.done::before{background:var(--blue)}
-.tl li i{position:absolute;left:2px;top:3px;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:#fff}
-.tl li.done i{background:var(--blue);border-color:var(--blue)}
-.tl li.current{color:var(--navy);font-weight:800}
-.tl li.current i{border-color:var(--blue);box-shadow:0 0 0 4px rgba(36,86,160,.15)}
-.tl li.done{color:var(--navy)}
+.tl li.done::before{background:var(--accent)}
+.tl li i{position:absolute;left:2px;top:3px;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:var(--surface)}
+.tl li.done i{background:var(--accent);border-color:var(--accent)}
+.tl li.current{color:var(--head);font-weight:800}
+.tl li.current i{border-color:var(--accent);box-shadow:0 0 0 4px var(--soft)}
+.tl li.done{color:var(--head)}
 .items{margin:14px 0 4px}
 .item{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .item:first-child{border-top:0}
-.item img,.item .ph{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--sky);flex:none}
+.item img,.item .ph{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--soft);flex:none}
 .item .t{font-size:13.5px;line-height:1.35}
 .item .s{font-size:12px;color:var(--muted);margin-top:2px}
 .sums{margin-top:10px;font-size:14px}
 .sums div{display:flex;justify-content:space-between;padding:3px 0}
-.sums .grand{font-weight:800;color:var(--navy);border-top:1px solid var(--line);margin-top:4px;padding-top:7px}
+.sums .grand{font-weight:800;color:var(--head);border-top:1px solid var(--line);margin-top:4px;padding-top:7px}
 .track{margin-top:14px;border:1px dashed var(--line);border-radius:14px;padding:12px 14px;font-size:13.5px}
-.track h3,.sub{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.track h3,.sub{font-size:13px;font-weight:800;color:var(--head);margin-bottom:6px}
 /* Wallet */
-.wallet{background:linear-gradient(135deg,#0A1F44,#2456A0);color:#fff;border:0}
-.wallet .bal{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
-.wallet .lbl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#C9D6F2;font-weight:700}
+.wallet{background:var(--hero);color:var(--hero-ink);border:1px solid var(--hero-line)}
+.wallet .bal{font-size:34px;font-weight:400;font-family:Georgia,"Times New Roman",serif;letter-spacing:-.01em;margin:4px 0 2px}
+.wallet .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .rules{list-style:none;margin:10px 0 0;font-size:13.5px;line-height:1.5}
 .rules li{padding:6px 0 6px 16px;position:relative}
-.rules li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.rules li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+ol.earn{list-style:none;counter-reset:e;margin:8px 0 0;font-size:13.5px;line-height:1.5}
+ol.earn li{counter-increment:e;display:grid;grid-template-columns:26px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+ol.earn li:first-child{border-top:0}
+ol.earn li::before{content:counter(e);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:Georgia,serif;font-size:13px;color:var(--accent-ink);background:var(--accent)}
 .ledger div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
 .ledger div:first-child{border-top:0}
-.plus{color:var(--green);font-weight:800;white-space:nowrap}
+.plus{color:var(--ok);font-weight:800;white-space:nowrap}
 .minus{color:var(--ink);font-weight:800;white-space:nowrap}
 /* Forms */
-label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin:12px 0 6px}
-input[type=email],input[type=password],input[type=text]{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px;background:#fff}
-.err{color:var(--red);font-size:13.5px;margin-top:10px}
+label{display:block;font-size:13px;font-weight:700;color:var(--head);margin:12px 0 6px}
+input[type=email],input[type=password],input[type=text]{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px;background:var(--surface2);color:var(--ink)}
+.err{color:var(--bad);font-size:13.5px;margin-top:10px}
 .doc-photos{display:flex;gap:10px;margin-top:10px}
 .doc-photos img{width:50%;border-radius:10px;border:1px solid var(--line)}
 .slot{border:1px dashed var(--line);border-radius:12px;padding:10px;margin-top:10px;font-size:13.5px}
 .slot img{display:block;max-width:100%;max-height:140px;border-radius:8px;margin-top:8px}
 .bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:8px}
-.bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
-footer{background:var(--navy);color:#B9C6E4;font-size:13px;padding:24px 16px;text-align:center}
-footer a{color:#fff}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+footer{background:var(--bg2);border-top:1px solid var(--line);color:var(--muted);font-size:13px;padding:24px 16px;text-align:center}
+footer a{color:var(--ink)}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -136,28 +188,44 @@ footer a{color:#fff}
 <input type="password" id="loginPass" autocomplete="current-password" required>
 <p class="err" id="loginErr" hidden></p>
 <button class="btn" type="submit" style="width:100%;margin-top:16px">Entrar</button>
-<p class="small muted" style="margin-top:12px">¿Aún no tienes cuenta? <a href="/">Créala en la página principal</a> con el mismo correo de tus compras y tus pedidos aparecerán aquí.</p>
+<button class="btn alt" type="button" id="resendConfirm" style="width:100%;margin-top:10px" hidden>Reenviar el correo de confirmación</button>
+<p class="small muted" id="resendConfirmMsg" style="margin-top:8px" hidden></p>
+<p class="small muted" style="margin-top:12px">¿Aún no eres miembro? <a href="/keyclub.html#unirme">Hazte Key Club</a> con el mismo correo de tus compras y tus pedidos aparecerán aquí.</p>
 </form>
 <p class="small muted" style="margin-top:8px;line-height:1.5">Si compraste como invitado, las fotos de tu documento se borran 30 días después de que tu pedido se entrega.</p>
 </section>
 
-<!-- Signed in -->
+<!-- Signed in: the members' dashboard. Same DOM in both themes. -->
 <section id="signedIn" hidden>
-<h1>Mi cuenta</h1>
-<p class="hello" id="hello"></p>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="key" viewBox="0 0 64 64"><circle cx="20" cy="32" r="12" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="20" cy="32" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M32 32h26M50 32v9M43 32v6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol></svg>
+<div class="dash-top">
+<div class="kicker">Aria Key Club</div>
+<div class="themes" role="radiogroup" aria-label="Ambiente">
+<button type="button" role="radio" data-theme="lounge" aria-checked="false">01 · El Lounge</button><button type="button" role="radio" data-theme="amanecer" aria-checked="false">02 · Amanecer</button>
+</div>
+</div>
+<section class="welcome" id="bienvenida">
+<h1 class="serif" id="welcome">Ya eres Key Club</h1>
+<p class="greet" id="greet">Este es tu espacio. Sin tu llave, nadie más entra aquí.</p>
+</section>
+<section class="block" id="tarjeta" aria-label="Tu tarjeta de miembro"><div id="cardBox"></div></section>
+<section class="block" id="keyclub"><h2>Mi Key Club</h2><div id="walletBox"></div></section>
+<section class="block" id="siguiente" aria-label="Siguientes pasos"><div class="next"><a class="btn" href="/">Empezar a comprar</a><a class="btn alt" href="#pedidos">Ir a mi cuenta</a></div></section>
+<section class="block" id="seleccion"><h2>Selección de hoy para ti</h2><div id="picksBox"><div class="card empty">Preparando tu selección...</div></div></section>
+<section class="block" id="anticipadas"><h2>Ventas anticipadas</h2><div id="earlyBox"><div class="card empty">Revisando...</div></div></section>
+<section class="block" id="invita"><h2>Invita a una amiga</h2><div id="inviteBox"></div></section>
 <nav class="chips" aria-label="Secciones">
 <a href="#pedidos">Mis pedidos</a><a href="#carrito">Mi carrito</a><a href="#keyclub">Mi Key Club</a><a href="#documentos">Mis documentos</a><a href="#datos">Mis datos</a>
 </nav>
 
 <section class="block" id="pedidos"><h2>Mis pedidos</h2><div id="ordersList"></div></section>
 <section class="block" id="carrito"><h2>Mi carrito</h2><div id="cartBox"></div></section>
-<section class="block" id="keyclub"><h2>Mi Key Club</h2><div id="walletBox"></div></section>
 <section class="block" id="documentos"><h2>Mis documentos</h2><div id="docsBox"></div></section>
 <section class="block" id="datos"><h2>Mis datos</h2><div id="profileBox"></div></section>
 </section>
 </main>
 <footer>
-<a href="/">Aria Shop</a> · <a href="como-funciona.html">Cómo funciona</a> · <a href="devoluciones.html">Devoluciones</a> · <a href="keyclub.html">Key Club</a> · <a href="privacidad.html">Privacidad</a>
+<a href="/">Aria Shop</a> · <a href="como-funciona.html">Cómo funciona</a> · <a href="devoluciones.html">Devoluciones</a> · <a href="/keyclub.html">Key Club</a> · <a href="privacidad.html">Privacidad</a>
 </footer>
 <script>
 (function(){
@@ -218,8 +286,106 @@ function render(){
   $('signedOut').hidden = on; $('signedIn').hidden = !on; $('logoutBtn').hidden = !on;
   if (!on) return;
   var p = data.profile || {};
-  $('hello').textContent = 'Hola' + (p.name ? ', ' + p.name.split(/\s+/)[0] : '') + '. Aquí está todo lo tuyo con Aria.';
-  renderOrders(); renderCart(); renderWallet(); renderDocs(); renderProfile();
+  var club = p.club || {};
+  var first = p.name ? p.name.split(/\s+/)[0] : '';
+  $('welcome').innerHTML = 'Ya eres Key Club' + (first ? ', <em>' + esc(first) + '</em>' : '');
+  if (club.theme) applyTheme(club.theme, false);
+  renderCard(); renderWallet(); renderInvite(); renderOrders(); renderCart(); renderDocs(); renderProfile();
+  /* The rails read small static files, after the page has painted. */
+  setTimeout(function(){ loadPicks(); loadEarly(); }, 0);
+}
+
+/* ---------------- the two themes ---------------- */
+var THEMES = ['lounge', 'amanecer'];
+function applyTheme(t, save){
+  if (THEMES.indexOf(t) < 0) t = 'lounge';
+  document.documentElement.className = 'theme-' + t;
+  Array.prototype.forEach.call(document.querySelectorAll('.themes [data-theme]'), function(b){ b.setAttribute('aria-checked', String(b.dataset.theme === t)); });
+  try { localStorage.setItem('aria_kc_theme', t); } catch (e) {}
+  if (save) {
+    if (data && data.profile && data.profile.club) data.profile.club.theme = t;
+    fetch('/.netlify/functions/keyclub-prefs', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: t }) }).catch(function(){});
+  }
+}
+Array.prototype.forEach.call(document.querySelectorAll('.themes [data-theme]'), function(b){
+  b.addEventListener('click', function(){ applyTheme(b.dataset.theme, true); });
+});
+applyTheme(/amanecer/.test(document.documentElement.className) ? 'amanecer' : 'lounge', false);
+
+/* ---------------- the member card ---------------- */
+function renderCard(){
+  var p = data.profile || {}, club = p.club || {};
+  $('cardBox').innerHTML = '<div class="mcard"><svg class="key" aria-hidden="true"><use href="#key"/></svg>' +
+    '<div class="row between" style="align-items:flex-start"><div class="kicker">Aria Key Club</div>' +
+      (club.founder ? '<span class="badge-f">Fundador</span>' : '') + '</div>' +
+    '<div class="name serif">' + esc(p.name || p.email || '') + '</div>' +
+    '<div class="meta"><div><div class="lbl">Miembro Nº</div><div class="val">' + esc(club.memberNumberLabel || '----') + '</div></div>' +
+      '<div style="text-align:right"><div class="lbl">Miembro desde</div><div class="val">' + esc(club.memberSince ? fdate(club.memberSince) : '') + '</div></div></div></div>';
+}
+
+/* ---------------- invite a friend ---------------- */
+function renderInvite(){
+  var club = (data.profile && data.profile.club) || {};
+  if (!club.referralCode) { $('inviteBox').innerHTML = '<div class="card empty">Tu enlace para invitar aparece aquí en un momento.</div>'; return; }
+  var link = location.origin + '/keyclub.html?invita=' + encodeURIComponent(club.referralCode);
+  $('inviteBox').innerHTML = '<div class="card"><p class="small" style="line-height:1.5">Cuando tu amiga se hace miembro con tu enlace y hace su primera compra, te llegan 5 créditos.</p>' +
+    '<div class="ref"><input type="text" readonly id="refLink" value="' + esc(link) + '" aria-label="Tu enlace para invitar"><button class="btn alt" type="button" id="refCopy">Copiar</button></div></div>';
+  $('refCopy').addEventListener('click', function(){
+    var inp = $('refLink'); inp.select();
+    var done = function(){ $('refCopy').textContent = 'Copiado'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(done, function(){ try { document.execCommand('copy'); done(); } catch (e) {} });
+    else { try { document.execCommand('copy'); done(); } catch (e) {} }
+  });
+}
+
+/* ---------------- Selección de hoy para ti ----------------
+   A few real catalogue picks from the small Ofertas index: first what
+   matches the brands she has bought, then, for a new member, one sale
+   item from each of the most popular categories. Every card opens Aria's
+   own product page, never a store's. */
+function onSale(store){ try { return !(window.AriaOffSale && window.AriaOffSale.isOffSaleRetailer(store)); } catch (e) { return true; } }
+function cardPrice(usd){ return fx ? pen(usd * fx) : 'US$ ' + Number(usd).toFixed(2); }
+function pickHTML(c){
+  var href = '/producto.html?producto=' + encodeURIComponent(c.title || '') + (c.store ? '&tienda=' + encodeURIComponent(c.store) : '');
+  return '<a class="pick" href="' + esc(href) + '" data-id="' + esc(c.id || '') + '">' +
+    '<img class="ph" loading="lazy" decoding="async" alt="' + esc(c.title || '') + '" src="' + esc(c.image) + '" onerror="this.style.visibility=\'hidden\'">' +
+    '<div class="b"><div class="br">' + esc(c.brand || '') + '</div><div class="t">' + esc(c.title || '') + '</div>' +
+    '<div class="p">' + cardPrice(c.usd) + (c.wasUsd > c.usd ? '<span class="w">' + cardPrice(c.wasUsd) + '</span>' : '') + '</div></div></a>';
+}
+function choosePicks(pool, orders){
+  var brands = {};
+  (orders || []).forEach(function(o){ (o.items || []).forEach(function(it){ if (it.brand) brands[String(it.brand).toLowerCase()] = 1; }); });
+  var seen = {}, out = [], matched = 0;
+  pool.forEach(function(c){ if (out.length < 6 && c.brand && brands[String(c.brand).toLowerCase()] && !seen[c.id]) { seen[c.id] = 1; out.push(c); matched++; } });
+  var cats = {};
+  pool.forEach(function(c){ var k = c.k || 'otros'; if (out.length < 6 && !cats[k] && !seen[c.id]) { cats[k] = 1; seen[c.id] = 1; out.push(c); } });
+  return { picks: out, personal: matched > 0 };
+}
+function loadPicks(){
+  fetch('/assets/ofertas/rails.json').then(function(r){ return r.json(); }).then(function(ix){
+    var pool = (ix.lead || []).concat(ix.more || []).filter(function(c){ return c && c.id && c.image && c.title && Number(c.usd) > 0 && onSale(c.store); });
+    var r = choosePicks(pool, data && data.orders);
+    if (!r.picks.length) { $('picksBox').innerHTML = '<div class="card empty">Hoy no tenemos una selección para ti. Vuelve mañana.</div>'; return; }
+    $('picksBox').innerHTML = '<p class="quiet">' + (r.personal ? 'Por lo que sueles comprar, y algo más.' : 'Para empezar, una pieza en oferta de cada categoría que más se busca.') + '</p>' +
+      '<div class="rail">' + r.picks.map(pickHTML).join('') + '</div>';
+  }).catch(function(){ $('picksBox').innerHTML = '<div class="card empty">No pudimos cargar tu selección. Vuelve en un momento.</div>'; });
+}
+
+/* ---------------- Ventas anticipadas ----------------
+   assets/keyclub/early-access.json: sale items members see here before
+   their public unlock time (public pages hide them until then). */
+function activeEarly(config, now){
+  return ((config && config.sales) || []).filter(function(s){ var t = Date.parse(s && s.unlockAt); return t > now && s.items && s.items.length; });
+}
+function loadEarly(){
+  fetch('/assets/keyclub/early-access.json', { cache: 'no-cache' }).then(function(r){ return r.ok ? r.json() : { sales: [] }; }).then(function(cfg){
+    var live = activeEarly(cfg, Date.now());
+    if (!live.length) { $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas anticipadas. Cuando una venta se abra primero para miembros, la verás aquí antes de que llegue a la tienda.</div>'; return; }
+    $('earlyBox').innerHTML = live.map(function(s){
+      return '<div class="card"><div class="sub">' + esc(s.title || 'Venta anticipada') + '</div><p class="small muted" style="margin-bottom:10px">Solo para miembros hasta el ' + fdate(s.unlockAt) + '.</p>' +
+        '<div class="rail">' + s.items.filter(function(c){ return c && c.image && c.title && Number(c.usd) > 0; }).map(pickHTML).join('') + '</div></div>';
+    }).join('');
+  }).catch(function(){ $('earlyBox').innerHTML = '<div class="card empty">Por ahora no hay ventas anticipadas.</div>'; });
 }
 
 /* ---------------- Mis pedidos ---------------- */
@@ -313,21 +479,25 @@ async function resumeCart(){
   } catch (e) { location.href = '/?carrito=1'; }
 }
 
-/* ---------------- Mi Key Club ---------------- */
+/* ---------------- Mi Key Club: the credit wallet ----------------
+   Always rendered, at S/ 0.00 too. «Cómo se ganan» is the four lines the
+   server sends (_keyclub.js EARN_WAYS) and nothing else. */
 function renderWallet(){
-  var w = data.wallet || { balancePen: 0, ledger: [], rules: [] };
-  var kc = (data.profile && data.profile.keyClub) || {};
-  var state = kc.member ? 'Eres miembro del Aria Key Club.' : 'Tu membresía Key Club está en revisión. Mientras tanto, tu saldo funciona igual.';
+  var w = data.wallet || { balancePen: 0, ledger: [], earnWays: [], use: [] };
+  var club = (data.profile && data.profile.club) || {};
+  var usd = fx ? w.balancePen / fx : (w.balancePen ? null : 0);
   var ledger = w.ledger.length
     ? '<div class="card ledger">' + w.ledger.map(function(t){
         var sign = t.kind === 'debit' ? '-' : '+';
-        return '<div><span><span style="display:block;color:var(--navy);font-weight:600">' + esc(t.reason) + '</span><span class="small muted">' + fdate(t.date) + (t.orderId ? ' · ' + esc(t.orderId) : '') + '</span></span>' +
+        return '<div><span><span style="display:block;color:var(--head);font-weight:600">' + esc(t.reason) + '</span><span class="small muted">' + fdate(t.date) + (t.orderId ? ' · ' + esc(t.orderId) : '') + (t.credits ? ' · ' + t.credits + (t.credits === 1 ? ' crédito' : ' créditos') : '') + '</span></span>' +
           '<span class="' + (t.kind === 'debit' ? 'minus' : 'plus') + '">' + sign + pen(t.amountPen) + '</span></div>';
       }).join('') + '</div>'
-    : '<div class="card empty">Aún no tienes movimientos. Cada sol que ganes o uses aparecerá aquí, con su motivo y su fecha.</div>';
+    : '<div class="card empty">Aún no tienes movimientos. Cada crédito que ganes o uses aparecerá aquí, con su motivo y su fecha.</div>';
   $('walletBox').innerHTML = '<div class="card wallet"><div class="lbl">Tu saldo Aria</div><div class="bal">' + pen(w.balancePen) + '</div>' +
-    '<div class="small" style="color:#DCE4F7">' + esc(state) + '</div></div>' +
-    '<div class="card"><div class="sub">Cómo ganas y usas tu saldo</div><ul class="rules">' + w.rules.map(function(r){ return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>' +
+    '<div class="small" id="walletUsd" style="color:var(--muted)">' + (usd != null ? 'US$' + usd.toFixed(2) + ' en créditos · ' : '') + esc(w.creditUnit || club.creditUnit || '1 crédito = US$1') + '</div>' +
+    '<div class="small" style="margin-top:8px">' + (club.active === false ? 'Confirma tu correo para activar tu Key Club.' : 'Tu Key Club está activo.') + '</div></div>' +
+    '<div class="card"><div class="sub">Cómo se ganan</div><ol class="earn">' + (w.earnWays || club.earnWays || []).map(function(r){ return '<li>' + esc(r) + '</li>'; }).join('') + '</ol></div>' +
+    ((w.use || []).length ? '<div class="card"><div class="sub">Cómo se usan</div><ul class="rules">' + w.use.map(function(r){ return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>' : '') +
     '<div class="sub" style="margin-top:14px">Movimientos</div>' + ledger;
 }
 
@@ -447,7 +617,9 @@ function upload(side, blob, onProgress){
 /* ---------------- Mis datos ---------------- */
 function renderProfile(){
   var p = data.profile || {};
-  var rows = [['Nombre', p.name], ['Correo', p.email], ['Teléfono', p.phone], ['Cliente desde', p.memberSince ? fdate(p.memberSince) : '']]
+  var club = p.club || {};
+  var bday = club.birthday ? fdate((/^--/.test(club.birthday) ? '2000' + club.birthday.slice(1) : club.birthday) + 'T12:00:00Z').replace(/ \d{4}$/, '') : '';
+  var rows = [['Nombre', p.name], ['Correo', p.email], ['WhatsApp', p.phone], ['Cumpleaños', bday], ['Miembro Nº', club.memberNumberLabel], ['Cliente desde', p.memberSince ? fdate(p.memberSince) : '']]
     .filter(function(r){ return r[1]; })
     .map(function(r){ return '<div><span class="muted">' + r[0] + '</span><span style="font-weight:600;text-align:right">' + esc(r[1]) + '</span></div>'; }).join('');
   var rec = (p.recipients || []).length
@@ -468,10 +640,23 @@ $('loginForm').addEventListener('submit', async function(e){
     var res = await fetch('/.netlify/functions/auth-login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: $('loginEmail').value.trim(), password: $('loginPass').value }) });
     var body = await res.json();
+    $('resendConfirm').hidden = !body.needsConfirmation;
     if (!res.ok) throw new Error(body.error || 'No pudimos entrar.');
     await load();
   } catch (e2) { err.textContent = (e2 && e2.message) || 'No pudimos entrar.'; err.hidden = false; }
 });
+$('resendConfirm').addEventListener('click', async function(){
+  var msg = $('resendConfirmMsg');
+  try {
+    var res = await fetch('/.netlify/functions/auth-confirm', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resend: true, email: $('loginEmail').value.trim() }) });
+    var body = await res.json();
+    msg.textContent = body.emailSent === false ? 'El correo no salió. Inténtalo de nuevo en unos minutos.' : (body.message || 'Listo. Revisa tu correo.');
+  } catch (e) { msg.textContent = 'No pudimos conectarnos. Inténtalo de nuevo.'; }
+  msg.hidden = false;
+});
+/* Arriving from the confirmation link: a clean address. */
+if (/[?&]bienvenida=1/.test(location.search)) history.replaceState(null, '', location.pathname + location.hash);
 $('logoutBtn').addEventListener('click', async function(){
   try { await fetch('/.netlify/functions/auth-logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
   data = { signedIn: false }; render();
@@ -479,13 +664,14 @@ $('logoutBtn').addEventListener('click', async function(){
 
 /* The soles rate, for the saved cart only (orders carry their own soles). */
 fetch('/.netlify/functions/exchange-rate').then(function(r){ return r.json(); }).then(function(b){
-  var v = Number(b && b.venta); if (v > 0){ fx = v; if (data && data.signedIn) renderCart(); }
+  var v = Number(b && b.venta); if (v > 0){ fx = v; if (data && data.signedIn) { renderCart(); renderWallet(); } }
 }).catch(function(){});
 
 load();
 })();
 </script>
 <!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
+<script src="/off-sale.js" defer></script>
 <script src="/assets/js/aria-launcher.js" defer></script>
 </body>
 </html>
