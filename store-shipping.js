@@ -41,7 +41,8 @@
      DOCTRINE (Danny, Oct 30): where a FREE loyalty program lowers the
      threshold, Aria enrolls its buying account and the rule here is the
      member rule; credit-card tiers never count. FUJI stays off until its
-     threshold conflict (125 vs 150) is settled.
+     threshold conflict is settled (its own pages read $95 and $125,
+     #443 c.6568736516).
      NEVER "POR CONFIRMAR" (Danny, #443 c.6547441472): a store with no
      published fee here -- not on the table, or feeUsd null -- reads
      "lo calcula la tienda al pagar" on every row (comparator, product
@@ -116,9 +117,54 @@
     brandsmart: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671' },
     microcenter: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671' },
     nautilus: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671' },
-    parrot: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671' },
+    parrot: { feeUsd: null, freeOverUsd: 100, source: 'Parrot Surf Shop parrotsurfshop.com/collections/parrot-hoodies (#443 c.6568736516)', note: 'tablas aparte' },
     crateandbarrel: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671', note: 'tarifa por escala, desde $6' },
     sleekshop: { feeUsd: null, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671', note: 'tarifa por escala, $4.99 a $9.99' },
+    /* #443 c.6568736516 -- each store's OWN published US policy (standard /
+       ground, contiguous US). Read through search results on the store's own
+       domain (direct fetches are blocked from the sandbox); a store whose own
+       pages disagree is left off, not guessed. Member rules only where the
+       loyalty program is free (Beauty Insider, Old Navy / Athleta Rewards,
+       myAcademy Rewards). */
+    sephora: { feeUsd: 0, freeOverUsd: 0, source: 'Sephora sephora.com/beauty/shipping-information (#443 c.6568736516)', basis: 'regla de miembro Beauty Insider (gratis, sin mínimo); invitado: $6.95 debajo de $50' },
+    gymshark: { feeUsd: 5, freeOverUsd: 75, source: 'Gymshark support.gymshark.com/en/articles/11136898-delivery-information (#443 c.6568736516)' },
+    oldnavy: { feeUsd: 7, freeOverUsd: 50, source: 'Old Navy oldnavy.gap.com/customerService/info.do?cid=3019 (#443 c.6568736516)', basis: 'regla de miembro Old Navy Rewards; no miembro: $9' },
+    athleta: { feeUsd: 7, freeOverUsd: 50, source: 'Athleta athleta.gap.com/browse/info.do?cid=1197295 (#443 c.6568736516)', basis: 'regla de miembro Athleta Rewards; no miembro: $9' },
+    youngla: { feeUsd: 7.99, freeOverUsd: 100, source: 'YoungLA youngla.com/pages/shipping-policy (#443 c.6568736516)' },
+    ryderwear: { feeUsd: 7.95, freeOverUsd: 120, source: 'Ryderwear ryderwear.com/pages/terms-of-use (#443 c.6568736516)' },
+    buffbunny: { feeUsd: 8.5, freeOverUsd: 125, source: 'Buffbunny help.buffbunny.com/en-US/how-long-until-i-get-my-order-260875 (#443 c.6568736516)' },
+    killcrew: { feeUsd: 5, freeOverUsd: 75, source: 'Kill Crew killcrew.co/pages/shipping (#443 c.6568736516)' },
+    oneractive: { feeUsd: 8.9, freeOverUsd: 90, source: 'Oner Active us.oneractive.com/pages/shipping (#443 c.6568736516)' },
+    gorillawear: { feeUsd: 9.95, freeOverUsd: 120, source: 'Gorilla Wear usa.gorillawear.com/pages/shipping-rates-methods (#443 c.6568736516)' },
+    tlfapparel: { feeUsd: 10, freeOverUsd: 150, source: 'TLF Apparel tlfapparel.com/policies/shipping-policy (#443 c.6568736516)' },
+    chronicle: { feeUsd: 8.99, freeOverUsd: 50, source: 'Chronicle Books chroniclebooks.com/pages/shipping-returns (#443 c.6568736516)' },
+    walmartbaby: { feeUsd: 6.99, freeOverUsd: 35, source: 'Walmart (tienda de bebé de Walmart), same rule as walmart, Lucifer #443 c.6524139671 (#443 c.6568736516)', basis: 'observado en carrito de Miami' },
+    momcozy: { feeUsd: 4.99, freeOverUsd: 25, source: 'Momcozy momcozy.com/pages/shipping-delivery + momcozy.com/cart (#443 c.6568736516)', note: 'pañales y toallitas: $9.99 adicional por pedido' },
+    babybrezza: { feeUsd: 3.99, freeOverUsd: 50, source: 'Baby Brezza babybrezza.com/pages/shipping-returns (#443 c.6568736516)' },
+    drbrowns: { feeUsd: 5, freeOverUsd: 25, source: "Dr. Brown's drbrownsbaby.com/policies/shipping-policy (#443 c.6568736516)" },
+    lillebaby: { feeUsd: 8.85, freeOverUsd: 99, source: 'LILLEbaby lillebaby.com/pages/orders-shipping (#443 c.6568736516)' },
+    eberjey: { feeUsd: 10, freeOverUsd: 100, source: 'Eberjey eberjey.com/pages/shipping (#443 c.6568736516)' },
+    revzilla: { feeUsd: 7.99, freeOverUsd: 49.99, source: 'RevZilla revzilla.com/free-shipping-terms (#443 c.6568736516)' },
+    vix: { feeUsd: 0, freeOverUsd: 0, source: 'ViX Paula Hermanny vixpaulahermanny.com/pages/shipping-and-return-policy (#443 c.6568736516)' },
+    /* Free-shipping threshold published; under it the store prices shipping
+       at its own checkout (by weight, ZIP or service) -- no fee printed. */
+    academy: { feeUsd: null, freeOverUsd: 25, source: 'Academy academy.com/help/free-shipping-qualification (#443 c.6568736516)', basis: 'regla de miembro myAcademy Rewards; invitado: gratis desde $50' },
+    bornprimitive: { feeUsd: null, freeOverUsd: 150, source: 'Born Primitive bornprimitive.com/pages/shipping (#443 c.6568736516)' },
+    paragonfitwear: { feeUsd: null, freeOverUsd: 150, source: 'Paragon paragonfitwear.com/pages/help (#443 c.6568736516)' },
+    fleo: { feeUsd: null, freeOverUsd: 130, source: 'FLEO fleo.com site banner (#443 c.6568736516)' },
+    ironrebel: { feeUsd: null, freeOverUsd: 125, source: 'Iron Rebel ironrebel.com/pages/shipping-returns (#443 c.6568736516)' },
+    assouline: { feeUsd: null, freeOverUsd: 200, source: 'Assouline assouline.com/pages/faqs (#443 c.6568736516)' },
+    spectra: { feeUsd: null, freeOverUsd: 50, source: 'Spectra spectrababyusa.com/pages/shipping-policy (#443 c.6568736516)' },
+    munchkin: { feeUsd: null, freeOverUsd: 50, source: 'Munchkin munchkin.com (#443 c.6568736516)', note: 'fórmula infantil en compra única: $7.50' },
+    nanit: { feeUsd: null, freeOverUsd: 35, source: 'Nanit nanit.com/policies/shipping-policy (#443 c.6568736516)' },
+    owlet: { feeUsd: null, freeOverUsd: 50, source: 'Owlet owletcare.com/pages/shipping-terms (#443 c.6568736516)' },
+    kindredbravely: { feeUsd: null, freeOverUsd: 75, source: 'Kindred Bravely kindredbravely.com/pages/kindred-bravely-offers (#443 c.6568736516)' },
+    denniskirk: { feeUsd: null, freeOverUsd: 89, source: 'Dennis Kirk denniskirk.com (#443 c.6568736516)' },
+    montce: { feeUsd: null, freeOverUsd: 100, source: 'Montce montce.com/pages/shipping-delivery-information (#443 c.6568736516)' },
+    gameness: { feeUsd: null, freeOverUsd: 100, source: 'Gameness gameness.com/policies/shipping-policy (#443 c.6568736516)', note: 'tarifa por escala: $12.90 debajo de $50, $15.90 de $50 a $99.99' },
+    silviatcherassi: { feeUsd: null, freeOverUsd: 500, source: 'Silvia Tcherassi silviatcherassi.com product pages + terms (#443 c.6568736516)' },
+    tns: { feeUsd: null, freeOverUsd: 100, source: 'TNS tns.us/pages/special-offers (#443 c.6568736516)' },
+    tennisexpress: { feeUsd: null, freeOverUsd: 50, source: 'Tennis Express tennisexpress.com/pages/faq (#443 c.6568736516)', note: 'artículos voluminosos excluidos' },
   };
 
   /* The Miami sales tax Aria pays at each register (Walmart exempt), the

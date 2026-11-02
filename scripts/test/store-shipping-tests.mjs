@@ -35,8 +35,13 @@ check("the table: Lucifer's sourced figures (Oct 30), each with its source; noth
   assert.deepEqual(r("walmart"), [6.99, 35]);
   assert.deepEqual(r("revolve"), [0, 0], "always free");
   assert.deepEqual(r("zumiez"), [null, 64.94], "calculated at the store's checkout; the corrected threshold");
-  assert.deepEqual(r("parrot"), [null, null]);
-  assert.ok(!STORE_SHIPPING.fuji, "FUJI waits for its threshold to be settled");
+  assert.deepEqual(r("brandsmart"), [null, null]);
+  /* #443 c.6568736516: each store's own published policy. */
+  assert.deepEqual(r("sephora"), [0, 0], "Beauty Insider member rule: free, no minimum");
+  assert.deepEqual(r("gymshark"), [5, 75]);
+  assert.deepEqual(r("oldnavy"), [7, 50]);
+  assert.deepEqual(r("walmartbaby"), r("walmart"), "Walmart's baby storefront: Walmart's rule");
+  assert.ok(!STORE_SHIPPING.fuji, "FUJI waits for its threshold to be settled (its own pages: $95, $125)");
   for (const [k, x] of Object.entries(STORE_SHIPPING)) assert.match(x.source, /#443 c\.\d+/, k);
   assert.equal(shippingRuleText("fuji"), null, "no sourced terms: no rule (the box says the store calculates it)");
 });
@@ -86,7 +91,7 @@ check("the card line carries the store's own rule, in every shape", () => {
   assert.equal(shippingRuleText("everlast"), "Envío de la tienda en EE.UU.: $9.99");
   assert.equal(shippingRuleText("revolve"), "Envío gratis en EE.UU.");
   assert.equal(shippingRuleText("zumiez"), "Envío gratis desde $64.94 · debajo de ese monto lo calcula la tienda al pagar");
-  assert.equal(shippingRuleText("parrot"), "Envío en EE.UU.: lo calcula la tienda al pagar");
+  assert.equal(shippingRuleText("brandsmart"), "Envío en EE.UU.: lo calcula la tienda al pagar");
 });
 
 check("the meter is per store, on the store's own prices; a store that calculates its fee is never charged a guess", () => {
