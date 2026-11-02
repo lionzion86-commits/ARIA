@@ -1,0 +1,24 @@
+[
+ {
+  "_fixture": "TEST FIXTURE, NOT STORE DATA. Modelled on the documented Data Drop 2 shapes (#443 c.6560098393); ids, photos and the made-up rows never reach the catalogue.",
+  "name": "adidas Samba ADV Fixture Black, White & Gum Skate Shoes",
+  "brand": "adidas",
+  "price": 100,
+  "url": "https://www.zumiez.com/fixture-samba-adv-black.html",
+  "image": "https://scene7.zumiez.com/is/image/zumiez/fixture-black.jpg"
+ },
+ {
+  "name": "adidas Samba ADV Fixture Green & Gum Skate Shoes",
+  "brand": "adidas",
+  "price": 90,
+  "url": "https://www.zumiez.com/fixture-samba-adv-green.html",
+  "image": "https://scene7.zumiez.com/is/image/zumiez/fixture-green.jpg"
+ },
+ {
+  "name": "adidas Fixture Lone Shoe Skate Shoes",
+  "brand": "adidas",
+  "price": 80,
+  "url": "https://www.zumiez.com/fixture-lone.html",
+  "image": "https://scene7.zumiez.com/is/image/zumiez/fixture-lone.jpg"
+ }
+]

@@ -1064,14 +1064,18 @@ function cardImgAttrs(url, sizes){
     for (let i = 0; i < key.length; i++){ h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
     return ('00' + ((h >>> 0) % 4096).toString(16)).slice(-3);
   }
+  /* A store's placeholder ("No Size", "One Size") is no size (#443 c.6567135924). */
+  const SIZE_PLACEHOLDER_RX = /^(?:no\s*size|one\s*size|o\/?s|n\/?s|n\/a|default(?:\s+title)?|talla\s+[u\u00fa]nica|[u\u00fa]nica)$/i;
   function sizeGateList(v){
     if (!Array.isArray(v)) return [];
     const out = [];
     for (const x of v){
       const s = typeof x === 'string' || typeof x === 'number' ? String(x)
         : (x && x.available !== false && (typeof x.size === 'string' || typeof x.size === 'number')) ? String(x.size) : '';
-      if (s.trim() && !out.includes(s.trim())) out.push(s.trim());
+      if (s.trim() && !SIZE_PLACEHOLDER_RX.test(s.trim()) && !out.includes(s.trim())) out.push(s.trim());
     }
+    /* A lone volume or weight is the product, not a choice (producto.html's rule). */
+    if (out.length === 1 && /^\d+(?:[.,]\d+)?\s*(?:fl\.?\s*oz|oz|ml|cl|l|g|gr|kg|mg|lb|lbs|ct|count)\.?$/i.test(out[0])) return [];
     return out;
   }
   const sizeGateShards = {};
@@ -1087,7 +1091,9 @@ function cardImgAttrs(url, sizes){
     return sizeGateShards[shard].then((d) => {
       const cands = (d && Array.isArray(d[key])) ? d[key] : [];
       const own = cands.filter((c) => c && String(c.retailer || '').toLowerCase() === rk);
-      const rec = (own.length ? own : (cands.length === 1 ? cands : []))[0];
+      /* The line's own listing first (#443 variants: its colour's sizes and photo). */
+      const mine = it.variantId ? own.filter((c) => c.v === it.variantId) : [];
+      const rec = (mine.length ? mine : own.length ? own : (cands.length === 1 ? cands : []))[0];
       return rec ? sizeGateList(rec.sizes) : [];
     }).catch(() => []);
   }
@@ -1111,7 +1117,8 @@ function cardImgAttrs(url, sizes){
       const cands = (d && Array.isArray(d[key])) ? d[key] : [];
       const own = cands.filter((c) => c && String(c.retailer || '').toLowerCase() === rk);
       const pos = (c) => Math.min(Infinity, ...((c && c.src) || []).map((s) => Number(s[1])).filter(Number.isFinite));
-      const recs = (own.length ? own : (cands.length === 1 ? cands : [])).slice().sort((a, b) => (pos(a) - pos(b)) || 0);
+      const mine = it.variantId ? own.filter((c) => c.v === it.variantId) : [];
+      const recs = (mine.length ? mine : own.length ? own : (cands.length === 1 ? cands : [])).slice().sort((a, b) => (pos(a) - pos(b)) || 0);
       return recs.map((r) => (typeof r.image === 'string' && /^https?:\/\//i.test(r.image)) ? r.image : '').filter(Boolean);
     }).catch(() => []);
   }
@@ -2334,7 +2341,10 @@ function cardImgAttrs(url, sizes){
      (re-rendered from this array on every render, so the index is always
      fresh); the key is stamped on the button for debugging. */
   function cartLineKey(it){
-    return [String(it.retailer || '').toLowerCase(), String(it.title || ''), String(it.selectedSize || it.size || '')].join('::');
+    /* The listing too, when the line names one (#443 variants): two
+       colourways the store titles alike, in one size, are two lines. */
+    return [String(it.retailer || '').toLowerCase(), String(it.title || ''), String(it.selectedSize || it.size || '')].join('::')
+      + (it.variantId ? '::v:' + String(it.variantId) : '');
   }
   /* FAMILIA: the card price each line had before this page showed it at
      cost. The saved cart always keeps the card price (the account's
@@ -2408,7 +2418,7 @@ function cardImgAttrs(url, sizes){
         <div class="min-w-0 flex-1">
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
-          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.colorway ? `<span data-colorway="${i}">Color: ${escapeHtmlLocal(it.colorway)}</span> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
           ${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
           ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
@@ -2436,7 +2446,10 @@ function cardImgAttrs(url, sizes){
       acc.kg += it.weightKg * it.qty;
       return acc;
     }, { valor: 0, kg: 0 });
-    const description = cart.map(it => it.selectedSize ? `${it.title} (Talla ${it.selectedSize}) x${it.qty}` : `${it.title} x${it.qty}`).join(', ');
+    const description = cart.map(it => {
+      const bits = [it.colorway ? `Color ${it.colorway}` : '', it.selectedSize ? `Talla ${it.selectedSize}` : ''].filter(Boolean).join(', ');
+      return bits ? `${it.title} (${bits}) x${it.qty}` : `${it.title} x${it.qty}`;
+    }).join(', ');
 
     /* The weight is resolved SERVER SIDE, per item — never taken from
        whatever the cart happens to carry. A cart written by an older build

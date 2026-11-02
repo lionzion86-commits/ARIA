@@ -1,0 +1,327 @@
+[
+ {
+  "id": 1001,
+  "title": "Adidas Womens Samba OG Shoes - Core Black/Wonder White/Silver Metallic",
+  "handle": "adidas-womens-samba-og-shoes-core-black-wonder-white-silver-metallic",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "6.0",
+     "7.0",
+     "8.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 10010,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "price": "49.00",
+    "available": true,
+    "sku": "FX10010"
+   },
+   {
+    "id": 10011,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "price": "49.00",
+    "available": true,
+    "sku": "FX10011"
+   },
+   {
+    "id": 10012,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "price": "49.00",
+    "available": true,
+    "sku": "FX10012"
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/adidas-womens-samba-og-shoes-core-black-wonder-white-silver-metallic-1.jpg"
+   }
+  ],
+  "_fixture": "TEST FIXTURE, NOT STORE DATA. Modelled on the documented Data Drop 2 shapes (#443 c.6560098393); ids, photos and the made-up rows never reach the catalogue."
+ },
+ {
+  "id": 1002,
+  "title": "Adidas Womens Samba OG Shoes - Ftwr White/Silver Metallic/Grey",
+  "handle": "adidas-womens-samba-og-shoes-ftwr-white-silver-metallic-grey",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "6.0",
+     "7.0",
+     "8.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 10020,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "price": "70.00",
+    "available": true,
+    "sku": "FX10020"
+   },
+   {
+    "id": 10021,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "price": "70.00",
+    "available": true,
+    "sku": "FX10021"
+   },
+   {
+    "id": 10022,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "price": "70.00",
+    "available": true,
+    "sku": "FX10022"
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/adidas-womens-samba-og-shoes-ftwr-white-silver-metallic-grey-1.jpg"
+   }
+  ]
+ },
+ {
+  "id": 1003,
+  "title": "Adidas Womens Samba OG Shoes - Ftwr White/Frozen Purple/Night Indigo",
+  "handle": "adidas-womens-samba-og-shoes-ftwr-white-frozen-purple-night-indigo",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "6.0",
+     "7.0",
+     "8.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 10030,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "price": "99.95",
+    "available": true,
+    "sku": "FX10030"
+   },
+   {
+    "id": 10031,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "price": "99.95",
+    "available": true,
+    "sku": "FX10031"
+   },
+   {
+    "id": 10032,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "price": "99.95",
+    "available": true,
+    "sku": "FX10032"
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/adidas-womens-samba-og-shoes-ftwr-white-frozen-purple-night-indigo-1.jpg"
+   }
+  ]
+ },
+ {
+  "id": 1004,
+  "title": "Adidas Womens Samba OG Shoes - Ftwr White/Wonder Quartz/Brown",
+  "handle": "adidas-womens-samba-og-shoes-ftwr-white-wonder-quartz-brown",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "6.0",
+     "7.0",
+     "8.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 10040,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "price": "99.95",
+    "available": true,
+    "sku": "FX10040"
+   },
+   {
+    "id": 10041,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "price": "99.95",
+    "available": true,
+    "sku": "FX10041"
+   },
+   {
+    "id": 10042,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "price": "99.95",
+    "available": true,
+    "sku": "FX10042"
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/adidas-womens-samba-og-shoes-ftwr-white-wonder-quartz-brown-1.jpg"
+   }
+  ]
+ },
+ {
+  "id": 1005,
+  "title": "Adidas Womens Samba OG Shoes - Supercolor/Wonder Beige/Tent Green",
+  "handle": "adidas-womens-samba-og-shoes-supercolor-wonder-beige-tent-green",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "6.0",
+     "7.0",
+     "8.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 10050,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "price": "109.95",
+    "available": true,
+    "sku": "FX10050"
+   },
+   {
+    "id": 10051,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "price": "109.95",
+    "available": true,
+    "sku": "FX10051"
+   },
+   {
+    "id": 10052,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "price": "109.95",
+    "available": true,
+    "sku": "FX10052"
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/adidas-womens-samba-og-shoes-supercolor-wonder-beige-tent-green-1.jpg"
+   }
+  ]
+ },
+ {
+  "id": 1006,
+  "title": "Adidas Womens Samba OG Shoes - Supercolor/Off White/Bliss Pink",
+  "handle": "adidas-womens-samba-og-shoes-supercolor-off-white-bliss-pink",
+  "vendor": "Adidas",
+  "product_type": "Shoes",
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "6.0",
+     "7.0",
+     "8.0"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": 10060,
+    "title": "6.0",
+    "option1": "6.0",
+    "option2": null,
+    "option3": null,
+    "price": "109.95",
+    "available": true,
+    "sku": "FX10060"
+   },
+   {
+    "id": 10061,
+    "title": "7.0",
+    "option1": "7.0",
+    "option2": null,
+    "option3": null,
+    "price": "109.95",
+    "available": true,
+    "sku": "FX10061"
+   },
+   {
+    "id": 10062,
+    "title": "8.0",
+    "option1": "8.0",
+    "option2": null,
+    "option3": null,
+    "price": "109.95",
+    "available": true,
+    "sku": "FX10062"
+   }
+  ],
+  "images": [
+   {
+    "src": "https://cdn.shopify.com/s/files/fixture/adidas-womens-samba-og-shoes-supercolor-off-white-bliss-pink-1.jpg"
+   }
+  ]
+ }
+]
