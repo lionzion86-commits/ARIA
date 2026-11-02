@@ -587,10 +587,8 @@ const NOT_LAPTOP_RX = /\b(tablets?|ipad|cases?|sleeves?|bags?|backpacks?|stands?
    and Costco's drones arrived as Cámaras). */
 export const techAisleOf = (p) => (isDrone(p.title) ? "tech_drones" : /^tech_/.test(String(p.type || "")) ? String(p.type) : techAisle(p.title, p.type));
 /* The Drones type in its lead order (scripts/lib/tech-aisle.js droneRank):
-   DJI's pro line, DJI's other aircraft, the pro makers -- each the
-   flagship first -- then the rest, parts and toys in the list's order. */
-export const dronesOrder = (l) => l.map((p, i) => ({ p, i, r: droneRank(p) }))
-  .sort((a, b) => (a.r - b.r) || (a.r <= 2 ? (b.p.rawPrice || 0) - (a.p.rawPrice || 0) : 0) || (a.i - b.i)).map((x) => x.p);
+   DJI's pro line first, toys last; inside a rank the list's own order. */
+export const dronesOrder = (l) => l.map((p, i) => ({ p, i, r: droneRank(p) })).sort((a, b) => (a.r - b.r) || (a.i - b.i)).map((x) => x.p);
 export function isStudyLaptop(p) {
   const t = String(p.title || "");
   return p.rawPrice > 0 && p.rawPrice < STUDY_LAPTOP_MAX && techAisleOf(p) === "tech_computadoras" &&

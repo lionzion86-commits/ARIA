@@ -50,22 +50,24 @@ const CAMERA_RX = /\b(cameras?|camcorders?|dslr|mirrorless|lens(es)?\b|gopro|act
 const DRONE_RX = /\b(drones?|quadcopters?|quadrocopters?|fpv (goggles|racing|drone|kit|combo)|dji[\s\-–]+(mini|mavic|air|avata|neo|flip|inspire|matrice|agras|phantom|spark|fpv|goggles|rc[- ]?n?\d?|rc pro|motion controller)|mavic|avata|autel (evo|robotics|alpha|nano|lite)|evo (lite|nano|max|ii)\b.*\bautel|skydio|parrot anafi|anafi)\b/i;
 const NOT_DRONE_RX = /\b(murder drones|helmets?|t-?shirts?|tees?|hoodies?|sweatshirts?|shirts?|plush\w*|figures?|figurines?|stickers?|posters?|enamel pins?|keychains?|socks?|hats?|beanies?|costumes?|books?|paperback|dvd|vinyl|cassette|anti-?drone|drone (bee|ant)s?)\b/i;
 export const isDrone = (name) => DRONE_RX.test(String(name || "")) && !NOT_DRONE_RX.test(String(name || ""));
-/* The Drones lead (commercial-leads): DJI's pro line first (Mavic, Air,
-   Avata, Inspire, Matrice, Mini Pro), then DJI's other aircraft (Neo,
-   Mini, Flip), then the other pro makers (Autel, Skydio, Parrot), then
-   every other drone, then what fits one, and the toy drones last. */
-const DJI_PRO_RX = /\b(mavic|air \d\w*|avata|inspire|matrice|agras|mini \d\s*pro)\b/i;
+/* The Drones lead (commercial-leads): DJI's pro line first -- the Mavic,
+   Air, Avata and Mini Pro a shopper asks for by name -- then DJI's other
+   aircraft (Neo, Flip, Mini), then DJI's enterprise rigs (Inspire,
+   Matrice, Agras), then the other pro makers (Autel, Skydio, Parrot),
+   then every other drone, then what fits one, and the toy drones last. */
+const DJI_PRO_RX = /\b(mavic|air \d\w*|avata|mini \d\s*pro)\b/i;
+const DJI_ENTERPRISE_RX = /\b(inspire|matrice|agras|enterprise)\b/i;
 const DRONE_PRO_RX = /\b(autel|skydio|parrot|anafi)\b/i;
 const DRONE_TOY_RX = /\b(toys?|kids?|children|beginners?|ages? \d|mini drone for|for kids|foldable drone|rc drone)\b/i;
 const DRONE_PART_RX = /\b(propellers?|props?|batter(y|ies)|chargers?|charging hub|filters?|nd ?\d|cases?|bags?|backpacks?|guards?|landing (gear|pad)|lanyards?|straps?|cables?|mounts?|holders?|hoods?|skins?|stickers|replacement|spare|lens covers?|screen protectors?)\b/i;
 export function droneRank(p) {
   const t = String((p && p.title) || "") + " " + String((p && p.brand) || "");
   const part = DRONE_PART_RX.test(String((p && p.title) || "").split(/\s+(?:for|compatible with|fits)\s+/i)[0]) && !/\b(fly more|combo|kit|bundle)\b/i.test(t);
-  if (part) return 4;
-  if (/\bdji\b/i.test(t)) return DJI_PRO_RX.test(t) ? 0 : 1;
-  if (DRONE_PRO_RX.test(t)) return 2;
-  if (DRONE_TOY_RX.test(t)) return 5;
-  return 3;
+  if (part) return 5;
+  if (/\bdji\b/i.test(t)) return DJI_ENTERPRISE_RX.test(t) ? 2 : DJI_PRO_RX.test(t) ? 0 : 1;
+  if (DRONE_PRO_RX.test(t)) return 3;
+  if (DRONE_TOY_RX.test(t)) return 6;
+  return 4;
 }
 const SECURITY_RX = /\b(security (camera|system|cam)|doorbells?|ring (video|stick|spotlight|floodlight|indoor|outdoor)|wyze|blink|arlo|eufy ?cam|nvr|dvr|surveillance|baby monitors?|smart (plugs?|bulbs?|locks?|lights?|displays?|speakers?)|echo (dot|show|pop)|nest (hub|cam|doorbell)|google home|alexa|smart home|floodlight cam|spotlight cam|ip cam(era)?|wi-?fi (ip |security |indoor |outdoor )?cam(era)?|spotlight|night vision|pan[- ]tilt|pet cam(era)?|indoor cam(era)?|outdoor cam(era)?)\b/i;
 const WATCH_RX = /\b(smart ?watch(es)?|apple watch|galaxy watch|fitbit|garmin (forerunner|venu|fenix|vivoactive|instinct)|fitness trackers?|activity trackers?|watch (series|se|ultra))\b/i;
