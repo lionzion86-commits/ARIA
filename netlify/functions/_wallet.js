@@ -7,6 +7,10 @@
    dashboard, no payouts, no expiry, no transfers.
 
    Credit is ISSUED BY HAND today — an admin calls admin-wallet-credit.js.
+   Since the Key Club door (#443, 2026-11-02) three rules also post here
+   on their own, each keyed so it pays once, and only to confirmed
+   members: the US$100+ order perk, referral and birthday (_keyclub.js
+   grantCredit). The overweight refund stays manual.
    Nothing reconciles quoted freight against actual freight on its own;
    that job is a post-launch build, and until it exists the homepage must
    not say "automáticamente" (see the Precio Honesto section comment).
@@ -60,7 +64,7 @@ export async function readWallet(email) {
  * A debit may never exceed the balance: the wallet cannot go negative,
  * because a negative saldo is a debt we never agreed to give anyone.
  */
-export async function postTransaction({ email, kind, amountPen, reason, by, orderId = null }) {
+export async function postTransaction({ email, kind, amountPen, reason, by, orderId = null, credits = null, fxRate = null }) {
   if (!email) throw new Error("email requerido");
   if (kind !== "credit" && kind !== "debit") throw new Error("kind debe ser credit o debit");
   const amount = roundPen(amountPen);
@@ -83,6 +87,9 @@ export async function postTransaction({ email, kind, amountPen, reason, by, orde
     orderId,
     balanceAfterPen: balancePen,
   };
+  /* Key Club credits (1 crédito = US$1, _keyclub.js): the dollars this
+     soles amount stands for, and the rate it was posted at. */
+  if (Number(credits) > 0) { txn.credits = roundPen(credits); txn.fxRate = Number(fxRate) || null; }
   const next = { email, balancePen, txns: [txn, ...wallet.txns].slice(0, MAX_TXNS) };
   await store.setJSON(email, next);
   return { balancePen, txn };

@@ -17619,6 +17619,8 @@ function setActiveNav(viewId){
 }
 
 function showPage(id){
+  /* THE DOOR (#443, Danny 2026-11-02): the Key Club is its own page. */
+  if (id === 'keyclubView') { location.href = '/keyclub.html'; return; }
   if (id !== 'homeView' && typeof hideGreetBubble === 'function') hideGreetBubble();
   setActiveNav(id);
   if (STATIC_ROUTE_VIEWS.has(id)) pushRoute({ view: id });
@@ -27053,8 +27055,8 @@ function renderFoundersCartBanner(){
     wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 flex items-start gap-3 mb-4" style="background:#0A1F44;border:1px solid rgba(244,196,99,.4)">
       <div>
         <div class="text-[13.5px] font-extrabold" style="color:#F4C463">Guarda tu carrito en el Aria Key Club</div>
-        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#B9C6E8">Únete gratis al Aria Key Club: tu carrito queda guardado, compras cuando quieras y recibes $5 de vuelta por cada $100 en crédito Aria. Los primeros 1000 miembros quedan registrados como Fundadores.</div>
-        <button onclick="openAuthModal('signup')" class="mt-2.5 inline-flex items-center justify-center h-10 px-5 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme gratis</button>
+        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#B9C6E8">Únete gratis al Aria Key Club: tu carrito queda guardado, tu DNI se registra una sola vez y tus devoluciones vuelven como crédito al instante. Los primeros 1,000 miembros quedan como Fundadores para siempre.</div>
+        <a href="/keyclub.html" data-keyclub-door class="mt-2.5 inline-flex items-center justify-center h-10 px-5 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme gratis</a>
       </div>
     </div>`;
     return;
@@ -27068,76 +27070,12 @@ function renderFoundersCartBanner(){
   }
 }
 
+/* NO SIGNUP POP-UP (#443, Danny 2026-11-02). Every Key Club entry goes
+   to ONE flow: the door, /keyclub.html (account -> confirmation email ->
+   confirmed -> the members' dashboard). Signing in is the one login on
+   /cuenta.html. The old modal and its markup are gone. */
 function openAuthModal(mode){
-  authModalMode = mode;
-  document.getElementById('authForm').reset();
-  document.getElementById('authError').hidden = true;
-  applyAuthModalMode();
-  document.getElementById('authModalBackdrop').classList.remove('hidden');
-  document.getElementById('authEmail').focus();
-}
-
-function closeAuthModal(){
-  document.getElementById('authModalBackdrop').classList.add('hidden');
-}
-
-function switchAuthMode(){
-  authModalMode = authModalMode === 'login' ? 'signup' : 'login';
-  document.getElementById('authError').hidden = true;
-  applyAuthModalMode();
-}
-
-function applyAuthModalMode(){
-  const isLogin = authModalMode === 'login';
-  document.getElementById('authModalTitle').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
-  document.getElementById('authModalSubtitle').textContent = isLogin ? 'Ingresa tu correo y contraseña.' : 'Crea tu cuenta con tu correo y una contraseña.';
-  document.getElementById('authSubmitBtn').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
-  document.getElementById('authNameWrap').style.display = isLogin ? 'none' : '';
-  document.getElementById('authPhoneWrap').style.display = isLogin ? 'none' : '';
-  document.getElementById('authName').required = !isLogin;
-  document.getElementById('authPassword').autocomplete = isLogin ? 'current-password' : 'new-password';
-  document.getElementById('authSwitchPrompt').textContent = isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?';
-  document.getElementById('authSwitchAction').textContent = isLogin ? 'Crear cuenta' : 'Entrar';
-}
-
-async function submitAuth(event){
-  event.preventDefault();
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  const name = document.getElementById('authName').value.trim();
-  const phone = document.getElementById('authPhone').value.trim();
-  const errorEl = document.getElementById('authError');
-  const submitBtn = document.getElementById('authSubmitBtn');
-  errorEl.hidden = true;
-
-  submitBtn.disabled = true;
-  const originalLabel = submitBtn.textContent;
-  submitBtn.textContent = 'Un momento…';
-
-  try {
-    const endpoint = authModalMode === 'login' ? '/.netlify/functions/auth-login' : '/.netlify/functions/auth-signup';
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(authModalMode === 'signup' ? { email, password, name, phone } : { email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Algo salió mal, intenta de nuevo.');
-
-    currentUser = data.email;
-    currentUserIsAdmin = Boolean(data.isAdmin);
-    currentUserName = data.name || name || null;
-    currentUserFounderStatus = data.founderStatus || null;
-    renderAuthUI();
-    closeAuthModal();
-    showToast(authModalMode === 'login' ? `Bienvenida/o de vuelta, ${data.email}` : `Cuenta creada — bienvenida/o, ${data.email}`);
-  } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.hidden = false;
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = originalLabel;
-  }
+  location.href = mode === 'signup' ? '/keyclub.html#unirme' : '/cuenta.html';
 }
 
 async function logout(){

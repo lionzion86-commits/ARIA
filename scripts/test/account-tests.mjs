@@ -143,13 +143,15 @@ await check("the timeline fills as states advance; tracking shows Aria's guía a
 
 console.log("\n  Mi cuenta -- the wallet");
 
-await check("credit math is exact to the cent and proportional; merchandise only", () => {
-  assert.equal(A.keyClubCreditPen(37), 1.85);
-  assert.equal(A.keyClubCreditPen(100), 5);
-  assert.equal(A.keyClubCreditPen(0), 0);
+/* The 5% Key Club rate is KILLED (#443, Danny 2026-11-02): no
+   keyClubCreditPen, and «Cómo se ganan» is exactly the four lines. */
+await check("credit math is exact to the cent; merchandise only; the killed 5% rule is gone", () => {
+  assert.equal(A.keyClubCreditPen, undefined, "the 5% credit function still exists");
+  assert.equal(A.KEY_CLUB_RATE, undefined, "the 5% rate still exists");
   assert.equal(A.freightOverageCreditUsd(1.4), 18.2);
   assert.equal(A.merchandiseSubtotalUsd([{ priceUsd: 19.99, qty: 2 }, { priceUsd: 5.5 }, { priceUsd: null }, { title: "freight", flete: 30 }]), 45.48);
-  assert.ok(A.WALLET_RULES.some((r) => /\$5 por cada \$100 en productos/.test(r) && /sin contar impuestos ni flete/.test(r)));
+  assert.equal(A.EARN_WAYS.length, 4);
+  assert.ok(!A.WALLET_RULES.some((r) => /5 ?%|por cada \$100|cada compra/i.test(r)), "a killed rule is back");
 });
 
 await check("the wallet always renders, S/ 0.00 included, with the full ledger: amount, reason, date", async () => {
@@ -162,7 +164,7 @@ await check("the wallet always renders, S/ 0.00 included, with the full ledger: 
   const full = await A.accountOverview(stores({ wallet: { [ME]: { balancePen: 18.2, txns } } }), ME);
   assert.equal(full.wallet.balancePen, 18.2);
   assert.equal(full.wallet.ledger.length, 14, "the member sees the full history, not the last ten");
-  assert.deepEqual(Object.keys(full.wallet.ledger[0]).sort(), ["amountPen", "balanceAfterPen", "date", "kind", "orderId", "reason"]);
+  assert.deepEqual(Object.keys(full.wallet.ledger[0]).sort(), ["amountPen", "balanceAfterPen", "credits", "date", "kind", "orderId", "reason"]);
   assert.ok(!JSON.stringify(full.wallet).includes("admin@aria.test"), "issuer leaked");
 });
 

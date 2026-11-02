@@ -287,7 +287,7 @@ await check("a guest sees the Key Club invite only after both photos are up; 'Ah
     await page.setInputFiles('.dniSlot[data-side="back"] input[data-pick="camera"]', FIXTURE);
     await page.waitForSelector("#kcInvite", { state: "visible", timeout: 30000 });
     const text = await page.textContent("#kcInvite");
-    for (const want of ["Sube tus documentos una sola vez", "Ahora es gratis", "Guardar mis documentos", "Ahora no", "puedes eliminarlos cuando quieras"]) assert(text.includes(want), "missing: " + want);
+    for (const want of ["Sube tus documentos una sola vez", "Ahora es gratis", "Hacerme Key Club", "Ahora no", "puedes eliminarlos cuando quieras"]) assert(text.includes(want), "missing: " + want);
     assert(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), "emoji in the invite");
     await shot(page, "keyclub-invite");
     await page.click("#kcInviteNo");
@@ -298,46 +298,32 @@ await check("a guest sees the Key Club invite only after both photos are up; 'Ah
   } finally { await context.close(); }
 });
 
-await check("'Guardar mis documentos' creates the account from the checkout's own name, email and phone; Pagar then sends the same photos", async () => {
+/* THE DOOR (#443, Danny 2026-11-02): the invite no longer creates an
+   account inside checkout. It links to the one Key Club entry flow, in a
+   new tab, and checkout carries on untouched. */
+await check("'Hacerme Key Club' opens the Key Club door in a new tab; no account is created inside checkout and Pagar sends the same photos", async () => {
   state.orders.length = 0; state.auth.length = 0; state.accounts = {};
   const { context, page } = await openCheckout();
   try {
     await fillForm(page);
     await bothPhotos(page);
-    await page.click("#kcInviteYes");
-    await page.fill("#kcPass", "corta");
-    await page.click("#kcInviteGo");
-    assert(/al menos 8/.test(await page.textContent("#kcInviteErr")), "short password not refused");
-    await page.fill("#kcPass", "clave-de-prueba");
-    await page.click("#kcInviteGo");
-    await page.waitForSelector("#kcInviteDone", { state: "visible" });
-    const su = state.auth.find((a) => a.fn === "auth-signup");
-    assert(su && su.email === "ana@correo.test" && su.name === "Ana Prueba" && su.phone === "+51 900 000 000", JSON.stringify(state.auth));
-    assert(/no te lo volveremos a pedir/.test(await page.textContent("#dniKeepNote")), "keep note did not switch to the member wording");
-    await shot(page, "keyclub-invite-done");
+    const yes = await page.$eval("#kcInviteYes", (a) => ({ tag: a.tagName, href: a.getAttribute("href"), target: a.getAttribute("target") }));
+    assert(yes.tag === "A" && /^\/keyclub\.html/.test(yes.href) && yes.target === "_blank", JSON.stringify(yes));
+    assert(!(await page.$("#kcPass")) && !(await page.$("#kcInviteGo")), "a signup form is still inside checkout");
+    const text = await page.textContent("#kcInvite");
+    for (const want of ["Sube tus documentos una sola vez", "Hacerme Key Club", "Ahora no"]) assert(text.includes(want), "missing: " + want);
+    await shot(page, "keyclub-invite-door");
     await payAndWait(page);
     const d = state.orders[0] && state.orders[0].dniDocs;
     assert(d && d.front && d.back, "the uploaded photos were not sent with the order: " + JSON.stringify(d));
+    assert(state.auth.length === 0, "an account call was made from checkout");
   } finally { await context.close(); }
 });
 
-await check("an email that already has an account switches the invite to sign-in, and a member never sees the invite", async () => {
-  state.orders.length = 0; state.auth.length = 0; state.accounts = { "ana@correo.test": "clave-existente" };
-  let { context, page } = await openCheckout();
-  try {
-    await fillForm(page);
-    await bothPhotos(page);
-    await page.click("#kcInviteYes");
-    await page.fill("#kcPass", "clave-cualquiera");
-    await page.click("#kcInviteGo");
-    await page.waitForFunction(() => /Ya tienes una cuenta/.test(document.getElementById("kcPassLabel").textContent));
-    await page.fill("#kcPass", "clave-existente");
-    await page.click("#kcInviteGo");
-    await page.waitForSelector("#kcInviteDone", { state: "visible" });
-    assert(state.auth.map((a) => a.fn).join() === "auth-signup,auth-login", state.auth.map((a) => a.fn).join());
-  } finally { await context.close(); }
+await check("a signed-in member never sees the invite", async () => {
+  state.orders.length = 0; state.auth.length = 0;
   state.member = [];
-  ({ context, page } = await openCheckout());
+  const { context, page } = await openCheckout();
   try {
     await fillForm(page);
     await page.waitForFunction(() => /no te lo volveremos a pedir/.test(document.getElementById("dniKeepNote").textContent), null, { timeout: 10000 });
