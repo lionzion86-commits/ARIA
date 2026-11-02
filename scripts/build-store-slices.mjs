@@ -51,6 +51,7 @@ import vm from "node:vm";
 import { liftDeclarations, pageHtml, extractDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { photoCount } from "./lib/photo-counts.js";
+import { imageKey, titleKey, urlKey } from "./lib/product-identity.js";
 import { FN_DIR, cardOfRow } from "../netlify/functions/_tienda-core.js";
 import { conditionOfTitle } from "./lib/condition.js";
 import { subRails, subKey, dominantFamily } from "./lib/store-subrails.js";
@@ -292,26 +293,23 @@ const reviewsOf = (raw) => {
    the product link (its path, query dropped) AND either the title
    (accents, case and punctuation aside) or the photo. The Spanish title
    wins: the twin with the Spanish name takes the first one's place. */
-export const titleKey = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
-export function urlKey(u) {
-  const m = /^https?:\/\/([^/?#]+)(\/[^?#]*)/i.exec(String(u || ""));
-  if (!m) return "";
-  const path = m[2].toLowerCase().replace(/\/+$/, "");
-  return path.length > 8 ? m[1].toLowerCase().replace(/^www\./, "") + path : "";
-}
+export { titleKey, urlKey };   /* scripts/lib/product-identity.js: the one rule */
 const ES_WORDS = /\b(de|del|para|con|y|en|los|las|el|la|niñas?|niños?|años|juguete|regalo)\b/gi;
 const EN_WORDS = /\b(of|for|with|and|in|the|girls?|boys?|kids|ages|toy|gift)\b/gi;
 export const spanishScore = (s) => (String(s || "").match(ES_WORDS) || []).length - (String(s || "").match(EN_WORDS) || []).length;
 export function dedupeMerged(items) {
   const at = new Map(), out = [];
   const keysOf = (it) => {
-    const price = Number(it.price) || 0, ks = [it.name + "||" + it.image];
+    /* The photo without its size knobs (scripts/lib/product-identity.js):
+       Kohl's listed one shirt at ?wid=180 and ?wid=342 -- one card. */
+    const img = imageKey(it.image);
+    const price = Number(it.price) || 0, ks = [it.name + "||" + img];
     const t = titleKey(it.name), u = urlKey(it.url);
     /* The audit's key (title, price, link) -- and the bilingual twin: the
        same link, the same photo, the same price under another title.
        A colourway (its own photo or link) is never merged. */
     if (t && u) ks.push("t|" + t + "|" + price + "|" + u);
-    if (u && it.image) ks.push("u|" + u + "|" + it.image + "|" + price);
+    if (u && it.image) ks.push("u|" + u + "|" + img + "|" + price);
     return ks;
   };
   for (const it of items) {
@@ -369,12 +367,19 @@ export function genericItems(key, meta, rules, root = ROOT) {
   for (const f of meta.files || []) {
     const bucket = readCatalogue(root, f)?.retailers?.[key];
     if (!bucket) continue;
-    for (const [dk, entry] of Object.entries(bucket.departments || {})) {
-      let label = dk, arr = null;
-      if (entry && typeof entry === "object" && !Array.isArray(entry)) { label = entry.label || dk; arr = entry.items; }
+    /* ONE CATALOGUE (#443 c.6585655315 P5): the store's brand buckets
+       too, as the search index and the brand pages read them. Foot
+       Locker's storefront showed its 144 department products while
+       search carried 503 (its nine brand buckets: Nike, Jordan, adidas,
+       Puma...). A brand bucket adds products, never a department chip. */
+    const sections = [["departments", bucket.departments], ["brands", bucket.brands && !Array.isArray(bucket.brands) ? bucket.brands : null]];
+    for (const [section, sec] of sections) for (const [dk0, entry] of Object.entries(sec || {})) {
+      const dk = section === "departments" ? dk0 : "";
+      let label = dk0, arr = null;
+      if (entry && typeof entry === "object" && !Array.isArray(entry)) { label = entry.label || dk0; arr = entry.items; }
       else if (Array.isArray(entry)) arr = entry;
       if (!Array.isArray(arr)) continue;
-      depts[dk] = R.deptChipLabel(dk, label);
+      if (section === "departments") depts[dk] = R.deptChipLabel(dk, label);
       for (const raw0 of arr) {
         /* A storefront of Danny's 2026-11-01 list reads the selling price
            its scrape spelled otherwise (Old Navy: effectivePrice), as

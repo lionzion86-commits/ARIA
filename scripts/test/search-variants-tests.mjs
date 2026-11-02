@@ -253,7 +253,12 @@ await check("every brand with a landing lands on its own brand page by its exact
   }
   console.log("      (" + n + " brand names routed; standing rulings: " + [...ruled].join(", ") + ")");
   assert.ok(n >= 2000, "brand names: " + n);
-  assert.ok(ruled.size <= 3, "rulings: " + [...ruled].join(", "));
+  /* Every brand the rulings take is named here, so a rebuild that adds one
+     fails until someone decides it. With the real brand labels (#618) the
+     rulings take: Chocolate -> Dulces, DJI -> Drones, Foundation -> Belleza,
+     Ring -> Joyas, XBOX -> Consolas; Snack still opens its own brand page. */
+  const RULED = new Set(["Chocolate", "DJI", "Foundation", "Ring", "Snack", "XBOX"]);
+  assert.deepEqual([...ruled].filter((l) => !RULED.has(l)), [], "new rulings: decide them");
   assert.deepEqual(bad, []);
 });
 await check("a name inside a longer query keeps every word: «arai helmets full face», «island water sports wetsuit»", () => {
