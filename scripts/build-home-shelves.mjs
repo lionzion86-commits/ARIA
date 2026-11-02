@@ -28,6 +28,8 @@
    REGENERATE after any catalogue change (with Playwright + Chromium):
      npm i --no-save playwright
      node scripts/build-home-shelves.mjs
+   node scripts/build-home-shelves.mjs --truth  re-applies only the
+   category-truth rails (Aria Fight Club, Deportes) to category.json.
    PLAYWRIGHT_CHROMIUM=<path> uses an installed Chromium.
    scripts/test/home-shelves-tests.mjs fails when a shelf shows a
    product the catalogues no longer carry.
@@ -37,6 +39,7 @@ import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, rmSync, r
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
+import { FIGHT_GEAR_CLASSES } from "./build-home-category-pills.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SHELVES_DIR = "assets/home/shelves";
@@ -133,7 +136,8 @@ export async function snapshotShelves() {
        not one sale among them. The page's own enrich runs here, and its
        own repaint recomputes every shelf, before anything is read. */
     await page.evaluate(async () => { await enrichSalesFromCatalog(); await repaintRailsAfterEnrich(); });
-    return await page.evaluate(() => {
+    const truth = await truthRails(page, truthGroups());
+    const snap = await page.evaluate(() => {
       const keys = [...new Set([...document.querySelectorAll("[data-store-rail-row]")].filter((r) => { const v = r.closest(".view"); return !r.closest("[hidden]") && (!v || getComputedStyle(v).display !== "none"); }).map((r) => r.getAttribute("data-store-rail-row")))];
       const brandLines = {};
       for (const el of document.querySelectorAll("[data-brandline]")) {
@@ -154,6 +158,93 @@ export async function snapshotShelves() {
         brandLines,
       };
     });
+    /* The category-truth rails replace the page's own pick (see truthGroups). */
+    Object.assign(snap.category, truth);
+    return snap;
+  } finally {
+    await browser.close();
+    srv.close();
+  }
+}
+
+/* CATEGORY TRUTH ON THE CATEGORY RAILS (#443, Danny 2026-11-01: "a
+   category rail holds only its own category").
+
+   The page's own pick for Aria Fight Club (railBucketCategoryIs ->
+   'combat') let a fight shop's gym apparel lead: the saved rail was 23
+   of 25 sports bras and leggings. The fight DEPARTMENT is right (1,405
+   products, Venum, Everlast, Tatami, Gameness, Fairtex), so the rail
+   mirrors its membership, restricted to fight gear by the department's
+   own product types (FIGHT_GEAR_CLASSES, never a word in a title), one
+   gear class after another so gloves, gis, protection, rash guards and
+   fight shorts all show. Deportes ("Pesca submarina, fútbol, tenis y
+   más") was 25 of 25 soccer: it mirrors the sporting_goods department,
+   one sport after another, through the page's own equipment rule.
+
+   The picks inside each group are still the page's (categoryRailPicks:
+   sales lead), from the page's own priced pool. */
+export function truthGroups(root = ROOT) {
+  const rows = (d) => JSON.parse(readFileSync(join(root, `assets/sections/departamento/_fn/${d}.json`), "utf8")).rows || [];
+  const key = (r) => r[2] + "::" + r[0];
+  const fightType = new Map(rows("combat_sports").map((r) => [key(r), r[7]]));
+  const combat = FIGHT_GEAR_CLASSES.map(([, types]) => [...fightType].filter(([, t]) => types.includes(t)).map(([k]) => k));
+  const sg = new Set(rows("sporting_goods").map(key));
+  const sport = ["spearfishing", "soccer", "tennis", "surf_skate"].map((d) => rows(d).map(key).filter((k) => sg.has(k)));
+  return { combat_sports: { groups: combat, pageTest: false }, sporting_goods: { groups: sport, pageTest: true } };
+}
+
+export async function truthRails(page, groups) {
+  return page.evaluate(async (spec) => {
+    const out = {};
+    for (const [rail, { groups, pageTest }] of Object.entries(spec)) {
+      const cat = CATEGORY_RAILS.find((c) => c.key === rail) || {};
+      const stores = [...new Set(groups.flat().map((k) => k.split("::")[0]))];
+      const pool = await poolForRetailers(stores);
+      const lists = groups.map((g) => {
+        const set = new Set(g);
+        const items = pool.filter((p) => set.has(`${String(p.retailer || "").toLowerCase()}::${p.title}`) && (!pageTest || !cat.test || cat.test(p)));
+        return categoryRailPicks(stores, items, items, new Set(), CATEGORY_RAIL_TOTAL, {});
+      });
+      const picks = [], seen = new Set();
+      while (picks.length < CATEGORY_RAIL_TOTAL && lists.some((l) => l.length)) {
+        for (const l of lists) {
+          while (l.length) {
+            const p = l.shift(), k = p.retailer + "::" + p.title;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            if (picks.length < CATEGORY_RAIL_TOTAL) picks.push(p);
+            break;
+          }
+        }
+      }
+      out[rail] = picks;
+    }
+    return out;
+  }, groups);
+}
+
+/* `--truth`: re-apply only the category-truth rails to the committed
+   category.json (no full snapshot): the page computes them from the
+   catalogues, as above. */
+export async function applyCategoryTruth(root = ROOT) {
+  const { chromium } = await import("playwright");
+  const srv = await serve();
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  const exe = process.env.PLAYWRIGHT_CHROMIUM || undefined;
+  const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+  try {
+    const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+    await page.route(/\.(png|jpe?g|webp|gif|avif)(\?|$)/i, (r) => r.fulfill({ status: 204, body: "" }));
+    await page.goto(base + "/", { waitUntil: "load" });
+    await page.waitForFunction(() => typeof poolForRetailers === "function" && typeof categoryRailPicks === "function", null, { timeout: 60000 });
+    const rails = await truthRails(page, truthGroups(root));
+    const file = join(root, SHELVES_DIR, "category.json");
+    const body = JSON.parse(readFileSync(file, "utf8"));
+    for (const [k, list] of Object.entries(rails)) body.rails[k] = list.map(cardOf);
+    writeFileSync(file, JSON.stringify(body));
+    stampHomePhotos(root, [SHELVES_DIR]);
+    return Object.fromEntries(Object.entries(rails).map(([k, l]) => [k, l.length]));
   } finally {
     await browser.close();
     srv.close();
@@ -178,7 +269,9 @@ export function shelfFiles(snap) {
   return files;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--truth")) {
+  console.log("category truth:", JSON.stringify(await applyCategoryTruth()));
+} else if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const snap = await snapshotShelves();
   const files = shelfFiles(snap);
   const dir = join(ROOT, SHELVES_DIR);

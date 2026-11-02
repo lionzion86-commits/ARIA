@@ -159,7 +159,8 @@ check("the department has its doors", () => {
   assert.match(home, /key: 'ropa_interior'[\s\S]{0,400}feed: \(\) => ropaInteriorRailPicks\('\/ropa-interior-feed\.json'\)/, "the men's shelf is not built from its feed");
   assert.match(home, /key: 'ropa_interior_mujer'[\s\S]{0,400}feed: \(\) => ropaInteriorRailPicks\('\/ropa-interior-women-feed\.json'\)/, "the women's shelf is not built from its feed");
   assert.match(home, /key: 'ropa_interior', label: 'Ropa Interior Hombre'/, "no men's homepage pill");
-  assert.match(home, /key: 'ropa_interior_mujer', label: 'Ropa Interior Mujer'/, "no women's homepage pill");
+  /* Renamed Lencería on the homepage (#443, Danny 2026-11-01): same feed, new name. */
+  assert.match(home, /key: 'ropa_interior_mujer', label: 'Lencería'/, "no women's homepage pill");
   assert.match(home, /'mens_grooming', 'ropa_interior_mujer', 'ropa_interior',/, "the pills are not in the tab order");
   assert.match(home, /ropa_interior: `<svg/, "the men's pill has no icon (it would fall back to a letter)");
   assert.match(home, /ropa_interior_mujer: `<svg/, "the women's pill has no icon (it would fall back to a letter)");
@@ -171,9 +172,9 @@ check("the department has its doors", () => {
    THE HOMEPAGE RAIL (2026-10-07): blast sales only, deepest discount
    first, from the feed -- never a hardcoded list.
    ------------------------------------------------------------------ */
-check("the homepage has a Ropa Interior Mujer and a Hombre rail on both layouts", () => {
+check("the homepage has a Lencería (women's) and a Hombre rail on both layouts", () => {
   const home = pageHtml();
-  for (const [label, row, hash] of [["Ropa Interior Mujer", "ropa_interior_mujer", "mujer"], ["Ropa Interior Hombre", "ropa_interior", "hombre"]]) {
+  for (const [label, row, hash] of [["Lencería", "ropa_interior_mujer", "mujer"], ["Ropa Interior Hombre", "ropa_interior", "hombre"]]) {
     const secs = home.match(new RegExp(`<section aria-label="${label}" data-featured-rail[\\s\\S]*?<\\/section>`, "g")) || [];
     assert.equal(secs.length, 2, `${label}: expected a mobile and a desktop rail, found ${secs.length}`);
     for (const s of secs) {

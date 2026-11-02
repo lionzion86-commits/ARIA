@@ -2035,7 +2035,7 @@ window.doSearch = function(which){
     <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas de lujo</h2>
+        <div class="flex items-center justify-between gap-3"><h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas de lujo</h2><a href="/departamento.html?dept=luxury" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0A1F44">Ver todo &#8594;</a></div>
         <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
       </div>
       <div id="mJoyasLujoRail" data-joyas-lujo-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
@@ -2044,7 +2044,7 @@ window.doSearch = function(which){
     <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2>
+        <div class="flex items-center justify-between gap-3"><h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2><a href="/departamento.html?dept=purses" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0A1F44">Ver todo &#8594;</a></div>
         <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
       </div>
       <div id="mBolsosRail" data-bolsos-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
@@ -2053,7 +2053,7 @@ window.doSearch = function(which){
     <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Moda de diseñador</h2>
+        <div class="flex items-center justify-between gap-3"><h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Moda de diseñador</h2><a href="/departamento.html?dept=clothing" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0A1F44">Ver todo &#8594;</a></div>
         <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
       </div>
       <div id="mModaRail" data-moda-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
@@ -2085,14 +2085,25 @@ window.doSearch = function(which){
          half. Same shared painter, same blast-sales-only rule, its own
          feed (ropa-interior-women-feed.json); opens the page's Mujer
          section. Starts hidden; JS reveals it. -->
-    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+    <!-- TODAS LAS TIENDAS (Danny, #443, 2026-11-01): "Todas las Tiendas -- then the category --
+         then the tiendas on top". Each category carousel below carries its store pills on top
+         (assets/js/home-category-pills.js, data from scripts/build-home-category-pills.mjs). -->
+    <div data-todas-las-tiendas class="relative overflow-hidden" style="background:#0A1F44">
+      <div>
+        <div class="px-5 pt-7 pb-3">
+          <h2 class="text-[22px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Todas las Tiendas</h2>
+          <p class="text-[13px] mt-1.5 leading-snug" style="color:rgba(255,255,255,.74)">Cada categor&iacute;a con sus tiendas: elige una y mira solo lo suyo.</p>
+        </div>
+      </div>
+    </div>
+    <section aria-label="Lencería" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <a href="/ropa-interior.html#mujer" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
+        <a href="/ropa-interior.html#mujer" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Lencería</a>
         <a href="/ropa-interior.html#mujer" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
-      <div data-category-rail-row="ropa_interior_mujer" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="ropa_interior_mujer" data-cat-pills="lenceria" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
@@ -2101,7 +2112,7 @@ window.doSearch = function(which){
         <a href="/ropa-interior.html#hombre" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
-      <div data-category-rail-row="ropa_interior" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="ropa_interior" data-cat-pills="interior-hombre" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- TALLAS PLUS (Danny, #443 c.6526833313): back on the homepage in the category run, after Ropa Interior.
          Same shared painter as the rails above, the department's own rule: her or his clothing
@@ -2113,7 +2124,17 @@ window.doSearch = function(which){
         <a href="/departamento.html?dept=curvy" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">De XL en adelante, en las tallas que la tienda realmente vende.</span></div>
-      <div data-category-rail-row="curvy" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="curvy" data-cat-pills="tallas-plus" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- ROPA DE BAÑO (Danny, #443, 2026-11-01): the one category that had no carousel. Its stores
+         are the store pages' own swim aisles; painted by home-category-pills.js. -->
+    <section aria-label="Bikinis y Ropas de Baño" data-cat-pills-section class="ariaNavyBand relative overflow-hidden storeRailCompact">
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #00A9DC 20%, #00A9DC 80%, transparent)"></div>
+        <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Bikinis y Ropas de Baño</span>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bikinis, enterizos y shorts de ba&ntilde;o, tienda por tienda.</span></div>
+        <div data-cat-pills="bano" data-cat-pills-own class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail" style="min-height:300px"></div>
     </section>
 <!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
      row ABOVE it. The pills are in-place lenses (Ofertas, Celulares,
@@ -2126,7 +2147,7 @@ window.doSearch = function(which){
     <a href="/departamento.html?dept=electronics" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
   </div>
   <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo de electrónica"></div>
-  <div data-pill-rail class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+  <div data-pill-rail data-cat-pills="electronica" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
 </section>
 
     <!-- PERMANENT GYM RAT RAIL (2026-09-27, Danny): the category is that
@@ -2142,7 +2163,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','gym_rat')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
-      <div data-category-rail-row="gym_rat" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="gym_rat" data-cat-pills="gym-rat" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
     <!-- PERMANENT FUTBOL RAIL (2026-10-01, Danny): standalone soccer
@@ -2156,7 +2177,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','soccer')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Chimpunes, camisetas, pelotas y más en oferta.</span></div>
-      <div data-category-rail-row="soccer" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="soccer" data-cat-pills="futbol" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
     <!-- PERMANENT FIGHT CLUB RAIL (2026-10-05, Danny): Aria Fight Club carousel
@@ -2169,7 +2190,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','combat_sports')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Jiu-jitsu, boxeo, kickboxing, Muay Thai y MMA.</span></div>
-      <div data-category-rail-row="combat_sports" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="combat_sports" data-cat-pills="fight-club" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
     <!-- PERMANENT ARIA BEAUTY RAIL (2026-09-27, Danny): takes the Hogar
@@ -2187,7 +2208,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','beauty')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#B8912A">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:#6B7487">Maquillaje, skincare y perfumes.</span></div>
-      <div data-category-rail-row="beauty" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="beauty" data-cat-pills="beauty" data-cat-pills-theme="light" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     </div>
 
@@ -2201,7 +2222,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','surf_skate')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Tablas, skate y neopreno de 9 tiendas.</span></div>
-      <div data-category-rail-row="surf_skate" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="surf_skate" data-cat-pills="surf-skate" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- PERMANENT JUGUETES RAIL (2026-10-02, Danny): standalone toys
          carousel between Aria Beauty and Zapatos. Same shared painter,
@@ -2215,7 +2236,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','toys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Juguetes de todas las tiendas.</span></div>
-      <div data-category-rail-row="toys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="toys" data-cat-pills="juguetes" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): Foot Locker is out
          as a store rail -- its shoes join skate (CCS), surf and outlet
@@ -2229,7 +2250,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','shoes')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
-      <div data-category-rail-row="shoes" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="shoes" data-cat-pills="zapatos" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- PERMANENT LENTES DE SOL RAIL (2026-10-01, Danny): standalone
          sunglasses carousel -- "a humongous thing in itself". Fancy
@@ -2243,7 +2264,7 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','sunglasses')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
-      <div data-category-rail-row="sunglasses" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div data-category-rail-row="sunglasses" data-cat-pills="lentes" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
     <section aria-label="Joyas y accesorios" data-joyas-section class="relative overflow-hidden" style="background:#FFFFFF">
@@ -2256,8 +2277,20 @@ window.doSearch = function(which){
         <button onclick="openCatalog('department','joyas_accesorios')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>
       </div>
       <div class="relative" data-joyas-rails>
-        <div data-joyas-rail="mixed" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+        <div data-joyas-rail="mixed" data-cat-pills="joyas" data-cat-pills-theme="light" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
       </div>
+    </section>
+    <!-- HOGAR Y ESPECIALIDADES, AUTO, MOTOS (Danny, #443, 2026-11-01): new category carousels with
+         their store pills. Auto and Motos stay independent (#443 c.6564465814); each opens its own
+         department page, never a store. Painted by home-category-pills.js. -->
+    <section aria-label="Hogar y Especialidades" data-cat-pills-section class="ariaNavyBand relative overflow-hidden storeRailCompact">
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+        <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+          <a href="/departamento.html?dept=home_goods" class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Hogar y Especialidades</a>
+          <a href="/departamento.html?dept=home_goods" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Casa, decoraci&oacute;n, mesa y libros de mesa.</span></div>
+        <div data-cat-pills="hogar" data-cat-pills-own class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail" style="min-height:300px"></div>
     </section>
 <!-- TIENDAS: every store below the categories (#443 c.6544925153). -->
 <!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
@@ -2657,7 +2690,7 @@ window.doSearch = function(which){
       <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Joyas de lujo</h2>
+        <div class="flex items-center justify-between gap-3"><h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Joyas de lujo</h2><a href="/departamento.html?dept=luxury" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0A1F44">Ver todo &#8594;</a></div>
         <p class="text-[13px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
       </div>
       <div id="dJoyasLujoRail" data-joyas-lujo-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
@@ -2667,7 +2700,7 @@ window.doSearch = function(which){
       <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
+        <div class="flex items-center justify-between gap-3"><h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2><a href="/departamento.html?dept=purses" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0A1F44">Ver todo &#8594;</a></div>
         <p class="text-[13px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
       </div>
       <div id="dBolsosRail" data-bolsos-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
@@ -2677,7 +2710,7 @@ window.doSearch = function(which){
       <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
-        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Moda de diseñador</h2>
+        <div class="flex items-center justify-between gap-3"><h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Moda de diseñador</h2><a href="/departamento.html?dept=clothing" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0A1F44">Ver todo &#8594;</a></div>
         <p class="text-[13px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
       </div>
       <div id="dModaRail" data-moda-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
@@ -2698,15 +2731,26 @@ window.doSearch = function(which){
      por categoría stays where it was. -->
     <!-- ROPA INTERIOR IN THE TOP GROUP (#443 c.6545712892, Danny): right under Perfumes, at the head of the category block. -->
     <!-- PERMANENT ROPA INTERIOR RAILS (2026-10-07 / 2026-10-10, Danny): desktop. Same shelves as mobile, Mujer then Hombre. -->
-    <section aria-label="Ropa Interior Mujer" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+    <!-- TODAS LAS TIENDAS (Danny, #443, 2026-11-01): "Todas las Tiendas -- then the category --
+         then the tiendas on top". Each category carousel below carries its store pills on top
+         (assets/js/home-category-pills.js, data from scripts/build-home-category-pills.mjs). -->
+    <div data-todas-las-tiendas class="relative overflow-hidden" style="background:#0A1F44">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="px-8 pt-7 pb-3">
+          <h2 class="text-[26px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Todas las Tiendas</h2>
+          <p class="text-[13px] mt-1.5 leading-snug" style="color:rgba(255,255,255,.74)">Cada categor&iacute;a con sus tiendas: elige una y mira solo lo suyo.</p>
+        </div>
+      </div>
+    </div>
+    <section aria-label="Lencería" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E58FB1 20%, #E58FB1 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <a href="/ropa-interior.html#mujer" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Ropa Interior Mujer</a>
+          <a href="/ropa-interior.html#mujer" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Lencería</a>
           <a href="/ropa-interior.html#mujer" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Sostenes, panties y lencería de las mejores marcas, en oferta.</span></div>
-        <div data-category-rail-row="ropa_interior_mujer" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="ropa_interior_mujer" data-cat-pills="lenceria" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <section aria-label="Ropa Interior Hombre" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
@@ -2717,7 +2761,7 @@ window.doSearch = function(which){
           <a href="/ropa-interior.html#hombre" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bóxers y medias de las mejores marcas, en oferta.</span></div>
-        <div data-category-rail-row="ropa_interior" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="ropa_interior" data-cat-pills="interior-hombre" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- TALLAS PLUS (desktop, Danny, #443 c.6526833313): same shelf as the phone's, after Ropa Interior. -->
@@ -2729,7 +2773,19 @@ window.doSearch = function(which){
           <a href="/departamento.html?dept=curvy" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F2A7C3;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">De XL en adelante, en las tallas que la tienda realmente vende.</span></div>
-        <div data-category-rail-row="curvy" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="curvy" data-cat-pills="tallas-plus" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- ROPA DE BAÑO (Danny, #443, 2026-11-01): the one category that had no carousel. Its stores
+         are the store pages' own swim aisles; painted by home-category-pills.js. -->
+    <section aria-label="Bikinis y Ropas de Baño" data-cat-pills-section class="ariaNavyBand relative overflow-hidden storeRailCompact">
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #00A9DC 20%, #00A9DC 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Bikinis y Ropas de Baño</span>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Bikinis, enterizos y shorts de ba&ntilde;o, tienda por tienda.</span></div>
+        <div data-cat-pills="bano" data-cat-pills-own class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail" style="min-height:300px"></div>
       </div>
     </section>
 <!-- ELECTRÓNICA (Danny, #443 c.6485409220): one carousel with its pill
@@ -2743,7 +2799,7 @@ window.doSearch = function(which){
     <a href="/departamento.html?dept=electronics" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</a>
   </div>
   <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" data-pill-row role="tablist" aria-label="Elige un tipo de electrónica"></div>
-  <div data-pill-rail class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
+  <div data-pill-rail data-cat-pills="electronica" class="flex gap-3 overflow-x-auto px-8 pb-5 ariaRail"></div>
 </section>
 
     <!-- PERMANENT GYM RAT RAIL (desktop, 2026-09-27, Danny). Same shelf as
@@ -2757,7 +2813,7 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','gym_rat')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
-        <div data-category-rail-row="gym_rat" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="gym_rat" data-cat-pills="gym-rat" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
@@ -2771,7 +2827,7 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','soccer')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Chimpunes, camisetas, pelotas y más en oferta.</span></div>
-        <div data-category-rail-row="soccer" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="soccer" data-cat-pills="futbol" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
@@ -2786,7 +2842,7 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','combat_sports')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Jiu-jitsu, boxeo, kickboxing, Muay Thai y MMA.</span></div>
-        <div data-category-rail-row="combat_sports" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="combat_sports" data-cat-pills="fight-club" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
@@ -2804,7 +2860,7 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','beauty')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#B8912A">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:#6B7487">Maquillaje, skincare y perfumes.</span></div>
-        <div data-category-rail-row="beauty" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="beauty" data-cat-pills="beauty" data-cat-pills-theme="light" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     </div>
@@ -2820,7 +2876,7 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','surf_skate')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Tablas, skate y neopreno de 9 tiendas.</span></div>
-        <div data-category-rail-row="surf_skate" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="surf_skate" data-cat-pills="surf-skate" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- PERMANENT JUGUETES RAIL (2026-10-02, Danny): desktop. Between
@@ -2833,7 +2889,7 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','toys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Juguetes de todas las tiendas.</span></div>
-        <div data-category-rail-row="toys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="toys" data-cat-pills="juguetes" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): desktop. -->
@@ -2845,7 +2901,7 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','shoes')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
-        <div data-category-rail-row="shoes" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="shoes" data-cat-pills="zapatos" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- PERMANENT LENTES DE SOL RAIL (2026-10-01, Danny): desktop. Same shelf as mobile. -->
@@ -2857,10 +2913,24 @@ window.doSearch = function(which){
           <button onclick="openCatalog('department','sunglasses')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
-        <div data-category-rail-row="sunglasses" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div data-category-rail-row="sunglasses" data-cat-pills="lentes" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
+    <!-- HOGAR Y ESPECIALIDADES, AUTO, MOTOS (Danny, #443, 2026-11-01): new category carousels with
+         their store pills. Auto and Motos stay independent (#443 c.6564465814); each opens its own
+         department page, never a store. Painted by home-category-pills.js. -->
+    <section aria-label="Hogar y Especialidades" data-cat-pills-section class="ariaNavyBand relative overflow-hidden storeRailCompact">
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <a href="/departamento.html?dept=home_goods" class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0 focus-ring rounded" style="color:#fff;text-decoration:none">Hogar y Especialidades</a>
+          <a href="/departamento.html?dept=home_goods" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463;text-decoration:none">Ver categor&#x00ED;a &#8594;</a>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Casa, decoraci&oacute;n, mesa y libros de mesa.</span></div>
+        <div data-cat-pills="hogar" data-cat-pills-own class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail" style="min-height:300px"></div>
+      </div>
+    </section>
 <!-- TIENDAS: every store below the categories (#443 c.6544925153). -->
 <!-- BIG STORE CARD (2026-09-30, Danny; one wide tile 2026-10-28,
      #443 c.6468346931): Walmart across both slots, full band height,
@@ -6540,8 +6610,9 @@ window.doSearch = function(which){
 <script src="/condition.js"></script>
 <script src="/store-shipping.js"></script>
 <script src="/fragrance.js"></script>
-<script src="/build/app-1aaa85b44b7f7bbe.js"></script>
+<script src="/build/app-7bd8234c3480c028.js"></script>
 <script src="/assets/js/store-rail-pills.js" defer></script>
+<script src="/assets/js/home-category-pills.js" defer></script>
 
 
 

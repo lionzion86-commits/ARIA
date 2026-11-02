@@ -80,7 +80,7 @@ check("homepage: a Tallas Plus carousel after Ropa Interior; Aria Luxury moved u
        c.6526833313), then the category block headed by Ropa Interior
        Mujer / Hombre, Tallas Plus right after them, then Electrónica,
        Gym Rat and the rest; every store below. */
-    const seq = ["Aria Perfumes", "Aria Luxury", "Ropa Interior Mujer", "Ropa Interior Hombre", "Tallas Plus", "Electrónica", "Gym Rat"].map((l) => at(tree, l));
+    const seq = ["Aria Perfumes", "Aria Luxury", "Lencería", "Ropa Interior Hombre", "Tallas Plus", "Electrónica", "Gym Rat"].map((l) => at(tree, l));
     assert.ok(seq.every((i) => i >= 0), name + ": " + seq.join(","));
     for (let i = 1; i < seq.length; i++) assert.ok(seq[i - 1] < seq[i], `${name}: out of order at ${i}`);
     assert.equal((tree.match(/aria-label="Aria Luxury"/g) || []).length, 1, name + ": one Aria Luxury");
