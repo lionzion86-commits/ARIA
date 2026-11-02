@@ -214,6 +214,54 @@ await check("no hand-made alias list: the router's rules hold no product or mode
   for (const b of blocks) for (const name of ["air force", "jordan", "samba", "iphone", "playstation", "galaxy", "new balance", "nike", "adidas"]) assert.ok(!b.includes(name), name);
 });
 
+/* ---------- every store's and brand's own name, exactly ----------
+   (#616 regression: the route key folded words INSIDE names --
+   «Arai Helmets» -> "arai helmet", «Island Water Sports» -> a brand
+   with q=islands.) A whole name matches before any folding. */
+const fold = (s) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+await check("every storefront lands on its own store page by its exact name, lower-case and accent-free (destinations.json, search.html STORE_PAGES / STORE_FULL_NAMES)", () => {
+  const PAGE = readFileSync(join(ROOT, "search.html"), "utf8");
+  const pages = /var STORE_PAGES = "([^"]*)"/.exec(PAGE)[1].trim().split(/\s+/);
+  const full = JSON.parse(/var STORE_FULL_NAMES = (\{[^;]*\});/.exec(PAGE)[1]);
+  const asks = [];
+  for (const [k, label] of Object.entries(D.stores)) for (const q of [label, label.toLowerCase(), fold(label)]) asks.push([q, k]);
+  for (const k of pages) if (D.stores[k]) asks.push([k, k]);
+  for (const [n, k] of Object.entries(full)) if (D.stores[k]) asks.push([n, k]);
+  const bad = [];
+  for (const [q, k] of asks) {
+    const d = dst.destinationFor(ctx, q).destination;
+    if (d.kind !== "store" || d.key !== k) bad.push(`${JSON.stringify(q)} -> ${d.url} (want tienda=${k})`);
+  }
+  assert.ok(asks.length >= 300, "asks: " + asks.length);
+  assert.deepEqual(bad, []);
+});
+await check("every brand with a landing lands on its own brand page by its exact name, lower-case and accent-free -- the two standing rulings aside (a product word opens its type page; a category word that is a small brand's one-word name stays the category)", () => {
+  const bad = [], ruled = new Set();
+  let n = 0;
+  for (const [k, [label, count]] of Object.entries(D.brands)) {
+    for (const q of new Set([label, label.toLowerCase(), fold(label)])) {
+      const cat = dst.categoryOfQuery(D, q);
+      if (dst.productTypeOf(D, q) || (cat && !cat.rest.length && count < 300 && words(q).length === 1)) { ruled.add(label); continue; }
+      n++;
+      const d = dst.destinationFor(ctx, q).destination;
+      /* The same name twice in the brand table is one name: either key. A
+         store of that name is the store. */
+      const ok = (d.kind === "brand" && (d.key === k || dst.nameKey(D.brands[d.key][0]) === dst.nameKey(label))) ||
+        (d.kind === "store" && D.storeNames.get(dst.nameKey(q)) === d.key);
+      if (!ok) bad.push(`${label} (${k}): ${JSON.stringify(q)} -> ${d.url}`);
+    }
+  }
+  console.log("      (" + n + " brand names routed; standing rulings: " + [...ruled].join(", ") + ")");
+  assert.ok(n >= 2000, "brand names: " + n);
+  assert.ok(ruled.size <= 3, "rulings: " + [...ruled].join(", "));
+  assert.deepEqual(bad, []);
+});
+await check("a name inside a longer query keeps every word: «arai helmets full face», «island water sports wetsuit»", () => {
+  assert.match(dst.routeKey(ctx, D, "arai helmets full face"), /^arai helmets /);
+  const a = dst.destinationFor(ctx, "island water sports wetsuit").destination;
+  assert.equal(a.kind, "store"); assert.equal(a.key, "islandwatersports");
+});
+
 /* ---------- 390px: the header search, two spellings, one page ---------- */
 let pw = null;
 try { pw = await import("playwright"); } catch { /* reported below */ }
