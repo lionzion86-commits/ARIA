@@ -46,6 +46,9 @@ import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isGymApparel } from "./lib/gym-apparel.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
+import { isDrone, isNotElectronics } from "./lib/tech-aisle.js";
+import "../not-sold.js";
+const isNotSold = globalThis.AriaNotSold.isNotSold;
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle, audienceSwitch, deptStats } from "../netlify/functions/_department-core.js";
 import { garmentAudience, storeAudiences } from "./lib/offer-category.js";
 import { isShoeForDept, footwearClass, shoeGender, isFootwear } from "./lib/footwear.js";
@@ -386,6 +389,8 @@ export function loadAllItems(root = ROOT) {
           let p;
           try { p = normalizeItem(it, rk, bk, AriaSale); } catch { p = null; }
           if (!p) continue;
+          /* Pills and food are not sold (/not-sold.js): never a card. */
+          if (isNotSold(p)) continue;
           const rf = REFILES[rk] && REFILES[rk][p.title];
           if (rf && rf[0] === bk) p.bucket = rf[1];
           const key = rk + "::" + p.title;
@@ -423,6 +428,12 @@ export function deptItems(all, key) {
      Electrónica's Reacondicionados): they stay in their store, out of the
      department. A Blu-ray PLAYER is electronics. */
   if (key === "electronics") list = list.filter((p) => !MEDIA_RX.test(p.title || ""));
+  /* ...and Electrónica is what the product IS (#443 c.6579542290): a TV
+     console, a fireplace, a gift card or pool chlorine a store filed under
+     electronics stays out of it, and every lens, rail and pill with it.
+     A drone is the Drones type, whatever the store typed it (#443
+     c.6579603095): its Por tipo rail and t=drones page. */
+  if (key === "electronics") list = list.filter((p) => !isNotElectronics(p.title)).map((p) => (isDrone(p.title) ? { ...p, type: "tech_drones" } : p));
   /* Cabello: each product's treatment aisle is its type (the rails and the
      pills read it); a brand Peru sells cheaply enters only on sale, and
      the lines Peru does not carry lead (the stable sort below keeps it). */

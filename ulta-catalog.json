@@ -1,7 +1,7 @@
 {
  "generatedAt": "2026-09-25T23:37:06Z",
  "source": "apify/1KkWl2GyivYE3ISuJ (ulta-beauty-search-products-scraper)",
- "declaredProductCount": 690,
+ "declaredProductCount": 688,
  "retailers": {
   "ulta": {
    "label": "Ulta Beauty",
@@ -3710,21 +3710,6 @@
        "retailer": "ulta"
       },
       {
-       "name": "Women's Balance 45+ Clinically Proven Hair Growth Supplement",
-       "brand": "NUTRAFOL",
-       "price": 88.0,
-       "image": "https://media.ultainc.com/i/ulta/2644735",
-       "images": [
-        "https://media.ultainc.com/i/ulta/2644735"
-       ],
-       "url": "https://www.ulta.com/p/womens-balance-45-clinically-proven-hair-growth-supplement-pimprod2053184?sku=2644735",
-       "availableSizes": [],
-       "weightKg": 0.08,
-       "weightEstimated": true,
-       "type": "Cabello",
-       "retailer": "ulta"
-      },
-      {
        "name": "Clarifying Shampoo for Buildup Removal for All Hair Types",
        "brand": "Odele",
        "price": 4.99,
@@ -5218,21 +5203,6 @@
         "https://media.ultainc.com/i/ulta/2583401"
        ],
        "url": "https://www.ulta.com/p/curl-defining-cream-pimprod2025447?sku=2583401",
-       "availableSizes": [],
-       "weightKg": 0.08,
-       "weightEstimated": true,
-       "type": "Cabello",
-       "retailer": "ulta"
-      },
-      {
-       "name": "Women's 18-44 Clinically Proven Hair Growth Supplement",
-       "brand": "NUTRAFOL",
-       "price": 88.0,
-       "image": "https://media.ultainc.com/i/ulta/2660831",
-       "images": [
-        "https://media.ultainc.com/i/ulta/2660831"
-       ],
-       "url": "https://www.ulta.com/p/womens-18-44-clinically-proven-hair-growth-supplement-pimprod2061807?sku=2660831",
        "availableSizes": [],
        "weightKg": 0.08,
        "weightEstimated": true,
