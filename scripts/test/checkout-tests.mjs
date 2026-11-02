@@ -396,7 +396,11 @@ await check("rehearsal (Oct 17): Pagar's function ships only what it reads; cour
   const globalBlock = (toml.match(/^\[functions\]\s*\n([\s\S]*?)(?=^\[)/m) || [, ""])[1];
   assert.ok(!/included_files/.test(globalBlock), "included_files is back under [functions] for every function");
   assert.match(toml, /\[functions\."orders-create"\]\s*\n\s*included_files = \["price-index\.json", "assets\/data\/weight-comparables\.json"\]/);
-  assert.match(toml, /\[functions\."mcp"\]\s*\n\s*included_files = \[[^\]]*\*-catalog\.json/);
+  /* The Muse connector (#607) answers from the search index and ships no
+     catalogue (the older one shipped every *-catalog.json, ~243MB). */
+  const mcpFiles = (toml.match(/\[functions\."mcp"\]\s*\n\s*included_files = \[([^\]]*)\]/) || [, ""])[1];
+  assert.match(mcpFiles, /assets\/search\/catalog-index\.json/, "the mcp function lost the search index");
+  assert.ok(!/-catalog\.json"/.test(mcpFiles.replace(/catalog-index\.json/g, "")), "the mcp function ships catalogues again");
   /* 2. Lima is Reparto Aria only; provincias never get it. */
   const C = await import(ROOT + "couriers.js");
   assert.deepEqual(C.couriersFor("Lima").map((c) => c.id), ["aria-lima"]);
