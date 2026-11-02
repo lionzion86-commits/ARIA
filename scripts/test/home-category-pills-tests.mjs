@@ -356,8 +356,10 @@ await check("Tenis and Billeteras: new carousels with store pills, phone and des
     assert.equal(part.split('data-cat-pills="billeteras" data-cat-pills-own').length - 1, 2, `${name}: two Billeteras carousels`);
     assert.equal((part.match(/<section aria-label="Billeteras" data-cat-pills-section/g) || []).length, 2, `${name}: Billeteras sections`);
     assert.ok(part.indexOf('aria-label="Tenis"') > part.indexOf('aria-label="Fútbol"') && part.indexOf('aria-label="Tenis"') < part.indexOf('aria-label="Aria Fight Club"'), name + ": Tenis is not next to Fútbol");
-    const lux = part.slice(part.indexOf('aria-label="Aria Luxury"'));
-    assert.ok(lux.indexOf('aria-label="Billeteras"') > lux.indexOf('aria-label="Bolsos"') && lux.indexOf('aria-label="Billeteras"') < lux.indexOf('aria-label="Moda de diseñador"'), name + ": Billeteras is not beside Bolsos in Aria Luxury");
+    /* «Moda de diseñador» left the homepage (#443 c.6568648466): Billeteras closes Aria Luxury. */
+    const lux = part.slice(part.indexOf('aria-label="Aria Luxury"'), part.indexOf('<section aria-label="Mujer"'));
+    const luxSecs = [...lux.matchAll(/<section aria-label="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(luxSecs.slice(0, 3), ["Joyas de lujo", "Bolsos", "Billeteras"], name + ": Billeteras is not beside Bolsos in Aria Luxury: " + luxSecs.join(", "));
     assert.match(part, /data-cat-pills="billeteras" data-cat-pills-own data-cat-pills-theme="light"/);
   }
   assert.ok(index.c.tenis.s.length >= 2 && index.c.tenis.s.some((x) => x[0] === "tennisexpress"), "Tenis pills: " + index.c.tenis.s.map((x) => x[0]));
@@ -401,8 +403,9 @@ await check("men's belts: out of Joyas, into Moda Hombre's «Cinturones» pill",
 await check("order inside Todas las Tiendas: Lencería first; Ropa Interior Hombre, then Tallas Plus, last (phone and desktop)", () => {
   const { mobile, desktop } = shopfronts();
   for (const [name, part] of [["phone", mobile], ["desktop", desktop]]) {
-    /* The block ends where the Mujer / Hombre / Niños shelves start (Danny's final spec, #443 c.6567929232). */
-    const head = part.indexOf("data-todas-las-tiendas"), end = part.indexOf('<section aria-label="Mujer"');
+    /* The block ends where Aria Luxury starts (Danny, #443 c.6568626294: Todas las Tiendas
+       moved above Aria Luxury, which now sits right before Mujer / Hombre / Niños). */
+    const head = part.indexOf("data-todas-las-tiendas"), end = part.indexOf("data-luxury-wrap");
     const block = [...part.matchAll(/<section aria-label="([^"]+)" data-(?:featured-rail|cat-pills-section|pill-shelf|joyas-section)/g)].filter((m) => m.index > head && m.index < end).map((m) => m[1]);
     assert.equal(block[0], "Lencería", name + ": " + block.join(", "));
     assert.deepEqual(block.slice(-2), ["Ropa Interior Hombre", "Tallas Plus"], name + ": " + block.join(", "));
