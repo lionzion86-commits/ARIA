@@ -945,6 +945,29 @@ function hasVariants(p){
     && p.variants.some(function(x){ return x.v === p.v; }));
 }
 function variantWord(p){ return p && p.ax === "Tono" ? "Tono" : "Color"; }
+/* NO CLAIM WITHOUT A CHOICE (#443 c.6568696054, Danny's phone pass). A
+   store title that says "- 16 Colors" or "- 3 Colors" promises a choice;
+   when the record holds no shade data the page cannot offer it (YesStyle
+   sells one listing per product, its shades are not in the pull). The
+   title shown drops the claim; the record keeps the store's words (the
+   cart line and the order still name the listing exactly). A palette's
+   "12 Colors" is what is inside it, not a choice, and stays. When a
+   picker is shown it speaks for itself: the claim goes there too. */
+var CHOICE_CLAIM_RX = /\s*(?:[-\u2013\u2014|,(]\s*)?\b\d+\s+(?:[A-Za-z][\w-]*\s+){0,3}?(?:colou?rs|shades|tones|types|tonos|colores)\b(?!-)\)?/gi;
+var PALETTE_RX = /\b(?:palettes?|paleta|quad|octet|eyeshadows? kit)\b/i;
+function displayName(name){
+  var t = String(name || "");
+  if (PALETTE_RX.test(t)) return t;
+  var out = t.replace(CHOICE_CLAIM_RX, "").replace(/\s{2,}/g, " ").replace(/\s*[-\u2013\u2014|:,]\s*$/, "").trim();
+  return out || t;
+}
+/* HAIR COLOUR NAMES ITS SHADE IN WORDS (#443 c.6568752464): the tono a
+   dye is sold in is written in the description area, not only in a photo. */
+var HAIR_COLOUR_RX = /\b(?:hair colou?r|hair dye|permanent colou?r|semi-?permanent|demi-?permanent|root (?:touch|cover|concealer)|toning gloss|colou?r gloss|hair lightener|tinte|coloraci[oó]n)\b/i;
+function hairShadeHtml(p){
+  if (!p || !p.c || p.ax !== "Tono" || !HAIR_COLOUR_RX.test(p.name || "")) return "";
+  return '<p class="p-shade" id="p-shade" style="font-size:15px;color:var(--navy);margin:0 0 10px">Tono: <b>' + esc(p.c) + '</b></p>';
+}
 function variantBoxHtml(p){
   if (!hasVariants(p)) return '';
   var opts = p.variants.map(function(x){
@@ -1027,14 +1050,15 @@ function render(p, swapping){
      opens on its first lines with "Leer más"; the price stays on the
      first screen. The text is the catalogue's Spanish description. */
   var desc = p.description
-    ? '<div class="p-desc" id="p-desc"><h2 class="p-desc-h">Descripción</h2><p class="p-desc-t" id="p-desc-t">' + esc(p.description) + '</p>'
-      + '<button type="button" class="p-desc-more" id="p-desc-more" hidden aria-expanded="false">Leer más</button></div>' : '';
+    ? '<div class="p-desc" id="p-desc"><h2 class="p-desc-h">Descripción</h2>' + hairShadeHtml(p) + '<p class="p-desc-t" id="p-desc-t">' + esc(p.description) + '</p>'
+      + '<button type="button" class="p-desc-more" id="p-desc-more" hidden aria-expanded="false">Leer más</button></div>' : hairShadeHtml(p);
+  var shownName = displayName(p.name);
   el("p-body").innerHTML =
     '<div class="grid2" style="align-items:start">'
     + '<div>' + img + '</div>'
     + '<div>'
       + (p.brand ? '<div class="kicker">' + esc(p.brand) + '</div>' : '')
-      + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(p.name) + '</h1>'
+      + '<h1 style="font-size:24px;font-weight:800;color:var(--navy);margin:0 0 6px">' + esc(shownName) + '</h1>'
       + (store && !offSale ? '<p style="font-size:14px;color:var(--muted);margin:0 0 14px">Desde ' + esc(store) + '</p>' : '')
       + desc
       + conditionHtml(p)
@@ -1058,7 +1082,7 @@ function render(p, swapping){
       + '<div id="buy-box" class="buy-box"></div>'
     + '</div></div>'
     + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
-  document.title = p.name + " — Aria Shop";
+  document.title = shownName + " — Aria Shop";
   wireGallery(el("p-body").querySelector(".p-gallery"));
   wireDescMore();
   wireVariants(p);
@@ -1091,12 +1115,12 @@ function galleryHTML(p){
   var list = galleryList(p);
   if (list.length <= 1){
     return '<div class="p-photo">' + (list[0]
-      ? '<img src="' + esc(sizedImageUrl(list[0], 1000)) + '" data-img-orig="' + esc(list[0]) + '" alt="' + esc(p.name) + '" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
+      ? '<img src="' + esc(sizedImageUrl(list[0], 1000)) + '" data-img-orig="' + esc(list[0]) + '" alt="' + esc(displayName(p.name)) + '" onerror="if(!imgOrigRetry(this)){this.style.display=\'none\'}">'
       : '') + '</div>';
   }
   var n = list.length;
   var slides = list.map(function(u, i){
-    var alt = esc(p.name) + (i ? ' (foto ' + (i + 1) + ' de ' + n + ')' : '');
+    var alt = esc(displayName(p.name)) + (i ? ' (foto ' + (i + 1) + ' de ' + n + ')' : '');
     var attr = i === 0 ? 'src="' + esc(sizedImageUrl(u, 1000)) + '"' : 'data-gsrc="' + esc(sizedImageUrl(u, 1000)) + '"';
     return '<div class="g-slide" data-i="' + i + '"><img ' + attr + ' data-img-orig="' + esc(u) + '" alt="' + alt + '" onerror="galleryPhotoFailed(this)"></div>';
   }).join("");
@@ -1617,6 +1641,8 @@ function addCurrentToCart(p, sizes){
        listing's id ride with the line to checkout and the order, so the
        exact colourway on screen is the one bought. */
     colorway: p.c || undefined,
+    /* A shade ("Tono") reads as one on the cart line and in the order. */
+    variantAxis: p.c && p.ax === "Tono" ? "Tono" : undefined,
     variantId: p.v || undefined,
     /* The store's list rides with a sized line, so the cart and checkout
        can tell a sized line from a plain one without a title guess. */
@@ -1645,7 +1671,7 @@ function addCurrentToCart(p, sizes){
        rather than an error about a parameter name. */
     var want = params.get("producto") || params.get("id") || params.get("nombre") || "";
     if (!want){ fail("Falta el identificador del producto en la URL."); return; }
-    el("p-title").textContent = want;
+    el("p-title").textContent = displayName(want);
 
     var tienda = (params.get("tienda") || params.get("store") || "").toLowerCase();
     var list = (tienda && STORE_FILES[tienda]) ? STORE_FILES[tienda] : null;

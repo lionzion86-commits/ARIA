@@ -122,7 +122,7 @@ await check("every stored gallery unpacks to real, distinct photos, card photo f
 
 /* GALLERY COVERAGE (#443, c.6304525284): the page renders a gallery
    WHEREVER the data has one -- every shard record, not three samples. */
-const G = liftDeclarations(page, ["esc", "declaredImageWidth", "sizedImageUrl", "galleryPhotoKey", "galleryIsChart", "tidyGallery", "galleryList", "galleryHTML", "unpackImages", "recordToItem"]);
+const G = liftDeclarations(page, ["esc", "declaredImageWidth", "sizedImageUrl", "galleryPhotoKey", "galleryIsChart", "tidyGallery", "galleryList", "galleryHTML", "CHOICE_CLAIM_RX", "PALETTE_RX", "displayName", "unpackImages", "recordToItem"]);
 /* DANNY'S GALLERY POLICY (#443): one copy of each photo (a photo at
    another size is the same photo), size charts kept but last, the
    retailer's photos otherwise in the retailer's order. producto.html

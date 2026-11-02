@@ -67,7 +67,7 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { liftDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { variantIdOf, groupColourways } from "./lib/variants.mjs";
+import { variantIdOf, groupColourways, beautyShade, shadeListing, HAIR_COLOUR } from "./lib/variants.mjs";
 import { loadFamilies, applyFamilies } from "./lib/variant-families.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -222,6 +222,14 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     const m = grouping.get(it.__v);
     if (m || vsByTitle.get(key).size > 1) it.v = it.__v;
     if (m) { it.g = m.g; it.c = m.c; if (m.ax) it.ax = m.ax; if (m.so) it.so = 1; }
+    /* A hair dye sold in one shade here still names it (#443 c.6568752464):
+       the store's own shade from its title rides as the record's tono --
+       the page writes it as text and the cart line carries it. No group,
+       no picker. */
+    else if (HAIR_COLOUR.test(it.name || "") && shadeListing(it)) {
+      const sh = beautyShade(it.name);
+      if (sh) { it.c = sh.shade; it.ax = "Tono"; }
+    }
     delete it.__v;
     const rec = recordOf(it);
     const json = stableJson(rec);

@@ -172,6 +172,69 @@ export function variantExcluded(l) {
 
 const low = (s) => String(s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
 
+/* ---------- SHADE SIBLINGS (#443 c.6568696054, Danny's phone pass) ----------
+   Walmart lists one hair dye or one lipstick per shade, each its own
+   product with no parent: "L'Oreal Paris Excellence Creme Permanent Hair
+   Color, 5 Medium Brown, Triple Protection, 1 Kit" and "..., 7 Dark
+   Blonde, 1 kit". The store writes the shade as its own comma part of
+   the title, after the product line. They group, conservatively:
+
+     the line    every comma part before the shade, exactly (brand words
+                 included): "Excellence Creme" and "Excellence Universal
+                 Nudes" are two products and never one picker;
+     the shade   the first part after the line that is a shade: a shade
+                 code at its start or end ("5 Medium Brown", "V38 Violet
+                 Noir", "Ultra Ash Very Light Blonde 10UA", "025 SAND
+                 BEIGE") or a colour word ("Dark Blonde", "Light Ivory");
+                 never a size, a pack, a count or a claim ("1 Kit",
+                 "0.13 fl oz", "Gray Coverage", "Medium Coverage");
+     the kind    the line names a shade-bearing product (makeup, nail
+                 colour, hair colour), at a beauty store or aisle;
+     never       a multipack ("(2 pack)", "Pack of 2"): a pack is not a
+                 shade.
+   Parts after the shade (size, "1 kit") do not split the line: each
+   member keeps its own title, price and photo, which the picker swaps in. */
+const SHADE_KIND = /\b(lipsticks?|lip ?gloss|gloss|lip ?liners?|lip ?pencils?|lip ?stains?|lip ?tints?|lip ?colou?r|lip ?balms?|lip ?crayons?|liners?|eyeliners?|kohl|foundations?|concealers?|correct(?:or|ing)|mascaras?|eye ?shadows?|shadows?|blush(?:es)?|bronzers?|highlighters?|cushions?|bb cream|cc cream|tints?|brow|powders?|palettes?|contour|nail (?:polish|lacquer|colou?r|enamel)|hair colou?r|hair dye|permanent colou?r|semi-permanent|demi-permanent|root (?:touch|cover|concealer)|colou?r (?:gloss|cream|masque|mask)|toning gloss|lightener|bleach|henna)\b/i;
+const SHADE_STORES = new Set(["walmart", "ulta", "yesstyle", "sephora", "macys", "kohls", "victoriassecret"]);
+const SHADE_DEPT = /beauty|belleza|cabello|makeup|maquillaje/i;
+const SIZE_PART = /(?:^|\s)\(?\d+(?:\.\d+)?\s*(?:fl\.?\s*oz|oz|ml|grams?|lbs?|count|ct|pk|packs?|pieces?|pcs?|kits?|each|units?|sticks?|pairs?|servings?)\.?\)?(?:\s|$)|\b(?:pack of \d+|kit|each|piece|count)\b/i;
+/* Grams in lower case: "8.5 g" is a size, "8G" (Golden Blonde) a shade code. */
+const SIZE_GRAMS = /(?:^|\s)\d+(?:\.\d+)?\s*(?:g|gr)\.?(?:\s|$)/;
+const MULTIPACK = /\(\s*\d+\s*-?\s*pack\s*\)|\b\d+\s*-?\s*pack\b|\bpack of (?:[2-9]|\d{2,})\b|\b(?:2|3|4|6)\s*-?\s*(?:pk|ct)\b|\bvalue pack\b|\bmulti-?pack\b/i;
+const NOT_A_SHADE = /\b(?:shades|colou?rs|tones|hrs?|hours?|spf|coverage|formula|acids?|protection|percent|longwear|long[- ]lasting|lasting|waterproof|water-resistant|hydrat\w*|moisturiz\w*|vegan|lightweight|oil[- ]free|makeup|treatment|for|with|stronger|strong|set|bundle|refills?|travel|mini|duo|trio|gift|kit|adults?|women|men|unisex|finish|texture|buildable|blendable|creamy|glide|ammonia|gray coverage|grey coverage|dye|hair colou?r|plump\w*|shine|shimmering|multi-faceted|lip|lips|eyes?|face|cheeks?|tint|stain|liner|pencil|lipstick|gloss|balm|foundation|concealer|powder|blush|mascara|palette)\b/i;
+const SHADE_CODE_LEAD = /^(?:#\s*|no\.?\s*)?(?:\d{1,3}(?:\.\d{1,2})?[A-Z]{0,3}|[A-Z]{1,2}\d{1,3}(?:[-\/]\d{1,2})?[A-Z]{0,2})(?=\s|$)/;
+const SHADE_CODE_TRAIL = /\s(?:#\s*)?(?:\d{1,3}[A-Z]{0,3}|[A-Z]{1,2}\d{1,3}[A-Z]{0,2})$/;
+const SHADE_WORD = /\b(?:blonde?s?|brunette|brown|black|auburn|red|copper|burgundy|mahogany|chestnut|espresso|ash|ashy|gray|grey|silver|platinum|caramel|mocha|violet|plum|chocolate|cherry|golden|gold|honey|bronze|amber|ivory|beige|nude|buff|sand|porcelain|fair|tan|deep|warm|cool|neutral|rose|pink|berry|mauve|coral|peach|blush|toffee|cocoa|cinnamon|wine|raisin|crimson|scarlet|ruby|fuchsia|magenta|lilac|lavender|purple|blue|navy|teal|green|emerald|white|pearl|opal|champagne|taupe|cappuccino|latte|mocha|sienna|truffle|walnut|hazel|almond|cashew|chai|vanilla|natural|light|medium|dark|darkest|lightest)\b/i;
+const titleWords = (s) => (/[a-z]/.test(s) ? s : s.toLowerCase().replace(/(^|[\s\/(&-])([a-z])/g, (m, a, c) => a + c.toUpperCase()));
+export function isShadePart(part) {
+  const s = String(part || "").trim().replace(/\.$/, "");
+  if (!s || s.length > 40 || s.split(/\s+/).length > 6) return false;
+  if (SIZE_PART.test(s) || SIZE_GRAMS.test(s) || MULTIPACK.test(s) || NOT_A_SHADE.test(s)) return false;
+  return SHADE_CODE_LEAD.test(s) || SHADE_CODE_TRAIL.test(s) || SHADE_WORD.test(s);
+}
+/* { model, shade } for a shade sibling's title, or null. */
+export function beautyShade(title) {
+  const t = String(title || "").trim();
+  if (!t || MULTIPACK.test(t)) return null;
+  const parts = t.split(/\s*,\s*/);
+  if (parts.length < 2) return null;
+  for (let i = 1; i < parts.length; i++) {
+    if (!isShadePart(parts[i])) continue;
+    const line = parts.slice(0, i).join(", ");
+    if (!SHADE_KIND.test(line) || line.split(/\s+/).length < 3) return null;
+    return { model: low(line).replace(/['\u2019`]/g, "").replace(/[^a-z0-9]+/g, " ").trim(), shade: titleWords(parts[i].trim().replace(/\.$/, "")) };
+  }
+  return null;
+}
+/* A listing a shade sibling can be: a beauty store's, or a beauty aisle's. */
+export function shadeListing(l) {
+  const r = String(l && l.retailer || "").toLowerCase();
+  if (!SHADE_STORES.has(r)) return false;
+  return r === "walmart" ? String(l.dept || "").toLowerCase() === "beauty" : (!l.dept || SHADE_DEPT.test(String(l.dept)) || r === "ulta" || r === "yesstyle" || r === "sephora");
+}
+/* HAIR COLOUR: the shade is the product. */
+export const HAIR_COLOUR = /\b(?:hair colou?r|hair dye|permanent colou?r|semi-?permanent|demi-?permanent|root (?:touch|cover|concealer)|toning gloss|colou?r gloss|hair lightener|tinte|coloraci[o\u00f3]n)\b/i;
+
 /* listings: [{ v, retailer, name, brand, url, image, dept }] (one per v). Returns
    Map v -> { g, c } for every listing that belongs to a group of 2+. */
 export function groupColourways(listings) {
@@ -195,6 +258,8 @@ export function groupColourways(listings) {
     if (variantExcluded(l)) continue;
     const suf = colourSuffix(l.name);
     if (suf) { add("suffix|" + r + "|" + low(l.brand) + "|" + low(suf.model), l, suf.colour); continue; }
+    const sh = shadeListing(l) ? beautyShade(l.name) : null;
+    if (sh) { add("shade|" + r + "|" + low(l.brand) + "|" + sh.model, l, sh.shade); continue; }
     if (SAME_TITLE[r]) {
       if ((byTitle.get(r + "|" + low(l.brand) + "|" + low(l.name)) || []).length >= 2)
         add(r + "|" + low(l.brand) + "|" + low(l.name), l, SAME_TITLE[r](l));
@@ -228,7 +293,7 @@ export function groupColourways(listings) {
       /* Only where the store names colours apart from the title (a URL,
          a photo, SSENSE's lead word); two title-suffix listings with one
          colour name are one listing twice. */
-      if (count.get(low(label)) > 1 && !key.startsWith("suffix|") && !key.startsWith("mid|")) {
+      if (count.get(low(label)) > 1 && !key.startsWith("suffix|") && !key.startsWith("mid|") && !key.startsWith("shade|")) {
         const code = styleCode(String(m.l.retailer || "").toLowerCase(), m.l.url);
         if (code && !/^estilo /i.test(label)) label = label + ", estilo " + code;
       }
@@ -238,7 +303,9 @@ export function groupColourways(listings) {
     }
     if (kept.length < 2) continue;
     const g = groupIdOf(key);
-    for (const m of kept) out.set(m.l.v, { g, c: m.label });
+    /* A shade sibling's picker says "Tono". */
+    const ax = key.startsWith("shade|") ? "Tono" : "";
+    for (const m of kept) out.set(m.l.v, ax ? { g, c: m.label, ax } : { g, c: m.label });
   }
   return out;
 }

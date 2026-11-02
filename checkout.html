@@ -2426,7 +2426,7 @@ function cardImgAttrs(url, sizes){
         <div class="min-w-0 flex-1">
           <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
           <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
-          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.colorway ? `<span data-colorway="${i}">Color: ${escapeHtmlLocal(it.colorway)}</span> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<b data-condition="${i}" style="color:var(--navy)">${escapeHtmlLocal(conditionOfTitle(it.title).label)}</b> · ` : ''}${it.colorway ? `<span data-colorway="${i}">${it.variantAxis === 'Tono' ? 'Tono' : 'Color'}: ${escapeHtmlLocal(it.colorway)}</span> · ` : ''}${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
           ${it.lineType !== 'bundle-discount' && (conditionOfTitle(it.title) || {}).label ? `<div class="mt-1.5 text-[11.5px] leading-snug" style="color:#5A3B00" data-soldout-note="${i}">${escapeHtmlLocal(SOLD_OUT_NOTE)}</div>` : ''}
           ${isOffSaleItem(it) && it.lineType !== 'bundle-discount' ? `<div class="mt-2 rounded-xl px-3 py-2 text-[12px] font-bold leading-snug" style="background:#FDECEA;color:#B03A2E" data-off-sale="${i}" role="alert">No disponible. ${escapeHtmlLocal(OFF_SALE_LINE_NOTE)}</div>` : ''}
           ${lineNeedsSize(it) ? `<div class="mt-2 rounded-xl px-3 py-2" style="background:#FDECEA" data-size-missing="${i}" role="alert">
@@ -2455,7 +2455,7 @@ function cardImgAttrs(url, sizes){
       return acc;
     }, { valor: 0, kg: 0 });
     const description = cart.map(it => {
-      const bits = [it.colorway ? `Color ${it.colorway}` : '', it.selectedSize ? `Talla ${it.selectedSize}` : ''].filter(Boolean).join(', ');
+      const bits = [it.colorway ? `${it.variantAxis === 'Tono' ? 'Tono' : 'Color'} ${it.colorway}` : '', it.selectedSize ? `Talla ${it.selectedSize}` : ''].filter(Boolean).join(', ');
       return bits ? `${it.title} (${bits}) x${it.qty}` : `${it.title} x${it.qty}`;
     }).join(', ');
 

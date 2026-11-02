@@ -28,7 +28,14 @@
      store URL;
    - in a browser (fixture shards): the shade picker says "Tono", swaps
      photo and price, names the pending shades, blocks an agotado shade,
-     and the cart line buys the picked shade.
+     and the cart line buys the picked shade;
+   - SHADE SIBLINGS (#443 c.6568696054, Danny's phone pass): Walmart's
+     one-listing-per-shade dyes and makeup ("..., 5 Medium Brown, 1 Kit")
+     group by the exact product line into one "Tono" picker; two lines
+     never merge; a size, pack, count or claim is never a shade; a hair
+     dye names its tono in words; a "- N Colors" title with no shade data
+     never shows the claim; the acceptance cases Danny re-tests render
+     (390px) with the picker he expects, and the cart buys the shade.
 
    RUNNING IT
      node scripts/test/variant-family-tests.mjs
@@ -39,7 +46,7 @@ import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { liftDeclarations } from "../lib/page-lift.mjs";
 import { liftPage, buildRecords } from "../build-pdp-slices.mjs";
-import { groupColourways, variantIdOf, NOT_FASHION, variantExcluded } from "../lib/variants.mjs";
+import { groupColourways, variantIdOf, NOT_FASHION, variantExcluded, beautyShade, isShadePart } from "../lib/variants.mjs";
 import { parseWalmartFamilies, readWalmartPulls, applyFamilies, shadeKey, packCount, loadFamilies, normUrl } from "../lib/variant-families.mjs";
 import { ingestAll } from "../ingest-variant-pulls.mjs";
 import { serve, openPage } from "./lib/variant-browser.mjs";
@@ -230,8 +237,83 @@ await check("groups never blend: one store per group; no two colourways share th
   assert.ok(n > 20, "checked " + n);
 });
 
+/* ---------- shade siblings (Model B) ---------- */
+await check("shade siblings: the store's shade part is read; sizes, packs, counts and claims are never shades", () => {
+  assert.deepEqual(beautyShade("L'Oreal Paris Excellence Creme Permanent Hair Color, 5 Medium Brown, Triple Protection, 1 Kit"),
+    { model: "loreal paris excellence creme permanent hair color", shade: "5 Medium Brown" });
+  assert.equal(beautyShade("L'Oreal Paris Feria Permanent Hair Color, V38 Violet Noir, Up to 40 Percent Stronger Hair, 1 Kit").shade, "V38 Violet Noir");
+  assert.equal(beautyShade("L'Oreal Paris Superior Preference Hair Color, Ultra Ash Very Light Blonde 10UA").shade, "Ultra Ash Very Light Blonde 10UA");
+  assert.equal(beautyShade("Revlon Liquid Foundation, Age Defying Makeup, 025 SAND BEIGE, 1 Fl Oz").shade, "025 Sand Beige");
+  assert.equal(beautyShade("Revlon Glimmer Tinted Facial Moisturizer Stick, Light Coverage Foundation, 120, 0.31 oz").shade, "120");
+  assert.equal(isShadePart("8G Golden Blonde"), true, "a shade code, not 8 grams");
+  assert.equal(isShadePart("8.5 g"), false);
+  for (const x of ["1 Kit", "0.13 fl oz", "Pack of 1", "Gray Coverage", "Medium Coverage", "16hr Longwear", "4 Ultra-Pigmented Matte & Shimmer Shades", "6 colors", "SPF 18", "Triple Protection"])
+    assert.equal(isShadePart(x), false, x + " is not a shade");
+  assert.equal(beautyShade("(2 pack) L'Oreal Paris Colour Riche Lip Liner, Toffee To Be 782"), null, "a multipack is never a shade");
+  assert.equal(beautyShade("Maybelline Lifter Liner Lip Liner Makeup with Hyaluronic Acid, Big Lift, 0.04 oz"), null, "no code and no colour word: not grouped");
+  assert.equal(beautyShade("Sun Bum Revitalizing 10oz Shampoo"), null);
+});
+await check("shade siblings group by the exact line into one Tono picker; two lines never merge", () => {
+  const W = (name, id, price) => ({ v: variantIdOf("https://www.walmart.com/ip/x/" + id), retailer: "walmart", dept: "beauty", brand: "", name, price, url: "https://www.walmart.com/ip/x/" + id, image: "https://i/" + id + ".jpg" });
+  const ls = [
+    W("L'Oreal Paris Excellence Creme Permanent Hair Color, 5 Medium Brown, Triple Protection, 1 Kit", 1, 11.97),
+    W("L'Oreal Paris Excellence Creme Permanent Hair Color, 7 Dark Blonde, 1 kit", 2, 11.97),
+    W("L'Oreal Paris Excellence Universal Nudes Permanent Hair Color, 5N Natural Brown, 1 kit", 3, 11.97),
+    W("L'Oreal Paris Excellence Universal Nudes Permanent Hair Color, 5N Natural Brown, 1 kit", 4, 12.97),
+    W("Revlon Glimmer Color Correcting Concealer, 101 Peach, 0.3 fl oz", 5, 12.5),
+    W("Revlon Glimmer Color Correcting Concealer, 100 Green, 0.3 fl oz", 6, 10.25),
+    { ...W("L'Oreal Paris Excellence Creme Permanent Hair Color, 6 Light Brown, 1 kit", 7, 11.97), dept: "home" },
+  ];
+  const m = groupColourways(ls);
+  const g = (i) => m.get(ls[i].v);
+  assert.ok(g(0) && g(1) && g(0).g === g(1).g, "the two Excellence Creme shades are one picker");
+  assert.equal(g(0).ax, "Tono");
+  assert.equal(g(1).c, "7 Dark Blonde");
+  assert.equal(g(2), undefined, "Universal Nudes is another product; one shade twice is not two shades");
+  assert.ok(g(4) && g(4).g === g(5).g && g(4).g !== g(0).g, "the concealer is its own picker");
+  assert.equal(g(6), undefined, "outside a beauty aisle, no shade grouping");
+});
+await check("the committed pages: real Walmart dye and makeup siblings are one Tono picker each (Model B)", () => {
+  const rec = (t) => (JSON.parse(readFileSync(PDP + "p/" + P.pdpShard(P.norm(t)) + ".json", "utf8"))[P.norm(t)] || [])[0];
+  const grp = (r) => JSON.parse(readFileSync(PDP + "g/" + P.groupShard(r.g) + ".json", "utf8"))[r.g];
+  const a = rec("L'Oreal Paris Excellence Creme Permanent Hair Color, 5 Medium Brown, Triple Protection, 1 Kit");
+  assert.equal(a.ax, "Tono"); assert.equal(a.c, "5 Medium Brown");
+  assert.deepEqual(grp(a).map((x) => x.c).sort(), ["5 Medium Brown", "7 Dark Blonde"]);
+  const cc = rec("e.l.f. Camo CC Cream, Light 205 N, 1.05 oz");
+  assert.ok(cc.g && grp(cc).length >= 5, "e.l.f. Camo CC Cream shades");
+  /* A dye sold here in one shade still names it (no picker). */
+  const one = rec("L'Oreal Paris Excellence Universal Nudes Permanent Hair Color, 5N Natural Brown, 1 kit");
+  assert.equal(one.g, undefined); assert.equal(one.c, "5N Natural Brown"); assert.equal(one.ax, "Tono");
+});
+
 /* ---------- the cart line ---------- */
 const page = readFileSync(ROOT + "producto.html", "utf8");
+await check("a \"- N Colors\" claim is never shown as the title; a palette's contents stay", () => {
+  const L = liftDeclarations(page, ["CHOICE_CLAIM_RX", "PALETTE_RX", "displayName"]);
+  assert.equal(L.displayName("Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors"), "Non-Stick Cup Mirror Glare Lip Gloss");
+  assert.equal(L.displayName("Salmon Darkcircle Concealer Cream - 3 Colors"), "Salmon Darkcircle Concealer Cream");
+  assert.equal(L.displayName("Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors 10pcs Bundle Set"), "Non-Stick Cup Mirror Glare Lip Gloss 10pcs Bundle Set");
+  assert.equal(L.displayName("Slim Liquid Eyeliner - 4 Classic Ultra-Fine Colours"), "Slim Liquid Eyeliner");
+  assert.equal(L.displayName("Tubing Liquid Eyeliner | Ultra Long Lasting - 2 Colors"), "Tubing Liquid Eyeliner | Ultra Long Lasting");
+  assert.equal(L.displayName("Real Nature Face Mask - 20 Types"), "Real Nature Face Mask");
+  assert.equal(L.displayName("2 IN 1 Highlighter Contour Palette - 4 Colors"), "2 IN 1 Highlighter Contour Palette - 4 Colors");
+  assert.equal(L.displayName("Adidas Samba ADV Shoes - Core Black/Gum"), "Adidas Samba ADV Shoes - Core Black/Gum");
+  /* A product's own words are not a claim. */
+  for (const t of ["L'Oreal Paris Magic Root Rescue 10 Minute Root Hair Color, 4 Dark Brown, 1 kit", "e.l.f. Camo CC Cream, SPF 30 Color-Correcting Medium-To-Full Coverage Face Foundation, Deep 530 W"])
+    assert.equal(L.displayName(t), t);
+  /* Every committed record that claims a choice and offers none: the title shown drops the claim. */
+  let n = 0;
+  for (const f of ["yesstyle-catalog.json", "ulta-catalog.json", "beauty-catalog.json"]) {
+    const txt = readFileSync(ROOT + f, "utf8");
+    for (const m of txt.matchAll(/"name":\s*"([^"]*\b\d+\s+(?:colou?rs?|shades?)\b[^"]*)"/gi)) {
+      const t = JSON.parse('"' + m[1] + '"');
+      if (L.PALETTE_RX.test(t)) continue;
+      assert.doesNotMatch(L.displayName(t), /\b\d+\s+(?:[\w-]+\s+){0,3}(?:colou?rs|shades)\b(?!-)/i, t);
+      n++;
+    }
+  }
+  assert.ok(n > 90, "checked " + n);
+});
 await check("the cart line carries the shade picked, its listing id and its own store URL", () => {
   const L = liftDeclarations(page, ["unpackImages", "variantProduct"]);
   const base = { name: "A", v: "v1", url: "https://www.walmart.com/ip/a/1", retailer: "walmart", price: 7.97, ax: "Tono" };
@@ -243,6 +325,7 @@ await check("the cart line carries the shade picked, its listing id and its own 
   const at = page.indexOf("mergeCartLine({");
   const body = page.slice(at, page.indexOf("});", at));
   assert.match(body, /colorway: p\.c/); assert.match(body, /variantId: p\.v/); assert.match(body, /url: \/\^https\?/);
+  assert.match(body, /variantAxis: p\.c && p\.ax === "Tono"/);
 });
 
 /* ---------- in a browser (fixture shards) ---------- */
@@ -372,6 +455,113 @@ if (!chromium) {
       await shot(pg, "maybelline-superstay-ink-crayon-picker");
       await pg.context().close();
     });
+    /* ---------- Danny's acceptance cases (#443 c.6568696054..c.6568789690), 390px ---------- */
+    const SHADE_SHOTS = process.env.SHADE_SHOTS || "";
+    const shadeShot = async (pg, name) => { if (!SHADE_SHOTS) return; await pg.evaluate(() => window.scrollTo(0, 0)); const box = await pg.$("#variant-box"); if (box) { await box.scrollIntoViewIfNeeded(); await pg.evaluate(() => window.scrollBy(0, -160)); } await pg.screenshot({ path: SHADE_SHOTS + "/shade-" + name + ".png" }); };
+    const shadeState = (pg) => pg.evaluate(() => ({
+      h1: (document.querySelector("#p-body h1") || {}).textContent || "",
+      doc: document.title,
+      shade: (document.getElementById("p-shade") || {}).textContent || "",
+      tappable: [...document.querySelectorAll(".v-opt")].filter((b) => { const r = b.getBoundingClientRect(); return r.width >= 40 && r.height >= 40; }).length,
+    }));
+    const pick = async (pg, label) => {
+      await pg.tap('.v-opt:has(> span:text-is("' + label + '"))');
+      await pg.waitForFunction((l) => (document.getElementById("v-current") || {}).textContent === l, label);
+    };
+    const buy = async (pg) => { await pg.click("#add-cart-btn"); return pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]")); };
+    const openPlain = async (title, store) => {
+      const pg = await openPage(browser, base);
+      await pg.goto(base + "/producto.html?producto=" + encodeURIComponent(title) + "&tienda=" + store, { waitUntil: "load" });
+      await pg.waitForSelector("#buy-box", { timeout: 20000 });
+      await pg.waitForTimeout(600);
+      return pg;
+    };
+    await check("ACCEPT: Maybelline Super Stay Lumi-Matte foundation by number: a Tono picker of 24, every option tappable; a pick changes the label and the cart buys it", async () => {
+      const pg = await open("Maybelline Super Stay Lumi-Matte Foundation Makeup, 220, 1 fl oz", "walmart");
+      const a = await state(pg), s = await shadeState(pg);
+      assert.equal(a.opts, 24); assert.equal(s.tappable, 24, "options under 40px");
+      assert.match(a.label, /^Tono: 220/);
+      await pick(pg, "120");
+      const cart = await buy(pg);
+      assert.equal(cart[0].colorway, "120"); assert.equal(cart[0].variantAxis, "Tono"); assert.ok(cart[0].variantId);
+      await shadeShot(pg, "maybelline-superstay-lumi-matte-120");
+      assert.deepEqual(pg.errors, []);
+      await pg.context().close();
+    });
+    await check("ACCEPT: Maybelline SuperStay Full Coverage foundation (110, 120, ...): Tono picker of 22", async () => {
+      const pg = await open("Maybelline New York SuperStay Full Coverage Foundation, Classic Ivory", "walmart");
+      const a = await state(pg);
+      assert.equal(a.opts, 22); assert.match(a.label, /^Tono: 120 Classic Ivory/);
+      /* 110 Porcelain is out of stock at Walmart: offered as agotado, never sold. */
+      await pick(pg, "110 Porcelain");
+      assert.match((await state(pg)).button, /Agotado en la tienda/);
+      await pick(pg, "105 Fair Ivory");
+      assert.equal((await buy(pg))[0].colorway, "105 Fair Ivory");
+      await shadeShot(pg, "maybelline-superstay-full-coverage-105");
+      await pg.context().close();
+    });
+    await check("ACCEPT: NYX Lip Lingerie lip liner stain: Tono picker of 12; NYX Lip Lingerie XXL: 21", async () => {
+      const pg = await open("NYX Professional Makeup Lip Lingerie Lip Liner Stain, Waterproof Lip Color, Up To No Good, 0.03 fl oz", "walmart");
+      const a = await state(pg);
+      assert.equal(a.opts, 12); assert.match(a.label, /^Tono: Up To No Good/);
+      await pick(pg, "Naughty Nude");
+      assert.equal((await buy(pg))[0].colorway, "Naughty Nude");
+      await shadeShot(pg, "nyx-lip-lingerie-liner-naughty-nude");
+      await pg.context().close();
+      const pg2 = await open("NYX Professional Makeup Lip Lingerie XXL Liquid Lipstick, Warm Up, 0.13 fl oz", "walmart");
+      assert.equal((await state(pg2)).opts, 21);
+      await shadeShot(pg2, "nyx-lip-lingerie-xxl");
+      await pg2.context().close();
+    });
+    await check("ACCEPT: a waterproof eyeliner and a lip liner with colours (Walmart): NYX Epic Ink 9, Milani Understatement 12", async () => {
+      const pg = await open("NYX Professional Makeup Epic Ink Vegan Waterproof Liquid Eyeliner, Black, 0.16 oz", "walmart");
+      assert.equal((await state(pg)).opts, 9);
+      await pick(pg, "Milk Chocolate");
+      assert.equal((await buy(pg))[0].colorway, "Milk Chocolate");
+      await shadeShot(pg, "nyx-epic-ink-eyeliner-milk-chocolate");
+      await pg.context().close();
+      const pg2 = await open("Milani Understatement Lip Liner, Rich Cocoa", "walmart");
+      assert.equal((await state(pg2)).opts, 12);
+      await shadeShot(pg2, "milani-lip-liner");
+      await pg2.context().close();
+    });
+    await check("ACCEPT: hair dye siblings (Model B): L'Oreal Excellence Creme, a Tono picker; the shade is written in the description area and follows the pick", async () => {
+      const pg = await open("L'Oreal Paris Excellence Creme Permanent Hair Color, 5 Medium Brown, Triple Protection, 1 Kit", "walmart");
+      const a = await state(pg), s = await shadeState(pg);
+      assert.equal(a.opts, 2); assert.match(a.label, /^Tono: 5 Medium Brown/);
+      assert.equal(s.shade, "Tono: 5 Medium Brown");
+      await pick(pg, "7 Dark Blonde");
+      assert.equal((await shadeState(pg)).shade, "Tono: 7 Dark Blonde");
+      const cart = await buy(pg);
+      assert.equal(cart[0].colorway, "7 Dark Blonde"); assert.equal(cart[0].variantAxis, "Tono");
+      await shadeShot(pg, "loreal-excellence-creme-7-dark-blonde");
+      assert.deepEqual(pg.errors, []);
+      await pg.context().close();
+    });
+    await check("ACCEPT: a hair dye in one shade: no dead selector, the tono in words, the cart line carries it", async () => {
+      const pg = await openPlain("L'Oreal Paris Excellence Universal Nudes Permanent Hair Color, 5N Natural Brown, 1 kit", "walmart");
+      const a = await state(pg), s = await shadeState(pg);
+      assert.equal(a.opts, 0); assert.equal(s.shade, "Tono: 5N Natural Brown");
+      assert.equal(await pg.evaluate(() => !!document.getElementById("variant-box")), false);
+      assert.equal((await buy(pg))[0].colorway, "5N Natural Brown");
+      await shadeShot(pg, "loreal-universal-nudes-5n-single");
+      await pg.context().close();
+    });
+    for (const [title, name] of [["Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors", "pudaier-mirror-glare-gloss"], ["Salmon Darkcircle Concealer Cream - 3 Colors", "skinfood-salmon-concealer"], ["Waterproof Easy Eyeliner - 2 Colors", "pinkflash-waterproof-eyeliner"], ["Sharp So Simple Waterproof Pencil Liner - 13 Colors", "clio-pencil-liner"]]) {
+      await check("ACCEPT (Model C): YesStyle \"" + title + "\": no shade data, so no picker and no colour claim in the title", async () => {
+        const pg = await openPlain(title, "yesstyle");
+        const a = await state(pg), s = await shadeState(pg);
+        assert.equal(a.opts, 0);
+        assert.equal(s.h1, title.replace(/ - \d+ Colors$/, ""));
+        assert.doesNotMatch(s.h1 + " " + s.doc, /\d+ Colors/);
+        assert.equal(await pg.evaluate(() => !!document.getElementById("variant-box")), false, "a dead selector");
+        const cart = await buy(pg);
+        assert.equal(cart.length, 1, "the product still sells");
+        await shadeShot(pg, name);
+        assert.deepEqual(pg.errors, []);
+        await pg.context().close();
+      });
+    }
     await check("REAL (Drop 2): CCS women's Samba OG: the six live colourways, Cream White/Core Black/Sand Strata agotado", async () => {
       const pg = await open("Adidas Womens Samba OG Shoes - Ftwr White/Frozen Purple/Night Indigo", "ccs");
       const a = await state(pg);

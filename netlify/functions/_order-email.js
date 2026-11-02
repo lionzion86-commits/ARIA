@@ -108,7 +108,8 @@ export function orderConfirmationEmail(order) {
     const color = String(it.colorway || "").trim().slice(0, 80);
     /* The condition the order stored (#443, Reacondicionados). */
     const cond = String(it.condition || "").trim();
-    const bits = [color ? `color ${color}` : "", size ? `talla ${size}` : ""].filter(Boolean).join(", ");
+    /* A shade reads as one (#443 c.6568696054). */
+    const bits = [color ? `${it.variantAxis === "Tono" ? "tono" : "color"} ${color}` : "", size ? `talla ${size}` : ""].filter(Boolean).join(", ");
     return `${it.title}${cond ? ` [${cond}]` : ""}${bits ? ` (${bits})` : ""} x${qty}`;
   };
   /* The line's own price in soles: its card price at the rate this
