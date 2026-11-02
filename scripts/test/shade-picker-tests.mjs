@@ -123,6 +123,21 @@ const state = (pg) => pg.evaluate(() => {
     gate: (document.getElementById("shade-gate-note") || {}).textContent || "",
   };
 });
+/* ON THE FIRST SCREEN (Danny: the picker was easy to miss): the shade box
+   sits above the first cost-breakdown card and within 1.5 phone screens
+   of the top of the page. */
+async function assertUpTop(pg, sel, name) {
+  await pg.evaluate(() => window.scrollTo(0, 0));
+  const r = await pg.evaluate((sel) => {
+    const box = document.querySelector(sel), cost = document.querySelector("#p-ship, #p-tax");
+    const top = (e) => e.getBoundingClientRect().top + window.scrollY;
+    return { box: box ? top(box) : null, cost: cost ? top(cost) : null, vh: window.innerHeight };
+  }, sel);
+  assert(r.box != null, `${name}: no ${sel}`);
+  assert(r.cost == null || r.box < r.cost, `${name}: ${sel} at ${Math.round(r.box)}px is below the cost breakdown (${Math.round(r.cost)}px)`);
+  assert(r.box < 1.5 * r.vh, `${name}: ${sel} at ${Math.round(r.box)}px is past 1.5 screens (${r.vh}px)`);
+  return Math.round(r.box);
+}
 const cartLines = (pg) => pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
 
 /* Pick a shade from the dropdown, add it, and see it on the cart line. */
@@ -131,6 +146,7 @@ async function pickAddAndCheckout(pg, name, pick) {
   assert(before.options.length >= 2, `${name}: no «Tono» dropdown (${before.options.length} options)`);
   const nums = before.options.map((o) => parseFloat(o.t)).filter((n) => !isNaN(n));
   for (let i = 1; i < nums.length; i++) assert(nums[i] >= nums[i - 1], `${name}: shades not in number order (${nums.slice(0, 8).join(", ")})`);
+  const y = await assertUpTop(pg, "#variant-box", name);
   await shot(pg, name + "-dropdown", "#variant-box");
   const target = before.options.find((o) => !o.on && pick(o.t) && !/agotado/.test(o.t));
   assert(target, `${name}: no shade to pick among ${before.options.map((o) => o.t).slice(0, 10).join(" | ")}`);
@@ -155,7 +171,7 @@ async function pickAddAndCheckout(pg, name, pick) {
   assert(/^Tono: /.test(text.trim()), `${name}: checkout line reads "${text}"`);
   await tono.scrollIntoViewIfNeeded();
   await shot(pg, name + "-cart-line");
-  return `${before.options.length} tonos; "${before.current}" -> "${line.colorway}" (${line.variantId}); checkout "${text.trim()}"`;
+  return `picker at ${y}px; ${before.options.length} tonos; "${before.current}" -> "${line.colorway}" (${line.variantId}); checkout "${text.trim()}"`;
 }
 
 const WALMART = [
@@ -188,6 +204,7 @@ await check("Walmart, one shade: a listing no family holds sells in the shade it
     assert(!s.options.length, "a dropdown for a single listing");
     const one = await pg.textContent("#shade-one");
     assert(/Tono: Big Lift/.test(one), "shade line: " + one);
+    await assertUpTop(pg, "#shade-one", "single");
     assert(s.buyOn, "Agregar is off");
     await shot(pg, "single-shade", "#shade-one");
     await pg.click("#add-cart-btn");
@@ -214,8 +231,9 @@ for (const c of ULTA_GATED) {
       assert(btn.trim() === "Tonos en camino", "button: " + btn);
       await pg.evaluate(() => addCurrentToCart(CURRENT_PRODUCT, []));
       assert(!(await cartLines(pg)).length, "the page's own add path put it in the cart");
-      await shot(pg, c.name + "-gate", "#buy-box");
-      return btn.trim();
+      const y = await assertUpTop(pg, "#shade-gate-box", c.name);
+      await shot(pg, c.name + "-gate", "#shade-gate-box");
+      return btn.trim() + `; note at ${y}px`;
     } finally { await ctx.close(); }
   });
 }
