@@ -153,16 +153,22 @@ await check("Drones is its own Electrónica type: Por tipo rail, t=drones page (
   assert.ok(JSON.stringify(head).includes("Drones"), "the department's aisles carry no Drones rail");
 });
 
-await check("the search router lands dron / drone / drones / dji on the Drones type page", async () => {
+await check("the search router lands dron / drone / drones / dji on the Drones type page (product-word table, ver=)", async () => {
   const search = await import("../../netlify/functions/search.js");
   const fetchImpl = async () => ({ ok: false, status: 503, json: async () => ({}) });
   for (const q of ["dron", "drone", "drones", "dji"]) {
     const r = await search.handler({ httpMethod: "GET", queryStringParameters: { q, route: "1" } }, { fetchImpl });
     const d = JSON.parse(r.body).destination;
     assert.equal(d.kind, "category", q);
-    assert.equal(d.url, "departamento.html?dept=electronics&t=drones", q);
+    assert.equal(d.url, "departamento.html?dept=electronics&ver=" + encodeURIComponent("pasillo:tech_drones"), q);
   }
-  assert.equal(json("assets/search/destinations.json").depts.electronics[1].drones, "Drones");
+  const rail = json("assets/search/destinations.json").types.electronics["pasillo:tech_drones"];
+  assert.ok(rail && rail[0] === "Drones" && rail[1] >= 150, "destinations.json lists no Drones type rail");
+  /* The type page's rail itself leads with DJI's pro line. */
+  const D = dept.loadDept("electronics");
+  const secs = dept.buildSections(D.list, dept.sectionOpts("electronics"));
+  const s = secs.find((x) => x.key === "pasillo:tech_drones");
+  assert.ok(s && /\bDJI\b/.test(s.items[0].title) && !secs.some((x) => x.key === "pasillo:tech_camaras" && x.items.some((p) => isDrone(p.title))));
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
