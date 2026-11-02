@@ -172,6 +172,20 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .cmp-ln.tot .part{display:block; font-size:11.5px; color:var(--muted); font-weight:600; white-space:normal;}
 .cmp-badge.ship{background:#FFF4DB; color:#8A5A00;}
 .cmp-badge.total{background:var(--navy); color:#fff;}
+/* THE CHOOSER (#443 c.6569512697): when the search cannot decide, at most
+   three rails -- a store, a brand, a category -- each a door to its page. */
+.ch-head{grid-column:1/-1; margin:4px 0 6px;}
+.ch-head h2{font-size:20px; font-weight:800; color:var(--navy); line-height:1.25;}
+.ch-head p{font-size:14px; color:var(--muted); margin-top:4px;}
+.ch-kind{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--blue); margin-right:2px;}
+.lane-door{flex:0 0 160px; align-self:stretch; border:2px solid var(--blue); border-radius:16px; background:var(--sky); color:var(--navy); font-weight:800; font-size:15px; line-height:1.25; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; text-align:center; scroll-snap-align:start; text-decoration:none;}
+.lane-door span{font-size:12px; font-weight:600; color:var(--muted);}
+.ch-doors{grid-column:1/-1; display:grid; gap:12px;}
+@media(min-width:640px){ .ch-doors{grid-template-columns:repeat(3,1fr);} }
+.ch-door{display:block; border:1px solid var(--line); border-radius:16px; padding:18px 16px; color:var(--ink); text-decoration:none; background:#fff;}
+.ch-door b{display:block; font-size:17px; color:var(--navy);}
+.ch-door span{display:block; font-size:13px; color:var(--muted); margin:4px 0 10px;}
+.ch-door em{font-style:normal; font-weight:800; font-size:14px; color:var(--blue);}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
@@ -472,6 +486,7 @@ async function withSoles(data){
   };
   (data.items || []).forEach(conv);
   (data.lanes || []).forEach(function(l){ (l.items || []).forEach(conv); });
+  ((data.chooser && data.chooser.rails) || []).forEach(function(l){ (l.items || []).forEach(conv); });
   /* The comparison charts: each row's product price at the rate. */
   (data.compares || (data.compare ? [data.compare] : [])).forEach(function(c){
     c.fx = fx;
@@ -726,7 +741,54 @@ function brandPageFor(q){
     .then(function(r){ return (BRAND_SEEN[k] = r.ok ? k : ""); })
     .catch(function(){ return ""; });
 }
+/* ?resultados=1: the old results answer, for debugging only -- no link on
+   the site carries it. */
 function keepPlainSearch(){ return /[?&]resultados=1/.test(location.search); }
+
+/* ---------- WHERE A SEARCH LANDS (#443 c.6569512697, c.6569515583) ----------
+   Only three surfaces: a store page, a brand page, a category page. The
+   server decides (/.netlify/functions/search?route=1, _search-destinations.js)
+   and the page goes there, carrying the other close matches (&tp=) for the
+   landing's «También puede ser…» chips. When it cannot decide, this page
+   shows the chooser: at most three rails, each a door to its own page. */
+var SURFACE_RX = /^(tienda|marca|departamento)\.html\?(tienda|marca|dept)=[a-z0-9_]+(&[a-z]+=[^&"<>\s]*)*$/;
+var ENTRY_RX = /^(ofertas|tiendas|categorias)\.html$/;
+async function routeFor(q, ms){
+  var ctl = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = ctl ? setTimeout(function(){ ctl.abort(); }, ms) : null;
+  try{
+    var res = await fetch(BASE + SEARCH_API + "?route=1&q=" + encodeURIComponent(q), ctl ? { signal: ctl.signal } : {});
+    if (timer) clearTimeout(timer);
+    if (!res.ok) return null;
+    return await res.json();
+  }catch(e){ if (timer) clearTimeout(timer); return null; }
+}
+var KIND_WORD = { store: "Tienda", brand: "Marca", category: "Categoría" };
+function chooserHTML(c){
+  var head = '<div class="ch-head"><h2>' + esc(c.title) + "</h2><p>" + esc(c.sub || "") + "</p></div>";
+  var rails = (c.rails || []).slice(0, 3);
+  if (rails.length && rails[0].kind === "entry"){
+    return head + '<div class="ch-doors">' + rails.filter(function(r){ return ENTRY_RX.test(r.url); }).map(function(r){
+      return '<a class="ch-door" data-door="' + esc(r.key) + '" href="' + esc(r.url) + '"><b>' + esc(r.label) + "</b><span>" + esc(r.note || "") + "</span><em>" + esc(r.door) + " &#8594;</em></a>";
+    }).join("") + "</div>";
+  }
+  return head + rails.filter(function(r){ return SURFACE_RX.test(r.url); }).map(function(r){
+    var door = '<a class="lane-door" data-door="' + esc(r.kind) + '" href="' + esc(r.url) + '">' + esc(r.door) + (r.n ? "<span>" + Number(r.n).toLocaleString("es-PE") + " productos</span>" : "") + "</a>";
+    return '<section class="lane ch-lane" data-kind="' + esc(r.kind) + '" aria-label="' + esc(r.title) + '"><div class="lane-head"><h2><span class="ch-kind">' + esc(KIND_WORD[r.kind] || "") + "</span> " + esc(r.label) + "</h2>" +
+      '<a class="lane-more" href="' + esc(r.url) + '">' + esc(r.door) + "</a></div>" +
+      '<div class="rail">' + (r.items || []).map(cardHTML).join("") + door + "</div></section>";
+  }).join("");
+}
+function renderChooser(query, data){
+  var grid = el("results"), meta = el("meta-line");
+  if (meta) meta.textContent = "";
+  setStatus("");
+  STATE.page = STATE.pages = STATE.total = STATE.shown = 0;
+  var more = el("more-wrap"); if (more) more.hidden = true;
+  if (!grid) return;
+  grid.innerHTML = chooserHTML(data.chooser || {});
+  watchPhotos(grid);
+}
 
 async function doSearch(){
   var input = el("q");
@@ -743,14 +805,27 @@ async function doSearch(){
     showStart();
     return;
   }
+  document.body.classList.add("searching");
+  var seq = ++SEQ;
   if (!keepPlainSearch()){
+    setStatus("Buscando…");
+    var gridR = el("results"); if (gridR) gridR.innerHTML = "";
     var storeKey = storeKeyFor(query);
+    /* A store's name waits for the router a moment only; then its page. */
+    var route = await withSoles(await routeFor(query, storeKey ? 2500 : 12000));
+    if (seq !== SEQ) return;
+    var d = route && route.destination;
+    if (d && d.kind !== "chooser" && SURFACE_RX.test(d.href || d.url)){ location.replace(d.href || d.url); return; }
+    if (d && d.kind === "chooser"){ renderChooser(query, route); return; }
+    /* The router did not answer: a store or brand name still opens its page. */
     if (storeKey){ location.replace("tienda.html?tienda=" + encodeURIComponent(storeKey)); return; }
     var brandKey = await brandPageFor(query);
     if (brandKey){ location.replace("marca.html?marca=" + encodeURIComponent(brandKey)); return; }
+    setStatus('<span class="err">La búsqueda falló. Revisa tu conexión.</span> ' +
+      '<button class="retry" onclick="doSearch()">Reintentar</button>');
+    renderEmpty("No pudimos buscar", "No hubo respuesta del buscador. Revisa tu conexión e inténtalo de nuevo.");
+    return;
   }
-  document.body.classList.add("searching");
-  var seq = ++SEQ;
   STATE = { q: query, page: 0, pages: 0, total: 0, capped: false, shown: 0, busy: true };
   setStatus("Buscando…");
   var meta = el("meta-line"); if (meta) meta.textContent = "";
