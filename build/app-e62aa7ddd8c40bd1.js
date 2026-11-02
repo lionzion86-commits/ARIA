@@ -3257,7 +3257,8 @@ const CARD_IMG_SIZES = '(max-width: 640px) 44vw, 200px';
    bare original for one product and a small pre-sized variant for
    the next. */
 function declaredImageWidth(u){
-  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w|sw)=(\d+)/i)
+    || u.match(/;maxWidth=(\d+)/i)
     || u.match(/\/upload\/[^/]*\bw_(\d+)/)
     || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
   return m ? parseInt(m[1], 10) : 0;
@@ -3279,7 +3280,12 @@ function sizedImageUrl(url, w){
     return base + (base.indexOf('?') >= 0 ? '&' : '?') + key + '=' + val;
   };
   let out = null;
-  if (/cdn\.shopify\.com/i.test(u)){
+  if (/^https?:\/\/[^/]+\/cdn\/shop\/(?:files|products)\//i.test(u) && !/cdn\.shopify\.com/i.test(u)){
+    /* Shopify's storefront CDN path (Pier 1's /cdn/shop/files/...) takes the
+       same width parameter as cdn.shopify.com; the same floor as below. */
+    var sw0 = w <= 200 ? w : 800;
+    if (w <= 800 && !(declared && sw0 >= declared)) out = setQ(u, 'width', sw0);
+  } else if (/cdn\.shopify\.com/i.test(u)){
     out = setQ(u, 'width', w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     /* The transform chain sits between /upload/ and the asset path;
@@ -3316,6 +3322,21 @@ function sizedImageUrl(url, w){
       if (w <= 280) out = u.replace('/images/fb/', '/images/images250x250/');
       else if (w <= 560) out = u.replace('/images/fb/', '/images/images500x500/');
     }
+  } else if (/\/dw\/image\/v2\//i.test(u) || /pisces\.bbystatic\.com\/image2\//i.test(u)){
+    /* LIGHTER, NEVER SOFTER (#443 c.6587429371). Two more first-party
+       resize parameters: Salesforce Commerce Cloud's image service
+       (Calzedonia, Intimissimi) scales by sw; Best Buy's image server
+       fits the photo inside ;maxWidth/;maxHeight. These cards show the
+       retailer's full original today, so a step that could land below
+       what the slot draws (3x phones, the 263px big card) would make
+       them softer: they get the 800 step for any card request, the
+       asked width only for a thumbnail (200 or less), and nothing
+       above 800 -- the product page keeps the original. */
+    var fw = w <= 200 ? w : 800;
+    if (w <= 800 && !(declared && fw >= declared)){
+      if (/\/dw\/image\/v2\//i.test(u)){ if (!/[?&]sh=/i.test(u)) out = setQ(u, 'sw', fw); }
+      else if (u.indexOf(';') < 0 && u.indexOf('?') < 0) out = u + ';maxHeight=' + fw + ';maxWidth=' + fw;
+    }
   } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
     /* Farfetch names the width in the file suffix: 500 is the card
        step, and anything larger keeps the original file. */
@@ -3336,10 +3357,36 @@ function imageSrcset(url){
     const s = sizedImageUrl(u, w);
     if (s === u || seen.has(s)) continue;
     seen.add(s);
-    parts.push(s + ' ' + w + 'w');
+    /* labelled with the width the URL really asks for (a floored step
+       asks for more than the step) */
+    parts.push(s + ' ' + (declaredImageWidth(s) || w) + 'w');
   }
   return parts.length ? parts.join(', ') : '';
 }
+
+/* LOGOS AT THE SIZE THEY ARE DRAWN (#443 c.6587429371, image weight).
+   A store mark drawn 80 CSS px tall or less -- every mark on this page:
+   the card badge 14-44, the rail plaque 22, the Tiendas tile 26, the
+   store strip 34, the Tiendas grid 78 -- loads logos/h240/<name>.webp
+   (scripts/build-logo-derivatives.py): the same mark scaled to 240 px
+   tall (80 px at 3x), stored lossless, so it is as sharp as the master
+   at that size for about half the bytes. One size for every use, so a
+   mark the page shows twice is fetched once. The master rides along as
+   data-logo-orig; a derivative that fails to load swaps back to it
+   before any text-pill fallback runs. SVGs keep the master. */
+const LOGO_SMALL_MAX_CSS = 80;
+function logoAt(file, cssH){
+  const f = String(file || '');
+  const m = /^(\/?)logos\/(?!h240\/)([^?#]+)\.png$/i.exec(f);
+  return m && cssH > 0 && cssH <= LOGO_SMALL_MAX_CSS ? m[1] + 'logos/h240/' + m[2] + '.webp' : f;
+}
+/* The src + data-logo-orig pair for a mark drawn cssH CSS px tall. */
+function logoSrcAttrs(file, cssH){
+  const small = logoAt(file, cssH);
+  return 'src="' + escapeHtml(small) + '"' + (small !== file ? ' data-logo-orig="' + escapeHtml(file) + '"' : '');
+}
+const LOGO_UNDO = "var o=this.getAttribute('data-logo-orig');if(o){this.removeAttribute('data-logo-orig');this.src=o;return;}";
+
 
 /* ============================================================
    NO PRODUCT WEARS A GREY BOX (2026-09-22)
@@ -12231,7 +12278,7 @@ function tiendaTileHTML(s){
      storeLogoFallback; the name below means no tile is ever blank. */
   const onChip = s.logo && !TIENDA_LIGHT_LOGOS.has(s.k);
   const art = s.logo
-    ? "<img src=\"" + s.logo + "\" alt=\"" + escapeHtml(s.l) + "\" loading=\"lazy\" decoding=\"async\" data-retailer=\"" + s.k + "\" class=\"w-auto max-w-full object-contain\" style=\"height:26px;min-width:0;" + (onChip ? "background:#fff;border-radius:10px;padding:4px 10px;" : "") + "\" onerror=\"this.setAttribute('data-logo-failed','1');window.storeLogoFallback&&storeLogoFallback(this)\">"
+    ? "<img " + logoSrcAttrs(s.logo, 26) + " alt=\"" + escapeHtml(s.l) + "\" loading=\"lazy\" decoding=\"async\" data-retailer=\"" + s.k + "\" class=\"w-auto max-w-full object-contain\" style=\"height:26px;min-width:0;" + (onChip ? "background:#fff;border-radius:10px;padding:4px 10px;" : "") + "\" onerror=\"" + LOGO_UNDO + "this.setAttribute('data-logo-failed','1');window.storeLogoFallback&&storeLogoFallback(this)\">"
     : "<span class=\"store-logo-fallback\" style=\"background:" + s.c + ";font-size:11px\">" + escapeHtml(s.l) + "</span>";
   const name = "<span class=\"block w-full text-center\" style=\"color:#fff;font-size:10px;font-weight:700;line-height:1.25\">" + escapeHtml(s.l) + "</span>";
   return "<button onclick=\"tiendaJump('" + s.k + "')\" aria-label=\"" + escapeHtml(s.l) + "\" class=\"flex-shrink-0 w-[132px] rounded-2xl px-2 py-2 flex flex-col items-center justify-center focus-ring\" style=\"background:#1a2744;border:1px solid rgba(255,255,255,.14);min-height:72px;gap:6px;min-width:0;overflow:hidden\">" + art + name + "</button>";
@@ -14590,7 +14637,7 @@ function curvyStoreCardsHTML(){
        (Lane Bryant today) gets its wordmark on its brand colour -- a
        designed treatment, never a broken image. */
     const mark = r && r.logo
-      ? `<img src="${r.logo}" alt="${escapeHtml(label)}" data-retailer="${escapeHtml(key)}" style="width:100%; max-height:46px; max-width:72%; object-fit:contain" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
+      ? `<img ${logoSrcAttrs(r.logo, 46)} alt="${escapeHtml(label)}" data-retailer="${escapeHtml(key)}" style="width:100%; max-height:46px; max-width:72%; object-fit:contain" onerror="${LOGO_UNDO}this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
       : `<span class="inline-flex items-center h-[26px] px-3 rounded-lg text-[12px] font-extrabold text-white text-center leading-tight" style="background:${r ? r.color : 'var(--navy)'}">${escapeHtml(label)}</span>`;
     return `<button onclick="${active ? 'setCatalogStore(null)' : `setCatalogStore('${key}')`}" aria-pressed="${active}"
       class="w-full rounded-2xl px-3 py-3 flex items-center gap-4 text-left focus-ring transition"
@@ -15982,9 +16029,9 @@ function storeCardHTML(r){
      The plate is the card's own background, so a transparent PNG sits
      directly on it with no box or backdrop behind it. */
   const mark = r.logo
-    ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
+    ? `<img ${logoSrcAttrs(r.logo, 78)} alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
          style="width:100%; max-height:78px; max-width:75%; object-fit:contain"
-         onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
+         onerror="${LOGO_UNDO}this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
     : `<span class="inline-flex items-center h-[30px] px-3 rounded-lg text-[13px] font-extrabold text-white text-center leading-tight"
          style="background:${r.color}">${escapeHtml(r.label)}</span>`;
 
@@ -16196,9 +16243,9 @@ function otherStoreTileHTML(r){
   const darkPlate = r.darkLogo && r.logo;
   const plate = r.logo
     ? `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 border rounded-2xl" style="${darkPlate ? 'background:var(--navy); border-color:var(--navy)' : 'background:#fff; border-color:var(--line)'}">
-         <img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}" loading="lazy" decoding="async"
+         <img ${logoSrcAttrs(r.logo, 34)} alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}" loading="lazy" decoding="async"
               style="width:100%; max-height:34px; max-width:75%; object-fit:contain"
-              onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+              onerror="${LOGO_UNDO}this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
        </span>`
     : `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 rounded-2xl text-white text-[13px] font-extrabold text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
   return `<button type="button" onclick="${action}" aria-label="${escapeHtml(r.label)}"
@@ -21716,7 +21763,7 @@ function retailerBadgeHTML(retailer, heightPx = 28, opts){
   // object-fit matters: a wordmark like Foot Locker's is ~9:1, so a
   // max-width of 4x the height used to squash it horizontally rather than
   // scale it. Contain keeps every logo in proportion at any size.
-  const img = `<img src="${logoFile}" alt="${escapeHtml(label)}" loading="lazy" decoding="async" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle" onerror="handleLogoError(this, '${escapeHtml(retailer)}')">`;
+  const img = `<img ${logoSrcAttrs(logoFile, heightPx)} alt="${escapeHtml(label)}" loading="lazy" decoding="async" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle" onerror="${LOGO_UNDO}handleLogoError(this, '${escapeHtml(retailer)}')">`;
   /* DARK SURFACES (2026-09-29, Danny): a dark wordmark (Gymshark, YoungLA)
      vanishes on navy, so it rides on a white chip. The text-badge fallback
      is already white-on-color and needs no wrapper. */
@@ -25710,7 +25757,7 @@ function autoSourceBadgeHTML(key, heightPx = 22){
   const s = autoSourceFor(key);
   if (!s) return retailerBadgeHTML(key, heightPx);
   if (s.logo){
-    return `<img src="${escapeHtml(s.logo)}" alt="${escapeHtml(s.label)}" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle">`;
+    return `<img ${logoSrcAttrs(s.logo, heightPx)} alt="${escapeHtml(s.label)}" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle" onerror="${LOGO_UNDO}">`;
   }
   /* Wordmark pill for sources with no logo file. nowrap + no-shrink:
      inside tight flex rows (the compare strip) a long label like
