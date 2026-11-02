@@ -140,7 +140,8 @@ if (!chromium) {
       const out = await pg.evaluate(({ TITLE, IMG }) => ({
         card: cardHTML({ title: TITLE, brand: "Pudaier", store: "yesstyle", storeLabel: "YesStyle", price: 4.8, image: IMG, id: "x" }),
         cmp: compareHTML({ title: TITLE, brand: "Pudaier", image: IMG, fx: 3.75, stores: [
-          { title: TITLE, store: "yesstyle", usd: 6.37, price: 4.8, id: "a" }, { title: TITLE, store: "ulta", usd: 7.5, price: 5.8, id: "b" }] }),
+          /* Every row has its picture (#603: no photo, no row). */
+          { title: TITLE, store: "yesstyle", usd: 6.37, price: 4.8, id: "a", image: IMG }, { title: TITLE, store: "ulta", usd: 7.5, price: 5.8, id: "b", image: IMG }] }),
       }), { TITLE, IMG });
       judge("search cardHTML", out.card);
       judge("search compareHTML", out.cmp);
@@ -200,7 +201,12 @@ if (!chromium) {
       const pg = await open("/producto.html?producto=" + encodeURIComponent(TITLE) + "&tienda=yesstyle");
       await pg.waitForSelector("#add-cart-btn", { timeout: 20000 });
       assert.equal(await pg.evaluate(() => document.querySelector("#p-body h1").textContent), SHOWN);
-      await pg.click("#add-cart-btn");
+      /* A lip gloss with no shade list is not sold (the shade gate,
+         /shade-gate.js): the page offers «Tonos en camino», and the line
+         here is one a cart saved before the gate -- checkout still names it
+         without the claim, and keeps it out of the payment. */
+      assert.match(await pg.evaluate(() => (document.getElementById("shade-gate-note") || {}).textContent || ""), /^Tonos en camino/);
+      await pg.evaluate((t) => localStorage.setItem("aria_cart_v1", JSON.stringify([{ retailer: "yesstyle", title: t, priceUsd: 6.37, dutiableUsd: 4.8, weightKg: 0.05, qty: 1, brand: "Pudaier" }])), TITLE);
       const cart = await pg.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1") || "[]"));
       assert.equal(cart.length, 1);
       assert.equal(cart[0].title, TITLE, "the stored title is the store's");

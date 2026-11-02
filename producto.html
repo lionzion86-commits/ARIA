@@ -72,6 +72,14 @@ footer a{color:#fff}
 .v-opt em{font-style:normal;font-size:10px;font-weight:700;color:#B03A2E}
 .v-out-note{font-weight:600;color:#B03A2E}
 .v-pending{font-size:12px;color:var(--muted);line-height:1.45;margin:8px 0 0}
+/* THE SHADE DROPDOWN (Danny after #583: "Why is there not a dropdown with
+   the numbers?"): a shade family opens on a native list of every tono,
+   number and name, then the swatches in one swipeable row. */
+.v-tono .v-opts{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 2px 6px;scrollbar-width:thin}
+.v-tono .v-opt{flex:0 0 76px}
+.shade-select{width:100%;padding:13px 12px;border:1.5px solid var(--navy);border-radius:12px;font-size:16px;background:#fff;color:var(--ink);margin:0 0 10px}
+.shade-select:focus{outline:none;border-color:var(--blue)}
+.shade-gate-note{font-size:13.5px;color:#5B6478;line-height:1.5;margin:8px 0 0}
 .size-note{font-size:12.5px;color:var(--muted);line-height:1.5}
 .btn-add{width:100%;text-align:center;border:none;cursor:pointer;background:var(--gold);color:var(--navy)}
 .btn-add:hover{background:#EAB54E;text-decoration:none}
@@ -157,6 +165,7 @@ footer a{color:#fff}
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
 <script src="/display-name.js"></script>
+<script src="/shade-gate.js"></script>
 <script src="/condition.js"></script>
 <script src="/store-shipping.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -344,7 +353,9 @@ function recordToItem(r){
     /* The listing's id, its colourway group and the store's colour; the
        picker's word ("Tono" for a shade family) and whether the store
        lists this variant as out of stock. */
-    v: r.v || "", g: r.g || "", c: r.c || "", ax: r.ax || "", so: r.so === 1
+    v: r.v || "", g: r.g || "", c: r.c || "", ax: r.ax || "", so: r.so === 1,
+    /* Sold in shades (/shade-gate.js, decided at build with the store's aisle). */
+    sk: r.sk === "makeup" || r.sk === "hair" ? r.sk : ""
   };
 }
 function fetchJson(url, ms){
@@ -994,18 +1005,41 @@ function hairShadeHtml(p){
   if (!p || !p.c || p.ax !== "Tono" || !HAIR_COLOUR_RX.test(p.name || "")) return "";
   return '<p class="p-shade" id="p-shade" style="font-size:15px;color:var(--navy);margin:0 0 10px">Tono: <b>' + esc(p.c) + '</b></p>';
 }
+/* A shade's number leads its order ("102", "110 Porcelain", "5N"); a
+   shade with no number keeps the store's order, after the numbered ones. */
+function shadeNumber(c){ var m = /^\s*(?:#\s*|no\.?\s*)?(\d+(?:\.\d+)?)/i.exec(String(c || "")); return m ? Number(m[1]) : Infinity; }
+function shadeOrder(list){
+  return list.map(function(x, i){ return { x: x, i: i, n: shadeNumber(x.c) }; })
+    .sort(function(a, b){ return (a.n - b.n) || (a.i - b.i); }).map(function(o){ return o.x; });
+}
+/* The one shade a listing is sold in, when no family offers others: the
+   store's own words for it, carried by the line. */
+function oneShadeHtml(p){
+  if (!p || hasVariants(p) || !p.c || p.ax !== "Tono" || HAIR_COLOUR_RX.test(p.name || "")) return '';
+  return '<div class="v-box v-tono" id="shade-one"><p class="v-label" id="v-label">Tono: <b id="v-current">' + esc(p.c) + '</b></p>'
+    + '<p class="v-pending">La tienda vende esta publicación en este tono.</p></div>';
+}
+function shadeSelectHtml(p){
+  var opts = shadeOrder(p.variants).map(function(x){
+    return '<option value="' + esc(x.v) + '"' + (x.v === p.v ? ' selected' : '') + '>' + esc(x.c || '') + (x.so === 1 ? ' (agotado)' : '') + '</option>';
+  }).join('');
+  return '<label class="size-label" for="shade-select" style="display:block;margin:0 0 8px">Elige el tono (' + p.variants.length + ' tonos)</label>'
+    + '<select id="shade-select" class="shade-select" aria-label="Tono">' + opts + '</select>';
+}
 function variantBoxHtml(p){
-  if (!hasVariants(p)) return '';
+  if (!hasVariants(p)) return oneShadeHtml(p);
   var opts = p.variants.map(function(x){
     var on = x.v === p.v;
     var img = x.image ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
     return '<button type="button" class="v-opt' + (x.so === 1 ? ' v-out' : '') + '" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + (x.so === 1 ? ' (agotado)' : '') + '">'
       + img + '<span>' + esc(x.c || '') + '</span>' + (x.so === 1 ? '<em>Agotado</em>' : '') + '</button>';
-  }).join('');
+  });
   var wait = Array.isArray(p.variants.pending) ? p.variants.pending : [];
-  return '<div class="v-box" id="variant-box">'
+  var tono = variantWord(p) === "Tono";
+  return '<div class="v-box' + (tono ? ' v-tono' : '') + '" id="variant-box">'
     + '<p class="v-label" id="v-label">' + variantWord(p) + ': <b id="v-current">' + esc(p.c || '') + '</b>' + (p.so ? ' <span class="v-out-note">(agotado)</span>' : '') + '</p>'
-    + '<div class="v-opts" role="radiogroup" aria-labelledby="v-label">' + opts + '</div>'
+    + (tono ? shadeSelectHtml(p) : '')
+    + '<div class="v-opts" role="radiogroup" aria-labelledby="v-label">' + (tono ? shadeOrder(p.variants).map(function(x){ return opts[p.variants.indexOf(x)]; }).join('') : opts.join('')) + '</div>'
     + (wait.length ? '<p class="v-pending" id="v-pending">' + (variantWord(p) === "Tono" ? 'Otros tonos' : 'Otros colores') + ' de la tienda, con detalle pendiente: ' + esc(wait.join(', ')) + '.</p>' : '')
     + '</div>';
 }
@@ -1015,9 +1049,11 @@ function wireVariants(p){
   Array.prototype.forEach.call(box.querySelectorAll(".v-opt"), function(b){
     b.addEventListener("click", function(){ selectVariant(p, b.getAttribute("data-v")); });
   });
+  var sel = el("shade-select");
+  if (sel) sel.addEventListener("change", function(){ selectVariant(p, sel.value, true); });
 }
 var CURRENT_PRODUCT = null;
-function selectVariant(cur, v){
+function selectVariant(cur, v, fromSelect){
   if (!cur || !v || v === cur.v || !hasVariants(cur)) return;
   var x = null;
   for (var i = 0; i < cur.variants.length; i++) if (cur.variants[i].v === v) x = cur.variants[i];
@@ -1040,8 +1076,11 @@ function selectVariant(cur, v){
     u.searchParams.delete("id"); u.searchParams.delete("nombre");
     history.replaceState(null, "", u.pathname + "?" + u.searchParams.toString() + u.hash);
   }catch(e){}
-  var sel = el("variant-box") && el("variant-box").querySelector('.v-opt[data-v="' + v + '"]');
+  var sel = fromSelect ? el("shade-select") : (el("variant-box") && el("variant-box").querySelector('.v-opt[data-v="' + v + '"]'));
   if (sel) sel.focus();
+  /* The picked swatch in view in its row. */
+  var on = el("variant-box") && el("variant-box").querySelector('.v-opt[aria-checked="true"]');
+  if (on && on.scrollIntoView && el("variant-box").classList.contains("v-tono")) try{ on.scrollIntoView({ block: "nearest", inline: "center" }); }catch(e){}
 }
 function render(p, swapping){
   el("p-loading").style.display = "none";
@@ -1061,6 +1100,11 @@ function render(p, swapping){
     : '<div><span class="p-pen">' + esc(fmtUsd(usd)) + '</span>' + (wasUsd ? '<span class="p-was">' + esc(fmtUsd(wasUsd)) + '</span>' : '') + offHtml + '</div>'
       + '<div class="p-usd">Tipo de cambio no disponible</div>';
   if (LAUNCH_PRICED[String(p.retailer || "").toLowerCase()]) priceHtml = '<div class="p-launch">Precio de lanzamiento</div>' + priceHtml;
+  /* THE TONO RIGHT UNDER THE PRICE (Danny after #583, "easy to miss"):
+     the shade picker -- or «Tonos en camino» when the store's shade list
+     has not reached us -- sits under the price headline, above the cost
+     breakdown, on the first screen of a phone. */
+  if (!isOffSaleProduct(p)) priceHtml += variantBoxHtml(p) + shadeGateHtml(p);
   /* The store's shipping first, then the import-tax estimate (#439), then the weight. */
   priceHtml += shipBoxHtml(p);
   priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
@@ -1104,7 +1148,6 @@ function render(p, swapping){
           if (tk) return '<a class="btn btn-secondary" href="tienda.html?tienda=' + encodeURIComponent(tk) + '">Ver más en ' + label + '</a>';
           return '';
         })()
-      + (offSale ? '' : variantBoxHtml(p))
       + '<div id="buy-box" class="buy-box"></div>'
     + '</div></div>'
     + '<div id="rel-rails">' + relSkeletonHTML() + '</div>';
@@ -1589,6 +1632,15 @@ function buildBuyBox(p){
       + '<p class="sizes-pending-note" role="status" style="font-size:13.5px;color:#5B6478;margin:8px 0 0">' + esc(soldOutVariantNote(p)) + '</p>';
     return;
   }
+  /* TONOS EN CAMINO (/shade-gate.js; Danny after #583: nobody buys makeup
+     they cannot pick a colour for). A product sold in shades whose shade
+     list has not reached us -- no family, no shade of its own -- is shown,
+     not sold. The cart, checkout and the order endpoint refuse it too. */
+  if (shadeGateApplies(p)){
+    /* The note itself sits where the picker would be (shadeGateHtml). */
+    box.innerHTML = '<button id="add-cart-btn" class="btn btn-add" type="button" disabled aria-disabled="true" style="background:#C8CDD8;color:#5B6478;cursor:not-allowed">' + esc(window.AriaShadeGate.SHADE_PENDING_BUTTON) + '</button>';
+    return;
+  }
   /* SIZES PENDING (scripts/lib/sizes-pending.js): the store's sizes are
      not confirmed to us yet -- the product is shown, the cart is not
      offered, and no size is ever guessed. The order endpoint refuses it
@@ -1620,11 +1672,24 @@ function buildBuyBox(p){
   el('add-cart-btn').addEventListener('click', function(){ addCurrentToCart(p, sizes); });
 }
 
+/* A shade product with no shade on screen: no tono picked, none sold. */
+function shadeKindOfProduct(p){
+  var G = window.AriaShadeGate;
+  if (p && p.sk) return p.sk;
+  return G && p ? G.kindOf({ name: p.name, retailer: p.retailer, dept: p.dept }) : "";
+}
+function shadeGateApplies(p){ return !!p && !String(p.c || "").trim() && !!shadeKindOfProduct(p); }
+function shadeGateHtml(p){
+  if (!shadeGateApplies(p)) return '';
+  return '<div class="v-box v-tono" id="shade-gate-box"><p class="v-label">Tono</p>'
+    + '<p class="shade-gate-note" id="shade-gate-note" role="status" style="margin:0">' + esc(window.AriaShadeGate.SHADE_PENDING_NOTE) + '</p></div>';
+}
 var SIZES_PENDING_NOTE = "Estamos confirmando las tallas de este producto con la tienda. Muy pronto podrás comprarlo aquí.";
 function soldOutVariantNote(p){ return (variantWord(p) === "Tono" ? "Este tono" : "Este color") + " está agotado en la tienda. Elige otro."; }
 function addCurrentToCart(p, sizes){
   if (isOffSaleProduct(p)){ toast(window.AriaOffSale.OFF_SALE_PRODUCT_NOTE); return; }
   if (p.so){ toast(soldOutVariantNote(p)); return; }
+  if (shadeGateApplies(p)){ toast(window.AriaShadeGate.SHADE_PENDING_NOTE); return; }
   if (p.sizesPending && !(sizes && sizes.length)){ toast(SIZES_PENDING_NOTE); return; }
   /* The price guard: never a priceless or $0 line. */
   var priceUsd = finalUsd(p.price, p.retailer);
@@ -1670,6 +1735,10 @@ function addCurrentToCart(p, sizes){
     /* A shade ("Tono") reads as one on the cart line and in the order. */
     variantAxis: p.c && p.ax === "Tono" ? "Tono" : undefined,
     variantId: p.v || undefined,
+    /* The shade gate reads these on the line (/shade-gate.js): the aisle
+       the store files it under, and that it is sold in shades. */
+    dept: p.dept || undefined,
+    shadeKind: shadeKindOfProduct(p) || undefined,
     /* The store's list rides with a sized line, so the cart and checkout
        can tell a sized line from a plain one without a title guess. */
     sizeOptions: sizes && sizes.length ? sizes.slice() : undefined,

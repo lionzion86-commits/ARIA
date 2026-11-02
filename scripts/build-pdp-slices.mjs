@@ -67,7 +67,8 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { liftDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { variantIdOf, groupColourways, beautyShade, shadeListing, HAIR_COLOUR } from "./lib/variants.mjs";
+import { variantIdOf, groupColourways, beautyShade, shadeListing, listingShade, HAIR_COLOUR } from "./lib/variants.mjs";
+import { kindOf as shadeKindOf } from "./lib/shade-gate.js";
 import { loadFamilies, applyFamilies } from "./lib/variant-families.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -128,7 +129,10 @@ export function packImages(images, image) {
    apart (a title more than one listing carries) or names a colourway. */
 /* ax: the picker's word when it is not "Color" ("Tono" for a shade
    family); so: the store lists this variant as out of stock. */
-const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "url", "v", "g", "c", "ax", "so"];
+/* sk: the product is sold in shades ("makeup" / "hair", /shade-gate.js),
+   decided at build time with the store's own aisle ("type": Ulta's
+   "Labios", "Ojos", "Rostro"), which the record does not otherwise carry. */
+const RECORD_FIELDS = ["name", "brand", "price", "wasPrice", "salePct", "image", "images", "description", "sizes", "sizesTier", "sizesSource", "sizesPending", "dept", "retailer", "weightKg", "weightPub", "specWeightKg", "weightBySize", "url", "v", "g", "c", "ax", "so", "sk"];
 const absoluteUrl = (u) => (typeof u === "string" && /^https?:\/\/[^\s\/?#]+/i.test(u.trim()) ? u.trim() : "");
 function recordOf(it) {
   const out = {};
@@ -164,6 +168,23 @@ export function variantOf(it) {
   }
   return out;
 }
+/* The store's own aisle per listing (the raw record's "type"), by title
+   and URL: the page's normalised record drops it. */
+function storeTypes(raw) {
+  const out = new Map();
+  const st = [raw];
+  while (st.length) {
+    const n = st.pop();
+    if (Array.isArray(n)) { for (const x of n) if (x && typeof x === "object") st.push(x); continue; }
+    if (!n || typeof n !== "object") continue;
+    if (typeof n.name === "string" && typeof n.type === "string" && n.type) {
+      out.set(n.name + "|" + String(n.url || n.link || ""), n.type);
+      if (!out.has(n.name)) out.set(n.name, n.type);
+    }
+    for (const k in n) { const v = n[k]; if (v && typeof v === "object") st.push(v); }
+  }
+  return out;
+}
 /* families / sourceFilesOverride: tests build a page's data from
    fixtures ({ "/file.json": envelope }) through this same code. */
 export function buildRecords(P, root = ROOT, families = null, sourceFilesOverride = null) {
@@ -176,9 +197,12 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
   for (const f of sourceFilesOverride ? Object.keys(sourceFilesOverride) : files) {
     const p = root + f.slice(1);
     if (!sourceFilesOverride && !existsSync(p)) continue;
-    const list = P.extractItems(sourceFilesOverride ? sourceFilesOverride[f] : JSON.parse(readFileSync(p, "utf8")));
+    const raw = sourceFilesOverride ? sourceFilesOverride[f] : JSON.parse(readFileSync(p, "utf8"));
+    const types = storeTypes(raw);
+    const list = P.extractItems(raw);
     list.forEach((it, pos) => {
       it.__v = variantIdOf(it.url, it.retailer + "|" + it.name + "|" + it.image);
+      it.__type = types.get(String(it.name || "") + "|" + String(it.url || "")) || types.get(String(it.name || "")) || "";
       all.push({ f, pos, it });
     });
   }
@@ -229,6 +253,20 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     else if (HAIR_COLOUR.test(it.name || "") && shadeListing(it)) {
       const sh = beautyShade(it.name);
       if (sh) { it.c = sh.shade; it.ax = "Tono"; }
+    }
+    /* ANY SHADE PRODUCT SOLD HERE IN ONE SHADE (Danny after #583: "nobody
+       buys makeup they can't pick a color for"): a Walmart lipstick, liner
+       or foundation no family holds still names its own shade in its
+       title (scripts/lib/variants.mjs listingShade). That is its tono:
+       the page shows it and the cart line carries it. No shade in the
+       title: the record stays as it is and the shade gate (/shade-gate.js)
+       keeps it out of the cart. */
+    const sk = shadeKindOf({ ...it, type: it.__type });
+    if (sk) it.sk = sk;
+    delete it.__type;
+    if (!it.c && shadeListing(it) && shadeKindOf(it)) {
+      const shade = listingShade(it.name, it.retailer);
+      if (shade) { it.c = shade; it.ax = "Tono"; }
     }
     delete it.__v;
     const rec = recordOf(it);

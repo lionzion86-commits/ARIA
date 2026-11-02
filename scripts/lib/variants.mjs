@@ -309,3 +309,36 @@ export function groupColourways(listings) {
   }
   return out;
 }
+
+/* ---------- THE ONE SHADE A LISTING IS SOLD IN (Danny, after #583:
+   "nobody buys makeup they can't pick a color for") ----------
+   A Walmart shade listing that no family holds (the pull returned no
+   variant list for it, or the store sells it in one shade) still names
+   its shade in its own title, as its own comma part after the product
+   line: "Maybelline Lifter Liner Lip Liner Makeup with Hyaluronic Acid,
+   Big Lift, 0.04 oz", "(2 pack) e.l.f. Glossy Lip Stain, Spicy Sienna,
+   0.1 fl oz". That part is the listing's tono: the page shows it, the
+   cart line carries it. Never a size, a pack, a count, a claim or a
+   finish; a title with no such part has no shade we can read, and the
+   shade gate (/shade-gate.js) keeps it out of the cart. */
+const LOOSE_NOT_A_SHADE = /\b(?:skin|types?|anti-?aging|cruelty|unscented|fragrance|paraben|talc|matte|satin|dewy|radiant|natural finish|sheer|full|light coverage|medium coverage|buildable|packaging|vary|count|piece|each|bundle|value|new|original|classic formula|refill)\b/i;
+export function listingShade(title, retailer = "") {
+  const raw = String(title || "").trim();
+  if (!raw) return "";
+  const t = raw.replace(/^\(\s*\d+\s*-?\s*pack\s*\)\s*/i, "").replace(/^\d+\s*-?\s*pack\s*-\s*/i, "")
+    .replace(/,\s*(?:\(?\s*\d+\s*-?\s*pack\s*\)?|pack of \d+)\s*(?=,|$)/gi, "").trim();
+  if (MULTIPACK.test(t)) return "";
+  const sh = beautyShade(t);
+  if (sh) return sh.shade;
+  if (String(retailer).toLowerCase() !== "walmart") return "";
+  const parts = t.split(/\s*,\s*/);
+  if (parts.length < 2 || parts[0].split(/\s+/).length < 3) return "";
+  for (let i = 1; i < parts.length; i++) {
+    const s = parts[i].replace(/\.$/, "").trim();
+    if (!s || !/[a-z]/i.test(s) || s.length > 32 || s.split(/\s+/).length > 4) continue;
+    if (SIZE_PART.test(s) || SIZE_GRAMS.test(s) || MULTIPACK.test(s) || NOT_A_SHADE.test(s) || LOOSE_NOT_A_SHADE.test(s)) continue;
+    if (/\d+(?:\.\d+)?\s*(?:fl|oz|ml|g)\b/i.test(s)) continue;
+    return titleWords(s);
+  }
+  return "";
+}

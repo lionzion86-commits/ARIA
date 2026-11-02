@@ -53,6 +53,7 @@ import {
 } from "./_checkout-model.js";
 import { offSaleLines, offSaleOrderError } from "../../scripts/lib/off-sale.js";
 import { sizesPendingLines, sizesPendingOrderError } from "../../scripts/lib/sizes-pending.js";
+import { shadeMissingLines, shadeOrderError } from "../../scripts/lib/shade-gate.js";
 import { capState as perfumeCapState, capOrderError as perfumeCapOrderError } from "../../scripts/lib/fragrance.js";
 
 /* The production hosts. Anything else (deploy previews, branch deploys,
@@ -186,6 +187,17 @@ async function createOrderHandler(event) {
     return { statusCode: 400, headers, body: JSON.stringify({
       error: sizesPendingOrderError(sizesPending[0].title || sizesPending[0].name),
       sizesPending: sizesPending.map((it) => String(it.title || it.name || "")),
+    }) };
+  }
+
+  /* NO MAKEUP WITHOUT ITS SHADE (/shade-gate.js): a product sold in shades
+     whose line carries no shade is never sold; refused like an off-sale
+     line, before anything is written or charged. */
+  const shadeMissing = shadeMissingLines(sentItems);
+  if (shadeMissing.length) {
+    return { statusCode: 400, headers, body: JSON.stringify({
+      error: shadeOrderError(shadeMissing[0].title || shadeMissing[0].name),
+      shadeMissing: shadeMissing.map((it) => String(it.title || it.name || "")),
     }) };
   }
 

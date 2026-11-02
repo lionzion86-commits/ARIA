@@ -65,6 +65,16 @@
   Cache-Control: no-cache
 /assets/tienda/*
   Cache-Control: no-cache
+# THE PRODUCT PAGE'S SHARDS REVALIDATE TOO (Danny after #583: "only on
+# one makeup they had the numbers"). assets/pdp/p/*.json (the records,
+# with the shade family id each one carries) and assets/pdp/g/*.json
+# (the families) are rewritten by every build under the SAME names. Under
+# /*.json's hour fresh + day of stale-while-revalidate, a phone that had
+# opened products before #583 kept reading the old records -- no family
+# id, no «Tono» picker -- while products it had never opened showed one.
+# no-cache still caches: the phone asks, the CDN answers 304.
+/assets/pdp/*
+  Cache-Control: no-cache
 
 # PERF (2026-10-14, Issue #388): fingerprinted app bundle. This rule
 # is LAST on purpose: in _headers the last matching rule wins, and
