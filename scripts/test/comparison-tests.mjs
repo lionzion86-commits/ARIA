@@ -335,9 +335,15 @@ await check("search.html draws the block: soles first, badges, each row to its o
   if (samba.compare.stores.some((s) => s.best)) assert.match(h, /Mejor precio/);
   assert.ok(!/Entrega más rápida/.test(h) || samba.compare.stores.some((s) => s.fastest));
   /* A row without a price never renders (#443 c.6544992777). */
-  const one = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", usd: 0 }, { store: "b", storeLabel: "B", title: "X", usd: 12, ship: { state: "free", usd: 0 } }] });
+  const one = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", image: "a.jpg", usd: 0 }, { store: "b", storeLabel: "B", title: "X", image: "b.jpg", usd: 12, ship: { state: "free", usd: 0 } }] });
   assert.equal(one, "", "a chart drew a row with no price");
-  const two = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", usd: 10, ship: { state: "calc", usd: null, freeOverUsd: 64.94 } }, { store: "b", storeLabel: "B", title: "X", usd: 12, ship: { state: "fee", usd: 7.95, freeOverUsd: 75 } }] });
+  /* STANDING RULE (Danny 2026-11-02): every comparison chart has pictures.
+     A row without its photo never renders; no pictures, no chart. */
+  const bare = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", usd: 10, ship: { state: "free", usd: 0 } }, { store: "b", storeLabel: "B", title: "X", usd: 12, ship: { state: "free", usd: 0 } }] });
+  assert.equal(bare, "", "a chart drew rows without pictures");
+  const two = box.f({ title: "X", stores: [{ store: "a", storeLabel: "A", title: "X", image: "a.jpg", usd: 10, ship: { state: "calc", usd: null, freeOverUsd: 64.94 } }, { store: "b", storeLabel: "B", title: "X", image: "b.jpg", usd: 12, ship: { state: "fee", usd: 7.95, freeOverUsd: 75 } }] });
+  assert.match(two, /class="cmp-photo"><img/, "the chart has no product photo");
+  assert.equal((two.match(/class="cmp-mthumb"><img/g) || []).length, 2, "a store row without its photo");
   assert.match(two, /lo calcula la tienda al pagar/);
   assert.match(two, /gratis desde \$75/);
   assert.ok(!/NaN/.test(two));
