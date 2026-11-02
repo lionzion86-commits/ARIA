@@ -41,14 +41,29 @@
     if (sh.state === "fee") return "Envío de la tienda: " + money(sh.usd) + free;
     return "Envío de la tienda: lo calcula la tienda al pagar" + free;
   }
+  /* Every chart shows the product's photo, and every store row its own
+     photo and its own title, so the shopper sees which model and which
+     colourway each store sells, not just numbers (Danny 2026-11-02, the
+     Adidas Samba chart). Lazy like every card photo: watchPhotos(box). */
+  function thumb(src, px) {
+    if (!src) return "";
+    return "<img " + cardImgAttrs(src, px + "px").replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
+      ' alt="" width="' + px + '" height="' + px + '" decoding="async" onerror="if(!imgOrigRetry(this)){this.remove()}">';
+  }
   function chart(c) {
-    var rows = (c.stores || []).filter(function (s) { return Number(s.usd) > 0; });
+    /* Standing rule: no picture, no row; no pictures, no chart. */
+    var rows = (c.stores || []).filter(function (s) { return Number(s.usd) > 0 && s.image; });
     if (rows.length < 2) return "";
-    return '<div class="fc-chart"><div class="fc-kicker">' + e(c.brand || "") + " · En " + rows.length + ' tiendas</div><div class="fc-title">' + e(c.title) + "</div>" +
+    var head = c.image || (rows[0] && rows[0].image);
+    return '<div class="fc-chart"><div class="fc-head">' + (head ? '<div class="fc-photo">' + thumb(head, 88) + "</div>" : "") +
+      '<div style="min-width:0"><div class="fc-kicker">' + e(c.brand || "") + " · En " + rows.length + ' tiendas</div><div class="fc-title">' + e(c.title) + "</div></div></div>" +
       rows.map(function (s) {
         var badges = (s.best ? '<span class="fc-b">Mejor precio</span>' : "") + (s.bestCost ? '<span class="fc-b fc-win">Mejor costo hasta Miami</span>' : "");
         var href = "producto.html?producto=" + encodeURIComponent(s.title || "") + (s.store ? "&tienda=" + encodeURIComponent(s.store) : "");
-        return '<a class="fc-row' + (s.bestCost ? " win" : "") + '" href="' + e(href) + '"><div class="fc-store"><b>' + e(s.storeLabel || s.store) + "</b>" + badges +
+        return '<a class="fc-row' + (s.bestCost ? " win" : "") + '" href="' + e(href) + '">' +
+          (s.image ? '<div class="fc-thumb">' + thumb(s.image, 56) + "</div>" : "") +
+          '<div class="fc-store"><b>' + e(s.storeLabel || s.store) + "</b>" +
+          (s.title ? '<span class="fc-model">' + e(typeof shownTitle === "function" ? shownTitle(s.title) : s.title) + "</span>" : "") + badges +
           '<small>' + e(shipLine(s.ship)) + '</small></div><div class="price fc-price" data-usd="' + Number(s.usd) + '">' + priceInner(Number(s.usd), 0) + "</div></a>";
       }).join("") + "</div>";
   }
@@ -65,7 +80,12 @@
     ".fc-title{font-size:15px;font-weight:800;color:var(--navy);margin:2px 0 8px;line-height:1.3}" +
     ".fc-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 6px;border-top:1px solid var(--line);color:var(--ink);text-decoration:none}" +
     ".fc-row.win{background:#DCEBFF;border-radius:12px;box-shadow:inset 4px 0 0 var(--blue)}" +
-    ".fc-store{min-width:0}.fc-store b{display:block;font-size:14px;color:var(--navy)}.fc-store small{display:block;font-size:12px;color:var(--muted);margin-top:2px}" +
+    ".fc-head{display:flex;gap:12px;align-items:center;margin:0 0 8px}" +
+    ".fc-photo{position:relative;flex:0 0 88px;width:88px;height:88px;border-radius:12px;background:var(--sky,#F1F5FB);overflow:hidden}" +
+    ".fc-thumb{position:relative;flex:0 0 56px;width:56px;height:56px;border-radius:10px;background:var(--sky,#F1F5FB);overflow:hidden}" +
+    ".fc-photo img,.fc-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}" +
+    ".fc-model{display:block;font-size:12px;color:var(--ink);margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}" +
+    ".fc-store{min-width:0;flex:1 1 auto}.fc-store b{display:block;font-size:14px;color:var(--navy)}.fc-store small{display:block;font-size:12px;color:var(--muted);margin-top:2px}" +
     ".fc-b{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;margin:3px 4px 0 0;background:#E8F7EE;color:#15803D}.fc-b.fc-win{background:var(--navy);color:#fff}" +
     ".fc-price{text-align:right;flex:0 0 auto;margin:0;padding:0;min-height:0}" +
     ".fc-more{flex:0 0 140px;align-self:stretch;border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--navy);font:800 15px/1.2 inherit;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}" +

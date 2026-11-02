@@ -1381,7 +1381,11 @@ function chartFor(ctx, members, fx) {
       delivery: d ? { min: d.miamiMin, max: d.miamiMax, plus: !!d.plus, text: miamiRangeEs(d) } : null,
       best: false, cheapShip: false, bestCost: false, fastest: false,
     };
-  }).filter((x) => x.usd > 0);
+  /* STANDING RULE (Danny 2026-11-02): every comparison chart has
+     pictures, always. A store row shows its own photo -- which model,
+     which colourway -- so a row without one never renders, and a chart
+     needs two pictured rows or it is not shown at all. */
+  }).filter((x) => x.usd > 0 && x.image);
   if (rows.length < 2) return null;
   /* Cheapest cost to Miami first; an unknown shipping by its product price. */
   rows.sort((a, b) => ((costToMiami(a) ?? a.usd) - (costToMiami(b) ?? b.usd)) || (a.usd - b.usd));
@@ -1389,7 +1393,7 @@ function chartFor(ctx, members, fx) {
   const fast = fastestStore(rows.map((x) => x.store));
   if (fast) rows.find((x) => x.store === fast).fastest = true;
   const lead = members[0];
-  return { title: lead.title, brand: lead.brand || "", image: lead.image, stores: rows, fx: Number(fx) > 0 ? Number(fx) : null };
+  return { title: lead.title, brand: lead.brand || "", image: lead.image || rows[0].image, stores: rows, fx: Number(fx) > 0 ? Number(fx) : null };
 }
 
 /** The comparison charts of one answer (page 1): one per model, strongest first. */

@@ -151,6 +151,10 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
    then the total as their sum. */
 .cmp-row.bd{display:block; min-height:0;}
 .cmp-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+.cmp-model{display:flex; align-items:center; gap:10px; margin:6px 0 2px;}
+.cmp-mthumb{position:relative; flex:0 0 56px; width:56px; height:56px; border-radius:10px; background:var(--sky); overflow:hidden;}
+.cmp-mthumb img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain;}
+.cmp-mtitle{font-size:13px; color:var(--ink); line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
 .cmp-lines{margin:8px 0 0; padding:0;}
 .cmp-ln{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:3px 0; font-size:13px; color:var(--ink);}
 .cmp-ln dt{color:var(--muted); min-width:0;}
@@ -662,16 +666,26 @@ function compareRowHTML(s){
   var lines = lineHTML("prod", "Producto", amountHTML(s.usd, prodPen, true)) +
     lineHTML("", "Envío de la tienda", shipHTML(s.ship));
   var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "";
+  /* Each store's own photo and title: which model and colourway it
+     sells, not just its numbers (Danny 2026-11-02, Adidas Samba). */
+  var model = (s.image || title)
+    ? '<div class="cmp-model">' + (s.image ? '<div class="cmp-mthumb"><img ' + cardImgAttrs(s.image, "56px").replace(/^src=/, "data-src=").replace(/ srcset=/, " data-srcset=").replace(/ sizes=/, " data-sizes=") +
+        ' alt="" width="56" height="56" decoding="async" onerror="if(!imgOrigRetry(this)){this.remove()}"></div>' : "") +
+      '<span class="cmp-mtitle">' + esc(shownTitle(title)) + "</span></div>"
+    : "";
   return '<a class="cmp-row bd' + (s.bestCost ? " win" : "") + '" href="' + esc(productHref(title, s.store)) + '" data-id="' + esc(s.id || "") + '">' +
     '<div class="cmp-top"><div class="cmp-logo">' + logo + '<span class="cmp-name">' + esc(label) + "</span></div>" +
       (badges ? '<div class="cmp-badges">' + badges + "</div>" : "") + "</div>" +
-    '<dl class="cmp-lines">' + lines + "</dl>" +
+    model + '<dl class="cmp-lines">' + lines + "</dl>" +
     (ship ? '<div class="cmp-ship">' + ship + "</div>" : "") + "</a>";
 }
 function compareHTML(c){
   if (!c || !c.stores) return "";
   /* A row without a price never renders (#443 c.6544992777). */
-  c = Object.assign({}, c, { stores: c.stores.filter(function(s){ return Number(s.usd) > 0; }) });
+  /* STANDING RULE (Danny 2026-11-02): every comparison chart has
+     pictures. No photo, no row; fewer than two pictured rows, no chart. */
+  c = Object.assign({}, c, { stores: c.stores.filter(function(s){ return Number(s.usd) > 0 && s.image; }) });
+  if (!c.image && c.stores[0]) c = Object.assign({}, c, { image: c.stores[0].image });
   if (c.stores.length < 2) return "";
   var title = decodeEntities(c.title), brand = decodeEntities(c.brand);
   var img = c.image
