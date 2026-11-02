@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import { TEMPLATE_RAIL_MIN, DEALS_HERO_STORES } from "../build-store-slices.mjs";
 import { techAisle } from "../lib/tech-aisle.js";
 import { brandOfRow } from "../lib/brandsmart.js";
+import { phoneKnownRank } from "../../netlify/functions/_department-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const read = (f) => JSON.parse(readFileSync(ROOT + f, "utf8"));
@@ -48,18 +49,23 @@ check("hero, then Ofertas first, then the aisles by their true size; none under 
   assert.ok(ix.count > 0, "the count line has its number");
 });
 
-check("Celulares: the <= $200 phones lead, the iPhone 18 promoted early, the other flagships last", () => {
+/* Danny's commercial-leads rule (#443 c.6579505156) supersedes the
+   <= $200 lead: the phones people ask for by name open Celulares --
+   iPhone, Galaxy, Pixel, Motorola in turns -- and the no-name budget
+   Androids follow. Inside a brand the sellable-first order holds: the
+   iPhone 18 is the iPhone that leads, the Galaxy A before the S. */
+check("Celulares: iPhone, Galaxy, Pixel and Motorola lead in turns; the no-name budget Androids after; the iPhone 18 first", () => {
   const rows = rowsOf("d-tech_celulares");
   assert.ok(rows.length >= TEMPLATE_RAIL_MIN, `${rows.length} phones`);
-  assert.ok(rows[0][2] <= 200, `leads with ${rows[0][0]} at $${rows[0][2]}`);
-  assert.ok(rows.slice(0, 3).every((r) => r[2] <= 200), rows.slice(0, 3).map((r) => r[0]).join(" / "));
-  const at18 = rows.findIndex((r) => /\biphone\s*18\b/i.test(r[0]));
-  assert.ok(at18 >= 0 && at18 <= 5, `the iPhone 18 at ${at18}`);
-  const flagship = (r) => /\b(iphone|galaxy\s*(s\d+|z)|ultra|fold|flip)\b/i.test(r[0]) && !/\biphone\s*18\b/i.test(r[0]) && !/reacondicionad|refurb|renewed/i.test(r[0]) && r[2] > 200;
-  const firstFlag = rows.findIndex(flagship);
-  if (firstFlag >= 0) assert.ok(rows.slice(firstFlag).every((r) => flagship(r) || /\biphone\s*18\b/i.test(r[0])), "a non-flagship after the flagships");
-  const head = rows.slice(0, 16);
-  assert.ok(head.filter((r) => r[2] <= 200).length >= 8, "the first screen is accessible phones");
+  const ranks = rows.map((r) => phoneKnownRank({ title: r[0], brand: r[1] }));
+  assert.match(rows[0][0], /\biphone\s*18\b/i, `leads with ${rows[0][0]}`);
+  assert.deepEqual(ranks.slice(0, 4), [0, 1, 2, 3], rows.slice(0, 4).map((r) => r[0]).join(" / "));
+  const nn = ranks.indexOf(-1);
+  assert.ok(nn > 0 && ranks.slice(nn).every((k) => k === -1), "a no-name phone before a known brand");
+  /* Inside the Galaxy run the sellable-first order: no S flagship before the cheaper A models. */
+  const galaxy = rows.filter((r, i) => ranks[i] === 1);
+  const firstFlag = galaxy.findIndex((r) => /galaxy\s*(s\d+|z)/i.test(r[0]));
+  if (firstFlag >= 0) assert.ok(galaxy.slice(0, firstFlag).every((r) => !/galaxy\s*(s\d+|z)/i.test(r[0])));
 });
 
 check("the iPhone 18 listings stay (c.6535200469)", () => {

@@ -121,6 +121,19 @@
   .hub-pill{flex:0 0 auto;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:800;color:var(--navy);cursor:pointer;font-family:inherit;white-space:nowrap}
   .hub-pill[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
   .lens{max-width:1240px;margin:8px auto 0;padding:6px 0 10px;border-bottom:1px solid var(--line)}
+  /* A search's type page (?ver=<rail key>, #443 c.6579541628): the type's full listing leads. */
+  .type-lead{max-width:1240px;margin:14px auto 0}
+  .type-lead .tl-head{display:flex;align-items:baseline;gap:10px;padding:0 16px}
+  .type-lead .tl-head h2{font-size:22px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
+  .type-lead .tl-n{font-size:13px;font-weight:700;color:#6B7487;white-space:nowrap}
+  .type-lead .tl-q{padding:2px 16px 0;margin:0;font-size:13px;color:#6B7487}
+  .type-lead .re-grid{padding-top:12px}
+  /* On the type page the hero names the type and stays short: the
+     department's own stats (its whole count, its sales) are not this page's. */
+  body.type-page .hero-in{padding:22px 16px 20px}
+  body.type-page .hero .kicker{margin-bottom:8px}
+  body.type-page .hero h1{margin-bottom:6px}
+  body.type-page .dh-stats{display:none!important}
   .lens-head{display:flex;align-items:baseline;gap:10px;padding:0 20px}
   .lens-head h2{font-size:24px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
   .lens-head a{margin-left:auto;font-size:13px;font-weight:800;color:var(--blue);text-decoration:none;white-space:nowrap}
@@ -497,6 +510,17 @@ html{scroll-padding-top:76px}
     var _rm = /[?&](?:tienda|r)=([a-z0-9]{2,40})(?:&|$)/.exec(window.location.search || '');
     if (_rm) fRet = _rm[1];
   } catch(e){}
+  /* A SEARCH LANDING (#443 c.6579064382, c.6579541628): ?ver=<rail key>
+     opens that type's full listing as the page's lead -- the type page
+     (Celulares, 87 productos) -- and ?ver=tipos opens the department on
+     its types. Either way the department's generic Ofertas rail never
+     leads a search landing: it is not lifted, and not drawn. */
+  var VER = '';
+  try {
+    var _vm = /[?&]ver=([^&]*)/.exec(window.location.search || '');
+    if (_vm) VER = decodeURIComponent(_vm[1].replace(/\+/g, ' ')).slice(0, 80);
+  } catch(e){}
+  var TYPE_KEY = VER && VER !== 'tipos' ? VER : '';
   var SEQ = 0;               // a newer filter wins over an older answer
   var nextBatch = 0;         // the next carousels to append
   var batchBusy = false;
@@ -892,7 +916,7 @@ function cardHTML(c){
     batchBusy = true;
     var seq = SEQ, b = nextBatch;
     var from = HEAD.headRails + b * HEAD.railBatch;
-    var rails = HEAD.rails.slice(from, from + HEAD.railBatch).filter(function(x){ return x.i !== liftedRi; });
+    var rails = HEAD.rails.slice(from, from + HEAD.railBatch).filter(function(x){ return !skipRail(x); });
     var holder = document.createElement('div');
     holder.innerHTML = rails.map(railSecHTML).join('');
     var sentinel = document.getElementById('railsMore');
@@ -921,8 +945,17 @@ function cardHTML(c){
      ride in the head, painted above the search bar instead of among the
      rails. */
   var salesTop = document.getElementById('salesTop'), liftedRi = -1;
+  /* A rail not drawn among the rails: the lifted sales, and on a search
+     landing the Ofertas rail and the type already leading the page. */
+  function isOfertasRail(r){ return r.k === 'ofertas' || /^Ofertas\b/.test(r.title || ''); }
+  function skipRail(r){
+    if (r.i === liftedRi) return true;
+    if (VER && isOfertasRail(r) && HEAD.rails.some(function(x){ return !isOfertasRail(x); })) return true;
+    return !!(TYPE_KEY && TYPE_RI === r.i);
+  }
   function liftSales(first){
     liftedRi = -1;
+    if (VER){ if (salesTop){ salesTop.innerHTML = ''; hide(salesTop); } return first; }
     if (!patterned || !salesTop) return first;
     var r = null;
     for (var i = 0; i < HEAD.rails.length; i++) if (/^Ofertas\b/.test(HEAD.rails[i].title)){ r = HEAD.rails[i]; break; }
@@ -945,10 +978,73 @@ function cardHTML(c){
     }
     return first.filter(function(x){ return x !== r; });
   }
+  /* ---------- THE TYPE PAGE (a search's ?ver=<rail key>) ----------
+     The type's whole rail, 48 cards at a time, right under the hero: its
+     title and count head it (the "Celulares 87" page), the department's
+     other types follow below. A key the head does not carry (a stale
+     link) leaves the department page as it is. */
+  var TYPE_RI = -1, TL = { seq: 0, page: -1, pages: 1, busy: false };
+  var typeLeadEl = null;
+  function findTypeRail(){
+    TYPE_RI = -1;
+    if (!TYPE_KEY || !HEAD) return;
+    for (var i = 0; i < HEAD.rails.length; i++) if (HEAD.rails[i].k === TYPE_KEY && HEAD.rails[i].count > 0){ TYPE_RI = HEAD.rails[i].i; break; }
+  }
+  function renderTypeLead(){
+    if (!TYPE_KEY) return;
+    if (!typeLeadEl){
+      typeLeadEl = document.createElement('section');
+      typeLeadEl.id = 'typeLead'; typeLeadEl.className = 'type-lead';
+      /* Right under the hero and its «También puede ser…» chips. */
+      var at = document.getElementById('deptHero'), tp = document.getElementById('tpRow');
+      if (tp && tp.previousElementSibling === at) at = tp;
+      at.parentNode.insertBefore(typeLeadEl, at.nextSibling);
+    }
+    var r = null;
+    for (var i = 0; i < HEAD.rails.length; i++) if (HEAD.rails[i].i === TYPE_RI) r = HEAD.rails[i];
+    if (!r){ typeLeadEl.innerHTML = ''; hide(typeLeadEl); return; }
+    document.body.classList.add('type-page');
+    document.getElementById('heroKicker').textContent = dept.name;
+    document.getElementById('heroTitle').textContent = r.title;
+    document.getElementById('heroDesc').textContent = 'Precios en soles, de las tiendas de Estados Unidos.';
+    document.title = r.title + ' · ' + dept.name + ' | Aria Shop';
+    typeLeadEl.setAttribute('aria-label', r.title);
+    typeLeadEl.setAttribute('data-k', r.k);
+    typeLeadEl.innerHTML = '<div class="tl-head"><h2>' + esc(r.title) + '</h2><span class="tl-n" id="tlCount">' + Number(r.count).toLocaleString('es-PE') + (r.count === 1 ? ' producto' : ' productos') + '</span></div>'
+      + (fQ.trim() ? '<p class="tl-q">Con «' + esc(fQ.trim()) + '»</p>' : '')
+      + (r.d ? '<p class="rail-note">' + esc(r.d) + '</p>' : '')
+      + '<div class="re-grid" id="tlGrid">' + skeletons(4) + '</div>';
+    show(typeLeadEl);
+    TL = { seq: TL.seq + 1, page: -1, pages: 1, busy: false };
+    moreTypeLead(true);
+  }
+  function moreTypeLead(first){
+    if (TL.busy || TL.page + 1 >= TL.pages || TYPE_RI < 0) return;
+    TL.busy = true;
+    var seq = TL.seq, grid = document.getElementById('tlGrid');
+    getJSON(pageUrl(TYPE_RI, TL.page + 1)).then(function(data){
+      if (seq !== TL.seq || !grid) return;
+      TL.busy = false; TL.page = data.page; TL.pages = data.pages;
+      var wrap = document.getElementById('tlMoreWrap'); if (wrap) wrap.remove();
+      if (first) grid.innerHTML = '';
+      grid.insertAdjacentHTML('beforeend', (data.cards || []).map(cardHTML).join(''));
+      if (TL.page + 1 < TL.pages) grid.insertAdjacentHTML('beforeend', '<div id="tlMoreWrap" class="re-more"><button type="button" class="btn" id="tlMore">Mostrar más</button></div>');
+      watchPhotos(grid);
+    }).catch(function(){
+      if (seq !== TL.seq || !grid) return;
+      TL.busy = false;
+      if (first) grid.innerHTML = '';
+      var wrap = document.getElementById('tlMoreWrap'); if (wrap) wrap.remove();
+      grid.insertAdjacentHTML('beforeend', '<div id="tlMoreWrap" class="re-more"><p>No pudimos cargar los productos.</p><button type="button" class="btn" id="tlMore">Reintentar</button></div>');
+    });
+  }
+  document.addEventListener('click', function(e){
+    if (e.target && e.target.id === 'tlMore'){ var w = document.getElementById('tlMoreWrap'); if (w) w.remove(); moreTypeLead(false); }
+  });
   function renderHead(){
     hide(emptyState); hide(loadingState);
     nextBatch = 0; batchBusy = false;
-    var first = liftSales(HEAD.rails.slice(0, HEAD.headRails));
+    var first = liftSales(HEAD.rails.slice(0, HEAD.headRails)).filter(function(x){ return !skipRail(x); });
     railsEl.innerHTML = first.map(railSecHTML).join('')
       + (HEAD.rails.length > HEAD.headRails ? '<div id="railsMore" class="rails-more"></div>' : '');
     countEl.textContent = HEAD.count ? HEAD.count.toLocaleString('es-PE') + ' productos' : '';
@@ -1024,7 +1120,9 @@ function cardHTML(c){
       }
       show(toolbar);
       renderChips();
+      findTypeRail();
       renderHead();
+      renderTypeLead();
       /* The header (assets/js/dept-header.js): stats, switch, axes, Explorar todo. */
       try { HEAD_HOOKS.forEach(function(fn){ fn(HEAD, filtered()); }); } catch(e){}
       afterFirstPhotos(heroImage);
