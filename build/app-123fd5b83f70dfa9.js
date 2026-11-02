@@ -20799,11 +20799,10 @@ const RETAILERS = {
      apparel are shown, not sold, until a size pass lands (sizesPending).
      No logo file: the name is the badge. Mirrors scripts/lib/retailers.js. */
   snipes:          { key: 'snipes',          label: 'SNIPES',            color: '#000000', logo: null,                   tagline: 'Sneakers y streetwear, cultura de la calle',    kind: 'general', search: false, browse: true },
-  /* DSW (#443) -- built, not launched: `pendingCatalog` keeps it out of
-     activeRetailers() (no tile, rail, door or count) until dsw-catalog.json
-     has products. Black/white are DSW's wordmark colours; no logo file yet
+  /* DSW (#443) -- launched 2026-11-02 from the 2026-11-01 store-sweep
+     delivery (dsw-catalog.json, 171 products); `pendingCatalog` is off. Black/white are DSW's wordmark colours; no logo file yet
      (TODO(dsw-logo)). Mirrors scripts/lib/retailers.js. */
-  dsw:             { key: 'dsw',             label: 'DSW',               color: '#000000', logo: null,                   tagline: 'Zapatos de marca para toda la familia',        kind: 'general', search: false, browse: true, pendingCatalog: true },
+  dsw:             { key: 'dsw',             label: 'DSW',               color: '#000000', logo: null,                   tagline: 'Zapatos de marca para toda la familia',        kind: 'general', search: false, browse: true },
   /* ARIA PERFUMES (#443 item 32): the Perfumes department's own stock,
      priced by Aria (PRE_PRICED). No logo file: the name is the badge. */
   ariaperfumes:    { key: 'ariaperfumes',    label: 'Aria Perfumes',     color: '#0A1F44', logo: null,                   tagline: 'Perfumes originales, de diseñador y de nicho',  kind: 'general', search: false, browse: true },

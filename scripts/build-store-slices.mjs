@@ -150,10 +150,11 @@ export const SLICED_STORES = {
   dsw: {
     file: "dsw-catalog.json",
     label: "DSW",
-    DEPT_ORDER: ["women", "men", "kids", "footwear", "purses"],
+    DEPT_ORDER: ["women", "men", "kids", "footwear", "purses", "accesorios", "peluches"],
     DEPT_LABELS: {
       women: "Zapatos de mujer", men: "Zapatos de hombre", kids: "Zapatos de niños",
       footwear: "Más zapatos", purses: "Carteras y bolsos",
+      accesorios: "Medias y accesorios", peluches: "Peluches",
     },
   },
   /* SNIPES (#443 c.6450358688, pulled 2026-10-27). Danny's order: Ofertas
