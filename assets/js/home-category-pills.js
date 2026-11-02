@@ -22,6 +22,17 @@
    own normalizeLiveItem from the catalogue's US price -- the same soles
    as every other card -- and each opens Aria's product page. A carousel
    the bundle repaints on its own goes back to «Todas».
+
+   OFERTAS (Danny's audit, #443 c.6567197812). Next to «Todas», an
+   «Ofertas» pill filters THAT carousel -- or the active store's rail --
+   to its on-sale items, in place: the build's own <carousel>-ofertas.json
+   / <carousel>-<store>-ofertas.json, sale meaning the site's one rule
+   (/sale-rule.js, the card's -NN% badge). The pill shows only where the
+   view holds at least `omin` (8) sale items; its file loads on the tap.
+
+   AUDIENCE PILLS (Billeteras, Danny c.6567232584): an index entry with
+   `a` carries Mujer / Hombre / Unisex pills instead of stores; each one
+   is a mixed rail that ends on «Ver todo en» its department.
    ============================================================ */
 (function () {
   "use strict";
@@ -88,6 +99,14 @@
     return h;
   }
 
+  /* How many sale items the current view holds (0: no Ofertas pill). */
+  function saleCount(s) {
+    var e = s.entry, min = s.omin || 8, n = 0;
+    if (!e) return 0;
+    if (s.active) { (e.s || []).forEach(function (x) { if (x[0] === s.active) n = Number(x[2]) || 0; }); }
+    else n = Number(e.o) || 0;
+    return n >= min ? n : 0;
+  }
   function paintBar(row) {
     var s = row._hcp, entry = s.entry;
     if (!entry || !entry.s || !entry.s.length) return;
@@ -96,7 +115,7 @@
       bar = document.createElement("div");
       bar.className = "hcp" + (light(row) ? " hcpL" : "");
       bar.setAttribute("role", "tablist");
-      bar.setAttribute("aria-label", "Tiendas de " + entry.t);
+      bar.setAttribute("aria-label", (entry.a ? "Filtra " : "Tiendas de ") + entry.t);
       bar.setAttribute("data-cat-pills-bar", row.getAttribute("data-cat-pills"));
       /* On top of the carousel: above its own type pills when it has them (Electrónica). */
       var sec = row.closest("section"), typeRow = row.hasAttribute("data-pill-rail") && sec ? sec.querySelector("[data-pill-row]") : null;
@@ -106,7 +125,8 @@
       s.bar = bar;
     }
     var a = s.active, labels = (s.labels || {});
-    var h = '<button type="button" role="tab" data-hcp="" aria-selected="' + (!a) + '">Todas</button>';
+    var h = '<button type="button" role="tab" data-hcp="" aria-selected="' + (!a && !s.sale) + '">Todas</button>';
+    if (saleCount(s)) h += '<button type="button" data-hcp-sale aria-pressed="' + (!!s.sale) + '" aria-selected="' + (!!s.sale) + '">Ofertas</button>';
     entry.s.forEach(function (x) {
       h += '<button type="button" role="tab" data-hcp="' + esc(x[0]) + '" aria-selected="' + (a === x[0]) + '">' + esc(labels[x[0]] || x[0]) + "</button>";
     });
@@ -122,7 +142,7 @@
   function paintTodas(row) {
     var k = row.getAttribute("data-cat-pills");
     return file(k + "-todas.json").then(function (d) {
-      if (row._hcp.active) return;
+      if (row._hcp.active || row._hcp.sale) return;
       var html = cardsHTML(row, d);
       var sec = row.closest("section");
       if (!html) { if (sec) sec.hidden = true; return; }
@@ -131,35 +151,54 @@
     });
   }
 
-  function swap(row, store) {
+  /* The view's file: a store's rail, a store's sale rail, the carousel's
+     sale rail, or null for «Todas» (the carousel as the page paints it). */
+  function viewFile(row) {
     var s = row._hcp, k = row.getAttribute("data-cat-pills");
-    if (store === s.active) store = "";
-    if (!store) {
-      if (s.active) {
-        s.active = "";
-        if (s.own) paintTodas(row);
-        else if (s.saved != null) put(row, s.saved);
-        s.saved = null;
-      }
-      paintBar(row);
+    if (s.active) return k + "-" + s.active + (s.sale ? "-ofertas" : "") + ".json";
+    return s.sale ? k + "-ofertas.json" : null;
+  }
+  function render(row) {
+    var s = row._hcp, name = viewFile(row);
+    paintBar(row);
+    if (!name) {
+      if (s.own) paintTodas(row);
+      else if (s.saved != null) put(row, s.saved);
+      s.saved = null;
       return;
     }
-    s.active = store;
-    paintBar(row);
-    file(k + "-" + store + ".json").then(function (d) {
-      if (s.active !== store) return;
+    var want = name;
+    file(name).then(function (d) {
+      if (viewFile(row) !== want) return;
       var html = cardsHTML(row, d);
-      if (!html) { swap(row, ""); return; }
+      if (!html) { s.active = ""; s.sale = false; render(row); return; }
       if (!s.own && s.saved == null) s.saved = row.innerHTML;
       put(row, html);
     });
   }
+  function swap(row, store) {
+    var s = row._hcp;
+    /* «Todas» puts the carousel back as it was (no store, no filter). */
+    if (!store) { if (!s.active && !s.sale) return; s.active = ""; s.sale = false; render(row); return; }
+    if (store === s.active) store = "";
+    s.active = store;
+    /* Ofertas stays on while the new view has enough sale items. */
+    if (s.sale && !saleCount(s)) s.sale = false;
+    render(row);
+  }
+  function toggleSale(row) {
+    var s = row._hcp;
+    s.sale = !s.sale && !!saleCount(s);
+    render(row);
+  }
 
   document.addEventListener("click", function (e) {
-    var b = e.target && e.target.closest && e.target.closest(".hcp button[data-hcp]");
+    var b = e.target && e.target.closest && e.target.closest(".hcp button[data-hcp], .hcp button[data-hcp-sale]");
     if (!b) return;
     var row = b.parentNode._row;
-    if (row && row._hcp) swap(row, b.getAttribute("data-hcp"));
+    if (!row || !row._hcp) return;
+    if (b.hasAttribute("data-hcp-sale")) toggleSale(row);
+    else swap(row, b.getAttribute("data-hcp"));
   });
 
   function load(row) {
@@ -172,8 +211,9 @@
       if (!entry) { if (s.own) { var sec = row.closest("section"); if (sec) sec.hidden = true; } return; }
       s.entry = entry;
       s.labels = ix.labels || {};
+      s.omin = Number(ix.omin) || 8;
       paintBar(row);
-      if (s.own && !s.active) paintTodas(row);
+      if (s.own && !s.active && !s.sale) paintTodas(row);
     });
   }
   var io = "IntersectionObserver" in window ? new IntersectionObserver(function (es) {
@@ -181,7 +221,7 @@
   }, { rootMargin: "400px 0px" }) : null;
   function watch(row) {
     if (row._hcp) return;
-    row._hcp = { active: "", saved: null, own: row.hasAttribute("data-cat-pills-own"), self: false };
+    row._hcp = { active: "", sale: false, saved: null, own: row.hasAttribute("data-cat-pills-own"), self: false };
     if (row._hcp.own && !row.children.length && typeof railSkeletonHTML === "function") {
       try { row._hcp.self = true; row.innerHTML = railSkeletonHTML(4, "flex-shrink-0 w-[172px]"); } catch (e) {}
     }
@@ -190,7 +230,7 @@
     new MutationObserver(function () {
       var s = row._hcp;
       if (s.self) { s.self = false; return; }
-      if (s.active && !s.own) { s.active = ""; s.saved = null; paintBar(row); }
+      if ((s.active || s.sale) && !s.own) { s.active = ""; s.sale = false; s.saved = null; paintBar(row); }
     }).observe(row, { childList: true });
     if (io) io.observe(row); else load(row);
   }

@@ -79,6 +79,11 @@
     statebags: { feeUsd: 11.5, freeOverUsd: 200, source: 'Lucifer, #443 c.6524139671' },
     ulta: { feeUsd: 6.95, freeOverUsd: 35, source: 'Lucifer, #443 c.6524139671' },
     target: { feeUsd: 5.99, freeOverUsd: 35, source: 'Lucifer, #443 c.6524139671' },
+    /* ARIA PERFUMES (#443 c.6568051694, Danny: "anything over $49 is free... we're the
+       wholesalers"): its stock ships from FragranceX, whose own customer-service page
+       reads "Standard Ground (USA) FREE for orders over $49.00, otherwise shipping is
+       $6.95. Arrives in 2 - 5 business days." */
+    ariaperfumes: { feeUsd: 6.95, freeOverUsd: 49, source: 'FragranceX, fragrancex.com/customerservice/customerservice.html (#443 c.6568051694)', basis: 'Standard Ground USA, 2 a 5 días hábiles', meterOnShopperPrice: true },
     walmart: { feeUsd: 6.99, freeOverUsd: 35, source: 'Lucifer, #443 c.6524139671', basis: 'observado en carrito de Miami' },
     bananarepublic: { feeUsd: 7.5, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671' },
     tatami: { feeUsd: 29, freeOverUsd: null, source: 'Lucifer, #443 c.6524139671', note: 'envío desde el Reino Unido' },
@@ -157,6 +162,15 @@
   function storeValueOf(line, taxRateOf) {
     if (!line || typeof line !== 'object' || line.lineType === 'bundle-discount') return 0;
     var qty = Math.max(1, Math.round(Number(line.qty) || 1));
+    /* OUR OWN SHELF (Aria Perfumes): the store's price is Aria's wholesale
+       cost, never shown or measured in public. Its free-shipping line is
+       measured on the price the shopper sees (Aria absorbs the store fee
+       when the two disagree), so the meter never prints a cost. */
+    var own = STORE_SHIPPING[keyOf(line.retailer)];
+    if (own && own.meterOnShopperPrice) {
+      var p = Number(line.priceUsd);
+      return p > 0 ? r2(p) * qty : 0;
+    }
     var d = Number(line.dutiableUsd);
     if (!(d > 0)) return 0;
     var rate = Number((typeof taxRateOf === 'function' ? taxRateOf : salesTaxRateOf)(line.retailer));

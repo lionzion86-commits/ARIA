@@ -29,7 +29,8 @@
      npm i --no-save playwright
      node scripts/build-home-shelves.mjs
    node scripts/build-home-shelves.mjs --truth  re-applies only the
-   category-truth rails (Aria Fight Club, Deportes) to category.json.
+   category-truth rails (Deportes) and the pill carousels' «Todas»
+   rails (pillDefaults, below) to category.json and joyas.json.
    PLAYWRIGHT_CHROMIUM=<path> uses an installed Chromium.
    scripts/test/home-shelves-tests.mjs fails when a shelf shows a
    product the catalogues no longer carry.
@@ -39,7 +40,7 @@ import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, rmSync, r
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
-import { FIGHT_GEAR_CLASSES } from "./build-home-category-pills.mjs";
+import { FIGHT_GEAR_CLASSES, buildCategoryPills, defaultRails } from "./build-home-category-pills.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const SHELVES_DIR = "assets/home/shelves";
@@ -160,6 +161,9 @@ export async function snapshotShelves() {
     });
     /* The category-truth rails replace the page's own pick (see truthGroups). */
     Object.assign(snap.category, truth);
+    /* ...and every pill carousel's «Todas» is the pill build's mix (pillDefaults). */
+    const pills = await pillDefaults(page);
+    for (const [k, list] of Object.entries(pills)) { if (k === "joyas") snap.joyas = list; else snap.category[k] = list; }
     return snap;
   } finally {
     await browser.close();
@@ -223,6 +227,56 @@ export async function truthRails(page, groups) {
   }, groups);
 }
 
+/* EVERY «TODAS» IS A MIX, AND IT LEADS RIGHT (Danny's audit, #443
+   c.6567120876, c.6567135924, c.6567197812). The default rail of each
+   homepage carousel that carries store pills -- what «Todas» shows -- is
+   the pill build's own mix (scripts/build-home-category-pills.mjs
+   defaultRails): the lead store first (Lencería: Victoria's Secret, a
+   bra; Tallas Plus: Lane Bryant; Fight Club: Venum gloves then Tatami
+   gis), then one card per store in pill order, never a sock or an
+   accessory in front, nothing outside the category (no socks in
+   Lencería, no straps in Lentes, no belts, toys or wallets in Joyas).
+   The page prices each card itself: the catalogue record from its own
+   pool (poolForRetailers), or -- for a feed rail, as the page's own
+   ropaInteriorRailPicks does -- normalizeLiveItem on the feed's row.
+   Membership is the pill build's (the department data, as on every
+   pill); Tallas Plus also keeps its page test (railHasExtendedSizes:
+   every card carries a plus size). */
+export async function pillDefaults(page, root = ROOT) {
+  const specs = defaultRails(buildCategoryPills(root));
+  return page.evaluate(async (specs) => {
+    const out = {};
+    for (const [rail, spec] of Object.entries(specs)) {
+      const cat = CATEGORY_RAILS.find((c) => c.key === rail) || {};
+      const max = rail === "joyas" ? 30 : CATEGORY_RAIL_TOTAL;
+      const stores = [...new Set(spec.cards.map((c) => c.retailer))];
+      const pool = spec.feed ? [] : await poolForRetailers(stores);
+      const byKey = new Map(pool.map((p) => [`${String(p.retailer || "").toLowerCase()}::${p.title}`, p]));
+      const picks = [], seen = new Set();
+      for (const c of spec.cards) {
+        if (picks.length >= max) break;
+        const key = c.retailer + "::" + c.title;
+        if (seen.has(key)) continue;
+        let it = byKey.get(key) || null;
+        if (it) it = { ...it, retailer: c.retailer };
+        else {
+          try {
+            it = normalizeLiveItem({ title: c.title, brand: c.brand, price: c.price, originalPrice: c.originalPrice, onSale: Number(c.originalPrice) > Number(c.price), image: c.image },
+              { retailer: c.retailer, department: spec.dept });
+          } catch (e) { it = null; }
+          if (it) it = { ...it, retailer: c.retailer, departments: [spec.dept] };
+        }
+        if (!it || !it.title || !(Number(it.price) > 0) || !hasRealImage(it)) continue;
+        if (spec.pageTest && cat.test && !cat.test(it)) continue;
+        seen.add(key);
+        picks.push(it);
+      }
+      out[rail] = picks;
+    }
+    return out;
+  }, specs);
+}
+
 /* `--truth`: re-apply only the category-truth rails to the committed
    category.json (no full snapshot): the page computes them from the
    catalogues, as above. */
@@ -239,10 +293,17 @@ export async function applyCategoryTruth(root = ROOT) {
     await page.goto(base + "/", { waitUntil: "load" });
     await page.waitForFunction(() => typeof poolForRetailers === "function" && typeof categoryRailPicks === "function", null, { timeout: 60000 });
     const rails = await truthRails(page, truthGroups(root));
+    const pills = await pillDefaults(page, root);
     const file = join(root, SHELVES_DIR, "category.json");
     const body = JSON.parse(readFileSync(file, "utf8"));
     for (const [k, list] of Object.entries(rails)) body.rails[k] = list.map(cardOf);
+    for (const [k, list] of Object.entries(pills)) if (k !== "joyas") body.rails[k] = list.map(cardOf);
     writeFileSync(file, JSON.stringify(body));
+    if (pills.joyas) {
+      writeFileSync(join(root, SHELVES_DIR, "joyas.json"), JSON.stringify({ picks: pills.joyas.map(cardOf) }));
+      rails.joyas = pills.joyas;
+    }
+    Object.assign(rails, Object.fromEntries(Object.entries(pills).filter(([k]) => k !== "joyas")));
     stampHomePhotos(root, [SHELVES_DIR]);
     return Object.fromEntries(Object.entries(rails).map(([k, l]) => [k, l.length]));
   } finally {
