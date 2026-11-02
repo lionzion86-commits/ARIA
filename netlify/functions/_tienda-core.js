@@ -21,6 +21,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle } from "../../scripts/lib/condition.js";
+import { loadDept, typeKeyOf } from "./_department-core.js";
 
 export const PAGE_SIZE = 48;
 export const FN_DIR = "assets/tienda/_fn";
@@ -120,11 +121,101 @@ export function loadStore(key, roots = CANDIDATES) {
   return null;
 }
 
-/* One answer: a page of a rail, or a page of the filtered grid. */
+/* ---------- THE STORE'S RAILED VIEW (#443, Danny: "never a side-by-side grid") ----------
+   A search narrowed to one store (tienda.html?tienda=ccs&q=alien), a
+   chip, or a carousel's «Ver todo» is carousels, never a grid: the set's
+   sales first (when only some of it is on sale), then one carousel per
+   product type, the biggest first, «Más productos» last. A product's type
+   is the finest the data states: the store page's own sub-carousel
+   (Tops y blusas), else the department's vetted Spanish type (Skateboards,
+   Decks), else the store page's carousel (Maquillaje). ?group=1 answers
+   the carousels' first cards; &gk=<key>&page=<n> one carousel's pages. */
+export const GROUP_CARDS = 12;
+const deptTypeCache = new Map();
+function deptTypes(dept, roots) {
+  if (deptTypeCache.has(dept)) return deptTypeCache.get(dept);
+  const m = new Map();
+  try {
+    const d = loadDept(dept, roots);
+    if (d) for (const p of d.list) { const k = p.retailer + "\u0000" + p.title; if (m.has(k)) continue; const t = typeKeyOf(p); if (t.k !== "otros") m.set(k, t.label); }
+  } catch { /* no department file beside the function: the store's own aisles */ }
+  deptTypeCache.set(dept, m);
+  return m;
+}
+const taxCache = new Map();
+/* row index -> [finest store-page carousel title, is it a sub-carousel]. */
+function storeAisles(s, roots) {
+  if (taxCache.has(s.store)) return taxCache.get(s.store);
+  const out = new Map();
+  for (const dir of roots || CANDIDATES) {
+    const p = join(dir, "assets/tienda", s.store, "index.json");
+    try {
+      if (!existsSync(p)) continue;
+      const ix = JSON.parse(readFileSync(p, "utf8"));
+      const titles = new Map();
+      for (const r of ix.rails || []) {
+        if (!/^t-/.test(r.key || "")) continue;
+        titles.set(r.key, [r.title, false]);
+        for (const sub of r.subs || []) titles.set(sub.k, [sub.t, true]);
+      }
+      for (const [key, idx] of Object.entries(s.rails || {})) {
+        const t = titles.get(key);
+        if (!t) continue;
+        for (const i of idx) { const had = out.get(i); if (!had || (t[1] && !had[1])) out.set(i, t); }
+      }
+      break;
+    } catch { /* try the next */ }
+  }
+  taxCache.set(s.store, out);
+  return out;
+}
+/* The department's labels title-case every word («Stickers Y Decoración»):
+   the small words read as Spanish writes them. */
+const SMALL_WORDS_RX = / (Y|E|O|De|Del|La|Las|Los|El|Para|Con|En|Sin|Por)(?=[ )])/g;
+export const tidyLabel = (t) => String(t || "").replace(SMALL_WORDS_RX, (m) => m.toLowerCase()).replace(/\((\p{Ll})/u, (m) => m);
+const slugOf = (t) => foldText(t).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "otros";
+export function typeOfRow(s, r, i, roots) {
+  const aisle = storeAisles(s, roots).get(i);
+  if (aisle && aisle[1]) return aisle[0];
+  const t = r[6] ? deptTypes(r[6], roots).get(s.store + "\u0000" + r[0]) : "";
+  if (t) return tidyLabel(t);
+  if (aisle && !/^Más\b/.test(aisle[0])) return aisle[0];
+  return "Más productos";
+}
+export function groupsOf(s, list, roots) {
+  const index = s._rowIndex || (s._rowIndex = new Map((s.rows || []).map((r, i) => [r, i])));
+  const groups = new Map();
+  for (const r of list) {
+    const t = typeOfRow(s, r, index.get(r), roots), k = slugOf(t);
+    if (!groups.has(k)) groups.set(k, { k, t, rows: [] });
+    groups.get(k).rows.push(r);
+  }
+  let out = [...groups.values()];
+  /* A type with one or two products joins «Más productos». */
+  if (out.length > 1) {
+    const small = out.filter((g) => g.rows.length < 3 || g.k === "mas-productos");
+    if (small.length && small.length < out.length) {
+      out = out.filter((g) => !small.includes(g));
+      out.push({ k: "mas-productos", t: "Más productos", rows: list.filter((r) => small.some((g) => g.rows.includes(r))) });
+    }
+  }
+  out.sort((a, b) => ((a.k === "mas-productos") - (b.k === "mas-productos")) || (b.rows.length - a.rows.length) || (a.t < b.t ? -1 : 1));
+  const sales = list.filter((r) => r[4] > 0);
+  if (sales.length && sales.length < list.length) out.unshift({ k: "ofertas", t: "Ofertas", rows: sales.slice().sort(saleCompare) });
+  return out;
+}
+
+/* One answer: a page of a rail, the store's railed view, or a page of the filtered set. */
 export function answer(qs, roots) {
   const s = loadStore(qs.store, roots);
   if (!s) return { status: 404, body: { error: "Tienda no encontrada." } };
   const rows = s.rows || [];
+  const grouped = qs.group !== undefined && qs.group !== "";
+  if (qs.rail !== undefined && qs.rail !== "" && grouped) {
+    const idx = (s.rails || {})[String(qs.rail)];
+    if (!idx) return { status: 404, body: { error: "Sin más productos." } };
+    return groupedAnswer(s, idx.map((i) => rows[i]), qs, roots, { rail: String(qs.rail) });
+  }
   if (qs.rail !== undefined && qs.rail !== "") {
     const idx = (s.rails || {})[String(qs.rail)];
     if (!idx) return { status: 404, body: { error: "Sin más productos." } };
@@ -137,5 +228,17 @@ export function answer(qs, roots) {
   if (d || g || c) list = list.filter((r) => (!d || r[6] === d) && (!g || r[7] === g) && (!c || r[8] === c));
   if (q) list = searchRows(list, q);
   list = sortRows(list, sort);
+  if (grouped) return groupedAnswer(s, list, qs, roots, { d, g, c, q, sort });
   return { status: 200, body: { store: s.store, d, g, c, q, sort, ...pageOf(list, qs.page) } };
+}
+function groupedAnswer(s, list, qs, roots, echo) {
+  const groups = groupsOf(s, list, roots);
+  const gk = String(qs.gk || "").slice(0, 40);
+  if (gk) {
+    const g = groups.find((x) => x.k === gk);
+    if (!g) return { status: 404, body: { error: "Sin más productos." } };
+    return { status: 200, body: { store: s.store, ...echo, gk, title: g.t, ...pageOf(g.rows, qs.page) } };
+  }
+  return { status: 200, body: { store: s.store, ...echo, total: list.length,
+    groups: groups.map((g) => ({ k: g.k, t: g.t, n: g.rows.length, items: g.rows.slice(0, GROUP_CARDS).map(cardOfRow) })) } };
 }

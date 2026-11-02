@@ -168,7 +168,7 @@
 # menu from each store's full card list. Built by
 # scripts/build-store-slices.mjs. The phone never downloads it.
 [functions."tienda"]
-  included_files = ["assets/tienda/_fn/*.json"]
+  included_files = ["assets/tienda/_fn/*.json", "assets/tienda/*/index.json", "assets/sections/departamento/_fn/*.json"]
 
 # hidden-docs/ (#443): internal briefs and the blank Amex template live in
 # the repo for the build, not on the site. Forced so a published copy is
