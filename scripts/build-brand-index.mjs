@@ -152,13 +152,14 @@ export function staticBrands(items) {
 
 /* Old slugs -> the brand's key: the pre-2026-11-02 key of each spelling
    ("maisonkitsun") and each spelling's plain key ("herschelsupply"),
-   where that is not itself a brand. */
-export function brandAliases(items) {
+   where that is not itself a brand. spellingsOnly: the plain keys alone
+   (search's brand names: a shopper types "herschel supply"). */
+export function brandAliases(items, { spellingsOnly = false } = {}) {
   const keys = new Set(items.map((p) => p.brandKey).filter(Boolean));
   const out = {};
   for (const p of items) {
     if (!p.brandKey) continue;
-    for (const a of [legacyKeyOf(p.brand), plainKey(p.brand)]) {
+    for (const a of spellingsOnly ? [plainKey(p.brand)] : [legacyKeyOf(p.brand), plainKey(p.brand)]) {
       if (a && a !== p.brandKey && !keys.has(a) && !(a in out)) out[a] = p.brandKey;
     }
   }
@@ -172,7 +173,7 @@ export function build(root = ROOT) {
   mkdirSync(join(root, OUT_DIR, "_fn"), { recursive: true });
   const labels = {};
   for (const p of items) if (ALL_LABELS[p.retailer]) labels[p.retailer] = ALL_LABELS[p.retailer];
-  writeFileSync(join(root, FN_FILE), JSON.stringify({ v: 1, labels, aliases: brandAliases(items), rows: items.map(fnRow) }));
+  writeFileSync(join(root, FN_FILE), JSON.stringify({ v: 1, labels, aliases: brandAliases(items), spellings: brandAliases(items, { spellingsOnly: true }), rows: items.map(fnRow) }));
   const keys = staticBrands(items);
   const byKey = new Map();
   for (const p of items) { if (!byKey.has(p.brandKey)) byKey.set(p.brandKey, []); byKey.get(p.brandKey).push(p); }

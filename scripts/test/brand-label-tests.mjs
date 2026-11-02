@@ -80,7 +80,7 @@ await check("accents keep their letter: maisonkitsune, chloe, lancome, alaia, lo
 });
 
 await check("a company or board-shop suffix is the same brand (Vuori, Inc. / Herschel Supply / Spitfire Skateboard Wheels)", async () => {
-  for (const [label, key] of [["Vuori, Inc.", "vuori"], ["Herschel Supply", "herschel"], ["Spitfire Skateboard Wheels", "spitfire"], ["Energizer Holdings. Inc", "energizer"], ["Baker Skateboards", "baker"]]) {
+  for (const [label, key] of [["Vuori, Inc.", "vuori"], ["Herschel Supply", "herschel"], ["Spitfire Skateboard Wheels", "spitfire"], ["Energizer Holdings. Inc", "energizer"], ["Baker Skateboards", "baker"], ["Independent Truck Co", "independent"], ["Style & Co", "styleco"], ["Style&Co.", "styleco"]]) {
     assert.equal(brandKeyOf(label), key);
   }
   assert.equal(brandKeyOf("Boards"), "boards", "a brand that is only the suffix keeps its name");
@@ -91,7 +91,7 @@ await check("marca.html makes the same key as the endpoint", () => {
   const page = readFileSync(ROOT + "marca.html", "utf8");
   const src = /function brandKeyOf\(label\)\{[\s\S]*?\n\}/.exec(page)[0];
   const pageKey = new Function(src + "; return brandKeyOf;")();
-  for (const l of ["Maison Kitsuné", "L'Oréal Paris", "ALAÏA", "Vuori, Inc.", "Comme des Garçons PLAY", "Hot Wheels", "Play-Doh", "LEGO", "Herschel Supply Co."]) assert.equal(pageKey(l), brandKeyOf(l), l);
+  for (const l of ["Maison Kitsuné", "L'Oréal Paris", "ALAÏA", "Vuori, Inc.", "Comme des Garçons PLAY", "Hot Wheels", "Play-Doh", "LEGO", "Herschel Supply Co.", "Style & Co", "Independent Truck Co"]) assert.equal(pageKey(l), brandKeyOf(l), l);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

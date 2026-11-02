@@ -421,7 +421,7 @@ function brandKeyOf(label){
   var s = String(label == null ? "" : label).trim(), prev;
   do {
     prev = s;
-    var t = s.replace(/[\s,.]+(inc|llc|ltd|co|corp|holdings)[.\s]*$/i, "").replace(/\s+(skateboards?(\s+(trucks|wheels|co))?|surfboards|boards|supply(\s+co)?)[.\s]*$/i, "").trim();
+    var t = (/&\s*co[.\s]*$/i.test(s) ? s : s.replace(/[\s,.]+(inc|llc|ltd|co|corp|holdings)[.\s]*$/i, "")).replace(/\s+(skateboards?(\s+(trucks|wheels|co))?|trucks?|surfboards|boards|supply(\s+co)?)[.\s]*$/i, "").trim();
     if (/[a-z0-9\u00c0-\u024f]/i.test(t)) s = t;
   } while (s !== prev);
   s = s.toLowerCase();

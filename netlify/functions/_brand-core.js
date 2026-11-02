@@ -65,10 +65,10 @@ export const PRODUCT_TYPES = [
 
 /* A company suffix, then a board-shop one, read off the end of a label. */
 const CORP_SUFFIX_RX = /[\s,.]+(inc|llc|ltd|co|corp|holdings)[.\s]*$/i;
-const SHOP_SUFFIX_RX = /\s+(skateboards?(\s+(trucks|wheels|co))?|surfboards|boards|supply(\s+co)?)[.\s]*$/i;
+const SHOP_SUFFIX_RX = /\s+(skateboards?(\s+(trucks|wheels|co))?|trucks?|surfboards|boards|supply(\s+co)?)[.\s]*$/i;
 export function brandName(label) {
   let s = String(label == null ? "" : label).trim(), prev;
-  do { prev = s; const t = s.replace(CORP_SUFFIX_RX, "").replace(SHOP_SUFFIX_RX, "").trim(); if (/[\p{L}\p{N}]/u.test(t)) s = t; } while (s !== prev);
+  do { prev = s; const t = (/&\s*co[.\s]*$/i.test(s) ? s : s.replace(CORP_SUFFIX_RX, "")).replace(SHOP_SUFFIX_RX, "").trim(); if (/[\p{L}\p{N}]/u.test(t)) s = t; } while (s !== prev);
   return s;
 }
 /* The plain key of a spelling: lower case, accents folded, letters and digits. */

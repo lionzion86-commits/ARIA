@@ -111,6 +111,12 @@ export const CATALOG_FILES = [
   "carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "perfumes-catalog.json",
+  /* Gap and Banana Republic (#443 c.6585655315): their storefronts read
+     these; search only had their sale-feed rows (276 and 358 of 526 and
+     824) and the brand pages none, so Gap (281 in search) had no brand
+     landing. Every file a storefront reads is here
+     (scripts/test/catalog-parity-tests.mjs). */
+  "gap-catalog.json", "bananarepublic-catalog.json",
 ];
 export function catalogFiles() { return CATALOG_FILES.slice(); }
 

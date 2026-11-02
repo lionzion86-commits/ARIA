@@ -201,6 +201,8 @@ export function destinations(ctx, read = readRepoFile) {
   for (const [k, [label]] of Object.entries(D.brands)) {
     for (const n of [k, nameKey(label)]) if (n.length >= 2 && !D.brandNames.has(n)) D.brandNames.set(n, k);
   }
+  /* Other spellings of a brand ("herschel supply", "vuori inc"). */
+  for (const [a, k] of Object.entries(raw.brandAliases || {})) if (D.brands[k] && a.length >= 2 && !D.brandNames.has(a)) D.brandNames.set(a, k);
   /* Category words: concept -> [dept, lens] (only departments that exist). */
   const vocab = new Map();
   const put = (w, v) => { const k = spaced(w); if (k && v && D.depts[v[0]] && !vocab.has(k)) vocab.set(k, v); };
