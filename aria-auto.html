@@ -232,10 +232,12 @@
   @supports not (aspect-ratio:4/5){ .card .card-img{padding-top:125%} }
   .card .card-title{font-size:14.5px}
 </style>
+<script src="/import-tax.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
 <script src="/assets/js/pixels.js" async></script>
+<script src="/assets/js/carousel-desk.js" defer></script>
 </head>
 <body>
 
@@ -676,6 +678,9 @@ function sizedImageUrl(url, w){
       + '<div class="card-brand">' + (c.b ? esc(c.b) : '&nbsp;') + '</div>'
       + '<h3 class="card-title">' + esc(c.t) + '</h3>'
       + '<div class="price" data-usd="' + (isFinite(price) ? price : '') + '"' + (was > price ? ' data-was="' + was + '"' : '') + '>' + priceInner(price, was) + '</div>'
+      /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+         the arithmetic checkout charges; nothing under $200 of goods. */
+      + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: c.p, retailer: c.r, title: c.t }) : '')
       + '</div></a>';
   }
   function fmtCount(n){ try { return new Intl.NumberFormat('es-PE').format(n); } catch(e){ return String(n); } }
@@ -1057,6 +1062,9 @@ function partCard(it, vehicle, fitted){
       '<p class="ppart">' + (pn ? 'N.º de parte: ' + esc(pn) : '&nbsp;') + '</p>' +
       (ok
         ? '<div class="pprice"><b>' + fmtPEN(usd * rateNow()) + '</b><small>' + fmtUSD(usd) + '</small></div>'
+          /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+             the arithmetic checkout charges; nothing under $200 of goods. */
+          + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: it.u, retailer: it.s || 'autozone', title: it.t }) : '')
         : '<div class="pprice"><b class="na">Precio no disponible</b><small>&nbsp;</small></div>') +
       fit +
       '<button class="addbtn" type="button" data-add="' + i + '"' + (ok ? '' : ' disabled') + '>Agregar al carrito</button>' +

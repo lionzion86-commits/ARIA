@@ -7,6 +7,7 @@
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/off-sale.js"></script>
 <meta name="description" content="Compra en tiendas de Estados Unidos con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
@@ -264,6 +265,7 @@ html.store-flagship .state h2{color:#E7C873}
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
+<script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
@@ -792,6 +794,13 @@ function normItem(raw, deptKey){
 var GENDER_LABELS = { womens: 'Mujer', women: 'Mujer', 'for her': 'Mujer',
                       mens: 'Hombre', men: 'Hombre', 'for him': 'Hombre', unisex: 'Unisex' };
 var GENDER_ORDER = ['Mujer', 'Hombre', 'Unisex'];
+/* The moms catalogue's types are codes ("ALIMENTACION", "HABITACION_BEBE"):
+   each reads as its Spanish name, the one the department page shows
+   (scripts/lib/moms-truth.js MOMS_TYPE_LABELS), never "ALIMENTACIONs". */
+var MOMS_TYPE_LABELS = { ALIMENTACION: 'Biberones y alimentación del bebé', LACTANCIA: 'Lactancia', MATERNIDAD: 'Maternidad',
+  COCHE: 'Coche', HABITACION_BEBE: 'Habitación del bebé', PANALES: 'Pañales', AUTOASIENTO: 'Autoasiento',
+  SILLA_DE_COMER: 'Silla de comer', PORTABEBE: 'Portabebe', BANO_BEBE: 'Baño del bebé', CHUPETES: 'Chupetes y mordedores',
+  CUIDADO_BEBE: 'Cuidado del bebé', ROPA_BEBE: 'Ropa de bebé', JUGUETES_BEBE: 'Juguetes' };
 var FACET_MIN = 5;  /* a category pill needs this many products; smaller ones stay under Todo */
 /* A facet is filtered by its key but shown in words: "BOXING_GLOVES"
    reads "Boxing gloves" (2026-10-13, F-NB-CHIP). */
@@ -803,6 +812,7 @@ function facetLabel(cat){
 function typeFacets(type){
   var t = String(type || '').trim();
   if (!t) return { gender: '', cat: '' };
+  if (Object.prototype.hasOwnProperty.call(MOMS_TYPE_LABELS, t)) return { gender: '', cat: MOMS_TYPE_LABELS[t] };
   if (t.indexOf('>') >= 0){
     var seg = t.split('>').map(function(x){ return x.trim(); });
     return { gender: GENDER_LABELS[seg[0].toLowerCase()] || '', cat: seg[2] || '' };
@@ -951,7 +961,10 @@ function fmtPen(n){
 function slPriceHTML(p){
   var f = finalUsd(p.price, storeKey);
   var wasF = p.was && p.was > p.price ? finalUsd(p.was, storeKey) : 0;
-  return '<div class="card-prices" data-usd="' + esc(f) + '" data-was="' + esc(wasF || '') + '">' + slPriceInner(f, wasF) + '</div>';
+  return '<div class="card-prices" data-usd="' + esc(f) + '" data-was="' + esc(wasF || '') + '">' + slPriceInner(f, wasF) + '</div>'
+    /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+       the arithmetic checkout charges; nothing under $200 of goods. */
+    + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: p.price, retailer: storeKey, title: p.name }) : '');
 }
 function slPriceInner(f, wasF){
   if (!isFinite(f)) return '<div class="pen">Precio no disponible</div><div class="usd">&nbsp;</div>';

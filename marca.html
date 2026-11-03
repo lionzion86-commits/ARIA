@@ -125,6 +125,7 @@ footer a{color:#fff;}
 .card .body{padding:14px 16px 16px;}
 </style>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -132,6 +133,7 @@ footer a{color:#fff;}
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
+<script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
@@ -643,6 +645,9 @@ function cardHTML(c){
       '<div class="name">' + esc(shownTitle(c.t)) + "</div>" +
       '<div class="retailer">' + (c.r ? 'Vendido por ' + esc(storeLabel(c.r)) : "&nbsp;") + "</div>" +
       '<div class="price" data-usd="' + f + '"' + (was > f ? ' data-was="' + was + '"' : '') + '>' + priceInner(f, was) + "</div>" +
+      /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+         the arithmetic checkout charges; nothing under $200 of goods. */
+      (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: c.p, retailer: c.r, title: c.t }) : '') +
     "</div></a>";
 }
 var SKELETON = '<div class="card sk" aria-hidden="true"><div class="img"></div><div class="body">' +
