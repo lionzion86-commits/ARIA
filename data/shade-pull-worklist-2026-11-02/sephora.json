@@ -1,96 +1,6 @@
 [
  {
   "store": "sephora",
-  "title": "All Nighter Waterproof Setting Powder",
-  "brand": "Urban Decay",
-  "url": "https://www.sephora.com/product/all-nighter-waterproof-setting-powder-P431455?skuId=2081404",
-  "ariaId": "knb5b7u58al5",
-  "ariaUrl": "/producto.html?producto=All%20Nighter%20Waterproof%20Setting%20Powder&tienda=sephora",
-  "category": "setting powder"
- },
- {
-  "store": "sephora",
-  "title": "Backstage Face & Body Foundation",
-  "brand": "DIOR",
-  "url": "https://www.sephora.com/product/backstage-face-body-foundation-P432500?skuId=2669539",
-  "ariaId": "1bpr8hqpou3gc",
-  "ariaUrl": "/producto.html?producto=Backstage%20Face%20%26%20Body%20Foundation&tienda=sephora",
-  "category": "foundation"
- },
- {
-  "store": "sephora",
-  "title": "Berry Brown'd Pout Lip Liner + Gloss Stick Duo",
-  "brand": "Fenty Beauty by Rihanna",
-  "url": "https://www.sephora.com/product/berry-brownd-pout-lip-liner-gloss-stick-duo-P525549?skuId=3013372",
-  "ariaId": "1v2rfmzhgj6mx",
-  "ariaUrl": "/producto.html?producto=Berry%20Brown'd%20Pout%20Lip%20Liner%20%2B%20Gloss%20Stick%20Duo&tienda=sephora",
-  "category": "lip liner"
- },
- {
-  "store": "sephora",
-  "title": "Better Than Sex Volumizing & Lengthening Waterproof Mascara",
-  "brand": "Too Faced",
-  "url": "https://www.sephora.com/product/better-than-sex-waterproof-mascara-P407908?skuId=1809193",
-  "ariaId": "neevu91uv6urn",
-  "ariaUrl": "/producto.html?producto=Better%20Than%20Sex%20Volumizing%20%26%20Lengthening%20Waterproof%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "big ego™ lifting & volumizing mascara",
-  "brand": "tarte",
-  "url": "https://www.sephora.com/product/big-ego-mascara-P444433?skuId=2234326",
-  "ariaId": "1hqb1m7h7td7p",
-  "ariaUrl": "/producto.html?producto=big%20ego%E2%84%A2%20lifting%20%26%20volumizing%20mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Caution™ Extreme Lash Mascara",
-  "brand": "Hourglass",
-  "url": "https://www.sephora.com/product/caution-extreme-lash-mascara-P433809?skuId=2087666",
-  "ariaId": "10yj85cc0d0wy",
-  "ariaUrl": "/producto.html?producto=Caution%E2%84%A2%20Extreme%20Lash%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "CC Red Correct Green Color-Corrector SPF 25 to Cover Redness, with Korean Centella Asiatica Extract",
-  "brand": "Erborian",
-  "url": "https://www.sephora.com/product/cc-red-correct-green-color-corrector-spf-25-to-cover-redness-with-korean-centella-asiatica-extract-P521602?skuId=2967339",
-  "ariaId": "cp9onq19ip2hs",
-  "ariaUrl": "/producto.html?producto=CC%20Red%20Correct%20Green%20Color-Corrector%20SPF%2025%20to%20Cover%20Redness%2C%20with%20Korean%20Centella%20Asiatica%20Extract&tienda=sephora",
-  "category": "corrector"
- },
- {
-  "store": "sephora",
-  "title": "CC+ Cream Natural Matte Foundation with SPF 40",
-  "brand": "IT Cosmetics",
-  "url": "https://www.sephora.com/product/it-cosmetics-cc-cream-natural-matte-foundation-with-spf-40-P510447?skuId=2773695",
-  "ariaId": "1gccao2but53o",
-  "ariaUrl": "/producto.html?producto=CC%2B%20Cream%20Natural%20Matte%20Foundation%20with%20SPF%2040&tienda=sephora",
-  "category": "cc+ cream"
- },
- {
-  "store": "sephora",
-  "title": "Cloud Cushion Dewy Plumping Moisturizer — Ceramide & Peptide-Rich for Supple, Radiant Skin",
-  "brand": "EADEM",
-  "url": "https://www.sephora.com/product/eadem-cloud-cushion-airy-brightening-moisturizer-P481701?skuId=2576411",
-  "ariaId": "1dxarmb4rt6uh",
-  "ariaUrl": "/producto.html?producto=Cloud%20Cushion%20Dewy%20Plumping%20Moisturizer%20%E2%80%94%20Ceramide%20%26%20Peptide-Rich%20for%20Supple%2C%20Radiant%20Skin&tienda=sephora",
-  "category": "cushion"
- },
- {
-  "store": "sephora",
-  "title": "Color Block Lipstick",
-  "brand": "ILIA",
-  "url": "https://www.sephora.com/product/color-block-high-impact-lipstick-P436270?skuId=2128650",
-  "ariaId": "16b3nzjtllrut",
-  "ariaUrl": "/producto.html?producto=Color%20Block%20Lipstick&tienda=sephora",
-  "category": "lipstick"
- },
- {
-  "store": "sephora",
   "title": "creaseless SPF 30 mineral powder",
   "brand": "tarte",
   "url": "https://www.sephora.com/product/creaseless-spf-30-mineral-powder-P522417?skuId=2982510",
@@ -106,105 +16,6 @@
   "ariaId": "1gtl8k9unxfhf",
   "ariaUrl": "/producto.html?producto=Dark%20Star%20Volumizing%20Mascara&tienda=sephora",
   "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Extended Play Gigablack Lash Tubing Mascara",
-  "brand": "MAC Cosmetics",
-  "url": "https://www.sephora.com/product/extended-play-gigablack-lash-P65498712?skuId=2093789",
-  "ariaId": "4jesq1ad7qyr",
-  "ariaUrl": "/producto.html?producto=Extended%20Play%20Gigablack%20Lash%20Tubing%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "eyes on me tartelette mascara & liner clutch",
-  "brand": "tarte",
-  "url": "https://www.sephora.com/product/eyes-on-me-tartelette-mascara-liner-clutch-P526262?skuId=3026812",
-  "ariaId": "10vtkrhv2mxmz",
-  "ariaUrl": "/producto.html?producto=eyes%20on%20me%20tartelette%20mascara%20%26%20liner%20clutch&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Eyes To Kill Lengthening Mascara",
-  "brand": "Armani Beauty",
-  "url": "https://www.sephora.com/product/eyes-to-kill-mascara-P393671?skuId=1667864",
-  "ariaId": "fhe4lhs4pp2z",
-  "ariaUrl": "/producto.html?producto=Eyes%20To%20Kill%20Lengthening%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Fantasize Lifting & Lengthening Mascara",
-  "brand": "ONE/SIZE by Patrick Starrr",
-  "url": "https://www.sephora.com/product/fantasize-lifting-lengthening-mascara-P500481?skuId=2589612",
-  "ariaId": "1liavwjw2pxnx",
-  "ariaUrl": "/producto.html?producto=Fantasize%20Lifting%20%26%20Lengthening%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "FetishEyes™ Lengthening Mascara",
-  "brand": "PAT McGRATH LABS",
-  "url": "https://www.sephora.com/product/fetish-eyes-mascara-P440967?skuId=2193795",
-  "ariaId": "b7t4hhpumrr7",
-  "ariaUrl": "/producto.html?producto=FetishEyes%E2%84%A2%20Lengthening%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Futurist Hydra Rescue Moisturizing Foundation SPF 45 with Vitamin E",
-  "brand": "Estée Lauder",
-  "url": "https://www.sephora.com/product/estee-lauder-futurist-hydrating-rescue-moisturizing-foundation-spf-45-P454063?skuId=2324481",
-  "ariaId": "k8arq71vx2mh1",
-  "ariaUrl": "/producto.html?producto=Futurist%20Hydra%20Rescue%20Moisturizing%20Foundation%20SPF%2045%20with%20Vitamin%20E&tienda=sephora",
-  "category": "foundation"
- },
- {
-  "store": "sephora",
-  "title": "Futurist Skin Tint Serum Foundation SPF 20 with Glycerin",
-  "brand": "Estée Lauder",
-  "url": "https://www.sephora.com/product/futurist-skin-tint-serum-foundation-spf-20-P508183?skuId=2708857",
-  "ariaId": "74nhtowis89y",
-  "ariaUrl": "/producto.html?producto=Futurist%20Skin%20Tint%20Serum%20Foundation%20SPF%2020%20with%20Glycerin&tienda=sephora",
-  "category": "skin tint"
- },
- {
-  "store": "sephora",
-  "title": "GinZing™ SPF 40 Energy-Boosting Tinted Moisturizer",
-  "brand": "Origins",
-  "url": "https://www.sephora.com/product/ginzing-spf-40-energy-boosting-tinted-moisturizer-P420966?skuId=1957091",
-  "ariaId": "12k9xly161n03s",
-  "ariaUrl": "/producto.html?producto=GinZing%E2%84%A2%20SPF%2040%20Energy-Boosting%20Tinted%20Moisturizer&tienda=sephora",
-  "category": "tinted moisturizer"
- },
- {
-  "store": "sephora",
-  "title": "Hair Gloss In-Shower Shine Treatment",
-  "brand": "OUAI",
-  "url": "https://www.sephora.com/product/ouai-hair-gloss-in-shower-shine-treatment-P509042?skuId=2589778",
-  "ariaId": "9o289ehoi1s8",
-  "ariaUrl": "/producto.html?producto=Hair%20Gloss%20In-Shower%20Shine%20Treatment&tienda=sephora",
-  "category": "gloss"
- },
- {
-  "store": "sephora",
-  "title": "HD Skin Matte Velvet Blurring Powder Foundation",
-  "brand": "MAKE UP FOR EVER",
-  "url": "https://www.sephora.com/product/make-up-for-ever-hd-skin-matte-velvet-powder-foundation-P504432?skuId=2646685",
-  "ariaId": "6msbb01om1puy",
-  "ariaUrl": "/producto.html?producto=HD%20Skin%20Matte%20Velvet%20Blurring%20Powder%20Foundation&tienda=sephora",
-  "category": "blurring powder"
- },
- {
-  "store": "sephora",
-  "title": "High-Pigment Longwear Eyeliner",
-  "brand": "NARS",
-  "url": "https://www.sephora.com/product/high-pigment-longwear-eyeliner-P448503?skuId=2245975",
-  "ariaId": "1gt0mrhkfjpzv",
-  "ariaUrl": "/producto.html?producto=High-Pigment%20Longwear%20Eyeliner&tienda=sephora",
-  "category": "eyeliner"
  },
  {
   "store": "sephora",
@@ -226,120 +37,12 @@
  },
  {
   "store": "sephora",
-  "title": "Lash Brag® Jet-Black Volumizing Mascara",
-  "brand": "Anastasia Beverly Hills",
-  "url": "https://www.sephora.com/product/anastasia-beverly-hills-lash-brag-volumizing-mascara-P455981?skuId=2311322",
-  "ariaId": "1s9hevqop3bd0",
-  "ariaUrl": "/producto.html?producto=Lash%20Brag%C2%AE%20Jet-Black%20Volumizing%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Lash Idôle Lengthening & Volumizing Mascara",
-  "brand": "Lancôme",
-  "url": "https://www.sephora.com/product/lancome-lash-idole-lash-lifting-volumizing-mascara-P467208?skuId=2417145",
-  "ariaId": "1sorh06fibbw",
-  "ariaUrl": "/producto.html?producto=Lash%20Id%C3%B4le%20Lengthening%20%26%20Volumizing%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
   "title": "Lash Latex Sculpting & Lengthening Mascara",
   "brand": "Yves Saint Laurent",
   "url": "https://www.sephora.com/product/lash-latex-sculpting-lengthening-mascara-P520022?skuId=2925717",
   "ariaId": "1dbjkzequm5e8",
   "ariaUrl": "/producto.html?producto=Lash%20Latex%20Sculpting%20%26%20Lengthening%20Mascara&tienda=sephora",
   "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Le Rouge Interdit Cream Velvet Lipstick",
-  "brand": "Givenchy",
-  "url": "https://www.sephora.com/product/le-rouge-interdit-cream-velvet-lipstick-P507785?skuId=2691269",
-  "ariaId": "1ot12ml10irod3",
-  "ariaUrl": "/producto.html?producto=Le%20Rouge%20Interdit%20Cream%20Velvet%20Lipstick&tienda=sephora",
-  "category": "lipstick"
- },
- {
-  "store": "sephora",
-  "title": "LEGIT LASHES Double-Ended Volumizing and Lengthening Mascara",
-  "brand": "HUDA BEAUTY",
-  "url": "https://www.sephora.com/product/huda-beauty-legit-lashes-double-ended-volumizing-lengthening-mascara-P98466189?skuId=2356681",
-  "ariaId": "yv8qy11544exb",
-  "ariaUrl": "/producto.html?producto=LEGIT%20LASHES%20Double-Ended%20Volumizing%20and%20Lengthening%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Liquid Lipstick Luxe Matte for Long-Wear",
-  "brand": "TOM FORD",
-  "url": "https://www.sephora.com/product/tom-ford-liquid-lip-luxe-matte-P505704?skuId=2662740",
-  "ariaId": "1dx1zyjqknp0",
-  "ariaUrl": "/producto.html?producto=Liquid%20Lipstick%20Luxe%20Matte%20for%20Long-Wear&tienda=sephora",
-  "category": "lipstick"
- },
- {
-  "store": "sephora",
-  "title": "MACStack Elevated Lifting, Volumizing + Clump-Proof Mascara",
-  "brand": "MAC Cosmetics",
-  "url": "https://www.sephora.com/product/macstack-elevated-mascara-P515898?skuId=2837490",
-  "ariaId": "masbvu14tpwhs",
-  "ariaUrl": "/producto.html?producto=MACStack%20Elevated%20Lifting%2C%20Volumizing%20%2B%20Clump-Proof%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "MAKEOUT CLUB Soft Blur Lipstick",
-  "brand": "Freck Beauty",
-  "url": "https://www.sephora.com/product/freck-beauty-makeout-club-soft-blur-lipstick-P502850?skuId=2590156",
-  "ariaId": "lzzl4bjhvqrd",
-  "ariaUrl": "/producto.html?producto=MAKEOUT%20CLUB%20Soft%20Blur%20Lipstick&tienda=sephora",
-  "category": "lipstick"
- },
- {
-  "store": "sephora",
-  "title": "Mini Afterglow Liquid Blush & Lip Shine Duo",
-  "brand": "NARS",
-  "url": "https://www.sephora.com/product/nars-mini-afterglow-blush-lip-shine-duo-P512183?skuId=2773380",
-  "ariaId": "1rsmlz81ptx5w2",
-  "ariaUrl": "/producto.html?producto=Mini%20Afterglow%20Liquid%20Blush%20%26%20Lip%20Shine%20Duo&tienda=sephora",
-  "category": "blush"
- },
- {
-  "store": "sephora",
-  "title": "Mini Better Than Sex Waterproof Mascara",
-  "brand": "Too Faced",
-  "url": "https://www.sephora.com/product/better-than-sex-waterproof-mascara-mini-P425855?skuId=1834167",
-  "ariaId": "yysb15eb74l7",
-  "ariaUrl": "/producto.html?producto=Mini%20Better%20Than%20Sex%20Waterproof%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "mini big ego™ lifting & volumizing mascara",
-  "brand": "tarte",
-  "url": "https://www.sephora.com/product/big-ego-mascara-mini-P446871?skuId=2254605",
-  "ariaId": "8j11l1r29zmb",
-  "ariaUrl": "/producto.html?producto=mini%20big%20ego%E2%84%A2%20lifting%20%26%20volumizing%20mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Mini Caution™ Extreme Lash Mascara",
-  "brand": "Hourglass",
-  "url": "https://www.sephora.com/product/caution-extreme-lash-mascara-mini-P433812?skuId=2087724",
-  "ariaId": "1c6bvj1r1pq7l",
-  "ariaUrl": "/producto.html?producto=Mini%20Caution%E2%84%A2%20Extreme%20Lash%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Mini CC+ Cream Full Coverage Color Correcting Foundation with SPF 50+",
-  "brand": "IT Cosmetics",
-  "url": "https://www.sephora.com/product/your-skin-but-better-trade-cc-trade-cream-with-spf-50-mini-P425876?skuId=2872679",
-  "ariaId": "8ber0mgw5ikk",
-  "ariaUrl": "/producto.html?producto=Mini%20CC%2B%20Cream%20Full%20Coverage%20Color%20Correcting%20Foundation%20with%20SPF%2050%2B&tienda=sephora",
-  "category": "cc+ cream"
  },
  {
   "store": "sephora",
@@ -352,48 +55,12 @@
  },
  {
   "store": "sephora",
-  "title": "Mini Fantasize Lifting & Lengthening Mascara",
-  "brand": "ONE/SIZE by Patrick Starrr",
-  "url": "https://www.sephora.com/product/mini-fantasize-lifting-lengthening-mascara-P500501?skuId=2589620",
-  "ariaId": "19mz5qh1ri4gaz",
-  "ariaUrl": "/producto.html?producto=Mini%20Fantasize%20Lifting%20%26%20Lengthening%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
   "title": "Mini Juicy Tubes Lip Gloss and Travel Size Lash Idôle Mascara Duo",
   "brand": "Lancôme",
   "url": "https://www.sephora.com/product/mini-juicy-tubes-lip-gloss-and-travel-size-lash-idole-mascara-duo-P524832?skuId=2975357",
   "ariaId": "1negghd1m7y8yv",
   "ariaUrl": "/producto.html?producto=Mini%20Juicy%20Tubes%20Lip%20Gloss%20and%20Travel%20Size%20Lash%20Id%C3%B4le%20Mascara%20Duo&tienda=sephora",
   "category": "lip gloss"
- },
- {
-  "store": "sephora",
-  "title": "Mini Lash Brag® Jet-Black Volumizing Mascara",
-  "brand": "Anastasia Beverly Hills",
-  "url": "https://www.sephora.com/product/anastasia-beverly-hills-lash-brag-volumizing-mascara-mini-P456591?skuId=2311322",
-  "ariaId": "tzpmky55ebas",
-  "ariaUrl": "/producto.html?producto=Mini%20Lash%20Brag%C2%AE%20Jet-Black%20Volumizing%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Mini LEGIT LASHES Double-Ended Volumizing and Lengthening Mascara",
-  "brand": "HUDA BEAUTY",
-  "url": "https://www.sephora.com/product/huda-beauty-mini-legit-lashes-double-ended-volumizing-lengthening-mascara-P474837?skuId=2466548",
-  "ariaId": "sq0gjr9u6fel",
-  "ariaUrl": "/producto.html?producto=Mini%20LEGIT%20LASHES%20Double-Ended%20Volumizing%20and%20Lengthening%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Mini Monsieur Big Mascara",
-  "brand": "Lancôme",
-  "url": "https://www.sephora.com/product/monsieur-big-mascara-mini-P422464?skuId=1956184",
-  "ariaId": "121i5w1sy710m",
-  "ariaUrl": "/producto.html?producto=Mini%20Monsieur%20Big%20Mascara&tienda=sephora",
-  "category": "mascara"
  },
  {
   "store": "sephora",
@@ -415,30 +82,12 @@
  },
  {
   "store": "sephora",
-  "title": "Monsieur Big Volumizing Mascara",
-  "brand": "Lancôme",
-  "url": "https://www.sephora.com/product/monsieur-big-mascara-P419848?skuId=1956176",
-  "ariaId": "1a6dbq3a81fip",
-  "ariaUrl": "/producto.html?producto=Monsieur%20Big%20Volumizing%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
   "title": "Naturally Better Than Sex Lengthening and Volumizing Mascara",
   "brand": "Too Faced",
   "url": "https://www.sephora.com/product/naturally-better-than-sex-lengthening-volumizing-mascara-P509303?skuId=2739191",
   "ariaId": "19av8q610ab5pw",
   "ariaUrl": "/producto.html?producto=Naturally%20Better%20Than%20Sex%20Lengthening%20and%20Volumizing%20Mascara&tienda=sephora",
   "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Nudefix Cream Concealer",
-  "brand": "NUDESTIX",
-  "url": "https://www.sephora.com/product/nudestix-nudefix-cream-concealer-P463098?skuId=2661718",
-  "ariaId": "df9qal167nhxr",
-  "ariaUrl": "/producto.html?producto=Nudefix%20Cream%20Concealer&tienda=sephora",
-  "category": "concealer"
  },
  {
   "store": "sephora",
@@ -451,42 +100,6 @@
  },
  {
   "store": "sephora",
-  "title": "Pillow Talk Push Up Lashes Volumizing & Lengthening Mascara",
-  "brand": "Charlotte Tilbury",
-  "url": "https://www.sephora.com/product/charlotte-tilbury-pillow-talk-push-up-lashes-mascara-P462841?skuId=2368496",
-  "ariaId": "35v1k5texbwr",
-  "ariaUrl": "/producto.html?producto=Pillow%20Talk%20Push%20Up%20Lashes%20Volumizing%20%26%20Lengthening%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Powermatte Long-Lasting Lipstick",
-  "brand": "NARS",
-  "url": "https://www.sephora.com/product/nars-powermatte-lipstick-P501583?skuId=2599124",
-  "ariaId": "190qe1lfnw3gn",
-  "ariaUrl": "/producto.html?producto=Powermatte%20Long-Lasting%20Lipstick&tienda=sephora",
-  "category": "lipstick"
- },
- {
-  "store": "sephora",
-  "title": "Precision Lip Liner",
-  "brand": "NARS",
-  "url": "https://www.sephora.com/product/precision-lip-liner-P422073?skuId=1975358",
-  "ariaId": "10tbpk9ziwp27",
-  "ariaUrl": "/producto.html?producto=Precision%20Lip%20Liner&tienda=sephora",
-  "category": "lip liner"
- },
- {
-  "store": "sephora",
-  "title": "Pro Filt’r Instant Retouch Longwear Liquid Concealer",
-  "brand": "Fenty Beauty by Rihanna",
-  "url": "https://www.sephora.com/product/pro-filt-r-instant-retouch-concealer-P88779809?skuId=2173367",
-  "ariaId": "1e4bken1ucg2zl",
-  "ariaUrl": "/producto.html?producto=Pro%20Filt%E2%80%99r%20Instant%20Retouch%20Longwear%20Liquid%20Concealer&tienda=sephora",
-  "category": "concealer"
- },
- {
-  "store": "sephora",
   "title": "Rich Cushion Cream Ultra Plumping Moisturizer with Hyaluronic Acid + Squalane",
   "brand": "Summer Fridays",
   "url": "https://www.sephora.com/product/rich-cushion-cream-ultra-plumping-moisturizer-P506690?skuId=2703726",
@@ -496,119 +109,11 @@
  },
  {
   "store": "sephora",
-  "title": "Rouge Dior Forever Liquid Transfer-Proof Lipstick",
-  "brand": "DIOR",
-  "url": "https://www.sephora.com/product/dior-rouge-dior-forever-liquid-transfer-proof-lipstick-P472977?skuId=2571453",
-  "ariaId": "1q1zmzpsl5civ",
-  "ariaUrl": "/producto.html?producto=Rouge%20Dior%20Forever%20Liquid%20Transfer-Proof%20Lipstick&tienda=sephora",
-  "category": "lipstick"
- },
- {
-  "store": "sephora",
   "title": "Rouge G Customizable Satin & Velvet Matte Lipstick",
   "brand": "GUERLAIN",
   "url": "https://www.sephora.com/product/rouge-g-customizable-lipstick-bullet-P429915?skuId=2991909",
   "ariaId": "ig9tmb1tjbxqt",
   "ariaUrl": "/producto.html?producto=Rouge%20G%20Customizable%20Satin%20%26%20Velvet%20Matte%20Lipstick&tienda=sephora",
   "category": "lipstick"
- },
- {
-  "store": "sephora",
-  "title": "Rouge Pur Couture Caring Satin Lipstick with Ceramides",
-  "brand": "Yves Saint Laurent",
-  "url": "https://www.sephora.com/product/rouge-pur-couture-lipstick-collection-P400701?skuId=2696011",
-  "ariaId": "utt07srdvw9i",
-  "ariaUrl": "/producto.html?producto=Rouge%20Pur%20Couture%20Caring%20Satin%20Lipstick%20with%20Ceramides&tienda=sephora",
-  "category": "lipstick"
- },
- {
-  "store": "sephora",
-  "title": "Skin-Enhancing Concealer",
-  "brand": "Ami Colé",
-  "url": "https://www.sephora.com/product/skin-enhancing-concealer-P503767?skuId=2631802",
-  "ariaId": "1892weigv4tf8",
-  "ariaUrl": "/producto.html?producto=Skin-Enhancing%20Concealer&tienda=sephora",
-  "category": "concealer"
- },
- {
-  "store": "sephora",
-  "title": "Stargloss Shine Hair Gloss Treatment",
-  "brand": "dae",
-  "url": "https://www.sephora.com/product/dae-stargloss-shine-hair-gloss-treatment-P506779?skuId=2687689",
-  "ariaId": "lbyigqxadhw8",
-  "ariaUrl": "/producto.html?producto=Stargloss%20Shine%20Hair%20Gloss%20Treatment&tienda=sephora",
-  "category": "gloss"
- },
- {
-  "store": "sephora",
-  "title": "Superhero Volumizing Waterproof Mascara",
-  "brand": "IT Cosmetics",
-  "url": "https://www.sephora.com/product/it-cosmetics-superhero-waterproof-mascara-P505648?skuId=2665248",
-  "ariaId": "1htm6wykzwvdc",
-  "ariaUrl": "/producto.html?producto=Superhero%20Volumizing%20Waterproof%20Mascara&tienda=sephora",
-  "category": "mascara"
- },
- {
-  "store": "sephora",
-  "title": "Tinted Blur Foundation Stick",
-  "brand": "NUDESTIX",
-  "url": "https://www.sephora.com/product/nudies-tinted-blur-stick-P431758?skuId=2079408",
-  "ariaId": "lrsg17gk9su",
-  "ariaUrl": "/producto.html?producto=Tinted%20Blur%20Foundation%20Stick&tienda=sephora",
-  "category": "foundation"
- },
- {
-  "store": "sephora",
-  "title": "Tinted Cover Liquid Foundation",
-  "brand": "NUDESTIX",
-  "url": "https://www.sephora.com/product/nudies-tinted-cover-foundation-P448152?skuId=2661460",
-  "ariaId": "13vzpzcbuaasi",
-  "ariaUrl": "/producto.html?producto=Tinted%20Cover%20Liquid%20Foundation&tienda=sephora",
-  "category": "foundation"
- },
- {
-  "store": "sephora",
-  "title": "True Intentions Skin-Soothing Hydrating Foundation",
-  "brand": "Range Beauty",
-  "url": "https://www.sephora.com/product/range-beauty-true-intentions-skin-soothing-hydrating-foundation-P513540?skuId=2785921",
-  "ariaId": "1148p5wkpa5ce",
-  "ariaUrl": "/producto.html?producto=True%20Intentions%20Skin-Soothing%20Hydrating%20Foundation&tienda=sephora",
-  "category": "foundation"
- },
- {
-  "store": "sephora",
-  "title": "Turn Up the Base Full Beat Waterproof Liquid Foundation",
-  "brand": "ONE/SIZE by Patrick Starrr",
-  "url": "https://www.sephora.com/product/one-size-by-patrick-starrr-turn-up-base-full-beat-liquid-foundation-P513724?skuId=2801223",
-  "ariaId": "1eh80ac11prqri",
-  "ariaUrl": "/producto.html?producto=Turn%20Up%20the%20Base%20Full%20Beat%20Waterproof%20Liquid%20Foundation&tienda=sephora",
-  "category": "foundation"
- },
- {
-  "store": "sephora",
-  "title": "Very Valentino 24 Hour Wear Hydrating Concealer",
-  "brand": "Valentino",
-  "url": "https://www.sephora.com/product/valentino-very-valentino-concealer-P504684?skuId=2637825",
-  "ariaId": "jnuvsj50ieqt",
-  "ariaUrl": "/producto.html?producto=Very%20Valentino%2024%20Hour%20Wear%20Hydrating%20Concealer&tienda=sephora",
-  "category": "concealer"
- },
- {
-  "store": "sephora",
-  "title": "Watermelon Milk™ Peptide Cushion Cream Refillable Moisturizer for Dry Skin & Barrier Support",
-  "brand": "Glow Recipe",
-  "url": "https://www.sephora.com/product/watermelon-milk-peptide-cushion-cream-refillable-moisturizer-P522727?skuId=2978997",
-  "ariaId": "1fuxcognlv5ma",
-  "ariaUrl": "/producto.html?producto=Watermelon%20Milk%E2%84%A2%20Peptide%20Cushion%20Cream%20Refillable%20Moisturizer%20for%20Dry%20Skin%20%26%20Barrier%20Support&tienda=sephora",
-  "category": "cushion"
- },
- {
-  "store": "sephora",
-  "title": "Waterproof Size Up Mascara",
-  "brand": "SEPHORA COLLECTION",
-  "url": "https://www.sephora.com/product/size-up-waterproof-mascara-P515108?skuId=2730794",
-  "ariaId": "gy6vlm8c4x3o",
-  "ariaUrl": "/producto.html?producto=Waterproof%20Size%20Up%20Mascara&tienda=sephora",
-  "category": "mascara"
  }
 ]

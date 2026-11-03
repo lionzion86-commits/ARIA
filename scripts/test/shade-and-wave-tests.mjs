@@ -8,8 +8,10 @@
        (a listing its store sells in one shade names that shade);
      - every listing still gated (the rebuilt worklist,
        data/shade-pull-worklist-2026-11-02) is a shade product with no
-       shade, so its page shows «Tonos en camino»; YesStyle and
-       Victoria's Secret stay there whole;
+       shade, so its page shows «Tonos en camino»; YesStyle's wave makeup
+       stays there whole, and of Victoria's Secret only the five listings
+       the manual curation could not tie to a choice URL remain
+       (scripts/test/shade-manual-tests.mjs holds the curation itself);
      - Bath & Body Works has its storefront, with its count, a door
        (search.html STORE_PAGES) and a Tiendas tile;
      - the not-sold rule keeps its pills and food out and lets a home-
@@ -104,7 +106,7 @@ await check("every still-gated listing is a shade product with no shade («Tonos
     }
     counts[f.replace(/\.json$/, "")] = list.length;
   }
-  assert((counts.yesstyle || 0) >= 83 && (counts.victoriassecret || 0) === 21, "worklist: " + JSON.stringify(counts));
+  assert((counts.yesstyle || 0) >= 200 && (counts.victoriassecret || 0) === 5, "worklist: " + JSON.stringify(counts));
   /* Every YesStyle makeup row of the wave that is a shade product is gated. */
   const ys = readJson("data/pull-wave-2026-11-03/yesstyle/yesstyle-makeup-delta.json").retailers.yesstyle.departments.beauty.items;
   const listed = new Set(JSON.parse(readFileSync(join(dir, "yesstyle.json"), "utf8")).map((e) => e.title));
