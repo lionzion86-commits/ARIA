@@ -45,6 +45,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isGymApparel } from "./lib/gym-apparel.js";
+import { joyasTypeAllowed } from "./lib/section-allowlist.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { isDroneProduct, isNotElectronics } from "./lib/tech-aisle.js";
 import "../not-sold.js";
@@ -242,6 +243,9 @@ export const KIND_MATCH = {
      charm (#443 item 40); sunglasses have their own department. */
   joyas: (t, p) => {
     if (!p || p.retailer === "ariaperfumes" || SUNGLASS_RX.test(t) || NOT_JOYAS_RX.test(p.title || "")) return false;
+    /* A type that names a home piece, a book or a toy is that thing (Pier 1's
+       "Napkin Rings", "Christmas Ornaments", "Framed Wall Art"), #443 c.6615548354. */
+    if (!joyasTypeAllowed(p)) return false;
     const f = nameFamily(p);
     if (f) return f === "joyas" || f === "accesorios";
     /* A name that names nothing: only a type that does ("EARRINGS",

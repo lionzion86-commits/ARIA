@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { photoCount } from "./lib/photo-counts.js";
+import { intimateClass } from "./lib/section-allowlist.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 
@@ -63,6 +64,13 @@ function buildWith(E, classifyFn, opts = {}) {
           for (const it of arr) {
             const c = classifyFn(it, rk, dept);
             if (!c) continue;
+            /* THE TYPE ALLOWLIST (#443 c.6615548354): an underwear row's own
+               type is an intimates type, a sock row's a sock type
+               (scripts/lib/section-allowlist.js); the engine's words alone
+               never list a product (a "Bra Free Cami", a sports bra, a
+               toy "Baby Doll", a nursing bra filed Lactancia). */
+            const ic = intimateClass(it);
+            if (c.type === "socks" ? ic !== "socks" : (!ic || ic === "socks")) continue;
             const title = String(it.title || it.name);
             const price = Number(it.price);
             if (!(price > 0)) continue;
@@ -75,6 +83,7 @@ function buildWith(E, classifyFn, opts = {}) {
             };
             const d = shortDescription(it);
             if (d) row.d = d;
+            if (opts.keepType) row.pt = String(it.type || "");
             /* Its photo count when 2+ (scripts/lib/photo-counts.js): the big
                card arms its on-card arrows only then (#443 c.6545136763). */
             const ph = photoCount(ROOT, title, rk);
@@ -109,28 +118,35 @@ function buildWith(E, classifyFn, opts = {}) {
   return { generatedAt: null, count: items.length, items };
 }
 
-export function buildFeed() {
+/* keepType: each row also carries its catalogue type (pt), for
+   scripts/test/section-allowlist-tests.mjs; never written to the feed. */
+export function buildFeed(o = {}) {
   const E = loadEngine();
-  return buildWith(E, E.classify, { sockGender: true });
+  return buildWith(E, E.classify, { sockGender: true, keepType: !!o.keepType });
 }
 
 /* ONE HOME PER ITEM. A product a store files under both its men's and
    its women's departments (SSENSE's gender-neutral socks) is unisex, and
    unisex lives in the men's feed: the women's feed never lists what the
    men's feed already has. */
-export function buildWomenFeed() {
+export function buildWomenFeed(o = {}) {
   const E = loadEngine();
   const men = buildWith(E, E.classify, { sockGender: true }).items;
   const key = (i) => (i.b + "|" + i.t).toLowerCase();
   const menKeys = new Set(men.map(key));
   const menUrls = new Set(men.filter(i => i.u).map(i => i.u));
-  const women = buildWith(E, E.classifyWomen);
+  const women = buildWith(E, E.classifyWomen, { keepType: !!o.keepType });
   women.items = women.items.filter(i => !menKeys.has(key(i)) && !(i.u && menUrls.has(i.u)));
   women.count = women.items.length;
   return women;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+/* --check: the section allowlist gate over the generated files (exit 1 on a leak). */
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--check")) {
+  const { execFileSync } = await import("node:child_process");
+  try { execFileSync(process.execPath, [ROOT + "scripts/test/section-allowlist-tests.mjs"], { stdio: "inherit", env: { ...process.env, SECTION_ALLOWLIST_NO_BROWSER: process.env.SECTION_ALLOWLIST_NO_BROWSER || "" } }); }
+  catch { process.exit(1); }
+} else if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const stamp = new Date().toISOString();
   for (const [file, feed] of [["ropa-interior-feed.json", buildFeed()], ["ropa-interior-women-feed.json", buildWomenFeed()]]) {
     feed.generatedAt = stamp;

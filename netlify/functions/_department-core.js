@@ -14,6 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle as conditionOfAnyTitle, CONDITION_LABELS } from "../../scripts/lib/condition.js";
+import { isIntimate } from "../../scripts/lib/section-allowlist.js";
 import { techAisle, isTechProduct, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole, isDrone, isDroneProduct, droneRank } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
@@ -954,8 +955,12 @@ export const LENS_MIN = 12, LENS_RAIL_MIN = 4, LENS_RAILS = 5;
    stores. The type is read from the product's own name and the store's
    type, in this order (a boardshort is swimwear before it is a short, a
    t-shirt is a top before it is a shirt). */
+/* LENCERÍA / ROPA INTERIOR BY TYPE (#443 c.6615548354): the product's own
+   type, in scripts/lib/section-allowlist.js's INTIMATE_TYPES -- never a
+   lingerie word in a title ("Bra Free Cami", "Thong Sandals", "Bra Bag",
+   "Bralette Swim Top", "Boxer Shorts" were Lencería). The rules below
+   still read the name, for every other aisle. */
 const MODA_RULES = [
-  ["lenceria", /\b(bras?|bralettes?|panty|panties|thongs?|briefs?|boxers?|lingerie|lencer\w*|underwear|ropa interior|bodysuits?|shapewear)\b/],
   ["bano", /\b(bikinis?|swim\w*|trajes? de ba[ñn]o|boardshorts?|rash ?guards?|one[- ]pieces?)\b/],
   ["zapatillas", /\b(sneakers?|zapatillas|trainers?|running shoes?)\b/],
   ["zapatos", /\b(sandals?|sandalias|heels?|boots?|botas?|botines|loafers?|slippers?|oxfords?|lace ups|mules?|pumps|flats|slides?|clogs?|espadrilles|shoes?|zapatos?)\b/],
@@ -973,6 +978,7 @@ const MODA_RULES = [
   ["camisas", /\b(shirts?|camisas?|button-?downs?|overshirts?)\b/],
 ];
 export function modaType(p) {
+  if (isIntimate(p)) return "lenceria";
   const t = (String((p && p.type) || "") + " | " + String((p && p.title) || "")).toLowerCase();
   for (const [k, rx] of MODA_RULES) if (rx.test(t)) return k;
   return "";
