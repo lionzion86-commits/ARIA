@@ -6,6 +6,7 @@
 <title>Aria Motos — Cascos, llantas y repuestos | Aria Shop</title>
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
+<script src="/import-tax.js"></script>
 <meta name="description" content="Cascos certificados, llantas, repuestos y accesorios para moto — RevZilla y Dennis Kirk, directo de Estados Unidos a Perú.">
 <style>
   :root{
@@ -516,6 +517,9 @@ function sizedImageUrl(url, w){
       + '<div class="card-brand">' + (c.b ? esc(c.b) : '&nbsp;') + '</div>'
       + '<h3 class="card-title">' + esc(c.t) + '</h3>'
       + '<div class="price" data-usd="' + (isFinite(price) ? price : '') + '"' + (was > price ? ' data-was="' + was + '"' : '') + '>' + priceInner(price, was) + '</div>'
+      /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+         the arithmetic checkout charges; nothing under $200 of goods. */
+      + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: c.p, retailer: c.r, title: c.t }) : '')
       + '</div></a>';
   }
   var SKELETON = '<div class="card sk" aria-hidden="true"><div class="card-img"></div><div class="card-body">'

@@ -6,6 +6,7 @@
 <title>Ropa Interior y Medias | Aria Shop</title>
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
+<script src="/import-tax.js"></script>
 <meta name="description" content="Ropa interior y medias de mujer y de hombre de las mejores marcas de Estados Unidos: SKIMS, Stance, PSD, Calvin Klein y más, con envío a Perú.">
 <meta name="theme-color" content="#0B0F17">
 <style>
@@ -576,6 +577,9 @@ html{scroll-padding-top:76px}
         + '<div class="title">' + esc(p.t) + '</div>'
         + (desc ? '<div class="desc">' + esc(desc) + '</div>' : '')
         + '<div class="price" data-now="' + now + '"' + (isFinite(was) ? ' data-was="' + was + '"' : '') + '>' + priceInner(now, was) + '</div>'
+        /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+           the arithmetic checkout charges; nothing under $200 of goods. */
+        + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: p.p, retailer: p.r, title: p.t }) : '')
         + '</div></a>';
     }
     S.cardHTML = cardHTML;

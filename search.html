@@ -202,6 +202,7 @@ footer a{color:#fff;}
 .rail .card .body{padding:14px 16px 16px;}
 </style>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/ref.js" defer></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -696,6 +697,12 @@ function shipHTML(sh){
      that calculates it -- said the same way, and charged nothing here. */
   return '<span class="calc">lo calcula la tienda al pagar</span>';
 }
+/* The IMP line of a search card or a comparison row (/import-tax.js): the
+   card carries the price it shows, so the dutiable value is its exact
+   inversion. */
+function impLineHTML(p, tag){
+  return typeof window !== "undefined" && window.AriaImportTax ? AriaImportTax.lineHTML({ usd: p.usd, retailer: p.store, title: decodeEntities(p.title) }, { tag: tag }) : "";
+}
 function compareRowHTML(s){
   var title = decodeEntities(s.title);
   var label = s.storeLabel || s.store || "";
@@ -715,7 +722,7 @@ function compareRowHTML(s){
     if (pct >= 5) badges += '<span class="cmp-badge off">-' + pct + "%</span>";
   }
   var prodPen = s.pen != null ? Number(s.pen) : penOf(s.usd);
-  var lines = lineHTML("prod", "Producto", amountHTML(s.usd, prodPen, true)) +
+  var lines = lineHTML("prod", "Producto", amountHTML(s.usd, prodPen, true) + impLineHTML(s, "span")) +
     lineHTML("", "Envío de la tienda", shipHTML(s.ship));
   var ship = s.delivery && s.delivery.text ? esc("Llega a Miami en " + s.delivery.text) : "";
   /* Each store's own photo and title: which model and colourway it
@@ -1033,6 +1040,9 @@ function cardHTML(p){
       '<div class="retailer">' + (p.storeLabel || p.store ? "Vendido por " + esc(p.storeLabel || p.store) : "&nbsp;") + "</div>" +
       (LAUNCH_PRICED[String(p.store || "").toLowerCase()] ? '<div class="launch">Precio de lanzamiento</div>' : "") +
       '<div class="price">' + priceHTML(p) + "</div>" +
+      /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+         the arithmetic checkout charges; nothing under $200 of goods. */
+      impLineHTML(p, "div") +
     "</div></a>";
 }
 

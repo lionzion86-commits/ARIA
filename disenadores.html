@@ -6,6 +6,7 @@
 <title>Diseñadores Latinos — Aria Shop</title>
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
+<script src="/import-tax.js"></script>
 <meta name="description" content="La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y más — comprados en Estados Unidos, entregados en Perú.">
 <style>
 /* ============ DISEÑADORES LATINOS — standalone page ============
@@ -721,6 +722,10 @@ function cardHTML(c){
       + '<div class="card-body"><div class="card-brand">' + (c.b ? escapeHtml(c.b) : '&nbsp;') + '</div>'
       + '<h3 class="card-name">' + escapeHtml(c.t) + '</h3>'
       + '<div class="price-box" data-usd="' + (usd == null ? '' : usd) + '"' + (was > usd ? ' data-was="' + was + '"' : '') + '>' + priceInner(usd, was) + '</div>'
+      /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+         the arithmetic checkout charges; nothing under $200 of goods. The
+         slices carry no store key: these designers pay the 7% (ariaPrice). */
+      + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: c.p, retailer: c.r || '', title: c.t }) : '')
       + '</div></a></article>';
   }catch(e){ return ''; } // one bad card renders as nothing, never breaks the rail
 }

@@ -4042,6 +4042,15 @@ function cardImpTaxUsd(p){
   return Math.round((d + freightUsd(kg)) * TAX_ZONE_RATE * 100) / 100;
 }
 function cardImpLineHTML(p, cls, color){
+  /* ONE RULE ON EVERY SURFACE (#443 c.6592753099): with /import-tax.js on
+     the page (index.html loads it before this bundle) the line is that
+     module's -- the arithmetic checkout charges, the weight from the
+     resolver checkout weighs with -- the same line every standalone page
+     draws. cardImpTaxUsd below is the fallback if the module is missing. */
+  if (typeof window !== 'undefined' && window.AriaImportTax && p){
+    const line = window.AriaImportTax.lineHTML({ usd: p.price, retailer: p.retailer, title: p.title }, { tag: 'span', cls });
+    return line ? line.replace('<span ', `<span style="color:${color}" `) : '';
+  }
   const tax = cardImpTaxUsd(p);
   if (!(tax > 0)) return '';
   /* fmtPEN converts from dollars, and falls back to US$ without a rate. */
@@ -15055,6 +15064,7 @@ function carouselCardHTML(item, retailer){
         <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(shownTitle(title))}</div>
         <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtPriceLabel(taxed) : 'Ver detalle'}${hasOriginal ? `<span class="text-[13px] tabular line-through font-normal ml-2" style="color:#9AA3B5">${fmtUSD(displayPriceUsd(original))}</span>` : ''}</div>
         ${hasPrice ? solesUnderHTML(taxed, 'text-[11px] tabular mt-0.5') : ''}
+        ${hasPrice ? cardImpLineHTML(it, 'block text-[11px] font-bold tabular mt-0.5', '#8A6D1F') : ''}
         ${hasPrice ? impuestosBadgeHTML(price, it.dutiableUsd) : ''}
         ${hasPrice ? weightLabelHTML(title, 'text-[11px] tabular mt-0.5') : ''}
       </div>
@@ -28456,6 +28466,7 @@ async function renderCrossSellRail(){
               ${weightLabelHTML(it.title, 'text-[10px] mt-1 font-semibold')}
               <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtDisplayPrice(it.price, it.dutiableUsd)}</div>
               ${solesUnderHTML(displayPriceUsd(Number(it.price), it.dutiableUsd), 'text-[10px] tabular mt-0.5')}
+              ${cardImpLineHTML(it, 'block text-[10px] font-bold tabular mt-0.5', '#8A6D1F')}
               ${taxIncludedNoteHTML(it.price, it.dutiableUsd, 'text-[10px]')}
               ${impuestosBadgeHTML(it.price, it.dutiableUsd)}
             </div>
@@ -29887,6 +29898,7 @@ function productCardHTML(p, opts){
           ${hasOriginal ? `<span class="text-[12px] ${dark ? 'font-normal' : 'text-zinc-400'} line-through tabular" style="${dark ? 'color:#AFBBD6' : ''}">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
         </div>
         ${hasPrice ? solesUnderHTML(displayPriceUsd(price, p.dutiableUsd), 'text-[11px] tabular mt-0.5') : ''}
+        ${hasPrice ? cardImpLineHTML(p, 'block text-[11px] font-bold tabular mt-0.5', dark ? '#F4C463' : '#8A6D1F') : ''}
       </div>
       ${hasPrice ? taxIncludedNoteHTML(price, p.dutiableUsd, 'text-[11px] -mt-1 mb-1') : ''}
       ${hasPrice ? impuestosBadgeHTML(price, p.dutiableUsd) : ''}
@@ -31689,6 +31701,7 @@ function addAssistantProductCard(item, retailer){
       ${partNumber ? `<div class="text-[10.5px] text-zinc-500 truncate">N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(partNumber)}</span></div>` : ''}
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price, item.dutiableUsd) : ''}${item.price != null && priceIncludesImportTax(item.price, item.dutiableUsd) ? ' · incl. impuestos' : ''}</div>
       ${item.price != null && Number.isFinite(Number(item.price)) ? solesUnderHTML(displayPriceUsd(Number(item.price), item.dutiableUsd), 'text-[10.5px] text-zinc-400 truncate') : ''}
+      ${item.price != null && Number.isFinite(Number(item.price)) ? cardImpLineHTML({ ...item, retailer }, 'block text-[10.5px] font-bold tabular', '#8A6D1F') : ''}
     </div>`;
   card.setAttribute('data-assistant-card', '');
   /* What the card shows, kept on it: the conversation is saved from the

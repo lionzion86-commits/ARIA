@@ -125,6 +125,7 @@ footer a{color:#fff;}
 .card .body{padding:14px 16px 16px;}
 </style>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -642,6 +643,9 @@ function cardHTML(c){
       '<div class="name">' + esc(shownTitle(c.t)) + "</div>" +
       '<div class="retailer">' + (c.r ? 'Vendido por ' + esc(storeLabel(c.r)) : "&nbsp;") + "</div>" +
       '<div class="price" data-usd="' + f + '"' + (was > f ? ' data-was="' + was + '"' : '') + '>' + priceInner(f, was) + "</div>" +
+      /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+         the arithmetic checkout charges; nothing under $200 of goods. */
+      (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: c.p, retailer: c.r, title: c.t }) : '') +
     "</div></a>";
 }
 var SKELETON = '<div class="card sk" aria-hidden="true"><div class="img"></div><div class="body">' +
