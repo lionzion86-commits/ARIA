@@ -343,6 +343,27 @@ await check("a gated product: buyable false with the reason", async () => {
   assert.match(d.not_buyable_reason, /Shade list pending/);
 });
 
+await check("sold out (Vuelve pronto, Danny's Q3): still listed in search, availability vuelve_pronto, buyable false with the reason", async () => {
+  const { isVuelvePronto } = await import("../lib/vuelve-pronto.js");
+  const r = out(await callTool("search_products", { query: "Vans Skate Slip-on Shoes Navy", store: "ccs", limit: 20 }));
+  const sold = r.products.find((p) => p.title === "Vans Skate Slip-on Shoes - Navy");
+  assert.ok(sold, "the sold-out shoe was hidden from search: " + r.products.map((p) => p.title).join(" | "));
+  assert.equal(sold.availability, "vuelve_pronto");
+  assert.equal(sold.buyable, false);
+  for (const p of r.products) {
+    const so = isVuelvePronto({ retailer: p.store, title: p.title });
+    assert.equal(p.availability === "vuelve_pronto", so, p.title);
+    if (!so) assert.ok(!("buyable" in p) && !("availability" in p), "an in-stock row carries no availability: " + p.title);
+  }
+  const d = out(await callTool("get_product", { product_id: sold.id }));
+  assert.equal(d.buyable, false);
+  assert.equal(d.availability, "vuelve_pronto");
+  assert.match(d.not_buyable_reason, /^Vuelve pronto/);
+  assert.ok(d.product_url.startsWith("https://ariashop.pe/producto.html?"), "still links to its page on Aria");
+  const def = (await rpc("tools/list")).body.result.tools.find((t) => t.name === "search_products");
+  assert.deepEqual(def.outputSchema.properties.products.items.properties.availability.enum, ["vuelve_pronto"]);
+});
+
 await check("no wholesale cost: Aria Perfumes (pre-priced) shows the shopper price, never a dutiable base", async () => {
   const ctx = loadSearch({ labels: LABELS });
   const perfume = ctx.products.find((p) => p.retailer === "ariaperfumes" && p.price > 60);

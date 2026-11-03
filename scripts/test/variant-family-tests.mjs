@@ -403,7 +403,7 @@ if (!chromium) {
       await pg.click('.v-opt:has-text("Lace Detail")');
       await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Lace Detail");
       const c = await state(pg);
-      assert.match(c.button, /Agotado en la tienda/);
+      assert.match(c.button, /^Vuelve pronto$/);
       assert.deepEqual(pg.errors, []);
       await pg.context().close();
     });
@@ -442,7 +442,7 @@ if (!chromium) {
       assert.ok(cart[0].variantId);
       await pg.click('.v-opt:has-text("Peach Flirt")');
       await pg.waitForFunction(() => (document.getElementById("v-current") || {}).textContent === "Peach Flirt");
-      assert.match((await state(pg)).button, /Agotado en la tienda/);
+      assert.match((await state(pg)).button, /^Vuelve pronto$/);
       assert.deepEqual(pg.errors, []);
       await pg.context().close();
     });
@@ -495,7 +495,7 @@ if (!chromium) {
       assert.equal(a.opts, 22); assert.match(a.label, /^Tono: 120 Classic Ivory/);
       /* 110 Porcelain is out of stock at Walmart: offered as agotado, never sold. */
       await pick(pg, "110 Porcelain");
-      assert.match((await state(pg)).button, /Agotado en la tienda/);
+      assert.match((await state(pg)).button, /^Vuelve pronto$/);
       await pick(pg, "105 Fair Ivory");
       assert.equal((await buy(pg))[0].colorway, "105 Fair Ivory");
       await shadeShot(pg, "maybelline-superstay-full-coverage-105");

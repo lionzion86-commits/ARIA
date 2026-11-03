@@ -29,6 +29,11 @@
                 shade list has not reached us: shown on the site, never
                 sold). search_products LEAVES GATED PRODUCTS OUT;
                 get_product answers them with buyable:false and why.
+     sold out   /vuelve-pronto.js (#443 c.6585537098, Danny's Q3): a
+                product the store lists as sold out STAYS LISTED in
+                search_products, marked availability:"vuelve_pronto" and
+                buyable:false; get_product says the same, with the reason
+                «Vuelve pronto». Sizes-pending products stay listed too.
 
    NEVER SERVED: the retailer's URL (no link ever leaves Aria) and a
    wholesale cost. For a pre-priced store (weight-data.js PRE_PRICED,
@@ -43,12 +48,16 @@ import { freightFloorUsd } from "./_checkout-model.js";
 import { CHARGE_PER_KG, PRE_PRICED, importTaxEstimateUsd, dutiableBaseUsd, TAX_ESTIMATE_THRESHOLD_USD } from "../../weight-data.js";
 import { isOffSaleItem, isOffSaleRetailer } from "../../scripts/lib/off-sale.js";
 import { kindOf as shadeKindOf } from "../../scripts/lib/shade-gate.js";
+import { isVuelvePronto } from "../../scripts/lib/vuelve-pronto.js";
 import { titleKey, unpack } from "../../scripts/lib/photo-counts.js";
 import { InvalidParams, ToolError } from "./_mcp-protocol.js";
 
 const Sale = globalThis.AriaSale;
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 export const SITE = "https://ariashop.pe";
+/* The site's word for sold out at the store (/vuelve-pronto.js). */
+export const VUELVE_PRONTO = "vuelve_pronto";
+export const VUELVE_PRONTO_REASON = "Vuelve pronto: the store has this sold out right now. It stays listed; the shopper can ask on its product page to be told when it is back (Avísame cuando vuelva).";
 
 /* ---------- tool definitions (what tools/list advertises) ---------- */
 
@@ -92,6 +101,8 @@ export const SEARCH_DEFINITION = {
             price_usd: { type: "number" }, price_pen: nullable("number"),
             original_price_usd: { type: "number" }, discount_pct: { type: "integer" },
             image_url: { type: "string" }, product_url: { type: "string" },
+            availability: { type: "string", enum: ["vuelve_pronto"], description: "Present when the store has this product sold out right now (Vuelve pronto): still listed, not buyable until it is back." },
+            buyable: { type: "boolean", description: "Present (false) only with availability." },
           },
           required: ["id", "title", "brand", "store", "price_usd", "price_pen", "image_url"],
         },
@@ -133,6 +144,8 @@ export const GET_DEFINITION = {
       import_tax_estimate_usd: nullable("number"),
       import_tax: { type: "string" },
       buyable: { type: "boolean" },
+      availability: { type: "string", enum: ["vuelve_pronto"] },
+      not_buyable_reason: { type: "string" },
       product_url: { type: "string" },
     },
     required: ["id", "title", "brand", "store", "price_usd", "price_pen", "images", "description", "sizes",
@@ -418,6 +431,8 @@ export async function searchProducts(args, env) {
       ...(pct ? { original_price_usd: p.finalPrice ? r2(p.originalPrice) : finalUsd(p.originalPrice, p.retailer), discount_pct: pct } : {}),
       image_url: p.image,
       product_url: productUrl(p.title, p.retailer),
+      /* Sold out at the store: listed, never hidden (Danny's Q3). */
+      ...(isVuelvePronto({ retailer: p.retailer, title: p.title }) ? { availability: VUELVE_PRONTO, buyable: false } : {}),
     };
   });
 
@@ -546,8 +561,9 @@ export async function getProduct(args, env) {
   /* Can it be bought on the site right now (the product page's gates)? */
   const sizes = rec ? truthfulSizes(rec.sizes) : [];
   let notBuyable = null;
-  if (shadeGated(rec || recLike)) notBuyable = "Shade list pending (Tonos en camino): Aria does not sell makeup without a chosen shade, and this product's shades have not reached Aria yet.";
-  else if (rec && rec.so === 1) notBuyable = "This colour or shade is out of stock at the store.";
+  const soldOut = rec ? rec.so === 1 : isVuelvePronto({ retailer, title: row.title });
+  if (soldOut) notBuyable = VUELVE_PRONTO_REASON;
+  else if (shadeGated(rec || recLike)) notBuyable = "Shade list pending (Tonos en camino): Aria does not sell makeup without a chosen shade, and this product's shades have not reached Aria yet.";
   else if (rec && rec.sizesPending && !sizes.length) notBuyable = "Sizes are being confirmed with the store (Tallas por confirmar).";
   else if (!(priceUsd > 0)) notBuyable = "No confirmed price yet.";
 
@@ -577,6 +593,7 @@ export async function getProduct(args, env) {
     store_shipping_usd: ship.state === "fee" || ship.state === "free" ? ship.usd : null,
     ...(ship.state === "calc" ? { store_shipping_note: "The store calculates its shipping to Aria's Miami warehouse at payment." } : {}),
     buyable: !notBuyable,
+    ...(soldOut ? { availability: VUELVE_PRONTO } : {}),
     ...(notBuyable ? { not_buyable_reason: notBuyable } : {}),
     product_url: productUrl(row.title, retailer, rec && rec.v),
     exchange_rate_pen_per_usd: fx,
