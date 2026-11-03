@@ -21245,7 +21245,15 @@ const RETAILER_DELIVERY = {
   advanceauto: { miamiMin: 3, miamiMax: 4, tier: "green" },
   madewell: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
 };
-function deliveryFor(key){ return RETAILER_DELIVERY[String(key || '').toLowerCase()] || null; }
+/* THE WIDENED WINDOW (#443 c.6612459871, Danny): a store that ships USPS
+   (or may) shows its store -> Miami window ending 5 days later than it
+   quotes (/store-carrier.js; the same rule as scripts/lib/retailer-delivery.js).
+   The table above stays the store's own quote. */
+function deliveryFor(key){
+  const k = String(key || '').toLowerCase();
+  const row = RETAILER_DELIVERY[k] || null;
+  return window.AriaStoreCarrier ? window.AriaStoreCarrier.widen(k, row) : row;
+}
 /* "2–5 días" · "2 días" · "hasta 7 días" · "7–30+ días" */
 function miamiRangeEs(entry){
   if (!entry) return null;

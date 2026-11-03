@@ -1,5 +1,8 @@
 /* This module re-exports /store-shipping.js (the one store-shipping rule;
    see its header) for checkout's server side and the tests. */
+/* The carrier tiers (/store-carrier.js) load first: cartShipping applies the
+   customer's pick among a USPS-exposed store's own paid tiers. */
+import "./store-carrier.js";
 import "../../store-shipping.js";
 
 const api = globalThis.AriaStoreShipping;

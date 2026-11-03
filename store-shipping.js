@@ -243,8 +243,13 @@
     };
   }
 
-  /** The cart's shipping, store by store, and the total charged. */
-  function cartShipping(lines, taxRateOf) {
+  /** The cart's shipping, store by store, and the total charged.
+      opts.tiers ({store: tierId}): the customer's pick among a USPS-exposed
+      store's own paid tiers (/store-carrier.js, #443 c.6612548967); the
+      chosen tier's price replaces that store's standard fee, at cost. */
+  function cartShipping(lines, taxRateOf, opts) {
+    var C = root.AriaStoreCarrier;
+    var tiers = opts && opts.tiers && C ? C.sanitizeTiers(opts.tiers) : null;
     var subs = {}, order = [];
     var list = Array.isArray(lines) ? lines : [];
     for (var i = 0; i < list.length; i++) {
@@ -255,7 +260,10 @@
       if (!(k in subs)) { subs[k] = 0; order.push(k); }
       subs[k] += storeValueOf(it, taxRateOf);
     }
-    var stores = order.map(function (k) { return standingOf(k, subs[k]); });
+    var stores = order.map(function (k) {
+      var st = standingOf(k, subs[k]);
+      return tiers && tiers[k] ? C.applyTier(st, tiers[k]) : st;
+    });
     var total = 0, pending = [];
     for (var j = 0; j < stores.length; j++) { total += stores[j].feeUsd; if (stores[j].pending) pending.push(stores[j].store); }
     return { stores: stores, totalUsd: r2(total), pending: pending };
