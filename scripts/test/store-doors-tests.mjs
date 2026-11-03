@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { storeDoors, writeDoors } from "../build-store-doors.mjs";
+import { storeDoors, writeDoors, writeStorePages } from "../build-store-doors.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const search = readFileSync(join(ROOT, "search.html"), "utf8");
@@ -22,21 +22,38 @@ const storeKeyFor = new Function([
   /function storeKeyFor[\s\S]*?\n\}/, /var STORE_FULL_NAMES = \{[^\n]*\};/,
 ].map(grab).join("\n") + "\nreturn storeKeyFor;")();
 
+/* The 2026-11-01 store-sweep deliveries, stocked (#443 c.6565101268): a
+   real storefront behind each door. */
+const STOCKED = ["dsw", "tenniswarehouse"];
 await check("search.html's doors are the storefront set (node scripts/build-store-doors.mjs)", () => {
   assert.equal(writeDoors(search, storeDoors(ROOT)), search, "stale: run node scripts/build-store-doors.mjs");
+});
+await check("marca.html's doors are the same storefront set (node scripts/build-store-doors.mjs)", () => {
+  const marca = readFileSync(join(ROOT, "marca.html"), "utf8");
+  assert.equal(writeStorePages(marca, storeDoors(ROOT)), marca, "stale: run node scripts/build-store-doors.mjs");
 });
 await check("every door opens a storefront with products; empty ones and held ones have none", () => {
   for (const k of pages) {
     const ix = JSON.parse(readFileSync(join(ROOT, "assets/tienda", k, "index.json"), "utf8"));
     assert.ok(ix.count > 0, `${k}: a door to an empty store`);
   }
-  for (const k of ["calzedonia", "intimissimi", "sephora"]) assert.ok(pages.includes(k), `${k} has no door`);
+  for (const k of ["calzedonia", "intimissimi", "sephora", ...STOCKED]) assert.ok(pages.includes(k), `${k} has no door`);
   for (const k of ["samsclub", "target", "nike"]) assert.ok(!pages.includes(k), `${k} is off sale but has a door`);
+});
+await check("the stocked stores (DSW, Tennis Warehouse): a storefront with products and on-sale items, a door, a search destination", () => {
+  const dest = JSON.parse(readFileSync(join(ROOT, "assets/search/destinations.json"), "utf8"));
+  for (const k of STOCKED) {
+    const ix = JSON.parse(readFileSync(join(ROOT, "assets/tienda", k, "index.json"), "utf8"));
+    assert.ok(ix.count > 0 && ix.onSale > 0, `${k}: ${ix.count} products, ${ix.onSale} on sale`);
+    assert.ok(pages.includes(k), `${k} has no door`);
+    assert.ok(dest.stores[k], `${k} is not a search destination`);
+  }
 });
 await check("a store's name, or the start of it, opens that store", () => {
   const cases = { Calzedonia: "calzedonia", calzed: "calzedonia", Intimissimi: "intimissimi", intimi: "intimissimi",
     Sephora: "sephora", sepho: "sephora", "Victoria's Secret": "victoriassecret", "Advance Auto Parts": "advanceauto",
-    "Abercrombie & Fitch": "abercrombie", walma: "walmart" };
+    "Abercrombie & Fitch": "abercrombie", walma: "walmart", dsw: "dsw", DSW: "dsw",
+    "Tennis Warehouse": "tenniswarehouse", "tennis warehouse": "tenniswarehouse", tenniswarehouse: "tenniswarehouse" };
   for (const [q, want] of Object.entries(cases)) assert.equal(storeKeyFor(q), want, q);
 });
 await check("words that are not a store's name stay a search", () => {

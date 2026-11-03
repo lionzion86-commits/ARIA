@@ -29,6 +29,8 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { storeDoors } from "../build-store-doors.mjs";
+import { isOffSaleRetailer } from "../lib/off-sale.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.chdir(ROOT);
@@ -91,12 +93,20 @@ await check("static: every carousel's last card is a door or grows in place (rai
   assert.match(read("assets/js/marca-focus.js"), /function storeDoor\(l\)/);
   assert.match(read("assets/js/dept-header.js"), /function axisDoor\(r\)/);
 });
-await check("static: the storefront lists (search.html, marca.html) are exactly the stores with a storefront", () => {
-  const dirs = readdirSync(join(ROOT, "assets/tienda")).filter((k) => existsSync(join(ROOT, "assets/tienda", k, "index.json"))).sort();
+await check("static: the storefront lists (search.html, marca.html) are exactly the stores with products (scripts/build-store-doors.mjs)", () => {
+  /* A door to an empty store is a card with no picture (Danny: no image,
+     no card): a store with a door has products, a store with products
+     has a door -- the set scripts/build-store-doors.mjs writes. */
+  const { keys } = storeDoors(ROOT);
+  assert.ok(keys.length > 0);
+  for (const k of keys) assert.ok(Number(JSON.parse(read("assets/tienda/" + k + "/index.json")).count) > 0, k + ": a door to an empty store");
+  const stocked = readdirSync(join(ROOT, "assets/tienda")).filter((k) => existsSync(join(ROOT, "assets/tienda", k, "index.json"))
+    && Number(JSON.parse(read("assets/tienda/" + k + "/index.json")).count) > 0 && !isOffSaleRetailer(k));
+  for (const k of stocked) assert.ok(keys.includes(k), k + ": a store with products and no door");
   for (const f of ["search.html", "marca.html"]) {
     const m = /var STORE_PAGES = " ([^"]+) ";/.exec(read(f));
     assert.ok(m, f);
-    assert.deepEqual(m[1].split(" ").sort(), dirs, f);
+    assert.deepEqual(m[1].split(" ").sort(), keys.slice().sort(), f);
   }
 });
 
