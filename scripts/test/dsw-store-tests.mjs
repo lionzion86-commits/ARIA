@@ -2,10 +2,12 @@
    DSW STORE — BUILT, GATED, AND HONEST ABOUT WHAT IT DOES NOT HAVE
    (Issue #443, c.6323171170 as amended by c.6323202929).
 
-   1. ZERO CATALOGUE: while dsw-catalog.json is the committed empty
-      envelope, no DSW tile, rail, door, directory card or storefront
-      renders anywhere (the no-dead-ends rule), and the pending flag
-      agrees with the file in every mirror.
+   1. THE LAUNCHED CATALOGUE (2026-11-02, the 2026-11-01 store-sweep
+      delivery through scripts/build-dsw-catalog.mjs --from-catalog):
+      dsw-catalog.json has real products, every one filed by what it is,
+      with a photo, a USD price and no invented size; the pending flag is
+      off in every mirror; the store has its door, tile, storefront,
+      Ofertas and product pages.
    2. FIXTURE CATALOGUE: with a tiny, clearly fake catalogue
       (scripts/test/fixtures/dsw-fixture.json, served by this test's own
       throwaway server in place of dsw-catalog.json, never by the site)
@@ -34,7 +36,7 @@ import vm from "node:vm";
 import * as registry from "../lib/retailers.js";
 import {
   DSW_KEY, OUT_FILE, pullPlan, estimatePull, spendCheck, ingestRow, ingestPull, validGtin, sizesOf,
-  pdpSentences, productCount, currencyOf, emptyCatalog, costRatesFromEnv,
+  pdpSentences, productCount, currencyOf, emptyCatalog, costRatesFromEnv, notShoeBucket, refileCatalog,
   dswActorInput, normalizeRow, imagesOf, galleryKey, isSizeChart, capGuard, WAVE_CAP_USD, DSW_SALE_MAX,
   gtinEnrichTargets, estimateGtinEnrich, mergeGtins, extractedGtins, GTIN_ENRICH_USD_PER_ROW,
   gtinEnrichInput, GTIN_ENRICH_INPUT_KEY,
@@ -81,12 +83,31 @@ function bundleRegistry(src = bundleSrc()) {
 /* ------------------------------------------------------------------
    1. THE ZERO STATE
    ------------------------------------------------------------------ */
-console.log("\n  DSW — zero catalogue: nothing renders");
+console.log("\n  DSW — the launched catalogue");
 
-await check("dsw-catalog.json is the committed empty envelope (no invented product)", () => {
+const SHOE_BUCKETS = new Set(["women", "men", "kids", "footwear"]);
+await check("dsw-catalog.json is the delivered catalogue: real products, a photo and a USD price each, no invented size", () => {
   const c = catalogNow();
-  assert.equal(productCount(c), 0, "dsw-catalog.json has products: the pull landed; flip pendingCatalog and rebuild (see scripts/build-dsw-catalog.mjs)");
-  assert.deepEqual(c, emptyCatalog(), "the zero state is exactly emptyCatalog()");
+  const n = productCount(c);
+  assert.ok(n > 0, "dsw-catalog.json is empty");
+  assert.equal(c.declaredProductCount, n, "declared count drifted from the items");
+  assert.notDeepEqual(c, emptyCatalog());
+  const deps = c.retailers.dsw.departments;
+  for (const [b, d] of Object.entries(deps)) {
+    for (const it of d.items) {
+      assert.match(String(it.image), /^https:\/\//, `${it.name}: no photo, no card`);
+      assert.ok(it.price > 0, `${it.name}: no price`);
+      assert.equal(it.retailer, "dsw");
+      /* The source carries no sizes: none are made up. */
+      assert.deepEqual(it.availableSizes, [], `${it.name}: a size list appeared that the source does not have`);
+      if (it.onSale) assert.ok(it.originalPrice > it.price, `${it.name}: on sale without a real was-price`);
+      /* Filed by what it is: socks, belts, caps, plush are never a shoe aisle. */
+      if (SHOE_BUCKETS.has(b)) assert.equal(notShoeBucket(it.name), null, `${it.name} is filed under ${b} but is not a shoe`);
+      /* No size run in the source: a shoe is shown, not sold (sizes-pending.js). */
+      if (SHOE_BUCKETS.has(b)) assert.equal(it.sizesPending, true, `${it.name}: a sizeless shoe would sell with no picker`);
+    }
+  }
+  assert.ok(Object.values(deps).flatMap((d) => d.items).some((i) => i.onSale), "no DSW item on sale");
 });
 
 await check("the pending flag agrees with the catalogue in all three mirrors", () => {
@@ -140,15 +161,14 @@ await check("no logo is drawn: logo stays null until DSW's real mark is committe
   assert.match(read("scripts/lib/retailers.js"), /TODO\(dsw-logo\)/, "the missing logo is a marked TODO");
 });
 
-await check("the registry keeps a pending store out of every listing, door and count", () => {
-  assert.ok(!registry.activeRetailers().some((r) => r.key === DSW_KEY), "module activeRetailers lists DSW");
-  assert.ok(!registry.browsableRetailers().includes(DSW_KEY), "module browsableRetailers lists DSW");
+await check("the registry lists the live store: listings, door and Tiendas tier (never the live search fan-out)", () => {
+  assert.ok(registry.activeRetailers().some((r) => r.key === DSW_KEY), "module activeRetailers leaves DSW out");
+  assert.ok(registry.browsableRetailers().includes(DSW_KEY), "module browsableRetailers leaves DSW out");
   assert.ok(!registry.searchableRetailers().includes(DSW_KEY));
-  assert.equal(registry.storeDoorFor(DSW_KEY), null, "a product page would open a door to an empty store");
-  assert.ok(!registry.retailersByTier().some((t) => t.stores.some((s) => s.key === DSW_KEY)), "Tiendas directory tier lists DSW");
+  assert.ok(registry.storeDoorFor(DSW_KEY), "a product page has no door to the DSW store");
+  assert.ok(registry.retailersByTier().some((t) => t.stores.some((s) => s.key === DSW_KEY)), "Tiendas directory tier leaves DSW out");
   const R = bundleRegistry();
-  assert.ok(!R.activeRetailers().some((r) => r.key === DSW_KEY), "bundle activeRetailers lists DSW");
-  assert.equal(R.storeDoorFor(DSW_KEY), null, "bundle storeDoorFor opens DSW");
+  assert.ok(R.activeRetailers().some((r) => r.key === DSW_KEY), "bundle activeRetailers leaves DSW out");
 });
 
 await check("every home DSW rail ships [hidden] and is revealed only by the live registry row", () => {
@@ -164,30 +184,55 @@ await check("every home DSW rail ships [hidden] and is revealed only by the live
   assert.match(src, /TIENDAS_STRIP\.filter\(s => [^\n]*!\(retailerFor\(s\.k\) \|\| \{\}\)\.pendingCatalog\)/, "the Tiendas strip filters pending stores");
 });
 
-await check("tienda.html: no directory card, and ?tienda=dsw is the directory, not 'Catálogo en preparación'", () => {
+await check("the storefront slice is the catalogue: Ofertas de DSW first, then the aisles by product type", () => {
   const html = read("tienda.html");
   assert.match(html, /Object\.keys\(STORES\)\.filter\(function\(k\)\{ return !STORES\[k\]\.pendingCatalog; \}\)/);
-  assert.match(html, /if \(!key \|\| !STORES\[key\] \|\| STORES\[key\]\.pendingCatalog\)\{/);
   const idx = JSON.parse(read("assets/tienda/dsw/index.json"));
-  assert.equal(idx.count, 0, "the storefront slice is empty while the catalogue is");
-  assert.deepEqual(idx.rails, []);
+  assert.equal(idx.count, productCount(catalogNow()), "the storefront slice is stale (node scripts/build-store-slices.mjs)");
+  assert.ok(idx.onSale > 0);
+  assert.equal(idx.rails[0].title, "Ofertas de DSW");
+  const titles = idx.rails.map((r) => r.title);
+  for (const t of ["Zapatos de mujer", "Zapatos de hombre", "Zapatos de niños", "Carteras y bolsos"]) assert.ok(titles.includes(t), "missing aisle " + t + ": " + titles.join(" | "));
+  /* The search door (scripts/build-store-doors.mjs) and the destinations. */
+  assert.match(read("search.html"), /\bdsw\b/);
+  const dest = JSON.parse(read("assets/search/destinations.json"));
+  assert.ok(JSON.stringify(dest.stores).includes('"dsw"'), "no DSW search destination");
 });
 
-await check("tiendas.html: the DSW link ships hidden and reveals only on a non-empty storefront", () => {
+await check("tiendas.html: DSW has a live tile, not the pending one (its storefront is stocked)", () => {
+  /* scripts/build-store-doors.mjs writes the grid (#618): a stocked
+     store is a plain tile; the hidden pending tile is for a registry
+     pendingCatalog store with an empty storefront. */
   const html = read("tiendas.html");
-  assert.match(html, /<a class="store-card" href="tienda.html\?tienda=dsw" data-pending-catalog="dsw" hidden>DSW<\/a>/);
-  assert.match(html, /if \(!j \|\| !\(j\.count > 0\)\) return;/);
+  assert.match(html, /<a class="store-card" href="tienda.html\?tienda=dsw">DSW<\/a>/);
+  assert.doesNotMatch(html, /data-pending-catalog="dsw"/);
 });
 
-await check("no derived surface carries a DSW product (home shelves, departments, search)", () => {
-  const shelves = JSON.parse(read("assets/home/shelves/index.json"));
-  assert.ok(!(shelves.stores || []).includes(DSW_KEY), "a home shelf for DSW exists");
-  for (const d of ["shoes", "shoes_women", "shoes_men", "gym_rat"]) {
-    const f = ROOT + `assets/sections/departamento/_fn/${d}.json`;
-    if (!existsSync(f)) continue;
-    const j = JSON.parse(readFileSync(f, "utf8"));
-    assert.ok(!Object.keys(j.labels || {}).includes(DSW_KEY), `${d} lists a DSW store chip`);
-  }
+await check("the derived surfaces carry DSW: Zapatos department, Ofertas, search index", () => {
+  const shoes = JSON.parse(read("assets/sections/departamento/_fn/shoes.json"));
+  assert.ok(JSON.stringify(shoes).includes('"dsw"'), "Zapatos has no DSW product");
+  const deals = JSON.parse(read("assets/ofertas/rails.json"));
+  assert.ok(JSON.stringify(deals).includes('"dsw"'), "Ofertas has no DSW rail");
+  assert.ok(read("assets/search/catalog-index.json").includes('"dsw"'), "the search index has no DSW product");
+});
+
+await check("refileCatalog: a delivered catalogue keeps its buckets, moves what is not a shoe, drops what has no photo", () => {
+  const env = { retailers: { dsw: { departments: {
+    women: { items: [
+      { name: "Pump - Women's", price: 50, image: "https://x/1.jpg", description: "A pump for work." },
+      { name: "Steve Madden Women's Belt", price: 20, image: "https://x/2.jpg" },
+      { name: "No Photo Sandal - Women's", price: 20, image: "" },
+    ] },
+    footwear: { items: [{ name: "Warmies Cat Warming Stuffed Animal", price: 30, image: "https://x/3.jpg" }] },
+  } } } };
+  const { catalog, moved } = refileCatalog(env, { spanishFor: (en) => (en === "A pump for work." ? "Un taco para el trabajo." : null) });
+  const d = catalog.retailers.dsw.departments;
+  assert.deepEqual(Object.keys(d).sort(), ["accesorios", "peluches", "women"]);
+  assert.equal(d.women.items.length, 1);
+  assert.equal(d.women.items[0].description, "Un taco para el trabajo.");
+  assert.equal(d.women.items[0].description_en, "A pump for work.");
+  assert.equal(moved.length, 2);
+  assert.equal(catalog.declaredProductCount, 3);
 });
 
 await check("the fixture is test-only: no page or builder references it", () => {
@@ -549,6 +594,7 @@ await check("no --confirm-spend: prints ESTIMATED COST, exits 2, and never calls
 });
 
 await check("--confirm-spend: a run that projects above the quote stops after it and says so (exit 3)", async () => {
+  const catalogBefore = read(OUT_FILE);
   const dataDir = mkdtempSync(join(tmpdir(), "dsw-data-"));
   const site = await stubSite((req) => {
     if (req.url.startsWith("/.netlify/functions/apify-scrape-start")) return { json: { runId: "run-1" } };
@@ -562,7 +608,7 @@ await check("--confirm-spend: a run that projects above the quote stops after it
     const starts = site.calls.filter((c) => c.url.startsWith("/.netlify/functions/apify-scrape-start"));
     assert.equal(starts.length, 1, "it started another run after the projection went over");
     assert.equal(JSON.parse(starts[0].body).retailer, "dsw");
-    assert.ok(!existsSync(ROOT + OUT_FILE) || productCount(catalogNow()) === 0, "a stopped pull wrote the catalogue");
+    assert.equal(read(OUT_FILE), catalogBefore, "a stopped pull wrote the catalogue");
   } finally { await site.close(); rmSync(dataDir, { recursive: true, force: true }); }
 });
 
@@ -705,39 +751,39 @@ async function phonePage(browser) {
   return page;
 }
 
-await check("zero catalogue, headless: no DSW tile, rail, directory card or storefront", () => withBrowser(async (browser) => {
+await check("launched catalogue, headless: home tile and rail, directory card, storefront (Ofertas de DSW first), Tiendas link", () => withBrowser(async (browser) => {
   const site = await serveRepo();
   try {
     const page = await phonePage(browser);
     await page.goto(site.base + "/", { waitUntil: "load" });
     await page.waitForFunction(() => document.querySelectorAll("#mTiendasStripRow button").length > 5, null, { timeout: 30000 });
-    for (let y = 0; y < 30000; y += 900) { await page.evaluate((y) => window.scrollTo(0, y), y); await page.waitForTimeout(60); }
+    await page.waitForFunction(() => [...document.querySelectorAll('section[data-store-rail="dsw"]')].some((s) => !s.hidden), null, { timeout: 30000 });
     const home = await page.evaluate(() => ({
-      tile: [...document.querySelectorAll("[onclick]")].filter((e) => /tiendaJump\('dsw'\)|openStore\('dsw'\)/.test(e.getAttribute("onclick")) && e.getClientRects().length).length,
-      rails: [...document.querySelectorAll('section[data-store-rail="dsw"]')].map((s) => s.hidden && !s.getClientRects().length),
-      cards: document.querySelectorAll('[data-store-rail-card="dsw"]').length,
+      tile: [...document.querySelectorAll("[onclick]")].filter((e) => /tiendaJump\('dsw'\)|openStore\('dsw'\)/.test(e.getAttribute("onclick"))).length,
       fetchedCatalogue: performance.getEntriesByType("resource").some((e) => /dsw-catalog\.json/.test(e.name)),
     }));
-    assert.equal(home.tile, 0, "a visible DSW tile or door on the home page");
-    assert.deepEqual(home.rails, [true, true, true], "a DSW rail is showing");
-    assert.equal(home.cards, 0);
-    assert.equal(home.fetchedCatalogue, false, "the home page fetched dsw-catalog.json for a hidden rail");
+    assert.ok(home.tile > 0, "no DSW tile on the home page");
+    assert.equal(home.fetchedCatalogue, false, "the home page fetched the whole dsw-catalog.json");
 
     await page.goto(site.base + "/tienda.html", { waitUntil: "load" });
-    const dir = await page.evaluate(() => ({ any: !!document.querySelector('a[href="tienda.html?tienda=dsw"]'), n: document.querySelectorAll("#dirGrid .dir-card").length }));
-    assert.equal(dir.any, false, "the store directory lists DSW");
-    assert.ok(dir.n > 50);
+    await page.waitForSelector("#dirGrid .dir-card", { timeout: 30000 });
+    assert.equal(await page.locator('#dirGrid a[href="tienda.html?tienda=dsw"]').count(), 1, "the store directory leaves DSW out");
 
     await page.goto(site.base + "/tienda.html?tienda=dsw", { waitUntil: "load" });
-    const route = await page.evaluate(() => ({ dir: !document.getElementById("dirWrap").hidden, store: !document.getElementById("storeWrap").hidden, text: document.body.innerText }));
-    assert.equal(route.dir, true, "?tienda=dsw did not fall back to the directory");
-    assert.equal(route.store, false);
-    assert.ok(!/Catálogo en preparación/.test(route.text), "a dead-end storefront rendered");
+    await page.waitForSelector("#storeWrap .rail-sec", { timeout: 30000 });
+    const store = await page.evaluate(() => ({
+      first: document.querySelector("#storeWrap .rail-sec .rail-title").textContent,
+      cards: document.querySelectorAll("#storeWrap a.card").length,
+      dead: /Catálogo en preparación/.test(document.body.innerText),
+      wide: document.documentElement.scrollWidth > window.innerWidth + 1,
+    }));
+    assert.equal(store.first, "Ofertas de DSW");
+    assert.ok(store.cards > 8, "the storefront painted " + store.cards + " cards");
+    assert.equal(store.dead, false);
+    assert.equal(store.wide, false, "sideways scroll at 390px");
 
     await page.goto(site.base + "/tiendas.html", { waitUntil: "load" });
-    await page.waitForTimeout(400);
-    const link = await page.evaluate(() => { const a = document.querySelector('a[href="tienda.html?tienda=dsw"]'); return a ? a.hidden : null; });
-    assert.equal(link, true, "tiendas.html shows the DSW link");
+    await page.waitForFunction(() => { const a = document.querySelector('a[href="tienda.html?tienda=dsw"]'); return a && !a.hidden; }, null, { timeout: 15000 });
   } finally { await site.close(); }
 }));
 
@@ -762,15 +808,10 @@ async function fixtureOverrides() {
     shards[s][key] = cands.length === 1 ? [cands[0].rec] : cands.map((c) => ({ ...c.rec, src: c.src }));
   }
   rmSync(tmp, { recursive: true, force: true });
-  const bname = "/" + bundleName();
-  const bundle = bundleSrc().replace(/(  dsw: +\{ key: 'dsw',[^\n]*?), pendingCatalog: true \}/, "$1 }");
-  assert.notEqual(bundle, bundleSrc(), "could not lift the bundle's pending flag");
-  const tienda = read("tienda.html").replace('"pendingCatalog": true, ', "");
-  assert.notEqual(tienda, read("tienda.html"));
+  /* The flag is off in every mirror now (the launch): the page and the
+     bundle are served as committed. */
   const o = {
     ["/" + OUT_FILE]: JSON.stringify(FIXTURE),
-    [bname]: bundle,
-    "/tienda.html": tienda,
     "/assets/tienda/dsw/index.json": JSON.stringify(built.files["index.json"]),
   };
   for (const [name, body] of Object.entries(built.files)) o["/assets/tienda/dsw/" + name] = JSON.stringify(body);

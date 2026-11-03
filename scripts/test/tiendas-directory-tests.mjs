@@ -44,7 +44,9 @@ await check("Montce, FARM Rio, ViX, RevZilla, TNS, Dennis Kirk, Foot Locker, SSE
 await check("the count line is the number of live storefronts; a pending store's tile ships hidden", () => {
   assert.match(html, new RegExp(`>${doors.keys.length} tiendas activas</p>`));
   for (const t of tiles.filter((x) => x.hidden)) assert.ok(doors.pending.includes(t.key), `${t.key} is hidden but not pending`);
-  assert.ok(tiles.some((t) => t.key === "dsw" && t.hidden), "DSW's pending tile is gone");
+  /* DSW was the pending store until its catalogue was stocked (#611): now a live tile. */
+  assert.ok(tiles.some((t) => t.key === "dsw" && !t.hidden), "DSW is stocked but has no live tile");
+  assert.ok(tiles.some((t) => t.key === "tenniswarehouse" && !t.hidden), "Tennis Warehouse is stocked but has no live tile");
 });
 console.log(`\n  ${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

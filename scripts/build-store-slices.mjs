@@ -59,6 +59,7 @@ import { AISLE_ORDER, AISLE_LABELS } from "./lib/brandsmart.js";
 import { STORES as CI } from "./lib/calzedonia-intimissimi.js";
 import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
 import { celularesOrder } from "../netlify/functions/_department-core.js";
+import { DEPT_ORDER as TW_ORDER, DEPT_LABELS as TW_LABELS } from "./lib/tenniswarehouse.js";
 import { STOREFRONTS, storefrontRails, perfumeRails, PERFUME_CHIP_ORDER } from "./lib/storefronts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -151,11 +152,28 @@ export const SLICED_STORES = {
   dsw: {
     file: "dsw-catalog.json",
     label: "DSW",
-    DEPT_ORDER: ["women", "men", "kids", "footwear", "purses"],
+    /* The locked storefront order (scripts/lib/storefronts.js): Ofertas,
+       then the aisles, no Más vendidos between them. */
+    LOCKED: true,
+    DEPT_ORDER: ["women", "men", "kids", "footwear", "purses", "accesorios", "peluches"],
     DEPT_LABELS: {
       women: "Zapatos de mujer", men: "Zapatos de hombre", kids: "Zapatos de niños",
       footwear: "Más zapatos", purses: "Carteras y bolsos",
+      accesorios: "Medias y accesorios", peluches: "Peluches",
     },
+  },
+  /* TENNIS WAREHOUSE (#443 c.6565357697, c.6578887587): the 2026-11-01
+     store sweep, normalised by scripts/build-tenniswarehouse-catalog.mjs
+     (rules: scripts/lib/tenniswarehouse.js). Ofertas first (real
+     was-prices), then the aisles in Danny's order: ropa mujer / hombre /
+     junior, zapatos, raquetas, cuerdas, grips, pelotas, bolsos,
+     accesorios. */
+  tenniswarehouse: {
+    file: "tenniswarehouse-catalog.json",
+    label: "Tennis Warehouse",
+    LOCKED: true,
+    DEPT_ORDER: TW_ORDER,
+    DEPT_LABELS: TW_LABELS,
   },
   /* SNIPES (#443 c.6450358688, pulled 2026-10-27). Danny's order: Ofertas
      first, then the brand carousels (Nike, Jordan, Adidas, New Balance,
