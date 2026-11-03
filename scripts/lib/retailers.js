@@ -1250,8 +1250,10 @@ export const RETAILERS = {
     kind: "general",
     catalog: "beauty",
     search: false,
-    retired: true,
-    retiredNote: "Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.",
+    /* 2026-11-03: BROWSABLE. Its first catalogue landed (143 products,
+       data/pull-wave-2026-11-03/bbw), in beauty-catalog.json under
+       retailers.bathandbodyworks (scripts/ingest-pull-wave.mjs). */
+    browse: true,
   },
   hottopic: {
     key: "hottopic",

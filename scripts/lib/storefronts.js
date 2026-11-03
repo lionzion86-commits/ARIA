@@ -59,6 +59,9 @@ export const STOREFRONTS = {
   sephora: { split: ["belleza"] },
   ulta: { split: ["belleza"] },
   yesstyle: { split: ["belleza"] },
+  /* Bath & Body Works (2026-11-03, its first catalogue): body care,
+     fragrance mists and home fragrance, each by what the product is. */
+  bathandbodyworks: { split: ["belleza"] },
   kohls: { split: ["ropa"] },
   macys: { split: ["ropa"] },
   costco: { split: [] },
