@@ -46,7 +46,6 @@
     + '@media(min-width:640px){.dh-sel{grid-template-columns:repeat(4,minmax(0,1fr))}}'
     + '.dh-sel select{width:100%;height:44px;border:1px solid #E4E6EC;border-radius:12px;padding:0 10px;font:700 14px inherit;font-family:inherit;color:#0A1F44;background:#fff;min-width:0}'
     + '.dh-count{margin:12px 0 10px;color:#6B7487;font-size:14px;font-weight:600}'
-    + '#dh-explorar .dh-ex-rail{margin:0 -20px}'
     + '.dh-empty{padding:18px 0;color:#6B7487;font-size:14px}';
   var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
 

@@ -156,7 +156,8 @@ function storeAisles(s, roots) {
       for (const r of ix.rails || []) {
         if (!/^t-/.test(r.key || "")) continue;
         titles.set(r.key, [r.title, false]);
-        for (const sub of r.subs || []) titles.set(sub.k, [sub.t, true]);
+        /* A sub-carousel keeps its audience (Zapatillas Mujer, Zapatillas Niños). */
+        for (const sub of r.subs || []) titles.set(sub.k, [sub.t + (sub.a ? " " + sub.a : ""), true]);
       }
       for (const [key, idx] of Object.entries(s.rails || {})) {
         const t = titles.get(key);

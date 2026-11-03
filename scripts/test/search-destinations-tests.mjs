@@ -140,27 +140,22 @@ await check("«También puede ser…» rides on a resolved landing: other close 
   assert.ok(crocs.alternatives.some((x) => x.kind === "brand" && x.key === "crocs"), "Crocs the store offers Crocs the brand");
 });
 
-await check("the chooser: at most three rails -- store, brand, category, one each -- each with a door to its own page; a miss gets entry doors", async () => {
+/* THE CHOOSER, CAROUSELS ONLY (#443, Danny 2026-11-02): four carousels --
+   Categoría, Marca, Producto, Ofertas -- each with real products and a door
+   to the one landing format; a miss gets the same four, never zero. */
+await check("the chooser: four carousels -- Categoría, Marca, Producto, Ofertas -- each with products and a door to a railed page; a miss gets the same four", async () => {
   for (const [q, a] of ANSWERS) {
     if (a.destination.kind !== "chooser") continue;
     const rails = a.chooser.rails;
-    assert.ok(rails.length >= 1 && rails.length <= 3, `${q}: ${rails.length} rails`);
-    if (rails[0].kind === "entry") {
-      assert.deepEqual(rails.map((r) => r.url), ["ofertas.html", "tiendas.html", "categorias.html"], q);
-      continue;
-    }
-    const kinds = rails.map((r) => r.kind);
-    assert.equal(new Set(kinds).size, kinds.length, `${q}: two rails of one kind`);
+    assert.deepEqual(rails.map((r) => r.kind), dst.CHOOSER_KINDS, q);
     for (const r of rails) {
-      assert.ok(["store", "brand", "category"].includes(r.kind), q);
-      assert.match(r.url, dst.SURFACE_RX, `${q}: ${r.url}`);
-      assert.match(r.door, /^Ver todo en /, q);
+      assert.ok(dst.SURFACE_RX.test(r.url) || /^search\.html\?resultados=1&q=[^&"<>\s#]*(#lane-ofertas)?$/.test(r.url) || r.url === "ofertas.html", `${q}: ${r.url}`);
       assert.ok(r.items.length > 0 && r.items.length <= dst.RAIL_ITEMS, `${q}: ${r.kind} rail has ${r.items.length} cards`);
     }
   }
 });
 
-await check(`the miss-words (${MISS_WORDS.join(", ")}): no store, no brand, no category, nothing found -- the chooser's entry doors`, async () => {
+await check(`the miss-words (${MISS_WORDS.join(", ")}): no store, no brand, no category, nothing found -- the chooser's four doors, where to start`, async () => {
   for (const w of MISS_WORDS) {
     const a = ANSWERS.get(w) || await route(w);
     assert.equal(a.destination.kind, "chooser", w);
@@ -266,10 +261,11 @@ await check("no search lands on a department page led by its generic Ofertas rai
     }
   }
   assert.ok(n > 40, `only ${n} category urls`);
-  /* The page side: ?ver= never lifts or draws the Ofertas rail. */
+  /* The page side (#443 carousels only): ?ver= is the one landing format --
+     the set's own Ofertas on top, then one carousel per store -- never the
+     department's generic Ofertas rail (the server builds the set's). */
   const DP = readFileSync(join(ROOT, "departamento.html"), "utf8");
-  assert.match(DP, /function liftSales\(first\)\{\n    liftedRi = -1;\n    if \(VER\)\{/);
-  assert.match(DP, /if \(VER && isOfertasRail\(r\)/);
+  assert.match(DP, /if \(VER\) u \+= '&ver=' \+ encodeURIComponent\(VER\);/);
 });
 
 await check("an ambiguous or unknown word still gets the chooser; brand + model still the brand («celular samsung», «xbox series x»)", async () => {
@@ -390,25 +386,25 @@ if (pw) {
   };
   const SHOT = process.env.SHOT_DIR || "";
   try {
-    await check(`browser: a miss-word (search.html?q=${MISS_WORDS[0]}) shows the chooser -- three entry doors, no grid, no cards`, async () => {
+    await check(`browser: a miss-word (search.html?q=${MISS_WORDS[0]}) shows the chooser -- Categoría, Marca, Producto, Ofertas carousels, never a grid, never zero`, async () => {
       const { c, page, errors } = await phone();
       await page.goto(`${BASE}/search.html?q=${MISS_WORDS[0]}`);
       await page.waitForSelector(".ch-head", { timeout: 60000 });
-      const doors = await page.$$eval(".ch-door", (a) => a.map((x) => x.getAttribute("href")));
-      assert.deepEqual(doors, ["ofertas.html", "tiendas.html", "categorias.html"]);
-      assert.equal(await page.$$eval("#results .card", (x) => x.length), 0);
+      const kinds = await page.$$eval(".ch-lane", (ls) => ls.map((l) => [l.getAttribute("data-kind"), l.querySelectorAll(".rail .card").length]));
+      assert.deepEqual(kinds.map((k) => k[0]), ["category", "brand", "product", "ofertas"]);
+      for (const [k, n] of kinds) assert.ok(n > 0, k);
       assert.match(await page.textContent(".ch-head h2"), /No encontramos/);
       if (SHOT) await page.screenshot({ path: join(SHOT, "dest-chooser.png"), fullPage: true });
       assert.deepEqual(errors, []);
       await c.close();
     });
-    await check("browser: a low-confidence query (search.html?q=iphone 15 case) shows at most three rails, each with its door", async () => {
+    await check("browser: a low-confidence query (search.html?q=iphone 15 case) shows the four chooser carousels, each with its door", async () => {
       const { c, page, errors } = await phone();
       await page.goto(`${BASE}/search.html?q=${encodeURIComponent("iphone 15 case")}`);
       await page.waitForSelector(".ch-lane", { timeout: 60000 });
       const lanes = await page.$$eval(".ch-lane", (ls) => ls.map((l) => ({ kind: l.getAttribute("data-kind"), door: l.querySelector(".lane-door").getAttribute("href"), cards: l.querySelectorAll(".card").length })));
-      assert.ok(lanes.length >= 1 && lanes.length <= 3);
-      for (const l of lanes) { assert.match(l.door, dst.SURFACE_RX); assert.ok(l.cards > 0); }
+      assert.deepEqual(lanes.map((l) => l.kind), ["category", "brand", "product", "ofertas"]);
+      for (const l of lanes) { assert.ok(dst.SURFACE_RX.test(l.door) || /^search\.html\?resultados=1&q=/.test(l.door) || l.door === "ofertas.html", l.door); assert.ok(l.cards > 0); }
       if (SHOT) await page.screenshot({ path: join(SHOT, "dest-chooser-low.png") });
       assert.deepEqual(errors, []);
       await c.close();
@@ -459,29 +455,25 @@ if (pw) {
     for (const [word, rx, title, shot] of [["celular", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_celulares/, "Celulares", "pw-celular.png"],
       ["laptop", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_computadoras/, "Computadoras y tablets", "pw-laptop.png"],
       ["champú", /departamento\.html\?dept=cabello&ver=tipo%3Achamp%C3%BA%20y%20acondicionador/, "Champú y acondicionador", "pw-champu.png"]]) {
-      await check(`browser 390px: «${word}» typed in the header search lands on the ${title} type page -- its listing leads, no Ofertas rail on top`, async () => {
+      /* CAROUSELS ONLY (#443, 2026-11-02): the type page is the one landing
+         format -- the type's own Ofertas on top, then one carousel per store
+         -- never the side-by-side grid it used to be. */
+      await check(`browser 390px: «${word}» typed in the header search lands on the ${title} page -- its Ofertas, then one carousel per store, no grid`, async () => {
         const { c, page, errors } = await phone();
         await page.goto(`${BASE}/departamento.html?dept=toys`, { waitUntil: "load" });
         await page.tap(".hs-pill");
         await page.fill(".hs-in", word);
         await page.press(".hs-in", "Enter");
         await page.waitForURL(rx, { timeout: 60000 });
-        await page.waitForSelector("#typeLead #tlGrid .card:not(.sk)", { timeout: 60000 });
-        assert.equal(await page.textContent("#typeLead .tl-head h2"), title);
+        await page.waitForSelector('#rails .rail-sec[data-k^="tienda:"] .rail .card:not(.sk)', { timeout: 60000 });
         assert.equal(await page.textContent("#heroTitle"), title);
-        assert.ok(await page.evaluate(() => document.getElementById("salesTop").hidden), "the Ofertas rail is lifted on top");
-        assert.equal(await page.$$eval("#rails .rail-sec h2", (hs) => hs.filter((h) => /^Ofertas\b/.test(h.textContent)).length), 0, "an Ofertas rail is drawn");
-        /* The type leads: nothing with products sits between the hero and it. */
-        const above = await page.evaluate(() => {
-          const lead = document.getElementById("typeLead"), out = [];
-          for (let el = document.getElementById("deptHero").nextElementSibling; el && el !== lead; el = el.nextElementSibling) if (!el.hidden && el.querySelector(".card")) out.push(el.id);
-          return out;
-        });
-        assert.deepEqual(above, []);
-        const cards = await page.$$eval("#tlGrid .card:not(.sk)", (cs) => cs.map((x) => x.textContent.replace(/\s+/g, " ").trim()));
+        assert.equal(await page.$$eval(".re-grid, #typeLead, #tlGrid", (x) => x.length), 0, "a grid on the page");
+        const first = await page.evaluate(() => { const s = document.querySelector("#salesTop:not([hidden]) .rail-sec, #rails .rail-sec"); return s && s.getAttribute("data-k"); });
+        assert.match(first, /^(ofertas|tienda:)/, "the page leads with " + first);
+        const cards = await page.$$eval('#rails .rail-sec[data-k^="tienda:"] .rail .card:not(.sk)', (cs) => cs.map((x) => x.textContent.replace(/\s+/g, " ").trim()));
         assert.ok(cards.length >= 4);
         if (word === "celular") {
-          assert.match(cards[0], /iphone/i, "no iPhone in the first card: " + cards[0]);
+          assert.match(cards[0], /iphone|galaxy|pixel|moto/i, "the first store carousel does not lead with a phone people ask for: " + cards[0]);
           for (const t of cards.slice(0, 4)) assert.doesNotMatch(t, /FYTPOV|MIRO|NANNEE/i, t);
         }
         const chips = await page.$$eval("#tpRow a", (a) => a.map((x) => x.getAttribute("data-kind")));
