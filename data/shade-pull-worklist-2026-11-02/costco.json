@@ -7,32 +7,5 @@
   "ariaId": "1mb25ce1tfvqbw",
   "ariaUrl": "/producto.html?producto=Neutrogena%20Hydro%20Boost%20Lip%20Oil%2C%200.2%20fl%20oz%2C%203-pack&tienda=costco",
   "category": "lip oil"
- },
- {
-  "store": "costco",
-  "title": "Perricone MD No Makeup Mascara, 0.28 fl oz, 2-pack",
-  "brand": "Perricone",
-  "url": "https://www.costco.com/perricone-md-no-makeup-mascara-028-fl-oz-2-pack.product.4000368426.html",
-  "ariaId": "14katrani0v5k",
-  "ariaUrl": "/producto.html?producto=Perricone%20MD%20No%20Makeup%20Mascara%2C%200.28%20fl%20oz%2C%202-pack&tienda=costco",
-  "category": "mascara"
- },
- {
-  "store": "costco",
-  "title": "Sacheu Lip Liner STAY-N, 4-pack",
-  "brand": "Sacheu",
-  "url": "https://www.costco.com/sacheu-lip-liner-stay-n-4-pack.product.4000412285.html",
-  "ariaId": "9k6tb81mohzbe",
-  "ariaUrl": "/producto.html?producto=Sacheu%20Lip%20Liner%20STAY-N%2C%204-pack&tienda=costco",
-  "category": "lip liner"
- },
- {
-  "store": "costco",
-  "title": "Stila Cosmetics Convertible Color Lip & Cheek Cream Blush, 0.15 fl oz, 2-pack",
-  "brand": "Stila",
-  "url": "https://www.costco.com/stila-cosmetics-convertible-color-lip-and-cheek-cream-blush-015-fl-oz-2-pack.product.4000444695.html",
-  "ariaId": "1qmhx42zchvs8",
-  "ariaUrl": "/producto.html?producto=Stila%20Cosmetics%20Convertible%20Color%20Lip%20%26%20Cheek%20Cream%20Blush%2C%200.15%20fl%20oz%2C%202-pack&tienda=costco",
-  "category": "blush"
  }
 ]

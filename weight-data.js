@@ -8,7 +8,13 @@
 // into the frontend, but the values travelled with the file anyway. They
 // now live in netlify/functions/_courier-economics.js, which is server
 // only. Do not bring them back.
-export const CHARGE_PER_KG = 13; // the rate actually charged to and shown to the customer
+/* The import-tax arithmetic and its constants live in /import-tax.js (a
+   plain script, so the card pages run the same code); this module
+   re-exports them -- checkout, orders-create and the door price import
+   from here exactly as before. */
+import "./import-tax.js";
+const T = globalThis.AriaImportTax;
+export const CHARGE_PER_KG = T.CHARGE_PER_KG; // 13: the rate actually charged to and shown to the customer
 export const BASE_FEE = 0;
 
 /* ============================================================
@@ -54,8 +60,8 @@ export const BASE_FEE = 0;
    document is what should calibrate it. Change the number here; nothing
    downstream hardcodes it.
    ============================================================ */
-export const TAX_ESTIMATE_THRESHOLD_USD = 200;   // measured on FOB
-export const TAX_ESTIMATE_RATE = 0.25;           // applied to CIF
+export const TAX_ESTIMATE_THRESHOLD_USD = T.THRESHOLD_USD;   // 200, measured on FOB
+export const TAX_ESTIMATE_RATE = T.RATE;                     // 0.25, applied to CIF
 
 /**
  * Aria's estimated import tax for an order, in USD.
@@ -65,11 +71,7 @@ export const TAX_ESTIMATE_RATE = 0.25;           // applied to CIF
  * @returns {number} 0 when the order is at or under the FOB threshold.
  */
 export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
-  const fob = Number(fobUsd);
-  if (!Number.isFinite(fob) || fob <= TAX_ESTIMATE_THRESHOLD_USD) return 0;
-  const freight = Number(freightUsd);
-  const cif = fob + (Number.isFinite(freight) && freight > 0 ? freight : 0);
-  return Math.round(cif * TAX_ESTIMATE_RATE * 100) / 100;
+  return T.importTaxEstimateUsd(fobUsd, freightUsd);
 }
 
 /* ============================================================
@@ -99,7 +101,7 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
    margin. Every page copy (var PRE_PRICED) and the bundle mirror this;
    scripts/test/price-parity-tests.mjs pins them. When the 90-day promo
    ends, the builder prices at the tiered margin and this factor goes. */
-export const PRE_PRICED = Object.freeze({ ariaperfumes: 1.18 });
+export const PRE_PRICED = T.PRE_PRICED; // { ariaperfumes: 1.18 }, frozen
 /* LAUNCH PRICING (#443 item 32 amendment, Danny): while a pre-priced
    store's launch promo runs, every card and product page of it says
    "Precio de lanzamiento" -- the promo is temporary by announcement, so
@@ -122,12 +124,7 @@ export function tieredMarginUsd(rawUsd) {
     + Math.max(r - 5000, 0) * 0.08;
 }
 export function rawFromTieredMarked(marked) {
-  const m = Number(marked);
-  if (!(m > 0)) return NaN;
-  if (m <= 620) return m / 1.24;
-  if (m <= 2390) return (m - 30) / 1.18;
-  if (m <= 5750) return (m - 150) / 1.12;
-  return (m - 350) / 1.08;
+  return T.rawFromTieredMarked(marked);
 }
 
 /**

@@ -142,12 +142,14 @@ await check("the copy is Danny's, in Aria's voice, no emojis, never called a com
   const home = readFileSync(ROOT + "index.html", "utf8");
   const sec = home.slice(home.indexOf('<section id="feedbackSection"'), home.indexOf("</section>", home.indexOf('<section id="feedbackSection"')));
   for (const t of ["¿Qué tienda de Estados Unidos te gustaría ver en Aria?", "Enviar", "¡Gracias! Leemos cada mensaje, y las tiendas que más nos piden son las que buscamos primero.", "Solo si quieres que te respondamos.", "Recomendación", "Consejo", "Tienda que quiero", "Mi opinión"]) assert.ok(form.includes(t), t);
-  for (const t of ["Danos tu feedback", "Recomendaciones, consejos y opiniones: cuéntanos cómo hacer Aria mejor para ti."]) { assert.ok(page.includes(t), "opinion.html: " + t); assert.ok(sec.includes(t), "home section: " + t); }
+  /* Danny's copy (#443 c.6614714225), pinned exactly in feedback-copy-tests.mjs; tags stripped (the page's h1 golds a word) */
+  const words = (h) => h.replace(/<[^>]+>/g, "");
+  for (const t of ["¿Cómo podemos mejorar?", "Siempre estamos dispuestos a mejorar y hacerlo mejor para ustedes, los compradores."]) { assert.ok(words(page).includes(t), "opinion.html: " + t); assert.ok(words(sec).includes(t), "home section: " + t); }
   for (const [n, t] of [["form", form], ["page", page], ["section", sec]]) {
     assert.ok(!EMOJI.test(t), n + " has an emoji");
     assert.ok(!/reclamaci[oó]n|libro de reclamaciones/i.test(t.replace(/Libro de Reclamaciones: a complaint|not the Libro de Reclamaciones|Not the Libro de Reclamaciones|It is\s+not the Libro de Reclamaciones|no es el Libro de Reclamaciones/g, "")), n + " calls itself a complaints book");
   }
-  assert.ok(home.includes('<a href="/opinion.html"') && page.includes('<a href="opinion.html">Danos tu feedback</a>'), "the footers link the page");
+  assert.ok(home.includes('<a href="/opinion.html"') && page.includes('<a href="opinion.html">¿Cómo podemos mejorar?</a>'), "the footers link the page");
   /* the section is the home view's last thing (the view after it is Results), above the footer */
   const homeView = home.indexOf('<div id="homeView"'), next = home.indexOf("<!-- ============ RESULTS VIEW");
   const at = home.indexOf('<section id="feedbackSection"');

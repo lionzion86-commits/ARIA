@@ -158,7 +158,10 @@ function stableJson(obj) {
 /* What the colour picker swaps: one variant of a group. Its own store
    URL rides along (data for the cart line's dispatch packet, never a
    link): the shade picked is the listing bought. */
-const VARIANT_FIELDS = ["v", "c", "name", "price", "wasPrice", "salePct", "image", "images", "sizes", "sizesTier", "sizesSource", "sizesPending", "url", "so"];
+/* sp: a shade sold on the same listing's page (a YesStyle pid, a Victoria's
+   Secret catalog id; scripts/lib/variant-families.mjs applyPageFamily):
+   its photo is the page's, not a swatch of that shade. */
+const VARIANT_FIELDS = ["v", "c", "name", "price", "wasPrice", "salePct", "image", "images", "sizes", "sizesTier", "sizesSource", "sizesPending", "url", "so", "sp"];
 export function variantOf(it) {
   const out = {};
   for (const k of VARIANT_FIELDS) {
@@ -214,13 +217,15 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
      members leave the title grouping, and members the catalogue lacks
      (a shade with its own real price and photo from the pull) become
      listings of their own, after every catalogue file. */
-  const fams = applyFamilies([...firstByV.values()].map((it) => ({ ...it, v: it.__v })), families || loadFamilies(root));
+  const fams = applyFamilies([...firstByV.values()].map((it) => ({ ...it, v: it.__v })), families || loadFamilies(root),
+    all.map(({ it }) => ({ ...it, v: it.__v })));
   fams.extra.forEach((x, pos) => {
     const it = P.normalizeItem({ ...x, __family: undefined, v: undefined }, x.retailer);
     if (!it) return;
     it.__v = x.v;
     if (x.dept) it.dept = x.dept;
     if (x.sizesPending) it.sizesPending = true;
+    if (x.sp) it.sp = 1;
     if (!firstByV.has(it.__v)) { firstByV.set(it.__v, it); all.push({ f: "/" + x.__family, pos, it }); }
   });
   const titleGrouping = groupColourways([...firstByV.values()].filter((it) => !fams.assign.has(it.__v))
@@ -237,7 +242,7 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     const m = grouping.get(v);
     if (!m) continue;
     if (!groups.has(m.g)) groups.set(m.g, []);
-    groups.get(m.g).push(variantOf({ ...it, v, c: m.c, so: m.so }));
+    groups.get(m.g).push(variantOf({ ...it, v, c: m.c, so: m.so, sp: m.sp || it.sp }));
   }
   /* Pass 2: the records, as before, now naming their listing. */
   for (const { f, pos, it } of all) {
@@ -245,7 +250,11 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     const key = P.norm(it.name);
     const m = grouping.get(it.__v);
     if (m || vsByTitle.get(key).size > 1) it.v = it.__v;
-    if (m) { it.g = m.g; it.c = m.c; if (m.ax) it.ax = m.ax; if (m.so) it.so = 1; }
+    /* A title that names its own shade on a page several titles share
+       (applyFamilies `ownByName`): that shade, whatever the page's id holds. */
+    const byName = fams.ownByName && fams.ownByName.get(it.__v + "|" + it.name);
+    if (byName) { it.c = byName.c; it.ax = byName.ax; }
+    else if (m) { it.g = m.g; it.c = m.c; if (m.ax) it.ax = m.ax; if (m.so) it.so = 1; }
     /* A gated beauty listing whose store's shade list names its one
        shade (scripts/lib/variant-families.mjs applyFamilies `own`): that
        shade is its tono -- named on the page, carried by the line. */
