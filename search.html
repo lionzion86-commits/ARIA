@@ -243,6 +243,17 @@ html{scroll-padding-top:76px}
 @media (min-width:1024px){.hs-lgpill{flex:0 0 40px;margin-left:0}}
 </style>
 <script src="/assets/js/header-search.js" defer></script>
+<style id="nm-css">
+.nm{--nm-fg:#0A1F44;--nm-mute:#5B6475;--nm-line:#E4E6EC;--nm-bg:#fff;--nm-hi:#B8860B;position:relative;background:var(--nm-bg);border-top:1px solid var(--nm-line);font-family:inherit}
+.nm-dark{--nm-fg:#F4F6FB;--nm-mute:rgba(236,241,250,.8);--nm-line:rgba(255,255,255,.16);--nm-bg:#0A1F44;--nm-hi:#F4C463}
+.nm-in{max-width:1240px;margin:0 auto;padding:0 12px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.nm-in::-webkit-scrollbar{display:none}
+.nm-tab{flex:0 0 auto;display:inline-flex;align-items:center;height:40px;padding:0 10px;color:var(--nm-fg);font-size:13.5px;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent;-webkit-tap-highlight-color:transparent}
+.nm-tab[aria-expanded="true"]{border-bottom-color:var(--nm-hi)}
+.nm-tab:focus-visible{outline:2px solid var(--nm-hi);outline-offset:-2px}
+@media (min-width:1024px){.nm-in{justify-content:center}.nm-tab{padding:0 9px;font-size:13px}}
+</style>
+<script src="/assets/js/nav-menu.js" defer></script>
 </head>
 <body>
 
@@ -263,6 +274,9 @@ html{scroll-padding-top:76px}
     </div>
   <div class="hs hs-dark" data-hs><button type="button" class="hs-pill" aria-label="Buscar productos, marcas o tiendas" aria-expanded="false" aria-controls="hsForm"><span class="hs-pi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><span class="hs-lbl">Buscar</span></span></button><form class="hs-form" id="hsForm" role="search" action="/search.html" method="get"><span class="hs-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><input class="hs-in" id="hsInput" type="search" name="q" placeholder="Buscar productos, marcas o tiendas" aria-label="Buscar productos, marcas o tiendas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" maxlength="120"><button type="submit" class="hs-go" aria-label="Buscar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button></span><button type="button" class="hs-x" aria-label="Cerrar búsqueda"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></div>
 </nav>
+<!-- nm:start -->
+<nav class="nm nm-dark" data-nm aria-label="Categorías"><div class="nm-in"><a class="nm-tab" href="/departamento.html?dept=women" data-nm-tab="mujer" aria-expanded="false" aria-haspopup="true">Mujer</a><a class="nm-tab" href="/departamento.html?dept=men" data-nm-tab="hombre" aria-expanded="false" aria-haspopup="true">Hombre</a><a class="nm-tab" href="/departamento.html?dept=kids" data-nm-tab="ninos" aria-expanded="false" aria-haspopup="true">Niños</a><a class="nm-tab" href="/departamento.html?dept=shoes" data-nm-tab="zapatos" aria-expanded="false" aria-haspopup="true">Zapatos</a><a class="nm-tab" href="/departamento.html?dept=beauty" data-nm-tab="belleza" aria-expanded="false" aria-haspopup="true">Belleza</a><a class="nm-tab" href="/departamento.html?dept=joyas_accesorios" data-nm-tab="accesorios" aria-expanded="false" aria-haspopup="true">Accesorios</a><a class="nm-tab" href="/departamento.html?dept=luxury" data-nm-tab="disenador" aria-expanded="false" aria-haspopup="true">Diseñador</a><a class="nm-tab" href="/departamento.html?dept=sporting_goods" data-nm-tab="deportes" aria-expanded="false" aria-haspopup="true">Deportes</a><a class="nm-tab" href="/departamento.html?dept=curvy" data-nm-tab="tallas-plus" aria-expanded="false" aria-haspopup="true">Tallas Plus</a><a class="nm-tab" href="/ropa-interior.html#mujer" data-nm-tab="lenceria" aria-expanded="false" aria-haspopup="true">Lencería</a><a class="nm-tab" href="/departamento.html?dept=home_goods" data-nm-tab="hogar" aria-expanded="false" aria-haspopup="true">Hogar</a><a class="nm-tab" href="/departamento.html?dept=electronics" data-nm-tab="electronica" aria-expanded="false" aria-haspopup="true">Electrónica</a><a class="nm-tab" href="/departamento.html?dept=toys" data-nm-tab="juguetes" aria-expanded="false" aria-haspopup="true">Juguetes</a><a class="nm-tab" href="/motos.html" data-nm-tab="auto-motos" aria-expanded="false" aria-haspopup="true">Auto y Motos</a><a class="nm-tab" href="/ofertas.html" data-nm-tab="ofertas" aria-expanded="false" aria-haspopup="true">Ofertas</a><a class="nm-tab" href="/keyclub.html" data-nm-tab="key-club" aria-expanded="false" aria-haspopup="true">Key Club</a></div></nav>
+<!-- nm:end -->
 </header>
 
 <main>
