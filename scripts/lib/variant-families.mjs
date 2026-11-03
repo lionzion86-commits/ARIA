@@ -168,6 +168,9 @@ export function walmartShadeLabel(token, url, pageName) {
   }
   return shadeLabel(String(token).replace(/[-_,]+/g, " ").trim());
 }
+/* The shade a variant names: "actual_color-..." (makeup), or Walmart's
+   "hair_color_shade-..." (TRESemmé Root Touch-Up: black, dark brown). */
+const shadeTok = (v) => tokenOf(v, "actual_color") || tokenOf(v, "hair_color_shade");
 export function parseWalmartVariantLists(products, opts = {}) {
   const retailer = opts.retailer || "walmart";
   const stats = { pages: 0, families: 0, emptyVariantList: 0, single: 0, members: 0, withDetail: 0, awaitingDetail: 0, multipackSkipped: 0, outOfStock: 0, superseded: 0 };
@@ -195,7 +198,7 @@ export function parseWalmartVariantLists(products, opts = {}) {
   for (const id of child.keys()) { const r = find(id); if (!byRoot.has(r)) byRoot.set(r, []); byRoot.get(r).push(id); }
   const families = [];
   for (const [root, ids] of [...byRoot].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
-    const kids = ids.map((id) => child.get(id)).filter((v) => tokenOf(v, "actual_color"));
+    const kids = ids.map((id) => child.get(id)).filter((v) => shadeTok(v));
     const singles = kids.filter((v) => { const q = tokenOf(v, "multipack_quantity"); return !q || Number(q) <= 1; });
     /* A multipack is a shade's pack, never a shade; it stays only when
        the family sells nothing singly. */
@@ -203,21 +206,21 @@ export function parseWalmartVariantLists(products, opts = {}) {
     stats.multipackSkipped += kids.length - use.length;
     const byShade = new Map();
     for (const v of use) {
-      const k = squash(tokenOf(v, "actual_color")).replace(/^\d+/, "") || squash(tokenOf(v, "actual_color"));
+      const k = squash(shadeTok(v)).replace(/^\d+/, "") || squash(shadeTok(v));
       if (!byShade.has(k)) byShade.set(k, []);
       byShade.get(k).push(v);
     }
-    if (byShade.size < 2) { stats.single++; continue; }
-    const members = [];
-    for (const group of byShade.values()) {
-      const score = (v) => (pageName.has(String(v.usItemId)) ? 8 : 0) + (num(v.priceInfo && v.priceInfo.price) > 0 && (v.imageUrl || (v.allImages || []).length) ? 4 : 0)
-        + (v.availabilityStatus === "IN_STOCK" ? 2 : 0) + (/^\d/.test(tokenOf(v, "actual_color")) ? 1 : 0);
-      group.sort((a, b) => score(b) - score(a));
-      stats.superseded += group.length - 1;
-      const v = group[0];
+    /* ONE SHADE IS STILL A SHADE (2026-11-03 shade pulls): Costco sells
+       each shade as its own item, and Sephora / Ulta list some products
+       in one shade. For a gated beauty store that one shade is the
+       listing's tono (applyFamilies `own`): named, no picker. Walmart's
+       one-shade listings keep their title rule (build-pdp-slices). */
+    if (!byShade.size || (byShade.size < 2 && (retailer === "walmart" || !SHADE_PULL_STORES.has(retailer)))) { stats.single++; continue; }
+    const members = [], aliases = [];
+    const memberOf = (v) => {
       const id = String(v.usItemId);
       const url = httpUrl(v.url) || (retailer === "walmart" ? "https://www.walmart.com/ip/" + id : "");
-      const m = { id, itemId: id, label: walmartShadeLabel(tokenOf(v, "actual_color"), url, pageName.get(id)), url };
+      const m = { id, itemId: id, label: walmartShadeLabel(shadeTok(v), url, pageName.get(id)), url };
       if (pageName.get(id)) m.name = pageName.get(id);
       if (brandOf.get(id)) m.brand = brandOf.get(id);
       const price = num(v.priceInfo && v.priceInfo.price);
@@ -231,12 +234,37 @@ export function parseWalmartVariantLists(products, opts = {}) {
       if (v.availabilityStatus) m.available = v.availabilityStatus === "IN_STOCK";
       if (m.available === false) stats.outOfStock++;
       if (m.price > 0 && m.image) stats.withDetail++; else stats.awaitingDetail++;
-      members.push(m);
+      return m;
+    };
+    for (const group of byShade.values()) {
+      const score = (v) => (pageName.has(String(v.usItemId)) ? 8 : 0) + (num(v.priceInfo && v.priceInfo.price) > 0 && (v.imageUrl || (v.allImages || []).length) ? 4 : 0)
+        + (v.availabilityStatus === "IN_STOCK" ? 2 : 0) + (/^\d/.test(shadeTok(v)) ? 1 : 0);
+      group.sort((a, b) => score(b) - score(a));
+      stats.superseded += group.length - 1;
+      members.push(memberOf(group[0]));
+      /* THE SAME SHADE UNDER ANOTHER SKU (a gated beauty store's mini or
+         second size: Sephora's «M·A·CStack ... Mini» is «Blackstack» too):
+         not a second entry in the picker, but that SKU's listing is sold
+         in that shade -- a one-shade family of its own. */
+      if (retailer !== "walmart" && SHADE_PULL_STORES.has(retailer)) {
+        const seen = new Set([String(group[0].usItemId)]);
+        for (const v of group.slice(1)) {
+          const id = String(v.usItemId);
+          if (seen.has(id)) continue;
+          seen.add(id);
+          aliases.push(memberOf(v));
+        }
+      }
     }
     /* Walmart titles each shade; a beauty store's shades share the product's title. */
     families.push({ key: (retailer === "walmart" ? "walmart" : retailer) + ":" + root, retailer, axis: opts.axis || "Tono", members, pending: [],
-      ...(retailer === "walmart" ? { nameFromUrl: true } : { sameTitle: true }) });
+      ...(retailer === "walmart" ? { nameFromUrl: true } : { sameTitle: true }), ...(members.length === 1 ? { oneShade: true } : {}) });
     stats.families++; stats.members += members.length;
+    if (members.length === 1) stats.oneShade = (stats.oneShade || 0) + 1;
+    for (const m of aliases) {
+      families.push({ key: retailer + ":" + root + ":" + m.id, retailer, axis: opts.axis || "Tono", members: [m], pending: [], sameTitle: true, oneShade: true });
+      stats.sameShadeSku = (stats.sameShadeSku || 0) + 1;
+    }
   }
   return { families, stats };
 }
@@ -505,6 +533,8 @@ const memberKeys = (fam, m) => {
 /* listings: [{ v, retailer, name, brand, url, image, images, price, dept,
    sizes, ... }] (the catalogue, one per v). Returns:
      assign:  Map v -> { g, c, ax, so? }  (catalogue listings in a family)
+     own:     Map v -> { c, ax, so? }     (a gated beauty listing sold in
+              the one shade its store's list names: no group, no picker)
      extra:   [listing]  members the catalogue lacks, each with its own
               real price and photo, ready to become records
      pending: Map g -> [label]
@@ -512,7 +542,7 @@ const memberKeys = (fam, m) => {
 export function applyFamilies(listings, families) {
   const index = new Map();
   for (const l of listings) for (const k of listingKeys(l)) if (!index.has(k)) index.set(k, l);
-  const assign = new Map(), extra = [], pending = new Map();
+  const assign = new Map(), extra = [], pending = new Map(), own = new Map();
   let byModel = null;
   const stats = { families: 0, grouped: 0, fromCatalogue: 0, fromPull: 0, pending: 0, single: 0 };
   for (const fam of families) {
@@ -588,7 +618,21 @@ export function applyFamilies(listings, families) {
         stats.retired = (stats.retired || 0) + 1;
       }
     }
-    if (out.length < 2) { stats.single++; continue; }
+    if (out.length < 2) {
+      /* The listing's own shade, from the store's own list (a one-shade
+         family, or the only shade of its family that can be offered):
+         the tono the page names and the cart line carries. Never a
+         shade the pull does not list. */
+      const o = out[0];
+      if (o && o.own && SHADE_PULL_STORES.has(String(fam.retailer || "").toLowerCase()) && (fam.axis || "Tono") === "Tono" && String(o.m.label || "").trim()) {
+        own.set(o.l.v, { c: o.m.label, ax: "Tono", ...(o.m.available === false ? { so: 1 } : {}) });
+        stats.ownShade = (stats.ownShade || 0) + 1;
+        const wait = [...new Set(waiting.filter((x) => x && !labels.has(low(x))))];
+        if (wait.length) stats.pending += wait.length;
+        continue;
+      }
+      stats.single++; continue;
+    }
     stats.families++;
     const by = (stats.byRetailer = stats.byRetailer || {});
     const R = (by[fam.retailer] = by[fam.retailer] || { pickers: 0, added: 0, pending: 0, agotado: 0 });
@@ -608,7 +652,7 @@ export function applyFamilies(listings, families) {
     const wait = [...new Set(waiting.filter((x) => x && !labels.has(low(x))))];
     if (wait.length) { pending.set(g, wait); stats.pending += wait.length; }
   }
-  return { assign, extra, pending, stats };
+  return { assign, extra, pending, own, stats };
 }
 
 /* ---------------- Shopify products.json (Data Drop 2) ---------------- */
@@ -828,7 +872,11 @@ export function readStorePulls(dir) {
     let names = [];
     try { names = readdirSync(join(dir, sub)).filter((f) => /^dataset-[a-z0-9_-]+\.json$/i.test(f)); } catch { continue; }
     for (const f of names.sort()) {
-      const store = f.replace(/^dataset-|\.json$/gi, "").toLowerCase();
+      /* "dataset-ulta-makeup-finish.json": a second batch of a shade-pull
+         store's pull (data/shade-pulls-2026-11-03/FINISH-REPORT.md). */
+      let store = f.replace(/^dataset-|\.json$/gi, "").toLowerCase();
+      const batch = /^([a-z0-9]+)-/.exec(store);
+      if (batch && SHADE_PULL_STORES.has(batch[1])) store = batch[1];
       const j = JSON.parse(readFileSync(join(dir, sub, f), "utf8"));
       const list = Array.isArray(j) ? j : (j && (j.products || j.items || j.data)) || [];
       if (!byStore.has(store)) byStore.set(store, { rows: [], files: [] });
@@ -857,7 +905,10 @@ function compactMember(m, fam) {
   const x = { ...m };
   /* A colour of the same listing (Macy's, Kohl's): its title, brand and
      product page are the listing's own. */
-  if (fam && fam.sameTitle && !x.anchor && !x.selected) { delete x.name; delete x.brand; delete x.url; delete x.productUrl; }
+  /* A shade-pull store's shade keeps its own URL: that URL carries the
+     shade's SKU (?sku=, ?skuId=), its own listing id and its checkout link. */
+  const shadePull = fam && SHADE_PULL_STORES.has(String(fam.retailer || "").toLowerCase());
+  if (fam && fam.sameTitle && !x.anchor && !x.selected) { delete x.name; delete x.brand; if (!shadePull) delete x.url; delete x.productUrl; }
   if (!x.url) delete x.url;
   if (!x.brand) delete x.brand;
   if (x.productUrl && x.productUrl === x.url) delete x.productUrl;

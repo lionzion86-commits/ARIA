@@ -1,30 +1,12 @@
 [
  {
   "store": "walmart",
-  "title": "COVERGIRL Advanced Radiance Age-Defying Liquid Foundation, 120 Creamy Natural, 1 fl oz, Anti-Aging",
-  "brand": "",
-  "url": "https://www.walmart.com/ip/COVERGIRL-Advanced-Radiance-Age-Defying-Liquid-Foundation-120-Creamy-Natural-1-fl-oz-Anti-Aging/10319111?classType=VARIANT&athbdg=L1600",
-  "ariaId": "vgsh1bdb6vd5",
-  "ariaUrl": "/producto.html?producto=COVERGIRL%20Advanced%20Radiance%20Age-Defying%20Liquid%20Foundation%2C%20120%20Creamy%20Natural%2C%201%20fl%20oz%2C%20Anti-Aging&tienda=walmart",
-  "category": "foundation"
- },
- {
-  "store": "walmart",
   "title": "COVERGIRL Advanced Radiance Age-Defying Pressed Powder, Creamy Natural, 0.44 oz (Packaging Mary Vary)",
   "brand": "",
   "url": "https://www.walmart.com/ip/COVERGIRL-Advanced-Radiance-Age-Defying-Pressed-Powder-Creamy-Natural-39-fl-oz/10319125?classType=VARIANT",
   "ariaId": "ajwhdbnzkiyh",
   "ariaUrl": "/producto.html?producto=COVERGIRL%20Advanced%20Radiance%20Age-Defying%20Pressed%20Powder%2C%20Creamy%20Natural%2C%200.44%20oz%20(Packaging%20Mary%20Vary)&tienda=walmart",
   "category": "pressed powder"
- },
- {
-  "store": "walmart",
-  "title": "COVERGIRL Clean Matte Liquid Foundation, 520 Creamy Natural, 1 fl oz, Liquid Foundation, Matte Foundation, Lightweight Foundation, Moisturizing Foundation, Water Based Foundation",
-  "brand": "",
-  "url": "https://www.walmart.com/ip/COVERGIRL-Clean-Matte-Liquid-Foundation-520-Creamy-Natural-1-fl-oz-Liquid-Foundation-Matte-Foundation-Lightweight-Foundation-Moisturizing-Foundation/14664633?classType=VARIANT",
-  "ariaId": "6nx00s1e5kxiq",
-  "ariaUrl": "/producto.html?producto=COVERGIRL%20Clean%20Matte%20Liquid%20Foundation%2C%20520%20Creamy%20Natural%2C%201%20fl%20oz%2C%20Liquid%20Foundation%2C%20Matte%20Foundation%2C%20Lightweight%20Foundation%2C%20Moisturizing%20Foundation%2C%20Water%20Based%20Foundation&tienda=walmart",
-  "category": "foundation"
  },
  {
   "store": "walmart",
@@ -43,15 +25,6 @@
   "ariaId": "17qpqpq13w1d8c",
   "ariaUrl": "/producto.html?producto=e.l.f.%20Camo%20Powder%20Foundation&tienda=walmart",
   "category": "powder foundation"
- },
- {
-  "store": "walmart",
-  "title": "e.l.f. High Definition Loose Powder, Sheer Finish Makeup Setting Powder",
-  "brand": "",
-  "url": "https://www.walmart.com/ip/e-l-f-High-Definition-Powder-Sheer/24520384?classType=VARIANT&athbdg=L1102",
-  "ariaId": "kyu7metiix8s",
-  "ariaUrl": "/producto.html?producto=e.l.f.%20High%20Definition%20Loose%20Powder%2C%20Sheer%20Finish%20Makeup%20Setting%20Powder&tienda=walmart",
-  "category": "loose powder"
  },
  {
   "store": "walmart",
@@ -124,15 +97,6 @@
   "ariaId": "8dum3j1ukjcnh",
   "ariaUrl": "/producto.html?producto=Loreal%20Inoa%20Ammonia%20Free%20Permanent%20Hair%20Color%207.3%2F7G%202.1%20oz&tienda=walmart",
   "category": "hair color"
- },
- {
-  "store": "walmart",
-  "title": "Revlon Illuminance Serum Tint, Liquid Foundation, Light Buildable Coverage, 201 Creamy Natural, 0.94 fl oz",
-  "brand": "",
-  "url": "https://www.walmart.com/ip/Revlon-Illuminance-Serum-Tint-Liquid-Foundation-Light-Buildable-Coverage-Creamy-Natural-0-94-fl-oz/2239085102?classType=VARIANT",
-  "ariaId": "1s2oipc6z355e",
-  "ariaUrl": "/producto.html?producto=Revlon%20Illuminance%20Serum%20Tint%2C%20Liquid%20Foundation%2C%20Light%20Buildable%20Coverage%2C%20201%20Creamy%20Natural%2C%200.94%20fl%20oz&tienda=walmart",
-  "category": "tint"
  },
  {
   "store": "walmart",

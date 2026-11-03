@@ -15,8 +15,10 @@
      Walmart  a listing no family holds (Maybelline Lifter Liner, Big
               Lift) sells in the one shade its title names, and the
               line carries it.
-     Ulta     Slim Lip Pencil Lip Liner, Shape Tape Concealer: no shade list
-              at the source -- «Tonos en camino», the cart button is off.
+     Ulta     Slim Lip Pencil Lip Liner, Shape Tape Concealer: the 2026-11-03
+              shade pull's dropdown, picked, on the cart line; a tinted
+              moisturizer and a foundation no pull named a shade for:
+              «Tonos en camino», the cart button is off.
      Ulta     skincare and fragrance stay purchasable.
    Plus: checkout holding a shade product with no shade (a cart saved
    before the gate) keeps Pagar closed and says why; orders-create refuses
@@ -214,10 +216,28 @@ await check("Walmart, one shade: a listing no family holds sells in the shade it
   } finally { await ctx.close(); }
 });
 
+/* The 2026-11-03 shade pulls (data/shade-pulls-2026-11-03) brought
+   Ulta's shade lists: its lip liner and concealer are sold by shade now
+   (below). What stays gated is what no pull returned a shade for: a
+   tinted moisturizer and a skin tint from the skincare wave, and a
+   foundation whose store record names no shade. */
 const ULTA_GATED = [
-  { name: "ulta-lipliner", q: "Slim Lip Pencil", t: "Slim Lip Pencil Lip Liner" },
-  { name: "ulta-concealer", q: "Shape Tape", t: "Shape Tape Concealer" },
+  { name: "ulta-tinted-moisturizer", q: "Pure Radiant Tinted", t: "Pure Radiant Tinted Moisturizer SPF 30" },
+  { name: "ulta-color-changing-foundation", q: "Color Changing Foundation", t: "Color Changing Foundation" },
 ];
+const ULTA_LIFTED = [
+  { name: "ulta-lipliner", q: "Slim Lip Pencil", t: "Slim Lip Pencil Lip Liner", pick: () => true },
+  { name: "ulta-concealer", q: "Shape Tape", t: "Shape Tape Concealer", pick: () => true },
+];
+for (const c of ULTA_LIFTED) {
+  await check(`Ulta ${c.name}: the shade pull's «Tono» dropdown -> pick -> cart line «Tono»`, async () => {
+    const { ctx, pg } = await phone();
+    try {
+      await openFromStore(pg, "ulta", c.q, c.t);
+      return await pickAddAndCheckout(pg, c.name, c.pick);
+    } finally { await ctx.close(); }
+  });
+}
 for (const c of ULTA_GATED) {
   await check(`Ulta ${c.name}: no shade list at the source -> «Tonos en camino», no cart`, async () => {
     const { ctx, pg } = await phone();
@@ -318,7 +338,8 @@ await check("the shade-pull worklist lists exactly the products the page gates",
     out.push(store + " " + list.length);
   }
   const ulta = byStore.get("ulta") || [];
-  assert(ulta.some((x) => x.title === "Slim Lip Pencil Lip Liner" && /^https:\/\/www\.ulta\.com\//.test(x.url) && x.category), "the Ulta lip liner is not on the list");
+  assert(ulta.some((x) => x.title === "Pure Radiant Tinted Moisturizer SPF 30" && /^https:\/\/www\.ulta\.com\//.test(x.url) && x.category), "the Ulta tinted moisturizer is not on the list");
+  assert(!ulta.some((x) => x.title === "Slim Lip Pencil Lip Liner"), "the Ulta lip liner is still on the list after its shade pull");
   return out.join(", ");
 });
 

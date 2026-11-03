@@ -246,6 +246,14 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     const m = grouping.get(it.__v);
     if (m || vsByTitle.get(key).size > 1) it.v = it.__v;
     if (m) { it.g = m.g; it.c = m.c; if (m.ax) it.ax = m.ax; if (m.so) it.so = 1; }
+    /* A gated beauty listing whose store's shade list names its one
+       shade (scripts/lib/variant-families.mjs applyFamilies `own`): that
+       shade is its tono -- named on the page, carried by the line. */
+    else if (fams.own && fams.own.has(it.__v)) {
+      const o = fams.own.get(it.__v);
+      it.c = o.c; it.ax = o.ax;
+      if (o.so) it.so = 1;
+    }
     /* A hair dye sold in one shade here still names it (#443 c.6568752464):
        the store's own shade from its title rides as the record's tono --
        the page writes it as text and the cart line carries it. No group,

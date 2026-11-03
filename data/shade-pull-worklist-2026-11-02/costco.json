@@ -1,87 +1,6 @@
 [
  {
   "store": "costco",
-  "title": "Christian Louboutin Les Yeux Noirs Volumaxima Mascara, 100 Black, 0.24 fl oz",
-  "brand": "Christian",
-  "url": "https://www.costco.com/christian-louboutin-les-yeux-noirs-volumaxima-mascara-100-black-024-fl-oz.product.4201023696.html",
-  "ariaId": "1xbpvqamfn31g",
-  "ariaUrl": "/producto.html?producto=Christian%20Louboutin%20Les%20Yeux%20Noirs%20Volumaxima%20Mascara%2C%20100%20Black%2C%200.24%20fl%20oz&tienda=costco",
-  "category": "mascara"
- },
- {
-  "store": "costco",
-  "title": "Christian Louboutin Rouge Louboutin Velvet Matte Lipstick, 415M Burning Babe, 0.13 oz",
-  "brand": "Christian",
-  "url": "https://www.costco.com/christian-louboutin-rouge-louboutin-velvet-matte-lipstick-415m-burning-babe-013-oz.product.4201023698.html",
-  "ariaId": "1prw89e1310ovs",
-  "ariaUrl": "/producto.html?producto=Christian%20Louboutin%20Rouge%20Louboutin%20Velvet%20Matte%20Lipstick%2C%20415M%20Burning%20Babe%2C%200.13%20oz&tienda=costco",
-  "category": "lipstick"
- },
- {
-  "store": "costco",
-  "title": "Gucci Glow and Care Lip Color, 515 Devotion, 0.06 oz",
-  "brand": "Gucci",
-  "url": "https://www.costco.com/gucci-glow-and-care-lip-color-515-devotion-006-oz.product.4201024597.html",
-  "ariaId": "1rtjgnd1uds7w7",
-  "ariaUrl": "/producto.html?producto=Gucci%20Glow%20and%20Care%20Lip%20Color%2C%20515%20Devotion%2C%200.06%20oz&tienda=costco",
-  "category": "lip color"
- },
- {
-  "store": "costco",
-  "title": "Gucci Liquid Matte Lip Color, 203 Mildred Rosewood, 0.21 fl oz",
-  "brand": "Gucci",
-  "url": "https://www.costco.com/gucci-liquid-matte-lip-color-203-mildred-rosewood-021-fl-oz.product.4201024576.html",
-  "ariaId": "4nltxx11taog7",
-  "ariaUrl": "/producto.html?producto=Gucci%20Liquid%20Matte%20Lip%20Color%2C%20203%20Mildred%20Rosewood%2C%200.21%20fl%20oz&tienda=costco",
-  "category": "lip color"
- },
- {
-  "store": "costco",
-  "title": "Gucci Rouge a Levres Mat Lipstick, 0.12 oz",
-  "brand": "Gucci",
-  "url": "https://www.costco.com/gucci-rouge-a-levres-mat-lipstick-012-oz.product.4000238903.html",
-  "ariaId": "11po8nq15ymxlg",
-  "ariaUrl": "/producto.html?producto=Gucci%20Rouge%20a%20Levres%20Mat%20Lipstick%2C%200.12%20oz&tienda=costco",
-  "category": "lipstick"
- },
- {
-  "store": "costco",
-  "title": "Gucci Sheer Lip Color, 0.12 oz",
-  "brand": "Gucci",
-  "url": "https://www.costco.com/gucci-sheer-lip-color-012-oz.product.4201024577.html",
-  "ariaId": "18wdli91teem8f",
-  "ariaUrl": "/producto.html?producto=Gucci%20Sheer%20Lip%20Color%2C%200.12%20oz&tienda=costco",
-  "category": "lip color"
- },
- {
-  "store": "costco",
-  "title": "L'Oreal Paris Voluminous Panorama Mascara, Blackest Black, 0.33 fl oz, 2 -pack",
-  "brand": "L'Oreal",
-  "url": "https://www.costco.com/loreal-paris-voluminous-panorama-mascara-blackest-black-033-fl-oz-2--pack.product.4000427496.html",
-  "ariaId": "1runo5k137g2ha",
-  "ariaUrl": "/producto.html?producto=L'Oreal%20Paris%20Voluminous%20Panorama%20Mascara%2C%20Blackest%20Black%2C%200.33%20fl%20oz%2C%202%20-pack&tienda=costco",
-  "category": "mascara"
- },
- {
-  "store": "costco",
-  "title": "NARS Radiant Creamy Concealer - Chantilly, 2-pack, 0.22 oz each",
-  "brand": "NARS",
-  "url": "https://www.costco.com/nars-radiant-creamy-concealer---chantilly-2-pack-022-oz-each.product.4201015488.html",
-  "ariaId": "4zrqeh1w5dk9v",
-  "ariaUrl": "/producto.html?producto=NARS%20Radiant%20Creamy%20Concealer%20-%20Chantilly%2C%202-pack%2C%200.22%20oz%20each&tienda=costco",
-  "category": "concealer"
- },
- {
-  "store": "costco",
-  "title": "NARS Radiant Creamy Concealer - Honey, 2-pack, 0.22 oz each",
-  "brand": "NARS",
-  "url": "https://www.costco.com/nars-radiant-creamy-concealer---honey-2-pack-022-oz-each.product.4201015431.html",
-  "ariaId": "9rag6e1jmpn6k",
-  "ariaUrl": "/producto.html?producto=NARS%20Radiant%20Creamy%20Concealer%20-%20Honey%2C%202-pack%2C%200.22%20oz%20each&tienda=costco",
-  "category": "concealer"
- },
- {
-  "store": "costco",
   "title": "Neutrogena Hydro Boost Lip Oil, 0.2 fl oz, 3-pack",
   "brand": "Neutrogena",
   "url": "https://www.costco.com/neutrogena-hydro-boost-lip-oil-02-fl-oz-3-pack.product.4000410654.html",
@@ -115,41 +34,5 @@
   "ariaId": "1qmhx42zchvs8",
   "ariaUrl": "/producto.html?producto=Stila%20Cosmetics%20Convertible%20Color%20Lip%20%26%20Cheek%20Cream%20Blush%2C%200.15%20fl%20oz%2C%202-pack&tienda=costco",
   "category": "blush"
- },
- {
-  "store": "costco",
-  "title": "Tom Ford Lip Color 151 Iconic Nude, 0.12 oz, 2-pack",
-  "brand": "Tom",
-  "url": "https://www.costco.com/tom-ford-lip-color-151-iconic-nude-012-oz-2-pack.product.4201017380.html",
-  "ariaId": "2qz8rq12db8do",
-  "ariaUrl": "/producto.html?producto=Tom%20Ford%20Lip%20Color%20151%20Iconic%20Nude%2C%200.12%20oz%2C%202-pack&tienda=costco",
-  "category": "lip color"
- },
- {
-  "store": "costco",
-  "title": "Tom Ford Lip Color 30 Runway Rouge, 0.12 oz, 2-pack",
-  "brand": "Tom",
-  "url": "https://www.costco.com/tom-ford-lip-color-30-runway-rouge-012-oz-2-pack.product.4201017066.html",
-  "ariaId": "1llnw0u13tk5tk",
-  "ariaUrl": "/producto.html?producto=Tom%20Ford%20Lip%20Color%2030%20Runway%20Rouge%2C%200.12%20oz%2C%202-pack&tienda=costco",
-  "category": "lip color"
- },
- {
-  "store": "costco",
-  "title": "Tom Ford Lip Color Matte, 16 Scarlet Rouge, 0.1 oz, 2-pack",
-  "brand": "Tom",
-  "url": "https://www.costco.com/tom-ford-lip-color-matte-16-scarlet-rouge-01-oz-2-pack.product.4201017459.html",
-  "ariaId": "1wxgi1i1fda6r8",
-  "ariaUrl": "/producto.html?producto=Tom%20Ford%20Lip%20Color%20Matte%2C%2016%20Scarlet%20Rouge%2C%200.1%20oz%2C%202-pack&tienda=costco",
-  "category": "lip color"
- },
- {
-  "store": "costco",
-  "title": "Tom Ford Soleil Ultra-Shine Lip Color, 0.11 oz, 2-pack",
-  "brand": "Tom",
-  "url": "https://www.costco.com/tom-ford-soleil-ultra-shine-lip-color-011-oz-2-pack.product.4201016918.html",
-  "ariaId": "1su3w1c1950gmq",
-  "ariaUrl": "/producto.html?producto=Tom%20Ford%20Soleil%20Ultra-Shine%20Lip%20Color%2C%200.11%20oz%2C%202-pack&tienda=costco",
-  "category": "lip color"
  }
 ]
