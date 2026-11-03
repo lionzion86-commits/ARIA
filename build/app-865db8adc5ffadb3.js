@@ -13255,7 +13255,7 @@ const SUBCATEGORY_SPEC = [
      Coches first (Danny's hero aisle), Lactancia second. */
   { key: 'strollers',   label: 'Coches',              types: ['COCHE', 'STROLLER', 'TRAVEL_SYSTEM', 'SISTEMA_DE_VIAJE', 'PRAM'] },
   { key: 'nursing',     label: 'Lactancia',           types: ['LACTANCIA', 'NURSING', 'BREAST_PUMP', 'EXTRACTOR', 'NURSING_BRA'] },
-  { key: 'feeding',     label: 'Alimentación',        types: ['ALIMENTACION', 'BIBERON', 'BOTTLE', 'STERILIZER', 'WARMER', 'PACIFIER'] },
+  { key: 'feeding',     label: 'Biberones y alimentación del bebé', types: ['ALIMENTACION', 'BIBERON', 'BOTTLE', 'STERILIZER', 'WARMER', 'PACIFIER'] },
   { key: 'carseats',    label: 'Autoasientos',        types: ['AUTOASIENTO', 'CAR_SEAT', 'BOOSTER_SEAT'] },
   { key: 'nursery',     label: 'El cuarto del bebé',  types: ['HABITACION_BEBE', 'CRIB', 'CUNA', 'BASSINET', 'MONITOR'] },
   { key: 'diapering',   label: 'Pañales y pañaleras', types: ['PANALES', 'DIAPER', 'DIAPER_BAG', 'PANALERA'] },
