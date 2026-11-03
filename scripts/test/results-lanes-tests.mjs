@@ -209,7 +209,8 @@ await check("search.html converts an answer without soles with the site's own ra
   assert.match(page_, /var FX_CACHE_KEY = "aria_fx_rate_v1"/);
   assert.match(page_, /\/\.netlify\/functions\/exchange-rate/);
   assert.match(page_, /var data = await withSoles\(await fetchPage\(query, 1\)\);/);
-  assert.match(page_, /var data = await withSoles\(await fetchPage\(STATE\.q, STATE\.page \+ 1\)\);/);
+  /* The next cards come into a lane (laneMore), with the same conversion; the page-wide pager is gone (#443 carousels only). */
+  assert.match(page_, /var data = await withSoles\(await res\.json\(\)\);/);
 });
 
 await check("search.html: a browse query draws its lanes first, a specific one after its first rows", () => {

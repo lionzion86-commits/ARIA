@@ -1588,6 +1588,64 @@ export function axisRails(list, axis, labels = {}) {
     .slice(0, AXIS_RAILS)
     .map((g) => ({ k: g.k, f, title: g.title, count: g.items.length, cards: (g.k === "drones" ? dronesOrder(axisOrder(g.items)) : axisOrder(g.items)).slice(0, RAIL_CARDS).map(cardOf) }));
 }
+/* ---------- THE ONE LANDING FORMAT (Danny, #443: "never again a side-by-side grid") ----------
+   Every search landing, and every «Ver todo» of a carousel, is a railed
+   view of one set of products: the set's sales on top (Ofertas), then one
+   carousel per store that carries it, the biggest store first -- B&H
+   Photo first in Electrónica, where it is the department's lead store.
+   Narrowed to one store (?tienda=, a store rail's «Ver todo»), the set
+   splits by product type, else by brand; a set that splits no further is
+   one carousel whose «Ver más» brings the next cards into it.
+   ord: the set's own order (Drones: DJI's pro line first), kept inside
+   every rail. */
+export const LANDING_MIN_SPLIT = 2;
+export function landingSections(items, { dept = "", labels = {}, title = "", ord = null } = {}) {
+  const order = ord || ((l) => l);
+  const list = order(items.slice());
+  const out = [];
+  /* The deepest discount first, unless the set has its own order. */
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i })).sort((a, b) => (ord ? 0 : (b.p.salePct - a.p.salePct)) || (a.i - b.i)).map((x) => x.p);
+  /* The Ofertas rail leads unless the whole set is the sales. */
+  if (sales.length && sales.length < list.length) out.push({ key: "ofertas", title: "Ofertas", items: sales });
+  const groupBy = (keyOf, kind) => {
+    const m = new Map();
+    for (const p of list) {
+      const [k, t] = keyOf(p);
+      if (!k) continue;
+      if (!m.has(k)) m.set(k, { k, t, items: [] });
+      m.get(k).items.push(p);
+    }
+    return [...m.values()].map((g) => ({ ...g, kind }));
+  };
+  let groups = groupBy((p) => [p.retailer, labels[p.retailer] || p.retailer], "tienda");
+  if (groups.length >= LANDING_MIN_SPLIT) {
+    const lead = dept === TECH_DEPT ? TECH_LEAD_STORE[0] : "";
+    groups.sort((a, b) => ((b.k === lead) - (a.k === lead)) || (b.items.length - a.items.length) || (a.t < b.t ? -1 : 1));
+  } else {
+    const types = groupBy((p) => { const t = typeKeyOf(p); return t.k === "otros" ? ["otros", "Más productos"] : [t.k, t.label]; }, "tipo");
+    const brands = groupBy((p) => [brandKey(p), String(p.brand || "").trim()], "marca");
+    groups = types.length >= LANDING_MIN_SPLIT ? types : brands.length >= LANDING_MIN_SPLIT ? brands : [];
+    /* «Más productos» goes last; the rest biggest first. */
+    groups.sort((a, b) => ((a.k === "otros") - (b.k === "otros")) || (b.items.length - a.items.length) || (a.t < b.t ? -1 : 1));
+    if (groups.length >= LANDING_MIN_SPLIT) {
+      /* A brand or type with one or two products joins one closing rail. */
+      const big = groups.filter((g) => g.items.length >= 3 && g.k !== "otros"), small = groups.filter((g) => !big.includes(g));
+      groups = big.length >= LANDING_MIN_SPLIT ? big.concat(small.length ? [{ k: "otros", t: "Más productos", kind: groups[0].kind, items: list.filter((p) => small.some((g) => g.items.includes(p))) }] : []) : groups;
+    }
+  }
+  if (!groups.length) return out.concat(list.length ? [{ key: "todo", title: title || "Todo", items: list }] : []);
+  for (const g of groups) out.push({ key: g.kind + ":" + g.k, title: g.t, items: g.items, ...(g.kind === "tienda" ? { store: g.k } : {}) });
+  return out;
+}
+/* The set a ?ver= view opens: "tipos" (or "todo") is the whole filtered
+   department; a rail key (pasillo:tech_drones, tipo:vestidos, ofertas,
+   tienda:bhphoto) is that carousel's products, in its own order. */
+export function landingSet(base, ver, deptKey) {
+  if (!ver || ver === "tipos" || ver === "todo") return { items: base, title: "" };
+  const s = buildSections(base, sectionOpts(deptKey)).find((x) => x.key === ver);
+  return s ? { items: s.items, title: s.title } : { items: base, title: "" };
+}
+
 /* Explorar todo: one page of the department under every filter at once,
    and each filter's options under all the OTHER filters (cross-
    dependent: a brand narrows the types and stores to its own). */
@@ -1693,6 +1751,28 @@ export function answer(qs, roots) {
     if (!["tipo", "marca", "tienda"].includes(qs.axis)) return { status: 404, body: { error: "Sin ese eje." } };
     const base = u ? d.list.filter((p) => inAudience(p, u)) : d.list;
     return { status: 200, body: { dept: d.key, axis: qs.axis, u, rails: axisRails(base, qs.axis, d.labels) } };
+  }
+  /* ?ver=: the one landing format (landingSections). The store filter
+     narrows the set after it is chosen: «tienda:walmart» stays Walmart's. */
+  const ver = String(qs.ver || "").trim().slice(0, 80);
+  if (ver) {
+    const base = q.trim() || b || a || t || u ? filterList(d.list, { q, b, a, t, u }) : d.list;
+    const set = landingSet(base, ver, d.key);
+    const store = r && r !== "all" ? r : "";
+    let items = store ? set.items.filter((p) => p.retailer === store) : set.items;
+    const tl = t ? ((base.map(typeKeyOf).find((x) => x.k === t) || {}).label || "") : "";
+    const title = set.title || tl || "";
+    const ord = ver === "pasillo:tech_drones" || t === "drones" ? dronesOrder : null;
+    let sections = landingSections(items, { dept: d.key, labels: d.labels, title, ord });
+    if (qs.rail !== undefined && qs.rail !== "") {
+      const out = pageOf(sections, Number(qs.rail), Number(qs.page) || 0);
+      return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más productos." } };
+    }
+    if (qs.batch !== undefined && qs.batch !== "") {
+      const out = batchOf(sections, Number(qs.batch));
+      return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más carruseles." } };
+    }
+    return { status: 200, body: headOf(d.key, items, sections, d.labels, { r: store || "all", q, ver, ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
   }
   const list = (r && r !== "all") || q.trim() || b || a || t || u ? filterList(d.list, { r, q, b, a, t, u }) : d.list;
   /* One type opened from its rail (the recursive «Ver todo»): the next

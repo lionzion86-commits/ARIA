@@ -5,10 +5,27 @@
    and the live answers can never disagree.
 
    marca.html serves every brand on the site (5,000+) from one URL,
-   ?marca=<key>. A brand is the normalized brand field (the site's
-   brandKeyOf) or, for keys of 4+ characters, a whole word of the
-   title ("Young LA" items with an empty brand field) -- the page's
-   own rule, unchanged.
+   ?marca=<key>. A brand is its products' brand field, normalized
+   (brandKeyOf) -- nothing else.
+
+   THE PAGE WEARS THE BRAND SEARCHED (#443 c.6585655315). Until
+   2026-11-02 a key of 4+ letters also took every product with that
+   word in its title, and the page was named after the commonest
+   brand field among them: "disney" was a page called BaubleBar
+   (2,232 products, BaubleBar x Disney earrings first), "marvel" was
+   FUNKO, "xbox" Avolusion, "swim" Skims, "studio" Nike, "girl"
+   Carolina Herrera (Good Girl). Now a page holds only products whose
+   brand IS the key, and is named with that brand's own spelling. A
+   blank brand field is filled before this, at build time, the way the
+   search index fills it (a title that opens with a known brand:
+   Walmart's 834 LEGO sets), so brand pages and search agree.
+
+   brandKeyOf folds accents ("Maison Kitsuné" -> maisonkitsune, not
+   maisonkitsun; "Chloé" -> chloe) and drops a company or board-shop
+   suffix ("Vuori, Inc.", "Herschel Supply", "Baker Skateboards",
+   "Spitfire Skateboard Wheels" are Vuori, Herschel, Baker, Spitfire).
+   Old slugs keep working: the build lists them (ALIASES) and the
+   endpoint answers an old slug with the brand's page.
 
    Files: assets/sections/marca/_fn/items.json, shipped beside the
    function by netlify.toml included_files and found by probing, like
@@ -46,34 +63,44 @@ export const PRODUCT_TYPES = [
   { key: "dulces", label: "Dulces" },
 ];
 
-export function brandKeyOf(label) {
+/* A company suffix, then a board-shop one, read off the end of a label. */
+const CORP_SUFFIX_RX = /[\s,.]+(inc|llc|ltd|co|corp|holdings)[.\s]*$/i;
+const SHOP_SUFFIX_RX = /\s+(skateboards?(\s+(trucks|wheels|co))?|trucks?|surfboards|boards|supply(\s+co)?)[.\s]*$/i;
+export function brandName(label) {
+  let s = String(label == null ? "" : label).trim(), prev;
+  do { prev = s; const t = (/&\s*co[.\s]*$/i.test(s) ? s : s.replace(CORP_SUFFIX_RX, "")).replace(SHOP_SUFFIX_RX, "").trim(); if (/[\p{L}\p{N}]/u.test(t)) s = t; } while (s !== prev);
+  return s;
+}
+/* The plain key of a spelling: lower case, accents folded, letters and digits. */
+export function plainKey(label) {
+  return String(label == null ? "" : label).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "");
+}
+export function brandKeyOf(label) { return plainKey(brandName(label)); }
+/* The key the site made before 2026-11-02 (no accent folding, no suffix
+   rule): "Maison Kitsuné" -> maisonkitsun. Only for the alias table. */
+export function legacyKeyOf(label) {
   return String(label == null ? "" : label).toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 export function titleWords(name) {
   return String(name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").match(/[a-z0-9]+/g) || [];
 }
 
-/* Exact normalized brand key, or (keys of 4+) a whole title word. */
+/* The products whose brand is the key -- the brand field only. */
 export function filterByBrand(items, bkey) {
   if (!bkey) return [];
-  const out = [];
-  for (const p of items) {
-    if (p.brandKey === bkey) { out.push(p); continue; }
-    if (bkey.length < 4) continue;
-    const words = p.words || (p.words = " " + titleWords(p.name).join(" ") + " ");
-    if (words.indexOf(" " + bkey + " ") !== -1) out.push(p);
-  }
-  return out;
+  return items.filter((p) => (p.brandKey != null ? p.brandKey : brandKeyOf(p.brand)) === bkey);
 }
-/* Most common brand label among the matches (first to reach the top count). */
-export function deriveBrandLabel(items) {
-  const counts = {}; let best = "", bestN = 0;
-  for (const p of items) {
-    const b = p.brand; if (!b) continue;
-    counts[b] = (counts[b] || 0) + 1;
-    if (counts[b] > bestN) { bestN = counts[b]; best = b; }
-  }
-  return best;
+/* The brand's own name, as its products spell it: the commonest spelling
+   whose plain key is the brand key ("Spitfire", not "Spitfire Skateboard
+   Wheels"), else the commonest spelling with its suffix read off. The
+   name a shopper searched is the name the page wears. */
+export function deriveBrandLabel(items, key) {
+  const counts = new Map();
+  for (const p of items) { const b = String(p.brand || "").trim(); if (b) counts.set(b, (counts.get(b) || 0) + 1); }
+  const ranked = [...counts].sort((a, b) => (b[1] - a[1]) || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  const exact = ranked.find(([b]) => !key || plainKey(b) === key);
+  if (exact) return exact[0];
+  return ranked.length ? brandName(ranked[0][0]) : "";
 }
 
 /* Ofertas de <marca> (biggest discount first) or, with no sales,
@@ -116,7 +143,7 @@ export function cardOf(p) {
    sold in many stores stays under the Mountain Test's 40KB first screen. */
 const STORE_RAIL_CARDS = 8;
 export function headOf(key, items, allLabels) {
-  const label = deriveBrandLabel(items) || (key.charAt(0).toUpperCase() + key.slice(1));
+  const label = deriveBrandLabel(items, key) || (key.charAt(0).toUpperCase() + key.slice(1));
   const rails = items.length ? buildRails(items, label, allLabels || {}) : [];
   const labels = {};
   for (const p of items) if (allLabels[p.retailer]) labels[p.retailer] = allLabels[p.retailer];
@@ -126,7 +153,7 @@ export function headOf(key, items, allLabels) {
   };
 }
 export function pageOf(key, items, rail, page, labels = {}) {
-  const label = deriveBrandLabel(items) || (key.charAt(0).toUpperCase() + key.slice(1));
+  const label = deriveBrandLabel(items, key) || (key.charAt(0).toUpperCase() + key.slice(1));
   const r = buildRails(items, label, labels)[rail];
   if (!r || !(page >= 0)) return null;
   return { key, rail, title: r.title, page, pages: Math.ceil(r.items.length / PAGE_SIZE), count: r.items.length, cards: r.items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(cardOf) };
@@ -153,7 +180,7 @@ export function loadItems(roots = CANDIDATES) {
     try {
       if (!existsSync(p)) continue;
       const f = JSON.parse(readFileSync(p, "utf8"));
-      LOADED = { labels: f.labels || {}, items: (f.rows || []).map(rowItem) };
+      LOADED = { labels: f.labels || {}, aliases: f.aliases || {}, items: (f.rows || []).map(rowItem) };
       return LOADED;
     } catch { /* try the next */ }
   }
@@ -162,9 +189,13 @@ export function loadItems(roots = CANDIDATES) {
 
 /* One answer: a brand's head, or one page of one of its carousels. */
 export function answer(qs, roots) {
-  const key = brandKeyOf(qs.marca || "");
+  let key = brandKeyOf(qs.marca || "");
   if (!KEY_RX.test(key)) return { status: 400, body: { error: "Falta la marca." } };
-  const { items, labels } = loadItems(roots);
+  const { items, labels, aliases } = loadItems(roots);
+  /* An old slug (maisonkitsun, herschelsupply) answers as the brand's page. */
+  const raw = legacyKeyOf(qs.marca || "");
+  if (aliases[key]) key = aliases[key];
+  else if (aliases[raw]) key = aliases[raw];
   const mine = filterByBrand(items, key);
   if (qs.rail !== undefined && qs.rail !== "") {
     const out = pageOf(key, mine, Number(qs.rail), Number(qs.page) || 0, labels);

@@ -699,14 +699,17 @@ export function canonicalTokens(ctx, q) {
     if (modelSide && t in NUM_UNITS) { out.push(String(NUM_UNITS[t])); continue; }
     out.push(t);
   }
-  /* 4. joined or apart: the catalogue's form. */
-  const res = [];
-  for (let i = 0; i < out.length; i++) {
-    const a = out[i], b = out[i + 1];
+  /* 4. joined or apart: the catalogue's form (a concept word as typed
+     first: «necktie» is "tie", not "neck tie"). */
+  const res = [], cw = conceptTokens(ctx, out);
+  for (let i = 0; i < cw.length; i++) {
+    const a = cw[i], b = cw[i + 1];
     if (b !== undefined && joins(ctx, a, b)) { res.push(a + b); i++; continue; }
     res.push(...formOf(ctx, a));
   }
-  return res;
+  /* 5. every word for one idea, English or Spanish: its concept's word
+     (again: a word step 4 joined or parted). */
+  return conceptTokens(ctx, res);
 }
 /** The query in its canonical form: the typed text itself when it is
     already canonical (the engine reads it exactly as before). */
@@ -721,6 +724,146 @@ export function canonicalQuery(ctx, q) {
   memo.set(key, same ? null : c);
   if (memo.size > 5000) memo.delete(memo.keys().next().value);
   return same ? typed : c;
+}
+
+/* ONE IDEA, ONE WORD (#443, Danny: "extraterrestrial, which means
+   extraterrestre, which means alien, which means marciano... They should
+   all land on alien."). Rule 5 of the canonical form: every English and
+   Spanish word for one idea is that concept's ONE canonical word, read
+   from data (CONCEPT_FILE: one line per concept, edited without code).
+   Search and the destination router both read it, so «extraterrestre»,
+   «marciano», «ovni» and «alien» are one search and one landing. By rule:
+     - a phrase before its words, longest first («lentes de sol»);
+     - a word's plural by rule (-s, -es), accents and case by the
+       tokenizer (rule 1);
+     - a one-letter typo (two from ten letters) of a concept word of 5+
+       letters or its plural, when the typed word is one the
+       catalogue does not carry (under CONCEPT_TYPO_RARE titles, nor its
+       singular or plural), nor the dictionary, nor a name, nor close to
+       a name -- and only when every close word is the same concept;
+     - never inside a store's or brand's name of two or more words
+       («polo ralph lauren», «alien workshop»): the name stays whole, as
+       the router's exact-name rule (#619) has it;
+     - never a word the query's own brand writes as its line name: a word
+       CONCEPT_LINE_MIN+ titles carry right after that brand, in at least
+       CONCEPT_LINE_SHARE of the titles that carry the word at all
+       («guess marciano» is the perfume line, not an alien). */
+export const CONCEPT_FILE = "assets/search/concepts.json";
+const CONCEPT_TYPO_MIN = 5, CONCEPT_TYPO_RARE = 3, CONCEPT_LINE_MIN = 2, CONCEPT_LINE_SHARE = 0.5, CONCEPT_NAME_MIN = 3, CONCEPT_NAME_WORDS = 6;
+/* Edits from a to b (a swap of neighbours is one), or max + 1. */
+function editsWithin(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev2 = null, prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let low = i;
+    for (let j = 1; j <= b.length; j++) {
+      let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+      cur.push(v);
+      if (v < low) low = v;
+    }
+    if (low > max) return max + 1;
+    prev2 = prev; prev = cur;
+  }
+  return prev[b.length];
+}
+/** The concept table: phrase -> canonical tokens, the words a typo may
+    reach, and the names (stores, brands) a concept never rewrites. */
+export function conceptTable(ctx) {
+  if (ctx._concepts) return ctx._concepts;
+  let raw = null;
+  try { raw = JSON.parse(readRepoFile(CONCEPT_FILE)); } catch { raw = null; }
+  const tok = (s) => ctx.S.searchTokens(String(s || ""));
+  const map = new Map(), concepts = [];
+  let longest = 1;
+  const put = (form, canon) => {
+    const k = form.join(" ");
+    if (!k || map.has(k)) return;
+    map.set(k, canon); longest = Math.max(longest, form.length);
+  };
+  for (const c of (raw && Array.isArray(raw.concepts) ? raw.concepts : [])) {
+    const canon = tok(c.canonical);
+    if (!canon.length) continue;
+    concepts.push({ canonical: canon.join(" "), words: (c.words || []).map((w) => tok(w).join(" ")).filter(Boolean) });
+  }
+  /* The canonical words first (they stay themselves), then the words as
+     written, then their plurals: what is written wins a collision. */
+  for (const c of concepts) put(c.canonical.split(" "), c.canonical.split(" "));
+  for (const c of concepts) for (const w of c.words) put(w.split(" "), c.canonical.split(" "));
+  for (const c of concepts) for (const w of c.words) {
+    const f = w.split(" "), last = f[f.length - 1];
+    if (/^[a-z]{3,}$/.test(last) && !last.endsWith("s")) for (const suf of ["s", "es"]) put([...f.slice(0, -1), last + suf], c.canonical.split(" "));
+  }
+  const typo = [];
+  for (const [k, canon] of map) if (/^[a-z]+$/.test(k) && k.length >= CONCEPT_TYPO_MIN) typo.push([k, canon.join(" ")]);
+  /* Names: every store, and every brand the catalogue carries in
+     CONCEPT_NAME_MIN+ products. */
+  const names = new Set(storeNames(ctx).keys()), count = new Map();
+  for (const p of ctx.products) { const b = brandKey(p.brand); if (b) count.set(b, (count.get(b) || 0) + 1); }
+  for (const [b, n] of count) if (n >= CONCEPT_NAME_MIN) names.add(b);
+  const nameWords = new Set();
+  for (const n of names) if (!n.includes(" ")) nameWords.add(n);
+  return (ctx._concepts = { map, longest, typo, names, nameWords, count: concepts.length });
+}
+/* Is toks[i] the line name the query's own brand writes it as? */
+function conceptIsLine(ctx, T, toks, i) {
+  const w = toks[i], f = wfreq(ctx, w);
+  if (f < CONCEPT_LINE_MIN) return false;
+  for (let a = 0; a < toks.length; a++) for (let b = a + 1; b <= Math.min(toks.length, a + 4); b++) {
+    if (i >= a && i < b) break;
+    if (!T.names.has(toks.slice(a, b).join(" "))) continue;
+    if (pairCount(ctx, ...toks.slice(a, b), w) >= Math.max(CONCEPT_LINE_MIN, f * CONCEPT_LINE_SHARE)) return true;
+  }
+  return false;
+}
+/* A typed word the catalogue does not carry: the one concept within one
+   edit of it (two from ten letters), or null. */
+function conceptTypo(ctx, T, w) {
+  if (w.length < CONCEPT_TYPO_MIN || !/^[a-z]+$/.test(w) || dictWords(ctx).has(w) || T.names.has(w)) return null;
+  /* A word the catalogue carries, in this form or as its singular or
+     plural («omnis» is Saucony's Omni), is no typo. */
+  for (const f of [w, w + "s", w.replace(/s$/, ""), w.replace(/es$/, "")]) if (wfreq(ctx, f) >= CONCEPT_TYPO_RARE) return null;
+  const max = w.length >= 10 ? 2 : 1;
+  let hit = null;
+  for (const [k, canon] of T.typo) {
+    if (Math.abs(k.length - w.length) > max || editsWithin(w, k, max) > max) continue;
+    if (hit !== null && hit !== canon) return null;
+    hit = canon;
+  }
+  /* A store's or brand's name as close is not this concept. */
+  if (hit !== null) for (const n of T.nameWords) if (Math.abs(n.length - w.length) <= max && n.length >= CONCEPT_TYPO_MIN && editsWithin(w, n, max) <= max) return null;
+  return hit === null ? null : hit.split(" ");
+}
+/** The tokens with every concept word in its concept's canonical word. */
+export function conceptTokens(ctx, toks) {
+  const T = conceptTable(ctx);
+  if (!T.map.size || !toks.length) return toks;
+  /* Words inside a name of two or more words stay. */
+  const named = new Set();
+  for (let i = 0; i < toks.length; i++) {
+    for (let j = Math.min(toks.length, i + CONCEPT_NAME_WORDS); j > i + 1; j--) {
+      if (T.names.has(toks.slice(i, j).join(" "))) { for (let m = i; m < j; m++) named.add(m); i = j - 1; break; }
+    }
+  }
+  const out = [];
+  for (let i = 0; i < toks.length; i++) {
+    if (named.has(i)) { out.push(toks[i]); continue; }
+    let done = false;
+    for (let n = Math.min(T.longest, toks.length - i); n >= 1 && !done; n--) {
+      let free = true;
+      for (let m = i; m < i + n; m++) if (named.has(m)) { free = false; break; }
+      if (!free) continue;
+      const canon = T.map.get(toks.slice(i, i + n).join(" "));
+      if (!canon) continue;
+      if (n === 1 && canon.join(" ") !== toks[i] && conceptIsLine(ctx, T, toks, i)) { out.push(toks[i]); done = true; break; }
+      out.push(...canon); i += n - 1; done = true;
+    }
+    if (done) continue;
+    const t = conceptTypo(ctx, T, toks[i]);
+    out.push(...(t || [toks[i]]));
+  }
+  return out;
 }
 
 /* ============================================================

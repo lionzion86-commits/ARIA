@@ -13,6 +13,7 @@
              products, minus off-sale stores), with each store's label;
      brands  every brand with a static marca.html head
              (assets/sections/marca/<key>.json): its label and count;
+             brandAliases: its other spellings' keys -> its key;
      depts   departamento.html's DEPTS (name; aliases left out), each with
              its type lenses (assets/sections/departamento/<k>/lens-tipo-*):
              slug -> label, the t= values the department endpoint answers;
@@ -55,6 +56,14 @@ export function buildDestinations(root = ROOT) {
     } catch { /* not a head */ }
   }
 
+  /* A brand's other spellings ("Herschel Supply", "Vuori, Inc.") name
+     the same page (assets/sections/marca/_fn/items.json spellings). */
+  const brandAliases = {};
+  try {
+    const sp = JSON.parse(readFileSync(join(mdir, "_fn/items.json"), "utf8")).spellings || {};
+    for (const a of Object.keys(sp).sort()) if (brands[sp[a]] && !brands[a]) brandAliases[a] = sp[a];
+  } catch { /* no spellings */ }
+
   const dhtml = readFileSync(join(root, "departamento.html"), "utf8");
   const block = /var DEPTS = \{([\s\S]*?)\n  \};/.exec(dhtml)[1];
   const depts = {};
@@ -87,7 +96,7 @@ export function buildDestinations(root = ROOT) {
     }
     if (Object.keys(out).length) types[key] = out;
   }
-  return { v: 1, stores, brands, depts, types };
+  return { v: 1, stores, brands, brandAliases, depts, types };
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];

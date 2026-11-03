@@ -175,10 +175,11 @@ body[data-aud="m"] .sec-w, body[data-aud="w"] .sec-m{display:none}
 .filters select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#9AA4B5 50%),linear-gradient(135deg,#9AA4B5 50%,transparent 50%);background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
 .filters input:focus,.filters select:focus{outline:2px solid var(--accent);outline-offset:1px}
 .count{font-size:13px;color:var(--muted);font-weight:700;margin:16px 0 12px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
-.grid .card{width:auto}
+/* Explorar todo is one carousel (#443, Danny: "never a side-by-side
+   grid"): its last card brings the next cards into it. */
+.track .x-next{flex:0 0 164px;align-self:stretch;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  border:1px dashed var(--line);border-radius:18px;background:var(--panel);color:var(--text);font:800 15px/1.2 inherit;font-family:inherit;cursor:pointer;padding:12px}
+.track .x-next span{font-size:12px;font-weight:600;color:var(--muted)}
 .btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 26px;border-radius:999px;border:0;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:800;cursor:pointer}
 .more{text-align:center;margin-top:22px}
 
@@ -306,8 +307,7 @@ html{scroll-padding-top:76px}
           </select>
         </div>
         <p class="count" id="w-count"></p>
-        <div class="grid" id="w-grid" aria-live="polite"></div>
-        <div class="more" id="w-moreWrap" hidden><button class="btn" type="button" id="w-moreBtn">Ver más</button></div>
+        <div class="track" id="w-grid" aria-live="polite"></div>
       </div>
     </section>
   </div>
@@ -363,8 +363,7 @@ html{scroll-padding-top:76px}
           </select>
         </div>
         <p class="count" id="m-count"></p>
-        <div class="grid" id="m-grid" aria-live="polite"></div>
-        <div class="more" id="m-moreWrap" hidden><button class="btn" type="button" id="m-moreBtn">Ver más</button></div>
+        <div class="track" id="m-grid" aria-live="polite"></div>
       </div>
     </section>
   </div>
@@ -700,14 +699,20 @@ html{scroll-padding-top:76px}
       var next = S.FILTERED.slice(S.SHOWN, S.SHOWN + PAGE);
       var tpl = document.createElement('template');
       tpl.innerHTML = next.map(cardHTML).join('');
+      var old = el('grid').querySelector('.x-next');
+      if (old) old.remove();
+      var firstNew = tpl.content.firstElementChild;
       el('grid').appendChild(tpl.content);
+      if (S.SHOWN && firstNew && el('grid').scrollTo) el('grid').scrollTo({ left: Math.max(0, firstNew.offsetLeft - el('grid').offsetLeft - 8), behavior: 'smooth' });
+      else if (!S.SHOWN && el('grid').scrollTo) el('grid').scrollTo({ left: 0 });
       watchPhotos(el('grid'));
       S.SHOWN += next.length;
+      var left = S.FILTERED.length - S.SHOWN;
+      if (left > 0) el('grid').insertAdjacentHTML('beforeend', '<button type="button" class="x-next">Ver más<span>' + left.toLocaleString('es-PE') + ' más</span></button>');
       var searching = !!el('fQ').value.trim();
       el('count').textContent = S.FILTERED.length
         ? S.FILTERED.length.toLocaleString('es-PE') + (searching ? ' resultados' : ' productos en oferta')
         : (searching ? 'No encontramos eso. Prueba con otra palabra.' : 'Ninguna oferta con estos filtros. Escribe lo que buscas para ver todo a precio completo.');
-      el('moreWrap').hidden = S.SHOWN >= S.FILTERED.length;
     };
     S.openFilter = function(spec){
       var parts = String(spec).split(':');
@@ -745,7 +750,7 @@ html{scroll-padding-top:76px}
     var t = null;
     el('fQ').addEventListener('input', function(){ clearTimeout(t); t = setTimeout(S.applyFilters, 220); });
     ['fType','fBrand','fStore','fSort'].forEach(function(id){ el(id).addEventListener('change', S.applyFilters); });
-    el('moreBtn').addEventListener('click', S.renderMore);
+    el('grid').addEventListener('click', function(e){ if (e.target.closest && e.target.closest('.x-next')) S.renderMore(); });
   }
 
   /* ---------------- MUJER: axes (Carousel City law) ---------------- */

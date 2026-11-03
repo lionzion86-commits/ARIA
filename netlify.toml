@@ -22,7 +22,7 @@
 # producto.html does. (The earlier connector shipped index.html, the bundle
 # and every catalogue -- ~243MB against Lambda's 250MB ceiling.)
 [functions."mcp"]
-  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "assets/search/concepts.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
 
 # price-index.json (~5MB): what checkout charges per product, built by
 # scripts/build-price-index.mjs (orders-create.js reprices every line).
@@ -42,7 +42,7 @@
 # them. search.html fetches 48 cards at a time. The auto-parts glossary
 # (#416) gives the dictionary its car-part phrases ("pastillas de freno").
 [functions."search"]
-  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "assets/search/destinations.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "assets/search/concepts.json", "assets/search/destinations.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
 
 # ARIA AUTO, ITS OWN ADDRESS (#443 c.6427505203 + c.6428323317): the
 # front door auto-industry reviewers are sent to. The root of each
@@ -168,7 +168,7 @@
 # menu from each store's full card list. Built by
 # scripts/build-store-slices.mjs. The phone never downloads it.
 [functions."tienda"]
-  included_files = ["assets/tienda/_fn/*.json"]
+  included_files = ["assets/tienda/_fn/*.json", "assets/tienda/*/index.json", "assets/sections/departamento/_fn/*.json"]
 
 # hidden-docs/ (#443): internal briefs and the blank Amex template live in
 # the repo for the build, not on the site. Forced so a published copy is

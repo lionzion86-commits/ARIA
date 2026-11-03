@@ -109,7 +109,10 @@ await check("the page: no grid -- answerHTML draws the charts and the rails only
   assert.match(fn, /return head \+ lanes\.map\(function\(l\)\{ return laneHTML\(l\); \}\)\.join\(""\);/);
   assert.match(PAGE, /class="lane-more-card" data-lane="/);
   assert.match(PAGE, /"&lane=" \+ encodeURIComponent\(key\) \+ "&off=" \+ off/);
-  assert.match(PAGE, /var more = false;/, "the page-wide pager is still on");
+  /* The page-wide pager is gone (#443 carousels only): no showMore, no #more-btn. */
+  assert.ok(!/function showMore\(|id="more-btn"/.test(PAGE), "the page-wide pager is still on");
+  /* A store's rail ends at that store's page narrowed to the search. */
+  assert.match(PAGE, /storeDoor\(store, STATE\.q\)/);
   assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(PAGE), "an emoji");
 });
 
