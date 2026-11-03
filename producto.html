@@ -1056,7 +1056,9 @@ function variantBoxHtml(p){
   if (!hasVariants(p)) return oneShadeHtml(p);
   var opts = p.variants.map(function(x){
     var on = x.v === p.v;
-    var img = x.image ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
+    /* sp: a shade sold on this same page (YesStyle, Victoria's Secret):
+       the page's photo is not that shade's swatch -- its name only. */
+    var img = x.image && x.sp !== 1 ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
     return '<button type="button" class="v-opt' + (x.so === 1 ? ' v-out' : '') + '" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + (x.so === 1 ? ' (vuelve pronto)' : '') + '">'
       + img + '<span>' + esc(x.c || '') + '</span>' + (x.so === 1 ? '<em>Vuelve pronto</em>' : '') + '</button>';
   });
