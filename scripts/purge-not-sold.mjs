@@ -21,6 +21,7 @@
    store doors, search destinations): they read the catalogues.
 
      node scripts/purge-not-sold.mjs [--dry-run] [--report data/purges/costco-2026-11-02.json]
+     node scripts/purge-not-sold.mjs --baby-stores --report data/purges/moms-truth-2026-11-03.json
    ============================================================ */
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -93,7 +94,7 @@ export function purgeText(raw, file) {
       }
     }
     if (n < list.length) { mixed.push(t); continue; }
-    for (const r of list) cut.push({ kind: notSoldKind(t), retailer: r.retailer, file, bucket: r.path.slice(2).join("/"), title: t, url: r.item.url || r.item.productUrl || "", item: r.item });
+    for (const r of list) cut.push({ kind: notSoldKind(t, r.retailer), retailer: r.retailer, file, bucket: r.path.slice(2).join("/"), title: t, url: r.item.url || r.item.productUrl || "", item: r.item });
   }
   if (cut.length) JSON.parse(text);
   return { text, cut, mixed };
@@ -120,7 +121,7 @@ export function purgeVisualIndex(root = ROOT, dry = false) {
     const vec = readFileSync(join(vdir, s.bin));
     if (meta.length !== s.count || vec.length !== s.count * dim) throw new Error("visual-index shard out of step: " + s.bin);
     const keep = [];
-    meta.forEach((r, i) => (isNotSold({ title: r.title || r.name, retailer: r.retailer }) ? out.push({ kind: notSoldKind(r.title || r.name), retailer: r.retailer, file: "visual-index/" + s.meta, title: r.title || r.name }) : keep.push(i)));
+    meta.forEach((r, i) => (isNotSold({ title: r.title || r.name, retailer: r.retailer }) ? out.push({ kind: notSoldKind(r.title || r.name, r.retailer), retailer: r.retailer, file: "visual-index/" + s.meta, title: r.title || r.name }) : keep.push(i)));
     if (keep.length !== meta.length && !dry) {
       writeFileSync(join(vdir, s.meta), JSON.stringify(keep.map((i) => meta[i])));
       writeFileSync(join(vdir, s.bin), Buffer.concat(keep.map((i) => vec.subarray(i * dim, (i + 1) * dim))));
@@ -145,7 +146,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     for (const t of mixed) mixedAll.push(f + ": " + t);
     if (!cut.length) continue;
     all.push(...cut);
-    const envelopeRows = cut.filter((c) => c.bucket).length;
+    /* A store's brand list mirrors its department list (moms-catalog.json):
+       a product is counted once. */
+    const envelopeRows = cut.filter((c) => c.bucket && !c.bucket.startsWith("brands/")).length;
     if (!dry) writeFileSync(join(ROOT, f), fixDeclared(text, /"declaredProductCount"/.test(text) ? envelopeRows : 0));
     console.log(`${f}: ${cut.length} cut`);
   }
@@ -171,10 +174,15 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const s = (counts.byStore[p.retailer] ||= {});
     s[p.kind] = (s[p.kind] || 0) + 1;
   }
+  /* The baby stores' non-products (Danny's ruling on the moms
+     «Alimentación» rail) are reported as their own purge. */
+  const baby = process.argv.includes("--baby-stores");
   const report = {
     date: (prior && prior.date) || new Date().toISOString().slice(0, 10),
-    issue: "#443 c.6579517469, c.6579542290",
-    rule: "Aria sells no pills and no food (/not-sold.js): medicine, vitamins, supplements and grocery are off sale at every store; candy at Costco. Each row was cut from the catalogues by scripts/purge-not-sold.mjs; `record` keeps the catalogue row whole (salvage rule).",
+    issue: baby ? "#443 Danny's ruling on the moms «Alimentación» rail (bath toys, descaler, HEPA filters, detergent tablets, a cookbook)" : "#443 c.6579517469, c.6579542290",
+    rule: baby
+      ? "At the moms catalogue's stores (/not-sold.js BABY_STORES) a spare or replacement part, a refill or a machine's component (repuesto), a cleaning consumable (limpieza), a book or guide (publicacion), a plan, subscription or donation (servicio) and what is no baby or mom product at all (ajeno) are off sale; the food those stores listed is off sale everywhere (alimento, farmacia). Each row was cut from the catalogues by scripts/purge-not-sold.mjs; `record` keeps the catalogue row whole (salvage rule). Real products in the wrong type were retyped instead (scripts/apply-moms-truth.mjs)."
+      : "Aria sells no pills and no food (/not-sold.js): medicine, vitamins, supplements and grocery are off sale at every store; candy at Costco. Each row was cut from the catalogues by scripts/purge-not-sold.mjs; `record` keeps the catalogue row whole (salvage rule).",
     counts, products: list,
   };
   if (!dry && list.length) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, JSON.stringify(report, null, 1) + "\n"); }
