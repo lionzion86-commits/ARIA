@@ -723,6 +723,27 @@ async function homeShelfPicks(name){
   return shelf && Array.isArray(shelf.picks) ? shelf.picks : null;
 }
 
+/* NO CATALOGUE ON A FIRST PAINT (#443 freeze P0, Lucifer's production
+   audit c.6615765591, 2026-11-03). A homepage shelf whose saved slice
+   was missing used to compute itself from the catalogues: one absent
+   moda.json made the page download every store file and the three cache
+   parts (31MB gzipped, 255MB raw) and parse them on the main thread --
+   the freeze on Danny's mom's Mac, iPhone and a Chromebook. A missing
+   slice is now an honest empty shelf (the section hides itself), never
+   the catalogue. Only scripts/build-home-shelves.mjs, which sets
+   window.ARIA_SHELF_BUILD before the page loads, still computes shelves
+   from the catalogues: that is how the slices are made.
+   scripts/test/no-full-catalog-tests.mjs fails when any page fetches a
+   catalogue on load. */
+function isShelfBuild(){
+  try { return window.ARIA_SHELF_BUILD === true; } catch { return false; }
+}
+/* A shelf's picks when its slice is missing: [] for a shopper, the
+   computed picks only for the shelf build. */
+function shelfFallback(compute){
+  return isShelfBuild() ? compute() : [];
+}
+
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -3949,6 +3970,8 @@ function initDepartmentTiles(){
       renderMobileCatsRail(tiles);
       return;
     }
+    /* No saved tiles: the row keeps its static markup (#443 freeze P0). */
+    if (!isShelfBuild()) return;
     loadCatalogTilesStage().then(data => {
       departmentCacheData = data;
       homeTilesStaged = true;
@@ -11764,6 +11787,12 @@ async function computeCategoryZonePicks(ofertasKeys){
     try { renderCategoryTabs(); } catch (e) {}
     return;
   }
+  /* No saved zone: empty rails, never the whole pool (#443 freeze P0). */
+  if (!isShelfBuild()){
+    for (const cat of CATEGORY_RAILS) categoryRailsRendered[cat.key] = [];
+    try { renderCategoryTabs(); } catch (e) {}
+    return;
+  }
   const pool = await relatedPool();
   for (const cat of CATEGORY_RAILS){
     /* A rail with its own feed (Ropa Interior Mujer / Hombre) takes its picks
@@ -11871,6 +11900,9 @@ function initStoreRails(){
             return storeRailsRendered[key];
           }
         }
+        /* No saved shelf: an empty rail (its section hides), never the
+           store's catalogue (#443 freeze P0; SSENSE's alone is 39MB). */
+        if (!isShelfBuild()) return (storeRailsRendered[key] = []);
         const pool = await poolForRetailers([key]);
         storeRailsRendered[key] = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
         return storeRailsRendered[key];
@@ -12329,8 +12361,10 @@ async function initBrandStrip(){
       const index = await homeShelf('index');
       let brands = index && Array.isArray(index.brandStrip) && index.brandStrip.length ? index.brandStrip : null;
       if (!brands){
-        await poolForRetailers(BRAND_STRIP_RETAILERS);
-        brands = brandStripBrands();
+        brands = await shelfFallback(async () => {
+          await poolForRetailers(BRAND_STRIP_RETAILERS);
+          return brandStripBrands();
+        });
       }
       const html = brands.map(brandStripTileHTML).join('');
       document.querySelectorAll('[data-brand-strip]').forEach(el => { el.innerHTML = html; });
@@ -12511,10 +12545,19 @@ function initFiestasRails(){
      starts loading when the vertical nears the viewport; the picks are
      computed once, then each sub-rail paints on its own lookahead. */
   const load = () => {
-    ensureRetailers(['partycity', 'costco']).then(cache => {
-      for (const rail of FIESTAS_RAILS){
-        fiestasRailsRendered[rail.key] = fiestasRailPicks(rail.key, cache);
-      }
+    /* The saved slice (assets/home/shelves/fiestas.json); the catalogues
+       only for the shelf build (#443 freeze P0). */
+    const picksReady = isShelfBuild()
+      ? ensureRetailers(['partycity', 'costco']).then(cache => {
+          for (const rail of FIESTAS_RAILS) fiestasRailsRendered[rail.key] = fiestasRailPicks(rail.key, cache);
+        })
+      : homeShelf('fiestas').then(saved => {
+          for (const rail of FIESTAS_RAILS){
+            const list = saved && saved.rails && saved.rails[rail.key];
+            fiestasRailsRendered[rail.key] = Array.isArray(list) ? list : [];
+          }
+        });
+    picksReady.then(() => {
       if ('IntersectionObserver' in window){
         const io = new IntersectionObserver((entries) => {
           entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); hideEmptyVertical(); } });
@@ -12693,7 +12736,7 @@ function initBolsosRail(){
       /* PERF (2026-09-28): the shelf mixes every store's handbags, so it
          waits for the full catalogue -- but only once the shopper
          scrolls near, not at boot. */
-      bolsosRendered = (await homeShelfPicks('bolsos')) || bolsosPicks(await loadDepartmentCache());
+      bolsosRendered = (await homeShelfPicks('bolsos')) || await shelfFallback(async () => bolsosPicks(await loadDepartmentCache()));
       /* An empty shelf is worse than none: the section stands down. */
       if (!bolsosRendered.length){ hideSection(); return; }
       for (const row of rows){
@@ -12821,9 +12864,9 @@ function initJoyasRails(){
   const loadAndPaint = async () => {
     try {
       const saved = await homeShelfPicks('joyas');
-      const cache = saved ? null : await loadDepartmentCache();
+      const cache = saved ? null : await shelfFallback(() => loadDepartmentCache());
       const perStyle = saved ? [saved] : [];
-      if (!saved) for (const styleKey of JOYAS_STYLE_RAILS){
+      if (!saved && cache && cache.retailers) for (const styleKey of JOYAS_STYLE_RAILS){
         const picks = joyasPicksForStyle(cache, styleKey);
         if (picks.length) perStyle.push(picks.map(p => ({ ...p, joyasStyle: styleKey })));
       }
@@ -12917,7 +12960,7 @@ function initJoyasLujoRail(){
   joyasLujoStarted = true;
   const loadAndPaint = async () => {
     try {
-      joyasLujoRendered = (await homeShelfPicks('joyasLujo')) || joyasLujoPicks(await loadDepartmentCache());
+      joyasLujoRendered = (await homeShelfPicks('joyasLujo')) || await shelfFallback(async () => joyasLujoPicks(await loadDepartmentCache()));
       if (!joyasLujoRendered.length){
         document.querySelectorAll('[data-joyas-lujo-section]').forEach(sec => { sec.hidden = true; });
         return;
@@ -12999,7 +13042,7 @@ function initModaRail(){
   modaStarted = true;
   const loadAndPaint = async () => {
     try {
-      modaRendered = (await homeShelfPicks('moda')) || modaPicks(await loadDepartmentCache());
+      modaRendered = (await homeShelfPicks('moda')) || await shelfFallback(async () => modaPicks(await loadDepartmentCache()));
       if (!modaRendered.length){
         document.querySelectorAll('[data-moda-section]').forEach(sec => { sec.hidden = true; });
         return;
@@ -28418,9 +28461,13 @@ async function renderCrossSellRail(){
   if (!wrap) return;
   if (!cart.length){ wrap.innerHTML = ''; return; }
 
-  /* Same race as relatedPool (2026-09-28): await the memoized loader
-     instead of trusting the possibly-still-empty initial object. */
-  departmentCacheData = await loadDepartmentCache();
+  /* Same race as relatedPool (2026-09-28): await the loader instead of
+     trusting the possibly-still-empty initial object. Bounded (#443
+     freeze P0): candy_chocolate lives only in the department-cache
+     parts, so only the parts carrying the cart's stores load -- never
+     the whole catalogue for an eight-card rail. */
+  const cartStores = [...new Set(cart.map(it => String(it.retailer || '').toLowerCase()))];
+  await Promise.all(sourcesForRetailers(cartStores).filter(u => DEPT_CACHE_PARTS.indexOf(u) !== -1).map(fetchCatalogPart));
   // Bail if the cart changed (or emptied) while the cache was loading —
   // this render is now stale.
   if (!cart.length) return;
@@ -29717,7 +29764,11 @@ async function runSalesScan(){
     else setTimeout(fn, 10000);
   };
   onIdle(() => { mergeVsDeals().catch(() => {}); });
-  if (!window.matchMedia || !window.matchMedia('(max-width: 1023px)').matches) onIdle(() => { mergeFullFeed().catch(() => {}); });
+  /* FREEZE P0 (#443, 2026-11-03): desktop merged the ~19MB full feed on
+     idle too -- on a Chromebook or an older Mac that idle was the page's
+     first seconds. Every width now merges it when the shopper opens
+     Ofertas (the shelf build keeps the old desktop pass). */
+  if (isShelfBuild() && (!window.matchMedia || !window.matchMedia('(max-width: 1023px)').matches)) onIdle(() => { mergeFullFeed().catch(() => {}); });
   else if (ofertasDemandOpen) mergeFullFeed().catch(() => {});
   /* The catalogue's own markdowns join the feed once it arrives -- on
      idle, never at boot: the fast paint above is the whole point, and a
@@ -29733,7 +29784,11 @@ async function runSalesScan(){
      automatic enrich stays a desktop behaviour. */
   const enrichSoon = () => { enrichSalesFromCatalog().catch(() => {}); };
   const isMobileWidth = window.matchMedia && window.matchMedia('(max-width: 1023px)').matches;
-  if (!isMobileWidth){
+  /* FREEZE P0 (#443, 2026-11-03): the desktop's automatic enrich was the
+     full catalogue (73 store files + 3 cache parts, 31MB gzipped) on the
+     first idle -- "Page Unresponsive" on a Chromebook. No width warms it
+     on its own now; the saved shelves already carry the markdowns. */
+  if (!isMobileWidth && isShelfBuild()){
     if (typeof requestIdleCallback === 'function') requestIdleCallback(enrichSoon, { timeout: 15000 });
     else setTimeout(enrichSoon, 8000);
   }

@@ -231,7 +231,7 @@ try {
 
   await check("the Key Club, cart and checkout sources carry no selection framing", () => {
     const home = readFileSync(join(ROOT, "index.html"), "utf8");
-    const bundleName = /<script src="\/(build\/app-[0-9a-f]+\.js)"><\/script>/.exec(home)[1];
+    const bundleName = /<script src="\/(build\/app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(home)[1];
     const strip = (s) => s.replace(/<!--[\s\S]*?-->/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
     const bad = [];
     for (const f of [bundleName, "checkout.html", "keyclub.html", "carrito.html", "terminos.html"]) {

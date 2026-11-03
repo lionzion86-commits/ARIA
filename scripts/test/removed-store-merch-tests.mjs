@@ -102,7 +102,7 @@ check("no orphan block comments for removed shelves (Costco treasure hunt, Targe
 
 /* ---------------- Sephora: no merchandising, products untouched ---------------- */
 const NO_STOREFRONT = ["sephora"];
-const bundleFile = /<script src="\/build\/(app-[0-9a-f]+\.js)"><\/script>/.exec(readFileSync(ROOT + "index.html", "utf8"))[1];
+const bundleFile = /<script src="\/build\/(app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(readFileSync(ROOT + "index.html", "utf8"))[1];
 const BUNDLE = readFileSync(ROOT + "build/" + bundleFile, "utf8").replace(/\r\n/g, "\n");
 
 for (const page of PAGES) {

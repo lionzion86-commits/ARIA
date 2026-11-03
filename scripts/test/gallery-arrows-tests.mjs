@@ -54,7 +54,7 @@ async function check(name, fn) {
 }
 
 const html = readFileSync(ROOT + "index.html", "utf8");
-const bundleName = /<script src="\/build\/(app-[0-9a-f]+\.js)"><\/script>/.exec(html)[1];
+const bundleName = /<script src="\/build\/(app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(html)[1];
 const bundle = readFileSync(ROOT + "build/" + bundleName, "utf8").replace(/\r\n/g, "\n");
 const pdp = readFileSync(ROOT + "producto.html", "utf8").replace(/\r\n/g, "\n");
 const P = liftPage(ROOT);

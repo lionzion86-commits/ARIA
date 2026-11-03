@@ -153,7 +153,7 @@ check("a value in dollars is never sent (#443 item 34)", () => {
 
 check("every call site sends soles, never dollars (#443 item 34)", () => {
   const home = readFileSync(ROOT + "index.html", "utf8");
-  const bundle = readFileSync(ROOT + /<script src="\/(build\/app-[0-9a-f]+\.js)"><\/script>/.exec(home)[1], "utf8");
+  const bundle = readFileSync(ROOT + /<script src="\/(build\/app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(home)[1], "utf8");
   for (const [name, src] of [["bundle", bundle], ["producto.html", readFileSync(ROOT + "producto.html", "utf8")], ["checkout.html", readFileSync(ROOT + "checkout.html", "utf8")]]) {
     const calls = src.match(/ariaTrack\('[A-Za-z]+',[\s\S]{0,260}?\}\)/g) || [];
     assert.ok(calls.length >= 1, name);
@@ -180,7 +180,7 @@ check("every customer page carries the stub and the async loader, and still pars
 
 check("the events are wired where they happen", () => {
   const home = readFileSync(ROOT + "index.html", "utf8");
-  const bundle = readFileSync(ROOT + /<script src="\/(build\/app-[0-9a-f]+\.js)"><\/script>/.exec(home)[1], "utf8");
+  const bundle = readFileSync(ROOT + /<script src="\/(build\/app-[0-9a-f]+\.js)"[^>]*><\/script>/.exec(home)[1], "utf8");
   new vm.Script(bundle);
   const fnBody = (src, name) => { const i = src.indexOf(`function ${name}(`); assert.ok(i >= 0, name); return src.slice(i, src.indexOf("\n}\n", i)); };
   assert.match(fnBody(bundle, "showProduct"), /ariaTrack\('ViewContent'/, "the app's product view");

@@ -1665,7 +1665,7 @@ html{scroll-padding-top:76px}
   [data-search-band] h1+p{font-size:13.5px;margin-top:10px}
   [data-search-band] .mt-8{margin-top:16px}
 </style>
-<script src="/ref.js"></script>
+<script src="/ref.js" defer></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
 <script src="/assets/js/pixels.js" async></script>
@@ -6549,14 +6549,20 @@ html{scroll-padding-top:76px}
 <!-- "Crear cuenta" goes to the Key Club door (/keyclub.html), "Entrar" to
      the one login (/cuenta.html). There is no signup pop-up anywhere. -->
 
-<script src="/off-sale.js"></script>
-<script src="/display-name.js"></script>
-<script src="/shade-gate.js"></script>
-<script src="/vuelve-pronto.js"></script>
-<script src="/condition.js"></script>
-<script src="/store-shipping.js"></script>
-<script src="/fragrance.js"></script>
-<script src="/build/app-4828a3c3921c746a.js"></script>
+<!-- NOTHING HERE BLOCKS THE PAGE (#443 freeze P0, 2026-11-03): the app
+     bundle and the small modules it reads are deferred -- they download
+     while the page parses and run, in this order, before
+     DOMContentLoaded. The two inline blocks below that call the bundle
+     wait for DOMContentLoaded. scripts/test/no-full-catalog-tests.mjs
+     fails if the bundle loads blocking again. -->
+<script src="/off-sale.js" defer></script>
+<script src="/display-name.js" defer></script>
+<script src="/shade-gate.js" defer></script>
+<script src="/vuelve-pronto.js" defer></script>
+<script src="/condition.js" defer></script>
+<script src="/store-shipping.js" defer></script>
+<script src="/fragrance.js" defer></script>
+<script src="/build/app-771efab709dea15e.js" defer></script>
 <script src="/assets/js/store-rail-pills.js" defer></script>
 <script src="/assets/js/home-category-pills.js" defer></script>
 
@@ -6564,6 +6570,8 @@ html{scroll-padding-top:76px}
 
 
 <script>
+/* Runs once the deferred app bundle has (#443 freeze P0). */
+document.addEventListener('DOMContentLoaded', function(){
 /* Aria orb: hover/click sound. BRAND ASSET SWAP (2026-09-18): the
    open/closed eyelid-blink image swap is gone along with the old
    two-image mascot (aria-orb.png/aria-orb-blink.png, deleted) — the new
@@ -6604,9 +6612,13 @@ startOrbSwim();
 sweepStoreLogos();
 sweepFounderPhoto();
 initRouter();
+});
 </script>
 
 <script>
+/* Runs once the deferred app bundle has (#443 freeze P0): it wraps the
+   bundle's openCatalog / openStore / showProduct. */
+document.addEventListener('DOMContentLoaded', function(){
 // NAV REDIRECT OVERRIDE (2026-10-05) — Replaces broken SPA navigation with redirects to standalone pages.
 // The SPA's showPage/openCatalog blanks interior views. These overrides send users to bulletproof standalone pages instead.
 (function(){
@@ -6742,6 +6754,7 @@ initRouter();
       + (pn ? '&pn=' + encodeURIComponent(pn) : '');
   };
 })();
+});
 </script>
 
 <script>

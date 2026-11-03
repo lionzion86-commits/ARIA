@@ -23,7 +23,7 @@ const ROOT = new URL("../../", import.meta.url).pathname;
    exactly as written. */
 function pageHtml() {
   const html = readFileSync(ROOT + "index.html", "utf8");
-  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"[^>]*><\/script>/.exec(html);
   if (!tag) return html;
   const bundle = readFileSync(ROOT + tag[1], "utf8");
   return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);

@@ -70,7 +70,7 @@ const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
    code. */
 function pageHtml() {
   const html = readFileSync(root("index.html"), "utf8");
-  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"[^>]*><\/script>/.exec(html);
   if (!tag) return html;
   const bundle = readFileSync(root(tag[1]), "utf8");
   return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);

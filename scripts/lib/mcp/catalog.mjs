@@ -31,7 +31,7 @@ import { repoFile } from "./paths.mjs";
    same reconstruction page-slices.mjs performs. */
 function pageSource() {
   let src = readFileSync(repoFile("index.html"), "utf8");
-  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(src);
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"[^>]*><\/script>/.exec(src);
   if (tag) {
     try {
       const bundle = readFileSync(repoFile(tag[1]), "utf8");

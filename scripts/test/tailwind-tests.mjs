@@ -38,7 +38,7 @@ check("assets/css/tailwind.css is what the classes in use build today", () => {
 
 check("the search boxes work before the app bundle arrives", () => {
   const early = home.indexOf("window.doSearch = function(which){");
-  const bundle = home.search(/<script src="\/build\/app-[0-9a-f]+\.js"><\/script>/);
+  const bundle = home.search(/<script src="\/build\/app-[0-9a-f]+\.js"[^>]*><\/script>/);
   const firstBox = home.indexOf('id="searchInput"');
   assert.ok(early > 0 && early < firstBox && firstBox < bundle, "doSearch is not defined before the first search box");
   for (const id of ["searchInput", "searchInputD", "searchInput2"]) assert.ok(home.includes(`id="${id}"`), `#${id} moved`);

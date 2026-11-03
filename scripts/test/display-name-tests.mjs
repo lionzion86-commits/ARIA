@@ -45,7 +45,7 @@ const D = loadDisplayName(ROOT);
 const TITLE = "Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors";
 const SHOWN = "Non-Stick Cup Mirror Glare Lip Gloss";
 const CLAIM = /\b16 Colors\b/;
-const bundleFile = /<script src="\/(build\/app-[0-9a-f]{16}\.js)"><\/script>/.exec(readFileSync(ROOT + "index.html", "utf8"))[1];
+const bundleFile = /<script src="\/(build\/app-[0-9a-f]{16}\.js)"[^>]*><\/script>/.exec(readFileSync(ROOT + "index.html", "utf8"))[1];
 
 await check("the rule: a plural claim goes; a palette's contents, Color-Correcting and a singular Hair Color stay", () => {
   assert.equal(D.displayName(TITLE), SHOWN);

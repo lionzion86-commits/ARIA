@@ -20,7 +20,7 @@ const INDEX = fileURLToPath(new URL("../../index.html", import.meta.url));
    written. */
 function pageHtml() {
   const html = readFileSync(INDEX, "utf8");
-  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"><\/script>/.exec(html);
+  const tag = /<script\s+src="\/(build\/app-[^"]+\.js)"[^>]*><\/script>/.exec(html);
   if (!tag) return html;
   const bundle = readFileSync(fileURLToPath(new URL("../../" + tag[1], import.meta.url)), "utf8");
   return html.replace(tag[0], () => `<script>\n${bundle}\n</script>`);
