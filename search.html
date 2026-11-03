@@ -349,7 +349,8 @@ var CARD_IMG_SIZES = "(max-width: 640px) 44vw, 200px";
    bare original for one product and a small pre-sized variant for
    the next. */
 function declaredImageWidth(u){
-  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w)=(\d+)/i)
+  const m = u.match(/[?&](?:wid|width|imwidth|odnWidth|w|sw)=(\d+)/i)
+    || u.match(/;maxWidth=(\d+)/i)
     || u.match(/\/upload\/[^/]*\bw_(\d+)/)
     || u.match(/_(1000|750|500|250)\.jpg(?:\?|$)/i);
   return m ? parseInt(m[1], 10) : 0;
@@ -371,7 +372,12 @@ function sizedImageUrl(url, w){
     return base + (base.indexOf("?") >= 0 ? "&" : "?") + key + "=" + val;
   }
   var out = null;
-  if (/cdn\.shopify\.com/i.test(u)){
+  if (/^https?:\/\/[^/]+\/cdn\/shop\/(?:files|products)\//i.test(u) && !/cdn\.shopify\.com/i.test(u)){
+    /* Shopify's storefront CDN path (Pier 1's /cdn/shop/files/...) takes the
+       same width parameter as cdn.shopify.com; the same floor as below. */
+    var sw0 = w <= 200 ? w : 800;
+    if (w <= 800 && !(declared && sw0 >= declared)) out = setQ(u, "width", sw0);
+  } else if (/cdn\.shopify\.com/i.test(u)){
     out = setQ(u, "width", w);
   } else if (/res\.cloudinary\.com/i.test(u)){
     if (/\/upload\/[^/]*\bw_\d+/.test(u)) out = u.replace(/(\/upload\/[^/]*)\bw_\d+/, "$1w_" + w);
@@ -402,6 +408,21 @@ function sizedImageUrl(url, w){
       if (w <= 280) out = u.replace("/images/fb/", "/images/images250x250/");
       else if (w <= 560) out = u.replace("/images/fb/", "/images/images500x500/");
     }
+  } else if (/\/dw\/image\/v2\//i.test(u) || /pisces\.bbystatic\.com\/image2\//i.test(u)){
+    /* LIGHTER, NEVER SOFTER (#443 c.6587429371). Two more first-party
+       resize parameters: Salesforce Commerce Cloud's image service
+       (Calzedonia, Intimissimi) scales by sw; Best Buy's image server
+       fits the photo inside ;maxWidth/;maxHeight. These cards show the
+       retailer's full original today, so a step that could land below
+       what the slot draws (3x phones, the 263px big card) would make
+       them softer: they get the 800 step for any card request, the
+       asked width only for a thumbnail (200 or less), and nothing
+       above 800 -- the product page keeps the original. */
+    var fw = w <= 200 ? w : 800;
+    if (w <= 800 && !(declared && fw >= declared)){
+      if (/\/dw\/image\/v2\//i.test(u)){ if (!/[?&]sh=/i.test(u)) out = setQ(u, "sw", fw); }
+      else if (u.indexOf(";") < 0 && u.indexOf("?") < 0) out = u + ";maxHeight=" + fw + ";maxWidth=" + fw;
+    }
   } else if (/cdn-images\.farfetch-contents\.com/i.test(u)){
     if (w <= 500 && /_1000\.jpg$/i.test(u)) out = u.replace(/_1000\.jpg$/i, "_500.jpg");
   }
@@ -418,7 +439,9 @@ function imageSrcset(url){
     var s = sizedImageUrl(u, CARD_IMG_WIDTHS[i]);
     if (s === u || seen[s]) continue;
     seen[s] = 1;
-    parts.push(s + " " + CARD_IMG_WIDTHS[i] + "w");
+    /* labelled with the width the URL really asks for (a floored step
+       asks for more than the step) */
+    parts.push(s + " " + (declaredImageWidth(s) || CARD_IMG_WIDTHS[i]) + "w");
   }
   return parts.length ? parts.join(", ") : "";
 }

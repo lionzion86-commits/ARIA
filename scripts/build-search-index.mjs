@@ -54,6 +54,7 @@ import vm from "node:vm";
 import { RETAILERS } from "./lib/retailers.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { photoCount } from "./lib/photo-counts.js";
+import { productKeys, firstSighting } from "./lib/product-identity.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const INDEX_PATH = "assets/search/catalog-index.json";
@@ -113,6 +114,12 @@ export const CATALOG_FILES = [
   "carolinaherrera-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "perfumes-catalog.json",
+  /* Gap and Banana Republic (#443 c.6585655315): their storefronts read
+     these; search only had their sale-feed rows (276 and 358 of 526 and
+     824) and the brand pages none, so Gap (281 in search) had no brand
+     landing. Every file a storefront reads is here
+     (scripts/test/catalog-parity-tests.mjs). */
+  "gap-catalog.json", "bananarepublic-catalog.json",
 ];
 export function catalogFiles() { return CATALOG_FILES.slice(); }
 
@@ -166,7 +173,12 @@ function firstNumber(...vals) {
 function normalize(it, retailer, department, finalPrice) {
   if (!it || typeof it !== "object") return null;
   const title = decodeEntities(it.name || it.title || it.productName || "").trim();
-  const price = Number(it.price);
+  /* The selling price as the scrape spells it: Old Navy's rows carry
+     effectivePrice and no price, so its 94 storefront products were not
+     searchable (#443 c.6585655315 P5). The storefront builder and the
+     brand index read the same fields. */
+  let price = Number(it.price);
+  if (!(price > 0)) price = Number(it.effectivePrice ?? it.currentPrice ?? it.salePrice);
   if (!title || !(price > 0)) return null;
   let image = it.thumbnail || it.image || it.imageUrl || "";
   if (!image && Array.isArray(it.images) && it.images[0]) image = it.images[0];
@@ -281,9 +293,9 @@ export function buildIndex() {
             const n = normalize(it, rkey, section === "departments" ? skey : "", false);
             /* Off sale (/off-sale.js): kept in the catalogue, never searchable. */
             if (!n || isOffSaleRetailer(n.retailer) || isOffSaleRetailer(rkey)) continue;
-            const k = (n.retailer + "|" + (n.url || n.title)).toLowerCase();
-            if (seen.has(k)) continue;
-            seen.add(k);
+            /* One product, one row (scripts/lib/product-identity.js): the
+               link (or title) and the photo -- a colourway is its own. */
+            if (!firstSighting(seen, productKeys(n.retailer, n.url, n.title, n.image, n.price))) continue;
             products.push(n);
           }
         }
@@ -302,11 +314,17 @@ export function buildIndex() {
   }
   inferBrands(products, knownBrands());
   const rows = [];
+  const ids = new Set();
   for (const p of products) {
     if (!p.image) continue;
+    /* Colourways sharing a link (or, with none, a title): the first keeps
+       its id, the next ones add their photo. */
+    let id = productId(p.retailer, p.url, p.title);
+    if (ids.has(id)) id = productId(p.retailer, (p.url || p.title) + "|" + p.image, p.title);
+    ids.add(id);
     const cat = S.catalogItemCategory({ title: p.title, name: p.title, brand: p.brand, retailer: p.retailer,
       departments: p.department ? [p.department] : [] }) || "";
-    rows.push([productId(p.retailer, p.url, p.title), p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
+    rows.push([id, p.title, p.brand, p.price, p.originalPrice, p.onSale ? 1 : 0, p.department, p.retailer,
       p.finalPrice ? 1 : 0, p.image, cat, Math.round(p.reviews), p.rating]);
     /* ph: the photo count, only when 2+ (#443 c.6546035414): the search
        card's photo arrows. A trailing optional field: one-photo rows

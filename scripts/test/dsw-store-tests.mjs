@@ -199,10 +199,13 @@ await check("the storefront slice is the catalogue: Ofertas de DSW first, then t
   assert.ok(JSON.stringify(dest.stores).includes('"dsw"'), "no DSW search destination");
 });
 
-await check("tiendas.html: the DSW link reveals on a non-empty storefront (it has one now)", () => {
+await check("tiendas.html: DSW has a live tile, not the pending one (its storefront is stocked)", () => {
+  /* scripts/build-store-doors.mjs writes the grid (#618): a stocked
+     store is a plain tile; the hidden pending tile is for a registry
+     pendingCatalog store with an empty storefront. */
   const html = read("tiendas.html");
-  assert.match(html, /<a class="store-card" href="tienda.html\?tienda=dsw" data-pending-catalog="dsw" hidden>DSW<\/a>/);
-  assert.match(html, /if \(!j \|\| !\(j\.count > 0\)\) return;/);
+  assert.match(html, /<a class="store-card" href="tienda.html\?tienda=dsw">DSW<\/a>/);
+  assert.doesNotMatch(html, /data-pending-catalog="dsw"/);
 });
 
 await check("the derived surfaces carry DSW: Zapatos department, Ofertas, search index", () => {
