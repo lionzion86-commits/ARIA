@@ -16,6 +16,8 @@ import * as B from "../build-perfumes-catalog.mjs";
 import { PRE_PRICED, LAUNCH_PRICED, LAUNCH_LABEL, tieredMarginUsd } from "../../weight-data.js";
 import { buildPerfumeSections, perfumeClassOf, isDesignerHouse } from "../../netlify/functions/_department-core.js";
 import { isFragranceItem } from "../lib/fragrance.js";
+import { loadDept, typeKeyOf, explore, axisRails, answer } from "../../netlify/functions/_department-core.js";
+import { DEPT_RULES, CLOTHING_TYPE_LABELS, PERFUME_TYPES, TRUE_FRAGRANCE_RX, productClass, perfumeDoorOfWords } from "../build-department-slices.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 let passed = 0;
@@ -191,6 +193,42 @@ await check("the four-per-order cap counts perfumes, testers and sets -- not a l
   assert.equal(isFragranceItem(of(/\(Tester\)/)), true);
   assert.equal(isFragranceItem(of(/— Set de regalo/)), true);
   assert.equal(isFragranceItem(of(/— Loción corporal/)), false);
+});
+
+/* "There should not be a ropa in a perfume store" (#443 c.6585323562):
+   Macy's typed its Beauty page APPAREL and 60 bottles were «Ropa (60)». */
+await check("Perfumes offers fragrance types only: no Ropa filter, rail or count", () => {
+  const d = loadDept("perfumes", [ROOT]);
+  const bad = d.list.filter((p) => !PERFUME_TYPES.has(typeKeyOf(p).k)).map((p) => `${p.retailer}: ${p.title} (${typeKeyOf(p).label})`);
+  assert.deepEqual(bad.slice(0, 5), [], `${bad.length} Perfumes rows carry a non-fragrance type`);
+  const facets = explore(d.list, {}, "deal", 0, d.labels).facets.t.map(([, label]) => label);
+  assert.deepEqual(facets.filter((l) => CLOTHING_TYPE_LABELS.has(l)), [], "a clothing type in Perfumes' Tipo filter");
+  const rails = axisRails(d.list, "tipo", d.labels).map((r) => r.title);
+  assert.deepEqual(rails.filter((l) => CLOTHING_TYPE_LABELS.has(l)), [], "a clothing rail in Perfumes' Por tipo");
+  const head = answer({ dept: "perfumes" }, [ROOT]).body;
+  assert.ok(!/"Ropa"|ropa/.test(JSON.stringify(head.rails.map((r) => [r.title, r.k]))), "a Ropa rail in the Perfumes head");
+  /* The root-cause bottles live in their perfume door. */
+  const daisy = d.list.filter((p) => p.retailer === "macys" && /^Daisy Murakami/.test(p.title));
+  assert.ok(daisy.length >= 2, "the Daisy Murakami bottles left Perfumes");
+  for (const p of daisy) { assert.equal(typeKeyOf(p).label, "Fragancia", p.title); assert.equal(p.a, "mujer", p.title + " is not in Mujer"); }
+  const mujer = answer({ dept: "perfumes", a: "mujer" }, [ROOT]).body;
+  assert.ok(mujer.count > 3900 && head.doors.find((x) => x.k === "mujer").n === mujer.count, "the Mujer door's count is not its own list");
+  assert.equal(perfumeDoorOfWords("Gucci Guilty Pour Homme Eau de Parfum"), "hombre");
+  assert.equal(perfumeDoorOfWords("2-Piece Miss Dior Eau de Parfum Gift Set"), "sets");
+  assert.equal(perfumeDoorOfWords("Light Blue Eau de Toilette, 6.7 oz."), "", "a door from nothing");
+});
+
+await check("no fragrance sits in a clothing type in any department", () => {
+  const bad = [];
+  for (const k of Object.keys(DEPT_RULES)) {
+    const d = loadDept(k, [ROOT]);
+    if (!d) continue;
+    for (const p of d.list) {
+      if (!CLOTHING_TYPE_LABELS.has(typeKeyOf(p).label) || !TRUE_FRAGRANCE_RX.test(p.title)) continue;
+      if (productClass(p) === "perfumes") bad.push(`${k} / ${typeKeyOf(p).label}: ${p.retailer} ${p.title}`);
+    }
+  }
+  assert.deepEqual(bad.slice(0, 8), [], `${bad.length} fragrances typed as clothing`);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

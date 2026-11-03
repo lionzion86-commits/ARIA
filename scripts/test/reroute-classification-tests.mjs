@@ -22,7 +22,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
-import { KIND_MATCH, DEPT_RULES, belongsToDept, loadAllItems, loadRefiles } from "../build-department-slices.mjs";
+import { KIND_MATCH, DEPT_RULES, belongsToDept, loadAllItems, loadRefiles, trueType } from "../build-department-slices.mjs";
 import { PRODUCT_TYPES as BRAND_TYPES } from "../../netlify/functions/_brand-core.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -202,6 +202,36 @@ check("layer B: every bucket re-file lands in a department that admits it -- re-
   const jw = all.filter((p) => p.retailer === "jwpei" && /\bdress\b/i.test(p.title));
   const still = jw.filter((p) => p.bucket === "purses");
   assert.ok(jw.length > 100 && still.length <= 10, `${still.length} of ${jw.length} JW PEI dresses still filed under purses`);
+});
+
+/* THE ROOT CAUSE OF «ROPA (60)» IN PERFUMES (#443 c.6585323562): Macy's
+   files its whole Beauty and Home pages APPAREL; the department's type
+   lenses read that type, so perfume, lip balm and towels were Ropa. */
+check("a store's clothing type never names what is not clothing", () => {
+  const tt = (title, type, retailer = "macys", bucket = "beauty") => trueType({ title, type, retailer, bucket, brand: "" });
+  const cases = [
+    ["Daisy Murakami Pink Limited-Edition Eau De Parfum,\u00a01.6 oz.", "APPAREL", "Fragancia"],
+    ["Born in Roma Vanilla Bliss Limited Edition Hair and Body Mist, 3.4 oz.", "APPAREL", "Fragancia"],
+    ["Jean Paul Gaultier Mini Gaultier Fragrance Gift Set for Him", "Pantalón", "Fragancia", "kohls", "men"],
+    ["4-Piece Hydrated Lip Balm Set", "APPAREL", "Belleza"],
+    ["Modern American Solid Cotton Bath Towel, 30\" x 54\"", "APPAREL", "Hogar", "macys", "home"],
+    ["Nappa Leather Hobo Bag", "APPAREL", "Carteras", "macys", "women"],
+    ["Oakley Suture Jacket Sunglasses - Matte Black/PRIZM Black Lens", "Jackets", "Accesorios", "ccs", "clothing"],
+    ["Polo Player Cotton Hand Towel, 32\" x 16\"", "APPAREL", "Hogar", "macys", "home"],
+    /* Garments the head noun misreads keep their clothing type. */
+    ["RC Essential Tank", "Ropa", "Ropa", "newbalance", "gym_rat"],
+    ["Puzzle Dress", "Dresses", "Dresses", "revolve", "women"],
+    ["PREMIUM HEATER SWEATS - BLACKOUT", "Pants", "Pants", "killcrew", "gym_rat"],
+    ["Linen Midi Dress", "APPAREL", "APPAREL", "macys", "women"],
+  ];
+  const bad = cases.map(([t, type, want, r, b]) => [t, want, tt(t, type, r, b)]).filter(([, w, g]) => w !== g);
+  assert.deepEqual(bad.map(([t, w, g]) => `"${t}": ${g}, not ${w}`), []);
+  const flats = tt("Women's Devitt Slip-On Loafer Flats", "APPAREL", "macys", "women");
+  assert.ok(flats && flats !== "APPAREL", "Macy's flats are still typed APPAREL");
+  /* What only names a scent is not a perfume. */
+  assert.equal(KIND_MATCH.perfumes("", item("Peach Fragrance Cool Non-Chemical UV Cream SPA 50+ PA++++", "Hidratantes", "yesstyle")), false);
+  assert.equal(KIND_MATCH.perfumes("", item("Wallflowers White Flare Fragrance Plug", "Baño y cuerpo", "ulta")), false);
+  assert.equal(KIND_MATCH.perfumes("", item("Daisy Murakami Pink Limited-Edition Eau De Parfum, 1.6 oz.", "APPAREL", "macys")), true);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
