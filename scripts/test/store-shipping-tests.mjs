@@ -60,7 +60,9 @@ check("Foot Locker: the public rule, $7.99 under $99, free from $99 (#443 c.6547
 check("never \"por confirmar\" on a store-shipping row: comparator, product page, checkout (#443 c.6547441472)", () => {
   const slice = (s, a, b) => s.slice(s.indexOf(a), s.indexOf(b, s.indexOf(a) + a.length));
   const rows = {
-    "search.html shipHTML": slice(read("search.html"), "function shipHTML(", "function compareRowHTML("),
+    /* The function itself, to its closing brace: helpers that follow it
+       (the IMP line, #624) are not part of the shipping row. */
+    "search.html shipHTML": slice(read("search.html"), "function shipHTML(", "\n}\n") + "\n}",
     "producto.html shipBoxHtml": slice(read("producto.html"), "function shipBoxHtml(", "function refreshShipBox("),
     "checkout.html renderStoreShipping": slice(read("checkout.html"), "function renderStoreShipping(", "One renderer for the tax row"),
     "store-shipping.js": read("store-shipping.js").replace(/\/\*[\s\S]*?\*\//g, ""),
