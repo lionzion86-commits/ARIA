@@ -18,6 +18,7 @@ import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { snipesKind, snipesDept, RELEASE_RX, normalizeSnipes, normalizeCarolinaHerrera, chDept } from "../lib/store-pull-normalize.js";
 import { isSizesPending, sizesPendingLines, sizesPendingKey } from "../lib/sizes-pending.js";
+import { SIZES_PENDING } from "../lib/sizes-pending-data.js";
 import { RETAILERS } from "../lib/retailers.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -108,8 +109,14 @@ await check("shown, not sold: the order endpoint refuses an item whose sizes are
   assert.ok(isSizesPending("SNIPES", "  " + shoe.name.toUpperCase() + " "), "the key is case- and space-blind");
   assert.ok(!isSizesPending("snipes", cap.name));
   assert.equal(sizesPendingLines([{ retailer: "snipes", title: shoe.name }, { retailer: "snipes", title: cap.name }]).length, 1);
-  const pending = cat("snipes").concat(cat("carolinaherrera")).filter((i) => i.sizesPending).map((i) => sizesPendingKey(i.retailer, i.name));
+  /* Every store whose catalogue marks items shown-not-sold: the page's
+     list (assets/data/sizes-pending.json) and the order door's
+     (scripts/lib/sizes-pending-data.js) are the same list, and hold
+     exactly those items. */
+  const stores = ["snipes", "carolinaherrera", "calzedonia", "intimissimi", "dsw", "tenniswarehouse"].filter((k) => existsSync(ROOT + k + "-catalog.json"));
+  const pending = stores.flatMap((k) => cat(k)).filter((i) => i.sizesPending).map((i) => sizesPendingKey(i.retailer, i.name));
   assert.deepEqual(JSON.parse(read("assets/data/sizes-pending.json")).sort(), [...new Set(pending)].sort(), "the page's list and the catalogues disagree");
+  assert.deepEqual(JSON.parse(read("assets/data/sizes-pending.json")).sort(), [...SIZES_PENDING].sort(), "the page's list and the order door's disagree");
   const oc = read("netlify/functions/orders-create.js");
   assert.ok(oc.includes("sizesPendingLines(sentItems)") && oc.indexOf("sizesPendingLines(sentItems)") < oc.indexOf("perfumeCapState(sentItems)"), "orders-create does not refuse before it charges");
 });

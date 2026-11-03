@@ -47,9 +47,20 @@ const CAMERA_RX = /\b(cameras?|camcorders?|dslr|mirrorless|lens(es)?\b|gopro|act
    drone, a drone kit, or what is made for one (a DJI Mini's propellers,
    an Avata's goggles) -- by its own name. A "Murder Drones" tee or plush
    is merch, a motorcycle helmet called Drone is a helmet. */
-const DRONE_RX = /\b(drones?|quadcopters?|quadrocopters?|fpv (goggles|racing|drone|kit|combo)|dji[\s\-–]+(mini|mavic|air|avata|neo|flip|inspire|matrice|agras|phantom|spark|fpv|goggles|rc[- ]?n?\d?|rc pro|motion controller)|mavic|avata|autel (evo|robotics|alpha|nano|lite)|evo (lite|nano|max|ii)\b.*\bautel|skydio|parrot anafi|anafi)\b/i;
-const NOT_DRONE_RX = /\b(murder drones|helmets?|t-?shirts?|tees?|hoodies?|sweatshirts?|shirts?|plush\w*|figures?|figurines?|stickers?|posters?|enamel pins?|keychains?|socks?|hats?|beanies?|costumes?|books?|paperback|dvd|vinyl|cassette|anti-?drone|drone (bee|ant)s?)\b/i;
+const DRONE_RX = /\b(drones?|quadcopters?|quadrocopters?|fpv (goggles|racing|drone|kit|combo)|dji[\s\-–]+(mini|mavic|air|avata|neo|flip|inspire|matrice|agras|phantom|spark|fpv|goggles|rc[- ]?n?\d?|rc pro|motion controller)|mavic|avata|autel (evo|robotics|alpha|nano|lite)|evo (lite|nano|max|ii)\b.*\bautel|skydio|parrot anafi|anafi|hoverair|self-flying camera|acsl soten|soten|freefly (alta|astro)|vcopter)\b/i;
+const NOT_DRONE_RX = /\b(murder drones|helmets?|t-?shirts?|tees?|hoodies?|sweatshirts?|shirts?|plush\w*|figures?|figurines?|stickers?|posters?|enamel pins?|keychains?|socks?|hats?|beanies?|costumes?|books?|paperback|dvd|vinyl|cassette|anti-?drone|drone (bee|ant)s?|security cam(era)?s?|nanny cams?|spy cams?|dash ?cams?)\b/i;
 export const isDrone = (name) => DRONE_RX.test(String(name || "")) && !NOT_DRONE_RX.test(String(name || ""));
+/* The reconciliation (#443 c.6583248088): a product the store itself types
+   as a drone -- B&H's "Dron", Walmart's "Aerial Drones", Best Buy's
+   "Drones" -- is a drone even when its name is only a model ("HOVERAir X1
+   PRO", "ACSL SOTEN Survey Bundle"); the merch and camera vetoes still
+   apply ("Murder Drones" merch, a security camera "for Home, Car, Drone"). */
+const DRONE_TYPE_RX = /^\s*(dron|drones|aerial drones|tech_drones)\s*$/i;
+export const isDroneType = (type) => DRONE_TYPE_RX.test(String(type || ""));
+export const isDroneProduct = (p) => {
+  const t = String((p && (p.title || p.name)) || "");
+  return isDrone(t) || (isDroneType(p && p.type) && !NOT_DRONE_RX.test(t));
+};
 /* The Drones lead (commercial-leads): DJI's pro line first -- the Mavic,
    Air, Avata and Mini Pro a shopper asks for by name -- then DJI's other
    aircraft (Neo, Flip, Mini), then DJI's enterprise rigs (Inspire,
@@ -69,7 +80,7 @@ export function droneRank(p) {
   if (DRONE_TOY_RX.test(t)) return 6;
   return 4;
 }
-const SECURITY_RX = /\b(security (camera|system|cam)|doorbells?|ring (video|stick|spotlight|floodlight|indoor|outdoor)|wyze|blink|arlo|eufy ?cam|nvr|dvr|surveillance|baby monitors?|smart (plugs?|bulbs?|locks?|lights?|displays?|speakers?)|echo (dot|show|pop)|nest (hub|cam|doorbell)|google home|alexa|smart home|floodlight cam|spotlight cam|ip cam(era)?|wi-?fi (ip |security |indoor |outdoor )?cam(era)?|spotlight|night vision|pan[- ]tilt|pet cam(era)?|indoor cam(era)?|outdoor cam(era)?)\b/i;
+const SECURITY_RX = /\b(security (camera|system|cam)|doorbells?|ring (video|stick|spotlight|floodlight|indoor|outdoor)|wyze|blink|arlo|eufy ?cam|nvr|dvr|surveillance|baby monitors?|smart (plugs?|bulbs?|locks?|lights?|displays?|speakers?)|echo (dot|show|pop)|nest (hub|cam|doorbell)|google home|alexa|smart home|floodlight cam|security (kit|floodlight|light)s?|motion activated [\w ]*(floodlight|light)|spotlight cam|ip cam(era)?|wi-?fi (ip |security |indoor |outdoor )?cam(era)?|spotlight|night vision|pan[- ]tilt|pet cam(era)?|indoor cam(era)?|outdoor cam(era)?)\b/i;
 const WATCH_RX = /\b(smart ?watch(es)?|apple watch|galaxy watch|fitbit|garmin (forerunner|venu|fenix|vivoactive|instinct)|fitness trackers?|activity trackers?|watch (series|se|ultra))\b/i;
 const CAR_RX = /\b(car (stereo|audio|speakers?|amplifier|subwoofer)|dash ?cams?|head units?|marine ?(am\/fm )?(speakers?|stereos?|radios?|receivers?|players?)|carplay receiver|double din|single din)\b/i;
 const COMPONENT_RX = /\b(motherboards?|processors?|cpus?|graphics cards?|gpus?|geforce rtx|radeon rx|video cards?|ram|ddr[45]|memory (kit|module)|ssds?|nvme|solid state drives?|m\.2|power supply|psu|cpu coolers?|aio cooler|pc case|computer case)\b/i;
@@ -86,7 +97,7 @@ export function isAccessoryName(name) {
 /** The aisle for one product, by its name (and the store's own category as a last hint). */
 export function techAisle(name, hint = "") {
   const n = String(name || "");
-  if (isDrone(n)) return "tech_drones";
+  if (isDrone(n) || (isDroneType(hint) && !NOT_DRONE_RX.test(n))) return "tech_drones";
   if (SECURITY_RX.test(n)) return "tech_casa_inteligente";
   if (CAR_RX.test(n)) return "tech_auto";
   /* "Case for iPhone 16", "Charger for Galaxy Watch": the accessory wins
@@ -140,7 +151,8 @@ export function techAisle(name, hint = "") {
   if (/headphone|earbud/.test(h)) return "tech_audifonos";
   if (/watch|wearable/.test(h)) return "tech_relojes";
   if (/game|gaming|console/.test(h)) return "tech_gaming";
-  if (/drone/.test(h)) return "tech_drones";
+  /* A store category that only MENTIONS drones (Costco's "cameras-drones")
+     is no drone: a floodlight or a film pack filed there is not one. */
   if (/camera/.test(h)) return "tech_camaras";
   if (/audio|speaker/.test(h)) return "tech_audio";
   if (/laptop|computer|tablet/.test(h)) return "tech_accesorios";    /* a peripheral, not the computer */

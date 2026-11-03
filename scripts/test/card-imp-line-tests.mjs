@@ -347,6 +347,10 @@ try {
   const SURFACES = [
     { name: "Drones landing", url: "departamento.html?dept=electronics&t=tech_drones", ready: ".rail a.card", sel: "a.card", needOver: 3 },
     { name: "store page (B&H Photo)", url: "tienda.html?tienda=bhphoto", ready: ".sl a.card", sel: "a.card", needOver: 1 },
+    /* #611's storefronts: Tennis Warehouse sells rackets over the line; DSW
+       tops out at US$ 199.99, so its cards must carry none. */
+    { name: "store page (Tennis Warehouse)", url: "tienda.html?tienda=tenniswarehouse", ready: ".sl a.card", sel: "a.card", needOver: 1 },
+    { name: "store page (DSW)", url: "tienda.html?tienda=dsw", ready: ".sl a.card", sel: "a.card", needOver: 0 },
     { name: "search results landing", url: "search.html?resultados=1&q=" + encodeURIComponent("dji mini"), ready: "a.card", sel: "a.card, a.cmp-row", needOver: 3 },
     { name: "brand page + Comparador (Bose QuietComfort Ultra)", url: "marca.html?marca=bose&q=" + encodeURIComponent("quietcomfort ultra"), ready: "#brandFocus .fc-row", sel: "a.card, a.fc-row", needOver: 3 },
     { name: "Ofertas", url: "ofertas.html", ready: "a.card", sel: "a.card", needOver: 1 },

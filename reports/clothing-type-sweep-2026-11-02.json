@@ -1,0 +1,1670 @@
+{
+ "generatedAt": "2026-11-02",
+ "issue": "#443 c.6585323562",
+ "retyped": {
+  "total": 1837,
+  "byKind": {
+   "hogar": 794,
+   "belleza": 273,
+   "accesorios": 244,
+   "carteras": 228,
+   "zapatos": 92,
+   "perfumes": 63,
+   "joyas": 61,
+   "juguetes": 26,
+   "sombreros": 25,
+   "deportes": 15,
+   "electronica": 12,
+   "libros": 3,
+   "dulces": 1
+  },
+  "groups": [
+   {
+    "store": "kohls",
+    "kind": "hogar",
+    "n": 435,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "The Big One® Peanuts Divided Tray",
+     "Certified International Pavillion Set of 6 All Purpose Bowls",
+     "Baxton Studio Mid-Century Modern Stool",
+     "Winsome Brooke Storage Cabinet",
+     "Crosley Cambridge Gray Granite Kitchen Island"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "hogar",
+    "n": 333,
+    "from": [
+     "Ropa",
+     "Blusas y tops"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "8-Piece Round Nesting Bowl Set with Lids",
+     "525-Thread Count Egyptian Cotton Pillowcase Pair, Standard",
+     "525-Thread Count Egyptian Cotton Pillowcase Pair, King",
+     "Aiden Striped 8-Pc. Comforter Sets",
+     "1200 Thread Count Cotton Blend Watercolor Printed 4-Piece Sheet Sets"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "belleza",
+    "n": 207,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Hogar",
+     "Belleza"
+    ],
+    "samples": [
+     "ICE-30BCP1 Ice Cream Maker",
+     "3-Piece Diorshow Mascara & Lash Primer-Serum Makeup Set",
+     "4-Piece Concierge Pure Color Collection Lipstick Gift Set",
+     "5-Piece Star Lip Gloss Collection Makeup Gift Set",
+     "Double Wear 24-Hour Maximum Cover Camouflage Foundation for Face and Body SPF 15, 1 oz."
+    ]
+   },
+   {
+    "store": "ssense",
+    "kind": "accesorios",
+    "n": 168,
+    "from": [
+     "Chompas y polerones",
+     "Vestidos",
+     "Faldas"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "Black Long Hair Fabric Scarf",
+     "Red & Navy Flara Scarf",
+     "Black Fania Scarf",
+     "Burgundy Printed Silk Tie",
+     "Navy Cable Knit Wool Scarf"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "carteras",
+    "n": 99,
+    "from": [
+     "Ropa",
+     "Camisas"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Nine West Deacon Triple Compartment Shoulder Bag",
+     "Nine West Marly Shoulder Bag",
+     "JanSport Cross Town Plus Backpack",
+     "Mellow World Sandi 3-Compartment Shoulder Bag",
+     "LC Lauren Conrad Clarkson Shoulder Bag"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "carteras",
+    "n": 93,
+    "from": [
+     "Ropa",
+     "Blusas y tops"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Deco Large Pebbled Leather Tote Bag",
+     "Bella Medium Leather Shoulder Bag",
+     "Bella Small Pebble Leather Tote Bag",
+     "Marcy Suede Large Satchel Bag",
+     "Bella Small Leather Satchel Bag"
+    ]
+   },
+   {
+    "store": "yesstyle",
+    "kind": "belleza",
+    "n": 66,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [
+     "Belleza"
+    ],
+    "samples": [
+     "Madagascar Centella Travel Kit",
+     "Sunset Dazzle Gloss Balm - 11 Colors",
+     "Milk One Pack - 7 Types",
+     "Blackhead Melting Softener Special Set",
+     "Pig Clear Black Head 3-Step Kit"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "perfumes",
+    "n": 60,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Fragancia"
+    ],
+    "samples": [
+     "Good Girl Blush Crystal Class Collector Eau de Parfum Spray, 2.7 oz.",
+     "3-Piece Idôle Eau de Parfum Spray and Mini Mascara Set",
+     "3-Piece Idôle Eau de Parfum Spray, Lotion & Mini Mascara Set",
+     "3-Piece Glimmer The Perfect Trio Fragrance Gift Set",
+     "Libre Santal Couture Limited Edition Eau de Parfum, 1.6 oz., First at Macy's!"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "zapatos",
+    "n": 39,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Mocasines y pantuflas",
+     "Zapatos",
+     "Sandalias",
+     "Tacones"
+    ],
+    "samples": [
+     "Women's Leah Platform Leather Lug Sole Loafers",
+     "Women's Oakes Square Toe Ballerina Flats",
+     "Women's Javas Slip-On Penny Loafers",
+     "Women's Marli Penny Slip-On Loafers",
+     "Women's Jayna Slip-On Flats"
+    ]
+   },
+   {
+    "store": "boxlunch",
+    "kind": "joyas",
+    "n": 26,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "The Lord of the Rings Stainless Steel Gold IP The One Ring",
+     "Star Wars A New Hope Stainless Steel Necklace",
+     "Star Wars Darth Vader Chain Link Stainless Steel Bracelet",
+     "DC Comics Superman \"Man of Steel\" Signet Ring",
+     "Star Wars Millennium Falcon Stainless Steel Cuff Bracelet"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "joyas",
+    "n": 26,
+    "from": [
+     "Ropa",
+     "Blusas y tops"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "EFFY® Opal (3/4 ct. t.w.) and Diamond Accent Pendant in 14k Rose Gold",
+     "Lab Grown Diamond Halo Cluster Ring (2 ct. t.w.) in Sterling Silver or 14K Gold-Plated Sterling Silver",
+     "Emerald Cut Cubic Zirconia Center Stone Oxidized Twist Rope Band Statement Ring",
+     "EFFY® Amethyst (10-3/4 ct. t.w.) & Diamond (3/8  ct. t.w.) Halo Ring in 14k Gold (Also available in Citrine, Green Quartz & Black Onyx)",
+     "EFFY® Ruby (1-7/8 ct. t.w.) & Diamond (1/4 ct. t.w.) Halo Statement Ring in 14k White Gold (Also in Sapphire and Emerald)"
+    ]
+   },
+   {
+    "store": "newbalance",
+    "kind": "zapatos",
+    "n": 25,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Zapatos",
+     "Chimpunes"
+    ],
+    "samples": [
+     "Coco CG2",
+     "696v7",
+     "FuelCell 796v5",
+     "Brighton V2",
+     "Kids 440v2"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "accesorios",
+    "n": 24,
+    "from": [
+     "Vestidos",
+     "Ropa",
+     "Camisas"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "Women's & Plus LC Lauren Conrad Reversible Stretch Dress Belt",
+     "Simply Vera Vera Wang Vivian Wallet",
+     "Simply Vera Vera Wang Tab Snap Wallet",
+     "Simply Vera Vera Wang Signature Wallet",
+     "Simply Vera Vera Wang Lin Bar Flap Wallet"
+    ]
+   },
+   {
+    "store": "boxlunch",
+    "kind": "accesorios",
+    "n": 23,
+    "from": [
+     "Pantalón",
+     "Vestidos",
+     "Blusas y tops"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "Loungefly SpongeBob SquarePants Patrick & SpongeBob Checkered Wallet",
+     "Loungefly Disney Frozen Elsa Dress Wallet",
+     "Loungefly Corpse Bride Emily Wedding Dress Wallet - BoxLunch Exclusive",
+     "Game Of Thrones Targaryen Filigree Stainless Steel Cufflinks",
+     "Star Wars Rebel Alliance Crest Stainless Steel Cufflinks"
+    ]
+   },
+   {
+    "store": "bentgo",
+    "kind": "hogar",
+    "n": 20,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "Bentgo Chill Kids Lunch Box (3 Pack)",
+     "Bentgo Kids Lunch Box (2-Pack)",
+     "Bentgo Chill Kids Lunch Box (2-Pack)",
+     "Bentgo Chill Kids Lunch Box & 2 Extra Trays with Lids",
+     "Bentgo Kids Snap & Go Lunch Box, Insulated Lunch Tote, & Ice Packs"
+    ]
+   },
+   {
+    "store": "boxlunch",
+    "kind": "juguetes",
+    "n": 18,
+    "from": [
+     "Pantalón",
+     "Blusas y tops",
+     "Ropa de baño"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Funko Pop! Movies The SpongeBob Movie: Search for SquarePants SpongeBob SquarePants as the Flying Dutchman Glow-in-the-Dark Vinyl Figure",
+     "Funko Pop! Movies The SpongeBob Movie: Search for SquarePants Squidward Tentacles Vinyl Figure",
+     "Funko Pop! Movies The SpongeBob Movie: Search for SquarePants SpongeBob SquarePants Vinyl Figure",
+     "Funko Pop! Movies The SpongeBob Movie: Search for SquarePants Mr. Krabs Vinyl Figure",
+     "Funko Pop! Animation SpongeBob SquarePants Vinyl Figure"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "zapatos",
+    "n": 17,
+    "from": [
+     "Vestidos",
+     "Ropa"
+    ],
+    "to": [
+     "Tacones",
+     "Sandalias"
+    ],
+    "samples": [
+     "Women's Easy Spirit Cara T-Strap Dress Pumps",
+     "Nine West Rowen Women's Slingback Dress Pumps",
+     "LifeStride Tracy Women's Pumps",
+     "Apt. 9® Bling Slingback Women's Pumps",
+     "LC Lauren Conrad Enzya Women's Ankle Strap Dress Pumps"
+    ]
+   },
+   {
+    "store": "boxlunch",
+    "kind": "carteras",
+    "n": 15,
+    "from": [
+     "Pantalones y jeans",
+     "Pantalón",
+     "Vestidos"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Loungefly Disney Brother Bear Embroidered Icons Denim Mini Backpack - BoxLunch Exclusive",
+     "Loungefly Disney Lilo & Stitch Denim Patchwork Mini Backpack — BoxLunch Exclusive",
+     "Loungefly SpongeBob SquarePants Pirate Icons Crossbody Bag",
+     "Loungefly SpongeBob SquarePants Patrick & SpongeBob Checkered Heart Mini Backpack",
+     "Loungefly Care Bears x Sesame Street Denim Quilted Mini Backpack with Coin Purse"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "deportes",
+    "n": 12,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Logo Brand Louisville Cardinals Economy Tent",
+     "Logo Brand Michigan State Spartans Economy Tent",
+     "Logo Brand Georgia Bulldogs Economy Tent",
+     "Logo Brand Texas Longhorns Tent",
+     "Logo Brand Arkansas Razorbacks Economy Tent"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "electronica",
+    "n": 11,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "JBL Tune 530BT Wireless On-Ear Bluetooth Headphones",
+     "iHome POWERPLANT Portable Bluetooth Speaker & Charger with Multiple USB Ports",
+     "iHome LED Portable Bluetooth Candle Speaker",
+     "Visual Land SOUNDWAVE A1 Essential Active Noise Cancelling Earbuds with Tri-Displays, 6-Mics, 50H Total Playtime",
+     "Visual Land SOUNDWAVE A1 v2 Active Noise Cancelling Earbuds with Fast Charge, 6-Mics, 40H Total Playtime"
+    ]
+   },
+   {
+    "store": "tennisexpress",
+    "kind": "sombreros",
+    "n": 11,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Sombreros"
+    ],
+    "samples": [
+     "Unisex Dri-FIT Advance Ace Tennis Visor",
+     "Women's Lucky Logo Stretch Visor",
+     "Women's Lucky Logo Stretch Tennis Visor Brusette",
+     "Women's Stella McCartney Training Visor Black and White",
+     "Unisex Club Court Logo Unstructured Tennis Cap"
+    ]
+   },
+   {
+    "store": "zumiez",
+    "kind": "zapatos",
+    "n": 10,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Sandalias",
+     "Zapatos",
+     "Mocasines y pantuflas",
+     "Botas y botines"
+    ],
+    "samples": [
+     "Champion Men's IPO Rainbow Tie Dye Slide Sandals",
+     "Nike Men's Offcourt Black & White Slide Sandals",
+     "Champion Men's XG Rally Plus White Shoes",
+     "Champion Sleepover Doodle Hoodie Black Slippers",
+     "Champion Men's Rally Pro XG Black & White Shoes"
+    ]
+   },
+   {
+    "store": "ccs",
+    "kind": "accesorios",
+    "n": 9,
+    "from": [
+     "Pantalones y jeans",
+     "Ropa de baño",
+     "Casacas y abrigos"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "By Parra Jean Pierre Le Douche Keychain - Blue",
+     "Happy Hour Bikini Beach Sunglasses - Evan Smith/Space Dust",
+     "Happy Hour Bikini Beach Sunglasses - Leopard/Delfino",
+     "Happy Hour Bikini Beach Sunglasses - Mystic Blues",
+     "Oakley Eye Jacket Redux Sunglasses - Matte Grey Ink Fingerprint/PRIZM Black Lens"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "accesorios",
+    "n": 9,
+    "from": [
+     "Shorts",
+     "Vestidos",
+     "Casacas y abrigos",
+     "Ropa de baño"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "Chums Surfshort Wallet",
+     "Kulani Kinis Mini Mesh Sarong",
+     "Oakley Half Jacket 2.0 XL Polarized Sunglasses",
+     "Roxy Breezy Does IT Tie Side",
+     "Roxy Check ME Out Tie Side"
+    ]
+   },
+   {
+    "store": "carolinaherrera",
+    "kind": "carteras",
+    "n": 8,
+    "from": [
+     "Blusas y tops",
+     "Vestidos"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Mimi Satin Top Handle Bag",
+     "Matryoshka M - Medium Handbag",
+     "Greta Crystal Top Handle Bag",
+     "Mimi Leather Top Handle Bag",
+     "Matryoshka Flora XXS - Mini Handbag"
+    ]
+   },
+   {
+    "store": "bentgo",
+    "kind": "carteras",
+    "n": 5,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Bentgo Classic Lunch Box & Deluxe Bag",
+     "Bentgo Kids Prints Lunch Box & Lunch Bag",
+     "Bentgo Chill Kids Lunch Box & Backpack",
+     "Bentgo Prep Deluxe Bag & 60-Piece Meal Prep Container Set",
+     "Bentgo Kids Prints Lunch Box & Backpack"
+    ]
+   },
+   {
+    "store": "hottopic",
+    "kind": "accesorios",
+    "n": 5,
+    "from": [
+     "Blusas y tops",
+     "Pantalón",
+     "Camisas"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "Black Buckle Lace-Up Corset Belt",
+     "Fuggler SpongeBob SquarePants Character Assorted Blind Keychain",
+     "Coraline Button & Star Fingerless Gloves",
+     "Thorn & Fable Button Hair Clip Set",
+     "Thorn & Fable Autumn Buttons Hair Clip Set"
+    ]
+   },
+   {
+    "store": "valsurf",
+    "kind": "sombreros",
+    "n": 5,
+    "from": [
+     "Blusas y tops",
+     "Casacas y abrigos",
+     "Vestidos"
+    ],
+    "to": [
+     "Sombreros"
+    ],
+    "samples": [
+     "Garden Party Cord Polo Hat - Navy",
+     "Micro Fleece Balaclava , Dusty Pink",
+     "Polar Fleece Balaclava , Heather Pink",
+     "Polar Fleece Balaclava , Olive Oil",
+     "Kids' Recycled Stripe Beanie - Dress Blue/Ballad Blue/Tetra Orange"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "sombreros",
+    "n": 4,
+    "from": [
+     "Ropa de baño",
+     "Blusas y tops",
+     "Shorts"
+    ],
+    "to": [
+     "Sombreros"
+    ],
+    "samples": [
+     "IWS Bikini Club Sanddollar Dad hat",
+     "IWS Slow Down Manatee Dad Hat",
+     "KATIN BERMUDA HAT",
+     "Tank Stream Kiama Bucket Hat"
+    ]
+   },
+   {
+    "store": "hottopic",
+    "kind": "hogar",
+    "n": 3,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "Stranger Things Last Adventure Stainless Steel Travel Cup",
+     "Magic: The Gathering Teenage Mutant Ninja Turtles Blind Box Mini Dice Cup",
+     "Courage The Cowardly Dog Charm Stainless Steel Travel Mug"
+    ]
+   },
+   {
+    "store": "hottopic",
+    "kind": "joyas",
+    "n": 3,
+    "from": [
+     "Chompas y polerones",
+     "Blusas y tops"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "Loungefly Hello Kitty And Friends Hoodie Blind Box Coin Purse Bag Charm",
+     "Ghostees Outdoors Glow-In-The-Dark Blind Bag Enamel Pin Hot Topic Exclusive",
+     "Steel Rose Gold Floral Heart Nose Stud & Hoop 3 Pack"
+    ]
+   },
+   {
+    "store": "hottopic",
+    "kind": "juguetes",
+    "n": 3,
+    "from": [
+     "Pantalón",
+     "Camisas",
+     "Vestidos"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Funko SpongeBob SquarePants Pop! Animation SpongeBob SquarePants Vinyl Figure",
+     "Coraline Button Costume Glasses",
+     "FuRyu Hatsune Miku Trio-Try-iT (Outing Dress Red Color Ver.) Figure"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "carteras",
+    "n": 3,
+    "from": [
+     "Ropa de baño",
+     "Shorts"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Billabong Keenie Bikini Bag",
+     "FCS Day-X Shortboard-Fish Travel Bag",
+     "Pro-Lite Smuggler Shortboard Travel Bag"
+    ]
+   },
+   {
+    "store": "skims",
+    "kind": "accesorios",
+    "n": 3,
+    "from": [
+     "Pantalones y faldas"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "SWIM COVER-UPS SHEER SARONG | SOFT BLUSH",
+     "SWIM COVER-UPS SHEER OPEN FRONT SARONG | CARMINE ZEBRA PRINT",
+     "SWIM COVER-UPS SHEER SARONG | PHOENIX"
+    ]
+   },
+   {
+    "store": "surfstation",
+    "kind": "libros",
+    "n": 3,
+    "from": [
+     "Medias"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "RIDING HIGH NOVEL BY JOHN McLEAN",
+     "Surfer Magazine Gen Z: The Teen Queens",
+     "The Road To Picolata Book"
+    ]
+   },
+   {
+    "store": "hottopic",
+    "kind": "carteras",
+    "n": 2,
+    "from": [
+     "Pantalones y jeans"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Studio Ghibli® Kiki's Delivery Service Jiji & Icons Denim Tote Bag",
+     "Blue Denim Star Buckle Shoulder Bag"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "juguetes",
+    "n": 2,
+    "from": [
+     "Vestidos"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "KC Hawaii Girl in Dancing Pose Green Skirt 7\" Leilani Hula Dashboard Doll",
+     "KC Hawaii Girl w/Ukulele Green Skirt 7\" Leilani Hula Dashboard Doll"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "accesorios",
+    "n": 2,
+    "from": [
+     "Chompas y polerones",
+     "Blusas y tops"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "Women's Charmeuse Shawl",
+     "Women's Lauryn Three-Hand Gold-Tone Stainless Steel Watch, Earrings and Necklace Gift Set 33mm"
+    ]
+   },
+   {
+    "store": "surfstation",
+    "kind": "joyas",
+    "n": 2,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "4Ocean Adopt a Manatee Bracelet - Zelda",
+     "Fahlo The Drift Manatee Tracking Bracelet - Aqua Blue"
+    ]
+   },
+   {
+    "store": "surfstation",
+    "kind": "sombreros",
+    "n": 2,
+    "from": [
+     "Shorts",
+     "Casacas y abrigos"
+    ],
+    "to": [
+     "Sombreros"
+    ],
+    "samples": [
+     "Katin Bermuda Men's Hat - Black",
+     "Patagonia Baby Furry Friends Fleece Youth Hat - Berry Fig"
+    ]
+   },
+   {
+    "store": "yesstyle",
+    "kind": "hogar",
+    "n": 2,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "Wet Wipes 5pcs Bundle Set",
+     "Wet Wipes 10pcs Bundle Set"
+    ]
+   },
+   {
+    "store": "yesstyle",
+    "kind": "perfumes",
+    "n": 2,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [
+     "Fragancia"
+    ],
+    "samples": [
+     "Cleaning Fragrance Shower Gel - 3 Flavors 5pcs Bundle Set",
+     "Cleaning Fragrance Shower Gel - 3 Flavors 10pcs Bundle Set"
+    ]
+   },
+   {
+    "store": "zumiez",
+    "kind": "sombreros",
+    "n": 2,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Sombreros"
+    ],
+    "samples": [
+     "adidas Men's Trefoil Curved Bill White Strapback Hat",
+     "686 Men's Standard Pastel 3 Pack Beanies"
+    ]
+   },
+   {
+    "store": "ccs",
+    "kind": "deportes",
+    "n": 1,
+    "from": [
+     "Shorts"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Shorty's Doh-Dohs Cones Bushings - Red 95a"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "joyas",
+    "n": 1,
+    "from": [
+     "Ropa de baño"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "ROXY RAY OF SUNSHINE RING"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "hogar",
+    "n": 1,
+    "from": [
+     "Casacas y abrigos"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "Waci Plush Kids Hooded Towel"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "joyas",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "LC Lauren Conrad Dahlia Flap Chain Wristlet"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "perfumes",
+    "n": 1,
+    "from": [
+     "Pantalón"
+    ],
+    "to": [
+     "Fragancia"
+    ],
+    "samples": [
+     "Jean Paul Gaultier Mini Gaultier Fragrance Gift Set for Him"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "sombreros",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Sombreros"
+    ],
+    "samples": [
+     "Men's Under Armour Blitzing Stretch-Fit Hat"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "juguetes",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Melissa & Doug Multi-Activity Table"
+    ]
+   },
+   {
+    "store": "lanebryant",
+    "kind": "carteras",
+    "n": 1,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Lingerie Wash Bag"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "dulces",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Chocolate Ombré Diamond Ear Climbers (7/8 ct. t.w.) in 14k Rose Gold"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "juguetes",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "Cozy Plush Printed Throw, 50\" x 70\", Exclusively at Macy’s (A $30.00 Value)"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "electronica",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Hogar"
+    ],
+    "samples": [
+     "Sanders Cable Washcloth, 13\" x 13\""
+    ]
+   },
+   {
+    "store": "mainland",
+    "kind": "accesorios",
+    "n": 1,
+    "from": [
+     "Casacas y abrigos"
+    ],
+    "to": [
+     "Accesorios"
+    ],
+    "samples": [
+     "Oakley Eye Jacket Redux Prizm Black Polarized Sunglasses"
+    ]
+   },
+   {
+    "store": "newbalance",
+    "kind": "carteras",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Track Tote Pack"
+    ]
+   },
+   {
+    "store": "parrot",
+    "kind": "deportes",
+    "n": 1,
+    "from": [
+     "Pantalones y jeans"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Pink Panther 9\" Fin"
+    ]
+   },
+   {
+    "store": "prosoccer",
+    "kind": "zapatos",
+    "n": 1,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [
+     "Chimpunes"
+    ],
+    "samples": [
+     "adidas Predator League Fold-Over Tongue Turf Soccer Shoes - Finishers Steel Pack (SP26)"
+    ]
+   },
+   {
+    "store": "ssense",
+    "kind": "juguetes",
+    "n": 1,
+    "from": [
+     "Chompas y polerones"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Beige Porcelain Doll Print Silk Scarf"
+    ]
+   },
+   {
+    "store": "valsurf",
+    "kind": "deportes",
+    "n": 1,
+    "from": [
+     "Shorts"
+    ],
+    "to": [
+     "Más productos"
+    ],
+    "samples": [
+     "Family Tree Short Stop Snowboard"
+    ]
+   },
+   {
+    "store": "yesstyle",
+    "kind": "carteras",
+    "n": 1,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [
+     "Carteras"
+    ],
+    "samples": [
+     "Plum Peptide Booster 2000s Stick Pouch Set"
+    ]
+   },
+   {
+    "store": "yesstyle",
+    "kind": "joyas",
+    "n": 1,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "Sterling Silver Rhinestone Ear Cuff / Set"
+    ]
+   },
+   {
+    "store": "carolinaherrera",
+    "kind": "joyas",
+    "n": 1,
+    "from": [
+     "Vestidos"
+    ],
+    "to": [
+     "Joyas"
+    ],
+    "samples": [
+     "Carolina Herrera x Olympia Babylonia Cross Chain"
+    ]
+   }
+  ]
+ },
+ "kept": {
+  "total": 205,
+  "byKind": {
+   "deportes": 114,
+   "accesorios": 34,
+   "hogar": 23,
+   "juguetes": 10,
+   "zapatos": 9,
+   "belleza": 5,
+   "joyas": 3,
+   "carteras": 2,
+   "dulces": 1,
+   "sombreros": 1,
+   "repuestos": 1,
+   "electronica": 1,
+   "libros": 1
+  },
+  "groups": [
+   {
+    "store": "islandwatersports",
+    "kind": "deportes",
+    "n": 80,
+    "from": [
+     "Ropa de baño"
+    ],
+    "to": [],
+    "samples": [
+     "Billabong A.I. Diamonds Pro",
+     "BILLABONG A.I. RISING SUN PRO",
+     "BILLABONG ALL DAY STRIPE PRO",
+     "BILLABONG GOOD TIMES LB",
+     "BILLABONG GOOD TIMES LT"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "accesorios",
+    "n": 21,
+    "from": [
+     "Ropa de baño"
+    ],
+    "to": [],
+    "samples": [
+     "Billabong Feelin Peaceful Rev Tie Maya Bottom",
+     "H2OH Easy To Please Tie Bottom",
+     "HURLEY RVSB SOLID CHEEKY TIE SIDE BTM",
+     "Kulnai Kin Crochet Dipped Cheeky Tie Bikin Bottom",
+     "RHYTHM VINTAGE FLORAL TIE SIDE HI CUT"
+    ]
+   },
+   {
+    "store": "valsurf",
+    "kind": "deportes",
+    "n": 19,
+    "from": [
+     "Ropa de baño"
+    ],
+    "to": [],
+    "samples": [
+     "Bobby Quad",
+     "Happy Everyday",
+     "ODYSSEY 17\" EWAIST - Khaki",
+     "OG Del Surf Volley - Black",
+     "OG Logo Ledge Volley, Black"
+    ]
+   },
+   {
+    "store": "killcrew",
+    "kind": "hogar",
+    "n": 9,
+    "from": [
+     "Pantalones y jeans"
+    ],
+    "to": [],
+    "samples": [
+     "PREMIUM HEATER SWEATS - BLACKOUT",
+     "PREMIUM HEATER SWEATS - YELLOW / BLUE",
+     "PREMIUM HEATER SWEATS - YELLOW / BLACK",
+     "PREMIUM HEATER SWEATS - PURPLE / GREEN",
+     "PREMIUM HEATER SWEATS - ORANGE / BLACK"
+    ]
+   },
+   {
+    "store": "xtremesoccer",
+    "kind": "deportes",
+    "n": 5,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "adidas Argentina Home 2006",
+     "adidas Argentina 2026 Home Messi Set",
+     "adidas LAFC 2024 Match Archive",
+     "adidas LAFC 2024 Stadium Archive",
+     "adidas Argentina Anniversary"
+    ]
+   },
+   {
+    "store": "valsurf",
+    "kind": "hogar",
+    "n": 5,
+    "from": [
+     "Blusas y tops",
+     "Medias"
+    ],
+    "to": [],
+    "samples": [
+     "License Plate 1962 - Midnight Navy",
+     "Kids' Wintersport Full Cushion Polar Bear Pattern OTC",
+     "Womens Ski Targeted Cushion - Electric Lotus",
+     "Womens Ski Targeted Cushion Extra Stretch - Charcoal",
+     "Womens Snowboard Targeted Cushion Extra - Purple Eclipse"
+    ]
+   },
+   {
+    "store": "newbalance",
+    "kind": "juguetes",
+    "n": 4,
+    "from": [
+     "Ropa"
+    ],
+    "to": [],
+    "samples": [
+     "NYC Marathon RC Essential Printed Tank",
+     "NYC Marathon RC Essential Tank",
+     "RC Elite Storage Crop Tank",
+     "RC Essential Tank"
+    ]
+   },
+   {
+    "store": "revolve",
+    "kind": "zapatos",
+    "n": 4,
+    "from": [
+     "Vestidos",
+     "Pantalones y jeans"
+    ],
+    "to": [],
+    "samples": [
+     "X REVOLVE Samba Gown",
+     "x REVOLVE Samba Gown",
+     "Low Rise Boot Jean",
+     "Wedgie Boot"
+    ]
+   },
+   {
+    "store": "bornprimitive",
+    "kind": "deportes",
+    "n": 3,
+    "from": [
+     "Pantalones"
+    ],
+    "to": [],
+    "samples": [
+     "Quiver Grid Fleece Full Zip Thermal Bottom (Black)",
+     "Ridgeline Merino Full Zip Bottom 165 (Black)",
+     "Ridgeline Merino Full Zip Bottom 240 (Black)"
+    ]
+   },
+   {
+    "store": "killcrew",
+    "kind": "accesorios",
+    "n": 3,
+    "from": [
+     "Shorts"
+    ],
+    "to": [],
+    "samples": [
+     "RELAXED CUT SHORTS BANDANA FLAME - BLACKOUT",
+     "RELAXED CUT SHORTS BANDANA FLAME - BLACK / WHITE",
+     "RELAXED CUT SHORTS BANDANA FLAME - BLACK / PINK"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "accesorios",
+    "n": 3,
+    "from": [
+     "Pantalones y jeans",
+     "Blusas y tops",
+     "Camisas"
+    ],
+    "to": [],
+    "samples": [
+     "Women's Sonoma Goods For Life Relaxed Tie Waist Mid Rise Wide Leg Jean",
+     "Juniors' Pink Republic Tie Babydoll Top",
+     "Boys 4-20 IZOD Button Up Shirt & Tie Set"
+    ]
+   },
+   {
+    "store": "lanebryant",
+    "kind": "zapatos",
+    "n": 3,
+    "from": [
+     "Pantalones y jeans"
+    ],
+    "to": [],
+    "samples": [
+     "Genius Boot Jean",
+     "360 Flex Signature Fit Trouser Boot Jean",
+     "Genius Pull-On High-Rise Boot Jean"
+    ]
+   },
+   {
+    "store": "revolve",
+    "kind": "juguetes",
+    "n": 3,
+    "from": [
+     "Vestidos"
+    ],
+    "to": [],
+    "samples": [
+     "X Revolve Strapless Puzzle Gown",
+     "X REVOLVE Puzzle Mini Dress",
+     "Puzzle Dress"
+    ]
+   },
+   {
+    "store": "ssense",
+    "kind": "accesorios",
+    "n": 3,
+    "from": [
+     "Camisas",
+     "Pantalones y jeans",
+     "Chompas y polerones"
+    ],
+    "to": [],
+    "samples": [
+     "White Bookish Scarf Poplin Overshirt",
+     "Black Utility Clip Kilt",
+     "Red Hoodie Sleeve Layer Scarf Hood"
+    ]
+   },
+   {
+    "store": "valsurf",
+    "kind": "accesorios",
+    "n": 3,
+    "from": [
+     "Ropa de baño",
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "Glaboe Script Tie Flight Volley - Vibrant",
+     "Simple Shirred Tie Crop - Natural White",
+     "Youth Hot-lapper Fleece - Mojave Tie-Dye"
+    ]
+   },
+   {
+    "store": "fleo",
+    "kind": "belleza",
+    "n": 2,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "Foundation Full Long Sleeve",
+     "Foundation Crop Long Sleeve"
+    ]
+   },
+   {
+    "store": "ironrebel",
+    "kind": "deportes",
+    "n": 2,
+    "from": [
+     "Camisas"
+    ],
+    "to": [],
+    "samples": [
+     "Barbell Club (White) Premium Fitted Gym T-shirt",
+     "Barbell Club (Black) Premium Fitted Gym T-shirt"
+    ]
+   },
+   {
+    "store": "hottopic",
+    "kind": "juguetes",
+    "n": 2,
+    "from": [
+     "Chompas y polerones",
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "Shintaro Kago Girl Puzzle Portrait Hoodie",
+     "Pokémon Ready For Battle Collage T-Shirt"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "hogar",
+    "n": 2,
+    "from": [
+     "Ropa de baño"
+    ],
+    "to": [],
+    "samples": [
+     "Rip Curl Follow The Sun High Skimpy Pan",
+     "Rip Curl Premium Surf E Cup"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "deportes",
+    "n": 2,
+    "from": [
+     "Ropa"
+    ],
+    "to": [],
+    "samples": [
+     "Rod Desyne 24 in Lockseam Curtain Rod Extension",
+     "Rod Desyne Rod Connector"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "belleza",
+    "n": 2,
+    "from": [
+     "Ropa",
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "3-Piece Color Crew Summer Lovin Gift Set",
+     "Beauty Bus Stop Mini Cheek Palette Bronzer, Blush & Highlighter Gift Set"
+    ]
+   },
+   {
+    "store": "ssense",
+    "kind": "hogar",
+    "n": 2,
+    "from": [
+     "Chompas y polerones"
+    ],
+    "to": [],
+    "samples": [
+     "Black Rugs Arrow Skate Hoodie",
+     "Yellow Rugs Arrow Skate Hoodie"
+    ]
+   },
+   {
+    "store": "surfstation",
+    "kind": "hogar",
+    "n": 2,
+    "from": [
+     "Shorts"
+    ],
+    "to": [],
+    "samples": [
+     "Cor Surf Moved By Bike Shortboard Bike Rack",
+     "Moved By Bike E-Bikie Shortboard Bike Rack"
+    ]
+   },
+   {
+    "store": "surfstation",
+    "kind": "deportes",
+    "n": 2,
+    "from": [
+     "Ropa de baño"
+    ],
+    "to": [],
+    "samples": [
+     "Outerknown All Time Stretch Volley Men's Boardhsorts - Cola",
+     "Drifter Surf Fiji Women's Swimshorts - Morocco"
+    ]
+   },
+   {
+    "store": "snipes",
+    "kind": "joyas",
+    "n": 2,
+    "from": [
+     "Pantalones y jeans"
+    ],
+    "to": [],
+    "samples": [
+     "Kids' Distressed Stud Leg Denim Jean",
+     "Kids' Sanity Stud Python Slim Fit Denim"
+    ]
+   },
+   {
+    "store": "ccs",
+    "kind": "hogar",
+    "n": 1,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "Former Fork In The Road T-Shirt - Washed Bark"
+    ]
+   },
+   {
+    "store": "dicks",
+    "kind": "deportes",
+    "n": 1,
+    "from": [
+     "Ropa deportiva"
+    ],
+    "to": [],
+    "samples": [
+     "Hurley Men's Portland Stripe Stretch Long Sleeve Flannel"
+    ]
+   },
+   {
+    "store": "buffbunny",
+    "kind": "belleza",
+    "n": 1,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "Crystal Crop V2 - Lipstick Red"
+    ]
+   },
+   {
+    "store": "paragonfitwear",
+    "kind": "dulces",
+    "n": 1,
+    "from": [
+     "Shorts"
+    ],
+    "to": [],
+    "samples": [
+     "RecStretch Original High-Rise Sculptseam® Plus Short 5” Candy"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "joyas",
+    "n": 1,
+    "from": [
+     "Ropa de baño"
+    ],
+    "to": [],
+    "samples": [
+     "Kulani Kini Ring Side Full Coverage Bottom"
+    ]
+   },
+   {
+    "store": "islandwatersports",
+    "kind": "sombreros",
+    "n": 1,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "Tank Stream Design Baby Boys Bucket Hat-Lochiel"
+    ]
+   },
+   {
+    "store": "kohls",
+    "kind": "hogar",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [],
+    "samples": [
+     "Men's Hurley French Terry Overshirt"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "carteras",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [],
+    "samples": [
+     "Mini Denim Cargo Tote 20"
+    ]
+   },
+   {
+    "store": "macys",
+    "kind": "repuestos",
+    "n": 1,
+    "from": [
+     "Ropa"
+    ],
+    "to": [],
+    "samples": [
+     "4-Piece Eyes On Me Mascara & Liner Clutch Set"
+    ]
+   },
+   {
+    "store": "nautilus",
+    "kind": "zapatos",
+    "n": 1,
+    "from": [
+     "Shorts"
+    ],
+    "to": [],
+    "samples": [
+     "Beuchat SHORT BOOTS SIROCCO OPEN 3 MM"
+    ]
+   },
+   {
+    "store": "quietstorm",
+    "kind": "zapatos",
+    "n": 1,
+    "from": [
+     "Casacas y abrigos"
+    ],
+    "to": [],
+    "samples": [
+     "Western Boots Crew Fleece"
+    ]
+   },
+   {
+    "store": "skims",
+    "kind": "accesorios",
+    "n": 1,
+    "from": [
+     "Lencería"
+    ],
+    "to": [],
+    "samples": [
+     "SKIMS LACE TIE SIDE TANGA | SNOW"
+    ]
+   },
+   {
+    "store": "skims",
+    "kind": "carteras",
+    "n": 1,
+    "from": [
+     "Conjuntos"
+    ],
+    "to": [],
+    "samples": [
+     "WOVEN SHINE LONG SLEEP SET | BARELY PINK SNACK BAG"
+    ]
+   },
+   {
+    "store": "ssense",
+    "kind": "juguetes",
+    "n": 1,
+    "from": [
+     "Pantalones y jeans"
+    ],
+    "to": [],
+    "samples": [
+     "Khaki & Navy Puzzle-Patched Wide Trousers"
+    ]
+   },
+   {
+    "store": "surfstation",
+    "kind": "electronica",
+    "n": 1,
+    "from": [
+     "Medias"
+    ],
+    "to": [],
+    "samples": [
+     "The Dredge Surf DVD"
+    ]
+   },
+   {
+    "store": "valsurf",
+    "kind": "libros",
+    "n": 1,
+    "from": [
+     "Blusas y tops"
+    ],
+    "to": [],
+    "samples": [
+     "Comic Book Crew - Heather Grey"
+    ]
+   },
+   {
+    "store": "venum",
+    "kind": "hogar",
+    "n": 1,
+    "from": [
+     "Camisas"
+    ],
+    "to": [],
+    "samples": [
+     "Venum x TEKKEN 8 - T-Shirt Poster - Black/White"
+    ]
+   }
+  ]
+ }
+}

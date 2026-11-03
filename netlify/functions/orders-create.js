@@ -53,6 +53,7 @@ import {
 } from "./_checkout-model.js";
 import { offSaleLines, offSaleOrderError } from "../../scripts/lib/off-sale.js";
 import { sizesPendingLines, sizesPendingOrderError } from "../../scripts/lib/sizes-pending.js";
+import { vuelveProntoLines, vuelveProntoOrderError } from "../../scripts/lib/vuelve-pronto.js";
 import { shadeMissingLines, shadeOrderError } from "../../scripts/lib/shade-gate.js";
 import { capState as perfumeCapState, capOrderError as perfumeCapOrderError } from "../../scripts/lib/fragrance.js";
 
@@ -177,6 +178,16 @@ async function createOrderHandler(event) {
     return { statusCode: 400, headers, body: JSON.stringify({
       error: offSaleOrderError(offSale[0].title || offSale[0].name),
       offSale: offSale.map((it) => String(it.title || it.name || "")),
+    }) };
+  }
+
+  /* VUELVE PRONTO (scripts/lib/vuelve-pronto.js): the store has it sold
+     out; it is shown, never sold, until it is back. */
+  const soldOut = vuelveProntoLines(sentItems);
+  if (soldOut.length) {
+    return { statusCode: 400, headers, body: JSON.stringify({
+      error: vuelveProntoOrderError(soldOut[0].title || soldOut[0].name),
+      vuelvePronto: soldOut.map((it) => String(it.title || it.name || "")),
     }) };
   }
 

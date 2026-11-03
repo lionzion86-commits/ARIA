@@ -94,8 +94,10 @@ export const CATALOG_FILES = [
   /* Best Buy (2026-10-19, #413): the third electronics leg beside
      Walmart and Target. */
   "bestbuy-catalog.json",
-  /* DSW (#443): the committed empty envelope until the pull lands. */
+  /* DSW (#443): stocked 2026-11-02 from the 2026-11-01 store sweep. */
   "dsw-catalog.json",
+  /* Tennis Warehouse (#443 c.6578887587): stocked from the 2026-11-01 store sweep. */
+  "tenniswarehouse-catalog.json",
   /* SNIPES + Carolina Herrera (#443, pulled 2026-10-27). */
   "snipes-catalog.json",
   /* Calzedonia + Intimissimi (#443 c.6512405832, pulled 2026-10-29). */

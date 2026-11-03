@@ -210,7 +210,8 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
-  /* DSW (Issue #443, 2026-10-21) — BUILT, NOT LAUNCHED. Designer Shoe
+  /* DSW (Issue #443, 2026-10-21; LAUNCHED 2026-11-02 from the 2026-11-01
+     store-sweep delivery, 171 products). Designer Shoe
      Warehouse: the store, its storefront, its home rail and its Tiendas
      tile are wired, and every one of them stays invisible while
      `pendingCatalog` is true — activeRetailers() leaves the row out, so
@@ -238,7 +239,6 @@ export const RETAILERS = {
     kind: "general",
     search: false,
     browse: true,
-    pendingCatalog: true,
   },
   /* ARIA PERFUMES (#443 item 32) -- the Perfumes department's own stock,
      from the audited FragranceX feed (scripts/build-perfumes-catalog.mjs).

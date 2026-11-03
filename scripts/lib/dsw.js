@@ -657,10 +657,26 @@ const BAG_RX = /\b(handbags?|bags?|purses?|totes?|crossbody|backpacks?|wallets?|
  * Zapatos and the gendered aisles with no new taxonomy; a shoe with no
  * gender signal files under `footwear` (the Crocs precedent).
  */
+/* WHAT THE PRODUCT IS, before whose it is (#443: category comes from the
+   real product type, never from the listing it was found in). DSW's
+   listings also carry socks, tights, liners, belts, caps, shoe care and
+   stuffed animals: those are not shoes, so they never file under a shoe
+   aisle, whatever the listing's gender. */
+const PLUSH_RX = /\b(stuffed\s+animals?|plush(ies)?|peluche)\b/i;
+const NOT_SHOE_RX = /\b(socks?|tights|liners?|belts?|caps?|hats?|beanies?|gloves?|scarf|scarves|cleaner|cleaning|shoe\s+care|laces?|insoles?)\b/i;
+export function notShoeBucket(name) {
+  const n = String(name || "");
+  if (PLUSH_RX.test(n)) return "peluches";
+  if (NOT_SHOE_RX.test(n)) return "accesorios";
+  return null;
+}
+
 export function bucketOf(raw, quota, crumbs = breadcrumbOf(raw)) {
   const hay = [crumbs.join(" "), raw.name || raw.title || "", raw.gender || ""].join(" ");
   if (quota && quota.bucket) return quota.bucket;
   if (BAG_RX.test(crumbs.join(" ")) || (BAG_RX.test(raw.name || raw.title || "") && !/\bshoes?\b/i.test(hay))) return "purses";
+  const notShoe = notShoeBucket(raw.name || raw.title || "");
+  if (notShoe) return notShoe;
   if (/\b(kids?|girls?|boys?|toddlers?|baby|little kid|big kid|youth)\b/i.test(hay)) return "kids";
   if (/\b(women'?s?|womens|ladies)\b/i.test(hay)) return "women";
   if (/\b(men'?s?|mens)\b/i.test(hay)) return "men";
@@ -804,7 +820,69 @@ export const BUCKET_LABELS = {
   kids: "Zapatos de niños",
   footwear: "Más zapatos",
   purses: "Carteras y bolsos",
+  accesorios: "Medias y accesorios",
+  peluches: "Peluches",
 };
+
+/**
+ * AN INGESTED CATALOGUE IN, RE-FILED (the 2026-11-01 delivery,
+ * data/store-sweep-2026-11-01/dsw-catalog.json on its data branch). The
+ * delivery is this module's own ingest output, written before the
+ * product-type rule above; the raw rows are not in the repo. Each item
+ * keeps its delivered bucket unless what it IS says otherwise (a belt in
+ * the women's listing is not a women's shoe). Descriptions: Spanish from
+ * the description memory (scripts/lib/description-es.js) when it holds
+ * one, otherwise none shown -- the English stays as description_en.
+ * What needs a size and has none is `sizesPending` (shown, not sold).
+ * Nothing else is changed: prices, photos, sizes (none in this source)
+ * and weights are the delivery's; an item with no photo or price is
+ * not a card and is left out.
+ */
+/** Does the shopper have to pick a size? Shoes and anything worn do;
+    bags, plush and shoe care do not. */
+export function needsSize(bucket, name) {
+  if (bucket === "purses" || bucket === "peluches") return false;
+  if (/\b(cleaner|cleaning|shoe\s+care)\b/i.test(String(name || ""))) return false;
+  return true;
+}
+
+export function refileCatalog(delivered, { spanishFor = () => null, generatedAt } = {}) {
+  const src = delivered && delivered.retailers && delivered.retailers[DSW_KEY];
+  if (!src || !src.departments) throw new Error("not a DSW catalogue envelope (retailers.dsw.departments)");
+  const departments = {};
+  const moved = [];
+  for (const [bucket, d] of Object.entries(src.departments)) {
+    for (const it0 of (d && d.items) || []) {
+      const it = { ...it0 };
+      if (!it.image || !(it.price > 0)) continue;
+      const to = (bucket === "purses" ? null : notShoeBucket(it.name)) || bucket;
+      if (to !== bucket) moved.push({ name: it.name, from: bucket, to });
+      const en = String(it.description_en || it.description || "").trim();
+      if (en) {
+        const es = spanishFor(en);
+        it.description = es || "";
+        it.description_en = en;
+        if (!es) delete it.descriptionSource;
+      }
+      /* SHOWN, NOT SOLD (scripts/lib/sizes-pending.js): this source has
+         no size runs, so a shoe or anything worn is browsable but not
+         buyable until a size pass lands -- a size is never guessed. */
+      if (!(Array.isArray(it.availableSizes) && it.availableSizes.length) && needsSize(to, it.name)) it.sizesPending = true;
+      else delete it.sizesPending;
+      (departments[to] = departments[to] || { label: BUCKET_LABELS[to] || to, items: [] }).items.push(it);
+    }
+  }
+  const count = Object.values(departments).reduce((n, d) => n + d.items.length, 0);
+  return {
+    catalog: {
+      generatedAt: generatedAt || delivered.generatedAt || new Date().toISOString(),
+      source: delivered.source || "dsw.com (Apify pull) -- ingested by scripts/build-dsw-catalog.mjs",
+      declaredProductCount: count,
+      retailers: { [DSW_KEY]: { label: DSW_LABEL, departments } },
+    },
+    moved,
+  };
+}
 
 /**
  * The whole pull in, the catalogue envelope out, plus the report.

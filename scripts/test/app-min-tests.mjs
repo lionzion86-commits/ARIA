@@ -10,7 +10,8 @@
      node scripts/test/app-min-tests.mjs
    ================================================================== */
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { minify, bundleName, MIN_DIR } from "../build-app-min.mjs";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -29,6 +30,25 @@ await check("the minified copy of the bundle index.html loads exists and is curr
   assert.ok(existsSync(minPath), `${MIN_DIR}/${name} is missing — run: node scripts/build-app-min.mjs`);
   const fresh = await minify(source);
   assert.ok(readFileSync(minPath, "utf8") === fresh, `${MIN_DIR}/${name} is stale — run: node scripts/build-app-min.mjs`);
+});
+
+/* ONE BUNDLE, NAMED FOR ITS CONTENT (2026-11-03). A merge kept a second
+   bundle beside the one index.html loads and folded its edits into the
+   loaded file without renaming it: the source said one thing, its
+   minified copy (what phones run) another, and a stray file sat in
+   build/ looking live. The name is the content's sha256, and it is the
+   only bundle there is. */
+await check("the bundle's name is its content: app-<first 16 hex of its sha256>.js", () => {
+  const hash = createHash("sha256").update(readFileSync(ROOT + "build/" + name)).digest("hex").slice(0, 16);
+  assert.equal(name, `app-${hash}.js`, `build/${name} was edited without the rehash -- rename it to app-${hash}.js and point index.html at it`);
+});
+
+await check("no stray bundle: build/ and build/min/ hold only the app-<hash>.js index.html loads", () => {
+  const stray = [
+    ...readdirSync(ROOT + "build").filter((f) => /^app-.*\.js$/.test(f) && f !== name).map((f) => "build/" + f),
+    ...(existsSync(ROOT + MIN_DIR) ? readdirSync(ROOT + MIN_DIR).filter((f) => /^app-.*\.js$/.test(f) && f !== name).map((f) => MIN_DIR + "/" + f) : []),
+  ];
+  assert.deepEqual(stray, [], `index.html loads build/${name}; delete the others`);
 });
 
 await check("every top-level function keeps its name (inline handlers call them)", () => {
