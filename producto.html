@@ -165,6 +165,7 @@ footer a{color:#fff}
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/shade-gate.js"></script>
 <script src="/vuelve-pronto.js"></script>
 <script src="/condition.js"></script>
@@ -1381,7 +1382,10 @@ function relCardHTML(it){
     +   '<span class="rel-store">' + esc(STORE_LABELS[it.retailer] || it.retailer) + '</span>'
     +   '<span class="rel-title">' + esc(it.name) + '</span>'
     +   '<span class="rel-pricebox"><span class="rel-price">' + esc(price) + '</span>' + (was ? '<span class="rel-was">' + esc(was) + '</span>' : '')
-    +     (FX_RATE ? '<span class="rel-usd">' + esc(fmtUsd(usd)) + '</span>' : '') + '</span>'
+    +     (FX_RATE ? '<span class="rel-usd">' + esc(fmtUsd(usd)) + '</span>' : '')
+    /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+       the arithmetic checkout charges; nothing under $200 of goods. */
+    +     (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: it.price, retailer: it.retailer, title: it.name }, { tag: 'span' }) : '') + '</span>'
     +   '<span class="rel-off">' + (it.salePct ? '-' + it.salePct + '%' : '') + '</span>'
     + '</div></a>';
 }

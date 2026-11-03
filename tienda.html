@@ -7,6 +7,7 @@
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/off-sale.js"></script>
 <meta name="description" content="Compra en tiendas de Estados Unidos con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
@@ -951,7 +952,10 @@ function fmtPen(n){
 function slPriceHTML(p){
   var f = finalUsd(p.price, storeKey);
   var wasF = p.was && p.was > p.price ? finalUsd(p.was, storeKey) : 0;
-  return '<div class="card-prices" data-usd="' + esc(f) + '" data-was="' + esc(wasF || '') + '">' + slPriceInner(f, wasF) + '</div>';
+  return '<div class="card-prices" data-usd="' + esc(f) + '" data-was="' + esc(wasF || '') + '">' + slPriceInner(f, wasF) + '</div>'
+    /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+       the arithmetic checkout charges; nothing under $200 of goods. */
+    + (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: p.price, retailer: storeKey, title: p.name }) : '');
 }
 function slPriceInner(f, wasF){
   if (!isFinite(f)) return '<div class="pen">Precio no disponible</div><div class="usd">&nbsp;</div>';

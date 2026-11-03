@@ -166,6 +166,7 @@ h1.page-title{margin:0 0 6px;font-size:clamp(26px,5vw,34px);font-weight:800;lett
 .site-footer a{color:var(--blue);text-decoration:none}
 </style>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -760,6 +761,10 @@ function cardHTML(c){
       '<div class="card-brand">' + (c.brand ? esc(c.brand) : '&nbsp;') + '</div>' +
       '<h3 class="card-title">' + esc(shownTitle(title)) + '</h3>' +
       '<div class="card-prices">' + priceHTML(c) + '</div>' +
+      /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+         the arithmetic checkout charges, on the price the card shows;
+         nothing under $200 of goods. */
+      (window.AriaImportTax ? AriaImportTax.lineHTML({ usd: c.usd, retailer: c.store, title: title }) : '') +
     '</div></a>';
 }
 function storeName(key){
