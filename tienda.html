@@ -63,10 +63,7 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
   font-weight:700;padding:8px 14px;border-radius:999px;cursor:pointer}
 .chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .count-line{font-size:13.5px;color:#4b5563;margin:0 0 14px}
-/* ---- grid & cards ---- */
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:16px}}
-@media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
+/* ---- cards ---- */
 .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
   display:flex;flex-direction:column;position:relative;text-decoration:none;color:inherit}
 .card-img{position:relative;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
@@ -102,9 +99,8 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .btn{display:inline-block;background:var(--blue);color:#fff;border:0;cursor:pointer;
   font-size:15px;font-weight:800;padding:12px 26px;border-radius:12px;text-decoration:none}
 .btn:hover{background:var(--blue-dark)}
-.skel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:640px){.skel-grid{grid-template-columns:repeat(3,1fr);gap:16px}}
-@media(min-width:1024px){.skel-grid{grid-template-columns:repeat(4,1fr)}}
+.skel-rail{display:flex;gap:12px;overflow:hidden}
+.skel-rail .skel{flex:0 0 clamp(232px,68vw,300px)}
 .skel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .skel .ph{aspect-ratio:1/1;background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);
   background-size:200% 100%;animation:sh 1.4s infinite}
@@ -130,16 +126,16 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
 .rail .card{flex:0 0 164px;scroll-snap-align:start;min-width:0}
 @media(min-width:640px){.rail .card{flex-basis:196px}}
-/* ---- rail expand overlay (2026-10-07): full-screen "Ver todo" ---- */
-.rail-expand{position:fixed;inset:0;z-index:90;background:var(--paper);display:flex;flex-direction:column}
-.rail-expand[hidden]{display:none}
-.re-head{flex-shrink:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px}
-.re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:var(--sky);display:grid;place-items:center;cursor:pointer}
-.re-title{font-size:17px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.re-count{font-size:12px;font-weight:600;color:#6b7280}
-.re-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;align-content:start}
-@media(min-width:640px){.re-grid{grid-template-columns:repeat(3,1fr);max-width:1100px;margin:0 auto;width:100%}}
-@media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,1fr)}}
+/* ---- the end of a carousel (#443, Danny: "never a side-by-side grid") ----
+   «Ver más» / «Ver todo» is the carousel's last card: it opens the set as
+   carousels by product type, or brings the next cards into the carousel. */
+.rail .rail-next{flex:0 0 164px;align-self:stretch;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
+  border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--navy);font:800 15px/1.2 inherit;font-family:inherit;cursor:pointer;padding:12px}
+.rail .rail-next span{font-size:12px;font-weight:600;color:#6b7280}
+.rail .rail-next[disabled]{opacity:.6}
+.sl-scope{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:14px}
+.sl-scope .sl-back{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 13px;font:inherit;font-weight:800;color:var(--blue);cursor:pointer;flex:0 0 auto}
+.sl-scope .sl-here{font-weight:800;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---- SLICED STOREFRONT (2026-10-19, #413 + #409) ----
    A store launched in the thin format (STORES[k].slices) never downloads
@@ -154,7 +150,6 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
    slivers -- the customer's "million lines" -- and, all being on screen,
    fetched all 48 photos at once. Rows take their content's height, and a
    card's photo box never shrinks. */
-.re-grid.sl{grid-auto-rows:max-content}
 .sl .card-img{flex-shrink:0}
 .sl .card-img{aspect-ratio:1/1;background:#F3F5F9}
 @supports not (aspect-ratio:1/1){ .sl .card-img{height:0;padding-top:100%} }
@@ -181,9 +176,11 @@ body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sa
 .deals-hero{background:var(--store);border-radius:22px;padding:18px 16px 16px;margin:0 0 26px;color:#fff}
 .deals-hero h2{font-size:30px;line-height:1.05;font-weight:900;letter-spacing:-.02em;margin:0}
 .deals-hero p{font-size:13.5px;font-weight:600;opacity:.88;margin:6px 0 14px}
-.deals-hero .dh-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media(min-width:640px){.deals-hero .dh-grid{grid-template-columns:repeat(4,1fr)}.deals-hero h2{font-size:36px}}
-.deals-hero .dh-item{position:relative;display:block;background:#fff;border-radius:14px;aspect-ratio:1/1;overflow:hidden}
+.deals-hero .dh-strip{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.deals-hero .dh-strip::-webkit-scrollbar{display:none}
+@media(min-width:640px){.deals-hero h2{font-size:36px}}
+.deals-hero .dh-item{position:relative;display:block;flex:0 0 44%;scroll-snap-align:start;background:#fff;border-radius:14px;aspect-ratio:1/1;overflow:hidden}
+@media(min-width:640px){.deals-hero .dh-item{flex-basis:23%}}
 .deals-hero .dh-item img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:8px}
 .deals-hero .dh-badge{position:absolute;top:8px;left:8px;z-index:1;background:var(--tag,#FFC72C);color:#111;font-weight:900;font-size:15px;border-radius:8px;padding:3px 7px}
 .deals-hero .dh-go{display:block;width:100%;margin-top:14px;background:#fff;color:var(--store);border:none;border-radius:999px;padding:13px 16px;font-weight:800;font-size:15px;cursor:pointer}
@@ -354,13 +351,7 @@ html{scroll-padding-top:76px}
     <div id="salesTop" data-pat="sales" hidden></div>
     <p class="count-line" id="countLine"></p>
     <div id="content" data-pat="rails">
-      <div class="skel-grid" aria-hidden="true">
-        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
-        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel-rail" aria-hidden="true">
         <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
         <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
       </div>
@@ -849,15 +840,6 @@ function buildFacets(){
   if (!facetGenders.length && !facetCats.length) facetMode = false;
 }
 
-/* ---------- the Ver todo overlay ---------- */
-function closeRailExpand(){
-  try {
-    var ov = $('railExpand');
-    if (ov) ov.hidden = true;
-    document.body.style.overflow = '';
-  } catch (e) {}
-}
-if (typeof window !== 'undefined'){ window.closeRailExpand = closeRailExpand; }
 function renderError(msg, allowRetry){
   var host = $('content');
   if (!host) return;
@@ -1091,11 +1073,11 @@ function slRailHTML(r, keep){
   /* A rail past the first screen's (build-store-slices.mjs EAGER_RAILS):
      its cards are its page 1, fetched when it scrolls near. */
   if (r.lazy && !r.head.length) cards = SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD;
-  var door = r.total > r.head.length || r.subs
-    ? '<button type="button" class="rail-ver" data-rail="' + esc(r.key) + '">Ver todo &#8594;</button>' : '';
+  var big = r.total > r.head.length || r.subs;
+  var door = big ? '<button type="button" class="rail-ver" data-rail="' + esc(r.key) + '">Ver todo &#8594;</button>' : '';
   return '<section class="rail-sec"' + (r.lazy && !r.head.length ? ' data-lazy-rail="' + esc(r.key) + '"' : '') + ' aria-label="' + esc(r.title) + '"><div class="rail-head"><h2 class="rail-title">' + esc(r.title) + '</h2>' +
     '<span class="rail-count">' + Number(r.total).toLocaleString('es-PE') + '</span>' + door + '</div>' +
-    '<div class="rail">' + cards + '</div></section>';
+    '<div class="rail">' + cards + (big ? slNextCard(r.key, r.total) : '') + '</div></section>';
 }
 function slCountLine(){
   var cnt = $('countLine');
@@ -1119,7 +1101,7 @@ function slHeroHTML(h){
   return '<section class="deals-hero" aria-label="Ofertas de ' + esc(storeMeta.label) + '">' +
     '<h2>Hasta ' + Number(h.pct) + '% de descuento</h2>' +
     '<p>Ofertas reales de ' + esc(storeMeta.label) + ', con su precio anterior.</p>' +
-    '<div class="dh-grid">' + cells + '</div>' +
+    '<div class="dh-strip">' + cells + '</div>' +
     '<button type="button" class="dh-go" data-rail="ofertas">Ver todas las ofertas &#8594;</button></section>';
 }
 /* The sales lead the store only on its home view: a search, a pill or a
@@ -1135,7 +1117,7 @@ function slWatchSalesTop(){
 function slRenderHome(){
   var host = $('content');
   if (!host || !slIndex) return;
-  slGrid.key = '';
+  slView.key = '';
   var s = $('sort');
   if (s) s.style.display = 'none';
   /* THE SECTION PATTERN (Danny, Oct 30): the sales hero and the Ofertas
@@ -1167,6 +1149,9 @@ function slRenderHome(){
   watchPhotos(host);
   slWatchLazyRails(host);
 }
+function slNextCard(key, total){
+  return '<button type="button" class="rail-next rail-ver" data-rail="' + esc(key) + '">Ver todo<span>' + Number(total).toLocaleString('es-PE') + ' productos</span></button>';
+}
 function slBindVer(host){
   var btns = host.querySelectorAll('.rail-ver');
   for (var k = 0; k < btns.length; k++){
@@ -1186,7 +1171,7 @@ function slFillLazyRail(sec){
     var rail = sec.querySelector('.rail');
     var cards = '';
     for (var i = 0; i < r.head.length; i++){ try { cards += slCardHTML(r.head[i]); } catch (e) {} }
-    if (rail) rail.innerHTML = cards;
+    if (rail) rail.innerHTML = cards + (r.total > r.head.length || r.subs ? slNextCard(r.key, r.total) : '');
     sec.removeAttribute('data-lazy-rail');
     watchPhotos(sec);
   }).catch(function(){ r.filling = false; });
@@ -1240,7 +1225,6 @@ function slChips(){
   var btns = host.querySelectorAll('.chip');
   for (var k = 0; k < btns.length; k++){
     btns[k].addEventListener('click', function(){
-      slFilter.flat = false;
       if (this.hasAttribute('data-all')) slFilter = { d: '', g: '', c: '' };
       else if (this.hasAttribute('data-d')) slFilter.d = this.getAttribute('data-d');
       /* tapping an active pill clears it */
@@ -1251,93 +1235,20 @@ function slChips(){
     });
   }
 }
-/* Ver todo / a Best Buy department chip: the rail's pages, 48 cards at a
-   time, in the full-screen overlay. */
-var slOverlay = { key: '', page: 0, pages: 0, busy: false };
+/* A rail's pages (the lazy rails' first cards; a carousel growing in place). */
 function slFetchPage(key, n){
   if (slIndex && slIndex.railPages === 'static')
     return fetchJson(BASE + sliceDir() + 'rails/' + encodeURIComponent(key) + '-' + n + '.json');
   return fetchJson(TIENDA_FN + '?store=' + encodeURIComponent(storeKey) + '&rail=' + encodeURIComponent(key) + '&page=' + n);
 }
-/* "Ver todo" on a multi-family rail (Zapatos, Ropa, Hogar...) opens
-   its labelled sub-carousels, never one undifferentiated grid; under
-   them, the whole rail as one grid, so nothing is out of reach. A
-   sub-carousel's own "Ver todo" opens its grid, and the back arrow
-   returns to the carousels. */
-function slOpenSubs(r, ov, grid){
-  slOverlay = { key: r.key, page: 0, pages: 0, busy: false, subs: true };
-  $('reTitle').textContent = r.title;
-  $('reCount').textContent = Number(r.total).toLocaleString('es-PE') + (r.total === 1 ? ' producto' : ' productos');
-  grid.classList.add('sl');
-  grid.innerHTML = '<div class="sub-wrap">' + slSubsHTML(r.subs) +
-    '<div class="sl-more"><button class="btn" type="button" id="slAllBtn">Ver los ' + Number(r.total).toLocaleString('es-PE') + ' juntos</button></div></div>';
-  $('slAllBtn').addEventListener('click', function(){ slOpenRail(r.key, true, r.key); });
-  ov.hidden = false;
-  document.body.style.overflow = 'hidden';
-  grid.scrollTop = 0;
-  slBindVer(grid);
-  watchPhotos(grid);
-  slWatchLazyRails(grid);
-}
-function slOpenRail(key, flat, parent){
-  var r = slRailsByKey[key];
-  var ov = $('railExpand'), grid = $('reGrid');
-  if (!r || !ov || !grid) return;
-  if (r.subs && !flat){ slOpenSubs(r, ov, grid); return; }
-  slOverlay = { key: key, page: 0, pages: r.pages || 1, busy: false, parent: parent || r.parent || '' };
-  $('reTitle').textContent = r.title;
-  $('reCount').textContent = Number(r.total).toLocaleString('es-PE') + (r.total === 1 ? ' producto' : ' productos');
-  var sk = '';
-  for (var i = 0; i < 8; i++) sk += SL_SKEL_CARD;
-  grid.classList.add('sl');
-  grid.innerHTML = sk;
-  ov.hidden = false;
-  document.body.style.overflow = 'hidden';
-  grid.scrollTop = 0;
-  slMore(true);
-}
-/* Back from a sub-carousel's grid goes to the carousels it came from;
-   from anywhere else it closes the overlay. */
-function slBack(){
-  var p = slOverlay && slOverlay.parent, r = p && slRailsByKey[p];
-  if (r && r.subs){ slOpenRail(p); return; }
-  closeRailExpand();
-}
-function slMore(first){
-  if (slOverlay.busy || slOverlay.page >= slOverlay.pages) return;
-  slOverlay.busy = true;
-  var key = slOverlay.key, grid = $('reGrid');
-  var btn = $('slMoreBtn');
-  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
-  slFetchPage(key, slOverlay.page + 1).then(function(j){
-    if (key !== slOverlay.key) return;
-    slOverlay.busy = false;
-    slOverlay.page = j.page || slOverlay.page + 1;
-    if (j.pages) slOverlay.pages = j.pages;
-    var html = '';
-    for (var i = 0; i < (j.items || []).length; i++){ try { html += slCardHTML(j.items[i]); } catch (e) {} }
-    var old = $('slMoreWrap');
-    if (old) old.remove();
-    if (first) grid.innerHTML = html; else grid.insertAdjacentHTML('beforeend', html);
-    if (slOverlay.page < slOverlay.pages){
-      grid.insertAdjacentHTML('beforeend', '<div class="sl-more" id="slMoreWrap" style="grid-column:1/-1"><button class="btn" id="slMoreBtn" type="button">Mostrar más</button></div>');
-      $('slMoreBtn').addEventListener('click', function(){ slMore(false); });
-    }
-    watchPhotos(grid);
-  }, function(){
-    slOverlay.busy = false;
-    if (first) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 16px;color:#6B7280"><p style="font-weight:700;margin-bottom:8px">No pudimos cargar estos productos.</p><p style="font-size:13px">Revisa tu conexión y vuelve a intentarlo.</p></div>';
-    else if (btn){ btn.disabled = false; btn.textContent = 'Reintentar'; }
-  });
-}
-/* THE GRID: a chip, the search box and the sort menu, together, answered
-   by the endpoint 48 cards at a time ("Mostrar más" asks for the next
-   48). With none of them set the store's rails come back. */
-var slGrid = { key: '', page: 0, pages: 0, busy: false };
+/* ---------- THE STORE'S RAILED VIEW (#443, Danny: "never again a side-by-side grid") ----------
+   A search in the store (tienda.html?tienda=ccs&q=alien: a search's store
+   carousel ends here), a chip, or a carousel's «Ver todo»: the set's sales,
+   then one carousel per product type (netlify/functions/_tienda-core.js
+   groupsOf). Each carousel's last card brings its next cards into it. */
+var slView = { key: '', seq: 0 };
 function slQuery(){
   var q = (($('q') || {}).value || '').trim();
-  /* Best Buy's search ranks by the product the words name (#413); every
-     other store keeps its sort menu (Mayor descuento by default). */
   var sort = isThemed() ? 'relevance' : ((($('sort') || {}).value) || 'discount');
   return 'store=' + encodeURIComponent(storeKey) +
     (slFilter.d ? '&d=' + encodeURIComponent(slFilter.d) : '') +
@@ -1346,83 +1257,77 @@ function slQuery(){
     (q ? '&q=' + encodeURIComponent(q.slice(0, 80)) : '') +
     '&sort=' + encodeURIComponent(sort);
 }
+function slGroupRail(g){
+  var cards = '';
+  for (var i = 0; i < g.items.length; i++){ try { cards += slCardHTML(g.items[i]); } catch (e) {} }
+  var left = g.n - g.items.length;
+  return '<section class="rail-sec" data-gk="' + esc(g.k) + '" aria-label="' + esc(g.t) + '"><div class="rail-head"><h2 class="rail-title">' + esc(g.t) + '</h2>' +
+    '<span class="rail-count">' + Number(g.n).toLocaleString('es-PE') + '</span></div>' +
+    '<div class="rail">' + cards + (left > 0 ? '<button type="button" class="rail-next sl-grow" data-gk="' + esc(g.k) + '" data-n="' + g.n + '">Ver más<span>' + Number(left).toLocaleString('es-PE') + ' más</span></button>' : '') + '</div></section>';
+}
+function slShowGroups(query, title, back){
+  var host = $('content');
+  if (!host || !slIndex) return;
+  var seq = ++slView.seq;
+  slView.key = query;
+  var head = back ? '<div class="sl-scope"><button type="button" class="sl-back">&#8249; ' + esc(storeMeta.label) + '</button><span class="sl-here">' + esc(title || '') + '</span></div>' : '';
+  host.innerHTML = head + '<section class="rail-sec" aria-hidden="true"><div class="rail-head"><h2 class="rail-title">&nbsp;</h2></div><div class="rail">' + SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + SL_SKEL_CARD + '</div></section>';
+  if (back) window.scrollTo(0, 0);
+  fetchJson(TIENDA_FN + '?' + query + '&group=1').then(function(j){
+    if (seq !== slView.seq) return;
+    var groups = (j && j.groups) || [];
+    var cnt = $('countLine');
+    if (cnt) cnt.textContent = Number(j.total || 0).toLocaleString('es-PE') + (j.total === 1 ? ' producto' : ' productos') + ' en ' + storeMeta.label;
+    if (!groups.length){
+      host.innerHTML = head + '<div class="state"><h2>Sin resultados</h2><p>Ningún producto de ' + esc(storeMeta.label) + ' coincide con tu búsqueda.</p></div>';
+      return;
+    }
+    host.innerHTML = head + groups.map(slGroupRail).join('');
+    watchPhotos(host);
+  }, function(){
+    if (seq !== slView.seq) return;
+    host.innerHTML = head + '<div class="state"><h2>No pudimos cargar estos productos</h2><p>Revisa tu conexión y vuelve a intentarlo.</p>' +
+      '<button class="btn" id="slGridRetry" type="button">Reintentar</button></div>';
+    var rb = $('slGridRetry');
+    if (rb) rb.addEventListener('click', function(){ slShowGroups(query, title, back); });
+  });
+}
+/* A carousel of the railed view grows in place, 48 cards at a time. */
+function slGrow(btn){
+  if (!btn || btn.disabled) return;
+  var rail = btn.parentNode, gk = btn.getAttribute('data-gk'), n = Number(btn.getAttribute('data-n')) || 0;
+  var shown = rail.querySelectorAll('.card:not(.sk)').length, size = (slIndex && slIndex.pageSize) || 48, page = Math.floor(shown / size) + 1, key = slView.key;
+  btn.disabled = true;
+  fetchJson(TIENDA_FN + '?' + key + '&group=1&gk=' + encodeURIComponent(gk) + '&page=' + page).then(function(j){
+    if (key !== slView.key) return;
+    var items = (j.items || []).slice(shown - (page - 1) * size), html = '';
+    for (var i = 0; i < items.length; i++){ try { html += slCardHTML(items[i]); } catch (e) {} }
+    var holder = document.createElement('div');
+    holder.innerHTML = html;
+    var firstNew = holder.firstChild;
+    while (holder.firstChild) rail.insertBefore(holder.firstChild, btn);
+    if (firstNew && rail.scrollTo) rail.scrollTo({ left: Math.max(0, firstNew.offsetLeft - rail.offsetLeft - 8), behavior: 'smooth' });
+    watchPhotos(rail);
+    var left = n - rail.querySelectorAll('.card:not(.sk)').length;
+    if (!items.length || left <= 0) btn.remove();
+    else { btn.querySelector('span').textContent = Number(left).toLocaleString('es-PE') + ' más'; btn.disabled = false; }
+  }, function(){ btn.disabled = false; });
+}
+/* «Ver todo» on a carousel (a Best Buy chip, a house, «Ver todas las
+   ofertas»): that carousel as the railed view, a step back to the store. */
+function slOpenRail(key){
+  var r = slRailsByKey[key];
+  if (!r) return;
+  slShowGroups('store=' + encodeURIComponent(storeKey) + '&rail=' + encodeURIComponent(key), r.title, true);
+}
 function slApply(){
   var host = $('content');
   if (!host || !slIndex) return;
   var q = (($('q') || {}).value || '').trim();
   if (!q && !slFilter.d && !slFilter.g && !slFilter.c){ slRenderHome(); return; }
-  var pill = !q && slFilter.d && !slFilter.flat ? slPill(slFilter.d) : null;
-  if (pill && pill.subs){ slRenderPill(pill); return; }
   var s = $('sort');
   if (s) s.style.display = isThemed() ? 'none' : '';
-  var sk = '<div class="grid">';
-  for (var i = 0; i < 4; i++) sk += SL_SKEL_CARD;
-  host.innerHTML = sk + '</div>';
-  slGrid = { key: slQuery(), page: 0, pages: 1, busy: false };
-  slGridMore();
-}
-/* A department pill that is mostly one splittable family (Walmart's
-   Hogar: Ropa de cama, Toallas, Baño, Cocina...) opens into its aisles;
-   under them, the whole department as the grid it used to be. */
-function slPill(d){
-  var list = ((slIndex && slIndex.chips) || {}).depts || [];
-  for (var i = 0; i < list.length; i++) if (list[i].key === d) return list[i];
-  return null;
-}
-function slRenderPill(pill){
-  var host = $('content');
-  slGrid.key = '';
-  var s = $('sort');
-  if (s) s.style.display = 'none';
-  slRegisterSubs(pill.subs, '');
-  host.innerHTML = '<div class="sub-wrap">' + slSubsHTML(pill.subs) +
-    '<div class="sl-more"><button class="btn" type="button" id="slPillAll">Ver los ' + Number(pill.count).toLocaleString('es-PE') + ' de ' + esc(pill.label) + ' juntos</button></div></div>';
-  $('slPillAll').addEventListener('click', function(){ slFilter.flat = true; slApply(); });
-  var cnt = $('countLine');
-  if (cnt) cnt.textContent = Number(pill.count).toLocaleString('es-PE') + (pill.count === 1 ? ' producto' : ' productos') + ' en ' + storeMeta.label;
-  slBindVer(host);
-  watchPhotos(host);
-  slWatchLazyRails(host);
-}
-function slGridMore(){
-  if (slGrid.busy || slGrid.page >= slGrid.pages) return;
-  slGrid.busy = true;
-  var key = slGrid.key, host = $('content');
-  var btn = $('slSearchMoreBtn');
-  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
-  fetchJson(TIENDA_FN + '?' + key + '&page=' + (slGrid.page + 1)).then(function(j){
-    if (key !== slGrid.key) return;
-    slGrid.busy = false;
-    slGrid.page = j.page || slGrid.page + 1;
-    slGrid.pages = j.pages || slGrid.page;
-    var cnt = $('countLine');
-    if (cnt) cnt.textContent = Number(j.total || 0).toLocaleString('es-PE') + (j.total === 1 ? ' producto' : ' productos') + ' en ' + storeMeta.label;
-    if (slGrid.page === 1 && !(j.items || []).length){
-      host.innerHTML = '<div class="state"><h2>Sin resultados</h2><p>Ningún producto de ' + esc(storeMeta.label) + ' coincide con tu búsqueda.</p></div>';
-      return;
-    }
-    if (slGrid.page === 1) host.innerHTML = '<div class="grid" id="slGrid"></div>';
-    var grid = $('slGrid');
-    var html = '';
-    for (var i = 0; i < (j.items || []).length; i++){ try { html += slCardHTML(j.items[i]); } catch (e) {} }
-    grid.insertAdjacentHTML('beforeend', html);
-    var old = $('slSearchMoreWrap');
-    if (old) old.remove();
-    if (slGrid.page < slGrid.pages){
-      grid.insertAdjacentHTML('afterend', '<div class="sl-more" id="slSearchMoreWrap"><button class="btn" type="button" id="slSearchMoreBtn">Mostrar más</button></div>');
-      $('slSearchMoreBtn').addEventListener('click', slGridMore);
-    }
-    watchPhotos(grid);
-  }, function(){
-    if (key !== slGrid.key) return;
-    slGrid.busy = false;
-    if (slGrid.page === 0){
-      host.innerHTML = '<div class="state"><h2>No pudimos cargar estos productos</h2><p>Revisa tu conexión y vuelve a intentarlo.</p>' +
-        '<button class="btn" id="slGridRetry" type="button">Reintentar</button></div>';
-      var rb = $('slGridRetry');
-      if (rb) rb.addEventListener('click', slApply);
-    } else if (btn){ btn.disabled = false; btn.textContent = 'Reintentar'; }
-  });
+  slShowGroups(slQuery(), '', false);
 }
 /* The store's backdrop photo waits for the first-screen product photos
    (or four seconds): on a 400 kbps link a 300KB interior shot used to
@@ -1605,15 +1510,17 @@ function bindUI(){
     t = setTimeout(function(){ try { slApply(); } catch (e) {} }, 300);
   });
   if (s) s.addEventListener('change', function(){ try { slApply(); } catch (e) {} });
-  /* The overlay's markup comes after this script, so #reBack does not
-     exist yet when this runs (the back arrow never closed "Ver todo").
-     One delegated listener answers it whenever it is there. */
+  /* The railed view: a carousel's last card grows it; the scope's back
+     arrow (or Escape) returns to the store. */
   document.addEventListener('click', function(ev){
     var t = ev && ev.target;
-    if (t && t.closest && t.closest('#reBack')){ try { slBack(); } catch (e) {} }
+    if (!t || !t.closest) return;
+    var g = t.closest('.sl-grow');
+    if (g){ try { slGrow(g); } catch (e) {} return; }
+    if (t.closest('.sl-back')){ try { slRenderHome(); window.scrollTo(0, 0); } catch (e) {} }
   });
   document.addEventListener('keydown', function(ev){
-    if (ev && ev.key === 'Escape'){ try { slBack(); } catch (e) {} }
+    if (ev && ev.key === 'Escape' && document.querySelector('#content .sl-back')){ try { slRenderHome(); } catch (e) {} }
   });
 }
 
@@ -1637,19 +1544,6 @@ try {
 })();
 </script>
 
-<!-- RAIL EXPAND OVERLAY (2026-10-07): full-screen "Ver todo" for carousels -->
-<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
-  <div class="re-head">
-    <button type="button" class="re-back" id="reBack" aria-label="Volver">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
-    <div style="min-width:0">
-      <div id="reTitle" class="re-title"></div>
-      <div id="reCount" class="re-count"></div>
-    </div>
-  </div>
-  <div id="reGrid" class="re-grid"></div>
-</div>
 <!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
 <script src="/assets/js/aria-launcher.js" defer></script>
 <!-- A search's landing: «También puede ser…» chips (&tp=, #443 c.6569515583). -->

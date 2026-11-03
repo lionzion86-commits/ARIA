@@ -15,7 +15,9 @@
        the screen;
      - Explorar todo: words plus Tipo / Marca / Tienda / Ordenar, the
        options of each filter narrowed by the others (cross-dependent,
-       answered on the server: ?explore=1), 48 cards at a time.
+       answered on the server: ?explore=1) -- one carousel, 48 cards at a
+       time brought into it by its last card («Ver más»), never a grid
+       (#443, Danny: "never again a side-by-side grid").
    It reads the department through window.AriaDept (departamento.html).
    ================================================================== */
 (function(){
@@ -44,11 +46,6 @@
     + '@media(min-width:640px){.dh-sel{grid-template-columns:repeat(4,minmax(0,1fr))}}'
     + '.dh-sel select{width:100%;height:44px;border:1px solid #E4E6EC;border-radius:12px;padding:0 10px;font:700 14px inherit;font-family:inherit;color:#0A1F44;background:#fff;min-width:0}'
     + '.dh-count{margin:12px 0 10px;color:#6B7487;font-size:14px;font-weight:600}'
-    + '.dh-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}'
-    + '@media(min-width:640px){.dh-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}'
-    + '@media(min-width:1024px){.dh-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}'
-    + '.dh-grid .card{flex:none;min-width:0}'
-    + '.dh-more{text-align:center;padding:16px 0 30px}'
     + '.dh-empty{padding:18px 0;color:#6B7487;font-size:14px}';
   var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
 
@@ -83,8 +80,7 @@
     + '<div class="dh-sel" role="search">'
     + '<select id="dhT" aria-label="Tipo"></select><select id="dhB" aria-label="Marca"></select><select id="dhR" aria-label="Tienda"></select>'
     + '<select id="dhS" aria-label="Ordenar"><option value="deal">Mayor descuento</option><option value="low">Precio: menor a mayor</option><option value="high">Precio: mayor a menor</option></select>'
-    + '</div><p class="dh-count" id="dhCount"></p><div class="dh-grid" id="dhGrid" aria-live="polite"></div>'
-    + '<div class="dh-more" id="dhMore" hidden><button class="btn" type="button" id="dhMoreBtn">Ver más</button></div></div></section>';
+    + '</div><p class="dh-count" id="dhCount"></p></div><div class="dh-ex-rail"><div class="rail" id="dhGrid" aria-live="polite"></div></div></section>';
   main.parentNode.insertBefore(wrap, main.nextSibling);
 
   function api(extra){
@@ -126,12 +122,24 @@
 
   /* ---------- the axes: big-card rails, fetched as they near the screen ---------- */
   var AXIS_SEQ = 0;
+  /* An axis carousel's «Ver todo» opens its own railed view: that type,
+     brand or store on the department page (?ver=: Ofertas, then one
+     carousel per store -- or, for one store, per type). */
+  function axisDoor(r){
+    var u = 'departamento.html?dept=' + encodeURIComponent(D.key);
+    if (r.f === 't') u += '&t=' + encodeURIComponent(r.k) + '&ver=tipos';
+    else if (r.f === 'b') u += '&b=' + encodeURIComponent(r.k) + '&ver=todo';
+    else u += '&ver=todo&tienda=' + encodeURIComponent(r.k);
+    var aud = D.audience();
+    return u + (aud ? '&para=' + encodeURIComponent(aud) : '');
+  }
   function railHTML(r){
-    var more = r.count > (r.cards || []).length
-      ? '<button type="button" class="ver-todo dh-open" data-f="' + esc(r.f) + '" data-k="' + esc(r.k) + '">Ver todo &#8594;</button>' : '';
+    var big = r.count > (r.cards || []).length, href = esc(axisDoor(r));
+    var more = big ? '<a class="ver-todo" href="' + href + '">Ver todo &#8594;</a>' : '';
     return '<section class="rail-sec" aria-label="' + esc(r.title) + '"><div class="rail-head"><h2>' + esc(r.title) + '</h2>'
       + '<span class="rail-count">' + num(r.count) + '</span>' + more + '</div>'
-      + '<div class="rail">' + (r.cards || []).map(D.cardHTML).join('') + '</div></section>';
+      + '<div class="rail">' + (r.cards || []).map(D.cardHTML).join('')
+      + (big ? '<a class="rail-next" href="' + href + '">Ver todo<span>' + num(r.count) + ' productos</span></a>' : '') + '</div></section>';
   }
   function loadAxis(sec){
     if (sec.getAttribute('data-for') === String(D.audience()) ) return;
@@ -161,13 +169,7 @@
   wrap.addEventListener('click', function(e){
     var r = e.target.closest('.dh-retry');
     if (r){ var sec = r.closest('.dh-axis'); if (sec) loadAxis(sec); return; }
-    var o = e.target.closest('.dh-open');
-    if (!o) return;
-    /* An axis rail's Ver todo opens Explorar todo on that type, brand or store. */
-    EX.t = ''; EX.b = ''; EX.r = '';
-    EX[o.getAttribute('data-f')] = o.getAttribute('data-k');
-    document.getElementById('dh-explorar').scrollIntoView({ block: 'start' });
-    runExplore(0);
+    if (e.target.closest('#dhMoreBtn')) runExplore(EX.page + 1);
   });
   var IO = typeof IntersectionObserver === 'function' ? new IntersectionObserver(function(es){
     es.forEach(function(e){
@@ -190,7 +192,7 @@
   var EX = { t: '', b: '', r: '', q: '', s: 'deal', page: 0, drawnFor: null, seq: 0 };
   var qEl = document.getElementById('dhQ'), tEl = document.getElementById('dhT'), bEl = document.getElementById('dhB'),
       rEl = document.getElementById('dhR'), sEl = document.getElementById('dhS'), grid = document.getElementById('dhGrid'),
-      countEl = document.getElementById('dhCount'), moreEl = document.getElementById('dhMore');
+      countEl = document.getElementById('dhCount');
   function options(sel, all, list, cur){
     var h = '<option value="">' + all + '</option>', seen = false;
     (list || []).forEach(function(o){
@@ -208,7 +210,9 @@
     var u = api('&explore=1' + (EX.t ? '&t=' + encodeURIComponent(EX.t) : '') + (EX.b ? '&b=' + encodeURIComponent(EX.b) : '')
       + (EX.r ? '&r=' + encodeURIComponent(EX.r) : '') + (EX.q ? '&q=' + encodeURIComponent(EX.q) : '')
       + (EX.s !== 'deal' ? '&sort=' + EX.s : '') + (page ? '&page=' + page : ''));
-    if (!page){ countEl.textContent = 'Cargando…'; moreEl.hidden = true; }
+    if (!page) countEl.textContent = 'Cargando…';
+    var old = document.getElementById('dhMoreBtn');
+    if (old) old.disabled = true;
     D.getJSON(u).then(function(data){
       if (seq !== EX.seq) return;
       var f = data.facets || {};
@@ -217,10 +221,19 @@
       options(rEl, 'Todas las tiendas', f.r, EX.r);
       sEl.value = EX.s;
       var html = (data.cards || []).map(D.cardHTML).join('');
+      var btn = document.getElementById('dhMoreBtn');
+      if (btn) btn.remove();
+      var before = grid.querySelectorAll('.card').length;
       if (page) grid.insertAdjacentHTML('beforeend', html); else grid.innerHTML = html;
       countEl.textContent = data.count ? num(data.count) + (data.count === 1 ? ' producto' : ' productos') : '';
       if (!data.count) grid.innerHTML = '<p class="dh-empty">Ningún producto coincide. Quita un filtro o prueba otra palabra.</p>';
-      moreEl.hidden = !(data.pages > page + 1);
+      /* The carousel's last card brings the next 48 into it. */
+      if (data.pages > page + 1){
+        var shown = grid.querySelectorAll('.card').length;
+        grid.insertAdjacentHTML('beforeend', '<button type="button" class="rail-next" id="dhMoreBtn">Ver más<span>' + num(data.count - shown) + ' más</span></button>');
+      }
+      if (page){ var first = grid.querySelectorAll('.card')[before]; if (first && grid.scrollTo) grid.scrollTo({ left: Math.max(0, first.offsetLeft - grid.offsetLeft - 8), behavior: 'smooth' }); }
+      else if (grid.scrollTo) grid.scrollTo({ left: 0 });
       D.watchPhotos(grid);
     }).catch(function(){
       if (seq !== EX.seq) return;
@@ -236,7 +249,6 @@
     clearTimeout(qTimer);
     qTimer = setTimeout(function(){ var v = qEl.value.trim().slice(0, 80); if (v !== EX.q){ EX.q = v; runExplore(0); } }, 350);
   });
-  document.getElementById('dhMoreBtn').addEventListener('click', function(){ runExplore(EX.page + 1); });
 
   /* ---------- every head the page draws ---------- */
   D.onHead(function(head, filtered){

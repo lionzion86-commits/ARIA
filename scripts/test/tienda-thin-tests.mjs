@@ -250,7 +250,9 @@ await check("the endpoint filters by chip (facets combine), searches and sorts l
 
 await check("netlify.toml ships the endpoint its data and nothing else", () => {
   const toml = read("netlify.toml");
-  assert.match(toml, /\[functions\."tienda"\]\s*\n\s*included_files = \["assets\/tienda\/_fn\/\*\.json"\]/);
+  /* The store's railed view (#443 carousels only) reads each product's type:
+     the store page's own aisles (index.json) and the departments' types. */
+  assert.match(toml, /\[functions\."tienda"\]\s*\n\s*included_files = \["assets\/tienda\/_fn\/\*\.json", "assets\/tienda\/\*\/index\.json", "assets\/sections\/departamento\/_fn\/\*\.json"\]/);
   let bytes = 0;
   for (const f of readdirSync(ROOT + FN_DIR)) bytes += statSync(ROOT + FN_DIR + "/" + f).size;
   assert.ok(bytes < 60 * 1048576, `endpoint data is ${(bytes / 1048576).toFixed(1)}MB`);
@@ -351,40 +353,23 @@ await check("headless: storefronts paint from slices, fetch no catalogue, cards 
       assert.match(r.pen, /^S\/ \d/, `${store}: the price does not lead in soles ("${r.pen}")`);
       assert.ok(r.hrefs.every((h) => h.indexOf("producto.html?producto=") === 0), `${store}: a card links elsewhere`);
       assert.ok(r.cards <= ix.rails.length * RAIL_HEAD, `${store}: ${r.cards} cards drawn`);
-      /* A chip (Best Buy: its department in the overlay), then the search box. */
+      /* A chip, then the search box: the store's railed view (#443, Danny:
+         "never a side-by-side grid") -- the set's sales, then one carousel
+         per product type, each card full height. */
       await pg.click(".chips .chip:nth-child(2)");
-      /* A store sliced by department (Best Buy, SNIPES, Carolina Herrera, the Casa Aria stores) opens
-         the chip's department rail in the Ver todo overlay. */
-      if (ix.depts) {
-        await pg.waitForFunction(() => document.querySelectorAll("#reGrid .card:not(.sk)").length > 0, null, { timeout: 30000 });
-        /* The overlay is a fixed-height scroller: its cards must keep their
-           height (they were 16px lines) and only on-screen photos load. */
-        const ov = await pg.evaluate(() => ({
-          minH: Math.min(...[...document.querySelectorAll("#reGrid .card")].map((c) => c.getBoundingClientRect().height)),
-          photos: [...document.querySelectorAll("#reGrid img")].filter((i) => !i.dataset.src).length,
-        }));
-        assert.ok(ov.minH > 200, `${store}: Ver todo cards collapsed to ${ov.minH}px`);
-        assert.ok(ov.photos <= 8, `${store}: Ver todo fetched ${ov.photos} photos at once`);
-        await pg.click("#reBack");
-        assert.equal(await pg.evaluate(() => document.getElementById("railExpand").hidden), true, "the back arrow does not close Ver todo");
-      } else {
-        /* A pill that is mostly one splittable family opens into its
-           labelled aisles first; the whole department is the grid under them. */
-        const pill = ((ix.chips || {}).depts || [])[0];
-        if (pill && pill.subs) {
-          await pg.waitForFunction(() => document.querySelectorAll("#content .sub-wrap .rail-sec").length >= 2, null, { timeout: 30000 });
-          const titles = await pg.evaluate(() => [...document.querySelectorAll("#content .sub-wrap .rail-title")].map((h) => h.textContent));
-          assert.deepEqual(titles, pill.subs.map((x) => x.t), `${store}: the pill's aisles`);
-          await pg.click("#slPillAll");
-        }
-        await pg.waitForFunction(() => document.querySelectorAll("#slGrid .card").length > 0, null, { timeout: 30000 });
-        const n = await pg.evaluate(() => document.querySelectorAll("#slGrid .card").length);
-        assert.ok(n > 0 && n <= 48, `${store}: chip drew ${n}`);
-        await pg.click(".chips .chip:first-child");
-        await pg.waitForFunction(() => document.querySelectorAll(".rail-sec").length > 0, null, { timeout: 10000 });
-      }
+      if (ix.depts) await pg.waitForSelector("#content .sl-back", { timeout: 30000 });
+      await pg.waitForFunction(() => document.querySelectorAll("#content .rail-sec[data-gk] .card:not(.sk)").length > 0, null, { timeout: 30000 });
+      const ov = await pg.evaluate(() => ({
+        minH: Math.min(...[...document.querySelectorAll("#content .rail-sec[data-gk] .card")].map((c) => c.getBoundingClientRect().height)),
+        rows: Math.max(...[...document.querySelectorAll("#content .rail-sec[data-gk] .rail")].map((r) => new Set([...r.querySelectorAll(".card")].map((c) => Math.round(c.getBoundingClientRect().top))).size)),
+      }));
+      assert.ok(ov.minH > 200, `${store}: railed-view cards collapsed to ${ov.minH}px`);
+      assert.equal(ov.rows, 1, `${store}: a carousel drew its cards in rows`);
+      if (ix.depts) await pg.click("#content .sl-back");
+      else await pg.click(".chips .chip:first-child");
+      await pg.waitForFunction(() => document.querySelectorAll(".rail-sec").length > 0 && !document.querySelector("#content .sl-back"), null, { timeout: 10000 });
       await pg.fill("#q", store === "bestbuy" ? "airpods" : "black");
-      await pg.waitForFunction(() => document.querySelectorAll("#slGrid .card").length > 0 || document.querySelector(".state"), null, { timeout: 30000 });
+      await pg.waitForFunction(() => document.querySelectorAll("#content .rail-sec[data-gk] .card").length > 0 || document.querySelector(".state"), null, { timeout: 30000 });
       await pg.waitForTimeout(500);
       const bad = reqs.filter((u) => /-catalog\.json|department-cache|catalog-index\.json|ofertas-feed|find\.json|\/_fn\//.test(u));
       assert.deepEqual(bad, [], `${store} fetched ${bad.join(", ")}`);

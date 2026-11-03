@@ -25,7 +25,7 @@ const json = (statusCode, body, cache) => ({
       ? {
           "Cache-Control": "public, max-age=300",
           "Netlify-CDN-Cache-Control": cache,
-          "Netlify-Vary": "query=store|rail|page|d|g|c|q|sort",
+          "Netlify-Vary": "query=store|rail|page|d|g|c|q|sort|group|gk",
         }
       : { "Cache-Control": "no-store" }),
   },

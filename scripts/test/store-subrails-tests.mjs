@@ -104,7 +104,10 @@ await check("Walmart: Zapatos opens Mujer / Hombre / Niños; the Hogar pill open
 });
 
 /* ---------------- headless ---------------- */
-await check("headless: Ver todo on Zapatos opens labelled carousels, a carousel opens its grid, back returns; the Hogar pill opens its aisles", async () => {
+/* CAROUSELS ONLY (#443, Danny 2026-11-02): «Ver todo» opens the store's
+   railed view -- labelled carousels by type and audience -- and a carousel
+   grows in place; nothing opens a grid. */
+await check("headless: Ver todo on Zapatos opens labelled carousels (Zapatillas Mujer...), a carousel grows in place, back returns; the Hogar pill opens its aisles", async () => {
   const exe = process.env.PLAYWRIGHT_CHROMIUM || (existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : null);
   let chromium;
   try { ({ chromium } = await import("playwright")); }
@@ -140,35 +143,28 @@ await check("headless: Ver todo on Zapatos opens labelled carousels, a carousel 
     await pg.goto(`${base}/tienda.html?tienda=walmart`, { waitUntil: "load" });
     await pg.waitForFunction(() => document.querySelectorAll(".rail-sec .card:not(.sk)").length >= 8, null, { timeout: 30000 });
     await pg.click('.rail-ver[data-rail="t-zapatos"]');
-    await pg.waitForFunction(() => document.querySelectorAll("#reGrid .sub-wrap .rail-sec .card:not(.sk)").length >= 4, null, { timeout: 30000 });
+    await pg.waitForFunction(() => document.querySelectorAll("#content .rail-sec[data-gk] .card:not(.sk)").length >= 4, null, { timeout: 30000 });
     const view = await pg.evaluate(() => ({
-      auds: [...document.querySelectorAll("#reGrid .sub-aud")].map((h) => h.textContent),
-      first: document.querySelector("#reGrid .sub-wrap .rail-title").textContent,
-      flatCards: document.querySelectorAll("#reGrid > .card").length,
+      titles: [...document.querySelectorAll("#content .rail-sec[data-gk] .rail-title")].map((h) => h.textContent),
+      here: (document.querySelector("#content .sl-here") || {}).textContent,
+      rows: Math.max(...[...document.querySelectorAll("#content .rail-sec[data-gk] .rail")].map((r) => new Set([...r.querySelectorAll(".card")].map((c) => Math.round(c.getBoundingClientRect().top))).size)),
       overflow: document.documentElement.scrollWidth > window.innerWidth,
     }));
-    assert.deepEqual(view.auds, ["Mujer", "Hombre", "Niños"]);
-    assert.equal(view.first, "Zapatillas");
-    assert.equal(view.flatCards, 0, "an undifferentiated grid under the carousels");
+    assert.equal(view.here, "Zapatos");
+    for (const t of ["Zapatillas Mujer", "Zapatillas Hombre", "Zapatillas Niños"]) assert.ok(view.titles.includes(t), view.titles.join(", "));
+    assert.equal(view.rows, 1, "a carousel drew its cards in rows");
     assert.equal(view.overflow, false, "the page scrolls sideways");
-    await pg.click('#reGrid .rail-ver[data-rail="t-zapatos~women~zapatillas"]');
-    await pg.waitForFunction(() => document.querySelectorAll("#reGrid > .card:not(.sk)").length > 0, null, { timeout: 30000 });
-    assert.equal(await pg.textContent("#reTitle"), "Zapatillas Mujer");
-    await pg.click("#reBack");
-    await pg.waitForFunction(() => document.querySelectorAll("#reGrid .sub-aud").length === 3, null, { timeout: 10000 });
-    await pg.click("#slAllBtn");
-    await pg.waitForFunction(() => document.querySelectorAll("#reGrid > .card:not(.sk)").length > 0, null, { timeout: 30000 });
-    await pg.click("#reBack");
-    await pg.waitForFunction(() => document.querySelectorAll("#reGrid .sub-aud").length === 3, null, { timeout: 10000 });
-    await pg.click("#reBack");
-    assert.equal(await pg.evaluate(() => document.getElementById("railExpand").hidden), true, "back from the carousels closes Ver todo");
-    /* The Hogar pill: its aisles in the page, then the department's grid. */
+    const rail = '#content .rail-sec[data-gk="zapatillas-mujer"] .rail';
+    const n0 = await pg.$$eval(rail + " .card:not(.sk)", (x) => x.length);
+    await pg.click(rail + " button.sl-grow");
+    await pg.waitForFunction(([sel, n]) => document.querySelectorAll(sel + " .card:not(.sk)").length > n, [rail, n0], { timeout: 30000 });
+    await pg.click("#content .sl-back");
+    await pg.waitForFunction(() => !document.querySelector("#content .sl-back") && document.querySelectorAll("#content .rail-sec").length > 2, null, { timeout: 10000 });
+    /* The Hogar pill: its aisles as carousels. */
     await pg.click('.chips .chip[data-d="small_home"]');
-    await pg.waitForFunction(() => document.querySelectorAll("#content .sub-wrap .rail-sec .card:not(.sk)").length >= 4, null, { timeout: 30000 });
-    const aisles = await pg.evaluate(() => [...document.querySelectorAll("#content .sub-wrap .rail-title")].map((h) => h.textContent));
+    await pg.waitForFunction(() => document.querySelectorAll("#content .rail-sec[data-gk] .card:not(.sk)").length >= 4, null, { timeout: 30000 });
+    const aisles = await pg.evaluate(() => [...document.querySelectorAll("#content .rail-sec[data-gk] .rail-title")].map((h) => h.textContent));
     assert.ok(aisles.includes("Ropa de cama") && aisles.includes("Cocina"), aisles.join(", "));
-    await pg.click("#slPillAll");
-    await pg.waitForFunction(() => document.querySelectorAll("#slGrid .card").length > 0, null, { timeout: 30000 });
     assert.deepEqual(errs, []);
     await ctx.close();
   } finally {

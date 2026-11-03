@@ -121,19 +121,11 @@
   .hub-pill{flex:0 0 auto;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:800;color:var(--navy);cursor:pointer;font-family:inherit;white-space:nowrap}
   .hub-pill[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
   .lens{max-width:1240px;margin:8px auto 0;padding:6px 0 10px;border-bottom:1px solid var(--line)}
-  /* A search's type page (?ver=<rail key>, #443 c.6579541628): the type's full listing leads. */
-  .type-lead{max-width:1240px;margin:14px auto 0}
-  .type-lead .tl-head{display:flex;align-items:baseline;gap:10px;padding:0 16px}
-  .type-lead .tl-head h2{font-size:22px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
-  .type-lead .tl-n{font-size:13px;font-weight:700;color:#6B7487;white-space:nowrap}
-  .type-lead .tl-q{padding:2px 16px 0;margin:0;font-size:13px;color:#6B7487}
-  .type-lead .re-grid{padding-top:12px}
-  /* On the type page the hero names the type and stays short: the
-     department's own stats (its whole count, its sales) are not this page's. */
+  /* A search landing (?ver=, #443 "never a side-by-side grid"): the hero
+     names the set and stays short; its own stats chips stay. */
   body.type-page .hero-in{padding:22px 16px 20px}
   body.type-page .hero .kicker{margin-bottom:8px}
   body.type-page .hero h1{margin-bottom:6px}
-  body.type-page .dh-stats{display:none!important}
   .lens-head{display:flex;align-items:baseline;gap:10px;padding:0 20px}
   .lens-head h2{font-size:24px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.01em}
   .lens-head a{margin-left:auto;font-size:13px;font-weight:800;color:var(--blue);text-decoration:none;white-space:nowrap}
@@ -151,7 +143,7 @@
 .scope-bar{display:flex;align-items:center;gap:10px;padding:10px 16px 0;font-size:14px}
   .scope-bar .scope-back{background:none;border:1px solid var(--line,#d9dde3);border-radius:999px;padding:6px 12px;font:inherit;font-weight:800;color:var(--blue);cursor:pointer}
   .scope-bar .scope-here{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rail-head .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px;font-family:inherit}
+  .rail-head .ver-todo{margin-left:auto;flex-shrink:0;background:none;border:none;text-decoration:none;font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;padding:6px 2px;font-family:inherit}
   .rail{display:flex;gap:12px;overflow-x:auto;padding:10px 20px 16px;scroll-snap-type:x mandatory;scrollbar-width:thin}
   .rail::-webkit-scrollbar{height:6px}
   .rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
@@ -169,30 +161,14 @@
   .card-title{font-size:14.5px;color:#1F2937;-webkit-line-clamp:2;min-height:39px}
   .card-brand{font-size:12px}
   .card-body{padding:14px 16px 16px}
-  /* expand overlay: full-screen "Ver todo".
-     ONE SCROLLER, A PLAIN GRID (#443 c.6398961263 / c.6398974665: on
-     Danny's iPhone the expanded Ofertas drew label-only pills and, for
-     Burberry's 49, blank outlines). The grid used to be the scrolling
-     flex child of a fixed column and every card clipped its overflow, so
-     an engine that sized the grid's auto rows to the screen instead of
-     to the cards squeezed 17-25 rows into one viewport and cut each card
-     to a sliver. Now the overlay itself scrolls, the header is sticky,
-     and the grid is an ordinary two-across block whose rows are as tall
-     as their cards -- nothing left for an engine to read two ways. */
-  .rail-expand{position:fixed;inset:0;z-index:90;background:var(--paper);display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-  .rail-expand[hidden]{display:none}
-  .re-head{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px}
-  .re-back{width:40px;height:40px;flex-shrink:0;border-radius:50%;border:none;background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12)}
-  .re-title{font-size:17px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .re-count{font-size:12px;font-weight:600;color:#8A93A8}
-  .re-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:auto;align-items:start;gap:12px;padding:16px;max-width:1240px;margin:0 auto;box-sizing:border-box}
-  .re-grid .card{flex:none;min-width:0;height:auto;overflow:visible}
-  .re-grid .card-img{border-radius:15px 15px 0 0}
-  /* and nothing inside a card may shrink to fit: the photo box and every
-     line keep their own height whatever the row does */
-  .re-grid .card > *, .re-grid .card-body > *{flex-shrink:0}
-  @media(min-width:640px){.re-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  @media(min-width:1024px){.re-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  /* THE END OF A CAROUSEL (#443, Danny: "never again a side-by-side
+     grid"): «Ver más» is the carousel's last card. It brings the next
+     cards into the same carousel, or opens the set's own railed view
+     (by store, then by type or brand) -- never a grid. */
+  .rail .rail-next{flex:0 0 164px;align-self:stretch;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
+    border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--navy);font:800 15px/1.2 inherit;font-family:inherit;cursor:pointer;padding:12px;text-decoration:none}
+  .rail .rail-next span{font-size:12px;font-weight:600;color:#6B7487}
+  .rail .rail-next[disabled]{opacity:.6}
   footer a{color:var(--blue);text-decoration:none;font-weight:700}
 </style>
 <script src="/display-name.js"></script>
@@ -520,7 +496,6 @@ html{scroll-padding-top:76px}
     var _vm = /[?&]ver=([^&]*)/.exec(window.location.search || '');
     if (_vm) VER = decodeURIComponent(_vm[1].replace(/\+/g, ' ')).slice(0, 80);
   } catch(e){}
-  var TYPE_KEY = VER && VER !== 'tipos' ? VER : '';
   var SEQ = 0;               // a newer filter wins over an older answer
   var nextBatch = 0;         // the next carousels to append
   var batchBusy = false;
@@ -799,18 +774,6 @@ function sizedImageUrl(url, w){
     for (var j = 0; j < imgs.length; j++) PHOTO_IO.observe(imgs[j]);
   }
   window.imgOrigRetry = imgOrigRetry;
-  /* The overlay's photos are watched against the overlay, its own
-     scroller, not the page behind it. */
-  var OV_IO = null;
-  function watchOverlayPhotos(root){
-    var imgs = root.querySelectorAll('img[data-src]');
-    if (!imgs.length) return;
-    if (typeof IntersectionObserver !== 'function'){ for (var i = 0; i < imgs.length; i++) railPhoto(imgs[i]); return; }
-    if (!OV_IO) OV_IO = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){ if (e.isIntersecting){ OV_IO.unobserve(e.target); railPhoto(e.target); } });
-    }, { root: document.getElementById('railExpand'), rootMargin: '600px 0px' });
-    for (var j = 0; j < imgs.length; j++) OV_IO.observe(imgs[j]);
-  }
 
   /* ---------- card ---------- */
   var RET_LABELS = {
@@ -888,7 +851,7 @@ function cardHTML(c){
       return r.json();
     }, function(e){ if (timer) clearTimeout(timer); throw e; });
   }
-  function filtered(){ return fRet !== 'all' || !!fQ.trim() || !!fB || !!fA || !!fT || !!fU; }
+  function filtered(){ return !!VER || fRet !== 'all' || !!fQ.trim() || !!fB || !!fA || !!fT || !!fU; }
   function endpoint(extra){
     var u = ENDPOINT + '?dept=' + encodeURIComponent(deptKey);
     if (fRet !== 'all') u += '&r=' + encodeURIComponent(fRet);
@@ -897,6 +860,7 @@ function cardHTML(c){
     if (fA) u += '&a=' + encodeURIComponent(fA);
     if (fT) u += '&t=' + encodeURIComponent(fT);
     if (fU) u += '&u=' + encodeURIComponent(fU);
+    if (VER) u += '&ver=' + encodeURIComponent(VER);
     return u + (extra || '');
   }
   function headUrl(){ return filtered() ? endpoint('') : SLICES + 'head.json'; }
@@ -908,13 +872,39 @@ function cardHTML(c){
      at a time as the shopper scrolls near the end, each batch one small
      file. At most 12 cards are drawn per carousel; "Ver todo" opens the
      whole carousel 48 cards at a time. */
+  /* Where a carousel's «Ver todo» goes (#443, "never a side-by-side
+     grid"): on a department page, the carousel's own railed view
+     (?ver=<its key>: Ofertas, then one carousel per store); on that view,
+     a store's carousel opens the set at that store (by type, or brand).
+     '' -- the set splits no further: the carousel grows in place. */
+  function landingUrl(ver, store){
+    return 'departamento.html?dept=' + encodeURIComponent(deptKey) + (fA ? '&a=' + encodeURIComponent(fA) : '') + (fB ? '&b=' + encodeURIComponent(fB) : '')
+      + (fT ? '&t=' + encodeURIComponent(fT) : '') + (fQ.trim() ? '&q=' + encodeURIComponent(fQ.trim()) : '') + (fU ? '&para=' + encodeURIComponent(fU) : '')
+      + '&ver=' + encodeURIComponent(ver) + (store ? '&tienda=' + encodeURIComponent(store) : (fRet !== 'all' ? '&tienda=' + encodeURIComponent(fRet) : ''));
+  }
+  function railDoor(r){
+    if (!r.k || r.k === 'todo' || /:otros$/.test(r.k)) return '';
+    if (VER){
+      var m = /^tienda:(.+)$/.exec(r.k);
+      return m && fRet === 'all' ? landingUrl(VER, m[1]) : '';
+    }
+    return landingUrl(r.k, '');
+  }
+  function nextCardHTML(r, shown){
+    var left = r.count - shown;
+    if (!(left > 0)) return '';
+    var href = railDoor(r);
+    return href
+      ? '<a class="rail-next" href="' + escRaw(href) + '" data-door>Ver todo<span>' + Number(r.count).toLocaleString('es-PE') + ' productos</span></a>'
+      : '<button type="button" class="rail-next" data-rk="' + r.i + '" data-n="' + r.count + '">Ver más<span>' + Number(left).toLocaleString('es-PE') + ' más</span></button>';
+  }
   function railSecHTML(r){
     var n = HEAD.railCards || 12;
     var door = r.count > n
       ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '"' + (r.k ? ' data-k="' + esc(r.k) + '" data-n="' + r.count + '"' : '') + '>Ver todo &#8594;</button>'
       : '';
-    var cards = r.cards ? r.cards.map(cardHTML).join('') : skeletons(Math.min(r.count, 4));
-    return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '"' + (r.title === 'Reacondicionados' ? ' id="rail-reacondicionados"' : '') + '>'
+    var cards = r.cards ? r.cards.map(cardHTML).join('') + nextCardHTML(r, r.cards.length) : skeletons(Math.min(r.count, 4));
+    return '<section class="rail-sec" aria-label="' + esc(r.title) + '" data-ri="' + r.i + '"' + (r.k ? ' data-k="' + esc(r.k) + '"' : '') + (r.title === 'Reacondicionados' ? ' id="rail-reacondicionados"' : '') + '>'
       + '<div class="rail-head"><h2>' + esc(r.title) + '</h2>'
       + '<span class="rail-count">' + Number(r.count).toLocaleString('es-PE') + '</span>' + door + '</div>'
       + (r.d ? '<p class="rail-note">' + esc(r.d) + '</p>' : '')
@@ -948,7 +938,8 @@ function cardHTML(c){
       if (seq !== SEQ) return;
       (data.rails || []).forEach(function(r){
         var sec = railsEl.querySelector('.rail-sec[data-ri="' + r.i + '"] .rail');
-        if (sec){ sec.innerHTML = (r.cards || []).map(cardHTML).join(''); watchPhotos(sec); }
+        var hr = HEAD.rails.filter(function(x){ return x.i === r.i; })[0];
+        if (sec){ sec.innerHTML = (r.cards || []).map(cardHTML).join('') + (hr ? nextCardHTML(hr, (r.cards || []).length) : ''); watchPhotos(sec); }
       });
       nextBatch = b + 1; batchBusy = false;
       if (nextBatch >= batches()){ var s = document.getElementById('railsMore'); if (s) s.remove(); }
@@ -971,14 +962,9 @@ function cardHTML(c){
   /* A rail not drawn among the rails: the lifted sales, and on a search
      landing the Ofertas rail and the type already leading the page. */
   function isOfertasRail(r){ return r.k === 'ofertas' || /^Ofertas\b/.test(r.title || ''); }
-  function skipRail(r){
-    if (r.i === liftedRi) return true;
-    if (VER && isOfertasRail(r) && HEAD.rails.some(function(x){ return !isOfertasRail(x); })) return true;
-    return !!(TYPE_KEY && TYPE_RI === r.i);
-  }
+  function skipRail(r){ return r.i === liftedRi; }
   function liftSales(first){
     liftedRi = -1;
-    if (VER){ if (salesTop){ salesTop.innerHTML = ''; hide(salesTop); } return first; }
     if (!patterned || !salesTop) return first;
     var r = null;
     for (var i = 0; i < HEAD.rails.length; i++) if (/^Ofertas\b/.test(HEAD.rails[i].title)){ r = HEAD.rails[i]; break; }
@@ -995,75 +981,46 @@ function cardHTML(c){
         if (seq !== SEQ) return;
         var got = (data.rails || []).filter(function(x){ return x.i === r.i; })[0];
         var rail = salesTop.querySelector('.rail');
-        if (got && rail){ rail.innerHTML = (got.cards || []).map(cardHTML).join(''); watchPhotos(salesTop); }
+        if (got && rail){ rail.innerHTML = (got.cards || []).map(cardHTML).join('') + nextCardHTML(r, (got.cards || []).length); watchPhotos(salesTop); }
         else { salesTop.innerHTML = ''; hide(salesTop); }
       }).catch(function(){ if (seq === SEQ){ salesTop.innerHTML = ''; hide(salesTop); } });
     }
     return first.filter(function(x){ return x !== r; });
   }
-  /* ---------- THE TYPE PAGE (a search's ?ver=<rail key>) ----------
-     The type's whole rail, 48 cards at a time, right under the hero: its
-     title and count head it (the "Celulares 87" page), the department's
-     other types follow below. A key the head does not carry (a stale
-     link) leaves the department page as it is. */
-  var TYPE_RI = -1, TL = { seq: 0, page: -1, pages: 1, busy: false };
-  var typeLeadEl = null;
-  function findTypeRail(){
-    TYPE_RI = -1;
-    if (!TYPE_KEY || !HEAD) return;
-    for (var i = 0; i < HEAD.rails.length; i++) if (HEAD.rails[i].k === TYPE_KEY && HEAD.rails[i].count > 0){ TYPE_RI = HEAD.rails[i].i; break; }
-  }
-  function renderTypeLead(){
-    if (!TYPE_KEY) return;
-    if (!typeLeadEl){
-      typeLeadEl = document.createElement('section');
-      typeLeadEl.id = 'typeLead'; typeLeadEl.className = 'type-lead';
-      /* Right under the hero and its «También puede ser…» chips. */
-      var at = document.getElementById('deptHero'), tp = document.getElementById('tpRow');
-      if (tp && tp.previousElementSibling === at) at = tp;
-      at.parentNode.insertBefore(typeLeadEl, at.nextSibling);
-    }
-    var r = null;
-    for (var i = 0; i < HEAD.rails.length; i++) if (HEAD.rails[i].i === TYPE_RI) r = HEAD.rails[i];
-    if (!r){ typeLeadEl.innerHTML = ''; hide(typeLeadEl); return; }
+  /* ---------- A SEARCH LANDING (?ver=) ----------
+     The hero names the set the server opened (vt: Drones, Vestidos...),
+     its department above it. */
+  function renderLanding(){
+    if (!VER || !HEAD) return;
     document.body.classList.add('type-page');
+    var t = HEAD.vt || fTitle || dept.name;
     document.getElementById('heroKicker').textContent = dept.name;
-    document.getElementById('heroTitle').textContent = r.title;
+    document.getElementById('heroTitle').textContent = t;
     document.getElementById('heroDesc').textContent = 'Precios en soles, de las tiendas de Estados Unidos.';
-    document.title = r.title + ' · ' + dept.name + ' | Aria Shop';
-    typeLeadEl.setAttribute('aria-label', r.title);
-    typeLeadEl.setAttribute('data-k', r.k);
-    typeLeadEl.innerHTML = '<div class="tl-head"><h2>' + esc(r.title) + '</h2><span class="tl-n" id="tlCount">' + Number(r.count).toLocaleString('es-PE') + (r.count === 1 ? ' producto' : ' productos') + '</span></div>'
-      + (fQ.trim() ? '<p class="tl-q">Con «' + esc(fQ.trim()) + '»</p>' : '')
-      + (r.d ? '<p class="rail-note">' + esc(r.d) + '</p>' : '')
-      + '<div class="re-grid" id="tlGrid">' + skeletons(4) + '</div>';
-    show(typeLeadEl);
-    TL = { seq: TL.seq + 1, page: -1, pages: 1, busy: false };
-    moreTypeLead(true);
+    document.title = t + (t !== dept.name ? ' · ' + dept.name : '') + ' | Aria Shop';
   }
-  function moreTypeLead(first){
-    if (TL.busy || TL.page + 1 >= TL.pages || TYPE_RI < 0) return;
-    TL.busy = true;
-    var seq = TL.seq, grid = document.getElementById('tlGrid');
-    getJSON(pageUrl(TYPE_RI, TL.page + 1)).then(function(data){
-      if (seq !== TL.seq || !grid) return;
-      TL.busy = false; TL.page = data.page; TL.pages = data.pages;
-      var wrap = document.getElementById('tlMoreWrap'); if (wrap) wrap.remove();
-      if (first) grid.innerHTML = '';
-      grid.insertAdjacentHTML('beforeend', (data.cards || []).map(cardHTML).join(''));
-      if (TL.page + 1 < TL.pages) grid.insertAdjacentHTML('beforeend', '<div id="tlMoreWrap" class="re-more"><button type="button" class="btn" id="tlMore">Mostrar más</button></div>');
-      watchPhotos(grid);
-    }).catch(function(){
-      if (seq !== TL.seq || !grid) return;
-      TL.busy = false;
-      if (first) grid.innerHTML = '';
-      var wrap = document.getElementById('tlMoreWrap'); if (wrap) wrap.remove();
-      grid.insertAdjacentHTML('beforeend', '<div id="tlMoreWrap" class="re-more"><p>No pudimos cargar los productos.</p><button type="button" class="btn" id="tlMore">Reintentar</button></div>');
-    });
+  /* A carousel that splits no further grows in place: the next cards
+     come into it, the carousel moves on to the first new one. */
+  var GROW = {};
+  function growRail(btn){
+    if (btn.disabled || !HEAD) return;
+    var ri = Number(btn.getAttribute('data-rk')), rail = btn.parentNode, r = HEAD.rails.filter(function(x){ return x.i === ri; })[0];
+    if (!r || !rail) return;
+    btn.disabled = true;
+    var size = HEAD.pageSize || 48, shown = rail.querySelectorAll('.card:not(.sk)').length, page = Math.floor(shown / size), seq = SEQ;
+    getJSON(pageUrl(ri, page)).then(function(data){
+      if (seq !== SEQ) return;
+      var cards = (data.cards || []).slice(shown - page * size), holder = document.createElement('div');
+      holder.innerHTML = cards.map(cardHTML).join('');
+      var firstNew = holder.firstChild;
+      while (holder.firstChild) rail.insertBefore(holder.firstChild, btn);
+      if (firstNew && rail.scrollTo) rail.scrollTo({ left: Math.max(0, firstNew.offsetLeft - rail.offsetLeft - 8), behavior: 'smooth' });
+      watchPhotos(rail);
+      var now = rail.querySelectorAll('.card:not(.sk)').length, left = r.count - now;
+      if (!cards.length || left <= 0) btn.remove();
+      else { btn.querySelector('span').textContent = Number(left).toLocaleString('es-PE') + ' más'; btn.disabled = false; }
+    }).catch(function(){ btn.disabled = false; });
   }
-  document.addEventListener('click', function(e){
-    if (e.target && e.target.id === 'tlMore'){ var w = document.getElementById('tlMoreWrap'); if (w) w.remove(); moreTypeLead(false); }
-  });
   function renderHead(){
     hide(emptyState); hide(loadingState);
     nextBatch = 0; batchBusy = false;
@@ -1145,9 +1102,8 @@ function cardHTML(c){
       }
       show(toolbar);
       renderChips();
-      findTypeRail();
+      renderLanding();
       renderHead();
-      renderTypeLead();
       /* The header (assets/js/dept-header.js): stats, switch, axes, Explorar todo. */
       try { HEAD_HOOKS.forEach(function(fn){ fn(HEAD, filtered()); }); } catch(e){}
       afterFirstPhotos(heroImage);
@@ -1181,66 +1137,6 @@ function cardHTML(c){
     return h;
   }
 
-  /* ---------- rail expand overlay: the whole carousel, 48 at a time ---------- */
-  var OV = { rk: null, page: 0, pages: 0, busy: false, seq: 0 };
-  /* odept: another department's carousel in this page's overlay (the Aria
-     Beauty Fragancias lead rail opens every perfume). */
-  function openRailExpand(rk, title, odept){
-    try{
-      var ov = document.getElementById('railExpand');
-      if (!ov) return;
-      var r = odept ? null : HEAD && (rk === 'all' ? { count: HEAD.count } : HEAD.rails[Number(rk)]);
-      ov.setAttribute('data-rk', rk);
-      ov.setAttribute('data-title', title || 'Productos');
-      document.getElementById('reTitle').textContent = title || 'Productos';
-      document.getElementById('reCount').textContent = r ? r.count.toLocaleString('es-PE') + (r.count === 1 ? ' producto' : ' productos') : '';
-      var grid = document.getElementById('reGrid');
-      grid.innerHTML = skeletons(6);
-      ov.hidden = false;
-      document.body.style.overflow = 'hidden';
-      ov.scrollTop = 0;
-      OV = { rk: rk === 'all' ? 'all' : Number(rk), dept: odept || '', page: -1, pages: 1, busy: false, seq: OV.seq + 1 };
-      moreExpand(true);
-    }catch(e){ showError('No pudimos mostrar todos los productos.'); }
-  }
-  function moreExpand(first){
-    if (OV.busy || OV.page + 1 >= OV.pages) return;
-    OV.busy = true;
-    var seq = OV.seq, grid = document.getElementById('reGrid');
-    var btn = document.getElementById('reMore');
-    if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
-    var url = OV.dept ? ENDPOINT + '?dept=' + encodeURIComponent(OV.dept) + '&rail=' + OV.rk + '&page=' + (OV.page + 1)
-      : pageUrl(OV.rk, OV.page + 1);
-    getJSON(url).then(function(data){
-      if (seq !== OV.seq) return;
-      if (first && data.count) document.getElementById('reCount').textContent = Number(data.count).toLocaleString('es-PE') + ' productos';
-      OV.busy = false; OV.page = data.page; OV.pages = data.pages;
-      var wrap = document.getElementById('reMoreWrap'); if (wrap) wrap.remove();
-      if (first) grid.innerHTML = '';
-      var holder = document.createElement('div');
-      holder.innerHTML = (data.cards || []).map(cardHTML).join('');
-      while (holder.firstChild) grid.appendChild(holder.firstChild);
-      if (OV.page + 1 < OV.pages){
-        grid.insertAdjacentHTML('beforeend', '<div id="reMoreWrap" class="re-more"><button type="button" class="btn" id="reMore">Mostrar más</button></div>');
-      }
-      watchOverlayPhotos(grid);
-    }).catch(function(){
-      if (seq !== OV.seq) return;
-      OV.busy = false;
-      if (first) grid.innerHTML = '';
-      var wrap = document.getElementById('reMoreWrap'); if (wrap) wrap.remove();
-      grid.insertAdjacentHTML('beforeend', '<div id="reMoreWrap" class="re-more"><p>No pudimos cargar los productos.</p><button type="button" class="btn" id="reMore">Reintentar</button></div>');
-    });
-  }
-  function closeRailExpand(){
-    try{
-      var ov = document.getElementById('railExpand');
-      if (ov) ov.hidden = true;
-      OV.seq++;
-      document.body.style.overflow = '';
-    }catch(e){}
-  }
-  if (typeof window !== 'undefined'){ window.closeRailExpand = closeRailExpand; }
 
   /* ---------- events ---------- */
   document.getElementById('retryBtn').addEventListener('click', loadAll);
@@ -1343,9 +1239,14 @@ function cardHTML(c){
     if (door){ e.preventDefault(); var t = document.getElementById('rail-reacondicionados'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     var m = e.target.closest('#moreRetry');
     if (m){ document.getElementById('railsMore').innerHTML = ''; appendBatch(); return; }
+    var g = e.target.closest('button.rail-next');
+    if (g){ growRail(g); return; }
     var b = e.target.closest('.ver-todo'); if(!b) return;
-    if (reRail(b.getAttribute('data-k') || '', +b.getAttribute('data-n') || 0, b.getAttribute('data-title') || '')) return;
-    openRailExpand(b.getAttribute('data-rk'), b.getAttribute('data-title'));
+    if (!VER && reRail(b.getAttribute('data-k') || '', +b.getAttribute('data-n') || 0, b.getAttribute('data-title') || '')) return;
+    /* The head's «Ver todo» is the carousel's last card: the same door. */
+    var sec = b.closest('.rail-sec'), next = sec && sec.querySelector('.rail-next');
+    if (next && next.tagName === 'A'){ location.href = next.getAttribute('href'); return; }
+    if (next){ var rl = sec.querySelector('.rail'); if (rl && rl.scrollTo) rl.scrollTo({ left: rl.scrollWidth, behavior: 'smooth' }); growRail(next); }
   }
   railsEl.addEventListener('click', railsClick);
   if (salesTop) salesTop.addEventListener('click', railsClick);
@@ -1440,10 +1341,6 @@ function cardHTML(c){
       var top = document.getElementById('toolbar'); if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start' });
     });
   });
-  /* The overlay's markup comes after this script: listen on the document. */
-  document.addEventListener('click', function(e){
-    if (e.target && e.target.closest && e.target.closest('#reMore')) moreExpand(false);
-  });
 
   /* ---------- Aria Beauty > Fragancias: the Perfumes lead rail (#443) ----------
      One small file (the home page's Perfumes shelf), sales plus the named
@@ -1510,19 +1407,6 @@ function cardHTML(c){
 </script>
 <noscript><div style="max-width:640px;margin:48px auto;padding:24px;text-align:center;font-family:sans-serif"><h2>Activa JavaScript</h2><p>Esta página necesita JavaScript para mostrar los productos.</p></div></noscript>
 
-<!-- RAIL EXPAND OVERLAY (2026-10-07): full-screen "Ver todo" for carousels -->
-<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
-  <div class="re-head">
-    <button type="button" class="re-back" onclick="closeRailExpand()" aria-label="Volver">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
-    <div style="min-width:0">
-      <div id="reTitle" class="re-title"></div>
-      <div id="reCount" class="re-count"></div>
-    </div>
-  </div>
-  <div id="reGrid" class="re-grid"></div>
-</div>
 <!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->
 <script src="/assets/js/aria-launcher.js" defer></script>
 <!-- A search's landing: «También puede ser…» chips (&tp=, #443 c.6569515583). -->

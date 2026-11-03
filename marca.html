@@ -96,20 +96,18 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .card .price .pen i{height:16px; width:45%;}
 .card.sk .brand i, .card.sk .retailer i{width:40%;}
 .re-more{grid-column:1/-1; text-align:center; padding:10px 0 24px; color:var(--muted); font-size:14px;}
-.more-btn{background:var(--blue); color:#fff; border:none; border-radius:12px; padding:12px 28px; font-size:15px; font-weight:700; cursor:pointer;}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
-/* ---------- rail expand overlay (full-screen "Ver todo") ---------- */
-.rail-expand{position:fixed; inset:0; z-index:90; background:#fff; display:flex; flex-direction:column;}
-.rail-expand[hidden]{display:none;}
-.re-head{flex-shrink:0; background:#fff; border-bottom:1px solid var(--line); padding:14px 16px; display:flex; align-items:center; gap:12px;}
-.re-back{width:40px; height:40px; flex-shrink:0; border-radius:50%; border:none; background:var(--sky); display:grid; place-items:center; cursor:pointer;}
-.re-title{font-size:17px; font-weight:800; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.re-count{font-size:12px; font-weight:600; color:var(--muted);}
-.re-grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(2,1fr); gap:14px; padding:16px; align-content:start;}
-@media(min-width:640px){ .re-grid{grid-template-columns:repeat(3,1fr);} }
-@media(min-width:960px){ .re-grid{grid-template-columns:repeat(4,1fr); max-width:1100px; margin:0 auto; width:100%;} }
+/* ---------- the end of a carousel (#443, Danny: "never a side-by-side grid") ----------
+   «Ver más» is the carousel's last card: a store's carousel opens that
+   store's page narrowed to the brand, in carousels by product type; any
+   other carousel brings its next cards into itself. */
+.rail .rail-next{flex:0 0 164px; align-self:stretch; scroll-snap-align:start; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center;
+  border:1px dashed var(--line); border-radius:16px; background:#fff; color:var(--navy); font:800 15px/1.2 inherit; font-family:inherit; cursor:pointer; padding:12px; text-decoration:none;}
+.rail .rail-next span{font-size:12px; font-weight:600; color:var(--muted);}
+.rail .rail-next[disabled]{opacity:.6;}
+.rail-head a.ver-todo{text-decoration:none;}
 
 /* Footer */
 footer{background:var(--navy); color:#B9C6E4; font-size:13px; padding:28px 20px; text-align:center; margin-top:auto;}
@@ -219,19 +217,6 @@ html{scroll-padding-top:76px}
   <div id="rails" aria-live="polite"><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section><section class="rail-section" aria-hidden="true"><div class="rail"><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div><div class="card sk" aria-hidden="true"><div class="img"></div><div class="body"><div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div><div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div></div></section></div>
 </main>
 
-<!-- RAIL EXPAND OVERLAY: full-screen "Ver todo" for every carousel -->
-<div id="railExpand" class="rail-expand" hidden role="dialog" aria-modal="true" aria-labelledby="reTitle">
-  <div class="re-head">
-    <button type="button" class="re-back" onclick="closeRailExpand()" aria-label="Volver">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
-    <div style="min-width:0">
-      <div id="reTitle" class="re-title"></div>
-      <div id="reCount" class="re-count"></div>
-    </div>
-  </div>
-  <div id="reGrid" class="re-grid"></div>
-</div>
 
 <footer>
   <div><a href="/">Aria Shop</a> — Compra en Estados Unidos, entregado en Perú.</div>
@@ -664,12 +649,28 @@ var SKELETON = '<div class="card sk" aria-hidden="true"><div class="img"></div><
   '<div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div>';
 function skeletons(n){ var h = ""; for (var i = 0; i < n; i++) h += SKELETON; return h; }
 
+/* The stores with a storefront of their own (assets/tienda/<key>/index.json;
+   scripts/test/carousels-only-tests.mjs pins the list). */
+var STORE_PAGES = " abercrombie academy advanceauto aguabendita alphalete americaneagle ancora ariaperfumes assouline athleta aybl babybrezza bananarepublic bathandbodyworks baublebar bellybandit bentgo bhphoto bornprimitive boxlunch brandsmart buffbunny calzedonia capittana carolinaherrera ccs chronicle combatcorner costco crateandbarrel crocs dagnedover denniskirk dicks drbrowns dsw eberjey elite elvie everlast ezpz farfetch farmrio finishline fleo footlocker freshlypicked fuji gameness gap gorillawear gymshark hatch hollister hottopic intimissimi ironrebel islandwatersports johannaortiz jujube jwpei killcrew kindredbravely kohls lanebryant lillebaby macys mainland meliebianco microcenter miumiu mmawarehouse mockingbird momcozy montce munchkin mushie nanit nautilus newbalance oldnavy oneractive owlet pacsun paragonfitwear parrot partycity patbo pier1 prosoccer quietstorm revolve revzilla ryderwear sephora silviatcherassi skims sleekshop smartbuyglasses snipes spectra ssense statebags surfstation tatami tennisexpress tenniswarehouse tlfapparel tns ulta valsurf venum victoriassecret vix walmart walmartbaby xtremesoccer yesstyle youngla zumiez ";
+window.ARIA_STORE_PAGES = STORE_PAGES;
+function storeDoor(store, q){
+  return store && STORE_PAGES.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(q) : "";
+}
+/* The carousel's last card: a store's door, or the next cards in place. */
+function nextCardHTML(r, shown){
+  if (!(r.count > shown)) return "";
+  var href = storeDoor(r.store, BRAND_LABEL);
+  return href
+    ? '<a class="rail-next" href="' + esc(href) + '">Ver todo<span>' + Number(r.count).toLocaleString("es-PE") + ' productos</span></a>'
+    : '<button type="button" class="rail-next" data-rk="' + r.i + '" data-n="' + r.count + '">Ver más<span>' + Number(r.count - shown).toLocaleString("es-PE") + ' más</span></button>';
+}
 function railHTML(r){
   var n = HEAD.railCards || 12;
-  var door = (r.count > n)
-    ? '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '">Ver todo →</button>'
+  var shownN = (r.cards || []).length, sd = storeDoor(r.store, BRAND_LABEL);
+  var door = (r.count > shownN)
+    ? (sd ? '<a class="ver-todo" href="' + esc(sd) + '">Ver todo →</a>' : '<button type="button" class="ver-todo" data-rk="' + r.i + '" data-title="' + esc(r.title) + '">Ver todo →</button>')
     : '';
-  var cards = r.i < FIRST_RAILS ? (r.cards || []).map(cardHTML).join("") : skeletons(Math.min(r.count, 4));
+  var cards = r.i < FIRST_RAILS ? (r.cards || []).map(cardHTML).join("") + nextCardHTML(r, shownN) : skeletons(Math.min(r.count, 4));
   return '<section class="rail-section" data-ri="' + r.i + '"' + (r.i < FIRST_RAILS ? '' : ' data-pending="1"') + '>' +
     '<div class="rail-head"><h2>' + esc(r.title) + '</h2>' +
     '<span class="rail-count">' + Number(r.count).toLocaleString("es-PE") + '</span>' + door + '</div>' +
@@ -683,7 +684,7 @@ function drawPending(sec){
   sec.removeAttribute("data-pending");
   var r = HEAD.rails[Number(sec.getAttribute("data-ri"))];
   var rail = sec.querySelector(".rail");
-  if (r && rail){ rail.innerHTML = (r.cards || []).map(cardHTML).join(""); watchPhotos(rail); }
+  if (r && rail){ rail.innerHTML = (r.cards || []).map(cardHTML).join("") + nextCardHTML(r, (r.cards || []).length); watchPhotos(rail); }
 }
 function watchRails(container){
   var secs = container.querySelectorAll(".rail-section[data-pending]");
@@ -777,60 +778,34 @@ function loadHead(){
   });
 }
 
-/* ---------- rail expand overlay: the whole carousel, 48 at a time ---------- */
-var OV = { rk: 0, page: -1, pages: 1, busy: false, seq: 0 };
-function openRailExpand(rk, title){
-  try{
-    var r = HEAD && HEAD.rails[Number(rk)];
-    var ov = el('railExpand');
-    if (!ov) return;
-    el('reTitle').textContent = title || 'Productos';
-    el('reCount').textContent = r ? r.count.toLocaleString("es-PE") + (r.count === 1 ? ' producto' : ' productos') : '';
-    el('reGrid').innerHTML = skeletons(6);
-    ov.hidden = false;
-    document.body.style.overflow = 'hidden';
-    el('reGrid').scrollTop = 0;
-    OV = { rk: Number(rk), page: -1, pages: 1, busy: false, seq: OV.seq + 1 };
-    moreExpand(true);
-  }catch(e){}
+/* ---------- a carousel that grows in place: the next 48 come into it ---------- */
+function growRail(btn){
+  if (!btn || btn.disabled || !HEAD) return;
+  var ri = Number(btn.getAttribute("data-rk")), r = HEAD.rails[ri], rail = btn.parentNode;
+  if (!r || !rail) return;
+  btn.disabled = true;
+  var size = HEAD.pageSize || 48, shown = rail.querySelectorAll(".card:not(.sk)").length, page = Math.floor(shown / size);
+  getJSON(ENDPOINT + "?marca=" + encodeURIComponent(BRAND_KEY) + "&rail=" + ri + "&page=" + page).then(function(data){
+    var cards = (data.cards || []).slice(shown - page * size), holder = document.createElement("div");
+    holder.innerHTML = cards.map(cardHTML).join("");
+    var firstNew = holder.firstChild;
+    while (holder.firstChild) rail.insertBefore(holder.firstChild, btn);
+    if (firstNew && rail.scrollTo) rail.scrollTo({ left: Math.max(0, firstNew.offsetLeft - rail.offsetLeft - 8), behavior: "smooth" });
+    watchPhotos(rail);
+    var left = r.count - rail.querySelectorAll(".card:not(.sk)").length;
+    if (!cards.length || left <= 0) btn.remove();
+    else { btn.querySelector("span").textContent = Number(left).toLocaleString("es-PE") + " más"; btn.disabled = false; }
+  }).catch(function(){ btn.disabled = false; });
 }
-function moreExpand(first){
-  if (OV.busy || OV.page + 1 >= OV.pages) return;
-  OV.busy = true;
-  var seq = OV.seq, grid = el('reGrid');
-  var btn = el('reMore');
-  if (btn){ btn.disabled = true; btn.textContent = 'Cargando…'; }
-  getJSON(ENDPOINT + "?marca=" + encodeURIComponent(BRAND_KEY) + "&rail=" + OV.rk + "&page=" + (OV.page + 1)).then(function(data){
-    if (seq !== OV.seq) return;
-    OV.busy = false; OV.page = data.page; OV.pages = data.pages;
-    var wrap = el('reMoreWrap'); if (wrap) wrap.remove();
-    if (first) grid.innerHTML = '';
-    grid.insertAdjacentHTML('beforeend', (data.cards || []).map(cardHTML).join(''));
-    if (OV.page + 1 < OV.pages) grid.insertAdjacentHTML('beforeend', '<div id="reMoreWrap" class="re-more"><button type="button" class="more-btn" id="reMore">Mostrar más</button></div>');
-    watchPhotos(grid);
-  }).catch(function(){
-    if (seq !== OV.seq) return;
-    OV.busy = false;
-    if (first) grid.innerHTML = '';
-    var wrap = el('reMoreWrap'); if (wrap) wrap.remove();
-    grid.insertAdjacentHTML('beforeend', '<div id="reMoreWrap" class="re-more"><p>No pudimos cargar los productos.</p><button type="button" class="more-btn" id="reMore">Reintentar</button></div>');
-  });
-}
-function closeRailExpand(){
-  try{
-    var ov = el('railExpand');
-    if (ov) ov.hidden = true;
-    OV.seq++;
-    document.body.style.overflow = '';
-  }catch(e){}
-}
-window.closeRailExpand = closeRailExpand;
 document.addEventListener("click", function(e){
   var t = e.target;
   if (!t || !t.closest) return;
-  if (t.closest("#reMore")){ moreExpand(false); return; }
-  var b = t.closest(".ver-todo");
-  if (b) openRailExpand(b.getAttribute("data-rk"), b.getAttribute("data-title"));
+  var g = t.closest("#rails button.rail-next, #salesTop button.rail-next");
+  if (g){ growRail(g); return; }
+  var b = t.closest("button.ver-todo");
+  if (!b) return;
+  var sec = b.closest(".rail-section"), next = sec && sec.querySelector("button.rail-next");
+  if (next){ var rl = sec.querySelector(".rail"); if (rl && rl.scrollTo) rl.scrollTo({ left: rl.scrollWidth, behavior: "smooth" }); growRail(next); }
 });
 
 /* ---------- boot ---------- */
