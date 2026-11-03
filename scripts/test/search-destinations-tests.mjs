@@ -181,6 +181,10 @@ const AUD = ["electronics", "pasillo:tech_audifonos"], CAM = ["electronics", "pa
 const CHAMPU = ["cabello", "tipo:champú y acondicionador"], KERA = ["cabello", "tipo:keratina y alisados"], MASK = ["cabello", "tipo:mascarillas"];
 const PESAS = ["sporting_goods", "tipo:pesas-y-cinturones"], VAJ = ["home_goods", "casa:casa_mesa"], LAB = ["beauty", "tipo:labios"];
 const POL = ["men", "tipo:chompas-y-polerones"], SHO = ["clothing", "tipo:shorts"];
+/* Drones (#443 c.6583248088: «dron» landed on the shelf, «drone» did not):
+   every spelling, Spanish and English, singular and plural, accented or
+   not, alone or with a modifier, lands on the ONE Drones type page. */
+const DRN = ["electronics", "pasillo:tech_drones"];
 const WATCH = [
   ["celular", CEL], ["celulares", CEL], ["teléfono", CEL], ["telefono", CEL], ["fono", CEL], ["cell", CEL], ["cell phone", CEL], ["smartphone", CEL],
   ["un celular barato", CEL],
@@ -192,6 +196,10 @@ const WATCH = [
   ["polera", POL], ["poleras", POL], ["hoodie", POL], ["hudi", POL], ["hodie", POL], ["sudadera con capucha", POL], ["poleron", POL],
   ["sweatshirt", POL], ["swetshert", POL],
   ["short", SHO], ["shorts", SHO], ["chort", SHO], ["shor", SHO],
+  ["dron", DRN], ["drón", DRN], ["drone", DRN], ["Drone", DRN], ["DRONE", DRN], ["drones", DRN], ["Drones", DRN], ["drons", DRN],
+  ["dji", DRN], ["DJI", DRN], ["cuadricóptero", DRN], ["cuadricoptero", DRN], ["cuadricópteros", DRN], ["quadcopter", DRN], ["Quadcopters", DRN],
+  ["dji drone", DRN], ["drone dji", DRN], ["drone con cámara", DRN], ["camera drone", DRN], ["fpv drone", DRN], ["drone fpv", DRN],
+  ["drone 4k", DRN], ["dron 4k", DRN], ["mini drone", DRN], ["drone para niños", DRN], ["dron para niños", DRN], ["dron profesional", DRN],
 ];
 /* The type page as departamento.html draws it: the (narrowed) head, the
    rail whose key is ver=, and that rail's first page from the endpoint. */
@@ -454,7 +462,9 @@ if (pw) {
     /* Danny's screenshot: «celular» opens the Celulares type page, phones first. */
     for (const [word, rx, title, shot] of [["celular", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_celulares/, "Celulares", "pw-celular.png"],
       ["laptop", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_computadoras/, "Computadoras y tablets", "pw-laptop.png"],
-      ["champú", /departamento\.html\?dept=cabello&ver=tipo%3Achamp%C3%BA%20y%20acondicionador/, "Champú y acondicionador", "pw-champu.png"]]) {
+      ["champú", /departamento\.html\?dept=cabello&ver=tipo%3Achamp%C3%BA%20y%20acondicionador/, "Champú y acondicionador", "pw-champu.png"],
+      ["drone", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_drones/, "Drones", "drn-drone.png"],
+      ["dron", /departamento\.html\?dept=electronics&ver=pasillo%3Atech_drones/, "Drones", "drn-dron.png"]]) {
       /* CAROUSELS ONLY (#443, 2026-11-02): the type page is the one landing
          format -- the type's own Ofertas on top, then one carousel per store
          -- never the side-by-side grid it used to be. */

@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle as conditionOfAnyTitle, CONDITION_LABELS } from "../../scripts/lib/condition.js";
-import { techAisle, isTechProduct, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole, isDrone, droneRank } from "../../scripts/lib/tech-aisle.js";
+import { techAisle, isTechProduct, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole, isDrone, isDroneProduct, droneRank } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
 export const RAIL_CARDS = 12;    // cards drawn in one carousel
@@ -585,7 +585,7 @@ const LAPTOP_SPEC_RX = /\b(\d+\s?gb|ssd|emmc|celeron|pentium|intel|amd|ryzen|ath
 const NOT_LAPTOP_RX = /\b(tablets?|ipad|cases?|sleeves?|bags?|backpacks?|stands?|trays?|desks?|drones?|toys?|kids|learning|cooler|cooling pad|skins?|chargers?|adapters?|keyboards?|mouse|docks?|docking|locks?|screen protectors?|batter(y|ies)|replacement|lcd screen|hinges?|fans?)\b/i;
 /* A drone is a drone whatever aisle the store filed it in (BrandsMart's
    and Costco's drones arrived as Cámaras). */
-export const techAisleOf = (p) => (isDrone(p.title) ? "tech_drones" : /^tech_/.test(String(p.type || "")) ? String(p.type) : techAisle(p.title, p.type));
+export const techAisleOf = (p) => (isDroneProduct(p) ? "tech_drones" : /^tech_/.test(String(p.type || "")) ? String(p.type) : techAisle(p.title, p.type));
 /* The Drones type in its lead order (scripts/lib/tech-aisle.js droneRank):
    DJI's pro line first, toys last; inside a rank the list's own order. */
 export const dronesOrder = (l) => l.map((p, i) => ({ p, i, r: droneRank(p) })).sort((a, b) => (a.r - b.r) || (a.i - b.i)).map((x) => x.p);

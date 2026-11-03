@@ -12,7 +12,11 @@
      - Electrónica's rails and store lenses hold electronics only;
      - Drones is its own type (Por tipo rail, t=drones page, aisle, home
        pill), DJI's pro line first; Cámaras holds no drone;
-     - the search router sends dron / drone / drones / dji there.
+     - the search router sends dron / drone / drones / dji there;
+     - the reconciliation (#443 c.6583248088, reports/drones-reconcile-
+       2026-11-02.md): every drone in the catalogues reaches the Drones
+       shelf, except Best Buy's (off sale) and a second listing with the
+       same store and title (the product page is keyed by store + title).
 
      node scripts/test/not-sold-tests.mjs
    ================================================================== */
@@ -26,7 +30,7 @@ process.chdir(ROOT);
 await import("../../not-sold.js");
 const NS = globalThis.AriaNotSold;
 const { isOffSaleItem } = await import("../lib/off-sale.js");
-const { isDrone, isNotElectronics, techAisle, droneRank } = await import("../lib/tech-aisle.js");
+const { isDrone, isDroneProduct, isNotElectronics, techAisle, droneRank } = await import("../lib/tech-aisle.js");
 const dept = await import("../../netlify/functions/_department-core.js");
 const purge = await import("../purge-not-sold.mjs");
 
@@ -169,6 +173,55 @@ await check("the search router lands dron / drone / drones / dji on the Drones t
   const secs = dept.buildSections(D.list, dept.sectionOpts("electronics"));
   const s = secs.find((x) => x.key === "pasillo:tech_drones");
   assert.ok(s && /\bDJI\b/.test(s.items[0].title) && !secs.some((x) => x.key === "pasillo:tech_camaras" && x.items.some((p) => isDrone(p.title))));
+});
+
+/* THE RECONCILIATION (#443 c.6583248088, Danny live on the #610 preview:
+   "the Drones shelf shows 246"). Every drone in the catalogues -- named a
+   drone, or typed one by its own store ("Dron", "Aerial Drones",
+   "Drones") -- deduplicated by store + URL, and where each one went. The
+   ledger is reports/drones-reconcile-2026-11-02.md; when a pull changes
+   the catalogues, regenerate it and these numbers with it. */
+const RECONCILED = { drones: 309, shelf: 268, offSale: { bestbuy: 37 }, sameTitle: 4,
+  byStore: { bhphoto: 196, walmart: 60, brandsmart: 9, costco: 3 } };
+await check(`the Drones shelf holds every sellable drone in the catalogues: ${RECONCILED.shelf} of ${RECONCILED.drones} (Best Buy off sale, ${RECONCILED.sameTitle} second listings of one title)`, async () => {
+  const slices = await import("../build-department-slices.mjs");
+  const { isOffSaleRetailer } = await import("../lib/off-sale.js");
+  const files = [...new Set([...slices.CATALOG_FILES, "/bestbuy-catalog.json"])];
+  const seenUrl = new Set(), firstUrl = new Map(), drones = [];
+  for (const f of files) {
+    let d; try { d = json(f.slice(1)); } catch { continue; }
+    for (const [rk, r] of Object.entries((d && d.retailers) || {})) for (const b of Object.values(r.departments || {})) for (const it of b.items || []) {
+      const t = it.name || it.title || "";
+      if (!firstUrl.has(rk + "::" + t)) firstUrl.set(rk + "::" + t, it.url);
+      if (!isDroneProduct({ title: t, type: it.type })) continue;
+      const k = rk + "|" + (it.url || t);
+      if (seenUrl.has(k)) continue;
+      seenUrl.add(k);
+      drones.push({ rk, t, url: it.url, price: Number(it.price), image: it.image || (it.images || [])[0] || "" });
+    }
+  }
+  const D = dept.loadDept("electronics");
+  const shelf = dept.buildSections(D.list, dept.sectionOpts("electronics")).find((x) => x.key === "pasillo:tech_drones").items;
+  const onShelf = new Set(shelf.map((p) => p.retailer + "::" + p.title));
+  const why = (x) => isOffSaleRetailer(x.rk) ? "off-sale" : firstUrl.get(x.rk + "::" + x.t) !== x.url ? "same-title" : onShelf.has(x.rk + "::" + x.t) ? "shelf" : "MISSING";
+  const missing = drones.filter((x) => why(x) === "MISSING").map((x) => x.rk + ": " + x.t);
+  assert.deepEqual(missing, [], "drones in the catalogues that never reach the shelf");
+  for (const x of drones) if (why(x) === "shelf") assert.ok(x.price > 0 && x.image, `${x.t}: on the shelf without a price or a photo`);
+  const n = (w) => drones.filter((x) => why(x) === w).length;
+  assert.equal(drones.length, RECONCILED.drones, "drones in the catalogues (update reports/drones-reconcile-2026-11-02.md)");
+  assert.equal(n("off-sale"), RECONCILED.offSale.bestbuy);
+  assert.equal(n("same-title"), RECONCILED.sameTitle);
+  assert.equal(shelf.length, RECONCILED.shelf, "the Drones shelf count");
+  assert.equal(n("shelf"), shelf.length, "a shelf item that is no catalogue drone");
+  const by = {}; for (const p of shelf) by[p.retailer] = (by[p.retailer] || 0) + 1;
+  assert.deepEqual(by, RECONCILED.byStore);
+  assert.equal(json("assets/search/destinations.json").types.electronics["pasillo:tech_drones"][1], RECONCILED.shelf, "the search landing's count");
+  /* The rules the reconciliation found. */
+  for (const t of ["HOVERAir X1 PROMAX Retail Combo", "ACSL SOTEN Survey Bundle", "FREEFLY Alta X with F9P GPS & Travel Case (Aircraft with Pilot Pro & Remote ID Kit)",
+    "HOVERAir X1 PROMAX 8K Self-Flying Camera Bundle"]) assert.equal(techAisle(t), "tech_drones", t);
+  assert.ok(isDroneProduct({ title: "HOVERAir X1 PRO", type: "Dron" }) && !isDroneProduct({ title: "Murder Drones Uzi Backpack", type: "Drones" }));
+  assert.equal(techAisle("AMGRA Mini Wireless Security Camera, Full HD 1080P Portable Small HD Nanny Cam with Night Vision, Video Record and Motion Detection for Home, Car, Drone, Office and Outdoor Use"), "tech_casa_inteligente");
+  for (const t of ["KODA Hardwire Motion Activated LED Security Floodlight", "Polaroid Go Color Film, 5-pack", "Ring 9-piece Security Kit"]) assert.notEqual(techAisle(t, "cameras-drones"), "tech_drones", t);
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

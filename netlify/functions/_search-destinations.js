@@ -130,7 +130,7 @@ export const PRODUCT_TYPES = {
   audifonos: { dept: "electronics", ver: "pasillo:tech_audifonos", sib: [["electronics", "pasillo:tech_audio"], ["reacondicionados", "aisle:tech_audifonos"]] },
   camaras: { dept: "electronics", ver: "pasillo:tech_camaras", sib: [["reacondicionados", "aisle:tech_camaras"]] },
   /* Drones, their own type (#443 c.6579603095): DJI's pro line leads it. */
-  drones: { dept: "electronics", ver: "pasillo:tech_drones", sib: [["electronics", "pasillo:tech_camaras"]] },
+  drones: { dept: "electronics", ver: "pasillo:tech_drones", sib: [["electronics", "pasillo:tech_camaras"]], phrase: true },
   monitores: { dept: "electronics", ver: "pasillo:tech_accesorios", q: "monitor", sib: [["electronics", "pasillo:tech_gaming", "monitor"], ["electronics", "pasillo:tech_computadoras"]] },
   champu: { dept: "cabello", ver: "tipo:champú y acondicionador", sib: [["cabello", "tipo:mascarillas"], ["beauty", "tipo:cuidado-del-cabello"]] },
   keratina: { dept: "cabello", ver: "tipo:keratina y alisados", sib: [["cabello", "tipo:reparación"], ["cabello", "tipo:mascarillas"]] },
@@ -152,7 +152,7 @@ export const PRODUCT_WORDS = {
   chromebooks: "chromebook|chromebooks|chrome book|chrome books|chromebok",
   consolas: "consola|consolas|consola de videojuegos|consolas de videojuegos|console|consoles|game console|game consoles|video game console|playstation|play station|xbox|consola playstation|consola xbox",
   audifonos: "audifonos|audifono|audifonos inalambricos|audifonos bluetooth|auriculares|auricular|headphones|headphone|earbuds|earphones|headset|headsets",
-  drones: "dron|drones|drone|dji|drone dji|dron dji|drones dji|cuadricoptero|cuadricopteros|quadcopter|quadcopters|dron con camara|drone con camara|drone with camera|drones con camara|dorn|drom|drones fpv|fpv drone",
+  drones: "dron|drones|drone|drons|dji|drone dji|dron dji|drones dji|dji drone|dji drones|dji dron|cuadricoptero|cuadricopteros|cuadricopter|quadricoptero|quadcopter|quadcopters|quadrocopter|dron con camara|drone con camara|drone with camera|drones con camara|camera drone|drone camera|dorn|drom|drones fpv|fpv drone|drone fpv|dron fpv",
   camaras: "camara|camaras|camara fotografica|camaras fotograficas|camara digital|camaras digitales|camera|cameras|digital camera|digital cameras",
   monitores: "monitor|monitores|monitor de computadora|monitor gamer|monitores gamer|computer monitor|computer monitors|gaming monitor|gaming monitors",
   champu: "champu|champus|champoo|shampoo|shampoos|shampu|shampo|champu y acondicionador|acondicionador|acondicionadores|conditioner|conditioners",
@@ -284,6 +284,21 @@ export function productTypeOf(D, q) {
   /* "sudadera con capucha": the phrase as written, then without its filler. */
   return look(all.join(" ")) || look(phrase) || look(spaced(D.en.get(phrase) || "")) ||
     (words.length === 1 ? look(phrase.replace(/(es|s)$/, "")) || look(phrase + "s") : "");
+}
+
+/* A type whose word reads the same with other words around it
+   (PRODUCT_TYPES[id].phrase): «dron 4k», «mini drone», «drone para niños»
+   are the Drones type, not the department home or the chooser (#443
+   c.6583248088). Read after the store and brand words, so a brand + model
+   query («dji mini 4 pro») keeps its brand page. */
+export function productTypePhrase(D, q) {
+  const words = wordsOf(q).filter((w) => !FILLER.has(w));
+  if (words.length < 2 || words.length > 6) return "";
+  for (let n = 2; n >= 1; n--) for (let i = 0; i + n <= words.length; i++) {
+    const id = D.productWords.get(words.slice(i, i + n).join(" "));
+    if (id && PRODUCT_TYPES[id].phrase) return id;
+  }
+  return "";
 }
 
 /* ---------- the store ---------- */
@@ -757,6 +772,8 @@ function resolveDirect(D, query, words) {
     const rest = restOf(words, bs);
     return brandDest(D, bs.key, rest);
   }
+  const pp = productTypePhrase(D, query);
+  if (pp) return { ...typeDest(D, pp), ptype: pp };
   if (cat) {
     /* Words beyond the category narrow it only when they are English the
        department's titles carry (its endpoint matches title words). */
