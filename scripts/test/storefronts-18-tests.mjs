@@ -281,7 +281,8 @@ await check("headless at 390px: Aria Perfumes (flagship) and Sephora paint from 
         assert.ok(r.houses >= 6, `${r.houses} house tiles`);
         assert.ok(r.launch > 0, "no launch label on the cards");
         await pg.click(".fl-house");
-        await pg.waitForFunction(() => document.querySelectorAll("#reGrid .card:not(.sk)").length > 0, null, { timeout: 30000 });
+        /* A house opens its carousel as the store's railed view (#443, carousels only). */
+        await pg.waitForFunction(() => document.querySelectorAll("#content .rail-sec[data-gk] .card:not(.sk)").length > 0 && document.querySelector("#content .sl-back"), null, { timeout: 30000 });
       } else {
         assert.ok(!r.flagship && r.logo, "Sephora wears its own logo, not the flagship");
         assert.equal(r.launch, 0);

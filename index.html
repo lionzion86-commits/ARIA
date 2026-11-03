@@ -1320,13 +1320,13 @@ html{scroll-padding-top:76px}
      photos; a swipe still scrolls the rail (#556). */
   .ariaRail > button.w-\[172px\], .ariaRail > button.w-\[224px\]{ width:clamp(232px,68vw,300px) !important; }
   .ariaRail > button.w-\[172px\] > span:first-child, .ariaRail > button.w-\[224px\] > span:first-child{ height:auto !important; aspect-ratio:4/5; }
-  /* RAIL EXPAND (2026-10-07): full-screen "Ver todo" grid. Cards render
-     via railCardHTML (fixed-width buttons); the grid overrides to fluid. */
-  #railExpandGrid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-  #railExpandGrid > button{ width:100% !important; flex:none !important; }
-  #railExpandGrid > button > span:first-child{ height:auto !important; aspect-ratio:3/4; }
-  @media (min-width:640px){ #railExpandGrid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
-  @media (min-width:1024px){ #railExpandGrid{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+  /* CAROUSELS ONLY (#443, Danny 2026-11-02: "never again a side-by-side
+     grid"): the app's full-list views -- a rail's "Ver todo", a store's
+     results, a catalogue listing -- are one carousel each, the big card,
+     never cards in rows and columns. */
+  #railExpandGrid, #storeResultsGrid, #catalogGrid{ display:flex !important; flex-wrap:nowrap !important; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:10px; -webkit-overflow-scrolling:touch; }
+  #railExpandGrid > *, #storeResultsGrid > *, #catalogGrid > *{ flex:0 0 clamp(232px,68vw,300px) !important; width:clamp(232px,68vw,300px) !important; max-width:none !important; scroll-snap-align:start; }
+  #railExpandGrid > button > span:first-child{ height:auto !important; aspect-ratio:4/5; }
   /* BRAND STRIP LOGOS (2026-09-26, Danny's QA: text-only tiles were
      unreadable as brands). Official logo SVGs live in logos/brands/,
      keyed by brandKeyOf(label). A brand with no sourced logo keeps the

@@ -34,7 +34,7 @@
 import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor, canonicalTokens, pairCount, dictWords } from "./_search-core.js";
 
 export const DEST_FILE = "assets/search/destinations.json";
-export const CHOOSER_MAX = 3, ALT_MAX = 4, RAIL_ITEMS = 12;
+export const CHOOSER_MAX = 4, ALT_MAX = 4, RAIL_ITEMS = 12;
 
 export const nameKey = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
   .replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
@@ -826,7 +826,7 @@ function withAlternatives(ctx, D, query, dest, hits, extra = []) {
   /* A model with unknown words beside known ones keeps the known ones. */
   if (dest.q && (dest.kind === "brand" || dest.kind === "store")) {
     const w = wordsOf(dest.q), known = w.filter((x) => isKnownWord(ctx, D, x));
-    if (known.length && known.length < w.length) dest = dest.kind === "brand" ? brandDest(D, dest.key, known.join(" ")) : storeDest(D, dest.key, known.join(" "));
+    if (known.length < w.length) dest = dest.kind === "brand" ? brandDest(D, dest.key, known.join(" ")) : storeDest(D, dest.key, known.join(" "));
   }
   /* An unambiguous product word: its sibling types and its department
      only -- no brand or store guess that contradicts the word. */
@@ -840,49 +840,83 @@ export function hrefWith(url, alternatives) {
   return url + "&tp=" + enc(JSON.stringify(alternatives.map((a) => [a.kind, a.label, a.url])));
 }
 
-/* ---------- the chooser ---------- */
-const DOOR_WORD = { store: "Tienda", brand: "Marca", category: "Categoría" };
-const ENTRY_DOORS = [
-  { kind: "entry", key: "ofertas", label: "Ofertas", url: "ofertas.html", door: "Ver las ofertas", note: "Lo que está en oferta hoy, en todas las tiendas." },
-  { kind: "entry", key: "tiendas", label: "Todas las tiendas", url: "tiendas.html", door: "Ver las tiendas", note: "Cada tienda de Estados Unidos con su propia página." },
-  { kind: "entry", key: "categorias", label: "Categorías", url: "categorias.html", door: "Ver las categorías", note: "Moda, zapatos, belleza, electrónica, juguetes y más." },
-];
-function railOf(ctx, D, dest, items, fx) {
-  return { kind: dest.kind, key: dest.key, label: dest.label, title: DOOR_WORD[dest.kind] + " · " + dest.label, url: dest.url,
-    door: "Ver todo en " + dest.label, n: items.length, items: items.slice(0, RAIL_ITEMS).map((p) => cardOf(p, fx, ctx.labels)) };
+/* ---------- the chooser ----------
+   (#443, Danny: "never again a side-by-side grid"; "never zero.") When the
+   router cannot decide, the shopper chooses between FOUR doors, always in
+   this order and always each with real products: Categoría, Marca,
+   Producto, Ofertas. Each is a carousel of its own products whose door
+   opens the one landing format (Ofertas on top, then one carousel per
+   store): the category's page, the brand's page, the search's own
+   carousels (search.html?resultados=1), the sales. What the answer found
+   picks each door; for a miss, the closest name; and for a word nothing
+   resembles, where to start: the biggest category and brand, the
+   Celulares type, today's sales. */
+export const CHOOSER_KINDS = ["category", "brand", "product", "ofertas"];
+const DOOR_WORD = { store: "Tienda", brand: "Marca", category: "Categoría", product: "Producto", ofertas: "Ofertas" };
+export const resultsUrl = (q) => "search.html?resultados=1&q=" + enc(q);
+function railOf(ctx, D, dest, items, fx, kind = dest.kind, door = "Ver todo en " + dest.label, n = items.length) {
+  return { kind, key: dest.key, label: dest.label, title: DOOR_WORD[kind] + " · " + dest.label, url: dest.url,
+    door, n, items: items.slice(0, RAIL_ITEMS).map((p) => cardOf(p, fx, ctx.labels)) };
 }
+const biggest = (m) => [...m.entries()].sort((a, b) => (b[1].length - a[1].length) || (a[0] < b[0] ? -1 : 1))[0] || null;
 function chooserAnswer(ctx, D, query, hits, fx, reason, near = []) {
-  const rails = [];
   const idx = railIndex(ctx, D);
-  if (hits.length) {
-    /* From the answer: the store carrying most of it, the brand, the
-       category -- each with its own products from the answer. */
-    const top = hits.slice(0, 200);
-    const pick = (keyOf, make) => {
-      const [t] = tally(top, keyOf);
-      if (!t || t[1] < 2) return;
-      const items = hits.filter((p) => p.image && keyOf(p) === t[0]);
-      rails.push(railOf(ctx, D, make(t[0], items), items, fx));
-    };
-    pick((p) => (D.stores[p.retailer] ? p.retailer : ""), (k) => storeDest(D, k, query));
-    pick((p) => brandOfHit(D, p), (k) => {
-      const bw = new Set(wordsOf(D.brands[k][0]));
-      return brandDest(D, k, wordsOf(query).filter((w) => !bw.has(w) && !FILLER.has(w)).join(" "));
-    });
-    if (isAccessoryQuery(query) && D.depts.electronics) {
-      const acc = (ACCESSORY_EN.find(([rx]) => rx.test(deaccent(query))) || [, ""])[1];
-      const items = hits.filter((p) => p.image && deptOfProduct(p) === "electronics");
-      rails.push(railOf(ctx, D, deptDest(D, "electronics", { q: acc }), items.length ? items : hits.filter((p) => p.image), fx));
-    } else pick(deptOfProduct, (k, items) => deptDest(D, k, { q: narrowing(query, items) }));
-  } else {
-    /* A miss: the closest names, each with its own best products. */
-    for (const n of near) {
-      const list = n.kind === "store" ? idx.byStore.get(n.dest.key) : n.kind === "brand" ? idx.byBrand.get(n.dest.key) : idx.byDept.get(n.dest.key);
-      rails.push(railOf(ctx, D, n.dest, idx.best(list || []), fx));
+  const shown = hits.filter((p) => p.image);
+  const top = hits.slice(0, 200);
+  const nearOf = (k) => near.find((n) => n.kind === k);
+  const rails = [];
+  /* Categoría */
+  let cat = null;
+  if (isAccessoryQuery(query) && D.depts.electronics && shown.length) {
+    const acc = (ACCESSORY_EN.find(([rx]) => rx.test(deaccent(query))) || [, ""])[1];
+    const items = shown.filter((p) => deptOfProduct(p) === "electronics");
+    cat = [deptDest(D, "electronics", { q: acc }), items.length ? items : shown];
+  }
+  if (!cat && shown.length) {
+    const [t] = tally(top, deptOfProduct);
+    if (t && t[1] >= 2 && D.depts[t[0]]) { const items = shown.filter((p) => deptOfProduct(p) === t[0]); if (items.length) cat = [deptDest(D, t[0], { q: narrowing(query, items) }), items]; }
+  }
+  if (!cat && nearOf("category")) { const n = nearOf("category"), all = idx.byDept.get(n.dest.key) || []; if (all.length) cat = [n.dest, idx.best(all), all.length]; }
+  if (!cat) { const b = biggest(new Map([...idx.byDept].filter(([k]) => D.depts[k]))); if (b) cat = [deptDest(D, b[0]), idx.best(b[1]), b[1].length]; }
+  if (cat) rails.push(railOf(ctx, D, cat[0], cat[1], fx, "category", undefined, cat[2] || cat[1].length));
+  /* Marca */
+  let brand = null;
+  if (shown.length) {
+    const [t] = tally(top, (p) => brandOfHit(D, p));
+    if (t && t[1] >= 2) {
+      const bw = new Set(wordsOf(D.brands[t[0]][0]));
+      const items = shown.filter((p) => brandOfHit(D, p) === t[0]);
+      if (items.length) brand = [brandDest(D, t[0], wordsOf(query).filter((w) => !bw.has(w) && !FILLER.has(w)).join(" ")), items];
     }
   }
-  const out = rails.slice(0, CHOOSER_MAX);
-  const doors = !out.length;
+  if (!brand && nearOf("brand")) { const n = nearOf("brand"), all = idx.byBrand.get(n.dest.key) || []; if (all.length) brand = [n.dest, idx.best(all), all.length]; }
+  if (!brand) { const b = biggest(idx.byBrand); if (b) brand = [brandDest(D, b[0]), idx.best(b[1]), b[1].length]; }
+  if (brand) rails.push(railOf(ctx, D, brand[0], brand[1], fx, "brand", undefined, brand[2] || brand[1].length));
+  /* Producto: the search's own carousels -- the words as typed, or the
+     closest name the catalogue knows; for nothing at all, Celulares. */
+  let prod = null;
+  if (shown.length) prod = [{ key: "producto", label: "“" + query + "”", url: resultsUrl(query) }, shown];
+  if (!prod) for (const n of near) {
+    const r = equivalentQuery(ctx, n.dest.label);
+    const l = r && r.state === "results" ? r.hits.filter((p) => p.image) : [];
+    if (l.length) { prod = [{ key: "producto", label: "“" + n.dest.label + "”", url: resultsUrl(n.dest.label) }, l]; break; }
+  }
+  if (!prod && PRODUCT_TYPES.celulares && D.types.electronics && D.types.electronics[PRODUCT_TYPES.celulares.ver]) {
+    const r = equivalentQuery(ctx, "celular");
+    const l = r && r.state === "results" ? r.hits.filter((p) => p.image) : [];
+    if (l.length) prod = [{ ...typeDest(D, "celulares"), key: "producto", label: "Celulares" }, l];
+  }
+  if (prod) rails.push(railOf(ctx, D, prod[0], prod[1], fx, "product", "Ver todo"));
+  /* Ofertas: what of it is on sale; else today's sales everywhere. */
+  const doors = !shown.length && !near.length;
+  const pool = prod && !doors ? prod[1] : [];
+  let sales = pool.filter(onSale);
+  let ofertas = sales.length ? { key: "ofertas", label: "En oferta", url: prod[0].url.indexOf("search.html") === 0 ? prod[0].url + "#lane-ofertas" : prod[0].url } : null;
+  if (!ofertas) {
+    sales = [...idx.byDept.values()].flat().filter(onSale);
+    if (sales.length) ofertas = { key: "ofertas", label: "Ofertas de hoy", url: "ofertas.html" };
+  }
+  if (ofertas) rails.push(railOf(ctx, D, ofertas, idx.best(sales), fx, "ofertas", "Ver las ofertas", sales.length));
   return {
     q: query,
     destination: { kind: "chooser", key: doors ? "doors" : reason, label: "Elige por dónde seguir", url: "search.html?q=" + enc(query) },
@@ -890,8 +924,8 @@ function chooserAnswer(ctx, D, query, hits, fx, reason, near = []) {
     chooser: {
       reason: doors ? "doors" : reason,
       title: doors || reason === "miss" ? "No encontramos “" + query + "”" : "¿Dónde quieres buscar “" + query + "”?",
-      sub: doors ? "Empieza por aquí:" : reason === "miss" ? "Lo más parecido que tenemos:" : "Elige una tienda, una marca o una categoría:",
-      rails: doors ? ENTRY_DOORS.map((d) => ({ ...d, title: d.label, n: 0, items: [] })) : out,
+      sub: doors ? "Empieza por aquí:" : reason === "miss" ? "Lo más parecido que tenemos:" : "Elige una categoría, una marca, el producto o sus ofertas:",
+      rails,
     },
   };
 }

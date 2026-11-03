@@ -187,22 +187,27 @@ if (chromium) {
     await page.waitForSelector("#dhGrid .card", { timeout: 15000 });
     const a = await ex();
     await page.selectOption("#dhB", { index: 1 });
-    await page.waitForFunction((c0) => document.getElementById("dhCount").textContent !== c0, a.count, { timeout: 15000 });
+    await page.waitForFunction((c0) => { const t = document.getElementById("dhCount").textContent; return t !== c0 && t !== "Cargando…"; }, a.count, { timeout: 15000 });
     const z = await ex();
     assert.ok(z.r < a.r && z.t <= a.t, `a brand did not narrow the other filters: ${JSON.stringify([a, z])}`);
     assert.ok(z.cards > 0);
+    /* Explorar todo is one carousel (#443, "never a side-by-side grid"). */
+    assert.equal(await page.$eval("#dhGrid", (g) => g.className), "rail");
+    const rows = await page.$$eval("#dhGrid .card", (cs) => new Set(cs.map((c) => Math.round(c.getBoundingClientRect().top))).size);
+    assert.equal(rows, 1, "Explorar todo draws cards in rows");
   });
 
-  await check("Gym Rat on a phone: no switch (the data does not say), an axis rail's Ver todo opens Explorar todo on it", async () => {
+  await check("Gym Rat on a phone: no switch (the data does not say), an axis rail's Ver todo opens that type's own railed page (Ofertas, then the stores)", async () => {
     await page.goto(base + "/departamento.html?dept=gym_rat", { waitUntil: "load" });
     await page.waitForSelector("#dhStats:not([hidden])", { timeout: 15000 });
     assert.equal(await page.isHidden("#dhAud"), true);
     await page.click('#dhJump a[href="#dh-tipo"]');
-    await page.waitForSelector("#dh-tipo .dh-open", { timeout: 15000 });
-    const title = await page.$eval("#dh-tipo .rail-sec h2", (h) => h.textContent);
-    await page.click("#dh-tipo .dh-open");
-    await page.waitForFunction(() => document.getElementById("dhT").value !== "", null, { timeout: 15000 });
-    assert.ok((await page.$eval("#dhT", (s) => s.selectedOptions[0].textContent)).startsWith(title));
+    await page.waitForSelector("#dh-tipo a.ver-todo", { timeout: 15000 });
+    const title = await page.$eval("#dh-tipo a.ver-todo", (a) => a.closest(".rail-sec").querySelector("h2").textContent);
+    await page.click("#dh-tipo a.ver-todo");
+    await page.waitForURL(/departamento\.html\?dept=gym_rat&t=[^&]+&ver=tipos/, { timeout: 15000 });
+    await page.waitForSelector("#rails .rail-sec .rail .card:not(.sk)", { timeout: 15000 });
+    assert.equal(await page.textContent("#heroTitle"), title);
     assert.deepEqual(errs, []);
   });
   await b.close(); server.close();

@@ -67,8 +67,18 @@
           '<small>' + e(shipLine(s.ship)) + '</small></div><div class="price fc-price" data-usd="' + Number(s.usd) + '">' + priceInner(Number(s.usd), 0) + "</div></a>";
       }).join("") + "</div>";
   }
+  /* A store's lane ends in that store's page, narrowed to the search, in
+     carousels by product type; the Ofertas lane brings its next cards in
+     (#443, Danny: "never a side-by-side grid"). */
+  function storeDoor(l) {
+    var store = l.store || (/^tienda:(.+)$/.exec(l.key || "") || [])[1] || "", pages = window.ARIA_STORE_PAGES || "";
+    return store && pages.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(SEARCHED) : "";
+  }
   function lane(l) {
-    var more = l.n > l.items.length ? '<button type="button" class="fc-more" data-lane="' + e(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' + (l.n - l.items.length).toLocaleString("es-PE") + " más</span></button>" : "";
+    var door = storeDoor(l);
+    var more = !(l.n > l.items.length) ? "" : door
+      ? '<a class="fc-more" href="' + e(door) + '">Ver todo<span>' + Number(l.n).toLocaleString("es-PE") + " productos</span></a>"
+      : '<button type="button" class="fc-more" data-lane="' + e(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' + (l.n - l.items.length).toLocaleString("es-PE") + " más</span></button>";
     return '<section class="rail-section fc-lane"><div class="rail-head"><h2>' + e(l.title) + '</h2><span class="rail-count">' + Number(l.n).toLocaleString("es-PE") + "</span></div>" +
       '<div class="rail">' + l.items.map(card).join("") + more + "</div></section>";
   }
@@ -88,7 +98,7 @@
     ".fc-store{min-width:0;flex:1 1 auto}.fc-store b{display:block;font-size:14px;color:var(--navy)}.fc-store small{display:block;font-size:12px;color:var(--muted);margin-top:2px}" +
     ".fc-b{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;margin:3px 4px 0 0;background:#E8F7EE;color:#15803D}.fc-b.fc-win{background:var(--navy);color:#fff}" +
     ".fc-price{text-align:right;flex:0 0 auto;margin:0;padding:0;min-height:0}" +
-    ".fc-more{flex:0 0 140px;align-self:stretch;border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--navy);font:800 15px/1.2 inherit;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}" +
+    ".fc-more{flex:0 0 140px;align-self:stretch;text-decoration:none;border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--navy);font:800 15px/1.2 inherit;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}" +
     ".fc-more span{font-size:12px;font-weight:600;color:var(--muted)}";
   var Q = "", SEARCHED = "";
   window.ariaBrandFocus = function (label) {
@@ -110,7 +120,7 @@
     }).catch(function () { box.hidden = true; box.innerHTML = ""; });
   };
   document.addEventListener("click", function (ev) {
-    var b = ev.target && ev.target.closest ? ev.target.closest(".fc-more") : null;
+    var b = ev.target && ev.target.closest ? ev.target.closest("button.fc-more") : null;
     if (!b || b.disabled) return;
     b.disabled = true;
     var key = b.getAttribute("data-lane"), off = Number(b.getAttribute("data-off")) || 0, n = Number(b.getAttribute("data-n")) || 0;

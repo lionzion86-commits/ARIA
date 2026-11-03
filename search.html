@@ -64,11 +64,9 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .dymchip button{border:1px solid var(--blue); background:#fff; color:var(--blue); font-weight:700; font-size:14px; border-radius:999px; padding:6px 14px; cursor:pointer; touch-action:manipulation;}
 .examples{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px;}
 .examples a{border:1px solid var(--line); border-radius:999px; padding:6px 12px; color:var(--navy); font-weight:600; cursor:pointer; text-decoration:none;}
-.grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
-#more-wrap{text-align:center; margin:22px 0 8px;}
-#more-wrap button{background:var(--blue); color:#fff; border:none; border-radius:12px; padding:12px 28px; font-size:15px; font-weight:700; cursor:pointer;}
-@media(min-width:640px){ .grid{grid-template-columns:repeat(3,1fr);} }
-@media(min-width:960px){ .grid{grid-template-columns:repeat(4,1fr);} }
+/* ONE COLUMN OF CAROUSELS (#443, Danny: "never again a side-by-side
+   grid"): the results are the charts, then carousels, stacked. */
+.stack{display:flex; flex-direction:column; gap:14px; min-width:0;}
 .card{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff; display:flex; flex-direction:column; min-width:0;}
 /* NO content-visibility HERE (2026-10-19, #417 iPhone QA). It was the
    one WebKit-young feature this page used (Safari 18), and Danny's
@@ -176,20 +174,15 @@ main{flex:1; width:100%; max-width:1240px; margin:0 auto; padding:24px 20px 48px
 .cmp-ln.tot .part{display:block; font-size:11.5px; color:var(--muted); font-weight:600; white-space:normal;}
 .cmp-badge.ship{background:#FFF4DB; color:#8A5A00;}
 .cmp-badge.total{background:var(--navy); color:#fff;}
-/* THE CHOOSER (#443 c.6569512697): when the search cannot decide, at most
-   three rails -- a store, a brand, a category -- each a door to its page. */
+/* THE CHOOSER (#443): when the search cannot decide, four carousels --
+   Categoría, Marca, Producto, Ofertas -- each a door to its own railed page. */
 .ch-head{grid-column:1/-1; margin:4px 0 6px;}
 .ch-head h2{font-size:20px; font-weight:800; color:var(--navy); line-height:1.25;}
 .ch-head p{font-size:14px; color:var(--muted); margin-top:4px;}
 .ch-kind{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--blue); margin-right:2px;}
 .lane-door{flex:0 0 160px; align-self:stretch; border:2px solid var(--blue); border-radius:16px; background:var(--sky); color:var(--navy); font-weight:800; font-size:15px; line-height:1.25; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; text-align:center; scroll-snap-align:start; text-decoration:none;}
 .lane-door span{font-size:12px; font-weight:600; color:var(--muted);}
-.ch-doors{grid-column:1/-1; display:grid; gap:12px;}
-@media(min-width:640px){ .ch-doors{grid-template-columns:repeat(3,1fr);} }
-.ch-door{display:block; border:1px solid var(--line); border-radius:16px; padding:18px 16px; color:var(--ink); text-decoration:none; background:#fff;}
-.ch-door b{display:block; font-size:17px; color:var(--navy);}
-.ch-door span{display:block; font-size:13px; color:var(--muted); margin:4px 0 10px;}
-.ch-door em{font-style:normal; font-weight:800; font-size:14px; color:var(--blue);}
+a.lane-more-card{text-decoration:none;}
 .empty{border:1px dashed var(--line); border-radius:16px; padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; grid-column:1/-1;}
 .empty strong{display:block; font-size:16px; color:var(--navy); margin-bottom:8px;}
 
@@ -282,8 +275,7 @@ html{scroll-padding-top:76px}
 
     <div id="status" role="status">Escribe lo que buscas y presiona Buscar.</div>
   <div id="meta-line"></div>
-  <div class="grid" id="results"></div>
-  <div id="more-wrap" hidden><button type="button" id="more-btn" onclick="showMore()">Mostrar más</button></div>
+  <div class="stack" id="results"></div>
 </main>
 
 <footer>
@@ -602,13 +594,17 @@ function storeDoor(store, q){
    every rail shows its true total and, when it holds more than it shows,
    a "Ver más" card at its end that brings the next cards INTO the rail
    (?lane=<key>&off=<n>) -- never a capped carousel, never a grid. */
+/* A store's lane ends at that store's page narrowed to the search, in
+   carousels by product type (#443, Danny's «alien» at CCS); any other
+   lane brings its next cards into itself. Never a grid. */
 function laneHTML(l){
   var n = l.n ? '<span class="lane-n">' + Number(l.n).toLocaleString("es-PE") + "</span>" : "";
-  var more = l.n > l.items.length
-    ? '<button type="button" class="lane-more-card" data-lane="' + esc(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' +
-      Number(l.n - l.items.length).toLocaleString("es-PE") + " más</span></button>"
-    : "";
-  return '<section class="lane" aria-label="' + esc(l.title) + '"><div class="lane-head"><h2>' + esc(l.title) + "</h2>" + n + "</div>" +
+  var store = l.store || (/^tienda:(.+)$/.exec(l.key || "") || [])[1] || "", door = store ? storeDoor(store, STATE.q) : "";
+  var more = !(l.n > l.items.length) ? "" : door
+    ? '<a class="lane-more-card" href="' + esc(door) + '">Ver todo<span>' + Number(l.n).toLocaleString("es-PE") + " productos</span></a>"
+    : '<button type="button" class="lane-more-card" data-lane="' + esc(l.key) + '" data-off="' + l.items.length + '" data-n="' + l.n + '">Ver más<span>' +
+      Number(l.n - l.items.length).toLocaleString("es-PE") + " más</span></button>";
+  return '<section class="lane"' + (l.key === "ofertas" ? ' id="lane-ofertas"' : "") + ' aria-label="' + esc(l.title) + '"><div class="lane-head"><h2>' + esc(l.title) + "</h2>" + n + "</div>" +
     '<div class="rail">' + l.items.map(cardHTML).join("") + more + "</div></section>";
 }
 async function laneMore(btn){
@@ -635,7 +631,7 @@ async function laneMore(btn){
   }catch(e){ btn.disabled = false; }
 }
 document.addEventListener("click", function(e){
-  var b = e.target && e.target.closest ? e.target.closest(".lane-more-card") : null;
+  var b = e.target && e.target.closest ? e.target.closest("button.lane-more-card") : null;
   if (b) laneMore(b);
 });
 /* A browse query: the lanes, then "Todos los resultados". A specific
@@ -828,6 +824,8 @@ function keepPlainSearch(){ return /[?&]resultados=1/.test(location.search); }
    shows the chooser: at most three rails, each a door to its own page. */
 var SURFACE_RX = /^(tienda|marca|departamento)\.html\?(tienda|marca|dept)=[a-z0-9_]+(&[a-z]+=[^&"<>\s]*)*$/;
 var ENTRY_RX = /^(ofertas|tiendas|categorias)\.html$/;
+/* A chooser door: a landing surface, the search's own carousels, or Ofertas. */
+var DOOR_RX = /^(search\.html\?resultados=1&q=[^&"<>\s#]*(#lane-ofertas)?|ofertas\.html)$/;
 async function routeFor(q, ms){
   var ctl = typeof AbortController === "function" ? new AbortController() : null;
   var timer = ctl ? setTimeout(function(){ ctl.abort(); }, ms) : null;
@@ -838,16 +836,11 @@ async function routeFor(q, ms){
     return await res.json();
   }catch(e){ if (timer) clearTimeout(timer); return null; }
 }
-var KIND_WORD = { store: "Tienda", brand: "Marca", category: "Categoría" };
+var KIND_WORD = { store: "Tienda", brand: "Marca", category: "Categoría", product: "Producto", ofertas: "Ofertas" };
 function chooserHTML(c){
   var head = '<div class="ch-head"><h2>' + esc(c.title) + "</h2><p>" + esc(c.sub || "") + "</p></div>";
-  var rails = (c.rails || []).slice(0, 3);
-  if (rails.length && rails[0].kind === "entry"){
-    return head + '<div class="ch-doors">' + rails.filter(function(r){ return ENTRY_RX.test(r.url); }).map(function(r){
-      return '<a class="ch-door" data-door="' + esc(r.key) + '" href="' + esc(r.url) + '"><b>' + esc(r.label) + "</b><span>" + esc(r.note || "") + "</span><em>" + esc(r.door) + " &#8594;</em></a>";
-    }).join("") + "</div>";
-  }
-  return head + rails.filter(function(r){ return SURFACE_RX.test(r.url); }).map(function(r){
+  var rails = (c.rails || []).slice(0, 4);
+  return head + rails.filter(function(r){ return (SURFACE_RX.test(r.url) || DOOR_RX.test(r.url)) && r.items && r.items.length; }).map(function(r){
     var door = '<a class="lane-door" data-door="' + esc(r.kind) + '" href="' + esc(r.url) + '">' + esc(r.door) + (r.n ? "<span>" + Number(r.n).toLocaleString("es-PE") + " productos</span>" : "") + "</a>";
     return '<section class="lane ch-lane" data-kind="' + esc(r.kind) + '" aria-label="' + esc(r.title) + '"><div class="lane-head"><h2><span class="ch-kind">' + esc(KIND_WORD[r.kind] || "") + "</span> " + esc(r.label) + "</h2>" +
       '<a class="lane-more" href="' + esc(r.url) + '">' + esc(r.door) + "</a></div>" +
@@ -859,7 +852,6 @@ function renderChooser(query, data){
   if (meta) meta.textContent = "";
   setStatus("");
   STATE.page = STATE.pages = STATE.total = STATE.shown = 0;
-  var more = el("more-wrap"); if (more) more.hidden = true;
   if (!grid) return;
   grid.innerHTML = chooserHTML(data.chooser || {});
   watchPhotos(grid);
@@ -941,6 +933,8 @@ function renderAnswer(query, data){
   STATE.page = data.page; STATE.pages = data.pages; STATE.total = data.total; STATE.capped = !!data.capped;
   grid.innerHTML = answerHTML(data);
   watchPhotos(grid);
+  /* The chooser's Ofertas door opens these carousels at the Ofertas one. */
+  if (location.hash === "#lane-ofertas"){ var lo = el("lane-ofertas"); if (lo && lo.scrollIntoView) lo.scrollIntoView({ block: "start" }); }
   /* The comparison block's products count as shown (they are part of
      the total, and not repeated in the grid). */
   STATE.shown = data.total || data.items.length + (data.compares || (data.compare ? [data.compare] : [])).reduce(function(n, c){ return n + ((c && c.stores) ? c.stores.length : 0); }, 0);
@@ -994,45 +988,8 @@ function renderAnswer(query, data){
 }
 
 function showingStatus(){
-  var n = STATE.total;
-  /* The rails page themselves ("Ver más" in each): no page-wide pager. */
-  var more = false;
-  setStatus(more
-    ? "Mostrando " + fmtCount(STATE.shown) + " de " + (STATE.capped ? "más de " : "") + fmtCount(n) + " resultados."
-    : "Mostrando " + fmtCount(STATE.shown) + " resultado" + (STATE.shown === 1 ? "" : "s") + ".");
-  var wrap = el("more-wrap"), btn = el("more-btn");
-  if (wrap) wrap.hidden = !more;
-  if (btn){ btn.disabled = false; btn.textContent = "Mostrar más"; }
-}
-
-/* The next 48, asked for when the shopper wants them. */
-async function showMore(){
-  if (STATE.busy || !(STATE.page < STATE.pages)) return;
-  var btn = el("more-btn"), grid = el("results");
-  if (!grid) return;
-  var seq = SEQ;
-  STATE.busy = true;
-  if (btn){ btn.disabled = true; btn.textContent = "Cargando…"; }
-  try{
-    var data = await withSoles(await fetchPage(STATE.q, STATE.page + 1));
-    if (seq !== SEQ) return;
-    STATE.busy = false;
-    if (data && data.items && data.items.length){
-      grid.insertAdjacentHTML("beforeend", data.items.map(cardHTML).join(""));
-      watchPhotos(grid);
-      STATE.shown += data.items.length;
-      STATE.page = data.page; STATE.pages = data.pages;
-    } else {
-      STATE.pages = STATE.page;
-    }
-    showingStatus();
-  }catch(e){
-    if (seq !== SEQ || (e && e.name === "AbortError")) return;
-    STATE.busy = false;
-    if (btn){ btn.disabled = false; btn.textContent = "Mostrar más"; }
-    setStatus('<span class="err">No pudimos cargar más resultados.</span> ' +
-      '<button class="retry" onclick="showMore()">Reintentar</button>');
-  }
+  /* The carousels page themselves (their last card): no page-wide pager. */
+  setStatus("Mostrando " + fmtCount(STATE.shown) + " resultado" + (STATE.shown === 1 ? "" : "s") + ".");
 }
 
 function priceHTML(p){
@@ -1079,18 +1036,17 @@ function cardHTML(p){
     "</div></a>";
 }
 
-/* Card-shaped placeholders while the first answer is on its way: the
-   grid is never empty and never a column of lines. */
+/* Card-shaped placeholders while the first answer is on its way: one
+   carousel of them, never empty and never a column of lines. */
 function renderSkeleton(){
   var grid = el("results");
   if (!grid) return;
-  var more = el("more-wrap"); if (more) more.hidden = true;
   var one = '<div class="card sk" aria-hidden="true"><div class="img"></div><div class="body">' +
     '<div class="brand"><i></i></div><div class="name"><i></i><i></i></div><div class="retailer"><i></i></div>' +
     '<div class="price"><div class="pen"><i></i></div><div class="usd">&nbsp;</div></div></div></div>';
   var html = "";
-  for (var i = 0; i < 8; i++) html += one;
-  grid.innerHTML = html;
+  for (var i = 0; i < 4; i++) html += one;
+  grid.innerHTML = '<section class="lane" aria-hidden="true"><div class="rail">' + html + "</div></section>";
 }
 
 function examplesHTML(){
@@ -1126,8 +1082,6 @@ function renderNone(query, r){
 function renderEmpty(title, bodyHTML){
   var grid = el("results");
   STATE.page = STATE.pages = STATE.total = STATE.shown = 0;
-  var more = el("more-wrap");
-  if (more) more.hidden = true;
   if (!grid) return;
   grid.innerHTML = '<div class="empty"><strong>' + esc(title) + "</strong><span>" + bodyHTML + "</span></div>";
 }

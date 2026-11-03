@@ -15,7 +15,10 @@
 
    STORE_FULL_NAMES maps each such store's full name, as tienda.html and
    scripts/lib/retailers.js label it, to its key ("Advance Auto Parts"
-   -> advanceauto). Both lines in search.html are rewritten in place.
+   -> advanceauto). Both lines in search.html are rewritten in place,
+   and marca.html's STORE_PAGES (a brand page's store carousel ends at
+   that store's page) is the same list -- an empty storefront gets no
+   door anywhere (Danny: no image, no card).
 
      node scripts/build-store-doors.mjs           write search.html
      node scripts/build-store-doors.mjs --check   exit 1 if stale
@@ -85,6 +88,12 @@ export function writeDoors(src, { keys, full }) {
   return out;
 }
 
+/* marca.html: the same door list, STORE_PAGES only. */
+export function writeStorePages(src, { keys }) {
+  if (!/var STORE_PAGES = "[^"]*";/.test(src)) throw new Error("no STORE_PAGES to rewrite");
+  return src.replace(/var STORE_PAGES = "[^"]*";/, 'var STORE_PAGES = " ' + keys.join(" ") + ' ";');
+}
+
 /* tiendas.html: the grid between <div class="store-grid"> and its count line. */
 export const HOUSE_STORE = "ariaperfumes";
 const escHtml = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -103,7 +112,7 @@ export function writeDirectory(src, doors) {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
   const doors = storeDoors();
-  const targets = [["search.html", writeDoors], ["tiendas.html", writeDirectory]];
+  const targets = [["search.html", writeDoors], ["marca.html", writeStorePages], ["tiendas.html", writeDirectory]];
   let stale = false;
   for (const [name, write] of targets) {
     const file = join(ROOT, name);
@@ -115,5 +124,5 @@ if (isMain) {
   }
   if (stale) process.exit(1);
   if (process.argv.includes("--check")) console.log(`store doors current: ${doors.keys.length} stores`);
-  else console.log(`search.html + tiendas.html: ${doors.keys.length} store doors, ${Object.keys(doors.full).length} full names; no products (no door): ${doors.empty.join(", ") || "none"}`);
+  else console.log(`search.html + marca.html + tiendas.html: ${doors.keys.length} store doors, ${Object.keys(doors.full).length} full names; no products (no door): ${doors.empty.join(", ") || "none"}`);
 }

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { storeDoors, writeDoors } from "../build-store-doors.mjs";
+import { storeDoors, writeDoors, writeStorePages } from "../build-store-doors.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const search = readFileSync(join(ROOT, "search.html"), "utf8");
@@ -27,6 +27,10 @@ const storeKeyFor = new Function([
 const STOCKED = ["dsw", "tenniswarehouse"];
 await check("search.html's doors are the storefront set (node scripts/build-store-doors.mjs)", () => {
   assert.equal(writeDoors(search, storeDoors(ROOT)), search, "stale: run node scripts/build-store-doors.mjs");
+});
+await check("marca.html's doors are the same storefront set (node scripts/build-store-doors.mjs)", () => {
+  const marca = readFileSync(join(ROOT, "marca.html"), "utf8");
+  assert.equal(writeStorePages(marca, storeDoors(ROOT)), marca, "stale: run node scripts/build-store-doors.mjs");
 });
 await check("every door opens a storefront with products; empty ones and held ones have none", () => {
   for (const k of pages) {
