@@ -792,6 +792,13 @@ function normItem(raw, deptKey){
 var GENDER_LABELS = { womens: 'Mujer', women: 'Mujer', 'for her': 'Mujer',
                       mens: 'Hombre', men: 'Hombre', 'for him': 'Hombre', unisex: 'Unisex' };
 var GENDER_ORDER = ['Mujer', 'Hombre', 'Unisex'];
+/* The moms catalogue's types are codes ("ALIMENTACION", "HABITACION_BEBE"):
+   each reads as its Spanish name, the one the department page shows
+   (scripts/lib/moms-truth.js MOMS_TYPE_LABELS), never "ALIMENTACIONs". */
+var MOMS_TYPE_LABELS = { ALIMENTACION: 'Biberones y alimentación del bebé', LACTANCIA: 'Lactancia', MATERNIDAD: 'Maternidad',
+  COCHE: 'Coche', HABITACION_BEBE: 'Habitación del bebé', PANALES: 'Pañales', AUTOASIENTO: 'Autoasiento',
+  SILLA_DE_COMER: 'Silla de comer', PORTABEBE: 'Portabebe', BANO_BEBE: 'Baño del bebé', CHUPETES: 'Chupetes y mordedores',
+  CUIDADO_BEBE: 'Cuidado del bebé', ROPA_BEBE: 'Ropa de bebé', JUGUETES_BEBE: 'Juguetes' };
 var FACET_MIN = 5;  /* a category pill needs this many products; smaller ones stay under Todo */
 /* A facet is filtered by its key but shown in words: "BOXING_GLOVES"
    reads "Boxing gloves" (2026-10-13, F-NB-CHIP). */
@@ -803,6 +810,7 @@ function facetLabel(cat){
 function typeFacets(type){
   var t = String(type || '').trim();
   if (!t) return { gender: '', cat: '' };
+  if (Object.prototype.hasOwnProperty.call(MOMS_TYPE_LABELS, t)) return { gender: '', cat: MOMS_TYPE_LABELS[t] };
   if (t.indexOf('>') >= 0){
     var seg = t.split('>').map(function(x){ return x.trim(); });
     return { gender: GENDER_LABELS[seg[0].toLowerCase()] || '', cat: seg[2] || '' };
