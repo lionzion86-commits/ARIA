@@ -548,7 +548,10 @@ if (!chromium) {
       await shadeShot(pg, "loreal-universal-nudes-5n-single");
       await pg.context().close();
     });
-    for (const [title, name] of [["Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors", "pudaier-mirror-glare-gloss"], ["Salmon Darkcircle Concealer Cream - 3 Colors", "skinfood-salmon-concealer"], ["Waterproof Easy Eyeliner - 2 Colors", "pinkflash-waterproof-eyeliner"], ["Sharp So Simple Waterproof Pencil Liner - 13 Colors", "clio-pencil-liner"]]) {
+    /* Still no shade list after the manual curation (MANUAL-REPORT.md:
+       unresolvable); the Salmon concealer, the Pinkflash liner and the CLIO
+       pencil it resolved are held in scripts/test/shade-manual-tests.mjs. */
+    for (const [title, name] of [["Non-Stick Cup Mirror Glare Lip Gloss - 16 Colors", "pudaier-mirror-glare-gloss"], ["Glitter Mud Eyeshadow - 6 Colors", "xixi-glitter-mud-eyeshadow"], ["Matte Gloss Non-Stick Double-Ended Liquid Lipstick - 5 Colors", "leemember-matte-gloss-lipstick"], ["Diamond Focus Rollarball Liquid Highlighter - 3 Colors", "novo-diamond-focus-highlighter"]]) {
       await check("ACCEPT (Model C): YesStyle \"" + title + "\": no shade data, so no picker, no colour claim in the title, and not sold (Tonos en camino)", async () => {
         const pg = await openPlain(title, "yesstyle");
         const a = await state(pg), s = await shadeState(pg);

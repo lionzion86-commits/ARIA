@@ -101,7 +101,7 @@ export function feedbackEmail(rec) {
   ];
   const text = rows.map(([k, v]) => `${k}: ${v}`).join("\n") + "\n\nTambién está en el admin: Más > Feedback.";
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">
-<h2 style="font-size:18px;margin:0 0 12px">Danos tu feedback</h2>
+<h2 style="font-size:18px;margin:0 0 12px">¿Cómo podemos mejorar?</h2>
 <table cellpadding="6" style="border-collapse:collapse">${rows.map(([k, v]) => `<tr><td style="color:#666;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="white-space:pre-wrap">${esc(v)}</td></tr>`).join("")}</table>
 <p style="color:#666;font-size:12px">También está en el admin: Más &gt; Feedback.</p></div>`;
   return { to: FEEDBACK_TO, subject, text, html, replyTo: isEmail(rec.contacto) ? rec.contacto : REPLY_TO };

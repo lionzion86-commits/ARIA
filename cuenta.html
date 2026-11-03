@@ -172,6 +172,7 @@ input[type=email],input[type=password],input[type=text]{width:100%;border:1px so
 footer{background:var(--bg2);border-top:1px solid var(--line);color:var(--muted);font-size:13px;padding:24px 16px;text-align:center}
 footer a{color:var(--ink)}
 </style>
+<script src="/import-tax.js"></script>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -400,6 +401,8 @@ function pickHTML(c){
     '<img class="ph" loading="lazy" decoding="async" alt="' + esc(c.title || '') + '" src="' + esc(c.image) + '" onerror="this.style.visibility=\'hidden\'">' +
     '<div class="b"><div class="br">' + esc(c.brand || '') + '</div><div class="t">' + esc(c.title || '') + '</div>' +
     '<div class="p">' + cardPrice(c.usd) + (c.wasUsd > c.usd ? '<span class="w">' + cardPrice(c.wasUsd) + '</span>' : '') + '</div>' +
+    /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js. */
+    (window.AriaImportTax ? AriaImportTax.lineHTML({ usd: c.usd, retailer: c.store, title: c.title }) : '') +
     '<span class="more">Ver más</span></div></a>';
 }
 function choosePicks(pool, orders){

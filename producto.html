@@ -169,6 +169,7 @@ footer a{color:#fff}
 <script src="product-type.js"></script>
 <script src="/off-sale.js"></script>
 <script src="/display-name.js"></script>
+<script src="/import-tax.js"></script>
 <script src="/shade-gate.js"></script>
 <script src="/vuelve-pronto.js"></script>
 <script src="/condition.js"></script>
@@ -1076,7 +1077,9 @@ function variantBoxHtml(p){
   if (!hasVariants(p)) return oneShadeHtml(p);
   var opts = p.variants.map(function(x){
     var on = x.v === p.v;
-    var img = x.image ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
+    /* sp: a shade sold on this same page (YesStyle, Victoria's Secret):
+       the page's photo is not that shade's swatch -- its name only. */
+    var img = x.image && x.sp !== 1 ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
     return '<button type="button" class="v-opt' + (x.so === 1 ? ' v-out' : '') + '" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + (x.so === 1 ? ' (vuelve pronto)' : '') + '">'
       + img + '<span>' + esc(x.c || '') + '</span>' + (x.so === 1 ? '<em>Vuelve pronto</em>' : '') + '</button>';
   });
@@ -1403,7 +1406,10 @@ function relCardHTML(it){
     +   '<span class="rel-store">' + esc(STORE_LABELS[it.retailer] || it.retailer) + '</span>'
     +   '<span class="rel-title">' + esc(it.name) + '</span>'
     +   '<span class="rel-pricebox"><span class="rel-price">' + esc(price) + '</span>' + (was ? '<span class="rel-was">' + esc(was) + '</span>' : '')
-    +     (FX_RATE ? '<span class="rel-usd">' + esc(fmtUsd(usd)) + '</span>' : '') + '</span>'
+    +     (FX_RATE ? '<span class="rel-usd">' + esc(fmtUsd(usd)) + '</span>' : '')
+    /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js,
+       the arithmetic checkout charges; nothing under $200 of goods. */
+    +     (window.AriaImportTax ? AriaImportTax.lineHTML({ raw: it.price, retailer: it.retailer, title: it.name }, { tag: 'span' }) : '') + '</span>'
     +   '<span class="rel-off">' + (it.salePct ? '-' + it.salePct + '%' : '') + '</span>'
     + '</div></a>';
 }

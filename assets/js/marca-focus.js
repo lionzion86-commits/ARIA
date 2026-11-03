@@ -32,7 +32,14 @@
       '<div class="body"><div class="brand">' + (c.condition ? '<span class="card-cond">' + e(c.condition) + "</span>" : "") + e(c.brand || "") + "</div>" +
       '<div class="name">' + e(c.title) + "</div>" +
       '<div class="retailer">' + (c.storeLabel || c.store ? "Vendido por " + e(c.storeLabel || c.store) : "&nbsp;") + "</div>" +
-      '<div class="price" data-usd="' + Number(c.usd) + '"' + (was ? ' data-was="' + was + '"' : "") + ">" + priceInner(Number(c.usd), was) + "</div></div></a>";
+      '<div class="price" data-usd="' + Number(c.usd) + '"' + (was ? ' data-was="' + was + '"' : "") + ">" + priceInner(Number(c.usd), was) + "</div>" +
+      imp(c, "div") + "</div></a>";
+  }
+  /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js, the
+     arithmetic checkout charges, on the price the card shows; nothing
+     under $200 of goods. Cards and Comparador rows alike. */
+  function imp(c, tag) {
+    return window.AriaImportTax ? window.AriaImportTax.lineHTML({ usd: c.usd, retailer: c.store, title: c.title }, { tag: tag }) : "";
   }
   function shipLine(sh) {
     sh = sh || {};
@@ -64,7 +71,7 @@
           (s.image ? '<div class="fc-thumb">' + thumb(s.image, 56) + "</div>" : "") +
           '<div class="fc-store"><b>' + e(s.storeLabel || s.store) + "</b>" +
           (s.title ? '<span class="fc-model">' + e(typeof shownTitle === "function" ? shownTitle(s.title) : s.title) + "</span>" : "") + badges +
-          '<small>' + e(shipLine(s.ship)) + '</small></div><div class="price fc-price" data-usd="' + Number(s.usd) + '">' + priceInner(Number(s.usd), 0) + "</div></a>";
+          '<small>' + e(shipLine(s.ship)) + '</small></div><div class="fc-pc"><div class="price fc-price" data-usd="' + Number(s.usd) + '">' + priceInner(Number(s.usd), 0) + "</div>" + imp(s, "span") + "</div></a>";
       }).join("") + "</div>";
   }
   /* A store's lane ends in that store's page, narrowed to the search, in
@@ -98,6 +105,7 @@
     ".fc-store{min-width:0;flex:1 1 auto}.fc-store b{display:block;font-size:14px;color:var(--navy)}.fc-store small{display:block;font-size:12px;color:var(--muted);margin-top:2px}" +
     ".fc-b{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;margin:3px 4px 0 0;background:#E8F7EE;color:#15803D}.fc-b.fc-win{background:var(--navy);color:#fff}" +
     ".fc-price{text-align:right;flex:0 0 auto;margin:0;padding:0;min-height:0}" +
+    ".fc-pc{flex:0 0 auto;text-align:right}" +
     ".fc-more{flex:0 0 140px;align-self:stretch;text-decoration:none;border:1px dashed var(--line);border-radius:16px;background:#fff;color:var(--navy);font:800 15px/1.2 inherit;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}" +
     ".fc-more span{font-size:12px;font-weight:600;color:var(--muted)}";
   var Q = "", SEARCHED = "";

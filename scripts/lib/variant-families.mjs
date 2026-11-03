@@ -269,9 +269,102 @@ export function parseWalmartVariantLists(products, opts = {}) {
   return { families, stats };
 }
 
+/* ---------------- manual shade curation (2026-11-03) ---------------- */
+/* data/shade-pulls-2026-11-03/MANUAL-REPORT.md: the data lane read each
+   gated listing's own page and wrote its shades down, verbatim, in the
+   same variantList shape -- but with no price, photo or stock per shade
+   (none written). Each row is ONE LISTING: its top-level url is the
+   worklist listing, its variantList the shades that page sells.
+
+     SKU stores (Sephora, Ulta, Walmart, Costco): a shade is its own SKU.
+       The listing whose SKU is a shade's is sold in that shade; a shade
+       our catalogue has no listing for (no price, no photo) is pending,
+       never offered. One SKU listing several shades with
+       multipack_quantity-N is a pack's contents (Costco «Shades: nOOHde,
+       MUAH-ve, p-INKED, HEY-zel»): one listing, sold as those shades.
+     Page stores (YesStyle pid, Victoria's Secret catalog id): one product
+       page sells every shade (YesStyle: one pid per family, verified;
+       the slug changes, the pid never does). The shades are choices ON
+       THAT LISTING -- its own page, price and photos (`page`); nothing
+       new is listed. A Victoria's Secret listing whose title names one of
+       the shades is that shade.
+   The label is the store's text exactly as written (no title-casing,
+   no hyphens turned to spaces). */
+export const PAGE_STORES = new Set(["yesstyle", "victoriassecret"]);
+const manualLabel = (v) => String(tokenOf(v, "actual_color") || tokenOf(v, "hair_color_shade") || "").trim().replace(/\s+/g, " ");
+export function parseManualShades(rows, opts = {}) {
+  const retailer = String(opts.retailer || "").toLowerCase();
+  const stats = { listings: 0, families: 0, members: 0, packContents: 0, notOnPage: 0 };
+  const families = [];
+  for (const e of rows || []) {
+    if (!e || typeof e !== "object" || !Array.isArray(e.variantList)) continue;
+    stats.listings++;
+    const kids = e.variantList.filter((v) => v && manualLabel(v));
+    if (!kids.length) continue;
+    const top = String(e.usItemId || "").trim();
+    if (PAGE_STORES.has(retailer)) {
+      const page = shadeSkuOf(e.url) || top.toUpperCase();
+      const seen = new Set(), members = [];
+      for (const v of kids) {
+        const label = manualLabel(v);
+        if (seen.has(low(label))) continue;
+        seen.add(low(label));
+        const m = { id: page + ":" + label, label, url: httpUrl(v.url) || "" };
+        if (v.usItemId) m.itemId = String(v.usItemId);
+        /* YesStyle: a shade whose own URL is another pid is not on this page. */
+        const pid = retailer === "yesstyle" ? shadeSkuOf(v.url) : "";
+        if (pid && pid !== page) { m.otherPage = pid; stats.notOnPage++; }
+        members.push(m);
+      }
+      families.push({ key: retailer + ":page:" + page, retailer, axis: "Tono", page, manual: true, members, pending: [] });
+      stats.families++; stats.members += members.length;
+      continue;
+    }
+    /* SKU stores: one member per SKU; one SKU naming several shades in a
+       multipack is the pack's contents. */
+    const byId = new Map();
+    for (const v of kids) {
+      const id = String(v.usItemId || "").trim();
+      if (!id) continue;
+      if (!byId.has(id)) byId.set(id, []);
+      byId.get(id).push(v);
+    }
+    const members = [];
+    for (const [id, vs] of byId) {
+      const labels = [...new Set(vs.map(manualLabel))];
+      const q = Number(tokenOf(vs[0], "multipack_quantity")) || 0;
+      if (labels.length > 1 && !(q > 1)) continue;   // two shades on one SKU, no pack: not ours to guess
+      const url = httpUrl(vs[0].url) || (retailer === "walmart" ? "https://www.walmart.com/ip/" + id : "");
+      const m = { id, itemId: id, label: labels.join(", "), url };
+      if (q > 1) m.pack = q + " pack";
+      if (labels.length > 1) { m.contents = labels; stats.packContents++; }
+      members.push(m);
+    }
+    if (!members.length) continue;
+    /* Two listings on one SKU (Sephora's «Lash Brag» and its mini): one family. */
+    const key = retailer + ":manual:" + (top || members[0].id);
+    if (families.some((f) => f.key === key)) { stats.sameSku = (stats.sameSku || 0) + 1; continue; }
+    families.push({ key, retailer, axis: "Tono", manual: true, members, pending: [],
+      ...(retailer === "walmart" ? { nameFromUrl: true } : { sameTitle: true }), ...(members.length === 1 ? { oneShade: true } : {}) });
+    stats.families++; stats.members += members.length;
+  }
+  return { families, stats };
+}
+const isManualRow = (e) => !!(e && e.__manual);
+/* A pull's rows, the manual ones parsed apart. */
+function withManual(list, retailer, parse) {
+  const manual = (list || []).filter(isManualRow);
+  const rest = manual.length ? (list || []).filter((e) => !isManualRow(e)) : list;
+  const a = rest && rest.length ? parse(rest) : { families: [], stats: {} };
+  if (!manual.length) return a;
+  const b = parseManualShades(manual, { retailer });
+  return { families: a.families.concat(b.families), stats: { ...a.stats, manual: b.stats } };
+}
+
 /* products: every productDetails entry from every pull file (first pass
    and any sibling detail pass). Returns { families, stats }. */
 export function parseWalmartFamilies(products, opts = {}) {
+  if ((products || []).some(isManualRow)) return withManual(products, opts.retailer || "walmart", (rest) => parseWalmartFamilies(rest, opts));
   if (isVariantListShape(products)) return parseWalmartVariantLists(products, opts);
   const retailer = opts.retailer || "walmart";
   const stats = { entries: 0, families: 0, single: 0, members: 0, withDetail: 0, awaitingDetail: 0, superseded: 0, multipackSkipped: 0 };
@@ -539,13 +632,36 @@ const memberKeys = (fam, m) => {
               real price and photo, ready to become records
      pending: Map g -> [label]
      stats */
-export function applyFamilies(listings, families) {
+/* all (optional): every catalogue listing, two titles on one URL (one v)
+   included -- Victoria's Secret files three nail lacquers on one catalog
+   page; each names its own shade (ownByName: v|title -> { c, ax }). */
+export function applyFamilies(listings, families, all = null) {
   const index = new Map();
   for (const l of listings) for (const k of listingKeys(l)) if (!index.has(k)) index.set(k, l);
-  const assign = new Map(), extra = [], pending = new Map(), own = new Map();
-  let byModel = null;
+  const assign = new Map(), extra = [], pending = new Map(), own = new Map(), ownByName = new Map();
+  let byModel = null, bySku = null;
   const stats = { families: 0, grouped: 0, fromCatalogue: 0, fromPull: 0, pending: 0, single: 0 };
+  /* Every catalogue listing on one store SKU / product page (two listings
+     can carry one: a full size and its mini, a title filed twice). */
+  const skuListings = (k) => {
+    if (!bySku) {
+      bySku = new Map();
+      const seen = new Set();
+      for (const l of all || listings) {
+        if (seen.has(l.v + "|" + l.name)) continue;
+        seen.add(l.v + "|" + l.name);
+        for (const x of listingKeys(l)) if (x.includes("|sku|")) { if (!bySku.has(x)) bySku.set(x, []); bySku.get(x).push(l); }
+      }
+    }
+    return bySku.get(k) || [];
+  };
+  const manualStat = (r, kind) => {
+    const M = (stats.manual = stats.manual || {});
+    const R = (M[r] = M[r] || { dropdown: 0, oneShade: 0 });
+    R[kind]++;
+  };
   for (const fam of families) {
+    if (fam.page) { applyPageFamily(fam); continue; }
     const g = groupIdOf("family|" + fam.key);
     const ax = fam.axis && fam.axis !== "Color" ? fam.axis : "";
     const matched = fam.members.map((m) => {
@@ -624,9 +740,21 @@ export function applyFamilies(listings, families) {
          the tono the page names and the cart line carries. Never a
          shade the pull does not list. */
       const o = out[0];
-      if (o && o.own && SHADE_PULL_STORES.has(String(fam.retailer || "").toLowerCase()) && (fam.axis || "Tono") === "Tono" && String(o.m.label || "").trim()) {
+      if (o && o.own && (SHADE_PULL_STORES.has(String(fam.retailer || "").toLowerCase()) || fam.manual) && (fam.axis || "Tono") === "Tono" && String(o.m.label || "").trim()) {
         own.set(o.l.v, { c: o.m.label, ax: "Tono", ...(o.m.available === false ? { so: 1 } : {}) });
         stats.ownShade = (stats.ownShade || 0) + 1;
+        if (fam.manual) {
+          manualStat(fam.retailer, "oneShade");
+          /* Every listing on that same SKU is that shade too (Sephora files
+             «Lash Brag» and its mini under one skuId). */
+          const r = String(fam.retailer || "").toLowerCase();
+          const sku = shadeSkuOf(o.l.url) || (r === "walmart" ? walmartIds(o.l.url)[0] : "");
+          for (const l of sku ? skuListings(r + "|sku|" + sku) : []) {
+            if (l.v === o.l.v || own.has(l.v) || assign.has(l.v)) continue;
+            own.set(l.v, { c: o.m.label, ax: "Tono" });
+            manualStat(fam.retailer, "oneShade");
+          }
+        }
         const wait = [...new Set(waiting.filter((x) => x && !labels.has(low(x))))];
         if (wait.length) stats.pending += wait.length;
         continue;
@@ -634,6 +762,7 @@ export function applyFamilies(listings, families) {
       stats.single++; continue;
     }
     stats.families++;
+    if (fam.manual) manualStat(fam.retailer, "dropdown");
     const by = (stats.byRetailer = stats.byRetailer || {});
     const R = (by[fam.retailer] = by[fam.retailer] || { pickers: 0, added: 0, pending: 0, agotado: 0 });
     R.pickers++;
@@ -652,7 +781,122 @@ export function applyFamilies(listings, families) {
     const wait = [...new Set(waiting.filter((x) => x && !labels.has(low(x))))];
     if (wait.length) { pending.set(g, wait); stats.pending += wait.length; }
   }
-  return { assign, extra, pending, own, stats };
+
+  /* ONE PAGE, EVERY SHADE (manual curation, YesStyle pid / Victoria's
+     Secret catalog id; parseManualShades). The listings on the page: */
+  function applyPageFamily(fam) {
+    const r = String(fam.retailer || "").toLowerCase();
+    const ls = skuListings(r + "|sku|" + fam.page).filter((l) => !assign.has(l.v) && !own.has(l.v) && !ownByName.has(l.v + "|" + l.name));
+    if (!ls.length) { stats.single++; return; }
+    const onPage = fam.members.filter((m) => !m.otherPage);
+    const waitingOff = fam.members.filter((m) => m.otherPage).map((m) => m.label);
+    /* A Victoria's Secret listing whose title names a shade is that shade
+       («Very Sexy Scarlet Amber Blossom Nail Lacquer»). */
+    const named = new Map(), free = [];
+    for (const l of ls) {
+      const i = r === "victoriassecret" ? titleNames(onPage, l.name) : -1;
+      if (i >= 0 && !named.has(i)) named.set(i, l); else free.push(l);
+    }
+    if (named.size) {
+      const pairs = [...named].map(([i, l]) => ({ l, m: onPage[i] }));
+      const waiting = onPage.filter((m, i) => !named.has(i)).map((m) => m.label).concat(waitingOff);
+      /* One listing, or titles that share one URL (one id, so no picker
+         can tell them apart): each is sold in the shade its title names. */
+      if (pairs.length === 1 || new Set(pairs.map((p) => p.l.v)).size < pairs.length) {
+        for (const { l, m } of pairs) {
+          ownByName.set(l.v + "|" + l.name, { c: m.label, ax: "Tono" });
+          stats.ownShade = (stats.ownShade || 0) + 1; manualStat(r, "oneShade");
+        }
+        return;
+      }
+      /* Each its own catalogue listing (own photo, own price): the picker. */
+      const g = groupIdOf("family|" + fam.key);
+      for (const { l, m } of pairs) assign.set(l.v, { g, c: m.label, ax: "Tono" });
+      if (waiting.length) { pending.set(g, waiting); stats.pending += waiting.length; }
+      stats.families++; stats.grouped += pairs.length; stats.fromCatalogue += pairs.length;
+      manualStat(r, "dropdown");
+      return;
+    }
+    if (!onPage.length) { stats.single++; return; }
+    const done = new Set();
+    for (const l of free) {
+      /* Two titles on one URL are one id: the first carries the picker,
+         and the other's record shares it (build-pdp-slices). */
+      if (done.has(l.v)) continue;
+      done.add(l.v);
+      /* The listing's own shade, when its URL names it ("...-55n-espresso");
+         otherwise the store's first, preselected (the page sells them all). */
+      const at = r === "yesstyle" ? slugNames(onPage, l.url, l.name) : -1;
+      const ordered = at >= 0 ? [onPage[at], ...onPage.filter((m, i) => i !== at)] : onPage.slice();
+      if (ordered.length === 1) {
+        own.set(l.v, { c: ordered[0].label, ax: "Tono" });
+        stats.ownShade = (stats.ownShade || 0) + 1; manualStat(r, "oneShade");
+        continue;
+      }
+      const g = groupIdOf("family|" + fam.key + "|" + l.v);
+      /* sp on the listing too: in this picker no shade has a swatch photo. */
+      assign.set(l.v, { g, c: ordered[0].label, ax: "Tono", sp: 1 });
+      if (at < 0) stats.pagePreset = (stats.pagePreset || 0) + 1;
+      for (const m of ordered.slice(1)) {
+        /* The same listing in another shade: its page, its price, its
+           photos (sp: the photo is the page's, not the shade's swatch). */
+        const v = variantIdOf("page:" + fam.key + "|" + l.v + "|" + encodeURIComponent(m.label));
+        const x = { v, retailer: l.retailer, name: l.name, brand: l.brand || "", url: l.url, price: l.price, image: l.image,
+          images: Array.isArray(l.images) && l.images.length ? l.images.slice(0, 12) : [l.image], dept: l.dept || "", sp: 1,
+          __family: fam.source || fam.key };
+        if (l.wasPrice > l.price) x.wasPrice = l.wasPrice;
+        if (!(x.price > 0) || !httpUrl(x.image)) continue;
+        extra.push(x);
+        assign.set(v, { g, c: m.label, ax: "Tono" });
+        stats.fromPull++; stats.grouped++;
+      }
+      stats.grouped++; stats.fromCatalogue++; stats.families++;
+      if (waitingOff.length) { pending.set(g, waitingOff); stats.pending += waitingOff.length; }
+      manualStat(r, "dropdown");
+    }
+  }
+  return { assign, extra, pending, own, ownByName, stats };
+}
+/* The member a title names, as whole words ("Scarlet Red"), or -1. */
+function titleNames(members, title) {
+  const t = " " + low(title).replace(/[^a-z0-9]+/g, " ") + " ";
+  let best = -1, len = 0;
+  members.forEach((m, i) => {
+    const k = low(m.label).replace(/[^a-z0-9]+/g, " ").trim();
+    if (k.length >= 3 && t.includes(" " + k + " ") && k.length > len) { best = i; len = k.length; }
+  });
+  return best;
+}
+/* The member a YesStyle URL slug names ("...-40-colors-55n-espresso",
+   "...-05-light-brown" for «No. 5 Light Brown»), or -1 when none -- or
+   more than one equally -- does. Only the slug's shade part is read: the
+   words after "- N Colors", or the words the title does not have. */
+function slugNames(members, url, title) {
+  const slug = (/\/([^\/]+)\/info\.html/i.exec(String(url || "")) || [])[1] || "";
+  if (!slug) return -1;
+  const words = slug.toLowerCase().split("-").filter(Boolean);
+  let at = -1;
+  words.forEach((w, i) => { if (/^(?:colou?rs|shades|types|tones)$/.test(w)) at = i; });
+  const own = new Set(low(title).split(/[^a-z0-9]+/).filter(Boolean));
+  const part = (at >= 0 ? words.slice(at + 1) : words.filter((w) => !own.has(w))).filter((w) => !/^\d+(?:ml|g|pcs?)$/.test(w));
+  const p = squash(part.join(""));
+  if (!p) return -1;
+  const last = part[part.length - 1] || "";
+  const scores = members.map((m) => {
+    const full = squash(m.label);
+    const bare = squash(String(m.label).replace(/^\s*(?:#|no\.?\s*)/i, ""));
+    let sc = 0;
+    for (const k of [full, bare]) {
+      if (k.length >= 3 && p.endsWith(k)) sc = Math.max(sc, 100 + k.length);
+      if (p.length >= 3 && k.startsWith(p)) sc = Math.max(sc, 50 + p.length);   // a slug that stops short ("-dark", "-01-ash")
+      if (k.length >= 4 && p.includes(k)) sc = Math.max(sc, k.length);
+    }
+    if (!sc && /^\d+$/.test(last) && new RegExp("^0*" + Number(last) + "(?!\\d)").test(bare)) sc = 1;   // "...-version-02"
+    return sc;
+  });
+  const top = Math.max(0, ...scores);
+  if (!top || scores.filter((x) => x === top).length > 1) return -1;
+  return scores.indexOf(top);
 }
 
 /* ---------------- Shopify products.json (Data Drop 2) ---------------- */
@@ -856,10 +1100,25 @@ export function parseStoreDataset(store, rows) {
   if (s === "kohls") return parseKohlsFamilies(list);
   if (s === "zumiez") return parseZumiezFamilies(list);
   if (s === "walmart" || s === "walmart-beauty") return parseWalmartFamilies(list);
+  /* The manual curation's rows (readStorePulls marks them). */
+  if (list.some(isManualRow)) return withManual(list, s, (rest) => parseStoreDataset(s, rest));
   /* A shade pull in the Walmart variantList shape (README in
      data/shade-pull-worklist-2026-11-02/), for any gated beauty store. */
   if (isVariantListShape(list)) return parseWalmartVariantLists(list, { retailer: s });
   return parseShopifyFamilies(list, { retailer: s });
+}
+/* The manual curation's datasets: the ones its MANUAL-REPORT.md totals. */
+function manualDatasets(dir) {
+  const p = join(dir, "MANUAL-REPORT.md");
+  if (!existsSync(p)) return new Set();
+  return new Set([...readFileSync(p, "utf8").matchAll(/^\|\s*(dataset-[a-z0-9_-]+\.json)[\s(|]/gim)].map((m) => m[1].toLowerCase()));
+}
+/* A row's store by its own URL (dataset-rescue.json holds four stores). */
+const STORE_HOSTS = [[/(^|\.)sephora\.com$/, "sephora"], [/(^|\.)ulta\.com$/, "ulta"], [/(^|\.)costco\.com$/, "costco"], [/(^|\.)walmart\.com$/, "walmart"], [/(^|\.)yesstyle\.com$/, "yesstyle"], [/(^|\.)victoriassecret(beauty)?\.[a-z.]+$/, "victoriassecret"]];
+function storeOfUrl(u) {
+  const h = (/^https?:\/\/([^\/?#:]+)/i.exec(String(u || "").trim()) || [])[1] || "";
+  for (const [rx, s] of STORE_HOSTS) if (rx.test(h.toLowerCase())) return s;
+  return "";
 }
 export function readStorePulls(dir) {
   if (Array.isArray(dir)) {
@@ -871,6 +1130,7 @@ export function readStorePulls(dir) {
   for (const sub of readdirSync(dir).sort()) {
     let names = [];
     try { names = readdirSync(join(dir, sub)).filter((f) => /^dataset-[a-z0-9_-]+\.json$/i.test(f)); } catch { continue; }
+    const manual = manualDatasets(join(dir, sub));
     for (const f of names.sort()) {
       /* "dataset-ulta-makeup-finish.json": a second batch of a shade-pull
          store's pull (data/shade-pulls-2026-11-03/FINISH-REPORT.md). */
@@ -879,9 +1139,15 @@ export function readStorePulls(dir) {
       if (batch && SHADE_PULL_STORES.has(batch[1])) store = batch[1];
       const j = JSON.parse(readFileSync(join(dir, sub, f), "utf8"));
       const list = Array.isArray(j) ? j : (j && (j.products || j.items || j.data)) || [];
-      if (!byStore.has(store)) byStore.set(store, { rows: [], files: [] });
-      byStore.get(store).rows.push(...list);
-      byStore.get(store).files.push(join(sub, f));
+      /* A manual dataset's rows are marked, and each goes to the store its
+         own URL names ("dataset-rescue.json": Sephora, Walmart, Costco, Ulta). */
+      const isManual = manual.has(f.toLowerCase());
+      for (const row of list) {
+        const s = isManual ? storeOfUrl(row && row.url) || store : store;
+        if (!byStore.has(s)) byStore.set(s, { rows: [], files: [] });
+        byStore.get(s).rows.push(isManual && row && typeof row === "object" ? { ...row, __manual: true } : row);
+        if (!byStore.get(s).files.includes(join(sub, f))) byStore.get(s).files.push(join(sub, f));
+      }
     }
   }
   return byStore;
@@ -896,7 +1162,8 @@ export function anchoredFamilies(families, listings) {
   for (const l of listings) for (const k of listingKeys(l)) index.add(k);
   const out = [];
   for (const fam of families) {
-    if (!fam.members.some((m) => memberKeys(fam, m).some((k) => index.has(k)))) continue;
+    const onPage = fam.page && index.has(String(fam.retailer || "").toLowerCase() + "|sku|" + fam.page);
+    if (!onPage && !fam.members.some((m) => memberKeys(fam, m).some((k) => index.has(k)))) continue;
     out.push({ ...fam, members: fam.members.map((m) => compactMember(m, fam)) });
   }
   return out;

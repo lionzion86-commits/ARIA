@@ -99,9 +99,35 @@
     if (item && item.beauty === true) return true;
     return BEAUTY_AISLE.test(String(item && item.dept || '').trim());
   }
+  /* NO SHADE AXIS, READ ON THE STORE'S OWN PAGE (the data lane's manual
+     curation, data/shade-pulls-2026-11-03/MANUAL-REPORT.md, status
+     no_shade_axis): a translucent powder, a size-only corrector, a fixed
+     duo or set, a moisturiser or hair treatment whose page offers no tono
+     at all. There is nothing to pick, so it is sold without a picker.
+     Store + the store's exact title. */
+  var NO_SHADE_AXIS = {
+    'sephora|all nighter waterproof setting powder': 1,
+    "sephora|berry brown'd pout lip liner + gloss stick duo": 1,
+    'sephora|cc red correct green color-corrector spf 25 to cover redness, with korean centella asiatica extract': 1,
+    'sephora|cloud cushion dewy plumping moisturizer \u2014 ceramide & peptide-rich for supple, radiant skin': 1,
+    'sephora|eyes on me tartelette mascara & liner clutch': 1,
+    'sephora|ginzing\u2122 spf 40 energy-boosting tinted moisturizer': 1,
+    'sephora|hair gloss in-shower shine treatment': 1,
+    'sephora|mini afterglow liquid blush & lip shine duo': 1,
+    'sephora|stargloss shine hair gloss treatment': 1,
+    'sephora|watermelon milk\u2122 peptide cushion cream refillable moisturizer for dry skin & barrier support': 1,
+    'yesstyle|no-sebum mineral powder': 1,
+    'yesstyle|non uv mineral powder': 1
+  };
+  function noShadeAxis(item) {
+    var r = String(item && item.retailer || '').toLowerCase().trim();
+    var t = String(item && (item.name || item.title) || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    return !!(r && t && NO_SHADE_AXIS[r + '|' + t]);
+  }
   function kindOf(item) {
     var name = String(item && (item.name || item.title) || '');
     if (!name || !beautyContext(item)) return '';
+    if (noShadeAxis(item)) return '';
     if (HAIR_COLOUR.test(name)) return HAIR_NOT.test(name) ? '' : 'hair';
     var t = name.replace(SET_CLAIM, ' ');
     if (NOT_SHADED.test(t) || SEVERAL_PIECES.test(t)) return '';
@@ -154,6 +180,8 @@
     SHADE_CLAIM: SHADE_CLAIM,
     STRONG: STRONG,
     kindOf: kindOf,
+    noShadeAxis: noShadeAxis,
+    NO_SHADE_AXIS: NO_SHADE_AXIS,
     beautyContext: beautyContext,
     reasonOf: reasonOf,
     isShadeDependent: isShadeDependent,
