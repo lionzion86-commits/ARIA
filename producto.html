@@ -70,7 +70,7 @@ footer a{color:#fff}
 .v-opt:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .v-opt.v-out img{opacity:.45}
 .v-opt em{font-style:normal;font-size:10px;font-weight:700;color:#B03A2E}
-.v-out-note{font-weight:600;color:#B03A2E}
+.v-out-note{font-weight:600;color:#14213D}
 .v-pending{font-size:12px;color:var(--muted);line-height:1.45;margin:8px 0 0}
 /* THE SHADE DROPDOWN (Danny after #583: "Why is there not a dropdown with
    the numbers?"): a shade family opens on a native list of every tono,
@@ -166,6 +166,7 @@ footer a{color:#fff}
 <script src="/off-sale.js"></script>
 <script src="/display-name.js"></script>
 <script src="/shade-gate.js"></script>
+<script src="/vuelve-pronto.js"></script>
 <script src="/condition.js"></script>
 <script src="/not-sold.js"></script>
 <script src="/store-shipping.js"></script>
@@ -1045,7 +1046,7 @@ function oneShadeHtml(p){
 }
 function shadeSelectHtml(p){
   var opts = shadeOrder(p.variants).map(function(x){
-    return '<option value="' + esc(x.v) + '"' + (x.v === p.v ? ' selected' : '') + '>' + esc(x.c || '') + (x.so === 1 ? ' (agotado)' : '') + '</option>';
+    return '<option value="' + esc(x.v) + '"' + (x.v === p.v ? ' selected' : '') + '>' + esc(x.c || '') + (x.so === 1 ? ' (vuelve pronto)' : '') + '</option>';
   }).join('');
   return '<label class="size-label" for="shade-select" style="display:block;margin:0 0 8px">Elige el tono (' + p.variants.length + ' tonos)</label>'
     + '<select id="shade-select" class="shade-select" aria-label="Tono">' + opts + '</select>';
@@ -1055,13 +1056,13 @@ function variantBoxHtml(p){
   var opts = p.variants.map(function(x){
     var on = x.v === p.v;
     var img = x.image ? '<img src="' + esc(sizedImageUrl(x.image, 180)) + '" data-img-orig="' + esc(x.image) + '" alt="" onerror="if(!imgOrigRetry(this)){this.style.visibility=\'hidden\'}">' : '';
-    return '<button type="button" class="v-opt' + (x.so === 1 ? ' v-out' : '') + '" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + (x.so === 1 ? ' (agotado)' : '') + '">'
-      + img + '<span>' + esc(x.c || '') + '</span>' + (x.so === 1 ? '<em>Agotado</em>' : '') + '</button>';
+    return '<button type="button" class="v-opt' + (x.so === 1 ? ' v-out' : '') + '" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" data-v="' + esc(x.v) + '" title="' + esc(x.c || '') + (x.so === 1 ? ' (vuelve pronto)' : '') + '">'
+      + img + '<span>' + esc(x.c || '') + '</span>' + (x.so === 1 ? '<em>Vuelve pronto</em>' : '') + '</button>';
   });
   var wait = Array.isArray(p.variants.pending) ? p.variants.pending : [];
   var tono = variantWord(p) === "Tono";
   return '<div class="v-box' + (tono ? ' v-tono' : '') + '" id="variant-box">'
-    + '<p class="v-label" id="v-label">' + variantWord(p) + ': <b id="v-current">' + esc(p.c || '') + '</b>' + (p.so ? ' <span class="v-out-note">(agotado)</span>' : '') + '</p>'
+    + '<p class="v-label" id="v-label">' + variantWord(p) + ': <b id="v-current">' + esc(p.c || '') + '</b>' + (p.so ? ' <span class="v-out-note">(vuelve pronto)</span>' : '') + '</p>'
     + (tono ? shadeSelectHtml(p) : '')
     + '<div class="v-opts" role="radiogroup" aria-labelledby="v-label">' + (tono ? shadeOrder(p.variants).map(function(x){ return opts[p.variants.indexOf(x)]; }).join('') : opts.join('')) + '</div>'
     + (wait.length ? '<p class="v-pending" id="v-pending">' + (variantWord(p) === "Tono" ? 'Otros tonos' : 'Otros colores') + ' de la tienda, con detalle pendiente: ' + esc(wait.join(', ')) + '.</p>' : '')
@@ -1157,6 +1158,7 @@ function render(p, swapping){
       + desc
       + conditionHtml(p)
       + (p.partNumber ? '<p style="font-size:14px;color:var(--muted);margin:0 0 10px">N.° de parte: <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">' + esc(p.partNumber) + '</span></p>' : '')
+      + (p.so && !offSale ? '<p class="p-vp" id="p-vp" style="margin:0 0 8px"><span class="vp-pill" data-vuelve-pronto style="display:inline-block;font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:#14213D;color:#fff">Vuelve pronto</span></p>' : '')
       + priceHtml
       + '<p style="font-size:13px;color:var(--muted);margin-top:14px">El flete va aparte, por peso, y ves el total completo en el checkout antes de pagar.</p>'
       /* DANNY 2026-10-07: NEVER link out to the retailer's/designer's own site.
@@ -1648,12 +1650,14 @@ function buildBuyBox(p){
   var box = el('buy-box');
   if (!box) return;
   if (isOffSaleProduct(p)){ box.innerHTML = ''; return; }
-  /* OUT OF STOCK AT THE STORE (#443 variant families): the store's own
-     variant data says this shade or colour is not sold now. Shown, never
-     offered -- pick another. */
+  /* VUELVE PRONTO (#443 c.6585537098, /vuelve-pronto.js): the store's own
+     data says this product -- or this shade or colour -- is sold out now.
+     Shown, never offered: the button says «Vuelve pronto» and the
+     shopper can ask to hear when it is back (Avísame cuando vuelva). */
   if (p.so){
-    box.innerHTML = '<button id="add-cart-btn" class="btn btn-add" type="button" disabled aria-disabled="true" style="background:#C8CDD8;color:#5B6478;cursor:not-allowed">Agotado en la tienda</button>'
-      + '<p class="sizes-pending-note" role="status" style="font-size:13.5px;color:#5B6478;margin:8px 0 0">' + esc(soldOutVariantNote(p)) + '</p>';
+    box.innerHTML = '<button id="add-cart-btn" class="btn btn-add" type="button" disabled aria-disabled="true" style="background:#C8CDD8;color:#14213D;cursor:not-allowed">Vuelve pronto</button>'
+      + '<p class="sizes-pending-note" id="vp-note" role="status" style="font-size:13.5px;color:#5B6478;margin:8px 0 0">' + esc(soldOutVariantNote(p)) + '</p>';
+    if (window.AriaVuelvePronto) window.AriaVuelvePronto.mountInterest(box, { name: p.name, retailer: p.retailer, v: p.v });
     return;
   }
   /* TONOS EN CAMINO (/shade-gate.js; Danny after #583: nobody buys makeup
@@ -1709,10 +1713,16 @@ function shadeGateHtml(p){
     + '<p class="shade-gate-note" id="shade-gate-note" role="status" style="margin:0">' + esc(window.AriaShadeGate.SHADE_PENDING_NOTE) + '</p></div>';
 }
 var SIZES_PENDING_NOTE = "Estamos confirmando las tallas de este producto con la tienda. Muy pronto podrás comprarlo aquí.";
-function soldOutVariantNote(p){ return (variantWord(p) === "Tono" ? "Este tono" : "Este color") + " está agotado en la tienda. Elige otro."; }
+/* «Vuelve pronto», in the words for what is sold out: one colour or
+   shade of several (another can be picked), or the product itself. */
+function soldOutVariantNote(p){
+  var V = window.AriaVuelvePronto;
+  if (hasVariants(p) && p.variants.some(function(x){ return x.so !== 1; })) return V ? V.variantNote(variantWord(p)) : "Vuelve pronto.";
+  return "La tienda no lo tiene por ahora. Vuelve pronto.";
+}
 function addCurrentToCart(p, sizes){
   if (isOffSaleProduct(p)){ toast(window.AriaOffSale.OFF_SALE_PRODUCT_NOTE); return; }
-  if (p.so){ toast(soldOutVariantNote(p)); return; }
+  if (p.so){ toast(window.AriaVuelvePronto ? window.AriaVuelvePronto.TOAST : soldOutVariantNote(p)); return; }
   if (shadeGateApplies(p)){ toast(window.AriaShadeGate.SHADE_PENDING_NOTE); return; }
   if (p.sizesPending && !(sizes && sizes.length)){ toast(SIZES_PENDING_NOTE); return; }
   /* The price guard: never a priceless or $0 line. */

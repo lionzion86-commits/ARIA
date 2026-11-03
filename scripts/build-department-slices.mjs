@@ -46,10 +46,10 @@ import { fileURLToPath } from "node:url";
 import { RETAILERS } from "./lib/retailers.js";
 import { isGymApparel } from "./lib/gym-apparel.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
-import { isDrone, isNotElectronics } from "./lib/tech-aisle.js";
+import { isDroneProduct, isNotElectronics } from "./lib/tech-aisle.js";
 import "../not-sold.js";
 const isNotSold = globalThis.AriaNotSold.isNotSold;
-import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle, audienceSwitch, deptStats } from "../netlify/functions/_department-core.js";
+import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle, audienceSwitch, deptStats, typeKeyOf } from "../netlify/functions/_department-core.js";
 import { garmentAudience, storeAudiences } from "./lib/offer-category.js";
 import { isShoeForDept, footwearClass, shoeGender, isFootwear } from "./lib/footwear.js";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
@@ -218,10 +218,19 @@ const AUTO_RX = wordsRx(["brakes?", "frenos?", "oil filters?", "filtros? de acei
 const AUTO_RETAILERS = new Set(["advanceauto", "autozone"]);
 const NOT_A_PART = new Set(["juguetes", "ropa", "zapatos", "carteras", "joyas", "sombreros", "trajes_bano", "belleza", "perfumes", "libros", "dulces", "bebe"]);
 const BEAUTY_BUCKETS = new Set(["beauty", "belleza", "grooming_women", "grooming_men", "fragrance", "hair", "haircare", "hair_care"]);
+/* A bottle of scent by its own name; what only names a scent. */
+export const TRUE_FRAGRANCE_RX = /\b(eau\s+de\s+(?:parfum|toilette|cologne)|eau\s+fra[iî]che|extrait(?:\s+de\s+parfum)?|parfum|perfumes?|edp|edt|colognes?|body\s+mists?|hair\s+mists?|fragrance\s+mists?|perfume\s+(?:mists?|oils?|sticks?))\b/i;
+/* A fragrance line's shower gel stays, as Cuidado corporal (perfumeType). */
+export const FRAGRANCE_BODY_CARE_RX = /\b(shower\s+gels?|body\s+washes?|bath\s+(?:and|&)\s+shower\s+gels?)\b/i;
+const NOT_A_FRAGRANCE_RX = /\b(uv\s+creams?|sun\s*screens?|spf|plugs?|plug[-\s]?ins?|wipes|candles?|detergents?|air\s+fresheners?)\b/i;
 export const KIND_MATCH = {
   cabello: (t, p) => Boolean(p) && (CAB_BUCKETS.includes(p.bucket) || (BEAUTY_BUCKETS.has(p.bucket) && Boolean(hairAisle(p.title)))),
-  /* Aria Perfumes' stock, and every true fragrance any store sells. */
-  perfumes: (t, p) => Boolean(p && (p.retailer === "ariaperfumes" || productClass(p) === "perfumes")),
+  /* Aria Perfumes' stock, and every true fragrance any store sells --
+     not a sun cream, a wall plug or wipes that only name a scent
+     ("Peach Fragrance UV Cream", "Wallflowers Fragrance Plug"),
+     #443 c.6585323562. */
+  perfumes: (t, p) => Boolean(p && (p.retailer === "ariaperfumes" ||
+    (productClass(p) === "perfumes" && !(NOT_A_FRAGRANCE_RX.test(p.title || "") && !TRUE_FRAGRANCE_RX.test(p.title || ""))))),
   refurb: (t, p) => Boolean(conditionOfTitle(p && p.title)),
   surfskate: (t) => hasAny(t, ["surfboard", "surf board", "skateboard", "skate board", "longboard", "wakeboard", "bodyboard", "paddleboard", "sup board"]),
   spearfishing: (t, p) => SPEAR_RX.test(t) && !SPEAR_VETO.has(nameFamily(p)),
@@ -335,6 +344,72 @@ export function belongsToDept(rule, p) {
   } catch { return false; }
 }
 
+/* THE TYPE IS WHAT THE PRODUCT IS (#443 c.6585323562, Danny: "There
+   should not be a ropa in a perfume store"). A department's type lenses
+   -- its Por tipo rails, the header's Tipo filter, Explorar todo -- read
+   the row's type. Pullers stamp a catch-all on a whole export: Macy's
+   files its Beauty and Home pages APPAREL, so 60 Marc Jacobs Daisy
+   bottles, lip balms and bath towels were a «Ropa (60)» filter and a
+   ROPA rail in Perfumes, Belleza and Hogar. A clothing type on a product
+   whose own name says it is not clothing (product-type.js, the head noun)
+   now takes the type of what it is. A name that still carries a garment
+   noun keeps its type ("RC Essential Tank", "Puzzle Dress", "Heater
+   Sweats" are clothes the classifier misreads), and families the head
+   noun reads loosely (deportes, bebe, repuestos) are left to report. */
+export const CLOTHING_TYPE_LABELS = new Set(["Ropa", "Ropa deportiva", "Ropa interior", "Lencería", "Fajas y shapewear", "Bodies", "Pijamas", "Batas",
+  "Medias", "Leggings", "Enterizos", "Ternos", "Blazers", "Conjuntos", "Casacas y abrigos", "Casacas", "Casacas y chompas", "Pantalones y jeans",
+  "Pantalones y faldas", "Pantalones", "Pantalón", "Polos", "Chompas y polerones", "Polerones", "Vestidos", "Faldas", "Shorts", "Blusas y tops",
+  "Camisas", "Ropa de baño", "Ropa de gimnasio", "Conjuntos y enterizos", "Denim"]);
+/* The family's type (a name the type lenses show in Spanish); "" for a
+   family with no lens name (it joins «Más productos», never «Ropa»). */
+const FAMILY_TYPE = { perfumes: "Fragancia", belleza: "Belleza", hogar: "Hogar", carteras: "Carteras", joyas: "Joyas", accesorios: "Accesorios",
+  sombreros: "Sombreros", zapatos: "Zapatos", juguetes: "", electronica: "", libros: "", dulces: "", deportes: "" };
+/* A store's catch-all ("APPAREL", "Clothing", "Ropa", "Sets") says
+   nothing about the product: the product's own name decides. A specific
+   garment type ("TOP", "Pantalón", "Medias") is believed unless the name
+   plainly names another thing -- its main phrase ENDS on one
+   (NOT_GARMENT_TAIL_RX), or it is a family the head noun reads reliably
+   (a bottle of scent, a jewel, a bag, a toy) and carries no garment noun.
+   A ski sock called "Targeted Cushion" stays a sock. */
+const CATCHALL_LABELS = new Set(["Ropa", "Ropa deportiva", "Conjuntos"]);
+const RELIABLE_FAMILIES = new Set(["perfumes", "joyas", "accesorios", "carteras", "juguetes", "sombreros", "libros"]);
+const LOOSE_FAMILIES = new Set(["deportes"]);
+/* The main phrase's last noun, when it is plainly not a garment: "Oakley
+   Eye Jacket Sunglasses", "Top-Handle Crossbody Bag", "Polo Player Hand
+   Towel", "Kiama Bucket Hat", "Economy Tent", "6-cup Rice Cooker" -- a
+   garment word earlier in the name is a model name. */
+const NOT_GARMENT_TAIL_RX = /\b(sunglasses|eyewear|bags?|handbags?|totes?|duff(?:el|le)s?|backpacks?|crossbody|satchels?|clutch(?:es)?|wallets?|keychains?|key\s*rings?|earrings?|necklaces?|bracelets?|rings?|hoops?|pendants?|charms?|watch(?:es)?|cufflinks|hats?|beanies?|caps?|visors?|balaclavas?|towels?|washcloths?|blankets?|throws?|pillows?|pillowcases?|comforters?|duvets?|sheets?|rugs?|mugs?|cups?(?<!\be\s+cups?)|bowls?|plates?|tents?|chairs?|stools?|tables?|cabinets?|lamps?|candles?|cookers?|processors?|blenders?|makers?|kettles?|toasters?|fryers?|mixers?|ovens?|servers?|cookware|scarf|scarves|belts?|perfumes?|parfums?|colognes?|mists?|fragrances?|lipsticks?|mascaras?|palettes?|serums?|moisturi[sz]ers?|cleansers?|primers?|glosses|balms?|concealers?|eyeliners?|figures?|dolls?|posters?|signs?|bushings?|snowboards?|skateboards?|surfboards?|fins?|shoes|sneakers?|sandals?|slides|slippers|pumps|loafers?|flats|boots|heels|mules?|clogs?)(?:\s+(?:gift\s+)?(?:sets?|packs?|duo|trio|kits?|pairs?))?\s*$/i;
+/* A home piece by its last noun, whatever a stray word says ("Ice Cream
+   Maker" is no cream, "Cable Washcloth" no cable, "Plush Throw" no toy). */
+const HOME_TAIL_RX = /\b(towels?|washcloths?|blankets?|throws?|pillows?|pillowcases?|comforters?|duvets?|sheets?|rugs?|mugs?|bowls?|plates?|cookers?|processors?|blenders?|makers?|kettles?|toasters?|fryers?|mixers?|ovens?|cookware)(?:\s+(?:gift\s+)?(?:sets?|packs?|pairs?))?\s*$/i;
+const mainPhrase = (t) => String(t || "").split(/\s[-–—|]\s|,|\s\(|\s(?:with|w\/|for|in|featuring|includes?|including)\s/i)[0].replace(/[^A-Za-z0-9\s'’]+$/, "").trim();
+const SCENT_WORD_RX = /\b(fragrances?|perfumes?|parfums?|colognes?|eau\s+de|edp|edt|body\s+mists?)\b/i;
+const GARMENT_WORD_RX = /\b(t-?shirts?|shirts?|overshirts?|button[-\s]?(?:ups?|downs?)|tees?|tanks?|blouses?|sweaters?|cardigans?|hoodies?|sweats|sweatshirts?|sweatpants|sweatshorts?|pullovers?|jackets?|coats?|parkas?|vests?|blazers?|dress(?:es)?(?!\s+(?:pumps?|shoes?|belts?|wallets?|sandals?))|gowns?|skirts?|skorts?|pants?|trousers|jeans|jean(?!\s+(?:paul|pierre|patou|charles|michel|louis|claude|marc|philippe))|denim|leggings?|shorts?|joggers?|pajamas?|pyjamas?|robes?|bras?|bralettes?|panty|panties|briefs?|boxers?|thongs?|tangas?|bodysuits?|rompers?|jumpsuits?|onesies?|swimsuits?|bikinis?|cheeky|skimpy|hi\s+cut|bottoms?|volleys?|boardshorts?|bordshorts?|trunks?|polos?|henleys?|kilts?|crop|tops?(?!\s*(?:handle|zip(?:per)?|shelf|grain|coat|stitch))|outfits?|sleep\s+sets?|lounge\s+sets?|leotards?|socks?|tights|camis?|fleece|crews?|tunics?|kimonos?|ponchos?|scrubs?|uniforms?|overalls?|sleeves?)\b/i;
+const clothingTypeMemo = new Map();
+export function isClothingType(type) {
+  const k = String(type || "").trim();
+  if (!k) return false;
+  if (!clothingTypeMemo.has(k)) clothingTypeMemo.set(k, CLOTHING_TYPE_LABELS.has(typeKeyOf({ type: k }).label));
+  return clothingTypeMemo.get(k);
+}
+export function trueType(p) {
+  if (!p || !isClothingType(p.type)) return p ? p.type : "";
+  const fam = productClass(p);
+  if (!Object.prototype.hasOwnProperty.call(FAMILY_TYPE, fam)) return p.type;
+  const title = String(p.title || "");
+  const main = mainPhrase(title);
+  /* The whole name's last noun counts too ("Girl in Dancing Pose ... Hula
+     Doll"), unless a store suffix follows ("SLEEP SET | PINK SNACK BAG"). */
+  const tail = NOT_GARMENT_TAIL_RX.test(main) || (!/\s[|]\s|\s[-–—]\s/.test(title) && NOT_GARMENT_TAIL_RX.test(title.replace(/[^A-Za-z0-9\s'’]+$/, "").trim()));
+  const garment = GARMENT_WORD_RX.test(title) && !(fam === "perfumes" && SCENT_WORD_RX.test(title));
+  const catchall = CATCHALL_LABELS.has(typeKeyOf(p).label);
+  const ok = tail || (!garment && !LOOSE_FAMILIES.has(fam) && (catchall || RELIABLE_FAMILIES.has(fam)));
+  if (!ok) return p.type;
+  if (HOME_TAIL_RX.test(main)) return FAMILY_TYPE.hogar;
+  if (fam === "zapatos") return footwearClass({ title, type: "" }, p.retailer);
+  return FAMILY_TYPE[fam];
+}
+
 /* sale-rule.js is index.html's one on-sale definition; run it here. */
 export function loadSaleRule(root = ROOT) {
   const win = {};
@@ -393,6 +468,10 @@ export function loadAllItems(root = ROOT) {
           if (isNotSold(p)) continue;
           const rf = REFILES[rk] && REFILES[rk][p.title];
           if (rf && rf[0] === bk) p.bucket = rf[1];
+          /* A clothing type on what is not clothing takes its own (#443 c.6585323562). */
+          const storeType = p.type;
+          p.type = trueType(p);
+          if (p.type !== storeType) p.storeType = storeType;
           const key = rk + "::" + p.title;
           if (seen.has(key)) continue;
           seen.add(key);
@@ -407,13 +486,77 @@ export function loadAllItems(root = ROOT) {
   return out;
 }
 
+/* PERFUMES OFFERS FRAGRANCE TYPES ONLY (#443 c.6585323562): Fragancia,
+   and Cuidado corporal for a fragrance line's body care. */
+export const PERFUME_TYPES = new Set(["fragancia", "cuidado-corporal"]);
+export function perfumeType(p) {
+  if (PERFUME_TYPES.has(typeKeyOf(p).k)) return p.type;
+  return FRAGRANCE_BODY_CARE_RX.test(String((p && p.title) || "")) ? "Cuidado corporal" : "Fragancia";
+}
+/* A bottle's door from another store: its own words first (tester, set,
+   mini, for her / for him / unisex), then the Aria Perfumes line it
+   belongs to -- same house, the line's name leading the title ("Daisy
+   Murakami Pink ... Eau de Parfum" is Marc Jacobs' Daisy, a women's
+   line) -- when every bottle of that line opens one door. Otherwise
+   none: the bottle stays in its house's rail, out of the doors. */
+const fold = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const GENDER_DOORS = new Set(["mujer", "hombre", "unisex"]);
+export function perfumeDoorOfWords(title) {
+  const t = String(title || "");
+  if (/\btesters?\b/i.test(t)) return "testers";
+  if (/\b(gift\s+sets?|coffrets?|\d+\s*-?\s*(?:pc|pcs|piece)\b|sets?\b)/i.test(t)) return "sets";
+  if (/\b(minis?|travel\s+size|travel\s+spray|rollerball)\b/i.test(t)) return "minis";
+  const her = /\b(for\s+women|women'?s|womens|for\s+her|pour\s+femme|femme|donna|para\s+mujer)\b/i.test(t);
+  const him = /\b(for\s+men|men'?s|mens|for\s+him|pour\s+homme|homme|uomo|para\s+hombre)\b/i.test(t);
+  if (/\bunisex\b/i.test(t) || (her && him)) return "unisex";
+  return her ? "mujer" : him ? "hombre" : "";
+}
+export function perfumeDoorIndex(all) {
+  /* house -> line -> doors, from Aria Perfumes' catalogue ("Daisy — Eau de Toilette ... para mujer"). */
+  const lines = new Map();
+  for (const p of all) {
+    if (p.retailer !== "ariaperfumes") continue;
+    const line = fold(String(p.title || "").split(" — ")[0]), house = fold(p.brand);
+    if (line.length < 3 || !house) continue;
+    const door = GENDER_DOORS.has(p.bucket) ? p.bucket : (/\bpara mujer\b/.test(p.title) ? "mujer" : /\bpara hombre\b/.test(p.title) ? "hombre" : /\bunisex\b/i.test(p.title) ? "unisex" : "");
+    if (!door) continue;
+    if (!lines.has(house)) lines.set(house, new Map());
+    const m = lines.get(house);
+    if (!m.has(line)) m.set(line, new Set());
+    m.get(line).add(door);
+  }
+  return (p) => {
+    const own = perfumeDoorOfWords(p.title);
+    if (own) return own;
+    const house = fold(p.brand), m = lines.get(house);
+    if (!m) return "";
+    let t = fold(p.title);
+    if (t.startsWith(house + " ")) t = t.slice(house.length + 1);
+    let best = "";
+    for (const line of m.keys()) if ((t === line || t.startsWith(line + " ")) && line.length > best.length) best = line;
+    const doors = best ? m.get(best) : null;
+    return doors && doors.size === 1 ? [...doors][0] : "";
+  };
+}
+
 export const MEDIA_RX = /\b(dvd|blu-?ray|audio cd|music cd|the very best of|greatest hits|soundtrack|original motion picture)\b(?!\s*(players?|drives?|burners?|writers?|recorders?))|\[(dvd|blu-?ray|cd)\]/i;
 export function deptItems(all, key) {
   const rule = resolveRule(DEPT_RULES[key], all);
   let list = all.filter((p) => belongsToDept(rule, p));
   /* Perfumes: each bottle's door is the catalogue's own department
      (mujer / hombre / unisex / minis / sets / testers ...), carried as `a`. */
-  if (key === "perfumes") list = list.map((p) => (p.retailer === "ariaperfumes" && p.bucket ? { ...p, a: p.bucket } : p));
+  /* ...and another store's bottle takes the door its own words or the
+     Aria Perfumes line it belongs to say (perfumeDoor), never a guess.
+     Its type is a fragrance type: the department offers no other. */
+  if (key === "perfumes") {
+    const doorOf = perfumeDoorIndex(all);
+    list = list.map((p) => {
+      const type = perfumeType(p);
+      if (p.retailer === "ariaperfumes") return { ...p, type, ...(p.bucket ? { a: p.bucket } : {}) };
+      const a = type === "Cuidado corporal" ? "cuidado" : doorOf(p);
+      return { ...p, type, ...(a ? { a } : {}) };
+    });
+  }
   if (key === "home_goods") {
     list = list.map((p) => (CASA_BUCKETS.includes(p.bucket) ? { ...p, a: p.bucket } : p));
     list = all.filter((p) => CASA_BOOK_STORES.has(p.retailer)).map((p) => ({ ...p, a: "libros" })).concat(list);
@@ -433,7 +576,7 @@ export function deptItems(all, key) {
      electronics stays out of it, and every lens, rail and pill with it.
      A drone is the Drones type, whatever the store typed it (#443
      c.6579603095): its Por tipo rail and t=drones page. */
-  if (key === "electronics") list = list.filter((p) => !isNotElectronics(p.title)).map((p) => (isDrone(p.title) ? { ...p, type: "tech_drones" } : p));
+  if (key === "electronics") list = list.filter((p) => !isNotElectronics(p.title)).map((p) => (isDroneProduct(p) ? { ...p, type: "tech_drones" } : p));
   /* Cabello: each product's treatment aisle is its type (the rails and the
      pills read it); a brand Peru sells cheaply enters only on sale, and
      the lines Peru does not carry lead (the stable sort below keeps it). */
