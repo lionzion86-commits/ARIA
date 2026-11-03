@@ -9,16 +9,16 @@ Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones de
 | Niños | Ropa · Zapatos · Marcas · Secciones | 2,298 |
 | Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,750 |
 | Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,350 |
-| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 9,064 |
+| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 9,059 |
 | Diseñador | Mujer · Hombre · Niños · Marcas · Secciones | 21,640 |
 | Deportes | Tipos · Marcas · Secciones | 17,815 |
 | Tallas Plus | Mujer · Hombre · Marcas · Secciones | 7,850 |
 | Lencería | Lencería · Ropa Interior Hombre · Secciones | 3,294 |
-| Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,422 |
+| Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,421 |
 | Electrónica | Tipos · Marcas · Secciones | 5,917 |
-| Juguetes | Tipos · Marcas · Secciones | 7,531 |
+| Juguetes | Tipos · Marcas · Secciones | 7,538 |
 | Auto y Motos | Aria Auto · Motos · Secciones | 2,495 |
-| Ofertas | Mujer · Hombre · Niños · Zapatos · Belleza · Electrónica · Secciones | 31,977 |
+| Ofertas | Mujer · Hombre · Niños · Zapatos · Belleza · Electrónica · Secciones | 31,969 |
 | Key Club | (sin columnas) | 0 |
 
 ## Mujer
@@ -108,7 +108,7 @@ Abre: `/departamento.html?dept=women` (17,417 productos)
 - Belleza: 10 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=belleza`
 - Coche: 8 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=coche`
 - Broches y pines: 7 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=broches-y-pines`
-- Alimentación: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=alimentacion`
+- Chupetes y mordedores: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=chupetes-y-mordedores`
 - Equipo: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=equipo`
 - Joyería: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=joyeria`
 - Cinturones de levantamiento: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&u=women&t=cinturones-de-levantamiento`
@@ -1611,8 +1611,8 @@ Abre: `/departamento.html?dept=kids` (2,298 productos)
 
 ### Secciones
 
-- Juguetes: 7,531 · `/departamento.html?dept=toys`
-- Mama's Fashion: 2,622 · `/departamento.html?dept=moms`
+- Juguetes: 7,538 · `/departamento.html?dept=toys`
+- Mama's Fashion: 2,461 · `/departamento.html?dept=moms`
 - Aria Party: 1,079 · `/departamento.html?dept=party`
 
 ## Zapatos
@@ -3054,9 +3054,9 @@ Abre: `/departamento.html?dept=beauty` (5,350 productos)
 
 ## Accesorios
 
-Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
+Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 
-### Tipos (9,064)
+### Tipos (9,059)
 
 - Pulseras y tobilleras: 1,111 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pulseras-y-tobilleras`
 - Collares y dijes: 1,075 · `/departamento.html?dept=joyas_accesorios&nav=1&t=collares-y-dijes`
@@ -3087,13 +3087,13 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Figura Coleccionable: 14 · `/departamento.html?dept=joyas_accesorios&nav=1&t=figura-coleccionable`
 - Pesas Y Cinturones: 14 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pesas-y-cinturones`
 - Recuerdos de fiesta: 14 · `/departamento.html?dept=joyas_accesorios&nav=1&t=recuerdos-de-fiesta`
-- Alimentación: 13 · `/departamento.html?dept=joyas_accesorios&nav=1&t=alimentacion`
 - Cinturones de levantamiento: 12 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cinturones-de-levantamiento`
 - Manta: 10 · `/departamento.html?dept=joyas_accesorios&nav=1&t=manta`
 - Repuestos Y Accesorios De Pesca Submarina: 10 · `/departamento.html?dept=joyas_accesorios&nav=1&t=repuestos-y-accesorios-de-pesca-submarin`
-- Coche: 9 · `/departamento.html?dept=joyas_accesorios&nav=1&t=coche`
+- Chupetes y mordedores: 9 · `/departamento.html?dept=joyas_accesorios&nav=1&t=chupetes-y-mordedores`
 - Accesorios De Skate: 8 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-skate`
 - Accesorios De Surf: 8 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-surf`
+- Coche: 8 · `/departamento.html?dept=joyas_accesorios&nav=1&t=coche`
 - Equipo: 8 · `/departamento.html?dept=joyas_accesorios&nav=1&t=equipo`
 - Tablas De Surf: 8 · `/departamento.html?dept=joyas_accesorios&nav=1&t=tablas-de-surf`
 - Zapatillas: 8 · `/departamento.html?dept=joyas_accesorios&nav=1&t=zapatillas`
@@ -3102,24 +3102,25 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Disfraces: 6 · `/departamento.html?dept=joyas_accesorios&nav=1&t=disfraces`
 - Habitación del bebé: 6 · `/departamento.html?dept=joyas_accesorios&nav=1&t=habitacion-del-bebe`
 - Drones: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=drones`
-- Pañales: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=panales`
 - Trajes De Neopreno: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=trajes-de-neopreno`
 - Trucks, Ruedas Y Partes: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=trucks-ruedas-y-partes`
 - Accesorios De Tenis: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-tenis`
 - Cuadros y decoración de pared: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cuadros-y-decoracion-de-pared`
 - Pantalones y jeans: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pantalones-y-jeans`
+- Pañales: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=panales`
 - Peluche: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=peluche`
 - Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-pesca-submarina`
 - Blusas y tops: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=blusas-y-tops`
 - Calzado: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=calzado`
 - Cascos Y Protecciones: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cascos-y-protecciones`
+- Cuidado del bebé: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cuidado-del-bebe`
 - Gorros: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=gorros`
-- Lactancia: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=lactancia`
 - Libros de mesa: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=libros-de-mesa`
 - Navidad: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=navidad`
 - Shorts: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=shorts`
 - Camisas: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=camisas`
 - Chaqueta: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=chaqueta`
+- Maternidad: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=maternidad`
 - Sandalias: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=sandalias`
 - Zapatos: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=zapatos`
 - Arcos Y Porterías: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=arcos-y-porterias`
@@ -3127,12 +3128,11 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Arpones De Vara: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=arpones-de-vara`
 - Balones y pelotas: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=balones-y-pelotas`
 - Chompas y polerones: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=chompas-y-polerones`
+- Lactancia: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=lactancia`
 - Lencería: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=lenceria`
-- Maternidad: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=maternidad`
 - Máscaras Y Snorkels: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=mascaras-y-snorkels`
 - Neceseres: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=neceseres`
 - Pijama: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pijama`
-- Portabebe: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=portabebe`
 - Repuestos: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=repuestos`
 - Skateboards: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=skateboards`
 - Toallas Y Ponchos: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=toallas-y-ponchos`
@@ -3142,12 +3142,11 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 ### Carteras (876)
 
 - Carteras: 726 · `/departamento.html?dept=purses&nav=1&t=carteras`
-- Pañales: 22 · `/departamento.html?dept=purses&nav=1&t=panales`
+- Pañales: 33 · `/departamento.html?dept=purses&nav=1&t=panales`
 - Tablas De Surf: 16 · `/departamento.html?dept=purses&nav=1&t=tablas-de-surf`
 - Accesorios: 13 · `/departamento.html?dept=purses&nav=1&t=accesorios`
 - Mochilas y bolsos: 11 · `/departamento.html?dept=purses&nav=1&t=mochilas-y-bolsos`
 - Accesorios De Surf: 8 · `/departamento.html?dept=purses&nav=1&t=accesorios-de-surf`
-- Alimentación: 8 · `/departamento.html?dept=purses&nav=1&t=alimentacion`
 - Bolsos: 7 · `/departamento.html?dept=purses&nav=1&t=bolsos`
 - Billeteras: 6 · `/departamento.html?dept=purses&nav=1&t=billeteras`
 - Equipo: 6 · `/departamento.html?dept=purses&nav=1&t=equipo`
@@ -3156,7 +3155,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Repuestos Y Accesorios De Pesca Submarina: 5 · `/departamento.html?dept=purses&nav=1&t=repuestos-y-accesorios-de-pesca-submarin`
 - Accesorios De Skate: 4 · `/departamento.html?dept=purses&nav=1&t=accesorios-de-skate`
 - Gorras: 4 · `/departamento.html?dept=purses&nav=1&t=gorras`
-- Maternidad: 4 · `/departamento.html?dept=purses&nav=1&t=maternidad`
 - Trucks, Ruedas Y Partes: 4 · `/departamento.html?dept=purses&nav=1&t=trucks-ruedas-y-partes`
 - Accesorios De Fútbol: 3 · `/departamento.html?dept=purses&nav=1&t=accesorios-de-futbol`
 - Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=purses&nav=1&t=accesorios-de-pesca-submarina`
@@ -3167,6 +3165,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Aletas De Buceo: 1 · `/departamento.html?dept=purses&nav=1&t=aletas-de-buceo`
 - Arpones: 1 · `/departamento.html?dept=purses&nav=1&t=arpones`
 - Autoasiento: 1 · `/departamento.html?dept=purses&nav=1&t=autoasiento`
+- Biberones y alimentación del bebé: 1 · `/departamento.html?dept=purses&nav=1&t=biberones-y-alimentacion-del-bebe`
 - Lactancia: 1 · `/departamento.html?dept=purses&nav=1&t=lactancia`
 - Sup / Paddle Surf: 1 · `/departamento.html?dept=purses&nav=1&t=sup-paddle-surf`
 - Trípode: 1 · `/departamento.html?dept=purses&nav=1&t=tripode`
@@ -3184,7 +3183,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Aletas De Buceo: 1 · `/departamento.html?dept=sunglasses&nav=1&t=aletas-de-buceo`
 - Decks (tablas De Skate): 1 · `/departamento.html?dept=sunglasses&nav=1&t=decks-tablas-de-skate`
 
-### Marcas (9,064)
+### Marcas (9,059)
 
 - BaubleBar: 3,410 · `/departamento.html?dept=joyas_accesorios&nav=1&b=baublebar`
 - Vivienne Westwood: 337 · `/departamento.html?dept=joyas_accesorios&nav=1&b=vivienne%20westwood`
@@ -3413,7 +3412,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Lc Lauren Conrad: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=lc%20lauren%20conrad`
 - MASTERMIND WORLD: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=mastermind%20world`
 - Moncler: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=moncler`
-- Munchkin: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=munchkin`
 - New Balance: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=new%20balance`
 - Nine West: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=nine%20west`
 - NovaStitch: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=novastitch`
@@ -3452,7 +3450,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Donde Esteban: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&b=donde%20esteban`
 - Drake's: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&b=drake's`
 - Ellie Vail: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&b=ellie%20vail`
-- Elvie: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&b=elvie`
 - Emi Jay: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&b=emi%20jay`
 - Farm Rio: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&b=farm%20rio`
 - Flower Knows: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&b=flower%20knows`
@@ -3585,6 +3582,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Edward Cuming: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=edward%20cuming`
 - Edward Monkton: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=edward%20monkton`
 - EGONlab: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=egonlab`
+- Elvie: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=elvie`
 - EON: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=eon`
 - Esquire Men's Jewelry: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=esquire%20men's%20jewelry`
 - Essentials: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=essentials`
@@ -3668,7 +3666,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 - Miroddi: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=miroddi`
 - MLYeeWf: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=mlyeewf`
 - MMIC: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=mmic`
-- Mockingbird: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=mockingbird`
 - Momcozy: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=momcozy`
 - Moocorvic: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=moocorvic`
 - moonshot: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=moonshot`
@@ -3761,7 +3758,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,064 productos)
 
 ### Secciones
 
-- Joyas y Accesorios: 9,064 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 9,059 · `/departamento.html?dept=joyas_accesorios`
 - Carteras: 2,499 · `/departamento.html?dept=purses`
 - Lentes de Sol: 1,883 · `/departamento.html?dept=sunglasses`
 
@@ -4244,7 +4241,7 @@ Abre: `/departamento.html?dept=luxury` (21,640 productos)
 
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
 - Diseñadores Latinos: 10,053 · `/disenadores.html`
-- Joyas y Accesorios: 9,064 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 9,059 · `/departamento.html?dept=joyas_accesorios`
 
 ## Deportes
 
@@ -5624,9 +5621,9 @@ Abre: `/ropa-interior.html#mujer` (3,294 productos)
 
 ## Hogar
 
-Abre: `/departamento.html?dept=home_goods` (6,422 productos)
+Abre: `/departamento.html?dept=home_goods` (6,421 productos)
 
-### Casa Aria (5,641)
+### Casa Aria (5,640)
 
 - Hogar: 777 · `/departamento.html?dept=home_goods&nav=1&t=hogar`
 - Manteles y servilletas: 660 · `/departamento.html?dept=home_goods&nav=1&t=manteles-y-servilletas`
@@ -5682,14 +5679,14 @@ Abre: `/departamento.html?dept=home_goods` (6,422 productos)
 - Jabones y cremas: 9 · `/departamento.html?dept=home_goods&nav=1&t=jabones-y-cremas`
 - Habitación del bebé: 6 · `/departamento.html?dept=home_goods&nav=1&t=habitacion-del-bebe`
 - Ropa: 6 · `/departamento.html?dept=home_goods&nav=1&t=ropa`
-- Coche: 5 · `/departamento.html?dept=home_goods&nav=1&t=coche`
 - Toallas Y Ponchos: 5 · `/departamento.html?dept=home_goods&nav=1&t=toallas-y-ponchos`
+- Coche: 4 · `/departamento.html?dept=home_goods&nav=1&t=coche`
 - Accesorios De Surf: 3 · `/departamento.html?dept=home_goods&nav=1&t=accesorios-de-surf`
 - Belleza: 2 · `/departamento.html?dept=home_goods&nav=1&t=belleza`
 - Gorras: 2 · `/departamento.html?dept=home_goods&nav=1&t=gorras`
 - Bodyboards: 1 · `/departamento.html?dept=home_goods&nav=1&t=bodyboards`
 - Carteras: 1 · `/departamento.html?dept=home_goods&nav=1&t=carteras`
-- Lactancia: 1 · `/departamento.html?dept=home_goods&nav=1&t=lactancia`
+- Maternidad: 1 · `/departamento.html?dept=home_goods&nav=1&t=maternidad`
 
 ### Decoración (1,719)
 
@@ -5717,7 +5714,7 @@ Abre: `/departamento.html?dept=home_goods` (6,422 productos)
 - Platos: 1 · `/departamento.html?dept=home_decor&nav=1&t=platos`
 - Vasos: 1 · `/departamento.html?dept=home_decor&nav=1&t=vasos`
 
-### Marcas (6,422)
+### Marcas (6,421)
 
 - Kohl's: 449 · `/departamento.html?dept=home_goods&nav=1&b=kohl's`
 - ASSOULINE: 270 · `/departamento.html?dept=home_goods&nav=1&b=assouline`
@@ -5763,7 +5760,6 @@ Abre: `/departamento.html?dept=home_goods` (6,422 productos)
 - Karson: 5 · `/departamento.html?dept=home_goods&nav=1&b=karson`
 - Luca: 5 · `/departamento.html?dept=home_goods&nav=1&b=luca`
 - Malibu: 5 · `/departamento.html?dept=home_goods&nav=1&b=malibu`
-- Mockingbird: 5 · `/departamento.html?dept=home_goods&nav=1&b=mockingbird`
 - West: 5 · `/departamento.html?dept=home_goods&nav=1&b=west`
 - ACQUA DI PARMA: 4 · `/departamento.html?dept=home_goods&nav=1&b=acqua%20di%20parma`
 - Barcalounger: 4 · `/departamento.html?dept=home_goods&nav=1&b=barcalounger`
@@ -5775,6 +5771,7 @@ Abre: `/departamento.html?dept=home_goods` (6,422 productos)
 - Instant Pot: 4 · `/departamento.html?dept=home_goods&nav=1&b=instant%20pot`
 - Larsen: 4 · `/departamento.html?dept=home_goods&nav=1&b=larsen`
 - MegaChef: 4 · `/departamento.html?dept=home_goods&nav=1&b=megachef`
+- Mockingbird: 4 · `/departamento.html?dept=home_goods&nav=1&b=mockingbird`
 - Modern: 4 · `/departamento.html?dept=home_goods&nav=1&b=modern`
 - Portofino: 4 · `/departamento.html?dept=home_goods&nav=1&b=portofino`
 - Sereen: 4 · `/departamento.html?dept=home_goods&nav=1&b=sereen`
@@ -6023,9 +6020,9 @@ Abre: `/departamento.html?dept=home_goods` (6,422 productos)
 
 ### Secciones
 
-- Casa Aria: 6,422 · `/departamento.html?dept=home_goods`
+- Casa Aria: 6,421 · `/departamento.html?dept=home_goods`
 - Decoración: 2,711 · `/departamento.html?dept=home_decor`
-- Libros: 508 · `/departamento.html?dept=books`
+- Libros: 506 · `/departamento.html?dept=books`
 - Aria Party: 1,079 · `/departamento.html?dept=party`
 - Dulces y Chocolates: 24 · `/departamento.html?dept=candy_chocolate`
 
@@ -7185,9 +7182,9 @@ Abre: `/departamento.html?dept=electronics` (5,917 productos)
 
 ## Juguetes
 
-Abre: `/departamento.html?dept=toys` (7,531 productos)
+Abre: `/departamento.html?dept=toys` (7,538 productos)
 
-### Tipos (7,531)
+### Tipos (7,538)
 
 - Figura Coleccionable: 853 · `/departamento.html?dept=toys&nav=1&t=figura-coleccionable`
 - Peluche: 47 · `/departamento.html?dept=toys&nav=1&t=peluche`
@@ -7195,10 +7192,11 @@ Abre: `/departamento.html?dept=toys` (7,531 productos)
 - Recuerdos de fiesta: 18 · `/departamento.html?dept=toys&nav=1&t=recuerdos-de-fiesta`
 - Gorras: 13 · `/departamento.html?dept=toys&nav=1&t=gorras`
 - Bolso: 9 · `/departamento.html?dept=toys&nav=1&t=bolso`
+- Juguetes: 8 · `/departamento.html?dept=toys&nav=1&t=juguetes`
 - Vajilla: 6 · `/departamento.html?dept=toys&nav=1&t=vajilla`
 - Decoración: 5 · `/departamento.html?dept=toys&nav=1&t=decoracion`
 - Joyería: 5 · `/departamento.html?dept=toys&nav=1&t=joyeria`
-- Alimentación: 4 · `/departamento.html?dept=toys&nav=1&t=alimentacion`
+- Baño del bebé: 4 · `/departamento.html?dept=toys&nav=1&t=bano-del-bebe`
 - Ropa: 4 · `/departamento.html?dept=toys&nav=1&t=ropa`
 - Zapatillas: 4 · `/departamento.html?dept=toys&nav=1&t=zapatillas`
 - Hogar: 3 · `/departamento.html?dept=toys&nav=1&t=hogar`
@@ -7207,16 +7205,17 @@ Abre: `/departamento.html?dept=toys` (7,531 productos)
 - Repuestos Y Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=toys&nav=1&t=repuestos-y-accesorios-de-pesca-submarin`
 - Vestidos: 3 · `/departamento.html?dept=toys&nav=1&t=vestidos`
 - Calzado: 2 · `/departamento.html?dept=toys&nav=1&t=calzado`
-- Habitación del bebé: 2 · `/departamento.html?dept=toys&nav=1&t=habitacion-del-bebe`
-- Lactancia: 2 · `/departamento.html?dept=toys&nav=1&t=lactancia`
 - Zapatos: 2 · `/departamento.html?dept=toys&nav=1&t=zapatos`
 - Accesorio: 1 · `/departamento.html?dept=toys&nav=1&t=accesorio`
 - Blusas y tops: 1 · `/departamento.html?dept=toys&nav=1&t=blusas-y-tops`
 - Boyas Y Flotadores: 1 · `/departamento.html?dept=toys&nav=1&t=boyas-y-flotadores`
 - Carteras: 1 · `/departamento.html?dept=toys&nav=1&t=carteras`
 - Chompas y polerones: 1 · `/departamento.html?dept=toys&nav=1&t=chompas-y-polerones`
+- Chupetes y mordedores: 1 · `/departamento.html?dept=toys&nav=1&t=chupetes-y-mordedores`
 - Disfraz: 1 · `/departamento.html?dept=toys&nav=1&t=disfraz`
 - Fragancia: 1 · `/departamento.html?dept=toys&nav=1&t=fragancia`
+- Habitación del bebé: 1 · `/departamento.html?dept=toys&nav=1&t=habitacion-del-bebe`
+- Lactancia: 1 · `/departamento.html?dept=toys&nav=1&t=lactancia`
 - Mascarillas: 1 · `/departamento.html?dept=toys&nav=1&t=mascarillas`
 - Navidad: 1 · `/departamento.html?dept=toys&nav=1&t=navidad`
 - Pantalones y jeans: 1 · `/departamento.html?dept=toys&nav=1&t=pantalones-y-jeans`
@@ -7225,12 +7224,13 @@ Abre: `/departamento.html?dept=toys` (7,531 productos)
 - Trucks, Ruedas Y Partes: 1 · `/departamento.html?dept=toys&nav=1&t=trucks-ruedas-y-partes`
 - Vasos y tazas: 1 · `/departamento.html?dept=toys&nav=1&t=vasos-y-tazas`
 
-### Marcas (7,531)
+### Marcas (7,538)
 
 - FUNKO: 853 · `/departamento.html?dept=toys&nav=1&b=funko`
 - Party City: 30 · `/departamento.html?dept=toys&nav=1&b=party%20city`
 - KC Company Limited: 10 · `/departamento.html?dept=toys&nav=1&b=kc%20company%20limited`
 - LEGO: 10 · `/departamento.html?dept=toys&nav=1&b=lego`
+- Kindred Bravely: 7 · `/departamento.html?dept=toys&nav=1&b=kindred%20bravely`
 - Aquaterra: 6 · `/departamento.html?dept=toys&nav=1&b=aquaterra`
 - BANPRESTO: 6 · `/departamento.html?dept=toys&nav=1&b=banpresto`
 - New Balance: 4 · `/departamento.html?dept=toys&nav=1&b=new%20balance`
@@ -7313,9 +7313,9 @@ Abre: `/departamento.html?dept=toys` (7,531 productos)
 
 ### Secciones
 
-- Juguetes: 7,531 · `/departamento.html?dept=toys`
+- Juguetes: 7,538 · `/departamento.html?dept=toys`
 - Aria Party: 1,079 · `/departamento.html?dept=party`
-- Mama's Fashion: 2,622 · `/departamento.html?dept=moms`
+- Mama's Fashion: 2,461 · `/departamento.html?dept=moms`
 
 ## Auto y Motos
 
@@ -7347,7 +7347,7 @@ Abre: `/motos.html` (2,495 productos)
 
 ## Ofertas
 
-Abre: `/ofertas.html` (31,977 productos)
+Abre: `/ofertas.html` (31,969 productos)
 
 ### Mujer (2,744)
 
@@ -7507,7 +7507,7 @@ Abre: `/ofertas.html` (31,977 productos)
 
 ### Secciones
 
-- Ofertas: 31,977 · `/ofertas.html`
+- Ofertas: 31,969 · `/ofertas.html`
 
 ## Key Club
 

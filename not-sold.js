@@ -73,13 +73,69 @@
   var CANDY_RX = /\b(candy|candies|candy bars?|chocolates?|truffles|gummi|gummy (bears|worms|candy|clusters)|gummies|chewing gum|bubble gum|gum\b|lollipops?|lollies|pops\b|mints\b|caramels?|toffee|licorice|jelly beans|marshmallows?|fudge|bonbons|fruit (snacks|chews|by the foot)|peppermint patties|candy canes?|buttermints)\b/i;
   var CANDY_BRAND_RX = /\b(m&m'?s|skittles|starburst|snickers|reese'?s|hershey'?s|kit ?kat|twix|haribo|nerds|airheads|sour patch|sour punch|sour strips|jolly rancher|tootsie|twizzlers|red vines|werther'?s|lindt|lindor|ferrero|godiva|ghirardelli|milky way|butterfinger|3 musketeers|almond joy|payday|york|life savers|hubba bubba|wrigley'?s|trident|dubble bubble|blow pops?|ring pops?|push pops|charms (mini|blow)|gushers|hi-chew|mamba|trolli|brach'?s|e\.frutti|mars minis|crunch candy)\b/i;
 
-  /* Where each kind is off sale ('*': every store). */
-  var NOT_SOLD = { farmacia: '*', alimento: '*', dulce: ['costco'] };
+  /* THE BABY STORES' NON-PRODUCTS (#443, Danny's ruling on the moms
+     «Alimentación» rail, 2026-11-03: "descaler liquid, detergent tablets,
+     HEPA filters, spare/replacement parts, the cookbook, and everything
+     like them" come off the catalogue). The moms catalogue's stores
+     (scripts/lib/moms-truth.js retypes their real products) listed what
+     a shopper does not buy as a product:
+       repuesto     a spare or replacement part, a refill, a machine's
+                    component (valves, tubing, flanges, chargers, mounts,
+                    wheel sets, a warmer's adapter);
+       limpieza     a cleaning consumable (detergent and descaling
+                    tablets, descaler, dish soap, cleaner spray, wipes for
+                    cleaning gear);
+       publicacion  a book, a guide, a cookbook, a training course;
+       servicio     a plan, a subscription, a donation, an embroidery;
+       ajeno        what is no baby or mom product at all, pulled in by a
+                    store's search (gaming and office chairs, wall art,
+                    bumper magnets, slogan tees).
+     Each is off sale only at these stores: a filter or a charger at Best
+     Buy is a product. A part named inside a bundle or "with" a product
+     ("Stroller and Car Seat Adapter", "Washer + Detergent Tablets") is
+     the product's, and stays. Food the baby stores listed (lactation
+     crisps, nausea candies, electrolyte solution, a hydration drink mix)
+     is food: off sale everywhere, with the rest. */
+  var BABY_STORES = ['babybrezza', 'bellybandit', 'dagnedover', 'drbrowns', 'elvie', 'freshlypicked', 'hatch', 'jujube',
+    'kindredbravely', 'lillebaby', 'mockingbird', 'momcozy', 'munchkin', 'nanit', 'owlet', 'spectra', 'walmartbaby'];
+  var PART_RX = /\b(replacement|replacements|refills?|spare parts?|washable parts bundle|duckbill valves?|valves?(?: set| kit)?|diaphragms?|tubing|backflow protector|pump seals|gaskets|cup fronts|connect kit|nipple inserts|breast shields|breast flange( set| single)?|air cap set|waist clip|pump bra adjusters|breast pump accessories|power (?:adapter|cable|cord)|adapter\/charger|vehicle adapter|charging cable|mounting kit|wall mount(?: elbow connector)?|floor stand(?: (?:long|short) segment)?|flex stand|signal booster|sensor module|additional fabric sock|accessories rack|breast pump rack|accessory bundle|lock latch|wheel set|crotch pad|shoulder pads set|harness with magnetic buckle|riding board strap|adapters?|toss™? bags|baking soda cartridge|deodorizer packs|trash bags for diaper pail|cleaning syringe|softshape™? silicone shield)\b/i;
+  var CLEANING_RX = /\b(detergent tablets|descaling tablets|cleaning tablets|descaler|dish soap|cleaner spray|travel cleaning pack|pacifier wipes|pacifier & bottle healthy wipes)\b/i;
+  var PUBLICATION_RX = /\b(cookbook|books?|feeding guide|oral feeding practice)\b|^just keep going$/i;
+  var SERVICE_RX = /\b(insights plan|annual plan|round up your purchase|custom embroidery|tree seedling|gift cards?)\b/i;
+  var STRAY_RX = /\b(gaming chairs?|gamer chairs?|game chairs?|office chairs?|computer chairs?|desk chairs?|wall art|print on wood|framed print|car magnet|child seat|advocate like a mother|dad-vocate)\b/i;
+  /* A part or a consumable named after the product it comes with. */
+  var WITH_PRODUCT_RX = /\b(with|bundle)\b|\s\+\s|[:：]|\b(strollers?|pails?|washers?|warmers?|sterilizers?|monitors?|cameras?|thermometers?|pumps?(?! (?:spout|seals|bra adjusters|breast shields|washable)))\b.*(?:\band\b|&)\s/i;
+  var BABY_FOOD_RX = /\b(lactation crisps|nausea candies|hydration drink mix)\b/i;
+  var BABY_MEDICINE_RX = /\belectrolyte solution\b/i;
 
-  /** 'farmacia' | 'alimento' | 'dulce' | '' -- what the title says the product is. */
-  function notSoldKind(title) {
+  function babyStoreKind(t) {
+    var m = PART_RX.exec(t);
+    if (m && !WITH_PRODUCT_RX.test(t.slice(0, m.index))) return 'repuesto';
+    m = CLEANING_RX.exec(t);
+    if (m && !WITH_PRODUCT_RX.test(t.slice(0, m.index))) return 'limpieza';
+    if (PUBLICATION_RX.test(t)) return 'publicacion';
+    if (SERVICE_RX.test(t)) return 'servicio';
+    if (STRAY_RX.test(t)) return 'ajeno';
+    return '';
+  }
+
+  /* Where each kind is off sale ('*': every store). */
+  var NOT_SOLD = { farmacia: '*', alimento: '*', dulce: ['costco'],
+    repuesto: BABY_STORES, limpieza: BABY_STORES, publicacion: BABY_STORES, servicio: BABY_STORES, ajeno: BABY_STORES };
+
+  /** What the title says the product is when Aria does not sell it:
+      'farmacia' | 'alimento' | 'dulce' (everywhere / Costco), or, read
+      for the baby stores only, 'repuesto' | 'limpieza' | 'publicacion' |
+      'servicio' | 'ajeno'; '' when it is something Aria sells. */
+  function notSoldKind(title, retailer) {
     var t = String(title || '');
     if (!t) return '';
+    if (BABY_MEDICINE_RX.test(t)) return 'farmacia';
+    if (BABY_FOOD_RX.test(t)) return 'alimento';
+    if (retailer && BABY_STORES.indexOf(String(retailer).trim().toLowerCase()) !== -1) {
+      var b = babyStoreKind(t);
+      if (b) return b;
+    }
     if ((OTC_RX.test(t) || MEDICINE_RX.test(t)) && !NOT_MEDICINE_RX.test(t) && !/\s\d\.\d{1,3}"?\s*$/.test(t)) return 'farmacia';
     if ((SUPPLEMENT_RX.test(t) || (DOSE_FORM_RX.test(t) && /\bvitamins?\b|\bsupplements?\b|\bgumm(y|ies)\b|\bcapsules\b|\bsoftgels\b|\bcaplets\b/i.test(t))) && !NOT_PILL_RX.test(t)) return 'farmacia';
     var strong = STRONG_FOOD_RX.test(t) || CANDY_BRAND_RX.test(t);
@@ -92,13 +148,13 @@
   /** True when the product's kind is off sale at its store. */
   function isNotSold(it) {
     if (!it || typeof it !== 'object') return false;
-    var k = notSoldKind(it.title || it.name || it.productName);
+    var r = String(it.retailer || it.store || '').trim().toLowerCase();
+    var k = notSoldKind(it.title || it.name || it.productName, r);
     if (!k) return false;
     var where = NOT_SOLD[k];
     if (where === '*') return true;
-    var r = String(it.retailer || it.store || '').trim().toLowerCase();
     return where.indexOf(r) !== -1;
   }
 
-  root.AriaNotSold = Object.freeze({ notSoldKind: notSoldKind, isNotSold: isNotSold, NOT_SOLD: NOT_SOLD });
+  root.AriaNotSold = Object.freeze({ notSoldKind: notSoldKind, isNotSold: isNotSold, NOT_SOLD: NOT_SOLD, BABY_STORES: BABY_STORES });
 })(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this));

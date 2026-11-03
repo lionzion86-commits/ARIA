@@ -209,7 +209,11 @@ const TYPE_ES = new Map(Object.entries({
   "network adapters": "Adaptadores de red",
   "tech componentes": "Componentes",
   "outdoor pitchers": "Jarras",
-  "panales": "Pañales", "alimentacion": "Alimentación", "habitacion bebe": "Habitación del bebé",
+  /* The moms catalogue's types (scripts/lib/moms-truth.js). Its feeding
+     type is baby feeding gear only -- Aria sells no food (#443). */
+  "panales": "Pañales", "alimentacion": "Biberones y alimentación del bebé", "habitacion bebe": "Habitación del bebé",
+  "bano bebe": "Baño del bebé", "chupetes": "Chupetes y mordedores", "cuidado bebe": "Cuidado del bebé", "ropa bebe": "Ropa de bebé",
+  "juguetes bebe": "Juguetes",
   "pitchers": "Jarras",
   "tech relojes": "Relojes",
 }));
