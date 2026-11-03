@@ -52,8 +52,9 @@ const BATTERY = [
   ["vestidos", "category"], ["dresses", "category"], ["zapatillas", "category"], ["sneakers", "category"], ["laptops", "category"],
   ["juguetes", "category"], ["toys", "category"], ["pesas", "category"], ["dumbbells", "category"], ["perfumes", "category"],
   ["perfume mujer", "category"], ["lentes de sol", "category"], ["sunglasses", "category"], ["polos hombre", "category"],
-  ["cartera cuero", "category"], ["zapatillas mujer", "category"], ["lego", "category"], ["barbie", "category"],
-  ["maybelline", "category"], ["juguetez", "category"], ["lapto", "category"], ["vestido rojo", "category"], ["libros", "category"],
+  ["cartera cuero", "category"], ["zapatillas mujer", "category"], ["lego", "brand"], ["barbie", "brand"],
+  ["maybelline", "brand"], ["hot wheels", "brand"], ["play doh", "brand"], ["nerf", "brand"], ["fisher price", "brand"],
+  ["pokemon", "brand"], ["maison kitsune", "brand"], ["loreal", "brand"], ["alaia", "brand"], ["disney", "brand"], ["marvel", "brand"], ["juguetez", "category"], ["lapto", "category"], ["vestido rojo", "category"], ["libros", "category"],
   ["pesca submarina", "category"], ["boxeo", "category"],
   ["iphone 15 case", "chooser"], ["unicornio", "chooser"], ["taza", "chooser"], ["zapatix", "chooser"],
   ["blorptastic", "chooser"], ["qwrtplk", "chooser"], ["a", "chooser"],
@@ -290,6 +291,26 @@ await check("Celulares leads with the phones people ask for by name (iPhone, Gal
   const firstNoName = ranks.indexOf(-1);
   assert.ok(firstNoName > 0 && ranks.slice(firstNoName).every((r) => r === -1), "a no-name phone before a known brand");
   for (const c of page.cards.slice(0, 8)) assert.doesNotMatch(c.t, /FYTPOV|MIRO|NANNEE|Oukitel/i, c.t);
+});
+
+/* THE GRID IS BANNED AS A LANDING FOR ANY STORE OR BRAND SEARCH (#443
+   c.6585655315, Danny: "one pattern always"). Every storefront's name
+   lands on that storefront; every brand with 20+ products, typed by its
+   name, lands on a brand page or a storefront -- never the chooser, never
+   a grid. A brand page it lands on is named after the brand typed. */
+await check("no store or brand search lands on the grid: every storefront's name opens it, every 20+ brand's name opens a brand page", async () => {
+  const bad = [];
+  for (const [k, label] of Object.entries(DEST.stores)) {
+    const d = (await route(label)).destination;
+    if (d.kind !== "store" || d.key !== k) bad.push(`store «${label}»: ${d.kind}:${d.key || ""}`);
+  }
+  for (const [k, [label, count]] of Object.entries(DEST.brands)) {
+    if (count < 20) continue;
+    const d = (await route(label)).destination;
+    if (d.kind === "chooser" || !["store", "brand", "category"].includes(d.kind)) bad.push(`brand «${label}»: ${d.kind}`);
+    else if (d.kind === "brand" && d.label !== DEST.brands[d.key][0]) bad.push(`brand «${label}»: page «${d.label}»`);
+  }
+  assert.deepEqual(bad.slice(0, 30), [], `${bad.length} store/brand names land on the grid`);
 });
 
 await check("the surfaces list is current (node scripts/build-search-destinations.mjs) and ships with the search function", () => {

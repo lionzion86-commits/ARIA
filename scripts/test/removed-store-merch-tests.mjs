@@ -79,7 +79,7 @@ for (const page of PAGES) {
         [`photo backdrop CSS`, new RegExp(`storePhotoBg--${k}\\b`)],
         [`store rail`, new RegExp(`data-store-rail(-row)?="${k}"`)],
         [`feature block`, new RegExp(`data-${k}-feature\\b`)],
-        [`logo <img>`, new RegExp(`<img\\b[^>]*\\bsrc="/?logos/${k}\\.(svg|png|jpg|webp)"`, "i")],
+        [`logo <img>`, new RegExp(`<img\\b[^>]*\\bsrc="/?logos/(?:h240/)?${k}\\.(svg|png|jpg|webp)"`, "i")],
       ];
       for (const [what, re] of rx) if (re.test(markup)) found.push(`${k}: ${what}`);
     }
@@ -114,7 +114,7 @@ for (const page of PAGES) {
       ["photo backdrop CSS", new RegExp(`storePhotoBg--${k}\\b`)],
       ["store rail", new RegExp(`data-store-rail(-row)?="${k}"`)],
       ["store door", new RegExp(`openStore\\('${k}'\\)|tienda=${k}\\b`)],
-      ["logo <img>", new RegExp(`<img\\b[^>]*\\bsrc="/?logos/${k}\\.(svg|png|jpg|webp)"`, "i")],
+      ["logo <img>", new RegExp(`<img\\b[^>]*\\bsrc="/?logos/(?:h240/)?${k}\\.(svg|png|jpg|webp)"`, "i")],
     ]) if (re.test(markup)) found.push(`${k}: ${what}`);
     assert.deepEqual(found, []);
   });
