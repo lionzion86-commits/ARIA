@@ -28,7 +28,8 @@ const BATTERY = [
   ["labial", /lip|labial/i],
   ["mochila", /backpack|mochila|daypack|bag/i],
   ["zapatillas", /sneaker|shoe|trainer|runner|zapatilla|slip-on|clog|sandal|boot/i],
-  ["vajilla", /dinnerware|vajilla/i],
+  /* Vajilla is what the meal is served on: dinnerware sets, plates, bowls (#443 c.6632585468). */
+  ["vajilla", /dinnerware|vajilla|plates?\b|bowls?\b|place setting/i],
   ["sabanas", /sheet|s[aá]bana/i],
   ["mascarilla", /mask|mascarilla/i],
   /* SleekShop wired (#443 c.6475799491): the alisado shelf exists now. */

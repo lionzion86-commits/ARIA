@@ -24,7 +24,7 @@
     if (dept === 'perfumes'){ if (t === 'cuidado-corporal' && !a) a = 'cuidado'; t = ''; }
     var out = [['dept', dept], ['a', a], ['b', first(sp.get('b'))], ['t', t], ['q', sp.get('q') || sp.get('w') || ''],
       ['tienda', sp.get('tienda') || first(sp.get('r'))], ['para', sp.get('para') || (/^(women|men|kids)$/.test(u || '') ? u : '')],
-      ['ver', sp.get('ver') || (sp.get('o') === '1' ? 'ofertas' : '')], ['tp', sp.get('tp') || ''], ['pasillo', sp.get('pasillo') || '']];
+      ['ver', sp.get('ver') || (sp.get('o') === '1' ? 'ofertas' : '')], ['pt', sp.get('pt') || ''], ['tp', sp.get('tp') || ''], ['pasillo', sp.get('pasillo') || '']];
     window.__ariaCanon = 1;
     document.documentElement.style.visibility = 'hidden';
     location.replace(location.pathname + '?' + out.filter(function(x){ return x[1]; }).map(function(x){ return x[0] + '=' + encodeURIComponent(x[1]); }).join('&') + location.hash);
@@ -605,6 +605,14 @@ html body footer a,html body .rail-head .ver-todo,html body .lens-head a{color:#
     var _vm = /[?&]ver=([^&]*)/.exec(window.location.search || '');
     if (_vm) VER = decodeURIComponent(_vm[1].replace(/\+/g, ' ')).slice(0, 80);
   } catch(e){}
+  /* ?pt=<type rule> (#443 c.6632585468): the landing shows that type only
+     -- the server picks it from the whole department (_department-core.js
+     ofType); a type nothing in stock meets says so. */
+  var PT = '';
+  try {
+    var _pm = /[?&]pt=([a-z0-9-]{2,40})(?:&|$)/.exec(window.location.search || '');
+    if (_pm) PT = _pm[1];
+  } catch(e){}
   var SEQ = 0;               // a newer filter wins over an older answer
   var nextBatch = 0;         // the next carousels to append
   var batchBusy = false;
@@ -974,6 +982,7 @@ function cardHTML(c){
     if (fT) u += '&t=' + encodeURIComponent(fT);
     if (fU) u += '&u=' + encodeURIComponent(fU);
     if (VER) u += '&ver=' + encodeURIComponent(VER);
+    if (VER && PT) u += '&pt=' + encodeURIComponent(PT);
     return u + (extra || '');
   }
   function headUrl(){ return filtered() ? endpoint('') : SLICES + 'head.json'; }
@@ -1145,7 +1154,14 @@ function cardHTML(c){
     railsEl.innerHTML = first.map(railSecHTML).join('')
       + (HEAD.rails.length > HEAD.headRails ? '<div id="railsMore" class="rails-more"></div>' : '');
     countEl.textContent = HEAD.count ? HEAD.count.toLocaleString('es-PE') + ' productos' : '';
-    if (!HEAD.count) show(emptyState);
+    if (!HEAD.count){
+      /* A type the catalogue does not carry right now: said plainly, no lookalikes. */
+      if (HEAD.pt && HEAD.ptl){
+        emptyState.querySelector('h2').textContent = 'Por ahora no tenemos ' + HEAD.ptl.toLowerCase();
+        emptyState.querySelector('p').textContent = 'Ninguna tienda de Aria tiene ' + HEAD.ptl.toLowerCase() + ' en el catálogo en este momento. Prueba con otra categoría o revisa las ofertas de hoy.';
+      }
+      show(emptyState);
+    }
     watchPhotos(railsEl);
     watchMore();
   }
