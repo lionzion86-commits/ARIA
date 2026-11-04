@@ -540,6 +540,149 @@ export function worldAnswer(ctx, cw) {
   return { world, devices, accessories, stores, hits };
 }
 
+/* ==================================================================
+   THE TYPE LAYER: EVERYDAY SPANISH WORDS ARE PRODUCT TYPES (#443
+   c.6621646383, class 1; the way «pastillas de freno» already works).
+   «llantas» opened on Hot Wheels, «portátil» on Disney toys, «termo» on
+   suits (read as "terno"), «licuadora» on Blenders sunglasses, «crema
+   para la cara» on cream-coloured dresses, «patines» on Vans skate shoes:
+   the engine matched the word, not the thing. A query that IS a type --
+   its words in any form, Spanish or English, plus only qualifiers the
+   type understands («aro 15», «para hombre», «eléctrica», «de madera») --
+   is answered with the catalogue's products OF that type, read from the
+   product itself (its title's kind, its department), never a title
+   token alone:
+     - qualifiers narrow it (and are never dropped); a qualifier the
+       type's products do not carry gives the whole type, said so (shown);
+     - a type the catalogue does not carry answers honestly: none (the
+       page's chooser), never a lookalike set;
+     - a lead (DJI on the drone shelf, Victoria's Secret in Lencería)
+       goes first, then the qualifier's matches, then the most reviewed.
+   A word of anything else beside the type («bike shorts», «tv stand»,
+   «llanta de bicicleta») is not this: the engine answers.
+   ================================================================== */
+const Q_AUDIENCE = {
+  mujer: /\b(women'?s?|womens|ladies|woman|female|mujer|dama|girls?'?)\b/i, mujeres: "mujer", dama: "mujer", damas: "mujer", femenina: "mujer", femenino: "mujer", women: "mujer", womens: "mujer",
+  hombre: /\b(men'?s|mens|man|male|hombre|caballero|boys?'?)\b/i, hombres: "hombre", caballero: "hombre", caballeros: "hombre", masculina: "hombre", masculino: "hombre", men: "hombre", mens: "hombre",
+  bebe: /\b(baby|babies|infant|newborn|toddler|bebe|0-3|3-6|6-12|12-18|18-24)\b/i, bebes: "bebe", baby: "bebe", recien: "bebe", nacido: "bebe",
+  nino: /\b(kids?'?|boys?'?|youth|children|child|toddler|grade school|preschool|nino)\b/i, ninos: "nino", infantil: "nino", kids: "nino", nina: /\b(girls?'?|kids?'?|youth|children|nina)\b/i, ninas: "nina",
+};
+const Q_WORDS = {
+  electrica: /\b(electric|e-?bike|electrica|powered|motorized)\b/i, electricas: "electrica", electrico: "electrica", electricos: "electrica", electric: "electrica",
+  madera: /\b(wood|wooden|madera|bamboo|oak|walnut|acacia)\b/i, cuero: /\b(leather|cuero)\b/i, acero: /\b(steel|stainless|acero)\b/i, inoxidable: "acero",
+  montana: /\b(mountain|mtb|trail)\b/i, montanera: "montana", ruta: /\b(road|ruta)\b/i, bmx: /\bbmx\b/i,
+  moto: /./, motos: "moto", auto: /./, autos: "auto", carro: "auto", carros: "auto", coche: "auto", coches: "auto", camioneta: "auto", camionetas: "auto",
+  linea: /\b(inline|in-line|rollerblade)\b/i, ruedas: /./, cuatro: /\b(quad|roller)\b/i,
+  inteligente: /./, smart: /./, led: /./, plana: /./, planas: /./, grande: /./, grandes: /./, gamer: /\bgaming|gamer\b/i, portatil: /./,
+  cara: /./, rostro: /./, facial: /./, faciales: /./,
+  barato: /./, baratos: /./, barata: /./, baratas: /./, nuevo: /./, nueva: /./, original: /./, originales: /./,
+};
+/* Words a qualifier may bring that only say "of": aro 15, rin 17, 55 pulgadas. */
+const Q_SKIP = new Set("de del para el la los las con y en un una por al a the for and with of aro rin pulgadas pulgada inch inches in".split(" "));
+const TIRE_RX = /\b(tires?|tyres?)\b/i;
+const NOT_TIRE_RX = /\b(gauges?|inflators?|pressure|chains?|covers?|shine|cleaner|repair|plugs?|valves?|irons?|levers?|stickers?|keychains?|t-?shirts?|tees?|hoodies?|rc|remote control|toys?|1:\d+|tubes? only|rim tape|balancing|changer|tire (bag|rack|stand|warmer|spoons?)|strollers?|joggers?|wagons?|skateboards?|urethane|\d{2}a|wheelchairs?|scooters?)\b/i;
+const TV_RX = /\b(\d{2,3}["”]?\s*(?:-?\s*inch|in\.?|"|”)?\s*(?:class\s*)?(?:4k|8k|uhd|fhd|hd|qled|oled|led|lcd|smart|google|roku|fire|mini-led)?\s*(?:\w+\s){0,3}(?:tv|television)|smart tv|qled tv|oled tv|led tv|roku tv|google tv|fire tv(?! stick)|uhd tv|4k tv)\b/i;
+const NOT_TV_RX = /\b(projectors?|laser|portable|monitors?|controllers?|gamepads?|console|stand|mount|bracket|furniture|cabinet|tv tray|antenna|remote|streamer|stick|cable|funko|figure|tee|shirt|hoodie|apple tv|soundbar|connector|fireplace)\b/i;
+const APPAREL_RX = /\b(shirts?|t-?shirts?|tees?|tops?|tank|blouses?|dress(es)?|skirts?|pants|jeans|shorts|leggings|joggers?|sweatpants|hoodies?|sweatshirts?|sweaters?|cardigans?|jackets?|coats?|vests?|blazers?|suits?|polos?|rompers?|jumpsuits?|onesies?|bodysuits?|pajamas?|pj|sleepers?|outfits?|overalls?|tracksuits?|robes?)\b/i;
+const LINGERIE_RX = /\b(bras?|bralettes?|push-?up|balconette|plunge|panty|panties|thongs?|v-?string|cheeky|hiphuggers?|brazilian|teddy|teddies|bodysuits?|garters?|garter belts?|corsets?|bustiers?|babydolls?|chemises?|slips?|lingerie|lencer[ií]a|unlined|demi)\b/i;
+const NOT_LINGERIE_RX = /\b(sports? bras?|sport bra|leggings|joggers|swim|bikini tops?|tankini|shorts|tees?|t-?shirts?|hoodies?|sweat|jackets?|perfume|mist|lotion|fragrance|candle|bag|wallet|keychain|socks|pajama|pj)\b/i;
+const FACE_CREAM_RX = /\b(moisturi[sz](er|ing)|face cream|facial cream|day cream|night cream|gel[- ]cream|water cream|cream moisturizer|creme|crema|hydrat(ing|or) cream|barrier cream|rich cream|cream)\b/i;
+const NOT_FACE_RX = /\b(body|corporal|corps|lipsticks?|lip ?gloss|nails?|hand|foot|feet|shave|shaving|hair|curl|eye cream|lip|diaper|nipple|cuticle|tattoo|sunscreen|cleanser|wash|foundation|concealer|blush|eyeshadow|cream blush|bronzer|perfume|parfum|toilette)\b/i;
+const BEAUTY_STORE = new Set(["sephora", "ulta", "yesstyle", "beauty", "sleekshop"]);
+const isBeautyP = (p) => BEAUTY_DEPT_RX.test((p.departments && p.departments[0]) || "") || BEAUTY_STORE.has(p.retailer) || /^(skin|cuidado|piel|facial)/i.test((p.departments && p.departments[0]) || "");
+const deptOf = (p) => (p.departments && p.departments[0]) || "";
+export const TYPE_WORLDS = [
+  { id: "llantas", label: "Llantas", q: /(llantas?|neumaticos?|tires?|tyres?|cauchos?)/,
+    test: (p) => TIRE_RX.test(p.title) && !NOT_TIRE_RX.test(p.title) && !isToyDept(p) && !FASHION_DEPT_RX.test(deptOf(p)),
+    num: (n) => new RegExp("(?:\\bR-?|-|x\\d+(?:\\.\\d+)?R?-?|\\b)" + n + "(?:\\b|\")", "i"),
+    quals: { moto: (p) => /moto/i.test(deptOf(p)), auto: (p) => !/moto/i.test(deptOf(p)) } },
+  { id: "televisores", label: "Televisores", q: /(televisores?|televisions?|tvs?|teles?|smart ?tvs?|pantallas? (?:planas?|smart|led|grandes?))/,
+    test: (p) => TV_RX.test(p.title) && !NOT_TV_RX.test(p.title) && !isToyDept(p), num: (n) => new RegExp("\\b" + n + "(?:\"|”|-?\\s?inch|\\s?in\\b|\\s?class|\\b)", "i") },
+  { id: "loncheras", label: "Loncheras", q: /(loncheras?|lunch ?box(?:es)?|lunch ?bags?|portaviandas?)/,
+    test: (p) => /\b(lunch ?box(es)?|lunch ?bags?|lunch kits?|bento|lunch tote|lunch cooler)\b/i.test(p.title) && !APPAREL_RX.test(titleHead(p.title)) && !isBeautyP(p) && !/\b(eyeshadow|palette|makeup|lip)\b/i.test(p.title) },
+  { id: "termos", label: "Termos y botellas térmicas", q: /(termos?|thermos|botellas? termicas?|tomatodos?|vasos? termicos?|tumblers?|botellas? de agua|water bottles?|insulated bottles?)/,
+    test: (p) => /\b(thermos|insulated|vacuum|water bottles?|hydro ?flask|quencher|rambler|flasks?|travel mugs?|stainless steel tumblers?)\b/i.test(p.title) && /\b(bottles?|tumblers?|thermos|flasks?|mugs?|cups?|jugs?)\b/i.test(p.title) && !/\b(bathroom|candle|toothbrush|soap|wallet|belt|sunglasses|polarized)\b/i.test(p.title) && !/\b(baby bottles?|feeding|nipples?|perfume|lotion|shampoo|wash|keychain|sticker|tee|t-?shirt|hoodie|socks|opener|brush|cleaning|bottle warmer|sterili[sz]er|organizer|in a bottle|lunch|jacket|vest|cooler bag)\b/i.test(p.title) && !isToyDept(p) && !isBeautyP(p) },
+  { id: "licuadoras", label: "Licuadoras", q: /(licuadoras?|blenders?)/,
+    test: (p) => /\b(blenders?|licuadora|nutribullet|smoothie maker)\b/i.test(p.title) && !/^blenders/i.test(p.brand || "") && !/\b(sunglasses|polarized|eyewear|sponge|makeup|beauty|brush|bottle|shaker|tee|play-?doh|toy)\b/i.test(p.title) && !isToyDept(p) && !isBeautyP(p) },
+  { id: "bicicletas", label: "Bicicletas", q: /(bicicletas?|bicis?|bicycles?|bikes?|ebikes?|e bikes?)/,
+    test: (p) => /\b((\d{2}["”]?\s*(-?\s*inch|in\.?)?\s*)?(kids'?|boys'?|girls'?|women'?s|men'?s|mountain|road|bmx|cruiser|balance|electric|hybrid|folding|youth|adult|fat tire|city|commuter)\s+(e-?)?(bikes?|bicycles?)|\d{2}["”]?\s*(-?\s*inch|in\.?)\s*(bikes?|bicycles?)|e-?bikes?|bmx bikes?)\b/i.test(p.title) && !/^bicycle$/i.test(p.brand || "") && !/\b(playing cards|cameras?|shorts?|jerseys?|tees?|t-?shirts?|hoodies?|helmets?|lights?|locks?|racks?|pumps?|seat covers?|dirt ?bikes?|motorcycles?|pit bikes?|stands?|trainers?|lego|pajamas?|socks|bags?|gloves?|bottles?|mounts?|grips?|bells?|stickers?|decals?|keychains?|ornaments?|figures?|book|bike week|exercise bikes?|stationary)\b/i.test(p.title) && !/moto/i.test(deptOf(p)) && !FASHION_DEPT_RX.test(deptOf(p)) },
+  { id: "bicicletas-estaticas", label: "Bicicletas estáticas", q: /(bicicletas? estaticas?|exercise bikes?|stationary bikes?|spinning bikes?|spin bikes?)/,
+    test: (p) => /\b(exercise bikes?|stationary bikes?|spin(ning)? bikes?|indoor cycling bikes?|recumbent bikes?)\b/i.test(p.title) && !APPAREL_RX.test(p.title) },
+  { id: "crema-facial", label: "Cremas para la cara", q: /(cremas? (?:para|de) (?:la )?(?:cara|rostro)|cremas? faciale?s?|cremas? humectantes?|cremas? hidratantes?|hidratantes? faciales?|humectantes? faciales?|face creams?|facial moisturi[sz]ers?|moisturi[sz]ers?|face moisturi[sz]ers?)/,
+    test: (p) => isBeautyP(p) && FACE_CREAM_RX.test(p.title) && !NOT_FACE_RX.test(p.title) },
+  { id: "crema-corporal", label: "Cremas para el cuerpo", q: /(cremas? (?:para|de) (?:el )?cuerpo|cremas? corporale?s?|lociones? corporale?s?|body creams?|body lotions?|body butters?)/,
+    test: (p) => /\b(body (cream|lotion|butter|milk|moisturi[sz]er|souffle|creme)|loci[oó]n corporal|crema corporal)\b/i.test(p.title) },
+  { id: "patines", label: "Patines", q: /(patines|patin|patinez|roller ?skates?|rollerblades?|inline skates?|quad skates?|patinaje)/,
+    test: (p) => /\b(roller ?skates?|inline skates?|rollerblades?|quad skates?|patines)\b/i.test(p.title) && !/\b(skate gear|pads?|helmets?|wheels?|bearings?|laces|bag|tee|t-?shirt|hoodie|socks|keychain|charm|figure|tumblers?|cups?|teethers?|teething)\b/i.test(p.title) && !isToyDept(p) && !/^(moms|baby)/i.test(deptOf(p)) },
+  { id: "caminadoras", label: "Caminadoras", q: /(caminadoras?|trotadoras?|treadmills?|cintas? de correr|walking pads?)/,
+    test: (p) => /\b(treadmills?|walking pads?)\b/i.test(p.title) && !/\b(mat|lubricant|belt only|tee|shirt)\b/i.test(p.title) },
+  { id: "pesas", label: "Pesas", q: /(pesas?|pesas? rusas?|mancuernas?|dumbbells?|kettle ?bells?|kettelbells?|barbells?|discos de pesas?|weight plates?|barras? olimpicas?|hand weights?|free weights?)/,
+    test: (p) => isWeight(p) && !/\b(sweatpants|sweatshirts?|joggers?|shorts|leggings|bras?|tanks?)\b/i.test(p.title) && !FASHION_DEPT_RX.test(deptOf(p)) },
+  { id: "drones", label: "Drones", q: /(dron|drons|drone|drones|dorn|drom|cuadricopteros?|quadcopters?|drones? con camara|drones? dji|dji drones?)/,
+    test: (p) => DRONE_RX.test(p.title) && !isToyDept(p) && !FASHION_DEPT_RX.test(deptOf(p)) && !/^(general)$/i.test(deptOf(p)) && !/\b(tees?|t-?shirts?|hoodies?|figures?|plush|pins?|murder|stickers?|keychains?|poster)\b/i.test(p.title) && !isAccessoryName(titleHead(p.title)),
+    lead: (p) => /^dji$/i.test(String(p.brand || "").trim()) || /^dji\b/i.test(p.title) },
+  { id: "lenceria", label: "Lencería", q: /(lenceria|lingerie|ropa interior (?:de |para )?(?:mujer|mujeres|dama|damas|femenina))/,
+    test: (p) => LINGERIE_RX.test(p.title) && !NOT_LINGERIE_RX.test(p.title) && !/\b(men'?s|boys?)\b/i.test(p.title) && !isToyDept(p),
+    lead: (p) => p.retailer === "victoriassecret" },
+  { id: "ropa", label: "Ropa", q: /(ropa|prendas?|vestimenta|clothes|clothing)/,
+    test: (p) => APPAREL_RX.test(titleHead(p.title)) && !isToyDept(p) && !/\b(doll|figure|plush|costume for (dogs?|pets?)|pet|dog|cat|sheets?|bedding|pillows?|towels?|curtains?|blankets?|throws?|swimsuit|swim|bikini)\b/i.test(p.title) && !BEAUTY_DEPT_RX.test(deptOf(p)) },
+  { id: "repuestos", label: "Repuestos", q: /(repuestos?|autopartes?|auto ?partes|partes|piezas)(?= (?:de |para )?(?:auto|autos|carro|carros|coche|coches|moto|motos|camioneta)|$)/,
+    test: (p) => /^(auto_parts|motos|autopartes)$/i.test(deptOf(p)) && !/\b(eau de|perfume|parfum|toilette|cologne|refill|helmets?|jackets?|gloves?|boots?|pants|jerseys?|vests?|goggles?|tees?|t-?shirts?|hoodies?|dash ?cams?|backpacks?|bags?)\b/i.test(p.title),
+    lead: (p) => /^(auto_parts|motos)$/i.test(deptOf(p)),
+    quals: { moto: (p) => /moto/i.test(deptOf(p)), auto: (p) => !/moto/i.test(deptOf(p)) } },
+];
+/** The type a whole query names, with its qualifiers, or null. */
+export function typeWorldOf(q) {
+  const k = deaccent(q).replace(/[^a-z0-9" ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!k) return null;
+  for (const t of TYPE_WORLDS) {
+    const m = new RegExp("^(?:(?:" + t.q.source + ")|(.+?) (?:" + t.q.source + ")|(?:" + t.q.source + ") (.+?))$").exec(k);
+    if (!m) continue;
+    const head = new RegExp("^(?:" + t.q.source + ")(?= |$)").exec(k), tail = new RegExp("(?:^| )(?:" + t.q.source + ")$").exec(k);
+    if (!head && !tail) continue;
+    const rest = (head ? k.slice(head[0].length) : k.slice(0, k.length - tail[0].length)).trim();
+    const words = rest ? rest.split(" ").filter((w) => w && !Q_SKIP.has(w)) : [];
+    /* Every other word must be a qualifier the type reads (a number, an
+       audience, a material, a kind): anything else is not this type. */
+    const quals = [];
+    let ok = true;
+    for (const w of words) {
+      if (/^\d{1,3}$/.test(w) && t.num) { quals.push({ w, test: (p) => t.num(w).test(p.title) }); continue; }
+      let a = Q_AUDIENCE[w];
+      if (typeof a === "string") a = Q_AUDIENCE[a];
+      if (a) { quals.push({ w, test: (p) => a.test(p.title) || a.test(deptOf(p).replace(/_/g, " ")) || (w.startsWith("muj") || w === "dama" || w === "damas" || w.startsWith("femen") ? /^(women|mujer|ropa_mujer|curvy)/i.test(deptOf(p)) : /^hombre|^men|^mens/.test(w) ? /^(men|hombre|mens)/i.test(deptOf(p)) : false) }); continue; }
+      let r = Q_WORDS[w];
+      if (typeof r === "string") { const base = r; r = Q_WORDS[base]; if (t.quals && t.quals[base]) { quals.push({ w, test: t.quals[base] }); continue; } }
+      else if (t.quals && t.quals[w]) { quals.push({ w, test: t.quals[w] }); continue; }
+      if (r) { if (r.source !== ".") quals.push({ w, test: (p) => r.test(p.title) }); continue; }
+      ok = false; break;
+    }
+    if (!ok) continue;
+    if (t.needsQual && !quals.length) continue;
+    return { type: t, quals };
+  }
+  return null;
+}
+/** The type's answer: its products, the lead first, then the qualifiers' matches, then the most reviewed. */
+export function typeAnswer(ctx, tw) {
+  const memo = ctx._types || (ctx._types = new Map());
+  let all = memo.get(tw.type.id);
+  if (!all) {
+    all = ctx.products.filter((p) => p.image && tw.type.test(p));
+    memo.set(tw.type.id, all);
+  }
+  let hits = all, shown = null;
+  if (tw.quals.length) {
+    const narrowed = all.filter((p) => tw.quals.every((q) => q.test(p)));
+    if (narrowed.length) hits = narrowed;
+    else shown = tw.type.label;
+  }
+  const lead = tw.type.lead || (() => false);
+  hits = hits.map((p, i) => ({ p, i, l: lead(p) ? 1 : 0, r: Number(p.reviews) || 0 }))
+    .sort((a, b) => (b.l - a.l) || (b.r - a.r) || (a.i - b.i)).map((x) => x.p);
+  return { hits, shown };
+}
+
 /* TOYS LEAD A TOY SEARCH (2026-10-19, #416 battery). "barbie" and
    "lego" opened with Barbie- and LEGO-branded girls' dresses and a
    toddler sweatshirt ahead of the dolls and the sets: the engine ranks
@@ -795,8 +938,16 @@ export function equivalentQuery(ctx, q) {
     const W = worldAnswer(ctx, cw);
     if (W.hits.length) out = { state: "results", query: (out && out.query) || q, kinds: ["brand"], hits: W.hits, _world: W };
   }
+  /* A type's answer is exactly its products (typeAnswer). */
+  const tw = !cw && typeWorldOf(q);
+  if (tw && (!out || out.state !== "error")) {
+    const T = typeAnswer(ctx, tw);
+    out = T.hits.length
+      ? { state: "results", query: q, kinds: ["type"], hits: T.hits.slice(0, ctx.resultLimit || T.hits.length), shown: T.shown, _type: tw }
+      : { state: "none", query: q, hits: [], _type: tw };
+  }
   /* A brand's own name: its leading kind leads (brandLead). */
-  if (out && out.state === "results" && !out._world) out = brandLead(ctx, q, out);
+  if (out && out.state === "results" && !out._world && !out._type) out = brandLead(ctx, q, out);
   ctx.cache.set(key, out);
   return out;
 }
@@ -985,6 +1136,9 @@ export function canonicalTokens(ctx, q) {
      15"): never a concept's typo («iphones» is not "phones"). */
   const core = coreWorldOf(out.join(" "));
   if (core) return core.model.split(" ");
+  /* A type's every form stays a form of that type: the type layer reads
+     it (typeWorldOf) -- «termo» is never "terno" (a suit). */
+  const typed = typeWorldOf(out.join(" "));
   /* 4. joined or apart: the catalogue's form (a concept word as typed
      first: «necktie» is "tie", not "neck tie"). */
   const res = [], cw = conceptTokens(ctx, out);
@@ -1604,18 +1758,46 @@ function doctrineLanes(ctx, q, r) {
   if (r._doctrine) return r._doctrine;
   if (r._world) return (r._doctrine = worldLanes(ctx, r));
   const inBlock = new Set(compareGroup(ctx, r) || []);
-  const { brand, cat, words } = answerFocus(ctx, q, r);
+  const focus = answerFocus(ctx, q, r);
+  const brand = r._type ? null : focus.brand, cat = r._type ? null : focus.cat, words = r._type ? [] : focus.words;
   /* The rails show what the old lanes trusted: a product in the answer's
      own aisle (annotate) and, for a category query, of that category
      only (r._pure, #443 c.6544117193) -- or the brand the query names. */
   const A = annotate(ctx, r);
-  const hits = r.hits.filter((p) => (!r._pure || r._pure(p)) && (A.of(p).aisle || (brand && brandKey(p.brand) === brand)));
+  const hits = r._type ? r.hits : r.hits.filter((p) => (!r._pure || r._pure(p)) && (A.of(p).aisle || (brand && brandKey(p.brand) === brand)));
   const wordRx = words.map(stemRx);
   const idx = railIndex(ctx);
   const lanes = [];
   /* A real markdown only: the site's sale floor (/sale-rule.js MIN_PCT, 5%). */
-  const leadFirst = (list) => (r._lead ? list.filter(r._lead).concat(list.filter((p) => !r._lead(p))) : list);
-  const sales = leadFirst(saleFirst(hits.filter((p) => discountOf(p) >= SALE_FLOOR && !inBlock.has(p))));
+  const lead = r._lead || (r._type && r._type.type.lead) || null;
+  const leadFirst = (list) => (lead ? list.filter(lead).concat(list.filter((p) => !lead(p))) : list);
+  /* OFERTAS KEEPS THE QUERY'S TYPE (#443 c.6621646383, class 8: «blusa»
+     opened its Ofertas on bikini tops, «blazer» on puffer coats -- the
+     rail re-sorts by discount, and the deepest discounts were the
+     loosest matches). A query that names a product (its own words, the
+     brand set aside) keeps in Ofertas only what its titles name so;
+     when too few do and the query names a brand, the brand's sales
+     stand (they are the brand's own). */
+  let saleSet = hits.filter((p) => discountOf(p) >= SALE_FLOOR && !inBlock.has(p));
+  /* Only the words the engine read as written: a Spanish word the
+     dictionary translates («luces», «aceite») is matched in English by
+     the engine, and Spanish titles («perro robot ... luces») would pass
+     it; a long query is the engine's to rank. */
+  const ev = englishVocabulary(ctx);
+  const content = words.filter((w) => !WORLD_FILLER.has(w));
+  const dw = dictWords(ctx);
+  const ofWords = content.length <= 3 ? content.filter((w) => !/^(womens|mens|kids|girls|boys|baby)$/.test(w) && (ev.has(w) || (!dw.has(w) && wfreq(ctx, w) >= OFERTAS_WORD_MIN))) : [];
+  if (!r._type && !r._world && !r._store && ofWords.length) {
+    const wordRx = ofWords.map(stemRx);
+    /* The sales naming every word of the query, else its head word (the
+       product: «blusa» is blouse), when they fill a rail; otherwise the
+       rail stays as it was -- a filter never empties it. */
+    const all = saleSet.filter((p) => wordRx.every((rx) => rx.test(p.title || "")));
+    const head = saleSet.filter((p) => wordRx[0].test(p.title || ""));
+    if (all.length >= LANE_MIN) saleSet = all;
+    else if (head.length >= LANE_MIN) saleSet = head;
+  }
+  const sales = leadFirst(saleFirst(saleSet));
   if (sales.length >= LANE_MIN) lanes.push({ key: "ofertas", title: "Ofertas", all: distinct(sales, RAIL_CAP) });
   const exactBy = new Map();
   for (const p of hits) { if (!exactBy.has(p.retailer)) exactBy.set(p.retailer, []); exactBy.get(p.retailer).push(p); }
