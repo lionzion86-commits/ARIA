@@ -84,6 +84,21 @@ export function searchRows(rows, q) {
   return lead.concat(rest);
 }
 
+/* A SALE WORD IS THE SALE, NOT A TITLE WORD (#443 c.6632585468). The
+   search router sends «victoria secret sales» to this store with q=sale
+   (tienda.html?tienda=victoriassecret&q=sale) -- and no Victoria's Secret
+   title says "sale", so every word-match found nothing and the page read
+   «Sin resultados» on a store with 605 markdowns. «sale», «ofertas»,
+   «descuentos», «rebajas», «liquidación» narrow the store to what is on
+   sale (a was-price above the price); the other words still match the
+   title, the deepest discount first. */
+export const SALE_WORDS = new Set(["sale", "sales", "oferta", "ofertas", "descuento", "descuentos", "rebaja", "rebajas", "liquidacion", "liquidaciones", "clearance", "outlet", "promocion", "promociones", "promo", "promos"]);
+export function saleQuery(q) {
+  const words = foldText(q).split(/\s+/).filter(Boolean);
+  const rest = words.filter((w) => !SALE_WORDS.has(w));
+  return { sale: rest.length < words.length, rest: rest.join(" ") };
+}
+
 export function sortRows(rows, sort) {
   if (sort === "priceAsc") return rows.slice().sort((a, b) => a[2] - b[2]);
   if (sort === "priceDesc") return rows.slice().sort((a, b) => b[2] - a[2]);
@@ -224,10 +239,12 @@ export function answer(qs, roots) {
   }
   const d = String(qs.d || "").slice(0, 60), g = String(qs.g || "").slice(0, 40), c = String(qs.c || "").slice(0, 80);
   const q = String(qs.q || "").slice(0, 80).trim();
-  const sort = SORTS.includes(qs.sort) ? qs.sort : "relevance";
+  const sq = saleQuery(q);
+  const sort = SORTS.includes(qs.sort) ? qs.sort : sq.sale ? "discount" : "relevance";
   let list = rows;
   if (d || g || c) list = list.filter((r) => (!d || r[6] === d) && (!g || r[7] === g) && (!c || r[8] === c));
-  if (q) list = searchRows(list, q);
+  if (sq.sale) list = list.filter((r) => r[4] > 0 && r[3] > r[2]);
+  if (sq.rest) list = searchRows(list, sq.rest);
   list = sortRows(list, sort);
   if (grouped) return groupedAnswer(s, list, qs, roots, { d, g, c, q, sort });
   return { status: 200, body: { store: s.store, d, g, c, q, sort, ...pageOf(list, qs.page) } };
