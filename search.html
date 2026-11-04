@@ -700,7 +700,7 @@ function amountHTML(usd, pen, strong){
   return strong ? '<b data-usd="' + Number(usd) + '">' + p + "</b>" : p;
 }
 function solesSlot(usd){
-  var F = window.AriaImportTax && window.AriaImportTax.fx;
+  var F = typeof window !== "undefined" && window.AriaImportTax && window.AriaImportTax.fx;
   return F ? F.slot(usd) : "S/ \u2026";
 }
 function lineHTML(cls, label, value){
