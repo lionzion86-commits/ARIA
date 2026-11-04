@@ -216,6 +216,7 @@
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
+<script src="/assets/js/page-banner.js" defer></script>
 <script src="/assets/js/dept-header.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
@@ -547,17 +548,21 @@ html body footer a,html body .rail-head .ver-todo,html body .lens-head a{color:#
   document.getElementById('heroDesc').textContent = dept.desc;
   /* DEPT HERO IMAGE (2026-10-07): category backdrop from assets/category/.
      It is 100-470KB of decoration: it starts after the first cards are
-     on screen, so it never competes with them on a slow link. */
+     on screen, so it never competes with them on a slow link.
+     THE HEADER BANNER (#443 c.6642024745): assets/js/page-banner.js paints
+     the department's banner file (assets/banners/dept/<key>.json) when it
+     has one; else its category photo, then the photo of a department that
+     redirects here (Joyería -> Joyas y Accesorios). */
   function heroImage(){
     try{
       var _dk = (deptKey||'').toLowerCase().replace(/[^a-z0-9_]/g,'');
       var _dImg = document.getElementById('deptHeroBg');
-      var _dScrim = document.getElementById('deptHeroScrim');
-      if (_dImg && !_dImg.getAttribute('src')){
-        _dImg.onload = function(){ _dImg.hidden = false; if (_dScrim) _dScrim.hidden = false; };
-        _dImg.onerror = function(){ _dImg.hidden = true; if(_dScrim) _dScrim.hidden = true; };
-        _dImg.src = 'assets/category/' + _dk + '.jpg';
-      }
+      if (!_dImg || _dImg.getAttribute('src')) return;
+      var fb = ['/assets/category/' + _dk + '.jpg'];
+      Object.keys(DEPTS).forEach(function(k){ if (DEPTS[k].alias && String(DEPTS[k].href || '').indexOf('dept=' + _dk) !== -1) fb.push('/assets/category/' + k + '.jpg'); });
+      var o = { kind: 'dept', key: _dk, host: document.getElementById('deptHero'), bg: _dImg, scrim: document.getElementById('deptHeroScrim'), fallbacks: fb };
+      if (window.AriaBanner) window.AriaBanner.paint(o);
+      else (window.AriaBannerQ = window.AriaBannerQ || []).push(o);
     }catch(_e){}
   }
   document.title = dept.name + ' | Aria Shop';

@@ -105,7 +105,7 @@ body[data-aud="m"] .sec-w, body[data-aud="w"] .sec-m{display:none}
   -webkit-mask-image:linear-gradient(180deg, #000 0%, transparent 80%); mask-image:linear-gradient(180deg, #000 0%, transparent 80%)}
 .sec-w .hero::after{content:"";position:absolute;right:-110px;top:-130px;width:400px;height:400px;border-radius:50%;z-index:-1;
   border:1px solid rgba(176,48,106,.20);box-shadow:0 0 0 60px rgba(176,48,106,.04),0 0 0 140px rgba(176,48,106,.025)}
-.hero-in{padding:40px 16px 32px}
+.hero-in{padding:40px 16px 32px;position:relative;z-index:1}
 .kicker{display:inline-flex;gap:8px;align-items:center;font-size:11.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 .kicker::before{content:"";width:22px;height:1px;background:var(--accent)}
 .hero h2{font-size:clamp(30px,7.6vw,52px);line-height:1.02;letter-spacing:-.025em;margin:14px 0 12px;font-weight:800}
@@ -208,6 +208,7 @@ footer a{color:var(--gold2);text-decoration:none;font-weight:700}
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
+<script src="/assets/js/page-banner.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
 .hs-dark{--hs-fg:#F4F6FB;--hs-mute:rgba(236,241,250,.8);--hs-bg:rgba(255,255,255,.1);--hs-line:rgba(255,255,255,.26);--hs-go:#F4C463;--hs-gofg:#0A1F44;--hs-sheet:#0A1F44;--hs-ring:rgba(244,196,99,.35)}
@@ -971,6 +972,17 @@ html body .sec-w .axis h3,html body .sec-w .rail-head .sub,html body .sec-w .exp
     var womenDone = Promise.all([women, menDone]).then(function(r){ MUJER.show(r[0]); }, function(){ MUJER.fail(); });
     Promise.all([menDone, womenDone]).then(function(){
       honourHash();
+      /* THE HEADER BANNER (#443 c.6642024745): each section's hero paints
+         its banner file (assets/js/page-banner.js) once the first cards
+         are on screen -- decoration, never ahead of a product photo. */
+      setTimeout(function(){
+        [['mujer', 'ropa_interior_mujer'], ['hombre', 'ropa_interior']].forEach(function(x){
+          var h = document.querySelector('#' + x[0] + ' > .hero');
+          var o = { kind: 'dept', key: x[1], host: h, fallbacks: [] };
+          if (!h) return;
+          if (window.AriaBanner) window.AriaBanner.paint(o); else (window.AriaBannerQ = window.AriaBannerQ || []).push(o);
+        });
+      }, 400);
       /* THE HEADER'S LEAVES (#443 c.6621722209, "the header creates
          nothing"): ?ver=type:<rail> | brand:<maker> opens this page's own
          Explorar todo on that choice -- what the rail's «Ver todo» does. */
