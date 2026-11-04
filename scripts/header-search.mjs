@@ -109,7 +109,17 @@ export const HS_JS = () => readFileSync(join(ROOT, "assets/js/header-search.js")
    the next run; --check fails while any page lacks them.
    ================================================================== */
 export const HC_HREF = "/?carrito=1";
-export const HC_PAGES = HS_PAGES.filter((f) => f !== "index.html");
+/* Pages whose own header has no search row: each carries a cart SLOT
+   (the hc:start/end markers) placed by hand in its header, top-right;
+   the generator fills it and --check fails while the slot is missing.
+   dark: the header behind the icon is dark. */
+export const HC_SLOT_PAGES = {
+  "aria-auto.html": { dark: true },
+  "auto.html": { dark: false },
+  "terminos.html": { dark: true },
+  "privacidad.html": { dark: true },
+};
+export const HC_PAGES = [...HS_PAGES.filter((f) => f !== "index.html"), ...Object.keys(HC_SLOT_PAGES)];
 export const HC_SCRIPT = '<script src="/assets/js/header-cart.js" defer></script>';
 
 export const HC_CSS = [
@@ -144,8 +154,10 @@ function closeOf(src, at) {
   return -1;
 }
 
-function syncCart(src, eol) {
-  const dark = /<div class="hs[^"]*\bhs-dark\b/.test(src);
+function syncCart(src, eol, f) {
+  const slot = HC_SLOT_PAGES[f];
+  if (slot && !src.includes("<!-- hc:start -->")) throw new Error("no cart slot (<!-- hc:start --><!-- hc:end -->) in its header");
+  const dark = slot ? slot.dark : /<div class="hs[^"]*\bhs-dark\b/.test(src);
   const block = `<!-- hc:start -->${hcMarkup({ dark })}<!-- hc:end -->`;
   let out;
   if (src.includes("<!-- hc:start -->")) {
@@ -163,24 +175,28 @@ function syncCart(src, eol) {
   }
   const css = `<style id="hc-css">${eol}${HC_CSS.split("\n").join(eol)}${eol}</style>`;
   if (/<style id="hc-css">[\s\S]*?<\/style>/.test(out)) out = out.replace(/<style id="hc-css">[\s\S]*?<\/style>/, () => css);
-  else out = out.replace(/(<style id="hs-css">[\s\S]*?<\/style>)/, (m) => m + eol + css);
-  if (!out.includes(HC_SCRIPT)) out = out.replace('<script src="/assets/js/header-search.js" defer></script>', (m) => m + eol + HC_SCRIPT);
+  else if (out.includes('<style id="hs-css">')) out = out.replace(/(<style id="hs-css">[\s\S]*?<\/style>)/, (m) => m + eol + css);
+  else out = out.replace("</head>", () => css + eol + "</head>");
+  if (!out.includes(HC_SCRIPT)) {
+    if (out.includes('<script src="/assets/js/header-search.js" defer></script>')) out = out.replace('<script src="/assets/js/header-search.js" defer></script>', (m) => m + eol + HC_SCRIPT);
+    else out = out.replace("</head>", () => HC_SCRIPT + eol + "</head>");
+  }
   return out;
 }
 
 /* Rewrites (or checks) the inline copies; returns the stale pages. */
 export function syncPages({ write = false } = {}) {
   const stale = [];
-  for (const f of HS_PAGES) {
+  for (const f of [...HS_PAGES, ...Object.keys(HC_SLOT_PAGES)]) {
     const p = join(ROOT, f);
     const src = readFileSync(p, "utf8");
     const eol = src.includes("\r\n") ? "\r\n" : "\n";
     let out = src.replace(/<style id="hs-css">[\s\S]*?<\/style>/, () => `<style id="hs-css">${eol}${HS_CSS.split("\n").join(eol)}${eol}</style>`);
-    if (f === "index.html") {
+    if (HS_PAGES.includes(f) && f === "index.html") {
       out = out.replace(/<script id="hs-js">[\s\S]*?<\/script>/, () => `<script id="hs-js">${eol}${HS_JS().trim().split(/\r?\n/).join(eol)}${eol}</script>`);
     }
     if (HC_PAGES.includes(f)) {
-      try { out = syncCart(out, eol); } catch (e) { throw new Error(f + ": " + e.message); }
+      try { out = syncCart(out, eol, f); } catch (e) { throw new Error(f + ": " + e.message); }
     }
     if (out !== src) { stale.push(f); if (write) writeFileSync(p, out); }
   }

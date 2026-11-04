@@ -26,7 +26,7 @@
      SHOT_DIR=/some/dir node scripts/test/header-cart-tests.mjs   (saves the 2-item screenshots)
    ================================================================== */
 import assert from "node:assert/strict";
-import { readFileSync, existsSync, writeFileSync, mkdtempSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdtempSync, readdirSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -46,9 +46,10 @@ const read = (f) => readFileSync(join(ROOT, f), "utf8");
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/u;
 
 /* ------------------------------ static ------------------------------ */
-await check(`every page in the header generator's list (${HS.HS_PAGES.length}) carries the cart, current with scripts/header-search.mjs`, () => {
+await check(`every page in the header generator's lists (${HS.HS_PAGES.length} + ${Object.keys(HS.HC_SLOT_PAGES).length} with their own headers) carries the cart, current with scripts/header-search.mjs`, () => {
   assert.deepEqual(HS.syncPages({ write: false }), [], "a copy is stale -- run: node scripts/header-search.mjs");
-  assert.deepEqual([...HS.HC_PAGES, "index.html"].sort(), [...HS.HS_PAGES].sort(), "a page with the header has no cart");
+  assert.deepEqual([...HS.HC_PAGES, "index.html"].sort(), [...HS.HS_PAGES, ...Object.keys(HS.HC_SLOT_PAGES)].sort(), "a page with the header has no cart");
+  for (const f of ["aria-auto.html", "auto.html", "terminos.html", "privacidad.html"]) assert.ok(HS.HC_PAGES.includes(f), `${f}: not in the cart's page list`);
   for (const f of HS.HC_PAGES) {
     const s = read(f);
     const head = s.slice(0, s.indexOf("</head>"));
@@ -61,6 +62,7 @@ await check(`every page in the header generator's list (${HS.HS_PAGES.length}) c
     assert.match(cart[1], /^<a class="hc( hc-dark)?" href="\/\?carrito=1" aria-label="Carrito" data-hc>/, `${f}: the cart does not open the cart view`);
     assert.match(cart[1], /<span class="hc-n" hidden>0<\/span><\/a>$/, `${f}: the badge does not start hidden`);
     /* The last item of the header row: nothing but whitespace between it and the row's close. */
+    if (HS.HC_SLOT_PAGES[f]) continue;
     const after = s.slice(s.indexOf("<!-- hc:end -->") + 15);
     assert.match(after, /^\s*<\/(div|nav)>/, `${f}: the cart is not the last item of the header row`);
   }
@@ -72,6 +74,14 @@ await check("index.html keeps its own header cart (the bundle's openCart and #ca
   assert.match(hdr, /<button onclick="openCart\(\)" aria-label="Carrito"/);
   assert.ok(hdr.includes('id="cartCountBadge" hidden'));
   assert.ok(!s.includes("header-cart.js"), "index.html would paint its badge twice");
+});
+
+await check("every page that sells (any HTML page writing 'aria_cart_v1') carries the header cart or is the homepage", () => {
+  const pages = readdirSync(ROOT).filter((f) => f.endsWith(".html") && !/^admin|^agente/.test(f));
+  const sellers = pages.filter((f) => read(f).includes("aria_cart_v1") && f !== "carrito.html");
+  for (const f of sellers) assert.ok(f === "index.html" || HS.HC_PAGES.includes(f), `${f} writes the cart but has no header cart`);
+  for (const f of ["aria-auto.html", "auto.html"]) assert.match(read(f), /function saveCartLocal\(c\)\{[^}]*\}catch\(e\)\{ return false; \}\s*if \(window\.ariaHeaderCart\) window\.ariaHeaderCart\(\);/, `${f}: its add-to-cart does not repaint the header badge`);
+  assert.ok(!read("auto.html").includes('id="cartLink"'), "auto.html keeps the old text link to checkout");
 });
 
 await check("carrito.html lands on the homepage's cart view", () => {
@@ -106,7 +116,7 @@ if (pw) {
      sandbox cannot reach: the same classes are built here and served. */
   const twDir = mkdtempSync(join(tmpdir(), "hc-tw-"));
   writeFileSync(join(twDir, "in.css"), "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n");
-  writeFileSync(join(twDir, "tw.config.cjs"), `module.exports = { content: [${JSON.stringify(join(ROOT, "checkout.html"))}, ${JSON.stringify(join(ROOT, "index.html"))}] };`);
+  writeFileSync(join(twDir, "tw.config.cjs"), `module.exports = { content: ${JSON.stringify(["checkout.html", "index.html", "terminos.html", "privacidad.html"].map((f) => join(ROOT, f)))} };`);
   const tw = spawnSync(join(ROOT, "node_modules/.bin/tailwindcss"), ["-c", join(twDir, "tw.config.cjs"), "-i", join(twDir, "in.css"), "-o", join(twDir, "out.css")], { encoding: "utf8" });
   const TW_CSS = tw.status === 0 ? readFileSync(join(twDir, "out.css"), "utf8") : "";
   const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp" };
@@ -148,6 +158,10 @@ if (pw) {
     ["disenadores", "/disenadores.html"],
     ["carrito", "/carrito.html"],
     ["checkout", "/checkout.html"],
+    ["aria-auto", "/aria-auto.html"],
+    ["auto", "/auto.html"],
+    ["terminos", "/terminos.html"],
+    ["privacidad", "/privacidad.html"],
   ];
   /* Two real lines the homepage cart keeps (scripts/test/cart-thumb-tests.mjs). */
   const TWO = [
@@ -197,7 +211,7 @@ if (pw) {
     return "ok";
   }, CART_SEL);
   const SHOT = process.env.SHOT_DIR || "";
-  const SHOTS = { "departamento-women": "dept", "producto": "product" };
+  const SHOTS = { "departamento-women": "dept", "producto": "product", "aria-auto": "aria-auto", "terminos": "terminos" };
 
   try {
     for (const W of [390, 1366]) {
@@ -237,6 +251,24 @@ if (pw) {
           } finally { await c.close(); }
         });
       }
+    }
+    /* The Aria Auto pages' own add-to-cart repaints the badge on the spot. */
+    for (const [name, path] of [["aria-auto", "/aria-auto.html"], ["auto", "/auto.html"]]) {
+      if (process.env.ONLY && !process.env.ONLY.split(",").includes(name)) continue;
+      await check(`browser 390px: ${name} -- its own add-to-cart (addPartToCart) turns the badge from 2 to 3 without a reload`, async () => {
+        const { c, page, errors } = await open(390, TWO);
+        try {
+          await page.goto(BASE + path, { waitUntil: "load", timeout: 60000 });
+          await page.waitForFunction((js) => (0, eval)(js) === "2", BADGE_JS, { timeout: 20000 }).catch(() => {});
+          assert.equal(await page.evaluate(BADGE_JS), "2");
+          if (name === "aria-auto") assert.ok(await page.evaluate(() => { const n = document.querySelector(".aa-nav"); return n.scrollWidth <= n.clientWidth + 1; }), "the cart squeezes the Aria Shop pill out of the header row");
+          assert.equal(await page.evaluate(() => typeof addPartToCart), "function");
+          await page.evaluate(() => addPartToCart({ s: "autozone", u: 12.99, t: "Pastillas de freno de prueba", kg: 0.8 }, null));
+          assert.equal(await page.evaluate(BADGE_JS), "3", "the badge did not repaint after the add");
+          assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("aria_cart_v1")).length), 3);
+          assert.deepEqual(errors, []);
+        } finally { await c.close(); }
+      });
     }
   } finally {
     await browser.close();
