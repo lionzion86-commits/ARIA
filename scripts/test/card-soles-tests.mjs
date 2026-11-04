@@ -115,7 +115,7 @@ const DOLLAR_RX = /\bfmtUSD\(|\bfmtUsd\(|['"]US\$|'US' \+|\bfmtPriceLabel\(|\bfm
 const FORMATTERS = [
   ["departamento.html", "priceInner"], ["motos.html", "priceInner"], ["aria-auto.html", "priceInner"], ["marca.html", "priceInner"],
   ["disenadores.html", "priceInner"], ["tienda.html", "slPriceInner"], ["search.html", "priceHTML"], ["search.html", "amountHTML"],
-  ["ofertas.html", "priceHTML"], ["producto.html", "relCardHTML"], ["ropa-interior.html", "priceInner"], ["cuenta.html", "cardPrice"],
+  ["ofertas.html", "priceHTML"], ["producto.html", "relCardHTML"], ["assets/js/vehicle-fit.js", "priceHTML"], ["ropa-interior.html", "priceInner"], ["cuenta.html", "cardPrice"],
   [bundleRel, "railCardHTML"], [bundleRel, "railLeadPrice"], [bundleRel, "carouselCardHTML"], [bundleRel, "productCardHTML"], [bundleRel, "renderCrossSellRail"],
 ];
 await check("static: every card price formatter draws soles only -- no dollar formatter, no dollar reference line", () => {

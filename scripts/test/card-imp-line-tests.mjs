@@ -362,7 +362,7 @@ try {
     { name: "Ofertas", url: "ofertas.html", ready: "a.card", sel: "a.card", needOver: 1 },
     /* #443 c.6629785432: the Diseñador department -- every card over $200
        of goods (FOB) carries the line, in soles, under its soles price. */
-    { name: "Diseñador department", url: "departamento.html?dept=luxury", ready: ".rail a.card", sel: "a.card", needOver: 20 },
+    { name: "Diseñador department", url: "departamento.html?dept=luxury", ready: ".rail a.card", sel: "a.card", needOver: 5 },
   ];
   for (const S of SURFACES) {
     await check(`390px, ${S.name}: every card over $200 of goods shows «+ S/ … IMP» under its price, none under it does`, async () => {

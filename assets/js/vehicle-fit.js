@@ -243,8 +243,16 @@
       var usd = typeof window.finalUsd === 'function' ? window.finalUsd(c.p, c.r) : NaN;
       if (!(usd > 0)) return '';
       var was = c.o && typeof window.finalUsd === 'function' ? window.finalUsd(c.o, c.r) : 0;
-      return '<div class="price"><div class="pen">' + (fx ? esc(money(usd * fx)) + (was > usd ? '<span class="was">' + esc(money(was * fx)) + '</span>' : '') : esc('US$ ' + usd.toFixed(2))) + '</div>'
-        + (fx ? '<div class="usd">US$ ' + usd.toFixed(2) + '</div>' : '') + '</div>';
+      /* Soles only, the IMP line directly under them (#443 c.6629812301,
+         Danny: "we only show soles. Then we show the import underneath").
+         Without a rate, soles placeholders that /import-tax.js fills when one
+         lands -- never dollars. */
+      var F = window.AriaImportTax && window.AriaImportTax.fx;
+      var r = fx > 0 ? fx : (F ? F.now() : 0);
+      var soles = function(n, cls){ return r ? (cls ? '<span class="' + cls + '">' : '') + esc(money(n * r)) + (cls ? '</span>' : '') : (F ? F.slot(n, { cls: cls || '' }) : 'S/ \u2026'); };
+      return '<div class="price" data-usd="' + usd + '"><div class="pen">' + soles(usd) + (was > usd ? soles(was, 'was') : '') + '</div></div>'
+        /* THE IMPORT TAX UNDER THE PRICE (#443 c.6592753099): /import-tax.js. */
+        + (window.AriaImportTax ? window.AriaImportTax.lineHTML({ raw: c.p, retailer: c.r, title: c.t }) : '');
     }
     var STORE = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts' };
     function cardHTML(c, fx){
