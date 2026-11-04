@@ -9,11 +9,11 @@ Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones de
 | Niños | Ropa · Zapatos · Marcas · Secciones | 2,298 |
 | Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,750 |
 | Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,350 |
-| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 9,059 |
+| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 8,935 |
 | Diseñador | Mujer · Hombre · Niños · Marcas · Secciones | 21,640 |
 | Deportes | Tipos · Marcas · Secciones | 17,815 |
 | Tallas Plus | Mujer · Hombre · Marcas · Secciones | 7,850 |
-| Lencería | Lencería · Ropa Interior Hombre · Secciones | 3,294 |
+| Lencería | Lencería · Ropa Interior Hombre · Secciones | 3,045 |
 | Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,421 |
 | Electrónica | Tipos · Marcas · Secciones | 5,917 |
 | Juguetes | Tipos · Marcas · Secciones | 7,538 |
@@ -25,13 +25,13 @@ Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones de
 
 Abre: `/departamento.html?dept=women` (17,417 productos)
 
-### Ropa (16,228)
+### Ropa (16,392)
 
 - Blusas y tops: 1,601 · `/departamento.html?dept=women&nav=1&t=blusas-y-tops`
 - Vestidos: 1,584 · `/departamento.html?dept=women&nav=1&t=vestidos`
+- Lencería: 1,377 · `/departamento.html?dept=women&nav=1&t=lenceria`
 - Zapatos: 1,246 · `/departamento.html?dept=women&nav=1&t=zapatos`
 - Carteras: 1,231 · `/departamento.html?dept=women&nav=1&t=carteras`
-- Lencería: 1,215 · `/departamento.html?dept=women&nav=1&t=lenceria`
 - Pantalones y jeans: 1,084 · `/departamento.html?dept=women&nav=1&t=pantalones-y-jeans`
 - Camisas: 1,067 · `/departamento.html?dept=women&nav=1&t=camisas`
 - Casacas y abrigos: 1,010 · `/departamento.html?dept=women&nav=1&t=casacas-y-abrigos`
@@ -72,7 +72,7 @@ Abre: `/departamento.html?dept=women` (17,417 productos)
 - Guantes: 37 · `/departamento.html?dept=women&nav=1&t=guantes`
 - Pulseras y tobilleras: 34 · `/departamento.html?dept=women&nav=1&t=pulseras-y-tobilleras`
 - Tacones: 22 · `/departamento.html?dept=women&nav=1&t=tacones`
-- Hogar: 19 · `/departamento.html?dept=women&nav=1&t=hogar`
+- Hogar: 21 · `/departamento.html?dept=women&nav=1&t=hogar`
 - Mocasines y pantuflas: 16 · `/departamento.html?dept=women&nav=1&t=mocasines-y-pantuflas`
 - Batas: 12 · `/departamento.html?dept=women&nav=1&t=batas`
 - Sombreros: 12 · `/departamento.html?dept=women&nav=1&t=sombreros`
@@ -873,7 +873,7 @@ Abre: `/departamento.html?dept=women` (17,417 productos)
 
 ### Secciones
 
-- Lencería: 3,294 · `/ropa-interior.html#mujer`
+- Lencería: 3,045 · `/ropa-interior.html#mujer`
 - Tallas Plus: 7,850 · `/departamento.html?dept=curvy`
 - Diseñadores Latinos: 10,053 · `/disenadores.html`
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
@@ -1367,7 +1367,7 @@ Abre: `/departamento.html?dept=men` (12,152 productos)
 
 ### Secciones
 
-- Ropa Interior Hombre: 1,619 · `/ropa-interior.html#hombre`
+- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
 - Zapatos de Hombre: 1,454 · `/departamento.html?dept=shoes_men`
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
 - Gym Rat: 12,065 · `/departamento.html?dept=gym_rat`
@@ -3054,9 +3054,9 @@ Abre: `/departamento.html?dept=beauty` (5,350 productos)
 
 ## Accesorios
 
-Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
+Abre: `/departamento.html?dept=joyas_accesorios` (8,935 productos)
 
-### Tipos (9,059)
+### Tipos (8,935)
 
 - Pulseras y tobilleras: 1,111 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pulseras-y-tobilleras`
 - Collares y dijes: 1,075 · `/departamento.html?dept=joyas_accesorios&nav=1&t=collares-y-dijes`
@@ -3064,7 +3064,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - Aretes: 964 · `/departamento.html?dept=joyas_accesorios&nav=1&t=aretes`
 - Charms: 641 · `/departamento.html?dept=joyas_accesorios&nav=1&t=charms`
 - Joyería: 419 · `/departamento.html?dept=joyas_accesorios&nav=1&t=joyeria`
-- Anillos: 333 · `/departamento.html?dept=joyas_accesorios&nav=1&t=anillos`
+- Anillos: 324 · `/departamento.html?dept=joyas_accesorios&nav=1&t=anillos`
 - Correas: 293 · `/departamento.html?dept=joyas_accesorios&nav=1&t=correas`
 - Billeteras: 260 · `/departamento.html?dept=joyas_accesorios&nav=1&t=billeteras`
 - Joyas: 257 · `/departamento.html?dept=joyas_accesorios&nav=1&t=joyas`
@@ -3073,7 +3073,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - Guantes: 168 · `/departamento.html?dept=joyas_accesorios&nav=1&t=guantes`
 - Relojes: 119 · `/departamento.html?dept=joyas_accesorios&nav=1&t=relojes`
 - Bufandas: 103 · `/departamento.html?dept=joyas_accesorios&nav=1&t=bufandas`
-- Manteles y servilletas: 85 · `/departamento.html?dept=joyas_accesorios&nav=1&t=manteles-y-servilletas`
 - Llaveros: 59 · `/departamento.html?dept=joyas_accesorios&nav=1&t=llaveros`
 - Accesorio: 50 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorio`
 - Corbatas: 43 · `/departamento.html?dept=joyas_accesorios&nav=1&t=corbatas`
@@ -3084,7 +3083,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - Carteras: 19 · `/departamento.html?dept=joyas_accesorios&nav=1&t=carteras`
 - Belleza: 17 · `/departamento.html?dept=joyas_accesorios&nav=1&t=belleza`
 - Accesorios De Fútbol: 16 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-futbol`
-- Figura Coleccionable: 14 · `/departamento.html?dept=joyas_accesorios&nav=1&t=figura-coleccionable`
 - Pesas Y Cinturones: 14 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pesas-y-cinturones`
 - Recuerdos de fiesta: 14 · `/departamento.html?dept=joyas_accesorios&nav=1&t=recuerdos-de-fiesta`
 - Cinturones de levantamiento: 12 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cinturones-de-levantamiento`
@@ -3105,18 +3103,14 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - Trajes De Neopreno: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=trajes-de-neopreno`
 - Trucks, Ruedas Y Partes: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=trucks-ruedas-y-partes`
 - Accesorios De Tenis: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-tenis`
-- Cuadros y decoración de pared: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cuadros-y-decoracion-de-pared`
 - Pantalones y jeans: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pantalones-y-jeans`
 - Pañales: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=panales`
-- Peluche: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=peluche`
 - Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-pesca-submarina`
 - Blusas y tops: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=blusas-y-tops`
 - Calzado: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=calzado`
 - Cascos Y Protecciones: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cascos-y-protecciones`
 - Cuidado del bebé: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cuidado-del-bebe`
 - Gorros: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=gorros`
-- Libros de mesa: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=libros-de-mesa`
-- Navidad: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=navidad`
 - Shorts: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=shorts`
 - Camisas: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=camisas`
 - Chaqueta: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=chaqueta`
@@ -3137,7 +3131,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - Skateboards: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=skateboards`
 - Toallas Y Ponchos: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=toallas-y-ponchos`
 - Trípode: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=tripode`
-- Velas y candelabros: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=velas-y-candelabros`
 
 ### Carteras (876)
 
@@ -3183,7 +3176,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - Aletas De Buceo: 1 · `/departamento.html?dept=sunglasses&nav=1&t=aletas-de-buceo`
 - Decks (tablas De Skate): 1 · `/departamento.html?dept=sunglasses&nav=1&t=decks-tablas-de-skate`
 
-### Marcas (9,059)
+### Marcas (8,935)
 
 - BaubleBar: 3,410 · `/departamento.html?dept=joyas_accesorios&nav=1&b=baublebar`
 - Vivienne Westwood: 337 · `/departamento.html?dept=joyas_accesorios&nav=1&b=vivienne%20westwood`
@@ -3248,7 +3241,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - HOTTOPIC: 18 · `/departamento.html?dept=joyas_accesorios&nav=1&b=hottopic`
 - Simone Rocha: 18 · `/departamento.html?dept=joyas_accesorios&nav=1&b=simone%20rocha`
 - Alphalete: 17 · `/departamento.html?dept=joyas_accesorios&nav=1&b=alphalete`
-- FUNKO: 17 · `/departamento.html?dept=joyas_accesorios&nav=1&b=funko`
 - KHAITE: 17 · `/departamento.html?dept=joyas_accesorios&nav=1&b=khaite`
 - Dakine: 16 · `/departamento.html?dept=joyas_accesorios&nav=1&b=dakine`
 - LNGFYLN: 15 · `/departamento.html?dept=joyas_accesorios&nav=1&b=lngfyln`
@@ -3405,6 +3397,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - ETHOS: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=ethos`
 - FALAN MULE: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=falan%20mule`
 - Findtime: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=findtime`
+- FUNKO: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=funko`
 - Heaven Mayhem: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=heaven%20mayhem`
 - HESHPAWS: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=heshpaws`
 - HUF: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=huf`
@@ -3532,7 +3525,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - APNEA: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=apnea`
 - Apt. 9: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=apt.%209`
 - Art Value: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=art%20value`
-- ASSOULINE: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=assouline`
 - AYYUFE: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=ayyufe`
 - B-Low the Belt: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=b-low%20the%20belt`
 - BABLIBU: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=bablibu`
@@ -3560,8 +3552,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 - Chanana: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chanana`
 - Channel Islands: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=channel%20islands`
 - Charles Jeffrey LOVERBOY: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=charles%20jeffrey%20loverboy`
-- Chronicle Books: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chronicle%20books`
-- Chronicle Chroma: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chronicle%20chroma`
 - Chums: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chums`
 - Churchill: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=churchill`
 - Claussen: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=claussen`
@@ -3758,7 +3748,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (9,059 productos)
 
 ### Secciones
 
-- Joyas y Accesorios: 9,059 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,935 · `/departamento.html?dept=joyas_accesorios`
 - Carteras: 2,499 · `/departamento.html?dept=purses`
 - Lentes de Sol: 1,883 · `/departamento.html?dept=sunglasses`
 
@@ -4241,7 +4231,7 @@ Abre: `/departamento.html?dept=luxury` (21,640 productos)
 
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
 - Diseñadores Latinos: 10,053 · `/disenadores.html`
-- Joyas y Accesorios: 9,059 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,935 · `/departamento.html?dept=joyas_accesorios`
 
 ## Deportes
 
@@ -5131,7 +5121,7 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 - Ropa: 56 · `/departamento.html?dept=curvy&nav=1&u=men&t=ropa`
 - Ropa de baño: 49 · `/departamento.html?dept=curvy&nav=1&u=men&t=ropa-de-bano`
 - Accesorios: 28 · `/departamento.html?dept=curvy&nav=1&u=men&t=accesorios`
-- Lencería: 16 · `/departamento.html?dept=curvy&nav=1&u=men&t=lenceria`
+- Lencería: 18 · `/departamento.html?dept=curvy&nav=1&u=men&t=lenceria`
 - Blazers: 9 · `/departamento.html?dept=curvy&nav=1&u=men&t=blazers`
 - Pijamas: 8 · `/departamento.html?dept=curvy&nav=1&u=men&t=pijamas`
 - Zapatos: 4 · `/departamento.html?dept=curvy&nav=1&u=men&t=zapatos`
@@ -5604,20 +5594,20 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 
 ## Lencería
 
-Abre: `/ropa-interior.html#mujer` (3,294 productos)
+Abre: `/ropa-interior.html#mujer` (3,045 productos)
 
-### Lencería (3,294)
+### Lencería (3,045)
 
-- Ver todo: 3,294 · `/ropa-interior.html#mujer`
+- Ver todo: 3,045 · `/ropa-interior.html#mujer`
 
-### Ropa Interior Hombre (1,619)
+### Ropa Interior Hombre (1,607)
 
-- Ver todo: 1,619 · `/ropa-interior.html#hombre`
+- Ver todo: 1,607 · `/ropa-interior.html#hombre`
 
 ### Secciones
 
-- Lencería: 3,294 · `/ropa-interior.html#mujer`
-- Ropa Interior Hombre: 1,619 · `/ropa-interior.html#hombre`
+- Lencería: 3,045 · `/ropa-interior.html#mujer`
+- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
 
 ## Hogar
 
@@ -7356,7 +7346,7 @@ Abre: `/ofertas.html` (31,969 productos)
 - Pantalones y jeans: 191 · `/departamento.html?dept=women&nav=1&t=pantalones-y-jeans&o=1`
 - Casacas y abrigos: 189 · `/departamento.html?dept=women&nav=1&t=casacas-y-abrigos&o=1`
 - Camisas: 186 · `/departamento.html?dept=women&nav=1&t=camisas&o=1`
-- Lencería: 175 · `/departamento.html?dept=women&nav=1&t=lenceria&o=1`
+- Lencería: 177 · `/departamento.html?dept=women&nav=1&t=lenceria&o=1`
 - Ropa de baño: 160 · `/departamento.html?dept=women&nav=1&t=ropa-de-bano&o=1`
 - Pantalones y faldas: 129 · `/departamento.html?dept=women&nav=1&t=pantalones-y-faldas&o=1`
 - Joyas: 117 · `/departamento.html?dept=women&nav=1&t=joyas&o=1`
