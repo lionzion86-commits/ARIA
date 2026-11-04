@@ -24,7 +24,7 @@
    registry -- departamento.html's DEPTS (every department) and the
    homepage category block (scripts/build-home-category-pills.mjs
    CAROUSELS) -- plus the pages that are their own sections (Ropa
-   Interior, Diseñadores Latinos, Aria Auto, Motos, Ofertas, Key Club).
+   Interior, Diseñadores Latinos, Aria Auto, Motos, Ofertas). Key Club is not a tab: its door is the utility bar.
    The columns are computed: a department's real product types
    (typeKeyOf, the department page's own) per audience where the data
    says who it is for, its brands, by count. Nothing with zero products
@@ -162,9 +162,11 @@ export const TABS = [
   { k: "electronica", label: "Electrónica", dept: "electronics", cols: [["types", "electronics", "Tipos"], ["brands", "electronics"]], sections: ["electronics", "reacondicionados"] },
   { k: "juguetes", label: "Juguetes", dept: "toys", cols: [["aud", "toys"], ["brands", "toys"]], sections: ["toys", "party", "moms"] },
   { k: "auto-motos", label: "Auto y Motos", page: "motos", cols: [["page", "aria_auto"], ["page", "motos"]], sections: ["auto_parts", "motos"] },
-  { k: "ofertas", label: "Ofertas", page: "ofertas", cols: [["sale", "cats", "Por categoría"]], sections: ["ofertas"] },
-  { k: "key-club", label: "Key Club", page: "keyclub", cols: [], sections: [] },
+  { k: "ofertas", label: "Ofertas", page: "ofertas", cols: [["sale", "cats", "Ofertas por categoría"]], sections: [] },
 ];
+/* KEY CLUB IS NOT A TAB (#443 c.6623258189): it is the membership, not a
+   shopping category. Its door is the gold «Aria Key Club» link in the
+   utility bar above the header; the tab row lists categories only. */
 /* Where a section with its own page lives (the tab's «Ver todo»). */
 const DOOR_OVERRIDE = { auto_parts: "/aria-auto.html" };
 
@@ -200,6 +202,23 @@ function riPage(root, who) {
   const brands = [...all.values()].filter((o) => o.n >= 3).sort((a, b) => (b.sale - a.sale) || (a.k < b.k ? -1 : 1))
     .map((o) => [o.label, "/ropa-interior.html?ver=brand:" + o.k + hash, o.sale]);
   return { types, brands, n: items.filter(onSale).length };
+}
+
+/* NO DEAD ENDS (#443 c.6623258189): a column whose one leaf is the tab
+   itself is dropped (the flyout's «Ver todo» is that door); a column of
+   one other leaf collapses into a plain link (links: [], href = the leaf),
+   so the phone never drills into a screen of one row. A tab left with no
+   columns is a plain link: its tab navigates, no sheet opens. */
+export function noDeadEnds(label, href, cols, notes = []) {
+  const out = [];
+  for (const c of cols) {
+    if (c.links.length !== 1 || c.more) { out.push(c); continue; }
+    const [l, h, n] = c.links[0];
+    if (h === href) { notes.push(`${label} → ${c.h}: su único enlace es la pestaña misma, columna omitida`); continue; }
+    notes.push(`${label} → ${c.h}: un solo enlace (${l}), se muestra como enlace directo`);
+    out.push({ h: l, href: h, n, links: [] });
+  }
+  return out;
 }
 
 export function buildMenu(root = ROOT) {
@@ -269,12 +288,12 @@ export function buildMenu(root = ROOT) {
   for (const spec of TABS) {
     const cols = [], inv = [];
     /* file: the complete list's name, when the column is longer than the flyout shows. */
-    const push = (h, href, links, n, file = "", moved = null) => {
+    const push = (h, href, links, n, file = "", moved = null, all = false) => {
       inv.push({ h, n, links, moved: (moved || []).map(([l, o, c]) => { const r = sectionRef(o); return [l, r ? r.name + " · `" + r.href + "`" : o, c]; }) });
       if (moved && moved.length) notes.push(`${spec.label} → ${h}: ${moved.map(([l, o, c]) => l + " (" + num(c) + ") en " + sectionName(o)).join(", ")}: cada uno vive en su propia sección`);
       const kept = links.filter((l) => l[2] > 0);
       if (!kept.length) { notes.push(`${spec.label} → ${h}: sin productos, columna omitida`); return; }
-      const cap = h === "Marcas" || /^Marcas /.test(h) ? MAX_BRANDS : MAX_TYPES;
+      const cap = all ? Infinity : h === "Marcas" || /^Marcas /.test(h) ? MAX_BRANDS : MAX_TYPES;
       const col = { h, href, n, links: kept.slice(0, cap) };
       if (kept.length > cap && file) { col.all = kept.length; col.more = "/" + BRANDS_DIR + "/" + file + ".json"; files[file] = kept; }
       cols.push(col);
@@ -311,25 +330,29 @@ export function buildMenu(root = ROOT) {
         else if (k === "aria_auto") push(p.name, p.href, p.doors, p.n);
         else push(p.name, p.href, [["Ver todo", p.href, p.n]], p.n);
       } else if (kind === "sale") {
-        /* Ofertas' own categories (its «Por categoría» view). */
+        /* Ofertas' own categories (its «Por categoría» view, the 12 of
+           assets/ofertas/rails.json), each on ofertas.html?vista=categoria&cat=<k>,
+           then the whole page as one more entry -- never a lone pool. */
         const p = pages.ofertas;
-        push(c[2], "/ofertas.html?vista=categoria", p.cats, p.n);
+        push(c[2], "/ofertas.html?vista=categoria", p.cats.concat(p.cats.length ? [["Ver todas las ofertas", p.href, p.n]] : []), p.n, "", null, true);
       }
     }
+    let href = "", n = 0;
+    if (spec.dept) { href = DOOR_OVERRIDE[spec.dept] || deptHref(spec.dept); n = size(spec.dept); }
+    else { href = pages[spec.page].href; n = pages[spec.page].n; }
+    /* A section that is the tab itself («Ver todo» opens it) or a column's
+       own page is not listed again: a «Secciones» of one repeat is a dead drill. */
+    const doors = new Set([href, ...cols.map((c) => c.href).filter(Boolean)]);
     const secs = [];
     for (const s of spec.sections) {
       const r = sectionRef(s);
       if (!r) { notes.push(`${spec.label}: sección desconocida «${s}»`); continue; }
       if (!(r.n > 0)) { notes.push(`${spec.label} → ${r.name}: 0 productos, sin enlace`); continue; }
+      if (doors.has(r.href)) continue;
       secs.push([r.name, r.href, r.n]);
     }
     if (secs.length) { cols.push({ h: "Secciones", links: secs }); inv.push({ h: "Secciones", links: secs }); }
-    let href = "", n = 0;
-    if (spec.dept) { href = DOOR_OVERRIDE[spec.dept] || deptHref(spec.dept); n = size(spec.dept); }
-    else if (spec.page === "keyclub") { href = "/keyclub.html"; n = 0; }
-    else { href = pages[spec.page].href; n = pages[spec.page].n; }
-    if (spec.page === "keyclub") notes.push("Key Club → es la página de membresía (beneficios), no un listado de productos: la pestaña abre su página; sin columnas de productos");
-    tabs.push({ k: spec.k, label: spec.label, href, n, cols });
+    tabs.push({ k: spec.k, label: spec.label, href, n, cols: noDeadEnds(spec.label, href, cols, notes) });
     full.push({ spec, href, n, inv });
   }
 
@@ -405,7 +428,7 @@ export function inventoryMarkdown(b) {
   L.push("");
   L.push("| Entrada del menú | Página canónica a la que llega |");
   L.push("|---|---|");
-  L.push("| Pestaña o «Ver todo» de un departamento | `departamento.html?dept=<k>` (o su página propia: Aria Auto, Lencería, Motos, Ofertas, Key Club) |");
+  L.push("| Pestaña o «Ver todo» de un departamento | `departamento.html?dept=<k>` (o su página propia: Aria Auto, Lencería, Motos, Ofertas) |");
   L.push("| Columna por audiencia (Mujer / Hombre / Niños) | `departamento.html?dept=<k>&para=<audiencia>` (su selector Para quién) |");
   L.push("| Tipo | `departamento.html?dept=<k>&t=<tipo>[&para=<audiencia>]` (su vista de tipo) |");
   L.push("| Marca | `departamento.html?dept=<k>&b=<marca>[&para=<audiencia>]` (sus píldoras de marca: solo los productos de esa marca en ese departamento) |");
@@ -414,8 +437,16 @@ export function inventoryMarkdown(b) {
   L.push("| Diseñadores Latinos | `disenadores.html?d=<diseñador>` · `?t=<tipo>` |");
   L.push("| Motos | `motos.html?t=<tipo>` |");
   L.push("| Aria Auto | `aria-auto.html` · `#buscar` · `#autos` (no tiene parámetro de tipo) |");
-  L.push("| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría) |");
+  L.push("| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría: cada categoría de la página, con su número de ofertas) y «Ver todas las ofertas» `ofertas.html` |");
+  L.push("| Key Club | no es una pestaña (no es una categoría de compra): su puerta es el enlace dorado «Aria Key Club» de la barra superior |");
   L.push("| Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: la pestaña lista esa sección en «Secciones» |");
+  L.push("");
+  L.push("## Sin callejones sin salida (#443 c.6623258189)");
+  L.push("");
+  L.push("- Una pestaña sin columnas es un enlace: abre su página, no una hoja vacía.");
+  L.push("- Una columna cuyo único enlace es la pestaña misma no se muestra (el «Ver todo» del menú ya es esa puerta); una columna de un solo enlace es ese enlace, sin pantalla intermedia.");
+  L.push("- «Secciones» no repite la pestaña ni la página de una de sus columnas.");
+  L.push("- En el teléfono, una pestaña de una sola columna abre directamente su lista (Ofertas: sus categorías).");
   L.push("");
   L.push("## URLs bloqueadas o redirigidas");
   L.push("");
@@ -467,8 +498,9 @@ export const NM_CSS = [
 ].join("\n");
 
 export function nmMarkup(menu, { dark = false } = {}) {
+  /* A tab with no columns is a plain link (data-nm-direct): no sheet. */
   return `<nav class="nm${dark ? " nm-dark" : ""}" data-nm aria-label="Categorías"><div class="nm-in">`
-    + menu.tabs.map((t) => `<a class="nm-tab" href="${t.href}" data-nm-tab="${t.k}" aria-expanded="false" aria-haspopup="true">${t.label}</a>`).join("")
+    + menu.tabs.map((t) => t.cols.length ? `<a class="nm-tab" href="${t.href}" data-nm-tab="${t.k}" aria-expanded="false" aria-haspopup="true">${t.label}</a>` : `<a class="nm-tab" href="${t.href}" data-nm-tab="${t.k}" data-nm-direct>${t.label}</a>`).join("")
     + `</div></nav>`;
 }
 

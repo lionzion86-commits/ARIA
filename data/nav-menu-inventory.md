@@ -8,7 +8,7 @@ Cada pestaña, columna y enlace abre la página canónica ya construida de esa c
 
 | Entrada del menú | Página canónica a la que llega |
 |---|---|
-| Pestaña o «Ver todo» de un departamento | `departamento.html?dept=<k>` (o su página propia: Aria Auto, Lencería, Motos, Ofertas, Key Club) |
+| Pestaña o «Ver todo» de un departamento | `departamento.html?dept=<k>` (o su página propia: Aria Auto, Lencería, Motos, Ofertas) |
 | Columna por audiencia (Mujer / Hombre / Niños) | `departamento.html?dept=<k>&para=<audiencia>` (su selector Para quién) |
 | Tipo | `departamento.html?dept=<k>&t=<tipo>[&para=<audiencia>]` (su vista de tipo) |
 | Marca | `departamento.html?dept=<k>&b=<marca>[&para=<audiencia>]` (sus píldoras de marca: solo los productos de esa marca en ese departamento) |
@@ -17,8 +17,16 @@ Cada pestaña, columna y enlace abre la página canónica ya construida de esa c
 | Diseñadores Latinos | `disenadores.html?d=<diseñador>` · `?t=<tipo>` |
 | Motos | `motos.html?t=<tipo>` |
 | Aria Auto | `aria-auto.html` · `#buscar` · `#autos` (no tiene parámetro de tipo) |
-| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría) |
+| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría: cada categoría de la página, con su número de ofertas) y «Ver todas las ofertas» `ofertas.html` |
+| Key Club | no es una pestaña (no es una categoría de compra): su puerta es el enlace dorado «Aria Key Club» de la barra superior |
 | Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: la pestaña lista esa sección en «Secciones» |
+
+## Sin callejones sin salida (#443 c.6623258189)
+
+- Una pestaña sin columnas es un enlace: abre su página, no una hoja vacía.
+- Una columna cuyo único enlace es la pestaña misma no se muestra (el «Ver todo» del menú ya es esa puerta); una columna de un solo enlace es ese enlace, sin pantalla intermedia.
+- «Secciones» no repite la pestaña ni la página de una de sus columnas.
+- En el teléfono, una pestaña de una sola columna abre directamente su lista (Ofertas: sus categorías).
 
 ## URLs bloqueadas o redirigidas
 
@@ -43,17 +51,16 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 | Niños | Ropa · Zapatos · Marcas · Secciones | 2,274 |
 | Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,718 |
 | Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,342 |
-| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 8,553 |
+| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,553 |
 | Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,640 |
 | Deportes | Tipos · Marcas · Secciones | 17,679 |
-| Tallas Plus | Mujer · Hombre · Marcas · Secciones | 7,850 |
-| Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería · Secciones | 3,045 |
+| Tallas Plus | Mujer · Hombre · Marcas | 7,850 |
+| Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería | 3,045 |
 | Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,417 |
 | Electrónica | Tipos · Marcas · Secciones | 5,917 |
 | Juguetes | Tipos · Marcas · Secciones | 7,364 |
-| Auto y Motos | Aria Auto · Motos · Secciones | 2,495 |
-| Ofertas | Por categoría · Secciones | 31,969 |
-| Key Club | (sin columnas) | 0 |
+| Auto y Motos | Aria Auto · Motos | 2,495 |
+| Ofertas | Ofertas por categoría | 31,969 |
 
 ## Mujer
 
@@ -3091,8 +3098,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Aria Beauty: 5,342 · `/departamento.html?dept=beauty`
-- Perfumes: 10,912 · `/departamento.html?dept=perfumes`
 - Cabello: 1,041 · `/departamento.html?dept=cabello`
 
 ## Accesorios
@@ -3781,12 +3786,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Yoursfs: 1 · `/departamento.html?dept=joyas_accesorios&b=Yoursfs`
 - ZYHH: 1 · `/departamento.html?dept=joyas_accesorios&b=ZYHH`
 
-### Secciones
-
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
-- Carteras: 2,499 · `/departamento.html?dept=purses`
-- Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
-
 ## Diseñador
 
 Abre: `/departamento.html?dept=luxury` (21,640 productos)
@@ -4292,8 +4291,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
-- Diseñadores Latinos: 10,053 · `/disenadores.html`
 - Perfumes: 10,912 · `/departamento.html?dept=perfumes`
 - Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
 
@@ -5134,7 +5131,6 @@ Abre: `/departamento.html?dept=sporting_goods` (17,679 productos)
 - Aria Fight Club: 1,405 · `/departamento.html?dept=combat_sports`
 - Surf & Skate: 10,796 · `/departamento.html?dept=surf_skate`
 - Pesca Submarina: 1,184 · `/departamento.html?dept=spearfishing`
-- Deportes: 17,679 · `/departamento.html?dept=sporting_goods`
 
 ## Tallas Plus
 
@@ -5650,10 +5646,6 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 - Yumi: 1 · `/departamento.html?dept=curvy&b=Yumi`
 - Yumi Kim: 1 · `/departamento.html?dept=curvy&b=Yumi%20Kim`
 
-### Secciones
-
-- Tallas Plus: 7,850 · `/departamento.html?dept=curvy`
-
 ## Lencería
 
 Abre: `/ropa-interior.html#mujer` (3,045 productos)
@@ -5727,11 +5719,6 @@ Abre: `/ropa-interior.html#mujer` (3,045 productos)
 - Vivienne Westwood: 0 · `/ropa-interior.html?ver=brand:viviennewestwood#mujer`
 - Wolford: 0 · `/ropa-interior.html?ver=brand:wolford#mujer`
 - YoungLA: 0 · `/ropa-interior.html?ver=brand:youngla#mujer`
-
-### Secciones
-
-- Lencería: 3,045 · `/ropa-interior.html#mujer`
-- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
 
 ## Hogar
 
@@ -6133,8 +6120,6 @@ Abre: `/departamento.html?dept=home_goods` (6,417 productos)
 
 ### Secciones
 
-- Casa Aria: 6,417 · `/departamento.html?dept=home_goods`
-- Decoración: 2,711 · `/departamento.html?dept=home_decor`
 - Libros: 506 · `/departamento.html?dept=books`
 - Aria Party: 1,076 · `/departamento.html?dept=party`
 - Dulces y Chocolates: 24 · `/departamento.html?dept=candy_chocolate`
@@ -7290,7 +7275,6 @@ Abre: `/departamento.html?dept=electronics` (5,917 productos)
 
 ### Secciones
 
-- Electrónica: 5,917 · `/departamento.html?dept=electronics`
 - Reacondicionados: 253 · `/departamento.html?dept=reacondicionados`
 
 ## Juguetes
@@ -7409,7 +7393,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Juguetes: 7,364 · `/departamento.html?dept=toys`
 - Aria Party: 1,076 · `/departamento.html?dept=party`
 - Mama's Fashion: 2,461 · `/departamento.html?dept=moms`
 
@@ -7430,16 +7413,11 @@ Abre: `/motos.html` (2,495 productos)
 - Ropa y equipo: 74 · `/motos.html?t=ropa_equipo`
 - Accesorios: 868 · `/motos.html?t=accesorios`
 
-### Secciones
-
-- Repuestos: 1,353 · `/aria-auto.html`
-- Motos: 2,495 · `/motos.html`
-
 ## Ofertas
 
 Abre: `/ofertas.html` (31,969 productos)
 
-### Por categoría (31,969)
+### Ofertas por categoría (31,969)
 
 - Ropa Hombre: 3,360 · `/ofertas.html?vista=categoria&cat=ropa_hombre`
 - Ropa Mujer: 5,637 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
@@ -7453,14 +7431,7 @@ Abre: `/ofertas.html` (31,969 productos)
 - Hogar: 1,487 · `/ofertas.html?vista=categoria&cat=hogar`
 - Deportes: 856 · `/ofertas.html?vista=categoria&cat=deportes`
 - Bebé: 213 · `/ofertas.html?vista=categoria&cat=bebe`
-
-### Secciones
-
-- Ofertas: 31,969 · `/ofertas.html`
-
-## Key Club
-
-Abre: `/keyclub.html` (0 productos)
+- Ver todas las ofertas: 31,969 · `/ofertas.html`
 
 ## Qué falta o no se pudo llenar
 
@@ -7470,10 +7441,11 @@ Abre: `/keyclub.html` (0 productos)
 - Niños → Ropa: Lencería (19) en Lencería, Carteras (15) en Carteras, Sandalias (12) en Zapatos, Zapatillas (2) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
 - Belleza → Tipos: Fragancia (218) en Perfumes, Carteras (2) en Carteras: cada uno vive en su propia sección
 - Belleza → Sección Hombre: 0 productos, sin enlace
+- Belleza → Secciones: un solo enlace (Cabello), se muestra como enlace directo
 - Diseñador → Mujer: Fragancia (348) en Perfumes: cada uno vive en su propia sección
 - Diseñador → Hombre: Fragancia (264) en Perfumes: cada uno vive en su propia sección
+- Electrónica → Secciones: un solo enlace (Reacondicionados), se muestra como enlace directo
 - Juguetes → Tipos: Fragancia (1) en Perfumes: cada uno vive en su propia sección
-- Key Club → es la página de membresía (beneficios), no un listado de productos: la pestaña abre su página; sin columnas de productos
 
 ## Carruseles del inicio y dónde quedan
 
