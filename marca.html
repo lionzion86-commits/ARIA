@@ -828,6 +828,14 @@ document.addEventListener("click", function(e){
   if (next){ var rl = sec.querySelector(".rail"); if (rl && rl.scrollTo) rl.scrollTo({ left: rl.scrollWidth, behavior: "smooth" }); growRail(next); }
 });
 
+/* THE FILTER BAR (#443, the Nordstrom pattern): assets/js/nav-filter.js,
+   told what this page lists, where the bar goes and how a card draws. */
+function nfBoot(h){
+  if (window.AriaNFHost) return;
+  h.endpoint = h.endpoint || '/.netlify/functions/nav-filter'; h.prefix = 'f';
+  window.AriaNFHost = h;
+  var s = document.createElement('script'); s.src = '/assets/js/nav-filter.js'; s.defer = true; document.head.appendChild(s);
+}
 /* ---------- boot ---------- */
 function init(){
   try{
@@ -853,6 +861,9 @@ function init(){
       if (heroSub) heroSub.textContent = head.count.toLocaleString("es-PE") + " productos en tiendas de EE. UU.";
       try{ document.title = BRAND_LABEL + " — Aria Shop"; }catch(e){}
       renderRails();
+      nfBoot({ src: "marca=" + encodeURIComponent(BRAND_KEY), title: function(){ return BRAND_LABEL; },
+        anchor: el("brandSearch"), hide: ["#brandFocus", "#brandPills", "#salesTop", "#status", "#rails"],
+        cardHTML: cardHTML, after: function(r){ watchPhotos(r); paintPrices(r); }, getJSON: getJSON });
       if (window.ariaBrandFocus) window.ariaBrandFocus(BRAND_LABEL);
       afterFirstPhotos(heroImage);
     }).catch(function(){

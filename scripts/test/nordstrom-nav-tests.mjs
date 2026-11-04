@@ -132,7 +132,12 @@ if (pw) {
   const handlers = {
     "nav-filter": (await import("../../netlify/functions/nav-filter.js")).handler,
     department: (await import("../../netlify/functions/department.js")).handler,
+    tienda: (await import("../../netlify/functions/tienda.js")).handler,
+    brand: (await import("../../netlify/functions/brand.js")).handler,
+    ofertas: (await import("../../netlify/functions/ofertas.js")).handler,
+    search: (await import("../../netlify/functions/search.js")).handler,
   };
+  const fetchImpl = async () => ({ ok: false, status: 503, json: async () => ({}) });
   const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp" };
   const srv = createServer(async (req, res) => {
     const u = new URL(req.url, "http://x");
@@ -141,7 +146,7 @@ if (pw) {
       if (fn[1] === "exchange-rate") { res.writeHead(200, { "Content-Type": "application/json" }); return res.end('{"venta":3.75,"compra":3.74}'); }
       const h = handlers[fn[1]];
       if (!h) { res.writeHead(404); return res.end("{}"); }
-      const r = await h({ httpMethod: req.method, queryStringParameters: Object.fromEntries(u.searchParams) });
+      const r = await h({ httpMethod: req.method, queryStringParameters: Object.fromEntries(u.searchParams) }, { fetchImpl });
       res.writeHead(r.statusCode, r.headers || {});
       return res.end(r.body || "");
     }
@@ -307,6 +312,52 @@ if (pw) {
       await page.waitForSelector(".nf-pan", { state: "detached" });
       await c.close();
     });
+    /* ---------- Phase 2: the same bar on every listing ---------- */
+    const LISTINGS = [
+      ["departamento", "/departamento.html?dept=women"],
+      ["tienda", "/tienda.html?tienda=macys"],
+      ["marca", "/marca.html?marca=nike"],
+      ["ofertas", "/ofertas.html"],
+      ["ropa-interior", "/ropa-interior.html#mujer"],
+      ["search", "/search.html?q=" + encodeURIComponent("mochila") + "&resultados=1"],
+    ];
+    for (const [name, path] of LISTINGS) {
+      await check(`browser phone 390: ${name} has the type pills and the dropdown bar; two values of one facet stack as two chips; results are one carousel; no zero option; no checkbox; no catalogue`, async () => {
+        const { c, page, reqs } = await ctx(false);
+        const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+        await page.goto(BASE + path, { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => document.querySelectorAll("#nfPills .nf-pill").length > 1, null, { timeout: 60000 });
+        const btns = await page.$$eval("#nfBar .nf-dd:not([hidden]) .nf-btn span", (x) => x.map((e) => e.textContent));
+        assert.ok(btns.includes("Filtrar") && btns.includes("Ordenar") && btns.includes("Talla") || btns.includes("Precio"), btns.join(" | "));
+        /* Two values of the multi facet the page offers: Marca, else Talla, else Precio. */
+        const k = await page.evaluate(() => ["b", "z", "p"].find((k) => { const d = document.querySelector('[data-dd="' + k + '"]'); return d && !d.hidden; }));
+        assert.ok(k, "no multi-value facet offered");
+        await page.tap(`[data-nf-btn="${k}"]`);
+        await page.waitForSelector(`.nf-pan [data-nf-${k}]`);
+        assert.equal(await page.$$eval(".nf-pan button small", (s) => s.filter((x) => /^0$/.test(x.textContent.trim())).length), 0, "an option at zero");
+        await page.tap(`.nf-pan [data-nf-${k}]`);
+        await page.waitForFunction((k) => document.querySelectorAll('[data-nf-x="' + k + '"]').length === 1 && !/Cargando/.test(document.getElementById("nfCount").textContent), k, { timeout: 60000 });
+        const second = await page.$(`.nf-pan [data-nf-${k}][aria-pressed="false"]`);
+        if (second) {
+          await second.tap();
+          await page.waitForFunction((k) => document.querySelectorAll('[data-nf-x="' + k + '"]').length === 2 && !/Cargando/.test(document.getElementById("nfCount").textContent), k, { timeout: 60000 });
+        }
+        await page.tap(".nf-pan [data-nf-done]");
+        await page.waitForSelector("#nfRail .card", { timeout: 60000 });
+        const rows = await page.$$eval("#nfRail .card", (cs) => new Set(cs.map((x) => Math.round(x.getBoundingClientRect().top))).size);
+        assert.equal(rows, 1, "cards in more than one row");
+        assert.match(page.url(), new RegExp("[?&]f?" + k + "="));
+        assert.equal(await page.$$eval('input[type="checkbox"]', (x) => x.filter((e) => e.offsetParent).length), 0, "a visible checkbox");
+        if (SHOT) await page.screenshot({ path: join(SHOT, "nav2-" + name + ".png") });
+        /* Clearing it all brings the page's own landing back. */
+        const clear = await page.$("[data-nf-clear]");
+        if (clear) await clear.tap(); else await page.tap('[data-nf-x]');
+        await page.waitForFunction(() => !document.documentElement.classList.contains("nf-on"), null, { timeout: 60000 });
+        assert.deepEqual(reqs.filter((u) => /-catalog\.json|department-cache|auto-cache\.json|catalog-index\.json|\/_fn\//.test(u)), [], "a catalogue file was requested");
+        assert.deepEqual(errors, []);
+        await c.close();
+      });
+    }
   } finally {
     await browser.close();
     srv.close();

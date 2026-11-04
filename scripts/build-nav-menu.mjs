@@ -129,7 +129,8 @@ export function buildMenu(root = ROOT) {
   const reg = deptRegistry(root);
   const pages = pageSections(root);
   const cache = new Map();
-  const dept = (k) => { if (!cache.has(k)) cache.set(k, loadDept(k, [root])); return cache.get(k); };
+  /* Only products with a photo are cards (no image, no card): the counts are what the page shows. */
+  const dept = (k) => { if (!cache.has(k)) { const d = loadDept(k, [root]); cache.set(k, d ? { ...d, list: d.list.filter((p) => p.image) } : null); } return cache.get(k); };
   const size = (k) => (dept(k) ? dept(k).list.length : 0);
   const notes = [];
   const riCache = {};

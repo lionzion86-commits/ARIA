@@ -103,7 +103,8 @@
     + '.nf-clear{border:0;background:none;color:#2456A0;font:800 13px/1 inherit;font-family:inherit;cursor:pointer;padding:8px 4px}'
     + '.nf-dark .nf-clear{color:#F4C463}'
     + '.nf-count{margin:12px 20px 0;color:#6B7487;font-size:14px;font-weight:600}'
-    + '.nf-dark .nf-count{color:#C9D4EC}'
+    + '.nf-dark .nf-count{color:#DCE6FF}'
+    + '.nf-dark .nf-res .rail-head h2,.nf-dark .nf-res .rail-count{color:#fff}'
     + '.nf-msg{padding:16px 20px;color:#6B7487;font-size:14px}'
     + '.nf-res .rail-head{display:flex;align-items:center;gap:8px;padding:0 20px;margin:14px 0 2px}'
     + '.nf-res .rail-head h2{font-size:19px;font-weight:800;margin:0}'
@@ -231,14 +232,14 @@
         + '<button type="button" class="nf-pill" data-nf-s="" aria-pressed="' + (!S.s) + '">' + esc(DATA.sAll || 'Todo') + '<small>' + num(all) + '</small></button>'
         + f.s.map(function(x){ return '<button type="button" class="nf-pill" data-nf-s="' + esc(x[0]) + '" aria-pressed="' + (S.s === x[0]) + '">' + esc(x[1]) + '<small>' + num(x[2]) + '</small></button>'; }).join('');
     } else if ((f.t || []).length > 1 || S.t){
-      var tot = (f.t || []).reduce(function(s, x){ return s + x[2]; }, 0);
+      var tot = DATA.tAll != null ? DATA.tAll : (f.t || []).reduce(function(s, x){ return s + x[2]; }, 0);
       ph = '<button type="button" class="nf-pill" data-nf-t="" aria-pressed="' + (!S.t) + '">Todo<small>' + num(tot) + '</small></button>'
         + (f.t || []).map(function(x){ return '<button type="button" class="nf-pill" data-nf-t="' + esc(x[0]) + '" aria-pressed="' + (S.t === x[0]) + '">' + esc(x[1]) + '<small>' + num(x[2]) + '</small></button>'; }).join('');
     }
     pillsEl.innerHTML = ph; pillsEl.hidden = !ph;
 
     var n = { f: (S.u ? 1 : 0) + (S.o ? 1 : 0) + S.r.length + (S.w ? 1 : 0), sort: S.sort ? 1 : 0, b: S.b.length, z: S.z.length, p: S.p.length };
-    var any = { f: true, sort: true, b: (f.b || []).length > 0, z: (f.z || []).length > 0, p: (f.p || []).length > 0 };
+    var any = { f: true, sort: true, b: (f.b || []).length > 1 || S.b.length > 0, z: (f.z || []).length > 0, p: (f.p || []).length > 0 };
     Array.prototype.forEach.call(barEl.querySelectorAll('.nf-btn'), function(b){
       var k = b.getAttribute('data-nf-btn'), old = b.querySelector('b');
       if (old) old.remove();
@@ -395,6 +396,17 @@
       run(0);
     };
   }
-  window.AriaNF = { state: function(){ return S; }, set: set, box: box };
+  /* A page with two listings (Ropa Interior's Mujer / Hombre) points the
+     bar at the other one in place. */
+  function resource(src, anchor){
+    if (src === H.src) return;
+    H.src = src;
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor.nextSibling);
+    S = { u: '', t: '', s: '', b: [], z: [], p: [], o: '', r: [], w: '', sort: '' };
+    try { history.replaceState(null, '', urlOf(S)); } catch(e){}
+    LAST_Q = location.search;
+    run(0);
+  }
+  window.AriaNF = { state: function(){ return S; }, set: set, box: box, resource: resource };
   getFx().then(function(fx){ FX = fx || 0; run(0); });
 })();

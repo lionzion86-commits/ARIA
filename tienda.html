@@ -355,7 +355,7 @@ html{scroll-padding-top:76px}
   <div id="storeWrap" hidden>
     <div class="toolbar" data-pat="search">
       <input type="search" id="q" placeholder="Busca en esta tienda…" aria-label="Buscar en esta tienda" autocomplete="off">
-      <select id="sort" aria-label="Ordenar">
+      <select id="sort" aria-label="Ordenar" hidden style="display:none">
         <option value="relevance">Destacados</option>
         <option value="discount" selected>Mayor descuento</option>
         <option value="priceAsc">Menor precio</option>
@@ -1532,7 +1532,19 @@ function boot(isRetry){
   /* Every store answers from its slices; the registry's `files` only tell the
      build which catalogues to read. */
   bootSliced();
+  nfBoot({ src: 'tienda=' + encodeURIComponent(key), title: function(){ return storeMeta.label || key; },
+    anchor: document.querySelector('#storeWrap .toolbar'), hide: ['#deptChips', '#salesTop', '#countLine', '#content'],
+    cardHTML: slCardHTML, after: function(r){ watchPhotos(r); } });
 }
+/* THE FILTER BAR (#443, the Nordstrom pattern): assets/js/nav-filter.js,
+   told what this page lists, where the bar goes and how a card draws. */
+function nfBoot(h){
+  if (window.AriaNFHost) return;
+  h.endpoint = h.endpoint || '/.netlify/functions/nav-filter'; h.prefix = 'f';
+  window.AriaNFHost = h;
+  var s = document.createElement('script'); s.src = '/assets/js/nav-filter.js'; s.defer = true; document.head.appendChild(s);
+}
+
 function bindUI(){
   var q = $('q'), s = $('sort'), t = null;
   if (q) q.addEventListener('input', function(){

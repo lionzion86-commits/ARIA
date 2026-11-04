@@ -300,7 +300,9 @@ export function facetAnswer(rows, f, sort = "deal", page = 0, card = (x) => x) {
   const fx = f.fx || 0;
   const B = new Set(f.b || []), Z = new Set(f.z || []), P = new Set(f.p || []), RR = new Set(f.r || []);
   const words = String(f.w || "").split(/\s+/).filter(Boolean);
-  const R = rows.map((r, i) => ({
+  /* No image, no card (#443 c.6547325227): a row the page cannot draw is
+     never counted. */
+  const R = rows.filter((r) => r.image).map((r, i) => ({
     ...r, i, st: styleOf(r.title, r.t.k), bk: String(r.brand || "").trim().toLowerCase(),
     z: sizesFor(tokensOf(r.run), f.u), band: fx ? bandOf(r.usd * fx) : "",
   }));
@@ -352,7 +354,7 @@ export function facetAnswer(rows, f, sort = "deal", page = 0, card = (x) => x) {
   return {
     f: { u: f.u, t: f.t, s: f.s, b: f.b, z: f.z, p: f.p, o: f.o, r: f.r, w: f.w }, sort, tl,
     sl: f.s ? styleLabel(f.t, f.s) : "", sAll: f.t && STYLES[f.t] ? STYLES[f.t].all : "",
-    count: hits.length, page, pages,
+    count: hits.length, page, pages, tAll: R.filter((r) => match(r, "t")).length,
     cards: hits.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((r) => card(r.x)),
     facets,
   };
@@ -418,7 +420,8 @@ export function riRows(who, roots) {
   const j = readFrom(roots, file);
   if (!j) return null;
   const F = loadFacts(roots);
-  return (j.items || []).filter((p) => p && p.t && p.p > 0).map((p) => {
+  /* The page's own rule: a photo not cleared of its US price sticker is no photo. */
+  return (j.items || []).filter((p) => p && p.t && p.p > 0 && p.img && (!p.ir || p.ir === "clean")).map((p) => {
     const sub = String(p.sub || "").toLowerCase();
     const label = RI_SUB[sub] || (p.ty === "socks" ? "Medias" : "");
     const fa = factsOf(F, p.r, p.t);
