@@ -209,3 +209,56 @@ export function normalizeCarolinaHerrera(rows) {
   for (const k of Object.keys(depts)) if (!depts[k].items.length) delete depts[k];
   return { departments: depts, skipped };
 }
+
+/* ============================================================
+   THE SNIPES PDP PASS (Lucifer's drop snipes-pass-2026-10-28 @ f7139425;
+   re-applied fresh on main 2026-11-04, #443 c.6623383286 item 2). Each
+   product page read for its size buttons and its struck-through price.
+   Joined by SKU; what the page says replaces what the 2026-10-27 JSON-LD
+   pull could not see:
+     - sizes: the page's IN-STOCK buttons (`sizes`, sizeSource "snipes-pdp");
+       the run is real, so `sizesPending` comes off. A run with every size
+       out of stock cannot be bought: left out;
+     - price: the page's selling price (a few drifted since the pull);
+     - sale: a was-price only where the page strikes one through above
+       the selling price (compareAtPrice, else listPrice) -- the Ofertas
+       rail is real now, never made up;
+     - left out, never guessed: «See Bag For Price» (the store hides the
+       price), no price on the page, a page gone (410);
+     - not in the pass: unchanged (a sized kind stays shown, not sold).
+   Counts come back by reason for the report.
+   ============================================================ */
+export function applySnipesPass(departments, passRows) {
+  const bySku = new Map((passRows || []).filter((r) => r && r.sku).map((r) => [String(r.sku), r]));
+  const report = { sized: 0, onSale: 0, priceChanged: 0, stillPending: 0, notInPass: 0, left: {} };
+  const leave = (why) => { report.left[why] = (report.left[why] || 0) + 1; return false; };
+  const clean = (l) => (Array.isArray(l) ? l.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : []);
+  const money = (n) => Math.round(Number(n) * 100) / 100;
+  for (const d of Object.values(departments)) {
+    d.items = d.items.filter((it) => {
+      const p = bySku.get(String(it.sku || ""));
+      if (!p) { report.notInPass++; if (it.sizesPending) report.stillPending++; return true; }
+      if (p.fetchError) return leave("page gone (410)");
+      if (p.priceNote === "see_bag_for_price") return leave("price hidden by the store (See Bag For Price)");
+      const price = Number(p.salesPrice);
+      if (!(price > 0)) return leave("no price on the page");
+      const run = clean(p.sizes), inStock = clean(p.availableSizes);
+      if (run.length && !inStock.length) return leave("every size out of stock");
+      if (money(price) !== money(it.price)) report.priceChanged++;
+      it.price = money(price);
+      const was = Number(p.compareAtPrice ?? p.listPrice);
+      delete it.originalPrice;
+      it.onSale = false;
+      if (was > it.price) { it.originalPrice = money(was); it.onSale = true; report.onSale++; }
+      if (inStock.length) {
+        it.sizes = inStock;
+        it.sizeSource = "snipes-pdp";
+        delete it.sizesPending;
+        report.sized++;
+      } else if (it.sizesPending) report.stillPending++;
+      return true;
+    });
+  }
+  for (const k of Object.keys(departments)) if (!departments[k].items.length) delete departments[k];
+  return report;
+}
