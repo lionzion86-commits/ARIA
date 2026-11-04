@@ -212,7 +212,7 @@ if (!chromium) {
        the scroll follows the carousel, which must sit where it sat. */
     const grew = (got.y + got.top) - (probe.y + probe.top);
     if (Math.abs(got.y - probe.y) > TOL) {
-      assert.ok(Math.abs(grew) > TOL && Math.abs(got.y - probe.y - grew) <= TOL, `${where}: scrollY ${got.y}, was ${probe.y}`);
+      assert.ok(Math.abs(grew) > TOL && Math.abs(got.y - probe.y - grew) <= TOL, `${where}: scrollY ${got.y}, was ${probe.y} (the carousel at ${got.top}px on screen, was ${probe.top}px)`);
       console.log(`         note ${where}: the page above the carousel drew ${grew}px ${grew > 0 ? "taller" : "shorter"}; scrollY ${probe.y} -> ${got.y} keeps the carousel in place`);
     }
     assert.ok(got.x != null, `${where}: the carousel «${probe.h}» is not there`);
