@@ -175,8 +175,10 @@ if (pw) {
     for (let t = Date.now(); Date.now() - t < 15000; await page.waitForTimeout(100)) {
       const ok = await page.evaluate((c) => {
         const f = document.getElementById("nmFlyout");
-        const a = f && !f.hidden && f.querySelector('[data-nm-col="' + c + '"] a');
-        return !!(a && a.getBoundingClientRect().height > 0);
+        if (!f || f.hidden) return false;
+        /* Desktop: the column; phone: the drill-down's row for it. */
+        const a = [...f.querySelectorAll('[data-nm-col="' + c + '"] a, .nmf-go')].find((x) => x.getBoundingClientRect().height > 0 && (x.closest("[data-nm-col]") || x.textContent.startsWith(c)));
+        return !!a;
       }, col);
       if (ok) return;
     }
@@ -215,6 +217,22 @@ if (pw) {
       await page.waitForSelector('#nmFlyout:not([hidden]) .nmf-col');
       await page.keyboard.press("Escape");
       await page.waitForSelector("#nmFlyout", { state: "hidden" });
+      assert.equal(page.url(), url0);
+      /* Keyboard: ArrowDown into the first column, ArrowRight to the next,
+         ArrowDown down it, Esc back to the tab -- nothing navigates. */
+      await page.focus('[data-nm-tab="zapatos"]');
+      await page.keyboard.press("ArrowDown");
+      await flyoutOpen(page);
+      await page.waitForFunction(() => document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-nm-col="Mujer"]'));
+      await page.keyboard.press("ArrowRight");
+      assert.equal(await page.evaluate(() => document.activeElement.closest("[data-nm-col]").getAttribute("data-nm-col")), "Hombre");
+      await page.keyboard.press("ArrowDown");
+      assert.match(await page.evaluate(() => document.activeElement.textContent), /\d/);
+      await page.keyboard.press("Escape");
+      await page.waitForSelector("#nmFlyout", { state: "hidden" });
+      assert.equal(await page.evaluate(() => document.activeElement.getAttribute("data-nm-tab")), "zapatos");
+      await page.keyboard.press("ArrowRight");
+      assert.equal(await page.evaluate(() => document.activeElement.getAttribute("data-nm-tab")), "belleza");
       assert.equal(page.url(), url0);
       await c.close();
     });
@@ -298,7 +316,16 @@ if (pw) {
       await flyoutOpen(page);
       const box = await page.$eval("#nmFlyout", (e) => { const r = e.getBoundingClientRect(); return { bottom: Math.round(r.bottom), h: Math.round(r.height) }; });
       assert.equal(box.bottom, 844, "the sheet sits on the bottom edge");
-      if (SHOT) await page.screenshot({ path: join(SHOT, "nav-phone-zapatos-sheet.png") });
+      if (SHOT) await page.screenshot({ path: join(SHOT, "nav2-phone-drill-0.png") });
+      /* The drill-down: Mujer, its leaves, back -- nothing navigates. */
+      assert.equal(box.h > 600, true, "the phone menu is not full height: " + box.h);
+      await page.tap('#nmFlyout [data-nm-go="0"]');
+      await page.waitForSelector('#nmFlyout [data-nm-lvl="0"]:not([hidden]) a[href*="t=botas-y-botines"]');
+      assert.equal(await page.isVisible("#nmFlyout [data-nm-l0]"), false);
+      if (SHOT) await page.screenshot({ path: join(SHOT, "nav2-phone-drill-mujer.png") });
+      await page.tap('#nmFlyout [data-nm-lvl="0"] [data-nm-back]');
+      await page.waitForSelector("#nmFlyout [data-nm-l0]:not([hidden])");
+      assert.equal(page.url(), url0);
       await page.tap("[data-nm-backdrop]", { position: { x: 195, y: 40 } });
       await page.waitForSelector("#nmFlyout", { state: "hidden" });
       assert.equal(page.url(), url0);
