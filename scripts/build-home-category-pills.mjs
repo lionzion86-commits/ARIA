@@ -63,6 +63,7 @@ import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
 import vm from "node:vm";
 import { modelShot, modelPhotoOf } from "./lib/model-shot.mjs";
+import { lingerieSlotsFirst, PLUS_LINGERIE_LEAD } from "./lib/plus-lingerie.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const PILLS_DIR = "assets/home/category-pills";
@@ -118,11 +119,15 @@ export const FIGHT_GEAR_TYPES = new Set(FIGHT_GEAR_CLASSES.flatMap(([, t]) => t)
                a strap is not sunglasses, belts, toys and wallets are not
                Joyas) -- out of every rail of the carousel;
      ofertas   false: the carousel already has its own Ofertas pill
-               (Electrónica's type row). */
+               (Electrónica's type row);
+     plusLingerie  Tallas Plus (Danny, #443 c.6621407508): the first
+               lingerie slots of every mixed rail («Todas», Ofertas) are
+               Lane Bryant's -- its lingerie is photographed on plus-size
+               women (scripts/lib/plus-lingerie.js). Its top still opens. */
 export const CAROUSELS = [
   { k: "lenceria", title: "Lencería", host: "row", row: "ropa_interior_mujer", src: { feed: "ropa-interior-women-feed.json", underwearOnly: true }, lead: ["victoriassecret", "skims"], leadCards: 3, leadPrefer: (cd) => cd._type === "bra", worn: true, models: "always", exclude: (cd) => isSock(cd) },
   { k: "interior-hombre", title: "Ropa Interior Hombre", host: "row", row: "ropa_interior", src: { feed: "ropa-interior-feed.json" }, worn: true },
-  { k: "tallas-plus", title: "Tallas Plus", host: "row", row: "curvy", src: { depts: ["curvy"] }, lead: ["lanebryant"], leadCards: 3, leadPrefer: (cd) => !/^(panties|bras|lingerie|shapewear)$/i.test(String(cd._type || "")), worn: true },
+  { k: "tallas-plus", title: "Tallas Plus", host: "row", row: "curvy", src: { depts: ["curvy"] }, lead: ["lanebryant"], leadCards: 3, leadPrefer: (cd) => !/^(panties|bras|lingerie|shapewear)$/i.test(String(cd._type || "")), worn: true, plusLingerie: true },
   /* Bikinis: Montce leads, on its own main photo (studio_front, a model:
      Danny's reference, #443 c.6578377916 -- the images[2] shoot frame the
      «Todas» card wore read as a flat top on white). */
@@ -684,8 +689,15 @@ export function buildCategoryPills(root = ROOT) {
       const imgs = catalogueImages(root, todas[0].retailer, todas[0].title);
       if (imgs[c.leadPhoto] && /^https?:\/\//.test(imgs[c.leadPhoto])) todas[0] = { ...todas[0], image: imgs[c.leadPhoto], _photo: c.leadPhoto };
     }
-    const defaults = c.host === "row" || c.host === "joyas" ? mixOf(c, members, DEFAULT_CANDIDATES, todasPool(c)) : null;
-    const ofertas = c.ofertas === false ? [] : mixOf({ ...c, leadCards: 0, fightLead: null }, members, OFERTAS_CARDS, (m) => todasPool(c)({ rail: m.sale }));
+    let defaults = c.host === "row" || c.host === "joyas" ? mixOf(c, members, DEFAULT_CANDIDATES, todasPool(c)) : null;
+    let ofertas = c.ofertas === false ? [] : mixOf({ ...c, leadCards: 0, fightLead: null }, members, OFERTAS_CARDS, (m) => todasPool(c)({ rail: m.sale }));
+    if (c.plusLingerie) {
+      const lb = members.find((m) => m.k === PLUS_LINGERIE_LEAD);
+      if (todas) todas = lingerieSlotsFirst(todas, lb ? lb.rail : []);
+      if (defaults) defaults = lingerieSlotsFirst(defaults, lb ? lb.rail : []);
+      /* A sale rail takes only Lane Bryant's sale pieces (none today). */
+      ofertas = lingerieSlotsFirst(ofertas, lb ? lb.sale : []);
+    }
     const ofertasN = members.reduce((n, m) => n + todasPool(c)({ rail: m.sale }).length, 0);
     if (c.models) for (const m of members) m.sale = modelLead(m.sale);
     const aud = c.audienceRow ? audienceRow(c, members, isSale) : null;
