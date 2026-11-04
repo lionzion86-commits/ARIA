@@ -346,6 +346,135 @@ export function deviceLead(q, hits) {
   return dev.concat(rest, last);
 }
 
+/* ==================================================================
+   THE PRODUCT LEADS, ITS ACCESSORIES FOLLOW (#443 c.6619999990,
+   c.6620006778 -- Danny's live repro: «iPhone» opened on Zagg cases,
+   VR headsets "for iPhone & Android" and generic smartwatches, with
+   not one iPhone in front, though the catalogue sells them). A case
+   names the phone it fits, so word matching ranked every "Case for
+   iPhone 16" with the phone, and the phones -- a dozen against a
+   hundred accessories -- never led.
+
+   A query that names a CORE PRODUCT of one maker (iPhone, iPad,
+   MacBook, AirPods, iMac: Apple's) is that maker's world, structured
+   like a brand search:
+     1. the product itself (the maker's own devices that the title names
+        as the product, not what fits it), the model typed first -- the
+        comparison charts group them per model;
+     2. the accessories made for it, one carousel per kind (cases,
+        screen protectors, chargers and cables, mounts), always after the
+        product; a universal one ("for iPhone & Android") is not its own;
+     3. one rail per store that sells the maker's real inventory: the
+        maker's brand only, never a namesake's jeans (Apple Bottoms) and
+        never a stray title word.
+   Nothing else: the answer is exactly these products. Asking for the
+   accessory («funda iphone», «cargador iphone») is not this: the
+   accessory leads (accessoryLead). The router sends these queries to
+   the maker's page focused on the product (_search-destinations.js),
+   whose Comparador and rails are this answer.
+   ================================================================== */
+const WORLD_FILLER = new Set("de del para el la los las con y en un una unos unas mi por al the for and with of a an nuevo nueva nuevos nuevas new original originales barato baratos barata baratas".split(" "));
+/* The words for the product's kind, which add nothing beside its name
+   («celular iphone», «iphone smartphone»). */
+const WORLD_KIND_RX = /^(celular(es)?|telefonos?|smartphones?|moviles?|phones?|cell|cellphones?|tablets?|tabletas?|laptops?|computadoras?|portatil(es)?|notebooks?|audifonos|auriculares|earbuds|headphones|apple)$/;
+const WORLD_ACCESSORY_KINDS = [
+  { k: "fundas", title: "Fundas", rx: /\b(cases?|covers?|folio|bumpers?|snap|skins?|sleeves?|fundas?)\b/i },
+  { k: "protectores", title: "Protectores de pantalla", rx: /\b(screen protectors?|tempered glass|glass elite|privacy glass|lens protectors?|protector)\b/i },
+  { k: "cargadores", title: "Cargadores y cables", rx: /\b(chargers?|charging|power banks?|battery packs?|cables?|cords?|adapters?)\b/i },
+  { k: "soportes", title: "Soportes", rx: /\b(mounts?|holders?|stands?|grips?|kickstands?|docks?|ring holders?)\b/i },
+];
+/* A universal accessory names other makers' devices too. */
+const UNIVERSAL_RX = /\b(android|samsung|galaxy|pixel|motorola|xiaomi|huawei|windows|chromebook|universal)\b/i;
+/* Products in their own right that only say they work with it. */
+const NOT_AN_ACCESSORY_RX = /\b(speakers?|headphones?|earbuds?|earphones?|headsets?|vr|smart ?watch(es)?|fitness trackers?|hard drives?|ssd|flash drives?|projectors?|grip tape)\b/i;
+const TECH_DEPT_RX = /^(tech_|electronic)/i;
+const FASHION_DEPT_RX = /^(moda|clothing|ropa|women|men|mens|kids|shoes|footwear|calzado|jewel|joyas|beauty|belleza|perfum|fragan)/i;
+export const CORE_WORLDS = [
+  { id: "iphone", word: "iphone", label: "iPhone", maker: "Apple", brands: ["apple", "iphone"],
+    device: /\biphone\s*(\d{1,2}e?|se|xr|xs|x|air)\b/i, fits: /\biphone\b/i, techFits: /\b(magsafe|lightning)\b/i },
+  { id: "ipad", word: "ipad", label: "iPad", maker: "Apple", brands: ["apple"], device: /\bipad\b/i, fits: /\bipad\b/i },
+  { id: "macbook", word: "macbook", label: "MacBook", maker: "Apple", brands: ["apple"], device: /\bmacbook\b/i, fits: /\bmacbook\b/i },
+  { id: "airpods", word: "airpods", label: "AirPods", maker: "Apple", brands: ["apple"], device: /\bairpods\b/i, fits: /\bairpods\b/i },
+  { id: "imac", word: "imac", label: "iMac", maker: "Apple", brands: ["apple"], device: /\bimac\b/i, fits: /\bimac\b/i },
+];
+/** The core product a query names, or null: { world, model, shown, words }
+    -- model is the product's name and what follows it ("iphone 16 pro"),
+    shown the same as the page writes it ("iPhone 16 pro"). */
+export function coreWorldOf(q) {
+  const k = deaccent(q).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!k || ACCESSORY_QUERY_RX.test(k)) return null;
+  /* "i phone", "i-pad", "air pods", "mac book"; plurals. */
+  const joined = k.replace(/\b(iphone|ipad|imac)(\d)/g, "$1 $2").replace(/\bi (phone|pad|mac)\b/g, "i$1").replace(/\bair pods?\b/g, "airpods").replace(/\bmac book\b/g, "macbook")
+    .replace(/\b(iphone|ipad|macbook|imac)s\b/g, "$1").replace(/\bairpod\b/g, "airpods");
+  const words = joined.split(" ").filter((w) => w && !WORLD_FILLER.has(w));
+  let i = 0;
+  while (i < words.length && WORLD_KIND_RX.test(words[i])) i++;
+  const world = CORE_WORLDS.find((w) => w.word === words[i]);
+  if (!world) return null;
+  /* What follows the name is the model: numbers and model words -- a
+     kind word there adds nothing («iphone celular»). */
+  const model = words.slice(i + 1).filter((w) => !WORLD_KIND_RX.test(w));
+  if (model.length > 4) return null;
+  return { world, model: [world.word, ...model].join(" "), shown: [world.label, ...model].join(" "), words: model };
+}
+const modelRx = (words) => words.map((w) => new RegExp("\\b" + w.replace(/[^a-z0-9]/g, "") + "\\b", "i"));
+function worldSets(ctx, world) {
+  const memo = ctx._worlds || (ctx._worlds = new Map());
+  if (memo.has(world.id)) return memo.get(world.id);
+  const ours = (p) => world.brands.includes(brandKey(p.brand)) && !FASHION_DEPT_RX.test((p.departments && p.departments[0]) || "");
+  const devices = [], accessories = [], maker = [];
+  for (const p of ctx.products) {
+    if (!p.image) continue;
+    const t = String(p.title || "");
+    const mine = ours(p);
+    if (mine) maker.push(p);
+    /* The maker's own product: its title's head names no accessory (an
+       "AirPods Pro 2 ... with Charging Case" is the earbuds). */
+    if (mine && world.device.test(t) && !ACCESSORY_HEAD_RX.test(titleHead(t)) && !NOT_A_DEVICE_RX.test(t) && !/\b(for|compatible with|fits)\s+(apple\s+)?(iphone|ipad|macbook|airpods|imac)\b/i.test(t)) devices.push(p);
+    else if ((world.fits.test(t) || (world.techFits && world.techFits.test(t) && TECH_DEPT_RX.test((p.departments && p.departments[0]) || "")))
+      && !UNIVERSAL_RX.test(t) && !NOT_AN_ACCESSORY_RX.test(t) && !isToyDept(p)) {
+      const kind = WORLD_ACCESSORY_KINDS.find((x) => x.rx.test(t));
+      if (kind && (isAccessoryName(t) || kind.k === "fundas" || kind.k === "protectores")) accessories.push({ p, kind: kind.k });
+    }
+  }
+  const out = { devices, accessories, maker };
+  memo.set(world.id, out);
+  return out;
+}
+/* The model typed first, then the dearest (the current line) first. */
+function modelFirst(list, words, priceOf = (p) => Number(p.price) || 0) {
+  const rxs = modelRx(words);
+  const score = (p) => rxs.filter((rx) => rx.test(p.title || "")).length;
+  return list.map((p, i) => ({ p, i, s: score(p) })).sort((a, b) => (b.s - a.s) || (priceOf(b.p) - priceOf(a.p)) || (a.i - b.i)).map((x) => x.p);
+}
+/** The world's answer: { devices, accessories: [{ k, title, items }], stores: [[store, items]], hits }. */
+export function worldAnswer(ctx, cw) {
+  const { world, words } = cw;
+  const S = worldSets(ctx, world);
+  const devices = modelFirst(S.devices, words);
+  const isDev = new Set(devices);
+  const accessories = [];
+  for (const kind of WORLD_ACCESSORY_KINDS) {
+    const items = modelFirst(S.accessories.filter((a) => a.kind === kind.k).map((a) => a.p), words, () => 0);
+    if (items.length) accessories.push({ k: kind.k, title: kind.title + " para " + world.label, items });
+  }
+  const isAcc = new Set(accessories.flatMap((a) => a.items));
+  /* Each store's real inventory of the maker: the product first, then
+     what the maker makes for it, then the rest of the maker's line. */
+  const byStore = new Map();
+  for (const p of S.maker) { if (!byStore.has(p.retailer)) byStore.set(p.retailer, []); byStore.get(p.retailer).push(p); }
+  const stores = [...byStore.entries()].map(([store, l]) => {
+    const dev = devices.filter((p) => p.retailer === store);
+    const acc = l.filter((p) => isAcc.has(p) && !isDev.has(p));
+    const rest = l.filter((p) => !isDev.has(p) && !isAcc.has(p))
+      .map((p, i) => ({ p, i, d: onSaleOf(p) ? discountOf(p) : -1 })).sort((a, b) => (b.d - a.d) || (a.i - b.i)).map((x) => x.p);
+    return { store, dev: dev.length, items: dev.concat(acc, rest) };
+  }).sort((a, b) => (b.dev - a.dev) || (b.items.length - a.items.length) || (a.store < b.store ? -1 : 1));
+  const seen = new Set(), hits = [];
+  for (const p of [...devices, ...accessories.flatMap((a) => a.items), ...stores.flatMap((s) => s.items)]) if (!seen.has(p)) { seen.add(p); hits.push(p); }
+  return { world, devices, accessories, stores, hits };
+}
+
 /* TOYS LEAD A TOY SEARCH (2026-10-19, #416 battery). "barbie" and
    "lego" opened with Barbie- and LEGO-branded girls' dresses and a
    toddler sweatshirt ahead of the dolls and the sets: the engine ranks
@@ -541,6 +670,12 @@ export function equivalentQuery(ctx, q) {
       for (const k of Object.keys(out)) if (k.startsWith("_") && k !== "_device" && k !== "_pure") delete out[k];
     }
   }
+  /* A core product's world is exactly its own products (worldAnswer). */
+  const cw = coreWorldOf(q);
+  if (cw && (!out || out.state !== "error")) {
+    const W = worldAnswer(ctx, cw);
+    if (W.hits.length) out = { state: "results", query: (out && out.query) || q, kinds: ["brand"], hits: W.hits, _world: W };
+  }
   ctx.cache.set(key, out);
   return out;
 }
@@ -699,6 +834,11 @@ export function canonicalTokens(ctx, q) {
     if (modelSide && t in NUM_UNITS) { out.push(String(NUM_UNITS[t])); continue; }
     out.push(t);
   }
+  /* A core product's every form is its one name and model («i phone»,
+     «iPhones», «celular iphone», «iphone quince» -> "iphone", "iphone
+     15"): never a concept's typo («iphones» is not "phones"). */
+  const core = coreWorldOf(out.join(" "));
+  if (core) return core.model.split(" ");
   /* 4. joined or apart: the catalogue's form (a concept word as typed
      first: «necktie» is "tie", not "neck tie"). */
   const res = [], cw = conceptTokens(ctx, out);
@@ -1242,6 +1382,7 @@ export const RAIL_CAP = 2000, SIMILAR_CAP = 96, STORE_LANES_MAX = 40;
    capped): lanesFor shows the first LANE_SIZE, lanePage the rest. */
 function doctrineLanes(ctx, q, r) {
   if (r._doctrine) return r._doctrine;
+  if (r._world) return (r._doctrine = worldLanes(ctx, r));
   const inBlock = new Set(compareGroup(ctx, r) || []);
   const { brand, cat, words } = answerFocus(ctx, q, r);
   /* The rails show what the old lanes trusted: a product in the answer's
@@ -1288,6 +1429,18 @@ function doctrineLanes(ctx, q, r) {
   for (const l of storeLanes.slice(0, STORE_LANES_MAX)) lanes.push(l);
   return (r._doctrine = { brand, cat, lanes });
 }
+/* A core product's lanes (worldAnswer): the product, its accessories by
+   kind, then one rail per store of the maker's own inventory -- no
+   Ofertas rail ahead of the product, nothing from outside the world. */
+function worldLanes(ctx, r) {
+  const W = r._world, inBlock = new Set(compareGroup(ctx, r) || []);
+  const lanes = [];
+  const devices = W.devices.filter((p) => !inBlock.has(p));
+  if (devices.length) lanes.push({ key: "producto:" + W.world.id, title: W.world.label, all: distinct(devices, RAIL_CAP) });
+  for (const a of W.accessories) lanes.push({ key: "accesorios:" + a.k, title: a.title, all: distinct(a.items, RAIL_CAP) });
+  for (const s of W.stores.slice(0, STORE_LANES_MAX)) lanes.push({ key: "tienda:" + s.store, store: s.store, title: ctx.labels[s.store] || s.store, exact: s.dev, doorQ: W.world.maker, all: distinct(s.items, RAIL_CAP) });
+  return { brand: W.world.brands[0], cat: null, lanes };
+}
 /* One more page of one lane ("Ver más" re-rails it). */
 export function lanePage(ctx, q, laneKey, offset = 0, { fx = null } = {}) {
   const query = canonicalQuery(ctx, String(q == null ? "" : q).trim().slice(0, 120));
@@ -1305,7 +1458,7 @@ export function lanesFor(ctx, q, r, fx) {
   /* The doctrine: Ofertas, then one rail per store (doctrineLanes). */
   const d = doctrineLanes(ctx, q, r);
   return { mode: "doctrine", lanes: d.lanes.map((l) => ({ key: l.key, title: l.title, ...(l.store ? { store: l.store } : {}), n: l.all.length,
-    ...(l.exact != null ? { exact: l.exact } : {}), items: l.all.slice(0, LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) })) };
+    ...(l.exact != null ? { exact: l.exact } : {}), ...(l.doorQ ? { doorQ: l.doorQ } : {}), items: l.all.slice(0, LANE_SIZE).map((p) => cardOf(p, fx, ctx.labels)) })) };
 }
 /* (The earlier lane builder, kept for its callers' tests: generic /
    brand / specific lanes. The page now reads lanesFor.) */
@@ -1599,10 +1752,11 @@ export const COMPARE_MAX_CHARTS = 4;
 function compareCharts(ctx, r) {
   if (r._cmps !== undefined) return r._cmps;
   r._cmps = [];
-  if (!r || r.state !== "results" || isGenericQuery(ctx, r)) return r._cmps;
+  if (!r || r.state !== "results" || (!r._world && isGenericQuery(ctx, r))) return r._cmps;
   const rank = new Map(r.hits.map((p, i) => [p, i]));
   const charts = [];
-  for (const g of productGroups(ctx, r.hits)) {
+  /* A core product's charts compare the product itself, model by model. */
+  for (const g of productGroups(ctx, r._world ? r._world.devices : r.hits)) {
     const members = comparableMembers(g);
     if (!members) continue;
     const first = Math.min(...g.map((p) => rank.get(p)));
@@ -1733,7 +1887,7 @@ export function compareFor(ctx, r, fx) {
    already shows. */
 function gridOrder(ctx, r) {
   if (r._grid) return r._grid;
-  if (!isGenericQuery(ctx, r)) {
+  if (r._world || !isGenericQuery(ctx, r)) {
     const shown = compareGroup(ctx, r);
     return (r._grid = shown ? r.hits.filter((p) => !shown.includes(p)) : r.hits);
   }

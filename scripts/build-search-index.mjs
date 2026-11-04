@@ -257,6 +257,24 @@ export function inferBrands(products, brands) {
   return filled;
 }
 
+/* A MAKER WHOSE NAME BEGINS WITH ANOTHER'S (#443 c.6620006778). Zumiez
+   files Apple Bottoms jeans under brand "Apple", so the Apple page and an
+   «iphone» search showed jeans beside the iPhones. A row whose brand is
+   the start of one of these names, and whose title opens with the whole
+   name, is that maker's: its title says so. */
+export const LINE_BRANDS = ["Apple Bottoms"];
+export function correctBrands(products, lines = LINE_BRANDS) {
+  const fixed = {};
+  for (const p of products) {
+    const bk = brandKey(p.brand);
+    if (!bk) continue;
+    const lead = brandKey(String(p.title || "").trim().split(/\s+/).slice(0, 4).join(" "));
+    const name = lines.find((n) => { const nk = brandKey(n); return nk !== bk && nk.startsWith(bk) && lead.startsWith(nk); });
+    if (name) { p.brand = name; fixed[name] = (fixed[name] || 0) + 1; }
+  }
+  return fixed;
+}
+
 /* Each store's display name and logo path (relative, no leading slash). */
 export function storeTable(keys) {
   let site = {};
@@ -313,6 +331,7 @@ export function buildIndex() {
     products.push(n);
   }
   inferBrands(products, knownBrands());
+  correctBrands(products);
   const rows = [];
   const ids = new Set();
   for (const p of products) {
