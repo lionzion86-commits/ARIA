@@ -19,13 +19,18 @@ Cada pestaña, columna y enlace abre la página canónica ya construida de esa c
 | Aria Auto | `aria-auto.html` · `#buscar` · `#autos` (no tiene parámetro de tipo) |
 | Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría: cada categoría de la página, con su número de ofertas) y «Ver todas las ofertas» `ofertas.html` |
 | Key Club | no es una pestaña (no es una categoría de compra): su puerta es el enlace dorado «Aria Key Club» de la barra superior |
-| Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: la pestaña lista esa sección en «Secciones» |
+| Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: vive en su propia sección (Mujer y Hombre la abren desde su columna Zapatos o Accesorios) |
 
 ## Sin callejones sin salida (#443 c.6623258189)
 
 - Una pestaña sin columnas es un enlace: abre su página, no una hoja vacía.
 - Una columna cuyo único enlace es la pestaña misma no se muestra (el «Ver todo» del menú ya es esa puerta); una columna de un solo enlace es ese enlace, sin pantalla intermedia.
-- «Secciones» no repite la pestaña ni la página de una de sus columnas.
+- No hay bloque «Secciones» en ninguna pestaña (#443 c.6635728704): cada pestaña lista solo sus columnas.
+
+## Los números (#443 c.6635540929)
+
+- «Marcas» cuenta marcas distintas de esa pestaña (las de la lista más las de «Ver todas las marcas»), no productos.
+- Cada número es lo que muestra la página de su enlace. Una columna muestra su número de productos solo si las columnas de la pestaña se reparten su total (cada producto en una sola); si se superponen, no lo muestran.
 - En el teléfono, una pestaña de una sola columna abre directamente su lista (Ofertas: sus categorías).
 
 ## URLs bloqueadas o redirigidas
@@ -46,19 +51,19 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 
 | Pestaña | Columnas | Productos |
 |---|---|---|
-| Mujer | Ropa · Zapatos · Accesorios · Marcas · Secciones | 17,442 |
-| Hombre | Ropa · Zapatos · Accesorios · Marcas · Secciones | 12,171 |
-| Niños | Ropa · Zapatos · Marcas · Secciones | 1,922 |
-| Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,700 |
-| Belleza | Tipos · Aria Perfumes · Marcas · Cabello | 5,681 |
+| Mujer | Ropa · Zapatos · Accesorios · Marcas | 17,442 |
+| Hombre | Ropa · Zapatos · Accesorios · Marcas | 12,171 |
+| Niños | Ropa · Zapatos · Marcas | 1,922 |
+| Zapatos | Mujer · Hombre · Niños · Marcas | 10,700 |
+| Belleza | Tipos · Aria Perfumes · Cabello · Marcas | 5,681 |
 | Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,398 |
-| Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,620 |
-| Deportes | Tipos · Marcas · Secciones | 17,679 |
+| Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas | 21,620 |
+| Deportes | Tipos · Marcas | 17,679 |
 | Tallas Plus | Mujer · Hombre · Marcas | 7,850 |
 | Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería | 3,045 |
-| Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,419 |
-| Electrónica | Tipos · Marcas · Reacondicionados | 5,917 |
-| Juguetes | Tipos · Marcas · Secciones | 7,364 |
+| Hogar | Casa Aria · Decoración · Marcas | 6,419 |
+| Electrónica | Tipos · Reacondicionados · Marcas | 5,917 |
+| Juguetes | Tipos · Marcas | 7,364 |
 | Auto y Motos | Aria Auto · Motos | 2,495 |
 | Ofertas | Ofertas por categoría | 33,505 |
 
@@ -66,7 +71,7 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 
 Abre: `/departamento.html?dept=women` (17,442 productos)
 
-### Ropa (10,207)
+### Ropa
 
 - Vestidos: 1,653 · `/departamento.html?dept=women&t=vestidos`
 - Blusas y tops: 1,626 · `/departamento.html?dept=women&t=blusas-y-tops`
@@ -122,7 +127,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Llaveros: 11 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Broches y pines: 7 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 
-### Zapatos (7,093)
+### Zapatos
 
 - Zapatillas: 3,102 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,113 · `/departamento.html?dept=shoes&t=sandalias&para=women`
@@ -132,7 +137,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
-### Accesorios (1,366)
+### Accesorios
 
 - Aretes: 277 · `/departamento.html?dept=joyas_accesorios&t=aretes&para=women`
 - Joyas: 221 · `/departamento.html?dept=joyas_accesorios&t=joyas&para=women`
@@ -158,7 +163,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Lencería: 1 · `/departamento.html?dept=joyas_accesorios&t=lenceria&para=women`
 - Pantalones y jeans: 1 · `/departamento.html?dept=joyas_accesorios&t=pantalones-y-jeans&para=women`
 
-### Marcas (17,442)
+### Marcas (689 marcas)
 
 - Skims: 1,911 · `/departamento.html?dept=women&b=Skims`
 - Miu Miu: 995 · `/departamento.html?dept=women&b=Miu%20Miu`
@@ -850,24 +855,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Xcel Wetsuits: 1 · `/departamento.html?dept=women&b=Xcel%20Wetsuits`
 - Z Supply: 1 · `/departamento.html?dept=women&b=Z%20Supply`
 
-### Secciones
-
-- Lencería: 3,045 · `/ropa-interior.html#mujer`
-- Tallas Plus: 7,850 · `/departamento.html?dept=curvy`
-- Diseñadores Latinos: 10,053 · `/disenadores.html`
-- Diseñador y Lujo: 21,620 · `/departamento.html?dept=luxury`
-- Aria Beauty: 5,681 · `/departamento.html?dept=beauty`
-- Perfumes: 11,066 · `/departamento.html?dept=perfumes`
-- Carteras: 2,394 · `/departamento.html?dept=purses`
-- Lentes de Sol: 1,804 · `/departamento.html?dept=sunglasses`
-- Joyas y Accesorios: 8,398 · `/departamento.html?dept=joyas_accesorios`
-- Ropa: 16,905 · `/departamento.html?dept=clothing`
-
 ## Hombre
 
 Abre: `/departamento.html?dept=men` (12,171 productos)
 
-### Ropa (8,840)
+### Ropa
 
 - Camisas: 1,985 · `/departamento.html?dept=men&t=camisas`
 - Pantalones y jeans: 1,255 · `/departamento.html?dept=men&t=pantalones-y-jeans`
@@ -918,7 +910,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Relojes: 17 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Broches y pines: 5 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 
-### Zapatos (6,447)
+### Zapatos
 
 - Zapatillas: 3,288 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
 - Zapatos: 884 · `/departamento.html?dept=shoes&t=zapatos&para=men`
@@ -927,7 +919,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 
-### Accesorios (1,051)
+### Accesorios
 
 - Collares y dijes: 191 · `/departamento.html?dept=joyas_accesorios&t=collares-y-dijes&para=men`
 - Billeteras: 187 · `/departamento.html?dept=joyas_accesorios&t=billeteras&para=men`
@@ -951,7 +943,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Neceseres: 1 · `/departamento.html?dept=joyas_accesorios&t=neceseres&para=men`
 - Pantalones y jeans: 1 · `/departamento.html?dept=joyas_accesorios&t=pantalones-y-jeans&para=men`
 
-### Marcas (12,171)
+### Marcas (388 marcas)
 
 - Kohl's: 641 · `/departamento.html?dept=men&b=Kohl's`
 - Vivienne Westwood: 373 · `/departamento.html?dept=men&b=Vivienne%20Westwood`
@@ -1342,22 +1334,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - WTAPS: 1 · `/departamento.html?dept=men&b=WTAPS`
 - XRAY: 1 · `/departamento.html?dept=men&b=XRAY`
 
-### Secciones
-
-- Ropa Interior Hombre: 1,604 · `/ropa-interior.html#hombre`
-- Zapatos de Hombre: 1,440 · `/departamento.html?dept=shoes_men`
-- Perfumes: 11,066 · `/departamento.html?dept=perfumes`
-- Lentes de Sol: 1,804 · `/departamento.html?dept=sunglasses`
-- Carteras: 2,394 · `/departamento.html?dept=purses`
-- Joyas y Accesorios: 8,398 · `/departamento.html?dept=joyas_accesorios`
-- Diseñador y Lujo: 21,620 · `/departamento.html?dept=luxury`
-- Gym Rat: 12,065 · `/departamento.html?dept=gym_rat`
-
 ## Niños
 
 Abre: `/departamento.html?dept=kids` (1,922 productos)
 
-### Ropa (1,567)
+### Ropa
 
 - Blusas y tops: 598 · `/departamento.html?dept=kids&t=blusas-y-tops`
 - Casacas y abrigos: 159 · `/departamento.html?dept=kids&t=casacas-y-abrigos`
@@ -1385,7 +1366,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Zapatillas: 2 → Zapatos · `/departamento.html?dept=shoes`
 - Lentes de sol: 1 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 
-### Zapatos (1,203)
+### Zapatos
 
 - Zapatillas: 490 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
 - Chimpunes: 243 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
@@ -1395,7 +1376,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
-### Marcas (1,922)
+### Marcas (144 marcas)
 
 - Billionaire Boys Club: 277 · `/departamento.html?dept=kids&b=Billionaire%20Boys%20Club`
 - O'Neill: 121 · `/departamento.html?dept=kids&b=O'Neill`
@@ -1542,17 +1523,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Toy Machine Skateboards: 1 · `/departamento.html?dept=kids&b=Toy%20Machine%20Skateboards`
 - Xcel: 1 · `/departamento.html?dept=kids&b=Xcel`
 
-### Secciones
-
-- Juguetes: 7,364 · `/departamento.html?dept=toys`
-- Mama's Fashion: 2,607 · `/departamento.html?dept=moms`
-- Aria Party: 1,076 · `/departamento.html?dept=party`
-
 ## Zapatos
 
 Abre: `/departamento.html?dept=shoes` (10,700 productos)
 
-### Mujer (7,076)
+### Mujer
 
 - Zapatillas: 3,102 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,113 · `/departamento.html?dept=shoes&t=sandalias&para=women`
@@ -1562,7 +1537,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
-### Hombre (6,413)
+### Hombre
 
 - Zapatillas: 3,288 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
 - Zapatos: 884 · `/departamento.html?dept=shoes&t=zapatos&para=men`
@@ -1571,7 +1546,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 
-### Niños (1,203)
+### Niños
 
 - Zapatillas: 490 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
 - Chimpunes: 243 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
@@ -1581,7 +1556,7 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
-### Marcas (10,700)
+### Marcas (481 marcas)
 
 - Nike: 911 · `/departamento.html?dept=shoes&b=Nike`
 - adidas: 683 · `/departamento.html?dept=shoes&b=adidas`
@@ -2065,17 +2040,11 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 - Xueyu: 1 · `/departamento.html?dept=shoes&b=Xueyu`
 - YOUYEDIAN: 1 · `/departamento.html?dept=shoes&b=YOUYEDIAN`
 
-### Secciones
-
-- Zapatos de Mujer: 2,050 · `/departamento.html?dept=shoes_women`
-- Zapatos de Hombre: 1,440 · `/departamento.html?dept=shoes_men`
-- Fútbol: 1,747 · `/departamento.html?dept=soccer`
-
 ## Belleza
 
 Abre: `/departamento.html?dept=beauty` (5,681 productos)
 
-### Tipos (5,681)
+### Tipos
 
 - Belleza: 715 · `/departamento.html?dept=beauty&t=belleza`
 - Cuidado del cabello: 702 · `/departamento.html?dept=beauty&t=cuidado-del-cabello`
@@ -2086,7 +2055,7 @@ Abre: `/departamento.html?dept=beauty` (5,681 productos)
 Viven en su propia sección (no son enlaces de esta columna):
 - Fragancia: 300 → Perfumes · `/departamento.html?dept=perfumes`
 
-### Aria Perfumes (11,066)
+### Aria Perfumes
 
 - Mujer: 4,082 · `/departamento.html?dept=perfumes&a=mujer`
 - Hombre: 2,920 · `/departamento.html?dept=perfumes&a=hombre`
@@ -2095,7 +2064,18 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Sets de regalo: 114 · `/departamento.html?dept=perfumes&a=sets`
 - Testers: 576 · `/departamento.html?dept=perfumes&a=testers`
 
-### Marcas (5,681)
+### Cabello
+
+- Champú Y Acondicionador: 181 · `/departamento.html?dept=cabello&t=champu-y-acondicionador`
+- Cuero Cabelludo: 164 · `/departamento.html?dept=cabello&t=cuero-cabelludo`
+- Keratina Y Alisados: 159 · `/departamento.html?dept=cabello&t=keratina-y-alisados`
+- Más Tratamientos: 142 · `/departamento.html?dept=cabello&t=mas-tratamientos`
+- Reparación: 113 · `/departamento.html?dept=cabello&t=reparacion`
+- Mascarillas: 109 · `/departamento.html?dept=cabello&t=mascarillas`
+- Aceites Y Sérums: 108 · `/departamento.html?dept=cabello&t=aceites-y-serums`
+- Sin Enjuague: 76 · `/departamento.html?dept=cabello&t=sin-enjuague`
+
+### Marcas (911 marcas)
 
 - Victoria's Secret: 221 · `/departamento.html?dept=beauty&b=Victoria's%20Secret`
 - Sun Bum: 121 · `/departamento.html?dept=beauty&b=Sun%20Bum`
@@ -3009,22 +2989,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Zerran Hair Care: 1 · `/departamento.html?dept=beauty&b=Zerran%20Hair%20Care`
 - ZIGTAG: 1 · `/departamento.html?dept=beauty&b=ZIGTAG`
 
-### Cabello (1,052)
-
-- Champú Y Acondicionador: 181 · `/departamento.html?dept=cabello&t=champu-y-acondicionador`
-- Cuero Cabelludo: 164 · `/departamento.html?dept=cabello&t=cuero-cabelludo`
-- Keratina Y Alisados: 159 · `/departamento.html?dept=cabello&t=keratina-y-alisados`
-- Más Tratamientos: 142 · `/departamento.html?dept=cabello&t=mas-tratamientos`
-- Reparación: 113 · `/departamento.html?dept=cabello&t=reparacion`
-- Mascarillas: 109 · `/departamento.html?dept=cabello&t=mascarillas`
-- Aceites Y Sérums: 108 · `/departamento.html?dept=cabello&t=aceites-y-serums`
-- Sin Enjuague: 76 · `/departamento.html?dept=cabello&t=sin-enjuague`
-
 ## Accesorios
 
 Abre: `/departamento.html?dept=joyas_accesorios` (8,398 productos)
 
-### Tipos (8,398)
+### Tipos
 
 - Aretes: 1,279 · `/departamento.html?dept=joyas_accesorios&t=aretes`
 - Pulseras y tobilleras: 1,111 · `/departamento.html?dept=joyas_accesorios&t=pulseras-y-tobilleras`
@@ -3066,7 +3035,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,398 productos)
 - Pijama: 1 · `/departamento.html?dept=joyas_accesorios&t=pijama`
 - Toallas Y Ponchos: 1 · `/departamento.html?dept=joyas_accesorios&t=toallas-y-ponchos`
 
-### Carteras (1,989)
+### Carteras
 
 - Carteras: 1,943 · `/departamento.html?dept=purses&t=carteras`
 - Accesorios: 13 · `/departamento.html?dept=purses&t=accesorios`
@@ -3076,14 +3045,14 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,398 productos)
 - Bolso: 5 · `/departamento.html?dept=purses&t=bolso`
 - Gorras: 4 · `/departamento.html?dept=purses&t=gorras`
 
-### Lentes de Sol (1,882)
+### Lentes de Sol
 
 - Lentes de sol: 1,575 · `/departamento.html?dept=sunglasses&t=lentes-de-sol`
 - Lentes: 201 · `/departamento.html?dept=sunglasses&t=lentes`
 - Accesorios: 102 · `/departamento.html?dept=sunglasses&t=accesorios`
 - Gorras: 4 · `/departamento.html?dept=sunglasses&t=gorras`
 
-### Marcas (8,398)
+### Marcas (527 marcas)
 
 - BaubleBar: 3,410 · `/departamento.html?dept=joyas_accesorios&b=BaubleBar`
 - Vivienne Westwood: 337 · `/departamento.html?dept=joyas_accesorios&b=Vivienne%20Westwood`
@@ -3617,7 +3586,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,398 productos)
 
 Abre: `/departamento.html?dept=luxury` (21,620 productos)
 
-### Mujer (9,268)
+### Mujer
 
 - Carteras: 1,147 · `/departamento.html?dept=luxury&t=carteras&para=women`
 - Zapatos: 1,073 · `/departamento.html?dept=luxury&t=zapatos&para=women`
@@ -3664,7 +3633,7 @@ Abre: `/departamento.html?dept=luxury` (21,620 productos)
 Viven en su propia sección (no son enlaces de esta columna):
 - Fragancia: 348 → Perfumes · `/departamento.html?dept=perfumes`
 
-### Hombre (8,496)
+### Hombre
 
 - Camisas: 1,471 · `/departamento.html?dept=luxury&t=camisas&para=men`
 - Pantalones y jeans: 1,077 · `/departamento.html?dept=luxury&t=pantalones-y-jeans&para=men`
@@ -3706,7 +3675,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 Viven en su propia sección (no son enlaces de esta columna):
 - Fragancia: 264 → Perfumes · `/departamento.html?dept=perfumes`
 
-### Niños (27)
+### Niños
 
 - Chompas y polerones: 6 · `/departamento.html?dept=luxury&t=chompas-y-polerones&para=kids`
 - Camisas: 4 · `/departamento.html?dept=luxury&t=camisas&para=kids`
@@ -3716,7 +3685,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Collares y dijes: 1 · `/departamento.html?dept=luxury&t=collares-y-dijes&para=kids`
 - Zapatos: 1 · `/departamento.html?dept=luxury&t=zapatos&para=kids`
 
-### Diseñadores Latinos (10,053)
+### Diseñadores Latinos
 
 - Vix: 1,611 · `/disenadores.html?d=vix`
 - Montce: 1,566 · `/disenadores.html?d=montce`
@@ -3730,7 +3699,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Capittana: 516 · `/disenadores.html?d=capittana`
 - Agua Bendita: 421 · `/disenadores.html?d=aguabendita`
 
-### Latinos por tipo (10,053)
+### Latinos por tipo
 
 - Ropa: 7,819 · `/disenadores.html?t=ropa`
 - Trajes de Baño: 1,372 · `/disenadores.html?t=trajes_bano`
@@ -3740,7 +3709,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Carteras: 132 · `/disenadores.html?t=carteras`
 - Sombreros: 41 · `/disenadores.html?t=sombreros`
 
-### Marcas (21,620)
+### Marcas (367 marcas)
 
 - Miu Miu: 1,001 · `/departamento.html?dept=luxury&b=Miu%20Miu`
 - Dolce & Gabbana: 736 · `/departamento.html?dept=luxury&b=Dolce%20%26%20Gabbana`
@@ -4110,11 +4079,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Won Hundred: 1 · `/departamento.html?dept=luxury&b=Won%20Hundred`
 - WTAPS: 1 · `/departamento.html?dept=luxury&b=WTAPS`
 
-### Secciones
-
-- Perfumes: 11,066 · `/departamento.html?dept=perfumes`
-- Joyas y Accesorios: 8,398 · `/departamento.html?dept=joyas_accesorios`
-
 ## Deportes
 
 Abre: `/departamento.html?dept=sporting_goods` (17,679 productos)
@@ -4167,7 +4131,7 @@ Abre: `/departamento.html?dept=sporting_goods` (17,679 productos)
 - Linternas De Buceo: 4 · `/departamento.html?dept=sporting_goods&t=linternas-de-buceo`
 - Arcos Y Porterías: 2 · `/departamento.html?dept=sporting_goods&t=arcos-y-porterias`
 
-### Marcas (17,679)
+### Marcas (774 marcas)
 
 - CCS: 1,550 · `/departamento.html?dept=sporting_goods&b=CCS`
 - adidas: 1,089 · `/departamento.html?dept=sporting_goods&b=adidas`
@@ -4944,20 +4908,11 @@ Abre: `/departamento.html?dept=sporting_goods` (17,679 productos)
 - Yocaher: 1 · `/departamento.html?dept=sporting_goods&b=Yocaher`
 - Z SUPPLY: 1 · `/departamento.html?dept=sporting_goods&b=Z%20SUPPLY`
 
-### Secciones
-
-- Gym Rat: 12,065 · `/departamento.html?dept=gym_rat`
-- Fútbol: 1,747 · `/departamento.html?dept=soccer`
-- Tenis: 411 · `/departamento.html?dept=tennis`
-- Aria Fight Club: 1,405 · `/departamento.html?dept=combat_sports`
-- Surf & Skate: 10,796 · `/departamento.html?dept=surf_skate`
-- Pesca Submarina: 1,184 · `/departamento.html?dept=spearfishing`
-
 ## Tallas Plus
 
 Abre: `/departamento.html?dept=curvy` (7,850 productos)
 
-### Mujer (4,771)
+### Mujer
 
 - Vestidos: 947 · `/departamento.html?dept=curvy&t=vestidos&para=women`
 - Blusas y tops: 900 · `/departamento.html?dept=curvy&t=blusas-y-tops&para=women`
@@ -4985,7 +4940,7 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 - Blazers: 1 · `/departamento.html?dept=curvy&t=blazers&para=women`
 - Zapatos: 1 · `/departamento.html?dept=curvy&t=zapatos&para=women`
 
-### Hombre (3,062)
+### Hombre
 
 - Camisas: 826 · `/departamento.html?dept=curvy&t=camisas&para=men`
 - Blusas y tops: 749 · `/departamento.html?dept=curvy&t=blusas-y-tops&para=men`
@@ -5007,7 +4962,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Ropa interior: 116 → Ropa Interior Hombre · `/ropa-interior.html#hombre`
 - Lencería: 18 → Ropa Interior Hombre · `/ropa-interior.html#hombre`
 
-### Marcas (7,850)
+### Marcas (458 marcas)
 
 - Skims: 1,753 · `/departamento.html?dept=curvy&b=Skims`
 - FLORE FLORE: 147 · `/departamento.html?dept=curvy&b=FLORE%20FLORE`
@@ -5472,7 +5427,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 Abre: `/ropa-interior.html#mujer` (3,045 productos)
 
-### Lencería (776)
+### Lencería
 
 - Sostenes: 405 · `/ropa-interior.html?ver=type:bra#mujer`
 - Panties: 188 · `/ropa-interior.html?ver=type:panty#mujer`
@@ -5480,7 +5435,7 @@ Abre: `/ropa-interior.html#mujer` (3,045 productos)
 - Modeladores: 49 · `/ropa-interior.html?ver=type:shapewear#mujer`
 - Medias: 38 · `/ropa-interior.html?ver=type:socks#mujer`
 
-### Ropa Interior Hombre (242)
+### Ropa Interior Hombre
 
 - Bóxer briefs: 76 · `/ropa-interior.html?ver=type:boxer_brief#hombre`
 - Briefs: 54 · `/ropa-interior.html?ver=type:brief#hombre`
@@ -5489,7 +5444,7 @@ Abre: `/ropa-interior.html#mujer` (3,045 productos)
 - Medias casuales: 66 · `/ropa-interior.html?ver=type:casual#hombre`
 - Medias de vestir: 9 · `/ropa-interior.html?ver=type:dress#hombre`
 
-### Marcas de lencería (776)
+### Marcas de lencería (24 marcas)
 
 - Victoria's Secret: 389 · `/ropa-interior.html?ver=brand:victoriassecret#mujer`
 - SKIMS: 155 · `/ropa-interior.html?ver=brand:skims#mujer`
@@ -5546,7 +5501,7 @@ Abre: `/ropa-interior.html#mujer` (3,045 productos)
 
 Abre: `/departamento.html?dept=home_goods` (6,419 productos)
 
-### Casa Aria (5,641)
+### Casa Aria
 
 - Hogar: 777 · `/departamento.html?dept=home_goods&t=hogar`
 - Manteles y servilletas: 660 · `/departamento.html?dept=home_goods&t=manteles-y-servilletas`
@@ -5611,7 +5566,7 @@ Abre: `/departamento.html?dept=home_goods` (6,419 productos)
 - Carteras: 1 · `/departamento.html?dept=home_goods&t=carteras`
 - Maternidad: 1 · `/departamento.html?dept=home_goods&t=maternidad`
 
-### Decoración (1,719)
+### Decoración
 
 - Cuadros y decoración de pared: 495 · `/departamento.html?dept=home_decor&t=cuadros-y-decoracion-de-pared`
 - Navidad: 214 · `/departamento.html?dept=home_decor&t=navidad`
@@ -5637,7 +5592,7 @@ Abre: `/departamento.html?dept=home_goods` (6,419 productos)
 - Platos: 1 · `/departamento.html?dept=home_decor&t=platos`
 - Vasos: 1 · `/departamento.html?dept=home_decor&t=vasos`
 
-### Marcas (6,419)
+### Marcas (301 marcas)
 
 - Kohl's: 450 · `/departamento.html?dept=home_goods&b=Kohl's`
 - ASSOULINE: 270 · `/departamento.html?dept=home_goods&b=ASSOULINE`
@@ -5941,17 +5896,11 @@ Abre: `/departamento.html?dept=home_goods` (6,419 productos)
 - Zayne: 1 · `/departamento.html?dept=home_goods&b=Zayne`
 - Zealand: 1 · `/departamento.html?dept=home_goods&b=Zealand`
 
-### Secciones
-
-- Libros: 506 · `/departamento.html?dept=books`
-- Aria Party: 1,076 · `/departamento.html?dept=party`
-- Dulces y Chocolates: 24 · `/departamento.html?dept=candy_chocolate`
-
 ## Electrónica
 
 Abre: `/departamento.html?dept=electronics` (5,917 productos)
 
-### Tipos (5,234)
+### Tipos
 
 - Accesorios tecnológicos: 477 · `/departamento.html?dept=electronics&t=accesorios-tecnologicos`
 - Cámaras: 449 · `/departamento.html?dept=electronics&t=camaras`
@@ -6006,7 +5955,29 @@ Abre: `/departamento.html?dept=electronics` (5,917 productos)
 - Mantas: 1 · `/departamento.html?dept=electronics&t=mantas`
 - Máscaras Y Snorkels: 1 · `/departamento.html?dept=electronics&t=mascaras-y-snorkels`
 
-### Marcas (5,917)
+### Reacondicionados
+
+- Tablets: 65 · `/departamento.html?dept=reacondicionados&t=tablets`
+- Relojes inteligentes: 41 · `/departamento.html?dept=reacondicionados&t=relojes-inteligentes`
+- Laptops: 40 · `/departamento.html?dept=reacondicionados&t=laptops`
+- Celulares: 30 · `/departamento.html?dept=reacondicionados&t=celulares`
+- Audífonos: 6 · `/departamento.html?dept=reacondicionados&t=audifonos`
+- Placas madre: 6 · `/departamento.html?dept=reacondicionados&t=placas-madre`
+- Monitores: 5 · `/departamento.html?dept=reacondicionados&t=monitores`
+- Videojuegos: 5 · `/departamento.html?dept=reacondicionados&t=videojuegos`
+- Cámaras instantáneas: 4 · `/departamento.html?dept=reacondicionados&t=camaras-instantaneas`
+- Audífonos con micrófono: 3 · `/departamento.html?dept=reacondicionados&t=audifonos-con-microfono`
+- Computadoras: 3 · `/departamento.html?dept=reacondicionados&t=computadoras`
+- Routers: 3 · `/departamento.html?dept=reacondicionados&t=routers`
+- Teclados: 3 · `/departamento.html?dept=reacondicionados&t=teclados`
+- Lentes de realidad virtual: 2 · `/departamento.html?dept=reacondicionados&t=lentes-de-realidad-virtual`
+- Consolas: 1 · `/departamento.html?dept=reacondicionados&t=consolas`
+- Cámaras: 1 · `/departamento.html?dept=reacondicionados&t=camaras`
+- Mouse: 1 · `/departamento.html?dept=reacondicionados&t=mouse`
+- Puntos de acceso wifi: 1 · `/departamento.html?dept=reacondicionados&t=puntos-de-acceso-wifi`
+- Videocámaras: 1 · `/departamento.html?dept=reacondicionados&t=videocamaras`
+
+### Marcas (1,087 marcas)
 
 - Apple: 268 · `/departamento.html?dept=electronics&b=Apple`
 - Samsung: 133 · `/departamento.html?dept=electronics&b=Samsung`
@@ -7096,28 +7067,6 @@ Abre: `/departamento.html?dept=electronics` (5,917 productos)
 - Zymice: 1 · `/departamento.html?dept=electronics&b=Zymice`
 - ‎Zymise: 1 · `/departamento.html?dept=electronics&b=%E2%80%8EZymise`
 
-### Reacondicionados (253)
-
-- Tablets: 65 · `/departamento.html?dept=reacondicionados&t=tablets`
-- Relojes inteligentes: 41 · `/departamento.html?dept=reacondicionados&t=relojes-inteligentes`
-- Laptops: 40 · `/departamento.html?dept=reacondicionados&t=laptops`
-- Celulares: 30 · `/departamento.html?dept=reacondicionados&t=celulares`
-- Audífonos: 6 · `/departamento.html?dept=reacondicionados&t=audifonos`
-- Placas madre: 6 · `/departamento.html?dept=reacondicionados&t=placas-madre`
-- Monitores: 5 · `/departamento.html?dept=reacondicionados&t=monitores`
-- Videojuegos: 5 · `/departamento.html?dept=reacondicionados&t=videojuegos`
-- Cámaras instantáneas: 4 · `/departamento.html?dept=reacondicionados&t=camaras-instantaneas`
-- Audífonos con micrófono: 3 · `/departamento.html?dept=reacondicionados&t=audifonos-con-microfono`
-- Computadoras: 3 · `/departamento.html?dept=reacondicionados&t=computadoras`
-- Routers: 3 · `/departamento.html?dept=reacondicionados&t=routers`
-- Teclados: 3 · `/departamento.html?dept=reacondicionados&t=teclados`
-- Lentes de realidad virtual: 2 · `/departamento.html?dept=reacondicionados&t=lentes-de-realidad-virtual`
-- Consolas: 1 · `/departamento.html?dept=reacondicionados&t=consolas`
-- Cámaras: 1 · `/departamento.html?dept=reacondicionados&t=camaras`
-- Mouse: 1 · `/departamento.html?dept=reacondicionados&t=mouse`
-- Puntos de acceso wifi: 1 · `/departamento.html?dept=reacondicionados&t=puntos-de-acceso-wifi`
-- Videocámaras: 1 · `/departamento.html?dept=reacondicionados&t=videocamaras`
-
 ## Juguetes
 
 Abre: `/departamento.html?dept=toys` (7,364 productos)
@@ -7128,7 +7077,7 @@ Abre: `/departamento.html?dept=toys` (7,364 productos)
 - Juguetes: 117 · `/departamento.html?dept=toys&t=juguetes`
 - Juegos: 3 · `/departamento.html?dept=toys&t=juegos`
 
-### Marcas (7,364)
+### Marcas (69 marcas)
 
 - FUNKO: 778 · `/departamento.html?dept=toys&b=FUNKO`
 - Party City: 30 · `/departamento.html?dept=toys&b=Party%20City`
@@ -7200,21 +7149,16 @@ Abre: `/departamento.html?dept=toys` (7,364 productos)
 - Walmart: 1 · `/departamento.html?dept=toys&b=Walmart`
 - WAXJJDW: 1 · `/departamento.html?dept=toys&b=WAXJJDW`
 
-### Secciones
-
-- Aria Party: 1,076 · `/departamento.html?dept=party`
-- Mama's Fashion: 2,607 · `/departamento.html?dept=moms`
-
 ## Auto y Motos
 
 Abre: `/motos.html` (2,495 productos)
 
-### Aria Auto (1,353)
+### Aria Auto
 
 - Buscar por vehículo: 1,353 · `/aria-auto.html#buscar`
 - Repuestos y accesorios: 1,353 · `/aria-auto.html#autos`
 
-### Motos (2,495)
+### Motos
 
 - Cascos: 936 · `/motos.html?t=cascos`
 - Llantas: 439 · `/motos.html?t=llantas`
@@ -7226,7 +7170,7 @@ Abre: `/motos.html` (2,495 productos)
 
 Abre: `/ofertas.html` (33,505 productos)
 
-### Ofertas por categoría (33,505)
+### Ofertas por categoría
 
 - Ropa Hombre: 3,360 · `/ofertas.html?vista=categoria&cat=ropa_hombre`
 - Ropa Mujer: 5,637 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
@@ -7245,14 +7189,25 @@ Abre: `/ofertas.html` (33,505 productos)
 ## Qué falta o no se pudo llenar
 
 - Mujer → Ropa: Lencería (1,390) en Lencería, Zapatos (1,246) en Zapatos, Carteras (1,231) en Carteras, Zapatillas (391) en Zapatos, Accesorios (338) en Joyas y Accesorios, Sandalias (327) en Zapatos, Lentes de sol (271) en Lentes de Sol, Fajas y shapewear (252) en Lencería, Joyas (221) en Joyas y Accesorios, Aretes (151) en Joyas y Accesorios, Correas (121) en Joyas y Accesorios, Collares y dijes (99) en Joyas y Accesorios, Accesorios para el pelo (66) en Joyas y Accesorios, Billeteras (66) en Joyas y Accesorios, Bolso (62) en Carteras, Anillos (54) en Joyas y Accesorios, Ropa interior (43) en Lencería, Lentes (42) en Lentes de Sol, Guantes (37) en Joyas y Accesorios, Pulseras y tobilleras (34) en Joyas y Accesorios, Tacones (22) en Zapatos, Mocasines y pantuflas (16) en Zapatos, Llaveros (11) en Joyas y Accesorios, Broches y pines (7) en Joyas y Accesorios: cada uno vive en su propia sección
+- Mujer: sus columnas se superponen (no suman 17,442), no muestran número de productos
 - Hombre → Ropa: Zapatillas (720) en Zapatos, Zapatos (618) en Zapatos, Lentes de sol (526) en Lentes de Sol, Carteras (418) en Carteras, Billeteras (194) en Joyas y Accesorios, Collares y dijes (193) en Joyas y Accesorios, Sandalias (166) en Zapatos, Ropa interior (157) en Ropa Interior Hombre, Correas (144) en Joyas y Accesorios, Pulseras y tobilleras (112) en Joyas y Accesorios, Bufandas (105) en Joyas y Accesorios, Accesorios (87) en Joyas y Accesorios, Aretes (77) en Joyas y Accesorios, Anillos (73) en Joyas y Accesorios, Guantes (45) en Joyas y Accesorios, Corbatas (43) en Joyas y Accesorios, Llaveros (37) en Joyas y Accesorios, Lencería (34) en Ropa Interior Hombre, Lentes (31) en Lentes de Sol, Bolso (20) en Carteras, Relojes (17) en Joyas y Accesorios, Broches y pines (5) en Joyas y Accesorios: cada uno vive en su propia sección
-- Hombre → Sección Hombre: 0 productos, sin enlace
+- Hombre: sus columnas se superponen (no suman 12,171), no muestran número de productos
 - Niños → Ropa: Accesorios (242) en Joyas y Accesorios, Carteras (14) en Carteras, Sandalias (12) en Zapatos, Lencería (6) en Lencería, Zapatillas (2) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
+- Niños: sus columnas se superponen (no suman 1,922), no muestran número de productos
+- Zapatos: sus columnas se superponen (no suman 10,700), no muestran número de productos
 - Belleza → Tipos: Fragancia (300) en Perfumes: cada uno vive en su propia sección
-- Belleza → Sección Hombre: 0 productos, sin enlace
+- Belleza: sus columnas se superponen (no suman 5,681), no muestran número de productos
+- Accesorios: sus columnas se superponen (no suman 8,398), no muestran número de productos
 - Diseñador → Mujer: Fragancia (348) en Perfumes: cada uno vive en su propia sección
 - Diseñador → Hombre: Fragancia (264) en Perfumes: cada uno vive en su propia sección
+- Diseñador: sus columnas se superponen (no suman 21,620), no muestran número de productos
 - Tallas Plus → Hombre: Ropa interior (116) en Ropa Interior Hombre, Lencería (18) en Ropa Interior Hombre: cada uno vive en su propia sección
+- Tallas Plus: sus columnas se superponen (no suman 7,850), no muestran número de productos
+- Lencería: sus columnas se superponen (no suman 3,045), no muestran número de productos
+- Hogar: sus columnas se superponen (no suman 6,419), no muestran número de productos
+- Electrónica: sus columnas se superponen (no suman 5,917), no muestran número de productos
+- Auto y Motos: sus columnas se superponen (no suman 2,495), no muestran número de productos
+- Ofertas: sus columnas se superponen (no suman 33,505), no muestran número de productos
 
 ## Carruseles del inicio y dónde quedan
 

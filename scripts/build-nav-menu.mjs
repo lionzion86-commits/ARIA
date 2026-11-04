@@ -106,6 +106,8 @@ const ownerOf = (dept, tk, u) => {
 /* An audience earns its own column with this many products. */
 const AUD_COL_MIN = 24, AUD_KNOWN_SHARE = 0.6;
 const AUD_LABEL = Object.fromEntries(AUD);
+/* A brand column (Marcas, Marcas de lencería): its number counts brands, not products. */
+export const isBrandCol = (h) => h === "Marcas" || /^Marcas /.test(String(h || ""));
 
 /* ---------- the registry ---------- */
 export function deptRegistry(root) {
@@ -159,14 +161,14 @@ export const TABS = [
   { k: "hombre", label: "Hombre", dept: "men", cols: [["types", "men", "Ropa"], ["types", "shoes", "Zapatos", "men"], ["types", "joyas_accesorios", "Accesorios", "men"], ["brands", "men"]], sections: ["interior_hombre", "shoes_men", "mens_grooming", "perfumes", "sunglasses", "purses", "joyas_accesorios", "luxury", "gym_rat"] },
   { k: "ninos", label: "Niños", dept: "kids", cols: [["types", "kids", "Ropa"], ["types", "shoes", "Zapatos", "kids"], ["brands", "kids"]], sections: ["toys", "moms", "party"] },
   { k: "zapatos", label: "Zapatos", dept: "shoes", cols: [["aud", "shoes"], ["brands", "shoes"]], sections: ["shoes_women", "shoes_men", "soccer"] },
-  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["doors", "perfumes", "Aria Perfumes"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
+  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["doors", "perfumes", "Aria Perfumes"], ["types", "cabello", "Cabello"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
   { k: "accesorios", label: "Accesorios", dept: "joyas_accesorios", cols: [["aud", "joyas_accesorios"], ["types", "purses", "Carteras"], ["types", "sunglasses", "Lentes de Sol"], ["brands", "joyas_accesorios"]], sections: ["joyas_accesorios", "purses", "sunglasses"] },
   { k: "disenador", label: "Diseñador", dept: "luxury", cols: [["aud", "luxury"], ["latinos", "designers"], ["latinos", "types"], ["brands", "luxury"]], sections: ["luxury", "latinos", "perfumes", "joyas_accesorios"] },
   { k: "deportes", label: "Deportes", dept: "sporting_goods", cols: [["aud", "sporting_goods"], ["brands", "sporting_goods"]], sections: ["gym_rat", "soccer", "tennis", "combat_sports", "surf_skate", "spearfishing", "sporting_goods"] },
   { k: "tallas-plus", label: "Tallas Plus", dept: "curvy", cols: [["aud", "curvy"], ["brands", "curvy"]], sections: ["curvy"] },
   { k: "lenceria", label: "Lencería", page: "lenceria", cols: [["ri", "mujer", "Lencería"], ["ri", "hombre", "Ropa Interior Hombre"], ["ri-brands", "mujer", "Marcas de lencería"]], sections: ["lenceria", "interior_hombre"] },
   { k: "hogar", label: "Hogar", dept: "home_goods", cols: [["types", "home_goods", "Casa Aria"], ["types", "home_decor", "Decoración"], ["brands", "home_goods"]], sections: ["home_goods", "home_decor", "books", "party", "candy_chocolate"] },
-  { k: "electronica", label: "Electrónica", dept: "electronics", cols: [["types", "electronics", "Tipos"], ["brands", "electronics"]], sections: ["electronics", "reacondicionados"] },
+  { k: "electronica", label: "Electrónica", dept: "electronics", cols: [["types", "electronics", "Tipos"], ["types", "reacondicionados", "Reacondicionados"], ["brands", "electronics"]], sections: ["electronics", "reacondicionados"] },
   { k: "juguetes", label: "Juguetes", dept: "toys", cols: [["aud", "toys"], ["brands", "toys"]], sections: ["toys", "party", "moms"] },
   { k: "auto-motos", label: "Auto y Motos", page: "motos", cols: [["page", "aria_auto"], ["page", "motos"]], sections: ["auto_parts", "motos"] },
   { k: "ofertas", label: "Ofertas", page: "ofertas", cols: [["sale", "cats", "Ofertas por categoría"]], sections: [] },
@@ -238,6 +240,26 @@ export function buildMenu(root = ROOT) {
   const notes = [];
   const misfiled = [];
   const riCache = {};
+  /* The products a department link renders (its own filter), as keys; null for any other page. */
+  const setOf = (h) => {
+    const u = new URL(h || "/", "http://x");
+    if (u.pathname !== "/departamento.html") return null;
+    const d = dept(u.searchParams.get("dept") || "");
+    if (!d) return null;
+    const q = (k) => u.searchParams.get(k) || "";
+    return new Set(filterList(d.list, { b: q("b"), t: q("t"), a: q("a"), u: q("para") }).map((p) => factKey(p.retailer, p.title)));
+  };
+  const partitions = (whole, hrefs) => {
+    const all = setOf(whole);
+    if (!all || !hrefs.length) return false;
+    const seen = new Set();
+    for (const h of hrefs) {
+      const s = setOf(h);
+      if (!s) return false;
+      for (const k of s) { if (seen.has(k) || !all.has(k)) return false; seen.add(k); }
+    }
+    return seen.size === all.size;
+  };
   const sectionName = (s) => (pages[s] && pages[s].name) || (reg[s] && reg[s].name) || s;
 
   /* moved: the types another section owns, [label, section, n]. */
@@ -305,8 +327,9 @@ export function buildMenu(root = ROOT) {
       if (moved && moved.length) notes.push(`${spec.label} → ${h}: ${moved.map(([l, o, c]) => l + " (" + num(c) + ") en " + sectionName(o)).join(", ")}: cada uno vive en su propia sección`);
       const kept = links.filter((l) => l[2] > 0);
       if (!kept.length) { notes.push(`${spec.label} → ${h}: sin productos, columna omitida`); return; }
-      const cap = all ? Infinity : h === "Marcas" || /^Marcas /.test(h) ? MAX_BRANDS : MAX_TYPES;
-      const col = { h, href, n, links: kept.slice(0, cap) };
+      const cap = all ? Infinity : isBrandCol(h) ? MAX_BRANDS : MAX_TYPES;
+      /* A Marcas column's number is its distinct brands: the list plus its «Ver todas» remainder. */
+      const col = { h, href, n: isBrandCol(h) ? kept.length : n, links: kept.slice(0, cap) };
       if (kept.length > cap && file) { col.all = kept.length; col.more = "/" + BRANDS_DIR + "/" + file + ".json"; files[file] = kept; }
       cols.push(col);
     };
@@ -319,7 +342,13 @@ export function buildMenu(root = ROOT) {
       } else if (kind === "types") {
         const u = c[3] || "";
         const mv = [];
-        const links = typeLinks(k, u, mv);
+        /* CABELLO IS NEVER EMPTY (#443 c.6634907518, Danny's mom): Belleza's
+           Cabello and Electrónica's Reacondicionados are columns of their
+           own department's real types (Keratina y alisados, Mascarillas ...).
+           Another department's column lists only what the tab sells: a
+           refurbished stroller («Coche») is not an Electrónica leaf. */
+        const tabFams = spec.dept && spec.dept !== k ? new Set(["", ...typeLinks(spec.dept, "").map((l) => storeTypeFamily(l[0]))]) : null;
+        const links = typeLinks(k, u, mv).filter((l) => !tabFams || tabFams.has(storeTypeFamily(l[0])));
         push(c[2] || reg[k].name, deptHref(k, { para: u }), links, links.reduce((s, l) => s + l[2], 0) || size(k), k + "-tipos" + (u ? "-" + u : ""), mv);
       } else if (kind === "brands") {
         push("Marcas", deptHref(k), brandLinks(k, c[2] || ""), size(k), k + "-marcas");
@@ -352,31 +381,28 @@ export function buildMenu(root = ROOT) {
     let href = "", n = 0;
     if (spec.dept) { href = DOOR_OVERRIDE[spec.dept] || deptHref(spec.dept); n = size(spec.dept); }
     else { href = pages[spec.page].href; n = pages[spec.page].n; }
-    /* A section that is the tab itself («Ver todo» opens it) or a column's
-       own page is not listed again: a «Secciones» of one repeat is a dead drill. */
-    const doors = new Set([href, ...cols.map((c) => c.href).filter(Boolean)]);
-    const secs = [];
+    /* NO «SECCIONES» BLOCK (#443 c.6635728704, c.6635797675, c.6635799980):
+       a tab lists its own columns only (Ropa / Zapatos / Accesorios /
+       Marcas ...) and nothing replaces the old end block. spec.sections
+       still names the registry departments a tab groups (the placement
+       check below); each of them keeps its own door outside the menu. */
     for (const s of spec.sections) {
       const r = sectionRef(s);
-      if (!r) { notes.push(`${spec.label}: sección desconocida «${s}»`); continue; }
-      if (!(r.n > 0)) { notes.push(`${spec.label} → ${r.name}: 0 productos, sin enlace`); continue; }
-      if (doors.has(r.href)) continue;
-      secs.push([r.name, r.href, r.n]);
+      if (!r) notes.push(`${spec.label}: sección desconocida «${s}»`);
     }
-    /* A LONE SECTION IS A COLUMN OF ITS OWN TYPES (#443 c.6634907518,
-       Danny's mom: «CABELLO is EMPTY»). One section left would collapse
-       into a heading with nothing under it (noDeadEnds) -- Belleza's
-       Cabello, Electrónica's Reacondicionados. A department section with
-       2+ types is that section's column instead, filled from its real
-       inventory (Keratina y alisados, Mascarillas ...). */
-    const lone = secs.length === 1 ? spec.sections.find((s) => sectionRef(s) && sectionRef(s).href === secs[0][1]) : "";
-    /* ...listing only what the tab sells: a refurbished stroller («Coche»)
-       is not an Electrónica leaf. */
-    const tabFams = new Set(["", ...(spec.dept ? typeLinks(spec.dept, "") : []).map((l) => storeTypeFamily(l[0]))]);
-    const loneTypes = lone && reg[lone] && !reg[lone].door && !pages[lone] ? typeLinks(lone, "").filter((l) => tabFams.has(storeTypeFamily(l[0]))) : [];
-    if (loneTypes.filter((l) => l[2] > 0).length >= 2) push(secs[0][0], secs[0][1], loneTypes, secs[0][2], lone + "-tipos");
-    else if (secs.length) { cols.push({ h: "Secciones", links: secs }); inv.push({ h: "Secciones", links: secs }); }
-    tabs.push({ k: spec.k, label: spec.label, href, n, cols: noDeadEnds(spec.label, href, cols, notes) });
+    const shown = noDeadEnds(spec.label, href, cols, notes);
+    /* NAV COUNT TRUTH (#443 c.6635540929, c.6635573276). A Marcas row
+       counts brands (set in push). Every other column shows a number only
+       when the columns are parts of the tab's total: each column's number
+       is the product set its own link renders, and those sets partition
+       the set «Ver todo» renders (each product in exactly one). When they
+       overlap (a unisex product is Mujer and Hombre; Zapatos para Mujer is
+       another department than Mujer), no column shows a product number. */
+    const parts = partitions(href, shown.filter((c) => !isBrandCol(c.h)).map((c) => c.href || ""));
+    if (!parts) for (const c of shown) if (!isBrandCol(c.h)) delete c.n;
+    if (!parts && shown.some((c) => !isBrandCol(c.h))) notes.push(`${spec.label}: sus columnas se superponen (no suman ${num(n)}), no muestran número de productos`);
+    for (const e of inv) { const c = shown.find((x) => x.h === e.h); e.n = c ? c.n : undefined; e.brands = isBrandCol(e.h); }
+    tabs.push({ k: spec.k, label: spec.label, href, n, cols: shown });
     full.push({ spec, href, n, inv });
   }
 
@@ -463,13 +489,18 @@ export function inventoryMarkdown(b) {
   L.push("| Aria Auto | `aria-auto.html` · `#buscar` · `#autos` (no tiene parámetro de tipo) |");
   L.push("| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría: cada categoría de la página, con su número de ofertas) y «Ver todas las ofertas» `ofertas.html` |");
   L.push("| Key Club | no es una pestaña (no es una categoría de compra): su puerta es el enlace dorado «Aria Key Club» de la barra superior |");
-  L.push("| Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: la pestaña lista esa sección en «Secciones» |");
+  L.push("| Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: vive en su propia sección (Mujer y Hombre la abren desde su columna Zapatos o Accesorios) |");
   L.push("");
   L.push("## Sin callejones sin salida (#443 c.6623258189)");
   L.push("");
   L.push("- Una pestaña sin columnas es un enlace: abre su página, no una hoja vacía.");
   L.push("- Una columna cuyo único enlace es la pestaña misma no se muestra (el «Ver todo» del menú ya es esa puerta); una columna de un solo enlace es ese enlace, sin pantalla intermedia.");
-  L.push("- «Secciones» no repite la pestaña ni la página de una de sus columnas.");
+  L.push("- No hay bloque «Secciones» en ninguna pestaña (#443 c.6635728704): cada pestaña lista solo sus columnas.");
+  L.push("");
+  L.push("## Los números (#443 c.6635540929)");
+  L.push("");
+  L.push("- «Marcas» cuenta marcas distintas de esa pestaña (las de la lista más las de «Ver todas las marcas»), no productos.");
+  L.push("- Cada número es lo que muestra la página de su enlace. Una columna muestra su número de productos solo si las columnas de la pestaña se reparten su total (cada producto en una sola); si se superponen, no lo muestran.");
   L.push("- En el teléfono, una pestaña de una sola columna abre directamente su lista (Ofertas: sus categorías).");
   L.push("");
   L.push("## URLs bloqueadas o redirigidas");
@@ -488,7 +519,7 @@ export function inventoryMarkdown(b) {
     L.push(`Abre: \`${f.href}\` (${num(f.n)} productos)`);
     L.push("");
     for (const c of f.inv) {
-      L.push(`### ${c.h}${c.n ? " (" + num(c.n) + ")" : ""}`);
+      L.push(`### ${c.h}${c.n ? " (" + num(c.n) + (c.brands ? " marcas" : "") + ")" : ""}`);
       L.push("");
       if (!c.links.length) L.push("- (sin productos)");
       for (const [l, h, n] of c.links) L.push(`- ${l}: ${num(n)} · \`${h}\``);
