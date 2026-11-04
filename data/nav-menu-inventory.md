@@ -10,10 +10,10 @@ Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones de
 | Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,750 |
 | Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,350 |
 | Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 9,059 |
-| Diseñador | Mujer · Hombre · Niños · Marcas · Secciones | 21,640 |
+| Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,640 |
 | Deportes | Tipos · Marcas · Secciones | 17,815 |
 | Tallas Plus | Mujer · Hombre · Marcas · Secciones | 7,850 |
-| Lencería | Lencería · Ropa Interior Hombre · Secciones | 3,294 |
+| Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería · Secciones | 3,294 |
 | Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,421 |
 | Electrónica | Tipos · Marcas · Secciones | 5,917 |
 | Juguetes | Tipos · Marcas · Secciones | 7,538 |
@@ -2169,8 +2169,12 @@ Abre: `/departamento.html?dept=beauty` (5,350 productos)
 
 ### Aria Perfumes (10,913)
 
-- Fragancia: 10,644 · `/departamento.html?dept=perfumes&nav=1&t=fragancia`
-- Cuidado Corporal: 269 · `/departamento.html?dept=perfumes&nav=1&t=cuidado-corporal`
+- Mujer: 4,064 · `/departamento.html?dept=perfumes&a=mujer`
+- Hombre: 2,916 · `/departamento.html?dept=perfumes&a=hombre`
+- Unisex: 1,856 · `/departamento.html?dept=perfumes&a=unisex`
+- Minis: 353 · `/departamento.html?dept=perfumes&a=minis`
+- Sets de regalo: 113 · `/departamento.html?dept=perfumes&a=sets`
+- Testers: 576 · `/departamento.html?dept=perfumes&a=testers`
 
 ### Marcas (5,350)
 
@@ -3864,6 +3868,30 @@ Abre: `/departamento.html?dept=luxury` (21,640 productos)
 - Collares y dijes: 1 · `/departamento.html?dept=luxury&nav=1&u=kids&t=collares-y-dijes`
 - Vestidos: 1 · `/departamento.html?dept=luxury&nav=1&u=kids&t=vestidos`
 - Zapatos: 1 · `/departamento.html?dept=luxury&nav=1&u=kids&t=zapatos`
+
+### Diseñadores Latinos (10,053)
+
+- Vix: 1,611 · `/disenadores.html?d=vix`
+- Montce: 1,566 · `/disenadores.html?d=montce`
+- TNS: 1,535 · `/disenadores.html?d=tns`
+- Farm Rio: 1,228 · `/disenadores.html?d=farmrio`
+- Eberjey: 734 · `/disenadores.html?d=eberjey`
+- Silvia Tcherassi: 713 · `/disenadores.html?d=silviatcherassi`
+- Johanna Ortiz: 646 · `/disenadores.html?d=johannaortiz`
+- PatBO: 558 · `/disenadores.html?d=patbo`
+- Ancora Swimwear: 525 · `/disenadores.html?d=ancora`
+- Capittana: 516 · `/disenadores.html?d=capittana`
+- Agua Bendita: 421 · `/disenadores.html?d=aguabendita`
+
+### Latinos por tipo (10,053)
+
+- ropa: 7,819 · `/disenadores.html?t=ropa`
+- Trajes de Baño: 1,372 · `/disenadores.html?t=trajes_bano`
+- accesorios: 263 · `/disenadores.html?t=accesorios`
+- joyas: 214 · `/disenadores.html?t=joyas`
+- zapatos: 212 · `/disenadores.html?t=zapatos`
+- carteras: 132 · `/disenadores.html?t=carteras`
+- sombreros: 41 · `/disenadores.html?t=sombreros`
 
 ### Marcas (21,640)
 
@@ -5608,11 +5636,144 @@ Abre: `/ropa-interior.html#mujer` (3,294 productos)
 
 ### Lencería (3,294)
 
-- Ver todo: 3,294 · `/ropa-interior.html#mujer`
+- Sostenes: 1,433 · `/ropa-interior.html?ft=sostenes#mujer`
+- Panties: 1,091 · `/ropa-interior.html?ft=panties#mujer`
+- Fajas y shapewear: 253 · `/ropa-interior.html?ft=fajas-y-shapewear#mujer`
+- Lencería: 247 · `/ropa-interior.html?ft=lenceria#mujer`
+- Pantis y medias nylon: 139 · `/ropa-interior.html?ft=pantis-y-medias-nylon#mujer`
+- Medias: 114 · `/ropa-interior.html?ft=medias#mujer`
+- Medias deportivas: 17 · `/ropa-interior.html?ft=medias-deportivas#mujer`
 
 ### Ropa Interior Hombre (1,619)
 
-- Ver todo: 1,619 · `/ropa-interior.html#hombre`
+- Medias: 664 · `/ropa-interior.html?ft=medias#hombre`
+- Bóxer brief: 589 · `/ropa-interior.html?ft=boxer-brief#hombre`
+- Calzoncillos: 205 · `/ropa-interior.html?ft=calzoncillos#hombre`
+- Medias deportivas: 114 · `/ropa-interior.html?ft=medias-deportivas#hombre`
+- Medias de vestir: 36 · `/ropa-interior.html?ft=medias-de-vestir#hombre`
+- Trunks: 11 · `/ropa-interior.html?ft=trunks#hombre`
+
+### Marcas de lencería (3,294)
+
+- SKIMS: 949 · `/ropa-interior.html?fb=skims#mujer`
+- Victoria's Secret: 801 · `/ropa-interior.html?fb=victoria's%20secret#mujer`
+- Intimissimi: 288 · `/ropa-interior.html?fb=intimissimi#mujer`
+- Kindred Bravely: 210 · `/ropa-interior.html?fb=kindred%20bravely#mujer`
+- Ryderwear: 152 · `/ropa-interior.html?fb=ryderwear#mujer`
+- PINK: 104 · `/ropa-interior.html?fb=pink#mujer`
+- Lane Bryant: 97 · `/ropa-interior.html?fb=lane%20bryant#mujer`
+- Calzedonia: 96 · `/ropa-interior.html?fb=calzedonia#mujer`
+- Oner Active: 66 · `/ropa-interior.html?fb=oner%20active#mujer`
+- Bali: 38 · `/ropa-interior.html?fb=bali#mujer`
+- Wacoal: 29 · `/ropa-interior.html?fb=wacoal#mujer`
+- Wolford: 24 · `/ropa-interior.html?fb=wolford#mujer`
+- Paragon Fitwear: 22 · `/ropa-interior.html?fb=paragon%20fitwear#mujer`
+- Buffbunny: 17 · `/ropa-interior.html?fb=buffbunny#mujer`
+- Stance: 17 · `/ropa-interior.html?fb=stance#mujer`
+- Momcozy: 17 · `/ropa-interior.html?fb=momcozy#mujer`
+- Jockey: 16 · `/ropa-interior.html?fb=jockey#mujer`
+- Eberjey: 12 · `/ropa-interior.html?fb=eberjey#mujer`
+- Hatch: 12 · `/ropa-interior.html?fb=hatch#mujer`
+- Miu Miu: 12 · `/ropa-interior.html?fb=miu%20miu#mujer`
+- Swedish Stockings: 11 · `/ropa-interior.html?fb=swedish%20stockings#mujer`
+- MM6 Maison Margiela: 11 · `/ropa-interior.html?fb=mm6%20maison%20margiela#mujer`
+- PSD x: 11 · `/ropa-interior.html?fb=psd%20x#mujer`
+- Vanity Fair: 10 · `/ropa-interior.html?fb=vanity%20fair#mujer`
+- Vanity Fair Lingerie: 9 · `/ropa-interior.html?fb=vanity%20fair%20lingerie#mujer`
+- Agent Provocateur: 9 · `/ropa-interior.html?fb=agent%20provocateur#mujer`
+- Dolce & Gabbana: 8 · `/ropa-interior.html?fb=dolce%20%26%20gabbana#mujer`
+- Baserange: 8 · `/ropa-interior.html?fb=baserange#mujer`
+- Vivienne Westwood: 8 · `/ropa-interior.html?fb=vivienne%20westwood#mujer`
+- Smartwool: 8 · `/ropa-interior.html?fb=smartwool#mujer`
+- YoungLA: 8 · `/ropa-interior.html?fb=youngla#mujer`
+- Born Primitive: 7 · `/ropa-interior.html?fb=born%20primitive#mujer`
+- b.tempt'd: 7 · `/ropa-interior.html?fb=b.tempt'd#mujer`
+- Fruity Booty: 7 · `/ropa-interior.html?fb=fruity%20booty#mujer`
+- PatBO: 6 · `/ropa-interior.html?fb=patbo#mujer`
+- Golden Goose: 6 · `/ropa-interior.html?fb=golden%20goose#mujer`
+- Maidenform: 6 · `/ropa-interior.html?fb=maidenform#mujer`
+- Abercrombie & Fitch: 5 · `/ropa-interior.html?fb=abercrombie%20%26%20fitch#mujer`
+- FLEO: 5 · `/ropa-interior.html?fb=fleo#mujer`
+- Gymshark: 5 · `/ropa-interior.html?fb=gymshark#mujer`
+- TLF Apparel: 5 · `/ropa-interior.html?fb=tlf%20apparel#mujer`
+- Belly Bandit: 4 · `/ropa-interior.html?fb=belly%20bandit#mujer`
+- Farm Rio: 4 · `/ropa-interior.html?fb=farm%20rio#mujer`
+- Warners: 4 · `/ropa-interior.html?fb=warners#mujer`
+- Cacique: 4 · `/ropa-interior.html?fb=cacique#mujer`
+- Playtex: 4 · `/ropa-interior.html?fb=playtex#mujer`
+- Marni: 4 · `/ropa-interior.html?fb=marni#mujer`
+- Paloma Wool: 4 · `/ropa-interior.html?fb=paloma%20wool#mujer`
+- MeUndies: 4 · `/ropa-interior.html?fb=meundies#mujer`
+- Nike: 3 · `/ropa-interior.html?fb=nike#mujer`
+- Gorilla Wear: 3 · `/ropa-interior.html?fb=gorilla%20wear#mujer`
+- Hanes: 3 · `/ropa-interior.html?fb=hanes#mujer`
+- Leonisa: 3 · `/ropa-interior.html?fb=leonisa#mujer`
+- Miraclesuit: 3 · `/ropa-interior.html?fb=miraclesuit#mujer`
+- Warner's: 3 · `/ropa-interior.html?fb=warner's#mujer`
+- Calvin Klein: 3 · `/ropa-interior.html?fb=calvin%20klein#mujer`
+- VETEMENTS: 3 · `/ropa-interior.html?fb=vetements#mujer`
+- Jean Paul Gaultier: 3 · `/ropa-interior.html?fb=jean%20paul%20gaultier#mujer`
+- FLORE FLORE: 3 · `/ropa-interior.html?fb=flore%20flore#mujer`
+- Calvin Klein Collection: 3 · `/ropa-interior.html?fb=calvin%20klein%20collection#mujer`
+- PSD: 3 · `/ropa-interior.html?fb=psd#mujer`
+- Alphalete: 2 · `/ropa-interior.html?fb=alphalete#mujer`
+- Brunello Cucinelli: 2 · `/ropa-interior.html?fb=brunello%20cucinelli#mujer`
+- Iron Rebel: 2 · `/ropa-interior.html?fb=iron%20rebel#mujer`
+- JW PEI: 2 · `/ropa-interior.html?fb=jw%20pei#mujer`
+- Fruit Of The Loom: 2 · `/ropa-interior.html?fb=fruit%20of%20the%20loom#mujer`
+- NOOD: 2 · `/ropa-interior.html?fb=nood#mujer`
+- 437: 2 · `/ropa-interior.html?fb=437#mujer`
+- Mugler: 2 · `/ropa-interior.html?fb=mugler#mujer`
+- Diesel: 2 · `/ropa-interior.html?fb=diesel#mujer`
+- Casablanca: 2 · `/ropa-interior.html?fb=casablanca#mujer`
+- Marine Serre: 2 · `/ropa-interior.html?fb=marine%20serre#mujer`
+- Cou Cou: 2 · `/ropa-interior.html?fb=cou%20cou#mujer`
+- Hot Chillys: 2 · `/ropa-interior.html?fb=hot%20chillys#mujer`
+- Vix: 2 · `/ropa-interior.html?fb=vix#mujer`
+- Ethika: 2 · `/ropa-interior.html?fb=ethika#mujer`
+- Hesperus: 2 · `/ropa-interior.html?fb=hesperus#mujer`
+- Agua Bendita: 1 · `/ropa-interior.html?fb=agua%20bendita#mujer`
+- American Eagle: 1 · `/ropa-interior.html?fb=american%20eagle#mujer`
+- Athleta: 1 · `/ropa-interior.html?fb=athleta#mujer`
+- Banana Republic: 1 · `/ropa-interior.html?fb=banana%20republic#mujer`
+- Dr. Brown's: 1 · `/ropa-interior.html?fb=dr.%20brown's#mujer`
+- Gap: 1 · `/ropa-interior.html?fb=gap#mujer`
+- Hollister: 1 · `/ropa-interior.html?fb=hollister#mujer`
+- Roxy: 1 · `/ropa-interior.html?fb=roxy#mujer`
+- Vans: 1 · `/ropa-interior.html?fb=vans#mujer`
+- Tek Gear: 1 · `/ropa-interior.html?fb=tek%20gear#mujer`
+- SPANX: 1 · `/ropa-interior.html?fb=spanx#mujer`
+- Charter Club: 1 · `/ropa-interior.html?fb=charter%20club#mujer`
+- Glamorise: 1 · `/ropa-interior.html?fb=glamorise#mujer`
+- HONEYLOVE: 1 · `/ropa-interior.html?fb=honeylove#mujer`
+- Forme: 1 · `/ropa-interior.html?fb=forme#mujer`
+- Stringys: 1 · `/ropa-interior.html?fb=stringys#mujer`
+- Flora Nikrooz: 1 · `/ropa-interior.html?fb=flora%20nikrooz#mujer`
+- Fleur Du Mal: 1 · `/ropa-interior.html?fb=fleur%20du%20mal#mujer`
+- BLUEBELLA: 1 · `/ropa-interior.html?fb=bluebella#mujer`
+- Nippies: 1 · `/ropa-interior.html?fb=nippies#mujer`
+- Thistle and Spire: 1 · `/ropa-interior.html?fb=thistle%20and%20spire#mujer`
+- Runaway The Label: 1 · `/ropa-interior.html?fb=runaway%20the%20label#mujer`
+- Understated Leather: 1 · `/ropa-interior.html?fb=understated%20leather#mujer`
+- First Row: 1 · `/ropa-interior.html?fb=first%20row#mujer`
+- Jordan: 1 · `/ropa-interior.html?fb=jordan#mujer`
+- New Balance: 1 · `/ropa-interior.html?fb=new%20balance#mujer`
+- adidas: 1 · `/ropa-interior.html?fb=adidas#mujer`
+- Thom Browne: 1 · `/ropa-interior.html?fb=thom%20browne#mujer`
+- Isabel Marant: 1 · `/ropa-interior.html?fb=isabel%20marant#mujer`
+- Toga Pulla: 1 · `/ropa-interior.html?fb=toga%20pulla#mujer`
+- AMIRI: 1 · `/ropa-interior.html?fb=amiri#mujer`
+- Déhanche: 1 · `/ropa-interior.html?fb=d%C3%A9hanche#mujer`
+- Chopova Lowena: 1 · `/ropa-interior.html?fb=chopova%20lowena#mujer`
+- Kiko Kostadinov: 1 · `/ropa-interior.html?fb=kiko%20kostadinov#mujer`
+- VAQUERA: 1 · `/ropa-interior.html?fb=vaquera#mujer`
+- Y-3: 1 · `/ropa-interior.html?fb=y-3#mujer`
+- Patagonia: 1 · `/ropa-interior.html?fb=patagonia#mujer`
+- She Surf: 1 · `/ropa-interior.html?fb=she%20surf#mujer`
+- Simon & Schuster: 1 · `/ropa-interior.html?fb=simon%20%26%20schuster#mujer`
+- Spin-It: 1 · `/ropa-interior.html?fb=spin-it#mujer`
+- Ame and Lulu: 1 · `/ropa-interior.html?fb=ame%20and%20lulu#mujer`
+- TNS: 1 · `/ropa-interior.html?fb=tns#mujer`
 
 ### Secciones
 

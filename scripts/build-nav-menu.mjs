@@ -38,7 +38,9 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadDept, typeKeyOf, inAudience, AUD } from "../netlify/functions/_department-core.js";
+import { mkdirSync } from "node:fs";
+import { loadDept, typeKeyOf, inAudience, AUD, PERFUME_DOORS } from "../netlify/functions/_department-core.js";
+import { riRows, factKey, FACTS_FILE, U_CODES } from "../netlify/functions/_nav-filter-core.js";
 import { CAROUSELS } from "./build-home-category-pills.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -71,16 +73,24 @@ function deptRegistry(root) {
 }
 const countOf = (root, rel, field = "count") => { try { return Number(JSON.parse(readFileSync(join(root, rel), "utf8"))[field]) || 0; } catch { return 0; } };
 
+/* disenadores.html's own names for its designers and types. */
+function latinoNames(root) {
+  const html = readFileSync(join(root, "disenadores.html"), "utf8");
+  const names = {}, typeNames = {};
+  for (const m of html.matchAll(/\{ key:'([a-z]+)',[^\n]*?label:'([^']+)'/g)) names[m[1]] = m[2];
+  for (const m of html.matchAll(/\{ key:'([a-z_]+)',\s+label:'([^']+)', keywords/g)) typeNames[m[1]] = m[2];
+  return { names, typeNames };
+}
 /* Pages that are their own section: label, address, product count. */
 function pageSections(root) {
   const motos = (t) => countOf(root, `assets/sections/motos/${t}-all-0.json`);
   const women = countOf(root, "ropa-interior-women-feed.json"), men = countOf(root, "ropa-interior-feed.json");
-  let latinos = 0, designers = {};
-  try { const j = JSON.parse(readFileSync(join(root, "assets/sections/disenadores/index.json"), "utf8")); latinos = j.total; designers = j.designers || {}; } catch { /* none */ }
+  let latinos = 0, designers = {}, latinoTypes = {};
+  try { const j = JSON.parse(readFileSync(join(root, "assets/sections/disenadores/index.json"), "utf8")); latinos = j.total; designers = j.designers || {}; latinoTypes = j.types || {}; } catch { /* none */ }
   return {
     lenceria: { name: "Lencería", href: "/ropa-interior.html#mujer", n: women },
     interior_hombre: { name: "Ropa Interior Hombre", href: "/ropa-interior.html#hombre", n: men },
-    latinos: { name: "Diseñadores Latinos", href: "/disenadores.html", n: latinos, designers },
+    latinos: { name: "Diseñadores Latinos", href: "/disenadores.html", n: latinos, designers, types: latinoTypes, ...latinoNames(root) },
     motos: { name: "Motos", href: "/motos.html", n: motos("all"), types: [["cascos", "Cascos"], ["llantas", "Llantas"], ["repuestos", "Repuestos"], ["ropa_equipo", "Ropa y equipo"], ["accesorios", "Accesorios"]].map(([k, l]) => [l, "/motos.html?t=" + k, motos(k)]) },
     ofertas: { name: "Ofertas", href: "/ofertas.html", n: countOf(root, "ofertas-feed-lite.json", "deptTotal") },
   };
@@ -96,12 +106,12 @@ export const TABS = [
   { k: "hombre", label: "Hombre", dept: "men", cols: [["types", "men", "Ropa"], ["types", "shoes", "Zapatos", "men"], ["types", "joyas_accesorios", "Accesorios", "men"], ["brands", "men"]], sections: ["interior_hombre", "shoes_men", "mens_grooming", "luxury", "gym_rat"] },
   { k: "ninos", label: "Niños", dept: "kids", cols: [["types", "kids", "Ropa"], ["types", "shoes", "Zapatos", "kids"], ["brands", "kids"]], sections: ["toys", "moms", "party"] },
   { k: "zapatos", label: "Zapatos", dept: "shoes", cols: [["aud", "shoes"], ["brands", "shoes"]], sections: ["shoes_women", "shoes_men", "soccer"] },
-  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["types", "perfumes", "Aria Perfumes"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
+  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["doors", "perfumes", "Aria Perfumes"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
   { k: "accesorios", label: "Accesorios", dept: "joyas_accesorios", cols: [["aud", "joyas_accesorios"], ["types", "purses", "Carteras"], ["types", "sunglasses", "Lentes de Sol"], ["brands", "joyas_accesorios"]], sections: ["joyas_accesorios", "purses", "sunglasses"] },
-  { k: "disenador", label: "Diseñador", dept: "luxury", cols: [["aud", "luxury"], ["brands", "luxury"]], sections: ["luxury", "latinos", "joyas_accesorios"] },
+  { k: "disenador", label: "Diseñador", dept: "luxury", cols: [["aud", "luxury"], ["latinos", "designers"], ["latinos", "types"], ["brands", "luxury"]], sections: ["luxury", "latinos", "joyas_accesorios"] },
   { k: "deportes", label: "Deportes", dept: "sporting_goods", cols: [["aud", "sporting_goods"], ["brands", "sporting_goods"]], sections: ["gym_rat", "soccer", "tennis", "combat_sports", "surf_skate", "spearfishing", "sporting_goods"] },
   { k: "tallas-plus", label: "Tallas Plus", dept: "curvy", cols: [["aud", "curvy"], ["brands", "curvy"]], sections: ["curvy"] },
-  { k: "lenceria", label: "Lencería", page: "lenceria", cols: [["page", "lenceria"], ["page", "interior_hombre"]], sections: ["lenceria", "interior_hombre"] },
+  { k: "lenceria", label: "Lencería", page: "lenceria", cols: [["ri", "mujer", "Lencería"], ["ri", "hombre", "Ropa Interior Hombre"], ["ri-brands", "mujer", "Marcas de lencería"]], sections: ["lenceria", "interior_hombre"] },
   { k: "hogar", label: "Hogar", dept: "home_goods", cols: [["types", "home_goods", "Casa Aria"], ["types", "home_decor", "Decoración"], ["brands", "home_goods"]], sections: ["home_goods", "home_decor", "books", "party", "candy_chocolate"] },
   { k: "electronica", label: "Electrónica", dept: "electronics", cols: [["types", "electronics", "Tipos"], ["brands", "electronics"]], sections: ["electronics", "reacondicionados"] },
   { k: "juguetes", label: "Juguetes", dept: "toys", cols: [["aud", "toys"], ["brands", "toys"]], sections: ["toys", "party", "moms"] },
@@ -122,6 +132,7 @@ export function buildMenu(root = ROOT) {
   const dept = (k) => { if (!cache.has(k)) cache.set(k, loadDept(k, [root])); return cache.get(k); };
   const size = (k) => (dept(k) ? dept(k).list.length : 0);
   const notes = [];
+  const riCache = {};
 
   const typeLinks = (k, u) => {
     const d = dept(k);
@@ -188,6 +199,27 @@ export function buildMenu(root = ROOT) {
         push(c[2] || reg[k].name, navHref(k, { u }), links, links.reduce((s, l) => s + l[2], 0) || size(k));
       } else if (kind === "brands") {
         push("Marcas", navHref(k), brandLinks(k, c[2] || ""), size(k));
+      } else if (kind === "doors") {
+        /* Aria Perfumes' own doors (the catalogue's departments, row field a). */
+        const d = dept(k);
+        const links = PERFUME_DOORS.map(([a, label]) => [label, deptHref(k, { a }), d ? d.list.filter((p) => p.a === a).length : 0]);
+        push(c[2], deptHref(k), links, size(k));
+      } else if (kind === "latinos") {
+        const p = pages.latinos;
+        if (k === "designers") push("Diseñadores Latinos", p.href, Object.entries(p.designers).sort((a, b) => b[1] - a[1]).map(([d, n]) => [p.names[d] || d, "/disenadores.html?d=" + d, n]), p.n);
+        else push("Latinos por tipo", p.href, Object.entries(p.types).sort((a, b) => b[1] - a[1]).map(([t, n]) => [p.typeNames[t] || t, "/disenadores.html?t=" + t, n]), p.n);
+      } else if (kind === "ri" || kind === "ri-brands") {
+        /* Ropa Interior's own kinds and brands; the page's bar opens on them. */
+        const rows = riCache[k] || (riCache[k] = riRows(k, [root]));
+        const n = new Map();
+        for (const r of rows) {
+          const key = kind === "ri" ? r.t.k : String(r.brand || "").trim().toLowerCase();
+          if (!key || key === "otros") continue;
+          const label = kind === "ri" ? r.t.label : String(r.brand || "").trim();
+          const o = n.get(key) || [label, "/ropa-interior.html?" + (kind === "ri" ? "ft=" : "fb=") + encodeURIComponent(key) + "#" + k, 0];
+          o[2]++; n.set(key, o);
+        }
+        push(c[2], "/ropa-interior.html#" + k, [...n.values()].sort((a, b) => b[2] - a[2]), rows.length);
       } else if (kind === "page") {
         const p = pages[k];
         if (k === "motos") push(p.name, p.href, p.types, p.n);
@@ -224,6 +256,37 @@ export function buildMenu(root = ROOT) {
   const unplaced = Object.keys(reg).filter((k) => !reg[k].door && size(k) > 0 && !placed.has(k));
   const homeCarousels = CAROUSELS.map((c) => c.title);
   return { menu: { v: 1, tabs }, full, notes, unplaced, homeCarousels, reg };
+}
+
+/* ---------- the facts of every department product, for the other listings ----------
+   A store page, a brand page, Ofertas and a search draw products the
+   departments already classify. facts.json carries, per store + title
+   (a short hash, factKey), the department's type, audience and the
+   store's size run -- so the filter bar reads the same facts on every
+   page. Server-side only (netlify/functions/_nav-filter-core.js). */
+export function buildFacts(root = ROOT, keys = null) {
+  const reg = keys || Object.keys(deptRegistry(root)).filter((k) => !deptRegistry(root)[k].door);
+  const types = [], tAt = new Map(), runs = [[]], rAt = new Map([["", 0]]), out = {};
+  for (const k of reg) {
+    const d = loadDept(k, [root]);
+    if (!d) continue;
+    let sz = null;
+    try { sz = JSON.parse(readFileSync(join(root, "assets/sections/departamento/_fn", k + ".sizes.json"), "utf8")); } catch { /* none */ }
+    d.list.forEach((p, i) => {
+      const key = factKey(p.retailer, p.title);
+      const t = typeKeyOf(p);
+      const run = sz ? (sz.runs[sz.rows[i]] || []) : [];
+      const had = out[key];
+      if (had && (had[0] >= 0 || t.k === "otros") && (had[2] || !run.length) && (had[1] || !p.u)) return;
+      let ti = -1;
+      if (t.k !== "otros") { if (!tAt.has(t.k)) { tAt.set(t.k, types.length); types.push([t.k, t.label]); } ti = tAt.get(t.k); }
+      const rk = run.join("\u0001");
+      if (!rAt.has(rk)) { rAt.set(rk, runs.length); runs.push(run); }
+      const u = Math.max(0, U_CODES.indexOf(p.u || ""));
+      out[key] = had ? [had[0] >= 0 ? had[0] : ti, had[1] || u, had[2] || rAt.get(rk)] : [ti, u, rAt.get(rk)];
+    });
+  }
+  return { v: 1, types, runs, keys: out };
 }
 
 /* ---------- the inventory, for Danny ---------- */
@@ -312,7 +375,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (b.unplaced.length) { console.error("sections with products under no tab: " + b.unplaced.join(", ")); process.exit(1); }
   const json = JSON.stringify(b.menu) + "\n", md = inventoryMarkdown(b);
   const old = (f) => (existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f), "utf8") : "");
-  const staleData = [[MENU_FILE, json], [INVENTORY_FILE, md]].filter(([f, s]) => old(f) !== s).map(([f]) => f);
+  const facts = JSON.stringify(buildFacts()) + "\n";
+  const staleData = [[MENU_FILE, json], [INVENTORY_FILE, md], [FACTS_FILE, facts]].filter(([f, s]) => old(f) !== s).map(([f]) => f);
   const stalePages = syncPages(b.menu, { write: !check });
   if (check) {
     const all = staleData.concat(stalePages);
@@ -321,6 +385,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   } else {
     writeFileSync(join(ROOT, MENU_FILE), json);
     writeFileSync(join(ROOT, INVENTORY_FILE), md);
+    mkdirSync(join(ROOT, "assets/sections/nav/_fn"), { recursive: true });
+    writeFileSync(join(ROOT, FACTS_FILE), facts);
     console.log(`${MENU_FILE}: ${json.length} bytes, ${b.menu.tabs.length} tabs; pages rewritten: ${stalePages.length}`);
     for (const n of b.notes) console.log("  note: " + n);
   }

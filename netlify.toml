@@ -42,7 +42,7 @@
 # them. search.html fetches 48 cards at a time. The auto-parts glossary
 # (#416) gives the dictionary its car-part phrases ("pastillas de freno").
 [functions."search"]
-  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "assets/search/concepts.json", "assets/search/destinations.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json"]
+  included_files = ["assets/search/catalog-index.json", "assets/search/synonyms-es.json", "assets/search/concepts.json", "assets/search/destinations.json", "search-engine.js", "search-pipeline.js", "scripts/lib/es-en-parts-glossary.json", "assets/data/weight-comparables.json", "assets/sections/nav/_fn/facts.json"]
 
 # ARIA AUTO, ITS OWN ADDRESS (#443 c.6427505203 + c.6428323317): the
 # front door auto-industry reviewers are sent to. The root of each
@@ -160,7 +160,11 @@
 # Ofertas) from the same full card lists plus the stores' own size runs
 # (_fn/<dept>.sizes.json). The phone gets one page of cards and counts.
 [functions."nav-filter"]
-  included_files = ["assets/sections/departamento/_fn/*.json"]
+  included_files = ["assets/sections/departamento/_fn/*.json", "assets/sections/nav/_fn/facts.json", "assets/tienda/_fn/*.json", "assets/tienda/*/index.json", "assets/sections/marca/_fn/items.json", "assets/ofertas/deals.json", "ropa-interior-feed.json", "ropa-interior-women-feed.json"]
+
+# The same bar on a store, a brand, Ofertas and Ropa Interior reads
+# those listings' own server rows; facts.json gives their products the
+# departments' type, audience and size run (scripts/build-nav-menu.mjs).
 
 # Ofertas (2026-10-19, #409): ofertas.html paints its first 48 deals from
 # static slices (assets/ofertas/slices/); this answers "Mostrar más" and

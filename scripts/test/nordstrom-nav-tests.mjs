@@ -91,20 +91,20 @@ await check("sizes are the store's own labels, read not invented", () => {
   assert.deepEqual(normSize("10.0"), [{ z: "US 10", side: "" }]);
 });
 await check("facets stack (Niños x Botas x a brand x a size) and every offered option returns products", () => {
-  const base = { u: "women", t: "botas-y-botines", s: "", b: "", z: "", p: "", o: "", fx: 3.75 };
+  const base = { u: "women", t: "botas-y-botines", s: "", b: [], z: [], p: [], o: "", fx: 3.75 };
   const r0 = navFilter("shoes", base, "deal", 0, [ROOT]);
   assert.ok(r0.count > 0 && r0.facets.b.length && r0.facets.z.length && r0.facets.s.length);
   const b = r0.facets.b[0][0];
-  const r1 = navFilter("shoes", { ...base, b }, "deal", 0, [ROOT]);
+  const r1 = navFilter("shoes", { ...base, b: [b] }, "deal", 0, [ROOT]);
   assert.equal(r1.count, r0.facets.b[0][2], "the brand count is the brand's result");
   const z = r1.facets.z[0];
-  const r2 = navFilter("shoes", { ...base, b, z: z[0] }, "deal", 0, [ROOT]);
+  const r2 = navFilter("shoes", { ...base, b: [b], z: [z[0]] }, "deal", 0, [ROOT]);
   assert.equal(r2.count, z[2], "the size count is the stacked result");
   assert.ok(r2.count <= r1.count && r1.count <= r0.count);
   for (const k of ["u", "t", "s", "b", "z", "p", "o"]) for (const x of r2.facets[k]) assert.ok(x[2] > 0, `${k} ${x[0]} offered at 0`);
   const p = r2.facets.p[0];
-  if (p) assert.equal(navFilter("shoes", { ...base, b, z: z[0], p: p[0] }, "deal", 0, [ROOT]).count, p[2]);
-  const kids = navFilter("shoes", { ...base, u: "kids", b: "ugg" }, "deal", 0, [ROOT]);
+  if (p) assert.equal(navFilter("shoes", { ...base, b: [b], z: [z[0]], p: [p[0]] }, "deal", 0, [ROOT]).count, p[2]);
+  const kids = navFilter("shoes", { ...base, u: "kids", b: ["ugg"] }, "deal", 0, [ROOT]);
   for (const c of kids.cards) assert.equal(String(c.b).toLowerCase(), "ugg");
 });
 await check("no filter UI renders a checkbox (the bar, the menu, the department page)", () => {
@@ -121,7 +121,7 @@ await check("the homepage's Categorías store rail is chips, not a checkbox side
 });
 await check("the menu and the bar lay nothing out on a grid (carousels only)", () => {
   for (const f of ["assets/js/nav-filter.js", "assets/js/nav-menu.js"]) assert.ok(!/display\s*:\s*grid/.test(read(f)), f);
-  assert.match(read("assets/js/nav-filter.js"), /class="rail" id="nfRail"/);
+  assert.match(read("assets/js/nav-filter.js"), /class="rail nf-rail" id="nfRail"/);
 });
 
 let pw = null;
@@ -224,7 +224,7 @@ if (pw) {
       assert.match(page.url(), /dept=shoes&nav=1&u=women&t=botas-y-botines/);
       await page.waitForSelector(".nf-pill[data-nf-s]", { timeout: 60000 });
       await page.waitForSelector("#nfRail .card");
-      const pills = await page.$$eval(".nf-pill", (p) => p.map((x) => x.textContent));
+      const pills = await page.$$eval(".nf-pill[data-nf-s]", (p) => p.map((x) => x.textContent));
       assert.match(pills[0], /^Todas las botas/);
       assert.ok(pills.length >= 3, pills.join(" | "));
       /* One tap on a pill: same document, new results. */
@@ -244,6 +244,9 @@ if (pw) {
       await page.click(".nf-pan [data-nf-b]");
       await page.waitForSelector('[data-nf-x="b"]');
       await page.waitForFunction(() => !/Cargando/.test(document.getElementById("nfCount").textContent));
+      /* Marca takes several: the panel stays open until «Listo». */
+      assert.ok(await page.isVisible(".nf-pan [data-nf-done]"));
+      await page.click(".nf-pan [data-nf-done]");
       await page.click('[data-nf-btn="z"]');
       await page.waitForSelector(".nf-pan [data-nf-z]");
       const zeros = await page.$$eval(".nf-pan button small", (s) => s.filter((x) => /^0$/.test(x.textContent.trim())).length);
@@ -251,6 +254,7 @@ if (pw) {
       await page.click(".nf-pan [data-nf-z]");
       await page.waitForSelector('[data-nf-x="z"]');
       await page.waitForFunction(() => !/Cargando/.test(document.getElementById("nfCount").textContent));
+      await page.click(".nf-pan [data-nf-done]");
       const chips = await page.$$eval(".nf-x", (x) => x.map((e) => e.textContent));
       assert.ok(chips.some((t) => t === "Marca: " + brand), chips.join(" | "));
       assert.ok(chips.some((t) => /^Talla: /.test(t)), chips.join(" | "));

@@ -20,7 +20,8 @@
    search.html converts with the site's own exchange-rate endpoint.
    ============================================================ */
 import { getStore, connectLambda } from "@netlify/blobs";
-import { loadSearch, searchPage, runQuery, lanePage } from "./_search-core.js";
+import { loadSearch, searchPage, runQuery, lanePage, canonicalQuery, equivalentQuery, cardOf } from "./_search-core.js";
+import { searchFacets } from "./_nav-filter-core.js";
 import { destinationFor } from "./_search-destinations.js";
 import { RETAILERS } from "../../scripts/lib/retailers.js";
 
@@ -96,7 +97,7 @@ const json = (statusCode, body, cache) => ({
           "Netlify-CDN-Cache-Control": cache,
           /* Only q and page decide the answer; anything else in the URL
              must not split the cache. */
-          "Netlify-Vary": "query=q|page|lane|off|route",
+          "Netlify-Vary": "query=q|page|lane|off|route|nf|u|t|s|b|z|p|r|w|o|fx|sort",
         }
       : { "Cache-Control": "no-store" }),
   },
@@ -133,6 +134,13 @@ export async function handler(event, { fetchImpl } = {}) {
     /* WHERE THE SEARCH LANDS (#443 c.6569512697): a store, a brand or a
        category page -- or search.html's chooser (_search-destinations.js). */
     if (qs.route) return json(200, destinationFor(ctx, q, { fx }), fx ? "public, durable, max-age=3600, stale-while-revalidate=86400" : "public, max-age=60");
+    /* THE FILTER BAR (#443, the Nordstrom pattern): the same stacked
+       facets as every listing, over this search's own ranked hits. */
+    if (qs.nf === "1") {
+      const r = equivalentQuery(ctx, canonicalQuery(ctx, q.trim()));
+      const hits = r && r.state === "results" ? r.hits : [];
+      return json(200, { q, ...searchFacets(hits, qs, (p) => cardOf(p, fx, LABELS)) }, fx ? "public, durable, max-age=3600, stale-while-revalidate=86400" : "public, max-age=60");
+    }
     const out = searchPage(ctx, q, page, { fx });
     if (out.state === "error") return json(500, { ...out, items: [] }, null);
     /* Soles are part of the answer: an answer without them is kept
