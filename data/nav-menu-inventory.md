@@ -49,9 +49,9 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 | Mujer | Ropa · Zapatos · Accesorios · Marcas · Secciones | 17,414 |
 | Hombre | Ropa · Zapatos · Accesorios · Marcas · Secciones | 12,152 |
 | Niños | Ropa · Zapatos · Marcas · Secciones | 2,274 |
-| Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,718 |
+| Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,700 |
 | Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,342 |
-| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,553 |
+| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,552 |
 | Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,640 |
 | Deportes | Tipos · Marcas · Secciones | 17,679 |
 | Tallas Plus | Mujer · Hombre · Marcas | 7,850 |
@@ -60,7 +60,7 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 | Electrónica | Tipos · Marcas · Secciones | 5,917 |
 | Juguetes | Tipos · Marcas · Secciones | 7,364 |
 | Auto y Motos | Aria Auto · Motos | 2,495 |
-| Ofertas | Ofertas por categoría | 31,969 |
+| Ofertas | Ofertas por categoría | 33,505 |
 
 ## Mujer
 
@@ -124,12 +124,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Tacones: 22 → Zapatos · `/departamento.html?dept=shoes`
 - Mocasines y pantuflas: 16 → Zapatos · `/departamento.html?dept=shoes`
 
-### Zapatos (9,749)
+### Zapatos (9,738)
 
-- Zapatos: 3,405 · `/departamento.html?dept=shoes&t=zapatos&para=women`
-- Zapatillas: 3,131 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Zapatos: 3,404 · `/departamento.html?dept=shoes&t=zapatos&para=women`
+- Zapatillas: 3,122 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,112 · `/departamento.html?dept=shoes&t=sandalias&para=women`
-- Mocasines y pantuflas: 627 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
+- Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
@@ -923,7 +923,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Perfumes: 10,912 · `/departamento.html?dept=perfumes`
 - Carteras: 2,499 · `/departamento.html?dept=purses`
 - Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
 - Ropa: 17,114 · `/departamento.html?dept=clothing`
 
 ## Hombre
@@ -982,12 +982,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Bolso: 20 → Carteras · `/departamento.html?dept=purses`
 - Fragancia: 1 → Perfumes · `/departamento.html?dept=perfumes`
 
-### Zapatos (8,381)
+### Zapatos (8,370)
 
-- Zapatillas: 3,307 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 2,697 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,298 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 2,696 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
-- Mocasines y pantuflas: 615 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
+- Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 - Tacones: 101 · `/departamento.html?dept=shoes&t=tacones&para=men`
@@ -1417,7 +1417,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Perfumes: 10,912 · `/departamento.html?dept=perfumes`
 - Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
 - Carteras: 2,499 · `/departamento.html?dept=purses`
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
 - Gym Rat: 12,065 · `/departamento.html?dept=gym_rat`
 
@@ -1459,14 +1459,14 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Zapatillas: 2 → Zapatos · `/departamento.html?dept=shoes`
 - Lentes de sol: 1 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 
-### Zapatos (1,575)
+### Zapatos (1,563)
 
-- Zapatillas: 502 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
-- Zapatos: 472 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatillas: 498 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Zapatos: 468 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
-- Mocasines y pantuflas: 177 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
+- Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
 - Sandalias: 114 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
-- Botas y botines: 63 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
+- Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
 ### Marcas (2,274)
@@ -1668,60 +1668,60 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ## Zapatos
 
-Abre: `/departamento.html?dept=shoes` (10,718 productos)
+Abre: `/departamento.html?dept=shoes` (10,700 productos)
 
-### Mujer (7,083)
+### Mujer (7,073)
 
-- Zapatos: 3,405 · `/departamento.html?dept=shoes&t=zapatos&para=women`
-- Zapatillas: 3,131 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Zapatos: 3,404 · `/departamento.html?dept=shoes&t=zapatos&para=women`
+- Zapatillas: 3,122 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,112 · `/departamento.html?dept=shoes&t=sandalias&para=women`
-- Mocasines y pantuflas: 627 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
+- Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
-### Hombre (6,518)
+### Hombre (6,508)
 
-- Zapatillas: 3,307 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 2,697 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,298 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 2,696 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
-- Mocasines y pantuflas: 615 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
+- Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 - Tacones: 101 · `/departamento.html?dept=shoes&t=tacones&para=men`
 
-### Niños (1,221)
+### Niños (1,213)
 
-- Zapatillas: 502 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
-- Zapatos: 472 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatillas: 498 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Zapatos: 468 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
-- Mocasines y pantuflas: 177 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
+- Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
 - Sandalias: 114 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
-- Botas y botines: 63 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
+- Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
-### Marcas (10,718)
+### Marcas (10,700)
 
-- Nike: 918 · `/departamento.html?dept=shoes&b=Nike`
+- Nike: 911 · `/departamento.html?dept=shoes&b=Nike`
 - adidas: 683 · `/departamento.html?dept=shoes&b=adidas`
 - New Balance: 565 · `/departamento.html?dept=shoes&b=New%20Balance`
-- Crocs: 461 · `/departamento.html?dept=shoes&b=Crocs`
-- Vans: 333 · `/departamento.html?dept=shoes&b=Vans`
+- Crocs: 458 · `/departamento.html?dept=shoes&b=Crocs`
+- Vans: 332 · `/departamento.html?dept=shoes&b=Vans`
 - Reef: 319 · `/departamento.html?dept=shoes&b=Reef`
 - Golden Goose: 306 · `/departamento.html?dept=shoes&b=Golden%20Goose`
 - JW PEI: 286 · `/departamento.html?dept=shoes&b=JW%20PEI`
 - Dolce & Gabbana: 211 · `/departamento.html?dept=shoes&b=Dolce%20%26%20Gabbana`
-- Jordan: 169 · `/departamento.html?dept=shoes&b=Jordan`
+- Jordan: 166 · `/departamento.html?dept=shoes&b=Jordan`
 - Puma: 147 · `/departamento.html?dept=shoes&b=Puma`
 - Birkenstock: 144 · `/departamento.html?dept=shoes&b=Birkenstock`
 - Nike SB: 139 · `/departamento.html?dept=shoes&b=Nike%20SB`
 - Miu Miu: 130 · `/departamento.html?dept=shoes&b=Miu%20Miu`
 - Skechers: 123 · `/departamento.html?dept=shoes&b=Skechers`
 - On: 115 · `/departamento.html?dept=shoes&b=On`
-- UGG: 107 · `/departamento.html?dept=shoes&b=UGG`
 - Brunello Cucinelli: 106 · `/departamento.html?dept=shoes&b=Brunello%20Cucinelli`
-- Asics: 100 · `/departamento.html?dept=shoes&b=Asics`
-- Converse: 95 · `/departamento.html?dept=shoes&b=Converse`
+- UGG: 105 · `/departamento.html?dept=shoes&b=UGG`
+- Asics: 99 · `/departamento.html?dept=shoes&b=Asics`
+- Converse: 94 · `/departamento.html?dept=shoes&b=Converse`
 - AMIRI: 84 · `/departamento.html?dept=shoes&b=AMIRI`
 - Olukai: 75 · `/departamento.html?dept=shoes&b=Olukai`
 - adidas Originals: 70 · `/departamento.html?dept=shoes&b=adidas%20Originals`
@@ -3102,9 +3102,9 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ## Accesorios
 
-Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
+Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 
-### Tipos (8,553)
+### Tipos (8,552)
 
 - Aretes: 1,291 · `/departamento.html?dept=joyas_accesorios&t=aretes`
 - Pulseras y tobilleras: 1,111 · `/departamento.html?dept=joyas_accesorios&t=pulseras-y-tobilleras`
@@ -3112,7 +3112,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Accesorios: 1,040 · `/departamento.html?dept=joyas_accesorios&t=accesorios`
 - Charms: 765 · `/departamento.html?dept=joyas_accesorios&t=charms`
 - Carteras: 591 · `/departamento.html?dept=joyas_accesorios&t=carteras`
-- Anillos: 506 · `/departamento.html?dept=joyas_accesorios&t=anillos`
+- Anillos: 505 · `/departamento.html?dept=joyas_accesorios&t=anillos`
 - Joyería: 303 · `/departamento.html?dept=joyas_accesorios&t=joyeria`
 - Correas: 293 · `/departamento.html?dept=joyas_accesorios&t=correas`
 - Billeteras: 260 · `/departamento.html?dept=joyas_accesorios&t=billeteras`
@@ -3141,8 +3141,8 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Coche: 8 · `/departamento.html?dept=joyas_accesorios&t=coche`
 - Equipo: 8 · `/departamento.html?dept=joyas_accesorios&t=equipo`
 - Tablas De Surf: 8 · `/departamento.html?dept=joyas_accesorios&t=tablas-de-surf`
-- Zapatillas: 8 · `/departamento.html?dept=joyas_accesorios&t=zapatillas`
 - Flash De Estudio: 7 · `/departamento.html?dept=joyas_accesorios&t=flash-de-estudio`
+- Zapatillas: 7 · `/departamento.html?dept=joyas_accesorios&t=zapatillas`
 - Zapatos: 7 · `/departamento.html?dept=joyas_accesorios&t=zapatos`
 - Accesorios de levantamiento: 6 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-levantamiento`
 - Disfraces: 6 · `/departamento.html?dept=joyas_accesorios&t=disfraces`
@@ -3224,7 +3224,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Aletas De Buceo: 1 · `/departamento.html?dept=sunglasses&t=aletas-de-buceo`
 - Decks (tablas De Skate): 1 · `/departamento.html?dept=sunglasses&t=decks-tablas-de-skate`
 
-### Marcas (8,553)
+### Marcas (8,552)
 
 - BaubleBar: 3,410 · `/departamento.html?dept=joyas_accesorios&b=BaubleBar`
 - Vivienne Westwood: 337 · `/departamento.html?dept=joyas_accesorios&b=Vivienne%20Westwood`
@@ -3384,7 +3384,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Hammerhead: 5 · `/departamento.html?dept=joyas_accesorios&b=Hammerhead`
 - Hugo: 5 · `/departamento.html?dept=joyas_accesorios&b=Hugo`
 - Johanna Ortiz: 5 · `/departamento.html?dept=joyas_accesorios&b=Johanna%20Ortiz`
-- Jordan: 5 · `/departamento.html?dept=joyas_accesorios&b=Jordan`
 - Lanvin: 5 · `/departamento.html?dept=joyas_accesorios&b=Lanvin`
 - Obey: 5 · `/departamento.html?dept=joyas_accesorios&b=Obey`
 - R13: 5 · `/departamento.html?dept=joyas_accesorios&b=R13`
@@ -3407,6 +3406,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Guidi: 4 · `/departamento.html?dept=joyas_accesorios&b=Guidi`
 - Independent Skateboard Trucks: 4 · `/departamento.html?dept=joyas_accesorios&b=Independent%20Skateboard%20Trucks`
 - JACQUEMUS: 4 · `/departamento.html?dept=joyas_accesorios&b=JACQUEMUS`
+- Jordan: 4 · `/departamento.html?dept=joyas_accesorios&b=Jordan`
 - Julius: 4 · `/departamento.html?dept=joyas_accesorios&b=Julius`
 - Kulani Kinis: 4 · `/departamento.html?dept=joyas_accesorios&b=Kulani%20Kinis`
 - Le Vian: 4 · `/departamento.html?dept=joyas_accesorios&b=Le%20Vian`
@@ -4292,7 +4292,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 ### Secciones
 
 - Perfumes: 10,912 · `/departamento.html?dept=perfumes`
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
 
 ## Deportes
 
@@ -7415,23 +7415,23 @@ Abre: `/motos.html` (2,495 productos)
 
 ## Ofertas
 
-Abre: `/ofertas.html` (31,969 productos)
+Abre: `/ofertas.html` (33,505 productos)
 
-### Ofertas por categoría (31,969)
+### Ofertas por categoría (33,505)
 
 - Ropa Hombre: 3,360 · `/ofertas.html?vista=categoria&cat=ropa_hombre`
 - Ropa Mujer: 5,637 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
-- Ropa Niños: 1,274 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
+- Ropa Niños: 1,422 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
 - Juguetes: 1,266 · `/ofertas.html?vista=categoria&cat=juguetes`
-- Zapatillas: 1,362 · `/ofertas.html?vista=categoria&cat=zapatillas`
+- Zapatillas: 1,696 · `/ofertas.html?vista=categoria&cat=zapatillas`
 - Electrónica: 911 · `/ofertas.html?vista=categoria&cat=electronica`
 - Belleza: 5,508 · `/ofertas.html?vista=categoria&cat=belleza`
-- Joyas y accesorios: 2,530 · `/ofertas.html?vista=categoria&cat=accesorios`
-- Zapatos: 2,052 · `/ofertas.html?vista=categoria&cat=zapatos`
+- Joyas y accesorios: 2,610 · `/ofertas.html?vista=categoria&cat=accesorios`
+- Zapatos: 2,091 · `/ofertas.html?vista=categoria&cat=zapatos`
 - Hogar: 1,487 · `/ofertas.html?vista=categoria&cat=hogar`
 - Deportes: 856 · `/ofertas.html?vista=categoria&cat=deportes`
 - Bebé: 213 · `/ofertas.html?vista=categoria&cat=bebe`
-- Ver todas las ofertas: 31,969 · `/ofertas.html`
+- Ver todas las ofertas: 33,505 · `/ofertas.html`
 
 ## Qué falta o no se pudo llenar
 
