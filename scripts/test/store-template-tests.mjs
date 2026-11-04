@@ -17,6 +17,7 @@
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
+import { isSockItem } from "../lib/store-reroutes.js";
 import { RAIL_MIN, BEST_SELLERS_MAX, ACCESSIBLE_USD, TAIL_RAIL_KEY, dedupeMerged, fillBrandsFromStore, SLICED_STORES } from "../build-store-slices.mjs";
 import { STOREFRONTS } from "../lib/storefronts.js";
 
@@ -63,7 +64,11 @@ check("sellable first: on-sale accessible pieces lead every Walmart aisle, never
   for (const [key, list] of Object.entries(fn.rails)) {
     if (!key.startsWith("t-") || key.includes("~")) continue;
     /* What the lead rails already show up front moves to the back, in its own order. */
-    const own = list.filter((i) => !shown.has(i)).map((i) => tier(fn.rows[i]));
+    /* ...and in Ropa, socks ride at the back in their own order (Danny's
+       standing rule, c.6567120876: socks never lead a rail of clothes). */
+    const sock = (i) => key === "t-ropa" && isSockItem({ name: fn.rows[i][0] });
+    const own = list.filter((i) => !shown.has(i) && !sock(i)).map((i) => tier(fn.rows[i]));
+    if (key === "t-ropa") { const at = list.findIndex(sock); assert.ok(at < 0 || list.slice(at).every((i) => sock(i) || shown.has(i)), "t-ropa: a sock ahead of clothes"); }
     for (let n = 1; n < own.length; n++) assert.ok(own[n] >= own[n - 1], `${key}: tier ${own[n]} after ${own[n - 1]} at ${n}`);
     if (own.length && list.some((i) => !shown.has(i) && tier(fn.rows[i]) === 0)) assert.equal(own[0], 0, key);
   }

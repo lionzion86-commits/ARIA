@@ -60,6 +60,7 @@ import { STORES as CI } from "./lib/calzedonia-intimissimi.js";
 import { AISLE_ORDER as SLEEK_ORDER, AISLE_LABELS as SLEEK_LABELS } from "./lib/sleekshop.js";
 import { celularesOrder } from "../netlify/functions/_department-core.js";
 import { DEPT_ORDER as TW_ORDER, DEPT_LABELS as TW_LABELS } from "./lib/tenniswarehouse.js";
+import { storeFamily, BOARD_FAMILIES, socksToBack } from "./lib/store-reroutes.js";
 import { STOREFRONTS, storefrontRails, perfumeRails, PERFUME_CHIP_ORDER } from "./lib/storefronts.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -466,12 +467,25 @@ export function genericRails(key, label, items, rules) {
   const fresh = (arr) => arr.filter((p) => !shown.has(p)).concat(arr.filter((p) => shown.has(p)));
   /* One carousel per PRODUCT TYPE, never per Aria department (Danny,
      2026-10-07: a Gymshark page shows Leggings/Tops/Shorts). */
-  const byType = {};
-  for (const p of items) { const t = R.productTypeOf(p); (byType[t] = byType[t] || []).push(p); }
-  const types = R.PRODUCT_TYPES.filter((t) => (byType[t.key] || []).length);
+  /* Label-true (#443 c.6522560722): a board is a board, a mist a perfume,
+     a panty clothing, whatever part name misled the classifier
+     (scripts/lib/store-reroutes.js). */
+  const byType = {}, baseFam = new Map();
+  for (const p of items) { const f = R.productTypeOf(p); baseFam.set(p, f); const t = storeFamily(p, f); (byType[t] = byType[t] || []).push(p); }
+  /* A board rail stands only at rail size; fewer boards stay where the
+     classifier put them (a «Deportes» skateboard, not the tail). */
+  for (const b of Object.keys(BOARD_FAMILIES)) {
+    if (!byType[b] || byType[b].length >= RAIL_MIN) continue;
+    for (const p of byType[b]) { const f = baseFam.get(p); (byType[f] = byType[f] || []).push(p); }
+    delete byType[b];
+  }
+  const types = R.PRODUCT_TYPES.concat(Object.entries(BOARD_FAMILIES).map(([key, label]) => ({ key, label }))).filter((t) => (byType[t.key] || []).length);
   const big = types.filter((t) => byType[t.key].length >= RAIL_MIN)
     .sort((a, b) => byType[b.key].length - byType[a.key].length);
-  for (const t of big) rails.push({ key: "t-" + t.key, title: t.label, items: fresh(byType[t.key].slice().sort(sellable)) });
+  for (const t of big) {
+    const list = fresh(byType[t.key].slice().sort(sellable));
+    rails.push({ key: "t-" + t.key, title: t.label, items: t.key === "ropa" ? socksToBack(list) : list });
+  }
   const tail = types.filter((t) => byType[t.key].length < RAIL_MIN).flatMap((t) => byType[t.key]);
   if (tail.length) rails.push({ key: TAIL_RAIL_KEY, title: "Más de " + label, items: fresh(tail.sort(sellable)) });
   return rails;
