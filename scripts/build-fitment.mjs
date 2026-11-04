@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ============================================================
-   assets/sections/auto/_fn/fitment.json -- VEHICLE FITMENT, ONE SOURCE
+   assets/sections/departamento/_fn/auto_parts.fitment.json -- VEHICLE FITMENT, ONE SOURCE
    (#443 c.6620267344, amended c.6620289895).
 
    The auto parts pages (departamento.html?dept=auto_parts, the auto
@@ -42,7 +42,7 @@ import { fileURLToPath } from "node:url";
 import { cardOf } from "./build-auto-slices.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
-export const FIT_FILE = "assets/sections/auto/_fn/fitment.json";
+export const FIT_FILE = "assets/sections/departamento/_fn/auto_parts.fitment.json";
 
 /* Aria Auto's selector: VEHICLES as auto.html declares it. */
 export function selectorVehicles(root = ROOT) {

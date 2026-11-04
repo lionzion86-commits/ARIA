@@ -3,7 +3,7 @@
    amended c.6620289895). One fitment system, never parallel copies.
 
    - THE DATA is Aria Auto's own: the vehicles AutoZone catalogues each
-     part for (auto-cache.json -> assets/sections/auto/_fn/fitment.json,
+     part for (auto-cache.json -> assets/sections/departamento/_fn/auto_parts.fitment.json,
      scripts/build-fitment.mjs), with the make and model names of Aria
      Auto's selector. The phone never downloads it: every option and
      count comes from the filter bar's engine
@@ -165,8 +165,23 @@
     /* The kept vehicle applies before the bar asks (nav-filter.js runs after this file). */
     var cur = fromUrl();
     if (!has(cur)) { var s = saved(); if (s) writeUrl(s, false); }
-    var LAST = null;
-    document.addEventListener('aria:nf-paint', function(e){ paint(e.detail); });
+    var LAST = null, ASKED = '';
+    /* The bar asks through the page's getJSON (nav-filter.js): the vehicle
+       rides on every question, and each answer is drawn once the bar has
+       drawn its own part. No change to the bar itself. */
+    var D = window.AriaDept;
+    if (D && typeof D.getJSON === 'function' && !D.getJSON.vf){
+      var get = D.getJSON;
+      D.getJSON = function(u){
+        if (String(u).indexOf(ENDPOINT) !== 0) return get(u);
+        var url = String(u).replace(/&(vy|vmk|vmd)=[^&]*/g, '') + query();
+        ASKED = url;
+        return get(url).then(function(d){ if (ASKED === url) setTimeout(function(){ paint(d); }, 0); return d; });
+      };
+      D.getJSON.vf = 1;
+    }
+    /* A new vehicle: the bar re-reads the address, as on back / forward. */
+    function rerun(){ try { window.dispatchEvent(new PopStateEvent('popstate', { state: history.state })); } catch(e){} }
     function paint(d){
       var fit = d && d.fit;
       if (!fit) return;
@@ -185,12 +200,13 @@
           if (!s) return;
           var n = next(fromUrl(), s.getAttribute('data-vf'), s.value, LAST);
           save(n); writeUrl(n, true);
-          if (window.AriaNF) window.AriaNF.run();
+          rerun();
         });
       }
       if (row) row.innerHTML = '<h3>Tu vehículo</h3>' + vehicleSelects(fit, v);
       /* the part brand is the part's, the make is the car's */
       relabel();
+      watchPanels();
       /* the chip */
       var sel = document.getElementById('nfSel');
       if (sel){
@@ -235,7 +251,7 @@
     document.addEventListener('click', function(e){
       if (e.target.closest('[data-vf-x]')){
         save(null); writeUrl(clean({}), true);
-        if (window.AriaNF) window.AriaNF.run();
+        rerun();
         return;
       }
       /* «Limpiar todo» takes the vehicle too (before the bar's own handler). */
@@ -243,12 +259,12 @@
     }, true);
     /* the brand panel opens with the bar's own heading: name it the part's */
     var obs = null;
-    document.addEventListener('aria:nf-paint', function(){
+    function watchPanels(){
       var bar = document.getElementById('nfBar');
       if (obs || !bar || typeof MutationObserver !== 'function') return;
       obs = new MutationObserver(function(){ var h = bar.querySelector('[data-dd="b"] .nf-pan h4'); if (h && h.textContent !== 'Marca del repuesto') h.textContent = 'Marca del repuesto'; });
       obs.observe(bar, { childList: true, subtree: true });
-    });
+    }
   }
 
   /* ================= 2. THE VEHICLE CARD (an auto store; the department's landing) ================= */

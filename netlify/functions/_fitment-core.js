@@ -24,7 +24,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { rowItem, photosFirst } from "./_department-core.js";
 
-export const FIT_FILE = "assets/sections/auto/_fn/fitment.json";
+export const FIT_FILE = "assets/sections/departamento/_fn/auto_parts.fitment.json";
 /* The departments whose view takes the vehicle filter. */
 export const FIT_DEPTS = new Set(["auto_parts"]);
 export const NONE_CARDS = 24;
