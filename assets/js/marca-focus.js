@@ -79,7 +79,7 @@
      (#443, Danny: "never a side-by-side grid"). */
   function storeDoor(l) {
     var store = l.store || (/^tienda:(.+)$/.exec(l.key || "") || [])[1] || "", pages = window.ARIA_STORE_PAGES || "";
-    return store && pages.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(SEARCHED) : "";
+    return store && pages.indexOf(" " + store + " ") >= 0 ? "tienda.html?tienda=" + encodeURIComponent(store) + "&q=" + encodeURIComponent(l.doorQ || SEARCHED) : "";
   }
   function lane(l) {
     var door = storeDoor(l);

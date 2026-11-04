@@ -56,6 +56,8 @@ const BATTERY = [
   ["maybelline", "brand"], ["hot wheels", "brand"], ["play doh", "brand"], ["nerf", "brand"], ["fisher price", "brand"],
   ["pokemon", "brand"], ["maison kitsune", "brand"], ["loreal", "brand"], ["alaia", "brand"], ["disney", "brand"], ["marvel", "brand"], ["juguetez", "category"], ["lapto", "category"], ["vestido rojo", "category"], ["libros", "category"],
   ["pesca submarina", "category"], ["boxeo", "category"],
+  /* A core product is its maker's page, the product leading (#443 c.6620006778). */
+  ["iphone", "brand"], ["iPhone", "brand"], ["i phone", "brand"], ["celular iphone", "brand"], ["iphone 16 pro", "brand"],
   ["iphone 15 case", "chooser"], ["unicornio", "chooser"], ["taza", "chooser"], ["zapatix", "chooser"],
   ["blorptastic", "chooser"], ["qwrtplk", "chooser"], ["a", "chooser"],
 ];
