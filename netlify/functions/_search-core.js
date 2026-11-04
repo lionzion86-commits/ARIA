@@ -35,6 +35,7 @@ import { deliveryFor, miamiRangeEs } from "../../scripts/lib/retailer-delivery.j
 import { isConsole } from "../../scripts/lib/tech-aisle.js";
 import { conditionOfTitle } from "../../scripts/lib/condition.js";
 import { cartShipping } from "../../scripts/lib/store-shipping.js";
+import { mjModelKey, isMarcJacobsFashionBrand, isBeautyTitle } from "../../scripts/lib/marcjacobs-match.js";
 
 export const PAGE_SIZE = 48;
 /* How many ranked results a search keeps. The pipeline's own default
@@ -2159,6 +2160,12 @@ const COLOURWAY_WORDS = new Set(("black white red blue green gray pink purple ye
   "blush fuchsia magenta scarlet crimson ash cement sesame wheat desert dune sequoia saffron army forest hunter dark light core ftwr cloud off triple " +
   "solar bright pale deep washed vintage true team university varsity midnight obsidian phantom anthracite").split(" "));
 export function modelKey(ctx, p) {
+  /* MARC JACOBS (#443 c.6643334129): the official store's row joins the
+     retailers' by the house's model name, which the stores quote
+     («Black 'The Leather Medium' Tote»): scripts/lib/marcjacobs-match.js.
+     Its beauty and fragrance keep the generic key below. */
+  const mjBrand = p.brand || recognizedBrand(ctx, p);
+  if (isMarcJacobsFashionBrand(mjBrand) && !isBeautyTitle(p.title)) return mjModelKey(p.title, mjBrand, (p.departments && p.departments[0]) || p.department || p._cat);
   const brand = normWords(recognizedBrand(ctx, p) || p.brand);
   if (!brand) return null;
   let raw = String(p.title || "").replace(SEASON_TAG, " ").replace(/["“”][^"“”]{1,40}["“”]|(^|\s)['‘][^'’]{1,30}['’](?=\s|$)/g, " ");

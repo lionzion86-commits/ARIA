@@ -10,11 +10,28 @@
     'nike', 'fendi', 'goldengoose', 'surfworld', 'samsclub',
     'bestbuy',
   ];
+  /* AWAITING ITS CATALOGUE (#443 c.6643334129, Marc Jacobs): a store that
+     is registered everywhere but whose catalogue has no products yet.
+     A store with nothing in it never shows (Danny: no image, no card):
+     no storefront, Tiendas tile, menu entry, search row, door or price,
+     exactly as a store off sale -- isOffSaleRetailer() answers true for
+     it. GENERATED: the next line is rewritten from each gated store's
+     catalogue by scripts/lib/store-gate.mjs (scripts/ingest-marcjacobs.mjs
+     and scripts/build-store-slices.mjs run it), so the day the drop lands
+     the store leaves this list and every surface opens. Not by hand. */
+  var AWAITING_CATALOG = ['marcjacobs'];
   var SET = {};
   for (var i = 0; i < OFF_SALE_RETAILERS.length; i++) SET[OFF_SALE_RETAILERS[i]] = true;
+  var AWAITING = {};
+  for (var a = 0; a < AWAITING_CATALOG.length; a++) AWAITING[AWAITING_CATALOG[a]] = true;
 
   function isOffSaleRetailer(key) {
-    return SET[String(key == null ? '' : key).trim().toLowerCase()] === true;
+    var k = String(key == null ? '' : key).trim().toLowerCase();
+    return SET[k] === true || AWAITING[k] === true;
+  }
+  /* True only for a registered store still waiting for its catalogue. */
+  function isAwaitingCatalog(key) {
+    return AWAITING[String(key == null ? '' : key).trim().toLowerCase()] === true;
   }
   /* A record or a cart line: its store is `retailer` (`store` on the
      Ofertas cards). A plain used listing is off sale too, whatever its
@@ -52,7 +69,9 @@
 
   root.AriaOffSale = Object.freeze({
     OFF_SALE_RETAILERS: Object.freeze(OFF_SALE_RETAILERS.slice()),
+    AWAITING_CATALOG: Object.freeze(AWAITING_CATALOG.slice()),
     isOffSaleRetailer: isOffSaleRetailer,
+    isAwaitingCatalog: isAwaitingCatalog,
     isOffSaleItem: isOffSaleItem,
     offSaleLines: offSaleLines,
     OFF_SALE_LINE_NOTE: OFF_SALE_LINE_NOTE,

@@ -1,0 +1,193 @@
+{
+ "generatedAt": "2026-11-04T22:54:10.744Z",
+ "directive": "#443 c.6643310622 (aggregation count), amended c.6643334129 (direct store; aggregation feeds the Comparador)",
+ "method": "every committed *-catalog.json and department cache; brand matched by /^(?:the\\s+)?marc\\s+jacobs(?:\\s+beauty)?$|^marc\\s+by\\s+marc\\s+jacobs$/i; one product once per store (link + photo); aisle from the product's own type, then its title (scripts/lib/marcjacobs.js mjAisle)",
+ "spellingsFound": {
+  "Marc Jacobs Beauty": 9,
+  "Marc Jacobs": 156
+ },
+ "spellingsNotFound": [
+  "The Marc Jacobs",
+  "Marc by Marc Jacobs"
+ ],
+ "catalogsScanned": 82,
+ "storesAskedWithoutMarcJacobs": [
+  {
+   "store": "farfetch",
+   "why": "catalogue held, no Marc Jacobs in it"
+  },
+  {
+   "store": "nordstrom",
+   "why": "no catalogue for this store in the repo"
+  },
+  {
+   "store": "revolve",
+   "why": "catalogue held, no Marc Jacobs in it"
+  },
+  {
+   "store": "saks",
+   "why": "no catalogue for this store in the repo"
+  },
+  {
+   "store": "saksfifthavenue",
+   "why": "no catalogue for this store in the repo"
+  },
+  {
+   "store": "neimanmarcus",
+   "why": "no catalogue for this store in the repo"
+  },
+  {
+   "store": "bergdorfgoodman",
+   "why": "no catalogue for this store in the repo"
+  }
+ ],
+ "total": {
+  "listings": 165,
+  "fashion": 97,
+  "beautyListings": 68,
+  "beautyUniqueProducts": 35
+ },
+ "byCategory": {
+  "bags": 70,
+  "shoes": 13,
+  "ready-to-wear": 3,
+  "accessories": 11,
+  "beauty (incl. fragrance)": 68
+ },
+ "byStore": {
+  "ssense": {
+   "files": [
+    "ssense-catalog.json"
+   ],
+   "live": true,
+   "total": 97,
+   "byCategory": {
+    "bags": 70,
+    "shoes": 13,
+    "ready-to-wear": 3,
+    "accessories": 11
+   }
+  },
+  "ariaperfumes": {
+   "files": [
+    "perfumes-catalog.json"
+   ],
+   "live": true,
+   "total": 46,
+   "byCategory": {
+    "beauty (incl. fragrance)": 46
+   }
+  },
+  "ulta": {
+   "files": [
+    "ulta-catalog.json"
+   ],
+   "live": true,
+   "total": 10,
+   "byCategory": {
+    "beauty (incl. fragrance)": 10
+   }
+  },
+  "sephora": {
+   "files": [
+    "beauty-catalog.json"
+   ],
+   "live": true,
+   "total": 9,
+   "byCategory": {
+    "beauty (incl. fragrance)": 9
+   }
+  },
+  "macys": {
+   "files": [
+    "macys-catalog.json"
+   ],
+   "live": true,
+   "total": 3,
+   "byCategory": {
+    "beauty (incl. fragrance)": 3
+   }
+  }
+ },
+ "beautyDedupe": {
+  "note": "Beauty and fragrance already sell through these stores; the Marc Jacobs store leaves them out. Unique = one name across stores.",
+  "listings": 68,
+  "unique": 35,
+  "soldAtMoreThanOneStore": [
+   {
+    "name": "daisy murakami pink eau de parfum",
+    "stores": [
+     "ariaperfumes",
+     "macys",
+     "sephora",
+     "ulta"
+    ]
+   },
+   {
+    "name": "perfect eau de parfum",
+    "stores": [
+     "ariaperfumes",
+     "sephora",
+     "ulta"
+    ]
+   },
+   {
+    "name": "daisy murakami blue eau de parfum",
+    "stores": [
+     "ariaperfumes",
+     "macys"
+    ]
+   },
+   {
+    "name": "daisy murakami yellow eau de parfum",
+    "stores": [
+     "ariaperfumes",
+     "macys",
+     "ulta"
+    ]
+   },
+   {
+    "name": "daisy wild eau so intense eau de parfum",
+    "stores": [
+     "ariaperfumes",
+     "ulta"
+    ]
+   },
+   {
+    "name": "daisy eau so fresh eau de toilette",
+    "stores": [
+     "ariaperfumes",
+     "ulta"
+    ]
+   },
+   {
+    "name": "daisy eau de toilette",
+    "stores": [
+     "ariaperfumes",
+     "ulta"
+    ]
+   },
+   {
+    "name": "daisy wild eau de parfum",
+    "stores": [
+     "ariaperfumes",
+     "ulta"
+    ]
+   }
+  ]
+ },
+ "comparador": {
+  "note": "Retailer Marc Jacobs fashion listings in the search index (what the Comparador reads) and whether each carries a model key (scripts/lib/marcjacobs-match.js mjModelKey). A keyed listing gets the official store's row the day marcjacobs-catalog.json holds the same model; a style-number join needs the official catalogue's codes (no retailer feed carries a Marc Jacobs style number today: SSENSE's productCode is its own).",
+  "fashionListings": 97,
+  "withMatchKey": 69,
+  "withoutMatchKey": 28,
+  "distinctModels": 54,
+  "byStore": {
+   "ssense": {
+    "withKey": 69,
+    "withoutKey": 28
+   }
+  },
+  "styleNumberMatches": 0
+ }
+}

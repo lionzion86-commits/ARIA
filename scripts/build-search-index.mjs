@@ -112,6 +112,9 @@ export const CATALOG_FILES = [
   /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
   "sleekshop-catalog.json",
   "carolinaherrera-catalog.json",
+  /* Marc Jacobs (#443 c.6643334129): the house's direct store; the empty
+     envelope until the drop lands (and gated off sale while it is empty). */
+  "marcjacobs-catalog.json",
   /* Aria Perfumes (#443 item 32). */
   "perfumes-catalog.json",
   /* Gap and Banana Republic (#443 c.6585655315): their storefronts read

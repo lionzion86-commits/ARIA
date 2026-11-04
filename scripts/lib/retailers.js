@@ -1176,6 +1176,29 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* MARC JACOBS (#443 c.6643310622, amended c.6643334129: a DIRECT store,
+     first-class, so the official store is a row in the Comparador). Fashion
+     only -- bags, shoes, ready-to-wear, accessories; its beauty and
+     fragrance are sold through Sephora, Ulta, Macy's and Aria Perfumes.
+     marcjacobs-catalog.json, written by scripts/ingest-marcjacobs.mjs from
+     Lucifer's direct pull (data/drops/marcjacobs/README.md); the committed
+     file is the empty envelope until the drop lands. WHILE IT IS EMPTY THE
+     STORE IS GATED: /off-sale.js AWAITING_CATALOG (scripts/lib/store-
+     gate.mjs) hides it from every tile, menu, search and door; the ingest
+     opens the gate the day the catalogue has products. Shipping: free UPS
+     Ground over $50 (store-shipping.js). No logo file exists in the repo:
+     the wordmark fallback, TODO(marcjacobs-logo). */
+  marcjacobs: {
+    key: "marcjacobs",
+    label: "Marc Jacobs",
+    color: "#000000",
+    logo: null,
+    tagline: "Bolsos, zapatos, ropa y accesorios de la casa",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    browse: true,
+  },
   /* ============================================================
      MACY'S (2026-09-22) — THE FIRST BROWSE-WITHOUT-SCRAPE STORE
 

@@ -107,6 +107,8 @@ export const CATALOG_FILES = [
   /* SleekShop (#443 c.6475799491, pulled 2026-10-28): the Cabello shelf. */
   "/sleekshop-catalog.json",
   "/carolinaherrera-catalog.json",
+  /* Marc Jacobs (#443 c.6643334129): the house's direct store. */
+  "/marcjacobs-catalog.json",
   /* Aria Perfumes (#443 item 32): the Perfumes department's own stock. */
   "/perfumes-catalog.json",
 ];
@@ -279,7 +281,7 @@ export const KIND_MATCH = {
     const f = nameFamily(p);
     return AUTO_RX.test(t) && (f === "" || f === "repuestos");
   },
-  luxury: (t, p) => ["ssense", "miumiu", "farfetch", "carolinaherrera"].indexOf(p.retailer) !== -1 ||
+  luxury: (t, p) => ["ssense", "miumiu", "farfetch", "carolinaherrera", "marcjacobs"].indexOf(p.retailer) !== -1 ||
     hasAny(t, ["gucci", "prada", "louis vuitton", "chanel", "dior", "versace", "burberry", "fendi", "givenchy", "balenciaga", "saint laurent", "valentino", "carolina herrera"]),
 };
 

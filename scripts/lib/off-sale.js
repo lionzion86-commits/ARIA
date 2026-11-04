@@ -89,6 +89,10 @@ import "../../off-sale.js";
 
 const api = globalThis.AriaOffSale;
 export const OFF_SALE_RETAILERS = api.OFF_SALE_RETAILERS;
+/* Registered stores whose catalogue has no products yet (Marc Jacobs):
+   hidden like a store off sale until it does (scripts/lib/store-gate.mjs). */
+export const AWAITING_CATALOG = api.AWAITING_CATALOG;
+export const isAwaitingCatalog = api.isAwaitingCatalog;
 export const isOffSaleRetailer = api.isOffSaleRetailer;
 export const isOffSaleItem = api.isOffSaleItem;
 export const offSaleLines = api.offSaleLines;
