@@ -9,11 +9,11 @@ Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones de
 | Niños | Ropa · Zapatos · Marcas · Secciones | 2,274 |
 | Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,744 |
 | Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,342 |
-| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 8,672 |
+| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 8,553 |
 | Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,640 |
 | Deportes | Tipos · Marcas · Secciones | 17,679 |
 | Tallas Plus | Mujer · Hombre · Marcas · Secciones | 7,850 |
-| Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería · Secciones | 3,294 |
+| Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería · Secciones | 3,045 |
 | Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,417 |
 | Electrónica | Tipos · Marcas · Secciones | 5,917 |
 | Juguetes | Tipos · Marcas · Secciones | 7,364 |
@@ -25,13 +25,13 @@ Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones de
 
 Abre: `/departamento.html?dept=women` (17,414 productos)
 
-### Ropa (16,225)
+### Ropa (16,389)
 
 - Blusas y tops: 1,601 · `/departamento.html?dept=women&nav=1&t=blusas-y-tops`
 - Vestidos: 1,584 · `/departamento.html?dept=women&nav=1&t=vestidos`
+- Lencería: 1,377 · `/departamento.html?dept=women&nav=1&t=lenceria`
 - Zapatos: 1,246 · `/departamento.html?dept=women&nav=1&t=zapatos`
 - Carteras: 1,231 · `/departamento.html?dept=women&nav=1&t=carteras`
-- Lencería: 1,215 · `/departamento.html?dept=women&nav=1&t=lenceria`
 - Pantalones y jeans: 1,084 · `/departamento.html?dept=women&nav=1&t=pantalones-y-jeans`
 - Camisas: 1,067 · `/departamento.html?dept=women&nav=1&t=camisas`
 - Casacas y abrigos: 1,010 · `/departamento.html?dept=women&nav=1&t=casacas-y-abrigos`
@@ -72,7 +72,7 @@ Abre: `/departamento.html?dept=women` (17,414 productos)
 - Guantes: 37 · `/departamento.html?dept=women&nav=1&t=guantes`
 - Pulseras y tobilleras: 34 · `/departamento.html?dept=women&nav=1&t=pulseras-y-tobilleras`
 - Tacones: 22 · `/departamento.html?dept=women&nav=1&t=tacones`
-- Hogar: 19 · `/departamento.html?dept=women&nav=1&t=hogar`
+- Hogar: 21 · `/departamento.html?dept=women&nav=1&t=hogar`
 - Mocasines y pantuflas: 16 · `/departamento.html?dept=women&nav=1&t=mocasines-y-pantuflas`
 - Batas: 12 · `/departamento.html?dept=women&nav=1&t=batas`
 - Sombreros: 12 · `/departamento.html?dept=women&nav=1&t=sombreros`
@@ -872,7 +872,7 @@ Abre: `/departamento.html?dept=women` (17,414 productos)
 
 ### Secciones
 
-- Lencería: 3,294 · `/ropa-interior.html#mujer`
+- Lencería: 3,045 · `/ropa-interior.html#mujer`
 - Tallas Plus: 7,850 · `/departamento.html?dept=curvy`
 - Diseñadores Latinos: 10,053 · `/disenadores.html`
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
@@ -1364,7 +1364,7 @@ Abre: `/departamento.html?dept=men` (12,152 productos)
 
 ### Secciones
 
-- Ropa Interior Hombre: 1,619 · `/ropa-interior.html#hombre`
+- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
 - Zapatos de Hombre: 1,454 · `/departamento.html?dept=shoes_men`
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
 - Gym Rat: 12,065 · `/departamento.html?dept=gym_rat`
@@ -3052,16 +3052,16 @@ Abre: `/departamento.html?dept=beauty` (5,342 productos)
 
 ## Accesorios
 
-Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
+Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 
-### Tipos (8,672)
+### Tipos (8,553)
 
 - Pulseras y tobilleras: 1,111 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pulseras-y-tobilleras`
 - Collares y dijes: 1,075 · `/departamento.html?dept=joyas_accesorios&nav=1&t=collares-y-dijes`
 - Accesorios: 1,040 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios`
 - Aretes: 964 · `/departamento.html?dept=joyas_accesorios&nav=1&t=aretes`
 - Charms: 641 · `/departamento.html?dept=joyas_accesorios&nav=1&t=charms`
-- Anillos: 333 · `/departamento.html?dept=joyas_accesorios&nav=1&t=anillos`
+- Anillos: 324 · `/departamento.html?dept=joyas_accesorios&nav=1&t=anillos`
 - Joyería: 303 · `/departamento.html?dept=joyas_accesorios&nav=1&t=joyeria`
 - Correas: 293 · `/departamento.html?dept=joyas_accesorios&nav=1&t=correas`
 - Billeteras: 260 · `/departamento.html?dept=joyas_accesorios&nav=1&t=billeteras`
@@ -3071,7 +3071,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Bolso: 120 · `/departamento.html?dept=joyas_accesorios&nav=1&t=bolso`
 - Relojes: 119 · `/departamento.html?dept=joyas_accesorios&nav=1&t=relojes`
 - Bufandas: 103 · `/departamento.html?dept=joyas_accesorios&nav=1&t=bufandas`
-- Manteles y servilletas: 85 · `/departamento.html?dept=joyas_accesorios&nav=1&t=manteles-y-servilletas`
 - Llaveros: 59 · `/departamento.html?dept=joyas_accesorios&nav=1&t=llaveros`
 - Corbatas: 43 · `/departamento.html?dept=joyas_accesorios&nav=1&t=corbatas`
 - Broches y pines: 36 · `/departamento.html?dept=joyas_accesorios&nav=1&t=broches-y-pines`
@@ -3082,7 +3081,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Belleza: 17 · `/departamento.html?dept=joyas_accesorios&nav=1&t=belleza`
 - Accesorios De Fútbol: 16 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-futbol`
 - Recuerdos de fiesta: 14 · `/departamento.html?dept=joyas_accesorios&nav=1&t=recuerdos-de-fiesta`
-- Figura Coleccionable: 13 · `/departamento.html?dept=joyas_accesorios&nav=1&t=figura-coleccionable`
 - Cinturones de levantamiento: 12 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cinturones-de-levantamiento`
 - Pesas Y Cinturones: 12 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pesas-y-cinturones`
 - Manta: 10 · `/departamento.html?dept=joyas_accesorios&nav=1&t=manta`
@@ -3102,7 +3100,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Trajes De Neopreno: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=trajes-de-neopreno`
 - Trucks, Ruedas Y Partes: 5 · `/departamento.html?dept=joyas_accesorios&nav=1&t=trucks-ruedas-y-partes`
 - Accesorios De Tenis: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-tenis`
-- Cuadros y decoración de pared: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cuadros-y-decoracion-de-pared`
 - Pantalones y jeans: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=pantalones-y-jeans`
 - Pañales: 4 · `/departamento.html?dept=joyas_accesorios&nav=1&t=panales`
 - Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=accesorios-de-pesca-submarina`
@@ -3110,8 +3107,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Cascos Y Protecciones: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cascos-y-protecciones`
 - Cuidado del bebé: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=cuidado-del-bebe`
 - Gorros: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=gorros`
-- Libros de mesa: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=libros-de-mesa`
-- Navidad: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=navidad`
 - Shorts: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&t=shorts`
 - Camisas: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=camisas`
 - Chaqueta: 2 · `/departamento.html?dept=joyas_accesorios&nav=1&t=chaqueta`
@@ -3134,7 +3129,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Skateboards: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=skateboards`
 - Toallas Y Ponchos: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=toallas-y-ponchos`
 - Trípode: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=tripode`
-- Velas y candelabros: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&t=velas-y-candelabros`
 
 ### Carteras (876)
 
@@ -3180,7 +3174,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Aletas De Buceo: 1 · `/departamento.html?dept=sunglasses&nav=1&t=aletas-de-buceo`
 - Decks (tablas De Skate): 1 · `/departamento.html?dept=sunglasses&nav=1&t=decks-tablas-de-skate`
 
-### Marcas (8,672)
+### Marcas (8,553)
 
 - BaubleBar: 3,410 · `/departamento.html?dept=joyas_accesorios&nav=1&b=baublebar`
 - Vivienne Westwood: 337 · `/departamento.html?dept=joyas_accesorios&nav=1&b=vivienne%20westwood`
@@ -3243,7 +3237,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Alphalete: 17 · `/departamento.html?dept=joyas_accesorios&nav=1&b=alphalete`
 - KHAITE: 17 · `/departamento.html?dept=joyas_accesorios&nav=1&b=khaite`
 - Dakine: 16 · `/departamento.html?dept=joyas_accesorios&nav=1&b=dakine`
-- FUNKO: 16 · `/departamento.html?dept=joyas_accesorios&nav=1&b=funko`
 - LNGFYLN: 15 · `/departamento.html?dept=joyas_accesorios&nav=1&b=lngfyln`
 - Paul Smith: 15 · `/departamento.html?dept=joyas_accesorios&nav=1&b=paul%20smith`
 - rag & bone: 15 · `/departamento.html?dept=joyas_accesorios&nav=1&b=rag%20%26%20bone`
@@ -3394,6 +3387,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - ETHOS: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=ethos`
 - FALAN MULE: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=falan%20mule`
 - Findtime: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=findtime`
+- FUNKO: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=funko`
 - Heaven Mayhem: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=heaven%20mayhem`
 - HESHPAWS: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=heshpaws`
 - HUF: 3 · `/departamento.html?dept=joyas_accesorios&nav=1&b=huf`
@@ -3521,7 +3515,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - APNEA: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=apnea`
 - Apt. 9: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=apt.%209`
 - Art Value: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=art%20value`
-- ASSOULINE: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=assouline`
 - AYYUFE: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=ayyufe`
 - B-Low the Belt: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=b-low%20the%20belt`
 - BABLIBU: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=bablibu`
@@ -3549,8 +3542,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 - Chanana: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chanana`
 - Channel Islands: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=channel%20islands`
 - Charles Jeffrey LOVERBOY: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=charles%20jeffrey%20loverboy`
-- Chronicle Books: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chronicle%20books`
-- Chronicle Chroma: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chronicle%20chroma`
 - Chums: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=chums`
 - Churchill: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=churchill`
 - Claussen: 1 · `/departamento.html?dept=joyas_accesorios&nav=1&b=claussen`
@@ -3747,7 +3738,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,672 productos)
 
 ### Secciones
 
-- Joyas y Accesorios: 8,672 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
 - Carteras: 2,499 · `/departamento.html?dept=purses`
 - Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
 
@@ -4254,7 +4245,7 @@ Abre: `/departamento.html?dept=luxury` (21,640 productos)
 
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
 - Diseñadores Latinos: 10,053 · `/disenadores.html`
-- Joyas y Accesorios: 8,672 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
 
 ## Deportes
 
@@ -5142,7 +5133,7 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 - Ropa: 56 · `/departamento.html?dept=curvy&nav=1&u=men&t=ropa`
 - Ropa de baño: 49 · `/departamento.html?dept=curvy&nav=1&u=men&t=ropa-de-bano`
 - Accesorios: 28 · `/departamento.html?dept=curvy&nav=1&u=men&t=accesorios`
-- Lencería: 16 · `/departamento.html?dept=curvy&nav=1&u=men&t=lenceria`
+- Lencería: 18 · `/departamento.html?dept=curvy&nav=1&u=men&t=lenceria`
 - Blazers: 9 · `/departamento.html?dept=curvy&nav=1&u=men&t=blazers`
 - Pijamas: 8 · `/departamento.html?dept=curvy&nav=1&u=men&t=pijamas`
 - Zapatos: 4 · `/departamento.html?dept=curvy&nav=1&u=men&t=zapatos`
@@ -5615,110 +5606,97 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 
 ## Lencería
 
-Abre: `/ropa-interior.html#mujer` (3,294 productos)
+Abre: `/ropa-interior.html#mujer` (3,045 productos)
 
-### Lencería (3,293)
+### Lencería (3,044)
 
-- Sostenes: 1,433 · `/ropa-interior.html?ft=sostenes#mujer`
-- Panties: 1,091 · `/ropa-interior.html?ft=panties#mujer`
-- Fajas y shapewear: 253 · `/ropa-interior.html?ft=fajas-y-shapewear#mujer`
-- Lencería: 247 · `/ropa-interior.html?ft=lenceria#mujer`
-- Pantis y medias nylon: 139 · `/ropa-interior.html?ft=pantis-y-medias-nylon#mujer`
-- Medias: 113 · `/ropa-interior.html?ft=medias#mujer`
+- Sostenes: 1,237 · `/ropa-interior.html?ft=sostenes#mujer`
+- Panties: 1,077 · `/ropa-interior.html?ft=panties#mujer`
+- Fajas y shapewear: 250 · `/ropa-interior.html?ft=fajas-y-shapewear#mujer`
+- Lencería: 219 · `/ropa-interior.html?ft=lenceria#mujer`
+- Pantis y medias nylon: 134 · `/ropa-interior.html?ft=pantis-y-medias-nylon#mujer`
+- Medias: 110 · `/ropa-interior.html?ft=medias#mujer`
 - Medias deportivas: 17 · `/ropa-interior.html?ft=medias-deportivas#mujer`
 
-### Ropa Interior Hombre (1,583)
+### Ropa Interior Hombre (1,572)
 
-- Medias: 635 · `/ropa-interior.html?ft=medias#hombre`
-- Bóxer brief: 582 · `/ropa-interior.html?ft=boxer-brief#hombre`
+- Medias: 634 · `/ropa-interior.html?ft=medias#hombre`
+- Bóxer brief: 584 · `/ropa-interior.html?ft=boxer-brief#hombre`
 - Calzoncillos: 205 · `/ropa-interior.html?ft=calzoncillos#hombre`
-- Medias deportivas: 114 · `/ropa-interior.html?ft=medias-deportivas#hombre`
-- Medias de vestir: 36 · `/ropa-interior.html?ft=medias-de-vestir#hombre`
-- Trunks: 11 · `/ropa-interior.html?ft=trunks#hombre`
+- Medias deportivas: 113 · `/ropa-interior.html?ft=medias-deportivas#hombre`
+- Medias de vestir: 33 · `/ropa-interior.html?ft=medias-de-vestir#hombre`
+- Trunks: 3 · `/ropa-interior.html?ft=trunks#hombre`
 
-### Marcas de lencería (3,293)
+### Marcas de lencería (3,044)
 
-- SKIMS: 949 · `/ropa-interior.html?fb=skims#mujer`
-- Victoria's Secret: 801 · `/ropa-interior.html?fb=victoria's%20secret#mujer`
-- Intimissimi: 288 · `/ropa-interior.html?fb=intimissimi#mujer`
+- SKIMS: 945 · `/ropa-interior.html?fb=skims#mujer`
+- Victoria's Secret: 797 · `/ropa-interior.html?fb=victoria's%20secret#mujer`
+- Intimissimi: 283 · `/ropa-interior.html?fb=intimissimi#mujer`
 - Kindred Bravely: 210 · `/ropa-interior.html?fb=kindred%20bravely#mujer`
-- Ryderwear: 152 · `/ropa-interior.html?fb=ryderwear#mujer`
-- PINK: 104 · `/ropa-interior.html?fb=pink#mujer`
+- PINK: 102 · `/ropa-interior.html?fb=pink#mujer`
 - Lane Bryant: 97 · `/ropa-interior.html?fb=lane%20bryant#mujer`
-- Calzedonia: 96 · `/ropa-interior.html?fb=calzedonia#mujer`
+- Calzedonia: 90 · `/ropa-interior.html?fb=calzedonia#mujer`
 - Oner Active: 66 · `/ropa-interior.html?fb=oner%20active#mujer`
 - Bali: 38 · `/ropa-interior.html?fb=bali#mujer`
 - Wacoal: 29 · `/ropa-interior.html?fb=wacoal#mujer`
-- Wolford: 24 · `/ropa-interior.html?fb=wolford#mujer`
-- Paragon Fitwear: 22 · `/ropa-interior.html?fb=paragon%20fitwear#mujer`
-- Buffbunny: 17 · `/ropa-interior.html?fb=buffbunny#mujer`
+- Wolford: 23 · `/ropa-interior.html?fb=wolford#mujer`
 - Stance: 17 · `/ropa-interior.html?fb=stance#mujer`
-- Momcozy: 17 · `/ropa-interior.html?fb=momcozy#mujer`
 - Jockey: 16 · `/ropa-interior.html?fb=jockey#mujer`
+- Momcozy: 15 · `/ropa-interior.html?fb=momcozy#mujer`
 - Eberjey: 12 · `/ropa-interior.html?fb=eberjey#mujer`
 - Hatch: 12 · `/ropa-interior.html?fb=hatch#mujer`
-- Miu Miu: 12 · `/ropa-interior.html?fb=miu%20miu#mujer`
+- Miu Miu: 11 · `/ropa-interior.html?fb=miu%20miu#mujer`
 - Swedish Stockings: 11 · `/ropa-interior.html?fb=swedish%20stockings#mujer`
 - MM6 Maison Margiela: 11 · `/ropa-interior.html?fb=mm6%20maison%20margiela#mujer`
 - PSD x: 11 · `/ropa-interior.html?fb=psd%20x#mujer`
 - Vanity Fair: 10 · `/ropa-interior.html?fb=vanity%20fair#mujer`
 - Vanity Fair Lingerie: 9 · `/ropa-interior.html?fb=vanity%20fair%20lingerie#mujer`
 - Agent Provocateur: 9 · `/ropa-interior.html?fb=agent%20provocateur#mujer`
+- Buffbunny: 8 · `/ropa-interior.html?fb=buffbunny#mujer`
 - Dolce & Gabbana: 8 · `/ropa-interior.html?fb=dolce%20%26%20gabbana#mujer`
 - Baserange: 8 · `/ropa-interior.html?fb=baserange#mujer`
 - Vivienne Westwood: 8 · `/ropa-interior.html?fb=vivienne%20westwood#mujer`
 - Smartwool: 8 · `/ropa-interior.html?fb=smartwool#mujer`
 - YoungLA: 8 · `/ropa-interior.html?fb=youngla#mujer`
-- Born Primitive: 7 · `/ropa-interior.html?fb=born%20primitive#mujer`
 - b.tempt'd: 7 · `/ropa-interior.html?fb=b.tempt'd#mujer`
 - Fruity Booty: 7 · `/ropa-interior.html?fb=fruity%20booty#mujer`
 - PatBO: 6 · `/ropa-interior.html?fb=patbo#mujer`
 - Golden Goose: 6 · `/ropa-interior.html?fb=golden%20goose#mujer`
 - Maidenform: 6 · `/ropa-interior.html?fb=maidenform#mujer`
-- Abercrombie & Fitch: 5 · `/ropa-interior.html?fb=abercrombie%20%26%20fitch#mujer`
-- FLEO: 5 · `/ropa-interior.html?fb=fleo#mujer`
 - Gymshark: 5 · `/ropa-interior.html?fb=gymshark#mujer`
-- TLF Apparel: 5 · `/ropa-interior.html?fb=tlf%20apparel#mujer`
 - Belly Bandit: 4 · `/ropa-interior.html?fb=belly%20bandit#mujer`
 - Farm Rio: 4 · `/ropa-interior.html?fb=farm%20rio#mujer`
 - Warners: 4 · `/ropa-interior.html?fb=warners#mujer`
 - Cacique: 4 · `/ropa-interior.html?fb=cacique#mujer`
 - Playtex: 4 · `/ropa-interior.html?fb=playtex#mujer`
-- Marni: 4 · `/ropa-interior.html?fb=marni#mujer`
 - Paloma Wool: 4 · `/ropa-interior.html?fb=paloma%20wool#mujer`
 - MeUndies: 4 · `/ropa-interior.html?fb=meundies#mujer`
-- Nike: 3 · `/ropa-interior.html?fb=nike#mujer`
-- Gorilla Wear: 3 · `/ropa-interior.html?fb=gorilla%20wear#mujer`
+- Born Primitive: 3 · `/ropa-interior.html?fb=born%20primitive#mujer`
 - Hanes: 3 · `/ropa-interior.html?fb=hanes#mujer`
 - Leonisa: 3 · `/ropa-interior.html?fb=leonisa#mujer`
 - Miraclesuit: 3 · `/ropa-interior.html?fb=miraclesuit#mujer`
 - Warner's: 3 · `/ropa-interior.html?fb=warner's#mujer`
 - Calvin Klein: 3 · `/ropa-interior.html?fb=calvin%20klein#mujer`
-- VETEMENTS: 3 · `/ropa-interior.html?fb=vetements#mujer`
 - Jean Paul Gaultier: 3 · `/ropa-interior.html?fb=jean%20paul%20gaultier#mujer`
 - FLORE FLORE: 3 · `/ropa-interior.html?fb=flore%20flore#mujer`
 - Calvin Klein Collection: 3 · `/ropa-interior.html?fb=calvin%20klein%20collection#mujer`
 - PSD: 3 · `/ropa-interior.html?fb=psd#mujer`
 - Alphalete: 2 · `/ropa-interior.html?fb=alphalete#mujer`
 - Brunello Cucinelli: 2 · `/ropa-interior.html?fb=brunello%20cucinelli#mujer`
-- Iron Rebel: 2 · `/ropa-interior.html?fb=iron%20rebel#mujer`
 - JW PEI: 2 · `/ropa-interior.html?fb=jw%20pei#mujer`
 - Fruit Of The Loom: 2 · `/ropa-interior.html?fb=fruit%20of%20the%20loom#mujer`
 - NOOD: 2 · `/ropa-interior.html?fb=nood#mujer`
 - 437: 2 · `/ropa-interior.html?fb=437#mujer`
 - Mugler: 2 · `/ropa-interior.html?fb=mugler#mujer`
 - Diesel: 2 · `/ropa-interior.html?fb=diesel#mujer`
-- Casablanca: 2 · `/ropa-interior.html?fb=casablanca#mujer`
-- Marine Serre: 2 · `/ropa-interior.html?fb=marine%20serre#mujer`
+- Marni: 2 · `/ropa-interior.html?fb=marni#mujer`
 - Cou Cou: 2 · `/ropa-interior.html?fb=cou%20cou#mujer`
+- TLF Apparel: 2 · `/ropa-interior.html?fb=tlf%20apparel#mujer`
 - Hot Chillys: 2 · `/ropa-interior.html?fb=hot%20chillys#mujer`
 - Vix: 2 · `/ropa-interior.html?fb=vix#mujer`
 - Ethika: 2 · `/ropa-interior.html?fb=ethika#mujer`
 - Hesperus: 2 · `/ropa-interior.html?fb=hesperus#mujer`
 - Agua Bendita: 1 · `/ropa-interior.html?fb=agua%20bendita#mujer`
-- American Eagle: 1 · `/ropa-interior.html?fb=american%20eagle#mujer`
-- Athleta: 1 · `/ropa-interior.html?fb=athleta#mujer`
-- Banana Republic: 1 · `/ropa-interior.html?fb=banana%20republic#mujer`
 - Dr. Brown's: 1 · `/ropa-interior.html?fb=dr.%20brown's#mujer`
 - Gap: 1 · `/ropa-interior.html?fb=gap#mujer`
 - Hollister: 1 · `/ropa-interior.html?fb=hollister#mujer`
@@ -5729,38 +5707,29 @@ Abre: `/ropa-interior.html#mujer` (3,294 productos)
 - Glamorise: 1 · `/ropa-interior.html?fb=glamorise#mujer`
 - HONEYLOVE: 1 · `/ropa-interior.html?fb=honeylove#mujer`
 - Forme: 1 · `/ropa-interior.html?fb=forme#mujer`
+- Nike: 1 · `/ropa-interior.html?fb=nike#mujer`
 - Stringys: 1 · `/ropa-interior.html?fb=stringys#mujer`
 - Flora Nikrooz: 1 · `/ropa-interior.html?fb=flora%20nikrooz#mujer`
 - Fleur Du Mal: 1 · `/ropa-interior.html?fb=fleur%20du%20mal#mujer`
 - BLUEBELLA: 1 · `/ropa-interior.html?fb=bluebella#mujer`
-- Nippies: 1 · `/ropa-interior.html?fb=nippies#mujer`
 - Thistle and Spire: 1 · `/ropa-interior.html?fb=thistle%20and%20spire#mujer`
-- Runaway The Label: 1 · `/ropa-interior.html?fb=runaway%20the%20label#mujer`
-- Understated Leather: 1 · `/ropa-interior.html?fb=understated%20leather#mujer`
-- First Row: 1 · `/ropa-interior.html?fb=first%20row#mujer`
-- Jordan: 1 · `/ropa-interior.html?fb=jordan#mujer`
 - New Balance: 1 · `/ropa-interior.html?fb=new%20balance#mujer`
 - adidas: 1 · `/ropa-interior.html?fb=adidas#mujer`
 - Thom Browne: 1 · `/ropa-interior.html?fb=thom%20browne#mujer`
-- Isabel Marant: 1 · `/ropa-interior.html?fb=isabel%20marant#mujer`
-- Toga Pulla: 1 · `/ropa-interior.html?fb=toga%20pulla#mujer`
-- AMIRI: 1 · `/ropa-interior.html?fb=amiri#mujer`
-- Déhanche: 1 · `/ropa-interior.html?fb=d%C3%A9hanche#mujer`
+- Casablanca: 1 · `/ropa-interior.html?fb=casablanca#mujer`
 - Chopova Lowena: 1 · `/ropa-interior.html?fb=chopova%20lowena#mujer`
 - Kiko Kostadinov: 1 · `/ropa-interior.html?fb=kiko%20kostadinov#mujer`
-- VAQUERA: 1 · `/ropa-interior.html?fb=vaquera#mujer`
 - Y-3: 1 · `/ropa-interior.html?fb=y-3#mujer`
 - Patagonia: 1 · `/ropa-interior.html?fb=patagonia#mujer`
 - She Surf: 1 · `/ropa-interior.html?fb=she%20surf#mujer`
 - Simon & Schuster: 1 · `/ropa-interior.html?fb=simon%20%26%20schuster#mujer`
-- Spin-It: 1 · `/ropa-interior.html?fb=spin-it#mujer`
 - Ame and Lulu: 1 · `/ropa-interior.html?fb=ame%20and%20lulu#mujer`
 - TNS: 1 · `/ropa-interior.html?fb=tns#mujer`
 
 ### Secciones
 
-- Lencería: 3,294 · `/ropa-interior.html#mujer`
-- Ropa Interior Hombre: 1,619 · `/ropa-interior.html#hombre`
+- Lencería: 3,045 · `/ropa-interior.html#mujer`
+- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
 
 ## Hogar
 
@@ -7479,7 +7448,7 @@ Abre: `/ofertas.html` (31,969 productos)
 - Pantalones y jeans: 191 · `/departamento.html?dept=women&nav=1&t=pantalones-y-jeans&o=1`
 - Casacas y abrigos: 189 · `/departamento.html?dept=women&nav=1&t=casacas-y-abrigos&o=1`
 - Camisas: 186 · `/departamento.html?dept=women&nav=1&t=camisas&o=1`
-- Lencería: 175 · `/departamento.html?dept=women&nav=1&t=lenceria&o=1`
+- Lencería: 177 · `/departamento.html?dept=women&nav=1&t=lenceria&o=1`
 - Ropa de baño: 160 · `/departamento.html?dept=women&nav=1&t=ropa-de-bano&o=1`
 - Pantalones y faldas: 129 · `/departamento.html?dept=women&nav=1&t=pantalones-y-faldas&o=1`
 - Joyas: 117 · `/departamento.html?dept=women&nav=1&t=joyas&o=1`

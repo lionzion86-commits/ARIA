@@ -864,6 +864,11 @@ html{scroll-padding-top:76px}
   /* STORE SHIPPING (#443 c.6511807569, c.6511908498): each store's own fee
      to Miami, store by store, with its meter -- /store-shipping.js. */
   import { cartShipping, shippingRuleText, shippingMeterText, shippingStandingText, SHIPPING_LINE_LABEL } from './scripts/lib/store-shipping.js';
+  /* USPS EXPOSURE (#443 c.6612459871 + addendum c.6612548967, Danny): the
+     alert for a store that ships USPS (or may), its widened window, and --
+     for a store that also sells a faster tier -- both options before
+     payment, the store's own tiers passed through at cost. /store-carrier.js. */
+  import { STORE_CARRIER as SC } from './scripts/lib/store-carrier.js';
   /* DELIVERY TRANSPARENCY (2026-09-26): the researched Miami-transit dataset. */
   import { deliveryFor, miamiRangeEs, slowestDeliveryKey,
            MIAMI_TO_DOOR_MIN, MIAMI_TO_DOOR_MAX } from './scripts/lib/retailer-delivery.js';
@@ -1804,6 +1809,59 @@ function cardImgAttrs(url, sizes){
     return round2(cart.reduce((s, it) => s + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0));
   }
 
+  /* THE CUSTOMER'S SHIPPING TIER PER STORE ({store: tierId}), kept for the
+     tab so a reload does not drop the pick; sent with the order, where
+     orders-create.js re-prices it from the same data. */
+  const SHIP_TIERS_KEY = 'aria_ship_tiers_v1';
+  let shipTiers = {};
+  try { shipTiers = SC.sanitizeTiers(JSON.parse(sessionStorage.getItem(SHIP_TIERS_KEY) || '{}')); } catch { shipTiers = {}; }
+  function cartShipTiers(){
+    const inCart = new Set((Array.isArray(cart) ? cart : []).map((it) => String(it.retailer || '').toLowerCase()));
+    const out = {};
+    for (const k of Object.keys(shipTiers)) if (inCart.has(k)) out[k] = shipTiers[k];
+    return out;
+  }
+  function chooseShipTier(store, id){
+    shipTiers = SC.sanitizeTiers({ ...shipTiers, [store]: id });
+    try { sessionStorage.setItem(SHIP_TIERS_KEY, JSON.stringify(shipTiers)); } catch {}
+    renderSummary();
+    renderDeliverySummary();
+  }
+  window.ariaChooseShipTier = chooseShipTier;
+  function cartShippingNow(){ return cartShipping(cart, undefined, { tiers: cartShipTiers() }); }
+  /* An option's price: soles first, the dollar small; the store's own
+     checkout price is said in words, never a number and never $0. */
+  function shipOptionPriceHTML(o){
+    if (o.priceUsd == null) return `<span class="font-bold" style="color:var(--navy)">${escapeHtmlLocal(SC.PRICE_AT_STORE)}</span>`;
+    if (o.priceUsd === 0) return `<span class="font-extrabold" style="color:#1F8A4C">GRATIS</span>`;
+    const p = fxRates ? pen.format(round2(o.priceUsd * fxRates.venta)) : '';
+    return `<span class="tabular font-extrabold" style="color:var(--navy)">${p ? p + ' ' : ''}<span class="text-[11px] font-normal" style="color:#6B7487">${usd.format(o.priceUsd)}</span></span>`;
+  }
+  /* The alert, exact copy (Danny), and for a group-1 store the options. */
+  function carrierBlockHTML(st, base){
+    const lines = SC.alertLines(st.store);
+    if (!lines.length) return '';
+    const alert = `<div class="rounded-lg px-2.5 py-2 mt-2 text-[11.5px] leading-snug font-semibold" style="background:#FFF7E6; border:1px solid #F4C463; color:var(--navy)" data-usps-alert="${escapeHtmlLocal(SC.classOf(st.store))}">`
+      + lines.map((l) => `<p${l === SC.ALERT_GROUP1 ? ' class="mt-1" data-usps-alt-line' : ''}>${escapeHtmlLocal(l)}</p>`).join('') + `</div>`;
+    /* Priced against the store's standard standing (no tier applied). */
+    const opts = SC.optionsFor(st.store, st.subtotalUsd, base || st);
+    if (!opts.length) return alert;
+    const chosen = st.tierId || SC.STANDARD_ID;
+    const name = `shipTier-${st.store}`;
+    const rows = opts.map((o) => `<label class="flex items-start gap-2 rounded-lg px-2.5 py-2 cursor-pointer" style="background:#fff; border:1px solid ${o.id === chosen ? 'var(--navy)' : 'var(--line)'}" data-ship-option="${escapeHtmlLocal(o.id)}">
+        <input type="radio" class="mt-0.5" name="${escapeHtmlLocal(name)}" value="${escapeHtmlLocal(o.id)}" ${o.id === chosen ? 'checked' : ''} onchange="ariaChooseShipTier('${escapeHtmlLocal(st.store)}', this.value)">
+        <span class="flex-1 min-w-0">
+          <span class="flex justify-between gap-2 text-[12.5px]"><span class="font-bold" style="color:var(--navy)">${o.standard ? escapeHtmlLocal(o.label) : (o.name ? '«' + escapeHtmlLocal(o.label) + '»' : escapeHtmlLocal(o.label))}</span>${shipOptionPriceHTML(o)}</span>
+          ${o.standard && o.name ? `<span class="block text-[11px]" style="color:#5B6478">En la tienda: «${escapeHtmlLocal(o.name)}»</span>` : ''}
+          ${o.speedText ? `<span class="block text-[11px]" style="color:#5B6478" data-ship-speed>${o.standard ? 'Plazo: ' : 'Plazo de la tienda: '}${escapeHtmlLocal(o.speedText)}</span>` : ''}
+          ${!o.standard && o.ruleText && o.ruleText !== SC.PRICE_AT_STORE ? `<span class="block text-[11px]" style="color:#8A93A8">Tarifa de la tienda: ${escapeHtmlLocal(o.ruleText)}</span>` : ''}
+          ${!o.standard && o.usps ? `<span class="block text-[11px]" style="color:#8A93A8">Esta opción también viaja con USPS.</span>` : ''}
+          ${o.viaCustomerService ? `<span class="block text-[11px]" style="color:#8A93A8">La tienda la da por su servicio al cliente; nosotros la pedimos por ti.</span>` : ''}
+        </span>
+      </label>`).join('');
+    return alert + `<fieldset class="mt-2 flex flex-col gap-1.5" data-ship-options="${escapeHtmlLocal(st.store)}"><legend class="text-[11px] font-extrabold uppercase tracking-wide mb-1" style="color:var(--navy)">Elige el envío de la tienda</legend>${rows}</fieldset>`;
+  }
+
   function orderTotalsUsd(){
     const goods = currentGoodsUsd();
     const fob = currentValor();
@@ -1811,7 +1869,7 @@ function cardImgAttrs(url, sizes){
     const tax = importTaxEstimateUsd(fob, freight);
     /* Each store's own shipping to Miami, under its free-shipping line
        (orders-create.js charges the same figure). */
-    const shipping = cartShipping(cart).totalUsd;
+    const shipping = cartShippingNow().totalUsd;
     return { goods, fob, freight, tax, shipping, totalUsd: round2(goods + freight + tax + shipping) };
   }
 
@@ -1824,8 +1882,9 @@ function cardImgAttrs(url, sizes){
   function renderStoreShipping(totals, pens){
     const row = document.getElementById('sumShipRow');
     const panel = document.getElementById('storeShipPanel');
-    const ship = cartShipping(cart);
+    const ship = cartShippingNow();
     const ruled = ship.stores;
+    const baseByStore = Object.fromEntries(cartShipping(cart).stores.map((b) => [b.store, b]));
     row.hidden = !ruled.length;
     panel.hidden = !ruled.length;
     if (!ruled.length){ panel.innerHTML = ''; return; }
@@ -1843,14 +1902,16 @@ function cardImgAttrs(url, sizes){
       const open = !st.rule || st.pending;
       /* Never "por confirmar" (Danny, #443 c.6547441472): a store with no
          published fee is calculated at its own checkout, like a pending one. */
-      const fee = !st.rule || st.pending ? 'POR CALCULAR' : st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS';
-      const meter = st.rule && st.rule.freeOverUsd > 0 && st.progress != null
+      const fee = st.tierId && st.pending ? SC.PRICE_AT_STORE
+        : st.tierId ? (st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS')
+        : !st.rule || st.pending ? 'POR CALCULAR' : st.feeUsd > 0 ? `US$ ${st.feeUsd.toFixed(2)}` : 'GRATIS';
+      const meter = !st.tierId && st.rule && st.rule.freeOverUsd > 0 && st.progress != null
         ? `<div class="h-2 rounded-full overflow-hidden mt-1.5" style="background:#E3E7F0" role="progressbar" aria-valuemin="0" aria-valuemax="${st.rule.freeOverUsd}" aria-valuenow="${st.subtotalUsd}"><div class="h-full rounded-full" style="width:${Math.round(st.progress * 100)}%; background:${st.met ? '#1F8A4C' : 'var(--navy)'}"></div></div>
            <div class="text-[11.5px] mt-1" style="color:#5B6478">${escapeHtmlLocal(shippingMeterText(st))} · ${escapeHtmlLocal(shippingStandingText(st, label))}</div>`
         : '';
       return `<div class="rounded-xl px-3 py-2" style="background:#F7F8FB; border:1px solid var(--line)" data-store-ship="${escapeHtmlLocal(st.store)}">
         <div class="flex justify-between gap-2 text-[12.5px]"><span class="font-bold" style="color:var(--navy)">Envío de ${escapeHtmlLocal(label)}</span><span class="tabular font-extrabold" style="color:${open || st.feeUsd > 0 ? 'var(--navy)' : '#1F8A4C'}">${fee}</span></div>
-        <div class="text-[11px]" style="color:#8A93A8">${escapeHtmlLocal(st.rule ? shippingRuleText(st.store) : 'Envío en EE.UU.: lo calcula la tienda al pagar')}</div>${meter}
+        <div class="text-[11px]" style="color:#8A93A8">${escapeHtmlLocal(st.tierId ? 'Opción de la tienda: ' + st.tierName : st.rule ? shippingRuleText(st.store) : 'Envío en EE.UU.: lo calcula la tienda al pagar')}</div>${meter}${carrierBlockHTML(st, baseByStore[st.store])}
       </div>`;
     }).join('');
   }
@@ -2548,6 +2609,12 @@ function cardImgAttrs(url, sizes){
      Several: one row per store, the slowest emphasised, then the
      Miami-to-door leg. The slowest store sets the visible expectation —
      and is exactly why the $8 separate-package option exists. */
+  /* A paid tier the customer picked carries the store's own speed for it. */
+  function tierSpeedOf(store){
+    const id = cartShipTiers()[store];
+    const t = id && id !== SC.STANDARD_ID ? SC.tierOf(store, id) : null;
+    return t ? SC.speedText(t.days) : null;
+  }
   function renderDeliverySummary(){
     const wrap = document.getElementById('deliverySummaryWrap');
     const keys = [...new Set(cart.map(it => String(it.retailer || '').toLowerCase()))]
@@ -2558,7 +2625,7 @@ function cardImgAttrs(url, sizes){
       const hot = keys.length > 1 && k === slowest;
       return `<div class="flex items-baseline justify-between gap-3 py-0.5">
         <span class="text-[12.5px]" style="color:#5B6478">${escapeHtmlLocal(RETAILER_LABELS[k] || k)}</span>
-        <span class="text-[12.5px] tabular ${hot ? 'font-extrabold' : 'font-semibold'}" style="color:${hot ? 'var(--navy)' : '#5B6478'}">${miamiRangeEs(deliveryFor(k))}</span>
+        <span class="text-[12.5px] tabular ${hot ? 'font-extrabold' : 'font-semibold'}" style="color:${hot ? 'var(--navy)' : '#5B6478'}">${escapeHtmlLocal(tierSpeedOf(k) || miamiRangeEs(deliveryFor(k)))}</span>
       </div>`;
     }).join('');
     wrap.innerHTML = `<div class="rounded-2xl border px-3.5 py-3" style="border-color:var(--line); background:#F7F9FD">
@@ -2800,6 +2867,9 @@ function cardImgAttrs(url, sizes){
              same shared helper and charges its own answer. */
           importTaxUsd: orderTotalsUsd().tax,
           storeShippingUsd: orderTotalsUsd().shipping,
+          // The customer's shipping option per USPS-exposed store ({store: tierId});
+          // orders-create.js re-prices it and records it for the buyer.
+          storeShippingTiers: cartShipTiers(),
           // A request, not an instruction: orders-create.js re-reads the
           // balance and caps this against it and against the order total.
           applyWalletPen: walletAppliedPen(orderTotalPenNow()),

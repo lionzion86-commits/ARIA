@@ -9,6 +9,8 @@
 <script src="/display-name.js"></script>
 <script src="/import-tax.js"></script>
 <script src="/off-sale.js"></script>
+<script src="/store-carrier-data.js"></script>
+<script src="/store-carrier.js"></script>
 <meta name="description" content="Compra en tiendas de Estados Unidos con entrega en Perú. Precio honesto, sin letra pequeña.">
 <style>
 /* Standalone Tienda template — one page for every store (?tienda=clave).
@@ -257,6 +259,10 @@ html.store-flagship .toolbar input[type="search"]::placeholder{color:rgba(255,25
 html.store-flagship .sl .card{border-color:rgba(231,200,115,.25)}
 html.store-flagship .state{background:#17130B;color:#F3E7C4;border-color:rgba(231,200,115,.35)}
 html.store-flagship .state h2{color:#E7C873}
+.usps-alert{margin:0 0 14px;padding:10px 12px;border-radius:12px;background:#FFF7E6;border:1px solid #F4C463;color:var(--navy);font-size:12.5px;line-height:1.45;font-weight:600}
+.usps-alert p{margin:0}
+.usps-alert p+p{margin-top:6px}
+.usps-alert .usps-window{font-weight:800}
 </style>
 <script src="/ref.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
@@ -353,6 +359,7 @@ html{scroll-padding-top:76px}
   </div>
 
   <div id="storeWrap" hidden>
+    <div id="carrierAlert" class="usps-alert" hidden></div>
     <div class="toolbar" data-pat="search">
       <input type="search" id="q" placeholder="Busca en esta tienda…" aria-label="Buscar en esta tienda" autocomplete="off">
       <select id="sort" aria-label="Ordenar" hidden style="display:none">
@@ -1513,6 +1520,21 @@ function paintHero(){
   }
   document.title = storeMeta.label + ' — Aria Shop';
 }
+/* USPS EXPOSURE (#443 c.6612459871, Danny): a store that ships USPS (or may)
+   says so at the top of its page, in Danny's exact words (/store-carrier.js),
+   with its store -> Miami window already widened. Nothing for a non-USPS or
+   not-yet-verified store. */
+function paintCarrierAlert(){
+  var el = $('carrierAlert'), C = window.AriaStoreCarrier;
+  if (!el || !C) return;
+  var lines = C.alertLines(storeKey);
+  if (!lines.length){ el.hidden = true; el.innerHTML = ''; return; }
+  var win = C.windowLineEs(storeKey);
+  el.setAttribute('data-usps-alert', C.classOf(storeKey));
+  el.innerHTML = lines.map(function(l){ return '<p>' + esc(l) + '</p>'; }).join('')
+    + (win ? '<p class="usps-window" data-usps-window>' + esc(win) + '</p>' : '');
+  el.hidden = false;
+}
 function boot(isRetry){
   if (booted && !isRetry) return;
   booted = true;
@@ -1529,6 +1551,7 @@ function boot(isRetry){
   if (dw) dw.hidden = true;
   if (sw) sw.hidden = false;
   paintHero();
+  paintCarrierAlert();
   /* Every store answers from its slices; the registry's `files` only tell the
      build which catalogues to read. */
   bootSliced();
