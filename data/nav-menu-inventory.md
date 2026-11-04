@@ -8,7 +8,7 @@ Cada pestaña, columna y enlace abre la página canónica ya construida de esa c
 
 | Entrada del menú | Página canónica a la que llega |
 |---|---|
-| Pestaña o «Ver todo» de un departamento | `departamento.html?dept=<k>` (o su página propia: Aria Auto, Lencería, Motos, Ofertas, Key Club) |
+| Pestaña o «Ver todo» de un departamento | `departamento.html?dept=<k>` (o su página propia: Aria Auto, Lencería, Motos, Ofertas) |
 | Columna por audiencia (Mujer / Hombre / Niños) | `departamento.html?dept=<k>&para=<audiencia>` (su selector Para quién) |
 | Tipo | `departamento.html?dept=<k>&t=<tipo>[&para=<audiencia>]` (su vista de tipo) |
 | Marca | `departamento.html?dept=<k>&b=<marca>[&para=<audiencia>]` (sus píldoras de marca: solo los productos de esa marca en ese departamento) |
@@ -17,8 +17,16 @@ Cada pestaña, columna y enlace abre la página canónica ya construida de esa c
 | Diseñadores Latinos | `disenadores.html?d=<diseñador>` · `?t=<tipo>` |
 | Motos | `motos.html?t=<tipo>` |
 | Aria Auto | `aria-auto.html` · `#buscar` · `#autos` (no tiene parámetro de tipo) |
-| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría) |
+| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría: cada categoría de la página, con su número de ofertas) y «Ver todas las ofertas» `ofertas.html` |
+| Key Club | no es una pestaña (no es una categoría de compra): su puerta es el enlace dorado «Aria Key Club» de la barra superior |
 | Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: la pestaña lista esa sección en «Secciones» |
+
+## Sin callejones sin salida (#443 c.6623258189)
+
+- Una pestaña sin columnas es un enlace: abre su página, no una hoja vacía.
+- Una columna cuyo único enlace es la pestaña misma no se muestra (el «Ver todo» del menú ya es esa puerta); una columna de un solo enlace es ese enlace, sin pantalla intermedia.
+- «Secciones» no repite la pestaña ni la página de una de sus columnas.
+- En el teléfono, una pestaña de una sola columna abre directamente su lista (Ofertas: sus categorías).
 
 ## URLs bloqueadas o redirigidas
 
@@ -41,19 +49,18 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 | Mujer | Ropa · Zapatos · Accesorios · Marcas · Secciones | 17,414 |
 | Hombre | Ropa · Zapatos · Accesorios · Marcas · Secciones | 12,152 |
 | Niños | Ropa · Zapatos · Marcas · Secciones | 2,274 |
-| Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,718 |
-| Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,342 |
-| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas · Secciones | 8,553 |
+| Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,700 |
+| Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,590 |
+| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,552 |
 | Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,640 |
 | Deportes | Tipos · Marcas · Secciones | 17,679 |
-| Tallas Plus | Mujer · Hombre · Marcas · Secciones | 7,850 |
-| Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería · Secciones | 3,045 |
-| Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,417 |
+| Tallas Plus | Mujer · Hombre · Marcas | 7,850 |
+| Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería | 3,045 |
+| Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,418 |
 | Electrónica | Tipos · Marcas · Secciones | 5,917 |
 | Juguetes | Tipos · Marcas · Secciones | 7,364 |
-| Auto y Motos | Aria Auto · Motos · Secciones | 2,495 |
-| Ofertas | Por categoría · Secciones | 31,969 |
-| Key Club | (sin columnas) | 0 |
+| Auto y Motos | Aria Auto · Motos | 2,495 |
+| Ofertas | Ofertas por categoría | 33,505 |
 
 ## Mujer
 
@@ -117,12 +124,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Tacones: 22 → Zapatos · `/departamento.html?dept=shoes`
 - Mocasines y pantuflas: 16 → Zapatos · `/departamento.html?dept=shoes`
 
-### Zapatos (9,749)
+### Zapatos (9,738)
 
-- Zapatos: 3,405 · `/departamento.html?dept=shoes&t=zapatos&para=women`
-- Zapatillas: 3,131 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Zapatos: 3,404 · `/departamento.html?dept=shoes&t=zapatos&para=women`
+- Zapatillas: 3,122 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,112 · `/departamento.html?dept=shoes&t=sandalias&para=women`
-- Mocasines y pantuflas: 627 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
+- Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
@@ -912,11 +919,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Tallas Plus: 7,850 · `/departamento.html?dept=curvy`
 - Diseñadores Latinos: 10,053 · `/disenadores.html`
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
-- Aria Beauty: 5,342 · `/departamento.html?dept=beauty`
-- Perfumes: 10,912 · `/departamento.html?dept=perfumes`
-- Carteras: 2,499 · `/departamento.html?dept=purses`
+- Aria Beauty: 5,590 · `/departamento.html?dept=beauty`
+- Perfumes: 11,066 · `/departamento.html?dept=perfumes`
+- Carteras: 2,500 · `/departamento.html?dept=purses`
 - Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
 - Ropa: 17,114 · `/departamento.html?dept=clothing`
 
 ## Hombre
@@ -975,12 +982,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Bolso: 20 → Carteras · `/departamento.html?dept=purses`
 - Fragancia: 1 → Perfumes · `/departamento.html?dept=perfumes`
 
-### Zapatos (8,381)
+### Zapatos (8,370)
 
-- Zapatillas: 3,307 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 2,697 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,298 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 2,696 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
-- Mocasines y pantuflas: 615 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
+- Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 - Tacones: 101 · `/departamento.html?dept=shoes&t=tacones&para=men`
@@ -1407,10 +1414,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 - Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
 - Zapatos de Hombre: 1,440 · `/departamento.html?dept=shoes_men`
-- Perfumes: 10,912 · `/departamento.html?dept=perfumes`
+- Perfumes: 11,066 · `/departamento.html?dept=perfumes`
 - Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
-- Carteras: 2,499 · `/departamento.html?dept=purses`
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
+- Carteras: 2,500 · `/departamento.html?dept=purses`
+- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
 - Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
 - Gym Rat: 12,065 · `/departamento.html?dept=gym_rat`
 
@@ -1452,14 +1459,14 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Zapatillas: 2 → Zapatos · `/departamento.html?dept=shoes`
 - Lentes de sol: 1 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 
-### Zapatos (1,575)
+### Zapatos (1,563)
 
-- Zapatillas: 502 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
-- Zapatos: 472 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatillas: 498 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Zapatos: 468 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
-- Mocasines y pantuflas: 177 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
+- Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
 - Sandalias: 114 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
-- Botas y botines: 63 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
+- Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
 ### Marcas (2,274)
@@ -1661,60 +1668,60 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ## Zapatos
 
-Abre: `/departamento.html?dept=shoes` (10,718 productos)
+Abre: `/departamento.html?dept=shoes` (10,700 productos)
 
-### Mujer (7,083)
+### Mujer (7,073)
 
-- Zapatos: 3,405 · `/departamento.html?dept=shoes&t=zapatos&para=women`
-- Zapatillas: 3,131 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Zapatos: 3,404 · `/departamento.html?dept=shoes&t=zapatos&para=women`
+- Zapatillas: 3,122 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
 - Sandalias: 1,112 · `/departamento.html?dept=shoes&t=sandalias&para=women`
-- Mocasines y pantuflas: 627 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
+- Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
-### Hombre (6,518)
+### Hombre (6,508)
 
-- Zapatillas: 3,307 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 2,697 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,298 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 2,696 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
-- Mocasines y pantuflas: 615 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
+- Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
 - Tacones: 101 · `/departamento.html?dept=shoes&t=tacones&para=men`
 
-### Niños (1,221)
+### Niños (1,213)
 
-- Zapatillas: 502 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
-- Zapatos: 472 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Zapatillas: 498 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Zapatos: 468 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
 - Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
-- Mocasines y pantuflas: 177 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
+- Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
 - Sandalias: 114 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
-- Botas y botines: 63 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
+- Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
-### Marcas (10,718)
+### Marcas (10,700)
 
-- Nike: 918 · `/departamento.html?dept=shoes&b=Nike`
+- Nike: 911 · `/departamento.html?dept=shoes&b=Nike`
 - adidas: 683 · `/departamento.html?dept=shoes&b=adidas`
 - New Balance: 565 · `/departamento.html?dept=shoes&b=New%20Balance`
-- Crocs: 461 · `/departamento.html?dept=shoes&b=Crocs`
-- Vans: 333 · `/departamento.html?dept=shoes&b=Vans`
+- Crocs: 458 · `/departamento.html?dept=shoes&b=Crocs`
+- Vans: 332 · `/departamento.html?dept=shoes&b=Vans`
 - Reef: 319 · `/departamento.html?dept=shoes&b=Reef`
 - Golden Goose: 306 · `/departamento.html?dept=shoes&b=Golden%20Goose`
 - JW PEI: 286 · `/departamento.html?dept=shoes&b=JW%20PEI`
 - Dolce & Gabbana: 211 · `/departamento.html?dept=shoes&b=Dolce%20%26%20Gabbana`
-- Jordan: 169 · `/departamento.html?dept=shoes&b=Jordan`
+- Jordan: 166 · `/departamento.html?dept=shoes&b=Jordan`
 - Puma: 147 · `/departamento.html?dept=shoes&b=Puma`
 - Birkenstock: 144 · `/departamento.html?dept=shoes&b=Birkenstock`
 - Nike SB: 139 · `/departamento.html?dept=shoes&b=Nike%20SB`
 - Miu Miu: 130 · `/departamento.html?dept=shoes&b=Miu%20Miu`
 - Skechers: 123 · `/departamento.html?dept=shoes&b=Skechers`
 - On: 115 · `/departamento.html?dept=shoes&b=On`
-- UGG: 107 · `/departamento.html?dept=shoes&b=UGG`
 - Brunello Cucinelli: 106 · `/departamento.html?dept=shoes&b=Brunello%20Cucinelli`
-- Asics: 100 · `/departamento.html?dept=shoes&b=Asics`
-- Converse: 95 · `/departamento.html?dept=shoes&b=Converse`
+- UGG: 105 · `/departamento.html?dept=shoes&b=UGG`
+- Asics: 99 · `/departamento.html?dept=shoes&b=Asics`
+- Converse: 94 · `/departamento.html?dept=shoes&b=Converse`
 - AMIRI: 84 · `/departamento.html?dept=shoes&b=AMIRI`
 - Olukai: 75 · `/departamento.html?dept=shoes&b=Olukai`
 - adidas Originals: 70 · `/departamento.html?dept=shoes&b=adidas%20Originals`
@@ -2185,40 +2192,37 @@ Abre: `/departamento.html?dept=shoes` (10,718 productos)
 
 ## Belleza
 
-Abre: `/departamento.html?dept=beauty` (5,342 productos)
+Abre: `/departamento.html?dept=beauty` (5,590 productos)
 
-### Tipos (5,342)
+### Tipos (5,590)
 
 - Cuidado del cabello: 702 · `/departamento.html?dept=beauty&t=cuidado-del-cabello`
-- Belleza: 352 · `/departamento.html?dept=beauty&t=belleza`
-- Accesorios: 212 · `/departamento.html?dept=beauty&t=accesorios`
+- Belleza: 405 · `/departamento.html?dept=beauty&t=belleza`
 - Mascarillas: 140 · `/departamento.html?dept=beauty&t=mascarillas`
 - Limpieza: 115 · `/departamento.html?dept=beauty&t=limpieza`
-- Cuidado Corporal: 33 · `/departamento.html?dept=beauty&t=cuidado-corporal`
-- Máscaras Y Snorkels: 14 · `/departamento.html?dept=beauty&t=mascaras-y-snorkels`
-- Trajes De Neopreno: 3 · `/departamento.html?dept=beauty&t=trajes-de-neopreno`
+- Cuidado Corporal: 91 · `/departamento.html?dept=beauty&t=cuidado-corporal`
 - Hogar: 2 · `/departamento.html?dept=beauty&t=hogar`
 - Ropa: 2 · `/departamento.html?dept=beauty&t=ropa`
-- Accesorios De Fútbol: 1 · `/departamento.html?dept=beauty&t=accesorios-de-futbol`
 - Blusas y tops: 1 · `/departamento.html?dept=beauty&t=blusas-y-tops`
 - Cascos Y Protecciones: 1 · `/departamento.html?dept=beauty&t=cascos-y-protecciones`
 
 Viven en su propia sección (no son enlaces de esta columna):
-- Fragancia: 218 → Perfumes · `/departamento.html?dept=perfumes`
+- Fragancia: 300 → Perfumes · `/departamento.html?dept=perfumes`
 - Carteras: 2 → Carteras · `/departamento.html?dept=purses`
 
-### Aria Perfumes (10,912)
+### Aria Perfumes (11,066)
 
-- Mujer: 4,064 · `/departamento.html?dept=perfumes&a=mujer`
-- Hombre: 2,916 · `/departamento.html?dept=perfumes&a=hombre`
+- Mujer: 4,082 · `/departamento.html?dept=perfumes&a=mujer`
+- Hombre: 2,920 · `/departamento.html?dept=perfumes&a=hombre`
 - Unisex: 1,856 · `/departamento.html?dept=perfumes&a=unisex`
-- Minis: 353 · `/departamento.html?dept=perfumes&a=minis`
-- Sets de regalo: 113 · `/departamento.html?dept=perfumes&a=sets`
+- Minis: 391 · `/departamento.html?dept=perfumes&a=minis`
+- Sets de regalo: 114 · `/departamento.html?dept=perfumes&a=sets`
 - Testers: 576 · `/departamento.html?dept=perfumes&a=testers`
 
-### Marcas (5,342)
+### Marcas (5,590)
 
-- Sun Bum: 121 · `/departamento.html?dept=beauty&b=Sun%20Bum`
+- Victoria's Secret: 220 · `/departamento.html?dept=beauty&b=Victoria's%20Secret`
+- Sun Bum: 117 · `/departamento.html?dept=beauty&b=Sun%20Bum`
 - SKIN1004: 101 · `/departamento.html?dept=beauty&b=SKIN1004`
 - Bath & Body Works: 100 · `/departamento.html?dept=beauty&b=Bath%20%26%20Body%20Works`
 - Clinique: 82 · `/departamento.html?dept=beauty&b=Clinique`
@@ -2229,6 +2233,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - MAC: 48 · `/departamento.html?dept=beauty&b=MAC`
 - Estée Lauder: 47 · `/departamento.html?dept=beauty&b=Est%C3%A9e%20Lauder`
 - PETERSON'S LAB: 46 · `/departamento.html?dept=beauty&b=PETERSON'S%20LAB`
+- PINK: 46 · `/departamento.html?dept=beauty&b=PINK`
 - Dr. Althea: 42 · `/departamento.html?dept=beauty&b=Dr.%20Althea`
 - Johnny B. Hair Care: 40 · `/departamento.html?dept=beauty&b=Johnny%20B.%20Hair%20Care`
 - Beauty of Joseon: 38 · `/departamento.html?dept=beauty&b=Beauty%20of%20Joseon`
@@ -2365,7 +2370,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - SEEN: 9 · `/departamento.html?dept=beauty&b=SEEN`
 - seeyoung: 9 · `/departamento.html?dept=beauty&b=seeyoung`
 - SheenEffect: 9 · `/departamento.html?dept=beauty&b=SheenEffect`
-- Anon: 8 · `/departamento.html?dept=beauty&b=Anon`
 - AROMATICA: 8 · `/departamento.html?dept=beauty&b=AROMATICA`
 - Clé de Peau Beauté: 8 · `/departamento.html?dept=beauty&b=Cl%C3%A9%20de%20Peau%20Beaut%C3%A9`
 - Cos De BAHA: 8 · `/departamento.html?dept=beauty&b=Cos%20De%20BAHA`
@@ -2627,7 +2631,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - BEAUTY GLAZED: 2 · `/departamento.html?dept=beauty&b=BEAUTY%20GLAZED`
 - BETTER WORLD FRAGRANCE HOUSE: 2 · `/departamento.html?dept=beauty&b=BETTER%20WORLD%20FRAGRANCE%20HOUSE`
 - Billie Eilish: 2 · `/departamento.html?dept=beauty&b=Billie%20Eilish`
-- Billionaire Boys Club: 2 · `/departamento.html?dept=beauty&b=Billionaire%20Boys%20Club`
 - Bosley Professional Strength: 2 · `/departamento.html?dept=beauty&b=Bosley%20Professional%20Strength`
 - BRING GREEN: 2 · `/departamento.html?dept=beauty&b=BRING%20GREEN`
 - CAR MELA: 2 · `/departamento.html?dept=beauty&b=CAR%20MELA`
@@ -2672,7 +2675,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - HALEYS Beauty: 2 · `/departamento.html?dept=beauty&b=HALEYS%20Beauty`
 - Hayashi: 2 · `/departamento.html?dept=beauty&b=Hayashi`
 - Healthy Sexy Hair: 2 · `/departamento.html?dept=beauty&b=Healthy%20Sexy%20Hair`
-- Henny Apparel: 2 · `/departamento.html?dept=beauty&b=Henny%20Apparel`
 - Hero Cosmetics: 2 · `/departamento.html?dept=beauty&b=Hero%20Cosmetics`
 - HigherDose: 2 · `/departamento.html?dept=beauty&b=HigherDose`
 - Honkizz: 2 · `/departamento.html?dept=beauty&b=Honkizz`
@@ -2827,7 +2829,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Colorescience: 1 · `/departamento.html?dept=beauty&b=Colorescience`
 - Colure True Color Care: 1 · `/departamento.html?dept=beauty&b=Colure%20True%20Color%20Care`
 - Conair: 1 · `/departamento.html?dept=beauty&b=Conair`
-- Connetic: 1 · `/departamento.html?dept=beauty&b=Connetic`
 - CORINGCO: 1 · `/departamento.html?dept=beauty&b=CORINGCO`
 - CoverGirl: 1 · `/departamento.html?dept=beauty&b=CoverGirl`
 - coxir: 1 · `/departamento.html?dept=beauty&b=coxir`
@@ -3007,7 +3008,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - PMPM: 1 · `/departamento.html?dept=beauty&b=PMPM`
 - Pocketpaks: 1 · `/departamento.html?dept=beauty&b=Pocketpaks`
 - Prive - formule aux herbes: 1 · `/departamento.html?dept=beauty&b=Prive%20-%20formule%20aux%20herbes`
-- ProSoccer: 1 · `/departamento.html?dept=beauty&b=ProSoccer`
 - PÜR Minerals: 1 · `/departamento.html?dept=beauty&b=P%C3%9CR%20Minerals`
 - Q-tips: 1 · `/departamento.html?dept=beauty&b=Q-tips`
 - QHEMET BIOLOGICS: 1 · `/departamento.html?dept=beauty&b=QHEMET%20BIOLOGICS`
@@ -3091,15 +3091,13 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Aria Beauty: 5,342 · `/departamento.html?dept=beauty`
-- Perfumes: 10,912 · `/departamento.html?dept=perfumes`
-- Cabello: 1,041 · `/departamento.html?dept=cabello`
+- Cabello: 1,052 · `/departamento.html?dept=cabello`
 
 ## Accesorios
 
-Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
+Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 
-### Tipos (8,553)
+### Tipos (8,552)
 
 - Aretes: 1,291 · `/departamento.html?dept=joyas_accesorios&t=aretes`
 - Pulseras y tobilleras: 1,111 · `/departamento.html?dept=joyas_accesorios&t=pulseras-y-tobilleras`
@@ -3107,7 +3105,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Accesorios: 1,040 · `/departamento.html?dept=joyas_accesorios&t=accesorios`
 - Charms: 765 · `/departamento.html?dept=joyas_accesorios&t=charms`
 - Carteras: 591 · `/departamento.html?dept=joyas_accesorios&t=carteras`
-- Anillos: 506 · `/departamento.html?dept=joyas_accesorios&t=anillos`
+- Anillos: 505 · `/departamento.html?dept=joyas_accesorios&t=anillos`
 - Joyería: 303 · `/departamento.html?dept=joyas_accesorios&t=joyeria`
 - Correas: 293 · `/departamento.html?dept=joyas_accesorios&t=correas`
 - Billeteras: 260 · `/departamento.html?dept=joyas_accesorios&t=billeteras`
@@ -3136,8 +3134,8 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Coche: 8 · `/departamento.html?dept=joyas_accesorios&t=coche`
 - Equipo: 8 · `/departamento.html?dept=joyas_accesorios&t=equipo`
 - Tablas De Surf: 8 · `/departamento.html?dept=joyas_accesorios&t=tablas-de-surf`
-- Zapatillas: 8 · `/departamento.html?dept=joyas_accesorios&t=zapatillas`
 - Flash De Estudio: 7 · `/departamento.html?dept=joyas_accesorios&t=flash-de-estudio`
+- Zapatillas: 7 · `/departamento.html?dept=joyas_accesorios&t=zapatillas`
 - Zapatos: 7 · `/departamento.html?dept=joyas_accesorios&t=zapatos`
 - Accesorios de levantamiento: 6 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-levantamiento`
 - Disfraces: 6 · `/departamento.html?dept=joyas_accesorios&t=disfraces`
@@ -3175,9 +3173,9 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Toallas Y Ponchos: 1 · `/departamento.html?dept=joyas_accesorios&t=toallas-y-ponchos`
 - Trípode: 1 · `/departamento.html?dept=joyas_accesorios&t=tripode`
 
-### Carteras (2,219)
+### Carteras (2,221)
 
-- Carteras: 2,069 · `/departamento.html?dept=purses&t=carteras`
+- Carteras: 2,070 · `/departamento.html?dept=purses&t=carteras`
 - Pañales: 33 · `/departamento.html?dept=purses&t=panales`
 - Tablas De Surf: 16 · `/departamento.html?dept=purses&t=tablas-de-surf`
 - Accesorios: 13 · `/departamento.html?dept=purses&t=accesorios`
@@ -3202,6 +3200,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Arpones: 1 · `/departamento.html?dept=purses&t=arpones`
 - Autoasiento: 1 · `/departamento.html?dept=purses&t=autoasiento`
 - Biberones y alimentación del bebé: 1 · `/departamento.html?dept=purses&t=biberones-y-alimentacion-del-bebe`
+- Cuidado Corporal: 1 · `/departamento.html?dept=purses&t=cuidado-corporal`
 - Lactancia: 1 · `/departamento.html?dept=purses&t=lactancia`
 - Sup / Paddle Surf: 1 · `/departamento.html?dept=purses&t=sup-paddle-surf`
 - Trípode: 1 · `/departamento.html?dept=purses&t=tripode`
@@ -3219,7 +3218,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Aletas De Buceo: 1 · `/departamento.html?dept=sunglasses&t=aletas-de-buceo`
 - Decks (tablas De Skate): 1 · `/departamento.html?dept=sunglasses&t=decks-tablas-de-skate`
 
-### Marcas (8,553)
+### Marcas (8,552)
 
 - BaubleBar: 3,410 · `/departamento.html?dept=joyas_accesorios&b=BaubleBar`
 - Vivienne Westwood: 337 · `/departamento.html?dept=joyas_accesorios&b=Vivienne%20Westwood`
@@ -3379,7 +3378,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Hammerhead: 5 · `/departamento.html?dept=joyas_accesorios&b=Hammerhead`
 - Hugo: 5 · `/departamento.html?dept=joyas_accesorios&b=Hugo`
 - Johanna Ortiz: 5 · `/departamento.html?dept=joyas_accesorios&b=Johanna%20Ortiz`
-- Jordan: 5 · `/departamento.html?dept=joyas_accesorios&b=Jordan`
 - Lanvin: 5 · `/departamento.html?dept=joyas_accesorios&b=Lanvin`
 - Obey: 5 · `/departamento.html?dept=joyas_accesorios&b=Obey`
 - R13: 5 · `/departamento.html?dept=joyas_accesorios&b=R13`
@@ -3402,6 +3400,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Guidi: 4 · `/departamento.html?dept=joyas_accesorios&b=Guidi`
 - Independent Skateboard Trucks: 4 · `/departamento.html?dept=joyas_accesorios&b=Independent%20Skateboard%20Trucks`
 - JACQUEMUS: 4 · `/departamento.html?dept=joyas_accesorios&b=JACQUEMUS`
+- Jordan: 4 · `/departamento.html?dept=joyas_accesorios&b=Jordan`
 - Julius: 4 · `/departamento.html?dept=joyas_accesorios&b=Julius`
 - Kulani Kinis: 4 · `/departamento.html?dept=joyas_accesorios&b=Kulani%20Kinis`
 - Le Vian: 4 · `/departamento.html?dept=joyas_accesorios&b=Le%20Vian`
@@ -3780,12 +3779,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,553 productos)
 - Yokkao: 1 · `/departamento.html?dept=joyas_accesorios&b=Yokkao`
 - Yoursfs: 1 · `/departamento.html?dept=joyas_accesorios&b=Yoursfs`
 - ZYHH: 1 · `/departamento.html?dept=joyas_accesorios&b=ZYHH`
-
-### Secciones
-
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
-- Carteras: 2,499 · `/departamento.html?dept=purses`
-- Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
 
 ## Diseñador
 
@@ -4292,10 +4285,8 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
-- Diseñadores Latinos: 10,053 · `/disenadores.html`
-- Perfumes: 10,912 · `/departamento.html?dept=perfumes`
-- Joyas y Accesorios: 8,553 · `/departamento.html?dept=joyas_accesorios`
+- Perfumes: 11,066 · `/departamento.html?dept=perfumes`
+- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
 
 ## Deportes
 
@@ -5134,7 +5125,6 @@ Abre: `/departamento.html?dept=sporting_goods` (17,679 productos)
 - Aria Fight Club: 1,405 · `/departamento.html?dept=combat_sports`
 - Surf & Skate: 10,796 · `/departamento.html?dept=surf_skate`
 - Pesca Submarina: 1,184 · `/departamento.html?dept=spearfishing`
-- Deportes: 17,679 · `/departamento.html?dept=sporting_goods`
 
 ## Tallas Plus
 
@@ -5650,10 +5640,6 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 - Yumi: 1 · `/departamento.html?dept=curvy&b=Yumi`
 - Yumi Kim: 1 · `/departamento.html?dept=curvy&b=Yumi%20Kim`
 
-### Secciones
-
-- Tallas Plus: 7,850 · `/departamento.html?dept=curvy`
-
 ## Lencería
 
 Abre: `/ropa-interior.html#mujer` (3,045 productos)
@@ -5728,16 +5714,11 @@ Abre: `/ropa-interior.html#mujer` (3,045 productos)
 - Wolford: 0 · `/ropa-interior.html?ver=brand:wolford#mujer`
 - YoungLA: 0 · `/ropa-interior.html?ver=brand:youngla#mujer`
 
-### Secciones
-
-- Lencería: 3,045 · `/ropa-interior.html#mujer`
-- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
-
 ## Hogar
 
-Abre: `/departamento.html?dept=home_goods` (6,417 productos)
+Abre: `/departamento.html?dept=home_goods` (6,418 productos)
 
-### Casa Aria (5,750)
+### Casa Aria (5,751)
 
 - Hogar: 777 · `/departamento.html?dept=home_goods&t=hogar`
 - Manteles y servilletas: 660 · `/departamento.html?dept=home_goods&t=manteles-y-servilletas`
@@ -5798,7 +5779,7 @@ Abre: `/departamento.html?dept=home_goods` (6,417 productos)
 - Coche: 4 · `/departamento.html?dept=home_goods&t=coche`
 - Toallas Y Ponchos: 4 · `/departamento.html?dept=home_goods&t=toallas-y-ponchos`
 - Accesorios De Surf: 3 · `/departamento.html?dept=home_goods&t=accesorios-de-surf`
-- Belleza: 2 · `/departamento.html?dept=home_goods&t=belleza`
+- Belleza: 3 · `/departamento.html?dept=home_goods&t=belleza`
 - Bodyboards: 1 · `/departamento.html?dept=home_goods&t=bodyboards`
 - Maternidad: 1 · `/departamento.html?dept=home_goods&t=maternidad`
 
@@ -5828,7 +5809,7 @@ Abre: `/departamento.html?dept=home_goods` (6,417 productos)
 - Platos: 1 · `/departamento.html?dept=home_decor&t=platos`
 - Vasos: 1 · `/departamento.html?dept=home_decor&t=vasos`
 
-### Marcas (6,417)
+### Marcas (6,418)
 
 - Kohl's: 449 · `/departamento.html?dept=home_goods&b=Kohl's`
 - ASSOULINE: 270 · `/departamento.html?dept=home_goods&b=ASSOULINE`
@@ -6075,6 +6056,7 @@ Abre: `/departamento.html?dept=home_goods` (6,417 productos)
 - Pendleton: 1 · `/departamento.html?dept=home_goods&b=Pendleton`
 - Perkins: 1 · `/departamento.html?dept=home_goods&b=Perkins`
 - Philip Whitney: 1 · `/departamento.html?dept=home_goods&b=Philip%20Whitney`
+- PINK: 1 · `/departamento.html?dept=home_goods&b=PINK`
 - Pittman: 1 · `/departamento.html?dept=home_goods&b=Pittman`
 - Plush: 1 · `/departamento.html?dept=home_goods&b=Plush`
 - Pompeii: 1 · `/departamento.html?dept=home_goods&b=Pompeii`
@@ -6133,8 +6115,6 @@ Abre: `/departamento.html?dept=home_goods` (6,417 productos)
 
 ### Secciones
 
-- Casa Aria: 6,417 · `/departamento.html?dept=home_goods`
-- Decoración: 2,711 · `/departamento.html?dept=home_decor`
 - Libros: 506 · `/departamento.html?dept=books`
 - Aria Party: 1,076 · `/departamento.html?dept=party`
 - Dulces y Chocolates: 24 · `/departamento.html?dept=candy_chocolate`
@@ -7290,7 +7270,6 @@ Abre: `/departamento.html?dept=electronics` (5,917 productos)
 
 ### Secciones
 
-- Electrónica: 5,917 · `/departamento.html?dept=electronics`
 - Reacondicionados: 253 · `/departamento.html?dept=reacondicionados`
 
 ## Juguetes
@@ -7409,7 +7388,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Juguetes: 7,364 · `/departamento.html?dept=toys`
 - Aria Party: 1,076 · `/departamento.html?dept=party`
 - Mama's Fashion: 2,461 · `/departamento.html?dept=moms`
 
@@ -7430,37 +7408,25 @@ Abre: `/motos.html` (2,495 productos)
 - Ropa y equipo: 74 · `/motos.html?t=ropa_equipo`
 - Accesorios: 868 · `/motos.html?t=accesorios`
 
-### Secciones
-
-- Repuestos: 1,353 · `/aria-auto.html`
-- Motos: 2,495 · `/motos.html`
-
 ## Ofertas
 
-Abre: `/ofertas.html` (31,969 productos)
+Abre: `/ofertas.html` (33,505 productos)
 
-### Por categoría (31,969)
+### Ofertas por categoría (33,505)
 
 - Ropa Hombre: 3,360 · `/ofertas.html?vista=categoria&cat=ropa_hombre`
 - Ropa Mujer: 5,637 · `/ofertas.html?vista=categoria&cat=ropa_mujer`
-- Ropa Niños: 1,274 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
+- Ropa Niños: 1,422 · `/ofertas.html?vista=categoria&cat=ropa_ninos`
 - Juguetes: 1,266 · `/ofertas.html?vista=categoria&cat=juguetes`
-- Zapatillas: 1,362 · `/ofertas.html?vista=categoria&cat=zapatillas`
+- Zapatillas: 1,696 · `/ofertas.html?vista=categoria&cat=zapatillas`
 - Electrónica: 911 · `/ofertas.html?vista=categoria&cat=electronica`
 - Belleza: 5,508 · `/ofertas.html?vista=categoria&cat=belleza`
-- Joyas y accesorios: 2,530 · `/ofertas.html?vista=categoria&cat=accesorios`
-- Zapatos: 2,052 · `/ofertas.html?vista=categoria&cat=zapatos`
+- Joyas y accesorios: 2,610 · `/ofertas.html?vista=categoria&cat=accesorios`
+- Zapatos: 2,091 · `/ofertas.html?vista=categoria&cat=zapatos`
 - Hogar: 1,487 · `/ofertas.html?vista=categoria&cat=hogar`
 - Deportes: 856 · `/ofertas.html?vista=categoria&cat=deportes`
 - Bebé: 213 · `/ofertas.html?vista=categoria&cat=bebe`
-
-### Secciones
-
-- Ofertas: 31,969 · `/ofertas.html`
-
-## Key Club
-
-Abre: `/keyclub.html` (0 productos)
+- Ver todas las ofertas: 33,505 · `/ofertas.html`
 
 ## Qué falta o no se pudo llenar
 
@@ -7468,12 +7434,13 @@ Abre: `/keyclub.html` (0 productos)
 - Hombre → Ropa: Zapatillas (720) en Zapatos, Zapatos (618) en Zapatos, Lentes de sol (526) en Lentes de Sol, Carteras (418) en Carteras, Collares y dijes (193) en Joyas y Accesorios, Sandalias (166) en Zapatos, Ropa interior (157) en Ropa Interior Hombre, Pulseras y tobilleras (112) en Joyas y Accesorios, Aretes (77) en Joyas y Accesorios, Anillos (73) en Joyas y Accesorios, Lencería (34) en Ropa Interior Hombre, Bolso (20) en Carteras, Fragancia (1) en Perfumes: cada uno vive en su propia sección
 - Hombre → Sección Hombre: 0 productos, sin enlace
 - Niños → Ropa: Lencería (19) en Lencería, Carteras (15) en Carteras, Sandalias (12) en Zapatos, Zapatillas (2) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
-- Belleza → Tipos: Fragancia (218) en Perfumes, Carteras (2) en Carteras: cada uno vive en su propia sección
+- Belleza → Tipos: Fragancia (300) en Perfumes, Carteras (2) en Carteras: cada uno vive en su propia sección
 - Belleza → Sección Hombre: 0 productos, sin enlace
+- Belleza → Secciones: un solo enlace (Cabello), se muestra como enlace directo
 - Diseñador → Mujer: Fragancia (348) en Perfumes: cada uno vive en su propia sección
 - Diseñador → Hombre: Fragancia (264) en Perfumes: cada uno vive en su propia sección
+- Electrónica → Secciones: un solo enlace (Reacondicionados), se muestra como enlace directo
 - Juguetes → Tipos: Fragancia (1) en Perfumes: cada uno vive en su propia sección
-- Key Club → es la página de membresía (beneficios), no un listado de productos: la pestaña abre su página; sin columnas de productos
 
 ## Carruseles del inicio y dónde quedan
 
