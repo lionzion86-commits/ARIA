@@ -1413,15 +1413,88 @@ export function storeFor(ctx, q) {
   if (k.length < 2) return null;
   const names = storeNames(ctx);
   let key = names.get(k) || names.get(k.replace(/\b(\w+) s\b/g, "$1s")) || null;
-  if (!key && k.length >= 5) {
-    /* Most of a store's name, from its start ("brandsmart", "victoria s secr"). */
+  /* SPACING NEVER DECIDES (#443 c.6621646383, class 5): «best-buy»,
+     «bestbuy», «best buy» and «foot-locker» are one name -- the names
+     compared joined. */
+  const j = k.replace(/ /g, "");
+  if (!key) for (const [n, kk] of names) if (n.replace(/ /g, "") === j) { key = kk; break; }
+  if (!key && j.length >= 5) {
+    /* Most of a store's name, from its start ("brandsmart", "victoria s
+       secr", «dickssporting»). */
     const cands = new Set();
-    for (const [n, kk] of names) if (n.startsWith(k) && k.length >= n.length * 0.6) cands.add(kk);
+    for (const [n, kk] of names) { const nj = n.replace(/ /g, ""); if ((n.startsWith(k) && k.length >= n.length * 0.6) || (nj.startsWith(j) && j.length >= nj.length * 0.6)) cands.add(kk); }
+    if (cands.size === 1) key = [...cands][0];
+  }
+  /* ONE EDIT FROM A STORE'S NAME (class 4: «costcco», «ultaa»,
+     «nordstromm», «autozonee»): the forgiveness brands already have. Only
+     a word of 5+ letters the catalogue does not carry, one edit from
+     exactly one store's name. */
+  if (!key && j.length >= 5 && !/\d/.test(j) && wfreq(ctx, j) < 3 && !brandStores(ctx).has(k)) {
+    const cands = new Set();
+    for (const [n, kk] of names) { const nj = n.replace(/ /g, ""); if (nj.length >= 4 && editsWithin(j, nj, 1) <= 1) cands.add(kk); }
     if (cands.size === 1) key = [...cands][0];
   }
   /* A store's name always opens that store (Danny, 2026-11-01), even
      when other stores also sell its brand (Crocs, New Balance, Miu Miu). */
   return key || null;
+}
+/* Words that ask for a store's sale, not for a product. */
+const SALE_WORDS = new Set("sale sales oferta ofertas descuento descuentos rebaja rebajas outlet deals deal promo promos promocion promociones liquidacion clearance".split(" "));
+/** A store named at the start of a query, with the words after it:
+    { key, rest } -- «victoria secret sales» is Victoria's Secret, on sale.
+    Words after a store's name keep it only when they ask for its sale,
+    or when the name is no other store's brand («gap hoodie» is Gap's;
+    «new balance 550» is the shoe, at every store). */
+export function storeQuery(ctx, q) {
+  const whole = storeFor(ctx, q);
+  if (whole) return { key: whole, rest: [] };
+  const w = brandKey(q).split(" ").filter(Boolean);
+  for (let i = w.length - 1; i >= 1; i--) {
+    const key = storeFor(ctx, w.slice(0, i).join(" "));
+    if (!key) continue;
+    const rest = w.slice(i);
+    const sale = rest.every((x) => SALE_WORDS.has(x));
+    const sold = brandStores(ctx).get(brandKey(ctx.labels[key] || key));
+    if (sale || !sold || sold.size <= 1) return { key, rest, sale };
+    return null;
+  }
+  return null;
+}
+/* THE STORE ANSWERS FOR ITSELF (class 5, "no lying store key"): a query
+   that names a store keys it only when Aria carries that store's
+   products, and then its answer IS the store's products -- the words
+   after the name narrowing them (a sale word: its markdowns). A store
+   key over another store's products was a lie («dicks sporting goods»
+   served Kohl's sweaters); a store with nothing in the catalogue is not
+   keyed at all (Best Buy, Nordstrom, AutoZone: honestly not carried). */
+function storeAnswer(ctx, q) {
+  const sq = storeQuery(ctx, q);
+  if (!sq) return null;
+  const all = railIndex(ctx).byStore.get(sq.key) || [];
+  if (!all.length) return { key: null };
+  let hits = null;
+  if (sq.sale) hits = saleFirst(all.filter((p) => onSaleOf(p)));
+  else if (sq.rest.length) {
+    const r = equivalentQuery(ctx, sq.rest.join(" "));
+    const ids = new Set(r.state === "results" ? r.hits.map((p) => p.id) : []);
+    hits = all.filter((p) => ids.has(p.id));
+  }
+  if (!hits || !hits.length) {
+    const own = equivalentQuery(ctx, q);
+    const first = own.state === "results" ? own.hits.filter((p) => p.retailer === sq.key) : [];
+    const seen = new Set(first.map((p) => p.id));
+    hits = first.concat(saleFirst(all.filter((p) => !seen.has(p.id))));
+  }
+  return { key: sq.key, r: { state: "results", query: q, kinds: ["store"], hits: hits.slice(0, ctx.resultLimit || hits.length), _store: sq.key } };
+}
+/** What a query answers: a store's own products, or the search. */
+export function answerFor(ctx, query) {
+  const key = "~ans:" + cacheKey(query);
+  if (ctx.cache.has(key)) return ctx.cache.get(key);
+  const sa = storeAnswer(ctx, query);
+  const out = sa && sa.r ? { r: sa.r, store: sa.key } : { r: equivalentQuery(ctx, query), store: null };
+  ctx.cache.set(key, out);
+  return out;
 }
 
 /* Indexes the rails read: brand -> store -> products; store|category -> products. */
@@ -1543,7 +1616,7 @@ function worldLanes(ctx, r) {
 /* One more page of one lane ("Ver más" re-rails it). */
 export function lanePage(ctx, q, laneKey, offset = 0, { fx = null } = {}) {
   const query = canonicalQuery(ctx, String(q == null ? "" : q).trim().slice(0, 120));
-  const r = equivalentQuery(ctx, query);
+  const { r } = answerFor(ctx, query);
   if (r.state !== "results") return null;
   const l = doctrineLanes(ctx, query, r).lanes.find((x) => x.key === laneKey);
   if (!l) return null;
@@ -2029,7 +2102,8 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   const typed = String(q == null ? "" : q).trim().slice(0, 120);
   /* Every variant of a name is one search (canonicalQuery). */
   const query = canonicalQuery(ctx, typed);
-  const r = equivalentQuery(ctx, query);
+  const ans = answerFor(ctx, query);
+  const r = ans.r;
   const hits = r.state === "results" ? gridOrder(ctx, r) : r.hits;
   /* The total counts every product found: the grid's and the
      comparison block's. Pages are the grid's. */
@@ -2041,8 +2115,9 @@ export function searchPage(ctx, q, page = 1, { fx = null, pageSize = PAGE_SIZE }
   const lanes = n === 1 ? lanesFor(ctx, query, r, fx) : null;
   const compares = n === 1 && grouped ? comparesFor(ctx, r, fx) : [];
   const compare = compares[0] || null;
-  /* A store's name: its page (the doctrine, item 1). */
-  const store = n === 1 ? storeFor(ctx, query) : null;
+  /* A store's name: its page (the doctrine, item 1) -- only a store Aria
+     carries, whose products the answer is (storeAnswer). */
+  const store = n === 1 ? ans.store : null;
   return {
     q: typed,
     ...(query !== typed ? { canonical: query } : {}),
