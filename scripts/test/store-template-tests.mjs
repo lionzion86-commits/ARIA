@@ -50,7 +50,10 @@ check("type rails biggest first, none under 25, the small ones share Más de <ti
 });
 
 check("Walmart: Juguetes leads the aisles; Sombreros, Bebé, Perfumes and Repuestos are not rails of their own", () => {
-  const keys = idx("walmart").rails.map((r) => r.key);
+  const all = idx("walmart").rails.map((r) => r.key);
+  /* Its brand rows sit between the lead rails and the aisles (format plan §2). */
+  assert.ok(all.slice(2).findIndex((k) => !k.startsWith("b-")) > 0, "Walmart's brand rows follow its lead rails");
+  const keys = all.filter((k) => !k.startsWith("b-"));
   assert.deepEqual(keys.slice(0, 3), ["ofertas", "masvendidos", "t-juguetes"]);
   for (const k of ["t-sombreros", "t-bebe", "t-perfumes", "t-repuestos"]) assert.ok(!keys.includes(k), k);
   assert.equal(keys[keys.length - 1], TAIL_RAIL_KEY);
