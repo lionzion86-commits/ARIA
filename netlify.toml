@@ -248,6 +248,36 @@
   status = 200
   force = true
 
+# THE ADDRESSES IN META'S FORM (#443 c.6632377414). The Muse Connector
+# Platform submission names endpoint https://connector.ariashop.pe/mcp
+# and documentation https://docs.ariashop.pe/mcp. Both are domain
+# aliases of this site (Netlify UI: Domain management), so each rule is
+# conditioned on its host. ORDER MATTERS: Netlify takes the first rule
+# that matches, and the bare "/mcp" rule below matches /mcp on EVERY
+# alias -- so docs.ariashop.pe/mcp must be answered before it, or the
+# documentation address would answer JSON-RPC. The connector's rule is
+# the same 200 rewrite to the same function as ariashop.pe/mcp: POST,
+# OPTIONS (CORS) and the 405 for GET/DELETE all come from mcp.js, whose
+# OWN_HOST already accepts any *.ariashop.pe Host. The docs page is
+# docs/mcp/index.html (static, Spanish). connector-hosts-tests.mjs pins it.
+[[redirects]]
+  from = "https://docs.ariashop.pe/mcp"
+  to = "/docs/mcp/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://docs.ariashop.pe/"
+  to = "https://docs.ariashop.pe/mcp"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "https://connector.ariashop.pe/mcp"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
 # The Muse connector's public address (#443 c.6578981079): POST
 # https://ariashop.pe/mcp is the MCP endpoint Meta registers.
 [[redirects]]
