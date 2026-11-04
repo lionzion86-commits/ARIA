@@ -13,10 +13,11 @@
      - the three axes, big-card rails per type, brand and store
        (/.netlify/functions/department?axis=...), fetched as they near
        the screen;
-     - Explorar todo: the jump to the type pills and the dropdown filter
-       bar under the hero (assets/js/nav-filter.js, #443 the Nordstrom
-       pattern), which replaced this section's selects; its results are
-       one carousel, never a grid.
+     - Explorar todo: words plus Tipo / Marca / Tienda / Ordenar, the
+       options of each filter narrowed by the others (cross-dependent,
+       answered on the server: ?explore=1) -- one carousel, 48 cards at a
+       time brought into it by its last card («Ver más»), never a grid
+       (#443, Danny: "never again a side-by-side grid").
    It reads the department through window.AriaDept (departamento.html).
    ================================================================== */
 (function(){
@@ -59,7 +60,7 @@
   bar.innerHTML = '<nav class="dh-aud" id="dhAud" aria-label="Para quién" hidden></nav>'
     + '<nav class="dh-jump" id="dhJump" aria-label="Secciones">'
     + AXES.map(function(a){ return '<a href="#dh-' + a[0] + '">' + a[1] + '</a>'; }).join('')
-    + '<a href="#nf">Explorar todo</a></nav>';
+    + '<a href="#dh-explorar">Explorar todo</a></nav>';
   if (hero && hero.parentNode) hero.parentNode.insertBefore(bar, hero.nextSibling);
   /* Explorar todo carries the words and the store filter now: the old
      toolbar (a search box over the rails and a wall of store chips) goes,
@@ -73,7 +74,13 @@
   var wrap = document.createElement('div'); wrap.id = 'dhAxes';
   wrap.innerHTML = AXES.map(function(a){
     return '<section class="dh-sec dh-axis" id="dh-' + a[0] + '" data-axis="' + a[0] + '" aria-label="' + a[1] + '"><h2>' + a[1] + '</h2><div class="dh-rails"></div></section>';
-  }).join('');
+  }).join('')
+    + '<section class="dh-sec" id="dh-explorar" aria-label="Explorar todo"><h2>Explorar todo</h2>'
+    + '<div class="dh-ex"><input class="dh-q" id="dhQ" type="search" placeholder="Buscar en este departamento…" aria-label="Buscar en Explorar todo" autocomplete="off">'
+    + '<div class="dh-sel" role="search">'
+    + '<select id="dhT" aria-label="Tipo"></select><select id="dhB" aria-label="Marca"></select><select id="dhR" aria-label="Tienda"></select>'
+    + '<select id="dhS" aria-label="Ordenar"><option value="deal">Mayor descuento</option><option value="low">Precio: menor a mayor</option><option value="high">Precio: mayor a menor</option></select>'
+    + '</div><p class="dh-count" id="dhCount"></p></div><div class="dh-ex-rail"><div class="rail" id="dhGrid" aria-live="polite"></div></div></section>';
   main.parentNode.insertBefore(wrap, main.nextSibling);
 
   function api(extra){
@@ -162,11 +169,13 @@
   wrap.addEventListener('click', function(e){
     var r = e.target.closest('.dh-retry');
     if (r){ var sec = r.closest('.dh-axis'); if (sec) loadAxis(sec); return; }
+    if (e.target.closest('#dhMoreBtn')) runExplore(EX.page + 1);
   });
   var IO = typeof IntersectionObserver === 'function' ? new IntersectionObserver(function(es){
     es.forEach(function(e){
       if (!e.isIntersecting) return;
-      loadAxis(e.target);
+      if (e.target.id === 'dh-explorar') { if (EX.drawnFor !== String(D.audience())) runExplore(0); }
+      else loadAxis(e.target);
     });
   }, { rootMargin: '900px 0px' }) : null;
   /* A jump link loads its section at once (it may be far below). */
@@ -176,6 +185,69 @@
     var sec = document.getElementById(a.getAttribute('href').slice(1));
     if (!sec) return;
     if (sec.classList.contains('dh-axis')) loadAxis(sec);
+    else if (EX.drawnFor !== String(D.audience())) runExplore(0);
+  });
+
+  /* ---------- Explorar todo ---------- */
+  var EX = { t: '', b: '', r: '', q: '', s: 'deal', page: 0, drawnFor: null, seq: 0 };
+  var qEl = document.getElementById('dhQ'), tEl = document.getElementById('dhT'), bEl = document.getElementById('dhB'),
+      rEl = document.getElementById('dhR'), sEl = document.getElementById('dhS'), grid = document.getElementById('dhGrid'),
+      countEl = document.getElementById('dhCount');
+  function options(sel, all, list, cur){
+    var h = '<option value="">' + all + '</option>', seen = false;
+    (list || []).forEach(function(o){
+      if (o[0] === cur) seen = true;
+      h += '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + ' (' + num(o[2]) + ')</option>';
+    });
+    /* A choice the other filters emptied stays visible, at zero. */
+    if (cur && !seen) h += '<option value="' + esc(cur) + '" selected>' + esc(cur) + ' (0)</option>';
+    sel.innerHTML = h;
+  }
+  function runExplore(page){
+    var seq = ++EX.seq;
+    EX.page = page;
+    EX.drawnFor = String(D.audience());
+    var u = api('&explore=1' + (EX.t ? '&t=' + encodeURIComponent(EX.t) : '') + (EX.b ? '&b=' + encodeURIComponent(EX.b) : '')
+      + (EX.r ? '&r=' + encodeURIComponent(EX.r) : '') + (EX.q ? '&q=' + encodeURIComponent(EX.q) : '')
+      + (EX.s !== 'deal' ? '&sort=' + EX.s : '') + (page ? '&page=' + page : ''));
+    if (!page) countEl.textContent = 'Cargando…';
+    var old = document.getElementById('dhMoreBtn');
+    if (old) old.disabled = true;
+    D.getJSON(u).then(function(data){
+      if (seq !== EX.seq) return;
+      var f = data.facets || {};
+      options(tEl, 'Todos los tipos', f.t, EX.t);
+      options(bEl, 'Todas las marcas', f.b, EX.b);
+      options(rEl, 'Todas las tiendas', f.r, EX.r);
+      sEl.value = EX.s;
+      var html = (data.cards || []).map(D.cardHTML).join('');
+      var btn = document.getElementById('dhMoreBtn');
+      if (btn) btn.remove();
+      var before = grid.querySelectorAll('.card').length;
+      if (page) grid.insertAdjacentHTML('beforeend', html); else grid.innerHTML = html;
+      countEl.textContent = data.count ? num(data.count) + (data.count === 1 ? ' producto' : ' productos') : '';
+      if (!data.count) grid.innerHTML = '<p class="dh-empty">Ningún producto coincide. Quita un filtro o prueba otra palabra.</p>';
+      /* The carousel's last card brings the next 48 into it. */
+      if (data.pages > page + 1){
+        var shown = grid.querySelectorAll('.card').length;
+        grid.insertAdjacentHTML('beforeend', '<button type="button" class="rail-next" id="dhMoreBtn">Ver más<span>' + num(data.count - shown) + ' más</span></button>');
+      }
+      if (page){ var first = grid.querySelectorAll('.card')[before]; if (first && grid.scrollTo) grid.scrollTo({ left: Math.max(0, first.offsetLeft - grid.offsetLeft - 8), behavior: 'smooth' }); }
+      else if (grid.scrollTo) grid.scrollTo({ left: 0 });
+      D.watchPhotos(grid);
+    }).catch(function(){
+      if (seq !== EX.seq) return;
+      countEl.textContent = 'No pudimos cargar los productos. Revisa tu conexión e inténtalo de nuevo.';
+    });
+  }
+  tEl.addEventListener('change', function(){ EX.t = tEl.value; runExplore(0); });
+  bEl.addEventListener('change', function(){ EX.b = bEl.value; runExplore(0); });
+  rEl.addEventListener('change', function(){ EX.r = rEl.value; runExplore(0); });
+  sEl.addEventListener('change', function(){ EX.s = sEl.value; runExplore(0); });
+  var qTimer = null;
+  qEl.addEventListener('input', function(){
+    clearTimeout(qTimer);
+    qTimer = setTimeout(function(){ var v = qEl.value.trim().slice(0, 80); if (v !== EX.q){ EX.q = v; runExplore(0); } }, 350);
   });
 
   /* ---------- every head the page draws ---------- */
@@ -198,6 +270,9 @@
         if (IO) { IO.unobserve(sec); IO.observe(sec); } else loadAxis(sec);
       });
       markJump();
+      var ex = document.getElementById('dh-explorar');
+      EX.drawnFor = null;
+      if (IO){ IO.unobserve(ex); IO.observe(ex); } else runExplore(0);
     }
   });
 })();

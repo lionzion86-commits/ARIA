@@ -571,7 +571,6 @@ html{scroll-padding-top:76px}
     S.cfg = cfg; S.ALL = []; S.SHOWN = 0; S.FILTERED = [];
     function el(id){ return $(P + '-' + id); }
 
-    S.cardHTML = function(p){ return cardHTML(p); };
     function cardHTML(p){
       var now = finalUsd(p.p, p.r), was = p.o > p.p ? finalUsd(p.o, p.r) : NaN, d = pct(p);
       var href = 'producto.html?producto=' + encodeURIComponent(p.t) + '&tienda=' + encodeURIComponent(p.r);
@@ -920,6 +919,13 @@ html{scroll-padding-top:76px}
     var womenDone = Promise.all([women, menDone]).then(function(r){ MUJER.show(r[0]); }, function(){ MUJER.fail(); });
     Promise.all([menDone, womenDone]).then(function(){
       honourHash();
+      /* THE HEADER'S LEAVES (#443 c.6621722209, "the header creates
+         nothing"): ?ver=type:<rail> | brand:<maker> opens this page's own
+         Explorar todo on that choice -- what the rail's «Ver todo» does. */
+      try {
+        var ver = new URLSearchParams(location.search).get('ver') || '';
+        if (/^(type|brand):[a-z0-9_]{1,40}$/.test(ver)) SECTIONS[audOf(location.hash)].openFilter(ver);
+      } catch (err) {}
     });
   }
 
@@ -930,24 +936,6 @@ html{scroll-padding-top:76px}
 
   start();
 
-  /* THE FILTER BAR (#443, the Nordstrom pattern): assets/js/nav-filter.js
-     over the section on screen (Mujer or Hombre), under its hero. */
-  function nfSrc(a){ return 'ri=' + (a === 'm' ? 'hombre' : 'mujer'); }
-  function nfAnchor(a){ return document.querySelector((a === 'm' ? '#hombre' : '#mujer') + ' > .hero'); }
-  var nfA = audOf(location.hash);
-  window.AriaNFHost = { src: nfSrc(nfA), endpoint: '/.netlify/functions/nav-filter', prefix: 'f', anchor: nfAnchor(nfA),
-    title: function(){ return document.body.getAttribute('data-aud') === 'm' ? 'Ropa Interior Hombre' : 'Ropa Interior Mujer'; },
-    hide: ['#mujer > :not(.hero):not(.nf)', '#hombre > :not(.hero):not(.nf)'],
-    cardHTML: function(p){ var s = SECTIONS[document.body.getAttribute('data-aud') === 'm' ? 'm' : 'w']; return s && s.cardHTML ? s.cardHTML(p) : ''; },
-    after: function(r){ watchPhotos(r); paintPrices(r); } };
-  window.addEventListener('hashchange', function(){ var a = audOf(location.hash); if (window.AriaNF) window.AriaNF.resource(nfSrc(a), nfAnchor(a)); });
-  document.addEventListener('click', function(e){
-    var d = e.target.closest && e.target.closest('.door');
-    if (!d || !window.AriaNF) return;
-    var a = d.classList.contains('door-m') ? 'm' : 'w';
-    window.AriaNF.resource(nfSrc(a), nfAnchor(a));
-  });
-  var nfs = document.createElement('script'); nfs.src = '/assets/js/nav-filter.js'; nfs.defer = true; document.head.appendChild(nfs);
 })();
 </script>
 <!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->

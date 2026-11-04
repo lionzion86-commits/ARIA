@@ -3,6 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- THE HEADER CREATES NOTHING (#443 c.6621544530, c.6621722209). The
+     filtered views the header's menu once invented -- &nav=1 and the
+     filter bar's own parameters (u, s, z, p, o, w, sort, several brands)
+     -- are not pages. Before anything renders they go to the department's
+     own page with its own parameters: u -> para (its Para quién), t and
+     the first brand stay (its type view, its brand pills), r -> tienda,
+     w -> q, o=1 -> ver=ofertas (its Ofertas carousel); the rest goes.
+     Aria Perfumes is one room of fragrances: its t= becomes its own door
+     (cuidado) or the room. netlify.toml answers the same URLs with a 301;
+     scripts/build-nav-menu.mjs BLOCKED lists them. -->
+<script>
+(function(){
+  try {
+    var sp = new URLSearchParams(location.search), dept = String(sp.get('dept') || '').toLowerCase();
+    var junk = ['nav', 'u', 's', 'z', 'p', 'o', 'w', 'sort'].some(function(k){ return sp.has(k); }) || /\|/.test((sp.get('b') || '') + (sp.get('r') || ''));
+    if (!dept || !(junk || (dept === 'perfumes' && sp.has('t')))) return;
+    var first = function(v){ return String(v || '').split('|')[0].trim(); };
+    var u = sp.get('u'), a = sp.get('a') || '', t = sp.get('t') || '';
+    if (dept === 'perfumes'){ if (t === 'cuidado-corporal' && !a) a = 'cuidado'; t = ''; }
+    var out = [['dept', dept], ['a', a], ['b', first(sp.get('b'))], ['t', t], ['q', sp.get('q') || sp.get('w') || ''],
+      ['tienda', sp.get('tienda') || first(sp.get('r'))], ['para', sp.get('para') || (/^(women|men|kids)$/.test(u || '') ? u : '')],
+      ['ver', sp.get('ver') || (sp.get('o') === '1' ? 'ofertas' : '')], ['tp', sp.get('tp') || ''], ['pasillo', sp.get('pasillo') || '']];
+    window.__ariaCanon = 1;
+    document.documentElement.style.visibility = 'hidden';
+    location.replace(location.pathname + '?' + out.filter(function(x){ return x[1]; }).map(function(x){ return x[0] + '=' + encodeURIComponent(x[1]); }).join('&') + location.hash);
+  } catch(e){}
+})();
+</script>
 <title>Departamento | Aria Shop</title>
 <!-- One on-sale definition (index.html saleDiscountPct), loaded before the page script. -->
 <script src="sale-rule.js"></script>
@@ -183,7 +211,6 @@
 <script src="/assets/js/carousel-desk.js" defer></script>
 <script src="/vuelve-pronto.js" defer></script>
 <script src="/assets/js/dept-header.js" defer></script>
-<script src="/assets/js/nav-filter.js" defer></script>
 <style id="hs-css">
 .hs{--hs-fg:#0A1F44;--hs-mute:#5B6475;--hs-bg:#F3F5F9;--hs-line:#D9E0EB;--hs-go:#0A1F44;--hs-gofg:#fff;--hs-sheet:#fff;--hs-ring:rgba(36,86,160,.22);display:flex;align-items:center;flex:1 1 0;min-width:40px;max-width:440px;margin:0 0 0 auto;font-family:inherit}
 .hs-dark{--hs-fg:#F4F6FB;--hs-mute:rgba(236,241,250,.8);--hs-bg:rgba(255,255,255,.1);--hs-line:rgba(255,255,255,.26);--hs-go:#F4C463;--hs-gofg:#0A1F44;--hs-sheet:#0A1F44;--hs-ring:rgba(244,196,99,.35)}
@@ -332,6 +359,8 @@ html{scroll-padding-top:76px}
 <script>
 (function(){
   'use strict';
+  /* On its way to the canonical page (the first script in <head>): draw nothing. */
+  if (window.__ariaCanon) return;
 
   /* ============================================================
      DEPARTMENT TEMPLATE — one page for all 31 departments.
@@ -487,7 +516,7 @@ html{scroll-padding-top:76px}
   /* Perfumes' brand and door pills: departamento.html?dept=perfumes&b=<brand>&a=<door>. */
   try {
     var _bm = /[?&]b=([^&]*)/.exec(window.location.search || ''), _am = /[?&]a=([a-z]{2,20})(?:&|$)/.exec(window.location.search || '');
-    if (_bm) fB = decodeURIComponent(_bm[1].replace(/\+/g, ' ')).slice(0, 80);
+    if (_bm) fB = decodeURIComponent(_bm[1].replace(/\+/g, ' ')).split('|')[0].slice(0, 80);
     if (_am) fA = _am[1];
     var _tm = /[?&]t=([^&]*)/.exec(window.location.search || '');
     if (_tm) fT = decodeURIComponent(_tm[1].replace(/\+/g, ' ')).slice(0, 80).toLowerCase();

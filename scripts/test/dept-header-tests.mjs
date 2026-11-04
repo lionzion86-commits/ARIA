@@ -143,7 +143,6 @@ await check("the page: dept-header.js loads, AriaDept hands it the department, n
 
 /* ---------- the browser ---------- */
 const require = createRequire(import.meta.url);
-const { handler: navHandler } = await import("../../netlify/functions/nav-filter.js");
 let chromium = null;
 try { ({ chromium } = require("playwright")); } catch (e) { /* no browser here */ }
 if (chromium) {
@@ -152,7 +151,6 @@ if (chromium) {
   const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, "http://x");
     if (u.pathname.includes("exchange-rate")) { res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"venta":3.75}'); return; }
-    if (u.pathname === "/.netlify/functions/nav-filter") { const r = await navHandler({ httpMethod: "GET", queryStringParameters: Object.fromEntries(u.searchParams) }); res.writeHead(r.statusCode, { "Content-Type": "application/json" }); res.end(r.body); return; }
     if (u.pathname === "/.netlify/functions/department") { const r = await handler({ httpMethod: "GET", queryStringParameters: Object.fromEntries(u.searchParams) }); res.writeHead(r.statusCode, { "Content-Type": "application/json" }); res.end(r.body); return; }
     if (u.pathname.startsWith("/.netlify/")) { res.writeHead(404); res.end("{}"); return; }
     let p = join(ROOT, decodeURIComponent(u.pathname));
@@ -167,8 +165,9 @@ if (chromium) {
   const page = await ctx.newPage();
   const errs = []; page.on("pageerror", (e) => errs.push(String(e).slice(0, 200)));
   await page.route((u) => u.host !== new URL(base).host, (r) => r.request().resourceType() === "image" ? r.fulfill({ status: 200, contentType: "image/jpeg", body: PHOTO }) : r.abort());
+  const ex = () => page.evaluate(() => ({ count: document.getElementById("dhCount").textContent, t: document.getElementById("dhT").options.length, r: document.getElementById("dhR").options.length, cards: document.querySelectorAll("#dhGrid .card").length }));
 
-  await check("Zapatos on a phone: stats chips, the switch, Mujer re-renders the page, Por marca rails, Explorar todo is the filter bar", async () => {
+  await check("Zapatos on a phone: stats chips, the switch, Mujer re-renders the page, Por marca rails, Explorar todo narrows", async () => {
     await page.goto(base + "/departamento.html?dept=shoes", { waitUntil: "load" });
     await page.waitForSelector("#dhStats:not([hidden])", { timeout: 15000 });
     assert.match(await page.textContent("#dhStats"), /productos.*tiendas.*en oferta/);
@@ -184,24 +183,18 @@ if (chromium) {
     await page.waitForSelector("#dh-marca .rail .card", { timeout: 15000 });
     const w = await page.$eval("#dh-marca .rail .card", (c) => c.offsetWidth);
     assert.ok(w >= 232, `axis card ${w}px is not the big card`);
-    /* Explorar todo is the filter bar now (#443, the Nordstrom pattern):
-       dropdown buttons, cross-dependent, results in one carousel. */
-    assert.equal(await page.getAttribute('#dhJump a:last-child', "href"), "#nf");
-    await page.waitForSelector('#nfBar [data-nf-btn="b"]', { timeout: 15000 });
-    await page.waitForFunction(() => document.querySelectorAll("#nfPills .nf-pill").length > 1, null, { timeout: 15000 });
-    await page.tap('[data-nf-btn="b"]');
-    await page.waitForSelector(".nf-pan [data-nf-b]");
-    await page.tap(".nf-pan [data-nf-b]");
-    await page.waitForSelector("#nfRail .card", { timeout: 15000 });
-    await page.tap(".nf-pan [data-nf-done]");
-    assert.match(page.url(), /[?&]b=/);
-    assert.equal(await page.isVisible("#rails"), false, "the landing rails stayed under the filtered view");
-    const rows = await page.$$eval("#nfRail .card", (cs) => new Set(cs.map((c) => Math.round(c.getBoundingClientRect().top))).size);
-    assert.equal(rows, 1, "the filtered view draws cards in rows");
-    /* Clearing the brand brings the department's own carousels back. */
-    await page.tap('[data-nf-x="b"]');
-    await page.waitForFunction(() => !document.documentElement.classList.contains("nf-on"), null, { timeout: 15000 });
-    assert.equal(await page.isVisible("#rails"), true);
+    await page.click('#dhJump a[href="#dh-explorar"]');
+    await page.waitForSelector("#dhGrid .card", { timeout: 15000 });
+    const a = await ex();
+    await page.selectOption("#dhB", { index: 1 });
+    await page.waitForFunction((c0) => { const t = document.getElementById("dhCount").textContent; return t !== c0 && t !== "Cargando…"; }, a.count, { timeout: 15000 });
+    const z = await ex();
+    assert.ok(z.r < a.r && z.t <= a.t, `a brand did not narrow the other filters: ${JSON.stringify([a, z])}`);
+    assert.ok(z.cards > 0);
+    /* Explorar todo is one carousel (#443, "never a side-by-side grid"). */
+    assert.equal(await page.$eval("#dhGrid", (g) => g.className), "rail");
+    const rows = await page.$$eval("#dhGrid .card", (cs) => new Set(cs.map((c) => Math.round(c.getBoundingClientRect().top))).size);
+    assert.equal(rows, 1, "Explorar todo draws cards in rows");
   });
 
   await check("Gym Rat on a phone: no switch (the data does not say), an axis rail's Ver todo opens that type's own railed page (Ofertas, then the stores)", async () => {

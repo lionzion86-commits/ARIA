@@ -1192,14 +1192,6 @@ function showMore(){
   });
 }
 
-/* THE FILTER BAR (#443, the Nordstrom pattern): assets/js/nav-filter.js,
-   told what this page lists, where the bar goes and how a card draws. */
-function nfBoot(h){
-  if (window.AriaNFHost) return;
-  h.endpoint = h.endpoint || '/.netlify/functions/nav-filter'; h.prefix = 'f';
-  window.AriaNFHost = h;
-  var s = document.createElement('script'); s.src = '/assets/js/nav-filter.js'; s.defer = true; document.head.appendChild(s);
-}
 /* ---------- boot ---------- */
 function bindUI(){
   var q = $('q'), t = null;
@@ -1243,8 +1235,6 @@ try {
     if (u0.searchParams.get('vista') === 'categoria'){ S.mode = 'categoria'; S.cat = String(u0.searchParams.get('cat') || '').replace(/[^a-z_]/g, ''); renderMode(); }
   } catch (e) {}
   openRails();
-  nfBoot({ src: 'ofertas=1', dark: true, title: function(){ return 'Ofertas'; }, anchor: document.querySelector('.top-band'),
-    hide: ['#content', '#results', '#countLine'], cardHTML: cardHTML, after: function(r){ watchPhotos(r); } });
 } catch (e) {
   renderError('No pudimos iniciar la página de ofertas.', true);
 }

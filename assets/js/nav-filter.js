@@ -2,9 +2,9 @@
    THE TYPE PILLS AND THE FILTER BAR, EVERYWHERE (#443 c.6616347095,
    c.6616389410, c.6616425433: "every option, everywhere").
 
-   On every listing -- a department (departamento.html), a store
-   (tienda.html), a brand (marca.html), a search (search.html), Ofertas
-   and Ropa Interior -- under the page's hero:
+   On a store (tienda.html), a brand (marca.html) and a search
+   (search.html) -- listings with no type or brand filter of their own --
+   under the page's hero:
      - the type pills: the listing's types, or once a type is picked its
        styles (Todas las botas · Chelsea · Caña alta ...) when the
        products' own names have them; one tap re-renders in place;
@@ -24,33 +24,22 @@
    by its last card, never a side-by-side grid. Clearing everything
    brings the page's own carousels back.
 
-   The page names itself in window.AriaNFHost (departamento.html builds
-   it from window.AriaDept):
-     { src: 'dept=shoes', endpoint, prefix: '' | 'f', hide: [selectors],
+   NEVER A SECOND RENDERING OF A SECTION (#443 c.6621544530,
+   c.6621722209: "the header creates nothing"). A section page with its
+   own pills and filters keeps them and is not given this bar: a
+   department (departamento.html: its Para quién switch, brand pills,
+   type view and Explorar todo), Ofertas (its Por categoría view) and
+   Ropa Interior (its Explorar todo). The department's old filtered view
+   is gone: departamento.html sends its old address to its own page.
+
+   The page names itself in window.AriaNFHost:
+     { src: 'tienda=macys', endpoint, prefix: 'f', hide: [selectors],
        anchor: element the bar goes after, cardHTML(card), after(root),
-       getJSON(url), esc(s), title(): the listing's name, forced: true
-       when the page opened on the filtered view (nav=1) }
+       getJSON(url), esc(s), title(): the listing's name }
    ================================================================== */
 (function(){
   'use strict';
   var H = window.AriaNFHost;
-  if (!H && window.AriaDept){
-    var D = window.AriaDept;
-    H = {
-      src: 'dept=' + encodeURIComponent(D.key), endpoint: '/.netlify/functions/nav-filter', prefix: '',
-      hide: ['#salesTop', '#perfumeHouses', '#scopeBar', '#pDoors', '#pBrands', '#hubPills', '#toolbar', '#loadingState', '#emptyState', '#lens', '#perfumesLead', '#rails', '#dhAxes', '#dhJump', '#dhStats'],
-      anchor: document.getElementById('dhBar') || document.getElementById('deptHero'),
-      cardHTML: D.cardHTML, after: function(root){ D.watchPhotos(root); D.paintPrices(root); },
-      getJSON: D.getJSON, esc: D.esc,
-      title: function(){ return NAME; },
-      forced: new URLSearchParams(location.search).get('nav') === '1', dept: true,
-      /* The hero names the filtered view; the landing gets its own name back. */
-      onPaint: function(d, t){ var h = document.getElementById('heroTitle'), k = document.getElementById('heroKicker'); if (h) h.textContent = t; if (k) k.textContent = NAME; },
-      onMode: function(on){ if (on) return; var h = document.getElementById('heroTitle'), k = document.getElementById('heroKicker'); if (h && NAME) h.textContent = NAME; if (k && KICK) k.textContent = KICK; }
-    };
-    var ht0 = document.getElementById('heroTitle'), hk0 = document.getElementById('heroKicker');
-    var NAME = ht0 && ht0.textContent !== 'Cargando…' ? ht0.textContent : '', KICK = hk0 ? hk0.textContent : '';
-  }
   if (!H || !H.anchor) return;
   if (H.boot && H.boot.done) return;
 
@@ -137,13 +126,9 @@
       titleEl = document.getElementById('nfTitle'), nEl = document.getElementById('nfN');
 
   var S = read(), DATA = null, SEQ = 0, PAGE = 0, FX = 0;
-  var NAV = navFlag(), NAV0 = NAV, INIT_SCOPE = H.dept && !NAV && active(S), INIT = JSON.stringify(S), INIT_URL = location.pathname + location.search + location.hash;
   function read(){
     var sp = new URLSearchParams(location.search), s = {};
     KEYS.forEach(function(k){ var v = (sp.get(PFX + k) || '').trim(); s[k] = MULTI[k] ? (v ? v.split(SEP).filter(Boolean) : []) : v; });
-    /* departamento.html's own views (?t=, ?b=, ?para= from a search or an
-       axis door) are the bar's starting scope; nav=1 is the filtered view. */
-    if (H.dept && !s.u && sp.get('para')) s.u = sp.get('para');
     if (!AUD[s.u]) s.u = '';
     if (s.o !== '1') s.o = '';
     if (!SORTS.some(function(x){ return x[0] === s.sort; })) s.sort = '';
@@ -153,7 +138,6 @@
   function urlOf(s){
     var u = new URL(location.href);
     KEYS.forEach(function(k){ var v = MULTI[k] ? s[k].join(SEP) : s[k]; if (v) u.searchParams.set(PFX + k, v); else u.searchParams.delete(PFX + k); });
-    if (H.dept){ u.searchParams.delete('para'); u.searchParams.delete('ver'); if (active(s)) u.searchParams.set('nav', '1'); else u.searchParams.delete('nav'); }
     return u.pathname + u.search + u.hash;
   }
   function set(patch){
@@ -162,21 +146,13 @@
     if (patch.t !== undefined && patch.s === undefined) n.s = '';
     S = n;
     var url = urlOf(S);
-    if (H.dept){
-      /* Back to the scope the department opened on: its own landing. */
-      if (!NAV0 && JSON.stringify(S) === INIT){ NAV = false; try { history.pushState({ nf: 1 }, '', INIT_URL); } catch(e){} LAST_Q = location.search; run(0); return; }
-      /* A landing it did not open on: load it. */
-      if (!active(S) && INIT_SCOPE){ location.assign(url); return; }
-      NAV = active(S);
-    }
     try { history.pushState({ nf: 1 }, '', url); } catch(e){}
     LAST_Q = location.search;
     run(0);
   }
   /* A jump link's #hash is a popstate too: only a new query re-reads. */
   var LAST_Q = location.search;
-  window.addEventListener('popstate', function(){ if (location.search === LAST_Q) return; LAST_Q = location.search; S = read(); NAV = navFlag(); run(0); });
-  function navFlag(){ return new URLSearchParams(location.search).get('nav') === '1'; }
+  window.addEventListener('popstate', function(){ if (location.search === LAST_Q) return; LAST_Q = location.search; S = read(); run(0); });
 
   function getFx(){
     try { var c = JSON.parse(localStorage.getItem('aria_fx_rate_v1') || 'null'); if (c && typeof c.venta === 'number' && c.venta > 0) return Promise.resolve(c.venta); } catch(e){}
@@ -196,7 +172,7 @@
   }
   function run(page){
     var seq = ++SEQ; PAGE = page;
-    var on = H.dept ? NAV : (H.forced || active(S));
+    var on = active(S);
     results(on);
     if (!page && on) countEl.textContent = 'Cargando…';
     var keep = OPEN && MULTI[OPEN.getAttribute('data-dd')] ? OPEN.getAttribute('data-dd') : '';
@@ -390,18 +366,7 @@
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDD(); });
   railEl.addEventListener('click', function(e){ var m = e.target.closest('#nfMore'); if (m) { m.disabled = true; run(PAGE + 1); } });
 
-  /* The department's own audience switch (dept-header.js) moves the bar's scope with it. */
-  if (H.dept && window.AriaDept && window.AriaDept.setAudience){
-    var setAud = window.AriaDept.setAudience;
-    window.AriaDept.setAudience = function(u){
-      setAud(u);
-      if (NAV) return;
-      S.u = AUD[u] ? u : ''; INIT = JSON.stringify(S); INIT_URL = location.pathname + location.search + location.hash; LAST_Q = location.search;
-      run(0);
-    };
-  }
-  /* A page with two listings (Ropa Interior's Mujer / Hombre) points the
-     bar at the other one in place. */
+  /* A page with two listings points the bar at the other one in place. */
   function resource(src, anchor){
     if (src === H.src) return;
     H.src = src;

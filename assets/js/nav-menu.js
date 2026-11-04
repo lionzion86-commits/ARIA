@@ -12,6 +12,13 @@
    The columns come from assets/data/nav-menu.json, fetched once, on the
    first hover / focus / tap of a tab -- never with the page, and never a
    catalogue (the Mountain Test).
+
+   THE HEADER CREATES NOTHING (#443 c.6621544530, c.6621722209): every
+   leaf is the canonical section page with that page's own parameters
+   (build-nav-menu.mjs). A long column (a department's brands) shows its
+   first leaves and «Ver todas las marcas (N)»: the complete list, from
+   the department's real inventory (assets/data/nav-brands/<file>.json,
+   fetched only on that tap), opens in the column, scrollable.
    ================================================================== */
 (function(){
   'use strict';
@@ -36,6 +43,9 @@
     + '.nmf-col li a{display:block;padding:5px 0;font-size:14px;font-weight:600;color:#0A1F44;text-decoration:none;line-height:1.3}'
     + '.nmf-col li a:hover,.nmf-all:hover{text-decoration:underline}'
     + '.nmf-msg{padding:6px 0;color:#6B7487;font-size:14px}'
+    + '.nmf-more{display:inline-flex;align-items:center;gap:6px;margin:6px 0 0;padding:0;border:0;background:none;color:#2456A0;font:800 14px/1.3 sans-serif;font-family:inherit;cursor:pointer;text-align:left}'
+    + '.nmf-more small{font-weight:600;color:#6B7487;font-size:12px}'
+    + '.nmf-col ul.nmf-full{max-height:340px;overflow-y:auto;overscroll-behavior:contain;padding-right:6px}'
     + '.nmf-drill{display:none}'
     + '.nmf-col a:focus-visible,.nmf-all:focus-visible,.nmf-drill a:focus-visible,.nmf-drill button:focus-visible{outline:2px solid #B8860B;outline-offset:2px;border-radius:4px}'
     /* PHONE: a full-height drill-down under the tab row -- the tab's
@@ -51,6 +61,7 @@
     +   '.nmf-go,.nmf-l1 li a,.nmf-colall{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;padding:0 4px;border:0;border-top:1px solid #E4E6EC;background:none;color:#0A1F44;font:700 16px/1.25 sans-serif;font-family:inherit;text-align:left;text-decoration:none;cursor:pointer;box-sizing:border-box}'
     +   '.nmf-go small,.nmf-l1 li a small{margin-left:auto;margin-right:8px;font-weight:600;color:#6B7487;font-size:13px}'
     +   '.nmf-colall{color:#2456A0;font-weight:800}'
+    +   '.nmf-l1 .nmf-more{display:flex;width:100%;min-height:52px;margin:0;padding:0 4px;border-top:1px solid #E4E6EC;font-size:16px}'
     +   '.nmf-back{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 4px;border:0;background:none;color:#0A1F44;font:800 15px/1 sans-serif;font-family:inherit;cursor:pointer}'
     +   '.nmf-l1 h3{margin:6px 4px 8px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6B7487}'
     + '}';
@@ -73,6 +84,24 @@
       .then(function(j){ MENU = j; return j; }, function(e){ LOADING = null; throw e; });
     return LOADING;
   }
+  /* «Ver todas»: the column's complete list, one small file per department. */
+  var FULL = {};
+  function moreHTML(c, i){
+    if (!c.more || !(c.all > c.links.length)) return '';
+    return '<li><button type="button" class="nmf-more" data-nm-more="' + i + '">' + (c.h === 'Marcas' ? 'Ver todas las marcas' : 'Ver todos') + '<small>' + num(c.all) + '</small></button></li>';
+  }
+  function expand(i){
+    var t = open && tabOf(open.getAttribute('data-nm-tab')), c = t && t.cols[i];
+    if (!c || !c.more) return;
+    var a = open;
+    var got = FULL[c.more] || (FULL[c.more] = fetch(c.more).then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).catch(function(e){ delete FULL[c.more]; throw e; }));
+    got.then(function(list){
+      if (open !== a) return;
+      Array.prototype.forEach.call(panel.querySelectorAll('ul[data-nm-ul="' + i + '"]'), function(ul){ ul.innerHTML = list.map(linkHTML).join(''); ul.classList.add('nmf-full'); });
+    }, function(){
+      Array.prototype.forEach.call(panel.querySelectorAll('[data-nm-more="' + i + '"]'), function(b){ b.textContent = 'No pudimos cargar la lista. Toca para reintentar.'; });
+    });
+  }
   function tabOf(k){ return MENU && (MENU.tabs || []).filter(function(t){ return t.k === k; })[0]; }
   function linkHTML(l){ return '<li><a href="' + esc(l[1]) + '" data-nm-leaf>' + esc(l[0]) + (l[2] ? '<small>' + num(l[2]) + '</small>' : '') + '</a></li>'; }
   var CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
@@ -86,8 +115,8 @@
     var body;
     if (!t) body = '<p class="nmf-msg">Cargando…</p>';
     else if (!t.cols.length) body = '<p class="nmf-msg">Abre la página de ' + esc(label) + ' para ver todo.</p>';
-    else body = '<div class="nmf-cols">' + t.cols.map(function(c){
-      return '<section class="nmf-col" data-nm-col="' + esc(c.h) + '"><h3>' + (c.href ? '<a href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + '</a>' : esc(c.h)) + '</h3><ul>' + c.links.map(linkHTML).join('') + '</ul></section>';
+    else body = '<div class="nmf-cols">' + t.cols.map(function(c, i){
+      return '<section class="nmf-col" data-nm-col="' + esc(c.h) + '"><h3>' + (c.href ? '<a href="' + esc(c.href) + '" data-nm-leaf>' + esc(c.h) + '</a>' : esc(c.h)) + '</h3><ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></section>';
     }).join('') + '</div>'
       /* The phone's drill-down: the same columns, one level at a time. */
       + '<div class="nmf-drill"><ul class="nmf-l0" data-nm-l0>' + t.cols.map(function(c, i){
@@ -95,7 +124,7 @@
       }).join('') + '</ul>' + t.cols.map(function(c, i){
         return '<div class="nmf-l1" data-nm-lvl="' + i + '" hidden><button type="button" class="nmf-back" data-nm-back>' + BACK + esc(label) + '</button><h3>' + esc(c.h) + '</h3>'
           + (c.href ? '<a class="nmf-colall" href="' + esc(c.href) + '" data-nm-leaf>Ver todo: ' + esc(c.h) + CHEV + '</a>' : '')
-          + '<ul>' + c.links.map(linkHTML).join('') + '</ul></div>';
+          + '<ul data-nm-ul="' + i + '">' + c.links.map(linkHTML).join('') + moreHTML(c, i) + '</ul></div>';
       }).join('') + '</div>';
     panel.innerHTML = '<div class="nmf-in">' + head + body + '</div>';
   }
@@ -190,6 +219,9 @@
   bd.addEventListener('click', function(e){ e.preventDefault(); hide(); });
   panel.addEventListener('click', function(e){
     if (e.target.closest('.nmf-x')) { e.preventDefault(); var a = open; hide(); if (a) a.focus(); return; }
+    /* «Ver todas las marcas»: the whole list, in place. Nothing navigates. */
+    var more = e.target.closest('[data-nm-more]');
+    if (more){ e.preventDefault(); expand(more.getAttribute('data-nm-more')); return; }
     /* The drill-down: into a column, and back out of it. Nothing navigates. */
     var go = e.target.closest('[data-nm-go]');
     if (go){

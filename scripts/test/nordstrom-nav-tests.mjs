@@ -1,32 +1,37 @@
 #!/usr/bin/env node
 /* ==================================================================
    THE NORDSTROM NAVIGATION PATTERN (#443 c.6616347095, c.6616389410,
-   c.6616425433).
+   c.6616425433) UNDER «THE HEADER CREATES NOTHING» (#443 c.6621544530,
+   c.6621722209).
 
    Pins:
-     - the menu data and every page's tab row are what
-       scripts/build-nav-menu.mjs computes today (--check);
-     - every leaf of the menu lands on products (counts > 0), every
-       registry department with products sits under a tab;
-     - the filter answers stack (audience x type x brand x size x price x
-       Ofertas) and every option offered returns products;
-     - no filter UI renders a checkbox;
-     - desktop 1366x768 (no touch): hovering Zapatos opens the flyout
-       over the homepage; a click outside closes it on the same URL;
-       clicking Botas navigates; the type pills re-render in place;
-       Marca + Talla stack as chips; no zero-result option; no
-       catalogue file is requested while the menu is open;
-     - phone 390: a tap opens the sheet, a tap outside closes it.
+     - the menu data, the complete lists, the inventory and every page's
+       tab row are what scripts/build-nav-menu.mjs computes today;
+     - every menu URL is canonical: no nav=1, a page of the section
+       registry, only that page's own parameters; every department leaf
+       finds exactly its count with the department's own filter;
+     - a nav=1 URL (and the bar's other parameters) goes to the canonical
+       page: departamento.html's first script, and netlify.toml's 301s;
+     - Zapatos' brand list is the department's real brand set; Zapatos +
+       Jordan is Jordan shoes (a type check on every card), with the
+       audience switch working on the real Zapatos page;
+     - Perfumes lands on the real Aria Perfumes department;
+     - the bar is kept only where the page has no filters of its own
+       (store, brand, search) and renders nowhere else;
+     - 1366 and 390: the flyout opens over the page, a click off closes it
+       on the same URL, no catalogue is requested, carousels only.
 
      node scripts/test/nordstrom-nav-tests.mjs
-     SHOT_DIR=/some/dir node scripts/test/nordstrom-nav-tests.mjs   (also saves nav-*.png)
+     SHOT_DIR=/some/dir node scripts/test/nordstrom-nav-tests.mjs   (also saves canon-*.png)
    ================================================================== */
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildMenu, syncPages, MENU_FILE, INVENTORY_FILE, inventoryMarkdown, NM_PAGES } from "../build-nav-menu.mjs";
+import { buildMenu, syncPages, MENU_FILE, INVENTORY_FILE, inventoryMarkdown, NM_PAGES, BRANDS_DIR, BLOCKED, deptRegistry } from "../build-nav-menu.mjs";
 import { navFilter, normSize, readFilters, answerNav } from "../../netlify/functions/_nav-filter-core.js";
+import { loadDept, filterList, answer as deptAnswer } from "../../netlify/functions/_department-core.js";
+import { SHOE_CLASSES, isGarmentTail } from "../lib/footwear.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.chdir(ROOT);
@@ -43,6 +48,7 @@ const B = buildMenu(ROOT);
 await check("the menu JSON, the inventory and every page's tab row are current (node scripts/build-nav-menu.mjs)", () => {
   assert.equal(read(MENU_FILE), JSON.stringify(B.menu) + "\n", MENU_FILE + " is stale");
   assert.equal(read(INVENTORY_FILE), inventoryMarkdown(B), INVENTORY_FILE + " is stale");
+  for (const [f, l] of Object.entries(B.files)) assert.equal(read(BRANDS_DIR + "/" + f + ".json"), JSON.stringify(l) + "\n", f + " is stale");
   assert.deepEqual(syncPages(B.menu, { write: false, root: ROOT }), []);
   for (const f of NM_PAGES) if (existsSync(join(ROOT, f))) {
     const s = read(f);
@@ -67,21 +73,159 @@ await check("every section Danny named is a tab or a section in one", () => {
     assert.ok(all.includes('"' + name), name + " is missing from the menu");
   assert.deepEqual(B.unplaced, [], "registry departments with products under no tab");
 });
-await check("Zapatos opens Mujer / Hombre / Niños columns of real types and a Marcas column", () => {
+await check("Zapatos opens Mujer / Hombre / Niños columns of real types and a Marcas column, on the real Zapatos department", () => {
   const z = B.menu.tabs.find((t) => t.k === "zapatos");
+  assert.equal(z.href, "/departamento.html?dept=shoes");
   assert.deepEqual(z.cols.slice(0, 4).map((c) => c.h), ["Mujer", "Hombre", "Niños", "Marcas"]);
   const botas = z.cols[0].links.find((l) => /^Botas/.test(l[0]));
-  assert.ok(botas && botas[2] > 0 && /dept=shoes&nav=1&u=women&t=botas-y-botines/.test(botas[1]), JSON.stringify(botas));
+  assert.ok(botas && botas[2] > 0, JSON.stringify(botas));
+  assert.equal(botas[1], "/departamento.html?dept=shoes&t=botas-y-botines&para=women");
 });
-await check("every leaf lands on products: a nav=1 leaf's own filters return exactly its count", () => {
-  for (const t of B.menu.tabs) for (const c of t.cols) for (const [label, href, n] of c.links) {
-    assert.ok(n > 0, `${t.label} > ${c.h} > ${label}: 0`);
-    const u = new URL(href, "http://x");
-    if (u.pathname !== "/departamento.html" || u.searchParams.get("nav") !== "1") continue;
-    const qs = Object.fromEntries(u.searchParams);
-    const r = navFilter(qs.dept, readFilters(qs), "deal", 0, [ROOT]);
-    assert.equal(r.count, n, `${t.label} > ${c.h} > ${label}: menu says ${n}, the page finds ${r.count}`);
+
+/* ---------- every URL the header carries is canonical ---------- */
+const REG = deptRegistry(ROOT);
+const PAGE_PARAMS = {
+  "/departamento.html": ["dept", "a", "b", "t", "para"],
+  "/ropa-interior.html": ["ver"], "/disenadores.html": ["d", "t"], "/motos.html": ["t"],
+  "/aria-auto.html": [], "/ofertas.html": ["vista", "cat"], "/keyclub.html": [],
+};
+const allLinks = () => {
+  const out = [];
+  for (const t of B.menu.tabs) {
+    out.push([t.label, t.href, t.n]);
+    for (const c of t.cols) {
+      if (c.href) out.push([t.label + " > " + c.h, c.href, c.n]);
+      for (const l of c.links) out.push([t.label + " > " + c.h + " > " + l[0], l[1], l[2]]);
+      if (c.more) for (const l of JSON.parse(read(c.more.slice(1)))) out.push([t.label + " > " + c.h + " (todas) > " + l[0], l[1], l[2]]);
+    }
   }
+  return out;
+};
+await check("every menu link is canonical: no nav=1, a page of the section registry, only that page's own parameters", () => {
+  const links = allLinks();
+  assert.ok(links.length > 2000, "only " + links.length + " links (the complete lists are missing)");
+  for (const [where, href] of links) {
+    const u = new URL(href, "http://x");
+    assert.ok(!u.searchParams.has("nav") && !/nav=1/.test(href), where + ": " + href);
+    assert.ok(Object.prototype.hasOwnProperty.call(PAGE_PARAMS, u.pathname), where + ": " + href + " is not a section page");
+    assert.ok(existsSync(join(ROOT, u.pathname)), where + ": " + u.pathname + " does not exist");
+    for (const k of u.searchParams.keys()) assert.ok(PAGE_PARAMS[u.pathname].includes(k), where + ": " + href + " carries «" + k + "», not a parameter of that page");
+    if (u.pathname === "/departamento.html") {
+      const d = u.searchParams.get("dept");
+      assert.ok(REG[d] && !REG[d].door, where + ": " + href + " -- «" + d + "» is not a department of the registry with its own grid");
+      const para = u.searchParams.get("para");
+      if (para) assert.ok(["women", "men", "kids"].includes(para), where + ": " + href);
+    }
+    if (u.pathname === "/ropa-interior.html") assert.match(href, /^\/ropa-interior\.html(\?ver=(type|brand):[a-z0-9_]+)?#(mujer|hombre)$/, where);
+  }
+});
+await check("every department leaf finds exactly its count with the department's own filter (its type view, brand pills, Para quién)", () => {
+  const cache = new Map();
+  const listOf = (k) => { if (!cache.has(k)) cache.set(k, loadDept(k, [ROOT]).list.filter((p) => p.image)); return cache.get(k); };
+  let n = 0;
+  for (const [where, href, count] of allLinks()) {
+    const u = new URL(href, "http://x");
+    if (u.pathname !== "/departamento.html") continue;
+    const q = Object.fromEntries(u.searchParams);
+    if (!q.b && !q.t && !q.a) continue;
+    const got = filterList(listOf(q.dept), { b: q.b || "", t: q.t || "", a: q.a || "", u: q.para || "" }).length;
+    assert.equal(got, count, `${where}: the menu says ${count}, the page finds ${got} (${href})`);
+    n++;
+  }
+  assert.ok(n > 1500, n + " leaves checked");
+});
+await check("a type that has its own section is not a fashion department's leaf (shoes, bags, sunglasses, jewellery, fragrance, lingerie)", () => {
+  for (const k of ["mujer", "hombre", "ninos"]) {
+    const t = B.menu.tabs.find((x) => x.k === k);
+    const ropa = t.cols.find((c) => c.h === "Ropa");
+    for (const [l, h] of ropa.links) assert.ok(!/[?&]t=(zapatos|zapatillas|sandalias|tacones|botas-y-botines|carteras|lentes-de-sol|joyas|aretes|anillos|fragancia|lenceria|fajas-y-shapewear|ropa-interior)(&|$)/.test(h), `${t.label} > Ropa > ${l}: ${h}`);
+  }
+  const mujer = B.menu.tabs.find((x) => x.k === "mujer").cols.find((c) => c.h === "Secciones").links.map((l) => l[1]);
+  for (const h of ["/ropa-interior.html#mujer", "/departamento.html?dept=perfumes", "/departamento.html?dept=purses", "/departamento.html?dept=sunglasses"]) assert.ok(mujer.includes(h), "Mujer > Secciones lacks " + h);
+});
+await check("Perfumes in the menu is the real Aria Perfumes department: the homepage's own address and its own doors", () => {
+  const home = read("index.html");
+  assert.ok(home.includes('href="/departamento.html?dept=perfumes" class="ariaHouseCta'), "the homepage's «Entrar a Aria Perfumes» moved");
+  /* (Casa Aria's «Perfumes» are room sprays and diffusers: home, not Aria Perfumes.) */
+  const per = allLinks().filter(([w, h]) => /dept=perfumes/.test(h) || (/(^|> )(Aria )?Perfumes$/.test(w) && !/^Hogar/.test(w)));
+  assert.ok(per.length >= 4, per.length + " Perfumes links");
+  for (const [w, h] of per) assert.match(h, /^\/departamento\.html\?dept=perfumes(&a=(mujer|hombre|unisex|minis|sets|testers))?$/, w);
+  const col = B.menu.tabs.find((x) => x.k === "belleza").cols.find((c) => c.h === "Aria Perfumes");
+  assert.equal(col.href, "/departamento.html?dept=perfumes");
+  assert.ok(!JSON.stringify(B.menu).includes("t=fragancia"), "a Fragancia type link");
+});
+await check("Zapatos' brand list is the department's real brand set, complete (the flyout's «Ver todas las marcas»)", () => {
+  const col = B.menu.tabs.find((x) => x.k === "zapatos").cols.find((c) => c.h === "Marcas");
+  const full = JSON.parse(read(col.more.slice(1)));
+  const real = new Map();
+  for (const p of loadDept("shoes", [ROOT]).list) { if (!p.image) continue; const k = String(p.brand || "").trim().toLowerCase(); if (k) real.set(k, (real.get(k) || 0) + 1); }
+  const got = new Map(full.map(([, h, n]) => [new URL(h, "http://x").searchParams.get("b").toLowerCase(), n]));
+  assert.equal(col.all, real.size);
+  assert.deepEqual([...got.keys()].sort(), [...real.keys()].sort(), "not the department's brand set");
+  for (const [k, n] of real) assert.equal(got.get(k), n, k);
+  for (const k of ["jordan", "nike", "vans", "crocs", "skechers"]) assert.ok(got.has(k), k + " is missing");
+  assert.ok(col.links.length < full.length && col.links.every((l, i) => l[1] === full[i][1]), "the flyout's first brands are not the list's first");
+});
+await check("Zapatos + Jordan is Jordan shoes: every card of the department's own Jordan view is a shoe (its type), none a garment", () => {
+  const more = B.menu.tabs.find((x) => x.k === "zapatos").cols.find((c) => c.h === "Marcas").more;
+  const jordan = JSON.parse(read(more.slice(1))).find((l) => l[0].toLowerCase() === "jordan");
+  assert.equal(jordan[1], "/departamento.html?dept=shoes&b=Jordan");
+  const list = loadDept("shoes", [ROOT]).list.filter((p) => String(p.brand || "").trim().toLowerCase() === "jordan");
+  assert.ok(list.length > 50);
+  const typeOf = new Map(list.map((p) => [p.title + "|" + p.retailer, p.type]));
+  const head = deptAnswer({ dept: "shoes", b: "Jordan" }, [ROOT]).body;
+  let cards = 0;
+  for (let r = 0; r < head.rails.length; r++) {
+    for (let pg = 0; ; pg++) {
+      const out = deptAnswer({ dept: "shoes", b: "Jordan", rail: String(r), page: String(pg) }, [ROOT]);
+      if (out.status !== 200) break;
+      for (const c of out.body.cards || []) {
+        cards++;
+        assert.equal(String(c.b).toLowerCase(), "jordan", c.t);
+        assert.ok(SHOE_CLASSES.includes(typeOf.get(c.t + "|" + c.r)), c.t + ": type " + typeOf.get(c.t + "|" + c.r));
+        assert.ok(!isGarmentTail(c.t), c.t + " is a garment");
+      }
+      if (pg + 1 >= (out.body.pages || 1)) break;
+    }
+  }
+  assert.ok(cards >= list.length, cards + " cards for " + list.length + " products");
+  for (const u of ["women", "men", "kids"]) {
+    const sub = filterList(list, { u });
+    assert.ok(sub.length > 0 && sub.length < list.length, u + ": " + sub.length);
+  }
+});
+await check("the views the header used to invent are blocked: netlify.toml 301s every nav=1 set the menus carried to the canonical page", () => {
+  const toml = read("netlify.toml");
+  const rules = [...toml.matchAll(/\[\[redirects\]\]\s*\n\s*from = "([^"]+)"\s*\n\s*to = "([^"]+)"\s*\n\s*status = (\d+)\s*\n\s*force = true\s*\n\s*query = \{([^}]*)\}/g)]
+    .map((m) => ({ from: m[1], to: m[2], status: +m[3], q: Object.fromEntries([...m[4].matchAll(/([a-z]+) = ":([a-z]+)"/g)].map((x) => [x[1], x[2]])) }));
+  /* Netlify: a rule with query parameters matches the request's exact set. */
+  const sim = (path, qs) => {
+    const keys = Object.keys(qs).sort().join(",");
+    const r = rules.find((x) => x.from === path && Object.keys(x.q).sort().join(",") === keys);
+    return r && r.to.replace(/:([a-z]+)/g, (_, k) => qs[Object.keys(r.q).find((q) => r.q[q] === k)]);
+  };
+  const cases = [
+    [{ dept: "shoes", nav: "1", u: "women", t: "botas-y-botines" }, "/departamento.html?dept=shoes&t=botas-y-botines&para=women"],
+    [{ dept: "shoes", nav: "1", u: "men", b: "jordan" }, "/departamento.html?dept=shoes&b=jordan&para=men"],
+    [{ dept: "shoes", nav: "1", b: "jordan" }, "/departamento.html?dept=shoes&b=jordan"],
+    [{ dept: "perfumes", nav: "1", t: "fragancia" }, "/departamento.html?dept=perfumes&t=fragancia"],
+    [{ dept: "women", nav: "1", t: "vestidos", o: "1" }, "/departamento.html?dept=women&t=vestidos&ver=ofertas"],
+    [{ dept: "women", nav: "1", o: "1" }, "/departamento.html?dept=women&ver=ofertas"],
+    [{ dept: "kids", nav: "1", u: "kids" }, "/departamento.html?dept=kids&para=kids"],
+    [{ dept: "luxury", nav: "1" }, "/departamento.html?dept=luxury"],
+  ];
+  for (const path of ["/departamento.html", "/departamento"]) for (const [qs, to] of cases) assert.equal(sim(path, qs), to, path + " " + JSON.stringify(qs));
+  assert.ok(rules.length >= 16 && rules.every((r) => r.status === 301 && !/nav/.test(r.to)));
+  assert.ok(BLOCKED.some(([a]) => /nav=1/.test(a)));
+  assert.match(read(INVENTORY_FILE), /## URLs bloqueadas o redirigidas/);
+});
+await check("departamento.html's first script sends a nav=1 URL to the canonical page before anything renders; the bar is gone from every section page", () => {
+  const s = read("departamento.html");
+  const first = s.indexOf("<script"), redirect = s.indexOf("window.__ariaCanon = 1");
+  assert.ok(redirect > first && redirect < s.indexOf("</script>", first), "the redirect is not the first script");
+  assert.ok(redirect < s.indexOf("<title>"), "the redirect is not at the top of <head>");
+  for (const f of ["departamento.html", "ofertas.html", "ropa-interior.html"]) assert.ok(!/nav-filter\.js|nfBoot|AriaNFHost/.test(read(f)), f + " still loads the filter bar");
+  assert.ok(!/AriaDept|nav=1|'nav'/.test(read("assets/js/nav-filter.js")), "nav-filter.js still builds the department's filtered view");
 });
 await check("sizes are the store's own labels, read not invented", () => {
   assert.deepEqual(normSize("9.5M"), [{ z: "US 9.5", side: "" }]);
@@ -108,7 +252,7 @@ await check("facets stack (Niños x Botas x a brand x a size) and every offered 
   for (const c of kids.cards) assert.equal(String(c.b).toLowerCase(), "ugg");
 });
 await check("every listing: two brands give exactly the union of the two (within the listing), and every card is one of them", async () => {
-  for (const src of [{ dept: "women" }, { tienda: "macys" }, { marca: "nike" }, { ofertas: "1" }, { ri: "mujer" }]) {
+  for (const src of [{ tienda: "macys" }, { marca: "nike" }]) {
     const all = (await answerNav({ ...src, fx: "3.75" }, [ROOT])).body;
     const two = all.facets.b.slice(0, 2);
     if (two.length < 2) { assert.ok(src.marca, JSON.stringify(src) + " has fewer than two brands"); continue; }
@@ -250,7 +394,18 @@ if (pw) {
       assert.equal(page.url(), url0);
       await c.close();
     });
-    await check("browser desktop 1366: Zapatos > Mujer > Botas navigates; the pills re-render in place; Marca + Talla stack as chips; nothing at zero; no checkbox", async () => {
+    /* ---------- the header lands on the canonical pages ---------- */
+    const JORDAN = new Map(loadDept("shoes", [ROOT]).list.filter((p) => String(p.brand || "").trim().toLowerCase() === "jordan").map((p) => [p.title, p]));
+    const cardsOf = (page) => page.$$eval("#rails a.card[href*='producto=']", (as) => as.map((a) => { const u = new URL(a.href); return { t: u.searchParams.get("producto"), r: u.searchParams.get("tienda"), u: a.getBoundingClientRect().top }; }));
+    const shoeCheck = (cards, where) => {
+      assert.ok(cards.length > 0, where + ": no cards");
+      for (const c of cards) {
+        const p = JORDAN.get(c.t);
+        assert.ok(p, where + ": «" + c.t + "» is not a Jordan product of Zapatos");
+        assert.ok(SHOE_CLASSES.includes(p.type) && !isGarmentTail(c.t), where + ": «" + c.t + "» is a " + p.type);
+      }
+    };
+    await check("browser desktop 1366: Zapatos > Mujer > Botas lands on the real Zapatos department's own type view (no nav=1, no second rendering)", async () => {
       const { c, page, reqs } = await ctx(true);
       await page.goto(BASE + "/departamento.html?dept=shoes", { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
@@ -258,71 +413,40 @@ if (pw) {
       const leaf = '#nmFlyout [data-nm-col="Mujer"] a[href*="t=botas-y-botines"]';
       await page.waitForSelector(leaf, { timeout: 10000 });
       await Promise.all([page.waitForURL(/t=botas-y-botines/), page.click(leaf)]);
-      assert.match(page.url(), /dept=shoes&nav=1&u=women&t=botas-y-botines/);
-      await page.waitForSelector(".nf-pill[data-nf-s]", { timeout: 60000 });
-      await page.waitForSelector("#nfRail .card");
-      const pills = await page.$$eval(".nf-pill[data-nf-s]", (p) => p.map((x) => x.textContent));
-      assert.match(pills[0], /^Todas las botas/);
-      assert.ok(pills.length >= 3, pills.join(" | "));
-      /* One tap on a pill: same document, new results. */
-      await page.evaluate(() => { window.__same = 1; });
-      const n0 = await page.textContent("#nfCount");
-      await page.click(".nf-pill[data-nf-s]:not([data-nf-s=''])");
-      await page.waitForFunction((n) => document.getElementById("nfCount").textContent !== n && !/Cargando/.test(document.getElementById("nfCount").textContent), n0);
-      assert.equal(await page.evaluate(() => window.__same), 1, "the pill navigated");
-      assert.match(page.url(), /&s=/);
-      await page.click(".nf-pill[data-nf-s='']");
-      await page.waitForFunction(() => !/[?&]s=/.test(location.search));
-      await page.waitForFunction(() => !/Cargando/.test(document.getElementById("nfCount").textContent));
-      /* Marca, then Talla: both chips, the count narrows. */
-      await page.click('[data-nf-btn="b"]');
-      await page.waitForSelector(".nf-pan [data-nf-b]");
-      const brand = await page.$eval(".nf-pan [data-nf-b]", (b) => b.querySelector("span").textContent);
-      await page.click(".nf-pan [data-nf-b]");
-      await page.waitForSelector('[data-nf-x="b"]');
-      await page.waitForFunction(() => !/Cargando/.test(document.getElementById("nfCount").textContent));
-      /* Marca takes several: the panel stays open until «Listo». */
-      assert.ok(await page.isVisible(".nf-pan [data-nf-done]"));
-      await page.click(".nf-pan [data-nf-done]");
-      await page.click('[data-nf-btn="z"]');
-      await page.waitForSelector(".nf-pan [data-nf-z]");
-      const zeros = await page.$$eval(".nf-pan button small", (s) => s.filter((x) => /^0$/.test(x.textContent.trim())).length);
-      assert.equal(zeros, 0, "an option at zero is offered");
-      await page.click(".nf-pan [data-nf-z]");
-      await page.waitForSelector('[data-nf-x="z"]');
-      await page.waitForFunction(() => !/Cargando/.test(document.getElementById("nfCount").textContent));
-      await page.click(".nf-pan [data-nf-done]");
-      const chips = await page.$$eval(".nf-x", (x) => x.map((e) => e.textContent));
-      assert.ok(chips.some((t) => t === "Marca: " + brand), chips.join(" | "));
-      assert.ok(chips.some((t) => /^Talla: /.test(t)), chips.join(" | "));
-      assert.ok(chips.includes("Mujer"));
-      assert.match(page.url(), /[?&]b=/); assert.match(page.url(), /[?&]z=/);
-      const cards = await page.$$eval("#nfRail .card", (c) => c.length);
-      assert.ok(cards > 0, "no products after stacking");
-      /* Every option in every panel has products. */
-      for (const k of ["f", "b", "z", "p"]) {
-        const btn = await page.$(`[data-nf-btn="${k}"]`);
-        if (!btn || !(await btn.isVisible())) continue;
-        await btn.click();
-        await page.waitForSelector(".nf-pan");
-        const z = await page.$$eval(".nf-pan button small", (s) => s.filter((x) => /^0$/.test(x.textContent.trim())).length);
-        assert.equal(z, 0, k + ": an option at zero");
-        await page.keyboard.press("Escape");
-      }
-      assert.equal(await page.$$eval('input[type="checkbox"]', (x) => x.filter((e) => e.offsetParent).length), 0, "a visible checkbox");
-      /* Results are one carousel: one row of cards. */
-      const rows = await page.$$eval("#nfRail .card", (cs) => new Set(cs.map((c) => Math.round(c.getBoundingClientRect().top))).size);
-      assert.equal(rows, 1, "cards in more than one row");
-      if (SHOT) { await page.evaluate(() => window.scrollTo(0, 0)); await page.screenshot({ path: join(SHOT, "nav-desktop-botas-pills-chips.png") }); }
-      /* Back walks the filters. */
-      await page.goBack();
-      await page.waitForFunction(() => !/[?&]z=/.test(location.search));
-      await page.waitForFunction(() => !document.querySelector('[data-nf-x="z"]'));
+      assert.equal(page.url(), BASE + "/departamento.html?dept=shoes&t=botas-y-botines&para=women");
+      await page.waitForSelector("#rails .rail-sec .card:not(.sk)", { timeout: 60000 });
+      assert.match(await page.textContent("#scopeBar"), /Botas/);
+      assert.equal(await page.$("#nf"), null, "the filter bar rendered a second view");
+      await page.waitForSelector('#dhAud:not([hidden]) button[data-u="women"][aria-pressed="true"]', { timeout: 30000 });
       assert.equal(reqs.filter((u) => CATALOG_RX.test(u)).length, 0, "a catalogue file was requested");
       await c.close();
     });
-    await check("browser phone 390: a tap opens the sheet, a tap outside closes it on the same page", async () => {
-      const { c, page } = await ctx(false);
+    await check("browser desktop 1366: Zapatos' «Ver todas las marcas» opens the department's complete brand list in the flyout; Jordan opens the real Zapatos page", async () => {
+      const { c, page, reqs } = await ctx(true);
+      await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+      const url0 = page.url();
+      await page.hover('[data-nm-tab="zapatos"]');
+      await flyoutOpen(page);
+      const col = B.menu.tabs.find((x) => x.k === "zapatos").cols.find((x) => x.h === "Marcas");
+      const before = reqs.length;
+      await page.click('#nmFlyout [data-nm-col="Marcas"] [data-nm-more]');
+      await page.waitForFunction((n) => document.querySelectorAll('#nmFlyout [data-nm-col="Marcas"] li a').length === n, col.all, { timeout: 10000 });
+      assert.equal(page.url(), url0, "«Ver todas» navigated");
+      const got = reqs.slice(before);
+      assert.ok(got.some((u) => u.includes(col.more)), "the list was not fetched");
+      assert.deepEqual(got.filter((u) => CATALOG_RX.test(u)), [], "a catalogue file was requested");
+      if (SHOT) await page.screenshot({ path: join(SHOT, "canon-zapatos-brands-1366.png") });
+      const j = '#nmFlyout [data-nm-col="Marcas"] a[href="/departamento.html?dept=shoes&b=Jordan"]';
+      await page.$eval(j, (a) => a.scrollIntoView({ block: "center" }));
+      await Promise.all([page.waitForURL(/b=Jordan/), page.click(j)]);
+      assert.equal(page.url(), BASE + "/departamento.html?dept=shoes&b=Jordan");
+      await page.waitForSelector("#rails .rail-sec .card:not(.sk)", { timeout: 60000 });
+      shoeCheck(await cardsOf(page), "1366 Zapatos + Jordan");
+      await c.close();
+    });
+    await check("browser phone 390: a tap opens the sheet; Zapatos > Marcas > «Ver todas las marcas» lists every brand of the department; a tap outside closes it on the same page", async () => {
+      const { c, page, reqs } = await ctx(false);
       await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
       const url0 = page.url();
@@ -330,36 +454,130 @@ if (pw) {
       await flyoutOpen(page);
       const box = await page.$eval("#nmFlyout", (e) => { const r = e.getBoundingClientRect(); return { bottom: Math.round(r.bottom), h: Math.round(r.height) }; });
       assert.equal(box.bottom, 844, "the sheet sits on the bottom edge");
-      if (SHOT) await page.screenshot({ path: join(SHOT, "nav2-phone-drill-0.png") });
-      /* The drill-down: Mujer, its leaves, back -- nothing navigates. */
       assert.equal(box.h > 600, true, "the phone menu is not full height: " + box.h);
+      /* The drill-down: Mujer, its leaves, back -- nothing navigates. */
       await page.tap('#nmFlyout [data-nm-go="0"]');
       await page.waitForSelector('#nmFlyout [data-nm-lvl="0"]:not([hidden]) a[href*="t=botas-y-botines"]');
       assert.equal(await page.isVisible("#nmFlyout [data-nm-l0]"), false);
-      if (SHOT) await page.screenshot({ path: join(SHOT, "nav2-phone-drill-mujer.png") });
       await page.tap('#nmFlyout [data-nm-lvl="0"] [data-nm-back]');
       await page.waitForSelector("#nmFlyout [data-nm-l0]:not([hidden])");
+      /* Marcas: the first ones, then all of them. */
+      const tab = B.menu.tabs.find((x) => x.k === "zapatos"), mi = tab.cols.findIndex((x) => x.h === "Marcas");
+      await page.tap(`#nmFlyout [data-nm-go="${mi}"]`);
+      await page.waitForSelector(`#nmFlyout [data-nm-lvl="${mi}"]:not([hidden]) [data-nm-more]`);
+      await page.tap(`#nmFlyout [data-nm-lvl="${mi}"] [data-nm-more]`);
+      await page.waitForFunction(([i, n]) => document.querySelectorAll('#nmFlyout [data-nm-lvl="' + i + '"] li a').length === n, [mi, tab.cols[mi].all], { timeout: 10000 });
       assert.equal(page.url(), url0);
-      await page.tap("[data-nm-backdrop]", { position: { x: 195, y: 40 } });
+      if (SHOT) {
+        await page.$eval("#nmFlyout", (f) => { f.scrollTop = 0; });
+        await page.screenshot({ path: join(SHOT, "canon-zapatos-brands.png") });
+        await page.$eval("#nmFlyout", (f) => { f.scrollTop = f.scrollHeight; });
+        await page.screenshot({ path: join(SHOT, "canon-zapatos-brands-end.png") });
+      }
+      assert.deepEqual(reqs.filter((u) => CATALOG_RX.test(u)), [], "a catalogue file was requested");
+      await page.tap("[data-nm-backdrop]", { position: { x: 195, y: 40 } }).catch(() => {});
+      await page.keyboard.press("Escape");
       await page.waitForSelector("#nmFlyout", { state: "hidden" });
       assert.equal(page.url(), url0);
-      /* The filter bar's panels are bottom sheets on a phone too. */
-      await page.goto(BASE + "/departamento.html?dept=shoes&nav=1&u=women&t=botas-y-botines", { waitUntil: "domcontentloaded" });
-      await page.waitForSelector("#nfRail .card", { timeout: 60000 });
-      await page.tap('[data-nf-btn="z"]');
-      await page.waitForSelector(".nf-pan [data-nf-z]");
-      if (SHOT) await page.screenshot({ path: join(SHOT, "nav-phone-talla-sheet.png") });
-      await page.tap("[data-nf-scrim]", { position: { x: 195, y: 60 } });
-      await page.waitForSelector(".nf-pan", { state: "detached" });
       await c.close();
     });
-    /* ---------- Phase 2: the same bar on every listing ---------- */
+    await check("browser phone 390: Zapatos + Jordan from the header is Jordan shoes only (a type check on every card), and Niños narrows it on the same page", async () => {
+      const { c, page, reqs } = await ctx(false);
+      await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+      await page.tap('[data-nm-tab="zapatos"]');
+      await flyoutOpen(page);
+      const tab = B.menu.tabs.find((x) => x.k === "zapatos"), mi = tab.cols.findIndex((x) => x.h === "Marcas");
+      await page.tap(`#nmFlyout [data-nm-go="${mi}"]`);
+      await page.tap(`#nmFlyout [data-nm-lvl="${mi}"] [data-nm-more]`);
+      const j = `#nmFlyout [data-nm-lvl="${mi}"] a[href="/departamento.html?dept=shoes&b=Jordan"]`;
+      await page.waitForSelector(j);
+      await page.$eval(j, (a) => a.scrollIntoView({ block: "center" }));
+      await Promise.all([page.waitForURL(/b=Jordan/), page.tap(j)]);
+      assert.equal(page.url(), BASE + "/departamento.html?dept=shoes&b=Jordan");
+      await page.waitForSelector("#rails .rail-sec .card:not(.sk)", { timeout: 60000 });
+      assert.equal(await page.$("#nf"), null, "a second rendering");
+      assert.match(await page.textContent("#scopeBar"), /Jordan/i);
+      shoeCheck(await cardsOf(page), "390 Zapatos + Jordan");
+      if (SHOT) {
+        await page.evaluate(() => { const h = document.getElementById("scopeBar"); window.scrollTo(0, Math.max(0, h.getBoundingClientRect().top + window.scrollY - 230)); });
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: join(SHOT, "canon-zapatos-jordan.png") });
+        await page.evaluate(() => { const r = document.querySelector("#rails .rail-sec"); window.scrollTo(0, Math.max(0, r.getBoundingClientRect().top + window.scrollY - 140)); });
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: join(SHOT, "canon-zapatos-jordan-rails.png") });
+      }
+      /* The audience layer works as normal: Niños, on the same page. */
+      await page.waitForSelector('#dhAud:not([hidden]) button[data-u="kids"]', { timeout: 30000 });
+      const kids = await page.$('#dhAud button[data-u="kids"]');
+      assert.ok(kids, "no Niños in the audience switch");
+      await kids.tap();
+      await page.waitForFunction(() => /para=kids/.test(location.search), null, { timeout: 30000 });
+      await page.waitForSelector("#rails .rail-sec .card:not(.sk)", { timeout: 60000 });
+      await page.waitForTimeout(300);
+      const kc = await cardsOf(page);
+      shoeCheck(kc, "390 Zapatos + Jordan + Niños");
+      for (const x of kc) assert.equal(JORDAN.get(x.t).u, "kids", x.t);
+      assert.match(page.url(), /dept=shoes&b=Jordan/);
+      assert.deepEqual(reqs.filter((u) => CATALOG_RX.test(u)), [], "a catalogue file was requested");
+      await c.close();
+    });
+    await check("browser phone 390: Perfumes from the header lands on the real Aria Perfumes department (its doors and houses), never a Fragancia grid", async () => {
+      const { c, page, reqs } = await ctx(false);
+      await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelector("[data-nm]") && document.querySelector("[data-nm]").getAttribute("data-nm-on") === "1");
+      await page.tap('[data-nm-tab="belleza"]');
+      await flyoutOpen(page, "Aria Perfumes");
+      const tab = B.menu.tabs.find((x) => x.k === "belleza"), pi = tab.cols.findIndex((x) => x.h === "Aria Perfumes");
+      await page.tap(`#nmFlyout [data-nm-go="${pi}"]`);
+      const all = `#nmFlyout [data-nm-lvl="${pi}"] a.nmf-colall`;
+      await page.waitForSelector(all);
+      await Promise.all([page.waitForURL(/dept=perfumes/), page.tap(all)]);
+      assert.equal(page.url(), BASE + "/departamento.html?dept=perfumes");
+      await page.waitForSelector("#pDoors:not([hidden]) .hub-pill", { timeout: 60000 });
+      await page.waitForSelector("#rails .rail-sec .card:not(.sk)", { timeout: 60000 });
+      assert.equal(await page.$("#nf"), null, "a second rendering");
+      assert.ok(!/Fragancia/.test(await page.textContent("#heroTitle")), "a Fragancia view");
+      assert.equal(await page.$eval("#scopeBar", (e) => e.hidden || !e.textContent.trim()), true, "opened narrowed");
+      if (SHOT) await page.screenshot({ path: join(SHOT, "canon-perfumes.png") });
+      assert.deepEqual(reqs.filter((u) => CATALOG_RX.test(u)), [], "a catalogue file was requested");
+      await c.close();
+    });
+    await check("browser phone 390: a nav=1 URL (and the bar's own parameters) redirects to the canonical page before rendering", async () => {
+      const { c, page } = await ctx(false);
+      const cases = [
+        ["/departamento.html?dept=shoes&nav=1&u=women&t=botas-y-botines", "/departamento.html?dept=shoes&t=botas-y-botines&para=women"],
+        ["/departamento.html?dept=perfumes&nav=1&t=fragancia", "/departamento.html?dept=perfumes"],
+        ["/departamento.html?dept=perfumes&nav=1&t=cuidado-corporal", "/departamento.html?dept=perfumes&a=cuidado"],
+        ["/departamento.html?dept=shoes&nav=1&b=jordan%7Cnike&z=US%209&sort=low", "/departamento.html?dept=shoes&b=jordan"],
+        ["/departamento.html?dept=women&nav=1&o=1", "/departamento.html?dept=women&ver=ofertas"],
+        ["/departamento.html?dept=shoes&u=men&s=chelsea", "/departamento.html?dept=shoes&para=men"],
+      ];
+      for (const [from, to] of cases) {
+        await page.goto(BASE + from, { waitUntil: "domcontentloaded" });
+        await page.waitForURL((u) => !/[?&](nav|u|s|z|sort|o)=/.test(u.search), { timeout: 15000 });
+        assert.equal(page.url(), BASE + to, from);
+      }
+      await page.waitForSelector("#rails .rail-sec .card:not(.sk)", { timeout: 60000 });
+      assert.equal(await page.$("#nf"), null);
+      await c.close();
+    });
+    await check("browser phone 390: Ofertas and Ropa Interior keep their own filters (no second rendering); ?ver=type:bra opens Lencería's own Explorar todo", async () => {
+      const { c, page } = await ctx(false);
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(BASE + "/ofertas.html?vista=categoria&cat=zapatos", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('#cats button[data-cat="zapatos"][aria-pressed="true"]', { timeout: 60000 });
+      assert.equal(await page.$("#nf"), null);
+      await page.goto(BASE + "/ropa-interior.html?ver=type:bra#mujer", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => { const s = document.getElementById("w-fType"); return s && s.value === "type:bra" && document.querySelectorAll("#w-grid .card, #w-grid a").length > 0; }, null, { timeout: 60000 });
+      assert.equal(await page.$("#nf"), null);
+      assert.deepEqual(errors, []);
+      await c.close();
+    });
+    /* ---------- the bar, where a page has no filters of its own ---------- */
     const LISTINGS = [
-      ["departamento", "/departamento.html?dept=women"],
       ["tienda", "/tienda.html?tienda=macys"],
       ["marca", "/marca.html?marca=nike"],
-      ["ofertas", "/ofertas.html"],
-      ["ropa-interior", "/ropa-interior.html#mujer"],
       ["search", "/search.html?q=" + encodeURIComponent("mochila") + "&resultados=1"],
     ];
     for (const [name, path] of LISTINGS) {
