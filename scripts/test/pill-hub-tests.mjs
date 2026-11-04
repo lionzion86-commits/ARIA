@@ -67,13 +67,14 @@ check("a lens is small, fills real carousels, and shows only its own pill's prod
   }
 });
 
-check("the page: the pill row above, the lens above the department's carousels, a lens never touches them", () => {
+check("the page: the pill row above, the lens above the department's carousels; a lens is the view (they step aside, #443 c.6635829511) but never redraws them", () => {
   const html = readFileSync(ROOT + "departamento.html", "utf8");
   const hub = html.indexOf('id="hubPills"'), tool = html.indexOf('id="toolbar"'), lens = html.indexOf('id="lens"'), rails = html.indexOf('<main id="rails"');
   assert.ok(hub > 0 && hub < tool && tool < lens && lens < rails, "pill row, toolbar, lens, department carousels -- in that order");
   const fn = html.slice(html.indexOf("function openLens(k){"), html.indexOf("hubEl.addEventListener('click'"));
   assert.ok(fn.length > 100, "openLens");
   assert.doesNotMatch(fn, /railsEl|getElementById\('rails'\)|loadAll\(|fRet\s*=/, "the lens must not change the department's carousels");
+  assert.match(html, /html\[data-lens\] #rails/, "a pill filters: its lens replaces the department's carousels while it is open");
   assert.match(html, /if \(HUB && HUB\.length\)\{ chipsEl\.innerHTML = ''; chipsEl\.hidden = true; return; \}/, "one pill row per view");
 });
 
