@@ -1,0 +1,180 @@
+term,variant_of,expected_intent,what_leads,verdict,notes
+perfume,,perfumes lead (fragrance products),"Fragrances (Ocean Pacific cologne, Lulu Guinness mini) from Aria Perfumes + Sephora/Ulta/VS lanes",PASS,Total capped at 2000; doctrine lanes correct
+perfumes,perfume,perfumes lead,Same set as 'perfume',PASS,Singular/plural unified
+perfume mujer,,fragrances for women lead,"Women's fragrances (Cabotine Rose, Cabochard)",PASS,
+perfume hombre,,fragrances for men lead,"Men's fragrances (Maison Alhambra, Ocean Pacific)",PASS,Leads include one women's-listed EDP but set is fragrance-true
+perfumes mujer,perfume mujer,fragrances for women lead,Women's fragrances,PASS,
+perfumes hombre,perfume hombre,fragrances for men lead,Men's fragrances,PASS,
+perfume para mujer,perfume mujer,fragrances for women lead,Women's fragrances,PASS,
+perfume para hombre,perfume hombre,fragrances for men lead,Men's fragrances,PASS,
+colonia,,colognes/fragrances lead,Colognes/fragrances,PASS,Resolves to the general fragrance set
+colonias,colonia,colognes/fragrances lead,Colognes/fragrances,PASS,
+colonia hombre,,men's colognes lead,Men's colognes,PASS,
+colonia mujer,,women's fragrances lead,Women's fragrances,PASS,
+fragancia,,fragrances lead,Fragrances,PASS,
+fragancias,fragancia,fragrances lead,Fragrances,PASS,
+fragancia mujer,,women's fragrances lead,Women's fragrances,PASS,
+eau de parfum,,EDP fragrances lead,EDP sprays,PASS,
+eau de toilette,,EDT fragrances lead,EDT sprays,PASS,
+body spray,,body sprays/mists lead,"Body sprays (Kenneth Cole Mankind, One Man Show)",PASS,"152 results, family-true"
+mist corporal,,body mists lead,"Body mists (Sofia Vergara, Vince Camuto)",PASS,605 results
+perfum,perfume (typo),perfumes lead,Fragrances,PASS,"Typo tolerated, full fragrance set"
+colonias para hombre,colonia hombre,men's colognes lead,Men's colognes,PASS,
+sauvage,,Dior Sauvage products lead,Dior Sauvage EDT/EDP (Aria Perfumes lane n=47),PASS,"Also Eau Sauvage flankers, same brand family"
+dior sauvage,sauvage,Dior Sauvage products lead,Sauvage Elixir/Parfum/EDP at Ulta,PASS,Only 4 surfaced in shown count but all correct; Miss Dior follows
+aventus,,Creed Aventus products lead,Creed Aventus EDP + Aventus Cologne,PASS,"6 surfaced, all Creed Aventus family"
+creed aventus,aventus,Creed Aventus products lead,Creed Aventus EDP + Cologne,PASS,
+creed,,Creed brand products lead,"Creed fragrances (Fleurissimo, Love In Black, Viking)",PASS,
+chanel,,Chanel brand products lead (fragrance/beauty),"CHANEL fragrances (Gabrielle, Bleu, Coco Mademoiselle) at Ulta",PASS,Count unstable across calls (25 shown vs 220/brand-state on another call); leads always Chanel-true
+coco mademoiselle,,Chanel Coco Mademoiselle leads,COCO MADEMOISELLE EDP first,PASS,
+bleu de chanel,,Bleu de Chanel leads,BLEU DE CHANEL EDP + Parfum first,PASS,didYouMean oddity: suggests 'blue de chanel'
+dior,,Dior brand products lead,"Dior skincare at Sephora (Capture Totale, One Essential), Miss Dior follows",PASS,Brand-correct; count unstable across calls (69 vs 322/brand-state earlier)
+versace,,Versace brand (fragrance) leads,"Versace fragrances (Red Jeans, Blue Jeans, L'Homme)",PASS,"SSENSE apparel lane below, fragrances lead"
+versace eros,,Versace Eros leads,"Versace Eros Flame, Eros Energy, Eros",PASS,
+gucci,,Gucci brand products lead,"Gucci fragrances (Rush, Guilty)",PASS,
+armani,,Armani/Giorgio Armani products lead,"Giorgio Armani fragrances (Acqua Di Gio, Code)",PASS,
+giorgio armani,armani,Giorgio Armani products lead,Giorgio Armani fragrances,PASS,
+hugo boss,,Hugo Boss fragrances lead,"Hugo Boss fragrances (Boss Orange, Ma Vie)",PASS,Data bug: one 'Ck Everyone' item carries brand 'Hugo Boss'
+calvin klein,,Calvin Klein products lead,Calvin Klein puffer coats (Macy's) lead first 6; CK fragrances from #7,WEAK,Brand resolves but apparel leads over the fragrance line a beauty shopper wants
+ck one,,CK One leads,"Ck Everyone, CK In 2U, then Ck One at #3",WEAK,Exact product present but does not lead; CK family fills first 12
+tom ford,,Tom Ford products lead,"Tom Ford fragrances (Oud Minerale, Rose De Chine)",PASS,
+prada,,Prada brand products lead,"Prada fragrances (Les Infusions, Luna Rossa, Candy)",PASS,
+valentino,,Valentino products lead,Valentino fragrances (Born In Roma),PASS,
+ysl,,Yves Saint Laurent products lead,"YSL lip products (Candy Glaze, Loveshine) at Sephora",PASS,"Shown count only 2 but lanes are deep (Sephora 33, Aria Perfumes 42)"
+yves saint laurent,ysl,YSL products lead,"YSL fragrances (Black Opium, Y)",PASS,
+black opium,,YSL Black Opium leads,Black Opium EDP first,PASS,
+lancome,,Lancôme products lead,"Lancôme fragrances (La Vie Est Belle, Tresor, Miracle)",PASS,
+la vie est belle,,Lancôme La Vie Est Belle leads,La Vie Est Belle variants first,PASS,
+carolina herrera,,Carolina Herrera products lead,Carolina Herrera fragrances (CH Passion),PASS,Own store lane 221 products
+good girl,,Carolina Herrera Good Girl leads,Kohl's Sonoma 'Goods For Life' sweaters/apparel (804 results),FAIL,Token match on 'good': the actual CH Good Girl perfume (own-store lane 28) is buried past the first 12; zero fragrance in first 12
+paco rabanne,,Paco Rabanne fragrances lead,"Paco Rabanne fragrances (Lady Million, Calandre)",PASS,
+1 million,,Paco Rabanne 1 Million leads,"Lady Million #1, 1 Million #2, 1 Million Elixir",PASS,"Flanker leads but exact product is #2, same family"
+invictus,,Paco Rabanne Invictus leads,"Invictus EDT, Invictus Victory, Invictus Parfum",PASS,
+dolce gabbana,,Dolce & Gabbana products lead,"Farfetch D&G apparel (button-down shirt) #1, Light Blue mini #2",WEAK,Fashion leads over fragrance in a beauty-intent search
+light blue,,D&G Light Blue leads,"Vans shoes 'Light Blue', Gorilla Wear pants/jacket, jeans — color matches",FAIL,Zero fragrance in first 12 of 374; D&G Light Blue perfume buried
+burberry,,Burberry products lead,"Burberry fragrances (Burberry EDP, Touch)",PASS,
+montblanc,,Montblanc fragrances lead,"Montblanc fragrances (Signature Absolue, Legend Spirit)",PASS,
+ralph lauren,,Ralph Lauren products lead,Ralph Lauren shower gels (Ralph Rocks) + Big Pony EDT,PASS,Body products lead over EDT sprays but brand/beauty-true
+polo ralph lauren,ralph lauren,Polo/Ralph Lauren fragrances lead,"Polo RL apparel (t-shirts, quilt jacket, underwear) at Macy's/SNIPES",WEAK,Apparel monopolizes; Polo fragrances minor
+lacoste,,Lacoste products lead,"Lacoste fragrances (L.12.12, Touch of Pink)",PASS,Tennis Warehouse apparel lane below
+givenchy,,Givenchy products lead,"Givenchy fragrances (Amarige, Organza)",PASS,
+hermes,,Hermès products lead,"Hermès fragrances (Amazone, 24 Faubourg, Caleche)",PASS,
+jo malone,,Jo Malone fragrances lead,"Jo Malone colognes (Lime Basil & Mandarin, English Oak)",PASS,
+bath and body works,,Bath & Body Works products lead,"Other brands' body mists/sprays (Sofia Vergara, Kenneth Cole, Vince Camuto)",FAIL,Store name does not resolve/redirect; zero Bath & Body Works products in first 12 even though a bathandbodyworks store exists (seen under 'jabon')
+maquillaje,,makeup products lead,Home spa gift set + VS PINK makeup bags lead; real makeup in Walmart/Ulta/Sephora lanes below,WEAK,Accessories/gift sets lead over actual makeup
+labial,,lipsticks/lip products ONLY lead,"Lipsticks (L'Oréal Colour Riche, Essence, Maybelline)",PASS,"340 results, lip-only relevance holds"
+labiales,labial,lipsticks lead,Lipsticks,PASS,
+lipstick,labial,lipsticks lead,Lipsticks,PASS,
+labial rojo,,red lipsticks lead,Buffbunny/Ryderwear gym apparel in color 'Lipstick Red' (lane n=989),FAIL,Color-name token match; red lipsticks buried — zero lip products in first 12
+lip gloss,,lip glosses lead,"Dior 'Glass Lipstick' #1, then REFY/YSL lip glosses",WEAK,"Lead item is a lipstick, glosses follow immediately"
+gloss,,lip gloss leads,"Dior lipstick #1, Fenty Gloss Bomb #2",WEAK,Same lead-item issue as 'lip gloss'
+base,,makeup foundation leads (not bases of other kinds),"Ryderwear 'Base Racer Back' sports bra, Lacoste 'Water Base' tee, Mainstays plasticware",FAIL,Foundations exist (Sephora lane 12) but generic-token flood buries them
+base de maquillaje,base,foundation leads,Lancôme La Base primer + Teint Idole foundation,PASS,Shown total reads 1 (API quirk); leads are correct
+foundation,base,foundation leads,"Foundations (L'Oréal Infallible, Maybelline Lifter/Fit Me)",PASS,482 results
+rimel,,mascara (eye) leads,"Mascaras (tarte maneater, Benefit Fan Fest minis)",PASS,#1 is a Lancôme set containing mascara + lip gloss
+rímel,rimel,mascara leads,Mascaras,PASS,"Accent-insensitive, identical set"
+mascara de pestanas,rimel,mascara leads,Mascaras,PASS,
+sombras,,eyeshadows lead,"Eyeshadow palettes (Laura Geller, Euphoria x Half Magic)",PASS,
+sombra de ojos,sombras,eyeshadows lead,Eyeshadow palettes,PASS,
+eyeshadow,sombras,eyeshadows lead,Eyeshadow palettes,PASS,
+paleta de sombras,,eyeshadow palettes lead,"LEGO suitcase #1 (foreign), eyeshadow palettes from #2",WEAK,One foreign lead item; family correct after
+rubor,,blush leads,Farm Rio bikinis in color 'Light Blush' lead,FAIL,Color token match; makeup blush (Sephora lane 63) does not lead
+blush,rubor,blush leads,Farm Rio 'Light Blush' swimwear lead,FAIL,Same set as 'rubor'
+iluminador,,highlighter (makeup) leads,Castle X motorcycle helmet LED light parts (Dennis Kirk) lead,FAIL,Only 5 results; real Sephora illuminators at #3-4
+highlighter,iluminador,highlighter leads,"Makeup highlighters (NOVO, Flower Knows) at YesStyle",PASS,EN term works where ES 'iluminador' fails
+corrector,,concealer leads,"Concealers/color correctors (caliray, Sephora Collection)",PASS,
+concealer,corrector,concealer leads,Concealers,PASS,
+polvo compacto,,compact/setting powder leads,"SSENSE t-shirts (Palm Angels, Marine Serre) lead 2000-result flood",FAIL,Zero powder products in first 12
+bronzer,,bronzer leads,"Bronzers (NARS Laguna, Rare Beauty)",PASS,
+delineador,,eyeliner leads,"Eyeliners (NARS, Rare Beauty)",PASS,
+eyeliner,delineador,eyeliner leads,Eyeliners,PASS,
+delineador de ojos,delineador,eyeliner leads,Eyeliners,PASS,
+primer,,makeup primer leads,"Virtue hair primer #1, Bobbi Brown face primer #2",PASS,Both primer families present at top
+setting spray,,setting sprays lead,"Setting sprays (L'Oréal Infallible Mist, Charlotte Tilbury, Urban Decay)",PASS,"17 results, all on-intent"
+fijador de maquillaje,setting spray,setting sprays lead,Falls back to generic 'maquillaje' set: spa gift set + makeup bags lead,FAIL,The exact ES term for setting spray is not understood; setting sprays buried
+desmaquillante,,makeup removers lead,"Garnier micellar water, Clinique Take The Day Off removers",PASS,"15 results, on-intent"
+esmalte,,nail polish leads,3 nail polish pens (Walmart) + Barbie doll at #4,WEAK,Only 4 results served; very thin vs expected nail stock
+esmalte de uñas,esmalte,nail polish leads,Same 4-result set as 'esmalte',WEAK,
+nail polish,esmalte,nail polish leads,Same 4-result set,WEAK,didYouMean nonsense: suggests 'neill polish'
+pestañas postizas,,false eyelashes lead,"NOTHING — state 'none', 0 results",FAIL,"Dead end in Spanish while stock exists: EN 'false eyelashes' returns 28, 'lash' 142"
+balsamo labial,,lip balms lead,Lipsticks lead (the 'labial' set),FAIL,Lip balm intent not served; balms exist in Ulta/Sephora lanes but lipsticks monopolize
+maybelline,,Maybelline brand leads,"Maybelline products (Lifter/Fit Me foundations, Serum Lipstick)",PASS,
+loreal,,L'Oréal brand leads,L'Oréal hair color + Professionnel shampoo lead,PASS,Brand-true; hair color leads over makeup
+revlon,,Revlon brand leads,Revlon Charlie fragrances lead,PASS,Brand-true (fragrance side of Revlon)
+mac,,MAC cosmetics lead (not Apple Mac),"MAC cosmetics (lipstick set, Studio Radiance foundation)",PASS,"Correctly resolves to cosmetics, not Apple"
+nyx,,NYX cosmetics lead,"NYX makeup (Buttermelt bronzer, concealer serum, Lip Lingerie)",PASS,
+elf,,e.l.f. cosmetics lead,Stance 'Buddy The Elf' movie socks from surf shops,FAIL,e.l.f. cosmetics stock exists (e.l.f. mascara appears under 'lash') but 'elf' never resolves to it; didYouMean 'tlf'
+rare beauty,,Rare Beauty leads,"Rare Beauty (foundation, bronzer stick, blush)",PASS,"9 surfaced, all correct"
+fenty beauty,,Fenty Beauty leads,"Fenty Beauty (Pro Filt'r foundation, Gloss Bomb)",PASS,
+nars,,NARS cosmetics lead,"NARS (blush palette, foundations)",PASS,
+too faced,,Too Faced leads,Too Faced (Born This Way palettes/foundation),PASS,
+urban decay,,Urban Decay leads,"Urban Decay (Naked3 palette, All Nighter)",PASS,
+charlotte tilbury,,Charlotte Tilbury leads,"Charlotte Tilbury (serum, primer SPF, foundation)",PASS,
+huda beauty,,Huda Beauty leads,Huda Beauty palettes,PASS,
+anastasia,,Anastasia Beverly Hills leads,"Anastasia Beverly Hills (Brow Wiz, brow pens)",PASS,
+crema,,creams (face/body) lead,"Montce apparel in color 'Cream' (dresses, bikini tops) lead",FAIL,Color token flood (1266 results); actual creams/body washes only reach #9-12
+crema facial,,face creams lead,"Kiehl's Ultra Facial Cream, Medik8 facial cream",PASS,Specific phrase works where bare 'crema' fails
+crema hidratante,,moisturizers lead,Same cream-color apparel flood as 'crema',FAIL,Moisturizers buried
+hidratante,,moisturizers lead,"NOTHING — state 'none', 0 results",FAIL,Dead end for a core ES skincare word; moisturizer stock is large ('crema hidratante' set has 1266)
+serum,,facial serums lead,Serum Lipstick + serum foundations lead; real face serums from #4,WEAK,690 results; makeup-with-serum outranks facial serums
+sérum,serum,facial serums lead,Same set as 'serum',WEAK,
+suero facial,serum,facial serums lead,"Leather trench coats, leather jackets, leather handbags (SSENSE/Macy's)",FAIL,'Suero' matched 'cuero' (leather): 2000-result flood with zero serums in first 12
+protector solar,,sunscreen leads,"Sunscreens (FULLY SPF 50, Vacation SPF oils)",PASS,"330 results, stable on sequential re-check (one cold call returned 6 — API warm-up variance)"
+bloqueador,,sunscreen leads,Sunscreens,PASS,Same 330 set
+bloqueador solar,bloqueador,sunscreen leads,Sunscreens,PASS,
+sunscreen,protector solar,sunscreen leads,Sunscreens,PASS,
+skincare,,skincare products lead,Skincare gift sets at Macy's lead,WEAK,Only 48 surfaced and sets lead over individual skincare products
+cuidado de la piel,skincare,skincare products lead,Exactly 1 result: a Perfect Petzzz plush toy dog (Walmart),FAIL,Generic ES phrase collapses to a toy; skincare stock is huge
+limpiador facial,,facial cleansers lead,"Kiehl's SPF serum, rhode essence, SPF screens lead",WEAK,Cleansers sit below SPF/essence products in a 75-result set
+tonico,,facial toners lead,Tonino Lamborghini fragrances lead,FAIL,'Tonico' matched brand 'Tonino'; facial toners buried (Sephora lane only 3)
+exfoliante,,exfoliants lead,"Exfoliants (EADEM peel, Dermalogica Milkfoliant)",PASS,Only 6 results but all on-intent
+mascarilla,,face masks lead (~522 expected),"Hair masks monopolize first 12 (Shiseido Fino, Salerm, Truss)",WEAK,Face masks exist (Sephora lane 36) but never lead; served 134 vs ~522 expected in watch battery
+mascarilla facial,mascarilla,face masks lead,"Skincare gift set #1, then Sebastian hair masks",WEAK,Face masks do not lead even with 'facial' specified
+contorno de ojos,,eye creams lead,JoyStone robot dog toy + Barbie dolls lead first 12,FAIL,Walmart toy flood (lane n=390); eye creams buried
+antiarrugas,,anti-wrinkle products lead,"NOTHING — state 'none', 0 results",FAIL,Dead end in Spanish; EN 'anti wrinkle' returns 21 real anti-wrinkle products
+acne,,acne products lead,Acne Studios apparel (SSENSE lane 258) monopolizes first 12,FAIL,"Acne skincare exists (YesStyle 24, Sephora 5) but never surfaces at top"
+acné,acne,acne products lead,Same Acne Studios apparel set,FAIL,
+agua micelar,,micellar water leads,Garnier SkinActive Micellar Cleansing Water,PASS,Correct but very thin: only 3 surfaced
+cerave,,CeraVe brand leads,CeraVe moisturizers/serums at Walmart,PASS,
+the ordinary,,The Ordinary leads,"The Ordinary (NMF moisturizer, Daily Set, peptide serum)",PASS,
+la roche posay,,La Roche-Posay leads,La Roche-Posay serums + Anthelios sunscreen,PASS,
+neutrogena,,Neutrogena leads,"Neutrogena skincare (Hydro Boost, Rapid Wrinkle Repair)",PASS,
+nivea,,Nivea leads,"Nivea lip balms (YesStyle, Nivea Japan)",PASS,"Thin (7 results) and balm-only, but brand-true"
+clinique,,Clinique leads,"Clinique Happy fragrances lead, skincare/makeup lanes below",PASS,
+estee lauder,,Estée Lauder leads,Mustang licensed fragrances tagged brand 'Estee Lauder' lead,WEAK,"Brand-tag data problem: shopper sees Mustang colognes, not Estée Lauder skincare/makeup"
+keratina,,keratin hair treatments ONLY lead (known-fail watch),"Keratin Complex treatments/serums (SleekShop), It's A 10 + L'anza at Ulta",PASS,"RECOVERED from daily-watch FAIL: 80 results, zero foreign items in leads; depth 80 vs 271 in hand per watch file"
+keratinas,keratina,keratin hair products lead,Same clean keratin set,PASS,
+queratina,keratina (typo),keratin hair products lead,"NOTHING — state 'none', 0 results",FAIL,"The common misspelling of keratina dead-ends with no didYouMean, while 'keratina' returns 80"
+alisado,,hair straightening products ONLY lead (known-fail watch),"Brazilian Blowout + Salerm straightening, CHI Keratin smoothing",PASS,"RECOVERED from daily-watch FAIL: 20 results, zero foreign items (no blouses/shoes); depth 20 vs ~82 in hand"
+alizado,alisado (typo),hair straightening products lead,Same clean straightening set as 'alisado',PASS,Misspelling tolerated
+alisado brasileño,alisado,Brazilian blowout/straightening leads,Brazilian Blowout tools/treatments,PASS,"5 results, all on-intent"
+plancha,,hair straighteners and/or clothing irons lead (known-fail watch),"OWMSIC flat iron #1, then Haggar 'No-Iron/Iron Free' khakis",WEAK,Lead is correct but only 7 results total despite ~1955 in the long-form set; no-iron apparel pads the set
+plancha de cabello,,hair straighteners lead,"Iron Rebel gym racerback #1, hair scrunchie #2, flat iron #3 of 1955",FAIL,'Iron' token flood (Iron Rebel brand) + generic 'cabello' padding; junk fills first 12
+plancha para el cabello,plancha de cabello,hair straighteners lead,Same flooded set as 'plancha de cabello',FAIL,
+secadora,,hair dryers lead,Exactly 1 result: an MGA Miniverse toy (Walmart),FAIL,"Hair dryers in stock (Dyson Supersonic, Conair) but the bare ES word collapses to a toy"
+secador de cabello,secadora,hair dryers lead,Clean hair perfume + foam hair rollers lead,FAIL,No hair dryer in top results; dryers buried in Walmart lane (32)
+rizador,,hair curlers/curling irons lead,Judydoll eyelash curler + makeup (YesStyle) lead,FAIL,Hair curling irons don't lead; lash/makeup items take the top
+shampoo,,shampoos lead,"Shampoos (VS gift set with shampoo #1, L'Oréal Pro)",PASS,385 results
+champú,shampoo,shampoos lead,Shampoos,PASS,Watch-battery term: shampoo-only relevance holds
+champu,shampoo (no accent),shampoos lead,Shampoos,PASS,Accentless form identical
+acondicionador,,conditioners lead,"Conditioners (Milkshake, Goldwell Kerasilk)",PASS,
+mascarilla capilar,,hair masks lead,"Hair masks (Shiseido Fino, Salerm)",PASS,Correct family here — contrasts with bare 'mascarilla'
+tinte,,hair dye leads,"L'Oréal hair dye (Superior Preference, Feria) lead",PASS,Thin shown count (5) but dye-true
+tinte de cabello,tinte,hair dye leads,Hair scrunchie + flat iron lead a 1289-result 'cabello' flood,FAIL,Specific phrase performs worse than bare 'tinte'
+tratamiento capilar,,hair treatments lead,"NOTHING — state 'none', 0 results",FAIL,Dead end; hair treatments are abundant (whole keratina/mascarilla capilar sets)
+aceite de argan,,argan oil products lead,"Perfume oils (Wildfox, Lattafa Yara 'aceite de perfume') lead",WEAK,Argan hair oil buried; 'aceite' resolves to fragrance oils first
+caspa,,dandruff products lead,"'Cassia' fashion (Johanna Ortiz, Vix) + Casrra RC toy lead",FAIL,Fuzzy match on cassia/casrra; dandruff products buried in Walmart lane
+cabello rizado,,curly hair products lead,Clean hair perfume + foam rollers lead,WEAK,Hair-adjacent but not curly-hair products; curl products sit in Walmart lane
+dyson,,Dyson products lead (incl. hair tools),"Dyson Airwrap, Airstrait, Supersonic (Costco)",PASS,Hair tools lead correctly
+babyliss,,BaByliss hair tools lead,"NOTHING — state 'none', 0 results",WEAK,No BaByliss-branded stock found in served catalog (parent brand Conair has 2 items incl. a dryer wand); dead end offers no suggestion
+jabon,,soaps lead,Bath & Body Works foaming hand soaps lead,PASS,
+jabón,jabon,soaps lead,Bath & Body Works hand soaps,PASS,
+gel de ducha,,shower gels/body wash lead,"Shower gels (Yardley, Ralph Lauren, Oscar)",PASS,
+body wash,gel de ducha,body wash leads,VS cream body washes lead,PASS,
+locion corporal,,body lotions lead,"Body lotions (Reb'l Fleur, Byblos)",PASS,
+crema corporal,,body creams lead,"Body lotions lead (Reb'l Fleur, Byblos)",PASS,Leads are correct despite cream-color lanes inflating total (1351)
+desodorante,,deodorants lead,Deodorants (Range Essentials),PASS,"9 results, all on-intent"
+cera depilatoria,,hair removal wax leads,"Ceramide skincare ('Cera-Nol', 'CERA-HA', 'Cera-Heart') lead",FAIL,'Cera' matched ceramide products; no depilatory wax in results (only 3)
+spray,,spray products lead (fragrance/body sprays),"Fragrance sprays lead (EDT 'en spray' — Cuba, Yacht Man, Ocean Pacific at Aria Perfumes)",PASS,Deep set (2000 cap; ariaperfumes lane 1238). Leads skew to budget men's EDT sprays; body spray/hair spray don't lead but family is spray-true
+cremas,crema,creams (face/body) lead,"Montce apparel in color 'Cream' (dresses, bikini tops) lead — identical set to 'crema'",FAIL,"Plural everyday form fails exactly like the singular: color token flood, 1266 results, no creams in first 8"
+maquillaje barato,maquillaje,affordable makeup leads,Same set as 'maquillaje': home spa gift set + VS PINK makeup bags lead,WEAK,'Barato' qualifier is completely ignored — the #1 item is a S/286 gift set; real makeup sits in Walmart/Ulta/Sephora lanes below

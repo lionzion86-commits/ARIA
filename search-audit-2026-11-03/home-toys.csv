@@ -1,0 +1,186 @@
+term,variant_of,expected_intent,what_leads,verdict,notes
+muebles,,furniture general,"Disney Princess Pet Palace set de juego de muñecas con 7 áreas de juego, 3 amigos animales y má  [total=1]",FAIL,Ranked list collapses to total=1: a Disney Princess dollhouse toy. Real furniture exists only in store rails below (Walmart lane n=387) — the headline furniture word in Spanish returns a toy.
+sofá,,sofas,Henredon Caley Reversible Sofa Chaise with Ottoman  [total=130],PASS,
+sofa,sofá,sofas EN spelling,Henredon Caley Reversible Sofa Chaise with Ottoman  [total=130],PASS,
+sofá cama,,sofa bed,Camp Snap CS-PRO Screen-Free Digital Camera  [total=14],FAIL,"""cama"" fuzzy-matches ""camera"": all 14 results are Camp Snap cameras. Zero sofa beds."
+sillón,,armchair/recliner,Khaki 'The Simon' Shirt  [total=36],FAIL,"Fuzzy flood on ""salon/Simon"": shirts, belts, sweaters, salon toys. Zero armchairs in first 12; armchairs stocked (26)."
+mesa,,tables,"Mainstays Woven Diamond Table Runner - Black - 14""x72"", Cotton  [total=686]",WEAK,"Tables exist (686 results, Pier 1/Crate&Barrel lanes) but the ranked list leads with table runners and placemats — linens before a single table."
+mesa de centro,mesa,coffee table,"Mainstays Woven Diamond Table Runner - Black - 14""x72"", Cotton  [total=689]",FAIL,"Returns the generic ""mesa"" linen set (689): table runners/placemats lead, zero coffee tables in first 12. Only ~5 coffee tables stocked and none surface."
+mueble de tv,mesa,TV stand,— no results —,WEAK,"Zero results. Near-honest: only ~4 TV stands in catalog, but the term is unmapped (no suggestion to ""mesa""/furniture)."
+sillas,silla,chairs,"Babideal Lightweight Baby High Chair with Tray & Harness – White, Portable Highchair and Easy-C  [total=172]",PASS,All 12 are chairs — but 8 of 12 are baby high chairs; general/dining chairs sit deeper.
+cama,,beds/bed frames,Camp Snap CS-PRO Screen-Free Digital Camera  [total=14],FAIL,"""cama"" fuzzy-matches ""camera"": all 14 results are Camp Snap cameras. Zero beds/bedding. Same collision as sofá cama / cama para perro / cama para gato."
+colchón,,mattress,"Excibubblebearbb Pack N Play Mattress, Portable Playpen Mattress for Babies, 38"" x 26""x 1.5"" Fo  [total=19]",PASS,"All 19 results are mattresses — but crib/playpen mattresses; no adult bed mattress in the set. Catalog-thin, honestly returned."
+almohadas,almohada,pillows,"Mainstays Solid Chenille Decorative Throw Pillow Set, Grey, 18 in x 18 in, 2 Pieces  [total=581]",PASS,"Pillows throughout; decorative throw pillows lead, bed pillows inside the 581."
+sábanas,,bed sheets,"Mainstays Basic Value Microfiber Bed Sheet Set, Light Blue, Twin, 3-Piece  [total=261]",WEAK,"Sheet sets correctly lead (1–5), then ""bath sheets"" (towels) ride the word ""sheet"" into positions 6–8+. 4 foreign in first 12."
+edredón,,comforter/duvet,"Mainstays 3-Piece Waffle Comforter Set with Matching Shams, Full/Queen, Greystone  [total=147]",PASS,
+toallas,,towels (KNOWN failing query — verify),"Japceit 2Pc Floral Kitchen Towels, Printed Absorbent Cotton Dish Cloths, Decorative Tea Towel F  [total=437]",PASS,"VERIFIED FIXED: was a named failing query this morning — tonight 437 results, towels lead (kitchen towels first, bath/beach towels in list), 0 foreign in first 12."
+toalla,toallas,towel singular,"Japceit 2Pc Floral Kitchen Towels, Printed Absorbent Cotton Dish Cloths, Decorative Tea Towel F  [total=437]",PASS,Same healthy 437 towel set as plural.
+towels,toallas,towels EN,"Japceit 2Pc Floral Kitchen Towels, Printed Absorbent Cotton Dish Cloths, Decorative Tea Towel F  [total=436]",PASS,"EN twin returns the same 436 towel results, towels lead."
+toalas,toallas,towels TYPO,Disney Princess muñeca Moana con vestido de talla de niña igual al de tu muñeca  [total=12],FAIL,"TYPO: returns 12 junk results led by a Moana doll dress. Correct spelling passes with 437 — typo tolerance absent for ES (same class: licudora, microhondas)."
+lámpara,,lamps,"Mainstays LED Desk Lamp with Catch-All Base & AC Outlet, Matte Black  [total=195]",PASS,"Lamps lead (desk lamp first), 195 results."
+lámpara de escritorio,lámpara,desk lamp,"BOHASHIN LED Desk Lamp with 2 USB Charging Ports and 4 AC Outlets, 3 Color Temperatures and 4ft  [total=27]",WEAK,Desk lamps correctly lead; 2 of 12 foreign.
+lámpara de pie,lámpara,floor lamp,"Mainstays LED Desk Lamp with Catch-All Base & AC Outlet, Matte Black  [total=218]",WEAK,"218 lamps but all desk/table lamps — ""de pie"" (floor) qualifier ignored; no floor lamp surfaces."
+espejo,,mirror,"B Beauty Planet 20X Magnifying Mirror with Light, 20X/1X Double Sided Travel Mirror  [total=380]",WEAK,"Real mirrors lead (1–2), then mirror-lens sunglasses x4, mirror nail polish, mirror tray and mirror jewelry fill the 12."
+cortinas,,curtains,LUSHVIDA Waterproof Outdoor Curtains for Patio Grommet Privacy Curtains for Porch Gazebo Pergol  [total=66],PASS,
+alfombra,,rug/carpet,VUNATE Outdoor Rug Carpet 5'x8' Waterproof Reversible Patio Rug Portable Modern Abstract Indoor  [total=30],PASS,
+cojín,,cushion/throw pillow,"Mainstays Solid Chenille Decorative Throw Pillow Set, Grey, 18 in x 18 in, 2 Pieces  [total=366]",PASS,
+vajilla,,dinnerware sets,18th Street 16-Piece Dinnerware Set with Low Bowl  [total=21],PASS,
+platos,,plates,"Tour White Porcelain Dinner Plates, Set of 8  [total=343]",PASS,
+vasos,,drinking glasses,"48 Pack Glass Cylinder Vases 4,6,8,10 Inch Tall Clear Flower Vase Hurricane Floating Candle Hol  [total=243]",FAIL,"""vaso"" collides with EN ""vase"": glass flower vases lead 12/12. Drinking glasses stocked (98) and do not lead."
+cubiertos,,flatware/cutlery,Women's Silverlake Leather Crossbody Bag  [total=4],FAIL,4 results led by a leather crossbody bag. Flatware stocked (79 titles) and never surfaces.
+ollas,,cooking pots,"Mainstays Silicone & Bamboo Cooking Utensil Set, 14 Pieces  [total=56]",FAIL,"Utensil sets lead, then makeup ""pots"" (eyeshadow/concealer); pinch pots and flower pots close the 12. Zero cooking pots in first 12 of 56."
+olla arrocera,ollas,rice cooker,6 Cup Non-Stick Rice Cooker with Steam Tray  [total=3],PASS,
+sartén,,frying pan/skillet,"Hard-Anodized 6.25"" Nonstick Mini Skillet Frying Pan  [total=1]",PASS,
+licuadora,,blender,"Bonsenkitchen Handheld Blender, Immersion Blender Handheld,Red  [total=56]",PASS,
+licudora,licuadora,blender TYPO,— no results —,FAIL,Zero results while ~48 family products are stocked.
+batidora,,mixer (stand/hand),"Beautiful 3.5 Qt Stand Mixer, Black Sesame with Flat Beater, Dough Hook, Balloon Whisk  [total=21]",PASS,
+cafetera,,coffee maker,"Women's Hobo Handbag, Black  [total=234]",FAIL,12 of first 12 are outside the family.
+tostadora,,toaster,TOA-70 Air Fryer Toaster Oven with Grill  [total=8],PASS,
+air fryer,,air fryer EN,"Flip Toaster Oven & Air Fryer, 8-in-1 Functionality, SP151  [total=23]",PASS,
+freidora de aire,air fryer,air fryer ES,AIRE x Von Dutch Disgraced Black Cinnamon Tint Sunglasses  [total=10],FAIL,10 of first 12 are outside the family.
+microondas,,microwave,"Baker Sully Cormier Brand Logo Cosmic Microwave Skateboard Complete - 8.50""  [total=5]",PASS,
+microhondas,microondas,microwave TYPO,— no results —,FAIL,TYPO: zero results. Same broken ES typo tolerance as toalas/licudora — the microwave family exists and the misspelling is not forgiven.
+hervidor,,electric kettle (Peruvian term),Electric 49 Polarized Sunglasses  [total=79],FAIL,12 of first 12 are outside the family.
+sandwichera,,sandwich maker,— no results —,WEAK,Zero results; family nearly unstocked (~2 titles) — near-honest miss.
+waflera,,waffle maker,"Beautiful Rotating Belgian Waffle Maker, White Icing by Drew Barrymore  [total=1]",PASS,
+cocina,,kitchen general (ambiguous),ZURU Mini Brands Really Works Magic Cook set de cocina con set de juego Mini Brands Llena la re  [total=3],WEAK,"Ranked list collapses to 3 results (Mini Brands toy kitchens). The real kitchen range lives in department/store lanes, not in search results."
+refrigeradora,,refrigerator (LatAm term),"Mini Brands set de juego Llena la refrigeradora S1 con 2 cápsulas, por ZURU  [total=4]",WEAK,"4 results led by Mini Brands toy fridges; ~7 real refrigerators stocked — thin truth, toy-led."
+lavadora,,washing machine,— no results —,FAIL,ZERO results while ~42 washing machines/washers are stocked. ES word unmapped.
+aspiradora,,vacuum cleaner,"OE Hand Vacuum Pump, VTM+4, DEF (08200-9003)  [total=32]",WEAK,A hand vacuum pump and a skateboard griptape cleaner lead 32 results; real vacuums sit deeper.
+plancha,,iron / flat iron (context-true),"OWMSIC 1'' Flat Iron, 2-in-1 Ceramic Hair Straightener and Curler with 7 Temp Settings, Anti-Fr  [total=7]",WEAK,"Hair straighteners correctly lead (context-true), but 3 of 7 results are ""no-iron / flat-front"" pants riding the words; no clothing iron in the set."
+organizador,,organizer/storage,LEGO Classic maletín creativo 10713 - incluye estuche organizador para clasificar con divertido  [total=1],FAIL,Total collapses to 1 result (a LEGO case) while ~381 organizers/storage products are stocked.
+caja de almacenamiento,organizador,storage box/bin,"Nerf Elite 2.0 Ace SD-1 lanzador de dardos, 2 dardos Nerf Elite, carga tirando hacia abajo, alm  [total=522]",FAIL,"""caja"" (box) drags in fragrance boxes: 522 results led by perfumes. Storage boxes stocked (61) and buried."
+velas,vela,candles,"Mainstays Black Metal Plate Candle Holder, 5 in  [total=452]",PASS,Candles and candle holders; holders slightly lead. 452 results.
+maceta,,plant pot/planter,LEGO Classic Creative Suitcase 10713 - Includes Sorting Storage Organizer Case with Fun Colorfu  [total=12],FAIL,12 results led by a LEGO suitcase and cufflinks; planters stocked (20) and do not lead.
+escritorio,,desk (furniture),"Mainstays LED Desk Lamp with Catch-All Base & AC Outlet, Matte Black  [total=72]",WEAK,A desk lamp leads the desk query; desks are inside the 72 but accessories outrank the furniture.
+estantería,,shelf/bookcase,— no results —,FAIL,ZERO results while ~231 bookcases/shelves are stocked. Empty-but-stocked: the ES word is unmapped.
+perchero,,coat rack,Dakine Aero Rack Pad  [total=2000],FAIL,"2,000-result capped flood of coats and rack pads. Coat racks are unstocked — instead of an honest empty, search pads with outerwear."
+papel higiénico,,toilet paper (household consumable),"LEGO Technic Excavator Paper Bag Set (Small, 65pcs)  [total=151]",FAIL,"No real toilet paper is stocked, but instead of saying so, search returns 151 wordplay items: Skibidi Toilet Funko, a LEGO ""paper bag"" set."
+detergente,,laundry detergent,Classic Signature Detergent  [total=6],PASS,
+escoba,,broom,"Eyliden Broom and Dustpan Combo Set for Home Hardwood Floor with Long Handle to 50"", Dark Grey  [total=1]",PASS,
+trapeador,,mop (LatAm term),"Mainstays 6-Piece Bar Mop Kitchen Towel Set, White  [total=5]",WEAK,"5 results: bar-mop towel sets, a ""Mop Top"" tee and one pretend-play mop set. Real mops stocked (15) and absent."
+jabón,jabon,soap,Black Cherry Merlot Gentle & Clean Foaming Hand Soap  [total=41],PASS,
+juguetes,,toys general,LEGO Speed Champions Mercedes-AMG G 63 & Mercedes-AMG SL 63 Toy Cars - Building Toys Set for Bo  [total=1532],PASS,
+juguete,juguetes,toy singular,LEGO Speed Champions Mercedes-AMG G 63 & Mercedes-AMG SL 63 Toy Cars - Building Toys Set for Bo  [total=1532],PASS,
+lego,LEGO,LEGO sets (brand),LEGO Star Wars: The Skywalker Saga - PlayStation 5  [total=699],PASS,"LEGO throughout; a LEGO video game leads, sets follow. 699 results."
+barbie,Barbie,Barbie dolls (brand),"Barbie Careers muñeca piloto y accesorio, muñeca de moda con uniforme removible, zapatos y somb  [total=383]",PASS,
+muñeca,muneca,doll,Barbie Dream Besties Weekend Getaway Teresa Fashion Doll with 7 Travel Themed Accessories  [total=845],PASS,
+muñecas,muñeca,dolls plural,Barbie Dream Besties Weekend Getaway Teresa Fashion Doll with 7 Travel Themed Accessories  [total=845],PASS,
+casa de muñecas,muñeca,dollhouse,Barbie Dream Besties Weekend Getaway Teresa Fashion Doll with 7 Travel Themed Accessories  [total=865],FAIL,"865 results but the first 12 are all Barbie fashion dolls — zero dollhouses, while ~405 dollhouses are stocked. Qualifier ""casa"" ignored."
+hot wheels,Hot Wheels,Hot Wheels cars (brand),Hot Wheels Monster Trucks Live Diecast Car 8-Pack (2024)  [total=312],PASS,
+carritos,,toy cars,LEGO Speed Champions Toyota GR Supra 76901 Collectible Sports Car Toy Building Set with Racing   [total=320],PASS,
+nerf,Nerf,Nerf blasters (brand),"Nerf N Series Gear Up Pack, 3x Blasters, 18 Nerf N1 Darts Compatible Only with Nerf N Series  [total=238]",PASS,
+play-doh,Play-Doh,Play-Doh (brand),"Play doh tools for Kids,ODDPC Cute Playdough Accessories,Playdough Sets for Kids Ages 4-8  [total=532]",PASS,
+plastilina,play-doh,modeling dough ES,— no results —,FAIL,ZERO results. The ES word is unmapped: Play-Doh/modeling dough is one of the deepest toy families (~527 family titles).
+rompecabezas,,jigsaw puzzle,Melissa & Doug Safari Wooden Chunky Puzzle With Wild Animal Theme (8 Pcs) - FSC Certified  [total=414],PASS,
+puzzle,rompecabezas,puzzle EN,Melissa & Doug Safari Wooden Chunky Puzzle With Wild Animal Theme (8 Pcs) - FSC Certified  [total=414],PASS,
+juegos de mesa,,board games,Disney Pixar Toy Story Pop Up Game Similar to Trouble Family Board Game with Pop-Up Dice  [total=376],PASS,
+monopoly,juegos de mesa,Monopoly (brand game),"Monopoly: Disney Villains Edition juego de mesa para niños de 8 años en adelante, 2-6 jugadores  [total=38]",PASS,
+ajedrez,,chess,— no results —,FAIL,ZERO results while chess sets are stocked (21).
+peluche,,plush/stuffed toy,"PAW Patrol Skye 6"" Plush, Ages 3+  [total=216]",PASS,
+peluches,peluche,plush plural,"PAW Patrol Skye 6"" Plush, Ages 3+  [total=216]",PASS,
+oso de peluche,peluche,teddy bear,Black Brocle Tote  [total=35],FAIL,Tote bags lead 12/12. Teddy bears stocked and never surface.
+bloques,,building blocks,"LEGO Classic caja mediana de bloques creativos, set de juguete con tren, auto, tigre, regalo de  [total=2]",WEAK,"Only 2 results — both are genuine LEGO block sets (ES titles), but ~157 block sets are stocked. Near-collapse of a core toy word."
+dinosaurios,,dinosaur toys,"Bitzee, Jurassic World juguete interactivo con 25 dinosaurios adentro, reacciona al tacto, pods  [total=1]",WEAK,Exactly 1 result (a Bitzee Jurassic toy) against ~188 dinosaur products stocked.
+carro a control remoto,,RC car,"UUGEE Remote Control Car Car Toys for Boys, 2.4 GHz 4WD Amphibious RC Car Boat, 360°Rotation RC  [total=358]",PASS,
+triciclo,,tricycle,"New Deal Andy Howell Tricycle Kid Skateboard Deck - 9.63""  [total=3]",WEAK,"3 results, all skateboard decks with a ""Tricycle"" graphic. No children's tricycle surfaces."
+cocinita,,toy kitchen,ZURU Mini Brands Really Works Magic Cook set de cocina con set de juego Mini Brands Llena la re  [total=4],WEAK,4 results: Mini Brands miniature kitchens x3 plus a coconut perfume collision. Real play kitchens stocked (19) and absent.
+disfraz,,costume,KAWELL disfraz de lujo de princesa de nieve para niña 2t  [total=20],PASS,12/12 real costumes (ES-language titles). Auto-classifier missed them; hand-verified.
+slime,,slime kits,Gui-Gui Shimmer Slime set de lujo paquete doble (¡el slime más hermoso de todos!)  [total=93],PASS,
+pokémon,pokemon,Pokémon cards/toys,Pokémon TCG: 30th Celebration Elite Trainer Box  [total=526],PASS,
+figuras de acción,figura de accion,action figures,"Jurassic World Distortus Rex Dinosaur Action Figure, 16 Inch Villain Dino with Chomping Action  [total=483]",PASS,
+superhéroes,superheroes,superhero toys,Your Superheroes Full-Size Travel Makeup Brush Set  [total=6],WEAK,"Only 6 results, led by a superhero makeup-brush set, against ~963 superhero products stocked."
+alien,,"alien products (concept EN, expect ~186)",Alien Wax - Neon  [total=186],PASS,
+extraterrestre,alien,"alien concept ES (canonical concept test, was 1)",Alien Wax - Neon  [total=186],PASS,
+ovni,alien,UFO toys (concept probe),Alien Wax - Neon  [total=186],PASS,"Concept-maps to the alien set (186), same as ""alien"". No UFO-specific stock exists; expansion is honest merch, noted."
+piñata,,piñata (probe — likely unstocked),— no results —,PASS,"Honest zero: family not stocked, no padding."
+trompo,,"spinning top (Peruvian classic, probe)",Herrera Trompo - 8.375  [total=6],WEAK,"6 results are skateboard completes named ""Trompo"" (Chocolate Herrera). Word-true, wrong product: spinning tops are unstocked. Danny's skateboard complaint in miniature."
+canicas,,marbles (probe),— no results —,PASS,"Honest zero: the ~136 catalog ""marble"" hits are stone/print patterns, not marble toys. No padding."
+yoyo,yo-yo,yo-yo,OG Logo Joyo Boardshort - Tel  [total=5],FAIL,"5 results of ""Joyo"" boardshorts/apparel. The ~1 yo-yo stocked does not surface; junk set instead of near-empty."
+pelotas,pelota,balls (toy/sport ambiguity),Wilson Championship Extra Duty Tennis 3 Ball Cans - 20 Pack  [total=564],WEAK,"CORRECTED on Danny's add-on pass: returns the identical canonical-""ball"" set as singular ""pelota"" (same 12 items, same order). Balls genuinely lead (tennis balls 1-2, kids ball set 3, more at 6-7) but ~half the first 12 is ""ball"" wordplay: Ball Gown dresses x3, ball caps x2, Dragon Ball Z, skate bearings. Originally scored PASS on the lead alone; downgraded for consistency with pelota."
+biberón,biberon,baby bottle,6-in-1 Fast Baby Bottle Warmer  [total=70],WEAK,"All 70 results are feeding gear (category-true), but the first 12 are warmers, washers, sterilizers and a brush — not one actual bottle. Core product should lead."
+biberones,biberón,baby bottles plural,6-in-1 Fast Baby Bottle Warmer  [total=70],WEAK,"Same 70-item feeding-gear set as singular: appliances lead, actual bottles absent from first 12."
+biberones y alimentación del bebé,biberón,renamed feeding section phrase,Instant Water Warmer For Baby Bottles - Instantly Dispenses Warm Water  [total=70],WEAK,"The renamed section phrase resolves to the same 70 feeding-gear results: no junk, no toys — but warmers lead and bottles still do not."
+alimentación del bebé,biberón,baby feeding (phrase),"Keyohome 6Pcs Mini Baby Dolls,4"" Newborn Dolls Gift Set,Cute Reborn Baby Dolls Toys for Kids 3+  [total=1280]",FAIL,"Without ""biberones"" the phrase collapses to the generic bebé set (1,280): baby dolls and women's ""baby tees"" lead; zero feeding gear in first 12."
+pañales,panales,diapers,Hot Pink Mini Classic Diaper Bag II  [total=119],WEAK,"Diaper BAGS fill positions 1–8; real Huggies/Pampers diapers only arrive at 9–11. Accessory-led, iPhone-case class."
+pañal,pañales,diaper singular,"Black Blackout Curtains 36 inch 2 Panels Set, Room Darkening Rod Pocket Thermal Insulated for S  [total=295]",FAIL,"Singular collapses into ""panel"": 5-panel caps, panel boardshorts, blackout curtains. 295 polluted results while the plural works. Diapers stocked (137)."
+coche de bebé,coche bebe,stroller,Momcozy Extra Large Stroller Organizer  [total=260],WEAK,Stroller organizers and fans lead (1–4); real strollers arrive at 5–8. Accessory-led.
+carriola,coche de bebé,stroller (variant term),Momcozy Extra Large Stroller Organizer  [total=260],WEAK,"Same 260 set as coche de bebé: accessories lead, strollers at 5–8."
+cuna,,crib,"Imagio Baby Ashley 2-piece Crib Set,  Brushed White  [total=73]",PASS,
+chupón,chupon,pacifier,Dr. Brown’s® HappyPaci™ 100% Silicone One-Piece Pacifier  [total=25],PASS,
+tetina,,bottle nipple (LatAm),"Restored Apple iPad 9.7-inch Retina Display with WIFI, 32GB, Touch ID, 2017 Mode - Space Gray  [total=21]",FAIL,"Fuzzy flood on Bettina/Betina/Retina: iPads, MacBooks, tweed dresses. Bottle nipples stocked (82) and never surface."
+extractor de leche,,breast pump,Vida Baby Tee - Leche  [total=20],FAIL,"""Leche"" matches a baby-tee print and plant extract oil; breast pumps stocked (64) and absent from first 12 of 20."
+sacaleches,extractor de leche,breast pump (one-word variant),— no results —,FAIL,"ZERO results while breast pumps are stocked (64). The one-word ES term is unmapped (two-word ""extractor de leche"" at least returns a polluted set)."
+esterilizador,,bottle sterilizer (junk-lead risk: descaler),— no results —,FAIL,ZERO results while bottle sterilizers are stocked (27). (At least the moms-catalog descaler junk does not lead — nothing returns at all.)
+babero,,baby bib,— no results —,FAIL,ZERO results while baby bibs are stocked (75).
+manta de bebé,,baby blanket,"Exclusivo Mezcla Large Flannel Fleece Throw Blanket, Jacquard Weave Wave Pattern Blanket (50"" x  [total=1835]",WEAK,"1,835 results of generic and kids' throw blankets; baby blankets buried — ""bebé"" barely narrows."
+monitor de bebé,,baby monitor,Momcozy Contact-Free Smart Baby Monitor (BM08)  [total=16],PASS,
+silla de comer,,high chair,Fila Men's Essentials Long Sleeve UV Blocker  [total=129],FAIL,"Returns the Fila clothing set (129): ""silla"" fuzzy-hijacked by the Fila brand. Zero high chairs, while ~58 are stocked. Identical broken set for all three silla phrases."
+silla para auto bebé,,infant car seat,Fila Men's Essentials Long Sleeve UV Blocker  [total=129],FAIL,"Same Fila clothing set (129). Zero car seats, while ~124 are stocked."
+andador,,baby walker,— no results —,FAIL,ZERO results while baby walkers are stocked (103).
+mordedor,,teether,— no results —,FAIL,ZERO results while teethers are stocked (36).
+bañera de bebé,,baby bathtub (category-truth test),"Oh Baby Soft Jungle Baby Shower Fabric Banner Set, 3pc, 5.3ft  [total=1]",WEAK,Exactly 1 result — a baby-shower banner. Baby bathtubs stocked (~6) and absent.
+juguete de baño,,bath toys,LEGO Speed Champions Mercedes-AMG G 63 & Mercedes-AMG SL 63 Toy Cars - Building Toys Set for Bo  [total=1542],FAIL,"Qualifier ignored: returns the generic toy flood (1,542) led by LEGO cars. Bath toys are stocked (the moms catalog set) and never surface. Category-truth failure."
+sonajero,,baby rattle,— no results —,FAIL,ZERO results while baby rattles are stocked (27).
+juguete para bebé,juguetes,baby toys,"Fisher-Price Babys First Blocks Shape Sorting Toy with Storage Bucket, 12 Pieces For Baby & Tod  [total=127]",PASS,Fisher-Price baby toys lead 1–6 and 8; one LEGO set interlopes at 7. Hand-verified.
+termómetro,termometro,thermometer,— no results —,FAIL,ZERO results while thermometers are stocked (10).
+aspirador nasal,,nasal aspirator,ClearNose™ Nasal Aspirator  [total=2],PASS,
+shampoo de bebé,,baby shampoo,"Aveeno Baby Wash & Shampoo, 33 fl oz + Lotion, 18 fl oz  [total=2]",PASS,
+loción de bebé,,baby lotion,Obsession — Loción corporal (Mini) para mujer  [total=1346],FAIL,"1,346 results of women's body lotion — ""bebé"" dropped entirely; baby lotion never surfaces."
+talco,,baby powder,Passion — Talco 77 ml (2.6 oz) para mujer  [total=8],FAIL,All 8 results are women's fragrance talc (perfume). Baby powder intent missed completely.
+bebé,bebe,baby general (department honesty),"Keyohome 6Pcs Mini Baby Dolls,4"" Newborn Dolls Gift Set,Cute Reborn Baby Dolls Toys for Kids 3+  [total=1280]",WEAK,"First 12 mix a baby-doll set with women's ""baby tee"" fashion (positions 2–8). Real baby range exists in the store rails below (Walmart Bebé, Momcozy), but the ranked list is fashion-polluted."
+recién nacido,bebé,newborn,"Disney Princess body de cosplay de Blancanieves con falda superpuesta y vincha, de recién nacid  [total=1]",FAIL,Exactly 1 result: a Snow White cosplay bodysuit. The newborn range is deep in catalog and never surfaces.
+comida para perro,,dog food — Aria sells NO food; judge honesty,"MGA's Miniverse Make It Mini Food Hershey multipaquete de mini coleccionables, juguete de comid  [total=18]",WEAK,"HONESTY CHECK: no real pet food is offered for sale (correct — Aria sells no food). But the 18 results lead with Miniverse TOY food and robot dogs, implying a pet-food shelf that does not exist; an honest empty or a dog-accessories landing would be cleaner."
+comida perro,comida para perro,dog food variant — NO food; judge honesty,"MGA's Miniverse Make It Mini Food Hershey multipaquete de mini coleccionables, juguete de comid  [total=18]",WEAK,"Same 18 toy-food/robot-dog results as the full phrase. No real food sold (correct), presentation implies otherwise."
+comida para gato,,cat food — NO food; judge honesty,"LEGO Creator 3 en 1 gato juguetón - juguetes de construcción con 3 opciones de armado, gato, pe  [total=8]",WEAK,"8 results of cat toys/LEGO cat. No real cat food sold (correct), but the set pretends relevance instead of landing on cat accessories honestly."
+juguete para perro,,dog toy,LEGO Speed Champions Mercedes-AMG G 63 & Mercedes-AMG SL 63 Toy Cars - Building Toys Set for Bo  [total=1543],FAIL,"Qualifier ignored: generic toy flood (1,543) led by LEGO cars — same broken set as juguete de baño. Dog toys stocked and never surface."
+correa para perro,correa,dog leash,"WonderStone perro robot interactivo con correa, peluche de cachorro con grabación y canto, cami  [total=1]",FAIL,Exactly 1 result: a robot dog toy that happens to include a leash. Real dog leashes are stocked and never surface.
+correa,,leash (ambiguity: belt/strap),Black Cherub D Outline Buckle Leather Belt  [total=724],PASS,"Returns belts 12/12 — a true primary reading of ""correa"" in Peru. Note the leash reading needs ""correa para perro"", which fails (above)."
+collar para perro,,dog collar,Beaded Necklace for Women Boho Resin Chunky Necklace for Women Minimalistic Modern Statement Ne  [total=1361],FAIL,"1,361 results led by 12/12 women's necklaces. Dog collars stocked (~398 family titles) and never surface."
+cama para perro,,dog bed,Camp Snap CS-PRO Screen-Free Digital Camera  [total=14],FAIL,The cama→camera collision again: all 14 results are Camp Snap cameras. Zero dog beds.
+cama para gato,,cat bed,Camp Snap CS-PRO Screen-Free Digital Camera  [total=14],FAIL,Same camera set as cama para perro. Zero cat beds.
+arenero,,cat litter box,— no results —,PASS,Honest zero: litter boxes are genuinely unstocked (0 catalog titles). No padding.
+arena para gatos,,cat litter (consumable — judge),Surf Station Dolphin Cell Phone Dry Bag  [total=1],FAIL,Exactly 1 result — a cell-phone dry bag (sand/beach wordplay). Cat litter is essentially unstocked; a junk single hit is worse than an honest empty.
+shampoo para perros,,dog shampoo,Melrose Place Super Dry Invisible Dry Shampoo  [total=398],FAIL,398 results of HUMAN shampoo. Dog shampoo is unstocked — search pads with the human shelf instead of answering honestly.
+casa para perro,,dog house,DGK Perro Beanie - Black  [total=33],FAIL,Dog-print beanies and merch lead 33 results; ~2 real dog houses stocked and absent.
+transportadora,,pet carrier,Disney Princess Style Collection cachorro Trendy de juego de imitación y bolso transportador  [total=1],FAIL,Exactly 1 result: a toy pretend puppy carrier set. Real pet carriers stocked (47) and never surface.
+plato para perro,,dog bowl,"Tour White Porcelain Dinner Plates, Set of 8  [total=356]",FAIL,"Returns the dinner-plate set (porcelain plates lead). ""Plato"" reading wins; dog bowls never surface."
+rascador,,cat scratcher,— no results —,PASS,Honest zero: cat scratchers essentially unstocked (~1 title). No padding.
+acuario,,aquarium/fish tank,"Bitzee tanque de acuario interactivo con 30 mascotas digitales, reacciona al tacto  [total=3]",WEAK,"3 results, all Bitzee interactive TOY aquariums — that is genuinely all the ""aquarium"" stock the catalog holds; no real tanks exist to surface."
+pecera,acuario,fish bowl/tank variant,— no results —,WEAK,"Zero results while its twin ""acuario"" returns 3 — the variant is not linked to the same shelf."
+mochila,,backpack,Varsity Elite Unisex Backpacks (32L) Game Royal/Black/White  [total=2000],PASS,
+mochilas,mochila,backpacks plural,Varsity Elite Unisex Backpacks (32L) Game Royal/Black/White  [total=2000],PASS,
+mochila escolar,mochila,school backpack,"School Backpack for College High Middle School Fashion Student bag, Cute Aesthetic Teen Bookbag  [total=7]",PASS,"School backpacks lead (7 results, 1 mini-backpack interloper). Thin against 1,011 stocked backpacks, but true."
+cuaderno,,paper notebook (Peru sense),"HP 15.6"" 15-fc0510ds Multi-Touch Notebook (Chai Latte)  [total=28]",WEAK,"""Notebook"" resolves to laptops 12/12 (HP/Acer notebooks). The Peruvian school sense — paper notebooks — never surfaces."
+cuadernos,cuaderno,notebooks plural,"HP 15.6"" 15-fc0510ds Multi-Touch Notebook (Chai Latte)  [total=28]",WEAK,Same laptop set as singular: paper notebooks absent.
+lápices,lapices,pencils,— no results —,FAIL,ZERO results while pencils are stocked (68). ES word unmapped.
+lapicero,,pen (Peruvian term),— no results —,FAIL,ZERO results. The everyday Peruvian word for pen is unmapped; pens/ballpoints are stocked and never surface.
+colores,,colored pencils (ambiguity probe),"Meiiso Breath Artificial Flowers, Flowers for Vase Home Wedding DIY, Indoor Outdoor Centerpiece  [total=613]",FAIL,Artificial flowers and color-named apparel lead 613 results; colored pencils never surface.
+lonchera,,lunchbox (Peruvian school term),Star Wars Darth Maul Lightsaber Light-Up Mini Backpack - BoxLunch Exclusive  [total=6],FAIL,6 results of mini backpacks and lightsaber merch; lunch boxes stocked (80) and absent.
+cartuchera,,pencil case (Peruvian term),Herschel Supply x LEGO Little Settlement Pencil Case - Falling Florals  [total=4],PASS,
+borrador,,eraser (ambiguity probe),"Artificial Peonies Silk Flowers, 6 Bundles Faux Peony Bouquet Florals Arrangements for Farmhous  [total=1]",FAIL,Exactly 1 result: faux peony flowers. Erasers stocked (14) and absent.
+tijeras,,scissors,— no results —,FAIL,ZERO results while scissors are stocked (9).
+pegamento,,glue,— no results —,FAIL,ZERO results while glue is stocked (17).
+calculadora,,calculator,8-Digit Battery/Solar Powered Basic Calculator  [total=6],PASS,
+soporte para laptop,,laptop stand,"Pryloxen 15.6"" Student & Business Laptop, AMD Ryzen 3 3250C, 16GB RAM 512GB SSD, Windows 11 Pro  [total=534]",FAIL,"""Soporte"" ignored: 534 results led by laptops themselves. Laptop stands never surface in first 12."
+silla de oficina,sillas,office chair,Fila Men's Essentials Long Sleeve UV Blocker  [total=129],FAIL,Same Fila clothing set (129) as the other silla phrases. Zero office chairs.
+organizador de escritorio,organizador,desk organizer,LEGO Classic maletín creativo 10713 - incluye estuche organizador para clasificar con divertido  [total=73],WEAK,73 results mixing a LEGO organizer case and vanity mirrors; real desk organizers sit inside but do not lead.
+impresora,,printer,Women's Cotton Printed Nightgown  [total=564],FAIL,"564 results led by a printed nightgown (""printed"" collision). Printers stocked (6) and buried under wordplay."
+taladro,,drill,"SHPAVVER Professional Electric Nail Drill Kit, 45000 RPM Manicure Pedicure Machine with LCD Dis  [total=42]",FAIL,"Nail drills and ""drill"" fabric clothing fill the first 12 of 42. Zero power drills — the tool sense never surfaces."
+herramientas,,tools general,"Play doh tools for Kids,ODDPC Cute Playdough Accessories,Playdough Sets for Kids Ages 4-8  [total=138]",WEAK,Toy dough tools and skate tools lead 138 results; real hand/power tools sit deeper.
+caja de herramientas,herramientas,toolbox/tool set,"Disney Junior Mickey Mouse Handy Helper Tool Bucket, 29-pieces, Kids Toys for Ages 3 up  [total=653]",FAIL,"""caja"" collision again: 653 results mixing fragrance boxes and a Mickey toy tool bucket; real tool sets never lead."
+destornillador,,screwdriver,— no results —,WEAK,"Zero results; only ~1 screwdriver title stocked — a near-honest miss, noted rather than failed."
+martillo,,hammer (merch-collision probe),"Jakks Pacific Super Mario figura de acción con martillo, de plástico, de 4 pulgadas, para niños  [total=1]",FAIL,Exactly 1 result: a Mario toy figure holding a hammer. Real hammers never surface.
+llave inglesa,,wrench,Love You More Floral Arrangement  [total=1],FAIL,Exactly 1 result: a floral arrangement. Wrenches stocked (5) and absent.
+cinta métrica,cinta metrica,tape measure,White 'The Citta' Shirt  [total=8],FAIL,8 results of shirts and Funko figures. Tape measures are unstocked (0 titles) — padded junk instead of an honest empty.
+escalera,,ladder,"Hot Wheels City set de juego de playa Shark Chomp y auto de juguete fundido a escala 1:64, Big   [total=29]",FAIL,Hot Wheels playsets lead 29 results; ladders stocked (10) and absent.
+pintura,,paint (art/house ambiguity probe),Bowser Jr con pincel de pintura  [total=1],FAIL,Exactly 1 result: a Bowser Jr toy with a paint brush. Paint/art supplies are deep in catalog and never surface.
+linterna,,flashlight,Nautilus 900 Lumen Dive Flashlight  [total=17],PASS,Flashlights lead (dive light first); 17 true results.
+pilas,,batteries,"20 Pack Fairy Lights Battery Operated, 7ft 20 LED Mini String Lights, 3 Modes Waterproof Twinkl  [total=260]",WEAK,Battery-OPERATED fairy lights lead; actual battery packs arrive at positions 8–11 of 260.
+focos,,light bulbs (Peruvian term),Outdoor String RGB Bulbs + Dual Speaker Lights  [total=5],PASS,String-light bulbs lead; small (5) but true set. Peruvian term works.
+candado,,padlock,— no results —,WEAK,"Zero results. Padlocks are scarce in catalog (17 ""padlock"" title hits, mostly bag charms) — a near-honest miss, but the word is unmapped."
+sierra,,saw (ambiguity probe),Sierra 4-piece Outdoor Patio Seating Set  [total=32],FAIL,"""Sierra"" is read as a brand/place name: patio sets and Sierra towels lead 32 results. Saws never surface."
+guantes de trabajo,,work gloves,"Athletic Works Weightlifting Gloves, M/L  [total=425]",PASS,
+nivel,,spirit level (ambiguity probe),Sun Protect & Light Feel Serum SPF 50+ PA++++  [total=1],FAIL,Exactly 1 result: an SPF serum. Spirit levels never surface; the ambiguity probe fails open.
+toys,juguetes,"toys EN (everyday word, Danny add)",LEGO Technic Backhoe Loader Construction Toys - Building Toys Set  [total=564],PASS,"EN everyday twin of juguetes: 12/12 genuine toys (LEGO, Hot Wheels, Disney, VTech, Nerf)."
+pelota,pelotas,"ball singular (everyday word, Danny add)",Wilson Championship Extra Duty Tennis 3 Ball Cans - 20 Pack  [total=564],WEAK,"Canonicalizes to ""ball"": real balls lead (tennis balls 1-2, kids sports ball set 3, more at 6-7) but ""ball"" wordplay fills ~half the first 12 — Ball Gown dresses x3, ball caps x2, Dragon Ball Z game, ""Big Balls"" skate bearings."

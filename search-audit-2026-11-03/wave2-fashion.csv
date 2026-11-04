@@ -1,0 +1,230 @@
+term,variant_of,expected_intent,what_leads,verdict,notes
+naike,nike,Nike brand products lead,"Nike Men's Nike 24.7 PerfectStretch Dri-FIT 6"" Shorts",PASS,"total=2000; total=2000; resolves to the full Nike set, Nike leads every lane"
+naiki,nike,Nike brand products lead (wave-1 FAIL recheck),BaubleBar Nikki Shell Statement Ring - Black,FAIL,"total=4; total=4; fuzzy-matches 'Nikki' jewelry + a Funko + 'Naika' sandals; NO Nike, no didYouMean; wave-1 FAIL unchanged"
+nikee,nike,Nike brand products lead,"Nike Men's Nike 24.7 PerfectStretch Dri-FIT 6"" Shorts",PASS,total=2000; total=2000; identical Nike set
+ñike,nike,Nike brand products lead,"Nike Men's Nike 24.7 PerfectStretch Dri-FIT 6"" Shorts",PASS,"total=2000; total=2000; identical Nike set, ñ handled"
+nikes,nike,Nike brand products lead,"Nike Men's Nike 24.7 PerfectStretch Dri-FIT 6"" Shorts",PASS,total=2000; total=2000; identical Nike set
+addidas,adidas,Adidas brand products lead,adidas adidas Predator Elite FG - Vivid Horizon Pack (FA24),PASS,total=2000; total=2000; identical adidas set
+adida,adidas,Adidas brand products lead,adidas adidas Predator Elite FG - Vivid Horizon Pack (FA24),PASS,total=2000; total=2000; identical adidas set
+adidass,adidas,Adidas brand products lead,adidas adidas Predator Elite FG - Vivid Horizon Pack (FA24),PASS,total=2000; total=2000; identical adidas set
+pumas,puma,Puma brand products lead,Puma Puma Ultra 5 Pro FG/AG - Formula Pack (FA24),PASS,"total=396; total=396, didYouMean=puma; Puma cleats/shoes lead"
+pumaa,puma,Puma brand products lead,Puma Puma Ultra 5 Pro FG/AG - Formula Pack (FA24),PASS,"total=382; total=382; Puma leads, near-identical to pumas"
+jordans,jordan,Jordan brand shoes lead,Jordan Big Kids' Jordan Basketball Jersey,WEAK,"total=383; total=383; Ofertas lane leads with kids'/women's Jordan APPAREL (jerseys, tees, shorts) — Air Jordan shoes only lead the store lanes below"
+airjordan,air jordan,Jordan shoes lead,Air Jordan Taupe Haze 4 GS Retro Shoes,FAIL,total=1; total=1; one exact shoe in a PacSun lane padded with Converse/Clarks/Birkenstock/Crocs; catalog holds 585 Jordan products (cf. jordan=383)
+air-jordan,air jordan,Jordan shoes lead,Air Jordan Taupe Haze 4 GS Retro Shoes,FAIL,total=1; total=1; identical to airjordan — hyphenated form equally dead
+jordan 1,jordan,Jordan 1 shoes lead,Jordan Jordan AJ 1 Retro High OG FC - Men's,PASS,total=45; total=45; AJ1 Retro shoes lead all lanes
+jordan1,jordan 1,Jordan 1 shoes lead,Jordan Jordan AJ 1 Retro High OG FC - Men's,PASS,total=45; total=45; identical to 'jordan 1'
+jordan retro,jordan,Jordan Retro shoes lead,Jordan Men's Jordan Flight Retro Illustration Graphic T-Shirt,WEAK,"total=133; total=133; a graphic T-shirt takes the #1 slot in Ofertas, Retro shoes follow; store lanes are pure Retro shoes"
+jordan 4,jordan,Jordan 4 shoes lead,"Jordan Women's Jordan Sport Leopard Print 4"" Diamond Basketball Shorts",WEAK,total=42; total=42; Ofertas lane is '4-inch' basketball shorts + a fleece set (token collision on '4'); real AJ4 shoes lead the Snipes/Foot Locker lanes
+jordan4,jordan 4,Jordan 4 shoes lead,"Jordan Women's Jordan Sport Leopard Print 4"" Diamond Basketball Shorts",WEAK,total=42; total=42; identical to 'jordan 4'
+yordan,jordan,Jordan shoes lead (phonetic typo),Jordan Big Kids' Jordan Basketball Jersey,WEAK,"total=383; total=383; phonetic typo resolves to the Jordan set (good), but inherits the apparel-led Ofertas lane of 'jordans'"
+newbalance,new balance,New Balance shoes lead,New Balance New Balance Lifestyle 327 Sea Salt & Black Suede Shoes,PASS,"total=1005; total=1005, store redirect; New Balance shoes lead"
+new-balance,new balance,New Balance shoes lead,New Balance New Balance Lifestyle 327 Sea Salt & Black Suede Shoes,PASS,"total=1005; total=1005, store redirect; identical to newbalance"
+new ballance,new balance,New Balance shoes lead (typo),New Balance New Balance Lifestyle 327 Sea Salt & Black Suede Shoes,PASS,"total=1005; total=1005; double-letter typo tolerated, NB shoes lead (store key not set, results correct)"
+NB,new balance,New Balance shoes lead (abbreviation),New Balance New Balance Lifestyle 327 Sea Salt & Black Suede Shoes,PASS,total=1005; total=1005; abbreviation resolves to the full New Balance set
+nb,new balance,New Balance shoes lead (abbreviation),New Balance New Balance Lifestyle 327 Sea Salt & Black Suede Shoes,PASS,total=1005; total=1005; identical to NB
+new balance 574,new balance,NB 574 model shoes lead,New Balance New Balance 574 Vulc Shoes - Blue/White,PASS,total=23; total=23; narrows correctly to 574 shoes
+nb 574,new balance 574,NB 574 model shoes lead,New Balance New Balance Womens 574 Shoes - NB Navy/Light Arctic Grey,FAIL,"total=1; total=1; near-dead vs 23 for 'new balance 574' — the abbreviated model form collapses (exact=1, rest of lane is generic NB filler)"
+new balance 990,new balance,NB 990 model shoes lead,New Balance New Balance Lifestyle 327 Sea Salt & Black Suede Shoes,WEAK,total=1005; total=1005 = the generic New Balance set; the 990 model qualifier is dropped entirely (contrast: 574 narrows to 23)
+levi,levi's,Levi's jeans/apparel lead,Levi's Men's Levi's® 511™ Slim Fit Stretch Jeans,PASS,total=151; total=151; Levi's jeans lead
+levis,levi's,Levi's jeans/apparel lead,Levi's Men's Levi's® 511™ Slim Fit Stretch Jeans,PASS,total=151; total=151; identical to levi
+levys,levi's,Levi's jeans/apparel lead (typo),Levi's Men's Levi's® 511™ Slim Fit Stretch Jeans,PASS,"total=151; total=151; typo tolerated, identical set"
+convers,converse,Converse shoes lead (typo),Converse Converse Louie Lopez Pro 2 Shoes - Grey Area/Black/White,PASS,total=137; total=137; Converse shoes lead
+conberse,converse,Converse shoes lead (typo),Converse Converse Louie Lopez Pro 2 Shoes - Grey Area/Black/White,PASS,total=137; total=137; identical to convers — b/v typo tolerated
+banz,vans,Vans shoes lead (phonetic typo),banu Deep Drench Lightweight Moisturizer for Acne-Prone Skin,FAIL,"total=1; total=1; returns a Sephora moisturizer (brand 'banu'), didYouMean='band'; Vans holds 700+ products (cf. vanss=709)"
+vanss,vans,Vans shoes lead,Vans Vans Skate Safe Low Shoes - Navy/Marshmallow,PASS,total=709; total=709; Vans shoes lead
+crocks,crocs,Crocs shoes lead (typo),Crocs Classic Clog - Black,PASS,total=563; total=563; Crocs clogs lead
+croc,crocs,Crocs shoes lead (singular),Crocs Classic Clog - Black,PASS,total=563; total=563; identical to crocks
+skecher,skechers,Skechers shoes lead,Skechers Men's Go Run Consistent 2.0 Lace-up Sneaker,PASS,total=132; total=132; Skechers shoes lead
+esketchers,skechers,Skechers shoes lead (ES phonetic),(no results),FAIL,"total=0; total=0, state=none; Spanish phonetic spelling is a hard dead end, no didYouMean (cf. skecher=132)"
+rebok,reebok,Reebok shoes lead (typo),Reebok Reebok Cool Your Body — Eau de Toilette en spray 100 ml (3.4 oz) para mujer,WEAK,"total=118; total=118; brand resolves, but two Reebok FRAGRANCES take the top slots of the Ofertas lane ahead of Club C shoes"
+filas,fila,Fila products lead,Fila Fila Women's Back Court Court Tank,PASS,total=129; total=129; Fila apparel leads
+tomy hilfiger,tommy hilfiger,Tommy Hilfiger products lead (typo),Tommy Hilfiger Tommy Girl — Eau de Toilette en spray 30 ml (1 oz) para mujer,WEAK,"total=60; total=60; typo tolerated and brand resolves, but the entire Ofertas lane is Tommy fragrance — apparel only appears in the Macy's lane below"
+calvin,calvin klein,Calvin Klein products lead (short form),Calvin Klein Women's Hooded Stand Collar Puffer Coat,PASS,total=254; total=254; Calvin Klein coats/apparel lead
+calbin klein,calvin klein,Calvin Klein products lead (typo),Calvin Klein Women's Hooded Stand Collar Puffer Coat,PASS,"total=222; total=222; typo tolerated, CK apparel leads"
+ck,calvin klein,Calvin Klein products lead (initials),Hugo Boss Ck Everyone — Eau de Toilette en spray 50 ml (1.6 oz) para hombre,PASS,total=45; total=45; CK fragrances lead (one 'Ck Everyone' item is mis-branded Hugo Boss in the data)
+lacost,lacoste,Lacoste products lead (typo),Lacoste Lacoste Eau De Lacoste L.12.12 Rose Eau Intense — Eau de Toilette en spray 100 ml (3.3 oz) para mujer,WEAK,"total=293; total=293; brand resolves, but Ofertas lane is 100% Lacoste fragrance; apparel leads only the Tennis Warehouse lane"
+ralf lauren,ralph lauren,Ralph Lauren / Polo products lead (typo),Ralph Lauren Ralph Rocks — Gel de ducha 50 ml (1.7 oz) para mujer,WEAK,"total=58; total=58; typo tolerated, brand resolves, but all three visible lanes are fragrance/beauty — no Ralph Lauren apparel surfaces"
+victorias secret,victoria's secret,Victoria's Secret products lead,Victoria's Secret Floral Embroidery Garter Belt,PASS,"total=1426; total=1426, store redirect; VS lingerie leads"
+victoria sicret,victoria's secret,Victoria's Secret products lead (typo),Victoria's Secret Floral Embroidery Garter Belt,PASS,total=1426; total=1426; identical to victorias secret
+oldnavy,old navy,Old Navy products lead (joined),Short-Sleeve Graphic T-Shirt for Boys,PASS,"total=21; total=21, store redirect; small but real Old Navy set, apparel leads"
+old navi,old navy,Old Navy products lead (typo),(no results),FAIL,"total=0; total=0, state=none; one-letter-off phonetic variant is a hard dead end, no didYouMean (cf. oldnavy=21)"
+holister,hollister,Hollister products lead (typo),Hollister Boxy Heavyweight Cotton Crew T-Shirt,PASS,total=249; total=249; Hollister apparel leads its store lane
+abercrombi,abercrombie,Abercrombie products lead (typo),Abercrombie & Fitch 90s Straight Jean,PASS,"total=273; total=273, store redirect; A&F jeans/apparel lead"
+gym shark,gymshark,Gymshark products lead (split),Gymshark Comfy Rest Day Socks — Stone Beige,WEAK,"total=861; total=861, store redirect; Ofertas lane leads with SOCKS (same core-product lead violation wave 1 flagged on 'gymshark'), gym apparel follows"
+gimshark,gymshark,Gymshark products lead (typo),Gymshark Comfy Rest Day Socks — Stone Beige,WEAK,"total=861; total=861; identical to 'gym shark', socks lead included"
+young la,youngla,YoungLA products lead (split),YoungLA 6006 - Cargo Rave Pants,PASS,"total=800; total=800, store redirect; YoungLA apparel leads"
+underarmor,under armour,Under Armour products lead (joined),Under Armour Big & Tall Under Armour Tech 2.0 Half-Zip Top,PASS,total=90; total=90; Under Armour apparel/shoes lead
+under-armour,under armour,Under Armour products lead (hyphen),Under Armour Big & Tall Under Armour Tech 2.0 Half-Zip Top,PASS,total=90; total=90; identical to underarmor
+champions,champion,Champion products lead (plural),"Champion Champion XG Storm Multi, Black & Purple Shoes",PASS,total=149; total=149; Champion shoes/apparel lead (some 'Champion'-titled Venum items in deeper lanes)
+kapa,kappa,Kappa products lead (typo),Florence Marine X Kapa L/S Tee,FAIL,"total=1; total=1; a 'Kapa' surf tee by Florence Marine X, didYouMean='nappa'; no Kappa brand products surface"
+carters,carter's,Carter's kids products lead,Michael Kors Women Lady Large Leather Shoulder Tote Handbag Purse Bag Black Gold,FAIL,total=234; total=234 = byte-identical result set to 'carteras' (handbags); the Carter's baby-clothing brand is swallowed by the cartera token collision — wave-1 'brand buried' is now a full hijack
+zara,zara,honest empty (brand not in catalog),(no results),PASS,total=0; total=0; honest empty — Zara is genuinely not in the catalog (wave-1 confirmed)
+airmax,air max,Nike Air Max shoes lead,Nike SB Nike Airmax Ishod - White/Varsity Red-Summit White,FAIL,total=1; total=1; a single Nike SB 'Airmax Ishod' in a skate lane padded with tees; even split 'air max' returns total=1 while the catalog holds many Air Max (air max 90 alone has 10 exact)
+air-max,air max,Nike Air Max shoes lead,Nike SB Nike Airmax Ishod - White/Varsity Red-Summit White,FAIL,total=1; total=1; identical to airmax
+air max 90,air max,Air Max 90 shoes lead,"Nike Air Max 90 ""Hypervenom""",PASS,total=10; total=10; Air Max 90 shoes lead every lane
+airmax90,air max 90,Air Max 90 shoes lead (joined),"Nike Air Max 90 ""Hypervenom""",PASS,total=10; total=10; identical to 'air max 90'
+sambas,samba,Adidas Samba shoes lead,Samba Samba Paradise — Eau de Toilette en spray 100 ml (3.3 oz) para mujer,FAIL,"total=1; total=1; the ONLY result is 'Samba Paradise' PERFUME — the plural kills it, while singular 'samba' returns 72 with Samba shoes leading"
+samba og,samba,Adidas Samba OG shoes lead,adidas Samba OG,PASS,total=25; total=25; Samba OG shoes lead
+gazelles,gazelle,Adidas Gazelle shoes lead,Gameness Gameness Men's Long Sleeve Pro Rank Rash Guard,FAIL,total=100; total=100 but the set is GAMENESS (BJJ apparel) — a total token hijack; singular 'gazelle' returns 32 with Gazelle shoes leading
+dunks,dunk,Nike Dunk shoes lead,Nike Nike Dunk Low - Women's,WEAK,"total=102; total=102; a real Nike Dunk Low leads, then DGK 'Slam Dunk' tees and a Nerf 'Dunk-Fill' water gun flood the Ofertas lane"
+dunk low,dunk,Nike Dunk Low shoes lead,Nike Nike Dunk Low - Women's,PASS,total=78; total=78; Dunk Low shoes lead
+dunklow,dunk low,Nike Dunk Low shoes lead (joined),Nike Nike Dunk Low - Women's,PASS,total=78; total=78; identical to 'dunk low'
+airforce,air force 1,Air Force 1 shoes lead (joined),Nike Air Force 1 Low '07,PASS,total=79; total=79; Air Force 1 shoes lead (wave-1 equivalence holds)
+af1,air force 1,Air Force 1 shoes lead (abbreviation),"Ace Trucks Ace AF1 Hollow Bolts W/ Grippers Allen Hardware - 1""",FAIL,total=93; total=93 but the set is Ace Trucks 'AF1' SKATEBOARD TRUCKS — total token collision; zero Nike Air Force 1 in the visible lanes
+ultraboost,ultra boost,Adidas Ultraboost shoes lead,Adidas Adidas Ultraboost 4.0 DNA Shoes,PASS,total=2; total=2; catalog genuinely holds ~2 Ultraboost and both lead their lanes — thin but honest
+ultra boost,ultraboost,Adidas Ultraboost shoes lead (split),Adidas Adidas Ultraboost 4.0 DNA Shoes,PASS,total=2; total=2; identical to ultraboost
+ultra-boost,ultra boost,Adidas Ultraboost shoes lead (hyphen),Adidas Adidas Ultraboost 4.0 DNA Shoes,PASS,total=2; total=2; identical to ultraboost
+superstars,superstar,Adidas Superstar shoes lead,Sunday Riley Superstars Serum Set,FAIL,total=1; total=1; a Sunday Riley 'Superstars' SERUM SET at Sephora; singular 'superstar' returns 42 with Superstar shoes leading — pure plural bug
+stansmith,stan smith,Adidas Stan Smith shoes lead (joined),Smith Smith OVERDRIVE/N 4CW/X8,FAIL,total=343; total=343 but the set is SMITH sunglasses/goggles (didYouMean='star smith'); even split 'stan smith' returns the same eyewear set — the Stan Smith shoe is unreachable by name
+chucktaylor,chuck taylor,Converse Chuck Taylor shoes lead (joined),Converse Converse Intarsia Knit Chuck Taylor Organic Cotton Kids Throw Blanket,PASS,total=70; total=70; Chuck Taylor shoes lead
+oldskool,old skool,Vans Old Skool shoes lead (joined),Vans Vans Skate Old Skool Shoes - Blue/Grey,PASS,total=100; total=100; Old Skool shoes lead
+yeezys,yeezy,Yeezy shoes lead,(no results),PASS,total=0; total=0; honest empty in practice — the catalog holds no Yeezy shoes (singular 'yeezy' returns a single 'Weezy' graphic tee)
+yezy,yeezy,Yeezy shoes lead (typo),YZY Perfume Black Point — Eau de Parfum en spray 100 ml (3.4 oz) para hombre,FAIL,"total=17; total=17; the phonetic typo lands entirely on 'YZY Perfume' fragrance — wrong category, no shoe guidance"
+blazer mid,blazer,Nike Blazer Mid shoes lead,Nike SB Nike SB Blazer Mid - Ashen Slate,PASS,total=43; total=43; Nike SB Blazer Mid shoes lead
+nike cortez,cortez,Nike Cortez shoes lead,Nike White Cortez Leather Sneakers,PASS,"total=3; total=3; thin catalog, but Cortez shoes are exactly what leads"
+vapormax,vapor max,Nike VaporMax shoes lead,Nike Nike Air Vapormax Plus - Men's,PASS,total=1; total=1; the catalog's single Vapormax Plus is the lead item — thin but honest
+vapor max,vapormax,Nike VaporMax shoes lead (split),Nike Nike Air Vapormax Plus - Men's,PASS,total=1; total=1; identical to vapormax
+pegasus,nike pegasus,Nike Pegasus running shoes lead,Nike Air Pegasus 2K5,PASS,total=23; total=23; Pegasus running shoes lead
+huaraches,huarache,Nike Huarache shoes lead,Nike Air Trainer Huarache,PASS,total=6; total=6; Huarache shoes lead
+retro 1,jordan 1,Jordan Retro 1 shoes lead,Nike Air Force 1 Low Retro,WEAK,total=19; total=19; Air Force 1 Retro items share/take the lead of the Snipes lane; Jordan 1 Retro is present but not the clear lead
+retro1,retro 1,Jordan Retro 1 shoes lead (joined),Nike Air Force 1 Low Retro,WEAK,total=19; total=19; identical to 'retro 1'
+zapatillas de correr,zapatillas running,running shoes lead,Crocs Classic Belt Bag - Powder Pink,FAIL,total=6; total=6; leads with Crocs BELT BAGS (the 'correr'->belt canonical mess); running shoes fill other queries but not this one — wave-1 FAIL unchanged
+zapatillas de deporte,zapatillas deportivas,sports sneakers lead,George Men's Gore Slip On Shoes,PASS,"total=2000; total=2000; canonical generic sneaker set, sneakers lead (same behavior as the 'zapatillas' head term)"
+zapatillas de gym,zapatillas deportivas,gym sneakers lead,"CZV Women's Shock Absorption Running Shoes, Breathable Mesh Lightweight Athletic Sneakers for College, Commute, Walking, Gym, Casual.Pink",PASS,total=38; total=38; running/gym shoes lead
+zapatillas mujer,zapatillas,women's sneakers lead,Journee Haylinn Women's Ankle Boots,WEAK,total=2000; total=2000; women-leaning Ofertas lane but a toddler sneaker and a MEN'S Skechers sit in the first lane — audience leaks; total is the same capped generic pool as every phrasing
+zapatillas de mujer,zapatillas mujer,women's sneakers lead,Journee Haylinn Women's Ankle Boots,WEAK,"total=2000; total=2000; identical set to 'zapatillas mujer', audience leaks included"
+zapatillas hombre,zapatillas,men's sneakers lead,George Men's Gore Slip On Shoes,WEAK,total=2000; total=2000; men-leaning lane but toddler shoes leak in; identical capped pool
+zapatillas de hombre,zapatillas hombre,men's sneakers lead,George Men's Gore Slip On Shoes,WEAK,total=2000; total=2000; identical to 'zapatillas hombre'
+zapatillas blancas,zapatillas,white sneakers lead,Fila Women's Axilus 3 Tennis Shoes Navy and White,WEAK,"total=1546; total=1546; color is a loose token, not a filter — navy/white and black/white shoes lead a 'white sneakers' query"
+zapatillas negras,zapatillas,black sneakers lead,New Balance New Balance Womens BBW550 Shoes - Black/White,WEAK,total=2000; total=2000; black/white mixed shoes lead; color qualifier only loosely honored
+tenis para correr,zapatillas running,running shoes lead (tenis=shoes),Crocs Classic Belt Bag - Powder Pink,FAIL,total=6; total=6; identical belt-bag set to 'zapatillas de correr'
+tenis de mujer,tenis,women's shoes lead,Journee Haylinn Women's Ankle Boots,WEAK,"total=2000; total=2000; identical set to 'zapatillas mujer', leaks included"
+botas de lluvia,botas,rain boots lead (qualifier honored),Journee Haylinn Women's Ankle Boots,WEAK,"total=2000; total=2000 = the generic 'botas' set; the rain qualifier is dropped (rain boots exist: 'rain boots'=18, 'botas impermeables'=49) — wave-1 finding unchanged"
+botas impermeables,botas de lluvia,waterproof/rain boots lead,Easy Street Flurry Women's Easy Dry Waterproof Boots,PASS,total=49; total=49; waterproof boots lead
+botas de agua,botas de lluvia,rain boots lead (ES idiom),Journee Haylinn Women's Ankle Boots,WEAK,total=2000; total=2000; identical generic set to 'botas de lluvia' — the idiom is not understood as rain
+botas de trabajo,botas,work boots lead,Journee Haylinn Women's Ankle Boots,WEAK,total=2000; total=2000; generic boots set leads; real work boots only surface in the Walmart lane (qualifier dropped in the lead lane)
+botas de nieve,botas,snow/winter boots lead,Ozark Trail Men's Chelsea Snow Boots,PASS,total=11; total=11; snow boots lead
+botas mujer,botas,women's boots lead,Journee Haylinn Women's Ankle Boots,WEAK,"total=2000; total=2000; one ankle boot leads, then women's SANDALS take slots 2-4 of the Ofertas lane in a boots query"
+botas de mujer,botas mujer,women's boots lead,Journee Haylinn Women's Ankle Boots,WEAK,"total=2000; total=2000; identical to 'botas mujer', sandals included"
+botas de cuero,botas,leather boots lead (wave-1 FAIL recheck),"Leatherboss Genuine Leather Men Dollar Trifold Wallet Chain Biker, Black",FAIL,total=1; total=1; the only result is a leather WALLET — wave-1 FAIL unchanged verbatim
+botines de mujer,botines mujer,women's ankle boots lead,Journee Haylinn Women's Ankle Boots,WEAK,"total=2000; total=2000, didYouMean='bones de mujer'; generic women's footwear set with sandals in the lead lane and BOAT shoes in the SSENSE lane; ankle boots do not lead"
+bota,botas,boots lead (singular),Journee Haylinn Women's Ankle Boots,PASS,"total=2000; total=2000; generic boots set, boots lead the store lanes"
+botin,botines,"ankle boots lead (singular, no accent)",Lotto Lotto Women's Mirage 300 Tennis Shoes,FAIL,total=2000; total=2000 but tennis shoes lead the Ofertas lane and boat shoes the SSENSE lane; ankle boots appear only deep in the Walmart lane — wave-1 'botines' failure in singular form
+botas niña,botas,girls' boots lead,Journee Haylinn Women's Ankle Boots,WEAK,total=2000; total=2000; women's ankle boots lead a girls' query; girls' boots exist only in the Kohl's lane
+botas niño,botas,boys' boots lead,adidas adidas Kids' X 19.3 FG Soccer Cleats,WEAK,"total=339; total=339 = the kids' shoe set; soccer CLEATS lead, not boots (a Crocs rain boot appears in lane 2) — audience right, product class wrong"
+rain boots,botas de lluvia,rain boots lead (EN),Farm Rio Butter Yellow Monstera Rain Chelsea Boot,PASS,total=18; total=18; rain boots lead
+womens boots,botas mujer,women's boots lead (EN),Journee Haylinn Women's Ankle Boots,WEAK,total=2000; total=2000; identical set to 'botas mujer' — sandals in the lead lane
+leather boots,botas de cuero,leather boots lead (EN),"Leatherboss Genuine Leather Men Dollar Trifold Wallet Chain Biker, Black",FAIL,total=1; total=1; same single leather wallet as 'botas de cuero' (real leather boots sit as filler below it in the lane)
+ropa de mujer,ropa mujer,women's clothing lead (wave-1 FAIL family recheck),Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; girls' outfit sets + a Disney doll lead a 22-item junk set for the biggest category in the store — wave-1 FAIL unchanged
+ropa para mujer,ropa de mujer,women's clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; identical junk set to 'ropa de mujer'
+ropa femenina,ropa mujer,women's clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; identical junk set
+ropa de dama,ropa mujer,women's clothing lead (formal ES),Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; identical junk set
+ropa de hombre,ropa hombre,men's clothing lead (wave-1 FAIL family recheck),Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; identical junk set — ZERO men's items for a men's clothing query
+ropa para hombre,ropa de hombre,men's clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; identical junk set
+ropa masculina,ropa hombre,men's clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; identical junk set
+ropa de niño,ropa niño,boys' clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=1; total=1; a single GIRLS' outfit for a boys' clothing query
+ropa de niña,ropa niña,girls' clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=22; total=22; the junk set again — girls' outfits exist but mixed with women's leggings and dolls; near-dead for a huge category
+ropa de niños,ropa infantil,kids' clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=1; total=1; a single girls' outfit for all kids' clothing
+ropa infantil,ropa de niños,kids' clothing lead,Amidoa Girls 2 Piece Outfits Fall Winter Clothes Solid Color Fleece Hooded Long Sleeve Sweatshirt and Pants Kids Clothing Sets Black Size 7-8 Years,FAIL,total=1; total=1; identical single girls' outfit
+ropa de bebe,ropa bebé,baby clothing lead,"My Sweet Love My Cuddly Baby 14-Inch Soft Baby Doll with Pacifier, Pink Outfit & Removable Clothing",FAIL,total=1; total=1; the only result is a baby DOLL — no baby clothing at all
+ropa bebé,ropa de bebe,baby clothing lead (accent),"My Sweet Love My Cuddly Baby 14-Inch Soft Baby Doll with Pacifier, Pink Outfit & Removable Clothing",FAIL,total=1; total=1; identical doll result (accent makes no difference)
+ropa bebe,ropa de bebe,baby clothing lead (no accent),"My Sweet Love My Cuddly Baby 14-Inch Soft Baby Doll with Pacifier, Pink Outfit & Removable Clothing",FAIL,total=1; total=1; identical doll result
+vestido de fiesta,vestidos de fiesta,party dresses lead,Alex Evenings Sequined Lace Contrast Midi Dress,PASS,total=38; total=38; cocktail/evening dresses lead
+vestido de noche,vestido de fiesta,evening dresses lead,Agua Bendita Cinéfila Noche Maxi Dress,PASS,"total=5; total=5; evening maxi dresses lead — works via the 'Noche' dress-name token, thin but on-intent"
+vestido largo,vestidos,long dresses lead,Skims SOFT LOUNGE LONG SLIP DRESS | HEATHER GREY,PASS,total=438; total=438; long dresses lead
+vestido corto,vestidos,short dresses lead,Style & Co Petite Printed Square-Neck Short-Sleeve Cotton Dress,PASS,total=248; total=248; short dresses lead
+vestidos de fiesta,vestido de fiesta,party dresses lead (plural),Alex Evenings Sequined Lace Contrast Midi Dress,PASS,total=38; total=38; identical to singular
+ropa deportiva mujer,ropa deportiva,women's sportswear lead (wave-1 FAIL recheck),TLF Apparel Track Jacket (Men’s GTS Gym-To-Street Edition),FAIL,total=220; total=220; a MEN'S track jacket leads the Ofertas lane of a women's sportswear query — wave-1 FAIL unchanged (women's sportswear fills the lanes below)
+ropa deportiva hombre,ropa deportiva,men's sportswear lead,TLF Apparel Track Jacket (Men’s GTS Gym-To-Street Edition),WEAK,total=220; total=220; the identical mixed set as the mujer phrasing — men's items lead (right for this query) but women's shorts and a girls' outfit sit in the first lane; the audience word changes nothing
+ropa de gym,ropa deportiva,gym clothes lead,TLF Apparel Track Jacket (Men’s GTS Gym-To-Street Edition),PASS,total=220; total=220; athletic apparel leads (the same mixed sportswear pool; gender-neutral intent)
+ropa para gym,ropa de gym,gym clothes lead,TLF Apparel Track Jacket (Men’s GTS Gym-To-Street Edition),PASS,total=220; total=220; identical to 'ropa de gym'
+tallas grandes,tallas plus,plus-size clothing lead,Plus Size Sonoma Goods For Life® Lightweight Crewneck Sweater,PASS,total=507; total=507; plus-size apparel leads — this natural phrasing works
+talla grande,tallas grandes,plus-size clothing lead (singular),Plus Size Sonoma Goods For Life® Lightweight Crewneck Sweater,PASS,total=507; total=507; identical to plural
+plus size,tallas plus,plus-size clothing lead (EN),Plus Size Sonoma Goods For Life® Lightweight Crewneck Sweater,PASS,total=507; total=507; identical set
+curvy,tallas plus,plus-size/curvy clothing lead,Style & Co Women's Mid-Rise Curvy Capri Jeans,PASS,total=38; total=38; curvy-fit jeans lead
+ropa curvy,curvy,plus-size women's clothing lead,Style & Co Women's Mid-Rise Curvy Capri Jeans,PASS,total=60; total=60; curvy jeans lead
+talla plus,tallas plus,plus-size clothing lead,Plus Size Sonoma Goods For Life® Lightweight Crewneck Sweater,PASS,total=1116; total=1116; plus-size apparel leads — note the asymmetry: singular 'talla plus' works while wave-1 found 'tallas plus' at total=5
+lenceria,lencería,lingerie lead (no accent),Alphalete Seamless Ribbed Bra - Oyster Grey,WEAK,"total=2000; total=2000; SPORTS BRAS (Alphalete/Ryderwear) lead the Ofertas lane — Victoria's Secret lingerie is demoted to the third lane; drifted from wave 1, where lenceria led VS-pure"
+lenseria,lencería,lingerie lead (typo),Alphalete Seamless Ribbed Bra - Oyster Grey,WEAK,"total=2000; total=2000; identical to 'lenceria', sports-bras lead included"
+ropa interior de mujer,ropa interior mujer,women's underwear lead,Victoria's Secret Twinkle Bow Satin Open-Back Brazilian Panty,PASS,total=1928; total=1928; VS/Skims women's underwear leads
+ropa interior para mujer,ropa interior mujer,women's underwear lead,Victoria's Secret Twinkle Bow Satin Open-Back Brazilian Panty,PASS,total=1928; total=1928; identical set
+ropa interior masculina,ropa interior hombre,men's underwear lead,Victoria's Secret Twinkle Bow Satin Open-Back Brazilian Panty,FAIL,total=1928; total=1928 = the women's set; VS panties lead and men's underwear (Skims) is buried in lane 2 — wave-1 FAIL persists in every phrasing
+ropa interior de hombre,ropa interior hombre,men's underwear lead,Victoria's Secret Twinkle Bow Satin Open-Back Brazilian Panty,FAIL,total=1928; total=1928; identical women's-led set
+ropa interior niños,ropa interior,kids' underwear lead,Nike Big Kids' 2PK Printed Long Boxer Briefs,WEAK,"total=2; total=2; the 2 exact results are correct kids' boxer briefs and lead, but the lanes below are pure unrelated Nike filler — a near-dead experience"
+calzoncillos,ropa interior hombre,men's underwear/briefs lead,"American Eagle AEO Men's Snoopy 6"" Flex Boxer Brief",PASS,total=531; total=531; men's boxer briefs lead
+boxers,bóxer,men's boxers lead,"American Eagle AEO Men's Snoopy 6"" Flex Boxer Brief",PASS,total=531; total=531; men's boxer briefs lead
+bóxer,boxers,men's boxers lead (accent),"American Eagle AEO Men's Snoopy 6"" Flex Boxer Brief",PASS,total=669; total=669; men's boxers lead
+boxer,bóxer,men's boxers lead (singular),"American Eagle AEO Men's Snoopy 6"" Flex Boxer Brief",PASS,total=669; total=669; identical to bóxer
+brasier,sostén,bras lead,Alphalete Seamless Ribbed Bra - Oyster Grey,WEAK,total=2000; total=2000; gym sports bras lead the Ofertas lane; regular bras (VS) only lead the third lane
+sostén,brasier,bras lead (accent),Alphalete Seamless Ribbed Bra - Oyster Grey,WEAK,total=2000; total=2000; identical to brasier
+sosten,sostén,bras lead (no accent),Alphalete Seamless Ribbed Bra - Oyster Grey,WEAK,total=2000; total=2000; identical to brasier (accent-insensitive)
+pijamas,pijama,pajamas lead (plural),Kindred Bravely Jane Nursing Pajama Set | Slate Blue,PASS,total=335; total=335; pajama sets lead
+piyama,pijama,pajamas lead (phonetic typo),Kindred Bravely Jane Nursing Pajama Set | Slate Blue,PASS,"total=335; total=335; phonetic typo rescued via didYouMean=pajama, identical set"
+zapato,zapatos,shoes lead (singular),Reebok Reebok Club C Vintage Chalk & Baby Blue Shoes,PASS,"total=2000; total=2000; generic shoe set, shoes lead"
+vestidos,vestido,dresses lead (plural),On 34th Women's Gingham Halter Mini Dress,PASS,total=2000; total=2000; dresses lead
+carteras,cartera,women's handbags lead (plural),Michael Kors Women Lady Large Leather Shoulder Tote Handbag Purse Bag Black Gold,PASS,total=234; total=234; women's handbags lead
+billeteras,billetera,wallets lead (plural),"GMDISC Wallet for Men Slim, Genuine Leather Mens Wallet RFID Blocking Credit Card Holder with Money Clip Holiday Gifts",PASS,"total=430; total=430; wallets lead (mixed men's/women's, no audience asked)"
+billetera hombre,billetera,men's wallets lead,"GMDISC Wallet for Men Slim, Genuine Leather Mens Wallet RFID Blocking Credit Card Holder with Money Clip Holiday Gifts",WEAK,total=430; total=430 = the identical set for every audience phrasing; a men's wallet leads but women's wristlets take the rest of the lane
+billeteras hombre,billetera hombre,men's wallets lead (plural),"GMDISC Wallet for Men Slim, Genuine Leather Mens Wallet RFID Blocking Credit Card Holder with Money Clip Holiday Gifts",WEAK,"total=430; total=430; identical set, audience word ignored"
+billetera mujer,billetera,women's wallets lead,"GMDISC Wallet for Men Slim, Genuine Leather Mens Wallet RFID Blocking Credit Card Holder with Money Clip Holiday Gifts",WEAK,total=430; total=430; identical set — a 'Wallet for Men' leads a women's query
+faldas,falda,skirts lead (plural),LIJA Women's Spring Blossoms Print Layer Skirt,PASS,total=2000; total=2000; skirts lead
+blusas,blusa,blouses lead (plural),"No Boundaries Blue Dolphin Triangle Bikini Swim Top, Women's XXS-XXL",WEAK,"total=2000; total=2000; a bikini swim top still takes the #1 Ofertas slot (wave-1 pattern), blouses lead the store lanes below"
+polos,polo,polo shirts lead (plural),Palm Angels Purple Big Neck Logo T-shirt,PASS,"total=2000; total=2000; T-shirts lead — correct for Peru, where 'polo' means tee, not US polo shirt"
+camisas,camisa,shirts lead (plural),Alfani Men's Short-Sleeve Solid Textured Shirt,PASS,total=2000; total=2000; shirts lead
+casacas,casaca,jackets lead (plural),Calvin Klein Women's Stand Collar Lined Puffer Jacket,PASS,total=2000; total=2000; jackets lead
+pantalon,pantalón,pants lead (no accent),"Sanrio Hello Kitty Women's and Women's Plus Sleep Pants with Pockets, 32"" Inseam, Sizes XS-3X",PASS,total=2000; total=2000; pants lead (no accent needed)
+pantalones,pantalón,pants lead (plural),"Sanrio Hello Kitty Women's and Women's Plus Sleep Pants with Pockets, 32"" Inseam, Sizes XS-3X",PASS,total=2000; total=2000; identical to pantalon
+jeans,jean,jeans lead (EN plural),Levi's Men's Levi's® 511™ Slim Fit Stretch Jeans,PASS,total=2000; total=2000; jeans lead
+shorts,short,shorts lead (EN),"George Men's Dolphin Hem Swim Shorts, 7 in Inseam, Sizes S-3XL",PASS,total=2000; total=2000; shorts lead
+sandalia,sandalias,sandals lead (singular),Time and Tru Women's Barely There Bow Thong Sandals,PASS,total=1534; total=1534; sandals lead
+tacos,taco,women's heels lead (PE usage),No Boundaries Women's Cone Heel Thong Sandals,PASS,total=473; total=473; women's heels/heeled sandals lead (correct PE meaning of tacos)
+taco,tacos,women's heels lead (singular),"Go Go Go Kart Racing Board Game by Taco Cat Games Tabletop Family Racing Game for Kids, and Adults Fast-Paced Card-Driven Movement Game 2-7 Players Ages 7+ (Walmart Exclusive)",FAIL,total=13; total=13; singular collapses to the food/game token — Taco Cat board games and Barbie dolls lead; the heels of 'tacos' vanish (two 'Taco' Rick Owens boots sit in lane 2)
+gorras,gorra,caps lead (plural),Loosey Loosey Studded Snapback Hat - Navy Corduroy,PASS,total=2000; total=2000; caps/hats lead
+lentes de sol,lentes,sunglasses lead,Le Specs Drizzle Sunglasses,PASS,total=1864; total=1864; sunglasses lead
+gafas de sol,lentes de sol,sunglasses lead (alt ES),Le Specs Drizzle Sunglasses,PASS,total=1864; total=1864; identical to lentes de sol
+relojes,reloj,watches lead (plural),"Cillso Cillso Mens Smart Watch for Android & iPhone, 1.83"" Touchscreen Fitness Watch, 100+ Sports Modes, IP68 Waterproof Smartwatch with Bluetooth Call, Black",PASS,total=309; total=309; watches/smartwatches lead
+mochilas,mochila,backpacks lead (plural),"Michael Kors Women's Adult Two inside pockets leather East West Chain Crossbody Bag, Black/Large",WEAK,"total=2000; total=2000; backpacks lead the store lanes, but the Ofertas lane mixes Michael Kors totes/crossbody handbags into the top slots"
+bolsos,bolso,bags lead (plural),Michael Kors Women Lady Large Leather Shoulder Tote Handbag Purse Bag Black Gold,PASS,"total=234; total=234; identical handbag set to carteras, handbags lead"
+leggins,leggings,leggings lead (common misspelling),Ryderwear Staples Scrunch Bum Leggings - Black,PASS,total=1605; total=1605; leggings lead (misspelling handled)
+legins,leggings,leggings lead (typo),Ryderwear Staples Scrunch Bum Leggings - Black,PASS,"total=1607; total=1607; leggings lead, didYouMean=leggings"
+mallas,leggings,leggings/tights lead (ES),Women's Eco Beach Cutout One-Shoulder Bikini Top,FAIL,total=2000; total=2000 = the swim set; 'mallas' (leggings/tights) is mapped to bikinis/swimsuits — wrong category
+buzos,buzo,tracksuits/sweat sets lead (PE),"Sanrio Hello Kitty Women's and Women's Plus Sleep Pants with Pockets, 32"" Inseam, Sizes XS-3X",PASS,total=2000; total=2000; joggers/track pants lead (correct PE meaning of buzo)
+chompas,chompa,sweaters lead (PE),Women's Simply Vera Vera Wang Luxe Cashmere Blend Mockneck Sweater,PASS,total=2000; total=2000; sweaters lead
+abrigos,abrigo,coats lead (plural),Calvin Klein Women's Hooded Stand Collar Puffer Coat,PASS,total=2000; total=2000; coats lead
+chaqueta de cuero,chaqueta,leather jackets lead,Furniq UK Women's Soho Leather Trench Coat,PASS,total=284; total=284; leather jackets lead
+bleiser,blazer,blazers lead (phonetic typo),(no results),FAIL,"total=0; total=0, state=none; the common phonetic spelling of blazer is a hard dead end, no didYouMean (blazer itself has results)"
+terno,traje,men's suits lead (PE term),Eytino Swimsuit Women Tankini Tummy Control Swimsuits 2 Piece Tankini Bathing Suits with Skirt Swimswear Black S,WEAK,"total=276; total=276; tankini SWIMSUITS take the #1 and #5 slots ('suit' token collision), real suit jackets follow at #2-4"
+ternos,terno,men's suits lead (plural),Eytino Swimsuit Women Tankini Tummy Control Swimsuits 2 Piece Tankini Bathing Suits with Skirt Swimswear Black S,WEAK,total=276; total=276; identical to terno
+corbatas,corbata,ties lead (plural),Banana Republic Plaid Linen Tie,PASS,total=73; total=73; ties lead
+cinturón,correa,belts lead (accent),Victoria's Secret Floral Embroidery Garter Belt,WEAK,total=724; total=724; the Ofertas lane is 100% Victoria's Secret GARTER belts; real waist belts lead the SSENSE/CCS lanes
+cinturon,cinturón,belts lead (no accent),Victoria's Secret Floral Embroidery Garter Belt,WEAK,total=724; total=724; identical to cinturón
+medias,calcetines,socks lead (ES),"Reebok Men's Socks, Pro Series Crew Socks, 6-Pack",PASS,total=1363; total=1363; socks lead
+calcetines,medias,socks lead,"Reebok Men's Socks, Pro Series Crew Socks, 6-Pack",PASS,total=1363; total=1363; identical to medias
+bufanda,bufandas,scarves lead,Montce Slub Knit Winter Scarf,PASS,total=452; total=452; scarves lead (a few scarf-print dresses mixed in)
+sombreros,sombrero,hats lead (plural),Loosey Loosey Studded Snapback Hat - Navy Corduroy,PASS,total=2000; total=2000; hats lead
+collares,collar,necklaces lead (plural),APSVO 925 Silver Plated Chains for Women 1.5mm Non-tarnish Rope Necklace Fashion Stuff Accessories Prom Birthday Christmas Jewelry Gifts Teen Stocking Stuffers Adults Ideas 18 Inch,PASS,total=1361; total=1361; necklaces lead
+aretes,pendientes,earrings lead (PE term),"No Boundaries Women's Gold-Tone Stone Hand Twist Hoop Multi Earrings Set, 9-Pairs",PASS,total=1209; total=1209; earrings lead
+traje de baño,ropa de baño,swimsuits lead,Women's Eco Beach Cutout One-Shoulder Bikini Top,PASS,total=2000; total=2000; swimwear leads
+vestido de baño,traje de baño,swimsuits lead (alt ES),Women's Eco Beach Cutout One-Shoulder Bikini Top,PASS,total=2000; total=2000; identical swim set
+bikinis,bikini,bikinis lead (plural),Women's Eco Beach Cutout One-Shoulder Bikini Top,PASS,total=2000; total=2000; bikinis lead
+zapatillas ninos,zapatillas niños,kids' sneakers lead,adidas adidas Kids' X 19.3 FG Soccer Cleats,PASS,total=339; total=339; kids' sneakers/cleats lead (the standard kids' shoe set)
+zapatillas para niños,zapatillas niños,kids' sneakers lead,adidas adidas Kids' X 19.3 FG Soccer Cleats,PASS,total=339; total=339; identical kids' set
+zapatos niño,zapatos,boys' shoes lead,adidas adidas Kids' X 19.3 FG Soccer Cleats,PASS,total=339; total=339; kids' shoes lead
+zapatos niña,zapatos,girls' shoes lead,Reebok Reebok Club C Vintage Chalk & Baby Blue Shoes,FAIL,total=2000; total=2000 = the ADULT generic shoe set; the girls' audience is ignored entirely (kids' items only appear in the Zumiez lane) — wave-1 niña failure persists
+sandalias niña,sandalias,girls' sandals lead,Time and Tru Women's Barely There Bow Thong Sandals,WEAK,"total=1534; total=1534 = the adult sandals set; women's sandals lead, girls' sandals lead only the second lane"
+sandalias niño,sandalias,boys' sandals lead,Mix No. 6 Jayden Jelly Sandal - Kids',PASS,total=24; total=24; kids' sandals lead
+pijama niño,pijama,boys' pajamas lead,"Beezizac Boys 2‑Piece Raglan Long Sleeve Pajama Set, Game Controller & VR Graphic Kids Sleepwear Size 8",PASS,"total=3; total=3; thin, but boys' pajama sets are exactly what leads"
+pijama niña,pijama,girls' pajamas lead,Kindred Bravely Jane Nursing Pajama Set | Slate Blue,WEAK,total=335; total=335 = the generic pajama set; women's nursing pajamas lead a girls' query — audience ignored
+vestido niña,vestidos,girls' dresses lead,On 34th Trendy Plus Size Primavera Tie-Waist Dress,WEAK,total=2000; total=2000; women's plus-size dresses lead the Ofertas lane; Gap Kids dresses appear at #4-5
+zapatos bebe,zapatos bebé,baby shoes lead,Wonder Nation Baby and Toddler Kids Two Strap Bump Toe Sneakers,PASS,total=27; total=27; baby/toddler shoes lead
+zapatillas bebe,zapatos bebe,baby shoes/sneakers lead,Wonder Nation Baby and Toddler Kids Two Strap Bump Toe Sneakers,PASS,total=27; total=27; identical baby set
+shoes,zapatos,shoes lead (EN),Reebok Reebok Club C Vintage Chalk & Baby Blue Shoes,PASS,"total=2000; total=2000; generic shoe set, shoes lead"
+womens shoes,zapatos mujer,women's shoes lead (EN),Reebok Reebok Club C Vintage Chalk & Baby Blue Shoes,WEAK,total=2000; total=2000; unisex sneaker set leads — no women's-specific items in the first lane (women's tennis shoes lead lane 3)
+mens shoes,zapatos hombre,men's shoes lead (EN),Etnies Etnies Barge Ls Premium Shoes - Brown/Beige/Gum,WEAK,"total=2000; total=2000; mostly men's, but a women's Lotto tennis shoe sits at #3 of the lead lane — audience leaks both ways"
+kids shoes,zapatos niños,kids' shoes lead (EN),adidas adidas Kids' X 19.3 FG Soccer Cleats,PASS,total=339; total=339; kids' shoes lead
+dress shoes,zapatos de vestir,dress shoes lead (EN),So SO® Women's Heeled Dress Sandals,WEAK,"total=40; total=40; dress shoes exist, but women's heeled sandals and girls'/toddler dress shoes lead the Ofertas lane; men's oxfords lead lane 2"
+zapatos formales,zapatos de vestir,men's dress/formal shoes lead,Reebok Reebok Club C Vintage Chalk & Baby Blue Shoes,FAIL,total=2000; total=2000 = the generic SNEAKER set; the 'formal' qualifier is dropped entirely (dress shoes exist: 'dress shoes'=40)
+zapatos elegantes,zapatos de vestir,dress/elegant shoes lead,Reebok Reebok Club C Vintage Chalk & Baby Blue Shoes,FAIL,total=2000; total=2000; identical sneaker set to 'zapatos formales'
+cuero,botas de cuero,leather goods lead (material word),Furniq UK Women's Soho Leather Trench Coat,PASS,"total=2000; total=2000; leather goods (jackets, bags, pants) lead — a raw material-token flood, but on-intent for the bare word; the qualified forms (botas de cuero) are the broken ones"
+sandalias de cuero,sandalias,leather sandals lead,Rainbow Rainbow Double Layer Premier Leather Men's Sandals - Dark Brown,PASS,total=129; total=129; leather sandals lead
