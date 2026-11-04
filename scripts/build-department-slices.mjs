@@ -669,6 +669,10 @@ export function build(root = ROOT) {
     for (let b = 0; b < batchCount(sections); b++) { writeFileSync(join(dir, `rails-${b}.json`), JSON.stringify(batchOf(sections, b))); files++; }
     mkdirSync(join(root, FN_DIR), { recursive: true });
     writeFileSync(join(root, FN_DIR, key + ".json"), JSON.stringify({ v: 1, dept: key, labels: labelsOf(list, ALL_LABELS), rows: list.map(fnRow) }));
+    /* The store's own size runs, row for row (the header's Talla filter,
+       netlify/functions/_nav-filter-core.js). Each distinct run is kept
+       once; rows[i] is its index (0: the store published none). */
+    writeFileSync(join(root, FN_DIR, key + ".sizes.json"), JSON.stringify(sizeRuns(list)));
     summary[key] = { items: list.length, rails: sections.length, files };
   }
   /* The homepage audience carousels (c.6483623203): <aud>.json is the pill
@@ -687,6 +691,16 @@ export function build(root = ROOT) {
   return summary;
 }
 export const AUDIENCE_DIR = "assets/home/pills";
+export function sizeRuns(list) {
+  const runs = [[]], at = new Map([["", 0]]);
+  const rows = list.map((p) => {
+    const run = [...new Set((Array.isArray(p.sizes) ? p.sizes : []).map((z) => String(z || "").trim()).filter(Boolean))];
+    const k = run.join("\u0001");
+    if (!at.has(k)) { at.set(k, runs.length); runs.push(run); }
+    return at.get(k);
+  });
+  return { v: 1, runs, rows };
+}
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const t = Date.now();
