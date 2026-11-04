@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conector MCP de Aria Shop — Documentación</title>
+<meta name="description" content="Documentación pública del conector MCP de Aria Shop: búsqueda de productos y ficha de producto, acceso público de solo lectura, sin autenticación.">
+<link rel="canonical" href="https://docs.ariashop.pe/mcp">
+<link rel="icon" type="image/png" href="https://ariashop.pe/assets/orb-64.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#0A1F44; --blue:#2F5FEE; --sky:#EAF0FF; --paper:#FAFAF8; --line:#E4E6EC; }
+  body{ font-family:'Manrope',sans-serif; background:var(--paper); color:var(--navy); -webkit-font-smoothing:antialiased; }
+  .band{ background:linear-gradient(135deg,#0A1F44 0%,#16295c 60%,#1E46C4 100%); }
+  .legal h2{ font-size:18px; font-weight:800; letter-spacing:-0.01em; margin-bottom:.5rem; padding-bottom:.4rem; border-bottom:2px solid var(--sky); }
+  .legal h3{ font-size:16px; font-weight:800; margin:1.25rem 0 .35rem; }
+  .legal p, .legal li, .legal td, .legal th{ font-size:15px; line-height:1.75; color:#3f4652; }
+  .legal section{ margin-bottom:2.25rem; }
+  .legal ul{ list-style:disc; padding-left:1.25rem; margin-top:.5rem; }
+  .legal li{ margin-bottom:.35rem; }
+  .legal p + p, .legal table + p{ margin-top:.75rem; }
+  .legal td:first-child code{ white-space:nowrap; }
+  .legal a{ color:var(--blue); font-weight:600; }
+  .legal code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; background:var(--sky); color:var(--navy); padding:.05rem .3rem; border-radius:4px; overflow-wrap:anywhere; }
+  .legal pre{ background:#0A1F44; color:#F4F6FB; border-radius:10px; padding:14px; overflow-x:auto; font-size:12.5px; line-height:1.6; }
+  .legal pre code{ background:none; color:inherit; padding:0; font-size:inherit; }
+  .legal table{ width:100%; border-collapse:collapse; margin-top:.5rem; }
+  .legal th{ text-align:left; font-weight:800; color:var(--navy); }
+  .legal th, .legal td{ border-bottom:1px solid var(--line); padding:.4rem .5rem .4rem 0; vertical-align:top; }
+  ::selection{ background:var(--blue); color:#fff; }
+</style>
+</head>
+<body>
+
+<header class="band">
+  <div class="max-w-[860px] mx-auto px-5 py-10 sm:py-12">
+    <a href="https://ariashop.pe/" class="inline-flex items-center gap-2 text-white/80 hover:text-white text-[13px] font-semibold tracking-wide mb-6">
+      <span aria-hidden="true">←</span> Volver a Aria
+    </a>
+    <p class="text-white/70 text-[12px] font-bold tracking-[0.18em] uppercase">Documentación</p>
+    <h1 class="text-white text-[30px] sm:text-[38px] font-extrabold leading-tight tracking-tight mt-1">Conector MCP de Aria Shop</h1>
+    <p class="text-white/80 text-[15px] mt-3 max-w-[620px]">Un servidor público del Model Context Protocol para que los asistentes de IA busquen productos en el catálogo de Aria.</p>
+  </div>
+</header>
+
+<main class="legal max-w-[860px] mx-auto px-5 py-10">
+
+  <section id="que-es">
+    <h2>Qué es</h2>
+    <p>Aria (ariashop.pe) compra productos en tiendas de Estados Unidos para compradores en el Perú y los entrega en su casa. Este conector expone el catálogo de Aria a los asistentes de IA mediante el Model Context Protocol (MCP), para que un asistente pueda buscar productos y mostrar su ficha a una persona que está comprando.</p>
+    <p>El conector responde con el mismo buscador, los mismos precios y las mismas fichas de producto que ve cualquier persona en ariashop.pe.</p>
+  </section>
+
+  <section id="endpoint">
+    <h2>Dirección del conector</h2>
+    <p><code>https://connector.ariashop.pe/mcp</code></p>
+    <ul>
+      <li>Transporte: HTTP transmitible (streamable HTTP), sin estado. No se emite <code>Mcp-Session-Id</code>.</li>
+      <li>Cada solicitud es un <code>POST</code> con un mensaje JSON-RPC 2.0 (o un lote de hasta 20). La respuesta llega como <code>application/json</code>; un cliente que solo acepta <code>text/event-stream</code> la recibe como un único evento SSE.</li>
+      <li><code>OPTIONS</code> responde la verificación previa de CORS (204). <code>GET</code> y <code>DELETE</code> responden 405: el servidor no abre flujos propios ni guarda sesiones.</li>
+      <li>Versiones del protocolo: <code>2025-06-18</code>, <code>2025-03-26</code> y <code>2024-11-05</code>.</li>
+      <li>Métodos: <code>initialize</code>, <code>notifications/initialized</code>, <code>ping</code>, <code>tools/list</code> y <code>tools/call</code>.</li>
+      <li>Servidor: <code>aria-shop</code> (Aria Shop). La misma dirección también responde en <code>https://ariashop.pe/mcp</code>.</li>
+    </ul>
+  </section>
+
+  <section id="acceso">
+    <h2>Acceso</h2>
+    <ul>
+      <li><strong>Sin autenticación.</strong> No se necesita cuenta, clave ni token.</li>
+      <li><strong>Público y de solo lectura.</strong> Las dos herramientas solo consultan el catálogo. El conector no crea carritos, no hace pedidos, no cobra y no guarda datos personales.</li>
+      <li>Uso razonable: hasta 60 solicitudes por minuto por cliente. Al pasar el límite la respuesta es 429 con <code>Retry-After</code>.</li>
+    </ul>
+  </section>
+
+  <section id="herramientas">
+    <h2>Herramientas</h2>
+
+    <h3><code>search_products</code>: buscar productos</h3>
+    <p>Busca en el catálogo de Aria productos de tiendas de Estados Unidos con entrega en el Perú. Devuelve cada producto con su precio en soles y en dólares, el descuento cuando lo hay, la foto y el enlace a su página en ariashop.pe.</p>
+    <table>
+      <thead><tr><th>Argumento</th><th>Tipo</th><th>Para qué sirve</th></tr></thead>
+      <tbody>
+        <tr><td><code>query</code></td><td>texto, obligatorio (máx. 120)</td><td>Lo que busca la persona, en español o en inglés. Tolera tildes y errores de escritura.</td></tr>
+        <tr><td><code>category</code></td><td>texto (máx. 60)</td><td>Limita a un tipo de producto, por ejemplo «zapatillas» o «belleza».</td></tr>
+        <tr><td><code>brand</code></td><td>texto (máx. 80)</td><td>Limita a una marca.</td></tr>
+        <tr><td><code>store</code></td><td>texto (máx. 60)</td><td>Limita a una tienda de Estados Unidos, por su clave o su nombre.</td></tr>
+        <tr><td><code>max_price_usd</code></td><td>número mayor que 0</td><td>Solo productos cuyo precio de Aria (<code>price_usd</code>) no pase de este monto.</td></tr>
+        <tr><td><code>on_sale_only</code></td><td>sí / no</td><td>Solo productos con una rebaja real (entre 5% y 70%, la regla de ofertas del sitio).</td></tr>
+        <tr><td><code>limit</code></td><td>entero de 1 a 50 (20 por defecto)</td><td>Cuántos productos devolver.</td></tr>
+      </tbody>
+    </table>
+    <p>Responde <code>query</code>, <code>count</code>, <code>products</code> y <code>exchange_rate_pen_per_usd</code>. Cada producto trae <code>id</code>, <code>title</code>, <code>brand</code>, <code>store</code>, <code>store_name</code>, <code>price_pen</code>, <code>price_usd</code>, <code>image_url</code> y <code>product_url</code>, y además <code>original_price_usd</code> y <code>discount_pct</code> cuando está rebajado.</p>
+
+    <h3><code>get_product</code>: ficha de un producto</h3>
+    <p>Devuelve la ficha completa de un producto: descripción, todas sus fotos, tallas, peso, flete estimado al Perú y el tratamiento de los impuestos de importación.</p>
+    <table>
+      <thead><tr><th>Argumento</th><th>Tipo</th><th>Para qué sirve</th></tr></thead>
+      <tbody>
+        <tr><td><code>product_id</code></td><td>texto, obligatorio (máx. 32)</td><td>El <code>id</code> de un producto que devolvió <code>search_products</code>.</td></tr>
+      </tbody>
+    </table>
+    <p>Responde, entre otros, <code>price_pen</code>, <code>price_usd</code>, <code>images</code>, <code>description</code>, <code>sizes</code>, <code>weight_kg</code>, <code>freight_estimate_usd</code>, <code>import_tax</code>, <code>buyable</code> y <code>product_url</code>. Cuando un dato no existe en el catálogo, llega vacío (<code>null</code>); nunca se inventa.</p>
+  </section>
+
+  <section id="precios">
+    <h2>Precios y compras</h2>
+    <ul>
+      <li><code>price_pen</code> es el precio en soles al tipo de cambio venta de la SUNAT; <code>price_usd</code> es el mismo precio en dólares.</li>
+      <li><strong>Las compras se completan en ariashop.pe.</strong> El conector no vende: el asistente comparte el <code>product_url</code> del producto, que siempre es una página de Aria, y la persona compra ahí.</li>
+      <li>El flete internacional y los impuestos de importación, cuando corresponden, se cobran en el pago en ariashop.pe.</li>
+    </ul>
+  </section>
+
+  <section id="ejemplo">
+    <h2>Ejemplo</h2>
+    <p>Iniciar la conexión:</p>
+<pre><code>curl -sS https://connector.ariashop.pe/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ejemplo","version":"1"}}}'</code></pre>
+    <p>Buscar productos:</p>
+<pre><code>curl -sS https://connector.ariashop.pe/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2025-06-18' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_products","arguments":{"query":"zapatillas","limit":3}}}'</code></pre>
+  </section>
+
+  <section id="contacto">
+    <h2>Contacto y condiciones</h2>
+    <p>El uso del conector se rige por los <a href="https://ariashop.pe/terminos">Términos y condiciones</a> y la <a href="https://ariashop.pe/privacidad">Política de privacidad</a> de Aria. Para preguntas sobre el conector, escríbenos a <a href="mailto:contacto@ariashop.pe">contacto@ariashop.pe</a>.</p>
+  </section>
+
+</main>
+
+<footer class="border-t" style="border-color:var(--line); background:#fff">
+  <div class="max-w-[860px] mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <span class="text-[14px] font-bold tracking-[0.12em]" style="font-family:'Rajdhani',sans-serif">ARIA<span style="font-size:0.6em;vertical-align:super">™</span> <span class="text-[12px] text-zinc-400 font-normal tracking-normal ml-1">© 2026</span></span>
+    <div class="flex flex-wrap items-center justify-center gap-6 text-[12.5px] text-zinc-500">
+      <a href="https://ariashop.pe/" class="hover:text-[color:var(--navy)] transition">Tienda</a>
+      <a href="https://ariashop.pe/terminos" class="hover:text-[color:var(--navy)] transition">Términos</a>
+      <a href="https://ariashop.pe/privacidad" class="hover:text-[color:var(--navy)] transition">Privacidad</a>
+      <a href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
