@@ -34,11 +34,33 @@
      node scripts/build-nav-menu.mjs           rebuild + rewrite pages
      node scripts/build-nav-menu.mjs --check   exit 1 when anything is stale
    Run after scripts/build-department-slices.mjs.
+
+   THE HEADER CREATES NOTHING (#443 c.6621544530, c.6621722209). Every
+   tab, column and leaf is the ONE canonical, already-built section page
+   for its category, opened with that page's OWN parameters:
+     a department     departamento.html?dept=<k>[&b=<marca>][&t=<tipo>][&para=<para quién>]
+                      (its own brand pills, its own type view, its own
+                      audience switch -- never &nav=1);
+     Aria Perfumes    departamento.html?dept=perfumes[&a=<puerta>] (its doors);
+     Lencería         ropa-interior.html?ver=type:<rail>|brand:<marca>#mujer|#hombre
+                      (its own Explorar todo, opened on that rail);
+     Diseñadores      disenadores.html?d=<diseñador>|t=<tipo> (its rooms);
+     Motos            motos.html?t=<tipo>;  Aria Auto  aria-auto.html;
+     Ofertas          ofertas.html?vista=categoria&cat=<cat> (its own categories).
+   A type a fashion department carries that has its own section (shoes,
+   bags, sunglasses, jewellery, fragrance, lingerie) is not a leaf of that
+   department: the tab lists the section that owns it. Brand and type
+   columns are COMPLETE: the menu shows the first leaves and «Ver todas»
+   loads the rest from assets/data/nav-brands/<file>.json (the
+   department's real inventory), only when tapped.
    ================================================================== */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadDept, typeKeyOf, inAudience, AUD } from "../netlify/functions/_department-core.js";
+import { mkdirSync, readdirSync, rmSync } from "node:fs";
+import "../sale-rule.js";
+import { loadDept, typeKeyOf, inAudience, AUD, PERFUME_DOORS, filterList } from "../netlify/functions/_department-core.js";
+import { factKey, FACTS_FILE, U_CODES } from "../netlify/functions/_nav-filter-core.js";
 import { CAROUSELS } from "./build-home-category-pills.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -51,14 +73,35 @@ export const NM_PAGES = [
   "devoluciones.html", "opinion.html", "restricciones.html", "aria-auto.html", "auto.html", "carrito.html", "terminos.html", "privacidad.html",
 ];
 
-/* Leaves per column, before «Ver todo». The inventory lists every one. */
+/* Leaves per column before «Ver todas»; the complete list is a small file
+   the flyout fetches on that tap (and the inventory lists every one). */
 const MAX_TYPES = 12, MAX_BRANDS = 12;
+export const BRANDS_DIR = "assets/data/nav-brands";
+/* ONE CANONICAL PAGE PER CATEGORY: the types a fashion department carries
+   that are another section's own (type key -> section). */
+const OWNED = {
+  shoes: ["zapatos", "zapatillas", "sandalias", "tacones", "botas-y-botines", "mocasines-y-pantuflas", "chimpunes", "calzado"],
+  purses: ["carteras", "bolso", "bolsos"],
+  sunglasses: ["lentes-de-sol"],
+  joyas_accesorios: ["joyas", "joyeria", "aretes", "collares-y-dijes", "anillos", "pulseras-y-tobilleras", "charms"],
+  perfumes: ["fragancia", "perfumes"],
+  lenceria: ["lenceria", "fajas-y-shapewear", "ropa-interior"],
+};
+const OWNER_OF = new Map(Object.entries(OWNED).flatMap(([o, ks]) => ks.map((k) => [k, o])));
+const OWNED_IN = new Set(["women", "men", "kids", "beauty"]);
+const ownerOf = (dept, tk, u) => {
+  /* A fragrance is Aria Perfumes' wherever it is sold (Diseñador too). */
+  if (tk === "fragancia" && dept !== "perfumes") return "perfumes";
+  if (!OWNED_IN.has(dept)) return "";
+  const o = OWNER_OF.get(tk) || "";
+  return o === "lenceria" && (u === "men" || dept === "men") ? "interior_hombre" : o;
+};
 /* An audience earns its own column with this many products. */
 const AUD_COL_MIN = 24, AUD_KNOWN_SHARE = 0.6;
 const AUD_LABEL = Object.fromEntries(AUD);
 
 /* ---------- the registry ---------- */
-function deptRegistry(root) {
+export function deptRegistry(root) {
   const html = readFileSync(join(root, "departamento.html"), "utf8");
   const block = /var DEPTS = \{([\s\S]*?)\n  \};/.exec(html)[1];
   const out = {};
@@ -71,18 +114,31 @@ function deptRegistry(root) {
 }
 const countOf = (root, rel, field = "count") => { try { return Number(JSON.parse(readFileSync(join(root, rel), "utf8"))[field]) || 0; } catch { return 0; } };
 
+/* disenadores.html's own names for its designers and types. */
+function latinoNames(root) {
+  const html = readFileSync(join(root, "disenadores.html"), "utf8");
+  const names = {}, typeNames = {};
+  for (const m of html.matchAll(/\{ key:'([a-z]+)',[^\n]*?label:'([^']+)'/g)) names[m[1]] = m[2];
+  for (const m of html.matchAll(/\{ key:'([a-z_]+)',\s+label:'([^']+)',\s*keywords/g)) typeNames[m[1]] = m[2];
+  return { names, typeNames };
+}
 /* Pages that are their own section: label, address, product count. */
 function pageSections(root) {
   const motos = (t) => countOf(root, `assets/sections/motos/${t}-all-0.json`);
   const women = countOf(root, "ropa-interior-women-feed.json"), men = countOf(root, "ropa-interior-feed.json");
-  let latinos = 0, designers = {};
-  try { const j = JSON.parse(readFileSync(join(root, "assets/sections/disenadores/index.json"), "utf8")); latinos = j.total; designers = j.designers || {}; } catch { /* none */ }
+  let latinos = 0, designers = {}, latinoTypes = {};
+  try { const j = JSON.parse(readFileSync(join(root, "assets/sections/disenadores/index.json"), "utf8")); latinos = j.total; designers = j.designers || {}; latinoTypes = j.types || {}; } catch { /* none */ }
+  const ap = loadDept("auto_parts", [root]), autoN = ap ? ap.list.filter((p) => p.image).length : 0;
+  let cats = [], ofertasN = countOf(root, "ofertas-feed-lite.json", "deptTotal");
+  try { cats = (JSON.parse(readFileSync(join(root, "assets/ofertas/rails.json"), "utf8")).cats || []).filter((c) => c && c.key && c.n > 0).map((c) => [c.label, "/ofertas.html?vista=categoria&cat=" + c.key, c.n]); } catch { /* none */ }
   return {
+    /* Aria Auto has no type parameter of its own: its leaves are its own sections. */
+    aria_auto: { name: "Aria Auto", href: "/aria-auto.html", n: autoN, doors: [["Buscar por vehículo", "/aria-auto.html#buscar", autoN], ["Repuestos y accesorios", "/aria-auto.html#autos", autoN]] },
     lenceria: { name: "Lencería", href: "/ropa-interior.html#mujer", n: women },
     interior_hombre: { name: "Ropa Interior Hombre", href: "/ropa-interior.html#hombre", n: men },
-    latinos: { name: "Diseñadores Latinos", href: "/disenadores.html", n: latinos, designers },
+    latinos: { name: "Diseñadores Latinos", href: "/disenadores.html", n: latinos, designers, types: latinoTypes, ...latinoNames(root) },
     motos: { name: "Motos", href: "/motos.html", n: motos("all"), types: [["cascos", "Cascos"], ["llantas", "Llantas"], ["repuestos", "Repuestos"], ["ropa_equipo", "Ropa y equipo"], ["accesorios", "Accesorios"]].map(([k, l]) => [l, "/motos.html?t=" + k, motos(k)]) },
-    ofertas: { name: "Ofertas", href: "/ofertas.html", n: countOf(root, "ofertas-feed-lite.json", "deptTotal") },
+    ofertas: { name: "Ofertas", href: "/ofertas.html", n: ofertasN, cats },
   };
 }
 
@@ -92,48 +148,89 @@ function pageSections(root) {
    department's types for one audience; sections = registry keys or
    page sections, in order. A tab's own name is the section Danny named. */
 export const TABS = [
-  { k: "mujer", label: "Mujer", dept: "women", cols: [["types", "women", "Ropa"], ["types", "shoes", "Zapatos", "women"], ["types", "joyas_accesorios", "Accesorios", "women"], ["brands", "women"]], sections: ["lenceria", "curvy", "latinos", "luxury", "beauty", "perfumes", "clothing"] },
-  { k: "hombre", label: "Hombre", dept: "men", cols: [["types", "men", "Ropa"], ["types", "shoes", "Zapatos", "men"], ["types", "joyas_accesorios", "Accesorios", "men"], ["brands", "men"]], sections: ["interior_hombre", "shoes_men", "mens_grooming", "luxury", "gym_rat"] },
+  { k: "mujer", label: "Mujer", dept: "women", cols: [["types", "women", "Ropa"], ["types", "shoes", "Zapatos", "women"], ["types", "joyas_accesorios", "Accesorios", "women"], ["brands", "women"]], sections: ["lenceria", "curvy", "latinos", "luxury", "beauty", "perfumes", "purses", "sunglasses", "joyas_accesorios", "clothing"] },
+  { k: "hombre", label: "Hombre", dept: "men", cols: [["types", "men", "Ropa"], ["types", "shoes", "Zapatos", "men"], ["types", "joyas_accesorios", "Accesorios", "men"], ["brands", "men"]], sections: ["interior_hombre", "shoes_men", "mens_grooming", "perfumes", "sunglasses", "purses", "joyas_accesorios", "luxury", "gym_rat"] },
   { k: "ninos", label: "Niños", dept: "kids", cols: [["types", "kids", "Ropa"], ["types", "shoes", "Zapatos", "kids"], ["brands", "kids"]], sections: ["toys", "moms", "party"] },
   { k: "zapatos", label: "Zapatos", dept: "shoes", cols: [["aud", "shoes"], ["brands", "shoes"]], sections: ["shoes_women", "shoes_men", "soccer"] },
-  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["types", "perfumes", "Aria Perfumes"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
+  { k: "belleza", label: "Belleza", dept: "beauty", cols: [["aud", "beauty"], ["doors", "perfumes", "Aria Perfumes"], ["brands", "beauty"]], sections: ["beauty", "perfumes", "cabello", "mens_grooming"] },
   { k: "accesorios", label: "Accesorios", dept: "joyas_accesorios", cols: [["aud", "joyas_accesorios"], ["types", "purses", "Carteras"], ["types", "sunglasses", "Lentes de Sol"], ["brands", "joyas_accesorios"]], sections: ["joyas_accesorios", "purses", "sunglasses"] },
-  { k: "disenador", label: "Diseñador", dept: "luxury", cols: [["aud", "luxury"], ["brands", "luxury"]], sections: ["luxury", "latinos", "joyas_accesorios"] },
+  { k: "disenador", label: "Diseñador", dept: "luxury", cols: [["aud", "luxury"], ["latinos", "designers"], ["latinos", "types"], ["brands", "luxury"]], sections: ["luxury", "latinos", "perfumes", "joyas_accesorios"] },
   { k: "deportes", label: "Deportes", dept: "sporting_goods", cols: [["aud", "sporting_goods"], ["brands", "sporting_goods"]], sections: ["gym_rat", "soccer", "tennis", "combat_sports", "surf_skate", "spearfishing", "sporting_goods"] },
   { k: "tallas-plus", label: "Tallas Plus", dept: "curvy", cols: [["aud", "curvy"], ["brands", "curvy"]], sections: ["curvy"] },
-  { k: "lenceria", label: "Lencería", page: "lenceria", cols: [["page", "lenceria"], ["page", "interior_hombre"]], sections: ["lenceria", "interior_hombre"] },
+  { k: "lenceria", label: "Lencería", page: "lenceria", cols: [["ri", "mujer", "Lencería"], ["ri", "hombre", "Ropa Interior Hombre"], ["ri-brands", "mujer", "Marcas de lencería"]], sections: ["lenceria", "interior_hombre"] },
   { k: "hogar", label: "Hogar", dept: "home_goods", cols: [["types", "home_goods", "Casa Aria"], ["types", "home_decor", "Decoración"], ["brands", "home_goods"]], sections: ["home_goods", "home_decor", "books", "party", "candy_chocolate"] },
   { k: "electronica", label: "Electrónica", dept: "electronics", cols: [["types", "electronics", "Tipos"], ["brands", "electronics"]], sections: ["electronics", "reacondicionados"] },
   { k: "juguetes", label: "Juguetes", dept: "toys", cols: [["aud", "toys"], ["brands", "toys"]], sections: ["toys", "party", "moms"] },
-  { k: "auto-motos", label: "Auto y Motos", page: "motos", cols: [["types", "auto_parts", "Aria Auto"], ["page", "motos"]], sections: ["auto_parts", "motos"] },
-  { k: "ofertas", label: "Ofertas", page: "ofertas", cols: [["sale", "women", "Mujer"], ["sale", "men", "Hombre"], ["sale", "kids", "Niños"], ["sale", "shoes", "Zapatos"], ["sale", "beauty", "Belleza"], ["sale", "electronics", "Electrónica"]], sections: ["ofertas"] },
+  { k: "auto-motos", label: "Auto y Motos", page: "motos", cols: [["page", "aria_auto"], ["page", "motos"]], sections: ["auto_parts", "motos"] },
+  { k: "ofertas", label: "Ofertas", page: "ofertas", cols: [["sale", "cats", "Por categoría"]], sections: ["ofertas"] },
   { k: "key-club", label: "Key Club", page: "keyclub", cols: [], sections: [] },
 ];
 /* Where a section with its own page lives (the tab's «Ver todo»). */
 const DOOR_OVERRIDE = { auto_parts: "/aria-auto.html" };
 
 const deptHref = (key, q = {}) => "/departamento.html?dept=" + key + Object.entries(q).filter(([, v]) => v).map(([k, v]) => "&" + k + "=" + encodeURIComponent(v)).join("");
-const navHref = (key, q = {}) => deptHref(key, { nav: "1", ...q });
+
+/* ---------- Ropa Interior's own rails (ropa-interior.html) ----------
+   The page's Mujer and Hombre sections: their type rails (key, title,
+   subs) and brand names, read from the page; the counts are what its
+   Explorar todo lists for that rail (browsing shows the markdowns). */
+function riBrandKey(b) {
+  const k = String(b || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (/^psd/.test(k)) return "psd";
+  if (/^victoria/.test(k)) return "victoriassecret";
+  if (/^warner/.test(k)) return "warners";
+  return k;
+}
+function riPage(root, who) {
+  const html = readFileSync(join(root, "ropa-interior.html"), "utf8");
+  const name = who === "hombre" ? "HOMBRE" : "MUJER";
+  const i = html.indexOf("var " + name + " = new Section(");
+  const sec = html.slice(i, html.indexOf("\n  });", i));
+  const rails = [...(/TYPE_RAILS: \[([\s\S]*?)\n    \],/.exec(sec) || ["", ""])[1].matchAll(/\{ key:'([a-z_]+)',\s*title:'([^']+)',\s*ty:'[a-z]+',\s*subs:\[([^\]]*)\]/g)]
+    .map((m) => ({ key: m[1], title: m[2], subs: m[3].split(",").map((x) => x.trim().replace(/'/g, "")).filter(Boolean) }));
+  const labels = Object.fromEntries([...((/BRAND_LABEL: \{([^}]*)\}/.exec(sec) || ["", ""])[1]).matchAll(/([a-z0-9]+):\s*(?:"([^"]*)"|'([^']*)')/g)].map((m) => [m[1], m[2] || m[3]]));
+  let items = [];
+  try { items = (JSON.parse(readFileSync(join(root, who === "hombre" ? "ropa-interior-feed.json" : "ropa-interior-women-feed.json"), "utf8")).items || []).filter((p) => p && p.t && p.p > 0); } catch { /* none */ }
+  const onSale = (p) => globalThis.AriaSale.discountPct({ price: p.p, originalPrice: p.o }) > 0;
+  const hash = who === "hombre" ? "#hombre" : "#mujer";
+  const types = rails.map((r) => [r.title, "/ropa-interior.html?ver=type:" + r.key + hash, items.filter((p) => onSale(p) && r.subs.includes(p.sub)).length]);
+  const all = new Map();
+  for (const p of items) { const k = riBrandKey(p.b); if (!k) continue; const o = all.get(k) || { k, label: labels[k] || String(p.b).trim(), n: 0, sale: 0 }; o.n++; if (onSale(p)) o.sale++; all.set(k, o); }
+  /* The page's own Marca list: a maker with 3+ products. */
+  const brands = [...all.values()].filter((o) => o.n >= 3).sort((a, b) => (b.sale - a.sale) || (a.k < b.k ? -1 : 1))
+    .map((o) => [o.label, "/ropa-interior.html?ver=brand:" + o.k + hash, o.sale]);
+  return { types, brands, n: items.filter(onSale).length };
+}
 
 export function buildMenu(root = ROOT) {
   const reg = deptRegistry(root);
   const pages = pageSections(root);
   const cache = new Map();
-  const dept = (k) => { if (!cache.has(k)) cache.set(k, loadDept(k, [root])); return cache.get(k); };
+  /* Only products with a photo are cards (no image, no card): the counts are what the page shows. */
+  const dept = (k) => { if (!cache.has(k)) { const d = loadDept(k, [root]); cache.set(k, d ? { ...d, list: d.list.filter((p) => p.image) } : null); } return cache.get(k); };
   const size = (k) => (dept(k) ? dept(k).list.length : 0);
   const notes = [];
+  const riCache = {};
+  const sectionName = (s) => (pages[s] && pages[s].name) || (reg[s] && reg[s].name) || s;
 
-  const typeLinks = (k, u) => {
+  /* moved: the types another section owns, [label, section, n]. */
+  const typeLinks = (k, u, moved = null) => {
     const d = dept(k);
     if (!d) return [];
-    const n = new Map();
+    const n = new Map(), away = new Map();
     for (const p of d.list) {
       if (u && !inAudience(p, u)) continue;
       const t = typeKeyOf(p);
       if (t.k === "otros") continue;
-      const o = n.get(t.k) || [t.label, navHref(k, { u, t: t.k }), 0];
+      const own = ownerOf(k, t.k, u);
+      if (own) { const o = away.get(t.k) || [t.label, own, 0]; o[2]++; away.set(t.k, o); continue; }
+      const o = n.get(t.k) || [t.label, deptHref(k, { t: t.k, para: u }), 0];
       o[2]++; n.set(t.k, o);
     }
+    if (moved) moved.push(...[...away.values()].sort((a, b) => b[2] - a[2]));
+    /* The count is what the page's own type view finds (its filter also
+       reads the garment kind a store's type leaves out). */
+    for (const [tk, o] of n) o[2] = filterList(d.list, { t: tk, u }).length;
     return [...n.values()].sort((a, b) => (b[2] - a[2]) || (a[0] < b[0] ? -1 : 1));
   };
   const brandLinks = (k, u) => {
@@ -148,7 +245,7 @@ export function buildMenu(root = ROOT) {
       o.n++; o.spell.set(label, (o.spell.get(label) || 0) + 1); n.set(key, o);
     }
     return [...n.values()].sort((a, b) => (b.n - a.n) || (a.key < b.key ? -1 : 1))
-      .map((o) => [[...o.spell.entries()].sort((a, b) => b[1] - a[1])[0][0], navHref(k, { u, b: o.key }), o.n]);
+      .map((o) => { const label = [...o.spell.entries()].sort((a, b) => b[1] - a[1])[0][0]; return [label, deptHref(k, { b: label, para: u }), o.n]; });
   };
   const audiences = (k) => {
     const d = dept(k);
@@ -168,38 +265,55 @@ export function buildMenu(root = ROOT) {
 
   const tabs = [];
   const full = [];
+  const files = {};
   for (const spec of TABS) {
     const cols = [], inv = [];
-    const push = (h, href, links, n) => {
-      inv.push({ h, n, links });
+    /* file: the complete list's name, when the column is longer than the flyout shows. */
+    const push = (h, href, links, n, file = "", moved = null) => {
+      inv.push({ h, n, links, moved: (moved || []).map(([l, o, c]) => { const r = sectionRef(o); return [l, r ? r.name + " · `" + r.href + "`" : o, c]; }) });
+      if (moved && moved.length) notes.push(`${spec.label} → ${h}: ${moved.map(([l, o, c]) => l + " (" + num(c) + ") en " + sectionName(o)).join(", ")}: cada uno vive en su propia sección`);
       const kept = links.filter((l) => l[2] > 0);
       if (!kept.length) { notes.push(`${spec.label} → ${h}: sin productos, columna omitida`); return; }
-      cols.push({ h, href, n, links: kept.slice(0, h === "Marcas" ? MAX_BRANDS : MAX_TYPES) });
+      const cap = h === "Marcas" || /^Marcas /.test(h) ? MAX_BRANDS : MAX_TYPES;
+      const col = { h, href, n, links: kept.slice(0, cap) };
+      if (kept.length > cap && file) { col.all = kept.length; col.more = "/" + BRANDS_DIR + "/" + file + ".json"; files[file] = kept; }
+      cols.push(col);
     };
     for (const c of spec.cols) {
       const [kind, k] = c;
       if (kind === "aud") {
         const auds = audiences(k);
-        if (auds.length) for (const [u, n] of auds) push(AUD_LABEL[u], navHref(k, { u }), typeLinks(k, u), n);
-        else push("Tipos", navHref(k), typeLinks(k, ""), size(k));
+        if (auds.length) for (const [u, n] of auds) { const mv = []; push(AUD_LABEL[u], deptHref(k, { para: u }), typeLinks(k, u, mv), n, k + "-tipos-" + u, mv); }
+        else { const mv = []; push("Tipos", deptHref(k), typeLinks(k, "", mv), size(k), k + "-tipos", mv); }
       } else if (kind === "types") {
         const u = c[3] || "";
-        const links = typeLinks(k, u);
-        push(c[2] || reg[k].name, navHref(k, { u }), links, links.reduce((s, l) => s + l[2], 0) || size(k));
+        const mv = [];
+        const links = typeLinks(k, u, mv);
+        push(c[2] || reg[k].name, deptHref(k, { para: u }), links, links.reduce((s, l) => s + l[2], 0) || size(k), k + "-tipos" + (u ? "-" + u : ""), mv);
       } else if (kind === "brands") {
-        push("Marcas", navHref(k), brandLinks(k, c[2] || ""), size(k));
+        push("Marcas", deptHref(k), brandLinks(k, c[2] || ""), size(k), k + "-marcas");
+      } else if (kind === "doors") {
+        /* Aria Perfumes' own doors (the catalogue's departments, row field a). */
+        const d = dept(k);
+        const links = PERFUME_DOORS.map(([a, label]) => [label, deptHref(k, { a }), d ? d.list.filter((p) => p.a === a).length : 0]);
+        push(c[2], deptHref(k), links, size(k));
+      } else if (kind === "latinos") {
+        const p = pages.latinos;
+        if (k === "designers") push("Diseñadores Latinos", p.href, Object.entries(p.designers).sort((a, b) => b[1] - a[1]).map(([d, n]) => [p.names[d] || d, "/disenadores.html?d=" + d, n]), p.n);
+        else push("Latinos por tipo", p.href, Object.entries(p.types).sort((a, b) => b[1] - a[1]).map(([t, n]) => [p.typeNames[t] || t, "/disenadores.html?t=" + t, n]), p.n);
+      } else if (kind === "ri" || kind === "ri-brands") {
+        /* Ropa Interior's own rails and makers: its Explorar todo opens on them. */
+        const r = riCache[k] || (riCache[k] = riPage(root, k));
+        push(c[2], "/ropa-interior.html#" + k, kind === "ri" ? r.types : r.brands, r.n, "ropa-interior-" + (kind === "ri" ? "tipos-" : "marcas-") + k);
       } else if (kind === "page") {
         const p = pages[k];
         if (k === "motos") push(p.name, p.href, p.types, p.n);
+        else if (k === "aria_auto") push(p.name, p.href, p.doors, p.n);
         else push(p.name, p.href, [["Ver todo", p.href, p.n]], p.n);
       } else if (kind === "sale") {
-        const d = dept(k);
-        const n = d ? d.list.filter((p) => p.salePct > 0).length : 0;
-        const links = d ? typeLinks(k, "").map(([l, , ]) => l) : [];
-        const byType = new Map();
-        if (d) for (const p of d.list) { if (!(p.salePct > 0)) continue; const t = typeKeyOf(p); if (t.k === "otros") continue; const o = byType.get(t.k) || [t.label, navHref(k, { t: t.k, o: "1" }), 0]; o[2]++; byType.set(t.k, o); }
-        push(c[2], navHref(k, { o: "1" }), [...byType.values()].sort((a, b) => b[2] - a[2]), n);
-        void links;
+        /* Ofertas' own categories (its «Por categoría» view). */
+        const p = pages.ofertas;
+        push(c[2], "/ofertas.html?vista=categoria", p.cats, p.n);
       }
     }
     const secs = [];
@@ -223,8 +337,59 @@ export function buildMenu(root = ROOT) {
   const placed = new Set(TABS.flatMap((t) => [t.dept, ...t.sections, ...t.cols.map((c) => c[1])]).filter(Boolean));
   const unplaced = Object.keys(reg).filter((k) => !reg[k].door && size(k) > 0 && !placed.has(k));
   const homeCarousels = CAROUSELS.map((c) => c.title);
-  return { menu: { v: 1, tabs }, full, notes, unplaced, homeCarousels, reg };
+  return { menu: { v: 1, tabs }, full, notes, unplaced, homeCarousels, reg, files };
 }
+
+/* ---------- the facts of every department product, for the other listings ----------
+   A store page, a brand page, Ofertas and a search draw products the
+   departments already classify. facts.json carries, per store + title
+   (a short hash, factKey), the department's type, audience and the
+   store's size run -- so the filter bar reads the same facts on every
+   page. Server-side only (netlify/functions/_nav-filter-core.js). */
+export function buildFacts(root = ROOT, keys = null) {
+  const reg = keys || Object.keys(deptRegistry(root)).filter((k) => !deptRegistry(root)[k].door);
+  const types = [], tAt = new Map(), runs = [[]], rAt = new Map([["", 0]]), out = {};
+  for (const k of reg) {
+    const d = loadDept(k, [root]);
+    if (!d) continue;
+    let sz = null;
+    try { sz = JSON.parse(readFileSync(join(root, "assets/sections/departamento/_fn", k + ".sizes.json"), "utf8")); } catch { /* none */ }
+    d.list.forEach((p, i) => {
+      const key = factKey(p.retailer, p.title);
+      const t = typeKeyOf(p);
+      const run = sz ? (sz.runs[sz.rows[i]] || []) : [];
+      const had = out[key];
+      if (had && (had[0] >= 0 || t.k === "otros") && (had[2] || !run.length) && (had[1] || !p.u)) return;
+      let ti = -1;
+      if (t.k !== "otros") { if (!tAt.has(t.k)) { tAt.set(t.k, types.length); types.push([t.k, t.label]); } ti = tAt.get(t.k); }
+      const rk = run.join("\u0001");
+      if (!rAt.has(rk)) { rAt.set(rk, runs.length); runs.push(run); }
+      const u = Math.max(0, U_CODES.indexOf(p.u || ""));
+      out[key] = had ? [had[0] >= 0 ? had[0] : ti, had[1] || u, had[2] || rAt.get(rk)] : [ti, u, rAt.get(rk)];
+    });
+  }
+  return { v: 1, types, runs, keys: out };
+}
+
+/* (A brand leaf carries the brand's own spelling, &b=Jordan: the page's
+   brand filter reads it case-blind and its scope bar shows it as is.) */
+
+/* ---------- the views the header used to invent, and where they go now ----------
+   departamento.html's first script (before anything renders) and
+   netlify.toml redirect them; nordstrom-nav-tests.mjs pins both. */
+export const BLOCKED = [
+  ["departamento.html?dept=<k>&nav=1", "departamento.html?dept=<k> (el departamento, tal cual)"],
+  ["…&nav=1&u=<women|men|kids>", "…&para=<women|men|kids> (su selector Para quién)"],
+  ["…&nav=1&t=<tipo>", "…&t=<tipo> (su propia vista de tipo)"],
+  ["…&nav=1&b=<marca>[|<marca>…]", "…&b=<la primera marca> (sus píldoras de marca)"],
+  ["…&nav=1&o=1", "…&ver=ofertas (su propio carrusel de Ofertas)"],
+  ["…&nav=1&r=<tienda>", "…&tienda=<tienda> (sus chips de tienda)"],
+  ["…&nav=1&w=<palabras>", "…&q=<palabras> (su buscador)"],
+  ["…&s= · &z= · &p= · &sort= (estilo, talla, precio y orden de la barra)", "se quitan: el departamento no tiene esas vistas"],
+  ["departamento.html?dept=perfumes&t=fragancia", "departamento.html?dept=perfumes (Aria Perfumes entera: todo es fragancia)"],
+  ["departamento.html?dept=perfumes&t=cuidado-corporal", "departamento.html?dept=perfumes&a=cuidado (su puerta de cuidado)"],
+  ["ropa-interior.html?ft=…&fb=… · ofertas.html?fb=… (la barra de filtros)", "ya no existen: la página abre en su portada; el menú usa ropa-interior.html?ver=type:…|brand:… y ofertas.html?vista=categoria&cat=…"],
+];
 
 /* ---------- the inventory, for Danny ---------- */
 const num = (n) => Number(n || 0).toLocaleString("es-PE");
@@ -232,7 +397,31 @@ export function inventoryMarkdown(b) {
   const L = [];
   L.push("# Menú del encabezado: inventario completo");
   L.push("");
-  L.push("Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones del sitio (DEPTS de departamento.html y el bloque de categorías del inicio). Cada número es la cantidad real de productos con ese tipo o marca; nada con 0 productos tiene enlace. El menú muestra hasta " + MAX_TYPES + " tipos y " + MAX_BRANDS + " marcas por columna; aquí está todo.");
+  L.push("Generado por `node scripts/build-nav-menu.mjs` desde el registro de secciones del sitio (DEPTS de departamento.html y el bloque de categorías del inicio). Cada número es la cantidad real de productos con ese tipo o marca; nada con 0 productos tiene enlace. El menú muestra hasta " + MAX_TYPES + " tipos y " + MAX_BRANDS + " marcas por columna y «Ver todas» abre la lista completa (`" + BRANDS_DIR + "/`); aquí está todo.");
+  L.push("");
+  L.push("## La regla: el encabezado no crea nada (#443 c.6621544530, c.6621722209)");
+  L.push("");
+  L.push("Cada pestaña, columna y enlace abre la página canónica ya construida de esa categoría, con los parámetros propios de esa página. Ninguna URL del menú lleva `nav=1`.");
+  L.push("");
+  L.push("| Entrada del menú | Página canónica a la que llega |");
+  L.push("|---|---|");
+  L.push("| Pestaña o «Ver todo» de un departamento | `departamento.html?dept=<k>` (o su página propia: Aria Auto, Lencería, Motos, Ofertas, Key Club) |");
+  L.push("| Columna por audiencia (Mujer / Hombre / Niños) | `departamento.html?dept=<k>&para=<audiencia>` (su selector Para quién) |");
+  L.push("| Tipo | `departamento.html?dept=<k>&t=<tipo>[&para=<audiencia>]` (su vista de tipo) |");
+  L.push("| Marca | `departamento.html?dept=<k>&b=<marca>[&para=<audiencia>]` (sus píldoras de marca: solo los productos de esa marca en ese departamento) |");
+  L.push("| Aria Perfumes y sus puertas | `departamento.html?dept=perfumes[&a=<puerta>]` |");
+  L.push("| Lencería / Ropa Interior Hombre | `ropa-interior.html?ver=type:<riel>#mujer` · `?ver=brand:<marca>#hombre` (su Explorar todo) |");
+  L.push("| Diseñadores Latinos | `disenadores.html?d=<diseñador>` · `?t=<tipo>` |");
+  L.push("| Motos | `motos.html?t=<tipo>` |");
+  L.push("| Aria Auto | `aria-auto.html` · `#buscar` · `#autos` (no tiene parámetro de tipo) |");
+  L.push("| Ofertas | `ofertas.html?vista=categoria&cat=<categoría>` (su vista Por categoría) |");
+  L.push("| Un tipo que tiene su propia sección (zapatos, carteras, lentes de sol, joyas, fragancias, lencería) dentro de Mujer / Hombre / Niños / Belleza | no es un enlace del departamento: la pestaña lista esa sección en «Secciones» |");
+  L.push("");
+  L.push("## URLs bloqueadas o redirigidas");
+  L.push("");
+  L.push("El primer script de departamento.html (antes de pintar nada) y netlify.toml (301) las llevan a la página canónica:");
+  L.push("");
+  for (const [a, b2] of BLOCKED) L.push(`- \`${a}\` → ${b2}`);
   L.push("");
   L.push("| Pestaña | Columnas | Productos |");
   L.push("|---|---|---|");
@@ -248,6 +437,7 @@ export function inventoryMarkdown(b) {
       L.push("");
       if (!c.links.length) L.push("- (sin productos)");
       for (const [l, h, n] of c.links) L.push(`- ${l}: ${num(n)} · \`${h}\``);
+      if (c.moved && c.moved.length) { L.push(""); L.push("Viven en su propia sección (no son enlaces de esta columna):"); for (const [l, o, n] of c.moved) L.push(`- ${l}: ${num(n)} → ${o}`); }
       L.push("");
     }
   }
@@ -312,7 +502,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (b.unplaced.length) { console.error("sections with products under no tab: " + b.unplaced.join(", ")); process.exit(1); }
   const json = JSON.stringify(b.menu) + "\n", md = inventoryMarkdown(b);
   const old = (f) => (existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f), "utf8") : "");
-  const staleData = [[MENU_FILE, json], [INVENTORY_FILE, md]].filter(([f, s]) => old(f) !== s).map(([f]) => f);
+  const facts = JSON.stringify(buildFacts()) + "\n";
+  const lists = Object.entries(b.files).map(([f, l]) => [BRANDS_DIR + "/" + f + ".json", JSON.stringify(l) + "\n"]);
+  const listDir = join(ROOT, BRANDS_DIR);
+  const extra = existsSync(listDir) ? readdirSync(listDir).map((f) => BRANDS_DIR + "/" + f).filter((f) => !lists.some(([g]) => g === f)) : [];
+  const staleData = [[MENU_FILE, json], [INVENTORY_FILE, md], [FACTS_FILE, facts], ...lists].filter(([f, s]) => old(f) !== s).map(([f]) => f).concat(extra);
   const stalePages = syncPages(b.menu, { write: !check });
   if (check) {
     const all = staleData.concat(stalePages);
@@ -321,6 +515,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   } else {
     writeFileSync(join(ROOT, MENU_FILE), json);
     writeFileSync(join(ROOT, INVENTORY_FILE), md);
+    mkdirSync(join(ROOT, "assets/sections/nav/_fn"), { recursive: true });
+    writeFileSync(join(ROOT, FACTS_FILE), facts);
+    mkdirSync(listDir, { recursive: true });
+    for (const f of extra) rmSync(join(ROOT, f));
+    for (const [f, s] of lists) writeFileSync(join(ROOT, f), s);
     console.log(`${MENU_FILE}: ${json.length} bytes, ${b.menu.tabs.length} tabs; pages rewritten: ${stalePages.length}`);
     for (const n of b.notes) console.log("  note: " + n);
   }

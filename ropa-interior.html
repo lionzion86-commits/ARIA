@@ -919,6 +919,13 @@ html{scroll-padding-top:76px}
     var womenDone = Promise.all([women, menDone]).then(function(r){ MUJER.show(r[0]); }, function(){ MUJER.fail(); });
     Promise.all([menDone, womenDone]).then(function(){
       honourHash();
+      /* THE HEADER'S LEAVES (#443 c.6621722209, "the header creates
+         nothing"): ?ver=type:<rail> | brand:<maker> opens this page's own
+         Explorar todo on that choice -- what the rail's «Ver todo» does. */
+      try {
+        var ver = new URLSearchParams(location.search).get('ver') || '';
+        if (/^(type|brand):[a-z0-9_]{1,40}$/.test(ver)) SECTIONS[audOf(location.hash)].openFilter(ver);
+      } catch (err) {}
     });
   }
 
@@ -928,6 +935,7 @@ html{scroll-padding-top:76px}
   });
 
   start();
+
 })();
 </script>
 <!-- Aria's orb on every page (#386): assets/js/aria-launcher.js -->

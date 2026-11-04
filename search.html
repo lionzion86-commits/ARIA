@@ -870,6 +870,18 @@ function chooserHTML(c){
       '<div class="rail">' + (r.items || []).map(cardHTML).join("") + door + "</div></section>";
   }).join("");
 }
+/* THE FILTER BAR (#443, the Nordstrom pattern): assets/js/nav-filter.js,
+   told what this page lists, where the bar goes and how a card draws. */
+function nfBoot(h){
+  if (window.AriaNFHost) return;
+  h.endpoint = h.endpoint || '/.netlify/functions/nav-filter'; h.prefix = 'f';
+  window.AriaNFHost = h;
+  var s = document.createElement('script'); s.src = '/assets/js/nav-filter.js'; s.defer = true; document.head.appendChild(s);
+}
+function nfSearch(query){
+  nfBoot({ src: "q=" + encodeURIComponent(query) + "&nf=1", endpoint: BASE + SEARCH_API, title: function(){ return "«" + query + "»"; },
+    anchor: el("meta-line"), hide: ["#results"], cardHTML: cardHTML, after: function(r){ watchPhotos(r); } });
+}
 function renderChooser(query, data){
   var grid = el("results"), meta = el("meta-line");
   if (meta) meta.textContent = "";
@@ -878,6 +890,7 @@ function renderChooser(query, data){
   if (!grid) return;
   grid.innerHTML = chooserHTML(data.chooser || {});
   watchPhotos(grid);
+  nfSearch(query);
 }
 
 async function doSearch(){
@@ -956,6 +969,7 @@ function renderAnswer(query, data){
   STATE.page = data.page; STATE.pages = data.pages; STATE.total = data.total; STATE.capped = !!data.capped;
   grid.innerHTML = answerHTML(data);
   watchPhotos(grid);
+  nfSearch(query);
   /* The chooser's Ofertas door opens these carousels at the Ofertas one. */
   if (location.hash === "#lane-ofertas"){ var lo = el("lane-ofertas"); if (lo && lo.scrollIntoView) lo.scrollIntoView({ block: "start" }); }
   /* The comparison block's products count as shown (they are part of

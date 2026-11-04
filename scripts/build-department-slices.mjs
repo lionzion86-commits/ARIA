@@ -52,7 +52,7 @@ import "../not-sold.js";
 const isNotSold = globalThis.AriaNotSold.isNotSold;
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle, audienceSwitch, deptStats, typeKeyOf } from "../netlify/functions/_department-core.js";
 import { garmentAudience, storeAudiences } from "./lib/offer-category.js";
-import { isShoeForDept, footwearClass, shoeGender, isFootwear } from "./lib/footwear.js";
+import { isShoeForDept, isGarmentTail, footwearClass, shoeGender, isFootwear } from "./lib/footwear.js";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
 import { hasExtendedSizes, extendedSizesOf } from "./lib/sizes.js";
 export { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH };
@@ -262,7 +262,7 @@ export const KIND_MATCH = {
   /* ONE CLASSIFIER (#443 c.6405702652): the vetted footwear rules
      (scripts/lib/footwear.js), not a substring list -- "heel" inside
      "wheels" filled Zapatos with skate trucks. */
-  shoes: (t, p) => (p && p.retailer === "dsw" && p.bucket !== "purses") || isShoeForDept(p, p && p.retailer),
+  shoes: (t, p) => (p && p.retailer === "dsw" && p.bucket !== "purses" && !isGarmentTail(p.title)) || isShoeForDept(p, p && p.retailer),
   /* Whole words: "men" is inside "women", and the men's department led
      with New Balance Women's 796v4 (#443 c.6405702652). */
   shoes_women: (t, p) => KIND_MATCH.shoes(t, p) && (/\b(women|womens|women's|woman|mujer|mujeres|ladies|dama|damas|female)\b/.test(t) || (p && p.retailer === "dsw" && p.bucket === "women")),

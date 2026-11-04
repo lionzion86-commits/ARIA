@@ -1042,6 +1042,14 @@ function load(){
     if (!index || !index.views) throw new Error('bad index');
     state.index = index;
     state.loaded = true;
+    /* DEEP LINKS (#443, the header's menu): ?d=<designer>&t=<type> open
+       that room; anything the index does not hold is ignored. */
+    try{
+      var sp = new URLSearchParams(location.search);
+      var dq = sp.get('d') || '', tq = sp.get('t') || '';
+      if (dq && DESIGNERS.some(function(x){ return x.key === dq; })) state.designerFilter = dq;
+      if (tq && PRODUCT_TYPES.some(function(x){ return x.key === tq; })) state.typeFilter = tq;
+    }catch(e){}
     try{ var l = $('loadingState'); if (l) l.hidden = true; }catch(e){}
     renderAll();
   }).catch(function(){
