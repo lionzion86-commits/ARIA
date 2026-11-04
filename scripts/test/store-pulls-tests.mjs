@@ -20,7 +20,7 @@ import { snipesKind, snipesDept, RELEASE_RX, normalizeSnipes, normalizeCarolinaH
 import { isSizesPending, sizesPendingLines, sizesPendingKey } from "../lib/sizes-pending.js";
 import { SIZES_PENDING } from "../lib/sizes-pending-data.js";
 import { RETAILERS } from "../lib/retailers.js";
-import { parseShopifyFamilies } from "../lib/variant-families.mjs";
+import { parseShopifyFamilies, sizeRunFor } from "../lib/variant-families.mjs";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const read = (f) => readFileSync(join(ROOT, f), "utf8");
@@ -178,6 +178,49 @@ await check("a shoe's colours carry their own sold-out sizes from the store's fe
   assert.equal(red.sizesOut, undefined, "a colour with nothing in stock carries no run to sell around");
 });
 
+/* #443 c.6644778221 (the per-store size accounting): a boot sold in one
+   colour was dropped whole by the colourway pass, and its own feed's size
+   run with it -- «Tallas por confirmar» on a shoe whose sizes we held. */
+await check("a one-colour shoe in the store's feed hands its own size run over by handle; a multi-colour one only by its ?variant=", () => {
+  const { sizeRuns } = parseShopifyFamilies([
+    { id: 1, handle: "mele-heels-terracota", title: "Mele Heels", vendor: "Silvia Tcherassi", options: [{ name: "Size" }, { name: "Color" }],
+      variants: [{ id: 101, option1: "36", option2: "Terracota", available: true }, { id: 102, option1: "36.5", option2: "Terracota", available: false },
+        { id: 103, option1: "37", option2: "Terracota", available: true }] },
+    { id: 2, handle: "boot", title: "Boot", options: [{ name: "Color" }, { name: "Size" }],
+      variants: [{ id: 201, option1: "Black", option2: "6", available: true }, { id: 202, option1: "Brown", option2: "7", available: true }, { id: 203, option1: "Brown", option2: "8", available: false }] },
+    { id: 3, handle: "gone", title: "Gone Sandal", options: [{ name: "Size" }], variants: [{ id: 301, option1: "6", available: false }] },
+    { id: 4, handle: "flip", title: "Flip", options: [{ name: "Title" }], variants: [{ id: 401, option1: "Default Title", available: true }] },
+  ], { retailer: "silviatcherassi" });
+  const runs = new Map();
+  for (const r of sizeRuns) { const k = "silviatcherassi|" + r.h; if (!runs.has(k)) runs.set(k, []); runs.get(k).push(r); }
+  const mele = sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/mele-heels-terracota");
+  assert.deepEqual([mele.sizes, mele.sizesOut], [["36", "37"], ["36.5"]]);
+  assert.equal(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/boot"), null, "a multi-colour product without ?variant= takes no colour's run");
+  assert.deepEqual(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/boot?variant=203").sizes, ["7"]);
+  assert.deepEqual(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/boot?variant=203").sizesOut, ["8"]);
+  assert.equal(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/gone"), null, "every size sold out: no run that could sell sizeless");
+  assert.equal(sizeRunFor(runs, "silviatcherassi", "https://silviatcherassi.com/products/flip"), null, "no size axis: no run");
+  assert.equal(sizeRunFor(runs, "farmrio", "https://silviatcherassi.com/products/mele-heels-terracota"), null, "another store's handle is never this store's run");
+});
+await check("the committed product records: every Shopify shoe store's shoe that its own feed sizes is sized, and only with the feed's in-stock sizes", async () => {
+  const { liftPage, buildRecords } = await import("../build-pdp-slices.mjs");
+  const { loadSizeRuns } = await import("../lib/variant-families.mjs");
+  const runs = loadSizeRuns(ROOT);
+  const P = liftPage(ROOT);
+  const { byKey, shoes } = buildRecords(P, ROOT);
+  let fed = 0;
+  for (const cands of byKey.values()) for (const { rec } of cands) {
+    if (!String(rec.sizesSource || "").startsWith("scripts/data/variant-families/")) continue;
+    const run = sizeRunFor(runs, rec.retailer, rec.url);
+    assert.ok(run, rec.name + ": a feed run with no feed product behind it");
+    assert.equal(JSON.stringify(rec.sizes), JSON.stringify(P.truthfulSizes(run.sizes)), rec.name + ": sizes other than the feed's in-stock run");
+    assert.ok(!rec.sizesPending, rec.name + ": sized and still «Tallas por confirmar»");
+    fed++;
+  }
+  assert.ok(fed >= 77, "the feed runs went missing (" + fed + ")");
+  const sts = (n) => [...shoes.values()].find((s) => s.retailer === "silviatcherassi" && s.name === n);
+  assert.ok(sts("Mele Heels") && sts("Mele Heels").sized, "Silvia Tcherassi Mele Heels is «Tallas por confirmar» again");
+});
 const cat = (k) => Object.values(JSON.parse(read(k + "-catalog.json")).retailers[k].departments).flatMap((d) => d.items);
 await check("the committed SNIPES catalogue: the Air DT Max '96 sells its one in-stock size and shows the other 12 sold out (the store's own run)", () => {
   const items = cat("snipes");

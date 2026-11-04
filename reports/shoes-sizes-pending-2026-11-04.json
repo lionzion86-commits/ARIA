@@ -1,9 +1,9 @@
 {
- "note": "Shoes whose store's size data was never captured in any source we hold (catalogue pulls, data/ pull waves, reports/, git history). Shown with «Tallas por confirmar», never sold sizeless, never given invented sizes. Built by scripts/build-pdp-slices.mjs.",
+ "note": "Shoes whose store's size data was never captured in any source we hold (catalogue pulls, data/ pull waves, reports/, git history). Shown with «Tallas por confirmar», never sold sizeless, never given invented sizes. fromStoreFeed: shoes whose run comes from the store's own product feed (scripts/data/variant-families/<store>.json sizeRuns). pullLacked: what the pull we hold is missing. Built by scripts/build-pdp-slices.mjs.",
  "totals": {
   "shoes": 11763,
-  "sized": 8783,
-  "sizesPending": 2975
+  "sized": 8848,
+  "sizesPending": 2912
  },
  "footwearByStore": {
   "academy": {
@@ -63,8 +63,9 @@
   },
   "farmrio": {
    "shoes": 74,
-   "sized": 54,
-   "sizesPending": 20
+   "sized": 68,
+   "sizesPending": 6,
+   "fromStoreFeed": 14
   },
   "footlocker": {
    "shoes": 315,
@@ -98,8 +99,9 @@
   },
   "johannaortiz": {
    "shoes": 21,
-   "sized": 7,
-   "sizesPending": 14
+   "sized": 16,
+   "sizesPending": 5,
+   "fromStoreFeed": 9
   },
   "jwpei": {
    "shoes": 286,
@@ -128,8 +130,9 @@
   },
   "montce": {
    "shoes": 1,
-   "sized": 0,
-   "sizesPending": 1
+   "sized": 1,
+   "sizesPending": 0,
+   "fromStoreFeed": 1
   },
   "nautilus": {
    "shoes": 1,
@@ -153,8 +156,9 @@
   },
   "patbo": {
    "shoes": 14,
-   "sized": 11,
-   "sizesPending": 3
+   "sized": 14,
+   "sizesPending": 0,
+   "fromStoreFeed": 3
   },
   "prosoccer": {
    "shoes": 473,
@@ -178,8 +182,9 @@
   },
   "silviatcherassi": {
    "shoes": 42,
-   "sized": 7,
-   "sizesPending": 35
+   "sized": 42,
+   "sizesPending": 0,
+   "fromStoreFeed": 35
   },
   "skims": {
    "shoes": 3,
@@ -228,8 +233,9 @@
   },
   "vix": {
    "shoes": 26,
-   "sized": 22,
-   "sizesPending": 4
+   "sized": 25,
+   "sizesPending": 1,
+   "fromStoreFeed": 3
   },
   "walmart": {
    "shoes": 403,
@@ -250,6 +256,7 @@
  "cannotRestore": {
   "ssense": {
    "count": 988,
+   "pullLacked": "catalogue rows carry no size field; data/gallery-repull-2026-10-30/ssense.json is photos only; variant-truth (data/variant-truth-2026-10-18) has no run for these titles",
    "examples": [
     "Beige & Black Mayslibi Heels",
     "Beige & Brown Embossed Snake Ballerina Loafers",
@@ -1250,6 +1257,7 @@
   },
   "kohls": {
    "count": 557,
+   "pullLacked": "data/colorways-2026-11-01/dataset-kohls.json 'variations' names the axis only (\"SizeAndColor\", \"Size\"), never a size value; gallery repull photos only; sizes-wave-urls holds URL lists that were never pulled",
    "examples": [
     "adidas Adilette Kids' Slide Sandals",
     "adidas adilette Lumia Adult Sport Swimming Slide Sandals",
@@ -1819,6 +1827,7 @@
   },
   "walmart": {
    "count": 403,
+   "pullLacked": "catalogue and department cache carry no size field; gallery repull photos only; variant-truth: product pages bot-walled (\"Robot or human?\")",
    "examples": [
     "'s Womens Muse Slouch Boot",
     "'s Womens Willow Tall Shaft Boot",
@@ -2234,6 +2243,7 @@
   },
   "dicks": {
    "count": 192,
+   "pullLacked": "no size field in any of the six versions of dicks-catalog.json in git (232 and 572 rows); variant-truth: pages bot-walled (HTTP 403); sizes-wave-urls/dicks-live-urls.txt is 211 URLs never pulled",
    "examples": [
     "adidas ' Predator Club Kids Turf Soccer Cleats",
     "adidas Copa Icon II FG Soccer Cleats",
@@ -2438,6 +2448,7 @@
   },
   "zumiez": {
    "count": 143,
+   "pullLacked": "data/colorways-2026-11-01/dataset-zumiez.json (Magento listing) has sku, name, price and categories, no configurable options",
    "examples": [
     "adidas Adistar Control 5 Silver & Green Shoes",
     "adidas Adistar Control 5 White, Black & Silver Shoes",
@@ -2593,6 +2604,7 @@
   },
   "tenniswarehouse": {
    "count": 141,
+   "pullLacked": "the 2026-11-01 sweep's availableSizes holds the label only (\"US Women's Shoe Size:\") or nothing; 45 rows carry one spec value (\"us women's shoe size: 6.0\"), not a run",
    "examples": [
     "adidas Avacourt 3 Clay Halo Mint/White Women's Shoes",
     "adidas Avacourt 3 Crystal Sky/White Women's Shoes",
@@ -2746,6 +2758,7 @@
   },
   "dsw": {
    "count": 131,
+   "pullLacked": "the 2026-11-01 delivery (apify/e-commerce-scraping-tool) has sizeSource \"none\" and an empty availableSizes on all 171 rows, no variants, no size text; the 2026-11-03 re-pull was stopped by DataDome (data/pull-wave-2026-11-03/dsw/REPORT.md)",
    "examples": [
     "adidas Adilette Slide Sandal - Kids'",
     "adidas Believe That 1 Basketball Shoe - Kids'",
@@ -2889,6 +2902,7 @@
   },
   "jwpei": {
    "count": 113,
+   "pullLacked": "catalogue rows carry no size field; no raw pull held",
    "examples": [
     "Alessia High Heel Pumps - Black",
     "Alessia High Heel Pumps - Red",
@@ -3014,6 +3028,7 @@
   },
   "revolve": {
    "count": 87,
+   "pullLacked": "catalogue rows carry no size field; no raw pull held",
    "examples": [
     "Altina Sandal",
     "Amsterdam Wrapped Clog",
@@ -3111,55 +3126,9 @@
     "Zaho Sandal"
    ]
   },
-  "silviatcherassi": {
-   "count": 35,
-   "examples": [
-    "Ana Heels",
-    "Aurora Heels",
-    "Dalila Heels Camel",
-    "Dalila Heels Grey",
-    "Dalila Heels Limoncello"
-   ],
-   "titles": [
-    "Ana Heels",
-    "Aurora Heels",
-    "Dalila Heels Camel",
-    "Dalila Heels Grey",
-    "Dalila Heels Limoncello",
-    "Dalila Heels Magenta",
-    "Dalila Heels Navy",
-    "Dalila Heels Off-White",
-    "Dalila Heels Olive",
-    "Dalila Heels Orange",
-    "Dalila Heels Red",
-    "Domenico Heels Black/White",
-    "Domenico Heels Cool Sky",
-    "Domenico Heels Fucsia",
-    "Domenico Heels Gray",
-    "Domenico Heels Limoncello",
-    "Domenico Heels Magenta",
-    "Domenico Heels Orange",
-    "Domenico Heels Taupe",
-    "Domenico Heels Violet",
-    "Domenico Heels White",
-    "Ember Boots",
-    "Golda Heels Silver",
-    "Jimena Heels Bronze",
-    "Jimena Heels Olive",
-    "Marco Heel Camel",
-    "Marco Heel Light Grey",
-    "Marco Heel Olive Green",
-    "Marco Heel Yellow",
-    "Marlene Heels",
-    "Mele Heels",
-    "Mika Heels Green",
-    "Mika Heels Orchid",
-    "Mika Heels Red",
-    "Perni Heels"
-   ]
-  },
   "farfetch": {
    "count": 34,
+   "pullLacked": "catalogue rows carry no size field; no raw pull held",
    "examples": [
     "Amy metallic leather sandals",
     "Amy platform sandals",
@@ -3206,6 +3175,7 @@
   },
   "academy": {
    "count": 33,
+   "pullLacked": "catalogue rows carry no size field; gallery repull photos only; variant-truth: pages bot-walled",
    "examples": [
     "adidas Adults' Copa Pure III League Firm Ground/Multi Ground Soccer Cleats",
     "adidas Adults' F50 League FG/MG Messi Soccer Cleats                                                                             ",
@@ -3249,40 +3219,9 @@
     "Under Armour Kids' Shadow Select 2 FG Soccer Cleats"
    ]
   },
-  "farmrio": {
-   "count": 20,
-   "examples": [
-    "Black Suede Heeled Ankle Boot",
-    "Black Thong Jelly Kitten Heel",
-    "Brown Fringes Suede Desert Boot",
-    "Brown Soft Suede Boot",
-    "Brown Suede Bamboo Bootie"
-   ],
-   "titles": [
-    "Black Suede Heeled Ankle Boot",
-    "Black Thong Jelly Kitten Heel",
-    "Brown Fringes Suede Desert Boot",
-    "Brown Soft Suede Boot",
-    "Brown Suede Bamboo Bootie",
-    "Brown Suede Embroidered Bootie",
-    "Brwon Harness Embossed Boot",
-    "Butter Yellow Monstera Rain Chelsea Boot",
-    "Distressed Leather Boot",
-    "Flower Belt Kitten Boot",
-    "Forest Green Monstera Rain Chelsea Boot",
-    "Off-White Suede Heeled Ankle Boot",
-    "Off-White Thong Jelly Kitten Heel",
-    "Pouch Kitten Bootie",
-    "Shell Kitten Heel",
-    "Slouchy Beads Bootie",
-    "Spring Flat Sandal",
-    "Spring Kitten Heel",
-    "Suede Riding Boot",
-    "Trekking Boots"
-   ]
-  },
   "tennisexpress": {
    "count": 17,
+   "pullLacked": "variant-truth: product pages gone (HTTP 404) or one-size",
    "examples": [
     "Junior's B.Icon 2 Tennis Shoes Blue Corsair and White 1.5Y",
     "Men's Adizero Ubersonic 5 Tennis Shoes Flash Aqua and Core Black",
@@ -3310,34 +3249,9 @@
     "Women's Vomero 18 Running Shoes Hot Lava and Black"
    ]
   },
-  "johannaortiz": {
-   "count": 14,
-   "examples": [
-    "Alma Latina Boot",
-    "Country Boho Boot",
-    "Delhi Dunes Heels in Gold & Black",
-    "Fertile Crescent Boots in Chocolate",
-    "Fortune Rider Boot"
-   ],
-   "titles": [
-    "Alma Latina Boot",
-    "Country Boho Boot",
-    "Delhi Dunes Heels in Gold & Black",
-    "Fertile Crescent Boots in Chocolate",
-    "Fortune Rider Boot",
-    "Freedom Step Boot",
-    "Fuerza Latina Boot",
-    "Journey To The East Boots in Paprika",
-    "Sevilla Heel",
-    "Swing Rebel Heel",
-    "The Enchanted Threshold Boot",
-    "Tropical Vibration Boot",
-    "Western  Legacy Boot",
-    "Western Legacy Boot"
-   ]
-  },
   "carolinaherrera": {
    "count": 11,
+   "pullLacked": "the 2026-10-27 pull's JSON-LD carries no size run; gallery repull photos only",
    "examples": [
     "Cylinder-Heel Patent Leather Pumps",
     "Floral-Embroidered Slingback Pumps",
@@ -3361,6 +3275,7 @@
   },
   "pacsun": {
    "count": 10,
+   "pullLacked": "variant units (SKU, URL, stock) without their size labels (data/pull-wave-2026-11-03/pacsun/REPORT.md)",
    "examples": [
     "Arizona Corduroy Sandals Midnight",
     "Arizona Sandal Black",
@@ -3383,6 +3298,7 @@
   },
   "surfstation": {
    "count": 9,
+   "pullLacked": "the store feed lists these with every size sold out, or with no size axis (\"Default Title\")",
    "examples": [
     "Cobian Draino III Men's Sandal - Tan",
     "Her Waves Slide Print",
@@ -3402,8 +3318,28 @@
     "Reef The Groundswell Men's Sandals - Tan"
    ]
   },
+  "farmrio": {
+   "count": 6,
+   "pullLacked": "the store feed lists these with every size sold out, or does not hold their handle",
+   "examples": [
+    "Brown Fringes Suede Desert Boot",
+    "Brown Soft Suede Boot",
+    "Brwon Harness Embossed Boot",
+    "Distressed Leather Boot",
+    "Off-White Suede Heeled Ankle Boot"
+   ],
+   "titles": [
+    "Brown Fringes Suede Desert Boot",
+    "Brown Soft Suede Boot",
+    "Brwon Harness Embossed Boot",
+    "Distressed Leather Boot",
+    "Off-White Suede Heeled Ankle Boot",
+    "Slouchy Beads Bootie"
+   ]
+  },
   "crocs": {
    "count": 5,
+   "pullLacked": "variant-truth: page fetched, no size variation data",
    "examples": [
     "Kids'  My Melody Classic Clog - Multi",
     "Kids' Classic Animal Glitter Clog - Almond Tint/Leopard",
@@ -3419,8 +3355,27 @@
     "Toddler Crocband™ Cruiser Glow Confetti Band Sandal - Summit White/Guava"
    ]
   },
+  "johannaortiz": {
+   "count": 5,
+   "pullLacked": "the store feed lists these with every size sold out, or does not hold their handle",
+   "examples": [
+    "Delhi Dunes Heels in Gold & Black",
+    "Fertile Crescent Boots in Chocolate",
+    "Freedom Step Boot",
+    "Journey To The East Boots in Paprika",
+    "Swing Rebel Heel"
+   ],
+   "titles": [
+    "Delhi Dunes Heels in Gold & Black",
+    "Fertile Crescent Boots in Chocolate",
+    "Freedom Step Boot",
+    "Journey To The East Boots in Paprika",
+    "Swing Rebel Heel"
+   ]
+  },
   "miumiu": {
    "count": 5,
+   "pullLacked": "catalogue rows carry no size field; gallery repull photos only",
    "examples": [
     "Leather sneaker mules",
     "New Balance X Miu Miu 530 SL bleached suede sneaker mules",
@@ -3438,6 +3393,7 @@
   },
   "prosoccer": {
    "count": 5,
+   "pullLacked": "catalogue rows carry no size field; variant-truth: one-size or not checked",
    "examples": [
     "adidas Copa Gloro II FG",
     "adidas JR F50 Messi League Turf Soccer Shoes - Messi Aurora Radiante Pack (SP26)",
@@ -3455,6 +3411,7 @@
   },
   "xtremesoccer": {
    "count": 5,
+   "pullLacked": "catalogue rows carry no size field; no raw pull held",
    "examples": [
     "adidas Copa Pure 2 League",
     "adidas Copa Pure 3 Club",
@@ -3472,6 +3429,7 @@
   },
   "hottopic": {
    "count": 4,
+   "pullLacked": "catalogue rows carry no size field; gallery repull photos only",
    "examples": [
     "Invader Zim GIR Stripe Hi-Top Sneakers",
     "Koi Black Halcyon Heel Boots",
@@ -3483,38 +3441,11 @@
     "Koi Black Halcyon Heel Boots",
     "Kuromi Stud Clog Slippers",
     "White Pouch Lace-Up Platform Boots"
-   ]
-  },
-  "vix": {
-   "count": 4,
-   "examples": [
-    "Becca Espadrilles - Natural",
-    "Flip Flop - Military",
-    "June Flip Flops - Black",
-    "Pam Flip Flops (Exchange Only) - Paradox"
-   ],
-   "titles": [
-    "Becca Espadrilles - Natural",
-    "Flip Flop - Military",
-    "June Flip Flops - Black",
-    "Pam Flip Flops (Exchange Only) - Paradox"
-   ]
-  },
-  "patbo": {
-   "count": 3,
-   "examples": [
-    "Bibi Jewelry Sandal",
-    "BIBI JEWELRY SANDAL",
-    "Iara Jewelry Sandal"
-   ],
-   "titles": [
-    "Bibi Jewelry Sandal",
-    "BIBI JEWELRY SANDAL",
-    "Iara Jewelry Sandal"
    ]
   },
   "bananarepublic": {
    "count": 2,
+   "pullLacked": "catalogue rows carry no size field; no raw pull held",
    "examples": [
     "Edouard Lug Derby Shoe By Jacques Solovière",
     "Slim Loafer by Jacques Solovière"
@@ -3526,6 +3457,7 @@
   },
   "islandwatersports": {
    "count": 2,
+   "pullLacked": "the store feed lists no size axis (\"Default Title\")",
    "examples": [
     "Little Kid Reef Cuddler Slipper",
     "Vans Authentic 44 Dx Black 6"
@@ -3537,6 +3469,7 @@
   },
   "macys": {
    "count": 2,
+   "pullLacked": "catalogue rows carry no size field; no colourway run for these listings",
    "examples": [
     "740 Casual Sneakers from Finish Line",
     "Women's Court Vision Low Next Nature Casual Sneakers from Finish Line"
@@ -3548,24 +3481,17 @@
   },
   "hollister": {
    "count": 1,
+   "pullLacked": "catalogue row carries no size field; gallery repull photos only",
    "examples": [
     "Rubber Logo Flip Flops"
    ],
    "titles": [
     "Rubber Logo Flip Flops"
-   ]
-  },
-  "montce": {
-   "count": 1,
-   "examples": [
-    "Slim Square Logo Metallic Flip Flops (Black)"
-   ],
-   "titles": [
-    "Slim Square Logo Metallic Flip Flops (Black)"
    ]
   },
   "newbalance": {
    "count": 1,
+   "pullLacked": "catalogue row carries no size field; no raw pull held",
    "examples": [
     "200 N"
    ],
@@ -3575,6 +3501,7 @@
   },
   "revzilla": {
    "count": 1,
+   "pullLacked": "catalogue row carries no size field; no raw pull held",
    "examples": [
     "TCX Dartwood WP Shoes"
    ],
@@ -3584,11 +3511,22 @@
   },
   "snipes": {
    "count": 1,
+   "pullLacked": "the 2026-10-27 pull's JSON-LD carries no size run",
    "examples": [
     "Pre-School Field Boot"
    ],
    "titles": [
     "Pre-School Field Boot"
+   ]
+  },
+  "vix": {
+   "count": 1,
+   "pullLacked": "the store feed lists it with every size sold out",
+   "examples": [
+    "Flip Flop - Military"
+   ],
+   "titles": [
+    "Flip Flop - Military"
    ]
   }
  },

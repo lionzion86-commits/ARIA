@@ -56,6 +56,21 @@ export function catalogueListings(root = ROOT) {
   return out;
 }
 
+/* A size run is kept when a catalogue listing of that store names its
+   product by handle (/products/<handle>). */
+export function anchoredSizeRuns(runs, listings, store) {
+  if (!Array.isArray(runs) || !runs.length) return [];
+  if (!listings) return runs;
+  const handles = new Set();
+  const r = String(store || "").toLowerCase();
+  for (const l of listings) {
+    if (String(l.retailer || "").toLowerCase() !== r) continue;
+    const h = /\/products\/([^\/?#]+)/i.exec(String(l.url || ""));
+    if (h) handles.add(decodeURIComponent(h[1]).toLowerCase());
+  }
+  return runs.filter((x) => handles.has(x.h));
+}
+
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
 
@@ -81,8 +96,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     mkdirSync(dir, { recursive: true });
     const families = listings ? anchoredFamilies(r.families, listings) : r.families;
     console.log("  kept " + families.length + " of " + r.families.length + " families (a member in our catalogue)");
+    /* The store's own size runs (parseShopifyFamilies shopifySizeRuns):
+       only the products a catalogue listing names by handle. */
+    const runs = anchoredSizeRuns(r.sizeRuns, listings, store);
+    if (r.sizeRuns) console.log("  kept " + runs.length + " of " + r.sizeRuns.length + " size runs (a listing in our catalogue)");
     const out = join(dir, store + ".json");
-    if (!families.length) { if (existsSync(out)) writeFileSync(out, JSON.stringify({ source: "variant pull: " + r.files.join(", "), stats: r.stats, families: [] })); continue; }
-    writeFileSync(out, JSON.stringify({ source: "variant pull: " + r.files.join(", "), stats: { ...r.stats, keptFamilies: families.length }, families }));
+    const extra = runs.length ? { sizeRuns: runs } : {};
+    if (!families.length && !runs.length) { if (existsSync(out)) writeFileSync(out, JSON.stringify({ source: "variant pull: " + r.files.join(", "), stats: r.stats, families: [] })); continue; }
+    writeFileSync(out, JSON.stringify({ source: "variant pull: " + r.files.join(", "), stats: { ...r.stats, keptFamilies: families.length, ...(runs.length ? { keptSizeRuns: runs.length } : {}) }, families, ...extra }));
   }
 }

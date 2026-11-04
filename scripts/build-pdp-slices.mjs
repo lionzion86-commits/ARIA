@@ -69,7 +69,7 @@ import { liftDeclarations } from "./lib/page-lift.mjs";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { variantIdOf, groupColourways, beautyShade, shadeListing, listingShade, HAIR_COLOUR } from "./lib/variants.mjs";
 import { kindOf as shadeKindOf } from "./lib/shade-gate.js";
-import { loadFamilies, applyFamilies } from "./lib/variant-families.mjs";
+import { loadFamilies, applyFamilies, loadSizeRuns, sizeRunFor } from "./lib/variant-families.mjs";
 import { isShoeForDept } from "./lib/footwear.js";
 import { sizesPendingKey } from "./lib/sizes-pending.js";
 
@@ -195,7 +195,7 @@ function storeTypes(raw) {
 }
 /* families / sourceFilesOverride: tests build a page's data from
    fixtures ({ "/file.json": envelope }) through this same code. */
-export function buildRecords(P, root = ROOT, families = null, sourceFilesOverride = null) {
+export function buildRecords(P, root = ROOT, families = null, sourceFilesOverride = null, sizeRuns = null) {
   const byKey = new Map();          // norm(title) -> [{ rec, json, src: [[file, pos]] }]
   const byRetailer = new Map();     // retailer -> [normalised items], file order
   const shoes = new Map();          // retailer::name -> { retailer, name, brand, sized }
@@ -215,6 +215,10 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
       all.push({ f, pos, it });
     });
   }
+  /* Each listing's own store run (applyStoreSizeRun, below) before the
+     families read the listings' sizes. */
+  const runs = sizeRuns || (sourceFilesOverride ? new Map() : loadSizeRuns(root));
+  for (const { it } of all) applyStoreSizeRun(P, it, runs);
   /* Colourway groups, one listing per id (the same listing can sit in two
      files), in file order. */
   const firstByV = new Map();
@@ -245,6 +249,11 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
      Never a guessed size. Decided here, where every record the product
      pages read is built, so no store can ship sizeless shoes again: when
      a size pass lands, the record has sizes and the flag stays off. */
+  /* THE STORE'S OWN RUN FIRST (#443 c.6644778221): a shoe whose own
+     product feed lists its sizes (scripts/data/variant-families/<store>.json
+     sizeRuns, scripts/lib/variant-families.mjs shopifySizeRuns) takes that
+     run before the rule below looks for one. Fixtures pass their own. */
+  for (const { it } of all) applyStoreSizeRun(P, it, runs);
   for (const it of firstByV.values()) markShoeSizesPending(P, it);
   for (const { it } of all) markShoeSizesPending(P, it);
   const titleGrouping = groupColourways([...firstByV.values()].filter((it) => !fams.assign.has(it.__v))
@@ -307,10 +316,11 @@ export function buildRecords(P, root = ROOT, families = null, sourceFilesOverrid
     delete it.__v;
     if (it.__shoe) {
       const sk = it.retailer + "::" + it.name;
-      if (!shoes.has(sk)) shoes.set(sk, { retailer: it.retailer, name: it.name, brand: it.brand || "", sized: it.__shoe === true });
-      else if (it.__shoe === true) shoes.get(sk).sized = true;
+      if (!shoes.has(sk)) shoes.set(sk, { retailer: it.retailer, name: it.name, brand: it.brand || "", sized: it.__shoe === true, feed: it.__run === true });
+      else if (it.__shoe === true) { shoes.get(sk).sized = true; if (it.__run === true) shoes.get(sk).feed = true; }
     }
     delete it.__shoe;
+    delete it.__run;
     const rec = recordOf(it);
     const json = stableJson(rec);
     let cands = byKey.get(key);
@@ -334,6 +344,28 @@ export const NOT_A_SHOE_RX = /\b(eau de (parfum|toilette)|perfumes?|lip tint|lip
 const ACCESSORY_RX = /\b(pouch|sprays?|shine|refresh|diffuser|cleaning kit|clean kit|care kit|cleaner|conditioner|patch|puck set|mitts|backpack|carry on|daypack|pants)\b|^right pack$/i;
 const ENDS_ON_SHOE_RX = /\b(shoes?|sneakers?|boots?|booties?|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|heels?|clogs?|slippers?|mules?|flats|pumps?|trainers?)\s*(\([^)]*\)|-[^-]*)?\s*$/i;
 const notAShoe = (name) => NOT_A_SHOE_RX.test(name) || (ACCESSORY_RX.test(name) && !ENDS_ON_SHOE_RX.test(name));
+/* A shoe with no size list of its own takes the run its store's product
+   feed lists for that very product (by handle; by ?variant= for a colour
+   of a multi-colour product). Only a shoe, only an unsized listing, and
+   only the store's own values: in stock as `sizes`, the sold-out rest as
+   `sizesOut`. */
+export function applyStoreSizeRun(P, it, runs) {
+  if (!it || !runs || !runs.size || it.__run !== undefined) return;
+  it.__run = false;
+  if (P.truthfulSizes(it.sizes).length || (Array.isArray(it.sizesOut) && it.sizesOut.length)) return;
+  if (notAShoe(String(it.name || "")) || !isShoeForDept({ name: it.name, type: it.__type || it.type || "" }, it.retailer)) return;
+  const run = sizeRunFor(runs, it.retailer, it.url);
+  if (!run) return;
+  const sizes = P.truthfulSizes(run.sizes);
+  if (!sizes.length) return;
+  it.sizes = sizes;
+  const out = Array.isArray(run.sizesOut) ? run.sizesOut.filter((z) => typeof z === "string" && z.trim() && !sizes.includes(z)) : [];
+  if (out.length) it.sizesOut = out;
+  it.sizesTier = "scrape";
+  it.sizesSource = run.source;
+  it.sizesPending = false;
+  it.__run = true;
+}
 export function markShoeSizesPending(P, it) {
   if (!it || it.__shoe !== undefined) return;
   if (notAShoe(String(it.name || "")) || !isShoeForDept({ name: it.name, type: it.__type || it.type || "" }, it.retailer)) { it.__shoe = false; return; }
@@ -504,6 +536,42 @@ export function ofertasRows(P, root = ROOT) {
    name some listing of that store sells in sizes is not on the list
    (the order line carries the size it was bought in). */
 export const SHOES_REPORT = "reports/shoes-sizes-pending-2026-11-04.json";
+/* What each store's pull lacks, measured 2026-11-04 (#443 c.6644778221,
+   the per-store size accounting): every catalogue file, data/ pull wave,
+   reports/ file and every git branch's copy was searched for a size,
+   variant, option or attribute field and for size text. */
+export const SIZE_GAPS = {
+  ssense: "catalogue rows carry no size field; data/gallery-repull-2026-10-30/ssense.json is photos only; variant-truth (data/variant-truth-2026-10-18) has no run for these titles",
+  kohls: "data/colorways-2026-11-01/dataset-kohls.json 'variations' names the axis only (\"SizeAndColor\", \"Size\"), never a size value; gallery repull photos only; sizes-wave-urls holds URL lists that were never pulled",
+  walmart: "catalogue and department cache carry no size field; gallery repull photos only; variant-truth: product pages bot-walled (\"Robot or human?\")",
+  dicks: "no size field in any of the six versions of dicks-catalog.json in git (232 and 572 rows); variant-truth: pages bot-walled (HTTP 403); sizes-wave-urls/dicks-live-urls.txt is 211 URLs never pulled",
+  zumiez: "data/colorways-2026-11-01/dataset-zumiez.json (Magento listing) has sku, name, price and categories, no configurable options",
+  tenniswarehouse: "the 2026-11-01 sweep's availableSizes holds the label only (\"US Women's Shoe Size:\") or nothing; 45 rows carry one spec value (\"us women's shoe size: 6.0\"), not a run",
+  dsw: "the 2026-11-01 delivery (apify/e-commerce-scraping-tool) has sizeSource \"none\" and an empty availableSizes on all 171 rows, no variants, no size text; the 2026-11-03 re-pull was stopped by DataDome (data/pull-wave-2026-11-03/dsw/REPORT.md)",
+  jwpei: "catalogue rows carry no size field; no raw pull held",
+  revolve: "catalogue rows carry no size field; no raw pull held",
+  academy: "catalogue rows carry no size field; gallery repull photos only; variant-truth: pages bot-walled",
+  farfetch: "catalogue rows carry no size field; no raw pull held",
+  tennisexpress: "variant-truth: product pages gone (HTTP 404) or one-size",
+  carolinaherrera: "the 2026-10-27 pull's JSON-LD carries no size run; gallery repull photos only",
+  pacsun: "variant units (SKU, URL, stock) without their size labels (data/pull-wave-2026-11-03/pacsun/REPORT.md)",
+  surfstation: "the store feed lists these with every size sold out, or with no size axis (\"Default Title\")",
+  farmrio: "the store feed lists these with every size sold out, or does not hold their handle",
+  johannaortiz: "the store feed lists these with every size sold out, or does not hold their handle",
+  vix: "the store feed lists it with every size sold out",
+  crocs: "variant-truth: page fetched, no size variation data",
+  miumiu: "catalogue rows carry no size field; gallery repull photos only",
+  islandwatersports: "the store feed lists no size axis (\"Default Title\")",
+  prosoccer: "catalogue rows carry no size field; variant-truth: one-size or not checked",
+  xtremesoccer: "catalogue rows carry no size field; no raw pull held",
+  hottopic: "catalogue rows carry no size field; gallery repull photos only",
+  macys: "catalogue rows carry no size field; no colourway run for these listings",
+  bananarepublic: "catalogue rows carry no size field; no raw pull held",
+  hollister: "catalogue row carries no size field; gallery repull photos only",
+  newbalance: "catalogue row carries no size field; no raw pull held",
+  revzilla: "catalogue row carries no size field; no raw pull held",
+  snipes: "the 2026-10-27 pull's JSON-LD carries no size run",
+};
 /* Every shoe's "<retailer>::<title>" as an FNV-1a hex, per store: which
    card on a store page is a shoe, for scripts/test/shoe-first-click-tests.mjs. */
 export function shoeHash(retailer, name) {
@@ -518,7 +586,7 @@ function writeShoesSizesPending(shoes) {
     const b = byStore[s.retailer] || (byStore[s.retailer] = { shoes: 0, sized: 0, sizesPending: 0, offSale: isOffSaleRetailer(s.retailer) || undefined });
     b.shoes++;
     (hashes[s.retailer] || (hashes[s.retailer] = [])).push(shoeHash(s.retailer, s.name));
-    if (s.sized) { b.sized++; continue; }
+    if (s.sized) { b.sized++; if (s.feed) b.fromStoreFeed = (b.fromStoreFeed || 0) + 1; continue; }
     b.sizesPending++;
     keys.add(sizesPendingKey(s.retailer, s.name));
     const c = cannot[s.retailer] || (cannot[s.retailer] = { count: 0, titles: [] });
@@ -531,10 +599,10 @@ function writeShoesSizesPending(shoes) {
     "export const SHOES_SIZES_PENDING = " + JSON.stringify([...keys].sort()) + ";\n");
   const order = Object.keys(cannot).sort((a, b) => cannot[b].count - cannot[a].count || a.localeCompare(b));
   writeFileSync(join(ROOT, SHOES_REPORT), JSON.stringify({
-    note: "Shoes whose store's size data was never captured in any source we hold (catalogue pulls, data/ pull waves, reports/, git history). Shown with «Tallas por confirmar», never sold sizeless, never given invented sizes. Built by scripts/build-pdp-slices.mjs.",
+    note: "Shoes whose store's size data was never captured in any source we hold (catalogue pulls, data/ pull waves, reports/, git history). Shown with «Tallas por confirmar», never sold sizeless, never given invented sizes. fromStoreFeed: shoes whose run comes from the store's own product feed (scripts/data/variant-families/<store>.json sizeRuns). pullLacked: what the pull we hold is missing. Built by scripts/build-pdp-slices.mjs.",
     totals: { shoes: shoes.size, sized: [...shoes.values()].filter((s) => s.sized).length, sizesPending: keys.size },
     footwearByStore: Object.fromEntries(Object.keys(byStore).sort().map((k) => [k, byStore[k]])),
-    cannotRestore: Object.fromEntries(order.map((k) => [k, { offSale: isOffSaleRetailer(k) || undefined, count: cannot[k].count, examples: cannot[k].examples, titles: cannot[k].titles }])),
+    cannotRestore: Object.fromEntries(order.map((k) => [k, { offSale: isOffSaleRetailer(k) || undefined, count: cannot[k].count, pullLacked: SIZE_GAPS[k] || undefined, examples: cannot[k].examples, titles: cannot[k].titles }])),
     shoeHashes: Object.fromEntries(Object.keys(hashes).sort().map((k) => [k, hashes[k].sort().join(" ")])),
   }, null, 1) + "\n");
 }
