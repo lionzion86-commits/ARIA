@@ -28,11 +28,14 @@ const ROOT = fileURLToPath(new URL("../", import.meta.url));
    cards, photo heroes, navy bands and themed pages (flagship stores, the
    perfume room) keep their own backgrounds: the field rule carries no
    !important and is weaker than any class-scoped background. */
-export const PAGES = ["index.html", "ofertas.html", "tienda.html", "departamento.html", "categorias.html", "tiendas.html", "search.html", "marca.html", "motos.html", "auto.html"];
+export const PAGES = ["index.html", "ofertas.html", "tienda.html", "departamento.html", "categorias.html", "tiendas.html", "search.html", "marca.html", "motos.html", "auto.html", "aria-auto.html", "disenadores.html", "ropa-interior.html"];
 const FIELD_SEL = "html body";
 /* Danny named the perfume room too: its cream field (body.lux-perfumes)
    takes the mosaic; its dark photo hero stays. */
 const FIELD_EXTRA = { "departamento.html": ",html body.lux-perfumes" };
+/* Ropa Interior keeps its dark body and Hombre room (navy stays navy);
+   the Mujer room's pale-pink field is the one that takes the mosaic. */
+const FIELD_OWN = { "ropa-interior.html": "html body .sec-w" };
 /* Navy ink for what now sits on the mosaic (the #659/#662 treatment):
    muted grey turns slate navy, small blue links turn a deeper blue, the
    gold word in a page title turns dark champagne. Scoped "html body ..."
@@ -59,6 +62,11 @@ ${on(".rail-ver,.site-footer a")}{color:${LINK}}`,
   "search.html": LISTING,
   "marca.html": LISTING,
   "auto.html": `${on(".note")}{color:${MUTE}}`,
+  "aria-auto.html": `${on(".aa-sub")}{color:${MUTE}}
+${on(".aa-sec h2 a")}{color:#8A4B00}`,
+  "disenadores.html": `${on(".soon>p")}{color:${MUTE}}`,
+  /* The Mujer room keeps its plum palette: its muted ink just deepens. */
+  "ropa-interior.html": `${on(".sec-w .axis h3,.sec-w .rail-head .sub,.sec-w .explore .lead,.sec-w .count,.sec-w .state")}{color:#4A2236}`,
 };
 export const GROUT = "#CEDAE8";
 export const TILES = ["#C4D4E6", "#D2E0F0", "#B2C6E0", "#DEE9F6", "#BCCEE8", "#A8BEDC", "#E9F0F8", "#C8D6EA"];
@@ -128,7 +136,7 @@ export function mosaicCss(page) {
   return `/* aria-mosaic:start -- written by scripts/build-mosaic.mjs; do not edit by hand */\n` +
     `:root{--aria-mosaic:${mosaicDataUris().map((u) => `url("${u}")`).join(",")}}\n` +
     `.ariaMosaic{background-color:${GROUT} !important;background-image:var(--aria-mosaic) !important;background-repeat:repeat !important;background-size:${sizes} !important;background-position:0 0 !important}\n` +
-    (ink != null ? `${FIELD_SEL}${FIELD_EXTRA[page] || ""}{background-color:${GROUT};background-image:var(--aria-mosaic);background-repeat:repeat;background-size:${sizes};background-position:0 0}\n` + (ink ? ink.trim() + "\n" : "") : "") +
+    (ink != null ? `${FIELD_OWN[page] || FIELD_SEL}${FIELD_EXTRA[page] || ""}{background-color:${GROUT};background-image:var(--aria-mosaic);background-repeat:repeat;background-size:${sizes};background-position:0 0}\n` + (ink ? ink.trim() + "\n" : "") : "") +
     `/* aria-mosaic:end */`;
 }
 
