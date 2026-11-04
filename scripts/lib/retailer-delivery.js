@@ -27,6 +27,8 @@
    identical — edit here, then mirror there.
    ============================================================ */
 
+import { widenDelivery } from "./store-carrier.js";
+
 export const MIAMI_TO_DOOR_MIN = 2;
 export const MIAMI_TO_DOOR_MAX = 7;
 
@@ -88,8 +90,18 @@ export const RETAILER_DELIVERY = {
   madewell:   { miamiMin: 3, miamiMax: 7, tier: "yellow" },
 };
 
-export function deliveryFor(key) {
+/* THE WIDENED WINDOW (#443 c.6612459871, Danny, 2026-11-03): for a store
+   that ships USPS (or may -- /store-carrier.js, from the carrier matrix),
+   every displayed store -> Miami window ends WIDEN_DAYS (5) later than the
+   store quotes: USPS holds packages and drops them in batches. The table
+   above stays the store's own quote (index.html's bundle mirrors it);
+   deliveryFor is what every surface displays. quotedDeliveryFor is the raw
+   row. */
+export function quotedDeliveryFor(key) {
   return RETAILER_DELIVERY[String(key || "").toLowerCase()] || null;
+}
+export function deliveryFor(key) {
+  return widenDelivery(String(key || "").toLowerCase(), quotedDeliveryFor(key));
 }
 
 /* "2–5 días" · "2 días" · "hasta 7 días" · "7–30+ días" */

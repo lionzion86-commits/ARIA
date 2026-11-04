@@ -137,12 +137,14 @@ check("the expanded card on the homepage carries the line", () => {
 
 check("checkout: one group per store with its meter, its own row in the total; orders-create charges the same", () => {
   const co = read("checkout.html");
-  assert.match(co, /const shipping = cartShipping\(cart\)\.totalUsd;/);
+  /* with the customer's pick among a USPS-exposed store's tiers (#443 c.6612548967) */
+  assert.match(co, /const shipping = cartShippingNow\(\)\.totalUsd;/);
+  assert.match(co, /function cartShippingNow\(\)\{ return cartShipping\(cart, undefined, \{ tiers: cartShipTiers\(\) \}\); \}/);
   assert.match(co, /totalUsd: round2\(goods \+ freight \+ tax \+ shipping\)/);
   assert.match(co, /id="storeShipPanel"/);
   assert.match(co, /storeShippingUsd: orderTotalsUsd\(\)\.shipping,/);
   const oc = read("netlify/functions/orders-create.js");
-  assert.match(oc, /const storeShipping = cartShipping\(items\);/);
+  assert.match(oc, /const storeShipping = cartShipping\(items, undefined, \{ tiers: storeShippingTiers \}\);/);
   assert.match(oc, /priceUsdTotal \+ freightUsdQuoted \+ taxEstimatedUsd \+ storeShippingUsd/);
 });
 

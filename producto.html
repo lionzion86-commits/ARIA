@@ -159,6 +159,10 @@ footer a{color:#fff}
 .p-ship-meter{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:8px}
 .p-ship-meter i{display:block;height:100%;background:var(--navy);border-radius:999px}
 .p-ship-meter.met i{background:#1F8A4C}
+.p-usps{margin-top:10px;padding:10px 12px;border-radius:12px;background:#FFF7E6;border:1px solid #F4C463;color:var(--navy);font-size:12.5px;line-height:1.45;font-weight:600}
+.p-usps p{margin:0}
+.p-usps p+p{margin-top:6px}
+.p-usps .p-usps-window{font-weight:800}
 </style>
 <script src="/ref.js"></script>
 <script src="sale-rule.js"></script>
@@ -170,6 +174,8 @@ footer a{color:#fff}
 <script src="/vuelve-pronto.js"></script>
 <script src="/condition.js"></script>
 <script src="/not-sold.js"></script>
+<script src="/store-carrier-data.js"></script>
+<script src="/store-carrier.js"></script>
 <script src="/store-shipping.js"></script>
 <!-- META + TIKTOK PIXELS (#415): the IDs and the events live in assets/js/pixels.js. -->
 <script>window.ariaTrack=window.ariaTrack||function(){(ariaTrack.q=ariaTrack.q||[]).push(arguments)};</script>
@@ -646,6 +652,21 @@ function shipBoxHtml(p){
   }
   html += '<div class="p-tax-note">Lo cobra ' + esc(label) + ' por enviar a nuestro almacén en Miami; se calcula por tienda, aparte de los impuestos.</div>';
   return '<div id="p-ship" class="p-tax">' + html + '</div>';
+}
+/* USPS EXPOSURE (#443 c.6612459871, Danny): a store that ships USPS (or may)
+   says so on its product page BEFORE the buy, in Danny's exact words
+   (/store-carrier.js), with the store -> Miami window already widened. No
+   alert for a non-USPS or not-yet-verified store. */
+function carrierAlertHtml(p){
+  var C = window.AriaStoreCarrier;
+  if (!C) return '';
+  var lines = C.alertLines(p.retailer);
+  if (!lines.length) return '';
+  var win = C.windowLineEs(p.retailer);
+  return '<div id="p-usps" class="p-usps" data-usps-alert="' + esc(C.classOf(p.retailer)) + '">'
+    + lines.map(function(l){ return '<p>' + esc(l) + '</p>'; }).join('')
+    + (win ? '<p class="p-usps-window" data-usps-window>' + esc(win) + '</p>' : '')
+    + '</div>';
 }
 function refreshShipBox(p){
   var el = document.getElementById('p-ship');
@@ -1136,6 +1157,7 @@ function render(p, swapping){
   if (!isOffSaleProduct(p)) priceHtml += variantBoxHtml(p) + shadeGateHtml(p);
   /* The store's shipping first, then the import-tax estimate (#439), then the weight. */
   priceHtml += shipBoxHtml(p);
+  priceHtml += carrierAlertHtml(p);
   priceHtml += '<div id="p-tax" class="p-tax">' + taxLineHtml(p) + '</div>';
   priceHtml += '<div id="p-weight" class="p-tax">' + weightRowHtml() + '</div>';
   /* OFF SALE (#443, /off-sale.js): the record stays, the sale does not --

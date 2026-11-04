@@ -32,6 +32,9 @@ import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-tim
 import { randomBytes } from "node:crypto";
 import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE, dutiableBaseUsd } from "../../weight-data.js";
 import { cartShipping } from "../../scripts/lib/store-shipping.js";
+/* USPS EXPOSURE (#443 c.6612459871 + c.6612548967): the customer's pick among a
+   USPS-exposed store's own paid tiers, and the buyer-desk record of it. */
+import { sanitizeCarrierTiers, carrierOrderChoice } from "../../scripts/lib/store-carrier.js";
 /* ARIA'S OWN DELIVERY FEE (#443 c.6560848572): S/ 1 per store checkout,
    the same module checkout.html shows it from. */
 import { buyerFeePen, storeCheckoutCount, BUYER_FEE_PEN_PER_STORE } from "../../scripts/lib/buyer-fee.js";
@@ -382,7 +385,11 @@ async function createOrderHandler(event) {
     const taxEstimatedUsd = importTaxEstimateUsd(dutiableUsdTotal, freightUsdQuoted);
     /* EACH STORE'S OWN SHIPPING TO MIAMI (#443 c.6511807569): the same rule
        and the same figure checkout shows, from the verified lines. */
-    const storeShipping = cartShipping(items);
+    /* THE CUSTOMER'S SHIPPING TIER PER STORE (#443 c.6612548967): only a
+       group-1 store's own tiers are accepted; the price is the matrix's, read
+       here -- never a figure the browser sent. */
+    const storeShippingTiers = sanitizeCarrierTiers(body.storeShippingTiers);
+    const storeShipping = cartShipping(items, undefined, { tiers: storeShippingTiers });
     const storeShippingUsd = storeShipping.totalUsd;
     const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd + storeShippingUsd) * 100) / 100;
     /* ARIA'S OWN DELIVERY FEE (#443 c.6560848572, Danny): S/ 1 per store
@@ -532,7 +539,13 @@ async function createOrderHandler(event) {
       fxRateUsed: fxRateVenta,
       freteChargedUsd: freightUsdQuoted,
       storeShippingUsd,
-      storeShipping: storeShipping.stores.filter((st) => st.rule).map((st) => ({ store: st.store, subtotalUsd: st.subtotalUsd, feeUsd: st.feeUsd })),
+      storeShipping: storeShipping.stores.filter((st) => st.rule || st.tierId).map((st) => ({ store: st.store, subtotalUsd: st.subtotalUsd, feeUsd: st.feeUsd, ...(st.tierId ? { tierId: st.tierId } : {}) })),
+      /* THE BUYER-DESK RULE, ON THE RECORD (#443 c.6612548967): for every
+         USPS-exposed store in the order, the shipping option the customer
+         chose, what Aria charged for it, and the instruction -- the buyer
+         selects exactly that tier at the store's checkout (Ancora: arranged
+         through its customer service, per the matrix). */
+      storeShippingChoices: storeShipping.stores.map((st) => carrierOrderChoice(st)).filter(Boolean),
       freteQuotedUsd: typeof quote.flete_usd === "number" ? quote.flete_usd : null,
       /* "Recibir todo junto" (free) or "Recibir cada paquete ni bien
          llegue" ($8, in soles at today's rate). */

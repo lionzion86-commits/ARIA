@@ -194,9 +194,14 @@ await check("\"Mejor precio\" sits on the one cheapest product; rows run by cost
 
 await check("\"Entrega más rápida\" only for a store genuinely faster, from the researched table", () => {
   assert.equal(core.fastestStore(["walmart", "costco"]), "walmart");       // 2-5 vs 5-7
-  assert.equal(core.fastestStore(["revolve", "macys", "dicks"]), "revolve"); // 2-2 vs 3-6
-  assert.equal(core.fastestStore(["walmart", "target"]), null);            // the same 2-5: a tie
-  assert.equal(core.fastestStore(["revolve", "sephora"]), null);           // 2-2 vs 1-3: sephora can be faster
+  /* Revolve ships USPS (#443 c.6612459871): its window shows widened, 2-7,
+     so Dick's 3-6 is not beaten -- no badge. Sephora 1-3 beats Dick's 3-6. */
+  assert.equal(core.fastestStore(["revolve", "macys", "dicks"]), null);
+  assert.equal(core.fastestStore(["sephora", "dicks"]), "sephora");      // 1-3 vs 3-6
+  /* Walmart (MIXED, USPS possible) shows 2-10 widened; Target, not on the
+     carrier matrix, keeps its 2-5. */
+  assert.equal(core.fastestStore(["walmart", "target"]), "target");
+  assert.equal(core.fastestStore(["revolve", "sephora"]), "sephora");      // 2-7 (USPS, widened) vs 1-3
   assert.equal(deliveryFor("zumiez"), null, "zumiez has researched days now: pick another store without data");
   assert.equal(core.fastestStore(["ccs", "zumiez"]), null);                // a store without data: no badge
   assert.equal(core.fastestStore(["yesstyle", "alphalete"]), null);        // 14-28 vs 7-30+: alphalete can be faster
