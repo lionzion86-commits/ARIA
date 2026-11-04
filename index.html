@@ -1686,6 +1686,7 @@ html{scroll-padding-top:76px}
 <script src="/assets/js/pixels.js" async></script>
 <!-- CARDS THAT FEEL ALIVE on every carousel (#443): grow on hover / phone center-focus. -->
 <script src="/assets/js/card-grow.js" defer></script>
+<script src="/assets/js/regresar.js" defer></script>
 <script src="/assets/js/card-photos.js" defer></script>
 <script src="/assets/js/carousel-desk.js" defer></script>
 <!-- TAILWIND, PREBUILT (2026-10-19, #417 iPhone QA): scripts/build-tailwind.mjs.
@@ -4207,9 +4208,10 @@ html{scroll-padding-top:76px}
      only real metadata. -->
 <div id="productView" class="view">
   <div class="max-w-[720px] mx-auto px-5 py-10">
-    <button onclick="goBack()" class="text-[13px] font-semibold mb-6 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
-      Volver
+    <!-- «← Regresar» (#443 c.6641939238): back to the carousel the card was tapped in, at the same spot (goBack walks the history; /assets/js/regresar.js puts the carousels back). -->
+    <button type="button" id="productViewBack" onclick="goBack()" data-rg-app class="mb-6 inline-flex items-center gap-1 focus-ring" style="height:40px;padding:0 16px;gap:6px;border-radius:999px;border:1px solid #D9E0EB;background:#fff;color:var(--navy);font-size:14px;font-weight:800;line-height:1;box-shadow:0 1px 2px rgba(10,31,68,.06)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
+      Regresar
     </button>
     <div class="bg-white border rounded-3xl p-6 sm:p-8" style="border-color:var(--line)">
       <div id="productViewBadge" class="mb-4"></div>
@@ -6598,7 +6600,7 @@ html{scroll-padding-top:76px}
 <script src="/store-shipping.js" defer></script>
 <script src="/fragrance.js" defer></script>
 <script src="/import-tax.js" defer></script>
-<script src="/build/app-3e1013ea3672a5cf.js" defer></script>
+<script src="/build/app-178e327d503e3f43.js" defer></script>
 <script src="/assets/js/store-rail-pills.js" defer></script>
 <script src="/assets/js/home-category-pills.js" defer></script>
 
