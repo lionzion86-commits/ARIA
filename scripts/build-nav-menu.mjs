@@ -62,6 +62,7 @@ import "../sale-rule.js";
 import { loadDept, typeKeyOf, inAudience, AUD, PERFUME_DOORS, filterList } from "../netlify/functions/_department-core.js";
 import { factKey, FACTS_FILE, U_CODES } from "../netlify/functions/_nav-filter-core.js";
 import { CAROUSELS } from "./build-home-category-pills.mjs";
+import { storeTypeFamily, deptSells } from "./lib/type-family.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const MENU_FILE = "assets/data/nav-menu.json";
@@ -82,8 +83,12 @@ export const BRANDS_DIR = "assets/data/nav-brands";
 const OWNED = {
   shoes: ["zapatos", "zapatillas", "sandalias", "tacones", "botas-y-botines", "mocasines-y-pantuflas", "chimpunes", "calzado"],
   purses: ["carteras", "bolso", "bolsos"],
-  sunglasses: ["lentes-de-sol"],
-  joyas_accesorios: ["joyas", "joyeria", "aretes", "collares-y-dijes", "anillos", "pulseras-y-tobilleras", "charms"],
+  /* «Lentes» is eyewear, never «Ropa» (it sat in Mujer's and Hombre's
+     Ropa columns), and a fashion department's «Accesorios» is the
+     accessories section's, not a garment (#443 c.6634907518). */
+  sunglasses: ["lentes-de-sol", "lentes"],
+  joyas_accesorios: ["joyas", "joyeria", "aretes", "collares-y-dijes", "anillos", "pulseras-y-tobilleras", "charms", "accesorios",
+    "billeteras", "correas", "guantes", "bufandas", "corbatas", "llaveros", "relojes", "accesorios-para-el-pelo", "broches-y-pines"],
   perfumes: ["fragancia", "perfumes"],
   lenceria: ["lenceria", "fajas-y-shapewear", "ropa-interior"],
 };
@@ -92,6 +97,8 @@ const OWNED_IN = new Set(["women", "men", "kids", "beauty"]);
 const ownerOf = (dept, tk, u) => {
   /* A fragrance is Aria Perfumes' wherever it is sold (Diseñador too). */
   if (tk === "fragancia" && dept !== "perfumes") return "perfumes";
+  /* His underwear in Tallas Plus is Ropa Interior Hombre's, never «Lencería». */
+  if (dept === "curvy" && u === "men" && (tk === "lenceria" || tk === "ropa-interior")) return "interior_hombre";
   if (!OWNED_IN.has(dept)) return "";
   const o = OWNER_OF.get(tk) || "";
   return o === "lenceria" && (u === "men" || dept === "men") ? "interior_hombre" : o;
@@ -229,6 +236,7 @@ export function buildMenu(root = ROOT) {
   const dept = (k) => { if (!cache.has(k)) { const d = loadDept(k, [root]); cache.set(k, d ? { ...d, list: d.list.filter((p) => p.image) } : null); } return cache.get(k); };
   const size = (k) => (dept(k) ? dept(k).list.length : 0);
   const notes = [];
+  const misfiled = [];
   const riCache = {};
   const sectionName = (s) => (pages[s] && pages[s].name) || (reg[s] && reg[s].name) || s;
 
@@ -241,6 +249,10 @@ export function buildMenu(root = ROOT) {
       if (u && !inAudience(p, u)) continue;
       const t = typeKeyOf(p);
       if (t.k === "otros") continue;
+      /* A type the department does not sell is never its leaf (the
+         classifier keeps such products out; this is the backstop). */
+      const fam = storeTypeFamily(t.label);
+      if (fam && !deptSells(k, fam)) { misfiled.push(`${k} → ${t.label}`); continue; }
       const own = ownerOf(k, t.k, u);
       if (own) { const o = away.get(t.k) || [t.label, own, 0]; o[2]++; away.set(t.k, o); continue; }
       const o = n.get(t.k) || [t.label, deptHref(k, { t: t.k, para: u }), 0];
@@ -249,7 +261,7 @@ export function buildMenu(root = ROOT) {
     if (moved) moved.push(...[...away.values()].sort((a, b) => b[2] - a[2]));
     /* The count is what the page's own type view finds (its filter also
        reads the garment kind a store's type leaves out). */
-    for (const [tk, o] of n) o[2] = filterList(d.list, { t: tk, u }).length;
+    for (const [tk, o] of n) o[2] = filterList(d.list, { t: tk, u, dept: k }).length;
     return [...n.values()].sort((a, b) => (b[2] - a[2]) || (a[0] < b[0] ? -1 : 1));
   };
   const brandLinks = (k, u) => {
@@ -351,7 +363,19 @@ export function buildMenu(root = ROOT) {
       if (doors.has(r.href)) continue;
       secs.push([r.name, r.href, r.n]);
     }
-    if (secs.length) { cols.push({ h: "Secciones", links: secs }); inv.push({ h: "Secciones", links: secs }); }
+    /* A LONE SECTION IS A COLUMN OF ITS OWN TYPES (#443 c.6634907518,
+       Danny's mom: «CABELLO is EMPTY»). One section left would collapse
+       into a heading with nothing under it (noDeadEnds) -- Belleza's
+       Cabello, Electrónica's Reacondicionados. A department section with
+       2+ types is that section's column instead, filled from its real
+       inventory (Keratina y alisados, Mascarillas ...). */
+    const lone = secs.length === 1 ? spec.sections.find((s) => sectionRef(s) && sectionRef(s).href === secs[0][1]) : "";
+    /* ...listing only what the tab sells: a refurbished stroller («Coche»)
+       is not an Electrónica leaf. */
+    const tabFams = new Set(["", ...(spec.dept ? typeLinks(spec.dept, "") : []).map((l) => storeTypeFamily(l[0]))]);
+    const loneTypes = lone && reg[lone] && !reg[lone].door && !pages[lone] ? typeLinks(lone, "").filter((l) => tabFams.has(storeTypeFamily(l[0]))) : [];
+    if (loneTypes.filter((l) => l[2] > 0).length >= 2) push(secs[0][0], secs[0][1], loneTypes, secs[0][2], lone + "-tipos");
+    else if (secs.length) { cols.push({ h: "Secciones", links: secs }); inv.push({ h: "Secciones", links: secs }); }
     tabs.push({ k: spec.k, label: spec.label, href, n, cols: noDeadEnds(spec.label, href, cols, notes) });
     full.push({ spec, href, n, inv });
   }
@@ -360,7 +384,7 @@ export function buildMenu(root = ROOT) {
   const placed = new Set(TABS.flatMap((t) => [t.dept, ...t.sections, ...t.cols.map((c) => c[1])]).filter(Boolean));
   const unplaced = Object.keys(reg).filter((k) => !reg[k].door && size(k) > 0 && !placed.has(k));
   const homeCarousels = CAROUSELS.map((c) => c.title);
-  return { menu: { v: 1, tabs }, full, notes, unplaced, homeCarousels, reg, files };
+  return { menu: { v: 1, tabs }, full, notes, unplaced, homeCarousels, reg, files, misfiled: [...new Set(misfiled)] };
 }
 
 /* ---------- the facts of every department product, for the other listings ----------

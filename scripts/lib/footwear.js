@@ -252,7 +252,7 @@ const APOS = "['’`]?";
    "Girls", "Girl's"; a baby as a title that starts with it, "Baby
    Boys"/"Baby Girls" (as department-map.js reads it) or a "Baby
    Sneaker" -- never "Baby Blue Shoes". */
-const SHOE_KIDS_RX = new RegExp("\\b(kids?|toddlers?|infants?|ni[ñn][oa]s?|newborn|youth|juniors?|jr|little\\s+kids|big\\s+kids|preschool|grade\\s+school)" + APOS + "s?\\b|\\b(boys|girls|boy['’`]s|girl['’`]s)|\\bbaby\\s+(and\\s+toddler|boys?|girls?|(casual\\s+)?(sneakers?|shoes?|sandals?|boots?|clogs?))\\b|^(little|baby)\\s", "i");
+const SHOE_KIDS_RX = new RegExp("\\b(kids?|toddlers?|infants?|ni[ñn][oa]s?|newborn|youth|juniors?|jr|little\\s+kids|big\\s+kids|preschool|grade\\s+school)" + APOS + "s?\\b|\\b(boys|girls|boy['’`]s|girl['’`]s)(?![a-z])|\\bbaby\\s+(and\\s+toddler|boys?|girls?|(casual\\s+)?(sneakers?|shoes?|sandals?|boots?|clogs?))\\b|^(little|baby)\\s", "i");
 const SHOE_KIDS_SIZE_RX = /\((GS|PS|TD)\)/;
 const SHOE_WOMEN_RX = new RegExp("\\b(women" + APOS + "s?|womens|woman|ladies|lady|mujer(es)?|damas?|female)\\b", "i");
 const SHOE_MEN_RX = new RegExp("\\b(men" + APOS + "s?|mens|hombres?|caballeros?|male)\\b", "i");

@@ -46,145 +46,136 @@ El primer script de departamento.html (antes de pintar nada) y netlify.toml (301
 
 | Pestaña | Columnas | Productos |
 |---|---|---|
-| Mujer | Ropa · Zapatos · Accesorios · Marcas · Secciones | 17,414 |
-| Hombre | Ropa · Zapatos · Accesorios · Marcas · Secciones | 12,152 |
-| Niños | Ropa · Zapatos · Marcas · Secciones | 2,274 |
+| Mujer | Ropa · Zapatos · Accesorios · Marcas · Secciones | 17,442 |
+| Hombre | Ropa · Zapatos · Accesorios · Marcas · Secciones | 12,171 |
+| Niños | Ropa · Zapatos · Marcas · Secciones | 1,922 |
 | Zapatos | Mujer · Hombre · Niños · Marcas · Secciones | 10,700 |
-| Belleza | Tipos · Aria Perfumes · Marcas · Secciones | 5,590 |
-| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,552 |
-| Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,640 |
+| Belleza | Tipos · Aria Perfumes · Marcas · Cabello | 5,681 |
+| Accesorios | Tipos · Carteras · Lentes de Sol · Marcas | 8,398 |
+| Diseñador | Mujer · Hombre · Niños · Diseñadores Latinos · Latinos por tipo · Marcas · Secciones | 21,620 |
 | Deportes | Tipos · Marcas · Secciones | 17,679 |
 | Tallas Plus | Mujer · Hombre · Marcas | 7,850 |
 | Lencería | Lencería · Ropa Interior Hombre · Marcas de lencería | 3,045 |
-| Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,418 |
-| Electrónica | Tipos · Marcas · Secciones | 5,917 |
+| Hogar | Casa Aria · Decoración · Marcas · Secciones | 6,419 |
+| Electrónica | Tipos · Marcas · Reacondicionados | 5,917 |
 | Juguetes | Tipos · Marcas · Secciones | 7,364 |
 | Auto y Motos | Aria Auto · Motos | 2,495 |
 | Ofertas | Ofertas por categoría | 33,505 |
 
 ## Mujer
 
-Abre: `/departamento.html?dept=women` (17,414 productos)
+Abre: `/departamento.html?dept=women` (17,442 productos)
 
-### Ropa (11,513)
+### Ropa (10,207)
 
-- Vestidos: 1,723 · `/departamento.html?dept=women&t=vestidos`
-- Blusas y tops: 1,601 · `/departamento.html?dept=women&t=blusas-y-tops`
-- Camisas: 1,114 · `/departamento.html?dept=women&t=camisas`
-- Pantalones y jeans: 1,084 · `/departamento.html?dept=women&t=pantalones-y-jeans`
-- Casacas y abrigos: 1,010 · `/departamento.html?dept=women&t=casacas-y-abrigos`
-- Chompas y polerones: 849 · `/departamento.html?dept=women&t=chompas-y-polerones`
-- Shorts: 496 · `/departamento.html?dept=women&t=shorts`
-- Faldas: 485 · `/departamento.html?dept=women&t=faldas`
-- Ropa de baño: 391 · `/departamento.html?dept=women&t=ropa-de-bano`
-- Accesorios: 338 · `/departamento.html?dept=women&t=accesorios`
-- Lentes: 314 · `/departamento.html?dept=women&t=lentes`
+- Vestidos: 1,653 · `/departamento.html?dept=women&t=vestidos`
+- Blusas y tops: 1,626 · `/departamento.html?dept=women&t=blusas-y-tops`
+- Camisas: 1,177 · `/departamento.html?dept=women&t=camisas`
+- Pantalones y jeans: 1,092 · `/departamento.html?dept=women&t=pantalones-y-jeans`
+- Casacas y abrigos: 1,012 · `/departamento.html?dept=women&t=casacas-y-abrigos`
+- Chompas y polerones: 853 · `/departamento.html?dept=women&t=chompas-y-polerones`
+- Faldas: 462 · `/departamento.html?dept=women&t=faldas`
+- Ropa de baño: 392 · `/departamento.html?dept=women&t=ropa-de-bano`
+- Shorts: 371 · `/departamento.html?dept=women&t=shorts`
 - Pantalones y faldas: 222 · `/departamento.html?dept=women&t=pantalones-y-faldas`
 - Medias: 214 · `/departamento.html?dept=women&t=medias`
-- Pantalón: 207 · `/departamento.html?dept=women&t=pantalon`
-- Gorras: 205 · `/departamento.html?dept=women&t=gorras`
+- Pantalón: 208 · `/departamento.html?dept=women&t=pantalon`
 - Pijamas: 134 · `/departamento.html?dept=women&t=pijamas`
 - Ropa: 127 · `/departamento.html?dept=women&t=ropa`
-- Correas: 121 · `/departamento.html?dept=women&t=correas`
-- Polos: 85 · `/departamento.html?dept=women&t=polos`
-- Belleza: 83 · `/departamento.html?dept=women&t=belleza`
+- Gorras: 96 · `/departamento.html?dept=women&t=gorras`
+- Polos: 87 · `/departamento.html?dept=women&t=polos`
 - Leggings: 79 · `/departamento.html?dept=women&t=leggings`
 - Gorros: 76 · `/departamento.html?dept=women&t=gorros`
 - Enterizos: 73 · `/departamento.html?dept=women&t=enterizos`
-- Accesorios para el pelo: 66 · `/departamento.html?dept=women&t=accesorios-para-el-pelo`
-- Billeteras: 66 · `/departamento.html?dept=women&t=billeteras`
-- Guantes: 61 · `/departamento.html?dept=women&t=guantes`
-- Bodies: 57 · `/departamento.html?dept=women&t=bodies`
+- Bodies: 58 · `/departamento.html?dept=women&t=bodies`
+- Conjuntos: 44 · `/departamento.html?dept=women&t=conjuntos`
 - Blazers: 42 · `/departamento.html?dept=women&t=blazers`
-- Conjuntos: 42 · `/departamento.html?dept=women&t=conjuntos`
 - Chaqueta: 40 · `/departamento.html?dept=women&t=chaqueta`
 - Neceseres: 40 · `/departamento.html?dept=women&t=neceseres`
-- Hogar: 21 · `/departamento.html?dept=women&t=hogar`
 - Batas: 12 · `/departamento.html?dept=women&t=batas`
 - Sombreros: 12 · `/departamento.html?dept=women&t=sombreros`
-- Llaveros: 11 · `/departamento.html?dept=women&t=llaveros`
-- Broches y pines: 7 · `/departamento.html?dept=women&t=broches-y-pines`
 - Pijama: 5 · `/departamento.html?dept=women&t=pijama`
 
 Viven en su propia sección (no son enlaces de esta columna):
-- Lencería: 1,377 → Lencería · `/ropa-interior.html#mujer`
+- Lencería: 1,390 → Lencería · `/ropa-interior.html#mujer`
 - Zapatos: 1,246 → Zapatos · `/departamento.html?dept=shoes`
 - Carteras: 1,231 → Carteras · `/departamento.html?dept=purses`
 - Zapatillas: 391 → Zapatos · `/departamento.html?dept=shoes`
+- Accesorios: 338 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Sandalias: 327 → Zapatos · `/departamento.html?dept=shoes`
 - Lentes de sol: 271 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 - Fajas y shapewear: 252 → Lencería · `/ropa-interior.html#mujer`
 - Joyas: 221 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Aretes: 151 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Correas: 121 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Collares y dijes: 99 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Accesorios para el pelo: 66 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Billeteras: 66 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Bolso: 62 → Carteras · `/departamento.html?dept=purses`
 - Anillos: 54 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Ropa interior: 43 → Lencería · `/ropa-interior.html#mujer`
+- Lentes: 42 → Lentes de Sol · `/departamento.html?dept=sunglasses`
+- Guantes: 37 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Pulseras y tobilleras: 34 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Tacones: 22 → Zapatos · `/departamento.html?dept=shoes`
 - Mocasines y pantuflas: 16 → Zapatos · `/departamento.html?dept=shoes`
+- Llaveros: 11 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Broches y pines: 7 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 
-### Zapatos (9,738)
+### Zapatos (7,093)
 
-- Zapatos: 3,404 · `/departamento.html?dept=shoes&t=zapatos&para=women`
-- Zapatillas: 3,122 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
-- Sandalias: 1,112 · `/departamento.html?dept=shoes&t=sandalias&para=women`
+- Zapatillas: 3,102 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Sandalias: 1,113 · `/departamento.html?dept=shoes&t=sandalias&para=women`
+- Zapatos: 778 · `/departamento.html?dept=shoes&t=zapatos&para=women`
 - Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
-### Accesorios (1,462)
+### Accesorios (1,366)
 
-- Aretes: 281 · `/departamento.html?dept=joyas_accesorios&t=aretes&para=women`
-- Joyas: 222 · `/departamento.html?dept=joyas_accesorios&t=joyas&para=women`
-- Accesorios: 209 · `/departamento.html?dept=joyas_accesorios&t=accesorios&para=women`
+- Aretes: 277 · `/departamento.html?dept=joyas_accesorios&t=aretes&para=women`
+- Joyas: 221 · `/departamento.html?dept=joyas_accesorios&t=joyas&para=women`
+- Accesorios: 219 · `/departamento.html?dept=joyas_accesorios&t=accesorios&para=women`
 - Correas: 121 · `/departamento.html?dept=joyas_accesorios&t=correas&para=women`
-- Carteras: 104 · `/departamento.html?dept=joyas_accesorios&t=carteras&para=women`
 - Collares y dijes: 100 · `/departamento.html?dept=joyas_accesorios&t=collares-y-dijes&para=women`
 - Guantes: 92 · `/departamento.html?dept=joyas_accesorios&t=guantes&para=women`
-- Anillos: 77 · `/departamento.html?dept=joyas_accesorios&t=anillos&para=women`
+- Anillos: 74 · `/departamento.html?dept=joyas_accesorios&t=anillos&para=women`
 - Accesorios para el pelo: 65 · `/departamento.html?dept=joyas_accesorios&t=accesorios-para-el-pelo&para=women`
 - Billeteras: 64 · `/departamento.html?dept=joyas_accesorios&t=billeteras&para=women`
+- Carteras: 40 · `/departamento.html?dept=joyas_accesorios&t=carteras&para=women`
 - Pulseras y tobilleras: 33 · `/departamento.html?dept=joyas_accesorios&t=pulseras-y-tobilleras&para=women`
 - Charms: 25 · `/departamento.html?dept=joyas_accesorios&t=charms&para=women`
 - Llaveros: 11 · `/departamento.html?dept=joyas_accesorios&t=llaveros&para=women`
-- Belleza: 10 · `/departamento.html?dept=joyas_accesorios&t=belleza&para=women`
-- Coche: 8 · `/departamento.html?dept=joyas_accesorios&t=coche&para=women`
 - Broches y pines: 7 · `/departamento.html?dept=joyas_accesorios&t=broches-y-pines&para=women`
-- Chupetes y mordedores: 5 · `/departamento.html?dept=joyas_accesorios&t=chupetes-y-mordedores&para=women`
-- Equipo: 4 · `/departamento.html?dept=joyas_accesorios&t=equipo&para=women`
-- Zapatos: 4 · `/departamento.html?dept=joyas_accesorios&t=zapatos&para=women`
-- Cinturones de levantamiento: 3 · `/departamento.html?dept=joyas_accesorios&t=cinturones-de-levantamiento&para=women`
 - Joyería: 3 · `/departamento.html?dept=joyas_accesorios&t=joyeria&para=women`
 - Zapatillas: 3 · `/departamento.html?dept=joyas_accesorios&t=zapatillas&para=women`
+- Zapatos: 3 · `/departamento.html?dept=joyas_accesorios&t=zapatos&para=women`
 - Bolso: 2 · `/departamento.html?dept=joyas_accesorios&t=bolso&para=women`
-- Pesas Y Cinturones: 2 · `/departamento.html?dept=joyas_accesorios&t=pesas-y-cinturones&para=women`
 - Sandalias: 2 · `/departamento.html?dept=joyas_accesorios&t=sandalias&para=women`
-- Accesorios De Tenis: 1 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-tenis&para=women`
 - Blusas y tops: 1 · `/departamento.html?dept=joyas_accesorios&t=blusas-y-tops&para=women`
 - Chompas y polerones: 1 · `/departamento.html?dept=joyas_accesorios&t=chompas-y-polerones&para=women`
 - Lencería: 1 · `/departamento.html?dept=joyas_accesorios&t=lenceria&para=women`
 - Pantalones y jeans: 1 · `/departamento.html?dept=joyas_accesorios&t=pantalones-y-jeans&para=women`
 
-### Marcas (17,414)
+### Marcas (17,442)
 
-- Skims: 1,893 · `/departamento.html?dept=women&b=Skims`
-- Miu Miu: 994 · `/departamento.html?dept=women&b=Miu%20Miu`
-- Vivienne Westwood: 329 · `/departamento.html?dept=women&b=Vivienne%20Westwood`
-- Intimissimi: 297 · `/departamento.html?dept=women&b=Intimissimi`
-- GANNI: 266 · `/departamento.html?dept=women&b=GANNI`
+- Skims: 1,911 · `/departamento.html?dept=women&b=Skims`
+- Miu Miu: 995 · `/departamento.html?dept=women&b=Miu%20Miu`
+- Vivienne Westwood: 337 · `/departamento.html?dept=women&b=Vivienne%20Westwood`
+- Intimissimi: 295 · `/departamento.html?dept=women&b=Intimissimi`
+- GANNI: 274 · `/departamento.html?dept=women&b=GANNI`
 - Rick Owens: 201 · `/departamento.html?dept=women&b=Rick%20Owens`
-- FLORE FLORE: 180 · `/departamento.html?dept=women&b=FLORE%20FLORE`
+- FLORE FLORE: 196 · `/departamento.html?dept=women&b=FLORE%20FLORE`
 - Dries Van Noten: 167 · `/departamento.html?dept=women&b=Dries%20Van%20Noten`
 - MM6 Maison Margiela: 152 · `/departamento.html?dept=women&b=MM6%20Maison%20Margiela`
 - Diesel: 147 · `/departamento.html?dept=women&b=Diesel`
 - Lane Bryant: 146 · `/departamento.html?dept=women&b=Lane%20Bryant`
 - Baserange: 144 · `/departamento.html?dept=women&b=Baserange`
 - Reef: 143 · `/departamento.html?dept=women&b=Reef`
-- Simone Rocha: 138 · `/departamento.html?dept=women&b=Simone%20Rocha`
+- Simone Rocha: 142 · `/departamento.html?dept=women&b=Simone%20Rocha`
 - O'Neill: 137 · `/departamento.html?dept=women&b=O'Neill`
-- Volcom: 131 · `/departamento.html?dept=women&b=Volcom`
+- Volcom: 132 · `/departamento.html?dept=women&b=Volcom`
 - Isabel Marant: 129 · `/departamento.html?dept=women&b=Isabel%20Marant`
 - Rhythm: 125 · `/departamento.html?dept=women&b=Rhythm`
 - Sonoma Goods For Life: 125 · `/departamento.html?dept=women&b=Sonoma%20Goods%20For%20Life`
@@ -192,18 +183,18 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Nine West: 120 · `/departamento.html?dept=women&b=Nine%20West`
 - Lc Lauren Conrad: 119 · `/departamento.html?dept=women&b=Lc%20Lauren%20Conrad`
 - Acne Studios: 116 · `/departamento.html?dept=women&b=Acne%20Studios`
+- LIONESS: 111 · `/departamento.html?dept=women&b=LIONESS`
 - AGOLDE: 109 · `/departamento.html?dept=women&b=AGOLDE`
 - Balenciaga: 109 · `/departamento.html?dept=women&b=Balenciaga`
 - Calzedonia: 109 · `/departamento.html?dept=women&b=Calzedonia`
-- LIONESS: 109 · `/departamento.html?dept=women&b=LIONESS`
 - Croft & Barrow: 108 · `/departamento.html?dept=women&b=Croft%20%26%20Barrow`
 - MARGESHERWOOD: 106 · `/departamento.html?dept=women&b=MARGESHERWOOD`
 - A.P.C.: 102 · `/departamento.html?dept=women&b=A.P.C.`
-- Marc Jacobs: 94 · `/departamento.html?dept=women&b=Marc%20Jacobs`
+- Marc Jacobs: 95 · `/departamento.html?dept=women&b=Marc%20Jacobs`
+- American Eagle: 90 · `/departamento.html?dept=women&b=American%20Eagle`
 - adidas: 89 · `/departamento.html?dept=women&b=adidas`
 - Nike: 89 · `/departamento.html?dept=women&b=Nike`
 - Maison Margiela: 88 · `/departamento.html?dept=women&b=Maison%20Margiela`
-- American Eagle: 87 · `/departamento.html?dept=women&b=American%20Eagle`
 - Róhe: 87 · `/departamento.html?dept=women&b=R%C3%B3he`
 - Aeyde: 85 · `/departamento.html?dept=women&b=Aeyde`
 - BALMAIN: 84 · `/departamento.html?dept=women&b=BALMAIN`
@@ -211,12 +202,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 - KHAITE: 82 · `/departamento.html?dept=women&b=KHAITE`
 - Tek Gear: 81 · `/departamento.html?dept=women&b=Tek%20Gear`
 - ALAÏA: 78 · `/departamento.html?dept=women&b=ALA%C3%8FA`
+- Jean Paul Gaultier: 77 · `/departamento.html?dept=women&b=Jean%20Paul%20Gaultier`
 - Levi's: 75 · `/departamento.html?dept=women&b=Levi's`
 - Gimaguas: 74 · `/departamento.html?dept=women&b=Gimaguas`
 - Burberry: 73 · `/departamento.html?dept=women&b=Burberry`
-- Jean Paul Gaultier: 72 · `/departamento.html?dept=women&b=Jean%20Paul%20Gaultier`
+- Chloé: 72 · `/departamento.html?dept=women&b=Chlo%C3%A9`
 - Valentino Garavani: 72 · `/departamento.html?dept=women&b=Valentino%20Garavani`
-- Chloé: 71 · `/departamento.html?dept=women&b=Chlo%C3%A9`
 - Amanda Uprichard: 70 · `/departamento.html?dept=women&b=Amanda%20Uprichard`
 - Citizens of Humanity: 70 · `/departamento.html?dept=women&b=Citizens%20of%20Humanity`
 - Marni: 70 · `/departamento.html?dept=women&b=Marni`
@@ -236,8 +227,8 @@ Viven en su propia sección (no son enlaces de esta columna):
 - rag & bone: 61 · `/departamento.html?dept=women&b=rag%20%26%20bone`
 - COACH: 60 · `/departamento.html?dept=women&b=COACH`
 - Toga Pulla: 60 · `/departamento.html?dept=women&b=Toga%20Pulla`
+- AMIRI: 58 · `/departamento.html?dept=women&b=AMIRI`
 - Givenchy: 58 · `/departamento.html?dept=women&b=Givenchy`
-- AMIRI: 57 · `/departamento.html?dept=women&b=AMIRI`
 - ANINE BING: 56 · `/departamento.html?dept=women&b=ANINE%20BING`
 - OPEN YY: 55 · `/departamento.html?dept=women&b=OPEN%20YY`
 - Bottega Veneta: 54 · `/departamento.html?dept=women&b=Bottega%20Veneta`
@@ -251,26 +242,27 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Sandy Liang: 49 · `/departamento.html?dept=women&b=Sandy%20Liang`
 - Amina Muaddi: 48 · `/departamento.html?dept=women&b=Amina%20Muaddi`
 - Burton: 48 · `/departamento.html?dept=women&b=Burton`
+- Casablanca: 48 · `/departamento.html?dept=women&b=Casablanca`
 - JACQUEMUS: 48 · `/departamento.html?dept=women&b=JACQUEMUS`
 - Lovers and Friends: 48 · `/departamento.html?dept=women&b=Lovers%20and%20Friends`
-- Casablanca: 47 · `/departamento.html?dept=women&b=Casablanca`
 - ISSEY MIYAKE: 47 · `/departamento.html?dept=women&b=ISSEY%20MIYAKE`
 - Justine Clenquet: 47 · `/departamento.html?dept=women&b=Justine%20Clenquet`
 - Michael Kors: 47 · `/departamento.html?dept=women&b=Michael%20Kors`
+- St. Agni: 47 · `/departamento.html?dept=women&b=St.%20Agni`
 - Staud: 47 · `/departamento.html?dept=women&b=Staud`
 - Donna Karan New York: 46 · `/departamento.html?dept=women&b=Donna%20Karan%20New%20York`
+- Sporty & Rich: 46 · `/departamento.html?dept=women&b=Sporty%20%26%20Rich`
 - adidas Originals: 45 · `/departamento.html?dept=women&b=adidas%20Originals`
-- Sporty & Rich: 44 · `/departamento.html?dept=women&b=Sporty%20%26%20Rich`
 - Bali: 43 · `/departamento.html?dept=women&b=Bali`
 - HEREU: 43 · `/departamento.html?dept=women&b=HEREU`
 - Nothing Written: 43 · `/departamento.html?dept=women&b=Nothing%20Written`
-- St. Agni: 43 · `/departamento.html?dept=women&b=St.%20Agni`
 - Billabong: 42 · `/departamento.html?dept=women&b=Billabong`
 - Yves Salomon: 42 · `/departamento.html?dept=women&b=Yves%20Salomon`
 - Collina Strada: 41 · `/departamento.html?dept=women&b=Collina%20Strada`
 - Isabel Marant Etoile: 41 · `/departamento.html?dept=women&b=Isabel%20Marant%20Etoile`
 - Courrèges: 40 · `/departamento.html?dept=women&b=Courr%C3%A8ges`
 - Moncler: 40 · `/departamento.html?dept=women&b=Moncler`
+- R13: 40 · `/departamento.html?dept=women&b=R13`
 - Kasper: 39 · `/departamento.html?dept=women&b=Kasper`
 - Style & Co: 39 · `/departamento.html?dept=women&b=Style%20%26%20Co`
 - BY FAR: 38 · `/departamento.html?dept=women&b=BY%20FAR`
@@ -278,21 +270,21 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Dragon Diffusion: 38 · `/departamento.html?dept=women&b=Dragon%20Diffusion`
 - NBD: 38 · `/departamento.html?dept=women&b=NBD`
 - Fear of God ESSENTIALS: 37 · `/departamento.html?dept=women&b=Fear%20of%20God%20ESSENTIALS`
+- Maison Kitsuné: 37 · `/departamento.html?dept=women&b=Maison%20Kitsun%C3%A9`
 - Mugler: 37 · `/departamento.html?dept=women&b=Mugler`
 - On: 37 · `/departamento.html?dept=women&b=On`
+- VETEMENTS: 37 · `/departamento.html?dept=women&b=VETEMENTS`
 - BAO BAO ISSEY MIYAKE: 36 · `/departamento.html?dept=women&b=BAO%20BAO%20ISSEY%20MIYAKE`
 - Calvin Klein: 36 · `/departamento.html?dept=women&b=Calvin%20Klein`
 - Helsa: 36 · `/departamento.html?dept=women&b=Helsa`
 - Stella McCartney: 36 · `/departamento.html?dept=women&b=Stella%20McCartney`
-- VETEMENTS: 36 · `/departamento.html?dept=women&b=VETEMENTS`
 - Fruity Booty: 35 · `/departamento.html?dept=women&b=Fruity%20Booty`
 - OSOI: 35 · `/departamento.html?dept=women&b=OSOI`
+- Rip Curl: 35 · `/departamento.html?dept=women&b=Rip%20Curl`
 - Canada Goose: 34 · `/departamento.html?dept=women&b=Canada%20Goose`
 - Cordera: 34 · `/departamento.html?dept=women&b=Cordera`
 - Olukai: 34 · `/departamento.html?dept=women&b=Olukai`
 - PLEATS PLEASE ISSEY MIYAKE: 34 · `/departamento.html?dept=women&b=PLEATS%20PLEASE%20ISSEY%20MIYAKE`
-- R13: 34 · `/departamento.html?dept=women&b=R13`
-- Rip Curl: 34 · `/departamento.html?dept=women&b=Rip%20Curl`
 - Rainbow Sandals: 33 · `/departamento.html?dept=women&b=Rainbow%20Sandals`
 - SNDYS: 33 · `/departamento.html?dept=women&b=SNDYS`
 - AMI Paris: 31 · `/departamento.html?dept=women&b=AMI%20Paris`
@@ -306,16 +298,17 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Wacoal: 30 · `/departamento.html?dept=women&b=Wacoal`
 - YUME YUME: 30 · `/departamento.html?dept=women&b=YUME%20YUME`
 - ASICS: 29 · `/departamento.html?dept=women&b=ASICS`
+- Cou Cou: 29 · `/departamento.html?dept=women&b=Cou%20Cou`
 - ELLIATT: 29 · `/departamento.html?dept=women&b=ELLIATT`
 - Literary Sport: 29 · `/departamento.html?dept=women&b=Literary%20Sport`
+- Marine Serre: 29 · `/departamento.html?dept=women&b=Marine%20Serre`
 - Polo Ralph Lauren: 29 · `/departamento.html?dept=women&b=Polo%20Ralph%20Lauren`
+- Santa Cruz Skateboards: 29 · `/departamento.html?dept=women&b=Santa%20Cruz%20Skateboards`
 - The Frankie Shop: 29 · `/departamento.html?dept=women&b=The%20Frankie%20Shop`
 - Anna Sui: 28 · `/departamento.html?dept=women&b=Anna%20Sui`
 - Belle Anna: 28 · `/departamento.html?dept=women&b=Belle%20Anna`
 - CeCe: 28 · `/departamento.html?dept=women&b=CeCe`
-- Marine Serre: 28 · `/departamento.html?dept=women&b=Marine%20Serre`
 - Norma Kamali: 28 · `/departamento.html?dept=women&b=Norma%20Kamali`
-- Santa Cruz Skateboards: 28 · `/departamento.html?dept=women&b=Santa%20Cruz%20Skateboards`
 - Surf Station: 28 · `/departamento.html?dept=women&b=Surf%20Station`
 - Thom Browne: 28 · `/departamento.html?dept=women&b=Thom%20Browne`
 - UGG: 28 · `/departamento.html?dept=women&b=UGG`
@@ -324,7 +317,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Rabanne: 27 · `/departamento.html?dept=women&b=Rabanne`
 - Wolford: 27 · `/departamento.html?dept=women&b=Wolford`
 - &Daughter: 26 · `/departamento.html?dept=women&b=%26Daughter`
-- Cou Cou: 26 · `/departamento.html?dept=women&b=Cou%20Cou`
 - EFFY Collection: 26 · `/departamento.html?dept=women&b=EFFY%20Collection`
 - LE17SEPTEMBRE: 26 · `/departamento.html?dept=women&b=LE17SEPTEMBRE`
 - Spinelli Kilcollin: 26 · `/departamento.html?dept=women&b=Spinelli%20Kilcollin`
@@ -336,7 +328,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - DKNY: 25 · `/departamento.html?dept=women&b=DKNY`
 - Ferragamo: 25 · `/departamento.html?dept=women&b=Ferragamo`
 - Kiko Kostadinov: 25 · `/departamento.html?dept=women&b=Kiko%20Kostadinov`
-- Maison Kitsuné: 25 · `/departamento.html?dept=women&b=Maison%20Kitsun%C3%A9`
 - Proenza Schouler: 25 · `/departamento.html?dept=women&b=Proenza%20Schouler`
 - RESCHA: 25 · `/departamento.html?dept=women&b=RESCHA`
 - SL Fashions: 25 · `/departamento.html?dept=women&b=SL%20Fashions`
@@ -359,10 +350,13 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Max Mara: 21 · `/departamento.html?dept=women&b=Max%20Mara`
 - Patricia Nash: 21 · `/departamento.html?dept=women&b=Patricia%20Nash`
 - Steve Madden: 21 · `/departamento.html?dept=women&b=Steve%20Madden`
+- VAQUERA: 21 · `/departamento.html?dept=women&b=VAQUERA`
 - Ancient Greek Sandals: 20 · `/departamento.html?dept=women&b=Ancient%20Greek%20Sandals`
 - I-SEA: 20 · `/departamento.html?dept=women&b=I-SEA`
+- Jetty: 20 · `/departamento.html?dept=women&b=Jetty`
 - New Balance: 20 · `/departamento.html?dept=women&b=New%20Balance`
 - Nour Hammour: 20 · `/departamento.html?dept=women&b=Nour%20Hammour`
+- Palm Angels: 20 · `/departamento.html?dept=women&b=Palm%20Angels`
 - Paris Texas: 20 · `/departamento.html?dept=women&b=Paris%20Texas`
 - Simply Vera Vera Wang: 20 · `/departamento.html?dept=women&b=Simply%20Vera%20Vera%20Wang`
 - ssstein: 20 · `/departamento.html?dept=women&b=ssstein`
@@ -370,8 +364,8 @@ Viven en su propia sección (no son enlaces de esta columna):
 - B.B. Wallace: 19 · `/departamento.html?dept=women&b=B.B.%20Wallace`
 - Bar III: 19 · `/departamento.html?dept=women&b=Bar%20III`
 - Calvin Klein Collection: 19 · `/departamento.html?dept=women&b=Calvin%20Klein%20Collection`
+- Channel Islands Apparel: 19 · `/departamento.html?dept=women&b=Channel%20Islands%20Apparel`
 - DKNY Sport: 19 · `/departamento.html?dept=women&b=DKNY%20Sport`
-- Jetty: 19 · `/departamento.html?dept=women&b=Jetty`
 - Kanika Agarwal: 19 · `/departamento.html?dept=women&b=Kanika%20Agarwal`
 - Knockaround: 19 · `/departamento.html?dept=women&b=Knockaround`
 - On 34th: 19 · `/departamento.html?dept=women&b=On%2034th`
@@ -380,26 +374,24 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Alex Evenings: 18 · `/departamento.html?dept=women&b=Alex%20Evenings`
 - Apt. 9: 18 · `/departamento.html?dept=women&b=Apt.%209`
 - Brooke Callahan: 18 · `/departamento.html?dept=women&b=Brooke%20Callahan`
-- Palm Angels: 18 · `/departamento.html?dept=women&b=Palm%20Angels`
+- Jockey: 18 · `/departamento.html?dept=women&b=Jockey`
 - Show Me Your Mumu: 18 · `/departamento.html?dept=women&b=Show%20Me%20Your%20Mumu`
 - Stance: 18 · `/departamento.html?dept=women&b=Stance`
 - Under Armour: 18 · `/departamento.html?dept=women&b=Under%20Armour`
 - UNDERCOVER: 18 · `/departamento.html?dept=women&b=UNDERCOVER`
-- VAQUERA: 18 · `/departamento.html?dept=women&b=VAQUERA`
 - 24seven Comfort Apparel: 17 · `/departamento.html?dept=women&b=24seven%20Comfort%20Apparel`
 - Aesther Ekme: 17 · `/departamento.html?dept=women&b=Aesther%20Ekme`
+- Coperni: 17 · `/departamento.html?dept=women&b=Coperni`
 - Gloria Vanderbilt: 17 · `/departamento.html?dept=women&b=Gloria%20Vanderbilt`
-- Jockey: 17 · `/departamento.html?dept=women&b=Jockey`
+- KNWLS: 17 · `/departamento.html?dept=women&b=KNWLS`
 - Lanvin: 17 · `/departamento.html?dept=women&b=Lanvin`
 - Rhude: 17 · `/departamento.html?dept=women&b=Rhude`
 - Tekla: 17 · `/departamento.html?dept=women&b=Tekla`
 - BAPE: 16 · `/departamento.html?dept=women&b=BAPE`
 - Bardot: 16 · `/departamento.html?dept=women&b=Bardot`
 - Betsy & Adam: 16 · `/departamento.html?dept=women&b=Betsy%20%26%20Adam`
-- Channel Islands Apparel: 16 · `/departamento.html?dept=women&b=Channel%20Islands%20Apparel`
 - Columbia: 16 · `/departamento.html?dept=women&b=Columbia`
-- Coperni: 16 · `/departamento.html?dept=women&b=Coperni`
-- KNWLS: 16 · `/departamento.html?dept=women&b=KNWLS`
+- HommeGirls: 16 · `/departamento.html?dept=women&b=HommeGirls`
 - Miista: 16 · `/departamento.html?dept=women&b=Miista`
 - Outerknown: 16 · `/departamento.html?dept=women&b=Outerknown`
 - PUMA: 16 · `/departamento.html?dept=women&b=PUMA`
@@ -409,7 +401,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - ASTR the Label: 15 · `/departamento.html?dept=women&b=ASTR%20the%20Label`
 - GUIZIO: 15 · `/departamento.html?dept=women&b=GUIZIO`
 - Havaianas: 15 · `/departamento.html?dept=women&b=Havaianas`
-- HommeGirls: 15 · `/departamento.html?dept=women&b=HommeGirls`
 - IMSY Swimwear: 15 · `/departamento.html?dept=women&b=IMSY%20Swimwear`
 - Le Monde Beryl: 15 · `/departamento.html?dept=women&b=Le%20Monde%20Beryl`
 - Lee: 15 · `/departamento.html?dept=women&b=Lee`
@@ -430,6 +421,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Ayllón: 13 · `/departamento.html?dept=women&b=Ayll%C3%B3n`
 - Barbour: 13 · `/departamento.html?dept=women&b=Barbour`
 - JUDE: 13 · `/departamento.html?dept=women&b=JUDE`
+- Katie May: 13 · `/departamento.html?dept=women&b=Katie%20May`
 - LASCANA: 13 · `/departamento.html?dept=women&b=LASCANA`
 - MAJORELLE: 13 · `/departamento.html?dept=women&b=MAJORELLE`
 - Petal and Pup: 13 · `/departamento.html?dept=women&b=Petal%20and%20Pup`
@@ -439,8 +431,8 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Clarks: 12 · `/departamento.html?dept=women&b=Clarks`
 - Commando: 12 · `/departamento.html?dept=women&b=Commando`
 - Dita: 12 · `/departamento.html?dept=women&b=Dita`
+- Ed Hardy: 12 · `/departamento.html?dept=women&b=Ed%20Hardy`
 - Gianvito Rossi: 12 · `/departamento.html?dept=women&b=Gianvito%20Rossi`
-- Katie May: 12 · `/departamento.html?dept=women&b=Katie%20May`
 - mfpen: 12 · `/departamento.html?dept=women&b=mfpen`
 - Sam Edelman: 12 · `/departamento.html?dept=women&b=Sam%20Edelman`
 - SECONDA: 12 · `/departamento.html?dept=women&b=SECONDA`
@@ -480,7 +472,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Agent Provocateur: 9 · `/departamento.html?dept=women&b=Agent%20Provocateur`
 - Ans Dotsloevner: 9 · `/departamento.html?dept=women&b=Ans%20Dotsloevner`
 - Comme des Garçons Comme des Garçons: 9 · `/departamento.html?dept=women&b=Comme%20des%20Gar%C3%A7ons%20Comme%20des%20Gar%C3%A7ons`
-- Ed Hardy: 9 · `/departamento.html?dept=women&b=Ed%20Hardy`
 - Free Fly Apparel: 9 · `/departamento.html?dept=women&b=Free%20Fly%20Apparel`
 - Miraclesuit: 9 · `/departamento.html?dept=women&b=Miraclesuit`
 - Métier: 9 · `/departamento.html?dept=women&b=M%C3%A9tier`
@@ -508,7 +499,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - 437: 7 · `/departamento.html?dept=women&b=437`
 - b.tempt'd: 7 · `/departamento.html?dept=women&b=b.tempt'd`
 - Edward Cuming: 7 · `/departamento.html?dept=women&b=Edward%20Cuming`
-- ETOILE COLLECTIVE: 7 · `/departamento.html?dept=women&b=ETOILE%20COLLECTIVE`
 - George Cox: 7 · `/departamento.html?dept=women&b=George%20Cox`
 - Helmut Lang: 7 · `/departamento.html?dept=women&b=Helmut%20Lang`
 - kate spade new york: 7 · `/departamento.html?dept=women&b=kate%20spade%20new%20york`
@@ -538,12 +528,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 - SHASHI: 6 · `/departamento.html?dept=women&b=SHASHI`
 - SLVRLAKE: 6 · `/departamento.html?dept=women&b=SLVRLAKE`
 - Stone Cold Fox: 6 · `/departamento.html?dept=women&b=Stone%20Cold%20Fox`
-- Summer Fridays: 6 · `/departamento.html?dept=women&b=Summer%20Fridays`
 - The Sak: 6 · `/departamento.html?dept=women&b=The%20Sak`
 - Vuori, Inc.: 6 · `/departamento.html?dept=women&b=Vuori%2C%20Inc.`
 - 525 America: 5 · `/departamento.html?dept=women&b=525%20America`
 - Alex & Sophia: 5 · `/departamento.html?dept=women&b=Alex%20%26%20Sophia`
-- BEIS: 5 · `/departamento.html?dept=women&b=BEIS`
 - BLANKNYC: 5 · `/departamento.html?dept=women&b=BLANKNYC`
 - DailySZN: 5 · `/departamento.html?dept=women&b=DailySZN`
 - Easy Spirit: 5 · `/departamento.html?dept=women&b=Easy%20Spirit`
@@ -561,7 +549,9 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Taylor: 5 · `/departamento.html?dept=women&b=Taylor`
 - VERAFIED: 5 · `/departamento.html?dept=women&b=VERAFIED`
 - Warner's: 5 · `/departamento.html?dept=women&b=Warner's`
+- Affliction: 4 · `/departamento.html?dept=women&b=Affliction`
 - Anne Cole: 4 · `/departamento.html?dept=women&b=Anne%20Cole`
+- BEIS: 4 · `/departamento.html?dept=women&b=BEIS`
 - Cacique: 4 · `/departamento.html?dept=women&b=Cacique`
 - Cecilie Bahnsen: 4 · `/departamento.html?dept=women&b=Cecilie%20Bahnsen`
 - Cole Haan: 4 · `/departamento.html?dept=women&b=Cole%20Haan`
@@ -584,22 +574,18 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Nectar: 4 · `/departamento.html?dept=women&b=Nectar`
 - NOOD: 4 · `/departamento.html?dept=women&b=NOOD`
 - Ottolinger: 4 · `/departamento.html?dept=women&b=Ottolinger`
-- Owala: 4 · `/departamento.html?dept=women&b=Owala`
-- Personal Day: 4 · `/departamento.html?dept=women&b=Personal%20Day`
 - PISTOLA: 4 · `/departamento.html?dept=women&b=PISTOLA`
 - Playtex: 4 · `/departamento.html?dept=women&b=Playtex`
 - QSSS/L2BRANDS: 4 · `/departamento.html?dept=women&b=QSSS%2FL2BRANDS`
 - RACHEL Rachel Roy: 4 · `/departamento.html?dept=women&b=RACHEL%20Rachel%20Roy`
 - RAYE: 4 · `/departamento.html?dept=women&b=RAYE`
 - Retrofete: 4 · `/departamento.html?dept=women&b=Retrofete`
-- Roz Hair: 4 · `/departamento.html?dept=women&b=Roz%20Hair`
 - Sam & Jess: 4 · `/departamento.html?dept=women&b=Sam%20%26%20Jess`
 - Samsonite: 4 · `/departamento.html?dept=women&b=Samsonite`
 - Skechers: 4 · `/departamento.html?dept=women&b=Skechers`
 - Splits59: 4 · `/departamento.html?dept=women&b=Splits59`
 - Still Here: 4 · `/departamento.html?dept=women&b=Still%20Here`
 - Tahari: 4 · `/departamento.html?dept=women&b=Tahari`
-- The Ceremony Club: 4 · `/departamento.html?dept=women&b=The%20Ceremony%20Club`
 - UGG®: 4 · `/departamento.html?dept=women&b=UGG%C2%AE`
 - Understated Leather: 4 · `/departamento.html?dept=women&b=Understated%20Leather`
 - Unwritten: 4 · `/departamento.html?dept=women&b=Unwritten`
@@ -613,7 +599,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - COTTON CITIZEN: 3 · `/departamento.html?dept=women&b=COTTON%20CITIZEN`
 - Dickies: 3 · `/departamento.html?dept=women&b=Dickies`
 - Dolce Vita: 3 · `/departamento.html?dept=women&b=Dolce%20Vita`
-- Dr. Diamond's Metacine: 3 · `/departamento.html?dept=women&b=Dr.%20Diamond's%20Metacine`
 - Dragon: 3 · `/departamento.html?dept=women&b=Dragon`
 - Eileen Fisher: 3 · `/departamento.html?dept=women&b=Eileen%20Fisher`
 - For Love & Lemons: 3 · `/departamento.html?dept=women&b=For%20Love%20%26%20Lemons`
@@ -623,9 +608,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Island Water Sports: 3 · `/departamento.html?dept=women&b=Island%20Water%20Sports`
 - KATIA RAE: 3 · `/departamento.html?dept=women&b=KATIA%20RAE`
 - Kenneth Cole: 3 · `/departamento.html?dept=women&b=Kenneth%20Cole`
+- L'AGENCE: 3 · `/departamento.html?dept=women&b=L'AGENCE`
 - Lara: 3 · `/departamento.html?dept=women&b=Lara`
-- Lemme: 3 · `/departamento.html?dept=women&b=Lemme`
 - Leonisa: 3 · `/departamento.html?dept=women&b=Leonisa`
+- Life is Good: 3 · `/departamento.html?dept=women&b=Life%20is%20Good`
 - Line & Dot: 3 · `/departamento.html?dept=women&b=Line%20%26%20Dot`
 - London Fog: 3 · `/departamento.html?dept=women&b=London%20Fog`
 - LU'U DAN: 3 · `/departamento.html?dept=women&b=LU'U%20DAN`
@@ -637,14 +623,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 - SHEVOKE: 3 · `/departamento.html?dept=women&b=SHEVOKE`
 - Siena: 3 · `/departamento.html?dept=women&b=Siena`
 - SIMONMILLER: 3 · `/departamento.html?dept=women&b=SIMONMILLER`
-- Starface: 3 · `/departamento.html?dept=women&b=Starface`
 - Susana Monaco: 3 · `/departamento.html?dept=women&b=Susana%20Monaco`
-- The Laundress: 3 · `/departamento.html?dept=women&b=The%20Laundress`
-- Tower 28: 3 · `/departamento.html?dept=women&b=Tower%2028`
 - True Religion: 3 · `/departamento.html?dept=women&b=True%20Religion`
 - 4th & Reckless: 2 · `/departamento.html?dept=women&b=4th%20%26%20Reckless`
 - ABRA: 2 · `/departamento.html?dept=women&b=ABRA`
-- Aesop: 2 · `/departamento.html?dept=women&b=Aesop`
 - Alice + Olivia: 2 · `/departamento.html?dept=women&b=Alice%20%2B%20Olivia`
 - AMUR: 2 · `/departamento.html?dept=women&b=AMUR`
 - ASTA RESORT: 2 · `/departamento.html?dept=women&b=ASTA%20RESORT`
@@ -654,13 +636,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - BGSD: 2 · `/departamento.html?dept=women&b=BGSD`
 - Boys Lie: 2 · `/departamento.html?dept=women&b=Boys%20Lie`
 - BUMPSUIT: 2 · `/departamento.html?dept=women&b=BUMPSUIT`
-- Bur Bur: 2 · `/departamento.html?dept=women&b=Bur%20Bur`
 - BY.DYLN: 2 · `/departamento.html?dept=women&b=BY.DYLN`
 - CAMI NYC: 2 · `/departamento.html?dept=women&b=CAMI%20NYC`
 - Cendre: 2 · `/departamento.html?dept=women&b=Cendre`
 - Charles Jeffrey LOVERBOY: 2 · `/departamento.html?dept=women&b=Charles%20Jeffrey%20LOVERBOY`
 - City Studios: 2 · `/departamento.html?dept=women&b=City%20Studios`
-- Color WOW: 2 · `/departamento.html?dept=women&b=Color%20WOW`
 - Da Kine: 2 · `/departamento.html?dept=women&b=Da%20Kine`
 - DELFI: 2 · `/departamento.html?dept=women&b=DELFI`
 - Democracy: 2 · `/departamento.html?dept=women&b=Democracy`
@@ -684,14 +664,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Junk Food: 2 · `/departamento.html?dept=women&b=Junk%20Food`
 - Kensie: 2 · `/departamento.html?dept=women&b=Kensie`
 - kimi + kai: 2 · `/departamento.html?dept=women&b=kimi%20%2B%20kai`
-- L'AGENCE: 2 · `/departamento.html?dept=women&b=L'AGENCE`
 - L'IDEE: 2 · `/departamento.html?dept=women&b=L'IDEE`
 - LAMARQUE: 2 · `/departamento.html?dept=women&b=LAMARQUE`
 - Lands' End: 2 · `/departamento.html?dept=women&b=Lands'%20End`
-- Life is Good: 2 · `/departamento.html?dept=women&b=Life%20is%20Good`
 - LOBA: 2 · `/departamento.html?dept=women&b=LOBA`
 - Locals Slippahs: 2 · `/departamento.html?dept=women&b=Locals%20Slippahs`
-- Marvis: 2 · `/departamento.html?dept=women&b=Marvis`
 - Miu Miu Eyewear: 2 · `/departamento.html?dept=women&b=Miu%20Miu%20Eyewear`
 - Negative Underwear: 2 · `/departamento.html?dept=women&b=Negative%20Underwear`
 - NIKIBI: 2 · `/departamento.html?dept=women&b=NIKIBI`
@@ -701,20 +678,17 @@ Viven en su propia sección (no son enlaces de esta columna):
 - P.E Nation: 2 · `/departamento.html?dept=women&b=P.E%20Nation`
 - Pact: 2 · `/departamento.html?dept=women&b=Pact`
 - Pas Normal Studios: 2 · `/departamento.html?dept=women&b=Pas%20Normal%20Studios`
-- Peter Thomas Roth: 2 · `/departamento.html?dept=women&b=Peter%20Thomas%20Roth`
+- Polar: 2 · `/departamento.html?dept=women&b=Polar`
 - Porsche: 2 · `/departamento.html?dept=women&b=Porsche`
 - Primitive: 2 · `/departamento.html?dept=women&b=Primitive`
 - QSSS/TEX: 2 · `/departamento.html?dept=women&b=QSSS%2FTEX`
 - R & M Richards: 2 · `/departamento.html?dept=women&b=R%20%26%20M%20Richards`
 - Rokka&Rolla: 2 · `/departamento.html?dept=women&b=Rokka%26Rolla`
-- Sacheu: 2 · `/departamento.html?dept=women&b=Sacheu`
 - SAYLOR: 2 · `/departamento.html?dept=women&b=SAYLOR`
 - Seychelles: 2 · `/departamento.html?dept=women&b=Seychelles`
 - Shona Joy: 2 · `/departamento.html?dept=women&b=Shona%20Joy`
 - SIMKHAI: 2 · `/departamento.html?dept=women&b=SIMKHAI`
-- Skin Gym: 2 · `/departamento.html?dept=women&b=Skin%20Gym`
 - Suzy Levian New York: 2 · `/departamento.html?dept=women&b=Suzy%20Levian%20New%20York`
-- SWEED: 2 · `/departamento.html?dept=women&b=SWEED`
 - Teva: 2 · `/departamento.html?dept=women&b=Teva`
 - The Attico: 2 · `/departamento.html?dept=women&b=The%20Attico`
 - The Great: 2 · `/departamento.html?dept=women&b=The%20Great`
@@ -722,7 +696,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Travelpro: 2 · `/departamento.html?dept=women&b=Travelpro`
 - Varley: 2 · `/departamento.html?dept=women&b=Varley`
 - Veja: 2 · `/departamento.html?dept=women&b=Veja`
-- Vero Lineage: 2 · `/departamento.html?dept=women&b=Vero%20Lineage`
 - VonZipper: 2 · `/departamento.html?dept=women&b=VonZipper`
 - White Mark: 2 · `/departamento.html?dept=women&b=White%20Mark`
 - Yellow The Label: 2 · `/departamento.html?dept=women&b=Yellow%20The%20Label`
@@ -731,29 +704,21 @@ Viven en su propia sección (no son enlaces de esta columna):
 - 27 EDIT Naturalizer: 1 · `/departamento.html?dept=women&b=27%20EDIT%20Naturalizer`
 - 3.1 Phillip Lim: 1 · `/departamento.html?dept=women&b=3.1%20Phillip%20Lim`
 - 35mm Co.: 1 · `/departamento.html?dept=women&b=35mm%20Co.`
-- 4AM: 1 · `/departamento.html?dept=women&b=4AM`
 - 686 Ent.: 1 · `/departamento.html?dept=women&b=686%20Ent.`
 - 7 For All Mankind: 1 · `/departamento.html?dept=women&b=7%20For%20All%20Mankind`
 - A.L.C.: 1 · `/departamento.html?dept=women&b=A.L.C.`
 - Abrand: 1 · `/departamento.html?dept=women&b=Abrand`
-- Act+Acre: 1 · `/departamento.html?dept=women&b=Act%2BAcre`
 - adidas by Wales Bonner: 1 · `/departamento.html?dept=women&b=adidas%20by%20Wales%20Bonner`
-- Affliction: 1 · `/departamento.html?dept=women&b=Affliction`
 - Airblaster: 1 · `/departamento.html?dept=women&b=Airblaster`
 - AKNVAS: 1 · `/departamento.html?dept=women&b=AKNVAS`
-- Allies of Skin: 1 · `/departamento.html?dept=women&b=Allies%20of%20Skin`
-- AMOUAGE: 1 · `/departamento.html?dept=women&b=AMOUAGE`
-- Anablue: 1 · `/departamento.html?dept=women&b=Anablue`
-- Assouline: 1 · `/departamento.html?dept=women&b=Assouline`
 - Aviator Nation: 1 · `/departamento.html?dept=women&b=Aviator%20Nation`
 - AYBL: 1 · `/departamento.html?dept=women&b=AYBL`
 - B&A By Betsy and Adam: 1 · `/departamento.html?dept=women&b=B%26A%20By%20Betsy%20and%20Adam`
 - B-Low the Belt: 1 · `/departamento.html?dept=women&b=B-Low%20the%20Belt`
-- Barriere: 1 · `/departamento.html?dept=women&b=Barriere`
 - BCX: 1 · `/departamento.html?dept=women&b=BCX`
 - BEACH RIOT: 1 · `/departamento.html?dept=women&b=BEACH%20RIOT`
 - Belldini: 1 · `/departamento.html?dept=women&b=Belldini`
-- Benefit Cosmetics: 1 · `/departamento.html?dept=women&b=Benefit%20Cosmetics`
+- Belle & Bloom: 1 · `/departamento.html?dept=women&b=Belle%20%26%20Bloom`
 - Betsey Johnson: 1 · `/departamento.html?dept=women&b=Betsey%20Johnson`
 - BLACK SUEDE STUDIO: 1 · `/departamento.html?dept=women&b=BLACK%20SUEDE%20STUDIO`
 - BLANK NYC: 1 · `/departamento.html?dept=women&b=BLANK%20NYC`
@@ -763,6 +728,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Bode: 1 · `/departamento.html?dept=women&b=Bode`
 - Brahmin: 1 · `/departamento.html?dept=women&b=Brahmin`
 - Breda: 1 · `/departamento.html?dept=women&b=Breda`
+- Brixton: 1 · `/departamento.html?dept=women&b=Brixton`
 - Brooks: 1 · `/departamento.html?dept=women&b=Brooks`
 - By Adina Eden: 1 · `/departamento.html?dept=women&b=By%20Adina%20Eden`
 - Calvin Klein Performance: 1 · `/departamento.html?dept=women&b=Calvin%20Klein%20Performance`
@@ -770,28 +736,22 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Cinq a Sept: 1 · `/departamento.html?dept=women&b=Cinq%20a%20Sept`
 - CITY CHIC: 1 · `/departamento.html?dept=women&b=CITY%20CHIC`
 - Coast: 1 · `/departamento.html?dept=women&b=Coast`
+- Color WOW: 1 · `/departamento.html?dept=women&b=Color%20WOW`
 - Comme des Garçons Girl: 1 · `/departamento.html?dept=women&b=Comme%20des%20Gar%C3%A7ons%20Girl`
 - COOR: 1 · `/departamento.html?dept=women&b=COOR`
 - Cosabella: 1 · `/departamento.html?dept=women&b=Cosabella`
-- Crosley Radio: 1 · `/departamento.html?dept=women&b=Crosley%20Radio`
 - Cupshe: 1 · `/departamento.html?dept=women&b=Cupshe`
 - Dakine: 1 · `/departamento.html?dept=women&b=Dakine`
 - DC: 1 · `/departamento.html?dept=women&b=DC`
-- DedCool: 1 · `/departamento.html?dept=women&b=DedCool`
 - DEPARTURE: 1 · `/departamento.html?dept=women&b=DEPARTURE`
 - Disney: 1 · `/departamento.html?dept=women&b=Disney`
 - Dloria: 1 · `/departamento.html?dept=women&b=Dloria`
-- Dose of Colors: 1 · `/departamento.html?dept=women&b=Dose%20of%20Colors`
-- dpHUE: 1 · `/departamento.html?dept=women&b=dpHUE`
-- Dusen Dusen: 1 · `/departamento.html?dept=women&b=Dusen%20Dusen`
 - Earth: 1 · `/departamento.html?dept=women&b=Earth`
 - Eberjey: 1 · `/departamento.html?dept=women&b=Eberjey`
 - Eliza J: 1 · `/departamento.html?dept=women&b=Eliza%20J`
 - ELOQUII: 1 · `/departamento.html?dept=women&b=ELOQUII`
-- Embryolisse: 1 · `/departamento.html?dept=women&b=Embryolisse`
 - EMU Australia: 1 · `/departamento.html?dept=women&b=EMU%20Australia`
 - Entire Studios: 1 · `/departamento.html?dept=women&b=Entire%20Studios`
-- Erborian: 1 · `/departamento.html?dept=women&b=Erborian`
 - Erdem: 1 · `/departamento.html?dept=women&b=Erdem`
 - Esquire Men's Jewelry: 1 · `/departamento.html?dept=women&b=Esquire%20Men's%20Jewelry`
 - Essentials: 1 · `/departamento.html?dept=women&b=Essentials`
@@ -805,21 +765,16 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Furniq UK: 1 · `/departamento.html?dept=women&b=Furniq%20UK`
 - Glamorise: 1 · `/departamento.html?dept=women&b=Glamorise`
 - Gold Hinge: 1 · `/departamento.html?dept=women&b=Gold%20Hinge`
-- Greedy Haircare: 1 · `/departamento.html?dept=women&b=Greedy%20Haircare`
 - Hammitt: 1 · `/departamento.html?dept=women&b=Hammitt`
-- Hanni: 1 · `/departamento.html?dept=women&b=Hanni`
-- Harry Josh Pro: 1 · `/departamento.html?dept=women&b=Harry%20Josh%20Pro`
-- HATCH Mama: 1 · `/departamento.html?dept=women&b=HATCH%20Mama`
 - Hippie Rose: 1 · `/departamento.html?dept=women&b=Hippie%20Rose`
 - HONEYLOVE: 1 · `/departamento.html?dept=women&b=HONEYLOVE`
 - Honora: 1 · `/departamento.html?dept=women&b=Honora`
-- Irene Forte: 1 · `/departamento.html?dept=women&b=Irene%20Forte`
 - Jaclyn Intimates: 1 · `/departamento.html?dept=women&b=Jaclyn%20Intimates`
+- James Perse: 1 · `/departamento.html?dept=women&b=James%20Perse`
 - Jennifer Behr: 1 · `/departamento.html?dept=women&b=Jennifer%20Behr`
 - Jessica Howard: 1 · `/departamento.html?dept=women&b=Jessica%20Howard`
 - Jewel Badgley Mischka: 1 · `/departamento.html?dept=women&b=Jewel%20Badgley%20Mischka`
 - Joe's Jeans: 1 · `/departamento.html?dept=women&b=Joe's%20Jeans`
-- Jolie Skin Co.: 1 · `/departamento.html?dept=women&b=Jolie%20Skin%20Co.`
 - Jou Jou: 1 · `/departamento.html?dept=women&b=Jou%20Jou`
 - Julietta: 1 · `/departamento.html?dept=women&b=Julietta`
 - June & Vie: 1 · `/departamento.html?dept=women&b=June%20%26%20Vie`
@@ -827,17 +782,13 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Kenzo: 1 · `/departamento.html?dept=women&b=Kenzo`
 - LAPOINTE | Macy's: 1 · `/departamento.html?dept=women&b=LAPOINTE%20%7C%20Macy's`
 - LAURA ANDRASCHKO: 1 · `/departamento.html?dept=women&b=LAURA%20ANDRASCHKO`
-- Lauren Elizabeth: 1 · `/departamento.html?dept=women&b=Lauren%20Elizabeth`
 - Lili Claspe: 1 · `/departamento.html?dept=women&b=Lili%20Claspe`
 - Liquid Force: 1 · `/departamento.html?dept=women&b=Liquid%20Force`
 - Liverpool Los Angeles: 1 · `/departamento.html?dept=women&b=Liverpool%20Los%20Angeles`
 - LNA: 1 · `/departamento.html?dept=women&b=LNA`
-- Lola Blankets: 1 · `/departamento.html?dept=women&b=Lola%20Blankets`
-- LOOPS: 1 · `/departamento.html?dept=women&b=LOOPS`
 - Luli Fama: 1 · `/departamento.html?dept=women&b=Luli%20Fama`
 - Lululemon: 1 · `/departamento.html?dept=women&b=Lululemon`
 - Magda Butrym: 1 · `/departamento.html?dept=women&b=Magda%20Butrym`
-- MAKE Beauty: 1 · `/departamento.html?dept=women&b=MAKE%20Beauty`
 - Malvados: 1 · `/departamento.html?dept=women&b=Malvados`
 - Mansur Gavriel: 1 · `/departamento.html?dept=women&b=Mansur%20Gavriel`
 - Maralyn & Me: 1 · `/departamento.html?dept=women&b=Maralyn%20%26%20Me`
@@ -845,49 +796,39 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Marcella: 1 · `/departamento.html?dept=women&b=Marcella`
 - MISBHV: 1 · `/departamento.html?dept=women&b=MISBHV`
 - Nadine Merabi: 1 · `/departamento.html?dept=women&b=Nadine%20Merabi`
-- Natasha Denona: 1 · `/departamento.html?dept=women&b=Natasha%20Denona`
 - NEEDLES: 1 · `/departamento.html?dept=women&b=NEEDLES`
 - NIIHAI: 1 · `/departamento.html?dept=women&b=NIIHAI`
 - NikeSKIMS: 1 · `/departamento.html?dept=women&b=NikeSKIMS`
 - NY Collection: 1 · `/departamento.html?dept=women&b=NY%20Collection`
 - Oddli: 1 · `/departamento.html?dept=women&b=Oddli`
 - Pandora: 1 · `/departamento.html?dept=women&b=Pandora`
-- PAT McGRATH LABS: 1 · `/departamento.html?dept=women&b=PAT%20McGRATH%20LABS`
 - pear culture: 1 · `/departamento.html?dept=women&b=pear%20culture`
 - Perfectwhitetee: 1 · `/departamento.html?dept=women&b=Perfectwhitetee`
 - Petit Moments: 1 · `/departamento.html?dept=women&b=Petit%20Moments`
 - Polo Ralph Lauren Intimates: 1 · `/departamento.html?dept=women&b=Polo%20Ralph%20Lauren%20Intimates`
 - Pro Standard: 1 · `/departamento.html?dept=women&b=Pro%20Standard`
 - Prototypes: 1 · `/departamento.html?dept=women&b=Prototypes`
-- Pure Mama: 1 · `/departamento.html?dept=women&b=Pure%20Mama`
 - Quiksilver: 1 · `/departamento.html?dept=women&b=Quiksilver`
 - QUIZ: 1 · `/departamento.html?dept=women&b=QUIZ`
 - Rachel Glauber: 1 · `/departamento.html?dept=women&b=Rachel%20Glauber`
 - Rails: 1 · `/departamento.html?dept=women&b=Rails`
 - Reef Sandals: 1 · `/departamento.html?dept=women&b=Reef%20Sandals`
-- REVOLVE Beauty: 1 · `/departamento.html?dept=women&b=REVOLVE%20Beauty`
 - REVOLVE LOS ANGELES: 1 · `/departamento.html?dept=women&b=REVOLVE%20LOS%20ANGELES`
 - Rier: 1 · `/departamento.html?dept=women&b=Rier`
 - Roxanne Assoulin: 1 · `/departamento.html?dept=women&b=Roxanne%20Assoulin`
-- RummiKlubLA: 1 · `/departamento.html?dept=women&b=RummiKlubLA`
-- Saalt: 1 · `/departamento.html?dept=women&b=Saalt`
 - Saks Potts: 1 · `/departamento.html?dept=women&b=Saks%20Potts`
-- Saltyface: 1 · `/departamento.html?dept=women&b=Saltyface`
-- Sania's Brow Bar: 1 · `/departamento.html?dept=women&b=Sania's%20Brow%20Bar`
 - Schott: 1 · `/departamento.html?dept=women&b=Schott`
 - Sebby Collection: 1 · `/departamento.html?dept=women&b=Sebby%20Collection`
 - SEVEN WONDERS: 1 · `/departamento.html?dept=women&b=SEVEN%20WONDERS`
 - Simon & Schuster: 1 · `/departamento.html?dept=women&b=Simon%20%26%20Schuster`
 - Sincerely Jules: 1 · `/departamento.html?dept=women&b=Sincerely%20Jules`
 - Sister NY: 1 · `/departamento.html?dept=women&b=Sister%20NY`
-- Sleepy Tie: 1 · `/departamento.html?dept=women&b=Sleepy%20Tie`
 - SPANX: 1 · `/departamento.html?dept=women&b=SPANX`
 - SRG: 1 · `/departamento.html?dept=women&b=SRG`
 - State of Day: 1 · `/departamento.html?dept=women&b=State%20of%20Day`
 - Streets Ahead: 1 · `/departamento.html?dept=women&b=Streets%20Ahead`
 - Stringys: 1 · `/departamento.html?dept=women&b=Stringys`
 - SUPER YAYA: 1 · `/departamento.html?dept=women&b=SUPER%20YAYA`
-- The Favorites: 1 · `/departamento.html?dept=women&b=The%20Favorites`
 - The Forecast Agency: 1 · `/departamento.html?dept=women&b=The%20Forecast%20Agency`
 - The Line by K: 1 · `/departamento.html?dept=women&b=The%20Line%20by%20K`
 - Thistle and Spire: 1 · `/departamento.html?dept=women&b=Thistle%20and%20Spire`
@@ -897,19 +838,15 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Tormenter: 1 · `/departamento.html?dept=women&b=Tormenter`
 - Tory Burch: 1 · `/departamento.html?dept=women&b=Tory%20Burch`
 - TruMiracle: 1 · `/departamento.html?dept=women&b=TruMiracle`
-- Ulike: 1 · `/departamento.html?dept=women&b=Ulike`
 - Union Binding c/o C3: 1 · `/departamento.html?dept=women&b=Union%20Binding%20c%2Fo%20C3`
 - V. Chapman: 1 · `/departamento.html?dept=women&b=V.%20Chapman`
 - Vagabond Shoemakers: 1 · `/departamento.html?dept=women&b=Vagabond%20Shoemakers`
 - Victoria Beckham: 1 · `/departamento.html?dept=women&b=Victoria%20Beckham`
 - Vince: 1 · `/departamento.html?dept=women&b=Vince`
-- VIO2: 1 · `/departamento.html?dept=women&b=VIO2`
 - Vionic: 1 · `/departamento.html?dept=women&b=Vionic`
 - Vuori: 1 · `/departamento.html?dept=women&b=Vuori`
 - WAO: 1 · `/departamento.html?dept=women&b=WAO`
 - WARDROBE.NYC: 1 · `/departamento.html?dept=women&b=WARDROBE.NYC`
-- Wellbel: 1 · `/departamento.html?dept=women&b=Wellbel`
-- Wonderskin: 1 · `/departamento.html?dept=women&b=Wonderskin`
 - Xcel Wetsuits: 1 · `/departamento.html?dept=women&b=Xcel%20Wetsuits`
 - Z Supply: 1 · `/departamento.html?dept=women&b=Z%20Supply`
 
@@ -918,52 +855,42 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Lencería: 3,045 · `/ropa-interior.html#mujer`
 - Tallas Plus: 7,850 · `/departamento.html?dept=curvy`
 - Diseñadores Latinos: 10,053 · `/disenadores.html`
-- Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
-- Aria Beauty: 5,590 · `/departamento.html?dept=beauty`
+- Diseñador y Lujo: 21,620 · `/departamento.html?dept=luxury`
+- Aria Beauty: 5,681 · `/departamento.html?dept=beauty`
 - Perfumes: 11,066 · `/departamento.html?dept=perfumes`
-- Carteras: 2,500 · `/departamento.html?dept=purses`
-- Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
-- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
-- Ropa: 17,114 · `/departamento.html?dept=clothing`
+- Carteras: 2,394 · `/departamento.html?dept=purses`
+- Lentes de Sol: 1,804 · `/departamento.html?dept=sunglasses`
+- Joyas y Accesorios: 8,398 · `/departamento.html?dept=joyas_accesorios`
+- Ropa: 16,905 · `/departamento.html?dept=clothing`
 
 ## Hombre
 
-Abre: `/departamento.html?dept=men` (12,152 productos)
+Abre: `/departamento.html?dept=men` (12,171 productos)
 
-### Ropa (11,558)
+### Ropa (8,840)
 
-- Camisas: 1,799 · `/departamento.html?dept=men&t=camisas`
-- Pantalones: 1,462 · `/departamento.html?dept=men&t=pantalones`
-- Pantalones y jeans: 1,253 · `/departamento.html?dept=men&t=pantalones-y-jeans`
-- Chompas y polerones: 1,021 · `/departamento.html?dept=men&t=chompas-y-polerones`
-- Casacas y abrigos: 970 · `/departamento.html?dept=men&t=casacas-y-abrigos`
-- Blusas y tops: 867 · `/departamento.html?dept=men&t=blusas-y-tops`
-- Ropa: 738 · `/departamento.html?dept=men&t=ropa`
-- Shorts: 614 · `/departamento.html?dept=men&t=shorts`
-- Lentes: 557 · `/departamento.html?dept=men&t=lentes`
-- Polos: 352 · `/departamento.html?dept=men&t=polos`
-- Gorras: 349 · `/departamento.html?dept=men&t=gorras`
-- Vestidos: 209 · `/departamento.html?dept=men&t=vestidos`
-- Billeteras: 194 · `/departamento.html?dept=men&t=billeteras`
+- Camisas: 1,985 · `/departamento.html?dept=men&t=camisas`
+- Pantalones y jeans: 1,255 · `/departamento.html?dept=men&t=pantalones-y-jeans`
+- Chompas y polerones: 1,025 · `/departamento.html?dept=men&t=chompas-y-polerones`
+- Casacas y abrigos: 971 · `/departamento.html?dept=men&t=casacas-y-abrigos`
+- Blusas y tops: 870 · `/departamento.html?dept=men&t=blusas-y-tops`
+- Ropa: 739 · `/departamento.html?dept=men&t=ropa`
+- Shorts: 455 · `/departamento.html?dept=men&t=shorts`
+- Polos: 354 · `/departamento.html?dept=men&t=polos`
+- Gorras: 274 · `/departamento.html?dept=men&t=gorras`
+- Pantalones: 205 · `/departamento.html?dept=men&t=pantalones`
 - Ropa de baño: 180 · `/departamento.html?dept=men&t=ropa-de-bano`
-- Correas: 144 · `/departamento.html?dept=men&t=correas`
 - Pantalón: 143 · `/departamento.html?dept=men&t=pantalon`
-- Bufandas: 105 · `/departamento.html?dept=men&t=bufandas`
 - Blazers: 95 · `/departamento.html?dept=men&t=blazers`
-- Accesorios: 87 · `/departamento.html?dept=men&t=accesorios`
 - Gorros: 74 · `/departamento.html?dept=men&t=gorros`
 - Chaqueta: 51 · `/departamento.html?dept=men&t=chaqueta`
-- Guantes: 47 · `/departamento.html?dept=men&t=guantes`
 - Neceseres: 47 · `/departamento.html?dept=men&t=neceseres`
-- Corbatas: 43 · `/departamento.html?dept=men&t=corbatas`
 - Medias: 42 · `/departamento.html?dept=men&t=medias`
-- Llaveros: 37 · `/departamento.html?dept=men&t=llaveros`
 - Batas: 20 · `/departamento.html?dept=men&t=batas`
+- Vestidos: 19 · `/departamento.html?dept=men&t=vestidos`
 - Pijamas: 17 · `/departamento.html?dept=men&t=pijamas`
-- Relojes: 17 · `/departamento.html?dept=men&t=relojes`
 - Mochilas y bolsos: 9 · `/departamento.html?dept=men&t=mochilas-y-bolsos`
 - Ternos: 6 · `/departamento.html?dept=men&t=ternos`
-- Broches y pines: 5 · `/departamento.html?dept=men&t=broches-y-pines`
 - Pijama: 2 · `/departamento.html?dept=men&t=pijama`
 - Sombreros: 2 · `/departamento.html?dept=men&t=sombreros`
 
@@ -972,56 +899,61 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Zapatos: 618 → Zapatos · `/departamento.html?dept=shoes`
 - Lentes de sol: 526 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 - Carteras: 418 → Carteras · `/departamento.html?dept=purses`
+- Billeteras: 194 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Collares y dijes: 193 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Sandalias: 166 → Zapatos · `/departamento.html?dept=shoes`
 - Ropa interior: 157 → Ropa Interior Hombre · `/ropa-interior.html#hombre`
+- Correas: 144 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Pulseras y tobilleras: 112 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Bufandas: 105 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Accesorios: 87 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Aretes: 77 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Anillos: 73 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Guantes: 45 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Corbatas: 43 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Llaveros: 37 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 - Lencería: 34 → Ropa Interior Hombre · `/ropa-interior.html#hombre`
+- Lentes: 31 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 - Bolso: 20 → Carteras · `/departamento.html?dept=purses`
-- Fragancia: 1 → Perfumes · `/departamento.html?dept=perfumes`
+- Relojes: 17 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Broches y pines: 5 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
 
-### Zapatos (8,370)
+### Zapatos (6,447)
 
-- Zapatillas: 3,298 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 2,696 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,288 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 884 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
 - Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
-- Tacones: 101 · `/departamento.html?dept=shoes&t=tacones&para=men`
 
-### Accesorios (1,124)
+### Accesorios (1,051)
 
 - Collares y dijes: 191 · `/departamento.html?dept=joyas_accesorios&t=collares-y-dijes&para=men`
 - Billeteras: 187 · `/departamento.html?dept=joyas_accesorios&t=billeteras&para=men`
 - Correas: 144 · `/departamento.html?dept=joyas_accesorios&t=correas&para=men`
 - Pulseras y tobilleras: 112 · `/departamento.html?dept=joyas_accesorios&t=pulseras-y-tobilleras&para=men`
 - Bufandas: 103 · `/departamento.html?dept=joyas_accesorios&t=bufandas&para=men`
-- Guantes: 95 · `/departamento.html?dept=joyas_accesorios&t=guantes&para=men`
-- Aretes: 80 · `/departamento.html?dept=joyas_accesorios&t=aretes&para=men`
-- Anillos: 74 · `/departamento.html?dept=joyas_accesorios&t=anillos&para=men`
+- Guantes: 92 · `/departamento.html?dept=joyas_accesorios&t=guantes&para=men`
+- Anillos: 73 · `/departamento.html?dept=joyas_accesorios&t=anillos&para=men`
 - Corbatas: 43 · `/departamento.html?dept=joyas_accesorios&t=corbatas&para=men`
 - Llaveros: 35 · `/departamento.html?dept=joyas_accesorios&t=llaveros&para=men`
 - Accesorios: 21 · `/departamento.html?dept=joyas_accesorios&t=accesorios&para=men`
 - Relojes: 17 · `/departamento.html?dept=joyas_accesorios&t=relojes&para=men`
+- Aretes: 16 · `/departamento.html?dept=joyas_accesorios&t=aretes&para=men`
 - Broches y pines: 4 · `/departamento.html?dept=joyas_accesorios&t=broches-y-pines&para=men`
 - Gorros: 3 · `/departamento.html?dept=joyas_accesorios&t=gorros&para=men`
-- Trajes De Neopreno: 3 · `/departamento.html?dept=joyas_accesorios&t=trajes-de-neopreno&para=men`
 - Zapatillas: 3 · `/departamento.html?dept=joyas_accesorios&t=zapatillas&para=men`
 - Sandalias: 2 · `/departamento.html?dept=joyas_accesorios&t=sandalias&para=men`
-- Accesorios De Surf: 1 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-surf&para=men`
 - Camisas: 1 · `/departamento.html?dept=joyas_accesorios&t=camisas&para=men`
 - Chaqueta: 1 · `/departamento.html?dept=joyas_accesorios&t=chaqueta&para=men`
 - Joyas: 1 · `/departamento.html?dept=joyas_accesorios&t=joyas&para=men`
 - Neceseres: 1 · `/departamento.html?dept=joyas_accesorios&t=neceseres&para=men`
 - Pantalones y jeans: 1 · `/departamento.html?dept=joyas_accesorios&t=pantalones-y-jeans&para=men`
-- Pesas Y Cinturones: 1 · `/departamento.html?dept=joyas_accesorios&t=pesas-y-cinturones&para=men`
 
-### Marcas (12,152)
+### Marcas (12,171)
 
-- Kohl's: 640 · `/departamento.html?dept=men&b=Kohl's`
+- Kohl's: 641 · `/departamento.html?dept=men&b=Kohl's`
 - Vivienne Westwood: 373 · `/departamento.html?dept=men&b=Vivienne%20Westwood`
 - Rick Owens: 308 · `/departamento.html?dept=men&b=Rick%20Owens`
 - Dries Van Noten: 303 · `/departamento.html?dept=men&b=Dries%20Van%20Noten`
@@ -1087,21 +1019,22 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Paul Smith: 47 · `/departamento.html?dept=men&b=Paul%20Smith`
 - Represent: 47 · `/departamento.html?dept=men&b=Represent`
 - Solid Homme: 47 · `/departamento.html?dept=men&b=Solid%20Homme`
+- Thom Browne: 47 · `/departamento.html?dept=men&b=Thom%20Browne`
 - Jetty: 46 · `/departamento.html?dept=men&b=Jetty`
 - Lacoste: 46 · `/departamento.html?dept=men&b=Lacoste`
 - Les Tien: 46 · `/departamento.html?dept=men&b=Les%20Tien`
-- Thom Browne: 46 · `/departamento.html?dept=men&b=Thom%20Browne`
 - Fear of God ESSENTIALS: 45 · `/departamento.html?dept=men&b=Fear%20of%20God%20ESSENTIALS`
 - NEEDLES: 45 · `/departamento.html?dept=men&b=NEEDLES`
 - Satisfy: 45 · `/departamento.html?dept=men&b=Satisfy`
 - BALMAIN: 44 · `/departamento.html?dept=men&b=BALMAIN`
 - Bottega Veneta: 44 · `/departamento.html?dept=men&b=Bottega%20Veneta`
+- Simone Rocha: 44 · `/departamento.html?dept=men&b=Simone%20Rocha`
 - Burton: 43 · `/departamento.html?dept=men&b=Burton`
 - Hugo: 43 · `/departamento.html?dept=men&b=Hugo`
 - Kiko Kostadinov: 43 · `/departamento.html?dept=men&b=Kiko%20Kostadinov`
-- Simone Rocha: 43 · `/departamento.html?dept=men&b=Simone%20Rocha`
 - Givenchy: 42 · `/departamento.html?dept=men&b=Givenchy`
 - Patagonia: 42 · `/departamento.html?dept=men&b=Patagonia`
+- Chopova Lowena: 41 · `/departamento.html?dept=men&b=Chopova%20Lowena`
 - Literary Sport: 41 · `/departamento.html?dept=men&b=Literary%20Sport`
 - Canada Goose: 40 · `/departamento.html?dept=men&b=Canada%20Goose`
 - Jil Sander: 40 · `/departamento.html?dept=men&b=Jil%20Sander`
@@ -1109,15 +1042,15 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Versace: 39 · `/departamento.html?dept=men&b=Versace`
 - Alexander Wang: 38 · `/departamento.html?dept=men&b=Alexander%20Wang`
 - Katin: 38 · `/departamento.html?dept=men&b=Katin`
-- Chopova Lowena: 37 · `/departamento.html?dept=men&b=Chopova%20Lowena`
 - Julius: 37 · `/departamento.html?dept=men&b=Julius`
+- LU'U DAN: 37 · `/departamento.html?dept=men&b=LU'U%20DAN`
 - C.P. Company: 36 · `/departamento.html?dept=men&b=C.P.%20Company`
-- LU'U DAN: 36 · `/departamento.html?dept=men&b=LU'U%20DAN`
 - SPY: 36 · `/departamento.html?dept=men&b=SPY`
 - ssstein: 36 · `/departamento.html?dept=men&b=ssstein`
 - adidas Originals: 35 · `/departamento.html?dept=men&b=adidas%20Originals`
 - Ferragamo: 34 · `/departamento.html?dept=men&b=Ferragamo`
 - Jordan: 34 · `/departamento.html?dept=men&b=Jordan`
+- R13: 34 · `/departamento.html?dept=men&b=R13`
 - Stance: 34 · `/departamento.html?dept=men&b=Stance`
 - Billabong: 33 · `/departamento.html?dept=men&b=Billabong`
 - WILLY CHAVARRIA: 33 · `/departamento.html?dept=men&b=WILLY%20CHAVARRIA`
@@ -1127,7 +1060,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Olukai: 32 · `/departamento.html?dept=men&b=Olukai`
 - HEREU: 31 · `/departamento.html?dept=men&b=HEREU`
 - YMC: 31 · `/departamento.html?dept=men&b=YMC`
-- R13: 30 · `/departamento.html?dept=men&b=R13`
 - Tekla: 30 · `/departamento.html?dept=men&b=Tekla`
 - thom/krom: 30 · `/departamento.html?dept=men&b=thom%2Fkrom`
 - UNDERCOVER: 30 · `/departamento.html?dept=men&b=UNDERCOVER`
@@ -1142,11 +1074,11 @@ Viven en su propia sección (no son enlaces de esta columna):
 - CASEY CASEY: 27 · `/departamento.html?dept=men&b=CASEY%20CASEY`
 - Dragon: 27 · `/departamento.html?dept=men&b=Dragon`
 - Drake's: 27 · `/departamento.html?dept=men&b=Drake's`
+- Jean Paul Gaultier: 27 · `/departamento.html?dept=men&b=Jean%20Paul%20Gaultier`
 - Sonoma Goods For Life: 27 · `/departamento.html?dept=men&b=Sonoma%20Goods%20For%20Life`
 - Vans: 27 · `/departamento.html?dept=men&b=Vans`
 - ALEXANDER DIGENOVA: 26 · `/departamento.html?dept=men&b=ALEXANDER%20DIGENOVA`
 - Dr. Martens: 26 · `/departamento.html?dept=men&b=Dr.%20Martens`
-- Jean Paul Gaultier: 26 · `/departamento.html?dept=men&b=Jean%20Paul%20Gaultier`
 - Bajio: 25 · `/departamento.html?dept=men&b=Bajio`
 - Barbour: 25 · `/departamento.html?dept=men&b=Barbour`
 - Club Room: 25 · `/departamento.html?dept=men&b=Club%20Room`
@@ -1168,6 +1100,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Hoodrich: 22 · `/departamento.html?dept=men&b=Hoodrich`
 - POST ARCHIVE FACTION (PAF): 22 · `/departamento.html?dept=men&b=POST%20ARCHIVE%20FACTION%20(PAF)`
 - Ray-Ban: 22 · `/departamento.html?dept=men&b=Ray-Ban`
+- VAQUERA: 22 · `/departamento.html?dept=men&b=VAQUERA`
 - Deadwood: 21 · `/departamento.html?dept=men&b=Deadwood`
 - Ed Hardy: 21 · `/departamento.html?dept=men&b=Ed%20Hardy`
 - JEANERICA: 21 · `/departamento.html?dept=men&b=JEANERICA`
@@ -1182,7 +1115,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Stefan Cooke: 20 · `/departamento.html?dept=men&b=Stefan%20Cooke`
 - Sunflower: 20 · `/departamento.html?dept=men&b=Sunflower`
 - Supply & Demand: 20 · `/departamento.html?dept=men&b=Supply%20%26%20Demand`
-- VAQUERA: 20 · `/departamento.html?dept=men&b=VAQUERA`
 - Champion: 19 · `/departamento.html?dept=men&b=Champion`
 - I-SEA: 19 · `/departamento.html?dept=men&b=I-SEA`
 - Rhythm: 19 · `/departamento.html?dept=men&b=Rhythm`
@@ -1207,6 +1139,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Hugo Boss: 16 · `/departamento.html?dept=men&b=Hugo%20Boss`
 - MASTERMIND WORLD: 16 · `/departamento.html?dept=men&b=MASTERMIND%20WORLD`
 - Merz b. Schwanen: 16 · `/departamento.html?dept=men&b=Merz%20b.%20Schwanen`
+- PDF: 16 · `/departamento.html?dept=men&b=PDF`
 - Saint Laurent: 16 · `/departamento.html?dept=men&b=Saint%20Laurent`
 - Alfani: 15 · `/departamento.html?dept=men&b=Alfani`
 - Dockers: 15 · `/departamento.html?dept=men&b=Dockers`
@@ -1227,7 +1160,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Former: 13 · `/departamento.html?dept=men&b=Former`
 - Marsèll Gomme: 13 · `/departamento.html?dept=men&b=Mars%C3%A8ll%20Gomme`
 - Merrell 1TRL: 13 · `/departamento.html?dept=men&b=Merrell%201TRL`
-- PDF: 13 · `/departamento.html?dept=men&b=PDF`
 - Smartwool: 13 · `/departamento.html?dept=men&b=Smartwool`
 - Matsuda: 12 · `/departamento.html?dept=men&b=Matsuda`
 - Nudie Jeans: 12 · `/departamento.html?dept=men&b=Nudie%20Jeans`
@@ -1275,6 +1207,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Tayion Collection: 7 · `/departamento.html?dept=men&b=Tayion%20Collection`
 - AMOMENTO: 6 · `/departamento.html?dept=men&b=AMOMENTO`
 - Cartier: 6 · `/departamento.html?dept=men&b=Cartier`
+- Cordera: 6 · `/departamento.html?dept=men&b=Cordera`
 - Cubavera: 6 · `/departamento.html?dept=men&b=Cubavera`
 - MATIÈRES FÉCALES: 6 · `/departamento.html?dept=men&b=MATI%C3%88RES%20F%C3%89CALES`
 - Michael Kors: 6 · `/departamento.html?dept=men&b=Michael%20Kors`
@@ -1301,7 +1234,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Bar III: 4 · `/departamento.html?dept=men&b=Bar%20III`
 - Brooks Brothers: 4 · `/departamento.html?dept=men&b=Brooks%20Brothers`
 - Columbia: 4 · `/departamento.html?dept=men&b=Columbia`
-- Cordera: 4 · `/departamento.html?dept=men&b=Cordera`
 - DailySZN: 4 · `/departamento.html?dept=men&b=DailySZN`
 - Drifter: 4 · `/departamento.html?dept=men&b=Drifter`
 - G-Shock: 4 · `/departamento.html?dept=men&b=G-Shock`
@@ -1412,162 +1344,136 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
+- Ropa Interior Hombre: 1,604 · `/ropa-interior.html#hombre`
 - Zapatos de Hombre: 1,440 · `/departamento.html?dept=shoes_men`
 - Perfumes: 11,066 · `/departamento.html?dept=perfumes`
-- Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
-- Carteras: 2,500 · `/departamento.html?dept=purses`
-- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
-- Diseñador y Lujo: 21,640 · `/departamento.html?dept=luxury`
+- Lentes de Sol: 1,804 · `/departamento.html?dept=sunglasses`
+- Carteras: 2,394 · `/departamento.html?dept=purses`
+- Joyas y Accesorios: 8,398 · `/departamento.html?dept=joyas_accesorios`
+- Diseñador y Lujo: 21,620 · `/departamento.html?dept=luxury`
 - Gym Rat: 12,065 · `/departamento.html?dept=gym_rat`
 
 ## Niños
 
-Abre: `/departamento.html?dept=kids` (2,274 productos)
+Abre: `/departamento.html?dept=kids` (1,922 productos)
 
-### Ropa (2,106)
+### Ropa (1,567)
 
-- Blusas y tops: 643 · `/departamento.html?dept=kids&t=blusas-y-tops`
-- Accesorios: 243 · `/departamento.html?dept=kids&t=accesorios`
-- Camisas: 203 · `/departamento.html?dept=kids&t=camisas`
-- Casacas y abrigos: 163 · `/departamento.html?dept=kids&t=casacas-y-abrigos`
-- Shorts: 149 · `/departamento.html?dept=kids&t=shorts`
-- Pantalones y jeans: 127 · `/departamento.html?dept=kids&t=pantalones-y-jeans`
-- Pantalón: 104 · `/departamento.html?dept=kids&t=pantalon`
-- Ropa de baño: 104 · `/departamento.html?dept=kids&t=ropa-de-bano`
-- Gorras: 92 · `/departamento.html?dept=kids&t=gorras`
-- Medias: 58 · `/departamento.html?dept=kids&t=medias`
-- Ropa: 48 · `/departamento.html?dept=kids&t=ropa`
-- Vestidos: 45 · `/departamento.html?dept=kids&t=vestidos`
-- Canastas y organizadores: 27 · `/departamento.html?dept=kids&t=canastas-y-organizadores`
-- Chompas y polerones: 23 · `/departamento.html?dept=kids&t=chompas-y-polerones`
-- Hogar: 18 · `/departamento.html?dept=kids&t=hogar`
-- Conjuntos: 14 · `/departamento.html?dept=kids&t=conjuntos`
-- Vajilla: 13 · `/departamento.html?dept=kids&t=vajilla`
+- Blusas y tops: 598 · `/departamento.html?dept=kids&t=blusas-y-tops`
+- Casacas y abrigos: 159 · `/departamento.html?dept=kids&t=casacas-y-abrigos`
+- Camisas: 131 · `/departamento.html?dept=kids&t=camisas`
+- Pantalones y jeans: 117 · `/departamento.html?dept=kids&t=pantalones-y-jeans`
+- Pantalón: 103 · `/departamento.html?dept=kids&t=pantalon`
+- Ropa de baño: 102 · `/departamento.html?dept=kids&t=ropa-de-bano`
+- Shorts: 95 · `/departamento.html?dept=kids&t=shorts`
+- Gorras: 86 · `/departamento.html?dept=kids&t=gorras`
+- Medias: 54 · `/departamento.html?dept=kids&t=medias`
+- Ropa: 46 · `/departamento.html?dept=kids&t=ropa`
+- Vestidos: 30 · `/departamento.html?dept=kids&t=vestidos`
+- Chompas y polerones: 15 · `/departamento.html?dept=kids&t=chompas-y-polerones`
 - Chaqueta: 12 · `/departamento.html?dept=kids&t=chaqueta`
-- Loncheras: 11 · `/departamento.html?dept=kids&t=loncheras`
+- Conjuntos: 12 · `/departamento.html?dept=kids&t=conjuntos`
 - Pijama: 3 · `/departamento.html?dept=kids&t=pijama`
 - Sombreros: 2 · `/departamento.html?dept=kids&t=sombreros`
 - Toallas Y Ponchos: 2 · `/departamento.html?dept=kids&t=toallas-y-ponchos`
-- Bodies: 1 · `/departamento.html?dept=kids&t=bodies`
-- Stickers Y Decoración: 1 · `/departamento.html?dept=kids&t=stickers-y-decoracion`
 
 Viven en su propia sección (no son enlaces de esta columna):
-- Lencería: 19 → Lencería · `/ropa-interior.html#mujer`
-- Carteras: 15 → Carteras · `/departamento.html?dept=purses`
+- Accesorios: 242 → Joyas y Accesorios · `/departamento.html?dept=joyas_accesorios`
+- Carteras: 14 → Carteras · `/departamento.html?dept=purses`
 - Sandalias: 12 → Zapatos · `/departamento.html?dept=shoes`
+- Lencería: 6 → Lencería · `/ropa-interior.html#mujer`
 - Zapatillas: 2 → Zapatos · `/departamento.html?dept=shoes`
 - Lentes de sol: 1 → Lentes de Sol · `/departamento.html?dept=sunglasses`
 
-### Zapatos (1,563)
+### Zapatos (1,203)
 
-- Zapatillas: 498 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
-- Zapatos: 468 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
-- Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
+- Zapatillas: 490 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Chimpunes: 243 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
 - Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
-- Sandalias: 114 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
+- Zapatos: 118 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Sandalias: 113 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
 - Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
-### Marcas (2,274)
+### Marcas (1,922)
 
 - Billionaire Boys Club: 277 · `/departamento.html?dept=kids&b=Billionaire%20Boys%20Club`
-- O'Neill: 122 · `/departamento.html?dept=kids&b=O'Neill`
-- Bentgo: 109 · `/departamento.html?dept=kids&b=Bentgo`
-- ezpz: 100 · `/departamento.html?dept=kids&b=ezpz`
+- O'Neill: 121 · `/departamento.html?dept=kids&b=O'Neill`
 - O'neill Girls: 76 · `/departamento.html?dept=kids&b=O'neill%20Girls`
 - Vissla: 65 · `/departamento.html?dept=kids&b=Vissla`
-- Stance: 56 · `/departamento.html?dept=kids&b=Stance`
+- Bentgo: 60 · `/departamento.html?dept=kids&b=Bentgo`
 - World Industries: 53 · `/departamento.html?dept=kids&b=World%20Industries`
-- Salty Crew: 52 · `/departamento.html?dept=kids&b=Salty%20Crew`
+- Stance: 52 · `/departamento.html?dept=kids&b=Stance`
+- Salty Crew: 49 · `/departamento.html?dept=kids&b=Salty%20Crew`
 - Burton: 46 · `/departamento.html?dept=kids&b=Burton`
 - Katin: 45 · `/departamento.html?dept=kids&b=Katin`
 - CCS: 42 · `/departamento.html?dept=kids&b=CCS`
 - Dozer: 41 · `/departamento.html?dept=kids&b=Dozer`
 - QSSS/ANCHBOY: 36 · `/departamento.html?dept=kids&b=QSSS%2FANCHBOY`
-- Volcom: 35 · `/departamento.html?dept=kids&b=Volcom`
-- Rip Curl Girls: 32 · `/departamento.html?dept=kids&b=Rip%20Curl%20Girls`
-- Polar: 31 · `/departamento.html?dept=kids&b=Polar`
+- Volcom: 34 · `/departamento.html?dept=kids&b=Volcom`
+- Rip Curl Girls: 31 · `/departamento.html?dept=kids&b=Rip%20Curl%20Girls`
 - Nike: 30 · `/departamento.html?dept=kids&b=Nike`
+- Polar: 28 · `/departamento.html?dept=kids&b=Polar`
 - Vans: 27 · `/departamento.html?dept=kids&b=Vans`
-- Mushie: 23 · `/departamento.html?dept=kids&b=Mushie`
-- Roxy: 22 · `/departamento.html?dept=kids&b=Roxy`
 - Tank Stream: 22 · `/departamento.html?dept=kids&b=Tank%20Stream`
-- Rip Curl: 21 · `/departamento.html?dept=kids&b=Rip%20Curl`
-- Channel Islands Apparel: 20 · `/departamento.html?dept=kids&b=Channel%20Islands%20Apparel`
+- Rip Curl: 20 · `/departamento.html?dept=kids&b=Rip%20Curl`
 - Val Surf: 20 · `/departamento.html?dept=kids&b=Val%20Surf`
-- State Bags: 19 · `/departamento.html?dept=kids&b=State%20Bags`
-- Skims: 18 · `/departamento.html?dept=kids&b=Skims`
-- FLORE FLORE: 16 · `/departamento.html?dept=kids&b=FLORE%20FLORE`
+- Channel Islands Apparel: 17 · `/departamento.html?dept=kids&b=Channel%20Islands%20Apparel`
 - Girl Skateboards: 16 · `/departamento.html?dept=kids&b=Girl%20Skateboards`
+- Roxy: 16 · `/departamento.html?dept=kids&b=Roxy`
 - Parrot Surf Shop: 14 · `/departamento.html?dept=kids&b=Parrot%20Surf%20Shop`
 - QSSS/YPRINT: 14 · `/departamento.html?dept=kids&b=QSSS%2FYPRINT`
 - Surf Station: 14 · `/departamento.html?dept=kids&b=Surf%20Station`
-- Jetty: 13 · `/departamento.html?dept=kids&b=Jetty`
 - Jordan: 13 · `/departamento.html?dept=kids&b=Jordan`
 - Carter's: 12 · `/departamento.html?dept=kids&b=Carter's`
-- Island Water Sports: 12 · `/departamento.html?dept=kids&b=Island%20Water%20Sports`
-- Maison Kitsuné: 12 · `/departamento.html?dept=kids&b=Maison%20Kitsun%C3%A9`
+- Jetty: 12 · `/departamento.html?dept=kids&b=Jetty`
+- State Bags: 12 · `/departamento.html?dept=kids&b=State%20Bags`
 - Billabong: 11 · `/departamento.html?dept=kids&b=Billabong`
+- Island Water Sports: 11 · `/departamento.html?dept=kids&b=Island%20Water%20Sports`
+- Mushie: 10 · `/departamento.html?dept=kids&b=Mushie`
 - QSSS/REFLEX: 10 · `/departamento.html?dept=kids&b=QSSS%2FREFLEX`
-- R13: 10 · `/departamento.html?dept=kids&b=R13`
 - Polo Ralph Lauren: 9 · `/departamento.html?dept=kids&b=Polo%20Ralph%20Lauren`
 - Quiksilver: 9 · `/departamento.html?dept=kids&b=Quiksilver`
 - Reef: 9 · `/departamento.html?dept=kids&b=Reef`
 - Reef Sandals: 9 · `/departamento.html?dept=kids&b=Reef%20Sandals`
 - Baseball Lifestyle 101: 8 · `/departamento.html?dept=kids&b=Baseball%20Lifestyle%20101`
-- GANNI: 8 · `/departamento.html?dept=kids&b=GANNI`
-- Kohl's: 8 · `/departamento.html?dept=kids&b=Kohl's`
 - Supply & Demand: 8 · `/departamento.html?dept=kids&b=Supply%20%26%20Demand`
-- Vivienne Westwood: 8 · `/departamento.html?dept=kids&b=Vivienne%20Westwood`
 - QSSS/EASYPROMO: 7 · `/departamento.html?dept=kids&b=QSSS%2FEASYPROMO`
 - RVCA: 7 · `/departamento.html?dept=kids&b=RVCA`
 - Santa Cruz: 7 · `/departamento.html?dept=kids&b=Santa%20Cruz`
-- Santa Cruz Skateboards: 7 · `/departamento.html?dept=kids&b=Santa%20Cruz%20Skateboards`
 - Smartwool: 7 · `/departamento.html?dept=kids&b=Smartwool`
 - Free Fly: 6 · `/departamento.html?dept=kids&b=Free%20Fly`
 - IMSY Swimwear: 6 · `/departamento.html?dept=kids&b=IMSY%20Swimwear`
-- Jean Paul Gaultier: 6 · `/departamento.html?dept=kids&b=Jean%20Paul%20Gaultier`
+- Kohl's: 6 · `/departamento.html?dept=kids&b=Kohl's`
 - Michael Kors: 6 · `/departamento.html?dept=kids&b=Michael%20Kors`
-- Miu Miu: 6 · `/departamento.html?dept=kids&b=Miu%20Miu`
-- Simone Rocha: 6 · `/departamento.html?dept=kids&b=Simone%20Rocha`
+- Santa Cruz Skateboards: 6 · `/departamento.html?dept=kids&b=Santa%20Cruz%20Skateboards`
 - The North Face: 6 · `/departamento.html?dept=kids&b=The%20North%20Face`
 - adidas: 5 · `/departamento.html?dept=kids&b=adidas`
+- Miu Miu: 5 · `/departamento.html?dept=kids&b=Miu%20Miu`
 - QSSS/NALUKAI: 5 · `/departamento.html?dept=kids&b=QSSS%2FNALUKAI`
 - Represent: 5 · `/departamento.html?dept=kids&b=Represent`
 - Sonneti: 5 · `/departamento.html?dept=kids&b=Sonneti`
 - Under Armour: 5 · `/departamento.html?dept=kids&b=Under%20Armour`
-- VAQUERA: 5 · `/departamento.html?dept=kids&b=VAQUERA`
-- Chopova Lowena: 4 · `/departamento.html?dept=kids&b=Chopova%20Lowena`
 - Emerson and Friends: 4 · `/departamento.html?dept=kids&b=Emerson%20and%20Friends`
-- JW PEI: 4 · `/departamento.html?dept=kids&b=JW%20PEI`
 - Powell-Peralta: 4 · `/departamento.html?dept=kids&b=Powell-Peralta`
 - Rainbow Sandals: 4 · `/departamento.html?dept=kids&b=Rainbow%20Sandals`
 - Reebok: 4 · `/departamento.html?dept=kids&b=Reebok`
 - Spitfire Skateboard Wheels: 4 · `/departamento.html?dept=kids&b=Spitfire%20Skateboard%20Wheels`
-- St. Agni: 4 · `/departamento.html?dept=kids&b=St.%20Agni`
 - Thrasher: 4 · `/departamento.html?dept=kids&b=Thrasher`
-- Affliction: 3 · `/departamento.html?dept=kids&b=Affliction`
-- American Eagle: 3 · `/departamento.html?dept=kids&b=American%20Eagle`
 - Columbia: 3 · `/departamento.html?dept=kids&b=Columbia`
-- Cou Cou: 3 · `/departamento.html?dept=kids&b=Cou%20Cou`
 - Cressi: 3 · `/departamento.html?dept=kids&b=Cressi`
 - Dickies: 3 · `/departamento.html?dept=kids&b=Dickies`
-- Ed Hardy: 3 · `/departamento.html?dept=kids&b=Ed%20Hardy`
 - Heritage: 3 · `/departamento.html?dept=kids&b=Heritage`
 - Hot Chillys: 3 · `/departamento.html?dept=kids&b=Hot%20Chillys`
 - NHS: 3 · `/departamento.html?dept=kids&b=NHS`
 - Party Pants: 3 · `/departamento.html?dept=kids&b=Party%20Pants`
-- PDF: 3 · `/departamento.html?dept=kids&b=PDF`
 - QSSS/LIQENERGY: 3 · `/departamento.html?dept=kids&b=QSSS%2FLIQENERGY`
 - QSSS/PP: 3 · `/departamento.html?dept=kids&b=QSSS%2FPP`
 - Rokka&Rolla: 3 · `/departamento.html?dept=kids&b=Rokka%26Rolla`
 - Sonoma Goods For Life: 3 · `/departamento.html?dept=kids&b=Sonoma%20Goods%20For%20Life`
 - US Divers: 3 · `/departamento.html?dept=kids&b=US%20Divers`
 - Avid Gear: 2 · `/departamento.html?dept=kids&b=Avid%20Gear`
-- Brixton: 2 · `/departamento.html?dept=kids&b=Brixton`
 - Chubbies: 2 · `/departamento.html?dept=kids&b=Chubbies`
-- Cordera: 2 · `/departamento.html?dept=kids&b=Cordera`
 - Dakine: 2 · `/departamento.html?dept=kids&b=Dakine`
 - Drifter: 2 · `/departamento.html?dept=kids&b=Drifter`
 - Hanes: 2 · `/departamento.html?dept=kids&b=Hanes`
@@ -1575,67 +1481,46 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Hoodrich: 2 · `/departamento.html?dept=kids&b=Hoodrich`
 - Independent Skateboard Trucks: 2 · `/departamento.html?dept=kids&b=Independent%20Skateboard%20Trucks`
 - Lakai: 2 · `/departamento.html?dept=kids&b=Lakai`
-- Limosine: 2 · `/departamento.html?dept=kids&b=Limosine`
-- LIONESS: 2 · `/departamento.html?dept=kids&b=LIONESS`
 - Liquid Force: 2 · `/departamento.html?dept=kids&b=Liquid%20Force`
 - Maaji: 2 · `/departamento.html?dept=kids&b=Maaji`
 - Maison MIHARA YASUHIRO: 2 · `/departamento.html?dept=kids&b=Maison%20MIHARA%20YASUHIRO`
 - O'Neill Wetsuits: 2 · `/departamento.html?dept=kids&b=O'Neill%20Wetsuits`
-- Palm Angels: 2 · `/departamento.html?dept=kids&b=Palm%20Angels`
 - Parrot Surf & Skate: 2 · `/departamento.html?dept=kids&b=Parrot%20Surf%20%26%20Skate`
 - Patagonia: 2 · `/departamento.html?dept=kids&b=Patagonia`
 - Remind: 2 · `/departamento.html?dept=kids&b=Remind`
-- RIPNDIP: 2 · `/departamento.html?dept=kids&b=RIPNDIP`
 - Roark: 2 · `/departamento.html?dept=kids&b=Roark`
 - Seager: 2 · `/departamento.html?dept=kids&b=Seager`
-- SO: 2 · `/departamento.html?dept=kids&b=SO`
-- Sporty & Rich: 2 · `/departamento.html?dept=kids&b=Sporty%20%26%20Rich`
 - Thirty-Two: 2 · `/departamento.html?dept=kids&b=Thirty-Two`
 - Tommy Hilfiger: 2 · `/departamento.html?dept=kids&b=Tommy%20Hilfiger`
 - Unlike Humans: 2 · `/departamento.html?dept=kids&b=Unlike%20Humans`
 - Vans Girls: 2 · `/departamento.html?dept=kids&b=Vans%20Girls`
 - Yeti: 2 · `/departamento.html?dept=kids&b=Yeti`
 - Airhole Facemasks Inc.: 1 · `/departamento.html?dept=kids&b=Airhole%20Facemasks%20Inc.`
-- AMIRI: 1 · `/departamento.html?dept=kids&b=AMIRI`
 - April Skateboards: 1 · `/departamento.html?dept=kids&b=April%20Skateboards`
 - Aqua Sphere: 1 · `/departamento.html?dept=kids&b=Aqua%20Sphere`
 - Autumn: 1 · `/departamento.html?dept=kids&b=Autumn`
-- Belle & Bloom: 1 · `/departamento.html?dept=kids&b=Belle%20%26%20Bloom`
 - BlackStrap: 1 · `/departamento.html?dept=kids&b=BlackStrap`
-- Casablanca: 1 · `/departamento.html?dept=kids&b=Casablanca`
-- Chloé: 1 · `/departamento.html?dept=kids&b=Chlo%C3%A9`
+- Brixton: 1 · `/departamento.html?dept=kids&b=Brixton`
 - Chums: 1 · `/departamento.html?dept=kids&b=Chums`
-- Coperni: 1 · `/departamento.html?dept=kids&b=Coperni`
-- Creatures of Leisure: 1 · `/departamento.html?dept=kids&b=Creatures%20of%20Leisure`
 - Da Kine: 1 · `/departamento.html?dept=kids&b=Da%20Kine`
 - Deluxe: 1 · `/departamento.html?dept=kids&b=Deluxe`
 - Devereux: 1 · `/departamento.html?dept=kids&b=Devereux`
 - Disney: 1 · `/departamento.html?dept=kids&b=Disney`
 - DOZER BOYS: 1 · `/departamento.html?dept=kids&b=DOZER%20BOYS`
 - Epic Threads: 1 · `/departamento.html?dept=kids&b=Epic%20Threads`
-- FA World Ent.: 1 · `/departamento.html?dept=kids&b=FA%20World%20Ent.`
+- ezpz: 1 · `/departamento.html?dept=kids&b=ezpz`
 - Fair Harbor: 1 · `/departamento.html?dept=kids&b=Fair%20Harbor`
 - Feather 4 Arrow: 1 · `/departamento.html?dept=kids&b=Feather%204%20Arrow`
 - Haggar: 1 · `/departamento.html?dept=kids&b=Haggar`
-- Heroin Skateboards: 1 · `/departamento.html?dept=kids&b=Heroin%20Skateboards`
 - Hockey: 1 · `/departamento.html?dept=kids&b=Hockey`
-- HommeGirls: 1 · `/departamento.html?dept=kids&b=HommeGirls`
 - Icecream: 1 · `/departamento.html?dept=kids&b=Icecream`
 - Independent Truck Co.: 1 · `/departamento.html?dept=kids&b=Independent%20Truck%20Co.`
-- James Perse: 1 · `/departamento.html?dept=kids&b=James%20Perse`
-- Jockey: 1 · `/departamento.html?dept=kids&b=Jockey`
 - JS Surfboards: 1 · `/departamento.html?dept=kids&b=JS%20Surfboards`
-- Katie May: 1 · `/departamento.html?dept=kids&b=Katie%20May`
 - Kenneth Cole Reaction: 1 · `/departamento.html?dept=kids&b=Kenneth%20Cole%20Reaction`
 - Kensie Girl: 1 · `/departamento.html?dept=kids&b=Kensie%20Girl`
-- KNWLS: 1 · `/departamento.html?dept=kids&b=KNWLS`
-- L'AGENCE: 1 · `/departamento.html?dept=kids&b=L'AGENCE`
 - Levi's: 1 · `/departamento.html?dept=kids&b=Levi's`
-- Life is Good: 1 · `/departamento.html?dept=kids&b=Life%20is%20Good`
-- LU'U DAN: 1 · `/departamento.html?dept=kids&b=LU'U%20DAN`
+- limosine: 1 · `/departamento.html?dept=kids&b=limosine`
 - Lusso Cloud: 1 · `/departamento.html?dept=kids&b=Lusso%20Cloud`
-- Marc Jacobs: 1 · `/departamento.html?dept=kids&b=Marc%20Jacobs`
-- Marine Serre: 1 · `/departamento.html?dept=kids&b=Marine%20Serre`
 - Max & Olivia: 1 · `/departamento.html?dept=kids&b=Max%20%26%20Olivia`
 - Millymook: 1 · `/departamento.html?dept=kids&b=Millymook`
 - Nautica: 1 · `/departamento.html?dept=kids&b=Nautica`
@@ -1643,60 +1528,56 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Nike SB: 1 · `/departamento.html?dept=kids&b=Nike%20SB`
 - Poets: 1 · `/departamento.html?dept=kids&b=Poets`
 - QSSS/RICHARDSON: 1 · `/departamento.html?dept=kids&b=QSSS%2FRICHARDSON`
-- QSSS/WPRINT: 1 · `/departamento.html?dept=kids&b=QSSS%2FWPRINT`
 - Rare Editions: 1 · `/departamento.html?dept=kids&b=Rare%20Editions`
 - S Rothschild & CO: 1 · `/departamento.html?dept=kids&b=S%20Rothschild%20%26%20CO`
 - Sam and Libby: 1 · `/departamento.html?dept=kids&b=Sam%20and%20Libby`
+- Simone Rocha: 1 · `/departamento.html?dept=kids&b=Simone%20Rocha`
 - SlowTide: 1 · `/departamento.html?dept=kids&b=SlowTide`
 - Smith: 1 · `/departamento.html?dept=kids&b=Smith`
+- So: 1 · `/departamento.html?dept=kids&b=So`
 - Steve Madden: 1 · `/departamento.html?dept=kids&b=Steve%20Madden`
 - Sun N' Sand: 1 · `/departamento.html?dept=kids&b=Sun%20N'%20Sand`
 - Teenage Mutant Ninja Turtles: 1 · `/departamento.html?dept=kids&b=Teenage%20Mutant%20Ninja%20Turtles`
 - Tek Gear: 1 · `/departamento.html?dept=kids&b=Tek%20Gear`
-- Thom Browne: 1 · `/departamento.html?dept=kids&b=Thom%20Browne`
 - Toy Machine Skateboards: 1 · `/departamento.html?dept=kids&b=Toy%20Machine%20Skateboards`
-- VETEMENTS: 1 · `/departamento.html?dept=kids&b=VETEMENTS`
-- Vuori, Inc.: 1 · `/departamento.html?dept=kids&b=Vuori%2C%20Inc.`
-- waci: 1 · `/departamento.html?dept=kids&b=waci`
 - Xcel: 1 · `/departamento.html?dept=kids&b=Xcel`
 
 ### Secciones
 
 - Juguetes: 7,364 · `/departamento.html?dept=toys`
-- Mama's Fashion: 2,461 · `/departamento.html?dept=moms`
+- Mama's Fashion: 2,607 · `/departamento.html?dept=moms`
 - Aria Party: 1,076 · `/departamento.html?dept=party`
 
 ## Zapatos
 
 Abre: `/departamento.html?dept=shoes` (10,700 productos)
 
-### Mujer (7,073)
+### Mujer (7,076)
 
-- Zapatos: 3,404 · `/departamento.html?dept=shoes&t=zapatos&para=women`
-- Zapatillas: 3,122 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
-- Sandalias: 1,112 · `/departamento.html?dept=shoes&t=sandalias&para=women`
+- Zapatillas: 3,102 · `/departamento.html?dept=shoes&t=zapatillas&para=women`
+- Sandalias: 1,113 · `/departamento.html?dept=shoes&t=sandalias&para=women`
+- Zapatos: 778 · `/departamento.html?dept=shoes&t=zapatos&para=women`
 - Mocasines y pantuflas: 626 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=women`
 - Botas y botines: 602 · `/departamento.html?dept=shoes&t=botas-y-botines&para=women`
 - Chimpunes: 509 · `/departamento.html?dept=shoes&t=chimpunes&para=women`
 - Tacones: 363 · `/departamento.html?dept=shoes&t=tacones&para=women`
 
-### Hombre (6,508)
+### Hombre (6,413)
 
-- Zapatillas: 3,298 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
-- Zapatos: 2,696 · `/departamento.html?dept=shoes&t=zapatos&para=men`
+- Zapatillas: 3,288 · `/departamento.html?dept=shoes&t=zapatillas&para=men`
+- Zapatos: 884 · `/departamento.html?dept=shoes&t=zapatos&para=men`
 - Sandalias: 699 · `/departamento.html?dept=shoes&t=sandalias&para=men`
 - Mocasines y pantuflas: 614 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=men`
 - Chimpunes: 507 · `/departamento.html?dept=shoes&t=chimpunes&para=men`
 - Botas y botines: 455 · `/departamento.html?dept=shoes&t=botas-y-botines&para=men`
-- Tacones: 101 · `/departamento.html?dept=shoes&t=tacones&para=men`
 
-### Niños (1,213)
+### Niños (1,203)
 
-- Zapatillas: 498 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
-- Zapatos: 468 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
-- Chimpunes: 244 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
+- Zapatillas: 490 · `/departamento.html?dept=shoes&t=zapatillas&para=kids`
+- Chimpunes: 243 · `/departamento.html?dept=shoes&t=chimpunes&para=kids`
 - Mocasines y pantuflas: 175 · `/departamento.html?dept=shoes&t=mocasines-y-pantuflas&para=kids`
-- Sandalias: 114 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
+- Zapatos: 118 · `/departamento.html?dept=shoes&t=zapatos&para=kids`
+- Sandalias: 113 · `/departamento.html?dept=shoes&t=sandalias&para=kids`
 - Botas y botines: 61 · `/departamento.html?dept=shoes&t=botas-y-botines&para=kids`
 - Tacones: 3 · `/departamento.html?dept=shoes&t=tacones&para=kids`
 
@@ -2192,23 +2073,18 @@ Abre: `/departamento.html?dept=shoes` (10,700 productos)
 
 ## Belleza
 
-Abre: `/departamento.html?dept=beauty` (5,590 productos)
+Abre: `/departamento.html?dept=beauty` (5,681 productos)
 
-### Tipos (5,590)
+### Tipos (5,681)
 
+- Belleza: 715 · `/departamento.html?dept=beauty&t=belleza`
 - Cuidado del cabello: 702 · `/departamento.html?dept=beauty&t=cuidado-del-cabello`
-- Belleza: 405 · `/departamento.html?dept=beauty&t=belleza`
 - Mascarillas: 140 · `/departamento.html?dept=beauty&t=mascarillas`
 - Limpieza: 115 · `/departamento.html?dept=beauty&t=limpieza`
-- Cuidado Corporal: 91 · `/departamento.html?dept=beauty&t=cuidado-corporal`
-- Hogar: 2 · `/departamento.html?dept=beauty&t=hogar`
-- Ropa: 2 · `/departamento.html?dept=beauty&t=ropa`
-- Blusas y tops: 1 · `/departamento.html?dept=beauty&t=blusas-y-tops`
-- Cascos Y Protecciones: 1 · `/departamento.html?dept=beauty&t=cascos-y-protecciones`
+- Cuidado Corporal: 88 · `/departamento.html?dept=beauty&t=cuidado-corporal`
 
 Viven en su propia sección (no son enlaces de esta columna):
 - Fragancia: 300 → Perfumes · `/departamento.html?dept=perfumes`
-- Carteras: 2 → Carteras · `/departamento.html?dept=purses`
 
 ### Aria Perfumes (11,066)
 
@@ -2219,10 +2095,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Sets de regalo: 114 · `/departamento.html?dept=perfumes&a=sets`
 - Testers: 576 · `/departamento.html?dept=perfumes&a=testers`
 
-### Marcas (5,590)
+### Marcas (5,681)
 
-- Victoria's Secret: 220 · `/departamento.html?dept=beauty&b=Victoria's%20Secret`
-- Sun Bum: 117 · `/departamento.html?dept=beauty&b=Sun%20Bum`
+- Victoria's Secret: 221 · `/departamento.html?dept=beauty&b=Victoria's%20Secret`
+- Sun Bum: 121 · `/departamento.html?dept=beauty&b=Sun%20Bum`
 - SKIN1004: 101 · `/departamento.html?dept=beauty&b=SKIN1004`
 - Bath & Body Works: 100 · `/departamento.html?dept=beauty&b=Bath%20%26%20Body%20Works`
 - Clinique: 82 · `/departamento.html?dept=beauty&b=Clinique`
@@ -2243,7 +2119,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Tarte: 36 · `/departamento.html?dept=beauty&b=Tarte`
 - SKINTIFIC: 32 · `/departamento.html?dept=beauty&b=SKINTIFIC`
 - L'Oréal Paris: 31 · `/departamento.html?dept=beauty&b=L'Or%C3%A9al%20Paris`
-- Benefit Cosmetics: 29 · `/departamento.html?dept=beauty&b=Benefit%20Cosmetics`
+- Benefit Cosmetics: 30 · `/departamento.html?dept=beauty&b=Benefit%20Cosmetics`
 - ZOOLY: 29 · `/departamento.html?dept=beauty&b=ZOOLY`
 - NOVO: 27 · `/departamento.html?dept=beauty&b=NOVO`
 - Shiseido: 27 · `/departamento.html?dept=beauty&b=Shiseido`
@@ -2346,6 +2222,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - LANEIGE: 10 · `/departamento.html?dept=beauty&b=LANEIGE`
 - MONDAY Haircare: 10 · `/departamento.html?dept=beauty&b=MONDAY%20Haircare`
 - Moroccan Oil: 10 · `/departamento.html?dept=beauty&b=Moroccan%20Oil`
+- NATASHA DENONA: 10 · `/departamento.html?dept=beauty&b=NATASHA%20DENONA`
 - OUAI: 10 · `/departamento.html?dept=beauty&b=OUAI`
 - peripera: 10 · `/departamento.html?dept=beauty&b=peripera`
 - Phyto: 10 · `/departamento.html?dept=beauty&b=Phyto`
@@ -2364,7 +2241,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Kerastase: 9 · `/departamento.html?dept=beauty&b=Kerastase`
 - Milani: 9 · `/departamento.html?dept=beauty&b=Milani`
 - MizuMi: 9 · `/departamento.html?dept=beauty&b=MizuMi`
-- NATASHA DENONA: 9 · `/departamento.html?dept=beauty&b=NATASHA%20DENONA`
 - Rare Beauty: 9 · `/departamento.html?dept=beauty&b=Rare%20Beauty`
 - Seaweed: 9 · `/departamento.html?dept=beauty&b=Seaweed`
 - SEEN: 9 · `/departamento.html?dept=beauty&b=SEEN`
@@ -2372,6 +2248,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - SheenEffect: 9 · `/departamento.html?dept=beauty&b=SheenEffect`
 - AROMATICA: 8 · `/departamento.html?dept=beauty&b=AROMATICA`
 - Clé de Peau Beauté: 8 · `/departamento.html?dept=beauty&b=Cl%C3%A9%20de%20Peau%20Beaut%C3%A9`
+- Color WOW: 8 · `/departamento.html?dept=beauty&b=Color%20WOW`
 - Cos De BAHA: 8 · `/departamento.html?dept=beauty&b=Cos%20De%20BAHA`
 - DIBS Beauty: 8 · `/departamento.html?dept=beauty&b=DIBS%20Beauty`
 - Good Molecules: 8 · `/departamento.html?dept=beauty&b=Good%20Molecules`
@@ -2384,7 +2261,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Rohto Mentholatum: 8 · `/departamento.html?dept=beauty&b=Rohto%20Mentholatum`
 - TOCOBO: 8 · `/departamento.html?dept=beauty&b=TOCOBO`
 - Alfaparf Milano: 7 · `/departamento.html?dept=beauty&b=Alfaparf%20Milano`
-- Color WOW: 7 · `/departamento.html?dept=beauty&b=Color%20WOW`
+- ETOILE COLLECTIVE: 7 · `/departamento.html?dept=beauty&b=ETOILE%20COLLECTIVE`
 - First Aid Beauty: 7 · `/departamento.html?dept=beauty&b=First%20Aid%20Beauty`
 - Gege Bear: 7 · `/departamento.html?dept=beauty&b=Gege%20Bear`
 - HER HYNESS: 7 · `/departamento.html?dept=beauty&b=HER%20HYNESS`
@@ -2404,6 +2281,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - SPRING SUMMER: 7 · `/departamento.html?dept=beauty&b=SPRING%20SUMMER`
 - Squishmallows Fragrances: 7 · `/departamento.html?dept=beauty&b=Squishmallows%20Fragrances`
 - Versace: 7 · `/departamento.html?dept=beauty&b=Versace`
+- Aesop: 6 · `/departamento.html?dept=beauty&b=Aesop`
 - BANILA CO: 6 · `/departamento.html?dept=beauty&b=BANILA%20CO`
 - baren: 6 · `/departamento.html?dept=beauty&b=baren`
 - Bubble: 6 · `/departamento.html?dept=beauty&b=Bubble`
@@ -2436,6 +2314,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Shaan Honq: 6 · `/departamento.html?dept=beauty&b=Shaan%20Honq`
 - Shark: 6 · `/departamento.html?dept=beauty&b=Shark`
 - Sulwhasoo: 6 · `/departamento.html?dept=beauty&b=Sulwhasoo`
+- Summer Fridays: 6 · `/departamento.html?dept=beauty&b=Summer%20Fridays`
 - TATCHA: 6 · `/departamento.html?dept=beauty&b=TATCHA`
 - Tom: 6 · `/departamento.html?dept=beauty&b=Tom`
 - Tree Hut: 6 · `/departamento.html?dept=beauty&b=Tree%20Hut`
@@ -2467,17 +2346,18 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Kallos Cosmetics: 5 · `/departamento.html?dept=beauty&b=Kallos%20Cosmetics`
 - Lanza Healing HairCare: 5 · `/departamento.html?dept=beauty&b=Lanza%20Healing%20HairCare`
 - LEEMEMBER: 5 · `/departamento.html?dept=beauty&b=LEEMEMBER`
-- LION: 5 · `/departamento.html?dept=beauty&b=LION`
 - Loving Tan: 5 · `/departamento.html?dept=beauty&b=Loving%20Tan`
 - Mediceuticals: 5 · `/departamento.html?dept=beauty&b=Mediceuticals`
 - MEDIPEEL: 5 · `/departamento.html?dept=beauty&b=MEDIPEEL`
 - moev: 5 · `/departamento.html?dept=beauty&b=moev`
 - Moroccanoil: 5 · `/departamento.html?dept=beauty&b=Moroccanoil`
 - Olay: 5 · `/departamento.html?dept=beauty&b=Olay`
+- PAT McGRATH LABS: 5 · `/departamento.html?dept=beauty&b=PAT%20McGRATH%20LABS`
 - PEACH & LILY: 5 · `/departamento.html?dept=beauty&b=PEACH%20%26%20LILY`
 - Perricone: 5 · `/departamento.html?dept=beauty&b=Perricone`
 - Revlon: 5 · `/departamento.html?dept=beauty&b=Revlon`
 - ROC: 5 · `/departamento.html?dept=beauty&b=ROC`
+- Sacheu: 5 · `/departamento.html?dept=beauty&b=Sacheu`
 - Shade: 5 · `/departamento.html?dept=beauty&b=Shade`
 - SIIA Cosmetics: 5 · `/departamento.html?dept=beauty&b=SIIA%20Cosmetics`
 - Sleekshop: 5 · `/departamento.html?dept=beauty&b=Sleekshop`
@@ -2487,7 +2367,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - UNIFON: 5 · `/departamento.html?dept=beauty&b=UNIFON`
 - Vacation Sunscreen: 5 · `/departamento.html?dept=beauty&b=Vacation%20Sunscreen`
 - 934: 4 · `/departamento.html?dept=beauty&b=934`
-- Aesop: 4 · `/departamento.html?dept=beauty&b=Aesop`
 - AESTURA: 4 · `/departamento.html?dept=beauty&b=AESTURA`
 - Agadir Argan Oil: 4 · `/departamento.html?dept=beauty&b=Agadir%20Argan%20Oil`
 - Aloe Gator: 4 · `/departamento.html?dept=beauty&b=Aloe%20Gator`
@@ -2514,9 +2393,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Nivea Japan: 4 · `/departamento.html?dept=beauty&b=Nivea%20Japan`
 - Oligo: 4 · `/departamento.html?dept=beauty&b=Oligo`
 - Oway: 4 · `/departamento.html?dept=beauty&b=Oway`
-- PAT McGRATH LABS: 4 · `/departamento.html?dept=beauty&b=PAT%20McGRATH%20LABS`
+- Personal Day: 4 · `/departamento.html?dept=beauty&b=Personal%20Day`
 - R+Co: 4 · `/departamento.html?dept=beauty&b=R%2BCo`
 - Range Essentials: 4 · `/departamento.html?dept=beauty&b=Range%20Essentials`
+- Roz Hair: 4 · `/departamento.html?dept=beauty&b=Roz%20Hair`
 - RYO: 4 · `/departamento.html?dept=beauty&b=RYO`
 - Shark Beauty: 4 · `/departamento.html?dept=beauty&b=Shark%20Beauty`
 - Simply Smooth: 4 · `/departamento.html?dept=beauty&b=Simply%20Smooth`
@@ -2545,6 +2425,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Crest: 3 · `/departamento.html?dept=beauty&b=Crest`
 - Dariya: 3 · `/departamento.html?dept=beauty&b=Dariya`
 - Donna Karan New York: 3 · `/departamento.html?dept=beauty&b=Donna%20Karan%20New%20York`
+- Dr. Diamond's Metacine: 3 · `/departamento.html?dept=beauty&b=Dr.%20Diamond's%20Metacine`
 - Dr.FORHAIR: 3 · `/departamento.html?dept=beauty&b=Dr.FORHAIR`
 - Dr.G: 3 · `/departamento.html?dept=beauty&b=Dr.G`
 - Dr.Reju-All: 3 · `/departamento.html?dept=beauty&b=Dr.Reju-All`
@@ -2579,7 +2460,9 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Kokubo: 3 · `/departamento.html?dept=beauty&b=Kokubo`
 - L.A. Girl: 3 · `/departamento.html?dept=beauty&b=L.A.%20Girl`
 - La-Brasiliana Haircare: 3 · `/departamento.html?dept=beauty&b=La-Brasiliana%20Haircare`
+- Lemme: 3 · `/departamento.html?dept=beauty&b=Lemme`
 - lilybyred: 3 · `/departamento.html?dept=beauty&b=lilybyred`
+- LION: 3 · `/departamento.html?dept=beauty&b=LION`
 - Lipit: 3 · `/departamento.html?dept=beauty&b=Lipit`
 - lishu: 3 · `/departamento.html?dept=beauty&b=lishu`
 - Lovery: 3 · `/departamento.html?dept=beauty&b=Lovery`
@@ -2602,6 +2485,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - OSITREE: 3 · `/departamento.html?dept=beauty&b=OSITREE`
 - Palladio Beauty: 3 · `/departamento.html?dept=beauty&b=Palladio%20Beauty`
 - PATTERN: 3 · `/departamento.html?dept=beauty&b=PATTERN`
+- Peter Thomas Roth: 3 · `/departamento.html?dept=beauty&b=Peter%20Thomas%20Roth`
 - Polite Society: 3 · `/departamento.html?dept=beauty&b=Polite%20Society`
 - Prada Beauty: 3 · `/departamento.html?dept=beauty&b=Prada%20Beauty`
 - Prime Prometics: 3 · `/departamento.html?dept=beauty&b=Prime%20Prometics`
@@ -2610,12 +2494,13 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Pyunkang Yul: 3 · `/departamento.html?dept=beauty&b=Pyunkang%20Yul`
 - Ralph Lauren: 3 · `/departamento.html?dept=beauty&b=Ralph%20Lauren`
 - RMS Beauty: 3 · `/departamento.html?dept=beauty&b=RMS%20Beauty`
-- SACHEU: 3 · `/departamento.html?dept=beauty&b=SACHEU`
 - SIGHTFUTURE: 3 · `/departamento.html?dept=beauty&b=SIGHTFUTURE`
 - Sleek’e: 3 · `/departamento.html?dept=beauty&b=Sleek%E2%80%99e`
+- Starface: 3 · `/departamento.html?dept=beauty&b=Starface`
 - Sunshine and Glitter: 3 · `/departamento.html?dept=beauty&b=Sunshine%20and%20Glitter`
 - The Saem: 3 · `/departamento.html?dept=beauty&b=The%20Saem`
 - TIGI Toni & Guy: 3 · `/departamento.html?dept=beauty&b=TIGI%20Toni%20%26%20Guy`
+- Tower 28: 3 · `/departamento.html?dept=beauty&b=Tower%2028`
 - Ultra: 3 · `/departamento.html?dept=beauty&b=Ultra`
 - xixi: 3 · `/departamento.html?dept=beauty&b=xixi`
 - Yanagiya: 3 · `/departamento.html?dept=beauty&b=Yanagiya`
@@ -2631,8 +2516,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 - BEAUTY GLAZED: 2 · `/departamento.html?dept=beauty&b=BEAUTY%20GLAZED`
 - BETTER WORLD FRAGRANCE HOUSE: 2 · `/departamento.html?dept=beauty&b=BETTER%20WORLD%20FRAGRANCE%20HOUSE`
 - Billie Eilish: 2 · `/departamento.html?dept=beauty&b=Billie%20Eilish`
+- Billionaire Boys Club: 2 · `/departamento.html?dept=beauty&b=Billionaire%20Boys%20Club`
 - Bosley Professional Strength: 2 · `/departamento.html?dept=beauty&b=Bosley%20Professional%20Strength`
 - BRING GREEN: 2 · `/departamento.html?dept=beauty&b=BRING%20GREEN`
+- Bur Bur: 2 · `/departamento.html?dept=beauty&b=Bur%20Bur`
 - CAR MELA: 2 · `/departamento.html?dept=beauty&b=CAR%20MELA`
 - Cathy Doll: 2 · `/departamento.html?dept=beauty&b=Cathy%20Doll`
 - CELDYQUE: 2 · `/departamento.html?dept=beauty&b=CELDYQUE`
@@ -2661,6 +2548,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - elc dao of hair: 2 · `/departamento.html?dept=beauty&b=elc%20dao%20of%20hair`
 - Elta: 2 · `/departamento.html?dept=beauty&b=Elta`
 - EltaMD: 2 · `/departamento.html?dept=beauty&b=EltaMD`
+- Embryolisse: 2 · `/departamento.html?dept=beauty&b=Embryolisse`
 - Enjoy: 2 · `/departamento.html?dept=beauty&b=Enjoy`
 - epais: 2 · `/departamento.html?dept=beauty&b=epais`
 - espoir: 2 · `/departamento.html?dept=beauty&b=espoir`
@@ -2675,6 +2563,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - HALEYS Beauty: 2 · `/departamento.html?dept=beauty&b=HALEYS%20Beauty`
 - Hayashi: 2 · `/departamento.html?dept=beauty&b=Hayashi`
 - Healthy Sexy Hair: 2 · `/departamento.html?dept=beauty&b=Healthy%20Sexy%20Hair`
+- Henny Apparel: 2 · `/departamento.html?dept=beauty&b=Henny%20Apparel`
 - Hero Cosmetics: 2 · `/departamento.html?dept=beauty&b=Hero%20Cosmetics`
 - HigherDose: 2 · `/departamento.html?dept=beauty&b=HigherDose`
 - Honkizz: 2 · `/departamento.html?dept=beauty&b=Honkizz`
@@ -2710,6 +2599,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Live Tinted: 2 · `/departamento.html?dept=beauty&b=Live%20Tinted`
 - Lux Japan: 2 · `/departamento.html?dept=beauty&b=Lux%20Japan`
 - ma:nyo: 2 · `/departamento.html?dept=beauty&b=ma%3Anyo`
+- Marvis: 2 · `/departamento.html?dept=beauty&b=Marvis`
 - Max Green Alchemy: 2 · `/departamento.html?dept=beauty&b=Max%20Green%20Alchemy`
 - Max Mara: 2 · `/departamento.html?dept=beauty&b=Max%20Mara`
 - MAËLYS: 2 · `/departamento.html?dept=beauty&b=MA%C3%8BLYS`
@@ -2742,6 +2632,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - SeroVital: 2 · `/departamento.html?dept=beauty&b=SeroVital`
 - Sigma Beauty: 2 · `/departamento.html?dept=beauty&b=Sigma%20Beauty`
 - SK-II: 2 · `/departamento.html?dept=beauty&b=SK-II`
+- Skin Gym: 2 · `/departamento.html?dept=beauty&b=Skin%20Gym`
 - skinChemists: 2 · `/departamento.html?dept=beauty&b=skinChemists`
 - skinPharmacy: 2 · `/departamento.html?dept=beauty&b=skinPharmacy`
 - Snif: 2 · `/departamento.html?dept=beauty&b=Snif`
@@ -2750,12 +2641,15 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Sungboon: 2 · `/departamento.html?dept=beauty&b=Sungboon`
 - Sunstar: 2 · `/departamento.html?dept=beauty&b=Sunstar`
 - Supergoop!: 2 · `/departamento.html?dept=beauty&b=Supergoop!`
+- SWEED: 2 · `/departamento.html?dept=beauty&b=SWEED`
 - TATE BY TATE MCRAE: 2 · `/departamento.html?dept=beauty&b=TATE%20BY%20TATE%20MCRAE`
 - THE FACE SHOP: 2 · `/departamento.html?dept=beauty&b=THE%20FACE%20SHOP`
 - Thinksport: 2 · `/departamento.html?dept=beauty&b=Thinksport`
 - TimePhoria: 2 · `/departamento.html?dept=beauty&b=TimePhoria`
 - UCANBE: 2 · `/departamento.html?dept=beauty&b=UCANBE`
+- Ulike: 2 · `/departamento.html?dept=beauty&b=Ulike`
 - VEECCI: 2 · `/departamento.html?dept=beauty&b=VEECCI`
+- Vero Lineage: 2 · `/departamento.html?dept=beauty&b=Vero%20Lineage`
 - Virtue Labs: 2 · `/departamento.html?dept=beauty&b=Virtue%20Labs`
 - WAKEMAKE: 2 · `/departamento.html?dept=beauty&b=WAKEMAKE`
 - WELLAGE: 2 · `/departamento.html?dept=beauty&b=WELLAGE`
@@ -2766,15 +2660,20 @@ Viven en su propia sección (no son enlaces de esta columna):
 - &honey: 1 · `/departamento.html?dept=beauty&b=%26honey`
 - 107 Beauty: 1 · `/departamento.html?dept=beauty&b=107%20Beauty`
 - 3CE: 1 · `/departamento.html?dept=beauty&b=3CE`
+- 4AM: 1 · `/departamento.html?dept=beauty&b=4AM`
 - ABBA: 1 · `/departamento.html?dept=beauty&b=ABBA`
 - ABOUT_TONE: 1 · `/departamento.html?dept=beauty&b=ABOUT_TONE`
 - ACCA by Dr.DSP: 1 · `/departamento.html?dept=beauty&b=ACCA%20by%20Dr.DSP`
+- Act+Acre: 1 · `/departamento.html?dept=beauty&b=Act%2BAcre`
 - acwell: 1 · `/departamento.html?dept=beauty&b=acwell`
 - Affinage Salon Professional: 1 · `/departamento.html?dept=beauty&b=Affinage%20Salon%20Professional`
 - AG Care: 1 · `/departamento.html?dept=beauty&b=AG%20Care`
 - Albion: 1 · `/departamento.html?dept=beauty&b=Albion`
 - Alder: 1 · `/departamento.html?dept=beauty&b=Alder`
+- Allies of Skin: 1 · `/departamento.html?dept=beauty&b=Allies%20of%20Skin`
 - Alto Bella: 1 · `/departamento.html?dept=beauty&b=Alto%20Bella`
+- AMOUAGE: 1 · `/departamento.html?dept=beauty&b=AMOUAGE`
+- Anablue: 1 · `/departamento.html?dept=beauty&b=Anablue`
 - anihana: 1 · `/departamento.html?dept=beauty&b=anihana`
 - Aussie: 1 · `/departamento.html?dept=beauty&b=Aussie`
 - Avachi Design Line: 1 · `/departamento.html?dept=beauty&b=Avachi%20Design%20Line`
@@ -2785,6 +2684,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Babe Original: 1 · `/departamento.html?dept=beauty&b=Babe%20Original`
 - Bain de Terre: 1 · `/departamento.html?dept=beauty&b=Bain%20de%20Terre`
 - Balmain Paris: 1 · `/departamento.html?dept=beauty&b=Balmain%20Paris`
+- Barriere: 1 · `/departamento.html?dept=beauty&b=Barriere`
 - Batiste Dry Shampoo: 1 · `/departamento.html?dept=beauty&b=Batiste%20Dry%20Shampoo`
 - Be Your Own Desire: 1 · `/departamento.html?dept=beauty&b=Be%20Your%20Own%20Desire`
 - Beauty Artisan: 1 · `/departamento.html?dept=beauty&b=Beauty%20Artisan`
@@ -2792,6 +2692,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Beautyronics: 1 · `/departamento.html?dept=beauty&b=Beautyronics`
 - Bed Head by Tigi: 1 · `/departamento.html?dept=beauty&b=Bed%20Head%20by%20Tigi`
 - Beekman 1802: 1 · `/departamento.html?dept=beauty&b=Beekman%201802`
+- BEIS: 1 · `/departamento.html?dept=beauty&b=BEIS`
 - Bellflower: 1 · `/departamento.html?dept=beauty&b=Bellflower`
 - Beurer: 1 · `/departamento.html?dept=beauty&b=Beurer`
 - Big Kizzy: 1 · `/departamento.html?dept=beauty&b=Big%20Kizzy`
@@ -2829,6 +2730,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Colorescience: 1 · `/departamento.html?dept=beauty&b=Colorescience`
 - Colure True Color Care: 1 · `/departamento.html?dept=beauty&b=Colure%20True%20Color%20Care`
 - Conair: 1 · `/departamento.html?dept=beauty&b=Conair`
+- Connetic: 1 · `/departamento.html?dept=beauty&b=Connetic`
 - CORINGCO: 1 · `/departamento.html?dept=beauty&b=CORINGCO`
 - CoverGirl: 1 · `/departamento.html?dept=beauty&b=CoverGirl`
 - coxir: 1 · `/departamento.html?dept=beauty&b=coxir`
@@ -2849,6 +2751,8 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Dinto: 1 · `/departamento.html?dept=beauty&b=Dinto`
 - Dominique: 1 · `/departamento.html?dept=beauty&b=Dominique`
 - DONNA'S RECIPE: 1 · `/departamento.html?dept=beauty&b=DONNA'S%20RECIPE`
+- Dose of Colors: 1 · `/departamento.html?dept=beauty&b=Dose%20of%20Colors`
+- dpHUE: 1 · `/departamento.html?dept=beauty&b=dpHUE`
 - Dr. Ceuracle: 1 · `/departamento.html?dept=beauty&b=Dr.%20Ceuracle`
 - Dr. Jart+: 1 · `/departamento.html?dept=beauty&b=Dr.%20Jart%2B`
 - Dr. Melaxin: 1 · `/departamento.html?dept=beauty&b=Dr.%20Melaxin`
@@ -2862,7 +2766,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - ELEMIS: 1 · `/departamento.html?dept=beauty&b=ELEMIS`
 - Ellis Brooklyn: 1 · `/departamento.html?dept=beauty&b=Ellis%20Brooklyn`
 - ELROEL: 1 · `/departamento.html?dept=beauty&b=ELROEL`
-- Embryolisse: 1 · `/departamento.html?dept=beauty&b=Embryolisse`
+- Erborian: 1 · `/departamento.html?dept=beauty&b=Erborian`
 - Etekcity: 1 · `/departamento.html?dept=beauty&b=Etekcity`
 - Eva Nyc: 1 · `/departamento.html?dept=beauty&b=Eva%20Nyc`
 - EXCEL: 1 · `/departamento.html?dept=beauty&b=EXCEL`
@@ -2887,12 +2791,16 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Goddess Maintenance Company: 1 · `/departamento.html?dept=beauty&b=Goddess%20Maintenance%20Company`
 - GOGO TALES: 1 · `/departamento.html?dept=beauty&b=GOGO%20TALES`
 - Grace: 1 · `/departamento.html?dept=beauty&b=Grace`
+- Greedy Haircare: 1 · `/departamento.html?dept=beauty&b=Greedy%20Haircare`
 - Guy Tang: 1 · `/departamento.html?dept=beauty&b=Guy%20Tang`
 - Guys Into Beard Stuff: 1 · `/departamento.html?dept=beauty&b=Guys%20Into%20Beard%20Stuff`
 - Hairitage: 1 · `/departamento.html?dept=beauty&b=Hairitage`
 - Hairmax: 1 · `/departamento.html?dept=beauty&b=Hairmax`
 - Hakugen: 1 · `/departamento.html?dept=beauty&b=Hakugen`
+- Hanni: 1 · `/departamento.html?dept=beauty&b=Hanni`
 - Hanz De Fuko: 1 · `/departamento.html?dept=beauty&b=Hanz%20De%20Fuko`
+- Harry Josh Pro: 1 · `/departamento.html?dept=beauty&b=Harry%20Josh%20Pro`
+- HATCH Mama: 1 · `/departamento.html?dept=beauty&b=HATCH%20Mama`
 - HATHA: 1 · `/departamento.html?dept=beauty&b=HATHA`
 - Hawaiian: 1 · `/departamento.html?dept=beauty&b=Hawaiian`
 - Head: 1 · `/departamento.html?dept=beauty&b=Head`
@@ -2914,8 +2822,10 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Inner: 1 · `/departamento.html?dept=beauty&b=Inner`
 - INTO YOU: 1 · `/departamento.html?dept=beauty&b=INTO%20YOU`
 - Ion: 1 · `/departamento.html?dept=beauty&b=Ion`
+- Irene Forte: 1 · `/departamento.html?dept=beauty&b=Irene%20Forte`
 - isima: 1 · `/departamento.html?dept=beauty&b=isima`
 - J Beverly Hills: 1 · `/departamento.html?dept=beauty&b=J%20Beverly%20Hills`
+- Jolie Skin Co.: 1 · `/departamento.html?dept=beauty&b=Jolie%20Skin%20Co.`
 - Joon: 1 · `/departamento.html?dept=beauty&b=Joon`
 - Jouer Cosmetics: 1 · `/departamento.html?dept=beauty&b=Jouer%20Cosmetics`
 - Jozev: 1 · `/departamento.html?dept=beauty&b=Jozev`
@@ -2948,6 +2858,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Listerine: 1 · `/departamento.html?dept=beauty&b=Listerine`
 - LolaVie: 1 · `/departamento.html?dept=beauty&b=LolaVie`
 - Loma Organics: 1 · `/departamento.html?dept=beauty&b=Loma%20Organics`
+- LOOPS: 1 · `/departamento.html?dept=beauty&b=LOOPS`
 - Lovisia: 1 · `/departamento.html?dept=beauty&b=Lovisia`
 - Lubriderm: 1 · `/departamento.html?dept=beauty&b=Lubriderm`
 - Lunar Beauty: 1 · `/departamento.html?dept=beauty&b=Lunar%20Beauty`
@@ -2957,6 +2868,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Made By Mitchell: 1 · `/departamento.html?dept=beauty&b=Made%20By%20Mitchell`
 - Magic: 1 · `/departamento.html?dept=beauty&b=Magic`
 - Magic Molecule: 1 · `/departamento.html?dept=beauty&b=Magic%20Molecule`
+- MAKE Beauty: 1 · `/departamento.html?dept=beauty&b=MAKE%20Beauty`
 - Makeup: 1 · `/departamento.html?dept=beauty&b=Makeup`
 - Marrakesh Oil by Earthly Body: 1 · `/departamento.html?dept=beauty&b=Marrakesh%20Oil%20by%20Earthly%20Body`
 - MaryRuth's: 1 · `/departamento.html?dept=beauty&b=MaryRuth's`
@@ -3001,13 +2913,14 @@ Viven en su propia sección (no son enlaces de esta columna):
 - PerriconeMD: 1 · `/departamento.html?dept=beauty&b=PerriconeMD`
 - Peter Coppola Keratin Concept: 1 · `/departamento.html?dept=beauty&b=Peter%20Coppola%20Keratin%20Concept`
 - Peter Lamas: 1 · `/departamento.html?dept=beauty&b=Peter%20Lamas`
-- Peter Thomas Roth: 1 · `/departamento.html?dept=beauty&b=Peter%20Thomas%20Roth`
 - Philips: 1 · `/departamento.html?dept=beauty&b=Philips`
 - Phyto Organics by Nexxus: 1 · `/departamento.html?dept=beauty&b=Phyto%20Organics%20by%20Nexxus`
 - Pixi: 1 · `/departamento.html?dept=beauty&b=Pixi`
 - PMPM: 1 · `/departamento.html?dept=beauty&b=PMPM`
 - Pocketpaks: 1 · `/departamento.html?dept=beauty&b=Pocketpaks`
 - Prive - formule aux herbes: 1 · `/departamento.html?dept=beauty&b=Prive%20-%20formule%20aux%20herbes`
+- ProSoccer: 1 · `/departamento.html?dept=beauty&b=ProSoccer`
+- Pure Mama: 1 · `/departamento.html?dept=beauty&b=Pure%20Mama`
 - PÜR Minerals: 1 · `/departamento.html?dept=beauty&b=P%C3%9CR%20Minerals`
 - Q-tips: 1 · `/departamento.html?dept=beauty&b=Q-tips`
 - QHEMET BIOLOGICS: 1 · `/departamento.html?dept=beauty&b=QHEMET%20BIOLOGICS`
@@ -3018,6 +2931,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Rejuvenol: 1 · `/departamento.html?dept=beauty&b=Rejuvenol`
 - reVive: 1 · `/departamento.html?dept=beauty&b=reVive`
 - Revlon Professional: 1 · `/departamento.html?dept=beauty&b=Revlon%20Professional`
+- REVOLVE Beauty: 1 · `/departamento.html?dept=beauty&b=REVOLVE%20Beauty`
 - RiRe: 1 · `/departamento.html?dept=beauty&b=RiRe`
 - Ristico: 1 · `/departamento.html?dept=beauty&b=Ristico`
 - ROMANTIC BEAUTY: 1 · `/departamento.html?dept=beauty&b=ROMANTIC%20BEAUTY`
@@ -3025,9 +2939,12 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Roux Hair Products: 1 · `/departamento.html?dept=beauty&b=Roux%20Hair%20Products`
 - ROVECTIN: 1 · `/departamento.html?dept=beauty&b=ROVECTIN`
 - Rude Cosmetics: 1 · `/departamento.html?dept=beauty&b=Rude%20Cosmetics`
+- Saalt: 1 · `/departamento.html?dept=beauty&b=Saalt`
 - Sace Lady: 1 · `/departamento.html?dept=beauty&b=Sace%20Lady`
 - Saje Natural Wellness: 1 · `/departamento.html?dept=beauty&b=Saje%20Natural%20Wellness`
+- Saltyface: 1 · `/departamento.html?dept=beauty&b=Saltyface`
 - SANA: 1 · `/departamento.html?dept=beauty&b=SANA`
+- Sania's Brow Bar: 1 · `/departamento.html?dept=beauty&b=Sania's%20Brow%20Bar`
 - SCINIC: 1 · `/departamento.html?dept=beauty&b=SCINIC`
 - Scruples: 1 · `/departamento.html?dept=beauty&b=Scruples`
 - Secret Key: 1 · `/departamento.html?dept=beauty&b=Secret%20Key`
@@ -3040,6 +2957,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - simplehuman: 1 · `/departamento.html?dept=beauty&b=simplehuman`
 - SKIN&LAB: 1 · `/departamento.html?dept=beauty&b=SKIN%26LAB`
 - SkinCure Lab: 1 · `/departamento.html?dept=beauty&b=SkinCure%20Lab`
+- Sleepy Tie: 1 · `/departamento.html?dept=beauty&b=Sleepy%20Tie`
 - Spa Sciences: 1 · `/departamento.html?dept=beauty&b=Spa%20Sciences`
 - Spafinder: 1 · `/departamento.html?dept=beauty&b=Spafinder`
 - Spring letter: 1 · `/departamento.html?dept=beauty&b=Spring%20letter`
@@ -3064,7 +2982,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Trojan: 1 · `/departamento.html?dept=beauty&b=Trojan`
 - TULA: 1 · `/departamento.html?dept=beauty&b=TULA`
 - TWO SLASH FOUR: 1 · `/departamento.html?dept=beauty&b=TWO%20SLASH%20FOUR`
-- Ulike: 1 · `/departamento.html?dept=beauty&b=Ulike`
 - UNITE Hair: 1 · `/departamento.html?dept=beauty&b=UNITE%20Hair`
 - UNOVE: 1 · `/departamento.html?dept=beauty&b=UNOVE`
 - Urban Decay: 1 · `/departamento.html?dept=beauty&b=Urban%20Decay`
@@ -3073,6 +2990,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - VDL: 1 · `/departamento.html?dept=beauty&b=VDL`
 - Vertra - c/o EAI-JR286, Inc: 1 · `/departamento.html?dept=beauty&b=Vertra%20-%20c%2Fo%20EAI-JR286%2C%20Inc`
 - Viktor: 1 · `/departamento.html?dept=beauty&b=Viktor`
+- VIO2: 1 · `/departamento.html?dept=beauty&b=VIO2`
 - Vital: 1 · `/departamento.html?dept=beauty&b=Vital`
 - Vitamin village: 1 · `/departamento.html?dept=beauty&b=Vitamin%20village`
 - Vitapair: 1 · `/departamento.html?dept=beauty&b=Vitapair`
@@ -3080,76 +2998,60 @@ Viven en su propia sección (no son enlaces de esta columna):
 - VT Cosmetics: 1 · `/departamento.html?dept=beauty&b=VT%20Cosmetics`
 - Waggz: 1 · `/departamento.html?dept=beauty&b=Waggz`
 - Weleda: 1 · `/departamento.html?dept=beauty&b=Weleda`
+- Wellbel: 1 · `/departamento.html?dept=beauty&b=Wellbel`
 - Wet: 1 · `/departamento.html?dept=beauty&b=Wet`
 - Winky Lux: 1 · `/departamento.html?dept=beauty&b=Winky%20Lux`
 - Women's: 1 · `/departamento.html?dept=beauty&b=Women's`
+- Wonderskin: 1 · `/departamento.html?dept=beauty&b=Wonderskin`
 - XFusion Keratin Hair Fibers: 1 · `/departamento.html?dept=beauty&b=XFusion%20Keratin%20Hair%20Fibers`
 - Youngblood: 1 · `/departamento.html?dept=beauty&b=Youngblood`
 - Yunjac: 1 · `/departamento.html?dept=beauty&b=Yunjac`
 - Zerran Hair Care: 1 · `/departamento.html?dept=beauty&b=Zerran%20Hair%20Care`
 - ZIGTAG: 1 · `/departamento.html?dept=beauty&b=ZIGTAG`
 
-### Secciones
+### Cabello (1,052)
 
-- Cabello: 1,052 · `/departamento.html?dept=cabello`
+- Champú Y Acondicionador: 181 · `/departamento.html?dept=cabello&t=champu-y-acondicionador`
+- Cuero Cabelludo: 164 · `/departamento.html?dept=cabello&t=cuero-cabelludo`
+- Keratina Y Alisados: 159 · `/departamento.html?dept=cabello&t=keratina-y-alisados`
+- Más Tratamientos: 142 · `/departamento.html?dept=cabello&t=mas-tratamientos`
+- Reparación: 113 · `/departamento.html?dept=cabello&t=reparacion`
+- Mascarillas: 109 · `/departamento.html?dept=cabello&t=mascarillas`
+- Aceites Y Sérums: 108 · `/departamento.html?dept=cabello&t=aceites-y-serums`
+- Sin Enjuague: 76 · `/departamento.html?dept=cabello&t=sin-enjuague`
 
 ## Accesorios
 
-Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
+Abre: `/departamento.html?dept=joyas_accesorios` (8,398 productos)
 
-### Tipos (8,552)
+### Tipos (8,398)
 
-- Aretes: 1,291 · `/departamento.html?dept=joyas_accesorios&t=aretes`
+- Aretes: 1,279 · `/departamento.html?dept=joyas_accesorios&t=aretes`
 - Pulseras y tobilleras: 1,111 · `/departamento.html?dept=joyas_accesorios&t=pulseras-y-tobilleras`
 - Collares y dijes: 1,075 · `/departamento.html?dept=joyas_accesorios&t=collares-y-dijes`
-- Accesorios: 1,040 · `/departamento.html?dept=joyas_accesorios&t=accesorios`
+- Accesorios: 1,062 · `/departamento.html?dept=joyas_accesorios&t=accesorios`
 - Charms: 765 · `/departamento.html?dept=joyas_accesorios&t=charms`
-- Carteras: 591 · `/departamento.html?dept=joyas_accesorios&t=carteras`
-- Anillos: 505 · `/departamento.html?dept=joyas_accesorios&t=anillos`
+- Anillos: 492 · `/departamento.html?dept=joyas_accesorios&t=anillos`
 - Joyería: 303 · `/departamento.html?dept=joyas_accesorios&t=joyeria`
 - Correas: 293 · `/departamento.html?dept=joyas_accesorios&t=correas`
+- Joyas: 288 · `/departamento.html?dept=joyas_accesorios&t=joyas`
 - Billeteras: 260 · `/departamento.html?dept=joyas_accesorios&t=billeteras`
-- Joyas: 257 · `/departamento.html?dept=joyas_accesorios&t=joyas`
-- Guantes: 192 · `/departamento.html?dept=joyas_accesorios&t=guantes`
+- Carteras: 214 · `/departamento.html?dept=joyas_accesorios&t=carteras`
 - Accesorios para el pelo: 184 · `/departamento.html?dept=joyas_accesorios&t=accesorios-para-el-pelo`
+- Guantes: 183 · `/departamento.html?dept=joyas_accesorios&t=guantes`
 - Bolso: 120 · `/departamento.html?dept=joyas_accesorios&t=bolso`
 - Relojes: 119 · `/departamento.html?dept=joyas_accesorios&t=relojes`
 - Bufandas: 103 · `/departamento.html?dept=joyas_accesorios&t=bufandas`
 - Llaveros: 59 · `/departamento.html?dept=joyas_accesorios&t=llaveros`
 - Corbatas: 43 · `/departamento.html?dept=joyas_accesorios&t=corbatas`
 - Broches y pines: 36 · `/departamento.html?dept=joyas_accesorios&t=broches-y-pines`
-- Gorras: 24 · `/departamento.html?dept=joyas_accesorios&t=gorras`
 - Ropa de baño: 23 · `/departamento.html?dept=joyas_accesorios&t=ropa-de-bano`
+- Gorras: 22 · `/departamento.html?dept=joyas_accesorios&t=gorras`
 - Accesorio: 17 · `/departamento.html?dept=joyas_accesorios&t=accesorio`
-- Belleza: 17 · `/departamento.html?dept=joyas_accesorios&t=belleza`
-- Accesorios De Fútbol: 16 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-futbol`
-- Recuerdos de fiesta: 14 · `/departamento.html?dept=joyas_accesorios&t=recuerdos-de-fiesta`
-- Cinturones de levantamiento: 12 · `/departamento.html?dept=joyas_accesorios&t=cinturones-de-levantamiento`
-- Pesas Y Cinturones: 12 · `/departamento.html?dept=joyas_accesorios&t=pesas-y-cinturones`
-- Manta: 10 · `/departamento.html?dept=joyas_accesorios&t=manta`
-- Repuestos Y Accesorios De Pesca Submarina: 10 · `/departamento.html?dept=joyas_accesorios&t=repuestos-y-accesorios-de-pesca-submarin`
-- Chupetes y mordedores: 9 · `/departamento.html?dept=joyas_accesorios&t=chupetes-y-mordedores`
-- Accesorios De Skate: 8 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-skate`
-- Accesorios De Surf: 8 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-surf`
-- Coche: 8 · `/departamento.html?dept=joyas_accesorios&t=coche`
-- Equipo: 8 · `/departamento.html?dept=joyas_accesorios&t=equipo`
-- Tablas De Surf: 8 · `/departamento.html?dept=joyas_accesorios&t=tablas-de-surf`
-- Flash De Estudio: 7 · `/departamento.html?dept=joyas_accesorios&t=flash-de-estudio`
 - Zapatillas: 7 · `/departamento.html?dept=joyas_accesorios&t=zapatillas`
-- Zapatos: 7 · `/departamento.html?dept=joyas_accesorios&t=zapatos`
-- Accesorios de levantamiento: 6 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-levantamiento`
-- Disfraces: 6 · `/departamento.html?dept=joyas_accesorios&t=disfraces`
-- Habitación del bebé: 6 · `/departamento.html?dept=joyas_accesorios&t=habitacion-del-bebe`
-- Drones: 5 · `/departamento.html?dept=joyas_accesorios&t=drones`
-- Trajes De Neopreno: 5 · `/departamento.html?dept=joyas_accesorios&t=trajes-de-neopreno`
-- Trucks, Ruedas Y Partes: 5 · `/departamento.html?dept=joyas_accesorios&t=trucks-ruedas-y-partes`
-- Accesorios De Tenis: 4 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-tenis`
 - Pantalones y jeans: 4 · `/departamento.html?dept=joyas_accesorios&t=pantalones-y-jeans`
-- Pañales: 4 · `/departamento.html?dept=joyas_accesorios&t=panales`
-- Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=joyas_accesorios&t=accesorios-de-pesca-submarina`
+- Zapatos: 4 · `/departamento.html?dept=joyas_accesorios&t=zapatos`
 - Blusas y tops: 3 · `/departamento.html?dept=joyas_accesorios&t=blusas-y-tops`
-- Cascos Y Protecciones: 3 · `/departamento.html?dept=joyas_accesorios&t=cascos-y-protecciones`
-- Cuidado del bebé: 3 · `/departamento.html?dept=joyas_accesorios&t=cuidado-del-bebe`
 - Gorros: 3 · `/departamento.html?dept=joyas_accesorios&t=gorros`
 - Shorts: 3 · `/departamento.html?dept=joyas_accesorios&t=shorts`
 - Camisas: 2 · `/departamento.html?dept=joyas_accesorios&t=camisas`
@@ -3157,68 +3059,31 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Lencería: 2 · `/departamento.html?dept=joyas_accesorios&t=lenceria`
 - Maternidad: 2 · `/departamento.html?dept=joyas_accesorios&t=maternidad`
 - Sandalias: 2 · `/departamento.html?dept=joyas_accesorios&t=sandalias`
-- Arcos Y Porterías: 1 · `/departamento.html?dept=joyas_accesorios&t=arcos-y-porterias`
-- Arpones: 1 · `/departamento.html?dept=joyas_accesorios&t=arpones`
-- Arpones De Vara: 1 · `/departamento.html?dept=joyas_accesorios&t=arpones-de-vara`
-- Balones y pelotas: 1 · `/departamento.html?dept=joyas_accesorios&t=balones-y-pelotas`
 - Billetera: 1 · `/departamento.html?dept=joyas_accesorios&t=billetera`
 - Calzado: 1 · `/departamento.html?dept=joyas_accesorios&t=calzado`
 - Chompas y polerones: 1 · `/departamento.html?dept=joyas_accesorios&t=chompas-y-polerones`
-- Lactancia: 1 · `/departamento.html?dept=joyas_accesorios&t=lactancia`
-- Máscaras Y Snorkels: 1 · `/departamento.html?dept=joyas_accesorios&t=mascaras-y-snorkels`
 - Neceseres: 1 · `/departamento.html?dept=joyas_accesorios&t=neceseres`
 - Pijama: 1 · `/departamento.html?dept=joyas_accesorios&t=pijama`
-- Repuestos: 1 · `/departamento.html?dept=joyas_accesorios&t=repuestos`
-- Skateboards: 1 · `/departamento.html?dept=joyas_accesorios&t=skateboards`
 - Toallas Y Ponchos: 1 · `/departamento.html?dept=joyas_accesorios&t=toallas-y-ponchos`
-- Trípode: 1 · `/departamento.html?dept=joyas_accesorios&t=tripode`
 
-### Carteras (2,221)
+### Carteras (1,989)
 
-- Carteras: 2,070 · `/departamento.html?dept=purses&t=carteras`
-- Pañales: 33 · `/departamento.html?dept=purses&t=panales`
-- Tablas De Surf: 16 · `/departamento.html?dept=purses&t=tablas-de-surf`
+- Carteras: 1,943 · `/departamento.html?dept=purses&t=carteras`
 - Accesorios: 13 · `/departamento.html?dept=purses&t=accesorios`
 - Mochilas y bolsos: 11 · `/departamento.html?dept=purses&t=mochilas-y-bolsos`
-- Accesorios De Surf: 8 · `/departamento.html?dept=purses&t=accesorios-de-surf`
 - Bolsos: 7 · `/departamento.html?dept=purses&t=bolsos`
 - Billeteras: 6 · `/departamento.html?dept=purses&t=billeteras`
-- Equipo: 6 · `/departamento.html?dept=purses&t=equipo`
-- Maletines deportivos: 6 · `/departamento.html?dept=purses&t=maletines-deportivos`
 - Bolso: 5 · `/departamento.html?dept=purses&t=bolso`
-- Repuestos Y Accesorios De Pesca Submarina: 5 · `/departamento.html?dept=purses&t=repuestos-y-accesorios-de-pesca-submarin`
-- Accesorios De Skate: 4 · `/departamento.html?dept=purses&t=accesorios-de-skate`
 - Gorras: 4 · `/departamento.html?dept=purses&t=gorras`
-- Trucks, Ruedas Y Partes: 4 · `/departamento.html?dept=purses&t=trucks-ruedas-y-partes`
-- Accesorios De Fútbol: 3 · `/departamento.html?dept=purses&t=accesorios-de-futbol`
-- Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=purses&t=accesorios-de-pesca-submarina`
-- Coche: 3 · `/departamento.html?dept=purses&t=coche`
-- Balones y pelotas: 2 · `/departamento.html?dept=purses&t=balones-y-pelotas`
-- Flash De Estudio: 2 · `/departamento.html?dept=purses&t=flash-de-estudio`
-- Skateboards: 2 · `/departamento.html?dept=purses&t=skateboards`
-- Aletas De Buceo: 1 · `/departamento.html?dept=purses&t=aletas-de-buceo`
-- Arpones: 1 · `/departamento.html?dept=purses&t=arpones`
-- Autoasiento: 1 · `/departamento.html?dept=purses&t=autoasiento`
-- Biberones y alimentación del bebé: 1 · `/departamento.html?dept=purses&t=biberones-y-alimentacion-del-bebe`
-- Cuidado Corporal: 1 · `/departamento.html?dept=purses&t=cuidado-corporal`
-- Lactancia: 1 · `/departamento.html?dept=purses&t=lactancia`
-- Sup / Paddle Surf: 1 · `/departamento.html?dept=purses&t=sup-paddle-surf`
-- Trípode: 1 · `/departamento.html?dept=purses&t=tripode`
 
-### Lentes de Sol (3,461)
+### Lentes de Sol (1,882)
 
-- Lentes: 1,777 · `/departamento.html?dept=sunglasses&t=lentes`
-- Lentes de sol: 1,552 · `/departamento.html?dept=sunglasses&t=lentes-de-sol`
+- Lentes de sol: 1,575 · `/departamento.html?dept=sunglasses&t=lentes-de-sol`
+- Lentes: 201 · `/departamento.html?dept=sunglasses&t=lentes`
 - Accesorios: 102 · `/departamento.html?dept=sunglasses&t=accesorios`
-- Repuestos Y Accesorios De Pesca Submarina: 18 · `/departamento.html?dept=sunglasses&t=repuestos-y-accesorios-de-pesca-submarin`
 - Gorras: 4 · `/departamento.html?dept=sunglasses&t=gorras`
-- Recuerdos de fiesta: 3 · `/departamento.html?dept=sunglasses&t=recuerdos-de-fiesta`
-- Trucks, Ruedas Y Partes: 2 · `/departamento.html?dept=sunglasses&t=trucks-ruedas-y-partes`
-- Accesorios De Pesca Submarina: 1 · `/departamento.html?dept=sunglasses&t=accesorios-de-pesca-submarina`
-- Aletas De Buceo: 1 · `/departamento.html?dept=sunglasses&t=aletas-de-buceo`
-- Decks (tablas De Skate): 1 · `/departamento.html?dept=sunglasses&t=decks-tablas-de-skate`
 
-### Marcas (8,552)
+### Marcas (8,398)
 
 - BaubleBar: 3,410 · `/departamento.html?dept=joyas_accesorios&b=BaubleBar`
 - Vivienne Westwood: 337 · `/departamento.html?dept=joyas_accesorios&b=Vivienne%20Westwood`
@@ -3228,8 +3093,8 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Miu Miu: 99 · `/departamento.html?dept=joyas_accesorios&b=Miu%20Miu`
 - Pura Vida: 88 · `/departamento.html?dept=joyas_accesorios&b=Pura%20Vida`
 - Emanuele Bicocchi: 82 · `/departamento.html?dept=joyas_accesorios&b=Emanuele%20Bicocchi`
-- Freestyle: 72 · `/departamento.html?dept=joyas_accesorios&b=Freestyle`
 - G-Shock: 70 · `/departamento.html?dept=joyas_accesorios&b=G-Shock`
+- Freestyle: 68 · `/departamento.html?dept=joyas_accesorios&b=Freestyle`
 - Sophie Buhai: 65 · `/departamento.html?dept=joyas_accesorios&b=Sophie%20Buhai`
 - Macy's: 61 · `/departamento.html?dept=joyas_accesorios&b=Macy's`
 - Acne Studios: 60 · `/departamento.html?dept=joyas_accesorios&b=Acne%20Studios`
@@ -3239,8 +3104,8 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Pura Vida Bracelets: 51 · `/departamento.html?dept=joyas_accesorios&b=Pura%20Vida%20Bracelets`
 - Melie Bianco: 50 · `/departamento.html?dept=joyas_accesorios&b=Melie%20Bianco`
 - OUR LEGACY: 47 · `/departamento.html?dept=joyas_accesorios&b=OUR%20LEGACY`
-- CCS: 46 · `/departamento.html?dept=joyas_accesorios&b=CCS`
 - Dries Van Noten: 46 · `/departamento.html?dept=joyas_accesorios&b=Dries%20Van%20Noten`
+- CCS: 44 · `/departamento.html?dept=joyas_accesorios&b=CCS`
 - MM6 Maison Margiela: 41 · `/departamento.html?dept=joyas_accesorios&b=MM6%20Maison%20Margiela`
 - Carolina Herrera: 39 · `/departamento.html?dept=joyas_accesorios&b=Carolina%20Herrera`
 - Isabel Marant: 38 · `/departamento.html?dept=joyas_accesorios&b=Isabel%20Marant`
@@ -3249,7 +3114,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Dolce & Gabbana: 35 · `/departamento.html?dept=joyas_accesorios&b=Dolce%20%26%20Gabbana`
 - LEMAIRE: 34 · `/departamento.html?dept=joyas_accesorios&b=LEMAIRE`
 - Maison Margiela: 33 · `/departamento.html?dept=joyas_accesorios&b=Maison%20Margiela`
-- Arcade: 32 · `/departamento.html?dept=joyas_accesorios&b=Arcade`
+- Arcade: 30 · `/departamento.html?dept=joyas_accesorios&b=Arcade`
 - Chopova Lowena: 29 · `/departamento.html?dept=joyas_accesorios&b=Chopova%20Lowena`
 - Diesel: 29 · `/departamento.html?dept=joyas_accesorios&b=Diesel`
 - Amir Slama: 28 · `/departamento.html?dept=joyas_accesorios&b=Amir%20Slama`
@@ -3265,14 +3130,12 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Fahlo: 23 · `/departamento.html?dept=joyas_accesorios&b=Fahlo`
 - Thread Wallets: 23 · `/departamento.html?dept=joyas_accesorios&b=Thread%20Wallets`
 - MERRMA: 21 · `/departamento.html?dept=joyas_accesorios&b=MERRMA`
-- Party City: 21 · `/departamento.html?dept=joyas_accesorios&b=Party%20City`
 - Aicon: 20 · `/departamento.html?dept=joyas_accesorios&b=Aicon`
 - Brunello Cucinelli: 20 · `/departamento.html?dept=joyas_accesorios&b=Brunello%20Cucinelli`
 - Ernest W. Baker: 20 · `/departamento.html?dept=joyas_accesorios&b=Ernest%20W.%20Baker`
 - Ferragamo: 20 · `/departamento.html?dept=joyas_accesorios&b=Ferragamo`
 - Golden Goose: 20 · `/departamento.html?dept=joyas_accesorios&b=Golden%20Goose`
 - YoungLA: 20 · `/departamento.html?dept=joyas_accesorios&b=YoungLA`
-- Gorilla Wear: 19 · `/departamento.html?dept=joyas_accesorios&b=Gorilla%20Wear`
 - A.P.C.: 18 · `/departamento.html?dept=joyas_accesorios&b=A.P.C.`
 - COMME des GARÇONS WALLETS: 18 · `/departamento.html?dept=joyas_accesorios&b=COMME%20des%20GAR%C3%87ONS%20WALLETS`
 - Elite Sports: 18 · `/departamento.html?dept=joyas_accesorios&b=Elite%20Sports`
@@ -3291,44 +3154,41 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - BOSS: 13 · `/departamento.html?dept=joyas_accesorios&b=BOSS`
 - Casio: 13 · `/departamento.html?dept=joyas_accesorios&b=Casio`
 - Chloé: 13 · `/departamento.html?dept=joyas_accesorios&b=Chlo%C3%A9`
-- Kindred Bravely: 13 · `/departamento.html?dept=joyas_accesorios&b=Kindred%20Bravely`
 - AMIRI: 12 · `/departamento.html?dept=joyas_accesorios&b=AMIRI`
 - Bocar: 12 · `/departamento.html?dept=joyas_accesorios&b=Bocar`
 - Jean Paul Gaultier: 12 · `/departamento.html?dept=joyas_accesorios&b=Jean%20Paul%20Gaultier`
 - Jil Sander: 12 · `/departamento.html?dept=joyas_accesorios&b=Jil%20Sander`
 - mfpen: 12 · `/departamento.html?dept=joyas_accesorios&b=mfpen`
-- State Bags: 12 · `/departamento.html?dept=joyas_accesorios&b=State%20Bags`
 - Volcom: 12 · `/departamento.html?dept=joyas_accesorios&b=Volcom`
 - Casablanca: 11 · `/departamento.html?dept=joyas_accesorios&b=Casablanca`
 - Déhanche: 11 · `/departamento.html?dept=joyas_accesorios&b=D%C3%A9hanche`
 - George: 11 · `/departamento.html?dept=joyas_accesorios&b=George`
 - Loosey: 11 · `/departamento.html?dept=joyas_accesorios&b=Loosey`
+- Party City: 11 · `/departamento.html?dept=joyas_accesorios&b=Party%20City`
+- State Bags: 11 · `/departamento.html?dept=joyas_accesorios&b=State%20Bags`
 - Timex: 11 · `/departamento.html?dept=joyas_accesorios&b=Timex`
 - Tom Wood: 11 · `/departamento.html?dept=joyas_accesorios&b=Tom%20Wood`
 - Y-3: 11 · `/departamento.html?dept=joyas_accesorios&b=Y-3`
 - AMI Paris: 10 · `/departamento.html?dept=joyas_accesorios&b=AMI%20Paris`
 - Cruz Accessories: 10 · `/departamento.html?dept=joyas_accesorios&b=Cruz%20Accessories`
-- Da Kine: 10 · `/departamento.html?dept=joyas_accesorios&b=Da%20Kine`
 - Enewton: 10 · `/departamento.html?dept=joyas_accesorios&b=Enewton`
 - Fossil: 10 · `/departamento.html?dept=joyas_accesorios&b=Fossil`
 - Italian Gold: 10 · `/departamento.html?dept=joyas_accesorios&b=Italian%20Gold`
 - K'lani: 10 · `/departamento.html?dept=joyas_accesorios&b=K'lani`
 - Marc Jacobs: 10 · `/departamento.html?dept=joyas_accesorios&b=Marc%20Jacobs`
 - RVCA: 10 · `/departamento.html?dept=joyas_accesorios&b=RVCA`
-- Salvimar: 10 · `/departamento.html?dept=joyas_accesorios&b=Salvimar`
 - Skims: 10 · `/departamento.html?dept=joyas_accesorios&b=Skims`
 - Swarovski: 10 · `/departamento.html?dept=joyas_accesorios&b=Swarovski`
 - 4Ocean: 9 · `/departamento.html?dept=joyas_accesorios&b=4Ocean`
-- adidas: 9 · `/departamento.html?dept=joyas_accesorios&b=adidas`
 - APSVO: 9 · `/departamento.html?dept=joyas_accesorios&b=APSVO`
 - BALMAIN: 9 · `/departamento.html?dept=joyas_accesorios&b=BALMAIN`
 - Crocs: 9 · `/departamento.html?dept=joyas_accesorios&b=Crocs`
+- Da Kine: 9 · `/departamento.html?dept=joyas_accesorios&b=Da%20Kine`
 - Designice: 9 · `/departamento.html?dept=joyas_accesorios&b=Designice`
 - DGK Skateboards: 9 · `/departamento.html?dept=joyas_accesorios&b=DGK%20Skateboards`
 - GANNI: 9 · `/departamento.html?dept=joyas_accesorios&b=GANNI`
 - Handsome Stockholm: 9 · `/departamento.html?dept=joyas_accesorios&b=Handsome%20Stockholm`
 - Herschel: 9 · `/departamento.html?dept=joyas_accesorios&b=Herschel`
-- Kill Crew: 9 · `/departamento.html?dept=joyas_accesorios&b=Kill%20Crew`
 - Max Mara: 9 · `/departamento.html?dept=joyas_accesorios&b=Max%20Mara`
 - OLEVS: 9 · `/departamento.html?dept=joyas_accesorios&b=OLEVS`
 - TOTEME: 9 · `/departamento.html?dept=joyas_accesorios&b=TOTEME`
@@ -3336,52 +3196,45 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - ANINE BING: 8 · `/departamento.html?dept=joyas_accesorios&b=ANINE%20BING`
 - Baserange: 8 · `/departamento.html?dept=joyas_accesorios&b=Baserange`
 - C.Chesnais: 8 · `/departamento.html?dept=joyas_accesorios&b=C.Chesnais`
-- Combat Corner: 8 · `/departamento.html?dept=joyas_accesorios&b=Combat%20Corner`
 - MapleXO: 8 · `/departamento.html?dept=joyas_accesorios&b=MapleXO`
 - Yves Salomon: 8 · `/departamento.html?dept=joyas_accesorios&b=Yves%20Salomon`
 - Agua Bendita: 7 · `/departamento.html?dept=joyas_accesorios&b=Agua%20Bendita`
 - AURA: 7 · `/departamento.html?dept=joyas_accesorios&b=AURA`
 - Ayllón: 7 · `/departamento.html?dept=joyas_accesorios&b=Ayll%C3%B3n`
 - BAO BAO ISSEY MIYAKE: 7 · `/departamento.html?dept=joyas_accesorios&b=BAO%20BAO%20ISSEY%20MIYAKE`
-- Dr. Brown's: 7 · `/departamento.html?dept=joyas_accesorios&b=Dr.%20Brown's`
 - ETOILE COLLECTIVE: 7 · `/departamento.html?dept=joyas_accesorios&b=ETOILE%20COLLECTIVE`
 - FCS: 7 · `/departamento.html?dept=joyas_accesorios&b=FCS`
 - Gimaguas: 7 · `/departamento.html?dept=joyas_accesorios&b=Gimaguas`
+- Gorilla Wear: 7 · `/departamento.html?dept=joyas_accesorios&b=Gorilla%20Wear`
 - Kenzo: 7 · `/departamento.html?dept=joyas_accesorios&b=Kenzo`
-- Logo Brands: 7 · `/departamento.html?dept=joyas_accesorios&b=Logo%20Brands`
 - Paloma Wool: 7 · `/departamento.html?dept=joyas_accesorios&b=Paloma%20Wool`
-- Rip Curl: 7 · `/departamento.html?dept=joyas_accesorios&b=Rip%20Curl`
-- Spitfire Skateboard Wheels: 7 · `/departamento.html?dept=joyas_accesorios&b=Spitfire%20Skateboard%20Wheels`
-- Thrasher: 7 · `/departamento.html?dept=joyas_accesorios&b=Thrasher`
 - Thread: 7 · `/departamento.html?dept=joyas_accesorios&b=Thread`
 - TOM FORD: 7 · `/departamento.html?dept=joyas_accesorios&b=TOM%20FORD`
 - Versace: 7 · `/departamento.html?dept=joyas_accesorios&b=Versace`
-- Godox: 6 · `/departamento.html?dept=joyas_accesorios&b=Godox`
 - Gymshark: 6 · `/departamento.html?dept=joyas_accesorios&b=Gymshark`
-- Henny Apparel: 6 · `/departamento.html?dept=joyas_accesorios&b=Henny%20Apparel`
-- Lost Apparel: 6 · `/departamento.html?dept=joyas_accesorios&b=Lost%20Apparel`
 - Madden NYC: 6 · `/departamento.html?dept=joyas_accesorios&b=Madden%20NYC`
-- O'neill: 6 · `/departamento.html?dept=joyas_accesorios&b=O'neill`
 - Odyssey: 6 · `/departamento.html?dept=joyas_accesorios&b=Odyssey`
 - Rick Owens DRKSHDW: 6 · `/departamento.html?dept=joyas_accesorios&b=Rick%20Owens%20DRKSHDW`
 - RRL: 6 · `/departamento.html?dept=joyas_accesorios&b=RRL`
 - Ryderwear: 6 · `/departamento.html?dept=joyas_accesorios&b=Ryderwear`
-- Salty Crew: 6 · `/departamento.html?dept=joyas_accesorios&b=Salty%20Crew`
 - SHASHI: 6 · `/departamento.html?dept=joyas_accesorios&b=SHASHI`
 - SKMEI: 6 · `/departamento.html?dept=joyas_accesorios&b=SKMEI`
+- Thrasher: 6 · `/departamento.html?dept=joyas_accesorios&b=Thrasher`
 - 8 Other Reasons: 5 · `/departamento.html?dept=joyas_accesorios&b=8%20Other%20Reasons`
 - Bottega Veneta: 5 · `/departamento.html?dept=joyas_accesorios&b=Bottega%20Veneta`
 - By Parra: 5 · `/departamento.html?dept=joyas_accesorios&b=By%20Parra`
 - Everlast: 5 · `/departamento.html?dept=joyas_accesorios&b=Everlast`
 - FLORE FLORE: 5 · `/departamento.html?dept=joyas_accesorios&b=FLORE%20FLORE`
 - Genuine Dickies: 5 · `/departamento.html?dept=joyas_accesorios&b=Genuine%20Dickies`
-- Hammerhead: 5 · `/departamento.html?dept=joyas_accesorios&b=Hammerhead`
 - Hugo: 5 · `/departamento.html?dept=joyas_accesorios&b=Hugo`
 - Johanna Ortiz: 5 · `/departamento.html?dept=joyas_accesorios&b=Johanna%20Ortiz`
 - Lanvin: 5 · `/departamento.html?dept=joyas_accesorios&b=Lanvin`
 - Obey: 5 · `/departamento.html?dept=joyas_accesorios&b=Obey`
 - R13: 5 · `/departamento.html?dept=joyas_accesorios&b=R13`
 - Rabanne: 5 · `/departamento.html?dept=joyas_accesorios&b=Rabanne`
+- Rip Curl: 5 · `/departamento.html?dept=joyas_accesorios&b=Rip%20Curl`
+- Salty Crew: 5 · `/departamento.html?dept=joyas_accesorios&b=Salty%20Crew`
+- Spitfire Skateboard Wheels: 5 · `/departamento.html?dept=joyas_accesorios&b=Spitfire%20Skateboard%20Wheels`
 - Stephen Jones: 5 · `/departamento.html?dept=joyas_accesorios&b=Stephen%20Jones`
 - Stolen Girlfriends Club: 5 · `/departamento.html?dept=joyas_accesorios&b=Stolen%20Girlfriends%20Club`
 - VAQUERA: 5 · `/departamento.html?dept=joyas_accesorios&b=VAQUERA`
@@ -3394,26 +3247,25 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Cate & Chloe: 4 · `/departamento.html?dept=joyas_accesorios&b=Cate%20%26%20Chloe`
 - Comme des Garçons Homme Deux: 4 · `/departamento.html?dept=joyas_accesorios&b=Comme%20des%20Gar%C3%A7ons%20Homme%20Deux`
 - Cookies: 4 · `/departamento.html?dept=joyas_accesorios&b=Cookies`
-- Decked Out Designs: 4 · `/departamento.html?dept=joyas_accesorios&b=Decked%20Out%20Designs`
-- DJI: 4 · `/departamento.html?dept=joyas_accesorios&b=DJI`
 - Ella: 4 · `/departamento.html?dept=joyas_accesorios&b=Ella`
 - Guidi: 4 · `/departamento.html?dept=joyas_accesorios&b=Guidi`
+- Hammerhead: 4 · `/departamento.html?dept=joyas_accesorios&b=Hammerhead`
+- Henny Apparel: 4 · `/departamento.html?dept=joyas_accesorios&b=Henny%20Apparel`
 - Independent Skateboard Trucks: 4 · `/departamento.html?dept=joyas_accesorios&b=Independent%20Skateboard%20Trucks`
 - JACQUEMUS: 4 · `/departamento.html?dept=joyas_accesorios&b=JACQUEMUS`
 - Jordan: 4 · `/departamento.html?dept=joyas_accesorios&b=Jordan`
 - Julius: 4 · `/departamento.html?dept=joyas_accesorios&b=Julius`
 - Kulani Kinis: 4 · `/departamento.html?dept=joyas_accesorios&b=Kulani%20Kinis`
 - Le Vian: 4 · `/departamento.html?dept=joyas_accesorios&b=Le%20Vian`
-- Nanit: 4 · `/departamento.html?dept=joyas_accesorios&b=Nanit`
-- Nike: 4 · `/departamento.html?dept=joyas_accesorios&b=Nike`
 - No Boundaries: 4 · `/departamento.html?dept=joyas_accesorios&b=No%20Boundaries`
+- O'neill: 4 · `/departamento.html?dept=joyas_accesorios&b=O'neill`
 - Ottolinger: 4 · `/departamento.html?dept=joyas_accesorios&b=Ottolinger`
 - QSSS/ANCHBOY: 4 · `/departamento.html?dept=joyas_accesorios&b=QSSS%2FANCHBOY`
+- Salvimar: 4 · `/departamento.html?dept=joyas_accesorios&b=Salvimar`
 - Santa Cruz Skateboards: 4 · `/departamento.html?dept=joyas_accesorios&b=Santa%20Cruz%20Skateboards`
 - Scenario: 4 · `/departamento.html?dept=joyas_accesorios&b=Scenario`
 - ssstein: 4 · `/departamento.html?dept=joyas_accesorios&b=ssstein`
 - Sun Bum: 4 · `/departamento.html?dept=joyas_accesorios&b=Sun%20Bum`
-- Triple Eight Protective Gear: 4 · `/departamento.html?dept=joyas_accesorios&b=Triple%20Eight%20Protective%20Gear`
 - Turandoss: 4 · `/departamento.html?dept=joyas_accesorios&b=Turandoss`
 - UNDERCOVER: 4 · `/departamento.html?dept=joyas_accesorios&b=UNDERCOVER`
 - Unwritten: 4 · `/departamento.html?dept=joyas_accesorios&b=Unwritten`
@@ -3436,7 +3288,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - HESHPAWS: 3 · `/departamento.html?dept=joyas_accesorios&b=HESHPAWS`
 - HUF: 3 · `/departamento.html?dept=joyas_accesorios&b=HUF`
 - Island Water Sports: 3 · `/departamento.html?dept=joyas_accesorios&b=Island%20Water%20Sports`
-- JuJuBe: 3 · `/departamento.html?dept=joyas_accesorios&b=JuJuBe`
+- Kill Crew: 3 · `/departamento.html?dept=joyas_accesorios&b=Kill%20Crew`
 - Lc Lauren Conrad: 3 · `/departamento.html?dept=joyas_accesorios&b=Lc%20Lauren%20Conrad`
 - MASTERMIND WORLD: 3 · `/departamento.html?dept=joyas_accesorios&b=MASTERMIND%20WORLD`
 - Moncler: 3 · `/departamento.html?dept=joyas_accesorios&b=Moncler`
@@ -3453,17 +3305,17 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Simbi: 3 · `/departamento.html?dept=joyas_accesorios&b=Simbi`
 - The Frankie Shop: 3 · `/departamento.html?dept=joyas_accesorios&b=The%20Frankie%20Shop`
 - Thom Browne: 3 · `/departamento.html?dept=joyas_accesorios&b=Thom%20Browne`
+- Triple Eight Protective Gear: 3 · `/departamento.html?dept=joyas_accesorios&b=Triple%20Eight%20Protective%20Gear`
 - Vans: 3 · `/departamento.html?dept=joyas_accesorios&b=Vans`
-- Vissla: 3 · `/departamento.html?dept=joyas_accesorios&b=Vissla`
 - We11done: 3 · `/departamento.html?dept=joyas_accesorios&b=We11done`
 - WILLY CHAVARRIA: 3 · `/departamento.html?dept=joyas_accesorios&b=WILLY%20CHAVARRIA`
 - A.LAB: 2 · `/departamento.html?dept=joyas_accesorios&b=A.LAB`
 - ADDIESDIVE: 2 · `/departamento.html?dept=joyas_accesorios&b=ADDIESDIVE`
+- Adidas: 2 · `/departamento.html?dept=joyas_accesorios&b=Adidas`
 - Alps: 2 · `/departamento.html?dept=joyas_accesorios&b=Alps`
 - ANOTHER ASPECT: 2 · `/departamento.html?dept=joyas_accesorios&b=ANOTHER%20ASPECT`
 - Belle Anna: 2 · `/departamento.html?dept=joyas_accesorios&b=Belle%20Anna`
 - Belle de Mer: 2 · `/departamento.html?dept=joyas_accesorios&b=Belle%20de%20Mer`
-- Billabong: 2 · `/departamento.html?dept=joyas_accesorios&b=Billabong`
 - Bull Guard: 2 · `/departamento.html?dept=joyas_accesorios&b=Bull%20Guard`
 - BY FAR: 2 · `/departamento.html?dept=joyas_accesorios&b=BY%20FAR`
 - Carter Young: 2 · `/departamento.html?dept=joyas_accesorios&b=Carter%20Young`
@@ -3473,6 +3325,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Chimerro: 2 · `/departamento.html?dept=joyas_accesorios&b=Chimerro`
 - Comme des Garçons Homme: 2 · `/departamento.html?dept=joyas_accesorios&b=Comme%20des%20Gar%C3%A7ons%20Homme`
 - Converse: 2 · `/departamento.html?dept=joyas_accesorios&b=Converse`
+- Decked Out Designs: 2 · `/departamento.html?dept=joyas_accesorios&b=Decked%20Out%20Designs`
 - DGK: 2 · `/departamento.html?dept=joyas_accesorios&b=DGK`
 - Donde Esteban: 2 · `/departamento.html?dept=joyas_accesorios&b=Donde%20Esteban`
 - Drake's: 2 · `/departamento.html?dept=joyas_accesorios&b=Drake's`
@@ -3480,9 +3333,9 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Emi Jay: 2 · `/departamento.html?dept=joyas_accesorios&b=Emi%20Jay`
 - Farm Rio: 2 · `/departamento.html?dept=joyas_accesorios&b=Farm%20Rio`
 - Flower Knows: 2 · `/departamento.html?dept=joyas_accesorios&b=Flower%20Knows`
-- Free Fly: 2 · `/departamento.html?dept=joyas_accesorios&b=Free%20Fly`
 - Fuggler: 2 · `/departamento.html?dept=joyas_accesorios&b=Fuggler`
 - GAF Treasures: 2 · `/departamento.html?dept=joyas_accesorios&b=GAF%20Treasures`
+- Godox: 2 · `/departamento.html?dept=joyas_accesorios&b=Godox`
 - Herschel Supply: 2 · `/departamento.html?dept=joyas_accesorios&b=Herschel%20Supply`
 - Ian: 2 · `/departamento.html?dept=joyas_accesorios&b=Ian`
 - Innerraum: 2 · `/departamento.html?dept=joyas_accesorios&b=Innerraum`
@@ -3508,11 +3361,8 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Nothing Written: 2 · `/departamento.html?dept=joyas_accesorios&b=Nothing%20Written`
 - O'neill Girls: 2 · `/departamento.html?dept=joyas_accesorios&b=O'neill%20Girls`
 - Oner Active: 2 · `/departamento.html?dept=joyas_accesorios&b=Oner%20Active`
-- Owlet: 2 · `/departamento.html?dept=joyas_accesorios&b=Owlet`
-- QSSS/NALUKAI: 2 · `/departamento.html?dept=joyas_accesorios&b=QSSS%2FNALUKAI`
 - Rainylune: 2 · `/departamento.html?dept=joyas_accesorios&b=Rainylune`
 - Raw Elements: 2 · `/departamento.html?dept=joyas_accesorios&b=Raw%20Elements`
-- Roark: 2 · `/departamento.html?dept=joyas_accesorios&b=Roark`
 - Róhe: 2 · `/departamento.html?dept=joyas_accesorios&b=R%C3%B3he`
 - Santa Cruz: 2 · `/departamento.html?dept=joyas_accesorios&b=Santa%20Cruz`
 - Silver Girl: 2 · `/departamento.html?dept=joyas_accesorios&b=Silver%20Girl`
@@ -3534,6 +3384,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Vero Lineage: 2 · `/departamento.html?dept=joyas_accesorios&b=Vero%20Lineage`
 - Vestal: 2 · `/departamento.html?dept=joyas_accesorios&b=Vestal`
 - VETEMENTS: 2 · `/departamento.html?dept=joyas_accesorios&b=VETEMENTS`
+- Vissla: 2 · `/departamento.html?dept=joyas_accesorios&b=Vissla`
 - VTAIGE: 2 · `/departamento.html?dept=joyas_accesorios&b=VTAIGE`
 - Vulcan: 2 · `/departamento.html?dept=joyas_accesorios&b=Vulcan`
 - Way To Celebrate: 2 · `/departamento.html?dept=joyas_accesorios&b=Way%20To%20Celebrate`
@@ -3545,7 +3396,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - $AD: 1 · `/departamento.html?dept=joyas_accesorios&b=%24AD`
 - ///: 1 · `/departamento.html?dept=joyas_accesorios&b=%2F%2F%2F`
 - 180TIDE: 1 · `/departamento.html?dept=joyas_accesorios&b=180TIDE`
-- 187 Killer Pads: 1 · `/departamento.html?dept=joyas_accesorios&b=187%20Killer%20Pads`
 - 4Oceans: 1 · `/departamento.html?dept=joyas_accesorios&b=4Oceans`
 - AAPE by A Bathing Ape: 1 · `/departamento.html?dept=joyas_accesorios&b=AAPE%20by%20A%20Bathing%20Ape`
 - Adriana Degreas: 1 · `/departamento.html?dept=joyas_accesorios&b=Adriana%20Degreas`
@@ -3569,6 +3419,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Belly Bandit: 1 · `/departamento.html?dept=joyas_accesorios&b=Belly%20Bandit`
 - Ben Davis: 1 · `/departamento.html?dept=joyas_accesorios&b=Ben%20Davis`
 - BERNY: 1 · `/departamento.html?dept=joyas_accesorios&b=BERNY`
+- Billabong: 1 · `/departamento.html?dept=joyas_accesorios&b=Billabong`
 - Blowout: 1 · `/departamento.html?dept=joyas_accesorios&b=Blowout`
 - Blue Sage Accessories: 1 · `/departamento.html?dept=joyas_accesorios&b=Blue%20Sage%20Accessories`
 - Bocar Fashion: 1 · `/departamento.html?dept=joyas_accesorios&b=Bocar%20Fashion`
@@ -3576,13 +3427,11 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Breda: 1 · `/departamento.html?dept=joyas_accesorios&b=Breda`
 - Brenda Grands Jewelry: 1 · `/departamento.html?dept=joyas_accesorios&b=Brenda%20Grands%20Jewelry`
 - Broken Promises: 1 · `/departamento.html?dept=joyas_accesorios&b=Broken%20Promises`
-- Buell Wetsuits: 1 · `/departamento.html?dept=joyas_accesorios&b=Buell%20Wetsuits`
 - Butter Goods: 1 · `/departamento.html?dept=joyas_accesorios&b=Butter%20Goods`
 - By Adina Eden: 1 · `/departamento.html?dept=joyas_accesorios&b=By%20Adina%20Eden`
 - Canmake: 1 · `/departamento.html?dept=joyas_accesorios&b=Canmake`
 - Cawley: 1 · `/departamento.html?dept=joyas_accesorios&b=Cawley`
 - Celebrity Pink: 1 · `/departamento.html?dept=joyas_accesorios&b=Celebrity%20Pink`
-- Champion: 1 · `/departamento.html?dept=joyas_accesorios&b=Champion`
 - Chanana: 1 · `/departamento.html?dept=joyas_accesorios&b=Chanana`
 - Channel Islands: 1 · `/departamento.html?dept=joyas_accesorios&b=Channel%20Islands`
 - Charles Jeffrey LOVERBOY: 1 · `/departamento.html?dept=joyas_accesorios&b=Charles%20Jeffrey%20LOVERBOY`
@@ -3603,31 +3452,25 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Dloria: 1 · `/departamento.html?dept=joyas_accesorios&b=Dloria`
 - Dobala.kt: 1 · `/departamento.html?dept=joyas_accesorios&b=Dobala.kt`
 - Domo: 1 · `/departamento.html?dept=joyas_accesorios&b=Domo`
+- Dr. Brown's: 1 · `/departamento.html?dept=joyas_accesorios&b=Dr.%20Brown's`
 - Edward Cuming: 1 · `/departamento.html?dept=joyas_accesorios&b=Edward%20Cuming`
 - Edward Monkton: 1 · `/departamento.html?dept=joyas_accesorios&b=Edward%20Monkton`
 - EGONlab: 1 · `/departamento.html?dept=joyas_accesorios&b=EGONlab`
-- Elvie: 1 · `/departamento.html?dept=joyas_accesorios&b=Elvie`
 - EON: 1 · `/departamento.html?dept=joyas_accesorios&b=EON`
 - Esquire Men's Jewelry: 1 · `/departamento.html?dept=joyas_accesorios&b=Esquire%20Men's%20Jewelry`
 - Essentials: 1 · `/departamento.html?dept=joyas_accesorios&b=Essentials`
 - esunarty: 1 · `/departamento.html?dept=joyas_accesorios&b=esunarty`
 - Ettika: 1 · `/departamento.html?dept=joyas_accesorios&b=Ettika`
-- Evolve: 1 · `/departamento.html?dept=joyas_accesorios&b=Evolve`
 - explojoy: 1 · `/departamento.html?dept=joyas_accesorios&b=explojoy`
 - Faty-T: 1 · `/departamento.html?dept=joyas_accesorios&b=Faty-T`
 - FIANMY: 1 · `/departamento.html?dept=joyas_accesorios&b=FIANMY`
-- FIFA: 1 · `/departamento.html?dept=joyas_accesorios&b=FIFA`
-- Firewire Surfboards: 1 · `/departamento.html?dept=joyas_accesorios&b=Firewire%20Surfboards`
 - FLEO: 1 · `/departamento.html?dept=joyas_accesorios&b=FLEO`
 - Florida Sea Turtle Company: 1 · `/departamento.html?dept=joyas_accesorios&b=Florida%20Sea%20Turtle%20Company`
 - Fostbeen: 1 · `/departamento.html?dept=joyas_accesorios&b=Fostbeen`
-- FREEFLY: 1 · `/departamento.html?dept=joyas_accesorios&b=FREEFLY`
 - Frog Skateboards: 1 · `/departamento.html?dept=joyas_accesorios&b=Frog%20Skateboards`
 - Generic: 1 · `/departamento.html?dept=joyas_accesorios&b=Generic`
 - Girl Skateboards: 1 · `/departamento.html?dept=joyas_accesorios&b=Girl%20Skateboards`
-- Global Scarves: 1 · `/departamento.html?dept=joyas_accesorios&b=Global%20Scarves`
 - GMDISC: 1 · `/departamento.html?dept=joyas_accesorios&b=GMDISC`
-- Goal Gift: 1 · `/departamento.html?dept=joyas_accesorios&b=Goal%20Gift`
 - GoFit: 1 · `/departamento.html?dept=joyas_accesorios&b=GoFit`
 - Gotti: 1 · `/departamento.html?dept=joyas_accesorios&b=Gotti`
 - Gymreapers: 1 · `/departamento.html?dept=joyas_accesorios&b=Gymreapers`
@@ -3665,7 +3508,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Krooked: 1 · `/departamento.html?dept=joyas_accesorios&b=Krooked`
 - KZKR: 1 · `/departamento.html?dept=joyas_accesorios&b=KZKR`
 - La: 1 · `/departamento.html?dept=joyas_accesorios&b=La`
-- Lacoste: 1 · `/departamento.html?dept=joyas_accesorios&b=Lacoste`
 - Landyachtz Longboards: 1 · `/departamento.html?dept=joyas_accesorios&b=Landyachtz%20Longboards`
 - LC Boards: 1 · `/departamento.html?dept=joyas_accesorios&b=LC%20Boards`
 - le gramme: 1 · `/departamento.html?dept=joyas_accesorios&b=le%20gramme`
@@ -3676,11 +3518,9 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Love Is Project: 1 · `/departamento.html?dept=joyas_accesorios&b=Love%20Is%20Project`
 - Lovers and Friends: 1 · `/departamento.html?dept=joyas_accesorios&b=Lovers%20and%20Friends`
 - Lurpiv: 1 · `/departamento.html?dept=joyas_accesorios&b=Lurpiv`
-- LÍLLÉbaby: 1 · `/departamento.html?dept=joyas_accesorios&b=L%C3%8DLL%C3%89baby`
 - Maaji: 1 · `/departamento.html?dept=joyas_accesorios&b=Maaji`
 - Mandu RFID: 1 · `/departamento.html?dept=joyas_accesorios&b=Mandu%20RFID`
 - Marshal Wallet: 1 · `/departamento.html?dept=joyas_accesorios&b=Marshal%20Wallet`
-- Marshall: 1 · `/departamento.html?dept=joyas_accesorios&b=Marshall`
 - Maryam Nassir Zadeh: 1 · `/departamento.html?dept=joyas_accesorios&b=Maryam%20Nassir%20Zadeh`
 - mastermind JAPAN: 1 · `/departamento.html?dept=joyas_accesorios&b=mastermind%20JAPAN`
 - MATROOY: 1 · `/departamento.html?dept=joyas_accesorios&b=MATROOY`
@@ -3697,15 +3537,12 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - MOYIKO: 1 · `/departamento.html?dept=joyas_accesorios&b=MOYIKO`
 - Mula: 1 · `/departamento.html?dept=joyas_accesorios&b=Mula`
 - Murtoo: 1 · `/departamento.html?dept=joyas_accesorios&b=Murtoo`
-- Nautilus: 1 · `/departamento.html?dept=joyas_accesorios&b=Nautilus`
 - Neighborhood: 1 · `/departamento.html?dept=joyas_accesorios&b=Neighborhood`
 - Nelbons: 1 · `/departamento.html?dept=joyas_accesorios&b=Nelbons`
+- Nike: 1 · `/departamento.html?dept=joyas_accesorios&b=Nike`
 - NRMVNMI: 1 · `/departamento.html?dept=joyas_accesorios&b=NRMVNMI`
 - Numiere: 1 · `/departamento.html?dept=joyas_accesorios&b=Numiere`
 - Nurforta: 1 · `/departamento.html?dept=joyas_accesorios&b=Nurforta`
-- O'Neill Wet Suits: 1 · `/departamento.html?dept=joyas_accesorios&b=O'Neill%20Wet%20Suits`
-- Oakley: 1 · `/departamento.html?dept=joyas_accesorios&b=Oakley`
-- Oceanic: 1 · `/departamento.html?dept=joyas_accesorios&b=Oceanic`
 - Off-White: 1 · `/departamento.html?dept=joyas_accesorios&b=Off-White`
 - OPOLSKI: 1 · `/departamento.html?dept=joyas_accesorios&b=OPOLSKI`
 - Oscar: 1 · `/departamento.html?dept=joyas_accesorios&b=Oscar`
@@ -3714,7 +3551,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - PatBO: 1 · `/departamento.html?dept=joyas_accesorios&b=PatBO`
 - Personal: 1 · `/departamento.html?dept=joyas_accesorios&b=Personal`
 - Petit Moments: 1 · `/departamento.html?dept=joyas_accesorios&b=Petit%20Moments`
-- Photogenic: 1 · `/departamento.html?dept=joyas_accesorios&b=Photogenic`
 - PIFLCAM: 1 · `/departamento.html?dept=joyas_accesorios&b=PIFLCAM`
 - Pink Republic: 1 · `/departamento.html?dept=joyas_accesorios&b=Pink%20Republic`
 - Polar: 1 · `/departamento.html?dept=joyas_accesorios&b=Polar`
@@ -3722,6 +3558,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Primitive: 1 · `/departamento.html?dept=joyas_accesorios&b=Primitive`
 - Pro-Lite: 1 · `/departamento.html?dept=joyas_accesorios&b=Pro-Lite`
 - PTL: 1 · `/departamento.html?dept=joyas_accesorios&b=PTL`
+- QSSS/NALUKAI: 1 · `/departamento.html?dept=joyas_accesorios&b=QSSS%2FNALUKAI`
 - Rachel Glauber: 1 · `/departamento.html?dept=joyas_accesorios&b=Rachel%20Glauber`
 - Rainbow Sandals: 1 · `/departamento.html?dept=joyas_accesorios&b=Rainbow%20Sandals`
 - Reebok: 1 · `/departamento.html?dept=joyas_accesorios&b=Reebok`
@@ -3731,13 +3568,12 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Rhythm: 1 · `/departamento.html?dept=joyas_accesorios&b=Rhythm`
 - Ridge: 1 · `/departamento.html?dept=joyas_accesorios&b=Ridge`
 - Rier: 1 · `/departamento.html?dept=joyas_accesorios&b=Rier`
+- Roark: 1 · `/departamento.html?dept=joyas_accesorios&b=Roark`
 - Roxanne Assoulin: 1 · `/departamento.html?dept=joyas_accesorios&b=Roxanne%20Assoulin`
 - Ryan Porter: 1 · `/departamento.html?dept=joyas_accesorios&b=Ryan%20Porter`
 - Sandy Liang: 1 · `/departamento.html?dept=joyas_accesorios&b=Sandy%20Liang`
 - Sanguine: 1 · `/departamento.html?dept=joyas_accesorios&b=Sanguine`
 - Sci-Fi Fantasy: 1 · `/departamento.html?dept=joyas_accesorios&b=Sci-Fi%20Fantasy`
-- Scuba Max: 1 · `/departamento.html?dept=joyas_accesorios&b=Scuba%20Max`
-- Sea Pearls: 1 · `/departamento.html?dept=joyas_accesorios&b=Sea%20Pearls`
 - Seawag: 1 · `/departamento.html?dept=joyas_accesorios&b=Seawag`
 - SENO: 1 · `/departamento.html?dept=joyas_accesorios&b=SENO`
 - SFTING: 1 · `/departamento.html?dept=joyas_accesorios&b=SFTING`
@@ -3762,7 +3598,6 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Tommy Hilfiger: 1 · `/departamento.html?dept=joyas_accesorios&b=Tommy%20Hilfiger`
 - Touchland: 1 · `/departamento.html?dept=joyas_accesorios&b=Touchland`
 - Triangle Sales Corp.: 1 · `/departamento.html?dept=joyas_accesorios&b=Triangle%20Sales%20Corp.`
-- Triple 8: 1 · `/departamento.html?dept=joyas_accesorios&b=Triple%208`
 - TruMiracle: 1 · `/departamento.html?dept=joyas_accesorios&b=TruMiracle`
 - U.S. Polo Assn.: 1 · `/departamento.html?dept=joyas_accesorios&b=U.S.%20Polo%20Assn.`
 - Uloveido: 1 · `/departamento.html?dept=joyas_accesorios&b=Uloveido`
@@ -3770,9 +3605,7 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 - Val Surf: 1 · `/departamento.html?dept=joyas_accesorios&b=Val%20Surf`
 - Valvoline: 1 · `/departamento.html?dept=joyas_accesorios&b=Valvoline`
 - Venum: 1 · `/departamento.html?dept=joyas_accesorios&b=Venum`
-- Wilson: 1 · `/departamento.html?dept=joyas_accesorios&b=Wilson`
 - WKALXJ: 1 · `/departamento.html?dept=joyas_accesorios&b=WKALXJ`
-- Xcel: 1 · `/departamento.html?dept=joyas_accesorios&b=Xcel`
 - Xzoia: 1 · `/departamento.html?dept=joyas_accesorios&b=Xzoia`
 - Yatlte: 1 · `/departamento.html?dept=joyas_accesorios&b=Yatlte`
 - YILUFAINSZ: 1 · `/departamento.html?dept=joyas_accesorios&b=YILUFAINSZ`
@@ -3782,44 +3615,44 @@ Abre: `/departamento.html?dept=joyas_accesorios` (8,552 productos)
 
 ## Diseñador
 
-Abre: `/departamento.html?dept=luxury` (21,640 productos)
+Abre: `/departamento.html?dept=luxury` (21,620 productos)
 
-### Mujer (9,196)
+### Mujer (9,268)
 
-- Carteras: 1,248 · `/departamento.html?dept=luxury&t=carteras&para=women`
-- Zapatos: 1,081 · `/departamento.html?dept=luxury&t=zapatos&para=women`
-- Camisas: 832 · `/departamento.html?dept=luxury&t=camisas&para=women`
-- Chompas y polerones: 725 · `/departamento.html?dept=luxury&t=chompas-y-polerones&para=women`
-- Casacas y abrigos: 581 · `/departamento.html?dept=luxury&t=casacas-y-abrigos&para=women`
-- Pantalones y jeans: 540 · `/departamento.html?dept=luxury&t=pantalones-y-jeans&para=women`
-- Blusas y tops: 489 · `/departamento.html?dept=luxury&t=blusas-y-tops&para=women`
-- Vestidos: 402 · `/departamento.html?dept=luxury&t=vestidos&para=women`
-- Faldas: 385 · `/departamento.html?dept=luxury&t=faldas&para=women`
-- Zapatillas: 314 · `/departamento.html?dept=luxury&t=zapatillas&para=women`
-- Lentes: 197 · `/departamento.html?dept=luxury&t=lentes&para=women`
-- Aretes: 184 · `/departamento.html?dept=luxury&t=aretes&para=women`
-- Shorts: 173 · `/departamento.html?dept=luxury&t=shorts&para=women`
+- Carteras: 1,147 · `/departamento.html?dept=luxury&t=carteras&para=women`
+- Zapatos: 1,073 · `/departamento.html?dept=luxury&t=zapatos&para=women`
+- Camisas: 886 · `/departamento.html?dept=luxury&t=camisas&para=women`
+- Chompas y polerones: 729 · `/departamento.html?dept=luxury&t=chompas-y-polerones&para=women`
+- Casacas y abrigos: 582 · `/departamento.html?dept=luxury&t=casacas-y-abrigos&para=women`
+- Pantalones y jeans: 541 · `/departamento.html?dept=luxury&t=pantalones-y-jeans&para=women`
+- Blusas y tops: 492 · `/departamento.html?dept=luxury&t=blusas-y-tops&para=women`
+- Vestidos: 397 · `/departamento.html?dept=luxury&t=vestidos&para=women`
+- Faldas: 382 · `/departamento.html?dept=luxury&t=faldas&para=women`
+- Zapatillas: 281 · `/departamento.html?dept=luxury&t=zapatillas&para=women`
 - Lentes de sol: 169 · `/departamento.html?dept=luxury&t=lentes-de-sol&para=women`
 - Accesorios: 168 · `/departamento.html?dept=luxury&t=accesorios&para=women`
-- Gorras: 154 · `/departamento.html?dept=luxury&t=gorras&para=women`
+- Aretes: 167 · `/departamento.html?dept=luxury&t=aretes&para=women`
+- Shorts: 154 · `/departamento.html?dept=luxury&t=shorts&para=women`
 - Correas: 121 · `/departamento.html?dept=luxury&t=correas&para=women`
 - Pijamas: 118 · `/departamento.html?dept=luxury&t=pijamas&para=women`
 - Collares y dijes: 99 · `/departamento.html?dept=luxury&t=collares-y-dijes&para=women`
 - Gorros: 76 · `/departamento.html?dept=luxury&t=gorros&para=women`
-- Anillos: 74 · `/departamento.html?dept=luxury&t=anillos&para=women`
 - Medias: 70 · `/departamento.html?dept=luxury&t=medias&para=women`
 - Accesorios para el pelo: 66 · `/departamento.html?dept=luxury&t=accesorios-para-el-pelo&para=women`
 - Billeteras: 66 · `/departamento.html?dept=luxury&t=billeteras&para=women`
-- Guantes: 54 · `/departamento.html?dept=luxury&t=guantes&para=women`
-- Lencería: 54 · `/departamento.html?dept=luxury&t=lenceria&para=women`
+- Gorras: 63 · `/departamento.html?dept=luxury&t=gorras&para=women`
+- Anillos: 58 · `/departamento.html?dept=luxury&t=anillos&para=women`
 - Leggings: 52 · `/departamento.html?dept=luxury&t=leggings&para=women`
-- Joyas: 51 · `/departamento.html?dept=luxury&t=joyas&para=women`
+- Joyas: 45 · `/departamento.html?dept=luxury&t=joyas&para=women`
 - Blazers: 42 · `/departamento.html?dept=luxury&t=blazers&para=women`
+- Guantes: 42 · `/departamento.html?dept=luxury&t=guantes&para=women`
+- Lencería: 41 · `/departamento.html?dept=luxury&t=lenceria&para=women`
 - Neceseres: 39 · `/departamento.html?dept=luxury&t=neceseres&para=women`
 - Ropa de baño: 38 · `/departamento.html?dept=luxury&t=ropa-de-bano&para=women`
 - Pulseras y tobilleras: 34 · `/departamento.html?dept=luxury&t=pulseras-y-tobilleras&para=women`
 - Bodies: 31 · `/departamento.html?dept=luxury&t=bodies&para=women`
 - Enterizos: 28 · `/departamento.html?dept=luxury&t=enterizos&para=women`
+- Lentes: 28 · `/departamento.html?dept=luxury&t=lentes&para=women`
 - Sombreros: 12 · `/departamento.html?dept=luxury&t=sombreros&para=women`
 - Llaveros: 11 · `/departamento.html?dept=luxury&t=llaveros&para=women`
 - Ropa interior: 10 · `/departamento.html?dept=luxury&t=ropa-interior&para=women`
@@ -3831,38 +3664,38 @@ Abre: `/departamento.html?dept=luxury` (21,640 productos)
 Viven en su propia sección (no son enlaces de esta columna):
 - Fragancia: 348 → Perfumes · `/departamento.html?dept=perfumes`
 
-### Hombre (8,556)
+### Hombre (8,496)
 
-- Camisas: 1,476 · `/departamento.html?dept=luxury&t=camisas&para=men`
-- Pantalones y jeans: 1,075 · `/departamento.html?dept=luxury&t=pantalones-y-jeans&para=men`
-- Chompas y polerones: 980 · `/departamento.html?dept=luxury&t=chompas-y-polerones&para=men`
+- Camisas: 1,471 · `/departamento.html?dept=luxury&t=camisas&para=men`
+- Pantalones y jeans: 1,077 · `/departamento.html?dept=luxury&t=pantalones-y-jeans&para=men`
+- Chompas y polerones: 983 · `/departamento.html?dept=luxury&t=chompas-y-polerones&para=men`
 - Casacas y abrigos: 840 · `/departamento.html?dept=luxury&t=casacas-y-abrigos&para=men`
-- Zapatillas: 665 · `/departamento.html?dept=luxury&t=zapatillas&para=men`
-- Zapatos: 648 · `/departamento.html?dept=luxury&t=zapatos&para=men`
-- Carteras: 627 · `/departamento.html?dept=luxury&t=carteras&para=men`
-- Blusas y tops: 277 · `/departamento.html?dept=luxury&t=blusas-y-tops&para=men`
-- Lentes: 262 · `/departamento.html?dept=luxury&t=lentes&para=men`
-- Polos: 252 · `/departamento.html?dept=luxury&t=polos&para=men`
+- Zapatillas: 664 · `/departamento.html?dept=luxury&t=zapatillas&para=men`
+- Zapatos: 615 · `/departamento.html?dept=luxury&t=zapatos&para=men`
+- Carteras: 388 · `/departamento.html?dept=luxury&t=carteras&para=men`
+- Blusas y tops: 278 · `/departamento.html?dept=luxury&t=blusas-y-tops&para=men`
+- Polos: 253 · `/departamento.html?dept=luxury&t=polos&para=men`
 - Lentes de sol: 232 · `/departamento.html?dept=luxury&t=lentes-de-sol&para=men`
-- Shorts: 225 · `/departamento.html?dept=luxury&t=shorts&para=men`
 - Billeteras: 194 · `/departamento.html?dept=luxury&t=billeteras&para=men`
-- Gorras: 193 · `/departamento.html?dept=luxury&t=gorras&para=men`
 - Collares y dijes: 192 · `/departamento.html?dept=luxury&t=collares-y-dijes&para=men`
+- Shorts: 167 · `/departamento.html?dept=luxury&t=shorts&para=men`
 - Correas: 144 · `/departamento.html?dept=luxury&t=correas&para=men`
+- Gorras: 121 · `/departamento.html?dept=luxury&t=gorras&para=men`
 - Pulseras y tobilleras: 112 · `/departamento.html?dept=luxury&t=pulseras-y-tobilleras&para=men`
 - Bufandas: 105 · `/departamento.html?dept=luxury&t=bufandas&para=men`
 - Blazers: 95 · `/departamento.html?dept=luxury&t=blazers&para=men`
-- Aretes: 81 · `/departamento.html?dept=luxury&t=aretes&para=men`
-- Anillos: 75 · `/departamento.html?dept=luxury&t=anillos&para=men`
 - Gorros: 74 · `/departamento.html?dept=luxury&t=gorros&para=men`
+- Anillos: 73 · `/departamento.html?dept=luxury&t=anillos&para=men`
 - Neceseres: 47 · `/departamento.html?dept=luxury&t=neceseres&para=men`
 - Guantes: 46 · `/departamento.html?dept=luxury&t=guantes&para=men`
 - Corbatas: 43 · `/departamento.html?dept=luxury&t=corbatas&para=men`
 - Ropa interior: 41 · `/departamento.html?dept=luxury&t=ropa-interior&para=men`
 - Llaveros: 37 · `/departamento.html?dept=luxury&t=llaveros&para=men`
+- Lentes: 31 · `/departamento.html?dept=luxury&t=lentes&para=men`
 - Batas: 20 · `/departamento.html?dept=luxury&t=batas&para=men`
 - Cuidado Corporal: 20 · `/departamento.html?dept=luxury&t=cuidado-corporal&para=men`
 - Pijamas: 17 · `/departamento.html?dept=luxury&t=pijamas&para=men`
+- Aretes: 16 · `/departamento.html?dept=luxury&t=aretes&para=men`
 - Medias: 16 · `/departamento.html?dept=luxury&t=medias&para=men`
 - Ropa de baño: 12 · `/departamento.html?dept=luxury&t=ropa-de-bano&para=men`
 - Mochilas y bolsos: 9 · `/departamento.html?dept=luxury&t=mochilas-y-bolsos&para=men`
@@ -3873,18 +3706,14 @@ Viven en su propia sección (no son enlaces de esta columna):
 Viven en su propia sección (no son enlaces de esta columna):
 - Fragancia: 264 → Perfumes · `/departamento.html?dept=perfumes`
 
-### Niños (129)
+### Niños (27)
 
-- Camisas: 77 · `/departamento.html?dept=luxury&t=camisas&para=kids`
-- Chompas y polerones: 14 · `/departamento.html?dept=luxury&t=chompas-y-polerones&para=kids`
-- Pantalones y jeans: 9 · `/departamento.html?dept=luxury&t=pantalones-y-jeans&para=kids`
-- Blusas y tops: 6 · `/departamento.html?dept=luxury&t=blusas-y-tops&para=kids`
-- Shorts: 6 · `/departamento.html?dept=luxury&t=shorts&para=kids`
+- Chompas y polerones: 6 · `/departamento.html?dept=luxury&t=chompas-y-polerones&para=kids`
+- Camisas: 4 · `/departamento.html?dept=luxury&t=camisas&para=kids`
 - Carteras: 4 · `/departamento.html?dept=luxury&t=carteras&para=kids`
-- Casacas y abrigos: 2 · `/departamento.html?dept=luxury&t=casacas-y-abrigos&para=kids`
+- Shorts: 2 · `/departamento.html?dept=luxury&t=shorts&para=kids`
 - Aretes: 1 · `/departamento.html?dept=luxury&t=aretes&para=kids`
 - Collares y dijes: 1 · `/departamento.html?dept=luxury&t=collares-y-dijes&para=kids`
-- Vestidos: 1 · `/departamento.html?dept=luxury&t=vestidos&para=kids`
 - Zapatos: 1 · `/departamento.html?dept=luxury&t=zapatos&para=kids`
 
 ### Diseñadores Latinos (10,053)
@@ -3911,7 +3740,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Carteras: 132 · `/disenadores.html?t=carteras`
 - Sombreros: 41 · `/disenadores.html?t=sombreros`
 
-### Marcas (21,640)
+### Marcas (21,620)
 
 - Miu Miu: 1,001 · `/departamento.html?dept=luxury&b=Miu%20Miu`
 - Dolce & Gabbana: 736 · `/departamento.html?dept=luxury&b=Dolce%20%26%20Gabbana`
@@ -4122,7 +3951,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Paris Texas: 20 · `/departamento.html?dept=luxury&b=Paris%20Texas`
 - Sunflower: 20 · `/departamento.html?dept=luxury&b=Sunflower`
 - Arma: 19 · `/departamento.html?dept=luxury&b=Arma`
-- ASSOULINE: 19 · `/departamento.html?dept=luxury&b=ASSOULINE`
 - B.B. Wallace: 19 · `/departamento.html?dept=luxury&b=B.B.%20Wallace`
 - Kanika Agarwal: 19 · `/departamento.html?dept=luxury&b=Kanika%20Agarwal`
 - AARON ESH: 18 · `/departamento.html?dept=luxury&b=AARON%20ESH`
@@ -4258,7 +4086,6 @@ Viven en su propia sección (no son enlaces de esta columna):
 - Erdem: 1 · `/departamento.html?dept=luxury&b=Erdem`
 - Evisu: 1 · `/departamento.html?dept=luxury&b=Evisu`
 - EYTYS: 1 · `/departamento.html?dept=luxury&b=EYTYS`
-- FUNKO: 1 · `/departamento.html?dept=luxury&b=FUNKO`
 - HOPE: 1 · `/departamento.html?dept=luxury&b=HOPE`
 - IN GOLD WE TRUST PARIS: 1 · `/departamento.html?dept=luxury&b=IN%20GOLD%20WE%20TRUST%20PARIS`
 - JW Anderson: 1 · `/departamento.html?dept=luxury&b=JW%20Anderson`
@@ -4286,7 +4113,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 ### Secciones
 
 - Perfumes: 11,066 · `/departamento.html?dept=perfumes`
-- Joyas y Accesorios: 8,552 · `/departamento.html?dept=joyas_accesorios`
+- Joyas y Accesorios: 8,398 · `/departamento.html?dept=joyas_accesorios`
 
 ## Deportes
 
@@ -4299,18 +4126,17 @@ Abre: `/departamento.html?dept=sporting_goods` (17,679 productos)
 - Tablas De Surf: 2,529 · `/departamento.html?dept=sporting_goods&t=tablas-de-surf`
 - Trucks, Ruedas Y Partes: 1,741 · `/departamento.html?dept=sporting_goods&t=trucks-ruedas-y-partes`
 - Blusas y tops: 940 · `/departamento.html?dept=sporting_goods&t=blusas-y-tops`
-- Chimpunes: 766 · `/departamento.html?dept=sporting_goods&t=chimpunes`
 - Accesorios De Fútbol: 751 · `/departamento.html?dept=sporting_goods&t=accesorios-de-futbol`
 - Accesorios De Skate: 635 · `/departamento.html?dept=sporting_goods&t=accesorios-de-skate`
+- Chimpunes: 634 · `/departamento.html?dept=sporting_goods&t=chimpunes`
 - Ropa: 481 · `/departamento.html?dept=sporting_goods&t=ropa`
 - Accesorios De Surf: 448 · `/departamento.html?dept=sporting_goods&t=accesorios-de-surf`
 - Repuestos Y Accesorios De Pesca Submarina: 411 · `/departamento.html?dept=sporting_goods&t=repuestos-y-accesorios-de-pesca-submarin`
 - Polos de licra: 353 · `/departamento.html?dept=sporting_goods&t=polos-de-licra`
 - Accesorios: 334 · `/departamento.html?dept=sporting_goods&t=accesorios`
-- Zapatillas: 315 · `/departamento.html?dept=sporting_goods&t=zapatillas`
 - Trajes De Neopreno: 314 · `/departamento.html?dept=sporting_goods&t=trajes-de-neopreno`
+- Zapatillas: 308 · `/departamento.html?dept=sporting_goods&t=zapatillas`
 - Cascos Y Protecciones: 296 · `/departamento.html?dept=sporting_goods&t=cascos-y-protecciones`
-- Gorras: 256 · `/departamento.html?dept=sporting_goods&t=gorras`
 - Guantes: 136 · `/departamento.html?dept=sporting_goods&t=guantes`
 - Bodyboards: 104 · `/departamento.html?dept=sporting_goods&t=bodyboards`
 - Quillas De Surf: 104 · `/departamento.html?dept=sporting_goods&t=quillas-de-surf`
@@ -4337,6 +4163,7 @@ Abre: `/departamento.html?dept=sporting_goods` (17,679 productos)
 - Vendas: 11 · `/departamento.html?dept=sporting_goods&t=vendas`
 - Ropa deportiva: 10 · `/departamento.html?dept=sporting_goods&t=ropa-deportiva`
 - Cuerdas: 5 · `/departamento.html?dept=sporting_goods&t=cuerdas`
+- Gorras: 4 · `/departamento.html?dept=sporting_goods&t=gorras`
 - Linternas De Buceo: 4 · `/departamento.html?dept=sporting_goods&t=linternas-de-buceo`
 - Arcos Y Porterías: 2 · `/departamento.html?dept=sporting_goods&t=arcos-y-porterias`
 
@@ -5132,20 +4959,20 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 
 ### Mujer (4,771)
 
-- Vestidos: 981 · `/departamento.html?dept=curvy&t=vestidos&para=women`
-- Lencería: 906 · `/departamento.html?dept=curvy&t=lenceria&para=women`
+- Vestidos: 947 · `/departamento.html?dept=curvy&t=vestidos&para=women`
 - Blusas y tops: 900 · `/departamento.html?dept=curvy&t=blusas-y-tops&para=women`
-- Camisas: 456 · `/departamento.html?dept=curvy&t=camisas&para=women`
+- Lencería: 647 · `/departamento.html?dept=curvy&t=lenceria&para=women`
+- Camisas: 450 · `/departamento.html?dept=curvy&t=camisas&para=women`
 - Casacas y abrigos: 329 · `/departamento.html?dept=curvy&t=casacas-y-abrigos&para=women`
 - Chompas y polerones: 302 · `/departamento.html?dept=curvy&t=chompas-y-polerones&para=women`
 - Fajas y shapewear: 243 · `/departamento.html?dept=curvy&t=fajas-y-shapewear&para=women`
 - Pantalones y faldas: 213 · `/departamento.html?dept=curvy&t=pantalones-y-faldas&para=women`
 - Pantalones y jeans: 208 · `/departamento.html?dept=curvy&t=pantalones-y-jeans&para=women`
-- Shorts: 170 · `/departamento.html?dept=curvy&t=shorts&para=women`
 - Ropa de baño: 122 · `/departamento.html?dept=curvy&t=ropa-de-bano&para=women`
+- Shorts: 86 · `/departamento.html?dept=curvy&t=shorts&para=women`
 - Pantalón: 76 · `/departamento.html?dept=curvy&t=pantalon&para=women`
-- Faldas: 49 · `/departamento.html?dept=curvy&t=faldas&para=women`
 - Conjuntos: 40 · `/departamento.html?dept=curvy&t=conjuntos&para=women`
+- Faldas: 35 · `/departamento.html?dept=curvy&t=faldas&para=women`
 - Bodies: 31 · `/departamento.html?dept=curvy&t=bodies&para=women`
 - Enterizos: 29 · `/departamento.html?dept=curvy&t=enterizos&para=women`
 - Pijamas: 26 · `/departamento.html?dept=curvy&t=pijamas&para=women`
@@ -5154,30 +4981,31 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 - Accesorios: 11 · `/departamento.html?dept=curvy&t=accesorios&para=women`
 - Batas: 6 · `/departamento.html?dept=curvy&t=batas&para=women`
 - Chaqueta: 6 · `/departamento.html?dept=curvy&t=chaqueta&para=women`
-- Zapatos: 5 · `/departamento.html?dept=curvy&t=zapatos&para=women`
 - Leggings: 4 · `/departamento.html?dept=curvy&t=leggings&para=women`
 - Blazers: 1 · `/departamento.html?dept=curvy&t=blazers&para=women`
+- Zapatos: 1 · `/departamento.html?dept=curvy&t=zapatos&para=women`
 
 ### Hombre (3,062)
 
+- Camisas: 826 · `/departamento.html?dept=curvy&t=camisas&para=men`
 - Blusas y tops: 749 · `/departamento.html?dept=curvy&t=blusas-y-tops&para=men`
-- Camisas: 740 · `/departamento.html?dept=curvy&t=camisas&para=men`
 - Chompas y polerones: 404 · `/departamento.html?dept=curvy&t=chompas-y-polerones&para=men`
 - Casacas y abrigos: 401 · `/departamento.html?dept=curvy&t=casacas-y-abrigos&para=men`
 - Polos: 274 · `/departamento.html?dept=curvy&t=polos&para=men`
-- Pantalones: 190 · `/departamento.html?dept=curvy&t=pantalones&para=men`
-- Shorts: 185 · `/departamento.html?dept=curvy&t=shorts&para=men`
-- Lencería: 134 · `/departamento.html?dept=curvy&t=lenceria&para=men`
 - Pantalones y jeans: 116 · `/departamento.html?dept=curvy&t=pantalones-y-jeans&para=men`
-- Ropa interior: 116 · `/departamento.html?dept=curvy&t=ropa-interior&para=men`
-- Vestidos: 92 · `/departamento.html?dept=curvy&t=vestidos&para=men`
+- Shorts: 101 · `/departamento.html?dept=curvy&t=shorts&para=men`
+- Pantalones: 97 · `/departamento.html?dept=curvy&t=pantalones&para=men`
 - Ropa: 56 · `/departamento.html?dept=curvy&t=ropa&para=men`
 - Ropa de baño: 49 · `/departamento.html?dept=curvy&t=ropa-de-bano&para=men`
 - Accesorios: 28 · `/departamento.html?dept=curvy&t=accesorios&para=men`
-- Zapatos: 11 · `/departamento.html?dept=curvy&t=zapatos&para=men`
 - Blazers: 9 · `/departamento.html?dept=curvy&t=blazers&para=men`
 - Pijamas: 8 · `/departamento.html?dept=curvy&t=pijamas&para=men`
+- Zapatos: 4 · `/departamento.html?dept=curvy&t=zapatos&para=men`
 - Medias: 2 · `/departamento.html?dept=curvy&t=medias&para=men`
+
+Viven en su propia sección (no son enlaces de esta columna):
+- Ropa interior: 116 → Ropa Interior Hombre · `/ropa-interior.html#hombre`
+- Lencería: 18 → Ropa Interior Hombre · `/ropa-interior.html#hombre`
 
 ### Marcas (7,850)
 
@@ -5644,24 +5472,24 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 
 Abre: `/ropa-interior.html#mujer` (3,045 productos)
 
-### Lencería (775)
+### Lencería (776)
 
-- Sostenes: 404 · `/ropa-interior.html?ver=type:bra#mujer`
+- Sostenes: 405 · `/ropa-interior.html?ver=type:bra#mujer`
 - Panties: 188 · `/ropa-interior.html?ver=type:panty#mujer`
 - Lencería: 96 · `/ropa-interior.html?ver=type:lingerie#mujer`
 - Modeladores: 49 · `/ropa-interior.html?ver=type:shapewear#mujer`
 - Medias: 38 · `/ropa-interior.html?ver=type:socks#mujer`
 
-### Ropa Interior Hombre (191)
+### Ropa Interior Hombre (242)
 
-- Bóxer briefs: 67 · `/ropa-interior.html?ver=type:boxer_brief#hombre`
-- Briefs: 12 · `/ropa-interior.html?ver=type:brief#hombre`
+- Bóxer briefs: 76 · `/ropa-interior.html?ver=type:boxer_brief#hombre`
+- Briefs: 54 · `/ropa-interior.html?ver=type:brief#hombre`
 - Trunks: 1 · `/ropa-interior.html?ver=type:trunk#hombre`
 - Medias deportivas: 36 · `/ropa-interior.html?ver=type:sport#hombre`
 - Medias casuales: 66 · `/ropa-interior.html?ver=type:casual#hombre`
 - Medias de vestir: 9 · `/ropa-interior.html?ver=type:dress#hombre`
 
-### Marcas de lencería (775)
+### Marcas de lencería (776)
 
 - Victoria's Secret: 389 · `/ropa-interior.html?ver=brand:victoriassecret#mujer`
 - SKIMS: 155 · `/ropa-interior.html?ver=brand:skims#mujer`
@@ -5716,9 +5544,9 @@ Abre: `/ropa-interior.html#mujer` (3,045 productos)
 
 ## Hogar
 
-Abre: `/departamento.html?dept=home_goods` (6,418 productos)
+Abre: `/departamento.html?dept=home_goods` (6,419 productos)
 
-### Casa Aria (5,751)
+### Casa Aria (5,641)
 
 - Hogar: 777 · `/departamento.html?dept=home_goods&t=hogar`
 - Manteles y servilletas: 660 · `/departamento.html?dept=home_goods&t=manteles-y-servilletas`
@@ -5732,7 +5560,6 @@ Abre: `/departamento.html?dept=home_goods` (6,418 productos)
 - Plantas y flores: 130 · `/departamento.html?dept=home_goods&t=plantas-y-flores`
 - Mantas: 114 · `/departamento.html?dept=home_goods&t=mantas`
 - Floreros: 113 · `/departamento.html?dept=home_goods&t=floreros`
-- Anillos: 106 · `/departamento.html?dept=home_goods&t=anillos`
 - Portarretratos: 104 · `/departamento.html?dept=home_goods&t=portarretratos`
 - Decoración: 102 · `/departamento.html?dept=home_goods&t=decoracion`
 - Cubiertos: 101 · `/departamento.html?dept=home_goods&t=cubiertos`
@@ -5771,19 +5598,20 @@ Abre: `/departamento.html?dept=home_goods` (6,418 productos)
 - Maceteros: 12 · `/departamento.html?dept=home_goods&t=maceteros`
 - Utensilios para servir: 12 · `/departamento.html?dept=home_goods&t=utensilios-para-servir`
 - Faroles: 11 · `/departamento.html?dept=home_goods&t=faroles`
-- Carteras: 9 · `/departamento.html?dept=home_goods&t=carteras`
-- Gorras: 9 · `/departamento.html?dept=home_goods&t=gorras`
+- Anillos: 10 · `/departamento.html?dept=home_goods&t=anillos`
 - Jabones y cremas: 9 · `/departamento.html?dept=home_goods&t=jabones-y-cremas`
+- Ropa: 7 · `/departamento.html?dept=home_goods&t=ropa`
 - Habitación del bebé: 6 · `/departamento.html?dept=home_goods&t=habitacion-del-bebe`
-- Ropa: 6 · `/departamento.html?dept=home_goods&t=ropa`
 - Coche: 4 · `/departamento.html?dept=home_goods&t=coche`
 - Toallas Y Ponchos: 4 · `/departamento.html?dept=home_goods&t=toallas-y-ponchos`
 - Accesorios De Surf: 3 · `/departamento.html?dept=home_goods&t=accesorios-de-surf`
 - Belleza: 3 · `/departamento.html?dept=home_goods&t=belleza`
+- Gorras: 2 · `/departamento.html?dept=home_goods&t=gorras`
 - Bodyboards: 1 · `/departamento.html?dept=home_goods&t=bodyboards`
+- Carteras: 1 · `/departamento.html?dept=home_goods&t=carteras`
 - Maternidad: 1 · `/departamento.html?dept=home_goods&t=maternidad`
 
-### Decoración (1,728)
+### Decoración (1,719)
 
 - Cuadros y decoración de pared: 495 · `/departamento.html?dept=home_decor&t=cuadros-y-decoracion-de-pared`
 - Navidad: 214 · `/departamento.html?dept=home_decor&t=navidad`
@@ -5801,17 +5629,17 @@ Abre: `/departamento.html?dept=home_goods` (6,418 productos)
 - Maceteros: 12 · `/departamento.html?dept=home_decor&t=maceteros`
 - Cojines: 11 · `/departamento.html?dept=home_decor&t=cojines`
 - Faroles: 11 · `/departamento.html?dept=home_decor&t=faroles`
-- Anillos: 10 · `/departamento.html?dept=home_decor&t=anillos`
 - Jabones y cremas: 9 · `/departamento.html?dept=home_decor&t=jabones-y-cremas`
 - Vasos y tazas: 9 · `/departamento.html?dept=home_decor&t=vasos-y-tazas`
 - Mantas: 5 · `/departamento.html?dept=home_decor&t=mantas`
 - Cargadores: 2 · `/departamento.html?dept=home_decor&t=cargadores`
+- Anillos: 1 · `/departamento.html?dept=home_decor&t=anillos`
 - Platos: 1 · `/departamento.html?dept=home_decor&t=platos`
 - Vasos: 1 · `/departamento.html?dept=home_decor&t=vasos`
 
-### Marcas (6,418)
+### Marcas (6,419)
 
-- Kohl's: 449 · `/departamento.html?dept=home_goods&b=Kohl's`
+- Kohl's: 450 · `/departamento.html?dept=home_goods&b=Kohl's`
 - ASSOULINE: 270 · `/departamento.html?dept=home_goods&b=ASSOULINE`
 - Chronicle Books: 179 · `/departamento.html?dept=home_goods&b=Chronicle%20Books`
 - Bath & Body Works: 54 · `/departamento.html?dept=home_goods&b=Bath%20%26%20Body%20Works`
@@ -7268,9 +7096,27 @@ Abre: `/departamento.html?dept=electronics` (5,917 productos)
 - Zymice: 1 · `/departamento.html?dept=electronics&b=Zymice`
 - ‎Zymise: 1 · `/departamento.html?dept=electronics&b=%E2%80%8EZymise`
 
-### Secciones
+### Reacondicionados (253)
 
-- Reacondicionados: 253 · `/departamento.html?dept=reacondicionados`
+- Tablets: 65 · `/departamento.html?dept=reacondicionados&t=tablets`
+- Relojes inteligentes: 41 · `/departamento.html?dept=reacondicionados&t=relojes-inteligentes`
+- Laptops: 40 · `/departamento.html?dept=reacondicionados&t=laptops`
+- Celulares: 30 · `/departamento.html?dept=reacondicionados&t=celulares`
+- Audífonos: 6 · `/departamento.html?dept=reacondicionados&t=audifonos`
+- Placas madre: 6 · `/departamento.html?dept=reacondicionados&t=placas-madre`
+- Monitores: 5 · `/departamento.html?dept=reacondicionados&t=monitores`
+- Videojuegos: 5 · `/departamento.html?dept=reacondicionados&t=videojuegos`
+- Cámaras instantáneas: 4 · `/departamento.html?dept=reacondicionados&t=camaras-instantaneas`
+- Audífonos con micrófono: 3 · `/departamento.html?dept=reacondicionados&t=audifonos-con-microfono`
+- Computadoras: 3 · `/departamento.html?dept=reacondicionados&t=computadoras`
+- Routers: 3 · `/departamento.html?dept=reacondicionados&t=routers`
+- Teclados: 3 · `/departamento.html?dept=reacondicionados&t=teclados`
+- Lentes de realidad virtual: 2 · `/departamento.html?dept=reacondicionados&t=lentes-de-realidad-virtual`
+- Consolas: 1 · `/departamento.html?dept=reacondicionados&t=consolas`
+- Cámaras: 1 · `/departamento.html?dept=reacondicionados&t=camaras`
+- Mouse: 1 · `/departamento.html?dept=reacondicionados&t=mouse`
+- Puntos de acceso wifi: 1 · `/departamento.html?dept=reacondicionados&t=puntos-de-acceso-wifi`
+- Videocámaras: 1 · `/departamento.html?dept=reacondicionados&t=videocamaras`
 
 ## Juguetes
 
@@ -7279,40 +7125,8 @@ Abre: `/departamento.html?dept=toys` (7,364 productos)
 ### Tipos (7,364)
 
 - Figura Coleccionable: 759 · `/departamento.html?dept=toys&t=figura-coleccionable`
-- Vestidos: 120 · `/departamento.html?dept=toys&t=vestidos`
-- Zapatillas: 64 · `/departamento.html?dept=toys&t=zapatillas`
-- Zapatos: 61 · `/departamento.html?dept=toys&t=zapatos`
-- Accesorios: 23 · `/departamento.html?dept=toys&t=accesorios`
-- Carteras: 22 · `/departamento.html?dept=toys&t=carteras`
-- Recuerdos de fiesta: 18 · `/departamento.html?dept=toys&t=recuerdos-de-fiesta`
-- Gorras: 17 · `/departamento.html?dept=toys&t=gorras`
-- Juguetes: 8 · `/departamento.html?dept=toys&t=juguetes`
-- Vajilla: 6 · `/departamento.html?dept=toys&t=vajilla`
-- Bolso: 5 · `/departamento.html?dept=toys&t=bolso`
-- Decoración: 5 · `/departamento.html?dept=toys&t=decoracion`
-- Joyería: 5 · `/departamento.html?dept=toys&t=joyeria`
-- Baño del bebé: 4 · `/departamento.html?dept=toys&t=bano-del-bebe`
-- Ropa: 4 · `/departamento.html?dept=toys&t=ropa`
-- Hogar: 3 · `/departamento.html?dept=toys&t=hogar`
+- Juguetes: 117 · `/departamento.html?dept=toys&t=juguetes`
 - Juegos: 3 · `/departamento.html?dept=toys&t=juegos`
-- Manteles y servilletas: 3 · `/departamento.html?dept=toys&t=manteles-y-servilletas`
-- Repuestos Y Accesorios De Pesca Submarina: 3 · `/departamento.html?dept=toys&t=repuestos-y-accesorios-de-pesca-submarin`
-- Blusas y tops: 1 · `/departamento.html?dept=toys&t=blusas-y-tops`
-- Boyas Y Flotadores: 1 · `/departamento.html?dept=toys&t=boyas-y-flotadores`
-- Calzado: 1 · `/departamento.html?dept=toys&t=calzado`
-- Chompas y polerones: 1 · `/departamento.html?dept=toys&t=chompas-y-polerones`
-- Chupetes y mordedores: 1 · `/departamento.html?dept=toys&t=chupetes-y-mordedores`
-- Habitación del bebé: 1 · `/departamento.html?dept=toys&t=habitacion-del-bebe`
-- Lactancia: 1 · `/departamento.html?dept=toys&t=lactancia`
-- Mascarillas: 1 · `/departamento.html?dept=toys&t=mascarillas`
-- Navidad: 1 · `/departamento.html?dept=toys&t=navidad`
-- Pantalones y jeans: 1 · `/departamento.html?dept=toys&t=pantalones-y-jeans`
-- Plantas y flores: 1 · `/departamento.html?dept=toys&t=plantas-y-flores`
-- Trucks, Ruedas Y Partes: 1 · `/departamento.html?dept=toys&t=trucks-ruedas-y-partes`
-- Vasos y tazas: 1 · `/departamento.html?dept=toys&t=vasos-y-tazas`
-
-Viven en su propia sección (no son enlaces de esta columna):
-- Fragancia: 1 → Perfumes · `/departamento.html?dept=perfumes`
 
 ### Marcas (7,364)
 
@@ -7389,7 +7203,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 ### Secciones
 
 - Aria Party: 1,076 · `/departamento.html?dept=party`
-- Mama's Fashion: 2,461 · `/departamento.html?dept=moms`
+- Mama's Fashion: 2,607 · `/departamento.html?dept=moms`
 
 ## Auto y Motos
 
@@ -7430,17 +7244,15 @@ Abre: `/ofertas.html` (33,505 productos)
 
 ## Qué falta o no se pudo llenar
 
-- Mujer → Ropa: Lencería (1,377) en Lencería, Zapatos (1,246) en Zapatos, Carteras (1,231) en Carteras, Zapatillas (391) en Zapatos, Sandalias (327) en Zapatos, Lentes de sol (271) en Lentes de Sol, Fajas y shapewear (252) en Lencería, Joyas (221) en Joyas y Accesorios, Aretes (151) en Joyas y Accesorios, Collares y dijes (99) en Joyas y Accesorios, Bolso (62) en Carteras, Anillos (54) en Joyas y Accesorios, Ropa interior (43) en Lencería, Pulseras y tobilleras (34) en Joyas y Accesorios, Tacones (22) en Zapatos, Mocasines y pantuflas (16) en Zapatos: cada uno vive en su propia sección
-- Hombre → Ropa: Zapatillas (720) en Zapatos, Zapatos (618) en Zapatos, Lentes de sol (526) en Lentes de Sol, Carteras (418) en Carteras, Collares y dijes (193) en Joyas y Accesorios, Sandalias (166) en Zapatos, Ropa interior (157) en Ropa Interior Hombre, Pulseras y tobilleras (112) en Joyas y Accesorios, Aretes (77) en Joyas y Accesorios, Anillos (73) en Joyas y Accesorios, Lencería (34) en Ropa Interior Hombre, Bolso (20) en Carteras, Fragancia (1) en Perfumes: cada uno vive en su propia sección
+- Mujer → Ropa: Lencería (1,390) en Lencería, Zapatos (1,246) en Zapatos, Carteras (1,231) en Carteras, Zapatillas (391) en Zapatos, Accesorios (338) en Joyas y Accesorios, Sandalias (327) en Zapatos, Lentes de sol (271) en Lentes de Sol, Fajas y shapewear (252) en Lencería, Joyas (221) en Joyas y Accesorios, Aretes (151) en Joyas y Accesorios, Correas (121) en Joyas y Accesorios, Collares y dijes (99) en Joyas y Accesorios, Accesorios para el pelo (66) en Joyas y Accesorios, Billeteras (66) en Joyas y Accesorios, Bolso (62) en Carteras, Anillos (54) en Joyas y Accesorios, Ropa interior (43) en Lencería, Lentes (42) en Lentes de Sol, Guantes (37) en Joyas y Accesorios, Pulseras y tobilleras (34) en Joyas y Accesorios, Tacones (22) en Zapatos, Mocasines y pantuflas (16) en Zapatos, Llaveros (11) en Joyas y Accesorios, Broches y pines (7) en Joyas y Accesorios: cada uno vive en su propia sección
+- Hombre → Ropa: Zapatillas (720) en Zapatos, Zapatos (618) en Zapatos, Lentes de sol (526) en Lentes de Sol, Carteras (418) en Carteras, Billeteras (194) en Joyas y Accesorios, Collares y dijes (193) en Joyas y Accesorios, Sandalias (166) en Zapatos, Ropa interior (157) en Ropa Interior Hombre, Correas (144) en Joyas y Accesorios, Pulseras y tobilleras (112) en Joyas y Accesorios, Bufandas (105) en Joyas y Accesorios, Accesorios (87) en Joyas y Accesorios, Aretes (77) en Joyas y Accesorios, Anillos (73) en Joyas y Accesorios, Guantes (45) en Joyas y Accesorios, Corbatas (43) en Joyas y Accesorios, Llaveros (37) en Joyas y Accesorios, Lencería (34) en Ropa Interior Hombre, Lentes (31) en Lentes de Sol, Bolso (20) en Carteras, Relojes (17) en Joyas y Accesorios, Broches y pines (5) en Joyas y Accesorios: cada uno vive en su propia sección
 - Hombre → Sección Hombre: 0 productos, sin enlace
-- Niños → Ropa: Lencería (19) en Lencería, Carteras (15) en Carteras, Sandalias (12) en Zapatos, Zapatillas (2) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
-- Belleza → Tipos: Fragancia (300) en Perfumes, Carteras (2) en Carteras: cada uno vive en su propia sección
+- Niños → Ropa: Accesorios (242) en Joyas y Accesorios, Carteras (14) en Carteras, Sandalias (12) en Zapatos, Lencería (6) en Lencería, Zapatillas (2) en Zapatos, Lentes de sol (1) en Lentes de Sol: cada uno vive en su propia sección
+- Belleza → Tipos: Fragancia (300) en Perfumes: cada uno vive en su propia sección
 - Belleza → Sección Hombre: 0 productos, sin enlace
-- Belleza → Secciones: un solo enlace (Cabello), se muestra como enlace directo
 - Diseñador → Mujer: Fragancia (348) en Perfumes: cada uno vive en su propia sección
 - Diseñador → Hombre: Fragancia (264) en Perfumes: cada uno vive en su propia sección
-- Electrónica → Secciones: un solo enlace (Reacondicionados), se muestra como enlace directo
-- Juguetes → Tipos: Fragancia (1) en Perfumes: cada uno vive en su propia sección
+- Tallas Plus → Hombre: Ropa interior (116) en Ropa Interior Hombre, Lencería (18) en Ropa Interior Hombre: cada uno vive en su propia sección
 
 ## Carruseles del inicio y dónde quedan
 
