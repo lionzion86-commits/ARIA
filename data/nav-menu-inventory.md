@@ -1412,7 +1412,7 @@ Viven en su propia sección (no son enlaces de esta columna):
 
 ### Secciones
 
-- Ropa Interior Hombre: 1,607 · `/ropa-interior.html#hombre`
+- Ropa Interior Hombre: 1,604 · `/ropa-interior.html#hombre`
 - Zapatos de Hombre: 1,440 · `/departamento.html?dept=shoes_men`
 - Perfumes: 11,066 · `/departamento.html?dept=perfumes`
 - Lentes de Sol: 1,807 · `/departamento.html?dept=sunglasses`
@@ -5644,24 +5644,24 @@ Abre: `/departamento.html?dept=curvy` (7,850 productos)
 
 Abre: `/ropa-interior.html#mujer` (3,045 productos)
 
-### Lencería (775)
+### Lencería (776)
 
-- Sostenes: 404 · `/ropa-interior.html?ver=type:bra#mujer`
+- Sostenes: 405 · `/ropa-interior.html?ver=type:bra#mujer`
 - Panties: 188 · `/ropa-interior.html?ver=type:panty#mujer`
 - Lencería: 96 · `/ropa-interior.html?ver=type:lingerie#mujer`
 - Modeladores: 49 · `/ropa-interior.html?ver=type:shapewear#mujer`
 - Medias: 38 · `/ropa-interior.html?ver=type:socks#mujer`
 
-### Ropa Interior Hombre (191)
+### Ropa Interior Hombre (242)
 
-- Bóxer briefs: 67 · `/ropa-interior.html?ver=type:boxer_brief#hombre`
-- Briefs: 12 · `/ropa-interior.html?ver=type:brief#hombre`
+- Bóxer briefs: 76 · `/ropa-interior.html?ver=type:boxer_brief#hombre`
+- Briefs: 54 · `/ropa-interior.html?ver=type:brief#hombre`
 - Trunks: 1 · `/ropa-interior.html?ver=type:trunk#hombre`
 - Medias deportivas: 36 · `/ropa-interior.html?ver=type:sport#hombre`
 - Medias casuales: 66 · `/ropa-interior.html?ver=type:casual#hombre`
 - Medias de vestir: 9 · `/ropa-interior.html?ver=type:dress#hombre`
 
-### Marcas de lencería (775)
+### Marcas de lencería (776)
 
 - Victoria's Secret: 389 · `/ropa-interior.html?ver=brand:victoriassecret#mujer`
 - SKIMS: 155 · `/ropa-interior.html?ver=brand:skims#mujer`

@@ -230,7 +230,7 @@ export function normalizeCarolinaHerrera(rows) {
    ============================================================ */
 export function applySnipesPass(departments, passRows) {
   const bySku = new Map((passRows || []).filter((r) => r && r.sku).map((r) => [String(r.sku), r]));
-  const report = { sized: 0, onSale: 0, priceChanged: 0, stillPending: 0, notInPass: 0, left: {} };
+  const report = { sized: 0, onSale: 0, priceChanged: 0, stillPending: 0, notInPass: 0, soldOutSizes: 0, left: {} };
   const leave = (why) => { report.left[why] = (report.left[why] || 0) + 1; return false; };
   const clean = (l) => (Array.isArray(l) ? l.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : []);
   const money = (n) => Math.round(Number(n) * 100) / 100;
@@ -255,6 +255,16 @@ export function applySnipesPass(departments, passRows) {
         it.sizeSource = "snipes-pdp";
         delete it.sizesPending;
         report.sized++;
+        /* THE REST OF THE STORE'S RUN (#443, Danny's QA on #648: "shoes
+           that only have one size"). The page lists every size button;
+           the disabled ones are sold out at SNIPES. They ride as
+           `sizesOut` so the product page can show the whole run with
+           those sizes marked agotada -- never in `sizes`, so nothing can
+           sell them. */
+        const inSet = new Set(inStock);
+        const out = run.filter((s) => !inSet.has(s));
+        if (out.length) { it.sizesOut = out; report.soldOutSizes++; }
+        else delete it.sizesOut;
       } else if (it.sizesPending) report.stillPending++;
       return true;
     });
