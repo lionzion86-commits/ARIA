@@ -27,7 +27,8 @@
    ============================================================ */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { loadDept, inAudience, typeKeyOf, cardOf, deptStats, photosFirst, PAGE_SIZE, AUD, FN_DIR } from "./_department-core.js";
+import { loadDept, inAudience, typeKeyOf, cardOf, deptStats, photosFirst, PAGE_SIZE, AUD, FN_DIR, PLUS_DEPT } from "./_department-core.js";
+import { PLUS_LINGERIE_LEAD, leadFirst, isLingerieSet, isPlusSizeLabel } from "../../scripts/lib/plus-lingerie.js";
 
 const CANDIDATES = [
   process.env.LAMBDA_TASK_ROOT,
@@ -221,6 +222,11 @@ export function navFilter(key, f, sort = "deal", page = 0, roots = CANDIDATES) {
   else hits.sort((a, b) => ((b.p.salePct || 0) - (a.p.salePct || 0)) || (a.i - b.i));
   let list = hits.map((r) => r.p);
   if (sort === "deal") list = photosFirst(list);
+  /* LENCERÍA + TALLAS PLUS (Danny, #443 c.6621407508): lingerie in Tallas
+     Plus, or under a plus Talla (1X, 2XL, 16W ...), opens on Lane Bryant --
+     its lingerie is photographed on plus-size women. The curated order
+     only: a price sort stays a price sort. */
+  if (sort === "deal" && (key === PLUS_DEPT || (f.z && f.u !== "men" && isPlusSizeLabel(f.z))) && list.some((p) => p.retailer === PLUS_LINGERIE_LEAD) && isLingerieSet(list)) list = leadFirst(list);
   const pages = Math.ceil(list.length / PAGE_SIZE);
   const tl = f.t ? ((rows.find((r) => r.t.k === f.t) || {}).t || {}).label || "" : "";
   return {

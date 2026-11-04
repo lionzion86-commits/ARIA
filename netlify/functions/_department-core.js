@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { conditionOfTitle as conditionOfAnyTitle, CONDITION_LABELS } from "../../scripts/lib/condition.js";
 import { isIntimate } from "../../scripts/lib/section-allowlist.js";
+import { PLUS_LINGERIE_LEAD, leadFirst as plusLingerieFirst, isLingerieSet } from "../../scripts/lib/plus-lingerie.js";
 import { techAisle, isTechProduct, isAccessoryName, TECH_AISLE_LABELS, TECH_AISLE_ORDER, CONSOLE_RX, isConsole, isDrone, isDroneProduct, droneRank } from "../../scripts/lib/tech-aisle.js";
 
 export const PAGE_SIZE = 48;     // cards per "Ver todo" / "Mostrar más" slice
@@ -489,7 +490,9 @@ function brandTypeSections(list, apparel = false) {
   if (rest.length) secs.push({ key: "tipo:otros", title: "Más productos", items: rest });
   return (sales.length ? [{ key: "ofertas", title: "Ofertas", items: apparel ? clothesFirst(sales) : sales }] : []).concat(secs).map((x) => ({ ...x, items: photosFirst(x.items) }));
 }
-export function typeViewSections(list) {
+export function typeViewSections(list, dept = "") {
+  /* Tallas Plus opened on a lingerie type: Lane Bryant's rail first. */
+  if (plusLingerieView(dept, list)) return plusLingerieRailsFirst(typeViewSections(list));
   const known = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim()))).filter((g) => g.items.length >= BRAND_ROOM_MIN);
   if (known.length >= 2) return buildBrandRoomSections(list).map((x) => ({ ...x, items: photosFirst(x.items) }));
   const sales = list.filter((p) => p.salePct > 0);
@@ -498,6 +501,21 @@ export function typeViewSections(list) {
   const secs = sales.length ? [{ key: "ofertas", title: "Ofertas", items: sales }] : [];
   for (const [r, l] of [...by.entries()].sort((a, b) => b[1].length - a[1].length)) secs.push({ key: "tienda:" + r, title: r, items: l });
   return secs.map((x) => ({ ...x, items: photosFirst(x.items) }));
+}
+/* LENCERÍA + TALLAS PLUS (Danny, #443 c.6621407508): a Tallas Plus set
+   that is lingerie (scripts/lib/plus-lingerie.js, the section
+   allowlist's own test) opens on Lane Bryant -- its rail before every
+   other, Ofertas included, and its pieces first inside a mixed rail.
+   The head says so (lr: 1): the page keeps that order and does not lift
+   the Ofertas rail above it. */
+export function plusLingerieView(dept, list) {
+  return dept === PLUS_DEPT && (list || []).some((p) => p.retailer === PLUS_LINGERIE_LEAD) && isLingerieSet(list);
+}
+const isLeadRail = (s) => s.store === PLUS_LINGERIE_LEAD || s.key === "tienda:" + PLUS_LINGERIE_LEAD
+  || (s.items.length > 0 && s.items.every((p) => p.retailer === PLUS_LINGERIE_LEAD));
+export function plusLingerieRailsFirst(sections) {
+  const lead = sections.filter(isLeadRail);
+  return lead.concat(sections.filter((s) => !lead.includes(s)).map((s) => ({ ...s, items: plusLingerieFirst(s.items) })));
 }
 export function brandRoomPills(list) {
   const groups = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim()))).filter((g) => g.items.length >= BRAND_ROOM_MIN).slice(0, BRAND_ROOM_MAX);
@@ -1099,6 +1117,9 @@ function buildPlusSections(list) {
     /* Every product here is clothing (the membership rule); a word like
        "ring" or "pouch" in its name does not make it a jewellery rail. */
     for (const p of l) { let m = modaType(p) || "otros"; if (PLUS_NOT_CLOTHING.has(m)) m = "otros"; if (!by.has(m)) by.set(m, []); by.get(m).push(p); }
+    /* Her «Lencería» leads with Lane Bryant (Danny, #443 c.6621407508:
+       its lingerie is photographed on plus-size women). */
+    if (who === "mujer" && by.has("lenceria")) by.set("lenceria", plusLingerieFirst(by.get("lenceria"), { mix: true }));
     for (const [m, label] of labels) if (by.has(m)) sections.push({ key: "tipo:" + who + "-" + m, title: who === "hombre" ? label + " para hombre" : label, items: by.get(m) });
     if (by.has("otros")) sections.push({ key: "tipo:" + who + "-otros", title: who === "hombre" ? "Más ropa para hombre" : "Más ropa", items: by.get("otros") });
   }
@@ -1581,7 +1602,7 @@ export const AXIS_RAILS = 12, AXIS_MIN = 3;
 /* Por tipo / Por marca / Por tienda: one rail per type, brand or store
    with AXIS_MIN+ products, biggest first, at most AXIS_RAILS rails. Each
    rail's f is the Explorar todo filter that opens all of it. */
-export function axisRails(list, axis, labels = {}) {
+export function axisRails(list, axis, labels = {}, dept = "") {
   const groups = new Map();
   for (const p of list) {
     let k, title;
@@ -1596,7 +1617,7 @@ export function axisRails(list, axis, labels = {}) {
   return [...groups.values()].filter((g) => g.items.length >= AXIS_MIN)
     .sort((a, b) => (b.items.length - a.items.length) || (a.title < b.title ? -1 : 1))
     .slice(0, AXIS_RAILS)
-    .map((g) => ({ k: g.k, f, title: g.title, count: g.items.length, cards: (g.k === "drones" ? dronesOrder(axisOrder(g.items)) : axisOrder(g.items)).slice(0, RAIL_CARDS).map(cardOf) }));
+    .map((g) => ({ k: g.k, f, title: g.title, count: g.items.length, cards: (g.k === "drones" ? dronesOrder(axisOrder(g.items)) : axis === "tipo" && plusLingerieView(dept, g.items) ? plusLingerieFirst(axisOrder(g.items)) : axisOrder(g.items)).slice(0, RAIL_CARDS).map(cardOf) }));
 }
 /* ---------- THE ONE LANDING FORMAT (Danny, #443: "never again a side-by-side grid") ----------
    Every search landing, and every «Ver todo» of a carousel, is a railed
@@ -1610,6 +1631,8 @@ export function axisRails(list, axis, labels = {}) {
    every rail. */
 export const LANDING_MIN_SPLIT = 2;
 export function landingSections(items, { dept = "", labels = {}, title = "", ord = null } = {}) {
+  /* A Tallas Plus lingerie set opens on Lane Bryant's rail (#443 c.6621407508). */
+  if (plusLingerieView(dept, items)) return plusLingerieRailsFirst(landingSections(items, { labels, title, ord }));
   const order = ord || ((l) => l);
   const list = order(items.slice());
   const out = [];
@@ -1760,7 +1783,7 @@ export function answer(qs, roots) {
   if (qs.axis !== undefined && qs.axis !== "") {
     if (!["tipo", "marca", "tienda"].includes(qs.axis)) return { status: 404, body: { error: "Sin ese eje." } };
     const base = u ? d.list.filter((p) => inAudience(p, u)) : d.list;
-    return { status: 200, body: { dept: d.key, axis: qs.axis, u, rails: axisRails(base, qs.axis, d.labels) } };
+    return { status: 200, body: { dept: d.key, axis: qs.axis, u, rails: axisRails(base, qs.axis, d.labels, d.key) } };
   }
   /* ?ver=: the one landing format (landingSections). The store filter
      narrows the set after it is chosen: «tienda:walmart» stays Walmart's. */
@@ -1782,12 +1805,12 @@ export function answer(qs, roots) {
       const out = batchOf(sections, Number(qs.batch));
       return out ? { status: 200, body: out } : { status: 404, body: { error: "Sin más carruseles." } };
     }
-    return { status: 200, body: headOf(d.key, items, sections, d.labels, { r: store || "all", q, ver, ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
+    return { status: 200, body: headOf(d.key, items, sections, d.labels, { r: store || "all", q, ver, ...(plusLingerieView(d.key, items) ? { lr: 1 } : {}), ...(title ? { vt: title } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(items) }) };
   }
   const list = (r && r !== "all") || q.trim() || b || a || t || u ? filterList(d.list, { r, q, b, a, t, u }) : d.list;
   /* One type opened from its rail (the recursive «Ver todo»): the next
      grouping is the brand -- or the store, where brands are thin. */
-  let sections = t && !b ? typeViewSections(list) : buildSections(list, sectionOpts(d.key));
+  let sections = t && !b ? typeViewSections(list, d.key) : buildSections(list, sectionOpts(d.key));
   /* The Drones type page leads with DJI's aircraft and the pro makers (#443 c.6579603095). */
   if (t === "drones" && !b && list.length) sections = [{ key: "drones:lead", title: "Drones", items: dronesOrder(list) }]
     .concat(sections.map((s) => (s.key === "ofertas" ? { ...s, items: dronesOrder(s.items) } : s)));
@@ -1812,5 +1835,5 @@ export function answer(qs, roots) {
   /* tl: the type's Spanish name, for a landing on ?t= (the search router's
      type pages) -- the page shows it, never the slug. */
   const tl = t ? ((list.map(typeKeyOf).find((x) => x.k === t) || {}).label || "") : "";
-  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(list) }) };
+  return { status: 200, body: headOf(d.key, list, sections, d.labels, { r: r || "all", q, ...extra, ...(t && !b && plusLingerieView(d.key, list) ? { lr: 1 } : {}), ...(t ? { t } : {}), ...(tl ? { tl } : {}), ...(u ? { u } : {}), stats: deptStats(list) }) };
 }

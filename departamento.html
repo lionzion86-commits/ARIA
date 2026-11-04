@@ -987,6 +987,9 @@ function cardHTML(c){
   function liftSales(first){
     liftedRi = -1;
     if (!patterned || !salesTop) return first;
+    /* lr: the server's lead rail stays first (Lencería + Tallas Plus opens
+       on Lane Bryant, #443 c.6621407508): Ofertas keeps its place below. */
+    if (HEAD.lr){ salesTop.innerHTML = ''; hide(salesTop); return first; }
     var r = null;
     for (var i = 0; i < HEAD.rails.length; i++) if (/^Ofertas\b/.test(HEAD.rails[i].title)){ r = HEAD.rails[i]; break; }
     if (!r){ salesTop.innerHTML = ''; hide(salesTop); return first; }
