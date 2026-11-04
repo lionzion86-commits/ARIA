@@ -31,7 +31,7 @@
    storefront, a brand with a static marca.html head, a department of
    departamento.html and its type lenses can be a destination.
    ================================================================== */
-import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor, canonicalTokens, pairCount, dictWords } from "./_search-core.js";
+import { readRepoFile, equivalentQuery, isMarquee, cardOf, storeFor, canonicalTokens, pairCount, dictWords, coreWorldOf } from "./_search-core.js";
 
 export const DEST_FILE = "assets/search/destinations.json";
 export const CHOOSER_MAX = 4, ALT_MAX = 4, RAIL_ITEMS = 12;
@@ -131,6 +131,13 @@ export const PRODUCT_TYPES = {
   camaras: { dept: "electronics", ver: "pasillo:tech_camaras", sib: [["reacondicionados", "aisle:tech_camaras"]] },
   /* Drones, their own type (#443 c.6579603095): DJI's pro line leads it. */
   drones: { dept: "electronics", ver: "pasillo:tech_drones", sib: [["electronics", "pasillo:tech_camaras"]], phrase: true },
+  /* THE PRODUCT LEADS (#443 c.6620006778): a core product word opens
+     its own type, never the department home -- whose Ofertas opened
+     «tablet», «smartwatch» and «parlante» on car chargers and power
+     banks. */
+  tablets: { dept: "electronics", ver: "pasillo:tech_computadoras", q: "tablet", sib: [["electronics", "pasillo:tech_computadoras"], ["reacondicionados", "aisle:tech_computadoras"]] },
+  relojes: { dept: "electronics", ver: "pasillo:tech_relojes", sib: [["reacondicionados", "aisle:tech_relojes"], ["electronics", "pasillo:tech_celulares"]] },
+  parlantes: { dept: "electronics", ver: "pasillo:tech_audio", sib: [["electronics", "pasillo:tech_audifonos"], ["electronics", "pasillo:tech_auto"]] },
   monitores: { dept: "electronics", ver: "pasillo:tech_accesorios", q: "monitor", sib: [["electronics", "pasillo:tech_gaming", "monitor"], ["electronics", "pasillo:tech_computadoras"]] },
   champu: { dept: "cabello", ver: "tipo:champú y acondicionador", sib: [["cabello", "tipo:mascarillas"], ["beauty", "tipo:cuidado-del-cabello"]] },
   keratina: { dept: "cabello", ver: "tipo:keratina y alisados", sib: [["cabello", "tipo:reparación"], ["cabello", "tipo:mascarillas"]] },
@@ -154,6 +161,9 @@ export const PRODUCT_WORDS = {
   audifonos: "audifonos|audifono|audifonos inalambricos|audifonos bluetooth|auriculares|auricular|headphones|headphone|earbuds|earphones|headset|headsets",
   drones: "dron|drones|drone|drons|dji|drone dji|dron dji|drones dji|dji drone|dji drones|dji dron|cuadricoptero|cuadricopteros|cuadricopter|quadricoptero|quadcopter|quadcopters|quadrocopter|dron con camara|drone con camara|drone with camera|drones con camara|camera drone|drone camera|dorn|drom|drones fpv|fpv drone|drone fpv|dron fpv",
   camaras: "camara|camaras|camara fotografica|camaras fotograficas|camara digital|camaras digitales|camera|cameras|digital camera|digital cameras",
+  tablets: "tablet|tablets|tableta|tabletas|tablet android|tablets android|tableta android",
+  relojes: "smartwatch|smartwatches|smart watch|smart watches|reloj inteligente|relojes inteligentes|watch inteligente|watches inteligentes|reloj smart|relojes smart|smart band|smartband",
+  parlantes: "parlante|parlantes|parlante bluetooth|parlantes bluetooth|bocina|bocinas|bocina bluetooth|bocinas bluetooth|altavoz|altavoces|speaker|speakers|bluetooth speaker|bluetooth speakers|portable speaker",
   monitores: "monitor|monitores|monitor de computadora|monitor gamer|monitores gamer|computer monitor|computer monitors|gaming monitor|gaming monitors",
   champu: "champu|champus|champoo|shampoo|shampoos|shampu|shampo|champu y acondicionador|acondicionador|acondicionadores|conditioner|conditioners",
   keratina: "keratina|keratinas|keratin|queratina|alisado|alisados|alisado de keratina|alisado brasilero|alisado brasileno|tratamiento de keratina|brazilian blowout|keratin treatment|plancha|planchas|plancha de pelo|plancha de cabello|plancha para el pelo|plancha para cabello|planchas de pelo|flat iron|flat irons|hair straightener|hair straighteners",
@@ -743,6 +753,12 @@ function checked(D, dest, hits) {
 
 /* Store, brand and category read from the words alone. */
 function resolveDirect(D, query, words) {
+  /* A core product of one maker («iphone», «iphone 16 pro», «i phone»,
+     «celular iphone») is that maker's page focused on the product: the
+     product leads, its accessories follow, then the maker's rails per
+     store (_search-core.js coreWorldOf / worldAnswer; #443 c.6619999990). */
+  const cw = coreWorldOf(query);
+  if (cw) { const bk = cw.world.brands.find((b) => D.brands[b]); if (bk) return brandDest(D, bk, cw.shown); }
   /* A product word opens its type page (Danny's final ruling, c.6579541628):
      before a store, a brand or the department words -- "xbox" alone is
      the console, "celular" the Celulares page. */

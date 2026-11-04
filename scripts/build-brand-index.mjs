@@ -36,7 +36,7 @@ import { photoCount } from "./lib/photo-counts.js";
 import { productKeys, firstSighting } from "./lib/product-identity.js";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { FN_FILE, brandKeyOf, legacyKeyOf, plainKey, filterByBrand, headOf, fnRow } from "../netlify/functions/_brand-core.js";
-import { CATALOG_FILES as SEARCH_FILES, decodeEntities, inferBrands, knownBrands } from "./build-search-index.mjs";
+import { CATALOG_FILES as SEARCH_FILES, decodeEntities, inferBrands, knownBrands, correctBrands } from "./build-search-index.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 export const OUT_DIR = "assets/sections/marca";
@@ -136,6 +136,8 @@ export function loadAllItems(root = ROOT) {
 export function fillBrands(items, root = ROOT) {
   const rows = items.map((p) => ({ p, title: p.name, brand: p.brand }));
   inferBrands(rows, knownBrands(root.endsWith("/") ? root : root + "/"));
+  /* ...and a namesake's row its own maker (correctBrands: Apple Bottoms). */
+  correctBrands(rows);
   for (const r of rows) if (r.brand) r.p.brand = r.brand;
 }
 
