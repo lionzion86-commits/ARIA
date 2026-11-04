@@ -89,7 +89,7 @@ await check("static: every carousel's last card is a door or grows in place (rai
   assert.match(read("marca.html"), /function nextCardHTML\(r, shown\)/);
   assert.match(read("tienda.html"), /function slShowGroups\(query, title, back\)/);
   assert.match(read("tienda.html"), /function slGrow\(btn\)/);
-  assert.match(read("search.html"), /storeDoor\(store, STATE\.q\)/);
+  assert.match(read("search.html"), /storeDoor\(store, (l\.doorQ \|\| )?STATE\.q\)/);
   assert.match(read("assets/js/marca-focus.js"), /function storeDoor\(l\)/);
   assert.match(read("assets/js/dept-header.js"), /function axisDoor\(r\)/);
 });
