@@ -1158,12 +1158,9 @@ function addPartToCart(it, btn){
   if (btn){ btn.textContent = 'Agregado'; setTimeout(function(){ btn.textContent = 'Agregar al carrito'; }, 2500); }
   renderCartLink();
 }
+/* The count lives on the header cart now (assets/js/header-cart.js). */
 function renderCartLink(){
-  var a = $('cartLink');
-  if (!a) return;
-  var n = 0;
-  readCartLocal().forEach(function(x){ n += Math.max(0, Math.floor(Number(x && x.qty) || 0)); });
-  a.textContent = n ? 'Carrito (' + n + ')' : 'Carrito';
+  if (window.ariaHeaderCart) window.ariaHeaderCart();
 }
 var toastTimer = null;
 function toast(msg, withCart){
