@@ -288,14 +288,20 @@ await check("Montce naming: lifestyle frames are on-model, studio frames are the
   const todas = JSON.parse(readFileSync(join(ROOT, "assets/home/category-pills/bano-todas.json"), "utf8")).cards;
   assert.ok(!/studio/i.test(todas[0].image), "the Bikinis lead is a studio (product-on-white) frame: " + todas[0].image);
 });
-await check("models first where the data allows: Gym Rat and Fight Club open on a model shot inside their own rules; Beauty and Tenis carry none", () => {
+await check("models first where the data allows: Gym Rat and Fight Club open on a model shot inside their own rules; Beauty only Victoria's Secret's own frames, Tenis none", () => {
   const isModel = (c) => modelShot(c.retailer, c.image) === true;
   assert.ok(isModel(category.gym_rat[0]), "Gym Rat opens on " + category.gym_rat[0].image);
   const fight = category.combat_sports;
   const gi = fight.find((p) => p.retailer === "tatami");
   assert.ok(gi && isModel(gi), "Fight Club's Tatami gi is not on a model shot");
-  /* no model photography in the data: nothing is promoted on a guess */
-  for (const k of ["beauty"]) assert.ok(!category[k].slice(0, MODEL_SLOTS).some(isModel), k + " claims a model shot");
+  /* nothing is promoted on a guess. Beauty's only model photography is
+     Victoria's Secret's own frames (its _OM_ files, which reach Beauty
+     with its mists): one may lead in the shelf's own order, no other
+     store's card claims a model shot. */
+  for (const k of ["beauty"]) {
+    const m = category[k].slice(0, MODEL_SLOTS).filter(isModel);
+    assert.ok(m.every((c) => c.retailer === "victoriassecret"), k + " claims a model shot: " + m.map((c) => c.retailer).join(", "));
+  }
   assert.ok(!cardsOf("tenis-todas.json").slice(0, MODEL_SLOTS).some(isModel), "Tenis claims a model shot");
 });
 
