@@ -62,6 +62,7 @@ import { fileURLToPath } from "node:url";
 import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { stampHomePhotos } from "./stamp-home-photos.mjs";
 import vm from "node:vm";
+import { FIGHT_GEAR_CLASSES, FIGHT_GEAR_TYPES } from "../netlify/functions/_department-core.js";
 import { modelShot, modelPhotoOf } from "./lib/model-shot.mjs";
 import { lingerieSlotsFirst, PLUS_LINGERIE_LEAD } from "./lib/plus-lingerie.js";
 
@@ -86,14 +87,9 @@ const OWN_CATEGORY_DEPTS = new Set(["moms"]);
    with real fight gear"). The fight department's own product types --
    gloves, gis, belts, shin guards, fight shorts, rash guards -- in the
    order a pill rail shows them. A type, never a word in a title. */
-export const FIGHT_GEAR_CLASSES = [
-  ["guantes", ["BOXING_GLOVES", "boxing_gloves", "MMA_GLOVES", "UNDERGLOVES", "FOCUS_MITTS", "KICK_PADS", "hand_wraps", "BOXING_HAND_WRAPS", "BOXING_KITS", "BOXING_TRAINING"]],
-  ["gi", ["BJJ_GI", "BJJ_KIMONOS", "FLOW-TECH_BJJ_GIS", "BELT"]],
-  ["proteccion", ["SHIN_PADS", "SHIN_GUARDS", "PROTECTIVE_GEAR", "ANKLE_GUARD", "KNEE_PADS", "ELBOW_PADS", "GEAR", "BOXING_SHOES"]],
-  ["rashguard", ["RASH_GUARD", "SPATS"]],
-  ["shorts", ["fight_shorts", "MMA_SHORTS", "MUAY_THAI_SHORTS", "BOXING_SHORTS"]],
-];
-export const FIGHT_GEAR_TYPES = new Set(FIGHT_GEAR_CLASSES.flatMap(([, t]) => t));
+/* The list lives with the department rules (netlify/functions/
+   _department-core.js): the Fight Club department leads with the same gear. */
+export { FIGHT_GEAR_CLASSES, FIGHT_GEAR_TYPES };
 
 /* THE CAROUSELS, in page order. `host` is how the page finds the
    carousel: an existing rail row (data-category-rail-row="<row>"), the
