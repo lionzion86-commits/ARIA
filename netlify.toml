@@ -328,3 +328,11 @@
   to = "/404"
   status = 404
   force = true
+
+# THE VEHICLE (#443 c.6620267344): Aria Auto's one fitment view
+# (aria-auto.html?vy=&vmk=&vmd=[&t=]) and the «Tu vehículo» cards on the
+# auto parts department and the auto stores ask this function. It reads
+# the fitment (scripts/build-fitment.mjs) and the department's auto
+# parts on the server; the phone gets one page of cards and the counts.
+[functions."vehicle-fit"]
+  included_files = ["assets/sections/departamento/_fn/auto_parts.json", "assets/sections/departamento/_fn/auto_parts.fitment.json"]
