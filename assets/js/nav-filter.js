@@ -124,6 +124,8 @@
     KEYS.forEach(function(k){ if (S[k]) q += '&' + k + '=' + encodeURIComponent(S[k]); });
     if (FX) q += '&fx=' + FX.toFixed(2);
     if (page) q += '&page=' + page;
+    /* The vehicle (Año / Marca del vehículo / Modelo): assets/js/vehicle-fit.js. */
+    if (window.AriaVehicle) q += window.AriaVehicle.query();
     return ENDPOINT + q;
   }
   function run(page){
@@ -208,6 +210,7 @@
     D.watchPhotos(railEl);
     D.paintPrices(railEl);
     paintHero();
+    try { document.dispatchEvent(new CustomEvent('aria:nf-paint', { detail: DATA })); } catch(e){}
   }
   function paintHero(){
     var h = document.getElementById('heroTitle'), k = document.getElementById('heroKicker'), p = document.getElementById('heroDesc');
@@ -287,5 +290,6 @@
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDD(); });
   railEl.addEventListener('click', function(e){ if (e.target.closest('#nfMore')) { e.target.closest('#nfMore').disabled = true; run(PAGE + 1); } });
 
+  window.AriaNF = { run: function(){ run(0); } };
   getFx().then(function(fx){ FX = fx || 0; run(0); });
 })();

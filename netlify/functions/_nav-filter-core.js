@@ -67,6 +67,9 @@ export function styleLabel(tkey, k) {
   return r ? r[1] : "";
 }
 
+/* The vehicle filter (Año / Marca del vehículo / Modelo): _fitment-core.js. */
+import { fitList, fitMatcher, readVehicle } from "./_fitment-core.js";
+
 /* ---------- sizes ---------- */
 const trimZero = (n) => String(Number(n));
 /* One store size -> [{ z, side }] (side: "m" men, "w" women, "" both). */
@@ -179,13 +182,15 @@ export function navFilter(key, f, sort = "deal", page = 0, roots = CANDIDATES) {
   if (!d) return null;
   const sizes = loadSizes(key, roots) || [];
   const fx = f.fx || 0;
-  const rows = d.list.map((p, i) => {
+  const V = fitMatcher(key, f.v || {}, roots);
+  const rows = fitList(key, d.list, roots).map((p, i) => {
     const t = typeKeyOf(p);
     return { p, i, t, st: styleOf(p, t.k), b: brandKey(p), z: sizesFor(sizes[i], f.u), soles: fx ? p.rawPrice * fx : 0 };
   });
   const match = (r, skip) => {
     if (skip !== "u" && f.u && !inAudience(r.p, f.u)) return false;
     if (skip !== "t" && f.t && r.t.k !== f.t) return false;
+    if (skip !== "v" && V && !V.ok(r.p)) return false;
     if (skip !== "s" && skip !== "t" && f.s && r.st !== f.s) return false;
     if (skip !== "b" && f.b && r.b !== f.b) return false;
     if (skip !== "z" && f.z && !r.z.has(f.z)) return false;
@@ -228,12 +233,13 @@ export function navFilter(key, f, sort = "deal", page = 0, roots = CANDIDATES) {
     sl: f.s ? styleLabel(f.t, f.s) : "", sAll: f.t && STYLES[f.t] ? STYLES[f.t].all : "",
     count: list.length, page, pages, cards: list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(cardOf),
     facets, stats: deptStats(list),
+    ...(V ? { fit: V.answer(rows, (r) => match(r, "v"), cardOf) } : {}),
   };
 }
 
 export function answerNav(qs, roots) {
   const key = String(qs.dept || "");
-  const f = readFilters(qs);
+  const f = { ...readFilters(qs), v: readVehicle(qs) };
   const sort = NF_SORTS.some(([k]) => k === qs.sort) ? qs.sort : "deal";
   const out = navFilter(key, f, sort, Math.max(0, Math.min(500, Number(qs.page) || 0)), roots);
   return out ? { status: 200, body: out } : { status: 404, body: { error: "Departamento no encontrado." } };

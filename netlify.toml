@@ -160,7 +160,7 @@
 # Ofertas) from the same full card lists plus the stores' own size runs
 # (_fn/<dept>.sizes.json). The phone gets one page of cards and counts.
 [functions."nav-filter"]
-  included_files = ["assets/sections/departamento/_fn/*.json"]
+  included_files = ["assets/sections/departamento/_fn/*.json", "assets/sections/auto/_fn/fitment.json"]
 
 # Ofertas (2026-10-19, #409): ofertas.html paints its first 48 deals from
 # static slices (assets/ofertas/slices/); this answers "Mostrar más" and

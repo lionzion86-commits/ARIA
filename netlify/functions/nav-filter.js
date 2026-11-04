@@ -16,7 +16,7 @@ const json = (statusCode, body, cache) => ({
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     ...(cache
-      ? { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": cache, "Netlify-Vary": "query=dept|u|t|s|b|z|p|o|fx|sort|page" }
+      ? { "Cache-Control": "public, max-age=300", "Netlify-CDN-Cache-Control": cache, "Netlify-Vary": "query=dept|u|t|s|b|z|p|o|fx|sort|page|vy|vmk|vmd" }
       : { "Cache-Control": "no-store" }),
   },
   body: JSON.stringify(body),
