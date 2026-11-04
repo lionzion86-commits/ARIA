@@ -50,6 +50,8 @@ import { isOffSaleRetailer } from "./lib/off-sale.js";
 import { isDroneProduct, isNotElectronics } from "./lib/tech-aisle.js";
 import "../not-sold.js";
 const isNotSold = globalThis.AriaNotSold.isNotSold;
+import { BEAUTY_DEPT, BEAUTY_SCENT_DOOR } from "../netlify/functions/_department-core.js";
+import { beautyAisle } from "./lib/storefronts.js";
 import { PAGE_SIZE, RAIL_CARDS, HEAD_RAILS, RAIL_BATCH, FN_DIR, buildSections, sectionOpts, SHOE_DEPTS, TECH_DEPT, homeTechPills, hubLenses, perfumePills, brandRoomPills, BRAND_ROOMS, AUDIENCE_SHELVES, audiencePills, headOf, batchOf, batchCount, fnRow, labelsOf, conditionOfTitle, audienceSwitch, deptStats, typeKeyOf } from "../netlify/functions/_department-core.js";
 import { garmentAudience, storeAudiences } from "./lib/offer-category.js";
 import { isShoeForDept, isGarmentTail, footwearClass, shoeGender, isFootwear } from "./lib/footwear.js";
@@ -451,6 +453,7 @@ export function normalizeItem(raw, retailer, bucket, AriaSale) {
 export function loadRefiles(root = ROOT) {
   try { return JSON.parse(readFileSync(join(root, "scripts/data/reroute-refiles.json"), "utf8")); } catch { return {}; }
 }
+export const DEPT_HELD = new Set(["sephora"]);
 export function loadAllItems(root = ROOT) {
   const AriaSale = loadSaleRule(root);
   const REFILES = loadRefiles(root);
@@ -461,9 +464,19 @@ export function loadAllItems(root = ROOT) {
     if (!data || !data.retailers) continue;
     for (const rk of Object.keys(data.retailers)) {
       if (isOffSaleRetailer(rk)) continue;   /* /off-sale.js */
+      /* Sephora's whole catalogue reaches no department, as on main
+         before 2026-11-04 (its storefront stands): Danny's call. */
+      if (DEPT_HELD.has(rk)) continue;
       const buckets = (data.retailers[rk] || {}).departments || {};
       for (const bk of Object.keys(buckets)) {
-        const items = (buckets[bk] || {}).items || [];
+        /* A bucket is { items: [...] }, or a bare array: beauty-catalog.json
+           files Victoria's Secret's that way, so none of its 268 beauty
+           products reached Beauty and §8's «VS sprays first» had nothing
+           to lead with. A bare BEAUTY bucket is read now. Its clothing
+           (VS «women», 1,381) and Walmart's bare «mens» (376) stay out as
+           on main: they would lead Mujer and Tallas Plus -- Danny's call. */
+        const b = buckets[bk];
+        const items = Array.isArray(b) ? (BEAUTY_BUCKETS.has(bk) ? b : []) : (b || {}).items || [];
         for (const it of items) {
           let p;
           try { p = normalizeItem(it, rk, bk, AriaSale); } catch { p = null; }
@@ -544,6 +557,30 @@ export function perfumeDoorIndex(all) {
 }
 
 export const MEDIA_RX = /\b(dvd|blu-?ray|audio cd|music cd|the very best of|greatest hits|soundtrack|original motion picture)\b(?!\s*(players?|drives?|burners?|writers?|recorders?))|\[(dvd|blu-?ray|cd)\]/i;
+const BEAUTY_SPORT_TYPE_RX = /m[aá]scaras?\s+y\s+snorkels?|trajes?\s+de\s+neopreno|neopreno|wetsuits?|snorkel|f[uú]tbol|soccer/i;
+const BEAUTY_SPORT_TITLE_RX = /\b(snorkels?|goggles?|wetsuits?|dive\s+masks?|neoprene|spearfishing|fins)\b/i;
+export function isBeautySportGear(p) {
+  return BEAUTY_SPORT_TYPE_RX.test(String(p.type || "")) || BEAUTY_SPORT_TITLE_RX.test(String(p.title || ""));
+}
+const SUN_RX = /\b(sun\s*screens?|sunscreens?|spf\s*\d*|sun\s+sticks?|sunblock|zinc\s+oxide|after[- ]sun|aloe)\b/i;
+const LIP_RX = /\blip\s*(balms?|shimmers?|gloss|sticks?|care)?\b|\blips\b/i;
+const AISLE_TYPE = { maquillaje: "Maquillaje", piel: "Cuidado de la piel", cabello: "Cabello", cuerpo: "Cuidado corporal", unas: "Uñas", herramientas: "Herramientas de belleza" };
+export function beautyAisleType(p) {
+  const t = String(p.title || "");
+  if (SUN_RX.test(t)) return "Protector solar";
+  if (LIP_RX.test(t)) return "Labios";
+  return AISLE_TYPE[beautyAisle({ name: t })] || "";
+}
+const WOMENS_SCENT_STORES = new Set(["victoriassecret", "bathandbodyworks"]);
+const WOMENS_SCENT_RX = /\b(women'?s?|woman|for\s+her|pour\s+femme|femme|donna|mujer|ladies)\b/i;
+const MENS_SCENT_RX = /\b(him|homme|men'?s|for\s+men|cologne|colonia|uomo|hombre)\b/i;
+const SCENT_RX = /\b(shimmer\s+mists?|mini\s+mists?|mists?\s+(gift\s+)?sets?)\b/i;
+export function isWomensScent(p) {
+  const t = String(p.title || "");
+  if (MENS_SCENT_RX.test(t) || NOT_A_FRAGRANCE_RX.test(t) && !TRUE_FRAGRANCE_RX.test(t)) return false;
+  if (FRAGRANCE_BODY_CARE_RX.test(t) || /\blotions?\b|\bcreams?\b|\bwash\b/i.test(t)) return false;
+  return TRUE_FRAGRANCE_RX.test(t) || SCENT_RX.test(t) || productClass(p) === "perfumes";
+}
 export function deptItems(all, key) {
   const rule = resolveRule(DEPT_RULES[key], all);
   let list = all.filter((p) => belongsToDept(rule, p));
@@ -559,6 +596,26 @@ export function deptItems(all, key) {
       if (p.retailer === "ariaperfumes") return { ...p, type, ...(p.bucket ? { a: p.bucket } : {}) };
       const a = type === "Cuidado corporal" ? "cuidado" : doorOf(p);
       return { ...p, type, ...(a ? { a } : {}) };
+    });
+  }
+  /* ARIA BEAUTY (§8, #443 c.6504037778): sports gear out (snorkels, dive
+     masks, goggles, wetsuits, cloth face masks -- they stay in their own
+     departments); «Accesorios» is jewellery only, so a sunscreen or a
+     lip balm a surf shop typed «Accesorios» takes the aisle it is; a
+     women's scent (not a cologne, not «for him») is marked for the
+     «Perfumes y brumas» rail. */
+  if (key === BEAUTY_DEPT) {
+    /* Women's only when the data says so -- a women's house (Victoria's
+       Secret, Bath & Body Works), its own words, or its Aria Perfumes line
+       -- never guessed: Ulta's «Sauvage» or «1 Million» name no wearer and
+       stay in their own aisle. */
+    const doorOf = perfumeDoorIndex(all);
+    const isWomens = (p) => isWomensScent(p) && (WOMENS_SCENT_STORES.has(p.retailer) || WOMENS_SCENT_RX.test(String(p.title || "")) || doorOf(p) === "mujer");
+    list = list.filter((p) => !isBeautySportGear(p)).map((p) => {
+      let q = p;
+      if (/^(accesorios|accessories)$/i.test(String(p.type || "").trim()) && nameFamily(p) !== "joyas") q = { ...p, storeType: p.type, type: beautyAisleType(p) };
+      if (isWomens(q)) q = { ...q, a: BEAUTY_SCENT_DOOR };
+      return q;
     });
   }
   if (key === "home_goods") {

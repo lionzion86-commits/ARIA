@@ -411,6 +411,31 @@ export const HERO_LEAD = 12, SPRINKLE_EVERY = 4;
    its hero), Fútbol (goalkeeper gloves, match socks), Joyas or Lujo (bags
    and belts are the product). */
 export const APPAREL_ROOMS = new Set(["gym_rat"]);
+/* FIGHT GEAR FIRST (Danny's format plan, #443 c.6504037778 §7; Nov 2,
+   c.6567120876 item 8: "gloves, then gis/kimonos"). Aria Fight Club leads
+   with fight equipment -- gloves, gis, shin guards and pads, then fight
+   shorts and rash guards; workout apparel (tanks, leggings, joggers)
+   follows and never leads. The fight stores' own product types, never a
+   word in a title (the homepage carousel reads the same list,
+   scripts/build-home-category-pills.mjs). Every rail of the room --
+   Ofertas, each brand, Más marcas -- keeps its own order inside a class. */
+export const GEAR_ROOMS = new Set(["combat_sports"]);
+export const FIGHT_GEAR_CLASSES = [
+  ["guantes", ["BOXING_GLOVES", "boxing_gloves", "MMA_GLOVES", "UNDERGLOVES", "FOCUS_MITTS", "KICK_PADS", "hand_wraps", "BOXING_HAND_WRAPS", "BOXING_KITS", "BOXING_TRAINING"]],
+  ["gi", ["BJJ_GI", "BJJ_KIMONOS", "FLOW-TECH_BJJ_GIS", "BELT"]],
+  ["proteccion", ["SHIN_PADS", "SHIN_GUARDS", "PROTECTIVE_GEAR", "ANKLE_GUARD", "KNEE_PADS", "ELBOW_PADS", "GEAR", "BOXING_SHOES"]],
+  ["rashguard", ["RASH_GUARD", "SPATS"]],
+  ["shorts", ["fight_shorts", "MMA_SHORTS", "MUAY_THAI_SHORTS", "BOXING_SHORTS"]],
+];
+export const FIGHT_GEAR_TYPES = new Set(FIGHT_GEAR_CLASSES.flatMap(([, t]) => t));
+export function fightGearRank(p) {
+  const t = String((p && p.type) || "");
+  const i = FIGHT_GEAR_CLASSES.findIndex(([, ts]) => ts.includes(t));
+  return i < 0 ? FIGHT_GEAR_CLASSES.length : i;
+}
+export function gearFirst(items) {
+  return items.map((p, i) => ({ p, i, r: fightGearRank(p) })).sort((a, b) => (a.r - b.r) || (a.i - b.i)).map((x) => x.p);
+}
 export function clothesFirst(items) {
   const hero = [], small = [];
   for (const p of items) (SMALL_PIECE_RX.test(String(p.title || p.name || "")) ? small : hero).push(p);
@@ -423,8 +448,8 @@ export function clothesFirst(items) {
   }
   return out;
 }
-function buildBrandRoomSections(list, apparel = false) {
-  const lead = apparel ? clothesFirst : (l) => l;
+function buildBrandRoomSections(list, apparel = false, gear = false) {
+  const lead = gear ? gearFirst : apparel ? clothesFirst : (l) => l;
   const groups = perfumeBrands(list.filter((p) => !NOT_A_BRAND_RX.test(String(p.brand || "").trim())));
   /* One brand: the format one level down -- its Ofertas, then its types. */
   if (groups.length === 1 && groups[0].items.length === list.length) return brandTypeSections(list, apparel);
@@ -542,7 +567,8 @@ export function sectionOpts(key) {
   if (key === TECH_DEPT) return { tech: true };
   if (key === CABELLO_DEPT) return { cabello: true };
   if (key === "perfumes") return { perfume: true };
-  if (BRAND_ROOMS.has(key)) return { brandRoom: true, apparel: APPAREL_ROOMS.has(key) };
+  if (BRAND_ROOMS.has(key)) return { brandRoom: true, apparel: APPAREL_ROOMS.has(key), gear: GEAR_ROOMS.has(key) };
+  if (key === BEAUTY_DEPT) return { beauty: true };
   if (key === PLUS_DEPT) return { plus: true };
   if (key === REFURB_DEPT) return { refurb: true };
   return SHOE_DEPTS.has(key) ? { interleave: true, genderAisles: key === "shoes" } : {};
@@ -1397,6 +1423,36 @@ export function genderAisles(list) {
   return out;
 }
 
+/* ---------- ARIA BEAUTY (Danny's format plan, #443 c.6504037778 §8) ----------
+   A women's section. It opens with Ofertas, then «Perfumes y brumas» --
+   women's perfumes and body sprays, Victoria's Secret's sprays first --
+   then its aisles. A row's door `a` = BEAUTY_SCENT_DOOR marks a scent
+   (scripts/build-department-slices.mjs deptItems, which also keeps
+   snorkels, goggles, wetsuits and cloth face masks out, and gives a
+   non-jewel «Accesorios» row the aisle it is). The scents ride only in
+   their own rail. */
+export const BEAUTY_DEPT = "beauty";
+export const BEAUTY_SCENT_DOOR = "brumas";
+export const BEAUTY_SCENT_TITLE = "Perfumes y brumas";
+const VS_SPRAY_RX = /\bmists?\b|\bsprays?\b|\bspritz\b/i;
+export function beautyScentOrder(items) {
+  const rank = (p) => (p.retailer === "victoriassecret" ? (VS_SPRAY_RX.test(p.title || "") ? 0 : 1) : 2);
+  return items.map((p, i) => ({ p, i })).sort((a, b) => (rank(a.p) - rank(b.p)) || ((b.p.salePct > 0) - (a.p.salePct > 0)) || (a.i - b.i)).map((x) => x.p);
+}
+function buildBeautySections(list) {
+  const scents = list.filter((p) => p.a === BEAUTY_SCENT_DOOR);
+  const rest = list.filter((p) => p.a !== BEAUTY_SCENT_DOOR);
+  const base = buildSectionsRaw(rest, {});
+  const sales = list.filter((p) => p.salePct > 0).map((p, i) => ({ p, i }))
+    .sort((a, b) => (b.p.salePct - a.p.salePct) || (a.i - b.i)).map((x) => x.p);
+  const out = [];
+  if (sales.length) out.push({ key: "ofertas", title: "Ofertas", items: sales });
+  if (scents.length) out.push({ key: "tipo:perfumes-y-brumas", title: BEAUTY_SCENT_TITLE, items: beautyScentOrder(scents) });
+  for (const s of base) if (s.key !== "ofertas" && s.key !== "destacados") out.push(s);
+  if (!out.length) return base;
+  return out;
+}
+
 export function buildSections(list, opts = {}) {
   const secs = buildSectionsRaw(list, opts);
   for (const s of secs) {
@@ -1411,7 +1467,8 @@ function buildSectionsRaw(list, opts = {}) {
   if (opts.cabello) return buildCabelloSections(list);
   /* The Perfumes room is always the room, whatever store a bottle comes from. */
   if (opts.perfume) return buildPerfumeSections(list);
-  if (opts.brandRoom) return buildBrandRoomSections(list, opts.apparel);
+  if (opts.brandRoom) return buildBrandRoomSections(list, opts.apparel, opts.gear);
+  if (opts.beauty) return buildBeautySections(list);
   if (opts.plus) return buildPlusSections(list);
   if (opts.refurb) return buildRefurbSections(list);
   /* The Perfumes room is Aria Perfumes' stock; since the #443 re-route
