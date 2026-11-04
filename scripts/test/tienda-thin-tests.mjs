@@ -26,7 +26,8 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
-import { buildAll, tiendaStores, SLICES_DIR, FN_DIR, RAIL_HEAD, PAGE_SIZE, SLICED_STORES } from "../build-store-slices.mjs";
+import { buildAll, tiendaStores, SLICES_DIR, FN_DIR, RAIL_HEAD, PAGE_SIZE, SLICED_STORES, STORE_BRAND_RAILS, STORE_BRAND_MIN, VENDOR_CODE_RX, SELLER_RX, CODE_WORD_RX, storeHouse } from "../build-store-slices.mjs";
+import { STOREFRONTS } from "../lib/storefronts.js";
 import { answer, loadStore } from "../../netlify/functions/_tienda-core.js";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -148,12 +149,61 @@ await check("Más vendidos follows Ofertas where the store publishes demand; typ
     const ks = idx(k).rails.map((r) => r.key);
     assert.equal(ks[1], "masvendidos", `${k}: ${ks.join(",")}`);
   }
+  /* After the lead rails: the brand rows (format plan §2), then the types. */
   for (const k of keys.filter((x) => !SLICED_STORES[x])) {
     const ks = idx(k).rails.map((r) => r.key);
-    assert.ok(ks.slice(ks[1] === "masvendidos" ? 2 : 1).every((x) => x.startsWith("t-")), `${k}: ${ks.join(",")}`);
+    const after = ks.slice(ks[1] === "masvendidos" ? 2 : 1);
+    const nb = after.findIndex((x) => !x.startsWith("b-"));
+    const types = nb < 0 ? [] : after.slice(nb);
+    assert.ok(types.every((x) => x.startsWith("t-")), `${k}: ${ks.join(",")}`);
   }
-  /* CCS publishes no demand: no Más vendidos; its biggest aisle follows Ofertas (#443 c.6534989244). */
-  assert.ok(idx("ccs").rails[1].key.startsWith("t-") && idx("ccs").rails[1].key !== "t-mas", "CCS publishes no demand: no Más vendidos");
+  /* CCS publishes no demand: no Más vendidos; its brand rows follow Ofertas (#443 c.6534989244, §2). */
+  assert.ok(idx("ccs").rails[1].key.startsWith("b-"), "CCS publishes no demand: no Más vendidos; a skate shop of many brands opens its brand rows after Ofertas");
+});
+
+/* FORMAT PLAN §2 (#443 c.6504037778, re-applied 2026-11-04 c.6623383286
+   item 3): inside a multi-brand store, one carousel per brand. */
+await check("a multi-brand store opens its brand rows after the lead rails: biggest first, its markdowns leading", () => {
+  const generic = keys.filter((k) => !SLICED_STORES[k] && !STOREFRONTS[k] && idx(k).count);
+  for (const k of ["walmart", "dicks", "finishline", "ccs", "zumiez", "ssense", "revolve", "islandwatersports", "parrot", "footlocker"]) {
+    assert.ok(generic.includes(k), k);
+    assert.ok(idx(k).rails.filter((r) => r.key.startsWith("b-")).length >= 2, `${k} has no brand rows`);
+  }
+  for (const k of generic) {
+    const ix = idx(k), fn = loadStore(k, roots);
+    const brands = ix.rails.filter((r) => r.key.startsWith("b-"));
+    assert.ok(brands.length <= STORE_BRAND_RAILS, k);
+    let last = Infinity;
+    for (const r of brands) {
+      assert.ok(r.total >= STORE_BRAND_MIN && r.total <= last, `${k}/${r.key}: ${r.total}`);
+      last = r.total;
+      const rows = fn.rails[r.key].map((i) => fn.rows[i]);
+      assert.ok(rows.every((row) => String(row[1]).trim().toLowerCase() === r.title.toLowerCase()), `${k}/${r.key}: a product of another brand`);
+      const sale = rows.map((row) => row[4] > 0);
+      assert.ok(sale.indexOf(false) < 0 || sale.lastIndexOf(true) < sale.indexOf(false), `${k}/${r.key}: its markdowns do not lead`);
+    }
+  }
+  /* A single-house store has no brand rows: its types tell it. */
+  for (const k of ["victoriassecret", "youngla", "abercrombie", "skims"]) assert.ok(!idx(k).rails.some((r) => r.key.startsWith("b-")), k);
+  /* The 2026-11-01 storefronts keep Danny's locked order: Ofertas, then the categories. */
+  for (const k of Object.keys(STOREFRONTS).filter((x) => STORES[x] && existsSync(`${ROOT}${SLICES_DIR}/${x}/index.json`))) assert.ok(!idx(k).rails.some((r) => r.key.startsWith("b-")), k);
+});
+
+await check("a brand row is a brand: no vendor code, no marketplace seller, no buying code, not the store itself", () => {
+  for (const k of keys.filter((x) => !SLICED_STORES[x])) {
+    const { label, rails } = idx(k);
+    for (const r of rails.filter((x) => x.key.startsWith("b-"))) {
+      assert.doesNotMatch(r.title, VENDOR_CODE_RX, `${k}: ${r.title}`);
+      assert.doesNotMatch(r.title, SELLER_RX, `${k}: ${r.title}`);
+      assert.doesNotMatch(r.title, CODE_WORD_RX, `${k}: ${r.title}`);
+      assert.notEqual(r.title.toLowerCase(), String(label).toLowerCase(), `${k}: ${r.title}`);
+      assert.notEqual(r.title.toLowerCase(), storeHouse(label), `${k}: ${r.title}`);
+    }
+  }
+  /* Lucifer's (#443 c.6512244834) and BoxLunch's code. */
+  assert.ok(!idx("quietstorm").rails.some((r) => r.key.startsWith("b-")), "Quiet Storm's brands are buying codes");
+  assert.ok(!idx("walmartbaby").rails.some((r) => /^(walmart|spreetail|wisairtdirect)$/i.test(r.title)), "Walmart Bebé");
+  assert.ok(!idx("boxlunch").rails.some((r) => r.title === "LNGFYLN"), "BoxLunch");
 });
 
 await check("caps: 16 cards per rail on the first screen, 48 per page, first screen under 30KB gzipped", () => {
