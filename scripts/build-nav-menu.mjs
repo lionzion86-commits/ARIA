@@ -381,7 +381,7 @@ export function buildMenu(root = ROOT) {
        overlap (a unisex product is Mujer and Hombre; Zapatos para Mujer is
        another department than Mujer), no column shows a product number. */
     const parts = partitions(href, shown.filter((c) => !isBrandCol(c.h)).map((c) => c.href || ""));
-    if (!parts) for (const c of shown) if (!isBrandCol(c.h)) delete c.n;
+    for (const c of shown) if (!isBrandCol(c.h)) { if (parts) c.n = setOf(c.href).size; else delete c.n; }
     if (!parts && shown.some((c) => !isBrandCol(c.h))) notes.push(`${spec.label}: sus columnas se superponen (no suman ${num(n)}), no muestran número de productos`);
     for (const e of inv) { const c = shown.find((x) => x.h === e.h); e.n = c ? c.n : undefined; e.brands = isBrandCol(e.h); }
     tabs.push({ k: spec.k, label: spec.label, href, n, cols: shown });
